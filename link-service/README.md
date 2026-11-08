@@ -392,3 +392,7 @@ How the two ends use it, for speed (docs/verification/wire-latency.md has the me
   resumes instead of paying a full handshake.
 
 Tests: `pnpm vitest run link-service electron/vps-link.test.mjs` and `node --test electron/vps-link-*.node-test.mjs` from the repo root.
+
+## Account dashboard
+
+Set `OMB_LINK_DASHBOARD_URL` to advertise the hosted dashboard through `GET /.well-known/openmausbot/dashboard`.

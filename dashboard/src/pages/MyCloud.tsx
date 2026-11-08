@@ -1,182 +1,109 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { Camera, Download, ExternalLink, RefreshCw, RotateCcw } from "lucide-react";
-import { useStore } from "../data/store";
-import type { MachineSample } from "../data/types";
-import { date, dateTime, time, until } from "../lib/format";
-import { setQuery, useLocation } from "../lib/router";
-import { LineChart } from "../ui/charts";
-import { Button, ButtonLink, Card, CardHead, Field, Input, KV, Pill, Segmented, Select, SubHead } from "../ui/kit";
-import { Mascot } from "../ui/Mascot";
-import { ConfirmDialog } from "../ui/overlays";
+import type { ReactNode } from "react";
+import type { ComputerReport, WorkspaceDetail } from "../../../shared/dashboard-protocol";
+import { useSession } from "../data/session";
+import { ago, bytes, duration, percent, rate } from "../lib/format";
+import { Badge, Bar, Card, cx, FreshnessTag, KV, PageHeader, SectionTitle } from "../ui/kit";
+import { BotMascot } from "../ui/Mascot";
+import { Spark } from "../ui/Spark";
+import { ComputerActions, StatePill } from "./Bots";
+import { WorkspaceGate } from "./common";
 
-type Tab = "overview" | "power" | "backups" | "settings";
-type Span = "24h" | "7d" | "30d";
-const HOURS: Record<Span, number> = { "24h": 24, "7d": 168, "30d": 720 };
-
-function bucket(samples: MachineSample[], every: number) {
-  const out: MachineSample[] = [];
-  for (let i = 0; i < samples.length; i += every) {
-    const part = samples.slice(i, i + every);
-    const avg = (k: keyof MachineSample) => part.reduce((s, p) => s + p[k], 0) / part.length;
-    out.push({ t: part[0]!.t, cpu: avg("cpu"), mem: avg("mem"), disk: avg("disk"), netMbps: avg("netMbps") });
-  }
-  return out;
-}
-
-function Metrics() {
-  const { data } = useStore();
-  const [span, setSpan] = useState<Span>("24h");
-  const { now, prev, labels } = useMemo(() => {
-    const all = data.machine.samples;
-    const n = HOURS[span];
-    const every = span === "24h" ? 1 : span === "7d" ? 4 : 12;
-    const cur = bucket(all.slice(-n), every);
-    const before = all.length >= n * 2 ? bucket(all.slice(-n * 2, -n), every) : null;
-    const fmt = (t: number) => (span === "24h" ? time(t) : date(t));
-    return { now: cur, prev: before, labels: cur.map((s) => fmt(s.t)) };
-  }, [data.machine.samples, span]);
-  const pctFmt = (v: number) => `${Math.round(v)}%`;
-  const chart = (key: keyof MachineSample, title: string, format: (v: number) => string, max?: number, axis?: (v: number) => string) => (
-    <Card>
-      <CardHead title={title}><span className="num text-13 font-medium">{format(now[now.length - 1]![key])}</span></CardHead>
-      <div className="px-3 pb-3">
-        <LineChart label={`${title} over the last ${span}`} labels={labels} format={format} axis={axis} max={max} height={150}
-          series={[{ label: "Now", values: now.map((s) => s[key]) }, ...(prev ? [{ label: "Period before", values: prev.map((s) => s[key]), dotted: true }] : [])]} />
-      </div>
+function Metric({ label, value, sub, children }: { label: string; value: ReactNode; sub?: ReactNode; children: ReactNode }) {
+  return (
+    <Card className="flex min-w-0 flex-col !p-5">
+      <div className="text-13 text-ink-3">{label}</div>
+      <div className="num swap mt-1.5 truncate text-20 font-medium tracking-[-0.01em] text-ink">{value}</div>
+      <div className="mt-0.5 h-4 truncate text-12 text-ink-4">{sub}</div>
+      <div className="mt-auto pt-4">{children}</div>
     </Card>
   );
-  return (
-    <>
-      <SubHead title="Health">
-        <Segmented size="sm" label="Time span" value={span} onChange={setSpan} options={[{ value: "24h", label: "24 hours" }, { value: "7d", label: "7 days" }, { value: "30d", label: "30 days" }]} />
-      </SubHead>
-      <div className="grid gap-4 md:grid-cols-2">
-        {chart("cpu", "CPU", pctFmt, 100)}
-        {chart("mem", "Memory", pctFmt, 100)}
-        {chart("disk", "Disk", pctFmt, 100)}
-        {chart("netMbps", "Network", (v) => `${v.toFixed(1)} Mb/s`, undefined, (v) => `${Math.round(v)}`)}
-      </div>
-      <p className="mt-3 text-12 text-ink-3">Times are in your timezone. The dotted line is the period before. A gap would mean the machine was off; there are none.</p>
-    </>
-  );
 }
 
-function PowerRow({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
+function ComputerRow({ c, detail, now }: { c: ComputerReport; detail: WorkspaceDetail; now: number }) {
+  const bot = detail.report?.bots?.find((b) => b.id === c.botId) ?? null;
+  const mem = c.memoryBytes !== null && c.memoryLimitBytes ? (c.memoryBytes / c.memoryLimitBytes) * 100 : null;
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-row px-4 py-4 last:border-0">
-      <div className="min-w-[240px] flex-1"><p className="text-14 font-medium">{title}</p><div className="mt-0.5 text-13 text-ink-3">{children}</div></div>
-      {action}
-    </div>
+    <li className="grid grid-cols-[minmax(0,1fr)_110px_160px_auto] items-center gap-4 py-3 max-md:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="flex min-w-0 items-center gap-3">
+        {bot ? <BotMascot bot={bot} size={30} /> : <span className="size-[30px] shrink-0 rounded-full bg-card-2" aria-hidden />}
+        <div className="min-w-0">
+          <div className="truncate text-14 text-ink">{c.botName ?? c.name}</div>
+          <div className="truncate text-13 text-ink-3">{c.state === "running" ? `Up · last used ${ago(c.lastUsedAt, now)}` : c.lastUsedAt ? `Last used ${ago(c.lastUsedAt, now)}` : c.name}</div>
+        </div>
+      </div>
+      <div className="max-md:hidden"><StatePill state={c.state} /></div>
+      <div className="min-w-0 max-md:hidden">
+        <div className="num truncate text-13 text-ink-2">{c.memoryBytes !== null ? `${bytes(c.memoryBytes)}${c.memoryLimitBytes ? ` of ${bytes(c.memoryLimitBytes, 0)}` : ""}` : c.state === "running" ? "Reading memory" : "No memory in use"}</div>
+        {mem !== null && <Bar value={mem} className="mt-2" label={`${c.botName ?? c.name} memory used`} />}
+      </div>
+      <div className="flex justify-end">{c.botId ? <ComputerActions bot={{ id: c.botId, name: c.botName ?? c.name }} computer={c} /> : null}</div>
+    </li>
   );
 }
 
 export function MyCloudPage() {
-  const { data, toast } = useStore();
-  const { query } = useLocation();
-  const tab = (query.get("tab") ?? "overview") as Tab;
-  const m = data.machine;
-  const last = m.samples[m.samples.length - 1]!;
-  const up = Math.floor((data.now - m.startedAt) / 86_400_000);
-  const free = Math.round(m.size.diskGb * (1 - last.disk / 100));
-  const [confirm, setConfirm] = useState<null | "reset" | "delete" | { restore: string }>(null);
-  const [name, setName] = useState(m.name);
-  const [updateWin, setUpdateWin] = useState(m.updateWindow);
+  const { now, workspace } = useSession();
   return (
-    <>
-      <header className="flex flex-wrap items-center gap-4 pb-6">
-        <span className="flex size-14 items-center justify-center rounded-card border border-line bg-surface shadow-card"><Mascot color="blue" body="cloud" size={40} state="humming" label="My Cloud" /></span>
-        <div className="min-w-[180px] flex-1">
-          <h1 className="flex items-center gap-2 text-24 font-semibold tracking-[-0.4px]">My Cloud <Pill tone="good" dot>Running</Pill></h1>
-          <p className="mt-1 truncate font-mono text-12 text-ink-3">{m.host}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button icon={RefreshCw} onClick={() => toast("Restarting My Cloud. Running turns finish first; back in about a minute.")}>Restart</Button>
-          <ButtonLink to="openmausbot://cloud" external variant="primary" icon={ExternalLink}>Open in the app</ButtonLink>
-        </div>
-      </header>
-
-      <Card className="relative overflow-hidden">
-        <img src="/art/sky-meadow.webp" alt="" className="pointer-events-none absolute inset-y-0 end-0 h-full w-1/2 object-cover object-top opacity-90 [mask-image:linear-gradient(90deg,transparent,black_60%)] max-md:hidden" />
-        <div className="relative grid gap-6 p-5 md:grid-cols-2">
-          <div>
-            <p className="text-18 font-medium">Healthy.</p>
-            <p className="mt-1 max-w-[46ch] text-14 text-ink-2">{Math.round(last.mem)}% memory in use, {free} GB of disk free, up {up} days. Your six bots and two computers live here.</p>
-            <dl className="mt-4 max-w-[420px] rounded-[10px] bg-surface/90">
-              <KV label="Region">{m.region}</KV>
-              <KV label="Size">{m.size.vcpu} vCPU, {m.size.ramGb} GB memory, {m.size.diskGb} GB disk</KV>
-              <KV label="Version">{m.version}</KV>
-              <KV label="Next update">{dateTime(m.nextUpdateAt)}, {until(m.nextUpdateAt, data.now)}</KV>
-            </dl>
-          </div>
-        </div>
-      </Card>
-
-      <div className="mt-6">
-        <Segmented label="My Cloud sections" value={tab} onChange={(t) => setQuery({ tab: t === "overview" ? null : t })}
-          options={[{ value: "overview", label: "Overview" }, { value: "power", label: "Power and updates" }, { value: "backups", label: "Backups" }, { value: "settings", label: "Settings" }]} />
-      </div>
-
-      {tab === "overview" && <Metrics />}
-
-      {tab === "power" && (
-        <Card className="mt-4">
-          <PowerRow title="Restart" action={<Button icon={RefreshCw} onClick={() => toast("Restarting My Cloud. Back in about a minute.")}>Restart</Button>}>Bots pause for about a minute. Turns already running finish first.</PowerRow>
-          <PowerRow title="Sleep">My Cloud stays on all the time; it is what your plan pays for. Bot computers sleep on their own when idle.</PowerRow>
-          <PowerRow title="Updates" action={<Button onClick={() => toast("Updating now. Your files and logins stay.")}>Update now</Button>}>
-            <span className="mt-2 flex max-w-[320px] flex-col gap-1.5">
-              <label htmlFor="win" className="text-13 font-medium text-ink">Update window</label>
-              <Select id="win" value={updateWin} onChange={(e) => { setUpdateWin(e.target.value); toast(`Updates run ${e.target.value.toLowerCase()}`); }}>
-                {["Sundays, 4:00 to 5:00", "Every night, 3:00 to 4:00", "Saturdays, 2:00 to 3:00", "Only when I press Update now"].map((w) => <option key={w}>{w}</option>)}
-              </Select>
-            </span>
-          </PowerRow>
-          <PowerRow title="Reset from snapshot" action={<Button variant="danger" icon={RotateCcw} onClick={() => setConfirm("reset")}>Reset</Button>}>Rebuilds My Cloud from last night's snapshot. Anything changed since then is lost.</PowerRow>
-        </Card>
-      )}
-
-      {tab === "backups" && (
-        <Card className="mt-4">
-          <CardHead title="Snapshots"><Button size="sm" icon={Camera} onClick={() => toast("Taking a snapshot. It shows here in a few minutes.")}>Take one now</Button></CardHead>
-          <ul className="px-4 pb-2">
-            {m.snapshots.map((s, i) => (
-              <li key={s.id} className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 border-b border-row py-2 last:border-0">
-                <span className="min-w-0 flex-1 text-13"><span className="font-medium">{dateTime(s.at)}</span>{i === 0 && <span className="ms-2 text-12 text-ink-3">latest</span>}</span>
-                <Pill tone={s.kind === "manual" ? "accent" : "neutral"}>{s.kind === "manual" ? "Taken by you" : "Nightly"}</Pill>
-                <span className="num w-16 text-end text-13 text-ink-3">{s.sizeGb} GB</span>
-                <Button size="sm" onClick={() => setConfirm({ restore: s.id })}>Restore</Button>
-                <Button size="sm" variant="ghost" icon={Download} aria-label={`Download snapshot from ${dateTime(s.at)}`} onClick={() => toast("Preparing the download. We'll email a link.")}>Download</Button>
-              </li>
-            ))}
-          </ul>
-          <p className="border-t border-row px-4 py-3 text-12 text-ink-3">Nightly snapshots are kept for 7 days and are included in your plan.</p>
-        </Card>
-      )}
-
-      {tab === "settings" && (
-        <>
-          <Card className="mt-4 p-4">
-            <form className="grid max-w-[560px] gap-4" onSubmit={(e) => { e.preventDefault(); toast("Saved"); }}>
-              <Field label="Name" hint="Only you see this.">{(id, d) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} aria-describedby={d} />}</Field>
-              <Field label="Region" hint="Moving regions copies everything to a new machine; ask in the app.">{(id, d) => <Input id={id} value={m.region} disabled aria-describedby={d} />}</Field>
-              <div><Button type="submit" variant="primary" disabled={name === m.name}>Save</Button></div>
-            </form>
-          </Card>
-          <SubHead title="Danger zone" />
-          <Card className="border-[#f1d2d2]">
-            <PowerRow title="Delete My Cloud" action={<Button variant="danger" onClick={() => setConfirm("delete")}>Delete machine</Button>}>Deletes the machine, its snapshots and both bot computers. Your plan ends at renewal.</PowerRow>
-          </Card>
-        </>
-      )}
-
-      <ConfirmDialog open={confirm === "reset"} onClose={() => setConfirm(null)} title="Reset My Cloud from last night's snapshot?" action="Reset"
-        consequences={["Changes made since the snapshot", "Apps and packages installed since then"]} keeps={["Your bots, chats, files and logins up to the snapshot", "Invoices and usage history"]}
-        onConfirm={() => toast("Resetting from the snapshot. Bots are back in a few minutes.")} />
-      <ConfirmDialog open={typeof confirm === "object" && confirm !== null} onClose={() => setConfirm(null)} title="Restore this snapshot?" action="Restore"
-        consequences={["Everything changed on My Cloud after this snapshot"]} keeps={["A snapshot of right now, taken first, so you can undo"]}
-        onConfirm={() => toast("Restoring. We took a snapshot of now first.")} />
-      <ConfirmDialog open={confirm === "delete"} onClose={() => setConfirm(null)} title="Delete My Cloud?" word="delete" action="Delete machine"
-        consequences={["The machine and everything on it", "All snapshots", "Both bot computers and their files"]} keeps={["Your account, balance and invoices", "Bots and chats on your own computers"]}
-        onConfirm={() => toast("My Cloud is scheduled for deletion. You have 7 days to undo from the app.")} />
-    </>
+    <div>
+      <PageHeader
+        title="My Cloud"
+        sub={workspace ? <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">{workspace.name}<FreshnessTag freshness={workspace.freshness} at={workspace.lastReportAt} now={now} /></span> : "Your server, live."}
+      />
+      <WorkspaceGate>
+        {(detail) => {
+          const m = detail.report?.machine;
+          const h = detail.history;
+          const computers = detail.report?.computers;
+          if (!m) return <Card><p className="text-14 text-ink-3">This workspace has not sent machine stats yet.</p></Card>;
+          const memPct = (m.memory.usedBytes / Math.max(1, m.memory.totalBytes)) * 100;
+          const diskPct = m.disk ? (m.disk.usedBytes / Math.max(1, m.disk.totalBytes)) * 100 : 0;
+          return (
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-2">
+                <Metric label="CPU" value={percent(m.cpu.percent)} sub={`Load ${m.cpu.load.map((l) => l.toFixed(2)).join(" ")}`}><Spark values={h.map((s) => s.cpu)} max={100} /></Metric>
+                <Metric label="Memory" value={percent(memPct)} sub={`${bytes(m.memory.usedBytes)} of ${bytes(m.memory.totalBytes)}`}><Spark values={h.map((s) => s.mem)} max={100} /></Metric>
+                <Metric label="Disk" value={m.disk ? percent(diskPct) : "n/a"} sub={m.disk ? `${bytes(m.disk.usedBytes)} of ${bytes(m.disk.totalBytes)}` : undefined}>
+                  <div className="flex h-10 items-end"><Bar value={diskPct} className="w-full" tone={diskPct > 90 ? "warn" : "ink"} label="Disk used" /></div>
+                </Metric>
+                <Metric label="Network" value={m.network ? rate(m.network.rxBytesPerSec) : "n/a"} sub={m.network ? `${rate(m.network.txBytesPerSec)} out` : undefined}><Spark values={h.map((s) => s.rx)} /></Metric>
+              </div>
+              <div className="grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+                <Card>
+                  <SectionTitle action={m.update?.available ? <Badge tone="accent">Update {m.update.latest} ready</Badge> : <Badge>Up to date</Badge>}>Server</SectionTitle>
+                  <dl className="divide-y divide-line">
+                    <KV k="Machine uptime" v={duration(m.uptimeSec)} />
+                    <KV k="OpenMausBot running for" v={duration(m.processUptimeSec)} />
+                    <KV k="Host" v={`${m.host.hostname} · ${m.host.platform} ${m.host.arch}`} />
+                    <KV k="Processor" v={`${m.host.cpus} ${m.host.cpus === 1 ? "core" : "cores"}${m.host.cpuModel ? ` · ${m.host.cpuModel}` : ""}`} />
+                    <KV k="Version" v={`${m.app.version} · Node ${m.app.node}`} />
+                  </dl>
+                  {m.update?.available && m.update.how && <p className="mt-4 text-13 leading-[1.5] text-ink-3">{m.update.how}</p>}
+                </Card>
+                <Card>
+                  <SectionTitle>Services</SectionTitle>
+                  <ul className="divide-y divide-line">
+                    {m.services.map((s) => (
+                      <li key={s.id} className="flex items-center gap-3 py-2.5">
+                        <span className={cx("live-dot", s.state === "running" ? "text-good" : s.state === "stopped" ? "text-bad" : "text-ink-4")} aria-hidden />
+                        <span className="min-w-0 flex-1 truncate text-14 text-ink">{s.name}</span>
+                        <span className="truncate text-13 text-ink-3">{s.state === "running" ? "Running" : s.state === "stopped" ? "Stopped" : "Unknown"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </div>
+              <Card aria-labelledby="computers-title">
+                <SectionTitle id="computers-title" action={computers ? <span className="text-13 text-ink-3">{computers.computers.filter((c) => c.state === "running").length} running</span> : null}>Bot computers</SectionTitle>
+                {computers?.computers.length ? (
+                  <ul className="divide-y divide-line">{computers.computers.map((c) => <ComputerRow key={c.id} c={c} detail={detail} now={now} />)}</ul>
+                ) : (
+                  <p className="text-14 text-ink-3">{computers?.provider === "none" ? "No bot computers on this workspace. Give a bot a computer in the app's bot settings." : "No bot computers yet. They appear once a bot uses its computer."}</p>
+                )}
+              </Card>
+            </div>
+          );
+        }}
+      </WorkspaceGate>
+    </div>
   );
 }

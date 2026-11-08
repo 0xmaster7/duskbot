@@ -3280,7 +3280,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8986,7 +8988,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12190,7 +12194,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -15390,7 +15396,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -21701,7 +21709,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -27854,7 +27864,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -34768,7 +34780,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -39542,7 +39556,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -43130,7 +43146,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -48358,7 +48376,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -53586,7 +53606,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -59865,7 +59887,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -66158,7 +66182,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -72273,7 +72299,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -79006,7 +79034,9 @@
       "call.saySomething": "fd8c1cd4ac21da8c6a8f8f1934a6c44cf7be770b11b7df22ed455fb169c2ed54",
       "call.retryMicrophone": "ab8814a58caf78535500833740f619a8deaa3d76aa5d629d4c9fc5d90afdc7aa",
       "call.interrupt": "b62523141249e0f2b5370aa7b791e71304e64eb4de37108905b9e2bea71c49f6",
-      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459"
+      "call.shortcuts": "22f769f0c8c39130bafeb7319c918b4ac115788e313f1c4cdfd19d343ff0e459",
+      "sidebar.menu.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0",
+      "mobile.settings.accountDashboard": "31ff16a282dc76a158f0055204ca6d6e17532df9c3e47f4e8d583dcd6220a7f0"
     }
   }
 }

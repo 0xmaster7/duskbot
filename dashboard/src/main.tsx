@@ -1,71 +1,61 @@
 import { lazy, StrictMode, Suspense, useEffect, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { DashboardProvider, useStore } from "./data/store";
-import { scrollToHash, useLocation } from "./lib/router";
-import { Shell } from "./ui/Shell";
-import { Skeleton } from "./ui/kit";
-import { EmptyState } from "./ui/Mascot";
+import { SessionProvider, useSession } from "./data/session";
+import { useLocation } from "./lib/router";
+import { initTheme } from "./lib/theme";
 import { ButtonLink } from "./ui/kit";
+import { Shell } from "./ui/Shell";
+import { SkyEmpty } from "./ui/Sky";
+import { LoadingPage } from "./pages/common";
+import { ClaimPage, ConnectPage, stashClaim } from "./pages/Connect";
+import { OverviewPage } from "./pages/Overview";
+import { SignInScreen } from "./pages/SignIn";
 import "./app.css";
 
-const HomePage = lazy(() => import("./pages/Home").then((m) => ({ default: m.HomePage })));
 const BotsPage = lazy(() => import("./pages/Bots").then((m) => ({ default: m.BotsPage })));
 const BotPage = lazy(() => import("./pages/Bots").then((m) => ({ default: m.BotPage })));
 const MyCloudPage = lazy(() => import("./pages/MyCloud").then((m) => ({ default: m.MyCloudPage })));
-const ComputersPage = lazy(() => import("./pages/Computers").then((m) => ({ default: m.ComputersPage })));
+const DevicesPage = lazy(() => import("./pages/Devices").then((m) => ({ default: m.DevicesPage })));
 const UsagePage = lazy(() => import("./pages/Usage").then((m) => ({ default: m.UsagePage })));
 const BillingPage = lazy(() => import("./pages/Billing").then((m) => ({ default: m.BillingPage })));
-const ProfilePage = lazy(() => import("./pages/AccountSecurity").then((m) => ({ default: m.ProfilePage })));
-const SecurityPage = lazy(() => import("./pages/AccountSecurity").then((m) => ({ default: m.SecurityPage })));
-const ConnectionsPage = lazy(() => import("./pages/AccountMore").then((m) => ({ default: m.ConnectionsPage })));
-const NotificationsPage = lazy(() => import("./pages/AccountMore").then((m) => ({ default: m.NotificationsPage })));
-const PrivacyPage = lazy(() => import("./pages/AccountMore").then((m) => ({ default: m.PrivacyPage })));
+const SettingsPage = lazy(() => import("./pages/Settings").then((m) => ({ default: m.SettingsPage })));
+
+initTheme();
+stashClaim();
 
 const TITLES: Record<string, string> = {
-  "/": "Home", "/bots": "Bots", "/cloud": "My Cloud", "/cloud/computers": "Bot computers", "/usage": "Usage", "/billing": "Billing",
-  "/account/profile": "Profile", "/account/security": "Security & devices", "/account/connections": "Connections",
-  "/account/notifications": "Notifications", "/account/privacy": "Data & privacy",
+  "/": "Overview", "/bots": "Bots", "/cloud": "My Cloud", "/devices": "Devices", "/usage": "Usage", "/billing": "Billing",
+  "/settings": "Settings", "/connect": "Connect a workspace", "/claim": "Connect a workspace",
 };
 
 function route(path: string): ReactNode {
-  if (path === "/") return <HomePage />;
+  if (path === "/") return <OverviewPage />;
   if (path === "/bots") return <BotsPage />;
   const bot = /^\/bots\/([^/]+)$/.exec(path);
   if (bot) return <BotPage id={decodeURIComponent(bot[1]!)} />;
   if (path === "/cloud") return <MyCloudPage />;
-  if (path === "/cloud/computers") return <ComputersPage />;
+  if (path === "/devices") return <DevicesPage />;
   if (path === "/usage") return <UsagePage />;
   if (path === "/billing") return <BillingPage />;
-  if (path === "/account" || path === "/account/profile") return <ProfilePage />;
-  if (path === "/account/security") return <SecurityPage />;
-  if (path === "/account/connections") return <ConnectionsPage />;
-  if (path === "/account/notifications") return <NotificationsPage />;
-  if (path === "/account/privacy") return <PrivacyPage />;
-  return <EmptyState state="confused" title="This page wandered off" action={<ButtonLink to="/" variant="primary">Go home</ButtonLink>}>Nothing lives at {path}. The sidebar has every page.</EmptyState>;
-}
-
-function Loading() {
-  return (
-    <div aria-busy="true" aria-label="Loading your dashboard">
-      <Skeleton className="h-[230px] rounded-card" />
-      <div className="mt-4 grid gap-4 md:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-[250px] rounded-card" />)}</div>
-      <Skeleton className="mt-4 h-[200px] rounded-card" />
-    </div>
-  );
+  if (path === "/settings") return <SettingsPage />;
+  if (path === "/connect") return <ConnectPage />;
+  if (path === "/claim") return <ClaimPage />;
+  return <SkyEmpty title="Nothing lives here" action={<ButtonLink to="/" variant="primary">Go to overview</ButtonLink>}>There is no page at {path}. The sidebar has every page.</SkyEmpty>;
 }
 
 function App() {
   const { path } = useLocation();
-  const { ready } = useStore();
+  const { account } = useSession();
   useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "Bot" : "OpenMausBot")} · OpenMausBot`; }, [path]);
-  useEffect(() => { if (window.location.hash) scrollToHash(window.location.hash.slice(1)); }, [path, ready]);
-  return <Shell><Suspense fallback={null}>{ready ? route(path) : <Loading />}</Suspense></Shell>;
+  if (account === undefined) return <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
+  if (account === null) return <SignInScreen note={path === "/claim" ? "Sign in to connect the workspace you opened this from." : undefined} />;
+  return <Shell><Suspense fallback={<LoadingPage />}>{route(path)}</Suspense></Shell>;
 }
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <DashboardProvider>
+    <SessionProvider>
       <App />
-    </DashboardProvider>
+    </SessionProvider>
   </StrictMode>,
 );

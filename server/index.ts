@@ -614,7 +614,7 @@ import { createMcpServerRoutes } from "./routes/mcp-servers.ts";
 import { teamAdminSummary } from "./cloud-team-admin.ts";
 import { createSetupImportRoutes } from "./routes/setup-import.ts";
 import { createComputerRoutes } from "./routes/computers.ts";
-import { createStatusRoutes } from "./routes/status.ts";
+import { createStatusRoutes } from "./routes/status.ts"; import { createDashboardRoutes } from "./routes/dashboard.ts"; import { createDashboardCollector } from "./dashboard-report.ts"; import { createDashboardReporter } from "./dashboard-reporter.ts"; import { createDashboardCommands } from "./dashboard-commands.ts";
 import { findAntigravityLeftovers, removeAntigravityLeftovers } from "./drivers/antigravity-temp.ts";
 import { createLiveRoutes } from "./routes/live.ts";
 import { createNotificationRoutes } from "./routes/notifications.ts";
@@ -759,7 +759,7 @@ if (process.env.OMB_CLI_OWNER_STDIN === "1" && LOOPBACK.trust === "service" && p
 }
 delete process.env.OMB_CLI_OWNER_STDIN;
 // Empty is a deny-all bootstrap state; only Electron's private utility-process port replaces it.
-let desktopMutationToken: string | undefined = DESKTOP_MANAGED ? "" : undefined;
+let desktopMutationToken: string | undefined = DESKTOP_MANAGED ? "" : undefined; let dashboardCommandOwner: (auth: RequestAuth) => boolean = () => false;
 let companionMutationToken: string | undefined = DESKTOP_MANAGED ? "" : undefined;
 const FALLBACK_PUBLIC_URL = process.env.OMB_PUBLIC_URL?.trim().replace(/\/+$/, "") || null;
 const cfg = loadConfig();
@@ -999,7 +999,7 @@ function parentThreadModel(botId: string, parentThreadId: string): { modelSelect
 
 /** Loopback is not the owner on a Cloud home: only processes on the machine (a bot's shell) arrive that way. */
 function cloudOwnerSession(auth: RequestAuth): boolean {
-  return auth.kind === "session" && auth.scopes.includes("admin");
+  return (auth.kind === "session" && auth.scopes.includes("admin")) || dashboardCommandOwner(auth);
 }
 
 function cloudOwnerPerson(person: string | undefined): boolean {
@@ -12656,7 +12656,7 @@ ROUTES.push(createStatusRoutes({
   sharedWorkspaceFullAccessEnabled, adminActivityRecording, configStatus, broadcast, threadShown,
   browserEngineInstall: { get: () => browserEngineInstall, set: (install) => { browserEngineInstall = install; } },
   browserEngineInstallError: { set: (error) => { browserEngineInstallError = error; } },
-}));
+})); const dashboardCollector = createDashboardCollector({ dataDir: DATA_DIR, cfg, bots: () => store.bots, managedVpsOwners, teamComputers: () => teamComputers.list(), localInventory: localVmInventoryPayload, localRuntime: containerRuntimeStatus, vps, lastUsedAt: (id) => { const bot = store.bot(id); return bot ? Math.max(0, ...(bot.tasks ?? []).map((task) => task.updatedAt ?? 0)) || null : null; }, phones: phoneHost.listOwner, sessions: () => sessions.list(), mobile: mobileLink.state, publicUrl, deviceLabel: () => cfg.computerName || "", checkUpdate: serverUpdateChecker({ desktopManaged: DESKTOP_MANAGED, managed: Boolean(CLOUD_HOME || HOSTED_WORKSPACE) }), prices: operatorPrices, computerKind: (id) => { const bot = store.bot(id); return bot && inheritedTeamComputer(bot) ? "team" : undefined; }, busy: botHasActiveTurn, engine: (id) => registry.get(id) ?? undefined, routines: () => { const runs = routines?.listRuns() ?? []; return (routines?.listRoutines() ?? []).map((routine) => ({ ...routine, lastRunAt: runs.find((run) => run.routineId === routine.id && run.startedAt !== undefined)?.startedAt ?? null })); }, planUsage: () => loadPlanUsage({ accounts: planAccountsFromInstances(instanceConfigs(cfg)) }), workspaceKind: isThisServerVps("this-server") || CLOUD_HOME || HOSTED_WORKSPACE ? "vps" : undefined }); const dashboardCommands = createDashboardCommands({ port: PORT, collect: dashboardCollector }); dashboardCommandOwner = dashboardCommands.owns; const dashboardReporter = createDashboardReporter({ dataDir: DATA_DIR, collect: dashboardCollector, execute: dashboardCommands.execute, log: (line) => console.warn(line) }); dashboardReporter.start(); ROUTES.push(createDashboardRoutes({ reporter: dashboardReporter, linkAgentBase: () => mobileLink.state().agent?.base ?? null }));
 
 ROUTES.push(desktopViewer.route);
 ROUTES.push(createBrowserViewerRoutes({
@@ -12940,7 +12940,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         serverName: cfg.computerName || environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED }).label,
       });
     }
-    if (answerMobilePreflight(req, res, url) || await mobileLink.publicRoute(req, res, path, method, json, readBody)) return; const gate = resolveHttpRequestAuth(req, res, {
+    if (answerMobilePreflight(req, res, url) || await mobileLink.publicRoute(req, res, path, method, json, readBody)) return; const dashboardAuth = dashboardCommands.authenticate(req); const gate = dashboardAuth ? { auth: dashboardAuth, status: 401 as const, error: "" } : resolveHttpRequestAuth(req, res, {
       sessions,
       cookieName: SESSION_COOKIE,
       streamPath: "/api/events",

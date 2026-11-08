@@ -108,6 +108,8 @@ export function createPhones(deps: PhonesDeps) {
   });
 
   return {
+    listOwner: () => registry.list(owner(), (key) => jobs.busy(key)),
+    list: (auth: RequestAuth) => registry.list(ownerOf(auth), (key) => jobs.busy(key)),
     routineAuthors,
     fromPhone,
     noteSend: (sendId: string) => sends.note(sendId),

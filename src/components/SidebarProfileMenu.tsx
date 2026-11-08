@@ -10,6 +10,7 @@ import {
   Info,
   HelpCircle,
   Keyboard,
+  LayoutDashboard,
   Laptop,
   LifeBuoy,
   Loader2,
@@ -47,6 +48,7 @@ import { meterPercent, resetLine } from "@/lib/usage-meter";
 import type { CloudPlanSnapshot } from "../../electron/cloud-account.mjs";
 import { activeLocale, t } from "@/lib/i18n";
 import { FEEDBACK_URL, HELP_CENTER_URL, appVersion, openExternalLink } from "@/lib/app-links";
+import { openAccountDashboard } from "@/lib/account-dashboard";
 import { useOtherServerName } from "@/lib/other-server";
 import { profileForSession, readSessionState, type SessionState } from "@/lib/session";
 import {
@@ -459,6 +461,7 @@ export function profileMenuItems({
   onHelp,
   onFeedback,
   onAccount,
+  onDashboard,
 }: {
   phone: SidebarMenuItem[];
   usage: boolean;
@@ -478,6 +481,8 @@ export function profileMenuItems({
   onHelp: () => void;
   onFeedback: () => void;
   onAccount: () => void;
+  /** opens the hosted account dashboard for this workspace */
+  onDashboard?: () => void;
 }): SidebarMenuItem[] {
   const help: SidebarMenuItem[] = [
     { key: "help", label: t("sidebar.menu.help"), icon: <HelpCircle size={18} />, onSelect: onHelp },
@@ -500,12 +505,13 @@ export function profileMenuItems({
     icon: <Gauge size={18} />,
     onSelect: onUsage,
   } : null;
+  const dashboardItem: SidebarMenuItem | null = onDashboard ? { key: "dashboard", label: t("sidebar.menu.accountDashboard"), icon: <LayoutDashboard size={18} />, onSelect: onDashboard } : null;
   const support: SidebarMenuItem = { key: "support", label: t("sidebar.menu.support"), icon: <LifeBuoy size={18} />, submenu: help, onSelect: () => {} };
   const settings: SidebarMenuItem = { key: "settings", label: t("sidebar.menu.settings"), icon: <SettingsIcon size={18} />, onSelect: onSettings };
   const accountItem: SidebarMenuItem | null = account ? { key: "account", label: account, icon: <CircleUserRound size={18} />, onSelect: onAccount } : null;
   const present = (...items: Array<SidebarMenuItem | null | false>) => items.filter((item): item is SidebarMenuItem => Boolean(item));
   if (!simple) {
-    const rest = [...present(usageItem), ...phone, support, settings, ...present(update), ...(accountItem ? [{ ...accountItem, separatorBefore: true }] : []), ...accounts.map((item, index) => (index === 0 ? { ...item, separatorBefore: true } : item))];
+    const rest = [...present(usageItem, dashboardItem), ...phone, support, settings, ...present(update), ...(accountItem ? [{ ...accountItem, separatorBefore: true }] : []), ...accounts.map((item, index) => (index === 0 ? { ...item, separatorBefore: true } : item))];
     return [...move, ...rest.map((item, index) => (move.length && index === 0 ? { ...item, separatorBefore: true } : item))];
   }
   const raised: SidebarMenuItem | null = update && updateTop ? {
@@ -518,7 +524,7 @@ export function profileMenuItems({
   const groups = [
     move,
     present(raised),
-    [...present(usageItem), ...phone, { ...support, submenu: raised ? help : [...help, ...present(update)] }, settings],
+    [...present(usageItem, dashboardItem), ...phone, { ...support, submenu: raised ? help : [...help, ...present(update)] }, settings],
     simple.tools,
     [...simple.places, ...present(accountItem)],
     accounts,
@@ -528,8 +534,10 @@ export function profileMenuItems({
 
 /** Grok's profile menu, word for word: the phone app, Support (help, shortcuts, feedback, about) and Settings, then the
  * account's Add account and Log out. Everything else the menu once held is in Settings. */
-export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback, onAbout, onSettings, onAddAccount, onNeedsYou, accounts }: {
+export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback, onAbout, onSettings, onAddAccount, onNeedsYou, onDashboard, accounts }: {
   onAddAccount: () => void;
+  /** opens the hosted account dashboard for this workspace */
+  onDashboard?: () => void;
   /** the avatar's red dot for an automation that needs the person: a first row that opens it in its bot's panel */
   onNeedsYou?: () => void;
   onGetApp: () => void;
@@ -553,6 +561,7 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
   return [
     ...(onNeedsYou ? [{ key: "needs-you", label: t("sidebar.account.automationsNeedYou"), icon: icon("alarm-clock"), attention: true, attentionTone: "danger", onSelect: onNeedsYou } satisfies SidebarMenuItem] : []),
     { key: "mobile", label: t("sidebar.menu.connectPhone"), icon: icon("device-mobile"), onSelect: onGetApp, ...(onNeedsYou ? { separatorBefore: true } : {}) },
+    ...(onDashboard ? [{ key: "dashboard", label: t("sidebar.menu.accountDashboard"), icon: icon("chart-bars"), onSelect: onDashboard } satisfies SidebarMenuItem] : []),
     { key: "support", label: t("sidebar.grok.support"), icon: icon("book"), onSelect: () => {}, submenu: [
       { key: "help", label: t("sidebar.menu.help"), icon: icon("question-circle"), onSelect: onHelp },
       { key: "shortcuts", label: t("sidebar.menu.shortcuts"), icon: icon("keyboard"), onSelect: onShortcuts },
@@ -644,6 +653,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     onAbout: () => setAboutOpen(true),
     onSettings: () => dispatch({ type: "toggleAppSettings", open: true, section: "general" }),
     onAddAccount: () => dispatch({ type: "toggleAppSettings", open: true, section: "general" }),
+    onDashboard: () => void openAccountDashboard(),
     onNeedsYou: account?.needsYou ? () => {
       const { id, botId } = account.needsYou!;
       dispatch({ type: "openRoutine", routineId: id, botId });
@@ -679,6 +689,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     onHelp: () => void openExternalLink(HELP_CENTER_URL),
     onFeedback: () => void openExternalLink(FEEDBACK_URL),
     onAccount: openCloudAccount,
+    onDashboard: () => void openAccountDashboard(),
   });
   const noteworthy = update && updateNoteworthy(update.phase, update.pending) && !updateHasButton(update.phase);
   const needsYou = account?.automationsNeedYou === true;

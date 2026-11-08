@@ -1,6 +1,7 @@
 import { useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, CalendarClock, Check, Globe, KeyRound, MoreHorizontal, Palette, Plug, Plus, Settings, UserRound } from "lucide-react";
+import { Bell, CalendarClock, Check, Globe, KeyRound, LayoutDashboard, MoreHorizontal, Palette, Plug, Plus, Settings, UserRound } from "lucide-react";
+import { accountDashboardUrl } from "@/lib/account-dashboard";
 import { useGroupYou } from "@/components/GroupAvatar";
 import { t } from "@/lib/i18n";
 import { effectiveLanguage, setLanguageChoice, useLanguageChoice, usePageLanguage } from "@/lib/language-preference";
@@ -99,6 +100,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
               <SettingsRow icon={<Globe />} label={t("mobile.settings.language")} value={localeChoices.find((choice) => choice.code === language)?.label ?? t("mobile.settings.system")} onClick={() => setPage("language")} />
             </SettingsSection>
             <SettingsSection title={t("mobile.settings.else")}>
+              <SettingsRow icon={<LayoutDashboard />} label={t("mobile.settings.accountDashboard")} onClick={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />
               <SettingsRow icon={<Settings />} label={t("mobile.settings.all")} onClick={() => { dispatch({ type: "toggleAppSettings", open: true }); onClose(); }} />
             </SettingsSection>
             <p className="mt-8 text-center text-[13px] text-ink-tertiary">{t("mobile.settings.version", { version: platform.appVersion })}</p>
