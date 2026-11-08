@@ -102,7 +102,7 @@ export function QuickPick({ catalog, className, onDone, secondary }: { catalog: 
   };
   return (
     <div className={className}>
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className="sr-only">Cloud desktop plan</legend>
         <div className="flex flex-col gap-1">
           {bundles.map((b) => {

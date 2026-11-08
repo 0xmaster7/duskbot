@@ -72,7 +72,7 @@ function Resize({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog 
       <button type="button" onClick={() => { setTo(cloud.tier); setOpen(true); }} disabled={!sub} className="hover-link text-14 text-ink-3 disabled:opacity-45">Resize</button>
       <Modal open={open} onClose={() => setOpen(false)} title={`Resize ${cloud.name}`} wide footer={<><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" onClick={() => void go()} disabled={busy || to === cloud.tier}>{busy ? "Resizing" : "Resize"}</Button></>}>
         <p>It restarts once, usually in under a minute. Bots, files and logins come along. The new price starts today, prorated.</p>
-        <fieldset className="mt-4">
+        <fieldset className="mt-4 min-w-0">
           <legend className="sr-only">Size</legend>
           <div className="flex flex-col gap-1">
             {catalog.desktops.map((d) => (

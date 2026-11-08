@@ -1,15 +1,16 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Check, Download, Minus, Plus } from "lucide-react";
 import { useCloud } from "../data/cloud";
-import type { BillingInterval, Bundle, DesktopId, LicenseId, PlanCatalog, Selection } from "../data/contracts";
-import { botsLine, bundleOf, desktopMonthly, dollars, gb, licenseMonthly, selectionFor, specLine, yearly, type Cart } from "../data/pricing";
+import type { BillingInterval, Bundle, BundleId, DesktopId, LicenseId, PlanCatalog, Selection } from "../data/contracts";
+import { botsLine, bundleOf, desktopMonthly, desktopOf, dollars, licenseMonthly, licenseOf, selectionFor, specLine, yearly } from "../data/pricing";
 import { useCart } from "../data/quote";
 import { useSession } from "../data/session";
-import { compact, longDate, shortDate, usd } from "../lib/format";
-import { Link, navigate, scrollToHash, useLocation } from "../lib/router";
-import { monthTotals } from "../lib/usage";
-import { Field, Modal, Select, Slider, Toggle } from "../ui/controls";
-import { Badge, Bar, Button, Card, cx, KV, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
+import { longDate, shortDate, usd } from "../lib/format";
+import { navigate, useLocation } from "../lib/router";
+import { Choice, Field, Modal, Select, Sheet, Toggle } from "../ui/controls";
+import { Badge, Button, cx, PageHeader, Skeleton } from "../ui/kit";
+import { SectionHead } from "../ui/table";
+import { BuyCredits } from "./credits-dialog";
 
 const INTERVAL_KEY = "omb-dash-interval";
 
@@ -26,341 +27,251 @@ export function IntervalToggle({ value, onChange, discount }: { value: BillingIn
       onChange={onChange}
       options={[
         { value: "month", label: "Monthly" },
-        { value: "year", label: <>Yearly <span className={cx("text-12", value === "year" ? "text-accent-ink" : "text-ink-4")}>-{Math.round(discount * 100)}%</span></> },
+        { value: "year", label: <>Yearly <span className="text-ink-4">-{Math.round(discount * 100)}%</span></> },
       ]}
     />
   );
 }
 
 const money = (n: number) => dollars(n, !Number.isInteger(Math.round(n * 100) / 100));
+const perMonth = (monthly: number, interval: BillingInterval, catalog: PlanCatalog) => (interval === "year" ? yearly(monthly, catalog) : monthly);
+const billed = (interval: BillingInterval) => (interval === "year" ? "billed yearly" : "billed monthly");
 
-/** the price as people compare it: per month, the monthly price struck through when yearly saves */
-export function Price({ monthly, interval, catalog, from }: { monthly: number; interval: BillingInterval; catalog: PlanCatalog; from?: boolean }) {
-  const shown = interval === "year" ? yearly(monthly, catalog) : monthly;
-  return (
-    <span className="inline-flex flex-wrap items-baseline gap-x-1.5">
-      {from && <span className="text-13 text-ink-3">from</span>}
-      <span className="num text-34 font-medium tracking-[-0.02em] text-ink">{money(shown)}</span>
-      {interval === "year" && monthly > 0 && <s className="num text-16 text-ink-4">{dollars(monthly)}</s>}
-      <span className="text-14 text-ink-3">{monthly > 0 ? "/mo" : "forever"}</span>
-    </span>
-  );
+/** the three plans people pick from; starter and custom builds live one quiet click away */
+const SHOWN: BundleId[] = ["free", "pro", "team"];
+
+function pitch(b: Bundle, catalog: PlanCatalog): { line: string; points: string[] } {
+  const desk = desktopOf(catalog, b.desktop);
+  const lic = licenseOf(catalog, b.license);
+  if (b.id === "free") return { line: "Every bot, chat and connector, on your own computer.", points: ["Personal, non-commercial use", "Runs on your Mac or your own server", "Bots pause when it sleeps"] };
+  if (b.license === "team") {
+    const members = Math.max(b.members, lic?.includedMembers ?? 1);
+    return { line: "Your team's bots on a machine of its own.", points: [`${members} members${lic?.perExtraMember ? `, +${dollars(lic.perExtraMember)} for each more` : ""}`, "Dedicated cloud desktop, on 24/7", desk ? botsLine(desk.botComputers) : "Unlimited bot computers"] };
+  }
+  return { line: "A work license and a cloud desktop that never sleeps.", points: ["Work license for one person", "Cloud desktop, on 24/7", desk ? botsLine(desk.botComputers) : "Bot computers included"] };
 }
 
-function Feature({ children }: { children: ReactNode }) {
-  return <li className="flex gap-2 text-13 leading-[1.45] text-ink-2"><Check size={15} strokeWidth={1.75} className="mt-px shrink-0 text-ink-3" aria-hidden />{children}</li>;
-}
-
-function BundleCard({ b, catalog, interval, current, onPick, i }: { b: Bundle; catalog: PlanCatalog; interval: BillingInterval; current: boolean; onPick(): void; i: number }) {
+function PlanCard({ b, catalog, interval, current, busy, onChoose }: { b: Bundle; catalog: PlanCatalog; interval: BillingInterval; current: boolean; busy: boolean; onChoose(): void }) {
+  const { line, points } = pitch(b, catalog);
+  const free = b.monthly === 0;
+  const lead = b.recommended && !current;
   return (
-    <article
-      className={cx("enter relative flex flex-col rounded-card bg-card p-5", b.recommended && "ring-1 ring-[color-mix(in_oklab,var(--accent)_55%,transparent)]")}
-      style={{ ["--i" as string]: i }}
-      aria-labelledby={`bundle-${b.id}`}
-    >
-      <div className="flex min-h-6 items-center justify-between gap-2">
-        <h3 id={`bundle-${b.id}`} className="text-14 font-medium text-ink">{b.name}</h3>
-        {current ? <Badge tone="good">Your plan</Badge> : b.recommended ? <Badge tone="accent">Recommended</Badge> : null}
+    <article className={cx("enter flex min-w-0 flex-col rounded-card bg-card p-6 max-sm:p-5", lead && "ring-1 ring-line-2")} aria-labelledby={`plan-${b.id}`}>
+      <div className="flex h-[22px] items-center justify-between gap-2">
+        <h2 id={`plan-${b.id}`} className="text-15 font-medium text-ink">{b.name}</h2>
+        {current && <Badge>Current</Badge>}
       </div>
-      <div className="mt-4"><Price monthly={b.monthly} interval={interval} catalog={catalog} /></div>
-      <p className="mt-1 min-h-[36px] text-13 leading-[1.4] text-ink-3">{b.blurb}</p>
-      <ul className="mt-4 flex flex-1 flex-col gap-2 border-t border-line pt-4">
-        {b.features.map((f) => <Feature key={f}>{f}</Feature>)}
+      <p className="mt-5 flex items-baseline gap-1">
+        <span className="num text-34 font-semibold tracking-[-0.03em] text-ink">{money(perMonth(b.monthly, interval, catalog))}</span>
+        <span className="text-14 text-ink-3">/mo</span>
+      </p>
+      <p className="text-13 text-ink-4">{free ? "Free forever" : billed(interval)}</p>
+      <p className="mt-4 text-14 leading-[1.5] text-ink-2">{line}</p>
+      <ul className="mt-5 flex flex-1 flex-col gap-2.5">
+        {points.map((p) => <li key={p} className="flex gap-2.5 text-14 leading-[1.4] text-ink-3"><Check size={15} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-4" aria-hidden />{p}</li>)}
       </ul>
-      <Button variant={b.recommended && !current ? "primary" : "outline"} className="mt-5 w-full" onClick={onPick} disabled={current}>
-        {current ? "Current plan" : b.monthly === 0 ? "Use it free" : `Choose ${b.name}`}
+      <Button variant={lead ? "primary" : "outline"} className="mt-7 w-full" onClick={onChoose} disabled={current || busy}>
+        {current ? "Current plan" : busy ? "Opening checkout" : free ? "Switch to Free" : `Choose ${b.name}`}
       </Button>
     </article>
   );
 }
 
-function Option({ name, group, checked, onChange, title, detail, price, children }: { name: string; group: string; checked: boolean; onChange(): void; title: ReactNode; detail: ReactNode; price: ReactNode; children?: ReactNode }) {
-  const id = `${group}-${name}`;
+function Stepper({ value, min, max, onChange }: { value: number; min: number; max: number; onChange(v: number): void }) {
   return (
-    <div className={cx("pick rounded-[14px] border", checked ? "border-ink-4 bg-card-2" : "hover-pick border-line-2")}>
-      <label htmlFor={id} className="flex cursor-pointer items-center gap-3.5 px-4 py-3.5 max-sm:px-3.5">
-        <input id={id} type="radio" name={group} checked={checked} onChange={onChange} className="peer sr-only" />
-        <span aria-hidden className={cx("grid size-[18px] shrink-0 place-items-center rounded-full border transition-colors duration-150 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink-3", checked ? "border-ink bg-ink" : "border-ink-4")}>
-          {checked && <span className="size-1.5 rounded-full bg-bg" />}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-14 font-medium text-ink">{title}</span>
-          <span className="block text-13 leading-[1.4] text-ink-3">{detail}</span>
-        </span>
-        <span className="shrink-0 text-end">{price}</span>
-      </label>
-      {checked && children && <div className="step-in border-t border-line px-4 pb-4 pt-4 max-sm:px-3.5">{children}</div>}
-    </div>
-  );
-}
-
-function Stepper({ value, min, max, onChange, label }: { value: number; min: number; max: number; onChange(v: number): void; label: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <span className="text-14 text-ink-2" id="members-label">{label}</span>
+    <div className="flex items-center justify-between gap-4 px-3 py-2">
+      <span className="text-14 text-ink-2" id="members-label">People</span>
       <div className="flex items-center gap-1" role="group" aria-labelledby="members-label">
-        <button type="button" aria-label="One member fewer" disabled={value <= min} onClick={() => onChange(value - 1)} className="press hover-outline grid size-11 place-items-center rounded-full border border-line-2 text-ink-2 disabled:opacity-40"><Minus size={16} strokeWidth={1.5} /></button>
-        <output className="num w-10 text-center text-16 font-medium text-ink" aria-live="polite">{value}</output>
-        <button type="button" aria-label="One member more" disabled={value >= max} onClick={() => onChange(value + 1)} className="press hover-outline grid size-11 place-items-center rounded-full border border-line-2 text-ink-2 disabled:opacity-40"><Plus size={16} strokeWidth={1.5} /></button>
+        <button type="button" aria-label="One person fewer" disabled={value <= min} onClick={() => onChange(value - 1)} className="press hover-outline grid size-9 place-items-center rounded-full bg-card-2 text-ink-2 disabled:opacity-40 max-sm:size-11"><Minus size={15} strokeWidth={1.5} /></button>
+        <output className="num w-9 text-center text-15 font-medium text-ink" aria-live="polite">{value}</output>
+        <button type="button" aria-label="One person more" disabled={value >= max} onClick={() => onChange(value + 1)} className="press hover-outline grid size-9 place-items-center rounded-full bg-card-2 text-ink-2 disabled:opacity-40 max-sm:size-11"><Plus size={15} strokeWidth={1.5} /></button>
       </div>
     </div>
   );
 }
 
-function SmallPrice({ monthly, catalog, interval, from }: { monthly: number; catalog: PlanCatalog; interval: BillingInterval; from?: boolean }) {
-  if (monthly === 0) return <span className="num text-14 text-ink-2">$0</span>;
-  return (
-    <span className="flex flex-col items-end leading-tight">
-      <span className="num whitespace-nowrap text-14 font-medium text-ink">{from ? <span className="font-normal text-ink-3">from </span> : null}{money(interval === "year" ? yearly(monthly, catalog) : monthly)}<span className="font-normal text-ink-3">/mo</span></span>
-      {interval === "year" && <s className="num text-12 text-ink-4">{dollars(monthly)}</s>}
-    </span>
-  );
-}
+const Price = ({ n }: { n: number }) => (n === 0 ? <>$0</> : <>{money(n)}<span className="text-ink-3">/mo</span></>);
 
-function Builder({ catalog, sel, set }: { catalog: PlanCatalog; sel: Selection; set(patch: Partial<Selection>): void }) {
-  const free = catalog.workFreeUntil && catalog.workFreeUntil > Date.now() ? longDate(catalog.workFreeUntil) : null;
-  const c = catalog.custom;
+/** build your own: seats and a desktop size, a live total, one checkout; only here, never on the page */
+function CustomizeSheet({ catalog, initial, onClose, subscribed }: { catalog: PlanCatalog; initial: Selection; onClose(): void; subscribed: boolean }) {
+  const { checkout, changePlan, billing } = useCloud();
+  const { toast } = useSession();
+  const [sel, setSel] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { cart, ready, error: quoteError } = useCart(sel, catalog);
+  const set = (patch: Partial<Selection>) => { setSel((s) => ({ ...s, ...patch })); setError(null); };
+  const iv = sel.interval;
+  const same = subscribed && JSON.stringify(billing?.subscription?.selection) === JSON.stringify(sel);
+  const go = async () => {
+    if (!ready || !cart) return;
+    setBusy(true); setError(null);
+    try {
+      if (subscribed) { await changePlan(sel); toast("Plan updated"); onClose(); }
+      else if (await checkout({ kind: "plan", selection: sel, bundle: cart.bundle?.id ?? null })) {
+        toast(sel.desktop === "none" ? "License active. Thanks for backing OpenMausBot." : "Paid. Your cloud desktop is being set up.");
+        onClose();
+        if (sel.desktop !== "none") navigate("/cloud");
+      }
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+  };
+  const free = cart?.free ?? true;
+  const label = busy ? (subscribed ? "Updating" : "Opening checkout") : subscribed ? "Update plan" : "Checkout";
+  const team = licenseOf(catalog, sel.license);
   return (
-    <div className="flex flex-col gap-4">
-      <Card aria-labelledby="license-title">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h3 id="license-title" className="text-16 font-medium text-ink">License</h3>
-          {free && <span className="text-13 text-ink-3">Work use is free until {free}</span>}
+    <Sheet
+      open
+      onClose={onClose}
+      title="Customize your plan"
+      footer={
+        <div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-14 text-ink-3">Total</span>
+            <span className="num"><span className="text-24 font-semibold tracking-[-0.02em] text-ink">{cart ? money(cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">/mo</span></span>
+          </div>
+          <p className="num mt-0.5 text-end text-13 text-ink-4">{free ? "Nothing to pay" : iv === "year" && cart ? `${dollars(cart.dueNow, true)} billed yearly` : "Billed monthly"}</p>
+          {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
+          <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={!ready || busy || same || (!subscribed && free)}>{label}</Button>
         </div>
-        <p className="mt-1 text-14 leading-[1.5] text-ink-3">Free for personal, non-commercial use. To use OpenMausBot at work, pick a license.</p>
-        <div className="mt-5 flex flex-col gap-2.5">
+      }
+    >
+      <div className="mt-2"><IntervalToggle value={iv} onChange={(interval) => set({ interval })} discount={catalog.yearlyDiscount} /></div>
+      <fieldset className="mt-7 min-w-0">
+        <legend className="mb-2 text-13 text-ink-3">License</legend>
+        <div className="flex flex-col gap-1">
           {catalog.licenses.map((l) => (
-            <Option
+            <Choice
               key={l.id}
-              group="license"
-              name={l.id}
+              name="license"
+              value={l.id}
               checked={sel.license === l.id}
               onChange={() => set({ license: l.id as LicenseId, members: l.perExtraMember ? Math.max(l.includedMembers, sel.members) : l.includedMembers })}
-              title={l.monthly === 0 ? "No license" : `${l.name} license`}
-              detail={l.monthly === 0 ? "Personal and non-commercial use" : l.perExtraMember ? `${l.includedMembers} members included, +${dollars(l.perExtraMember)} for each more` : `${l.includedMembers} member, for work`}
-              price={<SmallPrice monthly={l.id === sel.license ? licenseMonthly(l, sel.members) : l.monthly} catalog={catalog} interval={sel.interval} />}
-            >
-              {l.perExtraMember > 0 && <Stepper label="Members" value={sel.members} min={l.includedMembers} max={l.maxMembers} onChange={(members) => set({ members })} />}
-            </Option>
+              title={l.monthly === 0 ? "Personal" : l.name}
+              detail={l.monthly === 0 ? "Personal, non-commercial use" : l.perExtraMember ? `${l.includedMembers} people, +${dollars(perMonth(l.perExtraMember, iv, catalog))} each more` : "One person, for work"}
+              aside={<Price n={perMonth(l.id === sel.license ? licenseMonthly(l, sel.members) : l.monthly, iv, catalog)} />}
+            />
           ))}
         </div>
-        {sel.license === "personal" && <p className="mt-4 text-13 leading-[1.5] text-ink-4">Using it for a company, for clients or for paid work? That needs a license.</p>}
-      </Card>
-
-      <Card aria-labelledby="desktop-title">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h3 id="desktop-title" className="text-16 font-medium text-ink">Cloud desktop</h3>
-          <span className="text-13 text-ink-3">Always on, 24/7</span>
-        </div>
-        <p className="mt-1 text-14 leading-[1.5] text-ink-3">A computer of yours in our cloud, set up in one click. Your bots keep working while your Mac sleeps.</p>
-        <div className="mt-5 flex flex-col gap-2.5">
-          <Option group="desktop" name="none" checked={sel.desktop === "none"} onChange={() => set({ desktop: "none", size: null })} title="No cloud desktop" detail="Run on my Mac or my own VPS" price={<span className="num text-14 text-ink-2">$0</span>} />
-          {catalog.desktops.map((d) => {
-            const size = sel.size ?? { vcpu: d.vcpu, ramGb: d.ramGb, diskGb: d.diskGb };
-            return (
-              <Option
-                key={d.id}
-                group="desktop"
-                name={d.id}
-                checked={sel.desktop === d.id}
-                onChange={() => set({ desktop: d.id as DesktopId, size: null })}
-                title={<>{d.name}{d.priority && <span className="ms-2 align-[1px] text-12 font-normal text-accent-ink">Priority</span>}</>}
-                detail={`${specLine(sel.desktop === d.id && d.sizable ? size : d)} · ${botsLine(d.botComputers)}`}
-                price={<SmallPrice monthly={sel.desktop === d.id ? desktopMonthly(d, sel.size, c) : d.monthly} catalog={catalog} interval={sel.interval} from={d.sizable && sel.desktop !== d.id} />}
-              >
-                <div className="flex flex-col gap-5">
-                  {d.sizable && (
-                    <>
-                      <Slider label="vCPU" value={size.vcpu} min={Math.max(c.vcpu.min, d.vcpu)} max={c.vcpu.max} step={c.vcpu.step} format={(v) => `${v}`} onChange={(vcpu) => set({ size: { ...size, vcpu } })} />
-                      <Slider label="Memory" value={size.ramGb} min={Math.max(c.ramGb.min, d.ramGb)} max={c.ramGb.max} step={c.ramGb.step} format={gb} onChange={(ramGb) => set({ size: { ...size, ramGb } })} />
-                      <Slider label="Disk" value={size.diskGb} min={Math.max(c.diskGb.min, d.diskGb)} max={c.diskGb.max} step={c.diskGb.step} format={gb} onChange={(diskGb) => set({ size: { ...size, diskGb } })} />
-                    </>
-                  )}
-                  {!d.sizable && <p className="text-13 leading-[1.5] text-ink-3">Runs in its own sandbox on our shared machines, with its own network, disk and limits. Nothing is shared with other people.</p>}
-                  <Field label="Region" htmlFor={`region-${d.id}`} hint="Pick the one closest to you, or to the sites your bots use.">
-                    <Select id={`region-${d.id}`} value={sel.region} onChange={(e) => set({ region: e.target.value })}>
-                      {catalog.regions.map((r) => <option key={r.id} value={r.id}>{r.city}, {r.name}</option>)}
-                    </Select>
-                  </Field>
-                </div>
-              </Option>
-            );
-          })}
-        </div>
-        {sel.desktop === "none" && <p className="mt-4 text-13 leading-[1.5] text-ink-4">Without one, your bots pause when your Mac sleeps or goes offline.</p>}
-      </Card>
-    </div>
-  );
-}
-
-function CartCard({ catalog, sel, cart, ready, onCheckout, busy, error, changing, subscribed }: { catalog: PlanCatalog; sel: Selection; cart: Cart; ready: boolean; onCheckout(): void; busy: boolean; error: string | null; changing: boolean; subscribed: boolean }) {
-  const label = busy ? (subscribed ? "Updating" : "Opening checkout") : subscribed ? (changing ? (cart.free ? "Switch to Free" : "Update plan") : "This is your plan") : cart.free ? "You are on Free" : "Checkout";
-  return (
-    <Card className="flex flex-col" aria-labelledby="cart-title">
-      <h3 id="cart-title" className="text-16 font-medium text-ink">Your plan</h3>
-      {cart.lines.length ? (
-        <ul className="mt-4 flex flex-col gap-3">
-          {cart.lines.map((l) => (
-            <li key={l.key} className="flex items-start justify-between gap-4">
-              <span className="min-w-0"><span className="block text-14 text-ink">{l.label}</span><span className="block text-13 text-ink-3">{l.detail}</span></span>
-              <span className="num shrink-0 text-14 text-ink">{dollars(l.monthly)}</span>
-            </li>
+        {team && team.perExtraMember > 0 && <Stepper value={sel.members} min={team.includedMembers} max={team.maxMembers} onChange={(members) => set({ members })} />}
+      </fieldset>
+      <fieldset className="mt-7 min-w-0">
+        <legend className="mb-2 text-13 text-ink-3">Cloud desktop</legend>
+        <div className="flex flex-col gap-1">
+          <Choice name="desktop" value="none" checked={sel.desktop === "none"} onChange={() => set({ desktop: "none", size: null })} title="None" detail="Run on your Mac or your own server" aside={<Price n={0} />} />
+          {catalog.desktops.map((d) => (
+            <Choice key={d.id} name="desktop" value={d.id} checked={sel.desktop === d.id} onChange={() => set({ desktop: d.id as DesktopId, size: null })} title={d.name} detail={`${botsLine(d.botComputers)} · ${specLine(d)}`} aside={<Price n={perMonth(desktopMonthly(d, null, catalog.custom), iv, catalog)} />} />
           ))}
-        </ul>
-      ) : (
-        <p className="mt-4 text-14 leading-[1.5] text-ink-3">Free, personal use, on your Mac or your own VPS.</p>
+        </div>
+      </fieldset>
+      {sel.desktop !== "none" && (
+        <div className="mt-7">
+          <Field label="Region" htmlFor="sheet-region">
+            <Select id="sheet-region" value={sel.region} onChange={(e) => set({ region: e.target.value })}>
+              {catalog.regions.map((r) => <option key={r.id} value={r.id}>{r.city}, {r.name}</option>)}
+            </Select>
+          </Field>
+        </div>
       )}
-      <dl className="mt-4 flex flex-col gap-2 border-t border-line pt-4 text-14">
-        {cart.bundle && cart.bundleSaving > 0 && <div className="flex justify-between gap-4"><dt className="text-ink-3">{cart.bundle.name} bundle</dt><dd className="num text-good">{dollars(-cart.bundleSaving, true)}</dd></div>}
-        {sel.interval === "year" && cart.discount > 0 && <div className="flex justify-between gap-4"><dt className="text-ink-3">Yearly discount ({Math.round(catalog.yearlyDiscount * 100)}%)</dt><dd className="num text-good">{dollars(-cart.discount, true)}</dd></div>}
-        <div className="flex items-baseline justify-between gap-4 pt-1">
-          <dt className="text-ink-2">Total</dt>
-          <dd className="text-end"><span className="num text-28 font-medium tracking-[-0.02em] text-ink">{money(cart.perMonth)}</span><span className="text-14 text-ink-3">/mo</span></dd>
-        </div>
-      </dl>
-      <p className="num mt-1 text-end text-13 text-ink-3">{cart.free ? "Nothing to pay" : sel.interval === "year" ? `${dollars(cart.dueNow, true)} billed yearly` : "Billed monthly"}</p>
-      {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
-      <Button variant="primary" className="mt-5 w-full" onClick={onCheckout} disabled={!ready || busy || (subscribed ? !changing : cart.free)}>{label}</Button>
-      <p className="mt-3 text-center text-12 leading-[1.5] text-ink-4">{cart.free && !subscribed ? "Add a license for work, or a cloud desktop to stay on 24/7." : "Secure checkout by Dodo Payments. Cancel any time."}</p>
-    </Card>
+    </Sheet>
   );
 }
 
-function MobileCartBar({ cart, ready, onCheckout, busy, show }: { cart: Cart; ready: boolean; onCheckout(): void; busy: boolean; show: boolean }) {
-  if (!show) return null;
+function Row({ k, children, action }: { k: string; children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-side/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
-      <div className="mx-auto flex max-w-[640px] items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="num text-16 font-medium text-ink">{money(cart.perMonth)}<span className="text-13 font-normal text-ink-3">/mo</span></div>
-          <div className="truncate text-12 text-ink-3">{cart.lines.map((l) => l.label).join(" + ")}</div>
-        </div>
-        <Button variant="primary" onClick={onCheckout} disabled={!ready || busy}>{busy ? "Opening" : "Checkout"}</Button>
-      </div>
+    <div className="grid min-h-14 grid-cols-[160px_minmax(0,1fr)_auto] items-center gap-4 py-2.5 text-14 max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-y-0.5">
+      <dt className="text-ink-3 max-sm:col-span-2 max-sm:text-13">{k}</dt>
+      <dd className="min-w-0 text-ink">{children}</dd>
+      {action ? <dd className="justify-self-end">{action}</dd> : <dd aria-hidden />}
     </div>
   );
 }
 
-function CurrentPlan({ catalog }: { catalog: PlanCatalog }) {
+const quiet = "hover-link inline-flex h-9 items-center rounded-full px-1 text-14 text-ink-2 disabled:opacity-45 max-sm:h-11";
+
+function Account({ catalog, onCancel }: { catalog: PlanCatalog; onCancel(): void }) {
+  const { billing, openPortal } = useCloud();
+  const [buying, setBuying] = useState(false);
+  const sub = billing?.subscription ?? null;
+  const { cart } = useCart(sub?.selection ?? null, catalog);
+  const pm = billing?.paymentMethod;
+  const invoices = billing?.invoices ?? [];
+  const files = invoices.some((inv) => inv.url);
+  const name = sub ? (sub.bundle ? bundleOf(catalog, sub.bundle)?.name ?? "Paid plan" : "Custom plan") : "Free";
+  return (
+    <>
+      <section className="mt-16" aria-labelledby="billing-title">
+        <SectionHead id="billing-title">Billing</SectionHead>
+        <dl className="divide-y divide-line border-y border-line">
+          <Row k="Current plan" action={sub && !sub.cancelAt ? <button type="button" className={quiet} onClick={onCancel}>Cancel</button> : undefined}>
+            <span className="block truncate">{name}{sub && cart ? <span className="num text-ink-3">, {money(cart.perMonth)}/mo {billed(sub.selection.interval)}</span> : <span className="text-ink-3">, personal use</span>}</span>
+            {sub && <span className="block truncate text-13 text-ink-3">{sub.cancelAt ? `Ends ${longDate(sub.cancelAt)}. Your cloud desktop stays until then.` : `Renews ${longDate(sub.currentPeriodEnd)}`}</span>}
+          </Row>
+          <Row k="Payment method" action={<button type="button" className={quiet} onClick={() => void openPortal()}>{pm ? "Update" : "Add"}</button>}>
+            {pm ? <span className="num"><span className="uppercase">{pm.brand}</span> •••• {pm.last4}<span className="text-ink-3">, expires {String(pm.expMonth).padStart(2, "0")}/{String(pm.expYear).slice(-2)}</span></span> : <span className="text-ink-3">None yet. You add one at checkout.</span>}
+          </Row>
+          <Row k="AI credits" action={<button type="button" className={quiet} onClick={() => setBuying(true)}>Add credits</button>}>
+            {billing ? <span className="num">{usd(billing.credits.balanceUsd)} <span className="text-ink-3">left</span></span> : <Skeleton className="h-5 w-24" />}
+          </Row>
+        </dl>
+      </section>
+      <section className="mt-12" aria-labelledby="invoices-title">
+        <SectionHead id="invoices-title">Invoices</SectionHead>
+        {invoices.length ? (
+          <ul className="divide-y divide-line border-y border-line">
+            {invoices.map((inv) => (
+              <li key={inv.id} className="flex min-h-12 items-center gap-4 text-14">
+                <span className="num w-16 shrink-0 text-ink-3">{shortDate(inv.date)}</span>
+                <span className="min-w-0 flex-1 truncate text-ink">{inv.description}</span>
+                {inv.status !== "paid" && <span className={cx("text-13", inv.status === "open" ? "text-warn" : "text-ink-3")}>{inv.status === "open" ? "Due" : "Refunded"}</span>}
+                <span className="num text-ink-2">{usd(inv.amountUsd)}</span>
+                {inv.url ? (
+                  <a href={inv.url} target="_blank" rel="noreferrer" aria-label={`Download invoice ${inv.number}`} className="hover-ghost -me-2 grid size-9 shrink-0 place-items-center rounded-full text-ink-3 max-sm:size-11"><Download size={15} strokeWidth={1.5} /></a>
+                ) : files ? <span className="-me-2 size-9 shrink-0 max-sm:size-11" aria-hidden /> : null}
+              </li>
+            ))}
+          </ul>
+        ) : <p className="border-y border-line py-5 text-14 text-ink-3">Invoices show up here after your first payment.</p>}
+      </section>
+      <BuyCredits open={buying} onClose={() => setBuying(false)} />
+    </>
+  );
+}
+
+function CancelDialog({ open, onClose, catalog }: { open: boolean; onClose(): void; catalog: PlanCatalog }) {
   const { billing, cancel, openPortal } = useCloud();
-  const [asking, setAsking] = useState(false);
   const [reason, setReason] = useState<Parameters<ReturnType<typeof useCloud>["cancel"]>[0]>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sub = billing?.subscription;
-  const { cart } = useCart(sub?.selection ?? null, catalog);
-  if (!sub || !cart) return null;
-  const name = sub.bundle ? bundleOf(catalog, sub.bundle)?.name ?? "Paid plan" : "Custom plan";
+  if (!sub) return null;
+  const name = sub.bundle ? bundleOf(catalog, sub.bundle)?.name ?? "your plan" : "your plan";
   const stop = async () => {
     setBusy(true); setError(null);
-    try { await cancel(reason); setAsking(false); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+    try { await cancel(reason); onClose(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   return (
-    <Card aria-labelledby="current-title" className="mb-4">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 id="current-title" className="text-14 text-ink-2">Current plan</h2>
-          <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2"><span className="text-28 font-medium tracking-[-0.02em] text-ink">{name}</span><span className="num text-14 text-ink-3">{money(cart.perMonth)}/mo, billed {sub.selection.interval === "year" ? "yearly" : "monthly"}</span></p>
-          <p className="mt-1 text-13 text-ink-3">{sub.cancelAt ? `Ends ${longDate(sub.cancelAt)}. Your cloud desktop stays until then.` : `Renews ${longDate(sub.currentPeriodEnd)} for ${dollars(sub.amountUsd, true)}`}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => scrollToHash("build")}>Change plan</Button>
-          {!sub.cancelAt && <Button size="sm" variant="ghost" onClick={() => setAsking(true)}>Cancel</Button>}
-        </div>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`Cancel ${name}?`}
+      footer={<><Button onClick={onClose}>Keep my plan</Button><Button variant="danger" onClick={() => void stop()} disabled={busy}>{busy ? "Cancelling" : "Cancel plan"}</Button></>}
+    >
+      <p>It runs until {longDate(sub.currentPeriodEnd)}. Your cloud desktop is then kept for 7 days and deleted, and your bots only run while your Mac is awake.</p>
+      <div className="mt-4">
+        <Field label="What made you cancel? (optional)" htmlFor="cancel-reason" error={error}>
+          <Select id="cancel-reason" value={reason} onChange={(e) => setReason(e.target.value as typeof reason)}>
+            <option value="">Choose one</option>
+            <option value="feature">Missing a feature I need</option>
+            <option value="price">Too expensive</option>
+            <option value="setup">Setting it up was too hard</option>
+            <option value="broken">Something did not work</option>
+            <option value="later">I will come back later</option>
+            <option value="other">Something else</option>
+          </Select>
+        </Field>
       </div>
-      <dl className="mt-5 grid gap-x-8 border-t border-line pt-1 sm:grid-cols-2">
-        {cart.lines.map((l) => <KV key={l.key} k={l.label} v={l.detail} />)}
-      </dl>
-      <Modal
-        open={asking}
-        onClose={() => setAsking(false)}
-        title={`Cancel ${name}?`}
-        footer={<><Button onClick={() => setAsking(false)}>Keep my plan</Button><Button variant="danger" onClick={() => void stop()} disabled={busy}>{busy ? "Cancelling" : "Cancel plan"}</Button></>}
-      >
-        <p>Your plan runs until {longDate(sub.currentPeriodEnd)}. After that your cloud desktop is kept for 7 days, then deleted, and your bots only run while your Mac is awake.</p>
-        <div className="mt-4">
-          <Field label="What made you cancel? (optional)" htmlFor="cancel-reason" error={error}>
-            <Select id="cancel-reason" value={reason} onChange={(e) => setReason(e.target.value as typeof reason)}>
-              <option value="">Choose one</option>
-              <option value="feature">Missing a feature I need</option>
-              <option value="price">Too expensive</option>
-              <option value="setup">Setting it up was too hard</option>
-              <option value="broken">Something did not work</option>
-              <option value="later">I will come back later</option>
-              <option value="other">Something else</option>
-            </Select>
-          </Field>
-        </div>
-        <button type="button" className="hover-link mt-3 text-13 text-ink-3 underline decoration-line-2 underline-offset-4" onClick={() => void openPortal()}>Manage billing details instead</button>
-      </Modal>
-    </Card>
-  );
-}
-
-function Credits({ catalog }: { catalog: PlanCatalog }) {
-  const { billing, checkout } = useCloud();
-  const { detail, now, toast } = useSession();
-  const [busy, setBusy] = useState<string | null>(null);
-  const month = monthTotals(detail?.report?.activity, now);
-  const credits = billing?.credits;
-  const buy = async (pack: string, usdAmount: number) => {
-    setBusy(pack);
-    try { if (await checkout({ kind: "credits", pack })) toast(`Added ${dollars(usdAmount)} of AI credits`); } finally { setBusy(null); }
-  };
-  return (
-    <Card aria-labelledby="credits-title">
-      <SectionTitle id="credits-title" action={<Link to="/usage" className="hover-link rounded-full px-1 text-13 text-ink-3">See usage</Link>}>AI credits</SectionTitle>
-      <p className="flex items-baseline gap-2"><span className="num text-28 font-medium tracking-[-0.02em] text-ink">{credits ? usd(credits.balanceUsd) : "n/a"}</span><span className="text-14 text-ink-3">left</span></p>
-      <p className="mt-1 text-13 leading-[1.5] text-ink-3">For bots that use our AI instead of your own accounts.</p>
-      <div className="mt-5 flex flex-wrap gap-2">
-        {catalog.creditPacks.map((p) => (
-          <Button key={p.id} size="sm" onClick={() => void buy(p.id, p.usd)} disabled={busy !== null}>{busy === p.id ? "Opening" : `Add ${dollars(p.usd)}`}</Button>
-        ))}
-      </div>
-      <div className="mt-6 border-t border-line pt-4">
-        <h3 className="text-13 text-ink-3">Usage this month</h3>
-        <dl className="mt-1">
-          <KV k="Credits used" v={credits ? usd(credits.usedThisMonthUsd) : "n/a"} />
-          <KV k="Bot turns" v={month.turns.toLocaleString("en-US")} />
-          <KV k="Tokens" v={compact(month.tokens)} />
-        </dl>
-        {credits && credits.balanceUsd + credits.usedThisMonthUsd > 0 && <Bar value={(credits.usedThisMonthUsd / (credits.balanceUsd + credits.usedThisMonthUsd)) * 100} className="mt-2" label="Credits used this month" />}
-      </div>
-    </Card>
-  );
-}
-
-function Payment() {
-  const { billing, openPortal } = useCloud();
-  const pm = billing?.paymentMethod;
-  const invoices = billing?.invoices ?? [];
-  return (
-    <Card aria-labelledby="payment-title">
-      <SectionTitle id="payment-title" action={<Button size="sm" onClick={() => void openPortal()}>{pm ? "Update" : "Add a card"}</Button>}>Payment method</SectionTitle>
-      {pm ? (
-        <div className="flex items-center gap-3">
-          <span className="grid h-8 w-12 shrink-0 place-items-center rounded-[8px] border border-line-2 text-12 font-medium uppercase text-ink-2">{pm.brand}</span>
-          <span className="num text-14 text-ink">•••• {pm.last4}</span>
-          <span className="num ms-auto text-13 text-ink-3">Expires {String(pm.expMonth).padStart(2, "0")}/{String(pm.expYear).slice(-2)}</span>
-        </div>
-      ) : <p className="text-14 text-ink-3">No card yet. You add one at checkout.</p>}
-      <h3 className="mt-7 text-14 font-medium text-ink">Invoices</h3>
-      {invoices.length ? (
-        <ul className="mt-2 divide-y divide-line">
-          {invoices.map((inv) => (
-            <li key={inv.id} className="flex items-center gap-3 py-1 text-14">
-              <span className="num w-14 shrink-0 text-ink-3">{shortDate(inv.date)}</span>
-              <span className="min-w-0 flex-1 truncate text-ink">{inv.description}</span>
-              {inv.status !== "paid" && <Badge tone={inv.status === "open" ? "warn" : "plain"}>{inv.status === "open" ? "Due" : "Refunded"}</Badge>}
-              <span className="num text-ink-2">{usd(inv.amountUsd)}</span>
-              {inv.url ? (
-                <a href={inv.url} target="_blank" rel="noreferrer" aria-label={`Download invoice ${inv.number}`} className="press hover-ghost -me-3 grid size-11 shrink-0 place-items-center rounded-full text-ink-3"><Download size={16} strokeWidth={1.5} /></a>
-              ) : <span className="-me-3 size-11 shrink-0" aria-hidden />}
-            </li>
-          ))}
-        </ul>
-      ) : <p className="mt-2 text-14 text-ink-3">Invoices show up here after your first payment.</p>}
-    </Card>
+      <button type="button" className="hover-link mt-3 h-9 text-13 text-ink-3 underline decoration-line-2 underline-offset-4" onClick={() => void openPortal()}>Manage billing details instead</button>
+    </Modal>
   );
 }
 
@@ -369,75 +280,80 @@ export function BillingPage() {
   const { toast } = useSession();
   const { query } = useLocation();
   const [interval, setIv] = useInterval();
-  const sub = billing?.subscription ?? null;
-  const [sel, setSel] = useState<Selection | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [sheet, setSheet] = useState<Selection | null>(null);
+  const [busy, setBusy] = useState<BundleId | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [switching, setSwitching] = useState<Bundle | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const sub = billing?.subscription ?? null;
+  const region = catalog?.regions[0]?.id ?? "";
 
+  // older links like /billing?bundle=pro open the sheet with that plan in it
+  const want = query.get("bundle");
   useEffect(() => {
-    if (!catalog || sel || billing === null) return;
-    const want = query.get("bundle");
-    const b = want ? bundleOf(catalog, want) : null;
-    const region = catalog.regions[0]?.id ?? "";
-    if (b) { setSel(selectionFor(b, catalog, interval, region)); scrollToHash("build"); }
-    else if (sub) setSel({ ...sub.selection });
-    else setSel(selectionFor(bundleOf(catalog, "pro") ?? catalog.bundles[0]!, catalog, interval, region));
-  }, [catalog, billing, sub, sel, query, interval]);
+    if (!catalog || billing === null || !want) return;
+    const b = bundleOf(catalog, want);
+    if (b) setSheet(selectionFor(b, catalog, interval, region));
+    navigate("/billing", { replace: true });
+  }, [catalog, billing, want]);
 
-  const { cart, ready, error: quoteError } = useCart(sel, catalog);
-
-  if (!catalog || !sel || !cart) {
+  if (!catalog || billing === null) {
     return (
       <div aria-busy="true" aria-label="Loading">
-        <Skeleton className="h-9 w-64" />
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[360px] !rounded-card" />)}</div>
+        <Skeleton className="h-8 w-56" />
+        <div className="mt-10 grid gap-4 md:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-[380px] !rounded-card" />)}</div>
       </div>
     );
   }
 
-  const set = (patch: Partial<Selection>) => { setSel((s) => (s ? { ...s, ...patch } : s)); setError(null); };
-  const setBoth = (v: BillingInterval) => { setIv(v); set({ interval: v }); };
-  const pick = (b: Bundle) => { setSel(selectionFor(b, catalog, interval, sel.region)); setError(null); scrollToHash("build"); };
-  const changing = Boolean(sub) && JSON.stringify(sub!.selection) !== JSON.stringify(sel);
-  const current = sub ? sub.bundle : "free";
-  const go = async () => {
-    if (!ready) return;
-    setBusy(true); setError(null);
+  const current: BundleId | null = sub ? sub.bundle : "free";
+  const bundles = SHOWN.map((id) => bundleOf(catalog, id)).filter((b): b is Bundle => Boolean(b));
+  const starter = bundleOf(catalog, "starter");
+
+  const choose = async (b: Bundle) => {
+    if (b.id === "free") { if (sub) setCancelling(true); return; }
+    if (sub) { setSwitching(b); return; }
+    setBusy(b.id); setError(null);
     try {
-      if (sub) { await changePlan(sel); toast("Plan updated"); }
-      else if (await checkout({ kind: "plan", selection: sel, bundle: cart.bundle?.id ?? null })) {
-        toast(sel.desktop === "none" ? "License active. Thanks for backing OpenMausBot." : "Paid. Your cloud desktop is being set up.");
-        if (sel.desktop !== "none") navigate("/cloud");
+      if (await checkout({ kind: "plan", selection: selectionFor(b, catalog, interval, region), bundle: b.id })) {
+        toast("Paid. Your cloud desktop is being set up.");
+        navigate("/cloud");
       }
-    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+    } catch (e) { setError((e as Error).message); } finally { setBusy(null); }
   };
+  const confirmSwitch = async () => {
+    if (!switching) return;
+    setBusy(switching.id); setError(null);
+    try { await changePlan(selectionFor(switching, catalog, interval, sub?.selection.region ?? region)); toast(`Switched to ${switching.name}`); setSwitching(null); }
+    catch (e) { setError((e as Error).message); } finally { setBusy(null); }
+  };
+  const customize = () => setSheet(sub ? { ...sub.selection } : selectionFor(bundleOf(catalog, "pro") ?? bundles[0]!, catalog, interval, region));
 
   return (
-    <div className="max-lg:pb-20">
-      <PageHeader
-        title="Plans & billing"
-        sub="Personal use is free. Work needs a license. A cloud desktop keeps your bots on 24/7."
-        action={<IntervalToggle value={interval} onChange={setBoth} discount={catalog.yearlyDiscount} />}
-      />
-      <CurrentPlan catalog={catalog} />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {catalog.bundles.map((b, i) => <BundleCard key={b.id} b={b} i={i} catalog={catalog} interval={interval} current={current === b.id} onPick={() => pick(b)} />)}
+    <div>
+      <PageHeader title="Plans & billing" sub="Personal use is free. Work needs a license." action={<IntervalToggle value={interval} onChange={setIv} discount={catalog.yearlyDiscount} />} />
+      <div className="grid gap-4 md:grid-cols-3">
+        {bundles.map((b) => <PlanCard key={b.id} b={b} catalog={catalog} interval={interval} current={current === b.id} busy={busy === b.id} onChoose={() => void choose(b)} />)}
       </div>
-      <section id="build" aria-labelledby="build-title" className="mt-12 scroll-mt-20">
-        <div className="mb-4">
-          <h2 id="build-title" className="text-20 font-medium tracking-[-0.01em] text-ink">Build your own</h2>
-          <p className="mt-1 text-14 text-ink-3">A license and a cloud desktop in one checkout. Self-hosting? Take just the license.</p>
-        </div>
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <Builder catalog={catalog} sel={sel} set={set} />
-          <div className="lg:sticky lg:top-6"><CartCard catalog={catalog} sel={sel} cart={cart} ready={ready} onCheckout={() => void go()} busy={busy} error={error ?? quoteError} changing={changing} subscribed={Boolean(sub)} /></div>
-        </div>
-      </section>
-      <div className="mt-12 grid gap-4 md:grid-cols-2">
-        <Payment />
-        <Credits catalog={catalog} />
-      </div>
-      <MobileCartBar cart={cart} ready={ready} onCheckout={() => void go()} busy={busy} show={!cart.free && (!sub || changing)} />
+      {error && !switching && <p role="alert" className="mt-4 text-13 text-bad">{error}</p>}
+      <p className="mt-5 flex flex-wrap items-center gap-x-2 text-14 text-ink-3">
+        {starter && current !== "starter" && <>Need less? <button type="button" className={quiet} onClick={() => void choose(starter)} disabled={busy !== null}>Starter is {money(perMonth(starter.monthly, interval, catalog))}/mo</button><span aria-hidden className="text-ink-4">·</span></>}
+        <button type="button" className={quiet} onClick={customize}>Customize</button>
+      </p>
+
+      <Account catalog={catalog} onCancel={() => setCancelling(true)} />
+
+      {sheet && <CustomizeSheet catalog={catalog} initial={{ ...sheet, interval: sheet.interval }} subscribed={Boolean(sub)} onClose={() => setSheet(null)} />}
+      <CancelDialog open={cancelling} onClose={() => setCancelling(false)} catalog={catalog} />
+      <Modal
+        open={switching !== null}
+        onClose={() => { if (!busy) { setSwitching(null); setError(null); } }}
+        title={`Switch to ${switching?.name ?? ""}?`}
+        footer={<><Button onClick={() => setSwitching(null)} disabled={busy !== null}>Not now</Button><Button variant="primary" onClick={() => void confirmSwitch()} disabled={busy !== null}>{busy ? "Switching" : "Switch"}</Button></>}
+      >
+        {switching && <p className="num">{money(perMonth(switching.monthly, interval, catalog))}/mo, {billed(interval)}. It starts today, and the difference is prorated.</p>}
+        {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
+      </Modal>
     </div>
   );
 }
