@@ -722,10 +722,6 @@ export interface ShowOutput {
 const OUTPUT_TOO_LARGE_HINT = "Aggregate or filter in SQL (GROUP BY, date_trunc, LIMIT) so the chart draws fewer marks.";
 const cardRuns = new WeakMap<DataSheetStore, Map<string, { controller: AbortController; previous?: DataCard }>>();
 
-export function cancelCardRun(sheet: DataSheetStore, id: string): void {
-  cardRuns.get(sheet)?.get(id)?.controller.abort();
-}
-
 export async function showCard(context: DataContext, input: ShowInput, onCardReady?: (card: DataCard) => void): Promise<ShowOutput> {
   const started = Date.now();
   const controller = new AbortController();

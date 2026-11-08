@@ -439,11 +439,6 @@ export function syncSkillLinks(
   }
 }
 
-/** Where syncSkillLinks links each of this bot's enabled skills. */
-export function ownSkillLinks(botId: string): Map<string, string> {
-  return new Map(Object.entries(readManifest(botId)).flatMap(([name, entry]) => entry.enabled ? [[name, skillTarget(workspaceDir(botId), name, entry)] as const] : []));
-}
-
 export interface SkillListing {
   name: string;
   description: string;

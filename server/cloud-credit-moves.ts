@@ -177,5 +177,3 @@ export function createCreditMoves(options: CreditMovesOptions) {
     },
   };
 }
-
-export type CreditMoves = ReturnType<typeof createCreditMoves>;

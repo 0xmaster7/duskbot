@@ -27,10 +27,6 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   useDesktopCapabilities: () => ({ capabilities: { dictation: { available: false }, host: { packaged: true, platform: fixture.platform }, localComputer: { available: false, reasonCode: fixture.localReasonCode, message: fixture.localMessage } }, ready: true }),
 }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
-vi.mock("@/lib/thread-preferences", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@/lib/thread-preferences")>(),
-  useShowThreads: () => false,
-}));
 // The trigger still renders, so the markup assertions in this file see the same header.
 vi.mock("./SidebarPopoverMenu", async (importOriginal) => ({
   ...await importOriginal<typeof import("./SidebarPopoverMenu")>(),
@@ -571,9 +567,9 @@ describe("the way back to the bot's own conversation", () => {
   it("offers it with threads hidden while a side thread is open, and opens the main thread", () => {
     expect(header(visiting)).toContain("data-chathead-back");
     expect(header(visiting)).toContain("Back to your chat");
-    expect(awayFromMainThread(visiting, false)).toBe(true);
+    expect(awayFromMainThread(visiting)).toBe(true);
     fixture.dispatch.mockReset();
-    openBot(fixture.dispatch, visiting, false);
+    openBot(fixture.dispatch, visiting);
     expect(fixture.dispatch.mock.calls.map(([action]) => action)).toContainEqual(expect.objectContaining({ threadId: "main" }));
   });
 

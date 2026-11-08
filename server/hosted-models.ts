@@ -3,11 +3,10 @@ import { join } from "node:path";
 import { z } from "zod";
 import { writeFileAtomic } from "./atomic.ts";
 import { cloudHomeConfigured } from "./cloud-home.ts";
-import { hostedWorkspaceConfiguration } from "./enterprise.ts";
+import { hostedWorkspaceConfiguration } from "./hosted-workspace.ts";
 import type { InstanceConfigMap, ModelSelection, ProviderInstance } from "./contracts.ts";
 import type { Store } from "./store.ts";
 
-export const HOSTED_MODEL_POLICY_HEADER = "X-Omb-Hosted-Model-Policy";
 export const HOSTED_MODEL_SETUP_ERROR = "No company models are assigned to this workspace. Ask your administrator to enable model access in Admin.";
 export const HOSTED_MODEL_SELECTION_ERROR = "This model is not assigned to this workspace. Choose one of its company models.";
 export const HOSTED_PROVIDER_SETTINGS_ERROR = "Company models and provider accounts are managed in Admin.";

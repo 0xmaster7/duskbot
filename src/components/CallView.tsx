@@ -5,7 +5,6 @@ import { GrokIcon } from "./GrokIcon";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { AudioLines, Check, ChevronDown, Loader2, Phone, PhoneOff, X } from "lucide-react";
 
-import { useShowThreads } from "@/lib/thread-preferences";
 import { openBot, useStore, visibleMessages, type Bot } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { useMenuMotion } from "./MenuMotion";
@@ -90,7 +89,6 @@ export function CallTargetButton({
   onStart: (mode: CallMode) => void;
 }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const { capabilities, ready: capabilitiesReady } = useDesktopCapabilities();
   const media = useLiveMedia();
   const liveThreadId = liveCapable ? threadId : undefined;
@@ -362,7 +360,7 @@ export function CallTargetButton({
               onClick={() => {
                 setHelpOpen(false);
                 if (remoteClient) {
-                  if (setupBot.id !== targetId) openBot(dispatch, setupBot, showThreads);
+                  if (setupBot.id !== targetId) openBot(dispatch, setupBot);
                   openBotSettings(dispatch, "voice");
                   return;
                 }

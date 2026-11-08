@@ -95,7 +95,6 @@ function helperWriter(write: NonNullable<SideJobInstance["generateText"]>, helpe
     refusal: () => undefined,
     helper: () => helper,
     smallModels: { refused: () => new Set(), remember: () => {} },
-    assertWithinBudget: () => {},
     book: (row) => booked.push(row),
   });
   return { generateText: jobs.text("compaction", "b1")?.generateText, booked };

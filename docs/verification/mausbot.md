@@ -54,7 +54,7 @@ pnpm exec vitest run server/default-bot.test.ts server/default-bot.e2e.test.ts \
 ## By hand
 
 Launch the app against an isolated fixture (`docs/verification/README.md`),
-finish the first-run welcome and its tour, then:
+finish the first-run welcome, then:
 
 1. Follow the current [welcome flow](onboarding.md) in a fresh fixture.
    It should finish in MausBot's chat; the retired Meet MausBot popup is absent.

@@ -1,4 +1,4 @@
-// dev-only: a fake desktop side for /settings-preview.html?vps=<stage>, so every screen of Add your VPS and the Transfer
+// dev-only: a fake desktop side for /previews/settings-preview.html?vps=<stage>, so every screen of Add your VPS and the Transfer
 // pane draws without a link service or a server. Stages: command, installing (plays the first steps), failed, linked
 // (links while watching, for the cheer), signin, ready (every AI signed in, so the move), moving, paused, moved, and play
 // (ready, then a scripted move once Move is pressed).

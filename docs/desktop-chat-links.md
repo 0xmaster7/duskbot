@@ -26,8 +26,8 @@ openmausbot://bot/<bot-id>
   that bot's, nothing opens.
 - **`openmausbot://bot/<bot-id>`** — the bot's current conversation, exactly
   as clicking the bot in the sidebar opens it: with threads hidden, its main
-  thread, the conversation the person last wrote in. Handy for a team map
-  whose Chat button only knows the bot's id. A room's id works here too.
+  thread, the conversation the person last wrote in. Handy for an external
+  dashboard whose Chat button only knows the bot's id. A room's id works here too.
 
 ## What opening one does
 
@@ -40,9 +40,8 @@ openmausbot://bot/<bot-id>
 - Works at launch too: the link is held until the app has loaded its bots, so
   it can start a closed app and still find its chat. On macOS, where the app
   keeps running with its window closed, the link opens a new window.
-- Works from any page — the team map, Routines, a room — and leaves it for
-  the chat. Settings and the keyboard shortcuts list close so the chat is not
-  hidden behind them; a dialog with unsaved input, such as New Bot, stays.
+- Works from a bot panel or a room and leaves it for the chat. Settings and
+  the keyboard shortcuts list close so the chat is not hidden behind them; a dialog with unsaved input, such as New Bot, stays.
 - Unknown or mismatched ids show a short notice in the chat instead of
   opening anything: "That bot is no longer here." for an unknown bot link;
   "That thread is no longer here." for an unknown thread, or, when the link

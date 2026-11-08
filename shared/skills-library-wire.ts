@@ -14,9 +14,3 @@ export interface SkillsLibrarySkillWire {
   warnings: string[];
   assignedBots: Array<{ id: string; name: string }>;
 }
-
-/** PUT body for a bot's assignment list: the full list, applied
- * idempotently. */
-export interface BotAssignedSkillsWire {
-  skills: string[];
-}

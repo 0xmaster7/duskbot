@@ -58,7 +58,6 @@ import { readLastConversation, rememberConversation } from "@/lib/last-conversat
 import { readLastBotSection, rememberBotSection } from "@/lib/last-bot-section";
 import { showNotification } from "@/lib/notify";
 import { randomUuid } from "@/lib/random-uuid";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { speechOwner, spokenReplyStream } from "@/lib/spoken-reply-stream";
 import { t } from "@/lib/i18n";
 import { createBotPatchQueue, flushWhenLeaving, keepaliveFits, type BotUpdatePatch } from "./bot-patch-queue"; import { createNewTaskOnce } from "./new-task-once";
@@ -416,7 +415,7 @@ export type { BrowserEngineSummary, BrowserProfile, ConfigStatus, ManagedPolicyS
 // A section left out here is wiped from state.config whenever a config frame lands.
 export type ConfigStatusFrame = Pick<
   ConfigStatus,
-  "xai" | "mistral" | "cerebras" | "groq" | "greenference" | "meta" | "deepseek" | "xResearch" | "treg" | "anthropic" | "openai" | "openrouter" | "openaiCompat" | "fleet" | "composio" | "box" | "vps" | "rooms" | "mcp" | "threads" | "automaticRecovery" | "cacheKeepWarm" | "localVm" | "opencodeGo" | "tts" | "decider" | "helpers" | "imageGen" | "live" | "savedKeys" | "profile" | "language" | "features" | "onboarding" | "browserEngine" | "browserProfiles" | "edition" | "budgets" | "billing" | "managedPolicy" | "cloudHome" | "team" | "workspaceBanner"
+  "xai" | "mistral" | "cerebras" | "groq" | "greenference" | "meta" | "deepseek" | "xResearch" | "treg" | "anthropic" | "openai" | "openrouter" | "openaiCompat" | "composio" | "box" | "vps" | "rooms" | "mcp" | "threads" | "automaticRecovery" | "cacheKeepWarm" | "localVm" | "opencodeGo" | "tts" | "decider" | "helpers" | "imageGen" | "live" | "savedKeys" | "profile" | "language" | "features" | "onboarding" | "browserEngine" | "browserProfiles" | "managedPolicy" | "cloudHome" | "team" | "workspaceBanner"
 >;
 
 export function configStatusFromFrame(frame: ConfigStatusFrame): ConfigStatus {
@@ -430,7 +429,6 @@ export function configStatusFromFrame(frame: ConfigStatusFrame): ConfigStatus {
     openai: frame.openai,
     openrouter: frame.openrouter,
     openaiCompat: frame.openaiCompat,
-    fleet: frame.fleet,
     composio: frame.composio,
     box: frame.box,
     vps: frame.vps,
@@ -451,9 +449,6 @@ export function configStatusFromFrame(frame: ConfigStatusFrame): ConfigStatus {
     onboarding: frame.onboarding,
     browserEngine: frame.browserEngine,
     browserProfiles: frame.browserProfiles,
-    edition: frame.edition,
-    budgets: frame.budgets,
-    billing: frame.billing,
     managedPolicy: frame.managedPolicy,
     ...(frame.cloudHome ? { cloudHome: true } : {}), ...(frame.team ? { team: frame.team } : {}), ...(frame.workspaceBanner ? { workspaceBanner: frame.workspaceBanner } : {}),
   };
@@ -531,7 +526,6 @@ export type AppSettingsSection =
   | "people" | "botAccess"
   | "activity"
   | "backups"
-  | "workspaces"
   | "skills" | "import" | "updates"
   | "texting" | "permissions" | "advanced" | "apps" | "looks" | "bots" | "data" | "builder" | "about" | "transfer";
 
@@ -2090,9 +2084,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [transcriptCache] = useState(() => createTranscriptCache(indexedDbShelf()));
   const invalidateTranscripts = useSelectedTranscript(state, rawDispatch, MESSAGE_PAGE_SIZE, transcriptCache);
   useTranscriptCache(state, rawDispatch, transcriptCache);
-  const showThreads = useShowThreads();
-  const showThreadsRef = useRef(showThreads);
-  showThreadsRef.current = showThreads;
   const clearChatError = useCallback(() => {
     rawDispatch({ type: "error", message: null });
   }, []);
@@ -2570,7 +2561,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           creatingBot = true;
           rawDispatch({ type: "botCreationPending", on: true });
           void import("@/lib/new-bot")
-            .then(({ makeNewBot }) => makeNewBot(action, stateRef.current.bots, wrapped, showThreadsRef.current))
+            .then(({ makeNewBot }) => makeNewBot(action, stateRef.current.bots, wrapped))
             .catch(showError)
             .finally(() => {
               creatingBot = false;
@@ -2871,8 +2862,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!state.hydrated || launched.current) return;
     launched.current = true;
     const bot = state.bots.find((candidate) => candidate.id === state.selectedId);
-    if (bot && state.activeView === "chat" && botOpensTo(bot, showThreads) !== bot.threadId) openBot(dispatch, bot, showThreads);
-  }, [state.hydrated, state.bots, state.selectedId, state.activeView, showThreads, dispatch]);
+    if (bot && state.activeView === "chat" && botOpensTo(bot) !== bot.threadId) openBot(dispatch, bot);
+  }, [state.hydrated, state.bots, state.selectedId, state.activeView, dispatch]);
 
   useEffect(() => {
     let alive = true;
@@ -3137,7 +3128,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           // The wrapped dispatch: only it PATCHes unread:false back to the server.
           showNotification(
             frame.notification,
-            (target) => openThread(dispatch, target, stateRef.current, showThreadsRef.current),
+            (target) => openThread(dispatch, target, stateRef.current),
             stateRef.current.bots.find((bot) => bot.id === frame.notification.botId)?.avatarUrl,
             visibleNotificationThread(stateRef.current),
           );

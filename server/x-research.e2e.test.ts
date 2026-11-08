@@ -72,7 +72,7 @@ async function withFixture(test: (f: any) => Promise<void>, options: { plan: boo
   const seen: Seen[] = [];
   const stub = await serveStub(seen, { researchOff: options.researchOff });
   const env = { OMB_TREG_URL: stub.url, ...(options.plan ? { OMB_CLOUD_X_URL: `${stub.url}${RELAY_PATH}`, OMB_CLOUD_X_TOKEN: PLAN_TOKEN } : {}) };
-  const session = await launchVerificationServer({ ...process.env, ...env }, undefined, undefined, undefined, undefined, { scripted: true });
+  const session = await launchVerificationServer({ ...process.env, ...env }, undefined, undefined, undefined, { scripted: true });
   const cli = (...args: string[]) => runControlOmb(args, { env: { OPENMAUSBOT_URL: session.info.url } }) as Promise<any>;
   const api = (path: string, body?: unknown, method = "POST") =>
     request(path, body === undefined ? {} : { method, body: JSON.stringify(body) }, session.info.url) as Promise<any>;

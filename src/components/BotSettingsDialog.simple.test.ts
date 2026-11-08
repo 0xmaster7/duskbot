@@ -57,10 +57,6 @@ vi.mock("react", async (original) => ({
   },
   useEffect: () => {},
 }));
-vi.mock("@/lib/interface-mode", () => ({
-  useAdvancedMode: () => fixture.advanced,
-  setAdvancedMode: (enabled: boolean) => fixture.setAdvanced(enabled),
-}));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.ownerOrAdmin }));
 vi.mock("@/lib/app-links", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/app-links")>()),
@@ -72,7 +68,6 @@ vi.mock("@/lib/memory", async (importOriginal) => ({
 }));
 // The server renderer cannot portal; the dialog's props are what these tests read.
 vi.mock("./ConfirmDialog", () => ({ ConfirmDialog: () => null }));
-vi.mock("./bot-settings/useSlackManagement", () => ({ useSlackManagementUrl: () => null }));
 vi.mock("./bot-settings/useBotSettingsDerived", () => ({ useBotSettingsDerived: () => fixture.derived }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./DesktopCapabilities")>()),

@@ -32,7 +32,7 @@ describe("social-posts template", () => {
     expect(code).not.toMatch(/<script[^>]+src=|<link\b|@import/);
     expect(template).toContain("Copyright (c) 2026 Tushar Bhardwaj");
     expect(template).toContain("Lucide Contributors");
-    expect(readFileSync(join(process.cwd(), "NOTICE"), "utf8")).toContain("third_party/minimock/LICENSE");
+    expect(readFileSync(join(process.cwd(), "licenses", "NOTICE"), "utf8")).toContain("third_party/minimock/LICENSE");
     expect(Buffer.byteLength(template)).toBeLessThan(APP_LIMITS.htmlBytes / 4);
     expect(() => JSON.parse(DATA_BLOCK.exec(template)![1]!)).not.toThrow();
   });

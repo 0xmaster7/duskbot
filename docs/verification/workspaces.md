@@ -1,18 +1,14 @@
-# Workspaces screen and the fleet agent
+# Fleet agent
 
 ## Sub-features
 
 - A root agent on a Unix socket only the operator's user may open, planning
   and running fleet operations, writing an audit line per action.
-- Operator-server routes under `/api/fleet` that forward to the agent, admin
-  scope plus the `admin` entitlement, 404 without an agent.
-- Settings → Installations: list with state and this month's cost, create, users,
-  suspend, resume, delete (with keep-data), upgrade all.
 
 ## Driving it
 
 ```sh
-pnpm exec vitest run server/fleet-agent.test.ts server/fleet-cli.test.ts server/fleet-cli-filesystem.test.ts server/fleet.test.ts src/components/WorkspacesSection.test.ts server/request-auth.test.ts
+pnpm exec vitest run server/fleet-agent.test.ts server/fleet-cli.test.ts server/fleet-cli-filesystem.test.ts server/fleet.test.ts server/request-auth.test.ts
 ```
 
 The agent test boots the real agent on a temporary socket over a recording
@@ -33,13 +29,9 @@ server with the real service identities and protections.
 
 On a real server, after `openmausbot fleet init --domain <domain> --operator
 <user>` as root: `systemctl status openmausbot-fleet`, then `ls -l
-/run/openmausbot/fleet.sock` must show `root:<user>` and mode 660. Sign in to
-the operator workspace and open Settings → Installations. Create one, add a
-member, suspend and resume it, and confirm `/var/log/openmausbot/fleet.jsonl`
-grew a line per action. A workspace other than the operator's must get 502
-from `/api/fleet`, because it cannot open the socket.
+/run/openmausbot/fleet.sock` must show `root:<user>` and mode 660. Use the fleet CLI to create an installation, add a member, suspend and resume
+it, and confirm `/var/log/openmausbot/fleet.jsonl` grew a line per action.
 
 ## Not proven here
 
-The real server steps need root, systemd, nftables and Caddy; the renderer's
-forms are proven from fixtures, not driven headlessly.
+The real server steps need root, systemd, nftables and Caddy; these fixtures do not qualify a root deployment.

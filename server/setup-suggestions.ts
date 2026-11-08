@@ -181,7 +181,6 @@ export interface SetupSuggestionsDeps {
   enabled(): boolean;
   /** The bot's engine can set a bot up, as a pick needs. */
   canSetUp(bot: BotRecord): boolean;
-  withinBudget(): boolean;
   /** sideJobs.text("setup-suggestions", botId). */
   writer(botId: string): SideJobText | null;
   facts(bot: BotRecord): SuggestionBasis;
@@ -297,7 +296,7 @@ export function createSetupSuggestions(deps: SetupSuggestionsDeps) {
       const basis = deps.facts(bot);
       const apps = deps.apps(bot);
       if (!worthAsking(basis, apps)) return end(botId, job, "nothing to go on", setupChoices(basis.languageCode));
-      const writer = deps.withinBudget() ? deps.writer(bot.id) : null;
+      const writer = deps.writer(bot.id);
       if (!writer) return end(botId, job, "no one can write them");
       void write(bot, job, writer, basis, apps, true);
     } catch {
@@ -343,7 +342,7 @@ export function createSetupSuggestions(deps: SetupSuggestionsDeps) {
       try {
         const bot = deps.store.bot(botId);
         const greeting = bot && deps.enabled() ? openSetupOffer(deps.store, bot.id, bot.threadId) : null;
-        if (!bot || !greeting || jobs.has(bot.id) || greeting.setupChoicesPending || !deps.canSetUp(bot) || !deps.withinBudget()) return;
+        if (!bot || !greeting || jobs.has(bot.id) || greeting.setupChoicesPending || !deps.canSetUp(bot)) return;
         const writer = deps.writer(bot.id);
         if (!writer) return;
         const basis = deps.facts(bot);
@@ -380,7 +379,7 @@ export function suggestionBasis(bot: BotRecord, place: { bots: readonly BotRecor
 type EngineCapabilities = Partial<Pick<ProviderAdapter["capabilities"], "agentsMcp" | "browserMcp" | "composioMcp">>;
 
 /** The server's side of the card's writer, read as each bot is made. */
-export interface SetupSuggestionsHost extends Pick<SetupSuggestionsDeps, "withinBudget" | "writer" | "log"> {
+export interface SetupSuggestionsHost extends Pick<SetupSuggestionsDeps, "writer" | "log"> {
   store: SetupSuggestionsDeps["store"] & { readonly bots: readonly BotRecord[] };
   config(): Pick<AppConfig, "features" | "profile">;
   /** Several people share this place. */
@@ -418,7 +417,6 @@ export function setupSuggestionsFor(host: SetupSuggestionsHost) {
     store: host.store,
     enabled: () => host.config().features?.smartSetupChoices !== false,
     canSetUp: (bot) => host.engine(bot)?.agentsMcp === true,
-    withinBudget: host.withinBudget,
     writer: host.writer,
     facts: (bot) => suggestionBasis(bot, { bots: host.store.bots, shared: host.shared(), aboutMe: host.config().profile?.aboutMe,
       languageCode: host.languageCode(), canBrowse: host.engine(bot)?.browserMcp === true && host.browserOn() && bot.browser !== false }),

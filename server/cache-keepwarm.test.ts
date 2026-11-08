@@ -29,7 +29,7 @@ function harness(overrides: Partial<KeepWarmDeps> = {}) {
   const holds: Array<number | null> = [];
   let replies: KeepWarmPingResult[] = [];
   let pending: { resolve: (r: KeepWarmPingResult) => void; signal: AbortSignal } | null = null;
-  const state = { windowMs: 3 * 60 * MIN as number | null, ineligible: null as string | null, busy: false, overBudget: false, manual: false };
+  const state = { windowMs: 3 * 60 * MIN as number | null, ineligible: null as string | null, busy: false, manual: false };
   const deps: KeepWarmDeps = {
     now: () => now,
     after: (ms, fn) => {
@@ -40,7 +40,6 @@ function harness(overrides: Partial<KeepWarmDeps> = {}) {
     windowMs: () => state.windowMs,
     ineligible: () => state.ineligible,
     busy: () => state.busy,
-    overBudget: () => state.overBudget,
     ping: (target, signal) => {
       pings.push(target);
       if (state.manual) return new Promise((resolve) => { pending = { resolve, signal }; });
@@ -178,14 +177,7 @@ describe("cache keep-warm", () => {
     expect(stuck.liveTimers()).toBe(0);
   });
 
-  it("stops at the spend cap, and when the engine is no longer eligible", async () => {
-    const capped = harness();
-    capped.keepWarm.noteTurnCompleted(T, BIG);
-    capped.state.overBudget = true;
-    await capped.advance(PING_AFTER_MS);
-    expect(capped.pings).toEqual([]);
-    expect(capped.keepWarm.status("t1")).toMatchObject({ state: "stopped", stopped: expect.stringContaining("spend limit") });
-
+  it("stops when the engine is no longer eligible", async () => {
     const gone = harness();
     gone.keepWarm.noteTurnCompleted(T, BIG);
     gone.state.ineligible = "the thread was deleted";

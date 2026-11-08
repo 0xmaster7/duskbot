@@ -1,4 +1,4 @@
-// Dev-only gallery of bringing the bots together on a server of the person's own, served at /one-home-preview.html; not in
+// Dev-only gallery of bringing the bots together on a server of the person's own, served at /previews/one-home-preview.html; not in
 // the packaged app. It mounts the real rail and account line over fake bridges, with no server behind them.
 // ?state=menu|moving|failing|cloud-failing|suggest&skin=midnight|daylight&lang=de
 import { StrictMode, useEffect } from "react";

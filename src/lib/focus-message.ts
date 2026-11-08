@@ -33,7 +33,7 @@ export async function landOnSearchHit(
   hit: SearchHit,
   state: Pick<AppState, "bots" | "groups" | "transcriptGeneration">,
   dispatch: React.Dispatch<Action>,
-  threadsShown: boolean,
+  threadsShown = false,
 ): Promise<void> {
   const ownerId = hit.botId ?? hit.groupId;
   const bot = hit.botId ? state.bots.find((candidate) => candidate.id === hit.botId) : undefined;

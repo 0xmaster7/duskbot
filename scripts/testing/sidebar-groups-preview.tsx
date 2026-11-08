@@ -1,7 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "../../src/App";
 import { setEmailGateDone } from "../../src/lib/analytics";
-import { setAdvancedMode } from "../../src/lib/interface-mode";
 import { GROK_MOVE_NOTICE } from "../../src/lib/notices";
 import { applySkin, type SkinId } from "../../src/lib/skins";
 import "../../src/styles.css";
@@ -11,6 +10,5 @@ import "../../src/styles.css";
 const params = new URLSearchParams(location.search);
 setEmailGateDone("skipped");
 localStorage.setItem(GROK_MOVE_NOTICE, "1");
-setAdvancedMode(params.get("mode") !== "simple");
 applySkin((params.get("skin") ?? "daylight") as SkinId);
 createRoot(document.getElementById("root")!).render(<App />);

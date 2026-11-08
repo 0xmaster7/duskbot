@@ -62,7 +62,7 @@ desktop, headless and on a Cloud.
 - **The 10-minute reminder**: a card posted by the server, with no AI.
 - One notification per update that adds something that needs the person.
 
-Pausing or deleting the routine in Automations is the off switch: with it off
+Pausing or deleting the routine in the bot panel is the off switch: with it off
 there is no brief at all. Its row says
 "reads and drafts only" and "checked … , nothing new".
 

@@ -35,7 +35,7 @@ afterEach(async () => {
 
 async function serve(): Promise<string> {
   const deps = {
-    store: new Store(() => sonnet), viewerFor: () => ({}), visibleTo: () => ({ bot: () => true, group: () => true }), workspaceAccess: () => null,
+    store: new Store(() => sonnet), viewerFor: () => ({}), visibleTo: () => ({ bot: () => true, group: () => true }),
     desktopMutationToken: () => undefined, companionMutationToken: () => undefined, cliOwnerToken: () => undefined, userName: () => "Milind",
     uploads: { note: () => {}, owns: () => true },
   } as unknown as ThreadRouteDeps;

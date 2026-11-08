@@ -39,21 +39,19 @@ describe("computer panel view persistence", () => {
 
 describe("computer panel view availability", () => {
   it("drops the tabs the current mode does not render", () => {
-    expect(resolveComputerPanelView("routines", { advanced: false })).toBe("computer");
-    expect(resolveComputerPanelView("files", { advanced: true })).toBe("computer");
+    expect(resolveComputerPanelView("routines", {})).toBe("computer");
+    expect(resolveComputerPanelView("files", {})).toBe("computer");
   });
 
   it("keeps a view whose trigger is on the row", () => {
     for (const view of ["computer", "browser"] as const) {
-      expect(resolveComputerPanelView(view, { advanced: true })).toBe(view);
-      expect(resolveComputerPanelView(view, { advanced: false, browser: true })).toBe(view);
+      expect(resolveComputerPanelView(view, { browser: true })).toBe(view);
     }
   });
 
   it("keeps Simple to Screen, with Browser only when the bot's browser is asked for", () => {
-    expect(computerPanelTabs({ advanced: false })).toEqual(["computer"]);
-    expect(computerPanelTabs({ advanced: false, browser: true })).toEqual(["computer", "browser"]);
-    expect(computerPanelTabs({ advanced: true })).toEqual(["computer", "routines", "browser"]);
-    expect(resolveComputerPanelView("browser", { advanced: false })).toBe("computer");
+    expect(computerPanelTabs({})).toEqual(["computer"]);
+    expect(computerPanelTabs({ browser: true })).toEqual(["computer", "browser"]);
+    expect(resolveComputerPanelView("browser", {})).toBe("computer");
   });
 });

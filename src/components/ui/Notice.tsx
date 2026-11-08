@@ -1,13 +1,7 @@
 import { cn } from "@/lib/cn";
 import { GrokIcon, type GrokIconName } from "../GrokIcon";
-import { rowButtonCls } from "./GrokDialog";
 
 export type NoticeTone = "info" | "warning" | "danger" | "success";
-
-/** Grok's banner (sand-banner): a white card on a 1px ink/12 edge at 18px corners, the inline lift, 12px in, 12px gaps. */
-export const noticeCardCls = "flex items-start gap-3 rounded-[18px] border border-ink/12 bg-menu p-3 text-[14px] leading-5 text-ink";
-/** A notice's action: Grok's 30px ink/6 pill. */
-export const noticeActionCls = rowButtonCls;
 
 const GLYPH: Record<NoticeTone, { name: GrokIconName; filled: boolean; cls: string }> = {
   info: { name: "info", filled: true, cls: "text-ink/56" },

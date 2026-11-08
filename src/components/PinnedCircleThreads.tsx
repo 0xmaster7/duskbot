@@ -141,7 +141,7 @@ export const PinnedBotCircle = memo(function PinnedBotCircle({
         aria-keyshortcuts={drag ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
         aria-label={`${bot.name}${waiting ? ` · ${t("sidebar.preview.waiting")}` : working ? ` · ${t("chat.activity.working")}` : ""}${unread ? ` · ${t("task.unread")}` : ""}`}
         title={bot.name}
-        onClick={() => openBotRow(dispatch, bot, false, selected)}
+        onClick={() => openBotRow(dispatch, bot, selected)}
         {...pinnedCircleDragHandlers(bot.id, { drag, dragging, prevId, nextId })}
         onContextMenu={(event) => {
           event.preventDefault();

@@ -210,5 +210,3 @@ export function createCloudTeamHost(deps: CloudTeamHostDeps) {
     memberAudience,
   };
 }
-
-export type CloudTeamHost = ReturnType<typeof createCloudTeamHost>;

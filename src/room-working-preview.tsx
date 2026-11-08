@@ -1,5 +1,5 @@
 // Dev-only gallery of a room's working lines and of every mascot body at its small sizes, served at
-// /room-working-preview.html; not in the packaged app. It mounts the real GroupView over a fixed store, with no server.
+// /previews/room-working-preview.html; not in the packaged app. It mounts the real GroupView over a fixed store, with no server.
 // ?working=0|1|2|3 bots at work in the room, &long=1 with enough history to scroll, &panel=1 with the Room panel open; ?gallery=1 draws every body at 16, 20 and 28px instead.
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

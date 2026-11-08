@@ -3,7 +3,6 @@ import type { CloudAccountState } from "../../electron/cloud-account.mjs";
 import type { CloudOffer } from "../../electron/cloud-home.mjs";
 import { api, useStore } from "@/state/store";
 import { track } from "@/lib/analytics";
-import { brandStatus } from "@/lib/brand";
 import { buyOfferAllowed, cloudNoticeKind, cloudPlanView, cloudTrialNotice, cloudTrialView, offerTrialDays } from "@/lib/cloud-plan";
 import { jobRoutine, useCloudIntent } from "@/lib/cloud-intent";
 import { CLOUD_INTENT_GIVEN, cloudSetupStage } from "@/lib/cloud-setup";
@@ -68,7 +67,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   }, []);
   const view = bridge ? cloudPlanView(account) : null;
   const record = state.config?.onboarding;
-  const introAllowed = Boolean(bridge) && brandStatus().source !== "file" && organization !== true && !onboardingCloudOffered(record);
+  const introAllowed = Boolean(bridge) && organization !== true && !onboardingCloudOffered(record);
   const stage = introStage(record, now());
   const trialDue = cloudTrialNotice(plan);
   const wantOffer = Boolean(bridge?.offer) && introAllowed && view !== null && buyOfferAllowed(view) && stage !== "done";

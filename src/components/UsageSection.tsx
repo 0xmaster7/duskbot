@@ -12,7 +12,6 @@ import { BotAvatar } from "./Avatar";
 import { PlanUsage } from "./PlanUsage";
 import { SettingsSelect } from "./SettingsSelect";
 import { Card as RowsCard, ItemRow, NavRow, NoteRow, RowText, rowCls } from "./ListRows";
-import { UsageBudgetCards, type BudgetState } from "./UsageBudget";
 import { TraceView } from "./usage/TraceView";
 import { LiveBadge, modelName, totalsStats } from "./usage/TraceWaterfall";
 
@@ -32,7 +31,6 @@ export interface UsageGroup {
 interface UsageSummary {
   groupBy: UsageGroupBy;
   groups: UsageGroup[];
-  budget?: BudgetState | null;
 }
 
 const GROUP_LABEL_KEYS: Record<UsageGroupBy, LocaleKey> = {
@@ -106,11 +104,10 @@ export function GroupBars({ groupBy, groups }: { groupBy: UsageGroupBy; groups: 
   );
 }
 
-function WhereItWent({ range, version, onBudget }: { range: { from: string; to: string }; version: number; onBudget: (budget: BudgetState | null) => void }) {
+function WhereItWent({ range, version }: { range: { from: string; to: string }; version: number }) {
   const [other, setOther] = useState<UsageGroupBy>("model");
   const byBot = useUsageGroups(range, "bot", version);
   const byOther = useUsageGroups(range, other, version);
-  useEffect(() => { onBudget(byBot?.budget ?? null); }, [byBot, onBudget]);
   return (
     <>
       <RowsCard label={t("usage.page.where")}>
@@ -174,7 +171,6 @@ export function UsageSection() {
   const [list, setList] = useState<TraceList | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
-  const [budget, setBudget] = useState<BudgetState | null>(null);
   const [open, setOpen] = useState<{ id: string; at: number } | null>(null);
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -230,7 +226,7 @@ export function UsageSection() {
               )) : <NoteRow>{t("common.checking")}</NoteRow>}
             </RowsCard>
           </section>
-          <WhereItWent range={range} version={version} onBudget={setBudget} />
+          <WhereItWent range={range} version={version} />
           <section aria-label={t("usage.page.runs")} className="contents">
             <RowsCard label={t("usage.page.runs")} footnote={untimed ? t("usage.page.untimedNote") : undefined}>
               {list && !list.roots.length && <NoteRow>{t("usage.page.runsEmpty")}</NoteRow>}
@@ -243,7 +239,6 @@ export function UsageSection() {
         </>
       )}
       <PlanUsage />
-      <UsageBudgetCards budget={budget} />
     </div>
   );
 }

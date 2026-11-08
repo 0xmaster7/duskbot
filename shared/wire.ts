@@ -950,7 +950,7 @@ export type SteerQueueReason = "capacity" | "group-turn";
  * `bot.queued` frame carries them: threadId → queued items. */
 export type BotQueuedMessages = Record<string, Array<{ queueId: string; text: string; reason?: SteerQueueReason; /** The reason in plain words, shown as it is. */ why?: string }>>;
 
-export type { SkillsLibrarySkillWire, BotAssignedSkillsWire } from "./skills-library-wire.ts";
+export type { SkillsLibrarySkillWire } from "./skills-library-wire.ts";
 
 export type ServerFrame =
   | { kind: "sections"; sections: string[] }

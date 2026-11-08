@@ -7,9 +7,8 @@ import type { Routine, RoutineRun } from "@/lib/routines";
 const fixture = vi.hoisted(() => {
   vi.stubGlobal("window", {});
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
-  return { state: undefined as AppState | undefined, dispatch: vi.fn(), showThreads: true };
+  return { state: undefined as AppState | undefined, dispatch: vi.fn() };
 });
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.showThreads }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, useStore: () => ({ state: fixture.state ?? original.initialState, dispatch: fixture.dispatch }) };
@@ -77,7 +76,6 @@ function buttonsFrom(render: () => ReactNode): Map<string, Button> {
 
 beforeEach(() => {
   fixture.dispatch.mockClear();
-  fixture.showThreads = true;
   fixture.state = { ...initialState, bots: [bot], groups: [group], routines: [routine], routineRuns: [run] };
 });
 afterAll(() => vi.unstubAllGlobals());

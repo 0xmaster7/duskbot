@@ -689,10 +689,10 @@ describe("a config.json saved with a byte order mark", () => {
   it("loads instead of being ignored", () => {
     const path = join(DATA_DIR, "config.json");
     mkdirSync(DATA_DIR, { recursive: true });
-    writeFileSync(path, bom + JSON.stringify({ budgets: { monthlyUsd: 25, warnAtPercent: 70 } }, null, 2));
+    writeFileSync(path, bom + JSON.stringify({ rooms: { turnTimeoutMinutes: 25 } }, null, 2));
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
-      expect(loadConfig().budgets).toEqual({ monthlyUsd: 25, warnAtPercent: 70 });
+      expect(loadConfig().rooms).toEqual({ turnTimeoutMinutes: 25 });
       expect(warn.mock.calls.some(([line]) => String(line).includes("ignoring"))).toBe(false);
     } finally {
       warn.mockRestore();
@@ -708,12 +708,12 @@ describe("a config.json saved with a byte order mark", () => {
       mcpServers: { notes: { command: "npx", args: ["notes-mcp"] } },
     }, null, 2));
     try {
-      saveConfig({ budgets: { monthlyUsd: 25, warnAtPercent: 70 } });
+      saveConfig({ rooms: { turnTimeoutMinutes: 25 } });
       const disk = JSON.parse(readFileSync(path, "utf8"));
       expect(disk).toMatchObject({
         xai: { key: "xai-fixture" },
         mcpServers: { notes: { command: "npx", args: ["notes-mcp"] } },
-        budgets: { monthlyUsd: 25, warnAtPercent: 70 },
+        rooms: { turnTimeoutMinutes: 25 },
       });
     } finally {
       rmSync(path, { force: true });
@@ -740,18 +740,18 @@ describe("loadConfig between changes", () => {
     const path = join(DATA_DIR, "config.json");
     mkdirSync(DATA_DIR, { recursive: true });
     const settle = () => { const past = new Date(Date.now() - 60_000); utimesSync(path, past, past); };
-    writeFileSync(path, JSON.stringify({ budgets: { monthlyUsd: 10, warnAtPercent: 50 } }));
+    writeFileSync(path, JSON.stringify({ rooms: { turnTimeoutMinutes: 10 } }));
     settle();
     try {
       const first = loadConfig();
-      first.budgets!.monthlyUsd = 999;
-      expect(loadConfig().budgets).toEqual({ monthlyUsd: 10, warnAtPercent: 50 });
-      saveConfig({ budgets: { monthlyUsd: 20, warnAtPercent: 50 } });
+      first.rooms!.turnTimeoutMinutes = 999;
+      expect(loadConfig().rooms).toEqual({ turnTimeoutMinutes: 10 });
+      saveConfig({ rooms: { turnTimeoutMinutes: 20 } });
       settle();
-      expect(loadConfig().budgets).toEqual({ monthlyUsd: 20, warnAtPercent: 50 });
-      writeFileSync(path, JSON.stringify({ budgets: { monthlyUsd: 30, warnAtPercent: 50 } }));
+      expect(loadConfig().rooms).toEqual({ turnTimeoutMinutes: 20 });
+      writeFileSync(path, JSON.stringify({ rooms: { turnTimeoutMinutes: 30 } }));
       settle();
-      expect(loadConfig().budgets).toEqual({ monthlyUsd: 30, warnAtPercent: 50 });
+      expect(loadConfig().rooms).toEqual({ turnTimeoutMinutes: 30 });
     } finally {
       rmSync(path, { force: true });
     }
@@ -759,23 +759,19 @@ describe("loadConfig between changes", () => {
 });
 
 describe("saving the newer sections", () => {
-  it("persists the Anthropic key, the spend limit and the price list, section by section", () => {
+  it("persists the Anthropic key, room settings, section by section", () => {
     const path = join(DATA_DIR, "config.json");
     mkdirSync(DATA_DIR, { recursive: true });
     writeFileSync(path, JSON.stringify({ xai: { key: "xai-fixture" } }));
     try {
       saveConfig({ anthropic: { key: "sk-ant-fixture" } });
-      saveConfig({ budgets: { monthlyUsd: 25, warnAtPercent: 70 } });
-      saveConfig({ billing: { currency: "EUR", prices: { default: { inputPerMillion: 1, outputPerMillion: 2 } } } });
-      saveConfig({ billing: { prices: { "gpt-5": { inputPerMillion: 3, outputPerMillion: 4 } } } });
+      saveConfig({ rooms: { turnTimeoutMinutes: 25 } });
       const disk = JSON.parse(readFileSync(path, "utf8"));
       expect(disk).toMatchObject({
         xai: { key: "xai-fixture" },
         anthropic: { key: "sk-ant-fixture" },
-        budgets: { monthlyUsd: 25, warnAtPercent: 70 },
-        billing: { currency: "EUR", prices: { "gpt-5": { inputPerMillion: 3, outputPerMillion: 4 } } },
+        rooms: { turnTimeoutMinutes: 25 },
       });
-      expect(disk.billing.prices.default).toBeUndefined();
     } finally {
       rmSync(path, { force: true });
     }
@@ -2043,7 +2039,7 @@ describe("changedInstanceIds", () => {
   it("replaces nothing for sections no driver reads", () => {
     expect(reloaded({ onboarding: { hintsSeen: ["tour.composer"] } })).toEqual([]);
     expect(reloaded({ profile: {}, language: "de", tts: {}, features: {} })).toEqual([]);
-    expect(reloaded({ box: { token: "boat" }, composio: { apiKey: "c" }, budgets: { monthlyUsd: 5 } })).toEqual([]);
+    expect(reloaded({ box: { token: "boat" }, composio: { apiKey: "c" } })).toEqual([]);
   });
   it("replaces an engine whose driver reads a saved key from the env", () => {
     const own = instanceConfigs({ instances: { own: { driver: "mistral", config: { url: "http://127.0.0.1:9/v1" } } }, mistral: { key: "m1" } });
@@ -2305,11 +2301,11 @@ describe("X research's included relay token", () => {
   it("still loads a config.json saved with the old own treg token, and keeps that token out of the config", () => {
     const path = join(DATA_DIR, "config.json");
     mkdirSync(DATA_DIR, { recursive: true });
-    writeFileSync(path, JSON.stringify({ budgets: { monthlyUsd: 25, warnAtPercent: 70 }, treg: { token: "treg_old" } }));
+    writeFileSync(path, JSON.stringify({ rooms: { turnTimeoutMinutes: 25 }, treg: { token: "treg_old" } }));
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const loaded = loadConfig();
-      expect(loaded.budgets).toEqual({ monthlyUsd: 25, warnAtPercent: 70 });
+      expect(loaded.rooms).toEqual({ turnTimeoutMinutes: 25 });
       expect(JSON.stringify(loaded)).not.toContain("treg_old");
       expect(warn.mock.calls.some(([line]) => String(line).includes("ignoring"))).toBe(false);
     } finally {

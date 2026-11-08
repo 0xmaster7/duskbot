@@ -134,9 +134,3 @@ export function SettingsGroup({ label, block, actions, footnote, children }: {
 export function SettingsRows({ children }: { children: ReactNode }) {
   return <div data-settings-rows="" className={cn(SIMPLE_CARD, "flex flex-col empty:hidden")}>{children}</div>;
 }
-
-/** The app's reduced-motion choice or the system's, read safely where there is no window. */
-export function prefersReducedMotion(): boolean {
-  if (typeof document !== "undefined" && document.documentElement?.dataset?.reducedMotion === "true") return true;
-  return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}

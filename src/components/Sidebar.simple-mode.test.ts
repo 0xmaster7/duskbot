@@ -4,12 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { initialState, type AppState, type Bot, type Group } from "@/state/store";
 import type { SidebarDensity } from "@/lib/sidebar-preferences";
 
-const fixture = vi.hoisted(() => ({ advanced: false, showThreads: true, admin: true as boolean | null, state: {} as Partial<AppState>, dispatch: vi.fn() }));
-vi.mock("@/lib/interface-mode", async (original) => ({
-  ...await original<typeof import("@/lib/interface-mode")>(),
-  useAdvancedMode: () => fixture.advanced,
-}));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.showThreads }));
+const fixture = vi.hoisted(() => ({ advanced: false, admin: true as boolean | null, state: {} as Partial<AppState>, dispatch: vi.fn() }));
+
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.admin }));
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({}) }));
 vi.mock("react-dom", () => ({ createPortal: (node: ReactNode) => node }));
@@ -56,7 +52,6 @@ function findElement(tree: ReactNode, attribute: string, value: string): ReactEl
 
 beforeEach(() => {
   fixture.advanced = false;
-  fixture.showThreads = true;
   fixture.admin = true;
   fixture.state = { bots: [bot], selectedId: "other-bot", activeView: "chat", pendingQueued: { queued: [{ queueId: "q", text: "next" }] } };
   fixture.dispatch.mockClear();
@@ -69,7 +64,6 @@ afterEach(() => { vi.unstubAllGlobals(); });
 describe("bot-first sidebar", () => {
   it.each([false])("uses the selected mode for bot and room tool previews (advanced: %s)", (advanced) => {
     fixture.advanced = advanced;
-    fixture.showThreads = false;
     const messages: Bot["messages"] = [{ id: "step", role: "bot", kind: "activity", at: 1, tool: { name: "mcp__omb__computer_batch", ok: true } }];
     const candidate = { ...bot, messages, tasks: [], projects: [] };
     const group: Group = { id: "room", threadId: "room-thread", name: "Team", memberIds: [bot.id], messages, defaultResponder: { kind: "mentions" }, bulletin: "", unread: false, createdAt: 1 };
@@ -87,9 +81,8 @@ describe("bot-first sidebar", () => {
   it.each([
     { advanced: false, enabled: false, density: "comfortable", size: 36, spacing: ["gap-2", "rounded-[10px]", "p-2", "md:h-[54px]"] },
     { advanced: false, enabled: false, density: "icons", size: 36, spacing: ["h-[54px]", "justify-center"] },
-  ] as const)("sizes bot portraits and row spacing in $density density with threads $enabled (advanced $advanced)", ({ advanced, enabled, density, size, spacing }) => {
+  ] as const)("sizes bot portraits and row spacing in $density density with threads $enabled (advanced $advanced)", ({ advanced, density, size, spacing }) => {
     fixture.advanced = advanced;
-    fixture.showThreads = enabled;
     for (const avatar of [{}, { avatarUrl: "/api/attachments/portrait.png", avatarCrop: "circle" as const }]) {
       let tree: ReactNode;
       function Capture() { tree = botRow(rowProps(density, { ...bot, ...avatar })); return tree; }
@@ -106,7 +99,6 @@ describe("bot-first sidebar", () => {
 
   for (const enabled of [true, false]) {
     it.each(densities)(`opens the last selected conversation on mouse or keyboard, %s density, threads ${enabled ? "on" : "off"}`, (density) => {
-      fixture.showThreads = enabled;
       let tree: ReactNode;
       function Capture() { tree = botRow(rowProps(density, quiet)); return tree; }
       renderToStaticMarkup(createElement(Capture));
@@ -126,7 +118,6 @@ describe("bot-first sidebar", () => {
 
   it.each([false])("uses 14px medium names in Simple comfortable rows and keeps 15px semibold otherwise (advanced %s)", (advanced) => {
     fixture.advanced = advanced;
-    fixture.showThreads = false;
     const markup = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...bot, tasks: [], projects: [] })));
     const name = markup.match(/<span class="flex min-w-0 grow items-center gap-1\.5 truncate text-ink ([^"]*)"/)?.[1];
     expect(name).toBe(advanced ? "text-[15px] font-semibold leading-5" : "text-[14px] font-medium leading-5 tracking-[0.01em]");
@@ -134,7 +125,6 @@ describe("bot-first sidebar", () => {
   });
 
   it("keeps a Simple row's preview line to its words with no engine mark, as grok does, puts the unread dot centred at the row's right end where ⋯ shows, and never moves the name", () => {
-    fixture.showThreads = false;
     fixture.state = { ...fixture.state, instances: [{ instanceId: "fake", driverKind: "claudeAgent", displayName: "Claude" }] as unknown as AppState["instances"] };
     const candidate = { ...bot, tasks: [], projects: [], unread: true, messages: [{ id: "m", role: "bot", kind: "text", text: "Done.", at: 1 }] } as Bot;
     let tree: ReactNode;
@@ -152,7 +142,6 @@ describe("bot-first sidebar", () => {
   });
 
   it("keeps Simple mode's collapsed rail to the avatar and fades the Advanced rail's engine badge", () => {
-    fixture.showThreads = false;
     fixture.state = { ...fixture.state, instances: [{ instanceId: "fake", driverKind: "claudeAgent", displayName: "Claude" }] as unknown as AppState["instances"] };
     const candidate = { ...bot, tasks: [], projects: [] };
     const rail = renderToStaticMarkup(createElement(BotListItem, rowProps("icons", candidate)));
@@ -160,7 +149,6 @@ describe("bot-first sidebar", () => {
   });
 
   it("shows a waiting Simple row as grok's amber dot and preview, and a working one with no dot at all, with no badge or live region", () => {
-    fixture.showThreads = false;
     const quiet = { ...bot, tasks: [], projects: [], unread: false, messages: [] };
     const waiting = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...quiet, activity: "waiting-on-you" })));
     expect(waiting).toContain('data-testid="waiting-dot" title="Waiting for you…" class="size-2 shrink-0 rounded-full bg-[#da830e]"');
@@ -179,7 +167,6 @@ describe("bot-first sidebar", () => {
 
   it.each([false])("says the step a working bot is on in place of its last message, and its last message again once done (advanced: %s)", (advanced) => {
     fixture.advanced = advanced;
-    fixture.showThreads = false;
     resetTurnLive();
     const said: Bot["messages"] = [{ id: "hi", role: "bot", kind: "text", at: 1, text: "Here are the leads from Monday." }];
     const leads = { threadId: "leads", title: "Leads", createdAt: 1 };
@@ -205,7 +192,6 @@ describe("bot-first sidebar", () => {
   });
 
   it("rings a focused row or group chat inside its edge in both modes", () => {
-    fixture.showThreads = false;
     const group: Group = { id: "room", threadId: "room-thread", name: "Launch", memberIds: [bot.id], messages: [], defaultResponder: { kind: "mentions" }, bulletin: "", unread: false, createdAt: 1 };
     const simple = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...bot, tasks: [], projects: [] }))) + renderToStaticMarkup(createElement(GroupListItem, { group, density: "comfortable", onMenu: vi.fn() }));
     expect(simple.match(/focus-visible:outline-2 focus-visible:-outline-offset-2! focus-visible:outline-focus/g)).toHaveLength(2);
@@ -217,7 +203,6 @@ describe("bot-first sidebar", () => {
   });
 
   it("hides even the selected Simple row's actions until keyboard focus or touch, where Advanced keeps them shown", () => {
-    fixture.showThreads = false;
     fixture.state = { ...fixture.state, selectedId: bot.id, activeView: "chat" };
     const candidate = { ...bot, tasks: [], projects: [] };
     const simple = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", candidate)));
@@ -239,7 +224,6 @@ describe("bot-first sidebar", () => {
   });
 
   it("draws no engine mark for a bot with no AI yet or in a group chat, and a faded one in Advanced mode", () => {
-    fixture.showThreads = false;
     fixture.state = { ...fixture.state, instances: [{ instanceId: "fake", driverKind: "claudeAgent", displayName: "Claude" }] as unknown as AppState["instances"] };
     const candidate = { ...bot, tasks: [], projects: [] };
     expect(renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...candidate, modelSelection: { instanceId: "none", model: "m" } })))).not.toContain("data-provider-mark");
@@ -248,7 +232,6 @@ describe("bot-first sidebar", () => {
   });
 
   it("keeps a Simple row to its name and preview, with grok's main-bot star and no tooltip", () => {
-    fixture.showThreads = false;
     const instances = [{ instanceId: "fake", driverKind: "claude", displayName: "Claude", models: { options: [{ id: "test", label: "Sonnet" }] } }] as unknown as AppState["instances"];
     fixture.state = { ...fixture.state, instances, selectedId: bot.id };
     const candidate = { ...bot, title: "Research", chiefOfStaff: true, pinned: true, tasks: [], projects: [], messages: [{ id: "m", role: "bot", kind: "text", text: "Done.", at: 1 }] } as Bot;
@@ -284,7 +267,6 @@ describe("bot-first sidebar", () => {
   });
 
   it.each(densities)("opens the thread a row or circle is marked for, on mouse or keyboard, %s density", (density) => {
-    fixture.showThreads = false;
     const trees: ReactNode[] = [];
     function Capture() { const tree = [botRow(rowProps(density)), pinnedCircle(rowProps(density))]; trees.push(...tree); return tree; }
     renderToStaticMarkup(createElement(Capture));
@@ -302,8 +284,7 @@ describe("bot-first sidebar", () => {
 
   it.each(densities)("opens the thread the person last wrote in when threads are hidden, %s density", (density) => {
     const used = { ...quiet, mainThreadId: "idle-history" };
-    for (const enabled of [false]) {
-      fixture.showThreads = enabled;
+    {
       const opened = { type: "switchTask", botId: bot.id, threadId: "idle-history" };
       const trees: ReactNode[] = [];
       function Capture() { const tree = [botRow(rowProps(density, used)), pinnedCircle(rowProps(density, used))]; trees.push(...tree); return tree; }
@@ -393,7 +374,6 @@ describe("activity-only escape hatch", () => {
     // Searching "Main" opens the thread tree, which itself keeps routine runs out: the row is the only way in.
     const rows = (candidate: Bot, query = "") => renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", candidate, query))).split('data-sidebar-activity-row="run"').length - 1;
     for (const showThreads of [false, true]) for (const advanced of [false, true]) {
-      fixture.showThreads = showThreads;
       fixture.advanced = advanced;
       expect(rows(runner)).toBe(1);
       expect(rows(ended)).toBe(0);

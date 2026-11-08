@@ -18,10 +18,6 @@ export function closeTopSheet(): boolean {
   return true;
 }
 
-export function sheetOpen(): boolean {
-  return OPEN_SHEETS.length > 0;
-}
-
 /** A bottom sheet with Grok's 28pt top corners. It follows the finger down from anywhere whose scroller is at its top,
  * rubber-bands up, and on release dismisses or springs back by where the flick would land. */
 export function Sheet({ open, onClose, title, label, children, full = false, back, trailing, bodyClassName, flush = false }: {

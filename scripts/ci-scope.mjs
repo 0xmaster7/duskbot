@@ -10,14 +10,14 @@ import { fileURLToPath } from "node:url";
 // event runs it), and the subsets in VITEST_SUBSETS.
 export const SELECTABLE_JOBS = [
   "vitest", "behavior-evals", "packaged-server", "windows-cua", "electron-smokes", "cloudflared-linux-arm64",
-  "foss", "control-plane", "ui-smoke", "browser-identity", "package-linux", "browser-driver",
+  "control-plane", "ui-smoke", "browser-identity", "package-linux", "browser-driver",
 ];
 
 // The server imports Electron and renderer modules, and the macOS smokes run
 // the packaged server inside Electron, so a server change and a desktop change
 // can affect the same checks.
 const SERVER_CHECKS = [
-  "build", "linux-tests", "host-tests", "behavior-evals", "packaged-server", "foss", "electron-smokes",
+  "build", "linux-tests", "host-tests", "behavior-evals", "packaged-server", "electron-smokes",
   "ui-smoke", "browser-identity", "browser-driver", "package-linux",
 ];
 const EVERY_CHECK = [...SERVER_CHECKS, "windows-cua", "cloudflared-linux-arm64", "control-plane"];
@@ -84,8 +84,8 @@ const AREAS = [
   [/^(?:apps\/)?docs\//, "docs"],
   [/^scripts\/.+\.test\.[cm]?[jt]sx?$/, "script-tests"],
   [/^src\/locales\/(?:(?!en\.json$)[^/]+\.json|[^/]+\.test\.ts)$/, "locales"],
-  [/^(?:src|public)\/|^[^/]+-preview\.html$/, "web"],
-  [/^(?:server|shared|enterprise|companion|evals|skills|deploy|cloudflare\/composio-broker)\/|^(?:Dockerfile|\.dockerignore|compose\.yaml)$/, "server"],
+  [/^(?:src|public|previews)\/|^[^/]+-preview\.html$/, "web"],
+  [/^(?:server|shared|companion|evals|skills|deploy|cloudflare\/composio-broker)\/|^(?:Dockerfile|\.dockerignore|compose\.yaml)$/, "server"],
   [/^electron\/(?:cua|cua-failure|cua-connection|capabilities|paced-typing)\.[cm]js$/, "windows-computer-control"],
   [/^(?:electron|build)\/|^(?:electron-builder\.yml|index\.html|rail\.html)$/, "desktop"],
   [/^cloudflare\/control-plane\//, "control-plane"],
@@ -107,7 +107,7 @@ export const FULL_SCOPE = { areas: ["everything"], checks: [...EVERY_CHECK].sort
 export const MAIN_SCOPE = {
   areas: ["main"],
   checks: [
-    "behavior-evals", "browser-identity", "build", "control-plane", "electron-smokes", "foss", "host-tests", "linux-tests", "packaged-server",
+    "behavior-evals", "browser-identity", "build", "control-plane", "electron-smokes", "host-tests", "linux-tests", "packaged-server",
     "ui-smoke",
   ],
 };

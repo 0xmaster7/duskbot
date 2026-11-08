@@ -90,15 +90,6 @@ export function deleteMemoryDoc(botId: string, path: string, mine = false): Prom
   return api(`${memoryRoute(botId, mine)}/file?path=${encodeURIComponent(path)}`, { method: "DELETE" });
 }
 
-export async function fetchMemoryJournal(botId: string, limit = 50): Promise<MemoryJournalRow[]> {
-  const result: { entries: MemoryJournalRow[] } = await api(`/api/bots/${botId}/memory/journal?limit=${limit}`);
-  return result.entries;
-}
-
-export function revertMemoryChange(botId: string, entryId: string): Promise<MemoryDoc & { overview: MemoryOverview }> {
-  return api(`/api/bots/${botId}/memory/journal/${encodeURIComponent(entryId)}/revert`, { method: "POST" });
-}
-
 export interface TidyReport {
   at: number;
   expired: number;
@@ -110,33 +101,6 @@ export interface TidyReport {
   note?: string;
 }
 
-export interface CaptureReport {
-  at: number;
-  added: number;
-  topics?: number;
-  aboutMe?: number;
-  note?: string;
-}
-
-export interface UpkeepStatus {
-  enabled: boolean;
-  modelSteps: boolean;
-  lastTidy?: TidyReport;
-  lastCapture?: CaptureReport;
-}
-
-export function noticedCount(report: CaptureReport | undefined): number {
-  return report ? report.added + (report.topics ?? 0) : 0;
-}
-
-export function fetchUpkeepStatus(botId: string): Promise<UpkeepStatus> {
-  return api(`/api/bots/${botId}/memory/upkeep`);
-}
-
-export function tidyMemoryNow(botId: string): Promise<{ report: TidyReport; overview: MemoryOverview }> {
-  return api(`/api/bots/${botId}/memory/tidy`, { method: "POST" });
-}
-
 export function tidySummary(report: TidyReport): string {
   const parts: string[] = [];
   if (report.expired) parts.push(`archived ${report.expired} expired note${report.expired === 1 ? "" : "s"}`);
@@ -145,12 +109,6 @@ export function tidySummary(report: TidyReport): string {
   if (report.organized) parts.push(`filed ${report.organized} note${report.organized === 1 ? "" : "s"} into topics`);
   const head = parts.length ? parts.join(", ") : "nothing to tidy";
   return head.charAt(0).toUpperCase() + head.slice(1);
-}
-
-export type MemoryOpenTarget = "obsidian" | "folder";
-
-export function openMemoryLocation(botId: string, target: MemoryOpenTarget): Promise<{ ok: boolean; workspacePath: string }> {
-  return api(`/api/bots/${botId}/memory/open`, { method: "POST", body: JSON.stringify({ target }) });
 }
 
 
@@ -228,19 +186,6 @@ export function journalSource(row: MemoryJournalRow): string | null {
   if (row.actor === "bot") return "during a task";
   if (row.via === "ui") return "in Settings";
   if (row.via === "api") return "through the API";
-  return null;
-}
-
-export function journalSourceKey(row: MemoryJournalRow): "memory.source.undo" | "memory.source.disk" | "memory.source.tidy" | "memory.source.organize" | "memory.source.capture" | "memory.source.captureWithTitle" | "memory.source.chat" | "memory.source.task" | "memory.source.settings" | "memory.source.api" | null {
-  if (row.via === "revert") return "memory.source.undo";
-  if (row.via === "disk") return "memory.source.disk";
-  if (row.via === "tidy") return "memory.source.tidy";
-  if (row.via === "organize") return "memory.source.organize";
-  if (row.via === "capture") return row.threadTitle ? "memory.source.captureWithTitle" : "memory.source.capture";
-  if (row.threadTitle) return "memory.source.chat";
-  if (row.actor === "bot") return "memory.source.task";
-  if (row.via === "ui") return "memory.source.settings";
-  if (row.via === "api") return "memory.source.api";
   return null;
 }
 

@@ -103,10 +103,6 @@ export const newBotDefaultsSchema = z.object({
   "Bot defaults must fit within 900 KB");
 
 export type NewBotDefaults = z.infer<typeof newBotDefaultsSchema>;
-export type BotDefaultsProfile = NewBotDefaults["profile"];
-export type BotRoutineTemplate = NewBotDefaults["routines"][number];
-export type BotSkillTemplate = NewBotDefaults["skills"][number];
-
 /** The first thing wrong, as one sentence: a field's own message, else which field is not valid. */
 function settingsError(error: z.ZodError): string {
   const issue = error.issues[0];

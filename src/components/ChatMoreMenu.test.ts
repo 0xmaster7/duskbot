@@ -16,7 +16,6 @@ vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, useStore: () => ({ state: original.initialState, dispatch: fixture.dispatch }) };
 });
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => false }));
 vi.mock("@/lib/chat-find", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/chat-find")>(),
   requestChatFind: fixture.find,

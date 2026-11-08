@@ -21,7 +21,6 @@ import { activeLocale, t } from "@/lib/i18n";
 import { copyText } from "@/lib/copy-text";
 import type { LocaleKey } from "@/locales";
 import { ConfirmDialog } from "./ConfirmDialog";
- 
 import { GroupAvatar, useGroupYou } from "./GroupAvatar";
 import { nextRename } from "@/lib/rename";
 import { useDesktopCapabilities, windowFramed } from "./DesktopCapabilities";
@@ -51,7 +50,7 @@ import { useCloudOwner } from "./CloudOwner";
 import { SidebarSectionHeader } from "./SidebarSectionHeader";
 import { SectionRows } from "./SidebarSectionRows";
 import { GrokIcon } from "./GrokIcon";
-import { NeedsYouButton, OwnerPickerHost } from "./TeamOwner"; import { SidebarPeople } from "./SidebarPeople";
+import { NeedsYouButton } from "./TeamOwner"; import { SidebarPeople } from "./SidebarPeople";
 import { MENU_ITEM, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
 import { SidebarResizeHandle, useSidebarWidth } from "./SidebarResizeHandle";
 import { SidebarMoreUnreads } from "./SidebarMoreUnreads";
@@ -59,7 +58,6 @@ import { onOpenTemplates } from "./SidebarTemplates";
 import { PHONE_TOP_BUTTON, SIMPLE_CORNER_BUTTON, SIMPLE_ROW_FOCUS, SIMPLE_TOP_BUTTON, SidebarSearchPill, SidebarSearchToggle } from "./SidebarSimpleTop";
 import { isSidebarToggle } from "@/lib/keyboard-shortcuts";
 import { SidebarRailSeparator, SimpleRailFooter } from "./SidebarSimpleRail";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { useBotUnread } from "./unread-notice";
 import { runningRoutineRun, SidebarBotActivity, sidebarBotActivityTasks, sidebarBotStatus } from "./SidebarBotActivity";
 import { SidebarNoBots, SidebarTileGrid } from "./SidebarTiles";
@@ -664,7 +662,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
     if (renaming) return;
     const insideRenameInput = event.target instanceof HTMLInputElement;
     if (botListItemPointerIntent(event.type, insideRenameInput) === "select") {
-      openBotRow(dispatch, bot, false, selected);
+      openBotRow(dispatch, bot, selected);
     }
   };
 
@@ -694,7 +692,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
           if (drag && stepKey(event)) { event.preventDefault(); drag.step(bot.id, stepKey(event)!); return; }
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            openBotRow(dispatch, bot, false, selected);
+            openBotRow(dispatch, bot, selected);
           }
         }}
         onContextMenu={onContextMenu}
@@ -718,7 +716,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
         </span>
       )}
     </div>
-    {!iconOnly && bot.tasks?.some(runningRoutineRun) && <SidebarBotActivity bot={bot} rowThreadId={selected ? bot.threadId : botOpensTo(bot, false)} density={density} dispatch={dispatch} />}
+    {!iconOnly && bot.tasks?.some(runningRoutineRun) && <SidebarBotActivity bot={bot} rowThreadId={selected ? bot.threadId : botOpensTo(bot)} density={density} dispatch={dispatch} />}
     </>
   );
 });
@@ -731,7 +729,6 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const { state, dispatch } = useStore();
   const cloudOwner = useCloudOwner(state.config?.cloudHome === true);
   const endHowTo = useCallback(() => endCloudHowTo(dispatch), [dispatch]);
-  const showThreads = useShowThreads();
   const remoteClient = window.ogb?.remoteClient?.active === true;
   const { capabilities } = useDesktopCapabilities();
   const phone = useMediaQuery(PHONE_LAYOUT, false);
@@ -846,7 +843,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
 
   const archiveBot = async ({ id }: Pick<Bot, "id">) => {
     const bot = currentArchivableBot(state.bots, id);
-    if (bot) await archiveBotWithNotice(bot, { bots: state.bots, selectedId: state.selectedId, dispatch, showThreads, notify: setTeamFeedback });
+    if (bot) await archiveBotWithNotice(bot, { bots: state.bots, selectedId: state.selectedId, dispatch, notify: setTeamFeedback });
   };
   // Archives from the bot panel report here too, with the same Undo.
   useEffect(() => onArchiveNotice(setTeamFeedback), []);
@@ -859,7 +856,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
         body: JSON.stringify({ hidden: false }),
       });
       dispatch({ type: "botPatched", bot: response.bot });
-      openBot(dispatch, response.bot, showThreads);
+      openBot(dispatch, response.bot);
       setTeamFeedback({ error: false, text: t("sidebar.archived.restored", { name: bot.name }) });
     } catch (cause) {
       setTeamFeedback({ error: true, text: cause instanceof Error ? cause.message : String(cause) });
@@ -1137,7 +1134,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           {!q && <NeedsYouButton compact={rail} />}{!q && <SidebarPeople compact={rail} />}
           {primary && !primaryHeadless && <BotListItem {...botRow(primary)} />}
           {unsectionedChief && (phone ? (
-            <PhoneHero bot={unsectionedChief} selected={botRow(unsectionedChief).selected} onOpen={() => openBotRow(dispatch, unsectionedChief, showThreads, botRow(unsectionedChief).selected)} onMenu={setMenu} />
+            <PhoneHero bot={unsectionedChief} selected={botRow(unsectionedChief).selected} onOpen={() => openBotRow(dispatch, unsectionedChief, botRow(unsectionedChief).selected)} onMenu={setMenu} />
           ) : (
             <div className="mb-1.5">
               <BotListItem {...botRow(unsectionedChief)} />
@@ -1256,7 +1253,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       <GlassBar edge="bottom">
       <LiveCallPill
         currentBotId={state.activeView === "chat" ? state.selectedId : null}
-        onOpen={(botId, threadId) => openThread(dispatch, { botId, threadId }, state, showThreads)}
+        onOpen={(botId, threadId) => openThread(dispatch, { botId, threadId }, state)}
         iconOnly={density === "icons"}
       />
 
@@ -1276,9 +1273,8 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           onNewSection={density === "icons" ? undefined : (botId) => botDrag.startNew([botId])}
         />
       <ConfirmDialog {...botConfirmProps(confirm, state.bots, { archive: (bot) => { setConfirm(null); void archiveBot(bot); }, remove: (bot) => { setConfirm(null); dispatch({ type: "deleteBot", botId: bot.id }); },
-        archiveInstead: (chief) => { setConfirm(null); void archiveBotWithNotice(chief, { bots: state.bots, selectedId: state.selectedId, dispatch, showThreads, notify: setTeamFeedback }); } })}
+        archiveInstead: (chief) => { setConfirm(null); void archiveBotWithNotice(chief, { bots: state.bots, selectedId: state.selectedId, dispatch, notify: setTeamFeedback }); } })}
         onCancel={cancelConfirm} returnFocusRef={sidebarRef} />
-      <OwnerPickerHost />
       {botDrag.overlay}
       {sectionMotion.shown && sectionMotion.value && createPortal(<div className={cn("fixed inset-0 z-40", sectionMotion.closing && "pointer-events-none")} onMouseDown={closeSectionMenu} onContextMenu={(event) => { event.preventDefault(); closeSectionMenu(); }}>
         {(() => {

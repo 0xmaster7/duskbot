@@ -10,7 +10,7 @@ import { setLocale } from "@/lib/i18n";
 import { EMPTY_ONBOARDING, LOCAL_VIEWER, MET_CHIEF_HINT, type WelcomeViewer } from "@/lib/onboarding";
 import { registerDesktopPrefs } from "../../electron/desktop-prefs.mjs";
 
-const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], state: {} as any, updater: null as any, dispatch: null as any, brand: "default",
+const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], state: {} as any, updater: null as any, dispatch: null as any,
   viewerEmail: undefined as string | null | undefined }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
   useState: (initial: unknown) => { const index = f.index++; if (!(index in f.values)) f.values[index] = typeof initial === "function" ? initial() : initial;
@@ -25,7 +25,7 @@ vi.mock("@/lib/updater", () => ({ useUpdaterState: () => f.updater }));
 vi.mock("./cloud-buy/NightCard", () => ({ NightCard: ({ children }: { children: unknown }) => children }));
 // Who MausBot belongs to: unknown (as before the session answers) unless a test says otherwise.
 vi.mock("@/lib/default-bot", async original => ({ ...await original<typeof import("@/lib/default-bot")>(), useViewerEmail: () => f.viewerEmail }));
-vi.mock("@/lib/brand", () => ({ brandStatus: () => ({ brand: { name: "OpenMausBot" }, source: f.brand, file: "" }), productName: () => "MausBot" }));
+vi.mock("@/lib/brand", () => ({ productName: () => "MausBot" }));
 vi.mock("./Avatar", async original => ({ ...await original<typeof import("./Avatar")>(), MausAvatar: () => null }));
 vi.mock("@/components/EngineLibrary", () => ({ engineReady: (instance: { snapshot: { state: string; authenticated?: boolean } }) =>
   instance.snapshot.state === "available" && instance.snapshot.authenticated !== false }));
@@ -129,7 +129,7 @@ const hints = () => f.state.config.onboarding.hintsSeen as string[];
 
 beforeEach(() => {
   vi.clearAllMocks(); vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-  storage = new Map(); f.values = []; f.index = 0; f.effects = []; f.updater = null; f.brand = "default"; f.dispatch = vi.fn(); now = NOW; desk = desktopMachine();
+  storage = new Map(); f.values = []; f.index = 0; f.effects = []; f.updater = null; f.dispatch = vi.fn(); now = NOW; desk = desktopMachine();
   setLocale("en"); viewer = LOCAL_VIEWER; account = signedOut; snapshot = { status: "none" }; offer = TRIAL_OFFER;
   session = new Map(); f.viewerEmail = undefined;
   vi.stubGlobal("sessionStorage", { getItem: (key: string) => session.get(key) ?? null, setItem: (key: string, value: string) => session.set(key, value) });
@@ -186,20 +186,19 @@ describe("the card after the update", () => {
     offer = null; expect(await relaunch()).not.toContain(INTRO);
     offer = { ...TRIAL_OFFER, refundDays: undefined, creditUsd: undefined };
     html = await relaunch();
-    expect(html).toContain(INTRO); expect(html).toContain("Voice and cloud desktops by Boat included");
+    expect(html).toContain(INTRO); expect(html).toContain("MausBot Cloud runs your bots for you in the cloud, always on.");
     expect(html).not.toContain("money-back"); expect(html).not.toContain("Claude credit");
   });
 
-  it("never to someone new this launch, who pays or may pay, on a branded build, or a desktop signed in with an organization", async () => {
+  it("never to someone new this launch, who pays or may pay, or a desktop signed in with an organization", async () => {
     expect(await launch()).toBe("");
     returning();
     for (const state of [paid(), paid({ trial: trial("active") }), { ...free, purchase: { state: "confirming" as const } },
       { status: "reauth-required" as const, lastPlan: { active: true } }, { status: "unavailable" as const }, { status: "connecting" as const }]) {
       account = state; expect(await launch(), JSON.stringify(state)).not.toContain(INTRO);
     }
-    account = signedOut; f.brand = "file";
-    expect(await launch()).toBe("");
-    f.brand = "default";
+    account = signedOut;
+
     (window.ogb as Record<string, unknown>).organization = { state: async () => ({ status: "connected", organization: { id: "o", name: "Acme" } }), onState: () => () => {} };
     const org = await launch();
     expect(org).not.toContain(INTRO); expect(org).not.toContain(STAR);

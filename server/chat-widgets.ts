@@ -1,3 +1,4 @@
+import { isRecord } from "../shared/json.ts";
 // A bot's widget tree is normalised, scrubbed of secrets and given its text fallback here, once; everything after reads the stored message.
 import {
   parseWidgetInput, resolveWidgetAction, widgetActions, widgetFields, widgetToText, WIDGET_LIMITS,
@@ -25,10 +26,6 @@ export type AgentCardResult =
 const ROOM_REFUSAL = "Widgets are not available in rooms yet. Answer in text.";
 const NO_SUCH_WIDGET = "No widget with that id in this conversation.";
 const EMPTY_FALLBACK = "[widget]";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
 
 /** Every string loses its secrets. Under an action's `payload` and a chart's `data` rows the keys are the bot's, so they are
  * scrubbed too, and a key naming a secret (api_key, db_password) masks its value whatever it looks like. */

@@ -1434,29 +1434,17 @@ describe("harness HTTP API", () => {
     });
     expect(probe.status).toBe(200);
     expect(probe.body).toEqual({ app: "openmausbot" });
-    const brand = await new Promise<{ status: number; body: unknown }>((resolve, reject) => {
-      const req = request({ hostname: "127.0.0.1", port: PORT, path: "/api/brand", headers: { host: "example.com" } }, (res) => {
-        let raw = "";
-        res.on("data", (chunk) => (raw += chunk));
-        res.on("end", () => resolve({ status: res.statusCode ?? 0, body: JSON.parse(raw) }));
-      });
-      req.on("error", reject);
-      req.end();
-    });
-    expect(brand.status).toBe(200);
-    expect(Reflect.get(Object(Reflect.get(Object(brand.body), "brand")), "name")).toBe("OpenMausBot");
     expect(await statusWithHeaders({ origin: "https://example.com" })).toBe(403);
     expect(await statusWithHeaders({ host: `127.0.0.2:${PORT}` })).toBe(200);
     expect(await statusWithHeaders({ host: `[::1]:${PORT}` })).toBe(200);
     expect(await statusWithHeaders({ origin: `http://[::1]:${PORT}` })).toBe(200);
   });
 
-  it("keeps the fleet screen behind the admin entitlement on the open-source edition", async () => {
+  it("has no fleet routes", async () => {
     const fleet = await api("GET", "/api/fleet");
-    expect(fleet.status).toBe(403);
-    expect(fleet.body.error).toContain("enterprise");
-    expect((await api("POST", "/api/fleet/workspaces", { slug: "acme", admins: ["a@b.test"] })).status).toBe(403);
-    expect((await api("DELETE", "/api/fleet/workspaces/acme")).status).toBe(403);
+    expect(fleet.status).toBe(404);
+    expect((await api("POST", "/api/fleet/workspaces", { slug: "acme", admins: ["a@b.test"] })).status).toBe(404);
+    expect((await api("DELETE", "/api/fleet/workspaces/acme")).status).toBe(404);
   });
 
   it("identifies itself on /api/health", async () => {

@@ -64,8 +64,7 @@ the next turn starts small.
   - a message waiting in the queue;
   - a teammate working on this conversation's request, or one whose answer
     it awaits;
-  - a wait that fired and will carry on here;
-  - the workspace's spend limit reached.
+  - a wait that fired and will carry on here.
 
   It is retried, every 2 minutes for up to 50 minutes after the turn (the
   cache's life), while the bot is busy, memory is short, or one of the bot's

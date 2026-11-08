@@ -79,5 +79,3 @@ export function createTraceService(deps: TraceServiceDeps) {
 
   return { list, detail };
 }
-
-export type TraceService = ReturnType<typeof createTraceService>;

@@ -3,8 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState, Bot } from "@/state/store";
 
 const fixture = vi.hoisted(() => ({
-  values: [] as unknown[], index: 0, effects: [] as EffectCallback[], showThreads: false,
-  state: {} as AppState, dispatch: vi.fn(), api: vi.fn(),
+  values: [] as unknown[], index: 0, effects: [] as EffectCallback[], state: {} as AppState, dispatch: vi.fn(), api: vi.fn(),
 }));
 vi.mock("react", async (original) => ({
   ...await original<typeof import("react")>(),
@@ -34,8 +33,6 @@ vi.mock("./DesktopCapabilities", async () => {
   const { initialDesktopCapabilities } = await import("@/lib/desktop");
   return { useDesktopCapabilities: () => ({ capabilities: initialDesktopCapabilities() }), windowFramed: () => false };
 });
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.showThreads }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => true, setAdvancedMode: () => {} }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, api: fixture.api, useStore: () => ({ state: fixture.state, dispatch: fixture.dispatch }) };
@@ -66,7 +63,7 @@ function render(component: () => ReactNode) {
 }
 const label = (node: ReactElement<Props>) => Children.toArray(node.props.children).filter((child) => typeof child === "string").join("");
 const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
-const opened = (id: string) => fixture.showThreads ? { type: "select", id } : { type: "switchTask", botId: id, threadId: `${id}-main` };
+const opened = (id: string) => ({ type: "switchTask", botId: id, threadId: `${id}-main` });
 const actions = () => fixture.dispatch.mock.calls.map(([action]) => action).filter((action) => action.type !== "botPatched");
 
 beforeEach(() => {
@@ -79,8 +76,7 @@ beforeEach(() => {
 });
 afterEach(() => { vi.unstubAllGlobals(); });
 
-describe.each([false])("with threads shown: %s", (shown) => {
-  beforeEach(() => { fixture.showThreads = shown; });
+describe("with threads hidden", () => {
 
   it("opens the next bot after archiving the one on screen, and the archived one again on Undo", async () => {
     fixture.state = { ...initialState, bots: [left("scout"), left("atlas")], selectedId: "scout", activeView: "chat" };

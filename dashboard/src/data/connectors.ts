@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   grokCategories,
   popularity,
-  POPULAR_APPS,
   type AppEntry,
 } from "@/components/connect-apps/catalog";
 import { loadComposioSnapshot, type SnapshotToolkit } from "@/components/connect-apps/composio-snapshot";
@@ -20,8 +19,6 @@ export { CATEGORY_NAMES, connectorRows, FIXTURE_EXTRAS, SKILLS, skillRows } from
 export type { ConnectorExtras, ConnectorRow, ConnectorStatus, ConnectorType } from "./connector-rows";
 
 export interface DashApp extends AppEntry {}
-
-export const POPULAR = POPULAR_APPS;
 
 type AppsState = { apps: DashApp[] | null; error: string | null };
 

@@ -35,8 +35,6 @@ vi.mock("./DesktopCapabilities", async () => {
   const { initialDesktopCapabilities } = await import("@/lib/desktop");
   return { useDesktopCapabilities: () => ({ capabilities: initialDesktopCapabilities() }), windowFramed: () => false };
 });
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.advanced }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: () => {} }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.admin }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();

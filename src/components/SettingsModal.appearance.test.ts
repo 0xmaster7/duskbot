@@ -11,8 +11,6 @@ import { themeOptions } from "./ThemeRow";
 
 const fixture = vi.hoisted(() => ({
   section: "appearance" as AppSettingsSection,
-  showThreads: true,
-  setShowThreads: vi.fn(),
   showRunCard: true,
   setShowRunCard: vi.fn(),
   toolsLayout: "rows" as "rows" | "toolbar",
@@ -24,7 +22,6 @@ const fixture = vi.hoisted(() => ({
   colorUserBubbles: false,
   setColorUserBubbles: vi.fn(),
   advancedMode: false,
-  setAdvancedMode: vi.fn(),
   api: vi.fn(),
   dispatch: vi.fn(),
   switches: [] as ComponentProps<typeof Switch>[],
@@ -38,11 +35,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
   api: fixture.api,
   useStore: () => ({ state: { appSettingsSection: fixture.section, instances: [], bots: [] }, dispatch: fixture.dispatch }),
-}));
-vi.mock("@/lib/thread-preferences", () => ({
-  useShowThreads: () => fixture.showThreads,
-  useShowThreadsChoice: () => fixture.showThreads,
-  setShowThreads: fixture.setShowThreads,
 }));
 vi.mock("@/lib/run-card-preferences", () => ({
   useShowRunCard: () => fixture.showRunCard,
@@ -68,10 +60,6 @@ vi.mock("@/lib/user-bubble-preference", () => ({
   useColorUserBubbles: () => fixture.colorUserBubbles,
   setColorUserBubbles: fixture.setColorUserBubbles,
 }));
-vi.mock("@/lib/interface-mode", () => ({
-  useAdvancedMode: () => fixture.advancedMode,
-  setAdvancedMode: fixture.setAdvancedMode,
-}));
 vi.mock("@/lib/analytics", () => ({ analyticsEnabled: () => false, setAnalyticsEnabled: vi.fn() }));
 vi.mock("./PeopleSection", () => ({ PeopleSection: () => null }));
 vi.mock("./LocalComputerSection", () => ({ LocalComputerSection: () => null }));
@@ -90,7 +78,6 @@ vi.mock("./SettingsPrimitives", async (importOriginal) => {
 beforeEach(() => {
   vi.clearAllMocks();
   fixture.section = "appearance";
-  fixture.showThreads = true;
   fixture.showRunCard = true;
   fixture.toolsLayout = "rows";
   fixture.notificationSounds = true;

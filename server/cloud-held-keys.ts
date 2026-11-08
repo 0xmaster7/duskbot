@@ -9,8 +9,6 @@ import { TRIAL_KEY_HELD } from "./trial-credit.ts";
 
 const ENGINE = /^[\w.:-]{1,128}$/u;
 
-export type HeldKeys = ReturnType<typeof createHeldKeys>;
-
 export function createHeldKeys({ dataDir, lasts }: { dataDir: string; lasts(): boolean }) {
   const file = join(dataDir, "providers", "trial-credit", "held-keys.json");
   const read = (): Set<string> => {

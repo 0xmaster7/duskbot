@@ -11,7 +11,6 @@ import { memberBot, memberGroup, type Viewer, type VisibleSet } from "../bot-vis
 import type { ComputerControl } from "../computer-control.ts";
 import { speakerOf, type PersonName } from "../replies.ts";
 import type { Coordinator } from "../coordinator.ts";
-import type { WorkspaceAccess } from "../enterprise.ts";
 import type { GroupUsageReader } from "../group-thread-usage.ts";
 import { readMessage, searchMessagesAsync } from "../message-db.ts";
 import { pageMessage } from "../host/message-pages.ts";
@@ -67,7 +66,6 @@ export interface ThreadRouteDeps {
   hostedWorkspace: boolean;
   sessionCookie: string;
   loopback: { trust: ResolveOptions["loopbackTrust"]; localBrowsers: boolean };
-  workspaceAccess(): WorkspaceAccess | null;
   /** The event stream's cursor now: a client that drew this snapshot resumes the stream from it instead of reading it again. */
   streamCursor?(): string;
   desktopMutationToken(): string | undefined;
@@ -108,7 +106,6 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
     const member = auth.kind === "session" && auth.session.membershipAuthority === "team" ? auth.session.email : undefined;
     if (member && method === "GET" && path === "/api/bots") deps.memberDefaultBot?.(member);
     const visible = visibleTo(viewerFor(auth));
-    const workspaceAccess = deps.workspaceAccess();
     const desktopMutationToken = deps.desktopMutationToken();
     const companionMutationToken = deps.companionMutationToken();
     const cliOwnerToken = deps.cliOwnerToken();
@@ -521,9 +518,7 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
       const found = await searchMessagesAsync(q, visible.everything ? limit : Math.min(limit * 10, 1_000), threadId);
       // A scan may outlive a revocation or audience edit: authorize again after the await.
       if (HOSTED_WORKSPACE && auth.kind === "session") {
-        const failure = workspaceAccess ? await workspaceAccess.authorize(req, auth)
-          : { status: 503, error: "Workspace sign-in is unavailable." };
-        if (failure) return json(res, failure.status, { error: failure.error });
+        return json(res, 503, { error: "Workspace sign-in is unavailable." });
       }
       const current = resolveRequestAuth(req, {
         sessions, cookieName: SESSION_COOKIE, streamPath: "/api/events", url,

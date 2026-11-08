@@ -324,9 +324,9 @@ describe("POST /api/bots/:id/messages with widgetAction", () => {
   it("leaves the widget live when the send is refused, so the person can press again", async () => {
     const { threadId, state, post, show, row, sent, patches } = await fixture();
     const widgetId = show("pullRequests");
-    state.refuse = new DirectSendRefused(409, { error: "This workspace is at its spend limit.", code: "spend_cap" });
+    state.refuse = new DirectSendRefused(409, { error: "Fixture dispatch refused.", code: "fixture_refusal" });
     expect(await post({ threadId, sendId: SEND, widgetAction: { messageId: widgetId, ref: "confirm" } })).toEqual({
-      status: 409, body: { error: "This workspace is at its spend limit.", code: "spend_cap" },
+      status: 409, body: { error: "Fixture dispatch refused.", code: "fixture_refusal" },
     });
     expect(row(widgetId).widget!.settled).toBeUndefined();
     expect(patches).not.toHaveBeenCalled();

@@ -1,3 +1,4 @@
+import { isRecord } from "../shared/json.ts";
 import { parseJson } from "./schema.ts";
 import type { ProjectProfile } from "./project-scout.ts";
 
@@ -22,9 +23,6 @@ export interface MatchedDirectoryBot extends DirectoryBot {
 }
 
 type Fetcher = typeof fetch;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
 function text(value: unknown, max: number): string | null {
   if (typeof value !== "string" || !value.trim()) return null;

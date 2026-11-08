@@ -2,7 +2,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ChromeRail } from "./components/ChromeRail";
 import { PageBoundary } from "./components/PageBoundary";
-import { bootstrapBrand } from "./lib/brand";
 import { applyFont, readFont } from "./lib/fonts";
 import { watchFocusNav } from "./lib/focus-nav";
 import { loadPageLanguage } from "./lib/language-preference";
@@ -18,7 +17,7 @@ if (window.ogb?.rail?.expand) {
   applySkinChoice(readSkinChoice());
   applyFont(readFont());
   document.documentElement.style.background = document.body.style.background = "transparent";
-  void Promise.all([bootstrapBrand(), loadPageLanguage()]).then(() => {
+  void loadPageLanguage().then(() => {
     createRoot(document.getElementById("root")!).render(<StrictMode><PageBoundary><ChromeRail /></PageBoundary></StrictMode>);
   });
 } else {

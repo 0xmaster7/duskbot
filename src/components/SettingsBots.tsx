@@ -7,7 +7,6 @@ import { shortPath } from "@/lib/short-path";
 import { useStore, type Bot, type Group } from "@/state/store";
 import { useManagedSkills } from "./bot-settings/SkillsSection";
 import { useBotSettingsDerived } from "./bot-settings/useBotSettingsDerived";
-import { useSlackManagementUrl } from "./bot-settings/useSlackManagement";
 import { usePlaceChoices } from "./bot-panel/ComputerTab";
 import { panelMemoryNotes } from "./bot-panel/memory-notes";
 import { PanelModal } from "./bot-panel/modals/PanelModals";
@@ -145,7 +144,6 @@ function BotRows({ bot }: { bot: Bot }) {
   const { open } = useSubPage();
   const derived = useBotSettingsDerived(bot);
   const skills = useManagedSkills(bot);
-  const slackUrl = useSlackManagementUrl(bot.id);
   const { capabilities } = useDesktopCapabilities();
   const { currentLabel } = usePlaceChoices(bot);
   const memoryLine = useMemoryLine(bot);
@@ -179,7 +177,6 @@ function BotRows({ bot }: { bot: Bot }) {
         {row("permissions", bot.chiefOfStaff ? t("permissions.chief.title") : undefined)}
         {row("folder", bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private"), undefined, bot.cwd ?? undefined)}
         {row("where", currentLabel ?? t("computer.simple.dest.letItChoose"))}
-        {slackUrl && row("slack")}
       </Card>
       <Card data-settings-block="bot-identity">
         {row("identity", bot.title?.trim() || bot.name)}
@@ -190,12 +187,11 @@ function BotRows({ bot }: { bot: Bot }) {
 
 function BotPage({ bot, page, onDone }: { bot: Bot; page: SheetPage; onDone: () => void }) {
   const derived = useBotSettingsDerived(bot);
-  const slackUrl = useSlackManagementUrl(bot.id);
   return (
     <SheetInSettings.Provider value={1}>
       <DialogPane.Provider value>
         <div data-bot-page={page} className="contents">
-          <PanelModal page={page} bot={bot} derived={derived} slackUrl={slackUrl} onClose={onDone} />
+          <PanelModal page={page} bot={bot} derived={derived} onClose={onDone} />
         </div>
       </DialogPane.Provider>
     </SheetInSettings.Provider>

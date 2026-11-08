@@ -1,10 +1,3 @@
-import type { DriverKind } from "./contracts.ts";
-import { replaysTranscriptNatively } from "./runtime/capabilities.ts";
-
-export function replaysNatively(kind: DriverKind): boolean {
-  return replaysTranscriptNatively(kind);
-}
-
 // rewound and fresh coincide today but stay distinct: rewound also invalidates other instances' cursors.
 export interface TurnContextInput {
   text: string;

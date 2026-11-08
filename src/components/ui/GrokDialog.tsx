@@ -32,7 +32,6 @@ export const rowTitleCls = "text-[13px] leading-[18px] tracking-[-0.08px] text-i
 export const rowHintCls = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink/68";
 export const footnoteCls = "m-0 pl-2 text-[12px] leading-4 tracking-[0.01em] text-ink/56";
 export const listCardCls = "flex flex-col rounded-[14px] bg-menu py-2 outline-1 -outline-offset-1 outline-ink/8 [outline-style:solid]";
-export const listRowCls = "flex min-h-12 items-center gap-x-5 px-3.5 py-2.5";
 /** A text field: Grok's 32px box at 10px corners, borderless like the composer, a soft ink/4 fill that deepens to ink/7
  * on focus (with the caret, the focus cue), no ring. */
 export const textFieldCls = "block h-8 w-full min-w-0 rounded-[10px] border border-ink/10 bg-transparent px-[9px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/40 disabled:opacity-50";
@@ -192,68 +191,5 @@ export function RowIconButton({ icon, label, onClick, disabled, reveal = false, 
     >
       <GrokIcon name={icon} size={14} />
     </button>
-  );
-}
-
-/** One choice of several as a row of a list card: a glyph, the name over a line, and a check on the chosen one.
- * Arrow keys move between the rows of one radiogroup. */
-export function DialogChoice({ icon, title, hint, checked, disabled, onSelect, children, ...rest }: {
-  icon: GrokIconName;
-  title: ReactNode;
-  hint?: ReactNode;
-  checked: boolean;
-  disabled?: boolean;
-  onSelect: () => void;
-  children?: ReactNode;
-  "data-panel-choice"?: string;
-}) {
-  return (
-    <div className="flex flex-col">
-      <button
-        type="button"
-        role="radio"
-        {...rest}
-        aria-checked={checked}
-        disabled={disabled}
-        tabIndex={checked ? 0 : -1}
-        onClick={onSelect}
-        onKeyDown={(event) => {
-          const keys = ["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft"];
-          if (!keys.includes(event.key)) return;
-          const group = event.currentTarget.closest('[role="radiogroup"]');
-          const radios = [...(group?.querySelectorAll<HTMLButtonElement>('[role="radio"]:not(:disabled)') ?? [])];
-          const at = radios.indexOf(event.currentTarget);
-          if (at < 0) return;
-          event.preventDefault();
-          const step = event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : -1;
-          const next = radios[(at + step + radios.length) % radios.length];
-          next?.focus();
-          next?.click();
-        }}
-        className={cn(
-          "mx-1.5 flex min-h-12 cursor-pointer items-center gap-3 rounded-[10px] px-2 py-2.5 text-left outline-none transition-[background-color] duration-[120ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus disabled:cursor-not-allowed",
-          !disabled && "hover:bg-ink/5",
-        )}
-      >
-        <span
-          aria-hidden="true"
-          className={cn(
-            "flex size-5 shrink-0 items-center justify-center transition-colors duration-[120ms] ease-[ease]",
-            checked ? "text-ink" : "text-ink/68",
-            disabled && !checked && "opacity-50",
-          )}
-        >
-          <GrokIcon name={icon} size={16} />
-        </span>
-        <span className={cn("flex min-w-0 flex-1 flex-col gap-0.5", disabled && !checked && "opacity-50")}>
-          <span className={rowTitleCls}>{title}</span>
-          {hint && <span className={cn(rowHintCls, "text-pretty")}>{hint}</span>}
-        </span>
-        <span aria-hidden="true" className={cn("flex w-4 shrink-0 justify-center text-ink", !checked && "invisible")}>
-          <GrokIcon name="check" size={14} />
-        </span>
-      </button>
-      {children}
-    </div>
   );
 }

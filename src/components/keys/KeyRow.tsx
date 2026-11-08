@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Check, CircleAlert, ExternalLink, Eye, EyeOff, Loader2, TriangleAlert, type LucideIcon } from "lucide-react";
+import { Check, CircleAlert, ExternalLink, Eye, EyeOff, Loader2, TriangleAlert } from "lucide-react";
 import { useStore } from "@/state/store";
 import { installCommandFor } from "@/state/engine-install";
 import { cn } from "@/lib/cn";
@@ -106,11 +106,6 @@ export function KeyPlainRow({ mark, title, hint, value, actions, titleId, classN
       {children}
     </div>
   );
-}
-
-/** A plain row's mark when it has no key entry of its own. */
-export function KeyRowMark({ icon: Icon }: { icon: LucideIcon }) {
-  return <Icon size={16} aria-hidden="true" className="shrink-0 text-ink-tertiary transition-colors group-hover:text-ink-secondary group-focus-within:text-ink-secondary" />;
 }
 
 function errorText(cause: unknown): string {

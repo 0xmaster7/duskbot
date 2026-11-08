@@ -428,5 +428,3 @@ export function createTeamMessages(deps: TeamMessagesDeps) {
     },
   };
 }
-
-export type TeamMessages = ReturnType<typeof createTeamMessages>;

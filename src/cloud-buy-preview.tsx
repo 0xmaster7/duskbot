@@ -1,4 +1,4 @@
-// Dev-only gallery of the Cloud buying sheet, served at /cloud-buy-preview.html; not in the packaged app.
+// Dev-only gallery of the Cloud buying sheet, served at /previews/cloud-buy-preview.html; not in the packaged app.
 // ?state=choose|choose-plain|sign-in-email|sign-in-code|sign-in-wrong|sign-in-sso|sign-in-done|sign-in-browser|pay|pay-late|setup|setup-slow|ready|has-cloud
 //   |team-setup|team-ready|unreachable
 // &skin=midnight&staging=1&reduced=1&plan=starter&lang=de

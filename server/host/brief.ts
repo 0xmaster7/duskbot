@@ -504,5 +504,3 @@ export function createBrief(deps: BriefDeps) {
     },
   };
 }
-
-export type Brief = ReturnType<typeof createBrief>;

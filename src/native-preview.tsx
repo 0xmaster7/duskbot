@@ -1,4 +1,4 @@
-// Dev-only gallery of the native feature components, served at /native-preview.html; not in the packaged app.
+// Dev-only gallery of the native feature components, served at /previews/native-preview.html; not in the packaged app.
 // ?skin=grok|grok-dark
 import { StrictMode, useReducer } from "react";
 import { createRoot } from "react-dom/client";

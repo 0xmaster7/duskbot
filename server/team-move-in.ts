@@ -276,5 +276,3 @@ export function createTeamMoveIn(deps: TeamMoveInDeps) {
     reload: () => { moves = read(); },
   };
 }
-
-export type TeamMoveIn = ReturnType<typeof createTeamMoveIn>;

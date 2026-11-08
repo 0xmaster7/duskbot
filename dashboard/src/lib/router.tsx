@@ -28,15 +28,6 @@ export function navigate(to: string, { replace = false } = {}) {
   if (hash) scrollToHash(hash);
 }
 
-export function setQuery(patch: Record<string, string | null>) {
-  const url = new URL(window.location.href);
-  for (const [key, value] of Object.entries(patch)) {
-    if (value === null || value === "") url.searchParams.delete(key);
-    else url.searchParams.set(key, value);
-  }
-  navigate(url.pathname + url.search, { replace: true });
-}
-
 export function Link({ to, onClick, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) {
   const go = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);

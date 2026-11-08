@@ -1,10 +1,11 @@
+import { replaysTranscriptNatively } from "./runtime/capabilities.ts";
 // A chat bot never holds a resume cursor, so engineIsFresh is true on every later turn: the inline replay must not also ride the turn text.
 import { createServer, type Server } from "node:http";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { GroqDriver } from "./drivers/groq.ts";
 import { recordEvents } from "./testing/events.ts";
-import { buildTurnContext, engineIsFresh, replaysNatively } from "./turn-context.ts";
+import { buildTurnContext, engineIsFresh } from "./turn-context.ts";
 
 type Body = { messages: Array<{ role: string; content: unknown }> };
 const FIRST = "my dog is named Biscuit, remember it";
@@ -42,7 +43,7 @@ describe("chat-completions history is sent once", () => {
       const transcript = [{ role: "user" as const, text: FIRST }, { role: "assistant" as const, text: "Noted." }];
       const fresh = engineIsFresh({ instanceId: "groq-1", lastInstanceId: "groq-1", resumeCursors: {}, transcript });
       const { turnText } = buildTurnContext({ text: "what is my dog called?", transcript, rewound: false, fresh,
-        externallyUpdated: false, replaysNatively: replaysNatively(instance.driverKind) });
+        externallyUpdated: false, replaysNatively: replaysTranscriptNatively(instance.driverKind) });
       await instance.adapter.sendTurn({ threadId: "t", text: turnText, transcript, model: "openai/gpt-oss-120b" });
       await recorder.until((event) => event.type === "turn.completed");
       const sent = JSON.stringify(bodies.at(-1)!.messages);

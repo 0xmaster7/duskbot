@@ -1,4 +1,4 @@
-// Dev-only: Settings over fake state and a stubbed /api, served at /settings-preview.html; not in the packaged app.
+// Dev-only: Settings over fake state and a stubbed /api, served at /previews/settings-preview.html; not in the packaged app.
 // ?section=general|texting|computer|permissions|models|usage|updates|advanced|looks|...&skin=grok|grok-dark&desktop=1&limits=1
 import { StrictMode, useReducer } from "react";
 import { createRoot } from "react-dom/client";

@@ -517,5 +517,3 @@ export function createDevsReports(deps: DevsReportsDeps) {
     stop() { unsubscribe(); timer?.stop(); },
   };
 }
-
-export type DevsReports = ReturnType<typeof createDevsReports>;

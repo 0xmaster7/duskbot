@@ -35,7 +35,6 @@ export interface KeepWarmDeps {
   windowMs: (botId: string) => number | null;
   ineligible: (target: KeepWarmTarget) => string | null;
   busy: (target: KeepWarmTarget) => boolean;
-  overBudget: () => boolean;
   ping: (target: KeepWarmTarget, signal: AbortSignal) => Promise<KeepWarmPingResult>;
   hold: (target: KeepWarmTarget, until: number | null) => void;
   book: (target: KeepWarmTarget, result: Extract<KeepWarmPingResult, { ok: true }>) => void;
@@ -107,7 +106,6 @@ export function createCacheKeepWarm(deps: KeepWarmDeps) {
     if (deps.windowMs(w.target.botId) === null) return end(w, null);
     const ineligible = deps.ineligible(w.target);
     if (ineligible) return end(w, ineligible);
-    if (deps.overBudget()) return end(w, "the workspace's monthly spend limit is reached");
     if (deps.busy(w.target)) return retryLater(w, now);
     const controller = new AbortController();
     w.inflight = controller;

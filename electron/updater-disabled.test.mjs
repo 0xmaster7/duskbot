@@ -48,5 +48,5 @@ it("ships no publish feed and points release links and package metadata only at 
   expect(pkg.repository.url).toBe(`${APP_REPOSITORY}.git`);
   expect(pkg.homepage).toBe(APP_REPOSITORY);
   expect(pkg.author.name).toBe("Milind Soni");
-  expect(pkg.license).toBe("Apache-2.0");
+  expect(pkg.license).toBe("SEE LICENSE IN LICENSE");
 });

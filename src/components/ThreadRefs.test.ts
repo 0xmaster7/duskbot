@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot, Group } from "@/state/store";
 
-const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), selectedId: "scout", showThreads: true }));
+const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), selectedId: "scout" }));
 const bot = (id: string, name: string, tasks: Bot["tasks"]): Bot => ({
   id, threadId: tasks?.[0]?.threadId ?? id, name, title: "", description: "", notifications: true,
   color: "green", unread: false, messages: [], modelSelection: { instanceId: "fake", model: "test" }, tasks,
@@ -26,7 +26,6 @@ vi.mock("@/state/store", async (importOriginal) => {
     dispatch: fixture.dispatch,
   }) };
 });
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.showThreads }));
 import { ThreadLink, ThreadRefText, ThreadRefsProvider, collectThreadRefs, openChatLink, threadLinkFromProps, useThreadRefs } from "./ThreadRefs";
 
 type ElementProps = { children?: ReactNode; onClick?: () => void; [key: string]: unknown };
@@ -40,7 +39,7 @@ function findElement(tree: ReactNode, attribute: string): ReactElement<ElementPr
 }
 const inProvider = (child: ReactNode) => renderToStaticMarkup(createElement(ThreadRefsProvider, null, child));
 
-beforeEach(() => { fixture.dispatch.mockClear(); fixture.selectedId = "scout"; fixture.showThreads = true; });
+beforeEach(() => { fixture.dispatch.mockClear(); fixture.selectedId = "scout"; });
 
 describe("collectThreadRefs", () => {
   it("lists every bot thread in store order, then room threads, never a bot-to-bot channel", () => {
@@ -103,11 +102,9 @@ describe("ThreadLink", () => {
     renderToStaticMarkup(createElement(Capture));
     findElement(tree, "data-thread-link")!.props.onClick!();
     expect(fixture.dispatch.mock.calls.map(([action]) => action)).toEqual([
-      { type: "select", id: "scout" },
       { type: "switchTask", botId: "scout", threadId: "qa-245" },
       { type: "revealThread", threadId: "qa-245" },
     ]);
-    fixture.showThreads = false;
     fixture.dispatch.mockClear();
     renderToStaticMarkup(createElement(Capture));
     findElement(tree, "data-thread-link")!.props.onClick!();
@@ -221,13 +218,13 @@ describe("openChatLink", () => {
   it("opens a bot-only link at the bot's main thread while threads are hidden, as its row would", async () => {
     const left = { ...(await state()), bots: [{ ...scout, threadId: "qa-245", mainThreadId: "scout-main" }, ada] };
     const dispatch = vi.fn();
-    expect(openChatLink(dispatch, "openmausbot://bot/scout", left, false)).toBe(true);
+    expect(openChatLink(dispatch, "openmausbot://bot/scout", left)).toBe(true);
     expect(actions(dispatch)).toEqual([
       { type: "switchTask", botId: "scout", threadId: "scout-main" },
       { type: "revealThread", threadId: "scout-main" },
     ]);
     const dead = vi.fn();
-    expect(openChatLink(dead, "openmausbot://thread/gone?bot=scout", left, false)).toBe(false);
+    expect(openChatLink(dead, "openmausbot://thread/gone?bot=scout", left)).toBe(false);
     expect(actions(dead)).toEqual([
       { type: "switchTask", botId: "scout", threadId: "scout-main" },
       { type: "notice", notice: { kind: "thread-gone", botName: "Scout" } },
@@ -242,7 +239,7 @@ describe("openChatLink", () => {
 
   it("opens a copied thread link by the switch alone while threads are hidden", async () => {
     const dispatch = vi.fn();
-    expect(openChatLink(dispatch, "openmausbot://thread/qa-245?bot=scout", await state(), false)).toBe(true);
+    expect(openChatLink(dispatch, "openmausbot://thread/qa-245?bot=scout", await state())).toBe(true);
     expect(actions(dispatch)).toEqual([
       { type: "switchTask", botId: "scout", threadId: "qa-245" },
       { type: "revealThread", threadId: "qa-245" },

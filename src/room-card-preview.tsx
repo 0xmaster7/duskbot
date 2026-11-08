@@ -1,4 +1,4 @@
-// Dev-only gallery of the room card, served at /room-card-preview.html; not in the packaged app.
+// Dev-only gallery of the room card, served at /previews/room-card-preview.html; not in the packaged app.
 // ?state=memory|stopped|disk|tip|trial|upgraded|restarting|confirm&layout=desktop|phone&skin=midnight|daylight&lang=de
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

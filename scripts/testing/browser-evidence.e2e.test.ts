@@ -258,7 +258,7 @@ describe("recorded browser steps through the real server", () => {
   afterAll(async () => { if (enabled) await new Promise((resolve) => server.close(resolve)); });
 
   run("records a recording bot's steps, serves them, and deletes them with the conversation", async () => {
-    const fixture = await launchVerificationServer({}, undefined, undefined, { binaryPath: browser.binary, executablePath: browser.chrome ?? "" }, undefined, { scripted: true });
+    const fixture = await launchVerificationServer({}, undefined, undefined, { binaryPath: browser.binary, executablePath: browser.chrome ?? "" }, { scripted: true });
     const url = fixture.info.url;
     const api = async (method: string, path: string, body?: unknown) => {
       const response = await fetch(url + path, { method, headers: { "content-type": "application/json", origin: url }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });

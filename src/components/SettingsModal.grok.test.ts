@@ -21,7 +21,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
   api: vi.fn(async () => ({})),
   useStore: () => ({ state: { appSettingsSection: fixture.section, instances: [], bots: [], config: fixture.config }, dispatch: fixture.dispatch }),
 }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advancedMode, setAdvancedMode: vi.fn() }));
 vi.mock("@/lib/analytics", () => ({ analyticsEnabled: () => false, setAnalyticsEnabled: vi.fn() }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.ownerOrAdmin }));
 vi.mock("@/lib/notification-preferences", () => ({
@@ -61,8 +60,8 @@ beforeEach(() => {
   fixture.ownerOrAdmin = null;
   fixture.sounds = true;
   fixture.advancedMode = false;
-  vi.stubGlobal("window", { ogb: { environments: {}, organization: {}, cloudAccount: {} } });
-  vi.stubGlobal("document", { documentElement: { dataset: {} } });
+  vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), ogb: { environments: {}, organization: {}, cloudAccount: {} } });
+  vi.stubGlobal("document", { addEventListener: vi.fn(), removeEventListener: vi.fn(), documentElement: { dataset: {} } });
   setLocale("en");
 });
 afterEach(() => {
@@ -192,7 +191,7 @@ describe("Settings, drawn as Grok Bot's", () => {
   });
 
   it("shows a paired remote client General, Texting and Computer, with its look in General", () => {
-    vi.stubGlobal("window", { ogb: { remoteClient: { active: true }, environments: {} } });
+    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), ogb: { remoteClient: { active: true }, environments: {} } });
     expect(panes(open("general"))).toEqual(["general", "texting", "computer"]);
     expect(groups(open("general"))).toEqual(["Appearance", "Notifications"]);
     expect(current(open("looks"))).toBe("general");
@@ -205,7 +204,7 @@ describe("Settings, drawn as Grok Bot's", () => {
 describe("where every section lives now", () => {
   const every: AppSettingsSection[] = [
     "general", "desktopWorkspaces", "organization", "cloudAccount", "appearance", "experimental", "connections", "engines",
-    "companion", "remote", "computer", "logins", "usage", "people", "botAccess", "activity", "backups", "workspaces", "skills", "import", "updates",
+    "companion", "remote", "computer", "logins", "usage", "people", "botAccess", "activity", "backups", "skills", "import", "updates",
     "texting", "permissions", "advanced", "apps", "looks", "bots", "data", "builder", "about",
   ];
 

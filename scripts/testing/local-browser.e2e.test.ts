@@ -23,7 +23,7 @@ it.skipIf(process.platform !== "darwin" || !binaryPath || !executablePath)("uses
   let fixture: VerificationServer;
   try {
     fixture = await launchVerificationServer({ OMB_TEST_LOCAL_BROWSER_GUARD: "1" }, undefined, undefined,
-      { binaryPath: binaryPath!, executablePath: executablePath! }, undefined, { scripted: true });
+      { binaryPath: binaryPath!, executablePath: executablePath! }, { scripted: true });
   } catch (error) { await new Promise<void>((resolve) => page.close(() => resolve())); throw error; }
   const api = async (method: string, path: string, body?: unknown) => {
     const response = await fetch(fixture.info.url + path, { method,

@@ -4,7 +4,7 @@ import { ArrowUp, Check, Plus } from "lucide-react";
 import { BotAvatar, MausAvatar } from "@/components/Avatar";
 import { engineReady } from "@/components/EngineLibrary";
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
-import { brand, productName } from "@/lib/brand";
+import { productName } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { DEFAULT_BOT_NAME, myDefaultBot, useViewerEmail } from "@/lib/default-bot";
 import { activeLocale, t } from "@/lib/i18n";
@@ -92,7 +92,6 @@ export function MeetScreen({ hosted, onNext }: { hosted: boolean; onNext: () => 
     return () => { clearTimeout(send); clearTimeout(think); };
   }, [typed]);
 
-  const logo = brand().logo;
   const face = typing ? "listening" : "idle";
   const failure = pill.error ?? (tested?.state === "failed" ? tested.error ?? t("onboarding.engines.noAnswer", { name: tested.instance.displayName }) : null);
   const signingIn = asking && !ready;
@@ -106,8 +105,6 @@ export function MeetScreen({ hosted, onNext }: { hosted: boolean; onNext: () => 
           <span data-meet-thinking="" className="onboarding-dots flex size-full items-center justify-center gap-[5px]">
             <span className="size-[9px] rounded-full bg-ink" /><span className="size-[11px] rounded-full bg-ink" /><span className="size-[9px] rounded-full bg-ink" />
           </span>
-        ) : logo ? (
-          <img src={logo} alt="" width={MASCOT_SIZE} height={MASCOT_SIZE} className="size-full object-contain" />
         ) : maus ? (
           <BotAvatar bot={maus} size={MASCOT_SIZE} state={face} animated={!reduced} />
         ) : (

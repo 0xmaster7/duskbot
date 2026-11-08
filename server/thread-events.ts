@@ -1,3 +1,4 @@
+import { isRecord } from "../shared/json.ts";
 import { closeSync, fstatSync, openSync, readSync, type Stats } from "node:fs";
 import { join } from "node:path";
 import type { RuntimeEvent } from "./contracts.ts";
@@ -117,7 +118,6 @@ export function readRecentLines<T>(file: string, limit: number, valid: RecordGua
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 const stringOrMissing = (value: unknown) => value === undefined || typeof value === "string";
 const stringOrNullOrMissing = (value: unknown) => value === undefined || value === null || typeof value === "string";
 const numberOrNullOrMissing = (value: unknown) => value === undefined || value === null || typeof value === "number";

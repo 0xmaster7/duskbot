@@ -52,7 +52,6 @@ import { ThemeRow, useSkinChoice } from "./ThemeRow";
 import { ThreadCleanupSettings } from "./ThreadCleanupSettings";
 import { UsageSection } from "./UsageSection";
 import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
-import { WorkspacesSection } from "./WorkspacesSection";
 import { UsageMeterCard } from "./native/UsageMeter";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import {
@@ -76,7 +75,6 @@ export const SECTION_PAGES: Partial<Record<AppSettingsSection, { id: string; tit
   skills: { id: "skills", title: "settings.section.skills" },
   organization: { id: "organization", title: "settings.section.organization" },
   people: { id: "people", title: "settings.section.people" },
-  workspaces: { id: "workspaces", title: "settings.section.workspaces" },
   backups: { id: "backups", title: "settings.section.backups" },
 };
 
@@ -445,12 +443,10 @@ function TeamPage({ has }: { has: Has }) {
   const { at } = useSubPage();
   if (at === "organization") return <div data-settings-block="organization" className="contents"><OrganizationSettings /></div>;
   if (at === "people") return <RowsCard data-settings-block="people"><PeopleSection /></RowsCard>;
-  if (at === "workspaces") return <div data-settings-block="workspaces" className="contents"><WorkspacesSection /></div>;
   return (
     <RowsCard data-settings-block="team">
       {has("organization") && <PageRow page="organization" title={t("settings.section.organization")} hint={t("settings.hint.organization")} />}
       {has("people") && <PageRow page="people" title={t("settings.section.people")} hint={t("settings.hint.people")} />}
-      {has("workspaces") && <PageRow page="workspaces" title={t("settings.section.workspaces")} hint={t("settings.hint.workspaces")} />}
     </RowsCard>
   );
 }

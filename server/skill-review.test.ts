@@ -368,7 +368,6 @@ describe("the scheduler", () => {
       refusal: () => undefined,
       helper: () => helper,
       smallModels: { refused: () => new Set(), remember: () => {} },
-      assertWithinBudget: () => {},
       book: (row) => booked.push(row),
     });
     return { engine: (botId: string) => jobs.text("skill-review", botId), booked };

@@ -11,9 +11,6 @@ import { KitActions, KitBody, KitButton, KitField, KitLink, KitStatus, KitText }
 
 const TREG_URL = "https://treg.to";
 
-/** What the card's search box matches. */
-export const X_CARD_SEARCH = "x twitter treg tweets posts";
-
 const day = (iso: string) => new Intl.DateTimeFormat(activeLocale(), { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(iso));
 const number = (value: number) => value.toLocaleString(activeLocale());
 

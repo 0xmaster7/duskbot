@@ -599,4 +599,3 @@ export function createBillingService(options: BillingServiceOptions) {
     invoices: guarded(invoices), invoiceDownload: guarded(invoiceDownload), credits: guarded(credits), overview: guarded(overview), appState: guarded(appState), close: guarded(() => { clearInterval(retryCloudActions); confirmations.clear(); store.close(); }),
   };
 }
-export type BillingService = ReturnType<typeof createBillingService>;

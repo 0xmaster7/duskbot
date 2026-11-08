@@ -254,12 +254,6 @@ out of its commits and screenshots.
 
 - No DCO sign-off is required. Submit only code you wrote or have the right
   to contribute under the applicable project license.
-- Changes under `enterprise/` (source-available, see [LICENSING.md](LICENSING.md))
-  need the [CLA](CLA.md), signed once by commenting on the pull request
-  when the bot asks. Changes outside `enterprise/` do not require a CLA.
-- `enterprise/`, the cloud seam and the licensing files have code owners; a
-  maintainer review is required there.
-
 ## CI, in one glance
 
 Every PR runs locale validation (`pnpm i18n:check`), lint, CI-selection tests,
@@ -295,7 +289,7 @@ Provider fakes under `server/testing/fake-*.ts` must stay dependency-free: they 
 - [ ] UI changes include before/after screenshots
 
 By contributing you agree your contributions are licensed under the
-[Apache License, Version 2.0](LICENSE).
+[PolyForm Noncommercial License 1.0.0](LICENSE); see [LICENSING.md](LICENSING.md).
 
 ## Moving code out of server/index.ts
 

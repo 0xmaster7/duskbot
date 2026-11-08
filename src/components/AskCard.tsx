@@ -441,9 +441,6 @@ export const ASK_QUIET_BUTTON = `${ASK_SMALL_PILL} -my-1 text-ink-tertiary hover
 export const CARD_FIELD =
   "h-8 rounded-[10px] border border-ink/[0.12] bg-transparent px-3 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus-visible:ring-2 disabled:opacity-60 pointer-coarse:h-11";
 
-export const ASK_FIELD =
-  "h-7 rounded-full border border-hairline/60 bg-inset px-3 text-[13px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus:border-accent disabled:opacity-60 pointer-coarse:h-9";
-
 export function returnFocusToComposer(): void {
   if (typeof requestAnimationFrame !== "function") return;
   requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('[data-tour="composer"] textarea')?.focus());

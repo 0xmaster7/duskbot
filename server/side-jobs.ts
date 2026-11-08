@@ -45,7 +45,6 @@ export type SideJobInstance = Pick<ProviderInstance, "instanceId" | "driverKind"
 export interface SideJobBot {
   id: string;
   name: string;
-  /** Where a spend alert a call raises is shown. */
   threadId: string;
   modelSelection: { instanceId: string; model?: string };
   helperModel?: boolean;
@@ -65,8 +64,7 @@ export interface SideJobsDeps {
   smallModels: { refused(instanceId: string): ReadonlySet<string>; remember(instanceId: string, model: string): void };
   /** Hosted workspaces only. */
   modelAllowed?: (selection: { instanceId: string; model: string }) => boolean;
-  assertWithinBudget: () => void;
-  book: (row: Omit<UsageRow, "at" | "costSource">, tokensReported: boolean, notificationThreadId: string) => void;
+  book: (row: Omit<UsageRow, "at" | "costSource">, tokensReported: boolean) => void;
   log?: (line: string) => void;
 }
 
@@ -123,10 +121,8 @@ export function createSideJobs(deps: SideJobsDeps): SideJobs {
       }
     };
 
-  /** Every call checks the spend limit: one upkeep pass makes several in a row. */
   const booked = (job: SideJob, bot: SideJobBot, instance: SideJobInstance, call: TextCall, trigger: UsageTrigger, fixed: () => TextGenerationOptions): SideJobText["generateText"] =>
     async (prompt, options) => {
-      deps.assertWithinBudget();
       const threadId = `${job}-${randomUUID()}`;
       return call(prompt, {
         ...options,
@@ -143,7 +139,7 @@ export function createSideJobs(deps: SideJobsDeps): SideJobs {
           ...(usage.cachedInput !== undefined ? { cachedInput: usage.cachedInput } : {}),
           costUsd: usage.costUsd ?? null,
           trigger,
-        }, usage.input !== undefined && usage.output !== undefined, bot.threadId),
+        }, usage.input !== undefined && usage.output !== undefined),
       });
     };
 
@@ -192,7 +188,6 @@ export function createSideJobs(deps: SideJobsDeps): SideJobs {
       if (job === "skill-review" && own.adapter.capabilities.agentsMcp !== true) return null;
       const call = ownCall(job, own);
       if (call) {
-        // The summary belongs to a turn that already passed the spend limit and is not booked on its own.
         if (job === "compaction") return { via: "engine", generateText: call };
         if (job === "setup-suggestions" || job === "room-routing") {
           const quick = quickModel(bot, own);

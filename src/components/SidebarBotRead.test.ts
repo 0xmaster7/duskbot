@@ -10,9 +10,6 @@ import { setLocale } from "@/lib/i18n";
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({}) }));
 const mode = vi.hoisted(() => ({ advanced: true }));
-vi.mock("@/lib/interface-mode", async (original) => ({
-  ...await original<typeof import("@/lib/interface-mode")>(), useAdvancedMode: () => mode.advanced,
-}));
 
 const bot: Bot = { id: "reviewer", threadId: "selected", name: "Reviewer", title: "", description: "", color: "green",
   notifications: true, unread: true, messages: [], modelSelection: { instanceId: "fake", model: "test" },

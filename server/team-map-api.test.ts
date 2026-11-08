@@ -6,7 +6,7 @@ import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.
 import { readHandoffs } from "./testing/handoff-rows.ts";
 
 it("shows coordinate_bots work on the team map while it runs, with ids only", async () => {
-  const fixture = await launchVerificationServer({}, undefined, undefined, undefined, undefined, { scripted: true });
+  const fixture = await launchVerificationServer({}, undefined, undefined, undefined, { scripted: true });
   const api = async (path: string) => (await fetch(`${fixture.info.url}${path}`)).json() as Promise<any>;
   const control = (args: string[]) => runControlOmb([...args, "--url", fixture.info.url]) as Promise<any>;
   try {

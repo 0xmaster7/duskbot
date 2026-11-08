@@ -191,14 +191,3 @@ export function SidebarPhoneStatusButton({
     </button>
   );
 }
-
-export function SidebarPhoneButton({
-  density,
-  onOpen,
-}: {
-  density: SidebarDensity;
-  onOpen: () => void;
-}) {
-  const status = useSidebarPhoneStatus();
-  return <SidebarPhoneStatusButton density={density} status={status} onOpen={onOpen} />;
-}

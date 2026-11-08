@@ -23,7 +23,6 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
     },
   }),
 }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: () => {} }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
 vi.mock("./CloudScreenPreview", () => ({ CloudScreenPreview: () => null }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
@@ -86,7 +85,6 @@ const activeTab = () => document.querySelector<HTMLElement>('[data-testid="compu
 const tabByLabel = (label: string) =>
   [...document.querySelectorAll<HTMLElement>('[data-testid="computer-tabs"] [role="tab"]')].find((candidate) => candidate.textContent?.trim() === label)!;
 const panelClose = () => document.querySelector<HTMLElement>("[data-computer-panel-close]");
-const panelGear = () => document.querySelector<HTMLElement>(`[title=${JSON.stringify(t("computer.botSettings"))}]`)!;
 const chatButton = () => {
   const button = document.createElement("button");
   button.dataset.tour = "computer";
@@ -182,24 +180,24 @@ describe("computer panel entry focus", () => {
 
   it("keeps the ring on the tab the panel itself moves to", async () => {
     rememberComputerPanelOpen({ botId: "scout", opener: chatButton(), tabs: true });
-    await open(makeBot());
+    await open(makeBot({ computer: "browser" }));
     runFrames();
     expect(document.activeElement).toBe(activeTab());
 
     // Auto resolves its surface, or a sign-in moves the tab.
-    flushSync(() => tabByLabel("Routines").click());
+    flushSync(() => tabByLabel("Browser").click());
     await settle();
-    expect(document.activeElement).toBe(tabByLabel("Routines"));
+    expect(document.activeElement).toBe(tabByLabel("Browser"));
   });
 
   it("stops following the selection once focus leaves the tab row", async () => {
     rememberComputerPanelOpen({ botId: "scout", opener: chatButton(), tabs: true });
-    await open(makeBot());
+    await open(makeBot({ computer: "browser" }));
     runFrames();
     const content = document.querySelector<HTMLElement>('[role="tabpanel"]')!;
     flushSync(() => content.focus());
 
-    flushSync(() => tabByLabel("Routines").click());
+    flushSync(() => tabByLabel("Browser").click());
     await settle();
     expect(document.activeElement).toBe(content);
   });
@@ -216,19 +214,6 @@ describe("computer panel close hand-off", () => {
     close.focus();
 
     flushSync(() => close.click());
-    expect(document.activeElement).toBe(opener);
-  });
-
-  it("returns focus before handing over to bot settings from the gear", async () => {
-    const opener = chatButton();
-    opener.focus();
-    rememberComputerPanelOpen({ botId: "scout", opener, tabs: true });
-    await open(makeBot());
-    runFrames();
-    const gear = panelGear();
-    gear.focus();
-
-    flushSync(() => gear.click());
     expect(document.activeElement).toBe(opener);
   });
 

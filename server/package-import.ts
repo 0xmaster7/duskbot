@@ -378,9 +378,6 @@ function runImport(source: ImportSource, options: PackageImportOptions, deps: Pa
       }
     }
 
-    // a package's department brief is no longer applied
-    const brief = false;
-
     const groupIds = new Map<string, string>();
     for (const room of pkg?.rooms ?? []) {
       const ids = room.members.map((key) => botIds.get(key)!);
@@ -490,7 +487,7 @@ function runImport(source: ImportSource, options: PackageImportOptions, deps: Pa
       offeredSkills: (pkg?.skills?.entries ?? []).filter((skill) => !referenced.has(skill.name)).map((skill) => skill.name),
       connections,
       skipped,
-      brief,
+      brief: false,
       notes,
       ...(presets ? { presets } : {}),
     };

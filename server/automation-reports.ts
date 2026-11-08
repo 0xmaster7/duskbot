@@ -276,5 +276,3 @@ export function createAutomationReports(deps: AutomationReportDeps) {
     },
   };
 }
-
-export type AutomationReports = ReturnType<typeof createAutomationReports>;

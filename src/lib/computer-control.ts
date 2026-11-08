@@ -20,12 +20,6 @@ export function parseComputerHelp(value: unknown): ComputerHelpRef | null {
     ? { botId, threadId, messageId, site, place: place as ComputerHelpRef["place"] } : null;
 }
 
-export type BrowserControlTransitionFailure =
-  | "native-take"
-  | "durable-take"
-  | "durable-release"
-  | "native-release";
-
 /** Take is local-first, release server-first; BrowserPanel owns the same choreography itself. */
 export async function transitionComputerControlLease<
   Action extends ComputerControlAction,

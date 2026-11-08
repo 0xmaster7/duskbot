@@ -189,15 +189,11 @@ import { appendUsage, flushUsageLedger, queuedTurnTrigger, usageTriggerFor, type
 import { createTraceRecorder } from "./usage-trace/recorder.ts";
 import { GroupUsageReader } from "./group-thread-usage.ts";
 import { ledgerCost } from "./model-prices.ts";
-import type { PriceList } from "./prices.ts";
 import type { RequestAuth } from "./request-auth.ts";
 import { adminAuditPlan, type AuditPlan } from "./admin-audit-plan.ts";
 import { onKeyRejectionChange } from "./key-rejections.ts";
-import { assertWithinBudget, noteSpend, spendAlertText, spendState, takeSpendAlert } from "./spend.ts";
-import { fleetAvailable, fleetSocketPath } from "./fleet-client.ts";
-import { HOSTED_CONTRACT_HEADER, HOSTED_CONTRACT_METADATA, HOSTED_CONTRACT_VERSION } from "./hosted-contract.ts";
 import { cliProbeEnvironment, testCliBinary } from "./cli-probe.ts";
-import { buildMentionNotification, buildNoticeNotification, buildNotification, buildSpendNotification, type Notification } from "./notify.ts";
+import { buildMentionNotification, buildNoticeNotification, buildNotification, type Notification } from "./notify.ts";
 import {
   isModelVariant,
   TurnNotStartedError, TurnAuthenticationRefusedError, TurnUsageLimitRefusedError,
@@ -271,7 +267,7 @@ import { ENGINE_LIST_REUSE_MS, engineMemory, enginesByUse, ProviderRegistry } fr
 import { ManagedDesktopProviders } from "./managed-desktop.ts";
 import { mainThread, wasOldestThread } from "./main-thread.ts";
 import { computerKindForResource, ManagedDesktopPolicy, type ComputerKind } from "./managed-policy.ts"; import { nudgeCloudTeamPolicy, remoteAccessPaths, startCloudTeamPolicy, stopCloudTeamPolicy } from "./cloud-team-policy.ts";
-import { hostedModelPolicy, HOSTED_MODEL_POLICY_HEADER } from "./hosted-models.ts";
+import { hostedModelPolicy } from "./hosted-models.ts";
 import { CLOUD_HOME_SECRET_KEYS, CLOUD_IGNORED_KEYS, cloudHomeConfiguration, cloudHomeOffersPlace, cloudHomePlaceRefusal, firstCloudTurnPatch } from "./cloud-home.ts";
 import { botBox, startBotBoxAtBoot } from "./bot-box/boot.ts"; import { attachmentsForBox } from "./box-attachments.ts"; import { brokerPath } from "./bot-box/broker-probe.ts";
 import { createCloudSignedHost } from "./host/cloud-signed-host.ts"; import { createBotNameClash } from "./host/bot-name-clash.ts"; import { hiddenThreadRefusal, hideOthersSyncFolders } from "./host/team-private.ts"; import { createTeamMemberLeft } from "./host/team-member-left.ts"; import { createUploadOwners, uploadsFor } from "./host/member-uploads.ts"; import { createMemberOwnBot } from "./host/member-own-bot.ts"; import { createVisibilityHost } from "./host/visibility-host.ts"; import { createBotAccessHost, refusalFor, relayedSendRefusal } from "./host/bot-access-gate.ts"; import { createBotAccessRoutes, writeAccess } from "./routes/bot-access.ts"; import { createAccessRequests } from "./host/access-requests.ts";
@@ -317,7 +313,7 @@ import {
 import * as tts from "./tts/index.ts";
 import { createDecider, deciderReady, describeDecider } from "./decider/index.ts"; import { createExtractor, describeHelpers } from "./extractor/index.ts";
 import { createStopLineRoutes } from "./routes/stop-line.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { MAUSBOT_ROUTING_TIMEOUT_MS, mausbotChooser } from "./decider/mausbot-chooser.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
-import { createLiveSession, liveAttachUrl, liveHistoryFrom, LiveSessionError, type LiveBot, type LiveHistoryMessage } from "./live-call.ts";
+import { createLiveSession, liveAttachUrl, liveHistoryFrom, LiveSessionError, type LiveBot } from "./live-call.ts";
 import { LiveCallController, LiveCallSignedOutError, openLiveSocket } from "./live-call-controller.ts";
 import { liveCallSettings, liveSettingsFor, liveSettingsForClient, saveLiveSettings } from "./live-settings.ts"; import { azureLiveCallRefusal, liveScopeRefusal } from "./live-access.ts";
 import { recordLiveCall, spokenLineFields, titleLiveCall } from "./live-call-record.ts";
@@ -325,7 +321,8 @@ import { narrateTool, toUtterances } from "./tts/speech-text.ts";
 import { createTtsRoutes } from "./routes/tts.ts";
 import { turnStartLogLine } from "./turn-log.ts";
 import { TurnStops, outwardActions, stoppedTurnOutcome, turnEvidence } from "./turn-outcome.ts";
-import { buildRecoveryText, buildTurnContext, engineIsFresh, replaysNatively } from "./turn-context.ts";
+import { replaysTranscriptNatively } from "./runtime/capabilities.ts";
+import { buildRecoveryText, buildTurnContext, engineIsFresh } from "./turn-context.ts";
 import { Handoffs, handedStateUsable, isContextMessage, recordHanded, renderUnseen, sessionStart, unseenMessages, withUnseenMessages, type ContextMessage } from "./delta-context.ts";
 import { extractReplayImages, extractTurnImages } from "./turn-images.ts";
 import { callTitleExcerpt } from "./thread-title.ts";
@@ -513,7 +510,7 @@ import {
 } from "./turn-dispatch-guard.ts";
 import { createGracefulShutdown } from "./graceful-shutdown.ts";
 import { acquireDataDirLeaseForProcess } from "./data-dir-lease.ts";
-import { createWorkspaceAccess, describeEdition, editionForSettings, editionStatus, entitled, hostedWorkspaceConfiguration, hostedWorkspaceConfigured, licenseWarning, sharedWorkspaceFullAccessConfigured, loadEnterpriseLayer, workspaceMembership, type WorkspaceAccess } from "./enterprise.ts";
+import { hostedWorkspaceConfiguration, hostedWorkspaceConfigured, workspaceMembership } from "./hosted-workspace.ts";
 import { environmentDescriptor, loadEnvironmentId, serverVersion } from "./environment.ts";
 import { WorkspaceBackupMaintenance } from "./workspace-backup-maintenance.ts";
 import { createWorkspaceBackupRoutes, isWorkspaceBackupSessionControl } from "./workspace-backup-http.ts";
@@ -564,7 +561,6 @@ import {
   type StreamSeen,
   type Viewer,
 } from "./bot-visibility.ts";
-import { describeBrand, loadBrand } from "./brand.ts";
 import { deliverSseFrame, openSseHeartbeat } from "./sse-fanout.ts";
 import { PhoneSecretBridge, PhoneSecretSubmissionRegistry } from "./phone-secret.ts";
 // Keep these two last, so loading the route table leaves module start-up order as is.
@@ -572,7 +568,7 @@ import { gzipTunnelReplies, json, onJsonBody, parsedBodyOf, readBody } from "./h
 import { holdBodyDeadline } from "./body-deadline.ts";
 import { createNoAiNotice } from "./host/no-ai-notice.ts"; import { PASS, ROUTES, dispatchRoutes } from "./routes/table.ts"; import { createSecretCards } from "./host/secret-cards.ts"; import { createInternalCredentialRequestRoutes, createSavedSecretRoutes, createSecretCardRoutes } from "./routes/secret-cards.ts"; import { SavedSecretStore, desktopSavedSecretsKey, fileSavedSecretsKey } from "./saved-secrets.ts"; import { applyIncludedPagesMessage } from "./pages/access.ts"; import { createPublishedPages } from "./pages/service.ts"; import { createInternalToolRoutes } from "./routes/internal-tools.ts"; import { createHelperSuggestionRoutes } from "./routes/helper-suggestion.ts"; import { createXConnectorRoutes } from "./routes/x-connector.ts"; import { createMoveFreeze, switchAutomationsOff } from "./move-freeze.ts"; import { createMoveFreezeRoutes } from "./routes/move-freeze.ts"; import { createMoveWaits } from "./move-waits.ts"; import { assertBotHere, createBotMoves } from "./bot-moves.ts"; import { createBotMoveRoutes } from "./routes/bot-moves.ts"; import { createTeamMoveIn, moveInRefusal } from "./team-move-in.ts";
 import { createCardSealer, loadSealIdentity } from "./card-seal.ts"; import { createSealKeyRoutes } from "./routes/seal-key.ts";
-import { createHostedSlackRoutes } from "./routes/hosted-slack.ts"; import { createConnectorDirectoryRoutes } from "./routes/connector-directory.ts"; import { createComposioConnectRoutes } from "./composio-connect.ts"; import { withMcpSignIn as signedInMcp } from "./mcp-oauth.ts"; import { composioProvider } from "./connectors/composio-provider.ts"; import { remoteMcpProvider } from "./connectors/remote-mcp.ts";
+import { createConnectorDirectoryRoutes } from "./routes/connector-directory.ts"; import { createComposioConnectRoutes } from "./composio-connect.ts"; import { withMcpSignIn as signedInMcp } from "./mcp-oauth.ts"; import { composioProvider } from "./connectors/composio-provider.ts"; import { remoteMcpProvider } from "./connectors/remote-mcp.ts";
 import { createBotPresetRoutes } from "./routes/bot-presets.ts"; import { createWorkspaceBannerRoutes, workspaceBannerStore, workspaceBannerSummary } from "./routes/workspace-banner.ts";
 import { createBotMemoryRoutes } from "./routes/bot-memory.ts";
 import { createBotCreateRoutes } from "./routes/bots-create.ts";
@@ -736,10 +732,7 @@ if (logins.onePasswordToken()) void onePassword.refresh();
 const botLogins = new BotLogins(logins, onePassword);
 const SESSION_COOKIE = sessionCookieName(PORT, ENVIRONMENT_ID);
 const HOSTED_WORKSPACE = hostedWorkspaceConfigured();
-let workspaceAccess: WorkspaceAccess | null = null;
 const DESKTOP_MANAGED = process.env.OMB_DESKTOP_PARENT === "1";
-const SHARED_WORKSPACE_FULL_ACCESS = sharedWorkspaceFullAccessConfigured();
-const sharedWorkspaceFullAccessEnabled = () => SHARED_WORKSPACE_FULL_ACCESS && Boolean(workspaceAccess) && entitled("admin");
 const HOSTED_FULL_ACCESS_REFUSAL = "On a shared company workspace Full access comes only from the operator's dedicated policy";
 if (HOSTED_WORKSPACE) setDefaultApprovalMode("ask");
 // On a shared workspace loopback is a service, not the owner: every bot's shell is a loopback caller too.
@@ -1314,20 +1307,10 @@ function adminAuditRows(
 }
 
 
-function operatorPrices(): PriceList | null {
-  return entitled("billing") && cfg.billing?.prices && Object.keys(cfg.billing.prices).length ? cfg.billing.prices : null;
-}
-
-const attributeUsage = createUsageAttribution({ threadTrigger: (threadId) => turnTriggers.get(threadId), routineWriter: (id) => { const key = cloudRoutineAuthors?.writer(id); return key ? teamOwners.people?.list().find((one) => personKey({ id: "", email: one.email }) === key)?.email : undefined; } }); function bookTurnUsage(row: Omit<UsageRow, "at" | "costSource">, tokensReported = true, notificationThreadId = row.threadId): void {
-  const cost = tokensReported || row.costUsd !== null ? ledgerCost(row, operatorPrices()) : { costUsd: null };
+const attributeUsage = createUsageAttribution({ threadTrigger: (threadId) => turnTriggers.get(threadId), routineWriter: (id) => { const key = cloudRoutineAuthors?.writer(id); return key ? teamOwners.people?.list().find((one) => personKey({ id: "", email: one.email }) === key)?.email : undefined; } }); function bookTurnUsage(row: Omit<UsageRow, "at" | "costSource">, tokensReported = true): void {
+  const cost = tokensReported || row.costUsd !== null ? ledgerCost(row, null) : { costUsd: null };
   const booked = attributeUsage({ ...row, ...cost, ...usageTrace.settle(row.threadId), at: new Date().toISOString() });
-  // The append is async; noteSpend counts the row from memory until it lands, so the cap check sees it.
-  noteSpend(DATA_DIR, booked, appendUsage(DATA_DIR, booked));
-  const state = spendState(cfg, DATA_DIR);
-  const alert = takeSpendAlert(DATA_DIR, state);
-  if (alert && state) {
-    broadcast({ kind: "notify", notification: logNotification(buildSpendNotification({ id: row.botId, name: row.botName }, notificationThreadId, spendAlertText(alert, state))) }, { adminOnly: true });
-  }
+  void appendUsage(DATA_DIR, booked);
 }
 
 const providerAuthSessions = new ProviderAuthSessions({ signedIn: (instanceId) => limitTakeover.signedIn(instanceId) }); const mcpServersHost = createMcpServersHost({ dataDir: DATA_DIR, cfg: () => cfg, persist: persistMcpServers, bots: () => store.bots, policy: (servers) => managedPolicy.filterMcp(servers), tell: (text, about) => notify(buildNoticeNotification(about, store.bot(about.id)?.threadId ?? "", text)), startsServers: (botId) => { const bot = store.bot(botId); return Boolean(bot && registry.get(bot.modelSelection.instanceId)?.adapter.capabilities.customMcp === true); }, boxed: () => botBox.enabled(),
@@ -5132,7 +5115,6 @@ const sideJobs = createSideJobs({
   refusal: (instance) => policyModelRefusal(instance), smallModels: quickFallback,
   helper: cacheUntilConfigChanges((config) => helperSelection(config)),
   ...(hostedModels ? { modelAllowed: (selection: ModelSelection) => hostedModels.allows(selection) } : {}),
-  assertWithinBudget: () => assertWithinBudget(cfg, DATA_DIR),
   book: bookTurnUsage,
   log: (line) => console.log(line),
 });
@@ -5141,7 +5123,7 @@ const aboutMeFacts = createAboutMe({ read: () => cfg.profile?.aboutMe ?? "", wri
   changed: () => broadcast({ kind: "config", ...configStatus() }), today: () => memoryDate(), ...(CLOUD_TEAM ? { person: (layer: string, plan: Parameters<typeof teamHost.learnAbout>[1]) => teamHost.learnAbout(layer, plan) } : {}) });
 const personPreference = createPersonPreference<InternalCapability>({ team: Boolean(CLOUD_TEAM), aboutMe: aboutMeFacts, requester: actingPeople.requester, userStarted: (turn) => turnOrigin(turn).kind === "user", personName: teamHost.personName });
 const setupSuggestions = setupSuggestionsFor({ store, config: () => cfg, shared: sharedMembership, languageCode: () => appLanguage() ?? Intl.DateTimeFormat().resolvedOptions().locale, engine: (bot) => registry.get(bot.modelSelection.instanceId)?.adapter.capabilities, browserOn: () => builtInBrowserEnabled(cfg),
-  withinBudget: () => { try { assertWithinBudget(cfg, DATA_DIR); return true; } catch { return false; } }, writer: (botId) => sideJobs.text("setup-suggestions", botId), apps: { configured: () => composio.configured(cfg), mode: () => composio.connectionMode(cfg), connected: () => composio.connectedServices(cfg) }, log: (line) => console.log(line) });
+  writer: (botId) => sideJobs.text("setup-suggestions", botId), apps: { configured: () => composio.configured(cfg), mode: () => composio.connectionMode(cfg), connected: () => composio.connectedServices(cfg) }, log: (line) => console.log(line) });
 
 const memoryUpkeep = createMemoryUpkeep({
   bots: () => store.bots,
@@ -5240,7 +5222,6 @@ const cacheKeepWarm = createCacheKeepWarm({
     return null;
   },
   busy: ({ threadId, botId }) => threadBusy(botId, threadId) || botHasActiveTurn(botId) || Boolean(store.groupByThread(threadId)?.busyBotId),
-  overBudget: () => spendState(cfg, DATA_DIR)?.exceeded === true,
   ping: async ({ threadId, instanceId }, signal) => {
     const warm = registry.get(instanceId)?.adapter.cacheKeepWarm;
     return warm ? warm.ping(threadId, { signal }) : { ok: false, reason: "this engine cannot keep its cache warm" };
@@ -5255,7 +5236,7 @@ const cacheKeepWarm = createCacheKeepWarm({
 cacheKeepWarmStatus = (threadId) => cacheKeepWarm.status(threadId);
 // Warm summaries (server/host/warm-summary-host.ts): a long conversation is summarized while it is idle, not at its next turn.
 const warmSummaries = createWarmSummaryHost({ store, instance: (id) => registry.get(id), queued: hasQueuedSteeredMessages, coordinator, waits: () => botWaits, routines: () => routines,
-  enabled: () => cfg.context?.autoCompact !== false && process.env.OMB_WARM_SUMMARY !== "0" && spendState(cfg, DATA_DIR)?.exceeded !== true, memoryShort: () => engineMemory.headroom() < 0.3,
+  enabled: () => cfg.context?.autoCompact !== false && process.env.OMB_WARM_SUMMARY !== "0", memoryShort: () => engineMemory.headroom() < 0.3,
   nativeCompactAt: (id) => { const instance = registry.get(id), at = instance ? nativeCompactTokens(instance) : undefined; return at && Number.isFinite(at) ? at : undefined; },
   busy: (botId, threadId) => threadBusy(botId, threadId) || botHasActiveTurn(botId), keepWarmUntil: (threadId) => cacheKeepWarm.status(threadId)?.until, book: bookForkUsage, log: (line) => console.info(line), language: (threadId) => personLanguages.forLine(threadStarters.get(threadId)),
   fold: async ({ botId, threadId, instanceId }, idle) => { const bot = store.projectBotForTask(botId, threadId), model = store.taskByThread(botId, threadId)?.lastContextModel, instance = registry.get(instanceId), before = latestCompaction(store.activePath(threadId))?.id;
@@ -7485,11 +7466,6 @@ class DirectSendRefused extends Error {
 }
 
 function directSendRefusal(botId: string, threadId: string): DirectSendRefused | null {
-  try {
-    assertWithinBudget(cfg, DATA_DIR);
-  } catch (error) {
-    return new DirectSendRefused(409, { error: error instanceof Error ? error.message : String(error), code: "spend_cap" });
-  }
   if (!store.taskByThread(botId, threadId)) {
     return new DirectSendRefused(409, { error: "the bot switched tasks before it could receive the message" });
   }
@@ -7635,7 +7611,6 @@ async function acceptDirectSend(
 
 const personReplies = createPersonReplies({
   store, sendSequencer, messageSender, usageTriggerFor, groupThreadIsWorking, startGroupTurn, startOrQueueDirectMessage,
-  assertWithinBudget: () => assertWithinBudget(cfg, DATA_DIR),
 });
 const deliverLateQuestionAnswer: typeof personReplies.deliverLateQuestionAnswer = async (auth, threadId, requestId, answer, cardMessage, owner, via, callId) =>
   askCards.answerParked(threadId, requestId, answer) ? { queued: false } : personReplies.deliverLateQuestionAnswer(auth, threadId, requestId, answer, cardMessage, owner, via, callId);
@@ -7786,11 +7761,6 @@ function threadTitleGate(bot: Pick<BotRecord, "modelSelection">): { ok: true; in
   if (!instance?.generateText) return { ok: false, refusal: "this bot's model can't generate a title — rename the thread instead" };
   const refusal = policyModelRefusal(instance);
   if (refusal) return { ok: false, refusal };
-  try {
-    assertWithinBudget(cfg, DATA_DIR);
-  } catch (error) {
-    return { ok: false, refusal: error instanceof Error ? error.message : String(error) };
-  }
   return { ok: true, instance };
 }
 
@@ -7871,7 +7841,6 @@ async function beginTurn(
   if (providerInstancesChanging.has(bot.modelSelection.instanceId)) {
     throw Object.assign(new Error("this provider account is being updated — try again shortly"), { status: 409, code: "settling" });
   }
-  assertWithinBudget(cfg, DATA_DIR);
   if (remoteComputerLifecycleBusyOwners.has(botId)) {
     const changing = "this bot's cloud computer is being changed — wait for it to finish";
     if (!answer.incident) throw Object.assign(new Error(changing), { status: 409, code: "settling" });
@@ -8150,7 +8119,7 @@ async function beginTurn(
           rewound,
           fresh: fresh || contextReset,
           externallyUpdated: Boolean(externalContextMarker) || handedStale,
-          replaysNatively: replaysNatively(instance.driverKind),
+          replaysNatively: replaysTranscriptNatively(instance.driverKind),
         });
         // Snapshot the cursor now: an external result can clear it during async setup.
         const resumeCursor = resume ? task.resumeCursors[instanceId] : undefined;
@@ -8863,7 +8832,6 @@ async function beginTurn(
             { driverKind: target.driverKind, capabilities: target.adapter.capabilities });
         if (!refusal && checked.ok && target) {
           try {
-            assertWithinBudget(cfg, DATA_DIR);
             store.switchTaskModel(bot.id, threadId, checked.selection, false, false, {
               ...hostedModels?.resetTask(current.modelSelection, checked.selection), rewound: true,
             });
@@ -10003,7 +9971,6 @@ async function runClaimedGroupMemberTurn(
   let roomFailure: string | undefined;
   const reportDispatchError = (message: string) => { roomFailure = message; onDispatchError?.(message); };
   try {
-  assertWithinBudget(cfg, DATA_DIR);
   assertModelVariantSupported(preparedSelection, instance.adapter.capabilities);
   const integrations: NonNullable<Parameters<typeof instance.adapter.sendTurn>[0]["integrations"]> = {};
   const skillAuthoring =
@@ -10821,7 +10788,6 @@ async function runClaimedGroupMemberTurn(
   } catch (error) {
     if (providerDispatched) throw error;
     if (error instanceof DirectTurnSetupCancelled) return false;
-    const isSpendCap = typeof error === "object" && error !== null && (error as { code?: string }).code === "spend_cap";
     const isVariantError = typeof error === "object" && error !== null && (error as { code?: string }).code === "unsupported_model_variant";
     const isToolScopeError = typeof error === "object" && error !== null && (error as { code?: string }).code === "tool_scope";
     if (error instanceof ComputerWaitParked) {
@@ -10831,7 +10797,7 @@ async function runClaimedGroupMemberTurn(
       }
       return false;
     }
-    if (!roomSpeaker && !isSpendCap && !isVariantError && !isToolScopeError) throw error;
+    if (!roomSpeaker && !isVariantError && !isToolScopeError) throw error;
     const message = error instanceof Error ? error.message : "Local VM setup failed";
     store.appendMessage(threadId, {
       role: "bot", kind: "activity",
@@ -10840,8 +10806,7 @@ async function runClaimedGroupMemberTurn(
     });
     reportDispatchError(message);
     if (orchestration) {
-      orchestration.result.outcome = isSpendCap ? "spend_capped" : "dispatch_failed";
-      if (isSpendCap) orchestration.result.stopReason = message;
+      orchestration.result.outcome = "dispatch_failed";
     }
     return isToolScopeError;
   } finally {
@@ -11994,13 +11959,6 @@ function configStatus() {
     anthropic: { ...keyStatus(cfg.anthropic?.key), everyClaudeBot: cfg.anthropic?.everyClaudeBot !== false },
     openai: keyStatus(cfg.openai?.key),
     openrouter: keyStatus(cfg.openrouter?.key),
-    fleet: { available: fleetAvailable(fleetSocketPath()) },
-    edition: editionForSettings(editionStatus()),
-    budgets: {
-      ...(cfg.budgets?.monthlyUsd !== undefined ? { monthlyUsd: cfg.budgets.monthlyUsd } : {}),
-      ...(cfg.budgets?.warnAtPercent !== undefined ? { warnAtPercent: cfg.budgets.warnAtPercent } : {}),
-    },
-    billing: { currency: cfg.billing?.currency ?? "USD", prices: cfg.billing?.prices ?? {} },
     decisions: { retentionDays: decisionRetentionDays(cfg.decisions?.retentionDays) },
     safetyFloor: { enabled: safetyFloorOn() },
     openaiCompat: { ...keyStatus(cfg.openaiCompat?.key), url: cfg.openaiCompat?.url ?? "" },
@@ -12071,7 +12029,6 @@ function configForAccess(status: ReturnType<typeof configStatus>, admin: boolean
   // Client sessions get configured-or-not only: no SSH alias, email, browser partition id or sign-in list.
   return {
     ...withoutKeyHints(status),
-    edition: { edition: status.edition.edition, features: status.edition.features },
     signIn: { admins: [], members: [] }, live: liveSettingsForClient(status.live),
     vps: { configured: status.vps.configured, sshAlias: "" },
     opencodeGo: { configured: status.opencodeGo.configured, providerKeys: [] },
@@ -12340,8 +12297,7 @@ const workspaceBackupRoutes = createWorkspaceBackupRoutes(workspaceCopyAccess);
 let restartRequested = false;
 const cloudMoveRoutes = createCloudMoveRoutes();
 
-// `workspaceAccess` is assigned at boot, after this line: read it per request.
-ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: () => Boolean(workspaceAccess) && entitled("admin") })); ROUTES.push(createStopLineRoutes()); ROUTES.push(createConnectorDirectoryRoutes({ providers: () => [composioProvider(cfg), remoteMcpProvider] })); ROUTES.push(createComposioConnectRoutes({ servers: () => cfg.mcpServers, signedIn: (name, server) => mcpOAuth.authState(name, server.url) === "signed-in", withToken: async (name, server) => { const spec = (await signedInMcp({ [name]: server }, mcpOAuth))[name]; return spec && "url" in spec ? spec : null; }, refusal: (slug) => managedPolicy.appRefusal(slug) ?? null }));
+ROUTES.push(createStopLineRoutes()); ROUTES.push(createConnectorDirectoryRoutes({ providers: () => [composioProvider(cfg), remoteMcpProvider] })); ROUTES.push(createComposioConnectRoutes({ servers: () => cfg.mcpServers, signedIn: (name, server) => mcpOAuth.authState(name, server.url) === "signed-in", withToken: async (name, server) => { const spec = (await signedInMcp({ [name]: server }, mcpOAuth))[name]; return spec && "url" in spec ? spec : null; }, refusal: (slug) => managedPolicy.appRefusal(slug) ?? null }));
 const orgInstallStatuses = () => orgLibrary?.installStatuses() ?? new Map();
 ROUTES.push(createBotPresetRoutes({ presets: presetStore, orgStatuses: orgInstallStatuses })); ROUTES.push(createWorkspaceBannerRoutes({ changed: () => broadcast({ kind: "config", ...configStatus() }) }));
 // `routines` is assigned at boot, so it is read per request.
@@ -12374,7 +12330,7 @@ ROUTES.push(createThreadRoutes({
   groupFor: personRooms.groupForAuth,
   store, userName: userNameFor, sessions, groupUsageReader,
   hostedWorkspace: HOSTED_WORKSPACE, sessionCookie: SESSION_COOKIE, loopback: LOOPBACK, defaultPage: DEFAULT_PAGE,
-  workspaceAccess: () => workspaceAccess, streamCursor: () => `${STREAM_ID}:${lastSeq}`,
+  streamCursor: () => `${STREAM_ID}:${lastSeq}`,
   desktopMutationToken: () => desktopMutationToken,
   companionMutationToken: () => companionMutationToken,
   cliOwnerToken: () => cliOwnerToken,
@@ -12464,7 +12420,6 @@ ROUTES.push(createChannelRoutes({
   store, threadRead: teamMessages.seen,
   personMarkRoom: personRooms.personMarkRoom,
   groupFor: personRooms.groupForAuth,
-  cfg,
   userName: userNameFor,
   desktopManaged: DESKTOP_MANAGED,
   routines: () => routines,
@@ -12519,7 +12474,6 @@ const taskRoutes = createTaskRoutes({
   actorKey,
   cloudOwnerSession,
   cloudThreadRefusal,
-  sharedWorkspaceFullAccessEnabled,
   supportsApprovalMode,
   threadBusy, broadcast,
   publicBot,
@@ -12560,9 +12514,8 @@ ROUTES.push(createBrowserSiteRoutes({
 ROUTES.push(createBrowserEvidenceRoutes({ evidence: browserEvidence.attach({ onChange: (listener) => store.onChange(listener), threadExists: (id) => Boolean(threadOwner(id)) }), threadExists: (id) => Boolean(threadOwner(id)) }));
 ROUTES.push(createLoginRoutes(botLogins.routes((id) => Boolean(store.bot(id))), sealer), createSealKeyRoutes(sealer));
 ROUTES.push(createUsageRoutes({
-  dataDir: DATA_DIR, prices: operatorPrices,
-  budget: () => spendState(cfg, DATA_DIR),
-  currency: () => cfg.billing?.currency ?? "USD",
+  dataDir: DATA_DIR, prices: () => null,
+  currency: () => "USD",
   recorder: usageTrace, messages: (threadId) => store.messagesFor(threadId), liveBot: (threadId) => {
     const bot = store.botByThread(threadId) ?? store.bot(groupSpeakers.get(threadId)?.botId ?? "");
     return bot ? { botId: bot.id, botName: bot.name, model: bot.modelSelection.model, driverKind: registry.get(bot.modelSelection.instanceId)?.driverKind ?? "" } : null;
@@ -12653,10 +12606,10 @@ ROUTES.push(createComputerRoutes({
 ROUTES.push(createStatusRoutes({
   store, cfg, outboundCounts,
   staticDir: STATIC_DIR,
-  sharedWorkspaceFullAccessEnabled, adminActivityRecording, configStatus, broadcast, threadShown,
+  adminActivityRecording, configStatus, broadcast, threadShown,
   browserEngineInstall: { get: () => browserEngineInstall, set: (install) => { browserEngineInstall = install; } },
   browserEngineInstallError: { set: (error) => { browserEngineInstallError = error; } },
-})); const dashboardCollector = createDashboardCollector({ dataDir: DATA_DIR, cfg, bots: () => store.bots, managedVpsOwners, teamComputers: () => teamComputers.list(), localInventory: localVmInventoryPayload, localRuntime: containerRuntimeStatus, vps, lastUsedAt: (id) => { const bot = store.bot(id); return bot ? Math.max(0, ...(bot.tasks ?? []).map((task) => task.updatedAt ?? 0)) || null : null; }, phones: phoneHost.listOwner, sessions: () => sessions.list(), mobile: mobileLink.state, publicUrl, deviceLabel: () => cfg.computerName || "", checkUpdate: serverUpdateChecker({ desktopManaged: DESKTOP_MANAGED, managed: Boolean(CLOUD_HOME || HOSTED_WORKSPACE) }), prices: operatorPrices, computerKind: (id) => { const bot = store.bot(id); return bot && inheritedTeamComputer(bot) ? "team" : undefined; }, busy: botHasActiveTurn, engine: (id) => registry.get(id) ?? undefined, routines: () => { const runs = routines?.listRuns() ?? []; return (routines?.listRoutines() ?? []).map((routine) => ({ ...routine, lastRunAt: runs.find((run) => run.routineId === routine.id && run.startedAt !== undefined)?.startedAt ?? null })); }, planUsage: () => loadPlanUsage({ accounts: planAccountsFromInstances(instanceConfigs(cfg)) }), workspaceKind: isThisServerVps("this-server") || CLOUD_HOME || HOSTED_WORKSPACE ? "vps" : undefined }); const dashboardCommands = createDashboardCommands({ port: PORT, collect: dashboardCollector }); dashboardCommandOwner = dashboardCommands.owns; const dashboardReporter = createDashboardReporter({ dataDir: DATA_DIR, collect: dashboardCollector, execute: dashboardCommands.execute, log: (line) => console.warn(line) }); dashboardReporter.start(); ROUTES.push(createDashboardRoutes({ reporter: dashboardReporter, linkAgentBase: () => mobileLink.state().agent?.base ?? null }));
+})); const dashboardCollector = createDashboardCollector({ dataDir: DATA_DIR, cfg, bots: () => store.bots, managedVpsOwners, teamComputers: () => teamComputers.list(), localInventory: localVmInventoryPayload, localRuntime: containerRuntimeStatus, vps, lastUsedAt: (id) => { const bot = store.bot(id); return bot ? Math.max(0, ...(bot.tasks ?? []).map((task) => task.updatedAt ?? 0)) || null : null; }, phones: phoneHost.listOwner, sessions: () => sessions.list(), mobile: mobileLink.state, publicUrl, deviceLabel: () => cfg.computerName || "", checkUpdate: serverUpdateChecker({ desktopManaged: DESKTOP_MANAGED, managed: Boolean(CLOUD_HOME || HOSTED_WORKSPACE) }), prices: () => null, computerKind: (id) => { const bot = store.bot(id); return bot && inheritedTeamComputer(bot) ? "team" : undefined; }, busy: botHasActiveTurn, engine: (id) => registry.get(id) ?? undefined, routines: () => { const runs = routines?.listRuns() ?? []; return (routines?.listRoutines() ?? []).map((routine) => ({ ...routine, lastRunAt: runs.find((run) => run.routineId === routine.id && run.startedAt !== undefined)?.startedAt ?? null })); }, planUsage: () => loadPlanUsage({ accounts: planAccountsFromInstances(instanceConfigs(cfg)) }), workspaceKind: isThisServerVps("this-server") || CLOUD_HOME || HOSTED_WORKSPACE ? "vps" : undefined }); const dashboardCommands = createDashboardCommands({ port: PORT, collect: dashboardCollector }); dashboardCommandOwner = dashboardCommands.owns; const dashboardReporter = createDashboardReporter({ dataDir: DATA_DIR, collect: dashboardCollector, execute: dashboardCommands.execute, log: (line) => console.warn(line) }); dashboardReporter.start(); ROUTES.push(createDashboardRoutes({ reporter: dashboardReporter, linkAgentBase: () => mobileLink.state().agent?.base ?? null }));
 
 ROUTES.push(desktopViewer.route);
 ROUTES.push(createBrowserViewerRoutes({
@@ -12669,8 +12622,8 @@ ROUTES.push(createBrowserViewerRoutes({
     const browser = await browserIntegration(bot.id, bot.browserProfile, undefined, audience);
     return browser ? { botId: bot.id, session: browser.session, spec: browser.spec } : { status: 503, error: "Install the browser first." };
   },
-  authorize: async (req, auth) => !HOSTED_WORKSPACE || auth.kind !== "session" ? null
-    : workspaceAccess ? workspaceAccess.authorize(req, auth) : { status: 503, error: "Workspace sign-in is unavailable." },
+  authorize: async (_req, auth) => !HOSTED_WORKSPACE || auth.kind !== "session" ? null
+    : { status: 503, error: "Workspace sign-in is unavailable." },
   current: (botId, session, auth, audience) => {
     const current = store.bot(botId);
     return !!current && current.browser !== false && builtInBrowserEnabled(cfg) && currentBrowserSession(current.id, current.browserProfile, audience) === session
@@ -12686,9 +12639,6 @@ function liveBotFor(botId: string): LiveBot {
   const bot = store.bot(botId);
   if (!bot) throw new LiveSessionError("That bot no longer exists.", 404);
   return { name: bot.name, title: bot.title, description: bot.description };
-}
-function liveHistoryFor(threadId: string): LiveHistoryMessage[] {
-  return liveHistoryFrom(store.activePath(threadId));
 }
 /** A signed-out or removed person's call must not keep reaching the bot or spending the key. */
 function liveSignedIn(auth: RequestAuth): boolean {
@@ -12734,7 +12684,7 @@ const liveCalls = new LiveCallController({
   broadcast: (frame) => broadcast(frame, { adminOnly: true }),
   settings: () => liveCallSettings(cfg),
   azureRefusal: (auth) => azureLiveCallRefusal(auth, { othersOnLoopback: adminActivityRecording() }),
-  createSession: ({ key, endpoint, sdp, botId, threadId, voice }) => createLiveSession({ key, endpoint, sdp, voice, bot: liveBotFor(botId), history: liveHistoryFor(threadId), cloudHome: Boolean(CLOUD_HOME) }),
+  createSession: ({ key, endpoint, sdp, botId, threadId, voice }) => createLiveSession({ key, endpoint, sdp, voice, bot: liveBotFor(botId), history: liveHistoryFrom(store.activePath(threadId)), cloudHome: Boolean(CLOUD_HOME) }),
   openSocket: openLiveSocket,
   attachUrl: (sessionId, endpoint) => liveAttachUrl(sessionId, endpoint),
   speakable: (text) => toUtterances(text),
@@ -12799,22 +12749,14 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
   try {
     if (method === "GET" && path === "/api/health/hosted") {
       res.setHeader("cache-control", "no-store");
-      const hosted = hostedWorkspaceConfiguration();
-      if (!hosted?.portalMembership || !workspaceAccess || !entitled("admin")) {
-        return json(res, 503, { error: "Hosted workspace readiness is unavailable." });
-      }
-      res.setHeader(HOSTED_CONTRACT_HEADER, String(HOSTED_CONTRACT_VERSION));
-      if (hostedModels) res.setHeader(HOSTED_MODEL_POLICY_HEADER, "1");
-      return json(res, 200, { ok: true, service: "openmausbot", membershipAuthority: "portal", workspace: hosted.workspace, ...HOSTED_CONTRACT_METADATA });
+      return json(res, 503, { error: "Hosted workspace readiness is unavailable." });
     }
-    // Hosted workspaces have one sign-in authority: a missing optional layer must never reactivate email/QR credential minting.
+    // hosted configuration must never reactivate email or pairing credentials.
     if (HOSTED_WORKSPACE) {
       if (method === "POST" && ["/api/auth/pair", "/api/pair", "/api/auth/pairing", "/api/auth/email/start", "/api/auth/email/verify"].includes(path)) {
         return json(res, 403, { error: "Sign in through the workspace portal." });
       }
-      if (workspaceAccess) {
-        if (await workspaceAccess.handlePublic(req, res, url)) return;
-      } else if (path.startsWith("/api/auth/hosted/") || path === "/pair" || (path === "/" && (!isLoopbackHost(req.headers.host) || isProxied(req)))) {
+      if (path.startsWith("/api/auth/hosted/") || path === "/pair" || (path === "/" && (!isLoopbackHost(req.headers.host) || isProxied(req)))) {
         return json(res, 503, { error: "Workspace sign-in is unavailable." });
       }
     }
@@ -12962,18 +12904,11 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     if (method === "GET" && path === "/api/health" && !gate.auth) {
       return json(res, 200, { app: "openmausbot" });
     }
-    // Public: the sign-in page needs the deployment's name and icon, and it holds nothing secret.
-    if (method === "GET" && path === "/api/brand" && !gate.auth) {
-      return json(res, 200, loadBrand());
-    }
     if (!gate.auth) return json(res, gate.status, { error: gate.error });
     if (cloudPower && gate.auth.kind === "session") cloudPower.request(path, req.headers, res); // someone using a Cloud home keeps it awake
     const auth = gate.auth;
     if (HOSTED_WORKSPACE && auth.kind === "session") {
-      const failure = workspaceAccess
-        ? await workspaceAccess.authorize(req, auth)
-        : { status: 503, error: "Workspace sign-in is unavailable." };
-      if (failure) return json(res, failure.status, { error: failure.error });
+      return json(res, 503, { error: "Workspace sign-in is unavailable." });
     }
     // A member reaches a restricted bot, its threads, rooms, routines and files exactly as an id that does not exist.
     const viewer = viewerFor(auth), visible = visibleTo(viewer);
@@ -15585,10 +15520,6 @@ const server = createServer(IDLE_HTTP_SERVER, (req, res) => (req.headers["x-forw
 upgrades.attach(server, handleRequest);
 
 
-// Resolve the edition before accepting requests so /api/edition is never a guess.
-console.log(describeEdition(await loadEnterpriseLayer()));
-const startupLicenseWarning = licenseWarning(editionStatus());
-if (startupLicenseWarning) console.warn(startupLicenseWarning);
 console.log(LOOPBACK.trust === "service"
   ? `local requests: service trust (${LOOPBACK.reason}); without a session, loopback may use only health, the Slack worker's guarded routes and bot capability routes`
   : `local requests: owner trust (${LOOPBACK.reason})`);
@@ -15611,14 +15542,6 @@ const useThisServerComputers = (): void => {
 };
 useThisServerComputers();
 setInterval(useThisServerComputers, 15_000).unref();
-workspaceAccess = createWorkspaceAccess({ sessions, cookieName: SESSION_COOKIE, closeSessionStreams });
-// With the bridge's five-second deadline, this bounds stale portal access on quiet streams to fifteen seconds.
-const workspaceAccessTimer = workspaceAccess ? setInterval(() => {
-  void workspaceAccess!.revalidate().catch((error) => console.warn("workspace access revalidation failed", error));
-}, 10_000) : null;
-workspaceAccessTimer?.unref();
-console.log(describeBrand(loadBrand()));
-
 // Before any row below settles: an interrupted dispatch's words come back with a review notice, never to a model a second time.
 followupAtBoot("");
 for (const row of chatFollowups()) {
@@ -15729,7 +15652,6 @@ const gracefulShutdown = createGracefulShutdown({
       // Before any provider is torn down, so what the teardown fails stays cut for the next start.
       coordinator.close();
       noteTurnsCutByShutdown();
-      if (workspaceAccessTimer) clearInterval(workspaceAccessTimer);
       // Invalidate turn bearers before any cleanup reaches an await: child MCP processes and the listener may outlive it.
       revokeAllInternalCapabilities();
       stopCloudTeamPolicy();

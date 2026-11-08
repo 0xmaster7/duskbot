@@ -307,7 +307,6 @@ const serverSupervisor = createServerSupervisor({
     setLocalOrigin(confirmedRendererOrigin());
     serverStartConflictOnly = false;
     slog(`server ready pid=${proc.pid} port=${SERVER_PORT}`);
-    void readCloudOfferBrand();
     syncManagedComposioCredentials(); includedX.serverStarted(); includedPages.serverStarted(); railChanged(); ambientSurfaces.refresh();
     reportOwnListeners(proc);
     orgLibrary?.runtimeReady();
@@ -865,20 +864,10 @@ function cloudTrialNotices() {
   return trialNotices ??= createTrialNotices(jsonFile(path.join(app.getPath("userData"), "cloud-trial-notices.json")));
 }
 
-let brandedBuild = null;
-async function readCloudOfferBrand() {
-  if (brandedBuild !== null || !app.isPackaged || desktopRemoteAccess) return;
-  const status = await fetch(`http://127.0.0.1:${SERVER_PORT}/api/brand`, { signal: AbortSignal.timeout(3_000) })
-    .then(res => (res.ok ? res.json() : null)).catch(() => null);
-  if (!status || brandedBuild !== null) return;
-  brandedBuild = status.source === "file";
-  refreshApplicationMenu();
-}
 function cloudOffersAllowed() {
-  return app.isPackaged && !desktopRemoteAccess && brandedBuild === false;
+  return app.isPackaged && !desktopRemoteAccess;
 }
 async function cloudOffersReady() {
-  if (brandedBuild === null && serverReady) await readCloudOfferBrand();
   return cloudOffersAllowed();
 }
 const menuDate = value => new Intl.DateTimeFormat(app.getLocale() || "en-US", { day: "numeric", month: "short" }).format(new Date(value));
