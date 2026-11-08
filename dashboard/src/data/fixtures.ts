@@ -20,6 +20,7 @@ export const fixtureCatalog: PlanCatalog = {
     { id: "pro", name: "Pro", monthly: 50, license: "starter", members: 1, desktop: "shared-m", recommended: true, blurb: "For real work", features: ["A bigger always-on cloud desktop", "5 bot computers, priority wake", "Work license for one person"] },
     { id: "team", name: "Team", monthly: 100, license: "team", members: 2, desktop: "dedicated", blurb: "A dedicated machine for the whole team", features: ["Team license, 2 members", "Dedicated machine, unlimited bot computers"] },
   ],
+  poolRegions: ["eu-central"],
   regions: [
     { id: "eu-central", name: "Germany", city: "Falkenstein" },
     { id: "eu-north", name: "Finland", city: "Helsinki" },

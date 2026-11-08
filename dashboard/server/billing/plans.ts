@@ -69,7 +69,7 @@ export function catalogView(now: number, config: BillingConfig = BILLING_CONFIG)
   return structuredClone({ v: 1, currency: config.currency, bundles: config.bundles.map(bundle => ({ ...bundle,
     monthlyCents: quote({ ...bundle.cart, interval: "month" }, config).totalCents,
     yearlyMonthlyCents: quote({ ...bundle.cart, interval: "year" }, config).monthlyEquivalentCents })),
-  licenses: Object.values(config.licenses), desktops: Object.values(config.desktops), dedicated: config.dedicated, regions: config.regions,
+  licenses: Object.values(config.licenses), desktops: Object.values(config.desktops), dedicated: config.dedicated, regions: config.regions, poolRegions: config.poolRegions,
   defaultRegion: config.defaultRegion, yearlyDiscountPercent: config.yearlyDiscountPercent, creditPacks: config.creditPacks,
   freeWorkUntil: config.freeWorkUntil !== null && now < config.freeWorkUntil ? config.freeWorkUntil : null, graceDays: config.graceDays });
 }

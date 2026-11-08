@@ -20,6 +20,11 @@ export const priceText = (monthly: number, interval: BillingInterval, c: Pick<Pl
 export const cartText = (cart: { perMonth: number; dueNow: number }, interval: BillingInterval) => (interval === "year" ? `${money(cart.dueNow)}/yr` : `${money(cart.perMonth)}/mo`);
 
 const INTERVAL_KEY = "omb-dash-interval";
+/** Plus and Pro are shared desktops: only the pool regions can take them. */
+function sharedRegions(catalog: PlanCatalog) {
+  return catalog.poolRegions ? catalog.regions.filter((r) => catalog.poolRegions!.includes(r.id)) : catalog.regions;
+}
+
 export function useInterval(): [BillingInterval, (v: BillingInterval) => void] {
   const [v, set] = useState<BillingInterval>(() => (sessionStorage.getItem(INTERVAL_KEY) === "month" ? "month" : "year"));
   return [v, (next) => { sessionStorage.setItem(INTERVAL_KEY, next); set(next); }];
@@ -58,7 +63,8 @@ export function PlanSheet({ start, work = false, onClose }: { start: PaidPlan; w
   const [interval, setInterval] = useState<BillingInterval>(owned?.interval ?? (sessionStorage.getItem(INTERVAL_KEY) === "month" ? "month" : "year"));
   const [plan, setPlan] = useState<PaidPlan>(start);
   const [withLicense, setWithLicense] = useState(work);
-  const [region, setRegion] = useState(owned && owned.desktop !== "none" ? owned.region : catalog?.regions[0]?.id ?? "");
+  const regions = catalog ? sharedRegions(catalog) : [];
+  const [region, setRegion] = useState(owned && owned.desktop !== "none" && regions.some((r) => r.id === owned.region) ? owned.region : regions[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sel = catalog ? planSelection(catalog, plan, { interval, region, work: withLicense, keep: owned }) : null;
@@ -123,7 +129,7 @@ export function PlanSheet({ start, work = false, onClose }: { start: PaidPlan; w
       <div className="mt-6">
         <Field label="Region" htmlFor="plan-region" hint="Pick the one closest to you. You can move it later.">
           <Select id="plan-region" value={region} onChange={(e) => setRegion(e.target.value)}>
-            {catalog.regions.map((r) => <option key={r.id} value={r.id}>{r.city}, {r.name}</option>)}
+            {regions.map((r) => <option key={r.id} value={r.id}>{r.city}, {r.name}</option>)}
           </Select>
         </Field>
       </div>

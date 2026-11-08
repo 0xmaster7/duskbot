@@ -33,6 +33,7 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
       return { id: bundle.id, name: bundle.label, monthly: bundle.monthlyCents / 100, license, members: bundle.cart.license.members ?? licenses.find((item) => item.id === license)!.includedMembers, desktop: desktopIds[bundle.cart.desktop.kind], blurb: bundleBlurbs[bundle.id], features: bundle.highlights, recommended: bundle.id === "pro" };
     }),
     regions: [...catalog.regions.filter((region) => region.id === catalog.defaultRegion), ...catalog.regions.filter((region) => region.id !== catalog.defaultRegion)].map((region) => ({ id: region.id, name: region.country, city: region.label })),
+    ...(catalog.poolRegions ? { poolRegions: catalog.poolRegions } : {}),
     yearlyDiscount: catalog.yearlyDiscountPercent / 100,
     workFreeUntil: catalog.freeWorkUntil,
     creditPacks: catalog.creditPacks.map((pack) => ({ id: pack.id, usd: pack.priceCents / 100 })),

@@ -119,6 +119,8 @@ export interface PlanCatalog {
   desktops: DesktopTier[];
   custom: CustomPricing;
   regions: Region[];
+  /** where shared desktops can be bought; absent means every region */
+  poolRegions?: string[];
   /** 0.2 = yearly billing costs 20% less */
   yearlyDiscount: number;
   /** work use is free until then (an early grace period); null when it is over */

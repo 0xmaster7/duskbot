@@ -82,6 +82,8 @@ export interface Catalog {
   desktops: DesktopOption[];
   dedicated: DedicatedPricing;
   regions: Region[];
+  /** regions where shared desktops can be bought; dedicated machines can use any region */
+  poolRegions?: string[];
   defaultRegion: string;
   /** percent off a year paid up front */
   yearlyDiscountPercent: number;
