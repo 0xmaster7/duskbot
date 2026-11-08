@@ -7,11 +7,11 @@ import { useCart } from "../data/quote";
 import { useSession } from "../data/session";
 import { longDate, shortDate, usd } from "../lib/format";
 import { navigate, useLocation } from "../lib/router";
-import { Field, Modal, Select } from "../ui/controls";
-import { Badge, Button, cx, Skeleton } from "../ui/kit";
+import { Field, Modal, Select, Toggle } from "../ui/controls";
+import { Badge, Button, cx, PageHeader, Skeleton } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 import { SectionHead } from "../ui/table";
-import { regionName } from "./cloud-bits";
+import { CloudPitch, regionName } from "./cloud-bits";
 import { BuyCredits } from "./credits-dialog";
 import { cartText, IntervalToggle, LicenseSheet, PlanSheet, priceText, useInterval, type PaidPlan } from "./plan-sheet";
 
@@ -20,6 +20,7 @@ export { IntervalToggle, useInterval };
 const CONTACT = "mailto:hello@openmausbot.com";
 const members = (n: number) => `${n} ${n === 1 ? "member" : "members"}`;
 type Tier = "free" | "starter" | "pro";
+type Use = "personal" | "work";
 
 /** four rows, the machine first; every number comes from the catalog */
 function points(id: Tier, catalog: PlanCatalog): string[] {
@@ -198,9 +199,10 @@ export function BillingPage() {
   const [planSheet, setPlanSheet] = useState<PaidPlan | null>(null);
   const [licenseSheet, setLicenseSheet] = useState<{ license: LicenseId; members: number } | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [use, setUse] = useState<Use>(() => (owned && owned.license !== "personal" ? "work" : "personal"));
 
-  // a running plan shows its own billing period
-  useEffect(() => { if (owned) setIv(owned.interval); }, [owned?.interval]);
+  // a running plan shows its own billing period and use
+  useEffect(() => { if (owned) { setIv(owned.interval); if (owned.license !== "personal") setUse("work"); } }, [owned?.interval, owned?.license]);
 
   // older links like /billing?bundle=pro, and the sidebar's plus button, open the matching sheet
   const want = query.get("bundle");
@@ -230,21 +232,22 @@ export function BillingPage() {
   const openLicense = (license: LicenseId = owned && owned.license !== "personal" ? owned.license : "starter", n = owned?.members ?? 1) => setLicenseSheet({ license, members: n });
   const paid = (id: PaidPlan) => ({ label: current(id) ? "Current plan" : `${owned && ownDesk !== "none" ? "Switch to" : "Get"} ${bundleOf(catalog, id)?.name}`, go: () => setPlanSheet(id) });
   const card = (id: Tier, lead = false) => {
-    const a = id === "free" ? { label: current("free") ? "Current plan" : "Switch to Free", go: () => setCancelling(true) } : paid(id);
-    return <PlanCard id={id} catalog={catalog} interval={interval} current={current(id)} lead={lead} action={a.label} onChoose={a.go} disabled={current(id)} />;
+    const a = id !== "free" ? paid(id) : !current("free") ? { label: "Switch to Free", go: () => setCancelling(true) } : use === "work" && !ownsLicense ? { label: "Add a work license", go: () => openLicense("starter", 1) } : { label: "Current plan", go: () => {} };
+    return <PlanCard id={id} catalog={catalog} interval={interval} current={current(id)} lead={lead} action={a.label} onChoose={a.go} disabled={a.label === "Current plan"} />;
   };
 
   return (
     <div>
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-        <div className="min-w-0">
-          <h1 className="t-title">Plans</h1>
-          <p className="mt-1.5 text-15 text-ink-3">Free for personal use. Add a cloud desktop to keep your bots working 24/7.</p>
-        </div>
-        <IntervalToggle value={interval} onChange={setIv} catalog={catalog} />
-      </header>
+      <PageHeader title="Plans & billing" />
+      <CloudPitch id="hero-title" title="Keep your bots working 24/7" body="Give them a cloud desktop of their own, so they keep going while your Mac sleeps. Set up in one click." action={false} link={null} />
 
-      <div className="mt-8 grid gap-3 md:grid-cols-3">
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
+        <Toggle<Use> label="Use" value={use} onChange={setUse} options={[{ value: "personal", label: "Personal" }, { value: "work", label: "Work" }]} />
+        <IntervalToggle value={interval} onChange={setIv} catalog={catalog} />
+      </div>
+      <p className="mt-3 text-13 text-ink-4">{interval === "year" ? "Billed yearly, two months free." : "Billed monthly, cancel anytime."} Personal use is free forever.{free ? ` Work use is free until ${longDate(free)}.` : ""}</p>
+
+      <div className="mt-6 grid gap-3 md:grid-cols-3">
         {card("free")}
         {card("starter")}
         {card("pro", true)}
@@ -254,7 +257,7 @@ export function BillingPage() {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card border border-line bg-card px-6 py-4">
           <div className="min-w-0">
             <p className="text-14 text-ink">{ownsLicense ? "You have a work license" : "Using it for work?"}</p>
-            <p className="num mt-0.5 text-13 text-ink-3">{ownsLicense ? "Covers work use on every plan." : `A work license is ${priceText(work.monthly, "month", catalog).replace("/mo", "")} a month per person. Pro includes one.${free ? ` Free until ${longDate(free)}.` : ""}`}</p>
+            <p className="num mt-0.5 text-13 text-ink-3">{ownsLicense ? "Covers work use on every plan." : `A work license is ${priceText(work.monthly, "month", catalog).replace("/mo", "")} a month per person. Pro includes one.`}</p>
           </div>
           <button type="button" className="press hover-outline h-9 shrink-0 rounded-full border border-line-2 bg-card-2 px-4 text-14 font-medium text-ink" onClick={() => openLicense()}>{ownsLicense ? "Manage" : "Add a work license"}</button>
         </div>
@@ -265,7 +268,7 @@ export function BillingPage() {
       <Faq />
       <YourBilling catalog={catalog} onLicense={() => openLicense()} onCancelPlan={() => setCancelling(true)} />
 
-      {planSheet && <PlanSheet start={planSheet} work={ownsLicense} onClose={() => setPlanSheet(null)} />}
+      {planSheet && <PlanSheet start={planSheet} work={use === "work" || ownsLicense} onClose={() => setPlanSheet(null)} />}
       {licenseSheet && <LicenseSheet start={licenseSheet} onClose={() => setLicenseSheet(null)} onNothingLeft={() => setCancelling(true)} />}
       <CancelDialog open={cancelling} onClose={() => setCancelling(false)} />
     </div>
