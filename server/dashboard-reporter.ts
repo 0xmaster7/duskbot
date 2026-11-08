@@ -57,7 +57,7 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
     running = false;
     generation++;
     for (const request of requests) request.abort();
-    for (const finish of [...sleepers]) finish();
+    for (const finish of Array.from(sleepers)) finish();
     wakeReport = undefined;
   }
   function requestReport() { urgent = true; wakeReport?.(); }

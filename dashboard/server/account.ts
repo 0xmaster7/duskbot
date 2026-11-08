@@ -13,6 +13,7 @@ export class AccountError extends Error {
 export function cleanEmail(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const email = value.trim().toLowerCase();
+  // oxlint-disable-next-line no-control-regex
   return email.length <= 254 && !/[\x00-\x1f\x7f]/.test(email) && /^[^\s@]{1,64}@[^\s@.]+(?:\.[^\s@.]+)+$/.test(email) ? email : null;
 }
 

@@ -357,7 +357,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     },
     close() {
       closed = true;
-      for (const wait of [...waits.values()]) wait.cancel();
+      for (const wait of Array.from(waits.values())) wait.cancel();
       store.close();
     },
   };
