@@ -55,7 +55,7 @@ it("is Grok Bot's Create New Bot: a name, thirteen shapes, the colours, and Crea
 });
 
 it("closes on Cancel, the close button and Escape without making anything", () => {
-  for (const close of [() => button("Cancel").click(), () => button("Close dialog").click(),
+  for (const close of [() => button("Cancel").click(), () => button("Close").click(),
     () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))]) {
     flushSync(() => openCreateBot());
     expect(dialog()).not.toBeNull();
