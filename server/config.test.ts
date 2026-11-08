@@ -2227,7 +2227,6 @@ describe("a value derived from config.json", () => {
     // In place, as a hand edit does: the size and the time change.
     writeSettled({ members: ["one@example.test"] }, 2);
     expect(read()).toEqual(["one@example.test"]);
-    // Renamed over the file, as the CLI and the fleet agent write it: same size and time, only the file identity differs.
     const before = statSync(path);
     writeFileSync(`${path}.next`, JSON.stringify({ signIn: { members: ["two@example.test"] } }));
     utimesSync(`${path}.next`, before.atime, before.mtime);

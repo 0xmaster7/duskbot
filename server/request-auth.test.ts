@@ -497,10 +497,6 @@ describe("resolveRequestAuth", () => {
     ["GET", "/api/usage?from=2026-09-01&to=2026-09-30"],
     ["GET", "/api/usage.csv?from=2026-09-01&to=2026-09-30"],
     ["POST", "/api/keys/test"],
-    ["GET", "/api/fleet"],
-    ["POST", "/api/fleet/workspaces"],
-    ["DELETE", "/api/fleet/workspaces/acme"],
-    ["POST", "/api/fleet/upgrade"],
     ["POST", "/api/instances/antigravity/auth/complete"],
     ["GET", "/api/computers/usage"],
   ])("requires admin for server Settings: %s %s", (method, path) => {
@@ -611,7 +607,7 @@ describe("loopback trust: owner on one person's machine, service on a shared wor
     ["POST", "/api/bots"], ["PATCH", "/api/bots/bot-1"], ["DELETE", "/api/bots/bot-1"],
     ["POST", "/api/instances"], ["GET", "/api/instances"], ["POST", "/api/mcp-servers"],
     ["POST", "/api/keys/test"], ["GET", "/api/usage"], ["GET", "/api/decisions"], ["GET", "/api/decisions.csv"],
-    ["POST", "/api/fleet/workspaces"], ["POST", "/api/settings/custom-domain"], ["POST", "/api/workspace-backup/export"],
+    ["POST", "/api/settings/custom-domain"], ["POST", "/api/workspace-backup/export"],
     ["POST", "/api/bots/bot-1/messages"], ["POST", "/api/bots/bot-1/respond"], ["POST", "/api/bots/bot-1/always-allow"],
     ["POST", "/api/threads/thread-1/undo"], ["POST", "/api/groups/room-1/messages"], ["POST", "/api/routines"], ["GET", "/api/events"],
   ];

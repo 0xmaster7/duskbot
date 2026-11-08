@@ -20,8 +20,6 @@ export interface ControlPlaneStub {
   /** "METHOD /path", in order. */
   calls: string[];
   installations: Map<string, StubInstallation>;
-  /** An installation the control plane already knows (as a fleet creates one): returns its credential. */
-  seedInstallation(name?: string): string;
   /** Idle reclaim: the endpoint reads as gone until the next provision hands out a new connector token. */
   reclaim(): string;
   close(): Promise<void>;
@@ -156,11 +154,6 @@ export async function startControlPlaneStub(options: { otp?: string; endpointUrl
     connectorToken,
     calls,
     installations,
-    seedInstallation: (name = "fleet box") => {
-      const inst: StubInstallation = { id: randomUUID(), clientInstanceId: randomUUID(), name, platform: "linux", appVersion: null, credential: newCredential() };
-      installations.set(inst.id, inst);
-      return inst.credential;
-    },
     reclaim: () => {
       reclaimedUntilProvision = `stub-connector-${randomBytes(48).toString("base64url")}`;
       return reclaimedUntilProvision;

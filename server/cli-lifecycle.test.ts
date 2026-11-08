@@ -8,10 +8,6 @@ import { isWorkspaceRunning, runOnboardingCommand, runServe, type CliOptions } f
 import { qrToString } from "./cli-pairing.ts";
 
 const mocks = vi.hoisted(() => ({
-  // the fleet path is off in these tests: no credential in the environment
-  fleetCredential: vi.fn(() => null),
-  fleetAccess: vi.fn(),
-  FLEET_CREDENTIAL_ENV: "OMB_INSTALLATION_CREDENTIAL",
   denyLogOpen: false,
   spawn: vi.fn(),
   tailscaleStatus: vi.fn(), tailscaleServe: vi.fn(), tailscaleServeOff: vi.fn(),

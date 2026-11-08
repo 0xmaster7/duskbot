@@ -1440,13 +1440,6 @@ describe("harness HTTP API", () => {
     expect(await statusWithHeaders({ origin: `http://[::1]:${PORT}` })).toBe(200);
   });
 
-  it("has no fleet routes", async () => {
-    const fleet = await api("GET", "/api/fleet");
-    expect(fleet.status).toBe(404);
-    expect((await api("POST", "/api/fleet/workspaces", { slug: "acme", admins: ["a@b.test"] })).status).toBe(404);
-    expect((await api("DELETE", "/api/fleet/workspaces/acme")).status).toBe(404);
-  });
-
   it("identifies itself on /api/health", async () => {
     const { status, body } = await api("GET", "/api/health");
     expect(status).toBe(200);
