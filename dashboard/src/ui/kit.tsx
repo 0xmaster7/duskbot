@@ -12,9 +12,9 @@ export function Card({ children, className, as: Tag = "section", style, ...rest 
 type Variant = "primary" | "outline" | "ghost" | "danger";
 const VARIANT: Record<Variant, string> = {
   primary: "bg-primary text-primary-ink hover-primary",
-  outline: "border border-line-2 text-ink hover-outline",
+  outline: "bg-card-2 text-ink hover-outline",
   ghost: "text-ink-2 hover-ghost",
-  danger: "border border-line-2 text-bad hover-outline",
+  danger: "bg-card-2 text-bad hover-outline",
 };
 
 export function Button({ variant = "outline", size = "md", className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" }) {
@@ -23,7 +23,7 @@ export function Button({ variant = "outline", size = "md", className, children, 
       type="button"
       className={cx(
         "press inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-medium disabled:opacity-45",
-        size === "sm" ? "h-8 px-3.5 text-13" : "h-10 px-[18px] text-14",
+        size === "sm" ? "h-8 px-3.5 text-13" : "h-9 px-4 text-14 max-sm:h-11",
         VARIANT[variant],
         className,
       )}
@@ -37,7 +37,7 @@ export function Button({ variant = "outline", size = "md", className, children, 
 export function ButtonLink({ to, variant = "outline", size = "md", className, children, external }: { to: string; variant?: Variant; size?: "sm" | "md"; className?: string; children: ReactNode; external?: boolean }) {
   const cls = cx(
     "press inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-medium",
-    size === "sm" ? "h-8 px-3.5 text-13" : "h-10 px-[18px] text-14",
+    size === "sm" ? "h-8 px-3.5 text-13" : "h-9 px-4 text-14 max-sm:h-11",
     VARIANT[variant],
     className,
   );
@@ -55,9 +55,10 @@ export function Bar({ value, tone = "ink", className, label }: { value: number; 
   );
 }
 
+/** the one badge the dashboard shows: "Current" */
 export function Badge({ children, tone = "plain", className }: { children: ReactNode; tone?: "plain" | "good" | "warn" | "bad" | "accent"; className?: string }) {
   const color = { plain: "text-ink-2", good: "text-good", warn: "text-warn", bad: "text-bad", accent: "text-accent-ink" }[tone];
-  return <span className={cx("inline-flex h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-line-2 px-2.5 text-12 font-medium", color, className)}>{children}</span>;
+  return <span className={cx("inline-flex h-[22px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-card-2 px-2.5 text-12", color, className)}>{children}</span>;
 }
 
 const FRESH: Record<Freshness, { tone: string; label: (t: number | null, now: number) => string }> = {
@@ -80,7 +81,7 @@ export function FreshnessTag({ freshness, at, now, className }: { freshness: Fre
 export function SectionTitle({ children, action, id }: { children: ReactNode; action?: ReactNode; id?: string }) {
   return (
     <div className="mb-4 flex min-h-8 items-center justify-between gap-3">
-      <h2 id={id} className="text-14 font-medium text-ink">{children}</h2>
+      <h2 id={id} className="text-15 font-medium tracking-[-0.01em] text-ink">{children}</h2>
       {action}
     </div>
   );
@@ -88,9 +89,9 @@ export function SectionTitle({ children, action, id }: { children: ReactNode; ac
 
 export function PageHeader({ title, sub, action }: { title: string; sub?: ReactNode; action?: ReactNode }) {
   return (
-    <header className="mb-8 flex flex-wrap items-end justify-between gap-4 max-sm:mb-6">
+    <header className="mb-10 flex flex-wrap items-end justify-between gap-4 max-sm:mb-7">
       <div className="min-w-0">
-        <h1 className="text-28 font-medium tracking-[-0.02em] text-ink max-sm:text-[24px]">{title}</h1>
+        <h1 className="text-24 font-semibold tracking-[-0.022em] text-ink">{title}</h1>
         {sub && <div className="mt-1.5 text-14 text-ink-3">{sub}</div>}
       </div>
       {action}

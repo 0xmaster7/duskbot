@@ -1,6 +1,4 @@
 @import "tailwindcss" source(none);
-@import "@fontsource-variable/geist";
-@import "@fontsource-variable/geist-mono";
 
 @source "./";
 
@@ -8,69 +6,71 @@
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #1d1d1d;
-  --side: #232323;
-  --card: #282828;
-  --card-2: #2f2f2f;
-  --line: rgb(255 255 255 / 0.07);
-  --line-2: rgb(255 255 255 / 0.13);
-  --ink: #f1f1f0;
-  --ink-2: #b3b3b1;
-  --ink-3: #8b8b89;
-  --ink-4: #636362;
-  --track: #3a3a3a;
-  --cell: #333333;
-  --accent: #4c8dff;
-  --accent-ink: #7fb0ff;
-  --heat-1: #1f3a66;
-  --heat-2: #25579f;
-  --heat-3: #3173d8;
-  --heat-4: #4c8dff;
-  --good: #3fcf7c;
-  --warn: #f0a33a;
-  --bad: #ff6b6b;
-  --primary: #f1f1f0;
-  --primary-ink: #1d1d1d;
-  --primary-hover: #ffffffe6;
-  --star: #f1f1f0;
-  --scrim: rgb(10 10 10 / 0.5);
-  --pop-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(255 255 255 / 0.06);
+  /* the desktop app's grok-dark skin: near-black ground, cards lift by a few percent, translucent hairlines */
+  --bg: #111111;
+  --side: #111111;
+  --card: #181818;
+  --card-2: #1f1f1f;
+  --line: rgb(245 245 245 / 0.07);
+  --line-2: rgb(245 245 245 / 0.11);
+  --ink: #f5f5f5;
+  --ink-2: #b5b5b5;
+  --ink-3: #8e8e8e;
+  --ink-4: #6e6e6e;
+  --track: #2a2a2a;
+  --cell: #1f1f1f;
+  --accent: #4d9bff;
+  --accent-ink: #6aabff;
+  --heat-1: #173257;
+  --heat-2: #1f4f8c;
+  --heat-3: #2f72cc;
+  --heat-4: #4d9bff;
+  --good: #00ba69;
+  --warn: #e28600;
+  --bad: #ff6463;
+  --primary: #f5f5f5;
+  --primary-ink: #111111;
+  --primary-hover: #dedede;
+  --star: #f5f5f5;
+  --scrim: rgb(0 0 0 / 0.55);
+  --pop-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(245 245 245 / 0.07);
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #f6f6f4;
-  --side: #efefec;
-  --card: #fdfdfc;
-  --card-2: #f2f2f0;
-  --line: rgb(20 20 18 / 0.07);
-  --line-2: rgb(20 20 18 / 0.14);
-  --ink: #1c1c1b;
-  --ink-2: #4f4f4d;
-  --ink-3: #6f6f6d;
-  --ink-4: #a2a29f;
-  --track: #e4e4e1;
-  --cell: #ebebe8;
-  --accent: #2f6fe0;
-  --accent-ink: #2560c8;
-  --heat-1: #c7dafb;
-  --heat-2: #8db3f5;
-  --heat-3: #4f8aed;
-  --heat-4: #2f6fe0;
-  --good: #16924b;
-  --warn: #a36500;
-  --bad: #c93636;
-  --primary: #1c1c1b;
-  --primary-ink: #f6f6f4;
-  --primary-hover: #333331;
+  /* grok light: the same roles, remeasured */
+  --bg: #fcfcfc;
+  --side: #fcfcfc;
+  --card: #f4f4f4;
+  --card-2: #ebebeb;
+  --line: rgb(28 28 28 / 0.08);
+  --line-2: rgb(28 28 28 / 0.14);
+  --ink: #1c1c1c;
+  --ink-2: #4a4a4a;
+  --ink-3: #6b6b6b;
+  --ink-4: #8a8a8a;
+  --track: #e2e2e2;
+  --cell: #ececec;
+  --accent: #126fd4;
+  --accent-ink: #0b69cc;
+  --heat-1: #c9ddf8;
+  --heat-2: #8fb8ef;
+  --heat-3: #4b8fe3;
+  --heat-4: #126fd4;
+  --good: #007a44;
+  --warn: #9c5b00;
+  --bad: #cd2834;
+  --primary: #1c1c1c;
+  --primary-ink: #fcfcfc;
+  --primary-hover: #383838;
   --star: #8aa6d6;
-  --scrim: rgb(28 28 26 / 0.3);
-  --pop-shadow: 0 16px 40px -14px rgb(40 40 30 / 0.22), 0 0 0 1px rgb(20 20 18 / 0.07);
+  --scrim: rgb(28 28 28 / 0.28);
+  --pop-shadow: 0 16px 40px -14px rgb(28 28 28 / 0.2), 0 0 0 1px rgb(28 28 28 / 0.08);
 }
 
 @theme inline {
-  --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --font-mono: "Geist Mono Variable", "SF Mono", ui-monospace, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
 
   --text-12: 12px;
   --text-12--line-height: 16px;
@@ -86,6 +86,8 @@
   --text-17--line-height: 26px;
   --text-20: 20px;
   --text-20--line-height: 26px;
+  --text-24: 24px;
+  --text-24--line-height: 30px;
   --text-28: 28px;
   --text-28--line-height: 34px;
   --text-34: 34px;
@@ -114,8 +116,8 @@
   --color-primary-ink: var(--primary-ink);
   --color-primary-hover: var(--primary-hover);
 
-  --radius-card: 18px;
-  --radius-row: 10px;
+  --radius-card: 14px;
+  --radius-row: 8px;
 
   /* bencho motion tokens (omb-ref/BENCHO-MOTION.md) */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -129,7 +131,7 @@
 }
 
 @keyframes enter {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
 @keyframes fade {
@@ -197,6 +199,7 @@
     color: var(--ink);
     font-family: var(--font-sans);
     font-size: 14px;
+    letter-spacing: -0.003em;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -214,7 +217,7 @@
 
 @layer components {
   .num { font-variant-numeric: tabular-nums; }
-  .enter { animation: enter var(--dur-long) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 80ms); }
+  .enter { animation: enter var(--dur-slow) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 40ms); }
   .fade-in { animation: fade var(--dur-base) var(--ease-out) both; }
   .float { animation: float 5.5s ease-in-out infinite; animation-delay: var(--d, 0s); }
   .twinkle { animation: twinkle var(--t, 4s) ease-in-out infinite; animation-delay: var(--d, 0s); }
@@ -268,9 +271,9 @@
 
 @media (hover: hover) and (pointer: fine) {
   .hover-row:hover { background: var(--card-2); }
-  .hover-side:hover { background: color-mix(in oklab, var(--ink) 6%, transparent); color: var(--ink); }
+  .hover-side:hover { background: color-mix(in oklab, var(--ink) 4%, transparent); color: var(--ink-2); }
   .hover-ghost:hover { background: color-mix(in oklab, var(--ink) 7%, transparent); }
-  .hover-outline:hover { background: color-mix(in oklab, var(--ink) 6%, transparent); border-color: var(--line-2); }
+  .hover-outline:hover { background: color-mix(in oklab, var(--card-2) 90%, var(--ink)); }
   .hover-primary:hover { background: var(--primary-hover); }
   .hover-tile:hover { background: var(--card-2); }
   .hover-tile:hover .tile-arrow { color: var(--ink-2); }
