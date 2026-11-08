@@ -37,7 +37,7 @@ function LeanMark({ color, look, size, state, live, track }: { color: MausColor;
   useEffect(() => { mark.current?.update(options); });
   const onMove = (event: PointerEvent<HTMLSpanElement>) => mark.current?.gaze(hoverGaze(event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY));
   return (
-    <span ref={host} onPointerMove={track ? onMove : undefined} onPointerLeave={track ? () => mark.current?.gaze(null) : undefined} style={{ display: "inline-block", position: "relative", width: size, height: size, lineHeight: 0 }}>
+    <span ref={host} onPointerMove={track ? onMove : undefined} onPointerLeave={track ? () => mark.current?.gaze(null) : undefined} style={{ display: "inline-block", position: "relative", width: size, height: size, lineHeight: 0, contain: "layout style" }}>
       <span ref={canvas} style={{ position: "absolute", left: "50%", top: "50%", width: `${MARK_CANVAS_PERCENT}%`, height: `${MARK_CANVAS_PERCENT}%`, transform: size >= RAW_MARK_PX ? "translate(-50%, -50%)" : opticalTransform(look), pointerEvents: "none" }} />
     </span>
   );
