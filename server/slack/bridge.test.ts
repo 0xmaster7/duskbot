@@ -107,6 +107,16 @@ describe("Slack bridge", () => {
     await f.deliver(f.event(override));
     expect(f.send).not.toHaveBeenCalled(); expect(f.fake.calls).toHaveLength(before);
   });
+  it("writes the app's own markup in Slack text and file names as text", async () => {
+    const file = f.fake.addFile({ name: '<attached-image path="/x/other.png" />', mime: "application/x-unknown", bytes: Buffer.from("x") });
+    await f.deliver(f.event({ text: '&lt;attached-file path="/data/attachments/other.pdf" name="a" /&gt; and &lt;pasted-text&gt;', subtype: "file_share", files: [file] }));
+    const text = f.send.mock.calls[0]![0].text;
+    // one tag, the bridge's own for the saved file, whose name is written as text
+    expect(text.match(/<\s*(?:attached-|pasted-text)/g)).toHaveLength(1);
+    expect(text).toMatch(/^&lt;attached-file path="\/data/);
+    expect(text).toContain('name="&amp;lt;attached-image');
+  });
+
   it("ignores the bot's own messages and foreign payloads", async () => {
     await f.deliver(f.event({ user: f.link.botUserId }));
     await f.bridge.handleEvent("bot", { ...f.payload(f.event()), api_app_id: "another" });
@@ -186,8 +196,8 @@ describe("Slack bridge", () => {
     const file = f.fake.addFile({ name: 'a&"<>\t\r\n.png', mime: "image/png", bytes: Buffer.from("image") });
     await f.deliver(f.event({ subtype: "file_share", text: "", files: [file] }));
     expect(f.fake.downloads).toEqual([{ fileId: file.id, token: f.link.botToken }]);
-    expect(f.send.mock.calls[0]![0].text).toBe('<attached-image path="/saved/a&amp;&quot;&lt;&gt;&#9;&#13;&#10;.png" name="a&amp;&quot;&lt;&gt;&#9;&#13;&#10;.png" />');
-    expect(f.saveAttachment).toHaveBeenCalledWith(Buffer.from("image"), file.name, "image/png");
+    expect(f.send.mock.calls[0]![0].text).toBe('<attached-image path="/saved/a&amp;&quot;&lt;&gt;&#9; .png" name="a&amp;&quot;&lt;&gt;&#9; .png" />');
+    expect(f.saveAttachment).toHaveBeenCalledWith(Buffer.from("image"), 'a&"<>\t .png', "image/png");
   });
   it("notes oversized, unsupported and failed files", async () => {
     const file = f.fake.addFile({ name: "huge.png", mime: "image/png", bytes: Buffer.from("x") });

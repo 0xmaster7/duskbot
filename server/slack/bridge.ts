@@ -37,6 +37,11 @@ const TURN_FAILED = "I couldn't finish that. Check OpenMausBot for details.";
 const NEEDS_INPUT = "I need you in OpenMausBot to continue: an approval or a question is waiting there.";
 const record = (value: unknown): Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 const string = (value: unknown): string => typeof value === "string" ? value : "";
+/** Security: text from Slack people never carries the app's own markup (an attachment tag would point the bot at another
+ * conversation's file), so a "<" opening one is written as text. */
+function defuse(text: string): string {
+  return text.replace(/<(?=\s*\/?\s*(?:attached-(?:file|image)|pasted-text|slack-thread)\b)/gi, "&lt;");
+}
 function escapeAttribute(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
     .replaceAll("\t", "&#9;").replaceAll("\r", "&#13;").replaceAll("\n", "&#10;");
@@ -87,7 +92,7 @@ export function createSlackBridge(deps: SlackBridgeDeps): {
   }
 
   function plain(link: SlackLink, text: string): string {
-    return fromSlackText(text, (id) => cachedPerson(link, id)?.name);
+    return defuse(fromSlackText(text, (id) => cachedPerson(link, id)?.name));
   }
 
   async function eyes(p: Pick<Pending, "botId" | "channel" | "eventTs">, add: boolean): Promise<void> {
@@ -237,7 +242,7 @@ export function createSlackBridge(deps: SlackBridgeDeps): {
   async function files(link: SlackLink, values: unknown): Promise<string[]> {
     const notes: string[] = [], tags: string[] = [];
     for (const value of Array.isArray(values) ? values.slice(0, 10) : []) {
-      const file = record(value), name = string(file.name) || "file";
+      const file = record(value), name = defuse(string(file.name).replace(/[\r\n]+/g, " ").slice(0, 200)) || "file";
       if (typeof file.size === "number" && file.size > (deps.maxFileBytes ?? 25 * 1024 * 1024)) {
         notes.push(`(${name} was too large to bring over, over 25 MB)`); continue;
       }

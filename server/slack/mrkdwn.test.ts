@@ -21,6 +21,10 @@ describe("toSlackMrkdwn", () => {
 });
 
 describe("splitSlackText", () => {
+  it("never turns a link destination into a Slack mention or command", () => {
+    expect(toSlackMrkdwn("![notice](!channel) [x](!here) [y](@U123)")).not.toMatch(/<[!@]/);
+  });
+
   it("does not return empty chunks", () => {
     expect(splitSlackText("")).toEqual([]);
     expect(splitSlackText("a")).toEqual(["a"]);

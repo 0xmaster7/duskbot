@@ -18,10 +18,10 @@ export function toSlackMrkdwn(markdown: string): string {
     lines.splice(i, end - i, keep(`\`\`\`\n${lines.slice(i, end).join("\n")}\n\`\`\``));
   }
   text = lines.join("\n").replace(/`[^`\n]*`/g, keep);
-  text = text.replace(/!?\[([^\]\n]*)\]\(([^)\n]+)\)|<(https?:\/\/[^>\n]+)>/g, (whole, label: string | undefined, url: string | undefined, auto: string | undefined) => {
+  text = text.replace(/!?\[([^\]\n]*)\]\(([^)\n]+)\)|<(https?:\/\/[^>\n]+)>/g, (_whole, label: string | undefined, url: string | undefined, auto: string | undefined) => {
     if (auto) return keep(`<${escapeText(auto)}>`);
     const target = url!;
-    return keep(/^(?:https?:\/\/|mailto:)/i.test(target) || whole.startsWith("!")
+    return keep(/^(?:https?:\/\/|mailto:)/i.test(target)
       ? `<${escapeText(target)}|${escapeText(label!)}>` : `${escapeText(label!)} (${escapeText(target)})`);
   });
   text = escapeText(text)

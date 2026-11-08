@@ -1,8 +1,8 @@
-import { open } from "node:fs/promises";
 import type { ServerResponse } from "node:http";
 import { basename } from "node:path";
 import { z } from "zod";
 import type { json as sendJson } from "../harness/http.ts";
+import { openMessageFile } from "../message-file.ts";
 import { botFileSource, PageBundleError, type BotFolders } from "../pages/bundle.ts";
 import { PASS } from "../routes/table.ts";
 import { SlackApiError, type SlackApi } from "./api.ts";
@@ -47,8 +47,9 @@ type Message = { ts: string; user?: string; bot_id?: string; text?: string; thre
 type Answer = { ok: true; text: string } | { error: string };
 const CHANNEL_ID = /^[CGD][A-Z0-9]{2,30}$/;
 const USER_ID = /^U[A-Z0-9]{2,30}$/;
-const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const CACHE_MS = 5 * 60_000;
+const escapeSlack = (text: string) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 const success = (value: unknown): Answer => ({ ok: true, text: JSON.stringify(value) });
 
 class ToolRefusal extends Error {
@@ -168,12 +169,17 @@ export function createSlackToolRoutes(deps: SlackToolsDeps): (ctx: SlackToolCont
       case "slack_upload": {
         const args = body(schemas.slack_upload, raw);
         const path = await botFileSource(args.path, ctx.folders);
-        const file = await open(path, "r");
+        const { roots, vmWorkspace } = await ctx.folders();
+        // opened by the checked reader: containment and identity are proven on the open handle, so a swapped link can't escape
+        let opened;
+        try { opened = await openMessageFile(path, vmWorkspace ? [vmWorkspace, ...roots] : roots); }
+        catch (error) { throw new ToolRefusal(400, error instanceof Error && "status" in error ? error.message : "Choose a file in your working folder."); }
+        const file = opened.handle;
         let bytes: Buffer;
         try {
           const info = await file.stat();
           if (!info.isFile()) throw new ToolRefusal(400, "Choose a file in your working folder.");
-          if (info.size > MAX_UPLOAD_BYTES) throw new ToolRefusal(400, "Slack uploads can be at most 100 MB.");
+          if (info.size > MAX_UPLOAD_BYTES) throw new ToolRefusal(400, "Slack uploads can be at most 25 MB.");
           bytes = Buffer.alloc(info.size + 1);
           let count = 0;
           while (count < bytes.length) {
@@ -181,7 +187,7 @@ export function createSlackToolRoutes(deps: SlackToolsDeps): (ctx: SlackToolCont
             if (!read.bytesRead) break;
             count += read.bytesRead;
           }
-          if (count > MAX_UPLOAD_BYTES || count > info.size) throw new ToolRefusal(400, "The file grew while being read. Choose a file up to 100 MB and try again.");
+          if (count > MAX_UPLOAD_BYTES || count > info.size) throw new ToolRefusal(400, "The file grew while being read. Choose a file up to 25 MB and try again.");
           bytes = bytes.subarray(0, count);
         } finally { await file.close(); }
         const channel = await resolveChannel(args.channel, ctx, link);
@@ -192,7 +198,7 @@ export function createSlackToolRoutes(deps: SlackToolsDeps): (ctx: SlackToolCont
         await api.putUpload(upload.upload_url, bytes, "application/octet-stream");
         ctx.requireActive?.();
         await api.call("files.completeUploadExternal", link.botToken, { files: [{ id: upload.file_id, title: filename }], channel_id: channel,
-          thread_ts: args.thread_ts, initial_comment: args.comment });
+          thread_ts: args.thread_ts, initial_comment: args.comment === undefined ? undefined : escapeSlack(args.comment) });
         return success({ channel, file_id: upload.file_id });
       }
       case "slack_read": {

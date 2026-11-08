@@ -136,7 +136,7 @@ describe("the bot's own Slack tool routes", () => {
     expect(result.data()).toEqual({ channel: "C0GENERAL", file_id: f.fake.uploads[0]!.fileId });
   });
 
-  it("refuses files outside the bot folder, including symlinks, and files over 100 MB", async () => {
+  it("refuses files outside the bot folder, including symlinks, and files over 25 MB", async () => {
     const f = await fixture();
     const outside = await mkdtemp(join(tmpdir(), "omb-slack-outside-"));
     dirs.push(outside);
@@ -150,8 +150,8 @@ describe("the bot's own Slack tool routes", () => {
     }
     const large = join(f.tmpDir, "large.bin");
     await writeFile(large, "");
-    await truncate(large, 100 * 1024 * 1024 + 1);
-    expect((await f.request("slack_upload", { path: large, channel: "C0123" })).body.error).toContain("at most 100 MB");
+    await truncate(large, 25 * 1024 * 1024 + 1);
+    expect((await f.request("slack_upload", { path: large, channel: "C0123" })).body.error).toMatch(/exceeds|at most 25 MB/);
     expect(f.fake.uploads).toHaveLength(0);
     expect(f.fake.callsTo("files.getUploadURLExternal")).toHaveLength(0);
   });
