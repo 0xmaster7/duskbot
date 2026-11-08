@@ -1,0 +1,148 @@
+@import "tailwindcss" source(none);
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/geist-mono";
+
+@source "./";
+
+@font-face {
+  font-family: "Newsreader";
+  src: url("/fonts/newsreader.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Newsreader";
+  src: url("/fonts/newsreader-italic.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Inter Variable", "SF Pro Text", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --font-serif: "Newsreader", Georgia, serif;
+
+  --text-12: 12px;
+  --text-12--line-height: 16px;
+  --text-13: 13px;
+  --text-13--line-height: 18px;
+  --text-14: 14px;
+  --text-14--line-height: 20px;
+  --text-16: 16px;
+  --text-16--line-height: 22px;
+  --text-18: 18px;
+  --text-18--line-height: 24px;
+  --text-24: 24px;
+  --text-24--line-height: 30px;
+  --text-30: 30px;
+  --text-30--line-height: 36px;
+
+  --color-canvas: #f6f6f3;
+  --color-surface: #fefefd;
+  --color-sunk: #f8f8f7;
+  --color-hover: #f5f5f5;
+  --color-track: #ededed;
+  --color-line: #ebebe9;
+  --color-row: #eeeff2;
+  --color-ink: #292929;
+  --color-ink-2: #5d5d5d;
+  --color-ink-3: #737373;
+  --color-ink-4: #9e9e9e;
+  --color-black: #1c1c1c;
+
+  --color-accent: #0077e6;
+  --color-accent-hover: #0068cb;
+  --color-accent-2: #519dfa;
+  --color-accent-3: #a9cdf7;
+  --color-accent-4: #d6e8fc;
+  --color-accent-wash: #eef5fe;
+  --color-accent-ink: #005fb8;
+
+  --color-good: #15a03c;
+  --color-good-wash: #e3f6e7;
+  --color-warn: #a86a00;
+  --color-warn-wash: #fbf3db;
+  --color-bad: #cf3a3a;
+  --color-bad-wash: #fdebec;
+
+  --radius-card: 14px;
+  --radius-row: 8px;
+  --radius-control: 10px;
+  --radius-chip: 6px;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --shadow-card: 0 1px 2px rgb(40 36 20 / 0.04), 0 4px 16px -8px rgb(40 36 20 / 0.06);
+  --shadow-pop: 0 12px 40px -12px rgb(30 30 20 / 0.22), 0 2px 6px rgb(30 30 20 / 0.06);
+
+  --animate-rise: rise 300ms var(--ease-out) both;
+  --animate-fade: fade 220ms var(--ease-out) both;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes tick-in {
+  from { opacity: 0; transform: scaleY(0.4); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cell-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes shimmer {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@layer base {
+  html {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    letter-spacing: -0.15px;
+    font-feature-settings: "cv11", "ss03";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body { margin: 0; min-height: 100dvh; }
+  ::selection { background: var(--color-accent-4); }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  main [id] { scroll-margin-top: 72px; }
+  @media (min-width: 1024px) { main [id] { scroll-margin-top: 24px; } }
+}
+
+@layer components {
+  .num { font-variant-numeric: tabular-nums; letter-spacing: -0.1px; }
+  .tick-in { animation: tick-in 420ms var(--ease-out) both; transform-origin: bottom; }
+  .cell-in { animation: cell-in 360ms var(--ease-out) both; }
+  .drift { animation: drift 6s ease-in-out infinite; }
+  .skeleton { background: var(--color-track); animation: shimmer 1.5s ease-in-out infinite; border-radius: 6px; }
+  .sky-fade { mask-image: linear-gradient(90deg, transparent 0%, black 34%); }
+  .scroll-x { position: relative; overflow-x: auto; scrollbar-width: thin; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tick-in, .cell-in, .drift, .skeleton { animation: none; }
+  .animate-rise { animation: fade 160ms linear both; }
+}

@@ -82,6 +82,20 @@ the fallback. Nothing is opened on the server and the person configures nothing:
   without `OMB_LINK_DIRECT_PORT`, or outbound port 22 blocked on the person's network: the app logs it and stays on
   the relay.
 
+## Phone channels
+
+The VPS agent syncs phone channels with its local harness at `/api/mobile/relay/sync` and registers them under the
+existing tunnel. Each phone has its own relay token verifier, encryption key, replay guard and queues. Grant channels
+only serve pairing redemption, environment discovery and health; device channels serve the harness API with the
+phone's session. Phone channels refuse agent controls and strip cookies and `x-openmausbot-*` headers. Requests carry
+a per-channel remote address, so they never receive loopback trust. Removing a channel from the harness closes its
+forwarded requests and removes it from the relay.
+
+The agent keeps its X25519 phone keys in `phone-keys.json` beside `tunnel.json`, with mode 0600. Grant keys come from
+the harness; device keys derive from the phone and agent key pairs using the channel id. Set `OMB_LINK_PHONES=off`
+to disable the phone hub. Phone clients use `createTunnelProxy` with `id` set to the channel id and `route` set to
+`${base}/v1/channels/${channelId}`.
+
 ## Security model
 
 - The code in the command is one-time. It must be used within 30 minutes and the session ends 2 hours after it opens.
@@ -192,6 +206,26 @@ note the first time it falls back. It applies to new connections only.
   by itself, so nothing restarts and no image change is needed. Strict (read-only) boxes keep using the server's network.
 - Settings show the row only on a linked VPS, with the route new connections take now: through your computer, or the
   server's network while your computer is offline. Bots are told about it in their prompt while it is on.
+
+## Phone channels and typed codes
+
+Each phone has its own channel and bearer verifier under a VPS tunnel, separate from the Mac's queues.
+The VPS token authorizes `PUT /v1/tunnels/:id/channels {channels:[{id,verifier,kind,expiresAt?}]}` to replace
+its whole set (up to 32): `grant` expires within 24 hours; `device` has no expiry. Omitted channels are revoked;
+changing a verifier ends old readers and clears queued frames. Channel verifiers persist in `state.json`; frames do not.
+
+- Phone token: `POST /v1/channels/:cid/to-vps {frames,epoch?,seq?}`,
+  `GET /v1/channels/:cid/to-app?wait=25&stream=1`, `DELETE /v1/channels/:cid`.
+- VPS token: `POST /v1/tunnels/:id/channels/:cid/to-app {frames,epoch?,seq?}`,
+  `GET /v1/tunnels/:id/channels/to-vps?wait=25&stream=1`. The aggregated stream starts with `{frames:[]}`,
+  then emits `{channel,frames}` batches round robin, with one reader per tunnel. Without `stream=1`, it returns
+  `{batches:[{channel,frames}]}`. Deleting the tunnel also removes its channels.
+- Phone limits per channel: 50 posts/s with a burst of 400, 64 MiB of frame text per rolling minute,
+  and 240 reads per rolling minute. A limit returns `429 {error,code:"rate_limited"}`.
+- Public typed-code storage: `POST /v1/lookups {id,sealed,ttlS,deleteVerifier?}` (32 lowercase hex id,
+  base64url sealed text up to 16384 characters, TTL 30-900 seconds), `GET /v1/lookups/:id` returns
+  `{sealed,expiresAt}`. Optional `DELETE /v1/lookups/:id` requires the token matching `deleteVerifier`.
+  Lookups stay in memory only, up to 5000 live entries; per IP, 30 creations and 60 misses per hour.
 
 ## Step events
 

@@ -32,7 +32,7 @@ import { usageBridge } from "./CloudUsageMeter";
 import { useCloudPlanSnapshot } from "./CloudTrialNotice";
 import type { WorkspacePlace } from "./DesktopWorkspaceSwitcher";
 import { railShown, usePlaces } from "@/lib/places";
-import { useAutomationsNeedYou } from "./SidebarFooterNav";
+import { useAutomationNeedingYou, type AutomationNeedingYou } from "./SidebarFooterNav";
 import { SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 import { ShortcutHint } from "./ShortcutHint";
 import { useSidebarPhoneStatus } from "./SidebarPhoneButton";
@@ -528,8 +528,10 @@ export function profileMenuItems({
 
 /** Grok's profile menu, word for word: the phone app, Support (help, shortcuts, feedback, about) and Settings, then the
  * account's Add account and Log out. Everything else the menu once held is in Settings. */
-export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback, onAbout, onSettings, onAddAccount, accounts }: {
+export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback, onAbout, onSettings, onAddAccount, onNeedsYou, accounts }: {
   onAddAccount: () => void;
+  /** the avatar's red dot for an automation that needs the person: a first row that opens it in its bot's panel */
+  onNeedsYou?: () => void;
   onGetApp: () => void;
   onHelp: () => void;
   onShortcuts: () => void;
@@ -549,7 +551,8 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
       // nobody signed in here: Add account goes to Settings > General > Account, where the sign-in is
       : [{ key: "add-account", label: t("sidebar.grok.addAccount"), icon: icon("person-add"), onSelect: onAddAccount }];
   return [
-    { key: "mobile", label: t("sidebar.menu.connectPhone"), icon: icon("device-mobile"), onSelect: onGetApp },
+    ...(onNeedsYou ? [{ key: "needs-you", label: t("sidebar.account.automationsNeedYou"), icon: icon("alarm-clock"), attention: true, attentionTone: "danger", onSelect: onNeedsYou } satisfies SidebarMenuItem] : []),
+    { key: "mobile", label: t("sidebar.menu.connectPhone"), icon: icon("device-mobile"), onSelect: onGetApp, ...(onNeedsYou ? { separatorBefore: true } : {}) },
     { key: "support", label: t("sidebar.grok.support"), icon: icon("book"), onSelect: () => {}, submenu: [
       { key: "help", label: t("sidebar.menu.help"), icon: icon("question-circle"), onSelect: onHelp },
       { key: "shortcuts", label: t("sidebar.menu.shortcuts"), icon: icon("keyboard"), onSelect: onShortcuts },
@@ -570,11 +573,14 @@ export interface SimpleAccount {
   place: WorkspacePlace;
   owner: string | null;
   automationsNeedYou: boolean;
+  /** the automation the dot is raised for, which the menu's first row opens */
+  needsYou?: AutomationNeedingYou | null;
   archived?: ArchivedBots;
 }
 
 export function useSimpleAccount(place: WorkspacePlace, owner: string | null, archived?: ArchivedBots): SimpleAccount {
-  return { place, owner, automationsNeedYou: useAutomationsNeedYou(), archived };
+  const needsYou = useAutomationNeedingYou();
+  return { place, owner, automationsNeedYou: needsYou !== null, needsYou, archived };
 }
 
 /** `circle` is the phone's round avatar button at the top of the bot list. */
@@ -638,6 +644,10 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     onAbout: () => setAboutOpen(true),
     onSettings: () => dispatch({ type: "toggleAppSettings", open: true, section: "general" }),
     onAddAccount: () => dispatch({ type: "toggleAppSettings", open: true, section: "general" }),
+    onNeedsYou: account?.needsYou ? () => {
+      const { id, botId } = account.needsYou!;
+      dispatch({ type: "openRoutine", routineId: id, botId });
+    } : undefined,
     accounts,
   }) : null;
   const items = grokItems ?? profileMenuItems({

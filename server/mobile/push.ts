@@ -1,0 +1,218 @@
+import { createPrivateKey, sign, type KeyObject } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { connect, constants, type ClientHttp2Session } from "node:http2";
+import type { PushService } from "../../shared/mobile-link.ts";
+
+/** What a push carries: never a message body, so a lock screen shows who wrote, not what. */
+export interface PushMessage {
+  id: string;
+  kind: string;
+  title: string;
+  botId: string;
+  botName: string;
+  threadId: string;
+  groupId?: string;
+}
+
+export interface PushTarget {
+  service: PushService;
+  token: string;
+  environment?: "sandbox" | "production";
+}
+
+/** `gone`: the service says the token is dead, so the phone's registration is dropped. */
+export type PushOutcome = "sent" | "gone" | "failed" | "skipped";
+
+export interface PushSender {
+  configured: readonly PushService[];
+  send(target: PushTarget, message: PushMessage): Promise<PushOutcome>;
+}
+
+function jwt(header: object, claims: object, key: KeyObject): string {
+  const input = [header, claims].map((part) => Buffer.from(JSON.stringify(part)).toString("base64url")).join(".");
+  const signature = sign("sha256", Buffer.from(input), { key, dsaEncoding: "ieee-p1363" });
+  return `${input}.${signature.toString("base64url")}`;
+}
+
+function collapseId(threadId: string): string {
+  let value = "";
+  for (const character of threadId) {
+    if (Buffer.byteLength(value + character) > 64) break;
+    value += character;
+  }
+  return value;
+}
+
+function messageData(message: PushMessage): Record<string, string> {
+  return {
+    kind: message.kind, botId: message.botId, threadId: message.threadId, id: message.id,
+    ...(message.groupId !== undefined ? { groupId: message.groupId } : {}),
+  };
+}
+
+export function createPushSender(env: NodeJS.ProcessEnv = process.env, deps: {
+  http2Connect?: typeof connect;
+  fetch?: typeof globalThis.fetch;
+  now?: () => number;
+  readFile?: (path: string) => string | Buffer;
+  log?: (message: string) => void;
+} = {}): PushSender {
+  const readFile = deps.readFile ?? readFileSync;
+  const now = deps.now ?? Date.now;
+  const log = deps.log ?? console.warn;
+  const http2Connect = deps.http2Connect ?? connect;
+  const fetch = deps.fetch ?? globalThis.fetch;
+  const configured: PushService[] = [];
+  let apns: { key: KeyObject; keyId: string; teamId: string; topic: string } | undefined;
+  let fcm: { key: KeyObject; projectId: string; email: string; tokenUri: string } | undefined;
+
+  const { OMB_APNS_KEY_FILE: keyFile, OMB_APNS_KEY_ID: keyId, OMB_APNS_TEAM_ID: teamId, OMB_APNS_TOPIC: topic } = env;
+  if (keyFile || keyId || teamId || topic) {
+    try {
+      if (!keyFile || !keyId || !teamId || !topic) throw new Error("incomplete credentials");
+      const key = createPrivateKey(readFile(keyFile));
+      if (key.asymmetricKeyType !== "ec" || key.asymmetricKeyDetails?.namedCurve !== "prime256v1") throw new Error("invalid key");
+      apns = { key, keyId, teamId, topic };
+      configured.push("apns");
+    } catch {
+      log("mobile push: could not load APNs credentials; APNs is disabled");
+    }
+  }
+  if (env.OMB_FCM_SERVICE_ACCOUNT_FILE) {
+    try {
+      const account = JSON.parse(readFile(env.OMB_FCM_SERVICE_ACCOUNT_FILE).toString());
+      if (![account.project_id, account.client_email, account.private_key, account.token_uri].every((value) => typeof value === "string" && value.length > 0)) throw new Error("invalid account");
+      const key = createPrivateKey(account.private_key);
+      if (key.asymmetricKeyType !== "rsa") throw new Error("invalid key");
+      fcm = { key, projectId: account.project_id, email: account.client_email, tokenUri: account.token_uri };
+      configured.push("fcm");
+    } catch {
+      log("mobile push: could not load FCM credentials; FCM is disabled");
+    }
+  }
+
+  let providerToken: { value: string; createdAt: number } | undefined;
+  let session: ClientHttp2Session | undefined;
+  let sessionOrigin: string | undefined;
+  function apnsSession(origin: string): ClientHttp2Session {
+    if (session && sessionOrigin === origin && !session.closed && !session.destroyed) return session;
+    session?.close();
+    const current = http2Connect(origin);
+    session = current;
+    sessionOrigin = origin;
+    const discard = () => { if (session === current) session = undefined; };
+    current.on("error", () => { discard(); current.destroy(); });
+    current.on("close", discard);
+    current.on("goaway", () => { discard(); current.close(); });
+    current.unref();
+    return current;
+  }
+
+  async function sendApns(target: PushTarget, message: PushMessage): Promise<PushOutcome> {
+    const credentials = apns!;
+    const timestamp = now();
+    if (!providerToken || timestamp - providerToken.createdAt >= 50 * 60_000) {
+      providerToken = {
+        value: jwt({ alg: "ES256", kid: credentials.keyId }, { iss: credentials.teamId, iat: Math.floor(timestamp / 1000) }, credentials.key),
+        createdAt: timestamp,
+      };
+    }
+    const origin = env.OMB_APNS_HOST ?? (target.environment === "sandbox" ? "https://api.sandbox.push.apple.com" : "https://api.push.apple.com");
+    const current = apnsSession(origin);
+    return new Promise<PushOutcome>((resolve) => {
+      const request = current.request({
+        ":method": "POST", ":path": `/3/device/${target.token}`,
+        authorization: `bearer ${providerToken!.value}`, "apns-topic": credentials.topic,
+        "apns-push-type": "alert", "apns-priority": "10", "apns-collapse-id": collapseId(message.threadId),
+      });
+      let status = 0;
+      let body = "";
+      const finish = (outcome: PushOutcome) => { clearTimeout(timer); resolve(outcome); };
+      const timer = setTimeout(() => {
+        finish("failed");
+        request.close(constants.NGHTTP2_CANCEL);
+        if (current.connecting) current.destroy();
+      }, 10_000);
+      request.setEncoding("utf8");
+      request.on("response", (headers) => { status = Number(headers[":status"]); });
+      request.on("data", (chunk: string) => { body += chunk; });
+      request.on("error", () => finish("failed"));
+      request.on("close", () => finish("failed"));
+      request.on("end", () => {
+        if (status === 200) return finish("sent");
+        if (status === 410) return finish("gone");
+        let reason: unknown;
+        try { reason = JSON.parse(body).reason; } catch {}
+        finish(status === 400 && (reason === "BadDeviceToken" || reason === "DeviceTokenNotForTopic") ? "gone" : "failed");
+      });
+      request.end(JSON.stringify({
+        aps: { alert: { title: message.botName, body: "New message" }, sound: "default", "thread-id": message.threadId },
+        omb: messageData(message),
+      }));
+    });
+  }
+
+  let accessToken: { value: string; expiresAt: number } | undefined;
+  let tokenExchange: Promise<string> | undefined;
+  async function fcmToken(): Promise<string> {
+    if (accessToken && now() < accessToken.expiresAt - 5 * 60_000) return accessToken.value;
+    if (tokenExchange) return tokenExchange;
+    const credentials = fcm!;
+    tokenExchange = (async () => {
+      const timestamp = now();
+      const iat = Math.floor(timestamp / 1000);
+      const assertion = jwt({ alg: "RS256", typ: "JWT" }, {
+        iss: credentials.email, scope: "https://www.googleapis.com/auth/firebase.messaging",
+        aud: credentials.tokenUri, iat, exp: iat + 3600,
+      }, credentials.key);
+      const response = await fetch(credentials.tokenUri, {
+        method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) throw new Error("token exchange failed");
+      const token = await response.json() as { access_token?: unknown; expires_in?: unknown } | null;
+      if (!token || typeof token.access_token !== "string" || !token.access_token || typeof token.expires_in !== "number" || !Number.isFinite(token.expires_in) || token.expires_in <= 0) throw new Error("invalid token response");
+      accessToken = { value: token.access_token, expiresAt: timestamp + token.expires_in * 1000 };
+      return accessToken.value;
+    })();
+    try { return await tokenExchange; } finally { tokenExchange = undefined; }
+  }
+
+  async function sendFcm(target: PushTarget, message: PushMessage): Promise<PushOutcome> {
+    const token = await fcmToken();
+    const origin = env.OMB_FCM_HOST ?? "https://fcm.googleapis.com";
+    const response = await fetch(`${origin}/v1/projects/${encodeURIComponent(fcm!.projectId)}/messages:send`, {
+      method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ message: {
+        token: target.token, notification: { title: message.botName, body: "New message" }, data: messageData(message),
+        android: { collapse_key: message.threadId, priority: "high" },
+      } }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (response.status === 200) return "sent";
+    if (response.status === 404) return "gone";
+    const result = await response.json() as { error?: { status?: string; message?: string; details?: unknown } } | null;
+    const error = result?.error;
+    if (Array.isArray(error?.details) && error.details.some((detail: { errorCode?: string }) => detail?.errorCode === "UNREGISTERED")) return "gone";
+    if (response.status === 400 && error?.status === "INVALID_ARGUMENT" && typeof error.message === "string" && /registration[\s_-]*token/i.test(error.message)) return "gone";
+    return "failed";
+  }
+
+  let warned = false;
+  return {
+    configured,
+    async send(target, message) {
+      if (!configured.length && !warned) {
+        warned = true;
+        log("mobile push: no APNs or FCM credentials on this server; phones get notifications only while the app is open");
+      }
+      if (!configured.includes(target.service)) return "skipped";
+      try {
+        return await (target.service === "apns" ? sendApns(target, message) : sendFcm(target, message));
+      } catch {
+        return "failed";
+      }
+    },
+  };
+}

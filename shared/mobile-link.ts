@@ -1,39 +1,231 @@
-// The mobile app's side of the phone link: what a "Link your phone" QR or
-// deep link carries, and what the phone keeps per linked workspace. The server
-// and link service own enrollment; this file is the shape both sides agree on.
-// Long-lived tokens never appear here: a connection holds a reference into the
-// phone's Keychain/Keystore, not the secret.
-import { qrEndpoints, type CompanionEndpoint } from "./pairing-link.ts";
+// The phone link: how the mobile app pairs with one workspace (a VPS or a Mac) and reaches it from anywhere.
+//
+// A desktop owner or admin opens a short-lived grant (POST /api/mobile/pairing). It is shown three ways: a QR of
+// `mobileLinkUrl(payload)`, the same `openmausbot://pair?m=...` deep link, and a typed code. The phone redeems the
+// grant once (POST /api/mobile/redeem) and from then on holds one workspace session token, the same credential on
+// every route: a direct HTTPS origin, the link relay (a VPS without public ingress) or the Mac's companion sidecar.
+//
+// Relay protocol (link-service): a channel is the phone's own sealed pipe to the VPS agent, never the Mac's tunnel.
+//   POST {base}/v1/channels/{channel}/to-vps   bearer: the channel token   {frames, epoch, seq}
+//   GET  {base}/v1/channels/{channel}/to-app?wait=25&stream=1               ndjson {frames} lines
+//   DELETE {base}/v1/channels/{channel}                                    the phone forgets its channel
+// Frames are the Mac tunnel's frames (electron/vps-link-protocol.mjs sealFrame/sealBytes/openFrame) with the channel
+// id in place of the tunnel id: AES-256-GCM, AAD `{channel}|to-vps` or `{channel}|to-app`, timestamped, replay-checked.
+// A grant's channel key travels in the QR. A device channel's key is X25519: HKDF(ECDH(phone, agent)) exactly as
+// vps-link-protocol.mjs sealKeyOf(myPriv, myPub, theirPub, channel), with the agent's public key from the redeem reply.
+//
+// Typed code lookup: the code is the grant's 12-symbol pairing code. The phone normalizes it (uppercase, no dashes or
+// spaces), derives HKDF-SHA256(ikm = code, salt = MOBILE_LOOKUP_SALT, info = "lookup", 16 bytes) as a hex lookup id and
+// HKDF-SHA256(ikm = code, salt = MOBILE_LOOKUP_SALT, info = "seal", 32 bytes) as an AES-256-GCM key, fetches
+// GET {relay}/v1/lookups/{id} -> {sealed} and opens it (iv 12, ciphertext, tag 16, AAD = the lookup id) into the same
+// payload the QR carries.
 
-export const MOBILE_LINK_VERSION = 1;
+import { qrEndpoints, type CompanionEndpoint, type CompanionEndpointKind } from "./pairing-link.ts";
 
-/** How the phone reaches a workspace. `https`: its own bearer session on a reachable origin. `relay`: a per-phone channel
- * through the link service for a VPS with no public route. `companion`: the Mac's sidecar with a device token. */
-export type MobileTransportKind = "https" | "relay" | "companion";
+export const MOBILE_LINK_VERSION = 2;
+export const MOBILE_LOOKUP_SALT = "omb-mobile-v1";
+export const DEFAULT_MOBILE_RELAY = "https://link.apps.siddz.com";
+/** A grant lives this long; the QR, the deep link and the typed code die together. */
+export const MOBILE_GRANT_TTL_MS = 5 * 60_000;
+export const MOBILE_PLATFORMS = ["ios", "android", "other"] as const;
+export type MobilePlatform = (typeof MOBILE_PLATFORMS)[number];
+export const PUSH_SERVICES = ["apns", "fcm"] as const;
+export type PushService = (typeof PUSH_SERVICES)[number];
 
-export interface MobileRelayRoute {
-  /** The link service origin, e.g. https://link.apps.siddz.com. */
-  service: string;
-  /** The per-phone channel id the service issued for this enrollment, never the Mac's tunnel. */
-  channel: string;
+/** One way to reach the workspace, in the order the phone should try them. */
+export type MobileTransport =
+  /** The workspace's own HTTPS origin. `spki`: base64 sha256 of the leaf key, pinned when the certificate is self-made. */
+  | { kind: "https"; url: string; spki?: string }
+  /** The grant's one-time relay channel; its token and key open only that channel and only until the grant ends. */
+  | { kind: "relay"; base: string; channel: string; token: string; key: string }
+  /** The Mac's companion sidecar: native requests only (no Origin header), at one of its advertised addresses. */
+  | { kind: "companion"; url: string; net: CompanionEndpointKind; priority: number };
+
+/** What the QR, the deep link and the typed-code lookup carry. */
+export interface MobileLinkPayload {
+  v: typeof MOBILE_LINK_VERSION;
+  workspace: { name: string; environmentId: string | null; kind: "vps" | "mac" | "server" };
+  /** `secret` is a single-use pairing credential; `expiresAt` is epoch ms. */
+  grant: { id: string; secret: string; expiresAt: number };
+  via: MobileTransport[];
 }
 
-/** A parsed `openmausbot://pair` link or QR. One-time: redeeming `credential` mints the phone's own session. */
+/** POST /api/mobile/pairing, owner or admin only. `companion`: the Mac's sidecar addresses the desktop adds. */
+export interface MobilePairingRequest {
+  scopes?: ("admin" | "client")[];
+  label?: string;
+  companion?: CompanionEndpoint[];
+}
+
+export interface MobilePairingResponse {
+  payload: MobileLinkPayload;
+  link: string;
+  /** The typed code, formatted XXXX-XXXX-XXXX. Null when no relay could hold its lookup. */
+  code: string | null;
+  expiresAt: number;
+}
+
+/** POST /api/mobile/redeem, public: the grant's secret (or typed code) is the authorization. */
+export interface MobileRedeemRequest {
+  secret: string;
+  /** Stable across retries of one attempt, so a lost answer can be fetched again. */
+  attemptId: string;
+  device: { name: string; platform: MobilePlatform; app?: string };
+  /** Ask for a long-lived relay channel: the phone's X25519 public key and sha256 hex of a token it generated. */
+  relay?: { pub: string; verifier: string };
+}
+
+export interface MobileDevice {
+  id: string;
+  name: string;
+  platform: MobilePlatform;
+  createdAt: number;
+  lastSeenAt: number;
+  expiresAt: number;
+  relay: boolean;
+  push: PushService | null;
+}
+
+export interface MobileRedeemResponse {
+  /** The workspace session bearer token (`omb_sess_...`), the phone's only workspace credential. */
+  token: string;
+  device: MobileDevice;
+  workspace: MobileLinkPayload["workspace"];
+  scopes: ("admin" | "client")[];
+  /** The phone's own relay channel when it asked for one and this workspace has a relay. */
+  relay?: { base: string; channel: string; agentPub: string };
+}
+
+/** PUT /api/mobile/push with the device's own session. */
+export interface MobilePushRegistration {
+  service: PushService;
+  token: string;
+  /** APNs only: which gateway the token belongs to. */
+  environment?: "sandbox" | "production";
+}
+
+const B64URL = /^[A-Za-z0-9_-]+$/;
+const RELAY_ID = /^[a-z2-7]{10}$/;
+
+function originOf(value: unknown, protocols: readonly string[]): string | null {
+  if (typeof value !== "string" || value.length > 2048) return null;
+  try {
+    const url = new URL(value);
+    if (!protocols.includes(url.protocol) || url.username || url.password || (url.pathname !== "/" && url.pathname !== "") || url.search || url.hash) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+/** Keeps only well-formed transports, drops duplicates and caps the list, so a QR never carries a stray URL. */
+export function mobileTransports(list: readonly unknown[]): MobileTransport[] {
+  const out: MobileTransport[] = [];
+  const seen = new Set<string>();
+  const companions: CompanionEndpoint[] = [];
+  for (const item of list) {
+    const one = item as Record<string, unknown> | null;
+    if (!one || typeof one !== "object") continue;
+    if (one.kind === "https") {
+      const url = originOf(one.url, ["https:"]);
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      out.push({ kind: "https", url, ...(typeof one.spki === "string" && /^[A-Za-z0-9+/]{43}=$/.test(one.spki) ? { spki: one.spki } : {}) });
+    } else if (one.kind === "relay") {
+      const base = originOf(one.base, ["https:", "http:"]);
+      if (!base || typeof one.channel !== "string" || !RELAY_ID.test(one.channel) || typeof one.token !== "string" || !B64URL.test(one.token) || one.token.length > 200
+        || typeof one.key !== "string" || !B64URL.test(one.key) || one.key.length !== 43) continue;
+      out.push({ kind: "relay", base, channel: one.channel, token: one.token, key: one.key });
+    } else if (one.kind === "companion") {
+      companions.push({ url: String(one.url), kind: one.net as CompanionEndpointKind, priority: Number(one.priority) });
+    }
+  }
+  for (const endpoint of qrEndpoints(companions)) {
+    if (seen.has(endpoint.url)) continue;
+    seen.add(endpoint.url);
+    out.push({ kind: "companion", url: endpoint.url, net: endpoint.kind, priority: endpoint.priority });
+  }
+  return out.slice(0, 10);
+}
+
+const toBase64Url = (text: string): string => {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+
+const fromBase64Url = (value: string): string => {
+  const binary = atob(value.replace(/-/g, "+").replace(/_/g, "/"));
+  return new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
+};
+
+export function mobileLinkUrl(payload: MobileLinkPayload): string {
+  return `openmausbot://pair?m=${toBase64Url(JSON.stringify(payload))}`;
+}
+
+/** The payload a scanned QR or opened deep link carries, validated; null for anything else (an older link included). */
+export function parseMobileLink(link: string): MobileLinkPayload | null {
+  try {
+    const url = new URL(link);
+    if (url.protocol !== "openmausbot:" || (url.host !== "pair" && url.pathname.replace(/^\/+/, "") !== "pair")) return null;
+    const encoded = url.searchParams.get("m");
+    if (!encoded || encoded.length > 8192 || !B64URL.test(encoded)) return null;
+    return parseMobilePayload(JSON.parse(fromBase64Url(encoded)));
+  } catch {
+    return null;
+  }
+}
+
+export function parseMobilePayload(value: unknown): MobileLinkPayload | null {
+  const one = value as Partial<MobileLinkPayload> | null;
+  if (!one || one.v !== MOBILE_LINK_VERSION || !one.workspace || !one.grant || !Array.isArray(one.via)) return null;
+  const { workspace, grant } = one;
+  if (typeof workspace.name !== "string" || !["vps", "mac", "server"].includes(workspace.kind)) return null;
+  if (typeof grant.id !== "string" || typeof grant.secret !== "string" || !Number.isSafeInteger(grant.expiresAt)) return null;
+  const via = mobileTransports(one.via);
+  if (!via.length) return null;
+  return {
+    v: MOBILE_LINK_VERSION,
+    workspace: { name: workspace.name.slice(0, 80), environmentId: typeof workspace.environmentId === "string" ? workspace.environmentId : null, kind: workspace.kind },
+    grant: { id: grant.id, secret: grant.secret, expiresAt: grant.expiresAt },
+    via,
+  };
+}
+
+// The phone app's own records, kept beside the contract so both sides read one file. Long-lived tokens never appear
+// here: a connection holds a reference into the phone's Keychain/Keystore, not the secret.
+
+/** How the phone reaches a workspace, by the first route that answered. */
+export type MobileTransportKind = MobileTransport["kind"];
+
+export interface MobileRelayRoute {
+  base: string;
+  channel: string;
+  /** The grant's one-time channel token and key (QR), or the device's own channel after redeem (key derived, not stored). */
+  token?: string;
+  key?: string;
+  agentPub?: string;
+}
+
+/** A pairing link as the phone acts on it: the v2 payload's routes and grant, or an older server link's origin and
+ * credential. Redeeming `credential` once mints the phone's own session. */
 export interface MobilePairingPayload {
   v: number;
   transport: MobileTransportKind;
-  /** Bare https origin for `https`, the companion base for `companion`; absent for relay-only. */
+  /** The first direct origin: https, or the companion's address. */
   origin?: string;
   relay?: MobileRelayRoute;
-  /** omb_pair_ + 43 base64url characters. */
   credential: string;
   code?: string;
-  /** The workspace's display name. */
   name?: string;
-  /** The workspace identity the redeemed session must match; a mismatch refuses the link. */
   environmentId?: string;
   endpoints?: CompanionEndpoint[];
   expiresAt?: number;
+  /** Every route of a v2 link, in the order to try them. Absent for an older link. */
+  via?: MobileTransport[];
+  grantId?: string;
+  workspaceKind?: MobileLinkPayload["workspace"]["kind"];
 }
 
 /** What the phone may do on this connection, from the server's answer, never guessed from the transport. */
@@ -56,17 +248,21 @@ export interface MobileConnectionRecord {
   transport: MobileTransportKind;
   origin?: string;
   relay?: MobileRelayRoute;
+  /** Every route the workspace offered, tried in order on reconnect. */
+  via?: MobileTransport[];
   /** Key of the bearer token in secure storage. */
   sessionRef: string;
   sessionId?: string;
+  deviceId?: string;
   capabilities: MobileCapabilities;
-  /** Server identity pin (SPKI or seal-key id) recorded at pairing. */
+  /** Server identity pin (SPKI) recorded at pairing. */
   identityPin?: string;
   addedAt: number;
   lastUsedAt: number;
 }
 
-/** A place in a workspace, opened by deep link in either direction (phone to desktop, desktop or notification to phone). */
+/** A place in a workspace, opened by link in either direction. The desktop's own chat links
+ * (openmausbot://thread/..., openmausbot://bot/...) open chats; this adds views and notification targets. */
 export interface MobileOpenTarget {
   environmentId?: string;
   botId?: string;
@@ -76,66 +272,67 @@ export interface MobileOpenTarget {
   view?: "chat" | "computer" | "profile" | "routines" | "settings" | "notifications";
 }
 
-const CREDENTIAL = /^omb_pair_[A-Za-z0-9_-]{43}$/;
+const LEGACY_CREDENTIAL = /^omb_pair_[A-Za-z0-9_-]{43}$/;
 const VIEWS = new Set<NonNullable<MobileOpenTarget["view"]>>(["chat", "computer", "profile", "routines", "settings", "notifications"]);
 
-function bareOrigin(value: string | null, protocols: string[]): string | undefined {
+/** The phone's view of a v2 payload: the first direct origin and the relay route pulled out of `via`. */
+export function pairingFromPayload(payload: MobileLinkPayload): MobilePairingPayload {
+  const direct = payload.via.find((route) => route.kind === "https") ?? payload.via.find((route) => route.kind === "companion");
+  const relay = payload.via.find((route): route is Extract<MobileTransport, { kind: "relay" }> => route.kind === "relay");
+  const companions = payload.via.filter((route): route is Extract<MobileTransport, { kind: "companion" }> => route.kind === "companion");
+  return {
+    v: payload.v,
+    transport: payload.via[0]!.kind,
+    ...(direct ? { origin: direct.url } : {}),
+    ...(relay ? { relay: { base: relay.base, channel: relay.channel, token: relay.token, key: relay.key } } : {}),
+    credential: payload.grant.secret,
+    name: payload.workspace.name,
+    ...(payload.workspace.environmentId ? { environmentId: payload.workspace.environmentId } : {}),
+    ...(companions.length ? { endpoints: companions.map((route) => ({ url: route.url, kind: route.net, priority: route.priority })) } : {}),
+    expiresAt: payload.grant.expiresAt,
+    via: payload.via,
+    grantId: payload.grant.id,
+    workspaceKind: payload.workspace.kind,
+  };
+}
+
+function legacyOrigin(value: string | null): string | undefined {
   if (!value) return undefined;
   try {
     const url = new URL(/^[a-z]+:\/\//i.test(value) ? value : `http://${value}`);
-    if (!protocols.includes(url.protocol) || url.username || url.password || url.pathname !== "/" || url.search || url.hash) return undefined;
+    if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.pathname !== "/" || url.search || url.hash) return undefined;
     return url.origin;
   } catch {
     return undefined;
   }
 }
 
-function decodeEndpoints(value: string | null): CompanionEndpoint[] | undefined {
-  if (!value) return undefined;
-  try {
-    const binary = atob(value.replaceAll("-", "+").replaceAll("_", "/"));
-    const json = new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
-    const routes = qrEndpoints(JSON.parse(json));
-    return routes.length ? routes : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** Null when the link is not a pairing link or any required part is malformed. */
+/** A scanned QR or opened pairing link: a v2 link first, else an older `openmausbot://pair?address=&token=` link from
+ * the server pairing card or the companion. Null when it is neither or anything required is malformed. */
 export function parseMobilePairingLink(link: string): MobilePairingPayload | null {
+  const payload = parseMobileLink(link.trim());
+  if (payload) return pairingFromPayload(payload);
   let url: URL;
   try { url = new URL(link.trim()); } catch { return null; }
   if (url.protocol !== "openmausbot:" || (url.hostname || url.pathname.replace(/^\/+/, "")) !== "pair") return null;
   const q = url.searchParams;
   const credential = q.get("token") ?? "";
-  if (!CREDENTIAL.test(credential)) return null;
+  if (!LEGACY_CREDENTIAL.test(credential)) return null;
   const code = q.get("code") ?? undefined;
   if (code !== undefined && !/^[A-Za-z0-9]{6,12}$/.test(code)) return null;
-  const relayService = bareOrigin(q.get("relay"), ["https:"]);
-  const relayChannel = q.get("channel") ?? "";
-  const relay = relayService && /^[A-Za-z0-9_-]{8,128}$/.test(relayChannel) ? { service: relayService, channel: relayChannel } : undefined;
-  const origin = bareOrigin(q.get("address"), ["https:", "http:"]);
-  const endpoints = decodeEndpoints(q.get("endpoints"));
-  if (!origin && !relay) return null;
-  const transport: MobileTransportKind = relay && !origin ? "relay" : q.get("kind") === "companion" || q.has("code") && !q.has("env") ? "companion" : "https";
-  const expires = Number(q.get("exp"));
-  const environmentId = q.get("env") ?? undefined;
+  const origin = legacyOrigin(q.get("address"));
+  if (!origin) return null;
   return {
-    v: Number(q.get("v")) || MOBILE_LINK_VERSION,
-    transport,
-    ...(origin ? { origin } : {}),
-    ...(relay ? { relay } : {}),
+    v: 1,
+    transport: code ? "companion" : "https",
+    origin,
     credential,
     ...(code ? { code } : {}),
     ...(q.get("name")?.trim() ? { name: q.get("name")!.trim() } : {}),
-    ...(environmentId && /^[A-Za-z0-9_.:-]{1,128}$/.test(environmentId) ? { environmentId } : {}),
-    ...(endpoints ? { endpoints } : {}),
-    ...(Number.isFinite(expires) && expires > 0 ? { expiresAt: expires } : {}),
   };
 }
 
-/** `openmausbot://open?...`: the same shape opens a place on the phone or, sent from the phone, on the desktop. */
+/** `openmausbot://open?...`: a view or notification target on the phone. */
 export function mobileOpenLink(target: MobileOpenTarget): string {
   const fields: Array<[string, string | undefined]> = [
     ["env", target.environmentId], ["bot", target.botId], ["group", target.groupId],

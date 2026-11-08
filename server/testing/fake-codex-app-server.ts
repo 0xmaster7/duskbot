@@ -212,6 +212,9 @@ const notify = (method: string, params: any) => out({
  * profile with writable workspace roots as the legacy workspace-write sandbox. */
 const threadProfile = (params: Record<string, any>): string | null =>
   typeof params.permissions === "string" && params.config?.permissions?.[params.permissions] ? params.permissions : null;
+// codex-cli 0.167 takes a thread-layer profile without default_permissions, then fails every model request
+const undefaultedProfile = (params: Record<string, any> | undefined) => Boolean(params?.config?.permissions) && typeof params?.config?.default_permissions !== "string";
+const UNDEFAULTED_PROFILE_ERROR = { code: -32600, message: "failed to load workspace requirements: invalid input parameter" };
 const activeProfile = (params: Record<string, any>) => threadProfile(params) ? { activePermissionProfile: { id: threadProfile(params), extends: null } } : {};
 const resolvedSandbox = (params: Record<string, any>) => {
   if (process.env.FAKE_CODEX_RESOLVED_SANDBOX) return JSON.parse(process.env.FAKE_CODEX_RESOLVED_SANDBOX);
@@ -590,6 +593,8 @@ process.stdin.on("data", (chunk) => {
           threadReply({ jsonrpc: "2.0", id: msg.id, result: { thread: { id: msg.params?.threadId }, sandbox: resolvedSandbox(msg.params ?? {}), ...activeProfile(msg.params ?? {}) } });
         } else if (msg.params?.permissions && (!experimentalApi || mode === "config-profile-unsupported" || process.env.FAKE_CODEX_REJECT_PERMISSIONS === "1")) {
           out({ jsonrpc: "2.0", id: msg.id, error: { code: -32602, message: "experimental API required for permissions" } });
+        } else if (undefaultedProfile(msg.params)) {
+          out({ jsonrpc: "2.0", id: msg.id, error: UNDEFAULTED_PROFILE_ERROR });
         } else if (mode === "resume" || mode === "review-events" || mode === "helper-events" || mode === "instructions-unsupported" || mode === "config-profile" || mode === "config-profile-unsupported" || mode === "async-question" ||
             (mode === "resume-then-missing" && !existsSync(process.env.FAKE_CODEX_STATE ?? ""))) {
           threadReply({ jsonrpc: "2.0", id: msg.id, result: { thread: { id: msg.params?.threadId, ...(process.env.FAKE_CODEX_ROLLOUT ? { path: process.env.FAKE_CODEX_ROLLOUT } : {}) }, sandbox: resolvedSandbox(msg.params ?? {}), ...activeProfile(msg.params ?? {}) } });
@@ -642,6 +647,8 @@ process.stdin.on("data", (chunk) => {
           out({ jsonrpc: "2.0", id: msg.id, error: JSON.parse(process.env.FAKE_CODEX_START_ERROR) });
         } else if (msg.params?.permissions && (!experimentalApi || mode === "config-profile-unsupported" || process.env.FAKE_CODEX_REJECT_PERMISSIONS === "1")) {
           out({ jsonrpc: "2.0", id: msg.id, error: { code: -32602, message: "experimental API required for permissions" } });
+        } else if (undefaultedProfile(msg.params)) {
+          out({ jsonrpc: "2.0", id: msg.id, error: UNDEFAULTED_PROFILE_ERROR });
         } else if (process.env.FAKE_CODEX_MCP_START === "1") {
           // Codex starts MCP servers with the thread; one that fails leaves the thread without its tools.
           const reply = { jsonrpc: "2.0", id: msg.id, result: { thread: { id: "codex-thread-1" }, model: "fake-codex-model", sandbox: resolvedSandbox(msg.params ?? {}), ...activeProfile(msg.params ?? {}) } };

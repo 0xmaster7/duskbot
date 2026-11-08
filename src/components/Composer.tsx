@@ -816,6 +816,18 @@ export function Composer({
           onChange={(e) => {
             if (recording) stopDictation();
             if (bot && !group) cueMascot(bot.id, "watch");
+            // a typed "/goal " becomes the goal chip, so the field never says it a second time
+            const goalToken = !group?.dm ? /^\/goal\s+/i.exec(e.target.value) : null;
+            if (goalToken) {
+              const at = Math.max(0, (e.target.selectionStart ?? e.target.value.length) - goalToken[0].length);
+              editText(e.target.value.slice(goalToken[0].length));
+              setChannelMode("goal");
+              setCaret(at);
+              requestAnimationFrame(() => inputRef.current?.setSelectionRange(at, at));
+              setDismissedAt(null);
+              setDismissedSlashAt(null);
+              return;
+            }
             editText(e.target.value);
             setCaret(e.target.selectionStart ?? e.target.value.length);
             setDismissedAt(null);

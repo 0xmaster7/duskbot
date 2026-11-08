@@ -235,7 +235,7 @@ describe("the Simple composer in a bot chat", () => {
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "updateTask", botId: "atlas", threadId: "atlas-thread", patch: { approvalMode: "ask" } });
   });
 
-  it("shows Work until done as a chip with a × only while it is on, and turns it off from there", () => {
+  it("shows Work until done as a quiet neutral chip with a × only while it is on, and turns it off from there", () => {
     restoreComposerDraft(`bot:${bot.id}:${bot.threadId}`, { text: "", attachments: [], channelMode: "goal" });
     render({ bot });
     const chip = container.querySelector<HTMLButtonElement>("[data-goal-chip]")!;
@@ -243,9 +243,21 @@ describe("the Simple composer in a bot chat", () => {
     expect(chip.querySelector(".lucide-x")).not.toBeNull();
     expect(chip.getAttribute("aria-label")).toBe("Turn off Work until done");
     expect(chip.hasAttribute("aria-pressed")).toBe(false);
-    expect(chip.className.split(" ")).toEqual(expect.arrayContaining(["h-7", "gap-1", "px-2.5", "text-[13px]"]));
+    expect(chip.className.split(" ")).toEqual(expect.arrayContaining(["h-7", "rounded-full", "bg-ink/[0.06]", "text-ink-secondary", "text-[13px]"]));
+    expect(chip.className).not.toMatch(/accent/);
     click(chip);
     expect(container.querySelector("[data-goal-chip]")).toBeNull();
+  });
+
+  it("turns a typed /goal into the chip, leaving only the goal itself in the field", () => {
+    render({ bot });
+    const field = container.querySelector("textarea")!;
+    flushSync(() => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, "/goal ship the release");
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(container.querySelector("[data-goal-chip]")?.textContent).toBe("Work until done");
+    expect(container.querySelector("textarea")!.value).toBe("ship the release");
   });
 });
 

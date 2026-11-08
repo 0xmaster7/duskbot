@@ -895,12 +895,19 @@ export const EGRESS_PORT = Number(process.env.LINK_EGRESS_PORT) || 3129;
 /** the app says hello every 15 s while it takes streams; three missed and this server uses its own network again */
 const EGRESS_SEEN_MS = 40_000;
 const EGRESS_DIAL_MS = 5000;
+/** how long the app takes to open a stream, from the last few dials: the server routes through the app only while it is fast */
+const DIAL_SAMPLES = 7;
+const DIAL_SAMPLE_MAX_AGE_MS = 120_000;
+/** with no recent dial, one probe stream (opened and dropped at once) measures the path again */
+const DIAL_PROBE_EVERY_MS = 60_000;
+export const EGRESS_PROBE = { host: "www.gstatic.com", port: 443 };
 const EGRESS_QUEUE_HIGH = 1024 * 1024;
 const EGRESS_HEAD_MAX = 8 * 1024;
 /**
- * socks5 replies. the policy names no fallback, so a failure reply fails that request; it is kept for "this computer
- * cannot take it now" (off, offline, busy, slow). a destination this computer refuses or cannot reach gets a success
- * reply and an immediate close, which fails only that request the same way an unreachable site would.
+ * socks5 replies. a failure reply means "this computer cannot take it now" (off, offline, busy, slow): the policy's
+ * direct fallback then opens that request from this server instead. a destination this computer refuses or cannot
+ * reach gets a success reply and an immediate close, which fails only that request the same way an unreachable site
+ * would.
  */
 const SOCKS = { ok: 0, failure: 1, notAllowed: 2, unreachable: 4, refused: 5, command: 7, address: 8 };
 
@@ -998,8 +1005,17 @@ const egressCode = (code) => (code === "port" || code === "home-network" || code
 export function createEgressProxy({
   send, bytes, queued, onDrain, log = () => {}, now = Date.now,
   bind = () => bridgeAddress(), port = EGRESS_PORT, report = null, reportMs = 5000, dialMs = EGRESS_DIAL_MS,
+  probe = EGRESS_PROBE, probeEveryMs = DIAL_PROBE_EVERY_MS,
 }) {
   const streams = new Map();
+  const probes = new Map();
+  let samples = [];
+  const sample = (ms) => { samples = [...samples, { at: now(), ms }].slice(-DIAL_SAMPLES); };
+  /** the median dial time of recent streams, or null when there is none */
+  const dialLatency = () => {
+    const recent = samples.filter((one) => now() - one.at < DIAL_SAMPLE_MAX_AGE_MS).map((one) => one.ms).sort((a, b) => a - b);
+    return recent.length ? recent[Math.floor(recent.length / 2)] : null;
+  };
   let seenAt = 0, ready = false, enabled = report === null, server = null, listening = null, timer = null, stopped = false;
   const stats = { relayed: 0, refused: 0, fallbacks: 0 };
   const online = () => ready && now() - seenAt < EGRESS_SEEN_MS;
@@ -1033,8 +1049,10 @@ export function createEgressProxy({
     const fallBack = () => { stats.refused += 1; stats.fallbacks += 1; asked.reply(false, SOCKS.failure); socket.end(); };
     if (!enabled || !online()) return fallBack();
     const r = randomId();
+    const dialedAt = now();
     const answer = await new Promise((settle) => {
       const entry = { socket, settle, endSent: false, timer: setTimeout(() => {
+        sample(dialMs);
         // the app did not answer in time: it is asleep or gone, so new connections go direct until it says hello again
         log("egress: the app did not answer; bot computers use this server's own network until it is back");
         entry.settle = null;
@@ -1052,6 +1070,7 @@ export function createEgressProxy({
       stats.refused += 1;
       return asked.fail(egressCode(answer.code));
     }
+    sample(now() - dialedAt);
     stats.relayed += 1;
     entry.relaying = true;
     asked.reply(true);
@@ -1085,13 +1104,24 @@ export function createEgressProxy({
     }
   }
 
+  /** a dial nobody uses, answered by the app like any other: only its timing is kept */
+  function measure() {
+    const last = samples.at(-1)?.at ?? -Infinity;
+    if (!probe || !enabled || !online() || probes.size || now() - last < probeEveryMs) return;
+    const r = randomId(), at = now();
+    probes.set(r, { at, timer: setTimeout(() => { if (probes.delete(r)) { sample(dialMs); send({ t: "cancel", r }); } }, dialMs) });
+    send({ t: "dial", r, host: probe.host, port: probe.port });
+  }
+
   async function tick() {
     await relisten();
-    if (!report || stopped) return;
-    try {
-      const said = await report({ online: online(), proxy: listening, active: streams.size, ...stats });
-      if (typeof said?.enabled === "boolean") enabled = said.enabled;
-    } catch { /* the server is restarting; the last answer stands */ }
+    if (report && !stopped) {
+      try {
+        const said = await report({ online: online(), proxy: listening, active: streams.size, dialMs: dialLatency(), ...stats });
+        if (typeof said?.enabled === "boolean") enabled = said.enabled;
+      } catch { /* the server is restarting; the last answer stands */ }
+    }
+    if (!stopped) measure();
   }
 
   return {
@@ -1099,6 +1129,7 @@ export function createEgressProxy({
     get enabled() { return enabled; },
     online,
     stats: () => ({ ...stats, active: streams.size }),
+    dialLatency,
     async start() {
       await tick();
       timer = setInterval(() => void tick(), reportMs);
@@ -1111,6 +1142,18 @@ export function createEgressProxy({
         if (frame.ready === true) { ready = true; seenAt = now(); }
         else { gone(); seenAt = 0; }
         if (was !== online()) { log(online() ? "egress: the app takes streams again" : "egress: the app stopped taking streams"); void tick(); }
+        return true;
+      }
+      const probed = typeof frame?.r === "string" ? probes.get(frame.r) : undefined;
+      if (probed) {
+        if (frame.t === "dialed") {
+          probes.delete(frame.r);
+          clearTimeout(probed.timer);
+          seenAt = now();
+          ready = true;
+          sample(now() - probed.at);
+          if (frame.ok === true) send({ t: "cancel", r: frame.r });
+        }
         return true;
       }
       const entry = typeof frame?.r === "string" ? streams.get(frame.r) : undefined;
@@ -1132,6 +1175,8 @@ export function createEgressProxy({
     async stop() {
       stopped = true;
       clearInterval(timer);
+      for (const probed of probes.values()) clearTimeout(probed.timer);
+      probes.clear();
       for (const r of streams.keys()) forget(r, false);
       if (server) await new Promise((resolve) => server.close(() => resolve()));
       server = null;
@@ -1146,7 +1191,7 @@ export function createEgressProxy({
  * what the app's frames ask of this server, over either path: requests and websockets to OpenMausBot, control ops to this
  * agent. `sink` takes the replies: push(frame), bytes(r, chunk) (false: pause), onDrain(resume), discard(r).
  */
-export function createServing({ server = SERVER, sink, stopped = () => false, context = {} }) {
+export function createServing({ server = SERVER, sink, stopped = () => false, context = {}, controls = true, forwardedFor = "192.0.2.10", allow = null }) {
   const pending = new Map();
   const emit = (frame) => { if (!stopped()) sink.push(frame); };
 
@@ -1182,14 +1227,18 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
 
   function startRequest(frame) {
     const headers = {};
-    for (const [name, value] of Object.entries(frame.headers ?? {})) if (!HOP.has(name.toLowerCase())) headers[name] = value;
+    for (const [name, value] of Object.entries(frame.headers ?? {})) {
+      const lower = name.toLowerCase();
+      if (!HOP.has(lower) && (controls || (lower !== "cookie" && !lower.startsWith("x-openmausbot-")))) headers[name] = value;
+    }
     if (frame.up === true) { headers.connection = "Upgrade"; headers.upgrade = "websocket"; }
     // marks every tunnelled request as remote (server/request-auth.ts isProxied): it needs a paired session, never loopback trust
-    headers["x-forwarded-for"] = "192.0.2.10";
+    headers["x-forwarded-for"] = forwardedFor;
     headers["x-forwarded-proto"] = "http";
     if (headers.host) headers["x-forwarded-host"] = headers.host;
-    let reply = null;
-    const req = httpRequest({ ...server, method: frame.method, path: frame.path, headers }, (res) => {
+    let reply = null, req;
+    // a frame's method, path and headers come from the other end: one node refuses (a bad header name) fails that request only
+    try { req = httpRequest({ ...server, method: frame.method, path: frame.path, headers }, (res) => {
       reply = res;
       if (!pending.has(frame.r) || stopped()) { res.destroy(); return; }
       const out = {};
@@ -1204,7 +1253,7 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
       });
       res.on("end", () => { if (pending.delete(frame.r)) emit({ t: "end", r: frame.r }); });
       res.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "reply cut off" }); });
-    });
+    }); } catch { emit({ t: "err", r: frame.r, message: "That request could not be sent." }); return; }
     req.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "OpenMausBot on the server did not answer" }); });
     // bytes the app sent before the handshake was answered wait for the socket
     const early = [];
@@ -1221,7 +1270,10 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
   }
 
   async function handle(frame) {
-    if (frame.t === "req" && typeof frame.r === "string" && typeof frame.path === "string" && frame.path.startsWith("/")) return startRequest(frame);
+    if (frame.t === "req" && typeof frame.r === "string" && typeof frame.path === "string" && frame.path.startsWith("/")) {
+      if (allow && !allow(frame.method, frame.path.split("?", 1)[0])) return emit({ t: "err", r: frame.r, message: "This pairing channel only redeems its grant." });
+      return startRequest(frame);
+    }
     if (frame.t === "body") {
       const req = pending.get(frame.r);
       if (!req) return;
@@ -1232,6 +1284,7 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
     if (frame.t === "bytes") { pending.get(frame.r)?.write(frame.b); return; }
     if (frame.t === "cancel") { pending.get(frame.r)?.destroy(); pending.delete(frame.r); sink.discard(frame.r); return; }
     if (frame.t === "ctl") {
+      if (!controls) return emit({ t: "ctl", r: frame.r, ok: false, error: "not allowed" });
       try { emit({ t: "ctl", r: frame.r, ok: true, data: await control(frame.op, frame.data, context) }); }
       catch (error) { emit({ t: "ctl", r: frame.r, ok: false, error: error?.message ?? String(error) }); }
     }
@@ -1349,6 +1402,203 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
   return { run, stop, egress };
 }
 
+export function harnessSync(server = SERVER) {
+  return ({ base, tunnel, pub, origin = null, spki = null, applied, failed, wait, signal }) => new Promise((resolve, reject) => {
+    const payload = Buffer.from(JSON.stringify({ base, tunnel, pub, origin, spki, applied, failed, wait }));
+    const req = httpRequest({ ...server, method: "POST", path: "/api/mobile/relay/sync", headers: { "x-openmausbot-cli": "1", "content-type": "application/json", "content-length": payload.length }, signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout((wait + 15) * 1000)]) }, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("error", reject);
+      res.on("end", () => {
+        if (res.statusCode !== 200) return reject(new Error(`phone sync answered ${res.statusCode}`));
+        try { resolve(JSON.parse(Buffer.concat(chunks).toString("utf8"))); } catch (error) { reject(error); }
+      });
+    });
+    req.on("error", reject);
+    req.end(payload);
+  });
+}
+
+async function readChannelBatches(response, onBatch) {
+  if (!/^application\/x-ndjson\b/i.test(response.headers.get("content-type") ?? "")) {
+    const { batches = [] } = await response.json();
+    onBatch({ frames: [] });
+    for (const batch of batches) onBatch(batch);
+    return;
+  }
+  const reader = response.body.getReader(), decoder = new TextDecoder();
+  let text = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    text += decoder.decode(value, { stream: true });
+    let at;
+    while ((at = text.indexOf("\n")) >= 0) {
+      const line = text.slice(0, at);
+      text = text.slice(at + 1);
+      if (line) onBatch(JSON.parse(line));
+    }
+  }
+  if (text.trim()) onBatch(JSON.parse(text));
+}
+
+export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = harnessSync(server), origin = null, spki = null, fetchImpl: given, log = (line) => console.error(line), waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
+  const fetchImpl = given ?? relayFetch(), stream = streamChoice();
+  const abort = new AbortController(), channels = new Map();
+  // a channel the relay dropped and the sync brought back keeps its replay guard, or the relay could replay its frames
+  const guards = new Map();
+  const guardFor = (cid, key) => {
+    const t = Date.now();
+    for (const [one, kept] of guards) if (!channels.has(one) && t - kept.at > 2 * FRAME_SKEW_MS) guards.delete(one);
+    const known = guards.get(cid);
+    if (known && known.key.equals(key)) { known.at = t; return known.guard; }
+    const guard = frameGuard();
+    guards.set(cid, { key, guard, at: t });
+    return guard;
+  };
+  const route = `${base}/v1/tunnels/${id}/channels`;
+  const headers = { authorization: `Bearer ${token}`, "content-type": "application/json" };
+  let stopped = false, successfulPosts = 0, pollRetry = null;
+  const wait = (ms, signal = abort.signal) => delay(ms, undefined, { signal }).catch(() => {});
+  function drop(cid) {
+    const channel = channels.get(cid);
+    if (!channel) return;
+    channels.delete(cid);
+    const kept = guards.get(cid);
+    if (kept) kept.at = Date.now();
+    channel.abort.abort();
+    channel.serving?.destroyAll();
+  }
+  function stop() {
+    if (stopped) return;
+    stopped = true;
+    abort.abort();
+    for (const cid of channels.keys()) drop(cid);
+    if (!given) fetchImpl.close();
+  }
+  function serving(channel) {
+    if (channel.serving) return channel.serving;
+    const { key, id: cid, abort: closed } = channel;
+    const epoch = Array.from(randomBytes(12), (byte) => "abcdefghijklmnopqrstuvwxyz234567"[byte & 31]).join("");
+    let ordered = false;
+    const post = async (frames, at) => {
+      for (let attempt = 0; !closed.signal.aborted; attempt += 1) {
+        try {
+          const response = await fetchImpl(`${route}/${cid}/to-app`, { method: "POST", headers, body: JSON.stringify({ frames, epoch, seq: at }), signal: AbortSignal.any([closed.signal, AbortSignal.timeout(60_000)]) });
+          const said = await response.text().catch(() => "");
+          if (response.ok && !ordered) ordered = /"ordered":true/.test(said);
+          if (response.ok) { successfulPosts += 1; pollRetry?.abort(); return true; }
+          if (response.status === 404) { if (channels.get(cid) === channel) drop(cid); return false; }
+        } catch { if (closed.signal.aborted) return false; }
+        if (closed.signal.aborted) break;
+        await wait(Math.min(5000, 200 * 2 ** Math.min(attempt, 6)), closed.signal);
+      }
+      return false;
+    };
+    const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, cid, "to-app", r, bytes), post, delayMs: () => (fetchImpl.multiplexed?.() ? 0 : H1_POST_DELAY_MS), signal: closed.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => { if (channels.get(cid) === channel) drop(cid); } });
+    channel.serving = createServing({ server, controls: false, stopped: () => closed.signal.aborted,
+      forwardedFor: `198.51.100.${1 + (createHash("sha256").update(cid).digest()[0] % 254)}`,
+      allow: channel.kind === "grant" ? (method, path) => (method === "POST" && path === "/api/mobile/redeem") || (method === "GET" && ["/.well-known/openmausbot/environment", "/api/health"].includes(path)) : null,
+      sink: { push: (frame) => outbox.push(sealFrame(key, cid, "to-app", frame), frame.r), bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard },
+    });
+    return channel.serving;
+  }
+  async function synchronize() {
+    let applied = 0, failed = [], first = true, failures = 0;
+    while (!stopped) {
+      try {
+        const answer = await sync({ base, tunnel: id, pub: keys.pub, origin, spki, applied, failed, wait: first ? 0 : waitS, signal: abort.signal });
+        if (stopped) break;
+        first = false;
+        const unusable = [];
+        let wanted = answer.channels.flatMap((channel) => {
+          try { return [{ ...channel, key: channel.kind === "grant" ? Buffer.from(channel.key, "base64url") : sealKeyOf(keys.priv, keys.pub, channel.pub, channel.id) }]; }
+          catch { unusable.push(channel.id); return []; }
+        });
+        const register = () => fetchImpl(route, { method: "PUT", headers, body: JSON.stringify({ channels: wanted.map(({ id, verifier, kind, expiresAt }) => ({ id, verifier, kind, ...(kind === "grant" ? { expiresAt } : {}) })) }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(40_000)]) });
+        let response = await register();
+        const refused = [...unusable];
+        if (response.status === 409) {
+          const conflict = await response.json();
+          if (conflict.code === "taken" && wanted.some((channel) => channel.id === conflict.id)) {
+            refused.push(conflict.id);
+            wanted = wanted.filter((channel) => channel.id !== conflict.id);
+            response = await register();
+          }
+        }
+        if (response.status === 404) { await response.body?.cancel(); stop(); break; }
+        await response.text();
+        if (response.status !== 200) throw new Error("phone channel registration failed");
+        if (stopped) break;
+        const live = new Set(wanted.map((channel) => channel.id));
+        for (const cid of channels.keys()) if (!live.has(cid)) drop(cid);
+        for (const channel of wanted) {
+          const old = channels.get(channel.id);
+          if (old && (old.kind !== channel.kind || old.verifier !== channel.verifier || !old.key.equals(channel.key))) drop(channel.id);
+          if (!channels.has(channel.id)) channels.set(channel.id, { ...channel, guard: guardFor(channel.id, channel.key), abort: new AbortController() });
+        }
+        applied = answer.rev;
+        failed = refused;
+        failures = 0;
+      } catch {
+        if (stopped) break;
+        if (!failures) log("link: phone channel sync retrying");
+        await wait(Math.min(30_000, 500 * 2 ** Math.min(failures++, 6)));
+      }
+    }
+  }
+  async function read() {
+    let failures = 0, ahead = null;
+    while (!stopped) {
+      const postsBefore = successfulPosts, next = ahead;
+      ahead = null;
+      const streaming = next !== null || stream.wanted(), stall = new AbortController();
+      let heard = false, stallTimer = null, aheadTimer = null;
+      const armStall = () => { if (streaming && !stallTimer) stallTimer = setTimeout(() => { if (!heard) stall.abort(); }, STREAM_STALL_MS); };
+      if (!next && !fetchImpl.connectAware) armStall();
+      const get = (signal, onConnected) => fetchImpl(`${route}/to-vps?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: headers.authorization }, signal, onConnected });
+      try {
+        const response = await (next ?? get(AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(40_000)]), armStall));
+        if (streaming) aheadTimer = setTimeout(() => { ahead = get(AbortSignal.any([abort.signal, AbortSignal.timeout(aheadMs + 40_000)])); ahead.catch(() => {}); }, aheadMs);
+        if (!response.ok) {
+          await response.body?.cancel();
+          if (response.status === 404) { stop(); break; }
+          throw new Error("phone channel read failed");
+        }
+        await readChannelBatches(response, ({ channel: cid, frames = [] }) => {
+          heard = true;
+          failures = 0;
+          const channel = channels.get(cid);
+          if (!channel) return;
+          for (const sealed of frames) {
+            let frame = null;
+            try { frame = openFrame(channel.key, cid, "to-vps", sealed, channel.guard); } catch { log("link: dropped a phone frame that did not open"); }
+            if (frame) serving(channel).handle(frame).catch(() => log("link: a phone frame failed"));
+          }
+        });
+      } catch {
+        if (stopped) break;
+        if (stall.signal.aborted && !heard) { stream.stalled(); continue; }
+        failures += 1;
+        if (failures === 1 || failures % 20 === 0) log("link: phone channel read retrying");
+        if (postsBefore === successfulPosts) {
+          pollRetry = new AbortController();
+          await delay(Math.min(30_000, 500 * 2 ** Math.min(failures, 6)), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
+          pollRetry = null;
+        }
+      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); }
+    }
+  }
+  return {
+    async run() {
+      const unwarm = given ? () => {} : fetchImpl.warm(base);
+      try { await Promise.all([synchronize(), read()]); }
+      finally { unwarm(); stop(); }
+    },
+    stop,
+  };
+}
+
 /**
  * the direct link's server half, one per ssh connection: frames in on `input`, replies out on `output`. it says hello
  * first (sealed, so the app knows it holds the key), answers pings, and ends with the connection.
@@ -1411,8 +1661,24 @@ async function tunnel() {
   const agent = createTunnelAgent({ ...saved, egress: {
     report: async (state) => { const answer = await local("POST", "/api/computer/egress/agent", state); return answer.status === 200 ? answer.body : null; },
   } });
-  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { agent.stop(); process.exit(0); });
+  let phones = null;
+  if (process.env.OMB_LINK_PHONES !== "off") {
+    const file = join(configDir(), "phone-keys.json");
+    let keys = null;
+    try { keys = JSON.parse(readFileSync(file, "utf8")); }
+    catch (error) {
+      // a broken phone key file turns phones off; it must never stop the app's own tunnel
+      if (error.code === "ENOENT") { keys = { v: 1, ...x25519Pair() }; writePrivate(file, JSON.stringify(keys)); }
+      else console.error("link: phone keys could not be read; phones are off until the file is fixed or removed");
+    }
+    if (keys && (typeof keys.pub !== "string" || typeof keys.priv !== "string")) { console.error("link: phone keys are not valid; phones are off"); keys = null; }
+    if (keys) phones = createPhoneHub({ base: saved.base, id: saved.id, token: saved.token, keys, origin: saved.mode === "direct" ? saved.origin : null, spki: null, sync: harnessSync(SERVER) });
+  }
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { phones?.stop(); agent.stop(); process.exit(0); });
+  const phoneRun = phones?.run();
   const how = await agent.run();
+  phones?.stop();
+  await phoneRun;
   // unlinked: stay quiet instead of letting systemd restart a tunnel that no longer exists
   if (how === "unlinked") {
     try { setDirectKey(saved.id, null); } catch (error) { console.error(`link: the app's ssh key could not be removed (${error?.message ?? error})`); }

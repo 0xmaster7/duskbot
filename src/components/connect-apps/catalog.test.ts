@@ -27,12 +27,12 @@ describe("Grok's categories over our catalog", () => {
     expect(presentCategories([app("hackernews", ["other"]), app("linear", ["code"])])).toEqual(["code", "other"]);
   });
 
-  it("lists the categories that hold an app in Grok's order, our own apps first inside one", () => {
+  it("lists the categories that hold an app in Grok's order, our own apps first inside one, then the popular ones", () => {
     const entries = [app("linear", ["code"]), app("asana", ["productivity"]), app("email", ["communication", "productivity"], "native")];
     expect(presentCategories(entries)).toEqual(["productivity", "communication", "code"]);
     expect(inCategory(entries, "productivity").map((entry) => entry.id)).toEqual(["email", "asana"]);
     const mixed = [app("granola", ["productivity"], "remote"), ...entries];
-    expect(inCategory(mixed, "productivity").map((entry) => entry.id)).toEqual(["email", "granola", "asana"]);
+    expect(inCategory(mixed, "productivity").map((entry) => entry.id)).toEqual(["email", "asana", "granola"]);
   });
 });
 
@@ -40,8 +40,13 @@ describe("Recommended for you", () => {
   const entries = [app("gmail", ["communication"]), app("slack", ["communication"]), app("notion", ["productivity"]),
     app("outlook", ["communication"]), app("asana", ["productivity"]), app("figma", ["design"])];
 
-  it("is empty until something is connected", () => {
-    expect(recommended(entries, () => "disconnected")).toEqual([]);
+  it("is the popular apps, most popular first, until something is connected", () => {
+    expect(recommended(entries, () => "disconnected").map((entry) => entry.id)).toEqual(["gmail", "slack", "notion", "outlook", "figma", "asana"]);
+  });
+
+  it("puts the popular apps first in a category, after our own", () => {
+    const list = [app("borneo", ["productivity"]), app("own", ["productivity"], "native"), app("notion", ["productivity"]), app("googledrive", ["productivity"])];
+    expect(inCategory(list, "productivity").map((entry) => entry.id)).toEqual(["own", "googledrive", "notion", "borneo"]);
   });
 
   it("offers what you lack in the categories you use most", () => {

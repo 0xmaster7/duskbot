@@ -103,20 +103,40 @@ export function presentCategories(entries: readonly AppEntry[]): Category[] {
   return CATEGORIES.filter((category) => entries.some((entry) => entry.categories.includes(category)));
 }
 
-/** OpenMausBot's own apps lead their category, then the catalog keeps its order. */
+/** The apps most people connect first, by any of their ids. */
+export const POPULAR_APPS = [
+  "gmail", "googlecalendar", "googledrive", "slack", "github", "notion", "googledocs", "googlesheets",
+  "outlook", "linear", "figma", "zoom", "dropbox", "jira", "hubspot", "asana", "trello", "discord",
+  "bitwarden", "lastpass", "dashlane",
+] as const;
+
+/** Where an app stands among the popular ones, or Infinity. */
+export function popularity(entry: Pick<AppEntry, "id" | "composio" | "remote" | "aliases">): number {
+  const ids = [entry.id, entry.composio, entry.remote, ...(entry.aliases ?? [])].filter(Boolean).map((id) => id!.toLowerCase());
+  const at = Math.min(...ids.map((id) => (POPULAR_APPS as readonly string[]).indexOf(id)).filter((index) => index >= 0));
+  return Number.isFinite(at) ? at : Infinity;
+}
+
+const byPopularity = (list: AppEntry[]) => list
+  .map((entry, index) => ({ entry, index, rank: popularity(entry) }))
+  .sort((a, b) => a.rank - b.rank || a.index - b.index)
+  .map(({ entry }) => entry);
+
+/** OpenMausBot's own apps lead their category, then the catalog's popular apps, then the rest in its order. */
 export function inCategory(entries: readonly AppEntry[], category: string): AppEntry[] {
   const members = entries.filter((entry) => entry.categories.includes(category as Category));
-  return [...members.filter((entry) => !fromCatalog(entry)), ...members.filter(fromCatalog)];
+  return [...members.filter((entry) => !fromCatalog(entry)), ...byPopularity(members.filter(fromCatalog))];
 }
 
 /** Grok's "Recommended for you": apps not yet connected, in the categories of the apps you have, the categories you use
- * most first. Nothing is recommended before something is connected. */
+ * most first. Before anything is connected it is the popular apps (Gmail, Calendar, Drive, Slack...). */
 export function recommended(entries: readonly AppEntry[], connection: (id: string) => Connection, size = RECOMMENDED_SIZE): AppEntry[] {
   const affinity = new Map<Category, number>();
   for (const entry of entries) {
     if (connection(entry.id) !== "connected") continue;
     for (const category of entry.categories) affinity.set(category, (affinity.get(category) ?? 0) + 1);
   }
+  if (!affinity.size) return byPopularity(entries.filter((entry) => popularity(entry) !== Infinity)).slice(0, size);
   const strength = (entry: AppEntry) => Math.max(0, ...entry.categories.map((category) => affinity.get(category) ?? 0));
   return entries
     .map((entry, index) => ({ entry, index, strength: strength(entry) }))

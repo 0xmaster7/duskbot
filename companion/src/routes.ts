@@ -266,8 +266,9 @@ const EXPLAINED: ReadonlyArray<{ path: RegExp; error: string }> = [
 /** Default deny: anything not listed is "no route", so a stolen token cannot
  * map the API. */
 export function denyReason({ path, method, authenticated }: RouteRequest): Denial | null {
-  // Pairing is the one thing a device does before it has a credential.
+  // pairing credentials authorize these public routes.
   if (method === "POST" && path === "/api/pair") return null;
+  if (method === "POST" && path === "/api/mobile/redeem") return null;
   // Liveness is open too: the first thing anyone curls when pairing fails, and
   // it discloses nothing a port scan would not.
   if (method === "GET" && path === "/api/health") return null;

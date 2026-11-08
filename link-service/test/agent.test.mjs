@@ -1,7 +1,7 @@
 import { ClientRequest, createServer } from "node:http";
 import { describe, expect, it } from "vitest";
 
-import { createTunnelAgent, openFrame, sealBytes, sealFrame } from "../agent.mjs";
+import { createEgressProxy, createTunnelAgent, EGRESS_PROBE, openFrame, sealBytes, sealFrame } from "../agent.mjs";
 
 const id = "abcdefghij";
 const key = Buffer.alloc(32, 3);
@@ -157,5 +157,32 @@ describe("tunnel agent receiving buffers", () => {
       server.closeAllConnections();
       await new Promise((resolve) => server.close(resolve));
     }
+  });
+});
+
+describe("egress dial timing", () => {
+  it("probes the app's path when no stream measured it lately and reports the median dial time", async () => {
+    let t = 1_000_000;
+    const sent = [], reports = [];
+    const proxy = createEgressProxy({ send: (frame) => sent.push(frame), bytes: () => true, queued: () => 0, onDrain: () => {}, bind: () => null,
+      now: () => t, reportMs: 60_000, report: async (state) => { reports.push(state); return { enabled: true }; } });
+    proxy.handle({ t: "egress", ready: true });
+    await proxy.start();
+    const dial = sent.find((frame) => frame.t === "dial");
+    expect(dial).toMatchObject({ host: EGRESS_PROBE.host, port: EGRESS_PROBE.port });
+    expect(reports.at(-1).dialMs).toBeNull();
+    t += 420;
+    expect(proxy.handle({ t: "dialed", r: dial.r, ok: true })).toBe(true);
+    expect(sent.at(-1)).toEqual({ t: "cancel", r: dial.r });
+    expect(proxy.dialLatency()).toBe(420);
+    expect(proxy.stats().active).toBe(0);
+    // a fresh sample means no second probe until a minute passes
+    sent.length = 0;
+    proxy.handle({ t: "egress", ready: true });
+    t += 30_000;
+    await proxy.stop();
+    expect(sent.filter((frame) => frame.t === "dial")).toHaveLength(0);
+    t += 200_000;
+    expect(proxy.dialLatency()).toBeNull();
   });
 });

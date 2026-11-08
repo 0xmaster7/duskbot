@@ -589,7 +589,8 @@ describe("the Details tab", () => {
   it("says what routines are while the bot has none, in Grok's words, and lists them once it has some", () => {
     const empty = botTab(makeBot());
     expect(empty.html).toContain(">Routines are recurring tasks this Bot runs on a schedule. Ask it in chat to set one up.<");
-    expect(empty.html).toContain('data-panel-action="new-routine"');
+    // routines are set up in chat, so the panel offers no button of its own
+    expect(empty.html).not.toContain('data-panel-action="new-routine"');
     fixture.storeState = { ...fixture.storeState, routines: [routine()] };
     const some = botTab(makeBot());
     expect(some.html).not.toContain('data-panel-empty="routines"');
@@ -604,7 +605,7 @@ describe("the Details tab", () => {
     expect(rendered.html).toContain(">Paused<");
     expect(rendered.html).toContain(">Every weekday at 9 AM<");
     expect(rendered.html).toContain('aria-expanded="false"');
-    expect(rendered.html).toContain('data-panel-action="new-routine"');
+    expect(rendered.html).not.toContain('data-panel-action="new-routine"');
   });
 
   it("offers Grok's speeds and languages on the Advanced tab, kept per bot", () => {
@@ -879,7 +880,7 @@ describe("the drill-in pages", () => {
     expect(rendered.html).toMatch(/aria-label="Pause Morning brief, Every weekday at 9 AM"[^>]*role="switch" aria-checked="true"/);
     expect(rendered.html).not.toContain("Open schedules");
     expect(has(rendered, "data-panel-action", "routine-logs")).toBe(false);
-    expect(rendered.html).toContain('data-panel-action="new-routine"');
+    expect(rendered.html).not.toContain('data-panel-action="new-routine"');
   });
 
   it("lists what MEMORY.md remembers, forgets one line through the memory file route, and adds one", async () => {

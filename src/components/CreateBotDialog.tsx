@@ -131,7 +131,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
       >
         <button
           type="button"
-          aria-label="Close dialog"
+          aria-label={t("common.close")}
           onClick={onClose}
           className="absolute right-2.5 top-2.5 z-[1] flex size-8 items-center justify-center rounded-[9999px] text-ink-secondary hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
         >
@@ -148,7 +148,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
             <input
               autoFocus
               type="text"
-              aria-label="Bot name"
+              aria-label={t("botPanel.nameField")}
               placeholder="Name your Bot"
               value={name}
               maxLength={80}
@@ -157,7 +157,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
               className="my-1 h-9 w-full rounded-[10px] border border-ink/10 bg-transparent px-2.5 py-2 text-center text-[13px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/56 focus:border-ink/12!"
             />
             <div className="flex flex-col gap-3">
-              <div role="group" aria-label="Character shape" className="flex flex-col gap-2 py-1.5" onPointerLeave={rest} onBlur={rest}>
+              <div role="group" aria-label={t("botPanel.avatar.shapes")} className="flex flex-col gap-2 py-1.5" onPointerLeave={rest} onBlur={rest}>
                 {SHAPES.map((row) => (
                   <div key={row[0]} className="flex justify-center gap-x-[clamp(0px,calc((100%-240px)/4),8px)]">
                     {row.map((id) => (
@@ -166,7 +166,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
                   </div>
                 ))}
               </div>
-              <div role="group" aria-label="Character color" className="flex max-w-[232px] flex-wrap items-center justify-center gap-2 self-center py-2" onPointerLeave={rest} onBlur={rest}>
+              <div role="group" aria-label={t("botPanel.avatar.colors")} className="flex max-w-[232px] flex-wrap items-center justify-center gap-2 self-center py-2" onPointerLeave={rest} onBlur={rest}>
                 {SWATCHES.map((swatch) => (
                   <button
                     key={swatch.label}

@@ -189,7 +189,7 @@ function Chips({ threadId, message, bots = [], align = "start", canReact = true,
           : cn(
             "flex items-center gap-1 rounded-full border px-2 py-0.5 text-[13px] leading-5",
             fresh && "animate-pop-in",
-            mine === emoji ? "border-accent/50 bg-accent/15" : "border-hairline/40 bg-panel",
+            mine === emoji ? "border-ink/25 bg-ink/[0.08]" : "border-hairline/40 bg-panel",
           );
         const face = (
           <>

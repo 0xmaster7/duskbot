@@ -504,7 +504,7 @@ function clampedDial(host, port) {
  * the tunnel's stream api; without it the vps's stream requests go unanswered. it always rides the relay, where the
  * agent's half of it lives.
  */
-export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
+export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
   const fetchImpl = given ?? relayFetch({ dial: clampedDial });
   const stream = streamChoice();
   let unwarm = () => {};
@@ -521,7 +521,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
   async function post(frames, at) {
     for (let attempt = 0; !closed; attempt += 1) {
       try {
-        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-vps`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
+        const response = await fetchImpl(`${route}/to-vps`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
         // read, not cancelled: a cancelled body closes the socket the next post would reuse
         const said = await response.text().catch(() => "");
         if (response.ok && !ordered) ordered = /"ordered":true/.test(said);
@@ -612,7 +612,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       if (!next && !fetchImpl.connectAware) armStall();
       // a nudge ends the read in hand and the one asked for ahead of it
       const nudged = (pollNudge = next?.nudge ?? new AbortController());
-      const read = (signal, onConnected) => fetchImpl(`${base}/v1/tunnels/${id}/to-app?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal, onConnected });
+      const read = (signal, onConnected) => fetchImpl(`${route}/to-app?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal, onConnected });
       try {
         const response = await (next?.response ?? read(AbortSignal.any([abort.signal, stall.signal, nudged.signal, AbortSignal.timeout(40_000)]), armStall));
         if (streaming) {

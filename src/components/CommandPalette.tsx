@@ -259,7 +259,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Search"
+        aria-label={t("sidebar.search")}
         data-command-palette
         className="pointer-events-auto relative flex h-[455px] max-h-[calc(100vh-32px)] w-[min(560px,calc(100vw-32px))] flex-col overflow-hidden rounded-[18px] border border-ink/12 bg-menu text-[13px] text-ink"
       >
@@ -275,7 +275,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
             aria-activedescendant={entries.length ? optionId(selected) : undefined}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search"
+            aria-label={t("sidebar.search")}
             placeholder="Search"
             className="min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-[14px] leading-[22px] tracking-[-0.15px] text-ink outline-none placeholder:text-ink/56"
           />
@@ -300,7 +300,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
                   return row(`bot:${bot.id}`, index, entry, <BotAvatar bot={bot} size={24} animated={false} trackPointer={false} />,
                     <Marked text={bot.name} query={q} />, botPreview(bot, visibleMessages(bot), state.instances), "Bot",
                     <>
-                      {unread && <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-accent-text" /></span>}
+                      {unread && <span role="img" aria-label={t("sidebar.grok.unreadActivity")} className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-accent-text" /></span>}
                       {/* grok's rows carry no keycap; the shortcut stays, read out only */}
                       {key && <span className="sr-only">Command {key}</span>}
                     </>);
@@ -310,7 +310,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
                   const members = group.memberIds.map((id) => state.bots.find((bot) => bot.id === id)).filter((bot): bot is Bot => Boolean(bot));
                   return row(`room:${group.id}`, index, entry, <GroupAvatar members={members} you={you} size={24} />, <Marked text={group.name} query={q} />,
                     group.description || groupPreview(group, state.bots, state.instances), "Group chat",
-                    group.unread ? <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-accent-text" /></span> : undefined);
+                    group.unread ? <span role="img" aria-label={t("sidebar.grok.unreadActivity")} className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-accent-text" /></span> : undefined);
                 }
                 if (entry.kind === "message") {
                   const { hit } = entry;

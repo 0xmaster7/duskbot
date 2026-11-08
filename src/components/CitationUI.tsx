@@ -251,7 +251,7 @@ export function CitationBadge({
         onClick={() => { setUnavailable(false); setOpen((value) => !value); }}
         aria-expanded={open}
         aria-label={`Open citation: ${citation.quote.slice(0, 80)}`}
-        className="inline-flex max-w-64 items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-[11px] text-accent-text hover:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60"
+        className="inline-flex max-w-64 items-center gap-1.5 rounded-full bg-ink/[0.06] px-2.5 py-1 text-[11px] text-ink-secondary transition-colors hover:bg-ink/[0.11] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
         <Quote size={11} className="shrink-0" aria-hidden="true" />
         <span className="truncate">{citation.quote.replace(/\s+/g, " ")}</span>
