@@ -1,4 +1,6 @@
 @import "tailwindcss" source(none);
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
 
 @source "./";
 
@@ -8,7 +10,8 @@
   color-scheme: dark;
   /* the desktop app's grok-dark skin: near-black ground, cards lift by a few percent, translucent hairlines */
   --bg: #111111;
-  --side: #111111;
+  /* the sidebar sits a step above the page, as it did in v4 */
+  --side: #171717;
   --card: #181818;
   --card-2: #1f1f1f;
   --line: rgb(245 245 245 / 0.07);
@@ -39,7 +42,7 @@
   color-scheme: light;
   /* grok light: the same roles, remeasured */
   --bg: #fcfcfc;
-  --side: #fcfcfc;
+  --side: #f3f3f3;
   --card: #f4f4f4;
   --card-2: #ebebeb;
   --line: rgb(28 28 28 / 0.08);
@@ -67,8 +70,8 @@
 }
 
 @theme inline {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", "SF Mono", ui-monospace, monospace;
 
   --text-12: 12px;
   --text-12--line-height: 16px;
@@ -183,7 +186,6 @@
     color: var(--ink);
     font-family: var(--font-sans);
     font-size: 14px;
-    letter-spacing: -0.003em;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -214,9 +216,10 @@
     content: ""; position: absolute; inset: 0; border-radius: inherit; background: currentColor;
     animation: pulse-dot 1.8s var(--ease-out) infinite;
   }
-  .press { transition: transform var(--dur-fast) var(--ease-out), background-color 150ms ease, color 150ms ease, border-color 150ms ease, opacity 150ms ease; }
+  /* hover is instant everywhere, like the app's sidebar; only the press scale moves */
+  .press { transition: transform var(--dur-fast) var(--ease-out); }
   .press:active:not(:disabled) { transform: scale(0.96); }
-  .press-soft { transition: transform var(--dur-fast) var(--ease-out), background-color 150ms ease, color 150ms ease; }
+  .press-soft { transition: transform var(--dur-fast) var(--ease-out); }
   .press-soft:active { transform: scale(0.985); }
   .bar-fill { transition: transform var(--dur-slow) var(--ease-out); transform-origin: left; }
   .swap { transition: opacity var(--dur-fast) ease, filter var(--dur-fast) ease; }
@@ -224,7 +227,6 @@
   .modal-in { animation: modal-in 260ms var(--ease-out) both, fade var(--dur-fast) linear both; }
   .sweep { animation: progress-sweep 1.6s linear infinite; }
   .seg-thumb { transition: transform var(--dur-base) var(--ease-out); }
-  .pick { transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease; }
   .switch-thumb { transition: transform 330ms var(--ease-release); }
   .switch-track { transition: background-color var(--dur-base) ease; }
 
@@ -251,7 +253,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .hover-row:hover { background: var(--card-2); }
-  .hover-side:hover { background: color-mix(in oklab, var(--ink) 4%, transparent); color: var(--ink-2); }
+  .hover-side:hover { background: color-mix(in oklab, var(--ink) 6%, transparent); color: var(--ink); }
   .hover-ghost:hover { background: color-mix(in oklab, var(--ink) 7%, transparent); }
   .hover-outline:hover { background: color-mix(in oklab, var(--card-2) 90%, var(--ink)); }
   .hover-primary:hover { background: var(--primary-hover); }

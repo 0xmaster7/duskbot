@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { ActivityReport } from "../../../shared/dashboard-protocol";
-import { compact, dayKey, longDate, monthShort, parseDay, plural, usd } from "../lib/format";
-import { cx } from "./kit";
+import { compact, dayKey, longDate, MONTH_NAMES, monthShort, parseDay, plural, usd } from "../lib/format";
+import { cx, Stat } from "./kit";
 
 export type HeatMetric = "turns" | "tokens" | "spend";
 const WEEKS = 53;
@@ -11,6 +11,42 @@ const valueOf = (d: ActivityReport["days"][number] | undefined, metric: HeatMetr
   !d ? 0 : metric === "turns" ? d.turns : metric === "tokens" ? d.tokens : d.costUsd ?? 0;
 
 const say = (v: number, metric: HeatMetric) => (metric === "turns" ? plural(v, "turn") : metric === "tokens" ? `${compact(v)} tokens` : usd(v));
+
+export function activityStats(days: ActivityReport["days"], metric: HeatMetric, now: number) {
+  const byDay = new Map(days.map((d) => [d.date, valueOf(d, metric)]));
+  const months = new Map<string, number>();
+  let bestDay: { date: string; v: number } | null = null;
+  for (const [date, v] of byDay) {
+    if (v <= 0) continue;
+    months.set(date.slice(0, 7), (months.get(date.slice(0, 7)) ?? 0) + v);
+    if (!bestDay || v > bestDay.v) bestDay = { date, v };
+  }
+  let bestMonth: string | null = null;
+  for (const [m, v] of months) if (!bestMonth || v > (months.get(bestMonth) ?? 0)) bestMonth = m;
+  // streaks walk the calendar, so a gap day breaks them
+  let longest = 0, run = 0;
+  const active = [...byDay.entries()].filter(([, v]) => v > 0).map(([d]) => d).sort();
+  let prev: number | null = null;
+  for (const d of active) {
+    const t = parseDay(d).getTime();
+    run = prev !== null && Math.round((t - prev) / DAY_MS) === 1 ? run + 1 : 1;
+    longest = Math.max(longest, run);
+    prev = t;
+  }
+  let current = 0;
+  const today = parseDay(dayKey(now));
+  for (let t = today.getTime(), i = 0; i < 400; i++, t -= DAY_MS) {
+    const v = byDay.get(dayKey(t)) ?? 0;
+    if (v > 0) current++;
+    else if (i > 0 || current > 0) break;
+  }
+  return {
+    bestMonth: bestMonth ? MONTH_NAMES[Number(bestMonth.slice(5)) - 1]! : null,
+    bestDay: bestDay ? longDate(parseDay(bestDay.date)) : null,
+    longest,
+    current,
+  };
+}
 
 export function Heatmap({ days, metric, now, compactCells = false }: { days: ActivityReport["days"]; metric: HeatMetric; now: number; compactCells?: boolean }) {
   const scroller = useRef<HTMLDivElement>(null);
@@ -74,6 +110,18 @@ export function Heatmap({ days, metric, now, compactCells = false }: { days: Act
         {levels.map((l) => <span key={l} className="size-[10px] rounded-[2px]" style={{ background: l ? `var(--heat-${l})` : "var(--cell)" }} />)}
         <span className="ms-1">More</span>
       </div>
+    </div>
+  );
+}
+
+export function HeatStats({ days, metric, now }: { days: ActivityReport["days"]; metric: HeatMetric; now: number }) {
+  const s = useMemo(() => activityStats(days, metric, now), [days, metric, now]);
+  return (
+    <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2 max-md:gap-y-5">
+      <Stat label="Most active month" value={s.bestMonth ?? "None yet"} />
+      <Stat label="Most active day" value={s.bestDay ?? "None yet"} />
+      <Stat label="Longest streak" value={plural(s.longest, "day")} />
+      <Stat label="Current streak" value={plural(s.current, "day")} />
     </div>
   );
 }

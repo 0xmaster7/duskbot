@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { WorkspaceDetail } from "../../../shared/dashboard-protocol";
+import type { BotReport, WorkspaceDetail } from "../../../shared/dashboard-protocol";
 import { api, FIXTURE } from "../lib/api";
 import { useSession } from "./session";
 import { usageMonth, type UsageMonth, type UsageSource } from "./usage-math";
@@ -15,7 +15,7 @@ export interface PlanWindow {
 
 interface Answer { detail: WorkspaceDetail | null; error: string | null }
 
-export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSource[]; loading: boolean; error: string | null; plans: PlanWindow[] } {
+export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSource[]; loading: boolean; error: string | null; plans: PlanWindow[]; bots: Array<{ bot: BotReport; where: string }> } {
   const { workspaces, workspace, detail, now } = useSession();
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const current = useRef({ workspace, detail, now });
@@ -53,23 +53,25 @@ export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSou
     return { workspace: item, detail: latest };
   });
   const reportKey = JSON.stringify(reports.map((item) => [item.workspace.id, item.workspace.name, item.detail !== null, item.detail?.report?.at, item.detail?.sectionAt.activity, item.detail?.sectionAt.bots, item.detail?.sectionAt.plans]));
-  const { sources, plans } = useMemo(() => {
+  const { sources, plans, bots } = useMemo(() => {
     const sources: UsageSource[] = [];
+    const bots: Array<{ bot: BotReport; where: string }> = [];
     const windows = new Map<string, { at: number; window: PlanWindow }>();
     for (const item of reports) {
       if (!item.detail) continue;
       const { report, sectionAt } = item.detail;
       sources.push({ workspaceId: item.workspace.id, workspaceName: item.workspace.name, activity: report?.activity ?? null, bots: report?.bots ?? [] });
+      for (const bot of report?.bots ?? []) bots.push({ bot, where: item.workspace.name });
       for (const provider of report?.plans?.providers ?? []) for (const window of provider.windows) {
         const key = JSON.stringify([provider.id, window.label]);
         const at = sectionAt.plans ?? report?.at ?? 0;
         if (!windows.has(key) || at > windows.get(key)!.at) windows.set(key, { at, window: { provider: provider.name, plan: provider.plan, ...window, workspaceName: item.workspace.name } });
       }
     }
-    return { sources, plans: [...windows.values()].map((item) => item.window).sort((a, b) => b.usedPercent - a.usedPercent) };
+    return { bots, sources, plans: [...windows.values()].map((item) => item.window).sort((a, b) => b.usedPercent - a.usedPercent) };
   }, [reportKey]);
   const month = useMemo(() => usageMonth(sources, current.current.now, { split: FIXTURE ? "exact" : "estimate" }), [sources]);
   const loading = workspaces === null || reports.some((item) => !item.detail && !answers[item.workspace.id]);
   const error = !loading && reports.length > 0 && reports.every((item) => !item.detail) ? reports.map((item) => answers[item.workspace.id]?.error).find((message) => message !== null && message !== undefined) ?? null : null;
-  return { month: sources.length || workspaces?.length === 0 ? month : null, sources, loading, error, plans };
+  return { month: sources.length || workspaces?.length === 0 ? month : null, sources, loading, error, plans, bots };
 }
