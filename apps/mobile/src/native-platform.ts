@@ -8,19 +8,44 @@ import { PushNotifications } from "@capacitor/push-notifications";
 import { Share } from "@capacitor/share";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { SecureStorage } from "@aparajita/capacitor-secure-storage";
+
+/** The Keychain/Keystore plugin's own native methods. Its JS conveniences (setKeyPrefix, get, set) go through a lazily
+ * loaded wrapper that never answers on Android with Capacitor 8.6, so the phone keeps tokens through these directly. */
+const keystore = SecureStorage as unknown as {
+  internalGetItem(options: { prefixedKey: string; sync: boolean }): Promise<{ data: string | null }>;
+  internalSetItem(options: { prefixedKey: string; data: string; sync: boolean }): Promise<void>;
+  internalRemoveItem(options: { prefixedKey: string; sync: boolean }): Promise<{ success: boolean }>;
+};
+const SECRET_PREFIX = "omb.";
 import { BarcodeScanner, BarcodeFormat, GoogleBarcodeScannerModuleInstallState } from "@capacitor-mlkit/barcode-scanning";
-import type { MobilePlatform } from "@/mobile/platform";
+import type { CameraPermission, MobilePlatform } from "@/mobile/platform";
 import type { MobileOpenTarget } from "../../../shared/mobile-link";
 
 type PendingHandle = Promise<PluginListenerHandle>;
-let storageReady: Promise<void> | undefined;
 let overlayReady: Promise<void> | undefined;
+
+export function cameraPermission(value: string): CameraPermission {
+  return value === "granted" || value === "limited" ? "granted" : value === "denied" ? "denied" : "prompt";
+}
+
+export function distinctCodes(onCode: (text: string) => void): (text: string | undefined) => void {
+  const seen = new Set<string>();
+  return (text) => {
+    if (typeof text !== "string" || seen.has(text)) return;
+    seen.add(text);
+    onCode(text);
+  };
+}
 
 function unsubscribe(handles: PendingHandle[]): () => void {
   for (const handle of handles) void handle.catch(() => {});
   return () => {
     for (const handle of handles) void handle.then((value) => value.remove()).catch(() => {});
   };
+}
+
+function setScanning(on: boolean) {
+  document.documentElement.classList.toggle("mobile-scanning", on);
 }
 
 async function ensureBarcodeModule(): Promise<boolean> {
@@ -64,15 +89,18 @@ function notificationTarget(data: Record<string, unknown>): MobileOpenTarget {
 
 export async function nativePlatform(): Promise<MobilePlatform> {
   const kind = Capacitor.getPlatform() as "ios" | "android";
-  storageReady ??= SecureStorage.setKeyPrefix("omb.");
   if (kind === "android") {
     overlayReady ??= StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
   }
+  // a plugin that never answers must not hold the first paint: each startup read gets two seconds
+  const bounded = <T,>(work: Promise<T>, label: string): Promise<T | undefined> => new Promise((resolve) => {
+    const timer = setTimeout(() => { console.warn(`startup: ${label} did not answer`); resolve(undefined); }, 2000);
+    work.then(resolve, () => resolve(undefined)).finally(() => clearTimeout(timer));
+  });
   const [info, launch] = await Promise.all([
-    App.getInfo().catch(() => null),
-    App.getLaunchUrl().catch(() => undefined),
-    storageReady,
-    overlayReady,
+    bounded(App.getInfo(), "app info"),
+    bounded(App.getLaunchUrl(), "launch url"),
+    bounded(overlayReady ?? Promise.resolve(), "status bar"),
   ]);
   let pendingLaunchUrl = launch?.url;
 
@@ -137,11 +165,11 @@ export async function nativePlatform(): Promise<MobilePlatform> {
     },
     secrets: {
       get: async (key) => {
-        const value = await SecureStorage.get(key, false);
-        return typeof value === "string" ? value : null;
+        const { data } = await keystore.internalGetItem({ prefixedKey: SECRET_PREFIX + key, sync: false });
+        return typeof data === "string" ? data : null;
       },
-      set: (key, value) => SecureStorage.set(key, value, false),
-      remove: async (key) => { await SecureStorage.remove(key); },
+      set: (key, value) => keystore.internalSetItem({ prefixedKey: SECRET_PREFIX + key, data: value, sync: false }),
+      remove: async (key) => { await keystore.internalRemoveItem({ prefixedKey: SECRET_PREFIX + key, sync: false }); },
     },
     async scanQr() {
       try {
@@ -155,6 +183,67 @@ export async function nativePlatform(): Promise<MobilePlatform> {
       } catch {
         return null;
       }
+    },
+    camera: kind === "ios" && !Capacitor.isPluginAvailable("BarcodeScanner") ? undefined : {
+      permission: async () => cameraPermission((await BarcodeScanner.checkPermissions()).camera),
+      request: async () => cameraPermission((await BarcodeScanner.requestPermissions()).camera),
+      openSettings: () => BarcodeScanner.openSettings(),
+      async start({ onCode, onError }) {
+        const handles: PluginListenerHandle[] = [];
+        const deliver = distinctCodes(onCode);
+        let stopped = false;
+        let stopping: Promise<void> | undefined;
+        let torchOn = false;
+        let torchPending = Promise.resolve();
+        const stop = () => {
+          if (stopping) return stopping;
+          stopped = true;
+          setScanning(false);
+          stopping = (async () => {
+            try {
+              await Promise.allSettled(handles.map((handle) => handle.remove()));
+              await torchPending.catch(() => {});
+              if (torchOn) await BarcodeScanner.disableTorch().catch(() => {});
+              await BarcodeScanner.stopScan();
+            } finally {
+              setScanning(false);
+            }
+          })();
+          return stopping;
+        };
+        try {
+          setScanning(true);
+          handles.push(await BarcodeScanner.addListener("barcodesScanned", ({ barcodes }) => {
+            if (!stopped) deliver(barcodes[0]?.rawValue);
+          }));
+          handles.push(await BarcodeScanner.addListener("scanError", ({ message }) => {
+            if (!stopped) onError?.(message);
+          }));
+          await BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode] });
+          const { available } = await BarcodeScanner.isTorchAvailable();
+          return {
+            stop,
+            torch: available ? {
+              set(on) {
+                if (stopped) return Promise.resolve();
+                torchPending = torchPending.catch(() => {}).then(async () => {
+                  if (stopped) return;
+                  if (on) await BarcodeScanner.enableTorch();
+                  else await BarcodeScanner.disableTorch();
+                  torchOn = on;
+                });
+                return torchPending;
+              },
+            } : undefined,
+          };
+        } catch (error) {
+          await stop().catch(() => {});
+          throw error;
+        }
+      },
+    },
+    async readClipboard() {
+      try { return await navigator.clipboard?.readText() ?? null; } catch { return null; }
     },
     openExternal: (url) => Browser.open({ url, presentationStyle: "popover" }),
     share: async (data) => { await Share.share(data); },
