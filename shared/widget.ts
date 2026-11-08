@@ -1,3 +1,4 @@
+import { isRecord } from "./json.ts";
 // A bot-authored chat widget: the JSON tree `show_widget` posts as a message
 // of kind "widget". Node names and props follow ChatKit's widget components.
 // Model input is normalised here once; every renderer reads canonical trees only.
@@ -128,10 +129,6 @@ class WidgetInputError extends Error {}
 
 function fail(path: string, message: string): never {
   throw new WidgetInputError(`${path}: ${message}`);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));

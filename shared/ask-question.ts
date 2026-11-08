@@ -1,3 +1,4 @@
+import { isRecord } from "./json.ts";
 /**
  * Structured questions from a provider's own "ask the human" tool, Claude
  * Code's `AskUserQuestion`. The CLI routes it through --permission-prompt-tool
@@ -68,10 +69,6 @@ function text(value: unknown, limit: number): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
   return trimmed ? trimmed.slice(0, limit).trim() : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function parseOption(value: unknown): AskQuestionOption | null {
