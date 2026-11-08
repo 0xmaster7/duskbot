@@ -13,7 +13,6 @@ const fixture = vi.hoisted(() => {
   return { config: {} as FeatureFlagConfig & { cloudHome?: boolean }, view };
 });
 // These cover the Advanced panel; ComputerPanel.simple.test.ts covers Simple.
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => true, setAdvancedMode: () => {} }));
 vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
   useStore: () => ({
@@ -71,26 +70,6 @@ describe("Computer panel on a narrow screen", () => {
     expect(aside[1].split(" ")).toEqual(expect.arrayContaining(["max-md:absolute", "max-md:inset-0", "max-md:z-40", "max-md:w-full!"]));
     const separator = /<div role="separator"[^>]*class="([^"]*)"/.exec(markup)!;
     expect(separator[1].split(" ")).toContain("max-md:hidden");
-  });
-});
-
-describe("Computer panel Works on", () => {
-  const places = (markup: string) => [...markup.matchAll(/<span>(Auto|Cloud desktop|Private desktop|This computer|Browser|Off)<\/span>/g)].map((match) => match[1]);
-  const computerTab = (config: FeatureFlagConfig & { cloudHome?: boolean }) => {
-    fixture.view.current = "computer";
-    try { return render(config); } finally { fixture.view.current = "browser"; }
-  };
-
-  it("lists this computer and a private desktop on a desktop or self-hosted server", () => {
-    const markup = computerTab({});
-    expect(places(markup)).toEqual(["Auto", "Cloud desktop", "Private desktop", "This computer", "Browser", "Off"]);
-    expect(markup).toContain("Choose where this bot works.</p>");
-  });
-
-  it("lists neither on My Cloud, and says why", () => {
-    const markup = computerTab({ cloudHome: true });
-    expect(places(markup)).toEqual(["Auto", "Cloud desktop", "Browser", "Off"]);
-    expect(markup).toContain("Choose where this bot works. It can also use your computer whenever MausBot is open on it.");
   });
 });
 

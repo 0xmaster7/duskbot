@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MotionConfig } from "motion/react";
 import { openBot, openBotThread, openRoomThread, StoreProvider, useStore } from "@/state/store";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { useTeamChats } from "@/state/team-chats";
 import { useWarmChatImages } from "@/components/use-warm-chat-images";
 import { ThreadRefsProvider } from "@/components/ThreadRefs";
@@ -25,7 +24,6 @@ import type { MobileSheet } from "./sheets";
 function Shell() {
   const platform = usePlatform();
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const rootRef = useRef<HTMLDivElement>(null);
   const [chatId, setChatId] = useState<string | null>(null);
   const [sheet, setSheet] = useState<MobileSheet | null>(null);
@@ -42,10 +40,10 @@ function Shell() {
   const openChat = useCallback((id: string) => {
     const current = latest.current;
     const bot = current.bots.find((b) => b.id === id);
-    if (bot) openBot(dispatch, bot, showThreads);
+    if (bot) openBot(dispatch, bot);
     else dispatch({ type: "select", id });
     setChatId(id);
-  }, [dispatch, showThreads]);
+  }, [dispatch]);
 
   const openSheet = useCallback((next: MobileSheet) => {
     setSheet(next);

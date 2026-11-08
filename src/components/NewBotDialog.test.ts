@@ -8,7 +8,6 @@ vi.mock("@/state/thread-navigation", async importOriginal => ({
   ...await importOriginal<typeof import("@/state/thread-navigation")>(), openBot: fixture.openBot,
 }));
 vi.mock("@/lib/analytics", () => ({ track: fixture.track }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.admin }));
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({ capabilities: {} }) }));
 vi.mock("react", async importOriginal => {

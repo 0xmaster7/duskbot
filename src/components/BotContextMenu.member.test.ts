@@ -7,8 +7,6 @@ const fixture = vi.hoisted(() => ({ advanced: true, admin: false as boolean | nu
 vi.mock("react", async (importOriginal) => ({ ...await importOriginal<typeof import("react")>(), useLayoutEffect: () => {} }));
 vi.mock("react-dom", async (importOriginal) => ({ ...await importOriginal<typeof import("react-dom")>(), createPortal: (node: ReactNode) => node }));
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({}) }));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => true }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.admin }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();

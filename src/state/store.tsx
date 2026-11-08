@@ -57,7 +57,6 @@ import { readLastConversation, rememberConversation } from "@/lib/last-conversat
 import { readLastBotSection, rememberBotSection } from "@/lib/last-bot-section";
 import { showNotification } from "@/lib/notify";
 import { randomUuid } from "@/lib/random-uuid";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { speechOwner, spokenReplyStream } from "@/lib/spoken-reply-stream";
 import { t } from "@/lib/i18n";
 import { createBotPatchQueue, flushWhenLeaving, keepaliveFits, type BotUpdatePatch } from "./bot-patch-queue"; import { createNewTaskOnce } from "./new-task-once";
@@ -2084,9 +2083,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [transcriptCache] = useState(() => createTranscriptCache(indexedDbShelf()));
   const invalidateTranscripts = useSelectedTranscript(state, rawDispatch, MESSAGE_PAGE_SIZE, transcriptCache);
   useTranscriptCache(state, rawDispatch, transcriptCache);
-  const showThreads = useShowThreads();
-  const showThreadsRef = useRef(showThreads);
-  showThreadsRef.current = showThreads;
   const clearChatError = useCallback(() => {
     rawDispatch({ type: "error", message: null });
   }, []);
@@ -2564,7 +2560,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           creatingBot = true;
           rawDispatch({ type: "botCreationPending", on: true });
           void import("@/lib/new-bot")
-            .then(({ makeNewBot }) => makeNewBot(action, stateRef.current.bots, wrapped, showThreadsRef.current))
+            .then(({ makeNewBot }) => makeNewBot(action, stateRef.current.bots, wrapped))
             .catch(showError)
             .finally(() => {
               creatingBot = false;
@@ -2865,8 +2861,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!state.hydrated || launched.current) return;
     launched.current = true;
     const bot = state.bots.find((candidate) => candidate.id === state.selectedId);
-    if (bot && state.activeView === "chat" && botOpensTo(bot, showThreads) !== bot.threadId) openBot(dispatch, bot, showThreads);
-  }, [state.hydrated, state.bots, state.selectedId, state.activeView, showThreads, dispatch]);
+    if (bot && state.activeView === "chat" && botOpensTo(bot) !== bot.threadId) openBot(dispatch, bot);
+  }, [state.hydrated, state.bots, state.selectedId, state.activeView, dispatch]);
 
   useEffect(() => {
     let alive = true;
@@ -3119,7 +3115,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           // The wrapped dispatch: only it PATCHes unread:false back to the server.
           showNotification(
             frame.notification,
-            (target) => openThread(dispatch, target, stateRef.current, showThreadsRef.current),
+            (target) => openThread(dispatch, target, stateRef.current),
             stateRef.current.bots.find((bot) => bot.id === frame.notification.botId)?.avatarUrl,
             visibleNotificationThread(stateRef.current),
           );

@@ -1,7 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { splitReplyBlocks } from "@/lib/formatted-reply";
 import { activeLocale, t } from "@/lib/i18n";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { useReactor } from "@/lib/cloud-guest";
 import { otherSpeaker } from "@/lib/own-profile";
 import { Check, ChevronDown, FolderOpen, Loader2, Pin, X } from "lucide-react";
@@ -330,7 +329,6 @@ export const Transcript = memo(function Transcript({
   seamId?: string | null;
 }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const showToolCalls = showToolCallsEnabled(state.config);
   const openedAt = useThreadOpenedAt(group.threadId);
   const today = localDay(Date.now());
@@ -399,7 +397,7 @@ export const Transcript = memo(function Transcript({
         <RoutineRunCard
           message={m}
           onOpen={routineTarget
-            ? () => openThread(dispatch, routineTarget, state, showThreads)
+            ? () => openThread(dispatch, routineTarget, state)
             : undefined}
         />
       </div>

@@ -4,7 +4,6 @@ import { Bell } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { api, useStore, openThread } from "@/state/store";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { askingWhom, pictureOf, refreshNeedsYou, useTeamPeople, type TeamPerson } from "@/state/team-people";
 import type { NeedsYouItem } from "../../shared/today";
 import { useInboxSupport } from "@/state/inbox";
@@ -43,7 +42,6 @@ export function NeedsYouTitle({ item, title }: { item: NeedsYouItem; title: stri
 /** One thing that needs this person, opening its conversation. */
 export function NeedsYouLine({ item, onOpened }: { item: NeedsYouItem; onOpened?: () => void }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const botName = (botId: string) => state.bots.find((bot) => bot.id === botId)?.name ?? t("needsYou.aBot");
   const botId = "botId" in item ? item.botId : item.botIds[0]!;
   const title = item.kind === "message" ? t("needsYou.message", { name: item.from })
@@ -53,7 +51,7 @@ export function NeedsYouLine({ item, onOpened }: { item: NeedsYouItem; onOpened?
     onClick={() => {
       onOpened?.();
       if (!item.threadId) return;
-      openThread(dispatch, { botId, threadId: item.threadId }, state, showThreads);
+      openThread(dispatch, { botId, threadId: item.threadId }, state);
       if (item.kind === "message") readConversation(state.groups, botId, item.threadId);
     }}
     className="flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left hover:bg-menu-hover">

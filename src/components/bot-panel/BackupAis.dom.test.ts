@@ -19,7 +19,6 @@ vi.mock("@/state/store", async (importOriginal) => {
     }),
   };
 });
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => false, readAdvancedMode: () => false, setAdvancedMode: vi.fn() }));
 vi.mock("../Avatar", () => ({ BotAvatar: () => null, MausAvatar: () => null }));
 
 const { BackupAis, MAX_BACKUPS } = await import("./BackupAis");

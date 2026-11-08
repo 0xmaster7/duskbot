@@ -1,7 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "../../src/App";
 import { setEmailGateDone } from "../../src/lib/analytics";
-import { setAdvancedMode } from "../../src/lib/interface-mode";
 import { GROK_MOVE_NOTICE } from "../../src/lib/notices";
 import { applySkinChoice, readSkinChoice } from "../../src/lib/skins";
 import { applyChatWidth, readChatWidth } from "../../src/lib/chat-width";
@@ -17,7 +16,6 @@ if (new URLSearchParams(location.search).has("ombVoiceProbe")) {
   (window as typeof window & { __ombVoiceProbe?: unknown[] }).__ombVoiceProbe = [];
 }
 // ?onboarding=1 plays a brand-new install, and a new install opens in Simple mode.
-if (new URLSearchParams(location.search).has("onboarding")) setAdvancedMode(false);
 else setEmailGateDone("skipped");
 // Every launch is a new browser, so the once-per-browser Simple mode popup shows only with ?simpleModePrompt=1.
 // The same for the once-per-person Move from Grok Bot popup, with ?grokMovePopup=1.

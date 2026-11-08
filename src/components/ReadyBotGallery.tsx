@@ -4,7 +4,6 @@ import { stoppedAtBotLimit } from "@/lib/bot-limit";
 import { BotCreationDraft } from "@/lib/bot-creation-draft";
 import { createConfiguredBot } from "@/lib/create-configured-bot";
 import { announceNewBot, reportsToFor, startingTemplate, type BotDefaultsAnswer } from "@/lib/new-bot";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { useTeamPeople } from "@/state/team-people";
 import { MausAvatar } from "./Avatar";
 import { LocalComputerAutoWarning } from "./LocalComputerAutoWarning";
@@ -30,7 +29,6 @@ export function ReadyBotGallery({ search, onDialog, onAdded }: {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [making, setMaking] = useState<string | null>(null);
   const team = useTeamPeople();
-  const showThreads = useShowThreads();
   const ask = (id: string | null) => { setConfirming(id); onDialog(id !== null); };
   // one click makes the bot, as Grok's create does; it is tuned afterwards in its settings
   const add = async (id: string, allowLocalAuto = false) => {
@@ -52,7 +50,7 @@ export function ReadyBotGallery({ search, onDialog, onAdded }: {
       }
       const { bot, warnings } = await createConfiguredBot(draft, undefined, undefined, undefined, undefined,
         team ? reportsToFor(null, draft.bot.section, state.bots, team) ?? undefined : undefined);
-      announceNewBot(dispatch, bot, warnings, { showThreads, source: "template", role: ready.id });
+      announceNewBot(dispatch, bot, warnings, { source: "template", role: ready.id });
       onAdded(bot);
     } catch (cause) {
       dispatch({ type: "error", message: cause instanceof Error ? cause.message : String(cause) });

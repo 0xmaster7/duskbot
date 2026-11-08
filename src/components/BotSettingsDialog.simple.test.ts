@@ -57,10 +57,6 @@ vi.mock("react", async (original) => ({
   },
   useEffect: () => {},
 }));
-vi.mock("@/lib/interface-mode", () => ({
-  useAdvancedMode: () => fixture.advanced,
-  setAdvancedMode: (enabled: boolean) => fixture.setAdvanced(enabled),
-}));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.ownerOrAdmin }));
 vi.mock("@/lib/app-links", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/app-links")>()),

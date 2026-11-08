@@ -1,7 +1,6 @@
 import { createContext, memo, startTransition, use, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type Dispatch, type Ref, type RefObject } from "react";
 import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
 import { ThreadLinkContext } from "@/components/ThreadLinkMenu";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { ChevronLeft, ChevronRight, Copy, Monitor, RefreshCw, Square, Webhook } from "lucide-react";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { ACTION_ICON, ChatBusyContext, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction, type MessageMenuItem } from "@/components/MessageActions";
@@ -898,7 +897,6 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const bot = useMemo(() => shownTranscript(currentTaskBot(profile)), [profile]);
   const transcriptPending = profile.transcriptLoaded === false;
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const remoteClient = window.ogb?.remoteClient?.active === true;
   const { dragProps: headerDragProps, noDragStyle: headerNoDragStyle } = useCaptionChrome();
   const composerDockRef = useRef<HTMLDivElement>(null);
@@ -1125,11 +1123,11 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           )}
           {!phone && !simpleHead && <ChatHeadRole bot={bot} />}<span role="status" className="sr-only" data-chathead-status>{bot.busy ? t("sidebar.preview.working") : ""}</span>{!simpleHead && privateChat && <TeamPrivateHeader />}{!simpleHead && ownHelper && <TeamOwnHelperHeader />}{!simpleHead && sharedChat && team && <TeamSharedHeader team={team} onlyPeopleAdded={bot.onlyPeopleAdded} />}
           {!simpleHead && !bot.busy && bot.waitingForTeammates && <span className="truncate text-[12px] text-ink-secondary" role="status">Teammates working</span>}
-          {remoteClient && awayFromMainThread(profile, showThreads) && (
+          {remoteClient && awayFromMainThread(profile) && (
             <button
               type="button"
               data-chathead-back
-              onClick={() => openBot(dispatch, profile, false)}
+              onClick={() => openBot(dispatch, profile)}
               className="shrink-0 whitespace-nowrap rounded-full bg-raised px-2.5 py-0.5 text-[12px] font-medium text-ink-secondary hover:bg-raised-hover hover:text-ink"
             >
               {t("chat.backToMainThread")}
@@ -1157,7 +1155,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           {phone && <UsageAlert engine={bot.modelSelection?.instanceId} />}
           {/* Simple mode chooses the model in the bot panel's Details, as its header is the bot's pill alone. */}
           {!phone && !simpleHead && <ModelPicker key={bot.threadId} bot={bot} threadId={bot.threadId} />}
-          <LiveCallChip currentBotId={bot.id} onOpen={(botId, threadId) => openThread(dispatch, { botId, threadId }, state, showThreads)} />
+          <LiveCallChip currentBotId={bot.id} onOpen={(botId, threadId) => openThread(dispatch, { botId, threadId }, state)} />
           {/* Grok's header is the bot's pill alone: the pill opens the panel, whose Computer tab shows the bot's screen. */}
           {!phoneMenu && !simpleHead && <button
             data-tour="computer"
@@ -1179,7 +1177,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       {privateChat && team && <TeamPrivateFirstLine key={team.id} team={team} />}
       {routineExecution && <div className="mx-5 mb-2 flex min-h-8 flex-wrap items-center gap-1 rounded-[14px] bg-composer py-1 pe-1 ps-3 text-[12px] leading-4 text-ink-secondary ring-[0.5px] ring-ink/[0.1]">
         <span className="min-w-0 flex-1 truncate">{t("routines.executionDetails", { name: routineExecution.routineName })}</span>
-        {canOpenResults && resultsThreadId && <button type="button" onClick={() => openThread(dispatch, { botId: bot.id, threadId: resultsThreadId }, state, showThreads)} className="h-6 rounded-full px-2 text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{t("routines.results.back")}</button>}
+        {canOpenResults && resultsThreadId && <button type="button" onClick={() => openThread(dispatch, { botId: bot.id, threadId: resultsThreadId }, state)} className="h-6 rounded-full px-2 text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{t("routines.results.back")}</button>}
         <button type="button" onClick={() => dispatch({ type: "openRoutine", routineId: routineExecution.routineId, botId: bot.id })} className="h-6 rounded-full px-2 transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{t("routines.inline.open")}</button>
       </div>}
       {findOpen && <ChatFindBar threadId={bot.threadId} onClose={() => setFindOpen(false)} />}

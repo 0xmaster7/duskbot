@@ -42,8 +42,6 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
     },
   }),
 }));
-const mode = vi.hoisted(() => ({ advanced: false }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => mode.advanced, setAdvancedMode: () => {} }));
 vi.mock("./CloudScreenPreview", () => ({
   CloudScreenPreview: ({ onOpen, onRetry }: { onOpen: () => void; onRetry: (discard: boolean) => void }) => createElement("div", null,
     createElement("button", { "data-preview": "", onClick: onOpen }, "preview"),
@@ -276,16 +274,6 @@ describe("taking control of a Local VM", () => {
     ]);
 
     fixture.beacons = [];
-    // only Advanced has another tab to leave Screen for
-    mode.advanced = true;
-    try {
-      await open(makeBot({ computer: "vm" }));
-      await press("Take control");
-      await press("Routines");
-      expect(releases(), "leaving the Screen view left the bot waiting").toHaveLength(1);
-      root!.unmount();
-      root = null;
-    } finally { mode.advanced = false; }
     await open(makeBot({ computer: "vm" }));
 
     fixture.beacons = [];

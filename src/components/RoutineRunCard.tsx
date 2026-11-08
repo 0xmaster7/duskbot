@@ -3,7 +3,6 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { routineDateTime } from "@/lib/routine-display";
 import { t } from "@/lib/i18n";
-import { useShowThreads } from "@/lib/thread-preferences";
 import type { RoutineRunCardData } from "../../shared/routine-run";
 import { openThread, useStore, type Message } from "@/state/store";
 
@@ -124,7 +123,6 @@ export function RoutineRunCard({
 
 export function RoutineRunRow({ message, botId }: { message: Message; botId: string }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const executionThreadId = message.routineRun?.executionThreadId;
   const canOpen = executionThreadId && state.bots.some((candidate) =>
     candidate.threadId === executionThreadId || hasRoutineExecutionTask(candidate.tasks, executionThreadId)
@@ -133,7 +131,7 @@ export function RoutineRunRow({ message, botId }: { message: Message; botId: str
     <RoutineRunCard
       message={message}
       onOpen={canOpen && executionThreadId
-        ? () => openThread(dispatch, { botId, threadId: executionThreadId }, state, showThreads)
+        ? () => openThread(dispatch, { botId, threadId: executionThreadId }, state)
         : undefined}
     />
   );

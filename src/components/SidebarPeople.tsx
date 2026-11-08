@@ -8,7 +8,6 @@ import { openAsksOf } from "@/lib/bot-unread";
 import { cn } from "@/lib/cn";
 import { leadComposerDraft } from "@/lib/drafts";
 import { t } from "@/lib/i18n";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { openBot, openThread, useStore, type AppState, type Bot } from "@/state/store";
 import { openInbox } from "@/state/inbox";
 import { useTeamPeople, type TeamPerson } from "@/state/team-people";
@@ -40,7 +39,6 @@ const focusComposer = () => requestAnimationFrame(() => document.querySelector<H
 export function SidebarPeople({ compact }: { compact: boolean }) {
   const team = useTeamPeople();
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   if (!team) return null;
   const invite = team.admin ? teamPeoplePage(state.config?.team) : null;
   if (team.people.length < 2 && !invite) return null;
@@ -51,7 +49,7 @@ export function SidebarPeople({ compact }: { compact: boolean }) {
   const waiting = inbox ? openAsksOf(inbox) : 0;
   const open = (person: TeamPerson) => {
     if (person.you) {
-      if (inbox) openBot(dispatch, inbox, showThreads);
+      if (inbox) openBot(dispatch, inbox);
       if (inboxThread) openInbox();
       return;
     }
@@ -60,8 +58,8 @@ export function SidebarPeople({ compact }: { compact: boolean }) {
     if (draft) leadComposerDraft(draft, tag);
     else if (inbox && inboxThread) {
       leadComposerDraft(`bot:${inbox.id}:${inboxThread}`, tag);
-      openThread(dispatch, { botId: inbox.id, threadId: inboxThread }, state, showThreads);
-    } else if (inbox) openBot(dispatch, inbox, showThreads);
+      openThread(dispatch, { botId: inbox.id, threadId: inboxThread }, state);
+    } else if (inbox) openBot(dispatch, inbox);
     focusComposer();
   };
   return (

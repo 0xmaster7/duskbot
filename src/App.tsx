@@ -3,7 +3,6 @@ import { ChevronLeft, Menu } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { CLOUD_LINK_SETTINGS, openBot, StoreProvider, useStore } from "@/state/store";
 import { nextShortcutBot, shortcutBots, shownBotIds } from "@/lib/sidebar-shortcut-order";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { useWelcomeViewer, WelcomeGate } from "@/components/onboarding/WelcomeGate";
 import { CloudTimeZoneSync } from "@/components/CloudTimeZone";
 import { useWarmChatImages } from "@/components/use-warm-chat-images";
@@ -88,7 +87,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   // A Switch AI pick lands once its stopped turn's chat is idle, wherever the person is by then.
   useAiSwitchKeeper({ bots: state.bots, dispatch });
   useWarmChatImages(state.bots);
-  const showThreads = useShowThreads();
   const { capabilities } = useDesktopCapabilities();
   const captionChrome = useCaptionChrome();
   const unreadCount =
@@ -188,19 +186,19 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         const target = bots[Number(e.key) - 1];
         if (target) {
           e.preventDefault();
-          openBot(dispatch, target, showThreads);
+          openBot(dispatch, target);
         }
       } else if (step !== null) {
         const next = nextShortcutBot(bots, state.selectedId, step);
         if (next) {
           e.preventDefault();
-          openBot(dispatch, next, showThreads);
+          openBot(dispatch, next);
         }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [state.bots, state.selectedId, state.shortcutsOpen, showThreads, dispatch]);
+  }, [state.bots, state.selectedId, state.shortcutsOpen, dispatch]);
 
   useReadShownChatOnFocus();
   // Grok Bot widens its window for the panel rather than squeezing the chat; a browser tab can't, so there it overlays.

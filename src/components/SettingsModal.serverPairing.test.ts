@@ -6,7 +6,6 @@ import { SettingsModal } from "./SettingsModal";
 
 // These pin the card as always offered; the server decides who may act.
 const fixture = vi.hoisted(() => ({ section: "companion" as AppSettingsSection, config: undefined as { cloudHome?: boolean } | undefined, phonePairing: 0 }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => false, setAdvancedMode: () => {} }));
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({ capabilities: {} }) }));
 
 vi.mock("@/state/store", async (importOriginal) => ({

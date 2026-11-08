@@ -27,7 +27,6 @@ const fixture = vi.hoisted(() => {
     instances: [] as InstanceInfo[],
     dispatch: (() => {}) as (...args: unknown[]) => void,
     api: (() => Promise.resolve({})) as (...args: unknown[]) => Promise<unknown>,
-    setAdvancedMode: (() => {}) as (enabled: boolean) => void,
     ownerOrAdmin: null as boolean | null,
   };
 });
@@ -53,10 +52,6 @@ vi.mock("react", async (original) => ({
     }];
   },
   useEffect: () => {},
-}));
-vi.mock("@/lib/interface-mode", () => ({
-  useAdvancedMode: () => fixture.advanced,
-  setAdvancedMode: (enabled: boolean) => fixture.setAdvancedMode(enabled),
 }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.ownerOrAdmin }));
 vi.mock("./DesktopCapabilities", () => ({
@@ -96,7 +91,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
 }));
 
 const { ComputerPanel } = await import("./ComputerPanel");
-const { LocalComputerAutoWarning } = await import("./LocalComputerAutoWarning");
 
 afterAll(() => vi.unstubAllGlobals());
 
@@ -131,12 +125,12 @@ function makeBot(patch: Partial<Bot> = {}): Bot {
   } as Bot;
 }
 
-function render(forBot: Bot, props: { onOpenVmWorkspace?: (botId: string) => void } = {}) {
+function render(forBot: Bot) {
   fixture.values.length = Math.min(fixture.values.length, fixture.own);
   let tree: ReactNode = null;
   function Capture() {
     fixture.index = 0;
-    tree = ComputerPanel({ bot: forBot, ...props });
+    tree = ComputerPanel({ bot: forBot });
     fixture.own = fixture.index;
     return tree;
   }
@@ -165,7 +159,6 @@ beforeEach(() => {
   fixture.instances = [engine()];
   fixture.dispatch = vi.fn();
   fixture.api = vi.fn(() => Promise.resolve({ features: { browser: true } }));
-  fixture.setAdvancedMode = vi.fn();
   fixture.ownerOrAdmin = null;
   for (const key of Object.keys(fixture.ogb)) delete fixture.ogb[key];
 });
@@ -195,13 +188,6 @@ describe("Computer panel tabs", () => {
     fixture.values = [];
     phaseIndex = -1;
     expect(tabs(render(makeBot({ computer: "browser" })))).toEqual(["Screen", "Browser"]);
-  });
-
-  it("keeps the Advanced tabs unchanged", () => {
-    fixture.advanced = true;
-    expect(tabs(render(makeBot()))).toEqual(["Screen", "Routines", "Browser"]);
-    fixture.config = {};
-    expect(tabs(render(makeBot()))).toEqual(["Screen", "Routines", "Browser"]);
   });
 
   it("reads a Routines view stored by Advanced as the Computer tab in Simple", () => {
@@ -288,40 +274,6 @@ describe("Choosing a place in the panel", () => {
     expect(user.button("Add your VPS")).toBeUndefined();
   });
 
-  it("dispatches exactly what the Advanced picker dispatches for each place", () => {
-    const expected = [
-      { computer: null },
-      { computer: "cloud" },
-      { computer: "vm" },
-      { computer: "local" },
-      { computer: "browser", browser: true },
-      { computer: "off" },
-    ];
-    for (const [index, patch] of expected.entries()) {
-      fixture.advanced = true;
-      fixture.values = [];
-      fixture.dispatch = vi.fn();
-      const rendered = render(makeBot({ computer: patch.computer === "off" ? "cloud" : "off" }));
-      const group = rendered.nodes.find((node) => node.props.role === "group" && node.props["aria-label"] === "Computer destination")!;
-      (nodes(group.props.children).filter((node) => node.type === "button")[index]!.props.onClick as () => void)();
-      expect((fixture.dispatch as ReturnType<typeof vi.fn>).mock.calls).toEqual([[{ type: "updateBot", botId: "scout", patch }]]);
-    }
-  });
-
-  it("asks before letting an auto-approving bot use this Mac", () => {
-    fixture.advanced = true;
-    const start = makeBot({ computer: "off", approvalMode: "auto" } as Partial<Bot>);
-    const rendered = render(start);
-    const group = rendered.nodes.find((node) => node.props.role === "group" && node.props["aria-label"] === "Computer destination")!;
-    (nodes(group.props.children).filter((node) => node.type === "button").find((node) => text(node.props.children).startsWith("This computer"))!.props.onClick as () => void)();
-    expect(fixture.dispatch).not.toHaveBeenCalled();
-    const warning = render(start).nodes.find((node) => node.type === LocalComputerAutoWarning)!;
-    expect(warning.props.open).toBe(true);
-    (warning.props.onConfirm as () => void)();
-    expect(fixture.dispatch).toHaveBeenCalledWith({
-      type: "updateBot", botId: "scout", patch: { computer: "local", acknowledgeLocalAuto: true },
-    });
-  });
 });
 
 describe("A chat pinned to a place", () => {
@@ -332,10 +284,6 @@ describe("A chat pinned to a place", () => {
   it("names the place in the grid's words, without pointing Simple at a composer chip it no longer has", () => {
     expect(note(render(pinned()))).toBe("This chat is pinned to “Cloud desktop”.");
 
-    fixture.advanced = true;
-    fixture.values = [];
-    phaseIndex = -1;
-    expect(note(render(pinned()))).toBe("This conversation is pinned to Cloud desktop. Change it from the composer.");
   });
 
   const pinnedOn = (computer: Bot["computer"], task: Partial<Task> = {}) =>
@@ -353,9 +301,6 @@ describe("A chat pinned to a place", () => {
     fresh();
     expect(text(unpin(render(pinnedOn("local")))!.props.children)).toBe("Use This Mac");
 
-    fixture.advanced = true;
-    fresh();
-    expect(unpin(render(pinned()))).toBeUndefined();
   });
 
   it("waits out a running turn, as the server refuses a busy chat's place change", () => {
@@ -373,38 +318,21 @@ describe("A chat pinned to a place", () => {
     }
   });
 
-  it("does not call the place Auto picked a pin in Advanced either", () => {
-    fixture.advanced = true;
-    fresh();
-    const rendered = render(pinnedOn(undefined, { surface: "browser", surfaceAuto: true }));
-    expect(rendered.nodes.some((node) => node.props["data-testid"] === "place-pinned-note")).toBe(false);
-    fresh();
-    expect(note(render(pinnedOn(undefined, { surface: "browser" })))).toBe("This conversation is pinned to Browser. Change it from the composer.");
-  });
 });
 
 describe("Technical controls", () => {
   const cloud = () => makeBot({ computer: "cloud" });
 
-  it("hides technical controls in Simple and keeps useful controls in Advanced", () => {
+  it("hides technical controls", () => {
     const simple = render(cloud());
     expect(simple.nodes.some((node) => node.props.title === "Bot settings")).toBe(false);
     expect(simple.html).not.toContain("Works on");
     expect(simple.buttons.some((node) => text(node.props.children).startsWith("Routines"))).toBe(false);
 
-    fixture.advanced = true;
-    fixture.values = [];
-    const advanced = render(cloud());
-    expect(advanced.nodes.some((node) => node.props.title === "Bot settings")).toBe(true);
-    expect(advanced.html).toContain("Works on");
-    expect(advanced.buttons.some((node) => text(node.props.children).startsWith("Routines"))).toBe(true);
   });
 
   it("hides the VM settings link in Simple", () => {
     expect(render(makeBot({ computer: "vm" })).html).not.toContain("Private desktop settings");
-    fixture.advanced = true;
-    fixture.values = [];
-    expect(render(makeBot({ computer: "vm" })).html).toContain("Private desktop settings");
   });
 
   it("shows Take control, Full screen and Sleep under a ready cloud screen", () => {
@@ -414,16 +342,9 @@ describe("Technical controls", () => {
     expect(nodes(row.props.children).filter((node) => node.type === "button").map((node) => text(node.props.children)))
       .toEqual(["Take control", "Full screen", "Sleep"]);
 
-    fixture.advanced = true;
-    fixture.values = [];
-    phaseIndex = -1;
-    const advanced = render(cloud());
-    expect(advanced.nodes.some((node) => node.props["data-testid"] === "computer-actions")).toBe(false);
-    expect(advanced.button("Take control")).toBeDefined();
-    expect(advanced.button("Full screen")).toBeUndefined();
   });
 
-  it("hides two desktops and Delete VM in Simple, keeps them in Advanced", () => {
+  it("hides two desktops and Delete VM", () => {
     fixture.ogb.desktopWorkspace = {};
     fixture.seed = {
       phase: "vm",
@@ -431,20 +352,13 @@ describe("Technical controls", () => {
       vmStatus: { mode: "per-bot", container: "running", ready: true, viewer_url: "http://127.0.0.1/viewer", target_key: `bot:${"a".repeat(64)}` },
     };
     const vm = () => makeBot({ computer: "vm" });
-    const onOpenVmWorkspace = () => {};
-    const simple = render(vm(), { onOpenVmWorkspace });
+    const simple = render(vm());
     expect(simple.html).not.toContain("Open two desktops");
     expect(simple.html).not.toContain("Delete this bot");
     const row = simple.nodes.find((node) => node.props["data-testid"] === "computer-actions")!;
     expect(nodes(row.props.children).filter((node) => node.type === "button").map((node) => text(node.props.children)))
       .toEqual(["Take control", "Full screen"]);
 
-    fixture.advanced = true;
-    fixture.values = [];
-    phaseIndex = -1;
-    const advanced = render(vm(), { onOpenVmWorkspace });
-    expect(advanced.html).toContain("two desktops");
-    expect(advanced.buttons.some((node) => node.props.title === "Delete Scout's VM" || /Delete/.test(text(node.props.children)))).toBe(true);
   });
 
   it("turns VPS setup into one friendly line and a way to its settings", () => {
@@ -454,14 +368,7 @@ describe("Technical controls", () => {
     expect(simple.html).toContain("Scout&#x27;s desktop needs a setup step first.");
     expect(simple.button("Open VPS settings")).toBeDefined();
     (simple.button("Open VPS settings")!.props.onClick as () => void)();
-    expect(fixture.setAdvancedMode, "one mode: it opens Settings rather than switching modes").not.toHaveBeenCalled();
     expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings", open: true }));
 
-    fixture.advanced = true;
-    fixture.values = [];
-    phaseIndex = -1;
-    const advanced = render(vps());
-    expect(advanced.buttons.some((node) => /VPS/.test(text(node.props.children)))).toBe(true);
-    expect(advanced.button("Show advanced controls")).toBeUndefined();
   });
 });

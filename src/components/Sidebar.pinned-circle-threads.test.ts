@@ -5,19 +5,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { initialState, type Bot } from "@/state/store";
 import type { BotAvatarCrop } from "../../shared/bot-avatar";
 
-// renderToStaticMarkup reads useShowThreads's server snapshot, which ignores
-// the stored choice, so the cases flip the hook itself.
-const threads = vi.hoisted(() => ({ show: true }));
-
-// Threads are an Advanced-mode surface (Simple keeps one conversation per bot), so these render as Advanced.
-vi.mock("@/lib/interface-mode", async (original) => ({
-  ...await original<typeof import("@/lib/interface-mode")>(),
-  useAdvancedMode: () => true,
-}));
-vi.mock("@/lib/thread-preferences", async (original) => ({
-  ...await original<typeof import("@/lib/thread-preferences")>(),
-  useShowThreads: () => threads.show,
-}));
 vi.mock("./DesktopCapabilities", () => ({
   useDesktopCapabilities: () => ({}),
 }));
@@ -206,7 +193,6 @@ describe("pinned circle order", () => {
 });
 
 afterEach(() => {
-  threads.show = true;
   forgetSearchDisclosuresForTests();
   initialState.selectedId = "";
   initialState.activeView = "chat";

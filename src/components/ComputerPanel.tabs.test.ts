@@ -22,7 +22,6 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
     },
   }),
 }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: () => {} }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
 vi.mock("./CloudScreenPreview", () => ({ CloudScreenPreview: () => null }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: ({ page }: { page?: unknown }) => { fixture.page = page; return null; } }));
@@ -112,23 +111,23 @@ afterEach(() => {
 describe("Computer panel tab", () => {
   it("names the tablist from the active catalog", async () => {
     setLocale("de");
-    await open(makeBot());
+    await open(makeBot({ computer: "browser" }));
     expect(document.querySelector('[data-testid="computer-tabs"]')?.getAttribute("role")).toBe("tablist");
     expect(tabListName()).toBe(t("computer.tabsAria"));
     expect(tabListName()).not.toBe("Bot panel view");
   });
 
-  it("stays on Routines through a model change and follows a conversation change", async () => {
-    await open(makeBot());
+  it("stays on Browser through a model change and follows a conversation change", async () => {
+    await open(makeBot({ computer: "browser" }));
     expect(selected()).toBe("Screen");
-    flushSync(() => tab("Routines").click());
+    flushSync(() => tab("Browser").click());
     await settle();
-    expect(selected()).toBe("Routines");
-    expect(document.getElementById("computer-panel-tabs-panel-routines")).not.toBeNull();
+    expect(selected()).toBe("Browser");
+    expect(document.getElementById("computer-panel-tabs-panel-browser")).not.toBeNull();
 
-    await open(makeBot({ modelSelection: { instanceId: "codex", model: "m" } }));
-    expect(selected()).toBe("Routines");
-    expect(document.getElementById("computer-panel-tabs-panel-routines")).not.toBeNull();
+    await open(makeBot({ computer: "browser", modelSelection: { instanceId: "codex", model: "m" } }));
+    expect(selected()).toBe("Browser");
+    expect(document.getElementById("computer-panel-tabs-panel-browser")).not.toBeNull();
 
     await open(makeBot({ threadId: "thread-2", tasks: [{ threadId: "thread-2", title: "Second", createdAt: 2, approvalMode: "ask" }] } as Partial<Bot>));
     expect(selected()).toBe("Screen");
@@ -143,32 +142,32 @@ describe("Computer panel tab", () => {
     await settle();
     expect(selected()).toBe("Browser");
     expect(fixture.page).toMatchObject({ botId: "scout", url: PAGE });
-    flushSync(() => tab("Routines").click());
+    flushSync(() => tab("Screen").click());
     flushSync(() => requestPanelPage("another-bot", PAGE));
     await settle();
-    expect(selected()).toBe("Routines");
+    expect(selected()).toBe("Screen");
   });
 
   it("marks the selected trigger and only that one", async () => {
-    await open(makeBot());
-    expect(tabs().map((candidate) => candidate.getAttribute("aria-selected"))).toEqual(["true", "false", "false"]);
+    await open(makeBot({ computer: "browser" }));
+    expect(tabs().map((candidate) => candidate.getAttribute("aria-selected"))).toEqual(["true", "false"]);
 
     flushSync(() => tab("Browser").click());
     await settle();
-    expect(tabs().map((candidate) => candidate.getAttribute("aria-selected"))).toEqual(["false", "false", "true"]);
+    expect(tabs().map((candidate) => candidate.getAttribute("aria-selected"))).toEqual(["false", "true"]);
   });
 
   it("keeps one Tab stop and moves it with the arrow, Home and End keys", async () => {
-    await open(makeBot());
+    await open(makeBot({ computer: "browser" }));
     expect(tabStops()).toEqual(["Screen"]);
 
     press("Screen", "ArrowRight");
     await settle();
-    expect(selected()).toBe("Routines");
-    expect(tabStops()).toEqual(["Routines"]);
-    expect(document.activeElement).toBe(tab("Routines"));
+    expect(selected()).toBe("Browser");
+    expect(tabStops()).toEqual(["Browser"]);
+    expect(document.activeElement).toBe(tab("Browser"));
 
-    press("Routines", "ArrowLeft");
+    press("Browser", "ArrowLeft");
     await settle();
     expect(selected()).toBe("Screen");
     expect(document.activeElement).toBe(tab("Screen"));
@@ -192,7 +191,7 @@ describe("Computer panel tab", () => {
   });
 
   it("leaves the vertical arrows to the page's scrolling", async () => {
-    await open(makeBot());
+    await open(makeBot({ computer: "browser" }));
     flushSync(() => tab("Screen").focus());
     expect(press("Screen", "ArrowDown").defaultPrevented).toBe(false);
     expect(press("Screen", "ArrowUp").defaultPrevented).toBe(false);
@@ -209,8 +208,8 @@ describe("Computer panel tab", () => {
   });
 
   it("points every selected trigger at its panel and the panel back", async () => {
-    await open(makeBot());
-    for (const label of ["Screen", "Routines", "Browser"]) {
+    await open(makeBot({ computer: "browser" }));
+    for (const label of ["Screen", "Browser"]) {
       flushSync(() => tab(label).click());
       await settle();
       const trigger = tab(label);
@@ -221,8 +220,8 @@ describe("Computer panel tab", () => {
   });
 
   it("puts every selected panel in the tab sequence", async () => {
-    await open(makeBot());
-    for (const label of ["Screen", "Routines", "Browser"]) {
+    await open(makeBot({ computer: "browser" }));
+    for (const label of ["Screen", "Browser"]) {
       flushSync(() => tab(label).click());
       await settle();
       const panel = document.getElementById(tab(label).getAttribute("aria-controls")!);

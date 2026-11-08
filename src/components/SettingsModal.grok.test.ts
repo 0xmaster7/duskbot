@@ -21,7 +21,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
   api: vi.fn(async () => ({})),
   useStore: () => ({ state: { appSettingsSection: fixture.section, instances: [], bots: [], config: fixture.config }, dispatch: fixture.dispatch }),
 }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advancedMode, setAdvancedMode: vi.fn() }));
 vi.mock("@/lib/analytics", () => ({ analyticsEnabled: () => false, setAnalyticsEnabled: vi.fn() }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.ownerOrAdmin }));
 vi.mock("@/lib/notification-preferences", () => ({

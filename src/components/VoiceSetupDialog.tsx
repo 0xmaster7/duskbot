@@ -4,7 +4,6 @@ import { CheckCircle2, ChevronRight, Loader2, Phone, X } from "lucide-react";
 
 import { glassPopupFrameStyle } from "@/lib/glass-popup";
 import { t } from "@/lib/i18n";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { openBot, useStore, type Bot } from "@/state/store";
 import { VoiceSettings } from "./VoiceSettings";
 import { useBotSettingsDerived } from "./bot-settings/useBotSettingsDerived";
@@ -33,7 +32,6 @@ export function VoiceSetupDialog({
   returnFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const { patch } = useBotSettingsDerived(bot);
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -90,7 +88,7 @@ export function VoiceSetupDialog({
 
   const openAllSettings = () => {
     close();
-    if (state.selectedId !== bot.id) openBot(dispatch, bot, showThreads);
+    if (state.selectedId !== bot.id) openBot(dispatch, bot);
     openBotSettings(dispatch, "voice");
   };
 

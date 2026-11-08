@@ -5,7 +5,6 @@ import type { PlaceLook } from "../../electron/place-look.mjs";
 import App from "../../src/App";
 import { ChromeRail } from "../../src/components/ChromeRail";
 import { setEmailGateDone } from "../../src/lib/analytics";
-import { setAdvancedMode } from "../../src/lib/interface-mode";
 import { NOTICES } from "../../src/lib/notices";
 import { setSidebarDensity, SIDEBAR_WIDTH_KEY, SIMPLE_SIDEBAR_WIDTH_KEY } from "../../src/lib/sidebar-preferences";
 import { GROK_MOVE_NOTICE } from "../../src/lib/notices";
@@ -38,7 +37,6 @@ try {
   for (const notice of NOTICES) localStorage.setItem(notice, "1");
   for (const width of [SIDEBAR_WIDTH_KEY, SIMPLE_SIDEBAR_WIDTH_KEY]) localStorage.removeItem(width);
 } catch {}
-setAdvancedMode(params.get("mode") !== "simple");
 setSidebarDensity(params.get("density") === "icons" ? "icons" : "comfortable");
 applySkin((params.get("skin") ?? "midnight") as SkinId);
 

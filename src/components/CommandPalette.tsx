@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { api, openBot, useStore, visibleMessages, type Action, type AppSettingsSection, type Bot, type Group } from "@/state/store";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { cn } from "@/lib/cn";
 import type { SearchHit } from "@/lib/search-hit";
 import { landOnSearchHit } from "@/lib/focus-message";
@@ -66,7 +65,6 @@ function Marked({ text, query }: { text: string; query: string }) {
 export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
   const you = useGroupYou();
-  const showThreads = useShowThreads();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [messageHits, setMessageHits] = useState<SearchHit[]>([]);
@@ -188,12 +186,12 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
     setOpen(false);
     if (entry.kind === "message") {
       try {
-        await landOnSearchHit(entry.hit, state, dispatch, showThreads);
+        await landOnSearchHit(entry.hit, state, dispatch);
       } catch (error) {
         dispatch({ type: "error", message: error instanceof Error ? error.message : String(error) });
       }
     } else if (entry.kind === "bot") {
-      openBot(dispatch, entry.bot, showThreads);
+      openBot(dispatch, entry.bot);
     } else if (entry.kind === "room") {
       dispatch({ type: "select", id: entry.group.id });
     } else {
