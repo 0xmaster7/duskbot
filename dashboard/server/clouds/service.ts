@@ -15,9 +15,11 @@ export class CloudError extends Error {
   constructor(status: number, code: string, message = "Cloud request failed.") { super(message); this.name = "CloudError"; this.status = status; this.code = code; }
 }
 export interface CloudsConfig {
+  configured?: { pool: boolean; dedicated: boolean };
   adminOrigin: string;
   dashboardUrl: string;
-  version: string;
+  /** the Cloud home container image dedicated machines run */
+  image: string;
   originTemplate?: string;
   poolQuota(kind: DesktopPlan["kind"], spec: MachineSpec, botComputers: number | null): SlotQuota;
   maxAttempts?: number;
@@ -89,6 +91,9 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       succeeded(c); return;
     }
     if (c.status === "destroyed") return;
+    if (config.configured?.[c.placement] === false) {
+      c.error = "Cloud desktops are not configured."; save(c); return;
+    }
     if (c.suspended !== null) {
       if (!c.suspensionApplied) {
         if (!c.serverId) c.serverId = (await provider.find(c.id))?.id ?? null;
@@ -109,7 +114,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
           const secret = sealer.unseal(c.bootstrapSecret);
           const link = { v: 1 as const, url: config.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: sealer.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
           const common = { cloudId: c.id, adminOrigin: config.adminOrigin, secret, dashboardUrl: config.dashboardUrl, link };
-          const userData = c.placement === "pool" ? poolBootstrap({ ...common, origin: "" }) : dedicatedUserData({ ...common, version: config.version, originTemplate: config.originTemplate });
+          const userData = c.placement === "pool" ? poolBootstrap({ ...common, origin: "" }) : dedicatedUserData({ ...common, image: config.image, originTemplate: config.originTemplate });
           server = await provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData, ...(c.placement === "pool" ? { quota: config.poolQuota(c.kind, c.spec, c.botComputers) } : {}) });
         }
         c.serverId = server.id; c.ipv4 = server.ipv4; c.origin = server.origin ?? null;
@@ -174,6 +179,10 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     activate(id, subscriptionId, plan) {
       const c = requireCloud(id); applyPlan(c, plan); c.subscriptionId = subscriptionId;
       if (c.status !== "checkout") { save(c); return; }
+      if (config.configured?.[c.placement] === false) {
+        c.spec = { ...c.desiredSpec }; c.status = "provisioning"; c.setupStep = "reserving";
+        c.error = "Cloud desktops are not configured."; save(c); return;
+      }
       const keys = linkKeys();
       c.workspaceId = workspaces.register({ accountId: c.accountId, name: c.name, publicKey: keys.publicKey });
       c.linkPublicKey = keys.publicKey; c.sealedLinkPrivateKey = sealer.seal(keys.privateKey); c.bootstrapSecret = sealer.seal(random(32).toString("base64url"));

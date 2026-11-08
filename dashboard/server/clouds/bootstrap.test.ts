@@ -1,9 +1,17 @@
 import { execFileSync } from "node:child_process";
 import { createPrivateKey, createPublicKey, sign, verify } from "node:crypto";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { runInNewContext } from "node:vm";
-import { expect, it } from "vitest";
-import { dedicatedUserData, homeEnv, linkKeys, originFor, poolBootstrap, shellQuote } from "./bootstrap.ts";
+import { afterEach, expect, it } from "vitest";
+import { CLOUD_HOME_MARKER, prepareCloudHomeVolume } from "../../../server/cloud-home.ts";
+import { CLOUD_HOME_MARKER_FILE, dedicatedUserData, homeEnv, linkKeys, originFor, poolBootstrap, shellQuote } from "./bootstrap.ts";
 
+const cleanup: string[] = [];
+afterEach(() => { for (const dir of cleanup.splice(0)) rmSync(dir, { recursive: true, force: true }); });
+function temporaryDir(): string { const dir = mkdtempSync(join(tmpdir(), "omb-cloud-bootstrap-")); cleanup.push(dir); return dir; }
+const image = `ghcr.io/example/openmausbot-cloud-home@sha256:${"a".repeat(64)}`;
 const cloudId = `c${"a".repeat(24)}`;
 const input = { cloudId, adminOrigin: "https://admin.example.test", secret: "S".repeat(43), dashboardUrl: "https://dash.example.test", link: { v: 1 as const, url: "https://dash.example.test", workspaceId: "w1", ...linkKeys(), enrolledAt: 123, claimed: true } };
 it("generates dashboard-compatible ed25519 keys", () => {
@@ -16,27 +24,84 @@ it("expands only valid https origins", () => {
   for (const template of ["http://{id}.example.test", "https://localhost", "https://a.example.test/path", "https://user@a.example.test"]) expect(() => originFor(template, { ipv4: "203.0.113.2", cloudId })).toThrow();
   expect(() => originFor(undefined, { ipv4: "999.0.0.1", cloudId })).toThrow();
 });
-it("quotes every shell input and writes the boot contract and private link with restrictive modes", () => {
-  const value = "quoted'$(touch /tmp/never-cloud)\nvalue";
-  expect(execFileSync("bash", ["-c", `printf '%s' ${shellQuote(value)}`], { encoding: "utf8" })).toBe(value);
-  const script = dedicatedUserData({ ...input, dashboardUrl: value, version: "1.2.3'$(false)" });
+it("quotes shell inputs and runs the Cloud home image with its own volume ownership and edge", () => {
+  const value = "quoted'$(false) value";
+  expect(execFileSync("bash", ["-c", `printf '%s' ${shellQuote(value + "\n")}`], { encoding: "utf8" })).toBe(value + "\n");
+  const script = dedicatedUserData({ ...input, secret: value, image });
   execFileSync("bash", ["-n"], { input: script });
-  const nodeCommand = script.slice(script.indexOf("node -e "), script.indexOf("\nchown maus:maus"));
-  const captured = execFileSync("bash", ["-c", `node(){ printf '%s\\0' "$@"; }; ipv4=203.0.113.2; ${nodeCommand}`]);
-  const args = captured.toString().split("\0");
+  const dir = temporaryDir();
+  const mocks = `fixture=${shellQuote(dir)}
+apt-get(){ printf 'apt-get %s\n' "$*" >> "$fixture/commands"; }
+install(){ printf 'install %s\n' "$*" >> "$fixture/commands"; }
+curl(){ printf '%s' 203.0.113.2; }
+node(){ printf '%s\\0' "$@" > "$fixture/setup"; }
+docker(){
+  printf 'docker %s\n' "$*" >> "$fixture/commands"
+  case "$*" in
+    *'-u maus') printf 1234 ;;
+    *'-g maus') printf 5678 ;;
+  esac
+}
+chown(){ printf 'chown %s\n' "$*" >> "$fixture/commands"; }
+chmod(){ printf 'chmod %s\n' "$*" >> "$fixture/commands"; }
+systemctl(){ printf 'systemctl %s\n' "$*" >> "$fixture/commands"; }
+`;
+  expect(execFileSync("bash", ["-c", mocks + script], { encoding: "utf8" })).toBe("");
+  const args = readFileSync(join(dir, "setup"), "utf8").split("\0");
   const files = new Map<string, { content: string; mode?: number }>();
-  runInNewContext(args[1], { require: () => ({ writeFileSync: (path: string, content: string, options?: { mode: number }) => { files.set(path, { content, ...options }); } }), process: { argv: ["node", args[2], args[3]], exit: () => { throw new Error("invalid"); } }, URL });
-  const env = files.get("/home/maus/cloud.env")!;
-  expect(env.mode).toBe(0o600); expect(env.content).toContain('OMB_CLOUD_ROLE="home"'); expect(env.content).toContain('OMB_PUBLIC_URL="https://203-0-113-2.sslip.io"');
-  expect(env.content).toContain('OMB_DASHBOARD_URL="quoted\'$(touch /tmp/never-cloud)\\nvalue"');
-  for (const name of Object.keys(homeEnv({ ...input, origin: "https://home.example.test" }))) expect(env.content).toContain(name);
-  expect(files.get("/home/maus/.openmausbot/dashboard-link.json")).toEqual({ mode: 0o600, content: JSON.stringify(input.link) });
-  expect(files.get("/etc/caddy/Caddyfile")?.content).toBe("203-0-113-2.sslip.io {\n reverse_proxy 127.0.0.1:8799\n}\n");
-  expect(script).toContain("openmausbot serve --no-pair"); expect(script).toContain(shellQuote("openmausbot@1.2.3'$(false)"));
+  const runSetup = (ipv4 = args[3]) => runInNewContext(args[1], { require: () => ({ writeFileSync: (path: string, content: string, options?: { mode: number }) => { files.set(path, { content, ...options }); } }), process: { argv: ["node", args[2], ipv4], exit: () => { throw new Error("invalid"); } }, URL });
+  runSetup();
+  const env = files.get("/root/omb-home.env")!;
+  expect(env).toEqual({ mode: 0o600, content: Object.entries(homeEnv({ ...input, secret: value, origin: "https://203-0-113-2.sslip.io" })).map(([k, v]) => `${k}=${v}`).join("\n") + "\n" });
+  expect(files.get("/srv/omb-data/.openmausbot/dashboard-link.json")).toEqual({ mode: 0o600, content: JSON.stringify(input.link) });
+  expect(files.get(`/srv/omb-data/${CLOUD_HOME_MARKER_FILE}`)).toEqual({ mode: 0o600, content: JSON.stringify({ version: 1, machine: cloudId }) });
+  expect(files.get("/etc/caddy/Caddyfile")?.content).toBe("203-0-113-2.sslip.io {\n reverse_proxy 127.0.0.1:8080\n}\n");
+  const commands = readFileSync(join(dir, "commands"), "utf8").trim().split("\n");
+  expect(commands).toEqual([
+    "apt-get update", "apt-get install -y ca-certificates curl caddy nodejs", "apt-get install -y docker.io", "systemctl enable --now docker",
+    "install -d -m 700 /srv/omb-data /srv/omb-data/.openmausbot",
+    `docker run --rm --entrypoint id ${image} -u maus`, `docker run --rm --entrypoint id ${image} -g maus`,
+    "chown -R 1234:5678 /srv/omb-data",
+    `docker run -d --name omb-home --restart unless-stopped --env-file /root/omb-home.env -v /srv/omb-data:/data -p 127.0.0.1:8080:8080 ${image}`,
+    "chmod 644 /etc/caddy/Caddyfile", "systemctl enable caddy", "systemctl restart caddy",
+  ]);
+  expect(script).toContain("set +x\nset -euo pipefail\numask 077");
+  expect(script).not.toContain("set -x");
+  expect(script).not.toContain("openmausbot serve");
+  expect(script).not.toContain("npm install");
+  for (const ipv4 of ["999.0.0.1", "203.0.113.2;false", "not-an-ip"]) expect(() => runSetup(ipv4)).toThrow("invalid");
 });
-it("gives the pool image the same env and link under its data volume", () => {
+it.each([
+  "ghcr.io/example/openmausbot-cloud-home", "ghcr.io/example/openmausbot-cloud-home:1.2.3",
+  `registry.example.test:5000/team/cloud_home:release-1@sha256:${"b".repeat(64)}`,
+])("accepts a container image reference: %s", image => {
+  expect(dedicatedUserData({ ...input, image })).toContain(shellQuote(image));
+});
+it.each([
+  "", "openmausbot", "https://ghcr.io/example/home", "ghcr.io//home", "ghcr.io/example/../home", "ghcr.io/Example/home",
+  "ghcr.io/example/home:", "ghcr.io/example/home:tag;false", "ghcr.io/example/home:$(false)", "ghcr.io/example/home tag",
+  "ghcr.io/example/home@sha256:abc", `ghcr.io/example/home@sha256:${"z".repeat(64)}`, "ghcr.io/example/home\n", "ghcr.io/example/home\r",
+])("rejects an invalid image reference: %j", image => {
+  expect(() => dedicatedUserData({ ...input, image })).toThrow("Invalid Cloud home image.");
+});
+it("rejects environment line injection and invalid templates before bootstrapping", () => {
+  for (const key of ["cloudId", "adminOrigin", "secret", "dashboardUrl"] as const) {
+    for (const newline of ["\n", "\r"]) expect(() => dedicatedUserData({ ...input, image, [key]: input[key] + newline + "INJECTED=1" })).toThrow();
+  }
+  for (const originTemplate of ["https://{id}.example.test\n", "https://{id}.example.test\r", "http://{id}.example.test", "https://localhost", "https://a.example.test/path", "https://user@a.example.test"]) {
+    expect(() => dedicatedUserData({ ...input, image, originTemplate })).toThrow();
+  }
+});
+it("gives the pool image the same env, link and volume marker", () => {
   const payload = JSON.parse(poolBootstrap({ ...input, origin: `https://${cloudId}.pool.example.test` }));
-  expect(payload.env).toMatchObject(homeEnv({ ...input, origin: `https://${cloudId}.pool.example.test` }));
-  expect(payload.env.HOME).toBe("/data");
-  expect(payload.files).toEqual([{ path: "/data/.openmausbot/dashboard-link.json", mode: 0o600, content: JSON.stringify(input.link) }]);
+  expect(payload.env).toEqual({ ...homeEnv({ ...input, origin: `https://${cloudId}.pool.example.test` }), HOME: "/data", OMB_DATA_DIR: "/data/.openmausbot", OMB_PORT: "8799" });
+  expect(payload.files).toEqual([
+    { path: "/data/.openmausbot/dashboard-link.json", mode: 0o600, content: JSON.stringify(input.link) },
+    { path: `/data/${CLOUD_HOME_MARKER_FILE}`, mode: 0o600, content: JSON.stringify({ version: 1, machine: cloudId }) },
+  ]);
+  expect(CLOUD_HOME_MARKER_FILE).toBe(CLOUD_HOME_MARKER);
+  const dir = temporaryDir();
+  mkdirSync(join(dir, ".openmausbot"), { mode: 0o700 });
+  for (const file of payload.files) writeFileSync(join(dir, file.path.slice("/data/".length)), file.content, { mode: file.mode });
+  expect(prepareCloudHomeVolume(dir, cloudId)).toBe("existing");
 });

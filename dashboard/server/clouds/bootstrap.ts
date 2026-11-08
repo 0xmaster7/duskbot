@@ -1,5 +1,7 @@
 import { generateKeyPairSync } from "node:crypto";
 
+export const CLOUD_HOME_MARKER_FILE = ".omb-cloud-home.json";
+
 export interface DashboardLink {
   v: 1;
   url: string;
@@ -18,7 +20,9 @@ export function linkKeys(): { publicKey: string; privateKey: string } {
 }
 
 export function homeEnv(input: HomeInput): Record<string, string> {
-  return { OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: input.cloudId, OMB_CLOUD_ADMIN_URL: input.adminOrigin, OMB_CLOUD_BOOTSTRAP_SECRET: input.secret, OMB_PUBLIC_URL: input.origin, OMB_DASHBOARD_URL: input.dashboardUrl };
+  const env = { OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: input.cloudId, OMB_CLOUD_ADMIN_URL: input.adminOrigin, OMB_CLOUD_BOOTSTRAP_SECRET: input.secret, OMB_PUBLIC_URL: input.origin, OMB_DASHBOARD_URL: input.dashboardUrl };
+  if (Object.values(env).some(value => /[\r\n\0]/.test(value))) throw new Error("Invalid cloud environment value.");
+  return env;
 }
 
 export function originFor(template: string | undefined, input: { ipv4: string; cloudId: string }): string {
@@ -32,13 +36,14 @@ export function originFor(template: string | undefined, input: { ipv4: string; c
 }
 
 export function poolBootstrap(input: BootstrapInput & { origin: string }): string {
-  return JSON.stringify({ env: { ...homeEnv(input), HOME: "/data", OMB_DATA_DIR: "/data/.openmausbot", OMB_PORT: "8799" }, files: [{ path: "/data/.openmausbot/dashboard-link.json", mode: 0o600, content: JSON.stringify(input.link) }] });
+  return JSON.stringify({ env: { ...homeEnv(input), HOME: "/data", OMB_DATA_DIR: "/data/.openmausbot", OMB_PORT: "8799" }, files: [{ path: "/data/.openmausbot/dashboard-link.json", mode: 0o600, content: JSON.stringify(input.link) }, { path: `/data/${CLOUD_HOME_MARKER_FILE}`, mode: 0o600, content: JSON.stringify({ version: 1, machine: input.cloudId }) }] });
 }
 
 export function shellQuote(value: string): string { return `'${value.replaceAll("'", `'"'"'`)}'`; }
 
-export function dedicatedUserData(input: BootstrapInput & { version: string; originTemplate?: string }): string {
-  const unit = `[Unit]\nDescription=OpenMausBot Cloud home\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nUser=maus\nWorkingDirectory=/home/maus\nEnvironmentFile=/home/maus/cloud.env\nExecStart=/home/maus/.local/bin/openmausbot serve --no-pair\nRestart=always\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n`;
+export function dedicatedUserData(input: BootstrapInput & { image: string; originTemplate?: string }): string {
+  if (/[\r\n\0]/.test(input.image) || !/^[a-z0-9]+(?:[.-][a-z0-9]+)*(?::[0-9]{1,5})?\/(?:[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*\/)*[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*(?::[A-Za-z0-9_][A-Za-z0-9_.-]{0,127})?(?:@sha256:[0-9a-f]{64})?$/.test(input.image)) throw new Error("Invalid Cloud home image.");
+  originFor(input.originTemplate, { ipv4: "203.0.113.2", cloudId: input.cloudId });
   const setup = `const fs = require("node:fs");
 const input = JSON.parse(process.argv[1]);
 const ipv4 = process.argv[2].trim();
@@ -46,29 +51,30 @@ if (!/^(?:\\d{1,3}\\.){3}\\d{1,3}$/.test(ipv4) || ipv4.split(".").some(v => Numb
 const origin = input.template.replaceAll("{ip-dashed}", ipv4.replaceAll(".", "-")).replaceAll("{id}", input.cloudId);
 const url = new URL(origin);
 if (origin !== url.origin || url.protocol !== "https:" || !url.hostname.includes(".") || url.username || url.password) process.exit(1);
-const env = { ...input.env, OMB_PUBLIC_URL: origin, HOME: "/home/maus", OMB_DATA_DIR: "/home/maus/.openmausbot", OMB_PORT: "8799", PATH: "/home/maus/.local/bin:/usr/local/bin:/usr/bin:/bin", NODE_ENV: "production" };
-const quoted = v => '"' + v.replaceAll('\\\\', '\\\\\\\\').replaceAll('"', '\\\\"').replaceAll('\\n', '\\\\n').replaceAll('\\r', '\\\\r') + '"';
-fs.writeFileSync("/home/maus/cloud.env", Object.entries(env).map(([k,v]) => k + "=" + quoted(v)).join("\\n") + "\\n", { mode: 0o600 });
-fs.writeFileSync("/home/maus/.openmausbot/dashboard-link.json", JSON.stringify(input.link), { mode: 0o600 });
-fs.writeFileSync("/etc/caddy/Caddyfile", url.host + " {\\n reverse_proxy 127.0.0.1:8799\\n}\\n");`;
+const env = { ...input.env, OMB_PUBLIC_URL: origin };
+if (Object.values(env).some(v => /[\\r\\n\\0]/.test(v))) process.exit(1);
+fs.writeFileSync("/root/omb-home.env", Object.entries(env).map(([k,v]) => k + "=" + v).join("\\n") + "\\n", { mode: 0o600 });
+fs.writeFileSync("/srv/omb-data/.openmausbot/dashboard-link.json", JSON.stringify(input.link), { mode: 0o600 });
+fs.writeFileSync("/srv/omb-data/${CLOUD_HOME_MARKER_FILE}", JSON.stringify({ version: 1, machine: input.cloudId }), { mode: 0o600 });
+fs.writeFileSync("/etc/caddy/Caddyfile", url.host + " {\\n reverse_proxy 127.0.0.1:8080\\n}\\n");`;
   const payload = { cloudId: input.cloudId, template: input.originTemplate ?? "https://{ip-dashed}.sslip.io", env: homeEnv({ ...input, origin: "" }), link: input.link };
+  const image = shellQuote(input.image);
   return `#!/bin/bash
+set +x
 set -euo pipefail
 umask 077
-useradd --create-home --home-dir /home/maus --shell /bin/bash maus
 apt-get update
-apt-get install -y ca-certificates curl gnupg caddy
-curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
-apt-get install -y nodejs
-install -d -m 700 -o maus -g maus /home/maus/.openmausbot /home/maus/.local
-runuser -u maus -- env HOME=/home/maus npm install --global --prefix /home/maus/.local ${shellQuote(`openmausbot@${input.version}`)}
+apt-get install -y ca-certificates curl caddy nodejs
+apt-get install -y docker.io
+systemctl enable --now docker
+install -d -m 700 /srv/omb-data /srv/omb-data/.openmausbot
 ipv4="$(curl -fsS --max-time 10 http://169.254.169.254/hetzner/v1/metadata/public-ipv4)"
 node -e ${shellQuote(setup)} ${shellQuote(JSON.stringify(payload))} "$ipv4"
-chown maus:maus /home/maus/cloud.env /home/maus/.openmausbot/dashboard-link.json
+maus_uid="$(docker run --rm --entrypoint id ${image} -u maus)"
+maus_gid="$(docker run --rm --entrypoint id ${image} -g maus)"
+chown -R "$maus_uid:$maus_gid" /srv/omb-data
+docker run -d --name omb-home --restart unless-stopped --env-file /root/omb-home.env -v /srv/omb-data:/data -p 127.0.0.1:8080:8080 ${image}
 chmod 644 /etc/caddy/Caddyfile
-printf '%s' ${shellQuote(unit)} > /etc/systemd/system/openmausbot.service
-systemctl daemon-reload
-systemctl enable --now openmausbot
 systemctl enable caddy
 systemctl restart caddy
 `;

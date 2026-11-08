@@ -19,7 +19,7 @@ function fixture(options: { poolRam?: number; maxAttempts?: number } = {}) {
   const dedicated = createFakeCloudProvider(), driver = createFakePoolDriver({ hosts: [{ id: "pool1", region: "eu", domain: "pool.example.test", draining: false, capacity: { vcpu: 16, ramGb: options.poolRam ?? 32, diskGb: 200, slots: 10 } }] }), pool = createPoolProvider({ driver });
   const workspaces = { register: vi.fn(() => "workspace-1"), lastReportAt: vi.fn(() => at - 1000), remove: vi.fn() };
   const home = { healthy: vi.fn(async () => true), pair: vi.fn(async () => ({ code: "ABCD-EFGH-JKLM", expiresAt: at + 300_000 })) };
-  const deps = { dataDir, providers: { dedicated, pool }, workspaces, home, sealer: createSealer(Buffer.alloc(32, 3)), config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", version: "1.2.3", maxAttempts: options.maxAttempts, poolQuota: (_kind: DesktopPlan["kind"], spec: DesktopPlan["spec"], botComputers: number | null) => ({ ...spec, netMbps: 100, pids: 1000, botComputers }) }, now: () => at };
+  const deps = { dataDir, providers: { dedicated, pool }, workspaces, home, sealer: createSealer(Buffer.alloc(32, 3)), config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", image: "ghcr.io/example/openmausbot-cloud-home:1.2.3", maxAttempts: options.maxAttempts, poolQuota: (_kind: DesktopPlan["kind"], spec: DesktopPlan["spec"], botComputers: number | null) => ({ ...spec, netMbps: 100, pids: 1000, botComputers }) }, now: () => at };
   const service = createCloudsService(deps); cleanup.push(() => service.close());
   function order(plan = dedicatedPlan, accountId = "a") { return service.order({ ...plan, accountId, name: "My desktop", color: "blue", region: "eu" }); }
   async function ready(c: StoredCloud) { for (let n = 0; n < 20 && c.status === "provisioning"; n++) await service.reconcile(); expect(c.status).toBe("running"); }
@@ -46,6 +46,9 @@ it.each([dedicatedPlan, poolPlan])("provisions $placement in order and links the
     const call = f.driver.calls.find(call => call.method === "createSlot")!;
     const boot = JSON.parse((call.input as { bootstrap: string }).bootstrap);
     expect(JSON.parse(boot.files[0].content)).toMatchObject({ workspaceId: c.workspaceId, publicKey: c.linkPublicKey, claimed: true, url: f.deps.config.dashboardUrl });
+  } else {
+    const call = f.dedicated.calls.find(call => call.method === "create")!;
+    expect((call.input as { userData: string }).userData).toContain(`-p 127.0.0.1:8080:8080 '${f.deps.config.image}'`);
   }
 });
 it("activates twice idempotently and persists resumable bootstrap keys without plaintext secrets", async () => {
