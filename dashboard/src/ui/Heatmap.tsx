@@ -54,10 +54,9 @@ export function Heatmap({ days, metric, now, compactCells = false }: { days: Act
     const byDay = new Map(days.map((d) => [d.date, d]));
     const today = parseDay(dayKey(now));
     const start = new Date(today.getTime() - ((WEEKS - 1) * 7 + today.getDay()) * DAY_MS);
-    const values = days.map((d) => valueOf(d, metric)).filter((v) => v > 0).sort((a, b) => a - b);
-    const q = (p: number) => values[Math.min(values.length - 1, Math.floor(p * values.length))] ?? 0;
-    const cuts = [q(0.25), q(0.5), q(0.75)];
-    const level = (v: number) => (v <= 0 ? 0 : v <= cuts[0]! ? 1 : v <= cuts[1]! ? 2 : v <= cuts[2]! ? 3 : 4);
+    // steps of the busiest day, so a quiet year still shows its best day at full colour
+    const top = Math.max(0, ...days.map((d) => valueOf(d, metric)));
+    const level = (v: number) => (v <= 0 || top <= 0 ? 0 : Math.max(1, Math.ceil((v / top) * 4)));
     const weeks: Array<Array<{ key: string; v: number; level: number; future: boolean }>> = [];
     const months: Array<{ col: number; label: string }> = [];
     for (let w = 0; w < WEEKS; w++) {

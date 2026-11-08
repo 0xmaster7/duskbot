@@ -70,7 +70,9 @@ describe("dashboard reporter", () => {
     await vi.waitFor(() => expect(f.reports.some((report) => report.results?.some((result) => result.id === command.id && result.ok))).toBe(true));
     expect(f.signatures.every(Boolean)).toBe(true);
     expect(f.reports[0]).toMatchObject({ v: 1, workspace: collect.workspace(), machine: expect.any(Object), computers: expect.any(Object), devices: expect.any(Object), activity: expect.any(Object), plans: expect.any(Object) });
-    expect(f.reports[1].devices).toBeUndefined(); expect(activity).toHaveBeenCalledOnce(); expect(devices).toHaveBeenCalledOnce(); expect(plans).toHaveBeenCalledTimes(2); expect(f.reports[1].plans).toBeUndefined();
+    // the report carrying a command's result resends devices at once, so a revoke shows without waiting
+    const carrying = f.reports.find((report) => report.results?.some((result) => result.id === command.id))!;
+    expect(carrying.devices).toEqual(expect.any(Object)); expect(activity).toHaveBeenCalledOnce(); expect(devices).toHaveBeenCalledTimes(2); expect(plans).toHaveBeenCalledTimes(2); expect(f.reports[1].plans).toBeUndefined();
     expect(reporter.status()).toMatchObject({ connected: true, url: f.base, workspaceId: "workspace", lastReportAt: expect.any(Number), lastError: null });
     const file = join(f.dir, "dashboard-link.json"); expect(statSync(file).mode & 0o777).toBe(0o600);
     const saved = JSON.parse(readFileSync(file, "utf8")); expect(saved).toMatchObject({ v: 1, url: f.base, workspaceId: "workspace", claimed: true });

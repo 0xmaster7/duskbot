@@ -31,6 +31,8 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
   let lastReportAt: number | null = null, lastError: string | null = null, watching = false;
   let running = false, generation = 0, removed = false;
   let wakeReport: (() => void) | undefined, urgent = false;
+  // a command changes devices or routines: the next report carries them at once
+  let changed = false;
   const requests = new Set<AbortController>(), sleepers = new Set<() => void>();
   const results = new Map<string, CommandResult>(), executed = new Set<string>();
   let commands = Promise.resolve();
@@ -111,6 +113,7 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         } finally { clearTimeout(timer); }
         if (!running || generation !== run) return;
         results.set(command.id, { ...result, id: command.id });
+        changed = true;
         requestReport();
       });
     }
@@ -128,7 +131,8 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         const at = now(), pending = [...results.values()].slice(0, 50);
         const [machine, computers] = await Promise.all([deps.collect.machine(), deps.collect.computers()]);
         const report: WorkspaceReport = { v: 1, seq: ++sequence, at, workspace: deps.collect.workspace(), machine, computers, bots: deps.collect.bots(), results: pending };
-        if (devicesAt === null || at - devicesAt >= 30_000) report.devices = await deps.collect.devices();
+        const fresh = changed; changed = false;
+        if (fresh || devicesAt === null || at - devicesAt >= 30_000) report.devices = await deps.collect.devices();
         if (activityAt === null || at - activityAt >= 60_000) report.activity = await deps.collect.activity();
         const plans = await deps.collect.plans();
         const plansDue = plansAt === null || at - plansAt >= 300_000 || plans !== lastPlans;

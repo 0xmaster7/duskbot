@@ -61,7 +61,7 @@ export function Badge({ children, tone = "plain", className }: { children: React
 }
 
 const FRESH: Record<Freshness, { tone: string; label: (t: number | null, now: number) => string }> = {
-  live: { tone: "text-good", label: (t, now) => (t && now - t > 4000 ? `Live · ${ago(t, now)}` : "Live") },
+  live: { tone: "text-good", label: () => "Live" },
   recent: { tone: "text-warn", label: (t, now) => `Updated ${ago(t, now)}` },
   offline: { tone: "text-ink-4", label: (t, now) => `Offline since ${ago(t, now)}` },
   waiting: { tone: "text-ink-4", label: () => "Waiting for its first report" },
@@ -72,7 +72,7 @@ export function FreshnessTag({ freshness, at, now, className }: { freshness: Fre
   return (
     <span className={cx("inline-flex items-center gap-2 text-13 text-ink-3", className)}>
       <span className={cx("live-dot", f.tone)} data-live={freshness === "live"} aria-hidden />
-      <span className="num">{f.label(at, now)}</span>
+      <span className="num" title={at ? `Last report ${ago(at, now)}` : undefined}>{f.label(at, now)}</span>
     </span>
   );
 }

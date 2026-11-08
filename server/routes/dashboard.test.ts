@@ -9,6 +9,7 @@ import { DEFAULT_DASHBOARD_URL, parseWorkspaceReport } from "../../shared/dashbo
 import { createDashboardCollector } from "../dashboard-report.ts";
 import type { DashboardCollectorDeps } from "../dashboard-report.ts";
 import { createDashboardCommands } from "../dashboard-commands.ts";
+import { macMemoryUsed } from "../dashboard-machine.ts";
 import { json, readBody } from "../harness/http.ts";
 import type { RequestAuth } from "../request-auth.ts";
 import { removeTempDir } from "../testing/cleanup.ts";
@@ -132,4 +133,10 @@ describe("dashboard command routes", () => {
     expect((await commands.execute({ id: "missing", kind: "computer.wake", target: "missing", issuedAt: 0, expiresAt: Date.now() + 1000 })).ok).toBe(false);
     expect(nonce).not.toBe("");
   });
+});
+
+it("counts a Mac's active, wired and compressed pages as used memory, not its file cache", () => {
+  const vmStat = "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:  100.\nPages active:  1000.\nPages inactive:  5000.\nPages wired down:  500.\nPages occupied by compressor:  250.\n";
+  expect(macMemoryUsed(vmStat)).toBe(1750 * 16384);
+  expect(macMemoryUsed("nothing useful")).toBeNull();
 });

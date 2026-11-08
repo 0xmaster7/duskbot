@@ -102,9 +102,17 @@ function sampleCpu(): Promise<number> {
 }
 
 const macNetwork = cachedSample(async () => {
-  const { stdout } = await exec("netstat", ["-ib", "-n"], { timeout: 2000, maxBuffer: 1024 * 1024 });
+  const { stdout } = await exec("/usr/sbin/netstat", ["-ib", "-n"], { timeout: 2000, maxBuffer: 1024 * 1024 });
   return parseNetstat(stdout, Date.now());
 }, 2000, 2100, null);
+// macOS counts file cache as used in freemem: count active, wired and compressed pages like Activity Monitor does
+export function macMemoryUsed(text: string): number | null {
+  const page = Number(/page size of (\d+) bytes/.exec(text)?.[1]);
+  const pages = (label: string) => Number(new RegExp(`^${label}:\\s+(\\d+)\\.`, "m").exec(text)?.[1] ?? NaN);
+  const used = (pages("Pages active") + pages("Pages wired down") + pages("Pages occupied by compressor")) * page;
+  return Number.isFinite(used) && used > 0 ? used : null;
+}
+const macMemory = cachedSample(async () => macMemoryUsed((await exec("/usr/bin/vm_stat", [], { timeout: 2000, maxBuffer: 64 * 1024 })).stdout), 2000, 2100, null);
 let previousNetwork: NetworkSample | null = null;
 let lastNetworkRate: NetworkRate | null = null;
 async function sampleNetwork(): Promise<NetworkRate | null> {
@@ -126,6 +134,7 @@ export async function sampleMachine(dataDir: string) {
     statfs(dataDir).then((fs) => ({ usedBytes: (fs.blocks - fs.bfree) * fs.bsize, totalBytes: fs.blocks * fs.bsize, path: dataDir })).catch(() => null),
     process.platform === "linux" ? readFile("/proc/meminfo", "utf8").catch(() => "") : Promise.resolve(""),
   ]);
+  const mac = process.platform === "darwin" ? await macMemory().catch(() => null) : null;
   const cpus = os.cpus();
   let uptimeSec = 0;
   try { uptimeSec = os.uptime(); } catch {}
@@ -133,7 +142,7 @@ export async function sampleMachine(dataDir: string) {
     at: Date.now(),
     host: { hostname: os.hostname(), platform: os.platform(), arch: os.arch(), cpus: cpus.length, cpuModel: cpus[0]?.model ?? null },
     cpu: { percent, load: os.loadavg() as [number, number, number] },
-    memory: { usedBytes: linuxMemoryUsed(meminfo, totalBytes, free), totalBytes },
+    memory: { usedBytes: mac !== null ? Math.min(totalBytes, mac) : linuxMemoryUsed(meminfo, totalBytes, free), totalBytes },
     disk, network, uptimeSec, processUptimeSec: process.uptime(),
     app: { version: serverVersion(), node: process.versions.node },
   };
