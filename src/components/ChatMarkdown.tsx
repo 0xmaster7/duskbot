@@ -264,7 +264,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
   const diagram = <>
     {error && (
       <p role="alert" className="px-3 pt-2 text-[12px] text-danger">
-        Diagram could not be rendered: {error}
+        {t("chat.markdown.diagramFailed")} {error}
       </p>
     )}
     {markup && <div className="overflow-x-auto p-3 [&_svg]:!max-w-full" dangerouslySetInnerHTML={markup} />}
@@ -291,14 +291,14 @@ function LocalFileLink({ filePath, name, children, message }: { filePath: string
   const save = useLocalFileSave(filePath, name, message);
   const preview = useHtmlPreview(filePath, name ?? fileName(filePath), message);
   if (!message) {
-    return <span title="Unavailable legacy file reference" className="break-words text-ink-secondary">{children}</span>;
+    return <span title={t("chat.markdown.legacyFile")} className="break-words text-ink-secondary">{children}</span>;
   }
   const label = save.state === "saving"
-    ? "Saving…"
+    ? t("settings.profile.saving")
     : save.state === "saved"
-      ? "Saved"
+      ? t("common.saved")
       : save.state === "failed"
-        ? "Retry"
+        ? t("chat.retry")
         : null;
 
   return (
@@ -310,7 +310,7 @@ function LocalFileLink({ filePath, name, children, message }: { filePath: string
         type="button"
         onClick={preview.html ? preview.show : () => void save.save()}
         disabled={!preview.html && save.state === "saving"}
-        title={preview.html ? t("html.preview", { name: name ?? fileName(filePath) }) : "Save a copy"}
+        title={preview.html ? t("html.preview", { name: name ?? fileName(filePath) }) : t("chat.markdown.saveCopy")}
         className="inline-flex items-center gap-1 break-words text-start text-accent underline decoration-accent/40 hover:decoration-accent disabled:cursor-wait"
       >
         {children}
@@ -359,8 +359,8 @@ function Spoiler({ children }: { children?: ReactNode }) {
         </span>
         <button
           type="button"
-          aria-label="Reveal spoiler"
-          title="Reveal spoiler"
+          aria-label={t("chat.markdown.revealSpoiler")}
+          title={t("chat.markdown.revealSpoiler")}
           onClick={() => setRevealed(true)}
           className="absolute inset-0 rounded bg-raised/90"
         />
@@ -372,12 +372,12 @@ function Spoiler({ children }: { children?: ReactNode }) {
       {children}
       <button
         type="button"
-        aria-label="Hide spoiler"
-        title="Hide spoiler"
+        aria-label={t("chat.markdown.hideSpoiler")}
+        title={t("chat.markdown.hideSpoiler")}
         onClick={() => setRevealed(false)}
         className="ms-1 rounded px-0.5 text-[11px] text-ink-secondary hover:text-ink"
       >
-        Hide
+        {t("engines.hide")}
       </button>
     </span>
   );

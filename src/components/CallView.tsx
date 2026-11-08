@@ -146,23 +146,23 @@ export function CallTargetButton({
       : liveMode
       ? t("call.live.callWith", { name: targetName })
       : !capabilitiesReady
-      ? "Checking call availability"
+      ? t("call.checking")
       : !supported
-        ? capabilityHelp?.label ?? "Call unavailable"
+        ? capabilityHelp?.label ?? t("call.unavailable")
         : !configured
-          ? "Set up a voice in an agent profile to make calls"
+          ? t("call.setupVoice")
           : !voiceReady
-            ? "Pick a voice in an agent profile to make calls"
-            : `Call ${targetName}`;
+            ? t("call.pickVoice")
+            : t("call.callWith", { name: targetName });
 
   const reason = !capabilitiesReady
-    ? "Checking whether this device can make calls."
+    ? t("call.checkingReason")
     : capabilityHelp
       ? capabilityHelp.reason
         : !configured
-          ? "Set up ElevenLabs, Fish Audio, Chatterbox, or a built-in Mac voice so the bot can speak during calls."
+          ? t("call.setupVoiceReason")
           : !voiceReady
-            ? "Choose a voice before starting a call."
+            ? t("call.pickVoiceReason")
             : "";
 
   const closePopovers = useCallback(() => {
@@ -336,10 +336,10 @@ export function CallTargetButton({
         <div
           id={helpId}
           role="group"
-          aria-label="Call unavailable"
+          aria-label={t("call.unavailable")}
           className={cn("absolute right-0 z-30 w-[280px]", composer ? "bottom-full mb-1.5" : "mt-1.5", "rounded-xl border border-hairline bg-panel p-3 text-left shadow-2xl", helpMotion.className)} {...helpMotion.exitProps}
         >
-          <div className="text-[13px] font-medium text-ink">Call unavailable</div>
+          <div className="text-[13px] font-medium text-ink">{t("call.unavailable")}</div>
           <div className="mt-1 text-[12px] leading-[1.45] text-ink-secondary">{reason}</div>
           {canLive && (
             <button
@@ -470,7 +470,7 @@ function Call({ bot }: { bot: Bot }) {
   const [heard, setHeard] = useState("");
   const [note, setNote] = useState<string | null>(null);
   const pushToTalk = usePushToTalk(bot.id, phase === "listening", () => {
-    setNote("Push to talk couldn't start. Check Microphone and Speech Recognition access.");
+    setNote(t("call.pushToTalkFailed"));
   });
 
   const messages = visibleMessages(bot);
@@ -519,7 +519,7 @@ function Call({ bot }: { bot: Bot }) {
     setNote(null);
     void speechBridge()?.speechStart({ endpointMs: CALL_ENDPOINT_MS }).catch(() => {
       if (alive.current && currentCall() === bot.id) {
-        setNote("The microphone couldn't start. Check Microphone and Speech Recognition access.");
+        setNote(t("call.microphoneFailed"));
       }
     });
   }, [bot.id, move]);
@@ -562,7 +562,7 @@ function Call({ bot }: { bot: Bot }) {
     const offTranscript = bridge.onSpeechTranscript((line) => {
       if (!alive.current || currentCall() !== bot.id || phaseRef.current !== "listening") return;
       if (line.error) {
-        setNote("Dictation stopped unexpectedly. Check Microphone and Speech Recognition access.");
+        setNote(t("call.dictationStopped"));
         return;
       }
       if (typeof line.text !== "string") return;
@@ -582,7 +582,7 @@ function Call({ bot }: { bot: Bot }) {
           const allow = YES.test(said);
           if (allow && open.skill) {
             setHeard("");
-            void sayThenListen("Open this chat to review the complete skill before enabling it. You can say no now to deny it.");
+            void sayThenListen(t("call.reviewSkill"));
             return;
           }
           // Stay claimed until the server's card patch arrives, or a render in that gap submits the same approval
@@ -596,7 +596,7 @@ function Call({ bot }: { bot: Bot }) {
             threadId: bot.threadId,
             requestId: open.requestId,
             behavior: allow ? "allow" : "deny",
-            message: allow ? undefined : "Denied by the user, on a call.",
+            message: allow ? undefined : t("call.denied"),
             onError: (error: string) => {
               const pending = askedApproval.current;
               if (
@@ -607,15 +607,15 @@ function Call({ bot }: { bot: Bot }) {
               ) return;
               pending.submitted = false;
               const detail = error.trim().slice(0, 240);
-              const decision = open.routine ? "routine decision" : "approval";
+              const decision = open.routine ? "call.routineDecisionFailed" : "call.approvalFailed";
               void sayThenListen(
-                `I couldn't save that ${decision}${detail ? `: ${detail}` : "."} Please try again.`,
+                t(decision, { detail: detail ? `: ${detail}` : "." }),
               );
             },
           });
           return;
         }
-        void sayThenListen("Sorry — is that a yes or a no?");
+        void sayThenListen(t("call.confirmYesNo"));
         return;
       }
 
@@ -633,19 +633,19 @@ function Call({ bot }: { bot: Bot }) {
     const offEnd = bridge.onSpeechEnd(({ code, reason, message }) => {
       if (!alive.current || currentCall() !== bot.id) return;
       if (code === 2) {
-        setNote("Calls need macOS dictation, which isn't available here yet.");
+        setNote(t("call.needsDictation"));
         return;
       }
       if (code === 1) {
         setNote(
           message ??
           (reason === "helper-build-failed"
-            ? "The dictation helper couldn't be built. Install Apple's Command Line Tools and try again."
+            ? t("call.dictationBuildFailed")
             : reason === "dictation-disabled"
-              ? "Turn on Dictation in System Settings → Keyboard, then try again."
+              ? t("composer.dictation.disabled")
               : reason === "speech-not-authorized"
-                ? "Allow Speech Recognition in System Settings → Privacy & Security, then try again."
-                : "Dictation couldn't start. Try again."),
+                ? t("call.allowSpeech")
+                : t("composer.dictation.failed")),
         );
         return;
       }
@@ -691,8 +691,8 @@ function Call({ bot }: { bot: Bot }) {
       };
       spokenIds.current.add(approval.message.id);
       const skillPrompt = approval.message.card?.skillRequest?.action === "update"
-        ? `${bot.name} wants to update a learned skill. Open this chat to review the complete skill before replacing the current version. You can say no to deny it.`
-        : `${bot.name} wants to enable a new learned skill. Open this chat to review the complete skill before enabling it. You can say no to deny it.`;
+        ? t("call.updateSkill", { name: bot.name })
+        : t("call.enableSkill", { name: bot.name });
       void sayThenListen(isSkillApproval(approval) ? skillPrompt : spokenApprovalPrompt(approval, bot.name));
       return;
     }
@@ -705,9 +705,9 @@ function Call({ bot }: { bot: Bot }) {
       spokenIds.current.add(question.id);
       const detail = question.card.subtitle.trim();
       const choices = question.card.options.length
-        ? ` The options are ${question.card.options.join(", ")}.`
+        ? t("call.questionOptions", { options: question.card.options.join(", ") })
         : "";
-      void sayThenListen(`${bot.name} asks: ${detail}${/[.!?]$/.test(detail) ? "" : "."}${choices}`);
+      void sayThenListen(t("call.question", { name: bot.name, detail: `${detail}${/[.!?]$/.test(detail) ? "" : "."}`, choices }));
       return;
     }
     const fresh = messages.filter((m) => !spokenIds.current.has(m.id));
@@ -763,19 +763,19 @@ function Call({ bot }: { bot: Bot }) {
   const status =
     phase === "listening"
       ? pushToTalk
-        ? "Push to talk"
-        : "Listening"
+        ? t("call.pushToTalk")
+        : t("botPanel.face.listening")
       : phase === "sending"
-        ? "One moment"
+        ? t("call.oneMoment")
         : phase === "speaking"
           ? bot.name
-          : "Working";
+          : t("botPanel.face.working");
 
   return (
     <>
       <button
         onClick={() => endCall(bot.id)}
-        aria-label="Hang up"
+        aria-label={t("call.live.hangUp")}
         className="absolute right-5 top-5 rounded-md p-2 text-ink-secondary hover:bg-raised hover:text-ink"
       >
         <X size={18} />
@@ -795,7 +795,7 @@ function Call({ bot }: { bot: Bot }) {
         {phase === "listening" ? (
           heard || (
             <span className="text-ink-secondary">
-              {pushToTalk ? `Release ${pushToTalkKeys()} to send…` : "Say something…"}
+              {pushToTalk ? t("call.releaseToSend", { keys: pushToTalkKeys() }) : t("call.saySomething")}
             </span>
           )
         ) : (
@@ -810,7 +810,7 @@ function Call({ bot }: { bot: Bot }) {
             onClick={listen}
             className="rounded-full border border-warning/40 px-3 py-1.5 text-[12px] hover:bg-warning/10"
           >
-            Try microphone again
+            {t("call.retryMicrophone")}
           </button>
         </div>
       )}
@@ -826,19 +826,19 @@ function Call({ bot }: { bot: Bot }) {
             }}
             className="rounded-full border border-hairline/50 px-4 py-2 text-[14px] text-ink hover:bg-raised"
           >
-            Interrupt
+            {t("call.interrupt")}
           </button>
         )}
         <button
           onClick={() => endCall(bot.id)}
           className="flex items-center gap-2 rounded-full bg-danger px-5 py-2.5 text-[14px] font-medium text-white hover:brightness-110"
         >
-          <PhoneOff size={16} /> Hang up
+          <PhoneOff size={16} /> {t("call.live.hangUp")}
         </button>
       </div>
 
       <div className="text-[12px] text-ink-tertiary">
-        Hold {pushToTalkKeys()} to talk · Space interrupts · Esc hangs up
+        {t("call.shortcuts", { keys: pushToTalkKeys() })}
       </div>
     </>
   );
