@@ -11,6 +11,7 @@ import { Field, Modal, Select } from "../ui/controls";
 import { Bar, Button, cx, PageHeader, Skeleton } from "../ui/kit";
 import { Nil, SectionHead, Table, Td, Th } from "../ui/table";
 import { Legend, UsageChart } from "../ui/UsageChart";
+import { BuyCredits } from "./credits-dialog";
 
 const GROUPS: Array<{ value: UsageGroup; label: string }> = [{ value: "bot", label: "Bot" }, { value: "model", label: "Model" }, { value: "workspace", label: "Workspace" }];
 const PAGE = 12;
@@ -42,31 +43,6 @@ function Included({ plans, now }: { plans: PlanWindow[]; now: number }) {
         </>
       ) : <p className="mt-4 max-w-[44ch] text-15 leading-[1.55] text-ink-3">Nothing reported yet. Sign in to Codex or Claude in the app and the share of your plan your bots use shows up here.</p>}
     </Panel>
-  );
-}
-
-function BuyCredits({ open, onClose }: { open: boolean; onClose(): void }) {
-  const { catalog, checkout } = useCloud();
-  const { toast } = useSession();
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const buy = async (pack: string, amount: number) => {
-    setBusy(pack); setError(null);
-    try { if (await checkout({ kind: "credits", pack })) { toast(`Added ${dollars(amount)} of AI credits`); onClose(); } }
-    catch (e) { setError((e as Error).message); } finally { setBusy(null); }
-  };
-  return (
-    <Modal open={open} onClose={onClose} title="Buy AI credits">
-      <p>Credits pay for bots that use our AI instead of your own accounts. They never expire.</p>
-      <div className="mt-5 grid grid-cols-3 gap-2">
-        {(catalog?.creditPacks ?? []).map((p) => (
-          <button key={p.id} type="button" disabled={busy !== null} onClick={() => void buy(p.id, p.usd)} className="press-soft pick hover-pick num h-16 rounded-[14px] border border-line-2 text-20 font-medium text-ink disabled:opacity-45">
-            {busy === p.id ? <span className="text-14 font-normal text-ink-3">Opening</span> : dollars(p.usd)}
-          </button>
-        ))}
-      </div>
-      {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
-    </Modal>
   );
 }
 
