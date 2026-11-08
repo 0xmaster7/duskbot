@@ -82,6 +82,7 @@ try {
   let fixture = false;
   let workspaceUrl;
   for (let index = 0; index < args.length; index++) {
+    if (args[index] === "--") continue;
     if (args[index] === "--fixture") fixture = true;
     else if (args[index] === "--url" && args[index + 1]) workspaceUrl = args[++index];
     else throw new Error(`unknown or incomplete argument: ${args[index]}`);

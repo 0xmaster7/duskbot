@@ -5,8 +5,8 @@ The iOS and Android app: Capacitor around the React app, with the phone layer in
 ## Web phone preview
 
 ```sh
-pnpm mobile:preview -- --fixture                       # isolated fixture server, fake engine
-pnpm mobile:preview -- --url http://127.0.0.1:8799     # a workspace already running here
+pnpm mobile:preview --fixture                       # isolated fixture server, fake engine
+pnpm mobile:preview --url http://127.0.0.1:8799     # a workspace already running here
 ```
 
 Open http://127.0.0.1:5320/phone.html (390x844 and 430x932 frames, Dark and Pair screen toggles).
