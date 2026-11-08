@@ -361,6 +361,7 @@ const __APP_VERSION__: string;
       /** Receives a chat link (openmausbot://thread/… or openmausbot://bot/…)
        * opened from outside the app. */
       onChatLink?(cb: (link: string) => void): () => void;
+      onSlackOAuth?(cb: (link: string) => void): () => void;
       /** The desktop shell's app-menu Preferences… item was activated; open
        * app Settings. Every server's page in the window receives it, and the
        * bridge is absent in the browser. "cloud" is the

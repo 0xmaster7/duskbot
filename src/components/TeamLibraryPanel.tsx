@@ -515,7 +515,7 @@ export function TeamLibraryPanel({
                     onClick={() => void addOrgPackage(pendingOrg)}
                     disabled={importing}
                     aria-label={t("orgLibrary.addAria", { name: pendingOrg.name })}
-                    className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-[14px] font-medium text-white hover:bg-accent/90 disabled:opacity-60"
+                    className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-app hover:bg-ink/85 disabled:opacity-60"
                   >
                     {importing && <Loader2 size={15} className="animate-spin" />}
                     {importing ? t("orgLibrary.adding") : t("orgLibrary.add")}
@@ -528,7 +528,7 @@ export function TeamLibraryPanel({
               ) : <button
                 onClick={() => void importTeam()}
                 disabled={importing}
-                className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-[14px] font-medium text-white hover:bg-accent/90 disabled:opacity-60"
+                className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-app hover:bg-ink/85 disabled:opacity-60"
               >
                 {importing && <Loader2 size={15} className="animate-spin" />}
                 {importing
@@ -740,7 +740,7 @@ export function TeamLibraryPanel({
                         <button
                           onClick={() => void loadGithubTeam()}
                           disabled={!githubUrl.trim() || githubLoading}
-                          className="flex items-center gap-1.5 rounded-full bg-accent px-4 py-2.5 text-[13px] font-medium text-white hover:bg-accent/90 disabled:opacity-40"
+                          className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2.5 text-[13px] font-medium text-app hover:bg-ink/85 disabled:opacity-40"
                         >
                           {githubLoading && <Loader2 size={13} className="animate-spin" />}
                           {t("templates.load")}
@@ -780,7 +780,7 @@ export function TeamLibraryPanel({
                     <button
                       onClick={() => void runScout(scoutTarget)}
                       disabled={!scoutTarget || scouting}
-                      className="flex items-center justify-center gap-1.5 rounded-full bg-accent px-4 py-2.5 text-[13px] font-medium text-white hover:bg-accent/90 disabled:opacity-40"
+                      className="flex items-center justify-center gap-1.5 rounded-full bg-ink px-4 py-2.5 text-[13px] font-medium text-app hover:bg-ink/85 disabled:opacity-40"
                     >
                       {scouting ? <Loader2 size={14} className="animate-spin" /> : <Compass size={14} />}
                       {scouting ? t("templates.scouting") : t("templates.scout")}
@@ -878,7 +878,7 @@ export function TeamLibraryPanel({
                         <button
                           onClick={() => void createProject()}
                           disabled={creating}
-                          className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-[14px] font-medium text-white hover:bg-accent/90 disabled:opacity-60"
+                          className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-app hover:bg-ink/85 disabled:opacity-60"
                         >
                           {creating && <Loader2 size={15} className="animate-spin" />}
                           {creating ? t("templates.creating") : t("templates.createGroupChat")}

@@ -1,0 +1,16 @@
+/* the onboarding sky: slow ambient loops only (a twinkle, a float, a drift), all stopped under reduced motion */
+@keyframes omb-twinkle { 0%, 100% { opacity: var(--twinkle-low, .2); } 50% { opacity: 1; } }
+@keyframes omb-float { 0%, 100% { translate: 0 -4px; } 50% { translate: 0 5px; } }
+@keyframes omb-cloud { from { translate: -6% 0; } to { translate: 6% 0; } }
+@keyframes omb-scanline { from { translate: 0 0; } to { translate: 0 var(--scan-travel, 220px); } }
+@keyframes omb-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+.omb-twinkle { animation: omb-twinkle 4s ease-in-out infinite; }
+.omb-float { animation: omb-float 6s ease-in-out infinite; }
+.omb-cloud { animation: omb-cloud 50s ease-in-out infinite alternate; }
+.omb-scanline { animation: omb-scanline 2.2s cubic-bezier(.45,0,.55,1) infinite alternate; }
+.omb-pulse { animation: omb-pulse 1.6s ease-in-out infinite; }
+.omb-onboarding { color: #f3f4f8; color-scheme: dark; }
+.omb-onboarding :focus-visible { outline: 2px solid #f3f4f8; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .omb-twinkle, .omb-float, .omb-cloud, .omb-scanline, .omb-pulse { animation: none; }
+}

@@ -39,6 +39,8 @@ interface QueueEntry {
     fromApp?: Message["fromApp"];
     reaction?: string;
     relay?: Message["relay"];
+    /** An external interface relayed it (the Slack bridge): its line is stored relayed, and it never merges with a person's own. */
+    relayed?: boolean;
     /** The person's row already in the transcript, steered into a turn that was stopped before it read it: it runs as
      * it is, never as a second copy. */
     rowId?: string;
@@ -107,7 +109,7 @@ export function queueSteeredMessage(
   botId: string,
   threadId: string,
   text: string,
-  options: { prompt?: string; replyToId?: string; sendId?: string; dataContext?: Message["dataContext"]; reason?: SteerQueueReason; unattended?: boolean; peerAsk?: Message["peerAsk"]; origin?: WorkOrigin; sender?: ResolvedSender; trigger?: UsageTrigger; callId?: string; via?: "call"; reaction?: string; fromApp?: Message["fromApp"]; relay?: Message["relay"]; rowId?: string; first?: boolean; queuedAt?: number; mentions?: string[] } = {},
+  options: { prompt?: string; replyToId?: string; sendId?: string; dataContext?: Message["dataContext"]; reason?: SteerQueueReason; unattended?: boolean; peerAsk?: Message["peerAsk"]; origin?: WorkOrigin; sender?: ResolvedSender; trigger?: UsageTrigger; callId?: string; via?: "call"; reaction?: string; fromApp?: Message["fromApp"]; relay?: Message["relay"]; relayed?: boolean; rowId?: string; first?: boolean; queuedAt?: number; mentions?: string[] } = {},
 ): QueuedSteer {
   const id = newId();
   const entry = queues.get(threadId) ?? { botId, items: [] };
@@ -130,6 +132,7 @@ export function queueSteeredMessage(
     ...(options.fromApp ? { fromApp: options.fromApp } : {}),
     ...(options.reaction ? { reaction: options.reaction } : {}),
     ...(options.relay ? { relay: options.relay } : {}),
+    ...(options.relayed ? { relayed: true } : {}),
     ...(options.rowId ? { rowId: options.rowId } : {}),
     ...(options.mentions?.length ? { mentions: options.mentions } : {}),
   };
@@ -221,6 +224,7 @@ export function drainSteeredMessages(
           ...spokenLineFields(item.via, item.callId),
           ...(item.fromApp ? { fromApp: item.fromApp } : {}),
           ...(item.relay ? { relay: item.relay } : {}),
+          ...(item.relayed ? { relayed: true } : {}),
           ...(item.reaction ? { reaction: item.reaction } : {}),
         }),
       );
@@ -252,7 +256,7 @@ function coalesceIdentity(item: QueueEntry["items"][number]): string {
   if (item.peerAsk?.incident) return "incident";
   if (item.peerAsk) return `peer:${item.peerAsk.botId}:${item.unattended === true ? "unattended" : "attended"}:${JSON.stringify(item.origin ?? null)}`;
   if (item.unattended === true) return "unattended";
-  const person = item.sender ? `person:${item.sender.id ?? item.sender.name}` : "person:local";
+  const person = `${item.relayed ? "relayed:" : ""}${item.sender ? `person:${item.sender.id ?? item.sender.name}` : "person:local"}`;
   return item.via === "call" ? `call:${item.callId ?? ""}|${person}` : person;
 }
 

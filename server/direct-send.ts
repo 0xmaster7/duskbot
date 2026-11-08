@@ -22,6 +22,8 @@ export interface DirectSendInput {
   followUp?: FollowUp;
   /** Bot ids the person picked from the @ list. */
   mentions?: string[];
+  /** An external interface (the Slack bridge) relayed it: nobody typed it in one of this workspace's clients. */
+  relayed?: boolean;
 }
 
 export type DirectSendReceipt =

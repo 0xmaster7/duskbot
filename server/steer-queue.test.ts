@@ -141,6 +141,24 @@ describe("steer-queue module", () => {
     expect(run.mock.calls[0][3].peerAsk).toEqual(peerAsk);
   });
 
+  it("keeps a relayed line relayed and outside through persistence, and never merges it with a person's own", () => {
+    const bot = fakeBot("bot-relayed", "thread-relayed", true);
+    const store = fakeStore([bot]);
+    const run = vi.fn();
+    const sender = { name: "Alice" };
+    queueSteeredMessage(bot.id, bot.threadId, "from slack", { relayed: true, origin: { kind: "outside" }, sender });
+    queueSteeredMessage(bot.id, bot.threadId, "typed here", { sender });
+    restoreSteeredMessages();
+    bot.busy = false;
+    drainSteeredMessages(store, run);
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(run.mock.calls[0][2]).toBe("from slack");
+    expect(run.mock.calls[0][6].origin).toEqual({ kind: "outside" });
+    expect(store.messages.find((message) => message.text === "from slack")?.relayed).toBe(true);
+    drainSteeredMessages(store, run);
+    expect(store.messages.find((message) => message.text === "typed here")?.relayed).toBeUndefined();
+  });
+
   it("keeps where a self-opened thread's work started through persistence and a capacity wait", () => {
     const bot = fakeBot("bot-self-origin", "thread-self-origin", true);
     const store = fakeStore([bot]);

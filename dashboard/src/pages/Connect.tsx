@@ -2,44 +2,11 @@ import { useEffect, useState } from "react";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
 import { navigate } from "../lib/router";
-import { Button, ButtonLink, Card, PageHeader } from "../ui/kit";
+import { Button, ButtonLink, Card } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
-import { SkyEmpty, Stars } from "../ui/Sky";
-import { APP_LINK } from "./Overview";
+import { SkyEmpty } from "../ui/Sky";
 
 const CLAIM_KEY = "omb-dash-claim";
-
-const STEPS = [
-  { title: "Open OpenMausBot", body: "On your Mac. For a VPS, switch to it in the app's sidebar first: each workspace connects itself." },
-  { title: "Choose Account dashboard", body: "It is in the account menu at the bottom of the sidebar, or in Settings on the mobile app." },
-  { title: "Approve it here", body: "Your browser opens this dashboard with the workspace ready to connect. One click and it starts reporting." },
-];
-
-export function ConnectPage() {
-  return (
-    <div>
-      <PageHeader title="Connect a workspace" sub="A workspace is one place your bots run: your Mac, or a VPS. Connect as many as you have." />
-      <Card className="relative overflow-hidden">
-        <Stars count={18} seed={9} className="left-1/2 [mask-image:linear-gradient(to_left,black,transparent)]" />
-        <ol className="relative flex flex-col gap-6">
-          {STEPS.map((s, i) => (
-            <li key={s.title} className="flex gap-4">
-              <span className="num grid size-8 shrink-0 place-items-center rounded-full border border-line-2 text-13 text-ink-2" aria-hidden>{i + 1}</span>
-              <div className="pt-1">
-                <div className="text-14 font-medium text-ink">{s.title}</div>
-                <p className="mt-1 max-w-[56ch] text-14 leading-[1.55] text-ink-3">{s.body}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <div className="relative mt-8 flex flex-wrap gap-2">
-          <ButtonLink to={APP_LINK} external variant="primary">Open the app</ButtonLink>
-          <ButtonLink to="/">Back to overview</ButtonLink>
-        </div>
-      </Card>
-    </div>
-  );
-}
 
 /** keeps a claim link's token across the sign-in round trip, out of the address bar */
 export function stashClaim() {
@@ -71,7 +38,7 @@ export function ClaimPage() {
       setError((e as Error).message);
     } finally { setBusy(false); }
   };
-  if (error && !token) return <SkyEmpty title="Nothing to connect" action={<ButtonLink to="/connect">How to connect</ButtonLink>}>{error}</SkyEmpty>;
+  if (error && !token) return <SkyEmpty title="Nothing to connect" action={<ButtonLink to="/workspaces#add">How to connect</ButtonLink>}>{error}</SkyEmpty>;
   return (
     <div className="mx-auto max-w-[460px] pt-10">
       <div className="flex justify-center"><span className="peek inline-flex"><Mascot color="blue" size={64} state="happy" track /></span></div>

@@ -15,6 +15,7 @@ import { panelMemoryNotes } from "./memory-notes";
 import type { SheetPage } from "./modals/panel-modal";
 import { Card, NavRow } from "../ListRows";
 import { useMemoryDoc } from "./use-memory-doc";
+import { useSlackAvailable, useSlackBotState } from "../slack/use-slack";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
 
@@ -40,6 +41,9 @@ export function SettingsPage({ bot, onOpen, slackUrl = null }: {
   const memoryLine = useMemoryLine(bot);
   const clearThreads = useDeleteAllThreads(true);
   const team = useTeamName();
+  const slackAvailable = useSlackAvailable();
+  const slackState = useSlackBotState(bot.id);
+  const slackValue = slackState ? t(({ online: "slack.state.online", offline: "slack.state.offline", not_linked: "slack.state.notAdded", provisioned: "slack.state.needsStep", installed: "slack.state.needsStep", error: "slack.state.problem" } as const)[slackState]) : undefined;
   const name = bot.name;
   const open = (page: SheetPage) => () => onOpen?.(page);
 
@@ -64,7 +68,7 @@ export function SettingsPage({ bot, onOpen, slackUrl = null }: {
         <NavRow data-panel-page="folder" title={t("computer.files.folder")} value={bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")} tooltip={bot.cwd ?? undefined} onClick={open("folder")} />
         <NavRow data-panel-page="where" title={t("computer.simple.whereWorks", { name })} value={currentLabel ?? t("computer.simple.dest.letItChoose")} onClick={open("where")} />
         <NavRow data-panel-page="backups" title={t("botPanel.page.backups")} value={backups > 0 ? t("botPanel.backups.count", { count: backups }) : t("botPanel.none")} onClick={open("backups")} />
-        {slackUrl && <NavRow data-panel-page="slack" title={t("botPanel.page.slack")} onClick={open("slack")} />}
+        {(slackUrl || slackAvailable) && <NavRow data-panel-page="slack" title={t("slack.title")} value={slackValue} onClick={open("slack")} />}
       </Card>
 
       {editable && (

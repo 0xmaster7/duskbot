@@ -87,6 +87,8 @@ export function isReadOnlyTool(name: string): boolean {
 
 /** The built-in agents server's X research tools only read X: x_post reads a post, it does not post one. */
 const AGENTS_X_READS = /^(?:mcp__agents__|agents__|agents_)?x_(?:search|user_posts|post|profile)$/;
+/** The bot's own Slack tools that put words or files in front of people, whatever their names' verbs say. */
+const AGENTS_SLACK_SENDS = /^(?:mcp__agents__|agents__|agents_)?slack_(?:post|reply|dm|upload)$/;
 
 /** Does this tool send something to someone, or move money? */
 export function isOutboundTool(name: string): boolean {
@@ -94,6 +96,7 @@ export function isOutboundTool(name: string): boolean {
   // nothing here can read which; it is treated as a send.
   if (name === "COMPOSIO_PROXY_EXECUTE") return true;
   if (AGENTS_X_READS.test(name)) return false;
+  if (AGENTS_SLACK_SENDS.test(name)) return true;
   const tokens = actionTokens(name);
   if (tokens.length === 0) return false;
   if (isReadOnlyTool(name)) return false;

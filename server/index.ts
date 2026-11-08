@@ -84,7 +84,7 @@ import { keyHint, keyStatus, nestedKeyStatus, withoutKeyHints } from "./key-hint
 import { chartRenderer, compileChart, dataEngine, validateVegaLite } from "./data/deps.ts";
 import { BUILT_IN_DATA_SYSTEM_PROMPT } from "./data/instructions.ts";
 import { DATA_INTERNAL_MCP_PATH, dataRpc } from "./data/rpc.ts";
-import { createEmailRoutes } from "./routes/email.ts"; import { createEmailHost, EMAIL_INTERNAL_MCP_PATH } from "./email/host.ts"; import { createEmailService } from "./email/service.ts";
+import { createEmailRoutes } from "./routes/email.ts"; import { createEmailHost, EMAIL_INTERNAL_MCP_PATH } from "./email/host.ts"; import { createEmailService } from "./email/service.ts"; import { createSlackHost } from "./slack/host.ts";
 import { createPhones } from "./host/phones.ts"; import { createDevices } from "./host/devices.ts";
 import { desktopPhonesOffered, NOT_THE_OWNER } from "./phones/owner.ts";
 import { PHONE_INTERNAL_MCP_PATH } from "./phones/rpc.ts";
@@ -1784,7 +1784,7 @@ function agentsIntegration(
   const bot = store.bot(botId), speaking = botForThread(botId, threadId) ?? bot;
   // Only advertises the tools; the routes behind them refuse regardless.
   const host = { skillAuthoring: skillAuthoringEnabled(cfg), cloudHome: Boolean(CLOUD_HOME), team: Boolean(CLOUD_TEAM),
-    voiceNotes: tts.voiceReady(cfg, speaking?.voice) && speaking?.voiceNotes !== false, x: Boolean(researchCredential(cfg.treg?.key)), research: researchAvailability.available() };
+    voiceNotes: tts.voiceReady(cfg, speaking?.voice) && speaking?.voiceNotes !== false, x: Boolean(researchCredential(cfg.treg?.key)), research: researchAvailability.available(), slack: slackHost.linked(botId) };
   return { ...agentsProxyLaunch(), env: agentsServerEnv({ threadId, bot: bot ?? { id: botId }, room: Boolean(store.groupByThread(threadId)), teamComputer: Boolean(bot && inheritedTeamComputer(bot)?.scope !== "workspace" && inheritedTeamComputer(bot)), host },
     { generation, depth, skillAuthoring, roomHandoffId, ...(hostFiles && !CLOUD_HOME && !HOSTED_WORKSPACE ? { deliversSavedFiles: true } : {}) },
     (turn) => mintInternalCapability({ botId, threadId, kind: "agents", createdBots: 0, openedThreads: 0, ...turn }), `http://127.0.0.1:${PORT}`) };
@@ -2792,7 +2792,7 @@ const routineHolds = CLOUD_HOME ? createRoutineHoldsHost({ dataDir: DATA_DIR, st
   appsConnected: async () => composio.configured(cfg) ? Object.values(await composio.connectedServices(cfg)).some((service) => service.connected) : false }) : null;
 const skillsHost = createSkillsLibraryHost({ store, cfg, appendSkillRequestCard, engineConfig: (instanceId) => providerConfigs()[instanceId], instanceOf: (instanceId) => { const instance = registry.get(instanceId); return instance ? { instanceId, driverKind: instance.driverKind } : undefined; } });
 const { listBotSkills, readBotSkillFile } = skillsHost; const cloudConnections = createCloudConnectionsHost({ cloudHome: CLOUD_HOME, ownHome: ownHome.owner, config: () => cfg, environmentId: ENVIRONMENT_ID, mcpOAuth, heldKeys, dataDir: DATA_DIR, email: { accounts: () => emailService.store.list(), adopt: (accounts) => emailService.adopt(accounts) }, stayedNotices: { bots: () => store.bots, language: (threadId) => threadLanguage(threadId), say: (threadId, text, kind) => { store.appendMessage(threadId, kind === "line" ? { role: "bot", kind: "text", text } : { role: "bot", kind: "activity", tool: { name: `notice: ${text}`, ok: true } }); }, notify: (text, bot, threadId) => notify(buildNoticeNotification(bot, threadId, text)) }, engines: async () => selectableInstances(await registry.describe()).filter((instance) => readyToRun(instance, selectionContext)).map((instance) => instance.instanceId) });
-const emailHost = createEmailHost({ service: emailService, dataDir: DATA_DIR, bot: (id) => store.bot(id), inRoom: (threadId) => Boolean(store.groupByThread(threadId)), appendMessage: (threadId, message) => { store.appendMessage(threadId, message as Parameters<typeof store.appendMessage>[1]); }, appAllowed: () => managedPolicy.appAllowed("email"), onChange: (listener) => store.onChange(listener as never), markOutside: (threadId) => outsideLineage.mark(threadId) });
+const emailHost = createEmailHost({ service: emailService, dataDir: DATA_DIR, bot: (id) => store.bot(id), inRoom: (threadId) => Boolean(store.groupByThread(threadId)), appendMessage: (threadId, message) => { store.appendMessage(threadId, message as Parameters<typeof store.appendMessage>[1]); }, appAllowed: () => managedPolicy.appAllowed("email"), onChange: (listener) => store.onChange(listener as never), markOutside: (threadId) => outsideLineage.mark(threadId) }); const slackHost = createSlackHost({ dataDir: DATA_DIR, key: savedSecretsKey ?? fileSavedSecretsKey(DATA_DIR), bot: (id) => { const bot = store.bot(id); return bot ? { id: bot.id, name: bot.name, description: bot.description, color: bot.color, ...(bot.avatarUrl ? { avatarUrl: bot.avatarUrl } : {}) } : null; }, onStoreChange: (listener) => store.onChange(listener), messages: (threadId) => store.messagesFor(threadId), createThread: (botId, title) => store.createTask(botId, title, false, undefined, undefined, "ask")?.threadId ?? null, threadExists: (botId, threadId) => Boolean(store.taskByThread(botId, threadId)), send: async ({ botId, threadId, text, sendId, person, context }) => { outsideLineage.mark(threadId); const receipt = await acceptDirectSend({ botId, threadId, text, sendId, sender: { name: person.name }, trigger: { kind: "user", ...(person.email ? { email: person.email } : {}), label: person.name }, personPresent: false, relayed: true, ...(context ? { app: { context } } : {}) }); return { queued: "queued" in receipt, steered: "steered" in receipt && receipt.steered === true }; }, react: (threadId, messageId, person, emoji) => void store.setReaction(threadId, messageId, relayedPersonKey(person), { emoji, name: person.name, at: Date.now() }), markOutside: (threadId) => outsideLineage.mark(threadId) }); addHeldSecretScrubber((text) => slackHost.scrub(text));
 const phoneHost = createPhones({
   dataDir: DATA_DIR, shared: Boolean(HOSTED_WORKSPACE || CLOUD_TEAM), cloudHome: Boolean(CLOUD_HOME), cloudOwnerKey: CLOUD_OWNER_KEY,
   loopbackTrust: LOOPBACK.trust, sharedMembership, store, sessions, routines: () => routines, ownerOrAdmin, cloudOwnerSession,
@@ -7448,7 +7448,7 @@ function drainQueuedSendsNow() {
   );
 }
 
-async function startOrQueueDirectMessage(botId: string, threadId: string, text: string, replyTo?: ReplyTarget, sendId?: string, sender?: ResolvedSender, trigger?: UsageTrigger, via?: "call", callId?: string, dataContext?: DataContext, app?: { context?: string; fromApp?: Message["fromApp"]; pointed?: Message["pointed"] }, mentions?: string[]) {
+async function startOrQueueDirectMessage(botId: string, threadId: string, text: string, replyTo?: ReplyTarget, sendId?: string, sender?: ResolvedSender, trigger?: UsageTrigger, via?: "call", callId?: string, dataContext?: DataContext, app?: { context?: string; fromApp?: Message["fromApp"]; pointed?: Message["pointed"] }, mentions?: string[], relayed?: boolean) {
   const decision = admit("direct", {}, {
     atCapacity: botAtThreadCapacity(botId, threadId),
     threadBusy: threadBusy(botId, threadId),
@@ -7457,7 +7457,7 @@ async function startOrQueueDirectMessage(botId: string, threadId: string, text: 
   });
   if (decision.action === "queue") {
     const queued = queueSteeredMessage(botId, threadId, text, {
-      replyToId: replyTo?.id,
+      replyToId: replyTo?.id, ...(relayed ? { relayed: true, origin: OUTSIDE } : {}),
       sendId,
       dataContext, fromApp: app?.fromApp, mentions,
       reason: decision.reason,
@@ -7470,7 +7470,7 @@ async function startOrQueueDirectMessage(botId: string, threadId: string, text: 
     });
     return { ok: true as const, queued: true as const, queueId: queued.id, threadId, reason: decision.reason, why: waitWords.queued(threadId, decision.reason) };
   }
-  const message = await startTurn(botId, text, { threadId, replyTo, sendId, sender, trigger, via, callId, dataContext, app, mentions, allowRoomTurnElsewhere: true });
+  const message = await startTurn(botId, text, { threadId, replyTo, sendId, sender, trigger, via, callId, dataContext, app, mentions, allowRoomTurnElsewhere: true, ...(relayed ? { relayed: true } : {}) });
   return { ok: true as const, threadId, message };
 }
 
@@ -7500,7 +7500,7 @@ async function acceptDirectSend(
   input: DirectSendInput,
   guardedStart?: (currentAtStart: BotRecord) => Promise<DirectSendReceipt>,
 ): Promise<DirectSendReceipt> {
-  const { botId, threadId, text, sendId, replyTo, sender, trigger, via, callId, dataContext, personPresent, app, followUp, mentions } = input;
+  const { botId, threadId, text, sendId, replyTo, sender, trigger, via, callId, dataContext, personPresent, app, followUp, mentions, relayed } = input;
   const refused = directSendRefusal(botId, threadId);
   if (refused) throw refused;
   return sendSequencer.run(
@@ -7599,7 +7599,7 @@ async function acceptDirectSend(
             replyToId: replyTo?.id,
             sendId,
             ...(dataContext ? { dataContext } : {}), ...(app?.fromApp ? { fromApp: app.fromApp } : {}),
-            steered: true,
+            steered: true, ...(relayed ? { relayed: true } : {}),
             sender,
             ...spokenLineFields(via, callId),
           });
@@ -7611,10 +7611,10 @@ async function acceptDirectSend(
           return { ok: true as const, steered: true as const, threadId, message };
         }
         if (!current.busy) {
-          return startOrQueueDirectMessage(botId, threadId, text, replyTo, sendId, sender, trigger, via, callId, dataContext, app, mentions);
+          return startOrQueueDirectMessage(botId, threadId, text, replyTo, sendId, sender, trigger, via, callId, dataContext, app, mentions, relayed);
         }
         const queued = queueSteeredMessage(current.id, threadId, text, {
-          replyToId: replyTo?.id,
+          replyToId: replyTo?.id, ...(relayed ? { relayed: true, origin: OUTSIDE } : {}),
           sendId,
           dataContext, fromApp: app?.fromApp, mentions,
           prompt: queuedPrompt,
@@ -7628,7 +7628,7 @@ async function acceptDirectSend(
         if (chose === "restart") await restartForPerson(botId, threadId, trigger);
         return { ok: true as const, queued: true as const, queueId: queued.id, threadId };
       }
-      return startOrQueueDirectMessage(botId, threadId, text, replyTo, sendId, sender, trigger, via, callId, dataContext, app, mentions);
+      return startOrQueueDirectMessage(botId, threadId, text, replyTo, sendId, sender, trigger, via, callId, dataContext, app, mentions, relayed);
     },
   );
 }
@@ -12416,7 +12416,7 @@ ROUTES.push(createBotLifecycleRoutes({
   activeGroupTurnForBot, cancelGroupTurnOperations, runningTurnInstance, closeOpenApprovals, deleteBotWithLifecycle,
 }));
 ROUTES.push(createBotSkillsRoutes({ store, cfg, listBotSkills, readBotSkillFile, stagedSkillListing }));
-ROUTES.push(createEmailRoutes({ service: emailService }));
+ROUTES.push(createEmailRoutes({ service: emailService }), slackHost.routes);
 ROUTES.push(phones.routes);
 ROUTES.push(createSkillShareRoutes({ enabled: () => skillsHost.mode() !== "off", botExists: (id) => Boolean(store.bot(id)),
   cardRefusal: (auth, threadId, requestId) => cardAnswerRefusal(auth, threadId, requestId, "allow"), shareFromReceipt: skillsHost.shareFromReceipt, shareFromBot: skillsHost.shareFromBot }));
@@ -13248,7 +13248,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         catch (error) { if ((error as { code?: string }).code === "outside_workspace") return null; throw error; }
         try { requireActiveInternalCapability(); return opened; }
         catch (error) { await opened.handle.close(); throw error; }
-      } }) !== PASS || await waitRoutes({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody, ...waitTurnChecks(internalCapability, internalSender) }) !== PASS || await teamMessages.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody }) !== PASS || await devsReports.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody }) !== PASS) return; const pagesCall = new AbortController(); res.once("close", () => { if (!res.writableEnded) pagesCall.abort(); }); if (await publishedPages.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody, requireActive: requireActiveInternalCapability, signal: pagesCall.signal, folders: botFolders, post: (text, publishedPage, bundle) => { const source = connectorThread(internalSender.id, internalCapability.threadId); return !source ? null : (!source.group && bundle && publishedPages.show({ threadId: internalCapability.threadId, card: publishedPage, bundle })) || store.appendMessage(internalCapability.threadId, { role: "bot", kind: "text", text, publishedPage, ...(source.group ? { from: { botId: internalSender.id, name: internalSender.name, color: internalSender.color } } : {}) }).id; } }) !== PASS) return;
+      } }) !== PASS || await waitRoutes({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody, ...waitTurnChecks(internalCapability, internalSender) }) !== PASS || await teamMessages.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody }) !== PASS || await devsReports.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody }) !== PASS || await slackHost.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody, folders: botFolders, requireActive: requireActiveInternalCapability }) !== PASS) return; const pagesCall = new AbortController(); res.once("close", () => { if (!res.writableEnded) pagesCall.abort(); }); if (await publishedPages.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody, requireActive: requireActiveInternalCapability, signal: pagesCall.signal, folders: botFolders, post: (text, publishedPage, bundle) => { const source = connectorThread(internalSender.id, internalCapability.threadId); return !source ? null : (!source.group && bundle && publishedPages.show({ threadId: internalCapability.threadId, card: publishedPage, bundle })) || store.appendMessage(internalCapability.threadId, { role: "bot", kind: "text", text, publishedPage, ...(source.group ? { from: { botId: internalSender.id, name: internalSender.name, color: internalSender.color } } : {}) }).id; } }) !== PASS) return;
       const delegatedThisTurn = (taskId: string) => {
         (internalCapability.delegatedThisTurn ??= new Set()).add(taskId);
       };
@@ -15682,7 +15682,7 @@ server.listen(PORT, "127.0.0.1", async () => {
   }
   // Only once every registry is initialized and the endpoint listens: earlier dispatch can hit uninitialized bindings.
   moveFreeze.hold(() => { routines!.start(); botWaits.start(); proactive.start(); }, () => { routines!.stop(); botWaits.stop(); proactive.stop(); });
-  limitClock.start();
+  limitClock.start(); slackHost.start();
   moveFreeze.hold(() => memoryUpkeep.start(), () => memoryUpkeep.stop());
 });
 

@@ -37,7 +37,7 @@ import { MentionTextarea } from "./MentionTextarea";
 import { ComposerAttachments, ComposerAttachmentStrip, pathForFile } from "./ComposerAttachments"; import { ComposerFailedSends } from "./ComposerFailedSends"; import { useComposerFilePickers } from "./ComposerFilePickers";
 import { PointedChips } from "./app/PointedChips"; import { SetupRequestChip, setupRequestPlaceholder } from "./SetupOffer";
 import { takePointedChips } from "@/lib/pointed-chips";
-import { splitTranscriptCitations, type CitationAttachment } from "@/lib/citations";
+import { withoutCitationMarkers } from "@/lib/citations";
 import { approvalModeFor } from "../../shared/approval-mode";
 import { useOnCall } from "@/lib/call";
 import { isLiveCallRunning, useLiveMedia } from "@/lib/live-call-media";
@@ -448,15 +448,14 @@ export function Composer({
     if (!queued) return;
     const targetDraftId = draftId;
     const onCancelled = () => {
-      const cited = splitTranscriptCitations(queued.text);
-      if (cited.display) prependComposerDraft(targetDraftId, cited.display);
-      appendDraftAttachments(targetDraftId, cited.citations);
+      const words = withoutCitationMarkers(queued.text);
+      if (words) prependComposerDraft(targetDraftId, words);
       if (targetDraftId !== draftIdRef.current) return;
       requestAnimationFrame(() => {
         const input = inputRef.current;
         if (!input) return;
         input.focus();
-        input.setSelectionRange(cited.display.length, cited.display.length);
+        input.setSelectionRange(words.length, words.length);
       });
     };
     if (group) dispatch({ type: "cancelGroupQueued", groupId: group.id, threadId, queueId, onCancelled });
@@ -793,7 +792,7 @@ export function Composer({
           </div>
         )}
         <div ref={pillContentRef} className={singleRow ? cn("min-w-0 flex-1 rounded-[26px] py-1 pl-3 pr-1", ELEVATED_FLOAT) : simpleDock ? "flex shrink-0 flex-col" : "contents"}>
-        {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}<ComposerAttachmentStrip items={attachments} onRemove={removeAttachment} onChangeCitation={(citation: CitationAttachment) => editAttachments((current) => current.map((attachment) => attachment.id === citation.id ? citation : attachment))} onDisplayInChatBox={displayPasteInChatBox} notice={attachmentNotice} onNotice={setAttachmentNotice} />
+        {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}<ComposerAttachmentStrip items={attachments} onRemove={removeAttachment} onDisplayInChatBox={displayPasteInChatBox} notice={attachmentNotice} onNotice={setAttachmentNotice} />
         <div data-composer-row data-glyph-swap={glyphs.swapped ? "" : undefined} style={simpleDock ? slot.vars : undefined} className={cn("flex items-end", simpleDock ? cn("gap-2", stacked && "gap-y-2") : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
           {pickers.inputs}
           {!locked && !singleRow && (

@@ -7,10 +7,9 @@ import { joinedCorners, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, type BubbleJoin } 
 /** Simple mode's reply with tables: the prose in bubbles and each table in its own card at the message's full width, so
  * every column shows. The first and last prose bubbles take the row's join corners; a table breaks the join. The hover
  * tray sits beside the first block. */
-export function ReplyBlocks({ blocks, join, citation, tray, render, chips }: {
+export function ReplyBlocks({ blocks, join, tray, render, chips }: {
   blocks: readonly ReplyBlock[];
   join?: BubbleJoin;
-  citation: { messageId: string; ownerType: "bot" | "group"; ownerId: string; threadId: string };
   tray?: ReactNode;
   render: (text: string) => ReactNode;
   /** Grok's tapbacks, riding the last bubble's top corner. */
@@ -20,14 +19,7 @@ export function ReplyBlocks({ blocks, join, citation, tray, render, chips }: {
   let chipsAt = -1;
   if (chips) for (let index = last; index >= 0 && chipsAt < 0; index--) if (blocks[index]!.kind !== "table") chipsAt = index;
   return (
-    <div
-      data-reply-blocks
-      className="flex w-full flex-col items-start gap-1"
-      data-citation-source={citation.messageId}
-      data-citation-owner-type={citation.ownerType}
-      data-citation-owner={citation.ownerId}
-      data-citation-thread={citation.threadId}
-    >
+    <div data-reply-blocks className="flex w-full flex-col items-start gap-1">
       {blocks.map((block, index) => {
         const body = block.kind === "table"
           ? <div key={index} data-reply-table className={cn("my-2 w-full first:mt-0 last:mb-0", SIMPLE_BUBBLE_MAX)}>{render(block.text)}</div>

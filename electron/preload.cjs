@@ -23,6 +23,17 @@ ipcRenderer.on("chat:open", (_event, link) => {
   for (const listener of chatLinkListeners) listener(link);
 });
 
+let pendingSlackOAuth = null;
+const slackOAuthListeners = new Set();
+ipcRenderer.on("slack:oauth", (_event, link) => {
+  if (typeof link !== "string") return;
+  if (!slackOAuthListeners.size) {
+    pendingSlackOAuth = link;
+    return;
+  }
+  for (const listener of slackOAuthListeners) listener(link);
+});
+
 let pendingNotificationOpen = null;
 const notificationOpenListeners = new Set();
 ipcRenderer.on("desktop-notifications:open", (_event, target) => {
@@ -80,7 +91,7 @@ function railKeepsItsSize() {
 if (typeof window !== "undefined") {
   for (const type of ["resize", "DOMContentLoaded"]) window.addEventListener(type, () => { leaveRailRoom(); railKeepsItsSize(); });
 }
-const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "updatesConsent", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect"]);
+const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "updatesConsent", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect", "onSlackOAuth"]);
 /** My Cloud's own page once it is the person's home (main checks the sender again): it is this app's page then. */
 const HOME_PAGE = ["home", "onChatLink", "onPackageInstall", "exportDiagnostics", "openLogsFolder", "openAtLogin", "callActive"];
 function updaterOffered() {
@@ -370,6 +381,15 @@ const bridge = {
       cb(link);
     }
     return () => chatLinkListeners.delete(cb);
+  },
+  onSlackOAuth: (cb) => {
+    slackOAuthListeners.add(cb);
+    if (pendingSlackOAuth) {
+      const link = pendingSlackOAuth;
+      pendingSlackOAuth = null;
+      cb(link);
+    }
+    return () => slackOAuthListeners.delete(cb);
   },
   setUnreadCount: (count) => ipcRenderer.send("desktop:unread-count", count),
   desktopViewer: {
