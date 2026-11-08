@@ -22,8 +22,6 @@ import { ConnectedWorkspacesSettings } from "./ConnectedWorkspacesSettings";
 import { CloudAccountSettings } from "./CloudAccountSettings";
 import { TransferSettings } from "./vps-link/TransferSettings";
 import { vpsLinkAvailable } from "@/lib/vps-link";
-import { LicenseExpiryBanner } from "./LicenseExpiryBanner";
-import { workspacesAvailable } from "./WorkspacesSection";
 import { GrokIcon } from "./GrokIcon";
 import { SIMPLE_BUTTONS } from "./SettingsPrimitives";
 import { PaneHeader, PanelSections, SubPageContext, WipeStack, type SubPage } from "./ListRows";
@@ -107,7 +105,6 @@ export function SettingsModal() {
     desktopWorkspaces: Boolean(window.ogb?.environments),
     organization: Boolean(window.ogb?.organization),
     cloudAccount: Boolean(window.ogb?.cloudAccount || (window.ogb?.cloudPlan && cloudHome)),
-    workspaces: workspacesAvailable(state.config),
     people: !window.ogb && !cloudHome,
     activity: !window.ogb && ownerOrAdmin === true,
     botAccess: Boolean(state.config?.team) && ownerOrAdmin === true,
@@ -291,7 +288,6 @@ export function SettingsModal() {
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           <div ref={live ? scrollRef : undefined} data-wipe-scroll="" data-settings-scroll={live ? "" : undefined} className="settings-scroll">
             <div className={cn("settings-pane", SIMPLE_BUTTONS, "[&_.uppercase]:normal-case [&_.uppercase]:tracking-normal")}>
-              {live && !top && <LicenseExpiryBanner config={state.config} />}
               <SubPageContext.Provider value={nav}><PanelSections className="contents">{renderBody(at ?? undefined)}</PanelSections></SubPageContext.Provider>
             </div>
           </div>

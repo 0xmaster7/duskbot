@@ -9,11 +9,10 @@ import { IdentityModal, PermissionsModal, SlackModal, ToolsModal } from "./Secti
 import { SkillsModal } from "./SkillsModal";
 import { WhereModal } from "./WhereModal";
 
-export function PanelModal({ page, bot, derived, slackUrl = null, onClose }: {
+export function PanelModal({ page, bot, derived, onClose }: {
   page: SheetPage;
   bot: Bot;
   derived: ReturnType<typeof useBotSettingsDerived>;
-  slackUrl?: string | null;
   onClose: () => void;
 }) {
   switch (page) {
@@ -36,6 +35,6 @@ export function PanelModal({ page, bot, derived, slackUrl = null, onClose }: {
     case "backups":
       return <BackupsModal bot={bot} derived={derived} onClose={onClose} />;
     case "slack":
-      return <SlackModal bot={bot} managementUrl={slackUrl} onClose={onClose} />;
+      return <SlackModal bot={bot} onClose={onClose} />;
   }
 }

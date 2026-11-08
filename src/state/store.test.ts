@@ -2531,20 +2531,7 @@ describe("live config frames", () => {
     expect(configStatusFromFrame(baseFrame)).not.toHaveProperty("cloudHome");
   });
 
-  it("preserves edition, budgets and billing through configStatusFromFrame", () => {
-    const frame: ConfigStatusFrame = {
-      ...baseFrame,
-      edition: { edition: "enterprise", features: ["budgets", "billing"] },
-      budgets: { monthlyUsd: 10, warnAtPercent: 80 },
-      billing: { currency: "USD", prices: { default: { inputPerMillion: 1, outputPerMillion: 2 } } },
-    };
-    const status = configStatusFromFrame(frame);
-    expect(status.edition).toEqual(frame.edition);
-    expect(status.budgets).toEqual(frame.budgets);
-    expect(status.billing).toEqual(frame.billing);
-  });
-
-  it("keeps saved provider keys and the fleet flag after a config SSE frame lands after a save's own response", () => {
+  it("keeps saved provider keys after a config SSE frame lands after a save's own response", () => {
     const saved = reducer(initialState, {
       type: "configStatus",
       config: configStatusFromFrame({ ...baseFrame, openaiCompat: { configured: true, url: "http://127.0.0.1:1/v1" } }),
@@ -2556,7 +2543,6 @@ describe("live config frames", () => {
       groq: { configured: true },
       meta: { configured: true },
       openaiCompat: { configured: true, url: "http://127.0.0.1:1/v1" },
-      fleet: { available: true },
     };
     const state = reducer(saved, { type: "configStatus", config: configStatusFromFrame(frame) });
     expect(state.config).toMatchObject({
@@ -2565,7 +2551,6 @@ describe("live config frames", () => {
       groq: { configured: true },
       meta: { configured: true },
       openaiCompat: { configured: true, url: "http://127.0.0.1:1/v1" },
-      fleet: { available: true },
     });
   });
 
@@ -2574,21 +2559,6 @@ describe("live config frames", () => {
       mcp: { allowCustom: false, allowlist: ["github"] }, computers: { thisComputer: false, localVm: true, box: true, vps: true }, remoteAccess: false };
     expect(configStatusFromFrame({ ...baseFrame, managedPolicy }).managedPolicy).toEqual(managedPolicy);
     expect(configStatusFromFrame({ ...baseFrame, managedPolicy: null }).managedPolicy).toBeNull();
-  });
-
-  it("keeps edition, budgets and billing in state.config after a config SSE frame lands", () => {
-    const frame: ConfigStatusFrame = {
-      ...baseFrame,
-      edition: { edition: "enterprise", features: ["budgets", "billing"] },
-      budgets: { monthlyUsd: 10, warnAtPercent: 80 },
-      billing: { currency: "USD" },
-    };
-    const state = reducer(initialState, { type: "configStatus", config: configStatusFromFrame(frame) });
-    expect(state.config).toMatchObject({
-      edition: { edition: "enterprise", features: ["budgets", "billing"] },
-      budgets: { monthlyUsd: 10, warnAtPercent: 80 },
-      billing: { currency: "USD" },
-    });
   });
 
   it("keeps live settings when a config frame arrives", () => {

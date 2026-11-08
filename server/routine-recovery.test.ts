@@ -117,7 +117,7 @@ describe("classifyRoutineFailure", () => {
     [CAPPED, {}, { kind: "final" }],
     ["Model-call limit reached before a final answer", {}, { kind: "final" }],
     ["The bot repeated the same call 6 times, so it was stopped", { cause: "cap" }, { kind: "final" }],
-    ["this workspace has reached its monthly spend limit of $20.00", { cause: "cap" }, { kind: "final" }],
+    ["fixture dispatch refused", { cause: "cap" }, { kind: "final" }],
     ["The routine was deleted before it could start", { cause: "refused" }, { kind: "final" }],
     [DENIED, { stopReason: "tool_error" }, { kind: "final" }],
     // A start that failed before its turn began is judged by its words, and never retried as a crash.
@@ -135,8 +135,8 @@ describe("classifyRoutineFailure", () => {
     expect(dispatchRefusal("thread_busy")).toEqual({});
   });
 
-  it("reads the spend cap and any other refusal to start, and leaves an engine that would not spawn a plain failure", () => {
-    expect(dispatchRefusal(Object.assign(new Error("this workspace has reached its monthly spend limit of $20.00"), { status: 409, code: "spend_cap" }))).toEqual({ cause: "cap" });
+  it("reads a refusal to start, and leaves an engine that would not spawn a plain failure", () => {
+    expect(dispatchRefusal(Object.assign(new Error("fixture dispatch refused"), { status: 409, code: "fixture_refusal" }))).toEqual({ cause: "refused" });
     expect(dispatchRefusal(Object.assign(new Error(BUSY), { status: 409 }))).toEqual({ cause: "refused" });
     expect(dispatchRefusal(Object.assign(new Error("no such bot"), { status: 404 }))).toEqual({ cause: "refused" });
     expect(dispatchRefusal(new Error("spawn claude ENOENT"))).toEqual({});
@@ -260,11 +260,11 @@ describe("an unattended run that fails for a passing reason", () => {
     expect(dispatchErrors).toHaveLength(1);
   });
 
-  it("never retries a run the spend cap kept from starting", async () => {
+  it("never retries a refused run", async () => {
     const h = harness();
-    h.refuse(Object.assign(new Error("this workspace has reached its monthly spend limit of $20.00"), { status: 409, code: "spend_cap" }));
+    h.refuse(Object.assign(new Error("fixture dispatch refused"), { status: 409, code: "fixture_refusal" }));
     const run = await h.start(h.routine().id);
-    expect(h.run(run.id)).toMatchObject({ status: "failed", error: "this workspace has reached its monthly spend limit of $20.00" });
+    expect(h.run(run.id)).toMatchObject({ status: "failed", error: "fixture dispatch refused" });
     h.refuse(null);
     await h.advance(MINUTE);
     expect(h.attempts).toHaveLength(1);

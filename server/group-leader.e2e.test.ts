@@ -9,7 +9,7 @@ import { readHandoffs } from "./testing/handoff-rows.ts";
 // A led group, end to end on the real server with the scripted engine: the person's line reaches the leader alone, the
 // leader hands two members work that runs side by side, results come back, and the leader wraps up inside its round cap.
 it("runs a group like a department: person to leader, two members in parallel, results back, wrap-up, hop cap", async () => {
-  const session = await launchVerificationServer(process.env, undefined, undefined, undefined, undefined, { scripted: true });
+  const session = await launchVerificationServer(process.env, undefined, undefined, undefined, { scripted: true });
   const env = { OPENMAUSBOT_URL: session.info.url };
   const cli = (...args: string[]) => runControlOmb(args, { env }) as Promise<any>;
   const api = (path: string, body?: unknown, method = "POST") => request(path, body === undefined ? {} : { method, body: JSON.stringify(body) }, session.info.url) as Promise<any>;
@@ -90,7 +90,7 @@ it("runs a group like a department: person to leader, two members in parallel, r
 // Outside a group a bot leads the same way: it hands two of the person's other bots work, both show as hand-off rows in
 // the one-to-one chat, run side by side in their own threads, report back, and the bot wraps up.
 it("leads from a one-to-one chat too: hand-off rows, parallel work, results back, wrap-up", async () => {
-  const session = await launchVerificationServer(process.env, undefined, undefined, undefined, undefined, { scripted: true });
+  const session = await launchVerificationServer(process.env, undefined, undefined, undefined, { scripted: true });
   const env = { OPENMAUSBOT_URL: session.info.url };
   const cli = (...args: string[]) => runControlOmb(args, { env }) as Promise<any>;
   const api = (path: string) => request(path, {}, session.info.url) as Promise<any>;

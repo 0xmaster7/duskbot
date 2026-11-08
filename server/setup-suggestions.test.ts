@@ -126,7 +126,7 @@ describe("the card's answers", () => {
   const REPLY = '["Find missing receipts in Stripe", "Draft payment reminders", "Sort my order emails", "Check my weekly sales", "Remind me to pay suppliers"]';
   const basis: SuggestionBasis = { name: "Bookkeeper", otherJobs: [], language: "English", languageCode: "en", canBrowse: true };
 
-  function setup(options: { reply?: () => Promise<string>; enabled?: boolean; canSetUp?: boolean; withinBudget?: boolean; writer?: boolean;
+  function setup(options: { reply?: () => Promise<string>; enabled?: boolean; canSetUp?: boolean; writer?: boolean;
     basis?: SuggestionBasis; apps?: SuggestionApps } = {}) {
     const store = new Store(() => ({ instanceId: "claude", model: "claude-sonnet-5" }), undefined, undefined, "en");
     const bot = store.createBot({ name: "Bookkeeper" });
@@ -139,7 +139,7 @@ describe("the card's answers", () => {
     const patchMessage = store.patchMessage.bind(store);
     store.patchMessage = (threadId, id, patch) => { patches.push(patch); return patchMessage(threadId, id, patch); };
     const suggestions = createSetupSuggestions({
-      store, enabled: () => options.enabled ?? true, canSetUp: () => options.canSetUp ?? true, withinBudget: () => options.withinBudget ?? true,
+      store, enabled: () => options.enabled ?? true, canSetUp: () => options.canSetUp ?? true,
       writer: () => (options.writer === false ? null : writer), facts: () => options.basis ?? basis, apps: () => options.apps ?? null,
     });
     const greeting = () => store.messagesFor(bot.threadId)[0]!;
@@ -200,7 +200,7 @@ describe("the card's answers", () => {
   });
 
   it("ask nobody, and show the fixed answers at once, when switched off or when nothing can or should write them", async () => {
-    const cases: Array<Parameters<typeof setup>[0]> = [{ enabled: false }, { canSetUp: false }, { withinBudget: false }, { writer: false },
+    const cases: Array<Parameters<typeof setup>[0]> = [{ enabled: false }, { canSetUp: false }, { writer: false },
       { basis: { otherJobs: [], language: "English", languageCode: "en", canBrowse: true } }];
     for (const options of cases) {
       const s = setup(options);
@@ -249,7 +249,7 @@ describe("renaming a new bot before its card is answered", () => {
     return { reply: () => reply, answer };
   };
 
-  function setup(options: { name?: string; replies?: Record<string, Reply>; withinBudget?: () => boolean; canSetUp?: () => boolean } = {}) {
+  function setup(options: { name?: string; replies?: Record<string, Reply>; canSetUp?: () => boolean } = {}) {
     const store = new Store(() => ({ instanceId: "claude", model: "claude-sonnet-5" }), undefined, undefined, "en");
     const bot = store.createBot({ name: options.name ?? "Pepper" });
     const replies: Record<string, Reply> = { Recruiter: replying(RECRUITER), Gardener: replying(GARDENER), "Party Planner": replying(PLANNER), ...options.replies };
@@ -263,7 +263,7 @@ describe("renaming a new bot before its card is answered", () => {
     const patchMessage = store.patchMessage.bind(store);
     store.patchMessage = (threadId, id, patch) => { patches.push(patch); return patchMessage(threadId, id, patch); };
     const suggestions = createSetupSuggestions({
-      store, enabled: () => true, canSetUp: () => options.canSetUp?.() ?? true, withinBudget: () => options.withinBudget?.() ?? true,
+      store, enabled: () => true, canSetUp: () => options.canSetUp?.() ?? true,
       writer: () => writer, apps: () => null,
       facts: (of) => suggestionBasis(of, { bots: store.bots, shared: false, languageCode: "en", canBrowse: true }),
     });
@@ -427,15 +427,6 @@ describe("renaming a new bot before its card is answered", () => {
       expect(s.greeting().setupChoices).toEqual(RECRUITER);
       expect(s.greeting().setupChoicesUpdating).toBeUndefined();
     }
-    let budget = true;
-    const broke = setup({ name: "Recruiter", withinBudget: () => budget });
-    await vi.advanceTimersByTimeAsync(0);
-    budget = false;
-    broke.rename("Gardener");
-    await broke.settle();
-    expect(broke.named()).toEqual(["Recruiter"]);
-    expect(broke.greeting().setupChoices).toEqual(RECRUITER);
-    expect(broke.greeting().setupChoicesUpdating).toBeUndefined();
     const plain = setup({ canSetUp: () => false });
     plain.rename("Recruiter");
     await plain.settle();

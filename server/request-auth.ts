@@ -31,18 +31,10 @@ export interface RequestAuthResult {
 const LOOPBACK_SCOPES: readonly Scope[] = ["admin", "client"];
 const SERVICE_SCOPES: readonly Scope[] = ["client"];
 
-/** What a `service`-trust loopback caller may reach: health and identity, the cloud Slack worker's routes (it
- * shares the workspace's network namespace), and the turn-scoped capability routes, whose bearer the handler checks.
- *
- * Open risk: a bot's shell is a loopback caller too, so it can do everything the Slack worker does: post into any
- * bot's thread through the guarded route, including an existing Full-access thread, open new Full-access threads
- * while the operator's shared Full access is on, stop a request and decline a card. Planned fix: a relay token only
- * the Slack worker holds, so these routes stop answering session-less loopback. */
+/** a bot's shell shares service trust and can use the worker's guarded routes, including existing full-access threads. */
 export const SERVICE_ALLOW: ReadonlyArray<{ methods: readonly string[]; path: RegExp }> = [
   { methods: ["GET"], path: /^\/api\/health$/ },
   { methods: ["GET"], path: /^\/api\/auth\/session$/ },
-  { methods: ["GET"], path: /^\/api\/edition$/ },
-  { methods: ["GET"], path: /^\/api\/brand$/ },
   { methods: ["GET"], path: /^\/api\/bots$/ },
   { methods: ["GET"], path: /^\/api\/threads\/[\w-]+\/messages$/ },
   { methods: ["GET"], path: /^\/api\/attachments\/[\w.-]+$/ },
@@ -301,14 +293,10 @@ export const CLIENT_ALLOW: ReadonlyArray<{ methods: readonly string[]; path: Reg
   { methods: ["GET"], path: /^\/api\/phones\/self\/jobs$/ },
   { methods: ["POST"], path: /^\/api\/phones\/self\/jobs\/[\w-]+\/(?:lease|result)$/ },
   { methods: ["GET"], path: /^\/api\/health$/ },
-  { methods: ["GET"], path: /^\/api\/edition$/ },
-  { methods: ["GET"], path: /^\/api\/brand$/ },
   { methods: ["GET"], path: /^\/api\/events$/ },
   // reads that carry no secrets
   { methods: ["GET"], path: /^\/api\/bots$/ },
   { methods: ["GET"], path: /^\/api\/team-map$/ },
-  // a link into the organisation's Admin: identifiers only, and Admin authorizes its own visitor
-  { methods: ["GET"], path: /^\/api\/bots\/[\w-]+\/slack-management$/ },
   { methods: ["GET"], path: /^\/api\/search$/ },
   { methods: ["GET"], path: /^\/api\/threads\/[\w-]+\/messages$/ },
   { methods: ["GET"], path: /^\/api\/threads\/[\w-]+\/messages\/[\w-]+\/image$/ },

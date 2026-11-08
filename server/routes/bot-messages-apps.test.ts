@@ -170,7 +170,7 @@ describe("POST /api/bots/:id/messages with appMessage", () => {
   it("holds an app row to 20 messages an hour, gives a refused send's slot back, and lets a retry through", async () => {
     const { threadId, state, post, page, sent } = await fixture();
     const appId = page();
-    state.refuse = new DirectSendRefused(409, { error: "spend cap" });
+    state.refuse = new DirectSendRefused(409, { error: "fixture refusal" });
     expect((await post({ threadId, sendId: sendId(), appMessage: { messageId: appId, text: "refused" } })).status).toBe(409);
     state.refuse = null;
     let first = "";
@@ -240,7 +240,7 @@ describe("app context on the send route", () => {
     const { threadId, state, post, page, row, apps } = await fixture();
     const appId = page("Sales");
     apps.setAppContext({ threadId, messageId: appId, content: [{ type: "text", text: "Looking at March" }] });
-    state.refuse = new DirectSendRefused(409, { error: "spend cap" });
+    state.refuse = new DirectSendRefused(409, { error: "fixture refusal" });
     expect((await post({ threadId, sendId: sendId(), text: "Hi" })).status).toBe(409);
     expect(row(appId).app!.context).toMatchObject({ delivered: false });
     state.refuse = null;

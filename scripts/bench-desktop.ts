@@ -668,7 +668,7 @@ async function main() {
     const booted = await fixture.tally();
     const big: Record<string, unknown> = { seeded: { bots: seeded.bots, threads: seeded.threads, messages: seeded.bigMessages, botsJsonKb: kb(statSync(join(dataDir, "bots.json")).size), messagesDbKb: kb(statSync(join(dataDir, "messages.db")).size) }, serverReadyMs: Math.round(fixture.readyMs) };
     const routes: Record<string, unknown> = {};
-    for (const path of ["/api/bots?messages=200", "/api/bots?messages=0", "/api/config", "/api/instances", "/api/routines", "/api/notifications", "/api/live/call", "/api/auth/session", "/api/brand"]) {
+    for (const path of ["/api/bots?messages=200", "/api/bots?messages=0", "/api/config", "/api/instances", "/api/routines", "/api/notifications", "/api/live/call", "/api/auth/session"]) {
       const samples = [];
       let bytes = 0;
       for (let i = 0; i < 5; i++) { const answer = await fixture.api("GET", path); samples.push(answer.ms); bytes = answer.bytes; }

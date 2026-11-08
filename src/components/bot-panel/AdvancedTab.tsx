@@ -4,7 +4,6 @@ import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { openBotSettings, openSettings } from "@/lib/open-settings";
-import { useSlackManagementUrl } from "../bot-settings/useSlackManagement";
 import { VoiceChatCard } from "./DetailsTab";
 import { LibrarySection } from "./LibraryTab";
 import { takePanelModalRequest, usePanelModalRequest, type SheetPage } from "./modals/panel-modal";
@@ -25,7 +24,6 @@ export function AdvancedTab({ bot, derived, onOpen }: {
   onOpen: (page: SimplePageId) => void;
 }) {
   const { dispatch } = useStore();
-  const slackUrl = useSlackManagementUrl(bot.id);
   const request = usePanelModalRequest();
   const link = usePanelLink();
   const openPage = (page: SheetPage) => dispatch(openBotSettings({ kind: "bot", id: bot.id, row: page }));
@@ -43,7 +41,7 @@ export function AdvancedTab({ bot, derived, onOpen }: {
     <PanelSections data-panel-tabpanel="advanced">
       <LibrarySection bot={bot} onOpen={onOpen} />
       <VoiceChatCard bot={bot} patch={derived.patch} />
-      <SettingsPage bot={bot} derived={derived} onOpen={openPage} slackUrl={slackUrl} />
+      <SettingsPage bot={bot} derived={derived} onOpen={openPage} />
       <Card anchor="advanced-features">
         <NavRow
           data-panel-row="advanced-features"

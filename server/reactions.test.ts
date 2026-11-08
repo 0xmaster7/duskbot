@@ -159,7 +159,7 @@ describe("a reaction on a bot's message", () => {
   });
 
   it("keeps the answer that waits when a change to it is refused", async () => {
-    const refusal = Object.assign(new Error("this workspace has reached its monthly spend limit"), { status: 409, code: "spend_cap" });
+    const refusal = Object.assign(new Error("fixture dispatch refused"), { status: 409, code: "fixture_refusal" });
     const options: { queued: boolean; refuse?: Error } = { queued: true };
     const { store, bot, calls, react, say } = fixture(options);
     const asked = say();
@@ -210,7 +210,7 @@ describe("a reaction on a bot's message", () => {
   });
 
   it("puts the reaction back as it was when the reply is refused", async () => {
-    const refusal = Object.assign(new Error("this workspace has reached its monthly spend limit"), { status: 409, code: "spend_cap" });
+    const refusal = Object.assign(new Error("fixture dispatch refused"), { status: 409, code: "fixture_refusal" });
     const { store, bot, react, say } = fixture({ refuse: refusal });
     const asked = say();
     store.setReaction(bot.threadId, asked.id, "user", { emoji: "❤️", at: 5 });

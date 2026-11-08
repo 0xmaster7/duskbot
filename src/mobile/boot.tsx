@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { bootstrapBrand, productName } from "@/lib/brand";
+import { productName } from "@/lib/brand";
 import { loadPageLanguage } from "@/lib/language-preference";
 import { applySkinChoice, readSkinChoice, type SkinChoice } from "@/lib/skins";
 import { applyFont, readFont } from "@/lib/fonts";
@@ -36,7 +36,7 @@ export function mountMobile(platform: MobilePlatform): void {
   const dark = document.documentElement.dataset.skin === "grok-dark";
   platform.setStatusBar?.(dark ? "light" : "dark");
   document.title = productName();
-  void Promise.all([bootstrapBrand(), loadPageLanguage(), installHaptics(platform)]).then(() => {
+  void Promise.all([loadPageLanguage(), installHaptics(platform)]).then(() => {
     createRoot(document.getElementById("root")!).render(
       <StrictMode>
         <PageBoundary>

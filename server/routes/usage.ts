@@ -1,7 +1,6 @@
 import { redactSecretsInText } from "../../shared/redact.ts";
 import type { PriceList } from "../prices.ts";
 import type { RequestAuth } from "../request-auth.ts";
-import type { SpendState } from "../spend.ts";
 import {
   flushUsageLedger,
   parseUsageRange,
@@ -19,7 +18,6 @@ import { PASS, type RouteHandler } from "./table.ts";
 export interface UsageRouteDeps {
   dataDir: string;
   prices(): PriceList | null;
-  budget(): SpendState | null;
   currency(): string;
   recorder: TraceServiceDeps["recorder"];
   messages: TraceServiceDeps["messages"];
@@ -86,7 +84,7 @@ export function createUsageRoutes(deps: UsageRouteDeps): RouteHandler {
       to: range.to.toISOString(),
       groupBy,
       ...summarizeUsage(rows, groupBy, prices),
-      budget: deps.budget(),
+      budget: null,
       billing: prices ? { currency: deps.currency() } : null,
     });
   };

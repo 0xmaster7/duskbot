@@ -1,14 +1,12 @@
 import { useState } from "react";
 
-import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { BOT_PROFILE_LIMITS } from "../../../../shared/bot-profile";
 import { PackageProvenance } from "../../bot-settings/PackageProvenance";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
 import { showDefaultBot } from "../../DefaultBotControls";
-import { GrokIcon } from "../../GrokIcon";
-import { Card, FormDialog, FormField, NavRow, rowCls, RowText, SheetPane } from "../../ListRows";
+import { Card, FormDialog, FormField, NavRow, SheetPane } from "../../ListRows";
 import { textAreaCls, textFieldCls } from "../../ui/GrokDialog";
 import { PermissionsSheet } from "./PermissionsSheet";
 import { ToolsSheet } from "./ToolsSheet";
@@ -106,24 +104,11 @@ function ProfileDialog({ bot, focus, onSave, onClose }: {
   );
 }
 
-export function SlackModal({ bot, managementUrl }: { bot: Bot; managementUrl?: string | null; onClose: () => void }) {
+export function SlackModal({ bot }: { bot: Bot; onClose: () => void }) {
   return (
     <SheetPane data-panel-modal="slack" title={t("botPanel.page.slack")}>
       <div data-bot-settings-section="slack" className="contents">
         <SlackBotPage bot={bot} />
-        {managementUrl && <Card data-sheet-group="slack">
-          <a
-            href={managementUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-sheet-row="slack"
-            className={cn(rowCls, "cursor-pointer outline-none hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus")}
-          >
-            <RowText title={t("botPanel.sheet.slack")} hint={t("botPanel.sheet.slackHint")} />
-            <span className="shrink-0 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{t("botSlack.manage")}</span>
-            <GrokIcon name="link-external" size={12} className="shrink-0 text-ink-tertiary" />
-          </a>
-        </Card>}
       </div>
     </SheetPane>
   );

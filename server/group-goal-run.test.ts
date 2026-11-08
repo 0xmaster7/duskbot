@@ -182,19 +182,6 @@ describe("one goal-run loop for a room and a one-on-one chat", () => {
     expect(goal.finished).toEqual([{ status: "limit-reached", detail: expect.stringContaining(`${GROUP_GOAL_MAX_TURNS}-turn safety limit`) }]);
   });
 
-  it("blocks on the spend cap without retrying the refused turn", async () => {
-    const goal = goalRun({
-      solo: true,
-      steps: [
-        settled(envelope({ status: "continue", next: "solo-id", instruction: "Keep going", detail: "Working" })),
-        { ran: false, replyText: "", outcome: "spend_capped", stopReason: "this workspace has reached its monthly spend limit of $0.01" },
-      ],
-    });
-    await goal.done;
-    expect(goal.calls).toHaveLength(2);
-    expect(goal.finished).toEqual([{ status: "blocked", detail: "this workspace has reached its monthly spend limit of $0.01" }]);
-  });
-
   it("retries a turn that did not settle once, then fails the run", async () => {
     const goal = goalRun({ solo: true, steps: [{ ran: true, replyText: "", outcome: "provider_failed", stopReason: "exit 1" }] });
     await goal.done;

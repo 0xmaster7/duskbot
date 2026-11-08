@@ -257,7 +257,6 @@ describe("Codex generateMemoryText (fake CLI)", () => {
       refusal: () => undefined,
       helper: () => null,
       smallModels,
-      assertWithinBudget: () => {},
       book: () => {},
     });
     const memory = jobs(new QuickModelFallback({ file, publish: () => {}, stopped: () => false })).text("memory", "b1")!;

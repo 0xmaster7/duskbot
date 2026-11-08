@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { applyBrand, DEFAULT_BRAND } from "./brand";
 import { documentLanguage, resolveLocale, setLocale, t, tFromServer } from "./i18n";
 import { en, localeChoices, locales } from "@/locales";
 
@@ -36,15 +35,9 @@ describe("t", () => {
     expect(t("engines.cloud")).toBe("Cloud");
   });
 
-  it("fills {app} with the product's name, a white-label brand's own name, or the name a caller passes", () => {
+  it("fills {app} with the product's name or the name a caller passes", () => {
     expect(t("routines.runsOn.localHint")).toBe("Starts while MausBot is open here.");
     expect(t("routines.runsOn.localHint", { app: "Acme" })).toBe("Starts while Acme is open here.");
-    applyBrand({ brand: { name: "Acme Bots" }, source: "file", file: "/brand.json" });
-    try {
-      expect(t("routines.runsOn.localHint")).toBe("Starts while Acme Bots is open here.");
-    } finally {
-      applyBrand({ brand: DEFAULT_BRAND, source: "default", file: "" });
-    }
   });
 
   it("setLocale reports the locale that actually took effect", () => {

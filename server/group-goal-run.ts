@@ -165,7 +165,6 @@ export type GoalStepOutcome =
   | "settled"
   | "provider_failed"
   | "dispatch_failed"
-  | "spend_capped"
   | "stalled"
   | "timed_out"
   | "cancelled"
@@ -198,7 +197,6 @@ export interface GoalRunDeps<Bot extends GoalRunMember> {
   note(text: string): void;
 }
 
-// spend_capped is deliberately absent: a cap refusal is deterministic.
 const TRANSIENT_STEP: ReadonlySet<GoalStepOutcome | undefined> = new Set(["provider_failed", "dispatch_failed", "stalled", "timed_out"]);
 
 async function stepOnceRetried<Bot extends GoalRunMember>(deps: GoalRunDeps<Bot>, bot: Bot, coordinator: boolean, instructions: string): Promise<GoalStepResult> {
@@ -237,10 +235,6 @@ export async function runGoalRun<Bot extends GoalRunMember>(deps: GoalRunDeps<Bo
     if (deps.cancelled()) return;
     if (coordinatorResult.outcome === "unavailable") {
       deps.finish("blocked", `${coordinator.name} is not available.`);
-      return;
-    }
-    if (coordinatorResult.outcome === "spend_capped") {
-      deps.finish("blocked", coordinatorResult.stopReason ?? `${coordinator.name} hit the workspace spend cap.`);
       return;
     }
     if (coordinatorResult.outcome === "busy") {
@@ -304,10 +298,6 @@ export async function runGoalRun<Bot extends GoalRunMember>(deps: GoalRunDeps<Bo
     if (deps.cancelled()) return;
     if (workerResult.outcome === "unavailable") {
       deps.finish("blocked", `${workerBot.name} is not available.`);
-      return;
-    }
-    if (workerResult.outcome === "spend_capped") {
-      deps.finish("blocked", workerResult.stopReason ?? `${workerBot.name} hit the workspace spend cap.`);
       return;
     }
     if (workerResult.outcome === "busy" || workerResult.outcome === "parked") {

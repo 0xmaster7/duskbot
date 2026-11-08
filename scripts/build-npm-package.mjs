@@ -24,16 +24,6 @@ mkdirSync(out, { recursive: true });
 cpSync(join(root, "dist-server"), join(out, "dist-server"), { recursive: true });
 cpSync(join(root, "dist"), join(out, "dist"), { recursive: true });
 if (existsSync(join(root, "skills"))) cpSync(join(root, "skills"), join(out, "skills"), { recursive: true });
-// The enterprise layer, under the path the server loads it from.
-// Source-available under its own license; inert without OMB_LICENSE_KEY.
-const enterpriseBundle = join(root, "dist-server", "enterprise", "server", "index.js");
-if (existsSync(enterpriseBundle)) {
-  mkdirSync(join(out, "enterprise", "server"), { recursive: true });
-  copyFileSync(enterpriseBundle, join(out, "enterprise", "server", "index.js"));
-  for (const file of ["LICENSE", "README.md"]) {
-    if (existsSync(join(root, "enterprise", file))) copyFileSync(join(root, "enterprise", file), join(out, "enterprise", file));
-  }
-}
 cpSync(join(root, "LICENSE"), join(out, "LICENSE"));
 cpSync(join(root, "NOTICE"), join(out, "NOTICE"));
 
@@ -60,7 +50,7 @@ writeFileSync(
         "@duckdb/node-api": app.dependencies["@duckdb/node-api"],
         "@resvg/resvg-js": app.dependencies["@resvg/resvg-js"],
       },
-      files: ["cli.js", "dist-server", "dist", "skills", "enterprise", "LICENSE", "NOTICE", "README.md"],
+      files: ["cli.js", "dist-server", "dist", "skills", "LICENSE", "NOTICE", "README.md"],
       engines: { node: ">=24" },
       repository: app.repository,
       homepage: app.homepage,

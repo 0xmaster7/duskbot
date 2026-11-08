@@ -9,7 +9,7 @@ export type AdvancedPage = "apps" | "team" | "data" | "builder";
 
 export const ADVANCED_PAGES: ReadonlyArray<{ id: AdvancedPage; icon: GrokIconName; sections: AppSettingsSection[] }> = [
   { id: "apps", icon: "plug", sections: ["apps", "skills"] },
-  { id: "team", icon: "building", sections: ["organization", "people", "workspaces"] },
+  { id: "team", icon: "building", sections: ["organization", "people"] },
   { id: "data", icon: "database", sections: ["data", "backups"] },
   { id: "builder", icon: "sliders", sections: ["builder", "experimental"] },
 ];

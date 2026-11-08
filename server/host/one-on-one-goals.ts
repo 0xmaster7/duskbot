@@ -1,7 +1,6 @@
 // A goal in a one-on-one chat, run as a room of one: the bot leads and does the work itself, one turn at a time.
 import { randomUUID } from "node:crypto";
 
-import { failedTurnTool } from "../../shared/failed-turn.ts";
 import type { HostTurnResult } from "../coordinator.ts";
 import { GROUP_GOAL_WAIT_MAX_MS, runGoalRun, type GoalRunEnd, type GoalStepOutcome, type GoalStepResult } from "../group-goal-run.ts";
 import { OUTSIDE, workOrigin, type WorkOrigin } from "../peer-provenance.ts";
@@ -130,12 +129,7 @@ export function createOneOnOneGoals(deps: OneOnOneGoalDeps) {
             await new Promise((resolve) => setTimeout(resolve, LOST_RACE_RETRY_MS));
             continue;
           }
-          if (code === "spend_cap") {
-            store.appendMessage(threadId, { role: "bot", kind: "activity", tool: failedTurnTool(message) });
-            outcome = "spend_capped";
-          } else {
-            outcome = "dispatch_failed";
-          }
+          outcome = "dispatch_failed";
           return { ran: false, replyText: "", outcome, stopReason: message };
         }
         run.turnCount += 1;

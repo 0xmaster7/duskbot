@@ -1,6 +1,6 @@
 // What an unattended routine run's failure turns into: a failure starts the run once more after a short wait, unless a
 // second start could only repeat or undo it (a stall the turn watchdog stopped, a stop someone pressed or typed, a
-// refusal, a spent cap); a busy target is waited for, a usage limit with a known reset is waited out, and what only the
+// refusal, a turn cap); a busy target is waited for, a usage limit with a known reset is waited out, and what only the
 // owner can fix fails at once and is told to them once per bot and cause, until one of that bot's runs completes.
 import type { RuntimeEvent } from "../shared/runtime-events.ts";
 import type { RoutineRetryCause } from "../shared/routines.ts";
@@ -14,7 +14,7 @@ export type RoutineOwnerCause = "signed_out" | "credits" | "usage_limit" | "setu
 
 /** What is known about a failure besides its words: a cause the server words itself, and the engine's own flags. */
 export interface RoutineFailureFacts {
-  /** stalled: the turn watchdog stopped it; cap: a spend or turn cap (or the repeat guard) ended it; refused: the server
+  /** stalled: the turn watchdog stopped it; cap: a turn cap (or the repeat guard) ended it; refused: the server
    * would not start it, or its start failed before the turn began (judged by its words, never retried as a crash). */
   cause?: "stalled" | "busy" | "cap" | "refused";
   stopReason?: string | null;
@@ -77,7 +77,7 @@ const FIRST_START: Record<RoutineRetryCause, string> = {
 };
 
 /** Any failure gets one automatic retry, except a stall the turn watchdog stopped (its Chief hears instead), a
- * stop someone pressed or typed, a refusal, and a spent cap. Routine runs and teammate threads both judge by this. */
+ * stop someone pressed or typed, a refusal, and a turn cap. Routine runs and teammate threads both judge by this. */
 export function classifyRoutineFailure(failure: string, facts: RoutineFailureFacts = {}): RoutineFailureClass {
   if (facts.cause === "busy") return { kind: "busy" };
   if (facts.cause === "stalled" || facts.cause === "cap") return { kind: "final" };
@@ -99,12 +99,11 @@ export function classifyRoutineFailure(failure: string, facts: RoutineFailureFac
   return reason === "unknown" && facts.cause !== "refused" && !(engine && REFUSED_KINDS.has(engine)) ? { kind: "retry", cause: "failed" } : { kind: "final" };
 }
 
-/** Why startTurn would not start a run: busy for now, the workspace spend cap, or any other refusal. A start that threw
+/** Why startTurn would not start a run: busy for now or any other refusal. A start that threw
  * without a status or code (an engine that would not spawn) is a failure like any other. */
 export function dispatchRefusal(error: unknown): RoutineFailureFacts {
   const { code, status } = (error ?? {}) as { code?: unknown; status?: unknown };
   if (typeof code === "string" && BUSY_CODES.has(code)) return { cause: "busy" };
-  if (code === "spend_cap") return { cause: "cap" };
   return typeof code === "string" || (typeof status === "number" && status >= 400 && status < 500) ? { cause: "refused" } : {};
 }
 

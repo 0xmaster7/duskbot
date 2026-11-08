@@ -75,8 +75,8 @@ describe("POST /api/threads/:threadId/messages/:messageId/reactions", () => {
   });
 
   it("answers a refused delivery with its status and code", async () => {
-    const { send } = await fixture({ react: async () => { throw Object.assign(new Error("this workspace has reached its monthly spend limit"), { status: 409, code: "spend_cap" }); } });
-    expect(await send({ emoji: "👍" })).toEqual({ status: 409, body: { error: "this workspace has reached its monthly spend limit", code: "spend_cap" } });
+    const { send } = await fixture({ react: async () => { throw Object.assign(new Error("fixture dispatch refused"), { status: 409, code: "fixture_refusal" }); } });
+    expect(await send({ emoji: "👍" })).toEqual({ status: 409, body: { error: "fixture dispatch refused", code: "fixture_refusal" } });
   });
 
   it("leaves every other path and method to the routes after it", async () => {

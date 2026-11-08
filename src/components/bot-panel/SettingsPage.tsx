@@ -28,11 +28,10 @@ function useMemoryLine(bot: Bot): string {
 
 /** The bot's settings as Grok-style list rows: what it knows, then what it can reach, each row opening its page of the
  * bot's settings in Settings (its Bots page); then its rare actions. The Advanced tab draws it; the model lives on Details. */
-export function SettingsPage({ bot, onOpen, slackUrl = null }: {
+export function SettingsPage({ bot, onOpen }: {
   bot: Bot;
   derived?: Derived;
   onOpen?: (page: SheetPage) => void;
-  slackUrl?: string | null;
 }) {
   const { state, dispatch } = useStore();
   const skills = useManagedSkills(bot);
@@ -68,7 +67,7 @@ export function SettingsPage({ bot, onOpen, slackUrl = null }: {
         <NavRow data-panel-page="folder" title={t("computer.files.folder")} value={bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")} tooltip={bot.cwd ?? undefined} onClick={open("folder")} />
         <NavRow data-panel-page="where" title={t("computer.simple.whereWorks", { name })} value={currentLabel ?? t("computer.simple.dest.letItChoose")} onClick={open("where")} />
         <NavRow data-panel-page="backups" title={t("botPanel.page.backups")} value={backups > 0 ? t("botPanel.backups.count", { count: backups }) : t("botPanel.none")} onClick={open("backups")} />
-        {(slackUrl || slackAvailable) && <NavRow data-panel-page="slack" title={t("slack.title")} value={slackValue} onClick={open("slack")} />}
+        {slackAvailable && <NavRow data-panel-page="slack" title={t("slack.title")} value={slackValue} onClick={open("slack")} />}
       </Card>
 
       {editable && (
