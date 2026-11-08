@@ -11,6 +11,7 @@ import { ago } from "../lib/format";
 import { setTheme, useTheme, type ThemePref } from "../lib/theme";
 import { Field, Modal, Switch } from "../ui/controls";
 import { Button, ButtonLink, PageHeader, SectionTitle, Segmented, Skeleton } from "../ui/kit";
+import { useNow } from "../lib/now";
 
 const PROVIDERS: Array<{ id: IdentityProvider; label: string }> = [{ id: "google", label: "Google" }, { id: "apple", label: "Apple" }, { id: "x", label: "X" }, { id: "email", label: "Email" }];
 const NOTIFICATIONS: Array<{ id: keyof NotificationPrefs; label: string; hint: string }> = [
@@ -24,7 +25,8 @@ const ICON = { size: 16, strokeWidth: 1.5 } as const;
 export function AccountPage() {
   const cloud = useCloud();
   const { account } = cloud;
-  const { setAccount, now, toast } = useSession();
+  const { setAccount, toast } = useSession();
+  const now = useNow();
   const theme = useTheme();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");

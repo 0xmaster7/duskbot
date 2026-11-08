@@ -9,6 +9,8 @@ import { Link, navigate, useLocation } from "../lib/router";
 import { PlanSheet } from "../pages/plan-sheet";
 import { Button, cx, FreshnessTag } from "./kit";
 import { Mascot } from "./Mascot";
+import { useNow } from "../lib/now";
+import { useToasts } from "../lib/toast";
 
 const ICON = { size: 18, strokeWidth: 1.5 } as const;
 
@@ -44,7 +46,8 @@ function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLE
 }
 
 function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
-  const { workspaces, workspace, pick, now } = useSession();
+  const { workspaces, workspace, pick } = useSession();
+  const now = useNow();
   const { clouds } = useCloud();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -190,7 +193,7 @@ function Brand() {
 }
 
 function Toasts() {
-  const { toasts } = useSession();
+  const toasts = useToasts();
   return (
     <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex flex-col items-center gap-2 px-4">
       {toasts.map((t) => (

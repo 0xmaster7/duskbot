@@ -1,6 +1,5 @@
 import { ArrowLeft } from "lucide-react";
 import type { BotReport, ComputerReport, WorkspaceDetail } from "../../../shared/dashboard-protocol";
-import { useSession } from "../data/session";
 import { ago, bytes, compact, until, usd } from "../lib/format";
 import { Link } from "../lib/router";
 import { ButtonLink, Card, cx, KV, PageHeader, SectionTitle, Stat } from "../ui/kit";
@@ -9,6 +8,7 @@ import { SkyEmpty } from "../ui/Sky";
 import { Nil, Table, Td, Th } from "../ui/table";
 import { CommandButton, WorkspaceGate } from "./common";
 import { APP_LINK } from "../lib/usage";
+import { useNow } from "../lib/now";
 
 const PLACE: Record<NonNullable<BotReport["computer"]>, string> = { vps: "Cloud computer", "local-vm": "This Mac's VM", team: "Shared computer" };
 
@@ -53,7 +53,7 @@ function BotRow({ bot, detail, now }: { bot: BotReport; detail: WorkspaceDetail;
 }
 
 export function BotsPage() {
-  const { now } = useSession();
+  const now = useNow();
   return (
     <div>
       <PageHeader title="Bots" sub="Everyone on this workspace, what they run on and when they last worked." />
@@ -74,7 +74,7 @@ export function BotsPage() {
 }
 
 export function BotPage({ id }: { id: string }) {
-  const { now } = useSession();
+  const now = useNow();
   return (
     <div>
       <Link to="/bots" className="press-soft hover-ghost -ms-2 mb-6 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-13 text-ink-2"><ArrowLeft size={15} strokeWidth={1.5} aria-hidden /> Bots</Link>

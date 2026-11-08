@@ -12,6 +12,7 @@ import { Bar, Button, Card, PageHeader, Skeleton } from "../ui/kit";
 import { Nil, SectionHead, Table, Td, Th } from "../ui/table";
 import { Legend, UsageChart } from "../ui/UsageChart";
 import { BuyCredits } from "./credits-dialog";
+import { useNow } from "../lib/now";
 
 const GROUPS: Array<{ value: UsageGroup; label: string }> = [{ value: "bot", label: "Bot" }, { value: "model", label: "Model" }, { value: "workspace", label: "Workspace" }];
 const PAGE = 12;
@@ -127,7 +128,7 @@ function Stat({ label, value }: { label: string; value: ReactNode }) {
 }
 
 export function UsagePage() {
-  const { now } = useSession();
+  const now = useNow(60_000);
   const { billing } = useCloud();
   const { month, plans, loading, error } = useAccountUsage();
   const [buying, setBuying] = useState(false);

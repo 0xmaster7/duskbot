@@ -17,12 +17,14 @@ import { SkyEmpty } from "../ui/Sky";
 import { CloudStatus, regionName, tierName, workspaceIcon } from "./cloud-bits";
 import { CommandButton } from "./common";
 import { MachineView } from "./Machine";
+import { useNow } from "../lib/now";
 
 const INSTALL = "curl -fsSL https://openmausbot.com/install.sh | sh";
 const ICON = { size: 16, strokeWidth: 1.5 } as const;
 
 function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop | null }) {
-  const { now, refresh, toast } = useSession();
+  const { refresh, toast } = useSession();
+  const now = useNow();
   const { clouds } = useCloud();
   const [name, setName] = useState(w.name);
   const [editing, setEditing] = useState(false);
@@ -149,7 +151,8 @@ function WorkspaceDevices({ detail, now, ready }: { detail: WorkspaceDetail; now
 }
 
 export function WorkspacePage({ id }: { id: string }) {
-  const { workspaces, workspace: selected, pick, now, detailError } = useSession();
+  const { workspaces, workspace: selected, pick, detailError } = useSession();
+  const now = useNow();
   const { clouds, catalog } = useCloud();
   const w = workspaces?.find((item) => item.id === id);
   const detail = useWorkspaceDetail(w ? id : null);

@@ -14,6 +14,7 @@ import { Card, Segmented, Skeleton } from "../ui/kit";
 import { BotMascot, Mascot } from "../ui/Mascot";
 import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 import { PlanSheet } from "./plan-sheet";
+import { useNow } from "../lib/now";
 
 function Big({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
   return (
@@ -122,7 +123,7 @@ function Activity({ detail, now }: { detail: WorkspaceDetail; now: number }) {
 
 /** the bots that ran last, across every workspace */
 function Recent() {
-  const { now } = useSession();
+  const now = useNow();
   const { bots } = useAccountUsage();
   const rows = useMemo(() => bots.filter((r) => r.bot.lastActiveAt).sort((a, b) => Number(b.bot.busy) - Number(a.bot.busy) || (b.bot.lastActiveAt ?? 0) - (a.bot.lastActiveAt ?? 0)).slice(0, 5), [bots]);
   if (!rows.length) return null;
@@ -152,7 +153,8 @@ function Recent() {
 }
 
 export function HomePage() {
-  const { account, now, detail, workspaces } = useSession();
+  const { account, detail, workspaces } = useSession();
+  const now = useNow(60_000);
   const { clouds } = useCloud();
   const name = account?.name || account?.email.split("@")[0] || "";
   const cloud = clouds?.[0] ?? null;

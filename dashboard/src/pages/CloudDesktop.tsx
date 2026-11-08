@@ -13,6 +13,7 @@ import { Mascot } from "../ui/Mascot";
 import { useWorkspaceDetail } from "../data/detail";
 import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 import { MachineView } from "./Machine";
+import { useNow } from "../lib/now";
 
 /** no cloud desktop yet: the one pitch, then the sizes it comes in */
 function Empty() {
@@ -128,7 +129,8 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
 
 function Live({ cloud }: { cloud: CloudDesktop }) {
   const { catalog, billing } = useCloud();
-  const { now, pick, workspace } = useSession();
+  const { pick, workspace } = useSession();
+  const now = useNow();
   const detail = useWorkspaceDetail(cloud.workspaceId);
   useEffect(() => { if (cloud.workspaceId && workspace?.id !== cloud.workspaceId) pick(cloud.workspaceId); }, [cloud.workspaceId, workspace?.id, pick]);
   const asleep = cloud.status === "sleeping" || cloud.status === "stopped";
