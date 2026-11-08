@@ -1,0 +1,10 @@
+dist/
+ios/App/App/public/
+android/app/src/main/assets/public/
+ios/App/Pods/
+android/.gradle/
+android/build/
+android/app/build/
+*.keystore
+ios/DerivedData/
+ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/

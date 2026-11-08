@@ -1,0 +1,327 @@
+import type { RelayChannel } from "./relay";
+
+export type PhoneTransport =
+  | { kind: "same-origin" | "bearer"; origin: string; token?: string }
+  | { kind: "relay"; channel: RelayChannel; token: string };
+
+const originOf = (transport: PhoneTransport) => transport.kind === "relay" ? "https://mobile-relay.invalid" : transport.origin;
+
+export function relayFetch(channel: RelayChannel, token: string): typeof fetch {
+  return async (input, init) => {
+    const request = new Request(input, init);
+    const url = new URL(request.url);
+    const headers = new Headers(request.headers);
+    headers.set("Authorization", `Bearer ${token}`);
+    const body = request.body ? new Uint8Array(await request.arrayBuffer()) : null;
+    request.signal.throwIfAborted();
+    return channel.request(request.method, `${url.pathname}${url.search}`, headers, body, request.signal);
+  };
+}
+
+type SseEvent = { data: string; lastEventId: string; type: string };
+
+export function createSseParser(onEvent: (event: SseEvent) => void) {
+  const decoder = new TextDecoder();
+  let line = "", data: string[] = [], event = "", lastEventId = "";
+  let afterCr = false;
+  const consumeLine = () => {
+    if (!line) {
+      const message = data.length ? { data: data.join("\n"), lastEventId, type: event || "message" } : null;
+      data = [];
+      event = "";
+      if (message) onEvent(message);
+      return;
+    }
+    const colon = line.indexOf(":");
+    const field = colon < 0 ? line : line.slice(0, colon);
+    let value = colon < 0 ? "" : line.slice(colon + 1);
+    if (value.startsWith(" ")) value = value.slice(1);
+    if (field === "data") data.push(value);
+    else if (field === "event") event = value;
+    else if (field === "id" && !value.includes("\0")) lastEventId = value;
+  };
+  const consume = (text: string) => {
+    for (const char of text) {
+      if (afterCr && char === "\n") { afterCr = false; continue; }
+      afterCr = char === "\r";
+      if (char === "\r" || char === "\n") { consumeLine(); line = ""; }
+      else line += char;
+    }
+  };
+  return {
+    push(chunk: Uint8Array | string) { consume(typeof chunk === "string" ? chunk : decoder.decode(chunk, { stream: true })); },
+    finish() { consume(decoder.decode()); line = ""; data = []; event = ""; },
+  };
+}
+
+function apiPath(path: string): boolean {
+  return path.startsWith("/api/") || path.startsWith("/.well-known/openmausbot/");
+}
+
+function workspaceUrl(origin: string): URL {
+  const url = new URL(origin);
+  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.pathname !== "/" || url.search || url.hash) throw new TypeError("invalid workspace origin");
+  return url;
+}
+
+export function rewriteApiUrl(input: string, pageOrigin: string, workspaceOrigin: string): string | null {
+  try {
+    if (input.includes("\\") || [...input].some((char) => char.charCodeAt(0) <= 32)) return null;
+    const page = new URL(pageOrigin);
+    const relative = apiPath(input);
+    if (!relative && !/^[a-z][a-z\d+.-]*:\/\//i.test(input)) return null;
+    const url = new URL(input, page);
+    if (url.protocol !== page.protocol || url.host !== page.host || url.username || url.password || !apiPath(url.pathname)) return null;
+    return `${workspaceUrl(workspaceOrigin).origin}${url.pathname}${url.search}`;
+  } catch {
+    return null;
+  }
+}
+
+type StreamContext = { fetch: typeof fetch; token: string; url: string };
+let installed: { transport: PhoneTransport; streamFetch: typeof fetch } | null = null;
+
+export class BearerEventSource extends EventTarget {
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSED = 2;
+  readonly CONNECTING = 0;
+  readonly OPEN = 1;
+  readonly CLOSED = 2;
+  readyState: number = 0;
+  readonly url: string;
+  readonly withCredentials = false;
+  onopen: ((event: Event) => void) | null = null;
+  onmessage: ((event: MessageEvent<string>) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+  private readonly controller = new AbortController();
+
+  constructor(url: string | URL, _init?: EventSourceInit, context?: StreamContext) {
+    super();
+    const rewritten = installed && rewriteApiUrl(String(url), window.location.origin, originOf(installed.transport));
+    const stream = context ?? (installed && rewritten ? { fetch: installed.streamFetch, token: installed.transport.token ?? "", url: rewritten } : null);
+    this.url = stream?.url ?? String(url);
+    if (stream) void this.open(stream);
+    else queueMicrotask(() => this.fail());
+  }
+
+  close(): void {
+    this.readyState = this.CLOSED;
+    this.controller.abort();
+  }
+
+  private fail(): void {
+    if (this.readyState === this.CLOSED) return;
+    this.readyState = this.CLOSED;
+    this.controller.abort();
+    const event = new Event("error");
+    this.dispatchEvent(event);
+    this.onerror?.(event);
+  }
+
+  private async open(context: StreamContext): Promise<void> {
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    try {
+      const response = await context.fetch(context.url, {
+        headers: { Authorization: `Bearer ${context.token}`, Accept: "text/event-stream", "Cache-Control": "no-cache" },
+        credentials: "omit", mode: "cors", redirect: "error", signal: this.controller.signal,
+      });
+      if (this.controller.signal.aborted) return;
+      if (!response.ok || !response.body) { this.fail(); return; }
+      reader = response.body.getReader();
+      this.readyState = this.OPEN;
+      const opened = new Event("open");
+      this.dispatchEvent(opened);
+      this.onopen?.(opened);
+      const parser = createSseParser((message) => {
+        if (this.readyState !== this.OPEN) return;
+        const event = new MessageEvent(message.type, { data: message.data, lastEventId: message.lastEventId, origin: new URL(this.url).origin });
+        this.dispatchEvent(event);
+        if (message.type === "message") this.onmessage?.(event);
+      });
+      while (!this.controller.signal.aborted) {
+        const chunk = await reader.read();
+        if (chunk.done) { parser.finish(); this.fail(); break; }
+        parser.push(chunk.value);
+      }
+    } catch {
+      this.fail();
+    } finally {
+      await reader?.cancel().catch(() => {});
+      reader?.releaseLock();
+    }
+  }
+}
+
+function srcsetPaths(value: string): Array<{ start: number; end: number; path: string }> {
+  const paths: Array<{ start: number; end: number; path: string }> = [];
+  let index = 0;
+  while (index < value.length) {
+    while (index < value.length && /[\s,]/.test(value[index])) index++;
+    const start = index;
+    while (index < value.length && !/\s/.test(value[index])) index++;
+    let end = index;
+    while (end > start && value[end - 1] === ",") end--;
+    const path = value.slice(start, end);
+    if (path.startsWith("/api/")) paths.push({ start, end, path });
+    if (end < index) continue;
+    let parentheses = 0;
+    while (index < value.length) {
+      const char = value[index++];
+      if (char === "(") parentheses++;
+      else if (char === ")") parentheses = Math.max(0, parentheses - 1);
+      else if (char === "," && parentheses === 0) break;
+    }
+  }
+  return paths;
+}
+
+function installMedia(): () => void {
+  const selector = "img,audio,video,source,image,link[rel~='icon']";
+  const attributes = ["src", "srcset", "poster", "href"];
+  const cache = new Map<string, string>();
+  const pending = new Map<string, Promise<string | null>>();
+  const processed = new WeakMap<Element, Map<string, string>>();
+  const controller = new AbortController();
+  let stopped = false;
+  const blobUrl = (path: string): Promise<string | null> => {
+    const cached = cache.get(path);
+    if (cached) { cache.delete(path); cache.set(path, cached); return Promise.resolve(cached); }
+    const existing = pending.get(path);
+    if (existing) return existing;
+    const request = window.fetch(path, { signal: controller.signal }).then(async (response) => {
+      if (!response.ok) return null;
+      const blob = await response.blob();
+      if (stopped) return null;
+      const url = URL.createObjectURL(blob);
+      cache.set(path, url);
+      if (cache.size > 300) {
+        const oldest = cache.keys().next().value!;
+        URL.revokeObjectURL(cache.get(oldest)!);
+        cache.delete(oldest);
+      }
+      return url;
+    }).catch(() => null).finally(() => pending.delete(path));
+    pending.set(path, request);
+    return request;
+  };
+  const replace = async (element: Element, attribute: string) => {
+    const value = element.getAttribute(attribute);
+    if (!value || processed.get(element)?.get(attribute) === value) return;
+    let next = value;
+    if (attribute === "srcset") {
+      const replacements = await Promise.all(srcsetPaths(value).map(async (candidate) => ({ ...candidate, url: await blobUrl(candidate.path) })));
+      for (const { start, end, url } of replacements.reverse()) {
+        if (!url) continue;
+        next = next.slice(0, start) + url + next.slice(end);
+      }
+    } else if (value.startsWith("/api/")) {
+      next = await blobUrl(value) ?? value;
+    }
+    if (stopped || next === value || element.getAttribute(attribute) !== value) return;
+    let marks = processed.get(element);
+    if (!marks) { marks = new Map(); processed.set(element, marks); }
+    marks.set(attribute, next);
+    element.setAttribute("data-omb-media", "1");
+    element.setAttribute(attribute, next);
+    if (element instanceof HTMLMediaElement) element.load();
+    else if (element.tagName.toLowerCase() === "source" && element.parentElement instanceof HTMLMediaElement) element.parentElement.load();
+  };
+  const scan = (node: Node) => {
+    if (node instanceof Element && node.matches(selector)) for (const attr of attributes) void replace(node, attr);
+    if (node instanceof Element || node instanceof Document) {
+      for (const element of node.querySelectorAll(selector)) for (const attr of attributes) void replace(element, attr);
+    }
+  };
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === "attributes" && mutation.target instanceof Element && mutation.target.matches(selector)) void replace(mutation.target, mutation.attributeName!);
+      for (const node of mutation.addedNodes) scan(node);
+    }
+  });
+  observer.observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: attributes });
+  scan(document);
+  return () => {
+    stopped = true;
+    observer.disconnect();
+    controller.abort();
+    for (const url of cache.values()) URL.revokeObjectURL(url);
+    cache.clear();
+  };
+}
+
+export function installTransport(transport: PhoneTransport): () => void {
+  if (transport.kind === "same-origin") return () => {};
+  const origin = originOf(transport);
+  const workspace = workspaceUrl(origin);
+  const originalFetch = window.fetch;
+  const OriginalEventSource = window.EventSource;
+  const OriginalWebSocket = window.WebSocket;
+  const previous = installed;
+  const streamFetch = (window as Window & { CapacitorWebFetch?: typeof fetch }).CapacitorWebFetch ?? originalFetch;
+  const fetchWorkspace = transport.kind === "relay" ? relayFetch(transport.channel, transport.token) : originalFetch.bind(window);
+  const context = { transport, streamFetch: transport.kind === "relay" ? fetchWorkspace : streamFetch.bind(window) };
+  installed = context;
+  const patchedFetch: typeof fetch = (input, init) => {
+    const url = rewriteApiUrl(input instanceof Request ? input.url : String(input), window.location.origin, origin);
+    if (!url) return originalFetch.call(window, input, init);
+    const request = input instanceof Request ? new Request(input, init) : null;
+    const headers = new Headers(request?.headers ?? init?.headers);
+    if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${transport.token ?? ""}`);
+    // redirects must not carry the workspace credential to a different origin, including through native http.
+    const options: RequestInit = { ...(request ? {} : init), headers, credentials: "omit", mode: "cors", redirect: "error" };
+    return fetchWorkspace(request ? new Request(new Request(url, request), options) : url, request ? undefined : options);
+  };
+  const sources = new Set<BearerEventSource>();
+  const PatchedEventSource = new Proxy(OriginalEventSource, {
+    construct(Target, args: [string | URL, EventSourceInit?]) {
+      const url = rewriteApiUrl(String(args[0]), window.location.origin, origin);
+      if (!url || !new URL(url).pathname.startsWith("/api/")) return new Target(...args);
+      for (const source of sources) if (source.readyState === source.CLOSED) sources.delete(source);
+      const source = new BearerEventSource(args[0], args[1], { url, token: transport.token ?? "", fetch: context.streamFetch });
+      sources.add(source);
+      source.addEventListener("error", () => sources.delete(source), { once: true });
+      return source;
+    },
+  });
+  const sockets = new Set<WebSocket>();
+  const PatchedWebSocket = new Proxy(OriginalWebSocket, {
+    construct(Target, args: [string | URL, (string | string[])?]) {
+      const input = String(args[0]);
+      let target: URL | null = null;
+      try {
+        const url = new URL(input, window.location.href);
+        if (transport.kind !== "relay" && url.host === window.location.host && ["ws:", "wss:", window.location.protocol].includes(url.protocol) && url.pathname.startsWith("/api/") && !url.username && !url.password) {
+          target = new URL(`${url.pathname}${url.search}`, workspace);
+          target.protocol = workspace.protocol === "https:" ? "wss:" : "ws:";
+          // the sync branch's server must accept access_token on authenticated viewer upgrades.
+          if (workspace.protocol === "https:" && transport.token) target.searchParams.set("access_token", transport.token);
+        }
+      } catch {}
+      const socket = new Target(target?.href ?? args[0], args[1]);
+      if (target) { sockets.add(socket); socket.addEventListener("close", () => sockets.delete(socket), { once: true }); }
+      return socket;
+    },
+  });
+  window.fetch = patchedFetch;
+  window.EventSource = PatchedEventSource;
+  window.WebSocket = PatchedWebSocket;
+  const stopMedia = installMedia();
+  let stopped = false;
+  return () => {
+    if (stopped) return;
+    stopped = true;
+    stopMedia();
+    if (transport.kind === "relay") transport.channel.close();
+    for (const source of sources) source.close();
+    for (const socket of sockets) socket.close();
+    if (window.fetch === patchedFetch) window.fetch = originalFetch;
+    if (window.EventSource === PatchedEventSource) window.EventSource = OriginalEventSource;
+    if (window.WebSocket === PatchedWebSocket) window.WebSocket = OriginalWebSocket;
+    if (installed === context) installed = previous;
+  };
+}
+
+export function mediaUrl(path: string): string {
+  return installed && installed.transport.kind !== "relay" ? rewriteApiUrl(path, window.location.origin, originOf(installed.transport)) ?? path : path;
+}

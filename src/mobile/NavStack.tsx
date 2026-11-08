@@ -1,0 +1,120 @@
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { motion, useMotionValue, useTransform, type AnimationPlaybackControls } from "motion/react";
+import { canScroll, ownsDrag, useDrag } from "./gesture";
+import { prefersReducedMotion, projectRelease, settleTo } from "./motion";
+
+/** Parallax of the page underneath, as a share of the width: UIKit's navigation push moves it a third as far. */
+const UNDER_SHIFT = 0.3;
+const EXIT = { stiffness: 440, damping: 40 };
+
+function useWidth(): number {
+  const [width, setWidth] = useState(() => (typeof window === "undefined" ? 390 : window.innerWidth));
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return width;
+}
+
+/** Two layers: the list, and a page pushed over it. The page follows the finger back to the list from anywhere on it
+ * (a horizontal scroller inside keeps its own drag), and a release finishes or returns by where the flick would land. */
+export function NavStack({ base, page, pageKey, onBack, onSettled }: {
+  base: ReactNode;
+  /** The pushed page, or null for the list alone. */
+  page: ReactNode | null;
+  pageKey: string | null;
+  onBack: () => void;
+  /** The pushed page is fully in (true) or gone (false). */
+  onSettled?: (shown: boolean) => void;
+}) {
+  const width = useWidth();
+  const x = useMotionValue(width);
+  const baseX = useTransform(x, (value) => -UNDER_SHIFT * (width - value));
+  const dim = useTransform(x, [0, width], [1, 0]);
+  const pageOpacity = useMotionValue(1);
+  const [shownKey, setShownKey] = useState<string | null>(null);
+  const lastPage = useRef<ReactNode>(null);
+  const [moving, setMoving] = useState(false);
+  const run = useRef<AnimationPlaybackControls | null>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const settled = useRef(onSettled);
+  settled.current = onSettled;
+  if (page) lastPage.current = page;
+
+  const go = useCallback((target: number, velocity: number, done?: () => void) => {
+    run.current?.stop();
+    setMoving(true);
+    const finish = () => { setMoving(false); done?.(); };
+    if (prefersReducedMotion()) {
+      x.set(target === 0 ? 0 : width);
+      pageOpacity.set(target === 0 ? 0 : 1);
+      run.current = settleTo(pageOpacity, target === 0 ? 1 : 0, 0, finish);
+      return;
+    }
+    run.current = settleTo(x, target, velocity, finish, target === 0 ? undefined : EXIT);
+  }, [x, pageOpacity, width]);
+
+  useLayoutEffect(() => {
+    if (pageKey && page) {
+      if (shownKey === pageKey) return;
+      // a page swapped for another (a notification opening a different chat) cuts over; only list to page slides
+      if (shownKey && x.get() < width / 2) { setShownKey(pageKey); return; }
+      setShownKey(pageKey);
+      x.set(width);
+      go(0, 0, () => settled.current?.(true));
+    } else if (shownKey) {
+      go(width, 0, () => { setShownKey(null); lastPage.current = null; settled.current?.(false); });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageKey, Boolean(page)]);
+
+  useEffect(() => { if (shownKey && !moving) x.set(0); }, [width]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useDrag(pageRef, {
+    axis: "x",
+    enabled: Boolean(shownKey),
+    claim: (s) => s.dx > 0 && !ownsDrag(s.target) && !canScroll(s.target, pageRef.current!, "x", -1),
+    onStart: () => {
+      run.current?.stop();
+      setMoving(true);
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && pageRef.current?.contains(active)) active.blur();
+    },
+    onMove: (s) => x.set(Math.max(0, s.dx)),
+    onEnd: (s) => {
+      const landing = projectRelease(x.get(), s.vx, 0.995);
+      if (landing > width / 2 && s.vx > -200) {
+        go(width, Math.max(s.vx, 0), () => { setShownKey(null); lastPage.current = null; settled.current?.(false); onBack(); });
+      } else {
+        go(0, s.vx);
+      }
+    },
+    onCancel: () => go(0, 0),
+  });
+
+  const pageShown = Boolean(shownKey);
+  return (
+    <div className="mobile-nav relative h-full w-full overflow-hidden bg-app">
+      <motion.div
+        className="absolute inset-0"
+        style={{ x: pageShown ? baseX : 0, willChange: moving ? "transform" : undefined }}
+        inert={pageShown && !moving ? true : undefined}
+        aria-hidden={pageShown && !moving ? true : undefined}
+      >
+        {base}
+        {pageShown && <motion.div aria-hidden className="pointer-events-none absolute inset-0 bg-[rgb(10_10_12/0.10)]" style={{ opacity: dim }} />}
+      </motion.div>
+      {pageShown && (
+        <motion.div
+          ref={pageRef}
+          key={shownKey}
+          className="mobile-page absolute inset-0 bg-app"
+          style={{ x, opacity: pageOpacity, willChange: moving ? "transform" : undefined }}
+        >
+          {page ?? lastPage.current}
+        </motion.div>
+      )}
+    </div>
+  );
+}
