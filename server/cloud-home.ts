@@ -9,14 +9,11 @@ import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Surface } from "../shared/wire.ts";
 import { writeFileAtomic } from "./atomic.ts";
-import { hostedWorkspaceConfigured } from "./hosted-workspace.ts";
 import { parseMemberClaim, teamRoleScopes, type CloudTeam } from "./cloud-team.ts";
 import { formatPairingCode, type SessionRegistry } from "./sessions.ts";
 
 /** Any of these switches the server into Cloud home mode; then all are required. */
 export const CLOUD_HOME_KEYS = ["OMB_CLOUD_ROLE", "OMB_CLOUD_MACHINE_ID", "OMB_CLOUD_ADMIN_URL", "OMB_CLOUD_BOOTSTRAP_SECRET"] as const;
-/** A platform model gateway's settings: a Cloud home logs one warning, and neither it nor anything it starts sees them. */
-export const CLOUD_IGNORED_KEYS = ["OMB_HOSTED_MODEL_URL", "OMB_HOSTED_MODEL_TOKEN", "OMB_HOSTED_MODELS"] as const;
 export const CLOUD_PAIRING_PATH = "/api/cloud/pairing";
 export const CLOUD_HEALTH_PATH = "/api/cloud/health";
 export const CLOUD_PAIRING_DEFAULT_TTL_S = 300;
@@ -70,7 +67,6 @@ function exactHttpsOrigin(raw: string | undefined, name: string): string {
 export function cloudHomeConfiguration(env: NodeJS.ProcessEnv = process.env): CloudHomeConfig | null {
   if (!cloudHomeConfigured(env)) return null;
   if (env.OMB_DESKTOP_PARENT === "1") invalid("the desktop app cannot run as a Cloud home machine");
-  if (hostedWorkspaceConfigured(env)) invalid("a Cloud home is not a hosted team workspace; remove OMB_ADMIN_URL, OMB_ADMIN_WORKSPACE and OMB_ADMIN_MEMBERSHIP");
   const role = env.OMB_CLOUD_ROLE;
   if (role !== "home" && role !== "team") invalid('OMB_CLOUD_ROLE must be "home" or "team"; this image runs the home machine');
   const team = role === "team" ? cloudTeamConfiguration(env) : null;
@@ -81,8 +77,6 @@ export function cloudHomeConfiguration(env: NodeJS.ProcessEnv = process.env): Cl
   const bootstrapSecret = env.OMB_CLOUD_BOOTSTRAP_SECRET ?? "";
   if (!/^[A-Za-z0-9_-]{43,128}$/.test(bootstrapSecret)) invalid("OMB_CLOUD_BOOTSTRAP_SECRET must be at least 256 bits of base64url");
   const warnings: string[] = [];
-  const ignored = CLOUD_IGNORED_KEYS.filter((key) => env[key] !== undefined);
-  if (ignored.length) warnings.push(`ignoring ${ignored.join(", ")}: Cloud Pro includes no AI; people sign in with their own Claude or ChatGPT account, or an API key`);
   return { role, team, machineId, adminOrigin, publicOrigin, bootstrapSecret, warnings };
 }
 
@@ -103,12 +97,6 @@ function cloudTeamConfiguration(env: NodeJS.ProcessEnv): CloudTeam {
 }
 
 export { CLOUD_HOME_SECRET_KEYS, CLOUD_SECRETS_FD_ENV, cloudHomeSecrets, takeCloudSecrets, withoutCloudSecrets } from "./cloud-secrets.ts";
-
-export function withoutIgnoredCloudKeys(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const kept = { ...env };
-  for (const key of CLOUD_IGNORED_KEYS) delete kept[key];
-  return kept;
-}
 
 export { cloudHomeOffersPlace } from "../shared/cloud-home.ts";
 

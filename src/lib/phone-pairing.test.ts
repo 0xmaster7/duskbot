@@ -98,9 +98,9 @@ describe("asking the server", () => {
       return new Response(JSON.stringify(body ?? {}), { status: body === undefined ? 404 : 200 });
     }) as unknown as typeof fetch;
 
-  it("reads the session, then whether pairing codes are on", async () => {
-    const fetchImpl = respond({ "/api/auth/session": { kind: "session", id: "s", label: "Mac", scopes: ["admin"], expiresAt: 1 }, "/api/config": { membership: { authority: "portal", pairingCodes: false } } });
-    expect(await loadPhonePairingAccess(fetchImpl)).toMatchObject({ session: { kind: "session" }, pairingCodes: false });
+  it("offers pairing codes to an admin session", async () => {
+    const fetchImpl = respond({ "/api/auth/session": { kind: "session", id: "s", label: "Mac", scopes: ["admin"], expiresAt: 1 } });
+    expect(await loadPhonePairingAccess(fetchImpl)).toMatchObject({ session: { kind: "session" }, pairingCodes: true });
   });
 
   it("does not ask for the config of a session that cannot pair anyway", async () => {
@@ -109,11 +109,11 @@ describe("asking the server", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
-  it("a config it cannot read means codes on, as an older server's does; asked once per page", async () => {
-    const fetchImpl = respond({ "/api/auth/session": {}, "/api/config": new Error("offline") });
+  it("reads the session once per page", async () => {
+    const fetchImpl = respond({ "/api/auth/session": {} });
     expect(await loadPhonePairingAccess(fetchImpl)).toEqual({ session: { kind: "loopback" }, pairingCodes: true });
     await loadPhonePairingAccess(fetchImpl);
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
 

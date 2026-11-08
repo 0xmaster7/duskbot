@@ -254,38 +254,6 @@ describe("pairing codes", () => {
 });
 
 describe("sessions", () => {
-  it("delegates membership only for internally marked portal grants, never ordinary email or a userId prefix", () => {
-    registry = new SessionRegistry({ file: file(), now: () => clock, emailScopes: () => null, portalMembership: true });
-    const portal = registry.issuePortal({ email: "person@example.test", grant: "g".repeat(43), scopes: ["client"] });
-    const injected = { label: "ordinary", email: "person@example.test", userId: `portal:${"g".repeat(43)}`, scopes: ["client" as const], membershipAuthority: "portal" };
-    const ordinary = registry.issue(injected);
-    const paired = pair();
-    expect(registry.authenticate(portal.token)?.membershipAuthority).toBe("portal");
-    expect(portal.session).not.toHaveProperty("membershipAuthority");
-    expect(registry.authenticate(ordinary.token)).toBeNull();
-    expect(registry.authenticate(paired.token)?.membershipAuthority).toBeUndefined();
-    expect(registry.authenticate(paired.token)?.id).toBe(paired.session.id);
-    registry.close();
-    const reloaded = new SessionRegistry({ file: file(), now: () => clock, emailScopes: () => null, portalMembership: true });
-    expect(reloaded.authenticate(portal.token)?.id).toBe(portal.session.id);
-    reloaded.close();
-    const localAgain = new SessionRegistry({ file: file(), now: () => clock, emailScopes: () => null });
-    expect(localAgain.authenticate(portal.token)).toBeNull();
-    expect(localAgain.authenticate(paired.token)?.id).toBe(paired.session.id);
-  });
-
-  it("keeps portal grants locally narrowed by default and validates stored authority markers", () => {
-    const portal = registry.issuePortal({ email: "person@example.test", grant: "g".repeat(43), scopes: ["client"] });
-    expect(registry.authenticate(portal.token)).toBeNull();
-    registry = new SessionRegistry({ file: file(), now: () => clock, portalMembership: true });
-    const next = registry.issuePortal({ email: "person@example.test", grant: "h".repeat(43), scopes: ["client"] });
-    const saved = JSON.parse(readFileSync(file(), "utf8"));
-    saved.sessions[0].membershipAuthority = { untrusted: true };
-    writeFileSync(file(), JSON.stringify(saved));
-    const loaded = new SessionRegistry({ file: file(), now: () => clock, portalMembership: true });
-    expect(loaded.authenticate(next.token)).toBeNull();
-    expect(() => registry.issuePortal({ email: "person@example.test", grant: "bad", scopes: ["client"] })).toThrow("verified portal identity");
-  });
 
   it("revokes every over-scoped email device and its tickets on demotion, but not paired devices", () => {
     let scopes: Array<"admin" | "client"> | null = ["admin", "client"];
@@ -361,9 +329,8 @@ describe("sessions", () => {
   it("builds one membership resolver per pass and skips snapshots with no eligible account sessions", () => {
     const resolve = vi.fn((_email: string) => ["client" as const]);
     const snapshot = vi.fn(() => resolve);
-    registry = new SessionRegistry({ file: file(), now: () => clock, emailScopesSnapshot: snapshot, portalMembership: true });
+    registry = new SessionRegistry({ file: file(), now: () => clock, emailScopesSnapshot: snapshot });
     pair();
-    const portal = registry.issuePortal({ email: "portal@example.test", grant: "g".repeat(43), scopes: ["client"] });
     registry.revalidateEmailSessions();
     expect(snapshot).not.toHaveBeenCalled();
     registry.issue({ label: "first", email: "one@example.test", scopes: ["client"] });
@@ -372,7 +339,6 @@ describe("sessions", () => {
     registry.revalidateEmailSessions();
     expect(snapshot).toHaveBeenCalledTimes(1);
     expect(resolve.mock.calls.map(([email]) => email)).toEqual(["one@example.test", "two@example.test"]);
-    expect(registry.authenticate(portal.token)?.membershipAuthority).toBe("portal");
   });
 
   it("fails closed for every eligible account when a snapshot fails, without using the fallback", () => {
@@ -452,14 +418,12 @@ describe("sessions", () => {
     cleanRestart.close();
   });
 
-  it("drops account and portal sessions but preserves paired phones after any unclean restart", () => {
-    registry = new SessionRegistry({ file: file(), now: () => clock, emailScopes: () => ["client"], portalMembership: true });
+  it("drops account sessions but preserves paired phones after any unclean restart", () => {
+    registry = new SessionRegistry({ file: file(), now: () => clock, emailScopes: () => ["client"] });
     const paired = pair();
     const account = registry.issue({ label: "browser", email: "person@example.test", scopes: ["client"] });
-    const portal = registry.issuePortal({ email: "person@example.test", grant: "g".repeat(43), scopes: ["client"] });
-    const restarted = new SessionRegistry({ file: file(), now: () => clock, emailScopes: () => ["client"], portalMembership: true });
+    const restarted = new SessionRegistry({ file: file(), now: () => clock, emailScopes: () => ["client"] });
     expect(restarted.authenticate(account.token)).toBeNull();
-    expect(restarted.authenticate(portal.token)).toBeNull();
     expect(restarted.authenticate(paired.token)?.id).toBe(paired.session.id);
     restarted.close();
   });
@@ -608,7 +572,6 @@ describe("admin scope only (an OMB Cloud home is personal: server/cloud-owner.ts
     expect(() => registry.openPairing({ scopes: ["client"] })).toThrow(PERSONAL);
     expect(registry.exchange({ code: openWindow.credential, label: "Guest", source: "b" })).toEqual({ ok: false, status: 403, error: PERSONAL });
     expect(() => registry.issue({ label: "Friend", scopes: ["client"], email: "friend@example.test" })).toThrow(PERSONAL);
-    expect(() => registry.issuePortal({ email: "friend@example.test", grant: "g".repeat(43), scopes: ["client"] })).toThrow(PERSONAL);
     if (!stored.ok || !owner.ok) throw new Error("unreachable");
     expect(registry.authenticate(stored.token)).toBeNull();
     expect(registry.redeemStreamTicket(ticket)).toBeNull();

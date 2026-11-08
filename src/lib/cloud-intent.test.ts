@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CLOUD_INTENT_ASKED } from "./cloud-setup";
 import { EMPTY_ONBOARDING, type OnboardingStatus } from "./onboarding";
 
-const owner = { hosted: false, canSave: true, cloudHome: true };
+const owner = { canSave: true, cloudHome: true };
 const record = (extra: Partial<OnboardingStatus> = {}): OnboardingStatus => ({ ...EMPTY_ONBOARDING, ...extra });
 const facts = (extra: Record<string, unknown> = {}) => ({ viewer: owner, connected: true, enginesKnown: true, onboarding: record(), reopened: false, ...extra });
 
@@ -31,7 +31,7 @@ describe("cloudIntentDue", () => {
     const { module } = await load();
     expect(module.cloudIntentDue(facts({ reopened: true }))).toBe(true);
     expect(module.cloudIntentDue(facts({ reopened: true, onboarding: record({ hintsSeen: [CLOUD_INTENT_ASKED] }) }))).toBe(true);
-    expect(module.cloudIntentDue(facts({ reopened: true, viewer: { hosted: false, canSave: true } }))).toBe(false);
+    expect(module.cloudIntentDue(facts({ reopened: true, viewer: { canSave: true } }))).toBe(false);
     expect(module.cloudIntentDue(facts({ reopened: true, viewer: { ...owner, canSave: false } }))).toBe(false);
     expect(module.cloudIntentDue(facts({ reopened: true, connected: false }))).toBe(false);
     expect(module.cloudIntentDue(facts({ reopened: true, enginesKnown: false }))).toBe(false);

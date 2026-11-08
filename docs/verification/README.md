@@ -94,7 +94,6 @@ Use only mapped, tested commands:
 - [Full workspace backups](workspace-backups.md)
 - [Optional company cloud backups](company-backups.md)
 - [Organization library: the desktop channel](desktop-library.md)
-- [Hosted workspace access refusals](hosted-workspaces.md)
 - [Shared-workspace trust: loopback, card answerers, decision log](shared-workspace-trust.md)
 - [Shared-workspace governance: bot visibility and admin activity](shared-workspace-governance.md)
 - [Who can see, chat with and change each team bot](team-bot-access.md)
@@ -226,7 +225,7 @@ interaction in a disposable workspace.
 The [recent files fixture](computer-files.md) mounts the Files panel with synthetic
 digest rows and real message-scoped downloads from a disposable workspace.
 
-The [people invitation fixture](people.md) checks hosted workspace sign-in,
+The [people invitation fixture](people.md) checks local workspace sign-in,
 roles and device revocation through the real HTTP API with a stubbed email
 service. It does not drive the People settings UI through `control-omb`.
 

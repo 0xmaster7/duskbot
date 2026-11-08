@@ -1,6 +1,6 @@
 # Shared-workspace trust: loopback, card answerers, decision log
 
-A hosted or shared workspace runs every bot's shell on the server as the
+A shared workspace runs every bot's shell on the server as the
 same user, so "a request from 127.0.0.1" no longer means "the owner". These
 checks pin what changes there and what does not. The operator-facing
 description is in [self-hosting](../self-hosting.md#loopback-trust-owner-or-service).
@@ -8,9 +8,7 @@ description is in [self-hosting](../self-hosting.md#loopback-trust-owner-or-serv
 ## Sub-features
 
 - **Loopback trust.** At start-up the server logs `local requests: owner
-  trust (…)` or `local requests: service trust (…)`. A hosted workspace (any
-  `OMB_ADMIN_*` setting; shared-workspace Full access only works there)
-  defaults to `service`; a self-hosted server keeps `owner`;
+  trust (…)` or `local requests: service trust (…)`. A self-hosted server defaults to `owner`; MausBot Cloud defaults to `service`.
   `OMB_LOOPBACK_TRUST=owner|service` overrides (anything else means
   `service`); the desktop app always keeps `owner` behind its per-launch
   capability. Under `service` a session-less loopback request may use only
@@ -29,7 +27,7 @@ description is in [self-hosting](../self-hosting.md#loopback-trust-owner-or-serv
   server running. Later `openmausbot pair` and `openmausbot sessions` are
   refused with an explanation. A browser on an SSH tunnel gets the sign-in
   page, not an app whose every admin call fails.
-- **Who may answer a card.** With portal membership or an email sign-in list
+- **Who may answer a card.** With an email sign-in list
   that names members, a card that can be traced to a person — who sent its
   request (`sender.id`), who the thread was opened for, and for a thread a
   bot opened while working on someone's request, that person — may be
@@ -43,8 +41,7 @@ description is in [self-hosting](../self-hosting.md#loopback-trust-owner-or-serv
 - **Who answered.** Each card a person or service settles records
   `card.answeredBy` (`{kind:"session", name}`, `{kind:"loopback"}` or
   `{kind:"worker"}`), and its `user-approved` / `user-denied` decision row
-  records `actor` (session id, device label, email, and account id when it is
-  not a portal grant).
+  records `actor` (session id, device label, email, and account id).
 - **Decision log retention.** Rows go to `<data>/decisions/YYYY-MM.ndjson`. A
   month file is deleted once all of it is older than the window (180 days by
   default; `decisions.retentionDays` or `OMB_DECISION_RETENTION_DAYS`). An
@@ -52,18 +49,13 @@ description is in [self-hosting](../self-hosting.md#loopback-trust-owner-or-serv
   their last write. `GET /api/decisions?limit=` is unchanged; `GET
   /api/decisions.csv?from=&to=` (admin) exports a date range with formula
   cells neutralised and secrets redacted.
-- **Settings on a portal-membership workspace.** `GET /api/config` reports
-  `membership {authority, pairingCodes, peopleUrl}`. Settings → People turns
-  read-only (who signed in, their spend, "Manage people in Admin" linking to
-  `<OMB_ADMIN_URL>/people?workspace=<slug>`); Remote access offers no pairing
-  code and says people sign in through the organization's portal.
 
 ## Driving it
 
 ```sh
 pnpm exec vitest run server/request-auth.test.ts server/decision-log.test.ts \
   server/card-answerers.e2e.test.ts server/cli-service-trust.e2e.test.ts \
-  server/hosted-access.test.ts server/decision-log-wiring.test.ts server/hosted-models-api.test.ts \
+  server/decision-log-wiring.test.ts \
   src/components/PeopleSection.test.ts src/components/ServerPairingCard.test.ts src/lib/session.test.ts
 ```
 
@@ -71,15 +63,6 @@ pnpm exec vitest run server/request-auth.test.ts server/decision-log.test.ts \
   calls through the resolver under each trust level, sessions under
   `service`, the desktop capability overriding `service`, the serving CLI's
   secret opening the pairing route and nothing else, and the start-up choice.
-- `server/hosted-access.test.ts` ("treats a session-less local caller as a
-  service by default") boots a portal-membership workspace with shared Full
-  access and no override: the start-up log line, the worker's whole path over
-  loopback (health, bot list, a Full-access thread, a guarded send, its
-  request fence), 403 for `PUT /api/config`, `POST /api/webhooks`, session
-  list and revocation, bot creation and loosening, and an unguarded send,
-  with nothing changed afterwards; then an admin portal session saves the
-  retention window and reads `membership`. The other cases in that file keep
-  `OMB_LOOPBACK_TRUST=owner` because they set fixtures up over loopback.
 - `server/card-answerers.e2e.test.ts` boots a server with one admin and two
   members on the sign-in list and the fake ACP engine asking permission every
   turn: another member is refused on both respond routes, the requester
@@ -121,13 +104,12 @@ and the files above plus `server/index.test.ts`,
 `server/cli-pair.test.ts`, `server/cli.test.ts` and
 `scripts/testing/verification-docs.test.ts` passed on macOS. Mutation checks,
 each restored afterwards, turned a named test red: the resolver ignoring
-`service`; a hosted workspace defaulting to `owner`; the server gate not
+`service`; the server gate not
 passing the trust level; members answering any card; a service approving;
 task creation not recording its opener; a bot-opened thread not traced back
 to the person; a card that names nobody refused to members; the CLI secret
 ignored, or opening more than the pairing route; `sessions` ignoring the
 refusal; an SSH tunnel treated as connected; decision rows without the
-answerer; month pruning off by one month; the portal People table offering
-edits. Every server, session, engine and identity service was a local
-fixture. This is not production qualification: no hosted tenant, Slack
+answerer; month pruning off by one month. Every server, session, engine and identity service was a local
+fixture. This is not production qualification: no Slack
 worker, Admin or real email was involved.

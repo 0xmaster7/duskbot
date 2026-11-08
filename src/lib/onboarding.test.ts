@@ -2,14 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   aiChoices,
   aiWorks,
-  beatsFor,
+  BEAT_ORDER,
   cloudSignInDue,
   companyModelCount,
   completionPatch,
   EMPTY_ONBOARDING,
   firstRunPatch,
   hintSeen,
-  hostedMember,
   spotlightsQuiet,
   hintSeenPatch,
   LOCAL_VIEWER,
@@ -63,39 +62,27 @@ describe("welcomeDue", () => {
     const cases = [
       { who: "local desktop", options: { remoteClient: false, legacyDone: false, ...LOCAL_VIEWER }, due: true },
       { who: "remote client", options: { remoteClient: true, legacyDone: false, ...LOCAL_VIEWER }, due: false },
-      { who: "hosted admin", options: { remoteClient: false, legacyDone: false, hosted: true, canSave: true }, due: true },
-      { who: "hosted member", options: { remoteClient: false, legacyDone: false, hosted: true, canSave: false }, due: false },
-      { who: "member of a self-hosted server", options: { remoteClient: false, legacyDone: false, hosted: false, canSave: false }, due: false },
-      { who: "hosted, scope unknown", options: { remoteClient: false, legacyDone: false, hosted: true }, due: false },
+      { who: "member of a self-hosted server", options: { remoteClient: false, legacyDone: false, canSave: false }, due: false },
     ];
     for (const { who, options, due } of cases) expect(welcomeDue(fresh, options), who).toBe(due);
   });
 });
 
 describe("welcomeViewer", () => {
-  it("reads the session defensively", () => {
-    expect(welcomeViewer({ kind: "loopback", scopes: ["admin", "client"] })).toEqual({ hosted: false, canSave: true });
-    expect(welcomeViewer({ kind: "session", scopes: ["admin", "client"], hosted: true })).toEqual({ hosted: true, canSave: true });
-    expect(welcomeViewer({ kind: "session", scopes: ["client"], hosted: true })).toEqual({ hosted: true, canSave: false });
-    expect(welcomeViewer({ kind: "session", scopes: ["client"] })).toEqual({ hosted: false, canSave: false });
-    expect(welcomeViewer({ kind: "loopback", scopes: ["client"], trust: "service" })).toEqual({ hosted: false, canSave: false });
-    expect(welcomeViewer({})).toEqual(LOCAL_VIEWER);
-    expect(welcomeViewer(null)).toEqual(LOCAL_VIEWER);
-    expect(welcomeViewer({ scopes: ["admin"], hosted: "yes" })).toEqual({ hosted: false, canSave: true });
-    expect(welcomeViewer({ kind: "session", scopes: ["admin", "client"], cloudHome: true })).toEqual({ hosted: false, canSave: true, cloudHome: true });
-    expect(welcomeViewer({ kind: "session", scopes: ["admin", "client"], cloudHome: "yes" })).toEqual({ hosted: false, canSave: true });
+  it("keeps spotlights quiet until the viewer is known", () => {
+    expect(spotlightsQuiet(null)).toBe(true);
+    expect(spotlightsQuiet({ canSave: false })).toBe(false);
+    expect(spotlightsQuiet(LOCAL_VIEWER)).toBe(false);
   });
 
-  it("calls only a hosted session without admin scope a hosted member", () => {
-    expect(hostedMember({ hosted: true, canSave: false })).toBe(true);
-    expect(hostedMember({ hosted: true, canSave: true })).toBe(false);
-    expect(hostedMember({ hosted: false, canSave: false })).toBe(false);
-    expect(hostedMember(LOCAL_VIEWER)).toBe(false);
-    expect(hostedMember(null)).toBe(false);
-    expect(spotlightsQuiet(null)).toBe(true);
-    expect(spotlightsQuiet({ hosted: true, canSave: false })).toBe(true);
-    expect(spotlightsQuiet({ hosted: false, canSave: false })).toBe(false);
-    expect(spotlightsQuiet(LOCAL_VIEWER)).toBe(false);
+  it("reads the session defensively", () => {
+    expect(welcomeViewer({ kind: "loopback", scopes: ["admin", "client"] })).toEqual({ canSave: true });
+    expect(welcomeViewer({ kind: "session", scopes: ["client"] })).toEqual({ canSave: false });
+    expect(welcomeViewer({ kind: "loopback", scopes: ["client"], trust: "service" })).toEqual({ canSave: false });
+    expect(welcomeViewer({})).toEqual(LOCAL_VIEWER);
+    expect(welcomeViewer(null)).toEqual(LOCAL_VIEWER);
+    expect(welcomeViewer({ kind: "session", scopes: ["admin", "client"], cloudHome: true })).toEqual({ canSave: true, cloudHome: true });
+    expect(welcomeViewer({ kind: "session", scopes: ["admin", "client"], cloudHome: "yes" })).toEqual({ canSave: true });
   });
 });
 
@@ -121,7 +108,7 @@ describe("first run on an OMB Cloud home", () => {
     expect(cloudSignInDue(connected, { connected: true, instances: [] }, ready)).toBe(false);
     expect(cloudSignInDue(null, { connected: true, instances: signedOut }, ready)).toBe(false);
     expect(cloudSignInDue({ ...connected, canSave: false }, { connected: true, instances: signedOut }, ready)).toBe(false);
-    for (const viewer of [LOCAL_VIEWER, { hosted: true, canSave: true }, welcomeViewer({ kind: "session", scopes: ["admin", "client"] })]) {
+    for (const viewer of [LOCAL_VIEWER, welcomeViewer({ kind: "session", scopes: ["admin", "client"] })]) {
       expect(cloudSignInDue(viewer, { connected: true, instances: signedOut }, ready)).toBe(false);
       expect(welcomeDue({ onboarding: EMPTY_ONBOARDING }, { remoteClient: false, legacyDone: false, ...viewer })).toBe(true);
     }
@@ -132,12 +119,11 @@ describe("organisation sign-in in the engines beat", () => {
   const bridge = { begin: () => {} };
 
   it("is offered only by the packaged local desktop", () => {
-    expect(organisationSignIn({ organization: bridge }, { hosted: false })).toBe(bridge);
-    expect(organisationSignIn(undefined, { hosted: false })).toBeUndefined();
-    expect(organisationSignIn({}, { hosted: false })).toBeUndefined();
-    expect(organisationSignIn({ organization: bridge, remoteClient: { active: true } }, { hosted: false })).toBeUndefined();
-    expect(organisationSignIn({ organization: bridge }, { hosted: true })).toBeUndefined();
-    expect(organisationSignIn({ organization: bridge, remoteClient: { active: false } }, { hosted: false })).toBe(bridge);
+    expect(organisationSignIn({ organization: bridge })).toBe(bridge);
+    expect(organisationSignIn(undefined)).toBeUndefined();
+    expect(organisationSignIn({})).toBeUndefined();
+    expect(organisationSignIn({ organization: bridge, remoteClient: { active: true } })).toBeUndefined();
+    expect(organisationSignIn({ organization: bridge, remoteClient: { active: false } })).toBe(bridge);
   });
 
   it("counts the models the organisation approved", () => {
@@ -237,19 +223,13 @@ describe("persistence patches", () => {
 
 describe("the first run's screens", () => {
   it("is two screens, meeting the app and then the Chief of Staff, whatever this computer has", () => {
-    expect(beatsFor({})).toEqual(["meet", "chief"]);
-    expect(beatsFor({ hosted: false })).toEqual(["meet", "chief"]);
-  });
-
-  it("gives a hosted place's admin only the first: their team's bots and Chief are set up already", () => {
-    expect(beatsFor({ hosted: true })).toEqual(["meet"]);
+    expect(BEAT_ORDER).toEqual(["meet", "chief"]);
   });
 
   it("resumes the saved screen while it is offered, else starts at the first", () => {
-    expect(resumeBeat(beatsFor({}), "chief")).toBe("chief");
-    expect(resumeBeat(beatsFor({}), undefined)).toBe("meet");
-    expect(resumeBeat(beatsFor({ hosted: true }), "chief")).toBe("meet");
-    expect(resumeBeat(beatsFor({}), "engines" as never), "a step from the longer welcome").toBe("meet");
+    expect(resumeBeat(BEAT_ORDER, "chief")).toBe("chief");
+    expect(resumeBeat(BEAT_ORDER, undefined)).toBe("meet");
+    expect(resumeBeat(BEAT_ORDER, "engines" as never), "a step from the longer welcome").toBe("meet");
   });
 });
 

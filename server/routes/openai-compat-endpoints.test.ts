@@ -17,7 +17,7 @@ afterEach(async () => {
 
 const SECRET = "sk-test-0123456789";
 
-async function serve(options: { hosted?: boolean; botInstance?: string } = {}) {
+async function serve(options: { botInstance?: string } = {}) {
   const cfg = { instances: { openaiCompat: { driver: "openai-compat" }, claude: { driver: "claudeAgent" } } } as unknown as AppConfig;
   const persisted: InstanceConfigMap[] = [];
   let busy = false;
@@ -27,7 +27,6 @@ async function serve(options: { hosted?: boolean; botInstance?: string } = {}) {
   const deps = {
     store: { bots, tasks: () => [] },
     cfg,
-    hostedModels: Boolean(options.hosted),
     providerConfigBusy: { get: () => busy, set: (value: boolean) => { busy = value; } },
     providerInstancesChanging: new Set<string>(),
     describeInstances: async () => Object.entries(cfg.instances ?? {}).map(([instanceId, entry]) => ({
@@ -113,12 +112,6 @@ describe("added OpenAI-compatible servers", () => {
     used.cfg.instances = { ...used.cfg.instances, "openai-compat-used": { driver: "openai-compat", displayName: "Used", config: { key: SECRET, url: "https://example.com/v1" } } };
     expect((await used.call("DELETE", "/api/instances/openai-compat-used")).status).toBe(409);
     expect(used.cfg.instances).toHaveProperty("openai-compat-used");
-  });
-
-  it("is read-only on a hosted server", async () => {
-    const { cfg, call } = await serve({ hosted: true });
-    expect((await call("POST", "/api/instances/openai-compat", add)).status).toBe(403);
-    expect(Object.keys(cfg.instances ?? {})).toEqual(["openaiCompat", "claude"]);
   });
 });
 

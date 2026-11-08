@@ -82,8 +82,7 @@ pnpm exec vitest run server/bot-visibility.test.ts server/bot-visibility.e2e.tes
 
 - The Settings screens (Activity, Who can see it) were checked by rendering
   and unit tests, not in Electron or a browser against a live server.
-- No hosted tenant, portal membership, Slack worker or cloud Admin was
-  involved; portal admin sessions carry the same `admin` scope the tests use.
+- No Slack worker or cloud Admin was involved.
 - The live stream's narrowing costs one visibility check per frame per
   member stream while a bot is restricted; it was not load-tested.
 - Words already quoted into a visible conversation (an earlier delegation
@@ -116,7 +115,7 @@ creation or routine targets unchecked; a member's copy of a bot keeping its
 audience list; refused admin requests still logged; secrets not hidden in
 the log; the command line not named; the activity routes readable by
 members. Every server, session and engine was a local fixture. This is not
-production qualification: no hosted tenant, portal, Slack worker, cloud
+production qualification: no Slack worker, cloud
 Admin or real email was involved.
 
 ## Review follow-ups — 2026-09-23

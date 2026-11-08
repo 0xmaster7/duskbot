@@ -5,7 +5,7 @@ import { DATA_DIR, loadConfig, mergeVpsConfig, normalizeVpsConfig, parseConfigPa
 import type { JsonValue } from "./schema.ts";
 import { initialVpsMode, sharedVpsDefaults, vpsIdleTimeoutMinutes } from "./shared-vps-defaults.ts";
 
-const personal = { cloudTeam: false, hostedWorkspace: false, sharedMembership: false };
+const personal = { cloudTeam: false, sharedMembership: false };
 const path = join(DATA_DIR, "config.json");
 afterEach(() => rmSync(path, { force: true }));
 
@@ -15,11 +15,10 @@ describe("personal workspace computer defaults", () => {
     expect(vpsIdleTimeoutMinutes({})).toBe(10);
   });
   it.each([
-    { cloudTeam: true, hostedWorkspace: false, sharedMembership: false },
-    { cloudTeam: false, hostedWorkspace: true, sharedMembership: false },
-    { cloudTeam: false, hostedWorkspace: false, sharedMembership: true },
-    { cloudTeam: true, hostedWorkspace: true, sharedMembership: true },
-  ])("never implicitly shares desktops across hosted or membership boundaries: %o", (privacy) => {
+    { cloudTeam: true, sharedMembership: false },
+    { cloudTeam: false, sharedMembership: true },
+    { cloudTeam: true, sharedMembership: true },
+  ])("never implicitly shares desktops across team or membership boundaries: %o", (privacy) => {
     expect(sharedVpsDefaults({ vps: { mode: "shared" } }, privacy)).toMatchObject({ mode: "shared", workspaceShared: false, sharingAllowed: false });
   });
   it("keeps private mode and explicit manual power preferences", () => {

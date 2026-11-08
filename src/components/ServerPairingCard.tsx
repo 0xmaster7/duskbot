@@ -5,7 +5,6 @@ import { t } from "@/lib/i18n";
 import { copyText, type CopyFeedback } from "@/lib/copy-text";
 import { api } from "@/state/store";
 import { isOwnerOrAdmin, readSessionState, type SessionState } from "../lib/session";
-import { readMembership } from "../lib/membership";
 import { lastSeen, minutesLeft } from "../lib/pairing-time";
 import { revealPhonePairing } from "../lib/phone-pairing";
 import { Card, SettingRow } from "./SettingsPrimitives";
@@ -50,9 +49,8 @@ export function shownDevices(devices: PairedDevice[], cloudHome: boolean): Paire
 const button = "ui-button ui-button-primary";
 const quiet = "ui-button";
 
-export function ServerPairingCard({ initialSession = null, initialPairingCodes = true, cloudHome = false, focusRequest = 0, team, teamPhoneBlocked = null, simple = false }: { initialSession?: SessionState | null; initialPairingCodes?: boolean; cloudHome?: boolean; focusRequest?: number; team?: string; teamPhoneBlocked?: string | null; simple?: boolean }) {
+export function ServerPairingCard({ initialSession = null, cloudHome = false, focusRequest = 0, team, teamPhoneBlocked = null, simple = false }: { initialSession?: SessionState | null; cloudHome?: boolean; focusRequest?: number; team?: string; teamPhoneBlocked?: string | null; simple?: boolean }) {
   const [session, setSession] = useState<SessionState | null>(initialSession);
-  const [pairingCodes, setPairingCodes] = useState(initialPairingCodes);
   const [computerName, setComputerName] = useState<string | null>(null);
   const [scope, setScope] = useState<"admin" | "client">("admin");
   const [offer, setOffer] = useState<PairingOffer | null>(null);
@@ -81,7 +79,6 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
       if (canPairDevices(state)) void loadDevices();
       if (state.kind === "loopback" || state.kind === "session") {
         void api("/api/config").then((config) => {
-          setPairingCodes(readMembership(config).pairingCodes);
           if (canPairDevices(state)) setComputerName(typeof config?.computerName === "string" ? config.computerName : "");
         }).catch(() => {});
       }
@@ -111,14 +108,14 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
     if (simple) {
       return (
         <div ref={root} tabIndex={-1} data-phone-pairing="server" className="scroll-mt-4 focus:outline-none">
-          <RowsCard><div data-server-pairing-chat-only="" className="contents"><NoteRow>{t(pairingCodes ? "remote.serverPairing.chatOnly" : "remote.serverPairing.portalChatOnly")}</NoteRow></div></RowsCard>
+          <RowsCard><div data-server-pairing-chat-only="" className="contents"><NoteRow>{t("remote.serverPairing.chatOnly")}</NoteRow></div></RowsCard>
         </div>
       );
     }
     return (
       <div ref={root} tabIndex={-1} data-phone-pairing="server" className="scroll-mt-4 rounded-xl focus:outline-none">
-        <Card title={t("remote.serverPairing.title")} subtitle={t(pairingCodes ? "remote.serverPairing.subtitle" : "remote.serverPairing.portalSubtitle")}>
-          <p data-server-pairing-chat-only className="mt-3 text-[13px] text-ink-secondary">{t(pairingCodes ? "remote.serverPairing.chatOnly" : "remote.serverPairing.portalChatOnly")}</p>
+        <Card title={t("remote.serverPairing.title")} subtitle={t("remote.serverPairing.subtitle")}>
+          <p data-server-pairing-chat-only className="mt-3 text-[13px] text-ink-secondary">{t("remote.serverPairing.chatOnly")}</p>
         </Card>
       </div>
     );
@@ -157,7 +154,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
     if (result !== "empty") setCopied(result);
   }
 
-  const offerPanel = pairingCodes && offer ? (
+  const offerPanel = offer ? (
         <div className="mt-4 rounded-lg border border-hairline/40 bg-inset p-4">
           {expired ? (
             <p className="text-[13px] text-ink-secondary">{t("remote.serverPairing.expired")}</p>
@@ -187,7 +184,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
         </div>
   ) : null;
   // Loaded with the config; a personal cloud has no computer of its own to name.
-  const nameRow = (className: string) => pairingCodes && !cloudHome && computerName !== null
+  const nameRow = (className: string) => !cloudHome && computerName !== null
     ? <div className={className}><ComputerNameRow saved={computerName} onSaved={setComputerName} /></div> : null;
   const scopeName = (device: PairedDevice) => t(device.scopes.includes("admin") ? "remote.serverPairing.scope.admin" : "remote.serverPairing.scope.client");
 
@@ -196,22 +193,20 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
     return (
       <div ref={root} tabIndex={-1} data-phone-pairing="server" className="flex scroll-mt-4 flex-col gap-5 focus:outline-none">
         <RowsCard data-settings-block="pair-code">
-          {pairingCodes && !cloudHome && computerName !== null && <ComputerNameRow saved={computerName} onSaved={setComputerName} />}
-          {pairingCodes && !cloudHome && (
+          {!cloudHome && computerName !== null && <ComputerNameRow saved={computerName} onSaved={setComputerName} />}
+          {!cloudHome && (
             <SettingRow title={t("settings.s2.pairing.access")}>
               <SettingsSelect data-settings-select="pairing-scope" value={scope} aria-label={t("remote.serverPairing.title")}
                 options={[{ value: "admin", label: t("remote.serverPairing.scope.admin") }, { value: "client", label: t("remote.serverPairing.scope.client") }]}
                 onChange={(event) => setScope(event.target.value === "client" ? "client" : "admin")} />
             </SettingRow>
           )}
-          <ItemRow title={t("settings.w6.pairing.title")} hint={pairingCodes ? cloudHome ? t("settings.w6a.phone.cloudPersonal") : undefined : t("settings.w6a.phone.portal")}>
-            {pairingCodes ? (
-              <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className="ui-button ui-button-sm">
+          <ItemRow title={t("settings.w6.pairing.title")} hint={cloudHome ? t("settings.w6a.phone.cloudPersonal") : undefined}>
+            <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className="ui-button ui-button-sm">
                 {busy ? t("remote.serverPairing.creating") : t("settings.simple.computer.createCode")}
-              </button>
-            ) : null}
+            </button>
           </ItemRow>
-          {pairingCodes && offer ? (expired ? (
+          {offer ? (expired ? (
             <NoteRow>{t("remote.serverPairing.expired")}</NoteRow>
           ) : (
             <>
@@ -233,7 +228,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
           {error ? <NoteRow tone="danger">{error}</NoteRow> : null}
         </RowsCard>
         {/* "Signed-in" either way: the desktop's own paired phones are listed under "Paired devices" on the same page */}
-        <RowsCard label={t("remote.serverPairing.portalDevices")} data-settings-block="paired-sessions">
+        <RowsCard label={t("remote.serverPairing.signedInDevices")} data-settings-block="paired-sessions">
           {listed.length === 0 ? (
             <NoteRow>{t("remote.serverPairing.noDevices")}</NoteRow>
           ) : listed.map((device) => (
@@ -251,10 +246,10 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
 
   return (
     <div ref={root} tabIndex={-1} data-phone-pairing="server" className="scroll-mt-4 rounded-xl focus:outline-none">
-    <Card title={t("remote.serverPairing.title")} subtitle={t(pairingCodes ? "remote.serverPairing.subtitle" : "remote.serverPairing.portalSubtitle")}>
-      {pairingCodes && cloudHome ? <p data-server-pairing-personal className="mt-3 text-[13px] text-ink-secondary">{t("remote.serverPairing.cloudPersonal")}</p> : null}
+    <Card title={t("remote.serverPairing.title")} subtitle={t("remote.serverPairing.subtitle")}>
+      {cloudHome ? <p data-server-pairing-personal className="mt-3 text-[13px] text-ink-secondary">{t("remote.serverPairing.cloudPersonal")}</p> : null}
       {nameRow("mt-3")}
-      {pairingCodes ? <div className="mt-3 flex flex-wrap items-center gap-3">
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         {cloudHome ? null : <>
           <label className="flex items-center gap-1.5 text-[13px] text-ink">
             <input type="radio" name="server-pairing-scope" checked={scope === "admin"} onChange={() => setScope("admin")} />
@@ -268,9 +263,9 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
         <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className={button}>
           {busy ? t("remote.serverPairing.creating") : t("remote.serverPairing.create")}
         </button>
-      </div> : <p data-server-pairing-portal className="mt-3 text-[13px] text-ink-secondary">{t("remote.serverPairing.portal")}</p>}
+      </div>
       {offerPanel}
-      <div className="mt-5 text-[13px] font-medium text-ink">{t(pairingCodes ? "remote.serverPairing.devices" : "remote.serverPairing.portalDevices")}</div>
+      <div className="mt-5 text-[13px] font-medium text-ink">{t("remote.serverPairing.devices")}</div>
       {listed.length === 0 ? (
         <p className="mt-1 text-[13px] text-ink-secondary">{t("remote.serverPairing.noDevices")}</p>
       ) : (

@@ -187,10 +187,10 @@ describe("the waits route", () => {
     }
   });
   it("offers files and programs only on the bot's own computer", () => {
-    const own = { cloudHome: false, hosted: false, guest: false, place: null };
+    const own = { cloudHome: false, guest: false, place: null };
     for (const place of [null, "local", "browser"] as const) expect(hostWaitRefusal({ ...own, place })).toBeNull();
     for (const place of ["vm", "cloud"] as const) expect(hostWaitRefusal({ ...own, place })).toBe(WAIT_MESSAGES.otherComputer);
-    expect([hostWaitRefusal({ ...own, cloudHome: true }), hostWaitRefusal({ ...own, hosted: true }), hostWaitRefusal({ ...own, guest: true })])
-      .toEqual([WAIT_MESSAGES.serverHost, WAIT_MESSAGES.serverHost, WAIT_MESSAGES.guest]);
+    expect([hostWaitRefusal({ ...own, cloudHome: true }), hostWaitRefusal({ ...own, guest: true })])
+      .toEqual([WAIT_MESSAGES.serverHost, WAIT_MESSAGES.guest]);
   });
 });

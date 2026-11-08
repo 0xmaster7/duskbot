@@ -121,7 +121,7 @@ export function createBrowserViewerRoutes(deps: BrowserViewerRouteDeps): RouteHa
     if (!audience) return json(res, 404, { error: "no such conversation" });
     const browser = await deps.browser(botId, audience);
     if ("error" in browser) return json(res, browser.status, { error: browser.error });
-    // Discovery may have awaited while the portal closed this owner's streams: never open a late replacement on the earlier authorization.
+    // discovery may outlast revocation; never open a replacement on the earlier authorization.
     const failure = await deps.authorize(req, auth);
     if (failure) return json(res, failure.status, { error: failure.error });
     const owner = ownerOf(auth);

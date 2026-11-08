@@ -61,20 +61,6 @@ describe("pairing devices from a hosted server's settings", () => {
     expect(html).not.toContain("data-phone-pairing-action");
   });
 
-  it("offers no pairing code on a hosted workspace, where people sign in through the portal", () => {
-    const admin = { kind: "session" as const, id: "s", label: "Hosted workspace", scopes: ["admin", "client"], expiresAt: 1 };
-    const html = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: admin, initialPairingCodes: false }));
-    expect(html).toContain("data-server-pairing-portal");
-    expect(html).toContain("organization&#x27;s Admin");
-    expect(html).not.toContain("Create pairing code");
-    expect(html).not.toMatch(/pairing code from|openmausbot pair/);
-    expect(html).toContain("Signed-in devices");
-    expect(html).not.toContain("data-phone-pairing-action");
-    const member = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: { ...admin, scopes: ["client"] }, initialPairingCodes: false }));
-    expect(member).toContain("data-server-pairing-chat-only");
-    expect(member).not.toContain("openmausbot pair");
-  });
-
   it("on an OMB Cloud home, which is personal, offers no chat-only choice, lists only the owner's devices, and says why in one line", () => {
     const admin = { kind: "session" as const, id: "s", label: "Mac", scopes: ["admin", "client"], expiresAt: 1 };
     const cloud = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: admin, cloudHome: true }));

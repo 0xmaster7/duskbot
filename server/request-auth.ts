@@ -59,12 +59,10 @@ export function ownerOrAdmin(auth: RequestAuth): boolean {
   return auth.kind === "loopback" ? auth.trust !== "service" : auth.scopes.includes("admin");
 }
 
-/** Packaged desktop: `owner`. Else OMB_LOOPBACK_TRUST=owner|service; unset, a hosted workspace (any OMB_ADMIN_*)
- * gets `service` and a headless server `owner`. Any other value fails closed. `localBrowsers`: see localBrowserTrust. */
+/** packaged desktop: `owner`. otherwise OMB_LOOPBACK_TRUST selects the trust; headless defaults to `owner`. */
 export function resolveLoopbackTrust(input: {
   env?: NodeJS.ProcessEnv;
   desktopManaged: boolean;
-  hostedWorkspace: boolean;
   /** A Cloud home's network traffic arrives through its edge proxy, so bare loopback is a bot's shell: always `service`. */
   cloudHome?: boolean;
   /** This server runs from TypeScript source rather than a build. */
@@ -89,15 +87,11 @@ function loopbackTrust(input: Parameters<typeof resolveLoopbackTrust>[0]): { tru
     return {
       trust: requested,
       reason: "OMB_LOOPBACK_TRUST",
-      ...(requested === "owner" && input.hostedWorkspace
-        ? { warning: "OMB_LOOPBACK_TRUST=owner on a shared workspace: every bot's shell can change settings and approve cards as the owner" }
-        : {}),
     };
   }
   if (raw !== undefined && requested !== "") {
     return { trust: "service", reason: "OMB_LOOPBACK_TRUST", warning: `OMB_LOOPBACK_TRUST="${raw.replace(/[^\w.-]/g, "").slice(0, 40)}" is not owner or service; using service` };
   }
-  if (input.hostedWorkspace) return { trust: "service", reason: "hosted workspace" };
   return { trust: "owner", reason: "self-hosted default" };
 }
 
@@ -137,7 +131,7 @@ export function fromBrowser(req: IncomingMessage): boolean {
 const LOCAL_BROWSER_TRUST = "OMB_DEV_TRUST_LOCAL_BROWSER";
 
 /** Development only: a server run from a source checkout (`pnpm dev:server`, test fixtures) lets this machine's browsers in
- * as before, because Vite's dev proxy forwards them; a packaged, bundled, hosted or service-trust server ignores it. */
+ * as before, because Vite's dev proxy forwards them; a packaged, bundled or service-trust server ignores it. */
 function localBrowserTrust(env: NodeJS.ProcessEnv, fromSource: boolean, trust: LoopbackTrust): { trusted: boolean; warning?: string } {
   if (env[LOCAL_BROWSER_TRUST] !== "1") return { trusted: false };
   if (!fromSource || trust !== "owner") {

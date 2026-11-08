@@ -331,8 +331,7 @@ Like `opencode` in a terminal, it reads provider keys from its environment
 (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`,
 `KIMI_API_KEY`, `MOONSHOT_API_KEY`, `MINIMAX_API_KEY`) and offers those
 providers' models, billed to that key. It does so only where the server's
-environment is one person's own: never on MausBot Cloud, a hosted team
-workspace, an organisation-managed desktop, or a server whose sign-in list
+environment is one person's own: never on MausBot Cloud, an organisation-managed desktop, or a server whose sign-in list
 lets other people in (users, more than one admin, or a whole domain).
 Providers added with `opencode auth login` work everywhere.
 
@@ -504,7 +503,7 @@ server at all.
 For development, `pnpm dev:server` sets `OMB_DEV_TRUST_LOCAL_BROWSER=1`, so a
 browser on Vite's dev page (`pnpm dev`) is the owner as before. The server
 honours it only when it runs from source with owner trust, logs a warning, and
-ignores it in a build, the desktop app, a hosted workspace and MausBot Cloud.
+ignores it in a build, the desktop app and MausBot Cloud.
 Run `OMB_DEV_TRUST_LOCAL_BROWSER=0 pnpm dev:server` to try the sign-in.
 
 ### Loopback trust: owner or service
@@ -518,26 +517,22 @@ loopback request **without a session** is trusted, and logs it:
 
 ```
 local requests: owner trust (self-hosted default)
-local requests: service trust (hosted workspace); without a session, loopback may use only health, the Slack worker's guarded routes and bot capability routes
+local requests: service trust (OMB_LOOPBACK_TRUST); without a session, loopback may use only health, the Slack worker's guarded routes and bot capability routes
 ```
 
 | Trust | Default for | A session-less loopback request may |
 |---|---|---|
 | `owner` | a self-hosted server, the desktop app | do everything, as today |
-| `service` | a hosted workspace: any of `OMB_ADMIN_URL`, `OMB_ADMIN_WORKSPACE` or `OMB_ADMIN_MEMBERSHIP` set (shared-workspace Full access only works there, so it is covered too) | read health, who-am-I, the bot list, a thread's messages and a bot's picture; open a thread; send through the guarded route; watch and stop its exact request; withdraw a queued line; **decline** a card; use the bots' own capability routes (`/api/internal/*`, which check their own per-turn token) |
+| `service` | MausBot Cloud; any server with `OMB_LOOPBACK_TRUST=service` | read health, who-am-I, the bot list, a thread's messages and a bot's picture; open a thread; send through the guarded route; watch and stop its exact request; withdraw a queued line; **decline** a card; use the bots' own capability routes (`/api/internal/*`, which check their own per-turn token) |
 
 Under `service`, everything else from loopback needs a real session and
 answers 403: settings and keys (`/api/config`), instances, MCP servers,
 webhooks, sessions and pairing, people and sign-in lists, usage, budgets,
 the decision log, workspace backups, creating or loosening bots, and
-approving or answering any card. The Slack worker (the only session-less
-local caller a hosted workspace has) needs nothing more and keeps working
-unchanged. Sessions — a portal sign-in, an email sign-in or a pairing — work
-exactly as before, with their own scopes.
+approving or answering any card. Email sign-in and paired sessions keep their own scopes.
 
 Set `OMB_LOOPBACK_TRUST=service` on a self-hosted server people share (with
-an email sign-in list, say), or `OMB_LOOPBACK_TRUST=owner` to opt a hosted
-workspace back into the old behaviour (the log then warns). Any other value
+an email sign-in list, say). `OMB_LOOPBACK_TRUST=owner` grants local callers owner access. Any other value
 means `service`. The desktop app ignores the setting: its local changes
 already need the app's own per-launch capability. MausBot Cloud ignores
 it too and is always `service` (docs/cloud-pro.md).
@@ -618,19 +613,12 @@ seen, and what each person spent this month. **Invite** adds an address (or
 with the address filled in, and the one-time code still goes to that address.
 Roles change with one click; removing someone stops new sign-ins.
 
-On a hosted workspace whose members your organization's Admin manages
-(`OMB_ADMIN_MEMBERSHIP=portal`), this list decides nothing, so Settings →
-People shows, read-only, who has signed in and what they spent, with a
-**Manage people in Admin** link to that workspace in Admin → People. Remote
-access there lists signed-in devices and offers no pairing codes, since a
-hosted workspace refuses them.
-
 ### Who may answer a card
 
 Approval cards are the provider's own (see the approval modes); OpenMausBot
-adds none. On a workspace several people share — portal membership, or an
-email sign-in list that names users — it narrows only whose answer counts,
-and only when the card can be traced to a person:
+adds none. On a workspace several people share, an email sign-in list that
+names users narrows only whose answer counts, and only when the card can
+be traced to a person:
 
 - a card for a request a user sent, or in a thread a user opened, is
   theirs to answer (admins and the owner may answer any card);
@@ -1017,11 +1005,9 @@ not as a sandbox.
 
 ### Admin activity
 
-On a workspace several people share — a hosted workspace, an email sign-in
-list that names more than one person or a whole `@domain`, or a device paired
-(or a pairing code open) with chat-only access, whether before or after the
-change — every admin change is recorded beside the decision
-log, in `<data dir>/admin-activity/YYYY-MM.ndjson` (0600), and kept for the
+On a workspace with an email sign-in list naming more than one person or a
+whole `@domain`, or a device paired (or a pairing code open) with chat-only
+access, every admin change is recorded beside the decision log, in `<data dir>/admin-activity/YYYY-MM.ndjson` (0600), and kept for the
 same window (`decisions.retentionDays` / `OMB_DECISION_RETENTION_DAYS`; a
 quiet server prunes on a timer, and pending rows are written out at
 shutdown): settings

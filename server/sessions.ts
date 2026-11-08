@@ -47,9 +47,8 @@ const sessionSchema = z.object({
   expiresAt: z.number(),
   userId: z.string().max(256).optional(),
   email: z.string().max(320).optional(),
-  /** `portal`: set only by the internal verified-portal issuance path. `team`: the Admin's signed member claim on a
-   * Team Cloud. Never by email or pairing input. */
-  membershipAuthority: z.enum(["portal", "team"]).optional(),
+  /** the team claim is signed by the Cloud admin and revalidated separately from local email membership. */
+  membershipAuthority: z.literal("team").optional(),
   /** A Team Cloud session's role in the team, from the Admin's claim. */
   teamRole: z.enum(["owner", "admin", "member"]).optional(),
   /** A team session opened with a code its member made (their phone): when the Admin last vouched for that member. The
@@ -179,7 +178,6 @@ export interface SessionStoreOptions {
   now?: () => number;
   emailScopes?: EmailScopesResolver;
   emailScopesSnapshot?: () => EmailScopesResolver;
-  portalMembership?: boolean;
   /** Between membershipChanged() calls, the hot paths (each request, stream frame and liveness check) recheck email
    * membership at most this often. Default 0: every call. */
   recheckMs?: number;
@@ -469,13 +467,7 @@ export class SessionRegistry {
     return ended.length;
   }
 
-  /** Call only after consuming a verified, workspace-bound PKCE grant; no HTTP route accepts this marker as input. */
-  issuePortal(input: { email: string; grant: string; scopes: Scope[] }): { token: string; session: PublicSession } {
-    if (!/^[A-Za-z0-9_-]{43}$/.test(input.grant) || !input.email) throw new Error("A verified portal identity is required");
-    return this.issueAccount({ label: "Hosted workspace", email: input.email, userId: `portal:${input.grant}`, scopes: input.scopes }, "portal");
-  }
-
-  private issueAccount(input: { label: string; scopes: Scope[]; userId?: string; email?: string }, membershipAuthority?: "portal"): { token: string; session: PublicSession } {
+  private issueAccount(input: { label: string; scopes: Scope[]; userId?: string; email?: string }): { token: string; session: PublicSession } {
     this.refusePersonal(input.scopes);
     this.prune();
     const now = this.now();
@@ -491,7 +483,6 @@ export class SessionRegistry {
     };
     if (input.userId) record.userId = input.userId;
     if (input.email) record.email = input.email;
-    if (membershipAuthority) record.membershipAuthority = membershipAuthority;
     this.sessions.push(record);
     this.lastSeenWrites.set(record.id, now);
     this.persist();
@@ -528,7 +519,7 @@ export class SessionRegistry {
     if (this.closed) throw new Error("Session registry is closed.");
     this.membershipCheckedAt = this.now();
     // A team session's membership is the Admin's signed claim, checked at each pairing (cloud-team.ts), never the sign-in list.
-    const eligible = this.sessions.filter(session => session.email !== undefined && session.membershipAuthority !== "team" && !(this.options.portalMembership && session.membershipAuthority === "portal"));
+    const eligible = this.sessions.filter(session => session.email !== undefined && session.membershipAuthority !== "team");
     if (!eligible.length) return;
     let resolveScopes = this.options.emailScopes;
     try {

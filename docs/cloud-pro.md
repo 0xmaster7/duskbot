@@ -794,28 +794,13 @@ never echoes a secret.
 | `OMB_CLOUD_BOOTSTRAP_SECRET` | secret | 43 base64url characters (256 bits): the key the Admin signs pairing requests with. |
 | `OMB_PUBLIC_URL` | env | The machine's exact `https://` origin, `https://<app>.fly.dev`. |
 
-- The machine must not also carry `OMB_ADMIN_URL`, `OMB_ADMIN_WORKSPACE` or
-  `OMB_ADMIN_MEMBERSHIP`: a Cloud home is a personal server with pairing codes
-  on, not a hosted team workspace with portal membership.
 - `HOME=/data` and `OMB_DATA_DIR=/data/.openmausbot` are set by the image.
 - The server keeps the secret in memory and removes it from its environment at
   startup; no engine or tool it starts ever inherits it.
 
 ### No model gateway
 
-OMB Cloud includes no AI, so the contract has no model gateway. If a Cloud
-home is ever given `OMB_HOSTED_MODEL_URL`, `OMB_HOSTED_MODEL_TOKEN` or
-`OMB_HOSTED_MODELS` (an Admin from before this decision set all three), it
-still boots, logs one warning naming the variables (never their values), and
-ignores them:
-
-- the launcher drops them from the server's environment, and the server drops
-  them from its own at startup, so no engine or tool ever sees them;
-- the portal workspace model policy (`server/hosted-models.ts`) stays off on a
-  Cloud home whatever they hold, so no instance is routed to a gateway;
-- no `included.*` or other read-only instance is served, apart from a free
-  trial's Claude credit (below); the person's own engines are otherwise the
-  only way to a model.
+OMB Cloud includes no AI, so the contract has no model gateway. Apart from a free trial's Claude credit, the person's own engines are the only way to a model.
 
 ### Included voice and decisions
 
@@ -1742,9 +1727,7 @@ tests.
   characters.
 - The signing secret is removed from the server's environment at startup and
   is never passed to engines or to Caddy.
-- There is no platform model gateway: stray `OMB_HOSTED_*` settings are
-  ignored with one warning and never reach the server's environment or an
-  engine. Every model call uses the person's own sign-in or key.
+- There is no platform model gateway. Every model call uses the person's own sign-in or key.
 - A volume binds to one machine and is never adopted by another.
 - Each customer's app lives in its own Fly private network.
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { emailGateDone } from "@/lib/analytics";
 import { clearWelcomeDraft } from "@/lib/welcome-draft";
-import { hostedMember, LOCAL_VIEWER, welcomeDue, welcomeViewer, type WelcomeViewer } from "@/lib/onboarding";
+import { LOCAL_VIEWER, welcomeDue, welcomeViewer, type WelcomeViewer } from "@/lib/onboarding";
 import { api, useStore } from "@/state/store";
 import { WelcomeFlow } from "./WelcomeFlow";
 
@@ -39,23 +39,17 @@ export function WelcomeGate({ viewer }: { viewer: WelcomeViewer | null }) {
   const remoteClient = window.ogb?.remoteClient?.active === true;
   // A welcome finished elsewhere (another window, an older version's record) leaves no draft behind to resume later.
   const finished = Boolean(viewer && state.config) && !welcomeDue(state.config, {
-    remoteClient, legacyDone: emailGateDone(), hosted: viewer?.hosted, canSave: viewer?.canSave, cloudHome: viewer?.cloudHome,
+    remoteClient, legacyDone: emailGateDone(), canSave: viewer?.canSave, cloudHome: viewer?.cloudHome,
   });
   useEffect(() => {
     if (finished) clearWelcomeDraft();
   }, [finished]);
-  // a member of a hosted place has no first run here and writes nothing to its config
-  const member = Boolean(viewer && hostedMember(viewer));
-  useEffect(() => {
-    if (member && state.welcomeOpen) dispatch({ type: "toggleWelcome", open: false });
-  }, [member, state.welcomeOpen, dispatch]);
-  if (!viewer || member) return null;
+  if (!viewer) return null;
   const due =
     !dismissed &&
     welcomeDue(state.config, {
       remoteClient,
       legacyDone: emailGateDone(),
-      hosted: viewer.hosted,
       canSave: viewer.canSave,
       cloudHome: viewer.cloudHome,
     });
@@ -68,7 +62,6 @@ export function WelcomeGate({ viewer }: { viewer: WelcomeViewer | null }) {
   return (
     <WelcomeFlow
       replay={replay}
-      hosted={viewer.hosted}
       onDone={(botId) => {
         setDismissed(true);
         dispatch({ type: "toggleWelcome", open: false });

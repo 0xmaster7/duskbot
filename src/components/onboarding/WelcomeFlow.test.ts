@@ -266,14 +266,6 @@ describe("the talking style screen", () => {
 });
 
 describe("other first runs", () => {
-  it("gives a hosted place's admin the first screen only, then the chat", async () => {
-    await show({ hosted: true });
-    expect(text()).toContain("This is your team's shared MausBot");
-    await press("Next");
-    await throughGrokScreens();
-    expect(text()).not.toContain("Introducing your Chief of Staff");
-    expect(f.onDone).toHaveBeenCalledExactlyOnceWith(null);
-  });
 
   it("a replay from Settings records nothing about a first chat", async () => {
     f.state = { ...f.state, config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-09-01T00:00:00.000Z", version: WELCOME_VERSION } } };

@@ -39,8 +39,8 @@ afterEach(async () => { await Promise.all(hosts.splice(0).map((host) => host.bro
 
 const turn = { threadId: "thread-1", generation: "gen-1" };
 
-function setup(engine: "chrome" | "agent-browser" | undefined, { cloudHome = false, server = false, hosted = false, holder, audienceOf, bots: botIds = ["scout"], browserBox, turnResources, boxChrome, generations }: {
-  cloudHome?: boolean; server?: boolean; hosted?: boolean; holder?: (resource: string) => TurnOwner | undefined;
+function setup(engine: "chrome" | "agent-browser" | undefined, { cloudHome = false, server = false, holder, audienceOf, bots: botIds = ["scout"], browserBox, turnResources, boxChrome, generations }: {
+  cloudHome?: boolean; server?: boolean; holder?: (resource: string) => TurnOwner | undefined;
   audienceOf?: BrowserHostDeps["audienceOf"]; bots?: string[]; browserBox?: BrowserHostDeps["browserBox"];
   turnResources?: BrowserHostDeps["turnResources"]; boxChrome?: BrowserHostDeps["boxChrome"]; generations?: Map<string, string>;
 } = {}) {
@@ -62,7 +62,6 @@ function setup(engine: "chrome" | "agent-browser" | undefined, { cloudHome = fal
     mintInternalCapability: (capability) => { minted.push(capability); return "capability-token"; },
     DESKTOP_MANAGED: !cloudHome && !server,
     CLOUD_HOME: cloudHome ? { machineId: "m-1" } : null,
-    HOSTED_WORKSPACE: hosted,
     PORT: 4100,
     audienceOf,
     browserBox, boxChrome,
@@ -130,14 +129,14 @@ describe("the bots' browser host with browserEngine.engine set to chrome", () =>
     expect(host.engineSummary({ kind: "unavailable", reason: "agent-browser is not installed", myChrome: true })).toEqual({ kind: "unavailable", reason: "agent-browser is not installed", myChrome: true, engine: "agent-browser" });
   });
 
-  it("offers the owner's local-sites switch on a self-hosted server, but never on a shared company workspace", () => {
+  it("offers the owner's local-sites switch on a self-hosted server", () => {
     const unavailable = { kind: "unavailable" as const, reason: "agent-browser is not installed", myChrome: false };
-    for (const hosted of [false, true]) {
-      const { cfg, host } = setup("agent-browser", { server: true, hosted });
+    {
+      const { cfg, host } = setup("agent-browser", { server: true });
       cfg.browserEngine = { engine: "agent-browser", egress: { localNetwork: true, allow: ["10.0.0.5"] } };
-      expect(host.engineSummary(unavailable).serverSites).toBe(hosted ? undefined : true);
-      expect(browserEgress.rules().localNetwork).toBe(!hosted);
-      expect(browserEgress.rules().allowed("10.0.0.5", 80)).toBe(!hosted);
+      expect(host.engineSummary(unavailable).serverSites).toBe(true);
+      expect(browserEgress.rules().localNetwork).toBe(true);
+      expect(browserEgress.rules().allowed("10.0.0.5", 80)).toBe(true);
     }
     const desktop = setup("agent-browser");
     desktop.cfg.browserEngine = { engine: "agent-browser", egress: { allow: ["10.0.0.5"] } };

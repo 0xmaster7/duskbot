@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKe
 import { setEmailGateDone, track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import { chiefFor, chiefStepFits, createChiefPatch, myDefaultBot, stageIntro, useViewerEmail } from "@/lib/default-bot";
-import { beatsFor, completionPatch, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
+import { BEAT_ORDER, completionPatch, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
 import { api, useStore } from "@/state/store";
 import { ComputerStep, JobsStep, TalkStep } from "./GrokSteps";
@@ -56,20 +56,16 @@ export function WelcomeFlow({
   replay = false,
   initialBeat,
   embedded = false,
-  hosted = false,
 }: {
   onDone: (botId: string | null) => void;
   replay?: boolean;
   initialBeat?: BeatId;
   embedded?: boolean;
-  hosted?: boolean;
 }) {
   const { state, dispatch } = useStore();
   const maus = myDefaultBot(state.bots, useViewerEmail());
-  // A first run keeps its screen in this browser, so a reload resumes it; a replay starts over. A hosted place's
-  // browser may hold another person's draft.
-  const keepsDraft = !replay && !embedded && !hosted;
-  const beats = beatsFor({ hosted });
+  const keepsDraft = !replay && !embedded;
+  const beats = BEAT_ORDER;
   const [beat] = useState<BeatId>(() => resumeBeat(beats, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
   // Grok Bot's three screens are the meet beat's pages: a reload starts them over, the beat itself is what resumes.
   const [page, setPage] = useState(0);
@@ -104,7 +100,7 @@ export function WelcomeFlow({
   // A Cloud sheet opened over the welcome never switches the window away from it (CloudAddDialog).
   useEffect(() => (embedded ? undefined : showWelcome()), [embedded]);
   useEffect(() => {
-    if (!replay && !embedded && !hosted) void nameFromComputer(state.config, (config) => dispatch({ type: "configStatus", config }));
+    if (!replay && !embedded) void nameFromComputer(state.config, (config) => dispatch({ type: "configStatus", config }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -124,7 +120,7 @@ export function WelcomeFlow({
       } catch {
       }
     },
-    [beat, dispatch, onDone, replay, embedded, keepsDraft, hosted],
+    [beat, dispatch, onDone, replay, embedded, keepsDraft],
   );
 
   // where it fits, MausBot becomes the Chief of Staff and greets, as grok's default bot does, with no screen to ask
@@ -162,7 +158,7 @@ export function WelcomeFlow({
     const name = pages[index] ?? "talk";
     const forward = () => goPage(index + 1);
     const back = () => goPage(index - 1);
-    if (name === "meet") return <MeetScreen hosted={hosted} onNext={forward} />;
+    if (name === "meet") return <MeetScreen onNext={forward} />;
     if (name === "computer") return <ComputerStep onNext={forward} onBack={back} />;
     if (name === "jobs") return <JobsStep onNext={forward} onBack={back} />;
     if (name === "island") return <IslandIntro onDone={forward} />;

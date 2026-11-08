@@ -31,7 +31,6 @@ import { unsealConfig } from "../sealed-fields.ts";
 import type { JsonValue } from "../schema.ts";
 import { DECIDER_KEY_REJECTED, deciderIncludedHere, deciderPatchKey, deciderSavePatch, deciderSharedKeyUsable, type Decider } from "../decider/index.ts";
 import type { ProviderRegistry } from "../harness/registry.ts";
-import { HOSTED_PROVIDER_SETTINGS_ERROR } from "../hosted-models.ts";
 import { forgetKey } from "../key-rejections.ts";
 import type { ComputerIdleTimer } from "../computer-idle.ts";
 import { PROVIDER_KEY_KINDS } from "../provider-key-check.ts";
@@ -66,7 +65,6 @@ export interface ConfigRouteDeps {
   /** After browserEngine.engine changed: closes the viewers and the browsers the other engine ran. */
   browserEngineSwitched(): void;
   decider: Pick<Decider, "testKey">;
-  hostedModels: boolean;
   cloudHome: boolean;
   providerConfigs(): InstanceConfigMap;
   localVmIdleMs(): number;
@@ -102,7 +100,7 @@ export interface ConfigRouteDeps {
 export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
   const {
     store, cfg, registry, sessions, browserCleanup, browserLive, browserRuntime, usedBrowserSessions, decider,
-    closeBrowser, browserEngineSwitched, hostedModels, cloudHome: CLOUD_HOME, providerConfigs,
+    closeBrowser, browserEngineSwitched, cloudHome: CLOUD_HOME, providerConfigs,
     localVmIdleMs, localVmIdles, localVmActiveThreads, localVmLifecycleBusy, localVmImageBusy, localVmModeChangeBusy,
     providerConfigBusy, computerProviderConfigTransitions, managedVpsOwners, providerOperationConflict, vpsSharingChanged,
     perBotLocalVmCountForModeChange, checkedModelSelection, policyModelRefusal, browserSessionSpec, configStatus,
@@ -117,7 +115,6 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
       const opened = await unsealConfig(await readBody(req), { auth, sealer });
       if (!opened.ok) return json(res, opened.status, opened.body);
       const body = opened.body;
-      if (hostedModels && ["instances", "anthropic", "openai", "openrouter", "openaiCompat", "xai", "mistral", "cerebras", "groq", "greenference", "meta", "opencodeGo"].some(key => Object.hasOwn(body, key))) return json(res, 403, { error: HOSTED_PROVIDER_SETTINGS_ERROR });
       const patch = parseConfigPatch(body as JsonValue);
       if (patch.profile && ownProfile) {
         // The address is the verified claim's; a profile names no other.
@@ -142,10 +139,6 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
           const parsed = parseSkillMd(skill.text);
           if ("error" in parsed || parsed.name !== skill.name) return json(res, 400, { error: "Skill name does not match its contents" });
         }
-      }
-      if (hostedModels && patch.defaultModelSelection) {
-        const checked = checkedModelSelection(patch.defaultModelSelection);
-        if (!checked.ok) return json(res, checked.status, { error: checked.error });
       }
       if (patch.automaticRecovery?.enabled) {
         const checked = checkedModelSelection(patch.automaticRecovery.backup, undefined, true);

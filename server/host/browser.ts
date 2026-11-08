@@ -62,7 +62,6 @@ export interface BrowserHostDeps {
   DESKTOP_MANAGED: boolean;
   CLOUD_HOME: unknown;
   /** A shared company workspace: the server's network is the operator's, so the stored local-sites switch and allow-list are ignored. */
-  HOSTED_WORKSPACE?: boolean;
   PORT: number;
   /** The engine memory guard, told which browsers each thread's turn starts or holds. */
   engineMemory?: { useBrowsers(browsers: EngineBrowsers): void };
@@ -121,11 +120,8 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   const audiences = new AudienceBrowsers(join(DATA_DIR, "browser", "audiences.json"));
   const browserAudience = (threadId: string | undefined): Audience => (threadId && deps.audienceOf ? deps.audienceOf(threadId) : "team");
   const egressHost = DESKTOP_MANAGED ? "desktop" : CLOUD_HOME ? "cloud" : "server";
-  // Self-hosted servers only: the owner's switch for this server's own sites and its local network. A shared company
-  // workspace's network is the operator's, so its stored switch and allow-list are ignored, like MausBot Cloud's.
-  const hostedServer = egressHost === "server" && Boolean(deps.HOSTED_WORKSPACE);
-  const sitesSwitch = egressHost === "server" && !hostedServer;
-  browserEgress.configure({ host: egressHost, config: () => (hostedServer ? undefined : cfg.browserEngine?.egress) });
+  const sitesSwitch = egressHost === "server";
+  browserEgress.configure({ host: egressHost, config: () => cfg.browserEngine?.egress });
   /** A live bot's, profile's or temporary browser of this data dir, for any audience. */
   const belongs = (session: string) => isTemporaryBrowserSession(session) || audiences.variants().some((suffix) =>
     store.bots.some((bot) => browserSessionId(bot.id + suffix, "") === session)

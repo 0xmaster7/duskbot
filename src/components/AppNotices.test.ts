@@ -305,7 +305,7 @@ describe("the free trial's notice, here and on My Cloud", () => {
   });
 
   it("on My Cloud's own page, only the trial's notice, after its sign-in and setup checklist", async () => {
-    viewer = { hosted: false, canSave: true, cloudHome: true };
+    viewer = { canSave: true, cloudHome: true };
     showWindow(MY_CLOUD);
     returning();
     snapshot = { status: "none", trial: trial("ended", { deleteAt: NOW + 3 * DAY, keep: "checkout" }), notice: "ended" };

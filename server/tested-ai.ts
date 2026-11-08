@@ -10,7 +10,7 @@
 // The first bot the app made follows the default (the `follower`, kept with the results) until the person writes to it
 // or chooses a model for it or one of its conversations. It moves only after a test result, only to an AI that answered,
 // and only away from one that didn't answer or up to a better one: a status read alone never moves it. A saved default
-// (Settings, `openmausbot setup`, the New Bot defaults) or a hosted workspace's is never tested here and never moves.
+// (Settings, `openmausbot setup`, the New Bot defaults) is never tested here and never moves.
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
@@ -26,8 +26,6 @@ export interface TestedAiDeps {
   engine(instanceId: string): CheckableEngine | null;
   /** The defaults the person saved: the default model and the New Bot defaults' model. */
   saved(): ReadonlyArray<ModelSelection | undefined>;
-  /** A hosted workspace's models: its default is not the app's to choose either. */
-  hosted?(): boolean;
   context: DefaultSelectionContext;
   store(): Pick<Store, "bots" | "bot" | "tasks" | "messagesFor" | "applyModelDefault" | "needsSeed" | "seedIfEmpty" | "onChange">;
   threadBusy(botId: string, threadId: string): boolean;
@@ -122,7 +120,7 @@ export function createTestedAi(deps: TestedAiDeps) {
   let followOwed = false;
   let unsubscribe: (() => void) | null = null;
 
-  const fixed = () => deps.hosted?.() === true || deps.saved().some((selection) => !empty(selection));
+  const fixed = () => deps.saved().some((selection) => !empty(selection));
   const warn = (what: string, error: unknown) => console.warn(`[engines] ${what}: ${error instanceof Error ? error.message : String(error)}`);
   const keyOf = (subject: Subject) => `${aiSignInKey(subject.snapshot)}|${deps.identity?.(subject.instanceId) ?? ""}`;
 

@@ -5,7 +5,7 @@ import {
 } from "./cloud-setup";
 import { EMPTY_ONBOARDING, type OnboardingStatus } from "./onboarding";
 
-const owner = { hosted: false, canSave: true, cloudHome: true };
+const owner = { canSave: true, cloudHome: true };
 const record = (extra: Partial<OnboardingStatus> = {}): OnboardingStatus => ({ ...EMPTY_ONBOARDING, ...extra });
 /** Set up before the welcome existed: its first-job question was answered. */
 const before = (extra: Partial<OnboardingStatus> = {}) => record({ ...extra, hintsSeen: [CLOUD_INTENT_ASKED, ...(extra.hintsSeen ?? [])] });
@@ -18,7 +18,7 @@ const steps = (value: CloudSetupFacts) => cloudSetupItems(value).map((item) => `
 describe("cloudWelcomeStage", () => {
   it("is only for the owner's own session on a Cloud home, once the Cloud has answered", () => {
     expect(cloudWelcomeStage(facts())).toBe("pending");
-    expect(cloudWelcomeStage(facts({ viewer: { hosted: false, canSave: true } }))).toBe("none");
+    expect(cloudWelcomeStage(facts({ viewer: { canSave: true } }))).toBe("none");
     expect(cloudWelcomeStage(facts({ viewer: { ...owner, canSave: false } }))).toBe("none");
     expect(cloudWelcomeStage(facts({ viewer: null }))).toBe("none");
     expect(cloudWelcomeStage(facts({ connected: false }))).toBe("waiting");
@@ -69,7 +69,7 @@ describe("the welcome's order", () => {
 describe("cloudSetupStage", () => {
   it("is only for the owner's own session on a Cloud home", () => {
     expect(cloudSetupStage(facts())).toBe("shown");
-    expect(cloudSetupStage(facts({ viewer: { hosted: false, canSave: true } }))).toBe("none");
+    expect(cloudSetupStage(facts({ viewer: { canSave: true } }))).toBe("none");
     expect(cloudSetupStage(facts({ viewer: { ...owner, canSave: false } }))).toBe("none");
     expect(cloudSetupStage(facts({ viewer: null }))).toBe("none");
   });
