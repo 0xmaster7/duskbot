@@ -58,7 +58,11 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const billing = createBilling({ dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
     fromBearer: req => auth.appSession(req)?.account ?? null } });
-  auth.extendSession(accountId => { const owner = auth.account(accountId); return owner && billing.enabled ? billing.sessionFields(owner) : {}; });
+  auth.extendSession(async accountId => {
+    const owner = auth.account(accountId);
+    // the app session must survive a billing failure; it then reads as the free plan
+    try { return owner && billing.enabled ? await billing.sessionFields(owner) : {}; } catch { console.warn("billing: session fields failed"); return {}; }
+  });
   const limits = new Map<string, { count: number; until: number }>();
   const watching = new Map<string, number>();
   const lastWatching = new Map<string, boolean>();

@@ -70,6 +70,57 @@ async function fixture() {
 }
 const bundle = (id: string) => ({ ...structuredClone(BILLING_CONFIG.bundles.find(b => b.id === id)!.cart), interval: "month" });
 
+it("requires csrf on every cookie billing mutation and leaves public quotes and reads accessible", async () => {
+  const f = await fixture(), owner = await f.login();
+  const mutations = [
+    ["POST", "/v1/billing/checkout"], ["POST", "/v1/billing/portal"], ["POST", "/v1/billing/fake/complete"],
+    ...["preview", "change", "cancel", "keep"].map(action => ["POST", `/v1/billing/subscriptions/missing/${action}`]),
+    ["POST", "/v1/billing/licenses/missing/members"], ["DELETE", "/v1/billing/licenses/missing/members/member%40example.test"],
+    ["PATCH", "/v1/clouds/missing"], ["POST", "/v1/clouds/missing/power"],
+  ];
+  for (const [method, path] of mutations) {
+    const response = await fetch(`${f.origin}${path}`, { method, headers: { cookie: owner.cookie, "content-type": "application/json" }, body: "{}" });
+    expect(response.status, path).toBe(403);
+    expect(await response.json()).toMatchObject({ code: "csrf" });
+  }
+  for (const path of ["/v1/billing/overview", "/v1/billing/invoices", "/v1/billing/credits", "/v1/billing/license", "/v1/clouds"]) {
+    expect((await fetch(`${f.origin}${path}`, { headers: { cookie: owner.cookie } })).status, path).toBe(200);
+  }
+  for (const path of ["/v1/billing/invoices/missing/download", "/v1/clouds/missing"]) {
+    expect((await fetch(`${f.origin}${path}`, { headers: { cookie: owner.cookie } })).status, path).toBe(404);
+  }
+  expect((await f.page("/v1/billing/quote", { cart: bundle("starter") })).status).toBe(200);
+  expect(f.billing.service.subscriptions(owner.account.id)).toEqual([]);
+  expect(f.billing.clouds.list(owner.account.id)).toEqual([]);
+});
+
+it("separates cookie and app credentials and preserves billing origin and CORS boundaries", async () => {
+  const f = await fixture(), owner = await f.login();
+  const device = await f.answer<{ deviceCode: string; userCode: string }>("/api/cloud/desktop/authorize", { deviceName: "Fixture", platform: "darwin" });
+  await f.answer("/v1/auth/device/approve", { userCode: device.userCode }, owner.cookie);
+  const grant = await f.answer<{ accessToken: string }>("/api/cloud/desktop/token", { deviceCode: device.deviceCode });
+  for (const token of [undefined, owner.cookie.split("=")[1], `omc_${owner.cookie.split("=")[1]}`]) {
+    const response = await fetch(`${f.origin}/api/cloud/desktop/license`, { headers: { cookie: owner.cookie, ...(token ? { authorization: `Bearer ${token}` } : {}) } });
+    expect(response.status).toBe(401); expect(await response.json()).toEqual({ error: "invalid_token" });
+  }
+  for (const cookie of [undefined, `omb_dash=${grant.accessToken}`, `omb_dash=${grant.accessToken.slice(4)}`]) {
+    const response = await fetch(`${f.origin}/v1/billing/overview`, { headers: { authorization: `Bearer ${grant.accessToken}`, ...(cookie ? { cookie } : {}) } });
+    expect(response.status).toBe(401); expect(await response.json()).toMatchObject({ code: "signed_out" });
+  }
+  for (const path of ["/v1/billing/checkout", "/v1/billing/quote", "/v1/clouds/missing/power", "/api/cloud/desktop/checkout"]) {
+    for (const headers of [{ "content-type": "text/plain", origin: "http://127.0.0.1" }, { "content-type": "application/json", origin: "https://foreign.test" }]) {
+      const response = await fetch(`${f.origin}${path}`, { method: "POST", headers: { ...headers, cookie: owner.cookie, [CSRF_HEADER]: owner.csrfToken, authorization: `Bearer ${grant.accessToken}` }, body: "{}" });
+      expect(response.status, path).toBe(403); expect(await response.json()).toMatchObject(path.startsWith("/api/") ? { error: "forbidden" } : { code: "forbidden" });
+    }
+    const preflight = await fetch(`${f.origin}${path}`, { method: "OPTIONS", headers: { origin: "https://foreign.test", "access-control-request-method": "POST" } });
+    expect(preflight.headers.get("access-control-allow-origin"), path).toBeNull();
+  }
+  const fields = vi.spyOn(f.billing, "sessionFields").mockReturnValue({ account: { id: "wrong" }, device: {}, expiresAt: 0, cloudContractVersion: 99 });
+  const session = await fetch(`${f.origin}/api/cloud/desktop/session`, { headers: { authorization: `Bearer ${grant.accessToken}` } });
+  expect(await session.json()).toMatchObject({ account: { id: owner.account.id, email: owner.account.email }, device: { id: expect.any(String) }, expiresAt: expect.any(Number), cloudContractVersion: 1 });
+  expect(fields).toHaveBeenCalledWith(expect.objectContaining({ id: owner.account.id, email: owner.account.email }));
+});
+
 it("runs the dashboard billing lifecycle over HTTP, including signed workspace reports and webhook replays", async () => {
   const f = await fixture(), { cookie, account, csrfToken } = await f.login();
   const catalog = await f.answer<Catalog>("/v1/billing/catalog"); expect(catalog.bundles.map(b => b.id)).toEqual(["free", "starter", "pro", "team"]);
@@ -170,6 +221,30 @@ it("serves the billing portal and keeps license membership changes owner-only", 
   expect((await f.page(`${members}/member%40example.test`, {}, member.cookie, "DELETE")).status).toBe(404);
   expect(await f.answer(`${members}/member%40example.test`, {}, owner.cookie, "DELETE")).toMatchObject({ license: { members: [{ role: "owner" }] } });
   expect((await f.answer<BillingOverview>("/v1/billing/overview", undefined, owner.cookie)).licenses[0].members).toHaveLength(1);
+});
+
+it("does not give a recreated account the deleted account's license", async () => {
+  const f = await fixture(), owner = await f.login();
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, owner.cookie);
+  await f.complete(checkout.checkoutId); await f.reconcile();
+  const before = f.saved(), cloud = f.billing.clouds.get(checkout.cloudId!)!;
+  await f.answer("/v1/account/delete", { email: owner.account.email }, owner.cookie);
+  expect(f.dashboard.state.accounts).toHaveLength(0);
+  expect(f.dashboard.state.workspaces).toHaveLength(0);
+  expect(f.saved()).toEqual(before);
+  expect(cloud).toMatchObject({ status: "running", destroyAt: null });
+  f.setTime(f.now() + 30_000);
+  const replacement = await f.login();
+  expect(replacement.account.id).not.toBe(owner.account.id);
+  const overview = await f.answer<BillingOverview>("/v1/billing/overview", undefined, replacement.cookie);
+  expect(overview.license.license).toBeNull();
+  expect(overview.licenses).toEqual([]);
+  expect(overview.subscriptions).toEqual([]);
+  expect(overview.clouds).toEqual([]);
+  expect(f.billing.sessionFields(replacement.account).license).toMatchObject({ license: null });
+  const creditCheckout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "credits", pack: "c25" }, replacement.cookie);
+  await f.complete(creditCheckout.checkoutId);
+  expect((await f.answer<BillingOverview>("/v1/billing/overview", undefined, replacement.cookie)).licenses).toEqual([]);
 });
 
 function options(overrides: Partial<BillingOptions> = {}): BillingOptions {

@@ -25,7 +25,8 @@ afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn()
 async function fixture() {
   for (const key of ["OMB_BILLING_PROVIDER", "OMB_CLOUD_PROVIDER", "OMB_POOL_DRIVER", "OMB_CLOUD_SEAL_KEY", "OMB_DODO_PRODUCTS"]) vi.stubEnv(key, undefined);
   const dir = mkdtempSync(join(tmpdir(), "omb-billing-app-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
-  const time = Date.now(), now = () => time, mailer = memoryMailer();
+  let time = Date.now();
+  const now = () => time, mailer = memoryMailer();
   const server = createServer();
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   const address = server.address(); if (!address || typeof address === "string") throw new Error("No fixture address.");
@@ -75,8 +76,34 @@ async function fixture() {
     return checkout;
   }
   async function reconcile() { for (let n = 0; n < 8; n++) await billing.clouds.reconcile(); }
-  return { dir, dashboard, billing, client, origin, browsers, signIn, session, request, complete, reconcile, snapshot, now, owner: () => main.credential().account, token: () => main.credential().token };
+  return { dir, dashboard, billing, client, origin, browsers, signIn, session, request, complete, reconcile, snapshot, now, setTime: (at: number) => { time = at; }, owner: () => main.credential().account, token: () => main.credential().token };
 }
+
+it("keeps the app identity available without exposing failed or disabled billing", async () => {
+  const f = await fixture(); await f.signIn();
+  const before = await f.session();
+  const fields = vi.spyOn(f.billing, "sessionFields").mockImplementation(() => { throw { status: 409, code: "private-provider-detail" }; });
+  const expected = { cloudContractVersion: 1, account: before.account, device: before.device, expiresAt: before.expiresAt,
+    entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 0 } };
+  expect(await f.request("session")).toEqual({ status: 200, data: expected });
+  expect(fields).toHaveBeenCalledOnce();
+  fields.mockClear(); f.billing.enabled = false;
+  expect(await f.request("session")).toEqual({ status: 200, data: expected });
+  expect(fields).not.toHaveBeenCalled();
+});
+
+it("rejects expired app sessions on every Admin billing route", async () => {
+  const f = await fixture(); await f.signIn();
+  const session = await f.session(), token = f.token();
+  f.setTime(Number(session.expiresAt));
+  for (const [path, method] of [
+    ["license", "GET"], ["checkout", "POST"], ["clouds", "POST"], ["clouds/missing", "PATCH"],
+    ...["hide", "cancel", "keep"].map(action => [`clouds/missing/${action}`, "POST"]),
+    ...["feedback", "upgrade", "upgrade/preview", "pairing", "wake", "resize-now", "moved-to"].map(path => [path, "POST"]),
+  ]) {
+    expect(await f.request(path, method === "GET" ? undefined : {}, token, method), path).toEqual({ status: 401, data: { error: "invalid_token" } });
+  }
+});
 
 it("runs the real desktop client through checkout, setup, pairing, upgrade, another Cloud and Cancel/Keep", async () => {
   const f = await fixture(); await f.client.start(); await f.signIn();

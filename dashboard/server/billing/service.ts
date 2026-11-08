@@ -316,7 +316,7 @@ export function createBillingService(options: BillingServiceOptions) {
     const email = emailOf(account.email); let changed = false;
     for (const license of state.licenses) for (const member of license.members) if (member.email === email && member.accountId === null) { member.accountId = account.id; changed = true; }
     if (changed) store.commit();
-    const license = state.licenses.find(license => license.members.some(member => member.accountId === account.id || member.email === email) &&
+    const license = state.licenses.find(license => license.members.some(member => member.accountId === account.id) &&
       (["active", "grace"].includes(license.status) && license.validUntil !== null && now() < license.validUntil));
     const until = config.freeWorkUntil !== null && now() < config.freeWorkUntil ? config.freeWorkUntil : null;
     return { v: 1, work: license ? "licensed" : until !== null ? "free_until" : "unlicensed",
@@ -325,7 +325,7 @@ export function createBillingService(options: BillingServiceOptions) {
   }
   function licenses(accountId: string) {
     const email = state.customers.find(customer => customer.accountId === accountId)?.email;
-    return copy(state.licenses.filter(license => license.ownerAccountId === accountId || license.members.some(member => member.accountId === accountId || email !== undefined && member.email === email)));
+    return copy(state.licenses.filter(license => license.ownerAccountId === accountId || license.members.some(member => member.accountId === accountId || member.accountId === null && email !== undefined && member.email === email)));
   }
   function addMember(account: AccountRef, licenseId: string, input: string): LicenseView {
     const license = ownedLicense(account, licenseId);
