@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Apple, Globe, Mail, Monitor, Smartphone } from "lucide-react";
+import { Globe, Monitor, Smartphone } from "lucide-react";
+import { ProviderMark } from "../ui/BrandMarks";
 import { useCloud } from "../data/cloud";
 import type { IdentityProvider, NotificationPrefs } from "../data/contracts";
 import { useSession } from "../data/session";
@@ -94,7 +95,7 @@ export function AccountPage() {
         <ul className="divide-y divide-line">{PROVIDERS.map((provider) => {
           const identity = account.identities.find((item) => item.provider === provider.id);
           const last = account.identities.length <= 1;
-          return <li key={provider.id} className="py-3"><div className="flex items-center gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-card-2 text-14 text-ink-2" aria-hidden>{provider.id === "apple" ? <Apple {...ICON} /> : provider.id === "email" ? <Mail {...ICON} /> : provider.id === "google" ? "G" : "X"}</span><div className="min-w-0 flex-1"><p className="truncate text-14 text-ink">{provider.label}{identity ? <span className="ml-2 text-13 text-ink-3">{identity.label}</span> : null}</p>{identity && <p className="text-13 text-ink-3">Linked {longDate(identity.linkedAt)}</p>}</div>{identity ? <Button size="sm" variant="ghost" disabled={last || busy !== null} title={last ? "Keep at least one sign-in method so you can access your account." : undefined} onClick={() => void unlink(provider.id)}>{busy === `identity-${provider.id}` ? "Removing" : "Remove"}</Button> : provider.id === "email" ? <Button size="sm" disabled title="Your account email is always available for sign-in.">Always on</Button> : <Button size="sm" disabled={busy !== null} onClick={() => window.location.assign(api.oauthUrl(provider.id, "signin"))}>Link</Button>}</div>{identityError?.provider === provider.id && <p role="alert" className="mt-2 text-13 text-bad">{identityError.message}</p>}</li>;
+          return <li key={provider.id} className="py-3"><div className="flex items-center gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-card-2 text-14 text-ink-2" aria-hidden><ProviderMark provider={provider.id} size={16} /></span><div className="min-w-0 flex-1"><p className="truncate text-14 text-ink">{provider.label}{identity ? <span className="ml-2 text-13 text-ink-3">{identity.label}</span> : null}</p>{identity && <p className="text-13 text-ink-3">Linked {longDate(identity.linkedAt)}</p>}</div>{identity ? <Button size="sm" variant="ghost" disabled={last || busy !== null} title={last ? "Keep at least one sign-in method so you can access your account." : undefined} onClick={() => void unlink(provider.id)}>{busy === `identity-${provider.id}` ? "Removing" : "Remove"}</Button> : provider.id === "email" ? <Button size="sm" disabled title="Your account email is always available for sign-in.">Always on</Button> : <Button size="sm" disabled={busy !== null} onClick={() => window.location.assign(api.oauthUrl(provider.id, "signin"))}>Link</Button>}</div>{identityError?.provider === provider.id && <p role="alert" className="mt-2 text-13 text-bad">{identityError.message}</p>}</li>;
         })}</ul>
       </Card>
       <section id="devices" className="enter scroll-mt-20" style={{ ["--i" as string]: 2 }}><Card>

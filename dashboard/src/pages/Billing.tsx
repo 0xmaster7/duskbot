@@ -7,7 +7,7 @@ import { useSession } from "../data/session";
 import { compact, longDate, shortDate, usd } from "../lib/format";
 import { navigate, scrollToHash, useLocation } from "../lib/router";
 import { monthTotals } from "../lib/usage";
-import { Field, Modal, Slider, Toggle } from "../ui/controls";
+import { Field, Modal, Select, Slider, Toggle } from "../ui/controls";
 import { Badge, Bar, Button, Card, cx, KV, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
 
 const INTERVAL_KEY = "omb-dash-interval";
@@ -177,9 +177,9 @@ function Builder({ catalog, sel, set }: { catalog: PlanCatalog; sel: Selection; 
                   )}
                   {!d.sizable && <p className="text-13 leading-[1.5] text-ink-3">Runs in its own sandbox on our shared machines, with its own network, disk and limits. Nothing is shared with other people.</p>}
                   <Field label="Region" htmlFor={`region-${d.id}`} hint="Pick the one closest to you, or to the sites your bots use.">
-                    <select id={`region-${d.id}`} className="field appearance-none bg-card" value={sel.region} onChange={(e) => set({ region: e.target.value })}>
+                    <Select id={`region-${d.id}`} value={sel.region} onChange={(e) => set({ region: e.target.value })}>
                       {catalog.regions.map((r) => <option key={r.id} value={r.id}>{r.city}, {r.name}</option>)}
-                    </select>
+                    </Select>
                   </Field>
                 </div>
               </Option>
@@ -281,14 +281,14 @@ function CurrentPlan({ catalog }: { catalog: PlanCatalog }) {
         <p>Your plan runs until {longDate(sub.currentPeriodEnd)}. After that your cloud desktop is kept for 7 days, then deleted, and your bots only run while your Mac is awake.</p>
         <div className="mt-4">
           <Field label="What made you cancel? (optional)" htmlFor="cancel-reason" error={error}>
-            <select id="cancel-reason" className="field appearance-none bg-card" value={reason} onChange={(e) => setReason(e.target.value)}>
+            <Select id="cancel-reason" value={reason} onChange={(e) => setReason(e.target.value)}>
               <option value="">Choose one</option>
               <option value="price">Too expensive</option>
               <option value="not_using">I do not use it enough</option>
               <option value="missing">Missing something I need</option>
               <option value="self_host">Moving to my own server</option>
               <option value="other">Something else</option>
-            </select>
+            </Select>
           </Field>
         </div>
         <button type="button" className="hover-link mt-3 text-13 text-ink-3 underline decoration-line-2 underline-offset-4" onClick={() => void openPortal()}>Manage billing details instead</button>

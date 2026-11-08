@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { useEffect, useId, useRef, type ReactNode, type SelectHTMLAttributes } from "react";
+import { ChevronDown, X } from "lucide-react";
 import { cx } from "./kit";
 
 export function Switch({ checked, onChange, label, disabled, id }: { checked: boolean; onChange(v: boolean): void; label: string; disabled?: boolean; id?: string }) {
@@ -124,6 +124,15 @@ export function StatusDot({ tone, live, children, className }: { tone: "good" | 
     <span className={cx("inline-flex items-center gap-2 text-13 text-ink-3", className)}>
       <span className={cx("live-dot", color)} data-live={live} aria-hidden />
       <span className="num">{children}</span>
+    </span>
+  );
+}
+
+export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <span className={cx("relative block", className)}>
+      <select {...rest} className="field cursor-pointer appearance-none bg-card pe-10">{children}</select>
+      <ChevronDown size={16} strokeWidth={1.5} className="pointer-events-none absolute end-3.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
     </span>
   );
 }

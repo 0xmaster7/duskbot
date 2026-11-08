@@ -161,7 +161,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
           <SectionTitle id="about-title">About</SectionTitle>
           <dl className="divide-y divide-line">
             <KV k="Region" v={regionName(catalog, cloud.region)} />
-            <KV k="Runs on" v={cloud.placement === "shared" ? "Our shared machines, in its own sandbox" : "A machine of its own"} />
+            <KV k="Runs on" v={cloud.placement === "shared" ? "Shared, own sandbox" : "Its own machine"} />
             <KV k="Bot computers" v={`${cloud.botComputers.used} of ${cloud.botComputers.limit === null ? "unlimited" : cloud.botComputers.limit}`} />
             <KV k="Created" v={longDate(cloud.createdAt)} />
           </dl>

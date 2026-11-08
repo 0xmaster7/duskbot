@@ -10,7 +10,7 @@ import { ago, longDate } from "../lib/format";
 import { Link } from "../lib/router";
 import { DOWNLOAD_URL } from "../lib/usage";
 import { Field, Modal } from "../ui/controls";
-import { Badge, Button, ButtonLink, Card, FreshnessTag, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
+import { Button, ButtonLink, Card, FreshnessTag, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
 import { KIND_LABEL } from "../ui/Shell";
 import { SkyEmpty } from "../ui/Sky";
 import { CloudStatus, regionName, tierName, workspaceIcon } from "./cloud-bits";
@@ -69,7 +69,7 @@ function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop |
           <div className="flex flex-wrap items-center gap-2 max-sm:w-full max-sm:pl-[52px]">
             <ButtonLink size="sm" to={`/workspaces/${encodeURIComponent(w.id)}`}>Open</ButtonLink>
             <Button size="sm" variant="ghost" onClick={() => { setName(w.name); setError(null); setEditing(true); }}>Rename</Button>
-            {cloud ? <><Badge>Cloud desktop</Badge><ButtonLink size="sm" to="/cloud">Manage</ButtonLink></> : <Button size="sm" variant="ghost" disabled={clouds === null} onClick={() => { setError(null); setRemoving(true); }}>Remove</Button>}
+            {cloud ? <ButtonLink size="sm" to="/cloud">Manage</ButtonLink> : <Button size="sm" variant="ghost" disabled={clouds === null} onClick={() => { setError(null); setRemoving(true); }}>Remove</Button>}
           </div>
         </>}
       </div>
@@ -120,7 +120,7 @@ export function WorkspacesPage() {
               <div className="min-w-0 border-line max-md:border-t max-md:pt-6 md:border-l md:pl-6">
                 <h3 className="mb-5 text-14 font-medium text-ink">Your own server</h3>
                 <ol className="flex flex-col gap-5">
-                  <Step n={1} title="Install on your VPS"><div className="mt-2 flex min-w-0 items-center gap-1 rounded-[10px] bg-bg px-3 py-2"><code className="min-w-0 flex-1 break-all font-mono text-13 text-ink-2">{INSTALL}</code><button type="button" aria-label="Copy install command" className="press hover-ghost grid size-11 shrink-0 place-items-center rounded-full text-ink-3" onClick={() => void copy()}><Copy size={16} strokeWidth={1.5} aria-hidden /></button></div></Step>
+                  <Step n={1} title="Install on your VPS"><div className="mt-2 flex min-w-0 items-center gap-1 rounded-[10px] bg-bg px-3 py-2"><code className="scroll-x min-w-0 flex-1 whitespace-nowrap font-mono text-13 text-ink-2">{INSTALL}</code><button type="button" aria-label="Copy install command" className="press hover-ghost grid size-11 shrink-0 place-items-center rounded-full text-ink-3" onClick={() => void copy()}><Copy size={16} strokeWidth={1.5} aria-hidden /></button></div></Step>
                   <Step n={2} title="Sign in when it asks" />
                   <Step n={3} title="It reports here">Machine, bots and bot computers, live.</Step>
                 </ol>

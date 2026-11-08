@@ -3,10 +3,10 @@ import { cx } from "./kit";
 import { Mascot } from "./Mascot";
 import { Stars } from "./Sky";
 
-const CREW: Array<{ color: MausColor; state: "working" | "coding" | "thinking"; size: number; lift: number }> = [
+const CREW: Array<{ color: MausColor; state: "working" | "coding" | "running"; size: number; lift: number }> = [
   { color: "orange", state: "coding", size: 40, lift: 10 },
   { color: "blue", state: "working", size: 52, lift: 0 },
-  { color: "green", state: "thinking", size: 40, lift: 16 },
+  { color: "green", state: "running", size: 40, lift: 16 },
 ];
 
 /** the pitch in one picture: at night the Mac sleeps and its bot with it; the cloud desktop's crew keeps going */
