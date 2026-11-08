@@ -1,68 +1,70 @@
-const usdFmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const intFmt = new Intl.NumberFormat("en-US");
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-export const usd = (value: number) => usdFmt.format(value);
-export const usdShort = (value: number) => (value >= 100 ? `$${Math.round(value)}` : usd(value));
-export const usdTiny = (value: number) => (value > 0 && value < 0.01 ? "<$0.01" : usd(value));
-export const int = (value: number) => intFmt.format(Math.round(value));
-export const compact = (value: number) =>
-  value >= 1_000_000 ? `${(value / 1_000_000).toFixed(1)}M` : value >= 10_000 ? `${Math.round(value / 1000)}k` : value >= 1000 ? `${(value / 1000).toFixed(1)}k` : int(value);
-export const hours = (value: number) => `${value.toFixed(1)} h`;
-export const pct = (value: number) => `${Math.round(value)}%`;
+export const pad = (n: number) => String(n).padStart(2, "0");
+export const dayKey = (t: number | Date) => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+export const parseDay = (key: string) => { const [y, m, d] = key.split("-").map(Number); return new Date(y!, m! - 1, d!); };
+export const monthShort = (i: number) => MONTHS[i] ?? "";
+export const shortDate = (t: number | Date) => { const d = new Date(t); return `${d.getDate()} ${MONTHS[d.getMonth()]}`; };
+export const longDate = (t: number | Date) => { const d = new Date(t); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
 
-export const dayKey = (t: number) => {
-  const d = new Date(t);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
-export const fromDayKey = (key: string) => {
-  const [y, m, d] = key.split("-").map(Number);
-  return new Date(y!, m! - 1, d!).getTime();
-};
+export function bytes(n: number | null | undefined, digits = 1): string {
+  if (n === null || n === undefined || !Number.isFinite(n)) return "n/a";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let v = n, i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v >= 100 || i === 0 ? Math.round(v) : v.toFixed(digits)} ${units[i]}`;
+}
 
-const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
-const dateLongFmt = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-const timeFmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });
-const monthFmt = new Intl.DateTimeFormat("en-US", { month: "short" });
-const monthYearFmt = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
+export function rate(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "n/a";
+  const bits = n * 8;
+  if (bits < 1000) return `${Math.round(bits)} b/s`;
+  if (bits < 1e6) return `${(bits / 1e3).toFixed(bits < 1e4 ? 1 : 0)} kb/s`;
+  if (bits < 1e9) return `${(bits / 1e6).toFixed(bits < 1e7 ? 1 : 0)} Mb/s`;
+  return `${(bits / 1e9).toFixed(1)} Gb/s`;
+}
 
-export const date = (t: number) => dateFmt.format(t);
-export const dateLong = (t: number) => dateLongFmt.format(t);
-export const time = (t: number) => timeFmt.format(t);
-export const monthName = (t: number) => monthFmt.format(t);
-export const monthYear = (t: number) => monthYearFmt.format(t);
-export const dateTime = (t: number) => `${dateFmt.format(t)}, ${timeFmt.format(t)}`;
+export function compact(n: number): string {
+  if (n < 1000) return String(Math.round(n));
+  if (n < 1e6) return `${(n / 1e3).toFixed(n < 1e4 ? 1 : 0)}k`;
+  if (n < 1e9) return `${(n / 1e6).toFixed(n < 1e7 ? 1 : 0)}M`;
+  return `${(n / 1e9).toFixed(1)}B`;
+}
 
-export function ago(t: number, now: number) {
+export function usd(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "n/a";
+  if (n > 0 && n < 0.01) return "<$0.01";
+  return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export function duration(sec: number): string {
+  const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${Math.max(1, m)}m`;
+}
+
+export function ago(t: number | null | undefined, now = Date.now()): string {
+  if (!t) return "never";
   const s = Math.max(0, Math.round((now - t) / 1000));
-  if (s < 45) return "just now";
+  if (s < 5) return "just now";
+  if (s < 60) return `${s} s ago`;
   const m = Math.round(s / 60);
   if (m < 60) return `${m} min ago`;
   const h = Math.round(m / 60);
   if (h < 24) return `${h} h ago`;
   const d = Math.round(h / 24);
-  if (d < 31) return d === 1 ? "yesterday" : `${d} days ago`;
-  return date(t);
+  return d < 30 ? `${d} d ago` : longDate(t);
 }
 
-export function until(t: number, now: number) {
-  const m = Math.round((t - now) / 60_000);
+export const percent = (n: number) => `${Math.round(n)}%`;
+export const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
+
+export function until(t: number, now = Date.now()): string {
+  const m = Math.max(0, Math.round((t - now) / 60_000));
   if (m < 1) return "now";
   if (m < 60) return `in ${m} min`;
   const h = Math.round(m / 60);
-  if (h < 24) return `in ${h} h`;
-  const d = Math.round(h / 24);
-  return d === 1 ? "tomorrow" : `in ${d} days`;
-}
-
-export function duration(ms: number) {
-  const s = Math.round(ms / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ${s % 60}s`;
-  return `${Math.floor(m / 60)}h ${m % 60}m`;
-}
-
-export function greeting(t: number) {
-  const h = new Date(t).getHours();
-  return h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  return h < 24 ? `in ${h} h` : `on ${shortDate(t)}`;
 }

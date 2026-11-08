@@ -1,129 +1,128 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import type { Bot, Metric, Turn } from "../data/types";
-import { dateLong, hours, int, monthName, usd } from "../lib/format";
-import { heatmap, type HeatCell } from "../lib/usage";
-import { cx } from "./kit";
-import { Mascot } from "./Mascot";
+import { useEffect, useMemo, useRef } from "react";
+import type { ActivityReport } from "../../../shared/dashboard-protocol";
+import { compact, dayKey, longDate, MONTH_NAMES, monthShort, parseDay, plural, usd } from "../lib/format";
+import { cx, Stat } from "./kit";
 
-export const HEAT = ["#ededed", "#d6e8fc", "#a9cdf7", "#519dfa", "#0077e6"] as const;
-const GAP = 3;
+export type HeatMetric = "turns" | "tokens" | "spend";
+const WEEKS = 53;
+const DAY_MS = 86_400_000;
 
-const unit = (metric: Metric, v: number) =>
-  metric === "turns" ? `${int(v)} ${v === 1 ? "turn" : "turns"}` : metric === "spend" ? `${usd(v)} paid` : `${hours(v)} computer time`;
+const valueOf = (d: ActivityReport["days"][number] | undefined, metric: HeatMetric) =>
+  !d ? 0 : metric === "turns" ? d.turns : metric === "tokens" ? d.tokens : d.costUsd ?? 0;
 
-export function Heatmap({ turns, bots, now, metric, weekStart, botId, onPick }: {
-  turns: Turn[]; bots: Bot[]; now: number; metric: Metric; weekStart: 0 | 1; botId?: string; onPick: (from: string, to?: string) => void;
-}) {
-  const map = useMemo(() => heatmap(turns, now, metric, weekStart, botId), [turns, now, metric, weekStart, botId]);
-  const flat = useMemo(() => map.weeks.flat(), [map]);
-  const todayIndex = flat.findIndex((c) => c.future) - 1;
-  const lastIndex = todayIndex < 0 ? flat.length - 1 : todayIndex;
-  const [focus, setFocus] = useState(lastIndex);
-  const [shown, setShown] = useState<number | null>(null);
-  const [anchor, setAnchor] = useState<string | null>(null);
+const say = (v: number, metric: HeatMetric) => (metric === "turns" ? plural(v, "turn") : metric === "tokens" ? `${compact(v)} tokens` : usd(v));
+
+export function activityStats(days: ActivityReport["days"], metric: HeatMetric, now: number) {
+  const byDay = new Map(days.map((d) => [d.date, valueOf(d, metric)]));
+  const months = new Map<string, number>();
+  let bestDay: { date: string; v: number } | null = null;
+  for (const [date, v] of byDay) {
+    if (v <= 0) continue;
+    months.set(date.slice(0, 7), (months.get(date.slice(0, 7)) ?? 0) + v);
+    if (!bestDay || v > bestDay.v) bestDay = { date, v };
+  }
+  let bestMonth: string | null = null;
+  for (const [m, v] of months) if (!bestMonth || v > (months.get(bestMonth) ?? 0)) bestMonth = m;
+  // streaks walk the calendar, so a gap day breaks them
+  let longest = 0, run = 0;
+  const active = [...byDay.entries()].filter(([, v]) => v > 0).map(([d]) => d).sort();
+  let prev: number | null = null;
+  for (const d of active) {
+    const t = parseDay(d).getTime();
+    run = prev !== null && Math.round((t - prev) / DAY_MS) === 1 ? run + 1 : 1;
+    longest = Math.max(longest, run);
+    prev = t;
+  }
+  let current = 0;
+  const today = parseDay(dayKey(now));
+  for (let t = today.getTime(), i = 0; i < 400; i++, t -= DAY_MS) {
+    const v = byDay.get(dayKey(t)) ?? 0;
+    if (v > 0) current++;
+    else if (i > 0 || current > 0) break;
+  }
+  return {
+    bestMonth: bestMonth ? MONTH_NAMES[Number(bestMonth.slice(5)) - 1]! : null,
+    bestDay: bestDay ? longDate(parseDay(bestDay.date)) : null,
+    longest,
+    current,
+  };
+}
+
+export function Heatmap({ days, metric, now, compactCells = false }: { days: ActivityReport["days"]; metric: HeatMetric; now: number; compactCells?: boolean }) {
   const scroller = useRef<HTMLDivElement>(null);
-  const [CELL, setCell] = useState(11);
-  const [width, setWidth] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  useEffect(() => {
-    const node = scroller.current;
-    if (!node) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const fit = Math.floor((entry!.contentRect.width - 32) / map.weeks.length) - GAP;
-      setCell(Math.max(11, Math.min(16, fit)));
-      setWidth(entry!.contentRect.width);
-      setScrollLeft(node.scrollLeft);
-    });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [map.weeks.length]);
-  const grid = useRef<HTMLDivElement>(null);
-  const first = useRef(true);
-  useEffect(() => { scroller.current?.scrollTo({ left: scroller.current.scrollWidth }); const t = setTimeout(() => (first.current = false), 900); return () => clearTimeout(t); }, []);
-  const name = (id: string) => bots.find((b) => b.id === id)?.name ?? id;
+  const { weeks, months, levels } = useMemo(() => {
+    const byDay = new Map(days.map((d) => [d.date, d]));
+    const today = parseDay(dayKey(now));
+    const start = new Date(today.getTime() - ((WEEKS - 1) * 7 + today.getDay()) * DAY_MS);
+    const values = days.map((d) => valueOf(d, metric)).filter((v) => v > 0).sort((a, b) => a - b);
+    const q = (p: number) => values[Math.min(values.length - 1, Math.floor(p * values.length))] ?? 0;
+    const cuts = [q(0.25), q(0.5), q(0.75)];
+    const level = (v: number) => (v <= 0 ? 0 : v <= cuts[0]! ? 1 : v <= cuts[1]! ? 2 : v <= cuts[2]! ? 3 : 4);
+    const weeks: Array<Array<{ key: string; v: number; level: number; future: boolean }>> = [];
+    const months: Array<{ col: number; label: string }> = [];
+    for (let w = 0; w < WEEKS; w++) {
+      const col = [];
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7 + d);
+        const key = dayKey(date);
+        const v = valueOf(byDay.get(key), metric);
+        col.push({ key, v, level: level(v), future: date > today });
+        if (date.getDate() === 1 && (months.length === 0 || months[months.length - 1]!.col < w - 2)) months.push({ col: w, label: monthShort(date.getMonth()) });
+      }
+      weeks.push(col);
+    }
+    if (!months.length || months[0]!.col > 2) months.unshift({ col: 0, label: monthShort(start.getMonth()) });
+    return { weeks, months, levels: [0, 1, 2, 3, 4] };
+  }, [days, metric, now]);
 
-  const months = map.weeks.map((week, i) => {
-    const firstOfMonth = week.find((c) => new Date(c.t).getDate() === 1);
-    return firstOfMonth && i < map.weeks.length - 1 ? monthName(firstOfMonth.t) : i === 0 && new Date(week[0]!.t).getDate() < 22 ? monthName(week[0]!.t) : "";
-  });
-  const rowLabels = weekStart === 1 ? ["Mon", "", "Wed", "", "Fri", "", ""] : ["", "Mon", "", "Wed", "", "Fri", ""];
+  useEffect(() => { const el = scroller.current; if (el) el.scrollLeft = el.scrollWidth; }, [weeks]);
 
-  const move = (to: number) => {
-    const next = Math.max(0, Math.min(lastIndex, to));
-    setFocus(next);
-    setShown(next);
-    grid.current?.querySelector<HTMLElement>(`[data-i="${next}"]`)?.focus();
-  };
-  const onKey = (e: KeyboardEvent) => {
-    const step = { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 }[e.key];
-    if (step !== undefined) { e.preventDefault(); move(focus + step); }
-    else if (e.key === "Home") { e.preventDefault(); move(0); }
-    else if (e.key === "End") { e.preventDefault(); move(lastIndex); }
-  };
-  const pick = (cell: HeatCell, shift: boolean) => {
-    if (shift && anchor) {
-      const [a, b] = [anchor, cell.key].sort();
-      setAnchor(null);
-      onPick(a!, b!);
-    } else if (shift) setAnchor(cell.key);
-    else onPick(cell.key);
-  };
-
-  const tip = shown !== null ? flat[shown] : null;
-  const tipCol = shown !== null ? Math.floor(shown / 7) : 0;
-  const tipRow = shown !== null ? shown % 7 : 0;
-
+  const cell = compactCells ? 11 : undefined;
   return (
-    <div className="relative">
-          {tip && !tip.future && (
-            <div role="tooltip" className="pointer-events-none absolute z-20 w-max max-w-[260px] -translate-y-full rounded-[10px] bg-black px-3 py-2 text-12 text-[#f2f2f2] shadow-pop"
-              style={{ left: Math.min(Math.max(0, 32 + tipCol * (CELL + GAP) - scrollLeft - 110), Math.max(0, width - 250)), top: 20 + tipRow * (CELL + GAP) - 6 }}>
-              <p className="font-medium text-[#fafafa]">{dateLong(tip.t)}: {tip.value > 0 ? unit(metric, tip.value) : "no activity"}</p>
-              {tip.byBot.length > 0 && <p className="mt-0.5 text-[#c9c9c9]">{tip.byBot.slice(0, 4).map((b) => `${name(b.botId)} ${b.turns}`).join(", ")}</p>}
-              {tip.turns > 0 && <p className="mt-0.5 text-[#c9c9c9]">{usd(tip.paid)} paid, {hours(tip.hours)} computer time</p>}
-            </div>
-          )}
-      <div ref={scroller} onScroll={(e) => setScrollLeft(e.currentTarget.scrollLeft)} className="scroll-x -mx-1 px-1 pb-1">
-        <div className="relative inline-block min-w-max" onMouseLeave={() => setShown(null)}>
-          <div className="flex ps-8 text-12 text-ink-3" aria-hidden style={{ gap: GAP }}>
-            {months.map((m, i) => <span key={i} className="h-5 overflow-visible whitespace-nowrap" style={{ width: CELL }}>{m}</span>)}
+    <div>
+      <div ref={scroller} className="scroll-x -mx-1 px-1">
+        <div className={cx("grid gap-y-2", compactCells ? "w-max" : "min-w-[640px]")}>
+          <div className="relative h-4 text-12 text-ink-3" aria-hidden>
+            {months.map((m) => (
+              <span key={`${m.col}-${m.label}`} className="absolute" style={{ left: `calc(${(m.col / WEEKS) * 100}%)` }}>{m.label}</span>
+            ))}
           </div>
-          <div className="flex">
-            <div className="flex w-8 flex-col text-12 leading-none text-ink-3" aria-hidden style={{ gap: GAP }}>
-              {rowLabels.map((l, i) => <span key={i} className="flex items-center" style={{ height: CELL }}>{l}</span>)}
-            </div>
-            <div ref={grid} role="group" aria-label={`Activity in the last 12 months, ${metric === "turns" ? "finished turns" : metric === "spend" ? "paid spend" : "computer hours"} per day`} onKeyDown={onKey}
-              className="grid grid-flow-col" style={{ gridTemplateRows: `repeat(7, ${CELL}px)`, gap: GAP }}>
-              {flat.map((cell, i) => {
-                const label = cell.future ? "" : `${dateLong(cell.t)}: ${cell.value > 0 ? unit(metric, cell.value) : "no activity"}`;
-                return (
-                  <button key={cell.key} type="button" data-i={i} aria-label={label} disabled={cell.future} tabIndex={i === focus ? 0 : -1}
-                    onFocus={() => { setFocus(i); setShown(i); }} onBlur={() => setShown(null)} onMouseEnter={() => setShown(i)}
-                    onClick={(e) => pick(cell, e.shiftKey)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(cell, e.shiftKey); } }}
-                    className={cx("rounded-[3px] outline-offset-1 transition-[background-color,box-shadow] duration-200 ease-out focus-visible:outline-2",
-                      cell.future ? "invisible" : "cursor-pointer hover:shadow-[0_0_0_1.5px_rgb(0_0_0/0.25)]",
-                      first.current && "cell-in", i === lastIndex && "shadow-[0_0_0_1.5px_var(--color-ink)]", anchor === cell.key && "shadow-[0_0_0_2px_var(--color-accent)]")}
-                    style={{ width: CELL, height: CELL, background: HEAT[cell.level], animationDelay: first.current ? `${Math.floor(i / 7) * 7}ms` : undefined }} />
-                );
-              })}
-            </div>
+          <div
+            className="grid grid-flow-col gap-[3px]"
+            style={{ gridTemplateRows: "repeat(7, auto)", gridTemplateColumns: cell ? `repeat(${WEEKS}, ${cell}px)` : `repeat(${WEEKS}, minmax(0, 1fr))` }}
+            role="grid"
+            aria-label={`Activity over the last year, ${metric}`}
+          >
+            {weeks.flat().map((c) => (
+              <div
+                key={c.key}
+                role="gridcell"
+                aria-label={c.future ? undefined : `${longDate(parseDay(c.key))}: ${say(c.v, metric)}`}
+                title={c.future ? undefined : `${say(c.v, metric)} on ${longDate(parseDay(c.key))}`}
+                className={cx("hover-cell aspect-square rounded-[3px]", c.future && "opacity-0")}
+                style={{ background: c.level ? `var(--heat-${c.level})` : "var(--cell)" }}
+              />
+            ))}
           </div>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-12 text-ink-3">
-        <p className="num">
-          {metric === "turns" ? `${int(map.total)} turns` : metric === "spend" ? `${usd(map.total)} paid` : `${hours(map.total)} of computer time`} in the last 12 months
-          {map.busiest && <>, busiest day {dateLong(map.busiest.t).replace(/, \d{4}$/, "")}</>}
-          {map.streak > 1 && <>, {map.streak} days in a row</>}
-        </p>
-        <p className="text-ink-4">{anchor ? "Shift-click another day to pick a range" : "Click a day for its usage, shift-click two for a range"}</p>
-        <div className="ms-auto flex items-center gap-1.5" aria-hidden>
-          <span>Less</span>
-          {HEAT.map((c) => <span key={c} className="size-[11px] rounded-[3px]" style={{ background: c }} />)}
-          <span>More</span>
-          <span className="-my-2 ms-1"><Mascot color="blue" body="cloud" size={22} state={map.streak > 0 ? "happy" : "sleeping"} /></span>
-        </div>
+      <div className="mt-4 flex items-center gap-1.5 text-12 text-ink-3" aria-hidden>
+        <span className="me-1">Less</span>
+        {levels.map((l) => <span key={l} className="size-[10px] rounded-[2px]" style={{ background: l ? `var(--heat-${l})` : "var(--cell)" }} />)}
+        <span className="ms-1">More</span>
       </div>
+    </div>
+  );
+}
+
+export function HeatStats({ days, metric, now }: { days: ActivityReport["days"]; metric: HeatMetric; now: number }) {
+  const s = useMemo(() => activityStats(days, metric, now), [days, metric, now]);
+  return (
+    <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2 max-md:gap-y-5">
+      <Stat label="Most active month" value={s.bestMonth ?? "None yet"} />
+      <Stat label="Most active day" value={s.bestDay ?? "None yet"} />
+      <Stat label="Longest streak" value={plural(s.longest, "day")} />
+      <Stat label="Current streak" value={plural(s.current, "day")} />
     </div>
   );
 }

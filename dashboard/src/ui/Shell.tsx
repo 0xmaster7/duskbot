@@ -1,139 +1,188 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { BookOpen, ChevronsUpDown, ExternalLink, Menu as MenuIcon, Search, Signal, X } from "lucide-react";
-import { useStore } from "../data/store";
-import { Link, useLocation } from "../lib/router";
-import { usd } from "../lib/format";
-import { turnPaid } from "../lib/usage";
-import { CommandPalette } from "./CommandPalette";
-import { ButtonLink, cx, IconButton, Kbd, Pill, STROKE, Ticks } from "./kit";
-import { Mascot, useReducedMotion } from "./Mascot";
-import { Menu, Toasts } from "./overlays";
-import { NAV, type NavItem } from "./nav";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Bot, ChartNoAxesColumn, Check, ChevronsUpDown, Cloud, CreditCard, House, LogOut, Menu, MonitorSmartphone, Plus, Settings, X } from "lucide-react";
+import type { WorkspaceSummary } from "../../../shared/dashboard-protocol";
+import { useSession } from "../data/session";
+import { api } from "../lib/api";
+import { Link, navigate, useLocation } from "../lib/router";
+import { cx, FreshnessTag } from "./kit";
+import { Mascot } from "./Mascot";
 
-const isActive = (path: string, to: string) => (to === "/" ? path === "/" : path === to || (to !== "/cloud" && path.startsWith(`${to}/`)) || (to === "/cloud" && path === "/cloud"));
+const ICON = { size: 18, strokeWidth: 1.5 } as const;
 
-function NavRow({ item, path, nested, onGo }: { item: NavItem; path: string; nested?: boolean; onGo?: () => void }) {
-  const active = isActive(path, item.to) || (item.to === "/bots" && path.startsWith("/bots/"));
-  const Icon = item.icon;
+const NAV: Array<{ label?: string; items: Array<{ to: string; label: string; icon: ReactNode }> }> = [
+  { items: [{ to: "/", label: "Overview", icon: <House {...ICON} /> }, { to: "/bots", label: "Bots", icon: <Bot {...ICON} /> }] },
+  { label: "Workspace", items: [{ to: "/cloud", label: "My Cloud", icon: <Cloud {...ICON} /> }, { to: "/devices", label: "Devices", icon: <MonitorSmartphone {...ICON} /> }] },
+  { label: "Account", items: [{ to: "/usage", label: "Usage", icon: <ChartNoAxesColumn {...ICON} /> }, { to: "/billing", label: "Billing", icon: <CreditCard {...ICON} /> }, { to: "/settings", label: "Settings", icon: <Settings {...ICON} /> }] },
+];
+
+const active = (path: string, to: string) => (to === "/" ? path === "/" : path === to || path.startsWith(`${to}/`));
+
+function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: PointerEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) close(); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    document.addEventListener("pointerdown", down);
+    document.addEventListener("keydown", key);
+    return () => { document.removeEventListener("pointerdown", down); document.removeEventListener("keydown", key); };
+  }, [open, close, ref]);
+}
+
+function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
+  const { workspaces, workspace, pick, now } = useSession();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useDismiss(open, () => setOpen(false), ref);
+  const choose = (w: WorkspaceSummary) => { pick(w.id); setOpen(false); onNavigate?.(); };
   return (
-    <Link to={item.to} onClick={onGo} aria-current={active ? "page" : undefined}
-      className={cx("flex h-7 items-center gap-2 rounded-row px-2 text-13 font-medium transition-colors duration-150 pointer-coarse:h-11",
-        nested && "ps-[30px]", active ? "bg-[#ebebe8] text-ink" : "text-ink-2 hover:bg-[#efefec] hover:text-ink")}>
-      {Icon && <Icon size={14} strokeWidth={STROKE} className={active ? "text-ink" : "text-ink-3"} aria-hidden />}
-      <span className="truncate">{item.label}</span>
+    <div ref={ref} className="relative">
+      <button
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="press-soft hover-side flex w-full items-center gap-2.5 rounded-row px-2.5 py-2 text-start"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-14 font-medium text-ink">{workspace?.name ?? "No workspace yet"}</span>
+          {workspace ? <FreshnessTag freshness={workspace.freshness} at={workspace.lastReportAt} now={now} className="!text-12" /> : <span className="text-12 text-ink-3">Connect one from the app</span>}
+        </span>
+        <ChevronsUpDown size={16} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
+      </button>
+      {open && (
+        <div role="menu" className="menu-in absolute inset-x-0 top-full z-30 mt-1 origin-top rounded-[14px] bg-card p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
+          {workspaces?.map((w) => (
+            <button key={w.id} role="menuitemradio" aria-checked={w.id === workspace?.id} onClick={() => choose(w)} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-start">
+              <span className={cx("live-dot", w.freshness === "live" ? "text-good" : w.freshness === "recent" ? "text-warn" : "text-ink-4")} aria-hidden />
+              <span className="min-w-0 flex-1 truncate text-14 text-ink">{w.name}</span>
+              <span className="text-12 text-ink-3">{w.kind === "vps" ? "VPS" : w.kind === "mac" ? "Mac" : "Server"}</span>
+              {w.id === workspace?.id && <Check size={15} strokeWidth={1.75} className="text-ink-2" aria-hidden />}
+            </button>
+          ))}
+          <div className="my-1 h-px bg-line" />
+          <button role="menuitem" onClick={() => { setOpen(false); navigate("/connect"); onNavigate?.(); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-start text-14 text-ink-2">
+            <Plus size={16} strokeWidth={1.5} aria-hidden /> Connect a workspace
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UserRow() {
+  const { account, setAccount } = useSession();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useDismiss(open, () => setOpen(false), ref);
+  if (!account) return null;
+  const name = account.email.split("@")[0] ?? account.email;
+  return (
+    <div ref={ref} className="relative">
+      {open && (
+        <div role="menu" className="menu-in absolute inset-x-0 bottom-full z-30 mb-1 origin-bottom rounded-[14px] bg-card p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
+          <div className="truncate px-2.5 py-2 text-13 text-ink-3">{account.email}</div>
+          <button role="menuitem" onClick={() => { setOpen(false); navigate("/settings"); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-14 text-ink-2"><Settings size={16} strokeWidth={1.5} aria-hidden /> Settings</button>
+          <button role="menuitem" onClick={() => void api.signOut().finally(() => setAccount(null))} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-14 text-ink-2"><LogOut size={16} strokeWidth={1.5} aria-hidden /> Sign out</button>
+        </div>
+      )}
+      <button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="press-soft hover-side flex w-full items-center gap-3 rounded-row px-2.5 py-2 text-start">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-card-2 text-13 font-medium uppercase text-ink-2" aria-hidden>{name.slice(0, 1)}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-14 text-ink">{name}</span>
+          <span className="block truncate text-12 text-ink-3">Self-hosted</span>
+        </span>
+        <ChevronsUpDown size={16} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+function Nav({ onNavigate }: { onNavigate?: () => void }) {
+  const { path } = useLocation();
+  return (
+    <nav aria-label="Dashboard" className="flex flex-col gap-5">
+      {NAV.map((group, i) => (
+        <div key={i} className="flex flex-col gap-0.5">
+          {group.label && <div className="px-3 pb-1.5 text-12 text-ink-4">{group.label}</div>}
+          {group.items.map((item) => {
+            const on = active(path, item.to);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={onNavigate}
+                aria-current={on ? "page" : undefined}
+                className={cx("press-soft flex h-10 items-center gap-3 rounded-row px-3 text-14", on ? "bg-card-2 text-ink" : "hover-side text-ink-2")}
+              >
+                <span className={on ? "text-ink" : "text-ink-3"}>{item.icon}</span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+function Brand() {
+  return (
+    <Link to="/" className="flex items-center gap-2.5 rounded-row px-2.5 py-1" aria-label="OpenMausBot account, overview">
+      <Mascot color="blue" size={24} still />
+      <span className="text-14 font-medium tracking-[-0.01em] text-ink">OpenMausBot</span>
     </Link>
   );
 }
 
-function Sidebar({ path, onSearch, onGo }: { path: string; onSearch: () => void; onGo?: () => void }) {
-  const { data, toast } = useStore();
-  const period = data.billing.periodStart;
-  const spent = data.turns.filter((t) => t.at >= period).reduce((s, t) => s + turnPaid(t), 0);
-  const cap = data.billing.caps.ai.limitUsd;
-  const sample = Object.values(data.origin).some((o) => o === "sample");
+function Toasts() {
+  const { toasts } = useSession();
   return (
-    <div className="flex h-full flex-col gap-3 px-3 py-3">
-      <Menu label="Switch Cloud" align="start"
-        trigger={(p) => (
-          <button type="button" {...p} className="flex h-10 w-full items-center gap-2 rounded-row px-1.5 text-start hover:bg-[#efefec] pointer-coarse:h-12">
-            <span className="flex size-7 items-center justify-center rounded-[8px] bg-surface shadow-card"><Mascot color="blue" body="cloud" size={20} still /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-13 font-medium">{data.account.name.split(" ")[0]}'s Cloud</span>
-              <span className="block text-12 text-ink-3">{data.billing.plan.label} plan</span>
-            </span>
-            <ChevronsUpDown size={14} strokeWidth={STROKE} className="text-ink-3" aria-hidden />
-          </button>
-        )}
-        items={[{ label: `${data.account.name.split(" ")[0]}'s Cloud (personal)`, onSelect: () => {} }, { label: "Start a team Cloud", onSelect: () => toast("Team Clouds open from the app: Settings, Team") }]} />
-
-      <button type="button" onClick={onSearch} className="flex h-8 items-center gap-2 rounded-row border border-line bg-surface px-2.5 text-13 text-ink-3 hover:text-ink pointer-coarse:h-11">
-        <Search size={14} strokeWidth={STROKE} aria-hidden />
-        <span className="flex-1 text-start">Search</span>
-        <Kbd>⌘K</Kbd>
-      </button>
-
-      <nav aria-label="Dashboard" className="flex flex-col gap-0.5">
-        {NAV.map((item) => item.children ? (
-          <div key={item.label} className="flex flex-col gap-0.5">
-            <p className="flex h-7 items-center gap-2 px-2 text-13 font-medium text-ink-2">
-              {item.icon && <item.icon size={14} strokeWidth={STROKE} className="text-ink-3" aria-hidden />}{item.label}
-            </p>
-            {item.children.map((c) => <NavRow key={c.to} item={{ ...c, icon: undefined }} path={path} nested onGo={onGo} />)}
-          </div>
-        ) : <NavRow key={item.to} item={item} path={path} onGo={onGo} />)}
-      </nav>
-
-      <div className="mt-auto flex flex-col gap-3">
-        <Link to="/billing#limits" onClick={onGo} className="block rounded-card border border-line bg-surface p-3 shadow-card transition-colors hover:border-[#dcdcd9]">
-          <span className="flex items-center justify-between text-12 text-ink-3"><span>AI spend this month</span><span className="num">{Math.round((spent / cap) * 100)}%</span></span>
-          <span className="num mt-1 block text-14 font-medium text-ink">{usd(spent)} <span className="font-normal text-ink-3">of {usd(cap)}</span></span>
-          <span className="mt-2 block"><Ticks value={spent} max={cap} size="lg" label={`AI spend ${usd(spent)} of ${usd(cap)} cap`} /></span>
-        </Link>
-        <ButtonLink to="openmausbot://open" external variant="primary" icon={ExternalLink} className="w-full">Open the app</ButtonLink>
-        <div className="flex items-center gap-3 px-1 text-12 text-ink-3">
-          <a href="https://status.openmausbot.com" className="inline-flex items-center gap-1 hover:text-ink"><Signal size={12} strokeWidth={STROKE} aria-hidden />Status</a>
-          <a href="https://docs.openmausbot.com" className="inline-flex items-center gap-1 hover:text-ink"><BookOpen size={12} strokeWidth={STROKE} aria-hidden />Docs</a>
-          {sample && <Pill tone="outline" className="ms-auto" >Sample data</Pill>}
-        </div>
-      </div>
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex flex-col items-center gap-2 px-4">
+      {toasts.map((t) => (
+        <div key={t.id} className={cx("toast-in max-w-[440px] rounded-full bg-card px-4 py-2.5 text-13", t.tone === "bad" ? "text-bad" : "text-ink")} style={{ boxShadow: "var(--pop-shadow)" }}>{t.text}</div>
+      ))}
     </div>
   );
 }
 
 export function Shell({ children }: { children: ReactNode }) {
+  const [drawer, setDrawer] = useState(false);
   const { path } = useLocation();
-  const [palette, setPalette] = useState(false);
-  const [sheet, setSheet] = useState(false);
-  const reduced = useReducedMotion();
-
+  useEffect(() => setDrawer(false), [path]);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette((p) => !p); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-  useEffect(() => { setSheet(false); }, [path]);
-  useEffect(() => {
-    if (!sheet) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSheet(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [sheet]);
-
+    if (!drawer) return;
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setDrawer(false);
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [drawer]);
+  const side = (close?: () => void) => (
+    <div className="flex h-full flex-col gap-6 px-3 pb-3 pt-4">
+      <div className="flex items-center justify-between">
+        <Brand />
+        {close && <button onClick={close} aria-label="Close menu" className="press hover-ghost grid size-11 place-items-center rounded-full text-ink-2"><X size={18} strokeWidth={1.5} /></button>}
+      </div>
+      <WorkspaceSwitcher onNavigate={close} />
+      <Nav onNavigate={close} />
+      <div className="mt-auto"><UserRow /></div>
+    </div>
+  );
   return (
-    <div className="min-h-[100dvh]">
-      <a href="#main" className="sr-only z-[80] rounded-full bg-black px-3 py-2 text-13 text-[#fafafa] focus:not-sr-only focus:fixed focus:start-3 focus:top-3">Skip to content</a>
-      <aside className="fixed inset-y-0 start-0 hidden w-[240px] lg:block">
-        <Sidebar path={path} onSearch={() => setPalette(true)} />
-      </aside>
-
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line bg-canvas/90 px-2 backdrop-blur lg:hidden">
-        <IconButton label="Open menu" icon={MenuIcon} onClick={() => setSheet(true)} aria-expanded={sheet} />
-        <Link to="/" className="flex items-center gap-2 text-14 font-medium"><Mascot color="blue" body="cloud" size={22} still />OpenMausBot</Link>
-        <IconButton label="Search" icon={Search} className="ms-auto" onClick={() => setPalette(true)} />
+    <div className="min-h-[100dvh] bg-bg">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-card focus:px-4 focus:py-2">Skip to content</a>
+      <aside className="fixed inset-y-0 left-0 z-20 w-[260px] bg-side max-lg:hidden">{side()}</aside>
+      <header className="sticky top-0 z-20 flex h-14 items-center justify-between bg-bg/90 px-3 backdrop-blur lg:hidden">
+        <button onClick={() => setDrawer(true)} aria-label="Open menu" aria-expanded={drawer} className="press hover-ghost grid size-11 place-items-center rounded-full text-ink-2"><Menu size={20} strokeWidth={1.5} /></button>
+        <Brand />
+        <span className="size-11" aria-hidden />
       </header>
-
-      <AnimatePresence>
-        {sheet && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <motion.div className="absolute inset-0 bg-[#1c1c18]/25" onClick={() => setSheet(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} />
-            <motion.div role="dialog" aria-modal="true" aria-label="Menu" className="absolute inset-y-0 start-0 w-[min(300px,86vw)] overflow-y-auto bg-canvas shadow-pop"
-              initial={reduced ? { opacity: 0 } : { transform: "translateX(-100%)" }} animate={reduced ? { opacity: 1 } : { transform: "translateX(0%)" }} exit={reduced ? { opacity: 0 } : { transform: "translateX(-100%)" }}
-              transition={{ duration: reduced ? 0.15 : 0.38, ease: [0.32, 0.72, 0, 1] }}>
-              <div className="flex justify-end px-2 pt-2"><IconButton label="Close menu" icon={X} onClick={() => setSheet(false)} /></div>
-              <Sidebar path={path} onSearch={() => { setSheet(false); setPalette(true); }} onGo={() => setSheet(false)} />
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      <main id="main" className="lg:ps-[240px]">
-        <div key={path} className="mx-auto w-full max-w-[1160px] animate-rise px-4 pb-24 pt-6 sm:px-6 lg:px-10 lg:pt-10">{children}</div>
+      {drawer && (
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+          <div className="fade-in absolute inset-0" style={{ background: "var(--scrim)" }} onClick={() => setDrawer(false)} aria-hidden />
+          <div className="drawer-in absolute inset-y-0 left-0 w-[min(300px,86vw)] bg-side">{side(() => setDrawer(false))}</div>
+        </div>
+      )}
+      <main id="main" className="lg:ps-[260px]">
+        <div className="mx-auto w-full max-w-[1120px] px-12 pb-20 pt-12 max-lg:px-6 max-lg:pt-6 max-sm:px-4">{children}</div>
       </main>
-
-      <CommandPalette open={palette} onClose={() => setPalette(false)} />
       <Toasts />
     </div>
   );
