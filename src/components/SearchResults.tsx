@@ -51,7 +51,7 @@ export function SearchResults({ query, onLanded }: { query: string; onLanded: ()
 
   return (
     <div className="mt-2 border-t border-hairline/40 pt-2">
-      <div className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-ink-secondary">
+      <div className="px-3 pb-1 text-[12px] font-medium leading-4 text-ink-secondary">
         {t("search.messages")}{hits ? ` · ${hits.length}${hits.length === 40 ? "+" : ""}` : ""}
       </div>
       {error && <div role="alert" className="px-3 py-2 text-[13px] leading-[18px] text-danger">{t("search.failed", { error })}</div>}
