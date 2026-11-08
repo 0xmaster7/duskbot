@@ -78,7 +78,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
                 <WorkspaceRow key={connection.id} connection={connection} active={connection.id === activeId} confirming={unlinkId === connection.id} busy={busy} onSelect={() => { void changeWorkspace(connection.id); }} onConfirm={() => { setError(false); setUnlinkId(connection.id); }} onCancel={() => { setUnlinkId(null); setError(false); }} onUnlink={() => { void changeWorkspace(connection.id, true); }} />
               ))}
               {error && <p role="alert" className="px-4 py-2 text-[14px] text-danger">{t("mobile.settings.workspaceError")}</p>}
-              <SettingsRow icon={<Plus />} label={t("mobile.settings.link")} onClick={() => onOpenSheet({ kind: "link" })} />
+              <SettingsRow icon={<Plus />} label={t("mobile.settings.link")} onClick={() => { onClose(); window.dispatchEvent(new Event("omb:link-another")); }} />
             </SettingsSection>
             <SettingsSection title={t("mobile.settings.bots")}>
               <SettingsRow icon={<CalendarClock />} label={t("mobile.settings.routines")} onClick={() => onOpenSheet({ kind: "routines" })} />

@@ -81,3 +81,11 @@
 /* a tapped row keeps its pressed look until the chat it opened has slid in */
 .omb-mobile .mobile-row[data-opening] { background-color: color-mix(in srgb, var(--color-ink) 6%, transparent); }
 .omb-mobile .mobile-press[data-opening] { scale: .96; }
+
+/* the native camera draws behind the webview */
+html.mobile-scanning,
+html.mobile-scanning body,
+html.mobile-scanning #root,
+html.mobile-scanning .omb-mobile,
+html.mobile-scanning [data-scan-clear] { background: transparent !important; }
+html.mobile-scanning [data-scan-hide] { visibility: hidden; }

@@ -14,6 +14,23 @@ export interface ScanResult {
   text: string;
 }
 
+export type CameraPermission = "granted" | "denied" | "prompt";
+
+/** A live QR scan under our own viewfinder. Natively the camera draws behind a transparent WebView (the page adds
+ * `mobile-scanning` to <html> while it runs); in a browser it plays into the given <video>. */
+export interface CameraSession {
+  stop(): Promise<void>;
+  torch?: { set(on: boolean): Promise<void> };
+}
+
+export interface CameraScanner {
+  permission(): Promise<CameraPermission>;
+  request(): Promise<CameraPermission>;
+  /** The OS settings page for this app, where a refused camera is turned back on. */
+  openSettings?(): Promise<void>;
+  start(options: { onCode: (text: string) => void; onError?: (message: string) => void; video?: HTMLVideoElement | null }): Promise<CameraSession>;
+}
+
 /** Everything the phone layer asks of the device. The native app supplies Capacitor plugins; the web preview and a
  * plain browser get the fallbacks in `webPlatform`. Capability flags, never user-agent guesses. */
 export interface MobilePlatform {
@@ -43,6 +60,8 @@ export interface MobilePlatform {
     remove(key: string): Promise<void>;
   };
   scanQr?(): Promise<ScanResult | null>;
+  camera?: CameraScanner;
+  readClipboard?(): Promise<string | null>;
   openExternal(url: string): Promise<void>;
   share?(data: { title?: string; text?: string; url?: string }): Promise<void>;
   /** Push registration; resolves the device token or null when refused or unsupported. */
@@ -78,6 +97,91 @@ export function webPlatform(): MobilePlatform {
       get: async (key) => memorySecrets.get(key) ?? null,
       set: async (key, value) => { memorySecrets.set(key, value); },
       remove: async (key) => { memorySecrets.delete(key); },
+    },
+    camera: typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia ? {
+      async permission() {
+        try {
+          const result = await navigator.permissions?.query({ name: "camera" as PermissionName });
+          return result?.state === "granted" || result?.state === "denied" ? result.state : "prompt";
+        } catch { return "prompt"; }
+      },
+      async request() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          for (const track of stream.getTracks()) track.stop();
+          return "granted";
+        } catch { return "denied"; }
+      },
+      async start({ onCode, onError, video }) {
+        if (!video) throw new Error("video-required");
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const seen = new Set<string>();
+        let stopped = false;
+        let frame = 0;
+        let lastScan = -Infinity;
+        let detecting = false;
+        const stop = async () => {
+          if (stopped) return;
+          stopped = true;
+          cancelAnimationFrame(frame);
+          for (const track of stream.getTracks()) track.stop();
+          if (video.srcObject === stream) {
+            video.pause();
+            video.srcObject = null;
+          }
+        };
+        try {
+          video.muted = true;
+          video.playsInline = true;
+          video.autoplay = true;
+          video.srcObject = stream;
+          await video.play();
+          type Detector = { detect(source: HTMLVideoElement): Promise<Array<{ rawValue: string }>> };
+          const BarcodeDetector = (globalThis as typeof globalThis & {
+            BarcodeDetector?: { new(options: { formats: string[] }): Detector; getSupportedFormats(): Promise<string[]> };
+          }).BarcodeDetector;
+          const formats = BarcodeDetector ? await BarcodeDetector.getSupportedFormats() : [];
+          if (BarcodeDetector && formats.includes("qr_code")) {
+            const detector = new BarcodeDetector({ formats: ["qr_code"] });
+            const scan = (now: number) => {
+              if (stopped) return;
+              frame = requestAnimationFrame(scan);
+              if (detecting || now - lastScan < 150 || video.readyState < 2) return;
+              lastScan = now;
+              detecting = true;
+              void detector.detect(video).then((codes) => {
+                for (const { rawValue } of codes) {
+                  if (stopped) return;
+                  if (typeof rawValue !== "string" || seen.has(rawValue)) continue;
+                  seen.add(rawValue);
+                  onCode(rawValue);
+                }
+              }).catch((error: unknown) => {
+                if (!stopped) onError?.(error instanceof Error ? error.message : String(error));
+              }).finally(() => { detecting = false; });
+            };
+            frame = requestAnimationFrame(scan);
+          } else {
+            onError?.("unsupported");
+          }
+          const track = stream.getVideoTracks()[0];
+          const capabilities = track?.getCapabilities?.() as (MediaTrackCapabilities & { torch?: boolean }) | undefined;
+          return {
+            stop,
+            torch: capabilities?.torch ? {
+              async set(on) {
+                if (!stopped) await track.applyConstraints({ advanced: [{ torch: on } as MediaTrackConstraintSet] });
+              },
+            } : undefined,
+          };
+        } catch (error) {
+          await stop();
+          throw error;
+        }
+      },
+    } : undefined,
+    async readClipboard() {
+      try { return await navigator.clipboard?.readText() ?? null; } catch { return null; }
     },
     openExternal: async (url) => { window.open(url, "_blank", "noopener"); },
     share: typeof navigator !== "undefined" && "share" in navigator
