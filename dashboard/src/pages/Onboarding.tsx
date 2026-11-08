@@ -1,15 +1,13 @@
 import { useState } from "react";
-import { ArrowLeft, Check, Download, Laptop, Smartphone } from "lucide-react";
+import { ArrowLeft, Download, Laptop, Smartphone } from "lucide-react";
 import { useCloud } from "../data/cloud";
-import { bundleOf, dollars, yearly } from "../data/pricing";
 import { useSession } from "../data/session";
 import { navigate } from "../lib/router";
 import { DOWNLOAD_URL } from "../lib/usage";
 import { Button, ButtonLink, cx, Skeleton } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
-import { Nightshift } from "../ui/Nightshift";
 import { Stars } from "../ui/Sky";
-import { QuickPick } from "./cloud-bits";
+import { CloudHero, QuickPick } from "./cloud-bits";
 
 type Step = "where" | "plan" | "apps";
 const ORDER: Step[] = ["where", "plan", "apps"];
@@ -22,7 +20,6 @@ export function Onboarding() {
   const [bought, setBought] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const name = account?.profile.name || me?.name || me?.email.split("@")[0] || "";
-  const starter = catalog ? bundleOf(catalog, "starter") : null;
   const done = async () => {
     setLeaving(true);
     try { await finishOnboarding(); } catch { /* the dashboard asks again next time; never trap anyone here */ }
@@ -46,31 +43,15 @@ export function Onboarding() {
         {step === "where" && (
           <section key="where" className="step-in" aria-labelledby="where-title">
             <h1 id="where-title" className="text-34 font-medium tracking-[-0.025em] text-ink max-sm:text-28">Welcome, {name}.</h1>
-            <p className="mt-2 max-w-[56ch] text-16 leading-[1.55] text-ink-3">Where should your bots live? You can change this any time.</p>
-            <div className="mt-8 grid gap-4 md:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-              <div className="flex flex-col rounded-card bg-card p-6 ring-1 ring-[color-mix(in_oklab,var(--accent)_45%,transparent)] max-sm:p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-20 font-medium tracking-[-0.01em] text-ink">A cloud desktop</h2>
-                  <span className="rounded-full border border-line-2 px-2.5 py-0.5 text-12 text-accent-ink">Recommended</span>
-                </div>
-                <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">Your own computer in our cloud. Your bots keep working 24/7, even while your Mac sleeps. Set up in one click.</p>
-                <Nightshift compact className="mt-5" />
-                <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <Button variant="primary" className="!h-11 !px-6" onClick={() => setStep("plan")}>Get a cloud desktop</Button>
-                  {starter && catalog && <span className="num text-13 text-ink-3">From {dollars(yearly(starter.monthly, catalog), true)}/mo billed yearly</span>}
-                </div>
-              </div>
-              <div className="flex flex-col rounded-card border border-line p-6 max-sm:p-5">
-                <span className="grid size-10 place-items-center rounded-[12px] bg-card-2 text-ink-2"><Laptop size={19} strokeWidth={1.5} aria-hidden /></span>
-                <h2 className="mt-4 text-16 font-medium text-ink">My Mac for now</h2>
-                <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">Free for personal use. Your bots run while your Mac is awake and pause when it sleeps.</p>
-                <ul className="mt-4 flex flex-col gap-2 text-13 text-ink-3">
-                  <li className="flex gap-2"><Check size={15} strokeWidth={1.75} className="mt-px shrink-0" aria-hidden />Everything in the app, free</li>
-                  <li className="flex gap-2"><Check size={15} strokeWidth={1.75} className="mt-px shrink-0" aria-hidden />Add a cloud desktop later in one click</li>
-                </ul>
-                <Button className="mt-auto w-full !h-11 max-md:mt-6" onClick={() => setStep("apps")}>I'll use my Mac for now</Button>
-              </div>
-            </div>
+            <p className="mt-2 max-w-[56ch] text-17 leading-[1.55] text-ink-3">Where should your bots live? You can change this any time.</p>
+            <CloudHero
+              className="mt-8"
+              title="Keep your bots working 24/7"
+              body="Your own computer in our cloud. Your bots keep answering and running their routines, even while your Mac sleeps."
+              onGet={() => setStep("plan")}
+              secondary={<Button className="!h-11 !px-6 !text-15" onClick={() => setStep("apps")}>Use my Mac for now</Button>}
+            />
+            <p className="mt-5 flex items-start gap-2.5 px-1 text-14 leading-[1.55] text-ink-3"><Laptop size={17} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink-4" aria-hidden />Your Mac is free for personal use. Bots pause when it sleeps; add a cloud desktop any time in one click.</p>
           </section>
         )}
 

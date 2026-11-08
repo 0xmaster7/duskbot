@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode, type SelectHTMLAttributes } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, X } from "lucide-react";
 import { cx } from "./kit";
 
@@ -102,7 +103,8 @@ export function Modal({ open, onClose, title, children, footer, wide }: { open: 
     return () => { document.removeEventListener("keydown", key); document.body.style.overflow = overflow; back?.focus(); };
   }, [open, onClose]);
   if (!open) return null;
-  return (
+  // a portal, so a dialog opened from a table row or an animated card is never trapped under the shell
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
       <div className="fade-in absolute inset-0 backdrop-blur-[4px]" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx("modal-in relative my-auto w-full min-w-0 rounded-card bg-card p-6 outline-none max-sm:p-5", wide ? "max-w-[560px]" : "max-w-[440px]")} style={{ boxShadow: "var(--pop-shadow)" }}>
@@ -113,7 +115,8 @@ export function Modal({ open, onClose, title, children, footer, wide }: { open: 
         <div className="mt-2 text-14 leading-[1.55] text-ink-3">{children}</div>
         {footer && <div className="mt-6 flex flex-wrap justify-end gap-2">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

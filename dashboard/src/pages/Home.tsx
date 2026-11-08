@@ -11,24 +11,9 @@ import { API_DOCS, DOWNLOAD_URL } from "../lib/usage";
 import { Heatmap, HeatStats, type HeatMetric } from "../ui/Heatmap";
 import { Card, cx, FreshnessTag, Segmented, Skeleton } from "../ui/kit";
 import { BotMascot } from "../ui/Mascot";
-import { Nightshift } from "../ui/Nightshift";
 import { KIND_LABEL } from "../ui/Shell";
 import { Crew, Stars } from "../ui/Sky";
-import { CloudStatus, PowerButton, Provisioning, QuickPick, regionName, tierName, workspaceIcon } from "./cloud-bits";
-
-function Pitch() {
-  const { catalog } = useCloud();
-  return (
-    <Card className="enter grid gap-8 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:items-center" style={{ ["--i" as string]: 1 }} aria-labelledby="pitch-title">
-      <div className="min-w-0">
-        <h2 id="pitch-title" className="text-28 font-medium tracking-[-0.02em] text-ink max-sm:text-[24px]">Keep your bots working 24/7</h2>
-        <p className="mt-2 max-w-[52ch] text-14 leading-[1.6] text-ink-3">Your Mac sleeps, closes its lid and drops off Wi-Fi. A cloud desktop never does. Your bots keep answering, running their routines and using their computers around the clock. One click to set up.</p>
-        {catalog ? <QuickPick catalog={catalog} className="mt-6" /> : <Skeleton className="mt-6 h-[150px]" />}
-      </div>
-      <Nightshift />
-    </Card>
-  );
-}
+import { CloudHero, CloudStatus, PowerButton, Provisioning, regionName, tierName, workspaceIcon } from "./cloud-bits";
 
 function Big({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
   return (
@@ -180,7 +165,7 @@ export function HomePage() {
         <Crew bots={bots} className="max-sm:hidden" />
       </header>
       <div className="flex flex-col gap-4">
-        {clouds === null ? <Skeleton className="h-[320px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <Pitch />}
+        {clouds === null ? <Skeleton className="h-[380px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudHero id="pitch-title" />}
         <Workspaces />
         <div className={cx("enter mt-3 grid grid-cols-4 gap-4 max-lg:grid-cols-2")} style={{ ["--i" as string]: 3 }}>
           <Tile icon={<Download {...ICON} />} title="Download the app" body="For Mac. Your bots, chats and their computers." to={DOWNLOAD_URL} external />

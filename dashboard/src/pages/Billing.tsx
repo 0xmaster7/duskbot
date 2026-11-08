@@ -5,7 +5,7 @@ import type { BillingInterval, Bundle, DesktopId, LicenseId, PlanCatalog, Select
 import { botsLine, bundleOf, desktopMonthly, dollars, gb, licenseMonthly, priceCart, selectionFor, specLine, yearly } from "../data/pricing";
 import { useSession } from "../data/session";
 import { compact, longDate, shortDate, usd } from "../lib/format";
-import { navigate, scrollToHash, useLocation } from "../lib/router";
+import { Link, navigate, scrollToHash, useLocation } from "../lib/router";
 import { monthTotals } from "../lib/usage";
 import { Field, Modal, Select, Slider, Toggle } from "../ui/controls";
 import { Badge, Bar, Button, Card, cx, KV, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
@@ -310,7 +310,7 @@ function Credits({ catalog }: { catalog: PlanCatalog }) {
   };
   return (
     <Card aria-labelledby="credits-title">
-      <SectionTitle id="credits-title">AI credits</SectionTitle>
+      <SectionTitle id="credits-title" action={<Link to="/usage" className="hover-link rounded-full px-1 text-13 text-ink-3">See usage</Link>}>AI credits</SectionTitle>
       <p className="flex items-baseline gap-2"><span className="num text-28 font-medium tracking-[-0.02em] text-ink">{credits ? usd(credits.balanceUsd) : "n/a"}</span><span className="text-14 text-ink-3">left</span></p>
       <p className="mt-1 text-13 leading-[1.5] text-ink-3">For bots that use our AI instead of your own accounts.</p>
       <div className="mt-5 flex flex-wrap gap-2">
