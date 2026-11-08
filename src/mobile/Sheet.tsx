@@ -126,7 +126,7 @@ export function Sheet({ open, onClose, title, label, children, full = false, bac
         )}
         style={{ y, willChange: moving ? "transform" : undefined }}
       >
-        <div aria-hidden className={cn("mx-auto h-[5px] w-9 shrink-0 rounded-full bg-ink/[0.14]", flush ? "absolute inset-x-0 top-2 z-10" : "mt-2")} />
+        <div aria-hidden className={cn("mx-auto h-[5px] w-9 shrink-0 rounded-full bg-ink/[0.14]", flush ? "pointer-events-none absolute inset-x-0 top-2 z-50" : "mt-2")} />
         {!flush && (
           <div className="flex shrink-0 items-center gap-3 px-4 pb-2 pt-1.5">
             {back
