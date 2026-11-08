@@ -13,9 +13,9 @@ export function Switch({ checked, onChange, label, disabled, id }: { checked: bo
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={cx("switch-track relative inline-flex h-[26px] w-[44px] shrink-0 items-center rounded-full p-[3px] disabled:opacity-45", checked ? "bg-ink" : "bg-track")}
+      className={cx("switch-track relative inline-flex h-[22px] w-[38px] shrink-0 items-center rounded-full p-[3px] disabled:opacity-45", checked ? "bg-ink" : "bg-track")}
     >
-      <span className={cx("switch-thumb size-5 rounded-full", checked ? "translate-x-[18px] bg-bg" : "translate-x-0 bg-ink-2")} aria-hidden />
+      <span className={cx("switch-thumb size-4 rounded-full", checked ? "translate-x-4 bg-bg" : "translate-x-0 bg-ink-3")} aria-hidden />
     </button>
   );
 }

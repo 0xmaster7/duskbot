@@ -156,7 +156,7 @@ export function ConnectorsPage() {
               </thead>
               <tbody>{shown.slice(0, limit).map((row) => <Row key={row.id} row={row} menu={menuFor(row)} onAuth={() => openConnect({ id: row.app?.id ?? row.id, label: row.label }, authWorkspace(row), toast)} />)}</tbody>
             </Table>
-            {shown.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="press-soft hover-ghost mt-2 h-11 rounded-full px-4 text-14 text-ink-3">Show more</button>}
+            {shown.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="press-soft hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">Show more</button>}
           </>
         ) : (
           <div className="border-y border-line py-8">
@@ -186,7 +186,7 @@ export function ConnectorsPage() {
                   </li>
                 ))}
               </ul>
-              {picks.length > suggested && <button type="button" onClick={() => setSuggested((n) => n + 8)} className="press-soft hover-ghost mt-2 h-11 rounded-full px-4 text-14 text-ink-3">Show more</button>}
+              {picks.length > suggested && <button type="button" onClick={() => setSuggested((n) => n + 8)} className="press-soft hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">Show more</button>}
             </>
           ) : <p className="text-14 text-ink-3">{q ? "No suggestions match. Use Add to search every app." : "You have connected every popular app."}</p>}
         </section>

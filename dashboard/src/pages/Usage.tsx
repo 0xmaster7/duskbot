@@ -182,7 +182,7 @@ export function UsagePage() {
                 ))}
               </tbody>
             </Table>
-            {month.events.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="press-soft hover-ghost mt-2 h-11 rounded-full px-4 text-14 text-ink-3">Show more</button>}
+            {month.events.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="press-soft hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">Show more</button>}
           </>
         ) : <p className="border-y border-line py-8 text-14 text-ink-3">No usage events yet this month.</p>}
         <p className="mt-4 text-13 text-ink-3">Costs are estimates. Workspaces report daily totals, never your messages.</p>
