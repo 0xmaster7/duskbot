@@ -4,6 +4,9 @@
 
 export const DASHBOARD_PROTOCOL = 1;
 
+// the default hosted instance, overridable by workspace configuration.
+export const DEFAULT_DASHBOARD_URL = "https://dashboard.apps.siddz.com";
+
 /** where a relay or a dashboard service says which dashboard it belongs to: `{ v: 1, url }` */
 export const DASHBOARD_DISCOVERY_PATH = "/.well-known/openmausbot/dashboard";
 
@@ -22,7 +25,8 @@ export const MAX_REPORT_BYTES = 512 * 1024;
 
 export const SIGNATURE_HEADERS = { workspace: "x-omb-workspace", time: "x-omb-time", signature: "x-omb-signature" } as const;
 
-/** the exact bytes a workspace signs with its ed25519 key: method, path with query, time and the body's sha256 */
+/** the exact bytes a workspace signs with its ed25519 key: method, path with query, time and the body's sha256 (of
+ * the empty string for a GET) */
 export function signedPayload(method: string, path: string, time: number, bodySha256Hex: string): string {
   return `omb-dashboard-v${DASHBOARD_PROTOCOL}\n${method.toUpperCase()}\n${path}\n${time}\n${bodySha256Hex}`;
 }
