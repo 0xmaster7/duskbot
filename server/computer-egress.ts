@@ -24,6 +24,8 @@ export const EGRESS_PORTS = [80, 443] as const;
  */
 export const FAST_DIAL_MS = 200;
 export const SLOW_DIAL_MS = 350;
+/** sites that refuse or rate-limit datacenter addresses (Instagram answers 429): through the person's computer even when that path is slow */
+export const HOME_ONLY_SITES = ["instagram.com", "facebook.com", "threads.net", "x.com", "twitter.com", "linkedin.com", "tiktok.com", "reddit.com"] as const;
 
 export interface EgressAgentReport {
   online: boolean;
@@ -60,7 +62,7 @@ export function parseEgressReport(value: unknown): EgressAgentReport | null {
  * slow, gone) opens from this server's network instead, so a page never breaks on the route. The policy is removed
  * (everything direct) while the computer is offline or its path is slow.
  */
-export function egressPac(proxy: { host: string; port: number }, generation: number): string {
+export function egressPac(proxy: { host: string; port: number }, generation: number, only: readonly string[] | null = null): string {
   return [
     "function FindProxyForURL(url, host) {",
     `  // ${generation}`,
@@ -72,15 +74,16 @@ export function egressPac(proxy: { host: string; port: number }, generation: num
     "  var scheme = m ? m[1].toLowerCase() : \"\";",
     "  var port = m && m[2] ? +m[2] : scheme === \"https\" || scheme === \"wss\" ? 443 : scheme === \"http\" || scheme === \"ws\" ? 80 : 0;",
     `  if (${EGRESS_PORTS.map((one) => `port !== ${one}`).join(" && ")}) return "DIRECT";`,
+    ...(only ? [`  if (!${JSON.stringify(only)}.some(function (s) { return h === s || dnsDomainIs(h, "." + s); })) return "DIRECT";`] : []),
     `  return "SOCKS5 ${proxy.host}:${proxy.port}; DIRECT";`,
     "}",
   ].join("\n");
 }
 
 /** The managed policy: the PAC above, and WebRTC kept off UDP that would bypass it and show this server's address. */
-export function egressPolicy(proxy: { host: string; port: number }, generation: number): string {
+export function egressPolicy(proxy: { host: string; port: number }, generation: number, only: readonly string[] | null = null): string {
   return JSON.stringify({
-    ProxySettings: { ProxyMode: "pac_script", ProxyPacUrl: `data:application/x-ns-proxy-autoconfig;base64,${Buffer.from(egressPac(proxy, generation)).toString("base64")}` },
+    ProxySettings: { ProxyMode: "pac_script", ProxyPacUrl: `data:application/x-ns-proxy-autoconfig;base64,${Buffer.from(egressPac(proxy, generation, only)).toString("base64")}` },
     WebRtcIPHandlingPolicy: "disable_non_proxied_udp",
   });
 }
@@ -109,7 +112,7 @@ export function egressApplyArgs(container: string, policy: { proxy: { host: stri
 
 export function egressPrompt(enabled: boolean): string {
   return enabled
-    ? "Web traffic from your cloud computer's browser leaves through the person's own internet connection while their computer is online and that path is fast, so sites see their home address; otherwise it uses the server's own network, switching by itself. To tell the person which address sites see right now, check it in the browser. Only web ports go that way; other connections always use the server's network."
+    ? "Web traffic from your cloud computer's browser leaves through the person's own internet connection while their computer is online and that path is fast, so sites see their home address; otherwise it uses the server's own network, switching by itself. Sites that block servers (Instagram, Facebook, Threads, X, LinkedIn, TikTok, Reddit) always go through the person's connection while their computer is online, even when that path is slow. To tell the person which address sites see right now, check it in the browser. Only web ports go that way; other connections always use the server's network."
     : "";
 }
 
@@ -139,14 +142,16 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
   async function pass(): Promise<void> {
     const docker = deps.docker();
     const up = route() === "computer";
+    // online but slow: only the sites that block this server's address still go through the person's computer
+    const sitesOnly = !up && deps.enabled() && Boolean(report?.online && report.proxy) && now() - reportedAt < AGENT_STALE_MS;
     if (up && !routeUp) generation += 1;
     if (up && report && report.fallbacks > lastFallbacks && now() >= retryAt) { generation += 1; retryAt = now() + FALLBACK_RETRY_MS; }
     lastFallbacks = report?.fallbacks ?? 0;
     routeUp = up;
     if (!docker) return;
     const proxy = report?.proxy;
-    const want = up && proxy ? { proxy, body: egressPolicy(proxy, generation) } : null;
-    const key = want ? `on:${generation}:${want.proxy.host}:${want.proxy.port}` : "off";
+    const want = (up || sitesOnly) && proxy ? { proxy, body: egressPolicy(proxy, generation, up ? null : HOME_ONLY_SITES) } : null;
+    const key = want ? `${up ? "on" : "sites"}:${generation}:${want.proxy.host}:${want.proxy.port}` : "off";
     let ids: string[];
     try {
       const listed = await docker(["ps", "--filter", `label=${BOT_DESKTOP_LABEL}`, "--format", "{{.ID}}"], 15_000);

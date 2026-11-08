@@ -3,22 +3,23 @@ import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 import { BOT_DESKTOP_BRIDGE } from "../shared/bot-desktop.ts";
 import { EGRESS_PORTS as MAC_PORTS } from "../electron/vps-link-egress.mjs";
-import { EGRESS_POLICY_PATH, EGRESS_PORTS, FAST_DIAL_MS, SLOW_DIAL_MS, createComputerEgress, egressPac, egressPolicy, parseEgressReport, type EgressAgentReport } from "./computer-egress.ts";
+import { EGRESS_POLICY_PATH, EGRESS_PORTS, FAST_DIAL_MS, HOME_ONLY_SITES, SLOW_DIAL_MS, createComputerEgress, egressPac, egressPolicy, parseEgressReport, type EgressAgentReport } from "./computer-egress.ts";
 import { createComputerEgressRoutes } from "./routes/computer-egress.ts";
 import { PASS, type RouteContext } from "./routes/table.ts";
 
 const proxy = { host: "172.18.0.1", port: 3129 };
 const report = (over: Partial<EgressAgentReport> = {}): EgressAgentReport => ({ online: true, proxy, active: 0, relayed: 0, refused: 0, fallbacks: 0, ...over });
 
-function pacFor(generation = 1) {
+function pacFor(generation = 1, only: readonly string[] | null = null) {
   const sandbox: Record<string, unknown> = {
     isPlainHostName: (host: string) => !host.includes("."),
+    dnsDomainIs: (host: string, domain: string) => host.endsWith(domain),
     isInNet: (host: string, pattern: string, mask: string) => {
       const n = (ip: string) => ip.split(".").reduce((acc, part) => (acc << 8) + Number(part), 0) >>> 0;
       return ((n(host) & n(mask)) >>> 0) === ((n(pattern) & n(mask)) >>> 0);
     },
   };
-  runInNewContext(egressPac(proxy, generation), sandbox);
+  runInNewContext(egressPac(proxy, generation, only), sandbox);
   return (url: string) => (sandbox.FindProxyForURL as (url: string, host: string) => string)(url, new URL(url).hostname.replace(/^\[|\]$/g, ""));
 }
 
@@ -33,6 +34,15 @@ function fakeDocker(ids: string[], answer: (args: string[]) => string = (args) =
 }
 
 describe("the PAC script", () => {
+  it("on a slow path sends only the sites that block servers to the person's computer", () => {
+    // live 2026-11-09: over the relay every page went out from the server and Instagram answered HTTP 429
+    const find = pacFor(1, HOME_ONLY_SITES);
+    expect(find("https://www.instagram.com/accounts/login/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
+    expect(find("https://x.com/home")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
+    expect(find("https://example.com/")).toBe("DIRECT");
+    expect(find("https://notinstagram.com/")).toBe("DIRECT");
+  });
+
   it("sends web ports on public names to the person's computer, with a direct fallback", () => {
     const find = pacFor();
     expect(find("https://www.instagram.com/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
@@ -135,15 +145,16 @@ describe("routing the bot computers", () => {
     const fake = fakeDocker(["aaaaaaaaaaaa"]);
     const egress = createComputerEgress({ enabled: () => true, docker: () => fake.docker });
     const route = async (dialMs: number | null) => { egress.report(report({ dialMs })); await egress.changed(); return egress.status().route; };
+    const applied = () => fake.calls.filter((args) => args[0] === "exec").map((args) => (args[7] === "on" && Buffer.from(JSON.parse(args[10]!).ProxySettings.ProxyPacUrl.split(",")[1], "base64").toString().includes("dnsDomainIs") ? "sites" : args[7]));
     expect(await route(null)).toBe("server");
     expect(await route(450)).toBe("server");
     expect(await route(FAST_DIAL_MS + 1)).toBe("server");
     expect(await route(FAST_DIAL_MS)).toBe("computer");
-    expect(fake.calls.filter((args) => args[0] === "exec").map((args) => args[7])).toEqual(["off", "on"]);
+    expect(applied()).toEqual(["sites", "on"]);
     expect(await route(SLOW_DIAL_MS)).toBe("computer");
     expect(await route(null)).toBe("computer");
     expect(await route(SLOW_DIAL_MS + 1)).toBe("server");
-    expect(fake.calls.filter((args) => args[0] === "exec").map((args) => args[7])).toEqual(["off", "on", "off"]);
+    expect(applied()).toEqual(["sites", "on", "sites"]);
     expect(await route(SLOW_DIAL_MS)).toBe("server");
   });
 
