@@ -14,7 +14,7 @@ import { effectiveLanguage, useLanguageChoice, usePageLanguage } from "@/lib/lan
 import { parseMobileOpenLink, type MobileOpenTarget } from "../../shared/mobile-link";
 import { NavStack } from "./NavStack";
 import { ChatScreen } from "./ChatScreen";
-import { HomeScreen } from "./HomeScreen";
+import { HomeScreen, releasePressed } from "./HomeScreen";
 import { SheetHost } from "./SheetHost";
 import { closeTopSheet } from "./Sheet";
 import { useKeyboardSync } from "./keyboard";
@@ -117,6 +117,7 @@ function Shell() {
         page={page}
         pageKey={page ? chatId : null}
         onBack={() => setChatId(null)}
+        onSettled={releasePressed}
       />
       <SheetHost sheet={sheet} open={sheetOpen} onClose={closeSheet} onOpenSheet={openSheet} onOpenChat={(id) => { closeSheet(); openChat(id); }} />
       <ConnectAppsHost />

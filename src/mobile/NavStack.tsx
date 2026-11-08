@@ -1,11 +1,40 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion, useMotionValue, useTransform, type AnimationPlaybackControls } from "motion/react";
+import { TranscriptStaging } from "@/components/transcript-staging";
 import { canScroll, ownsDrag, useDrag } from "./gesture";
 import { prefersReducedMotion, projectRelease, settleTo } from "./motion";
 
 /** Parallax of the page underneath, as a share of the width: UIKit's navigation push moves it a third as far. */
 const UNDER_SHIFT = 0.3;
 const EXIT = { stiffness: 440, damping: 40 };
+/** A tapped push starts from rest: critically damped (zeta 1), so it eases in and lands without overshoot or creep. */
+const PUSH = { stiffness: 460, damping: 43, restDelta: 0.1 };
+const READY_CAP_MS = 1000;
+
+/** Resolves once a freshly mounted page is final: its transcript has mounted every row (`whole`, for a chat that builds
+ * in steps), and it has painted the same height for three smooth frames. Anything still moving then would move after
+ * the slide lands. Gives up waiting after `READY_CAP_MS`. */
+function whenSettled(el: HTMLElement, signal: { cancelled: boolean; whole: boolean }): Promise<void> {
+  return new Promise((resolve) => {
+    const started = performance.now();
+    let last = performance.now();
+    let height = -1;
+    let steady = 0;
+    const tick = (now: number) => {
+      if (signal.cancelled) return;
+      const log = el.querySelector<HTMLElement>("[role='log']");
+      const next = log ? log.scrollHeight : el.scrollHeight;
+      const smooth = now - last < 25;
+      last = now;
+      steady = next === height && smooth ? steady + 1 : 0;
+      height = next;
+      const building = Boolean(log) && (log!.getAttribute("aria-busy") === "true" || (!signal.whole && el.querySelector("[data-simple-rows]") !== null));
+      if ((steady >= 3 && !building) || now - started > READY_CAP_MS) resolve();
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
 
 function useWidth(): number {
   const [width, setWidth] = useState(() => (typeof window === "undefined" ? 390 : window.innerWidth));
@@ -42,7 +71,7 @@ export function NavStack({ base, page, pageKey, onBack, onSettled }: {
   settled.current = onSettled;
   if (page) lastPage.current = page;
 
-  const go = useCallback((target: number, velocity: number, done?: () => void) => {
+  const go = useCallback((target: number, velocity: number, done?: () => void, push = false) => {
     run.current?.stop();
     setMoving(true);
     const finish = () => { setMoving(false); done?.(); };
@@ -52,8 +81,29 @@ export function NavStack({ base, page, pageKey, onBack, onSettled }: {
       run.current = settleTo(pageOpacity, target === 0 ? 1 : 0, 0, finish);
       return;
     }
-    run.current = settleTo(x, target, velocity, finish, target === 0 ? undefined : EXIT);
+    run.current = settleTo(x, target, velocity, finish, target === 0 ? (push ? PUSH : undefined) : EXIT);
   }, [x, pageOpacity, width]);
+
+  // the page mounts offscreen on its own layer and slides only once it has painted, so its mount cost never eats frames
+  const preparing = useRef<{ cancelled: boolean; whole: boolean } | null>(null);
+  const push = useCallback(() => {
+    if (preparing.current) preparing.current.cancelled = true;
+    const signal = { cancelled: false, whole: false };
+    preparing.current = signal;
+    run.current?.stop();
+    x.set(width);
+    pageOpacity.set(prefersReducedMotion() ? 0 : 1);
+    setMoving(true);
+    requestAnimationFrame(() => {
+      const el = pageRef.current;
+      const ready = el ? whenSettled(el, signal) : Promise.resolve();
+      void ready.then(() => {
+        if (signal.cancelled) return;
+        preparing.current = null;
+        go(0, 0, () => settled.current?.(true), true);
+      });
+    });
+  }, [go, x, pageOpacity, width]);
 
   useLayoutEffect(() => {
     if (pageKey && page) {
@@ -61,9 +111,9 @@ export function NavStack({ base, page, pageKey, onBack, onSettled }: {
       // a page swapped for another (a notification opening a different chat) cuts over; only list to page slides
       if (shownKey && x.get() < width / 2) { setShownKey(pageKey); return; }
       setShownKey(pageKey);
-      x.set(width);
-      go(0, 0, () => settled.current?.(true));
+      push();
     } else if (shownKey) {
+      if (preparing.current) { preparing.current.cancelled = true; preparing.current = null; }
       go(width, 0, () => { setShownKey(null); lastPage.current = null; settled.current?.(false); });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,6 +144,8 @@ export function NavStack({ base, page, pageKey, onBack, onSettled }: {
   });
 
   const pageShown = Boolean(shownKey);
+  // a constant value: the slide starting or landing never re-renders the chat underneath it
+  const staging = useMemo(() => ({ onWhole: () => { if (preparing.current) preparing.current.whole = true; } }), []);
   return (
     <div className="mobile-nav relative h-full w-full overflow-hidden bg-app">
       <motion.div
@@ -112,7 +164,7 @@ export function NavStack({ base, page, pageKey, onBack, onSettled }: {
           className="mobile-page absolute inset-0 bg-app"
           style={{ x, opacity: pageOpacity, willChange: moving ? "transform" : undefined }}
         >
-          {page ?? lastPage.current}
+          <TranscriptStaging value={staging}>{page ?? lastPage.current}</TranscriptStaging>
         </motion.div>
       )}
     </div>

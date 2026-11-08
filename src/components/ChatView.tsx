@@ -65,6 +65,7 @@ import { presenceKind, TYPING_MARK, turnWorked, useHeldPresence, workingMark } f
 import { lastNonReceipt } from "@/lib/receipts";
 import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
 import { ChatMarkdown } from "./ChatMarkdown";
+import { TranscriptStaging } from "./transcript-staging";
 import { LiveToolsContext, useLiveToolIds } from "@/hooks/use-live-tool-ids";
 import { VoiceNoteBubble, type VoiceNoteAttachment } from "./VoiceNoteBubble";
 import { RawMarkdownView, RawToggleAction } from "./RawMarkdownToggle";
@@ -705,13 +706,15 @@ export function useFirstPaintRows(key: string, rows: Message[], hold: boolean, s
     const el = scrollRef?.current;
     if (el && pinned) el.scrollTop = el.scrollHeight;
   }, [count, pinned, scrollRef]);
+  const staging = useContext(TranscriptStaging);
   useEffect(() => {
     if (count >= total) {
       whole.current = key;
+      staging.onWhole?.();
       return;
     }
     startTransition(() => setShown({ key, count: count + MOUNT_STEP_ROWS >= total ? Infinity : count + MOUNT_STEP_ROWS }));
-  }, [key, count, total, hold]);
+  }, [key, count, total, hold, staging]);
   return useMemo(() => (count >= rows.length ? rows : rows.slice(-count)), [count, rows]);
 }
 
