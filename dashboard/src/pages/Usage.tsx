@@ -174,7 +174,7 @@ export function UsagePage() {
             {error ? <p role="alert" className="py-16 text-center text-14 text-bad">{error}</p>
               : loading || !month ? <Skeleton className="h-[260px]" />
               : month.totals.tokens === 0 ? <p className="py-20 text-center text-14 text-ink-3">No bot turns yet this month. Usage shows up here after the first chat.</p>
-              : <UsageChart days={month.days} series={series} />}
+              : <div key={group} className="swap-in"><UsageChart days={month.days} series={series} /></div>}
           </div>
           {month && month.totals.tokens > 0 && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">

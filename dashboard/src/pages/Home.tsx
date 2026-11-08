@@ -116,7 +116,7 @@ function Activity({ detail, now }: { detail: WorkspaceDetail; now: number }) {
         </div>
         <Segmented<HeatMetric> label="Measure" value={metric} onChange={setMetric} options={[{ value: "turns", label: "Turns" }, { value: "tokens", label: "Tokens" }, { value: "spend", label: "Spend" }]} />
       </div>
-      <div className="mt-6"><Heatmap days={days} metric={metric} now={now} /></div>
+      <div key={metric} className="swap-in mt-6"><Heatmap days={days} metric={metric} now={now} /></div>
       <div className="mt-7 border-t border-line pt-5"><HeatStats days={days} metric={metric} now={now} /></div>
     </Card>
   );

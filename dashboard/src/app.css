@@ -201,6 +201,14 @@
   from { transform: translateX(-100%); }
   to { transform: translateX(260%); }
 }
+@keyframes swap-in {
+  from { opacity: 0; filter: blur(4px); }
+  to { opacity: 1; filter: none; }
+}
+@keyframes draw-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
 @keyframes peek {
   from { transform: translateY(70%); }
   to { transform: translateY(0); }
@@ -231,6 +239,14 @@
   button { cursor: pointer; font: inherit; color: inherit; }
   button:disabled { cursor: not-allowed; }
   input { font: inherit; color: inherit; }
+  /* on touch, every control answers a 44px square around its centre, whatever its drawn size; positioned
+     utilities win over this layer, so absolute and fixed controls keep their place; a stretched row link keeps its own */
+  @media (pointer: coarse) {
+    :where(button, a[href], summary, [role="button"], [role="radio"], [role="tab"]):not([class*="after:"]) { position: relative; }
+    :where(button, a[href], summary, [role="button"], [role="radio"], [role="tab"]):not([class*="after:"])::after {
+      content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%);
+    }
+  }
 }
 
 @layer components {
@@ -264,6 +280,10 @@
   .bar-fill { transition: transform var(--dur-slow) var(--ease-out); transform-origin: left; }
   .swap { transition: opacity var(--dur-fast) ease, filter var(--dur-fast) ease; }
   .step-in { animation: step-in var(--dur-base) var(--ease-out) both; }
+  /* switched content comes in out of a soft blur instead of sliding (cooking-v2 kit card: content switch) */
+  .swap-in { animation: swap-in var(--dur-base) var(--ease-out) both; }
+  /* a chart draws once, left to right, when it first shows */
+  .draw-in { animation: draw-in var(--dur-long) var(--ease-out) both; }
   .modal-in { animation: modal-in 260ms var(--ease-out) both, fade var(--dur-fast) linear both; }
   .sweep { animation: progress-sweep 1.6s linear infinite; }
   .seg-thumb { transition: transform var(--dur-base) var(--ease-out); }
@@ -310,7 +330,8 @@
   .enter { animation: fade var(--dur-fast) linear both; }
   .skeleton, .live-dot[data-live="true"]::after { animation: none; }
   .peek { animation: fade var(--dur-fast) linear both; }
-  .menu-in, .drawer-in, .sheet-in, .toast-in, .step-in, .modal-in { animation: fade var(--dur-fast) linear both; }
+  .menu-in, .drawer-in, .sheet-in, .toast-in, .step-in, .modal-in, .swap-in { animation: fade var(--dur-fast) linear both; }
+  .draw-in { animation: none; }
   .sweep { animation: none; }
   .seg-thumb, .switch-thumb { transition: none; }
   .range:active::-webkit-slider-thumb { transform: none; }
