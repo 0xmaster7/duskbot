@@ -18,7 +18,7 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
   const pricing = catalog.dedicated;
   const licenses: PlanCatalog["licenses"] = [
     { id: "personal", name: "Personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "Personal and non-commercial use" },
-    ...catalog.licenses.map((license) => ({ id: licenseIds[license.kind], name: license.label, monthly: license.monthlyCents / 100, includedMembers: license.includedMembers, perExtraMember: (license.extraMemberCents ?? 0) / 100, maxMembers: license.maxMembers, work: true, blurb: "" })),
+    ...catalog.licenses.map((license) => ({ id: licenseIds[license.kind], name: license.label.replace(/ license$/i, ""), monthly: license.monthlyCents / 100, includedMembers: license.includedMembers, perExtraMember: (license.extraMemberCents ?? 0) / 100, maxMembers: license.maxMembers, work: true, blurb: "" })),
   ];
   return {
     licenses,

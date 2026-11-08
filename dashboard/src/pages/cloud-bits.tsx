@@ -2,13 +2,14 @@ import { useState, type ReactNode } from "react";
 import { Cloud, Laptop, Power, Server } from "lucide-react";
 import type { WorkspaceSummary } from "../../../shared/dashboard-protocol";
 import { useCloud } from "../data/cloud";
-import type { CloudDesktop, DesktopId, PlanCatalog, Selection } from "../data/contracts";
-import { botsLine, desktopMonthly, desktopOf, dollars, specLine } from "../data/pricing";
+import type { CloudDesktop, PlanCatalog } from "../data/contracts";
+import { botsLine, bundleOf, desktopOf, dollars } from "../data/pricing";
+import { PlanSheet, planSelection, type PaidPlan } from "./plan-sheet";
 import { useSession } from "../data/session";
 import { duration } from "../lib/format";
 import { Link, navigate } from "../lib/router";
 import { Choice, Modal, StatusDot } from "../ui/controls";
-import { Button, ButtonLink, cx, Skeleton } from "../ui/kit";
+import { Button, cx } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 
 export const STATUS: Record<CloudDesktop["status"], { label: string; tone: "good" | "warn" | "bad" | "quiet" | "accent" }> = {
@@ -79,20 +80,18 @@ export function Provisioning({ cloud }: { cloud: CloudDesktop }) {
   );
 }
 
-/** the cloud desktop on its own: three sizes and one button; no license is bundled in */
+/** plus or pro in two rows and one button that goes straight to checkout */
 export function QuickPick({ catalog, className, onDone, secondary }: { catalog: PlanCatalog; className?: string; onDone?(): void | Promise<void>; secondary?: ReactNode }) {
   const { checkout } = useCloud();
   const { toast } = useSession();
-  const [pick, setPick] = useState<Exclude<DesktopId, "none">>(catalog.desktops.find((d) => d.id === "shared-m")?.id ?? catalog.desktops[0]?.id ?? "shared-s");
+  const [pick, setPick] = useState<PaidPlan>("starter");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const chosen = desktopOf(catalog, pick);
-  const selection: Selection = { license: "personal", members: 1, desktop: pick, size: null, region: catalog.regions[0]?.id ?? "", interval: "month" };
+  const chosen = bundleOf(catalog, pick);
   const go = async () => {
-    if (!chosen) return;
     setBusy(true); setError(null);
     try {
-      if (await checkout({ kind: "plan", selection, bundle: null })) {
+      if (await checkout({ kind: "plan", selection: planSelection(catalog, pick, { interval: "month", work: false }), bundle: null })) {
         toast("Paid. Your cloud desktop is being set up.");
         if (onDone) await onDone(); else navigate("/cloud");
       }
@@ -101,31 +100,28 @@ export function QuickPick({ catalog, className, onDone, secondary }: { catalog: 
   return (
     <div className={className}>
       <fieldset className="min-w-0">
-        <legend className="sr-only">Cloud desktop size</legend>
+        <legend className="sr-only">Plan</legend>
         <div className="flex flex-col gap-1">
-          {catalog.desktops.map((d) => (
-            <Choice key={d.id} name="quick-desktop" value={d.id} checked={d.id === pick} onChange={() => setPick(d.id)} title={d.name} detail={`${botsLine(d.botComputers)} · ${specLine(d)}`} aside={<>{dollars(desktopMonthly(d, null, catalog.custom))}<span className="text-ink-3">/mo</span></>} />
-          ))}
+          {(["starter", "pro"] as const).map((id) => {
+            const b = bundleOf(catalog, id);
+            const d = b ? desktopOf(catalog, b.desktop) : null;
+            return b && <Choice key={id} name="quick-plan" value={id} checked={id === pick} onChange={() => setPick(id)} title={b.name} detail={d ? `${botsLine(d.botComputers)}${b.license !== "personal" ? ", work license" : ""}` : b.blurb} aside={<>{dollars(b.monthly)}<span className="text-ink-3">/mo</span></>} />;
+          })}
         </div>
       </fieldset>
-      <p className="mt-4 text-13 text-ink-3">On 24/7, cancel any time. A work license is separate, in Plans & billing.</p>
+      <p className="mt-4 text-13 text-ink-3">On 24/7, cancel anytime.</p>
       {error && <p role="alert" className="mt-2 text-13 text-bad">{error}</p>}
       <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
         {secondary}
-        <Button variant="primary" onClick={() => void go()} disabled={busy || !chosen}>{busy ? "Opening checkout" : `Continue, ${dollars(chosen ? desktopMonthly(chosen, null, catalog.custom) : 0)}/mo`}</Button>
+        <Button variant="primary" onClick={() => void go()} disabled={busy || !chosen}>{busy ? "Opening checkout" : `Continue, ${dollars(chosen?.monthly ?? 0)}/mo`}</Button>
       </div>
     </div>
   );
 }
 
-/** the plan pick in a dialog, opened from the cloud pitch's one button */
+/** the plan pick, opened from the cloud pitch's one button: plus first */
 export function PlanDialog({ open, onClose }: { open: boolean; onClose(): void }) {
-  const { catalog } = useCloud();
-  return (
-    <Modal open={open} onClose={onClose} title="Get a cloud desktop" wide>
-      {catalog ? <QuickPick catalog={catalog} className="mt-3" onDone={() => { onClose(); navigate("/cloud"); }} secondary={<ButtonLink to="/billing#cloud" variant="ghost">See plans</ButtonLink>} /> : <Skeleton className="mt-3 h-[200px]" />}
-    </Modal>
-  );
+  return open ? <PlanSheet start="starter" onClose={onClose} /> : null;
 }
 
 /** the one cloud pitch: a line, a sentence, one button and the three mascots; home, the empty cloud page and billing share it */

@@ -6,19 +6,19 @@ import type { BillingOverview, CloudDesktop, MachineSpec, PlanCatalog } from "./
 export const fixtureCatalog: PlanCatalog = {
   licenses: [
     { id: "personal", name: "Personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "Personal and non-commercial use" },
-    { id: "starter", name: "Starter", monthly: 12, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: true, blurb: "For one person at work" },
+    { id: "starter", name: "Work", monthly: 12, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: true, blurb: "For one person at work" },
     { id: "team", name: "Team", monthly: 30, includedMembers: 2, perExtraMember: 18, maxMembers: 50, work: true, blurb: "For a team, with shared bots" },
   ],
   desktops: [
-    { id: "shared-s", name: "Shared S", monthly: 10, vcpu: 2, ramGb: 4, diskGb: 40, placement: "shared", botComputers: 2, priority: false, sizable: false, blurb: "Small, always on" },
-    { id: "shared-m", name: "Shared M", monthly: 40, vcpu: 4, ramGb: 8, diskGb: 80, placement: "shared", botComputers: 5, priority: true, sizable: false, blurb: "Bigger, always on, priority wake" },
+    { id: "shared-s", name: "Shared S", monthly: 20, vcpu: 2, ramGb: 4, diskGb: 40, placement: "shared", botComputers: 2, priority: false, sizable: false, blurb: "Small, always on" },
+    { id: "shared-m", name: "Shared M", monthly: 38, vcpu: 4, ramGb: 8, diskGb: 80, placement: "shared", botComputers: 5, priority: true, sizable: false, blurb: "Bigger, always on, priority wake" },
     { id: "dedicated", name: "Dedicated", monthly: 70, vcpu: 8, ramGb: 16, diskGb: 160, placement: "dedicated", botComputers: null, priority: true, sizable: true, blurb: "A whole machine of your own" },
   ],
   bundles: [
-    { id: "free", name: "Free", monthly: 0, license: "personal", members: 1, desktop: "none", blurb: "For personal use on your Mac or your own VPS", features: ["Personal, non-commercial license", "Every bot, chat and connector", "Runs on your Mac or your own VPS"] },
-    { id: "starter", name: "Starter", monthly: 20, license: "starter", members: 1, desktop: "shared-s", blurb: "Work license and a cloud desktop that never sleeps", features: ["Work license, 1 member", "Shared cloud desktop, on 24/7", "2 bot computers"] },
-    { id: "pro", name: "Pro", monthly: 50, license: "starter", members: 1, desktop: "shared-m", recommended: true, blurb: "More room and priority for serious bots", features: ["Work license, 1 member, priority", "Bigger shared cloud desktop, on 24/7", "5 bot computers"] },
-    { id: "team", name: "Team", monthly: 100, license: "team", members: 3, desktop: "dedicated", blurb: "A dedicated machine for the whole team", features: ["Work license, 3 members included", "+$15 a month for each more member", "Dedicated machine, unlimited bot computers"] },
+    { id: "free", name: "Free", monthly: 0, license: "personal", members: 1, desktop: "none", blurb: "Your bots, on your Mac", features: ["Your bots, on your Mac", "Personal use", "No subscription"] },
+    { id: "starter", name: "Plus", monthly: 20, license: "personal", members: 1, desktop: "shared-s", blurb: "Your bots work 24/7", features: ["Your bots work 24/7", "A cloud desktop that never sleeps", "2 bot computers"] },
+    { id: "pro", name: "Pro", monthly: 50, license: "starter", members: 1, desktop: "shared-m", recommended: true, blurb: "For real work", features: ["A bigger always-on cloud desktop", "5 bot computers, priority wake", "Work license for one person"] },
+    { id: "team", name: "Team", monthly: 100, license: "team", members: 2, desktop: "dedicated", blurb: "A dedicated machine for the whole team", features: ["Team license, 2 members", "Dedicated machine, unlimited bot computers"] },
   ],
   regions: [
     { id: "eu-central", name: "Germany", city: "Falkenstein" },
@@ -28,7 +28,8 @@ export const fixtureCatalog: PlanCatalog = {
     { id: "ap-southeast", name: "Singapore", city: "Singapore" },
   ],
   custom: { base: 6, perVcpu: 3.5, perGbRam: 1.25, per10GbDisk: 0.5, includedDiskGb: 0, vcpu: { min: 2, max: 32, step: 2 }, ramGb: { min: 4, max: 64, step: 4 }, diskGb: { min: 40, max: 1000, step: 20 } },
-  yearlyDiscount: 0.2,
+  // two months free
+  yearlyDiscount: 1 / 6,
   workFreeUntil: new Date(2026, 11, 1).getTime(),
   creditPacks: [10, 25, 50].map((usd) => ({ id: `credits-${usd}`, usd })),
 };
