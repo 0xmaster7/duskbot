@@ -1,7 +1,7 @@
 import type { CommandKind, CommandView, WorkspaceDetail, WorkspaceSummary } from "../../../shared/dashboard-protocol";
 import type { AccountDevice, AccountProfile, AuthProviders, BillingOverview, CheckoutAnswer, CheckoutRequest, CloudDesktop, DesktopId, EmailCodeStart, Identity, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection } from "../data/contracts";
-import { accountFromWire, billingFromWire, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire } from "../data/live";
-import { CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, type AccountAnswer, type AccountView, type BillingOverview as WireBillingOverview, type CancelAnswer, type Catalog, type ChangePreview, type CheckoutAnswer as WireCheckoutAnswer, type CloudDesktopView, type DeviceLookupAnswer, type EmailStartAnswer, type MeAnswer, type ProvidersAnswer, type WebSignInAnswer } from "../data/wire";
+import { accountFromWire, billingFromWire, cartFromQuote, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire } from "../data/live";
+import { CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, type AccountAnswer, type AccountView, type BillingOverview as WireBillingOverview, type CancelAnswer, type Catalog, type ChangePreview, type CheckoutAnswer as WireCheckoutAnswer, type CloudDesktopView, type DeviceLookupAnswer, type EmailStartAnswer, type MeAnswer, type ProvidersAnswer, type Quote, type WebSignInAnswer } from "../data/wire";
 
 export type Scenario = "signedout" | "new" | "mac" | "cloud" | "provisioning";
 export interface Account { id: string; email: string; name?: string | null }
@@ -154,17 +154,23 @@ export const api = {
   deviceDeny: (userCode: string) => send("/v1/auth/device/deny", "POST", { userCode }),
   catalog,
   overview,
+  quote: async (selection: Selection, signal?: AbortSignal) => {
+    if (FIXTURE) return null;
+    const plans = await catalog();
+    signal?.throwIfAborted();
+    return cartFromQuote(await call<Quote>("/v1/billing/quote", { method: "POST", body: { cart: cartFromSelection(selection, plans) }, signal }), plans);
+  },
   billing: async () => FIXTURE ? call<BillingOverview>("/v1/billing") : (await overview()).billing,
   checkout: async (req: CheckoutRequest): Promise<CheckoutAnswer> => {
     if (FIXTURE) return send("/v1/billing/checkout", "POST", req);
-    const answer = await send<WireCheckoutAnswer>("/v1/billing/checkout", "POST", req.kind === "plan" ? { kind: "cart", cart: cartFromSelection(req.selection) } : req);
+    const answer = await send<WireCheckoutAnswer>("/v1/billing/checkout", "POST", req.kind === "plan" ? { kind: "cart", cart: cartFromSelection(req.selection, await catalog()) } : req);
     return { url: answer.checkoutUrl, id: answer.checkoutId };
   },
   portal: () => send<{ url: string }>("/v1/billing/portal", "POST"),
   changePlan: async (selection: Selection) => {
     if (FIXTURE) return send("/v1/billing/change", "POST", { selection });
     const path = subscriptionPath();
-    const preview = await send<ChangePreview>(`${path}/preview`, "POST", { cart: cartFromSelection(selection) });
+    const preview = await send<ChangePreview>(`${path}/preview`, "POST", { cart: cartFromSelection(selection, await catalog()) });
     return send(`${path}/change`, "POST", { confirmation: preview.confirmation });
   },
   cancel: (answer: CancelAnswer | "") => send(FIXTURE ? "/v1/billing/cancel" : `${subscriptionPath()}/cancel`, "POST", answer === "" ? {} : { survey: { answer } }),

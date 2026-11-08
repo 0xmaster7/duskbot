@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { accountFromWire, billingFromWire, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire, selectionFromCart, subscriptionFromWire } from "./live.ts";
+import { accountFromWire, billingFromWire, cartFromQuote, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire, selectionFromCart, subscriptionFromWire } from "./live.ts";
 import type { Selection } from "./contracts.ts";
-import { CLOUD_STATUSES, SETUP_STEPS, SUBSCRIPTION_STATUSES, type AccountAnswer, type BillingOverview, type Catalog, type CloudDesktopView, type SubscriptionView } from "./wire.ts";
+import { CLOUD_STATUSES, SETUP_STEPS, SUBSCRIPTION_STATUSES, type AccountAnswer, type BillingOverview, type Catalog, type CloudDesktopView, type Quote, type SubscriptionView } from "./wire.ts";
 
 const catalog: Catalog = {
   v: 1, currency: "USD", defaultRegion: "eu", yearlyDiscountPercent: 20, freeWorkUntil: 1_800_000_000_000, graceDays: 7,
@@ -65,6 +65,56 @@ test("selection and cart round trip and omit fields irrelevant to the chosen par
   assert.deepEqual(selectionFromCart({ interval: "month", license: { kind: "team" }, desktop: { kind: "dedicated" } }, plans), { license: "team", members: 3, desktop: "dedicated", size: null, region: "eu", interval: "month" });
   const irrelevant: Selection = { license: "starter", members: 99, desktop: "none", region: "ap", size: { vcpu: 4, ramGb: 8, diskGb: 80 }, interval: "month" };
   assert.deepEqual(cartFromSelection(irrelevant), { interval: "month", license: { kind: "solo" }, desktop: { kind: "none" } });
+});
+
+test("yearly team quote merges extra members and uses service totals without bundle savings", () => {
+  const plans = catalogFromWire(catalog);
+  const quote: Quote = {
+    cart: { interval: "year", license: { kind: "team", members: 5 }, desktop: { kind: "shared_m", region: "eu" } },
+    bundle: null,
+    lines: [
+      { kind: "license", label: "Team license, 3 members", amountCents: 48000 },
+      { kind: "members", label: "2 extra members", amountCents: 36000 },
+      { kind: "desktop", label: "Shared M cloud desktop", amountCents: 48000 },
+      { kind: "discount", label: "Yearly discount (20%)", amountCents: -26400 },
+    ],
+    totalCents: 105600, monthlyEquivalentCents: 8800, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, members: 5,
+  };
+  assert.deepEqual(cartFromQuote(quote, plans), {
+    lines: [
+      { key: "license", label: "Team license", detail: "5 members, 2 extra", monthly: 70 },
+      { key: "desktop", label: "Cloud desktop, Shared M", detail: "4 vCPU · 8 GB RAM · 80 GB", monthly: 40 },
+    ],
+    subtotal: 110, bundle: null, bundleSaving: 0, discount: 22, perMonth: 88, dueNow: 1056, free: false,
+  });
+  const fractional = cartFromQuote({ ...quote, lines: [
+    { kind: "license", label: "Team license", amountCents: 48012 },
+    ...quote.lines.slice(1, 3),
+    { kind: "discount", label: "Yearly discount (17%)", amountCents: -22442 },
+  ], totalCents: 109570, monthlyEquivalentCents: 9131 }, plans);
+  assert.equal(fractional.subtotal, 110.01);
+  assert.equal(fractional.discount, 22442 / 1200);
+  assert.equal(fractional.perMonth, 91.31);
+  assert.equal(fractional.dueNow, 1095.7);
+});
+
+test("small dedicated quote keeps its service price below the default desktop price", () => {
+  const plans = catalogFromWire(catalog);
+  const quote: Quote = {
+    cart: { interval: "month", license: { kind: "none" }, desktop: { kind: "dedicated", region: "eu", spec: { vcpu: 2, ramGb: 4, diskGb: 40 } } },
+    bundle: null, lines: [{ kind: "desktop", label: "Dedicated 2 vCPU, 4 GB, 40 GB", amountCents: 2400 }],
+    totalCents: 2400, monthlyEquivalentCents: 2400, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: null, members: 0,
+  };
+  assert.deepEqual(cartFromQuote(quote, plans), {
+    lines: [{ key: "desktop", label: "Cloud desktop, Dedicated", detail: "2 vCPU · 4 GB RAM · 40 GB", monthly: 24 }],
+    subtotal: 24, bundle: null, bundleSaving: 0, discount: 0, perMonth: 24, dueNow: 24, free: false,
+  });
+  const free = cartFromQuote({ ...quote, cart: { interval: "year", license: { kind: "none" }, desktop: { kind: "none" } }, bundle: "free", lines: [{ kind: "discount", label: "Yearly discount", amountCents: 0 }], totalCents: 0, monthlyEquivalentCents: 0, machine: null }, plans);
+  assert.equal(free.free, true);
+  assert.equal(free.bundle, plans.bundles[0]);
+  assert.equal(cartFromQuote({ ...quote, totalCents: 0, monthlyEquivalentCents: 0 }, plans).free, false);
+  const selection: Selection = { license: "personal", members: 1, desktop: "dedicated", size: null, region: "eu", interval: "month" };
+  assert.deepEqual(cartFromSelection(selection, plans).desktop.spec, { vcpu: 8, ramGb: 16, diskGb: 165 });
 });
 
 const cloud: CloudDesktopView = { id: "cloud", name: "My Cloud", color: null, kind: "shared_m", placement: "pool", status: "provisioning", setupStep: "reserving", region: "eu", machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, origin: null, workspaceId: "workspace", lastReportAt: null, destroyAt: null, error: null, subscriptionId: "sub", createdAt: 123 };

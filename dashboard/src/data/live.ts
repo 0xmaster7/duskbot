@@ -1,6 +1,7 @@
 import type { AccountData } from "../lib/api.ts";
 import type { AuthProviders, BillingOverview, CloudDesktop, DesktopId, LicenseId, NotificationPrefs, PlanCatalog, Selection, Subscription } from "./contracts.ts";
-import { SETUP_STEPS, type AccountAnswer, type BillingOverview as WireBillingOverview, type Cart, type Catalog, type CloudDesktopView, type ProvidersAnswer, type SubscriptionView } from "./wire.ts";
+import { specLine, type Cart as PricedCart } from "./pricing.ts";
+import { SETUP_STEPS, type AccountAnswer, type BillingOverview as WireBillingOverview, type Cart, type Catalog, type CloudDesktopView, type ProvidersAnswer, type Quote, type SubscriptionView } from "./wire.ts";
 
 const licenseIds = { none: "personal", solo: "starter", team: "team" } as const;
 const licenseKinds = { personal: "none", starter: "solo", team: "team" } as const;
@@ -38,12 +39,35 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
   };
 }
 
-export function cartFromSelection(selection: Selection): Cart {
+export function cartFromSelection(selection: Selection, catalog?: PlanCatalog): Cart {
+  const desktop = catalog?.desktops.find((item) => item.id === selection.desktop);
+  const spec = selection.size ?? (desktop ? { vcpu: desktop.vcpu, ramGb: desktop.ramGb, diskGb: desktop.diskGb } : null);
   return {
     interval: selection.interval,
     license: { kind: licenseKinds[selection.license], ...(selection.license === "team" ? { members: selection.members } : {}) },
-    desktop: { kind: desktopKinds[selection.desktop], ...(selection.desktop !== "none" ? { region: selection.region } : {}), ...(selection.desktop === "dedicated" && selection.size !== null ? { spec: selection.size } : {}) },
+    desktop: { kind: desktopKinds[selection.desktop], ...(selection.desktop !== "none" ? { region: selection.region } : {}), ...(selection.desktop === "dedicated" && spec !== null ? { spec } : {}) },
   };
+}
+
+export function cartFromQuote(quote: Quote, catalog: PlanCatalog): PricedCart {
+  const divisor = (quote.cart.interval === "year" ? 12 : 1) * 100;
+  const license = catalog.licenses.find((item) => item.id === licenseIds[quote.cart.license.kind]);
+  const desktop = catalog.desktops.find((item) => item.id === desktopIds[quote.cart.desktop.kind]);
+  const lines: PricedCart["lines"] = [];
+  let subtotalCents = 0, discountCents = 0;
+  for (const line of quote.lines) {
+    if (line.kind === "discount") { discountCents -= line.amountCents; continue; }
+    subtotalCents += line.amountCents;
+    if (line.kind === "license" || line.kind === "members") {
+      const existing = lines.find((item) => item.key === "license");
+      if (existing) { existing.monthly += line.amountCents / divisor; continue; }
+      const extra = Math.max(0, quote.members - (license?.includedMembers ?? quote.members));
+      lines.push({ key: "license", label: license ? `${license.name} license` : line.label, detail: `${quote.members} ${quote.members === 1 ? "member" : "members"}${extra ? `, ${extra} extra` : ""}`, monthly: line.amountCents / divisor });
+    } else {
+      lines.push({ key: "desktop", label: desktop ? `Cloud desktop, ${desktop.name}` : line.label, detail: quote.machine ? specLine(quote.machine) : "", monthly: line.amountCents / divisor });
+    }
+  }
+  return { lines, subtotal: subtotalCents / divisor, bundle: catalog.bundles.find((item) => item.id === quote.bundle) ?? null, bundleSaving: 0, discount: discountCents / divisor, perMonth: quote.monthlyEquivalentCents / 100, dueNow: quote.totalCents / 100, free: quote.totalCents === 0 && lines.length === 0 };
 }
 
 export function selectionFromCart(cart: Cart, catalog: PlanCatalog): Selection {

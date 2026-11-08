@@ -2,7 +2,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Check, Download, Minus, Plus } from "lucide-react";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, Bundle, DesktopId, LicenseId, PlanCatalog, Selection } from "../data/contracts";
-import { botsLine, bundleOf, desktopMonthly, dollars, gb, licenseMonthly, priceCart, selectionFor, specLine, yearly } from "../data/pricing";
+import { botsLine, bundleOf, desktopMonthly, dollars, gb, licenseMonthly, selectionFor, specLine, yearly, type Cart } from "../data/pricing";
+import { useCart } from "../data/quote";
 import { useSession } from "../data/session";
 import { compact, longDate, shortDate, usd } from "../lib/format";
 import { Link, navigate, scrollToHash, useLocation } from "../lib/router";
@@ -192,8 +193,7 @@ function Builder({ catalog, sel, set }: { catalog: PlanCatalog; sel: Selection; 
   );
 }
 
-function CartCard({ catalog, sel, onCheckout, busy, error, changing, subscribed }: { catalog: PlanCatalog; sel: Selection; onCheckout(): void; busy: boolean; error: string | null; changing: boolean; subscribed: boolean }) {
-  const cart = priceCart(sel, catalog);
+function CartCard({ catalog, sel, cart, ready, onCheckout, busy, error, changing, subscribed }: { catalog: PlanCatalog; sel: Selection; cart: Cart; ready: boolean; onCheckout(): void; busy: boolean; error: string | null; changing: boolean; subscribed: boolean }) {
   const label = busy ? (subscribed ? "Updating" : "Opening checkout") : subscribed ? (changing ? (cart.free ? "Switch to Free" : "Update plan") : "This is your plan") : cart.free ? "You are on Free" : "Checkout";
   return (
     <Card className="flex flex-col" aria-labelledby="cart-title">
@@ -220,14 +220,13 @@ function CartCard({ catalog, sel, onCheckout, busy, error, changing, subscribed 
       </dl>
       <p className="num mt-1 text-end text-13 text-ink-3">{cart.free ? "Nothing to pay" : sel.interval === "year" ? `${dollars(cart.dueNow, true)} billed yearly` : "Billed monthly"}</p>
       {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
-      <Button variant="primary" className="mt-5 w-full" onClick={onCheckout} disabled={busy || (subscribed ? !changing : cart.free)}>{label}</Button>
+      <Button variant="primary" className="mt-5 w-full" onClick={onCheckout} disabled={!ready || busy || (subscribed ? !changing : cart.free)}>{label}</Button>
       <p className="mt-3 text-center text-12 leading-[1.5] text-ink-4">{cart.free && !subscribed ? "Add a license for work, or a cloud desktop to stay on 24/7." : "Secure checkout by Dodo Payments. Cancel any time."}</p>
     </Card>
   );
 }
 
-function MobileCartBar({ catalog, sel, onCheckout, busy, show }: { catalog: PlanCatalog; sel: Selection; onCheckout(): void; busy: boolean; show: boolean }) {
-  const cart = priceCart(sel, catalog);
+function MobileCartBar({ cart, ready, onCheckout, busy, show }: { cart: Cart; ready: boolean; onCheckout(): void; busy: boolean; show: boolean }) {
   if (!show) return null;
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-side/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
@@ -236,7 +235,7 @@ function MobileCartBar({ catalog, sel, onCheckout, busy, show }: { catalog: Plan
           <div className="num text-16 font-medium text-ink">{money(cart.perMonth)}<span className="text-13 font-normal text-ink-3">/mo</span></div>
           <div className="truncate text-12 text-ink-3">{cart.lines.map((l) => l.label).join(" + ")}</div>
         </div>
-        <Button variant="primary" onClick={onCheckout} disabled={busy}>{busy ? "Opening" : "Checkout"}</Button>
+        <Button variant="primary" onClick={onCheckout} disabled={!ready || busy}>{busy ? "Opening" : "Checkout"}</Button>
       </div>
     </div>
   );
@@ -249,8 +248,8 @@ function CurrentPlan({ catalog }: { catalog: PlanCatalog }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sub = billing?.subscription;
-  if (!sub) return null;
-  const cart = priceCart(sub.selection, catalog);
+  const { cart } = useCart(sub?.selection ?? null, catalog);
+  if (!sub || !cart) return null;
   const name = sub.bundle ? bundleOf(catalog, sub.bundle)?.name ?? "Paid plan" : "Custom plan";
   const stop = async () => {
     setBusy(true); setError(null);
@@ -385,7 +384,9 @@ export function BillingPage() {
     else setSel(selectionFor(bundleOf(catalog, "pro") ?? catalog.bundles[0]!, catalog, interval, region));
   }, [catalog, billing, sub, sel, query, interval]);
 
-  if (!catalog || !sel) {
+  const { cart, ready, error: quoteError } = useCart(sel, catalog);
+
+  if (!catalog || !sel || !cart) {
     return (
       <div aria-busy="true" aria-label="Loading">
         <Skeleton className="h-9 w-64" />
@@ -399,8 +400,8 @@ export function BillingPage() {
   const pick = (b: Bundle) => { setSel(selectionFor(b, catalog, interval, sel.region)); setError(null); scrollToHash("build"); };
   const changing = Boolean(sub) && JSON.stringify(sub!.selection) !== JSON.stringify(sel);
   const current = sub ? sub.bundle : "free";
-  const cart = priceCart(sel, catalog);
   const go = async () => {
+    if (!ready) return;
     setBusy(true); setError(null);
     try {
       if (sub) { await changePlan(sel); toast("Plan updated"); }
@@ -429,14 +430,14 @@ export function BillingPage() {
         </div>
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           <Builder catalog={catalog} sel={sel} set={set} />
-          <div className="lg:sticky lg:top-6"><CartCard catalog={catalog} sel={sel} onCheckout={() => void go()} busy={busy} error={error} changing={changing} subscribed={Boolean(sub)} /></div>
+          <div className="lg:sticky lg:top-6"><CartCard catalog={catalog} sel={sel} cart={cart} ready={ready} onCheckout={() => void go()} busy={busy} error={error ?? quoteError} changing={changing} subscribed={Boolean(sub)} /></div>
         </div>
       </section>
       <div className="mt-12 grid gap-4 md:grid-cols-2">
         <Payment />
         <Credits catalog={catalog} />
       </div>
-      <MobileCartBar catalog={catalog} sel={sel} onCheckout={() => void go()} busy={busy} show={!cart.free && (!sub || changing)} />
+      <MobileCartBar cart={cart} ready={ready} onCheckout={() => void go()} busy={busy} show={!cart.free && (!sub || changing)} />
     </div>
   );
 }
