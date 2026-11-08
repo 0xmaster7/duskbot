@@ -895,12 +895,19 @@ export const EGRESS_PORT = Number(process.env.LINK_EGRESS_PORT) || 3129;
 /** the app says hello every 15 s while it takes streams; three missed and this server uses its own network again */
 const EGRESS_SEEN_MS = 40_000;
 const EGRESS_DIAL_MS = 5000;
+/** how long the app takes to open a stream, from the last few dials: the server routes through the app only while it is fast */
+const DIAL_SAMPLES = 7;
+const DIAL_SAMPLE_MAX_AGE_MS = 120_000;
+/** with no recent dial, one probe stream (opened and dropped at once) measures the path again */
+const DIAL_PROBE_EVERY_MS = 60_000;
+export const EGRESS_PROBE = { host: "www.gstatic.com", port: 443 };
 const EGRESS_QUEUE_HIGH = 1024 * 1024;
 const EGRESS_HEAD_MAX = 8 * 1024;
 /**
- * socks5 replies. the policy names no fallback, so a failure reply fails that request; it is kept for "this computer
- * cannot take it now" (off, offline, busy, slow). a destination this computer refuses or cannot reach gets a success
- * reply and an immediate close, which fails only that request the same way an unreachable site would.
+ * socks5 replies. a failure reply means "this computer cannot take it now" (off, offline, busy, slow): the policy's
+ * direct fallback then opens that request from this server instead. a destination this computer refuses or cannot
+ * reach gets a success reply and an immediate close, which fails only that request the same way an unreachable site
+ * would.
  */
 const SOCKS = { ok: 0, failure: 1, notAllowed: 2, unreachable: 4, refused: 5, command: 7, address: 8 };
 
@@ -998,8 +1005,17 @@ const egressCode = (code) => (code === "port" || code === "home-network" || code
 export function createEgressProxy({
   send, bytes, queued, onDrain, log = () => {}, now = Date.now,
   bind = () => bridgeAddress(), port = EGRESS_PORT, report = null, reportMs = 5000, dialMs = EGRESS_DIAL_MS,
+  probe = EGRESS_PROBE, probeEveryMs = DIAL_PROBE_EVERY_MS,
 }) {
   const streams = new Map();
+  const probes = new Map();
+  let samples = [];
+  const sample = (ms) => { samples = [...samples, { at: now(), ms }].slice(-DIAL_SAMPLES); };
+  /** the median dial time of recent streams, or null when there is none */
+  const dialLatency = () => {
+    const recent = samples.filter((one) => now() - one.at < DIAL_SAMPLE_MAX_AGE_MS).map((one) => one.ms).sort((a, b) => a - b);
+    return recent.length ? recent[Math.floor(recent.length / 2)] : null;
+  };
   let seenAt = 0, ready = false, enabled = report === null, server = null, listening = null, timer = null, stopped = false;
   const stats = { relayed: 0, refused: 0, fallbacks: 0 };
   const online = () => ready && now() - seenAt < EGRESS_SEEN_MS;
@@ -1033,8 +1049,10 @@ export function createEgressProxy({
     const fallBack = () => { stats.refused += 1; stats.fallbacks += 1; asked.reply(false, SOCKS.failure); socket.end(); };
     if (!enabled || !online()) return fallBack();
     const r = randomId();
+    const dialedAt = now();
     const answer = await new Promise((settle) => {
       const entry = { socket, settle, endSent: false, timer: setTimeout(() => {
+        sample(dialMs);
         // the app did not answer in time: it is asleep or gone, so new connections go direct until it says hello again
         log("egress: the app did not answer; bot computers use this server's own network until it is back");
         entry.settle = null;
@@ -1052,6 +1070,7 @@ export function createEgressProxy({
       stats.refused += 1;
       return asked.fail(egressCode(answer.code));
     }
+    sample(now() - dialedAt);
     stats.relayed += 1;
     entry.relaying = true;
     asked.reply(true);
@@ -1085,13 +1104,24 @@ export function createEgressProxy({
     }
   }
 
+  /** a dial nobody uses, answered by the app like any other: only its timing is kept */
+  function measure() {
+    const last = samples.at(-1)?.at ?? -Infinity;
+    if (!probe || !enabled || !online() || probes.size || now() - last < probeEveryMs) return;
+    const r = randomId(), at = now();
+    probes.set(r, { at, timer: setTimeout(() => { if (probes.delete(r)) { sample(dialMs); send({ t: "cancel", r }); } }, dialMs) });
+    send({ t: "dial", r, host: probe.host, port: probe.port });
+  }
+
   async function tick() {
     await relisten();
-    if (!report || stopped) return;
-    try {
-      const said = await report({ online: online(), proxy: listening, active: streams.size, ...stats });
-      if (typeof said?.enabled === "boolean") enabled = said.enabled;
-    } catch { /* the server is restarting; the last answer stands */ }
+    if (report && !stopped) {
+      try {
+        const said = await report({ online: online(), proxy: listening, active: streams.size, dialMs: dialLatency(), ...stats });
+        if (typeof said?.enabled === "boolean") enabled = said.enabled;
+      } catch { /* the server is restarting; the last answer stands */ }
+    }
+    if (!stopped) measure();
   }
 
   return {
@@ -1099,6 +1129,7 @@ export function createEgressProxy({
     get enabled() { return enabled; },
     online,
     stats: () => ({ ...stats, active: streams.size }),
+    dialLatency,
     async start() {
       await tick();
       timer = setInterval(() => void tick(), reportMs);
@@ -1111,6 +1142,18 @@ export function createEgressProxy({
         if (frame.ready === true) { ready = true; seenAt = now(); }
         else { gone(); seenAt = 0; }
         if (was !== online()) { log(online() ? "egress: the app takes streams again" : "egress: the app stopped taking streams"); void tick(); }
+        return true;
+      }
+      const probed = typeof frame?.r === "string" ? probes.get(frame.r) : undefined;
+      if (probed) {
+        if (frame.t === "dialed") {
+          probes.delete(frame.r);
+          clearTimeout(probed.timer);
+          seenAt = now();
+          ready = true;
+          sample(now() - probed.at);
+          if (frame.ok === true) send({ t: "cancel", r: frame.r });
+        }
         return true;
       }
       const entry = typeof frame?.r === "string" ? streams.get(frame.r) : undefined;
@@ -1132,6 +1175,8 @@ export function createEgressProxy({
     async stop() {
       stopped = true;
       clearInterval(timer);
+      for (const probed of probes.values()) clearTimeout(probed.timer);
+      probes.clear();
       for (const r of streams.keys()) forget(r, false);
       if (server) await new Promise((resolve) => server.close(() => resolve()));
       server = null;

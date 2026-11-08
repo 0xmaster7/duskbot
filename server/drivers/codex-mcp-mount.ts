@@ -2,6 +2,7 @@ import type { StdioMcpSpec } from "../contracts.ts";
 import { tomlInlineTable } from "./codex-process.ts";
 import { parseVersionTriple, versionAtLeast, type VersionTriple } from "./acp/version-probe.ts";
 import { ownMcpOverHttp } from "./turn-mcp.ts";
+import { OWN_APPS_SERVER } from "../../shared/own-apps.ts";
 
 /** Codex's default for one MCP server's tools (openai/codex#17843): "auto"
  * runs without asking only tools the server marks read-only, "approve" runs
@@ -76,4 +77,16 @@ export function mountOwnMcpOverHttp(
   appServerArgs.push("-c", `${prefix}.url=${JSON.stringify(endpoint.url)}`, "-c", `${prefix}.bearer_token_env_var=${JSON.stringify(tokenEnv)}`);
   if (Object.keys(headers).length) appServerArgs.push("-c", `${prefix}.env_http_headers=${tomlInlineTable(headers)}`);
   if (approval !== "prompt") appServerArgs.push("-c", `${prefix}.default_tools_approval_mode="${approval}"`);
+}
+
+/** Built-in servers whose calls are independent requests, so one model step's calls to them may run at once. The
+ * computer and the browser drive one screen and a person's own server is unknown: those stay one call at a time. */
+const PARALLEL_SERVERS = new Set(["agents", "data", "email", "device", "composio", OWN_APPS_SERVER]);
+/** codex-cli 0.167.0 runs one server's calls one after another unless `supports_parallel_tool_calls` is set. */
+export const PARALLEL_MCP_MIN_CODEX: VersionTriple = [0, 167, 0];
+
+export function codexParallelMcpArgs(name: string, mountName: string, version: string | null): string[] {
+  const parsed = version === null ? null : parseVersionTriple(version);
+  if (!PARALLEL_SERVERS.has(name) || parsed === null || !versionAtLeast(parsed, PARALLEL_MCP_MIN_CODEX)) return [];
+  return ["-c", `mcp_servers.${mountName}.supports_parallel_tool_calls=true`];
 }

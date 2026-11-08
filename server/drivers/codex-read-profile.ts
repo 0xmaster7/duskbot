@@ -69,7 +69,9 @@ export function namedApprovalParams(mode: Exclude<ApprovalMode, "custom">, scope
   return {
     thread: named,
     turn: named,
-    config: { permissions: { [CODEX_WORKSPACE_PROFILE]: workspaceProfile(scope, codexConfig) } },
+    // codex-cli 0.167 accepts a profile defined only in the thread layer, then fails every model request with "failed
+    // to load workspace requirements: invalid input parameter" unless default_permissions names it there too
+    config: { default_permissions: CODEX_WORKSPACE_PROFILE, permissions: { [CODEX_WORKSPACE_PROFILE]: workspaceProfile(scope, codexConfig) } },
     fallback: legacy,
   };
 }

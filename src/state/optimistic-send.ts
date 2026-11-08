@@ -30,7 +30,8 @@ export function sendArrived(messages: readonly Message[] | undefined, sendId: st
   return Boolean(messages?.some((message) => message.sendId === sendId && message.id !== optimisticMessageId(sendId)));
 }
 
-export const LOST_SEND_RETRY_MS = [1_000, 3_000] as const;
+/** Long enough to ride out a linked server's tunnel stalling for most of a minute (seen live: 39 s over the relay). */
+export const LOST_SEND_RETRY_MS = [1_000, 2_000, 4_000, 8_000, 15_000, 20_000] as const;
 
 export interface SendDelivery {
   threadId: string;

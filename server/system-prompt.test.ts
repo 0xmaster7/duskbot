@@ -443,6 +443,13 @@ describe("reply style", () => {
 });
 
 describe("how every bot replies", () => {
+  it("asks for independent tool calls in one step and never a claim of a missing tool", () => {
+    // Codex bots ran three searches one after another, and once told the person they had no computer tool
+    expect(REPLY_HABITS_PROMPT).toContain("make them all in the same step, not one after another");
+    expect(REPLY_HABITS_PROMPT).toContain("Never tell the person you lack a tool or access you were given");
+    expect(REPLY_HABITS_PROMPT).toContain("including a cloud computer that is asleep or still starting and the person's Mac");
+  });
+
   it("ends every prompt's stable half, conversational or not", () => {
     for (const replyStyle of ["default", "conversational"] as const) {
       const built = buildSystemPrompt("You are Kiwi.", "", [{ id: "memory", label: "Memory", text: " Memory." }], undefined, { replyStyle });

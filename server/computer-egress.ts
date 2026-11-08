@@ -17,10 +17,19 @@ const AGENT_STALE_MS = 20_000;
 /** after a request fell back while the route is up, Chromium skips the proxy for minutes; a fresh policy undoes that */
 const FALLBACK_RETRY_MS = 20_000;
 export const EGRESS_PORTS = [80, 443] as const;
+/**
+ * The app's dial time (median of recent streams) decides the route: through the person's computer only while that
+ * path is fast, else this server's own network. Over the relay a dial took 350-1100 ms and a page 10-30x longer than
+ * direct (VPS, 2026-11-08), which left Chromium's page area black for minutes. Two limits so it does not flap.
+ */
+export const FAST_DIAL_MS = 200;
+export const SLOW_DIAL_MS = 350;
 
 export interface EgressAgentReport {
   online: boolean;
   proxy: { host: string; port: number } | null;
+  /** median dial time in ms, null with no recent dial; absent from an agent that does not measure it */
+  dialMs?: number | null;
   active: number;
   relayed: number;
   refused: number;
@@ -39,16 +48,17 @@ export function parseEgressReport(value: unknown): EgressAgentReport | null {
   const proxyOk = proxy && typeof proxy === "object" && typeof proxy.host === "string" && /^\d{1,3}(\.\d{1,3}){3}$/.test(proxy.host) &&
     Number.isInteger(proxy.port) && (proxy.port as number) > 0 && (proxy.port as number) < 65536;
   if (typeof raw.online !== "boolean") return null;
+  const dialMs = raw.dialMs === null ? null : Number.isFinite(raw.dialMs) && (raw.dialMs as number) >= 0 ? raw.dialMs as number : undefined;
   return {
-    online: raw.online, proxy: proxyOk ? { host: proxy.host as string, port: proxy.port as number } : null,
+    online: raw.online, proxy: proxyOk ? { host: proxy.host as string, port: proxy.port as number } : null, ...(dialMs === undefined ? {} : { dialMs }),
     active: count("active"), relayed: count("relayed"), refused: count("refused"), fallbacks: count("fallbacks"),
   };
 }
 
 /**
- * The PAC script: web ports on public names go through the person's computer, with no fallback to this server's
- * network: a refused request fails instead, so a page cannot push the browser off the proxy by exhausting it. The
- * policy is removed (everything direct) only once the agent reports the computer offline.
+ * The PAC script: web ports on public names go through the person's computer, and a stream it cannot take now (busy,
+ * slow, gone) opens from this server's network instead, so a page never breaks on the route. The policy is removed
+ * (everything direct) while the computer is offline or its path is slow.
  */
 export function egressPac(proxy: { host: string; port: number }, generation: number): string {
   return [
@@ -62,7 +72,7 @@ export function egressPac(proxy: { host: string; port: number }, generation: num
     "  var scheme = m ? m[1].toLowerCase() : \"\";",
     "  var port = m && m[2] ? +m[2] : scheme === \"https\" || scheme === \"wss\" ? 443 : scheme === \"http\" || scheme === \"ws\" ? 80 : 0;",
     `  if (${EGRESS_PORTS.map((one) => `port !== ${one}`).join(" && ")}) return "DIRECT";`,
-    `  return "SOCKS5 ${proxy.host}:${proxy.port}";`,
+    `  return "SOCKS5 ${proxy.host}:${proxy.port}; DIRECT";`,
     "}",
   ].join("\n");
 }
@@ -99,7 +109,7 @@ export function egressApplyArgs(container: string, policy: { proxy: { host: stri
 
 export function egressPrompt(enabled: boolean): string {
   return enabled
-    ? "While the person's own computer is online, web traffic from your cloud computer's browser leaves through their internet connection, so sites see their home address instead of a data centre. When it is offline the browser uses the server's own network on its own. Only web ports go that way; other connections always use the server's network."
+    ? "Web traffic from your cloud computer's browser leaves through the person's own internet connection while their computer is online and that path is fast, so sites see their home address; otherwise it uses the server's own network, switching by itself. To tell the person which address sites see right now, check it in the browser. Only web ports go that way; other connections always use the server's network."
     : "";
 }
 
@@ -115,14 +125,14 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
   const now = deps.now ?? Date.now;
   const log = deps.log ?? (() => {});
   let report: EgressAgentReport | null = null, reportedAt = -Infinity;
-  let generation = 0, routeUp = false, lastFallbacks = 0, retryAt = 0;
+  let generation = 0, routeUp = false, lastFallbacks = 0, retryAt = 0, fast = false;
   // a box may hold a policy from before this server started; the first pass clears what is not wanted
   let dirty = true, running: Promise<void> | null = null, again = false;
   const applied = new Map<string, string>();
 
   function route(): EgressRoute {
     if (!deps.enabled()) return "off";
-    return report?.online && report.proxy && now() - reportedAt < AGENT_STALE_MS ? "computer" : "server";
+    return report?.online && report.proxy && fast && now() - reportedAt < AGENT_STALE_MS ? "computer" : "server";
   }
 
   async function pass(): Promise<void> {
@@ -174,6 +184,8 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
     report(value: EgressAgentReport): { enabled: boolean } {
       report = value;
       reportedAt = now();
+      if (value.dialMs === undefined) fast = true;
+      else if (value.dialMs !== null) fast = value.dialMs <= (fast ? SLOW_DIAL_MS : FAST_DIAL_MS);
       void reconcile();
       return { enabled: deps.enabled() };
     },
