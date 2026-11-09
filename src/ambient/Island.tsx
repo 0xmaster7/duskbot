@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion, useSpring, useTransform } fr
 import { ArrowUp, CornerUpLeft, Plus } from "lucide-react";
 import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, focusBot, isBusy, moodOf, rankBots, shortAgo, type Mood } from "./mood";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, FADE, FADE_OUT, LIVELY, SETTLE, StatusTag, useAmbientFeed, useNow, usePointerRegion } from "./shared";
+import { BotMark, FADE, FADE_OUT, LIVELY, SETTLE, StatusTag, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
 import type { AmbientBot, AmbientBridge, IslandLayout } from "./types";
 
 const PANEL_W = 432;
@@ -125,6 +125,10 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
 
   const focus = focusBot(bots);
   const emoji = MOOD_EMOJI[mood];
+  // while the person is elsewhere the mark holds still, except open, or for a moment after it changes
+  const still = useStill(bridge);
+  const changed = useChangeMoment(focus ? `${focus.id}:${focus.status}` : "");
+  const moving = !still || open || changed || celebrating;
   const close = () => { setPinned(false); setOpen(false); };
   const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
 
@@ -165,7 +169,7 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
       </motion.section>
       {focus && (
         <motion.div className="amb-compact amb-compact-tile" style={{ x: tileX, top: c.top + (c.height - tile) / 2, width: tile, height: tile }}>
-          <BotMark bot={focus} size={tile} state={celebrating ? "celebrate" : undefined} animated={isBusy(focus.status) || focus.status === "needs-you" || celebrating} />
+          <BotMark bot={focus} size={tile} state={celebrating ? "celebrate" : undefined} animated={moving && (isBusy(focus.status) || focus.status === "needs-you" || celebrating)} />
         </motion.div>
       )}
       <motion.div className="amb-compact amb-emoji" aria-live="polite" style={{ x: emojiX, top: c.top + (c.height - tile) / 2, width: tile, height: tile, fontSize: Math.round(tile * 0.86) }}>

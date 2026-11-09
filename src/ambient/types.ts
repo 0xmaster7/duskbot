@@ -71,6 +71,8 @@ export interface AmbientBridge {
   surface: "island" | "dock" | "";
   onState(cb: (snapshot: AmbientSnapshot) => void): () => void;
   onLayout(cb: (layout: IslandLayout | DockLayout) => void): () => void;
+  /** True while the person is in another app or away (electron/ambient-still.mjs); absent on an older app. */
+  onStill?(cb: (still: boolean) => void): () => void;
   pointer(on: boolean): void;
   open(botId: string, threadId: string): void;
   act(act: AmbientAct): void;

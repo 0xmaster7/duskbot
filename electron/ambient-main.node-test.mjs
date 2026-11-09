@@ -3,7 +3,7 @@ import { EventEmitter } from "node:events";
 import test from "node:test";
 import { installAmbient, isAmbientWindow } from "./ambient-main.mjs";
 
-function fakes({ prefs = { island: true, dock: true } } = {}) {
+function fakes({ prefs = { island: true, dock: true }, activity = null } = {}) {
   const windows = [];
   class BrowserWindow {
     constructor(options) {
@@ -35,7 +35,7 @@ function fakes({ prefs = { island: true, dock: true } } = {}) {
   const ambient = installAmbient({
     ipcMain, BrowserWindow, platform: "darwin", page: () => appPage, origin: () => "http://127.0.0.1:5199",
     file: { read: () => saved, write: (value) => { saved = value; } },
-    openChat: (botId, threadId) => opened.push([botId, threadId]), reveal: () => revealed.push(true),
+    openChat: (botId, threadId) => opened.push([botId, threadId]), reveal: () => revealed.push(true), activity,
   });
   return { windows, handlers, listeners, appPage, screen, ambient, opened, revealed, saved: () => saved };
 }
@@ -103,4 +103,21 @@ test("Settings turns a surface off and on, from the app's window only, and the d
   assert.equal(await handlers.get("ambient:wanted")({ sender: appPage }), false);
   assert.deepEqual(appPage.sent.findLast(([channel]) => channel === "ambient:wanted"), ["ambient:wanted", false]);
   ambient.close();
+});
+
+test("both surfaces hear when to hold still, the newest word replayed to a page that loads later", async () => {
+  const app = new EventEmitter(), powerMonitor = Object.assign(new EventEmitter(), { getSystemIdleState: () => "active" });
+  let focused = true;
+  const { windows, screen, ambient } = fakes({ activity: { app, powerMonitor, focused: () => focused } });
+  ambient.start(screen);
+  await tick();
+  focused = false;
+  app.emit("browser-window-blur");
+  await tick();
+  for (const name of ["island", "dock"]) {
+    const sent = surface(windows, name).sent.filter(([channel]) => channel === "ambient:still").map(([, still]) => still);
+    assert.deepEqual(sent.at(-1), true, name);
+  }
+  ambient.close();
+  assert.equal(app.listenerCount("browser-window-blur"), 0);
 });
