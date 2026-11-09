@@ -3144,10 +3144,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -3353,7 +3349,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8790,10 +8787,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -8999,7 +8992,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12067,10 +12061,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -12276,7 +12266,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -15341,10 +15332,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -15550,7 +15537,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -21385,10 +21373,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -21594,7 +21578,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -27620,10 +27605,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -27829,7 +27810,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -34245,10 +34227,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -34454,7 +34432,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40455,10 +40434,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -40664,7 +40639,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -46533,10 +46509,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -46742,7 +46714,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -52750,10 +52723,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -52959,7 +52928,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -57919,10 +57889,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -58128,7 +58094,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -61498,10 +61465,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -61707,7 +61670,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -66667,10 +66631,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -66876,7 +66836,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -73465,10 +73426,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -73674,7 +73631,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -78184,10 +78142,6 @@
       "mobile.desktop.linkedHint": "ac53994c238f73a63d93add907ac4922904ef50f3c7a6ca6a277651601a1a913",
       "mobile.desktop.linkAnother": "93107b9917053194fb5bb1f6b4139fee7f97919cc553fb3b831f410a8a764c9b",
       "mobile.desktop.copyLinkInstead": "6cb385a6c8b77c66cd1af15632fdbddf9b3e9f7207ee7827ff31f20b5dfe57ca",
-      "mobile.desktop.appStore": "c4424d160bca806534e4fe98593c558007d9e4080167ff7192d15b057e92ed1d",
-      "mobile.desktop.googlePlay": "027b1684683ad70355967d3b0f6c6366a02adee5db8fb5e0baddfa20521e4635",
-      "mobile.desktop.comingSoon": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c",
-      "mobile.desktop.storeComingSoon": "ce1bcee16b2eeceec334b53393fc4f01e77376efe963adfd56e3c8e700f0f53a",
       "mobile.desktop.removePhone": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93",
       "mobile.onboarding.page1Title": "8eec80f46b2e8eed29ae98d5752d5f64f5e395b75a6222ddbfa1d121494d8aec",
       "mobile.onboarding.page1Body": "b612678336a12f70f271c04fa9ef9111b949fe14f922b3206e70535bb3860cb3",
@@ -78393,7 +78347,8 @@
       "failedReply.restartedDid": "8743fbfe88f686c2abd1bfef465bda961cc95b2eaa03e57a301062de0930618c",
       "failedReply.retryRepeats": "2cc9ba3ee80680ca3ae0bdd8edbbe4cd5ca6a3fcf71d0cb370504d77dd9684c9",
       "failedReply.retryAnyway": "62642be52e1c49ff65936b845f70e0e40cddb62941d02e1eccee9d30c1bdd0d8",
-      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c"
+      "failedReply.retryCancel": "de160adc9e011f407066b97a3b744255ca5a5a1d3922548415b4878ec8db7c3c",
+      "mobile.desktop.noStoreApp": "34a6f7634923c2f493a0049ed5c69026c2f2652d5c3bd1325a22d9298746800d"
     }
   }
 }
