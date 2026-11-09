@@ -63,7 +63,7 @@ describe("where reports go", () => {
     expect(bugReportEndpoint({ DUSK_BUG_REPORT_URL: "http://192.0.2.1/api/bug-reports" })).toBe("https://app.dusk.bot/api/bug-reports");
     expect(bugReportEndpoint({ DUSK_BUG_REPORT_URL: "https://user:pw@evil.example/x" })).toBe("https://app.dusk.bot/api/bug-reports");
     expect(bugReportEndpoint({}, "https://app.dusk.bot")).toBe("https://app.dusk.bot/api/bug-reports");
-    expect(bugReportEndpoint({ DUSK_CLOUD_STAGING: "1" })).toBe("https://omb-cloud-staging.fly.dev/api/bug-reports");
+    expect(bugReportEndpoint({ DUSK_CLOUD_STAGING: "1" })).toBe("https://dev.dusk.bot/api/bug-reports");
     expect(bugReportEndpoint({})).toBe("https://app.dusk.bot/api/bug-reports");
   });
 });

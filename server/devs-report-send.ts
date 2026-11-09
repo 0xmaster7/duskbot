@@ -9,7 +9,7 @@ import { DEVS_REPORT_LIMITS, withoutContact, type DevsReportPayload } from "./de
 
 export const BUG_REPORT_PATH = "/api/bug-reports";
 export const PRODUCTION_CLOUD_ORIGIN = "https://app.dusk.bot";
-export const STAGING_CLOUD_ORIGIN = "https://omb-cloud-staging.fly.dev";
+export const STAGING_CLOUD_ORIGIN = "https://dev.dusk.bot";
 const SEND_TIMEOUT_MS = 20_000;
 const ANSWER_MAX_BYTES = 16 * 1024;
 
