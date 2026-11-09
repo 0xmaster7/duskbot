@@ -2,6 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 
 export const ROUTINE_WAKE_POLL_MS = 60_000;
+/** After a wake, the network counts as back after this many online reads in a row, one per ONLINE_POLL_MS. */
+export const ONLINE_READS = 2;
+export const ONLINE_POLL_MS = 2_000;
+/** Routines go ahead after this even without the network, as they did before the hold. */
+export const ONLINE_WAIT_MS = 120_000;
+const NOTIFY_ATTEMPTS = 3;
 
 /** Keeps the system from idle-sleeping while letting the display turn off. */
 export const ROUTINE_WAKE_BLOCKER = "prevent-app-suspension";
@@ -46,6 +52,9 @@ export function rememberRoutineWake(userData, keepAwake) {
  * - blocker: { start(type): id, stop(id), isStarted(id): boolean } — Electron's powerSaveBlocker
  * - settings(): { keepAwake: boolean }
  * - log(line)
+ * - powerMonitor?: { on(event, listener) } — Electron's, once the app is ready
+ * - isOnline?(): boolean — Electron's net.isOnline
+ * - notify?(event): Promise<unknown> — tells the server "suspend", "resume" or "online" (POST /api/routines/wake)
  */
 export function createRoutineWakeHold(deps) {
   let blockerId = null;
@@ -74,9 +83,12 @@ export function createRoutineWakeHold(deps) {
 
   const state = () => ({ ...last, keepAwake: deps.settings().keepAwake, onBattery: deps.isOnBattery() });
 
+  const wake = watchWake(deps);
+
   return {
     start() {
       if (timer) return;
+      wake.watch();
       void poll();
       timer = setInterval(() => void poll(), deps.pollMs ?? ROUTINE_WAKE_POLL_MS);
       timer.unref?.();
@@ -89,5 +101,55 @@ export function createRoutineWakeHold(deps) {
     poll,
     state,
     holding: () => blockerId !== null,
+  };
+}
+
+/** Tells the server when this computer sleeps and wakes, and when the network is back after a wake. */
+export function watchWake(deps) {
+  let watching = false;
+  let waking = null;
+  const pause = (ms) => new Promise((resolve) => { const t = setTimeout(resolve, ms); t.unref?.(); });
+
+  const tell = async (event) => {
+    for (let attempt = 1; attempt <= NOTIFY_ATTEMPTS; attempt++) {
+      try {
+        await deps.notify(event);
+        return true;
+      } catch {
+        if (attempt < NOTIFY_ATTEMPTS) await pause(1_000);
+      }
+    }
+    deps.log?.(`routine wake: the server did not hear "${event}"`);
+    return false;
+  };
+
+  const awaitNetwork = async (run) => {
+    const started = Date.now();
+    let online = 0;
+    while (run === waking && Date.now() - started < (deps.onlineWaitMs ?? ONLINE_WAIT_MS)) {
+      online = deps.isOnline() ? online + 1 : 0;
+      if (online >= ONLINE_READS) break;
+      await pause(deps.onlinePollMs ?? ONLINE_POLL_MS);
+    }
+    if (run !== waking) return;
+    waking = null;
+    if (online < ONLINE_READS) deps.log?.(`routine wake: no network ${Math.round((deps.onlineWaitMs ?? ONLINE_WAIT_MS) / 1_000)} s after waking; routines go ahead`);
+    await tell("online");
+  };
+
+  return {
+    watch() {
+      if (watching || !deps.powerMonitor || !deps.notify || !deps.isOnline) return;
+      watching = true;
+      deps.powerMonitor.on("suspend", () => {
+        waking = null;
+        void tell("suspend");
+      });
+      deps.powerMonitor.on("resume", () => {
+        const run = {};
+        waking = run;
+        void tell("resume").then(() => awaitNetwork(run));
+      });
+    },
   };
 }

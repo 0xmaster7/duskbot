@@ -1,4 +1,4 @@
-import { app, autoUpdater as nativeAutoUpdater, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, nativeImage, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess, nativeTheme } from "electron";
+import { app, autoUpdater as nativeAutoUpdater, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, nativeImage, net, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess, nativeTheme } from "electron";
 import { createRequire } from "node:module";
 import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs";
@@ -539,6 +539,8 @@ const routineWake = createRoutineWakeHold({
   blocker: powerSaveBlocker,
   settings: () => routineWakeSettings(app.getPath("userData")),
   log: (line) => slog(line),
+  powerMonitor, isOnline: () => net.isOnline(),
+  notify: (event) => localServerRequest("/api/routines/wake", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ event }) }).then((response) => { if (!response.ok) throw new Error(`HTTP ${response.status}`); }),
 });
 
 function slog(line) {

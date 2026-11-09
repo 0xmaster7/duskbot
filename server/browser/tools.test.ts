@@ -5,13 +5,13 @@ import { MAX_SNAPSHOT_BYTES, snapshotText } from "./shape.ts";
 import { parseToolCall, targetOf, TOOL_LIST } from "./tools.ts";
 
 describe("the tool list", () => {
-  it("is the 21 browser tools and restart_browser, every schema closed and free of JSON Schema features some engines reject", () => {
+  it("is the 22 browser tools and restart_browser, every schema closed and free of JSON Schema features some engines reject", () => {
     expect(TOOL_LIST.map((tool) => tool.name)).toEqual([
       "agent_browser_status", "agent_browser_open", "agent_browser_navigate", "agent_browser_snapshot", "agent_browser_read",
       "agent_browser_screenshot", "agent_browser_click", "agent_browser_fill", "agent_browser_type", "agent_browser_press",
       "agent_browser_select", "agent_browser_check", "agent_browser_hover", "agent_browser_drag", "agent_browser_scroll",
       "agent_browser_upload", "agent_browser_wait", "agent_browser_eval", "agent_browser_dialog", "agent_browser_tabs",
-      "agent_browser_close", "restart_browser",
+      "agent_browser_close", "agent_browser_batch", "restart_browser",
     ]);
     for (const tool of TOOL_LIST) {
       const schema = JSON.stringify(tool.inputSchema);
@@ -21,6 +21,29 @@ describe("the tool list", () => {
       expect(tool.description.length).toBeGreaterThan(20);
     }
     expect(JSON.stringify(TOOL_LIST).length).toBeLessThan(24_000);
+  });
+});
+
+describe("the batch tool", () => {
+  it("takes steps as do plus that tool's own arguments", () => {
+    const parsed = parseToolCall("agent_browser_batch", { steps: [{ do: "open", url: "example.com" }, { do: "fill", selector: "#q", text: "hi", submit: true }, { do: "wait", text: "Results" }, { do: "read", selector: "main" }] });
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("runs nothing when any step is wrong, and names it", () => {
+    expect(parseToolCall("agent_browser_batch", { steps: [{ do: "open", url: "example.com" }, { do: "click", selector: "#a", txt: "typo" }] }))
+      .toEqual({ ok: false, error: expect.stringMatching(/^agent_browser_batch ran nothing: step 2 click got arguments it cannot use/) });
+    expect(parseToolCall("agent_browser_batch", { steps: [{ do: "eval", expression: "1" }] })).toMatchObject({ ok: false });
+    expect(parseToolCall("agent_browser_batch", { steps: [{ do: "upload", files: ["/etc/passwd"] }] })).toMatchObject({ ok: false });
+    expect(parseToolCall("agent_browser_batch", { steps: [] })).toMatchObject({ ok: false });
+    expect(parseToolCall("agent_browser_batch", { steps: Array.from({ length: 201 }, () => ({ do: "snapshot" })) })).toMatchObject({ ok: false });
+    expect(parseToolCall("agent_browser_batch", { steps: [{ do: "snapshot" }], timeoutMs: 120_000 })).toMatchObject({ ok: false });
+  });
+
+  it("refuses more than three pictures", () => {
+    const shots = (count: number) => ({ steps: Array.from({ length: count }, (_, i) => (i % 2 ? { do: "screenshot" } : { do: "snapshot", includeImage: true })) });
+    expect(parseToolCall("agent_browser_batch", shots(3)).ok).toBe(true);
+    expect(parseToolCall("agent_browser_batch", shots(4))).toEqual({ ok: false, error: expect.stringMatching(/3 pictures at most, and these steps take 4/) });
   });
 });
 

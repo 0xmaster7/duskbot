@@ -13,7 +13,9 @@ import type { PointerReporter } from "./cdp/actions.ts";
 import { navigable } from "./cdp/page.ts";
 import type { Screenshot } from "./cdp/screencast.ts";
 import { resolveElement } from "./cdp/selectors.ts";
+import { settleNote, settlePage } from "./cdp/settle.ts";
 import { MAX_VISIBLE_TEXT_LENGTH } from "./cdp/snapshot.ts";
+import { runBatch } from "./batch.ts";
 import { BROWSER_CONTROL_REFUSAL, type ProfileControl } from "./control.ts";
 import { BrowserControlInterrupted } from "./session-control.ts";
 import { errorResult, pageLabel, snapshotText, textResult, withParts, type ToolResult } from "./shape.ts";
@@ -60,6 +62,8 @@ export interface ToolContext {
   secretOnPage(tab: Tab): Promise<boolean>;
   saveScreenshot(data: Buffer, pageUrl: string): string;
   downloads(): Download[];
+  /** Throws once the call may no longer act, such as when its turn ended; a batch checks it between steps. */
+  checkpoint?(): void;
 }
 
 /** A typed address with its scheme: a bare host means https, loopback http. */
@@ -191,10 +195,17 @@ export function pictureNote(shot: Pick<Screenshot, "width" | "height" | "scale" 
     : `${pixels}: the ${region} viewport drawn at ${shot.scale}, so divide x and y read off it by ${shot.scale} for the point the click, hover and drag tools take.`;
 }
 
-async function snapshotResult(context: ToolContext, tab: Tab, { includeImage = false, save = false }: { includeImage?: boolean; save?: boolean } = {}): Promise<ToolResult> {
+/** Waits out what a read would only catch half done: a bot check that clears by itself, loading placeholders. */
+async function settled(context: ToolContext, tab: Tab, fresh: boolean): Promise<string | null> {
+  const report = await settlePage({ frames: tab.page.frames, loaded: (timeoutMs) => tab.page.lifecycle.waitFor("load", { timeoutMs }) }, { deadline: context.deadline - FOLLOW_UP_MS, fresh });
+  return settleNote(report);
+}
+
+async function snapshotResult(context: ToolContext, tab: Tab, { includeImage = false, save = false, fresh = false }: { includeImage?: boolean; save?: boolean; fresh?: boolean } = {}): Promise<ToolResult> {
+  const note = await settled(context, tab, fresh);
   const snapshot = await tab.page.snapshot();
   await context.browser.refreshTargets().catch(() => undefined);
-  const text = snapshotText({ ...describe(tab), tree: snapshot.tree, truncated: snapshot.truncated, frames: snapshot.frames, health: context.health(tab) });
+  const text = [note, snapshotText({ ...describe(tab), tree: snapshot.tree, truncated: snapshot.truncated, frames: snapshot.frames, health: context.health(tab) })].filter(Boolean).join("\n");
   if (!includeImage && !save) return textResult(text);
   const shot = await context.paused(tab, () => tab.page.screenshot());
   const saved = save ? context.saveScreenshot(shot.data, tab.page.url()) : null;
@@ -252,7 +263,7 @@ export async function executeTool(context: ToolContext, call: ToolCall): Promise
         const lead = opened
           ? `Opened ${sanitizeUrl(opened.url) || opened.url} in ${tab.id}${opened.status && opened.status >= 400 ? `; the site answered HTTP ${opened.status}` : ""}.`
           : `${tab.id} is open at ${sanitizeUrl(tab.page.url()) || tab.page.url()}.`;
-        const snapshot = await snapshotResult(context, tab);
+        const snapshot = await snapshotResult(context, tab, { fresh: opened !== null });
         return withParts(textResult(lead, "Page observed after navigation. Its refs are current, so act on them without another snapshot. Check this result for redirects, sign-in requirements or page errors before reporting task success:"), ...snapshot.content.map((part) => (part.type === "text" ? part.text : null)), dialogNote(tab));
       });
     }
@@ -280,8 +291,10 @@ export async function executeTool(context: ToolContext, call: ToolCall): Promise
       const tab = tabOf(context, call.input.tab);
       return act(context, tab, async () => {
         await tab.page.bringToFront();
-        if (call.input.url !== undefined && call.input.url.trim() !== "") await tab.page.navigate(agentUrl(call.input.url), { readiness: "load", timeoutMs: remaining(context) });
-        return textResult(`${pageLabel(describe(tab))}\n${await readText(tab, call.input)}`);
+        const opens = call.input.url !== undefined && call.input.url.trim() !== "";
+        if (opens) await tab.page.navigate(agentUrl(call.input.url!), { readiness: "load", timeoutMs: remaining(context) });
+        const note = await settled(context, tab, opens);
+        return textResult(note, `${pageLabel(describe(tab))}\n${await readText(tab, call.input)}`);
       });
     }
     case "agent_browser_screenshot": {
@@ -440,6 +453,8 @@ export async function executeTool(context: ToolContext, call: ToolCall): Promise
       }
       return context.control.agent(null, async () => { await context.closeBrowser(); return textResult("Closed the browser. Saved sign-ins are kept; agent_browser_open starts it again."); });
     }
+    case "agent_browser_batch":
+      return runBatch(context, call.input, { execute: executeTool, failure: toolFailure });
     case "restart_browser":
       return errorResult("restart_browser is handled before a call reaches its tab.");
   }

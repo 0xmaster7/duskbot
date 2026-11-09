@@ -1,0 +1,174 @@
+// Before a page is read: a bot-check interstitial that clears by itself is waited out, and loading skeletons and spinners
+// get a moment to turn into content, so a read does not come back as a placeholder.
+import { isUnanswered } from "./errors.ts";
+import { valueInWorld } from "./evaluate.ts";
+import type { FrameTree } from "./frames.ts";
+
+export const CHALLENGE_WAIT_MS = 15_000;
+export const BUSY_WAIT_MS = 2_000;
+/** A fresh document with no controls yet is usually an app still drawing itself. */
+export const EMPTY_WAIT_MS = 1_000;
+const CHALLENGE_POLL_MS = 1_000;
+const BUSY_POLL_MS = 100;
+const QUIET_MS = 150;
+
+export type ChallengeVendor = "Cloudflare" | "DataDome" | "PerimeterX" | "Imperva" | "Akamai" | "AWS WAF" | "Vercel" | "DDoS-Guard";
+export type ChallengeState = "checking" | "needs-user" | "blocked";
+export interface Challenge { vendor: ChallengeVendor; state: ChallengeState }
+
+/** What the isolated world sees of the document, enough to tell an interstitial and a loading page apart. */
+export interface PageProbe {
+  title: string;
+  text: string;
+  textLength: number;
+  nodes: number;
+  controls: number;
+  busy: boolean;
+  scripts: string[];
+  iframes: string[];
+  selectors: string[];
+}
+
+const MARKERS = ["#challenge-running", "#challenge-stage", "#challenge-form", "#cf-challenge-running", ".cf-browser-verification", "#cf-error-details",
+  "#px-captcha", "#sec-if-cpt-container", "#sec-cpt-if", "awswaf-captcha", "#captcha-container"] as const;
+const BUSY = `[aria-busy="true"],[class*="skeleton" i],[class*="shimmer" i],[class*="spinner" i],[role="progressbar"]:not([aria-valuenow])`;
+const CONTROLS = `a[href],button,input,select,textarea,[role="button"],[role="link"],[role="textbox"],[contenteditable="true"]`;
+
+export const PROBE_EXPRESSION = `(() => {
+  const visible = (el) => { const r = el.getBoundingClientRect(); if (r.width <= 0 || r.height <= 0) return false; const s = getComputedStyle(el); return s.visibility !== "hidden" && s.display !== "none" && Number(s.opacity) > 0; };
+  const body = document.body;
+  const text = body ? body.innerText : "";
+  return {
+    title: document.title.slice(0, 200),
+    text: text.slice(0, 1500),
+    textLength: text.length,
+    nodes: document.getElementsByTagName("*").length,
+    controls: document.querySelectorAll(${JSON.stringify(CONTROLS)}).length,
+    busy: [...document.querySelectorAll(${JSON.stringify(BUSY)})].slice(0, 50).some(visible),
+    scripts: [...document.scripts].map((s) => s.src).filter(Boolean).slice(0, 60).map((src) => src.slice(0, 300)),
+    iframes: [...document.querySelectorAll("iframe")].map((f) => f.src).filter(Boolean).slice(0, 30).map((src) => src.slice(0, 300)),
+    selectors: ${JSON.stringify(MARKERS)}.filter((selector) => document.querySelector(selector) !== null),
+  };
+})()`;
+
+const has = (probe: PageProbe, selector: (typeof MARKERS)[number]) => probe.selectors.includes(selector);
+const anyUrl = (urls: readonly string[], pattern: RegExp) => urls.some((url) => pattern.test(url));
+
+/** Which vendor's interstitial the page is, and whether it clears by itself; null for an ordinary page. */
+export function classifyChallenge(probe: PageProbe, frameUrls: readonly string[] = []): Challenge | null {
+  const { title, text } = probe;
+  const frames = [...probe.iframes, ...frameUrls];
+  const short = probe.textLength < 2_000;
+
+  if (/Attention Required! \| Cloudflare/iu.test(title) || (has(probe, "#cf-error-details") && /Sorry, you have been blocked|Error 10\d\d/iu.test(text))) return { vendor: "Cloudflare", state: "blocked" };
+  const cloudflare = /^Just a moment/iu.test(title) || has(probe, "#challenge-running") || has(probe, "#challenge-stage") || has(probe, "#challenge-form") ||
+    has(probe, "#cf-challenge-running") || has(probe, ".cf-browser-verification") || anyUrl(probe.scripts, /\/cdn-cgi\/challenge-platform\//u);
+  if (cloudflare && short) return { vendor: "Cloudflare", state: "checking" };
+
+  const datadome = frames.find((url) => /^https:\/\/(?:geo\.)?captcha-delivery\.com\//u.test(url));
+  if (datadome) return { vendor: "DataDome", state: /[?&]t=bv(?:&|$)/u.test(datadome) ? "blocked" : "needs-user" };
+
+  if (has(probe, "#px-captcha")) return { vendor: "PerimeterX", state: "needs-user" };
+
+  if (/Incapsula incident ID/iu.test(text)) return { vendor: "Imperva", state: "blocked" };
+  if (short && probe.textLength < 300 && (anyUrl(probe.scripts, /\/_Incapsula_Resource\b/u) || anyUrl(frames, /\/_Incapsula_Resource\b/u))) return { vendor: "Imperva", state: "checking" };
+
+  if (/^Access Denied$/iu.test(title.trim()) && /You don't have permission to access|Reference #\d/iu.test(text)) return { vendor: "Akamai", state: "blocked" };
+  if (has(probe, "#sec-if-cpt-container") || has(probe, "#sec-cpt-if")) return { vendor: "Akamai", state: "checking" };
+
+  if (has(probe, "awswaf-captcha") || (has(probe, "#captcha-container") && anyUrl(probe.scripts, /awswaf\.com\//u))) return { vendor: "AWS WAF", state: "needs-user" };
+  if (short && probe.textLength < 300 && anyUrl(probe.scripts, /\.awswaf\.com\/.*challenge\.js/u)) return { vendor: "AWS WAF", state: "checking" };
+
+  if (/^Vercel Security Checkpoint/iu.test(title)) return { vendor: "Vercel", state: "checking" };
+  if (/^DDoS-Guard/iu.test(title) || (short && anyUrl(probe.scripts, /ddos-guard\.net\//u) && /Checking your browser/iu.test(text))) return { vendor: "DDoS-Guard", state: "checking" };
+  return null;
+}
+
+export interface SettleTarget {
+  readonly frames: FrameTree;
+  /** Resolves once the current document reached load, or rejects after `timeoutMs`. */
+  loaded(timeoutMs: number): Promise<void>;
+}
+
+export interface SettleReport {
+  /** The interstitial met first, how it ended, and how long it was waited out. */
+  challenge?: Challenge & { cleared: boolean; waitedMs: number };
+  /** Skeletons or spinners were still showing when the wait ran out. */
+  stillBusy?: boolean;
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Null while the page is between documents, as it is the moment a check clears and the site loads. */
+async function probeOf(target: SettleTarget): Promise<PageProbe | null> {
+  try {
+    return await valueInWorld<PageProbe>(target.frames, target.frames.mainFrameId, PROBE_EXPRESSION);
+  } catch (error) {
+    if (isUnanswered(error)) throw error;
+    return null;
+  }
+}
+
+const frameUrls = (target: SettleTarget) => target.frames.all().map((frame) => frame.url);
+const turnstileShown = (target: SettleTarget) => frameUrls(target).some((url) => url.startsWith("https://challenges.cloudflare.com/"));
+/** A nearly empty document with nothing to act on: an app that has not drawn itself yet. */
+const unpainted = (probe: PageProbe) => probe.controls === 0 && probe.textLength < 200;
+
+/** Waits out a self-clearing check, then loading placeholders, never past `deadline`. */
+export async function settlePage(target: SettleTarget, { deadline, fresh = false, now = Date.now }: { deadline: number; fresh?: boolean; now?: () => number }): Promise<SettleReport> {
+  const report: SettleReport = {};
+  let probe = await probeOf(target);
+  const met = probe ? classifyChallenge(probe, frameUrls(target)) : null;
+  if (met) {
+    const started = now();
+    const until = Math.min(deadline, started + CHALLENGE_WAIT_MS);
+    let current: Challenge | null = met;
+    while (current?.state === "checking" && now() + CHALLENGE_POLL_MS <= until) {
+      await sleep(CHALLENGE_POLL_MS);
+      const next = await probeOf(target);
+      if (!next) continue;
+      probe = next;
+      current = classifyChallenge(next, frameUrls(target));
+    }
+    if (current) {
+      const state = current.vendor === "Cloudflare" && current.state === "checking" && turnstileShown(target) ? "needs-user" : current.state;
+      report.challenge = { ...current, state, cleared: false, waitedMs: now() - started };
+      return report;
+    }
+    report.challenge = { ...met, cleared: true, waitedMs: now() - started };
+    await target.loaded(Math.max(0, Math.min(5_000, deadline - now()))).catch(() => undefined);
+    probe = await probeOf(target);
+  }
+  if (!probe || !(probe.busy || (fresh && unpainted(probe)))) return report;
+  const busyUntil = Math.min(deadline, now() + BUSY_WAIT_MS);
+  const emptyUntil = Math.min(deadline, now() + EMPTY_WAIT_MS);
+  let signature = `${probe.nodes}:${probe.textLength}`;
+  let quietSince = now();
+  while (now() + BUSY_POLL_MS <= busyUntil) {
+    await sleep(BUSY_POLL_MS);
+    const next = await probeOf(target);
+    if (!next) continue;
+    const nextSignature = `${next.nodes}:${next.textLength}`;
+    if (nextSignature !== signature) { signature = nextSignature; quietSince = now(); }
+    probe = next;
+    const waiting = next.busy || now() - quietSince < QUIET_MS || (fresh && unpainted(next) && now() < emptyUntil);
+    if (!waiting) return report;
+  }
+  if (probe.busy) report.stillBusy = true;
+  return report;
+}
+
+/** The report as one line of a tool's answer, or null when there is nothing to say. */
+export function settleNote(report: SettleReport): string | null {
+  const lines: string[] = [];
+  const check = report.challenge;
+  if (check) {
+    const waited = `${Math.round(check.waitedMs / 1_000)} s`;
+    if (check.cleared) lines.push(`The site ran a ${check.vendor} bot check first; it cleared by itself after ${waited}.`);
+    else if (check.state === "checking") lines.push(`The site is still running a ${check.vendor} bot check after ${waited}. Wait a little and take a snapshot again; do not try to solve it or reload the page in a loop.`);
+    else if (check.state === "needs-user") lines.push(`The site shows a ${check.vendor} check that a person must answer. Do not try to solve it or retry the page: call request_sign_in so the person watching can answer it.`);
+    else lines.push(`The site's ${check.vendor} protection blocked this browser. Do not retry it; tell the person, or find what you need elsewhere.`);
+  }
+  if (report.stillBusy) lines.push(`Parts of the page were still loading after ${BUSY_WAIT_MS / 1_000} s (placeholders or spinners). If what you need is missing, wait for it and read again.`);
+  return lines.length ? lines.join(" ") : null;
+}
