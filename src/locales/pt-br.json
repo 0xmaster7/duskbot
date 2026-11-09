@@ -1900,6 +1900,7 @@
   "composer.dictation.macOnly": "O ditado só está disponível no macOS por enquanto.",
   "composer.dictation.disabled": "Ative o Ditado em Ajustes do Sistema → Teclado e tente novamente.",
   "composer.dictation.failed": "Não foi possível iniciar o ditado. Tente novamente.",
+  "composer.dictation.micFailed": "O ditado não conseguiu usar o microfone. Ative o {app} em Ajustes do Sistema → Privacidade e Segurança → Microfone e confira se há um microfone conectado.",
   "composer.dictation.unavailable": "O ditado não está disponível nesta versão.",
   "composer.dictation.start": "Iniciar o ditado",
   "composer.dictation.stop": "Parar o ditado",

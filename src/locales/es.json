@@ -1841,6 +1841,7 @@
   "composer.dictation.macOnly": "El dictado solo está disponible en macOS por ahora.",
   "composer.dictation.disabled": "Activa Dictado en Ajustes del Sistema → Teclado e inténtalo de nuevo.",
   "composer.dictation.failed": "No se pudo iniciar el dictado. Inténtalo de nuevo.",
+  "composer.dictation.micFailed": "El dictado no pudo usar el micrófono. Activa {app} en Ajustes del Sistema → Privacidad y seguridad → Micrófono y comprueba que haya un micrófono conectado.",
   "composer.dictation.unavailable": "El dictado no está disponible en esta versión.",
   "composer.dictation.start": "Iniciar el dictado",
   "composer.dictation.stop": "Detener el dictado",

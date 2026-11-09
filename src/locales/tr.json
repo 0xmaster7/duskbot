@@ -1581,6 +1581,7 @@
   "composer.dictation.macOnly": "Dikte şu an için yalnızca macOS'ta kullanılabilir.",
   "composer.dictation.disabled": "Sistem Ayarları → Klavye bölümünden Dikte'yi açın ve ardından tekrar deneyin.",
   "composer.dictation.failed": "Dikte başlatılamadı. Tekrar deneyin.",
+  "composer.dictation.micFailed": "Dikte mikrofonu kullanamadı. Sistem Ayarları → Gizlilik ve Güvenlik → Mikrofon bölümünde {app} uygulamasını açın ve bir mikrofonun bağlı olduğunu kontrol edin.",
   "composer.dictation.unavailable": "Dikte bu derlemede kullanılamıyor.",
   "composer.dictation.start": "Dikteyi başlat",
   "composer.dictation.stop": "Dikteyi durdur",

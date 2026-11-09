@@ -1397,6 +1397,7 @@
   "composer.dictation.macOnly": "語音輸入目前僅在 macOS 上提供。",
   "composer.dictation.disabled": "請在「系統設定」→「鍵盤」中開啟「聽寫」，然後再試一次。",
   "composer.dictation.failed": "無法開始語音輸入，請再試一次。",
+  "composer.dictation.micFailed": "聽寫無法使用麥克風。請在系統設定 → 隱私權與安全性 → 麥克風中開啟 {app}，並確認已連接麥克風。",
   "composer.dictation.unavailable": "此版本不支援語音輸入。",
   "composer.dictation.start": "開始語音輸入",
   "composer.dictation.stop": "停止語音輸入",

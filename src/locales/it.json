@@ -1893,6 +1893,7 @@
   "composer.dictation.macOnly": "La dettatura è disponibile solo su macOS, per ora.",
   "composer.dictation.disabled": "Attiva Dettatura in Impostazioni di Sistema → Tastiera, poi riprova.",
   "composer.dictation.failed": "La dettatura non è partita. Riprova.",
+  "composer.dictation.micFailed": "La dettatura non ha potuto usare il microfono. Attiva {app} in Impostazioni di Sistema → Privacy e sicurezza → Microfono e controlla che un microfono sia collegato.",
   "composer.dictation.unavailable": "La dettatura non è disponibile in questa versione.",
   "composer.dictation.start": "Avvia la dettatura",
   "composer.dictation.stop": "Interrompi la dettatura",

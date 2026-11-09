@@ -3368,5 +3368,6 @@
   "computer.mac.permission.helperBoth": "Schalte {helper} unter Systemeinstellungen → Datenschutz & Sicherheit ein, sowohl bei Bildschirmaufnahme als auch bei Bedienungshilfen. {app} merkt es von selbst, kein Neustart nötig.",
   "computer.mac.permission.checkAgain": "Erneut prüfen",
   "keys.row.removeConfirm": "{label} entfernen? Alles, was ihn nutzt, funktioniert erst wieder, wenn du ihn erneut einfügst.",
-  "confirm.signOutStopsWork": "Bots, die es nutzen, brauchen eine neue Anmeldung. Alles, was sie gerade damit tun, wird gestoppt."
+  "confirm.signOutStopsWork": "Bots, die es nutzen, brauchen eine neue Anmeldung. Alles, was sie gerade damit tun, wird gestoppt.",
+  "composer.dictation.micFailed": "Die Diktierfunktion konnte das Mikrofon nicht nutzen. Schalte {app} unter Systemeinstellungen → Datenschutz & Sicherheit → Mikrofon ein und prüfe, ob ein Mikrofon angeschlossen ist."
 }

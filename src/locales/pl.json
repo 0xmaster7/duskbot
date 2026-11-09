@@ -1936,6 +1936,7 @@
   "composer.dictation.macOnly": "Dyktowanie jest na razie dostępne tylko na macOS.",
   "composer.dictation.disabled": "Włącz dyktowanie w Ustawieniach systemowych → Klawiatura, a następnie spróbuj ponownie.",
   "composer.dictation.failed": "Nie udało się uruchomić dyktowania. Spróbuj ponownie.",
+  "composer.dictation.micFailed": "Dyktowanie nie mogło użyć mikrofonu. Włącz {app} w Ustawieniach systemowych → Prywatność i bezpieczeństwo → Mikrofon i sprawdź, czy mikrofon jest podłączony.",
   "composer.dictation.unavailable": "Dyktowanie nie jest dostępne w tej kompilacji.",
   "composer.dictation.start": "Rozpocznij dyktowanie",
   "composer.dictation.stop": "Zatrzymaj dyktowanie",

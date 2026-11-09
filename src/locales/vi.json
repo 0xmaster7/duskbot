@@ -1581,6 +1581,7 @@
   "composer.dictation.macOnly": "Tính năng đọc chính tả hiện chỉ khả dụng trên macOS.",
   "composer.dictation.disabled": "Bật Đọc chính tả trong Cài đặt hệ thống → Bàn phím, rồi thử lại.",
   "composer.dictation.failed": "Không thể bắt đầu đọc chính tả. Vui lòng thử lại.",
+  "composer.dictation.micFailed": "Đọc chính tả không dùng được micrô. Bật {app} trong Cài đặt hệ thống → Quyền riêng tư & Bảo mật → Micrô, và kiểm tra đã cắm micrô.",
   "composer.dictation.unavailable": "Đọc chính tả không khả dụng trong bản dựng này.",
   "composer.dictation.start": "Bắt đầu đọc chính tả",
   "composer.dictation.stop": "Dừng đọc chính tả",

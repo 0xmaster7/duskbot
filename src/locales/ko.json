@@ -2086,6 +2086,7 @@
   "composer.dictation.permission": "받아쓰기에는 마이크와 음성 인식 권한이 필요해요 — 시스템 설정 → 개인정보 보호 및 보안.",
   "composer.dictation.disabled": "시스템 설정 → 키보드에서 받아쓰기를 켠 뒤 다시 시도하세요.",
   "composer.dictation.failed": "받아쓰기를 시작하지 못했어요. 다시 시도하세요.",
+  "composer.dictation.micFailed": "받아쓰기가 마이크를 쓰지 못했어요. 시스템 설정 → 개인정보 보호 및 보안 → 마이크에서 {app}을(를) 켜고, 마이크가 연결되어 있는지 확인하세요.",
   "composer.dictation.unavailable": "이 빌드에서는 받아쓰기를 쓸 수 없어요.",
   "composer.dictation.start": "받아쓰기 시작",
   "composer.dictation.stop": "받아쓰기 중지",

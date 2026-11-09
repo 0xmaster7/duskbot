@@ -3371,7 +3371,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -9035,7 +9036,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12330,7 +12332,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -15622,7 +15625,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -21684,7 +21688,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -27937,7 +27942,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -34580,7 +34586,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40808,7 +40815,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -46904,7 +46912,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -53139,7 +53148,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -58326,7 +58336,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -61923,7 +61934,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -67110,7 +67122,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -73926,7 +73939,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -78663,7 +78677,8 @@
       "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9",
       "keys.row.removeConfirm": "fe5729766ebe80eb67984aaee98e07a4e1af0fe2b7b1c578f65d03d51ca0f0e1",
       "confirm.signOutStopsWork": "4458bbc741e82b1f1d927c56e253ef41a3dba3a10bcd095d813a9d119596e7e7",
-      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7"
+      "vpsLink.transfer.moveBackRoutines": "65f1f61b675bc52055f0d87946aedad06c498ceaa2bf8a41f6a82ade597315b7",
+      "composer.dictation.micFailed": "66fe988722630432fbd70f57a5739c95e7074dbe0d53249955db0c40e8c3ad8b"
     }
   }
 }

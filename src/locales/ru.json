@@ -1970,6 +1970,7 @@
   "composer.dictation.macOnly": "Диктовка пока доступна только на macOS.",
   "composer.dictation.disabled": "Включите диктовку в Системных настройках → Клавиатура и попробуйте снова.",
   "composer.dictation.failed": "Диктовка не запустилась. Попробуйте снова.",
+  "composer.dictation.micFailed": "Диктовке не удалось использовать микрофон. Включите {app} в Системных настройках → Конфиденциальность и безопасность → Микрофон и проверьте, что микрофон подключён.",
   "composer.dictation.unavailable": "Диктовка недоступна в этой сборке.",
   "composer.dictation.start": "Начать диктовку",
   "composer.dictation.stop": "Остановить диктовку",
