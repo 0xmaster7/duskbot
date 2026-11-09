@@ -87,7 +87,7 @@ const AREAS = [
   [/^(?:src|public|previews)\//, "web"],
   [/^(?:server|shared|apps\/companion|evals|skills|deploy|apps\/cloudflare\/composio-broker)\//, "server"],
   [/^electron\/(?:cua|cua-failure|cua-connection|capabilities|paced-typing)\.[cm]js$/, "windows-computer-control"],
-  [/^(?:electron|build)\/|^(?:electron-builder\.yml|index\.html|rail\.html)$/, "desktop"],
+  [/^(?:electron|build)\/|^(?:index\.html|rail\.html)$/, "desktop"],
   [/^cloudflare\/control-plane\//, "control-plane"],
 ];
 
@@ -131,7 +131,7 @@ export const WINDOWS_PATH = new RegExp([
   String.raw`(?:^|[/._-])(?:win|win32|win64|windows|nsis|powershell|pwsh)(?:[/._-]|$)`,
   String.raw`\.(?:ps1|psm1|psd1|cmd|bat|exe|msi|nsh|nsi)$`,
   String.raw`^(?:electron|build|third_party)/`,
-  String.raw`^(?:electron-builder\.yml|package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.gitattributes|vite\.config\.ts)$`,
+  String.raw`^(?:package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.gitattributes|vite\.config\.ts)$`,
   String.raw`^\.github/workflows/ci\.yml$|^scripts/ci-scope\.mjs$`,
   String.raw`^scripts/testing/(?:host-e2e\.ts|duration-sequencer\.ts|vitest-shard-weights\.json|ci-retry-[^/]+)$|^server/testing/host-timeout\.ts$`,
   String.raw`^scripts/(?:build|bundle|prepare|package|smoke|after-pack|stage)[^/]*$`,

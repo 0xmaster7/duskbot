@@ -20,7 +20,7 @@ too) into areas, and runs only the jobs some area can affect:
 | script tests | `scripts/**/*.test.*` | the Linux shards (and Windows', see Windows), the renderer smoke, browser identity |
 | server | `server/`, `shared/`, `apps/companion/`, `evals/`, `skills/`, `deploy/`, the composio broker, the Dockerfile, and the renderer files the server or a smoke loads | the build, Linux shards (and Windows', see Windows), behavior evals, packaged server, the macOS smokes, renderer smoke, browser identity, browser driver, Linux package |
 | Windows computer control | the `electron/` modules that start computer control: `cua`, `cua-failure`, `cua-connection`, `capabilities`, `paced-typing` | the same as server, and Windows CUA |
-| desktop | the rest of `electron/`, `build/`, `electron-builder.yml`, `index.html` | the same as server |
+| desktop | the rest of `electron/`, `build/` (with `build/electron-builder.yml`), `index.html` | the same as server |
 | control plane | `cloudflare/control-plane/` | the control-plane job |
 | everything | anything else: `.github/` workflows, `package.json`, the lockfile and workspace, tsconfig, vite and vitest config, `third_party/`, `scripts/` code, unknown paths | every job |
 
@@ -200,7 +200,7 @@ its change can break Windows first
 - the PR carries the `windows` label;
 - a path names Windows (`win`, `win32`, `windows`, `nsis`, `powershell` as a
   word of the path, `.ps1`, `.cmd`, `.bat`, `.exe`), or is the desktop app and
-  its installer (`electron/`, `build/`, `electron-builder.yml`), the
+  its installer (`electron/`, `build/`), the
   dependencies (`package.json`, the lockfile and workspace, `.npmrc`,
   `third_party/`), `.gitattributes`, `vite.config.ts`, a script that builds,
   bundles, prepares, packages, stages or smokes the app, or what decides how

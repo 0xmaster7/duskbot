@@ -129,7 +129,7 @@ describe("CI path scope", () => {
       expect(selectCiScope([file]).checks).toContain("windows-cua");
     });
 
-  it.each([["electron/main.mjs"], ["build/icon.icns"], ["electron-builder.yml"], ["index.html"], ["rail.html"]])("runs the server's checks for the desktop's %j", (file) => {
+  it.each([["electron/main.mjs"], ["build/icon.icns"], ["build/electron-builder.yml"], ["index.html"], ["rail.html"]])("runs the server's checks for the desktop's %j", (file) => {
     expect(selectCiScope([file])).toEqual({ areas: ["desktop"], checks: checks("server") });
   });
 
@@ -299,7 +299,7 @@ describe("Windows on a pull request", () => {
   });
 
   it.each([
-    "electron/main.mjs", "build/installer.nsh", "electron-builder.yml", "scripts/build-cua-win.mjs",
+    "electron/main.mjs", "build/installer.nsh", "build/electron-builder.yml", "scripts/build-cua-win.mjs",
     "scripts/smoke-cua-win-embedded.mjs", "server/win32-paths.ts", "server/shell/windows.ts", "server/foo.win32.test.ts",
     ".github/workflows/package-win.yml", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".gitattributes", "vite.config.ts",
     "third_party/browser/agent-browser-windows-stdio.patch", ".github/workflows/ci.yml", "scripts/ci-scope.mjs",

@@ -26,4 +26,4 @@ platforms. Keep a stable `OpenMausBot-setup.exe` copy for download links.
 
 The Windows build is unsigned. SmartScreen shows "unknown publisher" and users
 choose **More info → Run anyway**. Signing configuration belongs under
-`win.signtoolOptions` or `win.azureSignOptions` in `electron-builder.yml`.
+`win.signtoolOptions` or `win.azureSignOptions` in `build/electron-builder.yml`.
