@@ -11,6 +11,7 @@ import { Onboarding } from "../onboarding/Onboarding";
 import { Success } from "../onboarding/Success";
 import { connectToWorkspace, createConnectionStore } from "./connections";
 import { PairError, parseTypedPairing, type TypedPairing } from "./pair";
+import { ActiveConnection } from "./active";
 import { reportPresence } from "./presence";
 import { registerPushForConnection } from "./push";
 
@@ -124,7 +125,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
   }
   return (
     <>
-      <Fragment key={state.id}>{children}</Fragment>
+      <ActiveConnection value={state.id}><Fragment key={state.id}>{children}</Fragment></ActiveConnection>
       {(incoming || adding > 0) && (
         <div className="fixed inset-0 z-50">
           <Onboarding key={incoming ? `in-${incoming.sequence}` : `add-${adding}`} initial={incoming?.payload} startAtLink

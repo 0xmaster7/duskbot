@@ -1,5 +1,6 @@
 import { cloudAsleep, onCloudPower } from "../lib/cloud-power";
 import { answerOf, api, ApiError, snapshotArrays } from "./api";
+import { sendOutbox } from "./send-outbox";
 import { chatSnapshotPath, MESSAGE_PAGE_SIZE, takeBootRead } from "./boot-reads";
 import { createContext, startTransition, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
@@ -2423,13 +2424,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             action.threadId ?? stateRef.current.bots.find((bot) => bot.id === action.botId)?.threadId;
           const sendId = action.sendId ?? randomUuid();
           const arrived = () => sendArrived(stateRef.current.bots.find((bot) => bot.id === action.botId && bot.threadId === threadId)?.messages, sendId);
+          const outbox = threadId && !action.dataContext && !action.pointed?.length && !action.followUp ? sendOutbox() : null;
+          if (threadId) outbox?.hold({ kind: "bot", ownerId: action.botId, threadId, sendId, text: action.text, at: Date.now(), ...(action.replyToId ? { replyToId: action.replyToId } : {}), ...(action.mode ? { mode: action.mode } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) });
           void waitForExecutionSettings(botBeforeSend ? [botBeforeSend] : [], threadId)
             .then(() => sendReconciled((signal) => api(`/api/bots/${action.botId}/messages`, {
                 method: "POST", signal,
                 body: JSON.stringify({ text: action.text, replyToId: action.replyToId, threadId, sendId, ...(action.dataContext ? { dataContext: action.dataContext } : {}), ...(action.pointed?.length ? { pointed: action.pointed } : {}), ...(action.mode === "goal" ? { mode: "goal" } : {}), ...(action.followUp ? { followUp: action.followUp } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) }),
               }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
-            .then((sent) => applySendReceipt(sent, sendId, action.text, rawDispatch))
+            .then((sent) => { outbox?.release(sendId); applySendReceipt(sent, sendId, action.text, rawDispatch); })
             .catch((error) => {
+              if (outbox && !(error instanceof ApiError) && outbox.keep(sendId)) return;
+              outbox?.release(sendId);
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });
               }
@@ -2646,6 +2651,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             action.threadId ?? stateRef.current.groups.find((group) => group.id === action.groupId)?.threadId;
           const sendId = action.sendId ?? randomUuid();
           const arrived = () => sendArrived(stateRef.current.groups.find((group) => group.id === action.groupId && group.threadId === threadId)?.messages, sendId);
+          const outbox = threadId ? sendOutbox() : null;
+          if (threadId) outbox?.hold({ kind: "group", ownerId: action.groupId, threadId, sendId, text: action.text, at: Date.now(), ...(action.replyToId ? { replyToId: action.replyToId } : {}), ...(action.mode ? { mode: action.mode } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) });
           void waitForExecutionSettings(executionBotsBeforeAction)
             .then(() => sendReconciled((signal) => api(`/api/groups/${action.groupId}/messages`, {
               method: "POST", signal,
@@ -2657,8 +2664,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 mode: action.mode ?? "chat", ...(action.mentions?.length ? { mentions: action.mentions } : {}),
               }),
             }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
-            .then((sent) => applySendReceipt(sent, sendId, action.text, rawDispatch))
+            .then((sent) => { outbox?.release(sendId); applySendReceipt(sent, sendId, action.text, rawDispatch); })
             .catch((error) => {
+              if (outbox && !(error instanceof ApiError) && outbox.keep(sendId)) return;
+              outbox?.release(sendId);
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });
               }
