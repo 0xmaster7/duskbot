@@ -1,0 +1,7 @@
+{
+  "name": "dusk-sites",
+  "private": true,
+  "type": "module",
+  "description": "placeholder sites for dusk.bot, app.dusk.bot and dev.dusk.bot (deployed with deploy.sh)",
+  "engines": { "node": ">=22" }
+}
