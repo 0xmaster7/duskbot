@@ -21,7 +21,6 @@ import {
   prependComposerDraft,
   recoverFailedComposerSend,
   rememberFailedComposerSend,
-  replaceDraftAttachment,
   restoredSendId,
   restoredRequestText,
   useComposerDraft,
@@ -43,23 +42,27 @@ import { useOnCall } from "@/lib/call";
 import { isLiveCallRunning, useLiveMedia } from "@/lib/live-call-media";
 import {
   appendPastedText,
-  handoffAttachmentImagePreview,
+  attachmentUnsent,
   clipboardHasImages,
   clipboardImageFiles,
   composeMessage,
   discardUnsentUpload,
   composerShouldRefocus,
   composerTakesFocusOnOpen,
-  imageAttachmentFromFile, imageBytesLeft, imageSlotsLeft, imagesThatFit,
+  imageBytesLeft, imageSlotsLeft, imagesThatFit,
   replyTargetTakesFocus,
   intakeFiles,
   isLongPaste,
   optimisticImageAttachment,
   pasteAttachment,
+  pendingFileAttachment,
   releaseAttachmentImagePreview,
   type Attachment,
+  type FileAttachment,
   type PasteAttachment,
 } from "@/lib/composer-attachments";
+import { retryPlacedUpload, sendPlacedUpload } from "@/lib/placed-upload";
+import { cancelUpload } from "@/lib/upload-progress";
 import { goalCoordinatorForComposer, openTaskWorking, roomRouteForComposer } from "@/lib/group-routing";
 import { composerPlaceholder, pendingQuestion, sendLabels, SIMPLE_COMPOSER, SIMPLE_CONTROL, slotColors } from "./composer-simple"; import { ComposerSendButton } from "./ComposerSendButton"; import { GrokIcon } from "./GrokIcon";
 import { PendingApprovalActions, PendingApprovalPanel, pendingApprovals } from "./PendingApproval";
@@ -171,6 +174,7 @@ export function Composer({
     !group && bot ? `bot:${bot.id}` : undefined,
   );
   const attachmentPending = useDraftAttachmentPending(draftId);
+  const unsentUpload = attachments.some(attachmentUnsent);
   const failedSends = useFailedComposerSends(draftId); const picks = mentionPicksFor(draftId);
   const [channelMode, setChannelMode] = useComposerChannelMode(draftId);
   const editText = useCallback(
@@ -202,6 +206,7 @@ export function Composer({
   const removeAttachment = useCallback(
     (id: string) => {
       const removed = attachments.find((attachment) => attachment.id === id);
+      cancelUpload(id);
       if (removed?.kind === "image") releaseAttachmentImagePreview(removed);
       if (removed) discardUnsentUpload(removed);
       editAttachments((prev) => prev.filter((attachment) => attachment.id !== id));
@@ -488,24 +493,24 @@ export function Composer({
     const optimistic = optimisticImageAttachment(file);
     if (!optimistic) return null;
     appendDraftAttachments(draftId, [optimistic]);
-    try {
-      const completed = await imageAttachmentFromFile(file, optimistic);
-      if (!completed) {
-        replaceDraftAttachment(draftId, optimistic.id, null);
-        releaseAttachmentImagePreview(optimistic);
-        return null;
-      }
-      handoffAttachmentImagePreview(completed.path, completed.previewUrl);
-      if (!replaceDraftAttachment(draftId, optimistic.id, completed)) {
-        releaseAttachmentImagePreview(completed);
-      }
-      return null;
-    } catch (error) {
-      replaceDraftAttachment(draftId, optimistic.id, null);
-      releaseAttachmentImagePreview(optimistic);
-      throw error;
-    }
+    await sendPlacedUpload(draftId, optimistic, file);
+    return null;
   }, [draftId]);
+  const uploadFile = useCallback(async (file: File): Promise<FileAttachment | "placed" | null> => {
+    const pending = pendingFileAttachment(file);
+    if (!pending) return null;
+    appendDraftAttachments(draftId, [pending]);
+    await sendPlacedUpload(draftId, pending, file);
+    return "placed";
+  }, [draftId]);
+  const retryUpload = useCallback((id: string) => {
+    const failed = attachments.find((attachment) => attachment.id === id);
+    if (!failed || failed.kind === "paste") return;
+    changeDraftAttachmentPending(draftId, true);
+    void retryPlacedUpload(draftId, failed)
+      .catch((error: unknown) => setAttachmentNotice(`${failed.name}: ${error instanceof Error ? error.message : "upload failed"}`))
+      .finally(() => changeDraftAttachmentPending(draftId, false));
+  }, [attachments, draftId]);
   const pickFiles = async (picked: FileList | null) => {
     if (!picked?.length) return;
     changeDraftAttachmentPending(draftId, true);
@@ -514,6 +519,7 @@ export function Composer({
         allowImages: engineSupportsImages,
         getPath: pathForFile,
         uploadImage,
+        uploadFile,
         imageSlots: imageSlotsLeft(attachments),
         imageBytes: imageBytesLeft(attachments),
       });
@@ -587,7 +593,7 @@ export function Composer({
     requestAnimationFrame(() => { inputRef.current?.focus(); inputRef.current?.setSelectionRange(next.length, next.length); });
   };
   const send = (followUp: FollowUp | undefined = followUpFor(false)) => {
-    if (locked || attachmentPending) return;
+    if (locked || attachmentPending || unsentUpload) return;
     if (
       attachments.some((attachment) => attachment.kind === "image") &&
       !imageTargetsSupport(effectiveText, effectiveChannelMode)
@@ -755,6 +761,7 @@ export function Composer({
           onPendingChange={(pending) => changeDraftAttachmentPending(draftId, pending)}
           onDraggingChange={setDragOver}
           uploadImage={uploadImage}
+          uploadFile={uploadFile}
         />
         <QueuedComposerMessages
           items={queuedMessages}
@@ -792,7 +799,7 @@ export function Composer({
           </div>
         )}
         <div ref={pillContentRef} className={singleRow ? cn("min-w-0 flex-1 rounded-[26px] py-1 pl-3 pr-1", ELEVATED_FLOAT) : simpleDock ? "flex shrink-0 flex-col" : "contents"}>
-        {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}<ComposerAttachmentStrip items={attachments} onRemove={removeAttachment} onDisplayInChatBox={displayPasteInChatBox} notice={attachmentNotice} onNotice={setAttachmentNotice} />
+        {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}<ComposerAttachmentStrip items={attachments} onRemove={removeAttachment} onRetry={retryUpload} onDisplayInChatBox={displayPasteInChatBox} notice={attachmentNotice} onNotice={setAttachmentNotice} />
         <div data-composer-row data-glyph-swap={glyphs.swapped ? "" : undefined} style={simpleDock ? slot.vars : undefined} className={cn("flex items-end", simpleDock ? cn("gap-2", stacked && "gap-y-2") : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
           {pickers.inputs}
           {!locked && !singleRow && (
@@ -972,7 +979,7 @@ export function Composer({
         {callShown && bot && !group && <CallButton bot={bot} placement="composer" fill={singleRow ? undefined : slot.fill} ink={slot.ink} inverse={singleRow} />}
         {hasContent && !locked && (
           <ComposerSendButton compact={simpleDock} waits={busy && !steersNow} label={sendNames.label} title={sendNames.title} look={slot.button}
-            disabled={attachmentPending} onSend={(alternate) => send(followUpFor(alternate))} onChoose={send}
+            disabled={attachmentPending || unsentUpload} onSend={(alternate) => send(followUpFor(alternate))} onChoose={send}
             menu={followUpFor(false) && { choices: followUpChoices(followUpDefault, canSteer), name: busyName, sendKey: sendLabel, alternateKey: alternateSendLabel(sendKey) }} />
           )}
           {ghostGlyph && <SlotGlyphGhost key={glyphs.swaps} glyph={ghostGlyph} ink={slot.ink} />}

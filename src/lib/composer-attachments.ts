@@ -1,5 +1,6 @@
 import { noteMediaSizes, type MediaSize } from "./media-sizes.ts";
 import { randomUuid } from "./random-uuid.ts";
+import { sendUpload, type UploadProgress } from "./upload-request.ts";
 export { dataContextFor, type DataContext, type DataViewContext } from "../../shared/data-context.ts";
 
 export type PasteAttachment = {
@@ -16,6 +17,9 @@ export type FileAttachment = {
   path: string;
   name: string;
   size: number;
+  /** Placed while its bytes are sent; path stays empty until the server answers. */
+  uploading?: boolean;
+  failed?: boolean;
 };
 
 export type ImageAttachment = {
@@ -27,7 +31,15 @@ export type ImageAttachment = {
   mime: string;
   previewUrl?: string;
   uploading?: boolean;
+  failed?: boolean;
 };
+
+/** An upload the composer is still sending: an optimistic tile, or one whose send failed and can be retried. */
+export function attachmentUnsent(attachment: Attachment): boolean {
+  return attachment.kind !== "paste" && Boolean(attachment.uploading || attachment.failed);
+}
+
+export type UploadTransfer = { signal?: AbortSignal; onProgress?: UploadProgress };
 
 export type Attachment = PasteAttachment | FileAttachment | ImageAttachment;
 
@@ -249,11 +261,11 @@ function retryableUploadStatus(status: number): boolean {
   return status === 408 || status === 425 || status === 429 || status >= 500;
 }
 
-async function uploadWithRetry<T>(url: string, init: RequestInit): Promise<T> {
+async function uploadWithRetry<T>(url: string, init: { method: string; headers: Record<string, string>; body: Blob | Uint8Array }, transfer: UploadTransfer = {}): Promise<T> {
   for (let attempt = 0; attempt < UPLOAD_ATTEMPTS; attempt += 1) {
     let response: Response;
     try {
-      response = await fetch(url, init);
+      response = await sendUpload(url, { ...init, signal: transfer.signal }, transfer.onProgress);
     } catch (error) {
       const aborted = typeof error === "object" && error !== null && "name" in error && error.name === "AbortError";
       if (aborted || attempt === UPLOAD_ATTEMPTS - 1) throw error;
@@ -311,6 +323,7 @@ export function optimisticImageAttachment(file: File): ImageAttachment | null {
 export async function imageAttachmentFromFile(
   file: File,
   optimistic?: Pick<ImageAttachment, "id" | "previewUrl">,
+  transfer?: UploadTransfer,
 ): Promise<ImageAttachment | null> {
   if (!isImageFile(file)) return null;
   if (file.size > IMAGE_MAX_BYTES) throw Object.assign(new Error(`${file.name} exceeds 10 MB`), { status: 413 });
@@ -323,6 +336,7 @@ export async function imageAttachmentFromFile(
       headers: { "content-type": file.type },
       body: bytes,
     },
+    transfer,
   );
   if (saved.media) noteMediaSizes({ [attachmentBasename(saved.path)]: saved.media });
   return {
@@ -336,8 +350,7 @@ export async function imageAttachmentFromFile(
   };
 }
 
-/** Copied into the private store so the companion route never sees an arbitrary Finder path. */
-export async function fileAttachmentFromFile(file: File): Promise<FileAttachment | null> {
+function uploadableFileMime(file: Pick<File, "name" | "type" | "size">): string | null {
   const declared = file.type.split(";", 1)[0]!.trim().toLowerCase();
   const extension = file.name.split(".").at(-1)?.toLowerCase() ?? "";
   const mime = documentMime(file) ??
@@ -346,6 +359,19 @@ export async function fileAttachmentFromFile(file: File): Promise<FileAttachment
   if (file.size > FILE_MAX_BYTES) {
     throw Object.assign(new Error(`${file.name} exceeds 25 MB`), { status: 413 });
   }
+  return mime;
+}
+
+/** The tile a document or audio file shows while it uploads; null for a file the composer does not upload. */
+export function pendingFileAttachment(file: Pick<File, "name" | "type" | "size">): FileAttachment | null {
+  if (!uploadableFileMime(file)) return null;
+  return { kind: "file", id: newId(), path: "", name: file.name, size: file.size, uploading: true };
+}
+
+/** Copied into the private store so the companion route never sees an arbitrary Finder path. */
+export async function fileAttachmentFromFile(file: File, transfer?: UploadTransfer & { id?: string }): Promise<FileAttachment | null> {
+  const mime = uploadableFileMime(file);
+  if (!mime) return null;
   const uploadId = newUploadId();
   const saved = await uploadWithRetry<{ path: string; name: string; bytes: number }>(
     `/api/files?name=${encodeURIComponent(file.name)}&uploadId=${encodeURIComponent(uploadId)}`,
@@ -354,8 +380,10 @@ export async function fileAttachmentFromFile(file: File): Promise<FileAttachment
       headers: { "content-type": mime },
       body: file,
     },
+    transfer,
   );
-  return fileAttachment(saved.name || file.name, saved.path, saved.bytes);
+  const attachment = fileAttachment(saved.name || file.name, saved.path, saved.bytes);
+  return transfer?.id ? { ...attachment, id: transfer.id } : attachment;
 }
 
 export function pasteAttachment(text: string): PasteAttachment {
@@ -739,7 +767,8 @@ export async function intakeFiles<T extends DroppedFile & { type: string }>(
     allowImages: boolean;
     getPath: (file: T) => string;
     uploadImage: (file: T) => Promise<Attachment | null>;
-    uploadFile?: (file: T) => Promise<FileAttachment | null>;
+    /** "placed" when the uploader put its own tile in the draft; null when the file is not one it uploads. */
+    uploadFile?: (file: T) => Promise<FileAttachment | "placed" | null>;
     /** Images the message can still take; the rest are left out and named in the notice. */
     imageSlots?: number;
     /** Image bytes the message can still take; images past it are left out the same way. */
@@ -774,6 +803,7 @@ export async function intakeFiles<T extends DroppedFile & { type: string }>(
     }
     try {
       const attachment = await uploadFile(file);
+      if (attachment === "placed") return { attachments: [], rejectedNames: [] };
       if (attachment) {
         return { attachments: [attachment], rejectedNames: [] };
       }

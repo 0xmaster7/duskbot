@@ -1,4 +1,5 @@
 import type { RelayChannel } from "./relay";
+import { setUploadRoute } from "@/lib/upload-request";
 
 export type PhoneTransport =
   | { kind: "same-origin" | "bearer"; origin: string; token?: string }
@@ -6,7 +7,7 @@ export type PhoneTransport =
 
 const originOf = (transport: PhoneTransport) => transport.kind === "relay" ? "https://mobile-relay.invalid" : transport.origin;
 
-export function relayFetch(channel: RelayChannel, token: string): typeof fetch {
+export function relayFetch(channel: RelayChannel, token: string, onBodyProgress?: (sent: number, total: number) => void): typeof fetch {
   return async (input, init) => {
     const request = new Request(input, init);
     const url = new URL(request.url);
@@ -14,7 +15,7 @@ export function relayFetch(channel: RelayChannel, token: string): typeof fetch {
     headers.set("Authorization", `Bearer ${token}`);
     const body = request.body ? new Uint8Array(await request.arrayBuffer()) : null;
     request.signal.throwIfAborted();
-    return channel.request(request.method, `${url.pathname}${url.search}`, headers, body, request.signal);
+    return channel.request(request.method, `${url.pathname}${url.search}`, headers, body, request.signal, onBodyProgress);
   };
 }
 
@@ -306,11 +307,18 @@ export function installTransport(transport: PhoneTransport): () => void {
   window.fetch = patchedFetch;
   window.EventSource = PatchedEventSource;
   window.WebSocket = PatchedWebSocket;
+  // the relay sends a body from the page in chunks, so it can count them; bearer requests go out through native http
+  const stopUploads = transport.kind === "relay" ? setUploadRoute((input, init, onProgress) => {
+    const url = rewriteApiUrl(input, window.location.origin, origin);
+    if (!url) return null;
+    return relayFetch(transport.channel, transport.token, onProgress)(url, { method: init.method, headers: init.headers, body: init.body as BodyInit, signal: init.signal, credentials: "omit", redirect: "error" });
+  }) : () => {};
   const stopMedia = installMedia();
   let stopped = false;
   return () => {
     if (stopped) return;
     stopped = true;
+    stopUploads();
     stopMedia();
     if (transport.kind === "relay") transport.channel.close();
     for (const source of sources) source.close();

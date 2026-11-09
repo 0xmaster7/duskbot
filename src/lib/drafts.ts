@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useSyncExternalStore, type SetStateAction } from "react";
-import { isAttachment, type Attachment } from "./composer-attachments.js";
+import { attachmentUnsent, isAttachment, type Attachment } from "./composer-attachments.js";
 
 const KEY = "omb-drafts";
 const ATTACHMENTS_KEY = "omb-draft-attachments";
@@ -155,8 +155,9 @@ export function setDraftAttachments(store: Store, id: string, attachments: Attac
   const drafts = read(store, ATTACHMENTS_KEY);
   // Blob URLs exist only for this document: persist only upload-complete attachments.
   const durable = attachments.flatMap((attachment): Attachment[] => {
-    if (attachment.kind !== "image") return [attachment];
-    if (!attachment.path || attachment.uploading) return [];
+    if (attachment.kind === "paste") return [attachment];
+    if (!attachment.path || attachmentUnsent(attachment)) return [];
+    if (attachment.kind === "file") return [attachment];
     return [{
       kind: "image",
       id: attachment.id,

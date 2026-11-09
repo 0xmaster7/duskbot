@@ -3414,7 +3414,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -9121,7 +9124,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12459,7 +12465,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -15794,7 +15803,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -21899,7 +21911,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -28195,7 +28210,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -34881,7 +34899,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -41152,7 +41173,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -47291,7 +47315,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -53569,7 +53596,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -58799,7 +58829,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -62439,7 +62472,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -67669,7 +67705,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -74528,7 +74567,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -79308,7 +79350,10 @@
       "onboarding.notch.line.cheered": "25c27af64396aa7dff0399293ac8f299c7de7013d115f09911c2b94a1ed2dabe",
       "settings.ambient.tour.title": "f0b988d232d7c21f8b804b3d8c761f6b280f4f854c54c4e9992768a9a591d8c7",
       "settings.ambient.tour.subtitle": "dc9e9de15f762caa0638e57fde64ecc4e1b5acedb5827ba78303d09f90a420ef",
-      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513"
+      "settings.ambient.tour.show": "b76c42cb4bf3399e4a5e7d8be24832228ff1fbfd61834a2ae634c60b61e4d513",
+      "attach.uploadingNamed": "215b57dec11d4629f9743b2e2b947b52f75d888050c86e3fc7e072b202bcf245",
+      "attach.retryNamed": "f7b639b88e742ee8064727cb6b0f564d62902485ea2b0de9f716154e776cb39f",
+      "attach.uploadFailed": "6efc5d27f30b20c103ca1a855bfc65cdbdf9de98c3f8ac93a3df3f319c3388bd"
     }
   }
 }

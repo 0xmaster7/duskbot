@@ -1,0 +1,96 @@
+import { afterEach, describe, expect, it } from "vitest";
+import { pendingFileAttachment, type FileAttachment } from "./composer-attachments";
+import { appendDraftAttachments, getDraftAttachments, setDraftAttachments } from "./drafts";
+import { retryPlacedUpload, sendPlacedUpload } from "./placed-upload";
+import { cancelUpload, uploadSource, uploadState } from "./upload-progress";
+import { setUploadRoute, type UploadInit, type UploadProgress } from "./upload-request";
+
+type Pending = { url: string; init: UploadInit; onProgress: UploadProgress; resolve: (response: Response) => void; reject: (error: unknown) => void };
+
+function routeUploads() {
+  const pending: Pending[] = [];
+  const stop = setUploadRoute((url, init, onProgress) => new Promise<Response>((resolve, reject) => {
+    init.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true });
+    pending.push({ url, init, onProgress, resolve, reject });
+  }));
+  return { pending, stop };
+}
+
+const draft = (id: string) => getDraftAttachments(undefined, id);
+let stop = () => {};
+afterEach(() => stop());
+
+function placeFile(draftId: string, name = "report.pdf", size = 9 * 1024 * 1024) {
+  const file = new File([new Uint8Array(size)], name, { type: "application/pdf" });
+  const tile = pendingFileAttachment(file)!;
+  setDraftAttachments(undefined, draftId, []);
+  appendDraftAttachments(draftId, [tile]);
+  return { file, tile };
+}
+
+const saved = (bytes: number) => new Response(JSON.stringify({ path: "/files/0f0e0d0c-0b0a-4908-8706-050403020100.pdf", name: "report.pdf", bytes }), { status: 201 });
+
+describe("an upload placed in the draft", () => {
+  it("reports its bytes to the tile and becomes the saved file under the same id", async () => {
+    const routes = routeUploads();
+    stop = routes.stop;
+    const { file, tile } = placeFile("bot:a:t");
+    expect(draft("bot:a:t")).toEqual([expect.objectContaining({ id: tile.id, uploading: true, path: "" })]);
+
+    const sent = sendPlacedUpload("bot:a:t", tile, file);
+    await Promise.resolve();
+    const request = routes.pending[0]!;
+    expect(request.url).toMatch(/^\/api\/files\?name=report\.pdf&uploadId=/);
+    request.onProgress(0, file.size);
+    request.onProgress(file.size * 0.77, file.size);
+    expect(uploadState(tile.id)).toMatchObject({ size: file.size, loaded: file.size * 0.77, total: file.size });
+
+    request.resolve(saved(file.size));
+    await sent;
+    const [done] = draft("bot:a:t") as FileAttachment[];
+    expect(done).toMatchObject({ kind: "file", id: tile.id, name: "report.pdf", size: file.size });
+    expect(done!.path).toMatch(/\.pdf$/);
+    expect(done!.uploading).toBeUndefined();
+    expect(uploadState(tile.id)).toBeUndefined();
+    expect(uploadSource(tile.id)).toBeUndefined();
+  });
+
+  it("stays on the tile as failed, keeps its file, and uploads again on retry", async () => {
+    const routes = routeUploads();
+    stop = routes.stop;
+    const { file, tile } = placeFile("bot:b:t", "notes.pdf", 1024);
+
+    const sent = sendPlacedUpload("bot:b:t", tile, file);
+    await Promise.resolve();
+    routes.pending[0]!.reject(new TypeError("Failed to fetch"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // one automatic retry before the tile fails
+    routes.pending[1]!.reject(new TypeError("Failed to fetch"));
+    await expect(sent).rejects.toThrow("Failed to fetch");
+    const [failed] = draft("bot:b:t");
+    expect(failed).toMatchObject({ id: tile.id, failed: true, uploading: false });
+    expect(uploadState(tile.id)).toBeUndefined();
+    expect(uploadSource(tile.id)).toBe(file);
+
+    const retried = retryPlacedUpload("bot:b:t", failed!);
+    expect(draft("bot:b:t")[0]).toMatchObject({ id: tile.id, failed: false, uploading: true });
+    await Promise.resolve();
+    routes.pending[2]!.resolve(saved(1024));
+    await retried;
+    expect(draft("bot:b:t")[0]).toMatchObject({ kind: "file", id: tile.id, size: 1024 });
+    expect((draft("bot:b:t")[0] as FileAttachment).failed).toBeUndefined();
+  });
+
+  it("stops quietly when its tile is removed mid-upload", async () => {
+    const routes = routeUploads();
+    stop = routes.stop;
+    const { file, tile } = placeFile("bot:c:t");
+    const sent = sendPlacedUpload("bot:c:t", tile, file);
+    await Promise.resolve();
+    setDraftAttachments(undefined, "bot:c:t", []);
+    cancelUpload(tile.id);
+    await expect(sent).resolves.toBeUndefined();
+    expect(routes.pending).toHaveLength(1);
+    expect(draft("bot:c:t")).toEqual([]);
+  });
+});
