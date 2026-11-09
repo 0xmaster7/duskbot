@@ -9,6 +9,7 @@ import { createHetznerProvider } from "../clouds/hetzner.ts";
 import { createHomeClient } from "../clouds/home-client.ts";
 import { createSealer, parseSealKey } from "../clouds/seal.ts";
 import type { CloudProvider, HomeClient } from "../clouds/types.ts";
+import type { Catalog } from "../../../shared/billing-api.ts";
 import { createBillingStore } from "./store.ts";
 import { BillingError, createBillingService } from "./service.ts";
 import { BILLING_CONFIG, dodoProducts } from "./plans.ts";
@@ -23,6 +24,8 @@ export interface BillingOptions {
   dataDir: string; publicUrl: string; dashboard: { state: DashboardState; changed(): void; close?(): void }; accounts: AccountResolver;
   accountExists?: (accountId: string) => boolean;
   env?: NodeJS.ProcessEnv; now?: () => number; fetch?: typeof fetch;
+  /** measured wake times the catalog may show (the slack edge times wakes) */
+  wakeStats?: () => NonNullable<Catalog["wake"]>;
 }
 /** the hosted app's Bearer resolver remains null until shared/account-api.ts supplies the accounts service */
 export function createBilling(options: BillingOptions) {
@@ -87,7 +90,7 @@ export function createBilling(options: BillingOptions) {
   const store = createBillingStore(options.dataDir);
   const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now });
   if (options.accountExists) service.scrubDeleted(options.accountExists);
-  const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null };
+  const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})) };
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
     async handle(req: IncomingMessage, res: ServerResponse, target: URL) { return await routes(req, res, target) || await admin.handle(req, res, target); },
@@ -104,4 +107,5 @@ export function createBilling(options: BillingOptions) {
 export type BillingContext = {
   service: ReturnType<typeof createBillingService>; clouds: ReturnType<typeof createCloudsService>; store: ReturnType<typeof createBillingStore>;
   config: typeof BILLING_CONFIG; accounts: AccountResolver; now(): number; enabled: boolean; fake: ReturnType<typeof createFakeBillingProvider> | null;
+  wakeStats(): NonNullable<Catalog["wake"]>;
 };

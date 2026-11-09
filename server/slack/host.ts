@@ -15,6 +15,7 @@ import { readSlackAttachment, saveSlackAttachment, slackBotIcon } from "./attach
 import { SlackSecretStore, type SlackBotRecord } from "./secrets.ts";
 import { createSlackSockets, type SlackSocketState } from "./socket.ts";
 import { createSlackToolRoutes } from "./tools.ts";
+import { createSlackHandover } from "./handover.ts";
 
 export interface SlackHostBot { id: string; name: string; description?: string; color?: string; avatarUrl?: string }
 
@@ -59,6 +60,10 @@ export function createSlackHost(deps: SlackHostDeps) {
     onState: (state, error) => { socketStates.set(botId, { state, ...(error ? { error } : {}) }); },
   }));
   const tools = createSlackToolRoutes({ api, link, markOutside: deps.markOutside, log });
+  // a sleeping cloud desktop's hosted wake edge hands back what came in while it slept (opt-in, see handover.ts)
+  const handover = createSlackHandover({ dataDir: deps.dataDir, env: deps.env ?? process.env, log,
+    bots: () => (store.ready() ? store.bots() : []).flatMap((one) => one.botToken && one.appToken && one.botUserId ? [{ botId: one.botId, appId: one.appId, botUserId: one.botUserId, appToken: one.appToken }] : []),
+    deliver: (botId, payload) => bridge.handleEvent(botId, payload) });
 
   function botStatus(botId: string): SlackBotStatus {
     const one = record(botId);
@@ -119,6 +124,7 @@ export function createSlackHost(deps: SlackHostDeps) {
       requireBot(botId);
       await provisioner.setAppToken(botId, token);
       await connectSocket(botId);
+      void handover.sync();
       return botStatus(botId);
     },
     remove: async (botId) => {
@@ -160,6 +166,7 @@ export function createSlackHost(deps: SlackHostDeps) {
     readyTimer = null;
     tokens.start();
     for (const one of store.bots()) if (one.botToken && one.appToken) sockets.ensure(one.botId);
+    handover.start();
   }
 
   return {
@@ -184,6 +191,7 @@ export function createSlackHost(deps: SlackHostDeps) {
       for (const timer of updates.values()) clearTimeout(timer);
       updates.clear();
       stopWatching();
+      handover.stop();
       sockets.stopAll();
       tokens.stop();
       bridge.stop();

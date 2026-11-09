@@ -34,6 +34,44 @@ each of their workspaces (their Mac, each VPS) side by side: bots, usage, the ma
 - **Commands.** Wake or sleep a bot computer, revoke a phone or a signed-in session, pause or resume a routine. The
   workspace runs each one through its own existing routes and confirms it; one not picked up in 10 minutes expires.
 
+## Slack while a cloud desktop sleeps
+
+Opt-in per desktop ("Wake for Slack" on its Cloud desktop page) and off unless the service runs with
+`OMB_SLACK_EDGE=1` (which then needs `OMB_CLOUD_SEAL_KEY` outside loopback development). It is the one exception to
+"Slack traffic stays between the harness and Slack": a bot's Socket Mode connection needs its app-level token, so a
+desktop that wants to answer while asleep lends that token to this service.
+
+```
+ cloud desktop (repo server/slack/handover.ts)     this service (server/slack-edge)                Slack
+ every 60 s and at boot: signed POST /v1/slack-edge/sync
+   {x25519 public key, bots: id + token hash, acks}  ---->  remembers the key, asks for changed tokens
+ POST /v1/slack-edge/tokens {xapp tokens}  -------------->  seals them at rest (OMB_CLOUD_SEAL_KEY)
+                                                          desktop stopped or asleep: opens Socket Mode  <---->  events
+                                                          acks each event at once, seals it to the desktop's key,
+                                                          DM or mention: wakes the desktop (again each minute)
+ boots, syncs  <------------------------------------------  sealed events; closes its own connection
+ opens them, feeds the bridge (it drops repeats), acks  ->  deletes them
+```
+
+What the service can see, and why:
+
+- **The app-level token** (`xapp-`) of each bot, sealed at rest, in memory while it holds the connection. Socket Mode
+  needs it. It only opens Socket Mode connections: it cannot read history, post or act as the bot. The bot token
+  (`xoxb-`), the signing secret and the config token never leave the desktop.
+- **Each event, in memory, while it is held.** Slack sends events in the clear over Socket Mode's TLS, so the process
+  holds each one for the moment it takes to read its type fields (`type`, `channel_type`, `subtype`, `bot_id`,
+  `user` against the bot's id, `event_id`) and seal the whole payload to the desktop's x25519 key (HKDF, AES-256-GCM,
+  bound to the bot). The text is never read, logged or written; channel chatter that does not address the bot is
+  dropped unsealed and unstored.
+- **At rest** (`slack-edge.json`): sealed events (at most 64 or 256 KB per desktop, 24 hours), their event ids and
+  times, bot ids, Slack app and bot user ids, token hashes, the desktop's public key, and wake timings. Only the
+  desktop's private key (`slack-edge-key.json` on the desktop, mode 0600) opens an event.
+- A compromised service process could read events while it holds a connection. That is why it is opt-in, only while
+  the desktop sleeps, and released as soon as the desktop syncs after waking.
+
+Wake timings (wake request to the desktop's first sync) feed the catalog's `wake` stat per desktop kind once 10 or
+more were measured; the plan cards print a wake time only from it.
+
 ## Running it
 
 ```sh

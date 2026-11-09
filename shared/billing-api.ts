@@ -92,7 +92,10 @@ export interface Catalog {
   freeWorkUntil: number | null;
   /** days a cancelled or ended cloud desktop is kept, stopped, before it is destroyed */
   graceDays: number;
+  /** measured wake times per desktop kind (wake request to the desktop answering again), only once enough wakes were seen */
+  wake?: Partial<Record<Exclude<DesktopKind, "none">, WakeStat>>;
 }
+export interface WakeStat { medianMs: number; p90Ms: number; samples: number }
 
 export interface CartLine {
   kind: "license" | "members" | "desktop" | "discount";

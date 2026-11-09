@@ -15,7 +15,10 @@ export function createBillingRoutes(ctx: BillingContext) {
     if (path === "/v1/billing/fake/complete" && (!ctx.fake || !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress ?? ""))) return false;
     const webhook = path === "/v1/billing/webhooks/dodo" && method === "POST";
     try {
-      if (path === "/v1/billing/catalog" && method === "GET") { json(res, 200, service.catalog()); return true; }
+      if (path === "/v1/billing/catalog" && method === "GET") {
+        const wake = ctx.wakeStats();
+        json(res, 200, { ...service.catalog(), ...(Object.keys(wake).length ? { wake } : {}) }); return true;
+      }
       if (path === "/v1/billing/quote" && method === "POST") { json(res, 200, service.quote(cartInput((await body(req)).cart))); return true; }
       if (!ctx.enabled) throw new BillingError(503, "unavailable");
       if (webhook) {

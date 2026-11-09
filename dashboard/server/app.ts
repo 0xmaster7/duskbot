@@ -11,6 +11,8 @@ import { createStore } from "./store.ts";
 import type { Account, StoredWorkspace } from "./store.ts";
 import { createBilling } from "./billing/index.ts";
 import { BillingError } from "./billing/service.ts";
+import { createSlackEdgeHost } from "./slack-edge/index.ts";
+import type { EdgeSocketFactory } from "./slack-edge/service.ts";
 
 export interface DashboardAppOptions {
   dataDir: string;
@@ -23,6 +25,8 @@ export interface DashboardAppOptions {
   staticDir: string | null;
   now?: () => number;
   fetch?: typeof fetch;
+  /** the slack wake edge: OMB_SLACK_EDGE and OMB_CLOUD_SEAL_KEY from env; tests pass a fake socket */
+  slackEdge?: { env?: NodeJS.ProcessEnv; socket?: EdgeSocketFactory };
 }
 class RequestError extends Error {
   status: number;
@@ -56,12 +60,17 @@ export function createDashboardApp(options: DashboardAppOptions) {
     watching.delete(id);
     store.changed(); store.close();
   });
-  const billing = createBilling({ accountExists: id => auth.account(id) !== null, dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, accounts: {
+  let slackEdge: ReturnType<typeof createSlackEdgeHost> | null = null;
+  const billing = createBilling({ accountExists: id => auth.account(id) !== null, dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
     fromBearer: req => auth.appSession(req)?.account ?? null } });
   auth.beforeAccountDelete(async (owner, body) => {
     try { await billing.beforeAccountDelete(owner, body); } catch (error) { if (error instanceof BillingError && error.code === "billing_active") throw new AuthError(409, "billing_active", { blockers: error.blockers }); throw error; }
   });
+  slackEdge = createSlackEdgeHost({ dataDir: options.dataDir, clouds: billing.clouds, env: options.slackEdge?.env ?? process.env, now, socket: options.slackEdge?.socket,
+    loopback: new URL(publicUrl).protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(new URL(publicUrl).hostname) });
+  const edgeHost = slackEdge;
+  auth.onAccountDeleted(id => edgeHost.edge.accountDeleted(billing.clouds.list(id, true).map(cloud => cloud.id)));
   auth.onAccountDeleted(id => billing.accountDeleted(id));
   auth.extendSession(async accountId => {
     const owner = auth.account(accountId);
@@ -213,6 +222,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
     }
     if (await auth.handle(req, res, url, { readBody, bodyObject })) return;
     if (method === "GET" && path === DASHBOARD_DISCOVERY_PATH) return json(res, 200, { v: 1, url: publicUrl });
+    if (await edgeHost.handle(req, res, url, { readBody, bodyObject, json, signed: (request, body) => signed(request, body),
+      account: (request, mutation) => auth.requireWeb(request, { mutation }) })) return;
     if (await billing.handle(req, res, url)) return;
     if (!path.startsWith("/v1/") && !path.startsWith("/.well-known/")) {
       if (method === "GET") return staticPage(req, res);
@@ -363,6 +374,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   }
   return {
     auth,
+    slackEdge: edgeHost,
     handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
       return route(req, res).catch(error => {
         if (error instanceof RequestError || error instanceof AuthError) json(res, error.status, req.url?.startsWith("/api/cloud/") ? { error: error.code } : { error: error.message, code: error.code });
@@ -370,6 +382,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       });
     },
     close() {
+      edgeHost.close();
       billing.close();
       closed = true;
       for (const wait of Array.from(waits.values())) wait.cancel();
