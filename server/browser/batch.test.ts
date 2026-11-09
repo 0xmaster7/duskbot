@@ -54,7 +54,7 @@ describe("a browser batch", () => {
     const result = await runBatch(context(), { steps: [{ do: "open" }, { do: "fill", selector: "#q", text: "x" }, { do: "press", key: "Enter" }] }, run);
     expect(result.isError).toBe(true);
     expect(run.calls.map((call) => call.name)).toEqual(["agent_browser_open", "agent_browser_fill"]);
-    expect(texts(result)).toEqual(["A person took control of the browser at step 2 of 3; it and the steps after it did not run.", "1. open: ok", BROWSER_CONTROL_REFUSAL]);
+    expect(texts(result)).toEqual(["A person took control of the browser at step 2 of 3, so the steps after it did not run. Step 2 may already have taken effect: check the page before repeating it.", "1. open: ok", BROWSER_CONTROL_REFUSAL]);
   });
 
   it("starts no step once its time is up, and gives each step only the batch's deadline", async () => {
