@@ -3,7 +3,7 @@
 // never ask a server anything). Their asks (open a chat, reply, allow) go back to that page, which does them.
 import { pickDisplay } from "./ambient-geometry.mjs";
 import { watchStill } from "./ambient-still.mjs";
-import { applyPrefsChange, parseAct, parsePrefs, parseSnapshot } from "./ambient-state.mjs";
+import { applyPrefsChange, parseAct, parsePrefs, parseSnapshot, seenKeys } from "./ambient-state.mjs";
 import { createDockWindow } from "./dock-window.mjs";
 import { createIslandWindow } from "./island-window.mjs";
 
@@ -40,6 +40,14 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
       appPage()?.send("ambient:act", act);
       return;
     }
+    if (channel === "ambient:seen") {
+      const keys = seenKeys(payload).slice(0, 50);
+      if (!keys.length) return;
+      const seen = seenKeys([...saved().seen.filter(key => !keys.includes(key)), ...keys]);
+      save({ ...saved(), seen });
+      island.send("ambient:seen", seen); dock.send("ambient:seen", seen);
+      return;
+    }
     if (channel === "ambient:order" && surface === "dock") {
       save(applyPrefsChange(saved(), { order: payload }));
       relayout();
@@ -55,6 +63,8 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
 
   function tellAll() {
     if (snapshot) { island.send("ambient:state", snapshot); dock.send("ambient:state", snapshot); }
+    const seen = saved().seen;
+    island.send("ambient:seen", seen); dock.send("ambient:seen", seen);
   }
 
   function relayout() {
@@ -79,7 +89,7 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
   }
 
   const wanted = () => started && (saved().island || saved().dock);
-  const view = () => ({ available: true, platform, ...saved(), displays: screen ? screen.getAllDisplays().map(entry => ({ id: entry.id, internal: entry.internal === true, label: String(entry.label ?? "") })) : [] });
+  const view = () => ({ available: true, platform, ...saved(), seen: undefined, displays: screen ? screen.getAllDisplays().map(entry => ({ id: entry.id, internal: entry.internal === true, label: String(entry.label ?? "") })) : [] });
 
   ipcMain.on("ambient:publish", (event, raw) => {
     if (event.sender !== appPage()) return;

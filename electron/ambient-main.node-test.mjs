@@ -61,6 +61,10 @@ test("the island and the dock open as click-through panels on the display, hidde
   // the page says the pointer reached its shape: clicks land there until it says otherwise
   island.webContents.emit("ipc-message", {}, "ambient:pointer", true);
   assert.deepEqual(island.ignore, { ignore: false });
+  // hovering from bot to bot is the page's own business: never a new window
+  const count = windows.length;
+  for (let index = 0; index < 6; index++) dock.webContents.emit("ipc-message", {}, "ambient:pointer", index % 2 === 0);
+  assert.equal(windows.length, count);
   island.webContents.emit("ipc-message", {}, "ambient:pointer", false);
   assert.deepEqual(island.ignore, { ignore: true, forward: true });
   ambient.close();
@@ -120,4 +124,29 @@ test("both surfaces hear when to hold still, the newest word replayed to a page 
   }
   ambient.close();
   assert.equal(app.listenerCount("browser-window-blur"), 0);
+});
+
+test("someone who never chose gets the dock and the island", async () => {
+  const { windows, ambient, screen } = fakes({ prefs: null });
+  ambient.start(screen);
+  await tick();
+  assert.ok(surface(windows, "island") && surface(windows, "dock"));
+  ambient.close();
+});
+
+test("what a surface has seen is saved, told to both surfaces, and still there after a restart", async () => {
+  const first = fakes();
+  first.ambient.start(first.screen);
+  await tick();
+  const dock = surface(first.windows, "dock"), island = surface(first.windows, "island");
+  dock.webContents.emit("ipc-message", {}, "ambient:seen", ["echo:error:9", "../bad"]);
+  assert.deepEqual(first.saved().seen, ["echo:error:9"]);
+  assert.deepEqual(island.sent.findLast(([channel]) => channel === "ambient:seen")[1], ["echo:error:9"]);
+  first.ambient.close();
+  const again = fakes({ prefs: first.saved() });
+  again.ambient.start(again.screen);
+  await tick();
+  surface(again.windows, "dock").webContents.emit("did-finish-load");
+  assert.deepEqual(surface(again.windows, "dock").sent.findLast(([channel]) => channel === "ambient:seen")[1], ["echo:error:9"]);
+  again.ambient.close();
 });
