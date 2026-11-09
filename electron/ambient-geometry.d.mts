@@ -3,7 +3,7 @@ export declare const ISLAND_SIZES: Readonly<Record<"small" | "medium" | "large",
 export declare const ISLAND_SIZE_IDS: readonly ("small" | "medium" | "large")[];
 export declare const ISLAND_WINDOW: Readonly<{ width: number; height: number }>;
 export declare const PILL_TOP: number;
-export declare const DOCK: Readonly<{ cell: number; tile: number; body: number; pad: number; ear: number; sliver: number; cardRoom: number; spill: number; max: number }>;
+export declare const DOCK: Readonly<{ cell: number; tile: number; column: number; open: number; pad: number; ear: number; sliver: number; margin: number; overhang: number }>;
 export declare const DISPLAY_CHOICES: readonly ("active" | "built-in" | "main")[];
 interface Rect { x: number; y: number; width: number; height: number }
 interface DisplayLike { id?: number; bounds: Rect; workArea: Rect; internal?: boolean; label?: string }
@@ -11,6 +11,5 @@ export declare function notchOf(display: DisplayLike, platform: string): { width
 export declare function islandLayout(display: DisplayLike, options?: { platform?: string; size?: string }): {
   window: Rect; collapsed: { kind: "notch" | "pill"; width: number; height: number; top: number; notch: number }; tile: number; size: "small" | "medium" | "large";
 };
-export declare function dockBodyHeight(count: number, workHeight: number): number;
-export declare function dockLayout(display: DisplayLike, options?: { count?: number }): { window: Rect; body: number; top: number };
+export declare function dockLayout(display: DisplayLike): { window: Rect; body: number; top: number };
 export declare function pickDisplay<T extends DisplayLike>(displays: T[], choice: string, options?: { primary?: T | null; cursor?: { x: number; y: number } | null }): T | null;

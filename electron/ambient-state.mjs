@@ -9,7 +9,10 @@ const ID = /^[\w.:-]{1,128}$/;
 const BODY = /^[a-z0-9-]{1,40}$/;
 const MAX_BOTS = 40;
 const MAX_CHOICES = 4;
-const WAITS = ["question", "approval", "other"];
+const WAITS = ["question", "approval", "sign-in", "password", "connect", "review", "other"];
+const STEPS = ["thinking", "reply", "read", "fetch", "web", "search", "command", "write", "edit", "tool"];
+/** A typed answer to a question that takes one. */
+const MAX_ANSWER = 2000;
 const MAX_LABELS = 48;
 const LABEL = /^[a-z][\w.-]{0,40}$/i;
 
@@ -28,8 +31,9 @@ function bot(raw) {
     : null;
   const asked = raw.question && typeof raw.question === "object" ? raw.question : null;
   const choices = Array.isArray(asked?.choices) ? asked.choices.slice(0, MAX_CHOICES).map(entry => text(entry, 60)).filter(Boolean) : [];
-  const question = asked && id(asked.requestId) && id(asked.threadId) && choices.length
-    ? { requestId: asked.requestId, threadId: asked.threadId, title: text(asked.title, 240), choices }
+  const custom = asked?.custom === true;
+  const question = asked && id(asked.requestId) && id(asked.threadId) && (choices.length || custom)
+    ? { requestId: asked.requestId, threadId: asked.threadId, title: text(asked.title, 240), choices, custom }
     : null;
   return {
     id: botId,
@@ -48,6 +52,8 @@ function bot(raw) {
     approval,
     waits: WAITS.includes(raw.waits) ? raw.waits : null,
     question,
+    step: STEPS.includes(raw.step) ? raw.step : null,
+    quiet: raw.quiet === true,
   };
 }
 
@@ -85,16 +91,27 @@ export function parseAct(raw) {
     return requestId ? { kind: raw.kind, botId, threadId, requestId } : null;
   }
   if (raw.kind === "answer") {
-    const requestId = id(raw.requestId), choice = text(raw.text, 60);
+    // a choice or, where the question takes one, a typed answer: the app's page checks which
+    const requestId = id(raw.requestId), choice = text(raw.text, MAX_ANSWER);
     return requestId && choice ? { kind: "answer", botId, threadId, requestId, text: choice } : null;
   }
   if (raw.kind === "stop") return { kind: "stop", botId, threadId };
   return null;
 }
 
-export const AMBIENT_DEFAULTS = Object.freeze({ island: true, dock: true, size: "medium", display: "active", order: [] });
+export const AMBIENT_DEFAULTS = Object.freeze({ island: true, dock: true, size: "medium", display: "active", order: [], seen: [] });
+/** Finished replies and failures the person has seen (src/ambient/seen.ts keys): the newest this many are kept. */
+export const MAX_SEEN = 300;
+const SEEN_KEY = /^[\w.:-]{1,160}$/;
 
-/** The person's choices; the surfaces start on only on macOS, where the island hugs the notch. */
+/** Seen keys, newest last, without repeats or anything that is not one. */
+export function seenKeys(value) {
+  if (!Array.isArray(value)) return [];
+  const keys = [...new Set(value.filter(entry => typeof entry === "string" && SEEN_KEY.test(entry)))];
+  return keys.slice(-MAX_SEEN);
+}
+
+/** The person's choices; both surfaces start on only on macOS, where the island hugs the notch. */
 export function parsePrefs(raw, platform = process.platform) {
   const record = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   const on = platform === "darwin";
@@ -104,11 +121,13 @@ export function parsePrefs(raw, platform = process.platform) {
     size: ISLAND_SIZE_IDS.includes(record.size) ? record.size : AMBIENT_DEFAULTS.size,
     display: DISPLAY_CHOICES.includes(record.display) ? record.display : AMBIENT_DEFAULTS.display,
     order: Array.isArray(record.order) ? [...new Set(record.order.filter(entry => id(entry)))].slice(0, 200) : [],
+    seen: seenKeys(record.seen),
   };
 }
 
 /** A change from Settings or the dock, applied over the saved choices; unknown fields and bad values are ignored. */
 export function applyPrefsChange(prefs, change) {
   if (!change || typeof change !== "object") return prefs;
-  return parsePrefs({ ...prefs, ...Object.fromEntries(Object.entries(change).filter(([key]) => key in AMBIENT_DEFAULTS)) });
+  // what was seen comes from the surfaces themselves (ambient-main.mjs), never from Settings
+  return parsePrefs({ ...prefs, ...Object.fromEntries(Object.entries(change).filter(([key]) => key in AMBIENT_DEFAULTS && key !== "seen")) });
 }

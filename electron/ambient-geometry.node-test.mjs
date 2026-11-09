@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DOCK, ISLAND_SIZES, ISLAND_WINDOW, PILL_TOP, dockBodyHeight, dockLayout, islandLayout, notchOf, pickDisplay } from "./ambient-geometry.mjs";
+import { DOCK, ISLAND_SIZES, ISLAND_WINDOW, PILL_TOP, dockLayout, islandLayout, notchOf, pickDisplay } from "./ambient-geometry.mjs";
 
 const display = (fields) => ({ id: 1, internal: false, label: "", bounds: { x: 0, y: 0, width: 1512, height: 982 }, workArea: { x: 0, y: 37, width: 1512, height: 945 }, ...fields });
 const builtIn = display({ id: 1, internal: true, label: "Built-in Liquid Retina XDR Display" });
@@ -35,19 +35,30 @@ test("the island window sits at the top middle of its own display, and a display
   assert.equal(islandLayout(external, { platform: "darwin", size: "huge" }).size, "medium");
 });
 
-test("the dock hugs the right edge of the work area, centred, as tall as its bots and never taller than the display", () => {
-  const { window, body, top } = dockLayout(external, { count: 3 });
-  assert.equal(body, DOCK.pad * 2 + 4 * DOCK.cell);
-  assert.equal(window.x + window.width, 1512 + 2560);
-  assert.equal(window.width, DOCK.body + DOCK.cardRoom);
-  assert.equal(Math.round(window.y + window.height / 2), Math.round(-175 + 1415 / 2));
-  assert.equal(top, (window.height - body) / 2);
-  const many = dockBodyHeight(500, 600);
-  assert.ok(many <= 600 - 2 * (DOCK.ear + DOCK.spill));
-  assert.equal(dockBodyHeight(0, 900), DOCK.pad * 2 + DOCK.cell);
+test("the dock is a strip against the right edge of the work area, as tall as it, wide enough to open", () => {
+  const { window, body, top } = dockLayout(external);
+  assert.equal(window.x + window.width, 1512 + 2560 + DOCK.overhang);
+  assert.equal(window.width, DOCK.open + DOCK.overhang);
+  assert.deepEqual([window.y, window.height], [external.workArea.y, external.workArea.height]);
+  assert.equal(top, DOCK.ear + DOCK.margin);
+  assert.equal(body, window.height - 2 * top);
   // a Dock pinned to the right leaves a narrower work area; the bot dock stays left of it
   const pinned = { ...external, workArea: { ...external.workArea, width: 2480 } };
-  assert.equal(dockLayout(pinned, { count: 1 }).window.x + dockLayout(pinned, { count: 1 }).window.width, 1512 + 2480);
+  assert.equal(dockLayout(pinned).window.x + dockLayout(pinned).window.width, 1512 + 2480 + DOCK.overhang);
+});
+
+test("the dock never stops short of the screen's edge, whatever the scale or a fractional work area", () => {
+  for (const scale of [1, 1.25, 1.5, 1.75, 2]) {
+    for (const width of [1512, 1511.5, 1440.25, 1728.8]) {
+      const display = { id: 3, internal: false, scaleFactor: scale, bounds: { x: 0.5, y: 0, width, height: 982 }, workArea: { x: 0.5, y: 25.5, width, height: 956.5 } };
+      const { window } = dockLayout(display);
+      const edge = display.workArea.x + display.workArea.width;
+      // in device pixels too: the window's right side lands at least a few pixels past the edge
+      assert.ok(Math.round((window.x + window.width) * scale) >= Math.round(edge * scale) + 2 * scale, `${scale}x ${width}`);
+      assert.ok(Number.isInteger(window.x) && Number.isInteger(window.y) && Number.isInteger(window.height));
+      assert.ok(window.y <= display.workArea.y && window.y + window.height >= display.workArea.y + display.workArea.height);
+    }
+  }
 });
 
 test("the surfaces follow the pointer's display, or stay on the built-in or main one", () => {

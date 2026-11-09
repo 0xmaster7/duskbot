@@ -24,5 +24,8 @@ contextBridge.exposeInMainWorld("ambient", {
     ...(typeof act?.text === "string" ? { text: act.text.slice(0, 4000) } : {}),
   }),
   order: (ids) => ipcRenderer.send("ambient:order", Array.isArray(ids) ? ids.slice(0, 200).map(word) : []),
+  /** Finished replies and failures the person has now seen, so they stop showing, here and after a restart. */
+  seen: (keys) => ipcRenderer.send("ambient:seen", Array.isArray(keys) ? keys.slice(0, 50).map((key) => (typeof key === "string" ? key.slice(0, 160) : "")) : []),
+  onSeen: listen("ambient:seen"),
   ready: () => ipcRenderer.send("ambient:ready"),
 });

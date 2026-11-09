@@ -6,11 +6,13 @@ import { MotionConfig } from "motion/react";
 import { Dock } from "./Dock";
 import { Island } from "./Island";
 import "../font-faces";
+import "./ambient-page.css";
 import "./ambient.css";
 
 const bridge = window.ambient;
 if (bridge?.surface) {
   document.documentElement.dataset.surface = bridge.surface;
+  document.documentElement.classList.add("amb-root");
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <MotionConfig reducedMotion="user">{bridge.surface === "island" ? <Island bridge={bridge} /> : <Dock bridge={bridge} />}</MotionConfig>

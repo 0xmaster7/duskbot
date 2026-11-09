@@ -31,6 +31,8 @@ it("puts the question first with its choices, stops a working bot, and says how 
       bot("Nova", { status: "needs-you", waits: "question", asks: 1, question: { requestId: "q1", threadId: "t-Nova", title: "Which branch?", choices: ["main", "dev"] } }),
     ],
   }));
+  // the compact island shows a change once it has held for a moment
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 650)));
   const rows = [...host.querySelectorAll(".amb-row")];
   expect(rows.map((row) => row.querySelector(".amb-row-name")?.textContent)).toEqual(["Nova", "Echo", "Scout"]);
   expect(host.querySelector(".amb-more")?.textContent).toBe("+1");

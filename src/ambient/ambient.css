@@ -1,9 +1,9 @@
-/* the notch island and the bot dock: grok's dark, flat, one hairline; each bot's own colour is the only colour */
-:root {
+/* the notch island and the bot dock: grok's dark, flat, one hairline; each bot's own colour is the only colour, blue
+   marks an ask, red a failure. Everything sits under .amb-root so a showcase can draw the island inside the app. */
+.amb-root {
   /* the island alone is true black: it has to read as one piece with the camera housing */
   --amb-notch: #000;
   --amb-panel: #0c0c0c;
-  --amb-card: #1a1a1a;
   --amb-raised: rgb(245 245 245 / 0.06);
   --amb-raised-hover: rgb(245 245 245 / 0.11);
   --amb-ink: #f5f5f5;
@@ -15,27 +15,32 @@
   --amb-blue-fill: #116dd2;
   --amb-ok: #00ba69;
   --amb-bad: #ff6463;
+  --amb-bad-ink: #ff8f8e;
   --amb-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --amb-fast: 160ms;
   /* the mascots' chrome body paints with the app's ink */
   --color-ink: #f5f5f5;
   color-scheme: dark;
-}
-
-html, body, #root { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-body {
   font-family: "XVF", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 425;
   color: var(--amb-ink);
   -webkit-font-smoothing: antialiased;
-  user-select: none;
-  cursor: default;
 }
-button { font: inherit; color: inherit; cursor: default; -webkit-tap-highlight-color: transparent; }
-:focus-visible { outline: 2px solid var(--amb-focus); outline-offset: 2px; }
-.inline-flex { display: inline-flex; }
-.shrink-0 { flex-shrink: 0; }
+/* resets at no weight, so every .amb- class wins over them */
+:where(.amb-root) button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* everything that does something says so under the pointer: bots, rows, choices, the island itself */
+:where(.amb-root) :is(button, [role="button"], .amb-row-main, .amb-dock-bot, .amb-island-hit, .amb-shelf-bot, .amb-pill):not(:disabled) { cursor: pointer; }
+:where(.amb-root) button:disabled { cursor: default; }
+:where(.amb-root) .amb-reply-input { cursor: text; }
+:where(.amb-root) :focus-visible { outline: 2px solid var(--amb-focus); outline-offset: 2px; }
+:where(.amb-root) .inline-flex { display: inline-flex; }
+:where(.amb-root) .shrink-0 { flex-shrink: 0; }
 .amb-photo { display: block; object-fit: cover; }
+/* a mascot's own breath, each on its own phase (BotMark), only while it may move */
+.amb-live { display: inline-grid; place-items: center; }
+.amb-breathe { display: inline-grid; place-items: center; transform-origin: 50% 100%; }
+@keyframes amb-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.025, 0.975); } }
+.amb-breathe[data-on] { animation: amb-breathe 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
 
 .amb-stage { position: relative; }
 
@@ -48,16 +53,17 @@ button { font: inherit; color: inherit; cursor: default; -webkit-tap-highlight-c
 .amb-island-hit:focus-visible { outline-offset: -3px; }
 .amb-panel { position: absolute; inset: 0 0 auto 0; }
 .amb-compact { position: absolute; left: 0; display: grid; place-items: center; pointer-events: none; }
+.amb-compact-mark { display: grid; place-items: center; }
 /* more waiting behind the one the compact island shows */
 .amb-more {
   position: absolute; right: -6px; bottom: -3px; display: grid; place-items: center; min-width: 12px; height: 12px; padding: 0 2.5px; box-sizing: border-box;
-  border-radius: 999px; background: var(--amb-blue-fill); color: #fff; font-size: 8px; font-weight: 650; line-height: 1; font-variant-numeric: tabular-nums;
+  border-radius: 999px; background: var(--amb-blue-fill); color: var(--amb-ink); font-size: 8px; font-weight: 650; line-height: 1; font-variant-numeric: tabular-nums;
   box-shadow: 0 0 0 1.5px var(--amb-notch);
 }
 .amb-emoji-glyph { display: block; line-height: 1; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
 
-.amb-panel-body { padding: 4px 12px 12px; }
-.amb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 34px; padding-inline: 4px 0; }
+.amb-panel-body { padding: 4px 10px 10px; }
+.amb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 34px; padding-inline: 6px 0; }
 .amb-counts { display: flex; gap: 6px; min-width: 0; overflow: hidden; }
 .amb-count {
   display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px;
@@ -68,55 +74,77 @@ button { font: inherit; color: inherit; cursor: default; -webkit-tap-highlight-c
 [data-status="needs-you"] > .amb-dot { background: var(--amb-blue); }
 [data-status="error"] > .amb-dot { background: var(--amb-bad); }
 [data-status="done"] > .amb-dot { background: var(--amb-ok); }
-:is([data-status="busy"], [data-status="working"], [data-status="thinking"], [data-status="talking"]) > .amb-dot { background: var(--amb-ink); }
+[data-status="working"] > .amb-dot { background: var(--amb-ink); }
+.amb-recent-head { margin: 10px 0 2px; padding-inline: 8px; font-size: 11px; line-height: 16px; font-weight: 550; color: var(--amb-ink-3); }
+.amb-rows { position: relative; list-style: none; margin: 2px 0 0; padding: 0; max-height: 392px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; scrollbar-width: thin; scrollbar-color: rgb(245 245 245 / 0.18) transparent; }
 
-.amb-rows { list-style: none; margin: 2px 0 0; padding: 0; max-height: 344px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; scrollbar-width: thin; scrollbar-color: rgb(245 245 245 / 0.18) transparent; }
-.amb-row { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-radius: 14px; transition: background-color var(--amb-fast) ease; }
-.amb-row:focus-within { background: var(--amb-raised); }
-.amb-row-main { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px; border: 0; background: none; text-align: start; border-radius: 14px; }
+/* one bot: the dock puts its mascot at the edge and its words to the left; the island the other way round */
+.amb-row { position: relative; display: grid; align-items: center; border-radius: 14px; transition: background-color var(--amb-fast) ease; }
+.amb-row-main { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; padding: 8px; border: 0; background: none; text-align: start; border-radius: 14px; }
 .amb-row-main:focus-visible { outline-offset: -2px; }
-.amb-row-mark { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; }
-.amb-row-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.amb-row-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.amb-row-name { font-size: 13px; line-height: 18px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%; }
-.amb-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; line-height: 16px; color: var(--amb-ink-2); white-space: nowrap; }
+.amb-row-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.amb-row-name { font-size: 13px; line-height: 18px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.amb-unread { width: 6px; height: 6px; border-radius: 50%; background: var(--amb-ink); flex-shrink: 0; }
 .amb-row-time { margin-inline-start: auto; font-size: 11px; line-height: 16px; color: var(--amb-ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.amb-row-line { font-size: 12px; line-height: 16px; color: var(--amb-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.amb-row-actions { display: flex; align-items: center; gap: 6px; padding-inline-end: 8px; }
+.amb-row-line { display: flex; align-items: flex-start; gap: 5px; min-width: 0; font-size: 12px; line-height: 16px; color: var(--amb-ink-2); }
+.amb-row-line > svg { flex-shrink: 0; margin-top: 2px; }
+.amb-row-words { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.amb-row-line[data-kind="ask"] { color: var(--amb-ink); }
+.amb-row-line:is([data-kind="ask"], [data-kind="error"]) .amb-row-words { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.amb-row-line[data-kind="error"] { color: var(--amb-bad-ink); }
+.amb-row-line[data-kind="sent"] > svg { color: var(--amb-ok); }
+.amb-row-line[data-kind="recent"] { color: var(--amb-ink-3); }
+.amb-row[data-status="idle"] .amb-row-name { color: var(--amb-ink-2); font-weight: 475; }
+/* a working bot's line shimmers while someone looks at it */
+@keyframes amb-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+:is(.amb-dock[data-open], .amb-island[data-open]) .amb-row-line[data-kind="busy"] .amb-row-words {
+  background: linear-gradient(90deg, var(--amb-ink-3) 0%, var(--amb-ink-3) 35%, var(--amb-ink) 50%, var(--amb-ink-3) 65%, var(--amb-ink-3) 100%) 0 0 / 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent; animation: amb-shimmer 2.4s linear infinite;
+}
+/* one width whatever a row offers, so the times line up */
+.amb-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 28px; }
+.amb-row-mark { display: grid; place-items: center; }
+.amb-tray-wrap { overflow: hidden; }
+.amb-tray { display: flex; flex-direction: column; gap: 6px; }
+.amb-ask-glyph { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: rgb(77 155 255 / 0.16); color: var(--amb-blue); }
+.amb-ask-glyph[data-kind="error"] { background: rgb(255 100 99 / 0.15); color: var(--amb-bad); }
+
+.amb-row[data-side="island"] { grid-template-columns: 46px minmax(0, 1fr) auto; grid-template-areas: "mark main actions" ". tray tray"; }
+.amb-row[data-side="island"] .amb-row-main { grid-column: 1 / 3; grid-row: 1; padding-inline-start: 50px; }
+.amb-row[data-side="island"] .amb-row-mark { grid-area: mark; z-index: 1; pointer-events: none; }
+.amb-row[data-side="island"] .amb-row-actions { grid-area: actions; padding-inline-end: 6px; }
+.amb-row[data-side="island"] .amb-tray-wrap { grid-area: tray; }
+.amb-row[data-side="island"] .amb-tray { padding: 0 8px 10px 4px; }
 
 .amb-icon {
   position: relative; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 999px;
-  background: transparent; color: var(--amb-ink-3); transition: background-color var(--amb-fast) ease, color var(--amb-fast) ease;
+  background: transparent; color: var(--amb-ink-3); transition: background-color var(--amb-fast) ease, color var(--amb-fast) ease, opacity var(--amb-fast) ease;
 }
 /* a bigger target than the 28px it draws */
-.amb-icon::before { content: ""; position: absolute; inset: -8px; }
+.amb-icon::before { content: ""; position: absolute; inset: -6px; }
 .amb-icon[data-on] { background: var(--amb-raised-hover); color: var(--amb-ink); }
 .amb-pill {
-  height: 26px; padding: 0 12px; border: 0; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap;
+  height: 28px; max-width: 100%; padding: 0 12px; border: 0; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   background: var(--amb-raised-hover); color: var(--amb-ink);
   transition: background-color var(--amb-fast) ease, transform var(--amb-fast) var(--amb-ease-out);
 }
 .amb-pill-primary { background: var(--amb-ink); color: var(--amb-panel); }
-.amb-choices { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 8px 8px 52px; }
-.amb-choices .amb-pill { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.amb-pill:active, .amb-send:active:enabled { transform: scale(0.96); }
+.amb-pill-ghost { background: transparent; color: var(--amb-ink-2); box-shadow: inset 0 0 0 1px var(--amb-hair); }
+.amb-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.amb-pill:active, .amb-send:active:enabled, .amb-dock-plus:active { transform: scale(0.96); }
 
 .amb-reply {
-  grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; margin: 0 8px 8px 52px; padding: 3px 3px 3px 12px;
-  border-radius: 999px; background: var(--amb-raised); box-shadow: inset 0 0 0 0.5px var(--amb-hair);
-  transition: opacity var(--amb-fast) var(--amb-ease-out), translate 220ms var(--amb-ease-out), box-shadow var(--amb-fast) ease;
+  display: flex; align-items: center; gap: 6px; padding: 3px 3px 3px 12px;
+  border-radius: 999px; background: var(--amb-raised); box-shadow: inset 0 0 0 0.5px var(--amb-hair); transition: box-shadow var(--amb-fast) ease;
 }
-@starting-style { .amb-reply { opacity: 0; translate: 0 -4px; } }
 .amb-reply:focus-within { box-shadow: inset 0 0 0 1px rgb(245 245 245 / 0.28); }
-.amb-reply-input { flex: 1; min-width: 0; height: 28px; padding: 0; border: 0; outline: none; background: none; color: var(--amb-ink); font: inherit; font-size: 13px; user-select: text; }
+.amb-reply-input { flex: 1; min-width: 0; height: 26px; padding: 0; border: 0; outline: none; background: none; color: var(--amb-ink); font: inherit; font-size: 13px; user-select: text; }
 .amb-reply-input::placeholder { color: var(--amb-ink-3); }
-.amb-send { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: var(--amb-ink); color: var(--amb-panel); transition: background-color var(--amb-fast) ease, transform var(--amb-fast) var(--amb-ease-out); }
+.amb-send { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: var(--amb-ink); color: var(--amb-panel); transition: background-color var(--amb-fast) ease, transform var(--amb-fast) var(--amb-ease-out); }
 .amb-send:disabled { background: var(--amb-raised-hover); color: var(--amb-ink-3); }
 
 .amb-shelf { padding: 8px 0 2px; }
 .amb-shelf-bots { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 10px; }
-/* the shelf they sleep on, under their feet */
-.amb-shelf-bots::before { content: ""; position: absolute; left: 12px; right: 12px; top: 42px; height: 1px; background: linear-gradient(90deg, transparent, var(--amb-hair) 18%, var(--amb-hair) 82%, transparent); pointer-events: none; }
 .amb-shelf-bot { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 56px; padding: 6px 0 4px; border: 0; border-radius: 12px; background: none; }
 .amb-shelf-name { max-width: 56px; font-size: 11px; line-height: 14px; color: var(--amb-ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .amb-shelf-hint { margin: 10px 0 0; text-align: center; font-size: 12px; line-height: 16px; color: var(--amb-ink-3); }
@@ -125,45 +153,62 @@ button { font: inherit; color: inherit; cursor: default; -webkit-tap-highlight-c
 .amb-empty-title { margin: 0; font-size: 13px; font-weight: 550; }
 .amb-empty-hint { margin: 0 0 8px; font-size: 12px; color: var(--amb-ink-2); }
 
-/* dock */
-.amb-dock { position: absolute; will-change: transform; }
-.amb-dock .amb-ear { left: auto; }
+/* dock: one body; the clip opens it leftwards, the slide brings it in from the edge */
+.amb-dock { position: absolute; top: 0; left: 0; will-change: transform; }
+.amb-dock .amb-ear { left: auto; right: var(--amb-over, 0px); }
 .amb-ear-top { background: radial-gradient(circle farthest-side at 0 0, transparent 96%, var(--amb-panel) 100%); }
-.amb-ear-bottom { top: auto; background: radial-gradient(circle farthest-side at 0 100%, transparent 96%, var(--amb-panel) 100%); }
-.amb-dock-body { position: absolute; left: 0; right: 0; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; background: var(--amb-panel); border-radius: 22px 0 0 22px; overflow: hidden; }
-.amb-dock-list { list-style: none; margin: 0; padding: 0; width: 100%; }
-.amb-dock-cell { position: relative; display: grid; place-items: center; }
-.amb-dock-bot { position: relative; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 14px; background: none; touch-action: none; }
+.amb-ear-bottom { background: radial-gradient(circle farthest-side at 0 100%, transparent 96%, var(--amb-panel) 100%); }
+.amb-dock-body { position: absolute; inset: 0; background: var(--amb-panel); will-change: clip-path; }
+.amb-dock-content { position: absolute; top: 0; left: 0; right: 0; box-sizing: border-box; padding-inline-end: var(--amb-over, 0px); display: flex; flex-direction: column; }
+.amb-dock-list { position: relative; list-style: none; margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
+.amb-dock-cell { position: relative; }
+/* the one highlight that glides from bot to bot (rows.tsx useHoverBand), under the rows */
+.amb-band { position: absolute; top: 0; left: 0; right: 0; border-radius: 14px; background: var(--amb-raised); pointer-events: none; }
+.amb-dock-list > .amb-band { left: 6px; border-radius: 14px 0 0 14px; }
+.amb-row[data-side="dock"] {
+  grid-template-columns: minmax(0, 1fr) auto var(--amb-column); grid-template-rows: minmax(var(--amb-cell), auto) auto;
+  grid-template-areas: "main actions mark" "tray tray glyph"; margin-inline-start: 6px; border-radius: 14px 0 0 14px;
+}
+.amb-row[data-side="dock"] .amb-row-main { grid-area: main; align-self: stretch; padding-inline-start: 12px; }
+.amb-row[data-side="dock"] .amb-row-actions { grid-area: actions; }
+.amb-row[data-side="dock"] .amb-row-mark { grid-area: mark; height: var(--amb-cell); align-self: start; }
+.amb-row[data-side="dock"] .amb-tray-wrap { grid-area: tray; }
+.amb-row[data-side="dock"] .amb-tray { padding: 0 2px 12px 12px; }
+.amb-row[data-side="dock"] .amb-ask-glyph { grid-area: glyph; align-self: start; justify-self: center; margin-top: -2px; }
+/* the words come out only once it opens; the mascots and the glyphs stay */
+.amb-dock :is(.amb-row-main, .amb-row-actions, .amb-tray, .amb-dock-sum) { opacity: 0; transition: opacity 100ms var(--amb-ease-out); }
+.amb-dock[data-open] :is(.amb-row-main, .amb-row-actions, .amb-tray, .amb-dock-sum) { opacity: 1; transition: opacity var(--amb-fast) var(--amb-ease-out) 40ms; }
+.amb-dock-bot { position: relative; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 14px; background: none; touch-action: none; transition: background-color var(--amb-fast) ease; }
+.amb-dock-bot:focus-visible { outline-offset: -2px; }
 .amb-dock-mark { display: grid; place-items: center; }
-.amb-dock-plus { display: grid; place-items: center; width: 100%; flex-shrink: 0; padding: 0; border: 0; background: none; color: var(--amb-ink-3); transition: color var(--amb-fast) ease; }
-.amb-badge {
-  position: absolute; top: 3px; left: 3px; display: grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
-  border-radius: 999px; background: var(--amb-blue-fill); color: #fff; font-size: 10px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums;
-  box-shadow: 0 0 0 2px var(--amb-panel);
-}
-.amb-badge[data-kind="error"] { background: #d93a3a; }
-.amb-badge[data-kind="unread"] { top: 6px; left: 6px; min-width: 8px; width: 8px; height: 8px; padding: 0; background: var(--amb-ink); }
-.amb-sliver-tick { position: absolute; left: 1px; width: 4px; height: 12px; border-radius: 2px; background: var(--amb-blue); pointer-events: none; }
-
-.amb-card {
-  position: absolute; box-sizing: border-box; padding: 12px 14px; border-radius: 16px; background: var(--amb-card); pointer-events: none;
-  box-shadow: 0 0 0 0.5px rgb(245 245 245 / 0.1), 0 12px 32px rgb(0 0 0 / 0.36);
-}
-.amb-card-body { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-.amb-card-top { display: flex; align-items: baseline; gap: 8px; width: 100%; }
-.amb-card-name { font-size: 13px; line-height: 18px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.amb-card-line { margin: 2px 0 0; font-size: 12px; line-height: 16px; color: var(--amb-ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* hidden, the sliver still says who waits, failed, works or replied: by shape as much as colour */
+.amb-tick { position: absolute; left: -7px; top: 50%; width: 3px; height: 8px; border-radius: 2px; translate: 0 -50%; background: rgb(245 245 245 / 0.55); opacity: 0; pointer-events: none; transition: opacity var(--amb-fast) var(--amb-ease-out); }
+.amb-tick[data-kind="ask"] { height: 16px; background: var(--amb-blue); }
+.amb-tick[data-kind="error"] { height: 16px; background: var(--amb-bad); }
+.amb-tick[data-kind="reply"] { width: 4px; height: 4px; border-radius: 50%; background: var(--amb-ink); }
+.amb-dock[data-hidden] .amb-tick { opacity: 1; }
+.amb-dock-foot { display: grid; grid-template-columns: minmax(0, 1fr) var(--amb-column); align-items: center; flex-shrink: 0; margin-inline-start: 6px; }
+.amb-dock-sum { margin: 0; padding-inline-start: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 16px; color: var(--amb-ink-3); }
+.amb-sum-part + .amb-sum-part::before { content: "·"; margin: 0 6px; color: var(--amb-ink-3); }
+.amb-sum-part[data-status="needs-you"] .amb-num { color: var(--amb-blue); }
+.amb-sum-part[data-status="error"] .amb-num { color: var(--amb-bad); }
+.amb-dock-plus { position: relative; justify-self: center; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--amb-ink-3); transition: color var(--amb-fast) ease, background-color var(--amb-fast) ease, transform var(--amb-fast) var(--amb-ease-out); }
 
 @media (hover: hover) and (pointer: fine) {
-  .amb-row:hover { background: var(--amb-raised); }
+  .amb-row .amb-quiet { opacity: 0; }
+  .amb-row:is(:hover, :focus-within) .amb-quiet { opacity: 1; }
   .amb-row:hover .amb-icon { color: var(--amb-ink-2); }
   .amb-icon:hover { background: var(--amb-raised-hover); color: var(--amb-ink); }
   .amb-pill:hover { background: rgb(245 245 245 / 0.16); }
   .amb-pill-primary:hover { background: rgb(245 245 245 / 0.86); }
+  .amb-pill-ghost:hover { background: var(--amb-raised); color: var(--amb-ink); }
   .amb-shelf-bot:hover .amb-shelf-name { color: var(--amb-ink-2); }
-  .amb-dock-plus:hover { color: var(--amb-ink); }
+  .amb-dock-plus:hover { color: var(--amb-ink); background: var(--amb-raised-hover); }
+  .amb-dock-bot:hover { background: var(--amb-raised); }
+  .amb-dock[data-open] .amb-dock-bot:hover { background: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .amb-pill:active, .amb-send:active:enabled { transform: none; }
-  @starting-style { .amb-reply { translate: 0 0; } }
+  .amb-breathe[data-on] { animation: none; }
+  .amb-pill:active, .amb-send:active:enabled, .amb-dock-plus:active { transform: none; }
+  :is(.amb-dock[data-open], .amb-island[data-open]) .amb-row-line[data-kind="busy"] .amb-row-words { animation: none; background: none; color: var(--amb-ink-2); }
 }

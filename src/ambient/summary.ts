@@ -8,12 +8,14 @@ import { t } from "@/lib/i18n";
 import { turnNowPhrases } from "@/lib/live-activity";
 import { pendingApprovals, type Pending } from "@/components/PendingApproval";
 import { lastLine, lastPreviewable, sidebarPreviewMessages, waitingLine } from "@/components/sidebar-preview";
+import { plainPreviewText } from "@/lib/plain-preview";
 import { workingThreadId } from "@/components/SidebarWorkingStep";
 import { toolLabel, titledCard } from "@/components/ApprovalCard";
 import { answersInOneTap, cardQuestions } from "@/components/QuestionCard";
 import { isQuestionCard } from "@/lib/question-card";
+import { openPersonWait, restingOnPerson, type PersonWait } from "../../shared/person-wait";
 import { ambientLabels } from "./labels";
-import type { AmbientBot, AmbientSnapshot, AmbientStatus } from "./types";
+import type { AmbientBot, AmbientSnapshot, AmbientStatus, AmbientStep, AmbientWait } from "./types";
 
 /** A proposal (a routine, a skill, a profile, a model, a team setup) needs its full card: the island only opens it. */
 export function answerableInPlace(pending: Pending): boolean {
@@ -37,24 +39,46 @@ const openQuestion = (message: Message) => {
   return card && isQuestionCard(card) && !card.answered && !card.pendingAnswer && !card.dismissed && !card.expired && !card.stopped ? card : null;
 };
 
-/** The newest open question in the bot's chat, and its choices when one tap answers it. */
-export function questionOf(visible: Message[]): { card: NonNullable<Message["card"]>; choices: string[] | null } | null {
+/** The newest open question in the bot's chat, its choices when one tap answers it, and whether it takes a typed answer. */
+export function questionOf(visible: Message[]): { card: NonNullable<Message["card"]>; choices: string[] | null; custom: boolean } | null {
   const message = visible.findLast((entry) => openQuestion(entry));
   const card = message && openQuestion(message);
   if (!card) return null;
   const questions = cardQuestions(card);
-  const choices = answersInOneTap(questions) && !card.accessRequest ? questions[0]!.options.map((option) => option.label) : null;
+  const only = questions.length === 1 && !questions[0]!.multiSelect && !card.accessRequest ? questions[0]! : null;
+  const choices = only && answersInOneTap(questions) ? only.options.map((option) => option.label) : null;
   // what main lets through unchanged (electron/ambient-state.mjs), so a tap answers with the very same words
   const fits = choices && choices.length <= ISLAND_CHOICES && choices.every((label) => label.length <= 60 && label === label.replace(/\s+/g, " ").trim());
-  return { card, choices: fits ? choices : null };
+  // a longer list opens the chat rather than offering only a typed answer
+  return { card, choices: fits ? choices : null, custom: Boolean(only && only.custom !== false && (fits || !choices)) };
+}
+
+/** The ask a bot's chat rests on: a question, an approval, a sign-in, a password, an app to connect or a proposal. An
+ * intro's suggestions, a plain reply or anything already answered waits on nobody. */
+export function openWait(bot: Pick<Bot, "busy">, visible: Message[]): PersonWait | undefined {
+  return bot.busy ? openPersonWait(visible) : restingOnPerson(visible);
 }
 
 /** Whether the bot waits on the person: a question, an approval or a card of choices in any of its chats. */
 export function waitsOnPerson(bot: Bot, visible: Message[] = sidebarPreviewMessages(bot)): boolean {
-  const newest = lastPreviewable(visible);
-  const card = newest?.kind === "options" ? newest.card : undefined;
-  const openCard = Boolean(card && !card.answered && !card.dismissed && !card.expired);
-  return bot.activity === "waiting-on-you" || (bot.tasks ?? []).some((task) => task.activity === "waiting-on-you") || openAsksOf(bot) > 0 || pendingApprovals(visible).length > 0 || openCard;
+  return bot.activity === "waiting-on-you" || (bot.tasks ?? []).some((task) => task.activity === "waiting-on-you") || openAsksOf(bot) > 0 || pendingApprovals(visible).length > 0 || Boolean(openWait(bot, visible));
+}
+
+const STEPS = new Set<AmbientStep>(["thinking", "reply", "read", "fetch", "web", "search", "command", "write", "edit", "tool"]);
+const stepOf = (live: TurnLive): AmbientStep | null => {
+  const activity = live.status?.activity;
+  return activity && STEPS.has(activity as AmbientStep) ? (activity as AmbientStep) : null;
+};
+
+/** What a wait without a card of its own says it needs, in the person's words. */
+function askLine(wait: PersonWait): string {
+  const name = plainPreviewText(wait.label);
+  if (!name) return "";
+  if (wait.kind === "sign-in") return t("ambient.ask.signIn", { name });
+  if (wait.kind === "password") return t("ambient.ask.password", { name });
+  if (wait.kind === "connect") return t("ambient.ask.connect", { name });
+  if (wait.kind === "review") return t("ambient.ask.review", { name });
+  return "";
 }
 
 export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threadId: string) => TurnLive): AmbientBot {
@@ -67,11 +91,13 @@ export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threa
   const live = turnLive(workingOn);
   const status = statusOf(bot, waiting, live, visible);
   const inPlace = approvals.find(answerableInPlace);
+  const wait = status === "needs-you" ? openWait(bot, visible) : undefined;
   const detail = status === "needs-you"
-    ? inPlace ? t("ambient.wantsTo", { action: toolLabel(inPlace.tool) }) : waitingLine(bot, visible, instances)
+    ? inPlace ? t("ambient.wantsTo", { action: toolLabel(inPlace.tool) }) : (wait && askLine(wait)) || waitingLine(bot, visible, instances)
     : bot.busy ? turnNowPhrases(live.status, workingOn === bot.threadId ? newest : undefined)?.phrases[0] ?? t("chat.activity.thinking") : "";
   const question = status === "needs-you" ? questionOf(visible) : null;
-  const waits = status !== "needs-you" ? null : question ? "question" : approvals.length ? "approval" : "other";
+  const waits: AmbientWait | null = status !== "needs-you" ? null : question ? "question" : approvals.length ? "approval" : wait?.kind ?? "other";
+  const answerable = question && question.card.requestId && (question.choices || question.custom);
   return {
     id: bot.id,
     threadId: bot.threadId,
@@ -88,13 +114,44 @@ export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threa
     asks,
     approval: inPlace ? { requestId: inPlace.requestId, threadId: bot.threadId, title: inPlace.detail || toolLabel(inPlace.tool) } : null,
     waits,
-    question: question?.choices && question.card.requestId
-      ? { requestId: question.card.requestId, threadId: bot.threadId, title: cardQuestions(question.card)[0]?.question || question.card.title, choices: question.choices }
+    question: answerable
+      ? { requestId: question.card.requestId!, threadId: bot.threadId, title: cardQuestions(question.card)[0]?.question || question.card.title, choices: question.choices ?? [], custom: question.custom }
       : null,
+    step: bot.busy ? stepOf(live) : null,
   };
 }
 
+/** Which chat the person has open, whether they are looking at the app, and what they watched there (kept by the page
+ * between summaries: bot id to the turn or news it showed). */
+export interface Watch {
+  selectedId: string | null;
+  focused: boolean;
+  watched: Map<string, string>;
+}
+
+/** One running turn (whatever it is doing), or one piece of news: the same until something new happens. */
+function watchKey(bot: Bot, ambient: AmbientBot): string {
+  return bot.busy ? `busy:${bot.turnStartedAt ?? ""}` : `${ambient.status}:${ambient.at}`;
+}
+
+/** A bot is quiet while what it is doing, or what it said, is what the person watched in the focused app: opening a
+ * chat, or switching between chats, never changes the island or the dock. */
+function watching(bot: Bot, ambient: AmbientBot, watch: Watch): AmbientBot {
+  const key = watchKey(bot, ambient);
+  if (watch.focused && watch.selectedId === bot.id) watch.watched.set(bot.id, key);
+  else if (watch.watched.has(bot.id) && watch.watched.get(bot.id) !== key) watch.watched.delete(bot.id);
+  return watch.watched.get(bot.id) === key ? { ...ambient, quiet: true } : ambient;
+}
+
 /** Every bot the sidebar lists, as the surfaces show them. */
-export function ambientSnapshot(bots: Bot[], instances: InstanceInfo[], turnLive: (threadId: string) => TurnLive, lang: string): AmbientSnapshot {
-  return { bots: bots.filter((bot) => !bot.hidden && !bot.movedTo).map((bot) => ambientBot(bot, instances, turnLive)), labels: ambientLabels(), lang };
+export function ambientSnapshot(bots: Bot[], instances: InstanceInfo[], turnLive: (threadId: string) => TurnLive, lang: string, watch?: Watch): AmbientSnapshot {
+  const shown = bots.filter((bot) => !bot.hidden && !bot.movedTo);
+  return {
+    bots: shown.map((bot) => {
+      const ambient = ambientBot(bot, instances, turnLive);
+      return watch ? watching(bot, ambient, watch) : ambient;
+    }),
+    labels: ambientLabels(),
+    lang,
+  };
 }

@@ -18,7 +18,9 @@ const NOTCH_FALLBACK_HEIGHT = 37;
  * with a 37 pt menu bar): erring wide keeps the island from ever being smaller than the notch. */
 const NOTCH_ASPECT = 5.2;
 
-export const DOCK = Object.freeze({ cell: 52, tile: 34, body: 64, pad: 10, ear: 18, sliver: 6, cardRoom: 300, spill: 64, max: 12 });
+/** The bot dock: a column of mascots `column` wide that opens leftwards to `open` wide, rows `cell` tall. Its window runs
+ * `overhang` past the screen's edge, so no rounding of the window's place or of the slide ever shows a seam there. */
+export const DOCK = Object.freeze({ cell: 56, tile: 36, column: 64, open: 348, pad: 8, ear: 18, sliver: 6, margin: 28, overhang: 4 });
 export const DISPLAY_CHOICES = Object.freeze(["active", "built-in", "main"]);
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -48,22 +50,17 @@ export function islandLayout(display, { platform, size = "medium" } = {}) {
   return { window, collapsed, tile: s.tile, size: ISLAND_SIZES[size] ? size : "medium" };
 }
 
-/** The dock's body height for this many bots and the ＋, capped to the display. */
-export function dockBodyHeight(count, workHeight) {
-  const rows = clamp(Math.floor(Number(count) || 0), 0, DOCK.max) + 1;
-  const wanted = DOCK.pad * 2 + rows * DOCK.cell;
-  const room = Math.max(DOCK.cell * 2, workHeight - 2 * (DOCK.ear + DOCK.spill) - 40);
-  return Math.min(wanted, room);
-}
-
-/** The dock window against the right edge of the work area (left of a Dock pinned right), centred top to bottom. */
-export function dockLayout(display, { count = 0 } = {}) {
+/** The dock window: a strip against the right edge of the work area (left of a Dock pinned right), as tall as it, so
+ * the body grows with what it shows; its page draws the body centred and lets clicks through everywhere else. */
+export function dockLayout(display) {
   const area = display.workArea;
-  const body = dockBodyHeight(count, area.height);
-  const width = DOCK.body + DOCK.cardRoom;
-  const height = Math.min(area.height, body + 2 * (DOCK.ear + DOCK.spill));
-  const window = { x: area.x + area.width - width, y: Math.round(area.y + (area.height - height) / 2), width, height };
-  return { window, body, top: Math.round((height - body) / 2) };
+  const width = DOCK.open + DOCK.overhang;
+  // whole points, rounded outward: the window's right side always lands past the edge, never short of it
+  const right = area.x + area.width;
+  const y = Math.floor(area.y), height = Math.ceil(area.y + area.height) - y;
+  const window = { x: Math.floor(right - DOCK.open), y, width, height };
+  const top = DOCK.ear + DOCK.margin;
+  return { window, body: Math.max(DOCK.cell * 2, area.height - 2 * top), top };
 }
 
 const contains = (bounds, point) => point.x >= bounds.x && point.x < bounds.x + bounds.width && point.y >= bounds.y && point.y < bounds.y + bounds.height;

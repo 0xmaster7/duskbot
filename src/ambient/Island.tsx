@@ -1,25 +1,38 @@
 // The notch island: black around the camera (or a floating pill on a display without a notch), the bot it is about on
-// the left and the team's mood as an emoji on the right. Under the pointer it grows into a panel of every bot, on one
-// spring: its width, height, corners and the two flares where it meets the top of the screen all ride it.
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { AnimatePresence, motion, useReducedMotion, useSpring, useTransform } from "motion/react";
-import { ArrowUp, CornerUpLeft, Plus, Square } from "lucide-react";
-import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, focusBot, isBusy, moodOf, rankBots, shortAgo, waitingCount, type Mood } from "./mood";
+// the left and the team's mood as an emoji on the right, only for what happens out of sight: what the person is watching
+// in the app never shows here, and a change has to hold a moment before it does. Under the pointer it grows into a panel of every bot, on one spring: its width, height, corners and the two
+// flares where it meets the top of the screen all ride it. Each row answers its bot's ask in place, or stops it.
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { AnimatePresence, motion, useReducedMotion, useTransform } from "motion/react";
+import { Plus } from "lucide-react";
+import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, moodOf, rankBots, waitingCount, type Mood } from "./mood";
+import { BotRow, useHoverBand, useRowMoments } from "./rows";
+import { attention, eventKey, isFresh, recentOf, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, FADE, FADE_OUT, LIVELY, SETTLE, StatusTag, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
-import type { AmbientBot, AmbientBridge, IslandLayout } from "./types";
+import { BotMark, FADE, FADE_OUT, HOLD_MS, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
+import type { AmbientAct, AmbientBot, AmbientBridge, IslandLayout } from "./types";
 
 const PANEL_W = 432;
 /** The flares where a notch island meets the top edge of the screen. */
 const EAR = 10;
-const HOVER_IN_MS = 90;
-const HOVER_OUT_MS = 260;
+const HOVER_OUT_MS = 120;
 /** The island widens this much for a moment when someone starts needing the person, or a turn finishes. */
 const NUDGE = 22;
 const NUDGE_MS = 1600;
+/** Everything answered or seen: the island smiles this long, then shrinks back to the bare notch. */
+export const SMILE_MS = 2400;
 const FALLBACK: IslandLayout["collapsed"] = { kind: "pill", width: 208, height: 34, top: 6, notch: 0 };
 
-export function Island({ bridge }: { bridge: AmbientBridge }) {
+export interface IslandProps {
+  bridge: AmbientBridge;
+  /** Drawn inside a page (the setup's showcase), not in its own window: the pointer is measured from the island's stage,
+   * and the window losing focus means nothing. */
+  embedded?: boolean;
+  /** Holds the panel open, as a showcase does. */
+  forceOpen?: boolean;
+}
+
+export function Island({ bridge, embedded = false, forceOpen = false }: IslandProps) {
   const { snapshot, layout } = useAmbientFeed(bridge);
   const island = layout?.surface === "island" ? layout : null;
   const reduced = useReducedMotion() === true;
@@ -27,15 +40,21 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
   const labels = snapshot?.labels ?? {};
   const lang = snapshot?.lang ?? "";
 
-  const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const open = hovered || pinned || forceOpen;
+  // a reply or failure the person has seen anywhere stops asking for their attention here
+  const { seen, mark } = useSeen(bridge, bots, open);
+  const live = attention(bots, seen);
   const [celebrating, setCelebrating] = useState(false);
   const [nudged, setNudged] = useState(false);
-  const before = useRef<AmbientBot[] | null>(null);
+  const before = useRef<readonly AmbientBot[] | null>(null);
   const cheer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
-    const finished = finishedSince(before.current, bots);
-    before.current = bots;
+    // a turn the person watched end in the app is no news here
+    const outOfSight = bots.filter((bot) => !bot.quiet);
+    const finished = finishedSince(before.current, outOfSight);
+    before.current = outOfSight;
     if (!finished.length) return;
     setCelebrating(true);
     clearTimeout(cheer.current);
@@ -43,7 +62,11 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
   }, [bots]);
   useEffect(() => () => clearTimeout(cheer.current), []);
 
-  const mood = moodOf(bots, celebrating);
+  // with nothing left to see and nobody busy, a smile for a moment, then only the notch
+  const busyOrNews = useSteady(String(live.some((bot) => bot.status !== "idle"))) === "true";
+  const { smiling, cheer: allClear } = useAllClear(busyOrNews, SMILE_MS);
+  const minimal = !busyOrNews && !smiling && !celebrating;
+  const mood = useSteady(moodOf(live, celebrating)) as Mood;
   const lastMood = useRef<Mood>(mood);
   useEffect(() => {
     const was = lastMood.current;
@@ -62,13 +85,12 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
   const maxH = stageH - c.top - 20;
   const [contentH, setContentH] = useState(0);
   const openH = Math.min(maxH, c.height + contentH);
-  const targetW = open ? panelW : c.width + (nudged && !reduced ? NUDGE : 0);
+  const restW = minimal ? (notch ? c.notch : c.height + 20) : c.width + (nudged && !reduced ? NUDGE : 0);
+  const targetW = open ? panelW : restW;
   const targetH = open ? openH : c.height;
 
-  const w = useSpring(targetW, SETTLE);
-  const h = useSpring(targetH, SETTLE);
-  useEffect(() => { if (reduced) w.jump(targetW); else w.set(targetW); }, [targetW, reduced, w]);
-  useEffect(() => { if (reduced) h.jump(targetH); else h.set(targetH); }, [targetH, reduced, h]);
+  const w = useSurfaceValue(targetW, reduced);
+  const h = useSurfaceValue(targetH, reduced);
 
   const closedR = notch ? Math.min(14, Math.round(c.height * 0.38)) : c.height / 2;
   const openR = notch ? 26 : 24;
@@ -88,29 +110,27 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
   const emojiX = useTransform(rightEdge, (value) => value - inset - tile);
 
   // where the island is right now, mid-spring included: only there do clicks land
+  const stage = useRef<HTMLDivElement>(null);
   const hit = useCallback((x: number, y: number) => {
     const half = w.get() / 2 + (notch ? EAR : 0) + 2;
     return Math.abs(x - stageW / 2) <= half && y >= c.top - 2 && y <= c.top + h.get() + 4;
   }, [w, h, notch, stageW, c.top]);
-  const enterTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const leaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const pinnedRef = useRef(pinned);
-  pinnedRef.current = pinned;
   const hovering = usePointerRegion(bridge, hit, () => {
     clearTimeout(leaveTimer.current);
-    enterTimer.current = setTimeout(() => setOpen(true), reduced ? 0 : HOVER_IN_MS);
+    setHovered(true);
   }, () => {
-    clearTimeout(enterTimer.current);
-    if (pinnedRef.current) return;
-    leaveTimer.current = setTimeout(() => setOpen(false), HOVER_OUT_MS);
-  });
-  useEffect(() => () => { clearTimeout(enterTimer.current); clearTimeout(leaveTimer.current); }, []);
-  // a click anywhere else (the window loses focus) puts the island away, reply field and all
+    clearTimeout(leaveTimer.current);
+    leaveTimer.current = setTimeout(() => setHovered(false), HOVER_OUT_MS);
+  }, embedded ? { ref: stage, width: stageW } : undefined);
+  useEffect(() => () => clearTimeout(leaveTimer.current), []);
+  // a click anywhere else (the window loses focus) puts the island away, fields and all
   useEffect(() => {
-    const blur = () => { setPinned(false); if (!hovering.current) setOpen(false); };
+    if (embedded) return;
+    const blur = () => { setPinned(false); if (!hovering.current) setHovered(false); };
     window.addEventListener("blur", blur);
     return () => window.removeEventListener("blur", blur);
-  }, [hovering]);
+  }, [hovering, embedded]);
 
   const panel = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -123,20 +143,23 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
     return () => observer.disconnect();
   }, []);
 
-  const focus = focusBot(bots);
-  const emoji = MOOD_EMOJI[mood];
   // while the person is elsewhere the mark holds still, except open, or for a moment after it changes
   const still = useStill(bridge);
+  // the most important thing worth a glance, held steady: no taking turns, no swapping on every blip
+  const focusId = useSteady(rankBots(live.filter((bot) => bot.status !== "idle"))[0]?.id ?? "", SETTLE_MS, HOLD_MS);
+  const focus = live.find((bot) => bot.id === focusId && bot.status !== "idle") ?? null;
+  // all clear: a smile, not the finish's party
+  const emoji = minimal ? null : MOOD_EMOJI[smiling ? "idle" : mood];
   const changed = useChangeMoment(focus ? `${focus.id}:${focus.status}` : "");
   const moving = !still || open || changed || celebrating;
   // the compact island shows the most urgent; this many more wait behind it
-  const more = Math.max(0, waitingCount(bots) - 1);
+  const more = Math.max(0, waitingCount(live) - 1);
   const islandLabel = more ? `${say(labels, "island")}, ${say(labels, "more", { count: more })}` : say(labels, "island");
-  const close = () => { setPinned(false); setOpen(false); };
+  const close = () => { setPinned(false); setHovered(false); };
   const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
 
   return (
-    <div className="amb-stage" style={{ width: stageW, height: stageH }} onKeyDown={onKeyDown}>
+    <div ref={stage} className="amb-stage" style={{ width: stageW, height: stageH }} onKeyDown={onKeyDown}>
       {notch && (
         <>
           <motion.div aria-hidden className="amb-ear amb-ear-left" style={{ x: leftEar, width: EAR, height: EAR }} />
@@ -146,6 +169,7 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
       <motion.section
         className="amb-island"
         data-kind={c.kind}
+        data-open={open || undefined}
         aria-label={say(labels, "island")}
         style={{ left: (stageW - panelW) / 2, top: c.top, width: panelW, height: maxH, clipPath: clip }}
       >
@@ -155,7 +179,7 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
           aria-expanded={open}
           aria-label={islandLabel}
           style={{ height: c.height, left: (panelW - c.width) / 2, width: c.width }}
-          onClick={() => setOpen(true)}
+          onClick={() => setHovered(true)}
         />
         <motion.div
           className="amb-panel"
@@ -166,65 +190,88 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
           transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: FADE_OUT, y: FADE_OUT }}
         >
           <div ref={panel}>
-            <PanelBody bots={bots} labels={labels} lang={lang} open={open} bridge={bridge} onPin={setPinned} onSent={close} />
+            <PanelBody bots={bots} seen={seen} mark={mark} cheer={allClear} labels={labels} lang={lang} open={open} bridge={bridge} onPin={setPinned} />
           </div>
         </motion.div>
       </motion.section>
-      {focus && (
+      {focus && !minimal && (
         <motion.div className="amb-compact amb-compact-tile" style={{ x: tileX, top: c.top + (c.height - tile) / 2, width: tile, height: tile }}>
-          <BotMark bot={focus} size={tile} state={celebrating ? "celebrate" : undefined} animated={moving && (isBusy(focus.status) || focus.status === "needs-you" || celebrating)} />
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.span
+              key={focus.id}
+              className="amb-compact-mark"
+              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.6, y: 6, filter: "blur(3px)" }}
+              animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+              exit={reduced ? { opacity: 0, transition: FADE_OUT } : { opacity: 0, scale: 0.9, y: -4, filter: "blur(3px)", transition: FADE_OUT }}
+              transition={{ opacity: FADE, filter: FADE, scale: LIVELY, y: LIVELY }}
+            >
+              <BotMark bot={focus} size={tile} state={celebrating ? "celebrate" : undefined} animated={moving && (isBusy(focus.status) || focus.status === "needs-you" || celebrating)} />
+            </motion.span>
+          </AnimatePresence>
           {more > 0 && <span className="amb-more" aria-hidden>+{more}</span>}
         </motion.div>
       )}
       <motion.div className="amb-compact amb-emoji" aria-live="polite" style={{ x: emojiX, top: c.top + (c.height - tile) / 2, width: tile, height: tile, fontSize: Math.round(tile * 0.86) }}>
         <AnimatePresence initial={false} mode="popLayout">
-          <motion.span
+          {emoji && <motion.span
             key={emoji}
             className="amb-emoji-glyph"
             role="img"
-            aria-label={say(labels, mood === "celebrate" ? "done" : mood === "needs-you" ? "needs-you" : mood)}
+            aria-label={say(labels, smiling ? "quiet" : mood === "celebrate" ? "done" : mood)}
             initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.5, y: 6, filter: "blur(3px)" }}
             animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
             exit={reduced ? { opacity: 0, transition: FADE_OUT } : { opacity: 0, scale: 0.96, filter: "blur(4px)", transition: FADE_OUT }}
             transition={{ opacity: FADE, filter: FADE, scale: LIVELY, y: LIVELY }}
           >
             {emoji}
-          </motion.span>
+          </motion.span>}
         </AnimatePresence>
       </motion.div>
     </div>
   );
 }
 
-type Counts = Partial<Record<"needs-you" | "busy" | "done" | "error", number>>;
+type CountKey = "needs-you" | "working" | "done";
 
-function countsOf(bots: AmbientBot[]): Counts {
-  const counts: Counts = {};
+function countsOf(bots: AmbientBot[]): Partial<Record<CountKey, number>> {
+  const counts: Partial<Record<CountKey, number>> = {};
   for (const bot of bots) {
-    const key = bot.status === "needs-you" ? "needs-you" : isBusy(bot.status) ? "busy" : bot.status === "done" ? "done" : bot.status === "error" ? "error" : null;
+    const key = bot.status === "needs-you" ? "needs-you" : isBusy(bot.status) ? "working" : bot.status === "done" ? "done" : null;
     if (key) counts[key] = (counts[key] ?? 0) + 1;
   }
   return counts;
 }
 
-function PanelBody({ bots, labels, lang, open, bridge, onPin, onSent }: {
-  bots: AmbientBot[]; labels: AmbientLabels; lang: string; open: boolean; bridge: AmbientBridge; onPin: (pinned: boolean) => void; onSent: () => void;
+function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin }: {
+  bots: readonly AmbientBot[]; seen: ReadonlySet<string>; mark: (keys: string[]) => void; cheer: number; labels: AmbientLabels; lang: string; open: boolean;
+  bridge: AmbientBridge; onPin: (pinned: boolean) => void;
 }) {
   const now = useNow(open);
-  const [replying, setReplying] = useState<string | null>(null);
-  useEffect(() => { if (!open) setReplying(null); }, [open]);
-  const ranked = rankBots(bots);
-  const quiet = bots.length > 0 && bots.every((bot) => bot.status === "idle");
-  const counts = countsOf(bots);
-  const openChat = (bot: AmbientBot) => bridge.open(bot.id, bot.threadId);
+  const live = attention(bots, seen);
+  const ranked = rankBots(live).filter((bot) => bot.status !== "idle");
+  const recent = recentOf(bots, seen);
+  const quiet = bots.length > 0 && !ranked.length;
+  const counts = countsOf(live);
+  const { sent, cheering, markSent } = useRowMoments(bots);
+  // the same one highlight as the dock's, gliding from row to row
+  const list = useRef<HTMLUListElement>(null);
+  const band = useHoverBand(list, open, `${ranked.map((bot) => bot.id).join(",")}:${recent.length}:${bots.length}`);
+  const openChat = (bot: AmbientBot) => {
+    if (isFresh(bot, seen)) mark([eventKey(bot)]);
+    bridge.open(bot.id, bot.threadId);
+  };
+  const act = (bot: AmbientBot, next: AmbientAct) => {
+    if (next.kind === "answer" || next.kind === "allow" || next.kind === "deny") markSent(bot);
+    bridge.act(next);
+  };
   return (
     <div className="amb-panel-body">
       <header className="amb-head">
-        <div className="amb-counts">
-          {(["needs-you", "busy", "done"] as const).map((key) => counts[key] ? (
+        <div className="amb-counts" aria-live="polite">
+          {(["needs-you", "working", "done"] as const).map((key) => counts[key] ? (
             <span key={key} className="amb-count" data-status={key}>
               <span className="amb-dot" aria-hidden />
-              {say(labels, key === "busy" ? "working" : key)}
+              {say(labels, key)}
               <span className="amb-num">{counts[key]}</span>
             </span>
           ) : null)}
@@ -240,25 +287,47 @@ function PanelBody({ bots, labels, lang, open, bridge, onPin, onSent }: {
           <p className="amb-empty-hint">{say(labels, "emptyHint")}</p>
           <button type="button" className="amb-pill amb-pill-primary" onClick={() => bridge.act({ kind: "new-bot" })}>{say(labels, "newBot")}</button>
         </div>
-      ) : quiet ? (
-        <Shelf bots={ranked} labels={labels} open={open} onOpen={openChat} />
+      ) : quiet && !recent.length ? (
+        <Shelf bots={rankBots(bots)} labels={labels} open={open} cheer={cheer} onOpen={openChat} />
       ) : (
-        <ul className="amb-rows">
-          {ranked.map((bot) => (
-            <Row
-              key={bot.id}
-              bot={bot}
-              labels={labels}
-              lang={lang}
-              now={now}
-              open={open}
-              replying={replying === bot.id}
-              onToggleReply={() => setReplying((was) => (was === bot.id ? null : bot.id))}
-              onOpen={() => openChat(bot)}
-              onAct={(act) => bridge.act(act)}
-              onPin={onPin}
-              onSent={() => { setReplying(null); onSent(); }}
-            />
+        <ul ref={list} className="amb-rows" onPointerLeave={() => band.point(null)}>
+          {band.element}
+          {ranked.map((bot, index) => (
+            <li key={bot.id} data-row={bot.id} onPointerEnter={() => band.point(bot.id)} onPointerMove={() => band.point(bot.id)}>
+              <BotRow
+                bot={bot}
+                labels={labels}
+                lang={lang}
+                now={now}
+                side="island"
+                open={open}
+                sent={sent.has(bot.id)}
+                mascot={<BotMark bot={bot} size={30} state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : undefined} animated={open} awake={open} shown={open} index={index} cheer={cheer} />}
+                onOpen={() => openChat(bot)}
+                onAct={(next) => act(bot, next)}
+                onPin={onPin}
+                onDismiss={() => mark([eventKey(bot)])}
+              />
+            </li>
+          ))}
+          {recent.length > 0 && <li className="amb-recent-head" role="presentation">{say(labels, "recent")}</li>}
+          {recent.map((bot, index) => (
+            <li key={`recent-${bot.id}`} data-row={`recent-${bot.id}`} onPointerEnter={() => band.point(`recent-${bot.id}`)} onPointerMove={() => band.point(`recent-${bot.id}`)}>
+              <BotRow
+                bot={bot}
+                labels={labels}
+                lang={lang}
+                now={now}
+                side="island"
+                open={open}
+                sent={false}
+                recent
+                mascot={<BotMark bot={bot} size={30} state="idle" animated={open} awake={open} shown={open} index={ranked.length + index} cheer={cheer} />}
+                onOpen={() => openChat(bot)}
+                onAct={(next) => act(bot, next)}
+                onPin={onPin}
+              />
+            </li>
           ))}
         </ul>
       )}
@@ -266,88 +335,14 @@ function PanelBody({ bots, labels, lang, open, bridge, onPin, onSent }: {
   );
 }
 
-function Row({ bot, labels, lang, now, open, replying, onToggleReply, onOpen, onAct, onPin, onSent }: {
-  bot: AmbientBot; labels: AmbientLabels; lang: string; now: number; open: boolean; replying: boolean;
-  onToggleReply: () => void; onOpen: () => void; onAct: AmbientBridge["act"]; onPin: (pinned: boolean) => void; onSent: () => void;
-}) {
-  const busy = isBusy(bot.status);
-  const question = bot.status === "needs-you" ? bot.question : null;
-  const approval = question ? null : bot.approval;
-  // "Thinking" next to the status "Thinking" says nothing: the newest line does
-  const detail = bot.detail && bot.detail !== say(labels, bot.status) ? bot.detail : "";
-  const line = question?.title || ((busy || bot.status === "needs-you") && detail ? (approval?.title ? `${detail}: ${approval.title}` : detail) : bot.line);
-  return (
-    <li className="amb-row" data-status={bot.status}>
-      <button type="button" className="amb-row-main" onClick={onOpen} aria-label={say(labels, "open", { name: bot.name })}>
-        <span className="amb-row-mark"><BotMark bot={bot} size={30} animated={open && (busy || bot.status === "needs-you")} /></span>
-        <span className="amb-row-text">
-          <span className="amb-row-top">
-            <span className="amb-row-name">{bot.name}</span>
-            <StatusTag status={bot.status} labels={labels} />
-            <span className="amb-row-time">{shortAgo(bot.at, now, lang, say(labels, "now"))}</span>
-          </span>
-          {line && <span className="amb-row-line" dir="auto">{line}</span>}
-        </span>
-      </button>
-      <div className="amb-row-actions">
-        {approval ? (
-          <>
-            <button type="button" className="amb-pill amb-pill-primary" onClick={() => onAct({ kind: "allow", botId: bot.id, threadId: approval.threadId, requestId: approval.requestId })}>{say(labels, "allow")}</button>
-            <button type="button" className="amb-pill" onClick={() => onAct({ kind: "deny", botId: bot.id, threadId: approval.threadId, requestId: approval.requestId })}>{say(labels, "deny")}</button>
-          </>
-        ) : (
-          <>
-            {busy && (
-              <button type="button" className="amb-icon" aria-label={say(labels, "stop", { name: bot.name })} title={say(labels, "stop", { name: bot.name })} onClick={() => onAct({ kind: "stop", botId: bot.id, threadId: bot.threadId })}>
-                <Square size={11} strokeWidth={2} fill="currentColor" aria-hidden />
-              </button>
-            )}
-            <button type="button" className="amb-icon" data-on={replying || undefined} aria-expanded={replying} aria-label={say(labels, "replyTo", { name: bot.name })} title={say(labels, "reply")} onClick={onToggleReply}>
-              <CornerUpLeft size={14} strokeWidth={1.75} aria-hidden />
-            </button>
-          </>
-        )}
-      </div>
-      {question && (
-        <div className="amb-choices" role="group" aria-label={question.title}>
-          {question.choices.map((choice) => (
-            <button key={choice} type="button" className="amb-pill" onClick={() => onAct({ kind: "answer", botId: bot.id, threadId: question.threadId, requestId: question.requestId, text: choice })}>{choice}</button>
-          ))}
-        </div>
-      )}
-      {replying && <ReplyField bot={bot} labels={labels} onPin={onPin} onSend={(text) => { onAct({ kind: "reply", botId: bot.id, threadId: bot.threadId, text }); onSent(); }} />}
-    </li>
-  );
-}
-
-function ReplyField({ bot, labels, onPin, onSend }: { bot: AmbientBot; labels: AmbientLabels; onPin: (pinned: boolean) => void; onSend: (text: string) => void }) {
-  const [text, setText] = useState("");
-  const input = useRef<HTMLInputElement>(null);
-  useEffect(() => { input.current?.focus(); onPin(true); return () => onPin(false); }, [onPin]);
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const message = text.trim();
-    if (message) onSend(message);
-  };
-  const label = say(labels, "replyTo", { name: bot.name });
-  return (
-    <form className="amb-reply" onSubmit={submit}>
-      <input ref={input} className="amb-reply-input" value={text} onChange={(event) => setText(event.target.value)} aria-label={label} placeholder={label} maxLength={4000} autoComplete="off" spellCheck />
-      <button type="submit" className="amb-send" disabled={!text.trim()} aria-label={say(labels, "send")}>
-        <ArrowUp size={14} strokeWidth={2} aria-hidden />
-      </button>
-    </form>
-  );
-}
-
-/** Nothing going on: the bots asleep on a shelf. Each one still opens its chat. */
-function Shelf({ bots, labels, open, onOpen }: { bots: AmbientBot[]; labels: AmbientLabels; open: boolean; onOpen: (bot: AmbientBot) => void }) {
+/** Nothing going on: the bots awake and idling together, each blinking on its own time. */
+function Shelf({ bots, labels, open, cheer, onOpen }: { bots: readonly AmbientBot[]; labels: AmbientLabels; open: boolean; cheer: number; onOpen: (bot: AmbientBot) => void }) {
   return (
     <div className="amb-shelf">
       <div className="amb-shelf-bots">
-        {bots.slice(0, 8).map((bot) => (
+        {bots.slice(0, 8).map((bot, index) => (
           <button key={bot.id} type="button" className="amb-shelf-bot" onClick={() => onOpen(bot)} aria-label={say(labels, "open", { name: bot.name })}>
-            <BotMark bot={bot} size={34} state="sleeping" animated={open} />
+            <BotMark bot={bot} size={34} state="idle" animated={open} awake={open} shown={open} index={index} cheer={cheer} />
             <span className="amb-shelf-name">{bot.name}</span>
           </button>
         ))}

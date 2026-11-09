@@ -1,11 +1,13 @@
 // What the island and the dock share: one motion language, the feed from main, the pointer test that decides where
 // clicks land, and a bot's mark.
 import { useEffect, useRef, useState } from "react";
-import { MausAvatar } from "@/components/Avatar";
+import { animate, motion, useMotionValue, useReducedMotion, type MotionValue } from "motion/react";
+import { MausAvatar, type MausAvatarHandle } from "@/components/Avatar";
 import type { MarkState } from "@/components/mascot-motion-mark";
+import type { MarkReaction } from "@/components/mascot-personality";
 import type { BotBodyId } from "../../shared/bot-body";
-import { say, type AmbientLabels } from "./say";
-import type { AmbientBot, AmbientBridge, AmbientSnapshot, AmbientStatus, DockLayout, IslandLayout } from "./types";
+import { isBusy } from "./mood";
+import type { AmbientBot, AmbientBridge, AmbientSnapshot, AmbientStatus, AmbientStep, DockLayout, IslandLayout } from "./types";
 
 /** Bencho's springs: settle for surfaces (no visible bounce), lively for small things that may overshoot. */
 export const SETTLE = { type: "spring", stiffness: 380, damping: 34 } as const;
@@ -14,6 +16,21 @@ export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 /** Opacity runs on its own short clock, so a surface looks solid before it stops moving. */
 export const FADE = { duration: 0.16, ease: EASE_OUT } as const;
 export const FADE_OUT = { duration: 0.1, ease: EASE_OUT } as const;
+/** Putting a surface away is quicker than bringing it out, and never lingers. */
+export const EXIT = { duration: 0.14, ease: EASE_OUT } as const;
+
+/** A number that moves to `target`: out on the settle spring, away on the quick exit clock. Retargets from wherever it
+ * is, keeping its velocity. `out` says which way is out; by default growing is. */
+export function useSurfaceValue(target: number, reduced: boolean, out?: boolean): MotionValue<number> {
+  const value = useMotionValue(target);
+  useEffect(() => {
+    if (reduced) { value.jump(target); return; }
+    const outward = out ?? target >= value.get();
+    const controls = animate(value, target, outward ? SETTLE : EXIT);
+    return () => controls.stop();
+  }, [target, reduced, out, value]);
+  return value;
+}
 
 export function useAmbientFeed(bridge: AmbientBridge): { snapshot: AmbientSnapshot | null; layout: IslandLayout | DockLayout | null } {
   const [snapshot, setSnapshot] = useState<AmbientSnapshot | null>(null);
@@ -54,11 +71,12 @@ export function useChangeMoment(key: string, ms = CHANGE_MOTION_MS): boolean {
 /**
  * The window lets clicks through except over the surface's shape: the page still hears the pointer move (main forwards
  * it), tests it against `hit`, and tells main when it crosses the edge. `onEnter`/`onLeave` fire on that crossing.
+ * With `stage`, the point is measured from that element (scaled to its drawn size), for a surface shown inside a page.
  */
-export function usePointerRegion(bridge: AmbientBridge, hit: (x: number, y: number) => boolean, onEnter: () => void, onLeave: () => void) {
+export function usePointerRegion(bridge: AmbientBridge, hit: (x: number, y: number) => boolean, onEnter: () => void, onLeave: () => void, stage?: { ref: { current: HTMLElement | null }; width: number }) {
   const inside = useRef(false);
-  const latest = useRef({ hit, onEnter, onLeave });
-  latest.current = { hit, onEnter, onLeave };
+  const latest = useRef({ hit, onEnter, onLeave, stage });
+  latest.current = { hit, onEnter, onLeave, stage };
   useEffect(() => {
     const cross = (next: boolean) => {
       if (next === inside.current) return;
@@ -66,7 +84,14 @@ export function usePointerRegion(bridge: AmbientBridge, hit: (x: number, y: numb
       bridge.pointer(next);
       if (next) latest.current.onEnter(); else latest.current.onLeave();
     };
-    const move = (event: MouseEvent) => cross(latest.current.hit(event.clientX, event.clientY));
+    const move = (event: MouseEvent) => {
+      const { stage: own, hit: test } = latest.current;
+      if (!own) return cross(test(event.clientX, event.clientY));
+      const rect = own.ref.current?.getBoundingClientRect();
+      if (!rect?.width) return cross(false);
+      const k = own.width / rect.width;
+      cross(test((event.clientX - rect.left) * k, (event.clientY - rect.top) * k));
+    };
     const leave = () => cross(false);
     document.addEventListener("mousemove", move, { passive: true });
     document.documentElement.addEventListener("mouseleave", leave);
@@ -78,33 +103,144 @@ export function usePointerRegion(bridge: AmbientBridge, hit: (x: number, y: numb
   return inside;
 }
 
+// poses that keep the bot's own body on screen: a dock or island mascot is how you tell who it is, so none of Grok's
+// stand-ins (thinking dots, the search radar, the "!") that replace it
 const MARK: Record<AmbientStatus, MarkState> = {
   idle: "idle",
-  thinking: "thinking",
+  thinking: "computing",
   working: "working",
   talking: "streaming",
-  "needs-you": "blocked",
-  done: "finished",
+  "needs-you": "notifying",
+  done: "happy",
   error: "failed",
 };
-export const markState = (status: AmbientStatus): MarkState => MARK[status];
+/** What a running turn says it is doing, as such a pose. */
+const STEP: Record<AmbientStep, MarkState> = {
+  thinking: "computing", reply: "streaming", read: "reading", fetch: "reading", web: "reading", search: "reading",
+  command: "running", write: "coding", edit: "coding", tool: "working",
+};
+export const markState = (status: AmbientStatus, step?: AmbientStep | null): MarkState => (isBusy(status) && step ? STEP[step] : MARK[status]);
 
-/** The bot's own mascot (or its picture), drawn still unless `animated`. */
-export function BotMark({ bot, size, state, animated }: { bot: AmbientBot; size: number; state?: MarkState; animated: boolean }) {
-  if (bot.avatar) return <img className="amb-photo" src={bot.avatar} alt="" width={size} height={size} draggable={false} style={{ borderRadius: Math.round(size * 0.3) }} />;
+/** A waiting bot waves at the person this often while someone can see it. */
+export const WAVE_MS = 4200;
+/** Cascading entrance: each mark starts this much after the one before it. */
+const CASCADE_S = 0.035;
+const REACTION: Partial<Record<AmbientStatus, MarkReaction[]>> = { done: ["hop", "wiggle"], "needs-you": ["greet"], error: ["startle"] };
+
+export interface BotMarkProps {
+  bot: AmbientBot;
+  size: number;
+  state?: MarkState;
+  /** Moving at all: false draws the rest pose (a surface holding still, or out of sight). */
+  animated: boolean;
+  /** Awake: blinks, glances and looks toward a pointer on it. */
+  awake?: boolean;
+  /** With `shown`, the mark pops in when shown, `index` places it in the cascade. */
+  shown?: boolean;
+  index?: number;
+  /** Changes for a group moment (everything clear): every mark cheers, one after another. */
+  cheer?: number;
+}
+
+/** The bot's own mascot (or its picture), drawn still unless `animated`. Alive, it breathes on its own clock, reacts
+ * when its state changes (a hop for a reply, a wave for an ask), waves again while it waits, and squashes under the
+ * pointer. Transform and opacity only. */
+export function BotMark({ bot, size, state, animated, awake = false, shown, index = 0, cheer = 0 }: BotMarkProps) {
+  const reduced = useReducedMotion() === true;
+  const mark = useRef<MausAvatarHandle>(null);
+  const alive = animated && !reduced;
+  const react = (kind: MarkReaction, delay = 0) => { const timer = setTimeout(() => mark.current?.react?.(kind), delay); return () => clearTimeout(timer); };
+  const lastStatus = useRef(bot.status);
+  useEffect(() => {
+    const was = lastStatus.current;
+    lastStatus.current = bot.status;
+    if (was === bot.status || !alive) return;
+    const [first, second] = REACTION[bot.status] ?? [];
+    if (!first) return;
+    const undo = [react(first, 60), second ? react(second, 700) : () => {}];
+    return () => { for (const off of undo) off(); };
+  }, [bot.status, alive]);
+  useEffect(() => {
+    if (!alive || bot.status !== "needs-you") return;
+    const timer = setInterval(() => mark.current?.react?.(index % 2 ? "hop" : "greet"), WAVE_MS + (index % 3) * 400);
+    return () => clearInterval(timer);
+  }, [alive, bot.status, index]);
+  const lastCheer = useRef(cheer);
+  useEffect(() => {
+    if (lastCheer.current === cheer) return;
+    lastCheer.current = cheer;
+    if (alive) return react("cheer", 80 + index * 70);
+  }, [cheer, alive, index]);
+
+  const face = bot.avatar
+    ? <img className="amb-photo" src={bot.avatar} alt="" width={size} height={size} draggable={false} style={{ borderRadius: Math.round(size * 0.3) }} />
+    : (
+      <MausAvatar
+        ref={mark}
+        color={bot.color}
+        bodyId={(bot.body ?? undefined) as BotBodyId | undefined}
+        faceColor={bot.face}
+        size={size}
+        state={state ?? markState(bot.status, bot.step)}
+        animated={animated}
+        trackPointer={animated && awake}
+        personality={animated && awake}
+        cueKey={bot.id}
+      />
+    );
+  const visible = shown ?? true;
   return (
-    <MausAvatar
-      color={bot.color}
-      bodyId={(bot.body ?? undefined) as BotBodyId | undefined}
-      faceColor={bot.face}
-      size={size}
-      state={state ?? markState(bot.status)}
-      animated={animated}
-      trackPointer={false}
-      personality={false}
-      cueKey={bot.id}
-    />
+    <motion.span
+      className="amb-live"
+      initial={false}
+      animate={visible ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: reduced ? 1 : 0.6, y: reduced ? 0 : 6 }}
+      transition={visible ? { opacity: { ...FADE, delay: index * CASCADE_S }, scale: { ...LIVELY, delay: index * CASCADE_S }, y: { ...LIVELY, delay: index * CASCADE_S } } : { duration: 0 }}
+      whileHover={alive ? { scaleX: 1.08, scaleY: 0.93, transition: LIVELY } : undefined}
+    >
+      <span className="amb-breathe" data-on={alive || undefined} style={{ animationDelay: `${-(seedOf(bot.id) % 3200)}ms` }}>{face}</span>
+    </motion.span>
   );
+}
+
+const seedOf = (text: string) => [...text].reduce((hash, char) => Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0, 2166136261);
+
+/** Everything answered or seen and nobody busy, just now: `smiling` for `ms`, and `cheer` counts each such moment. */
+export function useAllClear(busyOrNews: boolean, ms: number): { smiling: boolean; cheer: number } {
+  const [smiling, setSmiling] = useState(false);
+  const [cheer, setCheer] = useState(0);
+  const had = useRef(busyOrNews);
+  useEffect(() => {
+    const was = had.current;
+    had.current = busyOrNews;
+    if (busyOrNews) { setSmiling(false); return; }
+    if (!was) return;
+    setSmiling(true);
+    setCheer((count) => count + 1);
+    const timer = setTimeout(() => setSmiling(false), ms);
+    return () => clearTimeout(timer);
+  }, [busyOrNews, ms]);
+  return { smiling, cheer };
+}
+
+/** A value change has to hold this long before a surface shows it: sub-second states never flap the island. */
+export const SETTLE_MS = 600;
+/** Once the island shows a bot, it keeps it at least this long before showing another. */
+export const HOLD_MS = 4000;
+
+/** `key` once it has held for `settle` ms, and once shown, kept at least `hold` ms before the next. Changes inside that
+ * time coalesce into one. */
+export function useSteady(key: string, settle = SETTLE_MS, hold = 0): string {
+  const [shown, setShown] = useState(key);
+  const shownAt = useRef(0);
+  const latest = useRef(key);
+  latest.current = key;
+  useEffect(() => {
+    if (key === shown) return;
+    const wait = Math.max(settle, hold - (Date.now() - shownAt.current));
+    const timer = setTimeout(() => { shownAt.current = Date.now(); setShown(latest.current); }, wait);
+    return () => clearTimeout(timer);
+  }, [key, shown, settle, hold]);
+  return shown;
 }
 
 /** A clock for "4m" that only ticks while someone can see it. */
@@ -117,9 +253,4 @@ export function useNow(active: boolean, everyMs = 30_000): number {
     return () => clearInterval(timer);
   }, [active, everyMs]);
   return now;
-}
-
-/** A bot's state in words, with a dot in its colour: never colour alone. */
-export function StatusTag({ status, labels }: { status: AmbientStatus; labels: AmbientLabels }) {
-  return <span className="amb-tag" data-status={status}><span className="amb-dot" aria-hidden />{say(labels, status)}</span>;
 }

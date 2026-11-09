@@ -29,6 +29,11 @@ export const AMBIENT_LABELS = {
   reorder: "ambient.reorder",
   stop: "ambient.stop",
   more: "ambient.more",
+  answer: "ambient.answer",
+  openShort: "ambient.openShort",
+  sent: "ambient.sent",
+  dismiss: "ambient.dismiss",
+  recent: "ambient.recent",
 } as const satisfies Record<AmbientLabel, LocaleKey>;
 
 export type { AmbientLabel, AmbientLabels } from "./say";

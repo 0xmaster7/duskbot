@@ -1,5 +1,5 @@
 // What the island's emoji says for the whole team, and the order bots are listed in: whoever needs the person first.
-import type { AmbientBot, AmbientStatus } from "./types";
+import type { AmbientBot, AmbientStatus, AmbientWait } from "./types";
 
 export type Mood = "idle" | "thinking" | "working" | "talking" | "needs-you" | "done" | "celebrate" | "error";
 
@@ -18,7 +18,7 @@ export const MOOD_EMOJI: Record<Mood, string> = {
 export const CELEBRATE_MS = 2600;
 
 const RANK: Record<AmbientStatus, number> = { "needs-you": 0, error: 3, talking: 4, working: 5, thinking: 6, done: 7, idle: 8 };
-const WAITS = { question: 0, approval: 1, other: 2 } as const;
+const WAITS: Record<AmbientWait, number> = { question: 0, approval: 1, "sign-in": 2, password: 2, connect: 2, review: 2, other: 2 };
 
 /** Lower is sooner: a question, an approval, anything else waiting on the person, a failure, then the rest. */
 export const urgency = (bot: AmbientBot): number => (bot.status === "needs-you" ? WAITS[bot.waits ?? "other"] : RANK[bot.status]);
