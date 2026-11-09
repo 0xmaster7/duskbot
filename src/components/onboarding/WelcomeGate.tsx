@@ -59,7 +59,8 @@ export function WelcomeGate({ viewer }: { viewer: WelcomeViewer | null }) {
       canSave: viewer.canSave,
       cloudHome: viewer.cloudHome,
     });
-  if (state.appSettingsOpen && (["desktopWorkspaces", "organization"].includes(state.appSettingsSection) ||
+  // Settings panes the welcome sends people to: API keys (Open API keys), workspaces, the organization sign-in
+  if (state.appSettingsOpen && (["desktopWorkspaces", "organization", "connections"].includes(state.appSettingsSection) ||
     (state.appSettingsSection === "cloudAccount" && state.appSettingsCloudLink > 0))) return null;
   if (!state.welcomeOpen && !due) return null;
   const fallback = state.bots.find((b) => !b.hidden && b.chiefOfStaff) ?? state.bots.find((b) => !b.hidden) ?? null;
