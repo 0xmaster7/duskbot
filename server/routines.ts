@@ -270,6 +270,8 @@ export interface RoutineManagerOptions {
   /** A Cloud home woken from a sleep it was stopped for (server/cloud-power.ts): not a startup, so no "run on startup". */
   skipStartupRuns?: boolean;
   checks?: RoutineChecks;
+  /** The computer woke and is not back on the network yet (server/wake-gate.ts): due runs wait, then each runs once. */
+  heldAfterWake?: () => boolean;
 }
 
 const CATCH_UP_MS = 12 * 60 * 60_000;
@@ -928,6 +930,7 @@ export class RoutineManager {
   }
 
   get isTicking(): boolean { return this.ticking; }
+  lookAgain(): void { this.timer?.poke(); }
   private tickInBackground(): void { this.tick().catch((error) => console.error("routines: a scheduler pass failed", error)); }
 
   start() {
@@ -995,6 +998,7 @@ export class RoutineManager {
           activeMs(run, now) < run.timeoutMinutes * 60_000) continue;
         await this.stopRun(run, `Stopped after reaching the ${run.timeoutMinutes}-minute run limit`, "limit-reached");
       }
+      if (this.options.heldAfterWake?.()) return;
       const isDue = (routine: Routine) => !this.closing && routine.enabled && this.targetState(routine) !== "missing" && (!routine.checks
         ? routine.nextRunAt != null && routine.nextRunAt <= now
         : now >= this.bootedAt + CHECK_BOOT_HOLD_MS && [routine.nextRunAt, routine.wakeAt].some((at) => at != null && at <= now));

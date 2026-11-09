@@ -11891,6 +11891,12 @@ describe("bot memory API", () => {
     }
   });
 
+  it("holds routines from the desktop's wake until it says the network is back", async () => {
+    expect((await api("POST", "/api/routines/wake", { event: "resume" })).body).toEqual({ held: true });
+    expect((await api("POST", "/api/routines/wake", { event: "nap" })).status).toBe(400);
+    expect((await api("POST", "/api/routines/wake", { event: "online" })).body).toEqual({ held: false });
+  });
+
   it("marks every unseen routine failure seen through one client endpoint", async () => {
     const bot = (await api("POST", "/api/bots", {})).body.bot;
     let missedRoutineId: string | null = null;
