@@ -17,7 +17,7 @@ same runtime as the other ACP engines.
    configuration automatically.
 
 For OpenRouter, Fireworks AI, DeepSeek, Cline or your own provider, see
-[Other model providers](../apps/docs/content/docs/providers/model-providers.mdx).
+[Other model providers](custom-engines.md).
 
 OpenCode includes anonymous free models. A Zen, Go, OpenRouter, or other
 provider connection expands the catalog according to the installed CLI. An
