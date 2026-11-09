@@ -52,7 +52,39 @@
   from { opacity: 0; }
 }
 
+/* an attachment tile's upload stroke: eases between progress reports, completes and fades on done */
+.upload-ring {
+  transition: opacity 180ms ease-out;
+}
+@starting-style {
+  .upload-ring { opacity: 0; }
+}
+.upload-ring[data-leaving] {
+  opacity: 0;
+}
+.upload-ring-stroke {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 100 100;
+  transition: stroke-dashoffset 300ms linear, stroke 160ms ease;
+}
+.upload-ring[data-phase="failed"] .upload-ring-stroke {
+  stroke: color-mix(in srgb, var(--color-danger) 60%, transparent);
+  stroke-dashoffset: 0;
+}
+.upload-ring[data-indeterminate] .upload-ring-stroke {
+  stroke-dasharray: 22 78;
+  animation: upload-ring-travel 1.4s linear infinite;
+}
+@keyframes upload-ring-travel {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -100; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .upload-ring[data-indeterminate] .upload-ring-stroke { animation: none; stroke-dasharray: none; opacity: 0.4; }
   .composer-pill {
     transition-duration: 120ms, 120ms, 150ms;
     transition-timing-function: ease;
@@ -71,6 +103,7 @@
 :root[data-reduced-motion="true"] [data-glyph-swap] .composer-glyph { animation-name: composer-glyph-fade; }
 :root[data-reduced-motion="true"] .composer-pill[data-snap] { transition-duration: 0s, 120ms, 150ms; }
 :root[data-reduced-motion="true"] .composer-glyph-out { animation-name: composer-glyph-fade-out; }
+:root[data-reduced-motion="true"] .upload-ring[data-indeterminate] .upload-ring-stroke { animation: none; stroke-dasharray: none; opacity: 0.4; }
 @keyframes composer-glyph-fade {
   from { opacity: 0; }
 }

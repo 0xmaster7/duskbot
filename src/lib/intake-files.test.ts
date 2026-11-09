@@ -37,6 +37,18 @@ describe("intakeFiles", () => {
       fetch.mockRestore();
     }
   });
+  it("adds nothing for a file whose uploader placed its own tile, and falls back to a path when it uploads none", async () => {
+    const getPath = vi.fn((f: Fake) => onDisk(f));
+    const placed = await intakeFiles([file("report.pdf", "application/pdf")], {
+      allowImages: true, getPath, uploadImage: async () => null, uploadFile: async () => "placed",
+    });
+    expect(placed).toEqual({ attachments: [], notice: null });
+    expect(getPath).not.toHaveBeenCalled();
+    const unsupported = await intakeFiles([file("song.mid", "audio/midi")], {
+      allowImages: true, getPath, uploadImage: async () => null, uploadFile: async () => null,
+    });
+    expect(unsupported.attachments).toEqual([expect.objectContaining({ kind: "file", path: "/Users/me/song.mid" })]);
+  });
   it("uploads images and keeps ordinary files as paths", async () => {
     const out = await intakeFiles([file("shot.png", "image/png"), file("notes.txt", "text/plain")], {
       allowImages: true,

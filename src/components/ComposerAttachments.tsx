@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ClipboardPaste, LoaderCircle, MessageSquareText, X } from "lucide-react";
+import { ClipboardPaste, MessageSquareText, RotateCcw, X } from "lucide-react";
 import { GrokIcon } from "./GrokIcon";
 import { cn } from "@/lib/cn";
 import {
@@ -11,12 +11,14 @@ import {
   imageSlotsLeft,
   pasteSummary,
   type Attachment,
+  type FileAttachment,
   type PasteAttachment,
 } from "@/lib/composer-attachments";
 import { AttachmentPreviewDialog, FileGlyph, previewImage, type PreviewImage } from "./AttachmentPreview";
 import { movesLess } from "./composer-wrap";
 import { rememberImageSize } from "@/lib/image-cache";
 import { t } from "@/lib/i18n";
+import { UploadRing } from "./UploadRing";
 
 /** Electron 32 removed File.path — only the preload can name a file. */
 export function pathForFile(file: File): string {
@@ -32,6 +34,7 @@ export function ComposerAttachments({
   onPendingChange,
   onDraggingChange,
   uploadImage,
+  uploadFile,
 }: {
   items: Attachment[];
   onAdd: (attachments: Attachment[]) => void;
@@ -40,6 +43,7 @@ export function ComposerAttachments({
   onPendingChange?: (pending: boolean) => void;
   onDraggingChange?: (dragging: boolean) => void;
   uploadImage: (file: File) => Promise<Attachment | null>;
+  uploadFile?: (file: File) => Promise<FileAttachment | "placed" | null>;
 }) {
   const [dragging, setDragging] = useState(false);
   const anchor = useRef<HTMLSpanElement>(null);
@@ -49,8 +53,8 @@ export function ComposerAttachments({
   // A drop past the images the message can still take is left out with a notice.
   const imageSlots = imageSlotsLeft(items);
   const imageBytes = imageBytesLeft(items);
-  const callbacks = useRef({ onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage });
-  callbacks.current = { onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage };
+  const callbacks = useRef({ onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage, uploadFile });
+  callbacks.current = { onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage, uploadFile };
   const pendingDrops = useRef(new Set<symbol>());
   const draggingChanged = useRef(onDraggingChange);
   draggingChanged.current = onDraggingChange;
@@ -88,6 +92,7 @@ export function ComposerAttachments({
           allowImages: callbacks.current.allowImages,
           getPath: pathForFile,
           uploadImage: callbacks.current.uploadImage,
+          uploadFile: callbacks.current.uploadFile,
           imageSlots: callbacks.current.imageSlots,
           imageBytes: callbacks.current.imageBytes,
         });
@@ -136,9 +141,10 @@ const CARD = "group/tile relative flex h-14 w-[calc(50%-4px)] min-w-[220px] max-
  * grok's attachments inside the composer: 56px tiles 8px apart in one scrolling row above the field, files as
  * cards, and a one-line notice above them. The row rides the pill's top edge while the pill opens.
  */
-export function ComposerAttachmentStrip({ items, onRemove, onDisplayInChatBox, notice, onNotice }: {
+export function ComposerAttachmentStrip({ items, onRemove, onRetry, onDisplayInChatBox, notice, onNotice }: {
   items: Attachment[];
   onRemove: (id: string) => void;
+  onRetry: (id: string) => void;
   onDisplayInChatBox: (attachment: PasteAttachment) => void;
   notice: string | null;
   onNotice: (notice: string | null) => void;
@@ -166,13 +172,14 @@ export function ComposerAttachmentStrip({ items, onRemove, onDisplayInChatBox, n
     return src ? [{ id: a.id, image: image ?? { src, name: a.name } }] : [];
   });
   const remove = (id: string) => { onNotice(null); onRemove(id); };
+  const retry = (id: string) => { onNotice(null); onRetry(id); };
   return (
     <div ref={ref} data-composer-strip className="mt-0.5 mb-0.5 flex min-w-0 flex-col gap-1">
       {notice && <p role="status" className="px-0.5 text-[11px] leading-[14px] text-ink/56">{notice}</p>}
       {items.length > 0 && (
         <div data-composer-attachments role="list" aria-label={t("attach.gallery")} className="pointer-events-none -mx-[9px] -mt-1.5 -mb-[18px] flex min-w-0 flex-nowrap gap-2 overflow-x-auto px-[9px] pt-1.5 pb-[18px] [scrollbar-width:none] *:pointer-events-auto">
           {items.map((a) => a.kind === "image" ? (
-            <div key={a.id} role="listitem" aria-label={a.name} data-composer-attachment aria-busy={a.uploading || undefined}
+            <div key={a.id} role="listitem" aria-label={a.failed ? `${a.name}, ${t("attach.uploadFailed")}` : a.name} data-composer-attachment aria-busy={a.uploading || undefined}
               className="group/tile relative size-14 shrink-0 overflow-hidden rounded-[10px] border-[0.5px] border-ink/12 bg-composer">
               <button
                 type="button"
@@ -185,20 +192,24 @@ export function ComposerAttachmentStrip({ items, onRemove, onDisplayInChatBox, n
               >
                 <img src={attachmentImageUrl(a.path) ?? a.previewUrl} alt="" loading="eager" fetchPriority="high"
                   onLoad={(event) => rememberImageSize(event.currentTarget.getAttribute("src") ?? "", { width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
-                  className={cn("block size-full object-cover transition-opacity duration-[180ms] ease-[ease]", a.uploading && "opacity-60")} />
+                  className={cn("block size-full object-cover transition-opacity duration-[180ms] ease-[ease]", (a.uploading || a.failed) && "opacity-60")} />
               </button>
-              {a.uploading && (
-                <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-white" aria-hidden="true">
-                  <LoaderCircle size={16} className="animate-spin drop-shadow" />
-                </span>
+              <UploadRing id={a.id} name={a.name} uploading={Boolean(a.uploading)} failed={Boolean(a.failed)} radius={9.5}
+                percentClassName="end-1 bottom-1 rounded-[5px] bg-[rgb(28_28_28/0.62)] px-1 text-[10px] leading-[14px] font-medium text-white" />
+              {a.failed && (
+                <button type="button" onClick={() => retry(a.id)} aria-label={t("attach.retryNamed", { name: a.name })} title={t("attach.uploadFailed")}
+                  className="absolute inset-0 m-auto flex size-7 items-center justify-center rounded-full bg-ink text-app transition-colors duration-[120ms] ease-[ease] hover:bg-[color-mix(in_srgb,var(--color-ink),white_12%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+                  <RotateCcw size={14} strokeWidth={2} aria-hidden="true" />
+                </button>
               )}
               <button type="button" onClick={() => remove(a.id)} aria-label={t("attach.removeNamed", { name: a.name })}
-                className={cn("absolute end-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-ink text-app hover:bg-[color-mix(in_srgb,var(--color-ink),white_12%)]", TILE_REMOVE)}>
+                className={cn("absolute end-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-ink text-app hover:bg-[color-mix(in_srgb,var(--color-ink),white_12%)]", !a.failed && TILE_REMOVE)}>
                 <GrokIcon name="close" size={12} />
               </button>
             </div>
           ) : (
-            <div key={a.id} role="listitem" aria-label={a.kind === "paste" ? t("composer.pastedText") : a.name} title={a.kind === "paste" ? a.text.slice(0, 4000) : a.path} data-composer-attachment className={CARD}>
+            <div key={a.id} role="listitem" aria-label={a.kind === "paste" ? t("composer.pastedText") : a.name} title={a.kind === "paste" ? a.text.slice(0, 4000) : a.path || undefined}
+              data-composer-attachment aria-busy={(a.kind === "file" && a.uploading) || undefined} className={CARD}>
               <span className="flex size-10 shrink-0 items-center justify-center">
                 {a.kind === "paste" ? (
                   <span className="chat-file-glyph flex h-10 w-8 items-center justify-center rounded-[6px] bg-composer text-ink/40" aria-hidden="true"><ClipboardPaste size={14} strokeWidth={1.75} /></span>
@@ -206,9 +217,19 @@ export function ComposerAttachmentStrip({ items, onRemove, onDisplayInChatBox, n
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[14px] leading-5 font-medium text-ink">{a.kind === "paste" ? t("composer.pastedText") : a.name}</span>
-                <span className="block truncate text-[13px] leading-[18px] text-ink/68">{a.kind === "paste" ? pasteSummary(a) : formatSize(a.size)}</span>
+                <span className="block truncate text-[13px] leading-[18px] text-ink/68">{a.kind === "paste" ? pasteSummary(a) : a.failed ? t("attach.uploadFailed") : formatSize(a.size)}</span>
               </span>
-              <span className={cn("flex shrink-0 items-center", TILE_REMOVE)}>
+              {a.kind === "file" && (
+                <UploadRing id={a.id} name={a.name} uploading={Boolean(a.uploading)} failed={Boolean(a.failed)} radius={10}
+                  percentClassName="end-2.5 bottom-1.5 text-[11px] leading-[14px] font-medium text-ink/56" />
+              )}
+              <span className={cn("flex shrink-0 items-center", !(a.kind === "file" && a.failed) && TILE_REMOVE)}>
+                {a.kind === "file" && a.failed && (
+                  <button type="button" onClick={() => retry(a.id)} aria-label={t("attach.retryNamed", { name: a.name })} title={t("attach.retryNamed", { name: a.name })}
+                    className="flex size-8 items-center justify-center rounded-full text-ink/66 transition-colors duration-[120ms] ease-out hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+                    <RotateCcw size={16} strokeWidth={1.75} aria-hidden="true" />
+                  </button>
+                )}
                 {a.kind === "paste" && (
                   <button type="button" onClick={() => onDisplayInChatBox(a)} aria-label={t("composer.displayPasted")} title={t("composer.displayPasted")}
                     className="flex size-8 items-center justify-center rounded-full text-ink/66 transition-colors duration-[120ms] ease-out hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
