@@ -4,9 +4,9 @@
 // resume, processes do not); a stopped disk may be purged 14 days after the stop (dataExpiredAt); DELETE needs
 // X-Ascii-Confirm-Delete and is irreversible; hosted port URLs are stable for a sandbox's life.
 import { createHash } from "node:crypto";
-import type { MachineSpec } from "../../../../shared/billing-api.ts";
-import { boundedJson, RetryableCloudError } from "./http.ts";
-import type { CloudProvider, CreateServerInput, ProviderServer } from "./types.ts";
+import type { MachineSpec } from "../../../shared/billing-api.ts";
+import { boundedJson, RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
+import type { CloudProvider, CreateServerInput, ProviderServer } from "../../dashboard/server/clouds/types.ts";
 
 export const BOAT_SIZES = [
   { type: "small", vcpu: 2, ramGb: 4, diskGb: 51 },
@@ -51,7 +51,7 @@ export interface BoatCreateInput extends CreateServerInput {
 
 /** a Boat sandbox per cloud. destroy() is reachable only through the clouds service's deletion gate (boat-retention.ts). */
 export interface BoatProvider extends CloudProvider {
-  readonly name: "boat";
+  readonly name: "managed";
   readonly scope: string;
   create(input: BoatCreateInput): Promise<ProviderServer>;
   sandbox(serverId: string): Promise<BoatSandbox | null>;
@@ -170,7 +170,7 @@ export function createBoatProvider(options: BoatProviderOptions): BoatProvider {
   const scoped = `label=${encodeURIComponent(`omb.scope=${options.scope}`)}`;
 
   const provider: BoatProvider = {
-    name: "boat",
+    name: "managed",
     scope: options.scope,
     async find(cloudId) {
       if (!CLOUD_ID.test(cloudId)) throw new Error("Invalid cloud id.");

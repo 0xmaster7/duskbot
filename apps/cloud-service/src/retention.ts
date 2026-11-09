@@ -1,7 +1,7 @@
 // When a Boat home's data may be deleted. The verdict reads only the systems of record (the billing store's subscriptions,
 // the account store, this service's own backups) at the moment the reconciler acts, never a request, a webhook or a home's
 // own report. A webhook can end a plan and so start the retention clock; it can never shorten it.
-import type { StoredSubscription } from "../billing/store.ts";
+import type { StoredSubscription } from "../../dashboard/server/billing/store.ts";
 
 export const DAY_MS = 86_400_000;
 /** days a home and its data are kept after the plan that paid for it ended (OMB_BOAT_RETENTION_DAYS) */

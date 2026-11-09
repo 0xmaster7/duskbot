@@ -1,7 +1,7 @@
 import { afterEach, expect, it } from "vitest";
 import { boatScope, boatSize, createBoatProvider, BoatError } from "./boat.ts";
 import { startFakeBoatApi, type FakeBoatApi } from "./fake-boat-api.ts";
-import { RetryableCloudError } from "./http.ts";
+import { RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
 
 const apis: FakeBoatApi[] = [];
 afterEach(async () => { for (const api of apis.splice(0)) await api.close(); });

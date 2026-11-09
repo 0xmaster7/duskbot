@@ -3,22 +3,23 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync, readdirSyn
 import { createCipheriv, randomBytes } from "node:crypto";
 import { hostname } from "node:os";
 import { spawnSync } from "node:child_process";
-import { lockDataDir } from "../data-dir-lock.ts";
+import { lockDataDir } from "../../dashboard/server/data-dir-lock.ts";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
-import type { StoredSubscription } from "../billing/store.ts";
+import type { StoredSubscription } from "../../dashboard/server/billing/store.ts";
 import { createBoatProvider } from "./boat.ts";
-import { createAudit } from "./boat-audit.ts";
-import { boatBackupKey, createBackupStore, tarEntries } from "./boat-backups.ts";
-import { backupKey } from "./boat-home.ts";
-import { DEFAULT_BOAT_SETTINGS } from "./boat-lifecycle.ts";
-import { DAY_MS, entitlementOf } from "./boat-retention.ts";
-import { createFakeCloudProvider } from "./fake-provider.ts";
+import { createAudit } from "./audit.ts";
+import { boatBackupKey, createBackupStore, tarEntries } from "./backups.ts";
+import { backupKey } from "./home.ts";
+import { DEFAULT_BOAT_SETTINGS } from "./lifecycle.ts";
+import { DAY_MS, entitlementOf } from "./retention.ts";
+import { createFakeCloudProvider } from "../../dashboard/server/clouds/fake-provider.ts";
 import { startFakeBoatApi } from "./fake-boat-api.ts";
-import { createSealer } from "./seal.ts";
-import { createCloudsService } from "./service.ts";
-import type { DesktopPlan, HomePower, StoredCloud } from "./types.ts";
+import { createSealer } from "../../dashboard/server/clouds/seal.ts";
+import { createManagedCloud } from "./index.ts";
+import { createCloudsService } from "../../dashboard/server/clouds/service.ts";
+import type { DesktopPlan, HomePower, StoredCloud } from "../../dashboard/server/clouds/types.ts";
 
 const cleanup: Array<() => unknown> = [];
 afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); vi.restoreAllMocks(); });
@@ -62,10 +63,10 @@ async function fixture() {
     const service = createCloudsService({ dataDir, now, home, sealer: createSealer(SEAL), workspaces,
       providers: { dedicated: createFakeCloudProvider(), pool: { ...createFakeCloudProvider(), suspend: async () => {}, resume: async () => {} } },
       config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", image: "ghcr.io/example/home:1", poolQuota: (_k, spec, botComputers) => ({ ...spec, netMbps: 1, pids: 1, botComputers }) },
-      boat: { provider, backups, audit, kinds: ["shared_s", "shared_m", "dedicated"], backupSecret: secret, previousBackupSecret: previous,
+      managed: createManagedCloud({ provider, backups, audit, kinds: ["shared_s", "shared_m", "dedicated"], backupSecret: secret, previousBackupSecret: previous,
         settings: { ...DEFAULT_BOAT_SETTINGS, package: { sha256: "a".repeat(64), url: "https://packages.example.test/home.tgz" } },
         entitlement: cloud => entitlementOf(subscriptions, cloud, at),
-        notify: (cloud, kind, when, link) => notices.push({ cloudId: cloud.id, kind, at: when, ...(link ? { link } : {}) }) } });
+        notify: (cloud, kind, when, link) => notices.push({ cloudId: cloud.id, kind, at: when, ...(link ? { link } : {}) }) }) });
     cleanup.push(() => service.close());
     return { service, provider, audit, backups };
   }
@@ -109,7 +110,7 @@ async function withUnbackedData(f: F, s: S) {
   await wake(f, s, c);
   f.api.sandboxes.get(c.serverId!)!.volume.set("__system__/data/.openmausbot/precious.json", Buffer.from("newer"));
   await sleepCycle(f, s, c);
-  expect(c.boat!.backups).toHaveLength(1);
+  expect(c.managed!.backups).toHaveLength(1);
   return { c, sub, original: c.serverId! };
 }
 /** Boat answers 404 for `id` (and, when `unlisted`, leaves it out of the account list) until restored */
@@ -128,7 +129,7 @@ for (const count of [1, 2, 3]) {
     const restore = blackout(provider, original, true);
     for (let n = 0; n < count; n++) { c.nextAttemptAt = 0; await s.reconcile(); f.advance(9 * 60_000); }
     restore(); c.nextAttemptAt = 0; await s.reconcile();
-    expect(c.serverId).toBe(original); expect(c.boat!.attempt).toBe(0); expect(c.boat!.missingSince ?? null).toBeNull();
+    expect(c.serverId).toBe(original); expect(c.managed!.attempt).toBe(0); expect(c.managed!.missingSince ?? null).toBeNull();
   });
 }
 
@@ -138,7 +139,7 @@ it("404s for over 30 minutes while Boat's list still shows the sandbox: no rebui
   const restore = blackout(provider, original, false);
   for (let n = 0; n < 12; n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await s.reconcile(); }
   restore();
-  expect(c.boat!.attempt).toBe(0); expect(c.serverId).toBe(original);
+  expect(c.managed!.attempt).toBe(0); expect(c.serverId).toBe(original);
 });
 
 it("3 404s spread just under 30 minutes and unlisted: still no rebuild", async () => {
@@ -146,22 +147,22 @@ it("3 404s spread just under 30 minutes and unlisted: still no rebuild", async (
   const { c, original } = await withUnbackedData(f, s);
   blackout(provider, original, true);
   for (const gap of [0, 14 * 60_000, 15 * 60_000]) { f.advance(gap); c.nextAttemptAt = 0; await s.reconcile(); }
-  expect(c.boat!.attempt).toBe(0);
+  expect(c.managed!.attempt).toBe(0);
 });
 
 it("confirmed lost (404 and unlisted past 30 minutes) but the disk comes back: rebuilt, original kept, backed up from its own state, never deleted while paid", async () => {
   const f = await fixture(); const { service: s, provider, audit } = f.instance();
   const { c, original } = await withUnbackedData(f, s);
   const restore = blackout(provider, original, true);
-  for (let n = 0; n < 8 && c.boat!.attempt === 0; n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await s.reconcile(); }
-  expect(c.boat!.attempt).toBe(1);
+  for (let n = 0; n < 8 && c.managed!.attempt === 0; n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await s.reconcile(); }
+  expect(c.managed!.attempt).toBe(1);
   await f.settle(s, c, c => c.status === "running" && c.serverId !== original);
   restore();
   // the reconciler keeps running while the home sleeps: time passes between passes
   for (let day = 0; day < 60; day++) { f.advance(DAY_MS); if (c.status === "sleeping") await wake(f, s, c); await sleepCycle(f, s, c); for (let n = 0; n < 3; n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await s.reconcile(); } }
   expect(f.api.deletes().map(d => d.path)).not.toContain(`/sandboxes/${original}`);
   expect(holds(f)).toBe(true);
-  const kept = c.boat!.backups.filter(g => g.keep && g.source === original);
+  const kept = c.managed!.backups.filter(g => g.keep && g.source === original);
   expect(kept.length).toBeGreaterThan(0);
   expect(audit.entries(c.id).map(e => e.action)).toContain("retired_has_newer_data");
   // the original disk was kept alive past Boat's 14-day purge
@@ -210,10 +211,10 @@ it("a cancel written to the record by another writer stops a due owner deletion"
   const { c, sub } = await f.paid(A.service);
   sub.status = "ended"; sub.currentPeriodEnd = f.now(); sub.lastEventAt = f.now();
   await f.settle(A.service, c, c => c.status === "stopped");
-  A.service.boat!.requestDelete(c, t => `#${t}`);
-  A.service.boat!.confirmDelete(c, f.notices.findLast(n => n.kind === "delete_requested")!.link!.slice(1));
+  A.service.managed!.requestDelete(c, t => `#${t}`);
+  A.service.managed!.confirmDelete(c, f.notices.findLast(n => n.kind === "delete_requested")!.link!.slice(1));
   const file = join(f.dataDir, "clouds.json"), stored = JSON.parse(readFileSync(file, "utf8"));
-  stored.clouds.find((x: { id: string }) => x.id === c.id).boat.deleteRequest.cancelledAt = f.now();
+  stored.clouds.find((x: { id: string }) => x.id === c.id).managed.deleteRequest.cancelledAt = f.now();
   writeFileSync(file, JSON.stringify(stored));
   f.advance(8 * DAY_MS);
   for (let n = 0; n < 4; n++) { c.nextAttemptAt = 0; await A.service.reconcile(); }
@@ -224,7 +225,7 @@ it("an old version 1 backup (key the home could derive) is sealed again with the
   const f = await fixture(); const { service: s, backups } = f.instance();
   const { c } = await f.paid(s);
   f.advance(DAY_MS); await sleepCycle(f, s, c);
-  const g = c.boat!.backups[0]!, v2 = boatBackupKey(BACKUP_SECRET, c.id);
+  const g = c.managed!.backups[0]!, v2 = boatBackupKey(BACKUP_SECRET, c.id);
   const tar = backups.read(c.id, v2, g.file);
   // rewrite it as a version 1 file, as the first merge wrote them
   const legacy = backupKey(createSealer(SEAL).unseal(c.bootstrapSecret)), iv = randomBytes(12), cipher = createCipheriv("aes-256-gcm", legacy, iv);
@@ -236,7 +237,7 @@ it("an old version 1 backup (key the home could derive) is sealed again with the
   expect(backups.version(c.id, v1name)).toBe(1);
   await s.power(c.accountId, c.id, "on"); await f.settle(s, c, c => c.status === "running");
   for (let n = 0; n < 2; n++) { c.nextAttemptAt = 0; await s.reconcile(); }
-  const now = c.boat!.backups[0]!;
+  const now = c.managed!.backups[0]!;
   expect(now.file).not.toBe(v1name);
   expect(backups.version(c.id, now.file)).toBe(2);
   expect(readdirSync(join(f.dataDir, "boat-backups", c.id))).not.toContain(v1name);
@@ -249,13 +250,13 @@ it("a changed backup secret refuses to start unless the previous one is given, a
   const { c, sub } = await f.paid(A.service);
   sub.status = "ended"; sub.currentPeriodEnd = f.now(); sub.lastEventAt = f.now();
   await f.settle(A.service, c, c => c.status === "stopped");
-  await f.settle(A.service, c, c => (c.boat!.backups.at(-1)?.verifiedAt ?? null) !== null);
+  await f.settle(A.service, c, c => (c.managed!.backups.at(-1)?.verifiedAt ?? null) !== null);
   A.service.close();
   // the operator sets OMB_BOAT_BACKUP_KEY (or rotates the seal key) after backups were written
   expect(() => f.instance(Buffer.alloc(32, 1))).toThrow("backup secret changed");
   // given the old one, every backup is sealed again first
   const B = f.instance(Buffer.alloc(32, 1), BACKUP_SECRET); const cB = B.service.get(c.id)!;
-  const file = cB.boat!.backups.at(-1)!.file;
+  const file = cB.managed!.backups.at(-1)!.file;
   expect(B.backups.read(c.id, boatBackupKey(Buffer.alloc(32, 1), c.id), file).length).toBeGreaterThan(0);
   expect(() => B.backups.read(c.id, boatBackupKey(BACKUP_SECRET, c.id), file)).toThrow("integrity");
   f.advance(46 * DAY_MS);
@@ -268,8 +269,8 @@ it("retention never deletes a sandbox whose final backup no longer opens, and sa
   const { c, sub } = await f.paid(A.service);
   sub.status = "ended"; sub.currentPeriodEnd = f.now(); sub.lastEventAt = f.now();
   await f.settle(A.service, c, c => c.status === "stopped");
-  await f.settle(A.service, c, c => (c.boat!.backups.at(-1)?.verifiedAt ?? null) !== null);
-  const path = join(f.dataDir, "boat-backups", c.id, c.boat!.backups.at(-1)!.file);
+  await f.settle(A.service, c, c => (c.managed!.backups.at(-1)?.verifiedAt ?? null) !== null);
+  const path = join(f.dataDir, "boat-backups", c.id, c.managed!.backups.at(-1)!.file);
   chmodSync(path, 0o600); const bytes = readFileSync(path); bytes[bytes.length - 20]! ^= 0xff; writeFileSync(path, bytes);
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   f.advance(46 * DAY_MS);
@@ -286,7 +287,7 @@ it("a plan upgrade resizes the sandbox at its next sleep, backed up first, and i
   f.advance(DAY_MS); f.power.idle = true; f.power.busy = [];
   await f.settle(s, c, c => c.status === "running" && c.spec.vcpu === 4, 40);
   expect(f.api.sandboxes.get(c.serverId!)!.type).toBe("default");
-  expect(c.boat!.backups.some(g => g.verifiedAt !== null)).toBe(true);
+  expect(c.managed!.backups.some(g => g.verifiedAt !== null)).toBe(true);
 });
 
 it("every resume (wake, disk refresh, resize) asks Boat for no-env again", async () => {

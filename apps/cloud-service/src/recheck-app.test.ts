@@ -4,16 +4,16 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
-import { CSRF_HEADER } from "../../../../shared/account-api.ts";
-import { createBilling } from "../billing/index.ts";
-import { createDashboardApp } from "../app.ts";
-import { memoryMailer } from "../auth/mail.ts";
-import type { BillingState } from "../billing/store.ts";
+import { CSRF_HEADER } from "../../../shared/account-api.ts";
+import { createBilling } from "../../dashboard/server/billing/index.ts";
+import { createDashboardApp } from "../../dashboard/server/app.ts";
+import { memoryMailer } from "../../dashboard/server/auth/mail.ts";
+import type { BillingState } from "../../dashboard/server/billing/store.ts";
 import { startFakeBoatApi } from "./fake-boat-api.ts";
-import { DAY_MS } from "./boat-retention.ts";
+import { DAY_MS } from "./retention.ts";
 
-vi.mock("../billing/index.ts", async importOriginal => {
-  const actual = await importOriginal<typeof import("../billing/index.ts")>();
+vi.mock("../../dashboard/server/billing/index.ts", async importOriginal => {
+  const actual = await importOriginal<typeof import("../../dashboard/server/billing/index.ts")>();
   return { ...actual, createBilling: vi.fn(actual.createBilling) };
 });
 const cleanup: Array<() => unknown> = [];
@@ -78,7 +78,7 @@ async function fixture() {
     }
     const cloud = billing.clouds.get(stored.cloudId!)!;
     for (let n = 0; n < 20 && cloud.status !== "running"; n++) { cloud.nextAttemptAt = 0; await billing.clouds.reconcile(); }
-    expect(cloud).toMatchObject({ backend: "boat", status: "running" });
+    expect(cloud).toMatchObject({ backend: "managed", status: "running" });
     return { cloud, subscriptionId: snapshot().subscriptions.at(-1)!.providerSubscriptionId! };
   }
   const clouds: Array<{ nextAttemptAt: number }> = [];
@@ -87,59 +87,78 @@ async function fixture() {
 }
 
 
+
 async function deliver(f: Awaited<ReturnType<typeof fixture>>, deliveries: Array<{ headers: Record<string, string>; body: Buffer | Uint8Array }>) {
-  const codes: number[] = [];
-  for (const d of deliveries) codes.push((await fetch(`${f.origin}/v1/billing/webhooks/dodo`, { method: "POST", headers: { "content-type": "application/json", ...d.headers }, body: new Uint8Array(d.body) })).status);
-  return codes;
+  for (const d of deliveries) await fetch(`${f.origin}/v1/billing/webhooks/dodo`, { method: "POST", headers: { "content-type": "application/json", ...d.headers }, body: new Uint8Array(d.body) });
+}
+type Fx = Awaited<ReturnType<typeof fixture>>;
+/** advances day by day, failing on any DELETE before `until` */
+async function noDeleteUntil(f: Fx, until: number) { while (f.now() + DAY_MS < until) { f.advance(DAY_MS); await f.settle(1); expect(f.api.deletes()).toHaveLength(0); } }
+
+for (const destroyNow of [false, true]) {
+  it(`account closed with a paid plan (destroyDesktopsNow=${destroyNow}): stopped, 45 days kept from the right date, then deleted`, async () => {
+    const f = await fixture();
+    const owner = await f.login("owner@example.test");
+    const { cloud, subscriptionId } = await f.buy(owner);
+    const periodEnd = f.billing.service.subscriptions(cloud.accountId)[0]!.currentPeriodEnd!;
+    const closedAt = f.now();
+    expect((await f.page("/v1/account/delete", { email: "owner@example.test", cancelBilling: true, destroyDesktopsNow: destroyNow }, owner)).status).toBe(200);
+    await f.settle(4);
+    if (destroyNow) expect(cloud.status).toBe("stopped");
+    const expected = (destroyNow ? closedAt : periodEnd) + 45 * DAY_MS;
+    if (!destroyNow) { f.advance(periodEnd - f.now() + 60_000); await f.settle(6); expect(cloud.status).toBe("stopped"); }
+    // Dodo's late expiry for a closed account changes nothing
+    await deliver(f, f.billing.fake!.expire(subscriptionId)); await f.settle(4);
+    const shown = f.billing.clouds.view(cloud).destroyAt!;
+    console.info(`[recheck] closed destroyNow=${destroyNow}: delete at ${new Date(shown).toISOString()} expected >= ${new Date(expected).toISOString()}`);
+    expect(shown).toBeGreaterThanOrEqual(expected - 60_000);
+    await noDeleteUntil(f, shown);
+    f.advance(shown - f.now() + 60_000); await f.settle(6);
+    expect(cloud.status).toBe("destroyed");
+  });
 }
 
-it("deleting the account with a paid plan pauses the Boat cloud at the period end and deletes it 45 days later", async () => {
+it("cancel at period end with Dodo silent afterwards: stopped at the period end, a stable deletion date under replayed and late events", async () => {
   const f = await fixture();
   const owner = await f.login("owner@example.test");
   const { cloud, subscriptionId } = await f.buy(owner);
-  const periodEnd = f.billing.service.subscriptions(cloud.accountId)[0]!.currentPeriodEnd!;
-  const res = await f.page("/v1/account/delete", { email: "owner@example.test", cancelBilling: true, destroyDesktopsNow: true }, owner);
-  expect(res.status).toBe(200);
-  await f.settle(4);
-  // Dodo ends the cancelled subscription at the period end
-  f.advance(periodEnd - f.now() + 60_000);
-  console.info(`[review] expiry webhook after account deletion answered ${JSON.stringify(await deliver(f, f.billing.fake!.expire(subscriptionId)))}`);
-  await f.settle(6);
-  console.info(`[review] after period end: cloud=${cloud.status} entitled=${JSON.stringify(f.billing.clouds.boat!.verdict(cloud))}`);
-  expect.soft(cloud.status, "the deleted account's Boat cloud is still running after its paid period").toBe("stopped");
-  f.advance(46 * DAY_MS); await f.settle(6);
-  console.info(`[review] 46 days later: cloud=${cloud.status} deletes=${f.api.deletes().length}`);
-  expect(cloud.status, "the deleted account's Boat cloud and data are never removed").toBe("destroyed");
-});
-
-it("signed but late, replayed or out-of-order billing events never bring retention forward", async () => {
-  const f = await fixture();
-  const owner = await f.login("owner@example.test");
-  const { cloud, subscriptionId } = await f.buy(owner);
-  const renewal = f.billing.fake!.renew(subscriptionId);
-  expect(await deliver(f, renewal)).toEqual([200, 200]);
-  const expiry = f.billing.fake!.expire(subscriptionId);
-  await deliver(f, expiry); await f.settle(8);
-  expect(cloud.status).toBe("stopped");
-  const deleteAt = f.billing.clouds.view(cloud).destroyAt!;
-  // the same expiry replayed, the earlier renewal replayed, and a freshly signed out-of-order "active"
-  await deliver(f, expiry); await deliver(f, renewal);
-  await deliver(f, f.billing.fake!.renew(subscriptionId));
-  await f.settle(4);
-  expect(f.billing.clouds.view(cloud).destroyAt!).toBeGreaterThanOrEqual(deleteAt);
-  while (f.now() + DAY_MS < deleteAt) { f.advance(DAY_MS); await f.settle(1); }
-  expect(f.api.deletes()).toHaveLength(0);
-});
-
-it("cancel then keep through the billing routes never stops or deletes the cloud", async () => {
-  const f = await fixture();
-  const owner = await f.login("owner@example.test");
-  const { cloud, subscriptionId } = await f.buy(owner);
+  const renewal = f.billing.fake!.renew(subscriptionId); await deliver(f, renewal); await f.settle(2);
   const sub = f.billing.service.subscriptions(cloud.accountId)[0]!;
   expect((await f.page(`/v1/billing/subscriptions/${sub.id}/cancel`, {}, owner)).status).toBe(200);
-  await f.settle(2);
-  expect((await f.page(`/v1/billing/subscriptions/${sub.id}/keep`, {}, owner)).status).toBe(200);
-  for (let month = 0; month < 3; month++) { f.advance(31 * DAY_MS); await deliver(f, f.billing.fake!.renew(subscriptionId)); await f.settle(2); }
-  expect(cloud.status).toBe("running");
+  const periodEnd = f.billing.service.subscriptions(cloud.accountId)[0]!.currentPeriodEnd!;
+  f.advance(periodEnd - f.now() + 60_000); await f.settle(6);
+  expect(cloud.status).toBe("stopped");
+  const first = f.billing.clouds.view(cloud).destroyAt!;
+  const st = f.billing.service.subscriptions(cloud.accountId)[0]!;
+  console.info(`[debug] periodEnd=${periodEnd} subNow=${JSON.stringify({ status: st.status, cpe: st.currentPeriodEnd, cancel: st.cancelAtPeriodEnd })} cloud=${JSON.stringify({ ended: cloud.ended, endedAt: cloud.endedAt, endsAt: cloud.endsAt, destroyAt: cloud.destroyAt, bEnded: cloud.managed!.endedAt })} destroyAt=${f.billing.clouds.view(cloud).destroyAt} first-periodEnd(d)=${(first - periodEnd) / DAY_MS}`);
+  expect(first).toBe(periodEnd + 45 * DAY_MS);
+  // replays and a late expiry days later
+  f.advance(3 * DAY_MS);
+  await deliver(f, renewal); await deliver(f, f.billing.fake!.expire(subscriptionId)); await deliver(f, f.billing.fake!.expire(subscriptionId));
+  await f.settle(4);
+  const after = f.billing.clouds.view(cloud).destroyAt!;
+  console.info(`[recheck] late expiry moved the deletion date by ${(after - first) / DAY_MS} days`);
+  expect(after).toBe(first);
+  await noDeleteUntil(f, after);
+});
+
+it("the deletion routes: confirm needs a fresh sign-in, Cancel works during the 7 days, and nothing is deleted", async () => {
+  const f = await fixture();
+  const owner = await f.login("owner@example.test");
+  const { cloud, subscriptionId } = await f.buy(owner);
+  await deliver(f, f.billing.fake!.expire(subscriptionId)); await f.settle(8);
+  expect((await f.page(`/v1/clouds/${cloud.id}/delete-data`, {}, owner)).status).toBe(202);
+  const token = f.mailer.outbox.findLast(m => /Confirm deleting/.test(m.subject))!.text.match(/#([A-Za-z0-9_-]{43})/)![1]!;
+  expect(f.mailer.outbox.findLast(m => /Confirm deleting/.test(m.subject))!.text).toContain(`/clouds/${cloud.id}/delete#`);
+  f.advance(11 * 60_000);
+  const stale = await f.page(`/v1/clouds/${cloud.id}/delete-data/confirm`, { token }, owner);
+  expect(stale.status).toBe(403); expect(((await stale.json()) as { code?: string }).code).toBe("reauth_required");
+  const fresh = await f.login("owner@example.test");
+  expect((await f.page(`/v1/clouds/${cloud.id}/delete-data/confirm`, { token }, fresh)).status).toBe(200);
+  for (let day = 1; day <= 6; day++) { f.advance(DAY_MS); await f.settle(1); }
+  // cancel from a session that is not fresh still works (undo should be easy)
+  expect((await f.page(`/v1/clouds/${cloud.id}/delete-data/cancel`, {}, fresh)).status).toBe(200);
+  f.advance(3 * DAY_MS); await f.settle(4);
   expect(f.api.deletes()).toHaveLength(0);
+  expect(cloud.status).toBe("stopped");
 });

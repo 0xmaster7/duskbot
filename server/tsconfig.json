@@ -23,6 +23,7 @@
   },
   "include": [
     "../apps/dashboard/server",
+    "../apps/cloud-service",
     ".",
     "../apps/companion"
   ],

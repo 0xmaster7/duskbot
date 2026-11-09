@@ -4,7 +4,7 @@
 import { randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { makeTar, tarEntries } from "./boat-backups.ts";
+import { makeTar, tarEntries } from "./backups.ts";
 
 export interface FakeSandbox {
   id: string; name: string; state: string; type: string; labels: Record<string, string>; ttlSeconds: number | null;

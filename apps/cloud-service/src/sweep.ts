@@ -5,11 +5,11 @@
 // snapshot; otherwise it stays stopped. One no record knows is never deleted here: it may be a paying person's machine
 // whose record was lost, so after the retention period the operator is alerted and decides.
 import { join } from "node:path";
-import { createJsonStore } from "../billing/json-store.ts";
+import { createJsonStore } from "../../dashboard/server/billing/json-store.ts";
 import type { BoatProvider } from "./boat.ts";
-import type { Audit } from "./boat-audit.ts";
-import { DAY_MS } from "./boat-retention.ts";
-import type { StoredCloud } from "./types.ts";
+import type { Audit } from "./audit.ts";
+import { DAY_MS } from "./retention.ts";
+import type { StoredCloud } from "../../dashboard/server/clouds/types.ts";
 
 interface SweepState { v: 1; orphans: Array<{ serverId: string; cloudId: string | null; firstSeenAt: number; deletion: { operationId: string | null; at: number } | null }>; lastSweepAt: number }
 const UP = new Set(["provisioned", "cloning", "ready", "idle", "running"]);
@@ -27,25 +27,25 @@ export function createBoatSweep(options: { dataDir: string; provider: BoatProvid
     if (now() - store.state.lastSweepAt < (options.everyMs ?? 30 * 60_000)) return;
     store.state.lastSweepAt = now(); store.commit();
     const byId = new Map(clouds.map(c => [c.id, c]));
-    const known = new Set(clouds.flatMap(c => [c.serverId, ...(c.boat?.retired ?? []).map(r => r.serverId), c.boat?.deletion?.serverId].filter((id): id is string => !!id)));
+    const known = new Set(clouds.flatMap(c => [c.serverId, ...(c.managed?.retired ?? []).map(r => r.serverId), c.managed?.deletion?.serverId].filter((id): id is string => !!id)));
     for (const s of await provider.inventory()) {
       if (known.has(s.id)) continue;
       const cloud = s.cloudId ? byId.get(s.cloudId) : undefined;
       // a create still in flight has no server id yet
       if (cloud && cloud.status === "provisioning" && cloud.setupStep === "reserving") continue;
       if (UP.has(s.state)) { await provider.power(s.id, "off"); record(s.cloudId, "orphan_stopped", cloud ? "not_its_server" : "no_record", s.id); }
-      if (cloud && cloud.status !== "destroyed" && cloud.boat) {
+      if (cloud && cloud.status !== "destroyed" && cloud.managed) {
         const current = cloud.serverId ? await provider.sandbox(cloud.serverId) : null;
-        const newest = [...cloud.boat.backups].reverse().find(g => g.verifiedAt !== null);
+        const newest = [...cloud.managed.backups].reverse().find(g => g.verifiedAt !== null);
         const superseded = current !== null && (s.createdAt ?? 0) < (current.createdAt ?? 0) && newest !== undefined && newest.snapshotAt > (s.snapshotAt ?? s.createdAt ?? 0);
-        if (superseded) { cloud.boat.retired.push({ serverId: s.id, at: now(), deletion: null }); record(cloud.id, "orphan_retired", "superseded", s.id); }
+        if (superseded) { cloud.managed.retired.push({ serverId: s.id, at: now(), deletion: null }); record(cloud.id, "orphan_retired", "superseded", s.id); }
         else if (!alerted.has(s.id)) { alerted.add(s.id); record(cloud.id, "orphan_kept", "may_hold_newer_data", s.id); console.warn(`boat: ALERT a second sandbox ${s.id} for cloud ${cloud.id} was stopped and kept for an operator`); }
         continue;
       }
       let orphan = store.state.orphans.find(o => o.serverId === s.id);
       if (!orphan) { orphan = { serverId: s.id, cloudId: s.cloudId, firstSeenAt: now(), deletion: null }; store.state.orphans.push(orphan); store.commit(); }
       if (orphan.deletion) continue;
-      if (cloud?.status === "destroyed" && cloud.boat?.deletedAt != null) {
+      if (cloud?.status === "destroyed" && cloud.managed?.deletedAt != null) {
         const answer = await provider.requestDelete(s.id);
         orphan.deletion = { operationId: answer.operationId, at: now() }; store.commit();
         record(s.cloudId, "delete_requested", "orphan_of_deleted_cloud", s.id, { operation: answer.operationId });

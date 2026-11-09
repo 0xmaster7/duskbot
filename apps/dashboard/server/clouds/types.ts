@@ -22,7 +22,7 @@ export interface CreateServerInput {
 
 /** provisioning backend. dedicated: fake or hetzner. pool: PoolProvider over pool hosts (fake driver in tests). */
 export interface CloudProvider {
-  readonly name: "fake" | "hetzner" | "pool" | "boat";
+  readonly name: "fake" | "hetzner" | "pool" | "managed";
   /** the server a create made for this cloud id, if any (idempotent create) */
   find(cloudId: string): Promise<ProviderServer | null>;
   create(input: CreateServerInput): Promise<ProviderServer>;
@@ -70,10 +70,12 @@ export interface HomeClient {
   pair(origin: string, secret: string, input: { label: string; ttlSeconds?: number }): Promise<{ code: string; expiresAt: number }>;
   /** true once the install answers its signed health read */
   healthy(origin: string, secret: string): Promise<boolean>;
-  /** the home's idle read (server/cloud-power.ts); only Boat homes are asked */
+  /** the home's idle read (server/cloud-power.ts); only managed homes are asked */
   power?(origin: string, secret: string, idleMinutes: number): Promise<HomePower>;
   /** the sleep handshake: ok once the home agreed and closed for the stop */
   sleep?(origin: string, secret: string, idleMinutes: number): Promise<{ ok: boolean; nextDueAt: number | null }>;
+  /** a hosted home's signed entitlement (shared/entitlement.ts): it refuses clients without a valid one */
+  entitle?(origin: string, secret: string, token: string): Promise<{ expiresAt: number }>;
   /** tells the home its plan was cancelled or renewed, so it holds its routines (docs/cloud-pro.md) */
   plan?(origin: string, secret: string, input: { cancelled: boolean }): Promise<void>;
 }
@@ -107,7 +109,7 @@ export interface StoredCloud {
   hidden: boolean;
   paymentProblem: boolean;
   ended?: boolean;
-  /** when `ended` was set: the retention clock of a Boat cloud starts here */
+  /** when `ended` was set: the retention clock of a managed cloud starts here */
   endedAt?: number;
   /** dropped from a plan that is paid to this time: runs until then, then ends */
   endsAt?: number;
@@ -131,54 +133,15 @@ export interface StoredCloud {
   suspensionApplied?: boolean;
   /** the owner or the slack edge asked a stopped or sleeping desktop to wake; the edge times it to the desktop's next sync */
   wakeRequestedAt?: number;
-  /** set at activation when Boat runs this cloud: its lifecycle is boat-lifecycle.ts, never the generic one */
-  backend?: "boat";
-  boat?: BoatCloudState;
+  /** set at activation when a managed backend runs this cloud: its lifecycle is the backend's, never the generic one */
+  backend?: "managed";
+  managed?: ManagedCloudState;
+  /** when this service last pushed a signed entitlement to the cloud's home */
+  entitledAt?: number;
 }
 
-/** one Boat home's lifecycle record (boat-lifecycle.ts) */
-export interface BoatCloudState {
-  /** bumped for each deliberate new sandbox (a recovery); part of Boat's idempotency key */
-  attempt: number;
-  installed: string | null;
-  /** a backup generation to restore into the next fresh sandbox */
-  restoreFrom: string | null;
-  /** the generation the running sandbox came back from, for the notice */
-  restoredFrom?: { file: string; at: number } | null;
-  sleptAt: number | null;
-  sleepReason: "idle" | "plan" | "owner" | "operator" | null;
-  nextDueAt: number | null;
-  lastPowerAt: number | null;
-  busy: string[];
-  leaseAt: number | null;
-  lastStopAt: number | null;
-  wakeStartedAt: number | null;
-  /** `keep`: from a replaced sandbox's own disk, never pruned; `source`: that sandbox */
-  backups: Array<{ file: string; at: number; bytes: number; sha256: string; verifiedAt: number | null; snapshotAt: number; keep?: boolean; source?: string }>;
-  lastBackupTryAt: number | null;
-  backupProblem: string | null;
-  /** the billing record's end of the plan, as first seen: the retention clock */
-  endedAt: number | null;
-  notices: Array<{ kind: string; at: number }>;
-  deleteRequest: { requestedAt: number; tokenHash: string | null; tokenExpiresAt: number | null; confirmedAt: number | null; executeAfter: number | null; cancelledAt: number | null } | null;
-  /** Boat's receipt for an accepted delete: never sent twice */
-  deletion: { serverId: string; operationId: string | null; at: number; reason: string; sent?: boolean } | null;
-  deletedAt: number | null;
-  backupsDeleteAfter: number | null;
-  /** sandboxes this cloud had before a recovery, stopped, deleted once the new one has its own verified backup */
-  retired: Array<{ serverId: string; at: number; deletion: { operationId: string | null; at: number } | null; backedUp?: number }>;
-  recoveries: number;
-  hold: boolean;
-  /** when the current sandbox's setup began */
-  setupSince?: number;
-  /** Boat answered 404 for the current sandbox since this time, this many times; reset by any answer */
-  missingSince?: number | null;
-  missingChecks?: number;
-  /** the owner asked to apply a plan change now (resize-now) */
-  resizeAskedAt?: number | null;
-  /** a size Boat refused (shrinking below the data, say), not tried again */
-  resizeBlocked?: string | null;
-}
+/** a managed backend's own per-cloud record (apps/cloud-service adds its fields to this interface) */
+export interface ManagedCloudState {}
 
 export interface DesktopPlan { kind: Exclude<DesktopKind, "none">; placement: Placement; spec: MachineSpec; botComputers: number | null }
 export interface OrderInput extends DesktopPlan {
@@ -221,7 +184,9 @@ export interface CloudsService {
   pair(accountId: string, cloudId: string): Promise<{ origin: string; code: string; expiresAt: number }>;
   /** one pass over every desktop that needs work; safe to run concurrently with itself (serialized inside) */
   reconcile(): Promise<void>;
-  /** the Boat lifecycle when Boat is configured: owner delete requests and operator holds */
-  readonly boat?: import("./boat-lifecycle.ts").BoatLifecycle | null;
+  /** the managed backend when one is configured: owner delete requests, operator holds, resizes */
+  readonly managed?: import("./managed.ts").ManagedCloud | null;
+  /** a fresh signed entitlement for the cloud's home and the app, or null when this service signs none */
+  entitlement?(cloud: StoredCloud): string | null;
   close(): void;
 }

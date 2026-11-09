@@ -2,23 +2,23 @@
 // with a synthetic engine, a bot moved there from a local fixture with the app's own send, slept, backed up, woken, its
 // machine deleted and rebuilt from the backup, then everything this run made on Boat deleted and proven gone.
 //
-//   node --experimental-strip-types scripts/testing/boat-e2e.ts --fake                     # loopback fake Boat, no VM
-//   BOAT_API_KEY=... BOAT_BASE_URL=... node --experimental-strip-types scripts/testing/boat-e2e.ts --package release/boat/omb-home.tgz --engine <fake-claude.mjs> --ledger <file>
+//   node --experimental-strip-types apps/cloud-service/scripts/e2e.ts --fake                     # loopback fake Boat, no VM
+//   BOAT_API_KEY=... BOAT_BASE_URL=... node --experimental-strip-types apps/cloud-service/scripts/e2e.ts --package release/home/omb-home.tgz --engine <fake-claude.mjs> --ledger <file>
 //
 // Real runs create at most two `small` sandboxes (the cloud, and its rebuild) under a scope label of their own, and the
 // teardown deletes every sandbox with that label whatever happened. Prints timings and ids, never a key or a token.
 import { createHash, randomBytes } from "node:crypto";
 import { appendFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { createServer, type IncomingMessage } from "node:http";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { createBilling } from "../../apps/dashboard/server/billing/index.ts";
-import { createStore } from "../../apps/dashboard/server/store.ts";
-import { startFakeBoatApi } from "../../apps/dashboard/server/clouds/fake-boat-api.ts";
-import { createBoatProvider } from "../../apps/dashboard/server/clouds/boat.ts";
-import { createCloudSend } from "../../electron/cloud-send.mjs";
-import { openOwnerSession } from "../../electron/cloud-send-main.mjs";
-import { launchVerificationServer } from "../control-omb.ts";
+import { createBilling } from "../../dashboard/server/billing/index.ts";
+import { createStore } from "../../dashboard/server/store.ts";
+import { startFakeBoatApi } from "../src/fake-boat-api.ts";
+import { createBoatProvider } from "../src/boat.ts";
+import { createCloudSend } from "../../../electron/cloud-send.mjs";
+import { openOwnerSession } from "../../../electron/cloud-send-main.mjs";
+import { launchVerificationServer } from "../../../scripts/control-omb.ts";
 
 const args = process.argv.slice(2), fake = args.includes("--fake");
 const option = (name: string) => { const at = args.indexOf(name); return at === -1 ? null : args[at + 1] ?? null; };
@@ -44,7 +44,7 @@ if (api) api.onCommand(({ sandbox, command }) => {
 });
 const key = api?.key ?? process.env.BOAT_API_KEY, baseUrl = api?.baseUrl ?? process.env.BOAT_BASE_URL;
 if (!key || !baseUrl) { console.error("BOAT_API_KEY and BOAT_BASE_URL are required (or --fake)."); process.exit(2); }
-const packageFile = fake ? join(dataDir, "pkg.tgz") : resolve(option("--package") ?? "release/boat/omb-home.tgz");
+const packageFile = fake ? join(dataDir, "pkg.tgz") : resolve(option("--package") ?? "release/home/omb-home.tgz");
 if (fake) (await import("node:fs")).writeFileSync(packageFile, "fake package");
 const sha256 = createHash("sha256").update(readFileSync(packageFile)).digest("hex");
 const apiBase = `${baseUrl.replace(/\/$/, "")}${baseUrl.includes("/api/v1") ? "" : "/api/v1"}`;
@@ -85,10 +85,10 @@ const store = createStore(dataDir);
 const account = { id: "acct_e2e", email: "e2e@example.test" };
 const billing = createBilling({ dataDir, publicUrl: "https://dashboard.e2e.invalid", dashboard: { state: store.state, changed: () => store.changed() }, fetch: homeFetch,
   accounts: { fromCookie: () => account, fromBearer: () => account },
-  notify: (cloud, kind, at) => note(`notice to owner: ${kind}${at ? ` (${new Date(at).toISOString()})` : ""} for ${cloud.id}`),
+  mail: (cloud, letter) => note(`notice to owner: ${letter.subject} for ${cloud.id}`),
   alert: entry => note(`ALERT ${entry.action} ${entry.cloudId} (${entry.reason})`),
-  env: { OMB_BILLING_PROVIDER: "fake", OMB_CLOUD_SEAL_KEY: randomBytes(32).toString("base64url"), OMB_BOAT: "1", BOAT_API_KEY: key, BOAT_BASE_URL: baseUrl, OMB_BOAT_SCOPE: scope,
-    OMB_BOAT_KINDS: "shared_s", OMB_BOAT_HOME_PACKAGE_FILE: packageFile, OMB_BOAT_HOME_PACKAGE_SHA256: sha256, OMB_BOAT_LEASE_HOURS: "1", OMB_BOAT_IDLE_MINUTES: "5", OMB_BOAT_LOST_AFTER_MINUTES: "2", OMB_POOL_DRIVER: "fake" } });
+  env: { OMB_BILLING_PROVIDER: "fake", OMB_CLOUD_SEAL_KEY: randomBytes(32).toString("base64url"), OMB_MANAGED: "1", BOAT_API_KEY: key, BOAT_BASE_URL: baseUrl, OMB_MANAGED_SCOPE: scope,
+    OMB_MANAGED_KINDS: "shared_s", OMB_MANAGED_HOME_PACKAGE_FILE: packageFile, OMB_MANAGED_HOME_PACKAGE_SHA256: sha256, OMB_MANAGED_LEASE_HOURS: "1", OMB_MANAGED_IDLE_MINUTES: "5", OMB_MANAGED_LOST_AFTER_MINUTES: "2", OMB_POOL_DRIVER: "fake" } });
 const webhooks = createServer((req, res) => void billing.handle(req, res, new URL(req.url ?? "/", "http://127.0.0.1")).then(handled => { if (!handled) { res.writeHead(404); res.end(); } }));
 await new Promise<void>(r => webhooks.listen(0, "127.0.0.1", r));
 const hookBase = `http://127.0.0.1:${(webhooks.address() as { port: number }).port}`;
@@ -174,7 +174,7 @@ try {
     let kept: unknown = null;
     const send = createCloudSend({
       local: (route: string, init?: RequestInit) => localApi(route, init),
-      cloud: { origin: () => target.origin, asleep: () => false, read: (route: string) => reader.fetch(route),
+      cloud: { origin: () => target.origin, asleep: () => false, read: (route: string) => reader.fetch!(route),
         open: () => openOwnerSession(target, fetch, { label: "Boat e2e move", background: false }) },
       handoff: async () => { throw new Error("no sign-ins in this run"); },
       store: { read: () => kept, write: (value: unknown) => { kept = value; } },
@@ -194,8 +194,8 @@ try {
   await billing.clouds.power(account.id, cloudId, "off");
   await reconcileUntil(cloudId, () => cloud().status === "sleeping", 10 * 60_000, "sleep");
   mark("asleep (Boat stopped)");
-  await reconcileUntil(cloudId, () => (cloud().boat?.backups.at(-1)?.verifiedAt ?? null) !== null, 15 * 60_000, "backup");
-  const backup = cloud().boat!.backups.at(-1)!;
+  await reconcileUntil(cloudId, () => (cloud().managed?.backups.at(-1)?.verifiedAt ?? null) !== null, 15 * 60_000, "backup");
+  const backup = cloud().managed!.backups.at(-1)!;
   note(`backup ${backup.file}: ${backup.bytes} bytes, verified`);
   results.backupBytes = backup.bytes;
   mark("backed up and verified");

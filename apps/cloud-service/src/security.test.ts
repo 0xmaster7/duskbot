@@ -5,16 +5,16 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
-import { CSRF_HEADER } from "../../../../shared/account-api.ts";
-import { createBilling } from "../billing/index.ts";
-import { createDashboardApp } from "../app.ts";
-import { memoryMailer } from "../auth/mail.ts";
-import type { BillingState } from "../billing/store.ts";
+import { CSRF_HEADER } from "../../../shared/account-api.ts";
+import { createBilling } from "../../dashboard/server/billing/index.ts";
+import { createDashboardApp } from "../../dashboard/server/app.ts";
+import { memoryMailer } from "../../dashboard/server/auth/mail.ts";
+import type { BillingState } from "../../dashboard/server/billing/store.ts";
 import { startFakeBoatApi } from "./fake-boat-api.ts";
-import { DAY_MS, deletionVerdict } from "./boat-retention.ts";
+import { DAY_MS, deletionVerdict } from "./retention.ts";
 
-vi.mock("../billing/index.ts", async importOriginal => {
-  const actual = await importOriginal<typeof import("../billing/index.ts")>();
+vi.mock("../../dashboard/server/billing/index.ts", async importOriginal => {
+  const actual = await importOriginal<typeof import("../../dashboard/server/billing/index.ts")>();
   return { ...actual, createBilling: vi.fn(actual.createBilling) };
 });
 const cleanup: Array<() => unknown> = [];
@@ -79,7 +79,7 @@ async function fixture() {
     }
     const cloud = billing.clouds.get(stored.cloudId!)!;
     for (let n = 0; n < 20 && cloud.status !== "running"; n++) { cloud.nextAttemptAt = 0; await billing.clouds.reconcile(); }
-    expect(cloud).toMatchObject({ backend: "boat", status: "running" });
+    expect(cloud).toMatchObject({ backend: "managed", status: "running" });
     return { cloud, subscriptionId: snapshot().subscriptions.at(-1)!.providerSubscriptionId! };
   }
   const clouds: Array<{ nextAttemptAt: number }> = [];
@@ -156,7 +156,7 @@ it("an owner's delete waits for a fresh sign-in, the emailed link and seven days
   f.advance(7 * DAY_MS + 60_000); await f.settle(6);
   expect(f.api.deletes()).toHaveLength(1);
   expect(cloud.status).toBe("destroyed");
-  expect(cloud.boat!.backups).toEqual([]);
+  expect(cloud.managed!.backups).toEqual([]);
 });
 
 it("the verdict refuses a short retention, a paid plan, an unknown plan, a hold and a missing final backup", () => {

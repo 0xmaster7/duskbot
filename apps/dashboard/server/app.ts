@@ -12,8 +12,7 @@ import type { Account, StoredWorkspace } from "./store.ts";
 import { createBilling } from "./billing/index.ts";
 import { BillingError } from "./billing/service.ts";
 import { createSlackEdgeHost } from "./slack-edge/index.ts";
-import { createBoatRoutes } from "./clouds/boat-routes.ts";
-import { noticeText } from "./clouds/boat-retention.ts";
+import { createManagedRoutes } from "./clouds/managed-routes.ts";
 import type { EdgeSocketFactory } from "./slack-edge/service.ts";
 
 export interface DashboardAppOptions {
@@ -66,11 +65,11 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const mail = (to: string | null | undefined, subject: string, text: string) => {
     if (!to) return;
     const html = `<p>${text.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" })[ch]!)}</p>`;
-    void options.mailer.send({ to, subject, text, html }).catch(() => console.warn("boat: a notice email failed"));
+    void options.mailer.send({ to, subject, text, html }).catch(() => console.warn("clouds: a notice email failed"));
   };
   const billing = createBilling({ accountExists: id => auth.account(id) !== null,
-    notify: (cloud, kind, at, link) => { const letter = noticeText(kind, { name: cloud.name, at, dashboardUrl: publicUrl, link }); mail(auth.account(cloud.accountId)?.email, letter.subject, letter.text); },
-    alert: entry => mail(process.env.OMB_OPS_ALERT_EMAIL, `Boat ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
+    mail: (cloud, letter) => mail(auth.account(cloud.accountId)?.email, letter.subject, letter.text),
+    alert: entry => mail(process.env.OMB_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
     fromBearer: req => auth.appSession(req)?.account ?? null } });
   auth.beforeAccountDelete(async (owner, body) => {
@@ -86,7 +85,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     // the app session must survive a billing failure; it then reads as the free plan
     try { return owner && billing.enabled ? await billing.sessionFields(owner) : {}; } catch { console.warn("billing: session fields failed"); return {}; }
   });
-  const boatRoutes = createBoatRoutes({ clouds: billing.clouds, publicUrl, now, json, readJson: async req => bodyObject(await readBody(req)),
+  const managedRoutes = createManagedRoutes({ clouds: billing.clouds, publicUrl, now, json, readJson: async req => bodyObject(await readBody(req)),
     owner: req => {
       const owner = auth.requireWeb(req, { mutation: true }), found = auth.webSession(req);
       if (!found || found.account.id !== owner.id) throw new AuthError(401, "signed_out");
@@ -239,7 +238,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (method === "GET" && path === DASHBOARD_DISCOVERY_PATH) return json(res, 200, { v: 1, url: publicUrl });
     if (await edgeHost.handle(req, res, url, { readBody, bodyObject, json, signed: (request, body) => signed(request, body),
       account: (request, mutation) => auth.requireWeb(request, { mutation }) })) return;
-    if (await boatRoutes.handle(req, res, url)) return;
+    if (await managedRoutes.handle(req, res, url)) return;
     if (await billing.handle(req, res, url)) return;
     if (!path.startsWith("/v1/") && !path.startsWith("/.well-known/")) {
       if (method === "GET") return staticPage(req, res);

@@ -1,8 +1,8 @@
 // What runs on a Boat sandbox to make it a My Cloud home: the same launcher, edge and server as every Cloud home
-// (server/cloud-home-start.ts, deploy/boat/Caddyfile), installed natively under systemd so it comes back after every resume.
+// (server/cloud-home-start.ts, apps/cloud-service/deploy/Caddyfile), installed natively under systemd so it comes back after every resume.
 // Boat runs the setup script once, as `user` with passwordless sudo; every later step is one command the reconciler sends.
 import { createHmac } from "node:crypto";
-import { CLOUD_HOME_MARKER_FILE, homeEnv, shellQuote, type DashboardLink } from "./bootstrap.ts";
+import { CLOUD_HOME_MARKER_FILE, homeEnv, shellQuote, type DashboardLink } from "../../dashboard/server/clouds/bootstrap.ts";
 
 /** pinned runtime downloads, verified before use */
 export const BOAT_NODE = { version: "24.22.2", sha256: "48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75" } as const;

@@ -1,13 +1,13 @@
 # My Cloud on Boat
 
 The account service (`apps/dashboard/server`) can run each paid My Cloud on its own [Boat](https://boat.dev) sandbox. The
-sandbox runs the same My Cloud home as every Cloud plan (`server/cloud-home-start.ts`, `deploy/boat/Caddyfile`),
+sandbox runs the same My Cloud home as every Cloud plan (`server/cloud-home-start.ts`, `apps/cloud-service/deploy/Caddyfile`),
 installed natively under systemd. Everything else a person sees is the existing My Cloud: pairing, wake, the one-time
 move and move back. Your own VPS ("Add your VPS", `apps/link-service/install.sh`) is unchanged.
 
 ## Lifecycle
 
-The code is `apps/dashboard/server/clouds/boat-lifecycle.ts`.
+The code is `apps/cloud-service/src/lifecycle.ts`.
 
 - **Provision** when the plan is paid:
   - one `small`-or-larger sandbox per cloud, labelled `omb.cloud` and `omb.scope`;
@@ -23,7 +23,7 @@ The code is `apps/dashboard/server/clouds/boat-lifecycle.ts`.
   - a routine due within 2 minutes.
 
   A Boat start does not run the home's start by itself, so the reconciler always runs `omb-home start` after a resume.
-- **Back up** `/data` from Boat's newest snapshot, encrypted, into `OMB_BOAT_BACKUP_DIR` (`boat-backups.ts`). The home
+- **Back up** `/data` from Boat's newest snapshot, encrypted, into `OMB_MANAGED_BACKUP_DIR` (`boat-backups.ts`). The home
   never holds a credential for that storage.
 - **Recover** a lost or expired machine: a fresh sandbox, then the newest verified backup restored into it.
 - **Retain.** When a plan ends, its cloud is stopped, kept for 45 days and the owner is notified at the end, then 30, 7
@@ -35,16 +35,16 @@ Every action is one line in `boat-audit.jsonl`. A deletion also alerts `OMB_OPS_
 ## Configuration (account service)
 
 - **Required:**
-  - `OMB_BOAT=1`.
+  - `OMB_MANAGED=1`.
   - `BOAT_API_KEY` and `BOAT_BASE_URL`.
   - `OMB_CLOUD_SEAL_KEY`.
-  - `OMB_BOAT_HOME_PACKAGE_SHA256`, plus either `OMB_BOAT_HOME_PACKAGE_FILE` or an https `OMB_BOAT_HOME_PACKAGE_URL`.
-    Build the package with `node scripts/build-boat-home-package.mjs`, or set `OMB_BOAT_TEMPLATE` to a saved Boat
+  - `OMB_MANAGED_HOME_PACKAGE_SHA256`, plus either `OMB_MANAGED_HOME_PACKAGE_FILE` or an https `OMB_MANAGED_HOME_PACKAGE_URL`.
+    Build the package with `node apps/cloud-service/scripts/build-home-package.mjs`, or set `OMB_MANAGED_TEMPLATE` to a saved Boat
     snapshot that already has it installed.
-- **Optional:** `OMB_BOAT_BACKUP_KEY` (43 base64url characters; otherwise derived from `OMB_CLOUD_SEAL_KEY`). Its fingerprint is kept in the data folder, and a different key refuses to start unless the old one is set as `OMB_BOAT_BACKUP_KEY_PREVIOUS`, which seals every backup again first. Also `OMB_BOAT_KINDS`, `OMB_BOAT_IDLE_MINUTES`, `OMB_BOAT_RETENTION_DAYS`, `OMB_BOAT_DELETE_DELAY_DAYS`,
-  `OMB_BOAT_BACKUP_DIR`, `OMB_BOAT_BACKUP_HOURS`, `OMB_BOAT_BACKUP_KEEP`, `OMB_BOAT_BACKUP_TAIL_DAYS`,
-  `OMB_BOAT_REFRESH_DAYS`, `OMB_BOAT_LEASE_HOURS`, `OMB_BOAT_SMALLEST`, `OMB_BOAT_SCOPE`.
-- **Minimums:** `OMB_BOAT_RETENTION_DAYS` is at least 45 and `OMB_BOAT_DELETE_DELAY_DAYS` at least 7; shorter values
+- **Optional:** `OMB_MANAGED_BACKUP_KEY` (43 base64url characters; otherwise derived from `OMB_CLOUD_SEAL_KEY`). Its fingerprint is kept in the data folder, and a different key refuses to start unless the old one is set as `OMB_MANAGED_BACKUP_KEY_PREVIOUS`, which seals every backup again first. Also `OMB_MANAGED_KINDS`, `OMB_MANAGED_IDLE_MINUTES`, `OMB_MANAGED_RETENTION_DAYS`, `OMB_MANAGED_DELETE_DELAY_DAYS`,
+  `OMB_MANAGED_BACKUP_DIR`, `OMB_MANAGED_BACKUP_HOURS`, `OMB_MANAGED_BACKUP_KEEP`, `OMB_MANAGED_BACKUP_TAIL_DAYS`,
+  `OMB_MANAGED_REFRESH_DAYS`, `OMB_MANAGED_LEASE_HOURS`, `OMB_MANAGED_SMALLEST`, `OMB_MANAGED_SCOPE`.
+- **Minimums:** `OMB_MANAGED_RETENTION_DAYS` is at least 45 and `OMB_MANAGED_DELETE_DELAY_DAYS` at least 7; shorter values
   stop the service at startup.
 
 ## Deleting a cloud's data on request
@@ -61,6 +61,6 @@ deletion.
 
 ## End-to-end check
 
-`scripts/testing/boat-e2e.ts` runs the whole life once. With `--fake` it runs against a loopback fake of the Boat API.
+`apps/cloud-service/scripts/e2e.ts` runs the whole life once. With `--fake` it runs against a loopback fake of the Boat API.
 With `BOAT_API_KEY`/`BOAT_BASE_URL` set, it runs on real Boat with at most two `small` sandboxes under a scope label of
 its own, and deletes them all at the end.

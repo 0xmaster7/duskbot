@@ -3,31 +3,33 @@
 // boat-retention.ts. One step per reconcile, each safe to repeat after a crash.
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { linkKeys } from "./bootstrap.ts";
+import { linkKeys } from "../../dashboard/server/clouds/bootstrap.ts";
 import { BoatError, type BoatProvider } from "./boat.ts";
-import { backupKey, BOAT_HOME_VOLUME, BOAT_PACKAGE_FILE, BOAT_RESTORE_FILE, boatBootFile, boatSetupScript, installCommand, RESTORE_COMMAND, startCommand } from "./boat-home.ts";
-import { boatBackupKey, homeVolumeProblem, type BackupStore } from "./boat-backups.ts";
-import { DAY_MS, DEFAULT_DELETE_DELAY_DAYS, DEFAULT_RETENTION_DAYS, deletionVerdict, dueNotice, type Entitlement, type NoticeKind, type Verdict } from "./boat-retention.ts";
-import type { Audit, AuditActor } from "./boat-audit.ts";
-import { RetryableCloudError } from "./http.ts";
-import type { BoatCloudState, HomeClient, StoredCloud } from "./types.ts";
+import { backupKey, BOAT_HOME_VOLUME, BOAT_PACKAGE_FILE, BOAT_RESTORE_FILE, boatBootFile, boatSetupScript, installCommand, RESTORE_COMMAND, startCommand } from "./home.ts";
+import { boatBackupKey, homeVolumeProblem, type BackupStore } from "./backups.ts";
+import { DAY_MS, DEFAULT_DELETE_DELAY_DAYS, DEFAULT_RETENTION_DAYS, deletionVerdict, dueNotice, type Entitlement, type NoticeKind, type Verdict } from "./retention.ts";
+import type { Audit, AuditActor } from "./audit.ts";
+import { RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
+import { ManagedCloudError } from "../../dashboard/server/clouds/managed.ts";
+import type { HomeClient, StoredCloud } from "../../dashboard/server/clouds/types.ts";
+import type { BoatCloudState } from "./state.ts";
 
 const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE;
 
 export interface BoatSettings {
-  /** minutes without use before a home is asked to sleep (OMB_BOAT_IDLE_MINUTES) */
+  /** minutes without use before a home is asked to sleep (OMB_MANAGED_IDLE_MINUTES) */
   idleMinutes: number;
-  /** Boat's own auto-stop, extended while the home is up: a dead-man switch if this service stops (OMB_BOAT_LEASE_HOURS) */
+  /** Boat's own auto-stop, extended while the home is up: a dead-man switch if this service stops (OMB_MANAGED_LEASE_HOURS) */
   leaseSeconds: number;
-  /** a backup at most this often (OMB_BOAT_BACKUP_HOURS) */
+  /** a backup at most this often (OMB_MANAGED_BACKUP_HOURS) */
   backupEveryMs: number;
-  /** generations kept per cloud (OMB_BOAT_BACKUP_KEEP), at least 2 */
+  /** generations kept per cloud (OMB_MANAGED_BACKUP_KEEP), at least 2 */
   backupKeep: number;
-  /** wake a stopped home this long before Boat may purge its disk (OMB_BOAT_REFRESH_DAYS) */
+  /** wake a stopped home this long before Boat may purge its disk (OMB_MANAGED_REFRESH_DAYS) */
   refreshAfterMs: number;
   retentionDays: number;
   deleteDelayDays: number;
-  /** after a retention deletion the backups stay this long more (OMB_BOAT_BACKUP_TAIL_DAYS) */
+  /** after a retention deletion the backups stay this long more (OMB_MANAGED_BACKUP_TAIL_DAYS) */
   backupTailMs: number;
   /** a routine's run wakes its home this long before */
   wakeLeadMs: number;
@@ -44,7 +46,8 @@ export const DEFAULT_BOAT_SETTINGS: BoatSettings = {
   deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 2 * MINUTE, powerReadMs: MINUTE, template: null, package: null, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
-export function boatSettingsFromEnv(env: NodeJS.ProcessEnv): BoatSettings {
+/** settings from OMB_MANAGED_* (index.ts `managedEnv` maps the older names onto these) */
+export function managedSettingsFromEnv(env: NodeJS.ProcessEnv): BoatSettings {
   const number = (name: string, min: number, max: number, fallback: number) => {
     const raw = env[name];
     if (raw === undefined || raw === "") return fallback;
@@ -52,25 +55,25 @@ export function boatSettingsFromEnv(env: NodeJS.ProcessEnv): BoatSettings {
     if (!Number.isFinite(value) || value < min || value > max) throw new Error(`Invalid ${name}.`);
     return value;
   };
-  const sha256 = env.OMB_BOAT_HOME_PACKAGE_SHA256;
-  const pkg = env.OMB_BOAT_HOME_PACKAGE_URL || env.OMB_BOAT_HOME_PACKAGE_FILE
-    ? { sha256: sha256 && /^[a-f0-9]{64}$/.test(sha256) ? sha256 : (() => { throw new Error("Invalid OMB_BOAT_HOME_PACKAGE_SHA256."); })(),
-      ...(env.OMB_BOAT_HOME_PACKAGE_URL ? { url: env.OMB_BOAT_HOME_PACKAGE_URL } : { file: env.OMB_BOAT_HOME_PACKAGE_FILE }) }
+  const sha256 = env.OMB_MANAGED_HOME_PACKAGE_SHA256;
+  const pkg = env.OMB_MANAGED_HOME_PACKAGE_URL || env.OMB_MANAGED_HOME_PACKAGE_FILE
+    ? { sha256: sha256 && /^[a-f0-9]{64}$/.test(sha256) ? sha256 : (() => { throw new Error("Invalid OMB_MANAGED_HOME_PACKAGE_SHA256."); })(),
+      ...(env.OMB_MANAGED_HOME_PACKAGE_URL ? { url: env.OMB_MANAGED_HOME_PACKAGE_URL } : { file: env.OMB_MANAGED_HOME_PACKAGE_FILE }) }
     : null;
-  const template = env.OMB_BOAT_TEMPLATE || null;
-  if (template !== null && !/^[a-z0-9][a-z0-9-]{0,62}$/.test(template)) throw new Error("Invalid OMB_BOAT_TEMPLATE.");
-  if (!pkg && !template) throw new Error("Boat needs OMB_BOAT_HOME_PACKAGE_URL (or _FILE) with OMB_BOAT_HOME_PACKAGE_SHA256, or OMB_BOAT_TEMPLATE.");
+  const template = env.OMB_MANAGED_TEMPLATE || null;
+  if (template !== null && !/^[a-z0-9][a-z0-9-]{0,62}$/.test(template)) throw new Error("Invalid OMB_MANAGED_TEMPLATE.");
+  if (!pkg && !template) throw new Error("A managed cloud needs OMB_MANAGED_HOME_PACKAGE_URL (or _FILE) with OMB_MANAGED_HOME_PACKAGE_SHA256, or OMB_MANAGED_TEMPLATE.");
   return { ...DEFAULT_BOAT_SETTINGS, template, package: pkg,
-    idleMinutes: number("OMB_BOAT_IDLE_MINUTES", 5, 24 * 60, 15),
-    leaseSeconds: number("OMB_BOAT_LEASE_HOURS", 1, 720, 2) * 3600,
-    backupEveryMs: number("OMB_BOAT_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
-    backupKeep: number("OMB_BOAT_BACKUP_KEEP", 2, 30, 3),
-    refreshAfterMs: number("OMB_BOAT_REFRESH_DAYS", 3, 13, 11) * DAY_MS,
-    retentionDays: number("OMB_BOAT_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
-    deleteDelayDays: number("OMB_BOAT_DELETE_DELAY_DAYS", DEFAULT_DELETE_DELAY_DAYS, 90, DEFAULT_DELETE_DELAY_DAYS),
-    backupTailMs: number("OMB_BOAT_BACKUP_TAIL_DAYS", 7, 365, 30) * DAY_MS,
-    maxBackupBytes: number("OMB_BOAT_BACKUP_MAX_MB", 64, 64 * 1024, 4096) * 1024 * 1024,
-    lostAfterMs: number("OMB_BOAT_LOST_AFTER_MINUTES", 2, 24 * 60, 30) * MINUTE };
+    idleMinutes: number("OMB_MANAGED_IDLE_MINUTES", 5, 24 * 60, 15),
+    leaseSeconds: number("OMB_MANAGED_LEASE_HOURS", 1, 720, 2) * 3600,
+    backupEveryMs: number("OMB_MANAGED_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
+    backupKeep: number("OMB_MANAGED_BACKUP_KEEP", 2, 30, 3),
+    refreshAfterMs: number("OMB_MANAGED_REFRESH_DAYS", 3, 13, 11) * DAY_MS,
+    retentionDays: number("OMB_MANAGED_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
+    deleteDelayDays: number("OMB_MANAGED_DELETE_DELAY_DAYS", DEFAULT_DELETE_DELAY_DAYS, 90, DEFAULT_DELETE_DELAY_DAYS),
+    backupTailMs: number("OMB_MANAGED_BACKUP_TAIL_DAYS", 7, 365, 30) * DAY_MS,
+    maxBackupBytes: number("OMB_MANAGED_BACKUP_MAX_MB", 64, 64 * 1024, 4096) * 1024 * 1024,
+    lostAfterMs: number("OMB_MANAGED_LOST_AFTER_MINUTES", 2, 24 * 60, 30) * MINUTE };
 }
 
 export function freshBoatState(): BoatCloudState {
@@ -95,23 +98,17 @@ export interface BoatLifecycleDeps {
   removeWorkspace(workspaceId: string): void;
   now(): number;
   save(cloud: StoredCloud): void;
-  /** this service's backup secret (OMB_BOAT_BACKUP_KEY, or derived from OMB_CLOUD_SEAL_KEY); never on a home */
+  /** this service's backup secret (OMB_MANAGED_BACKUP_KEY, or derived from OMB_CLOUD_SEAL_KEY); never on a home */
   backupSecret: Buffer;
   /** the cloud's record as stored on disk now, re-read right before anything irreversible */
   stored(cloudId: string): StoredCloud | null;
-}
-
-export class BoatLifecycleError extends Error {
-  readonly status: number;
-  readonly code: string;
-  constructor(status: number, code: string) { super(code); this.name = "BoatLifecycleError"; this.status = status; this.code = code; }
 }
 
 export function createBoatLifecycle(deps: BoatLifecycleDeps) {
   const { provider, settings, audit, now } = deps;
   const log = (c: StoredCloud, action: string, actor: AuditActor, reason: string, detail?: Record<string, string | number | boolean | null>) =>
     audit.record({ cloudId: c.id, action, actor, reason, serverId: c.serverId, ...(detail ? { detail } : {}) });
-  const state = (c: StoredCloud) => (c.boat ??= freshBoatState());
+  const state = (c: StoredCloud): BoatCloudState => (c.managed ??= freshBoatState());
   const secret = (c: StoredCloud) => deps.unseal(c.bootstrapSecret);
   const keyOf = (c: StoredCloud) => boatBackupKey(deps.backupSecret, c.id);
   const legacyKeyOf = (c: StoredCloud) => { try { return c.bootstrapSecret ? backupKey(secret(c)) : undefined; } catch { return undefined; } };
@@ -258,10 +255,10 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
   /** the stored record wins where it is more careful: a hold, a suspension or an owner's cancel this process has not seen */
   function rereadStored(c: StoredCloud): boolean {
     const b = state(c), fresh = deps.stored(c.id);
-    if (!fresh?.boat) { log(c, "delete_refused", "reconciler", "record_unreadable"); return false; }
-    if (fresh.boat.hold && !b.hold) b.hold = true;
+    if (!fresh?.managed) { log(c, "delete_refused", "reconciler", "record_unreadable"); return false; }
+    if (fresh.managed.hold && !b.hold) b.hold = true;
     if (fresh.suspended !== null && c.suspended === null) c.suspended = fresh.suspended;
-    const cancelled = fresh.boat.deleteRequest?.cancelledAt ?? null;
+    const cancelled = fresh.managed.deleteRequest?.cancelledAt ?? null;
     if (cancelled !== null && b.deleteRequest && b.deleteRequest.cancelledAt === null) b.deleteRequest.cancelledAt = cancelled;
     return true;
   }
@@ -525,8 +522,8 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     backup: (c: StoredCloud) => backup(c, "manual"),
     requestDelete(c: StoredCloud, link: (token: string) => string) {
       const b = state(c);
-      if (c.status === "destroyed" || c.status === "destroying") throw new BoatLifecycleError(409, "unavailable");
-      if (deps.entitlement(c).active) throw new BoatLifecycleError(409, "billing_active");
+      if (c.status === "destroyed" || c.status === "destroying") throw new ManagedCloudError(409, "unavailable");
+      if (deps.entitlement(c).active) throw new ManagedCloudError(409, "billing_active");
       const token = randomBytes(32).toString("base64url");
       b.deleteRequest = { requestedAt: now(), tokenHash: hashToken(token), tokenExpiresAt: now() + HOUR, confirmedAt: null, executeAfter: null, cancelledAt: null };
       log(c, "delete_asked", "owner", "email_sent");
@@ -535,10 +532,10 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     },
     confirmDelete(c: StoredCloud, token: string) {
       const b = state(c), request = b.deleteRequest;
-      if (!request || request.cancelledAt !== null || request.confirmedAt !== null || !request.tokenHash || request.tokenExpiresAt === null || request.tokenExpiresAt < now()) throw new BoatLifecycleError(409, "confirmation_required");
+      if (!request || request.cancelledAt !== null || request.confirmedAt !== null || !request.tokenHash || request.tokenExpiresAt === null || request.tokenExpiresAt < now()) throw new ManagedCloudError(409, "confirmation_required");
       const given = Buffer.from(hashToken(token)), want = Buffer.from(request.tokenHash);
-      if (given.length !== want.length || !timingSafeEqual(given, want)) throw new BoatLifecycleError(409, "confirmation_required");
-      if (deps.entitlement(c).active) throw new BoatLifecycleError(409, "billing_active");
+      if (given.length !== want.length || !timingSafeEqual(given, want)) throw new ManagedCloudError(409, "confirmation_required");
+      if (deps.entitlement(c).active) throw new ManagedCloudError(409, "billing_active");
       request.confirmedAt = now(); request.executeAfter = now() + settings.deleteDelayDays * DAY_MS; request.tokenHash = null; request.tokenExpiresAt = null;
       log(c, "delete_confirmed", "owner", "email_link", { executeAfter: request.executeAfter });
       deps.save(c);
@@ -547,7 +544,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     },
     cancelDelete(c: StoredCloud) {
       const b = state(c);
-      if (!b.deleteRequest || b.deleteRequest.cancelledAt !== null || b.deletion || c.status === "destroying" || c.status === "destroyed") throw new BoatLifecycleError(409, "unavailable");
+      if (!b.deleteRequest || b.deleteRequest.cancelledAt !== null || b.deletion || c.status === "destroying" || c.status === "destroyed") throw new ManagedCloudError(409, "unavailable");
       b.deleteRequest.cancelledAt = now(); b.deleteRequest.tokenHash = null;
       log(c, "delete_cancelled", "owner", "undo");
       deps.save(c);
@@ -556,6 +553,8 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     /** apply a pending plan change now instead of at the next idle sleep */
     resizeNow(c: StoredCloud) { state(c).resizeAskedAt = now(); c.nextAttemptAt = 0; deps.save(c); },
     resizing(c: StoredCloud) { return c.desiredSpec.vcpu !== c.spec.vcpu || c.desiredSpec.ramGb !== c.spec.ramGb || c.desiredSpec.diskGb !== c.spec.diskGb || state(c).wakeStartedAt !== null; },
+    /** when a failed step runs again; null: the clouds service's own backoff */
+    retryAt(_c: StoredCloud, _error: unknown): number | null { return null; },
     setHold(c: StoredCloud, hold: boolean) { state(c).hold = hold; log(c, hold ? "hold" : "hold_released", "operator", "manual"); deps.save(c); },
   };
 }

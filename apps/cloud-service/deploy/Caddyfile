@@ -1,4 +1,4 @@
-# Edge for one My Cloud home on a Boat sandbox (docs/boat-cloud.md). Boat's hosted-port proxy terminates TLS for
+# Edge for one My Cloud home on a Boat sandbox (apps/cloud-service/docs/provider.md). Boat's hosted-port proxy terminates TLS for
 # <subdomain>-8080.on.boat.dev and reaches this machine on :8080. The OpenMausBot server listens only on 127.0.0.1, and
 # every request forwarded to it carries X-Forwarded-*, so it is never the loopback owner (server/request-auth.ts): a
 # remote client needs a paired session.
