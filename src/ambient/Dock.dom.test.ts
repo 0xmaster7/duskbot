@@ -3,6 +3,7 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
 import { CARD_LEAVE_MS, DWELL_MS, Dock, HIDE_MS } from "./Dock";
+import { HISTORY } from "./MiniChat";
 import { SETTLED_MS } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, AmbientSnapshot } from "./types";
 
@@ -210,5 +211,48 @@ it("while main traces, says when the pointer crosses, the column and the card co
   expect(seen("pointer-leave")).toBeLessThan(seen("state-card-closing"));
   expect(seen("state-card-closing")).toBeLessThan(seen("state-column-closing"));
   expect(seen("state-column-closing")).toBeLessThan(seen("settled-signal"));
+  await act(async () => root.unmount());
+});
+
+it("chats for real: the card asks for a long stretch of the bot it shows, shows a sent message at once, and the reply as it streams", async () => {
+  let feed: (snapshot: AmbientSnapshot) => void = () => {};
+  const acts: AmbientAct[] = [];
+  const viewing: unknown[] = [];
+  const bridge: AmbientBridge = {
+    surface: "dock", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act: (next) => acts.push(next), order() {}, ready() {},
+    viewing: (next) => viewing.push(next),
+  };
+  const host = document.body.appendChild(document.createElement("div"));
+  const root = createRoot(host);
+  await act(async () => root.render(createElement(Dock, { bridge })));
+  const ada = (fields: Partial<AmbientBot> = {}) => bot("Ada", { chat: [{ id: "m1", from: "bot", text: "Paid on Saturday.", at: 1 }], ...fields });
+  await act(async () => feed({ lang: "en", labels: LABELS, bots: [ada()] }));
+  await act(async () => {
+    host.querySelector('[data-row="Ada"]')!.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 360 }));
+  });
+  await wait(DWELL_MS + 60);
+  expect(viewing.at(-1)).toEqual({ botId: "Ada", limit: HISTORY });
+  const card = host.querySelector(".amb-card")!;
+  const input = card.querySelector<HTMLInputElement>(".amb-chat-compose .amb-reply-input")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "and the next one?");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await act(async () => card.querySelector<HTMLFormElement>(".amb-chat-compose .amb-reply")!.requestSubmit());
+  // there at once, before the chat's own copy comes back
+  expect(card.querySelector(".amb-bubble-msg[data-pending]")?.textContent).toBe("and the next one?");
+  expect(acts.at(-1)).toMatchObject({ kind: "reply", botId: "Ada", text: "and the next one?" });
+  // the chat's copy arrives, the bot works, then writes
+  await act(async () => feed({ lang: "en", labels: LABELS, bots: [ada({ status: "working", chat: [{ id: "m1", from: "bot", text: "Paid on Saturday.", at: 1 }, { id: "m2", from: "you", text: "and the next one?", at: Date.now() }] })] }));
+  expect(card.querySelector(".amb-bubble-msg[data-pending]")).toBeNull();
+  expect(card.querySelector(".amb-typing")).not.toBeNull();
+  await act(async () => feed({ lang: "en", labels: LABELS, bots: [ada({ status: "talking", streaming: "The next one is due", chat: [{ id: "m1", from: "bot", text: "Paid on Saturday.", at: 1 }, { id: "m2", from: "you", text: "and the next one?", at: Date.now() }] })] }));
+  expect(card.querySelector(".amb-bubble-msg[data-streaming]")?.textContent).toBe("The next one is due");
+  expect(card.querySelector(".amb-typing")).toBeNull();
+  // gone from the card: nothing viewed
+  await act(async () => { document.dispatchEvent(new MouseEvent("mousemove", { clientX: 5000, clientY: 5000 })); });
+  await wait(CARD_LEAVE_MS + 60);
+  expect(viewing.at(-1)).toBeNull();
   await act(async () => root.unmount());
 });

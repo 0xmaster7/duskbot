@@ -6,7 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Keyboar
 import { AnimatePresence, motion, useReducedMotion, useTransform } from "motion/react";
 import { ChevronLeft, Plus } from "lucide-react";
 import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, moodOf, rankBots, waitingCount, type Mood } from "./mood";
-import { MiniChat } from "./MiniChat";
+import { HISTORY, MiniChat } from "./MiniChat";
 import { BotRow, useHoverBand, useRowMoments } from "./rows";
 import { attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
@@ -215,7 +215,7 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
           transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: { duration: 0.2, ease: EASE_OUT }, y: ISLAND_EXIT }}
         >
           <div ref={panel}>
-            <PanelBody bots={bots} seen={seen} mark={mark} cheer={allClear} labels={labels} lang={lang} open={open} bridge={bridge} onPin={setPinned} />
+            <PanelBody chatMax={Math.max(240, Math.min(520, maxH - c.height - 60))} bots={bots} seen={seen} mark={mark} cheer={allClear} labels={labels} lang={lang} open={open} bridge={bridge} onPin={setPinned} />
           </div>
         </motion.div>
       </motion.section>
@@ -267,9 +267,9 @@ function countsOf(bots: AmbientBot[]): Partial<Record<CountKey, number>> {
   return counts;
 }
 
-function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin }: {
+function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin, chatMax }: {
   bots: readonly AmbientBot[]; seen: ReadonlySet<string>; mark: (keys: string[]) => void; cheer: number; labels: AmbientLabels; lang: string; open: boolean;
-  bridge: AmbientBridge; onPin: (pinned: boolean) => void;
+  bridge: AmbientBridge; onPin: (pinned: boolean) => void; chatMax: number;
 }) {
   const now = useNow(open);
   const live = attention(bots, seen);
@@ -314,10 +314,17 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
         onOpen={() => openChat(bot)}
         onPin={onPin}
         onDismiss={() => mark([eventKey(bot)])}
+        maxHeight={chatMax}
+        onMore={() => setHistory((was) => (was.id === bot.id ? { id: was.id, limit: was.limit + HISTORY } : was))}
       />
     </motion.div>
   );
   const chatBot = chatWith ? bots.find((bot) => bot.id === chatWith) ?? null : null;
+  // a real chat here too: a long stretch of the bot shown, further back as the person scrolls
+  const [history, setHistory] = useState<{ id: string | null; limit: number }>({ id: null, limit: HISTORY });
+  const viewingId = open && chatWith ? chatWith : null;
+  useEffect(() => { setHistory((was) => (was.id === viewingId ? was : { id: viewingId, limit: HISTORY })); }, [viewingId]);
+  useEffect(() => { bridge.viewing?.(history.id ? { botId: history.id, limit: history.limit } : null); }, [bridge, history]);
   const act = (bot: AmbientBot, next: AmbientAct) => {
     if (next.kind === "answer" || next.kind === "allow" || next.kind === "deny") markSent(bot);
     bridge.act(next);

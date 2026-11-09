@@ -11,9 +11,10 @@ import { sidebarPreviewMessages } from "@/components/sidebar-preview";
 import { workingThreadId } from "@/components/SidebarWorkingStep";
 import { cardQuestions } from "@/components/QuestionCard";
 import { formatQuestionAnswers } from "../../shared/ask-question";
-import { ambientSnapshot, answerableInPlace, questionOf } from "./summary";
+import { VIEWED_MAX, ambientSnapshot, answerableInPlace, questionOf } from "./summary";
+import { onAnyLiveReply } from "@/state/live-reply";
 import { DesktopBots } from "./DesktopBots";
-import type { AmbientAct } from "./types";
+import type { AmbientAct, AmbientViewing } from "./types";
 
 /** Summaries go out at most this often: a streaming reply changes a bot's status line many times a second. */
 export const PUBLISH_MS = 160;
@@ -57,6 +58,8 @@ export function AmbientPublisher() {
   const sent = useRef("");
   // what the person watched in this window: those bots stay quiet on the surfaces (summary.ts Watch)
   const watched = useRef(new Map<string, string>());
+  // the chat a surface is showing: that bot's summary carries a long stretch of it, loaded further back on request
+  const viewing = useRef<AmbientViewing | null>(null);
 
   useEffect(() => {
     if (!bridge) return;
@@ -73,7 +76,7 @@ export function AmbientPublisher() {
       const { bots, instances, selectedId, hydrated } = latest.current;
       if (!hydrated) return;
       const focused = document.hasFocus() && document.visibilityState === "visible";
-      const snapshot = ambientSnapshot(bots, instances, turnLive, activeLocale(), { selectedId, focused, watched: watched.current });
+      const snapshot = ambientSnapshot(bots, instances, turnLive, activeLocale(), { selectedId, focused, watched: watched.current }, viewing.current);
       const key = JSON.stringify(snapshot);
       if (key === sent.current) return;
       sent.current = key;
@@ -88,6 +91,20 @@ export function AmbientPublisher() {
     schedule();
   }, [wanted, state.hydrated, state.bots, state.instances, state.selectedId, schedule]);
   useEffect(() => (wanted ? onAnyTurnLive(schedule) : undefined), [wanted, schedule]);
+  // a reply as it streams, word by word, not only once it has landed
+  useEffect(() => (wanted ? onAnyLiveReply(schedule) : undefined), [wanted, schedule]);
+  const asked = useRef("");
+  useEffect(() => bridge?.onViewing?.((next) => {
+    viewing.current = next && typeof next.botId === "string" ? { botId: next.botId, limit: Math.max(1, Math.min(VIEWED_MAX, Math.floor(next.limit) || 0)) } : null;
+    const bot = viewing.current && latest.current.bots.find((entry) => entry.id === viewing.current!.botId);
+    // more than the page holds: the next older page, once per stretch asked for
+    const key = bot ? `${bot.threadId}:${viewing.current!.limit}` : "";
+    if (bot && bot.hasMore && viewing.current!.limit > sidebarPreviewMessages(bot).length && asked.current !== key) {
+      asked.current = key;
+      dispatch({ type: "loadOlderMessages", threadId: bot.threadId });
+    }
+    schedule();
+  }), [bridge, dispatch, schedule]);
   useEffect(() => {
     if (!wanted) return;
     window.addEventListener("focus", schedule);

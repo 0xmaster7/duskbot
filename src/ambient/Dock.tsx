@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Keyboar
 import { AnimatePresence, Reorder, motion, useDragControls, useReducedMotion, useTransform } from "motion/react";
 import { Plus } from "lucide-react";
 import { dockOrder, isBusy } from "./mood";
-import { MiniChat } from "./MiniChat";
+import { HISTORY, MiniChat } from "./MiniChat";
 import { useRowMoments } from "./rows";
 import { LOOK_MS, attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
@@ -29,6 +29,9 @@ const NUDGE_PX = 6;
 const PEEK_MS = 3600;
 const RADIUS = 22;
 export const CARD_W = 304;
+/** The card's chat at its tallest; messages scroll inside it. */
+const CARD_MAX_H = 520;
+
 const CARD_GAP = 10;
 const CARD_MARGIN = 8;
 /** The card leaves quickly and smoothly, words and all: a fade with a touch of scale and drift. */
@@ -293,6 +296,16 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   };
   const listMax = Math.max(d.cell, maxBody - 2 * d.pad - d.cell);
   const cardBot = shownId ? byId.get(shownId) ?? null : null;
+  // the card is a real chat: the app's page sends a long stretch of the bot it shows, further back as the person scrolls
+  const [history, setHistory] = useState<{ id: string | null; limit: number }>({ id: null, limit: HISTORY });
+  useEffect(() => {
+    const id = card;
+    setHistory((was) => (was.id === id ? was : { id, limit: HISTORY }));
+  }, [card]);
+  useEffect(() => {
+    bridge.viewing?.(history.id ? { botId: history.id, limit: history.limit } : null);
+  }, [bridge, history]);
+  const chatMax = Math.round(Math.min(CARD_MAX_H, stageH * 0.6));
 
   return (
     // no bots, no dock: never an empty column or a lone "+" (kept laid out but unseen, so it measures itself when they come)
@@ -377,6 +390,8 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
                   onAct={(next) => act(cardBot, next)}
                   onPin={pin}
                   onDismiss={() => mark([eventKey(cardBot)])}
+                  maxHeight={chatMax}
+                  onMore={() => setHistory((was) => (was.id === cardBot.id ? { id: was.id, limit: was.limit + HISTORY } : was))}
                 />
               </motion.div>
             )}
