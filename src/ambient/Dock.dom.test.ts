@@ -2,7 +2,8 @@
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { CARD_LEAVE_MS, DWELL_MS, Dock } from "./Dock";
+import { CARD_LEAVE_MS, DWELL_MS, Dock, HIDE_MS } from "./Dock";
+import { SETTLED_MS } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, AmbientSnapshot } from "./types";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -19,9 +20,11 @@ async function mount(bots: AmbientBot[]) {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
   const acts: AmbientAct[] = [];
   const seen: string[][] = [];
+  const opened: string[] = [];
+  let settled = 0;
   const bridge: AmbientBridge = {
-    surface: "dock", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act: (next) => acts.push(next), order() {}, ready() {},
-    onSeen: () => () => {}, seen: (keys) => seen.push(keys),
+    surface: "dock", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open: (botId) => opened.push(botId), act: (next) => acts.push(next), order() {}, ready() {},
+    onSeen: () => () => {}, seen: (keys) => seen.push(keys), settled: () => { settled += 1; },
   };
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
@@ -34,7 +37,7 @@ async function mount(bots: AmbientBot[]) {
     cell(id).dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
     document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 360 }));
   });
-  return { host, acts, seen, cell, hover, unmount: () => act(async () => root.unmount()) };
+  return { host, acts, seen, opened, settledCount: () => settled, cell, hover, unmount: () => act(async () => root.unmount()) };
 }
 
 afterEach(() => { document.body.innerHTML = ""; });
@@ -143,5 +146,25 @@ it("closes gently: the card stays through a short slip off it, and goes only aft
   expect(card.getAttribute("data-card")).toBe("Ada");
   await wait(200);
   expect(card.getAttribute("data-card")).toBeNull();
+  await unmount();
+});
+
+it("opens the chat from the card itself (its name or its messages), and tells main once it has finished closing", async () => {
+  const { host, opened, settledCount, hover, unmount } = await mount([bot("Ada", { chat: [{ id: "m1", from: "bot", text: "Paid on Saturday.", at: 1 }] })]);
+  await hover("Ada");
+  await wait(DWELL_MS + 60);
+  const card = host.querySelector(".amb-card")!;
+  await act(async () => card.querySelector<HTMLButtonElement>(".amb-chat-name")!.click());
+  await act(async () => card.querySelector<HTMLElement>(".amb-chat-list")!.click());
+  await act(async () => card.querySelector<HTMLButtonElement>('[aria-label="Open the chat with Ada"], .amb-chat-tools .amb-icon:last-child')!.click());
+  expect(opened).toEqual(["Ada", "Ada", "Ada"]);
+  const before = settledCount();
+  // the pointer leaves the dock: the card, then the column, play out, and only then is main told
+  await act(async () => host.querySelector(".amb-dock-list")!.dispatchEvent(new PointerEvent("pointerout", { bubbles: true })));
+  await act(async () => { document.dispatchEvent(new MouseEvent("mousemove", { clientX: 10, clientY: 10 })); });
+  await wait(HIDE_MS);
+  expect(settledCount()).toBe(before);
+  await wait(SETTLED_MS + 80);
+  expect(settledCount()).toBeGreaterThan(before);
   await unmount();
 });

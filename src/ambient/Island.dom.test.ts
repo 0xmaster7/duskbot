@@ -110,3 +110,27 @@ it("closes gently: a pointer in the margin around it or back within the leave de
   expect(stage.hasAttribute("data-open")).toBe(false);
   await act(async () => root.unmount());
 });
+
+it("lists every bot with its state in a word or two, the waiting ones first, and says when they all rest", async () => {
+  let feed: (snapshot: AmbientSnapshot) => void = () => {};
+  const bridge: AmbientBridge = {
+    surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act() {}, order() {}, ready() {},
+  };
+  const host = document.body.appendChild(document.createElement("div"));
+  const root = createRoot(host);
+  await act(async () => root.render(createElement(Island, { bridge, forceOpen: true })));
+  const labels = { idle: "Idle", working: "Working", "needs-you": "Needs you", error: "Failed", done: "Replied", quiet: "Your bots are resting" };
+  await act(async () => feed({ lang: "en", labels, bots: [
+    bot("Ada", {}),
+    bot("Bolt", { status: "working", detail: "Deploying" }),
+    bot("Cinder", { status: "error", unread: true, line: "Build failed." }),
+    bot("Atlas", { status: "needs-you", waits: "approval", asks: 1 }),
+  ] }));
+  const rows = [...host.querySelectorAll(".amb-row")].map((row) => [row.querySelector(".amb-row-name")?.textContent, row.querySelector(".amb-row-state")?.textContent]);
+  expect(rows).toEqual([["Atlas", "Needs you"], ["Cinder", "Failed"], ["Bolt", "Working"], ["Ada", "Idle"]]);
+  expect(host.querySelector('.amb-count[data-status="idle"]')).toBeNull();
+  await act(async () => feed({ lang: "en", labels, bots: [bot("Ada", {}), bot("Bolt", {})] }));
+  expect(host.querySelector('.amb-count[data-status="idle"]')?.textContent).toBe("Your bots are resting");
+  expect(host.querySelectorAll(".amb-row")).toHaveLength(2);
+  await act(async () => root.unmount());
+});

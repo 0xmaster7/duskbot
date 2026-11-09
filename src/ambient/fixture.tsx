@@ -83,9 +83,11 @@ const dockLayoutMessage: DockLayout = { surface: "dock", width: dock.window.widt
 function fakeBridge(surface: "island" | "dock", scene: string): AmbientBridge {
   const states = new Set<(value: AmbientSnapshot) => void>(), layouts = new Set<(value: IslandLayout | DockLayout) => void>();
   let current = snapshot(scene);
+  // { type: "scene" } picks a made-up scene; { type: "snapshot" } shows a summary the real app's page published
   window.addEventListener("message", (event) => {
-    if (event.data?.type !== "scene") return;
-    current = snapshot(String(event.data.scene));
+    if (event.data?.type === "scene") current = snapshot(String(event.data.scene));
+    else if (event.data?.type === "snapshot" && event.data.snapshot) current = event.data.snapshot as AmbientSnapshot;
+    else return;
     for (const cb of states) cb(current);
   });
   const log = (...args: unknown[]) => console.info("[ambient]", ...args);
@@ -115,7 +117,7 @@ const WALLPAPER = "radial-gradient(120% 90% at 18% 12%, #c9b6a4 0%, #9c7f74 26%,
 function Desktop() {
   const frames = useRef<HTMLIFrameElement[]>([]);
   useEffect(() => {
-    const relay = (event: MessageEvent) => { if (event.data?.type === "scene" && event.source === window) for (const frame of frames.current) frame.contentWindow?.postMessage(event.data, "*"); };
+    const relay = (event: MessageEvent) => { if ((event.data?.type === "scene" || event.data?.type === "snapshot") && event.source === window) for (const frame of frames.current) frame?.contentWindow?.postMessage(event.data, "*"); };
     window.addEventListener("message", relay);
     return () => window.removeEventListener("message", relay);
   }, []);

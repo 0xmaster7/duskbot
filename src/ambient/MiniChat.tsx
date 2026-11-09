@@ -36,7 +36,7 @@ export function MiniChat({ bot, labels, lang, now, sent, fresh, onAct, onOpen, o
   useEffect(() => { if (field === "answer" && !bot.question?.custom) setField(null); }, [field, bot.question]);
   const chat = bot.chat ?? [];
   const time = bot.status === "idle" || busy ? "" : shortAgo(bot.at, now, lang, say(labels, "now"));
-  const status = sent ? say(labels, "sent") : bot.status === "idle" ? "" : say(labels, bot.status);
+  const status = sent ? say(labels, "sent") : say(labels, bot.status);
   const tray = ask ? trayFor(bot, labels, field === "reply" ? null : field, setField, onAct, onOpen, onPin) : null;
   // what a working bot is doing now, under its last message; a failure says so there too
   const doing = busy ? (bot.detail && bot.detail !== say(labels, bot.status) ? bot.detail : say(labels, bot.status)) : "";
@@ -55,7 +55,9 @@ export function MiniChat({ bot, labels, lang, now, sent, fresh, onAct, onOpen, o
   return (
     <div className="amb-chat" data-status={bot.status}>
       <header className="amb-chat-head">
-        <span className="amb-row-name">{bot.name}</span>
+        <button type="button" className="amb-chat-name" onClick={onOpen} aria-label={say(labels, "open", { name: bot.name })}>
+          <span className="amb-row-name">{bot.name}</span>
+        </button>
         {status && <span className="amb-chat-status" data-status={bot.status}>{sent && <Check size={11} strokeWidth={2.25} aria-hidden />}{status}</span>}
         {time && <span className="amb-row-time">{time}</span>}
         <span className="amb-chat-tools">
@@ -81,6 +83,10 @@ export function MiniChat({ bot, labels, lang, now, sent, fresh, onAct, onOpen, o
           style={{ maxHeight: CHAT_MAX_H }}
           role="log"
           aria-label={bot.name}
+          // the chat itself opens the full chat, unless the person was selecting its words
+          tabIndex={0}
+          onClick={() => { if (!window.getSelection()?.toString()) onOpen(); }}
+          onKeyDown={(event) => { if (event.key === "Enter") onOpen(); }}
           onScroll={(event) => {
             const node = event.currentTarget;
             pinnedToEnd.current = node.scrollHeight - node.scrollTop - node.clientHeight < 8;

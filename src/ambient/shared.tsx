@@ -246,6 +246,19 @@ export function useSteady(key: string, settle = SETTLE_MS, hold = 0): string {
   return shown;
 }
 
+/** A surface's closing has played out by then: the leave delay is behind it, its words and its shell are gone. */
+export const SETTLED_MS = 440;
+
+/** Tells main once the surface has finished closing (ambient-window.mjs waits for it before giving the keyboard back,
+ * which on macOS reorders the panel and would cut the animation short). */
+export function useSettledSignal(bridge: AmbientBridge, shown: boolean) {
+  useEffect(() => {
+    if (shown) return;
+    const timer = setTimeout(() => bridge.settled?.(), SETTLED_MS);
+    return () => clearTimeout(timer);
+  }, [bridge, shown]);
+}
+
 /** A clock for "4m" that only ticks while someone can see it. */
 export function useNow(active: boolean, everyMs = 30_000): number {
   const [now, setNow] = useState(() => Date.now());

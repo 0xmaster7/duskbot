@@ -70,7 +70,7 @@ describe("what the person has seen", () => {
     await act(async () => root.unmount());
   });
 
-  it("puts the island back to the bare notch once everything is seen, keeping it under Recent", async () => {
+  it("puts the island back to the bare notch once everything is seen, keeping the line, muted, in that bot's row", async () => {
     const { bridge, feed } = fakeBridge([eventKey(failed)]);
     const host = document.body.appendChild(document.createElement("div"));
     const root = createRoot(host);
@@ -79,8 +79,8 @@ describe("what the person has seen", () => {
     // the stale failure no longer sits on the island: no mascot, no face
     expect(host.querySelector(".amb-compact-tile")).toBeNull();
     expect(host.querySelector(".amb-emoji-glyph")).toBeNull();
-    expect(host.querySelector(".amb-recent-head")?.textContent).toBe("Recent");
     expect(host.querySelector(".amb-row-line")?.textContent).toBe("Couldn't reach Gmail.");
+    expect(host.querySelector(".amb-row-line")?.getAttribute("data-kind")).toBe("recent");
     // a fresh one does, once it has held for a moment
     await act(async () => feed([{ ...failed, at: 20 }]));
     await act(async () => new Promise((resolve) => setTimeout(resolve, 650)));
