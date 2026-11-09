@@ -51,10 +51,10 @@ export function announceNewBot(dispatch: (action: Action) => void, bot: Bot, war
 async function createNewBot(section: string | undefined, bots: readonly Bot[], team: TeamPeople | null, request: typeof api,
   look?: Extract<Action, { type: "newBot" }>["look"]) {
   if (typeof window !== "undefined" && window.ogb?.remoteClient?.active) {
-    const { bot } = await request<{ bot: Bot }>("/api/bots", { method: "POST", body: JSON.stringify({ greeting: false, ...(section === undefined ? {} : { section }) }) });
-    if (!look) return { bot, warnings: [] as string[], startsOnAsk: false };
-    const { bot: named } = await request<{ bot: Bot }>(`/api/bots/${bot.id}`, { method: "PATCH", body: JSON.stringify(look) });
-    return { bot: { ...bot, ...named, messages: bot.messages }, warnings: [] as string[], startsOnAsk: false };
+    // the look rides in the create itself: a second request that failed would leave a default-looking bot behind
+    const named = look ? { name: look.name, settings: { color: look.color, mascotBody: look.mascotBody } } : {};
+    const { bot } = await request<{ bot: Bot }>("/api/bots", { method: "POST", body: JSON.stringify({ greeting: false, ...(section === undefined ? {} : { section }), ...named }) });
+    return { bot, warnings: [] as string[], startsOnAsk: false };
   }
   const template = startingTemplate(await request<BotDefaultsAnswer>("/api/bot-defaults"), true);
   // A name the person typed is theirs as typed; only the suggested one steps aside for a bot that has it.

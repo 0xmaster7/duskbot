@@ -6618,5 +6618,6 @@
   "routines.cloudUpsell.alwaysOn": "24시간 가동",
   "routines.cloudUpsell.getCloud": "클라우드 이용하기",
   "composer.freeBackup": "{engine}의 무료 백업 모델이 답하고 있어요",
-  "composer.freeBackup.connect": "내 AI 연결"
+  "composer.freeBackup.connect": "내 AI 연결",
+  "createBot.creating": "만드는 중…"
 }

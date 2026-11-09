@@ -5162,5 +5162,6 @@
   "routines.cloudUpsell.alwaysOn": "Hoạt động 24/7",
   "routines.cloudUpsell.getCloud": "Đăng ký Cloud",
   "composer.freeBackup": "Một mô hình dự phòng miễn phí của {engine} đang trả lời",
-  "composer.freeBackup.connect": "Kết nối AI của bạn"
+  "composer.freeBackup.connect": "Kết nối AI của bạn",
+  "createBot.creating": "Đang tạo…"
 }

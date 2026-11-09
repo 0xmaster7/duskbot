@@ -6037,5 +6037,6 @@
   "routines.cloudUpsell.alwaysOn": "Attivo 24 ore su 24",
   "routines.cloudUpsell.getCloud": "Ottieni un Cloud",
   "composer.freeBackup": "Sta rispondendo un modello di riserva gratuito di {engine}",
-  "composer.freeBackup.connect": "Collega la tua IA"
+  "composer.freeBackup.connect": "Collega la tua IA",
+  "createBot.creating": "Creazione…"
 }

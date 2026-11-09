@@ -6791,5 +6791,6 @@
   "routines.cloudUpsell.asleep": "休眠时停止",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "全天候运行",
-  "routines.cloudUpsell.getCloud": "获取 Cloud"
+  "routines.cloudUpsell.getCloud": "获取 Cloud",
+  "createBot.creating": "正在创建…"
 }

@@ -3572,5 +3572,6 @@
   "routines.cloudUpsell.alwaysOn": "Працює цілодобово",
   "routines.cloudUpsell.getCloud": "Отримати Cloud",
   "composer.freeBackup": "Відповідає безкоштовна резервна модель від {engine}",
-  "composer.freeBackup.connect": "Під'єднати свій ШІ"
+  "composer.freeBackup.connect": "Під'єднати свій ШІ",
+  "createBot.creating": "Створюємо…"
 }

@@ -2828,6 +2828,7 @@
   "onboarding.meet.title": "Meet {app}",
   "onboarding.meet.next": "Next",
   "createBot.groupInstead": "Start a group chat instead",
+  "createBot.creating": "Creating…",
   "onboarding.computer.title": "{app} has its own computer and works just like you",
   "onboarding.jobs.title": "Give each Bot a job",
   "onboarding.jobs.invoices": "Invoice Chaser",

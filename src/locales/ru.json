@@ -6210,5 +6210,6 @@
   "routines.cloudUpsell.alwaysOn": "Работает круглосуточно",
   "routines.cloudUpsell.getCloud": "Получить Cloud",
   "composer.freeBackup": "Отвечает бесплатная резервная модель от {engine}",
-  "composer.freeBackup.connect": "Подключить свой ИИ"
+  "composer.freeBackup.connect": "Подключить свой ИИ",
+  "createBot.creating": "Создаём…"
 }

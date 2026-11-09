@@ -3347,5 +3347,6 @@
   "routines.cloudUpsell.alwaysOn": "Rund um die Uhr aktiv",
   "routines.cloudUpsell.getCloud": "Cloud holen",
   "composer.freeBackup": "Ein kostenloses Ersatzmodell von {engine} antwortet",
-  "composer.freeBackup.connect": "Eigene KI verbinden"
+  "composer.freeBackup.connect": "Eigene KI verbinden",
+  "createBot.creating": "Wird erstellt…"
 }

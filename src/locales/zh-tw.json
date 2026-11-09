@@ -4712,5 +4712,6 @@
   "routines.cloudUpsell.alwaysOn": "全天候運作",
   "routines.cloudUpsell.getCloud": "取得 Cloud",
   "composer.freeBackup": "目前由 {engine} 的免費備用模型回答",
-  "composer.freeBackup.connect": "連接你的 AI"
+  "composer.freeBackup.connect": "連接你的 AI",
+  "createBot.creating": "建立中…"
 }

@@ -6203,5 +6203,6 @@
   "routines.cloudUpsell.alwaysOn": "Działa całą dobę",
   "routines.cloudUpsell.getCloud": "Kup Chmurę",
   "composer.freeBackup": "Odpowiada darmowy model zapasowy od {engine}",
-  "composer.freeBackup.connect": "Połącz swoją AI"
+  "composer.freeBackup.connect": "Połącz swoją AI",
+  "createBot.creating": "Tworzenie…"
 }

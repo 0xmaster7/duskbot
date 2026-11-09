@@ -50,8 +50,24 @@ it("is Grok Bot's Create New Bot: a name, thirteen shapes, the colours, and Crea
   flushSync(() => button("heart character shape").click());
   flushSync(() => button("Blue character color").click());
   flushSync(() => button("Create").click());
-  expect(fixture.dispatch).toHaveBeenCalledWith({ type: "newBot", section: "GOATS", look: { name: "Rex", color: "blue", mascotBody: "heart" } });
-  expect(dialog(), "it closes as the bot is made").toBeNull();
+  expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "newBot", section: "GOATS", look: { name: "Rex", color: "blue", mascotBody: "heart" } }));
+  expect(dialog(), "it stays until the bot exists").not.toBeNull();
+  expect(button("Creating…").disabled).toBe(true);
+  flushSync(() => fixture.dispatch.mock.calls[0]![0].onCreated({ id: "rex" }));
+  expect(dialog(), "it closes once the bot is made").toBeNull();
+});
+
+it("keeps the name, shape and colour and says why when the bot could not be made", () => {
+  flushSync(() => openCreateBot());
+  type("Rex");
+  flushSync(() => button("heart character shape").click());
+  flushSync(() => button("Create").click());
+  flushSync(() => fixture.dispatch.mock.calls[0]![0].onError("Couldn't make a new bot: offline"));
+  expect(dialog()).not.toBeNull();
+  expect(dialog()!.querySelector("[data-create-bot-error]")!.textContent).toBe("Couldn't make a new bot: offline");
+  expect(dialog()!.querySelector("input")!.value).toBe("Rex");
+  expect(button("heart character shape").getAttribute("aria-pressed")).toBe("true");
+  expect(button("Create").disabled, "it can be tried again").toBe(false);
 });
 
 it("closes on Cancel, the close button and Escape without making anything", () => {
