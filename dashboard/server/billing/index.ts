@@ -90,7 +90,9 @@ export function createBilling(options: BillingOptions) {
   const store = createBillingStore(options.dataDir);
   const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now });
   if (options.accountExists) service.scrubDeleted(options.accountExists);
-  const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})) };
+  const opsToken = env.OMB_OPS_TOKEN || null;
+  if (opsToken !== null && opsToken.length < 32) throw new Error("OMB_OPS_TOKEN must be at least 32 characters.");
+  const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})), opsToken };
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
     async handle(req: IncomingMessage, res: ServerResponse, target: URL) { return await routes(req, res, target) || await admin.handle(req, res, target); },
@@ -108,4 +110,6 @@ export type BillingContext = {
   service: ReturnType<typeof createBillingService>; clouds: ReturnType<typeof createCloudsService>; store: ReturnType<typeof createBillingStore>;
   config: typeof BILLING_CONFIG; accounts: AccountResolver; now(): number; enabled: boolean; fake: ReturnType<typeof createFakeBillingProvider> | null;
   wakeStats(): NonNullable<Catalog["wake"]>;
+  /** OMB_OPS_TOKEN: unset hides the operator's funnel read */
+  opsToken: string | null;
 };
