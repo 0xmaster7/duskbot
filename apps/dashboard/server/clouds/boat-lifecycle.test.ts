@@ -308,3 +308,21 @@ it("backups sealed with the home's own key are sealed again with the service's k
   expect(f.backups.list(c.id)).toEqual([now.file]);
   expect(f.audit.entries(c.id).map(e => e.action)).toContain("backup_rekeyed");
 });
+
+it("a plan upgrade resizes the sandbox: stopped, backed up first, resumed on the new size, started", async () => {
+  const f = await boatFixture();
+  const { c } = await f.paid();
+  expect(f.api.sandboxes.get(c.serverId!)!.type).toBe("small");
+  f.service.changePlan(c.id, { kind: "shared_m", placement: "pool", spec: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5 });
+  // waits for the owner's "restart now" (or the next idle sleep); here the owner asks
+  f.advance(3 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile();
+  expect(f.api.sandboxes.get(c.serverId!)!.type).toBe("small");
+  f.service.boat!.resizeNow(c);
+  for (let n = 0; n < 20 && !(c.status === "running" && !f.service.boat!.resizing(c)); n++) { c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(c).toMatchObject({ status: "running", spec: { vcpu: 4, ramGb: 8, diskGb: 80 } });
+  expect(f.api.sandboxes.get(c.serverId!)!.type).toBe("default");
+  const actions = f.audit.entries(c.id).map(e => e.action);
+  expect(actions.indexOf("backup")).toBeGreaterThan(-1);
+  expect(actions.indexOf("backup")).toBeLessThan(actions.indexOf("resize"));
+  expect(f.service.boat!.resizing(c)).toBe(false);
+});

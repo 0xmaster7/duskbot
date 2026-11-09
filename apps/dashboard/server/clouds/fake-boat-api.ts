@@ -115,6 +115,7 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
       if (s.dataExpiredAt !== null) return error(res, 409, "snapshot_data_expired");
       if (!["archived", "error"].includes(s.state)) return error(res, 409, "sandbox_resuming");
       s.state = "provisioning"; s.bootPolls = 0; s.stoppedAt = null; s.stop = null;
+      if (typeof body?.type === "string") s.type = body.type;
       return send(res, 202, { ok: true, status: "resuming", sandbox: view(s) });
     }
     if (action === "host" && method === "POST") { s.hosted ??= `https://${s.id.slice(3)}-${body.port}.on.boat.dev`; return send(res, 200, { ok: true, port: body.port, url: s.hosted, access: "public" }); }

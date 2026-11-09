@@ -4,7 +4,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { linkKeys } from "./bootstrap.ts";
-import type { BoatProvider } from "./boat.ts";
+import { BoatError, type BoatProvider } from "./boat.ts";
 import { backupKey, BOAT_HOME_VOLUME, BOAT_PACKAGE_FILE, BOAT_RESTORE_FILE, boatBootFile, boatSetupScript, installCommand, RESTORE_COMMAND, startCommand } from "./boat-home.ts";
 import { boatBackupKey, homeVolumeProblem, type BackupStore } from "./boat-backups.ts";
 import { DAY_MS, DEFAULT_DELETE_DELAY_DAYS, DEFAULT_RETENTION_DAYS, deletionVerdict, dueNotice, type Entitlement, type NoticeKind, type Verdict } from "./boat-retention.ts";
@@ -444,6 +444,20 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
 
     const up = ["ready", "idle", "running"].includes(s.state);
     if (s.state === "error") { await provider.power(c.serverId, "on").catch(() => {}); b.wakeStartedAt = now(); log(c, "resume", "reconciler", "boat_error"); deps.save(c); return; }
+    const resizeKey = `${c.desiredSpec.vcpu}-${c.desiredSpec.ramGb}-${c.desiredSpec.diskGb}`;
+    const resizeWanted = (c.desiredSpec.vcpu !== c.spec.vcpu || c.desiredSpec.ramGb !== c.spec.ramGb || c.desiredSpec.diskGb !== c.spec.diskGb) && b.resizeBlocked !== resizeKey;
+    if (s.state === "archived" && resizeWanted) {
+      // a plan change: backed up from the stop first, then resumed onto the new size, then started like any wake
+      const covered = b.backups.some(g => g.verifiedAt !== null && !g.keep && g.snapshotAt >= (s.snapshotAt ?? 0));
+      if (!covered) { if ((b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now() || (b.lastBackupTryAt ?? 0) < (s.stoppedAt ?? 0)) await backup(c, "resize"); if (!b.backups.some(g => g.verifiedAt !== null && !g.keep && g.snapshotAt >= (s.snapshotAt ?? 0))) return; }
+      try { await provider.resize(c.serverId, c.desiredSpec); }
+      catch (error) {
+        if (error instanceof BoatError && error.status < 500) { b.resizeBlocked = resizeKey; log(c, "resize_refused", "reconciler", error.code); deps.save(c); return; }
+        throw error;
+      }
+      log(c, "resize", b.resizeAskedAt ? "owner" : "reconciler", "plan_changed", { to: resizeKey });
+      c.spec = { ...c.desiredSpec }; b.wakeStartedAt = now(); c.wantPower = "on"; b.resizeAskedAt = null; deps.save(c); return;
+    }
     if (s.state === "archived") {
       const due = b.nextDueAt !== null && b.nextDueAt - settings.wakeLeadMs <= now();
       const stale = s.stoppedAt !== null && now() - s.stoppedAt >= settings.refreshAfterMs;
@@ -470,6 +484,8 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       deps.save(c); return;
     }
     if (c.wantPower === "off") return sleepNow(c, "owner", "owner");
+    // the owner asked to apply a plan change now: stopped through the same pre-stop hook, resized while stopped
+    if (resizeWanted && b.resizeAskedAt) return sleepNow(c, "owner", "owner");
     if (b.leaseAt === null || now() - b.leaseAt >= Math.min(30 * MINUTE, settings.leaseSeconds * 500)) { await provider.lease(c.serverId, settings.leaseSeconds); b.leaseAt = now(); deps.save(c); }
     if (b.lastPowerAt !== null && now() - b.lastPowerAt < settings.powerReadMs) return;
     b.lastPowerAt = now();
@@ -483,7 +499,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     }
     // a home that never sleeps still gets a backup, from Boat's background snapshot
     const last = b.backups.at(-1);
-    if ((!last || now() - last.at >= 2 * settings.backupEveryMs) && (b.lastBackupTryAt ?? 0) + 6 * HOUR <= now()) await backup(c, "awake_overdue").catch(() => false);
+    if (now() - (last?.at ?? c.provisionedAt ?? c.createdAt) >= 2 * settings.backupEveryMs && (b.lastBackupTryAt ?? 0) + 6 * HOUR <= now()) await backup(c, "awake_overdue").catch(() => false);
     deps.save(c);
   }
 
@@ -523,6 +539,9 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       deps.save(c);
       notice(c, "delete_cancelled", null);
     },
+    /** apply a pending plan change now instead of at the next idle sleep */
+    resizeNow(c: StoredCloud) { state(c).resizeAskedAt = now(); c.nextAttemptAt = 0; deps.save(c); },
+    resizing(c: StoredCloud) { return c.desiredSpec.vcpu !== c.spec.vcpu || c.desiredSpec.ramGb !== c.spec.ramGb || c.desiredSpec.diskGb !== c.spec.diskGb || state(c).wakeStartedAt !== null; },
     setHold(c: StoredCloud, hold: boolean) { state(c).hold = hold; log(c, hold ? "hold" : "hold_released", "operator", "manual"); deps.save(c); },
   };
 }

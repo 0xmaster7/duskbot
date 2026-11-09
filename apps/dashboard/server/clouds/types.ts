@@ -174,6 +174,10 @@ export interface BoatCloudState {
   /** Boat answered 404 for the current sandbox since this time, this many times; reset by any answer */
   missingSince?: number | null;
   missingChecks?: number;
+  /** the owner asked to apply a plan change now (resize-now) */
+  resizeAskedAt?: number | null;
+  /** a size Boat refused (shrinking below the data, say), not tried again */
+  resizeBlocked?: string | null;
 }
 
 export interface DesktopPlan { kind: Exclude<DesktopKind, "none">; placement: Placement; spec: MachineSpec; botComputers: number | null }

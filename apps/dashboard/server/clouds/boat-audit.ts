@@ -13,8 +13,10 @@ export function createAudit(options: { dataDir: string; now?: () => number; aler
   if (!existsSync(path)) closeSync(openSync(path, "a", 0o600));
   return {
     record(entry: Omit<AuditEntry, "at">): AuditEntry {
-      for (const value of [entry.action, entry.reason, entry.serverId ?? "", ...Object.values(entry.detail ?? {}).map(v => String(v))]) if (!SAFE.test(value)) throw new Error("Unsafe audit value.");
-      const line: AuditEntry = { at: now(), ...entry };
+      // never throws: an audit line must not undo the lifecycle step it records; anything outside the safe set is masked
+      const clean = (value: string) => SAFE.test(value) ? value : value.slice(0, 120).replace(/[^A-Za-z0-9_.:-]/g, "_");
+      const detail = entry.detail ? Object.fromEntries(Object.entries(entry.detail).map(([k, v]) => [clean(k), typeof v === "string" ? clean(v) : v])) : undefined;
+      const line: AuditEntry = { at: now(), ...entry, action: clean(entry.action), reason: clean(entry.reason), serverId: entry.serverId == null ? entry.serverId : clean(entry.serverId), ...(detail ? { detail } : {}) };
       appendFileSync(path, `${JSON.stringify(line)}\n`, { mode: 0o600 });
       if (/^delete|deleted$/.test(entry.action)) {
         console.warn(`boat: ALERT ${entry.action} cloud ${entry.cloudId} by ${entry.actor} (${entry.reason})`);

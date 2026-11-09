@@ -155,6 +155,7 @@ export function createAdminRoutes(ctx: BillingContext) {
           if (["stopped", "sleeping"].includes(cloud.status)) await clouds.power(account.id, cloud.id, "on");
           return send({ state: cloud.status === "running" ? "awake" : "waking" });
         }
+        if (cloud.backend === "boat" && clouds.boat) { clouds.boat.resizeNow(cloud); await clouds.reconcile(); return send({ state: clouds.boat.resizing(cloud) ? "restarting" : "current" }); }
         await clouds.reconcile();
         return send({ state: Object.keys(cloud.spec).every(k => cloud.spec[k as keyof typeof cloud.spec] === cloud.desiredSpec[k as keyof typeof cloud.spec]) ? "current" : "restarting" });
       }
