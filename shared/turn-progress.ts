@@ -46,6 +46,8 @@ export interface TurnProgressFields {
 }
 
 export const STATUS_LABEL_MAX = 40;
+/** The `tool` of a frame that only sets the label: it names no step of its own. */
+export const STATUS_TOOL = "set_status";
 
 const KB = 1024;
 const MB = 1024 * KB;
