@@ -135,7 +135,7 @@ export async function addSharedVoice(key: string, api: string, publicOwnerId: st
   return typeof body?.voice_id === "string" && body.voice_id ? body.voice_id : voiceId;
 }
 
-// tsconfig.server.json targets ES2023: Promise.withResolvers is ES2024.
+// server/tsconfig.json targets ES2023: Promise.withResolvers is ES2024.
 function withResolvers<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;

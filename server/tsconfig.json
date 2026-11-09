@@ -22,11 +22,11 @@
     ]
   },
   "include": [
-    "apps/dashboard/server",
-    "server",
-    "apps/companion"
+    "../apps/dashboard/server",
+    ".",
+    "../apps/companion"
   ],
   "exclude": [
-    "server/drivers/pi-mcp-extension.ts"
+    "drivers/pi-mcp-extension.ts"
   ]
 }
