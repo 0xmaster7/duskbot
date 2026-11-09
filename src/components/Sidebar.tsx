@@ -65,6 +65,7 @@ import { BotContextMenu, GROK_LABEL, GROK_MENU_ITEM, GROK_ROW_FILL, GrokMenuIcon
 import { GROK_DANGER } from "./menu-recipe";
 export { BotContextMenu };
 import { AvatarActivityDot, RowDot, RowStatusText, rowSurface } from "./SidebarRowMarkers";
+import { botActivityAt, latestActivityFirst } from "./sidebar-order";
 
 
 import { useLiveMedia } from "@/lib/live-call-media";
@@ -904,10 +905,13 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
     ? { ...parts, primary: null, unsectionedChief: null, unsectionedBots: parts.unsectionedChief ? [parts.unsectionedChief, ...parts.unsectionedBots] : parts.unsectionedBots }
     : { ...parts, primary: null };
   // Shown order only: drag and Alt+Up/Down keep working on the saved order, so a reorder never stores this one.
-  const { primary, unsectionedChief, pinnedBots, sectionChiefs, sectionedBots, unsectionedBots } = { ...saved, ...activeBotsFirst(saved, (bot) => {
+  const activeFirst = activeBotsFirst(saved, (bot) => {
     const { waiting, working } = sidebarBotStatus(bot, state.pendingQueued);
     return waiting || working;
-  }) };
+  });
+  const { primary, unsectionedChief, pinnedBots, sectionChiefs, sectionedBots, unsectionedBots } = simple
+    ? { ...saved, ...activeFirst, sectionedBots: latestActivityFirst(saved.sectionedBots, botActivityAt), unsectionedBots: latestActivityFirst(saved.unsectionedBots, botActivityAt) }
+    : { ...saved, ...activeFirst };
   const { botChats, sectionedRooms, unsectionedRooms } = partitionSidebarGroups(visibleGroups);
 
   const sectionNames: string[] = [...(state.sections ?? []).filter((name) => !q || name.toLowerCase().includes(q.toLowerCase())), ...botDrag.pending];
