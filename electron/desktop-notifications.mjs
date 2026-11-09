@@ -103,6 +103,12 @@ export function installDesktopNotifications({ ipcMain, Notification, nativeImage
   });
 
   return {
+    /** A bot's chat opened from elsewhere in the app (the island, the dock), in the place `origin` it lives in. */
+    openAt(origin, target) {
+      if (typeof origin !== "string" || !ID.test(String(target?.botId)) || !ID.test(String(target?.threadId))) return false;
+      bring(origin, { botId: target.botId, threadId: target.threadId });
+      return true;
+    },
     /** The window finished loading a page: a click that was waiting for this place lands now. */
     arrived() {
       if (!waiting) return;

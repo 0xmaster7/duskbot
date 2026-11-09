@@ -312,6 +312,8 @@ const __APP_VERSION__: string;
       ambient?: import("../ambient/types").AmbientAppBridge;
       /** The working bots for ⌘Q, and the menu's Stop commands (electron/desktop-bots.mjs). */
       desktopBots?: import("../ambient/types").DesktopBotsBridge;
+      /** This computer's page only: where the person's bots live while it has none. */
+      elsewhere?: import("../lib/bots-elsewhere").ElsewhereBridge;
       /** This computer's page only: Settings → General's talk shortcut. */
       talkShortcut?: import("../../electron/talk-shortcut.mjs").TalkShortcutBridge;
       /** A call holds the microphone, so the talk shortcut waits. */
