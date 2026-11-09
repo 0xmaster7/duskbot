@@ -1,3 +1,4 @@
+import { COMPUTER_HELPER_APP, permissionHolder } from "../../shared/your-computer";
 import { t } from "./i18n";
 
 export type MacCuaPermission = "screen" | "accessibility";
@@ -12,8 +13,19 @@ export function missingMacCuaPermissions(reason: unknown): MacCuaPermission[] {
   return missing;
 }
 
-export function macCuaPermissionMessage(permissions: MacCuaPermission[]): string | null {
+/** The helper app macOS lists the grants under when this Mac is driven through it, or null when it is the app itself. */
+export function macCuaPermissionHelper(reason: unknown): string | null {
+  return typeof reason === "string" && permissionHolder(reason) === COMPUTER_HELPER_APP ? COMPUTER_HELPER_APP : null;
+}
+
+export function macCuaPermissionMessage(permissions: MacCuaPermission[], reason?: unknown): string | null {
   if (!permissions.length) return null;
+  const helper = macCuaPermissionHelper(reason);
+  if (helper) {
+    return permissions.length > 1
+      ? t("computer.mac.permission.helperBoth", { helper })
+      : t("computer.mac.permission.helperOne", { helper, permission: permissions[0] === "screen" ? "Screen Recording" : "Accessibility" });
+  }
   if (permissions.length > 1) return t("computer.mac.permission.requiredBoth");
   return t("computer.mac.permission.requiredOne", {
     permission: permissions[0] === "screen" ? "Screen Recording" : "Accessibility",

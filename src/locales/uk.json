@@ -3587,5 +3587,8 @@
   "mobile.unreachable.others": "Інші встановлення",
   "composer.freeBackup": "Відповідає безкоштовна резервна модель від {engine}",
   "composer.freeBackup.connect": "Під'єднати свій ШІ",
-  "createBot.creating": "Створюємо…"
+  "createBot.creating": "Створюємо…",
+  "computer.mac.permission.helperOne": "Увімкніть {helper} у Системних параметрах → Конфіденційність і безпека → {permission}. {app} помітить це сам, перезапуск не потрібен.",
+  "computer.mac.permission.helperBoth": "Увімкніть {helper} у Системних параметрах → Конфіденційність і безпека, і в «Запис екрана», і в «Доступність». {app} помітить це сам, перезапуск не потрібен.",
+  "computer.mac.permission.checkAgain": "Перевірити ще раз"
 }

@@ -3285,5 +3285,8 @@
   "mobile.unreachable.others": "Autres installations",
   "composer.freeBackup": "Un modèle de secours gratuit de {engine} répond",
   "composer.freeBackup.connect": "Connecter votre IA",
-  "createBot.creating": "Création…"
+  "createBot.creating": "Création…",
+  "computer.mac.permission.helperOne": "Activez {helper} dans Réglages Système → Confidentialité et sécurité → {permission}. {app} le remarque tout seul, sans redémarrage.",
+  "computer.mac.permission.helperBoth": "Activez {helper} dans Réglages Système → Confidentialité et sécurité, sous Enregistrement de l'écran et sous Accessibilité. {app} le remarque tout seul, sans redémarrage.",
+  "computer.mac.permission.checkAgain": "Vérifier à nouveau"
 }

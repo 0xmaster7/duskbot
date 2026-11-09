@@ -453,6 +453,16 @@ describe("thread control placement", () => {
       message: "OpenMausBot can't use this computer yet — Screen Recording required",
     }))).not.toContain("Open Screen Recording Settings");
     expect(renderToStaticMarkup(createElement(ErrorRow, { message: "Network timeout" }))).not.toContain("Open Screen Recording Settings");
+    // a copy run from source waits on CuaDriver's grant: name it, open its pane, check again instead of relaunching
+    fixture.localMessage = "Screen Recording required for CuaDriver; turn on CuaDriver in System Settings > Privacy & Security";
+    window.ogb = { platform: "darwin", permOpenSettings: vi.fn(), relaunch: vi.fn(), localControl: { retry: vi.fn() } } as unknown as NonNullable<Window["ogb"]>;
+    const helper = renderToStaticMarkup(createElement(ErrorRow, {
+      message: "OpenMausBot can't use this computer yet: Screen Recording required. Turn on CuaDriver in System Settings > Privacy & Security > Screen Recording; OpenMausBot notices by itself, no restart needed.",
+    }));
+    expect(helper).toContain("Turn on CuaDriver in System Settings");
+    expect(helper).toContain("Open Screen Recording Settings");
+    expect(helper).toContain("Check again");
+    expect(helper).not.toContain("Relaunch");
     fixture.localReasonCode = "remote-server";
     expect(renderToStaticMarkup(createElement(ErrorRow, { message: "OpenMausBot can't use this computer yet — Screen Recording required" }))).not.toContain("Open Screen Recording Settings");
     fixture.localReasonCode = "cua-driver-unavailable";

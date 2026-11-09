@@ -3,7 +3,7 @@
 // app's main process can write to and which plain Node never has. No file, environment variable or HTTP route supplies
 // it, so a second OpenMausBot server on the same computer (a copy run from source, a demo, a test) never finds this
 // computer, even with the app's own record of its driver in reach.
-import { THIS_COMPUTER_NOT_GRANTED, THIS_COMPUTER_NOT_READY } from "../shared/your-computer.ts";
+import { COMPUTER_HELPER_APP, permissionHolder, THIS_COMPUTER_NOT_GRANTED, THIS_COMPUTER_NOT_READY } from "../shared/your-computer.ts";
 import { cuaUnavailableReason, decodeCuaConnection, type LocalComputerConnection } from "./local-computer.ts";
 
 export const DESKTOP_COMPUTER_GRANT = "openmausbot:local-computer";
@@ -87,9 +87,13 @@ export function thisComputerNotReady(desktop: DesktopComputer = desktopComputer,
   if (!reason) return `${THIS_COMPUTER_NOT_READY}make sure OpenMausBot has the permissions it asks for, then restart it`;
   const permission = platform === "darwin" && /(?:Screen Recording|Accessibility).*required/i.test(reason);
   if (permission) {
-    const missing = [reason.includes("Accessibility") && "Accessibility", reason.includes("Screen Recording") && "Screen Recording"].filter(Boolean).join(" and ");
-    return `${THIS_COMPUTER_NOT_READY}allow ${missing} in macOS System Settings, then relaunch OpenMausBot.`;
+    const missing = [reason.includes("Screen Recording") && "Screen Recording", reason.includes("Accessibility") && "Accessibility"].filter(Boolean) as string[];
+    const holder = permissionHolder(reason);
+    // "<grant> required" first: the app reads it to offer the right System Settings pane
+    const where = missing.map((name) => `Privacy & Security > ${name}`).join(" and ");
+    const after = holder === COMPUTER_HELPER_APP ? "OpenMausBot notices by itself, no restart needed." : "then quit and reopen OpenMausBot.";
+    return `${THIS_COMPUTER_NOT_READY}${missing.join(" and ")} required. Turn on ${holder} in System Settings > ${where}; ${after}`;
   }
-  if (platform === "darwin") return `${THIS_COMPUTER_NOT_READY}the computer helper could not start. Restart OpenMausBot and try again.`;
+  if (platform === "darwin") return `${THIS_COMPUTER_NOT_READY}the computer helper did not answer. Press Retry in Settings > Computer; if it still fails, quit and reopen OpenMausBot.`;
   return `${THIS_COMPUTER_NOT_READY}${reason}`;
 }

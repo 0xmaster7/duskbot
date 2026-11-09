@@ -27,6 +27,15 @@ export const YOUR_COMPUTER_TOOL = "use_your_computer";
 /** A failed turn's line starts with this when the desktop app's own driver is not ready; the app adds the permission fix. */
 export const THIS_COMPUTER_NOT_READY = "OpenMausBot can't use this computer yet: ";
 
+/** A copy run from source drives this Mac through the separate CuaDriver app, so macOS lists the grants under its name;
+ * electron/cua-gate.mjs writes "... required for CuaDriver; ..." when it waits for one. */
+export const COMPUTER_HELPER_APP = "CuaDriver";
+
+/** The app the person must turn on in System Settings for a reason that names missing grants. */
+export function permissionHolder(reason: string): string {
+  return reason.includes(`required for ${COMPUTER_HELPER_APP}`) ? COMPUTER_HELPER_APP : "OpenMausBot";
+}
+
 /** Also matches lines saved before the separator changed. */
 export function isThisComputerNotReady(line: string): boolean {
   return line.startsWith(THIS_COMPUTER_NOT_READY) || line.startsWith("OpenMausBot can't use this computer yet \u2014 ");

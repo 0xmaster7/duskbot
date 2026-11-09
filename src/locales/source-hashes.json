@@ -3365,7 +3365,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -9023,7 +9026,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12312,7 +12318,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -15598,7 +15607,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -21654,7 +21666,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -27901,7 +27916,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -34538,7 +34556,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40760,7 +40781,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -46850,7 +46874,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -53079,7 +53106,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -58260,7 +58290,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -61851,7 +61884,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -67032,7 +67068,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -73842,7 +73881,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -78573,7 +78615,10 @@
       "mobile.unreachable.body": "4e36471cb03b5ac99fde6711fce6d2605b9e7d16fcd14071a4cc88a221338a30",
       "mobile.unreachable.trying": "808041416fbdba1fb28307939f342bea9cd51868384c138ea08a0139d842cdb0",
       "mobile.unreachable.next": "5a936a2ef557670a207584064d4824e2154c43b75172397fb0a546243acf114d",
-      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691"
+      "mobile.unreachable.others": "66fac160067eafa39ffdff360cb5e98b3bd7c0b4618c729b452eb7453c9f0691",
+      "computer.mac.permission.helperOne": "6ed5e8a5f134324ab1f0e19ea12e21a8f5c0b54cdb4b2c373daf91d774a77f7b",
+      "computer.mac.permission.helperBoth": "769365d6ace1b4068f35cd17239bbaa88f4feca487588f31c07cb1f01cfa6633",
+      "computer.mac.permission.checkAgain": "fb7099ad8e818d42eceefe0d97c824fd54ddb0eeef54c263ec72c77d39198ac9"
     }
   }
 }

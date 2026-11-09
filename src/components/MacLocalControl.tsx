@@ -8,7 +8,7 @@ import { t } from "@/lib/i18n";
 export function MacLocalControl() {
   const { capabilities } = useDesktopCapabilities();
   const reason = capabilities.localComputer.available ? null : capabilities.localComputer.message;
-  const permissionMessage = macCuaPermissionMessage(missingMacCuaPermissions(reason));
+  const permissionMessage = macCuaPermissionMessage(missingMacCuaPermissions(reason), reason);
   const [pending, setPending] = useState(false);
   const [awaitingGrant, setAwaitingGrant] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export function MacLocalControl() {
           <p className="mt-0.5 text-[12px] leading-4 text-ink/[0.56]">
             {permissionMessage ?? t("computer.mac.permission.generic")}
           </p>
-          {reason && <p className="mt-1 break-words text-[12px] leading-4 text-ink/[0.56]">{reason}</p>}
+          {reason && !permissionMessage && <p className="mt-1 break-words text-[12px] leading-4 text-ink/[0.56]">{reason}</p>}
           {error && (
             <div className="mt-2 flex gap-1.5 text-[12px] text-danger">
               <AlertTriangle size={13} className="mt-0.5 shrink-0" />
@@ -75,7 +75,7 @@ export function MacLocalControl() {
             </div>
           )}
           <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {permissionMessage && reason && <MacCuaRecoveryActions reason={reason} />}
+            {permissionMessage && reason && <MacCuaRecoveryActions reason={reason} ownRetry />}
             {!permissionMessage && (
               <button
                 type="button"

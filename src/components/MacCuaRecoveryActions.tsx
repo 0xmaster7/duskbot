@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { missingMacCuaPermissions, type MacCuaPermission } from "@/lib/mac-cua-permissions";
+import { useEffect, useState } from "react";
+import { macCuaPermissionHelper, missingMacCuaPermissions, type MacCuaPermission } from "@/lib/mac-cua-permissions";
 import { t } from "@/lib/i18n";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
 
@@ -8,11 +8,37 @@ const paneName: Record<MacCuaPermission, "computer.mac.permission.screenSettings
   accessibility: "computer.mac.permission.accessibilitySettings",
 };
 
-export function MacCuaRecoveryActions({ reason }: { reason: string }) {
+/** `ownRetry`: the surface already has a Retry button, so a helper's grant gets no second "Check again". */
+export function MacCuaRecoveryActions({ reason, ownRetry = false }: { reason: string; ownRetry?: boolean }) {
   const { capabilities, ready } = useDesktopCapabilities();
   const permissions = missingMacCuaPermissions(reason);
   const currentPermissions = missingMacCuaPermissions(capabilities.localComputer.message);
+  // CuaDriver picks a grant up by itself and the app watches for it; OpenMausBot's own grant needs a relaunch
+  const helper = macCuaPermissionHelper(capabilities.localComputer.message);
   const [error, setError] = useState<string | null>(null);
+  const [awaitingGrant, setAwaitingGrant] = useState(false);
+  const checkAgain = async () => {
+    try {
+      await window.ogb?.localControl?.retry();
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
+  };
+  useEffect(() => {
+    if (!awaitingGrant || !helper) return;
+    const back = () => {
+      if (document.visibilityState !== "visible") return;
+      setAwaitingGrant(false);
+      void checkAgain();
+    };
+    window.addEventListener("focus", back);
+    document.addEventListener("visibilitychange", back);
+    return () => {
+      window.removeEventListener("focus", back);
+      document.removeEventListener("visibilitychange", back);
+    };
+  }, [awaitingGrant, helper]);
   if (!permissions.length || permissions.join(",") !== currentPermissions.join(",") ||
       !ready || capabilities.host.platform !== "darwin" ||
       capabilities.localComputer.available !== false || capabilities.localComputer.reasonCode === "remote-server" ||
@@ -22,6 +48,7 @@ export function MacCuaRecoveryActions({ reason }: { reason: string }) {
     try {
       await window.ogb?.permOpenSettings(permission);
       setError(null);
+      setAwaitingGrant(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     }
@@ -44,7 +71,12 @@ export function MacCuaRecoveryActions({ reason }: { reason: string }) {
           {t(paneName[permission])}
         </button>
       ))}
-      {typeof window.ogb.relaunch === "function" && (
+      {helper ? !ownRetry && typeof window.ogb.localControl?.retry === "function" && (
+        <button type="button" onClick={() => void checkAgain()}
+          className="ui-button h-6! min-h-6! px-2.5! text-[12px]! leading-4!">
+          {t("computer.mac.permission.checkAgain")}
+        </button>
+      ) : typeof window.ogb.relaunch === "function" && (
         <button type="button" onClick={() => void relaunch()}
           className="ui-button h-6! min-h-6! px-2.5! text-[12px]! leading-4!">
           {t("computer.mac.permission.relaunch")}

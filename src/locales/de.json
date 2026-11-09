@@ -3362,5 +3362,8 @@
   "mobile.unreachable.others": "Andere Installationen",
   "composer.freeBackup": "Ein kostenloses Ersatzmodell von {engine} antwortet",
   "composer.freeBackup.connect": "Eigene KI verbinden",
-  "createBot.creating": "Wird erstellt…"
+  "createBot.creating": "Wird erstellt…",
+  "computer.mac.permission.helperOne": "Schalte {helper} unter Systemeinstellungen → Datenschutz & Sicherheit → {permission} ein. {app} merkt es von selbst, kein Neustart nötig.",
+  "computer.mac.permission.helperBoth": "Schalte {helper} unter Systemeinstellungen → Datenschutz & Sicherheit ein, sowohl bei Bildschirmaufnahme als auch bei Bedienungshilfen. {app} merkt es von selbst, kein Neustart nötig.",
+  "computer.mac.permission.checkAgain": "Erneut prüfen"
 }

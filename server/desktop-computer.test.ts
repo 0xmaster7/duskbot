@@ -90,7 +90,7 @@ describe("this computer, only for the desktop app's own server", () => {
     expect(desktop.connection()).toBeNull();
     expect(desktop.unavailableReason()).toBe(reason);
     expect(thisComputerNotReady(desktop, "darwin")).toBe(
-      "OpenMausBot can't use this computer yet: allow Screen Recording in macOS System Settings, then relaunch OpenMausBot.",
+      "OpenMausBot can't use this computer yet: Screen Recording required. Turn on OpenMausBot in System Settings > Privacy & Security > Screen Recording; then quit and reopen OpenMausBot.",
     );
     expect(desktop.receive({ type: DESKTOP_COMPUTER_GRANT, connection: null })).toBe(true);
     expect(desktop.connection()).toBeNull();
@@ -105,7 +105,16 @@ describe("this computer, only for the desktop app's own server", () => {
     const desktop = createDesktopComputer({ platform: "darwin" });
     desktop.receive({ type: DESKTOP_COMPUTER_GRANT, connection: { mode: "unavailable", reason } });
     expect(desktop.unavailableReason()).toBe(reason);
-    expect(thisComputerNotReady(desktop, "darwin")).toBe("OpenMausBot can't use this computer yet: the computer helper could not start. Restart OpenMausBot and try again.");
+    expect(thisComputerNotReady(desktop, "darwin")).toBe("OpenMausBot can't use this computer yet: the computer helper did not answer. Press Retry in Settings > Computer; if it still fails, quit and reopen OpenMausBot.");
+  });
+
+  it("names CuaDriver, every missing grant, and no restart when the helper app waits for macOS", () => {
+    const desktop = createDesktopComputer({ platform: "darwin" });
+    const reason = "Screen Recording and Accessibility required for CuaDriver; turn on CuaDriver in System Settings > Privacy & Security";
+    desktop.receive({ type: DESKTOP_COMPUTER_GRANT, connection: { mode: "unavailable", reason } });
+    expect(thisComputerNotReady(desktop, "darwin")).toBe(
+      "OpenMausBot can't use this computer yet: Screen Recording and Accessibility required. Turn on CuaDriver in System Settings > Privacy & Security > Screen Recording and Privacy & Security > Accessibility; OpenMausBot notices by itself, no restart needed.",
+    );
   });
 
   it("decodes again on every use, so a Linux driver that stopped is no longer used", () => {

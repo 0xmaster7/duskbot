@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { macCuaPermissionMessage, missingMacCuaPermissions } from "./mac-cua-permissions";
+import { macCuaPermissionHelper, macCuaPermissionMessage, missingMacCuaPermissions } from "./mac-cua-permissions";
 
 describe("macOS CUA permission recovery", () => {
   it("names only the grants the host reported missing", () => {
@@ -7,6 +7,20 @@ describe("macOS CUA permission recovery", () => {
     expect(missingMacCuaPermissions("Accessibility and Screen Recording required")).toEqual(["screen", "accessibility"]);
     expect(macCuaPermissionMessage(["accessibility"])).toContain("Accessibility is required for MausBot");
     expect(macCuaPermissionMessage(["screen"])).toContain("relaunch MausBot");
+  });
+
+  it("tells the person to turn on CuaDriver, not to relaunch, when the helper app waits for a grant", () => {
+    const reason = "Screen Recording required for CuaDriver; turn on CuaDriver in System Settings > Privacy & Security";
+    expect(missingMacCuaPermissions(reason)).toEqual(["screen"]);
+    expect(macCuaPermissionHelper(reason)).toBe("CuaDriver");
+    const message = macCuaPermissionMessage(["screen"], reason);
+    expect(message).toContain("Turn on CuaDriver");
+    expect(message).toContain("Screen Recording");
+    expect(message).not.toContain("relaunch");
+    expect(macCuaPermissionMessage(["screen", "accessibility"], reason)).toContain("Screen Recording and Accessibility");
+    expect(macCuaPermissionHelper("embedded host failed: Screen Recording required; restart OpenMausBot")).toBeNull();
+    // the server's line for the chat names the grant the same way, so the card offers its pane
+    expect(missingMacCuaPermissions("OpenMausBot can't use this computer yet: Screen Recording required. Turn on CuaDriver in System Settings > Privacy & Security > Screen Recording; OpenMausBot notices by itself, no restart needed.")).toEqual(["screen"]);
   });
 
   it("does not diagnose missing or malformed status as a grant failure", () => {
