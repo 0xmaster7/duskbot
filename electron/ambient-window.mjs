@@ -12,15 +12,31 @@ const PRELOAD = fileURLToPath(new URL("./ambient-preload.cjs", import.meta.url))
  *   platform?: string, onMessage: (channel: string, payload: unknown) => void, log?: (line: string) => void }} deps
  */
 export function createAmbientWindow({ BrowserWindow, surface, url, level, platform = process.platform, onMessage, log = () => {} }) {
-  let win = null, loaded = false, interactive = false, bounds = null, page = null;
+  let win = null, loaded = false, interactive = false, bounds = null, page = null, keyed = false, typing = false;
   const queued = new Map();
   const live = () => Boolean(win && !win.isDestroyed());
+
+  // macOS shows a page's cursor (the pointing hand) only in the key window or the active app, and these panels are
+  // neither while another app is in front. Over the shape the panel becomes key: Electron's focus() on a panel does
+  // not activate the app, so the app in front stays in front. Off the shape it gives key back, unless the person is
+  // typing in one of its fields.
+  const keyOnHover = platform === "darwin";
+  function takeKey() {
+    if (!keyOnHover || keyed || win.isFocused?.()) return;
+    keyed = true;
+    win.focus();
+  }
+  function giveKeyBack() {
+    if (!keyed || typing || interactive) return;
+    keyed = false;
+    if (win.isFocused?.() !== false) win.blur();
+  }
 
   function passThrough(on) {
     if (!live()) return;
     interactive = on;
-    if (on) win.setIgnoreMouseEvents(false);
-    else win.setIgnoreMouseEvents(true, { forward: true });
+    if (on) { win.setIgnoreMouseEvents(false); takeKey(); }
+    else { win.setIgnoreMouseEvents(true, { forward: true }); giveKeyBack(); }
   }
 
   function create(address) {
@@ -77,6 +93,11 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
     target.webContents.on("ipc-message", (_event, channel, payload) => {
       if (win !== target || typeof channel !== "string" || !channel.startsWith("ambient:")) return;
       if (channel === "ambient:pointer") return passThrough(payload === true);
+      if (channel === "ambient:typing") {
+        typing = payload === true;
+        if (live()) giveKeyBack();
+        return;
+      }
       try { onMessage(channel, payload); } catch (error) { log(`ambient ${surface} ${channel} failed: ${error?.message ?? error}`); }
     });
     target.on("closed", () => { if (win === target) { win = null; loaded = false; } });
@@ -86,7 +107,7 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
 
   function close() {
     const target = win;
-    win = null; loaded = false; interactive = false; page = null;
+    win = null; loaded = false; interactive = false; page = null; keyed = false; typing = false;
     if (target && !target.isDestroyed()) target.destroy();
   }
 

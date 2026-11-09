@@ -88,6 +88,8 @@ export interface AmbientBridge {
   /** True while the person is in another app or away (electron/ambient-still.mjs); absent on an older app. */
   onStill?(cb: (still: boolean) => void): () => void;
   pointer(on: boolean): void;
+  /** A text field here has focus (absent on an older app). */
+  typing?(on: boolean): void;
   open(botId: string, threadId: string): void;
   act(act: AmbientAct): void;
   order(ids: string[]): void;
