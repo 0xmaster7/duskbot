@@ -1,4 +1,4 @@
-// an owner deleting a Boat cloud's data: the emailed link's token, the sign-in-again round trip, and what to say.
+// an owner deleting a managed cloud's data: the emailed link's token, the sign-in-again round trip, and what to say.
 // the token lives in this tab's sessionStorage only, never in the address bar or localStorage.
 import { api, ApiError } from "../lib/api";
 import type { BillingOverview, CloudDesktop } from "./contracts";
@@ -67,9 +67,9 @@ export function deleteSignInNote(path: string): string | undefined {
 
 export const needsSignIn = (error: unknown) => error instanceof ApiError && error.code === "reauth_required";
 
-/** a Boat cloud whose plan no longer pays for it; the service has the final word (409 billing_active) */
+/** a managed cloud whose plan no longer pays for it; the service has the final word (409 billing_active) */
 export function canDeleteData(cloud: CloudDesktop, billing: BillingOverview | null, now = Date.now()): boolean {
-  if (cloud.provider !== "boat" || cloud.deleteScheduledAt) return false;
+  if (cloud.provider !== "managed" || cloud.deleteScheduledAt) return false;
   if (cloud.status === "stopped") return true;
   if (billing === null) return false;
   const sub = billing.subscription;

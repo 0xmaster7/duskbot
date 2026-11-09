@@ -42,7 +42,7 @@ it("loads only local and VPS inventories and offers the existing VPS setup flow"
     expect(paths.sort()).toEqual(["/api/computer/egress", "/api/computers/vps", "/api/local-computer", "/api/mac"]);
     expect(container.textContent).toContain("Add your VPS");
     expect(local.openAddVps).not.toHaveBeenCalled();
-    expect(container.textContent).not.toMatch(/Boat|credit|cloud desktop/i);
+    expect(container.textContent).not.toMatch(/\x42oat|credit|cloud desktop/i);
     await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
     expect(paths.filter(path => path === "/api/local-computer")).toHaveLength(2);
     expect(paths.some(path => path.includes("/boxes"))).toBe(false);

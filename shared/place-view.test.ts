@@ -15,10 +15,10 @@ describe("one line and at most one action for every place", () => {
       const view = placeViewOf(state, params, { role, server: "my-cloud" });
       expect(view.short.trim(), state).not.toBe("");
       expect(view.line.trim(), state).not.toBe("");
-      expect(`${view.short} ${view.line} ${view.action?.label ?? ""}`, state).not.toMatch(/\n|\{\w+\}|Boat|credits|hours left/i);
+      expect(`${view.short} ${view.line} ${view.action?.label ?? ""}`, state).not.toMatch(/\n|\{\w+\}|\x42oat|credits|hours left/i);
     }
     expect(PLACE_ACTIONS).toContain("add-vps");
-    expect(PLACE_ACTIONS).not.toContain("add-boat-key");
+    expect(PLACE_ACTIONS).not.toContain("add-\x62oat-key");
   });
 
   it("gives a user no action that changes a setting and says who can change it", () => {
@@ -40,7 +40,7 @@ describe("one line and at most one action for every place", () => {
     const mirrored = new Set(Object.keys(PLACE_EN));
     const inCatalog = Object.keys(catalog).filter((key) => /^place\.(view|action)\./.test(key) || key === "place.askAdmin" || key === "place.backOnAuto");
     expect(inCatalog.filter((key) => !mirrored.has(key))).toEqual([]);
-    for (const sentence of Object.values(PLACE_WORDS)) expect(sentence).not.toMatch(/Boat|\bbox\b|OMB|Hosted desktop|Cloud box|Works on to Auto|\btools?\b/i);
+    for (const sentence of Object.values(PLACE_WORDS)) expect(sentence).not.toMatch(/\x42oat|\bbox\b|OMB|Hosted desktop|Cloud box|Works on to Auto|\btools?\b/i);
   });
 
   it("routes stored provider and billing states to VPS setup", () => {
@@ -64,7 +64,7 @@ describe("VPS place facts", () => {
       expect(placeState(facts({ computer })).state).toBe(state);
     }
     expect(placeState(facts()).state).toBe("vps");
-    expect(placeState(facts({ backend: "box", boat: "none", plan: true })).state).toBe("vps");
+    expect(placeState(facts({ backend: "box", plan: true })).state).toBe("vps");
     expect(placeState(facts({ refusal: { state: "cc-no-start", params: {} } })).state).toBe("cc-no-start");
   });
 

@@ -20,21 +20,21 @@ describe("the Computer engine is not offered", () => {
       instances: {
         claude: { driver: "claudeAgent" },
         computer: { driver: "boxAgent", environment: { BOX_TOKEN: "box_instance" } },
-        myBoat: { driver: "boxAgent", displayName: "My Boat" },
+        myRetiredDesktop: { driver: "boxAgent", displayName: "My retired desktop provider" },
       },
     };
     for (const map of [instanceConfigs(cfg), persistableInstanceConfigs(cfg)]) {
       expect(Object.keys(map)).toContain("claude");
       expect(map).not.toHaveProperty("computer");
-      expect(map).not.toHaveProperty("myBoat");
+      expect(map).not.toHaveProperty("myRetiredDesktop");
     }
     expect(cfg.instances).toHaveProperty("computer");
   });
 
   it("names every id the engine had, and leaves an id the person reused for another engine", () => {
     expect([...removedComputerInstanceIds(undefined)]).toEqual(["computer"]);
-    expect([...removedComputerInstanceIds({ claude: { driver: "claudeAgent" }, myBoat: { driver: "boxAgent" } })].sort())
-      .toEqual(["computer", "myBoat"]);
+    expect([...removedComputerInstanceIds({ claude: { driver: "claudeAgent" }, myRetiredDesktop: { driver: "boxAgent" } })].sort())
+      .toEqual(["computer", "myRetiredDesktop"]);
     expect([...removedComputerInstanceIds({ computer: { driver: "claudeAgent" } })]).toEqual([]);
   });
 });
@@ -44,11 +44,11 @@ describe("moving saved bots off the engine", () => {
   const newBotDefault = () => ({ instanceId: "claude", model: "claude-model" });
   const replacement = { instanceId: "claude", model: "claude-model" };
   const removed = new Set(["computer"]);
-  /** This server has a Boat account, the bot's cloud backend is Boat, and no
+  /** This server has a retired desktop provider account, the bot's cloud backend is retired desktop provider, and no
    * team computer serves its section: on Auto, the removed engine ran on the
    * bot's own cloud computer. */
-  const boat = { driverKind: "claudeAgent", canWorkOnCloud: true, keepCloud: (bot: BotRecord) => bot.cloudBackend !== "vps" };
-  const noBoat = { driverKind: "claudeAgent", canWorkOnCloud: true, keepCloud: () => false };
+  const retired = { driverKind: "claudeAgent", canWorkOnCloud: true, keepCloud: (bot: BotRecord) => bot.cloudBackend !== "vps" };
+  const noRetiredDesktop = { driverKind: "claudeAgent", canWorkOnCloud: true, keepCloud: () => false };
   /** The same server, but the engine a new bot gets has no computer tools:
    * an OpenAI-compatible endpoint without computer use, like Mistral. */
   const chatOnly = { driverKind: "mistral", canWorkOnCloud: false, keepCloud: (bot: BotRecord) => bot.cloudBackend !== "vps" };
@@ -60,10 +60,10 @@ describe("moving saved bots off the engine", () => {
     store.patchBot(bot.id, { computer: "cloud", fallback: [{ instanceId: "computer", model: "sonnet" }, { instanceId: "codex", model: "codex-model" }] });
     const second = store.createTask(bot.id, "Second", false)!;
     store.patchTask(bot.id, second.threadId, { modelSelection: { instanceId: "computer", model: "gpt-5.4" } });
-    store.setResumeCursor(bot.id, "computer", "boat-prompt-run", bot.threadId);
+    store.setResumeCursor(bot.id, "computer", "retired-prompt-run", bot.threadId);
     store.setResumeCursor(bot.id, "codex", "codex-session", bot.threadId);
 
-    const moves = store.retireInstances(removed, replacement, boat);
+    const moves = store.retireInstances(removed, replacement, retired);
     expect(moves).toHaveLength(2);
     expect(moves).toEqual(expect.arrayContaining([
       { botId: bot.id, threadId: bot.threadId, scope: "bot", cloud: true, noComputer: false, askNow: false },
@@ -78,7 +78,7 @@ describe("moving saved bots off the engine", () => {
     expect(reloaded.taskByThread(bot.id, second.threadId)?.modelSelection).toEqual(replacement);
     expect(reloaded.taskByThread(bot.id, bot.threadId)?.resumeCursors).toEqual({ codex: "codex-session" });
     expect(reloaded.bot(other.id)?.modelSelection).toEqual({ instanceId: "codex", model: "codex-model" });
-    expect(reloaded.retireInstances(removed, replacement, boat)).toEqual([]);
+    expect(reloaded.retireInstances(removed, replacement, retired)).toEqual([]);
   });
 
   it("keeps an Auto bot on its cloud computer, where the removed engine always ran", () => {
@@ -89,7 +89,7 @@ describe("moving saved bots off the engine", () => {
     const local = store.createBot({ modelSelection: { instanceId: "computer", model: "claude-fable-5" } }, { seedMessages: false });
     store.patchBot(local.id, { computer: "local" });
 
-    const moves = store.retireInstances(removed, replacement, boat);
+    const moves = store.retireInstances(removed, replacement, retired);
 
     const reloaded = new Store(newBotDefault);
     expect(reloaded.bot(auto.id)?.computer).toBe("cloud");
@@ -103,7 +103,7 @@ describe("moving saved bots off the engine", () => {
   it("leaves an Auto bot on Auto when this server has no cloud computers", () => {
     const store = new Store(newBotDefault);
     const auto = store.createBot({ modelSelection: { instanceId: "computer", model: "claude-fable-5" } }, { seedMessages: false });
-    expect(store.retireInstances(removed, replacement, noBoat)).toEqual([
+    expect(store.retireInstances(removed, replacement, noRetiredDesktop)).toEqual([
       { botId: auto.id, threadId: auto.threadId, scope: "bot", cloud: false, noComputer: false, askNow: false },
     ]);
     expect(new Store(newBotDefault).bot(auto.id)?.computer).toBeUndefined();
@@ -115,7 +115,7 @@ describe("moving saved bots off the engine", () => {
     const second = store.createTask(bot.id, "On the engine", false)!;
     store.patchTask(bot.id, second.threadId, { modelSelection: { instanceId: "computer", model: "gpt-5.4" } });
 
-    expect(store.retireInstances(removed, replacement, boat)).toEqual([
+    expect(store.retireInstances(removed, replacement, retired)).toEqual([
       { botId: bot.id, threadId: second.threadId, scope: "conversation", cloud: true, noComputer: false, askNow: false },
     ]);
 
@@ -138,7 +138,7 @@ describe("moving saved bots off the engine", () => {
     store.patchBot(auto.id, { approvalMode: "auto" });
     store.patchTask(auto.id, auto.threadId, { approvalMode: "auto" });
 
-    const moves = store.retireInstances(removed, replacement, noBoat);
+    const moves = store.retireInstances(removed, replacement, noRetiredDesktop);
 
     const reloaded = new Store(newBotDefault);
     expect(reloaded.bot(full.id)).toMatchObject({ approvalMode: "full", alwaysAllow: ["Bash(ls:*)"] });
@@ -157,7 +157,7 @@ describe("moving saved bots off the engine", () => {
     store.patchTask(bot.id, elsewhere, { modelSelection: { instanceId: "codex", model: "codex-model" } });
     expect(store.projectBotForTask(bot.id, elsewhere)).toMatchObject({ approvalMode: "full", alwaysAllow: ["Bash(ls:*)"] });
 
-    const moves = store.retireInstances(removed, replacement, noBoat);
+    const moves = store.retireInstances(removed, replacement, noRetiredDesktop);
 
     const reloaded = new Store(newBotDefault);
     expect(reloaded.bot(bot.id)).toMatchObject({ modelSelection: replacement, approvalMode: "full", alwaysAllow: ["Bash(ls:*)"] });
@@ -176,7 +176,7 @@ describe("moving saved bots off the engine", () => {
     const first = bot.threadId;
     store.createTask(bot.id, "Newer", true);
 
-    const moves = store.retireInstances(removed, replacement, noBoat);
+    const moves = store.retireInstances(removed, replacement, noRetiredDesktop);
 
     expect(moves.find(move => move.threadId === first)).toMatchObject({ scope: "conversation", askNow: false });
     expect(new Store(newBotDefault).projectBotForTask(bot.id, first)).toMatchObject({ approvalMode: "full" });
@@ -249,12 +249,12 @@ describe("moving saved bots off the engine", () => {
     mkdirSync(DATA_DIR, { recursive: true });
     writeFileSync(SECTION_CONTEXTS_FILE, "not json");
 
-    expect(() => store.retireInstances(removed, replacement, boat)).toThrow();
+    expect(() => store.retireInstances(removed, replacement, retired)).toThrow();
     expect(store.bot(bot.id)).toMatchObject({ modelSelection: { instanceId: "computer", model: "claude-fable-5" } });
     expect(store.bot(bot.id)?.computer).toBeUndefined();
 
     rmSync(SECTION_CONTEXTS_FILE, { force: true });
-    expect(store.retireInstances(removed, replacement, boat)).toEqual([
+    expect(store.retireInstances(removed, replacement, retired)).toEqual([
       { botId: bot.id, threadId: bot.threadId, scope: "bot", cloud: true, noComputer: false, askNow: false },
     ]);
     expect(new Store(newBotDefault).bot(bot.id)).toMatchObject({ modelSelection: replacement, computer: "cloud" });

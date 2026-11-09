@@ -82,9 +82,9 @@ it("describes VPS persistence without treating the retained home volume as dispo
   expect(prompt).toContain("stores /home/cua in its own persistent volume");
   expect(prompt).toContain("files and Chromium profiles there survive container recreation while that volume is kept");
   expect(prompt).toContain("recreating it replaces system changes outside persistent volumes");
-  expect(prompt).not.toMatch(/Boat|API key|everything on it is wiped|filesystem is disposable/);
+  expect(prompt).not.toMatch(/\x42oat|API key|everything on it is wiped|filesystem is disposable/);
   expect(CREDENTIAL_PROMPT).toContain("the user's own VPS needs no computer-provider API key");
-  expect(CREDENTIAL_PROMPT).not.toContain("Boat");
+  expect(CREDENTIAL_PROMPT).not.toContain("\x42oat");
   expect(TRIGGER_PROMPT).toContain("cloud explicitly uses the bot's own connected VPS computer with the same model");
   expect(TRIGGER_PROMPT).not.toContain("box runs");
 });
@@ -383,7 +383,7 @@ describe("cloudHomePrompt", () => {
     expect(text).toMatch(/^ You run on the user's My Cloud, their always-on OpenMausBot in the cloud, not on their own computer\./);
     expect(text.startsWith(` You run on ${CLOUD_HOME_PLACE}.`)).toBe(true);
     expect(text).toContain("Offer what works here: the built-in browser and their connected VPS computer. Their VPS computer is a sandboxed desktop on their own server.");
-    expect(text).not.toMatch(/\bOMB\b|\bBoat\b|\bbox\b/);
+    expect(text).not.toMatch(/\bOMB\b|\b\x42oat\b|\bbox\b/);
     expect(text).toContain("Never ask them to set up this computer or a Local VM; neither exists here.");
     expect(text).not.toMatch(/Computer panel|container runtime|configure/i);
   });

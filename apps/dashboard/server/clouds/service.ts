@@ -9,10 +9,7 @@ import { PoolFullError } from "./pool.ts";
 import { RetryableCloudError } from "./http.ts";
 import type { createSealer } from "./seal.ts";
 import type { CloudProvider, CloudsService, DesktopPlan, HomeClient, SlotQuota, StoredCloud } from "./types.ts";
-import { createBoatLifecycle, freshBoatState, type BoatLifecycle, type BoatLifecycleDeps } from "./boat-lifecycle.ts";
-import { createBoatSweep } from "./boat-sweep.ts";
-import { boatBackupKey } from "./boat-backups.ts";
-import { guardBackupSecret } from "./boat-key-guard.ts";
+import type { ManagedCloud, ManagedCloudFactory } from "./managed.ts";
 import { lockDataDir } from "../data-dir-lock.ts";
 
 export class CloudError extends Error {
@@ -44,9 +41,12 @@ export interface CloudsServiceOptions {
   config: CloudsConfig;
   now?: () => number;
   random?: (size: number) => Buffer;
-  /** Boat runs these desktop kinds (boat-lifecycle.ts); every other cloud keeps its placement's provider */
-  /** `previousBackupSecret`: the secret the backups were sealed with, to seal them again after a deliberate change */
-  boat?: Omit<BoatLifecycleDeps, "home" | "unseal" | "seal" | "dashboardUrl" | "adminOrigin" | "removeWorkspace" | "now" | "save" | "stored"> & { kinds: ReadonlyArray<DesktopPlan["kind"]>; previousBackupSecret?: Buffer | null };
+  /** a managed backend (apps/cloud-service) runs the desktop kinds it names; every other cloud keeps its placement's provider */
+  managed?: ManagedCloudFactory | null;
+  /** the managed backend's homes: always the real client, even where `home` fakes the other providers' */
+  managedHome?: HomeClient;
+  /** signs a cloud's entitlement for its home and the app (shared/entitlement.ts); absent: none are signed */
+  entitlements?: { sign(cloud: StoredCloud): string } | null;
 }
 interface State { v: 1; clouds: StoredCloud[] }
 const sameSpec = (a: MachineSpec, b: MachineSpec) => a.vcpu === b.vcpu && a.ramGb === b.ramGb && a.diskGb === b.diskGb;
@@ -60,6 +60,8 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     const state = v as State;
     return state.v === 1 && Array.isArray(state.clouds) && state.clouds.every(c => c && /^c[0-9a-f]{24}$/.test(c.id) && CLOUD_STATUSES.includes(c.status) && typeof c.accountId === "string");
   });
+  // older records name the backend by its provider: the backend moves them to the current names
+  if (options.managed && store.state.clouds.map(c => options.managed!.upgrade(c)).some(Boolean)) store.commit();
   for (const cloud of store.state.clouds) for (const field of ["bootstrapSecret", "sealedLinkPrivateKey"] as const) {
     const value = cloud[field];
     if (value?.startsWith("plain.")) {
@@ -81,9 +83,12 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
   }
   function kick() { void service.reconcile().catch(() => {}); }
   function retry(c: StoredCloud, error: unknown) {
-    if (c.backend === "boat" && c.status !== "provisioning") {
+    // the backend's own timing first (a provider limit backs off and never counts against the cloud, even in setup)
+    const backendAt = c.backend ? managed?.retryAt(c, error) ?? null : null;
+    if (backendAt !== null) { c.nextAttemptAt = backendAt; save(c); return; }
+    if (c.backend && c.status !== "provisioning") {
       c.attempts++; c.nextAttemptAt = now() + Math.min(15_000 * 2 ** Math.min(c.attempts - 1, 6), 900_000);
-      if (c.attempts === 8) console.warn(`boat: cloud ${c.id} keeps failing its lifecycle step`);
+      if (c.attempts === 8) console.warn(`clouds: managed cloud ${c.id} keeps failing its lifecycle step`);
       save(c); return;
     }
     if (error instanceof PoolFullError) {
@@ -103,38 +108,37 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     save(c);
   }
   function viewOf(c: StoredCloud): CloudDesktopView { return { id: c.id, name: c.name, color: c.color, kind: c.kind, placement: c.placement, status: c.status === "running" && c.paymentProblem ? "payment_problem" : c.status, setupStep: c.setupStep, region: c.region, machine: { ...c.spec }, botComputers: c.botComputers, origin: c.origin, workspaceId: c.workspaceId, lastReportAt: c.workspaceId ? workspaces.lastReportAt(c.workspaceId) : null, destroyAt: c.destroyAt, error: c.error, subscriptionId: c.subscriptionId, createdAt: c.createdAt }; }
-  if (options.boat) {
-    const { backups, backupSecret } = options.boat, previous = options.boat.previousBackupSecret ?? null;
-    const generations = () => store.state.clouds.flatMap(c => (c.boat?.backups ?? []).map(g => ({ c, g }))).filter(({ c, g }) => backups.version(c.id, g.file) === 2);
+  const stored = (id: string): StoredCloud | null => {
     try {
-      guardBackupSecret(options.dataDir, backupSecret, previous, old => {
-        for (const { c, g } of generations()) {
-          const tar = backups.read(c.id, boatBackupKey(old, c.id), g.file);
-          const record = backups.write(c.id, boatBackupKey(backupSecret, c.id), tar);
-          if (!backups.read(c.id, boatBackupKey(backupSecret, c.id), record.file).equals(tar)) throw new Error("A backup did not verify after sealing it with the new secret.");
-          const file = g.file;
-          Object.assign(g, { file: record.file, bytes: record.bytes, sha256: record.sha256 });
-          store.commit();
-          backups.remove(c.id, file);
-        }
-      }, secret => {
-        const newest = generations().sort((a, b) => b.g.at - a.g.at)[0];
-        if (!newest) return null;
-        try { backups.read(newest.c.id, boatBackupKey(secret, newest.c.id), newest.g.file); return true; } catch { return false; }
-      });
-    } catch (error) { store.close(); unlock(); throw error; }
+      const found = (JSON.parse(readFileSync(join(options.dataDir, "clouds.json"), "utf8")) as State).clouds.find(c => c.id === id) ?? null;
+      if (found) options.managed?.upgrade(found);
+      return found;
+    } catch { return null; }
+  };
+  const signEntitlement = (c: StoredCloud): string | null => {
+    if (!options.entitlements || c.status === "destroyed" || c.status === "checkout" || c.ended || c.suspended !== null) return null;
+    try { return options.entitlements.sign(c); } catch { console.warn(`clouds: no entitlement for ${c.id}`); return null; }
+  };
+  let managed: ManagedCloud | null = null;
+  try {
+    managed = options.managed ? options.managed.create({ dataDir: options.dataDir, home: options.managedHome ?? home, now, save, stored, clouds: () => store.state.clouds, commit: () => store.commit(),
+      unseal: value => sealer.unseal(value), seal: value => sealer.seal(value), dashboardUrl: config.dashboardUrl, adminOrigin: config.adminOrigin,
+      removeWorkspace: id => workspaces.remove(id), entitlement: signEntitlement }) : null;
+  } catch (error) { store.close(); unlock(); throw error; }
+  /** a hosted home refuses clients without a fresh entitlement: pushed when it comes up, refreshed hourly */
+  async function entitle(c: StoredCloud, force = false): Promise<void> {
+    if (!c.origin || !home.entitle || (!force && c.entitledAt !== undefined && now() - c.entitledAt < 3_600_000)) return;
+    const token = signEntitlement(c);
+    if (!token) return;
+    try { await home.entitle(c.origin, sealer.unseal(c.bootstrapSecret), token); c.entitledAt = now(); save(c); }
+    catch { console.warn(`clouds: the entitlement push to ${c.id} failed; it is tried again`); }
   }
-  const boat: BoatLifecycle | null = options.boat ? createBoatLifecycle({ ...options.boat, home, now, save, dashboardUrl: config.dashboardUrl, adminOrigin: config.adminOrigin,
-    unseal: value => sealer.unseal(value), seal: value => sealer.seal(value), removeWorkspace: id => workspaces.remove(id),
-    stored(id) {
-      try { return (JSON.parse(readFileSync(join(options.dataDir, "clouds.json"), "utf8")) as State).clouds.find(c => c.id === id) ?? null; } catch { return null; }
-    } }) : null;
-  const sweep = options.boat ? createBoatSweep({ dataDir: options.dataDir, provider: options.boat.provider, audit: options.boat.audit, retentionDays: options.boat.settings.retentionDays, now }) : null;
   function succeeded(c: StoredCloud) { c.attempts = 0; c.nextAttemptAt = 0; c.poolFullSince = undefined; c.error = null; save(c); }
   async function reconcileCloud(c: StoredCloud) {
-    if (c.backend === "boat") {
-      if (!boat) { if (c.error !== "Boat is not configured.") { c.error = "Boat is not configured."; save(c); } return; }
-      await boat.reconcile(c);
+    // any backend, an older record's included: never the generic lifecycle, which could destroy its machine
+    if (c.backend) {
+      if (!managed) { if (c.error !== "Managed clouds are not configured.") { c.error = "Managed clouds are not configured."; save(c); } return; }
+      await managed.reconcile(c);
       if (c.status === "running" || c.status === "sleeping") succeeded(c);
       return;
     }
@@ -201,6 +205,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
         succeeded(c); return;
       }
       if (!c.origin || !(await home.healthy(c.origin, sealer.unseal(c.bootstrapSecret)))) throw new RetryableCloudError();
+      await entitle(c, true);
       c.status = "running"; c.setupStep = null; c.lastCheckedAt = now(); c.powerSince = now(); succeeded(c); return;
     }
     if (!c.serverId) return;
@@ -235,9 +240,11 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       if (state.state === "missing" || state.state === "error") throw new Error("Cloud server unavailable.");
       succeeded(c);
     }
+    if (c.status === "running") await entitle(c);
   }
   const service: CloudsService = {
-    boat,
+    managed,
+    entitlement: signEntitlement,
     order(input) {
       const id = input.id ?? `c${random(12).toString("hex")}`;
       const existing = get(id);
@@ -252,7 +259,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       if (c.subscriptionId && c.subscriptionId !== subscriptionId) throw new CloudError(409, "unavailable");
       applyPlan(c, plan); c.subscriptionId = subscriptionId;
       if (c.status !== "checkout") { save(c); return; }
-      if (options.boat?.kinds.includes(plan.kind)) { c.backend = "boat"; c.boat = freshBoatState(); }
+      if (managed?.kinds.includes(plan.kind)) { c.backend = "managed"; c.managed = managed.fresh(); }
       const keys = linkKeys();
       c.workspaceId = workspaces.register({ accountId: c.accountId, name: c.name, publicKey: keys.publicKey });
       c.linkPublicKey = keys.publicKey; c.sealedLinkPrivateKey = sealer.seal(keys.privateKey); c.bootstrapSecret = sealer.seal(random(32).toString("base64url"));
@@ -275,11 +282,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     byWorkspace(workspaceId) { return store.state.clouds.find(c => c.workspaceId === workspaceId && c.status !== "destroyed") ?? null; },
     list(accountId, includeHidden = false) { return store.state.clouds.filter(c => c.accountId === accountId && (includeHidden || !c.hidden)).reverse().sort((a, b) => b.createdAt - a.createdAt); },
     view(c) {
-      const retained = c.backend === "boat" && boat ? boat.verdict(c) : null;
-      const boatView = c.backend === "boat" ? { provider: "boat" as const, lastBackupAt: c.boat?.backups.at(-1)?.at ?? null,
-        deleteScheduledAt: c.boat?.deleteRequest?.confirmedAt && c.boat.deleteRequest.cancelledAt === null ? c.boat.deleteRequest.executeAfter : null,
-        deleteAskedAt: c.boat?.deleteRequest && !c.boat.deleteRequest.confirmedAt && c.boat.deleteRequest.cancelledAt === null && (c.boat.deleteRequest.tokenExpiresAt ?? 0) > now() ? c.boat.deleteRequest.requestedAt : null } : {};
-      return { ...viewOf(c), ...boatView, ...(retained && c.status !== "destroyed" ? { destroyAt: retained.earliestAt } : {}) };
+      return { ...viewOf(c), ...(c.backend && managed ? managed.view(c) : {}) };
     },
     rename(accountId, id, patch) {
       const c = requireOwned(accountId, id);
@@ -306,14 +309,14 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     },
     hide(accountId, id) { const c = requireOwned(accountId, id); if (!["stopped", "destroyed", "error", "checkout"].includes(c.status)) throw new CloudError(409, "not_removable"); c.hidden = true; save(c); return c; },
     async power(accountId, id, action) { const c = requireOwned(accountId, id);
-      if (c.backend === "boat") {
-        // each wake is a Boat start: an owner, a page or the slack edge gets 60 power changes an hour per cloud
+      if (c.backend) {
+        // each wake is a provider start: an owner, a page or the slack edge gets 60 power changes an hour per cloud
         const recent = (powerChanges.get(c.id) ?? []).filter(t => t > now() - 3_600_000);
         if (recent.length >= 60) throw new CloudError(429, "rate_limited");
         powerChanges.set(c.id, [...recent, now()]);
       } if (!["running", "stopped", "sleeping"].includes(c.status) || c.suspended !== null || c.ended || c.destroyAt !== null && c.destroyAt <= now()) throw new CloudError(409, "unavailable"); if (action === "on" && (c.status === "stopped" || c.status === "sleeping")) c.wakeRequestedAt = now();
       c.wantPower = action; c.nextAttemptAt = 0; save(c); await service.reconcile(); if (c.wantPower === action && c.status !== (action === "on" ? "running" : "stopped") && c.status !== "error") await service.reconcile(); return c; },
-    async pair(accountId, id) { const c = requireOwned(accountId, id); if (c.status !== "running" || !c.origin || c.suspended !== null || c.ended || c.destroyAt !== null && c.destroyAt <= now()) throw new CloudError(409, "unavailable"); const result = await home.pair(c.origin, sealer.unseal(c.bootstrapSecret), { label: "OpenMausBot app (Cloud)", ttlSeconds: 300 }); return { origin: c.origin, code: result.code, expiresAt: result.expiresAt }; },
+    async pair(accountId, id) { const c = requireOwned(accountId, id); if (c.status !== "running" || !c.origin || c.suspended !== null || c.ended || c.destroyAt !== null && c.destroyAt <= now()) throw new CloudError(409, "unavailable"); const result = await (c.backend ? options.managedHome ?? home : home).pair(c.origin, sealer.unseal(c.bootstrapSecret), { label: "OpenMausBot app (Cloud)", ttlSeconds: 300 }); return { origin: c.origin, code: result.code, expiresAt: result.expiresAt }; },
     reconcile() {
       if (closed) return Promise.resolve();
       if (reconciling) return reconciling;
@@ -323,11 +326,11 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
           if (c.nextAttemptAt > now()) continue;
           try { await reconcileCloud(c); } catch (error) { retry(c, error); }
         }
-        if (sweep && !closed) await sweep.sweep(store.state.clouds).catch(() => console.warn("boat: the orphan sweep failed; it runs again later"));
+        if (managed && !closed) await managed.afterPass(store.state.clouds).catch(() => console.warn("clouds: the managed backend's pass failed; it runs again later"));
       }).finally(() => { reconciling = null; });
       return reconciling;
     },
-    close() { closed = true; clearInterval(timer); store.close(); sweep?.close(); unlock(); },
+    close() { closed = true; clearInterval(timer); store.close(); managed?.close(); unlock(); },
   };
   const timer = setInterval(kick, 15_000); timer.unref();
   return service;

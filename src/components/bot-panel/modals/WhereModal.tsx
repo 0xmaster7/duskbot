@@ -5,7 +5,7 @@ import { usePlaceViews } from "../../PlaceChip";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
 import { Card, CheckRow, NavRow, SheetPane } from "../../ListRows";
 import type { PlaceActionId } from "../../../../shared/place-view";
-import { BoatCloudListRow } from "../BoatCloud";
+import { CloudDesktopListRow } from "../CloudDesktop";
 import { usePlacePicker, type PlaceChoice } from "../ComputerTab";
 
 const PLACE_LINE: Partial<Record<PlaceChoice, (name: string) => string>> = {
@@ -25,7 +25,7 @@ export function WhereModal({ bot, derived, onClose }: {
   onClose: () => void;
 }) {
   const { dispatch } = useStore();
-  const { options, current, usingNow, choosePlace, warning, boat } = usePlacePicker(bot, derived);
+  const { options, current, usingNow, choosePlace, warning, cloudDesktop } = usePlacePicker(bot, derived);
   const cloud = usePlaceViews(bot).cloud;
   const title = t("computer.simple.whereWorks", { name: bot.name });
   const editable = bot.yourAccess !== "view";
@@ -62,7 +62,7 @@ export function WhereModal({ bot, derived, onClose }: {
           />
         )}
       </Card>
-      {boat && <Card data-sheet-group="boat"><BoatCloudListRow boat={boat} /></Card>}
+      {cloudDesktop && <Card data-sheet-group="cloud-desktop"><CloudDesktopListRow cloudDesktop={cloudDesktop} /></Card>}
       {warning}
     </SheetPane>
   );

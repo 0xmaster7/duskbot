@@ -209,10 +209,10 @@ describe("AccessSection Works on", () => {
 
   it("offers no paid provider choice on any workspace", () => {
     expect(render(makeBot())).not.toContain("Cloud backend");
-    expect(render(makeBot())).not.toContain("Boat");
+    expect(render(makeBot())).not.toContain("\x42oat");
     fixture.config = { cloudHome: true } as Partial<ConfigStatus>;
     expect(render(makeBot())).not.toContain("Cloud backend");
-    expect(render(makeBot({ computer: "cloud" }))).not.toContain("Boat");
+    expect(render(makeBot({ computer: "cloud" }))).not.toContain("\x42oat");
   });
 });
 
@@ -292,7 +292,7 @@ describe("a VPS bot's own server", () => {
     const drafted = renderToStaticMarkup(createElement(StoreProvider, null,
       createElement(BotEditorContext.Provider, { value: { request: api, draft: true } }, createElement(AccessSection, { bot: vpsBot, derived: makeDerived() }))));
     expect(drafted).not.toContain("Cloud backend");
-    expect(drafted).not.toContain("Boat");
+    expect(drafted).not.toContain("\x42oat");
     expect(drafted).not.toContain("Server (SSH alias)");
   });
 });

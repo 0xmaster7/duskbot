@@ -26,9 +26,8 @@ describe("surface pin provenance against the real server", () => {
   let output = "";
   let child: ChildProcess | null = null;
   let base = "";
-  let boatServer: Server;
-  let boatApi = "";
-  let boatDown = false;
+  let retiredServer: Server;
+  let retiredDown = false;
 
   const vmState = (state: Record<string, unknown> = {}) => writeFileAtomic(stateFile, JSON.stringify(state));
   const resetTurn = () => { vmState(); rmSync(dumpFile, { force: true }); rmSync(finishFile, { force: true }); };
@@ -88,7 +87,7 @@ describe("surface pin provenance against the real server", () => {
         APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
         TEMP: home, TMP: home, TMPDIR: home,
         OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), OMB_STATIC_DIR: ui, OMB_TEST_VM_STATE: stateFile,
-        OMB_BOAT_API: boatApi, OMB_USER_DATA: join(home, "user-data"), OMB_TEST_DESKTOP_CUA_CONNECTION: cuaDescriptor,
+        OMB_USER_DATA: join(home, "user-data"), OMB_TEST_DESKTOP_CUA_CONNECTION: cuaDescriptor,
         ...(withBrowser ? { OMB_AGENT_BROWSER_PATH: inertBrowser, AGENT_BROWSER_EXECUTABLE_PATH: inertBrowser } : {}),
       }, stdio: ["ignore", "pipe", "pipe"],
     });
@@ -128,27 +127,26 @@ describe("surface pin provenance against the real server", () => {
     mkdirSync(join(ui, "assets"), { recursive: true });
     writeFileSync(join(ui, "index.html"), "<title>Surface pins</title>");
     writeFileSync(join(ui, "assets", "test.css"), "body{}");
-    boatServer = createServer(async (req, res) => {
+    retiredServer = createServer(async (req, res) => {
       res.setHeader("content-type", "application/json");
       const path = new URL(req.url ?? "/", "http://box.fixture").pathname;
-      if (boatDown && path.startsWith("/sandboxes")) { res.statusCode = 503; return res.end(JSON.stringify({ error: "Fixture Boat unavailable" })); }
+      if (retiredDown && path.startsWith("/sandboxes")) { res.statusCode = 503; return res.end(JSON.stringify({ error: "Fixture retired desktop provider unavailable" })); }
       if (path === "/sandboxes") return res.end(JSON.stringify({ sandboxes: [] }));
       return res.end("{}");
     });
-    await new Promise<void>(resolve => boatServer.listen(0, "127.0.0.1", resolve));
-    boatApi = `http://127.0.0.1:${(boatServer.address() as { port: number }).port}`;
+    await new Promise<void>(resolve => retiredServer.listen(0, "127.0.0.1", resolve));
     writeFileSync(join(data, "config.json"), JSON.stringify({ instances: { claude: {
       driver: "claudeAgent", config: { cli: join(ROOT, "server/testing/fake-claude-cli.ts") },
-      // The first computer call is what reaches the Boat, as with a real model.
+      // the first computer call is what reaches the retired desktop provider, as with a real model.
       environment: { FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_SLOW_FINISH_GATE: finishFile, FAKE_CLAUDE_USES_CLOUD_COMPUTER: "1" },
     } } }));
   });
   afterAll(async () => {
     await stop();
-    if (boatServer) await new Promise<void>(resolve => boatServer.close(() => resolve()));
+    if (retiredServer) await new Promise<void>(resolve => retiredServer.close(() => resolve()));
     if (home) await removeTempDir(home);
   });
-  afterEach(async () => { await stop(); resetTurn(); boatDown = false; });
+  afterEach(async () => { await stop(); resetTurn(); retiredDown = false; });
 
   it("marks a person's thread pin as theirs and clears provenance with the pin", async () => {
     await start();
@@ -404,7 +402,7 @@ describe("surface pin provenance against the real server", () => {
     const selected = await fetch(base + "/api/internal/computer/select", { method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ surface: "cloud" }) });
     expect(await selected.json()).toMatchObject({ status: "pending", surface: "cloud" });
-    boatDown = true;
+    retiredDown = true;
     writeFileSync(finishFile, "finish");
     await until(() => lastRow(), row => row.startsWith("error:"));
     await idle(bot.id, task.threadId);
@@ -427,7 +425,7 @@ describe("surface pin provenance against the real server", () => {
     await idle(bot.id, task.threadId);
     expect(await lastRow()).toBe("error: Cloud desktops can't start right now. It isn't anything you did. Clear this conversation's place in the composer to continue.");
     expect(savedTask(bot.id, task.threadId)).toMatchObject({ surface: "cloud", surfaceSource: "user" });
-    boatDown = false;
+    retiredDown = false;
     await apiOk("DELETE", `/api/bots/${bot.id}`);
     await stop();
   });
@@ -451,12 +449,12 @@ describe("surface pin provenance against the real server", () => {
     const selected = await fetch(base + "/api/internal/computer/select", { method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ surface: "cloud" }) });
     expect(await selected.json()).toMatchObject({ status: "pending", surface: "cloud" });
-    boatDown = true;
+    retiredDown = true;
     writeFileSync(finishFile, "finish");
     await until(() => lastRow(), row => row.startsWith("error:"));
     await idle(bot.id, task.threadId);
     expect(savedTask(bot.id, task.threadId)).not.toHaveProperty("askedAt");
-    boatDown = false;
+    retiredDown = false;
     await apiOk("DELETE", `/api/bots/${bot.id}`);
     await stop();
   });

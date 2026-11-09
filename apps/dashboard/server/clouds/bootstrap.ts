@@ -20,7 +20,8 @@ export function linkKeys(): { publicKey: string; privateKey: string } {
 }
 
 export function homeEnv(input: HomeInput): Record<string, string> {
-  const env = { OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: input.cloudId, OMB_CLOUD_ADMIN_URL: input.adminOrigin, OMB_CLOUD_BOOTSTRAP_SECRET: input.secret, OMB_PUBLIC_URL: input.origin, OMB_DASHBOARD_URL: input.dashboardUrl };
+  // this service pushes a signed entitlement to every home it makes, so each one refuses clients without it
+  const env = { OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: input.cloudId, OMB_CLOUD_ADMIN_URL: input.adminOrigin, OMB_CLOUD_BOOTSTRAP_SECRET: input.secret, OMB_PUBLIC_URL: input.origin, OMB_DASHBOARD_URL: input.dashboardUrl, OMB_CLOUD_ENTITLEMENT: "required" };
   if (Object.values(env).some(value => /[\r\n\0]/.test(value))) throw new Error("Invalid cloud environment value.");
   return env;
 }

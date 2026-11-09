@@ -82,7 +82,6 @@ export interface PlaceFacts {
   /** Desktop only: signed in to a paid OpenMausBot Cloud plan (the desktop bridge). */
   plan?: boolean;
   /** Legacy inputs are accepted when reading older workspace records. */
-  boat?: "included" | "own-key" | "none";
   backend?: "box" | "vps";
   /** Whether this workspace can reach the user's own VPS. */
   vpsConfigured?: boolean;

@@ -13,17 +13,15 @@ import { freePortBlock } from "./testing/ports.ts";
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const HOST = "omb-t-0123456789ab.fly.dev";
 const secret = randomBytes(32).toString("base64url");
-// Cloud Pro's included Boat computers, voice and decisions.
+// cloud pro's included cloud desktops, voice and decisions.
 const included = {
-  OMB_CLOUD_BOAT_URL: "https://cloud.example.test/api/cloud/services/boat/api/box/v1",
-  OMB_CLOUD_BOAT_TOKEN: `box_omb_${randomBytes(24).toString("base64url")}`,
   OMB_CLOUD_VOICE_URL: "https://cloud.example.test/api/cloud/services/voice/v1",
   OMB_CLOUD_VOICE_TOKEN: `omb_voice_${randomBytes(24).toString("base64url")}`,
   OMB_TTS_DEFAULT_VOICE: "preset0voice0id",
   OMB_CLOUD_DECIDER_URL: "https://cloud.example.test/api/cloud/services/decider",
   OMB_CLOUD_DECIDER_TOKEN: `omb_decide_${randomBytes(32).toString("base64url")}`,
 };
-const includedTokens = [included.OMB_CLOUD_BOAT_TOKEN, included.OMB_CLOUD_VOICE_TOKEN, included.OMB_CLOUD_DECIDER_TOKEN];
+const includedTokens = [included.OMB_CLOUD_VOICE_TOKEN, included.OMB_CLOUD_DECIDER_TOKEN];
 let home: string;
 let base: string;
 let child: ChildProcess;
@@ -277,7 +275,7 @@ console.log("dump-env 1.0.0");
   const env = JSON.parse(readFileSync(dump, "utf8"));
   // Proves the dump is the server's environment, not an empty one.
   expect(env.OMB_TTS_DEFAULT_VOICE).toBe(included.OMB_TTS_DEFAULT_VOICE);
-  for (const key of ["OMB_CLOUD_BOAT_TOKEN", "OMB_CLOUD_VOICE_TOKEN", "OMB_CLOUD_DECIDER_TOKEN", "OMB_CLOUD_BOOTSTRAP_SECRET"]) expect(env).not.toHaveProperty(key);
+  for (const key of ["OMB_CLOUD_VOICE_TOKEN", "OMB_CLOUD_DECIDER_TOKEN", "OMB_CLOUD_BOOTSTRAP_SECRET"]) expect(env).not.toHaveProperty(key);
   for (const value of [...includedTokens, secret]) expect(JSON.stringify(env)).not.toContain(value);
 });
 
@@ -316,7 +314,7 @@ it("never hands the signing secret to an engine", async () => {
   await expect.poll(() => existsSync(dump), { timeout: 15_000 }).toBe(true);
   const { env } = JSON.parse(readFileSync(dump, "utf8"));
   expect(env.HOME).toBe(home);
-  for (const key of ["OMB_CLOUD_BOOTSTRAP_SECRET", "OMB_CLOUD_BOAT_TOKEN", "OMB_CLOUD_VOICE_TOKEN", "OMB_CLOUD_DECIDER_TOKEN"]) expect(env).not.toHaveProperty(key);
+  for (const key of ["OMB_CLOUD_BOOTSTRAP_SECRET", "OMB_CLOUD_VOICE_TOKEN", "OMB_CLOUD_DECIDER_TOKEN"]) expect(env).not.toHaveProperty(key);
   expect(JSON.stringify(env)).not.toContain(secret);
   for (const includedToken of includedTokens) expect(JSON.stringify(env)).not.toContain(includedToken);
 });

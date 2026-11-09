@@ -96,7 +96,6 @@ beforeAll(async () => {
   broker = await startBrokerFake();
   fx = await launchCloudSendFixture({ onePasswordToken: "ops_fake-running-turn", broker, team: { id: "team-acme-1", name: "Acme", engine: ENGINE, env: {
     OMB_BOT_BOX: "0", FIXTURE_ADMIN_STAND_IN: `http://127.0.0.1:${(adminServer.address() as AddressInfo).port}`,
-    OMB_CLOUD_BOAT_URL: `http://127.0.0.1:${(relay.address() as AddressInfo).port}/relay/api/box/v1`, OMB_CLOUD_BOAT_TOKEN: "box_omb_running",
   } } });
   team = fx.team!;
   writeFileSync(join(team.home, "reply.txt"), FINISHED);

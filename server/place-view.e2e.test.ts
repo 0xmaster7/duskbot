@@ -1,4 +1,4 @@
-// Real server, fake Claude CLI and a loopback Boat whose answers each journey sets; a restartable home lets a test seed an automatic pin.
+// real server, fake claude cli and a loopback retired desktop provider whose answers each journey sets; a restartable home lets a test seed an automatic pin.
 import { spawn, type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -11,7 +11,7 @@ import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
-/** The Admin relay's refusal envelope (boatError in openmaus-cloud). */
+/** the admin relay's refusal envelope. */
 const refusal = (status: number, code: string, message: string) =>
   ({ status, body: { ok: false, type: "sandbox.error", status, code, message, error: { code, message, status } } });
 const HOURS = refusal(429, "limit_reached", "Your Pro plan's 50 cloud computer hours for October are used up. They reset on 1 November.");
@@ -25,8 +25,7 @@ describe("a cloud computer that can't start, against the real server", () => {
   let output = "";
   let child: ChildProcess | null = null;
   let base = "";
-  let boatServer: Server;
-  let boatApi = "";
+  let retiredServer: Server;
   let createAnswer: { status: number; body: unknown } | null = null;
   let included = false;
   let creates = 0;
@@ -82,8 +81,7 @@ describe("a cloud computer that can't start, against the real server", () => {
         APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
         TEMP: home, TMP: home, TMPDIR: home, OMB_TEST_SEALED_PATH: "1",
         OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), OMB_STATIC_DIR: ui,
-        OMB_BOAT_API: boatApi, OMB_USER_DATA: join(home, "user-data"),
-        ...(included ? { OMB_CLOUD_BOAT_URL: boatApi, OMB_CLOUD_BOAT_TOKEN: "relay_place_view_fixture" } : {}),
+        OMB_USER_DATA: join(home, "user-data"),
       }, stdio: ["ignore", "pipe", "pipe"],
     });
     child = proc;
@@ -109,7 +107,7 @@ describe("a cloud computer that can't start, against the real server", () => {
     mkdirSync(join(ui, "assets"), { recursive: true });
     writeFileSync(join(ui, "index.html"), "<title>Place view</title>");
     writeFileSync(join(ui, "assets", "test.css"), "body{}");
-    boatServer = createServer(async (req, res) => {
+    retiredServer = createServer(async (req, res) => {
       res.setHeader("content-type", "application/json");
       const path = new URL(req.url ?? "/", "http://box.fixture").pathname;
       let raw = ""; for await (const part of req) raw += part;
@@ -131,8 +129,7 @@ describe("a cloud computer that can't start, against the real server", () => {
       }
       res.end("{}");
     });
-    await new Promise<void>(resolve => boatServer.listen(0, "127.0.0.1", resolve));
-    boatApi = `http://127.0.0.1:${(boatServer.address() as { port: number }).port}`;
+    await new Promise<void>(resolve => retiredServer.listen(0, "127.0.0.1", resolve));
     writeConfig(true);
   });
   const writeConfig = (ownKey: boolean) => writeFileSync(join(data, "config.json"), JSON.stringify({
@@ -145,7 +142,7 @@ describe("a cloud computer that can't start, against the real server", () => {
   }));
   afterAll(async () => {
     await stop();
-    if (boatServer) await new Promise<void>(resolve => boatServer.close(() => resolve()));
+    if (retiredServer) await new Promise<void>(resolve => retiredServer.close(() => resolve()));
     if (home) await removeTempDir(home);
   });
   afterEach(async () => {
@@ -186,7 +183,7 @@ describe("a cloud computer that can't start, against the real server", () => {
     expect(row.tool.place).toEqual({ state: "cc-at-once", params: { bot: "Bo", plan: "Personal", max: 1, holders: ["Ada"] }, source: "works-on" });
   }, 90_000);
 
-  it("J7: a relay that can't start one says so plainly, with Try again and no Boat words", async () => {
+  it("J7: a relay that can't start one says so plainly, with Try again and no retired desktop provider words", async () => {
     await start();
     const { bot } = await apiOk("POST", "/api/bots", { name: "Down Bot" });
     await apiOk("PATCH", `/api/bots/${bot.id}`, { computer: "cloud" });
@@ -194,7 +191,7 @@ describe("a cloud computer that can't start, against the real server", () => {
     await send(bot.id, bot.threadId, "Open the desktop.");
     const row = await failedRow(bot.threadId);
     expect(row.tool.name).toBe("error: Cloud desktops can't start right now. It isn't anything you did. Try again.");
-    expect(row.tool.name).not.toMatch(/boat|box|Works on to Auto/i);
+    expect(row.tool.name).not.toMatch(/\x62oat|box|Works on to Auto/i);
     expect(row.tool.place).toEqual({ state: "cc-unavailable", params: { bot: "Down Bot" }, source: "works-on" });
   }, 90_000);
 

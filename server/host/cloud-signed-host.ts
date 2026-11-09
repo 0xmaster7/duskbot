@@ -3,8 +3,10 @@
 // its own route, `GET /api/cloud/box`.
 import type { BoxReport } from "../bot-box/box.ts";
 import { createCloudHealth, type CloudHealth, type CloudHealthDeps } from "../cloud-health.ts";
+import { createCloudEntitlement } from "../cloud-entitlement.ts";
 import type { CloudHomeConfig } from "../cloud-home.ts";
 import type { CloudPower } from "../cloud-power.ts";
+import { json } from "../harness/http.ts";
 import { createCloudSignedRoutes } from "../routes/cloud-signed.ts";
 import type { TeamAdminSummary } from "../cloud-team-admin.ts";
 import type { SessionRegistry } from "../sessions.ts";
@@ -30,10 +32,19 @@ export interface CloudSignedHostDeps {
 
 export function createCloudSignedHost(deps: CloudSignedHostDeps): { cloudHealth: CloudHealth | null; cloudSigned: ReturnType<typeof createCloudSignedRoutes> | null } {
   const cloudHealth = deps.cloudHome ? createCloudHealth({ ...deps.health, box: deps.box }) : null;
-  const cloudSigned = deps.cloudHome && cloudHealth
-    ? createCloudSignedRoutes({ secret: deps.cloudHome.bootstrapSecret, sessions: deps.sessions, team: deps.cloudHome.team, health: cloudHealth, power: deps.power, box: deps.box,
+  const entitlement = deps.cloudHome ? createCloudEntitlement({ dataDir: deps.health.dataDir, machineId: deps.cloudHome.machineId }) : null;
+  const routes = deps.cloudHome && cloudHealth
+    ? createCloudSignedRoutes({ entitlement, secret: deps.cloudHome.bootstrapSecret, sessions: deps.sessions, team: deps.cloudHome.team, health: cloudHealth, power: deps.power, box: deps.box,
       ...(deps.cloudHome.team && deps.teamAdmin ? { teamAdmin: deps.teamAdmin } : {}),
       ...(deps.cloudHome.team && deps.memberLeft ? { memberLeft: deps.memberLeft } : {}), ...(deps.cloudHome.team && deps.policyChanged ? { policyChanged: deps.policyChanged } : {}), ...(deps.plan ? { plan: deps.plan } : {}), ...(deps.planTier ? { planTier: deps.planTier } : {}) })
     : null;
+  // a hosted home without a valid entitlement answers only its signed routes and its liveness probe
+  const cloudSigned: typeof routes = routes && (async (request) => {
+    if (await routes(request)) return true;
+    const refused = entitlement?.gate(request.path);
+    if (!refused) return false;
+    json(request.res, refused.status, refused.body);
+    return true;
+  });
   return { cloudHealth, cloudSigned };
 }

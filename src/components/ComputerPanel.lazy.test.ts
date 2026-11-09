@@ -253,7 +253,7 @@ describe("VPS computer preparation", () => {
     await settle();
     expect(fixture.posts.filter((path) => path.endsWith("/provision"))).toHaveLength(1);
     expect(document.querySelector("[data-live-screen]")).not.toBeNull();
-    expect(text()).not.toMatch(/Boat|paid service|credits/);
+    expect(text()).not.toMatch(/\x42oat|paid service|credits/);
   });
 
   it("does not provision before the VPS is configured", async () => {

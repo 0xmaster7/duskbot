@@ -44,7 +44,7 @@ The first version includes:
   state.
 - Approvals and questions, including narrow “always allow” grants.
 - Resumable SSE, streamed reply text, reconnect hydration, and an opt-in live
-  Boat computer view. The loopback-only VPS SSH viewer remains desktop-only.
+  cloud desktop view. The loopback-only VPS SSH viewer remains desktop-only.
 - On-demand stills of a bot's Local VM, idle or working, for a phone the
   computer owner has allowed computer access.
 - Markdown rendering and Keychain storage for the phone's pairing trust.

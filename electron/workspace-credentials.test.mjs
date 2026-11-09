@@ -19,7 +19,7 @@ describe("workspace credential migration", () => {
   it("moves every plaintext secret into the store and deletes the field", () => {
     const config = {
       xai: { key: "xai-secret", url: "https://api.example.test/v1" },
-      box: { token: "boat-secret" },
+      box: { token: "retired-secret" },
       tts: { key: "tts-secret", fishKey: "fish-secret", voice: "narrator" },
       imageGen: { key: "image-secret" },
       opencodeGo: { apiKey: "ocg-secret" },
@@ -37,7 +37,7 @@ describe("workspace credential migration", () => {
     });
     expect(result.config).toEqual({
       xai: { url: "https://api.example.test/v1" },
-      box: { token: "boat-secret" },
+      box: { token: "retired-secret" },
       tts: { voice: "narrator" },
       imageGen: {},
       opencodeGo: {},

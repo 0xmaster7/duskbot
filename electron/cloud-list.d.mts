@@ -31,7 +31,7 @@ export interface CloudListEntry {
   removable?: true;
   /** A Ready Cloud whose plan sleeps: whether it is asleep now. */
   power?: import("./cloud-power.mjs").CloudPower;
-  /** Who runs its machine, when the Admin says ("boat"); absent from an older Admin. */
+  /** Who runs its machine, when the Admin says ("managed"); absent from an older Admin. */
   provider?: string;
 }
 /** What this app says of a listed Cloud it doesn't open: ended, its checkout not finished, a payment problem, or being set up. */
@@ -63,7 +63,7 @@ export declare function ownCloud(cloud: CloudListEntry | null | undefined): bool
 export declare function signedInServers(clouds: CloudListEntry[] | null | undefined): CloudListEntry[];
 export declare function releaseVersion(value: unknown): string | null;
 export declare function olderRelease(version: unknown, latest: unknown): boolean;
-export declare function parseCloudList(input: unknown): CloudListEntry[] | null;
+export declare function parseCloudList(input: unknown, trust?: { keys: ReadonlyArray<{ kid: string; x: string }>; now(): number }): CloudListEntry[] | null;
 export declare function otherOwnClouds(clouds: CloudListEntry[] | null | undefined): CloudListEntry[];
 export declare function cloudMachine(cloud: CloudListEntry | null | undefined): import("./cloud-home.mjs").CloudMachine | null;
 export declare function stepProgress(step: unknown): number;

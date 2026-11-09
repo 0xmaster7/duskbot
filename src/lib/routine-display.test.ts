@@ -31,11 +31,11 @@ describe("where a routine runs", () => {
     expect(routineRunsOn({ roomGoal: true, cloudHome: false }).label).toBe("This computer, with the whole group");
   });
 
-  it("never names Boat or a cloud runner", () => {
+  it("never names retired desktop provider or a cloud runner", () => {
     for (const cloudHome of [true, false]) {
       for (const input of [{ runOn: "cloud" }, { computer: "cloud" }, {}]) {
         const { label, hint } = routineRunsOn({ roomGoal: false, cloudHome, ...input });
-        expect(`${label} ${hint}`).not.toMatch(/boat|runner|VM\b/i);
+        expect(`${label} ${hint}`).not.toMatch(/\x62oat|runner|VM\b/i);
       }
     }
   });

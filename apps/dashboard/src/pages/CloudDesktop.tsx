@@ -187,7 +187,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
   useEffect(() => { if (cloud.workspaceId && workspace?.id !== cloud.workspaceId) pick(cloud.workspaceId); }, [cloud.workspaceId, workspace?.id, pick]);
   const asleep = cloud.status === "sleeping" || cloud.status === "stopped";
   const sub = billing?.subscription;
-  const deleting = cloud.provider === "boat" && (canDeleteData(cloud, billing) || deletion(cloud) !== null);
+  const deleting = cloud.provider === "managed" && (canDeleteData(cloud, billing) || deletion(cloud) !== null);
   return (
     <div className="flex flex-col gap-4">
       <DeletionBanner cloud={cloud} />

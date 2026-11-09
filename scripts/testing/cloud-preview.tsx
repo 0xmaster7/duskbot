@@ -80,7 +80,7 @@ window.fetch = async (input, init) => {
     }
     return json({ image: vmScreenshot });
   }
-  // The real server refuses provision/sleep while a turn owns the boat.
+  // the real server refuses provision/sleep while a turn owns the cloud desktop.
   if (path.endsWith("/computer/provision")) {
     if (turnActive) return json({ error: CLOUD_COMPUTER_BUSY_ERROR }, 409);
     return json({ configured: true, ready: true, managed: true, imageMatches: true, container: "running", problem: null });

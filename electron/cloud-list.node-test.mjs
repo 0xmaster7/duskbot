@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { cloudMachine, cloudSetupProgress, cloudState, homeLook, listedColors, MAX_CLOUDS, olderRelease, otherOwnClouds, ownCloudPlaces, parseCloudList, parseCloudRenewal, parseOrganizations, releaseVersion, withoutOldCloudHome, signedInServers, swatchColor } from "./cloud-list.mjs";
+import { generateEntitlementSigner, signEntitlement } from "../shared/entitlement.ts";
 import environments from "./environments.cjs";
 import { createHomePlaces } from "./home-places.mjs";
 
@@ -238,15 +239,27 @@ test("the saved place of My Cloud takes the name and colour the Admin lists it u
   assert.equal(homeLook({ status: "signed-out" }), null);
 });
 
-test("each Cloud's `provider` is carried as the Admin says it, and an Admin without it changes nothing", () => {
-  assert.equal(parseCloudList([primary])[0].provider, undefined, "absent: no provider at all");
-  assert.equal(parseCloudList([cloud({ provider: "boat" })])[0].provider, "boat");
-  assert.equal(parseCloudList([cloud({ provider: "boat", power: { state: "asleep", since: 1_761_000_000_000, sleeps: true } })])[0].power.state, "asleep", "beside the power it already had");
-  for (const bad of ["Boat!", "", 7, null, { name: "boat" }, "x".repeat(25)]) {
-    const [shown] = parseCloudList([cloud({ provider: bad })]);
+test("each Cloud's `provider` is carried only with a signed entitlement for it, and an Admin without it changes nothing", () => {
+  const dev = generateEntitlementSigner("dev-test"), other = generateEntitlementSigner("dev-other"), at = 1_800_000_000_000;
+  const trust = { keys: [dev.publicKey], now: () => at };
+  const id = `c${"a".repeat(24)}`;
+  const token = (cloudId = id, signer = dev.signer, aud = ["app"]) => signEntitlement({ aud, cloud: cloudId, acct: "a", tier: "pro", features: ["cloud", "managed"], iat: at, exp: at + 3_600_000 }, signer);
+  const managedCloud = (over = {}) => cloud({ id, provider: "managed", entitlement: token(), ...over });
+  assert.equal(parseCloudList([primary], trust)[0].provider, undefined, "absent: no provider at all");
+  assert.equal(parseCloudList([managedCloud()], trust)[0].provider, "managed");
+  assert.equal(parseCloudList([managedCloud({ power: { state: "asleep", since: 1_761_000_000_000, sleeps: true } })], trust)[0].power.state, "asleep", "beside the power it already had");
+  for (const [why, over] of [["none", { entitlement: undefined }], ["another key", { entitlement: token(id, other.signer) }], ["another cloud", { entitlement: token(`c${"b".repeat(24)}`) }],
+    ["the home's audience", { entitlement: token(id, dev.signer, ["home"]) }], ["garbage", { entitlement: "e1.dev-test.x.y" }]]) {
+    const [shown] = parseCloudList([managedCloud(over)], trust);
+    assert.ok(shown, `an unverified entitlement never drops the Cloud: ${why}`);
+    assert.equal(shown.provider, undefined, why);
+  }
+  assert.equal(parseCloudList([managedCloud()])[0].provider, undefined, "a packaged app trusts only the pinned keys");
+  for (const bad of ["managed!", "", 7, null, { name: "managed" }, "x".repeat(25)]) {
+    const [shown] = parseCloudList([managedCloud({ provider: bad })], trust);
     assert.ok(shown, `a malformed provider never drops the Cloud: ${JSON.stringify(bad)}`);
     assert.equal(shown.provider, undefined, JSON.stringify(bad));
   }
-  const server = { ...cloud({ id: "s-1", runsOn: "server", managed: false, provider: "boat" }) };
-  assert.equal(parseCloudList([server])[0].provider, undefined, "a server of the person's own has no provider");
+  const server = { ...managedCloud({ id: "s-1", runsOn: "server", managed: false }) };
+  assert.equal(parseCloudList([server], trust)[0].provider, undefined, "a server of the person's own has no provider");
 });

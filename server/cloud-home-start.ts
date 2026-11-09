@@ -33,12 +33,12 @@ export function passwdIds(passwd: string, name: string): { uid: number; gid: num
 const SERVER_ENV_NAMES = new Set([
   "PATH", "SHELL", "HOSTNAME", "LANG", "LANGUAGE", "TZ", "TERM", "TMPDIR", "NO_COLOR", "NODE_ENV", "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR",
   "AGENT_BROWSER_EXECUTABLE_PATH", "OMB_STATIC_DIR", "OMB_DATA_DIR", "OMB_DUCKDB_DIR",
-  "OMB_CLOUD_ROLE", "OMB_CLOUD_MACHINE_ID", "OMB_CLOUD_ADMIN_URL", "OMB_CLOUD_IMAGE", "OMB_PUBLIC_URL", "OMB_WEBHOOK_PUBLIC_URL",
-  "OMB_CLOUD_TEAM_ID", "OMB_CLOUD_TEAM_NAME", "OMB_CLOUD_BOAT_URL", "OMB_CLOUD_VOICE_URL", "OMB_CLOUD_DECIDER_URL", "OMB_CLOUD_AI_URL", "OMB_CLOUD_X_URL", "OMB_TTS_DEFAULT_VOICE",
+  "OMB_CLOUD_ROLE", "OMB_CLOUD_MACHINE_ID", "OMB_CLOUD_ADMIN_URL", "OMB_CLOUD_IMAGE", "OMB_PUBLIC_URL", "OMB_WEBHOOK_PUBLIC_URL", "OMB_CLOUD_ENTITLEMENT",
+  "OMB_CLOUD_TEAM_ID", "OMB_CLOUD_TEAM_NAME", "OMB_CLOUD_VOICE_URL", "OMB_CLOUD_DECIDER_URL", "OMB_CLOUD_AI_URL", "OMB_CLOUD_X_URL", "OMB_TTS_DEFAULT_VOICE",
   "OMB_COMPOSIO_BROKER_URL",
   // The bot box switch (server/bot-box/detect.ts): the Admin may turn a home's box off for support.
   "OMB_BOT_BOX",
-  // A home on its own machine (a Boat sandbox) runs bot computers on that machine's Docker, only through the gate's socket.
+  // a home on its own machine (a managed cloud vm) runs bot computers on that machine's docker, only through the gate's socket.
   "OPENMAUSBOT_VPS_DOCKER", "DOCKER_HOST",
   // An ended Cloud started only for its owner's export: the server runs frozen (server/move-freeze.ts).
   "OMB_CLOUD_EXPORT_ONLY",
@@ -132,6 +132,8 @@ export function cloudHomeChildEnvironments(config: CloudHomeConfig, env: NodeJS.
     PATH: env.PATH ?? "/usr/local/bin:/usr/bin:/bin", HOME: "/tmp/omb-edge",
     XDG_DATA_HOME: "/tmp/omb-edge/data", XDG_CONFIG_HOME: "/tmp/omb-edge/config",
     OMB_CLOUD_PUBLIC_HOST: cloudHomeHost(config),
+    // the host a public edge forwards to, when it differs from the public one (a managed machine's own hosted name)
+    OMB_CLOUD_UPSTREAM_HOST: /^[a-z0-9.-]{1,253}$/.test(env.OMB_CLOUD_UPSTREAM_HOST ?? "") ? env.OMB_CLOUD_UPSTREAM_HOST! : cloudHomeHost(config),
     // A plan whose home sleeps: requests wait this long for the server while it starts (deploy/fly/Caddyfile). Unset: 0s.
     OMB_CLOUD_EDGE_HOLD: edgeHold(env.OMB_CLOUD_EDGE_HOLD),
     ...edgeClientAddress(env),

@@ -144,7 +144,7 @@ To reproduce a failing Vitest job locally:
    and Linux shard 3 do not contain the same files.
 3. Copy the expanded command from **Run tests**, including any file filters
    and the complete `--shard=n/count` fraction. Copy its `OMB_VITEST_E2E`,
-   `OMB_VITEST_SUBSET` and `OMB_VITEST_WORKERS` environment values too. On Boat, the static job
+   `OMB_VITEST_SUBSET` and `OMB_VITEST_WORKERS` environment values too. On a CI VM, the static job
    contains each shard's output in a `vitest (ubuntu-latest, ...)` lane's
    log group; the lane uses the same matrix values.
 

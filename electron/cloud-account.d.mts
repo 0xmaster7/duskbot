@@ -224,7 +224,7 @@ export interface CloudPlanSnapshot {
   room?: import("./cloud-home.mjs").CloudRoom;
   /** Verified, while this account pays for a plan that runs: what Cancel and Keep act on. */
   renewal?: import("./cloud-list.mjs").CloudRenewal;
-  /** Verified: who runs My Cloud's machine, when the session's list says ("boat"). */
+  /** Verified: who runs My Cloud's machine, when the session's list says ("managed"). */
   provider?: string;
 }
 export interface CloudPlanBridge {

@@ -10,7 +10,7 @@ passphrase, and never runs an agent remotely.
 
 - A per-bot Linux desktop in a managed container on your VPS (the bot desktop image, `deploy/bot-desktop`), driven
   through the official Cua tools. If its image cannot be pulled yet, the app builds the Cua XFCE desktop instead.
-- Live screen preview in the Computer panel and in transcripts, same as a Boat.
+- Live screen preview in the Computer panel and in transcripts, same as a cloud desktop.
 - Explicit **Cloud** with the **Self-hosted VPS** backend provisions or starts the container. **Auto** reuses
   a ready container by default; an off-by-default **Start VPS automatically** switch lets that bot prepare
   or wake its managed container when needed. Scheduled and manually triggered routine runs always start it,

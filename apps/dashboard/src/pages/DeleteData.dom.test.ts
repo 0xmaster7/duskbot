@@ -34,7 +34,7 @@ const button = (host: HTMLElement, label: string) => [...host.querySelectorAll("
 
 test("the emailed link: token kept out of the URL, sign in again, confirm shows the date, cancel calls the route", async () => {
   const token = "fixture-delete-link".padEnd(43, "0");
-  history.replaceState(null, "", `/clouds/fx-cloud/delete?fixture=boat#${token}`);
+  history.replaceState(null, "", `/clouds/fx-cloud/delete?fixture=managed#${token}`);
   const persisted = new Map<string, string>();
   vi.stubGlobal("localStorage", { getItem: (key: string) => persisted.get(key) ?? null, setItem: (key: string, value: string) => void persisted.set(key, value), removeItem: (key: string) => void persisted.delete(key) });
   const { api } = await import("../lib/api");
@@ -45,7 +45,7 @@ test("the emailed link: token kept out of the URL, sign in again, confirm shows 
 
   const first = await render(createElement(DeleteDataPage, { id: "fx-cloud" }));
   expect(location.hash).toBe("");
-  expect(location.pathname + location.search).toBe("/clouds/fx-cloud/delete?fixture=boat");
+  expect(location.pathname + location.search).toBe("/clouds/fx-cloud/delete?fixture=managed");
   expect(sessionStorage.getItem("omb-dash-delete-token:fx-cloud")).toBe(token);
   expect([...persisted.values()].some((value) => value.includes(token))).toBe(false);
   expect(first.host.querySelector("h1")?.textContent).toBe("Delete the data on Sid's Cloud?");
@@ -80,7 +80,7 @@ test("the cloud page banner shows a scheduled deletion and cancels it", async ()
   const { DeletionBanner } = await import("./DeleteData");
   const cancel = vi.spyOn(api, "cancelDeleteData").mockResolvedValue({ ok: true });
   const at = new Date(2026, 10, 16, 12).getTime();
-  const cloud = { id: "fx-cloud", name: "Sid's Cloud", provider: "boat", deleteScheduledAt: at } as CloudDesktop;
+  const cloud = { id: "fx-cloud", name: "Sid's Cloud", provider: "managed", deleteScheduledAt: at } as CloudDesktop;
   const { host } = await render(createElement(DeletionBanner, { cloud }));
   expect(host.querySelector("h2")?.textContent).toBe("Deleting on 16 Nov 2026");
   await act(async () => button(host, "Cancel deletion")!.click());

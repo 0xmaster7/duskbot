@@ -14,7 +14,7 @@ import type { BotPatch, useBotSettingsDerived } from "../bot-settings/useBotSett
 import type { PlaceActionId } from "../../../shared/place-view";
 import type { SimplePageId } from "./page-registry";
 import { Card, RadioRow } from "./rows";
-import { BoatCloudListRow, useBoatCloud } from "./BoatCloud";
+import { CloudDesktopListRow, useCloudDesktop } from "./CloudDesktop";
 import { AsleepMascot, COMPUTER_FRAME_CLASS, COMPUTER_SCREEN_ASPECT, COMPUTER_WAKE_BUTTON_CLASS, ComputerWaking } from "./ComputerScreenMascot";
 import { queueComputerWake } from "./computer-wake-queue";
 import "./computer-tab.css";
@@ -72,14 +72,14 @@ export function usePlaceChoices(bot: Bot) {
 }
 
 /** Choosing where a bot works, as the panel and its dialog both do: a place it cannot use, or Off, is never chosen; this
- * computer for a bot that decides alone asks first, through `warning`. `boat`: the Boat cloud row beside the choices, in
+ * computer for a bot that decides alone asks first, through `warning`. `cloudDesktop`: the cloud desktop row beside the choices, in
  * the desktop app only; choosing it runs its own step and never changes the bot's place (its confirm is in `warning`). */
 export function usePlacePicker(bot: Bot, derived: Derived) {
   const { dispatch } = useStore();
   const choices = usePlaceChoices(bot);
   const { current } = choices;
   const [localAutoWarning, setLocalAutoWarning] = useState<{ botId: string; patch: BotPatch } | null>(null);
-  const boat = useBoatCloud();
+  const cloudDesktop = useCloudDesktop();
   const { patch, approvalMode } = derived;
   const choosePlace = (value: PlaceChoice) => {
     if (value === current || value === "vm" || value === "off") return;
@@ -101,14 +101,14 @@ export function usePlacePicker(bot: Bot, derived: Derived) {
         dispatch({ type: "updateBot", botId: target.botId, patch: target.patch });
       }}
     />
-    {boat?.dialog}
+    {cloudDesktop?.dialog}
     </>
   );
-  return { ...choices, choosePlace, warning, boat };
+  return { ...choices, choosePlace, warning, cloudDesktop };
 }
 
 export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
-  const { options, current, usingNow, choosePlace, warning, boat } = usePlacePicker(bot, derived);
+  const { options, current, usingNow, choosePlace, warning, cloudDesktop } = usePlacePicker(bot, derived);
 
   return (
     <>
@@ -127,7 +127,7 @@ export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
           ))}
         </div>
       </Card>
-      {boat && <Card><BoatCloudListRow boat={boat} /></Card>}
+      {cloudDesktop && <Card><CloudDesktopListRow cloudDesktop={cloudDesktop} /></Card>}
       {usingNow && <p data-panel-using-now className="mx-1 text-[13px] text-ink-secondary">{t("computer.simple.usingNow", { place: usingNow })}</p>}
       {warning}
     </>
@@ -169,7 +169,7 @@ export function AsleepScreen({ bot, off }: { bot: Bot; off: boolean }) {
   );
 }
 
-type TabChoice = PlaceChoice | "add" | "boat";
+type TabChoice = PlaceChoice | "add" | "cloud-desktop";
 
 const CHOICE_ICON: Record<TabChoice, GrokIconName> = {
   auto: "sparkle",
@@ -179,12 +179,12 @@ const CHOICE_ICON: Record<TabChoice, GrokIconName> = {
   vm: "lock",
   off: "minus",
   add: "plus",
-  boat: "cloud-laptop",
+  "cloud-desktop": "cloud-laptop",
 };
 
 export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOpen: (page: SimplePageId) => void }) {
   const { dispatch } = useStore();
-  const { options, current, usingNow, choosePlace, warning, boat } = usePlacePicker(bot, derived);
+  const { options, current, usingNow, choosePlace, warning, cloudDesktop } = usePlacePicker(bot, derived);
   const placeViews = usePlaceViews(bot);
   const [screenBox, setScreenBox] = useState<HTMLElement | null>(null);
   const onScreen = useOnScreen(screenBox);
@@ -195,10 +195,10 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
     ...options.filter((option) => option.value === "local" || option.value === "cloud" || option.value === current),
     { value: "add" as const, label: t("computer.simple.addCloud") },
   ];
-  // the Boat cloud's own row, apart from the choices: its name, and what choosing it does (or where it stands, unchosen)
-  const boatOption = boat ? [{
-    value: "boat" as const, icon: CHOICE_ICON.boat, separated: true, disabled: !boat.view.acts || boat.busy, title: boat.hint,
-    label: <>{boat.label} <span className="text-ink-secondary">{boat.hint}</span></>,
+  // the cloud desktop's own row, apart from the choices: its name, and what choosing it does (or where it stands, unchosen)
+  const cloudDesktopOption = cloudDesktop ? [{
+    value: "cloud-desktop" as const, icon: CHOICE_ICON["cloud-desktop"], separated: true, disabled: !cloudDesktop.view.acts || cloudDesktop.busy, title: cloudDesktop.hint,
+    label: <>{cloudDesktop.label} <span className="text-ink-secondary">{cloudDesktop.hint}</span></>,
   }] : [];
   const addCloud = () => {
     const step = placeViews.cloud.view.action;
@@ -221,11 +221,11 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
           title={usingNow ? t("computer.simple.usingNow", { place: usingNow }) : whereTitle}
           value={current}
           disabled={!editable}
-          onChange={(value) => value === "add" ? addCloud() : value === "boat" ? boat?.choose() : choosePlace(value)}
+          onChange={(value) => value === "add" ? addCloud() : value === "cloud-desktop" ? cloudDesktop?.choose() : choosePlace(value)}
           options={[...choices.map((option) => ({
             value: option.value, label: option.label, icon: CHOICE_ICON[option.value], separated: option.value === "add",
             disabled: "disabled" in option ? option.disabled : undefined, title: "hint" in option ? option.hint : undefined,
-          })), ...boatOption]}
+          })), ...cloudDesktopOption]}
           className="my-0 mr-0"
         />
       </div>

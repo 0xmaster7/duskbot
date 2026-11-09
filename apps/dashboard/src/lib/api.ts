@@ -4,13 +4,13 @@ import type { AccountDevice, AccountProfile, AuthProviders, BillingOverview, Che
 import { accountFromWire, billingFromWire, cartFromQuote, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire } from "../data/live";
 import { CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, type AccountAnswer, type AccountView, type BillingOverview as WireBillingOverview, type CancelAnswer, type Catalog, type ChangePreview, type CheckoutAnswer as WireCheckoutAnswer, type CloudDesktopView, type DeviceLookupAnswer, type EmailStartAnswer, type MeAnswer, type ProvidersAnswer, type Quote, type WebSignInAnswer } from "../data/wire";
 
-export type Scenario = "signedout" | "new" | "mac" | "cloud" | "provisioning" | "boat";
+export type Scenario = "signedout" | "new" | "mac" | "cloud" | "provisioning" | "managed";
 export interface Account { id: string; email: string; name?: string | null }
 export interface AccountData { profile: AccountProfile; identities: Identity[]; devices: AccountDevice[]; notifications: NotificationPrefs }
 
 function fixtureMode(): Scenario | null {
   if (!(import.meta.env.DEV || import.meta.env.VITE_DASH_FIXTURES === "1") || typeof location === "undefined") return null;
-  const valid = (value: string | null): value is Scenario => value !== null && ["signedout", "new", "mac", "cloud", "provisioning", "boat"].includes(value);
+  const valid = (value: string | null): value is Scenario => value !== null && ["signedout", "new", "mac", "cloud", "provisioning", "managed"].includes(value);
   const value = new URLSearchParams(location.search).get("fixture");
   try {
     if (value === "off") { sessionStorage.removeItem("omb-dash-fixture"); return null; }
@@ -198,7 +198,7 @@ export const api = {
   },
   slackWake: (id: string, signal?: AbortSignal) => call<SlackWake>(`${cloudPath(id)}/slack-wake`, { signal }),
   setSlackWake: (id: string, enabled: boolean) => send<SlackWake>(`${cloudPath(id)}/slack-wake`, "PUT", { enabled }),
-  /** a Boat cloud whose plan has ended: emails the owner a one-time link that confirms deleting its data */
+  /** a managed cloud whose plan has ended: emails the owner a one-time link that confirms deleting its data */
   askDeleteData: (id: string) => send<{ ok: true; emailed: true }>(`${cloudPath(id)}/delete-data`, "POST"),
   confirmDeleteData: (id: string, token: string) => send<{ ok: true; deleteScheduledAt: number }>(`${cloudPath(id)}/delete-data/confirm`, "POST", { token }),
   cancelDeleteData: (id: string) => send<{ ok: true }>(`${cloudPath(id)}/delete-data/cancel`, "POST"),
