@@ -1006,6 +1006,7 @@
   "composer.dictation.start": "Почати диктування",
   "composer.dictation.stop": "Зупинити диктування",
   "composer.dictation.stopHint": "Зупинити диктування (Esc)",
+  "composer.dictation.discard": "Скасувати диктування",
   "composer.dictation.hint": "Диктувати",
   "composer.failed.notSent": "Не надіслано: «{text}»",
   "composer.failed.attachment": "вкладення",
@@ -3553,5 +3554,7 @@
   "mobile.onboarding.linkShort": "Відкрийте {app} на комп'ютері та скануйте код у розділі Налаштування › Phone.",
   "mobile.onboarding.pasteInstead": "Натомість вставити посилання",
   "mobile.home.onlyPinnedTitle": "Ваші інші чати з'являться тут",
-  "mobile.home.onlyPinnedBody": "Створіть бота для завдання, наприклад для роботи з поштою, пошуку інформації чи ведення проєкту, і його чат з'явиться в цьому списку."
+  "mobile.home.onlyPinnedBody": "Створіть бота для завдання, наприклад для роботи з поштою, пошуку інформації чи ведення проєкту, і його чат з'явиться в цьому списку.",
+  "botPanel.memory.forgotten": "Нотатку забуто",
+  "botPanel.memory.undoFailed": "Пам'ять відтоді змінилася, тож нотатку не вдалося повернути."
 }

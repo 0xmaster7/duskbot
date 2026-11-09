@@ -4,7 +4,7 @@ import { ThreadLinkContext } from "@/components/ThreadLinkMenu";
 import { ChevronLeft, ChevronRight, Copy, Monitor, RefreshCw, Square, Webhook } from "lucide-react";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { ACTION_ICON, ChatBusyContext, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction, type MessageMenuItem } from "@/components/MessageActions";
-import { copyText } from "@/lib/copy-text";
+import { copyMessage } from "@/lib/message-copy";
 import { ReactAction, ReactionChips } from "@/components/Reactions";
 import { useBotMessageMenu, userMessageMenu } from "@/components/message-menu";
 import { useSpeech } from "@/lib/tts/useSpeech";
@@ -78,7 +78,7 @@ import { ThreadRefText } from "./ThreadRefs";
 import { optionsCardRow, settledCardStays } from "./OptionsCardRow";
 import { MessageBoundary } from "./MessageBoundary";
 import { RichMessageRow, UserLineNote, richRowKind } from "./RichMessageRow"; import { SetupOffer } from "./SetupOffer";
-import { Composer } from "./Composer"; import { FailedReplyCard, FoldedNoticesContext, foldedNoticeIds, useTrailingRows } from "./FailedReplyCard";
+import { Composer } from "./Composer"; import { ComposerSignInNotice } from "./ComposerSignInNotice"; import { FailedReplyCard, FoldedNoticesContext, foldedNoticeIds, useTrailingRows } from "./FailedReplyCard";
 import { CARD_ACTION, ChatErrorBanner, ChatErrorCard, ChatNotice } from "./ChatErrorBanner";
 import { ThreadContextWarning } from "./ContextWarning";
 import { UsageAlert, useLimitResetContinue } from "./EngineUsage";
@@ -299,7 +299,7 @@ export { MessageBoundary };
 
 /** A message keeps its Copy in its "…" menu, after the reaction and Reply buttons. */
 function copyItem(text: string): MessageMenuItem[] {
-  return text.trim() ? [{ key: "copy", icon: <Copy {...ACTION_ICON} />, label: t("chat.copyMessage"), onSelect: () => { void copyText(text); } }] : [];
+  return text.trim() ? [{ key: "copy", icon: <Copy {...ACTION_ICON} />, label: t("chat.copyMessage"), onSelect: () => { void copyMessage(text); } }] : [];
 }
 
 const Bubble = memo(function Bubble({
@@ -1324,6 +1324,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       {/* grok says what went wrong in one quiet line just above the message box */}
       <div className="pointer-events-auto"><ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} /></div>
       <div className="pointer-events-auto"><FailedReplyCard rows={trailing} botId={bot.id} threadId={bot.threadId} onRetry={lastUserMessage ? regenerate : undefined} /></div>
+      {canWrite !== false && !trailing?.failures.length && !trailing?.notices.length && <div className="pointer-events-auto"><ComposerSignInNotice bot={bot} /></div>}
       <LiveCallBar bot={bot} />
       {canWrite === false ? (
         <NewConversationInstead bot={bot} onNew={() => dispatch({ type: "newTask", botId: bot.id })} />

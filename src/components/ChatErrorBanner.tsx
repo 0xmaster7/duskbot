@@ -6,7 +6,7 @@ import { GrokIcon } from "./GrokIcon";
 import { NoticeGlyph } from "./ui/Notice";
 
 // grok's prompt notices: one 12/16 line above the message box, no box, 2px in from its edge
-const NOTICE_LINE = "flex items-start gap-1.5 px-0.5 text-[12px] leading-4";
+export const NOTICE_LINE = "flex items-start gap-1.5 px-0.5 text-[12px] leading-4";
 
 export function ChatNotice({ notice }: { notice: AppState["notice"] }) {
   if (!notice) return null;

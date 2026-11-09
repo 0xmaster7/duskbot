@@ -4,6 +4,7 @@ import { GrokIcon } from "./GrokIcon";
 import { popoverClosesOnKey, usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
+import { copyMessage } from "@/lib/message-copy";
 import { t } from "@/lib/i18n";
 import { MENU_ITEM, MENU_SHEET } from "./menu-recipe";
 
@@ -242,7 +243,7 @@ export function ReplyAction({ onReply, own = false }: { onReply: () => void; own
 }
 
 export function CopyButton({ text, className }: { text: string; className?: string }) {
-  const { state, copy } = useCopyFeedback(text);
+  const { state, copy } = useCopyFeedback(text, copyMessage);
   const label = t(state === "copied" ? "chat.copyMessageDone" : state === "failed" ? "chat.copyMessageFailed" : "chat.copyMessage");
   return (
     <button

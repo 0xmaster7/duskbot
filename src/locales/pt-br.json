@@ -1904,6 +1904,7 @@
   "composer.dictation.start": "Iniciar o ditado",
   "composer.dictation.stop": "Parar o ditado",
   "composer.dictation.stopHint": "Parar o ditado (Esc)",
+  "composer.dictation.discard": "Descartar o ditado",
   "composer.dictation.hint": "Ditar",
   "composer.failed.notSent": "Não enviada: “{text}”",
   "composer.failed.attachment": "anexo",
@@ -6052,5 +6053,7 @@
   "mobile.onboarding.linkShort": "Abra {app} no computador e leia o código em Configurações › Phone.",
   "mobile.onboarding.pasteInstead": "Colar um link em vez disso",
   "mobile.home.onlyPinnedTitle": "Suas outras conversas aparecem aqui",
-  "mobile.home.onlyPinnedBody": "Crie um bot para uma tarefa, como cuidar dos e-mails, pesquisar ou trabalhar em um projeto, e a conversa dele aparecerá nesta lista."
+  "mobile.home.onlyPinnedBody": "Crie um bot para uma tarefa, como cuidar dos e-mails, pesquisar ou trabalhar em um projeto, e a conversa dele aparecerá nesta lista.",
+  "botPanel.memory.forgotten": "Nota esquecida",
+  "botPanel.memory.undoFailed": "A memória mudou desde então, então a nota não pôde voltar."
 }

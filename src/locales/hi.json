@@ -873,6 +873,7 @@
   "composer.dictation.start": "श्रुतलेख शुरू करें",
   "composer.dictation.stop": "श्रुतलेख रोकें",
   "composer.dictation.stopHint": "श्रुतलेख रोकें (Esc)",
+  "composer.dictation.discard": "श्रुतलेख हटाएं",
   "composer.dictation.hint": "बोलकर लिखें",
   "composer.failed.notSent": "नहीं भेजा गया: “{text}”",
   "composer.failed.attachment": "अटैचमेंट",
@@ -3248,5 +3249,7 @@
   "mobile.onboarding.linkShort": "कंप्यूटर पर {app} खोलें और सेटिंग्स › Phone में कोड स्कैन करें।",
   "mobile.onboarding.pasteInstead": "इसके बजाय लिंक पेस्ट करें",
   "mobile.home.onlyPinnedTitle": "आपकी बाकी चैट यहाँ दिखेंगी",
-  "mobile.home.onlyPinnedBody": "ईमेल, रिसर्च या किसी प्रोजेक्ट जैसे काम के लिए बॉट बनाएँ। उसकी चैट इस सूची में दिखेगी।"
+  "mobile.home.onlyPinnedBody": "ईमेल, रिसर्च या किसी प्रोजेक्ट जैसे काम के लिए बॉट बनाएँ। उसकी चैट इस सूची में दिखेगी।",
+  "botPanel.memory.forgotten": "नोट भुला दिया गया",
+  "botPanel.memory.undoFailed": "तब से मेमोरी बदल गई है, इसलिए नोट वापस नहीं आ सका।"
 }

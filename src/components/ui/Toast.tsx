@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FocusEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
@@ -9,6 +9,8 @@ import { smallButtonCls } from "./GrokDialog";
 /** Grok's bot-action toast timing: a plain line passes in 5s, one carrying Undo stays 12s. */
 export const TOAST_MS = 5_000;
 export const UNDO_TOAST_MS = 12_000;
+/** An Undo for something deleted: shorter, and held while the pointer or focus is on it. */
+export const DELETE_UNDO_MS = 8_000;
 
 /** The one passing line, as Grok's bot-action toast: a 13px glyph (a check, or a red exclamation for an error), the words,
  * an optional small Undo, and an 18px close. Bottom centre, above the message box, there at once and gone at once. */
@@ -26,13 +28,25 @@ export function Toast({ text, tone = "done", action, onDone, timeoutMs, classNam
   const ms = timeoutMs ?? (action ? UNDO_TOAST_MS : TOAST_MS);
   const done = useRef(onDone);
   done.current = onDone;
+  const [held, setHeld] = useState(false);
+  const left = useRef(ms);
   // the clock restarts only when the words change, not on every render of a caller's inline onDone
+  useEffect(() => { left.current = ms; }, [ms, text]);
   useEffect(() => {
-    const timer = window.setTimeout(() => done.current(), ms);
-    return () => window.clearTimeout(timer);
-  }, [ms, text]);
+    if (held) return;
+    const started = Date.now();
+    const timer = window.setTimeout(() => done.current(), left.current);
+    return () => {
+      window.clearTimeout(timer);
+      left.current = Math.max(0, left.current - (Date.now() - started));
+    };
+  }, [ms, text, held]);
+  const release = (event: FocusEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setHeld(false);
+  };
   const toast = (
-    <div {...rest} role={error ? "alert" : "status"} aria-live={error ? "assertive" : "polite"} data-kind={tone} className={cn("ui-toast", className)}>
+    <div {...rest} role={error ? "alert" : "status"} aria-live={error ? "assertive" : "polite"} data-kind={tone} className={cn("ui-toast", className)}
+      onPointerEnter={() => setHeld(true)} onPointerLeave={() => setHeld(false)} onFocus={() => setHeld(true)} onBlur={release}>
       <span aria-hidden="true" className={cn("inline-flex shrink-0", error ? "text-danger" : "text-ink-secondary")}>
         <GrokIcon name={error ? "exclamation-circle" : "check"} size={13} />
       </span>

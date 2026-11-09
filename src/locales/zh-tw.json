@@ -1401,6 +1401,7 @@
   "composer.dictation.start": "開始語音輸入",
   "composer.dictation.stop": "停止語音輸入",
   "composer.dictation.stopHint": "停止語音輸入（Esc）",
+  "composer.dictation.discard": "捨棄語音輸入",
   "composer.dictation.hint": "語音輸入",
   "composer.failed.notSent": "未送出：「{text}」",
   "composer.failed.attachment": "附件",
@@ -4693,5 +4694,7 @@
   "mobile.onboarding.linkShort": "在電腦上開啟 {app}，掃描設定 › Phone 中的 QR 碼。",
   "mobile.onboarding.pasteInstead": "改為貼上連結",
   "mobile.home.onlyPinnedTitle": "你的其他聊天會顯示在這裡",
-  "mobile.home.onlyPinnedBody": "建立機器人來處理郵件、研究或專案等工作，它的聊天就會顯示在此清單中。"
+  "mobile.home.onlyPinnedBody": "建立機器人來處理郵件、研究或專案等工作，它的聊天就會顯示在此清單中。",
+  "botPanel.memory.forgotten": "已忘記這則筆記",
+  "botPanel.memory.undoFailed": "記憶在那之後已變更，因此無法還原這則筆記。"
 }

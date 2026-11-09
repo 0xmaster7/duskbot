@@ -24,6 +24,20 @@ export function claudeUpdateTarget(engine: InstanceInfo | undefined): InstanceIn
   return engine?.driverKind === "claudeAgent" && !engine.readOnly ? engine : undefined;
 }
 
+type Backup = { instanceId: string; model: string };
+
+/** The bot's AI when it is signed out and no backup that is signed in would take the turn instead. */
+export function signedOutWithoutBackup(bot: Bot, instances: InstanceInfo[], recovery?: { enabled: boolean; backup?: Backup }): InstanceInfo | undefined {
+  const engine = botEngine(bot, instances);
+  if (!engineSignedOut(engine)) return undefined;
+  const backups = bot.fallback?.length ? bot.fallback : recovery?.enabled && recovery.backup ? [recovery.backup] : [];
+  const answers = (backup: Backup) => {
+    const instance = instances.find((candidate) => candidate.instanceId === backup.instanceId);
+    return instance?.snapshot.state === "available" && instance.snapshot.authenticated !== false;
+  };
+  return backups.some(answers) ? undefined : engine;
+}
+
 export function botEngine(bot: Bot | undefined, instances: InstanceInfo[]): InstanceInfo | undefined {
   return bot && instances.find((instance) => instance.instanceId === bot.modelSelection.instanceId);
 }

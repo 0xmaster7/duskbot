@@ -873,6 +873,7 @@
   "composer.dictation.start": "Démarrer la dictée",
   "composer.dictation.stop": "Arrêter la dictée",
   "composer.dictation.stopHint": "Arrêter la dictée (Échap)",
+  "composer.dictation.discard": "Annuler la dictée",
   "composer.dictation.hint": "Dicter",
   "composer.failed.notSent": "Non envoyé : « {text} »",
   "composer.failed.attachment": "pièce jointe",
@@ -3251,5 +3252,7 @@
   "mobile.onboarding.linkShort": "Ouvrez {app} sur votre ordinateur et scannez le code dans Paramètres › Phone.",
   "mobile.onboarding.pasteInstead": "Coller un lien à la place",
   "mobile.home.onlyPinnedTitle": "Vos autres discussions apparaissent ici",
-  "mobile.home.onlyPinnedBody": "Créez un bot pour une tâche, comme gérer vos e-mails, faire des recherches ou travailler sur un projet. Sa discussion apparaîtra dans cette liste."
+  "mobile.home.onlyPinnedBody": "Créez un bot pour une tâche, comme gérer vos e-mails, faire des recherches ou travailler sur un projet. Sa discussion apparaîtra dans cette liste.",
+  "botPanel.memory.forgotten": "Note oubliée",
+  "botPanel.memory.undoFailed": "La mémoire a changé depuis, la note n'a donc pas pu revenir."
 }

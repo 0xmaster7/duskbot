@@ -6,7 +6,17 @@ import type { Bot } from "@/state/store";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
 import { Card, FormDialog, FormField, NavRow, NoteRow, rowCls, SheetPane, SwitchRow, useSubPage } from "../../ListRows";
 import { RowIconButton, textAreaCls } from "../../ui/GrokDialog";
+import { DELETE_UNDO_MS } from "../../ui/Toast";
+import { UndoToast } from "../../bot-access/ShareBotButton";
 import { useMemoryEditor } from "./use-memory-editor";
+
+/** "Note forgotten · Undo" after a Forget, held while the pointer or focus is on it. */
+export function ForgetUndoToast({ editor }: { editor: Pick<ReturnType<typeof useMemoryEditor>, "forgotten" | "settleForgotten"> }) {
+  const { forgotten, settleForgotten } = editor;
+  if (!forgotten) return null;
+  return <UndoToast key={forgotten.id} text={t("botPanel.memory.forgotten")} failedText={t("botPanel.memory.undoFailed")}
+    timeoutMs={DELETE_UNDO_MS} onUndo={forgotten.restore} onDone={settleForgotten} />;
+}
 
 /** What the bot remembers: memory on or off, its notes on a page of their own with a forget on each, and a small form to
  * add one. */
@@ -53,6 +63,7 @@ function MemoryRows({ bot, derived }: { bot: Bot; derived: ReturnType<typeof use
           </Card>
         )}
         {adding && <AddNoteDialog bot={bot} editor={editor} onClose={() => setAdding(false)} />}
+        <ForgetUndoToast editor={editor} />
       </>
     );
   }
