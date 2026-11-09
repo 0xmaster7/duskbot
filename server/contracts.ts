@@ -55,10 +55,11 @@ export class TurnAuthenticationRefusedError extends TurnNotStartedError {
 export class TurnUsageLimitRefusedError extends TurnNotStartedError {
   override readonly name = "TurnUsageLimitRefusedError";
   readonly resetsAt: number | undefined;
-  readonly scope: "engine" | "model" | "credits";
+  /** "provider": not a limit; the model's provider failed a turn before it did anything, a few minutes ago. */
+  readonly scope: "engine" | "model" | "credits" | "provider";
   readonly known: boolean;
 
-  constructor(turnId: TurnId, message: string, resetsAt?: number, scope: "engine" | "model" | "credits" = "engine", known = false) {
+  constructor(turnId: TurnId, message: string, resetsAt?: number, scope: "engine" | "model" | "credits" | "provider" = "engine", known = false) {
     super(turnId, message);
     this.resetsAt = resetsAt;
     this.scope = scope;

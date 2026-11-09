@@ -6,6 +6,7 @@ import { sameModelSelection } from "../shared/thread-model.ts";
 import type { ModelSelection } from "../shared/wire.ts";
 import { writeFileAtomic } from "./atomic.ts";
 import type { InstanceConfig } from "./contracts.ts";
+import { providerBackLine } from "./drivers/provider-failover.ts";
 import { hostTimeZone } from "./turn-clock.ts";
 
 /** Engines a person signs in to with a subscription whose usage limit refuses turns. */
@@ -45,6 +46,7 @@ export function failoverLine(from: string, to: string, resetsAt: number | undefi
 }
 
 export function backLine(engine: string, why?: LimitFailover["why"]): string {
+  if (why === "provider") return providerBackLine(engine);
   return why === "signed-out" ? `${engine} is signed in again, so this conversation is back on ${engine}.`
     : `${engine}'s limit has reset, so this conversation is back on ${engine}.`;
 }
@@ -62,8 +64,9 @@ export interface LimitFailover {
   /** When `from`'s limit resets; unknown means its usage decides, after UNKNOWN_RESET_WAIT_MS. */
   resetsAt: number | null;
   at: number;
-  /** `from` was signed out, not limited: the conversation goes back once it is signed in again. */
-  why?: "signed-out";
+  /** `from` was signed out, not limited: the conversation goes back once it is signed in again. "provider": `from`'s
+   * provider failed a turn before it did anything; it goes back at `resetsAt`, the end of that model's hold. */
+  why?: "signed-out" | "provider";
 }
 
 /** With no reset time known, a conversation tries its own engine again no sooner than this. */
@@ -90,7 +93,7 @@ function load(file: string): LimitFailover[] {
     const rows = JSON.parse(readFileSync(file, "utf8")) as unknown;
     return Array.isArray(rows) ? rows.filter((row): row is LimitFailover => typeof row?.botId === "string" && typeof row?.threadId === "string" &&
       typeof row?.from?.instanceId === "string" && typeof row?.to?.instanceId === "string" && (row.resetsAt === null || Number.isFinite(row.resetsAt)) &&
-      Number.isFinite(row.at) && (row.why === undefined || row.why === "signed-out")) : [];
+      Number.isFinite(row.at) && (row.why === undefined || row.why === "signed-out" || row.why === "provider")) : [];
   } catch {
     return [];
   }

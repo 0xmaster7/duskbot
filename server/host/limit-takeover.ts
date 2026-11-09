@@ -10,6 +10,7 @@ import { recoveryCapabilityError } from "../automatic-recovery.ts";
 import type { InstanceConfigMap, ProviderAdapter, RuntimeEvent } from "../contracts.ts";
 import { readyToRun, selectDefaultModelSelection, type DefaultSelectionContext, type SelectableInstance } from "../default-model-selection.ts";
 import { engineFailureKind } from "../drivers/engine-errors.ts";
+import { PROVIDER_FAILURE_HOLD_MS, providerFailoverLine } from "../drivers/provider-failover.ts";
 import { classifyError } from "../drivers/retry.ts";
 import { billsEachUse, failoverLine, limitBackupAllowed, signedOutLine, type LimitFailover } from "../limit-failover.ts";
 import { LimitNotices, limitNoticeText, signedOutNoticeText } from "../limit-notices.ts";
@@ -19,8 +20,9 @@ import type { ModelSelection } from "../../shared/wire.ts";
 /** What a usage limit refused (the runtime error's `limit`): the account on that engine, one model's own window, or
  * one model's extra usage credits. */
 export type LimitScope = "engine" | "model" | "credits";
-/** Why another AI carries on: one of those limits, or the AI's sign-in expired. */
-export type TakeoverScope = LimitScope | "signed-out";
+/** Why another AI carries on: one of those limits, the AI's sign-in expired, or its provider failed a turn before it did
+ * anything. */
+export type TakeoverScope = LimitScope | "signed-out" | "provider";
 
 /** A model's own limit holds that model at most this long before it is tried again, in case its window ended early. */
 export const MODEL_HOLD_MS = 6 * 60 * 60_000;
@@ -88,12 +90,14 @@ export function createLimitTakeover(deps: LimitTakeoverDeps) {
   const signedOut = new Map<string, number>();
   /** What each thread's turn said in its last setup error, until that turn ends. */
   const setupSaid = new Map<string, string>();
+  /** Each model whose provider failed a turn before it acted, until when it is skipped; kept in memory only. */
+  const providerHolds = new Map<string, number>();
   const modelKey = (selection: ModelSelection) => `${selection.instanceId}\u0000${selection.model}`;
   const signedOutKey = (instanceId: string) => `signed-out\u0000${instanceId}`;
   const incidentKey = (botId: string) => `incident\u0000${botId}`;
   /** The notice and incident key of what refused: the account on an engine, a sign-in, or one model. */
   const limitedKey = (from: ModelSelection, scope: TakeoverScope) => scope === "engine" ? from.instanceId
-    : scope === "signed-out" ? signedOutKey(from.instanceId) : modelKey(from);
+    : scope === "signed-out" ? signedOutKey(from.instanceId) : scope === "provider" ? `provider\u0000${modelKey(from)}` : modelKey(from);
 
   /** What a restart left held, without what has run out. */
   const load = (file: string): void => {
@@ -133,6 +137,21 @@ export function createLimitTakeover(deps: LimitTakeoverDeps) {
     save();
   };
 
+  const providerHeldUntil = (selection: ModelSelection): number | null => {
+    const until = providerHolds.get(modelKey(selection));
+    if (until === undefined) return null;
+    if (until > now()) return until;
+    providerHolds.delete(modelKey(selection));
+    return null;
+  };
+
+  /** Its provider failed a turn on this model before the turn did anything: until when it is skipped. */
+  const holdProvider = (selection: ModelSelection): number => {
+    const until = now() + PROVIDER_FAILURE_HOLD_MS;
+    providerHolds.set(modelKey(selection), until);
+    return until;
+  };
+
   /** A new turn on this AI goes to another one: it refused a sign-in within the re-check interval, or its status says
    * it is still signed out. */
   const signedOutHeld = (instanceId: string): boolean => {
@@ -156,7 +175,8 @@ export function createLimitTakeover(deps: LimitTakeoverDeps) {
 
   const usable = (engines: TakeoverEngine[], current: TakeoverEngine, selection: ModelSelection, scope: TakeoverScope, approval?: ApprovalMode): boolean => {
     const engine = engines.find((candidate) => candidate.instanceId === selection.instanceId);
-    if (!engine || !readyToRun(engine, deps.context) || deps.blockedUntil(engine.instanceId) !== null || modelHeld(selection) !== null) return false;
+    if (!engine || !readyToRun(engine, deps.context) || deps.blockedUntil(engine.instanceId) !== null || modelHeld(selection) !== null
+      || providerHeldUntil(selection) !== null) return false;
     if (engine.instanceId !== current.instanceId) {
       if (signedOutHeld(engine.instanceId)) return false;
       // Another sign-in to the same plan never carries a limit (that rotates accounts); it may stand in for one signed out.
@@ -184,7 +204,8 @@ export function createLimitTakeover(deps: LimitTakeoverDeps) {
     };
     if (scope === "model" || scope === "credits") add({ instanceId: current.instanceId, model: current.models.default });
     for (const selection of scope === "signed-out" ? deps.signedOutChosen?.(botId) ?? deps.chosen(botId) : deps.chosen(botId)) add(selection);
-    if (scope === "signed-out") return out;
+    // A provider's hiccup moves a turn only to a backup the person chose.
+    if (scope === "signed-out" || scope === "provider") return out;
     const others = engines.filter((engine) => engine.instanceId !== from.instanceId && engine.access !== "api" && !billsEachUse(deps.configs()[engine.instanceId])
       && usable(engines, current, { instanceId: engine.instanceId, model: engine.models.default }, scope, approval));
     const pick = selectDefaultModelSelection(others, undefined, deps.context);
@@ -195,13 +216,15 @@ export function createLimitTakeover(deps: LimitTakeoverDeps) {
   const label = (selection: ModelSelection, from: ModelSelection) => (selection.instanceId === from.instanceId
     ? `${deps.engineName(selection.instanceId)} ${selection.model}` : deps.engineName(selection.instanceId));
   /** What refused, as the person knows it: the AI, or for one model's own limit that AI's model. */
-  const refusedName = (from: ModelSelection, scope: TakeoverScope) => (scope === "model" || scope === "credits"
+  const refusedName = (from: ModelSelection, scope: TakeoverScope) => (scope === "model" || scope === "credits" || scope === "provider"
     ? `${deps.engineName(from.instanceId)} ${from.model}` : deps.engineName(from.instanceId));
 
   /** Once for this stretch of `from`'s limit or sign-out: which AI carries on for `bot` meanwhile, or that it waits.
    * The words told, or null when this stretch was told already. */
   const tell = (bot: Bot, from: ModelSelection, facts: { resetsAt?: number; scope?: TakeoverScope; backup?: ModelSelection }): string | null => {
     const scope = facts.scope ?? "engine";
+    // A provider's hiccup is told only by the line in its conversation.
+    if (scope === "provider") return null;
     const signOut = scope === "signed-out";
     if (!notices.first(bot.id, limitedKey(from, scope), signOut ? now() + SIGNED_OUT_STRETCH_MS : facts.resetsAt)) return null;
     const backup = facts.backup ? { backup: label(facts.backup, from) } : {};
@@ -214,7 +237,7 @@ export function createLimitTakeover(deps: LimitTakeoverDeps) {
   /** A conversation of `botId` moved from `from` to `to` because `from` was limited or signed out; it goes back once
    * that ends. */
   const moved = (botId: string, threadId: string, from: ModelSelection, to: ModelSelection, resetsAt?: number, scope?: TakeoverScope): void => {
-    deps.record({ botId, threadId, from, to, resetsAt: resetsAt ?? null, at: now(), ...(scope === "signed-out" ? { why: "signed-out" as const } : {}) });
+    deps.record({ botId, threadId, from, to, resetsAt: resetsAt ?? null, at: now(), ...(scope === "signed-out" || scope === "provider" ? { why: scope } : {}) });
   };
 
   /** A turn on `selection` worked for this bot: its engine's next limit is a new stretch, and it is plainly signed in. */
@@ -224,6 +247,7 @@ export function createLimitTakeover(deps: LimitTakeoverDeps) {
       notices.ended(who, modelKey(selection));
     }
     if (heldModels.delete(modelKey(selection))) save();
+    providerHolds.delete(modelKey(selection));
     signedIn(selection.instanceId);
   };
 
@@ -236,6 +260,7 @@ export function createLimitTakeover(deps: LimitTakeoverDeps) {
     holdModel,
     /** The AI refused a turn because it is signed out. */
     noteSignedOut,
+    holdProvider,
     signedIn,
     /** Whether a conversation moved off this signed-out AI waits before going back: until it is signed in again or a
      * turn on it works. */
@@ -246,11 +271,13 @@ export function createLimitTakeover(deps: LimitTakeoverDeps) {
     heldAtStart(bot: ThreadBot, selection: ModelSelection, recovering = false): { scope: TakeoverScope; resetsAt?: number } | null {
       const engineUntil = deps.blockedUntil(selection.instanceId);
       const model = engineUntil === null ? modelHeld(selection) : null;
-      const scope: TakeoverScope | null = engineUntil !== null ? "engine" : model ? model.scope : signedOutHeld(selection.instanceId) ? "signed-out" : null;
+      const providerUntil = engineUntil === null && !model ? providerHeldUntil(selection) : null;
+      const scope: TakeoverScope | null = engineUntil !== null ? "engine" : model ? model.scope : providerUntil !== null ? "provider"
+        : signedOutHeld(selection.instanceId) ? "signed-out" : null;
       if (!scope) return null;
       const carries = (deps.enabled?.() ?? true) && backups(bot.id, selection, scope, approvalModeFor(bot)).length > 0;
       if (!carries && !(recovering && scope !== "signed-out")) return null;
-      const resetsAt = scope === "engine" ? deps.resetAt?.(selection.instanceId) ?? undefined : model?.resetsAt;
+      const resetsAt = scope === "engine" ? deps.resetAt?.(selection.instanceId) ?? undefined : scope === "provider" ? providerUntil ?? undefined : model?.resetsAt;
       return { scope, ...(resetsAt && resetsAt > now() ? { resetsAt } : {}) };
     },
     /** Every runtime event of a bot's thread, with the model its turn ran on: a model's own limit holds that model, a
@@ -273,6 +300,7 @@ export function createLimitTakeover(deps: LimitTakeoverDeps) {
       moved(bot.id, threadId, from, to, facts.resetsAt, facts.scope);
       const told = tell(bot, from, { ...facts, backup: to });
       const line = facts.scope === "signed-out" ? signedOutLine(refusedName(from, facts.scope), label(to, from))
+        : facts.scope === "provider" ? providerFailoverLine(refusedName(from, facts.scope), label(to, from))
         : failoverLine(refusedName(from, facts.scope), label(to, from), facts.resetsAt);
       return [{ name: `recovery: ${line}`, ok: true }, ...(told && facts.scope === "signed-out" ? [{ name: `notice: ${told}`, ok: true, setup: true }] : [])];
     },
