@@ -1,4 +1,4 @@
-import { dataDirFor } from "../electron/legacy-names.mjs";
+import { dataDirFor, isOwnAppId } from "../electron/legacy-names.mjs";
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
@@ -203,7 +203,7 @@ function refusedAsService(status: number, body: any): boolean {
 async function serverUp(port: number, pid?: number): Promise<boolean> {
   try {
     const { status, body } = await api(port, "/api/health");
-    return status === 200 && body?.app === "duskbot" && (pid === undefined || body.pid === pid);
+    return status === 200 && isOwnAppId(body?.app) && (pid === undefined || body.pid === pid);
   } catch {
     return false;
   }
@@ -213,7 +213,7 @@ async function serverUp(port: number, pid?: number): Promise<boolean> {
 export async function isWorkspaceRunning(options: CliOptions): Promise<boolean> {
   try {
     const { status, body } = await api(options.port, "/api/health");
-    if (status !== 200 || body?.app !== "duskbot") return false;
+    if (status !== 200 || !isOwnAppId(body?.app)) return false;
     const expected = readFileSync(join(options.dataDir, "environment-id"), "utf8").trim();
     const descriptor = await api(options.port, "/.well-known/duskbot/environment");
     return /^[0-9a-f-]{36}$/i.test(expected) && descriptor.status === 200 && descriptor.body?.environmentId === expected;

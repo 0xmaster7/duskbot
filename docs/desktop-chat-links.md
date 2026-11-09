@@ -1,7 +1,7 @@
 # Open a chat from outside the app
 
 Open a chat row's **···** menu in the sidebar and choose **Copy link** (a bot
-conversation, a room, or a channel). It copies an `duskbot://` link that
+conversation, a room, or a channel). It copies a `duskbot://` link that
 opens that chat in the desktop app, so an external dashboard, a browser
 bookmark, or a script can bring the person straight to the right conversation:
 

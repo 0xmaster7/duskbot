@@ -1,3 +1,4 @@
+import { UPSTREAM } from "./legacy-names.mjs";
 const TOKEN = /^[0-9a-f]{64}$/;
 
 /** Dusk Bot's connected-apps service (cloudflare/composio-broker): the packaged desktop app and a Cloud home use it. */
@@ -95,4 +96,3 @@ export async function ensureManagedComposioCredentials({
   }
   return credentials;
 }
-import { UPSTREAM } from "./legacy-names.mjs";

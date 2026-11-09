@@ -9,6 +9,7 @@ import test from "node:test";
 import vm from "node:vm";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createServerSupervisor } from "./server-supervisor.mjs";
+import { DATA_DIR_NAMES } from "./legacy-names.mjs";
 
 const require = createRequire(import.meta.url);
 const env = require("./environments.cjs");
@@ -234,6 +235,7 @@ function runForget(state) {
   const calls = { dialogs: [], persisted: [], navigated: [], rm: [] };
   const rmOptions = [];
   const ctx = {
+    DATA_DIR_NAMES,
     environmentsState: state,
     localSwitchInFlight: false,
     runningDataDir: null,

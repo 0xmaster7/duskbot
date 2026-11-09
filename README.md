@@ -4,9 +4,9 @@
 
 **A source-available Grok Bot alternative: your own team of AI bots, in a chat app.**
 
-[**dusk.bot**](https://dusk.bot) &nbsp;·&nbsp; [Download](https://dusk.bot/download) &nbsp;·&nbsp; [Open source Grok Bot alternative, compared](https://dusk.bot/blog/grok-bot-vs-duskbot)
+[**dusk.bot**](https://dusk.bot) &nbsp;·&nbsp; [Download](https://dusk.bot/download) &nbsp;·&nbsp; [Source-available Grok Bot alternative, compared](https://dusk.bot/blog/grok-bot-vs-duskbot)
 
-<sub>Dusk Bot is a source-available Grok Bot alternative: an independent project inspired by **Grok Bot**, and a source-available alternative to **Meta Muse**, **OpenAI dots** and **Cue by Manus** — bring-your-own-agent, local-first, on the models you already have. Also known as **Dusk**; formerly **OpenGrokBot**. Not affiliated with xAI, Meta, OpenAI or Manus.</sub>
+<sub>Dusk Bot is a source-available Grok Bot alternative: an independent project inspired by **Grok Bot**, and a source-available alternative to **Meta Muse**, **OpenAI dots** and **Cue**: bring-your-own-agent, local-first, on the models you already have. Not affiliated with the makers of those products.</sub>
 
 Every bot in the sidebar is a real agent — Claude or Codex running locally under the hood — with its own
 personality, its own model, its own cloud computer, and its own connected apps.
@@ -54,7 +54,7 @@ Talk to them like contacts. Watch them work. Approve what matters.
 
 ---
 
-> ⚠️ **No affiliation with any cryptocurrency.** Dusk Bot has no token. Any coin using the Dusk Bot, Maus, or SupaMaus name is not created, endorsed, or affiliated with this project or its maintainer. I have received no tokens, payment, or allocation from anyone, and I will not be endorsing any token.
+> ⚠️ **No affiliation with any cryptocurrency.** Dusk Bot has no token. Any coin using the Dusk Bot or Dusk name is not created, endorsed, or affiliated with this project or its maintainer. I have received no tokens, payment, or allocation from anyone, and I will not be endorsing any token.
 
 ## Why
 
@@ -78,15 +78,15 @@ already have:
 Four closed personal-agent products shipped in seven weeks of 2026, and each one keeps the model, the
 computer and your data on its maker's side of the line. Dusk Bot is the source-available version of that
 shape: a team of agents in a chat app, each with its own model, its own computer and its own connected
-apps, running on your machine under the PolyForm Strict license. If you searched for an *open Muse*, *open dots*, an
-*open-source Grok Bot*, an *open Instinct* or an *open Cue*, this is the repository.
+apps, running on your machine under the PolyForm Strict license. If you searched for an *open Muse*, *open dots*, a
+*source-available Grok Bot*, an *open Instinct* or an *open Cue*, this is the repository.
 
 | Looking for | What it is | How Dusk Bot differs | Read more |
 | --- | --- | --- | --- |
-| **Open source Grok Bot** | xAI's roster of bots on one shared cloud computer, Grok only, from a SuperGrok or Cursor plan | Same roster shape; any model per bot; your own machine; approval cards | [Grok Bot vs Dusk Bot](https://dusk.bot/blog/grok-bot-vs-duskbot) |
+| **Source-available Grok Bot** | xAI's roster of bots on one shared cloud computer, Grok only, from a SuperGrok or Cursor plan | Same roster shape; any model per bot; your own machine; approval cards | [Grok Bot vs Dusk Bot](https://dusk.bot/blog/grok-bot-vs-duskbot) |
 | **Open Muse** | Meta's single personal agent in a Meta cloud VM, US and Canada only | A team instead of one agent; runs anywhere; data in `~/.duskbot` | [Meta Muse alternative](https://dusk.bot/blog/open-source-alternative-to-meta-muse) |
 | **Open dots** | OpenAI's always-on agent inside ChatGPT, GPT only, Pro and Business Premium plans | Several agents; your Claude, ChatGPT or Grok login; no plan required | [OpenAI dots alternative](https://dusk.bot/blog/openai-dots-alternative) |
-| **Open Cue** | Manus's invite-only agents with their own phone, email and wallet | No invite; OAuth instead of passwords; source-available | [Cue by Manus alternative](https://dusk.bot/blog/open-source-alternative-to-cue-by-manus) |
+| **Open Cue** | Invite-only agents with their own phone, email and wallet | No invite; OAuth instead of passwords; source-available | [Agent comparisons](https://dusk.bot/blog/muse-vs-grok-bot-vs-dots-vs-cue) |
 | **Open Instinct** | Spear Street's invite-only agent that holds your passwords on a cloud computer | Ask for approval when you want it; signs in over OAuth; your machine | [Instinct AI alternative](https://dusk.bot/blog/instinct-ai-alternative) |
 
 All five side by side: [Muse vs Grok Bot vs Dots vs Cue](https://dusk.bot/blog/muse-vs-grok-bot-vs-dots-vs-cue),

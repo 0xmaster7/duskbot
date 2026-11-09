@@ -639,7 +639,7 @@ config (or any folder above them) is not root's, is writable by others, or
 is on the volume. Only the `/data` volume is `maus`'s.
 
 `HOME=/data`, so `~/.claude`, `~/.codex`, `~/.grok` and Dusk Bot's own
-data (`/data/.duskbot`) persist on the volume.
+data (`CLOUD_HOME.data` in `electron/legacy-names.mjs`) persist on the volume.
 
 ### Memory
 
@@ -794,7 +794,7 @@ never echoes a secret.
 | `DUSK_CLOUD_BOOTSTRAP_SECRET` | secret | 43 base64url characters (256 bits): the key the Admin signs pairing requests with. |
 | `DUSK_PUBLIC_URL` | env | The machine's exact `https://` origin, `https://<app>.fly.dev`. |
 
-- `HOME=/data` and `DUSK_DATA_DIR=/data/.duskbot` are set by the image.
+- `HOME=/data` and `DUSK_DATA_DIR` (the `CLOUD_HOME.data` path in `electron/legacy-names.mjs`) are set by the image.
 - The server keeps the secret in memory and removes it from its environment at
   startup; no engine or tool it starts ever inherits it.
 
@@ -894,7 +894,7 @@ Connected apps (Gmail, Outlook, Slack, LinkedIn, Calendly and the rest of the
 catalog) come with the plan through Dusk Bot's managed connection service,
 the same one the packaged desktop app uses. The Admin sets nothing for it: at
 every start the server registers the Cloud's own installation if it has none,
-keeps the token owner-only in `/data/.duskbot/connected-apps-installation.json`
+keeps the token owner-only in `connected-apps-installation.json` under `CLOUD_HOME.data` in `electron/legacy-names.mjs`
 (never in a backup, a move or `config.json`), checks it with the service, and
 retries with backoff while the service is down, without holding up the start.
 An owner's own Composio project key still wins. The details are in
@@ -1355,7 +1355,7 @@ for.
 Its sheet asks "Before you go: what's the main reason?" with one-tap chips
 (Missing a feature, Too expensive, Hard to set up, Didn't work as I expected,
 Not using it right now, Something else; tap again to let one go), two optional
-boxes ("What did you expect Dusk to do?", "What could we have done
+boxes ("What did you expect Dusk Bot to do?", "What could we have done
 better?"), "Rather talk it through? Book 30 minutes with Milind", and **Keep my
 plan** and **Cancel my trial** / **Cancel my plan**. Cancelling never needs an
 answer. The page sends only the survey's words: `cloudAccount.cancelPlan` on

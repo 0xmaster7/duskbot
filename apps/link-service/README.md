@@ -79,7 +79,7 @@ stays on the relay; a transport that failed on a network is tried last there for
 - **Setup.** Once a link's tunnel is up, the app makes its own ed25519 key and sends the public half as the sealed
   control op `direct-key`. The agent adds one line to `~maus/.ssh/authorized_keys`:
   `restrict,command="<node> <agent.mjs> direct" ssh-ed25519 AAAA... omb-link-<tunnel id>` (no shell, pty, agent, X11 or
-  port/socket forwarding, so the docker socket `maus` can reach stays out of reach) and answers with sshd's public host
+  port/socket forwarding, so the docker socket the server account can reach stays out of reach) and answers with sshd's public host
   keys, its public IPv4 (from a STUN server, outbound UDP) and the user name. The private key is kept with safeStorage
   in the link record (`links[].direct`); host keys are pinned there. `direct-off` and unlinking remove the line; the
   tunnel agent re-points the line at its own node path on start. An older agent answers "unknown request" and is asked
@@ -172,9 +172,9 @@ Bots run shell commands, so the server is split so that no bot can reach what wo
 
 | Account | Runs | Holds | Never has |
 |---|---|---|---|
-| `maus` | `duskbot.service` (hardened: no new privileges, no capabilities, system read-only, other homes hidden) | its home (0700) and data folder (0700) | the docker group, the link files |
+| `dusk` (`maus` on a server set up before the rename) | `duskbot.service` (hardened: no new privileges, no capabilities, system read-only, other homes hidden) | its home (0700) and data folder (0700) | the docker group, the link files |
 | `omb-link` | `duskbot-link.service` and the app's restricted direct key | `/var/lib/omb-link`: `tunnel.json`, `.ssh/authorized_keys`, the hand-off folder | the server's data |
-| `omb-docker` (in `docker`) | `omb-docker-gate.service`: a Docker API filter on `/run/duskbot-docker/docker.sock` (group `omb-dockergate`: maus only) | nothing | a shell, the network |
+| `omb-docker` (in `docker`) | `omb-docker-gate.service`: a Docker API filter on `/run/duskbot-docker/docker.sock` (group `omb-dockergate`: the server account only) | nothing | a shell, the network |
 
 - Every bot's turn runs in the bot box (`DUSK_BOT_BOX=required`, server/bot-box): its own user, mount, pid and network
   namespaces, HOME an engine home inside the data folder (`engine-home`) with only the engines' sign-ins bound in
@@ -185,10 +185,15 @@ Bots run shell commands, so the server is split so that no bot can reach what wo
 - The docker gate (`docker-gate.mjs`, served at `/docker-gate.mjs` like the agent) forwards only what the server's bot
   computers need, on containers labelled as ours, with the flags it sets (gVisor, no privileged mode, no host mounts,
   devices or namespaces, dropped capabilities). The two host probes are allowed only in their exact shape.
-- Running install.sh again on an older install moves `tunnel.json` to `omb-link`, drops the app's key from maus (the app
+- Running install.sh again on an older install moves `tunnel.json` to `omb-link`, drops the app's key from the server account (the app
   asks the agent for a new one over the sealed tunnel and connects as `omb-link`), moves the Claude token to
-  `/etc/duskbot/engines.env`, copies the engines' sessions into the engine home, takes maus out of the docker group
+  `/etc/duskbot/engines.env`, copies the engines' sessions into the engine home, takes the server account out of the docker group
   and installs the gate and the hardened units. Nothing in the data folder moves.
+- A server set up before the rename to Dusk Bot keeps its server account (`maus`). Running install.sh on it again
+  (`migrate_legacy`) stops and removes the old units, moves the state, logs, agent, gate, `/etc` and link folders and
+  the data folder to the new names (the old data and agent folder names stay as links), points the app's direct key at
+  the moved agent, and moves the AppArmor profile and Caddy site. Until then the old install keeps working: the agent
+  reads its old folder and env names, and the app reads the old unit names and the old well-known path.
 - Unlinking in the app deletes the tunnel at the service. The agent then idles and the app forgets the server.
 
 ### Secrets sealed for the server itself
@@ -316,7 +321,7 @@ private: the service hands it only to a claimed install session, at `/pkg/<sessi
 own bearer token, while the session is still installing, at most 10 times across both archives. There is no public url for it.
 
 - The claim reply names the build: `"package": {"sha256", "size", "version", "path"}`. install.sh downloads it (the
-  terminal shows a progress bar), checks the sha256, and installs it with `npm install -g <file>` as the `maus` user.
+  terminal shows a progress bar), checks the sha256, and installs it with `npm install -g <file>` as the server account (`dusk`).
   Interrupted downloads retain `.part` files and resume with an authenticated `Range: bytes=<offset>-` request.
   A checksum mismatch discards that partial file and retries from zero; a verified cache needs no download.
   Its three native dependencies (DuckDB, resvg, the 1Password SDK) still come from the npm registry, per platform.
@@ -384,11 +389,11 @@ curl -fsSL https://link.dusk.bot/uninstall | sh -s -- --yes     # no question (o
 `GET /uninstall` (also `/uninstall.sh`) serves `uninstall.sh` to anyone, no session, with the base baked in. It puts
 the server back the way install.sh found it, in the same five-phase screen: Unlinking from your app (deletes the
 tunnel at the service with the server's own tunnel token, so the app reads "unlinked"), Stopping Dusk Bot (every
-unit install.sh wrote), Clearing the bot computers (our containers, their home volumes, the `duskbot-desktops`
-network, our images, the host fence and its iptables rules, and `/etc/docker/daemon.json` back from install.sh's
+unit install.sh wrote), Clearing the bot computers (our containers, their home volumes, the desktop
+network (`DOCKER_NAMES.desktopNetwork` in `electron/legacy-names.mjs`), our images, the host fence and its iptables rules, and `/etc/docker/daemon.json` back from install.sh's
 `.omb-before` copy or with only our keys taken out; Docker restarts only when that file changed), Removing your bots'
 home (a 0600 tarball of `~maus/.duskbot` to `/root/duskbot-backup-<date>.tgz` first unless `--no-backup`,
-then the `maus` account, `/opt`, `/var/lib`, `/var/log` files and Caddy site) and Removing what it installed. It ends
+then the server account, `/opt`, `/var/lib`, `/var/log` files and Caddy site) and Removing what it installed. It ends
 with a check of what is left (systemctl, `docker ps -a` and friends, the account, the paths, the fence, daemon.json).
 
 It asks before changing anything, on `/dev/tty`, so the `curl | sh` line works. With no terminal and no `--yes` it only
@@ -397,7 +402,7 @@ installed. A failed backup stops it before anything of the bots is removed.
 
 install.sh writes `/var/lib/duskbot/install-manifest`: every package its apt calls added (dependencies too), the
 apt sources and keyrings it created, whether it made `daemon.json` or which keys it added, what it did to the
-Caddyfile, the ufw ports it opened and whether it made the `maus` account. A plain uninstall keeps Docker, Node, Caddy
+Caddyfile, the ufw ports it opened and whether it made the server account. A plain uninstall keeps Docker, Node, Caddy
 and gVisor (and the `pkg`/`file` lines of the manifest, so a later `--all` still knows them). `--all` also purges
 those packages: it marks them automatic and purges only the ones apt would then autoremove, so anything installed
 later that needs one keeps it; it never removes `curl` or `ca-certificates`, and it clears Docker's build cache. When

@@ -69,7 +69,7 @@ switching and Stop can be exercised without a real provider or account.
     bot, let a reply land in the sibling it was left on, and check that the
     sibling has its own activity entry under that bot. Follow a notification,
     a thread chip or a search hit to a third thread of that bot: the sibling
-    keeps its unread entry, and the third thread is read once open. An
+    keeps its unread entry, and the third thread is read once open. A
     `duskbot://bot/<id>` link opens the main thread. A row or tile with a
     mark on it opens the thread the mark is about (waiting on you, then unread,
     then work under way, a thread another bot opened included); a second click

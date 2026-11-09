@@ -15,6 +15,7 @@ export declare const LEGACY: Readonly<{
   linkConfigDir: string;
   vpsUnits: Readonly<{ server: string; link: string }>;
   serveLabel: string;
+  controlPlaneService: string;
   sentinelUnit: string;
 }>;
 export declare const UPSTREAM: Readonly<{ teamLibrary: { repository: string; raw: string }; composioBroker: string }>;

@@ -41,7 +41,7 @@ are not recorded here, so confirm the right to ship it before publishing the ima
 
 ## Two modes
 
-The harness picks one at creation and labels the container `bot.dusk.bot-desktop-mode`.
+The harness picks one at creation and labels the container with the mode label (`DOCKER_NAMES.label("bot-desktop-mode")` in `electron/legacy-names.mjs`).
 
 **free** (the goal): the bot may do anything inside its box. `sudo` without a password, a writable root filesystem
 that keeps what is installed across restarts (recreating the box from the image is the reset), any program or server
@@ -65,6 +65,9 @@ makes `sudo` inert. Read-only root filesystem; same network rules plus the host'
 
 `server/bot-desktop.ts` (`provisionBotDesktop`), over `docker -H ssh://<alias>`:
 
+The placeholders below use `electron/legacy-names.mjs`: `<name>` uses `DOCKER_NAMES.vpsPrefix`,
+`<desktop-network>` is `DOCKER_NAMES.desktopNetwork`, and each `<...-label>` is `DOCKER_NAMES.label("...")`.
+
 1. `docker pull ghcr.io/sidddevz/omb-bot-desktop:v3` unless present. If the pull fails (not published, private
    package, registry down) it builds the image on the docker host from this folder as shipped with the server
    (`deploy/bot-desktop/` beside `dist-server/`, or `DUSK_BOT_DESKTOP_KIT`), only when its Dockerfile's
@@ -72,7 +75,7 @@ makes `sudo` inert. Read-only root filesystem; same network rules plus the host'
    works, provisioning refuses with the reason and creates nothing; it never falls back to the Cua XFCE desktop.
    `DUSK_VPS_DESKTOP=cua` forces Cua.
 2. `docker network create --driver bridge --opt com.docker.network.bridge.enable_icc=false
-   --opt com.docker.network.bridge.name=omb-desk0 --label bot.dusk.vps-network=1 duskbot-desktops`
+   --opt com.docker.network.bridge.name=omb-desk0 --label <vps-network-label>=1 <desktop-network>`
 3. `docker info` for `runsc` (gVisor) and `name=userns` (remapping); `DUSK_VPS_GVISOR=off` skips gVisor.
 4. Fence check: `docker run --rm --network host --userns host --cap-drop ALL --cap-add NET_ADMIN --read-only
    --security-opt no-new-privileges --entrypoint /usr/local/bin/omb-host-fence <image> --check` (reads netfilter only).
@@ -80,11 +83,11 @@ makes `sudo` inert. Read-only root filesystem; same network rules plus the host'
 5. Free:
 
 ```sh
-docker run -d --name duskbot-vps-<bot>-<hash> --hostname bot \
-  --label bot.dusk.vps=1 --label bot.dusk.container=<name> --label bot.dusk.environment=<id> \
-  --label bot.dusk.vps-viewer=1 --label bot.dusk.bot-desktop=2 \
-  --label bot.dusk.bot-desktop-mode=free --label bot.dusk.cua-driver=0.37.0 \
-  [--runtime runsc] --network duskbot-desktops --dns 1.1.1.1 --dns 9.9.9.9 \
+docker run -d --name <name> --hostname bot \
+  --label <vps-label>=1 --label <container-label>=<name> --label <environment-label>=<id> \
+  --label <vps-viewer-label>=1 --label <bot-desktop-label>=2 \
+  --label <bot-desktop-mode-label>=free --label <cua-driver-label>=0.37.0 \
+  [--runtime runsc] --network <desktop-network> --dns 1.1.1.1 --dns 9.9.9.9 \
   --tmpfs /tmp:rw,nosuid,nodev,size=1g --tmpfs /run:rw,nosuid,nodev,size=64m,uid=1000,gid=1000,mode=0755 \
   --mount type=volume,source=<name>-home,target=/home/cua \
   --cap-drop ALL --cap-add AUDIT_WRITE --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add FSETID \

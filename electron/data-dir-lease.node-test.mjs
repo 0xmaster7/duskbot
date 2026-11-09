@@ -5,6 +5,7 @@ import { mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, writeFileSy
 import { hostname, tmpdir, uptime as osUptime } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { SERVER_CHILD_DIR, SERVER_LEASE_NAME as LEASE_NAME } from "./legacy-names.mjs";
 
 import {
   acquireDataDirLease,
@@ -13,7 +14,6 @@ import {
 } from "./data-dir-lease.mjs";
 
 const MODULE_URL = new URL("./data-dir-lease.mjs", import.meta.url).href;
-const LEASE_NAME = "duskbot-server.lease";
 const roots = [];
 
 function temporaryDirectory(name = "data") {
@@ -303,7 +303,7 @@ test("a foreign-host owner fails closed and identifies the preserved lease recor
 
 test("a foreign-host delegated child fails closed and identifies its preserved lease record", () => {
   const { dataDir } = temporaryDirectory();
-  const childLeasePath = path.join(dataDir, ".duskbot-server-child", LEASE_NAME);
+  const childLeasePath = path.join(dataDir, SERVER_CHILD_DIR, LEASE_NAME);
   const child = {
     version: 1,
     pid: process.pid,
@@ -495,7 +495,7 @@ test("a delegated child from an earlier boot cannot block a new parent", (t) => 
   const { dataDir } = temporaryDirectory();
   const current = recordWrittenByThisProcess(dataDir);
   if (current.boot === null) return t.skip("no boot identity on this platform");
-  const childPath = path.join(dataDir, ".duskbot-server-child", LEASE_NAME);
+  const childPath = path.join(dataDir, SERVER_CHILD_DIR, LEASE_NAME);
   mkdirSync(path.dirname(childPath));
   writeFileSync(childPath, JSON.stringify({ ...current, boot: randomUUID() }));
 
@@ -524,7 +524,7 @@ test("a delegated child this computer left under its old hostname cannot block a
   const { dataDir } = temporaryDirectory();
   const current = recordWrittenByThisProcess(dataDir);
   if (current.boot === null) return t.skip("no boot identity on this platform");
-  const childPath = path.join(dataDir, ".duskbot-server-child", LEASE_NAME);
+  const childPath = path.join(dataDir, SERVER_CHILD_DIR, LEASE_NAME);
   mkdirSync(path.dirname(childPath));
   writeFileSync(childPath, JSON.stringify({ ...current, host: renamedHost(current), pid: await exitedPid(), token: randomUUID() }));
 
@@ -549,7 +549,7 @@ test("a lease under another name from another boot still fails closed, and says 
   assert.deepEqual(JSON.parse(readFileSync(leasePath, "utf8")), planted);
   rmSync(leasePath);
 
-  const childPath = path.join(dataDir, ".duskbot-server-child", LEASE_NAME);
+  const childPath = path.join(dataDir, SERVER_CHILD_DIR, LEASE_NAME);
   mkdirSync(path.dirname(childPath));
   writeFileSync(childPath, JSON.stringify({ ...current, ...foreign }));
   assert.throws(() => acquireDataDirLease(dataDir), (error) => {
@@ -690,7 +690,7 @@ test("on request, the lease, delegated child and recovery record another machine
   const current = recordWrittenByThisProcess(dataDir);
   const foreign = { ...otherMachine(current), pid: await exitedPid(), token: randomUUID() };
   const leasePath = plantOwner(dataDir, foreign);
-  const childPath = path.join(dataDir, ".duskbot-server-child", LEASE_NAME);
+  const childPath = path.join(dataDir, SERVER_CHILD_DIR, LEASE_NAME);
   mkdirSync(path.dirname(childPath));
   writeFileSync(childPath, JSON.stringify({ ...current, ...foreign, token: randomUUID() }));
   const reaperPath = path.join(dataDir, `${LEASE_NAME}.reap-${foreign.token}`);

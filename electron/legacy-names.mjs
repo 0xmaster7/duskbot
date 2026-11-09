@@ -26,6 +26,7 @@ export const LEGACY = Object.freeze({
   linkConfigDir: `${OLD}-link`,
   vpsUnits: { server: `${OLD}.service`, link: `${OLD}-link.service` },
   serveLabel: `com.${OLD}.serve`,
+  controlPlaneService: `${OLD}-control-plane`,
   sentinelUnit: `${OLD}-sentinel`,
 });
 

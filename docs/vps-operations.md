@@ -12,8 +12,8 @@ duskbot vps logs --service fence --lines 50
 duskbot vps doctor --json
 ```
 
-If the installer used its default `maus` account, its executable is
-`/home/maus/.local/bin/duskbot`. Use that path when it is absent from your
+If the installer used its default `dusk` account, its executable is
+`/home/dusk/.local/bin/duskbot`. Use that path when it is absent from your
 SSH account's PATH.
 
 `status` checks the local HTTP endpoint, server/link/network-fence systemd

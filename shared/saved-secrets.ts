@@ -1,3 +1,4 @@
+import { SEAL_LABELS } from "../electron/legacy-names.mjs";
 /** A secret saved to the Vault from a bot's card, as Settings shows it: never its value. */
 export interface SavedSecretSummary {
   id: string;
@@ -80,4 +81,3 @@ export function configSecrets(patch: unknown): Map<string, string> {
   }
   return found;
 }
-import { SEAL_LABELS } from "../electron/legacy-names.mjs";

@@ -49,7 +49,7 @@ real Chrome whenever this machine has one, chosen once per machine
 Servers and the Docker image name their browser with
 `AGENT_BROWSER_EXECUTABLE_PATH` (the image's Chrome for Testing), or use the
 Chrome for Testing `agent-browser install` put in place. `DUSK_CHROME_PATH`
-names one explicitly. An `DUSK_AGENT_BROWSER_PATH` engine keeps its own choice
+names one explicitly. A `DUSK_AGENT_BROWSER_PATH` engine keeps its own choice
 unless a Chrome is named too.
 
 **Identity.** The chosen Chrome reports exactly what it reports headed, read

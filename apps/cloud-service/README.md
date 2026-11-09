@@ -167,8 +167,8 @@ baking them in is a later step.
 
 ### Pre-stop hook
 
-`~/.boat/pre-stop` (the provider allows 60 s): sets `/run/duskbot/pre-stop`, which the home's unit refuses to start
-under (`ConditionPathExists=!`), arms a 15-minute timer (`omb-home resume-if-cancelled`) that starts the home again if
+`~/.boat/pre-stop` (the provider allows 60 s): sets the `pre-stop` flag under `CLOUD_HOME.run` (`electron/legacy-names.mjs`), blocking the home's unit
+with `ConditionPathExists=!`, arms a 15-minute timer (`omb-home resume-if-cancelled`) that starts the home again if
 the flag is older than 5 minutes and the machine is still up (a cancelled stop, or a resume that kept the machine in
 memory while the service was down), then stops the home within 40 s or kills it (`TimeoutStopSec=35`). `omb-home start`,
 which the service runs after every wake, clears the flag and the timer first.

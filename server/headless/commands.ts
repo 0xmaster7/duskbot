@@ -1,4 +1,5 @@
 // `--json` prints a tool's result unchanged; plain output is a line per item.
+import { isOwnAppId } from "../../electron/legacy-names.mjs";
 import { EXIT, flag, parseCount, parseDuration, requiredFlag, usageError } from "./args.ts";
 import { newSendId, readMessage, resolveTarget, type Target, type VerbContext, type VerbOutcome } from "./context.ts";
 import { oneLine, shortId } from "./output.ts";
@@ -30,7 +31,7 @@ async function doctorOnce(ctx: VerbContext): Promise<VerbOutcome> {
   ]);
   const problems: string[] = [];
   const warnings: string[] = [];
-  const isOmb = health.app === "duskbot";
+  const isOmb = isOwnAppId(health.app);
   if (!isOmb) problems.push(`${client.baseUrl} answered, but it is not Dusk Bot`);
   const tooOld = Boolean(server) && server!.capabilities?.jobs !== true;
   if (tooOld) problems.push(`Dusk Bot ${server!.version ?? "(unknown version)"} is too old for the headless commands: it cannot report a conversation's job`);

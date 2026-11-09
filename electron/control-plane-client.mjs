@@ -1,3 +1,4 @@
+import { LEGACY } from "./legacy-names.mjs";
 const INSTALLATION_CREDENTIAL =
   /^omb_install_[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/;
 const INSTALLATION_ID =
@@ -274,7 +275,8 @@ export function createControlPlaneClient({
       });
       if (
         payload.ok !== true ||
-        payload.service !== "duskbot-control-plane"
+        // the hosted control plane may still answer under its name from before the rename
+        !["duskbot-control-plane", LEGACY.controlPlaneService].includes(payload.service)
       ) {
         throw new ControlPlaneError("control_plane_unavailable");
       }

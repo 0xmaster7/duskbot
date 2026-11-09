@@ -3,7 +3,7 @@
 Each bot can join a Slack workspace as its own Slack app, with its own name, avatar, @handle and DMs. All Slack
 traffic goes between the harness and Slack directly over Socket Mode; nothing hosted sees a message or a token. The
 one hosted piece is the stateless `GET /slack/callback` page on the link service, which only turns Slack's OAuth
-return into an `duskbot://slack/oauth` link.
+return into a `duskbot://slack/oauth` link.
 
 ## What to verify without Slack
 

@@ -1,6 +1,6 @@
 # Bring your own engine
 
-Two zero-code ways to run Dusk Bot bots on an engine the app doesn't ship.
+Two zero-code ways to run bots in Dusk Bot on an engine the app doesn't ship.
 Both live in `~/.duskbot/config.json` under `"instances"`; restart the app
 after editing (instance entries are read at boot).
 
