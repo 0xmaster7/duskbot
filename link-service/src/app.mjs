@@ -3,7 +3,7 @@
 //
 // trust: the app holds the secrets. the relay stores only sha256 verifiers of bearer tokens and passes sealed blobs on.
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { createReadStream, readFileSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { isIP } from "node:net";
 import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
@@ -469,6 +469,16 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (method === "GET" && (path === "/uninstall" || path === "/uninstall.sh")) {
       res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
       return res.end(file(uninstallPath).replaceAll("__LINK_BASE__", base));
+    }
+    // what a linked server's agent updates itself to (link-service/agent.mjs createUpdater): the agent served at /agent.mjs
+    if (method === "GET" && path === "/v1/release") {
+      const text = file(agentPath);
+      const version = /^export const AGENT_VERSION = "(\d+\.\d+\.\d+)";$/m.exec(text)?.[1];
+      const protocol = Number(/^export const LINK_PROTOCOL = (\d+);$/m.exec(text)?.[1]);
+      if (!version || !Number.isInteger(protocol)) return fail(res, 404, "no release");
+      const sig = existsSync(`${agentPath}.sig`) ? file(`${agentPath}.sig`).trim() : null;
+      res.setHeader("cache-control", "no-store");
+      return send(res, 200, { v: 1, agent: { version, protocol, sha256: createHash("sha256").update(text).digest("hex") }, ...(sig ? { sig } : {}) });
     }
     if (method === "GET" && (path === "/agent.mjs" || path === "/docker-gate.mjs")) {
       res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });

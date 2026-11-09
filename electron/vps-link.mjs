@@ -144,7 +144,7 @@ export function createVpsLink(deps) {
     const info = peers.get(link.id);
     if (!info) return null;
     const { update, message } = linkCompat(info, link.name);
-    return { update, message, agent: info.agent, server: info.server?.version ?? null, protocol: info.protocol, legacy: info.legacy };
+    return { update, message, agent: info.agent, server: info.server?.version ?? null, protocol: info.protocol, legacy: info.legacy, ...(info.update?.staged ? { staged: info.update.staged } : {}) };
   }
 
   /** asks the agent what it speaks, over the sealed relay; an agent from before the handshake says "unknown request" */
@@ -164,6 +164,8 @@ export function createVpsLink(deps) {
     peers.set(link.id, info);
     const after = compatView(link);
     if (after.update) log(`vps link: ${after.message} (app protocol ${APP_LINK_PROTOCOL}, agent ${info.agent ?? "older"} protocol ${info.protocol}, server ${info.server?.version ?? "unknown"})`);
+    // an agent too old for this app or its server that can update itself looks for a release now, not in six hours
+    if (after.update === "agent" && info.caps.includes("self-update")) void proxy.control("update", {}, 180_000).catch((error) => log(`vps link: ${link.name} did not update its link (${error?.message ?? error})`));
     if (JSON.stringify(after) !== before) onChange(view());
   }
 
@@ -511,6 +513,19 @@ export function createVpsLink(deps) {
     proxy?.useDirect?.(null);
     if (proxy && link.directRevoke) await revokeDirect(link, proxy);
     return directSetting(origin);
+  }
+
+  /**
+   * the link on the current server looks for a newer release and restarts into it now (the person asked, so it does
+   * not wait for the link to fall idle); a link without self-update says how to update it instead
+   */
+  async function updateLink() {
+    const link = needLink();
+    const proxy = await proxyFor(link);
+    const lacking = missingCap(peers.get(link.id) ?? agentInfo(null), "self-update", link.name);
+    if (lacking) throw new Error(lacking);
+    const answer = await proxy.control("update", { apply: "now" }, 180_000);
+    return { running: answer?.running ?? null, staged: answer?.staged ?? null, restarting: answer?.restarting === true, ...(typeof answer?.error === "string" ? { error: answer.error } : {}) };
   }
 
   /** after a wake or a network change; a server whose agent did not answer the handshake yet is asked again */
@@ -946,7 +961,7 @@ export function createVpsLink(deps) {
   }
 
   return {
-    view, start, cancel, resume, sealTrust, nudge, directSetting, setDirect,
+    view, start, cancel, resume, sealTrust, nudge, directSetting, setDirect, updateLink,
     reset() { lastError = null; if (!state.pending && state.move?.step === "done") state.move = null; write(); return view(); },
     engines, signIn, signInStatus, signInCode, signInCancel,
     preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,

@@ -17,10 +17,11 @@ export function agentInfo(said) {
   const server = said.server && typeof said.server === "object"
     ? { version: label(said.server.version), protocol: whole(said.server.protocol), minAgent: whole(said.server.minAgent) }
     : null;
+  const update = said.update && typeof said.update === "object" ? { running: label(said.update.running), staged: label(said.update.staged) } : null;
   return {
     protocol: whole(said.protocol), minApp: whole(said.minApp), minServer: whole(said.minServer), agent: label(said.agent),
     caps: Array.isArray(said.caps) ? said.caps.filter((cap) => typeof cap === "string" && cap.length <= 40).slice(0, 64) : [],
-    server, legacy: false,
+    server, update, legacy: false,
   };
 }
 
@@ -29,15 +30,17 @@ export function agentInfo(said) {
  * and the server that is too old for another, with one sentence a person can act on
  */
 export function linkCompat(info, name = "your server") {
+  const how = info.caps.includes("self-update") ? "It updates itself when nobody is using it." : "Run its setup line on the server again.";
   if (APP_LINK_PROTOCOL < info.minApp) return { update: "app", message: `Update OpenMausBot on this Mac to keep using ${name}.` };
-  if (info.protocol < MIN_AGENT_PROTOCOL) return { update: "agent", message: `Update the link on ${name}: it is older than this app works with.` };
-  if (info.server && info.protocol < info.server.minAgent) return { update: "agent", message: `Update the link on ${name}: OpenMausBot there needs a newer one.` };
+  if (info.protocol < MIN_AGENT_PROTOCOL) return { update: "agent", message: `Update the link on ${name}: it is older than this app works with. ${how}` };
+  if (info.server && info.protocol < info.server.minAgent) return { update: "agent", message: `Update the link on ${name}: OpenMausBot there needs a newer one. ${how}` };
   if (info.server && info.server.protocol < info.minServer) return { update: "server", message: `Update OpenMausBot on ${name}: its link is newer than it works with.` };
   return { update: null, message: null };
 }
 
 const FEATURES = {
   "direct-wss": "connect over port 443 when your network blocks ssh",
+  "self-update": "let it update itself (run its setup line on the server again)",
 };
 
 /** the sentence for a feature the agent lacks, or null when it has it (or nothing is known about it yet) */

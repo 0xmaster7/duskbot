@@ -3,13 +3,15 @@
 //   node agent.mjs link     (omb-link)  mint a pairing code, seal it for the app, report the result, write tunnel.json
 //   node agent.mjs tunnel   (omb-link)  the steady-state relay: requests from the app, sealed end to end, to 127.0.0.1:8799
 //   node agent.mjs direct   (omb-link)  the same frames on stdin/stdout: what the app's own ssh key may run, and nothing else
+//   node agent.mjs selftest (anyone)    prints this agent's version and protocol: how a staged update proves it loads
 // omb-link is its own account, never the server's: tunnel.json and the app's ssh key stay out of the bots' reach.
 // standalone on purpose: node's own modules only, one file the link service serves at /agent.mjs.
 // it also lends the bot computers on this server the app's own internet connection when the person turns on "route
 // traffic through this computer": a socks5 and http connect proxy on the bot computers' bridge (see createEgressProxy).
-import { X509Certificate, createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
+import { spawn } from "node:child_process";
+import { X509Certificate, createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, verify as verifySignature } from "node:crypto";
 import { createSocket } from "node:dgram";
-import { chmodSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { BlockList, createConnection, createServer as createTcpServer } from "node:net";
 import { Agent as HttpAgent, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
@@ -32,7 +34,7 @@ export const LINK_PROTOCOL = 2;
 export const LINK_MIN_APP = 1;
 export const LINK_MIN_SERVER = 1;
 export const AGENT_VERSION = "2.0.0";
-export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "egress", "egress-lane"]);
+export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "egress", "egress-lane", "self-update"]);
 /** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
 export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
 const FRAME_SKEW_MS = 5 * 60_000;
@@ -918,7 +920,7 @@ const directTag = (id) => `omb-link-${id}`;
 const SAFE_PATH = /^\/[\w./+-]+$/;
 
 /** the authorized_keys line for the app's key: restrict (no shell, pty, agent or port forwarding) and one forced command */
-export function directKeyLine({ pub, id, node = process.execPath, agent = fileURLToPath(import.meta.url) }) {
+export function directKeyLine({ pub, id, node = process.execPath, agent = installedAgent() }) {
   const match = /^ssh-ed25519 ([A-Za-z0-9+/]{68})$/.exec(typeof pub === "string" ? pub.trim() : "");
   const blob = match ? Buffer.from(match[1], "base64") : null;
   if (!blob || blob.length !== 51 || blob.readUInt32BE(0) !== 11 || blob.toString("latin1", 4, 15) !== "ssh-ed25519" || blob.readUInt32BE(15) !== 32) throw new Error("that is not an ed25519 key");
@@ -1030,7 +1032,13 @@ export async function serverLink(read = () => local("GET", "/.well-known/openmau
 
 export async function control(op, data, context = {}) {
   if (op === "ping") return { ok: true };
-  if (op === "hello") return { ...agentHello(), server: await (context.serverLink ?? serverLink)() };
+  if (op === "hello") return { ...agentHello(), server: await (context.serverLink ?? serverLink)(), ...(context.updater ? { update: context.updater.status() } : {}) };
+  if (op === "update") {
+    if (!context.updater) throw new Error("this agent does not update itself here");
+    await context.updater.check();
+    const restarting = data?.apply === "now" ? context.updater.maybeApply(true) : context.updater.maybeApply();
+    return { ...context.updater.status(), restarting };
+  }
   if (op === "direct-key") return directKey(data, context);
   if (op === "direct-wss") return directWss(context, context.spkiOf);
   if (op === "direct-off") { if (context.id) setDirectKey(context.id, null); return { ok: true }; }
@@ -1065,6 +1073,170 @@ export async function control(op, data, context = {}) {
     return { ok: true };
   }
   throw new Error("unknown request");
+}
+
+// ---- self-update ----
+
+/**
+ * the file the install put here (root's, read-only to this account). a staged update runs from this account's own
+ * folder, launched by that file, which ssh's forced command keeps naming
+ */
+export const installedAgent = () => process.env.OMB_LINK_LAUNCHER || fileURLToPath(import.meta.url);
+const releasesDir = () => join(configDir(), "releases");
+/** ed25519 public keys (base64, raw 32 bytes) a release must be signed by; with none, the link service's tls and hash vouch, as for the install */
+export const RELEASE_KEYS = Object.freeze([]);
+const UPDATE_EVERY_MS = 6 * 60 * 60_000;
+const UPDATE_FIRST_MS = 5 * 60_000;
+/** no request, stream byte or egress stream from the app for this long, and nothing open on egress: an update may restart the tunnel */
+export const UPDATE_IDLE_MS = 5 * 60_000;
+/** a staged agent that did not stay up this long, this many starts in a row, is never launched again */
+const TRIAL_GOOD_MS = 2 * 60_000;
+const TRIAL_STARTS = 3;
+
+/** a.b.c compared as numbers; anything else sorts below every version */
+export function compareVersions(a, b) {
+  const parts = (value) => (/^\d+\.\d+\.\d+$/.test(String(value)) ? String(value).split(".").map(Number) : null);
+  const left = parts(a), right = parts(b);
+  if (!left || !right) return left ? 1 : right ? -1 : 0;
+  for (let at = 0; at < 3; at += 1) if (left[at] !== right[at]) return left[at] < right[at] ? -1 : 1;
+  return 0;
+}
+
+/** what a release file says it is, read from its own text */
+export function releaseOf(text) {
+  const version = /^export const AGENT_VERSION = "(\d+\.\d+\.\d+)";$/m.exec(text)?.[1] ?? null;
+  const protocol = Number(/^export const LINK_PROTOCOL = (\d+);$/m.exec(text)?.[1] ?? NaN);
+  return { version, protocol: Number.isInteger(protocol) ? protocol : null };
+}
+
+/** the line a release key signs: the version, the protocol and the file's sha256 */
+export const releaseMessage = ({ version, protocol, sha256 }) => Buffer.from(`omb-link-release-v1\n${version}\n${protocol}\n${sha256}`);
+const ED25519_SPKI = Buffer.from("302a300506032b6570032100", "hex");
+export function releaseSigned(manifest, keys) {
+  if (typeof manifest.sig !== "string") return false;
+  const signature = Buffer.from(manifest.sig, "base64");
+  return keys.some((key) => {
+    try { return verifySignature(null, releaseMessage(manifest), createPublicKey({ key: Buffer.concat([ED25519_SPKI, Buffer.from(key, "base64")]), format: "der", type: "spki" }), signature); }
+    catch { return false; }
+  });
+}
+
+/** runs `node --check` and `selftest` on a staged file: it must parse and say the version it claims */
+function proveRelease(file, version) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [file, "selftest"], { stdio: ["ignore", "pipe", "ignore"], timeout: 20_000 });
+    let out = "";
+    child.stdout.on("data", (chunk) => { out = (out + chunk).slice(-4096); });
+    child.once("error", () => resolve(false));
+    child.once("close", (code) => {
+      try { resolve(code === 0 && JSON.parse(out).version === version); } catch { resolve(false); }
+    });
+  });
+}
+
+/**
+ * keeps this agent current: every 6 hours it reads the link service's release manifest, and stages a newer release
+ * (never an older one, never a lower protocol) only once its hash, its own version line, a signature when release keys
+ * are pinned, and a trial run all check out; `ready.json` is written last. it applies only after UPDATE_IDLE_MS idle,
+ * by ending the tunnel so systemd starts it again, and the installed file launches the staged one (launchRelease).
+ */
+export function createUpdater({ base, dir = releasesDir(), current = AGENT_VERSION, protocol = LINK_PROTOCOL, keys = [...RELEASE_KEYS, ...(process.env.OMB_LINK_RELEASE_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean)], fetchImpl = fetch, prove = proveRelease, idle = () => false, apply = () => {}, now = Date.now, log = () => {}, everyMs = UPDATE_EVERY_MS, firstMs = UPDATE_FIRST_MS }) {
+  let staged = null, checkedAt = null, error = null, timer = null, checking = null, applying = false;
+  try {
+    const ready = JSON.parse(readFileSync(join(dir, "ready.json"), "utf8"));
+    if (compareVersions(ready.version, current) > 0) staged = ready.version;
+  } catch { /* nothing staged */ }
+
+  async function stage() {
+    checkedAt = now();
+    const answer = await fetchImpl(`${base}/v1/release`, { signal: AbortSignal.timeout(30_000) });
+    if (!answer.ok) throw new Error(`the link service answered ${answer.status} for the release`);
+    const manifest = await answer.json();
+    const release = { version: manifest?.agent?.version, protocol: manifest?.agent?.protocol, sha256: manifest?.agent?.sha256, sig: manifest?.sig };
+    if (compareVersions(release.version, current) <= 0 || !Number.isInteger(release.protocol) || release.protocol < protocol) return null;
+    if (staged === release.version) return staged;
+    if (!/^[0-9a-f]{64}$/.test(String(release.sha256))) throw new Error("the release has no usable hash");
+    if (keys.length && !releaseSigned(release, keys)) throw new Error(`release ${release.version} is not signed by a pinned key`);
+    const download = await fetchImpl(`${base}/agent.mjs`, { signal: AbortSignal.timeout(120_000) });
+    if (!download.ok) throw new Error(`the link service answered ${download.status} for the agent`);
+    const bytes = Buffer.from(await download.arrayBuffer());
+    if (createHash("sha256").update(bytes).digest("hex") !== release.sha256) throw new Error(`release ${release.version} does not match its hash`);
+    const said = releaseOf(bytes.toString("utf8"));
+    if (said.version !== release.version || said.protocol !== release.protocol) throw new Error(`release ${release.version} says it is ${said.version ?? "something else"}`);
+    const folder = join(dir, release.version), file = join(folder, "agent.mjs");
+    rmSync(folder, { recursive: true, force: true });
+    mkdirSync(folder, { recursive: true, mode: 0o700 });
+    writePrivate(file, bytes);
+    if (!await prove(file, release.version)) { rmSync(folder, { recursive: true, force: true }); throw new Error(`release ${release.version} did not start`); }
+    writePrivate(join(dir, "ready.json"), JSON.stringify({ v: 1, version: release.version, sha256: release.sha256, at: now() }));
+    for (const old of readdirSync(dir)) if (/^\d+\.\d+\.\d+$/.test(old) && old !== release.version && old !== current) rmSync(join(dir, old), { recursive: true, force: true });
+    staged = release.version;
+    log(`link: agent ${release.version} is staged; it starts once nobody uses this link for a while`);
+    return staged;
+  }
+
+  async function check() {
+    checking ??= stage().then((found) => { error = null; return found; }, (failed) => { error = failed?.message ?? String(failed); log(`link: no update (${error})`); return staged; }).finally(() => { checking = null; });
+    return checking;
+  }
+
+  function maybeApply(force = false) {
+    if (!staged || applying || (!force && !idle())) return false;
+    applying = true;
+    log(`link: restarting into agent ${staged}`);
+    apply(staged);
+    return true;
+  }
+
+  let idleTimer = null;
+  return {
+    check, maybeApply,
+    status: () => ({ running: current, staged, checkedAt, ...(error ? { error } : {}) }),
+    start() {
+      if (timer) return;
+      const again = () => { void check().then(() => maybeApply()); timer = setTimeout(again, everyMs); timer.unref?.(); };
+      timer = setTimeout(again, firstMs);
+      timer.unref?.();
+      // a staged release waits for the link to fall idle; this looks every minute
+      idleTimer = setInterval(() => maybeApply(), 60_000);
+      idleTimer.unref?.();
+    },
+    stop() { clearTimeout(timer); clearInterval(idleTimer); timer = null; idleTimer = null; },
+  };
+}
+
+/**
+ * at start: the staged release this installed file should run instead of itself, or null. a release is launched only
+ * when newer than this file and still matching its hash; one that did not stay up for TRIAL_GOOD_MS on TRIAL_STARTS
+ * starts in a row is skipped for good, so a bad release leaves this one running
+ */
+export function stagedRelease({ dir = releasesDir(), current = AGENT_VERSION, log = () => {} } = {}) {
+  let ready;
+  try { ready = JSON.parse(readFileSync(join(dir, "ready.json"), "utf8")); } catch { return null; }
+  if (compareVersions(ready.version, current) <= 0) return null;
+  const file = join(dir, ready.version, "agent.mjs");
+  let bytes;
+  try { bytes = readFileSync(file); } catch { return null; }
+  if (createHash("sha256").update(bytes).digest("hex") !== ready.sha256) { log(`link: staged agent ${ready.version} changed on disk; staying on ${current}`); return null; }
+  let trial = {};
+  try { trial = JSON.parse(readFileSync(join(dir, "trial.json"), "utf8")); } catch { /* first start */ }
+  if (trial.version !== ready.version) trial = { version: ready.version, starts: 0, good: false };
+  if (!trial.good && trial.starts >= TRIAL_STARTS) { log(`link: staged agent ${ready.version} did not stay up; staying on ${current}`); return null; }
+  return { version: ready.version, file, trial };
+}
+
+/** runs a staged release in place of this file, as long as it runs; the exit code is the release's */
+export function launchRelease(release, { dir = releasesDir(), argv = ["tunnel"], log = (line) => console.error(line) } = {}) {
+  const trial = { ...release.trial, starts: (release.trial.starts ?? 0) + (release.trial.good ? 0 : 1) };
+  writePrivate(join(dir, "trial.json"), JSON.stringify(trial));
+  log(`link: running agent ${release.version}`);
+  const child = spawn(process.execPath, [release.file, ...argv], { stdio: "inherit", env: { ...process.env, OMB_LINK_LAUNCHER: installedAgent() } });
+  const healthy = setTimeout(() => { if (!trial.good) writePrivate(join(dir, "trial.json"), JSON.stringify({ ...trial, good: true })); }, TRIAL_GOOD_MS);
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => child.kill(signal));
+  return new Promise((resolve) => {
+    child.once("error", () => { clearTimeout(healthy); resolve(1); });
+    child.once("exit", (code) => { clearTimeout(healthy); resolve(code ?? 1); });
+  });
 }
 
 // ---- egress ----
@@ -1496,8 +1668,12 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
 }
 
 /** `egress`: options for createEgressProxy, which then rides this tunnel; without it the app's hellos are ignored */
-export function createTunnelAgent({ base, id, key: keyText, token, origin = null, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
+/** `update`: options for createUpdater, which then keeps this agent current and restarts the tunnel only when idle */
+export function createTunnelAgent({ base, id, key: keyText, token, origin = null, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, update: updateOptions = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
   const context = { id, origin };
+  // the app's last use of this link: anything but liveness, the handshake and the update op itself
+  let lastUse = Date.now();
+  const used = (frame) => { if (frame.t !== "egress" && !(frame.t === "ctl" && ["ping", "hello", "update"].includes(frame.op))) lastUse = Date.now(); };
   const fetchImpl = given ?? relayFetch();
   const stream = streamChoice();
   const key = Buffer.from(keyText, "base64url");
@@ -1513,6 +1689,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
     terminal = reason;
     abort.abort();
     void egress?.stop();
+    updater?.stop();
     hub.stop();
     if (!given) fetchImpl.close();
     serving.destroyAll();
@@ -1549,13 +1726,17 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
   const lane = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post: (frames, at) => post(frames, at, true), delayMs: 0, signal: abort.signal, onError: () => log("link: an egress post failed") });
   const laneSend = (frame) => { if (stopped) return; if (frame.t === "cancel") lane.discard(frame.r); lane.push(sealFrame(key, id, "to-app", frame), frame.r); };
   const egress = egressOptions ? createEgressProxy({ send: laneSend, bytes: (r, chunk) => lane.bytes(r, chunk), queued: () => lane.size, onDrain: (resume) => lane.onDrain(resume), path: () => hub.best(), log, ...egressOptions }) : null;
-  const hub = createDirectHub({ id, key: keyText, server, guard, egress, log, context });
-  const handle = (frame) => (egress?.handle(frame) ? undefined : serving.handle(frame));
+  const hub = createDirectHub({ id, key: keyText, server, guard, egress, log, context, onFrame: used });
+  const handle = (frame) => { used(frame); return egress?.handle(frame) ? undefined : serving.handle(frame); };
+  const idle = () => Date.now() - lastUse >= UPDATE_IDLE_MS && (egress?.stats().active ?? 0) === 0;
+  const updater = updateOptions ? createUpdater({ base, idle, apply: () => stop("update"), log, ...updateOptions }) : null;
+  if (updater) context.updater = updater;
 
   async function run() {
     let failures = 0, ahead = null;
     const unwarm = given ? () => {} : fetchImpl.warm(base);
     void egress?.start();
+    updater?.start();
     while (!stopped) {
       const postsBefore = successfulPosts;
       const next = ahead;
@@ -1605,7 +1786,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
     unwarm();
     return terminal;
   }
-  return { run, stop, egress, direct: hub };
+  return { run, stop, egress, direct: hub, updater };
 }
 
 export function harnessSync(server = SERVER) {
@@ -1810,7 +1991,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
  * first (sealed, so the app knows it holds the key), answers pings, and ends with the connection. `egress` takes the
  * app's egress frames; `path` is this connection as a way for egress streams to the app, usable once `onHello` said so.
  */
-export function serveDirect({ input, output, id, key: keyText, server = SERVER, log = (line) => console.error(line), idleMs = 20_000, guard = frameGuard(), egress = null, onHello = () => {}, context = { id } }) {
+export function serveDirect({ input, output, id, key: keyText, server = SERVER, log = (line) => console.error(line), idleMs = 20_000, guard = frameGuard(), egress = null, onHello = () => {}, onFrame = () => {}, context = { id } }) {
   const key = Buffer.from(keyText, "base64url");
   let ended = false, heard = false, greeted = false, finish;
   const done = new Promise((resolve) => { finish = (why) => {
@@ -1839,6 +2020,7 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
     heard = true;
     if (frame.t === "bytes") writer.received(frame.b.length);
     if (frame.t === "ping") { writer.push({ t: "pong", n: frame.n }); return; }
+    onFrame(frame);
     if (frame.t === "hello") { if (!greeted) { greeted = true; onHello(session); } return; }
     if (egress?.handle(frame)) return;
     void serving.handle(frame);
@@ -1862,13 +2044,13 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
  * `agent.mjs direct`, which only pipes them here), so egress streams can ride the newest one the app said hello on.
  * one replay guard covers them all and the relay.
  */
-export function createDirectHub({ id, key, server = SERVER, guard, egress = null, log = () => {}, max = 16, context = { id } }) {
+export function createDirectHub({ id, key, server = SERVER, guard, egress = null, log = () => {}, max = 16, context = { id }, onFrame = () => {} }) {
   const all = new Set();
   const greeted = [];
   return {
     accept(input, output) {
       if (all.size >= max) { input.destroy?.(); output.destroy?.(); return null; }
-      const session = serveDirect({ input, output, id, key, server, log, guard, egress, context, onHello: (one) => greeted.push(one) });
+      const session = serveDirect({ input, output, id, key, server, log, guard, egress, context, onFrame, onHello: (one) => greeted.push(one) });
       all.add(session);
       void session.done.then(() => {
         all.delete(session);
@@ -1967,8 +2149,14 @@ async function direct() {
 async function tunnel() {
   let saved;
   try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet; nothing to do"); return 0; }
+  // the installed file hands over to a newer staged release; a staged release (OMB_LINK_LAUNCHER set) never looks further
+  const updates = process.env.OMB_LINK_UPDATES !== "off";
+  if (updates && !process.env.OMB_LINK_LAUNCHER) {
+    const release = stagedRelease({ log: (line) => console.error(line) });
+    if (release) return launchRelease(release);
+  }
   try { if (refreshDirectKey(saved.id)) console.error("link: the app's direct key now runs this agent"); } catch (error) { console.error(`link: the app's direct key was not refreshed (${error?.message ?? error})`); }
-  const agent = createTunnelAgent({ ...saved, egress: {
+  const agent = createTunnelAgent({ ...saved, ...(updates ? { update: {} } : {}), egress: {
     report: async (state) => { const answer = await local("POST", "/api/computer/egress/agent", state); return answer.status === 200 ? answer.body : null; },
   } });
   let phones = null;
@@ -2001,9 +2189,15 @@ async function tunnel() {
   return 0;
 }
 
-const main = { probe, link, tunnel, direct };
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+async function selftest() {
+  console.log(JSON.stringify({ version: AGENT_VERSION, protocol: LINK_PROTOCOL }));
+  return 0;
+}
+
+const main = { probe, link, tunnel, direct, selftest };
+const runAs = (file) => { try { return realpathSync(file); } catch { return file; } };
+if (process.argv[1] && runAs(fileURLToPath(import.meta.url)) === runAs(process.argv[1])) {
   const command = main[process.argv[2]];
-  if (!command) { console.error("usage: node agent.mjs probe|link|tunnel|direct"); process.exit(2); }
+  if (!command) { console.error("usage: node agent.mjs probe|link|tunnel|direct|selftest"); process.exit(2); }
   command().then((code) => process.exit(code ?? 0), (error) => { console.error(error?.message ?? String(error)); process.exit(1); });
 }

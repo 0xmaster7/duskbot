@@ -24,7 +24,8 @@ test("this app and the agent shipped with it work together, and each names what 
   assert.deepEqual(linkCompat(fine, "box"), { update: null, message: null });
   assert.deepEqual(linkCompat({ ...fine, minApp: APP_LINK_PROTOCOL + 1 }, "box"), { update: "app", message: "Update OpenMausBot on this Mac to keep using box." });
   assert.equal(linkCompat({ ...fine, protocol: MIN_AGENT_PROTOCOL - 1 }, "box").update, "agent");
-  assert.deepEqual(linkCompat({ ...fine, server: { version: "10.0.0", protocol: 3, minAgent: LINK_PROTOCOL + 1 } }, "box"), { update: "agent", message: "Update the link on box: OpenMausBot there needs a newer one." });
+  assert.match(linkCompat({ ...fine, caps: [], server: { version: "10.0.0", protocol: 3, minAgent: LINK_PROTOCOL + 1 } }, "box").message, /Run its setup line on the server again\.$/, "an agent that cannot update itself says how");
+  assert.deepEqual(linkCompat({ ...fine, server: { version: "10.0.0", protocol: 3, minAgent: LINK_PROTOCOL + 1 } }, "box"), { update: "agent", message: "Update the link on box: OpenMausBot there needs a newer one. It updates itself when nobody is using it." });
   assert.deepEqual(linkCompat({ ...fine, minServer: 2 }, "box"), { update: "server", message: "Update OpenMausBot on box: its link is newer than it works with." });
   const old = agentInfo(null);
   assert.equal(old.legacy, true);
