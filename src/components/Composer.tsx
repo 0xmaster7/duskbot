@@ -505,10 +505,10 @@ export function Composer({
   }, [draftId]);
   const retryUpload = useCallback((id: string) => {
     const failed = attachments.find((attachment) => attachment.id === id);
-    if (!failed) return;
+    if (!failed || failed.kind === "paste") return;
     changeDraftAttachmentPending(draftId, true);
     void retryPlacedUpload(draftId, failed)
-      .catch((error: unknown) => setAttachmentNotice(`${failed.kind === "paste" ? "" : `${failed.name}: `}${error instanceof Error ? error.message : "upload failed"}`))
+      .catch((error: unknown) => setAttachmentNotice(`${failed.name}: ${error instanceof Error ? error.message : "upload failed"}`))
       .finally(() => changeDraftAttachmentPending(draftId, false));
   }, [attachments, draftId]);
   const pickFiles = async (picked: FileList | null) => {
