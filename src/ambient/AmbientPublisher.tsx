@@ -20,8 +20,8 @@ export const PUBLISH_MS = 160;
 
 type Dispatch = ReturnType<typeof useStore>["dispatch"];
 
-/** Checked again here: the island may only answer a plain approval, or a question with one of its own choices, that the
- * page itself still shows as open, and stop only a bot that is working. */
+/** Checked again here: the surfaces may only answer a plain approval, or a question with one of its own choices (or typed,
+ * where it takes that), that the page itself still shows as open, and stop only a bot that is working. */
 export function runAmbientAct(act: AmbientAct, state: AppState, dispatch: Dispatch): void {
   if (act.kind === "new-bot") return openCreateBot();
   const bot = state.bots.find((entry) => entry.id === act.botId);
@@ -36,7 +36,8 @@ export function runAmbientAct(act: AmbientAct, state: AppState, dispatch: Dispat
   }
   if (act.kind === "answer") {
     const open = questionOf(sidebarPreviewMessages(bot));
-    if (!open?.choices?.includes(act.text) || open.card.requestId !== act.requestId || act.threadId !== bot.threadId) return;
+    if (!open || open.card.requestId !== act.requestId || act.threadId !== bot.threadId) return;
+    if (!open.choices?.includes(act.text) && !open.custom) return;
     const message = open.card.questionRequest ? formatQuestionAnswers(cardQuestions(open.card), [[act.text]]) : act.text;
     dispatch({ type: "decideRequest", threadId: act.threadId, requestId: act.requestId, behavior: "answer", message });
     return;
@@ -54,6 +55,8 @@ export function AmbientPublisher() {
   latest.current = state;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sent = useRef("");
+  // what the person watched in this window: those bots stay quiet on the surfaces (summary.ts Watch)
+  const watched = useRef(new Map<string, string>());
 
   useEffect(() => {
     if (!bridge) return;
@@ -67,8 +70,9 @@ export function AmbientPublisher() {
     if (timer.current || !bridge) return;
     timer.current = setTimeout(() => {
       timer.current = null;
-      const { bots, instances } = latest.current;
-      const snapshot = ambientSnapshot(bots, instances, turnLive, activeLocale());
+      const { bots, instances, selectedId } = latest.current;
+      const focused = document.hasFocus() && document.visibilityState === "visible";
+      const snapshot = ambientSnapshot(bots, instances, turnLive, activeLocale(), { selectedId, focused, watched: watched.current });
       const key = JSON.stringify(snapshot);
       if (key === sent.current) return;
       sent.current = key;
@@ -79,8 +83,15 @@ export function AmbientPublisher() {
   useEffect(() => {
     if (!wanted) { sent.current = ""; return; }
     schedule();
-  }, [wanted, state.bots, state.instances, schedule]);
+  }, [wanted, state.bots, state.instances, state.selectedId, schedule]);
   useEffect(() => (wanted ? onAnyTurnLive(schedule) : undefined), [wanted, schedule]);
+  useEffect(() => {
+    if (!wanted) return;
+    window.addEventListener("focus", schedule);
+    window.addEventListener("blur", schedule);
+    document.addEventListener("visibilitychange", schedule);
+    return () => { window.removeEventListener("focus", schedule); window.removeEventListener("blur", schedule); document.removeEventListener("visibilitychange", schedule); };
+  }, [wanted, schedule]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   useEffect(() => bridge?.onAct((act) => runAmbientAct(act, latest.current, dispatch)), [bridge, dispatch]);
   return <DesktopBots />;

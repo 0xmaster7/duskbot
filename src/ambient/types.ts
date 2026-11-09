@@ -2,6 +2,10 @@
 import type { MausColor } from "../../shared/wire";
 
 export type AmbientStatus = "idle" | "thinking" | "working" | "talking" | "needs-you" | "done" | "error";
+/** What a bot waits on the person for: one of shared/person-wait's kinds, or a wait it reports without a card. */
+export type AmbientWait = "question" | "approval" | "sign-in" | "password" | "connect" | "review" | "other";
+/** The step a running turn reports (shared/turn-progress), or its thinking and its reply. */
+export type AmbientStep = "thinking" | "reply" | "read" | "fetch" | "web" | "search" | "command" | "write" | "edit" | "tool";
 
 export interface AmbientBot {
   id: string;
@@ -24,9 +28,13 @@ export interface AmbientBot {
   /** The one approval the island can answer in place. */
   approval: { requestId: string; threadId: string; title: string } | null;
   /** What it waits on the person for, the most urgent first: a question, then an approval, then anything else. */
-  waits: "question" | "approval" | "other" | null;
-  /** A question the island answers in place with one of its choices. */
-  question: { requestId: string; threadId: string; title: string; choices: string[] } | null;
+  waits: AmbientWait | null;
+  /** A question the surfaces answer in place: with one of its choices, or typed when `custom`. */
+  question: { requestId: string; threadId: string; title: string; choices: string[]; custom?: boolean } | null;
+  /** What a running turn is doing now, for the mascot's pose. */
+  step?: AmbientStep | null;
+  /** The person watched this turn or this news in the app's own focused window: nothing here to catch their eye. */
+  quiet?: boolean;
 }
 
 export interface AmbientSnapshot {
@@ -58,7 +66,7 @@ export interface DockLayout {
   height: number;
   body: number;
   top: number;
-  dock: { cell: number; tile: number; body: number; pad: number; ear: number; sliver: number; cardRoom: number; spill: number; max: number };
+  dock: { cell: number; tile: number; column: number; open: number; pad: number; ear: number; sliver: number; margin: number; overhang?: number };
   order: string[];
 }
 
@@ -84,6 +92,9 @@ export interface AmbientBridge {
   act(act: AmbientAct): void;
   order(ids: string[]): void;
   ready(): void;
+  /** The finished replies and failures the person has seen (src/ambient/seen.ts), kept by main across restarts. */
+  onSeen?(cb: (keys: string[]) => void): () => void;
+  seen?(keys: string[]): void;
 }
 
 /** The app page's side of it (electron/preload.cjs). */

@@ -46,6 +46,25 @@ describe("the summary the island and the dock draw", () => {
     expect(ambientBot(bot({ activity: "waiting-on-you" }), [], turnLive).waits).toBe("other");
   });
 
+  it("counts only a real ask as needing the person: never an intro's suggestions or a plain reply", () => {
+    const intro = message({ kind: "options", helperIntro: true, card: { title: "Hey! I'm Nova. I'm new here.", options: ["Plan my week", "Sort my inbox"] } } as Partial<Message>);
+    expect(ambientBot(bot({ unread: true, messages: [intro] }), [], turnLive)).toMatchObject({ status: "done", waits: null, question: null });
+    expect(ambientBot(bot({ messages: [intro] }), [], turnLive).status).toBe("idle");
+    const signIn = message({ kind: "signin", signIn: { site: "Gmail" } } as unknown as Partial<Message>);
+    expect(ambientBot(bot({ messages: [signIn] }), [], turnLive)).toMatchObject({ status: "needs-you", waits: "sign-in", detail: "Sign in to Gmail" });
+  });
+
+  it("takes a typed answer where the question allows one, and names the step a turn is on", () => {
+    const open = message({ kind: "options", card: { title: "Which city?", subtitle: "", options: [], requestId: "q9", requestType: "question" } } as Partial<Message>);
+    expect(ambientBot(bot({ messages: [open] }), [], turnLive).question).toMatchObject({ requestId: "q9", choices: [], custom: true });
+    const fixed = message({ kind: "options", card: { title: "Ship?", subtitle: "", options: ["Yes", "No"], fixedOptions: true, requestId: "q8", requestType: "question" } } as Partial<Message>);
+    expect(ambientBot(bot({ messages: [fixed] }), [], turnLive).question).toMatchObject({ choices: ["Yes", "No"], custom: false });
+    const busy = bot({ busy: true, messages: [message({ role: "user", text: "Find flights" })] });
+    noteTurnEvent({ type: "content.delta", threadId: "t1", turnId: "u1", streamKind: "reasoning_text", delta: "" } as never);
+    expect(ambientBot(busy, [], turnLive).step).toBe("thinking");
+    expect(ambientBot(bot(), [], turnLive).step).toBeNull();
+  });
+
   it("marks an unread reply done, a failed step an error, and the rest idle with their newest line", () => {
     const reply = message({ text: "The footer is fixed." });
     expect(ambientBot(bot({ unread: true, messages: [reply] }), [], turnLive)).toMatchObject({ status: "done", unread: true, line: "The footer is fixed.", at: reply.at });

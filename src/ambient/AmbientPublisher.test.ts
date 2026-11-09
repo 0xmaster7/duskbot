@@ -11,11 +11,13 @@ const run = (act: Parameters<typeof runAmbientAct>[0], bots: Bot[]) => {
 };
 
 describe("what the island asks the page to do", () => {
-  it("answers an open question with one of its own choices, and nothing else", () => {
-    const asking = bot({ messages: [question()] });
+  it("answers an open question with one of its own choices, or typed only where the question takes that", () => {
+    const asking = bot({ messages: [question({ fixedOptions: true })] });
     expect(run({ kind: "answer", botId: "nova", threadId: "t1", requestId: "q1", text: "dev" }, [asking]))
       .toEqual([{ type: "decideRequest", threadId: "t1", requestId: "q1", behavior: "answer", message: "dev" }]);
     expect(run({ kind: "answer", botId: "nova", threadId: "t1", requestId: "q1", text: "rm -rf" }, [asking])).toEqual([]);
+    expect(run({ kind: "answer", botId: "nova", threadId: "t1", requestId: "q1", text: "staging, please" }, [bot({ messages: [question()] })]))
+      .toEqual([{ type: "decideRequest", threadId: "t1", requestId: "q1", behavior: "answer", message: "staging, please" }]);
     expect(run({ kind: "answer", botId: "nova", threadId: "t1", requestId: "old", text: "dev" }, [asking])).toEqual([]);
     expect(run({ kind: "answer", botId: "nova", threadId: "t1", requestId: "q1", text: "dev" }, [bot({ messages: [question({ answered: "answer" })] })])).toEqual([]);
   });
