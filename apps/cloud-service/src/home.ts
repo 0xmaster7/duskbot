@@ -52,13 +52,18 @@ export const REDEEM_SCRIPT = `const fs = require("node:fs");
 const b = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
 if (b.v !== 2 || !/^c[0-9a-f]{24}$/.test(b.machine) || typeof b.claim !== "string" || !/^https:\\/\\/[^/]+\\/v1\\/managed\\/claims\\/redeem$/.test(b.redeem)) process.exit(1);
 (async () => {
-  for (let i = 0; i < 10; i++) {
+  // the claim lives an hour: keep trying through a slow deploy of the service or its rate limit, never past a refusal
+  const until = Date.now() + 55 * 60_000;
+  for (let i = 0; Date.now() < until; i++) {
+    let wait = Math.min(60000, 3000 * (i + 1));
     try {
       const r = await fetch(b.redeem, { method: "POST", redirect: "error", signal: AbortSignal.timeout(20000), headers: { "content-type": "application/json" }, body: JSON.stringify({ cloud: b.machine, claim: b.claim }) });
       if (r.status === 403) process.exit(1);
       if (r.ok) { const a = await r.json(); if (a.v !== 1 || a.machine !== b.machine) process.exit(1); fs.writeFileSync(process.argv[2], JSON.stringify(a), { mode: 0o600 }); return; }
+      const after = Number(r.headers.get("retry-after"));
+      if (Number.isFinite(after) && after > 0) wait = Math.min(300000, after * 1000);
     } catch {}
-    await new Promise((f) => setTimeout(f, 3000 * (i + 1)));
+    await new Promise((f) => setTimeout(f, wait));
   }
   process.exit(1);
 })();`;
@@ -221,8 +226,8 @@ sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-docker-g
 ${gate}OMB_GATE
 sudo install -o root -g root -m 0755 /dev/stdin ${BOAT_CONTROL} <<'OMB_CTL'
 ${boatControlScript(options)}OMB_CTL
-# a machine started from a template runs only the app the template's signature names
-if [ -f ${ROOT}/installed ]; then sudo -n ${BOAT_CONTROL} verify-template; fi
+# a machine started from a template runs only the app the template's signature names (a wrong template, not a hostile one)
+if [ -d ${APP} ]; then sudo -n ${BOAT_CONTROL} verify-template; fi
 install -d -m 0700 /home/user/.boat
 install -m 0700 /dev/stdin /home/user/.boat/pre-stop <<'OMB_PRESTOP'
 ${preStop}OMB_PRESTOP

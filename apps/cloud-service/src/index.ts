@@ -77,20 +77,26 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         releaseKeys: deps.releaseKeys ?? PINNED_RELEASE_KEYS, labelKey: deps.labelKey ?? Buffer.from(hkdfSync("sha256", backupSecret, Buffer.alloc(0), Buffer.from("omb-managed-label"), 32))  });
       const sweep = createBoatSweep({ dataDir: ctx.dataDir, provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });
       const claimLimits = new Map<string, { count: number; until: number }>();
-      function limited(key: string, max: number, windowMs: number): boolean {
+      /** failed redemptions per address: 30 per 15 minutes; a machine's own successful boot never counts */
+      function limited(key: string): boolean {
+        const now = ctx.now();
+        for (const [k, item] of claimLimits) if (item.until <= now) claimLimits.delete(k);
+        return (claimLimits.get(key)?.count ?? 0) >= 30;
+      }
+      function failed(key: string) {
         const now = ctx.now(), item = claimLimits.get(key);
-        if (!item || item.until <= now) { claimLimits.set(key, { count: 1, until: now + windowMs }); return false; }
-        return ++item.count > max;
+        if (!item || item.until <= now) claimLimits.set(key, { count: 1, until: now + 15 * 60_000 }); else item.count++;
       }
       const digest = (value: string) => createHash("sha256").update(value).digest();
       async function handle(req: IncomingMessage, res: ServerResponse, url: URL, routes: ManagedCloudRoutesContext): Promise<boolean> {
         if (url.pathname === "/v1/managed/claims/redeem") {
           if (req.method !== "POST") { routes.json(res, 405, { error: "method_not_allowed" }); return true; }
-          // the claim is the credential; a guesser gets 30 tries per address per 15 minutes
-          if (limited(`claim:${routes.clientIp(req)}`, 30, 15 * 60_000)) { routes.json(res, 429, { error: "rate_limited" }); return true; }
+          // the claim is the credential; a guesser gets 30 wrong tries per address per 15 minutes
+          const address = `claim:${routes.clientIp(req)}`;
+          if (limited(address)) { res.setHeader("retry-after", "60"); routes.json(res, 429, { error: "rate_limited" }); return true; }
           const body = await routes.readJson(req).catch(() => ({} as Record<string, unknown>));
           const answer = lifecycle.redeemClaim(body.cloud, body.claim);
-          if (!answer) { routes.json(res, 403, { error: "invalid_claim" }); return true; }
+          if (!answer) { failed(address); routes.json(res, 403, { error: "invalid_claim" }); return true; }
           res.setHeader("cache-control", "no-store");
           routes.json(res, 200, answer);
           return true;

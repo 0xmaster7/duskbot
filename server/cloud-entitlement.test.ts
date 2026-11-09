@@ -20,8 +20,8 @@ function home(options: { fromSource?: boolean; required?: boolean; now?: number 
   return { dataDir, made, advance: (ms: number) => { at += ms; } };
 }
 
-it("a release build refuses every client request until a valid entitlement arrives, except its liveness probe", () => {
-  const { made } = home({ fromSource: false });
+it("a release build told to require one refuses every client request until a valid entitlement arrives, except its liveness probe", () => {
+  const { made } = home({ fromSource: false, required: true });
   const e = made();
   expect(e.required).toBe(true);
   expect(e.gate("/api/bots")).toEqual({ status: 403, body: { error: "entitlement_required" } });
@@ -56,8 +56,10 @@ it("refuses a token for another machine, for the app only, or a forged one, and 
   expect(readFileSync(join(dataDir, "cloud-entitlement"), "utf8")).toBe(longer);
 });
 
-it("a run from source asks for nothing unless told to", () => {
-  const e = home().made();
-  expect(e.required).toBe(false);
-  expect(e.gate("/api/bots")).toBeNull();
+it("a home whose boot env does not ask (another Admin's) asks for nothing, from source or a release", () => {
+  for (const fromSource of [true, false]) {
+    const e = home({ fromSource }).made();
+    expect(e.required).toBe(false);
+    expect(e.gate("/api/bots")).toBeNull();
+  }
 });

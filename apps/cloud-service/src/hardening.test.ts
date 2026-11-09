@@ -98,6 +98,27 @@ describe("keeping stopped disks alive", () => {
   });
 });
 
+describe("a disk that may not be refreshed never starves the others", () => {
+  it("an ended cloud on hold, older than every other, does not keep a sleeping cloud from its refresh", async () => {
+    const f = await boatFixture();
+    const held = (await f.paid("acct_held")).c;
+    f.advance(MINUTE);
+    const live = (await f.paid("acct_live")).c;
+    f.power.idle = true; f.power.busy = [];
+    f.advance(3 * MINUTE);
+    await f.settle(held, c => c.status === "sleeping" && c.managed!.lastStopAt !== null);
+    f.advance(2 * MINUTE);
+    await f.settle(live, c => c.status === "sleeping" && c.managed!.lastStopAt !== null);
+    // the held cloud's plan ended and an operator holds it: nothing refreshes or deletes it
+    f.subscriptions.find(x => x.cloudId === held.id)!.status = "ended";
+    f.subscriptions.find(x => x.cloudId === held.id)!.currentPeriodEnd = f.now();
+    f.service.managed!.setHold(held, true);
+    f.advance(11 * DAY);
+    held.nextAttemptAt = 0; live.nextAttemptAt = 0; await f.service.reconcile();
+    expect(f.audit.entries().filter(e => e.action === "wake" && e.reason === "disk_age").map(e => e.cloudId)).toEqual([live.id]);
+  });
+});
+
 describe("waking for a routine", () => {
   it("starts a sleeping home five minutes before its next run", async () => {
     const f = await boatFixture();

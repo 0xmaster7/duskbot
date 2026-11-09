@@ -149,13 +149,32 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     try { return verifyRelease(settings.templateSignature, { kind: "template", name: settings.template }, deps.releaseKeys).version; } catch { return null; }
   })();
   // the provider purges a disk 14 days after its stop, and starts are budgeted per day: one keep-alive start per 10
-  // minutes across the deployment, the oldest stopped disk first (144 a day at most)
+  // minutes across the deployment, the oldest stopped disk first (144 a day at most). A disk whose refresh keeps not
+  // happening holds the head for 30 minutes at most, so one stuck cloud never starves the others.
   let lastRefreshAt = 0;
-  function mayRefresh(c: StoredCloud, stoppedAt: number | null): boolean {
+  const heads = new Map<string, number>();
+  /** whether this cloud's own disk would be refreshed now, by the same rules its reconcile applies */
+  function refreshEligible(x: StoredCloud): boolean {
+    const m = x.managed;
+    if (!x.backend || !x.serverId || !m || m.lastStopAt == null || m.hold || x.suspended !== null || x.wantPower === "on" || m.deletion
+      || !["sleeping", "stopped"].includes(x.status) || now() - m.lastStopAt < settings.refreshAfterMs) return false;
+    if (deps.entitlement(x).active) return true;
+    const verdict = verdictFor(x);
+    return verdict.earliestAt !== null && verdict.earliestAt - now() > DAY_MS;
+  }
+  function mayRefresh(c: StoredCloud, stoppedAt: number | null, retired = false): boolean {
     if (stoppedAt === null || now() - stoppedAt < settings.refreshAfterMs || now() - lastRefreshAt < REFRESH_SPACING_MS) return false;
-    const due = deps.clouds().filter(x => x.backend && x.id !== c.id && x.serverId && x.managed?.lastStopAt != null && (x.status === "sleeping" || x.status === "stopped")
-      && now() - x.managed.lastStopAt >= settings.refreshAfterMs);
-    if (due.some(x => (x.managed!.lastStopAt ?? Infinity) < stoppedAt)) return false;
+    if (!retired) {
+      const mine = state(c).lastStopAt ?? stoppedAt;
+      const older = deps.clouds().filter(x => x.id !== c.id && refreshEligible(x) && (x.managed!.lastStopAt ?? Infinity) < mine)
+        .sort((x, y) => (x.managed!.lastStopAt ?? 0) - (y.managed!.lastStopAt ?? 0))[0];
+      if (older) {
+        const since = heads.get(older.id) ?? now();
+        heads.set(older.id, since);
+        if (now() - since < 30 * MINUTE) return false;
+      }
+    }
+    heads.delete(c.id);
     lastRefreshAt = now();
     return true;
   }
@@ -258,7 +277,8 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       // the machine gets a one-time claim, never its secrets: the provider's API and its logs never carry them
       let boot = boatBootFile({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
       if (settings.claims) {
-        const claim = randomBytes(32).toString("base64url");
+        // the same claim for the same attempt: a retried create gets the first machine back, with the first boot file
+        const claim = createHmac("sha256", deps.backupSecret).update(`omb-managed-claim:${c.id}:${b.attempt}`).digest("base64url");
         b.claim = { hash: createHash("sha256").update(claim).digest("hex"), expiresAt: now() + HOUR, redeemedAt: null };
         boot = claimBootFile({ cloudId: c.id, claim, redeem: `${deps.dashboardUrl}/v1/managed/claims/redeem` });
       }
@@ -434,7 +454,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
         continue;
       }
       // its disk is still the only full copy of that state on Boat: keep Boat's 14-day clock from running out
-      if (mayRefresh(c, s.stoppedAt)) { await provider.power(old.serverId, "on"); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
+      if (mayRefresh(c, s.stoppedAt, true)) { await provider.power(old.serverId, "on"); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
     }
   }
 
@@ -608,10 +628,15 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     if (typeof cloudId !== "string" || typeof claim !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(claim)) return null;
     const c = deps.clouds().find(x => x.id === cloudId && x.backend && x.status === "provisioning");
     const held = c?.managed?.claim;
-    if (!c || !held || held.expiresAt < now() || (held.redeemedAt !== null && now() - held.redeemedAt > 10 * MINUTE)) return null;
+    if (!c || !held || held.expiresAt < now() || (held.redeemedAt !== null && now() - held.redeemedAt > 5 * MINUTE)) return null;
     const given = Buffer.from(createHash("sha256").update(claim).digest("hex")), want = Buffer.from(held.hash);
     if (given.length !== want.length || !timingSafeEqual(given, want) || !c.workspaceId || !c.linkPublicKey || !c.sealedLinkPrivateKey) return null;
     if (held.redeemedAt === null) { held.redeemedAt = now(); log(c, "claim_redeemed", "system", "first_boot"); deps.save(c); }
+    else {
+      // a lost answer, or someone else holding the claim: either way the operator hears of it
+      log(c, "claim_redeemed_again", "system", "operator_checks");
+      console.warn(`managed: ALERT cloud ${c.id}: its machine claim was redeemed a second time`);
+    }
     const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
     return bootContent({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
   }
@@ -664,8 +689,11 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     retryAt(c: StoredCloud, error: unknown): number | null {
       const b = state(c);
       if (!(error instanceof ProviderLimitError)) { if (b.limitStreak) { b.limitStreak = 0; deps.save(c); } return null; }
+      // setup keeps its 45-minute ceiling: past it a limit fails setup like any other cause
+      if (c.status === "provisioning" && now() - (b.setupSince ?? c.provisionedAt ?? c.createdAt) > 45 * MINUTE) return null;
       b.limitStreak = (b.limitStreak ?? 0) + 1;
       if (b.limitStreak === 1) log(c, "provider_limit", "reconciler", "rate_limited");
+      if (b.limitStreak === 12) { log(c, "provider_limit_long", "reconciler", "operator_decides"); console.warn(`managed: ALERT cloud ${c.id}: the provider has refused it 12 times in a row (rate or quota limit)`); }
       const backoff = Math.min(5 * MINUTE, 30_000 * 2 ** Math.min(b.limitStreak - 1, 4));
       deps.save(c);
       return now() + Math.max(backoff, Math.min(error.retryAfterMs ?? 0, 15 * MINUTE));

@@ -46,7 +46,7 @@ scopes; if it offers no scoping, keep the two keys on two accounts so the runtim
 |---|---|---|
 | `/v1/clouds/*`, `/api/cloud/desktop/*` (account service) | the owner's app or browser | the account session (cookie with CSRF, or app bearer) |
 | `/v1/clouds/:id/delete-data[/confirm\|/cancel]` | the owner | fresh sign-in (10 minutes), CSRF, emailed one-time link; rate limited; acts only after 7 days through the retention verdict |
-| `POST /v1/managed/claims/redeem` | a machine at first boot | the one-time claim; 30 tries per address per 15 minutes |
+| `POST /v1/managed/claims/redeem` | a machine at first boot | the one-time claim; 30 wrong tries per address per 15 minutes (a good one never counts) |
 | `GET /v1/managed/edge/route` | the edge Worker | `OMB_MANAGED_EDGE_TOKEN`; anyone else gets 404 |
 | Home `/api/cloud/*` (health, power, sleep, plan, pairing, entitlement) | the account service | HMAC over method, path, body hash, timestamp and nonce with the cloud's bootstrap secret |
 | Home API and pairing | the owner's app | a paired session, and only while the home holds a valid entitlement |
@@ -55,17 +55,22 @@ scopes; if it offers no scoping, keep the two keys on two accounts so the runtim
 ### How a machine proves it is ours, and how the app and the home know a cloud is paid for
 
 1. **Create.** The machine is created with `noEnv` and a boot file holding only its cloud id and a 256-bit one-time
-   claim (the service keeps its hash, valid 1 hour). The provider's API, its logs and its dashboard never see a secret.
-2. **First boot.** The setup script redeems the claim at `/v1/managed/claims/redeem` and gets the bootstrap secret, the
-   dashboard link key and its env. It is answered once, again within 10 minutes for a lost answer, then never; a new
-   machine (a recovery) gets a new claim. The setup moves them into root-only files and shreds the boot file.
+   claim (an HMAC of the cloud id and attempt under the service's backup secret, so a retried create that gets the
+   first machine back carries the same claim; the service keeps only its hash, valid 1 hour). The provider's API, its
+   logs and its dashboard never see a secret.
+2. **First boot.** The setup script redeems the claim at `/v1/managed/claims/redeem` (retrying for up to 55 minutes,
+   honouring `Retry-After`) and gets the bootstrap secret, the dashboard link key and its env. It is answered once,
+   again within 5 minutes for a lost answer (audited and alerted), then never; a recovery's new machine gets a new
+   claim. The setup moves them into root-only files and shreds the boot file.
 3. **Install.** Root's `omb-home install` checks the package's sha256 and its release signature against the pinned
    release keys before unpacking. A machine started from a template checks the template's signature against the tree
    hash of the app it carries before anything starts.
 4. **Entitlement.** Before a cloud counts as running, and hourly after (and on every wake), the account service signs an
    Ed25519 entitlement (24 hours, key id, cloud id, plan, features, an opaque account reference, no email) and pushes it
-   through the signed `POST /api/cloud/entitlement`. A release build of the home serves nothing but its liveness probe
-   and the signed admin routes without a valid one for its own machine id, pairing included. Clock skew of 5 minutes
+   through the signed `POST /api/cloud/entitlement`. Every home this service makes has `OMB_CLOUD_ENTITLEMENT=required`
+   in its boot env, and then serves nothing but its liveness probe and the signed admin routes without a valid token
+   for its own machine id, pairing included. A home another Admin runs from the same release (without that env) is
+   unaffected until that Admin pushes entitlements too. Clock skew of 5 minutes
    either way is tolerated; tokens longer than 7 days are refused whoever signed them.
 5. **App.** The session's cloud list carries the same token; the app verifies it offline (`electron/entitlement.mjs`)
    and offers the Cloud desktop only for a cloud whose token verifies for that cloud id. A packaged app trusts only the
@@ -96,9 +101,9 @@ Machines are named `omb-<cloud id>` at the provider (no email), labelled with th
 
 ### What cannot be prevented
 
-- Anyone with the source can remove the entitlement check from their own build of the app or the home, and run it
-  against a service of their own. Signed tokens stop forged tokens, not a modified copy. The release home enforces it;
-  a run from source asks only when `OMB_CLOUD_ENTITLEMENT=required`.
+- Anyone with the source can remove the entitlement check from their own build of the app or the home, or start our
+  home package without `OMB_CLOUD_ENTITLEMENT=required`, and run it against a service of their own. Signed tokens stop
+  forged tokens, not a modified copy or a different boot env. A release build never trusts development keys.
 - Anyone can buy the same provider, run their own account service and their own Stripe. The recipe is public here, as
   OpenBot's is. What they do not have is our keys, our accounts, our domain, our users' data and the service itself.
 - Network inspection (DNS, the certificate behind the provider's URL, the ASN, timing) can reveal the provider to a
@@ -144,7 +149,8 @@ explicit clock tolerance; machine labels carry no email; backups live off the pr
 6. keeps the three newest templates plus any `--in-use` one, and prints `OMB_MANAGED_TEMPLATE` and
    `OMB_MANAGED_TEMPLATE_SIGNATURE` for the service.
 
-A machine started from it checks the signature against its app's tree hash before anything starts, skips the downloads
+A machine started from it checks the signature against its app's tree hash before anything starts (this catches a
+wrong or altered template, not a hostile provider, which runs the check itself), skips the downloads
 and system packages it already has, and the service skips installing the package the template carries. Saved
 snapshots need a paid provider plan (the trial refuses them). Engine CLIs are still installed by the home on first use;
 baking them in is a later step.
@@ -153,7 +159,7 @@ baking them in is a later step.
 
 - A 429 is never a failure: the cloud keeps its state, the step is retried 30 s, 1, 2, 4 then 5 minutes later (or as
   long as `Retry-After` asks, up to 15 minutes), attempts are not counted, and the audit says `provider_limit` once
-  per streak. This holds during setup too.
+  per streak; 12 in a row alert the operator. Setup keeps its 45-minute ceiling.
 - A 409 or a "busy" answer to a resume or a stop means the machine is already on its way: in progress, not an error,
   never a reason to rebuild.
 - A stop the provider reports as `failing` is read as stopping: the home is not started again, the cloud is not counted
@@ -171,8 +177,10 @@ which the service runs after every wake, clears the flag and the timer first.
 
 The provider purges a disk 14 days after its stop. A sleeping or ended cloud, and a retired machine, is started briefly
 after 11 days (`OMB_MANAGED_REFRESH_DAYS`, 3 to 13) and stops again. Starts are spaced 10 minutes apart across the
-deployment, oldest disk first: at most 144 a day, so up to about 430 disks due on the same day still make it within
-the 3-day margin. A recovery from backup covers the rest.
+deployment, oldest eligible disk first (the same rules the refresh itself applies: no hold, more than a day before a
+scheduled deletion), and a disk whose refresh keeps not happening holds the head for 30 minutes at most: at most 144 a
+day, so up to about 430 disks due on the same day still make it within the 3-day margin. A recovery from backup covers
+the rest.
 
 ### Idle sleep and waking for routines
 

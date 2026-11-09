@@ -36,7 +36,7 @@ async function call(handle: NonNullable<ReturnType<typeof managedOf>["handle"]>,
 const managedOf = (f: Awaited<ReturnType<typeof boatFixture>>) => f.service.managed!;
 
 describe("the machine never receives its secrets through the provider", () => {
-  it("gets a one-time claim, redeems it once (again only within 10 minutes), and the provider's request carries no secret", async () => {
+  it("gets a one-time claim, redeems it once (again only within 5 minutes, alerted), and the provider's request carries no secret", async () => {
     const f = await boatFixture({ settings: { claims: true } });
     const plan = { kind: "shared_s" as const, placement: "pool" as const, spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2 };
     const c = f.service.order({ ...plan, accountId: "acct_1", name: "Mine", color: null, region: "eu" });
@@ -54,14 +54,33 @@ describe("the machine never receives its secrets through the provider", () => {
     const first = await call(handle, "POST", "/v1/managed/claims/redeem", { cloud: c.id, claim: boot.claim });
     expect(first.status).toBe(200);
     expect(first.body).toMatchObject({ v: 1, machine: c.id, env: { OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_CLOUD_MACHINE_ID: c.id } });
-    f.advance(9 * 60_000);
+    f.advance(4 * 60_000);
     expect((await call(handle, "POST", "/v1/managed/claims/redeem", { cloud: c.id, claim: boot.claim })).status).toBe(200);
     f.advance(2 * 60_000);
     expect((await call(handle, "POST", "/v1/managed/claims/redeem", { cloud: c.id, claim: boot.claim })).status).toBe(403);
     expect(f.audit.entries(c.id).filter(e => e.action === "claim_redeemed")).toHaveLength(1);
+    expect(f.audit.entries(c.id).filter(e => e.action === "claim_redeemed_again")).toHaveLength(1);
   });
 
-  it("limits guesses per address", async () => {
+  it("a retried create gets the first machine back with the same claim, so its boot still redeems", async () => {
+    const f = await boatFixture({ settings: { claims: true } });
+    const plan = { kind: "shared_s" as const, placement: "pool" as const, spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2 };
+    const c = f.service.order({ ...plan, accountId: "acct_1", name: "Mine", color: null, region: "eu" });
+    f.subscriptions.push({ id: "sub_y", accountId: "acct_1", cloudId: c.id, status: "active", currentPeriodEnd: f.now() + 30 * 86_400_000, currentPeriodStart: f.now(), updatedAt: f.now(), lastEventAt: f.now() } as never);
+    f.service.activate(c.id, "sub_y", plan);
+    await f.service.reconcile();
+    const first = c.serverId;
+    // the create's answer was lost: the reserving step runs again with the same attempt
+    c.setupStep = "reserving"; c.serverId = null; c.nextAttemptAt = 0;
+    await f.service.reconcile();
+    expect(c.serverId).toBe(first);
+    const boots = f.api.requests.filter(r => r.method === "POST" && r.path === "/sandboxes").map(r => JSON.parse((r.body as { files: Array<{ content: string }> }).files[0]!.content).claim);
+    expect(boots).toHaveLength(2);
+    expect(boots[1]).toBe(boots[0]);
+    expect((await call(managedOf(f).handle!, "POST", "/v1/managed/claims/redeem", { cloud: c.id, claim: boots[0] })).status).toBe(200);
+  });
+
+  it("limits wrong guesses per address, never a machine's own boot", async () => {
     const f = await boatFixture({ settings: { claims: true } });
     const handle = managedOf(f).handle!;
     const codes = [];
