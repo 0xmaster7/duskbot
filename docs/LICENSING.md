@@ -5,8 +5,9 @@ This repository is source-available, not open source.
 ## Which license covers what
 
 - **The work as a whole, and every change made in this fork:** the
-  [PolyForm Noncommercial License 1.0.0](../LICENSE). You may use, copy, change
-  and share it for noncommercial purposes only.
+  [PolyForm Strict License 1.0.0](../LICENSE). You may use it for noncommercial
+  purposes only, and you may not distribute it or make changes or new works
+  based on it.
 - **The original OpenMausBot code** by Milind Soni and the OpenMausBot
   contributors: the [Apache License 2.0](../third_party/openmausbot/OpenMausBot-Apache-2.0.txt),
   with its notices in [third_party/openmausbot/NOTICE](../third_party/openmausbot/NOTICE). That code stays
@@ -17,7 +18,7 @@ section 4(b)). The git history records what changed.
 
 ## Commercial use
 
-Commercial use needs a separate license: https://openmausbot.com.
+Commercial use needs a separate license: https://dusk.bot/license.
 
 ## Third-party components and trademarks
 

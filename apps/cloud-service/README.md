@@ -108,7 +108,7 @@ Machines are named `omb-<cloud id>` at the provider (no email), labelled with th
   OpenBot's is. What they do not have is our keys, our accounts, our domain, our users' data and the service itself.
 - Network inspection (DNS, the certificate behind the provider's URL, the ASN, timing) can reveal the provider to a
   determined user even behind the edge. Hiding is about not advertising it.
-- The license (PolyForm Noncommercial) is enforced by law, not code: keep the copyright holder, a CLA, a trademark
+- The license (PolyForm Strict) is enforced by law, not code: keep the copyright holder, a CLA, a trademark
   file and terms of service current. Obfuscation is not worth it.
 
 ### Deploys

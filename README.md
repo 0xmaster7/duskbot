@@ -78,7 +78,7 @@ already have:
 Four closed personal-agent products shipped in seven weeks of 2026, and each one keeps the model, the
 computer and your data on its maker's side of the line. Dusk Bot is the source-available version of that
 shape: a team of agents in a chat app, each with its own model, its own computer and its own connected
-apps, running on your machine under the PolyForm Noncommercial license. If you searched for an *open Muse*, *open dots*, an
+apps, running on your machine under the PolyForm Strict license. If you searched for an *open Muse*, *open dots*, an
 *open-source Grok Bot*, an *open Instinct* or an *open Cue*, this is the repository.
 
 | Looking for | What it is | How Dusk Bot differs | Read more |
@@ -501,9 +501,10 @@ AI-provider sign-in. Devices pair once with a short code. The deployment guide i
 
 ## License
 
-This repository is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE): free for
-noncommercial use, commercial use needs a separate license. The original Dusk Bot code, © 2026 Milind Soni and
-Dusk Bot contributors, stays under the Apache License 2.0; that license and its NOTICE are in [`third_party/openmausbot/`](third_party/openmausbot/).
+This repository is source-available under the [PolyForm Strict License 1.0.0](LICENSE): free for
+noncommercial use, with no distribution and no changes or new works based on it; commercial use needs a separate
+license from https://dusk.bot/license. The upstream project this started from, © Milind Soni and its contributors,
+stays under the Apache License 2.0; that license and its NOTICE are in [`third_party/openmausbot/`](third_party/openmausbot/).
 See [LICENSING.md](docs/LICENSING.md).
 
 Packaged Cua Driver components retain their upstream MIT, SIL OFL 1.1, MPL-2.0, and other dependency terms;
