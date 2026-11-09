@@ -2,6 +2,7 @@
 // makes tool schemas provider-safe and keeps error results text-only.
 import { cuaExecArgs } from "./container-computer.ts";
 import { runMcpBridge } from "./mcp-bridge.ts";
+import { createBotPointerReporter } from "./bot-pointer.ts";
 
 const [runtime, container, socket] = process.argv.slice(2);
 if (!runtime || !["docker", "podman", "container"].includes(runtime)) {
@@ -22,5 +23,5 @@ runMcpBridge({
   args: cuaExecArgs(["mcp", "--socket", socket], { container, interactive: true }),
   label: "Cua Driver",
   // No liveness watchdog: the runtime CLI talks to a local daemon and fails fast on its own.
-  ...(controlUrl && controlToken ? { gate: { url: controlUrl, token: controlToken } } : {}),
+  ...(controlUrl && controlToken ? { gate: { url: controlUrl, token: controlToken }, observe: createBotPointerReporter({ url: controlUrl, token: controlToken }) } : {}),
 });

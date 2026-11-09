@@ -33,6 +33,7 @@ import { askResetBridge, desktopCapabilitiesNow } from "@/lib/desktop"; import {
 import { sameModelSelection } from "../../shared/thread-model";
 import type { BotBodyId } from "../../shared/bot-body";
 import { openCreateBot } from "@/lib/create-bot-request";
+import { publishBotPointer } from "@/lib/bot-pointer";
 import { StoreRefContext } from "./store-ref-context";
 import type { QuestionRequestCardData } from "../../shared/ask-question";
 import type { ProfileRequestCardData } from "../../shared/profile-request";
@@ -3182,6 +3183,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         case "computer":
           rawDispatch({ type: "computerStart", botId: frame.botId,
             start: { state: frame.state, ...(frame.place ? { place: frame.place } : {}) } });
+          break;
+        case "computer-pointer":
+          publishBotPointer(frame);
           break;
         case "computer-control":
           rawDispatch({

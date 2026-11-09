@@ -44,7 +44,7 @@ vi.mock("@novnc/novnc", () => ({
   },
 }));
 
-const { connectDesktop, DesktopUnreachable, isPasteShortcut, pasteOnDesktop, typeOnDesktop } = await import("./desktop-connection");
+const { connectDesktop, DesktopUnreachable, hideDesktopPointer, isPasteShortcut, pasteOnDesktop, typeOnDesktop } = await import("./desktop-connection");
 const asked: string[] = [];
 const events = () => ({ connected: vi.fn(), disconnected: vi.fn(), clipboard: vi.fn() });
 
@@ -157,6 +157,21 @@ describe("connecting to a desktop", () => {
     });
     expect(clients[0]!.viewOnly).toBe(true);
     expect(clients[0]!.focusOnClick).toBe(false);
+  });
+
+  it("never draws the desktop's own pointer, so the person keeps theirs over the picture", async () => {
+    // noVNC 1.7's own cursor, as RFB keeps it until it attaches on the next tick
+    const { default: Cursor } = await import("../../node_modules/@novnc/novnc/core/util/cursor.js" as string);
+    const cursor = new Cursor();
+    hideDesktopPointer({ _cursor: cursor } as never);
+    const canvas = document.createElement("canvas");
+    document.body.append(canvas);
+    cursor.attach(canvas);
+    cursor.change(new Uint8Array(4 * 4 * 4).fill(255), 0, 0, 4, 4);
+    cursor.change(new Uint8Array(0), 0, 0, 0, 0);
+    expect(canvas.style.cursor).toBe("");
+    cursor.detach();
+    canvas.remove();
   });
 
   it("types text as keysyms, Latin and not", () => {

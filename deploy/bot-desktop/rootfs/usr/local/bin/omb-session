@@ -95,7 +95,7 @@ keep tint2 tint2 -c /etc/xdg/tint2/tint2rc
 keep cua-driver env CUA_DRIVER_BROWSER_NO_SANDBOX=1 CUA_DRIVER_INSTALL_CHANNEL=python_package \
   CUA_DRIVER_RS_TELEMETRY_ENABLED=0 CUA_DRIVER_WINDOW_CHANGE_TIMEOUT_MS=200 NO_COLOR=1 \
   /usr/local/libexec/openmausbot/cua-driver serve --socket "$cua_socket" \
-  --permission-mode standard --cursor-reduced-motion on
+  --permission-mode standard --cursor-reduced-motion on --no-overlay
 
 [ "${OMB_BROWSER_AT_START:-off}" = off ] || (sleep 0.3; exec chromium "${OMB_START_URL:-https://www.google.com}" >>"$logs/chromium.log" 2>&1) &
 

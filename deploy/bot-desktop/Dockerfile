@@ -99,7 +99,11 @@ COPY --from=art /out/wallpaper.png /usr/share/omb-desktop/wallpaper.png
 COPY --from=art /out/icons/ /usr/share/omb-desktop/icons/
 COPY rootfs/ /
 COPY host-fence.sh /usr/local/bin/omb-host-fence
-RUN chmod 0755 /usr/local/bin/omb-* && chmod 0644 /etc/chromium.d/omb
+COPY blank-cursors.py /tmp/omb-blank-cursors.py
+RUN chmod 0755 /usr/local/bin/omb-* && chmod 0644 /etc/chromium.d/omb \
+ && python3 -I /tmp/omb-blank-cursors.py /usr/share/icons/Adwaita/cursors /usr/share/icons/omb-hidden \
+ && rm -f /tmp/omb-blank-cursors.py /usr/share/icons/default/index.theme \
+ && printf '%s\n' '[Icon Theme]' 'Inherits=omb-hidden' > /usr/share/icons/default/index.theme
 
 ARG BOT_DESKTOP_VERSION=3
 LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
@@ -109,7 +113,7 @@ LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
       org.opencontainers.image.source="https://github.com/SiddDevZ/OpenMausBot"
 
 ENV HOME=/home/cua USER=cua DISPLAY=:1 XDG_RUNTIME_DIR=/run/user/1000 XDG_CONFIG_HOME=/home/cua/.config \
-    XCURSOR_THEME=Adwaita XCURSOR_SIZE=24 NO_AT_BRIDGE=0 \
+    XCURSOR_THEME=omb-hidden XCURSOR_SIZE=24 NO_AT_BRIDGE=0 \
     DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
 WORKDIR /home/cua
 EXPOSE 6901

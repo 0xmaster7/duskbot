@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,6 +37,31 @@ describe("bot desktop image icons", () => {
       expect(existsSync(join(apps, "chromium.svg"))).toBe(true);
       expect(existsSync(join(mimetypes, "application-zip.svg"))).toBe(true);
       expect(existsSync(join(places, "folder.svg"))).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.skipIf(process.platform === "win32")("hides the desktop's pointer: every cursor a toolkit may ask for is one transparent pixel", () => {
+    const dir = mkdtempSync(join(tmpdir(), "omb-desktop-cursors-"));
+    const adwaita = join(dir, "Adwaita", "cursors");
+    const theme = join(dir, "omb-hidden");
+    mkdirSync(adwaita, { recursive: true });
+    writeFileSync(join(adwaita, "only-in-adwaita"), "");
+    try {
+      execFileSync("python3", ["-I", fileURLToPath(new URL("../deploy/bot-desktop/blank-cursors.py", import.meta.url)), adwaita, theme]);
+      const file = readFileSync(join(theme, "cursors", "default"));
+      expect(file.subarray(0, 4).toString("latin1")).toBe("Xcur");
+      const images = file.readUInt32LE(12);
+      expect(images).toBeGreaterThan(0);
+      for (let index = 0; index < images; index++) {
+        const at = file.readUInt32LE(16 + index * 12 + 8);
+        // width, height and the one ARGB pixel of each image chunk
+        expect([file.readUInt32LE(at + 16), file.readUInt32LE(at + 20), file.readUInt32LE(at + 36)]).toEqual([1, 1, 0]);
+      }
+      for (const name of ["left_ptr", "hand2", "xterm", "pointer", "text", "only-in-adwaita"]) {
+        expect(readlinkSync(join(theme, "cursors", name))).toBe("default");
+      }
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

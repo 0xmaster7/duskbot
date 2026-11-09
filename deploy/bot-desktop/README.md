@@ -21,6 +21,7 @@ linux/amd64.
 | Terminal | xfce4-terminal | software-rendered VTE (kitty/alacritty need GL), no menubar, `#111111`, block cursor |
 | Files | Thunar | behind the middle dock icon; Papirus-Dark icons here and in every GTK file dialog |
 | Control | Cua Driver 0.37.0 (pinned wheel, SHA-256 checked) | the harness speaks it already, nothing changes for bots |
+| Pointer | none drawn on the desktop: cursor theme `omb-hidden` (`blank-cursors.py`), Cua Driver `--no-overlay` | no frozen system pointer or Cua's agent cursor in the picture, screenshots or recordings; the app draws the bot's pointer over its live view from where Cua Driver says each action landed (`server/bot-pointer.ts`) |
 
 The image keeps Papirus icons for installed applications, their symlink targets, and every file, folder and action
 icon. Unused application icons are removed at build time by `trim-icons.py`; newly installed applications can supply
