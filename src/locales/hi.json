@@ -3263,5 +3263,7 @@
   "routines.cloudUpsell.asleep": "स्लीप मोड में रुकता है",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "चौबीसों घंटे चालू",
-  "routines.cloudUpsell.getCloud": "Cloud लें"
+  "routines.cloudUpsell.getCloud": "Cloud लें",
+  "composer.freeBackup": "{engine} का एक मुफ़्त बैकअप मॉडल जवाब दे रहा है",
+  "composer.freeBackup.connect": "अपना AI कनेक्ट करें"
 }

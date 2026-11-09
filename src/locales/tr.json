@@ -5158,5 +5158,7 @@
   "routines.cloudUpsell.asleep": "Uyku sırasında durur",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "7/24 açık",
-  "routines.cloudUpsell.getCloud": "Cloud edinin"
+  "routines.cloudUpsell.getCloud": "Cloud edinin",
+  "composer.freeBackup": "{engine} tarafından sunulan ücretsiz yedek model yanıt veriyor",
+  "composer.freeBackup.connect": "Kendi yapay zekânı bağla"
 }

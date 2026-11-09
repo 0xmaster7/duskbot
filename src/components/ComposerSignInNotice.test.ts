@@ -65,3 +65,21 @@ describe("the sign-in notice above the composer", () => {
     expect(show(bot())).not.toContain("isn&#x27;t signed in");
   });
 });
+
+describe("the free backup line above the composer", () => {
+  const free = () => ({ ...engine("opencode", "OpenCode", true), driverKind: "opencode", snapshot: { state: "available", authenticated: true, freeFallback: true } }) as unknown as InstanceInfo;
+  const wrote = { messages: [{ id: "u", role: "user", kind: "text", at: 1, text: "hi" }] } as Partial<Bot>;
+
+  it("says a free backup model is answering once the person has written, with a way to connect their own", () => {
+    fixture.instances = [engine("claude", "Claude", false), free()];
+    const html = show(bot({ ...wrote, modelSelection: { instanceId: "opencode", model: "free" } }));
+    expect(html).toContain("A free backup model from OpenCode is answering");
+    expect(html).toContain("Connect your AI</button>");
+    expect(show(bot({ messages: [], modelSelection: { instanceId: "opencode", model: "free" } }))).toBe("");
+  });
+
+  it("stays away while the bot answers with an AI of the person's own", () => {
+    fixture.instances = [engine("claude", "Claude", true), free()];
+    expect(show(bot(wrote))).toBe("");
+  });
+});

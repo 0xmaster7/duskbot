@@ -6199,5 +6199,7 @@
   "routines.cloudUpsell.asleep": "Zatrzymuje się podczas uśpienia",
   "routines.cloudUpsell.cloud": "Chmura",
   "routines.cloudUpsell.alwaysOn": "Działa całą dobę",
-  "routines.cloudUpsell.getCloud": "Kup Chmurę"
+  "routines.cloudUpsell.getCloud": "Kup Chmurę",
+  "composer.freeBackup": "Odpowiada darmowy model zapasowy od {engine}",
+  "composer.freeBackup.connect": "Połącz swoją AI"
 }

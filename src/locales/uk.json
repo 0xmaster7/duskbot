@@ -3568,5 +3568,7 @@
   "routines.cloudUpsell.asleep": "Зупиняється під час сну",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "Працює цілодобово",
-  "routines.cloudUpsell.getCloud": "Отримати Cloud"
+  "routines.cloudUpsell.getCloud": "Отримати Cloud",
+  "composer.freeBackup": "Відповідає безкоштовна резервна модель від {engine}",
+  "composer.freeBackup.connect": "Під'єднати свій ШІ"
 }

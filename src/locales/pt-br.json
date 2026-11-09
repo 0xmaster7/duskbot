@@ -6067,5 +6067,7 @@
   "routines.cloudUpsell.asleep": "Para durante o repouso",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "Ativo 24 horas por dia",
-  "routines.cloudUpsell.getCloud": "Obter um Cloud"
+  "routines.cloudUpsell.getCloud": "Obter um Cloud",
+  "composer.freeBackup": "Um modelo reserva gratuito do {engine} está respondendo",
+  "composer.freeBackup.connect": "Conectar sua IA"
 }

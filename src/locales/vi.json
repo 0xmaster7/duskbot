@@ -5158,5 +5158,7 @@
   "routines.cloudUpsell.asleep": "Dừng khi máy ngủ",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "Hoạt động 24/7",
-  "routines.cloudUpsell.getCloud": "Đăng ký Cloud"
+  "routines.cloudUpsell.getCloud": "Đăng ký Cloud",
+  "composer.freeBackup": "Một mô hình dự phòng miễn phí của {engine} đang trả lời",
+  "composer.freeBackup.connect": "Kết nối AI của bạn"
 }

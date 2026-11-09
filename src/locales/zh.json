@@ -1855,6 +1855,8 @@
   "chat.rescue.connect": "连接你的订阅",
   "chat.error.signedOut": "{name} 尚未登录。请在下方登录，然后重新发送你的消息。",
   "chat.notice.signIn": "登录",
+  "composer.freeBackup": "目前由 {engine} 的免费备用模型回答",
+  "composer.freeBackup.connect": "连接你的 AI",
   "chat.error.details": "详情",
   "chat.error.requestTooLarge": "这条消息对 {model} 来说太大了。请开始新的对话，或选择能接受更多内容的模型。",
   "chat.error.dismiss": "关闭",

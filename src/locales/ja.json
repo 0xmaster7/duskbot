@@ -6224,5 +6224,7 @@
   "routines.cloudUpsell.asleep": "スリープ中は停止",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "24時間稼働",
-  "routines.cloudUpsell.getCloud": "Cloudを入手"
+  "routines.cloudUpsell.getCloud": "Cloudを入手",
+  "composer.freeBackup": "{engine}の無料バックアップモデルが応答しています",
+  "composer.freeBackup.connect": "自分のAIを接続"
 }

@@ -3343,5 +3343,7 @@
   "routines.cloudUpsell.asleep": "Stoppt im Ruhezustand",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "Rund um die Uhr aktiv",
-  "routines.cloudUpsell.getCloud": "Cloud holen"
+  "routines.cloudUpsell.getCloud": "Cloud holen",
+  "composer.freeBackup": "Ein kostenloses Ersatzmodell von {engine} antwortet",
+  "composer.freeBackup.connect": "Eigene KI verbinden"
 }

@@ -2000,6 +2000,8 @@
   "chat.rescue.connect": "Connect your subscription",
   "chat.error.signedOut": "{name} isn't signed in yet. Sign in below, then send your message again.",
   "chat.notice.signIn": "Sign in",
+  "composer.freeBackup": "A free backup model from {engine} is answering",
+  "composer.freeBackup.connect": "Connect your AI",
   "chat.error.details": "Details",
   "chat.error.partial": "Partly done. The reply came back, but a step didn't work, so check that step before relying on it.",
   "chat.error.partialPreview": "Partly done: a step didn't work",
