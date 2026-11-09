@@ -6,6 +6,7 @@ import { codexMountsOwnMcpOverHttp, codexParallelMcpArgs, type McpApprovalMode, 
 import { reportUnsupportedCalls, rolloutMark, type RolloutMark } from "./codex-unsupported-calls.ts";
 // The `codex` CLI headless over its app-server JSON-RPC (NDJSON on stdio): completion is
 // `turn/completed`, approvals arrive as server→client requests, resumeCursor is the codex thread id.
+import { EventEmitter } from "node:events";
 import { mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
@@ -22,6 +23,7 @@ import { cloudHomeConfigured } from "../cloud-home.ts";
 import { serverVersion } from "../environment.ts";
 import { ChatGptPlanAuthController } from "./chatgpt-plan-auth.ts";
 import { captureCliTree, cliVersionReader, describeSpawnFailure, execCli, killCliTree, spawnCli, waitForExit } from "../procs.ts";
+import { CodexAppServerPool, codexSpawnKey, codexWarmEnabled, type CodexUsageTotal } from "./codex-app-server-pool.ts";
 import { codexLaunch, codexLaunchSlot, codexRpcTimeoutMs, keepStopping, RELAUNCH_EXIT_WAIT_MS, spawnHoldingSlot, tryCodexLaunchSlot } from "./codex-process.ts";
 import { isReservedMcpEnvEntry } from "../mcp-registry.ts";
 
@@ -71,6 +73,9 @@ import { CALL_TOOL, DESCRIBE_TOOL, SEARCH_TOOL, directoryCallTarget } from "../m
 export { decodeCodexSelection, readCodexModelCatalog, STATIC_CODEX_MODELS } from "./codex-catalog.ts";
 
 const DRIVER_KIND = "codex";
+
+/** A warm app-server holds the turn's thread under other settings than this turn asks for. */
+class StaleWarmThread extends Error {}
 
 export interface CodexConfig {
   cli: string;
@@ -437,6 +442,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       pid?: number;
     }
     const active = new Map<string, Turn>();
+    const appServers = new CodexAppServerPool({ label: instanceId });
 
     const emit = (event: RuntimeEvent) => {
       for (const l of Array.from(listeners)) l(event);
@@ -495,6 +501,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       let promptSubmitted = false;
       let recoveredMissingSession = false;
       let loginRaceRetried = false;
+      let warmRetried = false;
       const stopSignal = new AbortController();
       const { threadId } = turn;
       const approvalMode: ApprovalMode = turn.approvalMode ?? (config.fullAuto ? "full" : "ask");
@@ -536,7 +543,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         }
         return null;
       };
-      const launchAttempt = async (attempt: number): Promise<void> => {
+      const launchAttempt = async (attempt: number, cold = false): Promise<void> => {
         const env = childEnv();
         const launchedLogin = chatgptTurn ? storedCodexLogin(env) : null;
         if (planToken) env.OPENMAUSBOT_CHATGPT_TOKEN = planToken;
@@ -649,20 +656,29 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         ) } };
 
         const commandCwd = permissionLaunchCwd(turn.cwd ?? homedir());
-        const releaseSlot = tryCodexLaunchSlot() ?? await waitForLaunchSlot(attempt);
+        // A guest's turn never shares a process with another turn.
+        const warm = codexWarmEnabled() && !turn.guestConfined;
+        const spawnKey = codexSpawnKey({ cli: config.cli, args: appServerArgs, env, cwd: turn.cwd ?? homedir(), login: launchedLogin });
+        const reused = warm && !cold ? appServers.take(spawnKey, typeof turn.resumeCursor === "string" ? turn.resumeCursor : null) : null;
+        const releaseSlot = reused ? () => {} : tryCodexLaunchSlot() ?? await waitForLaunchSlot(attempt);
         if (!releaseSlot) return;
-        const child = spawnHoldingSlot(releaseSlot, () => spawnCli(...codexLaunch(config.cli, appServerArgs), {
+        const server = reused ?? appServers.adopt(spawnKey, spawnHoldingSlot(releaseSlot, () => spawnCli(...codexLaunch(config.cli, appServerArgs), {
           cwd: turn.cwd ?? homedir(),
           env,
           stdio: ["pipe", "pipe", "pipe"],
-        }, "bot"));
+        }, "bot")));
+        if (!warm) server.retiring = true;
+        const child = server.child;
 
       let abandoned = false;
       let codexThreadId: string | null = null;
       let codexTurnId: string | null = null;
       let startingNativeTurn = false;
       const earlyNotifications: any[] = [];
-      const mcpStartup = mcpStartupTracker(child);
+      // Startup states are this turn's own: a warm process reports them again for every thread it starts or resumes.
+      const processExit = new EventEmitter();
+      const mcpStartup = mcpStartupTracker(processExit);
+      let warmThread = false;
       const state = {
         settled: false,
         lastError: "",
@@ -674,11 +690,11 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         streamed: false,
         // codex reports token usage as a running total for the app-server process.
         usage: undefined as { input: number; output: number; cachedInput?: number } | undefined,
-        usageBaseline: undefined as { input: number; output: number; cachedInput: number } | undefined,
+        usageBaseline: undefined as CodexUsageTotal | undefined,
+        usageTotal: undefined as CodexUsageTotal | undefined,
       };
 
       const asks = new Map<string, CodexAsk>();
-      let nextId = 1;
       const sensitiveResponseIds = new Set<number>();
       const rpcPending = new Map<number, {
         resolve: (v: any) => void;
@@ -686,9 +702,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       }>();
 
       const send = (obj: unknown) => {
-        try {
-          child.stdin.write(JSON.stringify(obj) + "\n");
-        } catch {}
+        server.write(obj);
         appendNative(threadId, {
           dir: "out",
           source: "codex.app-server",
@@ -697,7 +711,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       };
       const request = (method: string, params: unknown, timeoutMs = codexRpcTimeoutMs(method)) =>
         new Promise<any>((resolve, reject) => {
-          const id = nextId++;
+          const id = server.id();
           if (method === "config/read") sensitiveResponseIds.add(id);
           // A wedged app-server can accept stdin and never reply.
           const timer = setTimeout(() => {
@@ -770,7 +784,8 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         return stopped;
       };
 
-      const settle = async (ok: boolean, stopReason: string | null) => {
+      // `keep`: the app-server ended the turn itself, so it may serve the next one.
+      const settle = async (ok: boolean, stopReason: string | null, keep = false) => {
         if (state.settled) return;
         state.settled = true;
         for (const finish of Array.from(asks.values())) finish("deny", "OpenMausBot: the turn ended", "system");
@@ -782,11 +797,38 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
           emit({ ...base(threadId, turnId), type: "turn.completed", ok, stopReason, cost: null, ...(state.usage ? { usage: state.usage } : {}) });
         };
         completeStoppedTurn = complete;
+        // A sign-in problem may be the process's own stale credentials: the next turn starts a new one.
+        if (keep && !abandoned && !stopRequested && !interruptRequested && !state.lastErrorSetup && !server.retiring && server.alive()) {
+          server.detach(sink);
+          const loaded = codexThreadId ? server.threads.get(codexThreadId) : undefined;
+          if (loaded) {
+            loaded.lastUsed = Date.now();
+            if (state.usageTotal) loaded.usage = state.usageTotal;
+          }
+          appServers.release(server);
+          complete();
+          return;
+        }
         if (await stop()) return;
         emit({ ...base(threadId, turnId), type: "runtime.error", message: "codex did not shut down after termination was requested" });
         await keepStopping(terminate, () => active.get(threadId)?.stop === stop);
         complete();
       };
+
+      // A warm process that died, stalled or holds the thread under other settings: once, a new process takes the turn
+      // at no retry cost, since nothing reached the model.
+      const restartCold = async () => {
+        warmRetried = true;
+        abandoned = true;
+        server.detach(sink);
+        for (const p of rpcPending.values()) p.reject(new Error("warm app-server replaced"));
+        rpcPending.clear();
+        await appServers.close(server);
+        if (stopRequested) return settle(false, "interrupted");
+        void launchAttempt(attempt, true).catch(() => {});
+      };
+      const warmRestartable = () => reused !== null && !warmRetried && !stopRequested && !state.settled && !abandoned
+        && codexTurnId === null && earlyNotifications.length === 0 && !state.sawStreamDelta;
 
       // Retires this process before anything async, so a late rpc timer rejection cannot relaunch again.
       const relaunch = async (reason: string, failure: string, failedStop: string) => {
@@ -1157,6 +1199,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
             if (t) {
               const b = state.usageBaseline ?? { input: 0, output: 0, cachedInput: 0 };
               const now = shape(t);
+              state.usageTotal = now;
               state.usage = {
                 input: Math.max(0, now.input - b.input),
                 output: Math.max(0, now.output - b.output),
@@ -1192,7 +1235,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
             if (abandoned) break;
             reportUnsupportedCalls(rolloutAt, (message) => emit({ ...base(threadId, turnId), type: "runtime.notice", message }));
             void settle(t.status === "completed", t.status === "completed" ? null :
-              (classifyError({ text: state.lastError }).reason === "provider_safety" ? "provider_safety" : (state.lastError || t.status || "failed")));
+              (classifyError({ text: state.lastError }).reason === "provider_safety" ? "provider_safety" : (state.lastError || t.status || "failed")), true);
             break;
           }
           case "error": {
@@ -1216,55 +1259,40 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         }
       };
 
-      let buf = "";
-      child.stdout.setEncoding("utf8");
-      child.stdout.on("data", (chunk) => {
+      const onMessage = (msg: any) => {
         if (abandoned || state.settled) return;
-        buf += chunk;
-        let nl;
-        while (!state.settled && !abandoned && (nl = buf.indexOf("\n")) !== -1) {
-          const line = buf.slice(0, nl);
-          buf = buf.slice(nl + 1);
-          if (!line.trim()) continue;
-          let msg: any;
-          try {
-            msg = JSON.parse(line);
-          } catch {
-            continue;
+        stderrSinceOutput = "";
+        const loggedMessage = codexNativeIncomingLogMessage(msg, sensitiveResponseIds);
+        appendNative(threadId, { dir: "in", source: "codex.app-server", msg: loggedMessage });
+        if (msg.id !== undefined && (msg.result !== undefined || msg.error !== undefined)) {
+          const pend = rpcPending.get(msg.id);
+          if (pend) {
+            rpcPending.delete(msg.id);
+            if (msg.error) pend.reject(new CodexRpcError(msg.error));
+            else pend.resolve(msg.result);
           }
-          stderrSinceOutput = "";
-          const loggedMessage = codexNativeIncomingLogMessage(msg, sensitiveResponseIds);
-          appendNative(threadId, { dir: "in", source: "codex.app-server", msg: loggedMessage });
-          if (msg.id !== undefined && (msg.result !== undefined || msg.error !== undefined)) {
-            const pend = rpcPending.get(msg.id);
-            if (pend) {
-              rpcPending.delete(msg.id);
-              if (msg.error) pend.reject(new CodexRpcError(msg.error));
-              else pend.resolve(msg.result);
-            }
-          } else if (msg.id !== undefined && msg.method) {
-            handleServerRequest(msg);
-          } else if (msg.method) {
-            handleNotification(msg);
-          }
+        } else if (msg.id !== undefined && msg.method) {
+          handleServerRequest(msg);
+        } else if (msg.method) {
+          handleNotification(msg);
         }
-      });
+      };
 
       let stderr = "";
       // Only stderr after the last protocol message can explain an exit; older bytes are context.
       let stderrSinceOutput = "";
-      child.stderr.on("data", (c) => {
+      const onStderr = (c: string) => {
         stderr += c;
         stderrSinceOutput += c;
         if (stderr.length > 8192) stderr = stderr.slice(-8192);
         if (stderrSinceOutput.length > 2048) stderrSinceOutput = stderrSinceOutput.slice(-2048);
-      });
-      child.on("error", (e) => {
+      };
+      const onError = (e: Error) => {
         if (abandoned) return;
         emit({ ...base(threadId, turnId), type: "runtime.error", ...describeSpawnFailure(e, config.cli, turn.cwd ?? homedir()) });
         void settle(false, "spawn_error");
-      });
-      child.on("close", (code, signal) => {
+      };
+      const onClose = (code: number | null, signal: NodeJS.Signals | null) => {
         if (abandoned) return;
         if (state.settled) {
           void stop();
@@ -1272,6 +1300,10 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         }
         if (stopRequested) {
           void settle(false, "interrupted");
+          return;
+        }
+        if (warmRestartable()) {
+          void restartCold();
           return;
         }
         const recentStderr = stderrSinceOutput.trim();
@@ -1291,18 +1323,28 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         }
         emit({ ...base(threadId, turnId), type: "runtime.error", message: exitMessage });
         void settle(false, "exit_before_result");
-      });
+      };
+      const sink = { message: onMessage, stderr: onStderr, error: onError, close: onClose, exit: () => processExit.emit("exit") };
+      server.attach(sink);
+      if (!server.alive()) processExit.emit("exit");
 
       active.set(threadId, { stop, turnId, asks, steer: steerActiveTurn, pid: child.pid });
-      if (attempt === 0 && !announced) emit({ ...base(threadId, turnId), type: "turn.started" });
+      if (attempt === 0 && !announced) {
+        announced = true;
+        emit({ ...base(threadId, turnId), type: "turn.started" });
+      }
 
       try {
-        const initialized = await request("initialize", {
-          clientInfo: { name: "openmausbot", title: "OpenMausBot", version: serverVersion() },
-          // Named permission profiles are an experimental app-server field in Codex 0.151.
-          capabilities: { experimentalApi: true },
-        });
-        send({ jsonrpc: "2.0", method: "initialized", params: {} });
+        let initialized = server.initialized as { userAgent?: unknown } | undefined;
+        if (initialized === undefined) {
+          initialized = await request("initialize", {
+            clientInfo: { name: "openmausbot", title: "OpenMausBot", version: serverVersion() },
+            // Named permission profiles are an experimental app-server field in Codex 0.151.
+            capabilities: { experimentalApi: true },
+          });
+          send({ jsonrpc: "2.0", method: "initialized", params: {} });
+          server.initialized = initialized ?? null;
+        }
         // developerInstructions replaces, rather than appends to, native config.
         let effectiveConfig: unknown;
         try {
@@ -1389,7 +1431,21 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         let resumedNativeThread = false;
         let rebuiltFromReplay = false;
         let promptText = turn.text;
-        if (cursor) {
+        const contract = JSON.stringify([threadConfig(), approvalParams.thread, selection]);
+        const loaded = cursor ? server.threads.get(cursor) : undefined;
+        if (loaded && loaded.contract !== contract) throw new StaleWarmThread();
+        const remember = (id: string, path: unknown) => server.threads.set(id, {
+          contract, approval: approvalParams, ...(typeof path === "string" ? { rolloutPath: path } : {}), lastUsed: Date.now(),
+        });
+        if (cursor && loaded) {
+          // Still loaded here with these settings: resuming would only rejoin it.
+          codexThreadId = cursor;
+          approvalParams = loaded.approval as CodexApprovalParams;
+          rolloutAt = rolloutMark(loaded.rolloutPath);
+          resumedNativeThread = true;
+          warmThread = true;
+          state.usageBaseline = loaded.usage;
+        } else if (cursor) {
           const resumeThread = () => request("thread/resume", {
             ...threadConfig(),
             threadId: cursor,
@@ -1415,6 +1471,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
             codexThreadId = resumed?.thread?.id ?? cursor;
             rolloutAt = rolloutMark(resumed?.thread?.path);
             resumedNativeThread = true;
+            remember(codexThreadId!, resumed?.thread?.path);
           } catch (error) {
             const failure = classifyResumeFailure({
               attempted: true,
@@ -1455,6 +1512,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
           codexThreadId = started?.thread?.id ?? null;
           rolloutAt = rolloutMark(started?.thread?.path);
           startedModel = started?.model ?? null;
+          if (codexThreadId) remember(codexThreadId, started?.thread?.path);
         }
         if (!codexThreadId) throw new Error("Codex did not return a native thread id");
         const { deliverVolatile, hadVolatile, commitVolatile } = await syncCodexInstructions(
@@ -1493,7 +1551,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
             ...(turn.effort ? { effort: turn.effort } : {}),
           });
         };
-        const waitNames = supportsMcpStartup(initialized?.userAgent) ? enabledMcpMounts([...selectedMcp.keys(), ...directMounts], effectiveConfig, turn.toolScope !== undefined) : [];
+        const waitNames = !warmThread && supportsMcpStartup(initialized?.userAgent) ? enabledMcpMounts([...selectedMcp.keys(), ...directMounts], effectiveConfig, turn.toolScope !== undefined) : [];
         const mcpReady = await mcpStartup.settled(waitNames, stopSignal.signal);
         if (!mcpReady || stopRequested || state.settled) return releaseSlot();
         try {
@@ -1514,6 +1572,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         const message = refused ? codexSignInExpired(raw) : codexUserError(raw, route);
         const needsAuth = refused || /(?:\b401\b|unauthorized|missing bearer|authentication required)/i.test(raw);
         const verdict = classifyError(failure);
+        if (warmRestartable() && (e instanceof StaleWarmThread || !server.alive() || /\btimed out after\b/.test(raw))) return restartCold();
         if (!state.settled && !abandoned && !recoveredMissingSession && !stopRequested && !needsAuth && codexTurnId === null && earlyNotifications.length === 0 && verdict.transient && attempt < RETRY_MAX_ATTEMPTS - 1 && state.sawStreamDelta === false) {
           return relaunch(verdict.reason, message, "rpc_error");
         }
@@ -1632,6 +1691,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
     signOut: async () => {
       if (!planAuth) {
         const mark = loginMark();
+        await appServers.closeIdle();
         await authentication.signOut();
         loginAccepted(mark);
         return;
@@ -1640,7 +1700,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       planGeneration++;
       try {
         const stopped = await Promise.all([...active.values()].map(({ stop }) => stop()));
-        if (stopped.some(value => !value)) throw new Error("A ChatGPT task could not stop safely. Stop the task before signing out.");
+        if (stopped.some(value => !value) || !await appServers.closeIdle()) throw new Error("A ChatGPT task could not stop safely. Stop the task before signing out.");
         models = { default: "", options: [] };
         await planAuth.signOut();
         planWarning = undefined;
@@ -1688,6 +1748,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       enginePid: (threadId) => active.get(threadId)?.pid,
       stopAll: async () => {
         await Promise.all([...active.values()].map(({ stop }) => stop()));
+        await appServers.closeIdle();
       },
       onEvent: (listener) => {
         listeners.add(listener);
@@ -1700,6 +1761,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       await authentication.dispose();
       await planAuth?.dispose();
       await Promise.all([...active.values()].map(({ stop }) => stop()));
+      await appServers.closeIdle();
       listeners.clear();
     },
   };

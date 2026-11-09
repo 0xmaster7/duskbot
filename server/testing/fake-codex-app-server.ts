@@ -368,6 +368,7 @@ const dump = () => {
   }
 };
 
+let turnsFinished = 0;
 const finishTurn = () => {
   const patchBytes = Number(process.env.FAKE_CODEX_PATCH_BYTES);
   if (patchBytes > 0) {
@@ -397,8 +398,10 @@ const finishTurn = () => {
   }
   notify("item/completed", { item: { id: "m1", type: "agentMessage", text: "done from fake codex" } });
   const carried = process.env.FAKE_CODEX_RESTORED_USAGE ? { inputTokens: 100, cachedInputTokens: 50, outputTokens: 10 } : { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
+  // A thread's total keeps growing across the turns one process runs, as codex-cli 0.166's does.
+  turnsFinished++;
   notify("thread/tokenUsage/updated", { tokenUsage: {
-    total: { inputTokens: carried.inputTokens + 7, cachedInputTokens: carried.cachedInputTokens + 4, outputTokens: carried.outputTokens + 3 },
+    total: { inputTokens: carried.inputTokens + 7 * turnsFinished, cachedInputTokens: carried.cachedInputTokens + 4 * turnsFinished, outputTokens: carried.outputTokens + 3 * turnsFinished },
     last: { inputTokens: 7, cachedInputTokens: 4, outputTokens: 3 },
     modelContextWindow: 272000,
   } });

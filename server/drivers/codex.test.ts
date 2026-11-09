@@ -689,7 +689,10 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     expect(recorder.events.at(-1)).toMatchObject({ type: "turn.completed", ok: true, usage: { input: 7, output: 3, cachedInput: 4 } });
 
     const seen = JSON.parse(readFileSync(dump, "utf8"));
-    expect(processIsAlive(seen.pid)).toBe(false);
+    // The app-server stays up for the thread's next message until the provider goes away.
+    expect(processIsAlive(seen.pid)).toBe(true);
+    await instance.dispose();
+    await expect.poll(() => processIsAlive(seen.pid), { timeout: 5_000 }).toBe(false);
     expect(seen.env.OPENAI_API_KEY).toBeUndefined();
     expect(seen.env.BOX_TOKEN).toBeUndefined();
     expect(seen.env.OMB_TTS_KEY).toBeUndefined();
@@ -833,6 +836,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     };
 
     it.each(["ask", "auto"] as const)("runs %s in a profile that hides the data folder but this bot's own folders", async (approvalMode) => {
+      vi.stubEnv("OMB_CODEX_WARM", "0");
       await create({ mode: "resume" });
       const cwd = join(DATA_DIR, "task-workspaces", "b-own", `t-${approvalMode}`);
       for (const dir of [cwd, join(DATA_DIR, "workspaces", "b-own"), join(DATA_DIR, "workspaces", "b-other"), join(DATA_DIR, "task-workspaces", "b-other")]) mkdirSync(dir, { recursive: true });
@@ -2051,6 +2055,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       ["company-codex-model", "company-codex-model", "openmaus_company"],
     ] },
   ])("reasserts the selected model and provider after $name app-server restarts", async ({ opts, selections }) => {
+    vi.stubEnv("OMB_CODEX_WARM", "0");
     const token = vi.spyOn(ChatGptPlanAuthController.prototype, "accessToken").mockResolvedValue("synthetic-chatgpt-token");
     const catalog = vi.spyOn(ChatGptPlanAuthController.prototype, "models").mockResolvedValue({
       default: "gpt-6.1-sol", options: ["gpt-5.6-sol", "gpt-6.1-sol"].map(id => ({ id, label: id })),
@@ -2262,6 +2267,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
   });
 
   it("completes a turn whose process exit could not be confirmed without waiting for the stall watchdog", async () => {
+    vi.stubEnv("OMB_CODEX_WARM", "0");
     await create();
     vi.stubEnv("FAKE_CODEX_STOP_RETRY_MS", "50");
     const stopping = vi.spyOn(procs, "killCliTree").mockResolvedValueOnce(false);
@@ -2533,6 +2539,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
   });
 
   it.each(["ask", "auto", "full", "custom"] as const)("preserves configured native rules and keeps them private in %s mode", async (approvalMode) => {
+    vi.stubEnv("OMB_CODEX_WARM", "0");
     await create({ mode: "resume" });
     process.env.FAKE_CODEX_INSTRUCTIONS = "Private native rules.";
     const dump = join(scratch, "native-instructions.json");
@@ -3027,6 +3034,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
   });
 
   it("steers the running turn through turn/steer without killing the child", async () => {
+    vi.stubEnv("OMB_CODEX_WARM", "0");
     const dump = join(scratch, "codex-steer.json");
     process.env.FAKE_CODEX_DUMP = dump;
     await create({ mode: "approval" }); // parks the turn open mid-flight
@@ -3068,6 +3076,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
   }, 20_000);
 
   it("a refused steer queues, and the follow-up turn needs no mid-turn kill", async () => {
+    vi.stubEnv("OMB_CODEX_WARM", "0");
     // killCliTree legitimately reaps the catalog probe and a finished turn server, never the running turn's child.
     const dump = join(scratch, "codex-queue-nokill.json");
     process.env.FAKE_CODEX_DUMP = dump;
@@ -3151,6 +3160,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
   }, 20_000);
 
   it.each([false, true])("keeps ownership after an uncertain stop even when root close arrives (before failure: %s)", async (closeFirst) => {
+    vi.stubEnv("OMB_CODEX_WARM", "0");
     await create();
     const stopping = vi.spyOn(procs, "killCliTree").mockImplementation(async (child) => {
       if (closeFirst && child.exitCode === null && child.signalCode === null) {
@@ -3880,5 +3890,82 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     const seen = JSON.parse(readFileSync(dump, "utf8"));
     const turnStart = seen.calls.find((c: any) => c.method === "turn/start");
     expect(turnStart.params).not.toHaveProperty("effort");
+  });
+
+  describe("warm app-server", () => {
+    // The read profile hides the data folder's existing entries, so one a first turn creates would change it.
+    beforeEach(() => mkdirSync(join(DATA_DIR, "codex-instructions"), { recursive: true }));
+    const turn = async (threadId: string, input: Record<string, unknown> = {}) => {
+      const { turnId } = await instance.adapter.sendTurn({ threadId, text: "next", ...input });
+      const completed = await recorder.until((event) => event.type === "turn.completed" && event.turnId === turnId);
+      const seen = JSON.parse(readFileSync(process.env.FAKE_CODEX_DUMP!, "utf8")) as { pid: number; calls: Array<{ method: string; params: any }> };
+      return { completed, seen };
+    };
+
+    it("runs the thread's next message on the same app-server, with no new handshake or resume", async () => {
+      await create({ mode: "resume" });
+      process.env.FAKE_CODEX_DUMP = join(scratch, "warm.json");
+      const first = await turn("t-warm", { system: "You are Testy." });
+      expect(first.completed).toMatchObject({ ok: true, usage: { input: 7, output: 3, cachedInput: 4 } });
+      expect(processIsAlive(first.seen.pid)).toBe(true);
+      const second = await turn("t-warm", { system: "You are Renamed.", resumeCursor: "codex-thread-1" });
+      expect(second.seen.pid).toBe(first.seen.pid);
+      expect(second.seen.calls.map((call) => call.method)).toEqual([
+        "initialize", "initialized", "config/read", "thread/start", "turn/start", "config/read", "thread/inject_items", "turn/start",
+      ]);
+      expect(JSON.stringify(second.seen.calls.find((call) => call.method === "thread/inject_items")?.params)).toContain("You are Renamed.");
+      // The thread's running total grew to 14/6/8: the turn reports only its own share.
+      expect(second.completed).toMatchObject({ ok: true, usage: { input: 7, output: 3, cachedInput: 4 } });
+      expect(recorder.events.filter((event) => event.type === "session.started")).toHaveLength(2);
+    });
+
+    it("starts a new app-server and resumes the thread when the warm one died while idle", async () => {
+      await create({ mode: "resume" });
+      process.env.FAKE_CODEX_DUMP = join(scratch, "warm-died.json");
+      const first = await turn("t-warm-died");
+      process.kill(first.seen.pid, "SIGKILL");
+      await expect.poll(() => processIsAlive(first.seen.pid), { timeout: 5_000 }).toBe(false);
+      const second = await turn("t-warm-died", { resumeCursor: "codex-thread-1" });
+      expect(second.completed).toMatchObject({ ok: true });
+      expect(second.seen.pid).not.toBe(first.seen.pid);
+      expect(second.seen.calls.map((call) => call.method)).toContain("thread/resume");
+      expect(recorder.events.some((event) => event.type === "runtime.error")).toBe(false);
+    });
+
+    it("recovers when the warm app-server dies just as the next message takes it", async () => {
+      await create({ mode: "resume" });
+      process.env.FAKE_CODEX_DUMP = join(scratch, "warm-dying.json");
+      const first = await turn("t-warm-dying");
+      process.kill(first.seen.pid, "SIGKILL");
+      const second = await turn("t-warm-dying", { resumeCursor: "codex-thread-1" });
+      expect(second.completed).toMatchObject({ ok: true });
+      expect(second.seen.pid).not.toBe(first.seen.pid);
+      expect(recorder.events.some((event) => event.type === "runtime.error" || event.type === "turn.retrying")).toBe(false);
+    });
+
+    it("moves the thread to a new app-server when its approval level changed, since Codex keeps a loaded thread's settings", async () => {
+      await create({ mode: "resume" });
+      process.env.FAKE_CODEX_DUMP = join(scratch, "warm-changed.json");
+      const first = await turn("t-warm-changed", { approvalMode: "ask" });
+      const second = await turn("t-warm-changed", { approvalMode: "full", resumeCursor: "codex-thread-1" });
+      expect(second.completed).toMatchObject({ ok: true });
+      expect(second.seen.pid).not.toBe(first.seen.pid);
+      expect(second.seen.calls.find((call) => call.method === "thread/resume")?.params).toMatchObject({ approvalPolicy: "never" });
+      await expect.poll(() => processIsAlive(first.seen.pid), { timeout: 5_000 }).toBe(false);
+    });
+
+    it("never keeps an app-server after a stopped turn", async () => {
+      process.env.FAKE_CODEX_COMMAND_GATE = join(scratch, "never-opens");
+      await create({ mode: "resume" });
+      process.env.FAKE_CODEX_DUMP = join(scratch, "warm-stopped.json");
+      await instance.adapter.sendTurn({ threadId: "t-warm-stopped", text: "long" });
+      await recorder.until((event) => event.type === "session.started");
+      await expect.poll(() => existsSync(process.env.FAKE_CODEX_DUMP!) && JSON.parse(readFileSync(process.env.FAKE_CODEX_DUMP!, "utf8")).calls.some((call: { method: string }) => call.method === "turn/start")).toBe(true);
+      const { pid } = JSON.parse(readFileSync(process.env.FAKE_CODEX_DUMP!, "utf8"));
+      await instance.adapter.interruptTurn("t-warm-stopped");
+      await expect(recorder.until((event) => event.type === "turn.completed")).resolves.toMatchObject({ ok: false, stopReason: "interrupted" });
+      await expect.poll(() => processIsAlive(pid), { timeout: 5_000 }).toBe(false);
+      delete process.env.FAKE_CODEX_COMMAND_GATE;
+    });
   });
 });
