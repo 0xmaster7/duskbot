@@ -1,4 +1,5 @@
 // how many bot desktops one VPS keeps awake at once, and the limits each one runs under, so bots never take their host down.
+import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 import { totalmem } from "node:os";
 import { isThisServerVps } from "./vps-local.ts";
 import { MANAGED_VPS_CONTAINER_NAME, VPS_CONTAINER_LABEL, VPS_MANAGED_LABEL } from "./vps-managed-names.ts";
@@ -16,7 +17,7 @@ export const DESKTOP_CPU_SHARES = 256;
 const WAIT_MS = 30_000;
 const POLL_MS = 3_000;
 const MEMORY_TTL_MS = 10 * 60_000;
-const ENVIRONMENT_LABEL = "bot.dusk.environment";
+const ENVIRONMENT_LABEL = DOCKER_NAMES.label("environment");
 
 export interface VpsDesktopLimits { memoryMb: number }
 export type VpsDocker = (args: string[], timeoutMs?: number) => Promise<{ stdout: string }>;

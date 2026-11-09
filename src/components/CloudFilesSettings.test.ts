@@ -10,7 +10,7 @@ import { CloudFilesSettings } from "./CloudFilesSettings";
 const GB = 1024 ** 3;
 const folder = (status: SharedFolder["status"], extra: Partial<SharedFolder> = {}): SharedFolder =>
   ({ id: `f-${status}`, name: `Folder ${status}`, pcPath: `/Users/ada/${status}`, status, files: 1200, done: 400, waitingBytes: 0, pendingDeletes: 3, problem: null, ...extra });
-const base: CloudFilesState = { phase: "idle", lastSyncedAt: 1, disk: null, shared: [], outputs: { enabled: false, dir: "/Users/ada/Documents/Dusk", folders: 0, problem: null } };
+const base: CloudFilesState = { phase: "idle", lastSyncedAt: 1, disk: null, shared: [], outputs: { enabled: false, dir: "/Users/ada/Documents/Dusk Bot", folders: 0, problem: null } };
 const check = (name: string, extra: Partial<FolderCheck> = {}): FolderCheck =>
   ({ token: `t-${name}`, name, pcPath: `/Users/ada/${name}`, files: 120, bytes: 3 * 1024 ** 2, partial: false, refusal: null, ...extra });
 

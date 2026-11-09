@@ -29,10 +29,16 @@ KIT_DIR=/opt/duskbot-link/bot-desktop
 DEMO="${DUSK_INSTALL_DEMO:-}"
 [ "$DEMO" = 0 ] && DEMO=""
 
-SVC_USER=maus
-SVC_HOME=/home/maus
+SVC_USER=dusk
+SVC_HOME=/home/dusk
+# names from before the rename (the app's own copy is electron/legacy-names.mjs). a server set up then keeps its
+# server account; its folders, units and profiles move to the new names (migrate_legacy) the next time this runs.
+OLD=openmausbot
+OLD_SVC_USER=maus
+if ! id "$SVC_USER" >/dev/null 2>&1 && id "$OLD_SVC_USER" >/dev/null 2>&1; then SVC_USER=$OLD_SVC_USER SVC_HOME=/home/$OLD_SVC_USER; fi
+OLD_UNITS="$OLD-link.service $OLD.service $OLD-engines.path $OLD-handoff.service $OLD-restart.service"
 DATA=$SVC_HOME/.duskbot
-# accounts: the server runs as maus and never holds docker, the link agent as omb-link (tunnel.json and the app's ssh key
+# accounts: the server runs as $SVC_USER and never holds docker, the link agent as omb-link (tunnel.json and the app's ssh key
 # are its own), docker only through the gate as omb-docker; every bot's turn runs in the bot box (DUSK_BOT_BOX=required)
 LINK_USER=omb-link
 LINK_HOME=/var/lib/omb-link
@@ -53,6 +59,10 @@ MANIFEST=/var/lib/duskbot/install-manifest
 AGENT=/opt/duskbot-link/agent.mjs
 PORT=8799
 UNITS=/etc/systemd/system
+CADDY_SITE=/etc/caddy/duskbot.caddy
+CADDY_MAIN=/etc/caddy/Caddyfile
+OLD_STATE=/var/lib/$OLD-link OLD_LOGS=/var/log/$OLD-link OLD_MANIFEST=/var/lib/$OLD/install-manifest OLD_AGENT_DIR=/opt/$OLD-link
+OLD_LIB=/usr/local/lib/$OLD OLD_ETC=/etc/$OLD OLD_BWRAP_PROFILE=/etc/apparmor.d/$OLD-bwrap OLD_CADDY_SITE=/etc/caddy/$OLD.caddy
 export DEBIAN_FRONTEND=noninteractive
 
 say() { printf '%s\n' "$*"; }
@@ -707,10 +717,10 @@ do_user() {
   id "$SVC_USER"; id "$LINK_USER"; id "$GATE_USER"
 }
 
-# an older install kept the link agent's files in maus's home; they move to omb-link, read as maus so no link in maus's
-# home can point root at another file
+# an older install kept the link agent's files in the server account's home; they move to omb-link, read as that
+# account so no link in its home can point root at another file
 move_link_files() {
-  old="$SVC_HOME/.config/duskbot-link"
+  old="$SVC_HOME/.config/$OLD-link"
   new="$LINK_HOME/.config/duskbot-link/tunnel.json"
   if [ -f "$old/tunnel.json" ] && [ ! -f "$new" ]; then
     show mv "$old/tunnel.json" "$new"
@@ -727,15 +737,15 @@ move_link_files() {
   fi
 }
 
-# the engine token an older install kept in maus's home goes to $ETC/engines.env, which only systemd reads
+# the engine token an older install kept in the server account's home goes to $ETC/engines.env, which only systemd reads
 move_engine_token() {
-  old="$SVC_HOME/.config/duskbot/engines.env"
+  old="$SVC_HOME/.config/$OLD/engines.env"
   [ -f "$old" ] || return 0
   as_user cat "$old" | grep -E "$CLAUDE_TOKEN_LINE" | awk "length <= 4200" | tail -n 1 > "$TMP/engines.env" || true
   if [ -s "$TMP/engines.env" ]; then install -o root -g root -m 0600 "$TMP/engines.env" "$ETC/engines.env"; echo "the Claude sign-in moved to $ETC/engines.env"; fi
   rm -f "$TMP/engines.env"
   as_user rm -f "$old"
-  as_user rmdir "$SVC_HOME/.config/duskbot" 2>/dev/null || true
+  as_user rmdir "$SVC_HOME/.config/$OLD" 2>/dev/null || true
 }
 
 # the bot box gives engines their own home in the data folder; conversations from before keep their engine sessions
@@ -747,6 +757,56 @@ seed_engine_home() {
     for d in projects todos file-history; do [ ! -d "$2/.claude/$d" ] || cp -a "$2/.claude/$d" "$e/.claude/"; done
     [ ! -f "$2/.claude.json" ] || cp -p "$2/.claude.json" "$e/.claude.json"
     mv "$e" "$1/engine-home"' sh "$DATA" "$SVC_HOME"
+}
+
+# a server set up before the rename: its units stop and go, and its folders, link key, profiles and caddy site move to
+# the new names. nothing is deleted but the old unit files and profile this script wrote; the old data folder and
+# agent folder names stay as links to the new ones. safe to run again.
+migrate_legacy() {
+  found=0
+  for unit in $OLD_UNITS; do [ -e "$UNITS/$unit" ] && found=1; done
+  for dir in "$OLD_STATE" "$OLD_AGENT_DIR" "$OLD_ETC" "$SVC_HOME/.$OLD"; do [ -e "$dir" ] && [ ! -L "$dir" ] && found=1; done
+  [ "$found" = 1 ] || return 0
+  echo "moving an install from before the rename to the new names"
+  for unit in $OLD_UNITS; do
+    [ -e "$UNITS/$unit" ] || continue
+    systemctl disable --now "$unit" >/dev/null 2>&1 || true
+    rm -f "$UNITS/$unit" && echo "removed $UNITS/$unit"
+  done
+  rm -f "$UNITS/ssh.service.d/10-$OLD-oom.conf" "$UNITS/sshd.service.d/10-$OLD-oom.conf"
+  systemctl daemon-reload >/dev/null 2>&1 || true
+  move_old "$OLD_STATE" "$STATE"
+  move_old "$OLD_LOGS" "$LOGS"
+  move_old "${OLD_MANIFEST%/*}" "${MANIFEST%/*}"
+  move_old "$OLD_AGENT_DIR" "${AGENT%/*}" link
+  move_old "$OLD_LIB" "$LIB"
+  move_old "$OLD_ETC" "$ETC"
+  move_old "$LINK_HOME/.config/$OLD-link" "$LINK_HOME/.config/duskbot-link"
+  move_old "$SVC_HOME/.$OLD" "$DATA" link
+  [ ! -L "$SVC_HOME/.$OLD" ] || chown -h "$SVC_USER:$SVC_USER" "$SVC_HOME/.$OLD" 2>/dev/null || true
+  keys="$LINK_HOME/.ssh/authorized_keys"
+  if [ -f "$keys" ] && grep -q "$OLD_AGENT_DIR/" "$keys"; then sed -i "s#$OLD_AGENT_DIR/#${AGENT%/*}/#g" "$keys" && echo "the app's direct key runs the agent at ${AGENT%/*}"; fi
+  if [ -f "$OLD_BWRAP_PROFILE" ]; then
+    apparmor_parser -R "$OLD_BWRAP_PROFILE" >/dev/null 2>&1 || true
+    rm -f "$OLD_BWRAP_PROFILE" && echo "removed $OLD_BWRAP_PROFILE"
+  fi
+  if [ -f "$OLD_CADDY_SITE" ]; then
+    [ -e "$CADDY_SITE" ] || mv "$OLD_CADDY_SITE" "$CADDY_SITE"
+    rm -f "$OLD_CADDY_SITE"
+    [ ! -f "$CADDY_MAIN" ] || sed -i "s#managed by $OLD-link#managed by duskbot-link#; s#$OLD_CADDY_SITE#$CADDY_SITE#" "$CADDY_MAIN"
+  fi
+  [ ! -f "$MANIFEST" ] || sed -i "s#$OLD#duskbot#g" "$MANIFEST"
+  return 0
+}
+
+# old new [link]: a folder moves once, never over one already there; with `link` the old name points at the new one
+move_old() {
+  [ -e "$1" ] && [ ! -L "$1" ] || return 0
+  if [ -e "$2" ]; then echo "kept $1: $2 is already there"; return 0; fi
+  install -d -m 0755 "${2%/*}"
+  mv "$1" "$2" || return 1
+  echo "moved $1 -> $2"
+  [ "${3:-}" != link ] || ln -s "$2" "$1"
 }
 
 node_major() { /usr/bin/node -v 2>/dev/null | sed -e 's/^v//' -e 's/\..*//'; }
@@ -1622,6 +1682,8 @@ main() {
   if [ -n "$DEMO" ]; then
     TOKEN="demodemoab-$(printf '%026d' 0 | tr 0 a)"
   fi
+  # a server set up before the rename moves to the new names before anything here reads them
+  if [ -z "$DEMO" ] && [ "$(id -u)" -eq 0 ]; then MIGRATED=$(migrate_legacy 2>&1) || true; fi
   # `sh install.sh --repair` as root: an install that is already linked, checked and brought up to date without a line
   if [ "$TOKEN" = "--repair" ]; then
     [ "$(id -u)" -eq 0 ] || become_root
@@ -1645,6 +1707,7 @@ main() {
   if [ -n "$DEMO" ]; then STATE="$TMP/state" LOGS="$TMP/logs" LINK_BASE="https://link.dusk.bot"; fi
   install -d -m 0700 "$STATE"
   install -d -m 0700 "$LOGS"
+  [ -z "${MIGRATED:-}" ] || printf '%s\n' "$MIGRATED" >> "$LOGS/migrate.log"
   ui_init
   trap on_exit EXIT
   trap on_stop INT TERM

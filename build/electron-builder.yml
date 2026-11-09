@@ -5,6 +5,9 @@ artifactName: DuskBot-${version}-${arch}.${ext}
 protocols:
   - name: Dusk Bot package install
     schemes: [duskbot]
+  # links made before the rename (chat history, notifications) still open the app; electron/legacy-names.mjs reads them
+  - name: Dusk Bot links from before the rename
+    schemes: [openmausbot]
 
 publish: null
 

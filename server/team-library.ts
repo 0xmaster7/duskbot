@@ -1,10 +1,11 @@
+import { UPSTREAM } from "../electron/legacy-names.mjs";
 import { parseJson, type JsonValue } from "./schema.ts";
 import { isBotPackage, parseBotPackage, parsePackageDocument, upgradeV1, type PackageDocument, type ParsedBotPackage } from "./bot-package.ts";
 import { PACKAGE_V1_VERSION } from "../shared/package-format.ts";
 import { parseTeamManifest, type ParsedTeamManifest } from "./team-manifest.ts";
 
-export const TEAM_LIBRARY_REPOSITORY = "https://github.com/milind-soni/duskbot-teams";
-export const TEAM_LIBRARY_RAW_ROOT = "https://raw.githubusercontent.com/milind-soni/duskbot-teams/main";
+export const TEAM_LIBRARY_REPOSITORY = UPSTREAM.teamLibrary.repository;
+export const TEAM_LIBRARY_RAW_ROOT = UPSTREAM.teamLibrary.raw;
 export const TEAM_LIBRARY_CATALOG_URL = `${TEAM_LIBRARY_RAW_ROOT}/catalog.json`;
 
 const MAX_CATALOG_BYTES = 256_000;

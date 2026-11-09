@@ -1,4 +1,5 @@
 // The sidecar's own state directory, never the harness's ~/.duskbot.
+import { defaultCompanionDir } from "../../../electron/legacy-names.mjs";
 import { randomUUID } from "node:crypto";
 import {
   chmodSync,
@@ -11,10 +12,9 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
 
 /** DUSK_COMPANION_DIR isolates a test rig from a real paired fleet. */
-export const DATA_DIR = process.env.DUSK_COMPANION_DIR ?? join(homedir(), ".duskbot-companion");
+export const DATA_DIR = process.env.DUSK_COMPANION_DIR ?? defaultCompanionDir(homedir());
 
 /** The paired fleet's hashes are an offline target, and the 0755/0644 defaults
  * would publish which phones someone owns to every account on the machine. */

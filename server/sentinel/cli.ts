@@ -1,3 +1,4 @@
+import { dataDirFor } from "../../electron/legacy-names.mjs";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
@@ -38,7 +39,7 @@ copy tool output or message text.
 
 export function parseSentinelArgs(argv: string[], env: NodeJS.ProcessEnv = process.env): SentinelArgs | { error: string; json: boolean } {
   const json = argv.includes("--json");
-  let dataDir = env.DUSK_DATA_DIR || join(homedir(), ".duskbot");
+  let dataDir = dataDirFor(env.DUSK_DATA_DIR, homedir());
   let out: string | undefined;
   const args: Omit<SentinelArgs, "dataDir" | "out"> = { json };
   for (let i = 0; i < argv.length; i += 1) {

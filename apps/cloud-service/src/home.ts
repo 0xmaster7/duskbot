@@ -1,6 +1,7 @@
 // What runs on a Boat sandbox to make it a My Cloud home: the same launcher, edge and server as every Cloud home
 // (server/cloud-home-start.ts, apps/cloud-service/deploy/Caddyfile), installed natively under systemd so it comes back after every resume.
 // Boat runs the setup script once, as `user` with passwordless sudo; every later step is one command the reconciler sends.
+import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { createHmac } from "node:crypto";
 import { CLOUD_HOME_MARKER_FILE, homeEnv, shellQuote, type DashboardLink } from "../../dashboard/server/clouds/bootstrap.ts";
 import { machineVerifyScript, type ReleaseKey } from "./release-signing.ts";
@@ -16,11 +17,11 @@ export const BOAT_RESTORE_FILE = "/home/user/omb-restore.tar";
 export const BOAT_HOME_VOLUME = "__system__/data";
 // /usr/local and /opt belong to the sandbox user on Boat; the launcher runs only root's code (codeTrustProblem)
 // the whole Node distribution, npm with it: the server installs engine CLIs with npm into its own data folder (engine-install.ts)
-const ROOT = "/usr/lib/duskbot", APP = `${ROOT}/app`, BIN = `${ROOT}/bin`, NODE_DIR = `${ROOT}/node`;
+const ROOT = CLOUD_HOME.root, APP = `${ROOT}/app`, BIN = `${ROOT}/bin`, NODE_DIR = `${ROOT}/node`;
 export const BOAT_NODE_BIN = `${NODE_DIR}/bin/node`;
 export const BOAT_CONTROL = `${BIN}/omb-home`;
 /** set by the pre-stop hook while the provider saves the disk; the home's unit will not start while it exists */
-export const PRE_STOP_FLAG = "/run/duskbot/pre-stop";
+export const PRE_STOP_FLAG = `${CLOUD_HOME.run}/pre-stop`;
 /** merges cgroup-parent into docker's daemon.json; exits 0 only when it changed the file */
 const DOCKER_SLICE = `const fs = require("node:fs"), p = "/etc/docker/daemon.json";
 let c = {}; try { c = JSON.parse(fs.readFileSync(p, "utf8")); } catch {}
@@ -88,7 +89,7 @@ ConditionPathExists=${APP}/dist-server/cloud-home-start.js
 ConditionPathExists=!${PRE_STOP_FLAG}
 
 [Service]
-EnvironmentFile=/etc/duskbot/home.env
+EnvironmentFile=${CLOUD_HOME.etc}/home.env
 ExecStart=${BOAT_NODE_BIN} ${APP}/dist-server/cloud-home-start.js
 Restart=always
 RestartSec=3
@@ -114,9 +115,9 @@ ConditionPathExists=${APP}/link/docker-gate.mjs
 User=omb-docker
 Group=maus
 SupplementaryGroups=docker
-RuntimeDirectory=duskbot-docker
+RuntimeDirectory=${CLOUD_HOME.gate}
 RuntimeDirectoryMode=0750
-ExecStart=${BOAT_NODE_BIN} ${APP}/link/docker-gate.mjs --listen /run/duskbot-docker/docker.sock --upstream /var/run/docker.sock
+ExecStart=${BOAT_NODE_BIN} ${APP}/link/docker-gate.mjs --listen /run/${CLOUD_HOME.gate}/docker.sock --upstream /var/run/docker.sock
 Restart=always
 RestartSec=2
 UMask=0007
@@ -134,7 +135,7 @@ WantedBy=multi-user.target
   // keeps systemd from starting it again during the save; if the provider then cancels the stop, or resumes the machine
   // held in memory with nobody to start it, the timer brings the home back after 15 minutes of uptime.
   const preStop = `#!/bin/bash
-sudo -n install -d -o root -g root -m 0755 /run/duskbot
+sudo -n install -d -o root -g root -m 0755 ${CLOUD_HOME.run}
 sudo -n touch ${PRE_STOP_FLAG}
 sudo -n systemd-run --quiet --unit=omb-stop-cancelled --on-active=15min --timer-property=AccuracySec=30s ${BOAT_CONTROL} resume-if-cancelled >/dev/null 2>&1 || true
 sudo -n timeout 40 systemctl stop omb-home.service >/dev/null 2>&1 || sudo -n systemctl kill -s KILL omb-home.service >/dev/null 2>&1 || true
@@ -169,13 +170,13 @@ MemoryMax=75%
   const moveBoot = `const fs = require("node:fs");
 const boot = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
 if (boot.v !== 1 || !boot.env || !boot.link || !/^c[0-9a-f]{24}$/.test(boot.machine)) process.exit(1);
-const env = { ...boot.env, HOME: "/data", DUSK_DATA_DIR: "/data/.duskbot", NODE_ENV: "production", DUSK_STATIC_DIR: "${APP}/dist",
+const env = { ...boot.env, HOME: "/data", DUSK_DATA_DIR: "${CLOUD_HOME.data}", NODE_ENV: "production", DUSK_STATIC_DIR: "${APP}/dist",
   DUSK_CLOUD_EDGE_BIN: "${BIN}/caddy", DUSK_CLOUD_EDGE_CONFIG: "${APP}/cloud/Caddyfile", PATH: "${NODE_DIR}/bin:${BIN}:/usr/local/bin:/usr/bin:/bin",
-  DUSK_VPS_DOCKER: "local", DOCKER_HOST: "unix:///run/duskbot-docker/docker.sock" };
+  DUSK_VPS_DOCKER: "local", DOCKER_HOST: "unix:///run/${CLOUD_HOME.gate}/docker.sock" };
 if (Object.entries(env).some(([k, v]) => !/^[A-Z][A-Z0-9_]*$/.test(k) || typeof v !== "string" || /[\\r\\n\\0]/.test(v))) process.exit(1);
-fs.writeFileSync("/etc/duskbot/home.env", Object.entries(env).map(([k, v]) => k + "=" + v).join("\\n") + "\\n", { mode: 0o600 });
-fs.writeFileSync("/data/.duskbot/dashboard-link.json", JSON.stringify(boot.link), { mode: 0o600 });
-fs.writeFileSync("/etc/duskbot/machine", boot.machine + "\\n", { mode: 0o600 });
+fs.writeFileSync("${CLOUD_HOME.etc}/home.env", Object.entries(env).map(([k, v]) => k + "=" + v).join("\\n") + "\\n", { mode: 0o600 });
+fs.writeFileSync("${CLOUD_HOME.data}/dashboard-link.json", JSON.stringify(boot.link), { mode: 0o600 });
+fs.writeFileSync("${CLOUD_HOME.etc}/machine", boot.machine + "\\n", { mode: 0o600 });
 if (!fs.existsSync("/data/${CLOUD_HOME_MARKER_FILE}")) fs.writeFileSync("/data/${CLOUD_HOME_MARKER_FILE}", JSON.stringify({ version: 1, machine: boot.machine }), { mode: 0o600 });`;
   return `#!/bin/bash
 set +x
@@ -207,17 +208,17 @@ fi
 id maus >/dev/null 2>&1 || sudo useradd --system --home-dir /data --shell /bin/bash --user-group maus
 id omb-docker >/dev/null 2>&1 || sudo useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin --gid maus omb-docker
 getent group docker >/dev/null 2>&1 && sudo usermod -aG docker omb-docker
-sudo install -d -o root -g root -m 0700 /etc/duskbot
-sudo install -d -o maus -g maus -m 0700 /data /data/.duskbot
+sudo install -d -o root -g root -m 0700 ${CLOUD_HOME.etc}
+sudo install -d -o maus -g maus -m 0700 /data ${CLOUD_HOME.data}
 if [ -f ${BOAT_BOOT_FILE} ]; then
   boot=${BOAT_BOOT_FILE}
   if grep -q '"v":2' ${BOAT_BOOT_FILE}; then
-    sudo ${BOAT_NODE_BIN} -e ${shellQuote(REDEEM_SCRIPT)} ${BOAT_BOOT_FILE} /etc/duskbot/boot.json
-    boot=/etc/duskbot/boot.json
+    sudo ${BOAT_NODE_BIN} -e ${shellQuote(REDEEM_SCRIPT)} ${BOAT_BOOT_FILE} ${CLOUD_HOME.etc}/boot.json
+    boot=${CLOUD_HOME.etc}/boot.json
   fi
   sudo ${BOAT_NODE_BIN} -e ${shellQuote(moveBoot)} "$boot"
-  sudo chown maus:maus /data/.duskbot/dashboard-link.json /data/${CLOUD_HOME_MARKER_FILE}
-  sudo shred -u /etc/duskbot/boot.json 2>/dev/null || sudo rm -f /etc/duskbot/boot.json
+  sudo chown maus:maus ${CLOUD_HOME.data}/dashboard-link.json /data/${CLOUD_HOME_MARKER_FILE}
+  sudo shred -u ${CLOUD_HOME.etc}/boot.json 2>/dev/null || sudo rm -f ${CLOUD_HOME.etc}/boot.json
   shred -u ${BOAT_BOOT_FILE} 2>/dev/null || rm -f ${BOAT_BOOT_FILE}
 fi
 sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-home.service <<'DUSK_UNIT'
@@ -249,7 +250,7 @@ fi
 }
 
 /**
- * /usr/lib/duskbot/bin/omb-home, root's: `install <file> <sha256>`, `restore <tar>`, `start <origin>`, `stop`, `status`. Each
+ * <root>/bin/omb-home, root's: `install <file> <sha256>`, `restore <tar>`, `start <origin>`, `stop`, `status`. Each
  * prints only fixed words. Running it again is safe.
  */
 export function boatControlScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean } = { releaseKeys: [], requireSigned: false }): string {
@@ -283,17 +284,17 @@ case "\${1:-}" in
   restore)
     file="$2"
     systemctl stop omb-home.service >/dev/null 2>&1 || true
-    machine="$(cat /etc/duskbot/machine)"
+    machine="$(cat ${CLOUD_HOME.etc}/machine)"
     stage="$(mktemp -d /var/tmp/omb-restore.XXXXXX)"
     tar -xf "$file" -C "$stage" --numeric-owner --no-same-permissions --delay-directory-restore
     marker="$(find "$stage" -maxdepth 3 -name .omb-cloud-home.json -type f | head -n 1)"
     [ -n "$marker" ] || { rm -rf "$stage"; echo "not a home backup"; exit 2; }
     grep -q "\\"$machine\\"" "$marker" || { rm -rf "$stage"; echo "another cloud's backup"; exit 2; }
     root="$(dirname "$marker")"
-    link="$(mktemp)"; cp /data/.duskbot/dashboard-link.json "$link"
+    link="$(mktemp)"; cp ${CLOUD_HOME.data}/dashboard-link.json "$link"
     rm -rf /data.old; mv /data /data.old; mv "$root" /data
-    install -d -o maus -g maus -m 0700 /data/.duskbot
-    install -o maus -g maus -m 0600 "$link" /data/.duskbot/dashboard-link.json
+    install -d -o maus -g maus -m 0700 ${CLOUD_HOME.data}
+    install -o maus -g maus -m 0600 "$link" ${CLOUD_HOME.data}/dashboard-link.json
     chown -R maus:maus /data; chmod 0700 /data; rm -rf "$stage" "$link" "$file" /data.old
     echo restored ;;
   verify-template)
@@ -311,9 +312,9 @@ case "\${1:-}" in
     origin="$2"; upstream="\${3:-$2}"
     [[ "$origin" =~ ^https://[a-z0-9.-]+$ ]] || { echo "bad origin"; exit 2; }
     [[ "$upstream" =~ ^https://[a-z0-9.-]+$ ]] || { echo "bad origin"; exit 2; }
-    sed -i "/^DUSK_PUBLIC_URL=/d; /^DUSK_CLOUD_UPSTREAM_HOST=/d" /etc/duskbot/home.env
-    echo "DUSK_PUBLIC_URL=$origin" >> /etc/duskbot/home.env
-    echo "DUSK_CLOUD_UPSTREAM_HOST=\${upstream#https://}" >> /etc/duskbot/home.env
+    sed -i "/^DUSK_PUBLIC_URL=/d; /^DUSK_CLOUD_UPSTREAM_HOST=/d" ${CLOUD_HOME.etc}/home.env
+    echo "DUSK_PUBLIC_URL=$origin" >> ${CLOUD_HOME.etc}/home.env
+    echo "DUSK_CLOUD_UPSTREAM_HOST=\${upstream#https://}" >> ${CLOUD_HOME.etc}/home.env
     rm -f ${PRE_STOP_FLAG}; systemctl stop omb-stop-cancelled.timer >/dev/null 2>&1 || true
     systemctl enable omb-home.service >/dev/null 2>&1
     if [ -S /var/run/docker.sock ] && [ -f "$app/link/docker-gate.mjs" ]; then systemctl enable --now omb-docker-gate.service >/dev/null 2>&1 || true; fi

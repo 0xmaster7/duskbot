@@ -1,3 +1,4 @@
+import "../../../electron/legacy-names.mjs";
 import { createServer } from "node:http";
 import { existsSync } from "node:fs";
 import { createDashboardApp } from "./app.ts";

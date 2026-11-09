@@ -2,6 +2,7 @@
 // pinned and come from cdn.jsdelivr.net, which a bot page's CSP already allows, through one import map; nothing is
 // bundled into the app. In a chat frame the shell transpiles the file itself with Sucrase; a published page carries
 // the server's transpiled code instead and loads no compiler.
+import { LEGACY } from "../../electron/legacy-names.mjs";
 import { APP_THEME_STYLE } from "./helper.ts";
 
 /** Exact versions, each at least two weeks old when pinned; `sucrase` matches the server's own dependency. */
@@ -60,6 +61,8 @@ export const JSX_RUNTIME_SOURCE = `(function (env) {
   "use strict";
   var doc = env.doc, win = env.win;
   var MODULES = ${scriptJson(JSX_PAGE_MODULES)};
+  // a page written before the rename imports the shell by its old name
+  var OLD = ${scriptJson(LEGACY.short)};
   var OPTIONS = ${scriptJson(JSX_TRANSFORM_OPTIONS)};
   var html = doc.documentElement;
   var mount = doc.getElementById("dusk-root");
@@ -178,7 +181,7 @@ export const JSX_RUNTIME_SOURCE = `(function (env) {
   var wanted = function (code) {
     var names = {}, found = [], pattern = /\\brequire\\((["'])([^"']+)\\1\\)/g, match;
     var text = code === null ? String(env.page) : code;
-    while ((match = pattern.exec(text))) if (!names[match[2]]) { names[match[2]] = true; found.push(match[2]); }
+    while ((match = pattern.exec(text))) { var name = match[2] === OLD ? "dusk" : match[2]; if (!names[name]) { names[name] = true; found.push(name); } }
     return found;
   };
   var run = function () {
@@ -203,6 +206,7 @@ export const JSX_RUNTIME_SOURCE = `(function (env) {
       Object.keys(ready.loaded).forEach(function (name) { modules[name] = wrap(ready.loaded[name]); });
       modules.dusk = shellModule(React, ready.loaded.echarts);
       var require = function (name) {
+        if (name === OLD) name = "dusk";
         if (!Object.prototype.hasOwnProperty.call(modules, name)) throw fail("import", "It imports " + name + ", which isn't loaded.");
         return modules[name];
       };

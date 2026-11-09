@@ -34,13 +34,13 @@ export const CARD_SECRET_INFO = "Dusk Bot card secret v1";
 /** What the seal is bound to, so a relay cannot move it to another bot, conversation, card or choice. */
 export function cardSecretAAD(context: { keyId: string; botId: string; threadId: string; messageId: string; requestKey: string; remember: boolean }): Uint8Array {
   return new TextEncoder().encode([
-    "duskbot-card-secret-v1", context.keyId, context.botId, context.threadId, context.messageId, context.requestKey, context.remember ? "save" : "once",
+    SEAL_LABELS.cardSecret, context.keyId, context.botId, context.threadId, context.messageId, context.requestKey, context.remember ? "save" : "once",
   ].join("\n"));
 }
 
 /** What the server's identity key signs, so a relay cannot hand the app a sealing key of its own. */
 export function sealKeySigningInput(key: Pick<CardSealKey, "keyId" | "x" | "y">, identity: string): Uint8Array<ArrayBuffer> {
-  return new TextEncoder().encode(["duskbot-seal-key-v1", identity, key.keyId, key.x, key.y].join("\n"));
+  return new TextEncoder().encode([SEAL_LABELS.sealKey, identity, key.keyId, key.x, key.y].join("\n"));
 }
 
 export const SEALED_VALUE_INFO = "Dusk Bot sealed value v1";
@@ -51,7 +51,7 @@ export type SealPurpose = "login.create" | "login.update" | "login.card" | "onep
 /** A login saved from Settings is bound to its site and username, a change to the login's id, a sign-in card's to
  * that card; a config seal to the sorted paths it carries. */
 export function sealedValueAAD(keyId: string, purpose: SealPurpose, target: readonly string[]): Uint8Array<ArrayBuffer> {
-  return new TextEncoder().encode(JSON.stringify(["duskbot-sealed-value-v1", keyId, purpose, target]));
+  return new TextEncoder().encode(JSON.stringify([SEAL_LABELS.sealedValue, keyId, purpose, target]));
 }
 
 /** The settings paths that hold a secret: from any client but this computer's own app they travel only sealed.
@@ -80,3 +80,4 @@ export function configSecrets(patch: unknown): Map<string, string> {
   }
   return found;
 }
+import { SEAL_LABELS } from "../electron/legacy-names.mjs";

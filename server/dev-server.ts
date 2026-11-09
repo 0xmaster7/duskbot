@@ -1,6 +1,7 @@
 // `pnpm dev:server`: the harness from a source checkout, whose UI reaches it through Vite's dev proxy in a browser on
 // this machine. DUSK_DEV_TRUST_LOCAL_BROWSER=0 tries the sign-in a self-hosted server asks a browser for.
 // `pnpm dev:app` runs this same file as the desktop app's own utility child, which alone is granted this computer.
+import "../electron/legacy-names.mjs";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { DESKTOP_COMPUTER_GRANT, desktopComputer } from "./desktop-computer.ts";

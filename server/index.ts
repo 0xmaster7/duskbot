@@ -1,4 +1,5 @@
 // Import first: it reads a Cloud home's secrets off the launcher's pipe before any module can start a process.
+import { aliasLegacyHeaders, fromLegacyPath } from "../electron/legacy-names.mjs";
 import { BOOT_CLOUD_SECRETS } from "./cloud-secrets-boot.ts";
 import { reserveGmailDrafts } from "./gmail-draft-policy.ts";
 import { createGmailDrafts } from "./host/gmail-drafts.ts";
@@ -12695,10 +12696,10 @@ ROUTES.push(createLiveRoutes({
 
 const toolResults = new ToolResults();
 const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
-  if (CLOUD_TEAM) holdBodyDeadline(req, res);
+  aliasLegacyHeaders(req.headers); if (CLOUD_TEAM) holdBodyDeadline(req, res);
   let url: URL;
   try {
-    url = new URL(req.url ?? "/", `http://localhost:${PORT}`);
+    url = new URL(req.url = fromLegacyPath(req.url ?? "/"), `http://localhost:${PORT}`);
   } catch {
     return json(res, 400, { error: "invalid request URL" });
   }

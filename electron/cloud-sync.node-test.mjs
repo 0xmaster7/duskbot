@@ -34,7 +34,7 @@ test("checks a folder before sharing: too broad, private, Dusk's own, or already
   const s = setup(t);
   mkdirSync(join(s.home, ".ssh"), { recursive: true });
   mkdirSync(join(s.home, ".duskbot", "files"), { recursive: true });
-  mkdirSync(join(s.home, "Documents", "Dusk"), { recursive: true });
+  mkdirSync(join(s.home, "Documents", "Dusk Bot"), { recursive: true });
   assert.equal((await s.service.check(s.home)).refusal, "too-broad");
   assert.equal((await s.service.check(join(s.home, ".ssh"))).refusal, "private");
   for (const cli of [".claude", ".codex", ".gemini", ".grok"]) {
@@ -139,7 +139,7 @@ test("My Cloud's copy gone: the folder is shared again, and another My Cloud get
   assert.equal(s.holder.cloud.get(again.id, "brief.md"), "the brief");
 });
 
-test("bots' work from now on comes to Documents/Dusk/<bot>/<conversation>; older conversations and a switch turned off stay put", async (t) => {
+test("bots' work from now on comes to Documents/Dusk Bot/<bot>/<conversation>; older conversations and a switch turned off stay put", async (t) => {
   const s = setup(t);
   s.cloud.setBots({ bots: [{ id: "owl", name: "Owl", tasks: [{ threadId: "t1", title: "Q3: plan?" }, { threadId: "t0", title: "Old" }] }], groups: [] });
   const recent = s.cloud.addFolder({ id: "bot-owl-t1", kind: "bot", botId: "owl", threadId: "t1", cloudPath: "/data/.duskbot/task-workspaces/owl/t1", newestMs: AT + 120_000 });
@@ -147,7 +147,7 @@ test("bots' work from now on comes to Documents/Dusk/<bot>/<conversation>; older
   s.cloud.put(recent.id, "plan.md", "the plan");
   s.cloud.put(old.id, "old.md", "old work");
   await s.service.pass();
-  const owl = join(s.home, "Documents", "Dusk", "Owl");
+  const owl = join(s.home, "Documents", "Dusk Bot", "Owl");
   assert.deepEqual(readdirSync(owl), ["Q3- plan-"]);
   assert.equal(readFileSync(join(owl, "Q3- plan-", "plan.md"), "utf8"), "the plan");
   assert.equal(s.service.state().outputs.folders, 1);

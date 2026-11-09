@@ -1,6 +1,7 @@
 // The managed cloud backend the account service plugs in (apps/dashboard/server/clouds/managed.ts): one machine per cloud at
 // the provider, its lifecycle, backups, retention, the stray-machine sweep, the machine claim and the edge's route lookup.
 // The provider's API key, backup storage and backup secret exist only in this process.
+import "../../../electron/legacy-names.mjs";
 import { createHash, hkdfSync, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";

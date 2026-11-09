@@ -81,6 +81,8 @@ await build({
   logLevel: "info",
   plugins: [yamlEsmPlugin, serverLocalePlugin],
   banner: NODE_REQUIRE,
+  // every entry reads the old env names first, whichever process starts it
+  inject: [join(root, "electron", "legacy-names.mjs")],
 });
 
 // External MCP clients launch this as an independent stdio process, so release

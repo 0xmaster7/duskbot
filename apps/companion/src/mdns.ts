@@ -1,5 +1,6 @@
 // mDNS / DNS-SD responder (RFC 6762/6763), answer-only: it neither browses
 // nor probes for name conflicts (§8.1).
+import { MDNS_HOST_PREFIX } from "../../../electron/legacy-names.mjs";
 import { createHash } from "node:crypto";
 import { createSocket } from "node:dgram";
 import { hostname, networkInterfaces } from "node:os";
@@ -354,7 +355,7 @@ export function clampBytes(text: string, limit: number): string {
 /** Not `<hostname>.local`: on macOS mDNSResponder owns and defends that name. */
 export function defaultHostName(machine = hostname()): string {
   const digest = createHash("sha256").update(machine).digest("hex").slice(0, 8);
-  return `duskbot-${digest}.local`;
+  return `${MDNS_HOST_PREFIX}${digest}.local`;
 }
 
 export function advertisableAddresses(): string[] {

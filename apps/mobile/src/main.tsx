@@ -1,3 +1,4 @@
+import "../../../electron/legacy-names.mjs";
 import { Capacitor } from "@capacitor/core";
 import { mountMobile } from "@/mobile/boot";
 import { webPlatform } from "@/mobile/platform";

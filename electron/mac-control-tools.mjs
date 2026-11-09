@@ -1,5 +1,5 @@
 // "Your Mac": what a linked server's bot asks this Mac to do (shared/mac-control.ts MacJob), run here as the person who
-// is signed in, with every action appended to ~/Library/Logs/duskbot/mac-control.log (never file contents).
+// is signed in, with every action appended to ~/Library/Logs/Dusk Bot/mac-control.log (never file contents).
 import { execFile, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { createWriteStream, promises as fsp } from "node:fs";
@@ -14,7 +14,7 @@ const LIST_MAX = 500;
 const KILL_GRACE_MS = 3000;
 
 export function macLogFile(home = homedir()) {
-  return path.join(home, "Library", "Logs", "duskbot", "mac-control.log");
+  return path.join(home, "Library", "Logs", "Dusk Bot", "mac-control.log");
 }
 
 /** `~`, `~/x` and relative paths start at the home folder */

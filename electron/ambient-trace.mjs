@@ -1,6 +1,6 @@
 // An opt-in timeline of the island and the dock, for when they behave differently on someone's Mac than anywhere they
 // can be watched: DUSK_AMBIENT_TRACE=1 (or `trace: true` in ambient-prefs.json) writes one line per event, with its time
-// to the millisecond, to ~/Library/Logs/duskbot/ambient-trace.log (the app's own logs folder elsewhere). Pointer
+// to the millisecond, to ~/Library/Logs/Dusk Bot/ambient-trace.log (the app's own logs folder elsewhere). Pointer
 // crossings, open and close, CSS transitions, settled signals and every window action main takes. Off by default; no
 // message text ever goes in.
 import { appendFile, mkdirSync } from "node:fs";
@@ -10,7 +10,7 @@ import { join } from "node:path";
 export const TRACE_FILE = "ambient-trace.log";
 
 export function traceFolder(platform = process.platform, logs = null) {
-  return platform === "darwin" ? join(homedir(), "Library", "Logs", "duskbot") : logs ?? join(homedir(), ".duskbot", "logs");
+  return platform === "darwin" ? join(homedir(), "Library", "Logs", "Dusk Bot") : logs ?? join(homedir(), ".duskbot", "logs");
 }
 
 /** Whether tracing is on: the environment, or the person's prefs file. */

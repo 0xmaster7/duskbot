@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   TEAM_LIBRARY_CATALOG_URL,
+  TEAM_LIBRARY_REPOSITORY,
   TEAM_LIBRARY_RAW_ROOT,
   fetchGithubTeam,
   fetchLibraryTeam,
@@ -57,7 +58,7 @@ function response(value: unknown, status = 200): Response {
 describe("team library", () => {
   it("validates catalog paths and adds the trusted repository URL", () => {
     const parsed = parseTeamCatalog(catalog);
-    expect(parsed.repositoryUrl).toBe("https://github.com/milind-soni/duskbot-teams");
+    expect(parsed.repositoryUrl).toBe(TEAM_LIBRARY_REPOSITORY);
     expect(parsed.teams[0]).toMatchObject({ slug: "engineering", members: 1 });
 
     const unsafe = structuredClone(catalog);

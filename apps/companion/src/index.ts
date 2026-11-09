@@ -5,6 +5,7 @@
 //   :8811  127.0.0.1  you         pairing and revocation, never off-machine
 //   :8799  127.0.0.1  the harness spoken to as this machine, unmodified
 //   UDS/pipe            one Electron-owned sidecar generation, never TCP
+import "../../../electron/legacy-names.mjs";
 import { createServer } from "node:http";
 import { join } from "node:path";
 

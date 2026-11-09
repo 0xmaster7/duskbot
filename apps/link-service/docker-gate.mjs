@@ -12,13 +12,15 @@ export const DEFAULT_LISTEN = "/run/duskbot-docker/docker.sock";
 export const DEFAULT_UPSTREAM = "/var/run/docker.sock";
 export const DEFAULT_PULL = ["ghcr.io/sidddevz/omb-bot-desktop", "docker.io/trycua/xfce-cua"];
 
-export const VPS_LABEL = "bot.dusk.vps";
-export const BOT_DESKTOP_LABEL = "bot.dusk.bot-desktop";
-export const NETWORK_LABEL = "bot.dusk.vps-network";
-export const DESKTOP_NETWORK = "duskbot-desktops";
+// docker names from before the rename, kept: the bot computers, volumes and network on a server and the published
+// image carry them (the app's copy is DOCKER_NAMES in electron/legacy-names.mjs; this file stands alone)
+export const VPS_LABEL = "com.openmausbot.vps";
+export const BOT_DESKTOP_LABEL = "com.openmausbot.bot-desktop";
+export const NETWORK_LABEL = "com.openmausbot.vps-network";
+export const DESKTOP_NETWORK = "openmausbot-desktops";
 export const DESKTOP_BRIDGE = "omb-desk0";
 export const DESKTOP_HOME = "/home/cua";
-export const DESKTOP_NAME = /^duskbot-vps-[a-z0-9]{1,12}-[a-f0-9]{12}$/;
+export const DESKTOP_NAME = /^openmausbot-vps-[a-z0-9]{1,12}-[a-f0-9]{12}$/;
 export const FREE_CAPABILITIES = ["AUDIT_WRITE", "CHOWN", "DAC_OVERRIDE", "FOWNER", "FSETID", "KILL", "NET_BIND_SERVICE", "SETGID", "SETUID", "SYS_CHROOT"];
 export const STRICT_CAPABILITIES = ["NET_ADMIN", "SETGID", "SETUID"];
 
@@ -304,7 +306,7 @@ function homeMount(value, name) {
 
 function checkDesktop(config, name, runsc) {
   if (config.get("labels")[VPS_LABEL] !== "1") refuse(`label ${VPS_LABEL} must be 1`);
-  if (typeof name !== "string" || !DESKTOP_NAME.test(name)) refuse("a Dusk Bot computer must be named duskbot-vps-<bot>-<hex>");
+  if (typeof name !== "string" || !DESKTOP_NAME.test(name)) refuse(`a Dusk Bot computer must be named like ${DESKTOP_NAME.source}`);
   if (!config.get("image")) refuse("Image is required");
   const host = struct(config.get("hostconfig"), "HostConfig", HOST_RULES);
   const strict = host.get("readonlyrootfs") === true && noNewPrivileges(host.get("securityopt"));
@@ -342,7 +344,7 @@ function checkProbe(config, name) {
   return { kind: "probe", image };
 }
 
-/** POST /containers/create: a Dusk Bot computer (label bot.dusk.vps=1) or one of the two host probes. */
+/** POST /containers/create: a Dusk Bot computer (label VPS_LABEL=1) or one of the two host probes. */
 export function checkCreate(body, { name, runsc = false } = {}) {
   if (!isObject(body)) refuse("the container config must be an object");
   const config = struct(body, "Config", CONFIG_RULES);

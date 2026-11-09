@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import {
-  currentUser, launchdPlist, sentinelCommand, sentinelLaunchdPlist, sentinelServicePlan, sentinelSystemdService, sentinelSystemdTimer,
+  currentUser, launchdPlist, legacyServicePlan, sentinelCommand, sentinelLaunchdPlist, sentinelServicePlan, sentinelSystemdService, sentinelSystemdTimer,
   servicePlan, shippedSentinelCli, systemdUnit, unstableInstallWarning,
 } from "./service-unit.ts";
 import { defaultSentinelOut, outRefusal } from "./sentinel/paths.ts";
@@ -58,6 +58,7 @@ export function runServiceCommand(input: ServiceInstallInput, io: ServiceIo): nu
     for (const line of plan.deactivate) io.log(`  ${line}`);
     return 0;
   }
+  retireLegacy(platform, "serve", home, input.exists ?? existsSync, io);
   const warning = unstableInstallWarning(input.script);
   if (warning) {
     io.error(warning);
@@ -87,6 +88,14 @@ export function runServiceCommand(input: ServiceInstallInput, io: ServiceIo): nu
   return 0;
 }
 
+function retireLegacy(platform: NodeJS.Platform, kind: "serve" | "sentinel", home: string, exists: (path: string) => boolean, io: ServiceIo): void {
+  const legacy = legacyServicePlan(platform, kind, home);
+  if (!legacy || !legacy.installed.some((file) => exists(file))) return;
+  io.log("first remove the one installed before the rename, so the two never run at once:");
+  for (const line of legacy.deactivate) io.log(`  ${line}`);
+  io.log("");
+}
+
 function bundleHasSentinel(script: string): boolean {
   try {
     return readFileSync(script, "utf8").includes("--check-install");
@@ -111,6 +120,7 @@ function runSentinelService(input: ServiceInstallInput, platform: NodeJS.Platfor
     for (const line of plan.deactivate) io.log(`  ${line}`);
     return 0;
   }
+  retireLegacy(platform, "sentinel", home, input.exists ?? existsSync, io);
   const refusal = outRefusal(out, input.dataDir);
   if (refusal) {
     io.error(refusal);

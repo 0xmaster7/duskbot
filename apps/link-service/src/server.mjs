@@ -3,6 +3,7 @@
 //   LINK_DATA_DIR     where state.json lives, default ./data
 //   LINK_PACKAGES_DIR the private server builds install.sh downloads, default $LINK_DATA_DIR/packages
 //   LINK_TRUST_PROXY  "0" when nothing sits in front of it (then forwarded headers are ignored), default "1"
+import "./legacy.mjs";
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 

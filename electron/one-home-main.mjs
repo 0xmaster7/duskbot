@@ -4,6 +4,7 @@
 // that is ready, and a Cloud it holds after it ended brings everything home, as does its word that the Cloud this computer
 // moved to is gone while My Cloud is another (`gone`). The person's own
 // choice to keep this computer's bots here (Settings → Dusk Cloud, Advanced) is kept beside the journal.
+import { SEAL_LABELS } from "./legacy-names.mjs";
 import { createHash } from "node:crypto";
 import { createReadStream, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -24,7 +25,7 @@ const KEEP_LABEL = "Bring this computer's bots home";
 /** This computer as the Admin knows it, the same across sign-outs and sign-ins: a hash of its own server's identity, so
  * the identity itself never leaves it. */
 export function installationOf(environmentId) {
-  return createHash("sha256").update(`duskbot-installation:${environmentId}`).digest("base64url");
+  return createHash("sha256").update(`${SEAL_LABELS.installation}${environmentId}`).digest("base64url");
 }
 
 /** One home's view of the person's Cloud, from the Admin's last verified word; null while nobody is signed in. An ended

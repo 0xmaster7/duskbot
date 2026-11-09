@@ -1,5 +1,6 @@
 // node managed-companion-guardian-main.mjs <cloudflared> <tokenFile> <socketPath> <pid> <originPort>
 // Runs unconditionally: nothing imports this file.
+import "./legacy-names.mjs";
 import { guardianArguments, runManagedCompanionGuardian } from "./managed-companion-guardian.mjs";
 
 runManagedCompanionGuardian(guardianArguments(process.argv.slice(2))).then(

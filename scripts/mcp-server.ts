@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Model Context Protocol (MCP) server for Dusk Bot over JSON-RPC 2.0 stdio,
 // for external agents (Hermes, Claude Desktop, Cursor, etc.).
+import { isOwnAppId } from "../electron/legacy-names.mjs";
 import readline from "node:readline";
 import { isRecord, projectMessage } from "./mcp-message-projection.ts";
 
@@ -98,7 +99,7 @@ export async function probeBaseUrls(candidates: string[]): Promise<string> {
       const health = await fetchJson(`${candidate}/api/health`, {
         signal: AbortSignal.timeout(Math.min(requestTimeoutMs(), 2_000)),
       });
-      if (health?.app !== "duskbot") {
+      if (!isOwnAppId(health?.app)) {
         failures.push(`${candidate} answered, but it was not Dusk Bot`);
         continue;
       }
@@ -805,7 +806,7 @@ export async function handleToolCall(
   switch (name) {
     case "get_system_health": {
       const res = await fetcher("/api/health");
-      if (res?.app !== "duskbot") throw new Error("The configured endpoint is not a Dusk Bot server");
+      if (!isOwnAppId(res?.app)) throw new Error("The configured endpoint is not a Dusk Bot server");
       return {
         status: "connected",
         endpoint: discoveredBaseUrl ?? DUSK_BASE_URL,

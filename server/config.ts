@@ -1,4 +1,5 @@
 // ~/.duskbot/config.json, with env vars overriding its credentials.
+import { dataDirFor } from "../electron/legacy-names.mjs";
 import { readFileSync, mkdirSync, existsSync, renameSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -676,7 +677,7 @@ export function changedInstanceIds(before: Record<string, unknown>, after: Recor
     .filter((id) => !isDeepStrictEqual(before[id], after[id]));
 }
 
-export const DATA_DIR = process.env.DUSK_DATA_DIR ?? join(homedir(), ".duskbot");
+export const DATA_DIR = dataDirFor(process.env.DUSK_DATA_DIR, homedir());
 const LEGACY_DATA_DIR = join(homedir(), ".opengrokbot");
 export const EVENTS_DIR = join(DATA_DIR, "events");
 export const NATIVE_DIR = join(DATA_DIR, "native");

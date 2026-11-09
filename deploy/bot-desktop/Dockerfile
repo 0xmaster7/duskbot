@@ -106,8 +106,9 @@ RUN chmod 0755 /usr/local/bin/omb-* && chmod 0644 /etc/chromium.d/omb \
  && printf '%s\n' '[Icon Theme]' 'Inherits=omb-hidden' > /usr/share/icons/default/index.theme
 
 ARG BOT_DESKTOP_VERSION=3
-LABEL bot.dusk.bot-desktop="${BOT_DESKTOP_VERSION}" \
-      bot.dusk.cua-driver="${CUA_DRIVER_VERSION}" \
+# label names from before the rename: servers and apps find this image by them (DOCKER_NAMES, electron/legacy-names.mjs)
+LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
+      com.openmausbot.cua-driver="${CUA_DRIVER_VERSION}" \
       org.opencontainers.image.title="omb-bot-desktop" \
       org.opencontainers.image.description="Dusk Bot bot computer: a sandboxed dark Linux desktop" \
       org.opencontainers.image.source="https://github.com/goatedgrokbotalternative/thebot"

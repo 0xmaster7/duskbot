@@ -1,3 +1,4 @@
+import { UPSTREAM } from "../../electron/legacy-names.mjs";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -17,7 +18,7 @@ import { ReadyBotGallery } from "./ReadyBotGallery";
 import { OrgLibraryTab } from "./TeamLibraryPanelOrg";
 import { MAX_TEAM_BACKUP_BYTES } from "../../shared/team-backup";
 import { takeImportName } from "../../shared/import-name";
-const COMMUNITY_TEAMS_REPOSITORY = "https://github.com/milind-soni/duskbot-teams";
+const COMMUNITY_TEAMS_REPOSITORY = UPSTREAM.teamLibrary.repository;
 
 export { TeamImportDetails };
 

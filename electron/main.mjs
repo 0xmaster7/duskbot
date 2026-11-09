@@ -1,3 +1,5 @@
+import { carryLegacySafeStorageKey, DATA_DIR_NAMES, dataDirFor, fromLegacyLink, LEGACY, migrateLegacyUserData } from "./legacy-names.mjs";
+import { spawnSync } from "node:child_process";
 import { app, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, nativeImage, net, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess, nativeTheme } from "electron";
 import { createRequire } from "node:module";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -140,6 +142,8 @@ let desktopViewerOwner = null;
 let desktopViewerContextId = null;
 let desktopWorkspaceManager = null;
 let desktopWorkspaceOwner = null;
+// a link with the old scheme opens like a new one
+process.argv.splice(0, process.argv.length, ...process.argv.map(fromLegacyLink));
 let pendingOrganizationEntry = takeOrganizationDeepLink(process.argv);
 function appWindows() {
   return BrowserWindow.getAllWindows().filter((win) => !isTalkPanel(win) && !isAmbientWindow(win));
@@ -184,6 +188,14 @@ if (process.platform === "linux") {
 }
 
 unlimitTunnelConnections(app);
+
+// before electron opens its folder or its keychain key: an install from before the rename brings both along
+if (!app.commandLine.hasSwitch("user-data-dir") && migrateLegacyUserData(app.getPath("userData"), app.getPath("appData"), { packaged: app.isPackaged, log: line => console.log(`[desktop] ${line}`) })
+  && process.platform === "darwin") {
+  const carried = carryLegacySafeStorageKey({ name: app.getName(), packaged: app.isPackaged,
+    run: (args, input) => spawnSync("/usr/bin/security", args, { input, encoding: "utf8", timeout: 60_000 }) });
+  console.log(`[desktop] keychain key from before the rename: ${carried}`);
+}
 
 if (!app.requestSingleInstanceLock()) {
   console.log("[desktop] Dusk Bot is already running — focusing that window");
@@ -258,12 +270,14 @@ function queueChatLink(rawLink) {
   return true;
 }
 
-app.on("open-url", (event, url) => {
+app.on("open-url", (event, rawUrl) => {
+  const url = fromLegacyLink(rawUrl);
   if (!queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url) && !slackOAuthLinks.queue(url)) return;
   event.preventDefault();
 });
 
-app.on("second-instance", (_event, commandLine) => {
+app.on("second-instance", (_event, rawCommandLine) => {
+  const commandLine = rawCommandLine.map(fromLegacyLink);
   if (takeOrganizationDeepLink(commandLine)) {
     queueOrganizationEntry("duskbot://organization");
     return;
@@ -356,7 +370,7 @@ const serverSupervisor = createServerSupervisor({
 
 function desktopDataDir() {
   // An empty DUSK_DATA_DIR falls back here too; server/config.ts would not, so the child gets this path.
-  return process.env.DUSK_DATA_DIR || path.join(app.getPath("home"), ".duskbot");
+  return dataDirFor(process.env.DUSK_DATA_DIR, app.getPath("home"), { log: line => slog(line) });
 }
 
 async function stopUtilityServer(proc, timeoutMs = UTILITY_SERVER_STOP_TIMEOUT_MS) {
@@ -1941,7 +1955,7 @@ async function forgetEnvironment(id, purge = false, confirmed = false) {
     const resolvedCanon = canonical(resolved);
     const rootCanon = canonical(root);
     if (runningDataDir && canonical(runningDataDir) === resolvedCanon) return { ok: false, error: "active" };
-    if (path.basename(resolved).startsWith(".duskbot") && resolvedCanon !== rootCanon && !resolvedCanon.startsWith(rootCanon + path.sep)) {
+    if (DATA_DIR_NAMES.some(name => path.basename(resolved).startsWith(name)) && resolvedCanon !== rootCanon && !resolvedCanon.startsWith(rootCanon + path.sep)) {
       try {
         await fs.promises.rm(resolved, { recursive: true, force: true });
       } catch (error) {
@@ -2935,7 +2949,7 @@ app.whenReady().then(async () => {
   }
   installServerSessions({ app, defaultSession: session.defaultSession, serverPort: () => SERVER_PORT,
     ownerToken: () => (app.isPackaged && serverReady ? desktopMutationToken : null) });
-  if (app.isPackaged) app.setAsDefaultProtocolClient("duskbot");
+  if (app.isPackaged) for (const scheme of ["duskbot", LEGACY.protocol]) app.setAsDefaultProtocolClient(scheme);
   if (process.platform === "darwin") app.dock.setIcon(APP_ICON);
   // An orphaned third-party key with no clear handler left: drop it rather than keep it at rest.
   if (secureCredentials && Object.hasOwn(secureCredentials, "assemblyAiApiKey") && !credentialStoreUnavailable) {

@@ -2,6 +2,7 @@
 // edge on 0.0.0.0:8080, the only listener the network reaches, always forwarding X-Forwarded-*, so no remote request gets
 // loopback trust. Secrets never ride a child's environment (/proc/<pid>/environ stays readable by the same user): the
 // server reads them from an inherited pipe. Root runs and trusts only the image's code, never the volume's.
+import { dataDirFor } from "../electron/legacy-names.mjs";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { chmodSync, chownSync, closeSync, existsSync, openSync, readFileSync, realpathSync, statSync, type Stats } from "node:fs";
 import { dirname, join, posix, resolve } from "node:path";
@@ -67,7 +68,7 @@ export function edgeClientAddress(env: NodeJS.ProcessEnv): { DUSK_CLOUD_EDGE_CLI
 
 /** The server's data directory on the volume. */
 export function cloudHomeDataDir(env: NodeJS.ProcessEnv, home: string): string {
-  return env.DUSK_DATA_DIR || posix.join(home, ".duskbot");
+  return dataDirFor(env.DUSK_DATA_DIR, home);
 }
 
 /** flock(1)'s exit status when another process holds the lock (its --conflict-exit-code). */

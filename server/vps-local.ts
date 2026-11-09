@@ -1,5 +1,6 @@
 // A server that "Add your VPS" installed runs on the VPS itself: its bots' VPS computers live on this machine's own
 // Docker (the install gave the service user the docker group, gVisor and the host fence), with no SSH in between.
+import { LEGACY } from "../electron/legacy-names.mjs";
 import { independentScreenExecArgs, isManagedScreenViewerPort, type IndependentScreenTarget } from "./shared-desktop-screens.ts";
 import type { ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -21,7 +22,7 @@ export function detectThisServerVps(
 ): boolean {
   if (env.DUSK_VPS_DOCKER === "local") return true;
   if (env.DUSK_VPS_DOCKER === "ssh" || platform !== "linux") return false;
-  return existsSync(join(home, ".config", "duskbot-link", "tunnel.json"));
+  return ["duskbot-link", LEGACY.linkConfigDir].some((dir) => existsSync(join(home, ".config", dir, "tunnel.json")));
 }
 
 /** Rechecked every few seconds: the link step writes the tunnel file after the server first starts. */

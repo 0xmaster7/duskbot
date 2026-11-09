@@ -11,6 +11,7 @@
 // A page pasted from an SDK build runs its own App beside this one: the helper's request ids are strings
 // ("dusk:1"), never the SDK's numeric ones, and it answers no host request but teardown, so it never
 // races the SDK's answer.
+import { LEGACY } from "../../electron/legacy-names.mjs";
 import { APP_PROTOCOL_VERSION } from "../app.ts";
 
 export const APP_THEME_STYLE = [
@@ -144,4 +145,6 @@ export const APP_HELPER_SOURCE = `(function () {
     }).then(function () {});
   };
   Object.defineProperty(window, "dusk", { value: api, enumerable: true });
+  // pages written before the rename call the same api by its old name
+  Object.defineProperty(window, ${JSON.stringify(LEGACY.short)}, { value: api });
 })();`;

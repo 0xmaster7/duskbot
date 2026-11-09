@@ -1,6 +1,7 @@
 // No byte of app content precedes the CSP meta. A leading BOM, whitespace, comments, bogus comments
 // (`<?xml …?>`, `<![CDATA[…]>`) and the app's own doctype are stripped first; the rest follows the meta,
 // which already sits in the head the parser opened for it.
+import { LEGACY } from "../../electron/legacy-names.mjs";
 import type { AppCan, AppDocument, AppToolDefinition, AppToolResult } from "../app.ts";
 import { BOT_HTML_CSP, BOT_HTML_NETWORK, folderPageCsp, folderPageNetwork, mcpAppCsp } from "./csp.ts";
 import { APP_HELPER_SOURCE, APP_THEME_STYLE } from "./helper.ts";
@@ -41,7 +42,8 @@ export function buildSrcdoc(input: { html: string; csp: string; botHelper?: bool
 /** `window.dusk` on a published page, where no chat answers it: send and setContext do nothing, open opens a tab. */
 const PUBLISHED_DUSK = "window.dusk={theme:matchMedia(\"(prefers-color-scheme: dark)\").matches?\"dark\":\"light\"," +
   "send:function(){return Promise.resolve()},setContext:function(){return Promise.resolve()}," +
-  "open:function(u){window.open(String(u),\"_blank\",\"noopener\");return Promise.resolve()}};";
+  "open:function(u){window.open(String(u),\"_blank\",\"noopener\");return Promise.resolve()}};" +
+  `window[${JSON.stringify(LEGACY.short)}]=window.dusk;`;
 
 /** A bot's HTML page as a published page serves it: the theme colours the chat would give it, and a quiet dusk. */
 export function publishedBotHtml(html: string): string {

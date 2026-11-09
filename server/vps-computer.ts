@@ -1,3 +1,4 @@
+import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 import { vpsContainerStartedAt } from "./vps-container-start.ts";
 import { pollVpsReadiness, readinessCanImprove, validateVpsDesktopReport } from "./vps-readiness.ts";
 import { ensureVpsScreenBrowser } from "./vps-browser-ready.ts";
@@ -45,9 +46,9 @@ import { MANAGED_VPS_CONTAINER_NAME, VPS_CONTAINER_LABEL, VPS_MANAGED_LABEL, isR
 
 export const VPS_IMAGE = CUA_IMAGE;
 export { VPS_CONTAINER_LABEL, VPS_MANAGED_LABEL } from "./vps-managed-names.ts";
-export const VPS_ENVIRONMENT_LABEL = "bot.dusk.environment";
-export const VPS_VIEWER_LABEL = "bot.dusk.vps-viewer";
-export const VPS_CONTAINER_PREFIX = "duskbot-vps";
+export const VPS_ENVIRONMENT_LABEL = DOCKER_NAMES.label("environment");
+export const VPS_VIEWER_LABEL = DOCKER_NAMES.label("vps-viewer");
+export const VPS_CONTAINER_PREFIX = DOCKER_NAMES.vpsPrefix;
 // Lazy: index must finish data migration and take the writer lease before this may create the data directory.
 let vpsEnvironmentIdCache: string | null = null;
 function vpsEnvironmentId(): string {

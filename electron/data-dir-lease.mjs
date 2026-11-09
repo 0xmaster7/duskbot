@@ -1,11 +1,12 @@
+import { SERVER_CHILD_DIR, SERVER_LEASE_NAME } from "./legacy-names.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { hostname, uptime } from "node:os";
 import { join } from "node:path";
 
-const LEASE_NAME = "duskbot-server.lease";
-const DELEGATED_CHILD_DIR = ".duskbot-server-child";
+const LEASE_NAME = SERVER_LEASE_NAME;
+const DELEGATED_CHILD_DIR = SERVER_CHILD_DIR;
 // Internal parent-to-child capability, obtained only from utilityServerLeaseEnvironment(); never public configuration.
 const CHILD_LEASE_ENV = "DUSK_INTERNAL_DATA_DIR_LEASE";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;

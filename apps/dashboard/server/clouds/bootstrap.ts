@@ -1,3 +1,4 @@
+import { CLOUD_HOME } from "../../../../electron/legacy-names.mjs";
 import { generateKeyPairSync } from "node:crypto";
 
 export const CLOUD_HOME_MARKER_FILE = ".omb-cloud-home.json";
@@ -37,7 +38,7 @@ export function originFor(template: string | undefined, input: { ipv4: string; c
 }
 
 export function poolBootstrap(input: BootstrapInput & { origin: string }): string {
-  return JSON.stringify({ env: { ...homeEnv(input), HOME: "/data", DUSK_DATA_DIR: "/data/.duskbot", DUSK_PORT: "8799" }, files: [{ path: "/data/.duskbot/dashboard-link.json", mode: 0o600, content: JSON.stringify(input.link) }, { path: `/data/${CLOUD_HOME_MARKER_FILE}`, mode: 0o600, content: JSON.stringify({ version: 1, machine: input.cloudId }) }] });
+  return JSON.stringify({ env: { ...homeEnv(input), HOME: "/data", DUSK_DATA_DIR: CLOUD_HOME.data, DUSK_PORT: "8799" }, files: [{ path: `${CLOUD_HOME.data}/dashboard-link.json`, mode: 0o600, content: JSON.stringify(input.link) }, { path: `/data/${CLOUD_HOME_MARKER_FILE}`, mode: 0o600, content: JSON.stringify({ version: 1, machine: input.cloudId }) }] });
 }
 
 export function shellQuote(value: string): string { return `'${value.replaceAll("'", `'"'"'`)}'`; }
@@ -55,7 +56,7 @@ if (origin !== url.origin || url.protocol !== "https:" || !url.hostname.includes
 const env = { ...input.env, DUSK_PUBLIC_URL: origin };
 if (Object.values(env).some(v => /[\\r\\n\\0]/.test(v))) process.exit(1);
 fs.writeFileSync("/root/omb-home.env", Object.entries(env).map(([k,v]) => k + "=" + v).join("\\n") + "\\n", { mode: 0o600 });
-fs.writeFileSync("/srv/omb-data/.duskbot/dashboard-link.json", JSON.stringify(input.link), { mode: 0o600 });
+fs.writeFileSync("/srv/omb-data/${CLOUD_HOME.dataName}/dashboard-link.json", JSON.stringify(input.link), { mode: 0o600 });
 fs.writeFileSync("/srv/omb-data/${CLOUD_HOME_MARKER_FILE}", JSON.stringify({ version: 1, machine: input.cloudId }), { mode: 0o600 });
 fs.writeFileSync("/etc/caddy/Caddyfile", url.host + " {\\n reverse_proxy 127.0.0.1:8080\\n}\\n");`;
   const payload = { cloudId: input.cloudId, template: input.originTemplate ?? "https://{ip-dashed}.sslip.io", env: homeEnv({ ...input, origin: "" }), link: input.link };
@@ -102,7 +103,7 @@ DUSK_DOCKER_UNIT
 systemctl daemon-reload
 systemctl enable --now omb-storage
 systemctl enable --now docker
-install -d -m 700 /srv/omb-data /srv/omb-data/.duskbot
+install -d -m 700 /srv/omb-data /srv/omb-data/${CLOUD_HOME.dataName}
 ipv4="$(curl -fsS --max-time 10 http://169.254.169.254/hetzner/v1/metadata/public-ipv4)"
 node -e ${shellQuote(setup)} ${shellQuote(JSON.stringify(payload))} "$ipv4"
 maus_uid="$(docker run --rm --entrypoint id ${image} -u maus)"

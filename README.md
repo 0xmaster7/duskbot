@@ -185,9 +185,8 @@ in **Teams → Import**.
 The format stays portable: Dusk Bot reads the structured YAML frontmatter for a reliable one-click
 install, while Grok, Claude, ChatGPT, and people can follow the ordinary Markdown playbook. Connections
 remain off until you approve them, routines arrive paused, and packages never carry credentials,
-conversations, permissions, memory, or computer access. Browse the
-[open-source playbook repository](https://github.com/milind-soni/duskbot-teams) or read its
-[portable format](https://github.com/milind-soni/duskbot-teams/blob/main/FORMAT.md).
+conversations, permissions, memory, or computer access. The open-source playbook repository and its
+portable format are linked from the Team library in the app.
 
 ### 🤝 Share a whole department
 

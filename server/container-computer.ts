@@ -1,4 +1,5 @@
 // Cua-backed Local VM: OMB owns only the sandbox boundary; desktop automation is Cua Driver's (`cua-driver mcp` in the container).
+import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 import { execFile } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { lstatSync } from "node:fs";
@@ -31,14 +32,14 @@ export const BASE_IMAGE = `${BASE_IMAGE_REPOSITORY}@${BASE_IMAGE_DIGEST}`;
 // Image and container labels, not this mutable tag, decide compatibility.
 export const IMAGE_REPOSITORY = "localhost/duskbot/cua-local-vm";
 export const IMAGE_LAYER_VERSION = "8";
-export const IMAGE_LAYER_LABEL = "bot.dusk.image-layer";
+export const IMAGE_LAYER_LABEL = DOCKER_NAMES.label("image-layer");
 export const IMAGE = `${IMAGE_REPOSITORY}:driver-${CUA_DRIVER_VERSION}-v${IMAGE_LAYER_VERSION}`;
-export const CONTAINER = "duskbot-computer";
-export const MANAGED_LABEL = "bot.dusk.local-vm";
-export const DRIVER_LABEL = "bot.dusk.cua-driver";
-export const BASE_IMAGE_LABEL = "bot.dusk.cua-base";
-export const WORKSPACE_LABEL = "bot.dusk.workspace";
-export const TARGET_LABEL = "bot.dusk.local-vm-target";
+export const CONTAINER = DOCKER_NAMES.computerContainer;
+export const MANAGED_LABEL = DOCKER_NAMES.label("local-vm");
+export const DRIVER_LABEL = DOCKER_NAMES.label("cua-driver");
+export const BASE_IMAGE_LABEL = DOCKER_NAMES.label("cua-base");
+export const WORKSPACE_LABEL = DOCKER_NAMES.label("workspace");
+export const TARGET_LABEL = DOCKER_NAMES.label("local-vm-target");
 export const VM_WORKSPACE_DIR = join(DATA_DIR, "vm-home");
 export const VM_WORKSPACE_GUEST = "/home/cua/workspace";
 export const DISPLAY = ":1";

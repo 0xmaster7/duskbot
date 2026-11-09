@@ -1,3 +1,4 @@
+import { dataDirFor } from "../electron/legacy-names.mjs";
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
@@ -83,7 +84,7 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
   const options: CliOptions = {
     command: command === "--help" || command === "-h" ? "help" : (command as CliOptions["command"]),
     port: Number(env.DUSK_PORT || 8799),
-    dataDir: env.DUSK_DATA_DIR || join(homedir(), ".duskbot"),
+    dataDir: dataDirFor(env.DUSK_DATA_DIR, homedir()),
     tailscale: false,
     tunnel: false,
     client: false,
@@ -933,7 +934,7 @@ export async function runOnboardingCommand(
 export async function main(argv = process.argv.slice(2)): Promise<number> {
   if (argv[0] === "vps") {
     const { parseVpsOpsArgs, runVpsOps } = await import("./vps-ops.ts");
-    const options = parseVpsOpsArgs(argv.slice(1), { port: Number(process.env.DUSK_PORT || 8799), dataDir: process.env.DUSK_DATA_DIR || join(homedir(), ".duskbot") });
+    const options = parseVpsOpsArgs(argv.slice(1), { port: Number(process.env.DUSK_PORT || 8799), dataDir: dataDirFor(process.env.DUSK_DATA_DIR, homedir()) });
     if ("error" in options) { console.error(options.error); return 2; }
     return runVpsOps(options, { log: (line) => console.log(line), error: (line) => console.error(line) });
   }

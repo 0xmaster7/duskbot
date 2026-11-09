@@ -1,3 +1,4 @@
+import { LEGACY } from "../electron/legacy-names.mjs";
 import { homedir, userInfo } from "node:os";
 import { posix } from "node:path";
 
@@ -265,6 +266,25 @@ export function sentinelServicePlan(platform: NodeJS.Platform, out: string, home
       activate: [`mkdir -p ${shellArg(dirname(installed))} && cp ${shellArg(join(out, name))} ${shellArg(installed)}`, `launchctl bootstrap gui/$(id -u) ${shellArg(installed)}`],
       deactivate: [`launchctl bootout gui/$(id -u)/${SENTINEL_LAUNCHD_LABEL}`, `rm ${shellArg(installed)}`],
     };
+  }
+  return null;
+}
+
+/** a service or Sentinel schedule installed before the rename, and how to remove it, so two never run at once */
+export function legacyServicePlan(platform: NodeJS.Platform, kind: "serve" | "sentinel", home = homedir()): { installed: string[]; deactivate: string[] } | null {
+  if (platform === "linux" && kind === "serve") {
+    const unit = LEGACY.vpsUnits.server, installed = `/etc/systemd/system/${unit}`;
+    return { installed: [installed], deactivate: [`sudo systemctl disable --now ${basename(unit, ".service")}`, `sudo rm ${installed}`, "sudo systemctl daemon-reload"] };
+  }
+  if (platform === "linux") {
+    const dir = join(home, ".config", "systemd", "user");
+    const installed = [`${LEGACY.sentinelUnit}.service`, `${LEGACY.sentinelUnit}.timer`].map((name) => join(dir, name));
+    return { installed, deactivate: [`systemctl --user disable --now ${LEGACY.sentinelUnit}.timer`, `rm ${installed.map(shellArg).join(" ")}`, "systemctl --user daemon-reload"] };
+  }
+  if (platform === "darwin") {
+    const label = kind === "serve" ? LEGACY.serveLabel : LEGACY.sentinelLabel;
+    const installed = join(home, "Library", "LaunchAgents", `${label}.plist`);
+    return { installed: [installed], deactivate: [`launchctl bootout gui/$(id -u)/${label}`, `rm ${shellArg(installed)}`] };
   }
   return null;
 }

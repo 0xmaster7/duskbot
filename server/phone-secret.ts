@@ -1,3 +1,4 @@
+import { SEAL_LABELS } from "../electron/legacy-names.mjs";
 import { createECDH, createHash, type webcrypto } from "node:crypto";
 
 import { desktopCredentialSlot, isCredentialTargetId } from "../shared/credential-request.ts";
@@ -96,7 +97,7 @@ export function phoneSecretAAD(context: Pick<
   "keyId" | "deviceId" | "botId" | "threadId" | "messageId" | "target" | "requestKey"
 >): Uint8Array {
   const fields = [
-    "duskbot-phone-credential-v1",
+    SEAL_LABELS.phoneCredential,
     context.keyId,
     context.deviceId,
     context.botId,

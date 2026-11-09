@@ -1,6 +1,7 @@
 // What an engine's own file tools may touch on a host where the bot box is off, and inside it as a second line: the
 // server's data folder minus this bot's own folders, the server's SSH keys and app settings, and Dusk Bot's other
 // install folders. The bot box (server/bot-box) is the real boundary; these rules are what the engines enforce themselves.
+import { DATA_DIR_NAMES } from "../../electron/legacy-names.mjs";
 import { existsSync, readdirSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 
@@ -73,7 +74,7 @@ export function engineReadScope(input: ReadScopeInput): EngineReadScope {
     ...new Set([...children(dataDir), ...ALWAYS_HIDDEN_DATA.map((name) => join(dataDir, name))]),
     join(home, ".ssh"),
     join(home, ".config"),
-    ...[[home, ".duskbot"], [home, ".opengrokbot"], ...INSTALL_FAMILIES].flatMap(([parent, prefix]) =>
+    ...[...DATA_DIR_NAMES.map((name) => [home, name]), [home, ".opengrokbot"], ...INSTALL_FAMILIES].flatMap(([parent, prefix]) =>
       children(parent!).filter((path) => basename(path).startsWith(prefix!))),
   ];
   const missing = (input.boxed ? [uploads] : [spill]).filter((dir): dir is string => dir !== null && readable.includes(dir) && !existsSync(dir));

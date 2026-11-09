@@ -16,8 +16,8 @@ if [ -z "${LINK_BASE:-}" ]; then
 fi
 LINK_BASE=${LINK_BASE%/}
 
-SVC_USER=maus
-SVC_HOME=/home/maus
+SVC_USER=dusk
+SVC_HOME=/home/dusk
 DATA=$SVC_HOME/.duskbot
 STATE=/var/lib/duskbot-link
 LOGS_DIR=/var/log/duskbot-link
@@ -34,9 +34,19 @@ GATE_GROUP=omb-dockergate
 LIB=/usr/local/lib/duskbot
 ETC=/etc/duskbot
 BWRAP_PROFILE=/etc/apparmor.d/duskbot-bwrap
-NETWORK=duskbot-desktops
+NETWORK=openmausbot-desktops
 BRIDGE=omb-desk0
 DAEMON=/etc/docker/daemon.json
+CADDY_NAME=duskbot
+LINK_CONF=duskbot-link
+# a server set up before the rename and not installed again since keeps the old names (install.sh moves them)
+OLD=openmausbot
+if ! id "$SVC_USER" >/dev/null 2>&1 && id maus >/dev/null 2>&1; then SVC_USER=maus SVC_HOME=/home/maus DATA=/home/maus/.duskbot; fi
+if [ ! -d "$STATE" ] && { [ -d "/var/lib/$OLD-link" ] || [ -e "$UNITS/$OLD.service" ]; }; then
+  DATA=$SVC_HOME/.$OLD STATE=/var/lib/$OLD-link LOGS_DIR=/var/log/$OLD-link OPT=/opt/$OLD-link MANIFEST=/var/lib/$OLD/install-manifest
+  OUR_UNITS="$OLD-link.service $OLD.service $OLD-engines.path $OLD-restart.service $OLD-handoff.service omb-docker-gate.service omb-box-fence.service"
+  LIB=/usr/local/lib/$OLD ETC=/etc/$OLD BWRAP_PROFILE=/etc/apparmor.d/$OLD-bwrap CADDY_NAME=$OLD LINK_CONF=$OLD-link
+fi
 # kept even with --all: the line to install again needs them
 KEEP_PKGS="curl ca-certificates"
 export DEBIAN_FRONTEND=noninteractive
@@ -267,22 +277,22 @@ our_units() {
   done
 }
 our_containers() {
-  { for _l in bot.dusk.bot-desktop bot.dusk.vps bot.dusk.cua-driver bot.dusk.container; do
+  { for _l in com.openmausbot.bot-desktop com.openmausbot.vps com.openmausbot.cua-driver com.openmausbot.container; do
       docker ps -aq --no-trunc --filter "label=$_l"
     done
     docker ps -a --no-trunc --format '{{.ID}} {{.Names}}' | awk '$2 ~ /^duskbot-/ { print $1 }'
   } 2>/dev/null | sort -u
 }
 our_volumes() {
-  { docker volume ls -q --filter label=bot.dusk.vps; docker volume ls -q | grep '^duskbot-'; } 2>/dev/null | sort -u
+  { docker volume ls -q --filter label=com.openmausbot.vps; docker volume ls -q | grep '^openmausbot-'; } 2>/dev/null | sort -u
 }
 our_networks() {
-  { docker network ls -q --no-trunc --filter label=bot.dusk.vps-network
+  { docker network ls -q --no-trunc --filter label=com.openmausbot.vps-network
     docker network ls --no-trunc --format '{{.ID}} {{.Name}}' | awk -v n="$NETWORK" '$2 == n { print $1 }'
   } 2>/dev/null | sort -u
 }
 our_images() {
-  { for _l in bot.dusk.bot-desktop bot.dusk.cua-base bot.dusk.image-layer; do docker images -q --no-trunc --filter "label=$_l"; done
+  { for _l in com.openmausbot.bot-desktop com.openmausbot.cua-base com.openmausbot.image-layer; do docker images -q --no-trunc --filter "label=$_l"; done
     docker images --no-trunc --format '{{.Repository}} {{.ID}}' |
       awk '$1 ~ /^(ghcr\.io\/sidddevz\/omb-bot-desktop|omb-bot-desktop|(docker\.io\/)?trycua\/xfce-cua)$/ { print $2 }'
     _img=$(state_get desktop-image)
@@ -298,9 +308,9 @@ daemon_ours() {
   in_manifest "daemon-key userns" && grep -q '"userns-remap"' "$DAEMON" && return 0
   grep -q -- '--overlay2=none' "$DAEMON" && grep -q '"/usr/bin/runsc"' "$DAEMON"
 }
-caddy_ours() { [ -f /etc/caddy/duskbot.caddy ] || grep -qs 'duskbot' /etc/caddy/Caddyfile; }
+caddy_ours() { [ -f /etc/caddy/$CADDY_NAME.caddy ] || grep -qs "$CADDY_NAME" /etc/caddy/Caddyfile; }
 our_paths() {
-  for _p in "$OPT" "$LOGS_DIR" "$STATE" "$FENCE" "$DAEMON.omb-before" /etc/caddy/duskbot.caddy "$SVC_HOME" "$LINK_HOME" "$LIB" "$ETC" "$BWRAP_PROFILE"; do
+  for _p in "$OPT" "$LOGS_DIR" "$STATE" "$FENCE" "$DAEMON.omb-before" /etc/caddy/$CADDY_NAME.caddy "$SVC_HOME" "$LINK_HOME" "$LIB" "$ETC" "$BWRAP_PROFILE"; do
     [ -e "$_p" ] && printf '%s\n' "$_p"
   done
   for _u in $OUR_UNITS; do [ -e "$UNITS/$_u" ] && printf '%s\n' "$UNITS/$_u"; done
@@ -428,7 +438,7 @@ step_title() {
     fence) say "Taking down the fence" ;;
     sandbox) say "Putting Docker back" ;;
     backup) say "Saving a backup" ;;
-    user) say "Removing the maus account" ;;
+    user) say "Removing the $SVC_USER account" ;;
     files) say "Removing its files" ;;
     caddy) say "Removing its Caddy site" ;;
     purge) say "Removing packages" ;;
@@ -500,7 +510,7 @@ step() { # id function
 failure_words() {
   case "$1" in
     backup) say "Couldn't save the backup, so nothing of your bots was removed. Free some disk space, or run it again with --no-backup." ;;
-    user) say "Couldn't remove the maus account. Paste the line again; it picks up where it stopped." ;;
+    user) say "Couldn't remove the $SVC_USER account. Paste the line again; it picks up where it stopped." ;;
     *) say "Something went wrong. Paste the line again; it picks up where it stopped." ;;
   esac
 }
@@ -518,8 +528,8 @@ failure_panel() {
 
 # ---------- steps ----------
 do_revoke() {
-  file="$LINK_HOME/.config/duskbot-link/tunnel.json"
-  [ -f "$file" ] || file="$SVC_HOME/.config/duskbot-link/tunnel.json"
+  file="$LINK_HOME/.config/$LINK_CONF/tunnel.json"
+  [ -f "$file" ] || file="$SVC_HOME/.config/$LINK_CONF/tunnel.json"
   [ -f "$file" ] || { echo "not linked to an app"; return 10; }
   id=$(sed -n 's/.*"id":"\([a-z2-7]\{10\}\)".*/\1/p' "$file" | head -n 1)
   token=$(sed -n 's/.*"token":"\([A-Za-z0-9_-]\{20,100\}\)".*/\1/p' "$file" | head -n 1)
@@ -667,7 +677,7 @@ do_sandbox() {
 do_backup() {
   [ -d "$DATA" ] || { echo "no bot data to save"; return 10; }
   [ "$BACKUP" = 1 ] || { echo "no backup (--no-backup)"; return 10; }
-  x tar -czf "$BACKUP_FILE.tmp" -C "$SVC_HOME" .duskbot
+  x tar -czf "$BACKUP_FILE.tmp" -C "$SVC_HOME" "${DATA##*/}"
   chmod 0600 "$BACKUP_FILE.tmp"
   mv "$BACKUP_FILE.tmp" "$BACKUP_FILE"
   echo "saved $(du -h "$BACKUP_FILE" | cut -f1) to $BACKUP_FILE"
@@ -690,7 +700,7 @@ do_user() {
   if ! id "$SVC_USER" >/dev/null 2>&1; then
     other_accounts
     if [ -d "$SVC_HOME" ]; then x rm -rf "$SVC_HOME"; echo "removed $SVC_HOME"; return 0; fi
-    echo "no maus account"; return 10
+    echo "no $SVC_USER account"; return 10
   fi
   if pgrep -u "$SVC_USER" >/dev/null 2>&1; then
     loginctl terminate-user "$SVC_USER" >/dev/null 2>&1 || true
@@ -698,23 +708,23 @@ do_user() {
     sleep 1
   fi
   x userdel -r "$SVC_USER" 2>&1 | grep -v 'mail spool' || true
-  id "$SVC_USER" >/dev/null 2>&1 && { echo "the maus account is still there"; return 1; }
+  id "$SVC_USER" >/dev/null 2>&1 && { echo "the $SVC_USER account is still there"; return 1; }
   getent group "$SVC_USER" >/dev/null 2>&1 && groupdel "$SVC_USER" 2>/dev/null || true
   [ -d "$SVC_HOME" ] && x rm -rf "$SVC_HOME"
   other_accounts
-  echo "removed the maus account and $SVC_HOME"
-  note "maus and its home removed"
+  echo "removed the $SVC_USER account and $SVC_HOME"
+  note "$SVC_USER and its home removed"
 }
 
 do_caddy() {
   caddy_ours || { echo "no Caddy site"; return 10; }
   main=/etc/caddy/Caddyfile
-  if [ -f /etc/caddy/duskbot.caddy ]; then x rm -f /etc/caddy/duskbot.caddy; fi
+  if [ -f /etc/caddy/$CADDY_NAME.caddy ]; then x rm -f /etc/caddy/$CADDY_NAME.caddy; fi
   if [ -f "$main" ] && grep -q "managed by duskbot-link" "$main"; then
     if [ -f "$main.omb-before" ]; then x mv -f "$main.omb-before" "$main"; else x rm -f "$main"; fi
-  elif [ -f "$main" ] && grep -q "import /etc/caddy/duskbot.caddy" "$main"; then
-    show sed -i '/import \/etc\/caddy\/duskbot.caddy/d' "$main"
-    sed -i '/import \/etc\/caddy\/duskbot.caddy/d' "$main"
+  elif [ -f "$main" ] && grep -q "import /etc/caddy/$CADDY_NAME.caddy" "$main"; then
+    show sed -i "\\#import /etc/caddy/$CADDY_NAME.caddy#d" "$main"
+    sed -i "\\#import /etc/caddy/$CADDY_NAME.caddy#d" "$main"
   fi
   for port in $(manifest ufw); do command -v ufw >/dev/null 2>&1 && x ufw delete allow "$port" || true; done
   if command -v caddy >/dev/null 2>&1; then

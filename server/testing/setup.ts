@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach } from "vitest";
 
+import { LEGACY } from "../../electron/legacy-names.mjs";
 import { removeTempDir } from "./cleanup.ts";
 
 const home = mkdtempSync(join(tmpdir(), "omb-test-home-"));
@@ -12,6 +13,7 @@ process.env.HOME = home;
 process.env.USERPROFILE = home;
 // DUSK_DATA_DIR must never escape the throwaway home the suite deletes.
 delete process.env.DUSK_DATA_DIR;
+for (const prefix of LEGACY.envPrefixes) delete process.env[`${prefix}DATA_DIR`];
 // Do not let a developer's Hermes global config path leak into per-test homes.
 delete process.env.HERMES_HOME;
 // Named explicitly although homedir() already covers it: the device tests delete this directory wholesale.

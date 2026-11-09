@@ -11,7 +11,7 @@
 import { spawn } from "node:child_process";
 import { X509Certificate, createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, verify as verifySignature } from "node:crypto";
 import { createSocket } from "node:dgram";
-import { chmodSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { BlockList, createConnection, createServer as createTcpServer } from "node:net";
 import { Agent as HttpAgent, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
@@ -23,6 +23,22 @@ import { homedir, hostname, networkInterfaces, userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+
+// names from before the rename, kept here because this file stands alone: an install made then still sets OMB_*,
+// keeps its files in ~/.config/openmausbot-link, and runs a server that knows only the old header and path names.
+const OLD_ENV = ["OMB_", "OPENMAUSBOT_"];
+const OLD_HEADER = "x-openmausbot-";
+const OLD_WELL_KNOWN = "/.well-known/openmausbot";
+const OLD_CONFIG = "openmausbot-link";
+for (const key of Object.keys(process.env)) {
+  const prefix = OLD_ENV.find((p) => key.startsWith(p));
+  if (prefix && process.env[`DUSK_${key.slice(prefix.length)}`] === undefined) process.env[`DUSK_${key.slice(prefix.length)}`] = process.env[key];
+}
+const isOwnHeader = (lower) => lower.startsWith("x-dusk-") || lower.startsWith(OLD_HEADER);
+const withLegacyHeaders = (headers) => Object.fromEntries(Object.entries(headers).flatMap(([key, value]) =>
+  key.startsWith("x-dusk-") ? [[key, value], [OLD_HEADER + key.slice(7), value]] : [[key, value]]));
+const fromLegacyPath = (path) => path === OLD_WELL_KNOWN || path.startsWith(`${OLD_WELL_KNOWN}/`) ? `/.well-known/duskbot${path.slice(OLD_WELL_KNOWN.length)}` : path;
+const toLegacyPath = (path) => path.startsWith("/.well-known/duskbot") ? OLD_WELL_KNOWN + path.slice("/.well-known/duskbot".length) : path;
 
 export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_PORT) || 8799 };
 /**
@@ -773,7 +789,11 @@ export function wsDuplex(socket, { client, head = null }) {
 }
 // ---- end direct transport ----
 
-const configDir = () => join(homedir(), ".config", "duskbot-link");
+/** an install from before the rename keeps its folder until the installer runs again and moves it */
+const configDir = () => {
+  const next = join(homedir(), ".config", "duskbot-link"), old = join(homedir(), ".config", OLD_CONFIG);
+  return !existsSync(next) && existsSync(old) ? old : next;
+};
 const tunnelFile = () => join(configDir(), "tunnel.json");
 // on an install where this agent has its own account, its unit names a hand-off folder for these two: a root unit takes
 // them from there to the server (the token into its environment, the sign-in into its engine home)
@@ -812,10 +832,16 @@ async function relay(base, route, token, init = {}) {
   }
 }
 
-function local(method, path, body) {
+/** this server's own api; a server from before the rename knows only the old header and well-known names */
+async function local(method, path, body) {
+  const first = await localOnce(method, path, body);
+  return first.status === 404 && toLegacyPath(path) !== path ? localOnce(method, toLegacyPath(path), body) : first;
+}
+
+function localOnce(method, path, body) {
   return new Promise((resolve, reject) => {
     const payload = body === undefined ? null : Buffer.from(JSON.stringify(body));
-    const req = httpRequest({ ...SERVER, method, path, headers: { accept: "application/json", "x-dusk-cli": "1", ...(payload ? { "content-type": "application/json", "content-length": payload.length } : {}) }, timeout: 15_000 }, (res) => {
+    const req = httpRequest({ ...SERVER, method, path, headers: withLegacyHeaders({ accept: "application/json", "x-dusk-cli": "1", ...(payload ? { "content-type": "application/json", "content-length": String(payload.length) } : {}) }), timeout: 15_000 }, (res) => {
       const chunks = [];
       res.on("data", (chunk) => chunks.push(chunk));
       res.on("end", () => {
@@ -1606,7 +1632,7 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
     const headers = {};
     for (const [name, value] of Object.entries(frame.headers ?? {})) {
       const lower = name.toLowerCase();
-      if (!HOP.has(lower) && (controls || (lower !== "cookie" && !lower.startsWith("x-dusk-")))) headers[name] = value;
+      if (!HOP.has(lower) && (controls || (lower !== "cookie" && !isOwnHeader(lower)))) headers[name] = value;
     }
     if (frame.up === true) { headers.connection = "Upgrade"; headers.upgrade = "websocket"; }
     // marks every tunnelled request as remote (server/request-auth.ts isProxied): it needs a paired session, never loopback trust
@@ -1798,7 +1824,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
 export function harnessSync(server = SERVER) {
   return ({ base, tunnel, pub, origin = null, spki = null, applied, failed, wait, signal }) => new Promise((resolve, reject) => {
     const payload = Buffer.from(JSON.stringify({ base, tunnel, pub, origin, spki, applied, failed, wait }));
-    const req = httpRequest({ ...server, method: "POST", path: "/api/mobile/relay/sync", headers: { "x-dusk-cli": "1", "content-type": "application/json", "content-length": payload.length }, signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout((wait + 15) * 1000)]) }, (res) => {
+    const req = httpRequest({ ...server, method: "POST", path: "/api/mobile/relay/sync", headers: withLegacyHeaders({ "x-dusk-cli": "1", "content-type": "application/json", "content-length": String(payload.length) }), signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout((wait + 15) * 1000)]) }, (res) => {
       const chunks = [];
       res.on("data", (chunk) => chunks.push(chunk));
       res.on("error", reject);
@@ -1891,7 +1917,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
     const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, cid, "to-app", r, bytes), post, delayMs: () => (fetchImpl.multiplexed?.() ? 0 : H1_POST_DELAY_MS), signal: closed.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => { if (channels.get(cid) === channel) drop(cid); } });
     channel.serving = createServing({ server, controls: false, stopped: () => closed.signal.aborted,
       forwardedFor: `198.51.100.${1 + (createHash("sha256").update(cid).digest()[0] % 254)}`,
-      allow: channel.kind === "grant" ? (method, path) => (method === "POST" && path === "/api/mobile/redeem") || (method === "GET" && ["/.well-known/duskbot/environment", "/api/health"].includes(path)) : null,
+      allow: channel.kind === "grant" ? (method, path) => (method === "POST" && path === "/api/mobile/redeem") || (method === "GET" && ["/.well-known/duskbot/environment", "/api/health"].includes(fromLegacyPath(path))) : null,
       sink: { push: (frame) => outbox.push(sealFrame(key, cid, "to-app", frame), frame.r), bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard },
     });
     return channel.serving;

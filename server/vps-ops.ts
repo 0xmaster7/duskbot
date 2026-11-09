@@ -1,3 +1,4 @@
+import { DOCKER_NAMES, LEGACY, isOwnAppId } from "../electron/legacy-names.mjs";
 import { execFile } from "node:child_process";
 import { statfs } from "node:fs/promises";
 import { freemem, loadavg, totalmem, uptime } from "node:os";
@@ -139,7 +140,13 @@ async function hostResources(dataDir: string): Promise<VpsOpsReport["host"]> {
 }
 
 async function serviceStatus(service: ServiceName, command: typeof runOpsCommand): Promise<ServiceStatus> {
-  const unit = SERVICES[service];
+  const status = await unitStatus(SERVICES[service], command);
+  // an install from before the rename runs these under their old names until its installer runs again
+  const old = (LEGACY.vpsUnits as Record<string, string>)[service];
+  return status.state === "not-installed" && old ? unitStatus(old, command) : status;
+}
+
+async function unitStatus(unit: string, command: typeof runOpsCommand): Promise<ServiceStatus> {
   const result = await command("systemctl", ["show", unit, "--no-pager", "--property=LoadState,ActiveState,MainPID,NRestarts"]);
   if (!result.ok) return { unit, state: "unknown", error: result.error };
   const properties = Object.fromEntries(result.stdout.trim().split("\n").map((line) => line.split("=", 2)));
@@ -160,7 +167,7 @@ export function localDockerHost(env: Record<string, string | undefined> = proces
 }
 
 async function computerSummary(command: typeof runOpsCommand): Promise<ComputerSummary> {
-  const result = await command("docker", ["--host", localDockerHost(), "ps", "--all", "--filter", "label=bot.dusk.vps=1", "--format", "{{.State}}"]);
+  const result = await command("docker", ["--host", localDockerHost(), "ps", "--all", "--filter", `label=${DOCKER_NAMES.label("vps")}=1`, "--format", "{{.State}}"]);
   if (!result.ok) return { available: false, error: result.error };
   const states: Record<string, number> = {};
   const known = new Set(["created", "restarting", "running", "removing", "paused", "exited", "dead"]);
@@ -192,7 +199,7 @@ async function httpHealth(port: number, request: typeof fetch): Promise<VpsOpsRe
       chunks.push(chunk.value);
     }
     const body: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-    return body !== null && typeof body === "object" && Reflect.get(body, "app") === "duskbot"
+    return body !== null && typeof body === "object" && isOwnAppId(Reflect.get(body, "app"))
       ? { url, ready: true }
       : { url, ready: false, error: "a different service answered" };
   } catch { return { url, ready: false, error: "server unavailable or health check timed out" }; }

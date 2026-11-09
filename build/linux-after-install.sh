@@ -24,7 +24,7 @@ if [ -n "${DUSK_POSTINSTALL_TEST_ROOT:-}" ]; then
   APPARMOR_STATUS=$APP_ROOT/test-system/apparmor_status
   USERNS_RESTRICTION=$APP_ROOT/test-system/apparmor_restrict_unprivileged_userns
 else
-  APP_ROOT=/opt/Dusk Bot
+  APP_ROOT="/opt/Dusk Bot"
   EXPECTED_OWNER=root:root
   TEST_MODE=0
   APPARMOR_DIR=/etc/apparmor.d
