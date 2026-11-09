@@ -8,9 +8,9 @@ import { ChevronLeft, Plus } from "lucide-react";
 import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, moodOf, rankBots, waitingCount, type Mood } from "./mood";
 import { MiniChat } from "./MiniChat";
 import { BotRow, useHoverBand, useRowMoments } from "./rows";
-import { attention, eventKey, isFresh, recentOf, useSeen } from "./seen";
+import { attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, EASE_OUT, FADE, FADE_OUT, HOLD_MS, SOFT_EXIT, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, HOLD_MS, SOFT_EXIT, useSettledSignal, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, IslandLayout } from "./types";
 
 const PANEL_W = 432;
@@ -50,6 +50,7 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   const open = hovered || pinned || forceOpen;
   // a reply or failure the person has seen anywhere stops asking for their attention here
   const { seen, mark } = useSeen(bridge, bots, open);
+  useSettledSignal(bridge, open);
   const live = attention(bots, seen);
   const [celebrating, setCelebrating] = useState(false);
   const [nudged, setNudged] = useState(false);
@@ -260,14 +261,15 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
 }) {
   const now = useNow(open);
   const live = attention(bots, seen);
-  const ranked = rankBots(live).filter((bot) => bot.status !== "idle");
-  const recent = recentOf(bots, seen);
-  const quiet = bots.length > 0 && !ranked.length;
+  // every bot, the ones that need the person first, then failures, the busy, replies, and the resting ones
+  const all = rankBots(live);
+  const quiet = bots.length > 0 && all.every((bot) => bot.status === "idle");
+  const byId = new Map(bots.map((bot) => [bot.id, bot]));
   const counts = countsOf(live);
   const { sent, cheering, markSent } = useRowMoments(bots);
   // the same one highlight as the dock's, gliding from row to row
   const list = useRef<HTMLUListElement>(null);
-  const band = useHoverBand(list, open, `${ranked.map((bot) => bot.id).join(",")}:${recent.length}:${bots.length}`);
+  const band = useHoverBand(list, open, all.map((bot) => bot.id).join(","));
   const openChat = (bot: AmbientBot) => {
     if (isFresh(bot, seen)) mark([eventKey(bot)]);
     bridge.open(bot.id, bot.threadId);
@@ -332,68 +334,36 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
           <p className="amb-empty-hint">{say(labels, "emptyHint")}</p>
           <button type="button" className="amb-pill amb-pill-primary" onClick={() => bridge.act({ kind: "new-bot" })}>{say(labels, "newBot")}</button>
         </div>
-      ) : quiet && !recent.length ? (
-        <Shelf bots={rankBots(bots)} labels={labels} open={open} cheer={cheer} chatWith={chatWith} onOpen={look} />
       ) : (
         <ul ref={list} className="amb-rows" onPointerLeave={() => band.point(null)}>
           {band.element}
-          {ranked.map((bot, index) => (
-            <li key={bot.id} data-row={bot.id} onPointerEnter={() => band.point(bot.id)} onPointerMove={() => band.point(bot.id)}>
-              <BotRow
-                bot={bot}
-                labels={labels}
-                lang={lang}
-                now={now}
-                side="island"
-                open={open}
-                sent={sent.has(bot.id)}
-                mascot={<BotMark bot={bot} size={30} state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : undefined} animated={open} awake={open} shown={open} index={index} cheer={cheer} />}
-                hideTray={chatWith === bot.id}
-                onOpen={() => look(bot)}
-                onAct={(next) => act(bot, next)}
-                onPin={onPin}
-                onDismiss={() => mark([eventKey(bot)])}
-              />
-            </li>
-          ))}
-          {recent.length > 0 && <li className="amb-recent-head" role="presentation">{say(labels, "recent")}</li>}
-          {recent.map((bot, index) => (
-            <li key={`recent-${bot.id}`} data-row={`recent-${bot.id}`} onPointerEnter={() => band.point(`recent-${bot.id}`)} onPointerMove={() => band.point(`recent-${bot.id}`)}>
-              <BotRow
-                bot={bot}
-                labels={labels}
-                lang={lang}
-                now={now}
-                side="island"
-                open={open}
-                sent={false}
-                recent
-                mascot={<BotMark bot={bot} size={30} state="idle" animated={open} awake={open} shown={open} index={ranked.length + index} cheer={cheer} />}
-                onOpen={() => look(bot)}
-                onAct={(next) => act(bot, next)}
-                onPin={onPin}
-              />
-            </li>
-          ))}
+          {all.map((shown, index) => {
+            const bot = byId.get(shown.id) ?? shown;
+            // its real status here, even one the person is watching in the app; a reply or failure already seen is muted
+            const recent = isSeenEvent(bot, seen);
+            return (
+              <li key={bot.id} data-row={bot.id} onPointerEnter={() => band.point(bot.id)} onPointerMove={() => band.point(bot.id)}>
+                <BotRow
+                  bot={bot}
+                  labels={labels}
+                  lang={lang}
+                  now={now}
+                  side="island"
+                  open={open}
+                  sent={sent.has(bot.id)}
+                  recent={recent}
+                  mascot={<BotMark bot={bot} size={30} state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : undefined} animated={open} awake={open} shown={open} index={index} cheer={cheer} />}
+                  onOpen={() => look(bot)}
+                  onAct={(next) => act(bot, next)}
+                  onPin={onPin}
+                  onDismiss={() => mark([eventKey(bot)])}
+                />
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
   );
 }
 
-/** Nothing going on: the bots awake and idling together, each blinking on its own time. */
-function Shelf({ bots, labels, open, cheer, chatWith, onOpen }: { bots: readonly AmbientBot[]; labels: AmbientLabels; open: boolean; cheer: number; chatWith: string | null; onOpen: (bot: AmbientBot) => void }) {
-  return (
-    <div className="amb-shelf">
-      <div className="amb-shelf-bots">
-        {bots.slice(0, 8).map((bot, index) => (
-          <button key={bot.id} type="button" className="amb-shelf-bot" data-on={chatWith === bot.id || undefined} aria-expanded={chatWith === bot.id} onClick={() => onOpen(bot)} aria-label={bot.name}>
-            <BotMark bot={bot} size={34} state="idle" animated={open} awake={open} shown={open} index={index} cheer={cheer} />
-            <span className="amb-shelf-name">{bot.name}</span>
-          </button>
-        ))}
-      </div>
-      <p className="amb-shelf-hint">{say(labels, "quietHint")}</p>
-    </div>
-  );
-}

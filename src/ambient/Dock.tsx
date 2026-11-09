@@ -11,7 +11,7 @@ import { MiniChat } from "./MiniChat";
 import { useRowMoments } from "./rows";
 import { LOOK_MS, attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, SOFT_EASE, SOFT_EXIT, useAllClear, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, SOFT_EASE, SOFT_EXIT, useAllClear, useSettledSignal, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, DockLayout } from "./types";
 
 /** How near the right edge the pointer has to be, beside the body, to bring the dock in. */
@@ -79,6 +79,7 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const slidOut = out || peek || pinned || card !== null;
 
   const { seen, mark } = useSeen(bridge, bots, false);
+  useSettledSignal(bridge, slidOut);
   // everything answered or seen: the whole column cheers once
   const { cheer } = useAllClear(attention(bots, seen).some((bot) => bot.status !== "idle"), 2400);
 
@@ -423,9 +424,11 @@ function DockMascot({ index, cheer, bot, labels, tile, cell, live, reduced, show
         onFocus={onFocus}
         onKeyDown={onKeyDown}
       >
-        <motion.span className="amb-dock-mark" whileTap={reduced ? undefined : { scale: 0.96 }}>
-          <BotMark bot={bot} size={tile} state={state} animated={live} awake={live} shown={live} index={index} cheer={cheer} />
-        </motion.span>
+        <span className="amb-lift">
+          <motion.span className="amb-dock-mark" whileTap={reduced ? undefined : { scale: 0.96 }}>
+            <BotMark bot={bot} size={tile} state={state} animated={live} awake={live} shown={live} index={index} cheer={cheer} />
+          </motion.span>
+        </span>
         <AnimatePresence initial={false}>
           {news && (
             <motion.span
@@ -441,6 +444,8 @@ function DockMascot({ index, cheer, bot, labels, tile, cell, live, reduced, show
             </motion.span>
           )}
         </AnimatePresence>
+        {/* a working bot says so on its mascot too, not only by its pose */}
+        {isBusy(bot.status) && !bot.quiet && <span className="amb-pip" aria-hidden />}
         {tick && <span className="amb-tick" data-kind={tick} aria-hidden />}
       </button>
     </Reorder.Item>

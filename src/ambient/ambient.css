@@ -87,6 +87,12 @@
 .amb-row-main:focus-visible { outline-offset: -2px; }
 .amb-row-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .amb-row-name { font-size: 13px; line-height: 18px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* a row's state in one or two words, next to its name */
+.amb-row-state { font-size: 11px; line-height: 16px; color: var(--amb-ink-3); white-space: nowrap; }
+.amb-row-state[data-status="needs-you"] { color: var(--amb-blue); }
+.amb-row-state[data-status="error"] { color: var(--amb-bad-ink); }
+.amb-row-state[data-status="done"] { color: var(--amb-ok); }
+.amb-row-state:is([data-status="working"], [data-status="thinking"], [data-status="talking"]) { color: var(--amb-ink-2); }
 .amb-unread { width: 6px; height: 6px; border-radius: 50%; background: var(--amb-ink); flex-shrink: 0; }
 .amb-row-time { margin-inline-start: auto; font-size: 11px; line-height: 16px; color: var(--amb-ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .amb-row-line { display: flex; align-items: flex-start; gap: 5px; min-width: 0; font-size: 12px; line-height: 16px; color: var(--amb-ink-2); }
@@ -167,7 +173,19 @@
 .amb-dock-list { position: relative; list-style: none; margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
 .amb-dock-cell { position: relative; display: grid; place-items: center; }
 .amb-dock-bot { position: relative; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 14px; background: none; touch-action: none; transition: background-color var(--amb-fast) ease; }
-.amb-dock-bot[data-showing] { background: var(--amb-raised); }
+/* no box behind a bot: the mascot itself rises a little under the pointer, and a little more while its card is out */
+.amb-lift { display: grid; place-items: center; transition: transform 220ms var(--amb-ease-out); }
+.amb-dock-bot[data-showing] .amb-lift { transform: translateY(-1px) scale(1.08); }
+.amb-pip {
+  position: absolute; right: 5px; bottom: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--amb-ink);
+  box-shadow: 0 0 0 2px var(--amb-panel); pointer-events: none;
+}
+.amb-dock:not([data-hidden]) .amb-pip { animation: amb-pip 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+@keyframes amb-pip { 50% { opacity: 0.35; } }
+.amb-chat-name { padding: 0; border: 0; background: none; min-width: 0; text-align: start; }
+.amb-chat-name:hover .amb-row-name { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgb(245 245 245 / 0.35); }
+.amb-chat-list { cursor: pointer; }
+.amb-chat-list:focus-visible { outline-offset: -2px; border-radius: 10px; }
 .amb-dock-bot:focus-visible { outline-offset: -2px; }
 .amb-dock-mark { display: grid; place-items: center; }
 /* news on a mascot: an ask (how many), a failure, or an unseen reply; nothing for a bot that is just resting */
@@ -214,10 +232,10 @@
   scrollbar-color: rgb(245 245 245 / 0.16) transparent; user-select: text;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%);
 }
-.amb-bubble-msg { margin: 0; max-width: 86%; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); overflow-wrap: anywhere; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+.amb-bubble-msg { flex-shrink: 0; margin: 0; max-width: 86%; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); overflow-wrap: anywhere; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
 .amb-bubble-msg[data-from="you"] { align-self: flex-end; padding: 6px 10px; border-radius: 14px 14px 4px 14px; background: var(--amb-raised-hover); }
 .amb-bubble-msg[data-from="bot"] { align-self: flex-start; color: rgb(245 245 245 / 0.86); }
-.amb-chat-note { display: flex; align-items: flex-start; gap: 5px; margin: 0; font-size: 12px; line-height: 16px; color: var(--amb-ink-3); }
+.amb-chat-note { flex-shrink: 0; display: flex; align-items: flex-start; gap: 5px; margin: 0; font-size: 12px; line-height: 16px; color: var(--amb-ink-3); }
 .amb-chat-note > svg { flex-shrink: 0; margin-top: 2px; }
 .amb-chat-note[data-kind="error"] { color: var(--amb-bad-ink); }
 .amb-chat-ask { padding: 2px 12px 8px; }
@@ -241,10 +259,12 @@
   .amb-pill-ghost:hover { background: var(--amb-raised); color: var(--amb-ink); }
   .amb-shelf-bot:hover .amb-shelf-name { color: var(--amb-ink-2); }
   .amb-dock-plus:hover { color: var(--amb-ink); background: var(--amb-raised-hover); }
-  .amb-dock-bot:hover { background: var(--amb-raised); }
+  .amb-dock-bot:hover .amb-lift { transform: translateY(-1px) scale(1.06); }
   .amb-back:hover { background: var(--amb-raised); color: var(--amb-ink); }
 }
 @media (prefers-reduced-motion: reduce) {
+  .amb-dock:not([data-hidden]) .amb-pip { animation: none; }
+  .amb-lift { transition: none; }
   .amb-breathe[data-on] { animation: none; }
   .amb-pill:active, .amb-send:active:enabled, .amb-dock-plus:active { transform: none; }
   :is(.amb-card:not([inert]), .amb-island[data-open]) :is(.amb-row-line[data-kind="busy"], .amb-chat-note[data-kind="busy"]) .amb-row-words { animation: none; background: none; color: var(--amb-ink-2); }
