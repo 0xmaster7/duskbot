@@ -326,3 +326,31 @@ it("a plan upgrade resizes the sandbox: stopped, backed up first, resumed on the
   expect(actions.indexOf("backup")).toBeLessThan(actions.indexOf("resize"));
   expect(f.service.boat!.resizing(c)).toBe(false);
 });
+
+it("a replaced sandbox that answers again is backed up from its own state and kept, never deleted", async () => {
+  const f = await boatFixture();
+  const { c } = await f.paid();
+  f.advance(DAY_MS); f.power.idle = true; f.power.busy = [];
+  await f.settle(c, c => c.status === "sleeping");
+  await f.settle(c, c => c.boat!.backups.length === 1);
+  await f.service.power(c.accountId, c.id, "on"); await f.settle(c, c => c.status === "running");
+  const original = c.serverId!;
+  f.api.sandboxes.get(original)!.volume.set("__system__/data/.openmausbot/newer.json", Buffer.from("after the backup"));
+  // Boat stops answering for this one sandbox long enough, and leaves it off the list: it is taken for lost
+  const sandbox = f.provider.sandbox, listed = f.provider.listed;
+  f.provider.sandbox = async id => id === original ? null : sandbox(id);
+  f.provider.listed = async id => id === original ? false : listed(id);
+  for (let n = 0; n < 40 && !(c.status === "running" && c.serverId !== original); n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(c.serverId).not.toBe(original);
+  // it answers again: stopped, its disk backed up as its own kept generation, the operator alerted; nothing deleted
+  f.provider.sandbox = sandbox; f.provider.listed = listed;
+  for (let n = 0; n < 6; n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  const kept = c.boat!.backups.find(g => g.keep && g.source === original);
+  expect(kept?.verifiedAt).not.toBeNull();
+  const tar = f.backups.read(c.id, boatBackupKey(BACKUP_SECRET, c.id), kept!.file);
+  expect(tar.includes("after the backup")).toBe(true);
+  expect(f.audit.entries(c.id).map(e => e.action)).toContain("retired_has_newer_data");
+  for (let day = 0; day < 20; day++) { f.advance(DAY_MS); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(f.api.deletes()).toHaveLength(0);
+  expect(c.boat!.backups.some(g => g.file === kept!.file)).toBe(true);
+});
