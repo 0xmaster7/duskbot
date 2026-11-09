@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, Copy, Laptop, Smartphone } from "lucide-react";
+import { ArrowLeft, Laptop, Smartphone } from "lucide-react";
 import type { WorkspaceDetail, WorkspaceSummary } from "../../../shared/dashboard-protocol";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";
@@ -19,7 +19,6 @@ import { CommandButton } from "./common";
 import { MachineView } from "./Machine";
 import { useNow } from "../lib/now";
 
-const INSTALL = "curl -fsSL https://openmausbot.com/install.sh | sh";
 const ICON = { size: 16, strokeWidth: 1.5 } as const;
 
 function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop | null }) {
@@ -89,14 +88,10 @@ function Step({ n, title, children }: { n: number; title: ReactNode; children?: 
 }
 
 export function WorkspacesPage() {
-  const { workspaces, toast } = useSession();
+  const { workspaces } = useSession();
   const { clouds } = useCloud();
   const rank = (w: WorkspaceSummary) => (cloudForWorkspace(clouds, w.id) ? 0 : w.kind === "vps" ? 2 : 1);
   const sorted = [...(workspaces ?? [])].sort((a, b) => rank(a) - rank(b));
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(INSTALL); toast("Copied"); }
-    catch { toast("Could not copy the install command. Select it and copy it manually.", "bad"); }
-  };
   return (
     <div className="min-w-0">
       <PageHeader title="Workspaces" sub="Where your bots run." />
@@ -124,8 +119,9 @@ export function WorkspacesPage() {
               <div className="min-w-0 border-line max-md:border-t max-md:pt-6 md:border-l md:pl-6">
                 <h3 className="mb-5 text-14 font-medium text-ink">Your own server</h3>
                 <ol className="flex flex-col gap-5">
-                  <Step n={1} title="Install on your VPS"><div className="mt-2 flex min-w-0 items-center gap-1 rounded-[10px] bg-bg px-3 py-2"><code className="min-w-0 flex-1 break-all font-mono text-13 text-ink-2">{INSTALL}</code><button type="button" aria-label="Copy install command" className="press hover-ghost grid size-11 shrink-0 place-items-center rounded-full text-ink-3" onClick={() => void copy()}><Copy size={16} strokeWidth={1.5} aria-hidden /></button></div></Step>
-                  <Step n={2} title="Sign in when it asks" />
+                  {/* the installer only runs with a line the app makes: it carries the one-time code that links the server */}
+                  <Step n={1} title="In the app, open Add your VPS">Settings, Computer. It makes one install line with its own pairing code.</Step>
+                  <Step n={2} title="Paste that line on your VPS">Over SSH. The line works once and links that server to your app, so copy all of it.</Step>
                   <Step n={3} title="It reports here">Machine, bots and bot computers, live.</Step>
                 </ol>
               </div>
