@@ -533,7 +533,7 @@ describe("server-owned browser MCP runtime", () => {
     expect(other.pid).not.toBe(list.pid);
     await value.take("one", "owner");
     await expect(value.agentRpc("one", spec(), "tools/call", { name: "echo" })).rejects.toThrow(/paused/);
-    await expect(value.agentRpc("one", spec(), "tools/list", {})).resolves.toMatchObject({ tools: [{ name: "echo" }, { name: BROWSER_UPLOAD_TOOL }, { name: BROWSER_HOVER_TOOL }, { name: "restart_browser" }] });
+    await expect(value.agentRpc("one", spec(), "tools/list", {})).resolves.toMatchObject({ tools: [{ name: "echo" }, { name: BROWSER_UPLOAD_TOOL }, { name: BROWSER_HOVER_TOOL }, { name: "agent_browser_batch" }, { name: "restart_browser" }] });
   });
 
   it("runs upload and hover through the daemon's relay, with only their own fields", async () => {
@@ -588,7 +588,7 @@ describe("server-owned browser MCP runtime", () => {
         content: [{ text: expect.stringMatching(/restart_browser/) }],
       });
       const listed = await value.agentRpc("s", spec(), "tools/list", {}) as { tools: Array<{ name: string }> };
-      expect(listed.tools.map((tool) => tool.name)).toEqual(["echo", BROWSER_UPLOAD_TOOL, BROWSER_HOVER_TOOL, "restart_browser"]);
+      expect(listed.tools.map((tool) => tool.name)).toEqual(["echo", BROWSER_UPLOAD_TOOL, BROWSER_HOVER_TOOL, "agent_browser_batch", "restart_browser"]);
       const check = vi.fn();
       await expect(value.agentRpc("s", spec(), "tools/call", { name: "restart_browser", arguments: {} }, check))
         .resolves.toMatchObject({ content: [{ text: expect.stringContaining("Browser restarted") }] });
@@ -1423,8 +1423,11 @@ describe("a password fill_login left on a page", () => {
       expect(daemon.calls()).toEqual(["agent_browser_get_url"]);
       await expect(value.agentRpc("s", daemon.spec, "tools/call", { name: "agent_browser_snapshot", arguments: {} })).resolves.not.toMatchObject({ isError: true });
       await value.withSecretInput("s", daemon.spec, filled({ url: "http://fixture.test/login", ms: 60_000 }));
+      // the snapshot's own settle probe is an eval too; the bot's eval is the one after it
+      const evals = () => daemon.calls().filter((call) => call === "agent_browser_eval").length;
+      const probes = evals();
       expect((await evaluate(value, daemon)).isError).toBeUndefined();
-      expect(daemon.calls().filter((call) => call === "agent_browser_eval")).toHaveLength(1);
+      expect(evals()).toBe(probes + 1);
       expect((await evaluate(value, daemon)).isError).toBeUndefined();
     } finally { daemon.cleanup(); }
   });

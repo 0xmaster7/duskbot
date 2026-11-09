@@ -7,6 +7,11 @@ import { SECRET_ON_PAGE, SecretHolds, type SecretHold } from "./browser-secret-h
 import type { BrowserSteps, StepCall, StepContext } from "./browser-steps.ts";
 import { HARNESS_CALL_BUDGET_MS } from "./harness-budget.ts";
 import { launchSettingsKey } from "./browser-launch-key.ts";
+import { AGENT_BROWSER_BATCH_SPEC, agentBrowserStep, planAgentBrowserBatch, PROBE_SCRIPT, probeOfEval, SETTLED_READS, type AgentBrowserCall } from "./browser/agent-browser-batch.ts";
+import { runSteps } from "./browser/batch.ts";
+import { settleNote, settlePage, type PageReader } from "./browser/cdp/settle.ts";
+import type { Content, ToolResult } from "./browser/shape.ts";
+import { BATCH_TOOL } from "./browser/tools.ts";
 
 export interface BrowserSpawnSpec {
   command: string;
@@ -458,7 +463,9 @@ export class BrowserRuntime {
     const deadline = Date.now() + this.options.callBudgetMs;
     let result: unknown;
     try {
-      const request = () => this.agentRequest(session, spec, method, params, deadline, beforeDispatch, ctx);
+      const request = () => method === "tools/call" && toolNameOf(params) === BATCH_TOOL
+        ? this.agentBatch(session, spec, params, deadline, beforeDispatch, ctx)
+        : this.agentRequest(session, spec, method, params, deadline, beforeDispatch, ctx);
       const work = method !== "tools/call" || toolNameOf(params) === BROWSER_RESTART_TOOL || gate.uncertain ? request() : this.lanes.run(session, request, this.options.laneWaitMs);
       result = await this.withinBudget(session, method, toolNameOf(params) ?? "browser", work, deadline);
     } finally { gate.calls--; gate.lastUsed = Date.now(); }
@@ -565,6 +572,12 @@ export class BrowserRuntime {
           beforeDispatch?.();
           if (this.gate(session).owner !== null) throw new Error(BROWSER_CONTROL_REFUSAL);
         }
+        let settled: string | null = null;
+        if (method === "tools/call" && toolName !== undefined && SETTLED_READS.has(toolName)) {
+          settled = await this.settle(entry.client, gate, deadline, false);
+          beforeDispatch?.();
+          if (this.gate(session).owner !== null) throw new Error(BROWSER_CONTROL_REFUSAL);
+        }
         const engineStarted = performance.now();
         if (method === "tools/call") { dispatched = true; gate.dispatched++; }
         const engineTimeoutMs = Math.max(1, Math.min(this.options.requestTimeoutMs, deadline - Date.now() - this.options.followUpReserveMs));
@@ -591,6 +604,9 @@ export class BrowserRuntime {
         }
         if (toolName === "agent_browser_open" && result && typeof result === "object" &&
             (result as { isError?: boolean }).isError !== true) {
+          beforeDispatch?.();
+          if (this.gate(session).owner !== null) throw new Error(BROWSER_CONTROL_REFUSAL);
+          settled = await this.settle(entry.client, gate, deadline, true);
           beforeDispatch?.();
           if (this.gate(session).owner !== null) throw new Error(BROWSER_CONTROL_REFUSAL);
           let observation: unknown;
@@ -628,7 +644,9 @@ export class BrowserRuntime {
         phases.stepsMs = (phases.stepsMs ?? 0) + performance.now() - afterStarted;
         beforeDispatch?.();
         const shaped = shapeBrowserToolResult(result, { toolName, budget: this.options.resultBudget }) as { content?: unknown[] };
-        const final = extra?.parts.length && Array.isArray(shaped?.content) ? { ...shaped, content: [...shaped.content, ...extra.parts] } : shaped;
+        const withSteps = extra?.parts.length && Array.isArray(shaped?.content) ? { ...shaped, content: [...shaped.content, ...extra.parts] } : shaped;
+        const final = settled && Array.isArray(withSteps?.content) && (withSteps as { isError?: unknown }).isError !== true
+          ? { ...withSteps, content: [{ type: "text", text: settled }, ...withSteps.content] } : withSteps;
         phases.chars = resultChars(final);
         return final;
       }
@@ -650,6 +668,52 @@ export class BrowserRuntime {
       if (error instanceof TransportError && gate.uncertain && gate.lostCall !== null) return lostCallToolError(toolName ?? gate.lostCall);
       throw error;
     }
+  }
+
+  /** One lane hold for the whole batch; each step goes through agentRequest exactly as a single call would. */
+  private async agentBatch(session: string, spec: BrowserSpawnSpec, params: unknown, deadline: number, beforeDispatch?: () => void, ctx?: StepContext): Promise<unknown> {
+    const gate = this.gate(session);
+    if (gate.uncertain) return this.agentRequest(session, spec, "tools/call", params, deadline, beforeDispatch, ctx);
+    if (gate.owner !== null) throw new Error(BROWSER_CONTROL_REFUSAL);
+    const tools = this.toolLists.get(session) ?? await this.agentRequest(session, spec, "tools/list", {}, deadline);
+    const plan = planAgentBrowserBatch((params as { arguments?: unknown } | null)?.arguments, tools);
+    if (!plan.ok) return { isError: true, content: [{ type: "text", text: plan.error }] };
+    const call = async ({ name, arguments: args }: AgentBrowserCall): Promise<ToolResult> =>
+      asToolResult(await this.agentRequest(session, spec, "tools/call", { name, arguments: args }, deadline, beforeDispatch, ctx));
+    return runSteps<AgentBrowserCall>(plan.steps, {
+      deadline: Math.min(deadline, Date.now() + plan.limitMs),
+      limitMs: plan.limitMs,
+      parse: (step) => agentBrowserStep(step, tools),
+      execute: call,
+      failure: (error) => {
+        if (error instanceof TransportError) return null;
+        try { beforeDispatch?.(); } catch { return null; }
+        return { isError: true, content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }] };
+      },
+      pageAfter: () => (gate.uncertain || gate.owner !== null ? Promise.resolve(null) : call({ name: "agent_browser_snapshot", arguments: {} })),
+      ...(beforeDispatch ? { checkpoint: beforeDispatch } : {}),
+    });
+  }
+
+  /** Reads the page with eval, never a snapshot, so the bot's refs stay valid. */
+  private async settle(client: BrowserClient, gate: Gate, deadline: number, fresh: boolean): Promise<string | null> {
+    const rpcMs = () => Math.max(1, Math.min(this.options.requestTimeoutMs, deadline - Date.now()));
+    const reader: PageReader = {
+      probe: async () => {
+        try {
+          return probeOfEval(await client.rpc("tools/call", { name: "agent_browser_eval", arguments: { script: PROBE_SCRIPT, timeoutMs: 5_000 } }, rpcMs()));
+        } catch (error) {
+          if (error instanceof TransportError) throw error;
+          return null;
+        }
+      },
+      frameUrls: () => [],
+      loaded: async (timeoutMs) => {
+        await client.rpc("tools/call", { name: "agent_browser_wait_for_load", arguments: { state: "load", waitTimeoutMs: Math.max(1, timeoutMs) } }, rpcMs());
+      },
+      stopped: () => gate.owner !== null || gate.uncertain || gate.closing,
+    };
+    return settleNote(await settlePage(reader, { deadline: deadline - 2 * this.options.followUpReserveMs, fresh }));
   }
 
   private async relayTool(session: string, spec: BrowserSpawnSpec, tool: RelayedToolSpec, args: unknown, timeoutMs: number): Promise<unknown> {
@@ -981,9 +1045,19 @@ function firstText(result: unknown): string {
   return part ? (part as { text: string }).text : "";
 }
 
+/** An engine answer as a batch step's result: its text and pictures. */
+function asToolResult(result: unknown): ToolResult {
+  const record = result as { content?: unknown; isError?: unknown } | null;
+  const content = (Array.isArray(record?.content) ? record.content as unknown[] : []).filter((part): part is Content => {
+    const item = part as { type?: unknown; text?: unknown; data?: unknown } | null;
+    return (item?.type === "text" && typeof item.text === "string") || (item?.type === "image" && typeof item.data === "string");
+  });
+  return { content, ...(record?.isError === true ? { isError: true } : {}) };
+}
+
 function withOmbTools(result: unknown): unknown {
   if (!result || typeof result !== "object" || !Array.isArray((result as { tools?: unknown }).tools)) return result;
-  const own = [...RELAYED_TOOL_SPECS, BROWSER_RESTART_TOOL_SPEC];
+  const own = [...RELAYED_TOOL_SPECS, AGENT_BROWSER_BATCH_SPEC, BROWSER_RESTART_TOOL_SPEC];
   const tools = ((result as { tools: unknown[] }).tools).filter((tool) => !own.some((spec) => spec.name === (tool as { name?: unknown } | null)?.name));
   return { ...result, tools: [...tools, ...own] };
 }
