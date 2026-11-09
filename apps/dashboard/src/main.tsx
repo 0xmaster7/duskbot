@@ -9,6 +9,7 @@ import { Shell } from "./ui/Shell";
 import { SkyEmpty } from "./ui/Sky";
 import { LoadingPage } from "./pages/common";
 import { ClaimPage, stashClaim } from "./pages/Connect";
+import { deletePageId, deleteSignInNote, stashDeleteToken } from "./data/delete-data";
 import { HomePage } from "./pages/Home";
 import { AuthScreen } from "./pages/Auth";
 import "./app.css";
@@ -37,6 +38,7 @@ const UsagePage = page(() => import("./pages/Usage"), (m) => m.UsagePage);
 const BillingPage = page(() => import("./pages/Billing"), (m) => m.BillingPage);
 const AccountPage = page(() => import("./pages/Account"), (m) => m.AccountPage);
 const DeviceApprovalPage = page(() => import("./pages/DeviceApproval"), (m) => m.DeviceApprovalPage);
+const DeleteDataPage = page(() => import("./pages/DeleteData"), (m) => m.DeleteDataPage);
 const Onboarding = page(() => import("./pages/Onboarding"), (m) => m.Onboarding);
 
 // after the first page has painted, fetch the others in idle time so moving between them never waits;
@@ -51,6 +53,7 @@ function prefetchPages() {
 
 initTheme();
 stashClaim();
+stashDeleteToken();
 
 const TITLES: Record<string, string> = {
   "/": "Home", "/cloud": "Cloud desktop", "/workspaces": "Workspaces", "/bots": "Bots", "/connectors": "Connectors",
@@ -76,6 +79,8 @@ function route(path: string): ReactNode {
   if (path === "/account") return <AccountPage />;
   if (path === "/claim") return <ClaimPage />;
   if (path === "/cloud/desktop") return <DeviceApprovalPage />;
+  const deleting = deletePageId(path);
+  if (deleting !== null) return <DeleteDataPage id={deleting} />;
   return <SkyEmpty title="Nothing lives here" action={<ButtonLink to="/" variant="primary">Go home</ButtonLink>}>There is no page at {path}. The sidebar has every page.</SkyEmpty>;
 }
 
@@ -87,7 +92,7 @@ function SignedIn() {
   const moved = MOVED[path] && (path === "/sign-in" && next?.startsWith("/") && !next.startsWith("//") ? next : MOVED[path]);
   useEffect(() => { if (moved) navigate(moved, { replace: true }); }, [moved]);
   if (moved) return null;
-  const onboard = path === "/welcome" || (account !== null && !account.profile.onboarded && path !== "/claim" && path !== "/cloud/desktop");
+  const onboard = path === "/welcome" || (account !== null && !account.profile.onboarded && path !== "/claim" && path !== "/cloud/desktop" && deletePageId(path) === null);
   if (onboard) return <Suspense fallback={<div className="min-h-[100dvh] bg-bg" aria-busy="true" />}><Onboarding /></Suspense>;
   return <Shell><Suspense fallback={<LoadingPage />}>{route(path)}</Suspense></Shell>;
 }
@@ -95,9 +100,9 @@ function SignedIn() {
 function App() {
   const { path } = useLocation();
   const { account } = useSession();
-  useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "Bot" : path.startsWith("/workspaces/") ? "Workspace" : "OpenMausBot")} · OpenMausBot`; }, [path]);
+  useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "Bot" : path.startsWith("/workspaces/") ? "Workspace" : deletePageId(path) !== null ? "Delete cloud data" : "OpenMausBot")} · OpenMausBot`; }, [path]);
   if (account === undefined) return <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
-  if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} note={path === "/claim" ? "Sign in to connect the workspace you opened this from." : path === "/cloud/desktop" ? "Sign in to finish signing in the desktop app." : undefined} />;
+  if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} note={path === "/claim" ? "Sign in to connect the workspace you opened this from." : path === "/cloud/desktop" ? "Sign in to finish signing in the desktop app." : deleteSignInNote(path)} />;
   return <SignedIn />;
 }
 

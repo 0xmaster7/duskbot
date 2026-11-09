@@ -15,6 +15,8 @@ import { Button, Card, cx, KV, PageHeader, SectionTitle, Skeleton } from "../ui/
 import { Mascot } from "../ui/Mascot";
 import { useWorkspaceDetail } from "../data/detail";
 import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
+import { DeleteDataAction, DeletionBanner } from "./DeleteData";
+import { canDeleteData, deletion } from "../data/delete-data";
 import { MachineView } from "./Machine";
 import { money, useChangeCharge } from "./plan-sheet";
 import { useNow } from "../lib/now";
@@ -185,8 +187,10 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
   useEffect(() => { if (cloud.workspaceId && workspace?.id !== cloud.workspaceId) pick(cloud.workspaceId); }, [cloud.workspaceId, workspace?.id, pick]);
   const asleep = cloud.status === "sleeping" || cloud.status === "stopped";
   const sub = billing?.subscription;
+  const deleting = cloud.provider === "boat" && (canDeleteData(cloud, billing) || deletion(cloud) !== null);
   return (
     <div className="flex flex-col gap-4">
+      <DeletionBanner cloud={cloud} />
       {cloud.status === "error" && (
         <Card className="!py-4" aria-live="polite">
           <p className="text-14 text-bad">{cloud.error ?? "It stopped answering."}</p>
@@ -214,7 +218,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
             <KV k="Created" v={longDate(cloud.createdAt)} />
             {sub && <KV k={sub.cancelAt ? "Ends" : "Renews"} v={longDate(sub.cancelAt ?? sub.currentPeriodEnd)} />}
           </dl>
-          <p className="mt-4 text-13 text-ink-3">To remove it, cancel it in <Link to="/billing" className="hover-link underline decoration-line-2 underline-offset-4">Plans & billing</Link>.</p>
+          {deleting ? <DeleteDataAction cloud={cloud} /> : <p className="mt-4 text-13 text-ink-3">To remove it, cancel it in <Link to="/billing" className="hover-link underline decoration-line-2 underline-offset-4">Plans & billing</Link>.</p>}
         </Card>
         {catalog ? <Size cloud={cloud} catalog={catalog} /> : <Skeleton className="h-[220px] !rounded-card" />}
       </div>
