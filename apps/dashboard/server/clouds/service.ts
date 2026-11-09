@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CLOUD_STATUSES, CLOUD_SWATCHES } from "../../../../shared/billing-api.ts";
 import type { CloudDesktopView, MachineSpec } from "../../../../shared/billing-api.ts";
@@ -10,6 +11,7 @@ import type { createSealer } from "./seal.ts";
 import type { CloudProvider, CloudsService, DesktopPlan, HomeClient, SlotQuota, StoredCloud } from "./types.ts";
 import { createBoatLifecycle, freshBoatState, type BoatLifecycle, type BoatLifecycleDeps } from "./boat-lifecycle.ts";
 import { createBoatSweep } from "./boat-sweep.ts";
+import { lockDataDir } from "../data-dir-lock.ts";
 
 export class CloudError extends Error {
   readonly status: number;
@@ -41,7 +43,7 @@ export interface CloudsServiceOptions {
   now?: () => number;
   random?: (size: number) => Buffer;
   /** Boat runs these desktop kinds (boat-lifecycle.ts); every other cloud keeps its placement's provider */
-  boat?: Omit<BoatLifecycleDeps, "home" | "unseal" | "seal" | "dashboardUrl" | "adminOrigin" | "removeWorkspace" | "now" | "save"> & { kinds: ReadonlyArray<DesktopPlan["kind"]> };
+  boat?: Omit<BoatLifecycleDeps, "home" | "unseal" | "seal" | "dashboardUrl" | "adminOrigin" | "removeWorkspace" | "now" | "save" | "stored"> & { kinds: ReadonlyArray<DesktopPlan["kind"]> };
 }
 interface State { v: 1; clouds: StoredCloud[] }
 const sameSpec = (a: MachineSpec, b: MachineSpec) => a.vcpu === b.vcpu && a.ramGb === b.ramGb && a.diskGb === b.diskGb;
@@ -49,6 +51,7 @@ const sameQuota = (a: SlotQuota | undefined, b: SlotQuota) => a && (Object.keys(
 
 export function createCloudsService(options: CloudsServiceOptions): CloudsService {
   const { providers, sealer, workspaces, config, home } = options, now = options.now ?? Date.now, random = options.random ?? randomBytes;
+  const unlock = lockDataDir(options.dataDir);
   const store = createJsonStore<State>(join(options.dataDir, "clouds.json"), () => ({ v: 1, clouds: [] }), (v): v is State => {
     if (!v || typeof v !== "object") return false;
     const state = v as State;
@@ -98,7 +101,10 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
   }
   function viewOf(c: StoredCloud): CloudDesktopView { return { id: c.id, name: c.name, color: c.color, kind: c.kind, placement: c.placement, status: c.status === "running" && c.paymentProblem ? "payment_problem" : c.status, setupStep: c.setupStep, region: c.region, machine: { ...c.spec }, botComputers: c.botComputers, origin: c.origin, workspaceId: c.workspaceId, lastReportAt: c.workspaceId ? workspaces.lastReportAt(c.workspaceId) : null, destroyAt: c.destroyAt, error: c.error, subscriptionId: c.subscriptionId, createdAt: c.createdAt }; }
   const boat: BoatLifecycle | null = options.boat ? createBoatLifecycle({ ...options.boat, home, now, save, dashboardUrl: config.dashboardUrl, adminOrigin: config.adminOrigin,
-    unseal: value => sealer.unseal(value), seal: value => sealer.seal(value), removeWorkspace: id => workspaces.remove(id) }) : null;
+    unseal: value => sealer.unseal(value), seal: value => sealer.seal(value), removeWorkspace: id => workspaces.remove(id),
+    stored(id) {
+      try { return (JSON.parse(readFileSync(join(options.dataDir, "clouds.json"), "utf8")) as State).clouds.find(c => c.id === id) ?? null; } catch { return null; }
+    } }) : null;
   const sweep = options.boat ? createBoatSweep({ dataDir: options.dataDir, provider: options.boat.provider, audit: options.boat.audit, retentionDays: options.boat.settings.retentionDays, now }) : null;
   function succeeded(c: StoredCloud) { c.attempts = 0; c.nextAttemptAt = 0; c.poolFullSince = undefined; c.error = null; save(c); }
   async function reconcileCloud(c: StoredCloud) {
@@ -120,7 +126,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       succeeded(c); return;
     }
     if (c.status === "destroyed") return;
-    if (!c.ended && c.endsAt !== undefined && c.endsAt <= now()) { delete c.endsAt; c.ended = true; c.wantPower = "off"; save(c); }
+    if (!c.ended && c.endsAt !== undefined && c.endsAt <= now()) { c.endedAt = c.endsAt; delete c.endsAt; c.ended = true; c.wantPower = "off"; save(c); }
     if (c.ended && c.status === "provisioning") {
       if (!c.serverId) c.serverId = (await provider.find(c.id))?.id ?? null;
       if (c.serverId) await provider.power(c.serverId, "off");
@@ -234,7 +240,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     cancelDestroy(id) { const c = requireCloud(id); if (c.status === "destroyed" || c.status === "destroying" || c.ended || c.paymentProblem || c.destroyAt !== null && c.destroyAt <= now()) return; c.destroyAt = null; save(c); },
     end(id, at, from) { const c = requireCloud(id); if (c.status === "destroyed") return;
       if (from !== undefined && from > now() && !c.ended) { c.endsAt = c.endsAt === undefined ? from : Math.min(c.endsAt, from); c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); save(c); return; }
-      delete c.endsAt; c.ended = true; c.wantPower = "off"; c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); c.nextAttemptAt = 0; save(c); kick(); },
+      delete c.endsAt; if (!c.ended) c.endedAt = now(); c.ended = true; c.wantPower = "off"; c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); c.nextAttemptAt = 0; save(c); kick(); },
     abandon(id) { const c = requireCloud(id); if (c.status === "checkout") { c.status = "destroyed"; save(c); } },
     get,
     scrubAccount(accountId, anonId) {
@@ -296,7 +302,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       }).finally(() => { reconciling = null; });
       return reconciling;
     },
-    close() { closed = true; clearInterval(timer); store.close(); sweep?.close(); },
+    close() { closed = true; clearInterval(timer); store.close(); sweep?.close(); unlock(); },
   };
   const timer = setInterval(kick, 15_000); timer.unref();
   return service;

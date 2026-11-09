@@ -1,11 +1,13 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { createCipheriv, randomBytes } from "node:crypto";
+import { chmodSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import type { StoredSubscription } from "../billing/store.ts";
 import { createBoatProvider } from "./boat.ts";
 import { createAudit } from "./boat-audit.ts";
-import { createBackupStore } from "./boat-backups.ts";
+import { boatBackupKey, createBackupStore } from "./boat-backups.ts";
+import { backupKey } from "./boat-home.ts";
 import { DEFAULT_BOAT_SETTINGS } from "./boat-lifecycle.ts";
 import { DAY_MS, entitlementOf } from "./boat-retention.ts";
 import { createFakeCloudProvider } from "./fake-provider.ts";
@@ -18,6 +20,7 @@ const cleanup: Array<() => unknown> = [];
 afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); });
 const plan: DesktopPlan = { kind: "shared_s", placement: "pool", spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2 };
 const SHA = "a".repeat(64);
+const BACKUP_SECRET = Buffer.alloc(32, 9);
 
 export async function boatFixture(options: { retentionDays?: number; setupPolls?: number } = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), "omb-boat-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
@@ -55,7 +58,7 @@ export async function boatFixture(options: { retentionDays?: number; setupPolls?
   const service = createCloudsService({ dataDir, now, home, sealer: createSealer(Buffer.alloc(32, 7)), workspaces,
     providers: { dedicated: createFakeCloudProvider(), pool: { ...createFakeCloudProvider(), suspend: async () => {}, resume: async () => {} } },
     config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", image: "ghcr.io/example/home:1", poolQuota: (_k, spec, botComputers) => ({ ...spec, netMbps: 1, pids: 1, botComputers }) },
-    boat: { provider, backups, audit, kinds: ["shared_s", "shared_m", "dedicated"],
+    boat: { provider, backups, audit, kinds: ["shared_s", "shared_m", "dedicated"], backupSecret: BACKUP_SECRET,
       settings: { ...DEFAULT_BOAT_SETTINGS, package: { sha256: SHA, url: "https://packages.example.test/home.tgz" }, ...(options.retentionDays ? { retentionDays: options.retentionDays } : {}) },
       entitlement: cloud => entitlementOf(subscriptions, cloud, at),
       notify: (cloud, kind, when, link) => notices.push({ cloudId: cloud.id, kind, at: when, ...(link ? { link } : {}) }) } });
@@ -150,7 +153,11 @@ it("recovers a lost machine from its newest backup into a fresh sandbox and tell
   await f.settle(c, c => c.boat!.backups.length === 1);
   const lost = c.serverId!;
   f.api.lose(lost);
-  await f.settle(c, c => c.status === "running" && c.serverId !== lost, 30);
+  // one 404 is not a lost machine: only repeated ones over half an hour, and gone from the account's list
+  c.nextAttemptAt = 0; await f.service.reconcile();
+  expect(c.serverId).toBe(lost);
+  for (let n = 0; n < 40 && !(c.status === "running" && c.serverId !== lost); n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(c.status === "running" && c.serverId !== lost).toBe(true);
   expect(c.boat!.attempt).toBe(1);
   const fresh = f.api.sandboxes.get(c.serverId!)!;
   expect(fresh.volume.get("__system__/data/.omb-cloud-home.json")!.toString()).toBe("restored-marker");
@@ -235,9 +242,13 @@ it("stops sandboxes no live cloud runs on and never deletes one that may hold so
 
 it("a plan that drops the desktop ends its entitlement at the drop, and a renewal cancels a pending owner delete", async () => {
   const sub = { id: "sub_x", cloudId: null, status: "active", currentPeriodEnd: 50 * DAY_MS, updatedAt: 0, lastEventAt: 5 * DAY_MS } as unknown as StoredSubscription;
-  expect(entitlementOf([sub], { id: "c1", subscriptionId: "sub_x", endsAt: 20 * DAY_MS }, 10 * DAY_MS)).toEqual({ active: true, until: null });
-  expect(entitlementOf([sub], { id: "c1", subscriptionId: "sub_x", endsAt: 20 * DAY_MS }, 21 * DAY_MS)).toEqual({ active: false, until: 20 * DAY_MS });
-  expect(entitlementOf([sub], { id: "c1", subscriptionId: "sub_x", ended: true }, 21 * DAY_MS)).toEqual({ active: false, until: 5 * DAY_MS });
+  expect(entitlementOf([sub], { id: "c1", subscriptionId: "sub_x", endsAt: 20 * DAY_MS }, 10 * DAY_MS)).toMatchObject({ active: true, until: null });
+  expect(entitlementOf([sub], { id: "c1", subscriptionId: "sub_x", endsAt: 20 * DAY_MS }, 21 * DAY_MS)).toMatchObject({ active: false, until: 20 * DAY_MS });
+  expect(entitlementOf([sub], { id: "c1", subscriptionId: "sub_x", ended: true, endedAt: 15 * DAY_MS }, 21 * DAY_MS)).toMatchObject({ active: false, until: 15 * DAY_MS });
+  // later events never move the date: a renewal of the same subscription after the cloud ended changes nothing
+  expect(entitlementOf([{ ...sub, lastEventAt: 30 * DAY_MS, currentPeriodEnd: 80 * DAY_MS } as StoredSubscription], { id: "c1", subscriptionId: "sub_x", ended: true, endedAt: 15 * DAY_MS }, 31 * DAY_MS)).toMatchObject({ until: 15 * DAY_MS });
+  // a subscription that will not renew counts only to its period end, whatever its status
+  expect(entitlementOf([{ ...sub, cloudId: "c1", cancelAtPeriodEnd: true, currentPeriodEnd: 20 * DAY_MS } as StoredSubscription], { id: "c1", subscriptionId: "sub_x" }, 21 * DAY_MS)).toMatchObject({ active: false, until: 20 * DAY_MS });
   const f = await boatFixture();
   const { c, sub: paid } = await f.paid();
   paid.status = "ended"; paid.currentPeriodEnd = f.now(); paid.lastEventAt = f.now();
@@ -273,4 +284,27 @@ it("a delete whose answer was lost is never mistaken for a lost machine, and can
   await f.settle(c, c => c.status === "destroyed");
   expect(c.boat!.attempt).toBe(0);
   expect(f.notices.map(n => n.kind)).not.toContain("recovered");
+});
+
+it("backups sealed with the home's own key are sealed again with the service's key, and still restore", async () => {
+  const f = await boatFixture();
+  const { c } = await f.paid();
+  f.advance(DAY_MS); f.power.idle = true; f.power.busy = [];
+  await f.settle(c, c => c.status === "sleeping");
+  await f.settle(c, c => c.boat!.backups.length === 1);
+  // the file as an earlier version wrote it: keyed from the bootstrap secret the home also holds
+  const g = c.boat!.backups[0]!, path = join(f.dataDir, "boat-backups", c.id, g.file);
+  const tar = f.backups.read(c.id, boatBackupKey(BACKUP_SECRET, c.id), g.file);
+  const legacy = backupKey(createSealer(Buffer.alloc(32, 7)).unseal(c.bootstrapSecret)), iv = randomBytes(12), cipher = createCipheriv("aes-256-gcm", legacy, iv);
+  cipher.setAAD(Buffer.from(c.id));
+  const body = Buffer.concat([cipher.update(tar), cipher.final()]);
+  chmodSync(path, 0o600); writeFileSync(path, Buffer.concat([Buffer.from("OMBB1\n"), iv, body, cipher.getAuthTag()]));
+  expect(f.backups.version(c.id, g.file)).toBe(1);
+  c.nextAttemptAt = 0; await f.service.reconcile();
+  const now = c.boat!.backups[0]!;
+  expect(f.backups.version(c.id, now.file)).toBe(2);
+  expect(f.backups.read(c.id, boatBackupKey(BACKUP_SECRET, c.id), now.file).equals(tar)).toBe(true);
+  expect(() => f.backups.read(c.id, legacy, now.file)).toThrow("integrity");
+  expect(f.backups.list(c.id)).toEqual([now.file]);
+  expect(f.audit.entries(c.id).map(e => e.action)).toContain("backup_rekeyed");
 });

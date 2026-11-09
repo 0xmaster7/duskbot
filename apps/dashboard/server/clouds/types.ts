@@ -107,6 +107,8 @@ export interface StoredCloud {
   hidden: boolean;
   paymentProblem: boolean;
   ended?: boolean;
+  /** when `ended` was set: the retention clock of a Boat cloud starts here */
+  endedAt?: number;
   /** dropped from a plan that is paid to this time: runs until then, then ends */
   endsAt?: number;
   /** suspended for abuse: stays stopped until an operator resumes it */
@@ -151,7 +153,8 @@ export interface BoatCloudState {
   leaseAt: number | null;
   lastStopAt: number | null;
   wakeStartedAt: number | null;
-  backups: Array<{ file: string; at: number; bytes: number; sha256: string; verifiedAt: number | null; snapshotAt: number }>;
+  /** `keep`: from a replaced sandbox's own disk, never pruned; `source`: that sandbox */
+  backups: Array<{ file: string; at: number; bytes: number; sha256: string; verifiedAt: number | null; snapshotAt: number; keep?: boolean; source?: string }>;
   lastBackupTryAt: number | null;
   backupProblem: string | null;
   /** the billing record's end of the plan, as first seen: the retention clock */
@@ -163,11 +166,14 @@ export interface BoatCloudState {
   deletedAt: number | null;
   backupsDeleteAfter: number | null;
   /** sandboxes this cloud had before a recovery, stopped, deleted once the new one has its own verified backup */
-  retired: Array<{ serverId: string; at: number; deletion: { operationId: string | null; at: number } | null }>;
+  retired: Array<{ serverId: string; at: number; deletion: { operationId: string | null; at: number } | null; backedUp?: number }>;
   recoveries: number;
   hold: boolean;
   /** when the current sandbox's setup began */
   setupSince?: number;
+  /** Boat answered 404 for the current sandbox since this time, this many times; reset by any answer */
+  missingSince?: number | null;
+  missingChecks?: number;
 }
 
 export interface DesktopPlan { kind: Exclude<DesktopKind, "none">; placement: Placement; spec: MachineSpec; botComputers: number | null }

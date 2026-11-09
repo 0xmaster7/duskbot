@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { linkKeys } from "./bootstrap.ts";
 import type { BoatProvider } from "./boat.ts";
 import { backupKey, BOAT_HOME_VOLUME, BOAT_PACKAGE_FILE, BOAT_RESTORE_FILE, boatBootFile, boatSetupScript, installCommand, RESTORE_COMMAND, startCommand } from "./boat-home.ts";
-import { homeVolumeProblem, type BackupStore } from "./boat-backups.ts";
+import { boatBackupKey, homeVolumeProblem, type BackupStore } from "./boat-backups.ts";
 import { DAY_MS, DEFAULT_DELETE_DELAY_DAYS, DEFAULT_RETENTION_DAYS, deletionVerdict, dueNotice, type Entitlement, type NoticeKind, type Verdict } from "./boat-retention.ts";
 import type { Audit, AuditActor } from "./boat-audit.ts";
 import { RetryableCloudError } from "./http.ts";
@@ -36,10 +36,12 @@ export interface BoatSettings {
   /** the home's app package: a URL the sandbox downloads, or a file this service uploads */
   package: { sha256: string; url?: string; file?: string } | null;
   maxBackupBytes: number;
+  /** a sandbox Boat stops finding is lost only after this long of direct 404s and absence from the account's list */
+  lostAfterMs: number;
 }
 export const DEFAULT_BOAT_SETTINGS: BoatSettings = {
   idleMinutes: 15, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, refreshAfterMs: 11 * DAY_MS, retentionDays: DEFAULT_RETENTION_DAYS,
-  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 2 * MINUTE, powerReadMs: MINUTE, template: null, package: null, maxBackupBytes: 4 * 1024 ** 3,
+  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 2 * MINUTE, powerReadMs: MINUTE, template: null, package: null, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
 export function boatSettingsFromEnv(env: NodeJS.ProcessEnv): BoatSettings {
@@ -67,7 +69,8 @@ export function boatSettingsFromEnv(env: NodeJS.ProcessEnv): BoatSettings {
     retentionDays: number("OMB_BOAT_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
     deleteDelayDays: number("OMB_BOAT_DELETE_DELAY_DAYS", DEFAULT_DELETE_DELAY_DAYS, 90, DEFAULT_DELETE_DELAY_DAYS),
     backupTailMs: number("OMB_BOAT_BACKUP_TAIL_DAYS", 7, 365, 30) * DAY_MS,
-    maxBackupBytes: number("OMB_BOAT_BACKUP_MAX_MB", 64, 64 * 1024, 4096) * 1024 * 1024 };
+    maxBackupBytes: number("OMB_BOAT_BACKUP_MAX_MB", 64, 64 * 1024, 4096) * 1024 * 1024,
+    lostAfterMs: number("OMB_BOAT_LOST_AFTER_MINUTES", 2, 24 * 60, 30) * MINUTE };
 }
 
 export function freshBoatState(): BoatCloudState {
@@ -92,6 +95,10 @@ export interface BoatLifecycleDeps {
   removeWorkspace(workspaceId: string): void;
   now(): number;
   save(cloud: StoredCloud): void;
+  /** this service's backup secret (OMB_BOAT_BACKUP_KEY, or derived from OMB_CLOUD_SEAL_KEY); never on a home */
+  backupSecret: Buffer;
+  /** the cloud's record as stored on disk now, re-read right before anything irreversible */
+  stored(cloudId: string): StoredCloud | null;
 }
 
 export class BoatLifecycleError extends Error {
@@ -106,6 +113,8 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     audit.record({ cloudId: c.id, action, actor, reason, serverId: c.serverId, ...(detail ? { detail } : {}) });
   const state = (c: StoredCloud) => (c.boat ??= freshBoatState());
   const secret = (c: StoredCloud) => deps.unseal(c.bootstrapSecret);
+  const keyOf = (c: StoredCloud) => boatBackupKey(deps.backupSecret, c.id);
+  const legacyKeyOf = (c: StoredCloud) => { try { return c.bootstrapSecret ? backupKey(secret(c)) : undefined; } catch { return undefined; } };
   const latestVerified = (b: BoatCloudState) => [...b.backups].reverse().find(g => g.verifiedAt !== null) ?? null;
   function notice(c: StoredCloud, kind: NoticeKind, at: number | null, link?: string) {
     const b = state(c);
@@ -115,20 +124,22 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     try { deps.notify(c, kind, at, link); } catch { console.warn(`boat: notice ${kind} for ${c.id} was not delivered`); }
   }
 
-  function verdictFor(c: StoredCloud, entitlement = deps.entitlement(c)): Verdict {
+  function verdictFor(c: StoredCloud, given = deps.entitlement(c)): Verdict {
     const b = state(c), final = latestVerified(b);
+    // a plan that ended with no period end on record: the clock runs from when this service first saw it end
+    const entitlement = !given.active && given.until === null && given.known && b.endedAt !== null ? { ...given, until: b.endedAt } : given;
     return deletionVerdict({ now: now(), retentionDays: settings.retentionDays, entitlement, finalBackup: final ? { at: final.snapshotAt, verifiedAt: final.verifiedAt } : null,
       lastStopAt: b.lastStopAt, ownerRequest: b.deleteRequest, hold: b.hold || c.suspended !== null && c.suspended !== "Account deleted" });
   }
 
   /** a backup of the volume from the newest snapshot of a stopped (or, past twice the interval, running) sandbox */
-  async function backup(c: StoredCloud, reason: string): Promise<boolean> {
+  async function backup(c: StoredCloud, reason: string, serverId: string | null = c.serverId, keep = false): Promise<boolean> {
     const b = state(c);
-    if (!c.serverId) return false;
+    if (!serverId) return false;
     b.lastBackupTryAt = now(); deps.save(c);
-    const snapshot = await provider.latestSnapshot(c.serverId);
+    const snapshot = await provider.latestSnapshot(serverId);
     if (!snapshot) { b.backupProblem = "no_snapshot"; deps.save(c); return false; }
-    if (b.backups.some(g => g.snapshotAt >= snapshot.at && g.verifiedAt !== null)) return true;
+    if (b.backups.some(g => g.snapshotAt >= snapshot.at && g.verifiedAt !== null && (g.source ?? c.serverId) === serverId)) return true;
     let stream: ReadableStream<Uint8Array>;
     try { stream = await provider.snapshotTar(snapshot.id, BOAT_HOME_VOLUME); }
     catch (error) { b.backupProblem = "snapshot_read"; deps.save(c); log(c, "backup_failed", "reconciler", "snapshot_read"); throw error; }
@@ -146,15 +157,15 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     } finally { reader.releaseLock(); }
     const tar = Buffer.concat(chunks), problem = homeVolumeProblem(tar, c.id);
     if (problem) { b.backupProblem = problem; deps.save(c); log(c, "backup_refused", "reconciler", problem); return false; }
-    const key = backupKey(secret(c)), record = deps.backups.write(c.id, key, tar);
+    const key = keyOf(c), record = deps.backups.write(c.id, key, tar);
     // restorable means: it opens with this cloud's key and is still this cloud's volume
     const verified = homeVolumeProblem(deps.backups.read(c.id, key, record.file), c.id) === null && deps.backups.sha256(c.id, record.file) === record.sha256;
-    b.backups.push({ ...record, verifiedAt: verified ? now() : null, snapshotAt: snapshot.at });
+    b.backups.push({ ...record, verifiedAt: verified ? now() : null, snapshotAt: snapshot.at, ...(keep ? { keep: true, source: serverId } : {}) });
     b.backupProblem = verified ? null : "unverified";
     log(c, "backup", "reconciler", reason, { file: record.file, bytes: record.bytes, verified });
     // keep the newest `backupKeep` verified generations, and the newest one at least a week older than the newest, so a home
     // that wiped its own data cannot push every good copy out within a few days
-    const verifiedOnes = b.backups.filter(g => g.verifiedAt !== null), newest = verifiedOnes.at(-1);
+    const verifiedOnes = b.backups.filter(g => g.verifiedAt !== null && !g.keep), newest = verifiedOnes.at(-1);
     const pinned = newest ? [...verifiedOnes].reverse().find(g => newest.snapshotAt - g.snapshotAt >= 7 * DAY_MS) : undefined;
     for (const old of verifiedOnes.slice(0, Math.max(0, verifiedOnes.length - settings.backupKeep))) {
       if (old === pinned) continue;
@@ -198,7 +209,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
         b.installed = pkg.sha256; deps.save(c);
       }
       if (b.restoreFrom) {
-        const tar = deps.backups.read(c.id, backupKey(secret(c)), b.restoreFrom);
+        const tar = deps.backups.read(c.id, keyOf(c), b.restoreFrom, legacyKeyOf(c));
         await provider.upload(c.serverId, BOAT_RESTORE_FILE, tar);
         const done = await provider.run(c.serverId, RESTORE_COMMAND, 600);
         if (!done.ok || !done.stdout.includes("restored")) throw new RetryableCloudError("Cloud restore failed.");
@@ -244,10 +255,22 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     deps.save(c);
   }
 
+  /** the stored record wins where it is more careful: a hold, a suspension or an owner's cancel this process has not seen */
+  function rereadStored(c: StoredCloud): boolean {
+    const b = state(c), fresh = deps.stored(c.id);
+    if (!fresh?.boat) { log(c, "delete_refused", "reconciler", "record_unreadable"); return false; }
+    if (fresh.boat.hold && !b.hold) b.hold = true;
+    if (fresh.suspended !== null && c.suspended === null) c.suspended = fresh.suspended;
+    const cancelled = fresh.boat.deleteRequest?.cancelledAt ?? null;
+    if (cancelled !== null && b.deleteRequest && b.deleteRequest.cancelledAt === null) b.deleteRequest.cancelledAt = cancelled;
+    return true;
+  }
+
   async function deleteStep(c: StoredCloud, verdict: Extract<Verdict, { delete: true }>) {
     const b = state(c);
     if (b.deletion && b.deletion.sent === false && (await provider.sandbox(b.deletion.serverId)) !== null) {
       // a DELETE whose answer never came, and the sandbox is still there: asked again only if the verdict still says so
+      if (!rereadStored(c)) return;
       const again = verdictFor(c);
       if (!again.delete) { log(c, "delete_aborted", "reconciler", again.reason); b.deletion = null; c.status = "stopped"; deps.save(c); return; }
       const answer = await provider.requestDelete(b.deletion.serverId);
@@ -256,6 +279,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     }
     if (!b.deletion && c.serverId) {
       // last check against the record, right before Boat is asked
+      if (!rereadStored(c)) return;
       const again = verdictFor(c);
       if (!again.delete) { log(c, "delete_refused", "reconciler", again.reason); return; }
       // recorded before the call, so a lost answer is never read as a lost machine (and rebuilt)
@@ -291,59 +315,118 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
   function dropBackupsWhenDue(c: StoredCloud) {
     const b = state(c);
     if (b.deletedAt === null || b.backupsDeleteAfter === null || b.backupsDeleteAfter > now() || !b.backups.length || b.hold) return;
+    if (!rereadStored(c) || b.hold) return;
     if (deps.entitlement(c).active) { log(c, "delete_refused", "reconciler", "subscribed"); return; }
     for (const g of [...b.backups]) { deps.backups.remove(c.id, g.file); b.backups.splice(b.backups.indexOf(g), 1); }
     log(c, "backups_deleted", "reconciler", b.deletion?.reason ?? "retention_over");
     deps.save(c);
   }
 
+  /** a sandbox a recovery replaced, or a second one the sweep found: stopped, its disk kept alive and backed up from its
+   *  own latest state, and never deleted here. If it holds data newer than what the cloud came back from, the operator
+   *  is alerted to bring it over; both copies stay. */
   async function retiredStep(c: StoredCloud) {
-    const b = state(c), mine = latestVerified(b);
+    const b = state(c);
     for (const old of b.retired) {
       if (old.deletion) continue;
       const s = await provider.sandbox(old.serverId);
-      if (!s) { old.deletion = { operationId: null, at: now() }; log(c, "retired_gone", "reconciler", "missing", { old: old.serverId }); deps.save(c); continue; }
-      if (["ready", "idle", "running"].includes(s.state)) { await provider.power(old.serverId, "off"); log(c, "retired_stopped", "reconciler", "recovery", { old: old.serverId }); continue; }
-      // the replacement has run and was backed up since: only then is the old disk redundant
-      if (c.status !== "running" && c.status !== "sleeping" || !mine || mine.at <= old.at || now() - old.at < 7 * DAY_MS) continue;
-      const answer = await provider.requestDelete(old.serverId);
-      old.deletion = { operationId: answer.operationId, at: now() };
-      log(c, "delete_requested", "reconciler", "retired_after_recovery", { old: old.serverId, operation: answer.operationId });
+      if (!s) continue;
+      if (["ready", "idle", "running"].includes(s.state)) { await provider.power(old.serverId, "off"); log(c, "retired_stopped", "reconciler", "kept", { old: old.serverId }); continue; }
+      if (s.state !== "archived") continue;
+      if (!old.backedUp && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) {
+        if (await backup(c, "retired", old.serverId, true)) {
+          old.backedUp = now();
+          const restored = b.restoredFrom?.at ?? 0;
+          if ((s.snapshotAt ?? 0) > restored) {
+            log(c, "retired_has_newer_data", "reconciler", "operator_decides", { old: old.serverId });
+            console.warn(`boat: ALERT cloud ${c.id}: replaced sandbox ${old.serverId} holds data newer than the backup the cloud came back from; both are kept`);
+          }
+          deps.save(c);
+        }
+        continue;
+      }
+      // its disk is still the only full copy of that state on Boat: keep Boat's 14-day clock from running out
+      if (s.stoppedAt !== null && now() - s.stoppedAt >= settings.refreshAfterMs) { await provider.power(old.serverId, "on"); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
+    }
+  }
+
+  /** a sandbox is lost only after repeated direct 404s spread over `lostAfterMs` and its absence from the account's list */
+  async function confirmLost(c: StoredCloud): Promise<boolean> {
+    const b = state(c);
+    if (!b.missingSince) { b.missingSince = now(); b.missingChecks = 0; log(c, "missing_seen", "reconciler", "first_404"); }
+    b.missingChecks = (b.missingChecks ?? 0) + 1;
+    if (b.missingChecks < 3 || now() - b.missingSince < settings.lostAfterMs) {
+      c.nextAttemptAt = now() + Math.max(60_000, Math.floor(settings.lostAfterMs / 3)); deps.save(c); return false;
+    }
+    if (c.serverId && await provider.listed(c.serverId)) { log(c, "missing_but_listed", "reconciler", "kept"); b.missingSince = now(); b.missingChecks = 0; deps.save(c); return false; }
+    return true;
+  }
+
+  /** retention bookkeeping for a plan that ended: the clock, the notices */
+  async function planEnded(c: StoredCloud, entitlement: Entitlement, verdict: Verdict, up: boolean) {
+    const b = state(c);
+    if (b.endedAt === null) {
+      b.endedAt = now();
+      log(c, "plan_ended", "billing", "record", { until: entitlement.until });
+      if (c.origin && up) await deps.home.plan?.(c.origin, secret(c), { cancelled: true }).catch(() => {});
       deps.save(c);
+    }
+    if (verdict.earliestAt !== null) { const kind = dueNotice({ now: now(), earliestAt: verdict.earliestAt, sent: b.notices.map(n => n.kind as NoticeKind) }); if (kind) notice(c, kind, verdict.earliestAt); }
+  }
+
+  /** backups sealed with a key the home itself could derive are sealed again with this service's key, one per pass */
+  function rekeyBackups(c: StoredCloud) {
+    const b = state(c);
+    for (const g of b.backups) {
+      if (deps.backups.version(c.id, g.file) !== 1) continue;
+      const legacy = legacyKeyOf(c);
+      if (!legacy) { log(c, "backup_rekey_failed", "reconciler", "no_legacy_key", { file: g.file }); return; }
+      const tar = deps.backups.read(c.id, keyOf(c), g.file, legacy);
+      const record = deps.backups.write(c.id, keyOf(c), tar);
+      if (homeVolumeProblem(deps.backups.read(c.id, keyOf(c), record.file), c.id) !== null) { deps.backups.remove(c.id, record.file); log(c, "backup_rekey_failed", "reconciler", "unverified", { file: g.file }); return; }
+      const old = g.file;
+      Object.assign(g, { file: record.file, bytes: record.bytes, sha256: record.sha256, verifiedAt: now() });
+      deps.save(c);
+      deps.backups.remove(c.id, old);
+      log(c, "backup_rekeyed", "reconciler", "server_key", { from: old, to: record.file });
+      return;
     }
   }
 
   async function reconcile(c: StoredCloud): Promise<void> {
     const b = state(c);
+    if (b.backups.length) rekeyBackups(c);
     if (c.status === "checkout") return;
     if (c.status === "destroyed") { dropBackupsWhenDue(c); return; }
     const entitlement = deps.entitlement(c);
     const verdict = verdictFor(c, entitlement);
     if (verdict.delete || b.deletion) return deleteStep(c, verdict.delete ? verdict : { delete: true, reason: (b.deletion?.reason ?? "retention_over") as "retention_over", earliestAt: now() });
     if (c.status === "provisioning") return provisionStep(c, entitlement.active);
-    if (!c.serverId) return;
+    if (!c.serverId) {
+      // an ended plan with no machine (a rebuild held for want of a plan) still gets its notices and keeps its old disks
+      if (!entitlement.active) { if (c.status !== "stopped") { c.status = "stopped"; deps.save(c); } await planEnded(c, entitlement, verdict, false); await retiredStep(c); }
+      return;
+    }
     if (c.suspended !== null) {
       const s = await provider.sandbox(c.serverId);
       if (s && ["ready", "idle", "running", "provisioned", "cloning"].includes(s.state)) await sleepNow(c, "operator", "operator");
       c.status = "suspended"; c.suspensionApplied = true; deps.save(c); return;
     }
     const s = await provider.sandbox(c.serverId);
-    if (!s || s.state === "cancelled" || s.dataExpired) return recover(c, !s ? "missing" : s.dataExpired ? "data_expired" : "cancelled");
+    if (!s || s.state === "cancelled") { if (await confirmLost(c)) return recover(c, "missing"); return; }
+    if (b.missingSince) { log(c, "missing_cleared", "reconciler", "answered"); b.missingSince = null; b.missingChecks = 0; deps.save(c); }
+    if (s.dataExpired) return recover(c, "data_expired");
     // the snapshot a stop saved: a final backup must be at least this new
     const stopSnapshot = s.state === "archived" ? s.snapshotAt ?? s.stoppedAt : null;
     if (stopSnapshot !== null && stopSnapshot !== b.lastStopAt) { b.lastStopAt = stopSnapshot; deps.save(c); }
 
     if (!entitlement.active) {
-      if (b.endedAt === null) {
-        b.endedAt = now();
-        log(c, "plan_ended", "billing", "record", { until: entitlement.until });
-        if (c.origin && ["ready", "idle", "running"].includes(s.state)) await deps.home.plan?.(c.origin, secret(c), { cancelled: true }).catch(() => {});
-      }
+      await planEnded(c, entitlement, verdict, ["ready", "idle", "running"].includes(s.state));
       if (["ready", "idle", "running"].includes(s.state)) return sleepNow(c, "plan", "billing");
       if (s.state === "archived") {
         c.status = "stopped";
         if (!latestVerified(b) || latestVerified(b)!.snapshotAt < (s.snapshotAt ?? 0)) { if ((b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "plan_ended"); }
-        if (verdict.earliestAt !== null) { const kind = dueNotice({ now: now(), earliestAt: verdict.earliestAt, sent: b.notices.map(n => n.kind as NoticeKind) }); if (kind) notice(c, kind, verdict.earliestAt); }
+        await retiredStep(c);
         // keep Boat's copy of the disk alive while we promise to keep it: a short resume restarts its 14-day clock
         if (s.stoppedAt !== null && now() - s.stoppedAt >= settings.refreshAfterMs && verdict.earliestAt !== null && verdict.earliestAt - now() > DAY_MS) {
           await provider.power(c.serverId, "on"); b.wakeStartedAt = now(); log(c, "refresh", "reconciler", "disk_age"); deps.save(c);

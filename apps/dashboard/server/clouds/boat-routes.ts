@@ -1,7 +1,7 @@
 // The owner's own request to delete a Boat cloud's data. Nothing here deletes: a request sends an email with a one-time
 // link, the link confirms it, and the retention reconciler acts after the undo window, through the same verdict as every
 // other deletion (boat-retention.ts). Cookie session with its CSRF header, a sign-in from the last 10 minutes to ask,
-// the owner only, rate limited.
+// the owner only, rate limited; confirming needs a fresh sign-in too.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { BoatLifecycleError } from "./boat-lifecycle.ts";
 import type { CloudsService } from "./types.ts";
@@ -45,6 +45,7 @@ export function createBoatRoutes(options: BoatRoutesOptions) {
       }
       limit(`act:${owner.id}`, 20, 3_600_000);
       if (match[2] === "confirm") {
+        if (now() - owner.signedInAt > FRESH_SIGN_IN_MS) throw new BoatLifecycleError(403, "reauth_required");
         if (typeof data.token !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(data.token)) throw new BoatLifecycleError(400, "invalid_request");
         const executeAfter = lifecycle.confirmDelete(cloud, data.token);
         options.json(res, 200, { ok: true, deleteScheduledAt: executeAfter });

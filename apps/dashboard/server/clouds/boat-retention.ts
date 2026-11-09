@@ -14,34 +14,30 @@ export const NOTICE_DAYS = [30, 7, 1] as const;
 export type NoticeKind = "ended" | "left_30" | "left_7" | "left_1" | "deleted" | "recovered" | "delete_requested" | "delete_scheduled" | "delete_cancelled" | "resumed";
 
 /** what the billing system of record says about one cloud's plan */
-export interface Entitlement { active: boolean; until: number | null }
+export interface Entitlement { active: boolean; until: number | null; known?: boolean }
 
 /**
- * From the billing store: active while any subscription that paid for this cloud is active, has a payment problem, or is
- * cancelled but paid to a later time; otherwise paid to the latest of their period ends and the time they were seen ending.
- * No subscription at all is "unknown": nothing is ever deleted on that. A subscription that still runs but no longer
- * carries this cloud (the desktop was taken off the plan: billing unlinks it and ends the cloud at `endsAt`) pays for it
- * only to that time.
+ * From the billing store: active while a subscription that paid for this cloud is active, has a payment problem, or is
+ * cancelled but paid to a later time. Paid to: the cloud's own end when billing ended it (`endsAt`, or `ended` at
+ * `endedAt`: a desktop taken off the plan, an account closed with "stop my desktops now"), else the latest period end. A
+ * subscription that will not renew counts only to its period end, whatever its status says later (an account closed
+ * before then gets no more webhooks). Event times never count: a late or replayed event cannot move the date.
+ * `known` is false when no subscription ever paid for the cloud: nothing is deleted on that.
  */
-export function entitlementOf(subscriptions: readonly StoredSubscription[], cloud: { id: string; subscriptionId: string | null; endsAt?: number; ended?: boolean }, now: number): Entitlement {
+export function entitlementOf(subscriptions: readonly StoredSubscription[], cloud: { id: string; subscriptionId: string | null; endsAt?: number; ended?: boolean; endedAt?: number }, now: number): Entitlement {
   const mine = subscriptions.filter(s => s.id === cloud.subscriptionId || s.cloudId === cloud.id);
-  if (!mine.length) return { active: false, until: null };
+  if (!mine.length) return { active: false, until: null, known: false };
+  if (cloud.ended) return { active: false, until: cloud.endedAt ?? cloud.endsAt ?? null, known: true };
+  if (cloud.endsAt !== undefined && cloud.endsAt <= now) return { active: false, until: cloud.endsAt, known: true };
   let until = 0;
   for (const s of mine) {
     const periodEnd = s.currentPeriodEnd ?? 0;
-    const running = s.status === "active" || s.status === "payment_problem" || (s.status === "cancelled" && periodEnd > now);
-    if (running && s.cloudId !== cloud.id) {
-      const droppedAt = cloud.endsAt ?? (cloud.ended ? s.lastEventAt ?? s.updatedAt : null);
-      if (droppedAt === null) return { active: true, until: null };
-      if (droppedAt > now) return { active: true, until: null };
-      until = Math.max(until, droppedAt);
-      continue;
-    }
-    if (running) return { active: true, until: null };
+    if (s.cancelAtPeriodEnd && periodEnd > 0 && periodEnd <= now) { until = Math.max(until, periodEnd); continue; }
+    if (s.status === "active" || s.status === "payment_problem" || (s.status === "cancelled" && periodEnd > now)) return { active: true, until: null, known: true };
     if (s.status === "pending") continue;
-    until = Math.max(until, periodEnd, s.status === "ended" || s.status === "cancelled" ? s.lastEventAt ?? s.updatedAt : 0);
+    until = Math.max(until, periodEnd);
   }
-  return until > 0 ? { active: false, until } : { active: false, until: null };
+  return { active: false, until: until > 0 ? until : null, known: true };
 }
 
 export interface DeleteRequest { requestedAt: number; confirmedAt: number | null; executeAfter: number | null; cancelledAt: number | null }
