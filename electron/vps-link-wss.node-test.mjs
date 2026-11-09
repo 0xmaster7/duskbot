@@ -203,7 +203,7 @@ test("the app asks once for the server's https details, keeps them, and dials ss
       localCredentials: { codexAuth: async () => null, claudeCli: async () => null, claudeToken: async () => "" }, relaunch: () => {},
       proxyFactory: () => ({
         start: async () => "http://vps-aaaaaaaaaa.localhost:1", close: async () => {}, nudge: () => {},
-        control: async (op) => { asked.push(op); const answer = answers[op]; if (answer instanceof Error) throw answer; return answer; },
+        control: async (op) => { if (op === "hello") return answers.hello ?? { protocol: 2, caps: ["direct-ssh", "direct-wss"] }; asked.push(op); const answer = answers[op]; if (answer instanceof Error) throw answer; return answer; },
         useDirect: (spec) => used.push(spec),
       }),
       direct: {

@@ -316,7 +316,7 @@ test("the app asks a linked server for a direct key once, keeps it protected, an
   const first = make(config, saved);
   await first.link.resume();
   await until(() => first.used.length === 1);
-  assert.deepEqual(first.asked, [{ op: "direct-key", data: { pub: "ssh-ed25519 PUB" } }]);
+  assert.deepEqual(first.asked.filter((one) => one.op !== "hello"), [{ op: "direct-key", data: { pub: "ssh-ed25519 PUB" } }]);
   const kept = saved.get().links[0].direct;
   assert.equal(kept.keyP, "p:PRIVATE-KEY", "the private key is stored only protected");
   assert.equal(kept.host, "203.0.113.10");
@@ -326,7 +326,7 @@ test("the app asks a linked server for a direct key once, keeps it protected, an
   const again = make(config, saved);
   await again.link.resume();
   await until(() => again.used.length === 1);
-  assert.equal(again.asked.length, 0, "a saved direct path is used without asking again");
+  assert.deepEqual(again.asked.map((one) => one.op), ["hello"], "a saved direct path is used without asking again");
   await again.link.close();
 
   const old = store();

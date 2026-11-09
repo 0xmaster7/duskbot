@@ -120,6 +120,7 @@ export function installLinkDirectIpc({ ipcMain, pageOrigin, link }) {
  *   powerMonitor?: { on(event: string, listener: () => void): unknown, isOnBatteryPower?(): boolean },
  *   powerSaveBlocker?: { start(type: string): number, stop(id: number): void, isStarted(id: number): boolean },
  *   pageOrigin?(event: any): string | null,
+ *   appVersion?: string,
  * }} deps
  */
 export function installVpsLink(deps) {
@@ -145,6 +146,7 @@ export function installVpsLink(deps) {
   const seenAs = seenAsCache(async () => (await (await fetch(`${base}/v1/ip`, { signal: AbortSignal.timeout(5000) })).json())?.ip, { log });
   const link = createVpsLink({
     base,
+    appVersion: deps.appVersion,
     egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs }), ...(awake ? { onUse: awake.touch } : {}) }),
     serverFetch: (...args) => session.defaultSession.fetch(...args),
     store: jsonFile(path.join(userData, "vps-link.json")),

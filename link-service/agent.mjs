@@ -23,6 +23,18 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
 export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_PORT) || 8799 };
+/**
+ * the link protocol this agent speaks with the app, and the oldest app and server (server/link-protocol.ts) it works
+ * with. a change an older peer cannot work with raises the protocol and that peer's minimum; an optional feature is a
+ * capability instead, which the app checks for before it uses the feature
+ */
+export const LINK_PROTOCOL = 2;
+export const LINK_MIN_APP = 1;
+export const LINK_MIN_SERVER = 1;
+export const AGENT_VERSION = "2.0.0";
+export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "egress", "egress-lane"]);
+/** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
+export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
 const FRAME_SKEW_MS = 5 * 60_000;
 const CHUNK = 128 * 1024;
 /** one post stays well under a proxy's usual 1 MB body limit (nginx's default) */
@@ -1005,8 +1017,20 @@ async function directWss(context, readSpki = spkiOf) {
   return { v: 1, url, spki: await readSpki(target.hostname, Number(target.port) || 443) };
 }
 
+/** the server's version and link protocol, from its public descriptor; a server from before it counts as protocol 1 */
+export async function serverLink(read = () => local("GET", "/.well-known/openmausbot/environment")) {
+  try {
+    const answer = await read();
+    if (answer.status !== 200 || !answer.body || typeof answer.body !== "object") return null;
+    const { version, link } = answer.body;
+    const whole = (value) => (Number.isInteger(value) && value > 0 ? value : 1);
+    return { version: typeof version === "string" ? version.slice(0, 40) : null, protocol: whole(link?.protocol), minAgent: whole(link?.minAgent) };
+  } catch { return null; }
+}
+
 export async function control(op, data, context = {}) {
   if (op === "ping") return { ok: true };
+  if (op === "hello") return { ...agentHello(), server: await (context.serverLink ?? serverLink)() };
   if (op === "direct-key") return directKey(data, context);
   if (op === "direct-wss") return directWss(context, context.spkiOf);
   if (op === "direct-off") { if (context.id) setDirectKey(context.id, null); return { ok: true }; }
@@ -1825,7 +1849,7 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
   input.on("end", () => finish("closed"));
   input.on("close", () => finish("closed"));
   output.write(DIRECT_MAGIC);
-  writer.push({ t: "hello", v: 1 });
+  writer.push({ t: "hello", v: 1, ...agentHello() });
   const session = {
     done, stop: () => finish("stopped"), live: () => !ended && greeted,
     path: { send: (frame) => writer.push(frame), bytes: (r, chunk) => writer.bytes(r, chunk, true), queued: () => writer.size, onDrain: (resume) => writer.onDrain(resume) },

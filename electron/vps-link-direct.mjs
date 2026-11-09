@@ -339,10 +339,10 @@ export function networkFingerprint(interfaces = networkInterfaces()) {
  * one direct link, kept up in the background: dial, wait for the agent's sealed hello, ping for liveness and rtt, redial
  * with backoff. `connect()` gives { readable, writable, close }. while it is not up, the caller uses the relay.
  */
-export function createDirectLink({ id, key: keyText, guard, connect, onFrame, onChange = () => {}, onFailure = () => {}, log = () => {}, pingMs = 5000, helloMs = 20_000, connectMs = 30_000, backoff = BACKOFF_MS, network = networkFingerprint, watchMs = 15_000 }) {
+export function createDirectLink({ id, key: keyText, guard, connect, onFrame, onChange = () => {}, onFailure = () => {}, log = () => {}, pingMs = 5000, helloMs = 20_000, connectMs = 30_000, backoff = BACKOFF_MS, network = networkFingerprint, watchMs = 15_000, hello = {} }) {
   const key = Buffer.from(keyText, "base64url");
   let state = "idle", conn = null, writer = null, closed = false, attempt = 0, retryTimer = null, watchTimer = null, pingTimer = null, helloTimer = null;
-  let rtt = null, everUp = false, pingSeq = 0, suspect = false, heardAt = 0, upAt = 0, failing = false, failedOn = null, via = null;
+  let rtt = null, everUp = false, pingSeq = 0, suspect = false, heardAt = 0, upAt = 0, failing = false, failedOn = null, via = null, peer = null;
   const outstanding = new Map();
   const waiters = new Set();
   const set = (next, extra = {}) => { state = next; for (const wake of [...waiters]) wake(); onChange({ state, ...extra }); };
@@ -442,6 +442,7 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
       if (!frame) return;
       if (frame.t === "hello") {
         clearTimeout(helloTimer);
+        peer = frame;
         everUp = true;
         failing = false;
         failedOn = null;
@@ -474,7 +475,7 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
     helloTimer = setTimeout(() => { if (conn === mine) drop("no hello"); }, helloMs);
     helloTimer.unref?.();
     link.writable.write(DIRECT_MAGIC);
-    writer.push({ t: "hello", v: 1 });
+    writer.push({ ...hello, t: "hello", v: 1 });
   }
 
   return {
@@ -496,6 +497,8 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
     },
     /** "ssh" or "wss": how the connection that is up now got there */
     via: () => (conn ? via : null),
+    /** the agent's last direct hello as it came (vps-link-compat.mjs agentInfo reads it), null before one */
+    peer: () => peer,
     push: (frame) => writer?.push(frame),
     bytes: (r, chunk, lane = false) => (writer ? writer.bytes(r, chunk, lane) : true),
     queued: () => writer?.size ?? 0,

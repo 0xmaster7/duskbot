@@ -524,7 +524,7 @@ function clampedDial(host, port) {
  * the tunnel's stream api; without it the vps's stream requests go unanswered. on the relay it has a queue and posts of
  * its own; while the direct path is up the agent dials over that instead, in the direct writer's lane.
  */
-export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
+export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS, hello = {} }) {
   const fetchImpl = given ?? relayFetch({ dial: clampedDial });
   const stream = streamChoice();
   let unwarm = () => {};
@@ -612,7 +612,7 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
     direct?.close();
     direct = null;
     if (!spec || closed) return;
-    direct = directFactory({ id, key: keyText, guard, connect: spec.connect, onFrame: (frame) => deliver(frame, "direct"), onChange: directChanged, onFailure: spec.onFailure ?? (() => {}), log });
+    direct = directFactory({ id, key: keyText, guard, connect: spec.connect, onFrame: (frame) => deliver(frame, "direct"), onChange: directChanged, onFailure: spec.onFailure ?? (() => {}), log, hello });
     direct.start();
   }
 
@@ -826,6 +826,8 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
     useDirect,
     /** the path a request started now would take */
     transport: () => (direct?.ready() ? "direct" : "relay"),
+    /** what the agent said in its last direct hello, or null */
+    agentHello: () => direct?.peer?.() ?? null,
     /** how the direct path is connected while it is up: "ssh" or "wss" */
     directVia: () => (direct?.ready() ? direct.via?.() ?? "ssh" : null),
     /** after a sleep or a network change: the relay reconnects at once on fresh sockets, the direct path proves itself */

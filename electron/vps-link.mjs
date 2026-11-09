@@ -5,6 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { APP_LINK_PROTOCOL, agentInfo, linkCompat, missingCap } from "./vps-link-compat.mjs";
 import { orderedConnect } from "./vps-link-direct.mjs";
 import { createRelayClient, createTunnelProxy, newLinkKeys, openResult } from "./vps-link-protocol.mjs";
 
@@ -62,6 +63,7 @@ const plain = (error, fallback) => {
  *   proxyFactory?: typeof createTunnelProxy,
  *   direct?: { newKey(): { privateKey: string, publicKey: string }, connector(config: { host: string, port: number, user: string, privateKey: string, hostKeys: string[] }): () => Promise<any>, wssConnector?(config: { url: string, spki: string }): () => Promise<any> },
  *   egress?: Parameters<typeof createTunnelProxy>[0]["egress"],
+ *   appVersion?: string,
  *   now?(): number,
  *   onChange?(view: any): void,
  *   log?(line: string): void,
@@ -76,6 +78,8 @@ export function createVpsLink(deps) {
   const proxyStarts = new Map();
   const sessionChecks = new Map();
   const signIns = new Map();
+  // what each linked server's agent said in the handshake (vps-link-compat.mjs agentInfo), in memory only
+  const peers = new Map();
   let state = read();
   let watching = null, moveTimer = null, closed = false, lastError = null;
   let setupGeneration = 0, setupAbort = null;
@@ -129,9 +133,38 @@ export function createVpsLink(deps) {
         : move ? { activity: { updatedAt: move.updatedAt ?? move.startedAt, progressAt: move.progressAt ?? move.startedAt } } : {}),
       server: link ? { id: link.envId, name: link.name, origin: link.origin } : null,
       mode: link?.mode ?? null,
+      compat: link ? compatView(link) : null,
       error: lastError,
       move: move ? { step: move.step, status: move.status, ...(move.chats ? { chats: move.chats } : {}), ...(move.bytes ? { bytes: move.bytes } : {}), ...(move.waitingFor ? { waitingFor: move.waitingFor } : {}), ...(move.error ? { error: move.error } : {}), ...(move.retryAt ? { retryAt: move.retryAt } : {}), ...(move.backupId ? { backupId: move.backupId } : {}), ...(move.kept ? { kept: true } : {}) } : null,
     };
+  }
+
+  /** whether the app, the agent and the server agree: null until the agent answered */
+  function compatView(link) {
+    const info = peers.get(link.id);
+    if (!info) return null;
+    const { update, message } = linkCompat(info, link.name);
+    return { update, message, agent: info.agent, server: info.server?.version ?? null, protocol: info.protocol, legacy: info.legacy };
+  }
+
+  /** asks the agent what it speaks, over the sealed relay; an agent from before the handshake says "unknown request" */
+  async function handshake(link, proxy) {
+    let said;
+    try { said = await proxy.control("hello", { protocol: APP_LINK_PROTOCOL, app: deps.appVersion ?? null }, 15_000); }
+    catch (error) {
+      if (!/unknown request/.test(String(error?.message))) {
+        const direct = proxy.agentHello?.();
+        if (direct) said = direct;
+        else { log(`vps link: ${link.name} did not say what it speaks (${error?.message ?? error})`); return; }
+      } else said = null;
+    }
+    if (closed || proxies.get(link.id) !== proxy) return;
+    const info = agentInfo(said);
+    const before = JSON.stringify(compatView(link));
+    peers.set(link.id, info);
+    const after = compatView(link);
+    if (after.update) log(`vps link: ${after.message} (app protocol ${APP_LINK_PROTOCOL}, agent ${info.agent ?? "older"} protocol ${info.protocol}, server ${info.server?.version ?? "unknown"})`);
+    if (JSON.stringify(after) !== before) onChange(view());
   }
 
   // ---- setup ----
@@ -305,7 +338,8 @@ export function createVpsLink(deps) {
     const starting = (async () => {
       const [key, token] = await Promise.all([unprotect(link.keyP), unprotect(link.tokenP)]);
       if (closed) throw new Error("The app is closing.");
-      let proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: link.port ?? 0, log, egress: deps.egress });
+      const hello = { protocol: APP_LINK_PROTOCOL, app: deps.appVersion ?? null };
+      let proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: link.port ?? 0, log, egress: deps.egress, hello });
       proxies.set(link.id, proxy);
       let origin;
       try {
@@ -313,7 +347,7 @@ export function createVpsLink(deps) {
         catch (error) {
           if (error?.code !== "EADDRINUSE" || closed) throw error;
           await proxy.close();
-          proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: 0, log, egress: deps.egress });
+          proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: 0, log, egress: deps.egress, hello });
           proxies.set(link.id, proxy);
           origin = await proxy.start();
         }
@@ -325,7 +359,7 @@ export function createVpsLink(deps) {
           link.port = port;
           write();
         }
-        void directFor(link, proxy);
+        void handshake(link, proxy).finally(() => directFor(link, proxy));
         return proxy;
       } catch (error) {
         if (proxies.get(link.id) === proxy) proxies.delete(link.id);
@@ -373,6 +407,8 @@ export function createVpsLink(deps) {
   /** the server's https address for the direct path and its pinned key, asked over the sealed relay; again an hour later when it had none */
   async function wssFor(link, proxy) {
     if (!deps.direct.wssConnector || wssValid(link.wss)) return;
+    const lacking = missingCap(peers.get(link.id), "direct-wss", link.name);
+    if (lacking) { log(`vps link: ${lacking}`); return; }
     if (link.wssCheckedAt && now() - link.wssCheckedAt < WSS_RETRY_MS) return;
     try {
       const answer = await proxy.control("direct-wss", {});
@@ -477,8 +513,14 @@ export function createVpsLink(deps) {
     return directSetting(origin);
   }
 
-  /** after a wake or a network change */
-  function nudge() { for (const proxy of proxies.values()) proxy.nudge?.(); }
+  /** after a wake or a network change; a server whose agent did not answer the handshake yet is asked again */
+  function nudge() {
+    for (const [id, proxy] of proxies) {
+      proxy.nudge?.();
+      const link = state.links.find((entry) => entry.id === id);
+      if (link && !peers.has(id)) void handshake(link, proxy);
+    }
+  }
 
   async function finish(pending, got, signal) {
     const active = () => !closed && !signal.aborted && state.pending === pending;
@@ -859,6 +901,7 @@ export function createVpsLink(deps) {
     await proxies.get(link.id)?.close();
     proxies.delete(link.id);
     if (link.envId) deps.forgetServer(link.envId);
+    peers.delete(link.id);
     state.links = state.links.filter((entry) => entry.id !== link.id);
     state.current = state.links.at(-1)?.id ?? null;
     if (state.move?.linkId === link.id) state.move = null;
