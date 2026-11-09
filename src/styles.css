@@ -2009,12 +2009,12 @@ body {
   from { transform: translateY(4px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+/* the transcript's one row entrance (use-arrival-flow.ts rowEnter): a 12px rise at full opacity */
 @keyframes bubble-in {
-  from { transform: translateY(6px); opacity: 0; }
-  to { transform: none; opacity: 1; }
+  from { transform: translateY(12px); }
 }
 .reply-bubble-in {
-  animation: bubble-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: bubble-in 240ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
 }
 /* mascot arrives at the tail */
 @keyframes turn-mascot-in {
