@@ -5,6 +5,7 @@ import { DATA_DIR } from "./config.ts";
 import { augmentedPath } from "./env-path.ts";
 import { prepareVpsSsh } from "./vps-ssh.ts";
 import { sandboxComputerResultLine } from "./sandbox-computer-guidance.ts";
+import { createBotPointerReporter } from "./bot-pointer.ts";
 
 const [alias, containerName, screenJson] = process.argv.slice(2);
 const sshAlias = alias ?? "";
@@ -29,5 +30,5 @@ runMcpBridge({
   // Probe the transport, not the driver: a busy desktop mid-tool-call must never look dead.
   liveness: { command: "docker", args: vpsDockerArgs(sshAlias, ["version", "--format", "{{.Server.Version}}"]) },
   rewriteResponse: sandboxComputerResultLine,
-  ...(controlUrl && controlToken ? { gate: { url: controlUrl, token: controlToken } } : {}),
+  ...(controlUrl && controlToken ? { gate: { url: controlUrl, token: controlToken }, observe: createBotPointerReporter({ url: controlUrl, token: controlToken }) } : {}),
 });

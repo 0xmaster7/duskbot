@@ -182,7 +182,7 @@ import {
 } from "./config.ts";
 import { serveStatic } from "./static-files.ts";
 import { startUpkeep } from "./host/start-upkeep.ts";
-import { ComputerControl } from "./computer-control.ts";
+import { ComputerControl } from "./computer-control.ts"; import { answerBotPointer } from "./bot-pointer.ts";
 import { resetPathCache } from "./env-path.ts";
 import { registerEnginesBinDir } from "./engine-install.ts";
 import { appendUsage, flushUsageLedger, queuedTurnTrigger, usageTriggerFor, type UsageRow, type UsageTrigger } from "./usage-ledger.ts"; import { createUsageAttribution } from "./usage-attribution.ts";
@@ -14750,7 +14750,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           res.once("close", () => { if (!res.writableEnded) abort.abort(); });
           return json(res, 200, await computerCallGate(internalCapability, abort.signal, yourComputerCallFrom(url.searchParams)));
         }
-        return json(res, 405, { error: "method not allowed" });
+        return method === "POST" ? json(res, ...answerBotPointer(await readInternalBody(), (pointer) => broadcast({ kind: "computer-pointer", botId, threadId: internalCapability.threadId, ...pointer }))) : json(res, 405, { error: "method not allowed" });
       }
       if (method === "POST" && path === "/api/internal/connectors/request") {
         const body = await readInternalBody();

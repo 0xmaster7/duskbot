@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { CONTROL_REFUSAL_PLAIN, CONTROL_UNCONFIRMED, CONTROL_WAITED, type ControlState } from "./control-client.ts";
 import {
   completeFor,
+  createCallWatch,
   createChildCalls,
   createGateInterceptor,
   createInactivityWatchdog,
@@ -360,6 +361,35 @@ describe("createChildCalls", () => {
     const closed = { content: [{ type: "text", text: "Computer-control transport closed" }], isError: true };
     await expect(waiting).resolves.toEqual(closed);
     await expect(children.forCall(undefined).call("type_text", { text: "b" })).resolves.toEqual(closed);
+  });
+});
+
+describe("createCallWatch", () => {
+  const call = (id: unknown, name: string) => JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: { x: 1 }, _meta: { m: 1 } } });
+
+  it("matches the driver's answer to a wanted call by its id, once", () => {
+    const watch = createCallWatch((name) => name === "click");
+    watch.sent(call(5, "click"));
+    watch.sent(call(50, "get_window_state"));
+    expect(watch.answered('{"jsonrpc":"2.0","id":50,"result":{}}')).toBeNull();
+    expect(watch.answered('{"jsonrpc":"2.0","id":5,"result":{"content":[]}}')).toEqual({ call: { name: "click", arguments: { x: 1 } }, meta: { m: 1 }, refused: false });
+    expect(watch.answered('{"jsonrpc":"2.0","id":5,"result":{}}')).toBeNull();
+  });
+
+  it("tells a refused call apart, and matches string ids", () => {
+    const watch = createCallWatch(() => true);
+    watch.sent(call("a-1", "click"));
+    expect(watch.answered('{"jsonrpc":"2.0","id":"a-1","result":{"isError":true}}')?.refused).toBe(true);
+  });
+
+  it("keeps nothing without a wish, and forgets the oldest past its cap", () => {
+    const idle = createCallWatch();
+    idle.sent(call(1, "click"));
+    expect(idle.answered('{"jsonrpc":"2.0","id":1,"result":{}}')).toBeNull();
+    const watch = createCallWatch(() => true);
+    for (let id = 0; id < 65; id++) watch.sent(call(id, "click"));
+    expect(watch.answered('{"jsonrpc":"2.0","id":0,"result":{}}')).toBeNull();
+    expect(watch.answered('{"jsonrpc":"2.0","id":64,"result":{}}')).not.toBeNull();
   });
 });
 

@@ -116,6 +116,8 @@ export interface BridgeOptions {
   /** A tools/call the bridge carries out itself through the child, answering the agent with what this resolves to; null
    * forwards the frame as it came. Frames after it wait, so the agent's calls still act in order. */
   relay?: (call: ToolCall, child: ChildCalls) => Promise<unknown> | null;
+  /** Told once the driver has answered one of the agent's calls it `wants`, without holding the agent's stream. */
+  observe?: { wants: (name: string) => boolean; done: (call: ToolCall, child: ChildCalls, refused: boolean) => Promise<void> };
 }
 
 /** MCP stdio is one JSON-RPC frame per line, so line boundaries are the only safe place to inspect or inject. */
@@ -297,6 +299,33 @@ export function createChildCalls(write: (line: string) => void) {
   };
 }
 
+const WATCHED_MAX = 64;
+
+/** The agent's calls a bridge wants told about, matched to the driver's answers by the id at the front of each answer. */
+export function createCallWatch(wants?: (name: string) => boolean) {
+  const pending = new Map<string, { call: ToolCall; meta: unknown }>();
+  return {
+    sent(line: string): void {
+      if (!wants || !line.includes('"tools/call"')) return;
+      const frame = relayableCall(line);
+      if (!frame || !wants(frame.call.name)) return;
+      // a call the gate refused is answered by the bridge, never by the driver, so its entry ages out here
+      if (pending.size >= WATCHED_MAX) pending.delete(pending.keys().next().value!);
+      pending.set(JSON.stringify(frame.id), { call: frame.call, meta: frame.meta });
+    },
+    answered(line: string): { call: ToolCall; meta: unknown; refused: boolean } | null {
+      if (!pending.size) return null;
+      const head = line.slice(0, 160);
+      for (const [id, entry] of pending) {
+        if (!head.includes(`"id":${id},`) && !head.includes(`"id":${id}}`)) continue;
+        pending.delete(id);
+        return { ...entry, refused: line.includes('"isError":true') };
+      }
+      return null;
+    },
+  };
+}
+
 export function runMcpBridge(options: BridgeOptions): void {
   const env = options.env ?? { ...process.env, PATH: augmentedPath() };
   const { command, args } = resolveCliSpawn(options.command, options.args, env);
@@ -345,8 +374,10 @@ export function runMcpBridge(options: BridgeOptions): void {
     ...(client ? { gate: { check: (frame: unknown) => client.state(true, options.gate?.describe?.(frame)) } } : {}),
   });
   let pendingInput = Promise.resolve();
+  const observed = createCallWatch(options.observe?.wants);
   const inbound = createLineSplitter((line) => {
     toolLists.observeRequest(line);
+    observed.sent(line);
     const completion = intercept(line);
     if (completion) pendingInput = completion;
   });
@@ -360,7 +391,10 @@ export function runMcpBridge(options: BridgeOptions): void {
   });
 
   const outbound = createLineSplitter((line) => {
-    if (!children.take(line)) respond(line);
+    if (children.take(line)) return;
+    respond(line);
+    const answered = observed.answered(line);
+    if (answered && options.observe) void options.observe.done(answered.call, children.forCall(answered.meta), answered.refused).catch(() => {});
   });
   child.stdout.on("data", (chunk) => outbound.push(chunk));
   child.stdout.on("end", () => outbound.flush());

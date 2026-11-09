@@ -3260,6 +3260,19 @@ describe("harness HTTP API", () => {
       expect((await readJsonFileWhenReady<ComputerDump>(fakeClaudeDump)).mcpConfig.mcpServers.computer?.args)
         .toEqual(expect.arrayContaining([expect.stringMatching(/vps-container-mcp\.(?:ts|js)$/)]));
       await reachForComputer();
+      // the bridge's report of where the bot just acted reaches whoever watches that computer, and only as whole pixels
+      const computerEnv = (await readJsonFileWhenReady<{ mcpConfig: { mcpServers: { computer: { env: Record<string, string> } } } }>(fakeClaudeDump)).mcpConfig.mcpServers.computer.env;
+      const pointers = await openSse(`${BASE}/api/events`);
+      try {
+        const report = (body: unknown) => fetch(computerEnv.OMB_CONTROL_URL, { method: "POST", body: JSON.stringify(body),
+          headers: { authorization: `Bearer ${computerEnv.OMB_CONTROL_TOKEN}`, "content-type": "application/json" } });
+        expect((await report({ x: 12, y: 34, phase: "click" })).status).toBe(200);
+        expect(await pointers.until((frame) => frame.kind === "computer-pointer")).toMatchObject({ botId: botIds[0], x: 12, y: 34, phase: "click" });
+        expect((await report({ x: 1.5, y: 2, phase: "click" })).status).toBe(400);
+        expect((await fetch(computerEnv.OMB_CONTROL_URL, { method: "POST", body: "{}" })).status).toBe(401);
+      } finally {
+        pointers.close();
+      }
       const firstThread = (await api("GET", "/api/bots?messages=0")).body.bots.find((b: { id: string }) => b.id === botIds[0]).threadId;
       const sibling = (await api("POST", `/api/bots/${botIds[0]}/tasks`, { title: "Waiting sibling" })).body.task;
       rmSync(fakeClaudeDump, { force: true });
