@@ -6226,7 +6226,6 @@
   "createBot.creating": "Tworzenie…",
   "elsewhere.botsOn.title": "Twoje boty są na {name}",
   "elsewhere.why.moved": "Przeniesiono Twoje boty, czaty i rutyny na {name}, więc Ten komputer nie ma własnych. Dlatego to okno wygląda na puste.",
-  "elsewhere.why.cloud": "{name} to Twoja Cloud i tam żyją Twoje boty. To okno pokazuje Ten komputer, który nie ma własnych.",
   "elsewhere.why.team": "{name} to Cloud Twojego zespołu i tam żyją Twoje boty. To okno pokazuje Ten komputer, który nie ma własnych.",
   "elsewhere.why.server": "{name} to połączony przez Ciebie serwer i tam żyją Twoje boty. To okno pokazuje Ten komputer, który nie ma własnych.",
   "elsewhere.open": "Otwórz {name}",

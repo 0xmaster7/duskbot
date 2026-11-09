@@ -6251,7 +6251,6 @@
   "createBot.creating": "作成中…",
   "elsewhere.botsOn.title": "ボットは {name} にあります",
   "elsewhere.why.moved": "ボット、チャット、ルーティンを {name} に移したため、このコンピューターには自分のボットがありません。このウィンドウが空に見えるのはそのためです。",
-  "elsewhere.why.cloud": "{name} はあなたの Cloud で、ボットはそこにいます。このウィンドウはボットのないこのコンピューターを表示しています。",
   "elsewhere.why.team": "{name} はチームの Cloud で、ボットはそこにいます。このウィンドウはボットのないこのコンピューターを表示しています。",
   "elsewhere.why.server": "{name} はあなたが接続したサーバーで、ボットはそこにいます。このウィンドウはボットのないこのコンピューターを表示しています。",
   "elsewhere.open": "{name} を開く",

@@ -3289,7 +3289,6 @@
   "createBot.creating": "Création…",
   "elsewhere.botsOn.title": "Tes bots sont sur {name}",
   "elsewhere.why.moved": "Tu as déplacé tes bots, discussions et routines vers {name}, donc Cet ordinateur n'en a aucun. C'est pour ça que cette fenêtre semble vide.",
-  "elsewhere.why.cloud": "{name} est ton Cloud, et tes bots y vivent. Cette fenêtre affiche Cet ordinateur, qui n'en a aucun.",
   "elsewhere.why.team": "{name} est le Cloud de ton équipe, et tes bots y vivent. Cette fenêtre affiche Cet ordinateur, qui n'en a aucun.",
   "elsewhere.why.server": "{name} est un serveur que tu as relié, et tes bots y vivent. Cette fenêtre affiche Cet ordinateur, qui n'en a aucun.",
   "elsewhere.open": "Ouvrir {name}",

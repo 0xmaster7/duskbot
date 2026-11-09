@@ -6094,7 +6094,6 @@
   "createBot.creating": "Criando…",
   "elsewhere.botsOn.title": "Seus bots estão em {name}",
   "elsewhere.why.moved": "Você moveu seus bots, chats e rotinas para {name}, então Este computador não tem nenhum próprio. É por isso que esta janela parece vazia.",
-  "elsewhere.why.cloud": "{name} é a sua Cloud, e seus bots vivem lá. Esta janela mostra Este computador, que não tem nenhum próprio.",
   "elsewhere.why.team": "{name} é a Cloud da sua equipe, e seus bots vivem lá. Esta janela mostra Este computador, que não tem nenhum próprio.",
   "elsewhere.why.server": "{name} é um servidor que você conectou, e seus bots vivem lá. Esta janela mostra Este computador, que não tem nenhum próprio.",
   "elsewhere.open": "Abrir {name}",

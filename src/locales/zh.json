@@ -6815,7 +6815,6 @@
   "createBot.creating": "正在创建…",
   "elsewhere.botsOn.title": "你的机器人在 {name}",
   "elsewhere.why.moved": "你已把机器人、聊天和例行任务移到 {name}，所以这台电脑没有自己的机器人。这就是这个窗口看起来是空的原因。",
-  "elsewhere.why.cloud": "{name} 是你的 Cloud，你的机器人在那里。这个窗口显示的是没有自己机器人的这台电脑。",
   "elsewhere.why.team": "{name} 是你团队的 Cloud，你的机器人在那里。这个窗口显示的是没有自己机器人的这台电脑。",
   "elsewhere.why.server": "{name} 是你连接的服务器，你的机器人在那里。这个窗口显示的是没有自己机器人的这台电脑。",
   "elsewhere.open": "打开 {name}",

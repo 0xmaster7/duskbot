@@ -5185,7 +5185,6 @@
   "createBot.creating": "Oluşturuluyor…",
   "elsewhere.botsOn.title": "Botların {name} üzerinde",
   "elsewhere.why.moved": "Botlarını, sohbetlerini ve rutinlerini {name} üzerine taşıdın, bu yüzden Bu bilgisayarın kendine ait botu yok. Bu pencerenin boş görünmesinin nedeni bu.",
-  "elsewhere.why.cloud": "{name} senin Cloud'un ve botların orada yaşıyor. Bu pencere, kendine ait botu olmayan Bu bilgisayarı gösteriyor.",
   "elsewhere.why.team": "{name} ekibinin Cloud'u ve botların orada yaşıyor. Bu pencere, kendine ait botu olmayan Bu bilgisayarı gösteriyor.",
   "elsewhere.why.server": "{name} bağladığın bir sunucu ve botların orada yaşıyor. Bu pencere, kendine ait botu olmayan Bu bilgisayarı gösteriyor.",
   "elsewhere.open": "{name} aç",

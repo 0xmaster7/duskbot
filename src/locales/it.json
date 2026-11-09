@@ -6060,7 +6060,6 @@
   "createBot.creating": "Creazione…",
   "elsewhere.botsOn.title": "I tuoi bot sono su {name}",
   "elsewhere.why.moved": "Hai spostato bot, chat e routine su {name}, quindi Questo computer non ne ha di propri. Ecco perché questa finestra sembra vuota.",
-  "elsewhere.why.cloud": "{name} è il tuo Cloud e i tuoi bot vivono lì. Questa finestra mostra Questo computer, che non ne ha di propri.",
   "elsewhere.why.team": "{name} è il Cloud del tuo team e i tuoi bot vivono lì. Questa finestra mostra Questo computer, che non ne ha di propri.",
   "elsewhere.why.server": "{name} è un server che hai collegato e i tuoi bot vivono lì. Questa finestra mostra Questo computer, che non ne ha di propri.",
   "elsewhere.open": "Apri {name}",

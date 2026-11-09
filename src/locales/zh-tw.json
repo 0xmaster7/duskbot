@@ -4735,7 +4735,6 @@
   "createBot.creating": "建立中…",
   "elsewhere.botsOn.title": "你的機器人在 {name}",
   "elsewhere.why.moved": "你已把機器人、聊天和例行工作移到 {name}，所以這台電腦沒有自己的機器人。這就是這個視窗看起來是空的原因。",
-  "elsewhere.why.cloud": "{name} 是你的 Cloud，你的機器人在那裡。這個視窗顯示的是沒有自己機器人的這台電腦。",
   "elsewhere.why.team": "{name} 是你團隊的 Cloud，你的機器人在那裡。這個視窗顯示的是沒有自己機器人的這台電腦。",
   "elsewhere.why.server": "{name} 是你連結的伺服器，你的機器人在那裡。這個視窗顯示的是沒有自己機器人的這台電腦。",
   "elsewhere.open": "開啟 {name}",

@@ -5185,7 +5185,6 @@
   "createBot.creating": "Đang tạo…",
   "elsewhere.botsOn.title": "Bot của bạn ở trên {name}",
   "elsewhere.why.moved": "Bạn đã chuyển bot, cuộc trò chuyện và quy trình sang {name}, nên Máy tính này không có bot riêng. Đó là lý do cửa sổ này trông trống.",
-  "elsewhere.why.cloud": "{name} là Cloud của bạn, và bot của bạn ở đó. Cửa sổ này đang hiện Máy tính này, nơi không có bot riêng.",
   "elsewhere.why.team": "{name} là Cloud của nhóm bạn, và bot của bạn ở đó. Cửa sổ này đang hiện Máy tính này, nơi không có bot riêng.",
   "elsewhere.why.server": "{name} là máy chủ bạn đã liên kết, và bot của bạn ở đó. Cửa sổ này đang hiện Máy tính này, nơi không có bot riêng.",
   "elsewhere.open": "Mở {name}",
