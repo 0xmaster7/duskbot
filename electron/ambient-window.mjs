@@ -13,10 +13,16 @@ const PRELOAD = fileURLToPath(new URL("./ambient-preload.cjs", import.meta.url))
  * @param {{ BrowserWindow: any, surface: "island" | "dock", url: () => string | null, level: string,
  *   platform?: string, onMessage: (channel: string, payload: unknown) => void, log?: (line: string) => void }} deps
  */
-export function createAmbientWindow({ BrowserWindow, surface, url, level, platform = process.platform, onMessage, log = () => {} }) {
+export function createAmbientWindow({ BrowserWindow, surface, url, level, platform = process.platform, onMessage, log = () => {}, trace = null }) {
   let win = null, loaded = false, interactive = false, bounds = null, page = null, keyed = false, typing = false;
+  // from the pointer reaching the surface until its page says it has finished closing: nothing moves or resizes the
+  // window meanwhile (a new place waits in `held`), so a closing animation always plays out where it started
+  let settling = false, held = null;
   const queued = new Map();
   const live = () => Boolean(win && !win.isDestroyed());
+  const note = (event, detail) => trace?.(surface, event, detail);
+  /** Every window action goes through here, so a trace (ambient-trace.mjs) sees each one with its time. */
+  const call = (name, detail, fn) => { note(`win:${name}`, detail); return fn(); };
 
   // macOS shows a page's cursor (the pointing hand) only in the key window or the active app, and these panels are
   // neither while another app is in front. Over the shape the panel becomes key: Electron's focus() on a panel does
@@ -26,19 +32,27 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
   function takeKey() {
     if (!keyOnHover || keyed || win.isFocused?.()) return;
     keyed = true;
-    win.focus();
+    call("focus", "", () => win.focus());
   }
   // giving the key back on macOS (Electron's blur) orders the panel out and back in, which would cut its closing
   // animation short: it waits until the page says the surface has finished closing, or SETTLE_WAIT_MS at most
   let settleWait = null;
   function giveKeyBack() {
     clearTimeout(settleWait); settleWait = null;
-    if (!keyed || typing || interactive || !live()) return;
+    if (interactive || !live()) return;
+    if (settling) { settling = false; note("settled"); }
+    if (held) { const next = held; held = null; setBounds(next); }
+    if (!keyed || typing) return;
     keyed = false;
-    if (win.isFocused?.() !== false) win.blur();
+    if (win.isFocused?.() !== false) call("blur", "", () => win.blur());
+  }
+  function setBounds(next) {
+    const now = win.getBounds();
+    if (now.x === next.x && now.y === next.y && now.width === next.width && now.height === next.height) return;
+    call("setBounds", JSON.stringify(next), () => win.setBounds(next));
   }
   function giveKeyBackOnceSettled() {
-    if (!keyed || typing) return;
+    if ((!keyed && !settling) || typing) return;
     clearTimeout(settleWait);
     settleWait = setTimeout(giveKeyBack, SETTLE_WAIT_MS);
     settleWait.unref?.();
@@ -46,12 +60,22 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
 
   function passThrough(on) {
     if (!live()) return;
+    if (on === interactive) return;
     interactive = on;
-    if (on) { clearTimeout(settleWait); settleWait = null; win.setIgnoreMouseEvents(false); takeKey(); }
-    else { win.setIgnoreMouseEvents(true, { forward: true }); giveKeyBackOnceSettled(); }
+    note(on ? "pointer-on" : "pointer-off");
+    if (on) {
+      clearTimeout(settleWait); settleWait = null;
+      settling = true;
+      call("setIgnoreMouseEvents", "false", () => win.setIgnoreMouseEvents(false));
+      takeKey();
+    } else {
+      call("setIgnoreMouseEvents", "true forward", () => win.setIgnoreMouseEvents(true, { forward: true }));
+      giveKeyBackOnceSettled();
+    }
   }
 
   function create(address) {
+    note("win:create", JSON.stringify(bounds));
     const target = new BrowserWindow({
       ...(platform === "darwin" ? { type: "panel" } : {}),
       ...bounds,
@@ -80,7 +104,7 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
         // its closing and opening play in full even while macOS reorders the panel
         backgroundThrottling: false,
         preload: PRELOAD,
-        additionalArguments: [`--omb-ambient=${surface}`],
+        additionalArguments: [`--omb-ambient=${surface}`, ...(trace ? ["--omb-ambient-trace=1"] : [])],
       },
     });
     overlays.add(target);
@@ -95,7 +119,7 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
       if (win !== target) return;
       loaded = true;
       for (const [channel, payload] of queued) target.webContents.send(channel, payload);
-      if (!target.isVisible()) target.showInactive();
+      if (!target.isVisible()) call("showInactive", "", () => target.showInactive());
     });
     target.webContents.on("did-fail-load", (_event, code, description, _url, mainFrame) => {
       if (mainFrame && code !== -3) log(`ambient ${surface} page failed to load: ${description || code}`);
@@ -112,7 +136,11 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
         if (live() && !typing) giveKeyBackOnceSettled();
         return;
       }
-      if (channel === "ambient:settled") return giveKeyBack();
+      if (channel === "ambient:settled") { note("page:settled"); return giveKeyBack(); }
+      if (channel === "ambient:trace") {
+        if (payload && typeof payload === "object") note(`page:${String(payload.event ?? "").slice(0, 60)}`, `${String(payload.detail ?? "").slice(0, 200)}${Number.isFinite(payload.t) ? ` @page ${payload.t}` : ""}`);
+        return;
+      }
       try { onMessage(channel, payload); } catch (error) { log(`ambient ${surface} ${channel} failed: ${error?.message ?? error}`); }
     });
     target.on("closed", () => { if (win === target) { win = null; loaded = false; } });
@@ -123,8 +151,8 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
   function close() {
     const target = win;
     clearTimeout(settleWait); settleWait = null;
-    win = null; loaded = false; interactive = false; page = null; keyed = false; typing = false;
-    if (target && !target.isDestroyed()) target.destroy();
+    win = null; loaded = false; interactive = false; page = null; keyed = false; typing = false; settling = false; held = null;
+    if (target && !target.isDestroyed()) call("destroy", "", () => target.destroy());
   }
 
   return {
@@ -140,8 +168,9 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
         win = create(address);
         return;
       }
-      const now = win.getBounds();
-      if (now.x !== next.x || now.y !== next.y || now.width !== next.width || now.height !== next.height) win.setBounds(next);
+      // never under a surface that is in use or still closing: it moves once that has played out
+      if (settling || interactive) { held = next; note("place-held", JSON.stringify(next)); return; }
+      setBounds(next);
     },
     /** Sends now if the page is up; the newest of each kind is replayed when it loads. */
     send(channel, payload) {
