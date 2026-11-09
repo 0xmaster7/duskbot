@@ -133,8 +133,8 @@ describe("bot-first sidebar", () => {
     const line = markup.slice(markup.indexOf(">Done.<"));
     expect(line).toMatch(/^>Done\.<\/span><\/span><\/div><span class="sr-only">Unread<\/span>/);
     const name = markup.slice(markup.indexOf('class="flex items-baseline justify-between gap-2 pr-7"'), markup.indexOf(">Done.<"));
-    expect(name).toMatch(/<span aria-hidden="true" data-row-dot="" class="pointer-events-none absolute inset-y-0 right-2 flex items-center transition-opacity duration-\[120ms\] group-has-\[:focus-visible\]:opacity-0 touch:opacity-0 max-md:hidden"><span data-testid="unread-dot" title="Unread" class="size-2 shrink-0 rounded-full bg-accent"><\/span><\/span>/);
-    expect(name).toContain('<span aria-hidden="true" title="Unread" class="size-2 shrink-0 rounded-full bg-accent hidden self-center max-md:block touch:block"></span>');
+    expect(name).toMatch(/<span aria-hidden="true" data-row-dot="" class="pointer-events-none absolute inset-y-0 right-2 flex items-center transition-opacity duration-\[120ms\] group-has-\[:focus-visible\]:opacity-0 touch:opacity-0 max-md:hidden"><span data-testid="unread-dot" title="Unread activity" class="size-2 shrink-0 rounded-full animate-\[omb-fade-in_130ms_cubic-bezier\(\.22,1,\.36,1\)\] bg-\[var\(--color-unread,var\(--color-accent\)\)\]"><\/span><\/span>/);
+    expect(name).toContain('<span aria-hidden="true" title="Unread activity" class="size-2 shrink-0 rounded-full animate-[omb-fade-in_130ms_cubic-bezier(.22,1,.36,1)] bg-[var(--color-unread,var(--color-accent))] hidden self-center max-md:block touch:block"></span>');
     expect(markup).not.toContain("data-provider-mark=");
     expect(String(findElement(tree, "data-sidebar-bot-row", bot.id)!.props.className)).not.toContain("group-hover:pr-9");
     expect(markup).not.toContain("group-hover:pr-7");

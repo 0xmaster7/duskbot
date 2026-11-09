@@ -841,6 +841,7 @@
   --color-accent: #126fd4;
   --color-accent-border: #1680f3; /* sand-bg-accent-primary, the switch blue */
   --color-accent-text: #0b69cc;
+  --color-unread: #0b6dd3;        /* sand-text-accent-primary, grok's unread dot */
   --color-focus: #858585;
   --color-accent-ink: #ffffff;
   --color-composer: #ffffff;
