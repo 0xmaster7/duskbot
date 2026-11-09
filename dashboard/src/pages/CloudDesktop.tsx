@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { AppWindow, Check } from "lucide-react";
 import { useCloud } from "../data/cloud";
-import type { CloudDesktop, DesktopTier, PlanCatalog } from "../data/contracts";
+import type { CloudDesktop, DesktopTier, PlanCatalog, SlackWake } from "../data/contracts";
 import { botsLine, desktopMonthly, desktopOf, dollars, specLine } from "../data/pricing";
 import { useSession } from "../data/session";
+import { api, ApiError } from "../lib/api";
 import { longDate } from "../lib/format";
 import { SETUP_LABELS } from "../data/live";
 import { SETUP_STEPS } from "../data/wire";
 import { Link } from "../lib/router";
 import { appLink, openApp } from "../lib/app-link";
-import { Choice, Modal } from "../ui/controls";
+import { Choice, Modal, Switch } from "../ui/controls";
 import { Button, Card, cx, KV, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 import { useWorkspaceDetail } from "../data/detail";
@@ -129,6 +130,49 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
   );
 }
 
+function SlackWakeSetting({ cloud }: { cloud: CloudDesktop }) {
+  const { toast } = useSession();
+  const [wake, setWake] = useState<SlackWake | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (busy) return;
+    const ctl = new AbortController();
+    let unavailable = false;
+    let loading = false;
+    const load = async () => {
+      if (unavailable || loading || document.visibilityState !== "visible") return;
+      loading = true;
+      try {
+        const answer = await api.slackWake(cloud.id, ctl.signal);
+        if (!ctl.signal.aborted) { setWake(answer); unavailable = !answer.available; }
+      } catch (e) {
+        if (!ctl.signal.aborted && e instanceof ApiError && e.status === 404) { setWake(null); unavailable = true; }
+      } finally { loading = false; }
+    };
+    void load();
+    const timer = setInterval(() => void load(), 15_000);
+    document.addEventListener("visibilitychange", load);
+    return () => { ctl.abort(); clearInterval(timer); document.removeEventListener("visibilitychange", load); };
+  }, [cloud.id, cloud.status, busy]);
+  const change = async (enabled: boolean) => {
+    setBusy(true);
+    try { setWake(await api.setSlackWake(cloud.id, enabled)); }
+    catch (e) {
+      if (e instanceof ApiError && e.status === 404) setWake(null);
+      else toast((e as Error).message, "bad");
+    } finally { setBusy(false); }
+  };
+  if (!wake?.available) return null;
+  const waiting = (wake.state === "holding" || wake.state === "waking") && wake.buffered > 0;
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 py-3">
+      <dt className="text-14 text-ink-3">Wake for Slack</dt>
+      <dd><Switch label="Wake for Slack" checked={wake.enabled} disabled={busy} onChange={(enabled) => void change(enabled)} /></dd>
+      <dd className="col-span-2 text-13 text-ink-3" aria-live="polite">{waiting ? `${wake.buffered} Slack ${wake.buffered === 1 ? "message" : "messages"} waiting, waking ${cloud.name}` : "While it sleeps we keep its Slack connection, seal each message to this desktop and wake it. Only the desktop can read them."}</dd>
+    </div>
+  );
+}
+
 function Live({ cloud }: { cloud: CloudDesktop }) {
   const { catalog, billing } = useCloud();
   const { pick, workspace } = useSession();
@@ -162,6 +206,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
           <dl className="divide-y divide-line">
             <KV k="Runs on" v={cloud.placement === "shared" ? "Shared, own sandbox" : "Its own machine"} />
             <KV k="Bot computers" v={`${detail?.report?.computers?.computers.length ?? cloud.botComputers.used} of ${cloud.botComputers.limit === null ? "unlimited" : cloud.botComputers.limit}`} />
+            {(cloud.status === "running" || cloud.status === "sleeping") && <SlackWakeSetting key={cloud.id} cloud={cloud} />}
             <KV k="Created" v={longDate(cloud.createdAt)} />
             {sub && <KV k={sub.cancelAt ? "Ends" : "Renews"} v={longDate(sub.cancelAt ?? sub.currentPeriodEnd)} />}
           </dl>
