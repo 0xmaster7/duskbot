@@ -212,7 +212,9 @@ describe("billing service isolated fixture", () => {
     await service.change(owner, sub.id, service.previewChange(owner, sub.id, team).confirmation);
     expect(clouds.changePlan).not.toHaveBeenCalled(); expect(service.licenses(owner.id)[0]).toMatchObject({ kind: "team", seats: 5 });
     await service.change(owner, sub.id, service.previewChange(owner, sub.id, { ...team, desktop: { kind: "none" } }).confirmation);
-    expect(clouds.end).toHaveBeenLastCalledWith(cloudId, time + 7 * day); expect(sub.cloudId).toBeNull();
+    // paid to the period's end: it runs until then, and the 7 days start there
+    const periodEnd = sub.currentPeriodEnd!; expect(periodEnd).toBeGreaterThan(time);
+    expect(clouds.end).toHaveBeenLastCalledWith(cloudId, periodEnd + 7 * day, periodEnd); expect(sub.cloudId).toBeNull();
   });
   it("records failed invoices once and upgrades the same payment on success", async () => {
     await service.checkout(owner, { kind: "credits", pack: "c10" });

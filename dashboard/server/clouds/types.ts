@@ -100,6 +100,8 @@ export interface StoredCloud {
   hidden: boolean;
   paymentProblem: boolean;
   ended?: boolean;
+  /** dropped from a plan that is paid to this time: runs until then, then ends */
+  endsAt?: number;
   /** suspended for abuse: stays stopped until an operator resumes it */
   suspended: string | null;
   /** set while the plan is cancelled or ended; the server is destroyed after it */
@@ -143,8 +145,8 @@ export interface CloudsService {
   /** destroyed at `at` unless cancelled (keep plan, renewed) */
   scheduleDestroy(cloudId: string, at: number): void;
   cancelDestroy(cloudId: string): void;
-  /** the plan ended: stopped now, destroyed at `destroyAt` */
-  end(cloudId: string, destroyAt: number): void;
+  /** the plan ended: stopped at `from` (now when it is not later), destroyed at `destroyAt` */
+  end(cloudId: string, destroyAt: number, from?: number): void;
   /** a checkout that never completed */
   abandon(cloudId: string): void;
   scrubAccount(accountId: string, anonId: string): void;
