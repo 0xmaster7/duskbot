@@ -4070,6 +4070,7 @@
   "vpsLink.transfer.moveBack": "搬回這台{device}",
   "vpsLink.transfer.moveBackHint": "把 {name} 上的一切搬回這台{device}",
   "vpsLink.transfer.moveBackConfirm": "要把 {name} 上的一切搬回這台{device}嗎？會先儲存一份備份。",
+  "vpsLink.transfer.moveBackRoutines": "例行任務搬回來時是暫停的：搬完後請重新開啟。",
   "vpsLink.transfer.moveBackStarted": "正在搬回。完成後 App 會重新啟動。",
   "vpsLink.transfer.forget": "移除 {name}",
   "vpsLink.transfer.forgetHint": "與這個 App 解除連結。那邊不會刪除任何東西。",
@@ -4730,5 +4731,7 @@
   "mobile.unreachable.others": "其他安裝",
   "composer.freeBackup": "目前由 {engine} 的免費備用模型回答",
   "composer.freeBackup.connect": "連接你的 AI",
-  "createBot.creating": "建立中…"
+  "createBot.creating": "建立中…",
+  "keys.row.removeConfirm": "移除{label}？在你重新貼上之前，所有用到它的功能都會停止運作。",
+  "confirm.signOutStopsWork": "使用它的機器人需要重新登入。它們目前用它進行的工作會停止。"
 }

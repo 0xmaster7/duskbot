@@ -4528,6 +4528,7 @@
   "vpsLink.transfer.moveBack": "Chuyển về {device} này",
   "vpsLink.transfer.moveBackHint": "Mang mọi thứ từ {name} về {device} này",
   "vpsLink.transfer.moveBackConfirm": "Mang mọi thứ từ {name} về {device} này? Một bản sao lưu được lưu trước.",
+  "vpsLink.transfer.moveBackRoutines": "Các quy trình sẽ chuyển về ở trạng thái tạm dừng: hãy bật lại sau khi chuyển xong.",
   "vpsLink.transfer.moveBackStarted": "Đang chuyển về. Ứng dụng sẽ khởi động lại khi xong.",
   "vpsLink.transfer.forget": "Quên {name}",
   "vpsLink.transfer.forgetHint": "Gỡ liên kết khỏi ứng dụng này. Không có gì trên đó bị xóa.",
@@ -5180,5 +5181,7 @@
   "mobile.unreachable.others": "Các bản cài đặt khác",
   "composer.freeBackup": "Một mô hình dự phòng miễn phí của {engine} đang trả lời",
   "composer.freeBackup.connect": "Kết nối AI của bạn",
-  "createBot.creating": "Đang tạo…"
+  "createBot.creating": "Đang tạo…",
+  "keys.row.removeConfirm": "Gỡ {label}? Mọi thứ dùng nó sẽ ngừng hoạt động cho đến khi bạn dán lại.",
+  "confirm.signOutStopsWork": "Các bot dùng nó sẽ cần đăng nhập lại. Mọi việc chúng đang làm với nó sẽ dừng lại."
 }

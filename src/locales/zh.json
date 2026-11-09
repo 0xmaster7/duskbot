@@ -5924,6 +5924,7 @@
   "keys.row.hide": "隐藏密钥",
   "keys.row.replace": "替换",
   "keys.row.remove": "移除",
+  "keys.row.removeConfirm": "移除{label}？在你重新粘贴之前，所有用到它的功能都会停止工作。",
   "keys.row.useOwn": "使用你自己的密钥",
   "keys.row.getKey": "获取密钥",
   "keys.row.endsIn": "{label} 已保存，末四位为 {last4}",
@@ -6193,6 +6194,7 @@
   "vpsLink.transfer.moveBack": "搬回这台{device}",
   "vpsLink.transfer.moveBackHint": "把 {name} 上的一切搬回这台{device}",
   "vpsLink.transfer.moveBackConfirm": "把 {name} 上的一切搬回这台{device}吗？会先保存一份备份。",
+  "vpsLink.transfer.moveBackRoutines": "例行任务搬回来时是暂停的：搬完后请重新打开。",
   "vpsLink.transfer.moveBackStarted": "正在搬回。完成后应用会重启。",
   "vpsLink.transfer.forget": "移除 {name}",
   "vpsLink.transfer.forgetHint": "与这个应用解除连接。那边不会删除任何东西。",
@@ -6809,5 +6811,6 @@
   "mobile.unreachable.trying": "正在重试...",
   "mobile.unreachable.next": "{seconds} 秒后重试",
   "mobile.unreachable.others": "其他安装",
-  "createBot.creating": "正在创建…"
+  "createBot.creating": "正在创建…",
+  "confirm.signOutStopsWork": "使用它的机器人需要重新登录。它们当前用它进行的工作会停止。"
 }

@@ -4528,6 +4528,7 @@
   "vpsLink.transfer.moveBack": "Bu {device} cihazına taşı",
   "vpsLink.transfer.moveBackHint": "Her şeyi {name} sunucusundan bu {device} cihazına geri getir",
   "vpsLink.transfer.moveBackConfirm": "Her şey {name} sunucusundan bu {device} cihazına geri taşınsın mı? Önce yedek alınır.",
+  "vpsLink.transfer.moveBackRoutines": "Rutinler duraklatılmış olarak gelir: taşıma bitince onları yeniden açın.",
   "vpsLink.transfer.moveBackStarted": "Geri taşınıyor. Bitince uygulama yeniden başlar.",
   "vpsLink.transfer.forget": "{name} unut",
   "vpsLink.transfer.forgetHint": "Bu uygulamadan ayır. Oradaki hiçbir şey silinmez.",
@@ -5180,5 +5181,7 @@
   "mobile.unreachable.others": "Diğer kurulumlar",
   "composer.freeBackup": "{engine} tarafından sunulan ücretsiz yedek model yanıt veriyor",
   "composer.freeBackup.connect": "Kendi yapay zekânı bağla",
-  "createBot.creating": "Oluşturuluyor…"
+  "createBot.creating": "Oluşturuluyor…",
+  "keys.row.removeConfirm": "{label} kaldırılsın mı? Onu kullanan her şey, yeniden yapıştırana kadar çalışmaz.",
+  "confirm.signOutStopsWork": "Onu kullanan botların yeniden oturum açması gerekir. Şu anda onunla yaptıkları her şey durur."
 }

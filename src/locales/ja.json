@@ -5596,6 +5596,7 @@
   "vpsLink.transfer.moveBack": "この {device} に戻す",
   "vpsLink.transfer.moveBackHint": "{name} からすべてをこの {device} に戻します",
   "vpsLink.transfer.moveBackConfirm": "{name} からすべてをこの {device} に戻しますか?先にバックアップを保存します。",
+  "vpsLink.transfer.moveBackRoutines": "ルーティンは一時停止の状態で戻ります。移動が終わったらオンに戻してください。",
   "vpsLink.transfer.moveBackStarted": "戻しています。終わるとアプリが再起動します。",
   "vpsLink.transfer.forget": "{name} を削除",
   "vpsLink.transfer.forgetHint": "このアプリとの接続を外します。向こうでは何も消えません。",
@@ -6246,5 +6247,7 @@
   "mobile.unreachable.others": "ほかのインストール環境",
   "composer.freeBackup": "{engine}の無料バックアップモデルが応答しています",
   "composer.freeBackup.connect": "自分のAIを接続",
-  "createBot.creating": "作成中…"
+  "createBot.creating": "作成中…",
+  "keys.row.removeConfirm": "{label}を削除しますか？もう一度貼り付けるまで、これを使うものはすべて動かなくなります。",
+  "confirm.signOutStopsWork": "これを使うボットは再サインインが必要です。今これで行っている作業は止まります。"
 }

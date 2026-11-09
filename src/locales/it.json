@@ -5403,6 +5403,7 @@
   "vpsLink.transfer.moveBack": "Sposta su questo {device}",
   "vpsLink.transfer.moveBackHint": "Riporta tutto da {name} su questo {device}",
   "vpsLink.transfer.moveBackConfirm": "Riportare tutto da {name} su questo {device}? Prima si salva un backup.",
+  "vpsLink.transfer.moveBackRoutines": "Le routine arrivano in pausa: riattivale quando hai finito il trasferimento.",
   "vpsLink.transfer.moveBackStarted": "Sto riportando tutto. L'app si riavvia alla fine.",
   "vpsLink.transfer.forget": "Dimentica {name}",
   "vpsLink.transfer.forgetHint": "Scollegalo da questa app. Lì non si cancella nulla.",
@@ -6055,5 +6056,7 @@
   "mobile.unreachable.others": "Altre installazioni",
   "composer.freeBackup": "Sta rispondendo un modello di riserva gratuito di {engine}",
   "composer.freeBackup.connect": "Collega la tua IA",
-  "createBot.creating": "Creazione…"
+  "createBot.creating": "Creazione…",
+  "keys.row.removeConfirm": "Rimuovere {label}? Tutto ciò che la usa smette di funzionare finché non la incolli di nuovo.",
+  "confirm.signOutStopsWork": "I bot che lo usano dovranno accedere di nuovo. Quello che stanno facendo con esso ora si interrompe."
 }

@@ -5578,6 +5578,7 @@
   "vpsLink.transfer.moveBack": "Перенести на это устройство ({device})",
   "vpsLink.transfer.moveBackHint": "Вернуть всё с {name} на это устройство ({device})",
   "vpsLink.transfer.moveBackConfirm": "Вернуть всё с {name} на это устройство ({device})? Сначала сохранится копия.",
+  "vpsLink.transfer.moveBackRoutines": "Рутины переедут на паузе: включите их снова после переезда.",
   "vpsLink.transfer.moveBackStarted": "Возвращаю. Приложение перезапустится в конце.",
   "vpsLink.transfer.forget": "Забыть {name}",
   "vpsLink.transfer.forgetHint": "Отвязать от этого приложения. Там ничего не удалится.",
@@ -6228,5 +6229,7 @@
   "mobile.unreachable.others": "Другие установки",
   "composer.freeBackup": "Отвечает бесплатная резервная модель от {engine}",
   "composer.freeBackup.connect": "Подключить свой ИИ",
-  "createBot.creating": "Создаём…"
+  "createBot.creating": "Создаём…",
+  "keys.row.removeConfirm": "Удалить {label}? Всё, что его использует, перестанет работать, пока вы не вставите его снова.",
+  "confirm.signOutStopsWork": "Ботам, которые его используют, понадобится снова войти. То, что они делают с ним сейчас, остановится."
 }

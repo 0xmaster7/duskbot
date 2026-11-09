@@ -26,7 +26,8 @@ export function botConfirmCopy(kind: BotConfirmKind, name: string, chief = false
       }
     : {
         title: t("sidebar.confirm.deleteTitle", { name }),
-        body: t(chief ? "confirm.botDeleteChief" : "confirm.botDelete"),
+        // a Chief's own line suggests archiving; it still says what deleting takes with it
+        body: chief ? `${t("confirm.botDeleteChief")} ${t("confirm.botDelete")}` : t("confirm.botDelete"),
         confirmLabel: t("common.delete"),
         tone: "danger" as const,
       };

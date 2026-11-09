@@ -5744,6 +5744,7 @@
   "keys.row.hide": "키 숨기기",
   "keys.row.replace": "교체",
   "keys.row.remove": "제거",
+  "keys.row.removeConfirm": "{label}을(를) 삭제할까요? 다시 붙여넣을 때까지 이 키를 쓰는 모든 것이 작동하지 않아요.",
   "keys.row.useOwn": "내 키 사용",
   "keys.row.getKey": "키 받기",
   "keys.row.endsIn": "{label} 저장됨, 끝자리 {last4}",
@@ -6020,6 +6021,7 @@
   "vpsLink.transfer.moveBack": "이 {device}로 옮기기",
   "vpsLink.transfer.moveBackHint": "{name}에서 모든 걸 이 {device}로 다시 가져와요",
   "vpsLink.transfer.moveBackConfirm": "{name}에서 모든 걸 이 {device}로 다시 가져올까요? 먼저 백업을 저장해요.",
+  "vpsLink.transfer.moveBackRoutines": "루틴은 일시 중지된 상태로 옮겨져요. 이동이 끝나면 다시 켜 주세요.",
   "vpsLink.transfer.moveBackStarted": "다시 가져오는 중이에요. 끝나면 앱이 다시 시작돼요.",
   "vpsLink.transfer.forget": "{name} 삭제",
   "vpsLink.transfer.forgetHint": "이 앱과의 연결을 끊어요. 거기서는 아무것도 지워지지 않아요.",
@@ -6636,5 +6638,6 @@
   "mobile.unreachable.others": "다른 설치 환경",
   "composer.freeBackup": "{engine}의 무료 백업 모델이 답하고 있어요",
   "composer.freeBackup.connect": "내 AI 연결",
-  "createBot.creating": "만드는 중…"
+  "createBot.creating": "만드는 중…",
+  "confirm.signOutStopsWork": "이 계정을 쓰는 봇은 다시 로그인해야 해요. 지금 이 계정으로 하고 있는 작업은 멈춰요."
 }

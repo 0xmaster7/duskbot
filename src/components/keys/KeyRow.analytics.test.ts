@@ -62,7 +62,7 @@ beforeEach(() => {
   fixture.values = [];
   fixture.refs = [];
   fixture.config = { anthropic: { configured: false }, composio: { configured: false } };
-  vi.stubGlobal("window", {});
+  vi.stubGlobal("window", { confirm: () => true });
   vi.stubGlobal("document", { activeElement: null });
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -134,6 +134,17 @@ describe("a key saved in Settings → API keys", () => {
     await flush();
     expect(fixture.api).toHaveBeenCalledTimes(2);
     expect(fixture.track.mock.calls).toEqual([["api_key_removed", { provider: "anthropic", via: "settings" }]]);
+  });
+
+  it("asks before removing a saved key, and keeps it when the person says no", async () => {
+    fixture.config = { anthropic: { configured: true, last4: "6789" } };
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("window", { confirm });
+    render({ id: "anthropic" }).find((node) => node.type === "button" && node.props["data-key-remove"])!.props.onClick!();
+    await flush();
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("stops working until you paste it again"));
+    expect(fixture.api).not.toHaveBeenCalled();
+    expect(fixture.track).not.toHaveBeenCalled();
   });
 
   it("offers Remove for a Composio project key of the person's own, and none for the managed connection", async () => {
