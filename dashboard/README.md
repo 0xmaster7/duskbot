@@ -81,7 +81,9 @@ pnpm dashboard:service          # OMB_DASHBOARD_PORT, _HOST, _DATA, _PUBLIC_URL,
 
 Production mail uses `OMB_MAIL_PROVIDER=resend`, `OMB_RESEND_API_KEY` and `OMB_MAIL_FROM`. Loopback HTTP or
 `OMB_DASHBOARD_DEV=1` enables development console mail. Set `OMB_AUTH_SIGNUP_OPEN=0` to close signups and
-`OMB_TRUST_PROXY=1` only behind a trusted proxy. `OMB_AUTH_SECRET` must be at least 32 characters if supplied;
+`OMB_TRUST_PROXY=1` only behind a trusted proxy. `OMB_OPS_TOKEN` (32 characters or more) turns on the operator's checkout funnel:
+`GET /v1/billing/ops/funnel?days=30` with `Authorization: Bearer <token>` counts checkouts started, paid and still active
+by where they started (`CHECKOUT_SOURCES` in `shared/billing-api.ts`); without the token the route does not exist. `OMB_AUTH_SECRET` must be at least 32 characters if supplied;
 otherwise the service creates a private `auth-secret` file beside its data.
 
 Local work on the page: `pnpm dashboard:fixture` starts the service on `127.0.0.1:7480` with a temporary data folder,
