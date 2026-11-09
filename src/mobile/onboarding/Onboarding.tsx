@@ -19,8 +19,8 @@ type Step = "intro" | "account" | "link" | "permission" | "denied" | "scan" | "c
 type Failure = { code: PairError["code"]; name: string; companion: boolean };
 
 const INTRO_SEEN = "omb.mobile.introSeen";
-const PRIMARY = "mobile-press flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#f3f4f8] text-[17px] font-semibold text-[#121212] disabled:opacity-60";
-const QUIET = "mobile-press h-12 w-full rounded-full text-[15px] font-medium text-white/70 disabled:opacity-60";
+export const PRIMARY = "mobile-press flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#f3f4f8] text-[17px] font-semibold text-[#121212] disabled:opacity-60";
+export const QUIET = "mobile-press h-12 w-full rounded-full text-[15px] font-medium text-white/70 disabled:opacity-60";
 
 function installationName(payload: TypedPairing | null): string {
   if (payload?.name) return payload.name;
@@ -53,7 +53,7 @@ function FailurePanel({ failure, onRetry }: { failure: Failure; onRetry: () => v
 
 /** The one shape every onboarding screen takes: a top row that only ever holds back or close (art never goes up there,
  * by the Dynamic Island), a centred middle (the mascots above the words when the screen has art), actions at the bottom. */
-function Screen({ top, art = true, children, actions }: { top?: ReactNode; art?: boolean; children: ReactNode; actions: ReactNode }) {
+export function Screen({ top, art = true, children, actions }: { top?: ReactNode; art?: boolean; children: ReactNode; actions: ReactNode }) {
   return (
     <>
       <div className="flex h-[calc(var(--m-safe-top)+60px)] shrink-0 items-end px-4 pb-2">{top}</div>
@@ -66,8 +66,8 @@ function Screen({ top, art = true, children, actions }: { top?: ReactNode; art?:
   );
 }
 
-const HEADLINE = "text-[28px] font-semibold leading-[1.15] tracking-tight text-white";
-const LINE = "mx-auto mt-3 max-w-[300px] text-[16px] leading-[1.5] text-white/60";
+export const HEADLINE = "text-[28px] font-semibold leading-[1.15] tracking-tight text-white";
+export const LINE = "mx-auto mt-3 max-w-[300px] text-[16px] leading-[1.5] text-white/60";
 
 /** First launch to linked: who this is, link to your installation by scanning the desktop's QR (or a code, or a link),
  * and hand the record back. The success moment and the hand-off to Home belong to the connection gate. */
