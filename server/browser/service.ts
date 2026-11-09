@@ -458,7 +458,7 @@ export class BrowserService {
     if (control.owner !== null) throw new Error(BROWSER_CONTROL_REFUSAL);
     control.call = parsed.call.name;
     try {
-      const result = await executeTool(this.#context(profile, run, deadline), parsed.call);
+      const result = await executeTool(this.#context(profile, run, deadline, beforeDispatch), parsed.call);
       beforeDispatch?.();
       return shapeResult(result, parsed.call.name);
     } catch (error) {
@@ -475,8 +475,9 @@ export class BrowserService {
     }
   }
 
-  #context(profile: ProfileState, run: Running, deadline: number): ToolContext {
+  #context(profile: ProfileState, run: Running, deadline: number, checkpoint?: () => void): ToolContext {
     return {
+      ...(checkpoint ? { checkpoint } : {}),
       control: profile.control,
       tabs: profile.tabs,
       browser: run.browser,

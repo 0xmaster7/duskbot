@@ -14,6 +14,7 @@ import { navigable } from "./cdp/page.ts";
 import type { Screenshot } from "./cdp/screencast.ts";
 import { resolveElement } from "./cdp/selectors.ts";
 import { MAX_VISIBLE_TEXT_LENGTH } from "./cdp/snapshot.ts";
+import { runBatch } from "./batch.ts";
 import { BROWSER_CONTROL_REFUSAL, type ProfileControl } from "./control.ts";
 import { BrowserControlInterrupted } from "./session-control.ts";
 import { errorResult, pageLabel, snapshotText, textResult, withParts, type ToolResult } from "./shape.ts";
@@ -60,6 +61,8 @@ export interface ToolContext {
   secretOnPage(tab: Tab): Promise<boolean>;
   saveScreenshot(data: Buffer, pageUrl: string): string;
   downloads(): Download[];
+  /** Throws once the call may no longer act, such as when its turn ended; a batch checks it between steps. */
+  checkpoint?(): void;
 }
 
 /** A typed address with its scheme: a bare host means https, loopback http. */
@@ -440,6 +443,8 @@ export async function executeTool(context: ToolContext, call: ToolCall): Promise
       }
       return context.control.agent(null, async () => { await context.closeBrowser(); return textResult("Closed the browser. Saved sign-ins are kept; agent_browser_open starts it again."); });
     }
+    case "agent_browser_batch":
+      return runBatch(context, call.input, { execute: executeTool, failure: toolFailure });
     case "restart_browser":
       return errorResult("restart_browser is handled before a call reaches its tab.");
   }

@@ -7,6 +7,13 @@
 import { z } from "zod";
 
 export const RESTART_TOOL = "restart_browser";
+export const BATCH_TOOL = "agent_browser_batch";
+
+/** The tools a batch step can run, each as `agent_browser_<do>` with that tool's own arguments. */
+export const BATCH_ACTIONS = ["open", "navigate", "click", "fill", "type", "press", "select", "check", "hover", "scroll", "wait", "read", "snapshot", "screenshot"] as const;
+export type BatchAction = (typeof BATCH_ACTIONS)[number];
+export const MAX_BATCH_STEPS = 200;
+export const MAX_BATCH_MS = 60_000;
 
 const tab = z.string().regex(/^(?:new|t[1-9]\d{0,8})$/u).describe("The tab, as t1, t2… from agent_browser_tabs or agent_browser_status. Omit it for the tab in front.");
 const actTab = z.string().regex(/^t[1-9]\d{0,8}$/u).describe("The tab to act in, as t1, t2…. Omit it for the tab in front.");
@@ -124,6 +131,13 @@ export const TOOL_INPUTS = {
     tab: actTab.optional().describe("For switch and close: the tab, as t1, t2…."),
   }),
   agent_browser_close: z.object({ tab: actTab.optional().describe("Close this tab. Omit it to close the whole browser; saved sign-ins are kept.") }),
+  [BATCH_TOOL]: z.object({
+    steps: z.array(z.object({
+      do: z.enum(BATCH_ACTIONS).describe("The step: the agent_browser tool of that name, such as click for agent_browser_click."),
+    }).catchall(z.unknown()).describe("do plus that tool's own arguments, such as {\"do\":\"fill\",\"selector\":\"#email\",\"text\":\"a@b.c\"}."))
+      .min(1).max(MAX_BATCH_STEPS).describe(`The steps in order, ${MAX_BATCH_STEPS} at most. The first that fails ends the batch.`),
+    timeoutMs: z.number().int().min(1_000).max(MAX_BATCH_MS).optional().describe(`The whole batch's time limit in milliseconds. Defaults to ${MAX_BATCH_MS}.`),
+  }),
   [RESTART_TOOL]: z.object({}),
 } as const;
 
@@ -152,6 +166,7 @@ const DESCRIPTIONS: Record<ToolName, string> = {
   agent_browser_dialog: "Accept or dismiss the alert, confirm or prompt dialog the page opened (agent_browser_status shows it). Nothing else works on the tab until it is answered.",
   agent_browser_tabs: "List, open, switch between or close your browser's tabs.",
   agent_browser_close: "Close a tab, or with no tab the whole browser. Saved sign-ins are kept.",
+  [BATCH_TOOL]: `Run several browser steps in one call: open, navigate, click, fill, type, press, select, check, hover, scroll, wait, read, snapshot and screenshot, each with its tool's own arguments. Prefer it whenever you already know the next steps, such as filling a form and submitting it, or going through a few pages: one call instead of one per step. It stops at the first step that fails and answers with each step's result, and on a failure the page's snapshot. Refs stop applying once a step moves to another page, so name later elements by selector (#id, text=Save, role=button[name="Save"]) or end with a snapshot and continue from its refs. ${MAX_BATCH_STEPS} steps, ${MAX_BATCH_MS / 1_000} s and 3 pictures at most.`,
   [RESTART_TOOL]: "Close and restart your browser. Use it only when a browser tool says the browser must be restarted, or it stays busy after a call that did not answer. Open pages are closed back to one blank tab and form input is lost; sign-ins are kept. Afterwards open the page you need again and check whether the interrupted action already happened before repeating it.",
 };
 
@@ -229,7 +244,39 @@ export function parseToolCall(rawName: unknown, rawArgs: unknown): ParsedCall {
     const problems = parsed.error.issues.slice(0, 3).map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`).join("; ");
     return { ok: false, error: `${translated.name} got arguments it cannot use (${problems}).` };
   }
+  if (translated.name === BATCH_TOOL) {
+    const refused = batchRefusal((parsed.data as ToolInput<typeof BATCH_TOOL>).steps);
+    if (refused) return { ok: false, error: refused };
+  }
   return { ok: true, call: { name: translated.name, input: parsed.data, ...(translated.as ? { as: translated.as } : {}) } as ToolCall };
+}
+
+export type BatchStep = ToolInput<typeof BATCH_TOOL>["steps"][number];
+export const MAX_BATCH_PICTURES = 3;
+
+/** One batch step as the tool call it stands for, checked against that tool's own schema. */
+export function batchStepCall(step: BatchStep): ParsedCall {
+  const { do: action, ...args } = step;
+  const name = `agent_browser_${action}` as ToolName;
+  const parsed = TOOL_INPUTS[name].strict().safeParse(args);
+  if (!parsed.success) {
+    const problems = parsed.error.issues.slice(0, 3).map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`).join("; ");
+    return { ok: false, error: `${action} got arguments it cannot use (${problems})` };
+  }
+  return { ok: true, call: { name, input: parsed.data } as ToolCall };
+}
+
+const picturesOf = (call: ToolCall) => call.name === "agent_browser_screenshot" || (call.name === "agent_browser_snapshot" && call.input.includeImage === true) ? 1 : 0;
+
+/** Every step is checked before the first runs, so a typo in step 9 does not leave a form half filled. */
+function batchRefusal(steps: readonly BatchStep[]): string | null {
+  let pictures = 0;
+  for (const [index, step] of steps.entries()) {
+    const parsed = batchStepCall(step);
+    if (!parsed.ok) return `${BATCH_TOOL} ran nothing: step ${index + 1} ${parsed.error}.`;
+    pictures += picturesOf(parsed.call);
+  }
+  return pictures > MAX_BATCH_PICTURES ? `${BATCH_TOOL} ran nothing: it returns ${MAX_BATCH_PICTURES} pictures at most, and these steps take ${pictures}.` : null;
 }
 
 /** Exactly one way to name the element: a ref, a selector, or a point. */
