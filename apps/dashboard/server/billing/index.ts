@@ -1,4 +1,5 @@
-import { randomBytes } from "node:crypto";
+import { hkdfSync, randomBytes } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { DashboardState } from "../store.ts";
 import { createCloudsService } from "../clouds/service.ts";
@@ -38,6 +39,11 @@ export interface BillingOptions {
   notify?: (cloud: StoredCloud, kind: NoticeKind, at: number | null, link?: string) => void;
   /** the operator's alert for every Boat deletion */
   alert?: (entry: AuditEntry) => void;
+}
+/** a loopback service's own Boat backup secret, kept beside its data */
+function localSecret(path: string): Buffer {
+  if (!existsSync(path)) writeFileSync(path, randomBytes(32).toString("base64url"), { mode: 0o600, flag: "wx" });
+  return parseSealKey(readFileSync(path, "utf8").trim());
 }
 /** the hosted app's Bearer resolver remains null until shared/account-api.ts supplies the accounts service */
 export function createBilling(options: BillingOptions) {
@@ -87,7 +93,11 @@ export function createBilling(options: BillingOptions) {
     const smallest = env.OMB_BOAT_SMALLEST ?? "small";
     if (!["small", "default", "large", "xlarge"].includes(smallest)) throw new Error("Invalid OMB_BOAT_SMALLEST.");
     const scope = env.OMB_BOAT_SCOPE ?? boatScope(url.origin);
-    boat = { kinds: kinds as Array<Exclude<(typeof DESKTOP_KINDS)[number], "none">>, settings: boatSettingsFromEnv(env),
+    // the backup secret never leaves this service: its own key, or one derived from the seal key, or (loopback only) a local file
+    const backupSecret = env.OMB_BOAT_BACKUP_KEY ? parseSealKey(env.OMB_BOAT_BACKUP_KEY)
+      : sealKey ? Buffer.from(hkdfSync("sha256", sealKey, Buffer.alloc(0), Buffer.from("omb-boat-backup-secret"), 32))
+      : localSecret(join(options.dataDir, "boat-backup-secret"));
+    boat = { kinds: kinds as Array<Exclude<(typeof DESKTOP_KINDS)[number], "none">>, settings: boatSettingsFromEnv(env), backupSecret,
       provider: createBoatProvider({ apiKey, baseUrl: env.BOAT_BASE_URL, scope, fetch: options.fetch, smallest: smallest as BoatSize }),
       backups: createBackupStore({ dir: env.OMB_BOAT_BACKUP_DIR || join(options.dataDir, "boat-backups"), now }),
       audit: createAudit({ dataDir: options.dataDir, now, alert: options.alert }),

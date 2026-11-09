@@ -115,6 +115,7 @@ export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
     progress: status === "provisioning" && cloud.setupStep !== null ? { step: SETUP_LABELS[cloud.setupStep], value: (SETUP_STEPS.indexOf(cloud.setupStep) + 0.5) / 4 } : null,
     error: cloud.status === "payment_problem" ? "The last payment did not go through. Update your card to wake it." : cloud.status === "suspended" ? "It is paused. Write to us to sort it out." : cloud.error,
     botComputers: { used: 0, limit: cloud.botComputers }, uptimeSec: null,
+    ...(cloud.provider === "boat" ? { provider: "boat" as const, lastBackupAt: cloud.lastBackupAt ?? null, deleteScheduledAt: cloud.deleteScheduledAt ?? null, deleteAskedAt: cloud.deleteAskedAt ?? null } : {}),
   };
 }
 

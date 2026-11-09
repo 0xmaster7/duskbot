@@ -88,7 +88,7 @@ const billing = createBilling({ dataDir, publicUrl: "https://dashboard.e2e.inval
   notify: (cloud, kind, at) => note(`notice to owner: ${kind}${at ? ` (${new Date(at).toISOString()})` : ""} for ${cloud.id}`),
   alert: entry => note(`ALERT ${entry.action} ${entry.cloudId} (${entry.reason})`),
   env: { OMB_BILLING_PROVIDER: "fake", OMB_CLOUD_SEAL_KEY: randomBytes(32).toString("base64url"), OMB_BOAT: "1", BOAT_API_KEY: key, BOAT_BASE_URL: baseUrl, OMB_BOAT_SCOPE: scope,
-    OMB_BOAT_KINDS: "shared_s", OMB_BOAT_HOME_PACKAGE_FILE: packageFile, OMB_BOAT_HOME_PACKAGE_SHA256: sha256, OMB_BOAT_LEASE_HOURS: "1", OMB_BOAT_IDLE_MINUTES: "5", OMB_POOL_DRIVER: "fake" } });
+    OMB_BOAT_KINDS: "shared_s", OMB_BOAT_HOME_PACKAGE_FILE: packageFile, OMB_BOAT_HOME_PACKAGE_SHA256: sha256, OMB_BOAT_LEASE_HOURS: "1", OMB_BOAT_IDLE_MINUTES: "5", OMB_BOAT_LOST_AFTER_MINUTES: "2", OMB_POOL_DRIVER: "fake" } });
 const webhooks = createServer((req, res) => void billing.handle(req, res, new URL(req.url ?? "/", "http://127.0.0.1")).then(handled => { if (!handled) { res.writeHead(404); res.end(); } }));
 await new Promise<void>(r => webhooks.listen(0, "127.0.0.1", r));
 const hookBase = `http://127.0.0.1:${(webhooks.address() as { port: number }).port}`;
@@ -104,7 +104,7 @@ async function reconcileUntil(cloudId: string, done: () => boolean, limitMs: num
     if (Date.now() > deadline) throw new Error(`${label}: timed out (status ${billing.clouds.get(cloudId)?.status}, step ${billing.clouds.get(cloudId)?.setupStep}, error ${billing.clouds.get(cloudId)?.error})`);
     const c = billing.clouds.get(cloudId)!; c.nextAttemptAt = 0;
     await billing.clouds.reconcile(); await track();
-    if (!done()) await sleep(fake ? 0 : 3000);
+    if (!done()) await sleep(fake ? 200 : 3000);
   }
 }
 async function json(response: Response) { const text = await response.text(); try { return JSON.parse(text); } catch { return { raw: text.slice(0, 200) }; } }

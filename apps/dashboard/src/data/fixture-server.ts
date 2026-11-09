@@ -6,6 +6,8 @@ import { desktopOf, licenseOf, priceCart } from "./pricing";
 import { CANCEL_ANSWERS } from "./wire";
 
 const DAY = 86_400_000;
+/** the boat fixture's emailed delete link: /clouds/fx-cloud/delete?fixture=boat#<this> */
+export const FIXTURE_DELETE_TOKEN = "fixture-delete-link".padEnd(43, "0");
 const steps = ["Reserving your machine", "Installing OpenMausBot", "Linking it to your account", "Waking your bots"];
 const fail = (message: string, status = 400, code = "invalid_request"): never => { throw new ApiError(message, status, code); };
 
@@ -18,6 +20,9 @@ function createState() {
     workspaces: new Map(fixtureWorkspaces(scenario, now).map((detail) => [detail.workspace.id, detail])),
     connections: fixtureConnections(),
     slackWake: new Map<string, boolean>(),
+    // boat: signed in an hour ago, so deleting data asks for a fresh sign-in first; its link was already "emailed"
+    signedInAt: scenario === "boat" ? now - 3_600_000 : now,
+    deleteLinks: new Map(scenario === "boat" ? [["fx-cloud", now]] : [] as Array<[string, number]>),
     power: new Map<string, { on: boolean; at: number }>(),
     runningSince: new Map(clouds.filter((cloud) => cloud.status === "running").map((cloud) => [cloud.id, now - (cloud.uptimeSec ?? 0) * 1000])),
     nextId: 1,
@@ -166,7 +171,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
       s.account = fixtureAccount("new", now); s.billing = fixtureBilling("new", now); s.clouds = [];
       s.workspaces = new Map(fixtureWorkspaces("new", now).map((detail) => [detail.workspace.id, detail])); s.firstSignIn = false;
     }
-    s.signedIn = true; s.account.profile.email = s.email;
+    s.signedIn = true; s.signedInAt = now; s.account.profile.email = s.email;
     for (const identity of s.account.identities) if (identity.provider === "email") identity.label = s.email;
     s.attemptAt = null;
     return { account: account(), created };
@@ -268,6 +273,29 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
     }
     const enabled = s.slackWake.get(id) ?? false;
     return { available: true, enabled, state: enabled ? "waiting" : "off", bots: 0, buffered: 0 };
+  }
+  const deleteData = path.match(/^\/v1\/clouds\/([^/]+)\/delete-data(?:\/(confirm|cancel))?$/);
+  if (method === "POST" && deleteData) {
+    const cloud = s.clouds.find((c) => c.id === decodeURIComponent(deleteData[1]!));
+    if (!cloud || cloud.provider !== "boat") return fail("not_found", 404, "not_found");
+    if (deleteData[2] === "cancel") {
+      if (!cloud.deleteScheduledAt && !cloud.deleteAskedAt) fail("unavailable", 409, "unavailable");
+      cloud.deleteScheduledAt = null; cloud.deleteAskedAt = null; s.deleteLinks.delete(cloud.id);
+      return { ok: true };
+    }
+    if (now - s.signedInAt > 10 * 60_000) fail("reauth_required", 403, "reauth_required");
+    const sub = s.billing.subscription;
+    if (sub && (sub.status !== "canceled" || sub.currentPeriodEnd > now)) fail("billing_active", 409, "billing_active");
+    if (!deleteData[2]) {
+      s.deleteLinks.set(cloud.id, now); cloud.deleteAskedAt = now;
+      console.info(`fixture email: /clouds/${cloud.id}/delete#${FIXTURE_DELETE_TOKEN}`);
+      return { ok: true, emailed: true };
+    }
+    if (typeof b.token !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(b.token)) fail("invalid_request", 400, "invalid_request");
+    const askedAt = s.deleteLinks.get(cloud.id);
+    if (b.token !== FIXTURE_DELETE_TOKEN || askedAt === undefined || now - askedAt > 3_600_000) fail("confirmation_required", 409, "confirmation_required");
+    s.deleteLinks.delete(cloud.id); cloud.deleteAskedAt = null; cloud.deleteScheduledAt = now + 7 * DAY;
+    return { ok: true, deleteScheduledAt: cloud.deleteScheduledAt };
   }
   const cloudRoute = path.match(/^\/v1\/clouds\/([^/]+)\/(power|resize)$/);
   if (method === "POST" && cloudRoute) {

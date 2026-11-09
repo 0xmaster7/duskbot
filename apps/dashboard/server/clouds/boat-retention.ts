@@ -14,34 +14,30 @@ export const NOTICE_DAYS = [30, 7, 1] as const;
 export type NoticeKind = "ended" | "left_30" | "left_7" | "left_1" | "deleted" | "recovered" | "delete_requested" | "delete_scheduled" | "delete_cancelled" | "resumed";
 
 /** what the billing system of record says about one cloud's plan */
-export interface Entitlement { active: boolean; until: number | null }
+export interface Entitlement { active: boolean; until: number | null; known?: boolean }
 
 /**
- * From the billing store: active while any subscription that paid for this cloud is active, has a payment problem, or is
- * cancelled but paid to a later time; otherwise paid to the latest of their period ends and the time they were seen ending.
- * No subscription at all is "unknown": nothing is ever deleted on that. A subscription that still runs but no longer
- * carries this cloud (the desktop was taken off the plan: billing unlinks it and ends the cloud at `endsAt`) pays for it
- * only to that time.
+ * From the billing store: active while a subscription that paid for this cloud is active, has a payment problem, or is
+ * cancelled but paid to a later time. Paid to: the cloud's own end when billing ended it (`endsAt`, or `ended` at
+ * `endedAt`: a desktop taken off the plan, an account closed with "stop my desktops now"), else the latest period end. A
+ * subscription that will not renew counts only to its period end, whatever its status says later (an account closed
+ * before then gets no more webhooks). Event times never count: a late or replayed event cannot move the date.
+ * `known` is false when no subscription ever paid for the cloud: nothing is deleted on that.
  */
-export function entitlementOf(subscriptions: readonly StoredSubscription[], cloud: { id: string; subscriptionId: string | null; endsAt?: number; ended?: boolean }, now: number): Entitlement {
+export function entitlementOf(subscriptions: readonly StoredSubscription[], cloud: { id: string; subscriptionId: string | null; endsAt?: number; ended?: boolean; endedAt?: number }, now: number): Entitlement {
   const mine = subscriptions.filter(s => s.id === cloud.subscriptionId || s.cloudId === cloud.id);
-  if (!mine.length) return { active: false, until: null };
+  if (!mine.length) return { active: false, until: null, known: false };
+  if (cloud.ended) return { active: false, until: cloud.endedAt ?? cloud.endsAt ?? null, known: true };
+  if (cloud.endsAt !== undefined && cloud.endsAt <= now) return { active: false, until: cloud.endsAt, known: true };
   let until = 0;
   for (const s of mine) {
     const periodEnd = s.currentPeriodEnd ?? 0;
-    const running = s.status === "active" || s.status === "payment_problem" || (s.status === "cancelled" && periodEnd > now);
-    if (running && s.cloudId !== cloud.id) {
-      const droppedAt = cloud.endsAt ?? (cloud.ended ? s.lastEventAt ?? s.updatedAt : null);
-      if (droppedAt === null) return { active: true, until: null };
-      if (droppedAt > now) return { active: true, until: null };
-      until = Math.max(until, droppedAt);
-      continue;
-    }
-    if (running) return { active: true, until: null };
+    if (s.cancelAtPeriodEnd && periodEnd > 0 && periodEnd <= now) { until = Math.max(until, periodEnd); continue; }
+    if (s.status === "active" || s.status === "payment_problem" || (s.status === "cancelled" && periodEnd > now)) return { active: true, until: null, known: true };
     if (s.status === "pending") continue;
-    until = Math.max(until, periodEnd, s.status === "ended" || s.status === "cancelled" ? s.lastEventAt ?? s.updatedAt : 0);
+    until = Math.max(until, periodEnd);
   }
-  return until > 0 ? { active: false, until } : { active: false, until: null };
+  return { active: false, until: until > 0 ? until : null, known: true };
 }
 
 export interface DeleteRequest { requestedAt: number; confirmedAt: number | null; executeAfter: number | null; cancelledAt: number | null }
@@ -89,7 +85,7 @@ export function dueNotice(input: { now: number; earliestAt: number; sent: readon
 
 export function noticeText(kind: NoticeKind, input: { name: string; at: number | null; dashboardUrl: string; link?: string }): { subject: string; text: string } {
   const date = input.at === null ? "" : new Date(input.at).toUTCString().replace(/:\d\d GMT$/, " UTC");
-  const where = `Open ${input.dashboardUrl} to start your plan again or to ask us to delete your data sooner. If you start a new plan after this one ended, reply to this email and we bring this data to it.`;
+  const where = `Open ${input.dashboardUrl} to start your plan again, or to delete your data sooner from your cloud's page. If you start a new plan after this one ended, reply to this email and we bring this data to it.`;
   switch (kind) {
     case "ended": return { subject: `${input.name} is paused and kept for you`, text: `Your plan for ${input.name} ended, so it is paused. Your bots, chats, files and sign-ins are kept until ${date}. ${where}` };
     case "left_30": case "left_7": case "left_1": {
@@ -100,8 +96,8 @@ export function noticeText(kind: NoticeKind, input: { name: string; at: number |
     case "recovered": return input.at === null
       ? { subject: `${input.name} was set up again`, text: `${input.name}'s machine stopped working before its first backup, so we set it up again, empty. Your app reconnects by itself. Bots you moved there can be moved again from your computer.` }
       : { subject: `${input.name} was restored from a backup`, text: `${input.name}'s machine stopped working, so we set it up again from its latest backup, taken ${date}. Anything after that backup may be missing. Your app reconnects by itself.` };
-    case "delete_requested": return { subject: `Confirm deleting ${input.name}`, text: `Someone signed in to your account asked to delete ${input.name} and all of its data. Nothing happens unless you open this link within an hour and confirm: ${input.link ?? ""} If this was not you, ignore this email and sign out your other sessions.` };
-    case "delete_scheduled": return { subject: `${input.name} will be deleted on ${date}`, text: `You confirmed deleting ${input.name}. It and its data will be deleted on ${date}. Until then you can cancel from your dashboard and nothing is lost. ${where}` };
+    case "delete_requested": return { subject: `Confirm deleting ${input.name}`, text: `Someone signed in to your account asked to delete ${input.name} and all of its data. Nothing happens unless you open this link within an hour and confirm (you may be asked to sign in again): ${input.link ?? ""} After you confirm, it is deleted 7 days later, and you can cancel any time before then. If this was not you, ignore this email and sign out your other sessions.` };
+    case "delete_scheduled": return { subject: `${input.name} will be deleted on ${date}`, text: `You confirmed deleting ${input.name}. It and its data, backups included, will be deleted on ${date}. Until then, Cancel deletion on your cloud's page at ${input.dashboardUrl} keeps everything.` };
     case "delete_cancelled": return { subject: `${input.name} will not be deleted`, text: `The request to delete ${input.name} was cancelled. Nothing was deleted.` };
     case "resumed": return { subject: `${input.name} is back`, text: `Your plan for ${input.name} is active again and it carries on where it stopped.` };
   }

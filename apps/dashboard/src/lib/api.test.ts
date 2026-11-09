@@ -71,3 +71,31 @@ test("a plan change that charges now is applied only at the amount the person wa
   await api.changePlan(selection);
   expect(fetch.mock.calls.filter(([path]) => path.endsWith("/change"))).toHaveLength(2);
 });
+
+test("deleting a Boat cloud's data posts JSON with the CSRF header to the delete-data routes", async () => {
+  const fetch = vi.fn(async (path: string, _init?: RequestInit) => Response.json(path.endsWith("/confirm") ? { ok: true, deleteScheduledAt: 5 } : { ok: true }));
+  vi.stubGlobal("fetch", fetch);
+  vi.stubGlobal("document", { cookie: `${CSRF_COOKIE}=fixture-csrf` });
+  const { api } = await import("./api");
+  const token = "a".repeat(43);
+  await api.askDeleteData("cloud/1");
+  expect((await api.confirmDeleteData("cloud/1", token)).deleteScheduledAt).toBe(5);
+  await api.cancelDeleteData("cloud/1");
+  expect(fetch.mock.calls.map(([path, init]) => [path, init!.method, init!.body, (init!.headers as Record<string, string>)[CSRF_HEADER]])).toEqual([
+    ["/v1/clouds/cloud%2F1/delete-data", "POST", "{}", "fixture-csrf"],
+    ["/v1/clouds/cloud%2F1/delete-data/confirm", "POST", JSON.stringify({ token }), "fixture-csrf"],
+    ["/v1/clouds/cloud%2F1/delete-data/cancel", "POST", "{}", "fixture-csrf"],
+  ]);
+});
+
+test("reauth_required and the other delete-data codes come back as their own code with words for the page", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "reauth_required", code: "reauth_required" }, { status: 403 })));
+  const { api } = await import("./api");
+  const { deleteDataError, needsSignIn } = await import("../data/delete-data");
+  const error = await api.askDeleteData("c").catch((e: unknown) => e);
+  expect(needsSignIn(error)).toBe(true);
+  const { ApiError } = await import("./api");
+  expect(deleteDataError(new ApiError("billing_active", 409, "billing_active"))).toMatch(/Cancel it in Plans & billing first/);
+  expect(deleteDataError(new ApiError("confirmation_required", 409, "confirmation_required"))).toMatch(/expired or was already used/);
+  expect(deleteDataError(new ApiError("weird", 500, "weird"))).toBe("That did not work. Try again.");
+});

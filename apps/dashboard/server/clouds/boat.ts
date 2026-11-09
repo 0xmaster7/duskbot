@@ -55,6 +55,8 @@ export interface BoatProvider extends CloudProvider {
   sandbox(serverId: string): Promise<BoatSandbox | null>;
   /** this deployment's sandboxes: every page, own scope only */
   inventory(): Promise<BoatSandbox[]>;
+  /** whether the account's whole list (no filters) still shows this sandbox */
+  listed(serverId: string): Promise<boolean>;
   /** https origin of the home's edge port, public, stable for the sandbox's life */
   origin(serverId: string): Promise<string>;
   /** a shell command as the sandbox user (passwordless sudo); stdout is bounded and never carries a secret by contract */
@@ -202,6 +204,16 @@ export function createBoatProvider(options: BoatProviderOptions): BoatProvider {
     },
     sandbox: get,
     inventory: () => list(scoped),
+    async listed(serverId) {
+      let cursor: string | null = null;
+      for (let page = 0; page < 50; page++) {
+        const data: Record<string, any> | null = await call("GET", `/sandboxes?limit=200${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`);
+        if ((data?.sandboxes ?? []).some((s: { id?: unknown }) => s?.id === serverId)) return true;
+        cursor = data?.pageInfo?.hasMore && typeof data.pageInfo.nextCursor === "string" ? data.pageInfo.nextCursor : null;
+        if (!cursor) return false;
+      }
+      throw new RetryableCloudError("Boat list too long.");
+    },
     async origin(serverId) {
       const known = origins.get(serverId);
       if (known) return known;

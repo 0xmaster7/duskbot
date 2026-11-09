@@ -233,6 +233,8 @@ export interface CloudDesktopView {
   lastBackupAt?: number | null;
   /** additive, Boat only: when an owner-confirmed deletion happens unless cancelled */
   deleteScheduledAt?: number | null;
+  /** additive, Boat only: when the owner asked to delete its data; the emailed link stays valid for an hour after */
+  deleteAskedAt?: number | null;
 }
 
 export type PowerAction = "on" | "off";
