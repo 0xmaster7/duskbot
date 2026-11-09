@@ -1,5 +1,6 @@
 // Mounted once in the app: while the island or the dock is on, it sums up the bots for them (from the store and the
-// live stream this page already reads, never a request of its own) and carries out what they ask.
+// live stream this page already reads, never a request of its own) and carries out what they ask. It also keeps main's
+// view of the working bots for ⌘Q (DesktopBots).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useStore, type AppState } from "@/state/store";
 import { onAnyTurnLive, turnLive } from "@/state/turn-status";
@@ -8,6 +9,7 @@ import { openCreateBot } from "@/lib/create-bot-request";
 import { pendingApprovals } from "@/components/PendingApproval";
 import { sidebarPreviewMessages } from "@/components/sidebar-preview";
 import { ambientSnapshot, answerableInPlace } from "./summary";
+import { DesktopBots } from "./DesktopBots";
 import type { AmbientAct } from "./types";
 
 /** Summaries go out at most this often: a streaming reply changes a bot's status line many times a second. */
@@ -66,5 +68,5 @@ export function AmbientPublisher() {
   useEffect(() => (wanted ? onAnyTurnLive(schedule) : undefined), [wanted, schedule]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   useEffect(() => bridge?.onAct((act) => runAmbientAct(act, latest.current, dispatch)), [bridge, dispatch]);
-  return null;
+  return <DesktopBots bots={state.bots} />;
 }

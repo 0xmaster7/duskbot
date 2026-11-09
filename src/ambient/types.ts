@@ -88,6 +88,12 @@ export interface AmbientAppBridge {
   onAct(cb: (act: AmbientAct) => void): () => void;
 }
 
+/** The app page's side of electron/desktop-bots.mjs: its working bots for ⌘Q, and the pill a single ⌘Q shows. */
+export interface DesktopBotsBridge {
+  busy(names: string[]): void;
+  onQuitHint(cb: (names: string[]) => void): () => void;
+}
+
 declare global {
   interface Window {
     /** The island's and the dock's own bridge (electron/ambient-preload.cjs); absent anywhere else. */

@@ -3331,7 +3331,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8955,7 +8958,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12210,7 +12216,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -15462,7 +15471,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -21484,7 +21496,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -27697,7 +27712,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -34300,7 +34318,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40488,7 +40509,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -46544,7 +46568,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -52739,7 +52766,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -57886,7 +57916,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -61443,7 +61476,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -66590,7 +66626,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -73366,7 +73405,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -78063,7 +78105,10 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
+      "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
     }
   }
 }
