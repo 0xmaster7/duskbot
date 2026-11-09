@@ -1,16 +1,11 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
-import { AnimatePresence, motion, useIsPresent } from "motion/react";
-import { EASE_OUT, REDUCED } from "@/lib/motion-presets";
-import { usePrefersReducedMotion } from "./mascot-clock";
 import { cn } from "@/lib/cn";
 import { WorkingTimer } from "@/components/WorkingIndicator";
 import { phraseAt, phraseHoldMs } from "@/lib/live-activity";
 import { quietText } from "@/lib/now-steps";
 import { t } from "@/lib/i18n";
 import { formatElapsed } from "@/lib/working-time";
-import { isQuietPhase } from "@/lib/turn-tail";
-import { LIFE_LATE_WORDS_MS, lifeDraw, lifeSpeaks } from "@/lib/reply-life";
 import type { StepQuiet } from "../../shared/turn-progress";
 
 const FADE_MS = 320;
@@ -60,11 +55,12 @@ function ShimmerPhrase({ text, className }: { text: string; className?: string }
   );
 }
 
-/** The status label rules: like grok, the mark comes alone first and its words follow after a short wait drawn per
- * turn (so it never feels timed), then each step shows one phrase and keeps it at least 800ms before the next. */
-export const STATUS_QUIET_MS = { min: 900, max: 1600 } as const;
+/** The status label rules, as Grok Bot's: the mark comes alone, its first words follow 1.8 to 2.6 s after the send
+ * (drawn per turn, about 1.2 to 1.4 s after the mark), then each step shows one phrase and keeps it at least 800ms before
+ * the next. "Typing…" is the line's own and comes and goes at once. */
+export const STATUS_QUIET_MS = { min: 1800, max: 2600 } as const;
 export const STATUS_HOLD_MS = 800;
-const TYPING_PHASE = "friendly:chat.typing";
+export const TYPING_PHASE = "friendly:chat.typing";
 
 function quietFor(seed: string): number {
   let hash = 2166136261;
@@ -78,24 +74,21 @@ function drawn(phrases: readonly string[], seed: string): string {
   return phrases[(hash >>> 0) % Math.max(1, phrases.length)] ?? "";
 }
 
-/** The step label the simple status line shows now, or null while the turn is still quiet. A `wordless` wait (about half
- * the quiet ones, lifeSpeaks) keeps to the mark alone unless it runs long. */
-export function useStatusLabel(phrases: readonly string[] | null, phase: string, seed: string, since: number | null, active: boolean, wordless = false): { key: string; text: string } | null {
+/** The step label the simple status line shows now, or null while the line is still quiet. */
+export function useStatusLabel(phrases: readonly string[] | null, phase: string, seed: string, since: number | null, active: boolean): { key: string; text: string } | null {
   const [, wake] = useState(0);
-  const shown = useRef<{ key: string; text: string; at: number; leftAt?: number } | null>(null);
+  const shown = useRef<{ key: string; text: string; at: number } | null>(null);
   const firstSeen = useRef<number | null>(null);
   const now = Date.now();
   if (!active) firstSeen.current = null;
   else firstSeen.current ??= now;
-  const quietUntil = (since ?? firstSeen.current ?? now) + (wordless ? lifeDraw(seed, "late", LIFE_LATE_WORDS_MS) : quietFor(`${seed}|quiet`));
-  let next: { key: string; text: string } | null = phrases && phrases.length > 0 && now >= quietUntil
+  const typing = phase === TYPING_PHASE;
+  const quietUntil = (since ?? firstSeen.current ?? now) + quietFor(`${seed}|quiet`);
+  let next: { key: string; text: string } | null = phrases && phrases.length > 0 && (typing || now >= quietUntil)
     ? { key: phase, text: drawn(phrases, `${seed}|${phase}`) }
     : null;
   const held = shown.current;
-  // "Typing…" outlasts the reply by 800ms: the words land, then the line moves on
-  if (held && next?.key !== held.key) held.leftAt ??= now;
-  else if (held) held.leftAt = undefined;
-  const holdUntil = held ? Math.max(held.at, held.key === TYPING_PHASE ? held.leftAt ?? 0 : 0) + STATUS_HOLD_MS : 0;
+  const holdUntil = held && !typing && held.key !== TYPING_PHASE ? held.at + STATUS_HOLD_MS : 0;
   if (held && next?.key !== held.key && now < holdUntil) next = held;
   // one phrase per step: a re-render inside the same step keeps the words it already showed
   else if (held && next?.key === held.key) next = held;
@@ -116,22 +109,12 @@ function StatusShimmer({ text }: { text: string }) {
   return <span className="status-shimmer">{text}</span>;
 }
 
-/** One step's words crossfading with the next; the leaving words are no longer part of the line. */
-function StepPhrase({ text, hover, reduced }: { text: string; hover?: string; reduced: boolean }) {
-  const present = useIsPresent();
+/** One step's words. A new step swaps them and rises in 4px over 180ms, as Grok Bot's line does: no crossfade. */
+function StepPhrase({ text, hover }: { text: string; hover?: string }) {
   return (
-    <motion.span
-      className={cn("flex min-w-0 items-center [grid-area:1/1]", !present && "turn-phrase-out")}
-      title={hover}
-      aria-hidden={present ? undefined : true}
-      data-turn-now={present ? "" : undefined}
-      initial={{ opacity: 0, y: reduced ? 0 : 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: reduced ? 0 : -4 }}
-      transition={reduced ? REDUCED : { duration: 0.18, ease: EASE_OUT }}
-    >
+    <span className="turn-label-in flex min-w-0 items-center [grid-area:1/1]" title={hover} data-turn-now="">
       <StatusShimmer text={text} />
-    </motion.span>
+    </span>
   );
 }
 
@@ -193,7 +176,6 @@ export function TurnPresence({
   cardLabel?: string;
   className?: string;
 }) {
-  const reduced = usePrefersReducedMotion();
   const [mounted, setMounted] = useState(visible);
   const [presencePhase, setPhase] = useState<"think" | "answer" | "out">(answering ? "answer" : "think");
   const [open, setOpen] = useState(false);
@@ -245,17 +227,12 @@ export function TurnPresence({
   const lead = label ?? t("chat.activity.working");
   const now = phrases && phrases.length > 0 ? phrases : null;
   const { current, previous } = useRotatingPhrase(now ?? NOTHING, phase ?? now?.[0] ?? "", seed, !simple && mounted && showWorking && now !== null);
-  const wordless = !label && isQuietPhase(phase) && !lifeSpeaks(seed);
-  const step = useStatusLabel(label ? [label] : now, label ? `label:${label}` : phase ?? now?.[0] ?? "", seed, since, mounted && simpleStatus, wordless);
+  const step = useStatusLabel(label ? [label] : now, label ? `label:${label}` : phase ?? now?.[0] ?? "", seed, since, mounted && simpleStatus);
   if (!mounted) return null;
   const status = simpleStatus ? (
     <span id={statusId} className="turn-label-slot flex h-[22px] min-w-0 items-center gap-x-1.5 text-[14px] leading-[22px]" data-turn-status>
       <span className="grid min-w-0">
-        <AnimatePresence initial={false}>
-          {step && (
-            <StepPhrase key={step.key} text={step.text} hover={hover} reduced={reduced} />
-          )}
-        </AnimatePresence>
+        {step && <StepPhrase key={step.key} text={step.text} hover={hover} />}
       </span>
       {step && quiet && <QuietPart quiet={quiet} />}
     </span>

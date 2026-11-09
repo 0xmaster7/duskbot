@@ -42,14 +42,14 @@ describe("useReplyLife", () => {
     expect(beat()).toBe("mascot");
   });
 
-  it("skips to the dots the moment the reply is being written, without waiting out the mascot", () => {
+  it("is the bot itself, never the dots, while the reply is being written", () => {
     render([{ key: "pepper", seed, typing: false }]);
-    act(() => void vi.advanceTimersByTime(200));
-    expect(beat()).toBe("mascot");
+    act(() => void vi.advanceTimersByTime(lifeSpan(seed, 0) + 10));
+    expect(beat()).toBe("dots");
     render([{ key: "pepper", seed, typing: true }]);
-    expect(beat()).toBe("dots");
+    expect(beat()).toBe("mascot");
     act(() => void vi.advanceTimersByTime(10_000));
-    expect(beat()).toBe("dots");
+    expect(beat()).toBe("mascot");
   });
 
   it("starts the next turn over on the mascot, and leaves no timer behind once nobody waits", () => {

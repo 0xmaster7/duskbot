@@ -4,7 +4,7 @@
 import { useSyncExternalStore } from "react";
 
 import type { RuntimeEvent } from "../../shared/runtime-events";
-import { progressKey, type TurnProgressActivity, type TurnProgressFields } from "../../shared/turn-progress";
+import { progressKey, STATUS_TOOL, type TurnProgressActivity, type TurnProgressFields } from "../../shared/turn-progress";
 
 export type LiveStatus =
   | ({ activity: TurnProgressActivity } & Omit<TurnProgressFields, "type" | "activity">)
@@ -15,6 +15,8 @@ export interface TurnLive {
   /** The newest turn this thread showed has completed, failed or stopped. */
   ended: boolean;
   status: LiveStatus | null;
+  /** The bot's own words for this turn's current phase (set_status), kept until it sets another or the turn ends. */
+  label?: string;
 }
 
 const UNKNOWN: TurnLive = { ended: false, status: null };
@@ -31,7 +33,7 @@ function sameStatus(a: LiveStatus | null, b: LiveStatus | null): boolean {
 
 function put(threadId: string, next: TurnLive): void {
   const current = threads.get(threadId);
-  if (current && current.turnId === next.turnId && current.ended === next.ended && sameStatus(current.status, next.status)) return;
+  if (current && current.turnId === next.turnId && current.ended === next.ended && current.label === next.label && sameStatus(current.status, next.status)) return;
   threads.delete(threadId);
   threads.set(threadId, next);
   if (threads.size > MAX_THREADS) threads.delete(threads.keys().next().value!);
@@ -56,13 +58,15 @@ export function noteTurnEvent(event: RuntimeEvent): void {
       return put(threadId, { turnId, ended: true, status: null });
     case "turn.progress": {
       const { activity, tool, file, bytes, itemId, target, detail, quiet, tail } = event;
-      return put(threadId, { turnId, ended: false, status: {
+      const label = event.label || live.label;
+      if (tool === STATUS_TOOL) return put(threadId, { turnId, ended: false, status: live.status, ...(label ? { label } : {}) });
+      return put(threadId, { turnId, ended: false, ...(label ? { label } : {}), status: {
         activity, ...(tool ? { tool } : {}), ...(file ? { file } : {}), ...(bytes !== undefined ? { bytes } : {}), ...(itemId ? { itemId } : {}),
         ...(target ? { target } : {}), ...(detail ? { detail } : {}), ...(quiet ? { quiet } : {}), ...(tail?.length ? { tail } : {}),
       } });
     }
     case "content.delta":
-      return put(threadId, { turnId, ended: false, status: { activity: event.streamKind === "reasoning_text" ? "thinking" : "reply" } });
+      return put(threadId, { turnId, ended: false, ...(live.label ? { label: live.label } : {}), status: { activity: event.streamKind === "reasoning_text" ? "thinking" : "reply" } });
     case "item.started":
       return put(threadId, { ...live, ended: false, status: live.status?.itemId && live.status.itemId === event.itemId ? live.status : null });
     case "item.completed":

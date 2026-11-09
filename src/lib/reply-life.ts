@@ -1,22 +1,16 @@
 import type { MarkState } from "@/components/mascot-motion-mark";
 
-/** The quiet wait between a send and the reply, as the status line's mark lives it: the bot as itself a while, then
- * condensed into the typing dots, then the reply. A long wait drifts between the two at its own pace. */
+/** The start of a turn as the status line's mark lives it, as Grok Bot's does: the mark mounts as the bot itself, condenses
+ * into the thinking dots once, and morphs back to the bot as the first words come. Every turn draws its spans from its
+ * seed. */
 export type LifeBeat = "mascot" | "dots";
 
-/** The first pass: the mascot's own moment, then the dots. Each turn draws its spans from its seed. */
-export const LIFE_MASCOT_MS = { min: 900, max: 1800 } as const;
-export const LIFE_DOTS_MS = { min: 600, max: 1400 } as const;
-/** A long wait after the first pass: back to the mascot and on to the dots, each a little longer. */
-export const LIFE_LOOP_MASCOT_MS = { min: 1400, max: 2600 } as const;
-export const LIFE_LOOP_DOTS_MS = { min: 1800, max: 3600 } as const;
+/** The mascot's moment after the mark mounts, then the one pass of the dots. */
+export const LIFE_MASCOT_MS = { min: 430, max: 600 } as const;
+export const LIFE_DOTS_MS = { min: 400, max: 700 } as const;
 /** The mark plays the mascot beat as this state; the dots are the engine's own morph, the thinking state. */
 export const LIFE_MASCOT_STATE: MarkState = "listening";
 export const LIFE_DOTS_STATE: MarkState = "thinking";
-/** About half the turns keep the quiet wait wordless; those show words only once the wait runs this long. */
-export const LIFE_LATE_WORDS_MS = { min: 6000, max: 9000 } as const;
-/** Past this many beats a wait just keeps alternating at loop pace, so a long turn costs nothing more per render. */
-const MAX_DRAWN_BEATS = 64;
 
 function hash(text: string): number {
   let value = 2166136261;
@@ -32,30 +26,22 @@ export function lifeDraw(seed: string, salt: string, range: { min: number; max: 
   return range.min + (hash(`${seed}|life|${salt}`) % (range.max - range.min + 1));
 }
 
-/** How long beat `index` lasts: even beats are the mascot, odd ones the dots. */
+/** How long beat `index` lasts: the mascot, then the dots; the mascot after them stays. */
 export function lifeSpan(seed: string, index: number): number {
-  const mascot = index % 2 === 0;
-  const first = index < 2;
-  const range = mascot ? (first ? LIFE_MASCOT_MS : LIFE_LOOP_MASCOT_MS) : first ? LIFE_DOTS_MS : LIFE_LOOP_DOTS_MS;
-  return lifeDraw(seed, String(Math.min(index, MAX_DRAWN_BEATS + (index % 2))), range);
+  if (index === 0) return lifeDraw(seed, "0", LIFE_MASCOT_MS);
+  if (index === 1) return lifeDraw(seed, "1", LIFE_DOTS_MS);
+  return Infinity;
 }
 
-/** Where a wait `elapsedMs` in stands: its beat and the elapsed time the next one starts. The reply being written
- * (`typing`) skips straight to the dots and holds them; the reply itself is never held back by any of this, it takes
- * the line's place in the frame it lands. */
+/** Where a turn `elapsedMs` after its mark mounted stands: its beat and the elapsed time the next one starts. The reply
+ * being written (`typing`) is the bot itself, never the dots. */
 export function lifeAt(seed: string, elapsedMs: number, typing = false): { beat: LifeBeat; nextAtMs: number } {
-  if (typing) return { beat: "dots", nextAtMs: Infinity };
+  if (typing) return { beat: "mascot", nextAtMs: Infinity };
   const at = Math.max(0, elapsedMs);
-  let start = 0;
-  for (let index = 0; ; index++) {
-    if (index === MAX_DRAWN_BEATS) {
-      const pair = lifeSpan(seed, index) + lifeSpan(seed, index + 1);
-      start += Math.floor((at - start) / pair) * pair;
-    }
-    const end = start + lifeSpan(seed, index);
-    if (at < end) return { beat: index % 2 === 0 ? "mascot" : "dots", nextAtMs: end };
-    start = end;
-  }
+  const mascot = lifeSpan(seed, 0), dots = lifeSpan(seed, 1);
+  if (at < mascot) return { beat: "mascot", nextAtMs: mascot };
+  if (at < mascot + dots) return { beat: "dots", nextAtMs: mascot + dots };
+  return { beat: "mascot", nextAtMs: Infinity };
 }
 
 /** The state the mark plays for a beat. Only the quiet wait lives this way (its base is thinking, or streaming while the
@@ -63,9 +49,4 @@ export function lifeAt(seed: string, elapsedMs: number, typing = false): { beat:
 export function lifeMarkState(base: MarkState, beat: LifeBeat | null | undefined): MarkState {
   if (!beat || (base !== "thinking" && base !== "streaming")) return base;
   return beat === "mascot" ? LIFE_MASCOT_STATE : LIFE_DOTS_STATE;
-}
-
-/** Whether this turn's quiet wait says anything early: about half do; the rest stay wordless unless the wait runs long. */
-export function lifeSpeaks(seed: string): boolean {
-  return hash(`${seed}|life|words`) % 2 === 0;
 }

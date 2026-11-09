@@ -51,15 +51,16 @@ import { BotAvatar, type MausAvatarHandle } from "./Avatar";
 import type { MarkState } from "./mascot-motion-mark";
 import { turnMarkState } from "./mascot-presence";
 import type { LiveStatus } from "@/state/turn-status";
-import { TurnPresence } from "./TurnPresence";
+import { TurnPresence, TYPING_PHASE } from "./TurnPresence";
 import { MarkCrossfade } from "./MarkCrossfade";
 import { showToolCallsEnabled } from "@/lib/feature-flags";
 import { normalizeState } from "@/lib/mascot";
 import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
-import { replyHidesLine, showWorkingDots } from "@/lib/turn-tail";
-import { useLandedReply } from "@/hooks/use-landed-reply";
+import { showWorkingDots } from "@/lib/turn-tail";
+import { useTypingHold } from "@/hooks/use-typing-hold";
+import { STATUS_MOUNT_MS, useReached } from "@/hooks/use-reached";
 import { useReplyLife, type LifeTurn } from "@/hooks/use-reply-life";
-import { LIFE_MASCOT_STATE, lifeMarkState } from "@/lib/reply-life";
+import { LIFE_MASCOT_STATE, lifeDraw, lifeMarkState } from "@/lib/reply-life";
 import { presenceKind, TYPING_MARK, turnWorked, useHeldPresence, workingMark } from "@/lib/presence-mark";
 import { lastNonReceipt } from "@/lib/receipts";
 import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
@@ -378,7 +379,7 @@ const Bubble = memo(function Bubble({
   const join: BubbleJoin = { above: joinAbove, below: joinBelow };
   // only rows that arrive while the conversation is open slide in; a reply that streamed in is already in place
   const fresh = !emerging && message.at > openedAt;
-  const reply = useReplySegments(conversational && !user && !peer && !replyTarget && message.kind === "text", text, message.at, openedAt);
+  const reply = useReplySegments(conversational && !user && !peer && !replyTarget && message.kind === "text", text);
   const split = reply.segments.length > 1;
   // each table of a reply draws as its own card between the reply's prose bubbles
   const blocks = useMemo(() => !user && !peer && !split && text ? splitReplyBlocks(text) : null, [user, peer, split, text]);
@@ -928,7 +929,10 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   }, []);
 
   const { messages: allMessages, activeLeafId } = bot;
-  const messages = useMemo(() => visibleMessages({ messages: allMessages, activeLeafId }), [allMessages, activeLeafId]);
+  const shownMessages = useMemo(() => visibleMessages({ messages: allMessages, activeLeafId }), [allMessages, activeLeafId]);
+  // each new bot bubble waits for its "Typing…" beat on the status line before it lands
+  const hold = useTypingHold(`${bot.id}:${bot.threadId ?? ""}`, shownMessages, bot.id, Boolean(bot.busy));
+  const messages = hold.rows;
   const lookups = useMemo(() => transcriptLookups(allMessages, messages), [allMessages, messages]);
   const liveTools = useLiveToolIds(messages, bot);
 
@@ -1015,19 +1019,23 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   // a first reply's wait is no phrase for the line: the line already says the bot is at work
   const lastForLine = useMemo(() => lastMessage?.tool?.rescue ? lastNonReceipt(messages.filter((m) => !m.tool?.rescue)) : lastMessage, [messages, lastMessage]);
   const live = useTurnLive(bot.threadId), now = useTurnNow(bot, messages, lastForLine, live);
-  // The mascot and its status line stay for the turn; its end, or its reply landing, hides them.
-  const landed = useLandedReply(`${bot.id}:${bot.threadId ?? ""}`, messages);
-  const waiting = Boolean(bot.busy && bot.activity !== "waiting-on-you" && showWorkingDots(bot.busy, lastMessage, undefined, live.ended))
-    && !replyHidesLine(landed.sinceMs, now.phase);
+  // The mascot and its status line stay for the whole turn, through every bubble it sends; only its end hides them.
+  const waiting = Boolean(bot.busy && bot.activity !== "waiting-on-you" && showWorkingDots(bot.busy, lastMessage, undefined, live.ended));
   const teammatesWorking = !bot.busy && Boolean(bot.waitingForTeammates);
   const markRef = useRef<MausAvatarHandle>(null);
   const [markEmphasized, setMarkEmphasized] = useState(false);
   // the reply is written whole; while the engine types it the mark only looks like it is answering
   const streamingReply = useLiveReplyActive(bot.threadId);
   const statusMarkState = bot.busy ? turnMarkState({ running: true, composing: streamingReply, activity: live.status?.activity ?? null, awaiting: bot.activity === "waiting-on-you", settled: null }, Date.now()) : statusMarkFor({ busy: false, waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
-  const presenceVisible = waiting || teammatesWorking;
-  // under the bot's words the line leaves at once, with no exit left to play
-  const presenceMounted = presenceVisible || !landed.reply;
+  const [busySince, setBusySince] = useState<number | null>(null);
+  useEffect(() => {
+    setBusySince(bot.busy ? bot.turnStartedAt ?? Date.now() : null);
+  }, [bot.busy, bot.id, bot.threadId, bot.turnStartedAt]);
+  const presenceSeed = `${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`;
+  // grok's line comes 0.55 to 1.2 s after a send, wordless; a bubble waiting on its typing beat brings it at once
+  // a turn whose start this client does not know (a chat opened mid-turn from an older server) shows its line at once
+  const mountDue = useReached(!bot.busy ? null : bot.turnStartedAt ? bot.turnStartedAt + lifeDraw(presenceSeed, "mount", STATUS_MOUNT_MS) : 0);
+  const presenceVisible = hold.typing ? !hold.leaving : (waiting && mountDue) || teammatesWorking;
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
   const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef, following);
@@ -1045,18 +1053,14 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       approval: approval ? { id: approval.requestId, name: bot.name } : undefined,
     };
   }, [messages, bot.busy, bot.name]);
-  const [busySince, setBusySince] = useState<number | null>(null);
-  useEffect(() => {
-    setBusySince(bot.busy ? bot.turnStartedAt ?? Date.now() : null);
-  }, [bot.busy, bot.id, bot.threadId, bot.turnStartedAt]);
-  // the quiet wait lives: the mascot a while, its typing dots, back again on a long one; the reply never waits for it
-  const presenceSeed = `${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`;
+  // the turn's start lives: the mascot, one pass of its thinking dots, then the mascot again as the words come
   // the typing dots only while the reply is being written; a turn at work shows the bot's own mascot at work
   const worked = useMemo(() => turnWorked(messages), [messages]);
-  const writing = streamingReply || live.status?.activity === "reply";
+  const writing = streamingReply || live.status?.activity === "reply" || hold.typing;
+  const typingPhrases = useMemo(() => [t("chat.typing")], [locale]);
   const presence = useHeldPresence(bot.busy && bot.activity !== "waiting-on-you" ? presenceKind({ writing, activity: live.status?.activity, worked }) : null);
-  const lifeBeat = useReplyLife(waiting && !teammatesWorking && presence === "waiting" ? [{ key: bot.id, seed: presenceSeed, typing: writing }] : NO_LIFE).get(bot.id);
-  const presenceMarkState = presence === "typing" ? TYPING_MARK : presence === "working" ? workingMark(live.status?.activity) : lifeMarkState(statusMarkState, lifeBeat);
+  const lifeBeat = useReplyLife(presenceVisible && !teammatesWorking && presence === "waiting" ? [{ key: bot.id, seed: presenceSeed, typing: writing }] : NO_LIFE).get(bot.id);
+  const presenceMarkState = presence === "typing" || writing ? TYPING_MARK : presence === "working" ? workingMark(live.status?.activity) : lifeMarkState(statusMarkState, lifeBeat);
   useThinkingMoment(markRef, presenceMarkState === LIFE_MASCOT_STATE);
 
   // while the turn runs its notices stay in the chat; once it ends, what it left is one card above the composer
@@ -1276,7 +1280,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             </div>
           )}
           <div className={statusSlot ? cn("turn-status-slot h-9 shrink-0", presenceUnderBubble && SIMPLE_STACKED) : "contents"} onMouseEnter={() => setMarkEmphasized(true)} onMouseLeave={() => setMarkEmphasized(false)} onClick={() => markRef.current?.poke?.()}>
-          {presenceMounted && <TurnPresence
+          {<TurnPresence
             avatar={
               <MarkCrossfade swap={presenceMarkState}>
                 <StatusMark
@@ -1297,8 +1301,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             label={teammatesWorking ? t("chat.teammatesWorking") : undefined}
             visible={presenceVisible}
             {...now}
-            phrases={teammatesWorking ? undefined : now.phrases}
-            phase={now.phase}
+            phrases={teammatesWorking ? undefined : writing ? typingPhrases : live.label ? [live.label] : now.phrases}
+            phase={writing ? TYPING_PHASE : live.label ? `label:${live.label}` : now.phase}
             seed={presenceSeed}
             since={busySince}
           />}
