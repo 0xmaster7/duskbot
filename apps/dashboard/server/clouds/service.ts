@@ -276,7 +276,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     list(accountId, includeHidden = false) { return store.state.clouds.filter(c => c.accountId === accountId && (includeHidden || !c.hidden)).reverse().sort((a, b) => b.createdAt - a.createdAt); },
     view(c) {
       const retained = c.backend === "boat" && boat ? boat.verdict(c) : null;
-      const boatView = c.backend === "boat" ? { provider: "boat" as const, lastBackupAt: c.boat?.backups.at(-1)?.at ?? null,
+      const boatView = c.backend === "boat" ? { provider: "managed" as const, lastBackupAt: c.boat?.backups.at(-1)?.at ?? null,
         deleteScheduledAt: c.boat?.deleteRequest?.confirmedAt && c.boat.deleteRequest.cancelledAt === null ? c.boat.deleteRequest.executeAfter : null,
         deleteAskedAt: c.boat?.deleteRequest && !c.boat.deleteRequest.confirmedAt && c.boat.deleteRequest.cancelledAt === null && (c.boat.deleteRequest.tokenExpiresAt ?? 0) > now() ? c.boat.deleteRequest.requestedAt : null } : {};
       return { ...viewOf(c), ...boatView, ...(retained && c.status !== "destroyed" ? { destroyAt: retained.earliestAt } : {}) };

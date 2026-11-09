@@ -65,7 +65,7 @@ function parseCloudEntry(input) {
   // list (an Admin with Remove from list says so only for one of their own, in no team, that ended or was never paid for).
   const deleteAfter = DEAD.includes(input.status) && Number.isSafeInteger(input.deleteAfter) && input.deleteAfter > 0 ? input.deleteAfter : null;
   const removable = input.removable === true && DEAD.includes(input.status) && managed && input.role === "owner" && teamId === null;
-  // Additive: who runs a Cloud's machine ("boat"); a malformed one, or one on a server of the person's own, is none.
+  // additive: who runs a cloud's machine ("managed"); a malformed one, or one on a server of the person's own, is none.
   const provider = managed && typeof input.provider === "string" && PROVIDER.test(input.provider) ? input.provider : null;
   return { id: input.id, name, color: Object.hasOwn(CLOUD_SWATCH_COLORS, input.color) ? input.color : null, role: input.role,
     tier: typeof input.tier === "string" && TIER.test(input.tier) ? input.tier : null, runsOn: input.runsOn, status: input.status, origin, teamId,

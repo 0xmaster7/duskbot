@@ -3,13 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { jevEndpoint } from "./decider/jev.ts";
 import { applyIncludedXMessage, deciderCredential, researchCredential, trialCreditCredential, voiceCredential, xCredential, xResearchStatus } from "./included-services.ts";
 
-const RELAY_BOAT = "https://cloud.example.test/api/cloud/services/boat/api/box/v1";
 const RELAY_VOICE = "https://cloud.example.test/api/cloud/services/voice/v1";
 // A Jev base URL: the relay's one route is <this>/v1/systemone.
 const RELAY_DECIDER = "https://cloud.example.test/api/cloud/services/decider";
 const cloud = {
-  OMB_CLOUD_BOAT_URL: RELAY_BOAT,
-  OMB_CLOUD_BOAT_TOKEN: "box_omb_included",
   OMB_CLOUD_VOICE_URL: RELAY_VOICE,
   OMB_CLOUD_VOICE_TOKEN: "omb_voice_included",
   OMB_CLOUD_DECIDER_URL: RELAY_DECIDER,
@@ -112,14 +109,10 @@ describe("holdIncludedServices", () => {
     vi.stubEnv("OMB_CLOUD_AI_URL", "https://cloud.example.test/api/cloud/services/ai");
     vi.stubEnv("OMB_CLOUD_AI_TOKEN", `omb_ai_${"a".repeat(43)}`);
     services.holdIncludedServices();
-    expect(Object.hasOwn(services, "boatCredential")).toBe(false);
-    expect(Object.hasOwn(services, "boatProviderApi")).toBe(false);
     expect(process.env.OMB_CLOUD_AI_TOKEN).toBeUndefined();
     expect(services.trialCreditCredential()).toEqual({ token: `omb_ai_${"a".repeat(43)}`, api: "https://cloud.example.test/api/cloud/services/ai", included: true });
-    expect(process.env.OMB_CLOUD_BOAT_TOKEN).toBeUndefined();
     expect(process.env.OMB_CLOUD_VOICE_TOKEN).toBeUndefined();
     expect(process.env.OMB_CLOUD_DECIDER_TOKEN).toBeUndefined();
-    expect(process.env.OMB_CLOUD_BOAT_URL).toBe(RELAY_BOAT);
     expect(process.env.OMB_CLOUD_DECIDER_URL).toBe(RELAY_DECIDER);
     expect(services.voiceCredential(undefined)).toEqual({ token: "omb_voice_included", api: RELAY_VOICE, included: true });
     expect(services.deciderCredential(undefined, undefined)).toEqual({ token: "omb_decide_included", api: RELAY_DECIDER, included: true });

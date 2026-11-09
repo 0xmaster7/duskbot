@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The works-on choices' Boat cloud row in a real DOM: each step runs its own existing flow through the desktop's bridges,
+// the works-on choices' cloud desktop row in a real dom: each step runs its own existing flow through the desktop's bridges,
 // and never touches where the bot works.
 import { createElement } from "react";
 import { flushSync } from "react-dom";
@@ -16,20 +16,20 @@ vi.mock("@/state/store", async (importOriginal) => {
   };
 });
 
-const { BoatCloudListRow, useBoatCloud } = await import("./BoatCloud");
+const { CloudDesktopListRow, useCloudDesktop } = await import("./CloudDesktop");
 
 function Harness() {
-  const boat = useBoatCloud();
-  return boat ? createElement("div", null, createElement(BoatCloudListRow, { boat }), boat.dialog) : createElement("p", { "data-none": true });
+  const cloudDesktop = useCloudDesktop();
+  return cloudDesktop ? createElement("div", null, createElement(CloudDesktopListRow, { cloudDesktop }), cloudDesktop.dialog) : createElement("p", { "data-none": true });
 }
 
-const HOME = { id: "c-home", name: "Harbor", color: null, role: "owner", tier: "pro", runsOn: "cloud", status: "ready", origin: "https://home.example.test", teamId: null, primary: true, managed: true, provider: "boat" } as const;
+const HOME = { id: "c-home", name: "Harbor", color: null, role: "owner", tier: "pro", runsOn: "cloud", status: "ready", origin: "https://home.example.test", teamId: null, primary: true, managed: true, provider: "managed" } as const;
 let root: Root, host: HTMLElement;
 const settle = async () => { for (let at = 0; at < 4; at++) await new Promise((resolve) => setTimeout(resolve, 0)); };
-const row = () => host.querySelector<HTMLElement>("[data-panel-row='boat']");
+const row = () => host.querySelector<HTMLElement>("[data-panel-row='cloud-desktop']");
 const button = (label: string) => [...document.body.querySelectorAll("button")].find((candidate) => candidate.textContent === label);
 
-function desktop({ account = { status: "connected", clouds: [HOME] } as CloudAccountState, keep = { shown: true, on: false, moved: false, coming: false }, plan = { status: "paid" as const, provider: "boat" } } = {}) {
+function desktop({ account = { status: "connected", clouds: [HOME] } as CloudAccountState, keep = { shown: true, on: false, moved: false, coming: false }, plan = { status: "paid" as const, provider: "managed" } } = {}) {
   const bridges = {
     cloudAccount: { state: vi.fn(async () => account), onState: vi.fn(() => () => {}), openDashboard: vi.fn(async () => account), connectHome: vi.fn(async () => account) },
     cloudSendPage: { notice: vi.fn(async () => ({ ready: true })), onNotice: vi.fn(() => () => {}), keepHere: vi.fn(async () => keep), setKeepHere: vi.fn(async (on: boolean) => ({ ...keep, on })) },
@@ -57,7 +57,7 @@ afterEach(() => {
   delete (window as unknown as { ogb?: unknown }).ogb;
 });
 
-describe("the Boat cloud row", () => {
+describe("the cloud desktop row", () => {
   it("is not there outside the desktop app", async () => {
     await render();
     expect(host.querySelector("[data-none]")).not.toBeNull();
@@ -106,7 +106,7 @@ describe("the Boat cloud row", () => {
     expect(row()?.textContent).toContain("The Cloud didn't answer.");
   });
 
-  it("moves the bots back from the Boat cloud's own page once the person confirms", async () => {
+  it("moves the bots back from the cloud desktop's own page once the person confirms", async () => {
     fixture.cloudHome = true;
     const bridges = desktop({ keep: { shown: true, on: false, moved: true, coming: false } });
     await render();
@@ -118,7 +118,7 @@ describe("the Boat cloud row", () => {
     expect(bridges.cloudSendPage.setKeepHere).toHaveBeenCalledWith(true);
   });
 
-  it("is not there on a Cloud's own page that Boat doesn't run", async () => {
+  it("is not there on a Cloud's own page that a managed provider doesn't run", async () => {
     fixture.cloudHome = true;
     desktop({ keep: { shown: true, on: false, moved: true, coming: false }, plan: { status: "paid" } as never });
     await render();

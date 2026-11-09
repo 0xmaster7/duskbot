@@ -8,8 +8,6 @@ import { KEY_CATALOG, KEY_SECTIONS, keyEntry, keyForInstance, keyMatches, looksL
 
 const NOT_A_PERSONS_KEY: Record<string, string> = {
   BOX_TOKEN: "retired credential kept in the engine secret denylist",
-  OMB_CLOUD_BOAT_TOKEN: "retired credential kept in the engine secret denylist",
-  OMB_BOAT_API: "retired endpoint kept in the engine secret denylist",
   OMB_ANTHROPIC_API_URL: "the address the Anthropic key goes to, set by a hosted install",
   OMB_COMPOSIO_BROKER_TOKEN: "MausBot Cloud's connected-apps broker",
   OMB_CLOUD_VOICE_TOKEN: "MausBot Cloud's included voice",

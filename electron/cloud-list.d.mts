@@ -31,7 +31,7 @@ export interface CloudListEntry {
   removable?: true;
   /** A Ready Cloud whose plan sleeps: whether it is asleep now. */
   power?: import("./cloud-power.mjs").CloudPower;
-  /** Who runs its machine, when the Admin says ("boat"); absent from an older Admin. */
+  /** Who runs its machine, when the Admin says ("managed"); absent from an older Admin. */
   provider?: string;
 }
 /** What this app says of a listed Cloud it doesn't open: ended, its checkout not finished, a payment problem, or being set up. */

@@ -47,7 +47,7 @@ export function routineRunsOn({ roomGoal, runOn, computer, cloudHome }: {
 }): { label: string; hint: string } {
   const hint = t(cloudHome ? "routines.runsOn.cloudHomeHint" : "routines.runsOn.localHint");
   if (roomGoal) return { label: t(cloudHome ? "routines.runsOn.teamCloudHome" : "routines.runsOn.team"), hint };
-  if (runOn === "cloud") return { label: t("routines.runsOn.boat"), hint: t(cloudHome ? "routines.runsOn.boatHintCloudHome" : "routines.runsOn.boatHint") };
+  if (runOn === "cloud") return { label: t("routines.runsOn.cloudDesktop"), hint: t(cloudHome ? "routines.runsOn.cloudDesktopHintCloudHome" : "routines.runsOn.cloudDesktopHint") };
   if (computer === "cloud") return { label: t("routines.runsOn.botCloud"), hint };
   if (computer === "vm" && !cloudHome) return { label: t("routines.runsOn.botVm"), hint };
   return { label: t(cloudHome ? "routines.runsOn.cloudHome" : "routines.runsOn.local"), hint };

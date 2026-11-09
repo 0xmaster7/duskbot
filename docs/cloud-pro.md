@@ -616,7 +616,7 @@ and Fly restarts the machine. The one exception: after a restore commits
 (`server/restart.ts`) and the launcher starts only the server again.
 
 The machine's secrets (`OMB_CLOUD_BOOTSTRAP_SECRET` and the relay tokens
-`OMB_CLOUD_BOAT_TOKEN`, `OMB_CLOUD_VOICE_TOKEN`, `OMB_CLOUD_DECIDER_TOKEN`, `OMB_CLOUD_X_TOKEN`)
+`OMB_CLOUD_VOICE_TOKEN`, `OMB_CLOUD_DECIDER_TOKEN`, `OMB_CLOUD_X_TOKEN`)
 arrive as the launcher's environment, from the Fly app secrets the Admin
 sets. The launcher never puts them in a child's environment, because
 `/proc/<pid>/environ` keeps a process's starting environment for anything
@@ -874,14 +874,14 @@ on the Admin, which checks the subscription, the monthly caps on every request.
   fix is engines under a user of their own. A relay token is only this customer's own OMB Cloud
   allowance: it works only through the Admin, only on this machine's cloud
   computers, voice and decisions, and only up to the monthly caps.
-- A refusal from the Boat or voice relay (for example, the month's cloud
+- A refusal from the cloud desktop or voice relay (for example, the month's cloud
   computer hours are used up) is shown as the relay's own message. A resume
-  that fails with a server error is retried on the next poll, as Boat asks.
+  that fails with a server error is retried on the next poll.
 - An included cloud computer goes to sleep through the relay's `POST
-  /boxes/{id}/stop` after 10 idle minutes, as one on a person's own key does
-  at Boat; a refused stop is retried later, a longer wait each time. A
+  /boxes/{id}/stop` after 10 idle minutes. A refused stop is retried later,
+  with a longer wait each time. A
   computer stays on when a routine that uses it runs within the next 30
-  minutes, since every wake counts against the Boat account's shared starts.
+  minutes, since every wake counts against the cloud account's shared starts.
 - A refusal from the decision relay (401 for an unknown token, 402 without an
   active subscription, 429 over the month's cap or a rate limit, 502 or 503
   upstream) never reaches a turn: as with any decision-model failure, the room
@@ -1114,7 +1114,7 @@ provider never holds the answer. `connectors.items` lists only apps the
 person set up: connected now, or connected once and since expired or failed.
 An app never connected is not
 listed. Cloud computers are not listed: through the
-Admin's Boat relay that would count as using an included service and hold back
+Admin's cloud desktop relay that would count as using an included service and hold back
 updates; a cloud computer that fails a turn arrives as its place's code
 (`cc-unavailable`, `cc-no-start`, `cc-provider`, …).
 
@@ -1388,8 +1388,8 @@ first one due shows, and it takes the launch (`launchNotice`, kept for the
 window's session, so a reload is the same launch). After it, only the
 product-updates question may follow in that launch; every other notice waits for
 a later launch, in the list's order. A new notice is one entry in `NOTICES` and
-its fact in AppNotices. So What's new and Boat's credit offer never share a
-launch: What's new comes first, and the Boat card waits for a later one.
+its fact in AppNotices. What's new comes first, and any other notice waits
+for a later launch.
 
 1. **What's new** (`whats-new/WhatsNewPopup`, campaign id `whats-new-2026-11`):
    one centered popup with slides, **Next** and **Back**, its dots and the arrow

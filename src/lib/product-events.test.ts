@@ -64,7 +64,7 @@ describe("local event helper arguments", () => {
     const events = await import("./product-events");
     events.keySaved("composio", "settings", "rejected");
     events.keyRemoved("anthropic", "settings");
-    events.keySaved("boat" as never, "settings", "ok");
+    events.keySaved("retired" as never, "settings", "ok");
     events.keySaved("sk-ant-api03-ZZtestSECRET0123456789" as never, "https://evil.example.com" as never, "ok");
     expect(ph.captured.filter(({ event }) => event.startsWith("api_key_"))).toEqual([
       { event: "api_key_saved", props: { provider: "composio", via: "settings", result: "rejected" } },

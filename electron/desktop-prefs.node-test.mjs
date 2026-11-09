@@ -17,10 +17,10 @@ const NOON = new Date(2026, 9, 16, 12).getTime();
 const LOCAL = "http://127.0.0.1:18799", CLOUD = "https://omb-u-1.fly.dev", VPS = "https://bots.example.test";
 
 test("discarded campaign ids never reappear in desktop notice state", () => {
-  let saved = { seen: [POPUP, GROK, "boat-credit-2026-11"] };
+  let saved = { seen: [POPUP, GROK, "retired-credit-2026-11"] };
   const prefs = createDesktopPrefs({ read: () => saved, write: value => { saved = structuredClone(value); } });
   assert.deepEqual(prefs.seen(), [POPUP, GROK]);
-  prefs.markSeen("boat-credit-2026-11");
+  prefs.markSeen("retired-credit-2026-11");
   assert.deepEqual(prefs.seen(), [POPUP, GROK]);
 });
 

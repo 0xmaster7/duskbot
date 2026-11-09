@@ -42,7 +42,7 @@ export function createAdminRoutes(ctx: BillingContext) {
     const sub = service.subscriptions(account.id).find(s => s.status !== "ended" && s.status !== "pending");
     if (!sub) throw new BillingError(409, "not_subscribed"); return sub;
   }
-  /** a Boat cloud sleeps when idle: Ready, with the power the app wakes it through (contract v1, `cloud.power`) */
+  /** a managed cloud desktop sleeps when idle: Ready, with the power the app wakes it through (contract v1, `cloud.power`) */
   function boatPower(c: StoredCloud) {
     if (c.backend !== "boat" || !c.origin || !["running", "sleeping"].includes(c.status) || c.ended) return null;
     const state = c.status === "running" ? "awake" : c.wantPower === "on" ? "waking" : "asleep";
@@ -56,7 +56,7 @@ export function createAdminRoutes(ctx: BillingContext) {
     const tier = sub?.bundle ?? config.bundles.find(b => b.cart.desktop.kind === c.kind)?.id ?? "custom";
     const runs = sub && sub.status !== "ended" && sub.status !== "pending" && sub.currentPeriodEnd !== null && sub.currentPeriodEnd > now();
     return { id: c.id, name: c.name, color: c.color, role: "owner", tier, runsOn: "cloud", status, origin: c.origin, teamId: null, primary: isPrimary, managed: true,
-      ...(c.backend === "boat" ? { provider: "boat" } : {}), ...(power ? { power } : {}),
+      ...(c.backend === "boat" ? { provider: "managed" } : {}), ...(power ? { power } : {}),
       ...(status === "setting_up" ? { setup: { step: c.setupStep ?? "reserving", progress: ({ reserving: 0.15, storage: 0.4, starting: 0.65, checking: 0.9 })[c.setupStep ?? "reserving"] } } : {}),
       ...(view.lastReportAt === null ? {} : { lastSeenAt: view.lastReportAt }),
       ...(["stopped", "ended"].includes(status) && c.destroyAt !== null ? { deleteAfter: c.destroyAt } : {}),

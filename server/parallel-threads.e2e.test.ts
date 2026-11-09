@@ -293,7 +293,7 @@ describe.skipIf(process.platform === "win32").each(["desktop", "home"] as const)
   }, 90_000);
 });
 
-// One relay stands in for the Admin's Boat proxy; a picture stands in for the desktop.
+// one relay stands in for the admin's retired desktop provider proxy; a picture stands in for the desktop.
 const FRAME = Buffer.from("/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==", "base64");
 describe.each(["desktop", "team"] as const)("two threads of a bot on the team's shared computer on a %s server", (role) => {
   let f: Fixture;
@@ -326,9 +326,8 @@ describe.each(["desktop", "team"] as const)("two threads of a bot on the team's 
     });
     servers.push(relay);
     await new Promise<void>((resolve) => relay.listen(0, "127.0.0.1", resolve));
-    const relayBase = `http://127.0.0.1:${(relay.address() as AddressInfo).port}`;
     f = new Fixture(role);
-    f.extraEnv = { OMB_BOAT_API: `${relayBase}/own-key-must-not-be-used`, OMB_CLOUD_BOAT_URL: `${relayBase}/relay/api/box/v1`, OMB_CLOUD_BOAT_TOKEN: "box_omb_fixture", OMB_COMPUTER_CALL_WAIT_MS: "500" };
+    f.extraEnv = { OMB_COMPUTER_CALL_WAIT_MS: "500" };
     await f.start();
     const requestId = randomUUID();
     const made = await f.api("POST", "/api/team-computers", { requestId, name: "Ops desktop", acknowledgeCost: true });

@@ -10,7 +10,7 @@ import { cacheUntilConfigChanges,
   customMcpServers,
   engineLaunches,
   DATA_DIR,
-  dropRetiredBoatToken,
+  dropRetiredDesktopToken,
   ensureDirs,
   instanceConfigs,
   isValidSshAlias,
@@ -52,7 +52,7 @@ const reloaded = (patch: object, cfg: AppConfig = {}) =>
   changedInstanceIds(engineLaunches(instanceConfigs(cfg), {}), engineLaunches(instanceConfigs({ ...cfg, ...patch } as AppConfig), {}));
 
 describe("configuration boundaries", () => {
-  it("rejects paid desktop key writes and never keeps a stored Boat token", () => {
+  it("rejects paid desktop key writes and never keeps a stored retired desktop provider token", () => {
     expect(parseStoredConfig({ box: { token: "legacy-fixture-token" } })).not.toHaveProperty("box");
     for (const box of [{ token: "new-fixture-token" }, { token: "" }, {}, null] as JsonValue[]) {
       expect(() => parseConfigPatch({ box })).toThrow("Paid desktop provider settings are no longer supported");
@@ -1252,8 +1252,8 @@ describe("OpenCode Go configuration", () => {
     const stored = parseStoredConfig({
       profile: { name: "Ada" },
       opencodeGo: { providerKeys: {
-        VENICE_API_KEY: "venice-secret", venice_api_key: "lower", OPENCODE_API_KEY: "shadow", OMB_CLOUD_BOAT_TOKEN: "relay",
-        BOX_TOKEN: "boat", NODE_OPTIONS: "--require x", GROQ_API_KEY: "has space",
+        VENICE_API_KEY: "venice-secret", venice_api_key: "lower", OPENCODE_API_KEY: "shadow", OMB_CLOUD_VOICE_TOKEN: "relay",
+        BOX_TOKEN: "retired", NODE_OPTIONS: "--require x", GROQ_API_KEY: "has space",
         DEEPSEEK_API_KEY: 42, TOGETHER_API_KEY: null, FIREWORKS_API_KEY: { key: "nested" },
       } },
     });
@@ -1299,7 +1299,7 @@ describe("saving OpenCode provider keys", () => {
       expect(refused(name)).toContain("such as VENICE_API_KEY");
     }
     expect(refused("OPENCODE_API_KEY")).toContain("OpenCode API key box");
-    for (const name of ["OPENCODE_SERVER_KEY", "OMB_CLOUD_BOAT_TOKEN", "OMB_LICENSE_KEY", "BOX_TOKEN", "COMPOSIO_API_KEY",
+    for (const name of ["OPENCODE_SERVER_KEY", "OMB_LICENSE_KEY", "BOX_TOKEN", "COMPOSIO_API_KEY",
       "OPENAI_COMPAT_API_KEY", "XAI_API_KEY", "MISTRAL_API_KEY", "CURSOR_API_KEY", "FACTORY_API_KEY"]) {
       expect(refused(name)).toBe(`OpenMaus keeps ${name} for itself, so OpenCode can't be given it here. Put this key in opencode.json instead.`);
     }
@@ -1331,7 +1331,7 @@ describe("credential env narrowing", () => {
   it("injects each credential only into the driver that consumes it", () => {
     const cfg = {
       xai: { key: "SECRET-XAI" },
-      box: { token: "SECRET-BOAT" },
+      box: { token: "SECRET-RETIRED" },
       opencodeGo: { apiKey: "SECRET-OCG" },
       instances: {
         grokApi: { driver: "grok" },
@@ -1343,13 +1343,13 @@ describe("credential env narrowing", () => {
     const instances = instanceConfigs(cfg as AppConfig);
     expect(instances.grokApi.environment).toEqual({ XAI_API_KEY: "SECRET-XAI" });
     expect(instances.opencode.environment).toEqual({ OPENCODE_API_KEY: "SECRET-OCG" });
-    for (const entry of Object.values(instances)) expect(Object.values(entry.environment ?? {})).not.toContain("SECRET-BOAT");
+    for (const entry of Object.values(instances)) expect(Object.values(entry.environment ?? {})).not.toContain("SECRET-RETIRED");
     expect(instances.claude.environment).toEqual({});
     expect(instances.codex.environment).toEqual({});
   });
 
-  it("hands no credential to any default-fleet CLI engine, and the Boat key to none at all", () => {
-    const instances = instanceConfigs({ xai: { key: "SECRET-XAI" }, box: { token: "SECRET-BOAT" } } as AppConfig);
+  it("hands no credential to any default-fleet CLI engine, and the retired desktop provider key to none at all", () => {
+    const instances = instanceConfigs({ xai: { key: "SECRET-XAI" }, box: { token: "SECRET-RETIRED" } } as AppConfig);
     for (const [id, entry] of Object.entries(instances)) {
       if (id === "xaiApi") expect(entry.environment).toEqual({ XAI_API_KEY: "SECRET-XAI" });
       else expect(entry.environment).toEqual({});
@@ -1500,11 +1500,11 @@ describe("credential env preference", () => {
     rmSync(join(DATA_DIR, "config.json"), { force: true });
   });
 
-  it("removes a stored Boat token from config.json at startup and on the next save", () => {
+  it("removes a stored retired desktop provider token from config.json at startup and on the next save", () => {
     const file = join(DATA_DIR, "config.json");
     writeFileSync(file, JSON.stringify({ box: { token: "box_retired_fixture" }, profile: { name: "Ada" } }));
     expect(loadConfig()).not.toHaveProperty("box");
-    dropRetiredBoatToken(DATA_DIR);
+    dropRetiredDesktopToken(DATA_DIR);
     expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ profile: { name: "Ada" } });
     writeFileSync(file, JSON.stringify({ box: { token: "box_retired_fixture" } }));
     saveConfig({ profile: { name: "Ada" } });
@@ -1551,8 +1551,6 @@ describe("credential env preference", () => {
 
   it("never takes Cloud Pro's included tokens for the person's own keys, in config or an engine's environment", () => {
     const included = {
-      OMB_CLOUD_BOAT_URL: "https://cloud.example.test/api/cloud/services/boat/api/box/v1",
-      OMB_CLOUD_BOAT_TOKEN: "box_omb_included-relay-token",
       OMB_CLOUD_VOICE_URL: "https://cloud.example.test/api/cloud/services/voice/v1",
       OMB_CLOUD_VOICE_TOKEN: "omb_voice_included-relay-token",
       OMB_CLOUD_DECIDER_URL: "https://cloud.example.test/api/cloud/services/decider",
@@ -1570,7 +1568,7 @@ describe("credential env preference", () => {
       saveConfig({ tts: { voice: "chosen" }, decider: { enabled: true, jobs: { roomRouting: true } } });
       const disk = readFileSync(join(DATA_DIR, "config.json"), "utf8");
       const runtime = JSON.stringify([loadConfig(), instanceConfigs(loadConfig()), persistableInstanceConfigs(loadConfig())]);
-      for (const token of [included.OMB_CLOUD_BOAT_TOKEN, included.OMB_CLOUD_VOICE_TOKEN, included.OMB_CLOUD_DECIDER_TOKEN]) {
+      for (const token of [included.OMB_CLOUD_VOICE_TOKEN, included.OMB_CLOUD_DECIDER_TOKEN]) {
         expect(disk).not.toContain(token);
         expect(runtime).not.toContain(token);
       }
@@ -1953,7 +1951,6 @@ describe("workspace credential env strip", () => {
   it("covers in-process secrets and private app-state paths", () => {
     expect(WORKSPACE_CREDENTIAL_ENV).toContain("BOX_TOKEN");
     expect(WORKSPACE_CREDENTIAL_ENV).toContain("OMB_TTS_KEY");
-    expect(WORKSPACE_CREDENTIAL_ENV).toContain("OMB_CLOUD_BOAT_TOKEN");
     expect(WORKSPACE_CREDENTIAL_ENV).toContain("OMB_CLOUD_VOICE_TOKEN");
     expect(WORKSPACE_CREDENTIAL_ENV).toContain("OMB_CLOUD_DECIDER_TOKEN");
     expect(WORKSPACE_CREDENTIAL_ENV).toContain("OMB_CLOUD_AI_TOKEN");
@@ -2055,7 +2052,7 @@ describe("changedInstanceIds", () => {
   it("replaces nothing for sections no driver reads", () => {
     expect(reloaded({ onboarding: { hintsSeen: ["tour.composer"] } })).toEqual([]);
     expect(reloaded({ profile: {}, language: "de", tts: {}, features: {} })).toEqual([]);
-    expect(reloaded({ box: { token: "boat" }, composio: { apiKey: "c" } })).toEqual([]);
+    expect(reloaded({ box: { token: "retired" }, composio: { apiKey: "c" } })).toEqual([]);
   });
   it("replaces an engine whose driver reads a saved key from the env", () => {
     const own = instanceConfigs({ instances: { own: { driver: "mistral", config: { url: "http://127.0.0.1:9/v1" } } }, mistral: { key: "m1" } });
@@ -2066,7 +2063,7 @@ describe("changedInstanceIds", () => {
     const compat = (env: Record<string, string>) => changedInstanceIds(engineLaunches(fleet, {}), engineLaunches(fleet, env));
     expect(compat({ OPENAI_COMPAT_URL: "https://compat.example/v1" })).toEqual(["openaiCompat"]);
     expect(compat({ OMB_OPENAI_API_KEY: "o" })).toEqual(["openai"]);
-    expect(compat({ BOX_TOKEN: "boat", COMPOSIO_API_KEY: "c" })).toEqual([]);
+    expect(compat({ BOX_TOKEN: "retired", COMPOSIO_API_KEY: "c" })).toEqual([]);
   });
   it("names an engine that was added or removed", () => {
     expect(changedInstanceIds({ a: { driver: "fake" } }, { b: { driver: "fake" } })).toEqual(["a", "b"]);

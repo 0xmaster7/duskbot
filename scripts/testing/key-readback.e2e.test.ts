@@ -1,5 +1,5 @@
 // Every credential on the keys page, saved through a real server the way its row saves it, read back from GET
-// /api/config and shown masked. The services that check a key before it is kept (Boat, Composio, ElevenLabs, Fish Audio
+// /api/config and shown masked. the services that check a key before it is kept (composio, elevenlabs, fish audio
 // and the decision models) answer from one loopback stand-in, so nothing leaves this machine.
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -26,7 +26,7 @@ const { setLocale } = await import("@/lib/i18n");
 
 const ROOT = new URL("../..", import.meta.url);
 const ACCOUNT_ID = "0123456789abcdef0123456789abcdef";
-const PREFIX: Record<string, string> = { box: "boat_", composio: "ak_", elevenlabs: "sk_" };
+const PREFIX: Record<string, string> = { composio: "ak_", elevenlabs: "sk_" };
 const EXTRA_PATCH: Record<string, (key: string) => Record<string, unknown>> = {
   workersAi: (key) => ({ decider: { workersAiToken: key, workersAiAccountId: ACCOUNT_ID } }),
   imageCustom: (key) => ({ imageGen: { customApiKey: key } }),
@@ -81,7 +81,7 @@ beforeAll(async () => {
   writeFileSync(configFile, JSON.stringify({ ...JSON.parse(readFileSync(configFile, "utf8")), decider }));
   const env = {
     ...verificationServerEnvironment({}, fixture.info.dataDir, Number(new URL(fixture.info.url).port)),
-    OMB_BOAT_API: origin, OMB_COMPOSIO_API: `${origin}/composio`, OMB_COMPOSIO_TOOLKITS_API: `${origin}/composio`,
+    OMB_COMPOSIO_API: `${origin}/composio`, OMB_COMPOSIO_TOOLKITS_API: `${origin}/composio`,
     OMB_GEMINI_TTS_API: `${origin}/gemini`,
     OMB_ELEVENLABS_API: `${origin}/eleven`, OMB_FISH_AUDIO_API: `${origin}/fish`,
   };

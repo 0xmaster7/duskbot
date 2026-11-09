@@ -1,4 +1,4 @@
-// Real server, fake Claude CLI, and a loopback Boat that fails the test on any call to Boat's own agent
+// real server, fake claude cli, and a loopback retired desktop provider that fails the test on any call to the retired desktop provider's own agent
 // (/prompt, /prompts/{id}, /events, /interrupt).
 import { spawn, type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
@@ -18,7 +18,7 @@ const ENGINE_NAME = "Verification Claude";
 const REMOVED = "The Computer choice in the model list was removed.";
 const JPEG = Buffer.from("/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD8qqKKKAP/2Q==", "base64");
 
-function install(home: string, boatPort: () => number) {
+function install(home: string) {
   const data = join(home, "data");
   const dumpFile = join(home, "dump.json");
   let child: ChildProcess | null = null;
@@ -86,7 +86,6 @@ function install(home: string, boatPort: () => number) {
         APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
         TEMP: home, TMP: home, TMPDIR: home,
         OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), OMB_STATIC_DIR: join(home, "static"),
-        OMB_BOAT_API: `http://127.0.0.1:${boatPort()}`,
         OMB_USER_DATA: join(home, "user-data"),
       }, stdio: ["ignore", "pipe", "pipe"],
     });
@@ -120,28 +119,27 @@ const savedOnEngine = (saved: any) => {
 describe("removing the Computer engine", () => {
   const homes: string[] = [];
   const running: Array<{ stop: () => Promise<void> }> = [];
-  let boatServer: Server;
+  let retiredServer: Server;
   const rows: Array<{ id: string; name: string; state: string }> = [];
-  let boatCalls = 0;
+  let retiredCalls = 0;
   let boxesCreated = 0;
-  /** Calls to Boat's own agent: the place no turn may ever go. */
+  /** Calls to the retired desktop provider's own agent: the place no turn may ever go. */
   const agentCalls: string[] = [];
-  const boatPort = () => (boatServer.address() as { port: number }).port;
   const fresh = () => {
     const home = mkdtempSync(join(tmpdir(), "omb-computer-engine-"));
     homes.push(home);
-    const server = install(home, boatPort);
+    const server = install(home);
     running.push(server);
     return { home, server };
   };
 
   beforeAll(async () => {
-    boatServer = createServer(async (req, res) => {
+    retiredServer = createServer(async (req, res) => {
       const path = new URL(req.url ?? "/", "http://box.fixture").pathname;
       let raw = ""; for await (const part of req) raw += part;
       const body = raw ? JSON.parse(raw) : {};
       res.setHeader("content-type", "application/json");
-      boatCalls++;
+      retiredCalls++;
       if (/\/(prompt|events|interrupt)$|\/prompts\//.test(path)) {
         agentCalls.push(`${req.method} ${path}`);
         res.statusCode = 409;
@@ -163,17 +161,17 @@ describe("removing the Computer engine", () => {
       }
       res.end("{}");
     });
-    await new Promise<void>(resolve => boatServer.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>(resolve => retiredServer.listen(0, "127.0.0.1", resolve));
   });
   afterAll(async () => {
     for (const server of running) await server.stop();
-    if (boatServer) { boatServer.closeAllConnections(); await new Promise<void>(resolve => boatServer.close(() => resolve())); }
+    if (retiredServer) { retiredServer.closeAllConnections(); await new Promise<void>(resolve => retiredServer.close(() => resolve())); }
     for (const home of homes) await removeTempDir(home);
   });
 
-  it("moves bots off it once, keeps each conversation where it worked, and never hands a turn to Boat's own agent", async () => {
+  it("moves bots off it once, keeps each conversation where it worked, and never hands a turn to the retired desktop provider's own agent", async () => {
     const { server } = fresh();
-    // A turn's first computer call is what creates the Boat, as with a real model, so this engine uses the cloud computer.
+    // a turn's first computer call is what creates the retired desktop provider, as with a real model, so this engine uses the cloud computer.
     const claudeEntry = (dumpFile: string) => ({
       driver: "claudeAgent", displayName: ENGINE_NAME, config: { cli: FAKE_CLI },
       environment: { FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_USES_CLOUD_COMPUTER: "1" },
@@ -198,12 +196,12 @@ describe("removing the Computer engine", () => {
       automaticRecovery: { enabled: true, backup: { instanceId: "computer", model: "sonnet" } },
     }));
     // The starter: on the engine with Works on Cloud, another conversation
-    // and a backup on it, and Boat's run id.
+    // and a backup on it, and the retired desktop provider's run id.
     server.editSavedBot(starter.id, saved => {
       saved.modelSelection = onEngine("claude-fable-5");
       saved.computer = "cloud";
       saved.fallback = [onEngine("sonnet")];
-      saved.resumeCursors = { computer: "boat-prompt-run" };
+      saved.resumeCursors = { computer: "retired-prompt-run" };
       for (const task of saved.tasks) task.modelSelection = onEngine(task.threadId === other ? "gpt-5.4" : "claude-fable-5");
     });
     // Atlas: on the engine with Works on Auto, the default for new bots.
@@ -277,10 +275,10 @@ describe("removing the Computer engine", () => {
     expect(agentCalls).toEqual([]);
 
     await server.api("PATCH", `/api/bots/${starter.id}`, { computer: null });
-    const callsBeforeAuto = boatCalls;
+    const callsBeforeAuto = retiredCalls;
     const autoTurn = await server.turn(starter.id, other, "what is 2+2?");
     expect(autoTurn.mcpConfig?.mcpServers?.computer?.args?.[1]).not.toBe("computer");
-    expect(boatCalls - callsBeforeAuto, "an Auto turn reached the Boat account").toBe(0);
+    expect(retiredCalls - callsBeforeAuto, "an Auto turn reached the retired desktop provider account").toBe(0);
     expect(agentCalls).toEqual([]);
     await server.stop();
   }, 180_000);

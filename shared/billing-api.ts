@@ -227,13 +227,13 @@ export interface CloudDesktopView {
   error: string | null;
   subscriptionId: string | null;
   createdAt: number;
-  /** additive: "boat" when a Boat sandbox runs this cloud (it sleeps when idle and keeps backups) */
-  provider?: "boat";
-  /** additive, Boat only: the newest backup of its data */
+  /** a managed cloud desktop: it sleeps when idle and keeps backups */
+  provider?: "managed";
+  /** managed only: the newest backup of its data */
   lastBackupAt?: number | null;
-  /** additive, Boat only: when an owner-confirmed deletion happens unless cancelled */
+  /** managed only: when an owner-confirmed deletion happens unless cancelled */
   deleteScheduledAt?: number | null;
-  /** additive, Boat only: when the owner asked to delete its data; the emailed link stays valid for an hour after */
+  /** managed only: when the owner asked to delete its data; the emailed link stays valid for an hour after */
   deleteAskedAt?: number | null;
 }
 

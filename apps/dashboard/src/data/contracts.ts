@@ -192,8 +192,8 @@ export interface CloudDesktop extends MachineSpec {
   error: string | null;
   botComputers: { used: number; limit: number | null };
   uptimeSec: number | null;
-  /** "boat" when a Boat sandbox runs it: the owner can delete its data once the plan has ended */
-  provider?: "boat";
+  /** a managed cloud: the owner can delete its data once the plan has ended */
+  provider?: "managed";
   lastBackupAt?: number | null;
   /** an owner-confirmed deletion happens then, unless cancelled */
   deleteScheduledAt?: number | null;

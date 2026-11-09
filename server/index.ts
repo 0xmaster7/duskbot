@@ -15474,7 +15474,7 @@ const pruneDecisionLog = () => {
 };
 pruneDecisionLog();
 setInterval(pruneDecisionLog, 6 * 60 * 60_000).unref();
-// on a linked vps there is no boat: every bot's computer is this server's own sandbox
+// on a linked vps every bot's computer is this server's own sandbox
 const useThisServerComputers = (): void => {
   if (!vpsIsThisServer()) return;
   for (const bot of store.bots.filter((one) => one.cloudBackend !== "vps")) {

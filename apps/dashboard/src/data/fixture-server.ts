@@ -6,7 +6,7 @@ import { desktopOf, licenseOf, priceCart } from "./pricing";
 import { CANCEL_ANSWERS } from "./wire";
 
 const DAY = 86_400_000;
-/** the boat fixture's emailed delete link: /clouds/fx-cloud/delete?fixture=boat#<this> */
+/** the managed fixture's emailed delete link: /clouds/fx-cloud/delete?fixture=managed#<this> */
 export const FIXTURE_DELETE_TOKEN = "fixture-delete-link".padEnd(43, "0");
 const steps = ["Reserving your machine", "Installing OpenMausBot", "Linking it to your account", "Waking your bots"];
 const fail = (message: string, status = 400, code = "invalid_request"): never => { throw new ApiError(message, status, code); };
@@ -20,9 +20,9 @@ function createState() {
     workspaces: new Map(fixtureWorkspaces(scenario, now).map((detail) => [detail.workspace.id, detail])),
     connections: fixtureConnections(),
     slackWake: new Map<string, boolean>(),
-    // boat: signed in an hour ago, so deleting data asks for a fresh sign-in first; its link was already "emailed"
-    signedInAt: scenario === "boat" ? now - 3_600_000 : now,
-    deleteLinks: new Map(scenario === "boat" ? [["fx-cloud", now]] : [] as Array<[string, number]>),
+    // managed: signed in an hour ago, so deleting data asks for a fresh sign-in first; its link was already "emailed"
+    signedInAt: scenario === "managed" ? now - 3_600_000 : now,
+    deleteLinks: new Map(scenario === "managed" ? [["fx-cloud", now]] : [] as Array<[string, number]>),
     power: new Map<string, { on: boolean; at: number }>(),
     runningSince: new Map(clouds.filter((cloud) => cloud.status === "running").map((cloud) => [cloud.id, now - (cloud.uptimeSec ?? 0) * 1000])),
     nextId: 1,
@@ -277,7 +277,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
   const deleteData = path.match(/^\/v1\/clouds\/([^/]+)\/delete-data(?:\/(confirm|cancel))?$/);
   if (method === "POST" && deleteData) {
     const cloud = s.clouds.find((c) => c.id === decodeURIComponent(deleteData[1]!));
-    if (!cloud || cloud.provider !== "boat") return fail("not_found", 404, "not_found");
+    if (!cloud || cloud.provider !== "managed") return fail("not_found", 404, "not_found");
     if (deleteData[2] === "cancel") {
       if (!cloud.deleteScheduledAt && !cloud.deleteAskedAt) fail("unavailable", 409, "unavailable");
       cloud.deleteScheduledAt = null; cloud.deleteAskedAt = null; s.deleteLinks.delete(cloud.id);

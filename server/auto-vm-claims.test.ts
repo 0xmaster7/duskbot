@@ -173,7 +173,7 @@ describe("startAutoVmClaim", () => {
   it("knows a network failure through the wrapper that rewords it", () => {
     expect(transientClaimFailure(new DOMException("The operation was aborted due to timeout", "TimeoutError"))).toBe(true);
     expect(transientClaimFailure(Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNREFUSED" } }))).toBe(true);
-    expect(transientClaimFailure(Object.assign(new Error("boat.dev rejected your Boat API key"), { status: 401 }))).toBe(false);
+    expect(transientClaimFailure(Object.assign(new Error("desktop.example.test rejected your retired desktop provider API key"), { status: 401 }))).toBe(false);
     expect(transientClaimFailure(new Error("the cloud computer didn't start in time"))).toBe(false);
     const shown = keepTransient(Object.assign(new Error("unreachable"), { transient: true }), new Error("Pepper's cloud computer isn't available right now."));
     expect(transientClaimFailure(shown)).toBe(true);

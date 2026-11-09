@@ -11,15 +11,15 @@ import {
 } from "./analytics-allowlist";
 
 const HOSTILE = [
-  "Boat", "BOAT", " boat", "boat ", "", "__proto__", "constructor", "toString", "hasOwnProperty", "prototype",
-  "https://evil.example.com/boat", "evil.example.com", "ada@example.com", "sk-ant-api03-ZZtestSECRET0123456789", "boat_abc123",
-  42, 0, true, null, undefined, {}, ["boat"], Object.create(null),
+  "retired desktop provider", "RETIRED", " retired", "retired ", "", "__proto__", "constructor", "toString", "hasOwnProperty", "prototype",
+  "https://evil.example.com/retired", "evil.example.com", "ada@example.com", "sk-ant-api03-ZZtestSECRET0123456789", "retired_abc123",
+  42, 0, true, null, undefined, {}, ["retired"], Object.create(null),
 ];
 
 describe("allow", () => {
   it("passes a value only when its list has it", () => {
     expect(allow("composio", KEY_PROVIDER)).toBe("composio");
-    expect(allow("boat", KEY_PROVIDER)).toBe("other");
+    expect(allow("retired", KEY_PROVIDER)).toBe("other");
     expect(allow("gmail", APP)).toBe("gmail");
     for (const value of HOSTILE) expect(allow(value, KEY_PROVIDER), JSON.stringify(value) ?? "undefined").toBe("other");
   });

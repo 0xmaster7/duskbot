@@ -72,7 +72,7 @@ test("a plan change that charges now is applied only at the amount the person wa
   expect(fetch.mock.calls.filter(([path]) => path.endsWith("/change"))).toHaveLength(2);
 });
 
-test("deleting a Boat cloud's data posts JSON with the CSRF header to the delete-data routes", async () => {
+test("deleting a managed cloud's data posts JSON with the CSRF header to the delete-data routes", async () => {
   const fetch = vi.fn(async (path: string, _init?: RequestInit) => Response.json(path.endsWith("/confirm") ? { ok: true, deleteScheduledAt: 5 } : { ok: true }));
   vi.stubGlobal("fetch", fetch);
   vi.stubGlobal("document", { cookie: `${CSRF_COOKIE}=fixture-csrf` });

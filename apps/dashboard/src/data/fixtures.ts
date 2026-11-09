@@ -58,8 +58,8 @@ export function fixtureAccount(scenario: Scenario, now = Date.now()): AccountDat
 }
 
 export function fixtureBilling(scenario: Scenario, now = Date.now()): BillingOverview {
-  // boat: a Boat-backed cloud whose plan was cancelled and has ended
-  const paid = scenario === "cloud" || scenario === "boat", ended = scenario === "boat";
+  // managed: a managed cloud whose plan was cancelled and has ended
+  const paid = scenario === "cloud" || scenario === "managed", ended = scenario === "managed";
   return {
     subscription: paid ? { id: "fx-sub", bundle: "pro", selection: { license: "starter", members: 1, desktop: "shared-m", size: null, region: "eu-central", interval: "month" }, status: ended ? "canceled" : "active", amountUsd: 50, currentPeriodEnd: now + (ended ? -3 : 18) * DAY, cancelAt: ended ? now - 3 * DAY : null } : null,
     paymentMethod: paid ? { brand: "Visa", last4: "4242", expMonth: 9, expYear: new Date(now).getFullYear() + 3 } : null,
@@ -69,7 +69,7 @@ export function fixtureBilling(scenario: Scenario, now = Date.now()): BillingOve
 }
 
 export function fixtureClouds(scenario: Scenario, now = Date.now()): CloudDesktop[] {
-  if (scenario === "boat") return [{ id: "fx-cloud", name: "Sid's Cloud", status: "stopped", tier: "shared-m", placement: "shared", region: "eu-central", vcpu: 4, ramGb: 8, diskGb: 80, workspaceId: fixtureWorkspaceIds.cloud, createdAt: now - 60 * DAY, progress: null, error: null, botComputers: { used: 2, limit: 5 }, uptimeSec: null, provider: "boat", lastBackupAt: now - 3 * DAY, deleteScheduledAt: null, deleteAskedAt: null }];
+  if (scenario === "managed") return [{ id: "fx-cloud", name: "Sid's Cloud", status: "stopped", tier: "shared-m", placement: "shared", region: "eu-central", vcpu: 4, ramGb: 8, diskGb: 80, workspaceId: fixtureWorkspaceIds.cloud, createdAt: now - 60 * DAY, progress: null, error: null, botComputers: { used: 2, limit: 5 }, uptimeSec: null, provider: "managed", lastBackupAt: now - 3 * DAY, deleteScheduledAt: null, deleteAskedAt: null }];
   if (scenario !== "cloud" && scenario !== "provisioning") return [];
   const provisioning = scenario === "provisioning";
   return [{ id: "fx-cloud", name: "Sid's Cloud", status: provisioning ? "provisioning" : "running", tier: "shared-m", placement: "shared", region: "eu-central", vcpu: 4, ramGb: 8, diskGb: 80, workspaceId: provisioning ? null : fixtureWorkspaceIds.cloud, createdAt: provisioning ? now : now - 12 * DAY, progress: provisioning ? { step: "Reserving your machine", value: 0 } : null, error: null, botComputers: { used: 2, limit: 5 }, uptimeSec: provisioning ? null : 12 * DAY / 1000 }];
@@ -126,8 +126,8 @@ export function fixtureWorkspace(id: string, name: string, kind: WorkspaceKind, 
 
 export function fixtureWorkspaces(scenario: Scenario, now = Date.now()): WorkspaceDetail[] {
   const list = [fixtureWorkspace(fixtureWorkspaceIds.mac, "MacBook-Pro", "mac", now)];
-  if (scenario === "mac" || scenario === "cloud" || scenario === "boat") list.push(fixtureWorkspace(fixtureWorkspaceIds.vps, "oracle-mumbai", "vps", now));
-  if (scenario === "cloud" || scenario === "boat") list.push(fixtureWorkspace(fixtureWorkspaceIds.cloud, "Sid's Cloud", "linux", now));
+  if (scenario === "mac" || scenario === "cloud" || scenario === "managed") list.push(fixtureWorkspace(fixtureWorkspaceIds.vps, "oracle-mumbai", "vps", now));
+  if (scenario === "cloud" || scenario === "managed") list.push(fixtureWorkspace(fixtureWorkspaceIds.cloud, "Sid's Cloud", "linux", now));
   return list;
 }
 

@@ -690,11 +690,11 @@ export function ensureDirs() {
   }
   for (const dir of [DATA_DIR, EVENTS_DIR, NATIVE_DIR]) mkdirSync(dir, { recursive: true });
   migrateLegacyFeatureFlags(DATA_DIR);
-  dropRetiredBoatToken(DATA_DIR);
+  dropRetiredDesktopToken(DATA_DIR);
 }
 
 /** The retired paid desktop provider's token is removed from config.json, never kept or read. */
-export function dropRetiredBoatToken(dataDir: string): void {
+export function dropRetiredDesktopToken(dataDir: string): void {
   const p = join(dataDir, "config.json");
   try {
     if (!existsSync(p)) return;
@@ -704,7 +704,7 @@ export function dropRetiredBoatToken(dataDir: string): void {
     delete kept.box;
     writeFileAtomic(p, JSON.stringify(kept, null, 2), { mode: 0o600 });
   } catch (error) {
-    console.error(`[config] could not remove the retired Boat token: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`[config] could not remove the retired desktop provider token: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

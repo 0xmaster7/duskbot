@@ -268,9 +268,9 @@ changes select broader tests and smokes.
 - **Windows CUA host smoke**, **macOS smokes (packaged server + Electron)** — when selected, real Electron utility processes run against disposable homes; never the live app.
 - **CI** — the required aggregate gate checks that selected jobs passed and unselected jobs were skipped. Its log names any failing dependency.
 
-For eligible owner runs on Boat, the static job also runs the selected Linux
+For eligible owner runs on a CI VM, the static job also runs the selected Linux
 test lanes; their logs appear in groups named for each lane. Fork PRs use
-GitHub-hosted jobs. See [Linux on Boat](ci.md#linux-on-boat).
+GitHub-hosted jobs. See [CI](ci.md).
 
 A `pre-push` hook installed by `pnpm install` checks the files a push changes, in seconds: lint, the locale check when a catalog changed, and the size and vocabulary guards when a source they read changed. Typecheck and the suite stay in CI. A checkout without dependencies checks nothing and lets the push go. `git push --no-verify` skips it once; `OMB_SKIP_HOOKS=1` skips it for a session.
 

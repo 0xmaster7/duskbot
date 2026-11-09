@@ -144,7 +144,7 @@ describe("the owner's routines", () => {
     expect(authors.authored("r1", { ...routine, botId: "b2" })).toBe(false);
     expect(authors.authored("r1", { ...routine, attachments: [] })).toBe(false);
     expect(authors.authored("r1", { ...routine, schedule: { type: "interval", everyMinutes: 1, anchorAt: 0 } })).toBe(false);
-    expect(authors.authored("r1", { ...routine, runOn: "boat" })).toBe(false);
+    expect(authors.authored("r1", { ...routine, runOn: "retired" })).toBe(false);
     expect(authors.authored("r2", routine)).toBe(false);
     expect(createCloudRoutineAuthors(join(dir, "lending-routines.json")).authored("r1", routine)).toBe(true);
     authors.forget("r1");

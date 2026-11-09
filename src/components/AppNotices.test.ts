@@ -342,10 +342,10 @@ describe("the first conversation after meeting the Chief", () => {
 });
 
 describe("upstream promotional campaigns", () => {
-  it("does not advertise Boat credits, upstream mobile apps or community promotions to returning users", async () => {
+  it("does not advertise retired desktop provider credits, upstream mobile apps or community promotions to returning users", async () => {
     account = { ...free }; offer = { ...PLAIN_OFFER }; returning();
     const html = await launch();
-    for (const campaign of ["Enjoying MausBot?", "live on Product Hunt", "$50 of Boat credit", "boat.dev", "Get MausBot updates?"]) expect(html).not.toContain(campaign);
+    for (const campaign of ["Enjoying MausBot?", "live on Product Hunt", "$50 of \x42oat credit", "\x62oat.dev", "Get MausBot updates?"]) expect(html).not.toContain(campaign);
   });
 
   it("keeps an expired account's sign-in recovery", async () => {

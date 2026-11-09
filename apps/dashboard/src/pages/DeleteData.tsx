@@ -27,7 +27,7 @@ function Sheet({ title, children, actions, error }: { title: string; children: R
   );
 }
 
-/** /clouds/:id/delete, opened from the emailed link: confirms deleting a Boat cloud's data after the undo window */
+/** /clouds/:id/delete, opened from the emailed link: confirms deleting a managed cloud's data after the undo window */
 export function DeleteDataPage({ id }: { id: string }) {
   const { clouds, refresh } = useCloud();
   const { account, setAccount, toast } = useSession();
