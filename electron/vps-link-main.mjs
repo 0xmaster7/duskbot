@@ -10,7 +10,7 @@ import { pipeline } from "node:stream/promises";
 
 import { createMacControlHost } from "./mac-control.mjs";
 import { createMacExecutor } from "./mac-control-tools.mjs";
-import { newDirectKey, sshConnector } from "./vps-link-direct.mjs";
+import { newDirectKey, sshConnector, wssConnector } from "./vps-link-direct.mjs";
 import { createEgressDialer, createEgressEndpoint, seenAsCache } from "./vps-link-egress.mjs";
 import { createVpsLink } from "./vps-link.mjs";
 
@@ -187,8 +187,8 @@ export function installVpsLink(deps) {
     },
     relaunch: deps.relaunch,
     dataSize: async () => { const dir = deps.dataDir(); return dir ? folderSize(dir) : null; },
-    // the direct path to a relay-linked server (vps-link-direct.mjs); OMB_LINK_DIRECT=off keeps every link on the relay
-    ...(process.env.OMB_LINK_DIRECT === "off" ? {} : { direct: { newKey: newDirectKey, connector: sshConnector } }),
+    // the direct path to a relay-linked server, over ssh or https on 443 (vps-link-direct.mjs); OMB_LINK_DIRECT=off keeps every link on the relay
+    ...(process.env.OMB_LINK_DIRECT === "off" ? {} : { direct: { newKey: newDirectKey, connector: sshConnector, wssConnector } }),
     onChange: (view) => { deps.tell(view); followMac(view); },
     log,
   });

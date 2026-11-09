@@ -5,6 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { orderedConnect } from "./vps-link-direct.mjs";
 import { createRelayClient, createTunnelProxy, newLinkKeys, openResult } from "./vps-link-protocol.mjs";
 
 export const STEP_IDS = Object.freeze(["check", "basics", "docker", "user", "node", "app", "engines", "service", "address", "desktop", "link"]);
@@ -59,7 +60,7 @@ const plain = (error, fallback) => {
  *   relaunch(): void,
  *   dataSize?(): Promise<number | null>,
  *   proxyFactory?: typeof createTunnelProxy,
- *   direct?: { newKey(): { privateKey: string, publicKey: string }, connector(config: { host: string, port: number, user: string, privateKey: string, hostKeys: string[] }): () => Promise<any> },
+ *   direct?: { newKey(): { privateKey: string, publicKey: string }, connector(config: { host: string, port: number, user: string, privateKey: string, hostKeys: string[] }): () => Promise<any>, wssConnector?(config: { url: string, spki: string }): () => Promise<any> },
  *   egress?: Parameters<typeof createTunnelProxy>[0]["egress"],
  *   now?(): number,
  *   onChange?(view: any): void,
@@ -346,42 +347,85 @@ export function createVpsLink(deps) {
     && Array.isArray(value.hostKeys) && value.hostKeys.length > 0 && value.hostKeys.length <= 6
     && value.hostKeys.every((entry) => typeof entry === "string" && /^(ssh-ed25519|ecdsa-sha2-nistp(256|384|521)|ssh-rsa) [A-Za-z0-9+/]+={0,2}$/.test(entry));
 
+  const WSS_RETRY_MS = 60 * 60_000;
+  const wssValid = (value) => record(value) && value.v === 1 && typeof value.url === "string" && /^wss:\/\/[a-z0-9.-]+(:\d{1,5})?\/[A-Za-z0-9._~/-]*$/i.test(value.url)
+    && typeof value.spki === "string" && /^[A-Za-z0-9+/]{43}=$/.test(value.spki);
+
   /** asks the agent (over the sealed relay) to accept a new key, once; an older agent says no and is asked again later */
+  async function sshFor(link, proxy) {
+    if (directValid(link.direct)) return;
+    if (link.directRefusedAt && now() - link.directRefusedAt < DIRECT_RETRY_MS) return;
+    try {
+      const pair = deps.direct.newKey();
+      const answer = await proxy.control("direct-key", { pub: pair.publicKey });
+      if (closed || !state.links.includes(link)) return;
+      const config = { v: 1, host: answer?.host, port: answer?.port, user: answer?.user, hostKeys: answer?.hostKeys };
+      if (!directValid(config)) throw new Error("the server's direct link details were not usable");
+      link.direct = { ...config, keyP: await protect(pair.privateKey), at: now() };
+      delete link.directRefusedAt;
+      write();
+    } catch (error) {
+      if (/unknown request/.test(String(error?.message))) { link.directRefusedAt = now(); write(); return; }
+      log(`vps link: ${link.name} has no direct path over ssh (${error?.message ?? error})`);
+    }
+  }
+
+  /** the server's https address for the direct path and its pinned key, asked over the sealed relay; again an hour later when it had none */
+  async function wssFor(link, proxy) {
+    if (!deps.direct.wssConnector || wssValid(link.wss)) return;
+    if (link.wssCheckedAt && now() - link.wssCheckedAt < WSS_RETRY_MS) return;
+    try {
+      const answer = await proxy.control("direct-wss", {});
+      if (closed || !state.links.includes(link)) return;
+      const config = { v: 1, url: answer?.url, spki: answer?.spki };
+      if (!wssValid(config)) throw new Error("the server's https details were not usable");
+      link.wss = { ...config, at: now() };
+      delete link.wssCheckedAt;
+      write();
+    } catch (error) {
+      link.wssCheckedAt = now();
+      write();
+      log(`vps link: ${link.name} has no direct path over https (${error?.message ?? error})`);
+    }
+  }
+
+  /** the ways to the server's own address, ssh first, then https on 443; the relay stays underneath them */
   async function directFor(link, proxy) {
     if (!deps.direct || closed || proxy.useDirect === undefined) return;
     if (link.directOff) { if (link.directRevoke) await revokeDirect(link, proxy); return; }
-    try {
-      if (!directValid(link.direct)) {
-        if (link.directRefusedAt && now() - link.directRefusedAt < DIRECT_RETRY_MS) return;
-        const pair = deps.direct.newKey();
-        const answer = await proxy.control("direct-key", { pub: pair.publicKey });
-        if (closed || !state.links.includes(link)) return;
-        const config = { v: 1, host: answer?.host, port: answer?.port, user: answer?.user, hostKeys: answer?.hostKeys };
-        if (!directValid(config)) throw new Error("the server's direct link details were not usable");
-        link.direct = { ...config, keyP: await protect(pair.privateKey), at: now() };
-        delete link.directRefusedAt;
-        write();
-      }
-      const saved = link.direct;
-      const privateKey = await unprotect(saved.keyP);
+    await Promise.all([sshFor(link, proxy), wssFor(link, proxy)]);
+    if (closed || proxies.get(link.id) !== proxy || link.directOff) return;
+    const ssh = directValid(link.direct) ? link.direct : null, wss = wssValid(link.wss) ? link.wss : null;
+    const ways = [];
+    if (ssh) {
+      const privateKey = await unprotect(ssh.keyP);
       if (closed || proxies.get(link.id) !== proxy) return;
-      proxy.useDirect({
-        connect: deps.direct.connector({ host: saved.host, port: saved.port, user: saved.user, privateKey, hostKeys: saved.hostKeys }),
-        // the key was removed or the server was reinstalled: ask again over the sealed tunnel, at most once an hour
-        onFailure: (error) => {
-          if (error?.level !== "client-authentication" && error?.code !== "HOSTKEY") return;
-          if (saved.at && now() - saved.at < REPROVISION_MS) return;
-          if (link.direct !== saved) return;
-          log(`vps link: ${link.name}'s direct path needs a new key (${error?.message ?? error})`);
-          delete link.direct;
-          write();
-          void directFor(link, proxy);
-        },
-      });
-    } catch (error) {
-      if (/unknown request/.test(String(error?.message))) { link.directRefusedAt = now(); write(); return; }
-      log(`vps link: ${link.name} stays on the relay (${error?.message ?? error})`);
+      ways.push({ name: "ssh", connect: deps.direct.connector({ host: ssh.host, port: ssh.port, user: ssh.user, privateKey, hostKeys: ssh.hostKeys }) });
     }
+    if (wss) ways.push({ name: "wss", connect: deps.direct.wssConnector({ url: wss.url, spki: wss.spki }) });
+    if (!ways.length) return;
+    proxy.useDirect({
+      connect: ways.length === 1 ? ways[0].connect : orderedConnect(ways, { log }),
+      // the key was removed, the server was reinstalled or its https key changed: ask again over the sealed tunnel, at most once an hour
+      onFailure: (error) => {
+        let again = false;
+        for (const one of error?.errors ?? [error]) {
+          if ((one?.level === "client-authentication" || one?.code === "HOSTKEY") && ssh && link.direct === ssh && !(ssh.at && now() - ssh.at < REPROVISION_MS)) {
+            log(`vps link: ${link.name}'s direct path needs a new key (${one?.message ?? one})`);
+            delete link.direct;
+            again = true;
+          }
+          if (one?.code === "PIN" && wss && link.wss === wss && !(wss.at && now() - wss.at < REPROVISION_MS)) {
+            log(`vps link: ${link.name}'s https key changed; asking the server for it again`);
+            delete link.wss;
+            again = true;
+          }
+        }
+        if (!again) return;
+        write();
+        void directFor(link, proxy);
+      },
+    });
   }
 
   /** takes this app's key off the server; a server that does not answer is asked again when its tunnel next opens */
@@ -407,7 +451,8 @@ export function createVpsLink(deps) {
     const link = linkAt(origin);
     if (!link || link.mode !== "relay" || !deps.direct) return null;
     const proxy = proxies.get(link.id);
-    return { on: !link.directOff, path: proxy?.transport?.() === "direct" ? "direct" : "relay" };
+    const path = proxy?.transport?.() === "direct" ? "direct" : "relay";
+    return { on: !link.directOff, path, ...(path === "direct" && proxy?.directVia?.() ? { via: proxy.directVia() } : {}) };
   }
 
   /** turned off: the direct path closes and the server drops this app's key (direct-off); turned on: a new key is set up */
@@ -416,7 +461,7 @@ export function createVpsLink(deps) {
     if (!link || link.mode !== "relay" || !deps.direct) return null;
     const proxy = proxies.get(link.id) ?? null;
     if (on) {
-      if (link.directOff || link.directRevoke) { delete link.directOff; delete link.directRevoke; delete link.directRefusedAt; write(); }
+      if (link.directOff || link.directRevoke) { delete link.directOff; delete link.directRevoke; delete link.directRefusedAt; delete link.wssCheckedAt; write(); }
       if (proxy) void directFor(link, proxy);
       return directSetting(origin);
     }
@@ -424,6 +469,7 @@ export function createVpsLink(deps) {
       link.directOff = true;
       link.directRevoke = true;
       delete link.direct;
+      delete link.wss;
       write();
     }
     proxy?.useDirect?.(null);

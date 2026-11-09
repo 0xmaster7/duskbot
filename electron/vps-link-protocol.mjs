@@ -826,6 +826,8 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
     useDirect,
     /** the path a request started now would take */
     transport: () => (direct?.ready() ? "direct" : "relay"),
+    /** how the direct path is connected while it is up: "ssh" or "wss" */
+    directVia: () => (direct?.ready() ? direct.via?.() ?? "ssh" : null),
     /** after a sleep or a network change: the relay reconnects at once on fresh sockets, the direct path proves itself */
     nudge() {
       if (closed) return;

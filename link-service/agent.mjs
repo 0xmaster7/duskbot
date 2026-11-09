@@ -7,14 +7,14 @@
 // standalone on purpose: node's own modules only, one file the link service serves at /agent.mjs.
 // it also lends the bot computers on this server the app's own internet connection when the person turns on "route
 // traffic through this computer": a socks5 and http connect proxy on the bot computers' bridge (see createEgressProxy).
-import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
+import { X509Certificate, createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
 import { createSocket } from "node:dgram";
 import { chmodSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { BlockList, createConnection, createServer as createTcpServer } from "node:net";
 import { Agent as HttpAgent, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
 import { isIP, Socket } from "node:net";
-import { Readable } from "node:stream";
+import { Duplex, Readable } from "node:stream";
 import { connect as tlsConnect } from "node:tls";
 import { connect as http2Connect, constants as h2Constants } from "node:http2";
 import { homedir, hostname, networkInterfaces, userInfo } from "node:os";
@@ -673,6 +673,90 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
     get inflight() { return inflight; },
   };
 }
+
+/** the direct path over https: one websocket (rfc 6455) of binary messages that carry the same byte stream as ssh */
+export const WS_PATH = "/omb-direct";
+const WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+const WS_MAX_FRAME = 4 * 1024 * 1024;
+export const wsAccept = (key) => createHash("sha1").update(`${key}${WS_GUID}`).digest("base64");
+
+/** one websocket frame; the client masks what it sends (the rfc requires it), the server never does */
+export function wsFrame(opcode, payload, masked) {
+  const length = payload.length;
+  const extra = length < 126 ? 0 : length < 65536 ? 2 : 8;
+  const head = Buffer.alloc(2 + extra + (masked ? 4 : 0));
+  head[0] = 0x80 | opcode;
+  head[1] = (masked ? 0x80 : 0) | (extra === 0 ? length : extra === 2 ? 126 : 127);
+  if (extra === 2) head.writeUInt16BE(length, 2);
+  else if (extra === 8) head.writeBigUInt64BE(BigInt(length), 2);
+  if (!masked) return Buffer.concat([head, payload]);
+  const mask = randomBytes(4);
+  mask.copy(head, 2 + extra);
+  const body = Buffer.allocUnsafe(length);
+  for (let at = 0; at < length; at += 1) body[at] = payload[at] ^ mask[at & 3];
+  return Buffer.concat([head, body]);
+}
+
+/** frames out of a byte stream: data to `onData`, pings answered by the caller, a close ends it. throws on anything else */
+export function wsReader({ masked, onData, onPing = () => {}, onClose = () => {} }) {
+  let buf = Buffer.alloc(0);
+  return (chunk) => {
+    buf = buf.length ? Buffer.concat([buf, chunk]) : chunk;
+    while (buf.length >= 2) {
+      const opcode = buf[0] & 0x0f, hasMask = (buf[1] & 0x80) !== 0;
+      if (hasMask !== masked) throw new Error("websocket masking is wrong");
+      let length = buf[1] & 0x7f, at = 2;
+      if (length === 126) { if (buf.length < 4) return; length = buf.readUInt16BE(2); at = 4; }
+      else if (length === 127) {
+        if (buf.length < 10) return;
+        const big = buf.readBigUInt64BE(2);
+        if (big > BigInt(WS_MAX_FRAME)) throw new Error("websocket frame too large");
+        length = Number(big);
+        at = 10;
+      }
+      if (length > WS_MAX_FRAME) throw new Error("websocket frame too large");
+      const start = at + (hasMask ? 4 : 0), end = start + length;
+      if (buf.length < end) return;
+      let payload = buf.subarray(start, end);
+      if (hasMask) {
+        const mask = buf.subarray(at, start), open = Buffer.allocUnsafe(length);
+        for (let i = 0; i < length; i += 1) open[i] = payload[i] ^ mask[i & 3];
+        payload = open;
+      }
+      buf = buf.subarray(end);
+      if (opcode === 0 || opcode === 2) { if (payload.length) onData(payload); }
+      else if (opcode === 8) { onClose(); return; }
+      else if (opcode === 9) onPing(payload);
+      else if (opcode !== 10) throw new Error("not a binary websocket");
+    }
+  };
+}
+
+/** a websocket over `socket` as a plain duplex byte stream; `head` is what arrived after the handshake */
+export function wsDuplex(socket, { client, head = null }) {
+  let ended = false;
+  const duplex = new Duplex({
+    writableHighWaterMark: 1024 * 1024,
+    write(chunk, _encoding, callback) { if (socket.destroyed) callback(new Error("closed")); else socket.write(wsFrame(2, chunk, client), callback); },
+    final(callback) { if (!socket.destroyed) socket.end(wsFrame(8, Buffer.alloc(0), client)); callback(); },
+    read() { socket.resume(); },
+    destroy(error, callback) { socket.destroy(); callback(error); },
+  });
+  const finish = () => { if (!ended) { ended = true; duplex.push(null); } };
+  const read = wsReader({
+    masked: !client,
+    onData: (data) => { if (!ended && !duplex.push(data)) socket.pause(); },
+    onPing: (data) => { if (!socket.destroyed) socket.write(wsFrame(10, data, client)); },
+    onClose: () => { finish(); socket.end(); },
+  });
+  const take = (chunk) => { try { read(chunk); } catch (error) { duplex.destroy(error); } };
+  socket.on("data", take);
+  socket.once("end", finish);
+  socket.once("close", () => { finish(); duplex.destroy(); });
+  socket.on("error", (error) => duplex.destroy(error));
+  if (head?.length) take(head);
+  return duplex;
+}
 // ---- end direct transport ----
 
 const configDir = () => join(homedir(), ".config", "openmausbot-link");
@@ -732,14 +816,17 @@ function local(method, path, body) {
   });
 }
 
-/** the leaf certificate's public key as the app pins it: sha256 of the spki der, base64 */
-export function spkiOf(host, port = 443) {
+/**
+ * the leaf certificate's public key as the app pins it: sha256 of the spki der, base64. node's `cert.pubkey` is not that
+ * (for an ec key it is the bare point), so the der comes from the certificate itself
+ */
+export function spkiOf(host, port = 443, tlsOptions = {}) {
   return new Promise((resolve, reject) => {
-    const socket = tlsConnect({ host, port, servername: host, rejectUnauthorized: true, timeout: 10_000 }, () => {
+    const socket = tlsConnect({ host, port, ...(isIP(host) ? {} : { servername: host }), rejectUnauthorized: true, timeout: 10_000, ...tlsOptions }, () => {
       const cert = socket.getPeerCertificate();
       socket.end();
-      if (!cert?.pubkey) return reject(new Error("no certificate"));
-      resolve(createHash("sha256").update(cert.pubkey).digest("base64"));
+      if (!cert?.raw) return reject(new Error("no certificate"));
+      resolve(createHash("sha256").update(new X509Certificate(cert.raw).publicKey.export({ type: "spki", format: "der" })).digest("base64"));
     });
     socket.on("timeout", () => socket.destroy(new Error("timed out")));
     socket.on("error", reject);
@@ -897,9 +984,31 @@ async function directKey(data, context) {
   return { v: 1, host, port, user: userInfo().username, hostKeys: keys };
 }
 
+/**
+ * the address of this server's direct path over https: OMB_LINK_WSS_URL when its operator put the agent's websocket
+ * behind their own https (any reverse proxy to 127.0.0.1:OMB_LINK_WSS_PORT), else the https address this install set up
+ */
+export function wssUrl({ origin = null } = {}, env = process.env) {
+  const given = env.OMB_LINK_WSS_URL?.trim();
+  if (given) {
+    if (!/^wss:\/\/[a-z0-9.-]+(:\d{1,5})?\/[A-Za-z0-9._~/-]*$/i.test(given)) throw new Error("OMB_LINK_WSS_URL is not a wss:// address");
+    return given;
+  }
+  return typeof origin === "string" && /^https:\/\/[a-z0-9.-]+$/i.test(origin) ? `wss://${new URL(origin).host}${WS_PATH}` : null;
+}
+
+async function directWss(context, readSpki = spkiOf) {
+  if (process.env.OMB_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
+  const url = wssUrl(context);
+  if (!url) throw new Error("this server has no https address for a direct link");
+  const target = new URL(url);
+  return { v: 1, url, spki: await readSpki(target.hostname, Number(target.port) || 443) };
+}
+
 export async function control(op, data, context = {}) {
   if (op === "ping") return { ok: true };
   if (op === "direct-key") return directKey(data, context);
+  if (op === "direct-wss") return directWss(context, context.spkiOf);
   if (op === "direct-off") { if (context.id) setDirectKey(context.id, null); return { ok: true }; }
   if (op === "pair") {
     // a fresh one-time code for the app's own sign-in here, when its session lapsed (sessions end after 180 days)
@@ -1363,7 +1472,8 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
 }
 
 /** `egress`: options for createEgressProxy, which then rides this tunnel; without it the app's hellos are ignored */
-export function createTunnelAgent({ base, id, key: keyText, token, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
+export function createTunnelAgent({ base, id, key: keyText, token, origin = null, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
+  const context = { id, origin };
   const fetchImpl = given ?? relayFetch();
   const stream = streamChoice();
   const key = Buffer.from(keyText, "base64url");
@@ -1408,14 +1518,14 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
   const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: () => (fetchImpl.multiplexed?.() ? 0 : H1_POST_DELAY_MS), signal: abort.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => { log("link: reply queue failed; restarting the tunnel"); stop(); } });
   const emit = (frame) => { if (!stopped) outbox.push(sealFrame(key, id, "to-app", frame), frame.r); };
   const serving = createServing({
-    server, stopped: () => stopped, context: { id },
+    server, stopped: () => stopped, context,
     sink: { push: emit, bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard },
   });
   // egress over the relay: its own queue and posts, so a bot's tls handshake never waits behind a batch of desktop frames
   const lane = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post: (frames, at) => post(frames, at, true), delayMs: 0, signal: abort.signal, onError: () => log("link: an egress post failed") });
   const laneSend = (frame) => { if (stopped) return; if (frame.t === "cancel") lane.discard(frame.r); lane.push(sealFrame(key, id, "to-app", frame), frame.r); };
   const egress = egressOptions ? createEgressProxy({ send: laneSend, bytes: (r, chunk) => lane.bytes(r, chunk), queued: () => lane.size, onDrain: (resume) => lane.onDrain(resume), path: () => hub.best(), log, ...egressOptions }) : null;
-  const hub = createDirectHub({ id, key: keyText, server, guard, egress, log });
+  const hub = createDirectHub({ id, key: keyText, server, guard, egress, log, context });
   const handle = (frame) => (egress?.handle(frame) ? undefined : serving.handle(frame));
 
   async function run() {
@@ -1676,7 +1786,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
  * first (sealed, so the app knows it holds the key), answers pings, and ends with the connection. `egress` takes the
  * app's egress frames; `path` is this connection as a way for egress streams to the app, usable once `onHello` said so.
  */
-export function serveDirect({ input, output, id, key: keyText, server = SERVER, log = (line) => console.error(line), idleMs = 20_000, guard = frameGuard(), egress = null, onHello = () => {} }) {
+export function serveDirect({ input, output, id, key: keyText, server = SERVER, log = (line) => console.error(line), idleMs = 20_000, guard = frameGuard(), egress = null, onHello = () => {}, context = { id } }) {
   const key = Buffer.from(keyText, "base64url");
   let ended = false, heard = false, greeted = false, finish;
   const done = new Promise((resolve) => { finish = (why) => {
@@ -1693,7 +1803,7 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
     sealBytes: (r, bytes) => sealBytes(key, id, "to-app", r, bytes, true),
     write: (record) => !ended && output.write(record),
   });
-  const serving = createServing({ server, sink: writer, stopped: () => ended, context: { id } });
+  const serving = createServing({ server, sink: writer, stopped: () => ended, context });
   // nothing that opens within a while: not the app, so this process does not linger
   const idle = setTimeout(() => { if (!heard) finish("idle"); }, idleMs);
   const read = directReader((type, payload) => {
@@ -1728,13 +1838,13 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
  * `agent.mjs direct`, which only pipes them here), so egress streams can ride the newest one the app said hello on.
  * one replay guard covers them all and the relay.
  */
-export function createDirectHub({ id, key, server = SERVER, guard, egress = null, log = () => {}, max = 16 }) {
+export function createDirectHub({ id, key, server = SERVER, guard, egress = null, log = () => {}, max = 16, context = { id } }) {
   const all = new Set();
   const greeted = [];
   return {
     accept(input, output) {
       if (all.size >= max) { input.destroy?.(); output.destroy?.(); return null; }
-      const session = serveDirect({ input, output, id, key, server, log, guard, egress, onHello: (one) => greeted.push(one) });
+      const session = serveDirect({ input, output, id, key, server, log, guard, egress, context, onHello: (one) => greeted.push(one) });
       all.add(session);
       void session.done.then(() => {
         all.delete(session);
@@ -1768,6 +1878,36 @@ export async function listenDirectSocket(hub, file = directSocketPath(), log = (
     return listening;
   } catch (error) {
     log(`link: direct sessions stay in their own processes (${error?.code ?? error?.message ?? error})`);
+    return null;
+  }
+}
+
+/**
+ * the direct path over https: a websocket on loopback (OMB_LINK_WSS_PORT, 8797) that this server's https front passes
+ * WS_PATH to (caddy in a direct install, or an operator's own reverse proxy). anyone may connect; only frames sealed
+ * with the tunnel key are ever opened, as on every other path. null when the port is taken
+ */
+export async function listenDirectWss(hub, { host = "127.0.0.1", port = Number(process.env.OMB_LINK_WSS_PORT) || 8797, log = (line) => console.error(line) } = {}) {
+  const refuse = (socket) => socket.end("HTTP/1.1 404 Not Found\r\ncontent-length: 0\r\nconnection: close\r\n\r\n");
+  const listening = createServer((_req, res) => { res.writeHead(404, { "content-type": "text/plain" }); res.end("not found"); });
+  listening.on("upgrade", (req, socket, head) => {
+    socket.on("error", () => {});
+    const nonce = String(req.headers["sec-websocket-key"] ?? "");
+    let path = "";
+    try { path = new URL(req.url ?? "/", "http://localhost").pathname; } catch { /* not a path */ }
+    if (path !== WS_PATH || String(req.headers.upgrade ?? "").toLowerCase() !== "websocket" || !/^[A-Za-z0-9+/]{22}==$/.test(nonce)) { refuse(socket); return; }
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${wsAccept(nonce)}\r\n\r\n`);
+    socket.setNoDelay(true);
+    socket.setKeepAlive(true, 15_000);
+    const duplex = wsDuplex(socket, { client: false, head });
+    duplex.on("error", () => {});
+    hub.accept(duplex, duplex);
+  });
+  try {
+    await new Promise((resolve, reject) => { listening.once("error", reject); listening.listen(port, host, () => resolve()); });
+    return listening;
+  } catch (error) {
+    log(`link: the direct path over https is off here (${error?.code ?? error?.message ?? error} on ${host}:${port})`);
     return null;
   }
 }
@@ -1820,8 +1960,8 @@ async function tunnel() {
     if (keys && (typeof keys.pub !== "string" || typeof keys.priv !== "string")) { console.error("link: phone keys are not valid; phones are off"); keys = null; }
     if (keys) phones = createPhoneHub({ base: saved.base, id: saved.id, token: saved.token, keys, origin: saved.mode === "direct" ? saved.origin : null, spki: null, sync: harnessSync(SERVER) });
   }
-  const directSocket = await listenDirectSocket(agent.direct);
-  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { phones?.stop(); agent.stop(); directSocket?.close(); process.exit(0); });
+  const [directSocket, directWs] = await Promise.all([listenDirectSocket(agent.direct), process.env.OMB_LINK_DIRECT === "off" ? null : listenDirectWss(agent.direct)]);
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
   const phoneRun = phones?.run();
   const how = await agent.run();
   phones?.stop();
@@ -1829,6 +1969,7 @@ async function tunnel() {
   // unlinked: stay quiet instead of letting systemd restart a tunnel that no longer exists
   if (how === "unlinked") {
     directSocket?.close();
+    directWs?.close();
     try { setDirectKey(saved.id, null); } catch (error) { console.error(`link: the app's ssh key could not be removed (${error?.message ?? error})`); }
     setInterval(() => {}, 1 << 30);
     await new Promise(() => {});
