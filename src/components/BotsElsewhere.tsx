@@ -124,7 +124,7 @@ export function DevFreshInstallButton() {
     <button
       type="button"
       onClick={() => setSimulatedFreshInstall(!simulated)}
-      className="fixed left-1/2 top-1.5 z-[70] -translate-x-1/2 rounded-full border border-hairline bg-card px-3 py-1 text-[12px] text-ink-secondary hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink"
+      className="fixed right-3 top-1.5 z-[70] rounded-full border border-hairline bg-card px-3 py-1 text-[12px] text-ink-secondary hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink"
       style={{ WebkitAppRegion: "no-drag" } as CSSProperties}
     >
       {simulated ? t("elsewhere.dev.stop") : t("elsewhere.dev.simulate")}
