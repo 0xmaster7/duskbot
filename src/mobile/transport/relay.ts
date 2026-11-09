@@ -65,7 +65,7 @@ export async function readFrameBatches(response: Response, receive: (frames: str
 }
 
 export interface RelayChannel {
-  request(method: string, path: string, headers?: HeadersInit, body?: Uint8Array | null, signal?: AbortSignal): Promise<Response>;
+  request(method: string, path: string, headers?: HeadersInit, body?: Uint8Array | null, signal?: AbortSignal, onBodyProgress?: (sent: number, total: number) => void): Promise<Response>;
   close(): void;
 }
 
@@ -132,14 +132,14 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
   };
   return {
     close,
-    request(method, path, headers = {}, body, signal) {
+    request(method, path, headers = {}, body, signal, onBodyProgress) {
       if (abort.signal.aborted || signal?.aborted) return Promise.reject(signal?.reason ?? new Error("relay closed"));
       if (!path.startsWith("/") || path.startsWith("//")) return Promise.reject(new Error("invalid relay path"));
       const r = randomId();
       return new Promise<Response>((resolve, reject) => {
         let controller: ReadableStreamDefaultController<Uint8Array>;
         let headed = false, finished = false, empty = false;
-        const timer = setTimeout(() => cancel(new Error("relay request timed out")), 15_000);
+        let timer = setTimeout(() => cancel(new Error("relay request timed out")), 15_000);
         const cleanup = () => { finished = true; clearTimeout(timer); pending.delete(r); signal?.removeEventListener("abort", onAbort); };
         const fail = (error: unknown) => { if (finished) return; cleanup(); controller.error(error); reject(error); };
         const cancel = (error: unknown) => { fail(error); void post([{ t: "cancel", r }]).catch(() => {}); };
@@ -173,8 +173,16 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
         const send = async () => {
           await post([{ t: "req", r, method, path, headers: Object.fromEntries(new Headers(headers)), end: !body?.length }]);
           if (body?.length) {
+            onBodyProgress?.(0, body.length);
             for (let at = 0; at < body.length && pending.has(r); at += 128 * 1024) {
               await post([{ t: "body", r, d: base64url(body.subarray(at, at + 128 * 1024)), end: at + 128 * 1024 >= body.length }]);
+              onBodyProgress?.(Math.min(body.length, at + 128 * 1024), body.length);
+              if (!pending.has(r)) break;
+              // a long body still moving is not a stalled request: the wait for an answer counts from its last chunk
+              if (!headed) {
+                clearTimeout(timer);
+                timer = setTimeout(() => cancel(new Error("relay request timed out")), 15_000);
+              }
             }
           }
         };

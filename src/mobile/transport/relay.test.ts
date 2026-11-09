@@ -125,6 +125,18 @@ describe("relay channel", () => {
     } finally { client.close(); }
   });
 
+  it("counts an upload's body as its chunks are posted", async () => {
+    relayFixture();
+    const client = open("https://relay.test", channel, "channel-secret", key);
+    try {
+      const sent: Array<[number, number]> = [];
+      const bytes = randomBytes(300_000);
+      const response = await client.request("POST", "/api/files", { "Content-Type": "application/pdf" }, bytes, undefined, (loaded, total) => sent.push([loaded, total]));
+      expect(response.status).toBe(200);
+      expect(sent).toEqual([[0, 300_000], [131_072, 300_000], [262_144, 300_000], [300_000, 300_000]]);
+    } finally { client.close(); }
+  });
+
   it("aborts an open response and closes pending channel reads", async () => {
     const fixture = relayFixture();
     const client = open("https://relay.test", channel, "channel-secret", key);
