@@ -33,10 +33,16 @@ export function refusesReddit(host: EgressHost, name: string): boolean {
   return inCloud(host) && isRedditHost(name);
 }
 
-/** Whether a browser tool call on `host` would open Reddit: every tool that opens an address, on either engine, takes it as `url`. */
+const opensAddress = (args: unknown) => {
+  const url = args && typeof args === "object" ? (args as { url?: unknown }).url : undefined;
+  return typeof url === "string" && isRedditAddress(url);
+};
+
+/** Whether a browser tool call on `host` would open Reddit: every tool that opens an address, on either engine, takes it
+ * as `url`, and so does each step of a batch. */
 export function opensReddit(host: EgressHost, params: unknown): boolean {
   if (!inCloud(host) || !params || typeof params !== "object") return false;
   const args = (params as { arguments?: unknown }).arguments;
-  const url = args && typeof args === "object" ? (args as { url?: unknown }).url : undefined;
-  return typeof url === "string" && isRedditAddress(url);
+  const steps = args && typeof args === "object" ? (args as { steps?: unknown }).steps : undefined;
+  return opensAddress(args) || (Array.isArray(steps) && steps.some(opensAddress));
 }

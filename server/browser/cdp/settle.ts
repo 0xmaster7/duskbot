@@ -90,6 +90,16 @@ export interface SettleTarget {
   loaded(timeoutMs: number): Promise<void>;
 }
 
+/** Any engine's page, as the settle loop reads it. */
+export interface PageReader {
+  /** Null while the page is between documents, as it is the moment a check clears and the site loads. */
+  probe(): Promise<PageProbe | null>;
+  frameUrls(): readonly string[];
+  loaded(timeoutMs: number): Promise<void>;
+  /** True once the call may no longer act, such as when a person took the browser: the wait ends at once. */
+  stopped?(): boolean;
+}
+
 export interface SettleReport {
   /** The interstitial met first, how it ended, and how long it was waited out. */
   challenge?: Challenge & { cleared: boolean; waitedMs: number };
@@ -99,54 +109,62 @@ export interface SettleReport {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Null while the page is between documents, as it is the moment a check clears and the site loads. */
-async function probeOf(target: SettleTarget): Promise<PageProbe | null> {
-  try {
-    return await valueInWorld<PageProbe>(target.frames, target.frames.mainFrameId, PROBE_EXPRESSION);
-  } catch (error) {
-    if (isUnanswered(error)) throw error;
-    return null;
-  }
+function cdpReader(target: SettleTarget): PageReader {
+  return {
+    probe: async () => {
+      try {
+        return await valueInWorld<PageProbe>(target.frames, target.frames.mainFrameId, PROBE_EXPRESSION);
+      } catch (error) {
+        if (isUnanswered(error)) throw error;
+        return null;
+      }
+    },
+    frameUrls: () => target.frames.all().map((frame) => frame.url),
+    loaded: (timeoutMs) => target.loaded(timeoutMs),
+  };
 }
 
-const frameUrls = (target: SettleTarget) => target.frames.all().map((frame) => frame.url);
-const turnstileShown = (target: SettleTarget) => frameUrls(target).some((url) => url.startsWith("https://challenges.cloudflare.com/"));
+const turnstileShown = (reader: PageReader, probe: PageProbe | null) => [...reader.frameUrls(), ...probe?.iframes ?? []].some((url) => url.startsWith("https://challenges.cloudflare.com/"));
 /** A nearly empty document with nothing to act on: an app that has not drawn itself yet. */
 const unpainted = (probe: PageProbe) => probe.controls === 0 && probe.textLength < 200;
 
 /** Waits out a self-clearing check, then loading placeholders, never past `deadline`. */
-export async function settlePage(target: SettleTarget, { deadline, fresh = false, now = Date.now }: { deadline: number; fresh?: boolean; now?: () => number }): Promise<SettleReport> {
+export async function settlePage(target: SettleTarget | PageReader, { deadline, fresh = false, now = Date.now }: { deadline: number; fresh?: boolean; now?: () => number }): Promise<SettleReport> {
+  const reader = "probe" in target ? target : cdpReader(target);
+  const stopped = () => reader.stopped?.() === true;
   const report: SettleReport = {};
-  let probe = await probeOf(target);
-  const met = probe ? classifyChallenge(probe, frameUrls(target)) : null;
+  let probe = await reader.probe();
+  const met = probe ? classifyChallenge(probe, reader.frameUrls()) : null;
   if (met) {
     const started = now();
     const until = Math.min(deadline, started + CHALLENGE_WAIT_MS);
     let current: Challenge | null = met;
-    while (current?.state === "checking" && now() + CHALLENGE_POLL_MS <= until) {
+    while (current?.state === "checking" && now() + CHALLENGE_POLL_MS <= until && !stopped()) {
       await sleep(CHALLENGE_POLL_MS);
-      const next = await probeOf(target);
+      if (stopped()) break;
+      const next = await reader.probe();
       if (!next) continue;
       probe = next;
-      current = classifyChallenge(next, frameUrls(target));
+      current = classifyChallenge(next, reader.frameUrls());
     }
     if (current) {
-      const state = current.vendor === "Cloudflare" && current.state === "checking" && turnstileShown(target) ? "needs-user" : current.state;
+      const state = current.vendor === "Cloudflare" && current.state === "checking" && turnstileShown(reader, probe) ? "needs-user" : current.state;
       report.challenge = { ...current, state, cleared: false, waitedMs: now() - started };
       return report;
     }
     report.challenge = { ...met, cleared: true, waitedMs: now() - started };
-    await target.loaded(Math.max(0, Math.min(5_000, deadline - now()))).catch(() => undefined);
-    probe = await probeOf(target);
+    await reader.loaded(Math.max(0, Math.min(5_000, deadline - now()))).catch(() => undefined);
+    probe = await reader.probe();
   }
-  if (!probe || !(probe.busy || (fresh && unpainted(probe)))) return report;
+  if (!probe || stopped() || !(probe.busy || (fresh && unpainted(probe)))) return report;
   const busyUntil = Math.min(deadline, now() + BUSY_WAIT_MS);
   const emptyUntil = Math.min(deadline, now() + EMPTY_WAIT_MS);
   let signature = `${probe.nodes}:${probe.textLength}`;
   let quietSince = now();
   while (now() + BUSY_POLL_MS <= busyUntil) {
     await sleep(BUSY_POLL_MS);
-    const next = await probeOf(target);
+    if (stopped()) return report;
+    const next = await reader.probe();
     if (!next) continue;
     const nextSignature = `${next.nodes}:${next.textLength}`;
     if (nextSignature !== signature) { signature = nextSignature; quietSince = now(); }
