@@ -7,3 +7,14 @@ it("prefers batches for independent searches and keeps a native batching fallbac
   expect(TOOL_HABITS_PROMPT).toContain("when its input supports multiple queries, put them together in one call");
   expect(REPLY_HABITS_PROMPT).toContain(TOOL_HABITS_PROMPT);
 });
+
+it("paces a turn in separate messages and leaves the steps to the status line", () => {
+  expect(REPLY_HABITS_PROMPT).toContain("gets the answer at once, in one message, with no ack first");
+  expect(REPLY_HABITS_PROMPT).toContain("the check you will do before sending");
+  expect(REPLY_HABITS_PROMPT).toContain("At most one every 90 seconds");
+  expect(REPLY_HABITS_PROMPT).toContain("put a line holding only --- between them");
+  expect(REPLY_HABITS_PROMPT).toContain("a separate message starting \"Sources:\"");
+  expect(TOOL_HABITS_PROMPT).toContain("Do not narrate steps; the status line shows what you are doing. Keep it current with set_status");
+  expect(REPLY_HABITS_PROMPT).not.toContain("your tool calls show in the chat on their own");
+  expect(REPLY_HABITS_PROMPT).not.toContain(String.fromCharCode(0x2014));
+});

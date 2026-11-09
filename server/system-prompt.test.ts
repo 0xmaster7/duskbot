@@ -458,15 +458,16 @@ describe("how every bot replies", () => {
     }
   });
 
-  it("asks for an opening line on longer work, the answer first, one question at most, plain words and money facts first", () => {
+  it("asks for an ack before work, the plan once it runs, the verdict first, one question at most, plain words and money facts first", () => {
     for (const habit of [
-      "first send one short line saying what you are doing and why",
-      "add one line with what they will get and roughly how long",
-      "A quick answer skips both.",
-      "say in one line where they came from and when",
-      "Use the units, currency, time zone and numbers the person has told you about",
+      "A question you can answer without tools gets the answer at once, in one message, with no ack first.",
+      "starts with a short ack, sent within seconds and before the work",
+      "what they will get and its shape",
+      "the verdict, the number or \"X is ready\" in the first sentence",
+      "where the facts came from and how fresh they are",
+      "use the units, currency, time zone and numbers the person has told you about",
       "no \"let me know if…\", no \"hope this helps\", no offers or questions out of habit",
-      "Add at most one concrete next step, and only when it clearly helps.",
+      "Then at most one concrete offer, only when it clearly helps.",
       "first check what you can already reach",
       "ask for exactly one thing, in plain words, with the reason",
       "do the parts that do not depend on it in the same turn",
@@ -474,7 +475,8 @@ describe("how every bot replies", () => {
       "state the money facts you found: price, fees, deposit, cancellation terms",
       "Their pick of an option is the go-ahead.",
       "Never ask for passwords, one-time codes or card numbers in chat.",
-      "say plainly what you did not do, offer the simplest other way (drag the file into the chat, or paste the text)",
+      "say plainly what failed and what you did not do",
+      "such as dragging the file into the chat or pasting the text",
     ]) expect(REPLY_HABITS_PROMPT).toContain(habit);
   });
 
