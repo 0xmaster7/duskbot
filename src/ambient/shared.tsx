@@ -18,17 +18,19 @@ export const FADE = { duration: 0.16, ease: EASE_OUT } as const;
 export const FADE_OUT = { duration: 0.1, ease: EASE_OUT } as const;
 /** Putting a surface away is quicker than bringing it out, and never lingers. */
 export const EXIT = { duration: 0.14, ease: EASE_OUT } as const;
+/** The island folds back gently: quicker than it opens feels, never a snap. */
+export const SOFT_EXIT = { duration: 0.26, ease: [0.32, 0.72, 0, 1] } as const;
 
 /** A number that moves to `target`: out on the settle spring, away on the quick exit clock. Retargets from wherever it
  * is, keeping its velocity. `out` says which way is out; by default growing is. */
-export function useSurfaceValue(target: number, reduced: boolean, out?: boolean): MotionValue<number> {
+export function useSurfaceValue(target: number, reduced: boolean, out?: boolean, away: typeof EXIT | typeof SOFT_EXIT = EXIT): MotionValue<number> {
   const value = useMotionValue(target);
   useEffect(() => {
     if (reduced) { value.jump(target); return; }
     const outward = out ?? target >= value.get();
-    const controls = animate(value, target, outward ? SETTLE : EXIT);
+    const controls = animate(value, target, outward ? SETTLE : away);
     return () => controls.stop();
-  }, [target, reduced, out, value]);
+  }, [target, reduced, out, away, value]);
   return value;
 }
 

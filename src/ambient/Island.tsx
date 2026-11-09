@@ -9,13 +9,15 @@ import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, moodOf, rankBots, wait
 import { BotRow, useHoverBand, useRowMoments } from "./rows";
 import { attention, eventKey, isFresh, recentOf, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, FADE, FADE_OUT, HOLD_MS, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, HOLD_MS, SOFT_EXIT, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, IslandLayout } from "./types";
 
 const PANEL_W = 432;
 /** The flares where a notch island meets the top edge of the screen. */
 const EAR = 10;
-const HOVER_OUT_MS = 120;
+/** The island stays this long after the pointer leaves, and keeps a little margin around it while open. */
+const HOVER_OUT_MS = 250;
+const GRACE = 12;
 /** The island widens this much for a moment when someone starts needing the person, or a turn finishes. */
 const NUDGE = 22;
 const NUDGE_MS = 1600;
@@ -89,8 +91,8 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   const targetW = open ? panelW : restW;
   const targetH = open ? openH : c.height;
 
-  const w = useSurfaceValue(targetW, reduced);
-  const h = useSurfaceValue(targetH, reduced);
+  const w = useSurfaceValue(targetW, reduced, undefined, SOFT_EXIT);
+  const h = useSurfaceValue(targetH, reduced, undefined, SOFT_EXIT);
 
   const closedR = notch ? Math.min(14, Math.round(c.height * 0.38)) : c.height / 2;
   const openR = notch ? 26 : 24;
@@ -111,9 +113,13 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
 
   // where the island is right now, mid-spring included: only there do clicks land
   const stage = useRef<HTMLDivElement>(null);
+  // open, a little margin around it still counts: brushing its edge does not fold it away
+  const openNow = useRef(open);
+  openNow.current = open;
   const hit = useCallback((x: number, y: number) => {
-    const half = w.get() / 2 + (notch ? EAR : 0) + 2;
-    return Math.abs(x - stageW / 2) <= half && y >= c.top - 2 && y <= c.top + h.get() + 4;
+    const grace = openNow.current ? GRACE : 0;
+    const half = w.get() / 2 + (notch ? EAR : 0) + 2 + grace;
+    return Math.abs(x - stageW / 2) <= half && y >= c.top - 2 && y <= c.top + h.get() + 4 + grace;
   }, [w, h, notch, stageW, c.top]);
   const leaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const hovering = usePointerRegion(bridge, hit, () => {
@@ -187,7 +193,7 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
           style={{ paddingTop: c.height }}
           initial={false}
           animate={open ? { opacity: 1, y: 0 } : { opacity: 0, y: reduced ? 0 : -6 }}
-          transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: FADE_OUT, y: FADE_OUT }}
+          transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: { duration: 0.18, ease: EASE_OUT }, y: SOFT_EXIT }}
         >
           <div ref={panel}>
             <PanelBody bots={bots} seen={seen} mark={mark} cheer={allClear} labels={labels} lang={lang} open={open} bridge={bridge} onPin={setPinned} />
