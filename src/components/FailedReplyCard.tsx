@@ -9,6 +9,7 @@ import { failedTurnCause } from "../../shared/failed-turn";
 import { trialCreditKind } from "../../shared/trial-credit";
 import { CARD_ACTION, ChatErrorCard } from "./ChatErrorBanner";
 import { ClaudeUpdatePrompt } from "./ClaudeUpdatePrompt";
+import { aiRunsOnServer } from "./ComposerSignInNotice";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
 import { useLimitResetContinue } from "./EngineUsage";
 import { bugReportFixedText } from "./BugReportNote";
@@ -84,7 +85,7 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
     );
   }
 
-  const onServer = window.ogb?.remoteClient?.active === true || state.config?.cloudHome === true || capabilities.localComputer?.reasonCode === "remote-server";
+  const onServer = aiRunsOnServer(state.config, capabilities);
   const engineName = lead.engine?.displayName ?? t("failedReply.yourAi");
   let detail: string | null = failedReplyDetail(lead.kind, engineName, onServer);
   const actions: Array<{ label: string; onClick: () => void }> = [];

@@ -78,7 +78,7 @@ import { ThreadRefText } from "./ThreadRefs";
 import { optionsCardRow, settledCardStays } from "./OptionsCardRow";
 import { MessageBoundary } from "./MessageBoundary";
 import { RichMessageRow, UserLineNote, richRowKind } from "./RichMessageRow"; import { SetupOffer } from "./SetupOffer";
-import { Composer } from "./Composer"; import { FailedReplyCard, FoldedNoticesContext, foldedNoticeIds, useTrailingRows } from "./FailedReplyCard";
+import { Composer } from "./Composer"; import { ComposerSignInNotice } from "./ComposerSignInNotice"; import { FailedReplyCard, FoldedNoticesContext, foldedNoticeIds, useTrailingRows } from "./FailedReplyCard";
 import { CARD_ACTION, ChatErrorBanner, ChatErrorCard, ChatNotice } from "./ChatErrorBanner";
 import { ThreadContextWarning } from "./ContextWarning";
 import { UsageAlert, useLimitResetContinue } from "./EngineUsage";
@@ -1324,6 +1324,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       {/* grok says what went wrong in one quiet line just above the message box */}
       <div className="pointer-events-auto"><ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} /></div>
       <div className="pointer-events-auto"><FailedReplyCard rows={trailing} botId={bot.id} threadId={bot.threadId} onRetry={lastUserMessage ? regenerate : undefined} /></div>
+      {canWrite !== false && !trailing?.failures.length && !trailing?.notices.length && <div className="pointer-events-auto"><ComposerSignInNotice bot={bot} /></div>}
       <LiveCallBar bot={bot} />
       {canWrite === false ? (
         <NewConversationInstead bot={bot} onNew={() => dispatch({ type: "newTask", botId: bot.id })} />
