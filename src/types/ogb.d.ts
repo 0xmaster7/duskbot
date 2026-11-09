@@ -310,6 +310,8 @@ const __APP_VERSION__: string;
       speechFinish?(): Promise<void>;
       /** The notch island and the bot dock: their choices, and this page's summary of its bots for them. */
       ambient?: import("../ambient/types").AmbientAppBridge;
+      /** The working bots for ⌘Q, and the menu's Stop commands (electron/desktop-bots.mjs). */
+      desktopBots?: import("../ambient/types").DesktopBotsBridge;
       /** This computer's page only: Settings → General's talk shortcut. */
       talkShortcut?: import("../../electron/talk-shortcut.mjs").TalkShortcutBridge;
       /** A call holds the microphone, so the talk shortcut waits. */

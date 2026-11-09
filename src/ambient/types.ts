@@ -23,6 +23,10 @@ export interface AmbientBot {
   asks: number;
   /** The one approval the island can answer in place. */
   approval: { requestId: string; threadId: string; title: string } | null;
+  /** What it waits on the person for, the most urgent first: a question, then an approval, then anything else. */
+  waits: "question" | "approval" | "other" | null;
+  /** A question the island answers in place with one of its choices. */
+  question: { requestId: string; threadId: string; title: string; choices: string[] } | null;
 }
 
 export interface AmbientSnapshot {
@@ -35,6 +39,8 @@ export interface AmbientSnapshot {
 export type AmbientAct =
   | { kind: "reply"; botId: string; threadId: string; text: string }
   | { kind: "allow" | "deny"; botId: string; threadId: string; requestId: string }
+  | { kind: "answer"; botId: string; threadId: string; requestId: string; text: string }
+  | { kind: "stop"; botId: string; threadId: string }
   | { kind: "new-bot" };
 
 export interface IslandLayout {
@@ -71,6 +77,8 @@ export interface AmbientBridge {
   surface: "island" | "dock" | "";
   onState(cb: (snapshot: AmbientSnapshot) => void): () => void;
   onLayout(cb: (layout: IslandLayout | DockLayout) => void): () => void;
+  /** True while the person is in another app or away (electron/ambient-still.mjs); absent on an older app. */
+  onStill?(cb: (still: boolean) => void): () => void;
   pointer(on: boolean): void;
   open(botId: string, threadId: string): void;
   act(act: AmbientAct): void;
@@ -86,6 +94,14 @@ export interface AmbientAppBridge {
   onWanted(cb: (wanted: boolean) => void): () => void;
   publish(snapshot: AmbientSnapshot): void;
   onAct(cb: (act: AmbientAct) => void): () => void;
+}
+
+/** The app page's side of electron/desktop-bots.mjs: its working bots for ⌘Q, the pill a single ⌘Q shows, and Stop. */
+export interface DesktopBotsBridge {
+  busy(names: string[]): void;
+  onQuitHint(cb: (names: string[]) => void): () => void;
+  /** The menu's Stop Bot (⌘.) and Stop All Bots (⌥⌘.). */
+  onStop(cb: (command: { all: boolean }) => void): () => void;
 }
 
 declare global {

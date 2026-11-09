@@ -6,6 +6,9 @@ export type NotifyFrame = Notification;
 
 export type NotificationTarget = Pick<NotifyFrame, "botId" | "threadId">;
 
+/** Banners that wait on the person: the desktop closes them once the ask is answered anywhere. */
+const ASKS = new Set<NotifyFrame["kind"]>(["approval", "question", "sign-in", "secret"]);
+
 /** On a team's page in the desktop app, its name: notifications then say which place they come from ("Acme · Scout"). */
 let placeName: string | null = null;
 export function setNotificationPlace(name: string | null) {
@@ -61,5 +64,6 @@ export function showNotification(
   if (!desktop) return shownByPage();
   void desktop.show({
     title, body: frame.body, tag: options.tag, silent: options.silent === true, picture: options.icon, botId: frame.botId, threadId: frame.threadId,
+    ...(ASKS.has(frame.kind) ? { ask: true } : {}),
   }).then((shown) => { if (shown) play(); else shownByPage(); }, shownByPage);
 }

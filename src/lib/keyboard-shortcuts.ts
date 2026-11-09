@@ -76,6 +76,18 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
         winKeys: ["Ctrl", "Enter"],
       },
       {
+        id: "stop-bot",
+        description: "Stop the open bot",
+        macKeys: ["⌘", "."],
+        winKeys: ["Ctrl", "."],
+      },
+      {
+        id: "stop-all-bots",
+        description: "Stop all bots",
+        macKeys: ["⌥", "⌘", "."],
+        winKeys: ["Ctrl", "Alt", "."],
+      },
+      {
         id: "edit-last-message",
         description: "Edit last message (when composer is empty)",
         macKeys: ["↑"],

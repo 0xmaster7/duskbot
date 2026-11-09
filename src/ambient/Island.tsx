@@ -3,10 +3,10 @@
 // spring: its width, height, corners and the two flares where it meets the top of the screen all ride it.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion, useSpring, useTransform } from "motion/react";
-import { ArrowUp, CornerUpLeft, Plus } from "lucide-react";
-import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, focusBot, isBusy, moodOf, rankBots, shortAgo, type Mood } from "./mood";
+import { ArrowUp, CornerUpLeft, Plus, Square } from "lucide-react";
+import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, focusBot, isBusy, moodOf, rankBots, shortAgo, waitingCount, type Mood } from "./mood";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, FADE, FADE_OUT, LIVELY, SETTLE, StatusTag, useAmbientFeed, useNow, usePointerRegion } from "./shared";
+import { BotMark, FADE, FADE_OUT, LIVELY, SETTLE, StatusTag, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
 import type { AmbientBot, AmbientBridge, IslandLayout } from "./types";
 
 const PANEL_W = 432;
@@ -125,6 +125,13 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
 
   const focus = focusBot(bots);
   const emoji = MOOD_EMOJI[mood];
+  // while the person is elsewhere the mark holds still, except open, or for a moment after it changes
+  const still = useStill(bridge);
+  const changed = useChangeMoment(focus ? `${focus.id}:${focus.status}` : "");
+  const moving = !still || open || changed || celebrating;
+  // the compact island shows the most urgent; this many more wait behind it
+  const more = Math.max(0, waitingCount(bots) - 1);
+  const islandLabel = more ? `${say(labels, "island")}, ${say(labels, "more", { count: more })}` : say(labels, "island");
   const close = () => { setPinned(false); setOpen(false); };
   const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
 
@@ -146,7 +153,7 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
           type="button"
           className="amb-island-hit"
           aria-expanded={open}
-          aria-label={say(labels, "island")}
+          aria-label={islandLabel}
           style={{ height: c.height, left: (panelW - c.width) / 2, width: c.width }}
           onClick={() => setOpen(true)}
         />
@@ -165,7 +172,8 @@ export function Island({ bridge }: { bridge: AmbientBridge }) {
       </motion.section>
       {focus && (
         <motion.div className="amb-compact amb-compact-tile" style={{ x: tileX, top: c.top + (c.height - tile) / 2, width: tile, height: tile }}>
-          <BotMark bot={focus} size={tile} state={celebrating ? "celebrate" : undefined} animated={isBusy(focus.status) || focus.status === "needs-you" || celebrating} />
+          <BotMark bot={focus} size={tile} state={celebrating ? "celebrate" : undefined} animated={moving && (isBusy(focus.status) || focus.status === "needs-you" || celebrating)} />
+          {more > 0 && <span className="amb-more" aria-hidden>+{more}</span>}
         </motion.div>
       )}
       <motion.div className="amb-compact amb-emoji" aria-live="polite" style={{ x: emojiX, top: c.top + (c.height - tile) / 2, width: tile, height: tile, fontSize: Math.round(tile * 0.86) }}>
@@ -263,10 +271,11 @@ function Row({ bot, labels, lang, now, open, replying, onToggleReply, onOpen, on
   onToggleReply: () => void; onOpen: () => void; onAct: AmbientBridge["act"]; onPin: (pinned: boolean) => void; onSent: () => void;
 }) {
   const busy = isBusy(bot.status);
-  const approval = bot.approval;
+  const question = bot.status === "needs-you" ? bot.question : null;
+  const approval = question ? null : bot.approval;
   // "Thinking" next to the status "Thinking" says nothing: the newest line does
   const detail = bot.detail && bot.detail !== say(labels, bot.status) ? bot.detail : "";
-  const line = (busy || bot.status === "needs-you") && detail ? (approval?.title ? `${detail}: ${approval.title}` : detail) : bot.line;
+  const line = question?.title || ((busy || bot.status === "needs-you") && detail ? (approval?.title ? `${detail}: ${approval.title}` : detail) : bot.line);
   return (
     <li className="amb-row" data-status={bot.status}>
       <button type="button" className="amb-row-main" onClick={onOpen} aria-label={say(labels, "open", { name: bot.name })}>
@@ -287,11 +296,25 @@ function Row({ bot, labels, lang, now, open, replying, onToggleReply, onOpen, on
             <button type="button" className="amb-pill" onClick={() => onAct({ kind: "deny", botId: bot.id, threadId: approval.threadId, requestId: approval.requestId })}>{say(labels, "deny")}</button>
           </>
         ) : (
-          <button type="button" className="amb-icon" data-on={replying || undefined} aria-expanded={replying} aria-label={say(labels, "replyTo", { name: bot.name })} title={say(labels, "reply")} onClick={onToggleReply}>
-            <CornerUpLeft size={14} strokeWidth={1.75} aria-hidden />
-          </button>
+          <>
+            {busy && (
+              <button type="button" className="amb-icon" aria-label={say(labels, "stop", { name: bot.name })} title={say(labels, "stop", { name: bot.name })} onClick={() => onAct({ kind: "stop", botId: bot.id, threadId: bot.threadId })}>
+                <Square size={11} strokeWidth={2} fill="currentColor" aria-hidden />
+              </button>
+            )}
+            <button type="button" className="amb-icon" data-on={replying || undefined} aria-expanded={replying} aria-label={say(labels, "replyTo", { name: bot.name })} title={say(labels, "reply")} onClick={onToggleReply}>
+              <CornerUpLeft size={14} strokeWidth={1.75} aria-hidden />
+            </button>
+          </>
         )}
       </div>
+      {question && (
+        <div className="amb-choices" role="group" aria-label={question.title}>
+          {question.choices.map((choice) => (
+            <button key={choice} type="button" className="amb-pill" onClick={() => onAct({ kind: "answer", botId: bot.id, threadId: question.threadId, requestId: question.requestId, text: choice })}>{choice}</button>
+          ))}
+        </div>
+      )}
       {replying && <ReplyField bot={bot} labels={labels} onPin={onPin} onSend={(text) => { onAct({ kind: "reply", botId: bot.id, threadId: bot.threadId, text }); onSent(); }} />}
     </li>
   );

@@ -26,11 +26,26 @@ test("a summary keeps only the shapes the surfaces draw, each line cut short", (
   assert.equal(nova.avatar, "/api/avatars/nova.png");
   assert.deepEqual(nova.approval, { requestId: "r1", threadId: "t1", title: "Run npm test" });
   assert.deepEqual([quill.color, quill.status, quill.avatar, quill.body, quill.asks], ["green", "idle", null, null, 99]);
+  const asked = parseSnapshot({ bots: [
+    bot({ waits: "question", question: { requestId: "q1", threadId: "t1", title: "Which branch?", choices: ["main", "dev", "", "a", "b", "c"], extra: 1 } }),
+    bot({ id: "echo", waits: "everything", question: { requestId: "q 2", threadId: "t1", choices: ["x"] } }),
+    bot({ id: "lark", question: { requestId: "q3", threadId: "t1", choices: [] } }),
+  ] }).bots;
+  assert.deepEqual(asked.map((entry) => [entry.waits, entry.question]), [
+    ["question", { requestId: "q1", threadId: "t1", title: "Which branch?", choices: ["main", "dev", "a"] }],
+    [null, null],
+    [null, null],
+  ]);
   assert.equal(parseSnapshot({ bots: "x" }), null);
   assert.equal(parseSnapshot(null), null);
 });
 
-test("the surfaces may only ask to reply, allow, deny or make a bot", () => {
+test("the surfaces may only ask to reply, allow, deny, answer with a choice, stop or make a bot", () => {
+  assert.deepEqual(parseAct({ kind: "answer", botId: "nova", threadId: "t1", requestId: "q1", text: " main " }), { kind: "answer", botId: "nova", threadId: "t1", requestId: "q1", text: "main" });
+  assert.equal(parseAct({ kind: "answer", botId: "nova", threadId: "t1", text: "main" }), null);
+  assert.equal(parseAct({ kind: "answer", botId: "nova", threadId: "t1", requestId: "q1", text: " " }), null);
+  assert.deepEqual(parseAct({ kind: "stop", botId: "nova", threadId: "t1", text: "x" }), { kind: "stop", botId: "nova", threadId: "t1" });
+  assert.equal(parseAct({ kind: "stop", botId: "nova" }), null);
   assert.deepEqual(parseAct({ kind: "reply", botId: "nova", threadId: "t1", text: "  on it  " }), { kind: "reply", botId: "nova", threadId: "t1", text: "on it" });
   assert.equal(parseAct({ kind: "reply", botId: "nova", threadId: "t1", text: "   " }), null);
   assert.deepEqual(parseAct({ kind: "allow", botId: "nova", threadId: "t1", requestId: "r1", text: "x" }), { kind: "allow", botId: "nova", threadId: "t1", requestId: "r1" });

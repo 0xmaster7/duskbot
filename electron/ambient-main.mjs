@@ -2,6 +2,7 @@
 // summary of the bots that the app's own page publishes (from the live stream it already has open, so the surfaces
 // never ask a server anything). Their asks (open a chat, reply, allow) go back to that page, which does them.
 import { pickDisplay } from "./ambient-geometry.mjs";
+import { watchStill } from "./ambient-still.mjs";
 import { applyPrefsChange, parseAct, parsePrefs, parseSnapshot } from "./ambient-state.mjs";
 import { createDockWindow } from "./dock-window.mjs";
 import { createIslandWindow } from "./island-window.mjs";
@@ -15,11 +16,12 @@ const PAGE = "/ambient.html";
 /**
  * @param {{ ipcMain: any, BrowserWindow: any, page: () => any, origin: () => string | null,
  *   file: { read(): unknown, write(value: unknown): void }, openChat: (botId: string, threadId: string) => void,
- *   reveal: () => void, platform?: string, log?: (line: string) => void }} deps `page()`: the app window's webContents,
- * the only page whose summary counts and the one that carries out the surfaces' asks.
+ *   reveal: () => void, activity?: { app: any, powerMonitor: any, focused: () => boolean } | null, platform?: string,
+ *   log?: (line: string) => void }} deps `page()`: the app window's webContents, the only page whose summary counts and
+ * the one that carries out the surfaces' asks. `activity`: what tells the surfaces to hold still (ambient-still.mjs).
  */
-export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, openChat, reveal, platform = process.platform, log = () => {} }) {
-  let prefs = null, snapshot = null, screen = null, started = false, follow = null, displayId = null, dockCount = -1;
+export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, openChat, reveal, activity = null, platform = process.platform, log = () => {} }) {
+  let prefs = null, snapshot = null, screen = null, started = false, follow = null, displayId = null, dockCount = -1, stillness = null;
   const saved = () => (prefs ??= (() => { try { return parsePrefs(file.read(), platform); } catch { return parsePrefs(null, platform); } })());
   const save = next => { prefs = next; try { file.write(next); } catch (error) { log(`ambient prefs not saved: ${error?.message ?? error}`); } };
   const address = surface => { const base = origin(); return base ? `${base}${PAGE}?surface=${surface}` : null; };
@@ -107,6 +109,9 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
       if (started) return;
       started = true;
       screen = electronScreen;
+      if (activity) {
+        stillness = watchStill({ ...activity, onChange: (still) => { island.send("ambient:still", still); dock.send("ambient:still", still); } });
+      }
       for (const event of ["display-added", "display-removed", "display-metrics-changed"]) screen.on(event, changed);
       changed();
     },
@@ -115,6 +120,7 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
     close() {
       started = false;
       clearInterval(follow); follow = null;
+      stillness?.stop(); stillness = null;
       island.close(); dock.close();
     },
   };

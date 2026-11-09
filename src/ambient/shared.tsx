@@ -27,6 +27,30 @@ export function useAmbientFeed(bridge: AmbientBridge): { snapshot: AmbientSnapsh
   return { snapshot, layout };
 }
 
+/** Whether the person is in another app or away (main's ambient-still.mjs): a surface then holds still. */
+export function useStill(bridge: AmbientBridge): boolean {
+  const [still, setStill] = useState(false);
+  useEffect(() => bridge.onStill?.((next) => setStill(next === true)), [bridge]);
+  return still;
+}
+
+/** A change still shows for this long on a surface that is otherwise holding still. */
+export const CHANGE_MOTION_MS = 3_000;
+
+/** True for a moment after `key` changes, never for the first one: what was already so is not news. */
+export function useChangeMoment(key: string, ms = CHANGE_MOTION_MS): boolean {
+  const [moving, setMoving] = useState(false);
+  const last = useRef(key);
+  useEffect(() => {
+    if (last.current === key) return;
+    last.current = key;
+    setMoving(true);
+    const timer = setTimeout(() => setMoving(false), ms);
+    return () => clearTimeout(timer);
+  }, [key, ms]);
+  return moving;
+}
+
 /**
  * The window lets clicks through except over the surface's shape: the page still hears the pointer move (main forwards
  * it), tests it against `hit`, and tells main when it crosses the edge. `onEnter`/`onLeave` fire on that crossing.

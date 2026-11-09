@@ -88,7 +88,7 @@ import {
 import capabilitiesModule from "./capabilities.cjs";
 import environmentsModule from "./environments.cjs";
 import localOriginModule from "./local-origin.cjs";
-import { buildApplicationMenu } from "./menu.mjs";
+import { buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs";
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
@@ -1540,6 +1540,7 @@ function refreshApplicationMenu() {
       openAtLogin: loginItem.available() ? { checked: loginItem.chosen(), onToggle: on => { loginItem.choose(on); refreshApplicationMenu(); } } : null,
       ...cloudMenuOptions(),
       home: homeWindow.cloudOrigin() ? { origin: homeWindow.cloudOrigin(), onBack: () => void showHome({ place: "cloud" }) } : null,
+      onQuit: fromKeys => desktopBots.quit(fromKeys), onStop: all => desktopBots.stop(all),
     }),
   );
 }
@@ -2445,7 +2446,10 @@ const talk = installTalk({ ipcMain, localOnly, localOrHome, BrowserWindow, apple
   speech: { start: startSpeech, stop: stopSpeech, finish: finishSpeech, busy: speechBusy }, packaged: app.isPackaged, devUrl: DEV_URL, nativeImage, iconPath: APP_ICON, openLink: queueChatLink, reveal: revealForLink, log: slog });
 // the notch island and the bot dock (ambient-main.mjs), fed by the app page's own summary of its bots
 const ambientSurfaces = installAmbient({ ipcMain, BrowserWindow, page: () => mainWindow?.webContents ?? null, origin: confirmedRendererOrigin, file: jsonFile(path.join(app.getPath("userData"), "ambient-prefs.json")),
-  openChat: (botId, threadId) => queueChatLink(`openmausbot://thread/${encodeURIComponent(threadId)}?bot=${encodeURIComponent(botId)}`), reveal: revealForLink, log: slog });
+  openChat: (botId, threadId) => queueChatLink(`openmausbot://thread/${encodeURIComponent(threadId)}?bot=${encodeURIComponent(botId)}`), reveal: revealForLink, log: slog,
+  activity: { app, powerMonitor, focused: () => Boolean(BrowserWindow.getFocusedWindow()) } });
+// ⌘Q waits for a hold while this computer's bots work, and the menu's Stop commands (desktop-bots.mjs)
+const desktopBots = installDesktopBots({ ipcMain, app, window: () => mainWindow, isLocal: contents => senderIsLocal({ sender: contents }) });
 
 ipcMain.handle("companion:state", localOnly("companion:state", () => desktopCompanionState()));
 function managedRemoteAccessRefusal() {

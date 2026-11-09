@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { MOOD_EMOJI, dockOrder, finishedSince, focusBot, moodOf, rankBots, shortAgo } from "./mood";
+import { MOOD_EMOJI, dockOrder, finishedSince, focusBot, moodOf, rankBots, shortAgo, waitingCount } from "./mood";
 import type { AmbientBot, AmbientStatus } from "./types";
 
-const bot = (id: string, status: AmbientStatus, at = 0): AmbientBot => ({
+const bot = (id: string, status: AmbientStatus, at = 0, fields: Partial<AmbientBot> = {}): AmbientBot => ({
   id, threadId: `t-${id}`, name: id, color: "blue", body: null, face: null, avatar: null, status, detail: "", line: "", at, unread: status === "done", asks: 0, approval: null,
+  waits: status === "needs-you" ? "other" : null, question: null, ...fields,
 });
 
 describe("the island's mood", () => {
@@ -30,6 +31,23 @@ describe("the island's mood", () => {
     expect(focusBot(bots)?.id).toBe("ask");
     expect(focusBot([])).toBeNull();
     expect(dockOrder(bots, ["old", "gone", "ask"]).map((entry) => entry.id)).toEqual(["old", "ask", "idle", "busy", "new"]);
+  });
+
+  it("puts a question first, then an approval, then any other ask, then a failure, however recent the others are", () => {
+    const bots = [
+      bot("failed", "error", 9),
+      bot("signin", "needs-you", 8),
+      bot("approve", "needs-you", 7, { waits: "approval" }),
+      bot("busy", "working", 6),
+      bot("question", "needs-you", 1, { waits: "question" }),
+    ];
+    expect(rankBots(bots).map((entry) => entry.id)).toEqual(["question", "approve", "signin", "failed", "busy"]);
+    expect(focusBot(bots)?.id).toBe("question");
+  });
+
+  it("counts each ask and each failure as waiting, so the island can say how many more there are", () => {
+    expect(waitingCount([bot("a", "needs-you", 0, { asks: 3 }), bot("b", "needs-you"), bot("c", "error"), bot("d", "working"), bot("e", "done")])).toBe(5);
+    expect(waitingCount([bot("a", "working")])).toBe(0);
   });
 
   it("says how long ago in the person's language", () => {

@@ -17,14 +17,24 @@ export const MOOD_EMOJI: Record<Mood, string> = {
 /** A bot that just finished a turn is cheered this long before the island settles. */
 export const CELEBRATE_MS = 2600;
 
-const RANK: Record<AmbientStatus, number> = { "needs-you": 0, error: 1, talking: 2, working: 3, thinking: 4, done: 5, idle: 6 };
+const RANK: Record<AmbientStatus, number> = { "needs-you": 0, error: 3, talking: 4, working: 5, thinking: 6, done: 7, idle: 8 };
+const WAITS = { question: 0, approval: 1, other: 2 } as const;
+
+/** Lower is sooner: a question, an approval, anything else waiting on the person, a failure, then the rest. */
+export const urgency = (bot: AmbientBot): number => (bot.status === "needs-you" ? WAITS[bot.waits ?? "other"] : RANK[bot.status]);
 const BUSY = new Set<AmbientStatus>(["thinking", "working", "talking"]);
 
 export const isBusy = (status: AmbientStatus) => BUSY.has(status);
 
-/** Bots in the order the panel lists them: needs you, then failed, then busy, then unread, then the rest by recency. */
+/** Bots in the order the panel lists them: questions, approvals, other asks, failures, busy, unread, then the rest by
+ * recency. */
 export function rankBots(bots: readonly AmbientBot[]): AmbientBot[] {
-  return [...bots].sort((a, b) => RANK[a.status] - RANK[b.status] || b.at - a.at || a.name.localeCompare(b.name));
+  return [...bots].sort((a, b) => urgency(a) - urgency(b) || b.at - a.at || a.name.localeCompare(b.name));
+}
+
+/** Everything that waits on the person: each ask, and each bot stopped on a failure. */
+export function waitingCount(bots: readonly AmbientBot[]): number {
+  return bots.reduce((sum, bot) => sum + (bot.status === "needs-you" ? Math.max(1, bot.asks) : bot.status === "error" ? 1 : 0), 0);
 }
 
 /** Bots that went from a running turn to resting, unread or idle since the last summary. */

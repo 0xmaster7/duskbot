@@ -91,7 +91,7 @@ function railKeepsItsSize() {
 if (typeof window !== "undefined") {
   for (const type of ["resize", "DOMContentLoaded"]) window.addEventListener(type, () => { leaveRailRoom(); railKeepsItsSize(); });
 }
-const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "updatesConsent", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect", "onSlackOAuth", "ambient"]);
+const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "updatesConsent", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect", "onSlackOAuth", "ambient", "desktopBots"]);
 /** My Cloud's own page once it is the person's home (main checks the sender again): it is this app's page then. */
 const HOME_PAGE = ["home", "onChatLink", "onPackageInstall", "exportDiagnostics", "openLogsFolder", "openAtLogin", "callActive"];
 function updaterOffered() {
@@ -237,6 +237,20 @@ const bridge = {
       const handler = (_event, act) => cb(act);
       ipcRenderer.on("ambient:act", handler);
       return () => ipcRenderer.removeListener("ambient:act", handler);
+    },
+  },
+  // The window's working bots for ⌘Q (main counts only this computer's page), and the menu's Stop commands.
+  desktopBots: {
+    busy: (names) => ipcRenderer.send("desktop-bots:busy", Array.isArray(names) ? names.slice(0, 40).map((entry) => String(entry).slice(0, 60)) : []),
+    onQuitHint: (cb) => {
+      const handler = (_event, names) => cb(Array.isArray(names) ? names.map(String) : []);
+      ipcRenderer.on("desktop-bots:quit-hint", handler);
+      return () => ipcRenderer.removeListener("desktop-bots:quit-hint", handler);
+    },
+    onStop: (cb) => {
+      const handler = (_event, command) => cb({ all: command?.all === true });
+      ipcRenderer.on("desktop-bots:stop", handler);
+      return () => ipcRenderer.removeListener("desktop-bots:stop", handler);
     },
   },
   // The window's own frame, this desktop's choice for every page of its window; a server's page changes it only from the
@@ -749,6 +763,10 @@ const bridge = {
   // A bot's notification, shown by main so its click outlives this page; older apps have no such key and the page shows its own.
   desktopNotifications: {
     show: (note) => ipcRenderer.invoke("desktop-notifications:show", note),
+    asks: (report) => ipcRenderer.send("desktop-notifications:asks", {
+      waiting: Array.isArray(report?.waiting) ? report.waiting.slice(0, 200).map(String) : [],
+      settled: Array.isArray(report?.settled) ? report.settled.slice(0, 200).map(String) : [],
+    }),
     onOpen: (cb) => {
       notificationOpenListeners.add(cb);
       if (pendingNotificationOpen) {

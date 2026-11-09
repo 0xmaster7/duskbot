@@ -48,6 +48,12 @@ button { font: inherit; color: inherit; cursor: default; -webkit-tap-highlight-c
 .amb-island-hit:focus-visible { outline-offset: -3px; }
 .amb-panel { position: absolute; inset: 0 0 auto 0; }
 .amb-compact { position: absolute; left: 0; display: grid; place-items: center; pointer-events: none; }
+/* more waiting behind the one the compact island shows */
+.amb-more {
+  position: absolute; right: -6px; bottom: -3px; display: grid; place-items: center; min-width: 12px; height: 12px; padding: 0 2.5px; box-sizing: border-box;
+  border-radius: 999px; background: var(--amb-blue-fill); color: #fff; font-size: 8px; font-weight: 650; line-height: 1; font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 1.5px var(--amb-notch);
+}
 .amb-emoji-glyph { display: block; line-height: 1; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
 
 .amb-panel-body { padding: 4px 12px 12px; }
@@ -91,6 +97,8 @@ button { font: inherit; color: inherit; cursor: default; -webkit-tap-highlight-c
   transition: background-color var(--amb-fast) ease, transform var(--amb-fast) var(--amb-ease-out);
 }
 .amb-pill-primary { background: var(--amb-ink); color: var(--amb-panel); }
+.amb-choices { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 8px 8px 52px; }
+.amb-choices .amb-pill { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .amb-pill:active, .amb-send:active:enabled { transform: scale(0.96); }
 
 .amb-reply {

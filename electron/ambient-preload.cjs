@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld("ambient", {
   surface: surface === "island" || surface === "dock" ? surface : "",
   onState: listen("ambient:state"),
   onLayout: listen("ambient:layout"),
+  /** True while the person is in another app or away: the surfaces hold still. */
+  onStill: listen("ambient:still"),
   /** The pointer is on the shape (clicks land) or off it (clicks fall through to what is underneath). */
   pointer: (on) => ipcRenderer.send("ambient:pointer", on === true),
   open: (botId, threadId) => ipcRenderer.send("ambient:open", { botId: word(botId), threadId: word(threadId) }),

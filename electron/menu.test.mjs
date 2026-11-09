@@ -66,6 +66,30 @@ describe("buildApplicationMenu", () => {
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["darwin", "linux", "win32"])("tells Quit on %s whether its keys or a click chose it, so ⌘Q can wait for a hold", (platform) => {
+    const onQuit = vi.fn();
+    const template = build(platform, { onQuit });
+    const item = template[0].submenu.find((entry) => entry.id === "quit");
+    expect(item.role).toBeUndefined();
+    expect(item.accelerator).toBe(platform === "win32" ? undefined : "CmdOrCtrl+Q");
+    expect(item.label).toBe(platform === "darwin" ? "Quit OpenMausBot" : platform === "win32" ? "Exit" : "Quit");
+    item.click(item, null, { triggeredByAccelerator: true });
+    item.click(item, null, { triggeredByAccelerator: false });
+    expect(onQuit.mock.calls).toEqual([[true], [false]]);
+    expect(build(platform).flatMap((menu) => menu.submenu ?? []).some((entry) => entry.role === "quit")).toBe(platform === "darwin");
+  });
+
+  it.each(["darwin", "linux", "win32"])("puts Stop Bot on ⌘. and Stop All Bots on ⌥⌘. in the File menu on %s", (platform) => {
+    const onStop = vi.fn();
+    const template = build(platform, { onStop });
+    const file = template.find((entry) => entry.label === "File");
+    expect(file.submenu.slice(0, 2).map((entry) => [entry.label, entry.accelerator])).toEqual([["Stop Bot", "CmdOrCtrl+."], ["Stop All Bots", "Alt+CmdOrCtrl+."]]);
+    expect(file.submenu.at(-1).role).toBe(platform === "darwin" ? "close" : "quit");
+    file.submenu[0].click();
+    file.submenu[1].click();
+    expect(onStop.mock.calls).toEqual([[false], [true]]);
+  });
+
   it.each(["linux", "win32"])("does not add an app menu on %s", (platform) => {
     const template = build(platform);
     expect(template[0].role).toBe("fileMenu");

@@ -31,6 +31,21 @@ describe("the summary the island and the dock draw", () => {
     expect(ambientBot(bot({ activity: "waiting-on-you" }), [], turnLive).status).toBe("needs-you");
   });
 
+  it("offers a one-tap question's choices in place, ahead of an approval, and only opens a longer one", () => {
+    const question = (fields: Record<string, unknown> = {}) => message({ kind: "options", card: { title: "Which branch?", subtitle: "", options: ["main", "dev"], requestId: "q1", requestType: "question", ...fields } } as Partial<Message>);
+    const asking = ambientBot(bot({ messages: [approval(), question()] }), [], turnLive);
+    expect(asking).toMatchObject({ status: "needs-you", waits: "question", question: { requestId: "q1", threadId: "t1", title: "Which branch?", choices: ["main", "dev"] } });
+    const structured = ambientBot(bot({ messages: [question({ questionRequest: { version: 1, questions: [{ question: "Ship it now?", options: [{ label: "Yes" }, { label: "Later" }] }] } })] }), [], turnLive);
+    expect(structured.question).toMatchObject({ title: "Ship it now?", choices: ["Yes", "Later"] });
+    const many = ambientBot(bot({ messages: [question({ options: ["a", "b", "c", "d", "e"] })] }), [], turnLive);
+    expect(many).toMatchObject({ waits: "question", question: null });
+    const multi = ambientBot(bot({ messages: [question({ questionRequest: { version: 1, questions: [{ question: "Pick", multiSelect: true, options: [{ label: "x" }, { label: "y" }] }] } })] }), [], turnLive);
+    expect(multi.question).toBeNull();
+    expect(ambientBot(bot({ messages: [question({ answered: "answer" })] }), [], turnLive)).toMatchObject({ waits: null, question: null });
+    expect(ambientBot(bot({ messages: [approval()] }), [], turnLive).waits).toBe("approval");
+    expect(ambientBot(bot({ activity: "waiting-on-you" }), [], turnLive).waits).toBe("other");
+  });
+
   it("marks an unread reply done, a failed step an error, and the rest idle with their newest line", () => {
     const reply = message({ text: "The footer is fixed." });
     expect(ambientBot(bot({ unread: true, messages: [reply] }), [], turnLive)).toMatchObject({ status: "done", unread: true, line: "The footer is fixed.", at: reply.at });

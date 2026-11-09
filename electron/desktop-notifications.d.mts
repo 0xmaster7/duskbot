@@ -7,6 +7,8 @@ export interface DesktopNotificationNote {
   picture?: string;
   botId: string;
   threadId: string;
+  /** An approval or a question: the banner closes once the bot stops waiting on the person. */
+  ask?: boolean;
 }
 
 export interface DesktopNotificationsBridge {
@@ -14,4 +16,6 @@ export interface DesktopNotificationsBridge {
   show(note: DesktopNotificationNote): Promise<boolean>;
   /** A click on one of them brought this page up: open that thread. */
   onOpen(cb: (target: { botId: string; threadId: string }) => void): () => void;
+  /** Which of this page's loaded bots wait on the person now, and which do not; absent before this app had it. */
+  asks?(report: { waiting: string[]; settled: string[] }): void;
 }

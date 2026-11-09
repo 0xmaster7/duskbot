@@ -24,10 +24,13 @@ function world({ shown = CLOUD, supported = true, mayNotify = true, picture = as
     mainFrame, isLoadingMainFrame: () => at.shown === null, getURL: () => `${at.shown}/somewhere`,
     send: (channel, target) => { assert.equal(channel, "desktop-notifications:open"); log.push(`open ${target.botId}/${target.threadId}`); },
   };
-  let handler = null;
+  let handler = null, report = null;
   const asked = [];
   const installed = installDesktopNotifications({
-    ipcMain: { handle: (channel, run) => { assert.equal(channel, "desktop-notifications:show"); handler = run; } },
+    ipcMain: {
+      handle: (channel, run) => { assert.equal(channel, "desktop-notifications:show"); handler = run; },
+      on: (channel, run) => { assert.equal(channel, "desktop-notifications:asks"); report = run; },
+    },
     Notification: Banner,
     nativeImage: { createFromBuffer: (buffer) => ({ isEmpty: () => buffer.length === 0, bytes: buffer.length }) },
     fetch: async (url) => { asked.push(url); const body = await picture(url); return { ok: body !== null, arrayBuffer: async () => new TextEncoder().encode(body ?? "").buffer }; },
@@ -35,7 +38,7 @@ function world({ shown = CLOUD, supported = true, mayNotify = true, picture = as
     reveal: () => log.push("reveal"), openPlace: (origin) => log.push(`place ${origin}`), now: () => at.now,
   });
   const fromPage = { sender: webContents, senderFrame: mainFrame };
-  return { ...installed, at, banners, log, asked, fromPage, webContents, show: (note = NOTE, event = fromPage) => handler(event, note) };
+  return { ...installed, at, banners, log, asked, fromPage, webContents, show: (note = NOTE, event = fromPage) => handler(event, note), asks: (asks, event = fromPage) => report(event, asks) };
 }
 
 test("a click with the place on screen raises the window and opens the thread", async () => {
@@ -183,4 +186,35 @@ test("the bridge asks main, and holds a click that comes back before the page ha
   channels.get("desktop-notifications:open")({}, { botId: "atlas", threadId: "next" });
   assert.equal(heard.length, 2);
   stop();
+});
+
+test("an ask's banner closes once its page sees the bot stop waiting, wherever the ask was answered", async () => {
+  const w = world();
+  const ask = { ...NOTE, ask: true };
+  await w.show(ask);
+  w.asks({ waiting: [], settled: ["scout"] });
+  assert.equal(w.banners[0].closed, false, "the page had not yet shown it waiting: the frame can land before the bot's state");
+  w.asks({ waiting: ["scout"], settled: [] });
+  w.asks({ waiting: ["scout"], settled: ["echo"] });
+  assert.equal(w.banners[0].closed, false);
+  w.asks({ waiting: [], settled: ["scout"] });
+  assert.equal(w.banners[0].closed, true);
+
+  w.asks({ waiting: ["scout"], settled: [] });
+  await w.show(ask);
+  w.asks({ waiting: [], settled: [] });
+  assert.equal(w.banners[1].closed, false, "a bot the page has not loaded (a reload) keeps its banner");
+  w.asks({ waiting: [], settled: ["scout"] });
+  assert.equal(w.banners[1].closed, true, "it was waiting when the banner came, so settled now means answered");
+});
+
+test("only an ask closes this way, and only for the place whose page reports it", async () => {
+  const w = world();
+  await w.show(NOTE);
+  w.asks({ waiting: ["scout"], settled: [] });
+  w.asks({ waiting: [], settled: ["scout"] });
+  assert.equal(w.banners[0].closed, false, "a finished-work banner stays until it is read");
+  await w.show({ ...NOTE, tag: "other", ask: true });
+  w.asks({ waiting: [], settled: ["scout"] }, { sender: {}, senderFrame: {} });
+  assert.equal(w.banners[1].closed, false, "not this window's page");
 });

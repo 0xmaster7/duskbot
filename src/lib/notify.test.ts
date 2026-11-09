@@ -181,6 +181,14 @@ describe("on the desktop app, where main shows the banner so its click outlives 
     expect(notices).toHaveLength(0);
   });
 
+  it("marks an approval or a question as an ask, so main closes its banner once it is answered anywhere", async () => {
+    const { show } = installBridge(async () => true);
+    showNotification({ ...frame, kind: "question" }, vi.fn());
+    showNotification({ ...frame, kind: "done" }, vi.fn());
+    await flush();
+    expect((show.mock.calls as unknown as [{ ask?: boolean }][]).map(([note]) => note.ask)).toEqual([true, undefined]);
+  });
+
   it("asks main for nothing without the person's permission or over the thread on screen, as ever", async () => {
     const denied = installBridge(async () => true);
     vi.stubGlobal("Notification", class { static permission = "denied"; });
