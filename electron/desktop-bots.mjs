@@ -35,6 +35,8 @@ export function installDesktopBots({ ipcMain, app, window, isLocal, platform = p
   return {
     /** The menu's Quit item. */
     quit: (fromKeys) => guard.menu(fromKeys),
+    /** The menu's Stop Bot and Stop All Bots: whichever place the window shows stops them. */
+    stop: (all) => page()?.send("desktop-bots:stop", { all: all === true }),
     /** The names a quit would stop now. */
     busy: busyNow,
   };

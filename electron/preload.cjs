@@ -247,6 +247,11 @@ const bridge = {
       ipcRenderer.on("desktop-bots:quit-hint", handler);
       return () => ipcRenderer.removeListener("desktop-bots:quit-hint", handler);
     },
+    onStop: (cb) => {
+      const handler = (_event, command) => cb({ all: command?.all === true });
+      ipcRenderer.on("desktop-bots:stop", handler);
+      return () => ipcRenderer.removeListener("desktop-bots:stop", handler);
+    },
   },
   // The window's own frame, this desktop's choice for every page of its window; a server's page changes it only from the
   // person's click.

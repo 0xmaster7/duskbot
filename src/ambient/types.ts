@@ -88,10 +88,12 @@ export interface AmbientAppBridge {
   onAct(cb: (act: AmbientAct) => void): () => void;
 }
 
-/** The app page's side of electron/desktop-bots.mjs: its working bots for ⌘Q, and the pill a single ⌘Q shows. */
+/** The app page's side of electron/desktop-bots.mjs: its working bots for ⌘Q, the pill a single ⌘Q shows, and Stop. */
 export interface DesktopBotsBridge {
   busy(names: string[]): void;
   onQuitHint(cb: (names: string[]) => void): () => void;
+  /** The menu's Stop Bot (⌘.) and Stop All Bots (⌥⌘.). */
+  onStop(cb: (command: { all: boolean }) => void): () => void;
 }
 
 declare global {

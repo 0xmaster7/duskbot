@@ -79,6 +79,17 @@ describe("buildApplicationMenu", () => {
     expect(build(platform).flatMap((menu) => menu.submenu ?? []).some((entry) => entry.role === "quit")).toBe(platform === "darwin");
   });
 
+  it.each(["darwin", "linux", "win32"])("puts Stop Bot on ⌘. and Stop All Bots on ⌥⌘. in the File menu on %s", (platform) => {
+    const onStop = vi.fn();
+    const template = build(platform, { onStop });
+    const file = template.find((entry) => entry.label === "File");
+    expect(file.submenu.slice(0, 2).map((entry) => [entry.label, entry.accelerator])).toEqual([["Stop Bot", "CmdOrCtrl+."], ["Stop All Bots", "Alt+CmdOrCtrl+."]]);
+    expect(file.submenu.at(-1).role).toBe(platform === "darwin" ? "close" : "quit");
+    file.submenu[0].click();
+    file.submenu[1].click();
+    expect(onStop.mock.calls).toEqual([[false], [true]]);
+  });
+
   it.each(["linux", "win32"])("does not add an app menu on %s", (platform) => {
     const template = build(platform);
     expect(template[0].role).toBe("fileMenu");

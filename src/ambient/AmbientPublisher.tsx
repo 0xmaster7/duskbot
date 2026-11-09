@@ -68,5 +68,5 @@ export function AmbientPublisher() {
   useEffect(() => (wanted ? onAnyTurnLive(schedule) : undefined), [wanted, schedule]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   useEffect(() => bridge?.onAct((act) => runAmbientAct(act, latest.current, dispatch)), [bridge, dispatch]);
-  return <DesktopBots bots={state.bots} />;
+  return <DesktopBots />;
 }

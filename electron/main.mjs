@@ -1521,7 +1521,7 @@ function refreshApplicationMenu() {
       openAtLogin: loginItem.available() ? { checked: loginItem.chosen(), onToggle: on => { loginItem.choose(on); refreshApplicationMenu(); } } : null,
       ...cloudMenuOptions(),
       home: homeWindow.cloudOrigin() ? { origin: homeWindow.cloudOrigin(), onBack: () => void showHome({ place: "cloud" }) } : null,
-      onQuit: fromKeys => desktopBots.quit(fromKeys),
+      onQuit: fromKeys => desktopBots.quit(fromKeys), onStop: all => desktopBots.stop(all),
     }),
   );
 }

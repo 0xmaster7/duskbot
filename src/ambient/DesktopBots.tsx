@@ -1,8 +1,9 @@
 // The app window's side of electron/desktop-bots.mjs: it tells main which bots are working, so one ⌘Q waits for a
-// hold while they do, and shows the pill that press brings up.
-import { useEffect, useState } from "react";
+// hold while they do, shows the pill that press brings up, and carries out the menu's Stop Bot and Stop All Bots.
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { Bot } from "@/state/store";
+import { useStore, type AppState, type Bot, type Group } from "@/state/store";
+import { workingThreadId } from "@/components/SidebarWorkingStep";
 import { activeLocale, t } from "@/lib/i18n";
 import { isMacPlatform } from "@/lib/keyboard-shortcuts";
 
@@ -23,10 +24,36 @@ export function quitHintText(names: readonly string[], mac: boolean, locale = ac
   return t("ambient.quitHint.some", { names: list, key });
 }
 
-export function DesktopBots({ bots }: { bots: readonly Bot[] }) {
+type StopAction = { type: "interrupt"; botId: string; threadId: string } | { type: "interruptGroup"; groupId: string; threadId: string };
+
+const groupWorking = (group: Pick<Group, "working" | "busyBotId">) => Boolean(group.working || group.busyBotId);
+const busyThreads = (bot: Bot) => {
+  const tasks = (bot.tasks ?? []).filter((task) => task.busy).map((task) => task.threadId);
+  return tasks.length ? tasks : bot.busy ? [workingThreadId(bot)] : [];
+};
+
+/** ⌘. stops the open chat's turn, ⌥⌘. every turn running here: nothing for a chat with none. */
+export function stopActions(state: Pick<AppState, "bots" | "groups" | "selectedId">, all: boolean): StopAction[] {
+  if (all) {
+    return [
+      ...state.bots.flatMap((bot) => busyThreads(bot).map((threadId): StopAction => ({ type: "interrupt", botId: bot.id, threadId }))),
+      ...state.groups.filter(groupWorking).map((group): StopAction => ({ type: "interruptGroup", groupId: group.id, threadId: group.threadId })),
+    ];
+  }
+  const group = state.groups.find((entry) => entry.id === state.selectedId);
+  if (group) return groupWorking(group) ? [{ type: "interruptGroup", groupId: group.id, threadId: group.threadId }] : [];
+  const bot = state.bots.find((entry) => entry.id === state.selectedId);
+  return bot?.busy ? [{ type: "interrupt", botId: bot.id, threadId: workingThreadId(bot) }] : [];
+}
+
+export function DesktopBots() {
+  const { state, dispatch } = useStore();
   const bridge = typeof window === "undefined" ? undefined : window.ogb?.desktopBots;
-  const busy = busyBotNames(bots).join("\n");
+  const busy = busyBotNames(state.bots).join("\n");
   useEffect(() => { bridge?.busy(busy ? busy.split("\n") : []); }, [bridge, busy]);
+  const latest = useRef(state);
+  latest.current = state;
+  useEffect(() => bridge?.onStop(({ all }) => { for (const action of stopActions(latest.current, all)) dispatch(action); }), [bridge, dispatch]);
 
   const [hint, setHint] = useState<{ names: string[]; at: number } | null>(null);
   useEffect(() => bridge?.onQuitHint((names) => setHint(names.length ? { names, at: Date.now() } : null)), [bridge]);

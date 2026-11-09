@@ -18,14 +18,20 @@ const whereItLives = (environment) => (environment.kind === "local" ? environmen
  *   menu lists only the other saved servers, with Back to My Cloud, and is absent without any.
  * @param {{ checked: boolean, onToggle: (on: boolean) => void } | null} [input.openAtLogin] Open at Login, in the app
  *   menu on macOS and the File menu elsewhere; absent when this build cannot add a login item.
+ * @param {(all: boolean) => void} [input.onStop] Stop Bot (⌘.) and Stop All Bots (⌥⌘.) in the File menu.
  * @param {(fromKeys: boolean) => void} [input.onQuit] Quit, told whether its accelerator (rather than a click) chose it,
  *   so ⌘Q can be held while a bot works; without it the item is Electron's own.
  */
-export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFromClipboard, onConnect, onForget, onOpenSettings, onOrganizationSignIn, onAddCloud, sublabels = {}, home = null, openAtLogin = null, onQuit = null }) {
+export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFromClipboard, onConnect, onForget, onOpenSettings, onOrganizationSignIn, onAddCloud, sublabels = {}, home = null, openAtLogin = null, onQuit = null, onStop = null }) {
   const isMac = process.platform === "darwin";
   const quit = onQuit
     ? { id: "quit", label: isMac ? `Quit ${app.name}` : process.platform === "win32" ? "Exit" : "Quit", ...(process.platform === "win32" ? {} : { accelerator: "CmdOrCtrl+Q" }), click: (_item, _window, event) => onQuit(event?.triggeredByAccelerator === true) }
     : { role: "quit" };
+  const stops = onStop ? [
+    { id: "stop-bot", label: "Stop Bot", accelerator: "CmdOrCtrl+.", click: () => onStop(false) },
+    { id: "stop-all-bots", label: "Stop All Bots", accelerator: "Alt+CmdOrCtrl+.", click: () => onStop(true) },
+    { type: "separator" },
+  ] : [];
   const active = environments.find((e) => e.id === activeId) ?? null;
   const others = home ? environments.filter((e) => e.origin !== home.origin && e.kind !== "local") : [];
   const away = Boolean(active && home && active.origin !== home.origin);
@@ -65,7 +71,8 @@ export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFr
   const atLogin = openAtLogin ? [{ id: "open-at-login", label: "Open at Login", type: "checkbox", checked: openAtLogin.checked, click: () => openAtLogin.onToggle(!openAtLogin.checked) }] : [];
   const template = [
     ...(isMac ? [{ label: app.name, submenu: [{ role: "about" }, { label: "Preferences…", accelerator: "CmdOrCtrl+,", click: () => onOpenSettings() }, ...atLogin, { type: "separator" }, { role: "hide" }, { role: "hideOthers" }, { role: "unhide" }, { type: "separator" }, quit] }] : []),
-    !isMac && (openAtLogin || onQuit) ? { label: "File", submenu: [...atLogin, ...(atLogin.length ? [{ type: "separator" }] : []), quit] } : { role: "fileMenu" },
+    isMac ? (stops.length ? { label: "File", submenu: [...stops, { role: "close" }] } : { role: "fileMenu" })
+      : openAtLogin || onQuit || stops.length ? { label: "File", submenu: [...stops, ...atLogin, ...(atLogin.length ? [{ type: "separator" }] : []), quit] } : { role: "fileMenu" },
     { role: "editMenu" },
     ...(home && !others.length ? [] : [server]),
     { role: "viewMenu" },
