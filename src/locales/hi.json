@@ -3251,5 +3251,12 @@
   "mobile.home.onlyPinnedTitle": "आपकी बाकी चैट यहाँ दिखेंगी",
   "mobile.home.onlyPinnedBody": "ईमेल, रिसर्च या किसी प्रोजेक्ट जैसे काम के लिए बॉट बनाएँ। उसकी चैट इस सूची में दिखेगी।",
   "botPanel.memory.forgotten": "नोट भुला दिया गया",
-  "botPanel.memory.undoFailed": "तब से मेमोरी बदल गई है, इसलिए नोट वापस नहीं आ सका।"
+  "botPanel.memory.undoFailed": "तब से मेमोरी बदल गई है, इसलिए नोट वापस नहीं आ सका।",
+  "routines.cloudUpsell.title": "कंप्यूटर के स्लीप मोड में जाने पर रूटीन रुक जाते हैं",
+  "routines.cloudUpsell.titleMac": "Mac के स्लीप मोड में जाने पर रूटीन रुक जाते हैं",
+  "routines.cloudUpsell.body": "{name} यहाँ चलता है। Cloud इसे चौबीसों घंटे चलाता रहता है, तब भी जब यह कंप्यूटर बंद हो।",
+  "routines.cloudUpsell.asleep": "स्लीप मोड में रुकता है",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "चौबीसों घंटे चालू",
+  "routines.cloudUpsell.getCloud": "Cloud लें"
 }

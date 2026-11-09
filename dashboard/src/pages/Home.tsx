@@ -163,10 +163,10 @@ export function HomePage() {
   const [plan, setPlan] = useState(false);
   return (
     <div>
-      {plan && <PlanSheet start="starter" onClose={() => setPlan(false)} />}
+      {plan && <PlanSheet source="dash_home" start="starter" onClose={() => setPlan(false)} />}
       <h1 className="t-title enter mb-8 max-sm:mb-6">Welcome, {name}.</h1>
       <div className="flex flex-col gap-4">
-        {clouds === null ? <Skeleton className="h-[200px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudPitch />}
+        {clouds === null ? <Skeleton className="h-[200px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudPitch source="dash_home" />}
         <div className="enter grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:gap-3" style={{ ["--i" as string]: 2 }}>
           <Tile icon={<Download {...ICON} />} title="Download the app" body="For Mac. Your bots, chats and their computers." to={DOWNLOAD_URL} external />
           <Tile icon={<TileCrew />} title="Cloud desktop" body={cloud ? `Open ${cloud.name}, on 24/7.` : "Keep your bots on 24/7."} {...(cloud ? { to: "/cloud" } : { onClick: () => setPlan(true) })} />

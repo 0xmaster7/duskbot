@@ -27,6 +27,7 @@ import { useRoomPanelShown } from "@/lib/room-panel";
 import { WorkspaceBackupRecovery } from "@/components/WorkspaceBackupSettings";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { AppNotices } from "@/components/AppNotices";
+import { RoutineCloudUpsell } from "@/components/RoutineCloudUpsell";
 import { EgressFallbackNotice } from "@/components/EgressFallbackNotice";
 import { BotLimitPopup } from "@/components/BotLimitPopup";
 import { CloudAsleepStrip } from "@/components/CloudAsleepStrip";
@@ -269,6 +270,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     <CloudSendStrip cloudHome={state.config?.cloudHome === true} />
     <HomeLine />
     <AppNotices quiet={paletteOpen || drawerOpen} viewer={viewer} />
+    <RoutineCloudUpsell quiet={paletteOpen || drawerOpen || Boolean(firstRun)} />
     <EgressFallbackNotice />
   </>;
   return (

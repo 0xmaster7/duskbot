@@ -5146,5 +5146,12 @@
   "mobile.home.onlyPinnedTitle": "Diğer sohbetlerin burada görünür",
   "mobile.home.onlyPinnedBody": "E-postalar, araştırma veya bir proje gibi bir iş için bot oluştur. Sohbeti bu listede görünür.",
   "botPanel.memory.forgotten": "Not unutuldu",
-  "botPanel.memory.undoFailed": "Hafıza o zamandan beri değişti, bu yüzden not geri getirilemedi."
+  "botPanel.memory.undoFailed": "Hafıza o zamandan beri değişti, bu yüzden not geri getirilemedi.",
+  "routines.cloudUpsell.title": "Bilgisayarınız uykuya geçtiğinde rutinler durur",
+  "routines.cloudUpsell.titleMac": "Mac’iniz uykuya geçtiğinde rutinler durur",
+  "routines.cloudUpsell.body": "{name} burada çalışır. Cloud, bu bilgisayar kapalıyken bile rutini 7/24 çalıştırır.",
+  "routines.cloudUpsell.asleep": "Uyku sırasında durur",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "7/24 açık",
+  "routines.cloudUpsell.getCloud": "Cloud edinin"
 }

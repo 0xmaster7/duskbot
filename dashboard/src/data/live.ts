@@ -9,7 +9,7 @@ const desktopIds = { none: "none", shared_s: "shared-s", shared_m: "shared-m", d
 const desktopKinds = { none: "none", "shared-s": "shared_s", "shared-m": "shared_m", dedicated: "dedicated" } as const;
 const bundleBlurbs = {
   free: "For personal use on your Mac or your own VPS",
-  starter: "Work license and a cloud desktop that never sleeps",
+  starter: "Work license and a cloud desktop, on 24/7",
   pro: "More room and priority for serious bots",
   team: "A dedicated machine for the whole team",
 };
@@ -22,6 +22,7 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
   ];
   return {
     licenses,
+    ...(catalog.wake ? { wake: Object.fromEntries(Object.entries(catalog.wake).map(([kind, stat]) => [desktopIds[kind as keyof typeof catalog.wake], stat])) } : {}),
     desktops: catalog.desktops.map((desktop) => {
       const machine = desktop.machine;
       const cents = desktop.monthlyCents ?? pricing.baseCents + machine.vcpu * pricing.perVcpuCents + machine.ramGb * pricing.perGbRamCents + Math.max(0, machine.diskGb - pricing.includedDiskGb) / 10 * pricing.per10GbDiskCents;

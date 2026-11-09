@@ -412,3 +412,20 @@ it("deletes accounts with no billing and recovers a crash between account deleti
   await empty.answer("/v1/account/delete", { email: free.account.email }, free.cookie);
   expect(empty.app.auth.account(free.account.id)).toBeNull(); expect(empty.saved().closures![0].steps).toContain("scrubbed");
 });
+
+it("shows the operator's checkout funnel only with OMB_OPS_TOKEN, and refuses a short token at startup", async () => {
+  const token = "ops-fixture-token-0123456789abcdef";
+  expect(() => createBilling(options({ env: { OMB_OPS_TOKEN: "short" } }))).toThrow("OMB_OPS_TOKEN");
+  for (const env of [{}, { OMB_OPS_TOKEN: token }]) {
+    const billing = createBilling(options({ env })); cleanup.push(() => billing.close());
+    const origin = await listen(createServer(async (req, res) => { if (!await billing.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
+    const read = (auth?: string, query = "") => fetch(`${origin}/v1/billing/ops/funnel${query}`, auth ? { headers: { authorization: auth } } : {});
+    expect((await read()).status).toBe(404);
+    expect((await read(`Bearer ${token}x`)).status).toBe(404);
+    if (!("OMB_OPS_TOKEN" in env)) { expect((await read(`Bearer ${token}`)).status).toBe(404); continue; }
+    const answer = await read(`Bearer ${token}`, "?days=7");
+    expect(answer.status).toBe(200);
+    expect(await answer.json()).toMatchObject({ v: 1, rows: [], totals: { started: 0, paid: 0, active: 0 } });
+    expect((await read(`Bearer ${token}`, "?days=0")).status).toBe(400);
+  }
+});

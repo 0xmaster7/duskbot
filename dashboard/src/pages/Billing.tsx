@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Download } from "lucide-react";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, LicenseId, PlanCatalog } from "../data/contracts";
-import { bundleOf, desktopOf, gb, licenseMonthly, licenseOf, perMonthOn } from "../data/pricing";
+import { bundleOf, desktopOf, gb, licenseMonthly, licenseOf, perMonthOn, wakeSeconds } from "../data/pricing";
 import { useCart } from "../data/quote";
 import { useSession } from "../data/session";
 import { longDate, shortDate, usd } from "../lib/format";
@@ -29,7 +29,9 @@ function points(id: Tier, catalog: PlanCatalog): string[] {
   if (!d) return ["Runs on your Mac while it's awake", "Every bot, chat and connector", "Personal use, free forever", "No card needed"];
   const machine = `${d.vcpu} vCPU, ${gb(d.ramGb)} RAM, ${gb(d.diskGb)} disk`;
   const bots = d.botComputers === null ? "Unlimited bots at work at once" : `${d.botComputers} ${d.botComputers === 1 ? "bot" : "bots"} at work at once`;
-  return id === "pro" ? [machine, bots, "Priority wake", "Work license included"] : [machine, bots, "Keeps going while your Mac sleeps", "Set up in one click"];
+  const wake = catalog.wake?.[d.id];
+  const seconds = wake ? wakeSeconds(wake.medianMs) : null;
+  return id === "pro" ? [machine, bots, seconds ? `Priority wake, in ${seconds} s` : "Priority wake", "Work license included"] : [machine, bots, seconds ? `On 24/7, wakes in ${seconds} s` : "On 24/7, wakes for Slack messages", "Set up in one click"];
 }
 const MASCOT = { free: "orange", starter: "blue", pro: "green" } as const;
 
@@ -143,7 +145,7 @@ function YourBilling({ catalog, onLicense, onCancelPlan }: { catalog: PlanCatalo
           </ul>
         ) : <p className="border-y border-line py-5 text-14 text-ink-3">Invoices show up here after your first payment.</p>}
       </section>
-      <BuyCredits open={buying} onClose={() => setBuying(false)} />
+      <BuyCredits source="dash_credits" open={buying} onClose={() => setBuying(false)} />
     </>
   );
 }
@@ -268,8 +270,8 @@ export function BillingPage() {
       <Faq />
       <YourBilling catalog={catalog} onLicense={() => openLicense()} onCancelPlan={() => setCancelling(true)} />
 
-      {planSheet && <PlanSheet start={planSheet} work={use === "work" || ownsLicense} onClose={() => setPlanSheet(null)} />}
-      {licenseSheet && <LicenseSheet start={licenseSheet} onClose={() => setLicenseSheet(null)} onNothingLeft={() => setCancelling(true)} />}
+      {planSheet && <PlanSheet source="dash_billing" start={planSheet} work={use === "work" || ownsLicense} onClose={() => setPlanSheet(null)} />}
+      {licenseSheet && <LicenseSheet source="dash_license" start={licenseSheet} onClose={() => setLicenseSheet(null)} onNothingLeft={() => setCancelling(true)} />}
       <CancelDialog open={cancelling} onClose={() => setCancelling(false)} />
     </div>
   );

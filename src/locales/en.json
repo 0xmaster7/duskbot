@@ -7576,5 +7576,12 @@
   "mobile.onboarding.linkShort": "Open {app} on your computer and scan the code in Settings › Phone.",
   "mobile.onboarding.pasteInstead": "Paste a link instead",
   "mobile.home.onlyPinnedTitle": "Your other chats land here",
-  "mobile.home.onlyPinnedBody": "Make a bot for a job, like inbox, research or a project, and its chat shows up in this list."
+  "mobile.home.onlyPinnedBody": "Make a bot for a job, like inbox, research or a project, and its chat shows up in this list.",
+  "routines.cloudUpsell.title": "Routines stop when your computer sleeps",
+  "routines.cloudUpsell.titleMac": "Routines stop when your Mac sleeps",
+  "routines.cloudUpsell.body": "{name} runs here. A Cloud keeps it running 24/7, even when this computer is off.",
+  "routines.cloudUpsell.asleep": "Stops while asleep",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "On 24/7",
+  "routines.cloudUpsell.getCloud": "Get a Cloud"
 }

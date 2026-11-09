@@ -3556,5 +3556,12 @@
   "mobile.home.onlyPinnedTitle": "Ваші інші чати з'являться тут",
   "mobile.home.onlyPinnedBody": "Створіть бота для завдання, наприклад для роботи з поштою, пошуку інформації чи ведення проєкту, і його чат з'явиться в цьому списку.",
   "botPanel.memory.forgotten": "Нотатку забуто",
-  "botPanel.memory.undoFailed": "Пам'ять відтоді змінилася, тож нотатку не вдалося повернути."
+  "botPanel.memory.undoFailed": "Пам'ять відтоді змінилася, тож нотатку не вдалося повернути.",
+  "routines.cloudUpsell.title": "Рутини зупиняються, коли комп’ютер спить",
+  "routines.cloudUpsell.titleMac": "Рутини зупиняються, коли Mac спить",
+  "routines.cloudUpsell.body": "{name} виконується тут. Cloud підтримує її роботу цілодобово, навіть коли цей комп’ютер вимкнений.",
+  "routines.cloudUpsell.asleep": "Зупиняється під час сну",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "Працює цілодобово",
+  "routines.cloudUpsell.getCloud": "Отримати Cloud"
 }

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { CheckoutItem } from "../../../shared/billing-api.ts";
 import { AuthError } from "../auth/index.ts";
@@ -6,6 +7,12 @@ import type { BillingContext } from "./index.ts";
 import { BillingError } from "./service.ts";
 import { body, cartInput, cloudName, color, invalid, json, rawBody, survey, text } from "./http.ts";
 
+/** the operator's funnel read: a bearer token from OMB_OPS_TOKEN, compared in constant time */
+function opsAllowed(header: string | undefined, token: string) {
+  const given = Buffer.from(header?.startsWith("Bearer ") ? header.slice(7) : "");
+  const wanted = Buffer.from(token);
+  return given.length === wanted.length && timingSafeEqual(given, wanted);
+}
 const messages: Record<string, string> = { signed_out: "Sign in to continue.", invalid_request: "Invalid request.", not_found: "Not found.", unavailable: "Billing is unavailable.", bad_signature: "Invalid webhook signature.", checkout_open: "A checkout is already open.", csrf: "Refresh the page and try again.", cap: "Cloud limit reached.", rate_limited: "Try again later." };
 export function createBillingRoutes(ctx: BillingContext) {
   const { service, clouds } = ctx;
@@ -15,8 +22,17 @@ export function createBillingRoutes(ctx: BillingContext) {
     if (path === "/v1/billing/fake/complete" && (!ctx.fake || !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress ?? ""))) return false;
     const webhook = path === "/v1/billing/webhooks/dodo" && method === "POST";
     try {
-      if (path === "/v1/billing/catalog" && method === "GET") { json(res, 200, service.catalog()); return true; }
+      if (path === "/v1/billing/catalog" && method === "GET") {
+        const wake = ctx.wakeStats();
+        json(res, 200, { ...service.catalog(), ...(Object.keys(wake).length ? { wake } : {}) }); return true;
+      }
       if (path === "/v1/billing/quote" && method === "POST") { json(res, 200, service.quote(cartInput((await body(req)).cart))); return true; }
+      if (path === "/v1/billing/ops/funnel" && method === "GET") {
+        if (!ctx.opsToken || !opsAllowed(req.headers.authorization, ctx.opsToken)) throw new BillingError(404, "not_found");
+        const days = Number(url.searchParams.get("days") ?? "30");
+        if (!Number.isInteger(days) || days < 1 || days > 365) invalid();
+        json(res, 200, service.funnel(ctx.now() - days * 86_400_000, ctx.now())); return true;
+      }
       if (!ctx.enabled) throw new BillingError(503, "unavailable");
       if (webhook) {
         service.handleWebhook(req.headers, await rawBody(req, 64 * 1024));
@@ -49,7 +65,7 @@ export function createBillingRoutes(ctx: BillingContext) {
             item = { kind: "cart", cart: parsed, ...(name === undefined ? {} : { name }), ...(swatch === undefined ? {} : { color: swatch }) };
           } else if (data.kind === "credits") item = { kind: "credits", pack: text(data.pack) };
           else return invalid();
-          return send(await service.checkout(account, item));
+          return send(await service.checkout(account, item, { source: data.source }));
         }
         if (path === "/v1/billing/portal") { await body(req); return send(await service.portal(account)); }
         if (path === "/v1/billing/fake/complete" && ctx.fake) {

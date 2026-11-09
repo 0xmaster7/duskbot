@@ -4696,5 +4696,12 @@
   "mobile.home.onlyPinnedTitle": "你的其他聊天會顯示在這裡",
   "mobile.home.onlyPinnedBody": "建立機器人來處理郵件、研究或專案等工作，它的聊天就會顯示在此清單中。",
   "botPanel.memory.forgotten": "已忘記這則筆記",
-  "botPanel.memory.undoFailed": "記憶在那之後已變更，因此無法還原這則筆記。"
+  "botPanel.memory.undoFailed": "記憶在那之後已變更，因此無法還原這則筆記。",
+  "routines.cloudUpsell.title": "電腦睡眠時，例行工作會停止",
+  "routines.cloudUpsell.titleMac": "Mac 睡眠時，例行工作會停止",
+  "routines.cloudUpsell.body": "{name}在這裡執行。Cloud 能讓它全天候持續運作，即使這台電腦已關機。",
+  "routines.cloudUpsell.asleep": "睡眠時停止",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "全天候運作",
+  "routines.cloudUpsell.getCloud": "取得 Cloud"
 }

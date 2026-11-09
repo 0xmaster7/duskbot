@@ -6055,5 +6055,12 @@
   "mobile.home.onlyPinnedTitle": "Suas outras conversas aparecem aqui",
   "mobile.home.onlyPinnedBody": "Crie um bot para uma tarefa, como cuidar dos e-mails, pesquisar ou trabalhar em um projeto, e a conversa dele aparecerá nesta lista.",
   "botPanel.memory.forgotten": "Nota esquecida",
-  "botPanel.memory.undoFailed": "A memória mudou desde então, então a nota não pôde voltar."
+  "botPanel.memory.undoFailed": "A memória mudou desde então, então a nota não pôde voltar.",
+  "routines.cloudUpsell.title": "As rotinas param quando o computador entra em repouso",
+  "routines.cloudUpsell.titleMac": "As rotinas param quando o Mac entra em repouso",
+  "routines.cloudUpsell.body": "{name} é executada aqui. Um Cloud a mantém funcionando 24 horas por dia, mesmo quando este computador está desligado.",
+  "routines.cloudUpsell.asleep": "Para durante o repouso",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "Ativo 24 horas por dia",
+  "routines.cloudUpsell.getCloud": "Obter um Cloud"
 }

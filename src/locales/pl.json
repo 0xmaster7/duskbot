@@ -6187,5 +6187,12 @@
   "mobile.onboarding.linkShort": "Otwórz {app} na komputerze i zeskanuj kod w sekcji Ustawienia › Phone.",
   "mobile.onboarding.pasteInstead": "Zamiast tego wklej link",
   "mobile.home.onlyPinnedTitle": "Twoje pozostałe czaty pojawią się tutaj",
-  "mobile.home.onlyPinnedBody": "Utwórz bota do zadania, na przykład obsługi poczty, zbierania informacji lub pracy nad projektem, a jego czat pojawi się na tej liście."
+  "mobile.home.onlyPinnedBody": "Utwórz bota do zadania, na przykład obsługi poczty, zbierania informacji lub pracy nad projektem, a jego czat pojawi się na tej liście.",
+  "routines.cloudUpsell.title": "Rutyny zatrzymują się, gdy komputer jest uśpiony",
+  "routines.cloudUpsell.titleMac": "Rutyny zatrzymują się, gdy Mac jest uśpiony",
+  "routines.cloudUpsell.body": "{name} działa tutaj. Chmura zapewnia działanie rutyny przez całą dobę, nawet gdy ten komputer jest wyłączony.",
+  "routines.cloudUpsell.asleep": "Zatrzymuje się podczas uśpienia",
+  "routines.cloudUpsell.cloud": "Chmura",
+  "routines.cloudUpsell.alwaysOn": "Działa całą dobę",
+  "routines.cloudUpsell.getCloud": "Kup Chmurę"
 }

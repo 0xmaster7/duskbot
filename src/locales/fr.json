@@ -3254,5 +3254,12 @@
   "mobile.home.onlyPinnedTitle": "Vos autres discussions apparaissent ici",
   "mobile.home.onlyPinnedBody": "Créez un bot pour une tâche, comme gérer vos e-mails, faire des recherches ou travailler sur un projet. Sa discussion apparaîtra dans cette liste.",
   "botPanel.memory.forgotten": "Note oubliée",
-  "botPanel.memory.undoFailed": "La mémoire a changé depuis, la note n'a donc pas pu revenir."
+  "botPanel.memory.undoFailed": "La mémoire a changé depuis, la note n'a donc pas pu revenir.",
+  "routines.cloudUpsell.title": "Les routines s’arrêtent quand votre ordinateur est en veille",
+  "routines.cloudUpsell.titleMac": "Les routines s’arrêtent quand votre Mac est en veille",
+  "routines.cloudUpsell.body": "{name} s’exécute ici. Un Cloud la fait fonctionner 24 h/24, même quand cet ordinateur est éteint.",
+  "routines.cloudUpsell.asleep": "S’arrête en veille",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "Actif 24 h/24",
+  "routines.cloudUpsell.getCloud": "Obtenir un Cloud"
 }

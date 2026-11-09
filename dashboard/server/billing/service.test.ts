@@ -28,7 +28,7 @@ function fakeClouds() {
     end: vi.fn((id: string, destroyAt: number) => { Object.assign(get(id)!, { status: "stopped", destroyAt }); }),
     abandon: vi.fn((id: string) => { get(id)!.status = "destroyed"; }),
     scrubAccount: (accountId, anonId) => { for (const cloud of rows) if (cloud.accountId === accountId) { cloud.accountId = anonId; cloud.name = "Deleted"; } },
-    get, owned: (accountId, id) => rows.find(cloud => cloud.id === id && cloud.accountId === accountId) ?? null,
+    get, owned: (accountId, id) => rows.find(cloud => cloud.id === id && cloud.accountId === accountId) ?? null, byWorkspace: workspaceId => rows.find(cloud => cloud.workspaceId === workspaceId) ?? null,
     list: (accountId, includeHidden = false) => rows.filter(cloud => cloud.accountId === accountId && (includeHidden || !cloud.hidden)),
     view: cloud => ({ id: cloud.id, name: cloud.name, color: cloud.color, kind: cloud.kind, placement: cloud.placement, status: cloud.status, setupStep: cloud.setupStep, region: cloud.region, machine: cloud.spec, botComputers: cloud.botComputers, origin: cloud.origin, workspaceId: cloud.workspaceId, lastReportAt: null, destroyAt: cloud.destroyAt, error: cloud.error, subscriptionId: cloud.subscriptionId, createdAt: cloud.createdAt }),
     rename: (_accountId, id, patch) => Object.assign(get(id)!, patch), suspend: async () => {}, resume: async () => {}, hide: (_accountId, id) => get(id)!, power: async (_accountId, id) => get(id)!,
@@ -77,6 +77,24 @@ describe("billing service isolated fixture", () => {
     expect(readFileSync(join(dataDir, "billing.json"), "utf8")).not.toContain(provider.secret);
     expect(service.appState(owner)).toMatchObject({ entitlement: { plan: "pro", tier: "custom", status: "active" } });
   });
+  it("records where each checkout started on the checkout and its subscription, and counts the funnel by source", async () => {
+    const started = time;
+    const paid = await service.checkout(owner, { kind: "cart", cart: desktopOnly() }, { source: "app_routines" });
+    const row = store.state.checkouts.find(checkout => checkout.id === paid.checkoutId)!;
+    deliver(provider.complete(row.providerSessionId!));
+    const sub = store.state.subscriptions.find(item => item.checkoutId === row.id)!;
+    expect([row.source, sub.source, sub.status]).toEqual(["app_routines", "app_routines", "active"]);
+    const other = { id: "acct_other", email: "other@example.test" };
+    await service.checkout(other, { kind: "cart", cart: desktopOnly() }, { source: "dash_billing" });
+    await service.checkout({ id: "acct_third", email: "third@example.test" }, { kind: "cart", cart: desktopOnly() }, { source: "something_new" });
+    await service.checkout({ id: "acct_fourth", email: "fourth@example.test" }, { kind: "credits", pack: "c10" });
+    expect(store.state.checkouts.map(checkout => checkout.source)).toEqual(["app_routines", "dash_billing", "other", null]);
+    expect(service.funnel(started, time + 1)).toEqual({ v: 1, from: started, to: time + 1, totals: { started: 4, paid: 1, active: 1 }, rows: [
+      { source: "app_routines", started: 1, paid: 1, active: 1 }, { source: "dash_billing", started: 1, paid: 0, active: 0 },
+      { source: "other", started: 1, paid: 0, active: 0 }, { source: "unknown", started: 1, paid: 0, active: 0 }] });
+    expect(service.funnel(time + 1, time + 2).totals).toEqual({ started: 0, paid: 0, active: 0 });
+  });
+
   it("refuses bad signatures without modifying state and records unknown signed events", () => {
     const delivery = signed("payment.succeeded", { payment_id: "p", total_amount: 1, currency: "USD", metadata: { checkoutId: "unknown" } });
     const before = structuredClone(store.state);

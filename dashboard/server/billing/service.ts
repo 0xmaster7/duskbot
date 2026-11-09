@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
-import { CANCEL_ANSWERS, CLOUD_SWATCHES } from "../../../shared/billing-api.ts";
-import type { DeletionBlocker, BillingErrorCode, BillingOverview, CancelSurvey, Cart, ChangePreview, CheckoutAnswer, CheckoutItem, CreditsView, InvoicePage, LicenseCheck, LicenseView, SubscriptionView } from "../../../shared/billing-api.ts";
+import { CANCEL_ANSWERS, CLOUD_SWATCHES, checkoutSource } from "../../../shared/billing-api.ts";
+import type { FunnelRow, FunnelView, DeletionBlocker, BillingErrorCode, BillingOverview, CancelSurvey, Cart, ChangePreview, CheckoutAnswer, CheckoutItem, CreditsView, InvoicePage, LicenseCheck, LicenseView, SubscriptionView } from "../../../shared/billing-api.ts";
 import type { CloudsService, DesktopPlan } from "../clouds/types.ts";
 import { BILLING_CONFIG, catalogView } from "./plans.ts";
 import type { BillingConfig } from "./plans.ts";
@@ -144,7 +144,7 @@ export function createBillingService(options: BillingServiceOptions) {
     let sub = state.subscriptions.find(sub => sub.providerSubscriptionId === providerId);
     if (!sub && checkout.cart) {
       sub = { id: id("sub"), accountId: checkout.accountId, providerSubscriptionId: providerId, checkoutId: checkout.id, cart: copy(checkout.cart), totalCents: checkout.amountCents, lines: copy(checkout.lines),
-        status: "ended", licenseId: null, cloudId: checkout.cloudId, currentPeriodStart: null, currentPeriodEnd: null, cancelAtPeriodEnd: true, createdAt: now(), updatedAt: now(), version: 0 };
+        status: "ended", source: checkout.source, licenseId: null, cloudId: checkout.cloudId, currentPeriodStart: null, currentPeriodEnd: null, cancelAtPeriodEnd: true, createdAt: now(), updatedAt: now(), version: 0 };
       state.subscriptions.push(sub); checkout.subscriptionId = sub.id;
       for (const invoice of state.invoices) if (invoice.checkoutId === checkout.id && !invoice.subscriptionId) invoice.subscriptionId = sub.id;
     }
@@ -288,7 +288,7 @@ export function createBillingService(options: BillingServiceOptions) {
         cloudAction({ kind: "order", cloudId: checkout.cloudId, input: { ...desktopPlan(checkout.cart), accountId: checkout.accountId, name: previousCloud.name, color: previousCloud.color, region: checkout.cart.desktop.region! } });
       }
       sub = { id: id("sub"), accountId: checkout.accountId, providerSubscriptionId: event.subscriptionId, checkoutId: checkout.id, cart: copy(checkout.cart), totalCents: checkout.amountCents, lines: copy(checkout.lines),
-        status: "pending", licenseId: null, cloudId: checkout.cloudId, currentPeriodStart: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, createdAt: now(), updatedAt: now(), version: 0 };
+        status: "pending", source: checkout.source, licenseId: null, cloudId: checkout.cloudId, currentPeriodStart: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, createdAt: now(), updatedAt: now(), version: 0 };
       state.subscriptions.push(sub); checkout.subscriptionId = sub.id;
       for (const invoice of state.invoices) if (invoice.checkoutId === checkout.id && !invoice.subscriptionId) invoice.subscriptionId = sub.id;
     }
@@ -400,11 +400,11 @@ export function createBillingService(options: BillingServiceOptions) {
       checkout.status = "expired"; if (checkout.cloudId) clouds.abandon(checkout.cloudId);
     }
   }
-  async function checkout(account: AccountRef, item: CheckoutItem, input: { source?: string | null; returnPath?: string } = {}): Promise<CheckoutAnswer> {
+  async function checkout(account: AccountRef, item: CheckoutItem, input: { source?: unknown; returnPath?: string } = {}): Promise<CheckoutAnswer> {
     if (closureFor(account.id)) fail(409, "billing_active");
     if (!item || typeof item !== "object" || (item.kind !== "cart" && item.kind !== "credits")) fail(400, "invalid_request");
     const url = returnUrl(input.returnPath);
-    if (input.source != null && (typeof input.source !== "string" || input.source.length > 2000)) fail(400, "invalid_request");
+    const source = checkoutSource(input.source);
     if (state.checkouts.filter(checkout => checkout.accountId === account.id && checkout.createdAt > now() - 3_600_000).length >= config.checkoutsPerHour) fail(429, "rate_limited");
     if (queues.has(account.id) || state.subscriptions.some(sub => sub.accountId === account.id && sub.pendingChange)) fail(409, "plan_change_unavailable");
     expireCheckouts(account.id);
@@ -422,7 +422,7 @@ export function createBillingService(options: BillingServiceOptions) {
     if (!lines) fail(503, "unavailable");
     const cloud = cart && cart.desktop.kind !== "none" && item.kind === "cart" ? clouds.order({ ...desktopPlan(cart), accountId: account.id, name: item.name?.trim() ?? "My Cloud", color: item.color ?? null, region: cart.desktop.region! }) : null;
     const entry: StoredCheckout = { id: id("chk"), accountId: account.id, email: emailOf(account.email), kind: item.kind, cart, packId: pack?.id ?? null,
-      cloudId: cloud?.id ?? null, providerSessionId: null, url: null, status: "open", source: input.source ?? null, createdAt: now(), openUntil: now() + config.checkoutOpenMinutes * 60_000,
+      cloudId: cloud?.id ?? null, providerSessionId: null, url: null, status: "open", source, createdAt: now(), openUntil: now() + config.checkoutOpenMinutes * 60_000,
       subscriptionId: null, amountCents: cart ? quote(cart, config).totalCents : pack!.priceCents, creditCents: pack?.creditCents ?? null, lines: cart ? quote(cart, config).lines : [] };
     state.checkouts.push(entry); const owner = customer(account.id, account.email); store.commit();
     try {
@@ -589,7 +589,25 @@ export function createBillingService(options: BillingServiceOptions) {
     return { primary: primary ? view(primary) : null, entitlement: { plan: active ? "pro" as const : "free" as const, tier: primary ? quote(primary.cart, config).bundle ?? "custom" : "free",
       status: active ? "active" as const : "inactive" as const, expiresAt: active ? primary!.currentPeriodEnd : null, version: primary?.version ?? 0 } };
   }
+  /** checkouts opened in [from, to) by where they started: paid once a subscription or a top-up landed */
+  function funnel(from: number, to: number): FunnelView {
+    const rows = new Map<FunnelRow["source"], FunnelRow>();
+    for (const row of state.checkouts) {
+      if (row.createdAt < from || row.createdAt >= to) continue;
+      const source = (row.source as FunnelRow["source"] | null) ?? "unknown";
+      const entry = rows.get(source) ?? { source, started: 0, paid: 0, active: 0 };
+      entry.started++;
+      const sub = row.subscriptionId ? state.subscriptions.find(item => item.id === row.subscriptionId) : undefined;
+      if (row.status === "completed" || sub && sub.status !== "pending") entry.paid++;
+      if (sub && (sub.status === "active" || sub.status === "payment_problem")) entry.active++;
+      rows.set(source, entry);
+    }
+    const list = [...rows.values()].sort((a, b) => b.started - a.started || a.source.localeCompare(b.source));
+    const totals = list.reduce((sum, row) => ({ started: sum.started + row.started, paid: sum.paid + row.paid, active: sum.active + row.active }), { started: 0, paid: 0, active: 0 });
+    return { v: 1, from, to, rows: list, totals };
+  }
   return {
+    funnel: guarded(funnel),
     deletionBlockers: guarded(deletionBlockers), closeAccount: guarded(closeAccount), accountDeleted: guarded(accountDeleted), scrubDeleted: guarded(scrubDeleted), drainProviderCancels: guarded(drainProviderCancels),
     catalog: guarded(() => catalogView(now(), config)), quote: guarded((input: unknown) => quote(parsed(input), config)), checkout: guarded(checkout), handleWebhook: guarded(handleWebhook),
     subscriptions: guarded((accountId: string) => state.subscriptions.filter(sub => sub.accountId === accountId).map(view)), licenses: guarded(licenses), licenseCheck: guarded(licenseCheck), addMember: guarded(addMember), removeMember: guarded(removeMember),

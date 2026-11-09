@@ -5146,5 +5146,12 @@
   "mobile.home.onlyPinnedTitle": "Các cuộc trò chuyện khác của bạn sẽ hiện ở đây",
   "mobile.home.onlyPinnedBody": "Tạo bot cho một công việc như xử lý email, nghiên cứu hoặc làm dự án, rồi cuộc trò chuyện với bot sẽ hiện trong danh sách này.",
   "botPanel.memory.forgotten": "Đã quên ghi chú",
-  "botPanel.memory.undoFailed": "Bộ nhớ đã thay đổi từ lúc đó nên không thể khôi phục ghi chú."
+  "botPanel.memory.undoFailed": "Bộ nhớ đã thay đổi từ lúc đó nên không thể khôi phục ghi chú.",
+  "routines.cloudUpsell.title": "Tác vụ định kỳ dừng khi máy tính chuyển sang chế độ ngủ",
+  "routines.cloudUpsell.titleMac": "Tác vụ định kỳ dừng khi Mac chuyển sang chế độ ngủ",
+  "routines.cloudUpsell.body": "{name} chạy tại đây. Cloud giúp tác vụ chạy liên tục 24/7, ngay cả khi máy tính này đã tắt.",
+  "routines.cloudUpsell.asleep": "Dừng khi máy ngủ",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "Hoạt động 24/7",
+  "routines.cloudUpsell.getCloud": "Đăng ký Cloud"
 }

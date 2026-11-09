@@ -118,6 +118,8 @@ export interface StoredCloud {
   resizeStage?: "off" | "resize" | "on";
   appliedQuota?: SlotQuota;
   suspensionApplied?: boolean;
+  /** the owner or the slack edge asked a stopped or sleeping desktop to wake; the edge times it to the desktop's next sync */
+  wakeRequestedAt?: number;
 }
 
 export interface DesktopPlan { kind: Exclude<DesktopKind, "none">; placement: Placement; spec: MachineSpec; botComputers: number | null }
@@ -148,6 +150,8 @@ export interface CloudsService {
   scrubAccount(accountId: string, anonId: string): void;
   get(cloudId: string): StoredCloud | null;
   owned(accountId: string, cloudId: string): StoredCloud | null;
+  /** the desktop a signed workspace belongs to */
+  byWorkspace(workspaceId: string): StoredCloud | null;
   list(accountId: string, includeHidden?: boolean): StoredCloud[];
   view(cloud: StoredCloud): CloudDesktopView;
   rename(accountId: string, cloudId: string, patch: { name?: string; color?: CloudSwatch | null }): StoredCloud;

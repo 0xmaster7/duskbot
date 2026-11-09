@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Cloud, Laptop, Power, Server } from "lucide-react";
 import type { WorkspaceSummary } from "../../../shared/dashboard-protocol";
 import { useCloud } from "../data/cloud";
-import type { CloudDesktop, PlanCatalog } from "../data/contracts";
+import type { CheckoutSource, CloudDesktop, PlanCatalog } from "../data/contracts";
 import { botsLine, bundleOf, desktopOf, dollars } from "../data/pricing";
 import { PlanSheet, planSelection, type PaidPlan } from "./plan-sheet";
 import { useSession } from "../data/session";
@@ -81,7 +81,7 @@ export function Provisioning({ cloud }: { cloud: CloudDesktop }) {
 }
 
 /** plus or pro in two rows and one button that goes straight to checkout */
-export function QuickPick({ catalog, className, onDone, secondary }: { catalog: PlanCatalog; className?: string; onDone?(): void | Promise<void>; secondary?: ReactNode }) {
+export function QuickPick({ catalog, source, className, onDone, secondary }: { source: CheckoutSource; catalog: PlanCatalog; className?: string; onDone?(): void | Promise<void>; secondary?: ReactNode }) {
   const { checkout } = useCloud();
   const { toast } = useSession();
   const [pick, setPick] = useState<PaidPlan>("starter");
@@ -91,7 +91,7 @@ export function QuickPick({ catalog, className, onDone, secondary }: { catalog: 
   const go = async () => {
     setBusy(true); setError(null);
     try {
-      if (await checkout({ kind: "plan", selection: planSelection(catalog, pick, { interval: "month", work: false }), bundle: null })) {
+      if (await checkout({ source, kind: "plan", selection: planSelection(catalog, pick, { interval: "month", work: false }), bundle: null })) {
         toast("Paid. Your cloud desktop is being set up.");
         if (onDone) await onDone(); else navigate("/cloud");
       }
@@ -120,12 +120,12 @@ export function QuickPick({ catalog, className, onDone, secondary }: { catalog: 
 }
 
 /** the plan pick, opened from the cloud pitch's one button: plus first */
-export function PlanDialog({ open, onClose }: { open: boolean; onClose(): void }) {
-  return open ? <PlanSheet start="starter" onClose={onClose} /> : null;
+export function PlanDialog({ open, source, onClose }: { source: CheckoutSource; open: boolean; onClose(): void }) {
+  return open ? <PlanSheet source={source} start="starter" onClose={onClose} /> : null;
 }
 
 /** the one cloud pitch: a line, a sentence, one button and the three mascots; home, the empty cloud page and billing share it */
-export function CloudPitch({ title = "Keep your bots on while your Mac sleeps", body = "A cloud desktop runs them all day and all night. Set up in one click.", action, link = { to: "/billing", label: "See plans" }, className, id = "pitch-title" }: { title?: string; body?: ReactNode; action?: ReactNode | false; link?: { to: string; label: string } | null; className?: string; id?: string }) {
+export function CloudPitch({ source = "dash_cloud", title = "Keep your bots on while your Mac sleeps", body = "A cloud desktop runs them all day and all night. Set up in one click.", action, link = { to: "/billing", label: "See plans" }, className, id = "pitch-title" }: { source?: CheckoutSource; title?: string; body?: ReactNode; action?: ReactNode | false; link?: { to: string; label: string } | null; className?: string; id?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <section className={cx("enter flex items-center gap-8 rounded-card bg-card px-8 py-7 max-sm:flex-col-reverse max-sm:items-start max-sm:gap-5 max-sm:p-5", className)} aria-labelledby={id}>
@@ -144,7 +144,7 @@ export function CloudPitch({ title = "Keep your bots on while your Mac sleeps", 
         <span className="mb-3 inline-flex"><Mascot color="blue" size={48} /></span>
         <Mascot color="green" size={36} />
       </div>
-      {action === undefined && <PlanDialog open={open} onClose={() => setOpen(false)} />}
+      {action === undefined && <PlanDialog source={source} open={open} onClose={() => setOpen(false)} />}
     </section>
   );
 }

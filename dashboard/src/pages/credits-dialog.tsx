@@ -1,18 +1,19 @@
 import { useState } from "react";
+import type { CheckoutSource } from "../data/contracts";
 import { useCloud } from "../data/cloud";
 import { dollars } from "../data/pricing";
 import { useSession } from "../data/session";
 import { Modal } from "../ui/controls";
 
 /** buy a pack of AI credits: three amounts, one tap each */
-export function BuyCredits({ open, onClose }: { open: boolean; onClose(): void }) {
+export function BuyCredits({ open, source, onClose }: { source: CheckoutSource; open: boolean; onClose(): void }) {
   const { catalog, checkout } = useCloud();
   const { toast } = useSession();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const buy = async (pack: string, amount: number) => {
     setBusy(pack); setError(null);
-    try { if (await checkout({ kind: "credits", pack })) { toast(`Added ${dollars(amount)} of AI credits`); onClose(); } }
+    try { if (await checkout({ source, kind: "credits", pack })) { toast(`Added ${dollars(amount)} of AI credits`); onClose(); } }
     catch (e) { setError((e as Error).message); } finally { setBusy(null); }
   };
   return (

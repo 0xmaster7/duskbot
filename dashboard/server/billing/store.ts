@@ -21,6 +21,8 @@ export interface StoredSubscription {
   id: string; accountId: string; providerSubscriptionId: string | null; checkoutId: string; cart: Cart; totalCents: number; lines: CartLine[];
   status: SubscriptionStatus; licenseId: string | null; cloudId: string | null; currentPeriodStart: number | null; currentPeriodEnd: number | null;
   pendingChange?: PendingChange;
+  /** where its checkout started (CHECKOUT_SOURCES), copied from the checkout */
+  source?: string | null;
   lastEventAt?: number;
   cancelAtPeriodEnd: boolean; createdAt: number; updatedAt: number; version: number;
 }
@@ -71,7 +73,7 @@ const valid = shape({
   refunds: optional(array(shape({ id: str, paymentId: str, amountCents: int, currency: str }))),
   customers: array(shape({ accountId: str, email: str, providerCustomerId: nullable(str) })),
   checkouts: array(shape({ id: str, accountId: str, email: str, kind: one("cart", "credits"), cart: nullable(cart), packId: nullable(str), cloudId: nullable(str), providerSubscriptionId: optional(str), providerSessionId: nullable(str), url: nullable(str), status: one("open", "completed", "expired"), source: nullable(str), createdAt: int, openUntil: int, subscriptionId: nullable(str), amountCents: int, creditCents: nullable(int), lines: array(line) })),
-  subscriptions: array(shape({ id: str, accountId: str, providerSubscriptionId: nullable(str), checkoutId: str, cart, totalCents: int, lines: array(line), status: one("pending", "active", "payment_problem", "cancelled", "ended"), lastEventAt: optional(int), pendingChange: optional(shape({ cart, totalCents: int, lines: array(line), products: shape({ productId: str, addons: array(shape({ addonId: str, quantity: int })) }), cloudId: nullable(str) })), licenseId: nullable(str), cloudId: nullable(str), currentPeriodStart: nullable(int), currentPeriodEnd: nullable(int), cancelAtPeriodEnd: bool, createdAt: int, updatedAt: int, version: int })),
+  subscriptions: array(shape({ id: str, accountId: str, providerSubscriptionId: nullable(str), checkoutId: str, cart, totalCents: int, lines: array(line), status: one("pending", "active", "payment_problem", "cancelled", "ended"), lastEventAt: optional(int), source: optional(nullable(str)), pendingChange: optional(shape({ cart, totalCents: int, lines: array(line), products: shape({ productId: str, addons: array(shape({ addonId: str, quantity: int })) }), cloudId: nullable(str) })), licenseId: nullable(str), cloudId: nullable(str), currentPeriodStart: nullable(int), currentPeriodEnd: nullable(int), cancelAtPeriodEnd: bool, createdAt: int, updatedAt: int, version: int })),
   licenses: array(shape({ id: str, ownerAccountId: str, kind: one("solo", "team"), seats: int, members: array(shape({ email: str, accountId: nullable(str), role: one("owner", "member"), addedAt: int })), priority: bool, subscriptionId: nullable(str), status: one("active", "grace", "expired"), validUntil: nullable(int) })),
   invoices: array(shape({ id: str, accountId: str, providerPaymentId: str, subscriptionId: nullable(str), checkoutId: nullable(str), amountCents: int, currency: str, status: one("paid", "failed", "refunded"), description: str, createdAt: int })),
   credits: array(shape({ id: str, accountId: str, deltaCents: int, reason: one("top_up", "refund", "usage", "grant"), ref: str, at: int })),

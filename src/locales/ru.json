@@ -6194,5 +6194,12 @@
   "mobile.onboarding.linkShort": "Откройте {app} на компьютере и отсканируйте код в разделе Настройки › Phone.",
   "mobile.onboarding.pasteInstead": "Вместо этого вставить ссылку",
   "mobile.home.onlyPinnedTitle": "Ваши остальные чаты появятся здесь",
-  "mobile.home.onlyPinnedBody": "Создайте бота для задачи, например для работы с почтой, поиска информации или ведения проекта, и его чат появится в этом списке."
+  "mobile.home.onlyPinnedBody": "Создайте бота для задачи, например для работы с почтой, поиска информации или ведения проекта, и его чат появится в этом списке.",
+  "routines.cloudUpsell.title": "Задачи по расписанию останавливаются, когда компьютер спит",
+  "routines.cloudUpsell.titleMac": "Задачи по расписанию останавливаются, когда Mac спит",
+  "routines.cloudUpsell.body": "{name} выполняется здесь. Cloud поддерживает её работу круглосуточно, даже когда этот компьютер выключен.",
+  "routines.cloudUpsell.asleep": "Останавливается во сне",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "Работает круглосуточно",
+  "routines.cloudUpsell.getCloud": "Получить Cloud"
 }

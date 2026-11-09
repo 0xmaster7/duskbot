@@ -5623,5 +5623,12 @@
   "mobile.home.onlyPinnedTitle": "Tus otros chats aparecen aquí",
   "mobile.home.onlyPinnedBody": "Crea un bot para una tarea, como revisar el correo, investigar o trabajar en un proyecto, y su chat aparecerá en esta lista.",
   "botPanel.memory.forgotten": "Nota olvidada",
-  "botPanel.memory.undoFailed": "La memoria cambió desde entonces, así que la nota no pudo volver."
+  "botPanel.memory.undoFailed": "La memoria cambió desde entonces, así que la nota no pudo volver.",
+  "routines.cloudUpsell.title": "Las rutinas se detienen cuando tu equipo entra en reposo",
+  "routines.cloudUpsell.titleMac": "Las rutinas se detienen cuando tu Mac entra en reposo",
+  "routines.cloudUpsell.body": "{name} se ejecuta aquí. Una Cloud la mantiene en marcha las 24 horas, incluso cuando este equipo está apagado.",
+  "routines.cloudUpsell.asleep": "Se detiene en reposo",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "Activa las 24 horas",
+  "routines.cloudUpsell.getCloud": "Obtener una Cloud"
 }

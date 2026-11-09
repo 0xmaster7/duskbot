@@ -92,7 +92,10 @@ export interface Catalog {
   freeWorkUntil: number | null;
   /** days a cancelled or ended cloud desktop is kept, stopped, before it is destroyed */
   graceDays: number;
+  /** measured wake times per desktop kind (wake request to the desktop answering again), only once enough wakes were seen */
+  wake?: Partial<Record<Exclude<DesktopKind, "none">, WakeStat>>;
 }
+export interface WakeStat { medianMs: number; p90Ms: number; samples: number }
 
 export interface CartLine {
   kind: "license" | "members" | "desktop" | "discount";
@@ -113,6 +116,17 @@ export interface Quote {
 }
 
 export interface CreditPack { id: string; label: string; priceCents: number; creditCents: number }
+
+/** where a checkout started; anything else an older client sends is recorded as "other" */
+export const CHECKOUT_SOURCES = ["app_card", "app_howto", "app_menu", "app_settings", "app_routines", "app_pages", "app_whats_new_pro", "app_whats_new_team", "app_onboarding",
+  "dash_home", "dash_billing", "dash_cloud", "dash_onboarding", "dash_routines", "dash_license", "dash_credits", "other"] as const;
+export type CheckoutSource = (typeof CHECKOUT_SOURCES)[number];
+export const checkoutSource = (value: unknown): CheckoutSource | null =>
+  value === undefined || value === null || value === "" ? null : (CHECKOUT_SOURCES as readonly unknown[]).includes(value) ? value as CheckoutSource : "other";
+
+/** checkouts per source over a window: opened, paid (a subscription or a top-up landed), and still paying now */
+export interface FunnelRow { source: CheckoutSource | "unknown"; started: number; paid: number; active: number }
+export interface FunnelView { v: typeof BILLING_API_VERSION; from: number; to: number; rows: FunnelRow[]; totals: Omit<FunnelRow, "source"> }
 
 export type CheckoutItem =
   | { kind: "cart"; cart: Cart; name?: string; color?: CloudSwatch }
