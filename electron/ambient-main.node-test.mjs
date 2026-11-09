@@ -3,12 +3,12 @@ import { EventEmitter } from "node:events";
 import test from "node:test";
 import { installAmbient, isAmbientWindow } from "./ambient-main.mjs";
 
-function fakes({ prefs = { island: true, dock: true }, activity = null } = {}) {
+function fakes({ prefs = { island: true, dock: true }, activity = null, platform = "darwin" } = {}) {
   const windows = [];
   class BrowserWindow {
     constructor(options) {
       this.options = options; this.bounds = { x: options.x, y: options.y, width: options.width, height: options.height };
-      this.destroyed = false; this.visible = false; this.ignore = null; this.sent = [];
+      this.destroyed = false; this.visible = false; this.ignore = null; this.sent = []; this.focused = false; this.keys = [];
       this.webContents = Object.assign(new EventEmitter(), { send: (channel, payload) => this.sent.push([channel, payload]), setWindowOpenHandler() {}, isDestroyed: () => this.destroyed });
       this.events = new EventEmitter();
       windows.push(this);
@@ -21,6 +21,9 @@ function fakes({ prefs = { island: true, dock: true }, activity = null } = {}) {
     isDestroyed() { return this.destroyed; }
     isVisible() { return this.visible; }
     showInactive() { this.visible = true; }
+    focus() { this.focused = true; this.keys.push("focus"); }
+    blur() { this.focused = false; this.keys.push("blur"); }
+    isFocused() { return this.focused; }
     getBounds() { return this.bounds; }
     setBounds(bounds) { this.bounds = bounds; }
     destroy() { this.destroyed = true; this.events.emit("closed"); }
@@ -33,7 +36,7 @@ function fakes({ prefs = { island: true, dock: true }, activity = null } = {}) {
   let saved = prefs;
   const opened = [], revealed = [];
   const ambient = installAmbient({
-    ipcMain, BrowserWindow, platform: "darwin", page: () => appPage, origin: () => "http://127.0.0.1:5199",
+    ipcMain, BrowserWindow, platform, page: () => appPage, origin: () => "http://127.0.0.1:5199",
     file: { read: () => saved, write: (value) => { saved = value; } },
     openChat: (botId, threadId) => opened.push([botId, threadId]), reveal: () => revealed.push(true), activity,
   });
@@ -149,4 +152,54 @@ test("what a surface has seen is saved, told to both surfaces, and still there a
   surface(again.windows, "dock").webContents.emit("did-finish-load");
   assert.deepEqual(surface(again.windows, "dock").sent.findLast(([channel]) => channel === "ambient:seen")[1], ["echo:error:9"]);
   again.ambient.close();
+});
+
+test("over its shape a panel takes the keyboard so macOS shows its cursor, and gives it back off the shape unless the person is typing", async () => {
+  const { windows, ambient, screen } = fakes();
+  ambient.start(screen);
+  await tick();
+  const dock = surface(windows, "dock");
+  const say = (channel, payload) => dock.webContents.emit("ipc-message", {}, channel, payload);
+  say("ambient:pointer", true);
+  assert.deepEqual([dock.ignore, dock.keys], [{ ignore: false }, ["focus"]]);
+  // moving between bots: still over the shape, nothing more
+  say("ambient:pointer", true);
+  assert.deepEqual(dock.keys, ["focus"]);
+  say("ambient:pointer", false);
+  assert.deepEqual([dock.ignore, dock.keys], [{ ignore: true, forward: true }, ["focus", "blur"]]);
+  // typing in an answer: the keyboard stays while the pointer wanders, and goes back once the field lets go
+  say("ambient:pointer", true);
+  say("ambient:typing", true);
+  say("ambient:pointer", false);
+  assert.deepEqual(dock.keys, ["focus", "blur", "focus"]);
+  say("ambient:typing", false);
+  assert.deepEqual(dock.keys, ["focus", "blur", "focus", "blur"]);
+  // a field let go while the pointer is still over the shape: the key stays until it leaves
+  say("ambient:pointer", true);
+  say("ambient:typing", true);
+  say("ambient:typing", false);
+  assert.deepEqual(dock.keys.at(-1), "focus");
+  say("ambient:pointer", false);
+  assert.deepEqual(dock.keys.at(-1), "blur");
+  ambient.close();
+});
+
+test("a panel that already has the keyboard (the person clicked into it) is left alone, and other platforms never take it", async () => {
+  const mac = fakes();
+  mac.ambient.start(mac.screen);
+  await tick();
+  const dock = surface(mac.windows, "dock");
+  dock.focused = true;
+  dock.webContents.emit("ipc-message", {}, "ambient:pointer", true);
+  dock.webContents.emit("ipc-message", {}, "ambient:pointer", false);
+  assert.deepEqual(dock.keys, []);
+  mac.ambient.close();
+  const windows = fakes({ platform: "win32", prefs: { island: true, dock: true } });
+  windows.ambient.start(windows.screen);
+  await tick();
+  const other = surface(windows.windows, "dock");
+  other.webContents.emit("ipc-message", {}, "ambient:pointer", true);
+  other.webContents.emit("ipc-message", {}, "ambient:pointer", false);
+  assert.deepEqual(other.keys, []);
+  windows.ambient.close();
 });

@@ -136,7 +136,7 @@ export interface BotRowProps {
   labels: AmbientLabels;
   lang: string;
   now: number;
-  side: "dock" | "island";
+  side: "dock" | "island" | "card";
   /** The words show (the dock is open, or the island's panel is). */
   open: boolean;
   sent: boolean;
@@ -201,7 +201,7 @@ export function BotRow({ bot: given, labels, lang, now, side, open, sent, mascot
           </button>
         )}
       </div>
-      <div className="amb-row-mark">{mascot}</div>
+      {mascot && <div className="amb-row-mark">{mascot}</div>}
       <AnimatePresence initial={false}>
         {tray && (
           <Reveal key="tray" className="amb-tray-wrap">

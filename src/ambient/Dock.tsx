@@ -1,29 +1,35 @@
-// The bot dock: one black body against the right edge of the screen that flares into it at both ends. At rest only a
-// sliver shows, ticked where a bot works, replied or waits. The pointer at the edge slides in a column of mascots; moving
-// onto them widens the same body to the left, and each bot's words come out of it beside its mascot, with any ask it
-// waits on answered right there. The mascots never move while it opens. Dragging a mascot reorders the dock.
+// The bot dock: a slim black column of mascots against the right edge of the screen that flares into it at both ends.
+// At rest only a sliver shows, ticked where a bot works, replied or waits. The pointer at the edge slides the column in;
+// resting on a bot (or moving onto it) brings out one card beside the column with that bot's status, its ask answered
+// right there. The card is one element for the whole visit: it glides and resizes from bot to bot and only goes once
+// the pointer has left both. A mascot carries a bubble only for news: an ask, an unseen reply, an unseen failure.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
-import { Reorder, motion, useDragControls, useReducedMotion, useTransform } from "motion/react";
+import { AnimatePresence, Reorder, motion, useDragControls, useReducedMotion, useTransform } from "motion/react";
 import { Plus } from "lucide-react";
 import { dockOrder, isBusy } from "./mood";
-import { BotRow, useHoverBand, useRowMoments } from "./rows";
-import { attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
+import { BotRow, useRowMoments } from "./rows";
+import { LOOK_MS, attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, SETTLE, useAllClear, useAmbientFeed, useSurfaceValue, useNow, usePointerRegion } from "./shared";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, useAllClear, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, DockLayout } from "./types";
 
 /** How near the right edge the pointer has to be, beside the body, to bring the dock in. */
 const EDGE = 14;
-/** Past this far from the edge the pointer is on the mascots, and the dock opens. */
-const WIDE_AT = 18;
-const HIDE_MS = 140;
-/** Arriving at the edge only brings the column in; opening takes a move toward the bots, or resting on them this long. */
-const DWELL_MS = 450;
-/** How far toward the bots counts as a move. */
+/** The column stays this long after the pointer leaves, so slipping off it for a moment changes nothing. */
+const HIDE_MS = 260;
+/** The card waits this long after the pointer leaves the bots and the card before it goes. */
+export const CARD_LEAVE_MS = 180;
+/** The first card of a visit waits for intent: resting on a bot this long, or moving this far on the column. */
+export const DWELL_MS = 450;
 const NUDGE_PX = 6;
 /** A bot that starts needing the person, or fails, brings the dock out this long. */
 const PEEK_MS = 3600;
 const RADIUS = 22;
+export const CARD_W = 272;
+const CARD_GAP = 10;
+const CARD_MARGIN = 8;
+/** The card goes quickly, not abruptly. */
+const CARD_OUT = { duration: 0.18, ease: EASE_OUT } as const;
 // one empty list for "nothing yet": a fresh [] each render would rerun the order effect forever
 const NONE: readonly never[] = [];
 const FALLBACK_DOCK: DockLayout["dock"] = { cell: 56, tile: 36, column: 64, open: 348, pad: 8, ear: 18, sliver: 6, margin: 28, overhang: 4 };
@@ -40,6 +46,8 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const over = d.overhang ?? 0;
   const stageW = dock?.width ?? d.open + over;
   const edge = stageW - over;
+  const columnLeft = edge - d.column;
+  const cardLeft = columnLeft - CARD_GAP - CARD_W;
   const stageH = dock?.height ?? 720;
   const maxBody = dock?.body ?? stageH - 2 * (d.ear + d.margin);
 
@@ -56,19 +64,20 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const shown = ids.map((id) => byId.get(id)).filter((bot): bot is AmbientBot => Boolean(bot));
 
   const [out, setOut] = useState(false);
-  const [wide, setWide] = useState(false);
   const [peek, setPeek] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const opened = wide || pinned || focused;
-  const slidOut = out || peek || opened;
+  const [card, setCard] = useState<string | null>(null);
+  // the last bot the card showed, kept while it goes so its words leave with it
+  const [lastCard, setLastCard] = useState<string | null>(null);
+  useEffect(() => { if (card) setLastCard(card); }, [card]);
+  const slidOut = out || peek || pinned || card !== null;
 
-  // someone starts needing the person, or fails: the dock comes out for a moment on its own
-  // a reply or failure is news until seen; after that the dock only keeps its line, muted
-  const { seen, mark } = useSeen(bridge, bots, opened);
+  const { seen, mark } = useSeen(bridge, bots, false);
   // everything answered or seen: the whole column cheers once
   const { cheer } = useAllClear(attention(bots, seen).some((bot) => bot.status !== "idle"), 2400);
-  const calling = bots.filter((bot) => !bot.quiet).filter((bot) => bot.status === "needs-you" || (bot.status === "error" && isFresh(bot, seen))).map((bot) => bot.id).join(",");
+
+  // someone starts needing the person, or fails: the column comes out for a moment on its own, no card
+  const calling = bots.filter((bot) => !bot.quiet && (bot.status === "needs-you" || (bot.status === "error" && isFresh(bot, seen)))).map((bot) => bot.id).join(",");
   const lastCalling = useRef<string | null>(null);
   const peekTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
@@ -84,8 +93,9 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   }, [calling, snapshot]);
   useEffect(() => () => clearTimeout(peekTimer.current), []);
 
-  // the body is as tall as what it shows, centred on the edge; it widens to the left and slides in from the right
+  // the column is as tall as its bots, centred on the edge, and slides in from the right
   const content = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLUListElement>(null);
   const [contentH, setContentH] = useState(d.cell + 2 * d.pad);
   useLayoutEffect(() => {
     const node = content.current;
@@ -97,62 +107,148 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
     return () => observer.disconnect();
   }, []);
   const bodyH = Math.min(contentH, maxBody);
-  const w = useSurfaceValue(opened ? d.open : d.column, reduced);
   const h = useSurfaceValue(bodyH, reduced);
   const slide = useSurfaceValue(slidOut ? 0 : d.column - d.sliver, reduced, slidOut);
   const top = useTransform(h, (value) => Math.round((stageH - value) / 2));
   const clip = useTransform(() => {
     const t = top.get();
-    return `inset(${t}px 0px ${Math.max(0, stageH - t - h.get())}px ${Math.max(0, edge - w.get())}px round ${RADIUS}px 0px 0px ${RADIUS}px)`;
+    return `inset(${t}px 0px ${Math.max(0, stageH - t - h.get())}px ${Math.max(0, columnLeft)}px round ${RADIUS}px 0px 0px ${RADIUS}px)`;
   });
   const earTop = useTransform(top, (value) => value - d.ear);
   const earBottom = useTransform(() => top.get() + h.get());
 
-  const slidOutNow = useRef(slidOut);
-  slidOutNow.current = slidOut;
-  // where the body is right now, mid-spring included: only there do clicks land
+  // the card: one element, placed beside the bot it shows and as tall as what it says
+  const cardInner = useRef<HTMLDivElement>(null);
+  const [cardH, setCardH] = useState(64);
+  useLayoutEffect(() => {
+    const node = cardInner.current;
+    if (!node) return;
+    const measure = () => setCardH(node.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  const [anchor, setAnchor] = useState(stageH / 2);
+  const shownId = card ?? lastCard;
+  useLayoutEffect(() => {
+    const row = shownId ? list.current?.querySelector<HTMLElement>(`[data-row="${CSS.escape(shownId)}"]`) : null;
+    if (!row || !list.current) return;
+    setAnchor(top.get() + list.current.offsetTop + row.offsetTop - list.current.scrollTop + row.offsetHeight / 2);
+  }, [shownId, contentH, ids, bodyH, top]);
+  const cardY = Math.round(Math.min(stageH - cardH - CARD_MARGIN, Math.max(CARD_MARGIN, anchor - cardH / 2)));
+  const cardShown = card !== null;
+  // gliding is for moving between bots; a card coming out appears where the bot is
+  const wasShown = useRef(false);
+  const glide = wasShown.current && !reduced ? SETTLE : { duration: 0 };
+  useEffect(() => { wasShown.current = cardShown; });
+
+  const live = useRef({ slidOut, cardShown, cardY, cardH });
+  live.current = { slidOut, cardShown, cardY, cardH };
+  const overCard = useCallback((x: number, y: number) => {
+    const { cardShown: showing, cardY: cy, cardH: ch } = live.current;
+    // the gap between the card and the column counts, so crossing it never closes the card
+    return showing && x >= cardLeft - 2 && x <= columnLeft + 2 && y >= cy - 6 && y <= cy + ch + 6;
+  }, [cardLeft, columnLeft]);
+  // where clicks land: the column where it is headed (a quick move onto a mascot while it still slides in must not
+  // count as leaving), or the card
   const hit = useCallback((x: number, y: number) => {
+    if (overCard(x, y)) return true;
     const t = top.get();
     if (y < t - d.ear || y > t + h.get() + d.ear) return false;
-    if (!slidOutNow.current) return x >= edge - EDGE;
-    return x >= edge - w.get() + slide.get() - 2;
-  }, [top, h, w, slide, d.ear, edge]);
+    if (!live.current.slidOut) return x >= edge - EDGE;
+    return x >= columnLeft - 2;
+  }, [overCard, top, h, d.ear, edge, columnLeft]);
+
+  // a visit: from the column coming out to it going away. Its first card waits for intent; after that, moving from bot
+  // to bot moves the card at once.
+  const chosen = useRef(false);
+  const landing = useRef<{ x: number; y: number; id: string } | null>(null);
+  const under = useRef<string | null>(null);
+  const dwell = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const cardLeave = useRef<ReturnType<typeof setTimeout>>(undefined);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const entered = useRef<number | null>(null);
-  const inside = usePointerRegion(bridge, hit, () => { clearTimeout(hideTimer.current); entered.current = null; setOut(true); }, () => {
+  const pinnedNow = useRef(pinned);
+  pinnedNow.current = pinned;
+  const show = useCallback((id: string) => {
+    clearTimeout(dwell.current);
+    clearTimeout(cardLeave.current);
+    chosen.current = true;
+    setCard(id);
+  }, []);
+  const letGo = useCallback(() => {
+    clearTimeout(dwell.current);
+    clearTimeout(cardLeave.current);
+    cardLeave.current = setTimeout(() => { if (!pinnedNow.current) setCard(null); }, CARD_LEAVE_MS);
+  }, []);
+  // judged on real pointer moves only, so arriving from far away is never mistaken for a move on the column
+  const consider = useCallback((x: number, y: number) => {
+    if (overCard(x, y)) { clearTimeout(cardLeave.current); return; }
+    const id = under.current;
+    if (!id) { if (live.current.cardShown) letGo(); else clearTimeout(dwell.current); return; }
+    clearTimeout(cardLeave.current);
+    if (chosen.current || live.current.cardShown) { show(id); return; }
+    const land = landing.current;
+    if (land && land.id !== id) { show(id); return; }
+    if (!land) {
+      landing.current = { x, y, id };
+      clearTimeout(dwell.current);
+      dwell.current = setTimeout(() => { if (under.current) show(under.current); }, DWELL_MS);
+      return;
+    }
+    if (Math.hypot(x - land.x, y - land.y) > NUDGE_PX) show(id);
+  }, [overCard, letGo, show]);
+  const inside = usePointerRegion(bridge, hit, () => { clearTimeout(hideTimer.current); setOut(true); }, () => {
     clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => { if (!dragging.current) { setOut(false); setWide(false); } }, HIDE_MS);
+    under.current = null;
+    letGo();
+    hideTimer.current = setTimeout(() => {
+      if (dragging.current) return;
+      setOut(false);
+      chosen.current = false;
+      landing.current = null;
+    }, HIDE_MS);
   });
-  useEffect(() => () => clearTimeout(hideTimer.current), []);
-  // on the bots, past the edge zone: a move toward them opens it at once, resting there opens it after a moment, and a
-  // brush on the way somewhere else only brought the column in
+  const lastPoint = useRef({ x: 0, y: 0 });
   useEffect(() => {
-    let dwell: ReturnType<typeof setTimeout> | undefined;
     const move = (event: MouseEvent) => {
-      if (!inside.current) { clearTimeout(dwell); dwell = undefined; return; }
-      const x = event.clientX;
-      entered.current ??= x;
-      const onBots = x < edge - WIDE_AT;
-      if (!onBots) { clearTimeout(dwell); dwell = undefined; return; }
-      if (entered.current - x >= NUDGE_PX) { clearTimeout(dwell); setWide(true); return; }
-      dwell ??= setTimeout(() => { if (inside.current) setWide(true); }, DWELL_MS);
+      lastPoint.current = { x: event.clientX, y: event.clientY };
+      if (inside.current) consider(event.clientX, event.clientY);
     };
     document.addEventListener("mousemove", move, { passive: true });
-    return () => { clearTimeout(dwell); document.removeEventListener("mousemove", move); };
-  }, [inside, edge]);
+    return () => document.removeEventListener("mousemove", move);
+  }, [inside, consider]);
+  useEffect(() => () => { clearTimeout(hideTimer.current); clearTimeout(dwell.current); clearTimeout(cardLeave.current); }, []);
+  // the pointer reached a mascot (or left them all): once a card is out it follows at once; the first waits for a move
+  const pointAt = (id: string | null) => {
+    under.current = id;
+    if (id && (chosen.current || live.current.cardShown)) show(id);
+    else if (!id && live.current.cardShown && !overCard(lastPoint.current.x, lastPoint.current.y)) letGo();
+  };
   // a click anywhere else (the window loses focus) puts the dock away, fields and all
   useEffect(() => {
-    const blur = () => { setPinned(false); setFocused(false); if (!inside.current) { setOut(false); setWide(false); } };
+    const blur = () => {
+      setPinned(false);
+      bridge.typing?.(false);
+      if (!inside.current) { setCard(null); setOut(false); chosen.current = false; landing.current = null; }
+    };
     window.addEventListener("blur", blur);
     return () => window.removeEventListener("blur", blur);
-  }, [inside]);
+  }, [inside, bridge]);
+
+  // a card that stayed on a reply or a failure for a real look counts as seeing it
+  const since = useRef<{ id: string; at: number } | null>(null);
+  useEffect(() => {
+    const was = since.current;
+    since.current = card ? { id: card, at: Date.now() } : null;
+    if (!was || was.id === card || Date.now() - was.at < LOOK_MS) return;
+    const bot = byId.get(was.id);
+    if (bot && isFresh(bot, seen)) mark([eventKey(bot)]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card]);
 
   const now = useNow(slidOut);
   const { sent, cheering, markSent } = useRowMoments(bots);
-
-  // one highlight for the whole hover session (rows.tsx): it glides from bot to bot and never remakes itself
-  const list = useRef<HTMLUListElement>(null);
-  const band = useHoverBand(list, opened && !dragging.current, `${contentH}:${ids.join(",")}`);
   const save = (next: string[]) => bridge.order(next);
   const nudge = (id: string, step: -1 | 1) => {
     const index = ids.indexOf(id), to = index + step;
@@ -166,12 +262,19 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
     if (next.kind === "answer" || next.kind === "allow" || next.kind === "deny") markSent(bot);
     bridge.act(next);
   };
+  const open = (bot: AmbientBot) => {
+    if (moved.current) { moved.current = false; return; }
+    if (isFresh(bot, seen)) mark([eventKey(bot)]);
+    bridge.open(bot.id, bot.threadId);
+  };
+  const pin = useCallback((on: boolean) => { setPinned(on); bridge.typing?.(on); }, [bridge]);
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key !== "Escape") return;
-    setPinned(false); setWide(false); setOut(false);
+    pin(false); setCard(null); setOut(false);
     (document.activeElement as HTMLElement | null)?.blur();
   };
   const listMax = Math.max(d.cell, maxBody - 2 * d.pad - d.cell);
+  const cardBot = shownId ? byId.get(shownId) ?? null : null;
 
   return (
     <div className="amb-stage" style={{ width: stageW, height: stageH }} onKeyDown={onKeyDown}>
@@ -180,47 +283,38 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
         role="region"
         aria-label={say(labels, "dock")}
         data-hidden={slidOut ? undefined : ""}
-        data-open={opened || undefined}
         style={{ x: slide, width: stageW, height: stageH, ["--amb-over" as string]: `${over}px` }}
-        onFocus={() => setFocused(true)}
-        onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}
       >
         <motion.span aria-hidden className="amb-ear amb-ear-top" style={{ y: earTop, width: d.ear, height: d.ear }} />
         <motion.span aria-hidden className="amb-ear amb-ear-bottom" style={{ y: earBottom, width: d.ear, height: d.ear }} />
         <motion.div className="amb-dock-body" style={{ clipPath: clip }}>
-          <motion.div ref={content} className="amb-dock-content" style={{ y: top, paddingBlock: d.pad, ["--amb-column" as string]: `${d.column}px`, ["--amb-cell" as string]: `${d.cell}px` }}>
-            <Reorder.Group ref={list} as="ul" axis="y" values={ids} onReorder={setIds} className="amb-dock-list" style={{ maxHeight: listMax }} onPointerLeave={() => band.point(null)}>
-              {band.element}
+          <motion.div ref={content} className="amb-dock-column" style={{ y: top, left: columnLeft, width: d.column + over, paddingBlock: d.pad }}>
+            <Reorder.Group ref={list} as="ul" axis="y" values={ids} onReorder={setIds} className="amb-dock-list" style={{ maxHeight: listMax }} onPointerLeave={() => pointAt(null)}>
               {shown.map((bot, index) => (
-                <DockItem
+                <DockMascot
+                  key={bot.id}
                   index={index}
                   cheer={cheer}
-                  key={bot.id}
                   bot={bot}
                   labels={labels}
-                  lang={lang}
-                  now={now}
                   tile={d.tile}
-                  opened={opened}
+                  cell={d.cell}
                   live={slidOut}
                   reduced={reduced}
-                  sent={sent.has(bot.id)}
-                  cheering={cheering.has(bot.id)}
-                  recent={isSeenEvent(bot, seen)}
-                  onDismiss={() => mark([eventKey(bot)])}
-                  onOpen={() => { if (moved.current) { moved.current = false; return; } if (isFresh(bot, seen)) mark([eventKey(bot)]); bridge.open(bot.id, bot.threadId); }}
-                  onAct={(next) => act(bot, next)}
-                  onPin={setPinned}
-                  onDragStart={() => { dragging.current = true; moved.current = true; }}
+                  showing={card === bot.id}
+                  news={newsOf(bot, seen)}
+                  state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : isSeenEvent(bot, seen) ? "idle" : undefined}
+                  onOpen={() => open(bot)}
+                  onPoint={() => pointAt(bot.id)}
+                  onFocus={() => show(bot.id)}
+                  onDragStart={() => { dragging.current = true; moved.current = true; setCard(null); }}
                   onDragEnd={() => { dragging.current = false; save(idsNow.current); }}
                   onPress={() => { moved.current = false; }}
                   onMove={(step) => nudge(bot.id, step)}
-                  onPoint={() => band.point(bot.id)}
                 />
               ))}
             </Reorder.Group>
-            <div className="amb-dock-foot" style={{ height: d.cell }}>
-              <Summary bots={bots.filter((bot) => !isSeenEvent(bot, seen))} labels={labels} />
+            <div className="amb-dock-foot" style={{ height: d.cell, width: d.column }}>
               <button type="button" className="amb-dock-plus" aria-label={say(labels, "newBot")} title={say(labels, "newBot")} onClick={() => bridge.act({ kind: "new-bot" })}>
                 <Plus size={18} strokeWidth={1.5} aria-hidden />
               </button>
@@ -228,14 +322,69 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
           </motion.div>
         </motion.div>
       </motion.div>
+      <motion.div
+        className="amb-card"
+        role="dialog"
+        aria-label={cardBot?.name}
+        data-card={card ?? undefined}
+        inert={!cardShown}
+        style={{ left: cardLeft, top: 0, width: CARD_W, transformOrigin: "100% 50%" }}
+        initial={false}
+        animate={cardShown
+          ? { opacity: 1, scale: 1, x: 0, y: cardY, height: cardH }
+          : { opacity: 0, scale: reduced ? 1 : 0.98, x: reduced ? 0 : 6, y: cardY, height: cardH }}
+        transition={cardShown
+          ? { opacity: FADE, scale: glide === SETTLE ? SETTLE : LIVELY, x: SETTLE, y: glide, height: glide }
+          : { opacity: CARD_OUT, scale: CARD_OUT, x: CARD_OUT, y: { duration: 0 }, height: { duration: 0 } }}
+      >
+        <div ref={cardInner} className="amb-card-inner">
+          <AnimatePresence initial={false} mode="popLayout">
+            {cardBot && (
+              <motion.div
+                key={cardBot.id}
+                className="amb-card-page"
+                initial={{ opacity: 0, filter: "blur(2px)" }}
+                animate={{ opacity: 1, filter: "blur(0px)", transition: FADE }}
+                exit={{ opacity: 0, filter: "blur(2px)", transition: FADE_OUT }}
+              >
+                <BotRow
+                  bot={cardBot}
+                  labels={labels}
+                  lang={lang}
+                  now={now}
+                  side="card"
+                  open={cardShown}
+                  sent={sent.has(cardBot.id)}
+                  mascot={null}
+                  recent={isSeenEvent(cardBot, seen)}
+                  onOpen={() => open(cardBot)}
+                  onAct={(next) => act(cardBot, next)}
+                  onPin={pin}
+                  onDismiss={() => mark([eventKey(cardBot)])}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
     </div>
   );
 }
 
-function DockItem({ index, cheer, bot, labels, lang, now, tile, opened, live, reduced, sent, cheering, recent, onDismiss, onOpen, onAct, onPin, onDragStart, onDragEnd, onPress, onMove, onPoint }: {
-  index: number; cheer: number; bot: AmbientBot; labels: AmbientLabels; lang: string; now: number; tile: number; opened: boolean; live: boolean; reduced: boolean;
-  sent: boolean; cheering: boolean; recent: boolean; onDismiss: () => void; onOpen: () => void; onAct: (act: AmbientAct) => void; onPin: (pinned: boolean) => void;
-  onDragStart: () => void; onDragEnd: () => void; onPress: () => void; onMove: (step: -1 | 1) => void; onPoint: () => void;
+type News = "ask" | "reply" | "error" | null;
+
+/** What a mascot's bubble says: an ask, an unseen reply, an unseen failure, or nothing at all. */
+export function newsOf(bot: AmbientBot, seen: ReadonlySet<string>): News {
+  if (bot.quiet) return null;
+  if (bot.status === "needs-you") return "ask";
+  if (!isFresh(bot, seen)) return null;
+  return bot.status === "error" ? "error" : "reply";
+}
+
+function DockMascot({ index, cheer, bot, labels, tile, cell, live, reduced, showing, news, state, onOpen, onPoint, onFocus, onDragStart, onDragEnd, onPress, onMove }: {
+  index: number; cheer: number; bot: AmbientBot; labels: AmbientLabels; tile: number; cell: number; live: boolean; reduced: boolean; showing: boolean;
+  news: News; state: "celebrate" | "approving" | "idle" | undefined; onOpen: () => void; onPoint: () => void; onFocus: () => void;
+  onDragStart: () => void; onDragEnd: () => void; onPress: () => void; onMove: (step: -1 | 1) => void;
 }) {
   const controls = useDragControls();
   const onKeyDown = (event: KeyboardEvent) => {
@@ -244,58 +393,54 @@ function DockItem({ index, cheer, bot, labels, lang, now, tile, opened, live, re
     onMove(event.key === "ArrowUp" ? -1 : 1);
   };
   const onPointerDown = (event: ReactPointerEvent) => { onPress(); controls.start(event); };
-  const state = cheering ? "celebrate" : sent ? "approving" : recent ? "idle" : undefined;
-  // what the person is watching in the app ticks nothing here
-  const tick = bot.quiet ? null : bot.status === "needs-you" ? "ask" : recent ? null : bot.status === "error" ? "error" : isBusy(bot.status) ? "busy" : bot.unread ? "reply" : null;
-  const mascot = (
-    <button
-      type="button"
-      className="amb-dock-bot"
-      aria-label={`${say(labels, "open", { name: bot.name })}. ${bot.status === "idle" ? "" : `${say(labels, bot.status)}. `}${say(labels, "reorder")}`}
-      onPointerDown={onPointerDown}
-      onClick={onOpen}
-      onKeyDown={onKeyDown}
-    >
-      <motion.span className="amb-dock-mark" whileTap={reduced ? undefined : { scale: 0.96 }}>
-        <BotMark bot={bot} size={tile} state={state} animated={live} awake={live} shown={live} index={index} cheer={cheer} />
-      </motion.span>
-      {tick && <span className="amb-tick" data-kind={tick} aria-hidden />}
-    </button>
-  );
+  // hidden, the sliver still ticks who waits, failed, works or replied; what the person is watching ticks nothing
+  const tick = bot.quiet ? null : news ?? (isBusy(bot.status) ? "busy" : null);
   return (
     <Reorder.Item
       as="li"
       value={bot.id}
       className="amb-dock-cell"
       data-row={bot.id}
+      style={{ height: cell }}
       onPointerEnter={onPoint}
-      onPointerMove={onPoint}
       dragListener={false}
       dragControls={controls}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      whileDrag={reduced ? undefined : { scale: 1.03 }}
+      whileDrag={reduced ? undefined : { scale: 1.06 }}
       transition={SETTLE}
     >
-      <BotRow bot={bot} labels={labels} lang={lang} now={now} side="dock" open={opened} sent={sent} mascot={mascot} recent={recent} onOpen={onOpen} onAct={onAct} onPin={onPin} onDismiss={onDismiss} />
+      <button
+        type="button"
+        className="amb-dock-bot"
+        data-showing={showing || undefined}
+        aria-label={`${say(labels, "open", { name: bot.name })}. ${bot.status === "idle" ? "" : `${say(labels, bot.status)}. `}${say(labels, "reorder")}`}
+        aria-expanded={showing}
+        onPointerDown={onPointerDown}
+        onClick={onOpen}
+        onFocus={onFocus}
+        onKeyDown={onKeyDown}
+      >
+        <motion.span className="amb-dock-mark" whileTap={reduced ? undefined : { scale: 0.96 }}>
+          <BotMark bot={bot} size={tile} state={state} animated={live} awake={live} shown={live} index={index} cheer={cheer} />
+        </motion.span>
+        <AnimatePresence initial={false}>
+          {news && (
+            <motion.span
+              key={news}
+              className="amb-bubble"
+              data-kind={news}
+              aria-hidden
+              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1, transition: { opacity: FADE, scale: LIVELY } }}
+              exit={{ opacity: 0, scale: reduced ? 1 : 0.6, transition: FADE_OUT }}
+            >
+              {news === "ask" ? Math.max(1, bot.asks) : news === "error" ? "!" : null}
+            </motion.span>
+          )}
+        </AnimatePresence>
+        {tick && <span className="amb-tick" data-kind={tick} aria-hidden />}
+      </button>
     </Reorder.Item>
-  );
-}
-
-/** Who needs the person, who works and who replied, in a line; nothing while all rest. */
-function Summary({ bots, labels }: { bots: readonly AmbientBot[]; labels: AmbientLabels }) {
-  const count = (test: (bot: AmbientBot) => boolean) => bots.filter(test).length;
-  const parts = ([
-    ["needs-you", count((bot) => bot.status === "needs-you")],
-    ["working", count((bot) => isBusy(bot.status))],
-    ["done", count((bot) => bot.status === "done")],
-  ] as const).filter(([, n]) => n > 0);
-  if (!bots.length) return <p className="amb-dock-sum">{say(labels, "empty")}</p>;
-  return (
-    <p className="amb-dock-sum" aria-live="polite">
-      {parts.length ? parts.map(([key, n]) => (
-        <span key={key} className="amb-sum-part" data-status={key}><span className="amb-num">{n}</span> {say(labels, key)}</span>
-      )) : say(labels, "quiet")}
-    </p>
   );
 }
