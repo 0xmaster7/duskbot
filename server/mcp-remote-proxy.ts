@@ -1,4 +1,4 @@
-// The upstream handshake is OMB's own, never the engine's: an engine's client adds capability fields a strict server
+// The upstream handshake is Dusk Bot's own, never the engine's: an engine's client adds capability fields a strict server
 // refuses. stdout carries only protocol frames.
 import { createInterface } from "node:readline";
 import { homedir } from "node:os";

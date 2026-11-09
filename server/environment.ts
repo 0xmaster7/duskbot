@@ -26,7 +26,7 @@ export interface EnvironmentDescriptor {
   capabilities: {
     /** Pairing and sessions are available (this build). */
     remoteSessions: true;
-    /** A person's own OMB Cloud home. */
+    /** A person's own Dusk Cloud home. */
     cloudHome?: true;
     /** A team's Cloud home: `label` is the team's name. */
     cloudTeam?: true;

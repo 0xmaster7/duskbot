@@ -159,7 +159,7 @@ describe("live startup context", () => {
     const text = liveInstructions({ name: "Rigel", title: "QA" }, { cloudHome: true });
     expect(text.split("\n")[0]).toBe(`You are Rigel, QA, an AI agent that runs on ${CLOUD_HOME_PLACE}.`);
     expect(text.split("\n")[0]).toBe("You are Rigel, QA, an AI agent that runs on the user's My Cloud, their always-on Dusk Bot in the cloud, not on their own computer.");
-    expect(text).not.toContain("OMB");
+    expect(text).not.toContain("Dusk Bot");
     expect(liveInstructions({ name: "Rigel" }, { cloudHome: false }).split("\n")[0]).toBe("You are Rigel, an AI agent that runs in Dusk Bot on the user's own computer.");
   });
 

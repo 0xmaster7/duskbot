@@ -124,7 +124,7 @@ describe("who gets the welcome flow", () => {
     expect(store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "select" }));
   });
 
-  it("leaves an OMB Cloud home's first run to its engine sign-in", () => {
+  it("leaves a Dusk Bot Cloud home's first run to its engine sign-in", () => {
     vi.stubGlobal("window", REMOTE_PAGE);
     expect(gate({ canSave: true, cloudHome: true }).tree).toBeNull();
     store.state = { ...store.state, welcomeOpen: true };
@@ -154,7 +154,7 @@ describe("who gets the welcome flow", () => {
     expect(gate(LOCAL_VIEWER).tree).toBeNull();
   });
 
-  it("steps aside for OMB Cloud opened by the Cloud link, not for a normal visit there", () => {
+  it("steps aside for Dusk Cloud opened by the Cloud link, not for a normal visit there", () => {
     vi.stubGlobal("window", LOCAL_PAGE);
     store.state = { ...store.state, appSettingsOpen: true, appSettingsSection: "cloudAccount", appSettingsCloudLink: 0 };
     expect(gate(LOCAL_VIEWER).tree).not.toBeNull();

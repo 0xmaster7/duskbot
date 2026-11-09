@@ -321,7 +321,7 @@ describe("VPS computer inventory UI", () => {
   });
 });
 
-describe("Settings → Computers on an OMB Cloud home", () => {
+describe("Settings → Computers on a Dusk Bot Cloud home", () => {
   afterEach(() => { storeFixture.config = null; });
   // the labels and row names the page draws
   const cards = () => [...renderToStaticMarkup(createElement(LocalComputerSection)).matchAll(/<(?:div|h3)[^>]*data-(?:row-title|settings-heading)=""[^>]*>([^<]+)<\/(?:div|h3)>/g)].map((match) => match[1]);

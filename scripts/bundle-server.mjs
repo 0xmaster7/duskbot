@@ -37,7 +37,7 @@ const ENTRY_POINTS = [
   "pair-cli.ts",
   "workspace-backup.worker.ts",
   "pdf-text.worker.ts",
-  // the OMB Cloud Pro home image's entry point
+  // the Dusk Cloud Pro home image's entry point
   "cloud-home-start.ts",
   // the container image's entry point
   "server-launcher.ts",

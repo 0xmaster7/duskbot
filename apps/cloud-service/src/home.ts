@@ -161,7 +161,7 @@ ExecStart=${BIN}/omb-zram
 WantedBy=multi-user.target
 `;
   const botsSlice = `[Unit]
-Description=Dusk Bot bot computers
+Description=Dusk bot computers
 
 [Slice]
 MemoryHigh=65%

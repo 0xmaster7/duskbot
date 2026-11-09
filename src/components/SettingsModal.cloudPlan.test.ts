@@ -23,9 +23,9 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); });
 const render = () => renderToStaticMarkup(createElement(SettingsModal));
 
-describe("Settings → Usage & Billing → OMB Cloud on a server open in the app's window", () => {
+describe("Settings → Usage & Billing → Dusk Cloud on a server open in the app's window", () => {
   const reachable = 'data-settings-block="cloudAccount"';
-  it("is not offered on a server that is not an OMB Cloud home", () => {
+  it("is not offered on a server that is not a Dusk Bot Cloud home", () => {
     vi.stubGlobal("window", { ogb: { cloudPlan: plan } });
     const html = render();
     expect(html).not.toContain("CLOUD_PLAN_MARKER"); expect(html).not.toContain(reachable);

@@ -1,4 +1,4 @@
-// Side-effect import that scrubs ambient OMB env before a module snapshots it (scripts/mcp-server.ts reads
+// Side-effect import that scrubs ambient Dusk Bot env before a module snapshots it (scripts/mcp-server.ts reads
 // DUSK_URL / DUSK_PORT at evaluation). Import order is the contract: keep it above the module under test.
 import { isAmbientOmbKey } from "./omb-env.ts";
 

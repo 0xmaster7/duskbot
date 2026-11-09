@@ -1848,7 +1848,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(JSON.stringify(seen.argv)).not.toContain("tok-docs");
   });
 
-  // Claude Code advertises no MCP Apps UI extension and keeps tool results to itself, so only OMB's
+  // Claude Code advertises no MCP Apps UI extension and keeps tool results to itself, so only Dusk Bot's
   // remote proxy can observe a URL app server.
   it("mounts cached url proxies with app observation only for apps", async () => {
     await create();
@@ -2033,7 +2033,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect((await turn("project", project)).settings.env.ENABLE_TOOL_SEARCH).toBe("auto:100");
   });
 
-  it("does not mix a personal helper/endpoint with an explicitly configured OMB connection", async () => {
+  it("does not mix a personal helper/endpoint with an explicitly configured Dusk Bot connection", async () => {
     const account = join(scratch, "account");
     mkdirSync(account);
     writeFileSync(join(account, "settings.json"), JSON.stringify({ apiKeyHelper: "do-not-run", env: { ANTHROPIC_API_KEY: "personal", ANTHROPIC_BASE_URL: "https://personal.invalid" } }));

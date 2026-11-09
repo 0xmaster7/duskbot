@@ -536,7 +536,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
       expect(available.options.map((option: any) => option.surface)).toEqual(["cloud", "vm", "local", "browser"]);
       expect(before.mcpConfig.mcpServers.agents.env.DUSK_CLOUD_HOME).toBe("0");
       expect(before.systemPrompt).not.toContain(cloudHomePrompt());
-      expect(before.systemPrompt).not.toContain("You run on the user's OMB Cloud");
+      expect(before.systemPrompt).not.toContain("You run on the user's Dusk Cloud");
       expect(available.options).toContainEqual(expect.objectContaining({ surface: "vm", available: true }));
       expect(available.options).toContainEqual(expect.objectContaining({ surface: "cloud", ready: false, canCreate: true }));
       expect(await (await call("POST", { surface: "auto" })).json()).toMatchObject({ status: "pending", surface: "vm" });

@@ -10,11 +10,11 @@ import en from "./en.json";
 import { locales } from "./index";
 
 const RETIRED: ReadonlyArray<readonly [string, RegExp, string]> = [
-  ["OMB Cloud", /OMB Cloud/i, "Dusk Cloud"],
+  ["Dusk Cloud", /Dusk Cloud/i, "Dusk Cloud"],
   ["Dusk Bot Cloud", /Dusk Bot Cloud/i, "Dusk Cloud"],
   ["Dusk Pro", /Dusk Pro\b/, "Dusk Cloud"],
   // \b before "_" fails, so environment names such as DUSK_PUBLIC_IPV4 pass.
-  ["OMB", /\bOMB\b/, "Dusk"],
+  ["Dusk Bot", /\bOMB\b/, "Dusk"],
   ["Cloud box", /Cloud box/i, "cloud desktop"],
   ["Hosted desktop", /Hosted desktop/i, "cloud desktop"],
   ["Cloud VM", /Cloud VM/i, "cloud desktop"],
@@ -92,7 +92,7 @@ describe("one name per thing", () => {
   });
 
   const productNames = RETIRED.filter(([, , use]) => use === "Dusk Cloud");
-  it("translations never show retired provider names, OMB, T3 or an old name for Dusk Cloud, and keep its name as it is", () => {
+  it("translations never show retired provider names, Dusk Bot, T3 or an old name for Dusk Cloud, and keep its name as it is", () => {
     const offending = Object.entries(locales).filter(([code]) => code !== "en").flatMap(([code, pack]) =>
       Object.entries(pack)
         .filter(([key, value]) => /\bOMB\b|\bT3\b/.test(value!) || productNames.some(([, pattern]) => pattern.test(value!))
@@ -114,7 +114,7 @@ describe("one name per thing", () => {
   });
 
   it("the public docs name Dusk Cloud and the Cloud as the app does", () => {
-    const names = new Set(["OMB Cloud", "Dusk Bot Cloud", "Dusk Pro", "Connect to my Cloud", "your Cloud", "my Cloud"]);
+    const names = new Set(["Dusk Cloud", "Dusk Bot Cloud", "Dusk Pro", "Connect to my Cloud", "your Cloud", "my Cloud"]);
     const cloudNames = RETIRED.filter(([word]) => names.has(word));
     const pages = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
       const path = join(dir, name);
@@ -148,8 +148,8 @@ describe("one name per thing", () => {
 
   it("the check catches every retired provider mention and lets live env names through", () => {
     for (const bad of [
-      "Sign in to OMB Cloud", "Sign in to Dusk Bot Cloud", "Get Dusk Bot Pro", "Dusk Pro plans",
-      "restart OMB", "Cloud box", "Hosted desktop", "Run it in its cloud VM", `${PROVIDER_WORD} cloud runner`,
+      "Sign in to Dusk Cloud", "Sign in to Dusk Bot Cloud", "Get Dusk Bot Pro", "Dusk Pro plans",
+      "restart Dusk Bot", "Cloud box", "Hosted desktop", "Run it in its cloud VM", `${PROVIDER_WORD} cloud runner`,
       "Open your Cloud dashboard", "Connect to my Cloud", "Your Cloud is ready", "Let my Cloud use this Mac",
       "Local (this computer)", "Choose Cloud to wake", "Auto, Cloud or Browser", "including one from T3",
       ...[`Auto uses this ${PROVIDER_WORD}`, `New ${PROVIDER_WORD} computer`, `${PROVIDER_WORD}s`, PROVIDER_WORD.toUpperCase(), `place.${PROVIDER_WORD.toLowerCase()}.title`,

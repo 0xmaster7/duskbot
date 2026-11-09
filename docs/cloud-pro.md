@@ -1,6 +1,6 @@
-# OMB Cloud: the home machine
+# Dusk Cloud: the home machine
 
-OMB Cloud (the Starter, Pro and Max plans) gives one person an always-on
+Dusk Cloud (the Starter, Pro and Max plans) gives one person an always-on
 Dusk Bot server of their own (a plan may instead sleep when idle: see
 [Sleeping homes](#sleeping-homes-the-power-read-and-the-sleep-handshake)). The plans differ in machine size, disk and
 included allowances; everything on this page applies to all of them. Each
@@ -8,10 +8,10 @@ customer gets one Fly app with one `home` machine that is always on, a volume
 at `/data`, and TLS at `https://<app>.fly.dev`. The desktop app, the phone and
 the web are windows onto it. Local use of the app is unchanged and free.
 Customers read its name as **Dusk Cloud** wherever they meet it (the
-app, the Admin's pages, emails); "OMB Cloud" is this page's shorthand, and
+app, the Admin's pages, emails); "Dusk Cloud" is this page's shorthand, and
 the app itself is still Dusk Bot.
 
-OMB Cloud includes no AI usage. The person signs in on their machine with their
+Dusk Cloud includes no AI usage. The person signs in on their machine with their
 own Claude or ChatGPT subscription, or an API key, through the same sign-in
 flows as any Dusk Bot server. Nothing on a Cloud home is routed to a
 platform model gateway. The one exception is a free trial's Claude credit, a
@@ -800,7 +800,7 @@ never echoes a secret.
 
 ### No model gateway
 
-OMB Cloud includes no AI, so the contract has no model gateway. Apart from a free trial's Claude credit, the person's own engines are the only way to a model.
+Dusk Cloud includes no AI, so the contract has no model gateway. Apart from a free trial's Claude credit, the person's own engines are the only way to a model.
 
 ### Included voice and decisions
 
@@ -871,7 +871,7 @@ on the Admin, which checks the subscription, the monthly caps on every request.
   engine, so a process running as the same user that may trace it (the
   kernel's ptrace policy, `kernel.yama.ptrace_scope`, decides) could read
   them there. That is why a guest's turn gets no shell (above); the complete
-  fix is engines under a user of their own. A relay token is only this customer's own OMB Cloud
+  fix is engines under a user of their own. A relay token is only this customer's own Dusk Cloud
   allowance: it works only through the Admin, only on this machine's cloud
   computers, voice and decisions, and only up to the monthly caps.
 - A refusal from the cloud desktop or voice relay (for example, the month's cloud
@@ -1485,7 +1485,7 @@ descriptor's `capabilities.cloudHome`).
 On the person's own Cloud, open in the app's window, **Settings → Dusk Cloud**
 shows the plan read only (`cloud-plan:*`: its name and whether it is active,
 **Manage in your browser** and **Switch to this computer**). It is listed only
-on an OMB Cloud home (`config.cloudHome`), never on another server open in the
+on a Dusk Bot Cloud home (`config.cloudHome`), never on another server open in the
 window. Main answers it for the Cloud this account verified, or last verified
 while a check is failing or the sign-in has ended (`myCloudOrigin`, the rule
 the Cloud's microphone uses too), so that page says

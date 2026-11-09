@@ -28,7 +28,7 @@ const BROWSER_RESTART_TOOL_SPEC = {
 };
 export const BROWSER_UPLOAD_TOOL = "agent_browser_upload";
 export const BROWSER_HOVER_TOOL = "agent_browser_hover";
-/** agent-browser 0.37.0 offers upload and hover only in its 156-tool "all" profile, so OMB runs these two through the daemon's relay. */
+/** agent-browser 0.37.0 offers upload and hover only in its 156-tool "all" profile, so Dusk Bot runs these two through the daemon's relay. */
 const RELAYED_TOOL_SPECS = [
   {
     name: BROWSER_UPLOAD_TOOL,
@@ -293,7 +293,7 @@ class BrowserClient {
 export type ApplyViewport = (spec: BrowserSpawnSpec, size: PageSize) => Promise<unknown>;
 
 type LaunchSpec = { command: string; env?: Record<string, string | undefined> };
-/** The browser the engine starts, prepared by OMB. */
+/** The browser the engine starts, prepared by Dusk Bot. */
 export interface BrowserLaunch {
   /** Before the engine may start the browser; rejects with a message for the bot while it cannot start yet. */
   ready(spec: LaunchSpec): Promise<void>;
@@ -539,7 +539,7 @@ export class BrowserRuntime {
         const pageUrl = () => entry.client.rpc("tools/call", { name: "agent_browser_get_url", arguments: {} }, Math.max(1, Math.min(followUpMs(), 5_000)))
           .then((result) => firstText(result).trim(), (error: unknown) => { if (error instanceof TransportError) throw error; return ""; });
         if (toolName === "agent_browser_eval" && await this.holds.refuses(session, pageUrl)) return { isError: true, content: [{ type: "text", text: SECRET_ON_PAGE }] };
-        // Launch and session parameters OMB owns never reach the engine from a call.
+        // Launch and session parameters Dusk Bot owns never reach the engine from a call.
         const request = method === "tools/call" ? this.pageSizes.callArguments(session, stripHarnessOwnedArguments(params)) : params;
         const args = (request as { arguments?: unknown } | null)?.arguments;
         const call: StepCall | null = this.steps && method === "tools/call" && toolName !== undefined ? {

@@ -49,7 +49,7 @@ describe("Settings → Remote access: server pairing card visibility", () => {
     expect(render()).toContain('data-panel-page="pairing"');
   });
 
-  it("on an OMB Cloud home, which is personal, tells the card so and offers no People section to invite anyone", () => {
+  it("on a Dusk Bot Cloud home, which is personal, tells the card so and offers no People section to invite anyone", () => {
     vi.stubGlobal("window", {});
     fixture.section = "people";
     expect(render()).toContain('data-panel-page="people"');

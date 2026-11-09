@@ -42,8 +42,8 @@ describe("Slack manifest", () => {
 
   it("uses nonempty defaults", () => {
     expect(buildSlackManifest({ name: " \t\n ", description: " " }, redirect)).toMatchObject({
-      display_information: { name: "Dusk Bot bot", description: "A Dusk Bot bot.", background_color: "#377FE6" },
-      features: { bot_user: { display_name: "Dusk Bot bot" } },
+      display_information: { name: "Dusk bot", description: "A Dusk bot.", background_color: "#377FE6" },
+      features: { bot_user: { display_name: "Dusk bot" } },
     });
   });
 

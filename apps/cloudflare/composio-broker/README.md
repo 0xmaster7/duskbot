@@ -26,7 +26,7 @@ without affecting existing users.
 ## App events (Composio triggers)
 
 The broker also receives Composio trigger events for every installation and
-queues them until the installation's OMB server collects them. A desktop
+queues them until the installation's Dusk Bot server collects them. A desktop
 needs no public URL: Composio posts to the broker, the server long-polls it.
 
 ```

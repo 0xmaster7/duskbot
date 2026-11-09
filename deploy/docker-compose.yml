@@ -19,7 +19,7 @@ services:
     restart: unless-stopped
     # The bots' browsers (docs/browser-packaging.md, "Process hygiene"): an
     # init collects the browser processes whose parents exit, and Chrome
-    # gets the shared memory OMB's desktop containers give it.
+    # gets the shared memory Dusk Bot's desktop containers give it.
     init: true
     shm_size: 512m
     volumes:

@@ -1,4 +1,4 @@
-// Cua-backed Local VM: OMB owns only the sandbox boundary; desktop automation is Cua Driver's (`cua-driver mcp` in the container).
+// Cua-backed Local VM: Dusk Bot owns only the sandbox boundary; desktop automation is Cua Driver's (`cua-driver mcp` in the container).
 import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 import { execFile } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
@@ -381,7 +381,7 @@ export function imageLabelsMatch(labels: Record<string, string> | undefined): bo
   );
 }
 
-/** Ownership ignores image/driver versions, so an older OMB container stays removable. */
+/** Ownership ignores image/driver versions, so an older Dusk Bot container stays removable. */
 function containerOwnershipLabelsMatch(
   labels: Record<string, string> | undefined,
   target: LocalVmTarget,

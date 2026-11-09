@@ -84,7 +84,7 @@ it("a failed re-check keeps the plan, Cloud and Connect, and only says it is che
   all(html, ["Max active · verified by Dusk Cloud", "Checking with Dusk Cloud…", "Open the Cloud", "Manage Cloud subscription"]);
   none(html, [...BUY, ...ALARM]);
 });
-it("OMB Cloud out of reach: the plan last verified stays named, calmly, with no offer to buy", async () => {
+it("Dusk Cloud out of reach: the plan last verified stays named, calmly, with no offer to buy", async () => {
   await ready({ status: "unavailable", message: "unreachable", account: { id: "fixture", email: "person@example.test" }, lastPlan: { tier: "personal", active: true } });
   let html = render().html;
   all(html, ["Personal · checking with Dusk Cloud…", "be reached right now, so this app", "Nothing has changed with your plan", "Manage Cloud subscription"]);

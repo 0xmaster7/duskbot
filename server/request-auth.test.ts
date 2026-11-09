@@ -666,7 +666,7 @@ describe("loopback trust: owner on one person's machine, service on a shared wor
     expect(desktop.warning).toMatch(/ignored in the desktop app/);
   });
 
-  it("is always service on an OMB Cloud home, where a local request is only ever a process on the machine", () => {
+  it("is always service on a Dusk Bot Cloud home, where a local request is only ever a process on the machine", () => {
     const pick = (env: NodeJS.ProcessEnv) => resolveLoopbackTrust({ env, desktopManaged: false, cloudHome: true });
     expect(pick({})).toEqual({ trust: "service", reason: "Dusk Cloud home", localBrowsers: false });
     expect(pick({ DUSK_LOOPBACK_TRUST: "service" })).toEqual({ trust: "service", reason: "Dusk Cloud home", localBrowsers: false });

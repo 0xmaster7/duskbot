@@ -1,5 +1,5 @@
 [Unit]
-Description=Dusk Bot bot box network fence (host-fence.sh)
+Description=Dusk bot box network fence (host-fence.sh)
 After=docker.service
 PartOf=docker.service
 

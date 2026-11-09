@@ -1,5 +1,5 @@
 # Dusk Bot harness server — hosted/self-hosted tenant image, and the
-# OMB Cloud Pro home machine (docs/cloud-pro.md).
+# Dusk Cloud Pro home machine (docs/cloud-pro.md).
 #
 # Build the renderer + the self-contained server bundle, then ship only those
 # artifacts on a slim Node runtime. The runtime stage holds what changes

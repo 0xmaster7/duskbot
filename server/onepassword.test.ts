@@ -20,7 +20,7 @@ function setup(options: { token?: string | null; fail?: () => Error | null; now?
       v2: { title: "Finance", items: [
         { id: "f1", title: "Bank", urls: ["https://bank.example.net/login"], username: "treasurer", password: "fake-bank-pass" },
       ] },
-      v1: { title: "Shared with OMB", items: [
+      v1: { title: "Shared with Dusk Bot", items: [
         { id: "i1", title: "Example", urls: ["https://accounts.example.com/login", "accounts.example.com"], username: "alice@example.com", password: VAULT_PASSWORD, totp: KEY },
         { id: "i2", title: "Two sites", urls: ["https://crm.example.org", "https://www.crm.example.org/"], username: "team", password: "fake-crm-pass" },
         { id: "i3", title: "No website", urls: [], username: "x", password: "fake-x-pass" },
@@ -63,7 +63,7 @@ describe("1Password logins", () => {
     const { source, calls } = setup();
     expect(await source.refresh()).toEqual({ connected: true, items: 3, vaults: [
       { id: "v2", title: "Finance", items: 1, bots: "all" },
-      { id: "v1", title: "Shared with OMB", items: 2, bots: "all" },
+      { id: "v1", title: "Shared with Dusk Bot", items: 2, bots: "all" },
     ] });
     expect(calls).toEqual(["createClient Dusk Bot", "vaults.list", "items.list v2", "items.getAll v2 f1", "items.list v1", "items.getAll v1 i1,i2,i5"]);
     const rows = source.list();
@@ -94,7 +94,7 @@ describe("1Password logins", () => {
     await source.refresh();
     expect(source.status().vaults).toEqual([
       { id: "v2", title: "Finance", items: 1, bots: ["quill"] },
-      { id: "v1", title: "Shared with OMB", items: 2, bots: [] },
+      { id: "v1", title: "Shared with Dusk Bot", items: 2, bots: [] },
     ]);
     expect(source.candidates("bank.example.net", "pepper")).toEqual([]);
     expect(source.candidates("accounts.example.com", "pepper")).toEqual([]);

@@ -61,7 +61,7 @@ describe("pairing devices from a hosted server's settings", () => {
     expect(html).not.toContain("data-phone-pairing-action");
   });
 
-  it("on an OMB Cloud home, which is personal, offers no chat-only choice, lists only the owner's devices, and says why in one line", () => {
+  it("on a Dusk Bot Cloud home, which is personal, offers no chat-only choice, lists only the owner's devices, and says why in one line", () => {
     const admin = { kind: "session" as const, id: "s", label: "Mac", scopes: ["admin", "client"], expiresAt: 1 };
     const cloud = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: admin, cloudHome: true }));
     expect(cloud).toContain("Create pairing code");

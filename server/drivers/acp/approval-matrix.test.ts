@@ -1,4 +1,4 @@
-// Real provider adapters against the scripted ACP peer: proves OMB's flags and residual-request handling,
+// Real provider adapters against the scripted ACP peer: proves Dusk Bot's flags and residual-request handling,
 // not a native engine's classifier.
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";

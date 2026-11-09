@@ -1,4 +1,4 @@
-// OMB's own connections to MCP app servers: they read an app's UI resource and run its view's calls long
+// Dusk Bot's own connections to MCP app servers: they read an app's UI resource and run its view's calls long
 // after the turn that called the tool has ended. A command server is spawned with the probe environment.
 import { createHash } from "node:crypto";
 
