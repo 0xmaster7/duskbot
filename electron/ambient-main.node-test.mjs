@@ -4,7 +4,7 @@ import test from "node:test";
 import { installAmbient, isAmbientWindow } from "./ambient-main.mjs";
 import { SETTLE_WAIT_MS } from "./ambient-window.mjs";
 
-function fakes({ prefs = { island: true, dock: true }, activity = null, platform = "darwin" } = {}) {
+function fakes({ prefs = { island: true, dock: true }, activity = null, platform = "darwin", seed = true, trace = null } = {}) {
   const windows = [];
   class BrowserWindow {
     constructor(options) {
@@ -39,9 +39,13 @@ function fakes({ prefs = { island: true, dock: true }, activity = null, platform
   const ambient = installAmbient({
     ipcMain, BrowserWindow, platform, page: () => appPage, origin: () => "http://127.0.0.1:5199",
     file: { read: () => saved, write: (value) => { saved = value; } },
-    openChat: (botId, threadId, origin) => opened.push(origin === undefined ? [botId, threadId] : [botId, threadId, origin]), reveal: () => revealed.push(true), activity,
+    openChat: (botId, threadId, origin) => opened.push(origin === undefined ? [botId, threadId] : [botId, threadId, origin]), reveal: () => revealed.push(true), activity, trace,
   });
-  return { windows, handlers, listeners, appPage, screen, ambient, opened, revealed, saved: () => saved };
+  // the surfaces wait for the app's page to say who is there: by default it says one bot as they start
+  const publish = (bots) => listeners.get("ambient:publish")({ sender: appPage }, { bots, labels: {}, lang: "en" });
+  const realStart = ambient.start;
+  ambient.start = (electronScreen) => { realStart(electronScreen); if (seed) publish([{ id: "nova", threadId: "t1", name: "Nova" }]); };
+  return { windows, handlers, listeners, appPage, screen, ambient, opened, revealed, publish, saved: () => saved };
 }
 
 const surface = (windows, name) => windows.find((win) => !win.destroyed && win.options.webPreferences.additionalArguments.includes(`--omb-ambient=${name}`));
@@ -75,13 +79,14 @@ test("the island and the dock open as click-through panels on the display, hidde
 });
 
 test("only the app's own page publishes the summary, and the surfaces' asks go back to it", async () => {
-  const { windows, listeners, appPage, screen, ambient, opened, revealed } = fakes();
+  const { windows, listeners, appPage, screen, ambient, opened, revealed } = fakes({ seed: false });
   ambient.start(screen);
   await tick();
-  const island = surface(windows, "island");
   listeners.get("ambient:publish")({ sender: {} }, { bots: [{ id: "x", threadId: "t", name: "X" }] });
-  assert.equal(island.sent.some(([channel]) => channel === "ambient:state"), false);
+  assert.equal(surface(windows, "island"), undefined);
   listeners.get("ambient:publish")({ sender: appPage }, { bots: [{ id: "nova", threadId: "t1", name: "Nova", status: "working" }], labels: {}, lang: "en" });
+  await tick();
+  const island = surface(windows, "island");
   const state = island.sent.findLast(([channel]) => channel === "ambient:state")[1];
   assert.equal(state.bots[0].name, "Nova");
   island.webContents.emit("ipc-message", {}, "ambient:open", { botId: "nova", threadId: "t1" });
@@ -230,4 +235,52 @@ test("a panel that already has the keyboard (the person clicked into it) is left
   other.webContents.emit("ipc-message", {}, "ambient:pointer", false);
   assert.deepEqual(other.keys, []);
   windows.ambient.close();
+});
+
+test("no bots, no surfaces: nothing shows until the page says who is there, and it goes again when the page does", async () => {
+  const { windows, screen, ambient, appPage, publish } = fakes({ seed: false });
+  ambient.start(screen);
+  await tick();
+  // started, but no word from the page yet: no empty dock, no lone "+", no island
+  assert.deepEqual([surface(windows, "island"), surface(windows, "dock")], [undefined, undefined]);
+  publish([]);
+  await tick();
+  assert.deepEqual([surface(windows, "island"), surface(windows, "dock")], [undefined, undefined]);
+  publish([{ id: "nova", threadId: "t1", name: "Nova" }]);
+  await tick();
+  assert.ok(surface(windows, "island") && surface(windows, "dock"));
+  // the page leaves for another place: the surfaces go until a page speaks again
+  appPage.emit("did-start-navigation", { isMainFrame: true, isSameDocument: false });
+  assert.deepEqual([surface(windows, "island"), surface(windows, "dock")], [undefined, undefined]);
+  publish([{ id: "nova", threadId: "t1", name: "Nova" }]);
+  await tick();
+  assert.ok(surface(windows, "dock"));
+  // an in-page move is not leaving
+  appPage.emit("did-start-navigation", { isMainFrame: true, isSameDocument: true });
+  assert.ok(surface(windows, "dock"));
+  publish([]);
+  assert.equal(surface(windows, "dock"), undefined);
+  ambient.close();
+});
+
+test("a surface in use or still closing is never moved or resized: the new place waits until it has settled", async () => {
+  const lines = [];
+  const { windows, screen, ambient } = fakes({ trace: (surfaceName, event, detail) => lines.push(`${surfaceName} ${event}${detail ? ` ${detail}` : ""}`) });
+  ambient.start(screen);
+  await tick();
+  const dock = surface(windows, "dock");
+  const before = dock.bounds;
+  dock.webContents.emit("ipc-message", {}, "ambient:pointer", true);
+  dock.webContents.emit("ipc-message", {}, "ambient:pointer", false);
+  // the display changes size while the dock is closing
+  screen.getAllDisplays()[0].workArea.height = 900;
+  screen.emit("display-metrics-changed");
+  assert.deepEqual(dock.bounds, before);
+  assert.ok(lines.some((line) => line.startsWith("dock place-held")), lines.join("\n"));
+  dock.webContents.emit("ipc-message", {}, "ambient:settled");
+  assert.equal(dock.bounds.height, 900);
+  // every window action is in the trace, in order
+  const actions = lines.filter((line) => line.startsWith("dock win:") || line.startsWith("dock page:settled")).map((line) => line.split(" ").slice(0, 2).join(" "));
+  assert.deepEqual(actions.slice(-6), ["dock win:setIgnoreMouseEvents", "dock win:focus", "dock win:setIgnoreMouseEvents", "dock page:settled", "dock win:setBounds", "dock win:blur"]);
+  ambient.close();
 });

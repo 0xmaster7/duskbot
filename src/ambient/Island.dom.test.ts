@@ -138,3 +138,18 @@ it("lists every bot with its state in a word or two, the waiting ones first, and
   expect(host.querySelectorAll(".amb-row")).toHaveLength(2);
   await act(async () => root.unmount());
 });
+
+it("shows nothing with no bots: no notch face, no panel, no placeholder", async () => {
+  let feed: (snapshot: AmbientSnapshot) => void = () => {};
+  const bridge: AmbientBridge = {
+    surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act() {}, order() {}, ready() {},
+  };
+  const host = document.body.appendChild(document.createElement("div"));
+  const root = createRoot(host);
+  await act(async () => root.render(createElement(Island, { bridge, forceOpen: true })));
+  await act(async () => feed({ lang: "en", labels: {}, bots: [] }));
+  expect(host.querySelector(".amb-stage")?.hasAttribute("data-empty")).toBe(true);
+  expect(host.querySelector(".amb-compact-tile")).toBeNull();
+  expect(host.querySelector(".amb-row")).toBeNull();
+  await act(async () => root.unmount());
+});

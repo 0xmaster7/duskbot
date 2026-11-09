@@ -26,12 +26,19 @@ export const ISLAND_EXIT = { duration: 0.22, ease: SOFT_EASE, delay: 0.02 } as c
 
 /** A number that moves to `target`: out on the settle spring, away on the quick exit clock. Retargets from wherever it
  * is, keeping its velocity. `out` says which way is out; by default growing is. */
-export function useSurfaceValue(target: number, reduced: boolean, out?: boolean, away: { duration: number; ease: readonly [number, number, number, number]; delay?: number } = EXIT): MotionValue<number> {
+export function useSurfaceValue(target: number, reduced: boolean, out?: boolean, away: { duration: number; ease: readonly [number, number, number, number]; delay?: number } = EXIT, trace?: (event: string, detail?: string) => void): MotionValue<number> {
   const value = useMotionValue(target);
+  const traceNow = useRef(trace);
+  traceNow.current = trace;
   useEffect(() => {
-    if (reduced) { value.jump(target); return; }
+    if (reduced) { traceNow.current?.("motion-jump", `to ${Math.round(target)} (reduced motion)`); value.jump(target); return; }
     const outward = out ?? target >= value.get();
+    const from = Math.round(value.get());
+    if (from === Math.round(target)) return;
+    const started = performance.now();
+    traceNow.current?.("motion-start", `${from} -> ${Math.round(target)} ${outward ? "spring" : `${away.duration * 1000}ms`}`);
     const controls = animate(value, target, outward ? SETTLE : { ...away, ease: [...away.ease] as [number, number, number, number] });
+    void controls.then(() => traceNow.current?.("motion-end", `${Math.round(target)} after ${Math.round(performance.now() - started)}ms`), () => {});
     return () => controls.stop();
   }, [target, reduced, out, away, value]);
   return value;
@@ -86,6 +93,7 @@ export function usePointerRegion(bridge: AmbientBridge, hit: (x: number, y: numb
     const cross = (next: boolean) => {
       if (next === inside.current) return;
       inside.current = next;
+      bridge.trace?.(next ? "pointer-enter" : "pointer-leave");
       bridge.pointer(next);
       if (next) latest.current.onEnter(); else latest.current.onLeave();
     };
@@ -248,6 +256,22 @@ export function useSteady(key: string, settle = SETTLE_MS, hold = 0): string {
   return shown;
 }
 
+/** While tracing, every CSS transition on the surface, as it starts and ends (which element, which property). */
+export function useTraceTransitions(bridge: AmbientBridge) {
+  useEffect(() => {
+    const trace = bridge.trace;
+    if (!trace) return;
+    const name = (target: EventTarget | null) => {
+      const node = target as HTMLElement | null;
+      return node?.className && typeof node.className === "string" ? node.className.split(" ").filter(Boolean).slice(0, 2).join(".") : node?.tagName?.toLowerCase() ?? "?";
+    };
+    const on = (event: Event) => { const transition = event as TransitionEvent; trace(`css-${event.type.replace("transition", "")}`, `${name(event.target)} ${transition.propertyName}`); };
+    for (const type of ["transitionstart", "transitionend", "transitioncancel"]) document.addEventListener(type, on, true);
+    trace("page-ready", `reduced-motion=${matchMedia("(prefers-reduced-motion: reduce)").matches} visible=${document.visibilityState}`);
+    return () => { for (const type of ["transitionstart", "transitionend", "transitioncancel"]) document.removeEventListener(type, on, true); };
+  }, [bridge]);
+}
+
 /** A surface's closing has played out by then: the leave delay is behind it, its words and its shell are gone. */
 export const SETTLED_MS = 440;
 
@@ -256,7 +280,7 @@ export const SETTLED_MS = 440;
 export function useSettledSignal(bridge: AmbientBridge, shown: boolean) {
   useEffect(() => {
     if (shown) return;
-    const timer = setTimeout(() => bridge.settled?.(), SETTLED_MS);
+    const timer = setTimeout(() => { bridge.trace?.("settled-signal"); bridge.settled?.(); }, SETTLED_MS);
     return () => clearTimeout(timer);
   }, [bridge, shown]);
 }

@@ -11,7 +11,7 @@ import { MiniChat } from "./MiniChat";
 import { useRowMoments } from "./rows";
 import { LOOK_MS, attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, SOFT_EXIT, useAllClear, useSettledSignal, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, SOFT_EXIT, useAllClear, useSettledSignal, useTraceTransitions, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, DockLayout } from "./types";
 
 /** How near the right edge the pointer has to be, beside the body, to bring the dock in. */
@@ -80,6 +80,13 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
 
   const { seen, mark } = useSeen(bridge, bots, false);
   useSettledSignal(bridge, slidOut);
+  // the dock's side of the trace: the column coming and going, the card showing a bot or leaving
+  const traced = useRef({ slidOut: false, card: null as string | null });
+  useEffect(() => {
+    if (traced.current.slidOut !== slidOut) bridge.trace?.(slidOut ? "state-column-out" : "state-column-closing", `out=${out} peek=${peek} pinned=${pinned}`);
+    if (traced.current.card !== card) bridge.trace?.(card ? "state-card" : "state-card-closing", card ? "a bot" : "");
+    traced.current = { slidOut, card };
+  }, [slidOut, card, out, peek, pinned, bridge]);
   // everything answered or seen: the whole column cheers once
   const { cheer } = useAllClear(attention(bots, seen).some((bot) => bot.status !== "idle"), 2400);
 
@@ -114,8 +121,10 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
     return () => observer.disconnect();
   }, []);
   const bodyH = Math.min(contentH, maxBody);
-  const h = useSurfaceValue(bodyH, reduced);
-  const slide = useSurfaceValue(slidOut ? 0 : d.column - d.sliver, reduced, slidOut, SOFT_EXIT);
+  const traceAs = (what: string) => (bridge.trace ? (event: string, detail?: string) => bridge.trace!(`${what}:${event}`, detail) : undefined);
+  const h = useSurfaceValue(bodyH, reduced, undefined, undefined, traceAs("height"));
+  const slide = useSurfaceValue(slidOut ? 0 : d.column - d.sliver, reduced, slidOut, SOFT_EXIT, traceAs("column"));
+  useTraceTransitions(bridge);
   const top = useTransform(h, (value) => Math.round((stageH - value) / 2));
   const clip = useTransform(() => {
     const t = top.get();
@@ -159,7 +168,10 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   }, [cardLeft, columnLeft]);
   // where clicks land: the column where it is headed (a quick move onto a mascot while it still slides in must not
   // count as leaving), or the card
+  const anyBots = useRef(false);
+  anyBots.current = bots.length > 0;
   const hit = useCallback((x: number, y: number) => {
+    if (!anyBots.current) return false;
     if (overCard(x, y)) return true;
     const t = top.get();
     if (!live.current.slidOut) return y >= t - d.ear && y <= t + h.get() + d.ear && x >= edge - EDGE;
@@ -283,7 +295,8 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const cardBot = shownId ? byId.get(shownId) ?? null : null;
 
   return (
-    <div className="amb-stage" style={{ width: stageW, height: stageH }} onKeyDown={onKeyDown}>
+    // no bots, no dock: never an empty column or a lone "+" (kept laid out but unseen, so it measures itself when they come)
+    <div className="amb-stage" data-empty={bots.length ? undefined : ""} style={{ width: stageW, height: stageH }} onKeyDown={onKeyDown}>
       <motion.div
         className="amb-dock"
         role="region"

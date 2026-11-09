@@ -3,9 +3,9 @@
 import { islandLayout } from "./ambient-geometry.mjs";
 import { createAmbientWindow } from "./ambient-window.mjs";
 
-export function createIslandWindow({ BrowserWindow, url, platform = process.platform, onMessage, log }) {
+export function createIslandWindow({ BrowserWindow, url, platform = process.platform, onMessage, log, trace = null }) {
   // above the menu bar, under the system's own alerts
-  const overlay = createAmbientWindow({ BrowserWindow, surface: "island", url, level: "pop-up-menu", platform, onMessage, log });
+  const overlay = createAmbientWindow({ BrowserWindow, surface: "island", url, level: "pop-up-menu", platform, onMessage, log, trace });
   return {
     ...overlay,
     /** Lays the island out on `display` and tells its page the shape. */

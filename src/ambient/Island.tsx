@@ -10,7 +10,7 @@ import { MiniChat } from "./MiniChat";
 import { BotRow, useHoverBand, useRowMoments } from "./rows";
 import { attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, EASE_OUT, FADE, FADE_OUT, HOLD_MS, ISLAND_EXIT, useSettledSignal, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, HOLD_MS, ISLAND_EXIT, useSettledSignal, useTraceTransitions, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, IslandLayout } from "./types";
 
 const PANEL_W = 432;
@@ -95,8 +95,16 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   const targetW = open ? panelW : restW;
   const targetH = open ? openH : c.height;
 
-  const w = useSurfaceValue(targetW, reduced, undefined, ISLAND_EXIT);
-  const h = useSurfaceValue(targetH, reduced, undefined, ISLAND_EXIT);
+  const traceAs = (what: string) => (bridge.trace ? (event: string, detail?: string) => bridge.trace!(`${what}:${event}`, detail) : undefined);
+  const w = useSurfaceValue(targetW, reduced, undefined, ISLAND_EXIT, traceAs("width"));
+  const h = useSurfaceValue(targetH, reduced, undefined, ISLAND_EXIT, traceAs("height"));
+  useTraceTransitions(bridge);
+  const tracedOpen = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (tracedOpen.current === open) return;
+    if (tracedOpen.current !== null) bridge.trace?.(open ? "state-open" : "state-closing", `hovered=${hovered} pinned=${pinned}`);
+    tracedOpen.current = open;
+  }, [open, hovered, pinned, bridge]);
 
   const closedR = notch ? Math.min(14, Math.round(c.height * 0.38)) : c.height / 2;
   const openR = notch ? 26 : 24;
@@ -120,7 +128,10 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   // open, a little margin around it still counts: brushing its edge does not fold it away
   const openNow = useRef(open);
   openNow.current = open;
+  const anyBots = useRef(false);
+  anyBots.current = bots.length > 0;
   const hit = useCallback((x: number, y: number) => {
+    if (!anyBots.current) return false;
     const grace = openNow.current ? GRACE : 0;
     const half = w.get() / 2 + (notch ? EAR : 0) + 2 + grace;
     return Math.abs(x - stageW / 2) <= half && y >= c.top - 2 && y <= c.top + h.get() + 4 + grace;
@@ -169,7 +180,8 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
 
   return (
-    <div ref={stage} className="amb-stage" data-open={open || undefined} style={{ width: stageW, height: stageH }} onKeyDown={onKeyDown}>
+    // no bots, no island: never an empty panel or a placeholder face (kept laid out but unseen, so it measures itself)
+    <div ref={stage} className="amb-stage" data-open={open || undefined} data-empty={bots.length ? undefined : ""} style={{ width: stageW, height: stageH }} onKeyDown={onKeyDown}>
       {notch && (
         <>
           <motion.div aria-hidden className="amb-ear amb-ear-left" style={{ x: leftEar, width: EAR, height: EAR }} />

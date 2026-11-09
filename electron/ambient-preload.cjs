@@ -9,6 +9,8 @@ const listen = (channel) => (cb) => {
   return () => ipcRenderer.removeListener(channel, handler);
 };
 const word = (value) => (typeof value === "string" ? value.slice(0, 128) : "");
+// OMB_AMBIENT_TRACE (electron/ambient-trace.mjs): the page adds its own side of the timeline, never any message text
+const tracing = process.argv.includes("--omb-ambient-trace=1");
 
 contextBridge.exposeInMainWorld("ambient", {
   surface: surface === "island" || surface === "dock" ? surface : "",
@@ -32,4 +34,5 @@ contextBridge.exposeInMainWorld("ambient", {
   seen: (keys) => ipcRenderer.send("ambient:seen", Array.isArray(keys) ? keys.slice(0, 50).map((key) => (typeof key === "string" ? key.slice(0, 160) : "")) : []),
   onSeen: listen("ambient:seen"),
   ready: () => ipcRenderer.send("ambient:ready"),
+  ...(tracing ? { trace: (event, detail) => ipcRenderer.send("ambient:trace", { event: word(event), detail: typeof detail === "string" ? detail.slice(0, 200) : "", t: Date.now() }) } : {}),
 });

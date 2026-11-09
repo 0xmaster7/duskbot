@@ -101,6 +101,8 @@ export interface AmbientBridge {
   typing?(on: boolean): void;
   /** The surface has finished closing (absent on an older app). */
   settled?(): void;
+  /** Present only while main traces the surfaces (OMB_AMBIENT_TRACE): one event of this page's side of the timeline. */
+  trace?(event: string, detail?: string): void;
   open(botId: string, threadId: string): void;
   act(act: AmbientAct): void;
   order(ids: string[]): void;

@@ -4,6 +4,7 @@
 import { pickDisplay } from "./ambient-geometry.mjs";
 import { watchStill } from "./ambient-still.mjs";
 import { createChatFiller } from "./ambient-chats.mjs";
+import { createTrace, traceFolder, traceWanted } from "./ambient-trace.mjs";
 import { applyPrefsChange, parseAct, parsePrefs, parseSnapshot, seenKeys } from "./ambient-state.mjs";
 import { createDockWindow } from "./dock-window.mjs";
 import { createIslandWindow } from "./island-window.mjs";
@@ -22,7 +23,7 @@ const PAGE = "/ambient.html";
  * the one that carries out the surfaces' asks. `activity`: what tells the surfaces to hold still (ambient-still.mjs).
  * `openChat` gets the origin of the page whose bots the surfaces show: the chat opens in that place, not This computer.
  */
-export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, openChat, reveal, activity = null, platform = process.platform, log = () => {}, readPage = null }) {
+export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, openChat, reveal, activity = null, platform = process.platform, log = () => {}, readPage = null, trace: given = undefined }) {
   let prefs = null, snapshot = null, from = null, screen = null, started = false, follow = null, displayId = null, dockCount = -1, stillness = null;
   const saved = () => (prefs ??= (() => { try { return parsePrefs(file.read(), platform); } catch { return parsePrefs(null, platform); } })());
   const save = next => { prefs = next; try { file.write(next); } catch (error) { log(`ambient prefs not saved: ${error?.message ?? error}`); } };
@@ -54,11 +55,16 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
     }
     if (channel === "ambient:order" && surface === "dock") {
       save(applyPrefsChange(saved(), { order: payload }));
-      relayout();
+      relayout("dock order");
     }
   };
-  const island = createIslandWindow({ BrowserWindow, url: () => address("island"), platform, onMessage: onMessage("island"), log });
-  const dock = createDockWindow({ BrowserWindow, url: () => address("dock"), platform, onMessage: onMessage("dock"), log });
+  // OMB_AMBIENT_TRACE=1 or `trace: true` in the prefs file: a millisecond timeline of both surfaces (ambient-trace.mjs)
+  let rawPrefs = null;
+  try { rawPrefs = file.read(); } catch { /* no prefs yet */ }
+  const trace = given !== undefined ? given : traceWanted(process.env, rawPrefs) ? createTrace({ folder: traceFolder(platform) }) : null;
+  const note = (event, detail) => trace?.("main", event, detail);
+  const island = createIslandWindow({ BrowserWindow, url: () => address("island"), platform, onMessage: onMessage("island"), log, trace });
+  const dock = createDockWindow({ BrowserWindow, url: () => address("dock"), platform, onMessage: onMessage("dock"), log, trace });
 
   const display = () => {
     if (!screen) return null;
@@ -82,12 +88,15 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
     island.send("ambient:seen", seen); dock.send("ambient:seen", seen);
   }
 
-  function relayout() {
+  // the surfaces show bots or nothing: no empty dock or lone "+", no island before the page has said who is there
+  const hasBots = () => Boolean(snapshot?.bots.length);
+  function relayout(reason = "") {
     const on = saved();
-    const target = started && origin() ? display() : null;
+    const target = started && origin() && hasBots() ? display() : null;
+    note("relayout", `${reason} bots=${snapshot?.bots.length ?? "none"} island=${Boolean(on.island && target)} dock=${Boolean(on.dock && target)}`);
     displayId = target?.id ?? null;
     if (on.island && target) island.layout(target, { size: on.size }); else island.close();
-    dockCount = snapshot?.bots.length ?? 0;
+    dockCount = snapshot?.bots.length ?? -1;
     if (on.dock && target) dock.layout(target, { count: dockCount, order: on.order }); else dock.close();
     tellAll();
     // the app's page summarises its bots only while a surface shows them
@@ -99,21 +108,45 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
   function followPointer() {
     const needed = started && screen && saved().display === "active" && (saved().island || saved().dock) && screen.getAllDisplays().length > 1;
     if (!needed) { clearInterval(follow); follow = null; return; }
-    follow ??= setInterval(() => { if (display()?.id !== displayId) relayout(); }, FOLLOW_MS);
+    follow ??= setInterval(() => { if (display()?.id !== displayId) relayout("pointer on another display"); }, FOLLOW_MS);
     follow.unref?.();
   }
 
   const wanted = () => started && (saved().island || saved().dock);
   const view = () => ({ available: true, platform, ...saved(), seen: undefined, displays: screen ? screen.getAllDisplays().map(entry => ({ id: entry.id, internal: entry.internal === true, label: String(entry.label ?? "") })) : [] });
 
+  // the page that publishes going away (reloading, leaving for another place, closing) takes the surfaces with it until a
+  // page says who is there again
+  const watched = new WeakSet();
+  function watchPage(contents) {
+    if (watched.has(contents) || typeof contents.on !== "function") return;
+    watched.add(contents);
+    const forget = (why) => {
+      if (contents !== appPage() && !contents.isDestroyed?.()) return;
+      if (!snapshot) return;
+      snapshot = null;
+      relayout(why);
+    };
+    contents.on("destroyed", () => forget("page gone"));
+    contents.on("render-process-gone", () => forget("page crashed"));
+    contents.on("did-start-navigation", (details, ...rest) => {
+      // electron passes (details) or (event, url, isInPlace, isMainFrame)
+      const mainFrame = typeof details?.isMainFrame === "boolean" ? details.isMainFrame : rest[2];
+      const inPlace = typeof details?.isSameDocument === "boolean" ? details.isSameDocument : rest[1];
+      if (mainFrame && !inPlace) forget("page navigating");
+    });
+  }
+
   ipcMain.on("ambient:publish", (event, raw) => {
     if (event.sender !== appPage()) return;
     const next = parseSnapshot(raw);
     if (!next) return;
+    watchPage(event.sender);
+    const hadBots = hasBots();
     snapshot = next;
     try { from = new URL(event.senderFrame?.url ?? event.sender.getURL()).origin; } catch { from = null; }
     chats.want(next, from);
-    if (next.bots.length !== dockCount && saved().dock) relayout();
+    if (hadBots !== hasBots() || (next.bots.length !== dockCount && saved().dock)) relayout(hadBots !== hasBots() ? "bots arrived or left" : "bot count");
     else tellAll();
   });
   // Settings in whichever place the app's window shows; the preload asks a server's page for the person's click
@@ -125,11 +158,11 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
   ipcMain.handle("ambient:prefs", fromApp("ambient:prefs", () => view()));
   ipcMain.handle("ambient:set", fromApp("ambient:set", change => {
     save(applyPrefsChange(saved(), change));
-    relayout();
+    relayout("settings");
     return view();
   }));
 
-  const changed = () => { try { relayout(); } catch (error) { log(`ambient relayout failed: ${error?.message ?? error}`); } };
+  const changed = (why = "display or server") => { try { relayout(typeof why === "string" ? why : "display or server"); } catch (error) { log(`ambient relayout failed: ${error?.message ?? error}`); } };
   return {
     /** Once the app is ready: `screen` exists only then. */
     start(electronScreen) {
