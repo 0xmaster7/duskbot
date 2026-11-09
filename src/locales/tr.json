@@ -5144,5 +5144,7 @@
   "mobile.onboarding.linkShort": "Bilgisayarında {app} uygulamasını aç ve Ayarlar › Phone bölümündeki kodu tara.",
   "mobile.onboarding.pasteInstead": "Bunun yerine bağlantı yapıştır",
   "mobile.home.onlyPinnedTitle": "Diğer sohbetlerin burada görünür",
-  "mobile.home.onlyPinnedBody": "E-postalar, araştırma veya bir proje gibi bir iş için bot oluştur. Sohbeti bu listede görünür."
+  "mobile.home.onlyPinnedBody": "E-postalar, araştırma veya bir proje gibi bir iş için bot oluştur. Sohbeti bu listede görünür.",
+  "botPanel.memory.forgotten": "Not unutuldu",
+  "botPanel.memory.undoFailed": "Hafıza o zamandan beri değişti, bu yüzden not geri getirilemedi."
 }

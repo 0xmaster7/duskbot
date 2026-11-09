@@ -3305,6 +3305,8 @@
   "botPanel.memory.off": "꺼짐",
   "botPanel.memory.intro": "{name}이(가) 알아서 정리해요. 누르면 삭제돼요.",
   "botPanel.memory.forget": "잊기",
+  "botPanel.memory.forgotten": "메모를 잊었습니다",
+  "botPanel.memory.undoFailed": "그 사이 메모리가 바뀌어 메모를 되돌리지 못했습니다.",
   "botPanel.memory.empty": "아직 기억하는 것이 없어요.",
   "botPanel.memory.addPlaceholder": "{name}에게 기억할 것을 알려 주세요",
   "botPanel.skills.remove": "{name} 제거",

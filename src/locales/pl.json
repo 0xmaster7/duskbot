@@ -3069,6 +3069,8 @@
   "botPanel.memory.off": "Wyłączona",
   "botPanel.memory.intro": "{name} utrzymuje je w porządku samodzielnie. Dotknij jednej, aby ją usunąć.",
   "botPanel.memory.forget": "Zapomnij",
+  "botPanel.memory.forgotten": "Notatka zapomniana",
+  "botPanel.memory.undoFailed": "Pamięć zmieniła się w międzyczasie, więc notatka nie mogła wrócić.",
   "botPanel.memory.empty": "Nic jeszcze nie zapamiętano.",
   "botPanel.memory.addPlaceholder": "Co {name} ma zapamiętać",
   "botPanel.skills.remove": "Usuń: {name}",

@@ -3779,6 +3779,8 @@
   "botPanel.memory.off": "Off",
   "botPanel.memory.intro": "{name} keeps these tidy on its own. Tap one to remove it.",
   "botPanel.memory.forget": "Forget",
+  "botPanel.memory.forgotten": "Note forgotten",
+  "botPanel.memory.undoFailed": "Memory changed since, so the note couldn't come back.",
   "botPanel.memory.empty": "Nothing remembered yet.",
   "botPanel.memory.addPlaceholder": "Tell {name} something to remember",
   "botPanel.skills.remove": "Remove {name}",

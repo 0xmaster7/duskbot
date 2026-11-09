@@ -3329,5 +3329,7 @@
   "mobile.onboarding.linkShort": "Öffne {app} auf deinem Computer und scanne den Code unter Einstellungen › Phone.",
   "mobile.onboarding.pasteInstead": "Stattdessen einen Link einfügen",
   "mobile.home.onlyPinnedTitle": "Deine anderen Chats erscheinen hier",
-  "mobile.home.onlyPinnedBody": "Erstelle einen Bot für eine Aufgabe wie E-Mails, Recherche oder ein Projekt. Sein Chat erscheint dann in dieser Liste."
+  "mobile.home.onlyPinnedBody": "Erstelle einen Bot für eine Aufgabe wie E-Mails, Recherche oder ein Projekt. Sein Chat erscheint dann in dieser Liste.",
+  "botPanel.memory.forgotten": "Notiz vergessen",
+  "botPanel.memory.undoFailed": "Das Gedächtnis hat sich seitdem geändert, daher konnte die Notiz nicht zurückkommen."
 }

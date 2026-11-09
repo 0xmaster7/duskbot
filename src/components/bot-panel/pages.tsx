@@ -19,6 +19,7 @@ import { ApiPage, BackupsPage, InstructionsPage, SettingsPage, ThreadsPage } fro
 import { LibraryPage } from "./LibraryTab";
 import type { SimplePageId } from "./page-registry";
 import { BotSwitch, buttonCls, Card, fieldCls, LinkRow, NoteRow, RadioRow, rowCls, SwitchRow, TextRow, TrashButton } from "./rows";
+import { ForgetUndoToast } from "./modals/MemoryModal";
 import { useMemoryEditor } from "./modals/use-memory-editor";
 import { useSkillActions } from "./modals/use-skill-actions";
 
@@ -89,7 +90,8 @@ export function RoutinesPage({ bot }: PageContext) {
 }
 
 export function MemoryPage({ bot }: PageContext) {
-  const { memoryOn, readError, notes, index, draft, setDraft, saving, error, forget, add } = useMemoryEditor(bot);
+  const editor = useMemoryEditor(bot);
+  const { memoryOn, readError, notes, index, draft, setDraft, saving, error, forget, add } = editor;
 
   return (
     <>
@@ -124,6 +126,7 @@ export function MemoryPage({ bot }: PageContext) {
           />
         </Card>
       )}
+      <ForgetUndoToast editor={editor} />
     </>
   );
 }

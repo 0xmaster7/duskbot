@@ -5621,5 +5621,7 @@
   "mobile.onboarding.linkShort": "Abre {app} en tu ordenador y escanea el código en Ajustes › Phone.",
   "mobile.onboarding.pasteInstead": "Pegar un enlace en su lugar",
   "mobile.home.onlyPinnedTitle": "Tus otros chats aparecen aquí",
-  "mobile.home.onlyPinnedBody": "Crea un bot para una tarea, como revisar el correo, investigar o trabajar en un proyecto, y su chat aparecerá en esta lista."
+  "mobile.home.onlyPinnedBody": "Crea un bot para una tarea, como revisar el correo, investigar o trabajar en un proyecto, y su chat aparecerá en esta lista.",
+  "botPanel.memory.forgotten": "Nota olvidada",
+  "botPanel.memory.undoFailed": "La memoria cambió desde entonces, así que la nota no pudo volver."
 }

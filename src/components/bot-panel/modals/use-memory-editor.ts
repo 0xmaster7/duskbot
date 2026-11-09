@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { t } from "@/lib/i18n";
-import { deleteMemoryDoc, MEMORY_INDEX, saveMemoryDoc, type MemoryDoc } from "@/lib/memory";
+import { deleteMemoryDoc, fetchMemoryDoc, MEMORY_INDEX, saveMemoryDoc, type MemoryDoc } from "@/lib/memory";
 import type { Bot } from "@/state/store";
 import { panelMemoryNotes, withMemoryNote, withoutMemoryNote, type PanelMemoryNote } from "../memory-notes";
 import { useMemoryDoc } from "../use-memory-doc";
@@ -34,23 +34,37 @@ export function useMemoryEditor(bot: Bot) {
       setSaving(false);
     }
   };
-  const write = (doc: MemoryDoc, text: string) => change(async () => {
+  const [forgotten, setForgotten] = useState<{ id: number; restore: () => Promise<void> } | null>(null);
+  const write = (doc: MemoryDoc, text: string, onSaved?: (saved: MemoryDoc) => void) => change(async () => {
     const result = await saveMemoryDoc(bot.id, doc.path, text, doc.exists ? doc.hash : undefined, memory.mine);
     if (result.ok) {
       memory.setDoc(result.doc);
+      onSaved?.(result.doc);
       return true;
     }
     await memory.reload();
     setError(t("memory.conflict.title", { name: bot.name }));
     return false;
   });
+  // undo writes the old text back only over the exact version the forget left, so a note saved since is never lost
+  const restoreOver = async (doc: MemoryDoc, expectedHash: string) => {
+    const result = await saveMemoryDoc(bot.id, doc.path, doc.text, expectedHash, memory.mine);
+    await memory.reload();
+    if (!result.ok) throw new Error("memory changed since");
+  };
   const forget = (note: PanelMemoryNote) => {
     const doc = memory.docs?.find((candidate) => candidate.path === note.path);
     if (!doc) return;
-    if (note.line !== null) void write(doc, withoutMemoryNote(doc.text, note.line));
+    const forgot = (restore: () => Promise<void>) => setForgotten((last) => ({ id: (last?.id ?? 0) + 1, restore }));
+    if (note.line !== null) void write(doc, withoutMemoryNote(doc.text, note.line), (saved) => forgot(() => restoreOver(doc, saved.hash)));
     else void change(async () => {
       await deleteMemoryDoc(bot.id, doc.path, memory.mine);
       await memory.reload();
+      forgot(async () => {
+        const now = await fetchMemoryDoc(bot.id, doc.path, memory.mine);
+        if (now.exists) throw new Error("memory changed since");
+        await restoreOver(doc, now.hash);
+      });
       return true;
     });
   };
@@ -59,5 +73,6 @@ export function useMemoryEditor(bot: Bot) {
     if (await write(index, withMemoryNote(index.text, draft))) setDraft("");
   };
 
-  return { memoryOn, readError: memory.error, notes, index, draft, setDraft, saving, error, forget, add };
+  const settleForgotten = () => setForgotten(null);
+  return { memoryOn, readError: memory.error, notes, index, draft, setDraft, saving, error, forget, add, forgotten, settleForgotten };
 }

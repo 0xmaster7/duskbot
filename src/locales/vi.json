@@ -5144,5 +5144,7 @@
   "mobile.onboarding.linkShort": "Mở {app} trên máy tính và quét mã trong Cài đặt › Phone.",
   "mobile.onboarding.pasteInstead": "Thay vào đó, dán liên kết",
   "mobile.home.onlyPinnedTitle": "Các cuộc trò chuyện khác của bạn sẽ hiện ở đây",
-  "mobile.home.onlyPinnedBody": "Tạo bot cho một công việc như xử lý email, nghiên cứu hoặc làm dự án, rồi cuộc trò chuyện với bot sẽ hiện trong danh sách này."
+  "mobile.home.onlyPinnedBody": "Tạo bot cho một công việc như xử lý email, nghiên cứu hoặc làm dự án, rồi cuộc trò chuyện với bot sẽ hiện trong danh sách này.",
+  "botPanel.memory.forgotten": "Đã quên ghi chú",
+  "botPanel.memory.undoFailed": "Bộ nhớ đã thay đổi từ lúc đó nên không thể khôi phục ghi chú."
 }

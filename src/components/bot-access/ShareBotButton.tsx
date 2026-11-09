@@ -35,10 +35,14 @@ export function ShareBotButton({ bot, className, headerMenu, iconSize = 16 }: { 
 }
 
 /** "Bob can now chat · Undo", Grok's undo toast; Undo puts the sharing back as it was. */
-export function UndoToast({ text, onUndo, onDone }: { text: string; onUndo: () => Promise<unknown>; onDone: () => void }) {
+export function UndoToast({ text, onUndo, onDone, failedText, timeoutMs }: {
+  text: string; onUndo: () => Promise<unknown>; onDone: () => void;
+  failedText?: string;
+  timeoutMs?: number;
+}) {
   const [failed, setFailed] = useState(false);
   const [undoing, setUndoing] = useState(false);
-  return <Toast data-access-toast="" text={failed ? t("botAccess.undoFailed") : text} tone={failed ? "error" : "done"} onDone={onDone}
+  return <Toast data-access-toast="" text={failed ? failedText ?? t("botAccess.undoFailed") : text} tone={failed ? "error" : "done"} onDone={onDone} timeoutMs={timeoutMs}
     action={failed ? undefined : { label: t("common.undo"), disabled: undoing, onClick: () => {
       setUndoing(true);
       void onUndo().then(onDone, () => setFailed(true)).finally(() => setUndoing(false));

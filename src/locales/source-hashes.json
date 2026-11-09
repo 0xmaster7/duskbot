@@ -3332,7 +3332,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8957,7 +8959,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12213,7 +12217,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -15466,7 +15472,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -21489,7 +21497,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -27703,7 +27713,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -34307,7 +34319,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40496,7 +40510,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -46553,7 +46569,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -52749,7 +52767,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -57897,7 +57917,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -61455,7 +61477,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -66603,7 +66627,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -73380,7 +73406,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -78078,7 +78106,9 @@
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
-      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110",
+      "botPanel.memory.forgotten": "82bf0f29db2f5abd95cf0269dd9a4855d5d1c10275606f0de2cfd34fda7ba6f4",
+      "botPanel.memory.undoFailed": "ed23c3f8d47d38fbab9d40493077c8fd3f1aac1ccf223c55592fa9b03599ed69"
     }
   }
 }

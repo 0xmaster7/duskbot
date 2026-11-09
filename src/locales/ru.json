@@ -3098,6 +3098,8 @@
   "botPanel.memory.off": "Выключено",
   "botPanel.memory.intro": "{name} поддерживает порядок в них сам. Нажмите на заметку, чтобы удалить её.",
   "botPanel.memory.forget": "Забыть",
+  "botPanel.memory.forgotten": "Заметка забыта",
+  "botPanel.memory.undoFailed": "Память с тех пор изменилась, поэтому заметку не удалось вернуть.",
   "botPanel.memory.empty": "Пока ничего не запомнено.",
   "botPanel.memory.addPlaceholder": "Скажите {name}, что нужно запомнить",
   "botPanel.skills.remove": "Удалить {name}",

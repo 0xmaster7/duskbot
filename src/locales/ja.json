@@ -3125,6 +3125,8 @@
   "botPanel.memory.off": "オフ",
   "botPanel.memory.intro": "{name} が自動で整理します。削除するにはタップしてください。",
   "botPanel.memory.forget": "忘れさせる",
+  "botPanel.memory.forgotten": "メモを削除しました",
+  "botPanel.memory.undoFailed": "その後メモリーが変更されたため、メモを戻せませんでした。",
   "botPanel.memory.empty": "記憶していることはまだありません。",
   "botPanel.memory.addPlaceholder": "{name} に覚えてほしいことを伝える",
   "botPanel.skills.remove": "{name} を削除",
