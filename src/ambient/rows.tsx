@@ -178,7 +178,8 @@ export function BotRow({ bot: given, labels, lang, now, side, open, sent, mascot
       <button type="button" className="amb-row-main" tabIndex={side === "dock" ? -1 : 0} aria-label={label} aria-expanded={opensInPlace(side) ? hideTray : undefined} onClick={onOpen}>
         <span className="amb-row-top">
           <span className="amb-row-name">{bot.name}</span>
-          {side === "island" && !sent && <span className="amb-row-state" data-status={bot.status}>{say(labels, bot.status)}</span>}
+          {/* the earlier tag: a dot in the state's colour and a word; a resting bot stays quiet */}
+          {side === "island" && !sent && bot.status !== "idle" && <span className="amb-row-state" data-status={bot.status}><span className="amb-dot" aria-hidden />{say(labels, bot.status)}</span>}
           {bot.unread && bot.status === "done" && <span className="amb-unread" aria-hidden />}
           {time && <span className="amb-row-time">{time}</span>}
         </span>

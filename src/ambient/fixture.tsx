@@ -101,7 +101,7 @@ function fakeBridge(surface: "island" | "dock", scene: string): AmbientBridge {
     onState: (cb) => { states.add(cb); return () => { states.delete(cb); }; },
     onLayout: (cb) => { layouts.add(cb); return () => { layouts.delete(cb); }; },
     pointer: (on) => { document.documentElement.dataset.pointer = String(on); },
-    open: (botId) => log("open", botId),
+    open: (botId) => { log("open", botId); document.documentElement.dataset.lastOpen = botId; },
     act: (act) => { log("act", JSON.stringify(act)); document.documentElement.dataset.lastAct = JSON.stringify(act); },
     order: (ids) => log("order", ids),
     ready: () => queueMicrotask(() => {

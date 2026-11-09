@@ -3,11 +3,11 @@
 // the real chat. The dock's card and an opened row of the island both show it.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Check, CircleAlert, ExternalLink, Square, X } from "lucide-react";
+import { Check, CircleAlert, Square, X } from "lucide-react";
 import { isBusy, shortAgo } from "./mood";
 import { Reveal, TextField, rowLine, trayFor } from "./rows";
 import { say, type AmbientLabels } from "./say";
-import { FADE, SETTLE } from "./shared";
+import { BotMark, FADE, SETTLE } from "./shared";
 import type { AmbientAct, AmbientBot } from "./types";
 
 /** The message list stops growing at this height and scrolls. */
@@ -55,9 +55,11 @@ export function MiniChat({ bot, labels, lang, now, sent, fresh, onAct, onOpen, o
   return (
     <div className="amb-chat" data-status={bot.status}>
       <header className="amb-chat-head">
-        <button type="button" className="amb-chat-name" onClick={onOpen} aria-label={say(labels, "open", { name: bot.name })}>
-          <span className="amb-row-name">{bot.name}</span>
+        {/* only the bot itself opens its chat in the app; the rest of the card is for reading and answering here */}
+        <button type="button" className="amb-chat-mascot" onClick={onOpen} aria-label={say(labels, "open", { name: bot.name })} title={say(labels, "openShort")}>
+          <BotMark bot={bot} size={22} animated awake={false} />
         </button>
+        <span className="amb-row-name">{bot.name}</span>
         {status && <span className="amb-chat-status" data-status={bot.status}>{sent && <Check size={11} strokeWidth={2.25} aria-hidden />}{status}</span>}
         {time && <span className="amb-row-time">{time}</span>}
         <span className="amb-chat-tools">
@@ -71,9 +73,6 @@ export function MiniChat({ bot, labels, lang, now, sent, fresh, onAct, onOpen, o
               <X size={13} strokeWidth={1.75} aria-hidden />
             </button>
           )}
-          <button type="button" className="amb-icon" aria-label={say(labels, "open", { name: bot.name })} title={say(labels, "openShort")} onClick={onOpen}>
-            <ExternalLink size={13} strokeWidth={1.75} aria-hidden />
-          </button>
         </span>
       </header>
       {(chat.length > 0 || doing || failed) && (
@@ -85,8 +84,6 @@ export function MiniChat({ bot, labels, lang, now, sent, fresh, onAct, onOpen, o
           aria-label={bot.name}
           // the chat itself opens the full chat, unless the person was selecting its words
           tabIndex={0}
-          onClick={() => { if (!window.getSelection()?.toString()) onOpen(); }}
-          onKeyDown={(event) => { if (event.key === "Enter") onOpen(); }}
           onScroll={(event) => {
             const node = event.currentTarget;
             pinnedToEnd.current = node.scrollHeight - node.scrollTop - node.clientHeight < 8;

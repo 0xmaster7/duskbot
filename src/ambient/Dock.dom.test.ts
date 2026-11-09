@@ -128,41 +128,49 @@ it("shows the hovered bot's recent chat, even an idle one's, and a reply sent th
   await unmount();
 });
 
-it("closes gently: the card stays through a short slip off it, and goes only after the leave delay", async () => {
+it("forgives a slip of the pointer: off the bots and straight back, the card stays", async () => {
   const { host, hover, unmount } = await mount([bot("Ada", { chat: [{ id: "m1", from: "bot", text: "Hi", at: 1 }] })]);
   await hover("Ada");
   await wait(DWELL_MS + 60);
   const card = host.querySelector(".amb-card")!;
-  expect(card.getAttribute("data-card")).toBe("Ada");
-  // off the bots (to the plus, say) and straight back: nothing closes
   await act(async () => host.querySelector(".amb-dock-list")!.dispatchEvent(new PointerEvent("pointerout", { bubbles: true })));
-  await wait(CARD_LEAVE_MS / 2);
+  await wait(CARD_LEAVE_MS / 3);
   await hover("Ada");
-  await wait(CARD_LEAVE_MS);
+  await wait(CARD_LEAVE_MS + 40);
   expect(card.getAttribute("data-card")).toBe("Ada");
-  // gone for good: the card waits out the delay, then goes
-  await act(async () => host.querySelector(".amb-dock-list")!.dispatchEvent(new PointerEvent("pointerout", { bubbles: true })));
-  await wait(CARD_LEAVE_MS - 120);
-  expect(card.getAttribute("data-card")).toBe("Ada");
-  await wait(200);
-  expect(card.getAttribute("data-card")).toBeNull();
   await unmount();
 });
 
-it("opens the chat from the card itself (its name or its messages), and tells main once it has finished closing", async () => {
-  const { host, opened, settledCount, hover, unmount } = await mount([bot("Ada", { chat: [{ id: "m1", from: "bot", text: "Paid on Saturday.", at: 1 }] })]);
+it("opens the app only from a bot's mascot: never from the card's words, messages or name", async () => {
+  const { host, cell, opened, hover, unmount } = await mount([bot("Ada", { chat: [{ id: "m1", from: "bot", text: "Paid on Saturday.", at: 1 }] })]);
   await hover("Ada");
   await wait(DWELL_MS + 60);
   const card = host.querySelector(".amb-card")!;
-  await act(async () => card.querySelector<HTMLButtonElement>(".amb-chat-name")!.click());
   await act(async () => card.querySelector<HTMLElement>(".amb-chat-list")!.click());
-  await act(async () => card.querySelector<HTMLButtonElement>('[aria-label="Open the chat with Ada"], .amb-chat-tools .amb-icon:last-child')!.click());
-  expect(opened).toEqual(["Ada", "Ada", "Ada"]);
+  await act(async () => card.querySelector<HTMLElement>(".amb-bubble-msg")!.click());
+  await act(async () => card.querySelector<HTMLElement>(".amb-chat-head .amb-row-name")!.click());
+  await act(async () => card.querySelector<HTMLElement>(".amb-chat-compose .amb-reply-input")!.click());
+  expect(opened).toEqual([]);
+  await act(async () => card.querySelector<HTMLButtonElement>(".amb-chat-mascot")!.click());
+  await act(async () => cell("Ada").querySelector<HTMLButtonElement>(".amb-dock-bot")!.click());
+  expect(opened).toEqual(["Ada", "Ada"]);
+  await unmount();
+});
+
+it("on the way out the card goes almost at once, and the column only a good while later, then main is told", async () => {
+  const { host, settledCount, hover, unmount } = await mount([bot("Ada", { chat: [{ id: "m1", from: "bot", text: "Hi", at: 1 }] })]);
+  await hover("Ada");
+  await wait(DWELL_MS + 60);
+  const card = host.querySelector(".amb-card")!;
+  const dock = host.querySelector(".amb-dock")!;
   const before = settledCount();
-  // the pointer leaves the dock: the card, then the column, play out, and only then is main told
   await act(async () => host.querySelector(".amb-dock-list")!.dispatchEvent(new PointerEvent("pointerout", { bubbles: true })));
   await act(async () => { document.dispatchEvent(new MouseEvent("mousemove", { clientX: 10, clientY: 10 })); });
-  await wait(HIDE_MS);
+  await wait(CARD_LEAVE_MS + 40);
+  expect(card.getAttribute("data-card")).toBeNull();
+  expect(dock.hasAttribute("data-hidden")).toBe(false);
+  await wait(HIDE_MS - CARD_LEAVE_MS);
+  expect(dock.hasAttribute("data-hidden")).toBe(true);
   expect(settledCount()).toBe(before);
   await wait(SETTLED_MS + 80);
   expect(settledCount()).toBeGreaterThan(before);

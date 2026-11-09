@@ -11,15 +11,15 @@ import { MiniChat } from "./MiniChat";
 import { useRowMoments } from "./rows";
 import { LOOK_MS, attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, SOFT_EASE, SOFT_EXIT, useAllClear, useSettledSignal, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, SOFT_EXIT, useAllClear, useSettledSignal, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, DockLayout } from "./types";
 
 /** How near the right edge the pointer has to be, beside the body, to bring the dock in. */
 const EDGE = 14;
-/** The card waits this long after the pointer leaves the bots and the card before it goes, and the column a little
- * longer, so the card is on its way out first and slipping off either for a moment changes nothing. */
-export const CARD_LEAVE_MS = 300;
-export const HIDE_MS = 380;
+/** Off the bots and the card, the card goes almost at once (a slip of the pointer is forgiven); the column follows a
+ * good while later, so the two never vanish together. */
+export const CARD_LEAVE_MS = 90;
+export const HIDE_MS = 520;
 /** This much around the card and the column still counts as on them, so heading back never closes anything. */
 const GRACE = 16;
 /** The first card of a visit waits for intent: resting on a bot this long, or moving this far on the column. */
@@ -31,11 +31,11 @@ const RADIUS = 22;
 export const CARD_W = 304;
 const CARD_GAP = 10;
 const CARD_MARGIN = 8;
-/** The card leaves gently: its words fade first, the card follows them out quickly (never an empty box hanging there)
- * while it eases away, a touch smaller, on a longer clock. */
-const CARD_OUT = { duration: 0.32, ease: SOFT_EASE } as const;
-const CARD_FADE_OUT = { duration: 0.2, ease: EASE_OUT, delay: 0.04 } as const;
-const WORDS_OUT = { duration: 0.14, ease: EASE_OUT } as const;
+/** The card leaves quickly and smoothly, words and all: a fade with a touch of scale and drift. */
+const CARD_OUT = { duration: 0.14, ease: EASE_OUT } as const;
+/** Moving from bot to bot, the words swap fast through a blur while the card glides. */
+const SWAP_IN = { duration: 0.14, ease: EASE_OUT } as const;
+const SWAP_OUT = { duration: 0.08, ease: EASE_OUT } as const;
 // one empty list for "nothing yet": a fresh [] each render would rerun the order effect forever
 const NONE: readonly never[] = [];
 const FALLBACK_DOCK: DockLayout["dock"] = { cell: 56, tile: 36, column: 64, open: 404, pad: 8, ear: 18, sliver: 6, margin: 28, overhang: 4 };
@@ -338,20 +338,20 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
         initial={false}
         animate={cardShown
           ? { opacity: 1, scale: 1, x: 0, y: cardY, height: cardH }
-          : { opacity: 0, scale: reduced ? 1 : 0.96, x: reduced ? 0 : 10, y: cardY, height: cardH }}
+          : { opacity: 0, scale: reduced ? 1 : 0.97, x: reduced ? 0 : 6, y: cardY, height: cardH }}
         transition={cardShown
           ? { opacity: FADE, scale: glide === SETTLE ? SETTLE : LIVELY, x: SETTLE, y: glide, height: glide }
-          : { opacity: CARD_FADE_OUT, scale: CARD_OUT, x: CARD_OUT, y: { duration: 0 }, height: { duration: 0 } }}
+          : { opacity: CARD_OUT, scale: CARD_OUT, x: CARD_OUT, y: { duration: 0 }, height: { duration: 0 } }}
       >
-        <motion.div ref={cardInner} className="amb-card-inner" initial={false} animate={{ opacity: cardShown ? 1 : 0 }} transition={cardShown ? FADE : WORDS_OUT}>
+        <div ref={cardInner} className="amb-card-inner">
           <AnimatePresence initial={false} mode="popLayout">
             {cardBot && (
               <motion.div
                 key={cardBot.id}
                 className="amb-card-page"
-                initial={{ opacity: 0, filter: "blur(2px)" }}
-                animate={{ opacity: 1, filter: "blur(0px)", transition: FADE }}
-                exit={{ opacity: 0, filter: "blur(2px)", transition: FADE_OUT }}
+                initial={reduced ? { opacity: 0 } : { opacity: 0, filter: "blur(4px)" }}
+                animate={{ opacity: 1, filter: "blur(0px)", transition: SWAP_IN }}
+                exit={reduced ? { opacity: 0, transition: SWAP_OUT } : { opacity: 0, filter: "blur(4px)", transition: SWAP_OUT }}
               >
                 <MiniChat
                   bot={cardBot}
@@ -368,7 +368,7 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
       </motion.div>
     </div>
   );

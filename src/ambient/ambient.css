@@ -88,10 +88,14 @@
 .amb-row-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .amb-row-name { font-size: 13px; line-height: 18px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* a row's state in one or two words, next to its name */
-.amb-row-state { font-size: 11px; line-height: 16px; color: var(--amb-ink-3); white-space: nowrap; }
+.amb-row-state { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; line-height: 16px; color: var(--amb-ink-3); white-space: nowrap; }
+.amb-row-state[data-status="needs-you"] > .amb-dot { background: var(--amb-blue); }
+.amb-row-state[data-status="error"] > .amb-dot { background: var(--amb-bad); }
+.amb-row-state[data-status="done"] > .amb-dot { background: var(--amb-ok); }
+.amb-row-state:is([data-status="working"], [data-status="thinking"], [data-status="talking"]) > .amb-dot { background: var(--amb-ink); }
 .amb-row-state[data-status="needs-you"] { color: var(--amb-blue); }
 .amb-row-state[data-status="error"] { color: var(--amb-bad-ink); }
-.amb-row-state[data-status="done"] { color: var(--amb-ok); }
+.amb-row-state[data-status="done"] { color: var(--amb-ink-2); }
 .amb-row-state:is([data-status="working"], [data-status="thinking"], [data-status="talking"]) { color: var(--amb-ink-2); }
 .amb-unread { width: 6px; height: 6px; border-radius: 50%; background: var(--amb-ink); flex-shrink: 0; }
 .amb-row-time { margin-inline-start: auto; font-size: 11px; line-height: 16px; color: var(--amb-ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -120,7 +124,10 @@
 
 .amb-row[data-side="island"] { grid-template-columns: 46px minmax(0, 1fr) auto; grid-template-areas: "mark main actions" ". tray tray"; }
 .amb-row[data-side="island"] .amb-row-main { grid-column: 1 / 3; grid-row: 1; padding-inline-start: 50px; }
-.amb-row[data-side="island"] .amb-row-mark { grid-area: mark; z-index: 1; pointer-events: none; }
+.amb-row[data-side="island"] .amb-row-mark { grid-area: mark; z-index: 1; }
+/* a row's mascot opens its chat in the app; the row itself opens the mini chat here */
+.amb-row-open { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: none; transition: transform 200ms var(--amb-ease-out); }
+.amb-row-open:active { transform: scale(0.94); }
 .amb-row[data-side="island"] .amb-row-actions { grid-area: actions; padding-inline-end: 6px; }
 .amb-row[data-side="island"] .amb-tray-wrap { grid-area: tray; }
 .amb-row[data-side="island"] .amb-tray { padding: 0 8px 10px 4px; }
@@ -146,7 +153,7 @@
   display: flex; align-items: center; gap: 6px; padding: 3px 3px 3px 12px;
   border-radius: 999px; background: var(--amb-raised); box-shadow: inset 0 0 0 0.5px var(--amb-hair); transition: box-shadow var(--amb-fast) ease;
 }
-.amb-reply:focus-within { box-shadow: inset 0 0 0 1px rgb(245 245 245 / 0.28); }
+/* focused, the field looks the same: the caret is enough */
 .amb-reply-input { flex: 1; min-width: 0; height: 26px; padding: 0; border: 0; outline: none; background: none; color: var(--amb-ink); font: inherit; font-size: 13px; user-select: text; }
 .amb-reply-input::placeholder { color: var(--amb-ink-3); }
 .amb-send { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: var(--amb-ink); color: var(--amb-panel); transition: background-color var(--amb-fast) ease, transform var(--amb-fast) var(--amb-ease-out); }
@@ -182,9 +189,10 @@
 }
 .amb-dock:not([data-hidden]) .amb-pip { animation: amb-pip 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
 @keyframes amb-pip { 50% { opacity: 0.35; } }
-.amb-chat-name { padding: 0; border: 0; background: none; min-width: 0; text-align: start; }
-.amb-chat-name:hover .amb-row-name { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgb(245 245 245 / 0.35); }
-.amb-chat-list { cursor: pointer; }
+/* the bot's mascot in a chat's header: the one way from here into the app */
+.amb-chat-mascot { display: grid; place-items: center; width: 28px; height: 28px; margin-inline-start: -4px; padding: 0; border: 0; border-radius: 50%; background: none; transition: transform 200ms var(--amb-ease-out); }
+.amb-chat-mascot:active { transform: scale(0.94); }
+.amb-chat-list { cursor: auto; }
 .amb-chat-list:focus-visible { outline-offset: -2px; border-radius: 10px; }
 .amb-dock-bot:focus-visible { outline-offset: -2px; }
 .amb-dock-mark { display: grid; place-items: center; }
@@ -260,6 +268,7 @@
   .amb-shelf-bot:hover .amb-shelf-name { color: var(--amb-ink-2); }
   .amb-dock-plus:hover { color: var(--amb-ink); background: var(--amb-raised-hover); }
   .amb-dock-bot:hover .amb-lift { transform: translateY(-1px) scale(1.06); }
+  .amb-chat-mascot:hover, .amb-row-open:hover { transform: translateY(-1px) scale(1.08); }
   .amb-back:hover { background: var(--amb-raised); color: var(--amb-ink); }
 }
 @media (prefers-reduced-motion: reduce) {
