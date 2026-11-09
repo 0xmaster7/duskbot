@@ -305,21 +305,30 @@ describe("push registration", () => {
     const { record, token } = await redeemPairing(pairingFromPayload(v2Payload()), platform);
     await createConnectionStore(platform).save(record, token);
     platform.registerPush = vi.fn().mockResolvedValue({ platform: "apns", token: "push-device-token" });
-    const fetcher = vi.fn().mockResolvedValue(response({ ok: true }));
+    const registered = { push: "apns" as string | null };
+    const fetcher = vi.fn(async (path: string) => response(path === "/api/mobile/device" ? { device: { push: registered.push } } : { ok: true }));
     vi.stubGlobal("fetch", fetcher);
-    return { platform, preferences, record, fetcher };
+    return { platform, preferences, record, fetcher, registered };
   }
+  const puts = (fetcher: ReturnType<typeof vi.fn>) => fetcher.mock.calls.filter(([path]) => path === "/api/mobile/push");
 
   it("registers APNs through the installed fetch once per connection and token", async () => {
     const { platform, fetcher } = await fixture();
     await Promise.all([registerPushForConnection(platform), registerPushForConnection(platform)]);
     await registerPushForConnection(platform);
-    expect(fetcher).toHaveBeenCalledOnce();
-    expect(fetcher.mock.calls[0][0]).toBe("/api/mobile/push");
-    expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({ service: "apns", token: "push-device-token", environment: "sandbox" });
+    expect(puts(fetcher)).toHaveLength(1);
+    expect(JSON.parse(puts(fetcher)[0][1].body)).toEqual({ service: "apns", token: "push-device-token", environment: "sandbox" });
     platform.registerPush = vi.fn().mockResolvedValue({ platform: "fcm", token: "new-token" });
     await registerPushForConnection(platform);
-    expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ service: "fcm", token: "new-token" });
+    expect(JSON.parse(puts(fetcher)[1][1].body)).toEqual({ service: "fcm", token: "new-token" });
+  });
+
+  it("registers again when the workspace dropped the token", async () => {
+    const { platform, fetcher, registered } = await fixture();
+    await registerPushForConnection(platform);
+    registered.push = null;
+    await registerPushForConnection(platform);
+    expect(puts(fetcher)).toHaveLength(2);
   });
 
   it("ignores failures, retries rejected registration and skips web", async () => {
@@ -328,9 +337,9 @@ describe("push registration", () => {
     await expect(registerPushForConnection(platform)).resolves.toBeUndefined();
     expect(preferences.has(`omb.mobile.push.${record.id}`)).toBe(false);
     await registerPushForConnection(platform);
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(puts(fetcher)).toHaveLength(2);
     platform.native = false;
     await registerPushForConnection(platform);
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(puts(fetcher)).toHaveLength(2);
   });
 });

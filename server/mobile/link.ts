@@ -29,7 +29,8 @@ import type { NotificationLogEntry } from "../../shared/notification.ts";
 import { labelFromUserAgent, ownerOrAdmin, requestSource, type RequestAuth } from "../request-auth.ts";
 import { formatPairingCode, type Scope, type SessionRegistry } from "../sessions.ts";
 import { postLookup } from "./lookup.ts";
-import { createPushSender, type PushMessage, type PushSender } from "./push.ts";
+import { createPhonePresence } from "./presence.ts";
+import { createPushSender, pushRelayBase, type PushMessage, type PushSender } from "./push.ts";
 
 const B32 = "abcdefghijklmnopqrstuvwxyz234567";
 const B64URL_KEY = /^[A-Za-z0-9_-]{43}$/;
@@ -39,6 +40,8 @@ const AGENT_LIVE_MS = 40_000;
 const APPLY_WAIT_MS = 5000;
 const SYNC_WAIT_MAX_S = 25;
 const MAX_DEVICES = 24;
+/** a push the service could not take is tried again after these */
+const PUSH_RETRY_MS = [10_000, 60_000];
 
 const relayId = () => Array.from(randomBytes(10), (byte) => B32[byte & 31]).join("");
 
@@ -74,6 +77,8 @@ export interface MobileLinkDeps {
   /** the relay that holds typed-code lookups; null turns typed codes off */
   lookupRelay: string | null;
   push?: PushSender;
+  /** whether the person already read this notification (on any device) */
+  isRead?: (notificationId: string) => boolean;
   fetch?: typeof fetch;
   now?: () => number;
   log?: (line: string) => void;
@@ -100,7 +105,7 @@ type ReadBody = (req: IncomingMessage, limit?: number) => Promise<unknown>;
 export function createMobileLink(deps: MobileLinkDeps) {
   const now = deps.now ?? Date.now;
   const log = deps.log ?? ((line: string) => console.warn(line));
-  const push = deps.push ?? createPushSender();
+  const push = deps.push ?? createPushSender(process.env, { relay: () => pushRelayBase(process.env, agentLive()?.base ?? deps.lookupRelay ?? DEFAULT_MOBILE_RELAY) });
   const file = join(deps.dataDir, "mobile-devices.json");
   let devices: DeviceRecord[] = load();
   const grants = new Map<string, Grant>();
@@ -109,6 +114,32 @@ export function createMobileLink(deps: MobileLinkDeps) {
   const syncWaiters = new Set<() => void>();
   const applyWaiters = new Set<() => void>();
   const pushed = new Set<string>();
+  const presence = createPhonePresence<PushMessage>({ flush: (deviceId, events) => {
+    const device = devices.find((one) => one.id === deviceId);
+    if (!device?.push) return;
+    // one push per conversation: the newest; the phone collapses a thread's pushes anyway
+    const latest = new Map<string, PushMessage>();
+    for (const event of events) if (!deps.isRead?.(event.id)) latest.set(event.threadId, event);
+    for (const event of latest.values()) void deliver(device, event);
+  } });
+
+  /** sends now; a push the service could not take goes again at 10 s and 60 s while the phone is still away and unread */
+  function deliver(device: DeviceRecord, message: PushMessage, attempt = 0): Promise<void> {
+    const registration = device.push;
+    if (!registration) return Promise.resolve();
+    return push.send({ service: registration.service, token: registration.token, ...(registration.environment ? { environment: registration.environment } : {}) }, message)
+      .catch(() => "failed" as const)
+      .then((outcome) => {
+        if (outcome === "gone" && device.push === registration) { device.push = null; persist(); }
+        const wait = PUSH_RETRY_MS[attempt];
+        if (outcome !== "failed" || wait === undefined) return;
+        const timer = setTimeout(() => {
+          if (device.push !== registration || !devices.includes(device) || !presence.away(device.id) || deps.isRead?.(message.id)) return;
+          void deliver(device, message, attempt + 1);
+        }, wait);
+        timer.unref?.();
+      });
+  }
 
   function load(): DeviceRecord[] {
     try {
@@ -136,6 +167,7 @@ export function createMobileLink(deps: MobileLinkDeps) {
   function prune(): boolean {
     const live = devices.filter((device) => deps.sessions.isLive(device.sessionId));
     if (live.length === devices.length) return false;
+    for (const device of devices) if (!live.includes(device)) presence.forget(device.id);
     devices = live;
     persist();
     bump();
@@ -143,6 +175,7 @@ export function createMobileLink(deps: MobileLinkDeps) {
   }
   deps.sessions.onSessionRevoked((sessionId) => {
     if (!devices.some((device) => device.sessionId === sessionId)) return;
+    for (const device of devices) if (device.sessionId === sessionId) presence.forget(device.id);
     devices = devices.filter((device) => device.sessionId !== sessionId);
     persist();
     bump();
@@ -271,6 +304,7 @@ export function createMobileLink(deps: MobileLinkDeps) {
   function revoke(id: string): boolean {
     const device = devices.find((one) => one.id === id);
     if (!device) return false;
+    presence.forget(id);
     devices = devices.filter((one) => one.id !== id);
     persist();
     bump();
@@ -314,14 +348,11 @@ export function createMobileLink(deps: MobileLinkDeps) {
     if (!targets.length) return;
     const sessions = new Map(deps.sessions.list().map((session) => [session.id, session]));
     const message: PushMessage = { id: notification.id, kind: notification.kind, title: notification.title, botId: notification.botId, botName: notification.botName, threadId: notification.threadId, ...(notification.groupId ? { groupId: notification.groupId } : {}) };
-    let changed = false;
-    await Promise.all(targets.map(async (device) => {
+    await Promise.all(targets.map((device) => {
       const session = sessions.get(device.sessionId);
       if (!session || (options.adminOnly && !session.scopes.includes("admin")) || !device.push) return;
-      const outcome = await push.send({ service: device.push.service, token: device.push.token, ...(device.push.environment ? { environment: device.push.environment } : {}) }, message).catch(() => "failed" as const);
-      if (outcome === "gone") { device.push = null; changed = true; }
+      return presence.route(device.id, message) === "push" ? deliver(device, message) : undefined;
     }));
-    if (changed) persist();
   }
 
   const deviceOf = (auth: RequestAuth) => (auth.kind === "session" ? devices.find((device) => device.sessionId === auth.session.id) ?? null : null);
@@ -378,7 +409,16 @@ export function createMobileLink(deps: MobileLinkDeps) {
         if (!service || !/^[\w:.-]{8,4096}$/.test(token)) { json(res, 400, { error: "service must be apns or fcm, with its device token" }); return true; }
         device.push = { service, token, ...(environment ? { environment } : {}), updatedAt: now() };
         persist();
-        json(res, 200, { ok: true, delivering: push.configured.includes(service) });
+        json(res, 200, { ok: true, delivering: push.delivers?.(service) ?? push.configured.includes(service) });
+        return true;
+      }
+      if (path === "/api/mobile/presence" && method === "PUT") {
+        const device = deviceOf(auth);
+        if (!device) { json(res, 403, { error: "only a paired phone reports where it is" }); return true; }
+        const value = await body();
+        if (typeof value.away !== "boolean") { json(res, 400, { error: "away must be true or false" }); return true; }
+        presence.report(device.id, value.away);
+        json(res, 200, { ok: true });
         return true;
       }
       if (path === "/api/mobile/relay/sync" && method === "POST") {

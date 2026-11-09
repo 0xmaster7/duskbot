@@ -9,6 +9,7 @@ import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 
 import { createPackages } from "./packages.mjs";
+import { createPushRelay } from "./push-relay.mjs";
 import { slackCallback } from "./slack-callback.mjs";
 import { MAX_CHANNELS_PER_TUNNEL, MAX_EVENTS, MAX_SESSIONS, MAX_TUNNELS, SESSION_LIFE_MS, createStore } from "./store.mjs";
 
@@ -204,7 +205,7 @@ function frameQueue(onPush = () => {}) {
  *   log?: (line: string) => void,
  * }} options
  */
-export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {} }) {
+export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {}, push = createPushRelay({ log }) }) {
   const store = createStore({ dir: dataDir, now, onChannelDelete: clearChannel });
   const packages = createPackages(packagesDir !== undefined ? packagesDir : dataDir ? join(dataDir, "packages") : null);
   const sessionWaiters = new Map();
@@ -443,6 +444,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (method === "GET" && path === "/healthz") return send(res, 200, { ok: true });
     if (method === "GET" && path === "/v1/ip") return send(res, 200, { ip: clientIp(req) });
     if (method === "GET" && path === "/slack/callback") return slackCallback(res, url.searchParams);
+    if (path === "/v1/push") return push.route(req, res, { method, readJson, send, fail, ip: clientIp(req) });
     if (method === "GET" && (path === "/i" || path === "/install.sh" || (parts = /^\/i\/([a-z2-7-]{37})$/.exec(path)))) {
       const token = parts?.[1] ?? null;
       if (token !== null && !TOKEN.test(token)) return fail(res, 404, "not found");

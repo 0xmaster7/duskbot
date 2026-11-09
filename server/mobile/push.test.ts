@@ -4,7 +4,7 @@ import { connect, createServer, type ClientHttp2Session, type Http2Server, type 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { createPushSender, type PushMessage } from "./push.ts";
+import { createPushSender, pushRelayBase, type PushMessage } from "./push.ts";
 
 const ec = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
 const rsa = generateKeyPairSync("rsa", { modulusLength: 2048 });
@@ -321,7 +321,7 @@ describe("push configuration", () => {
     expect(log).not.toHaveBeenCalled();
     expect(await push.send({ service: "apns", token: "fixture" }, message)).toBe("skipped");
     expect(await push.send({ service: "fcm", token: "fixture" }, message)).toBe("skipped");
-    expect(log).toHaveBeenCalledExactlyOnceWith("mobile push: no APNs or FCM credentials on this server; phones get notifications only while the app is open");
+    expect(log).toHaveBeenCalledExactlyOnceWith("mobile push: no APNs or FCM credentials and no push relay on this server; phones get notifications only while the app is open");
   });
 
   it("loads each service independently and logs credential failures without error details", async () => {
@@ -353,5 +353,45 @@ describe("push configuration", () => {
     const log = vi.fn();
     expect(createPushSender({ OMB_APNS_KEY_ID: "key-id" }, { log }).configured).toEqual([]);
     expect(log).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("push relay", () => {
+  function relayFetch(status: number, body: unknown) {
+    return vi.fn<typeof fetch>(async () => new Response(JSON.stringify(body), { status }));
+  }
+
+  it("sends through the relay when this server has no keys for the service, without the title", async () => {
+    const fetch = relayFetch(200, { outcome: "sent" });
+    const push = createPushSender({}, { fetch, relay: () => "https://relay.example", log: vi.fn() });
+    expect(push.delivers?.("apns")).toBe(true);
+    expect(await push.send({ service: "apns", token: "fixture-token", environment: "sandbox" }, message)).toBe("sent");
+    const [url, init] = fetch.mock.calls[0]!;
+    expect(url).toBe("https://relay.example/v1/push");
+    const sent = JSON.parse(String(init?.body));
+    expect(sent).toEqual({ service: "apns", token: "fixture-token", environment: "sandbox", message: { ...data, botName: "Maus" } });
+    expect(JSON.stringify(sent)).not.toContain("body text");
+  });
+
+  it("keeps its own keys ahead of the relay", async () => {
+    const fetch = relayFetch(200, { outcome: "sent" });
+    const push = createPushSender(apnsEnv, { fetch, relay: () => "https://relay.example", http2Connect: (() => { throw new Error("no network"); }) as never });
+    expect(await push.send({ service: "apns", token: "fixture" }, message)).toBe("failed");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("maps the relay's answers", async () => {
+    const send = (status: number, body: unknown) => createPushSender({}, { fetch: relayFetch(status, body), relay: () => "https://relay.example" }).send({ service: "fcm", token: "fixture" }, message);
+    expect(await send(200, { outcome: "gone" })).toBe("gone");
+    expect(await send(200, { outcome: "weird" })).toBe("failed");
+    expect(await send(503, { code: "not_configured" })).toBe("skipped");
+    expect(await send(429, { code: "rate_limited" })).toBe("failed");
+  });
+
+  it("reads OMB_PUSH_RELAY", () => {
+    expect(pushRelayBase({}, "https://link.example")).toBe("https://link.example");
+    expect(pushRelayBase({ OMB_PUSH_RELAY: "off" }, "https://link.example")).toBeNull();
+    expect(pushRelayBase({ OMB_PUSH_RELAY: "https://push.example/" }, null)).toBe("https://push.example");
+    expect(pushRelayBase({ OMB_PUSH_RELAY: "not a url" }, "https://link.example")).toBeNull();
   });
 });

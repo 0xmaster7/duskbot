@@ -52,10 +52,10 @@ The first version includes:
   AutoFill and QR-pinned HPKE encryption. Apple Passwords/iCloud Keychain is
   sufficient; 1Password, Bitwarden, and other AutoFill providers are optional.
 
-Alerts work while the app is open or for the short period it remains connected
-after moving to the background. Once iOS suspends or closes the app, new alerts
-cannot arrive. Closed-app push delivery, voice, and App Store release
-automation are not part of this version. The optional hosted transport connects
+Alerts show in the app while it is open. Once the app is in the background or
+closed, the workspace sends a push instead (see [Phone push](phone-push.md)),
+which needs the app's APNs and FCM keys on a push relay or on the workspace.
+Voice and App Store release automation are not part of this version. The optional hosted transport connects
 to the user's own computer; it is not a cloud transcript store and cannot wake
 a terminated iOS app.
 

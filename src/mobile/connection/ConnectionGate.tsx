@@ -11,6 +11,7 @@ import { Onboarding } from "../onboarding/Onboarding";
 import { Success } from "../onboarding/Success";
 import { connectToWorkspace, createConnectionStore } from "./connections";
 import { PairError, parseTypedPairing, type TypedPairing } from "./pair";
+import { reportPresence } from "./presence";
 import { registerPushForConnection } from "./push";
 
 type GateState = { kind: "loading" } | { kind: "pair"; reason?: "revoked" } | { kind: "ready"; id: string };
@@ -72,6 +73,8 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
   useEffect(() => {
     if (state.kind === "ready" && platform.native) void registerPushForConnection(platform);
   }, [state, platform]);
+
+  useEffect(() => (state.kind === "ready" && platform.native ? reportPresence(platform) : undefined), [state, platform]);
 
   useEffect(() => {
     if (state.kind === "ready" && account?.account) void enrollWorkspace(platform, state.id, account.account.id, account.enrollGrant);

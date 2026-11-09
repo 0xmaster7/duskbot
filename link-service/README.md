@@ -7,6 +7,13 @@ nothing tied to openmausbot.com or Cloudflare.
 curl -fsSL https://link.apps.siddz.com/i/<code> | sh
 ```
 
+## Phone push
+
+`POST /v1/push` sends one push for a workspace that holds no APNs or FCM keys of its own; `GET /v1/push` lists the
+services this relay has keys for. It sees the device token, the bot's name and ids, never message text, and keeps
+nothing. Set `OMB_APNS_KEY_FILE`, `OMB_APNS_KEY_ID`, `OMB_APNS_TEAM_ID`, `OMB_APNS_TOPIC` and
+`OMB_FCM_SERVICE_ACCOUNT_FILE` on the service; see `docs/phone-push.md`.
+
 ## Slack OAuth return
 
 `GET /slack/callback` validates Slack's code or error and state, then returns a small page that opens

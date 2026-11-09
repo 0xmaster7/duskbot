@@ -230,7 +230,7 @@ import { createOneOnOneGoals } from "./host/one-on-one-goals.ts";
 
 import { BUILT_IN_DRIVERS } from "./drivers/builtIn.ts";
 import { openCodeProviderKeysAllowed, setOpenCodeProviderKeyPolicy } from "./drivers/acp/opencode-go.ts";
-import { openCardRows, readMessageText, recallMessages, recentMessages, closeMessageSearch, closeMessageDb, chatFollowups, cancelledChatFollowup, settleChatFollowups, threadsReferencing, logNotification, lastRowAt, threadsWithCardsSince } from "./message-db.ts";
+import { openCardRows, readMessageText, recallMessages, recentMessages, closeMessageSearch, closeMessageDb, chatFollowups, cancelledChatFollowup, settleChatFollowups, threadsReferencing, logNotification, recentNotificationLog, lastRowAt, threadsWithCardsSince } from "./message-db.ts";
 import { briefCrossingLabel, claimRecallCrossings, recallCrossingLabel } from "./recall-disclosure.ts";
 import { parseSince, parseUntil, recentWork, recentWorkPrompt, turnOutcomeLine } from "./recent-work.ts";
 import { createFailureNotices } from "./host/failure-notices.ts";
@@ -9740,7 +9740,7 @@ ROUTES.push(createLimitResetRoutes({ clock: limitClock, routines: routines!, req
   created: (id, auth) => cloudRoutineAuthors?.wrote(id, auth.kind === "session" ? actorKey(auth) : CLOUD_NOBODY_KEY) }));
 const computerEgress = createComputerEgress({ enabled: () => cfg.vps?.routeThroughComputer !== false, log: (line) => console.warn(line),
   docker: () => (isThisServerVps(vpsSshAlias(cfg)) ? (args, timeoutMs) => vps.defaultRunner(args, { timeoutMs }) : null) });
-ROUTES.push(createComputerEgressRoutes({ egress: computerEgress, setEnabled: (enabled) => { saveConfig({ vps: { routeThroughComputer: enabled } }); Object.assign(cfg, loadConfig()); } })); const mobileLink = createMobileLink({ dataDir: DATA_DIR, sessions, workspace: () => ({ name: cfg.computerName || environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED }).label, environmentId: ENVIRONMENT_ID, kind: DESKTOP_MANAGED ? "mac" : "server" }), publicOrigin: () => (publicUrl()?.startsWith("https://") ? publicUrl() : null), refusal: () => (HOSTED_WORKSPACE || CLOUD_HOME ? "Phones sign in to this workspace through its own sign-in." : null), lookupRelay: mobileLookupRelay() }); ROUTES.push(async (ctx) => ((await mobileLink.route(ctx)) ? undefined : PASS));
+ROUTES.push(createComputerEgressRoutes({ egress: computerEgress, setEnabled: (enabled) => { saveConfig({ vps: { routeThroughComputer: enabled } }); Object.assign(cfg, loadConfig()); } })); const mobileLink = createMobileLink({ dataDir: DATA_DIR, sessions, workspace: () => ({ name: cfg.computerName || environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED }).label, environmentId: ENVIRONMENT_ID, kind: DESKTOP_MANAGED ? "mac" : "server" }), publicOrigin: () => (publicUrl()?.startsWith("https://") ? publicUrl() : null), refusal: () => (HOSTED_WORKSPACE || CLOUD_HOME ? "Phones sign in to this workspace through its own sign-in." : null), lookupRelay: mobileLookupRelay(), isRead: (id) => recentNotificationLog(200).some((entry) => entry.id === id && entry.read) }); ROUTES.push(async (ctx) => ((await mobileLink.route(ctx)) ? undefined : PASS));
 
 let webhookIngress: WebhookIngress | null = null;
 let webhookIngressError: string | null = null;

@@ -25,7 +25,17 @@ export type PushOutcome = "sent" | "gone" | "failed" | "skipped";
 
 export interface PushSender {
   configured: readonly PushService[];
+  /** whether a push for this service leaves this server at all: its own keys, or a push relay */
+  delivers?(service: PushService): boolean;
   send(target: PushTarget, message: PushMessage): Promise<PushOutcome>;
+}
+
+/** OMB_PUSH_RELAY: where a server with no APNs or FCM keys of its own sends pushes ("off" for nowhere); unset, `fallback` */
+export function pushRelayBase(env: NodeJS.ProcessEnv, fallback: string | null): string | null {
+  const value = env.OMB_PUSH_RELAY?.trim().replace(/\/+$/, "");
+  if (value === "off") return null;
+  if (value) return /^https?:\/\/[^/\s]+$/.test(value) ? value : null;
+  return fallback;
 }
 
 function jwt(header: object, claims: object, key: KeyObject): string {
@@ -56,6 +66,8 @@ export function createPushSender(env: NodeJS.ProcessEnv = process.env, deps: {
   now?: () => number;
   readFile?: (path: string) => string | Buffer;
   log?: (message: string) => void;
+  /** the push relay, asked at each send: it holds the app's own APNs and FCM keys */
+  relay?: () => string | null;
 } = {}): PushSender {
   const readFile = deps.readFile ?? readFileSync;
   const now = deps.now ?? Date.now;
@@ -199,16 +211,33 @@ export function createPushSender(env: NodeJS.ProcessEnv = process.env, deps: {
     return "failed";
   }
 
+  /** the relay sees the device token, the bot's name and the ids a tap opens; never a title or message text */
+  async function sendRelay(base: string, target: PushTarget, message: PushMessage): Promise<PushOutcome> {
+    const { title: _title, ...shown } = message;
+    const response = await fetch(`${base}/v1/push`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ service: target.service, token: target.token, ...(target.environment ? { environment: target.environment } : {}), message: shown }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    const answer = await response.json().catch(() => null) as { outcome?: unknown; code?: unknown } | null;
+    if (response.status === 503 && answer?.code === "not_configured") return "skipped";
+    if (!response.ok) return "failed";
+    return answer?.outcome === "sent" || answer?.outcome === "gone" ? answer.outcome : "failed";
+  }
+
   let warned = false;
   return {
     configured,
+    delivers: (service) => configured.includes(service) || Boolean(deps.relay?.()),
     async send(target, message) {
-      if (!configured.length && !warned) {
+      const relay = configured.includes(target.service) ? null : deps.relay?.() ?? null;
+      if (!configured.length && !relay && !warned) {
         warned = true;
-        log("mobile push: no APNs or FCM credentials on this server; phones get notifications only while the app is open");
+        log("mobile push: no APNs or FCM credentials and no push relay on this server; phones get notifications only while the app is open");
       }
-      if (!configured.includes(target.service)) return "skipped";
+      if (!configured.includes(target.service) && !relay) return "skipped";
       try {
+        if (relay) return await sendRelay(relay, target, message);
         return await (target.service === "apns" ? sendApns(target, message) : sendFcm(target, message));
       } catch {
         return "failed";

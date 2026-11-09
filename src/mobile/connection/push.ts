@@ -4,6 +4,18 @@ import { createConnectionStore } from "./connections";
 
 const pending = new WeakMap<MobilePlatform, Promise<void>>();
 
+/** a workspace drops a token APNs or FCM refused, so a saved registration is checked before it is trusted */
+async function stillRegistered(service: MobilePushRegistration["service"]): Promise<boolean> {
+  try {
+    const response = await fetch("/api/mobile/device", { signal: AbortSignal.timeout(15_000) });
+    if (!response.ok) { await response.body?.cancel(); return true; }
+    const answer = await response.json() as { device?: { push?: unknown } };
+    return answer.device?.push === service;
+  } catch {
+    return true;
+  }
+}
+
 export function registerPushForConnection(platform: MobilePlatform): Promise<void> {
   const existing = pending.get(platform);
   if (existing) return existing;
@@ -19,7 +31,7 @@ export function registerPushForConnection(platform: MobilePlatform): Promise<voi
     };
     const value = JSON.stringify(body);
     const key = `omb.mobile.push.${active.record.id}`;
-    if (await platform.prefs.get(key) === value) return;
+    if (await platform.prefs.get(key) === value && await stillRegistered(body.service)) return;
     if ((await createConnectionStore(platform).active())?.record.id !== active.record.id) return;
     const response = await fetch("/api/mobile/push", { method: "PUT", headers: { "Content-Type": "application/json" }, body: value, signal: AbortSignal.timeout(15_000) });
     await response.body?.cancel();
