@@ -21,6 +21,8 @@ const SANDBOX_ID = /^bx_[23456789abcdefghjkmnpqrstuvwxyz]{8}$/;
 const OPERATION_ID = /^bdop_[a-f0-9]{32}$/;
 const SNAPSHOT_NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const CLOUD_ID = /^c[0-9a-f]{24}$/;
+/** every resume says no-env again: Boat documents it as one-way on resume, but not that a create's noEnv carries over */
+const RESUME = { noEnv: true } as const;
 
 export interface BoatSandbox {
   id: string;
@@ -228,13 +230,13 @@ export function createBoatProvider(options: BoatProviderOptions): BoatProvider {
       if (action === "off") { await call("POST", `/sandboxes/${serverId}/stop`, { body: {} }); return; }
       const s = await get(serverId);
       if (!s) throw new BoatError(404, "not_found");
-      if (["archived", "archiving", "error"].includes(s.state)) await call("POST", `/sandboxes/${serverId}/resume`, { body: {} });
+      if (["archived", "archiving", "error"].includes(s.state)) await call("POST", `/sandboxes/${serverId}/resume`, { body: RESUME });
     },
     async suspend(serverId) { await provider.power(serverId, "off"); },
     async resize(serverId, spec) {
       const s = await get(serverId);
       if (!s || s.state !== "archived") throw new Error("Cloud server must be off to resize.");
-      await call("POST", `/sandboxes/${serverId}/resume`, { body: { type: boatSize(spec, options.smallest) } });
+      await call("POST", `/sandboxes/${serverId}/resume`, { body: { ...RESUME, type: boatSize(spec, options.smallest) } });
     },
     async run(serverId, command, timeoutSeconds = 120) {
       if (!SANDBOX_ID.test(serverId)) throw new Error("Invalid Boat sandbox id.");

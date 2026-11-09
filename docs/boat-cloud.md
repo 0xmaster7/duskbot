@@ -41,7 +41,7 @@ Every action is one line in `boat-audit.jsonl`. A deletion also alerts `OMB_OPS_
   - `OMB_BOAT_HOME_PACKAGE_SHA256`, plus either `OMB_BOAT_HOME_PACKAGE_FILE` or an https `OMB_BOAT_HOME_PACKAGE_URL`.
     Build the package with `node scripts/build-boat-home-package.mjs`, or set `OMB_BOAT_TEMPLATE` to a saved Boat
     snapshot that already has it installed.
-- **Optional:** `OMB_BOAT_KINDS`, `OMB_BOAT_IDLE_MINUTES`, `OMB_BOAT_RETENTION_DAYS`, `OMB_BOAT_DELETE_DELAY_DAYS`,
+- **Optional:** `OMB_BOAT_BACKUP_KEY` (43 base64url characters; otherwise derived from `OMB_CLOUD_SEAL_KEY`). Its fingerprint is kept in the data folder, and a different key refuses to start unless the old one is set as `OMB_BOAT_BACKUP_KEY_PREVIOUS`, which seals every backup again first. Also `OMB_BOAT_KINDS`, `OMB_BOAT_IDLE_MINUTES`, `OMB_BOAT_RETENTION_DAYS`, `OMB_BOAT_DELETE_DELAY_DAYS`,
   `OMB_BOAT_BACKUP_DIR`, `OMB_BOAT_BACKUP_HOURS`, `OMB_BOAT_BACKUP_KEEP`, `OMB_BOAT_BACKUP_TAIL_DAYS`,
   `OMB_BOAT_REFRESH_DAYS`, `OMB_BOAT_LEASE_HOURS`, `OMB_BOAT_SMALLEST`, `OMB_BOAT_SCOPE`.
 - **Minimums:** `OMB_BOAT_RETENTION_DAYS` is at least 45 and `OMB_BOAT_DELETE_DELAY_DAYS` at least 7; shorter values

@@ -27,7 +27,13 @@ export interface Entitlement { active: boolean; until: number | null; known?: bo
 export function entitlementOf(subscriptions: readonly StoredSubscription[], cloud: { id: string; subscriptionId: string | null; endsAt?: number; ended?: boolean; endedAt?: number }, now: number): Entitlement {
   const mine = subscriptions.filter(s => s.id === cloud.subscriptionId || s.cloudId === cloud.id);
   if (!mine.length) return { active: false, until: null, known: false };
-  if (cloud.ended) return { active: false, until: cloud.endedAt ?? cloud.endsAt ?? null, known: true };
+  // a plan whose period end passed before its end was recorded (a late expiry) ended at that period end
+  if (cloud.ended) {
+    const ended = cloud.endedAt ?? cloud.endsAt ?? null;
+    const lapsed = mine.map(s => s.currentPeriodEnd ?? 0).filter(end => end > 0 && end <= now);
+    const periodEnd = lapsed.length ? Math.max(...lapsed) : null;
+    return { active: false, until: ended === null ? periodEnd : periodEnd === null ? ended : Math.min(ended, periodEnd), known: true };
+  }
   if (cloud.endsAt !== undefined && cloud.endsAt <= now) return { active: false, until: cloud.endsAt, known: true };
   let until = 0;
   for (const s of mine) {
