@@ -3247,6 +3247,9 @@
   "settings.ambient.display.built-in": "बिल्ट-इन डिस्प्ले",
   "settings.ambient.display.main": "मुख्य डिस्प्ले",
   "settings.ambient.failed": "यह सेटिंग सेव नहीं हो सकी। फिर से कोशिश करें।",
+  "settings.ambient.tour.title": "आइलैंड और डॉक टूर",
+  "settings.ambient.tour.subtitle": "इन्हें फिर से आज़माएँ और चुनें कि आपके बॉट कहाँ रहें।",
+  "settings.ambient.tour.show": "दिखाएँ",
   "mobile.onboarding.linkShort": "कंप्यूटर पर {app} खोलें और सेटिंग्स › Phone में कोड स्कैन करें।",
   "mobile.onboarding.pasteInstead": "इसके बजाय लिंक पेस्ट करें",
   "mobile.home.onlyPinnedTitle": "आपकी बाकी चैट यहाँ दिखेंगी",
@@ -3282,5 +3285,16 @@
   "mobile.unreachable.others": "दूसरे इंस्टॉलेशन",
   "composer.freeBackup": "{engine} का एक मुफ़्त बैकअप मॉडल जवाब दे रहा है",
   "composer.freeBackup.connect": "अपना AI कनेक्ट करें",
-  "createBot.creating": "बनाया जा रहा है…"
+  "createBot.creating": "बनाया जा रहा है…",
+  "onboarding.notch.title": "आपके बॉट अब यहाँ ऊपर रहते हैं",
+  "onboarding.notch.stage": "आइलैंड और डॉक का प्रीव्यू",
+  "onboarding.notch.hint": "बदलने के लिए किसी बॉट पर पॉइंट करें। उसे टैप करें या नॉच में खींचें।",
+  "onboarding.notch.live": "अभी आपकी स्क्रीन के ऊपर लाइव है",
+  "onboarding.notch.keep": "नॉच चालू रखें",
+  "onboarding.notch.dock": "सिर्फ़ साइड डॉक",
+  "onboarding.notch.line.maus": "जब भी ज़रूरत हो, मैं यहीं हूँ",
+  "onboarding.notch.line.invoices": "3 बकाया इनवॉइस का पीछा कर रहा है",
+  "onboarding.notch.line.standup": "सोमवार का स्टैंडअप लिख रहा है",
+  "onboarding.notch.line.forecast": "Q3 का अनुमान मंज़ूर करें?",
+  "onboarding.notch.line.cheered": "शाबाशी मिल गई। वापस काम पर।"
 }

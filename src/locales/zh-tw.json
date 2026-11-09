@@ -4692,6 +4692,9 @@
   "settings.ambient.display.built-in": "內建顯示器",
   "settings.ambient.display.main": "主要顯示器",
   "settings.ambient.failed": "無法儲存此設定，請再試一次。",
+  "settings.ambient.tour.title": "動態島與 Dock 導覽",
+  "settings.ambient.tour.subtitle": "再玩一次，並選擇機器人住在哪裡。",
+  "settings.ambient.tour.show": "查看",
   "mobile.onboarding.linkShort": "在電腦上開啟 {app}，掃描設定 › Phone 中的 QR 碼。",
   "mobile.onboarding.pasteInstead": "改為貼上連結",
   "mobile.home.onlyPinnedTitle": "你的其他聊天會顯示在這裡",
@@ -4727,5 +4730,16 @@
   "mobile.unreachable.others": "其他安裝",
   "composer.freeBackup": "目前由 {engine} 的免費備用模型回答",
   "composer.freeBackup.connect": "連接你的 AI",
-  "createBot.creating": "建立中…"
+  "createBot.creating": "建立中…",
+  "onboarding.notch.title": "你的機器人現在住在這裡",
+  "onboarding.notch.stage": "動態島與 Dock 預覽",
+  "onboarding.notch.hint": "指向一個機器人即可切換。點一下，或把它拖進瀏海。",
+  "onboarding.notch.live": "現在就顯示在螢幕頂端",
+  "onboarding.notch.keep": "保留瀏海",
+  "onboarding.notch.dock": "只用側邊 Dock",
+  "onboarding.notch.line.maus": "需要我時我都在",
+  "onboarding.notch.line.invoices": "正在催收 3 張逾期發票",
+  "onboarding.notch.line.standup": "正在草擬週一站會",
+  "onboarding.notch.line.forecast": "核准第三季預測嗎？",
+  "onboarding.notch.line.cheered": "收到鼓勵，繼續工作。"
 }

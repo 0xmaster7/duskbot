@@ -3552,6 +3552,9 @@
   "settings.ambient.display.built-in": "Вбудований дисплей",
   "settings.ambient.display.main": "Основний дисплей",
   "settings.ambient.failed": "Не вдалося зберегти це налаштування. Спробуйте ще раз.",
+  "settings.ambient.tour.title": "Огляд острова й дока",
+  "settings.ambient.tour.subtitle": "Спробуйте їх ще раз і виберіть, де житимуть ваші боти.",
+  "settings.ambient.tour.show": "Показати",
   "mobile.onboarding.linkShort": "Відкрийте {app} на комп'ютері та скануйте код у розділі Налаштування › Phone.",
   "mobile.onboarding.pasteInstead": "Натомість вставити посилання",
   "mobile.home.onlyPinnedTitle": "Ваші інші чати з'являться тут",
@@ -3587,5 +3590,16 @@
   "mobile.unreachable.others": "Інші встановлення",
   "composer.freeBackup": "Відповідає безкоштовна резервна модель від {engine}",
   "composer.freeBackup.connect": "Під'єднати свій ШІ",
-  "createBot.creating": "Створюємо…"
+  "createBot.creating": "Створюємо…",
+  "onboarding.notch.title": "Тепер ваші боти живуть тут, нагорі",
+  "onboarding.notch.stage": "Попередній перегляд острова й дока",
+  "onboarding.notch.hint": "Наведіть на бота, щоб перемкнути. Торкніться його або перетягніть у виріз.",
+  "onboarding.notch.live": "Просто зараз угорі вашого екрана",
+  "onboarding.notch.keep": "Залишити виріз увімкненим",
+  "onboarding.notch.dock": "Лише бічний док",
+  "onboarding.notch.line.maus": "Тут, коли знадоблюся",
+  "onboarding.notch.line.invoices": "Нагадує про 3 прострочені рахунки",
+  "onboarding.notch.line.standup": "Готує понеділкову нараду",
+  "onboarding.notch.line.forecast": "Затвердити прогноз на 3-й квартал?",
+  "onboarding.notch.line.cheered": "Дякую за підтримку. Повертаюся до справ."
 }

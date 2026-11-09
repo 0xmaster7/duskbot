@@ -6051,6 +6051,9 @@
   "settings.ambient.display.built-in": "Tela integrada",
   "settings.ambient.display.main": "Tela principal",
   "settings.ambient.failed": "Não foi possível salvar esta configuração. Tente novamente.",
+  "settings.ambient.tour.title": "Tour pela ilha e pelo dock",
+  "settings.ambient.tour.subtitle": "Brinque com eles de novo e escolha onde seus bots moram.",
+  "settings.ambient.tour.show": "Mostrar",
   "mobile.onboarding.linkShort": "Abra {app} no computador e leia o código em Configurações › Phone.",
   "mobile.onboarding.pasteInstead": "Colar um link em vez disso",
   "mobile.home.onlyPinnedTitle": "Suas outras conversas aparecem aqui",
@@ -6086,5 +6089,16 @@
   "mobile.unreachable.others": "Outras instalações",
   "composer.freeBackup": "Um modelo reserva gratuito do {engine} está respondendo",
   "composer.freeBackup.connect": "Conectar sua IA",
-  "createBot.creating": "Criando…"
+  "createBot.creating": "Criando…",
+  "onboarding.notch.title": "Seus bots agora moram aqui em cima",
+  "onboarding.notch.stage": "Uma prévia da ilha e do dock",
+  "onboarding.notch.hint": "Aponte para um bot para trocar. Toque em um ou arraste para o notch.",
+  "onboarding.notch.live": "Ao vivo agora no topo da sua tela",
+  "onboarding.notch.keep": "Manter o notch ligado",
+  "onboarding.notch.dock": "Só o dock lateral",
+  "onboarding.notch.line.maus": "Aqui sempre que você precisar",
+  "onboarding.notch.line.invoices": "Cobrando 3 faturas atrasadas",
+  "onboarding.notch.line.standup": "Escrevendo o standup de segunda",
+  "onboarding.notch.line.forecast": "Aprovar a previsão do 3º tri?",
+  "onboarding.notch.line.cheered": "Valeu a torcida. De volta ao trabalho."
 }

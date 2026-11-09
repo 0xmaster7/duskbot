@@ -6773,6 +6773,9 @@
   "settings.ambient.display.built-in": "内建显示屏",
   "settings.ambient.display.main": "主显示器",
   "settings.ambient.failed": "无法保存此设置，请重试。",
+  "settings.ambient.tour.title": "灵动岛与程序坞导览",
+  "settings.ambient.tour.subtitle": "再玩一次，并选择机器人住在哪里。",
+  "settings.ambient.tour.show": "查看",
   "mobile.onboarding.linkShort": "在电脑上打开 {app}，扫描设置 › Phone 中的二维码。",
   "mobile.onboarding.pasteInstead": "改为粘贴链接",
   "mobile.home.onlyPinnedTitle": "你的其他聊天会显示在这里",
@@ -6806,5 +6809,16 @@
   "mobile.unreachable.trying": "正在重试...",
   "mobile.unreachable.next": "{seconds} 秒后重试",
   "mobile.unreachable.others": "其他安装",
-  "createBot.creating": "正在创建…"
+  "createBot.creating": "正在创建…",
+  "onboarding.notch.title": "你的机器人现在住在这里",
+  "onboarding.notch.stage": "灵动岛和程序坞预览",
+  "onboarding.notch.hint": "指向一个机器人即可切换。点一下，或把它拖进刘海。",
+  "onboarding.notch.live": "现在就显示在屏幕顶部",
+  "onboarding.notch.keep": "保留刘海",
+  "onboarding.notch.dock": "只用侧边程序坞",
+  "onboarding.notch.line.maus": "需要我时我都在",
+  "onboarding.notch.line.invoices": "正在催收 3 张逾期发票",
+  "onboarding.notch.line.standup": "正在起草周一站会",
+  "onboarding.notch.line.forecast": "批准第三季度预测吗？",
+  "onboarding.notch.line.cheered": "收到鼓励，继续干活。"
 }

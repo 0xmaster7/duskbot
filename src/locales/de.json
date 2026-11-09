@@ -3327,6 +3327,9 @@
   "settings.ambient.display.built-in": "Integriertes Display",
   "settings.ambient.display.main": "Hauptdisplay",
   "settings.ambient.failed": "Diese Einstellung konnte nicht gespeichert werden. Versuche es erneut.",
+  "settings.ambient.tour.title": "Tour durch Insel und Dock",
+  "settings.ambient.tour.subtitle": "Probier sie noch einmal aus und wähle, wo deine Bots wohnen.",
+  "settings.ambient.tour.show": "Zeigen",
   "mobile.onboarding.linkShort": "Öffne {app} auf deinem Computer und scanne den Code unter Einstellungen › Phone.",
   "mobile.onboarding.pasteInstead": "Stattdessen einen Link einfügen",
   "mobile.home.onlyPinnedTitle": "Deine anderen Chats erscheinen hier",
@@ -3362,5 +3365,16 @@
   "mobile.unreachable.others": "Andere Installationen",
   "composer.freeBackup": "Ein kostenloses Ersatzmodell von {engine} antwortet",
   "composer.freeBackup.connect": "Eigene KI verbinden",
-  "createBot.creating": "Wird erstellt…"
+  "createBot.creating": "Wird erstellt…",
+  "onboarding.notch.title": "Deine Bots wohnen jetzt hier oben",
+  "onboarding.notch.stage": "Eine Vorschau der Insel und des Docks",
+  "onboarding.notch.hint": "Zeig auf einen Bot, um zu wechseln. Tippe einen an oder zieh ihn in die Notch.",
+  "onboarding.notch.live": "Gerade live oben auf deinem Bildschirm",
+  "onboarding.notch.keep": "Notch eingeschaltet lassen",
+  "onboarding.notch.dock": "Nur das Dock am Rand",
+  "onboarding.notch.line.maus": "Hier, wann immer du mich brauchst",
+  "onboarding.notch.line.invoices": "Mahnt 3 überfällige Rechnungen an",
+  "onboarding.notch.line.standup": "Entwirft das Standup für Montag",
+  "onboarding.notch.line.forecast": "Q3-Prognose freigeben?",
+  "onboarding.notch.line.cheered": "Angefeuert. Weiter geht's."
 }

@@ -6019,6 +6019,9 @@
   "settings.ambient.display.built-in": "Schermo integrato",
   "settings.ambient.display.main": "Schermo principale",
   "settings.ambient.failed": "Impossibile salvare questa impostazione. Riprova.",
+  "settings.ambient.tour.title": "Tour dell'isola e del dock",
+  "settings.ambient.tour.subtitle": "Riprovali e scegli dove vivono i tuoi bot.",
+  "settings.ambient.tour.show": "Mostra",
   "mobile.onboarding.linkShort": "Apri {app} sul computer e scansiona il codice in Impostazioni › Phone.",
   "mobile.onboarding.pasteInstead": "Incolla un link invece",
   "mobile.home.onlyPinnedTitle": "Le altre chat appaiono qui",
@@ -6052,5 +6055,16 @@
   "mobile.unreachable.others": "Altre installazioni",
   "composer.freeBackup": "Sta rispondendo un modello di riserva gratuito di {engine}",
   "composer.freeBackup.connect": "Collega la tua IA",
-  "createBot.creating": "Creazione…"
+  "createBot.creating": "Creazione…",
+  "onboarding.notch.title": "I tuoi bot ora vivono quassù",
+  "onboarding.notch.stage": "Un'anteprima dell'isola e del dock",
+  "onboarding.notch.hint": "Punta un bot per cambiare. Toccane uno o trascinalo nel notch.",
+  "onboarding.notch.live": "Ora in diretta in cima al tuo schermo",
+  "onboarding.notch.keep": "Tieni il notch attivo",
+  "onboarding.notch.dock": "Solo il dock laterale",
+  "onboarding.notch.line.maus": "Qui quando hai bisogno di me",
+  "onboarding.notch.line.invoices": "Sollecita 3 fatture scadute",
+  "onboarding.notch.line.standup": "Prepara lo standup di lunedì",
+  "onboarding.notch.line.forecast": "Approvi la previsione del Q3?",
+  "onboarding.notch.line.cheered": "Incoraggiato. Si riparte."
 }

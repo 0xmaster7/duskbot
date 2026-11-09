@@ -6185,6 +6185,9 @@
   "settings.ambient.display.built-in": "Wbudowany wyświetlacz",
   "settings.ambient.display.main": "Główny wyświetlacz",
   "settings.ambient.failed": "Nie udało się zapisać tego ustawienia. Spróbuj ponownie.",
+  "settings.ambient.tour.title": "Przewodnik po wyspie i doku",
+  "settings.ambient.tour.subtitle": "Pobaw się nimi jeszcze raz i wybierz, gdzie mieszkają Twoje boty.",
+  "settings.ambient.tour.show": "Pokaż",
   "mobile.onboarding.linkShort": "Otwórz {app} na komputerze i zeskanuj kod w sekcji Ustawienia › Phone.",
   "mobile.onboarding.pasteInstead": "Zamiast tego wklej link",
   "mobile.home.onlyPinnedTitle": "Twoje pozostałe czaty pojawią się tutaj",
@@ -6218,5 +6221,16 @@
   "mobile.unreachable.others": "Inne instalacje",
   "composer.freeBackup": "Odpowiada darmowy model zapasowy od {engine}",
   "composer.freeBackup.connect": "Połącz swoją AI",
-  "createBot.creating": "Tworzenie…"
+  "createBot.creating": "Tworzenie…",
+  "onboarding.notch.title": "Twoje boty mieszkają teraz tutaj",
+  "onboarding.notch.stage": "Podgląd wyspy i doku",
+  "onboarding.notch.hint": "Wskaż bota, aby przełączyć. Stuknij go lub przeciągnij do notcha.",
+  "onboarding.notch.live": "Na żywo u góry ekranu",
+  "onboarding.notch.keep": "Zostaw notch włączony",
+  "onboarding.notch.dock": "Tylko dok z boku",
+  "onboarding.notch.line.maus": "Jestem tu, kiedy mnie potrzebujesz",
+  "onboarding.notch.line.invoices": "Upomina się o 3 zaległe faktury",
+  "onboarding.notch.line.standup": "Przygotowuje poniedziałkowy standup",
+  "onboarding.notch.line.forecast": "Zatwierdzić prognozę na Q3?",
+  "onboarding.notch.line.cheered": "Dzięki za doping. Wracam do pracy."
 }

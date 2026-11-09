@@ -6210,6 +6210,9 @@
   "settings.ambient.display.built-in": "内蔵ディスプレイ",
   "settings.ambient.display.main": "メインディスプレイ",
   "settings.ambient.failed": "この設定を保存できませんでした。もう一度お試しください。",
+  "settings.ambient.tour.title": "アイランドとドックのツアー",
+  "settings.ambient.tour.subtitle": "もう一度試して、ボットの居場所を選びましょう。",
+  "settings.ambient.tour.show": "表示",
   "mobile.onboarding.linkShort": "パソコンで{app}を開き、設定 › Phoneのコードを読み取ってください。",
   "mobile.onboarding.pasteInstead": "代わりにリンクを貼り付け",
   "mobile.home.onlyPinnedTitle": "ほかのチャットはここに表示されます",
@@ -6243,5 +6246,16 @@
   "mobile.unreachable.others": "ほかのインストール環境",
   "composer.freeBackup": "{engine}の無料バックアップモデルが応答しています",
   "composer.freeBackup.connect": "自分のAIを接続",
-  "createBot.creating": "作成中…"
+  "createBot.creating": "作成中…",
+  "onboarding.notch.title": "ボットはここに住むようになりました",
+  "onboarding.notch.stage": "アイランドとドックのプレビュー",
+  "onboarding.notch.hint": "ボットにポインタを合わせると切り替わります。タップするか、ノッチまでドラッグしてください。",
+  "onboarding.notch.live": "いま画面の上部で表示中",
+  "onboarding.notch.keep": "ノッチをオンのままにする",
+  "onboarding.notch.dock": "サイドのドックだけ",
+  "onboarding.notch.line.maus": "いつでも呼んでください",
+  "onboarding.notch.line.invoices": "期限切れの請求書3件を催促中",
+  "onboarding.notch.line.standup": "月曜のスタンドアップを作成中",
+  "onboarding.notch.line.forecast": "第3四半期の予測を承認しますか？",
+  "onboarding.notch.line.cheered": "応援ありがとう。仕事に戻ります。"
 }

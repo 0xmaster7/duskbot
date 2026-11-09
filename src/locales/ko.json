@@ -6600,6 +6600,9 @@
   "settings.ambient.display.built-in": "내장 디스플레이",
   "settings.ambient.display.main": "주 디스플레이",
   "settings.ambient.failed": "이 설정을 저장하지 못했어요. 다시 시도하세요.",
+  "settings.ambient.tour.title": "아일랜드와 독 둘러보기",
+  "settings.ambient.tour.subtitle": "다시 사용해 보고 봇이 머물 곳을 고르세요.",
+  "settings.ambient.tour.show": "보기",
   "mobile.onboarding.linkShort": "컴퓨터에서 {app}을 열고 설정 › Phone에 있는 코드를 스캔하세요.",
   "mobile.onboarding.pasteInstead": "대신 링크 붙여넣기",
   "mobile.home.onlyPinnedTitle": "다른 채팅은 여기에 표시돼요",
@@ -6633,5 +6636,16 @@
   "mobile.unreachable.others": "다른 설치 환경",
   "composer.freeBackup": "{engine}의 무료 백업 모델이 답하고 있어요",
   "composer.freeBackup.connect": "내 AI 연결",
-  "createBot.creating": "만드는 중…"
+  "createBot.creating": "만드는 중…",
+  "onboarding.notch.title": "이제 봇들이 여기 위에 살아요",
+  "onboarding.notch.stage": "아일랜드와 독 미리 보기",
+  "onboarding.notch.hint": "봇을 가리키면 바뀌어요. 탭하거나 노치로 끌어 보세요.",
+  "onboarding.notch.live": "지금 화면 상단에 표시 중",
+  "onboarding.notch.keep": "노치 켜 두기",
+  "onboarding.notch.dock": "측면 독만",
+  "onboarding.notch.line.maus": "필요할 때 언제든 여기 있어요",
+  "onboarding.notch.line.invoices": "연체된 청구서 3건 독촉 중",
+  "onboarding.notch.line.standup": "월요일 스탠드업 작성 중",
+  "onboarding.notch.line.forecast": "3분기 예측을 승인할까요?",
+  "onboarding.notch.line.cheered": "응원 고마워요. 다시 일하러 갈게요."
 }

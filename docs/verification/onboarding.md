@@ -148,3 +148,18 @@ The current flow components cover first-run state and replay. The
 retired Chief selector, app tour, first-conversation spotlight component and Meet
 MausBot popup have no current renderer fixture; their removed tests must not
 be treated as acceptance evidence.
+
+## Notch and dock step (Nov 9 2026)
+
+On the desktop app on a Mac (the island bridge reports `available`), the first run shows one step after the jobs:
+a demo display where the island cycles every mood, the dock bots can be pointed at, tapped or dragged into the
+notch, and the real island is on while it shows. "Keep the notch on" saves `{ island: true }`, "Just the side dock"
+saves `{ island: false, dock: true }`, and leaving with neither puts the island back as it was. Settings →
+Appearance → "Island and dock tour" plays it again; dev builds also expose `window.ombIslandIntro()`.
+
+```sh
+pnpm exec vitest run src/components/onboarding/IslandIntro.test.ts src/components/onboarding/WelcomeFlow.test.ts
+```
+
+For a look without the app, `pnpm dev` and open `/previews/island-intro-preview.html` (fake bridge; `?reduced=1`,
+`?fail=1`, `?lang=de`, `?w=760&h=600`). The real island lighting up on a display is not covered by these checks.

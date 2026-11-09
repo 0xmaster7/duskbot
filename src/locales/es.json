@@ -5619,6 +5619,9 @@
   "settings.ambient.display.built-in": "Pantalla integrada",
   "settings.ambient.display.main": "Pantalla principal",
   "settings.ambient.failed": "No se pudo guardar este ajuste. Inténtalo de nuevo.",
+  "settings.ambient.tour.title": "Recorrido por la isla y el dock",
+  "settings.ambient.tour.subtitle": "Vuelve a probarlos y elige dónde viven tus bots.",
+  "settings.ambient.tour.show": "Mostrar",
   "mobile.onboarding.linkShort": "Abre {app} en tu ordenador y escanea el código en Ajustes › Phone.",
   "mobile.onboarding.pasteInstead": "Pegar un enlace en su lugar",
   "mobile.home.onlyPinnedTitle": "Tus otros chats aparecen aquí",
@@ -5654,5 +5657,16 @@
   "mobile.unreachable.others": "Otras instalaciones",
   "composer.freeBackup": "Está respondiendo un modelo gratuito de respaldo de {engine}",
   "composer.freeBackup.connect": "Conecta tu IA",
-  "createBot.creating": "Creando…"
+  "createBot.creating": "Creando…",
+  "onboarding.notch.title": "Tus bots ahora viven aquí arriba",
+  "onboarding.notch.stage": "Una vista previa de la isla y el dock",
+  "onboarding.notch.hint": "Señala un bot para cambiar. Tócalo o arrástralo al notch.",
+  "onboarding.notch.live": "En vivo ahora mismo en la parte superior de tu pantalla",
+  "onboarding.notch.keep": "Mantener el notch",
+  "onboarding.notch.dock": "Solo el dock lateral",
+  "onboarding.notch.line.maus": "Aquí cuando me necesites",
+  "onboarding.notch.line.invoices": "Reclamando 3 facturas vencidas",
+  "onboarding.notch.line.standup": "Preparando el standup del lunes",
+  "onboarding.notch.line.forecast": "¿Apruebas la previsión del tercer trimestre?",
+  "onboarding.notch.line.cheered": "¡Ánimo recibido! A seguir."
 }

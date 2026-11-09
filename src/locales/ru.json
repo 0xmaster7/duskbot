@@ -6192,6 +6192,9 @@
   "settings.ambient.display.built-in": "Встроенный дисплей",
   "settings.ambient.display.main": "Основной дисплей",
   "settings.ambient.failed": "Не удалось сохранить эту настройку. Попробуйте ещё раз.",
+  "settings.ambient.tour.title": "Обзор острова и дока",
+  "settings.ambient.tour.subtitle": "Попробуйте их ещё раз и выберите, где будут жить ваши боты.",
+  "settings.ambient.tour.show": "Показать",
   "mobile.onboarding.linkShort": "Откройте {app} на компьютере и отсканируйте код в разделе Настройки › Phone.",
   "mobile.onboarding.pasteInstead": "Вместо этого вставить ссылку",
   "mobile.home.onlyPinnedTitle": "Ваши остальные чаты появятся здесь",
@@ -6225,5 +6228,16 @@
   "mobile.unreachable.others": "Другие установки",
   "composer.freeBackup": "Отвечает бесплатная резервная модель от {engine}",
   "composer.freeBackup.connect": "Подключить свой ИИ",
-  "createBot.creating": "Создаём…"
+  "createBot.creating": "Создаём…",
+  "onboarding.notch.title": "Теперь ваши боты живут здесь, наверху",
+  "onboarding.notch.stage": "Предпросмотр острова и дока",
+  "onboarding.notch.hint": "Наведите на бота, чтобы переключиться. Нажмите на него или перетащите в вырез.",
+  "onboarding.notch.live": "Прямо сейчас вверху вашего экрана",
+  "onboarding.notch.keep": "Оставить вырез включённым",
+  "onboarding.notch.dock": "Только боковой док",
+  "onboarding.notch.line.maus": "Здесь, когда понадоблюсь",
+  "onboarding.notch.line.invoices": "Напоминает о 3 просроченных счетах",
+  "onboarding.notch.line.standup": "Готовит планёрку на понедельник",
+  "onboarding.notch.line.forecast": "Утвердить прогноз на 3-й квартал?",
+  "onboarding.notch.line.cheered": "Спасибо за поддержку. Возвращаюсь к делу."
 }

@@ -5142,6 +5142,9 @@
   "settings.ambient.display.built-in": "Yerleşik ekran",
   "settings.ambient.display.main": "Ana ekran",
   "settings.ambient.failed": "Bu ayar kaydedilemedi. Tekrar deneyin.",
+  "settings.ambient.tour.title": "Ada ve dock turu",
+  "settings.ambient.tour.subtitle": "Onlarla yeniden oynayın ve botlarınızın nerede yaşayacağını seçin.",
+  "settings.ambient.tour.show": "Göster",
   "mobile.onboarding.linkShort": "Bilgisayarında {app} uygulamasını aç ve Ayarlar › Phone bölümündeki kodu tara.",
   "mobile.onboarding.pasteInstead": "Bunun yerine bağlantı yapıştır",
   "mobile.home.onlyPinnedTitle": "Diğer sohbetlerin burada görünür",
@@ -5177,5 +5180,16 @@
   "mobile.unreachable.others": "Diğer kurulumlar",
   "composer.freeBackup": "{engine} tarafından sunulan ücretsiz yedek model yanıt veriyor",
   "composer.freeBackup.connect": "Kendi yapay zekânı bağla",
-  "createBot.creating": "Oluşturuluyor…"
+  "createBot.creating": "Oluşturuluyor…",
+  "onboarding.notch.title": "Botların artık burada, yukarıda yaşıyor",
+  "onboarding.notch.stage": "Ada ve dock önizlemesi",
+  "onboarding.notch.hint": "Değiştirmek için bir bota gelin. Birine dokunun ya da çentiğe sürükleyin.",
+  "onboarding.notch.live": "Şu anda ekranının üstünde canlı",
+  "onboarding.notch.keep": "Çentik açık kalsın",
+  "onboarding.notch.dock": "Sadece yan dock",
+  "onboarding.notch.line.maus": "İhtiyacın olduğunda buradayım",
+  "onboarding.notch.line.invoices": "Vadesi geçmiş 3 faturayı takip ediyor",
+  "onboarding.notch.line.standup": "Pazartesi toplantı özetini hazırlıyor",
+  "onboarding.notch.line.forecast": "3. çeyrek tahmini onaylansın mı?",
+  "onboarding.notch.line.cheered": "Tezahürat alındı. İşe dönüyorum."
 }

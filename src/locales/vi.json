@@ -5142,6 +5142,9 @@
   "settings.ambient.display.built-in": "Màn hình tích hợp",
   "settings.ambient.display.main": "Màn hình chính",
   "settings.ambient.failed": "Không lưu được cài đặt này. Hãy thử lại.",
+  "settings.ambient.tour.title": "Tham quan đảo và dock",
+  "settings.ambient.tour.subtitle": "Thử lại chúng và chọn nơi bot của bạn sống.",
+  "settings.ambient.tour.show": "Xem",
   "mobile.onboarding.linkShort": "Mở {app} trên máy tính và quét mã trong Cài đặt › Phone.",
   "mobile.onboarding.pasteInstead": "Thay vào đó, dán liên kết",
   "mobile.home.onlyPinnedTitle": "Các cuộc trò chuyện khác của bạn sẽ hiện ở đây",
@@ -5177,5 +5180,16 @@
   "mobile.unreachable.others": "Các bản cài đặt khác",
   "composer.freeBackup": "Một mô hình dự phòng miễn phí của {engine} đang trả lời",
   "composer.freeBackup.connect": "Kết nối AI của bạn",
-  "createBot.creating": "Đang tạo…"
+  "createBot.creating": "Đang tạo…",
+  "onboarding.notch.title": "Bot của bạn giờ sống ở trên này",
+  "onboarding.notch.stage": "Bản xem trước của đảo và dock",
+  "onboarding.notch.hint": "Trỏ vào một bot để đổi. Chạm vào bot hoặc kéo nó vào tai thỏ.",
+  "onboarding.notch.live": "Đang hiển thị ở đầu màn hình của bạn",
+  "onboarding.notch.keep": "Giữ tai thỏ bật",
+  "onboarding.notch.dock": "Chỉ dock bên cạnh",
+  "onboarding.notch.line.maus": "Luôn ở đây khi bạn cần",
+  "onboarding.notch.line.invoices": "Đang nhắc 3 hóa đơn quá hạn",
+  "onboarding.notch.line.standup": "Đang soạn buổi standup thứ Hai",
+  "onboarding.notch.line.forecast": "Duyệt dự báo quý 3?",
+  "onboarding.notch.line.cheered": "Đã được cổ vũ. Quay lại làm việc."
 }
