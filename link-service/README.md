@@ -121,7 +121,8 @@ stays on the relay; a transport that failed on a network is tried last there for
   from the app (or at once for the `update` op with `apply: "now"`), by ending the tunnel so systemd starts it again.
   The installed `/opt/openmausbot-link/agent.mjs` then launches the staged file, and stops launching one that did not
   stay up for 2 minutes three starts in a row, so a bad release leaves the installed agent running.
-  `OMB_LINK_UPDATES=off` turns this off. The server's own build is not updated this way: it is root's, and only
+  It stays off until at least one release key is pinned, since an update runs downloaded code as the agent;
+  `OMB_LINK_UPDATES=off` turns it off for good. The server's own build is not updated this way: it is root's, and only
   `install.sh` replaces it.
 
 ## Phone channels

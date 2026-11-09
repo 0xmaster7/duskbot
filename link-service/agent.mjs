@@ -2156,7 +2156,9 @@ async function tunnel() {
   let saved;
   try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet; nothing to do"); return 0; }
   // the installed file hands over to a newer staged release; a staged release (OMB_LINK_LAUNCHER set) never looks further
-  const updates = process.env.OMB_LINK_UPDATES !== "off";
+  // self-update runs downloaded code as this agent, so it waits for a pinned release key
+  const releaseKeys = [...RELEASE_KEYS, ...(process.env.OMB_LINK_RELEASE_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean)];
+  const updates = process.env.OMB_LINK_UPDATES !== "off" && releaseKeys.length > 0;
   if (updates && !process.env.OMB_LINK_LAUNCHER) {
     const release = stagedRelease({ log: (line) => console.error(line) });
     if (release) return launchRelease(release);
