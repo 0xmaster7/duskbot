@@ -69,6 +69,20 @@ describe("sidebar previews", () => {
     expect(groupPreview(group, [bot], [])).toBe("Ada: Here is the plan.");
   });
 
+  it("says a message of files only as grok does: Sent 1 PDF, Sent 1 spreadsheet, Sent 1 video, and a mix as files", () => {
+    const file = (mime: string, name: string) => ({ kind: "file" as const, path: name, mime, name });
+    const sent = (attachments: Message["attachments"], text = "") => botPreview(bot, [message({ text, attachments })], []);
+    expect(sent([file("application/pdf", "trip.pdf")])).toBe("Sent 1 PDF");
+    expect(sent([file("text/plain", "orders.csv")])).toBe("Sent 1 spreadsheet");
+    expect(sent([file("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "q3.xlsx")])).toBe("Sent 1 spreadsheet");
+    expect(sent([file("video/mp4", "demo.mp4")])).toBe("Sent 1 video");
+    expect(sent([{ kind: "image", path: "a.png", mime: "image/png" }, { kind: "image", path: "b.png", mime: "image/png" }])).toBe("Sent 2 images");
+    expect(sent([file("application/pdf", "a.pdf"), file("video/mp4", "b.mp4")])).toBe("Sent 2 files");
+    expect(sent([file("application/pdf", "trip.pdf")], "Here is your checklist.")).toBe("Here is your checklist.");
+    const from = { botId: "ada", name: "Ada", color: "green" } as Message["from"];
+    expect(groupPreview({ id: "g", name: "Room", messages: [message({ from, attachments: [file("application/pdf", "a.pdf")] })] } as unknown as Group, [bot], [])).toBe("Ada: Sent 1 PDF");
+  });
+
   it("skips screen frames in a group chat's preview too", () => {
     const group = { id: "g", name: "Room", messages: [message({ text: "Done.", from: { botId: "ada", name: "Ada", color: "green" } }), screen()] } as unknown as Group;
     expect(groupPreview(group, [bot], [])).toBe("Ada: Done.");
