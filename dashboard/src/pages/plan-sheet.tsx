@@ -44,6 +44,28 @@ export function IntervalToggle({ value, onChange, catalog }: { value: BillingInt
   );
 }
 
+/** A plan change that charges something now stops once to show the amount, and applies only at that amount; a change of
+ * selection asks again. `apply` is true once applied, false when it stopped to show the charge. */
+export function useChangeCharge(selection: Selection | null) {
+  const { changeCharge, changePlan } = useCloud();
+  const key = selection ? JSON.stringify(selection) : "";
+  const [charge, setCharge] = useState<{ key: string; usd: number } | null>(null);
+  const shown = charge?.key === key ? charge.usd : null;
+  const apply = async (next: Selection): Promise<boolean> => {
+    if (shown === null) {
+      const usd = await changeCharge(next);
+      if (usd > 0) { setCharge({ key, usd }); return false; }
+    }
+    try { await changePlan(next, shown ?? 0); return true; } catch (e) { setCharge(null); throw e; }
+  };
+  return { charge: shown, apply };
+}
+
+/** "You pay $X now, then $Y/mo from {date}": what a confirmed change costs */
+export function ChargeLine({ charge, cart, interval, from }: { charge: number; cart: { perMonth: number; dueNow: number } | null; interval: BillingInterval; from: number | null | undefined }) {
+  return <p role="status" className="num mt-2 text-13 text-ink-2">You pay {money(charge)} now{cart && from ? `, then ${cartText(cart, interval)} from ${longDate(from)}` : ""}.</p>;
+}
+
 /** the paid plans a sheet can sell: plus is the starter bundle */
 export type PaidPlan = Extract<BundleId, "starter" | "pro">;
 
@@ -57,7 +79,7 @@ export function planSelection(catalog: PlanCatalog, plan: PaidPlan, opts: { inte
 
 /** one place to buy plus or pro: the plan, the billing period, the region and an optional work license */
 export function PlanSheet({ start, source, work = false, onClose }: { source: CheckoutSource; start: PaidPlan; work?: boolean; onClose(): void }) {
-  const { catalog, billing, checkout, changePlan } = useCloud();
+  const { catalog, billing, checkout } = useCloud();
   const { toast } = useSession();
   const owned = billing?.subscription?.selection ?? null;
   const [interval, setInterval] = useState<BillingInterval>(owned?.interval ?? (sessionStorage.getItem(INTERVAL_KEY) === "month" ? "month" : "year"));
@@ -69,6 +91,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
   const [error, setError] = useState<string | null>(null);
   const sel = catalog ? planSelection(catalog, plan, { interval, region, work: withLicense, keep: owned }) : null;
   const { cart, ready, error: quoteError } = useCart(sel, catalog);
+  const { charge, apply } = useChangeCharge(sel);
   if (!catalog || !sel) return <Sheet open onClose={onClose} title="Get a cloud desktop"><Skeleton className="mt-4 h-40" /></Sheet>;
   const b = bundleOf(catalog, plan);
   const ownsLicense = Boolean(owned && owned.license !== "personal");
@@ -77,7 +100,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
   const go = async () => {
     setBusy(true); setError(null);
     try {
-      if (owned) { await changePlan(sel); toast(`You are on ${b?.name}`); onClose(); }
+      if (owned) { if (await apply(sel)) { toast(`You are on ${b?.name}`); onClose(); } }
       else if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("Paid. Your cloud desktop is being set up."); onClose(); navigate("/cloud"); }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
@@ -98,9 +121,10 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
             <span className="text-14 text-ink-3">Total</span>
             <span className="num"><span className="text-24 font-semibold tracking-[-0.02em] text-ink">{cart ? money(interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{interval === "year" ? "/yr" : "/mo"}</span></span>
           </div>
-          <p className="num mt-0.5 text-end text-13 text-ink-4">{interval === "year" ? "Billed yearly" : "Billed monthly"}{owned ? ", prorated from today" : ""}</p>
+          <p className="num mt-0.5 text-end text-13 text-ink-4">{interval === "year" ? "Billed yearly" : "Billed monthly"}</p>
+          {charge !== null && <ChargeLine charge={charge} cart={cart} interval={interval} from={billing?.subscription?.currentPeriodEnd} />}
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
-          <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready || unchanged}>{busy ? (owned ? "Switching" : "Opening checkout") : unchanged ? "Your plan" : owned ? "Switch plan" : "Checkout"}</Button>
+          <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready || unchanged}>{busy ? (owned ? "Switching" : "Opening checkout") : unchanged ? "Your plan" : charge !== null ? `Pay ${money(charge)} and switch` : owned ? "Switch plan" : "Checkout"}</Button>
           <p className="mt-3 text-center text-12 text-ink-4">Cancel anytime. Set up in about a minute.</p>
         </div>
       }
@@ -152,13 +176,14 @@ function Stepper({ value, min, max, onChange }: { value: number; min: number; ma
 
 /** the work license on its own: personal, one person, or a team with seats */
 export function LicenseSheet({ start, source, onClose, onNothingLeft }: { source: CheckoutSource; start: { license: LicenseId; members: number }; onClose(): void; onNothingLeft(): void }) {
-  const { catalog, billing, checkout, changePlan } = useCloud();
+  const { catalog, billing, checkout } = useCloud();
   const { toast } = useSession();
   const owned = billing?.subscription?.selection ?? null;
   const [sel, setSel] = useState<Selection>(() => ({ ...(owned ?? { desktop: "none", size: null, region: catalog?.regions[0]?.id ?? "" }), license: start.license, members: start.members, interval: owned?.interval ?? "year" }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { cart, ready, error: quoteError } = useCart(sel, catalog);
+  const { charge, apply } = useChangeCharge(sel);
   if (!catalog) return null;
   const set = (patch: Partial<Selection>) => { setSel((s) => ({ ...s, ...patch })); setError(null); };
   const lic = licenseOf(catalog, sel.license);
@@ -167,7 +192,7 @@ export function LicenseSheet({ start, source, onClose, onNothingLeft }: { source
     if (sel.license === "personal" && sel.desktop === "none") { onClose(); onNothingLeft(); return; }
     setBusy(true); setError(null);
     try {
-      if (owned) { await changePlan(sel); toast(sel.license === "personal" ? "License removed" : "License updated"); onClose(); }
+      if (owned) { if (await apply(sel)) { toast(sel.license === "personal" ? "License removed" : "License updated"); onClose(); } }
       else if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("License active. Thanks for backing OpenMausBot."); onClose(); }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
@@ -185,8 +210,9 @@ export function LicenseSheet({ start, source, onClose, onNothingLeft }: { source
             <span className="num"><span className="text-24 font-semibold tracking-[-0.02em] text-ink">{cart ? money(sel.interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{sel.interval === "year" ? "/yr" : "/mo"}</span></span>
           </div>
           <p className="num mt-0.5 text-end text-13 text-ink-4">{cart?.free ? "Nothing to pay" : sel.interval === "year" ? "Billed yearly" : "Billed monthly"}</p>
+          {charge !== null && <ChargeLine charge={charge} cart={cart} interval={sel.interval} from={billing?.subscription?.currentPeriodEnd} />}
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
-          <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready || unchanged}>{busy ? (owned ? "Updating" : "Opening checkout") : owned ? (sel.license === "personal" ? "Remove license" : "Update license") : sel.license === "personal" ? "Personal use is free" : `Buy ${lic?.name} license`}</Button>
+          <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready || unchanged}>{busy ? (owned ? "Updating" : "Opening checkout") : charge !== null ? `Pay ${money(charge)} and update` : owned ? (sel.license === "personal" ? "Remove license" : "Update license") : sel.license === "personal" ? "Personal use is free" : `Buy ${lic?.name} license`}</Button>
         </div>
       }
     >
