@@ -1,13 +1,26 @@
 // bots.json and groups.json are the only index of a person's bots: an empty list there reads as a fresh install, and the
 // first save (seeding MausBot) would write over whatever was unreadable. So a good read leaves a copy beside the file,
 // and a bad one sets the file aside and comes back from that copy.
-import { copyFileSync, readFileSync } from "node:fs";
+import { chmodSync, copyFileSync, readFileSync } from "node:fs";
 import { writeFileAtomicIfChanged } from "./atomic.ts";
 
 export const lastGoodPath = (file: string) => `${file}.last-good`;
 
-/** These copies hold the whole list, a team member's private bots included: no backup carries them. */
-export const isRegistryCopy = (name: string) => /^(?:bots|groups)\.json\.(?:last-good|unreadable-\d+)$/.test(name);
+/** These copies hold the whole list (a team member's private bots) or the raw config (keys): no backup carries them. */
+export const isSafetyCopy = (name: string) =>
+  /^(?:bots|groups)\.json\.(?:last-good|unreadable-\d+)$/.test(name) || /^config\.json\.unreadable-\d+$/.test(name);
+
+/** Copies a file that could not be read beside itself before anything writes over it; where it went, or undefined. */
+export function setAsideUnreadable(file: string, now = Date.now): string | undefined {
+  const aside = `${file}.unreadable-${now()}`;
+  try {
+    copyFileSync(file, aside);
+    try { chmodSync(aside, 0o600); } catch { /* windows */ }
+    return aside;
+  } catch {
+    return undefined;
+  }
+}
 
 export type RegistryRead<T> =
   | { state: "loaded"; records: T[]; text: string }
@@ -40,12 +53,7 @@ export function readRegistryFile<T>(file: string, { now = Date.now, log = consol
     }
     return { state: "loaded", records, text };
   }
-  let setAside: string | undefined = `${file}.unreadable-${now()}`;
-  try {
-    copyFileSync(file, setAside);
-  } catch {
-    setAside = undefined;
-  }
+  const setAside = setAsideUnreadable(file, now);
   let backup: T[] | null = null;
   try {
     backup = parse<T>(readFileSync(lastGoodPath(file), "utf8"));
