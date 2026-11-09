@@ -1379,9 +1379,6 @@ was (**Manage in your browser**). If the routes are missing anyway (its own
 page's billing (`/cloud/personal/billing`) in the browser and the sheet says
 so. Deploy the Admin before the app release that uses it.
 
-`previews/cancel-plan-preview.html` (dev only, `pnpm dev`) shows the real cards with a
-fake bridge: `?view=settings|cloud&plan=trial|paid|team&cancelled=1&admin=old&skin=midnight|daylight&lang=de`.
-
 #### One card at a time: the notice queue
 
 `components/AppNotices.tsx` is the one place for the What's new popup and the
