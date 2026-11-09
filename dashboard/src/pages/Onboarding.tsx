@@ -1,15 +1,104 @@
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import { useCloud } from "../data/cloud";
+import type { CheckoutSource, PlanCatalog } from "../data/contracts";
+import { freeTradeoffs, planLine, type FunnelPlan } from "../data/funnel";
+import { bundleOf, dollars } from "../data/pricing";
 import { useSession } from "../data/session";
 import { navigate } from "../lib/router";
 import { DOWNLOAD_URL, PHONE_WEB_APP } from "../lib/usage";
-import { Button, ButtonLink, Card, cx, Skeleton } from "../ui/kit";
+import { Button, ButtonLink, cx, Skeleton } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
-import { QuickPick } from "./cloud-bits";
+import { CrewStage, FreeSheet } from "./funnel";
+import { planSelection } from "./plan-sheet";
 
-type Step = "where" | "plan" | "apps";
-const ORDER: Step[] = ["where", "plan", "apps"];
+const PAID: FunnelPlan[] = ["starter", "pro"];
+
+/** the start funnel: a cloud desktop up front with its picture and one white button; Free sits under it, quieter,
+ * and opens a plain comparison before it lets you through */
+function StartPick({ catalog, onBought, onFree }: { catalog: PlanCatalog; onBought(): void; onFree(): void }) {
+  const { checkout } = useCloud();
+  const { toast } = useSession();
+  const [plan, setPlan] = useState<FunnelPlan>("starter");
+  const [busy, setBusy] = useState<CheckoutSource | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [comparing, setComparing] = useState(false);
+  const chosen = bundleOf(catalog, plan);
+  const price = `${dollars(chosen?.monthly ?? 0)}/mo`;
+  const buy = async (source: CheckoutSource) => {
+    setBusy(source); setError(null);
+    try {
+      if (await checkout({ source, kind: "plan", selection: planSelection(catalog, plan, { interval: "month", work: false }), bundle: null })) {
+        toast("Paid. Your cloud desktop is being set up.");
+        setComparing(false);
+        onBought();
+      }
+    } catch (e) { setError((e as Error).message); } finally { setBusy(null); }
+  };
+  const checks = freeTradeoffs(catalog, plan).slice(0, 3).map((r) => r.paid);
+  return (
+    <>
+      <article className="mt-8 rounded-card border border-line-2 bg-card p-3 max-sm:mt-6" aria-labelledby="cloud-title">
+        <CrewStage />
+        <div className="px-4 pb-4 pt-6 max-sm:px-2 max-sm:pb-2 max-sm:pt-5">
+          <h2 id="cloud-title" className="text-20 font-semibold tracking-[-0.015em] text-ink">Keep your bots working 24/7</h2>
+          <p className="mt-1.5 max-w-[52ch] text-14 leading-[1.55] text-ink-3">A cloud desktop of their own keeps them answering, running routines and using their computers while your Mac sleeps.</p>
+          <fieldset className="mt-6 min-w-0">
+            <legend className="sr-only">Plan</legend>
+            <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+              {PAID.map((id) => {
+                const b = bundleOf(catalog, id);
+                if (!b) return null;
+                const on = plan === id;
+                return (
+                  <label key={id} htmlFor={`start-${id}`} className={cx("flex cursor-pointer flex-col rounded-[10px] border px-4 py-3.5 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-ink-3", on ? "border-ink-3 bg-card-2" : "hover-pick border-line-2")}>
+                    <input id={`start-${id}`} type="radio" name="start-plan" value={id} checked={on} onChange={() => setPlan(id)} className="sr-only" />
+                    <span className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-2.5">
+                        <span aria-hidden className={cx("size-4 shrink-0 rounded-full border", on ? "border-[5px] border-ink" : "border-ink-4")} />
+                        <span className="text-15 font-medium text-ink">{b.name}</span>
+                      </span>
+                      <span className="num text-15 font-medium text-ink">{dollars(b.monthly)}<span className="text-13 font-normal text-ink-3">/mo</span></span>
+                    </span>
+                    <span className="mt-1 ps-[26px] text-13 text-ink-3">{planLine(catalog, id)}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+          <ul className="mt-5 flex flex-col gap-2.5">
+            {checks.map((c) => <li key={c} className="flex gap-2.5 text-14 text-ink-2"><Check size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-good" aria-hidden />{c}</li>)}
+          </ul>
+          {error && !comparing && <p role="alert" className="mt-4 text-13 text-bad">{error}</p>}
+          <Button variant="primary" className="mt-6 w-full !h-11 text-15" onClick={() => void buy("dash_start")} disabled={busy !== null || !chosen}>{busy === "dash_start" ? "Opening checkout" : `Continue with ${chosen?.name}, ${price}`}</Button>
+          <p className="mt-3 text-center text-12 text-ink-4">Cancel anytime. Secure checkout by Dodo Payments.</p>
+        </div>
+      </article>
+
+      <button type="button" onClick={() => { setError(null); setComparing(true); }} className="press-soft hover-row mt-6 flex w-full items-center gap-4 rounded-card px-4 py-3.5 text-start max-sm:px-3">
+        <Mascot color="silver" size={28} state="sleeping" still />
+        <span className="min-w-0 flex-1">
+          <span className="block text-14 text-ink-2">Start with Free</span>
+          <span className="block text-13 text-ink-3">Run your bots on your Mac or your own server. $0, personal use.</span>
+        </span>
+        <ChevronRight size={16} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
+      </button>
+
+      <FreeSheet
+        open={comparing}
+        catalog={catalog}
+        plan={plan}
+        error={comparing ? error : null}
+        onClose={() => setComparing(false)}
+        onFree={() => { setComparing(false); onFree(); }}
+        primary={<Button variant="primary" onClick={() => void buy("dash_free_sheet")} disabled={busy !== null || !chosen}>{busy === "dash_free_sheet" ? "Opening checkout" : `Get ${chosen?.name}, ${price}`}</Button>}
+      />
+    </>
+  );
+}
+
+type Step = "where" | "apps";
+const ORDER: Step[] = ["where", "apps"];
 
 export function Onboarding() {
   const { account, catalog, finishOnboarding } = useCloud();
@@ -29,7 +118,7 @@ export function Onboarding() {
       <header className="relative mx-auto flex h-16 max-w-[960px] items-center justify-between px-6 max-sm:px-4">
         <span className="flex items-center gap-2.5"><Mascot color="blue" size={20} still /><span className="text-14 font-medium text-ink">OpenMausBot</span></span>
         <div className="flex items-center gap-4">
-          <ol className="flex items-center gap-1.5" aria-label={`Step ${ORDER.indexOf(step) + 1} of 3`}>
+          <ol className="flex items-center gap-1.5" aria-label={`Step ${ORDER.indexOf(step) + 1} of ${ORDER.length}`}>
             {ORDER.map((s, i) => <li key={s} aria-hidden className={cx("h-1 rounded-full", i <= ORDER.indexOf(step) ? "bg-ink" : "bg-track", s === step ? "w-6" : "w-3")} />)}
           </ol>
           <button type="button" onClick={() => void done()} className="hover-link h-11 rounded-full px-2 text-13 text-ink-3">Skip</button>
@@ -38,38 +127,10 @@ export function Onboarding() {
 
       <main className="relative mx-auto max-w-[960px] px-6 pb-16 pt-10 max-sm:px-4 max-sm:pt-4">
         {step === "where" && (
-          <section key="where" className="step-in" aria-labelledby="where-title">
+          <section key="where" className="step-in mx-auto max-w-[640px]" aria-labelledby="where-title">
             <h1 id="where-title" className="t-title">Welcome, {name}.</h1>
-            <p className="mt-2 text-14 text-ink-3">Where should your bots live?</p>
-            <div className="mt-8 divide-y divide-line border-y border-line">
-              <div className="flex flex-wrap items-center justify-between gap-4 py-6">
-                <div><h2 className="text-15 font-medium text-ink">A cloud desktop</h2><p className="mt-1 text-14 text-ink-3">On 24/7, even when your Mac sleeps.</p></div>
-                <Button variant="primary" onClick={() => setStep("plan")}>Get a cloud desktop</Button>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-4 py-6">
-                <div><h2 className="text-15 font-medium text-ink">My Mac</h2><p className="mt-1 text-14 text-ink-3">Free for personal use. Bots pause when it sleeps.</p></div>
-                <Button variant="outline" onClick={() => setStep("apps")}>Use my Mac for now</Button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {step === "plan" && (
-          <section key="plan" className="step-in mx-auto max-w-[640px]" aria-labelledby="plan-title">
-            <button type="button" onClick={() => setStep("where")} className="press-soft hover-ghost -ms-3 mb-4 inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-13 text-ink-2"><ArrowLeft size={16} strokeWidth={1.5} aria-hidden /> Back</button>
-            <h1 id="plan-title" className="t-title">Pick your cloud desktop</h1>
-            <p className="mt-2 text-14 leading-[1.55] text-ink-3">Every plan includes a work license and stays on 24/7.</p>
-            <Card className="mt-6">
-              {catalog ? (
-                <QuickPick
-                  source="dash_onboarding"
-                  catalog={catalog}
-                  onDone={() => { setBought(true); setStep("apps"); }}
-                  secondary={<Button variant="ghost" onClick={() => setStep("apps")}>Not now</Button>}
-                />
-              ) : <Skeleton className="h-[150px]" />}
-            </Card>
-            <p className="mt-4 text-center text-13 text-ink-3">Secure checkout by Dodo Payments. Cancel any time.</p>
+            <p className="mt-2 text-14 text-ink-3">Pick where your bots live.</p>
+            {catalog ? <StartPick catalog={catalog} onBought={() => { setBought(true); setStep("apps"); }} onFree={() => setStep("apps")} /> : <Skeleton className="mt-8 h-[520px] !rounded-card" />}
           </section>
         )}
 
