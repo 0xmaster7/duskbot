@@ -439,7 +439,7 @@ function DockMascot({ index, cheer, bot, labels, tile, cell, live, reduced, show
       >
         <span className="amb-lift">
           <motion.span className="amb-dock-mark" whileTap={reduced ? undefined : { scale: 0.96 }}>
-            <BotMark bot={bot} size={tile} state={state} animated={live} awake={live} shown={live} index={index} cheer={cheer} />
+            <BotMark bot={bot} size={tile} state={state} animated={live} awake={live} index={index} cheer={cheer} />
           </motion.span>
         </span>
         <AnimatePresence initial={false}>
