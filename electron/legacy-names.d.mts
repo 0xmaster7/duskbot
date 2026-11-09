@@ -22,7 +22,7 @@ export declare const LEGACY: Readonly<{
 export declare const UPSTREAM: Readonly<{ teamLibrary: { repository: string; raw: string }; composioBroker: string }>;
 export declare const SERVER_LEASE_NAME: string;
 export declare const SERVER_CHILD_DIR: string;
-export declare const SEAL_LABELS: Readonly<{ phoneCredential: string; cardSecret: string; sealKey: string; sealedValue: string; installation: string; workspaceComputer: string }>;
+export declare const SEAL_LABELS: Readonly<{ phoneCredential: string; phoneCredentialInfo: string; cardSecret: string; sealKey: string; sealedValue: string; installation: string; workspaceComputer: string }>;
 export declare const DOCKER_NAMES: Readonly<{ label: (name: string) => string; computerContainer: string; vpsPrefix: string; desktopNetwork: string }>;
 export declare const MDNS_HOST_PREFIX: string;
 export declare const CLOUD_HOME: Readonly<{ root: string; etc: string; run: string; gate: string; data: string; dataName: string }>;

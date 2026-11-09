@@ -1,3 +1,4 @@
+import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 // The config pins one deliberately unknown driver, so the suite is deterministic with or without agent CLIs installed.
 import { EMAIL_TOOLS } from "./email/tools.ts";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -165,7 +166,7 @@ let browserRegisterDelayMs = 0;
 const managedVpsNameForFixture = (botId: string): string => {
   const botPrefix = botId.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12) || "bot";
   const botHash = createHash("sha256").update(botId).digest("hex").slice(0, 12);
-  return `duskbot-vps-${botPrefix}-${botHash}`;
+  return `${DOCKER_NAMES.vpsPrefix}-${botPrefix}-${botHash}`;
 };
 
 const expectStoppedTestServerCleanly = (serverChild: ChildProcess, capturedStderr: string): void => {
@@ -384,6 +385,7 @@ beforeAll(async () => {
   writeFileSync(fakeDockerProgram, [
     'import { appendFileSync, existsSync, readFileSync, rmSync } from "node:fs";',
     'import { spawnSync } from "node:child_process";',
+    `import { DOCKER_NAMES } from ${JSON.stringify(new URL("../electron/legacy-names.mjs", import.meta.url).href)};`,
     'const args = process.argv.slice(2);',
     `const fixture = ${JSON.stringify(fakeDockerFixture)};`,
     `const vpsFixture = ${JSON.stringify(fakeVpsFixture)};`,
@@ -403,7 +405,7 @@ beforeAll(async () => {
     '  const spec = JSON.parse(readFileSync(vpsFixture, "utf8"));',
     '  if (args[2] === "container" && args[3] === "ls") { process.stdout.write(`${spec.id.slice(0, 12)}\\n`); process.exit(0); }',
     '  if (args[2] === "container" && args[3] === "inspect") {',
-    '    process.stdout.write(JSON.stringify([{ Id: spec.id, Name: `/${spec.name}`, Config: { Labels: { "bot.dusk.vps": "1", "bot.dusk.container": spec.name } }, State: { Status: "exited", Running: false } }]));',
+    '    process.stdout.write(JSON.stringify([{ Id: spec.id, Name: `/${spec.name}`, Config: { Labels: { [DOCKER_NAMES.label("vps")]: "1", [DOCKER_NAMES.label("container")]: spec.name } }, State: { Status: "exited", Running: false } }]));',
     '    process.exit(0);',
     '  }',
     '  if (args[2] === "rm" && args[3] === "-f" && args[4] === spec.id) { rmSync(vpsFixture, { force: true }); process.exit(0); }',
@@ -416,7 +418,7 @@ beforeAll(async () => {
     '  const expected = spec?.name ?? raw;',
     '  if (args[0] === "info") { process.stdout.write("29\\n"); process.exit(0); }',
     '  if (args[0] === "inspect" && args[1] === expected) {',
-    '    const labels = spec?.managed ? { "bot.dusk.local-vm": "1", "bot.dusk.workspace": "1", "bot.dusk.local-vm-target": spec.targetLabel } : {};',
+    '    const labels = spec?.managed ? { [DOCKER_NAMES.label("local-vm")]: "1", [DOCKER_NAMES.label("workspace")]: "1", [DOCKER_NAMES.label("local-vm-target")]: spec.targetLabel } : {};',
     '    process.stdout.write(JSON.stringify([{ Config: { Image: "fixture", Labels: labels }, State: { Running: false }, Mounts: spec?.workspace ? [{ Type: "bind", Source: spec.workspace, Destination: "/home/cua/workspace", RW: true }] : [] }]));',
     '    process.exit(0);',
     '  }',
@@ -12297,7 +12299,7 @@ describe("bot memory API", () => {
         id: "persona",
         label: "Identity",
         text: "You are Kiwi, a personal bot in Dusk Bot. Role: Tracker. About: Files bugs.",
-        bytes: 78,
+        bytes: 75,
       });
       expect(before.body.sections.map((s: { id: string }) => s.id)).not.toContain("soul");
       expect(before.body.sections.map((s: { id: string }) => s.id)).toContain("memory");

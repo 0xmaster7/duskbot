@@ -1,3 +1,4 @@
+import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 import { independentScreenTarget } from "./shared-desktop-screens.ts";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
@@ -301,7 +302,7 @@ describe("VPS computer", () => {
   it("uses a deterministic, bot-id-derived managed container name", () => {
     expect(vpsContainerName(BOT_ID)).toBe(vpsContainerName(BOT_ID));
     expect(vpsContainerName(BOT_ID)).not.toBe(vpsContainerName("another-bot"));
-    expect(vpsContainerName(BOT_ID)).toMatch(/^duskbot-vps-[a-z0-9-]+$/);
+    expect(vpsContainerName(BOT_ID)).toMatch(new RegExp(`^${DOCKER_NAMES.vpsPrefix}-[a-z0-9-]+$`));
   });
 
   it("passes the SSH target as one validated Docker argv value", () => {
@@ -547,7 +548,7 @@ esac
     expect(run.at(-1)).toBe(IMAGE_ID);
     expect(run.join(" ")).toContain(`--label ${VPS_MANAGED_LABEL}=1`);
     expect(run.find((arg) => arg.startsWith(`${VPS_ENVIRONMENT_LABEL}=`)))
-      .toMatch(/^com\.duskbot\.environment=[0-9a-f-]{36}$/i);
+      .toMatch(new RegExp(`^${DOCKER_NAMES.label("environment").replaceAll(".", "\\.")}=[0-9a-f-]{36}$`, "i"));
     expect(run.join(" ")).toContain(`--label ${IMAGE_LAYER_LABEL}=${IMAGE_LAYER_VERSION}`);
     expect(run.join(" ")).toContain(`--label ${VPS_VIEWER_LABEL}=1`);
     expect(run.join(" ")).toContain("--memory 1536m --memory-swap 1536m --cpu-shares 256 --oom-score-adj 500");
@@ -617,13 +618,13 @@ esac
       if (command === "info") { fake.calls.push({ args, options }); return { stdout: String(12 * 1024 ** 3), stderr: "" }; }
       if (command === "ps") {
         fake.calls.push({ args, options });
-        const others = busyHost ? Array.from({ length: 6 }, (_, index) => `duskbot-vps-busy${index}-${"b".repeat(11)}${index}\t\tduskbot-vps-busy${index}-${"b".repeat(11)}${index}`) : [];
+        const others = busyHost ? Array.from({ length: 6 }, (_, index) => `${DOCKER_NAMES.vpsPrefix}-busy${index}-${"b".repeat(11)}${index}\t\t${DOCKER_NAMES.vpsPrefix}-busy${index}-${"b".repeat(11)}${index}`) : [];
         return { stdout: others.join("\n"), stderr: "" };
       }
       if (command === "update") { fake.calls.push({ args, options }); return { stdout: "", stderr: "" }; }
       return fake.runner(args, options);
     };
-    setVpsCapacityHost({ owned: () => new Set(Array.from({ length: 6 }, (_, index) => `duskbot-vps-busy${index}-${"b".repeat(11)}${index}`)), sleepLeastRecent: async () => false });
+    setVpsCapacityHost({ owned: () => new Set(Array.from({ length: 6 }, (_, index) => `${DOCKER_NAMES.vpsPrefix}-busy${index}-${"b".repeat(11)}${index}`)), sleepLeastRecent: async () => false });
     try {
       busyHost = true;
       vi.useFakeTimers({ toFake: ["setTimeout", "Date"] });

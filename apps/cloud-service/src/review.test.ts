@@ -1,4 +1,5 @@
 // Independent review tests (w13/boat-test): paths the merged suite does not try.
+import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -32,7 +33,7 @@ async function fixture() {
     if (command.includes("omb-home start")) {
       if (!sandbox.volume.size) {
         sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
-        sandbox.volume.set("__system__/data/.duskbot/bots.json", Buffer.from(JSON.stringify([{ id: "bot-1", name: "Test bot" }])));
+        sandbox.volume.set(`__system__${CLOUD_HOME.data}/bots.json`, Buffer.from(JSON.stringify([{ id: "bot-1", name: "Test bot" }])));
       }
       return { exitCode: 0, stdout: "started\n" };
     }
@@ -147,7 +148,7 @@ it("one transient 404 from Boat must not rebuild a paid cloud and later delete t
   // woken, something that matters is written, asleep again within the backup interval (so no new backup yet)
   await wake(f, s, c);
   const original = c.serverId!;
-  f.api.sandboxes.get(original)!.volume.set("__system__/data/.duskbot/precious.json", Buffer.from("written after the last backup"));
+  f.api.sandboxes.get(original)!.volume.set(`__system__${CLOUD_HOME.data}/precious.json`, Buffer.from("written after the last backup"));
   await sleepCycle(f, s, c);
   expect(c.managed!.backups).toHaveLength(1);
   // one GET answers 404 (a Boat incident, a proxy, a rotated key for one deploy); the sandbox is in fact still there
@@ -156,13 +157,13 @@ it("one transient 404 from Boat must not rebuild a paid cloud and later delete t
   c.nextAttemptAt = 0; await s.reconcile();
   expect.soft(c.serverId, "a single 404 rebuilt the cloud").toBe(original);
   if (c.serverId !== original) await f.settle(s, c, c => c.status === "running" && c.serverId !== null);
-  const restoredHasIt = f.api.sandboxes.get(c.serverId!)!.volume.has("__system__/data/.duskbot/precious.json");
+  const restoredHasIt = f.api.sandboxes.get(c.serverId!)!.volume.has(`__system__${CLOUD_HOME.data}/precious.json`);
   console.info(`[review] rebuilt onto ${c.serverId === original ? "ORIGINAL" : "a new sandbox"}; restored volume has the newer data: ${restoredHasIt}`);
   // a normal week of use afterwards
   for (let day = 0; day < 9; day++) { f.advance(DAY_MS); if (c.status === "sleeping") await wake(f, s, c); await sleepCycle(f, s, c); }
   const deletedPaths = f.api.deletes().map(d => d.path);
   console.info(`[review] after one 404: attempt=${c.managed!.attempt} retired=${JSON.stringify(c.managed!.retired.map(r => ({ id: r.serverId === original ? "ORIGINAL" : r.serverId, deletion: r.deletion ? "sent" : null })))} deletes=${JSON.stringify(deletedPaths.map(p => p.includes(original) ? "ORIGINAL" : p))} actions=${audit.entries(c.id).map(e => e.action).filter(a => /recover|retired|delete/.test(a)).join(",")}`);
-  const survives = [...f.api.sandboxes.values()].some(x => x.volume.has("__system__/data/.duskbot/precious.json") || x.snapshots.some(sn => sn.volume.has("__system__/data/.duskbot/precious.json")));
+  const survives = [...f.api.sandboxes.values()].some(x => x.volume.has(`__system__${CLOUD_HOME.data}/precious.json`) || x.snapshots.some(sn => sn.volume.has(`__system__${CLOUD_HOME.data}/precious.json`)));
   expect(deletedPaths, "the original sandbox, still holding unbacked data, was deleted").not.toContain(`/sandboxes/${original}`);
   expect(survives, "the data written after the last backup is gone").toBe(true);
 });

@@ -1,3 +1,4 @@
+import { SEAL_LABELS } from "../electron/legacy-names.mjs";
 import { createHash, webcrypto } from "node:crypto";
 
 import {
@@ -242,7 +243,7 @@ describe("PhoneSecretBridge", () => {
 describe("phoneSecretAAD", () => {
   it("has the exact stable cross-platform serialization", () => {
     expect(new TextDecoder().decode(phoneSecretAAD(baseContext("AAAAAAAAAAAAAAAAAAAAAA")))).toBe([
-      "duskbot-phone-credential-v1",
+      SEAL_LABELS.phoneCredential,
       "AAAAAAAAAAAAAAAAAAAAAA",
       "paired-device-1",
       "bot-1",

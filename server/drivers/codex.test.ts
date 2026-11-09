@@ -331,7 +331,7 @@ describe("CodexDriver turns (fake app-server)", () => {
 
   it("keeps a person's shell filters and adds the gate pattern as an exclude filter", async () => {
     const dump = join(scratch, "shell-filters.json"); process.env.FAKE_CODEX_DUMP = dump;
-    const policy = { inherit: "all", filters: { "USER_SECRET_*": "exclude", "KEEP_*": "include", "omb_gate_config_*": "include" } };
+    const policy = { inherit: "all", filters: { "USER_SECRET_*": "exclude", "KEEP_*": "include", "dusk_gate_config_*": "include" } };
     await create({ mode: "resume", environment: { HOME: scratch, CODEX_HOME: join(scratch, ".codex"),
       FAKE_CODEX_MCP_OVERRIDES: "1", FAKE_CODEX_SHELL_ENVIRONMENT_POLICY: JSON.stringify(policy) } });
     for (const resumeCursor of [undefined, "old-session"]) {
@@ -1512,7 +1512,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     expect(seen.argv).toContain("features.shell_snapshot=false");
     expect(seen.calls.find((call: { method: string }) => call.method === "thread/start").params.config["shell_environment_policy.exclude"]).toEqual([
       "USER_SECRET_*", "DUSK_REMOTE_MCP_CONFIG_*",
-      "ELECTRON_RUN_AS_NODE", "GITHUB_PERSONAL_ACCESS_TOKEN", "DUSK_COMMS_TOKEN", "DUSK_CONNECTORS_TOKEN", "DUSK_PHONE_TOKEN", "OVERRIDDEN",
+      "DUSK_COMMS_TOKEN", "DUSK_CONNECTORS_TOKEN", "DUSK_PHONE_TOKEN", "ELECTRON_RUN_AS_NODE", "GITHUB_PERSONAL_ACCESS_TOKEN", "OVERRIDDEN",
     ]);
   });
 

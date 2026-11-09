@@ -1,3 +1,4 @@
+import { LEGACY } from "../../electron/legacy-names.mjs";
 import { Children, createElement, isValidElement, type EffectCallback, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -50,8 +51,8 @@ const press = (label: string, Component = ProSettingsCard) => {
 it("for someone who may buy: what Cloud does, the Admin's lowest price and money-back; Start free trial and Compare plans both open the sheet, never the website", async () => {
   const html = await card(signedOut);
   for (const text of ["Dusk Cloud", "Keeps your bots and routines running 24/7, even when this computer is off.", "Dusk Cloud plans from $15/month + tax.",
-    "14-day money-back on every plan.", "Dusk Bot on this computer stays free and open source.", "Compare plans", "Start free trial", "Sign in to your Cloud plan"]) expect(html).toContain(text);
-  for (const gone of ["Dusk Bot", "$89", "launch price", "New features first", "Get Pro", "Dusk Bot Pro", "Dusk Bot Cloud"]) expect(html).not.toContain(gone);
+    "14-day money-back on every plan.", "Dusk Bot on this computer stays free for noncommercial use.", "Compare plans", "Start free trial", "Sign in to your Cloud plan"]) expect(html).toContain(text);
+  for (const gone of [LEGACY.envPrefixes[0].slice(0, -1), "$89", "launch price", "New features first", "Get Pro", `${LEGACY.product} Pro`, `${LEGACY.product} Cloud`, "Dusk Bot Pro", "Dusk Bot Cloud"]) expect(html).not.toContain(gone);
   press("Start free trial");
   expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_settings" });
   f.dispatch.mockClear();

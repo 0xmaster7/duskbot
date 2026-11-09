@@ -1,5 +1,6 @@
 // Every way in that could delete a Boat cloud, tried: none deletes anything before 45 days of no plan and a verified
 // final backup, and the owner's own request deletes only after an emailed link and a 7-day undo window.
+import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
@@ -28,7 +29,7 @@ async function fixture() {
   api.onCommand(({ sandbox, command }) => {
     if (command.includes("omb-home start") && !sandbox.volume.size) {
       sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
-      sandbox.volume.set("__system__/data/.duskbot/config.json", Buffer.from("{}"));
+      sandbox.volume.set(`__system__${CLOUD_HOME.data}/config.json`, Buffer.from("{}"));
     }
     return { exitCode: 0, stdout: command.includes("install") ? "installed\n" : command.includes("start") ? "started\n" : "" };
   });

@@ -1,3 +1,4 @@
+import { SERVER_LEASE_NAME } from "../electron/legacy-names.mjs";
 import { createCipheriv, createHash, randomBytes, scryptSync } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -187,7 +188,7 @@ describe("encrypted full workspace backups", () => {
       const targetComputers = { version: 1, environmentId: "target-environment", computers: [{ id: "target-computer", name: "Destination desktop", section: null }] };
       json(join(target, "team-computers.json"), targetComputers);
       writeFileSync(join(target, "environment-id"), "target-environment");
-      writeFileSync(join(target, "duskbot-server.lease"), "live-lease");
+      writeFileSync(join(target, SERVER_LEASE_NAME), "live-lease");
       writeFileSync(join(target, "messages.db-wal"), "old database WAL must not enter the new DB");
       writeFileSync(join(target, "messages.db-shm"), "old database shared memory");
       const staged = await stageWorkspaceBackup(target, exported.path, { password: PASSWORD });
@@ -217,7 +218,7 @@ describe("encrypted full workspace backups", () => {
       expect(readJson(join(target, "cloud-owner.json"))).toEqual({ identity: "target-owner-record" });
       expect(readJson(join(target, "team-computers.json"))).toEqual(targetComputers);
       expect(readFileSync(join(target, "environment-id"), "utf8")).toBe("target-environment");
-      expect(readFileSync(join(target, "duskbot-server.lease"), "utf8")).toBe("live-lease");
+      expect(readFileSync(join(target, SERVER_LEASE_NAME), "utf8")).toBe("live-lease");
       expect(existsSync(join(target, "messages.db-wal"))).toBe(false);
       expect(readFileSync(join(result.safetyCopyPath!, "data", "messages.db-wal"), "utf8")).toBe("old database WAL must not enter the new DB");
       expect(existsSync(join(target, "tools"))).toBe(false);

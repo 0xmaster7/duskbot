@@ -27,6 +27,7 @@ export async function createTeamVpsFixture(options: { frames?: boolean; missingI
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { DOCKER_NAMES } = require(${JSON.stringify(fileURLToPath(new URL("../../electron/legacy-names.mjs", import.meta.url)))});
 const records = ${JSON.stringify(records)};
 const screens = ${JSON.stringify(screenRecords)};
 let args = process.argv.slice(2);
@@ -41,12 +42,12 @@ if (${JSON.stringify(options.holdScreenshots === true)} && args[0] === 'exec' &&
   while(fs.existsSync(${JSON.stringify(screenshotHold)}))Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,25);
 }
 const image = 'sha256:' + 'a'.repeat(64);
-const labels = {'bot.dusk.local-vm':'1','bot.dusk.cua-driver':${JSON.stringify(CUA_DRIVER_VERSION)},
-  'bot.dusk.cua-base':${JSON.stringify(BASE_IMAGE_DIGEST)},'bot.dusk.image-layer':${JSON.stringify(IMAGE_LAYER_VERSION)}};
+const labels = {[DOCKER_NAMES.label('local-vm')]:'1',[DOCKER_NAMES.label('cua-driver')]:${JSON.stringify(CUA_DRIVER_VERSION)},
+  [DOCKER_NAMES.label('cua-base')]:${JSON.stringify(BASE_IMAGE_DIGEST)},[DOCKER_NAMES.label('image-layer')]:${JSON.stringify(IMAGE_LAYER_VERSION)}};
 const rows = () => fs.readdirSync(records).map(name => JSON.parse(fs.readFileSync(path.join(records,name),'utf8')));
 const save = row => fs.writeFileSync(path.join(records,row.Id+'.json'),JSON.stringify(row));
 const make = name => ({Id:crypto.createHash('sha256').update(name).digest('hex'),Name:'/'+name,Image:image,
-  Config:{Image:${JSON.stringify(IMAGE)},Env:['VNC_PW=fixture-only'],Labels:{...labels,'bot.dusk.vps':'1','bot.dusk.container':name,'bot.dusk.vps-viewer':'1'}},
+  Config:{Image:${JSON.stringify(IMAGE)},Env:['VNC_PW=fixture-only'],Labels:{...labels,[DOCKER_NAMES.label('vps')]:'1',[DOCKER_NAMES.label('container')]:name,[DOCKER_NAMES.label('vps-viewer')]:'1'}},
   State:{Running:true,Status:'running'},Mounts:[],
   HostConfig:{Binds:[],VolumesFrom:[],NetworkMode:'bridge',PortBindings:{},PublishAllPorts:false,Memory:4294967296,MemorySwap:4294967296,
     NanoCpus:2000000000,PidsLimit:4096,CapDrop:['ALL'],CapAdd:['CAP_SETUID','CAP_SETGID'],Privileged:false,PidMode:'',IpcMode:'private',
@@ -66,11 +67,11 @@ let out;
 if (args[0] === 'image' && args[1] === 'inspect') out = [{Id:image,Config:{Labels:labels}}];
 else if (args[0] === 'inspect') {
   const name = args[1];
-  if (!/^duskbot-vps-[a-z0-9-]+$/.test(name)) missing();
+  if (!new RegExp('^'+DOCKER_NAMES.vpsPrefix+'-[a-z0-9-]+$').test(name)) missing();
   const row = find(name) || (${JSON.stringify(options.missingInitially === true)} ? missing() : make(name));save(row);out = [row];
 } else if (args[0] === 'run') {
   const name=args[args.indexOf('--name')+1];
-  if(!name || !/^duskbot-vps-[a-z0-9-]+$/.test(name))missing();
+  if(!name || !new RegExp('^'+DOCKER_NAMES.vpsPrefix+'-[a-z0-9-]+$').test(name))missing();
   const row=make(name);save(row);out=row.Id;
 } else if (args[0] === 'container' && args[1] === 'ls') out = rows().map(row => row.Id).join('\\n');
 else if (args[0] === 'container' && args[1] === 'inspect') {out=args.slice(2).map(find);if(out.some(row=>!row))missing();}

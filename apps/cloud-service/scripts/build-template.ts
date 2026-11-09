@@ -6,6 +6,7 @@
 //
 //   BOAT_TEMPLATE_API_KEY=... BOAT_BASE_URL=... DUSK_RELEASE_SIGNING_KEY=... \
 //   node apps/cloud-service/scripts/build-template.ts --package release/home/omb-home.tgz --signature release/home/omb-home.tgz.sig --version 0.1.150 [--in-use omb-home-0-1-149]
+import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
@@ -60,14 +61,14 @@ export async function buildTemplate(input: TemplateBuild): Promise<{ name: strin
     const installed = await provider.run(builder.id, installCommand(sha256, undefined, input.signature), 600);
     if (!installed.ok || !installed.stdout.includes("installed")) throw new Error("The package did not install on the builder.");
     // the app never ran here: no env, no machine id, no data
-    const clean = await provider.run(builder.id, "sudo -n test ! -e /etc/duskbot/home.env && sudo -n test ! -e /etc/duskbot/machine && sudo -n test -z \"$(sudo -n ls -A /data/.duskbot 2>/dev/null)\" && echo clean", 60);
+    const clean = await provider.run(builder.id, `sudo -n test ! -e ${CLOUD_HOME.etc}/home.env && sudo -n test ! -e ${CLOUD_HOME.etc}/machine && sudo -n test -z \"$(sudo -n ls -A ${CLOUD_HOME.data} 2>/dev/null)\" && echo clean`, 60);
     if (!clean.stdout.includes("clean")) throw new Error("The builder is not clean; nothing was saved.");
     const tree = (await provider.run(builder.id, `sudo -n ${BOAT_CONTROL} tree`, 300)).stdout.trim();
     if (!/^[a-f0-9]{64}$/.test(tree)) throw new Error("The builder's app could not be hashed.");
     const signature = signRelease({ kind: "template", name, version: sha256, sha256: tree, signedAt: Date.now() }, input.signingKey);
     verifyRelease(signature, { kind: "template", name, sha256: tree }, input.releaseKeys);
     await provider.upload(builder.id, "/home/user/template.sig", Buffer.from(signature));
-    const placed = await provider.run(builder.id, "sudo -n install -o root -g root -m 0644 /home/user/template.sig /usr/lib/duskbot/template.sig && rm -f /home/user/template.sig && echo placed", 60);
+    const placed = await provider.run(builder.id, `sudo -n install -o root -g root -m 0644 /home/user/template.sig ${CLOUD_HOME.root}/template.sig && rm -f /home/user/template.sig && echo placed`, 60);
     if (!placed.stdout.includes("placed")) throw new Error("The template signature was not placed.");
     await provider.saveNamedSnapshot(builder.id, name);
     for (let n = 0; ; n++) {

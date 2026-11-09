@@ -1,3 +1,4 @@
+import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   admitVpsDesktop, createVpsCapacityHost, desktopCapacity, desktopLimitArgs, desktopLimits, desktopUpdateArgs, knownScreenCapacity,
@@ -7,7 +8,7 @@ import { vpsTurnStartPlan } from "./vps-turn-start.ts";
 
 const GB = 1024 ** 3;
 const ENV = "env-1";
-const name = (owner: string) => `duskbot-vps-${owner}-${owner.padEnd(12, "0").slice(0, 12).replace(/[^a-f0-9]/g, "a")}`;
+const name = (owner: string) => `${DOCKER_NAMES.vpsPrefix}-${owner}-${owner.padEnd(12, "0").slice(0, 12).replace(/[^a-f0-9]/g, "a")}`;
 
 /** a docker that knows which desktops run and the host's memory, and records what it was asked */
 function fakeHost(memory: number, running: Array<{ name: string; environment?: string; labelled?: string }>) {

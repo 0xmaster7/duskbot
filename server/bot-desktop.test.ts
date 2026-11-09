@@ -1,3 +1,4 @@
+import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -29,7 +30,7 @@ import { SCREEN_BROWSER_LOW_MEMORY } from "./vps-browser-ready.ts";
 import * as vpsLocal from "./vps-local.ts";
 import { boxChromes, closeVpsScreenConnections, evictVpsBoxChrome, screenKey } from "./vps-connections.ts";
 
-const NAME = "duskbot-vps-bot1-0123456789ab";
+const NAME = `${DOCKER_NAMES.vpsPrefix}-bot1-0123456789ab`;
 const IMAGE_ID = `sha256:${"c".repeat(64)}`;
 const SECRET = "viewer-secret-123";
 
@@ -218,7 +219,7 @@ describe("bot desktop provisioning", () => {
       if (args[0] === "image") return { stdout: JSON.stringify([{ Id: IMAGE_ID, Config: { Labels: { [BOT_DESKTOP_LABEL]: BOT_DESKTOP_VERSION, [DRIVER_LABEL]: CUA_DRIVER_VERSION } } }]) };
       if (args[0] === "network" && args[1] === "inspect") {
         if (!network) throw new Error(`Error: No such network: ${BOT_DESKTOP_NETWORK}`);
-        return { stdout: JSON.stringify({ Labels: { "bot.dusk.vps-network": "1" }, Options: { "com.docker.network.bridge.name": "omb-desk0" } }) };
+        return { stdout: JSON.stringify({ Labels: { [DOCKER_NAMES.label("vps-network")]: "1" }, Options: { "com.docker.network.bridge.name": "omb-desk0" } }) };
       }
       if (args[0] === "info") return { stdout: JSON.stringify({ Runtimes: runsc ? { runc: {}, runsc: {} } : { runc: {} }, SecurityOptions: [] }) };
       if (args.includes("/usr/local/bin/omb-host-fence")) { if (!fenced) throw new Error("exit status 1"); return { stdout: "" }; }

@@ -1,3 +1,4 @@
+import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, generateKeyPairSync, createPublicKey } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -115,7 +116,7 @@ describe("people see our own domain, never the provider's", () => {
     const upstream = c.managed!.upstream!;
     expect(upstream).toMatch(/\.on\.boat\.dev$/);
     const start = f.api.requests.filter(r => r.path.endsWith("/commands")).map(r => (r.body as { command: string }).command).find(cmd => cmd.includes("omb-home start"))!;
-    expect(start).toBe(`sudo -n /usr/lib/duskbot/bin/omb-home start '${c.origin}' '${upstream}'`);
+    expect(start).toBe(`sudo -n ${CLOUD_HOME.root}/bin/omb-home start '${c.origin}' '${upstream}'`);
     expect(f.home.healthy).toHaveBeenCalledWith(upstream, expect.any(String));
     const label = new URL(c.origin!).hostname.split(".")[0]!;
     const handle = managedOf(f).handle!;
@@ -169,7 +170,7 @@ describe("signed releases", () => {
   it("the install command carries the signature, and a machine that requires one refuses an unsigned package", () => {
     const { signing, key } = releaseKey();
     const signature = signRelease({ kind: "home-package", name: "omb-home", version: "1", sha256: "a".repeat(64), signedAt: 1 }, signing);
-    expect(installCommand("a".repeat(64), undefined, signature)).toBe(`sudo -n /usr/lib/duskbot/bin/omb-home install /home/user/omb-home.tgz ${"a".repeat(64)} ${signature}`);
+    expect(installCommand("a".repeat(64), undefined, signature)).toBe(`sudo -n ${CLOUD_HOME.root}/bin/omb-home install /home/user/omb-home.tgz ${"a".repeat(64)} ${signature}`);
     expect(() => installCommand("a".repeat(64), undefined, "r1.x.y.z; rm -rf /")).toThrow();
     const control = boatControlScript({ releaseKeys: [key], requireSigned: true });
     expect(control).toContain("signed=1");

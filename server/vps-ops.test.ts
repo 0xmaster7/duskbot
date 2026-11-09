@@ -1,3 +1,4 @@
+import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { collectVpsOpsStatus, localDockerHost, parseVpsOpsArgs, redactOpsLogs, runOpsCommand, runVpsOps, type OpsCommandResult, type VpsOpsOptions } from "./vps-ops.ts";
@@ -49,7 +50,7 @@ describe("VPS status", () => {
     expect(healthyFetch).toHaveBeenCalledWith("http://127.0.0.1:8799/api/health", expect.objectContaining({ signal: expect.any(AbortSignal), redirect: "error" }));
     expect(healthyCommand.mock.calls).toEqual(expect.arrayContaining([
       ["systemctl", ["show", "duskbot.service", "--no-pager", "--property=LoadState,ActiveState,MainPID,NRestarts"]],
-      ["docker", ["--host", "unix:///var/run/docker.sock", "ps", "--all", "--filter", "label=bot.dusk.vps=1", "--format", "{{.State}}"]],
+      ["docker", ["--host", "unix:///var/run/docker.sock", "ps", "--all", "--filter", `label=${DOCKER_NAMES.label("vps")}=1`, "--format", "{{.State}}"]],
     ]));
   });
 

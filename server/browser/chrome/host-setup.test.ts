@@ -12,9 +12,9 @@ afterAll(async () => { for (const folder of folders) await removeTempDir(folder)
 describe("host setup", () => {
   it("pins the AppArmor exemption to one root-owned executable", () => {
     const profile = appArmorProfile("/opt/Dusk Bot/resources/chrome/chrome");
-    expect(profile).toContain("profile duskbot-chrome /opt/Dusk Bot/resources/chrome/chrome flags=(unconfined)");
+    expect(profile).toContain('profile duskbot-chrome "/opt/Dusk Bot/resources/chrome/chrome" flags=(unconfined)');
     expect(profile).toContain("userns,");
-    for (const path of ["/opt/**/chrome", "/home/a/chrome", "relative/chrome", "/opt/a b/chrome"]) expect(() => appArmorProfile(path)).toThrow();
+    for (const path of ["/opt/**/chrome", "/home/a/chrome", "relative/chrome", "/opt/a\nb/chrome", "/opt/a\tb/chrome", "/opt/a\u2028b/chrome", "/opt/a\0b/chrome", '/opt/a"b/chrome', "/opt/a\\b/chrome"]) expect(() => appArmorProfile(path)).toThrow();
   });
 
   it("names the sandbox when Chrome says it has none, and never turns it off by itself", async () => {

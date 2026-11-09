@@ -1,3 +1,4 @@
+import { LEGACY } from "../../../electron/legacy-names.mjs";
 import { execFile } from "node:child_process";
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -27,7 +28,7 @@ async function fixture(body) {
 ROOT=$1
 CALLS=$ROOT/calls; export CALLS
 UNITS=$ROOT/units; TMP=$ROOT/tmp; STATE=$ROOT/state
-SVC_HOME=$ROOT/home/maus; DATA=$SVC_HOME/.duskbot
+SVC_HOME=$ROOT/home/$SVC_USER; DATA=$SVC_HOME/.duskbot
 LINK_HOME=$ROOT/var/lib/omb-link; HANDOFF=$LINK_HOME/handoff
 ETC=$ROOT/etc/duskbot; LIB=$ROOT/usr/local/lib/duskbot; GATE=$LIB/docker-gate.mjs
 NAME=fixture; AGENT=/opt/duskbot-link/agent.mjs
@@ -64,9 +65,9 @@ describe("the installer's units", () => {
   it("runs the server hardened, out of the docker group, with every turn boxed and docker only through the gate", async () => {
     const dir = await fixture("server_unit; helper_units; handoff_script");
     const server = await read(join(dir, "units", "duskbot.service"));
-    for (const line of ["User=maus", "SupplementaryGroups=omb-dockergate", "Environment=DUSK_BOT_BOX=required", `Environment=DUSK_BOX_CODE_ROOTS=${dir}/home/maus/.local/bin:${dir}/home/maus/.local/lib`,
+    for (const line of ["User=dusk", "SupplementaryGroups=omb-dockergate", "Environment=DUSK_BOT_BOX=required", `Environment=DUSK_BOX_CODE_ROOTS=${dir}/home/dusk/.local/bin:${dir}/home/dusk/.local/lib`,
       "Environment=DUSK_VPS_DOCKER=local", "Environment=DOCKER_HOST=unix:///run/duskbot-docker/docker.sock", `EnvironmentFile=-${dir}/etc/duskbot/engines.env`,
-      "NoNewPrivileges=yes", "CapabilityBoundingSet=", "ProtectSystem=strict", "ProtectHome=tmpfs", `BindPaths=${dir}/home/maus`, `ReadWritePaths=${dir}/home/maus`,
+      "NoNewPrivileges=yes", "CapabilityBoundingSet=", "ProtectSystem=strict", "ProtectHome=tmpfs", `BindPaths=${dir}/home/dusk`, `ReadWritePaths=${dir}/home/dusk`,
       "PrivateTmp=yes", "RestrictSUIDSGID=yes", "ProtectProc=invisible", "UMask=0077"]) {
       expect(server.split("\n"), line).toContain(line);
     }
@@ -83,7 +84,7 @@ describe("the installer's units", () => {
       `Environment=DUSK_LINK_CODEX_AUTH_FILE=${dir}/var/lib/omb-link/handoff/codex-auth.json`, "NoNewPrivileges=yes", "ProtectHome=yes", "RestrictNamespaces=yes", "ProtectKernelTunables=yes", "PrivateDevices=yes", `ReadWritePaths=${dir}/var/lib/omb-link`]) {
       expect(link.split("\n"), line).toContain(line);
     }
-    expect(link).not.toContain("User=maus");
+    expect(link).not.toContain("User=dusk");
 
     const gate = await read(join(dir, "units", "omb-docker-gate.service"));
     for (const line of ["User=omb-docker", "Group=omb-dockergate", "SupplementaryGroups=docker", "RuntimeDirectory=duskbot-docker", "RestrictAddressFamilies=AF_UNIX", "IPAddressDeny=any", "NoNewPrivileges=yes", "CapabilityBoundingSet="]) {
@@ -98,19 +99,19 @@ describe("the installer's units", () => {
     expect((await stat(join(dir, "usr", "local", "lib", "duskbot", "engine-handoff.sh"))).mode & 0o777).toBe(0o755);
   });
 
-  it("the hand-off keeps only the Claude token line, puts the codex sign-in in maus's home and restarts the server", async () => {
+  it("the hand-off keeps only the Claude token line, puts the codex sign-in in dusk's home and restarts the server", async () => {
     const dir = await fixture(`handoff_script
 mkdir -p "$HANDOFF" "$ETC" "$SVC_HOME"
 printf 'NODE_OPTIONS=--require /tmp/x.js\\n${TOKEN}\\nPATH=/evil\\n' > "$HANDOFF/engines.env"
 printf '{"tokens":{"id_token":"x"}}' > "$HANDOFF/codex-auth.json"
 sh "$LIB/engine-handoff.sh"`);
     expect(await read(join(dir, "etc", "duskbot", "engines.env"))).toBe(`${TOKEN}\n`);
-    expect(await read(join(dir, "home", "maus", ".codex", "auth.json"))).toBe('{"tokens":{"id_token":"x"}}');
+    expect(await read(join(dir, "home", "dusk", ".codex", "auth.json"))).toBe('{"tokens":{"id_token":"x"}}');
     expect(existsSync(join(dir, "var", "lib", "omb-link", "handoff", "engines.env"))).toBe(false);
     expect(existsSync(join(dir, "var", "lib", "omb-link", "handoff", "codex-auth.json"))).toBe(false);
     const calls = await read(join(dir, "calls"));
     expect(calls).toContain("runuser omb-link");
-    expect(calls).toContain("runuser maus");
+    expect(calls).toContain("runuser dusk");
     expect(calls).toContain("systemctl restart duskbot.service");
   });
 
@@ -127,12 +128,13 @@ sh "$LIB/engine-handoff.sh"`);
 
 describe("the installer's account split on an older install", () => {
   const older = `
-mkdir -p "$SVC_HOME/.config/duskbot-link" "$SVC_HOME/.config/duskbot" "$SVC_HOME/.ssh" "$DATA/workspaces/b1" "$SVC_HOME/.codex/sessions/2026" "$SVC_HOME/.claude/projects/p"
+SVC_USER=$OLD_SVC_USER; SVC_HOME=$ROOT/home/$SVC_USER; DATA=$SVC_HOME/.duskbot
+mkdir -p "$SVC_HOME/.config/${LEGACY.linkConfigDir}" "$SVC_HOME/.config/${LEGACY.devName}" "$SVC_HOME/.ssh" "$DATA/workspaces/b1" "$SVC_HOME/.codex/sessions/2026" "$SVC_HOME/.claude/projects/p"
 echo maus >> "$ROOT/users"; echo docker >> "$ROOT/group-names"
 echo "maus docker" > "$ROOT/groups-maus"
-printf '{"v":1,"id":"abcdefghij","key":"k"}' > "$SVC_HOME/.config/duskbot-link/tunnel.json"
+printf '{"v":1,"id":"abcdefghij","key":"k"}' > "$SVC_HOME/.config/${LEGACY.linkConfigDir}/tunnel.json"
 printf 'ssh-ed25519 AAAA mine\\nrestrict,command="/usr/bin/node /opt/duskbot-link/agent.mjs direct" ssh-ed25519 BBBB omb-link-abcdefghij\\n' > "$SVC_HOME/.ssh/authorized_keys"
-printf 'NODE_OPTIONS=--require /tmp/x.js\\n${TOKEN}\\n' > "$SVC_HOME/.config/duskbot/engines.env"
+printf 'NODE_OPTIONS=--require /tmp/x.js\\n${TOKEN}\\n' > "$SVC_HOME/.config/${LEGACY.devName}/engines.env"
 echo rollout > "$SVC_HOME/.codex/sessions/2026/r.jsonl"; echo transcript > "$SVC_HOME/.claude/projects/p/s.jsonl"; echo '{}' > "$SVC_HOME/.claude.json"
 echo db > "$DATA/messages.db"
 `;
@@ -142,10 +144,10 @@ echo db > "$DATA/messages.db"
 do_user > "$ROOT/out" 2>&1 || { cat "$ROOT/out" >&2; exit 1; }`);
     const home = join(dir, "home", "maus"), linkHome = join(dir, "var", "lib", "omb-link");
     expect(await read(join(linkHome, ".config", "duskbot-link", "tunnel.json"))).toBe('{"v":1,"id":"abcdefghij","key":"k"}');
-    expect(existsSync(join(home, ".config", "duskbot-link"))).toBe(false);
+    expect(existsSync(join(home, ".config", LEGACY.linkConfigDir))).toBe(false);
     expect(await read(join(home, ".ssh", "authorized_keys"))).toBe("ssh-ed25519 AAAA mine\n");
     expect(await read(join(dir, "etc", "duskbot", "engines.env"))).toBe(`${TOKEN}\n`);
-    expect(existsSync(join(home, ".config", "duskbot", "engines.env"))).toBe(false);
+    expect(existsSync(join(home, ".config", LEGACY.devName, "engines.env"))).toBe(false);
     const engine = join(home, ".duskbot", "engine-home");
     expect(await read(join(engine, ".codex", "sessions", "2026", "r.jsonl"))).toBe("rollout\n");
     expect(await read(join(engine, ".claude", "projects", "p", "s.jsonl"))).toBe("transcript\n");

@@ -1,3 +1,4 @@
+import { SERVER_LEASE_NAME } from "../electron/legacy-names.mjs";
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
@@ -267,7 +268,7 @@ it("a new home on a kept volume clears the data-directory lease the previous mac
   expect(prepareCloudHomeData(home, dataDir, "home-7f3k2", lock)).toEqual({ volume: "new", cleared: [] });
   expect(locked).toEqual([home]);
   // The lease the home destroyed mid-boot left (its hostname is Fly's machine id), and the previous machine's own pid.
-  const lease = join(dataDir, "duskbot-server.lease");
+  const lease = join(dataDir, SERVER_LEASE_NAME);
   mkdirSync(dataDir, { recursive: true });
   const left = (host: string) => writeFileSync(lease, `${JSON.stringify({ version: 1, pid: 613, host, token: "0f5e6c4a-1b2c-4d3e-8f9a-0b1c2d3e4f5a", createdAt: 1, boot: "boot-of-the-old-machine", uptime: 44_000 })}\n`);
   left("d8d9e0f1a2b3c4");

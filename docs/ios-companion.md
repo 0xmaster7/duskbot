@@ -282,10 +282,11 @@ who could observe that Wi-Fi network, so the app directs the user to finish the
 credential request on the computer instead.
 
 Each submission uses RFC 9180 base-mode HPKE with P-256/HKDF-SHA256/AES-GCM-256
-and authenticates this exact newline-separated context:
+and authenticates this exact newline-separated context (its first line and the HPKE info string keep their values from
+before the rename: `SEAL_LABELS.phoneCredential` and `SEAL_LABELS.phoneCredentialInfo` in `electron/legacy-names.mjs`):
 
 ```text
-duskbot-phone-credential-v1
+<SEAL_LABELS.phoneCredential>
 <key id>
 <authenticated companion device id>
 <bot id>

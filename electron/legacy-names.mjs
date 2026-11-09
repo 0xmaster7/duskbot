@@ -39,6 +39,7 @@ export const SERVER_CHILD_DIR = `.${OLD}-server-child`;
 /** labels and hash inputs that sealed or named something already stored: changing one would lose what it sealed */
 export const SEAL_LABELS = Object.freeze({
   phoneCredential: `${OLD}-phone-credential-v1`,
+  phoneCredentialInfo: "OpenMausBot phone credential v1",
   cardSecret: `${OLD}-card-secret-v1`,
   sealKey: `${OLD}-seal-key-v1`,
   sealedValue: `${OLD}-sealed-value-v1`,

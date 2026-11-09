@@ -7,6 +7,7 @@
 //
 // Real runs create at most two `small` sandboxes (the cloud, and its rebuild) under a scope label of their own, and the
 // teardown deletes every sandbox with that label whatever happened. Prints timings and ids, never a key or a token.
+import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { createHash, randomBytes } from "node:crypto";
 import { appendFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
@@ -39,7 +40,7 @@ const api = fake ? await startFakeBoatApi() : null;
 if (api) api.onCommand(({ sandbox, command }) => {
   if (command.includes("omb-home start") && !sandbox.volume.size) {
     sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
-    sandbox.volume.set("__system__/data/.duskbot/config.json", Buffer.from("{}"));
+    sandbox.volume.set(`__system__${CLOUD_HOME.data}/config.json`, Buffer.from("{}"));
   }
   return { exitCode: 0, stdout: command.includes("omb-home install") ? "installed\n" : command.includes("omb-home start") ? "started\n" : command.includes("restore") ? "restored\n" : "" };
 });
@@ -53,7 +54,7 @@ const rawSandbox = async (id: string) => (await (await fetch(`${apiBase}/sandbox
 if (adopt) scope = (await rawSandbox(adopt))?.labels?.["omb.scope"] ?? scope;
 const ops = createBoatProvider({ apiKey: key, baseUrl, scope });
 let adopted = false;
-const WIPE = ["/data", "/etc/duskbot", "/usr/lib/duskbot", "/opt/duskbot", "/usr/local/sbin/omb-home", "/usr/local/bin/node", "/usr/local/bin/caddy",
+const WIPE = ["/data", CLOUD_HOME.etc, CLOUD_HOME.root, "/opt/duskbot", "/usr/local/sbin/omb-home", "/usr/local/bin/node", "/usr/local/bin/caddy",
   "/etc/systemd/system/omb-home.service", "/etc/systemd/system/omb-docker-gate.service", "/home/user/.boat", "/home/user/.boatignore", "/home/user/omb-home.tgz"];
 
 // the homes' signed reads go to the real origins; in --fake mode the "homes" answer from here
@@ -138,7 +139,7 @@ try {
   // a synthetic engine on the home, so a bot can answer (test tooling only, never part of the product install)
   if (!fake) {
     const engine = readFileSync(resolve(option("--engine")!));
-    const wrapper = `#!/bin/sh\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"email":"person@example.test"}'; exit 0; fi\nexport FAKE_CLAUDE_VERSION=2.1.284\nexec /usr/lib/duskbot/node/bin/node /opt/omb-test/fake-claude.mjs "$@"\n`;
+    const wrapper = `#!/bin/sh\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"email":"person@example.test"}'; exit 0; fi\nexport FAKE_CLAUDE_VERSION=2.1.284\nexec ${CLOUD_HOME.root}/node/bin/node /opt/omb-test/fake-claude.mjs "$@"\n`;
     await ops.upload(cloud().serverId!, "/home/user/fake-claude.mjs", engine);
     await ops.upload(cloud().serverId!, "/home/user/claude-wrapper.sh", Buffer.from(wrapper));
     const done = await ops.run(cloud().serverId!, "sudo install -d -m 0755 /opt/omb-test && sudo install -m 0755 /home/user/fake-claude.mjs /opt/omb-test/fake-claude.mjs && sudo install -m 0755 /home/user/claude-wrapper.sh /usr/local/bin/claude && sudo systemctl restart omb-home && sleep 10 && echo ok", 120);

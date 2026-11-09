@@ -1,3 +1,4 @@
+import { CLOUD_HOME } from "../../../../electron/legacy-names.mjs";
 import { execFileSync } from "node:child_process";
 import { createPrivateKey, createPublicKey, sign, verify } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -53,7 +54,7 @@ systemctl(){ printf 'systemctl %s\n' "$*" >> "$fixture/commands"; }
   runSetup();
   const env = files.get("/root/omb-home.env")!;
   expect(env).toEqual({ mode: 0o600, content: Object.entries(homeEnv({ ...input, secret: value, origin: "https://203-0-113-2.sslip.io" })).map(([k, v]) => `${k}=${v}`).join("\n") + "\n" });
-  expect(files.get("/srv/omb-data/.duskbot/dashboard-link.json")).toEqual({ mode: 0o600, content: JSON.stringify(input.link) });
+  expect(files.get(`/srv/omb-data/${CLOUD_HOME.dataName}/dashboard-link.json`)).toEqual({ mode: 0o600, content: JSON.stringify(input.link) });
   expect(files.get(`/srv/omb-data/${CLOUD_HOME_MARKER_FILE}`)).toEqual({ mode: 0o600, content: JSON.stringify({ version: 1, machine: cloudId }) });
   expect(files.get("/etc/caddy/Caddyfile")?.content).toBe("203-0-113-2.sslip.io {\n reverse_proxy 127.0.0.1:8080\n}\n");
   const commands = readFileSync(join(dir, "commands"), "utf8").trim().split("\n");
@@ -61,7 +62,7 @@ systemctl(){ printf 'systemctl %s\n' "$*" >> "$fixture/commands"; }
     "apt-get update", "apt-get install -y ca-certificates curl caddy nodejs", "apt-get install -y docker.io e2fsprogs", "install -d -m 755 /etc/systemd/system/docker.service.d",
     "install -m 700 /dev/stdin /usr/local/sbin/omb-storage", "install -m 644 /dev/stdin /etc/systemd/system/omb-storage.service",
     "install -m 644 /dev/stdin /etc/systemd/system/docker.service.d/omb-storage.conf", "systemctl daemon-reload", "systemctl enable --now omb-storage", "systemctl enable --now docker",
-    "install -d -m 700 /srv/omb-data /srv/omb-data/.duskbot",
+    `install -d -m 700 /srv/omb-data /srv/omb-data/${CLOUD_HOME.dataName}`,
     `docker run --rm --entrypoint id ${image} -u maus`, `docker run --rm --entrypoint id ${image} -g maus`,
     "chown -R 1234:5678 /srv/omb-data",
     `docker run -d --name omb-home --restart unless-stopped --env-file /root/omb-home.env -v /srv/omb-data:/data -p 127.0.0.1:8080:8080 ${image}`,
@@ -96,14 +97,14 @@ it("rejects environment line injection and invalid templates before bootstrappin
 });
 it("gives the pool image the same env, link and volume marker", () => {
   const payload = JSON.parse(poolBootstrap({ ...input, origin: `https://${cloudId}.pool.example.test` }));
-  expect(payload.env).toEqual({ ...homeEnv({ ...input, origin: `https://${cloudId}.pool.example.test` }), HOME: "/data", DUSK_DATA_DIR: "/data/.duskbot", DUSK_PORT: "8799" });
+  expect(payload.env).toEqual({ ...homeEnv({ ...input, origin: `https://${cloudId}.pool.example.test` }), HOME: "/data", DUSK_DATA_DIR: CLOUD_HOME.data, DUSK_PORT: "8799" });
   expect(payload.files).toEqual([
-    { path: "/data/.duskbot/dashboard-link.json", mode: 0o600, content: JSON.stringify(input.link) },
+    { path: `${CLOUD_HOME.data}/dashboard-link.json`, mode: 0o600, content: JSON.stringify(input.link) },
     { path: `/data/${CLOUD_HOME_MARKER_FILE}`, mode: 0o600, content: JSON.stringify({ version: 1, machine: cloudId }) },
   ]);
   expect(CLOUD_HOME_MARKER_FILE).toBe(CLOUD_HOME_MARKER);
   const dir = temporaryDir();
-  mkdirSync(join(dir, ".duskbot"), { mode: 0o700 });
+  mkdirSync(join(dir, CLOUD_HOME.dataName), { mode: 0o700 });
   for (const file of payload.files) writeFileSync(join(dir, file.path.slice("/data/".length)), file.content, { mode: file.mode });
   expect(prepareCloudHomeVolume(dir, cloudId)).toBe("existing");
 });

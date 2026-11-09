@@ -1,3 +1,4 @@
+import { MDNS_HOST_PREFIX } from "../../../electron/legacy-names.mjs";
 // Packets are built and read by hand, so the wire format is tested against the
 // format rather than against our own encoder.
 import { createSocket } from "node:dgram";
@@ -28,7 +29,7 @@ const service: ServiceInfo = {
   name: "Milind's computer",
   type: "_duskbot._tcp",
   port: 8800,
-  host: "duskbot-1a2b3c4d.local",
+  host: `${MDNS_HOST_PREFIX}1a2b3c4d.local`,
   addresses: ["192.168.1.42"],
   txt: ["v=1", "name=Milind's computer"],
 };
@@ -244,7 +245,7 @@ describe("naming", () => {
 
   it("claims a host name the system responder will not fight us for", () => {
     const name = defaultHostName("Milinds-MacBook-Pro");
-    expect(name).toMatch(/^duskbot-[0-9a-f]{8}\.local$/);
+    expect(name).toMatch(new RegExp(`^${MDNS_HOST_PREFIX}[0-9a-f]{8}\\.local$`));
     expect(defaultHostName("Milinds-MacBook-Pro")).toBe(name);
     expect(defaultHostName("another-machine")).not.toBe(name);
     expect(name).not.toContain("Milinds-MacBook-Pro");

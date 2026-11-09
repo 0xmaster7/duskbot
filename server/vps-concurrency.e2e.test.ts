@@ -1,3 +1,4 @@
+import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { dirname, join } from "node:path";
@@ -361,7 +362,7 @@ it.skipIf(process.platform === "win32")("keeps the private default bots of two a
     const inspected = calls.filter(args => args.includes("inspect")).map(args => args.at(-1));
     expect(inspected).toContain(vpsContainerName(own.id));
     expect(inspected).toContain(vpsContainerName(other.id));
-    expect(inspected.some(name => name?.startsWith("duskbot-vps-computer-"))).toBe(false);
+    expect(inspected.some(name => name?.startsWith(`${DOCKER_NAMES.vpsPrefix}-computer-`))).toBe(false);
   } finally { await fixture?.close(); await vps.close(); }
 }, 60_000);
 

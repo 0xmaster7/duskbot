@@ -1,3 +1,4 @@
+import { SERVER_LEASE_NAME } from "../electron/legacy-names.mjs";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
@@ -57,7 +58,7 @@ describe("Dusk Bot data-directory lease", () => {
   it("holds one directory until its matching handle releases it", () => {
     const dir = tempDataDir();
     const lease = acquireDataDirLease(dir);
-    const stored = JSON.parse(readFileSync(join(dir, "duskbot-server.lease"), "utf8"));
+    const stored = JSON.parse(readFileSync(join(dir, SERVER_LEASE_NAME), "utf8"));
 
     // boot/uptime identify which boot wrote the record, so a pid recycled
     // across a restart cannot be mistaken for a live owner, and ns/start which
@@ -87,7 +88,7 @@ describe("Dusk Bot data-directory lease", () => {
 
   it("will not release a lease whose owner token changed", () => {
     const dir = tempDataDir();
-    const path = join(dir, "duskbot-server.lease");
+    const path = join(dir, SERVER_LEASE_NAME);
     const lease = acquireDataDirLease(dir);
     const original = JSON.parse(readFileSync(path, "utf8"));
     const replacement = { ...original, token: randomUUID() };
@@ -153,7 +154,7 @@ describe("Dusk Bot data-directory lease", () => {
 
   it("fails closed on a corrupt owner record", () => {
     const dir = tempDataDir();
-    const path = join(dir, "duskbot-server.lease");
+    const path = join(dir, SERVER_LEASE_NAME);
     writeFileSync(path, "not-json\n", { mode: 0o600 });
 
     expect(() => acquireDataDirLease(dir)).toThrow(/lease is invalid.*refusing to start/i);

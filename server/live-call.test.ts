@@ -1,3 +1,4 @@
+import { LEGACY } from "../electron/legacy-names.mjs";
 import { createServer, type IncomingMessage, type RequestListener, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { Duplex } from "node:stream";
@@ -159,7 +160,7 @@ describe("live startup context", () => {
     const text = liveInstructions({ name: "Rigel", title: "QA" }, { cloudHome: true });
     expect(text.split("\n")[0]).toBe(`You are Rigel, QA, an AI agent that runs on ${CLOUD_HOME_PLACE}.`);
     expect(text.split("\n")[0]).toBe("You are Rigel, QA, an AI agent that runs on the user's My Cloud, their always-on Dusk Bot in the cloud, not on their own computer.");
-    expect(text).not.toContain("Dusk Bot");
+    expect(text).not.toContain(LEGACY.envPrefixes[0].slice(0, -1));
     expect(liveInstructions({ name: "Rigel" }, { cloudHome: false }).split("\n")[0]).toBe("You are Rigel, an AI agent that runs in Dusk Bot on the user's own computer.");
   });
 
