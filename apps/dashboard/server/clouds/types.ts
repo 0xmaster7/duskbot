@@ -159,7 +159,7 @@ export interface BoatCloudState {
   notices: Array<{ kind: string; at: number }>;
   deleteRequest: { requestedAt: number; tokenHash: string | null; tokenExpiresAt: number | null; confirmedAt: number | null; executeAfter: number | null; cancelledAt: number | null } | null;
   /** Boat's receipt for an accepted delete: never sent twice */
-  deletion: { serverId: string; operationId: string | null; at: number; reason: string } | null;
+  deletion: { serverId: string; operationId: string | null; at: number; reason: string; sent?: boolean } | null;
   deletedAt: number | null;
   backupsDeleteAfter: number | null;
   /** sandboxes this cloud had before a recovery, stopped, deleted once the new one has its own verified backup */

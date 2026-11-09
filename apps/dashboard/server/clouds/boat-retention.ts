@@ -19,15 +19,25 @@ export interface Entitlement { active: boolean; until: number | null }
 /**
  * From the billing store: active while any subscription that paid for this cloud is active, has a payment problem, or is
  * cancelled but paid to a later time; otherwise paid to the latest of their period ends and the time they were seen ending.
- * No subscription at all is "unknown": nothing is ever deleted on that.
+ * No subscription at all is "unknown": nothing is ever deleted on that. A subscription that still runs but no longer
+ * carries this cloud (the desktop was taken off the plan: billing unlinks it and ends the cloud at `endsAt`) pays for it
+ * only to that time.
  */
-export function entitlementOf(subscriptions: readonly StoredSubscription[], cloud: { id: string; subscriptionId: string | null }, now: number): Entitlement {
+export function entitlementOf(subscriptions: readonly StoredSubscription[], cloud: { id: string; subscriptionId: string | null; endsAt?: number; ended?: boolean }, now: number): Entitlement {
   const mine = subscriptions.filter(s => s.id === cloud.subscriptionId || s.cloudId === cloud.id);
   if (!mine.length) return { active: false, until: null };
   let until = 0;
   for (const s of mine) {
     const periodEnd = s.currentPeriodEnd ?? 0;
-    if (s.status === "active" || s.status === "payment_problem" || (s.status === "cancelled" && periodEnd > now)) return { active: true, until: null };
+    const running = s.status === "active" || s.status === "payment_problem" || (s.status === "cancelled" && periodEnd > now);
+    if (running && s.cloudId !== cloud.id) {
+      const droppedAt = cloud.endsAt ?? (cloud.ended ? s.lastEventAt ?? s.updatedAt : null);
+      if (droppedAt === null) return { active: true, until: null };
+      if (droppedAt > now) return { active: true, until: null };
+      until = Math.max(until, droppedAt);
+      continue;
+    }
+    if (running) return { active: true, until: null };
     if (s.status === "pending") continue;
     until = Math.max(until, periodEnd, s.status === "ended" || s.status === "cancelled" ? s.lastEventAt ?? s.updatedAt : 0);
   }

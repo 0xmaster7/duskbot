@@ -152,9 +152,12 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     b.backups.push({ ...record, verifiedAt: verified ? now() : null, snapshotAt: snapshot.at });
     b.backupProblem = verified ? null : "unverified";
     log(c, "backup", "reconciler", reason, { file: record.file, bytes: record.bytes, verified });
-    // keep the newest `backupKeep` verified generations; an older one goes only when that many newer verified ones exist
-    const verifiedOnes = b.backups.filter(g => g.verifiedAt !== null);
+    // keep the newest `backupKeep` verified generations, and the newest one at least a week older than the newest, so a home
+    // that wiped its own data cannot push every good copy out within a few days
+    const verifiedOnes = b.backups.filter(g => g.verifiedAt !== null), newest = verifiedOnes.at(-1);
+    const pinned = newest ? [...verifiedOnes].reverse().find(g => newest.snapshotAt - g.snapshotAt >= 7 * DAY_MS) : undefined;
     for (const old of verifiedOnes.slice(0, Math.max(0, verifiedOnes.length - settings.backupKeep))) {
+      if (old === pinned) continue;
       deps.backups.remove(c.id, old.file); b.backups.splice(b.backups.indexOf(old), 1);
       log(c, "backup_pruned", "reconciler", "generations", { file: old.file });
     }
@@ -243,14 +246,24 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
 
   async function deleteStep(c: StoredCloud, verdict: Extract<Verdict, { delete: true }>) {
     const b = state(c);
+    if (b.deletion && b.deletion.sent === false && (await provider.sandbox(b.deletion.serverId)) !== null) {
+      // a DELETE whose answer never came, and the sandbox is still there: asked again only if the verdict still says so
+      const again = verdictFor(c);
+      if (!again.delete) { log(c, "delete_aborted", "reconciler", again.reason); b.deletion = null; c.status = "stopped"; deps.save(c); return; }
+      const answer = await provider.requestDelete(b.deletion.serverId);
+      b.deletion.operationId = answer.operationId; b.deletion.sent = true; deps.save(c);
+      if (!answer.gone) return;
+    }
     if (!b.deletion && c.serverId) {
       // last check against the record, right before Boat is asked
       const again = verdictFor(c);
       if (!again.delete) { log(c, "delete_refused", "reconciler", again.reason); return; }
-      c.status = "destroying"; deps.save(c);
+      // recorded before the call, so a lost answer is never read as a lost machine (and rebuilt)
+      c.status = "destroying"; b.deletion = { serverId: c.serverId, operationId: null, at: now(), reason: verdict.reason, sent: false }; deps.save(c);
+      log(c, "delete_requested", "reconciler", verdict.reason);
       const answer = await provider.requestDelete(c.serverId);
-      b.deletion = { serverId: c.serverId, operationId: answer.operationId, at: now(), reason: verdict.reason };
-      log(c, "delete_requested", "reconciler", verdict.reason, { operation: answer.operationId });
+      b.deletion.operationId = answer.operationId; b.deletion.sent = true;
+      log(c, "delete_accepted", "reconciler", verdict.reason, { operation: answer.operationId });
       deps.save(c);
       if (!answer.gone) return;
     }
@@ -277,7 +290,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
   /** backups outlive the sandbox for a while, then go through the same record check */
   function dropBackupsWhenDue(c: StoredCloud) {
     const b = state(c);
-    if (b.deletedAt === null || b.backupsDeleteAfter === null || b.backupsDeleteAfter > now() || !b.backups.length) return;
+    if (b.deletedAt === null || b.backupsDeleteAfter === null || b.backupsDeleteAfter > now() || !b.backups.length || b.hold) return;
     if (deps.entitlement(c).active) { log(c, "delete_refused", "reconciler", "subscribed"); return; }
     for (const g of [...b.backups]) { deps.backups.remove(c.id, g.file); b.backups.splice(b.backups.indexOf(g), 1); }
     log(c, "backups_deleted", "reconciler", b.deletion?.reason ?? "retention_over");
@@ -341,6 +354,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     if (b.endedAt !== null) {
       b.endedAt = null; b.notices = b.notices.filter(n => !["ended", "left_30", "left_7", "left_1"].includes(n.kind));
       log(c, "plan_renewed", "billing", "record"); notice(c, "resumed", null);
+      if (b.deleteRequest && b.deleteRequest.cancelledAt === null) { b.deleteRequest.cancelledAt = now(); b.deleteRequest.tokenHash = null; log(c, "delete_cancelled", "billing", "plan_renewed"); }
       if (c.status === "stopped") { c.status = "sleeping"; c.wantPower = "on"; }
       if (c.origin) await deps.home.plan?.(c.origin, secret(c), { cancelled: false }).catch(() => {});
     }
@@ -420,7 +434,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     },
     cancelDelete(c: StoredCloud) {
       const b = state(c);
-      if (!b.deleteRequest || b.deleteRequest.cancelledAt !== null || b.deletion) throw new BoatLifecycleError(409, "unavailable");
+      if (!b.deleteRequest || b.deleteRequest.cancelledAt !== null || b.deletion || c.status === "destroying" || c.status === "destroyed") throw new BoatLifecycleError(409, "unavailable");
       b.deleteRequest.cancelledAt = now(); b.deleteRequest.tokenHash = null;
       log(c, "delete_cancelled", "owner", "undo");
       deps.save(c);

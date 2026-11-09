@@ -214,21 +214,63 @@ it("a Boat outage while running never marks the cloud failed", async () => {
   expect(c.error).toBeNull();
 });
 
-it("stops sandboxes no live cloud runs on, and deletes an unknown one only after the whole retention", async () => {
+it("stops sandboxes no live cloud runs on and never deletes one that may hold someone's data", async () => {
   const f = await boatFixture();
   const { c } = await f.paid();
   const stray = await f.provider.create({ cloudId: `c${"e".repeat(24)}`, spec: plan.spec, region: "eu", userData: "", ttlSeconds: 3600 });
+  f.advance(1000);
   const duplicate = await f.provider.create({ cloudId: c.id, spec: plan.spec, region: "eu", userData: "", ttlSeconds: 3600, attempt: 9 });
   for (const id of [stray.id, duplicate.id]) await f.provider.sandbox(id);
   f.advance(31 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile();
   expect(f.api.sandboxes.get(stray.id)!.state).toMatch(/archiv/);
   expect(f.api.sandboxes.get(duplicate.id)!.state).toMatch(/archiv/);
-  expect(c.boat!.retired.map(r => r.serverId)).toContain(duplicate.id);
+  // newer than the cloud's own sandbox: kept for an operator, never retired
+  expect(c.boat!.retired.map(r => r.serverId)).not.toContain(duplicate.id);
+  expect(f.audit.entries(c.id).map(e => e.action)).toContain("orphan_kept");
+  for (let day = 0; day < 50; day++) { f.advance(DAY_MS); c.nextAttemptAt = 0; await f.service.reconcile(); }
   expect(f.api.deletes()).toHaveLength(0);
-  for (let day = 0; day < 44; day++) { f.advance(DAY_MS); c.nextAttemptAt = 0; await f.service.reconcile(); }
-  expect(f.api.deletes().map(d => d.path)).not.toContain(`/sandboxes/${stray.id}`);
-  f.advance(2 * DAY_MS); c.nextAttemptAt = 0; await f.service.reconcile();
-  expect(f.api.deletes().map(d => d.path)).toContain(`/sandboxes/${stray.id}`);
-  expect(f.alerts).toContain("delete_requested:orphan_past_retention");
-  expect(f.api.sandboxes.has(c.serverId!)).toBe(true);
+  expect(f.audit.entries().map(e => e.action)).toContain("orphan_unclaimed");
+  expect(f.api.sandboxes.has(stray.id) && f.api.sandboxes.has(duplicate.id) && f.api.sandboxes.has(c.serverId!)).toBe(true);
+});
+
+it("a plan that drops the desktop ends its entitlement at the drop, and a renewal cancels a pending owner delete", async () => {
+  const sub = { id: "sub_x", cloudId: null, status: "active", currentPeriodEnd: 50 * DAY_MS, updatedAt: 0, lastEventAt: 5 * DAY_MS } as unknown as StoredSubscription;
+  expect(entitlementOf([sub], { id: "c1", subscriptionId: "sub_x", endsAt: 20 * DAY_MS }, 10 * DAY_MS)).toEqual({ active: true, until: null });
+  expect(entitlementOf([sub], { id: "c1", subscriptionId: "sub_x", endsAt: 20 * DAY_MS }, 21 * DAY_MS)).toEqual({ active: false, until: 20 * DAY_MS });
+  expect(entitlementOf([sub], { id: "c1", subscriptionId: "sub_x", ended: true }, 21 * DAY_MS)).toEqual({ active: false, until: 5 * DAY_MS });
+  const f = await boatFixture();
+  const { c, sub: paid } = await f.paid();
+  paid.status = "ended"; paid.currentPeriodEnd = f.now(); paid.lastEventAt = f.now();
+  await f.settle(c, c => c.status === "stopped");
+  f.service.boat!.requestDelete(c, token => `https://dash.example.test/#${token}`);
+  const token = f.notices.findLast(n => n.kind === "delete_requested")!.link!.split("#")[1]!;
+  f.service.boat!.confirmDelete(c, token);
+  paid.status = "active"; paid.currentPeriodEnd = f.now() + 30 * DAY_MS;
+  await f.settle(c, c => c.status === "running");
+  expect(c.boat!.deleteRequest!.cancelledAt).not.toBeNull();
+  paid.status = "ended"; paid.currentPeriodEnd = f.now(); paid.lastEventAt = f.now();
+  f.advance(8 * DAY_MS); await f.settle(c, c => c.status === "stopped");
+  for (let n = 0; n < 4; n++) { c.nextAttemptAt = 0; await f.service.reconcile(); }
+  expect(f.api.deletes()).toHaveLength(0);
+});
+
+it("a delete whose answer was lost is never mistaken for a lost machine, and cannot be cancelled mid-way", async () => {
+  const f = await boatFixture();
+  const { c, sub } = await f.paid();
+  sub.status = "ended"; sub.currentPeriodEnd = f.now(); sub.lastEventAt = f.now();
+  await f.settle(c, c => c.status === "stopped");
+  await f.settle(c, c => (c.boat!.backups.at(-1)?.verifiedAt ?? null) !== null);
+  f.service.boat!.requestDelete(c, token => `https://dash.example.test/#${token}`);
+  f.service.boat!.confirmDelete(c, f.notices.findLast(n => n.kind === "delete_requested")!.link!.split("#")[1]!);
+  f.advance(8 * DAY_MS);
+  const real = f.provider.requestDelete;
+  f.provider.requestDelete = async id => { await real(id); throw new Error("answer lost"); };
+  c.nextAttemptAt = 0; await f.service.reconcile();
+  expect(c.status).toBe("destroying");
+  expect(c.boat!.deleteRequest!.cancelledAt).toBeNull();
+  expect(() => f.service.boat!.cancelDelete(c)).toThrow("unavailable");
+  f.provider.requestDelete = real;
+  await f.settle(c, c => c.status === "destroyed");
+  expect(c.boat!.attempt).toBe(0);
+  expect(f.notices.map(n => n.kind)).not.toContain("recovered");
 });
