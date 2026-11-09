@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, FIXTURE } from "../lib/api";
 import type { PlanCatalog, Selection } from "./contracts";
 import { priceCart, type Cart } from "./pricing";
 
-export function useCart(selection: Selection | null, catalog: PlanCatalog | null) {
+export function useCart(given: Selection | null, catalog: PlanCatalog | null) {
+  // callers rebuild the selection each render: quote on its values, not its identity
+  const key = given ? JSON.stringify(given) : null;
+  const selection = useMemo(() => given, [key]);
   const [result, setResult] = useState<{ selection: Selection; catalog: PlanCatalog; cart: Cart | null; error: string | null } | null>(null);
   useEffect(() => {
     if (FIXTURE || !selection || !catalog) return;
