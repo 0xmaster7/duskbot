@@ -4,6 +4,8 @@
 import { fileURLToPath } from "node:url";
 
 const overlays = new WeakSet();
+/** The longest a surface's closing animation may hold the keyboard before the panel gives it back anyway. */
+export const SETTLE_WAIT_MS = 1_000;
 export const isAmbientWindow = win => Boolean(win) && overlays.has(win);
 const PRELOAD = fileURLToPath(new URL("./ambient-preload.cjs", import.meta.url));
 
@@ -26,17 +28,27 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
     keyed = true;
     win.focus();
   }
+  // giving the key back on macOS (Electron's blur) orders the panel out and back in, which would cut its closing
+  // animation short: it waits until the page says the surface has finished closing, or SETTLE_WAIT_MS at most
+  let settleWait = null;
   function giveKeyBack() {
-    if (!keyed || typing || interactive) return;
+    clearTimeout(settleWait); settleWait = null;
+    if (!keyed || typing || interactive || !live()) return;
     keyed = false;
     if (win.isFocused?.() !== false) win.blur();
+  }
+  function giveKeyBackOnceSettled() {
+    if (!keyed || typing) return;
+    clearTimeout(settleWait);
+    settleWait = setTimeout(giveKeyBack, SETTLE_WAIT_MS);
+    settleWait.unref?.();
   }
 
   function passThrough(on) {
     if (!live()) return;
     interactive = on;
-    if (on) { win.setIgnoreMouseEvents(false); takeKey(); }
-    else { win.setIgnoreMouseEvents(true, { forward: true }); giveKeyBack(); }
+    if (on) { clearTimeout(settleWait); settleWait = null; win.setIgnoreMouseEvents(false); takeKey(); }
+    else { win.setIgnoreMouseEvents(true, { forward: true }); giveKeyBackOnceSettled(); }
   }
 
   function create(address) {
@@ -65,6 +77,8 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
         sandbox: true,
         nodeIntegration: false,
         spellcheck: false,
+        // its closing and opening play in full even while macOS reorders the panel
+        backgroundThrottling: false,
         preload: PRELOAD,
         additionalArguments: [`--omb-ambient=${surface}`],
       },
@@ -95,9 +109,10 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
       if (channel === "ambient:pointer") return passThrough(payload === true);
       if (channel === "ambient:typing") {
         typing = payload === true;
-        if (live()) giveKeyBack();
+        if (live() && !typing) giveKeyBackOnceSettled();
         return;
       }
+      if (channel === "ambient:settled") return giveKeyBack();
       try { onMessage(channel, payload); } catch (error) { log(`ambient ${surface} ${channel} failed: ${error?.message ?? error}`); }
     });
     target.on("closed", () => { if (win === target) { win = null; loaded = false; } });
@@ -107,6 +122,7 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
 
   function close() {
     const target = win;
+    clearTimeout(settleWait); settleWait = null;
     win = null; loaded = false; interactive = false; page = null; keyed = false; typing = false;
     if (target && !target.isDestroyed()) target.destroy();
   }

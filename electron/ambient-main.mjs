@@ -3,6 +3,7 @@
 // never ask a server anything). Their asks (open a chat, reply, allow) go back to that page, which does them.
 import { pickDisplay } from "./ambient-geometry.mjs";
 import { watchStill } from "./ambient-still.mjs";
+import { createChatFiller } from "./ambient-chats.mjs";
 import { applyPrefsChange, parseAct, parsePrefs, parseSnapshot, seenKeys } from "./ambient-state.mjs";
 import { createDockWindow } from "./dock-window.mjs";
 import { createIslandWindow } from "./island-window.mjs";
@@ -21,17 +22,19 @@ const PAGE = "/ambient.html";
  * the one that carries out the surfaces' asks. `activity`: what tells the surfaces to hold still (ambient-still.mjs).
  * `openChat` gets the origin of the page whose bots the surfaces show: the chat opens in that place, not This computer.
  */
-export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, openChat, reveal, activity = null, platform = process.platform, log = () => {} }) {
+export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, openChat, reveal, activity = null, platform = process.platform, log = () => {}, readPage = null }) {
   let prefs = null, snapshot = null, from = null, screen = null, started = false, follow = null, displayId = null, dockCount = -1, stillness = null;
   const saved = () => (prefs ??= (() => { try { return parsePrefs(file.read(), platform); } catch { return parsePrefs(null, platform); } })());
   const save = next => { prefs = next; try { file.write(next); } catch (error) { log(`ambient prefs not saved: ${error?.message ?? error}`); } };
   const address = surface => { const base = origin(); return base ? `${base}${PAGE}?surface=${surface}` : null; };
   const appPage = () => { const contents = page(); return contents && !contents.isDestroyed() ? contents : null; };
+  const pageOrigin = () => { try { return new URL(appPage()?.getURL() ?? "").origin; } catch { return null; } };
 
   const onMessage = surface => (channel, payload) => {
     if (channel === "ambient:ready") return tellAll();
     if (channel === "ambient:open") {
-      if (typeof payload?.botId === "string" && typeof payload?.threadId === "string") openChat(payload.botId, payload.threadId, from);
+      // the place the surfaces' bots came from; before the first summary, the place the app's window shows
+      if (typeof payload?.botId === "string" && typeof payload?.threadId === "string") openChat(payload.botId, payload.threadId, from ?? pageOrigin());
       return;
     }
     if (channel === "ambient:act") {
@@ -62,8 +65,19 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
     return pickDisplay(screen.getAllDisplays(), saved().display, { primary: screen.getPrimaryDisplay(), cursor: saved().display === "active" ? screen.getCursorScreenPoint() : null });
   };
 
+  // the mini chat for bots the page sent without one (ambient-chats.mjs), read through the app window's own session
+  const read = readPage ?? (async (url) => {
+    const contents = appPage();
+    if (!contents) throw new Error("no page");
+    const response = await contents.session.fetch(url, { credentials: "include", headers: { "x-omb-background": "1" } });
+    if (!response.ok) throw new Error(`${response.status}`);
+    return response.json();
+  });
+  const chats = createChatFiller({ read, onChange: () => tellAll() });
+
   function tellAll() {
-    if (snapshot) { island.send("ambient:state", snapshot); dock.send("ambient:state", snapshot); }
+    const shown = chats.fill(snapshot);
+    if (shown) { island.send("ambient:state", shown); dock.send("ambient:state", shown); }
     const seen = saved().seen;
     island.send("ambient:seen", seen); dock.send("ambient:seen", seen);
   }
@@ -98,6 +112,7 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
     if (!next) return;
     snapshot = next;
     try { from = new URL(event.senderFrame?.url ?? event.sender.getURL()).origin; } catch { from = null; }
+    chats.want(next, from);
     if (next.bots.length !== dockCount && saved().dock) relayout();
     else tellAll();
   });
@@ -133,6 +148,7 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
       started = false;
       clearInterval(follow); follow = null;
       stillness?.stop(); stillness = null;
+      chats.stop();
       island.close(); dock.close();
     },
   };

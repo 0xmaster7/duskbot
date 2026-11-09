@@ -99,6 +99,8 @@ export interface AmbientBridge {
   pointer(on: boolean): void;
   /** A text field here has focus (absent on an older app). */
   typing?(on: boolean): void;
+  /** The surface has finished closing (absent on an older app). */
+  settled?(): void;
   open(botId: string, threadId: string): void;
   act(act: AmbientAct): void;
   order(ids: string[]): void;

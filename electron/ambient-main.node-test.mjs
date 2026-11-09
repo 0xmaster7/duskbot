@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import test from "node:test";
 import { installAmbient, isAmbientWindow } from "./ambient-main.mjs";
+import { SETTLE_WAIT_MS } from "./ambient-window.mjs";
 
 function fakes({ prefs = { island: true, dock: true }, activity = null, platform = "darwin" } = {}) {
   const windows = [];
@@ -30,7 +31,7 @@ function fakes({ prefs = { island: true, dock: true }, activity = null, platform
   }
   const handlers = new Map(), listeners = new Map();
   const ipcMain = { handle: (channel, fn) => handlers.set(channel, fn), on: (channel, fn) => listeners.set(channel, fn) };
-  const appPage = Object.assign(new EventEmitter(), { sent: [], send(channel, payload) { this.sent.push([channel, payload]); }, isDestroyed: () => false });
+  const appPage = Object.assign(new EventEmitter(), { sent: [], send(channel, payload) { this.sent.push([channel, payload]); }, isDestroyed: () => false, getURL: () => "http://127.0.0.1:5199/" });
   const builtIn = { id: 1, internal: true, label: "Built-in Liquid Retina XDR Display", bounds: { x: 0, y: 0, width: 1512, height: 982 }, workArea: { x: 0, y: 37, width: 1512, height: 945 } };
   const screen = Object.assign(new EventEmitter(), { getAllDisplays: () => [builtIn], getPrimaryDisplay: () => builtIn, getCursorScreenPoint: () => ({ x: 10, y: 10 }) });
   let saved = prefs;
@@ -38,7 +39,7 @@ function fakes({ prefs = { island: true, dock: true }, activity = null, platform
   const ambient = installAmbient({
     ipcMain, BrowserWindow, platform, page: () => appPage, origin: () => "http://127.0.0.1:5199",
     file: { read: () => saved, write: (value) => { saved = value; } },
-    openChat: (botId, threadId) => opened.push([botId, threadId]), reveal: () => revealed.push(true), activity,
+    openChat: (botId, threadId, origin) => opened.push(origin === undefined ? [botId, threadId] : [botId, threadId, origin]), reveal: () => revealed.push(true), activity,
   });
   return { windows, handlers, listeners, appPage, screen, ambient, opened, revealed, saved: () => saved };
 }
@@ -84,7 +85,7 @@ test("only the app's own page publishes the summary, and the surfaces' asks go b
   const state = island.sent.findLast(([channel]) => channel === "ambient:state")[1];
   assert.equal(state.bots[0].name, "Nova");
   island.webContents.emit("ipc-message", {}, "ambient:open", { botId: "nova", threadId: "t1" });
-  assert.deepEqual(opened, [["nova", "t1"]]);
+  assert.deepEqual(opened, [["nova", "t1", "http://127.0.0.1:5199"]]);
   island.webContents.emit("ipc-message", {}, "ambient:act", { kind: "reply", botId: "nova", threadId: "t1", text: "go" });
   island.webContents.emit("ipc-message", {}, "ambient:act", { kind: "wipe", botId: "nova", threadId: "t1" });
   island.webContents.emit("ipc-message", {}, "ambient:act", { kind: "new-bot" });
@@ -154,7 +155,7 @@ test("what a surface has seen is saved, told to both surfaces, and still there a
   again.ambient.close();
 });
 
-test("over its shape a panel takes the keyboard so macOS shows its cursor, and gives it back off the shape unless the person is typing", async () => {
+test("over its shape a panel takes the keyboard so macOS shows its cursor, and gives it back only once the surface has finished closing", async () => {
   const { windows, ambient, screen } = fakes();
   ambient.start(screen);
   await tick();
@@ -165,23 +166,50 @@ test("over its shape a panel takes the keyboard so macOS shows its cursor, and g
   // moving between bots: still over the shape, nothing more
   say("ambient:pointer", true);
   assert.deepEqual(dock.keys, ["focus"]);
+  // off the shape: clicks fall through at once, but the keyboard stays until the closing animation is done
   say("ambient:pointer", false);
-  assert.deepEqual([dock.ignore, dock.keys], [{ ignore: true, forward: true }, ["focus", "blur"]]);
-  // typing in an answer: the keyboard stays while the pointer wanders, and goes back once the field lets go
+  assert.deepEqual([dock.ignore, dock.keys], [{ ignore: true, forward: true }, ["focus"]]);
+  say("ambient:settled");
+  assert.deepEqual(dock.keys, ["focus", "blur"]);
+  // back before it settled: nothing to give back
   say("ambient:pointer", true);
+  say("ambient:pointer", false);
+  say("ambient:pointer", true);
+  say("ambient:settled");
+  assert.deepEqual(dock.keys, ["focus", "blur", "focus"]);
+  // typing in an answer: the keyboard stays while the pointer wanders, and goes back once the field lets go and it settles
   say("ambient:typing", true);
   say("ambient:pointer", false);
+  say("ambient:settled");
   assert.deepEqual(dock.keys, ["focus", "blur", "focus"]);
   say("ambient:typing", false);
+  say("ambient:settled");
   assert.deepEqual(dock.keys, ["focus", "blur", "focus", "blur"]);
-  // a field let go while the pointer is still over the shape: the key stays until it leaves
-  say("ambient:pointer", true);
-  say("ambient:typing", true);
-  say("ambient:typing", false);
-  assert.deepEqual(dock.keys.at(-1), "focus");
-  say("ambient:pointer", false);
-  assert.deepEqual(dock.keys.at(-1), "blur");
   ambient.close();
+});
+
+test("a page that never says it settled still gets the keyboard taken back, a moment later", async () => {
+  const { windows, ambient, screen } = fakes();
+  ambient.start(screen);
+  await tick();
+  const dock = surface(windows, "dock");
+  dock.webContents.emit("ipc-message", {}, "ambient:pointer", true);
+  dock.webContents.emit("ipc-message", {}, "ambient:pointer", false);
+  assert.deepEqual(dock.keys, ["focus"]);
+  await new Promise((resolve) => setTimeout(resolve, SETTLE_WAIT_MS + 50));
+  assert.deepEqual(dock.keys, ["focus", "blur"]);
+  ambient.close();
+});
+
+test("opening a bot from a surface goes to the place its bots came from, or the place the app's window shows", async () => {
+  const { windows, ambient, screen, opened, appPage } = fakes();
+  ambient.start(screen);
+  await tick();
+  const dock = surface(windows, "dock");
+  dock.webContents.emit("ipc-message", {}, "ambient:open", { botId: "nova", threadId: "t1" });
+  assert.deepEqual(opened.at(-1), ["nova", "t1", "http://127.0.0.1:5199"]);
+  ambient.close();
+  assert.ok(appPage);
 });
 
 test("a panel that already has the keyboard (the person clicked into it) is left alone, and other platforms never take it", async () => {
