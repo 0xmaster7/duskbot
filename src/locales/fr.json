@@ -3320,5 +3320,19 @@
   "computer.mac.permission.checkAgain": "Vérifier à nouveau",
   "keys.row.removeConfirm": "Supprimer {label} ? Tout ce qui l'utilise cesse de fonctionner jusqu'à ce que vous la colliez à nouveau.",
   "confirm.signOutStopsWork": "Les bots qui l'utilisent devront être reconnectés. Ce qu'ils font avec en ce moment s'arrête.",
-  "composer.dictation.micFailed": "La dictée n'a pas pu utiliser le micro. Activez {app} dans Réglages Système → Confidentialité et sécurité → Micro, et vérifiez qu'un micro est branché."
+  "composer.dictation.micFailed": "La dictée n'a pas pu utiliser le micro. Activez {app} dans Réglages Système → Confidentialité et sécurité → Micro, et vérifiez qu'un micro est branché.",
+  "settings.ambient.tour.title": "Visite de l'île et du dock",
+  "settings.ambient.tour.subtitle": "Essayez-les à nouveau et choisissez où vivent vos bots.",
+  "settings.ambient.tour.show": "Voir",
+  "onboarding.notch.title": "Vos bots vivent désormais ici",
+  "onboarding.notch.stage": "Un aperçu de l'île et du dock",
+  "onboarding.notch.hint": "Pointez un bot pour changer. Touchez-en un ou faites-le glisser dans l'encoche.",
+  "onboarding.notch.live": "En direct en haut de votre écran",
+  "onboarding.notch.keep": "Garder l'encoche",
+  "onboarding.notch.dock": "Juste le dock latéral",
+  "onboarding.notch.line.maus": "Là dès que vous avez besoin de moi",
+  "onboarding.notch.line.invoices": "Relance 3 factures en retard",
+  "onboarding.notch.line.standup": "Prépare le point de lundi",
+  "onboarding.notch.line.forecast": "Approuver la prévision du 3e trimestre ?",
+  "onboarding.notch.line.cheered": "Encouragé. On s'y remet."
 }

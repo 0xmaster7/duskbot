@@ -3397,5 +3397,19 @@
   "computer.mac.permission.checkAgain": "Erneut prüfen",
   "keys.row.removeConfirm": "{label} entfernen? Alles, was ihn nutzt, funktioniert erst wieder, wenn du ihn erneut einfügst.",
   "confirm.signOutStopsWork": "Bots, die es nutzen, brauchen eine neue Anmeldung. Alles, was sie gerade damit tun, wird gestoppt.",
-  "composer.dictation.micFailed": "Die Diktierfunktion konnte das Mikrofon nicht nutzen. Schalte {app} unter Systemeinstellungen → Datenschutz & Sicherheit → Mikrofon ein und prüfe, ob ein Mikrofon angeschlossen ist."
+  "composer.dictation.micFailed": "Die Diktierfunktion konnte das Mikrofon nicht nutzen. Schalte {app} unter Systemeinstellungen → Datenschutz & Sicherheit → Mikrofon ein und prüfe, ob ein Mikrofon angeschlossen ist.",
+  "settings.ambient.tour.title": "Tour durch Insel und Dock",
+  "settings.ambient.tour.subtitle": "Probier sie noch einmal aus und wähle, wo deine Bots wohnen.",
+  "settings.ambient.tour.show": "Zeigen",
+  "onboarding.notch.title": "Deine Bots wohnen jetzt hier oben",
+  "onboarding.notch.stage": "Eine Vorschau der Insel und des Docks",
+  "onboarding.notch.hint": "Zeig auf einen Bot, um zu wechseln. Tippe einen an oder zieh ihn in die Notch.",
+  "onboarding.notch.live": "Gerade live oben auf deinem Bildschirm",
+  "onboarding.notch.keep": "Notch eingeschaltet lassen",
+  "onboarding.notch.dock": "Nur das Dock am Rand",
+  "onboarding.notch.line.maus": "Hier, wann immer du mich brauchst",
+  "onboarding.notch.line.invoices": "Mahnt 3 überfällige Rechnungen an",
+  "onboarding.notch.line.standup": "Entwirft das Standup für Montag",
+  "onboarding.notch.line.forecast": "Q3-Prognose freigeben?",
+  "onboarding.notch.line.cheered": "Angefeuert. Weiter geht's."
 }

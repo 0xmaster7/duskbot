@@ -4762,5 +4762,19 @@
   "elsewhere.dev.stop": "Dev：停止模擬",
   "elsewhere.dev.simulated": "模擬全新安裝",
   "keys.row.removeConfirm": "移除{label}？在你重新貼上之前，所有用到它的功能都會停止運作。",
-  "confirm.signOutStopsWork": "使用它的機器人需要重新登入。它們目前用它進行的工作會停止。"
+  "confirm.signOutStopsWork": "使用它的機器人需要重新登入。它們目前用它進行的工作會停止。",
+  "settings.ambient.tour.title": "動態島與 Dock 導覽",
+  "settings.ambient.tour.subtitle": "再玩一次，並選擇機器人住在哪裡。",
+  "settings.ambient.tour.show": "查看",
+  "onboarding.notch.title": "你的機器人現在住在這裡",
+  "onboarding.notch.stage": "動態島與 Dock 預覽",
+  "onboarding.notch.hint": "指向一個機器人即可切換。點一下，或把它拖進瀏海。",
+  "onboarding.notch.live": "現在就顯示在螢幕頂端",
+  "onboarding.notch.keep": "保留瀏海",
+  "onboarding.notch.dock": "只用側邊 Dock",
+  "onboarding.notch.line.maus": "需要我時我都在",
+  "onboarding.notch.line.invoices": "正在催收 3 張逾期發票",
+  "onboarding.notch.line.standup": "正在草擬週一站會",
+  "onboarding.notch.line.forecast": "核准第三季預測嗎？",
+  "onboarding.notch.line.cheered": "收到鼓勵，繼續工作。"
 }

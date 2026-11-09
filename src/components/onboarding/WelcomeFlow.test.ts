@@ -284,3 +284,30 @@ describe("other first runs", () => {
     expect(introStaged("maus"), "a replay lands in a chat that may be long under way").toBe(false);
   });
 });
+
+describe("the notch and dock step", () => {
+  it("comes after the jobs where this app has the island, and its choice moves on to how bots talk", async () => {
+    const set = vi.fn(async (change: object) => ({ available: true, island: false, dock: true, ...change }));
+    vi.stubGlobal("ogb", { ambient: { prefs: async () => ({ available: true, island: false, dock: true }), set } });
+    await show();
+    await press("Next");
+    await press("Next");
+    await press("Next");
+    expect(host.querySelector("h1")?.textContent).toBe("Your bots live up here now");
+    await press("Just the side dock");
+    expect(set).toHaveBeenLastCalledWith({ island: false, dock: true });
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+    expect(host.querySelector("h1")?.textContent).toBe("How should your Bots talk?");
+    await press("Back");
+    expect(host.querySelector("h1")?.textContent).toBe("Your bots live up here now");
+  });
+
+  it("is not there where the app has no island", async () => {
+    vi.stubGlobal("ogb", { ambient: { prefs: async () => ({ available: false }), set: vi.fn() } });
+    await show();
+    await press("Next");
+    await press("Next");
+    await press("Next");
+    expect(host.querySelector("h1")?.textContent).toBe("How should your Bots talk?");
+  });
+});

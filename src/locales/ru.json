@@ -6260,5 +6260,19 @@
   "elsewhere.dev.stop": "Dev: остановить симуляцию",
   "elsewhere.dev.simulated": "Симуляция новой установки",
   "keys.row.removeConfirm": "Удалить {label}? Всё, что его использует, перестанет работать, пока вы не вставите его снова.",
-  "confirm.signOutStopsWork": "Ботам, которые его используют, понадобится снова войти. То, что они делают с ним сейчас, остановится."
+  "confirm.signOutStopsWork": "Ботам, которые его используют, понадобится снова войти. То, что они делают с ним сейчас, остановится.",
+  "settings.ambient.tour.title": "Обзор острова и дока",
+  "settings.ambient.tour.subtitle": "Попробуйте их ещё раз и выберите, где будут жить ваши боты.",
+  "settings.ambient.tour.show": "Показать",
+  "onboarding.notch.title": "Теперь ваши боты живут здесь, наверху",
+  "onboarding.notch.stage": "Предпросмотр острова и дока",
+  "onboarding.notch.hint": "Наведите на бота, чтобы переключиться. Нажмите на него или перетащите в вырез.",
+  "onboarding.notch.live": "Прямо сейчас вверху вашего экрана",
+  "onboarding.notch.keep": "Оставить вырез включённым",
+  "onboarding.notch.dock": "Только боковой док",
+  "onboarding.notch.line.maus": "Здесь, когда понадоблюсь",
+  "onboarding.notch.line.invoices": "Напоминает о 3 просроченных счетах",
+  "onboarding.notch.line.standup": "Готовит планёрку на понедельник",
+  "onboarding.notch.line.forecast": "Утвердить прогноз на 3-й квартал?",
+  "onboarding.notch.line.cheered": "Спасибо за поддержку. Возвращаюсь к делу."
 }

@@ -6253,5 +6253,19 @@
   "elsewhere.dev.stop": "Dev: zakończ symulację",
   "elsewhere.dev.simulated": "Symulowana nowa instalacja",
   "keys.row.removeConfirm": "Usunąć {label}? Wszystko, co z niego korzysta, przestanie działać, dopóki nie wkleisz go ponownie.",
-  "confirm.signOutStopsWork": "Boty, które z niego korzystają, będą wymagać ponownego logowania. To, co teraz z nim robią, zostanie zatrzymane."
+  "confirm.signOutStopsWork": "Boty, które z niego korzystają, będą wymagać ponownego logowania. To, co teraz z nim robią, zostanie zatrzymane.",
+  "settings.ambient.tour.title": "Przewodnik po wyspie i doku",
+  "settings.ambient.tour.subtitle": "Pobaw się nimi jeszcze raz i wybierz, gdzie mieszkają Twoje boty.",
+  "settings.ambient.tour.show": "Pokaż",
+  "onboarding.notch.title": "Twoje boty mieszkają teraz tutaj",
+  "onboarding.notch.stage": "Podgląd wyspy i doku",
+  "onboarding.notch.hint": "Wskaż bota, aby przełączyć. Stuknij go lub przeciągnij do notcha.",
+  "onboarding.notch.live": "Na żywo u góry ekranu",
+  "onboarding.notch.keep": "Zostaw notch włączony",
+  "onboarding.notch.dock": "Tylko dok z boku",
+  "onboarding.notch.line.maus": "Jestem tu, kiedy mnie potrzebujesz",
+  "onboarding.notch.line.invoices": "Upomina się o 3 zaległe faktury",
+  "onboarding.notch.line.standup": "Przygotowuje poniedziałkowy standup",
+  "onboarding.notch.line.forecast": "Zatwierdzić prognozę na Q3?",
+  "onboarding.notch.line.cheered": "Dzięki za doping. Wracam do pracy."
 }

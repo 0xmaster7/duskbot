@@ -3622,5 +3622,19 @@
   "computer.mac.permission.checkAgain": "Перевірити ще раз",
   "keys.row.removeConfirm": "Видалити {label}? Усе, що його використовує, перестане працювати, доки ви не вставите його знову.",
   "confirm.signOutStopsWork": "Ботам, які його використовують, доведеться знову увійти. Те, що вони роблять із ним зараз, зупиниться.",
-  "composer.dictation.micFailed": "Диктуванню не вдалося використати мікрофон. Увімкніть {app} у Системних параметрах → Конфіденційність і безпека → Мікрофон і перевірте, що мікрофон під'єднано."
+  "composer.dictation.micFailed": "Диктуванню не вдалося використати мікрофон. Увімкніть {app} у Системних параметрах → Конфіденційність і безпека → Мікрофон і перевірте, що мікрофон під'єднано.",
+  "settings.ambient.tour.title": "Огляд острова й дока",
+  "settings.ambient.tour.subtitle": "Спробуйте їх ще раз і виберіть, де житимуть ваші боти.",
+  "settings.ambient.tour.show": "Показати",
+  "onboarding.notch.title": "Тепер ваші боти живуть тут, нагорі",
+  "onboarding.notch.stage": "Попередній перегляд острова й дока",
+  "onboarding.notch.hint": "Наведіть на бота, щоб перемкнути. Торкніться його або перетягніть у виріз.",
+  "onboarding.notch.live": "Просто зараз угорі вашого екрана",
+  "onboarding.notch.keep": "Залишити виріз увімкненим",
+  "onboarding.notch.dock": "Лише бічний док",
+  "onboarding.notch.line.maus": "Тут, коли знадоблюся",
+  "onboarding.notch.line.invoices": "Нагадує про 3 прострочені рахунки",
+  "onboarding.notch.line.standup": "Готує понеділкову нараду",
+  "onboarding.notch.line.forecast": "Затвердити прогноз на 3-й квартал?",
+  "onboarding.notch.line.cheered": "Дякую за підтримку. Повертаюся до справ."
 }

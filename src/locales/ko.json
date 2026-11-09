@@ -6668,5 +6668,19 @@
   "elsewhere.dev.simulate": "Dev: VPS가 있는 새 설치",
   "elsewhere.dev.stop": "Dev: 시뮬레이션 중지",
   "elsewhere.dev.simulated": "새 설치 시뮬레이션",
-  "confirm.signOutStopsWork": "이 계정을 쓰는 봇은 다시 로그인해야 해요. 지금 이 계정으로 하고 있는 작업은 멈춰요."
+  "confirm.signOutStopsWork": "이 계정을 쓰는 봇은 다시 로그인해야 해요. 지금 이 계정으로 하고 있는 작업은 멈춰요.",
+  "settings.ambient.tour.title": "아일랜드와 독 둘러보기",
+  "settings.ambient.tour.subtitle": "다시 사용해 보고 봇이 머물 곳을 고르세요.",
+  "settings.ambient.tour.show": "보기",
+  "onboarding.notch.title": "이제 봇들이 여기 위에 살아요",
+  "onboarding.notch.stage": "아일랜드와 독 미리 보기",
+  "onboarding.notch.hint": "봇을 가리키면 바뀌어요. 탭하거나 노치로 끌어 보세요.",
+  "onboarding.notch.live": "지금 화면 상단에 표시 중",
+  "onboarding.notch.keep": "노치 켜 두기",
+  "onboarding.notch.dock": "측면 독만",
+  "onboarding.notch.line.maus": "필요할 때 언제든 여기 있어요",
+  "onboarding.notch.line.invoices": "연체된 청구서 3건 독촉 중",
+  "onboarding.notch.line.standup": "월요일 스탠드업 작성 중",
+  "onboarding.notch.line.forecast": "3분기 예측을 승인할까요?",
+  "onboarding.notch.line.cheered": "응원 고마워요. 다시 일하러 갈게요."
 }

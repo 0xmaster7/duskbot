@@ -4,6 +4,7 @@ import { AnimatePresence } from "motion/react";
 import { CLOUD_LINK_SETTINGS, openBot, StoreProvider, useStore } from "@/state/store";
 import { nextShortcutBot, shortcutBots, shownBotIds } from "@/lib/sidebar-shortcut-order";
 import { useWelcomeViewer, WelcomeGate } from "@/components/onboarding/WelcomeGate";
+import { IslandIntroHost } from "@/components/onboarding/IslandIntroHost";
 import { CloudTimeZoneSync } from "@/components/CloudTimeZone";
 import { useWarmChatImages } from "@/components/use-warm-chat-images";
 import { cloudSignInDue, type WelcomeViewer } from "@/lib/onboarding";
@@ -376,6 +377,7 @@ function Application() {
         <WelcomeGate viewer={viewer} />
         <BotsElsewhere />
         <DevFreshInstallButton />
+        <IslandIntroHost />
         <CloudTimeZoneSync viewer={viewer} />
         <LiveCallHost />
         <AmbientPublisher />

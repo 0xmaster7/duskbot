@@ -5212,5 +5212,19 @@
   "elsewhere.dev.stop": "Dev: dừng mô phỏng",
   "elsewhere.dev.simulated": "Cài mới mô phỏng",
   "keys.row.removeConfirm": "Gỡ {label}? Mọi thứ dùng nó sẽ ngừng hoạt động cho đến khi bạn dán lại.",
-  "confirm.signOutStopsWork": "Các bot dùng nó sẽ cần đăng nhập lại. Mọi việc chúng đang làm với nó sẽ dừng lại."
+  "confirm.signOutStopsWork": "Các bot dùng nó sẽ cần đăng nhập lại. Mọi việc chúng đang làm với nó sẽ dừng lại.",
+  "settings.ambient.tour.title": "Tham quan đảo và dock",
+  "settings.ambient.tour.subtitle": "Thử lại chúng và chọn nơi bot của bạn sống.",
+  "settings.ambient.tour.show": "Xem",
+  "onboarding.notch.title": "Bot của bạn giờ sống ở trên này",
+  "onboarding.notch.stage": "Bản xem trước của đảo và dock",
+  "onboarding.notch.hint": "Trỏ vào một bot để đổi. Chạm vào bot hoặc kéo nó vào tai thỏ.",
+  "onboarding.notch.live": "Đang hiển thị ở đầu màn hình của bạn",
+  "onboarding.notch.keep": "Giữ tai thỏ bật",
+  "onboarding.notch.dock": "Chỉ dock bên cạnh",
+  "onboarding.notch.line.maus": "Luôn ở đây khi bạn cần",
+  "onboarding.notch.line.invoices": "Đang nhắc 3 hóa đơn quá hạn",
+  "onboarding.notch.line.standup": "Đang soạn buổi standup thứ Hai",
+  "onboarding.notch.line.forecast": "Duyệt dự báo quý 3?",
+  "onboarding.notch.line.cheered": "Đã được cổ vũ. Quay lại làm việc."
 }

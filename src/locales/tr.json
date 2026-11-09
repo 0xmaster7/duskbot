@@ -5212,5 +5212,19 @@
   "elsewhere.dev.stop": "Dev: simülasyonu durdur",
   "elsewhere.dev.simulated": "Simüle edilmiş yeni kurulum",
   "keys.row.removeConfirm": "{label} kaldırılsın mı? Onu kullanan her şey, yeniden yapıştırana kadar çalışmaz.",
-  "confirm.signOutStopsWork": "Onu kullanan botların yeniden oturum açması gerekir. Şu anda onunla yaptıkları her şey durur."
+  "confirm.signOutStopsWork": "Onu kullanan botların yeniden oturum açması gerekir. Şu anda onunla yaptıkları her şey durur.",
+  "settings.ambient.tour.title": "Ada ve dock turu",
+  "settings.ambient.tour.subtitle": "Onlarla yeniden oynayın ve botlarınızın nerede yaşayacağını seçin.",
+  "settings.ambient.tour.show": "Göster",
+  "onboarding.notch.title": "Botların artık burada, yukarıda yaşıyor",
+  "onboarding.notch.stage": "Ada ve dock önizlemesi",
+  "onboarding.notch.hint": "Değiştirmek için bir bota gelin. Birine dokunun ya da çentiğe sürükleyin.",
+  "onboarding.notch.live": "Şu anda ekranının üstünde canlı",
+  "onboarding.notch.keep": "Çentik açık kalsın",
+  "onboarding.notch.dock": "Sadece yan dock",
+  "onboarding.notch.line.maus": "İhtiyacın olduğunda buradayım",
+  "onboarding.notch.line.invoices": "Vadesi geçmiş 3 faturayı takip ediyor",
+  "onboarding.notch.line.standup": "Pazartesi toplantı özetini hazırlıyor",
+  "onboarding.notch.line.forecast": "3. çeyrek tahmini onaylansın mı?",
+  "onboarding.notch.line.cheered": "Tezahürat alındı. İşe dönüyorum."
 }

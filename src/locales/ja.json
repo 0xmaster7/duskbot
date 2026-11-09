@@ -6278,5 +6278,19 @@
   "elsewhere.dev.stop": "Dev: シミュレーションを終了",
   "elsewhere.dev.simulated": "新規インストールのシミュレーション",
   "keys.row.removeConfirm": "{label}を削除しますか？もう一度貼り付けるまで、これを使うものはすべて動かなくなります。",
-  "confirm.signOutStopsWork": "これを使うボットは再サインインが必要です。今これで行っている作業は止まります。"
+  "confirm.signOutStopsWork": "これを使うボットは再サインインが必要です。今これで行っている作業は止まります。",
+  "settings.ambient.tour.title": "アイランドとドックのツアー",
+  "settings.ambient.tour.subtitle": "もう一度試して、ボットの居場所を選びましょう。",
+  "settings.ambient.tour.show": "表示",
+  "onboarding.notch.title": "ボットはここに住むようになりました",
+  "onboarding.notch.stage": "アイランドとドックのプレビュー",
+  "onboarding.notch.hint": "ボットにポインタを合わせると切り替わります。タップするか、ノッチまでドラッグしてください。",
+  "onboarding.notch.live": "いま画面の上部で表示中",
+  "onboarding.notch.keep": "ノッチをオンのままにする",
+  "onboarding.notch.dock": "サイドのドックだけ",
+  "onboarding.notch.line.maus": "いつでも呼んでください",
+  "onboarding.notch.line.invoices": "期限切れの請求書3件を催促中",
+  "onboarding.notch.line.standup": "月曜のスタンドアップを作成中",
+  "onboarding.notch.line.forecast": "第3四半期の予測を承認しますか？",
+  "onboarding.notch.line.cheered": "応援ありがとう。仕事に戻ります。"
 }

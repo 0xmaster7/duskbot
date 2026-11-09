@@ -6841,5 +6841,19 @@
   "elsewhere.dev.simulate": "Dev：有 VPS 的全新安装",
   "elsewhere.dev.stop": "Dev：停止模拟",
   "elsewhere.dev.simulated": "模拟全新安装",
-  "confirm.signOutStopsWork": "使用它的机器人需要重新登录。它们当前用它进行的工作会停止。"
+  "confirm.signOutStopsWork": "使用它的机器人需要重新登录。它们当前用它进行的工作会停止。",
+  "settings.ambient.tour.title": "灵动岛与程序坞导览",
+  "settings.ambient.tour.subtitle": "再玩一次，并选择机器人住在哪里。",
+  "settings.ambient.tour.show": "查看",
+  "onboarding.notch.title": "你的机器人现在住在这里",
+  "onboarding.notch.stage": "灵动岛和程序坞预览",
+  "onboarding.notch.hint": "指向一个机器人即可切换。点一下，或把它拖进刘海。",
+  "onboarding.notch.live": "现在就显示在屏幕顶部",
+  "onboarding.notch.keep": "保留刘海",
+  "onboarding.notch.dock": "只用侧边程序坞",
+  "onboarding.notch.line.maus": "需要我时我都在",
+  "onboarding.notch.line.invoices": "正在催收 3 张逾期发票",
+  "onboarding.notch.line.standup": "正在起草周一站会",
+  "onboarding.notch.line.forecast": "批准第三季度预测吗？",
+  "onboarding.notch.line.cheered": "收到鼓励，继续干活。"
 }

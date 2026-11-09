@@ -6,6 +6,7 @@ import { beatsFor, completionPatch, firstRunPatch, markWelcomeFinished, resumeBe
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
 import { api, useStore } from "@/state/store";
 import { ComputerStep, JobsStep, TalkStep } from "./GrokSteps";
+import { IslandIntro, useIslandAvailable } from "./IslandIntro";
 import { talkingStyleOf, type TalkingStyle } from "../../../shared/talking-style";
 import { MeetScreen } from "./MeetScreen";
 import { localDesktopPage } from "./WelcomeGate";
@@ -33,7 +34,7 @@ async function nameFromComputer(config: Config, done: (config: NonNullable<Confi
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Tab and Shift+Tab stay inside `root`, the way a modal dialog keeps them. */
-function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElement | null): void {
+export function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElement | null): void {
   if (event.key !== "Tab" || !root) return;
   const focusable = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.getClientRects().length > 0);
   if (!focusable.length) return;
@@ -154,13 +155,19 @@ export function WelcomeFlow({
     trapTab(event, root.current);
   };
 
-  const renderPage = (index: number) => index === 0
-    ? <MeetScreen hosted={hosted} onNext={() => goPage(1)} />
-    : index === 1
-      ? <ComputerStep onNext={() => goPage(2)} onBack={() => goPage(0)} />
-      : index === 2
-        ? <JobsStep onNext={() => goPage(3)} onBack={() => goPage(1)} />
-        : <TalkStep value={talk} onChange={pickTalk} onNext={next} onBack={() => goPage(2)} />;
+  // the notch and dock step, where this app has them (the desktop app on a Mac)
+  const island = useIslandAvailable() === true;
+  const pages = ["meet", "computer", "jobs", ...(island ? ["island"] : []), "talk"] as const;
+  const renderPage = (index: number) => {
+    const name = pages[index] ?? "talk";
+    const forward = () => goPage(index + 1);
+    const back = () => goPage(index - 1);
+    if (name === "meet") return <MeetScreen hosted={hosted} onNext={forward} />;
+    if (name === "computer") return <ComputerStep onNext={forward} onBack={back} />;
+    if (name === "jobs") return <JobsStep onNext={forward} onBack={back} />;
+    if (name === "island") return <IslandIntro onDone={forward} />;
+    return <TalkStep value={talk} onChange={pickTalk} onNext={next} onBack={back} />;
+  };
 
   return (
     <div

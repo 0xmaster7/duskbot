@@ -5689,5 +5689,19 @@
   "elsewhere.dev.stop": "Dev: dejar de simular",
   "elsewhere.dev.simulated": "Instalación nueva simulada",
   "keys.row.removeConfirm": "¿Quitar {label}? Todo lo que la usa deja de funcionar hasta que la pegues de nuevo.",
-  "confirm.signOutStopsWork": "Los bots que la usan necesitan que vuelvas a iniciar sesión. Lo que estén haciendo con ella ahora se detiene."
+  "confirm.signOutStopsWork": "Los bots que la usan necesitan que vuelvas a iniciar sesión. Lo que estén haciendo con ella ahora se detiene.",
+  "settings.ambient.tour.title": "Recorrido por la isla y el dock",
+  "settings.ambient.tour.subtitle": "Vuelve a probarlos y elige dónde viven tus bots.",
+  "settings.ambient.tour.show": "Mostrar",
+  "onboarding.notch.title": "Tus bots ahora viven aquí arriba",
+  "onboarding.notch.stage": "Una vista previa de la isla y el dock",
+  "onboarding.notch.hint": "Señala un bot para cambiar. Tócalo o arrástralo al notch.",
+  "onboarding.notch.live": "En vivo ahora mismo en la parte superior de tu pantalla",
+  "onboarding.notch.keep": "Mantener el notch",
+  "onboarding.notch.dock": "Solo el dock lateral",
+  "onboarding.notch.line.maus": "Aquí cuando me necesites",
+  "onboarding.notch.line.invoices": "Reclamando 3 facturas vencidas",
+  "onboarding.notch.line.standup": "Preparando el standup del lunes",
+  "onboarding.notch.line.forecast": "¿Apruebas la previsión del tercer trimestre?",
+  "onboarding.notch.line.cheered": "¡Ánimo recibido! A seguir."
 }
