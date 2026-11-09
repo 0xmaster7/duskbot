@@ -1,36 +1,47 @@
-// The bot dock: a black panel against the right edge of the screen that flares into it at both ends, one mascot per
-// bot and a ＋ under them. At rest only a sliver shows; the pointer at the edge slides it in. A bot under the pointer
-// grows a little and its card slides out to the left; dragging a bot moves it.
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { AnimatePresence, Reorder, motion, useReducedMotion } from "motion/react";
+// The bot dock: one black body against the right edge of the screen that flares into it at both ends. At rest only a
+// sliver shows, ticked where a bot works, replied or waits. The pointer at the edge slides in a column of mascots; moving
+// onto them widens the same body to the left, and each bot's words come out of it beside its mascot, with any ask it
+// waits on answered right there. The mascots never move while it opens. Dragging a mascot reorders the dock.
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { Reorder, motion, useDragControls, useReducedMotion, useTransform } from "motion/react";
 import { Plus } from "lucide-react";
-import { dockOrder, isBusy, shortAgo } from "./mood";
+import { dockOrder, isBusy } from "./mood";
+import { BotRow, useHoverBand, useRowMoments } from "./rows";
+import { attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, FADE, FADE_OUT, LIVELY, SETTLE, StatusTag, useAmbientFeed, useNow, usePointerRegion } from "./shared";
-import type { AmbientBot, AmbientBridge } from "./types";
+import { BotMark, SETTLE, useAllClear, useAmbientFeed, useSurfaceValue, useNow, usePointerRegion } from "./shared";
+import type { AmbientAct, AmbientBot, AmbientBridge, DockLayout } from "./types";
 
-/** How near the right edge the pointer has to be, inside the dock's height, to bring it in. */
+/** How near the right edge the pointer has to be, beside the body, to bring the dock in. */
 const EDGE = 14;
-const HIDE_MS = 420;
-/** A bot that starts needing the person brings the dock out this long. */
+/** Past this far from the edge the pointer is on the mascots, and the dock opens. */
+const WIDE_AT = 18;
+const HIDE_MS = 140;
+/** Arriving at the edge only brings the column in; opening takes a move toward the bots, or resting on them this long. */
+const DWELL_MS = 450;
+/** How far toward the bots counts as a move. */
+const NUDGE_PX = 6;
+/** A bot that starts needing the person, or fails, brings the dock out this long. */
 const PEEK_MS = 3600;
-const CARD_W = 236;
-const CARD_H = 88;
-const FALLBACK_DOCK = { cell: 52, tile: 34, body: 64, pad: 10, ear: 18, sliver: 6, cardRoom: 300, spill: 64, max: 12 };
+const RADIUS = 22;
+// one empty list for "nothing yet": a fresh [] each render would rerun the order effect forever
+const NONE: readonly never[] = [];
+const FALLBACK_DOCK: DockLayout["dock"] = { cell: 56, tile: 36, column: 64, open: 348, pad: 8, ear: 18, sliver: 6, margin: 28, overhang: 4 };
 
 export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const { snapshot, layout } = useAmbientFeed(bridge);
   const dock = layout?.surface === "dock" ? layout : null;
   const reduced = useReducedMotion() === true;
   const labels = snapshot?.labels ?? {};
-  const bots = snapshot?.bots ?? [];
+  const bots: readonly AmbientBot[] = snapshot?.bots ?? NONE;
   const lang = snapshot?.lang ?? "";
   const d = dock?.dock ?? FALLBACK_DOCK;
-  const stageW = dock?.width ?? d.body + d.cardRoom;
-  const stageH = dock?.height ?? 400;
-  const top = dock?.top ?? d.ear + d.spill;
-  const body = dock?.body ?? stageH - 2 * top;
-  const visible = Math.max(0, Math.floor((body - 2 * d.pad) / d.cell) - 1);
+  // the window runs past the screen's edge (ambient-geometry.mjs): the body paints into that strip, so no seam can show
+  const over = d.overhang ?? 0;
+  const stageW = dock?.width ?? d.open + over;
+  const edge = stageW - over;
+  const stageH = dock?.height ?? 720;
+  const maxBody = dock?.body ?? stageH - 2 * (d.ear + d.margin);
 
   const [ids, setIds] = useState<string[]>([]);
   const idsNow = useRef(ids);
@@ -39,53 +50,109 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const moved = useRef(false);
   useEffect(() => {
     if (dragging.current) return;
-    setIds(dockOrder(bots, dock?.order ?? []).map((bot) => bot.id));
+    setIds(dockOrder(bots, dock?.order ?? NONE).map((bot) => bot.id));
   }, [bots, dock?.order]);
   const byId = new Map(bots.map((bot) => [bot.id, bot]));
-  const shown = ids.map((id) => byId.get(id)).filter((bot): bot is AmbientBot => Boolean(bot)).slice(0, visible);
+  const shown = ids.map((id) => byId.get(id)).filter((bot): bot is AmbientBot => Boolean(bot));
 
   const [out, setOut] = useState(false);
+  const [wide, setWide] = useState(false);
   const [peek, setPeek] = useState(false);
-  const [hover, setHover] = useState<string | null>(null);
-  const slidOut = out || peek;
+  const [pinned, setPinned] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const opened = wide || pinned || focused;
+  const slidOut = out || peek || opened;
 
-  // someone starts needing the person: the dock comes out for a moment on its own
-  const waiting = bots.filter((bot) => bot.status === "needs-you").map((bot) => bot.id).join(",");
-  const lastWaiting = useRef<string | null>(null);
+  // someone starts needing the person, or fails: the dock comes out for a moment on its own
+  // a reply or failure is news until seen; after that the dock only keeps its line, muted
+  const { seen, mark } = useSeen(bridge, bots, opened);
+  // everything answered or seen: the whole column cheers once
+  const { cheer } = useAllClear(attention(bots, seen).some((bot) => bot.status !== "idle"), 2400);
+  const calling = bots.filter((bot) => !bot.quiet).filter((bot) => bot.status === "needs-you" || (bot.status === "error" && isFresh(bot, seen))).map((bot) => bot.id).join(",");
+  const lastCalling = useRef<string | null>(null);
   const peekTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
     if (!snapshot) return;
-    const first = lastWaiting.current === null;
-    const before = new Set((lastWaiting.current ?? "").split(",").filter(Boolean));
-    lastWaiting.current = waiting;
+    const first = lastCalling.current === null;
+    const before = new Set((lastCalling.current ?? "").split(",").filter(Boolean));
+    lastCalling.current = calling;
     // the first summary is how things stand, not news
-    if (first || !waiting.split(",").some((id) => id && !before.has(id))) return;
+    if (first || !calling.split(",").some((id) => id && !before.has(id))) return;
     setPeek(true);
     clearTimeout(peekTimer.current);
     peekTimer.current = setTimeout(() => setPeek(false), PEEK_MS);
-  }, [waiting, snapshot]);
+  }, [calling, snapshot]);
   useEffect(() => () => clearTimeout(peekTimer.current), []);
 
-  const bodyX = stageW - d.body;
-  const cellTop = (index: number) => top + d.pad + index * d.cell;
-  const hoverIndex = hover ? shown.findIndex((bot) => bot.id === hover) : -1;
-  const cardTop = hoverIndex < 0 ? 0 : Math.min(stageH - CARD_H - 4, Math.max(4, cellTop(hoverIndex) + d.cell / 2 - CARD_H / 2));
+  // the body is as tall as what it shows, centred on the edge; it widens to the left and slides in from the right
+  const content = useRef<HTMLDivElement>(null);
+  const [contentH, setContentH] = useState(d.cell + 2 * d.pad);
+  useLayoutEffect(() => {
+    const node = content.current;
+    if (!node) return;
+    const measure = () => setContentH(node.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  const bodyH = Math.min(contentH, maxBody);
+  const w = useSurfaceValue(opened ? d.open : d.column, reduced);
+  const h = useSurfaceValue(bodyH, reduced);
+  const slide = useSurfaceValue(slidOut ? 0 : d.column - d.sliver, reduced, slidOut);
+  const top = useTransform(h, (value) => Math.round((stageH - value) / 2));
+  const clip = useTransform(() => {
+    const t = top.get();
+    return `inset(${t}px 0px ${Math.max(0, stageH - t - h.get())}px ${Math.max(0, edge - w.get())}px round ${RADIUS}px 0px 0px ${RADIUS}px)`;
+  });
+  const earTop = useTransform(top, (value) => value - d.ear);
+  const earBottom = useTransform(() => top.get() + h.get());
 
+  const slidOutNow = useRef(slidOut);
+  slidOutNow.current = slidOut;
+  // where the body is right now, mid-spring included: only there do clicks land
   const hit = useCallback((x: number, y: number) => {
-    if (y < top - d.ear || y > top + body + d.ear) return false;
-    if (!slidOut) return x >= stageW - EDGE;
-    if (x >= bodyX - 2) return true;
-    return hoverIndex >= 0 && x >= bodyX - CARD_W - 12 && y >= cardTop && y <= cardTop + CARD_H;
-  }, [top, body, d.ear, slidOut, stageW, bodyX, hoverIndex, cardTop]);
+    const t = top.get();
+    if (y < t - d.ear || y > t + h.get() + d.ear) return false;
+    if (!slidOutNow.current) return x >= edge - EDGE;
+    return x >= edge - w.get() + slide.get() - 2;
+  }, [top, h, w, slide, d.ear, edge]);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  usePointerRegion(bridge, hit, () => { clearTimeout(hideTimer.current); setOut(true); }, () => {
+  const entered = useRef<number | null>(null);
+  const inside = usePointerRegion(bridge, hit, () => { clearTimeout(hideTimer.current); entered.current = null; setOut(true); }, () => {
     clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => { if (!dragging.current) { setOut(false); setHover(null); } }, HIDE_MS);
+    hideTimer.current = setTimeout(() => { if (!dragging.current) { setOut(false); setWide(false); } }, HIDE_MS);
   });
   useEffect(() => () => clearTimeout(hideTimer.current), []);
+  // on the bots, past the edge zone: a move toward them opens it at once, resting there opens it after a moment, and a
+  // brush on the way somewhere else only brought the column in
+  useEffect(() => {
+    let dwell: ReturnType<typeof setTimeout> | undefined;
+    const move = (event: MouseEvent) => {
+      if (!inside.current) { clearTimeout(dwell); dwell = undefined; return; }
+      const x = event.clientX;
+      entered.current ??= x;
+      const onBots = x < edge - WIDE_AT;
+      if (!onBots) { clearTimeout(dwell); dwell = undefined; return; }
+      if (entered.current - x >= NUDGE_PX) { clearTimeout(dwell); setWide(true); return; }
+      dwell ??= setTimeout(() => { if (inside.current) setWide(true); }, DWELL_MS);
+    };
+    document.addEventListener("mousemove", move, { passive: true });
+    return () => { clearTimeout(dwell); document.removeEventListener("mousemove", move); };
+  }, [inside, edge]);
+  // a click anywhere else (the window loses focus) puts the dock away, fields and all
+  useEffect(() => {
+    const blur = () => { setPinned(false); setFocused(false); if (!inside.current) { setOut(false); setWide(false); } };
+    window.addEventListener("blur", blur);
+    return () => window.removeEventListener("blur", blur);
+  }, [inside]);
 
-  const offset = slidOut ? 0 : d.body - d.sliver;
   const now = useNow(slidOut);
+  const { sent, cheering, markSent } = useRowMoments(bots);
+
+  // one highlight for the whole hover session (rows.tsx): it glides from bot to bot and never remakes itself
+  const list = useRef<HTMLUListElement>(null);
+  const band = useHoverBand(list, opened && !dragging.current, `${contentH}:${ids.join(",")}`);
   const save = (next: string[]) => bridge.order(next);
   const nudge = (id: string, step: -1 | 1) => {
     const index = ids.indexOf(id), to = index + step;
@@ -95,127 +162,140 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
     setIds(next);
     save(next);
   };
-  const hovered = hoverIndex >= 0 ? shown[hoverIndex]! : null;
+  const act = (bot: AmbientBot, next: AmbientAct) => {
+    if (next.kind === "answer" || next.kind === "allow" || next.kind === "deny") markSent(bot);
+    bridge.act(next);
+  };
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== "Escape") return;
+    setPinned(false); setWide(false); setOut(false);
+    (document.activeElement as HTMLElement | null)?.blur();
+  };
+  const listMax = Math.max(d.cell, maxBody - 2 * d.pad - d.cell);
 
   return (
-    <div className="amb-stage" style={{ width: stageW, height: stageH }}>
+    <div className="amb-stage" style={{ width: stageW, height: stageH }} onKeyDown={onKeyDown}>
       <motion.div
         className="amb-dock"
-        aria-label={say(labels, "dock")}
         role="region"
-        style={{ left: bodyX, top: top - d.ear, width: d.body, height: body + 2 * d.ear }}
-        initial={false}
-        animate={reduced ? { x: 0, opacity: slidOut ? 1 : 0.001 } : { x: offset, opacity: 1 }}
-        transition={reduced ? { opacity: FADE } : { x: SETTLE }}
+        aria-label={say(labels, "dock")}
+        data-hidden={slidOut ? undefined : ""}
+        data-open={opened || undefined}
+        style={{ x: slide, width: stageW, height: stageH, ["--amb-over" as string]: `${over}px` }}
+        onFocus={() => setFocused(true)}
+        onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}
       >
-        <span aria-hidden className="amb-ear amb-ear-top" style={{ width: d.ear, height: d.ear, right: 0, top: 0 }} />
-        <span aria-hidden className="amb-ear amb-ear-bottom" style={{ width: d.ear, height: d.ear, right: 0, bottom: 0 }} />
-        <div className="amb-dock-body" style={{ top: d.ear, height: body, paddingBlock: d.pad }}>
-          <Reorder.Group as="ul" axis="y" values={ids} onReorder={setIds} className="amb-dock-list">
-            {shown.map((bot) => (
-              <Reorder.Item
-                as="li"
-                key={bot.id}
-                value={bot.id}
-                className="amb-dock-cell"
-                style={{ height: d.cell }}
-                onDragStart={() => { dragging.current = true; moved.current = true; setHover(null); }}
-                onDragEnd={() => { dragging.current = false; save(idsNow.current); }}
-                whileDrag={reduced ? undefined : { scale: 1.08 }}
-              >
-                <DockBot
+        <motion.span aria-hidden className="amb-ear amb-ear-top" style={{ y: earTop, width: d.ear, height: d.ear }} />
+        <motion.span aria-hidden className="amb-ear amb-ear-bottom" style={{ y: earBottom, width: d.ear, height: d.ear }} />
+        <motion.div className="amb-dock-body" style={{ clipPath: clip }}>
+          <motion.div ref={content} className="amb-dock-content" style={{ y: top, paddingBlock: d.pad, ["--amb-column" as string]: `${d.column}px`, ["--amb-cell" as string]: `${d.cell}px` }}>
+            <Reorder.Group ref={list} as="ul" axis="y" values={ids} onReorder={setIds} className="amb-dock-list" style={{ maxHeight: listMax }} onPointerLeave={() => band.point(null)}>
+              {band.element}
+              {shown.map((bot, index) => (
+                <DockItem
+                  index={index}
+                  cheer={cheer}
+                  key={bot.id}
                   bot={bot}
-                  size={d.tile}
                   labels={labels}
-                  hovered={hover === bot.id}
+                  lang={lang}
+                  now={now}
+                  tile={d.tile}
+                  opened={opened}
                   live={slidOut}
                   reduced={reduced}
-                  onHover={(on) => setHover((was) => (on ? bot.id : was === bot.id ? null : was))}
-                  onOpen={() => { if (moved.current) { moved.current = false; return; } bridge.open(bot.id, bot.threadId); }}
-                  onPointerDown={() => { moved.current = false; }}
+                  sent={sent.has(bot.id)}
+                  cheering={cheering.has(bot.id)}
+                  recent={isSeenEvent(bot, seen)}
+                  onDismiss={() => mark([eventKey(bot)])}
+                  onOpen={() => { if (moved.current) { moved.current = false; return; } if (isFresh(bot, seen)) mark([eventKey(bot)]); bridge.open(bot.id, bot.threadId); }}
+                  onAct={(next) => act(bot, next)}
+                  onPin={setPinned}
+                  onDragStart={() => { dragging.current = true; moved.current = true; }}
+                  onDragEnd={() => { dragging.current = false; save(idsNow.current); }}
+                  onPress={() => { moved.current = false; }}
                   onMove={(step) => nudge(bot.id, step)}
+                  onPoint={() => band.point(bot.id)}
                 />
-              </Reorder.Item>
-            ))}
-          </Reorder.Group>
-          <button type="button" className="amb-dock-plus" style={{ height: d.cell }} aria-label={say(labels, "newBot")} title={say(labels, "newBot")} onClick={() => bridge.act({ kind: "new-bot" })}>
-            <Plus size={18} strokeWidth={1.5} aria-hidden />
-          </button>
-        </div>
-        {/* hidden, the sliver still says who is waiting */}
-        {shown.map((bot, index) => bot.status === "needs-you" ? (
-          <motion.span key={bot.id} aria-hidden className="amb-sliver-tick" style={{ top: d.ear + d.pad + index * d.cell + d.cell / 2 - 6 }} initial={false} animate={{ opacity: slidOut ? 0 : 1 }} transition={FADE} />
-        ) : null)}
-      </motion.div>
-      <AnimatePresence>
-        {slidOut && hovered && !dragging.current && (
-          <motion.div
-            key="card"
-            className="amb-card"
-            role="tooltip"
-            style={{ right: d.body + 10, width: CARD_W, minHeight: CARD_H, top: 0, transformOrigin: "100% 50%" }}
-            initial={reduced ? { opacity: 0, y: cardTop } : { opacity: 0, x: 8, y: cardTop, scale: 0.97 }}
-            animate={{ opacity: 1, x: 0, y: cardTop, scale: 1 }}
-            exit={reduced ? { opacity: 0, transition: FADE_OUT } : { opacity: 0, x: 6, scale: 0.98, transition: FADE_OUT }}
-            transition={{ opacity: FADE, x: SETTLE, y: SETTLE, scale: SETTLE }}
-          >
-            <Card bot={hovered} labels={labels} lang={lang} now={now} />
+              ))}
+            </Reorder.Group>
+            <div className="amb-dock-foot" style={{ height: d.cell }}>
+              <Summary bots={bots.filter((bot) => !isSeenEvent(bot, seen))} labels={labels} />
+              <button type="button" className="amb-dock-plus" aria-label={say(labels, "newBot")} title={say(labels, "newBot")} onClick={() => bridge.act({ kind: "new-bot" })}>
+                <Plus size={18} strokeWidth={1.5} aria-hidden />
+              </button>
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
 
-function DockBot({ bot, size, labels, hovered, live, reduced, onHover, onOpen, onPointerDown, onMove }: {
-  bot: AmbientBot; size: number; labels: AmbientLabels; hovered: boolean; live: boolean; reduced: boolean;
-  onHover: (on: boolean) => void; onOpen: () => void; onPointerDown: () => void; onMove: (step: -1 | 1) => void;
+function DockItem({ index, cheer, bot, labels, lang, now, tile, opened, live, reduced, sent, cheering, recent, onDismiss, onOpen, onAct, onPin, onDragStart, onDragEnd, onPress, onMove, onPoint }: {
+  index: number; cheer: number; bot: AmbientBot; labels: AmbientLabels; lang: string; now: number; tile: number; opened: boolean; live: boolean; reduced: boolean;
+  sent: boolean; cheering: boolean; recent: boolean; onDismiss: () => void; onOpen: () => void; onAct: (act: AmbientAct) => void; onPin: (pinned: boolean) => void;
+  onDragStart: () => void; onDragEnd: () => void; onPress: () => void; onMove: (step: -1 | 1) => void; onPoint: () => void;
 }) {
+  const controls = useDragControls();
   const onKeyDown = (event: KeyboardEvent) => {
     if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
     event.preventDefault();
     onMove(event.key === "ArrowUp" ? -1 : 1);
   };
-  return (
+  const onPointerDown = (event: ReactPointerEvent) => { onPress(); controls.start(event); };
+  const state = cheering ? "celebrate" : sent ? "approving" : recent ? "idle" : undefined;
+  // what the person is watching in the app ticks nothing here
+  const tick = bot.quiet ? null : bot.status === "needs-you" ? "ask" : recent ? null : bot.status === "error" ? "error" : isBusy(bot.status) ? "busy" : bot.unread ? "reply" : null;
+  const mascot = (
     <button
       type="button"
       className="amb-dock-bot"
-      aria-label={`${say(labels, "open", { name: bot.name })}. ${say(labels, bot.status)}. ${say(labels, "reorder")}`}
-      onPointerEnter={() => onHover(true)}
-      onPointerLeave={() => onHover(false)}
-      onFocus={() => onHover(true)}
-      onBlur={() => onHover(false)}
+      aria-label={`${say(labels, "open", { name: bot.name })}. ${bot.status === "idle" ? "" : `${say(labels, bot.status)}. `}${say(labels, "reorder")}`}
       onPointerDown={onPointerDown}
       onClick={onOpen}
       onKeyDown={onKeyDown}
     >
-      <motion.span className="amb-dock-mark" initial={false} animate={{ scale: hovered && !reduced ? 1.12 : 1 }} transition={LIVELY} whileTap={reduced ? undefined : { scale: 0.96 }}>
-        <BotMark bot={bot} size={size} animated={live && (isBusy(bot.status) || bot.status === "needs-you" || hovered)} />
+      <motion.span className="amb-dock-mark" whileTap={reduced ? undefined : { scale: 0.96 }}>
+        <BotMark bot={bot} size={tile} state={state} animated={live} awake={live} shown={live} index={index} cheer={cheer} />
       </motion.span>
-      <Badge bot={bot} />
+      {tick && <span className="amb-tick" data-kind={tick} aria-hidden />}
     </button>
+  );
+  return (
+    <Reorder.Item
+      as="li"
+      value={bot.id}
+      className="amb-dock-cell"
+      data-row={bot.id}
+      onPointerEnter={onPoint}
+      onPointerMove={onPoint}
+      dragListener={false}
+      dragControls={controls}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      whileDrag={reduced ? undefined : { scale: 1.03 }}
+      transition={SETTLE}
+    >
+      <BotRow bot={bot} labels={labels} lang={lang} now={now} side="dock" open={opened} sent={sent} mascot={mascot} recent={recent} onOpen={onOpen} onAct={onAct} onPin={onPin} onDismiss={onDismiss} />
+    </Reorder.Item>
   );
 }
 
-function Badge({ bot }: { bot: AmbientBot }) {
-  if (bot.status === "needs-you") return <span className="amb-badge" data-kind="needs-you">{Math.max(1, bot.asks)}</span>;
-  if (bot.status === "error") return <span className="amb-badge" data-kind="error">!</span>;
-  if (bot.unread) return <span className="amb-badge" data-kind="unread" />;
-  return null;
-}
-
-function Card({ bot, labels, lang, now }: { bot: AmbientBot; labels: AmbientLabels; lang: string; now: number }) {
-  const busy = isBusy(bot.status);
-  const detail = bot.detail && bot.detail !== say(labels, bot.status) ? bot.detail : "";
-  const line = (busy || bot.status === "needs-you") && detail ? detail : bot.line;
+/** Who needs the person, who works and who replied, in a line; nothing while all rest. */
+function Summary({ bots, labels }: { bots: readonly AmbientBot[]; labels: AmbientLabels }) {
+  const count = (test: (bot: AmbientBot) => boolean) => bots.filter(test).length;
+  const parts = ([
+    ["needs-you", count((bot) => bot.status === "needs-you")],
+    ["working", count((bot) => isBusy(bot.status))],
+    ["done", count((bot) => bot.status === "done")],
+  ] as const).filter(([, n]) => n > 0);
+  if (!bots.length) return <p className="amb-dock-sum">{say(labels, "empty")}</p>;
   return (
-    <div className="amb-card-body">
-      <div className="amb-card-top">
-        <span className="amb-card-name">{bot.name}</span>
-        <span className="amb-row-time">{shortAgo(bot.at, now, lang, say(labels, "now"))}</span>
-      </div>
-      <StatusTag status={bot.status} labels={labels} />
-      {line && <p className="amb-card-line" dir="auto">{line}</p>}
-    </div>
+    <p className="amb-dock-sum" aria-live="polite">
+      {parts.length ? parts.map(([key, n]) => (
+        <span key={key} className="amb-sum-part" data-status={key}><span className="amb-num">{n}</span> {say(labels, key)}</span>
+      )) : say(labels, "quiet")}
+    </p>
   );
 }
