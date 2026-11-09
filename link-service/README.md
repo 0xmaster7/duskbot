@@ -104,6 +104,26 @@ stays on the relay; a transport that failed on a network is tried last there for
   port 22 without `OMB_LINK_DIRECT_PORT`, or outbound port 22 blocked on the person's network, and no HTTPS address for
   443: the app logs it and stays on the relay.
 
+## Versions and updates
+
+- **Handshake.** The agent says what it speaks (`LINK_PROTOCOL`, the oldest app and server it works with, `AGENT_VERSION`
+  and its capabilities) in its direct hello and in answer to the sealed control op `hello`, which also carries the
+  server's version and link protocol (`server/link-protocol.ts`, the `link` field of
+  `/.well-known/openmausbot/environment`). Protocol numbers decide, never versions; an optional feature is a capability
+  the app checks for. The app's view gets `compat: { update: null | "app" | "agent" | "server", message, ... }`. An
+  agent from before the handshake answers "unknown request" and works as protocol 1.
+- **Self-update.** Every 6 hours (5 minutes after start first) the tunnel reads `GET /v1/release` (the version, protocol
+  and sha256 of the agent this service serves, and `agent.mjs.sig` when there is one) and stages a newer release in
+  `~/.config/openmausbot-link/releases/<version>/` only when the file matches its hash and its own version line, a
+  signature checks out when release keys are pinned (`RELEASE_KEYS` in agent.mjs or `OMB_LINK_RELEASE_KEYS`; sign with
+  `node release.mjs sign <key>`), and `agent.mjs selftest` runs; `ready.json` is written last. It never takes an older
+  version or a lower protocol. It applies only after 5 minutes without a request, a stream byte or an egress stream
+  from the app (or at once for the `update` op with `apply: "now"`), by ending the tunnel so systemd starts it again.
+  The installed `/opt/openmausbot-link/agent.mjs` then launches the staged file, and stops launching one that did not
+  stay up for 2 minutes three starts in a row, so a bad release leaves the installed agent running.
+  `OMB_LINK_UPDATES=off` turns this off. The server's own build is not updated this way: it is root's, and only
+  `install.sh` replaces it.
+
 ## Phone channels
 
 The VPS agent syncs phone channels with its local harness at `/api/mobile/relay/sync` and registers them under the
