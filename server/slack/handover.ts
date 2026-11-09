@@ -1,4 +1,4 @@
-// A cloud desktop's side of the Slack wake edge (dashboard/server/slack-edge). Only on a Cloud home with a dashboard
+// A cloud desktop's side of the Slack wake edge (apps/dashboard/server/slack-edge). Only on a Cloud home with a dashboard
 // link, and only after the owner turned "Wake for Slack" on in the dashboard: then it gives the edge its bots'
 // app-level tokens (Socket Mode only: they cannot read history or post) and a public key, takes the edge's sealed
 // events back on every sync, opens them here and feeds them to the bridge, which drops any it already handled.

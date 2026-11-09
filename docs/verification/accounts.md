@@ -12,7 +12,7 @@ gating and its escape hatches, sign-out everywhere, account deletion, and
 plaintext credential exclusion from the service's saved JSON. The service clock
 advances across email resend limits; desktop polling is driven explicitly.
 
-For a manual fixture, run `node dashboard/scripts/fixture.ts --port 7480`, then
+For a manual fixture, run `node apps/dashboard/scripts/fixture.ts --port 7480`, then
 `OMB_CLOUD_ORIGIN=http://127.0.0.1:7480 pnpm dev:app` in another terminal. The
 fixture prints email codes and uses fake providers. Add `OMB_ALLOW_SIGNED_OUT=1`
 to the desktop command to skip the account gate. Open the phone web preview

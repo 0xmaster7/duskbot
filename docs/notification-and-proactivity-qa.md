@@ -39,7 +39,7 @@ alone cannot provide closed-app delivery.
 | Routine failure receipt and callback occur once | `server/routines.test.ts` |
 | Real failed routine emits one `routine-failed` notification and no duplicate `done` | `server/notification-wiring.test.ts` |
 | iOS target parsing and detached-task decision | `ios/Tests/CompanionCoreTests/DecodingTests.swift` |
-| Paired-device route policy remains default-deny | `companion/test/routes.test.ts` |
+| Paired-device route policy remains default-deny | `apps/companion/test/routes.test.ts` |
 
 ## Manual release pass
 

@@ -6,7 +6,7 @@ import { isIP } from "node:net";
 
 import { BOT_PROFILE_PATCH_FIELDS } from "./bot-profile.ts";
 import type { Scope, SessionRecord, SessionRegistry } from "./sessions.ts";
-import { denyReason as companionDenial, isCompanionNotice } from "../companion/src/routes.ts";
+import { denyReason as companionDenial, isCompanionNotice } from "../apps/companion/src/routes.ts";
 import { applyMobileCors, isMobileOrigin, takeViewerAccessToken } from "./mobile/request.ts";
 export { answerMobilePreflight } from "./mobile/request.ts";
 

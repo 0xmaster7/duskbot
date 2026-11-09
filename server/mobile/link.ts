@@ -4,7 +4,7 @@
 // Security: a device is its workspace session (server/sessions.ts, hashed token, revocable); every request it makes is
 // authorized by that session exactly as any remote client's. The relay agent learns only channel ids, token verifiers,
 // phone public keys and, for a grant's five minutes, that grant's channel key. Grant channels reach redeem and nothing else
-// (link-service/agent.mjs).
+// (apps/link-service/agent.mjs).
 import { createHash, createPublicKey, diffieHellman, generateKeyPairSync, randomBytes, randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { IncomingMessage } from "node:http";

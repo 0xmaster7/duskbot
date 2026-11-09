@@ -29,7 +29,7 @@ APNs and FCM accept pushes only from whoever holds the app's keys. A workspace s
 2. through a push relay: `OMB_PUSH_RELAY` if set (`off` turns this off), else the link service its VPS link agent uses,
    else `OMB_MOBILE_RELAY`, else `https://link.apps.siddz.com`.
 
-The relay is `POST /v1/push` on the link service (`link-service/src/push-relay.mjs`). It sees the device token, APNs or
+The relay is `POST /v1/push` on the link service (`apps/link-service/src/push-relay.mjs`). It sees the device token, APNs or
 FCM, the bot's name and the ids a tap opens (notification, bot, conversation, room). It never gets a notification's
 title or any message text, keeps nothing, and logs no token. Apple and Google see the same: the lock screen shows the
 bot's name and "New message". It allows 20 pushes a minute per device token and 240 per address.

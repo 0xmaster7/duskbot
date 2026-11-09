@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 
-import { AGENT_CAPS, AGENT_VERSION, LINK_MIN_APP, LINK_PROTOCOL, control, serveDirect, serverLink } from "../link-service/agent.mjs";
+import { AGENT_CAPS, AGENT_VERSION, LINK_MIN_APP, LINK_PROTOCOL, control, serveDirect, serverLink } from "../apps/link-service/agent.mjs";
 import { APP_LINK_PROTOCOL, MIN_AGENT_PROTOCOL, agentInfo, linkCompat, missingCap } from "./vps-link-compat.mjs";
 import { createTunnelProxy } from "./vps-link-protocol.mjs";
 import { createVpsLink } from "./vps-link.mjs";

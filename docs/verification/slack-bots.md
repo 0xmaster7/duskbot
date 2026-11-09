@@ -45,7 +45,7 @@ reconnects and acks, mrkdwn and splitting, files out, needs-input notices, tools
 ```sh
 pnpm exec vitest run server/slack/ server/routes/slack.test.ts server/testing/fake-slack.test.ts \
   server/drivers/agents-slack-tools.test.ts shared/slack.test.ts shared/outbound.test.ts \
-  link-service/test/slack-callback.test.mjs src/lib/slack-oauth-link.test.ts src/components/slack/
+  apps/link-service/test/slack-callback.test.mjs src/lib/slack-oauth-link.test.ts src/components/slack/
 node --test electron/slack-link.node-test.mjs
 ```
 

@@ -4,8 +4,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { createLinkService } from "../link-service/src/app.mjs";
-import { createTunnelAgent } from "../link-service/agent.mjs";
+import { createLinkService } from "../apps/link-service/src/app.mjs";
+import { createTunnelAgent } from "../apps/link-service/agent.mjs";
 import { createTunnelProxy, openFrame, sha256hex } from "./vps-link-protocol.mjs";
 
 const deferred = () => {
@@ -19,7 +19,7 @@ const key = Buffer.from(credentials.key, "base64url");
 const bulk = Buffer.alloc(2 * 1024 * 1024, 9);
 
 async function fixture({ clientFetch = fetch, agentFetch = fetch, replyTimeoutMs = 2000 } = {}) {
-  const root = fileURLToPath(new URL("../link-service/", import.meta.url));
+  const root = fileURLToPath(new URL("../apps/link-service/", import.meta.url));
   const service = createLinkService({ base: "http://fixture.invalid", scriptPath: `${root}install.sh`, agentPath: `${root}agent.mjs`, trustProxy: false });
   const vpsToken = "v".repeat(43);
   service.store.tunnels.set(credentials.id, { id: credentials.id, vpsVerifier: sha256hex(vpsToken), appVerifier: sha256hex(credentials.token) });
@@ -147,7 +147,7 @@ test("a lost reply times out its mutation and recovers another request without r
 });
 
 test("the next streamed read takes over before the last one ends, so no frame waits through the gap", { timeout: 15_000 }, async (t) => {
-  const root = fileURLToPath(new URL("../link-service/", import.meta.url));
+  const root = fileURLToPath(new URL("../apps/link-service/", import.meta.url));
   const service = createLinkService({ base: "http://fixture.invalid", scriptPath: `${root}install.sh`, agentPath: `${root}agent.mjs`, trustProxy: false });
   const vpsToken = "v".repeat(43);
   service.store.tunnels.set(credentials.id, { id: credentials.id, vpsVerifier: sha256hex(vpsToken), appVerifier: sha256hex(credentials.token) });

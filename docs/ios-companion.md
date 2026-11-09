@@ -309,7 +309,7 @@ phone. Development servers deliberately have no recipient key and fail closed
 instead of advertising an unusable secure-entry route.
 
 The device-facing socket rejects browser `Origin` headers before reading a
-token. Its route policy in `companion/src/routes.ts` is default-deny: a new
+token. Its route policy in `apps/companion/src/routes.ts` is default-deny: a new
 harness route remains unreachable until it is deliberately added.
 
 Allowed in the first release:
@@ -415,7 +415,7 @@ Like the bot's overview it needs the admin scope, so a Team Cloud member's sessi
 ## Source layout
 
 ```text
-companion/
+apps/companion/
   src/routes.ts       device-facing allowlist
   src/devices.ts      pairing and token registry
   src/proxy.ts        HTTP/SSE forwarding and scrubbing

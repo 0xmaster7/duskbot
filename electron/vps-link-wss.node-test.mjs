@@ -1,5 +1,5 @@
 // the direct path over https on 443: the app's websocket connector (vps-link-direct.mjs) against the agent's real
-// listener and direct hub (link-service/agent.mjs) behind a tls front like caddy's, with the key pin checked.
+// listener and direct hub (apps/link-service/agent.mjs) behind a tls front like caddy's, with the key pin checked.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { X509Certificate, createHash } from "node:crypto";
@@ -11,7 +11,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { createServer as createTlsServer } from "node:tls";
 
-import { control, createDirectHub, frameGuard, listenDirectWss, spkiOf, wssUrl } from "../link-service/agent.mjs";
+import { control, createDirectHub, frameGuard, listenDirectWss, spkiOf, wssUrl } from "../apps/link-service/agent.mjs";
 import { orderedConnect, wsDuplex, wsFrame, wsReader, wssConnector } from "./vps-link-direct.mjs";
 import { createPins } from "./vps-link-main.mjs";
 import { createTunnelProxy } from "./vps-link-protocol.mjs";

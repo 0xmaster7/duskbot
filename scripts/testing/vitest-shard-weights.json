@@ -1,7 +1,7 @@
 {
   "darwin": {
-    "companion/test/mdns.test.ts": 5,
-    "companion/test/proxy.test.ts": 6,
+    "apps/companion/test/mdns.test.ts": 5,
+    "apps/companion/test/proxy.test.ts": 6,
     "electron/cua-launch.test.mjs": 9,
     "evals/evals.test.ts": 71,
     "evals/runners/run-skill-bench.test.ts": 18,
@@ -266,8 +266,8 @@
     "src/components/ComputerPanel.takeover.test.ts": 6
   },
   "linux": {
-    "companion/test/mdns.test.ts": 5,
-    "companion/test/proxy.test.ts": 6,
+    "apps/companion/test/mdns.test.ts": 5,
+    "apps/companion/test/proxy.test.ts": 6,
     "evals/evals.test.ts": 74,
     "evals/runners/run-skill-bench.test.ts": 20,
     "scripts/mascot-bodies/halloween.test.mjs": 8,
@@ -594,8 +594,8 @@
     "src/components/ComputerPanel.takeover.test.ts": 5
   },
   "win32": {
-    "companion/test/mdns.test.ts": 5,
-    "companion/test/proxy.test.ts": 7,
+    "apps/companion/test/mdns.test.ts": 5,
+    "apps/companion/test/proxy.test.ts": 7,
     "evals/evals.test.ts": 81,
     "evals/golden/golden.test.ts": 5,
     "evals/runners/run-skill-bench.test.ts": 25,

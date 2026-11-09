@@ -6,7 +6,7 @@ export function resolveCompanionEntry({ isPackaged, resourcesPath, appPath, exis
   if (isPackaged) return exists(packaged) ? { entry: packaged, execArgv: [] } : null;
   const built = path.join(appPath, "dist-companion", "index.js");
   if (exists(built)) return { entry: built, execArgv: [] };
-  const source = path.join(appPath, "companion", "src", "index.ts");
+  const source = path.join(appPath, "apps", "companion", "src", "index.ts");
   if (exists(source)) return { entry: source, execArgv: ["--experimental-strip-types"] };
   return null;
 }

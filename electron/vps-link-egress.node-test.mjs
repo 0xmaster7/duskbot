@@ -5,8 +5,8 @@ import { BlockList, connect, createServer } from "node:net";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { createLinkService } from "../link-service/src/app.mjs";
-import { bridgeAddress, createEgressProxy, createTunnelAgent } from "../link-service/agent.mjs";
+import { createLinkService } from "../apps/link-service/src/app.mjs";
+import { bridgeAddress, createEgressProxy, createTunnelAgent } from "../apps/link-service/agent.mjs";
 import { createEgressDialer, createEgressEndpoint, egressNameRefusal, egressRefusal, homeAddresses, seenAsCache } from "./vps-link-egress.mjs";
 import { createTunnelProxy, sha256hex } from "./vps-link-protocol.mjs";
 
@@ -148,7 +148,7 @@ async function socks(port, host, targetPort, { greet = true } = {}) {
 }
 
 async function fixture({ macOn = true, enabled = true, dialMs = 1500, endpoint = {} } = {}) {
-  const root = fileURLToPath(new URL("../link-service/", import.meta.url));
+  const root = fileURLToPath(new URL("../apps/link-service/", import.meta.url));
   const service = createLinkService({ base: "http://fixture.invalid", scriptPath: `${root}install.sh`, agentPath: `${root}agent.mjs`, trustProxy: false });
   const credentials = { id: "abcdefghij", key: Buffer.alloc(32, 3).toString("base64url"), token: "a".repeat(43) };
   const vpsToken = "v".repeat(43);

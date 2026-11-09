@@ -192,7 +192,7 @@ process.stdout.write(typeof result === 'string' ? result : JSON.stringify(result
   const controlHeaders = { "x-openmausbot-control-token": controlToken };
   const companionHome = join(scratch, "companion-home");
   mkdirSync(companionHome);
-  sidecar = spawn(process.execPath, ["--experimental-strip-types", join(root, "companion", "src", "index.ts")], {
+  sidecar = spawn(process.execPath, ["--experimental-strip-types", join(root, "apps", "companion", "src", "index.ts")], {
     env: {
       PATH: process.env.PATH,
       HOME: companionHome,

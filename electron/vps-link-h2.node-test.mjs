@@ -10,8 +10,8 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { createLinkService } from "../link-service/src/app.mjs";
-import { createTunnelAgent, relayFetch as agentRelayFetch } from "../link-service/agent.mjs";
+import { createLinkService } from "../apps/link-service/src/app.mjs";
+import { createTunnelAgent, relayFetch as agentRelayFetch } from "../apps/link-service/agent.mjs";
 import { createTunnelProxy, relayFetch, sha256hex } from "./vps-link-protocol.mjs";
 
 let pem = null;
@@ -170,7 +170,7 @@ test("an aborted request over http/2 rejects and leaves the connection usable", 
 test("the tunnel runs end to end over an http/2 relay", { timeout: 10_000 }, async (t) => {
   const tls = certificate();
   if (!tls) { t.skip("no openssl here"); return; }
-  const root = fileURLToPath(new URL("../link-service/", import.meta.url));
+  const root = fileURLToPath(new URL("../apps/link-service/", import.meta.url));
   const service = createLinkService({ base: "https://fixture.invalid", scriptPath: `${root}install.sh`, agentPath: `${root}agent.mjs`, trustProxy: false });
   const credentials = { id: "abcdefghij", key: Buffer.alloc(32, 7).toString("base64url"), token: "a".repeat(43) };
   const vpsToken = "v".repeat(43);

@@ -241,7 +241,7 @@ describe("the routes", () => {
 });
 
 it("keeps the agent, the host fence, the app and the server in step", () => {
-  const agent = readFileSync(new URL("../link-service/agent.mjs", import.meta.url), "utf8");
+  const agent = readFileSync(new URL("../apps/link-service/agent.mjs", import.meta.url), "utf8");
   expect(agent).toContain(`export const EGRESS_BRIDGE = "${BOT_DESKTOP_BRIDGE}";`);
   const port = /export const EGRESS_PORT = Number\(process\.env\.LINK_EGRESS_PORT\) \|\| (\d+);/.exec(agent)?.[1];
   expect(port).toBe("3129");

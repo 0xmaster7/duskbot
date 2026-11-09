@@ -3,12 +3,12 @@
   "compilerOptions": {
     "noEmit": false,
     "outDir": "dist-companion",
-    "rootDir": "companion/src",
+    "rootDir": "apps/companion/src",
     "rewriteRelativeImportExtensions": true,
     "declaration": false,
     "sourceMap": false
   },
   "include": [
-    "companion/src"
+    "apps/companion/src"
   ]
 }

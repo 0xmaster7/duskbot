@@ -1,6 +1,6 @@
 // the account dashboard protocol, version 1: what a workspace reports to the hosted dashboard service and the
 // commands it takes back. transport-agnostic (plain https today, any relay that forwards it later), owner-only,
-// never message contents or secrets. docs: dashboard/README.md
+// never message contents or secrets. docs: apps/dashboard/README.md
 
 export const DASHBOARD_PROTOCOL = 1;
 

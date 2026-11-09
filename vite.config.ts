@@ -34,14 +34,13 @@ function railPage(): Plugin {
 /** The app page paints a waiting mascot before its script has loaded. */
 
 const include = [
-  "dashboard/server/**/*.test.ts",
-  "evals/**/*.test.ts",
+  "apps/dashboard/server/**/*.test.ts",
   "server/**/*.test.ts",
   "electron/**/*.test.mjs",
-  "link-service/**/*.test.mjs",
+  "apps/link-service/**/*.test.mjs",
   "src/**/*.test.ts",
   "shared/**/*.test.ts",
-  "companion/**/*.test.ts",
+  "apps/companion/**/*.test.ts",
   "scripts/**/*.test.mjs",
   "scripts/**/*.test.ts",
 ];

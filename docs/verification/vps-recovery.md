@@ -45,7 +45,7 @@ Run the controller and transport regressions, then the loopback setup fixture:
 
 ```sh
 node --test electron/vps-link-startup.node-test.mjs electron/vps-link-transport.node-test.mjs electron/vps-link-retry.node-test.mjs
-pnpm exec vitest run electron/vps-link.test.mjs electron/vps-link-main.unprotect.test.mjs link-service/test/link-service.test.mjs link-service/test/agent.test.mjs
+pnpm exec vitest run electron/vps-link.test.mjs electron/vps-link-main.unprotect.test.mjs apps/link-service/test/link-service.test.mjs apps/link-service/test/agent.test.mjs
 ```
 
 The startup regressions hold credential decryption and listener readiness to prove

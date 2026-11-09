@@ -56,7 +56,7 @@ describe("docs/verification recipes cite things that exist", () => {
   });
 
   it("cite source files that exist", () => {
-    const refs = cited(/(?<![\w/.-])((?:scripts|server|src|shared|electron|companion)\/[\w./-]+\.(?:ts|tsx|mjs|cjs|py))(?![\w/])/g);
+    const refs = cited(/(?<![\w/.-])((?:scripts|server|src|shared|electron|apps\/companion)\/[\w./-]+\.(?:ts|tsx|mjs|cjs|py))(?![\w/])/g);
     expect(refs.length).toBeGreaterThan(50);
     expect([...new Set(refs.filter((hit) => !existsSync(join(ROOT, target(hit)))))]).toEqual([]);
   });

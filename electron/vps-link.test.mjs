@@ -10,13 +10,13 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createLinkService } from "../link-service/src/app.mjs";
+import { createLinkService } from "../apps/link-service/src/app.mjs";
 import { STEP_IDS, createVpsLink } from "./vps-link.mjs";
 import { vpsTokenOf } from "./vps-link-protocol.mjs";
 
 const run = promisify(execFile);
 const SEAL_ID = `${"a".repeat(43)}.${"b".repeat(43)}`;
-const agentPath = fileURLToPath(new URL("../link-service/agent.mjs", import.meta.url));
+const agentPath = fileURLToPath(new URL("../apps/link-service/agent.mjs", import.meta.url));
 const listen = (server) => new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server.address().port)));
 const until = async (check, ms = 8000) => {
   const end = Date.now() + ms;
@@ -55,7 +55,7 @@ beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), "omb-vps-link-"));
   home = join(dir, "vps-home");
   mkdirSync(home);
-  service = createLinkService({ base: "http://placeholder", dataDir: null, scriptPath: fileURLToPath(new URL("../link-service/install.sh", import.meta.url)), agentPath, trustProxy: false });
+  service = createLinkService({ base: "http://placeholder", dataDir: null, scriptPath: fileURLToPath(new URL("../apps/link-service/install.sh", import.meta.url)), agentPath, trustProxy: false });
   relayServer = createServer((req, res) => void service.handler(req, res));
   base = `http://127.0.0.1:${await listen(relayServer)}`;
   // OpenMausBot on the vps

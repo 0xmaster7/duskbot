@@ -808,7 +808,7 @@ on port 8810, so do not expose it from a public server. It ships only in a
 git checkout: neither the npm package nor the Docker image contains it.
 
 ```sh
-node --experimental-strip-types companion/src/index.ts
+node --experimental-strip-types apps/companion/src/index.ts
 ```
 
 ## Usage and costs

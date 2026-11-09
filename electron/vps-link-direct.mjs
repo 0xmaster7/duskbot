@@ -3,7 +3,7 @@
 // `agent.mjs direct`, which speaks the relay's sealed frames on its stdin/stdout: the end-to-end sealing, the replay guard
 // and the server identity stay exactly as they are on the relay, and sshd's host key is pinned on top. stun hole punching
 // (webrtc) was measured first and fails against a vps whose firewall drops unsolicited udp when the app sits behind a
-// symmetric nat (most vpns), while tcp 22 is open on every vps; see link-service/README.md "Direct path".
+// symmetric nat (most vpns), while tcp 22 is open on every vps; see apps/link-service/README.md "Direct path".
 // where a network blocks port 22 (Jio, often), the same byte stream rides a websocket to the server's own https on 443,
 // with its tls key pinned the same way (wssConnector). ssh is tried first, then 443, and the relay stays underneath.
 import { X509Certificate, createHash, randomBytes } from "node:crypto";
@@ -16,7 +16,7 @@ import { checkServerIdentity, connect as tlsConnect } from "node:tls";
 import { openFrame, sealBytes, sealFrame } from "./vps-link-protocol.mjs";
 import { clampMss } from "./tcp-clamp.mjs";
 
-// ---- direct transport shared with link-service/agent.mjs (keep both in step; a test checks they interoperate) ----
+// ---- direct transport shared with apps/link-service/agent.mjs (keep both in step; a test checks they interoperate) ----
 /** each end writes this first; a login shell's greeting before it is skipped */
 export const DIRECT_MAGIC = Buffer.from("\0OMBD1\n", "latin1");
 export const REC_SEALED = 1;

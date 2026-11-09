@@ -8,7 +8,7 @@ the relay at `link.apps.siddz.com` (Contabo) and this Mac behind Proton VPN.
 
 ```
 server /api/events (sse, one write per turn's frames; gzipped when forwarded)
-  -> link agent (link-service/agent.mjs): http to 127.0.0.1:8799, seals frames (aes-256-gcm)
+  -> link agent (apps/link-service/agent.mjs): http to 127.0.0.1:8799, seals frames (aes-256-gcm)
   -> relay: POST /v1/tunnels/<id>/to-app  ->  queue  ->  streamed GET (ndjson) to the app
      or the direct path: one ssh channel to the agent's `direct` command (electron/vps-link-direct.mjs)
   -> app proxy (electron/vps-link-protocol.mjs) on http://vps-<id>.localhost:<port>
@@ -159,7 +159,7 @@ sockets set it); the direct path already writes each turn's records as one write
 Every piece works with an old other side, in any order.
 
 - The Mac app (`electron/main.mjs`, `electron/vps-link-main.mjs`, `electron/vps-link-protocol.mjs`): restart it.
-- The VPS's link agent (`link-service/agent.mjs` as `/opt/openmausbot-link/agent.mjs`), then restart
+- The VPS's link agent (`apps/link-service/agent.mjs` as `/opt/openmausbot-link/agent.mjs`), then restart
   `openmausbot-link.service`.
 - The VPS's server package (`server/harness/sse-gzip.ts`, `server/index.ts`): the gzipped event stream.
 - The link service needs no code change (nginx already offers h2); redeploy it only so new installs fetch the new

@@ -1,4 +1,4 @@
-// egress on the fastest live path: the agent's real tunnel (link-service/agent.mjs) and the app's real proxy and
+// egress on the fastest live path: the agent's real tunnel (apps/link-service/agent.mjs) and the app's real proxy and
 // endpoint, through the real link service, plus an in-memory direct connection handed to the agent's direct hub.
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -10,8 +10,8 @@ import { PassThrough } from "node:stream";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { createTunnelAgent, listenDirectSocket, openFrame, pipeToTunnel } from "../link-service/agent.mjs";
-import { createLinkService, sha256hex } from "../link-service/src/app.mjs";
+import { createTunnelAgent, listenDirectSocket, openFrame, pipeToTunnel } from "../apps/link-service/agent.mjs";
+import { createLinkService, sha256hex } from "../apps/link-service/src/app.mjs";
 import { DIRECT_MAGIC, createDirectWriter, directReader } from "./vps-link-direct.mjs";
 import { createEgressDialer, createEgressEndpoint } from "./vps-link-egress.mjs";
 import { createTunnelProxy, relayFetch } from "./vps-link-protocol.mjs";
@@ -77,7 +77,7 @@ async function socks(port, host, targetPort) {
 }
 
 async function fixture() {
-  const root = fileURLToPath(new URL("../link-service/", import.meta.url));
+  const root = fileURLToPath(new URL("../apps/link-service/", import.meta.url));
   const service = createLinkService({ base: "http://fixture.invalid", scriptPath: `${root}install.sh`, agentPath: `${root}agent.mjs`, trustProxy: false });
   const credentials = { id: "abcdefghij", key: Buffer.alloc(32, 3).toString("base64url"), token: "a".repeat(43) };
   const vpsToken = "v".repeat(43);

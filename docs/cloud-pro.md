@@ -906,7 +906,7 @@ a grant it signs for the machine id, which the server presents to the service
 once it holds its token. The service then gives this installation a paid
 Cloud's app-event limit (2,000 a day instead of a desktop's 500). Without it a
 Cloud gets the desktop limit. The grant's format is in
-[the broker's README](../cloudflare/composio-broker/README.md#paid-clouds).
+[the broker's README](../apps/cloudflare/composio-broker/README.md#paid-clouds).
 
 ### Trial Claude credit
 

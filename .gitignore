@@ -19,7 +19,7 @@ release
 .wrangler/
 .dev.vars
 .dev.vars.*
-cloudflare/composio-broker/worker-configuration.d.ts
+apps/cloudflare/composio-broker/worker-configuration.d.ts
 .claude/worktrees/
 .vercel/
 .pi/
