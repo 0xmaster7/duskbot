@@ -43,6 +43,8 @@
 .amb-breathe[data-on] { animation: amb-breathe 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
 
 .amb-stage { position: relative; }
+/* no bots: nothing on screen and nothing to click, but still laid out so it can measure itself when they arrive */
+.amb-stage[data-empty] { visibility: hidden; pointer-events: none; }
 
 /* island */
 .amb-island { position: absolute; background: var(--amb-notch); overflow: hidden; contain: layout paint; will-change: clip-path; }

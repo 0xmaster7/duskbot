@@ -70,7 +70,8 @@ export function AmbientPublisher() {
     if (timer.current || !bridge) return;
     timer.current = setTimeout(() => {
       timer.current = null;
-      const { bots, instances, selectedId } = latest.current;
+      const { bots, instances, selectedId, hydrated } = latest.current;
+      if (!hydrated) return;
       const focused = document.hasFocus() && document.visibilityState === "visible";
       const snapshot = ambientSnapshot(bots, instances, turnLive, activeLocale(), { selectedId, focused, watched: watched.current });
       const key = JSON.stringify(snapshot);
@@ -80,10 +81,12 @@ export function AmbientPublisher() {
     }, PUBLISH_MS);
   }, [bridge]);
 
+  // nothing until the app has loaded its bots: an empty list at start-up would show an empty dock
   useEffect(() => {
     if (!wanted) { sent.current = ""; return; }
+    if (!state.hydrated) return;
     schedule();
-  }, [wanted, state.bots, state.instances, state.selectedId, schedule]);
+  }, [wanted, state.hydrated, state.bots, state.instances, state.selectedId, schedule]);
   useEffect(() => (wanted ? onAnyTurnLive(schedule) : undefined), [wanted, schedule]);
   useEffect(() => {
     if (!wanted) return;

@@ -165,7 +165,7 @@ it("on the way out the card goes almost at once, and the column only a good whil
   const dock = host.querySelector(".amb-dock")!;
   const before = settledCount();
   await act(async () => host.querySelector(".amb-dock-list")!.dispatchEvent(new PointerEvent("pointerout", { bubbles: true })));
-  await act(async () => { document.dispatchEvent(new MouseEvent("mousemove", { clientX: 10, clientY: 10 })); });
+  await act(async () => { document.dispatchEvent(new MouseEvent("mousemove", { clientX: 5000, clientY: 5000 })); });
   await wait(CARD_LEAVE_MS + 40);
   expect(card.getAttribute("data-card")).toBeNull();
   expect(dock.hasAttribute("data-hidden")).toBe(false);
@@ -175,4 +175,40 @@ it("on the way out the card goes almost at once, and the column only a good whil
   await wait(SETTLED_MS + 80);
   expect(settledCount()).toBeGreaterThan(before);
   await unmount();
+});
+
+it("shows nothing at all with no bots, and every bot once they come", async () => {
+  const { host, unmount } = await mount([]);
+  expect(host.querySelector(".amb-stage")?.hasAttribute("data-empty")).toBe(true);
+  expect(host.querySelectorAll("[data-row]")).toHaveLength(0);
+  await unmount();
+});
+
+it("while main traces, says when the pointer crosses, the column and the card come and go, and it has settled", async () => {
+  let feed: (snapshot: AmbientSnapshot) => void = () => {};
+  const events: string[] = [];
+  const bridge: AmbientBridge = {
+    surface: "dock", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act() {}, order() {}, ready() {},
+    settled() {}, trace: (event) => events.push(event),
+  };
+  const host = document.body.appendChild(document.createElement("div"));
+  const root = createRoot(host);
+  await act(async () => root.render(createElement(Dock, { bridge })));
+  await act(async () => feed({ lang: "en", labels: {}, bots: [bot("Ada", { chat: [{ id: "m1", from: "bot", text: "Hi", at: 1 }] })] }));
+  await act(async () => {
+    host.querySelector('[data-row="Ada"]')!.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 360 }));
+  });
+  await wait(DWELL_MS + 60);
+  await act(async () => { document.dispatchEvent(new MouseEvent("mousemove", { clientX: 5000, clientY: 5000 })); });
+  // in steps, as it happens: React holds a test's updates until each step ends
+  await wait(CARD_LEAVE_MS + 40);
+  await wait(HIDE_MS - CARD_LEAVE_MS);
+  await wait(SETTLED_MS + 80);
+  const seen = (name: string) => events.indexOf(name);
+  for (const name of ["page-ready", "pointer-enter", "state-column-out", "state-card", "pointer-leave", "state-card-closing", "state-column-closing", "settled-signal"]) expect(seen(name), name).toBeGreaterThanOrEqual(0);
+  expect(seen("pointer-leave")).toBeLessThan(seen("state-card-closing"));
+  expect(seen("state-card-closing")).toBeLessThan(seen("state-column-closing"));
+  expect(seen("state-column-closing")).toBeLessThan(seen("settled-signal"));
+  await act(async () => root.unmount());
 });
