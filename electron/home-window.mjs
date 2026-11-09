@@ -692,6 +692,9 @@ export function createHomeWindow(deps) {
       }
       // The window went to another server (the Server menu): the team it showed is no longer the place on screen.
       if (otherPlace(shown) && ![shown.origin, localOrigin()].includes(originOf(url))) { shown = null; clearRenewal(); }
+      // The person went elsewhere while the screen waited on a place: its look-again stops, so it never moves the window back.
+      if (screen && /^https?:/.test(url) && ![opening?.origin, placeOrigin()].includes(originOf(url))
+        && !(originOf(url) === localOrigin() && new URL(url).pathname === HOME_SCREEN_PATH)) { screen = null; away = false; clearRetry(); }
       const origin = placeOrigin();
       if (!origin || originOf(url) !== origin) return;
       const at = new URL(url);

@@ -717,6 +717,17 @@ const bridge = {
     repair: () => ipcRenderer.invoke("home:repair"),
     updating: onHomePage && reloadedForUpdate(),
   },
+  /** This computer's page while the chosen server isn't answering (main refuses any other sender). */
+  reconnect: isLocalPage ? {
+    state: () => ipcRenderer.invoke("workspace-reconnect:state"),
+    onState: cb => {
+      const handler = (_event, view) => cb(view);
+      ipcRenderer.on("workspace-reconnect:changed", handler);
+      return () => ipcRenderer.removeListener("workspace-reconnect:changed", handler);
+    },
+    retry: () => ipcRenderer.invoke("workspace-reconnect:retry"),
+    open: id => ipcRenderer.invoke("workspace-reconnect:open", String(id)),
+  } : undefined,
   updatesConsent: {
     state: () => ipcRenderer.invoke("updates-consent:state"),
     choose: choice => ipcRenderer.invoke("updates-consent:choose", {
