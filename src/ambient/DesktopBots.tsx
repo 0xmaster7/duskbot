@@ -1,11 +1,13 @@
 // The app window's side of electron/desktop-bots.mjs: it tells main which bots are working, so one ⌘Q waits for a
-// hold while they do, shows the pill that press brings up, and carries out the menu's Stop Bot and Stop All Bots.
+// hold while they do, shows the pill that press brings up, and carries out the menu's Stop Bot and Stop All Bots. It
+// also tells main which bots wait on the person, so an ask's banner closes once it is answered anywhere.
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useStore, type AppState, type Bot, type Group } from "@/state/store";
 import { workingThreadId } from "@/components/SidebarWorkingStep";
 import { activeLocale, t } from "@/lib/i18n";
 import { isMacPlatform } from "@/lib/keyboard-shortcuts";
+import { waitsOnPerson } from "./summary";
 
 /** The pill stays up this long after the last press. */
 export const QUIT_HINT_MS = 2_400;
@@ -46,6 +48,21 @@ export function stopActions(state: Pick<AppState, "bots" | "groups" | "selectedI
   return bot?.busy ? [{ type: "interrupt", botId: bot.id, threadId: workingThreadId(bot) }] : [];
 }
 
+// the store keeps an unchanged bot's object, so each is read once per change of its own
+const waitsOf = new WeakMap<Bot, boolean>();
+const waits = (bot: Bot) => {
+  let known = waitsOf.get(bot);
+  if (known === undefined) waitsOf.set(bot, (known = waitsOnPerson(bot)));
+  return known;
+};
+
+/** Every loaded bot, waiting on the person or not. */
+export function askReport(bots: readonly Bot[]): { waiting: string[]; settled: string[] } {
+  const waiting: string[] = [], settled: string[] = [];
+  for (const bot of bots) (waits(bot) ? waiting : settled).push(bot.id);
+  return { waiting, settled };
+}
+
 export function DesktopBots() {
   const { state, dispatch } = useStore();
   const bridge = typeof window === "undefined" ? undefined : window.ogb?.desktopBots;
@@ -54,6 +71,10 @@ export function DesktopBots() {
   const latest = useRef(state);
   latest.current = state;
   useEffect(() => bridge?.onStop(({ all }) => { for (const action of stopActions(latest.current, all)) dispatch(action); }), [bridge, dispatch]);
+
+  const notifications = typeof window === "undefined" ? undefined : window.ogb?.desktopNotifications;
+  const asks = JSON.stringify(askReport(state.bots));
+  useEffect(() => { notifications?.asks?.(JSON.parse(asks)); }, [notifications, asks]);
 
   const [hint, setHint] = useState<{ names: string[]; at: number } | null>(null);
   useEffect(() => bridge?.onQuitHint((names) => setHint(names.length ? { names, at: Date.now() } : null)), [bridge]);

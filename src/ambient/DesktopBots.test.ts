@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { busyBotNames, quitHintText, stopActions } from "./DesktopBots";
+import { askReport, busyBotNames, quitHintText, stopActions } from "./DesktopBots";
 
 describe("the ⌘Q pill", () => {
   it("names only the working bots the sidebar lists", () => {
@@ -45,5 +45,15 @@ describe("Stop Bot and Stop All Bots", () => {
       { type: "interrupt", botId: "echo", threadId: "e1" },
       { type: "interruptGroup", groupId: "room", threadId: "r1" },
     ]);
+  });
+});
+
+describe("the asks main closes banners by", () => {
+  it("splits the loaded bots into those waiting on the person and the rest", () => {
+    const bot = (id: string, fields: Record<string, unknown> = {}) => ({ id, name: id, threadId: `${id}-t`, messages: [], busy: false, ...fields }) as never;
+    const asking = bot("scout", { messages: [{ id: "m1", at: 1, role: "bot", kind: "options", card: { title: "Run", subtitle: "npm test", options: ["Allow", "Deny"], requestId: "r1", tool: "Bash" } }] });
+    const answered = bot("echo", { messages: [{ id: "m2", at: 1, role: "bot", kind: "options", card: { title: "Run", subtitle: "npm test", options: ["Allow", "Deny"], requestId: "r2", tool: "Bash", answered: "allow" } }] });
+    const elsewhere = bot("nova", { tasks: [{ threadId: "n2", openAsks: 1 }] });
+    expect(askReport([asking, answered, elsewhere, bot("idle")])).toEqual({ waiting: ["scout", "nova"], settled: ["echo", "idle"] });
   });
 });

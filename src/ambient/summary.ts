@@ -27,14 +27,20 @@ function statusOf(bot: Bot, waiting: boolean, live: TurnLive, visible: Message[]
   return "idle";
 }
 
+/** Whether the bot waits on the person: a question, an approval or a card of choices in any of its chats. */
+export function waitsOnPerson(bot: Bot, visible: Message[] = sidebarPreviewMessages(bot)): boolean {
+  const newest = lastPreviewable(visible);
+  const card = newest?.kind === "options" ? newest.card : undefined;
+  const openCard = Boolean(card && !card.answered && !card.dismissed && !card.expired);
+  return bot.activity === "waiting-on-you" || (bot.tasks ?? []).some((task) => task.activity === "waiting-on-you") || openAsksOf(bot) > 0 || pendingApprovals(visible).length > 0 || openCard;
+}
+
 export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threadId: string) => TurnLive): AmbientBot {
   const visible = sidebarPreviewMessages(bot);
   const approvals = pendingApprovals(visible);
   const asks = Math.max(openAsksOf(bot), approvals.length);
   const newest = lastPreviewable(visible);
-  const card = newest?.kind === "options" ? newest.card : undefined;
-  const openCard = Boolean(card && !card.answered && !card.dismissed && !card.expired);
-  const waiting = bot.activity === "waiting-on-you" || (bot.tasks ?? []).some((task) => task.activity === "waiting-on-you") || asks > 0 || openCard;
+  const waiting = waitsOnPerson(bot, visible);
   const workingOn = bot.busy ? workingThreadId(bot) : bot.threadId;
   const live = turnLive(workingOn);
   const status = statusOf(bot, waiting, live, visible);

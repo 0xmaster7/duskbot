@@ -752,6 +752,10 @@ const bridge = {
   // A bot's notification, shown by main so its click outlives this page; older apps have no such key and the page shows its own.
   desktopNotifications: {
     show: (note) => ipcRenderer.invoke("desktop-notifications:show", note),
+    asks: (report) => ipcRenderer.send("desktop-notifications:asks", {
+      waiting: Array.isArray(report?.waiting) ? report.waiting.slice(0, 200).map(String) : [],
+      settled: Array.isArray(report?.settled) ? report.settled.slice(0, 200).map(String) : [],
+    }),
     onOpen: (cb) => {
       notificationOpenListeners.add(cb);
       if (pendingNotificationOpen) {

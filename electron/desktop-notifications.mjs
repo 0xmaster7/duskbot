@@ -2,6 +2,8 @@
 // hands its click to the page that made it, so a banner clicked after a reload, an update or a move to another place does
 // nothing, and `window.focus()` from a page never raises a window (shell/browser/api/electron_api_browser_window.cc,
 // OnActivateContents). Main knows which page asked, so the click comes back to that place whatever is on screen by then.
+// An ask's banner (an approval, a question) closes once the page sees that bot stop waiting on the person, wherever it
+// was answered: the phone, the island or another window.
 
 const ID = /^[\w-]{1,128}$/;
 const TEXT_LIMIT = 1024;
@@ -13,8 +15,12 @@ const ICON_WAIT_MS = 1_500;
 const text = (value) => (typeof value === "string" ? value.slice(0, TEXT_LIMIT) : "");
 const originOf = (url) => { try { return new URL(url).origin; } catch { return null; } };
 
+const MAX_BOTS = 200;
+const ids = (value) => new Set(Array.isArray(value) ? value.slice(0, MAX_BOTS).filter((entry) => typeof entry === "string" && ID.test(entry)) : []);
+
 /**
- * @param {{ ipcMain: { handle(channel: string, handler: (event: any, note: any) => unknown): void },
+ * @param {{ ipcMain: { handle(channel: string, handler: (event: any, note: any) => unknown): void,
+ *   on(channel: string, handler: (event: any, report: any) => void): void },
  *   Notification: { new(options: object): any, isSupported(): boolean },
  *   nativeImage: { createFromBuffer(buffer: Buffer): { isEmpty(): boolean } },
  *   fetch: (url: string, init: { signal: AbortSignal }) => Promise<{ ok: boolean, arrayBuffer(): Promise<ArrayBuffer> }>,
@@ -29,6 +35,8 @@ const originOf = (url) => { try { return new URL(url).origin; } catch { return n
 export function installDesktopNotifications({ ipcMain, Notification, nativeImage, fetch, window, mayNotify, reveal, openPlace, now = Date.now }) {
   // Electron drops a notification's handlers once nothing holds it, so each is held until it is replaced or dismissed.
   const live = new Map();
+  /** Per origin, the bots its page last said wait on the person. */
+  const waitingAt = new Map();
   let waiting = null;
 
   const page = () => { const win = window(); return win && !win.isDestroyed() ? win.webContents : null; };
@@ -64,18 +72,34 @@ export function installDesktopNotifications({ ipcMain, Notification, nativeImage
   ipcMain.handle("desktop-notifications:show", async (event, note) => {
     const origin = askingOrigin(event);
     if (!origin || !Notification.isSupported() || !note || typeof note !== "object") return false;
-    const { title, body, tag, silent, picture, botId, threadId } = note;
+    const { title, body, tag, silent, picture, botId, threadId, ask } = note;
     if (!text(title) || !ID.test(String(botId)) || !ID.test(String(threadId))) return false;
     const key = `${origin}\n${text(tag) || threadId}`;
     const image = await pictureOf(origin, picture);
     const shown = new Notification({ title: text(title), body: text(body), silent: silent === true, ...(image ? { icon: image } : {}) });
-    const replaced = live.get(key);
-    live.set(key, shown);
+    // `seen`: the page has said this bot waits, so its saying the bot no longer does means the ask was answered
+    const entry = { shown, origin, botId, ask: ask === true, seen: waitingAt.get(origin)?.has(botId) === true };
+    const replaced = live.get(key)?.shown;
+    live.set(key, entry);
     replaced?.close();
-    shown.on("close", () => { if (live.get(key) === shown) live.delete(key); });
-    shown.on("click", () => { if (live.get(key) === shown) live.delete(key); bring(origin, { botId, threadId }); });
+    shown.on("close", () => { if (live.get(key) === entry) live.delete(key); });
+    shown.on("click", () => { if (live.get(key) === entry) live.delete(key); bring(origin, { botId, threadId }); });
     shown.show();
     return true;
+  });
+
+  // `waiting`: the bots this page shows waiting on the person; `settled`: the ones it has loaded that do not. A bot in
+  // neither (not loaded yet) keeps its banner.
+  ipcMain.on("desktop-notifications:asks", (event, report) => {
+    const origin = askingOrigin(event);
+    if (!origin || !report || typeof report !== "object") return;
+    const waits = ids(report.waiting), settled = ids(report.settled);
+    waitingAt.set(origin, waits);
+    for (const [key, entry] of live) {
+      if (!entry.ask || entry.origin !== origin) continue;
+      if (waits.has(entry.botId)) entry.seen = true;
+      else if (entry.seen && settled.has(entry.botId)) { live.delete(key); entry.shown.close(); }
+    }
   });
 
   return {
