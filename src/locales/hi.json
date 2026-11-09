@@ -3258,5 +3258,14 @@
   "routines.cloudUpsell.asleep": "स्लीप मोड में रुकता है",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "चौबीसों घंटे चालू",
-  "routines.cloudUpsell.getCloud": "Cloud लें"
+  "routines.cloudUpsell.getCloud": "Cloud लें",
+  "reconnect.title": "{name} से फिर से जुड़ रहे हैं",
+  "reconnect.next": "अगली कोशिश {seconds} सेकंड में।",
+  "reconnect.checking": "अभी ढूँढ रहे हैं…",
+  "reconnect.kept": "कुछ भी नहीं खोया है। जवाब मिलते ही यह अपने आप फिर खुल जाएगा; तब तक यह वही है जो इसने आख़िरी बार दिखाया था, सिर्फ़ पढ़ने के लिए।",
+  "reconnect.retry": "अभी कोशिश करें",
+  "reconnect.lastSeen": "आख़िरी बार देखा {time}",
+  "reconnect.groups": "ग्रुप चैट",
+  "reconnect.other": "तब तक आप यह खोल सकते हैं",
+  "reconnect.opening": "खुल रहा है…"
 }

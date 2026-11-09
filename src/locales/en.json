@@ -7583,5 +7583,14 @@
   "routines.cloudUpsell.asleep": "Stops while asleep",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "On 24/7",
-  "routines.cloudUpsell.getCloud": "Get a Cloud"
+  "routines.cloudUpsell.getCloud": "Get a Cloud",
+  "reconnect.title": "Reconnecting to {name}",
+  "reconnect.next": "Next try in {seconds}s.",
+  "reconnect.checking": "Looking for it now…",
+  "reconnect.kept": "Nothing is lost. It opens again by itself when it answers; until then this is what it showed last, read only.",
+  "reconnect.retry": "Try now",
+  "reconnect.lastSeen": "Last seen {time}",
+  "reconnect.groups": "Group chats",
+  "reconnect.other": "Meanwhile, you can open",
+  "reconnect.opening": "Opening…"
 }

@@ -99,11 +99,14 @@ function workspaceNavigationAllowed(url, state, localOrigin) {
   }
 }
 
-/** Only the main window's main frame; being embedded in a saved server grants no host authority. */
-function workspaceSenderAllowed(event, contents, state, localOrigin) {
+/** Only the main window's main frame; being embedded in a saved server grants no host authority. `screens`: paths of this
+ * app's own page that count too while a server is chosen (its screens for a place the window can't show). */
+function workspaceSenderAllowed(event, contents, state, localOrigin, screens = []) {
   if (!contents || event?.sender !== contents || event?.senderFrame !== contents.mainFrame) return false;
   try {
-    return workspaceNavigationAllowed(event.senderFrame.url, state, localOrigin);
+    if (workspaceNavigationAllowed(event.senderFrame.url, state, localOrigin)) return true;
+    const at = new URL(event.senderFrame.url);
+    return at.origin === localOrigin && screens.includes(at.pathname);
   } catch {
     return false;
   }

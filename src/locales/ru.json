@@ -6201,5 +6201,14 @@
   "routines.cloudUpsell.asleep": "Останавливается во сне",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "Работает круглосуточно",
-  "routines.cloudUpsell.getCloud": "Получить Cloud"
+  "routines.cloudUpsell.getCloud": "Получить Cloud",
+  "reconnect.title": "Переподключение к {name}",
+  "reconnect.next": "Следующая попытка через {seconds} с.",
+  "reconnect.checking": "Ищем сейчас…",
+  "reconnect.kept": "Ничего не потеряно. Откроется само, как только ответит; а пока здесь последнее, что было видно, только для чтения.",
+  "reconnect.retry": "Попробовать сейчас",
+  "reconnect.lastSeen": "Последний раз видели {time}",
+  "reconnect.groups": "Групповые чаты",
+  "reconnect.other": "Пока можно открыть",
+  "reconnect.opening": "Открываем…"
 }

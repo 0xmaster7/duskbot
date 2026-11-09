@@ -6782,5 +6782,14 @@
   "routines.cloudUpsell.asleep": "休眠时停止",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "全天候运行",
-  "routines.cloudUpsell.getCloud": "获取 Cloud"
+  "routines.cloudUpsell.getCloud": "获取 Cloud",
+  "reconnect.title": "正在重新连接 {name}",
+  "reconnect.next": "{seconds} 秒后重试。",
+  "reconnect.checking": "正在查找…",
+  "reconnect.kept": "什么都没有丢失。它一有响应就会自动重新打开；在此之前，这里只读显示它最后的内容。",
+  "reconnect.retry": "立即重试",
+  "reconnect.lastSeen": "上次看到 {time}",
+  "reconnect.groups": "群聊",
+  "reconnect.other": "在此期间可以打开",
+  "reconnect.opening": "正在打开…"
 }

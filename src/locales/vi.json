@@ -5153,5 +5153,14 @@
   "routines.cloudUpsell.asleep": "Dừng khi máy ngủ",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "Hoạt động 24/7",
-  "routines.cloudUpsell.getCloud": "Đăng ký Cloud"
+  "routines.cloudUpsell.getCloud": "Đăng ký Cloud",
+  "reconnect.title": "Đang kết nối lại với {name}",
+  "reconnect.next": "Thử lại sau {seconds} giây.",
+  "reconnect.checking": "Đang tìm…",
+  "reconnect.kept": "Không mất gì cả. Nó tự mở lại khi có phản hồi; trong lúc chờ, đây là những gì nó hiển thị lần cuối, chỉ để đọc.",
+  "reconnect.retry": "Thử ngay",
+  "reconnect.lastSeen": "Thấy lần cuối {time}",
+  "reconnect.groups": "Trò chuyện nhóm",
+  "reconnect.other": "Trong lúc chờ, bạn có thể mở",
+  "reconnect.opening": "Đang mở…"
 }

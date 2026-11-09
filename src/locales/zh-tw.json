@@ -4703,5 +4703,14 @@
   "routines.cloudUpsell.asleep": "睡眠時停止",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "全天候運作",
-  "routines.cloudUpsell.getCloud": "取得 Cloud"
+  "routines.cloudUpsell.getCloud": "取得 Cloud",
+  "reconnect.title": "正在重新連線至 {name}",
+  "reconnect.next": "{seconds} 秒後重試。",
+  "reconnect.checking": "正在尋找…",
+  "reconnect.kept": "什麼都沒有遺失。它一有回應就會自動重新開啟；在那之前，這裡唯讀顯示它最後的內容。",
+  "reconnect.retry": "立即重試",
+  "reconnect.lastSeen": "上次看到 {time}",
+  "reconnect.groups": "群組聊天",
+  "reconnect.other": "在此期間可以開啟",
+  "reconnect.opening": "正在開啟…"
 }

@@ -5630,5 +5630,14 @@
   "routines.cloudUpsell.asleep": "Se detiene en reposo",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "Activa las 24 horas",
-  "routines.cloudUpsell.getCloud": "Obtener una Cloud"
+  "routines.cloudUpsell.getCloud": "Obtener una Cloud",
+  "reconnect.title": "Reconectando con {name}",
+  "reconnect.next": "Próximo intento en {seconds} s.",
+  "reconnect.checking": "Buscándolo ahora…",
+  "reconnect.kept": "No se pierde nada. Se abre solo cuando responda; mientras tanto, esto es lo último que mostró, solo lectura.",
+  "reconnect.retry": "Intentar ahora",
+  "reconnect.lastSeen": "Visto por última vez {time}",
+  "reconnect.groups": "Chats de grupo",
+  "reconnect.other": "Mientras tanto, puedes abrir",
+  "reconnect.opening": "Abriendo…"
 }

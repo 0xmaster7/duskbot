@@ -3338,5 +3338,14 @@
   "routines.cloudUpsell.asleep": "Stoppt im Ruhezustand",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "Rund um die Uhr aktiv",
-  "routines.cloudUpsell.getCloud": "Cloud holen"
+  "routines.cloudUpsell.getCloud": "Cloud holen",
+  "reconnect.title": "Verbinde erneut mit {name}",
+  "reconnect.next": "Nächster Versuch in {seconds} s.",
+  "reconnect.checking": "Wird gerade gesucht…",
+  "reconnect.kept": "Nichts geht verloren. Es öffnet sich von selbst wieder, sobald es antwortet; bis dahin siehst du hier den letzten Stand, nur zum Lesen.",
+  "reconnect.retry": "Jetzt versuchen",
+  "reconnect.lastSeen": "Zuletzt gesehen {time}",
+  "reconnect.groups": "Gruppenchats",
+  "reconnect.other": "In der Zwischenzeit kannst du öffnen",
+  "reconnect.opening": "Wird geöffnet…"
 }

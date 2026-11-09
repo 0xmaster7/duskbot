@@ -6194,5 +6194,14 @@
   "routines.cloudUpsell.asleep": "Zatrzymuje się podczas uśpienia",
   "routines.cloudUpsell.cloud": "Chmura",
   "routines.cloudUpsell.alwaysOn": "Działa całą dobę",
-  "routines.cloudUpsell.getCloud": "Kup Chmurę"
+  "routines.cloudUpsell.getCloud": "Kup Chmurę",
+  "reconnect.title": "Ponowne łączenie z {name}",
+  "reconnect.next": "Następna próba za {seconds} s.",
+  "reconnect.checking": "Szukam teraz…",
+  "reconnect.kept": "Nic nie przepadło. Otworzy się samo, gdy odpowie; do tego czasu widzisz tu ostatni stan, tylko do odczytu.",
+  "reconnect.retry": "Spróbuj teraz",
+  "reconnect.lastSeen": "Ostatnio widziane {time}",
+  "reconnect.groups": "Czaty grupowe",
+  "reconnect.other": "W międzyczasie możesz otworzyć",
+  "reconnect.opening": "Otwieranie…"
 }

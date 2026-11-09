@@ -5153,5 +5153,14 @@
   "routines.cloudUpsell.asleep": "Uyku sırasında durur",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "7/24 açık",
-  "routines.cloudUpsell.getCloud": "Cloud edinin"
+  "routines.cloudUpsell.getCloud": "Cloud edinin",
+  "reconnect.title": "{name} ile yeniden bağlanılıyor",
+  "reconnect.next": "Sonraki deneme {seconds} sn sonra.",
+  "reconnect.checking": "Şimdi aranıyor…",
+  "reconnect.kept": "Hiçbir şey kaybolmadı. Yanıt verdiğinde kendiliğinden yeniden açılır; o zamana kadar en son gösterdiği burada, salt okunur.",
+  "reconnect.retry": "Şimdi dene",
+  "reconnect.lastSeen": "Son görülme {time}",
+  "reconnect.groups": "Grup sohbetleri",
+  "reconnect.other": "Bu arada açabilirsin",
+  "reconnect.opening": "Açılıyor…"
 }

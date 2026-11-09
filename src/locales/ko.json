@@ -6609,5 +6609,14 @@
   "routines.cloudUpsell.asleep": "잠자기 중 중지",
   "routines.cloudUpsell.cloud": "클라우드",
   "routines.cloudUpsell.alwaysOn": "24시간 가동",
-  "routines.cloudUpsell.getCloud": "클라우드 이용하기"
+  "routines.cloudUpsell.getCloud": "클라우드 이용하기",
+  "reconnect.title": "{name}에 다시 연결하는 중",
+  "reconnect.next": "{seconds}초 후 다시 시도합니다.",
+  "reconnect.checking": "지금 찾는 중…",
+  "reconnect.kept": "잃어버린 것은 없습니다. 응답하면 자동으로 다시 열립니다. 그때까지 마지막으로 보이던 내용을 읽기 전용으로 보여 줍니다.",
+  "reconnect.retry": "지금 시도",
+  "reconnect.lastSeen": "마지막으로 본 시간 {time}",
+  "reconnect.groups": "그룹 채팅",
+  "reconnect.other": "그동안 열 수 있는 곳",
+  "reconnect.opening": "여는 중…"
 }

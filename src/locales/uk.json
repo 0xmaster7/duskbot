@@ -3563,5 +3563,14 @@
   "routines.cloudUpsell.asleep": "Зупиняється під час сну",
   "routines.cloudUpsell.cloud": "Cloud",
   "routines.cloudUpsell.alwaysOn": "Працює цілодобово",
-  "routines.cloudUpsell.getCloud": "Отримати Cloud"
+  "routines.cloudUpsell.getCloud": "Отримати Cloud",
+  "reconnect.title": "Повторне підключення до {name}",
+  "reconnect.next": "Наступна спроба через {seconds} с.",
+  "reconnect.checking": "Шукаємо зараз…",
+  "reconnect.kept": "Нічого не втрачено. Відкриється саме, щойно відповість; а поки тут останнє, що було видно, лише для читання.",
+  "reconnect.retry": "Спробувати зараз",
+  "reconnect.lastSeen": "Востаннє бачили {time}",
+  "reconnect.groups": "Групові чати",
+  "reconnect.other": "Тим часом можна відкрити",
+  "reconnect.opening": "Відкриваємо…"
 }
