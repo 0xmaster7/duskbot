@@ -2,7 +2,7 @@
 // glance, stretch and doze off on a per-bot seeded schedule, so no two marks ever move together. blinks run on a track
 // of their own and the eyes wander between acts, after threebot's character (MIT): see BLINK_GAP_MS and the peek act.
 import { seededRandom, type MarkClip, type MarkPoke } from "./mascot-motion-engine";
-import { OMB_CLIPS, type OmbClipName } from "./mascot-clips";
+import { DUSK_CLIPS, type OmbClipName } from "./mascot-clips";
 import { createClickReactor, type ClickReaction } from "./mascot-click";
 
 export type IdleAct =
@@ -179,7 +179,7 @@ export function createPersona(seed: number, body: PersonaBody, clip: (name: stri
     let roll = random() * pool.reduce((sum, option) => sum + option.weight, 0);
     const chosen = pool.find((option) => (roll -= option.weight) < 0) ?? pool[0]!;
     lastMove.set(kind, chosen);
-    if (chosen.clip) body.play(OMB_CLIPS[chosen.clip]);
+    if (chosen.clip) body.play(DUSK_CLIPS[chosen.clip]);
     if (chosen.grok) body.play(clip(chosen.grok));
     for (const poke of chosen.pokes ?? []) body.poke(poke);
   };
@@ -187,18 +187,18 @@ export function createPersona(seed: number, body: PersonaBody, clip: (name: stri
     lastAct = act;
     switch (act) {
       case "peek": return peek(now);
-      case "glance": return body.play(random() < 0.5 ? OMB_CLIPS.GlanceLeft : OMB_CLIPS.GlanceRight);
-      case "lookAround": return body.play(OMB_CLIPS.LookAround);
+      case "glance": return body.play(random() < 0.5 ? DUSK_CLIPS.GlanceLeft : DUSK_CLIPS.GlanceRight);
+      case "lookAround": return body.play(DUSK_CLIPS.LookAround);
       case "curious": return body.play(clip("Working_B"));
       case "fidget": return body.play(clip(fidget()));
-      case "stretch": return body.play(OMB_CLIPS.Stretch);
-      case "yawn": return body.play(OMB_CLIPS.Yawn);
-      case "hop": return body.play(OMB_CLIPS.Hop);
-      case "wiggle": return body.play(OMB_CLIPS.Wiggle);
+      case "stretch": return body.play(DUSK_CLIPS.Stretch);
+      case "yawn": return body.play(DUSK_CLIPS.Yawn);
+      case "hop": return body.play(DUSK_CLIPS.Hop);
+      case "wiggle": return body.play(DUSK_CLIPS.Wiggle);
       case "nod": return body.poke("nod");
     }
   };
-  const wake = (clip: MarkClip = OMB_CLIPS.Wake) => {
+  const wake = (clip: MarkClip = DUSK_CLIPS.Wake) => {
     if (!dozing) return;
     blinkAt = null;
     dozing = false;
@@ -231,7 +231,7 @@ export function createPersona(seed: number, body: PersonaBody, clip: (name: stri
       }
       if (now < nextAt) return Math.min(nextAt, nextLook);
       if (dozing) {
-        body.play(OMB_CLIPS.Breath);
+        body.play(DUSK_CLIPS.Breath);
         lastAct = "breath";
         nextAt = now + between(DOZE_BREATH_MS);
         return nextAt;
@@ -239,7 +239,7 @@ export function createPersona(seed: number, body: PersonaBody, clip: (name: stri
       if (now - touchedAt >= dozeAfter) {
         dozing = true;
         stopLooking();
-        body.play(OMB_CLIPS.DozeIn);
+        body.play(DUSK_CLIPS.DozeIn);
         body.holdFace("sleepy");
         lastAct = "doze";
         nextAt = now + between(DOZE_BREATH_MS);
@@ -281,7 +281,7 @@ export function createPersona(seed: number, body: PersonaBody, clip: (name: stri
         if (clicks.isEcho(now)) return;
         const wasDozing = dozing;
         // clicked awake, it stretches instead of starting
-        if (wasDozing) wake(OMB_CLIPS.SleepyStretch);
+        if (wasDozing) wake(DUSK_CLIPS.SleepyStretch);
         this.touch(now);
         clickAt = now;
         lastAct = clicks.react(kind, now, wasDozing);

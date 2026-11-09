@@ -3,7 +3,7 @@
 // it (spin 0.9 s plus 0.4 s a turn, bounce 0.62 s, nod 0.5 s). Ours keep those pokes and add a weighted pool on top:
 // each bot leans toward its own favourites, some clicks only get a quiet answer, and quick repeats escalate.
 import { seededRandom, type MarkClip, type MarkPoke } from "./mascot-motion-engine";
-import { OMB_CLIPS, type OmbClipName } from "./mascot-clips";
+import { DUSK_CLIPS, type OmbClipName } from "./mascot-clips";
 
 /** `open`: the bot was chosen (a sidebar row, its chat opened). `tap`: the mark itself was double-clicked. */
 export type ClickReaction = "open" | "tap";
@@ -134,7 +134,7 @@ export function createClickReactor(seed: number, body: ClickBody): ClickReactor 
     if (move === "peek") {
       body.peek({ x: between(CLICK.peek.x), y: between(CLICK.peek.y) }, between(CLICK.peek.holdMs));
     }
-    if (spec.clip) body.play(OMB_CLIPS[spec.clip]);
+    if (spec.clip) body.play(DUSK_CLIPS[spec.clip]);
     for (const kind of spec.pokes ?? []) poke(kind);
     return move;
   };
@@ -169,7 +169,7 @@ export function createClickReactor(seed: number, body: ClickBody): ClickReactor 
           poke("bounce");
           return "twirl";
         case 3:
-          body.play(OMB_CLIPS.Dizzy);
+          body.play(DUSK_CLIPS.Dizzy);
           return "dizzy";
         // past dizzy it only nods and bobs, gently, until the clicks stop
         default: return layer(true);

@@ -55,7 +55,7 @@ const pinnedGet: IconFetcher = (url, address, limit, partial, signal) => new Pro
   };
   const request = httpsRequest(url, {
     method: "GET", agent: false, lookup, signal,
-    headers: { accept: "text/html,image/*;q=0.9,*/*;q=0.5", "accept-encoding": "identity", "user-agent": "OpenMausBot (site icon)" },
+    headers: { accept: "text/html,image/*;q=0.9,*/*;q=0.5", "accept-encoding": "identity", "user-agent": "Dusk Bot (site icon)" },
   }, (response) => {
     const status = response.statusCode ?? 0;
     const location = typeof response.headers.location === "string" ? response.headers.location : null;

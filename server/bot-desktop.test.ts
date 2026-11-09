@@ -29,7 +29,7 @@ import { SCREEN_BROWSER_LOW_MEMORY } from "./vps-browser-ready.ts";
 import * as vpsLocal from "./vps-local.ts";
 import { boxChromes, closeVpsScreenConnections, evictVpsBoxChrome, screenKey } from "./vps-connections.ts";
 
-const NAME = "openmausbot-vps-bot1-0123456789ab";
+const NAME = "duskbot-vps-bot1-0123456789ab";
 const IMAGE_ID = `sha256:${"c".repeat(64)}`;
 const SECRET = "viewer-secret-123";
 
@@ -97,7 +97,7 @@ describe("bot desktop run flags", () => {
     expect(strict).toContain("--read-only");
     expect(flag(strict, "--cap-add").sort()).toEqual(["NET_ADMIN", "SETGID", "SETUID"]);
     expect(flag(strict, "--security-opt")).toEqual(["no-new-privileges"]);
-    expect(flag(strict, "-e")).toEqual(["OMB_MODE=strict", "OMB_BROWSER_AT_START=off", `VNC_PW=${SECRET}`, "OMB_BLOCK_EXTRA=203.0.113.7"]);
+    expect(flag(strict, "-e")).toEqual(["DUSK_MODE=strict", "DUSK_BROWSER_AT_START=off", `VNC_PW=${SECRET}`, "DUSK_BLOCK_EXTRA=203.0.113.7"]);
     expect(strict).not.toContain("--runtime");
   });
 
@@ -108,7 +108,7 @@ describe("bot desktop run flags", () => {
     for (const cap of ["NET_ADMIN", "NET_RAW", "SYS_ADMIN", "SYS_PTRACE", "SYS_MODULE", "MKNOD", "DAC_READ_SEARCH", "SETFCAP"]) {
       expect(flag(free, "--cap-add")).not.toContain(cap);
     }
-    expect(flag(free, "-e")).toEqual(["OMB_MODE=free", "OMB_BROWSER_AT_START=off", `VNC_PW=${SECRET}`]);
+    expect(flag(free, "-e")).toEqual(["DUSK_MODE=free", "DUSK_BROWSER_AT_START=off", `VNC_PW=${SECRET}`]);
     expect(flag(free, "--runtime")).toEqual(["runsc"]);
     expect(flag(free, "--label")).toContain(`${BOT_DESKTOP_MODE_LABEL}=free`);
   });
@@ -152,9 +152,9 @@ describe("bot desktop isolation checks", () => {
   });
 
   it("judges a box only as the mode its label and environment agree on", () => {
-    expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "free" }, ["OMB_MODE=free"])).toBe("free");
+    expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "free" }, ["DUSK_MODE=free"])).toBe("free");
     expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "strict" }, ["VNC_PW=x"])).toBe("strict");
-    expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "free" }, ["OMB_MODE=strict"])).toBeUndefined();
+    expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "free" }, ["DUSK_MODE=strict"])).toBeUndefined();
     expect(containerBotDesktopMode({}, [])).toBeUndefined();
     expect(botDesktopIsHardened(freeInspected(), undefined)).toBe(false);
     expect(botDesktopIsHardened(freeInspected(), "strict")).toBe(false);
@@ -180,19 +180,19 @@ describe("bot desktop isolation checks", () => {
     const plain = hostIsolation('{"Runtimes":{"runc":{}},"SecurityOptions":["name=seccomp,profile=builtin"]}', {});
     expect(gvisor).toEqual({ runtime: "runsc", userns: false });
     expect(remapped).toEqual({ runtime: null, userns: true });
-    expect(hostIsolation('{"Runtimes":{"runsc":{}}}', { OPENMAUSBOT_VPS_GVISOR: "off" }).runtime).toBeNull();
+    expect(hostIsolation('{"Runtimes":{"runsc":{}}}', { DUSK_VPS_GVISOR: "off" }).runtime).toBeNull();
     expect(hostIsolation("not json", {})).toEqual({ runtime: null, userns: false });
     expect(botDesktopMode(true, gvisor, {})).toBe("free");
     expect(botDesktopMode(true, remapped, {})).toBe("free");
     expect(botDesktopMode(true, plain, {})).toBe("strict");
     expect(botDesktopMode(false, gvisor, {})).toBe("strict");
-    expect(botDesktopMode(true, gvisor, { OPENMAUSBOT_VPS_BOX: "strict" })).toBe("strict");
+    expect(botDesktopMode(true, gvisor, { DUSK_VPS_BOX: "strict" })).toBe("strict");
   });
 
   it("reads host addresses and the desktop kind defensively", () => {
     expect(parseHostAddresses("2: eth0    inet 203.0.113.7/24 brd x scope global eth0\n2: eth0    inet6 2001:db8::7/64 scope global\nnoise")).toEqual(["203.0.113.7", "2001:db8::7"]);
     expect(preferredVpsDesktop({})).toBe("bot-desktop");
-    expect(preferredVpsDesktop({ OPENMAUSBOT_VPS_DESKTOP: "cua" })).toBe("cua");
+    expect(preferredVpsDesktop({ DUSK_VPS_DESKTOP: "cua" })).toBe("cua");
     expect(containerDesktopKind({ [BOT_DESKTOP_LABEL]: "1" })).toBe("bot-desktop");
     expect(containerDesktopKind({})).toBe("cua");
   });
@@ -202,7 +202,7 @@ describe("bot desktop isolation checks", () => {
     expect(script).toContain(`image="\${image:-ghcr.io/sidddevz/omb-bot-desktop:v$version}"`);
     expect(script).toContain(`version="\${version:-${BOT_DESKTOP_VERSION}}"`);
     expect(readFileSync(new URL("../deploy/bot-desktop/Dockerfile", import.meta.url), "utf8")).toContain(`ARG BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}\n`);
-    expect(readFileSync(new URL("../deploy/bot-desktop/rootfs/usr/local/bin/omb-session", import.meta.url), "utf8")).toContain('${OMB_BROWSER_AT_START:-off}');
+    expect(readFileSync(new URL("../deploy/bot-desktop/rootfs/usr/local/bin/omb-session", import.meta.url), "utf8")).toContain('${DUSK_BROWSER_AT_START:-off}');
     expect(BOT_DESKTOP_IMAGE).toBe(`ghcr.io/sidddevz/omb-bot-desktop:v${BOT_DESKTOP_VERSION}`);
     expect(readFileSync(new URL("../deploy/bot-desktop/host-fence.sh", import.meta.url), "utf8")).toContain("BRIDGE=omb-desk0\n");
   });
@@ -218,7 +218,7 @@ describe("bot desktop provisioning", () => {
       if (args[0] === "image") return { stdout: JSON.stringify([{ Id: IMAGE_ID, Config: { Labels: { [BOT_DESKTOP_LABEL]: BOT_DESKTOP_VERSION, [DRIVER_LABEL]: CUA_DRIVER_VERSION } } }]) };
       if (args[0] === "network" && args[1] === "inspect") {
         if (!network) throw new Error(`Error: No such network: ${BOT_DESKTOP_NETWORK}`);
-        return { stdout: JSON.stringify({ Labels: { "com.openmausbot.vps-network": "1" }, Options: { "com.docker.network.bridge.name": "omb-desk0" } }) };
+        return { stdout: JSON.stringify({ Labels: { "bot.dusk.vps-network": "1" }, Options: { "com.docker.network.bridge.name": "omb-desk0" } }) };
       }
       if (args[0] === "info") return { stdout: JSON.stringify({ Runtimes: runsc ? { runc: {}, runsc: {} } : { runc: {} }, SecurityOptions: [] }) };
       if (args.includes("/usr/local/bin/omb-host-fence")) { if (!fenced) throw new Error("exit status 1"); return { stdout: "" }; }
@@ -236,14 +236,14 @@ describe("bot desktop provisioning", () => {
     expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`, "image inspect", "network inspect", "info --format", "probe /usr/local/bin/omb-host-fence", "network create", "probe ip", "run -d"]);
     const started = fake.calls.at(-1)!;
     expect(started.at(-1)).toBe(IMAGE_ID);
-    expect(started).toEqual(expect.arrayContaining(["--read-only", "--runtime", "runsc", "OMB_MODE=strict", "OMB_BLOCK_EXTRA=198.51.100.4"]));
+    expect(started).toEqual(expect.arrayContaining(["--read-only", "--runtime", "runsc", "DUSK_MODE=strict", "DUSK_BLOCK_EXTRA=198.51.100.4"]));
   });
 
   it("behind the host fence with gVisor: a free box, no address probe needed", async () => {
     const fake = host({ runsc: true, network: true, fenced: true });
     expect(await provisionBotDesktop(fake.run, input)).toBe("free");
     expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`, "image inspect", "network inspect", "info --format", "probe /usr/local/bin/omb-host-fence", "run -d"]);
-    expect(fake.calls.at(-1)).toEqual(expect.arrayContaining(["--runtime", "runsc", "OMB_MODE=free"]));
+    expect(fake.calls.at(-1)).toEqual(expect.arrayContaining(["--runtime", "runsc", "DUSK_MODE=free"]));
     expect(fake.calls.at(-1)).not.toContain("--read-only");
   });
 
@@ -264,7 +264,7 @@ describe("bot desktop provisioning", () => {
   });
 
   it("refuses with a clear reason, creating nothing, when the image can be neither pulled nor built", async () => {
-    vi.stubEnv("OMB_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
+    vi.stubEnv("DUSK_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
     try {
       const fake = host({ pull: false, network: true });
       await expect(provisionBotDesktop(fake.run, input)).rejects.toMatchObject({ status: 409, code: "bot_desktop_unavailable",
@@ -283,14 +283,14 @@ describe("bot desktop provisioning", () => {
       const kit = join(directory, "bot-desktop");
       mkdirSync(kit);
       writeFileSync(join(kit, "Dockerfile"), `FROM debian\nARG BOT_DESKTOP_VERSION=${Number(BOT_DESKTOP_VERSION) - 1}\n`);
-      expect(botDesktopKit({ OMB_BOT_DESKTOP_KIT: kit })).toBeNull();
+      expect(botDesktopKit({ DUSK_BOT_DESKTOP_KIT: kit })).toBeNull();
       writeFileSync(join(kit, "Dockerfile"), `FROM debian\nARG BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}\n`);
-      expect(botDesktopKit({ OMB_BOT_DESKTOP_KIT: kit })).toBe(kit);
+      expect(botDesktopKit({ DUSK_BOT_DESKTOP_KIT: kit })).toBe(kit);
       const packed = join(directory, "app.asar", "deploy", "bot-desktop");
       mkdirSync(packed, { recursive: true });
       writeFileSync(join(packed, "Dockerfile"), `ARG BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}\n`);
-      expect(botDesktopKit({ OMB_BOT_DESKTOP_KIT: packed })).toBeNull();
-      expect(botDesktopKit({ OMB_BOT_DESKTOP_KIT: join(directory, "missing") })).toBeNull();
+      expect(botDesktopKit({ DUSK_BOT_DESKTOP_KIT: packed })).toBeNull();
+      expect(botDesktopKit({ DUSK_BOT_DESKTOP_KIT: join(directory, "missing") })).toBeNull();
     } finally { rmSync(directory, { recursive: true, force: true }); }
   });
 
@@ -320,7 +320,7 @@ describe("bot desktop provisioning", () => {
   });
 
   it("keeps preparation separate across hosts and lets a failed pull retry", async () => {
-    vi.stubEnv("OMB_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
+    vi.stubEnv("DUSK_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
     const unavailable = host({ pull: false });
     const available = host({ runsc: true, network: true, fenced: true });
     expect(await Promise.all([
@@ -335,7 +335,7 @@ describe("bot desktop provisioning", () => {
 
 
 describe("bot desktop on the VPS path", () => {
-  beforeEach(() => { vi.stubEnv("OPENMAUSBOT_VPS_DESKTOP", ""); });
+  beforeEach(() => { vi.stubEnv("DUSK_VPS_DESKTOP", ""); });
   const CONFIG: AppConfig = { vps: { sshAlias: "production-vps" } };
   const BOT = "bot-desktop-1";
   const name = vpsContainerName(BOT);
@@ -437,7 +437,7 @@ describe("bot desktop on the VPS path", () => {
     expect(fake.calls.some(args => args.some(arg => arg.includes("cua-local-vm")))).toBe(false);
 
     const refused = daemon();
-    vi.stubEnv("OMB_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
+    vi.stubEnv("DUSK_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
     const offline: VpsCommandRunner = async (args, options) => {
       if (args[2] === "pull") throw new Error("manifest unknown");
       return refused.runner(args, options);
@@ -445,7 +445,7 @@ describe("bot desktop on the VPS path", () => {
     try {
       await expect(vpsComputerAction("provision", CONFIG, `${BOT}-offline`, offline)).rejects.toMatchObject({ status: 409, code: "bot_desktop_unavailable" });
       expect(refused.calls.some(args => ["build", "run", "network"].includes(args[0]!))).toBe(false);
-    } finally { vi.stubEnv("OMB_BOT_DESKTOP_KIT", undefined); }
+    } finally { vi.stubEnv("DUSK_BOT_DESKTOP_KIT", undefined); }
   });
 
   it("pins an in-box browser to its observed container and SSH host", async () => {

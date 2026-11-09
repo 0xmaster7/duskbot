@@ -8,7 +8,7 @@ describe("account mail", () => {
     const mailer = memoryMailer(), message = codeMessage("fixture@example.test", "01234567");
     await mailer.send(message);
     expect(mailer.outbox).toEqual([message]);
-    expect(message.subject).toBe("Your OpenMausBot code");
+    expect(message.subject).toBe("Your Dusk Bot code");
     expect(message.text).toContain("01234567"); expect(message.html).toContain("01234567");
     expect(message.text).toContain("It expires in 10 minutes."); expect(message.html).toContain("It expires in 10 minutes.");
   });
@@ -36,11 +36,11 @@ describe("account mail", () => {
   });
   it("validates mail configuration at startup and restricts console mail to development", () => {
     expect(mailerFromEnv({}, { dev: true })).toHaveProperty("send");
-    expect(() => mailerFromEnv({}, { dev: false })).toThrow("Configure OMB_MAIL_PROVIDER=resend");
-    expect(() => mailerFromEnv({ OMB_MAIL_PROVIDER: "console" }, { dev: false })).toThrow("console mail is allowed only in development");
-    expect(() => mailerFromEnv({ OMB_MAIL_PROVIDER: "other" }, { dev: true })).toThrow();
-    expect(() => mailerFromEnv({ OMB_MAIL_PROVIDER: "resend" }, { dev: true })).toThrow("OMB_RESEND_API_KEY and OMB_MAIL_FROM");
-    expect(() => mailerFromEnv({ OMB_MAIL_PROVIDER: "resend", OMB_RESEND_API_KEY: "fixture-key" }, { dev: false })).toThrow("OMB_MAIL_FROM");
-    expect(mailerFromEnv({ OMB_MAIL_PROVIDER: "resend", OMB_RESEND_API_KEY: "fixture-key", OMB_MAIL_FROM: "mail@example.test" }, { dev: false })).toHaveProperty("send");
+    expect(() => mailerFromEnv({}, { dev: false })).toThrow("Configure DUSK_MAIL_PROVIDER=resend");
+    expect(() => mailerFromEnv({ DUSK_MAIL_PROVIDER: "console" }, { dev: false })).toThrow("console mail is allowed only in development");
+    expect(() => mailerFromEnv({ DUSK_MAIL_PROVIDER: "other" }, { dev: true })).toThrow();
+    expect(() => mailerFromEnv({ DUSK_MAIL_PROVIDER: "resend" }, { dev: true })).toThrow("DUSK_RESEND_API_KEY and DUSK_MAIL_FROM");
+    expect(() => mailerFromEnv({ DUSK_MAIL_PROVIDER: "resend", DUSK_RESEND_API_KEY: "fixture-key" }, { dev: false })).toThrow("DUSK_MAIL_FROM");
+    expect(mailerFromEnv({ DUSK_MAIL_PROVIDER: "resend", DUSK_RESEND_API_KEY: "fixture-key", DUSK_MAIL_FROM: "mail@example.test" }, { dev: false })).toHaveProperty("send");
   });
 });

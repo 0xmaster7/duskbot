@@ -10,8 +10,8 @@ import { agentBrowser, sessionEnv, UI_TOOLS_DIR, type UiHandle } from "./control
 import { clickByName, openPanelMenu, settled as stillFrames } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
-const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
-if (!enabled) console.log("skipping usage details UI: set OMB_UI_E2E=1 to install the pinned browser");
+const enabled = process.env.DUSK_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
+if (!enabled) console.log("skipping usage details UI: set DUSK_UI_E2E=1 to install the pinned browser");
 
 (enabled ? it : it.skip)("renders separate cached input, uncached input and output after a real fixture turn", async () => {
   let child: ChildProcess | undefined;

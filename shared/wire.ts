@@ -592,7 +592,7 @@ export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLine
   /** A room reply whose speaker the decision model picked (an Auto room),
    * with how sure it was. Absent on every other message; clients that do
    * not know it ignore it. */
-  routedBy?: { provider: "jev" | "workersai" | "openrouter" | "gateway" | "mausbot"; probability: number };
+  routedBy?: { provider: "jev" | "workersai" | "openrouter" | "gateway" | "dusk"; probability: number };
   /** On a conversational bot's user line: the picker label of the quick model its reply ran on. */
   quickModel?: string;
   /** On a "Sent to" hand-off row: the done_when the sender set, redacted, so the chip can show what counts as finished. */
@@ -749,7 +749,7 @@ export interface SecretRequestCardData {
   description: string;
   placeholder: string;
   helpUrl: string;
-  /** A custom secret's use: "ref", OpenMausBot's own tools only; "file", the bot's commands; "email", the Email connector, never a bot;
+  /** A custom secret's use: "ref", Dusk Bot's own tools only; "file", the bot's commands; "email", the Email connector, never a bot;
    * "login", a website login fill_login types for the bot, which never receives it. */ delivery?: SecretDelivery | "email" | "login";
   /** A login card: the site it fills on (a login page's host, or the domain the bot named). */ site?: string;
   /** An email card: the mailbox it is for, when known; off a phone the person can change it on the card. */ address?: string;
@@ -817,13 +817,13 @@ export interface ComputerHelpRef {
 }
 
 /** Who answers a room message nobody was @mentioned in. `member` + `leader`: it leads and hands members tasks
- * (room-leader.ts). `auto` asks the decision model (`by: "mausbot"`: the person's own engine's quick model) and falls
+ * (room-leader.ts). `auto` asks the decision model (`by: "dusk"`: the person's own engine's quick model) and falls
  * back to `fallbackBotId` (else the first member). Readers must treat any kind they do not know as the default lead. */
 export type GroupDefaultResponder =
   | { kind: "member"; botId: string; leader?: true }
   | { kind: "everyone" }
   | { kind: "mentions" }
-  | { kind: "auto"; fallbackBotId?: string; by?: "mausbot" };
+  | { kind: "auto"; fallbackBotId?: string; by?: "dusk" };
 
 /** One independent conversation inside a user-created channel. */
 export interface GroupTask {

@@ -26,7 +26,7 @@ it("restart keeps the key and replaces the warm process, and so does turning the
   /** The key the server itself starts with, behind the tool gate the turn mounts it through. */
   const mailKey = (started: any): string | undefined => {
     const mounted = started.mcpConfig.mcpServers.mail;
-    return (mounted.env.OMB_GATE_UPSTREAM ? JSON.parse(mounted.env.OMB_GATE_UPSTREAM) : mounted).env.MAIL_KEY;
+    return (mounted.env.DUSK_GATE_UPSTREAM ? JSON.parse(mounted.env.DUSK_GATE_UPSTREAM) : mounted).env.MAIL_KEY;
   };
   let sends = 0;
   let bot: { id: string; threadId: string };
@@ -38,7 +38,7 @@ it("restart keeps the key and replaces the warm process, and so does turning the
     expect((await api("POST", `/api/bots/${bot.id}/messages`, { threadId: bot.threadId, text, sendId: `restart-e2e-send-${String(sends).padStart(4, "0")}` })).status).toBe(202);
     await expect.poll(() => { try { return JSON.stringify(dump().prompt).includes(text); } catch { return false; } }, { timeout: 30_000 }).toBe(true);
     const started = dump();
-    const internal = (path: string, body: unknown) => api("POST", path, body, started.mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN);
+    const internal = (path: string, body: unknown) => api("POST", path, body, started.mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN);
     const done = async () => {
       writeFileSync(gate, "");
       await expect.poll(async () => (await api("GET", "/api/bots?messages=0")).body.bots.find((one: any) => one.id === bot.id).busy, { timeout: 20_000 }).toBe(false);
@@ -61,7 +61,7 @@ it("restart keeps the key and replaces the warm process, and so does turning the
     await setup.done();
     // Saving the key answered the card the setup turn asked with, so that turn goes on once more. It runs now, while nothing
     // else is sent: later it would take the thread or the warm process from a turn this test checks.
-    await expect.poll(() => { try { return JSON.stringify(dump().prompt).includes("OpenMausBot secret update"); } catch { return false; } }, { timeout: 30_000 }).toBe(true);
+    await expect.poll(() => { try { return JSON.stringify(dump().prompt).includes("Dusk Bot secret update"); } catch { return false; } }, { timeout: 30_000 }).toBe(true);
     await setup.done();
 
     const launched = await turn();

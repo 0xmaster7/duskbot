@@ -9,7 +9,7 @@ const listen = (channel) => (cb) => {
   return () => ipcRenderer.removeListener(channel, handler);
 };
 const word = (value) => (typeof value === "string" ? value.slice(0, 128) : "");
-// OMB_AMBIENT_TRACE (electron/ambient-trace.mjs): the page adds its own side of the timeline, never any message text
+// DUSK_AMBIENT_TRACE (electron/ambient-trace.mjs): the page adds its own side of the timeline, never any message text
 const tracing = process.argv.includes("--omb-ambient-trace=1");
 
 contextBridge.exposeInMainWorld("ambient", {

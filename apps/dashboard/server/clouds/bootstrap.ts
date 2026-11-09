@@ -21,7 +21,7 @@ export function linkKeys(): { publicKey: string; privateKey: string } {
 
 export function homeEnv(input: HomeInput): Record<string, string> {
   // this service pushes a signed entitlement to every home it makes, so each one refuses clients without it
-  const env = { OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: input.cloudId, OMB_CLOUD_ADMIN_URL: input.adminOrigin, OMB_CLOUD_BOOTSTRAP_SECRET: input.secret, OMB_PUBLIC_URL: input.origin, OMB_DASHBOARD_URL: input.dashboardUrl, OMB_CLOUD_ENTITLEMENT: "required" };
+  const env = { DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: input.cloudId, DUSK_CLOUD_ADMIN_URL: input.adminOrigin, DUSK_CLOUD_BOOTSTRAP_SECRET: input.secret, DUSK_PUBLIC_URL: input.origin, DUSK_DASHBOARD_URL: input.dashboardUrl, DUSK_CLOUD_ENTITLEMENT: "required" };
   if (Object.values(env).some(value => /[\r\n\0]/.test(value))) throw new Error("Invalid cloud environment value.");
   return env;
 }
@@ -37,7 +37,7 @@ export function originFor(template: string | undefined, input: { ipv4: string; c
 }
 
 export function poolBootstrap(input: BootstrapInput & { origin: string }): string {
-  return JSON.stringify({ env: { ...homeEnv(input), HOME: "/data", OMB_DATA_DIR: "/data/.openmausbot", OMB_PORT: "8799" }, files: [{ path: "/data/.openmausbot/dashboard-link.json", mode: 0o600, content: JSON.stringify(input.link) }, { path: `/data/${CLOUD_HOME_MARKER_FILE}`, mode: 0o600, content: JSON.stringify({ version: 1, machine: input.cloudId }) }] });
+  return JSON.stringify({ env: { ...homeEnv(input), HOME: "/data", DUSK_DATA_DIR: "/data/.duskbot", DUSK_PORT: "8799" }, files: [{ path: "/data/.duskbot/dashboard-link.json", mode: 0o600, content: JSON.stringify(input.link) }, { path: `/data/${CLOUD_HOME_MARKER_FILE}`, mode: 0o600, content: JSON.stringify({ version: 1, machine: input.cloudId }) }] });
 }
 
 export function shellQuote(value: string): string { return `'${value.replaceAll("'", `'"'"'`)}'`; }
@@ -52,10 +52,10 @@ if (!/^(?:\\d{1,3}\\.){3}\\d{1,3}$/.test(ipv4) || ipv4.split(".").some(v => Numb
 const origin = input.template.replaceAll("{ip-dashed}", ipv4.replaceAll(".", "-")).replaceAll("{id}", input.cloudId);
 const url = new URL(origin);
 if (origin !== url.origin || url.protocol !== "https:" || !url.hostname.includes(".") || url.username || url.password) process.exit(1);
-const env = { ...input.env, OMB_PUBLIC_URL: origin };
+const env = { ...input.env, DUSK_PUBLIC_URL: origin };
 if (Object.values(env).some(v => /[\\r\\n\\0]/.test(v))) process.exit(1);
 fs.writeFileSync("/root/omb-home.env", Object.entries(env).map(([k,v]) => k + "=" + v).join("\\n") + "\\n", { mode: 0o600 });
-fs.writeFileSync("/srv/omb-data/.openmausbot/dashboard-link.json", JSON.stringify(input.link), { mode: 0o600 });
+fs.writeFileSync("/srv/omb-data/.duskbot/dashboard-link.json", JSON.stringify(input.link), { mode: 0o600 });
 fs.writeFileSync("/srv/omb-data/${CLOUD_HOME_MARKER_FILE}", JSON.stringify({ version: 1, machine: input.cloudId }), { mode: 0o600 });
 fs.writeFileSync("/etc/caddy/Caddyfile", url.host + " {\\n reverse_proxy 127.0.0.1:8080\\n}\\n");`;
   const payload = { cloudId: input.cloudId, template: input.originTemplate ?? "https://{ip-dashed}.sslip.io", env: homeEnv({ ...input, origin: "" }), link: input.link };
@@ -90,19 +90,19 @@ apt-get update
 apt-get install -y ca-certificates curl caddy nodejs
 apt-get install -y docker.io e2fsprogs
 install -d -m 755 /etc/systemd/system/docker.service.d
-install -m 700 /dev/stdin /usr/local/sbin/omb-storage <<'OMB_STORAGE'
-${storage}OMB_STORAGE
-install -m 644 /dev/stdin /etc/systemd/system/omb-storage.service <<'OMB_STORAGE_UNIT'
-${storageUnit}OMB_STORAGE_UNIT
-install -m 644 /dev/stdin /etc/systemd/system/docker.service.d/omb-storage.conf <<'OMB_DOCKER_UNIT'
+install -m 700 /dev/stdin /usr/local/sbin/omb-storage <<'DUSK_STORAGE'
+${storage}DUSK_STORAGE
+install -m 644 /dev/stdin /etc/systemd/system/omb-storage.service <<'DUSK_STORAGE_UNIT'
+${storageUnit}DUSK_STORAGE_UNIT
+install -m 644 /dev/stdin /etc/systemd/system/docker.service.d/omb-storage.conf <<'DUSK_DOCKER_UNIT'
 [Unit]
 Requires=omb-storage.service
 After=omb-storage.service
-OMB_DOCKER_UNIT
+DUSK_DOCKER_UNIT
 systemctl daemon-reload
 systemctl enable --now omb-storage
 systemctl enable --now docker
-install -d -m 700 /srv/omb-data /srv/omb-data/.openmausbot
+install -d -m 700 /srv/omb-data /srv/omb-data/.duskbot
 ipv4="$(curl -fsS --max-time 10 http://169.254.169.254/hetzner/v1/metadata/public-ipv4)"
 node -e ${shellQuote(setup)} ${shellQuote(JSON.stringify(payload))} "$ipv4"
 maus_uid="$(docker run --rm --entrypoint id ${image} -u maus)"

@@ -73,9 +73,9 @@ beforeAll(async () => {
   child = spawn(process.execPath, ["--import", pathToFileURL(join(ROOT, "server/testing/group-local-vm-hooks.mjs")).href, join(ROOT, "server/index.ts")], {
     cwd: ROOT, env: {
       PATH: dirname(process.execPath), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
-      HOME: home, USERPROFILE: home, OMB_DATA_DIR: data, APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
-      TEMP: home, TMP: home, TMPDIR: home, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), OMB_STATIC_DIR: ui,
-      OMB_TEST_VM_STATE: join(home, "vm.json"), OMB_TEST_VPS_STATE: vpsStateFile, OMB_TEST_VPS_DRIVER_LOG: driverLog,
+      HOME: home, USERPROFILE: home, DUSK_DATA_DIR: data, APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
+      TEMP: home, TMP: home, TMPDIR: home, DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1), DUSK_STATIC_DIR: ui,
+      DUSK_TEST_VM_STATE: join(home, "vm.json"), DUSK_TEST_VPS_STATE: vpsStateFile, DUSK_TEST_VPS_DRIVER_LOG: driverLog,
     }, stdio: ["ignore", "pipe", "pipe"],
   });
   child.stdout!.on("data", () => {});
@@ -112,19 +112,19 @@ describe("a bot's own VPS computer asleep at turn start", () => {
     await api("PATCH", `/api/bots/${bot.id}`, { computer: null, browser: false });
     vpsState({ containers: { [bot.id]: "stopped" } });
     writeFileSync(callsFile, JSON.stringify([
-      { name: "launch_app", server: "computer", input: { url: "https://siddz.com" } },
+      { name: "launch_app", server: "computer", input: { url: "https://dusk.bot" } },
       { name: "screenshot", server: "computer", input: {} },
       { name: "vm_exec", server: "agents", input: { command: "uname -m" } },
     ]));
     rmSync(dumpFile, { force: true });
-    await api("POST", `/api/bots/${bot.id}/messages`, { text: "can u use computer and open siddz.com in it" });
+    await api("POST", `/api/bots/${bot.id}/messages`, { text: "can u use computer and open dusk.bot in it" });
     const sent: any = await dump();
     await idle(bot.id);
 
     const computer = sent.mcpConfig.mcpServers.computer;
     expect(computer.args.at(-1)).toBe("computer");
-    expect(computer.env.OMB_MCP_TOKEN_COMPUTER).toBeTruthy();
-    expect(computer.env.OMB_CONTROL_TOKEN).toBeUndefined();
+    expect(computer.env.DUSK_MCP_TOKEN_COMPUTER).toBeTruthy();
+    expect(computer.env.DUSK_CONTROL_TOKEN).toBeUndefined();
     expect(sent.systemPrompt).toContain(WAKES_ON_CALL_VPS_NOTE.trim());
 
     expect(readVpsState().actions).toEqual([{ action: "start", ownerId: bot.id }]);

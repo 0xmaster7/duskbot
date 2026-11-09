@@ -9,7 +9,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 async function harness(independent: boolean, initiallyEnabled = true) {
   const vps = await createTeamVpsFixture({ screens: independent });
   let fixture;
-  try { fixture = await launchVerificationServer({ OMB_TEST_VPS_IDLE_CLOCK: "1" }, undefined, vps.localVm); }
+  try { fixture = await launchVerificationServer({ DUSK_TEST_VPS_IDLE_CLOCK: "1" }, undefined, vps.localVm); }
   catch (error) { await vps.close(); throw error; }
   const api = async (method: string, path: string, body?: unknown) => {
     const response = await fetch(fixture.info.url + path, { method, headers: { "content-type": "application/json", origin: fixture.info.url }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });

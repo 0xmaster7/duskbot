@@ -96,7 +96,7 @@ describe("buildDiagnosticsReport", () => {
 
   it("masks JSON credential fields and cookies in HTTP dumps", () => {
     const redacted = redactSecretsInLine([
-      '{"OMB_COMPOSIO_BROKER_TOKEN":"opaque-broker-value","password":"opaque-password-value"}',
+      '{"DUSK_COMPOSIO_BROKER_TOKEN":"opaque-broker-value","password":"opaque-password-value"}',
       '{"Cookie":"session=private-cookie; tracking=private-tracker"}',
       "Cookie: session=private-session; tracking=private-tracking",
     ].join("\n"));
@@ -112,7 +112,7 @@ describe("buildDiagnosticsReport", () => {
     const report = buildDiagnosticsReport({
       appInfo,
       configSummary: { groq: { configured: true } },
-      logTail: `Groq HTTP 401: invalid key ${key}\nspawn env OMB_GROQ_API_KEY=${workspaceKey}\nupstream rejected ${otherKey}`,
+      logTail: `Groq HTTP 401: invalid key ${key}\nspawn env DUSK_GROQ_API_KEY=${workspaceKey}\nupstream rejected ${otherKey}`,
     });
     for (const secret of [key, otherKey, workspaceKey]) expect(report).not.toContain(secret);
     expect(report).toContain("groq.configured=true");
@@ -172,7 +172,7 @@ describe("buildDiagnosticsReport", () => {
       appInfo,
       configSummary: {},
       logTail: "server ready",
-      logPath: "/Users/ada/Library/Logs/OpenMausBot/server.log",
+      logPath: "/Users/ada/Library/Logs/Dusk Bot/server.log",
     });
     expect(report).toContain("## Server log tail");
     expect(report).not.toContain("/Users/ada");
@@ -285,7 +285,7 @@ describe("formatDesktopCrashRecord", () => {
     error.stack = [
       "TypeError: secret user text from C:\\Users\\Ada\\private.txt",
       "secret-client.ts:1:1",
-      "    at boot (file:///C:/Users/Ada/OpenMausBot/electron/main.mjs:412:7)",
+      "    at boot (file:///C:/Users/Ada/Dusk Bot/electron/main.mjs:412:7)",
     ].join("\n");
     const record = formatDesktopCrashRecord({ kind: "main", origin: "unhandledRejection", error });
     expect(record).toBe("event=main-process-failure origin=unhandledRejection error=TypeError");
@@ -377,7 +377,7 @@ describe("decodeLogTail", () => {
 
 describe("readSafeLogTail", () => {
   it("exports only a bounded complete-line server tail from an isolated log fixture", () => {
-    const directory = mkdtempSync(join(tmpdir(), "openmausbot-server-diagnostics-"));
+    const directory = mkdtempSync(join(tmpdir(), "duskbot-server-diagnostics-"));
     try {
       const log = join(directory, "server.log");
       const tail = "[info] update staged\n[error] https://updates.example.test/app.zip?jwt=private-query-token\n";
@@ -396,7 +396,7 @@ describe("readSafeLogTail", () => {
   });
 
   it("reads a bounded tail from a regular app-owned log", () => {
-    const directory = mkdtempSync(join(tmpdir(), "openmausbot-log-tail-"));
+    const directory = mkdtempSync(join(tmpdir(), "duskbot-log-tail-"));
     try {
       const log = join(directory, "server.log");
       writeFileSync(log, "partial-secret\nfirst\nsecond\n", { mode: 0o600 });
@@ -407,7 +407,7 @@ describe("readSafeLogTail", () => {
   });
 
   it.skipIf(process.platform === "win32")("rejects a log-path symlink", () => {
-    const directory = mkdtempSync(join(tmpdir(), "openmausbot-log-symlink-"));
+    const directory = mkdtempSync(join(tmpdir(), "duskbot-log-symlink-"));
     try {
       const privateFile = join(directory, "private.txt");
       const log = join(directory, "desktop-crashes.log");
@@ -421,9 +421,9 @@ describe("readSafeLogTail", () => {
 });
 
 describe("diagnosticsFileName", () => {
-  it("uses openmausbot-diagnostics-YYYYMMDD-HHmmss.txt", () => {
+  it("uses duskbot-diagnostics-YYYYMMDD-HHmmss.txt", () => {
     expect(diagnosticsFileName(new Date(2026, 7, 22, 16, 5, 9))).toBe(
-      "openmausbot-diagnostics-20260822-160509.txt",
+      "duskbot-diagnostics-20260822-160509.txt",
     );
   });
 });

@@ -18,7 +18,7 @@ afterEach(() => { while (removals.length) removals.pop()!(); });
 
 function homes() {
   const root = mkdtempSync(join(tmpdir(), "omb-saved-secrets-"));
-  return { dataDir: join(root, "data"), keyFile: join(root, "config", "openmausbot", "saved-secrets.key") };
+  return { dataDir: join(root, "data"), keyFile: join(root, "config", "duskbot", "saved-secrets.key") };
 }
 
 describe("saved secrets at rest", () => {
@@ -66,7 +66,7 @@ describe("saved secrets at rest", () => {
     expect(store.ready()).toBe(false);
     expect(() => store.save({ label: "Key", botId: "b", value: CANARY })).toThrow(SavedSecretsUnavailable);
     expect(store.secretValues()).toEqual([]);
-    expect(key.receive({ type: "openmausbot:saved-secrets-key", key: randomBytes(32).toString("hex") })).toBe(true);
+    expect(key.receive({ type: "duskbot:saved-secrets-key", key: randomBytes(32).toString("hex") })).toBe(true);
     const saved = store.save({ label: "Key", botId: "b", value: CANARY });
     expect(existsSync(keyFile)).toBe(false);
     expect(store.remove(saved.id)).toBe(true);

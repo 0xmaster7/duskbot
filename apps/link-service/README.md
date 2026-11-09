@@ -1,23 +1,23 @@
-# OpenMausBot link service
+# Dusk Bot link service
 
-Links a person's VPS to their OpenMausBot app with one pasted line. It's a small Node app with no dependencies and
-nothing tied to openmausbot.com or Cloudflare.
+Links a person's VPS to their Dusk Bot app with one pasted line. It's a small Node app with no dependencies and
+nothing tied to dusk.bot or Cloudflare.
 
 ```
-curl -fsSL https://link.apps.siddz.com/i/<code> | sh
+curl -fsSL https://link.dusk.bot/i/<code> | sh
 ```
 
 ## Phone push
 
 `POST /v1/push` sends one push for a workspace that holds no APNs or FCM keys of its own; `GET /v1/push` lists the
 services this relay has keys for. It sees the device token, the bot's name and ids, never message text, and keeps
-nothing. Set `OMB_APNS_KEY_FILE`, `OMB_APNS_KEY_ID`, `OMB_APNS_TEAM_ID`, `OMB_APNS_TOPIC` and
-`OMB_FCM_SERVICE_ACCOUNT_FILE` on the service; see `docs/phone-push.md`.
+nothing. Set `DUSK_APNS_KEY_FILE`, `DUSK_APNS_KEY_ID`, `DUSK_APNS_TEAM_ID`, `DUSK_APNS_TOPIC` and
+`DUSK_FCM_SERVICE_ACCOUNT_FILE` on the service; see `docs/phone-push.md`.
 
 ## Slack OAuth return
 
 `GET /slack/callback` validates Slack's code or error and state, then returns a small page that opens
-`openmausbot://slack/oauth` with a copyable fallback. The route is stateless: it never calls Slack, stores nothing,
+`duskbot://slack/oauth` with a copyable fallback. The route is stateless: it never calls Slack, stores nothing,
 and never logs the query. The app completes the exchange with its own harness, so the harness needs no public URL.
 
 ## How it fits together
@@ -35,7 +35,7 @@ and never logs the query. The app completes the exchange with its own harness, s
  3 opens the sealed result                                                  sealed for the app (x25519 + aes-gcm)
    (only the app can)
  4 local proxy http://vps-<id>.localhost:<port>
-      |  sealed frames  ------->    /v1/tunnels/<id>/to-vps  ----------->  agent.mjs tunnel (openmausbot-link.service)
+      |  sealed frames  ------->    /v1/tunnels/<id>/to-vps  ----------->  agent.mjs tunnel (duskbot-link.service)
       |  sealed frames  <-------    /v1/tunnels/<id>/to-app  <-----------    -> http://127.0.0.1:8799 (marked remote)
    pairs, saves the server, signs the AI in from this Mac, moves everything
 ```
@@ -59,15 +59,15 @@ stays on the relay; a transport that failed on a network is tried last there for
 ```
  app (electron main)                                         vps
  vps-link-direct.mjs  -- ssh, tcp 22, host key pinned -->    sshd -> forced command: node agent.mjs direct (as omb-link)
-                                                                -> unix socket ~/.config/openmausbot-link/direct.sock
+                                                                -> unix socket ~/.config/duskbot-link/direct.sock
                       -- wss, tcp 443, tls key pinned -->    https front (caddy, nginx) /omb-direct -> 127.0.0.1:8797
    same sealed frames as the relay, length-prefixed          both end in the tunnel process: http://127.0.0.1:8799 (marked remote)
 ```
 
-- **443.** The tunnel process listens on `127.0.0.1:8797` (`OMB_LINK_WSS_PORT`) for a WebSocket at `/omb-direct`; its
+- **443.** The tunnel process listens on `127.0.0.1:8797` (`DUSK_LINK_WSS_PORT`) for a WebSocket at `/omb-direct`; its
   binary messages carry exactly the ssh channel's byte stream. A direct-mode install's Caddy passes `/omb-direct` to it.
   On a relay-mode server whose operator runs their own HTTPS (nginx with a real certificate), add a location for
-  `/omb-direct` that proxies WebSocket upgrades to `127.0.0.1:8797` and set `OMB_LINK_WSS_URL=wss://<host>/omb-direct` in
+  `/omb-direct` that proxies WebSocket upgrades to `127.0.0.1:8797` and set `DUSK_LINK_WSS_URL=wss://<host>/omb-direct` in
   the link unit's environment. The app asks for the address with the sealed control op `direct-wss`; the agent answers
   the URL and the SHA-256 of its certificate's public key (read from the server itself), which the app pins on top of
   the usual certificate checks. A changed key (a renewal that made a new key) asks again over the sealed tunnel, at most
@@ -83,8 +83,8 @@ stays on the relay; a transport that failed on a network is tried last there for
   keys, its public IPv4 (from a STUN server, outbound UDP) and the user name. The private key is kept with safeStorage
   in the link record (`links[].direct`); host keys are pinned there. `direct-off` and unlinking remove the line; the
   tunnel agent re-points the line at its own node path on start. An older agent answers "unknown request" and is asked
-  again after 6 hours. `OMB_LINK_DIRECT=off` (agent's environment, or the app's) keeps everything on the relay;
-  `OMB_LINK_DIRECT_HOST` / `OMB_LINK_DIRECT_PORT` override the address the agent reports.
+  again after 6 hours. `DUSK_LINK_DIRECT=off` (agent's environment, or the app's) keeps everything on the relay;
+  `DUSK_LINK_DIRECT_HOST` / `DUSK_LINK_DIRECT_PORT` override the address the agent reports.
 - **Sealing and identity.** The channel carries exactly the relay's frames (AES-256-GCM with the tunnel key, AAD
   `<id>|to-vps` / `<id>|to-app`, timestamps, one replay guard across every path on each end: the tunnel process serves
   the relay and every direct connection) as `[u32 length][type][iv|ct|tag]`
@@ -108,7 +108,7 @@ stays on the relay; a transport that failed on a network is tried last there for
   hole punching delivered nothing in 25 s either way. TCP 22 is open on every VPS. A WebRTC tier could be added beside
   this one for networks where punching works; it would not help behind such VPNs.
 - **When it cannot work.** sshd set to refuse the link account (`AllowUsers`, `AllowGroups`, `DenyUsers`), sshd off
-  port 22 without `OMB_LINK_DIRECT_PORT`, or outbound port 22 blocked on the person's network, and no HTTPS address for
+  port 22 without `DUSK_LINK_DIRECT_PORT`, or outbound port 22 blocked on the person's network, and no HTTPS address for
   443: the app logs it and stays on the relay.
 
 ## Versions and updates
@@ -116,20 +116,20 @@ stays on the relay; a transport that failed on a network is tried last there for
 - **Handshake.** The agent says what it speaks (`LINK_PROTOCOL`, the oldest app and server it works with, `AGENT_VERSION`
   and its capabilities) in its direct hello and in answer to the sealed control op `hello`, which also carries the
   server's version and link protocol (`server/link-protocol.ts`, the `link` field of
-  `/.well-known/openmausbot/environment`). Protocol numbers decide, never versions; an optional feature is a capability
+  `/.well-known/duskbot/environment`). Protocol numbers decide, never versions; an optional feature is a capability
   the app checks for. The app's view gets `compat: { update: null | "app" | "agent" | "server", message, ... }`. An
   agent from before the handshake answers "unknown request" and works as protocol 1.
 - **Self-update.** Every 6 hours (5 minutes after start first) the tunnel reads `GET /v1/release` (the version, protocol
   and sha256 of the agent this service serves, and `agent.mjs.sig` when there is one) and stages a newer release in
-  `~/.config/openmausbot-link/releases/<version>/` only when the file matches its hash and its own version line, a
-  signature checks out when release keys are pinned (`RELEASE_KEYS` in agent.mjs or `OMB_LINK_RELEASE_KEYS`; sign with
+  `~/.config/duskbot-link/releases/<version>/` only when the file matches its hash and its own version line, a
+  signature checks out when release keys are pinned (`RELEASE_KEYS` in agent.mjs or `DUSK_LINK_RELEASE_KEYS`; sign with
   `node release.mjs sign <key>`), and `agent.mjs selftest` runs; `ready.json` is written last. It never takes an older
   version or a lower protocol. It applies only after 5 minutes without a request, a stream byte or an egress stream
   from the app (or at once for the `update` op with `apply: "now"`), by ending the tunnel so systemd starts it again.
-  The installed `/opt/openmausbot-link/agent.mjs` then launches the staged file, and stops launching one that did not
+  The installed `/opt/duskbot-link/agent.mjs` then launches the staged file, and stops launching one that did not
   stay up for 2 minutes three starts in a row, so a bad release leaves the installed agent running.
   It stays off until at least one release key is pinned, since an update runs downloaded code as the agent;
-  `OMB_LINK_UPDATES=off` turns it off for good. The server's own build is not updated this way: it is root's, and only
+  `DUSK_LINK_UPDATES=off` turns it off for good. The server's own build is not updated this way: it is root's, and only
   `install.sh` replaces it.
 
 ## Phone channels
@@ -137,12 +137,12 @@ stays on the relay; a transport that failed on a network is tried last there for
 The VPS agent syncs phone channels with its local harness at `/api/mobile/relay/sync` and registers them under the
 existing tunnel. Each phone has its own relay token verifier, encryption key, replay guard and queues. Grant channels
 only serve pairing redemption, environment discovery and health; device channels serve the harness API with the
-phone's session. Phone channels refuse agent controls and strip cookies and `x-openmausbot-*` headers. Requests carry
+phone's session. Phone channels refuse agent controls and strip cookies and `x-dusk-*` headers. Requests carry
 a per-channel remote address, so they never receive loopback trust. Removing a channel from the harness closes its
 forwarded requests and removes it from the relay.
 
 The agent keeps its X25519 phone keys in `phone-keys.json` beside `tunnel.json`, with mode 0600. Grant keys come from
-the harness; device keys derive from the phone and agent key pairs using the channel id. Set `OMB_LINK_PHONES=off`
+the harness; device keys derive from the phone and agent key pairs using the channel id. Set `DUSK_LINK_PHONES=off`
 to disable the phone hub. Phone clients use `createTunnelProxy` with `id` set to the channel id and `route` set to
 `${base}/v1/channels/${channelId}`.
 
@@ -157,13 +157,13 @@ to disable the phone hub. Phone clients use `createTunnelProxy` with `id` set to
   everything the service sees opens nothing. Residual risk: an actively malicious link service could serve a different
   script or swap keys. That is the trust you give anything you `curl | sh`. Run the service yourself (this folder) to
   remove the third party entirely.
-- Tunnelled requests arrive at OpenMausBot with `X-Forwarded-For` set, so the server treats them as remote: they need
+- Tunnelled requests arrive at Dusk Bot with `X-Forwarded-For` set, so the server treats them as remote: they need
   the paired session and never get loopback trust. The app's proxy serves only its own `vps-<id>.localhost:<port>` host.
 - AI credentials are made on the Mac (`claude setup-token`, Codex's `~/.codex/auth.json`). They travel only as sealed
   control frames to the agent, which writes them with mode 0600 into its hand-off folder (`/var/lib/omb-link/handoff`).
-  A root unit (`openmausbot-handoff.service`, `/usr/local/lib/openmausbot/engine-handoff.sh`) reads them as `omb-link`,
-  keeps only the `CLAUDE_CODE_OAUTH_TOKEN=` line for `/etc/openmausbot/engines.env` (which only systemd reads) and
-  writes the Codex sign-in into maus's `~/.codex/auth.json` as maus. They never pass through OpenMausBot's HTTP API and
+  A root unit (`duskbot-handoff.service`, `/usr/local/lib/duskbot/engine-handoff.sh`) reads them as `omb-link`,
+  keeps only the `CLAUDE_CODE_OAUTH_TOKEN=` line for `/etc/duskbot/engines.env` (which only systemd reads) and
+  writes the Codex sign-in into maus's `~/.codex/auth.json` as maus. They never pass through Dusk Bot's HTTP API and
   are never logged.
 
 ### Accounts on the server
@@ -172,34 +172,34 @@ Bots run shell commands, so the server is split so that no bot can reach what wo
 
 | Account | Runs | Holds | Never has |
 |---|---|---|---|
-| `maus` | `openmausbot.service` (hardened: no new privileges, no capabilities, system read-only, other homes hidden) | its home (0700) and data folder (0700) | the docker group, the link files |
-| `omb-link` | `openmausbot-link.service` and the app's restricted direct key | `/var/lib/omb-link`: `tunnel.json`, `.ssh/authorized_keys`, the hand-off folder | the server's data |
-| `omb-docker` (in `docker`) | `omb-docker-gate.service`: a Docker API filter on `/run/openmausbot-docker/docker.sock` (group `omb-dockergate`: maus only) | nothing | a shell, the network |
+| `maus` | `duskbot.service` (hardened: no new privileges, no capabilities, system read-only, other homes hidden) | its home (0700) and data folder (0700) | the docker group, the link files |
+| `omb-link` | `duskbot-link.service` and the app's restricted direct key | `/var/lib/omb-link`: `tunnel.json`, `.ssh/authorized_keys`, the hand-off folder | the server's data |
+| `omb-docker` (in `docker`) | `omb-docker-gate.service`: a Docker API filter on `/run/duskbot-docker/docker.sock` (group `omb-dockergate`: maus only) | nothing | a shell, the network |
 
-- Every bot's turn runs in the bot box (`OMB_BOT_BOX=required`, server/bot-box): its own user, mount, pid and network
+- Every bot's turn runs in the bot box (`DUSK_BOT_BOX=required`, server/bot-box): its own user, mount, pid and network
   namespaces, HOME an engine home inside the data folder (`engine-home`) with only the engines' sign-ins bound in
   (settings read-only), its workspace, and the internet through the box's egress gate. The server's HOME, data folder,
   `~/.ssh`, `~/.config` and `~/.local` are never in a box, and a working folder that would contain them is refused. If
   bubblewrap cannot run, bots' turns are refused rather than run unboxed. Ubuntu 24.04 needs the AppArmor profile
-  install.sh writes (`/etc/apparmor.d/openmausbot-bwrap`) for bubblewrap to make user namespaces.
+  install.sh writes (`/etc/apparmor.d/duskbot-bwrap`) for bubblewrap to make user namespaces.
 - The docker gate (`docker-gate.mjs`, served at `/docker-gate.mjs` like the agent) forwards only what the server's bot
   computers need, on containers labelled as ours, with the flags it sets (gVisor, no privileged mode, no host mounts,
   devices or namespaces, dropped capabilities). The two host probes are allowed only in their exact shape.
 - Running install.sh again on an older install moves `tunnel.json` to `omb-link`, drops the app's key from maus (the app
   asks the agent for a new one over the sealed tunnel and connects as `omb-link`), moves the Claude token to
-  `/etc/openmausbot/engines.env`, copies the engines' sessions into the engine home, takes maus out of the docker group
+  `/etc/duskbot/engines.env`, copies the engines' sessions into the engine home, takes maus out of the docker group
   and installs the gate and the hardened units. Nothing in the data folder moves.
 - Unlinking in the app deletes the tunnel at the service. The agent then idles and the app forgets the server.
 
 ### Secrets sealed for the server itself
 
 On top of the tunnel, every password, 2FA key, 1Password service-account token and API key typed in the app is sealed
-for the OpenMausBot server process before it leaves the page (HPKE: P-256, HKDF-SHA256, AES-256-GCM), so neither the
+for the Dusk Bot server process before it leaves the page (HPKE: P-256, HKDF-SHA256, AES-256-GCM), so neither the
 link service, the agent nor anything else that relays the request can read it:
 
 - The server makes a fresh sealing key each start (`GET /api/seal-key`) and signs it with its long-term identity key,
   `seal-identity.key` (P-256, mode 0600, in the data folder, never in a workspace backup or a move). The identity is in
-  `/.well-known/openmausbot/environment` as `sealIdentity`.
+  `/.well-known/duskbot/environment` as `sealIdentity`.
 - `agent.mjs link` puts `sealIdentity` in the result it seals for the app, and the app pins it in its link record
   (`vps-link.json`, `links[].sealIdentity`). A link made before that pins the first identity it sees, through the same
   sealed tunnel (`sealPinnedAt` says when). The page asks main (`window.ogb.sealTrust.check`); main picks the link from
@@ -209,7 +209,7 @@ link service, the agent nor anything else that relays the request can read it:
   token to its connect, API keys to the settings paths they fill (`sealedPaths`). A sealed value opens once.
 - The server refuses a secret in the clear from anything but loopback with `400 {code: "seal_required", sealKey}`. The
   desktop's own page on this computer, and its private main-process channel for keys, keep working unsealed.
-- Reinstalling OpenMausBot with a fresh data folder makes a new identity: the app then refuses to seal for it until the
+- Reinstalling Dusk Bot with a fresh data folder makes a new identity: the app then refuses to seal for it until the
   server is linked again (run the install line from a new "Add your VPS").
 
 ## Route traffic through this computer
@@ -311,7 +311,7 @@ install.sh posts every step to `POST /v1/sessions/<id>/events` (bearer: the VPS 
 
 ## The server build
 
-The VPS installs our own server, built from this repo, not the upstream `openmausbot` npm package. That build is
+The VPS installs our own server, built from this repo, not the upstream `duskbot` npm package. That build is
 private: the service hands it only to a claimed install session, at `/pkg/<session>/<sha256>.tgz`, with the session's
 own bearer token, while the session is still installing, at most 10 times across both archives. There is no public url for it.
 
@@ -320,9 +320,9 @@ own bearer token, while the session is still installing, at most 10 times across
   Interrupted downloads retain `.part` files and resume with an authenticated `Range: bytes=<offset>-` request.
   A checksum mismatch discards that partial file and retries from zero; a verified cache needs no download.
   Its three native dependencies (DuckDB, resvg, the 1Password SDK) still come from the npm registry, per platform.
-- No build published means no `package` in the claim, and the install stops at "Installing OpenMausBot" with "the link
-  service has no OpenMausBot build to hand out yet".
-- `OMB_PACKAGE=<npm spec or tarball url>` before `sh` installs that instead. It is never the default.
+- No build published means no `package` in the claim, and the install stops at "Installing Dusk Bot" with "the link
+  service has no Dusk Bot build to hand out yet".
+- `DUSK_PACKAGE=<npm spec or tarball url>` before `sh` installs that instead. It is never the default.
 - The bot computer kit rides the same way: `deploy/bot-desktop/` plus `shared/bot-desktop.ts` as one tgz, named in
   the claim as `"desktop": {"sha256", "size", "image", "path"}` (`image` is `BOT_DESKTOP_IMAGE`). install.sh then sets
   the host up the way `deploy/bot-desktop/README.md` ("Host setup the box expects") says, as three terminal steps
@@ -341,7 +341,7 @@ own bearer token, while the session is still installing, at most 10 times across
 Publish a new build (from the repo root, on a machine with this checkout):
 
 ```
-node scripts/build-vps-package.mjs                               # builds; writes release/vps/openmausbot-<version>-<sha12>.tgz + manifest.json
+node scripts/build-vps-package.mjs                               # builds; writes release/vps/duskbot-<version>-<sha12>.tgz + manifest.json
 node scripts/build-vps-package.mjs --skip-build --publish /root/omb-link-data   # on the link service host: copies it in
 ```
 
@@ -355,39 +355,39 @@ tgz files keep serving installs already under way; delete them when no install f
 
 install.sh opens with the wordmark decoding out of noise and one light sweep (about a second, one awk process), then
 shows five phases, one line each: Preparing your server (check, basics, docker, user), Installing the runtime
-(node), Installing OpenMausBot (app, engines, service), Setting up the bot computer (sandbox, fence, desktop) and
+(node), Installing Dusk Bot (app, engines, service), Setting up the bot computer (sandbox, fence, desktop) and
 Linking to your app (address, link). The running step is the line's sub-status, with a bar for downloads of known
 size and build steps, and the line turns into one check when the phase is done (amber when an optional part failed).
 The mascot wags its tail while work runs. A failure shows the red step, its last log lines and one plain fix. The end
 is three lines: ready and how long it took, where it runs, and "go back to the app". The versions table goes to
-`/var/log/openmausbot-link/summary.log` (and on screen with `OMB_VERBOSE=1`); every step's log is
-`/var/log/openmausbot-link/<step>.log`.
+`/var/log/duskbot-link/summary.log` (and on screen with `DUSK_VERBOSE=1`); every step's log is
+`/var/log/duskbot-link/<step>.log`.
 
 It falls back to plain lines (no escapes) when stdout is not a terminal or `TERM=dumb`, drops colors and the
-animation for `NO_COLOR` (`OMB_NO_ANIM=1` keeps colors without the animation), uses ASCII for `OMB_ASCII=1`, and a
+animation for `NO_COLOR` (`DUSK_NO_ANIM=1` keeps colors without the animation), uses ASCII for `DUSK_ASCII=1`, and a
 one-line wordmark under 80 columns. In-place drawing (the phase list, the mascot) only happens when the screen has
 room for all of it; otherwise lines just follow each other.
 
 Try the screen without a server (writes nothing, needs no root, runs on a Mac too):
 
 ```
-OMB_INSTALL_DEMO=1 sh apps/link-service/install.sh        # OMB_INSTALL_DEMO=fail shows a failure
+DUSK_INSTALL_DEMO=1 sh apps/link-service/install.sh        # DUSK_INSTALL_DEMO=fail shows a failure
 ```
 
 ## Uninstall
 
 ```
-curl -fsSL https://link.apps.siddz.com/uninstall | sh                 # shows what it removes, asks on the terminal
-curl -fsSL https://link.apps.siddz.com/uninstall | sh -s -- --yes     # no question (or OMB_UNINSTALL_YES=1)
+curl -fsSL https://link.dusk.bot/uninstall | sh                 # shows what it removes, asks on the terminal
+curl -fsSL https://link.dusk.bot/uninstall | sh -s -- --yes     # no question (or DUSK_UNINSTALL_YES=1)
 ```
 
 `GET /uninstall` (also `/uninstall.sh`) serves `uninstall.sh` to anyone, no session, with the base baked in. It puts
 the server back the way install.sh found it, in the same five-phase screen: Unlinking from your app (deletes the
-tunnel at the service with the server's own tunnel token, so the app reads "unlinked"), Stopping OpenMausBot (every
-unit install.sh wrote), Clearing the bot computers (our containers, their home volumes, the `openmausbot-desktops`
+tunnel at the service with the server's own tunnel token, so the app reads "unlinked"), Stopping Dusk Bot (every
+unit install.sh wrote), Clearing the bot computers (our containers, their home volumes, the `duskbot-desktops`
 network, our images, the host fence and its iptables rules, and `/etc/docker/daemon.json` back from install.sh's
 `.omb-before` copy or with only our keys taken out; Docker restarts only when that file changed), Removing your bots'
-home (a 0600 tarball of `~maus/.openmausbot` to `/root/openmausbot-backup-<date>.tgz` first unless `--no-backup`,
+home (a 0600 tarball of `~maus/.duskbot` to `/root/duskbot-backup-<date>.tgz` first unless `--no-backup`,
 then the `maus` account, `/opt`, `/var/lib`, `/var/log` files and Caddy site) and Removing what it installed. It ends
 with a check of what is left (systemctl, `docker ps -a` and friends, the account, the paths, the fence, daemon.json).
 
@@ -395,7 +395,7 @@ It asks before changing anything, on `/dev/tty`, so the `curl | sh` line works. 
 shows what it would remove; `--dry-run` does that on purpose. It is safe to run again, and when nothing or only part is
 installed. A failed backup stops it before anything of the bots is removed.
 
-install.sh writes `/var/lib/openmausbot/install-manifest`: every package its apt calls added (dependencies too), the
+install.sh writes `/var/lib/duskbot/install-manifest`: every package its apt calls added (dependencies too), the
 apt sources and keyrings it created, whether it made `daemon.json` or which keys it added, what it did to the
 Caddyfile, the ufw ports it opened and whether it made the `maus` account. A plain uninstall keeps Docker, Node, Caddy
 and gVisor (and the `pkg`/`file` lines of the manifest, so a later `--all` still knows them). `--all` also purges
@@ -413,12 +413,12 @@ cd apps/link-service && npm start                       # PORT (default 8790)
 | env | default | |
 |---|---|---|
 | `PORT` | 8790 | listen port |
-| `LINK_BASE` | `https://link.apps.siddz.com` | public address the VPS reaches; baked into the served script |
+| `LINK_BASE` | `https://link.dusk.bot` | public address the VPS reaches; baked into the served script |
 | `LINK_DATA_DIR` | `./data` | `state.json` (sessions, tunnel verifiers); keep it outside the checkout so redeploys keep tunnels |
 | `LINK_PACKAGES_DIR` | `$LINK_DATA_DIR/packages` | the private server builds (see "The server build") |
 | `LINK_TRUST_PROXY` | `1` | read the client IP from `X-Real-IP` or the last `X-Forwarded-For` hop; set `0` without a proxy |
 
-The app's base comes from `OMB_LINK_BASE` (default `https://link.apps.siddz.com`).
+The app's base comes from `DUSK_LINK_BASE` (default `https://link.dusk.bot`).
 
 Deploy with the `deploy` CLI from the repo root:
 
@@ -445,4 +445,4 @@ Tests: `pnpm vitest run link-service electron/vps-link.test.mjs` and `node --tes
 
 ## Account dashboard
 
-Set `OMB_LINK_DASHBOARD_URL` to advertise the hosted dashboard through `GET /.well-known/openmausbot/dashboard`.
+Set `DUSK_LINK_DASHBOARD_URL` to advertise the hosted dashboard through `GET /.well-known/duskbot/dashboard`.

@@ -1,6 +1,6 @@
 // Against the real Muse Code CLI, signed in on this machine. Skipped unless
-// OMB_LIVE_MUSE=1: it spends the account's Muse usage.
-//   OMB_LIVE_MUSE=1 pnpm exec vitest run server/drivers/muse-code.live.test.ts
+// DUSK_LIVE_MUSE=1: it spends the account's Muse usage.
+//   DUSK_LIVE_MUSE=1 pnpm exec vitest run server/drivers/muse-code.live.test.ts
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir, userInfo } from "node:os";
 import { join } from "node:path";
@@ -8,10 +8,10 @@ import { afterAll, describe, expect, it } from "vitest";
 import type { ProviderInstance, RuntimeEvent } from "../contracts.ts";
 import { MuseCodeDriver } from "./muse-code.ts";
 
-const live = process.env.OMB_LIVE_MUSE === "1";
+const live = process.env.DUSK_LIVE_MUSE === "1";
 // The test setup points HOME at a temp dir; only the engine gets the real one, where `muse login` saved.
 const home = userInfo().homedir;
-const cli = process.env.OMB_MUSE_CLI ?? join(home, ".local", "bin", "muse");
+const cli = process.env.DUSK_MUSE_CLI ?? join(home, ".local", "bin", "muse");
 
 describe.skipIf(!live)("Muse Code (live)", () => {
   const cwd = mkdtempSync(join(tmpdir(), "omb-muse-live-"));

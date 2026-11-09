@@ -14,7 +14,7 @@ import { writeFileAtomic } from "./atomic.ts";
 import { decryptBrowserState, encryptBrowserState } from "./browser-sites.ts";
 
 export const SAVED_SECRETS_FILE = "saved-secrets.json.enc";
-export const SAVED_SECRETS_KEY_MESSAGE = "openmausbot:saved-secrets-key";
+export const SAVED_SECRETS_KEY_MESSAGE = "duskbot:saved-secrets-key";
 const HEX_KEY = /^[0-9a-f]{64}$/u;
 const SAVED_LIMIT = 200;
 
@@ -44,14 +44,14 @@ export interface SavedSecretsKey {
   peek(): string | null;
 }
 
-/** A headless server's key: `<config>/openmausbot/saved-secrets-<data folder hash>.key`, outside the data folder,
+/** A headless server's key: `<config>/duskbot/saved-secrets-<data folder hash>.key`, outside the data folder,
  * 0600 in a 0700 folder, owned by this user. A link, a foreign owner or a loose mode is refused or tightened. */
 export function fileSavedSecretsKey(dataDir: string, file = defaultKeyFile(dataDir)): SavedSecretsKey & { file: string } {
   const inside = relative(resolve(dataDir), resolve(file));
   // A data folder that holds the config folder (a home used as the data folder) gets no key: saving to the Vault is
-  // refused, and Use once still works. Set OMB_SAVED_SECRETS_KEY_FILE to a path outside it.
+  // refused, and Use once still works. Set DUSK_SAVED_SECRETS_KEY_FILE to a path outside it.
   const misplaced = !inside || (!inside.startsWith("..") && !isAbsolute(inside));
-  const outside = () => { if (misplaced) throw new Error("the saved secrets key must live outside the data folder; set OMB_SAVED_SECRETS_KEY_FILE"); };
+  const outside = () => { if (misplaced) throw new Error("the saved secrets key must live outside the data folder; set DUSK_SAVED_SECRETS_KEY_FILE"); };
   let cached: string | null = null;
   return {
     file,
@@ -71,11 +71,11 @@ export function fileSavedSecretsKey(dataDir: string, file = defaultKeyFile(dataD
 }
 
 function defaultKeyFile(dataDir: string): string {
-  const configured = process.env.OMB_SAVED_SECRETS_KEY_FILE?.trim();
+  const configured = process.env.DUSK_SAVED_SECRETS_KEY_FILE?.trim();
   if (configured) return configured;
   const base = process.env.XDG_CONFIG_HOME?.trim() || join(homedir(), ".config");
   const tag = createHash("sha256").update(resolve(dataDir)).digest("hex").slice(0, 16);
-  return join(base, "openmausbot", `saved-secrets-${tag}.key`);
+  return join(base, "duskbot", `saved-secrets-${tag}.key`);
 }
 
 function ownedPlain(path: string, kind: "file" | "folder"): void {

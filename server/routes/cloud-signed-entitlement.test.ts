@@ -29,7 +29,7 @@ function routes() {
     browser: () => ({ available: true, installing: false, interrupted: 0 }), now,
   });
   const entitlement = createCloudEntitlement({ dataDir, machineId: MACHINE, now, fromSource: true,
-    env: { OMB_CLOUD_ENTITLEMENT: "required", OMB_ENTITLEMENT_DEV_KEYS: `${dev.publicKey.kid}:${dev.publicKey.x}` } });
+    env: { DUSK_CLOUD_ENTITLEMENT: "required", DUSK_ENTITLEMENT_DEV_KEYS: `${dev.publicKey.kid}:${dev.publicKey.x}` } });
   const handle = createCloudSignedRoutes({ secret, sessions, health, now, entitlement });
   const send = async (path: string, value: unknown, key = secret) => {
     const body = JSON.stringify(value), timestamp = String(Math.floor(NOW / 1000)), nonce = `nonce-${String(++counter).padStart(12, "0")}`;

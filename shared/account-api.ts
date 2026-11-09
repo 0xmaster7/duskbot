@@ -19,8 +19,8 @@ export const SESSION_COOKIE = "omb_dash";
 export const CSRF_COOKIE = "omb_csrf";
 export const CSRF_HEADER = "x-omb-csrf";
 
-/** the deep link a phone sign-in returns to: openmausbot://auth?code=...&state=... or ?error=...&state=... */
-export const APP_AUTH_REDIRECT = "openmausbot://auth";
+/** the deep link a phone sign-in returns to: duskbot://auth?code=...&state=... or ?error=...&state=... */
+export const APP_AUTH_REDIRECT = "duskbot://auth";
 
 export interface AccountView {
   id: string;

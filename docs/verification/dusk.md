@@ -1,9 +1,9 @@
-# MausBot, everyone's helper
+# Dusk, everyone's helper
 
-MausBot is the bot every place and every Team Cloud member gets once: a new
+Dusk is the bot every place and every Team Cloud member gets once: a new
 install's first bot and its Chief of Staff, or, for an install that already has
 bots, a helper beside them. It is never deleted or archived; the person takes it
-off the sidebar with "Show MausBot in the sidebar" in Settings → General, which
+off the sidebar with "Show Dusk in the sidebar" in Settings → General, which
 its menu's **Hide from sidebar** also turns off.
 
 ## Automated checks
@@ -11,20 +11,20 @@ its menu's **Hide from sidebar** also turns off.
 ```sh
 pnpm exec vitest run server/default-bot.test.ts server/default-bot.e2e.test.ts \
   server/team-setup-requests.test.ts src/lib/default-bot.test.ts \
-  src/lib/mausbot-landing.test.ts
+  src/lib/dusk-landing.test.ts
 ```
 
-- `server/default-bot.test.ts`: a fresh install gets one MausBot once; an
+- `server/default-bot.test.ts`: a fresh install gets one Dusk once; an
   existing install gets one once on update and its Chief is untouched; a new
-  install's renamed MausBot is adopted, not duplicated; the intro shows once,
+  install's renamed Dusk is adopted, not duplicated; the intro shows once,
   not after it was answered or dismissed; delete and archive are refused; a
   move to My Cloud and coming home leave exactly one; each Team Cloud member
-  gets their own; a Team User's MausBot holds no Chief tools.
+  gets their own; a Team User's Dusk holds no Chief tools.
 - `server/default-bot.e2e.test.ts`: on a real fixture server, `DELETE
-  /api/bots/:id` answers 409, the switch hides and shows it, and a MausBot that
+  /api/bots/:id` answers 409, the switch hides and shows it, and a Dusk that
   is not the Chief creates a bot with `create_bot`.
-- `server/mausbot-notifications.test.ts`, `server/drivers/agents-mausbot-tools.test.ts`
-  and the second case of `server/default-bot.e2e.test.ts`: MausBot alone gets
+- `server/dusk-notifications.test.ts`, `server/drivers/agents-dusk-tools.test.ts`
+  and the second case of `server/default-bot.e2e.test.ts`: Dusk alone gets
   `list_unread_notifications` and `mark_notifications_read`, listed last.
   The list returns the unread feed (bounded, trimmed) with a lean per item;
   marking read takes only finished work (`done`, `delegation-settled`), leaves
@@ -35,21 +35,21 @@ pnpm exec vitest run server/default-bot.test.ts server/default-bot.e2e.test.ts \
   such an item is the person's, to be marked read only if they said so.
   Personal installs only (refused on any team server); no other bot may call
   them. The list is annotated read-only like the other reviewed reads.
-  `server/drivers/agents-catalog-wire.test.ts` budgets the `+mausbot` profiles,
+  `server/drivers/agents-catalog-wire.test.ts` budgets the `+dusk` profiles,
   each within 2% of the same Chief's list without them.
-- `server/team-setup-requests.test.ts` ("MausBot's Chief-level team setup"):
+- `server/team-setup-requests.test.ts` ("Dusk's Chief-level team setup"):
   it adds specialists like a Chief but never changes who the Chief is.
-- `src/lib/default-bot.test.ts`: a renamed MausBot is found by its mark,
+- `src/lib/default-bot.test.ts`: a renamed Dusk is found by its mark,
   visibility follows the saved switch, and the viewer gets their own helper.
   Current first-run UI is covered by `src/components/onboarding/WelcomeFlow.test.ts`,
-  not the removed Meet MausBot popup.
-- `src/lib/mausbot-landing.test.ts`: the rows already in the sidebar glide down
+  not the removed Meet Dusk popup.
+- `src/lib/dusk-landing.test.ts`: the rows already in the sidebar glide down
   by the new row's height, the avatar lands in the new slot and leaves nothing
   behind, reduced motion only fades the row in, and a hidden sidebar just adds it.
-- `server/default-bot.test.ts` also: a place with no Chief gets MausBot as its
+- `server/default-bot.test.ts` also: a place with no Chief gets Dusk as its
   Chief; a place with a Chief keeps it. Either way the daily brief comes from
-  MausBot, hidden from the sidebar or not, and its intro says so. How the watch
-  moves to MausBot is in [Proactive routines and the brief](proactive-routines.md).
+  Dusk, hidden from the sidebar or not, and its intro says so. How the watch
+  moves to Dusk is in [Proactive routines and the brief](proactive-routines.md).
 
 ## By hand
 
@@ -57,8 +57,8 @@ Launch the app against an isolated fixture (`docs/verification/README.md`),
 finish the first-run welcome, then:
 
 1. Follow the current [welcome flow](onboarding.md) in a fresh fixture.
-   It should finish in MausBot's chat; the retired Meet MausBot popup is absent.
-2. MausBot's first message says what it does in the app's language, with
+   It should finish in Dusk's chat; the retired Meet Dusk popup is absent.
+2. Dusk's first message says what it does in the app's language, with
    example asks and, on a new install, only the setup steps still to do. Each
    step opens the app's own flow.
 3. Its sidebar menu offers **Hide from sidebar**, not Archive or Delete; the

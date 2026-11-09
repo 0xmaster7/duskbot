@@ -16,7 +16,7 @@ export const DESKTOP_CPU_SHARES = 256;
 const WAIT_MS = 30_000;
 const POLL_MS = 3_000;
 const MEMORY_TTL_MS = 10 * 60_000;
-const ENVIRONMENT_LABEL = "com.openmausbot.environment";
+const ENVIRONMENT_LABEL = "bot.dusk.environment";
 
 export interface VpsDesktopLimits { memoryMb: number }
 export type VpsDocker = (args: string[], timeoutMs?: number) => Promise<{ stdout: string }>;
@@ -51,9 +51,9 @@ export function createVpsCapacityHost(deps: {
 let host: VpsCapacityHost | null = null;
 export function setVpsCapacityHost(next: VpsCapacityHost | null): void { host = next; }
 
-/** OMB_VPS_MAX_DESKTOPS overrides the memory rule for a host whose desktops are lighter or heavier than usual. */
+/** DUSK_VPS_MAX_DESKTOPS overrides the memory rule for a host whose desktops are lighter or heavier than usual. */
 export function desktopCapacity(memoryBytes: number, env: NodeJS.ProcessEnv = process.env): number {
-  const forced = Number(env.OMB_VPS_MAX_DESKTOPS);
+  const forced = Number(env.DUSK_VPS_MAX_DESKTOPS);
   if (Number.isInteger(forced) && forced >= 1) return Math.min(MAX_DESKTOPS, forced);
   return Math.max(1, Math.min(MAX_DESKTOPS, Math.floor((memoryBytes - HOST_RESERVE_BYTES) / DESKTOP_BYTES)));
 }

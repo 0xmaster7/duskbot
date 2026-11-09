@@ -10,7 +10,7 @@ import { BOX_BRIDGE_SCRIPT, writeSeccompFile } from "./box.ts";
 import { detectBox } from "./detect.ts";
 import { runBoxSelfCheck } from "./self-check.ts";
 
-const detection = detectBox({ env: { ...process.env, OMB_BOT_BOX: "1" } });
+const detection = detectBox({ env: { ...process.env, DUSK_BOT_BOX: "1" } });
 const available = detection.box === "bwrap" && detection.tools !== null;
 const root = mkdtempSync(join(tmpdir(), "omb-box-real-"));
 /** The CPU list is checked only where the host has one to put in the box. */

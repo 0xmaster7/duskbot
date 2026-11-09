@@ -41,7 +41,7 @@ are not recorded here, so confirm the right to ship it before publishing the ima
 
 ## Two modes
 
-The harness picks one at creation and labels the container `com.openmausbot.bot-desktop-mode`.
+The harness picks one at creation and labels the container `bot.dusk.bot-desktop-mode`.
 
 **free** (the goal): the bot may do anything inside its box. `sudo` without a password, a writable root filesystem
 that keeps what is installed across restarts (recreating the box from the image is the reset), any program or server
@@ -59,7 +59,7 @@ that keeps what is installed across restarts (recreating the box from the image 
 
 **strict** (automatic fallback when the host has no fence or neither gVisor nor remapping): the box fences itself.
 PID 1 applies `omb-firewall` with `NET_ADMIN`, then the session runs as uid 1000 under `no-new-privileges`, which also
-makes `sudo` inert. Read-only root filesystem; same network rules plus the host's own addresses (`OMB_BLOCK_EXTRA`).
+makes `sudo` inert. Read-only root filesystem; same network rules plus the host's own addresses (`DUSK_BLOCK_EXTRA`).
 
 ## How the harness starts it
 
@@ -67,34 +67,34 @@ makes `sudo` inert. Read-only root filesystem; same network rules plus the host'
 
 1. `docker pull ghcr.io/sidddevz/omb-bot-desktop:v3` unless present. If the pull fails (not published, private
    package, registry down) it builds the image on the docker host from this folder as shipped with the server
-   (`deploy/bot-desktop/` beside `dist-server/`, or `OMB_BOT_DESKTOP_KIT`), only when its Dockerfile's
+   (`deploy/bot-desktop/` beside `dist-server/`, or `DUSK_BOT_DESKTOP_KIT`), only when its Dockerfile's
    `ARG BOT_DESKTOP_VERSION` equals `BOT_DESKTOP_VERSION`; the turn's chat says the build is running. When neither
    works, provisioning refuses with the reason and creates nothing; it never falls back to the Cua XFCE desktop.
-   `OPENMAUSBOT_VPS_DESKTOP=cua` forces Cua.
+   `DUSK_VPS_DESKTOP=cua` forces Cua.
 2. `docker network create --driver bridge --opt com.docker.network.bridge.enable_icc=false
-   --opt com.docker.network.bridge.name=omb-desk0 --label com.openmausbot.vps-network=1 openmausbot-desktops`
-3. `docker info` for `runsc` (gVisor) and `name=userns` (remapping); `OPENMAUSBOT_VPS_GVISOR=off` skips gVisor.
+   --opt com.docker.network.bridge.name=omb-desk0 --label bot.dusk.vps-network=1 duskbot-desktops`
+3. `docker info` for `runsc` (gVisor) and `name=userns` (remapping); `DUSK_VPS_GVISOR=off` skips gVisor.
 4. Fence check: `docker run --rm --network host --userns host --cap-drop ALL --cap-add NET_ADMIN --read-only
    --security-opt no-new-privileges --entrypoint /usr/local/bin/omb-host-fence <image> --check` (reads netfilter only).
-   `OPENMAUSBOT_VPS_BOX=strict` forces strict.
+   `DUSK_VPS_BOX=strict` forces strict.
 5. Free:
 
 ```sh
-docker run -d --name openmausbot-vps-<bot>-<hash> --hostname bot \
-  --label com.openmausbot.vps=1 --label com.openmausbot.container=<name> --label com.openmausbot.environment=<id> \
-  --label com.openmausbot.vps-viewer=1 --label com.openmausbot.bot-desktop=2 \
-  --label com.openmausbot.bot-desktop-mode=free --label com.openmausbot.cua-driver=0.37.0 \
-  [--runtime runsc] --network openmausbot-desktops --dns 1.1.1.1 --dns 9.9.9.9 \
+docker run -d --name duskbot-vps-<bot>-<hash> --hostname bot \
+  --label bot.dusk.vps=1 --label bot.dusk.container=<name> --label bot.dusk.environment=<id> \
+  --label bot.dusk.vps-viewer=1 --label bot.dusk.bot-desktop=2 \
+  --label bot.dusk.bot-desktop-mode=free --label bot.dusk.cua-driver=0.37.0 \
+  [--runtime runsc] --network duskbot-desktops --dns 1.1.1.1 --dns 9.9.9.9 \
   --tmpfs /tmp:rw,nosuid,nodev,size=1g --tmpfs /run:rw,nosuid,nodev,size=64m,uid=1000,gid=1000,mode=0755 \
   --mount type=volume,source=<name>-home,target=/home/cua \
   --cap-drop ALL --cap-add AUDIT_WRITE --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add FSETID \
   --cap-add KILL --cap-add NET_BIND_SERVICE --cap-add SETGID --cap-add SETUID --cap-add SYS_CHROOT \
   --ipc private --cgroupns private --memory 1536m --memory-swap 1536m --cpu-shares 256 --oom-score-adj 500 \
-  --cpus 2 --pids-limit 4096 --shm-size 512m --restart no -e OMB_MODE=free -e VNC_PW=<random> <image id>
+  --cpus 2 --pids-limit 4096 --shm-size 512m --restart no -e DUSK_MODE=free -e VNC_PW=<random> <image id>
 ```
 
    Strict instead: `--read-only`, `--cap-add NET_ADMIN --cap-add SETUID --cap-add SETGID` only,
-   `--security-opt no-new-privileges`, `-e OMB_MODE=strict`, and `-e OMB_BLOCK_EXTRA=<host addresses>` read with a
+   `--security-opt no-new-privileges`, `-e DUSK_MODE=strict`, and `-e DUSK_BLOCK_EXTRA=<host addresses>` read with a
    one-shot `ip -o addr show scope global` probe in the host's network namespace.
 
 The status check (`server/vps-computer.ts`) refuses a container whose flags, mounts, network, labels or image differ

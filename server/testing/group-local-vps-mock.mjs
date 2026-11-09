@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { writeFileAtomic } from '../atomic.ts';
 import { vpsContainerName } from '../vps-computer.ts?actual';
 
-const file = process.env.OMB_TEST_VPS_STATE;
+const file = process.env.DUSK_TEST_VPS_STATE;
 if (!file) throw new Error('An explicit isolated VPS state file is required');
 const read = () => JSON.parse(readFileSync(file, 'utf8'));
 

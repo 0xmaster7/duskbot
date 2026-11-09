@@ -13,7 +13,7 @@ export function MacCuaRecoveryActions({ reason, ownRetry = false }: { reason: st
   const { capabilities, ready } = useDesktopCapabilities();
   const permissions = missingMacCuaPermissions(reason);
   const currentPermissions = missingMacCuaPermissions(capabilities.localComputer.message);
-  // CuaDriver picks a grant up by itself and the app watches for it; OpenMausBot's own grant needs a relaunch
+  // CuaDriver picks a grant up by itself and the app watches for it; Dusk Bot's own grant needs a relaunch
   const helper = macCuaPermissionHelper(capabilities.localComputer.message);
   const [error, setError] = useState<string | null>(null);
   const [awaitingGrant, setAwaitingGrant] = useState(false);

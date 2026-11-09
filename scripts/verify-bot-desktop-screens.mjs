@@ -10,12 +10,12 @@ import { closeFixtureBrowser, connectMcp, driver, eventually, httpFixture, socke
 const run = promisify(execFile);
 const root = fileURLToPath(new URL("..", import.meta.url));
 const evidence = await mkdtemp(join(process.platform === "win32" ? tmpdir() : "/tmp", "omb-ms-"));
-const image = process.env.OMB_VERIFY_DESKTOP_IMAGE;
-assert.ok(image, "select a fixture image containing omb-screen with OMB_VERIFY_DESKTOP_IMAGE");
+const image = process.env.DUSK_VERIFY_DESKTOP_IMAGE;
+assert.ok(image, "select a fixture image containing omb-screen with DUSK_VERIFY_DESKTOP_IMAGE");
 const imageId = (await run("docker", ["image", "inspect", image, "--format", "{{.Id}}"])).stdout.trim();
 assert.match(imageId, /^sha256:[a-f0-9]{64}$/);
-process.env.OMB_DATA_DIR = join(evidence, "server-data");
-process.env.OPENMAUSBOT_VPS_DOCKER = "local";
+process.env.DUSK_DATA_DIR = join(evidence, "server-data");
+process.env.DUSK_VPS_DOCKER = "local";
 const { createSharedScreenBroker, independentScreenTarget, independentScreenExecArgs } = await import("../server/shared-desktop-screens.ts");
 const { createVpsScreenRuntime } = await import("../server/vps-screen.ts");
 const { defaultRunner } = await import("../server/vps-computer.ts");
@@ -38,12 +38,12 @@ let container;
 let broker;
 try {
   container = (await run("docker", [
-    "run", "--rm", "-d", "--name", `omb-screens-${process.pid}`, "--label", "com.openmausbot.verification=screens",
+    "run", "--rm", "-d", "--name", `omb-screens-${process.pid}`, "--label", "bot.dusk.verification=screens",
     "--network", "none", "--user", "1000:1000", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
     "--read-only", "--memory", "4g", "--cpus", "2", "--pids-limit", "4096", "--shm-size", "512m",
     "--tmpfs", "/home/cua:rw,nosuid,nodev,size=512m,uid=1000,gid=1000,mode=0700",
     "--tmpfs", "/tmp:rw,nosuid,nodev,size=512m", "--tmpfs", "/run:rw,nosuid,nodev,size=128m,uid=1000,gid=1000,mode=0755",
-    "-e", "OMB_START_URL=about:blank", "--entrypoint", "/usr/local/bin/omb-session", imageId,
+    "-e", "DUSK_START_URL=about:blank", "--entrypoint", "/usr/local/bin/omb-session", imageId,
   ], { timeout: 15_000 })).stdout.trim();
   receipt.container = container;
   const exec = args => run("docker", ["exec", "-u", "1000:1000", container, ...args], { timeout: 20_000, maxBuffer: 16 * 1024 * 1024 });
@@ -70,7 +70,7 @@ try {
   assert.notEqual(leases[0].target.display, leases[1].target.display);
   assert.notEqual(leases[0].target.chromiumProfile, leases[1].target.chromiumProfile);
   const app = async (target, flow) => {
-    const binary = process.env.OMB_AGENT_BROWSER_PATH || join(root, ".omb-scratch", "verify-tools", "tools", "agent-browser", "0.37.0", "agent-browser");
+    const binary = process.env.DUSK_AGENT_BROWSER_PATH || join(root, ".omb-scratch", "verify-tools", "tools", "agent-browser", "0.37.0", "agent-browser");
     const home = join(evidence, `home-${flow.tag}`);
     const relay = await boxChromeRelay(() => spawn("docker", boxChromeExecArgs(container, target), { stdio: ["pipe", "pipe", "ignore"] }));
     try {
@@ -79,7 +79,7 @@ try {
       const { tools } = await transport.list();
       const output = await run(process.execPath, ["--experimental-strip-types", join(root, "scripts/testing/bot-desktop-app-browser.mjs"), relay.url, evidence, JSON.stringify(tools.map(tool => tool.name)), JSON.stringify({ ...flow, botId: target.botId, display: target.display })], {
         cwd: root, timeout: 90_000, maxBuffer: 4 * 1024 * 1024,
-        env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home, OMB_DATA_DIR: join(home, "data"), OMB_AGENT_BROWSER_PATH: binary },
+        env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home, DUSK_DATA_DIR: join(home, "data"), DUSK_AGENT_BROWSER_PATH: binary },
       }).catch(async error => {
         await writeFile(join(evidence, `${flow.tag}.log`), (error.stdout ?? "") + (error.stderr ?? ""));
         throw new Error(`App browser failed: ${flow.tag}; see ${evidence}`);

@@ -114,7 +114,7 @@ export interface AmbientBridge {
   settled?(): void;
   /** The chat this surface shows now (null when none), so that bot's summary carries a long stretch of it. */
   viewing?(viewing: AmbientViewing | null): void;
-  /** Present only while main traces the surfaces (OMB_AMBIENT_TRACE): one event of this page's side of the timeline. */
+  /** Present only while main traces the surfaces (DUSK_AMBIENT_TRACE): one event of this page's side of the timeline. */
   trace?(event: string, detail?: string): void;
   open(botId: string, threadId: string): void;
   act(act: AmbientAct): void;

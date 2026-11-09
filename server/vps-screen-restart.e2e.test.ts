@@ -22,13 +22,13 @@ it.skipIf(process.platform === "win32").each(["provision", "join?viewer=proxy"])
     expect(initial.viewerKey).toBeTypeOf("string");
     expect(initial.viewerKey).not.toBe("unallocated");
     await api("POST", `/api/bots/${bot.id}/messages`, { text: "Keep this fixture turn open." });
-    let control: { OMB_CONTROL_URL: string; OMB_CONTROL_TOKEN: string } | undefined;
+    let control: { DUSK_CONTROL_URL: string; DUSK_CONTROL_TOKEN: string } | undefined;
     await expect.poll(() => {
       try { control = JSON.parse(readFileSync(fixture!.fixtureDumpPath, "utf8")).mcpConfig?.mcpServers?.computer?.env; }
       catch { return false; }
-      return Boolean(control?.OMB_CONTROL_URL);
+      return Boolean(control?.DUSK_CONTROL_URL);
     }, { timeout: 10_000 }).toBe(true);
-    const gate = () => fetch(control!.OMB_CONTROL_URL, { headers: { authorization: `Bearer ${control!.OMB_CONTROL_TOKEN}` } });
+    const gate = () => fetch(control!.DUSK_CONTROL_URL, { headers: { authorization: `Bearer ${control!.DUSK_CONTROL_TOKEN}` } });
     expect((await gate()).status).toBe(200);
     const calls = () => readFileSync(vps.calls, "utf8").split("\n").filter(Boolean).map(line => JSON.parse(line) as string[]);
     const resets = () => calls().filter(args => args.includes("/usr/local/bin/omb-screen") && args.includes("reset")).length;

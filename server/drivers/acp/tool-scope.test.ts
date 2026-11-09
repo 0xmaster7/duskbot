@@ -152,7 +152,7 @@ it("gates eligible ACP servers and retires a pooled process when selection chang
   const servers = JSON.parse(readFileSync(`${f.dump}.mcp.json`, "utf8"));
   expect(servers.map((server: { name: string }) => server.name)).toEqual(["notes"]);
   const env = Object.fromEntries(servers[0].env.map((entry: { name: string; value: string }) => [entry.name, entry.value]));
-  expect(JSON.parse(env.OMB_GATE_TOOL_SCOPE)).toEqual({ allow: ["native:*", "mcp:notes:read"] });
+  expect(JSON.parse(env.DUSK_GATE_TOOL_SCOPE)).toEqual({ allow: ["native:*", "mcp:notes:read"] });
   expect(servers[0].args).not.toContain("Bearer synthetic");
   const before = Number(readFileSync(f.launches, "utf8"));
   f.recorder.events.length = 0;

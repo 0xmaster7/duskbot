@@ -1,6 +1,6 @@
 // Drives the real <App/> through `control-omb ui` and reads outcomes from the
 // accessibility tree. Needs the pinned agent-browser binary: runs when one
-// resolves (tools directory, OMB_AGENT_BROWSER_PATH or PATH) or OMB_UI_E2E=1
+// resolves (tools directory, DUSK_AGENT_BROWSER_PATH or PATH) or DUSK_UI_E2E=1
 // asks for the verified download; otherwise skipped.
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
@@ -18,11 +18,11 @@ import { fixtureApi } from "./preview-fixture.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const CLI = join(ROOT, "scripts", "control-omb.ts");
-const forced = process.env.OMB_UI_E2E === "1";
+const forced = process.env.DUSK_UI_E2E === "1";
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
 const enabled = forced || Boolean(binary);
 if (!enabled) {
-  console.log(`skipping control-omb ui e2e: no agent-browser binary resolves (looked in ${UI_TOOLS_DIR}, OMB_AGENT_BROWSER_PATH and PATH); set OMB_UI_E2E=1 to install the pinned release`);
+  console.log(`skipping control-omb ui e2e: no agent-browser binary resolves (looked in ${UI_TOOLS_DIR}, DUSK_AGENT_BROWSER_PATH and PATH); set DUSK_UI_E2E=1 to install the pinned release`);
 }
 const run = enabled ? it : it.skip;
 // A forced run may still have Chrome for Testing to download even when
@@ -37,9 +37,9 @@ const TOOL_CALLS = JSON.stringify([
 ]);
 const REPLY = "hello from fake claude"; // the fake engine's default reply text
 const COMPOSER = `document.querySelector('textarea[aria-label="Message Pepper"]')`;
-// OMB_UI_EVIDENCE_DIR keeps the screenshot (CI uploads it); otherwise it is temporary.
-const evidenceDir = process.env.OMB_UI_EVIDENCE_DIR ? resolve(ROOT, process.env.OMB_UI_EVIDENCE_DIR) : mkdtempSync(join(tmpdir(), "omb-ui-evidence-"));
-const ownsEvidenceDir = !process.env.OMB_UI_EVIDENCE_DIR;
+// DUSK_UI_EVIDENCE_DIR keeps the screenshot (CI uploads it); otherwise it is temporary.
+const evidenceDir = process.env.DUSK_UI_EVIDENCE_DIR ? resolve(ROOT, process.env.DUSK_UI_EVIDENCE_DIR) : mkdtempSync(join(tmpdir(), "omb-ui-evidence-"));
+const ownsEvidenceDir = !process.env.DUSK_UI_EVIDENCE_DIR;
 
 interface Launched {
   child: ReturnType<typeof spawn>;

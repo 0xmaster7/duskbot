@@ -11,7 +11,7 @@ const AccountContext = createContext<AccountContextValue | null>(null);
 export const useMobileAccount = () => useContext(AccountContext);
 
 export function mobileAccountOrigin(native: boolean, params: URLSearchParams): string {
-  const configured = import.meta.env.VITE_OMB_ACCOUNT_ORIGIN;
+  const configured = import.meta.env.VITE_DUSK_ACCOUNT_ORIGIN;
   if (configured) return configured;
   const value = !native && params.get("accountOrigin");
   if (value) {
@@ -20,7 +20,7 @@ export function mobileAccountOrigin(native: boolean, params: URLSearchParams): s
       if (url.origin === value && !url.username && !url.password && (url.protocol === "https:" || (url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))) return value;
     } catch {}
   }
-  return "https://cloud.openmausbot.com";
+  return "https://app.dusk.bot";
 }
 
 function authProblem(result: AuthResult): string | undefined {
@@ -39,7 +39,7 @@ function authProblem(result: AuthResult): string | undefined {
 export function AccountGate({ children }: { children: ReactNode }) {
   const platform = usePlatform();
   const params = new URLSearchParams(location.search);
-  const required = platform.native ? import.meta.env.VITE_OMB_ALLOW_SIGNED_OUT !== "1" : params.get("account") === "1";
+  const required = platform.native ? import.meta.env.VITE_DUSK_ALLOW_SIGNED_OUT !== "1" : params.get("account") === "1";
   const origin = mobileAccountOrigin(platform.native, params);
   const client = useMemo(() => createMobileAccount({ platform, origin }), [platform, origin]);
   const [account, setAccount] = useState<MobileAccount | null>(null);

@@ -54,7 +54,7 @@ const json = (response: ServerResponse, body: unknown) => {
 
 const agentsServer = (url: string) => ({
   command: process.execPath, args: [SPAWNED_PROXIES.agents],
-  env: { OMB_HARNESS_URL: url, OMB_BOT_ID: "bot-a", OMB_THREAD_ID: "thread-a", OMB_COMMS_TOKEN: "turn-token", OMB_TURN_DEPTH: "0" },
+  env: { DUSK_HARNESS_URL: url, DUSK_BOT_ID: "bot-a", DUSK_THREAD_ID: "thread-a", DUSK_COMMS_TOKEN: "turn-token", DUSK_TURN_DEPTH: "0" },
 });
 
 async function mount(integrations: Parameters<typeof mountChatTools>[0], computerUse = false) {
@@ -63,7 +63,7 @@ async function mount(integrations: Parameters<typeof mountChatTools>[0], compute
   return session;
 }
 
-describe("OpenMausBot's own servers on the chat runtime", () => {
+describe("Dusk Bot's own servers on the chat runtime", () => {
   it("answers the agents server in this process with the turn's token, starting no child", async () => {
     const stub = await harness((_request, _body, response) => json(response, { bots: [{ id: "b2", name: "Quill", model: "fake" }] }));
     const session = await mount({ agents: agentsServer(stub.url) });
@@ -82,7 +82,7 @@ describe("OpenMausBot's own servers on the chat runtime", () => {
         ? { result: { tools: [{ name: "query", description: "Run a read", inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } }] } }
         : { result: { content: [{ type: "text", text: "3 rows" }] } });
     });
-    const data = { command: process.execPath, args: [SPAWNED_PROXIES.harnessMcp, "data"], env: { OMB_HARNESS_URL: stub.url, [harnessMcpTokenEnv("data")]: "data-token" } };
+    const data = { command: process.execPath, args: [SPAWNED_PROXIES.harnessMcp, "data"], env: { DUSK_HARNESS_URL: stub.url, [harnessMcpTokenEnv("data")]: "data-token" } };
     const session = await mount({ data });
     expect(spawned).toEqual([]);
     expect(session.parallel("data_query", {})).toBe(true);
@@ -116,8 +116,8 @@ describe("OpenMausBot's own servers on the chat runtime", () => {
     expect(ownServerAnswer(agentsServer("http://127.0.0.1:9"))).toBeTypeOf("function");
     expect(ownServerAnswer({ ...agentsServer("http://10.0.0.2:9") })).toBeUndefined();
     expect(ownServerAnswer({ ...agentsServer("http://127.0.0.1:9"), command: "/usr/bin/node" })).toBeUndefined();
-    expect(ownServerAnswer({ command: process.execPath, args: [SPAWNED_PROXIES.harnessMcp, "data"], env: { OMB_HARNESS_URL: "http://127.0.0.1:9" } })).toBeUndefined();
-    expect(ownServerAnswer({ command: process.execPath, args: [SPAWNED_PROXIES.harnessMcp, "nope"], env: { OMB_HARNESS_URL: "http://127.0.0.1:9", OMB_DATA_MCP_TOKEN: "x" } })).toBeUndefined();
+    expect(ownServerAnswer({ command: process.execPath, args: [SPAWNED_PROXIES.harnessMcp, "data"], env: { DUSK_HARNESS_URL: "http://127.0.0.1:9" } })).toBeUndefined();
+    expect(ownServerAnswer({ command: process.execPath, args: [SPAWNED_PROXIES.harnessMcp, "nope"], env: { DUSK_HARNESS_URL: "http://127.0.0.1:9", DUSK_DATA_MCP_TOKEN: "x" } })).toBeUndefined();
   });
 
   it("spawns a configured entry that names the agents proxy", async () => {

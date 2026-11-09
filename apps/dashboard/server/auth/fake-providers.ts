@@ -13,7 +13,7 @@ export async function startFakeProviders({ port = 0 }: { port?: number } = {}) {
   const apple = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
   const jwk = { ...rsa.publicKey.export({ format: "jwk" }), kid: "fixture-rsa", alg: "RS256", use: "sig" };
   const users: Record<OAuthProvider, FakeProfile> = {
-    google: { subject: "google-sid", email: "sid@openmausbot.test", emailVerified: true, hd: "openmausbot.test", label: "Sid Fixture", name: "Sid Fixture" },
+    google: { subject: "google-sid", email: "sid@duskbot.test", emailVerified: true, hd: "duskbot.test", label: "Sid Fixture", name: "Sid Fixture" },
     apple: { subject: "apple-sid", email: "sid@privaterelay.appleid.test", emailVerified: "true", label: "Apple Fixture", name: "Apple Fixture" },
     x: { subject: "x-sid", email: null, label: "sid_fixture", name: "X Fixture" },
   };

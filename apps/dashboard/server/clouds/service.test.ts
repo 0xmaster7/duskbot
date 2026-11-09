@@ -19,7 +19,7 @@ function fixture(options: { poolRam?: number; maxAttempts?: number } = {}) {
   const dedicated = createFakeCloudProvider(), driver = createFakePoolDriver({ hosts: [{ id: "pool1", region: "eu", domain: "pool.example.test", draining: false, capacity: { vcpu: 16, ramGb: options.poolRam ?? 32, diskGb: 200, slots: 10 } }] }), pool = createPoolProvider({ driver });
   const workspaces = { register: vi.fn(() => "workspace-1"), lastReportAt: vi.fn(() => at - 1000), remove: vi.fn() };
   const home = { healthy: vi.fn(async () => true), pair: vi.fn(async () => ({ code: "ABCD-EFGH-JKLM", expiresAt: at + 300_000 })) };
-  const deps = { dataDir, providers: { dedicated, pool }, workspaces, home, sealer: createSealer(Buffer.alloc(32, 3)), config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", image: "ghcr.io/example/openmausbot-cloud-home:1.2.3", maxAttempts: options.maxAttempts, poolQuota: (_kind: DesktopPlan["kind"], spec: DesktopPlan["spec"], botComputers: number | null) => ({ ...spec, netMbps: 100, pids: 1000, botComputers }) }, now: () => at };
+  const deps = { dataDir, providers: { dedicated, pool }, workspaces, home, sealer: createSealer(Buffer.alloc(32, 3)), config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", image: "ghcr.io/example/duskbot-cloud-home:1.2.3", maxAttempts: options.maxAttempts, poolQuota: (_kind: DesktopPlan["kind"], spec: DesktopPlan["spec"], botComputers: number | null) => ({ ...spec, netMbps: 100, pids: 1000, botComputers }) }, now: () => at };
   const service = createCloudsService(deps); cleanup.push(() => service.close());
   function order(plan = dedicatedPlan, accountId = "a") { return service.order({ ...plan, accountId, name: "My desktop", color: "blue", region: "eu" }); }
   async function ready(c: StoredCloud) { for (let n = 0; n < 20 && c.status === "provisioning"; n++) await service.reconcile(); expect(c.status).toBe("running"); }
@@ -139,7 +139,7 @@ it("enforces owner and state checks, pairs only running desktops and validates c
   const grantWithCredential = { code: "ABCD-EFGH-JKLM", expiresAt: f.now() + 300_000, credential: "synthetic-private-credential" };
   f.home.pair.mockResolvedValueOnce(grantWithCredential);
   expect(await f.service.pair("a", c.id)).toEqual({ origin: c.origin, code: "ABCD-EFGH-JKLM", expiresAt: f.now() + 300_000 });
-  expect(f.home.pair).toHaveBeenCalledWith(c.origin, expect.any(String), { label: "OpenMausBot app (Cloud)", ttlSeconds: 300 });
+  expect(f.home.pair).toHaveBeenCalledWith(c.origin, expect.any(String), { label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
   expect(() => f.service.hide("a", c.id)).toThrow(expect.objectContaining({ status: 409, code: "not_removable" }));
   for (const name of ["", "a".repeat(41), "<tag>", "a\nb"]) expect(() => f.service.rename("a", c.id, { name })).toThrow();
   f.service.rename("a", c.id, { name: "New name", color: null }); expect(c.name).toBe("New name"); expect(c.color).toBeNull();

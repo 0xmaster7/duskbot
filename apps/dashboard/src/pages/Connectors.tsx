@@ -14,7 +14,7 @@ type Tab = "connectors" | "skills";
 const PAGE = 8;
 
 // the app has no link that starts a connector sign-in, so it opens on its own and the toast says where to go
-const openConnect = (app: { label: string }) => openApp(appLink.app, `Opening OpenMausBot. Add ${app.label} from Connectors there.`);
+const openConnect = (app: { label: string }) => openApp(appLink.app, `Opening Dusk Bot. Add ${app.label} from Connectors there.`);
 
 function Tile({ row }: { row: ConnectorRow }) {
   if (row.app) return <AppLogo app={row.app} size={32} />;
@@ -68,7 +68,7 @@ function AddDialog({ open, onClose, apps, connections }: { open: boolean; onClos
   const results = apps ? (query.trim() ? searchApps(apps, query, 40) : apps.filter((a) => Number.isFinite(popularity(a))).slice(0, 12)) : [];
   return (
     <Modal open={open} onClose={onClose} title="Add a connector" wide>
-      <p>Pick an app. OpenMausBot opens on that workspace to sign in, then your bots can use it.</p>
+      <p>Pick an app. Dusk Bot opens on that workspace to sign in, then your bots can use it.</p>
       <div className="mt-5 flex flex-col gap-3">
         {workspaces && workspaces.length > 1 && (
           <div>
@@ -147,7 +147,7 @@ export function ConnectorsPage() {
               ...(tab === "connectors" ? [{ label: needsOnly ? "Show every status" : "Needs sign-in only", onSelect: () => { setNeedsOnly((v) => !v); setLimit(PAGE); } }] : []),
             ]}
           />
-          <Button variant="primary" onClick={() => (tab === "skills" ? openApp(appLink.app, "Opening OpenMausBot. Add skills from a bot's Skills there.") : setAdding(true))}>Add</Button>
+          <Button variant="primary" onClick={() => (tab === "skills" ? openApp(appLink.app, "Opening Dusk Bot. Add skills from a bot's Skills there.") : setAdding(true))}>Add</Button>
         </div>
       </div>
 

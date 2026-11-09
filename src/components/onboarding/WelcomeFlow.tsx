@@ -50,7 +50,7 @@ export function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElemen
 }
 
 /** The first run, as Grok Bot's: meeting the app (with an AI to connect when none works), the bot's own computer, a job
- * for each Bot, then how they all talk. Its end is the chat (`onDone`): MausBot's, made the Chief of Staff where no other bot is one. */
+ * for each Bot, then how they all talk. Its end is the chat (`onDone`): Dusk's, made the Chief of Staff where no other bot is one. */
 export function WelcomeFlow({
   onDone,
   replay = false,
@@ -123,7 +123,7 @@ export function WelcomeFlow({
     [beat, dispatch, onDone, replay, embedded, keepsDraft],
   );
 
-  // where it fits, MausBot becomes the Chief of Staff and greets, as grok's default bot does, with no screen to ask
+  // where it fits, Dusk becomes the Chief of Staff and greets, as grok's default bot does, with no screen to ask
   const next = useCallback(() => {
     if (finishing.current) return;
     if (!beats.includes("chief") || !maus || !chiefStepFits(state.bots, maus)) return void finish("completed", null);

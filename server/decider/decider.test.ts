@@ -298,12 +298,12 @@ describe("settings rules", () => {
 });
 
 describe("Cloud Pro's included decisions", () => {
-  // A Jev base URL whose one relay route is <OMB_CLOUD_DECIDER_URL>/v1/systemone.
+  // A Jev base URL whose one relay route is <DUSK_CLOUD_DECIDER_URL>/v1/systemone.
   const RELAY = "https://cloud.example.test/api/cloud/services/decider";
   const INCLUDED = "omb_decide_unit_included_token_0123456789";
   const cloudPro = () => {
-    vi.stubEnv("OMB_CLOUD_DECIDER_URL", RELAY);
-    vi.stubEnv("OMB_CLOUD_DECIDER_TOKEN", INCLUDED);
+    vi.stubEnv("DUSK_CLOUD_DECIDER_URL", RELAY);
+    vi.stubEnv("DUSK_CLOUD_DECIDER_TOKEN", INCLUDED);
   };
   // The app's real room request: the only one the relay takes besides the key check.
   const ROOM = roomRoutingRequest({
@@ -321,7 +321,7 @@ describe("Cloud Pro's included decisions", () => {
   };
   afterEach(() => vi.unstubAllEnvs());
 
-  it("with no own key, decides through exactly <OMB_CLOUD_DECIDER_URL>/v1/systemone, on by default", async () => {
+  it("with no own key, decides through exactly <DUSK_CLOUD_DECIDER_URL>/v1/systemone, on by default", async () => {
     cloudPro();
     const fetchImpl = theo();
     for (const config of [{}, { decider: { baseUrl: "http://127.0.0.1:9" } }] as AppConfig[]) {
@@ -368,7 +368,7 @@ describe("Cloud Pro's included decisions", () => {
 
   it("is on by default only while included: without the relay's URL and token nothing changes", async () => {
     const fetchImpl = theo();
-    for (const env of [{}, { OMB_CLOUD_DECIDER_TOKEN: INCLUDED }, { OMB_CLOUD_DECIDER_URL: RELAY }]) {
+    for (const env of [{}, { DUSK_CLOUD_DECIDER_TOKEN: INCLUDED }, { DUSK_CLOUD_DECIDER_URL: RELAY }]) {
       vi.unstubAllEnvs();
       for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
       expect(describeDecider({})).toEqual({ provider: "jev", configured: false, enabled: false, jobs: { roomRouting: true } });
@@ -558,8 +558,8 @@ describe("OpenRouter as the provider", () => {
 
   it("OpenRouter picked with its own key comes before Cloud's included relay, whose token never goes to OpenRouter", async () => {
     const relay = "https://cloud.example.test/api/cloud/services/decider";
-    vi.stubEnv("OMB_CLOUD_DECIDER_URL", relay);
-    vi.stubEnv("OMB_CLOUD_DECIDER_TOKEN", "omb_decide_unit_included_token_0123456789");
+    vi.stubEnv("DUSK_CLOUD_DECIDER_URL", relay);
+    vi.stubEnv("DUSK_CLOUD_DECIDER_TOKEN", "omb_decide_unit_included_token_0123456789");
     const fetchImpl = yes();
     const chose: AppConfig = { decider: { ...OR.decider } };
     expect(describeDecider(chose)).toMatchObject({ provider: "openrouter", configured: true, keySource: "own" });

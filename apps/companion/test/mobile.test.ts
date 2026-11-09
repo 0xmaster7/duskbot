@@ -66,7 +66,7 @@ const bodyOf = async (req: IncomingMessage): Promise<Buffer> => {
 };
 
 const noCompanionHeaders = (req: IncomingMessage): void => {
-  expect(Object.keys(req.headers).filter((name) => name.startsWith("x-openmausbot-companion"))).toEqual([]);
+  expect(Object.keys(req.headers).filter((name) => name.startsWith("x-dusk-companion"))).toEqual([]);
 };
 
 const upgradeRequest = (port: number, headers: Record<string, string> = {}) => request({
@@ -156,7 +156,7 @@ describe("mobile HTTP forwarding", () => {
     expect(denyReason({ method: "POST", path: "/api/mobile/redeem", authenticated: false })).toBeNull();
     const response = await fetch(`${app.url}/api/mobile/redeem`, {
       method: "POST",
-      headers: { ...auth, "content-type": "application/json", "x-openmausbot-companion-auth": "forged", "x-forwarded-for": "forged", "x-forwarded-proto": "https", "last-event-id": "private", range: "bytes=0-1" },
+      headers: { ...auth, "content-type": "application/json", "x-dusk-companion-auth": "forged", "x-forwarded-for": "forged", "x-forwarded-proto": "https", "last-event-id": "private", range: "bytes=0-1" },
       body: input,
     });
     expect(response.status).toBe(200);
@@ -192,7 +192,7 @@ describe("mobile HTTP forwarding", () => {
     app.mobile.remember(TOKEN, "phone");
     const response = await fetch(`${app.url}/api/full-harness?keep=1`, {
       method,
-      headers: { ...auth, "content-type": "application/json", "last-event-id": "event-1", range: " bytes=1-2 ", "x-openmausbot-companion": "1", "x-openmausbot-companion-device": "forged", "x-openmausbot-companion-auth": "forged", cookie: "omit=1" },
+      headers: { ...auth, "content-type": "application/json", "last-event-id": "event-1", range: " bytes=1-2 ", "x-dusk-companion": "1", "x-dusk-companion-device": "forged", "x-dusk-companion-auth": "forged", cookie: "omit=1" },
       ...(method === "POST" ? { body: '{ "setting": true }' } : {}),
     });
     expect(response.status).toBe(201);

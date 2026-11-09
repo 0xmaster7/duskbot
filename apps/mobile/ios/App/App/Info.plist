@@ -6,10 +6,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.openmausbot.mobile</string>
+			<string>bot.dusk.mobile</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>openmausbot</string>
+				<string>duskbot</string>
 			</array>
 		</dict>
 	</array>
@@ -24,7 +24,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>OpenMausBot</string>
+        <string>Dusk Bot</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

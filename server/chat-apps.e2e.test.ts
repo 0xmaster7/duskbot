@@ -39,7 +39,7 @@ it("shows, replaces and serves a bot's page, and carries its context and its mes
     await api("POST", `/api/bots/${bot.id}/messages`, { threadId: bot.threadId, text: "Count my coffees", sendId: "apps-e2e-send-000000001" }, 202);
     let token = "";
     await expect.poll(() => {
-      try { token = dump().mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN; } catch { return false; }
+      try { token = dump().mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN; } catch { return false; }
       return Boolean(token);
     }, { timeout: 15_000 }).toBe(true);
     expect(await card({ tool: "show_html", html: "", title: "Empty" }, 400, token)).toMatchObject({ error: expect.stringMatching(/^html:/) });

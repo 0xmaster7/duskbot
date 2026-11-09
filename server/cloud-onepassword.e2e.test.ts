@@ -1,6 +1,6 @@
 // A real server started the way a Cloud home's root supervisor starts it: the environment is what cloudHomeChildEnvironments
 // hands the server from the image's ENV, and the secrets come over the launcher's pipe. The 1Password SDK is a fake kept
-// where the image keeps the real one, in the native-module tree OMB_DUCKDB_DIR names. Disposable home; no network.
+// where the image keeps the real one, in the native-module tree DUSK_DUCKDB_DIR names. Disposable home; no network.
 import { randomBytes } from "node:crypto";
 import { type ChildProcess } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -51,7 +51,7 @@ async function api(method: string, path: string, body?: unknown) {
 }
 
 async function pairOwner(): Promise<string> {
-  const body = JSON.stringify({ label: "OpenMausBot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
@@ -76,7 +76,7 @@ exports.createClient = async ({ auth }) => {
   if (auth.length < 24) throw new Error("invalid user input: encountered the following errors: service account token had invalid format");
   if (auth !== TOKEN) throw new Error("error authenticating: invalid service account token");
   return {
-    vaults: { list: async () => [{ id: "v1", title: "Shared with OpenMausBot" }] },
+    vaults: { list: async () => [{ id: "v1", title: "Shared with Dusk Bot" }] },
     items: {
       list: async () => [{ id: "i1", title: "CRM", category: "Login", websites: [{ url: "https://crm.example.test/login" }] }],
       getAll: async (vaultId, ids) => ({ individualResponses: ids.map((id) => ({ content: { id, fields } })) }),
@@ -109,14 +109,14 @@ async function proxyFor(start: () => Promise<void>) {
 
 /** The server alone, as the supervisor starts it; resolves once it answers health. */
 async function startCloudHome(at: string, tree: string, port: number, onLog: (chunk: string) => void): Promise<ChildProcess> {
-  const contract = { OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
-    OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_PUBLIC_URL: `https://${HOST}` };
+  const contract = { DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test",
+    DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_PUBLIC_URL: `https://${HOST}` };
   // What the image's ENV sets for the native modules, then the supervisor's own allow-list and secrets pipe.
-  const imageEnv = { PATH: process.env.PATH, OMB_DUCKDB_DIR: tree, ...contract };
+  const imageEnv = { PATH: process.env.PATH, DUSK_DUCKDB_DIR: tree, ...contract };
   const { server, secrets } = cloudHomeChildEnvironments(cloudHomeConfiguration(imageEnv)!, imageEnv, at);
   const offline = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
   const started = spawnWithSecrets(process.execPath, ["--import", offline, join(SERVER_DIR, "index.ts")], {
-    ...server, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), USERPROFILE: at,
+    ...server, DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1), USERPROFILE: at,
     ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
   }, secrets, null, true);
   let seen = "";
@@ -134,7 +134,7 @@ async function startCloudHome(at: string, tree: string, port: number, onLog: (ch
 
 beforeAll(async () => {
   home = mkdtempSync(join(tmpdir(), "omb-cloud-1password-"));
-  const dataDir = join(home, ".openmausbot");
+  const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
   writeFileSync(cli, `#!/usr/bin/env node
@@ -186,7 +186,7 @@ it("connects a 1Password service account on a Cloud home, and says plainly what 
   expect((await api("POST", "/api/logins/1password", { token: `ops_wrong-${"x".repeat(30)}` })).body.error).toBe(ONE_PASSWORD_REFUSED);
   expect((await api("POST", "/api/logins/1password", { token: "ops_short" })).body.error).toMatch(/^That is not a whole 1Password service account token/u);
   const connected = await api("POST", "/api/logins/1password", { token: TOKEN });
-  expect(connected, log).toMatchObject({ status: 200, body: { onePassword: { connected: true, vaults: [{ id: "v1", title: "Shared with OpenMausBot", items: 1 }], items: 1 } } });
+  expect(connected, log).toMatchObject({ status: 200, body: { onePassword: { connected: true, vaults: [{ id: "v1", title: "Shared with Dusk Bot", items: 1 }], items: 1 } } });
   expect((await api("GET", "/api/logins")).body.logins).toEqual([expect.objectContaining({ site: "example.test", username: "person@example.test", source: "1password" })]);
   expect(log).not.toContain("SDK did not load");
   expect(log).not.toContain("not available in this build");
@@ -216,6 +216,6 @@ it("a bot asks for the 1Password token through request_credential's own slot, an
   expect((await api("POST", "/api/logins/1password", { token: TOKEN })).status).toBe(200);
   expect(await provided()).toMatchObject({ status: 200, body: { provided: true } });
   expect((await tools.call("request_credential", { credential_id: "onePasswordToken" })).content[0].text).toBe("1Password service account token is already configured. Continue the task.");
-  expect(readFileSync(join(home, ".openmausbot", "config.json"), "utf8")).not.toContain(TOKEN);
+  expect(readFileSync(join(home, ".duskbot", "config.json"), "utf8")).not.toContain(TOKEN);
   for (const where of [...answers, log]) expect(where).not.toContain(TOKEN);
 });

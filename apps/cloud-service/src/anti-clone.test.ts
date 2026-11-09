@@ -53,7 +53,7 @@ describe("the machine never receives its secrets through the provider", () => {
     expect((await call(handle, "POST", "/v1/managed/claims/redeem", { cloud: c.id, claim: "x".repeat(43) })).status).toBe(403);
     const first = await call(handle, "POST", "/v1/managed/claims/redeem", { cloud: c.id, claim: boot.claim });
     expect(first.status).toBe(200);
-    expect(first.body).toMatchObject({ v: 1, machine: c.id, env: { OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_CLOUD_MACHINE_ID: c.id } });
+    expect(first.body).toMatchObject({ v: 1, machine: c.id, env: { DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_CLOUD_MACHINE_ID: c.id } });
     f.advance(4 * 60_000);
     expect((await call(handle, "POST", "/v1/managed/claims/redeem", { cloud: c.id, claim: boot.claim })).status).toBe(200);
     f.advance(2 * 60_000);
@@ -115,7 +115,7 @@ describe("people see our own domain, never the provider's", () => {
     const upstream = c.managed!.upstream!;
     expect(upstream).toMatch(/\.on\.boat\.dev$/);
     const start = f.api.requests.filter(r => r.path.endsWith("/commands")).map(r => (r.body as { command: string }).command).find(cmd => cmd.includes("omb-home start"))!;
-    expect(start).toBe(`sudo -n /usr/lib/openmausbot/bin/omb-home start '${c.origin}' '${upstream}'`);
+    expect(start).toBe(`sudo -n /usr/lib/duskbot/bin/omb-home start '${c.origin}' '${upstream}'`);
     expect(f.home.healthy).toHaveBeenCalledWith(upstream, expect.any(String));
     const label = new URL(c.origin!).hostname.split(".")[0]!;
     const handle = managedOf(f).handle!;
@@ -169,7 +169,7 @@ describe("signed releases", () => {
   it("the install command carries the signature, and a machine that requires one refuses an unsigned package", () => {
     const { signing, key } = releaseKey();
     const signature = signRelease({ kind: "home-package", name: "omb-home", version: "1", sha256: "a".repeat(64), signedAt: 1 }, signing);
-    expect(installCommand("a".repeat(64), undefined, signature)).toBe(`sudo -n /usr/lib/openmausbot/bin/omb-home install /home/user/omb-home.tgz ${"a".repeat(64)} ${signature}`);
+    expect(installCommand("a".repeat(64), undefined, signature)).toBe(`sudo -n /usr/lib/duskbot/bin/omb-home install /home/user/omb-home.tgz ${"a".repeat(64)} ${signature}`);
     expect(() => installCommand("a".repeat(64), undefined, "r1.x.y.z; rm -rf /")).toThrow();
     const control = boatControlScript({ releaseKeys: [key], requireSigned: true });
     expect(control).toContain("signed=1");
@@ -180,18 +180,18 @@ describe("signed releases", () => {
 });
 
 describe("a service people use refuses an unsafe setup", () => {
-  const base = { BOAT_API_KEY: "boat_key_0123456789abcdef", OMB_MANAGED: "1", OMB_CLOUD_SEAL_KEY: Buffer.alloc(32, 3).toString("base64url"),
-    OMB_MANAGED_HOME_PACKAGE_URL: "https://packages.example.test/home.tgz", OMB_MANAGED_HOME_PACKAGE_SHA256: "a".repeat(64) };
+  const base = { BOAT_API_KEY: "boat_key_0123456789abcdef", DUSK_MANAGED: "1", DUSK_CLOUD_SEAL_KEY: Buffer.alloc(32, 3).toString("base64url"),
+    DUSK_MANAGED_HOME_PACKAGE_URL: "https://packages.example.test/home.tgz", DUSK_MANAGED_HOME_PACKAGE_SHA256: "a".repeat(64) };
   const make = (env: Record<string, string>) => () => managedCloudFromEnv(env, { dataDir: mkdtempSync(join(tmpdir(), "omb-env-")), publicUrl: "https://dash.example.com", loopback: false,
     sealKey: Buffer.alloc(32, 3), now: Date.now, subscriptions: () => [] });
   it("needs our public domain, the edge token and a signed package, and never the template key as the runtime key", () => {
-    expect(make(base)).toThrow("OMB_MANAGED_PUBLIC_DOMAIN");
-    const named = { ...base, OMB_MANAGED_PUBLIC_DOMAIN: "desktops.example.com", OMB_MANAGED_EDGE_TOKEN: "e".repeat(40) };
-    expect(make(named)).toThrow("OMB_MANAGED_HOME_PACKAGE_SIGNATURE");
-    expect(make({ ...named, OMB_MANAGED_HOME_PACKAGE_SIGNATURE: "r1.rel-x.e30.AA" })).toThrow("unknown key");
+    expect(make(base)).toThrow("DUSK_MANAGED_PUBLIC_DOMAIN");
+    const named = { ...base, DUSK_MANAGED_PUBLIC_DOMAIN: "desktops.example.com", DUSK_MANAGED_EDGE_TOKEN: "e".repeat(40) };
+    expect(make(named)).toThrow("DUSK_MANAGED_HOME_PACKAGE_SIGNATURE");
+    expect(make({ ...named, DUSK_MANAGED_HOME_PACKAGE_SIGNATURE: "r1.rel-x.e30.AA" })).toThrow("unknown key");
     expect(make({ ...named, BOAT_TEMPLATE_API_KEY: base.BOAT_API_KEY })).toThrow("different key");
     const { signing, key } = releaseKey("rel-staging");
     const signature = signRelease({ kind: "home-package", name: "omb-home", version: "1", sha256: "a".repeat(64), signedAt: 1 }, signing);
-    expect(make({ ...named, OMB_MANAGED_HOME_PACKAGE_SIGNATURE: signature, OMB_RELEASE_PUBLIC_KEYS: `${key.kid}:${key.x}` })()).not.toBeNull();
+    expect(make({ ...named, DUSK_MANAGED_HOME_PACKAGE_SIGNATURE: signature, DUSK_RELEASE_PUBLIC_KEYS: `${key.kid}:${key.x}` })()).not.toBeNull();
   });
 });

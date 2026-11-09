@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 
-export const driver = "/usr/local/libexec/openmausbot/cua-driver";
-export const socket = "/run/user/1000/openmausbot-cua.sock";
+export const driver = "/usr/local/libexec/duskbot/cua-driver";
+export const socket = "/run/user/1000/duskbot-cua.sock";
 const page = `<!doctype html><meta charset="utf-8"><title>Isolated browser fixture</title>
 <style>body{padding:40px;font:24px sans-serif}input,button{font:inherit;margin:12px;padding:12px}</style>
 <h1>Isolated fixture form</h1><form action="/submitted"><label>Fixture name <input name="name" aria-label="Fixture name"></label><button>Save fixture</button></form>`;

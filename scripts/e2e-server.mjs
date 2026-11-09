@@ -1,4 +1,4 @@
-// End-to-end check of a running OpenMausBot harness server over the HTTP API
+// End-to-end check of a running Dusk Bot harness server over the HTTP API
 // the app drives. No deps; Node 22+.
 //
 //   node scripts/e2e-server.mjs [--port 8799] [--keep-bots]
@@ -11,7 +11,7 @@ const opt = (n, d) => {
   const i = args.indexOf(n);
   return i >= 0 ? args[i + 1] : d;
 };
-const PORT = Number(opt("--port", process.env.OMB_PORT ?? 8799));
+const PORT = Number(opt("--port", process.env.DUSK_PORT ?? 8799));
 const BASE = `http://127.0.0.1:${PORT}`;
 const KEEP_BOTS = flag("--keep-bots");
 

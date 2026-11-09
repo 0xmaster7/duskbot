@@ -14,7 +14,7 @@ const homes: string[] = [];
 
 async function boot(home: string): Promise<ChildProcess> {
   let stderr = "";
-  const env: NodeJS.ProcessEnv = { HOME: home, USERPROFILE: home, OMB_PORT: String(PORT), OPENMAUSBOT_VPS_DOCKER: "ssh" };
+  const env: NodeJS.ProcessEnv = { HOME: home, USERPROFILE: home, DUSK_PORT: String(PORT), DUSK_VPS_DOCKER: "ssh" };
   if (process.env.PATH) env.PATH = process.env.PATH;
   if (process.env.SystemRoot) env.SystemRoot = process.env.SystemRoot;
   const child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], { cwd: join(SERVER_DIR, ".."), env, stdio: ["ignore", "ignore", "pipe"] });
@@ -33,8 +33,8 @@ async function boot(home: string): Promise<ChildProcess> {
 function freshHome(config: object): { home: string; configFile: string } {
   const home = mkdtempSync(join(tmpdir(), "omb-vps-mode-"));
   homes.push(home);
-  mkdirSync(join(home, ".openmausbot"), { recursive: true });
-  const configFile = join(home, ".openmausbot", "config.json");
+  mkdirSync(join(home, ".duskbot"), { recursive: true });
+  const configFile = join(home, ".duskbot", "config.json");
   writeFileSync(configFile, JSON.stringify(config));
   return { home, configFile };
 }

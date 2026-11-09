@@ -38,7 +38,7 @@ async function record() {
   const base = opt("url", "http://127.0.0.1:8799");
   const out = opt("out", "/tmp/omb-load");
   mkdirSync(out, { recursive: true });
-  const headers = { "x-openmausbot-cli": "1" };
+  const headers = { "x-dusk-cli": "1" };
   const bots = await (await fetch(`${base}/api/bots?messages=0`, { headers })).json();
   const selected = opt("selected", bots.bots?.find((bot) => bot.name === (opt("bot", "Cinder")))?.id ?? bots.bots?.[0]?.id ?? "");
   const extra = (opt("paths", "") || "").split(",").filter(Boolean);
@@ -135,9 +135,9 @@ const PROBE = () => {
 };
 
 async function run() {
-  const playwright = opt("playwright", process.env.OMB_PLAYWRIGHT ?? "playwright-core");
+  const playwright = opt("playwright", process.env.DUSK_PLAYWRIGHT ?? "playwright-core");
   const { chromium } = await import(playwright);
-  const executablePath = opt("chrome", process.env.OMB_CHROME);
+  const executablePath = opt("chrome", process.env.DUSK_CHROME);
   const dist = resolve(opt("dist", "dist"));
   const fixture = resolve(opt("fixture", "/tmp/omb-load"));
   const rttMs = Number(opt("rtt", "564"));
@@ -155,7 +155,7 @@ async function run() {
         args: [`--ignore-certificate-errors-spki-list=${spki}`],
       });
       await context.addInitScript(PROBE);
-      if (phase === "cold") await context.addInitScript((id) => { try { localStorage.setItem("openmausbot.lastConversation.v1", id); } catch { } }, selected);
+      if (phase === "cold") await context.addInitScript((id) => { try { localStorage.setItem("duskbot.lastConversation.v1", id); } catch { } }, selected);
       const page = context.pages()[0] ?? await context.newPage();
       const requests = [];
       page.on("requestfinished", async (request) => {

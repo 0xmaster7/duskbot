@@ -330,7 +330,7 @@ export function useConnectors(): Connectors {
 
   /** Waits for the sign-in on Composio's page: reads the app's accounts with backoff, at once when the window is back in
    * front, until one is active, the page is closed, the link expires, the person stays back here a while without
-   * finishing, or Composio says the sign-in is gone. Trouble reaching MausBot or Composio (a restart, the network) is
+   * finishing, or Composio says the sign-in is gone. Trouble reaching Dusk or Composio (a restart, the network) is
    * retried and said, never silent; the link's own deadline holds even while a read hangs. */
   const pollVia = (slug: string, url: string, since: number, closed?: () => boolean) => {
     stopVia(slug);

@@ -23,7 +23,7 @@ vi.mock("../vps-computer.ts", async (importOriginal) => {
 });
 
 const remove = vi.mocked(vps.removeManagedVpsComputer);
-const CONTAINER = "openmausbot-vps-test-abc123";
+const CONTAINER = "duskbot-vps-test-abc123";
 
 beforeEach(() => {
   remove.mockReset();

@@ -129,7 +129,7 @@ result and scheduled/manual trigger must agree with the saved server record.
 
 ## Run on startup
 
-A repeating routine's **Advanced** section offers **Also run when OpenMausBot
+A repeating routine's **Advanced** section offers **Also run when Dusk Bot
 starts**. In the isolated renderer, create a daily routine with it ticked, then
 reopen the editor: the box stays ticked. A one-time routine does not offer it.
 Startup needs a restart on the same data, which this launcher does not do;
@@ -137,7 +137,7 @@ Startup needs a restart on the same data, which this launcher does not do;
 store and requires exactly one completed **On startup** run.
 
 The desktop gives every server child of one launch the same
-`OMB_DESKTOP_LAUNCH_ID`, and `routines.json` records the launch whose startup
+`DUSK_DESKTOP_LAUNCH_ID`, and `routines.json` records the launch whose startup
 runs were queued. A crash recovery or switching back to a workspace within
 that launch queues none; the next launch does. A server without the variable,
 such as a standalone one, counts every process start.

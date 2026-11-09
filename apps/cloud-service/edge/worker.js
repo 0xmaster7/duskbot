@@ -1,8 +1,8 @@
-// The public front of managed cloud desktops: https://<label>.<OMB_MANAGED_PUBLIC_DOMAIN> -> the machine's own hosted
+// The public front of managed cloud desktops: https://<label>.<DUSK_MANAGED_PUBLIC_DOMAIN> -> the machine's own hosted
 // URL at the provider. The client only ever sees our domain. The label is opaque (it names no person, cloud id or
 // provider); the account service answers which upstream it maps to, for this Worker only (EDGE_TOKEN).
 //
-// Bindings: ROUTE_URL (the account service origin), EDGE_TOKEN (secret, same value as its OMB_MANAGED_EDGE_TOKEN),
+// Bindings: ROUTE_URL (the account service origin), EDGE_TOKEN (secret, same value as its DUSK_MANAGED_EDGE_TOKEN),
 // PUBLIC_DOMAIN (the wildcard's parent, e.g. desktops.example.com). Route: *.<PUBLIC_DOMAIN>/*.
 const LABEL = /^d[0-9a-f]{20}$/;
 const ROUTE_TTL_S = 60;
@@ -30,7 +30,7 @@ export default {
     if (!upstream) return new Response("Not found", { status: 404 });
     const target = new URL(url.pathname + url.search, upstream);
     const headers = new Headers(request.headers);
-    // the machine answers only for its own names and keeps its own idea of the public origin (OMB_PUBLIC_URL)
+    // the machine answers only for its own names and keeps its own idea of the public origin (DUSK_PUBLIC_URL)
     headers.set("x-forwarded-host", url.hostname);
     const response = await fetch(new Request(target, { method: request.method, headers, body: request.body, redirect: "manual" }));
     if (response.status === 101) return response;

@@ -39,7 +39,7 @@ const taskTitle = async (botId: string, threadId: string): Promise<string | unde
 
 beforeAll(async () => {
   home = mkdtempSync(join(tmpdir(), "omb-regenerate-title-"));
-  const data = join(home, ".openmausbot");
+  const data = join(home, ".duskbot");
   const staticDir = join(home, "static");
   mkdirSync(data, { recursive: true });
   mkdirSync(join(staticDir, "assets"), { recursive: true });
@@ -65,9 +65,9 @@ beforeAll(async () => {
       ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
       HOME: home,
       USERPROFILE: home,
-      OMB_PORT: String(port),
-      OMB_WEBHOOK_PORT: String(port + 1),
-      OMB_STATIC_DIR: staticDir,
+      DUSK_PORT: String(port),
+      DUSK_WEBHOOK_PORT: String(port + 1),
+      DUSK_STATIC_DIR: staticDir,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

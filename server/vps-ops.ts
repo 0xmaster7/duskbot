@@ -6,8 +6,8 @@ import { stripVTControlCharacters } from "node:util";
 import { redactSecretsInText } from "../shared/redact.ts";
 
 const SERVICES = {
-  server: "openmausbot.service",
-  link: "openmausbot-link.service",
+  server: "duskbot.service",
+  link: "duskbot-link.service",
   fence: "omb-box-fence.service",
 } as const;
 
@@ -22,8 +22,8 @@ export interface VpsOpsOptions {
   help?: boolean;
 }
 
-export const VPS_OPS_USAGE = `openmausbot vps status|doctor [--port N] [--data-dir DIR] [--json]
-openmausbot vps logs [--service server|link|fence] [--lines 100] [--json]
+export const VPS_OPS_USAGE = `duskbot vps status|doctor [--port N] [--data-dir DIR] [--json]
+duskbot vps logs [--service server|link|fence] [--lines 100] [--json]
 
 Read-only operations on this Linux VPS, including when the server is stopped.
 status  check local HTTP health, systemd services, managed computers and host resources
@@ -67,7 +67,7 @@ export function parseVpsOpsArgs(
         const lines = value();
         if (!/^\d+$/.test(lines) || Number(lines) < 1 || Number(lines) > 500) throw new Error("--lines must be 1-500");
         options.lines = Number(lines);
-      } else return { error: `unknown argument "${arg}"; see openmausbot vps --help` };
+      } else return { error: `unknown argument "${arg}"; see duskbot vps --help` };
     } catch (error) {
       return { error: error instanceof Error ? error.message : "invalid arguments" };
     }
@@ -160,7 +160,7 @@ export function localDockerHost(env: Record<string, string | undefined> = proces
 }
 
 async function computerSummary(command: typeof runOpsCommand): Promise<ComputerSummary> {
-  const result = await command("docker", ["--host", localDockerHost(), "ps", "--all", "--filter", "label=com.openmausbot.vps=1", "--format", "{{.State}}"]);
+  const result = await command("docker", ["--host", localDockerHost(), "ps", "--all", "--filter", "label=bot.dusk.vps=1", "--format", "{{.State}}"]);
   if (!result.ok) return { available: false, error: result.error };
   const states: Record<string, number> = {};
   const known = new Set(["created", "restarting", "running", "removing", "paused", "exited", "dead"]);
@@ -192,7 +192,7 @@ async function httpHealth(port: number, request: typeof fetch): Promise<VpsOpsRe
       chunks.push(chunk.value);
     }
     const body: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-    return body !== null && typeof body === "object" && Reflect.get(body, "app") === "openmausbot"
+    return body !== null && typeof body === "object" && Reflect.get(body, "app") === "duskbot"
       ? { url, ready: true }
       : { url, ready: false, error: "a different service answered" };
   } catch { return { url, ready: false, error: "server unavailable or health check timed out" }; }
@@ -207,11 +207,11 @@ export async function collectVpsOpsStatus(options: VpsOpsOptions, dependencies: 
   ]);
   const healthy = http.ready && server.state === "active" && computers.available && ["active", "not-installed"].includes(link.state) && ["active", "not-installed"].includes(fence.state);
   const hints: string[] = [];
-  if (!http.ready) hints.push("The local server is not answering. Inspect: openmausbot vps logs --service server");
+  if (!http.ready) hints.push("The local server is not answering. Inspect: duskbot vps logs --service server");
   if (server.state !== "active") hints.push("The server service is not active or cannot be inspected. Check your installed service and this account's permissions.");
-  if (!["active", "not-installed"].includes(link.state)) hints.push("The outbound link is not active or cannot be inspected. Inspect: openmausbot vps logs --service link");
-  if (!["active", "not-installed"].includes(fence.state)) hints.push("The computer network fence is not active or cannot be inspected. Inspect: openmausbot vps logs --service fence");
-  if (!computers.available) hints.push("Local Docker could not be inspected. Check that Docker is installed and this account may reach its socket (on a VPS install, the openmausbot docker gate).");
+  if (!["active", "not-installed"].includes(link.state)) hints.push("The outbound link is not active or cannot be inspected. Inspect: duskbot vps logs --service link");
+  if (!["active", "not-installed"].includes(fence.state)) hints.push("The computer network fence is not active or cannot be inspected. Inspect: duskbot vps logs --service fence");
+  if (!computers.available) hints.push("Local Docker could not be inspected. Check that Docker is installed and this account may reach its socket (on a VPS install, the duskbot docker gate).");
   if (host.diskBytes && host.diskBytes.free < 1024 ** 3) hints.push("Less than 1 GiB is available on the data filesystem.");
   return { healthy, http, services: { server, link, fence }, computers, host, hints };
 }
@@ -238,7 +238,7 @@ export async function runVpsOps(
 ): Promise<number> {
   if (options.help) { io.log(VPS_OPS_USAGE); return 0; }
   if ((dependencies.platform ?? process.platform) !== "linux") {
-    io.error("vps operations run on the Linux VPS; use openmausbot doctor for a remote workspace");
+    io.error("vps operations run on the Linux VPS; use duskbot doctor for a remote workspace");
     return 1;
   }
   if (options.action === "logs") {

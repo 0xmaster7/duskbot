@@ -39,7 +39,7 @@ async function api(method: string, path: string, options: { body?: unknown; toke
   return { status: response.status, body: await response.json().catch(() => null) as any };
 }
 async function adminPairing(): Promise<string> {
-  const body = JSON.stringify({ label: "OpenMausBot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
@@ -79,10 +79,10 @@ async function boot(asCloud: boolean) {
   child = spawn(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
-      PATH: process.env.PATH, HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1),
+      PATH: process.env.PATH, HOME: home, USERPROFILE: home, DUSK_DATA_DIR: dataDir, DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1),
       ...(asCloud ? {
-        OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
-        OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_PUBLIC_URL: `https://${HOST}`,
+        DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test",
+        DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_PUBLIC_URL: `https://${HOST}`,
       } : {}),
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -101,7 +101,7 @@ async function shutdown() { if (child) await waitForExit(child, { signal: "SIGTE
 
 beforeAll(async () => {
   home = mkdtempSync(join(tmpdir(), "omb-cloud-personal-"));
-  dataDir = join(home, ".openmausbot");
+  dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   mkdirSync(project(), { recursive: true });
   const cli = join(home, "held-claude.mjs");

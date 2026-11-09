@@ -491,13 +491,13 @@ describe("testing an AI with one tiny message before a new bot's default trusts 
 });
 
 describe("test messages in the background", () => {
-  it("are on unless OMB_AI_CHECKS=0, and under vitest only when a test asks for them, so fake engines log only the turns a test sends", () => {
+  it("are on unless DUSK_AI_CHECKS=0, and under vitest only when a test asks for them, so fake engines log only the turns a test sends", () => {
     expect(backgroundAiChecks({})).toBe(true);
-    expect(backgroundAiChecks({ OMB_AI_CHECKS: "0" })).toBe(false);
-    expect(backgroundAiChecks({ OMB_AI_CHECKS: " 0 " })).toBe(false);
+    expect(backgroundAiChecks({ DUSK_AI_CHECKS: "0" })).toBe(false);
+    expect(backgroundAiChecks({ DUSK_AI_CHECKS: " 0 " })).toBe(false);
     expect(backgroundAiChecks({ VITEST: "true" })).toBe(false);
-    expect(backgroundAiChecks({ VITEST: "true", OMB_AI_CHECKS: "1" })).toBe(true);
-    expect(backgroundAiChecks({ OMB_TEST_SEALED_PATH: "1" })).toBe(false);
-    expect(backgroundAiChecks({ OMB_TEST_SEALED_PATH: "1", OMB_AI_CHECKS: "1" })).toBe(true);
+    expect(backgroundAiChecks({ VITEST: "true", DUSK_AI_CHECKS: "1" })).toBe(true);
+    expect(backgroundAiChecks({ DUSK_TEST_SEALED_PATH: "1" })).toBe(false);
+    expect(backgroundAiChecks({ DUSK_TEST_SEALED_PATH: "1", DUSK_AI_CHECKS: "1" })).toBe(true);
   });
 });

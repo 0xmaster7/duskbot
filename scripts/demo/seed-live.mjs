@@ -1,4 +1,4 @@
-// Seeds the test bots into a running OpenMausBot with only the requests the app itself makes: a team backup import
+// Seeds the test bots into a running Dusk Bot with only the requests the app itself makes: a team backup import
 // (bots, looks, instructions, memory, room, conversation text), then section moves, approval level, skills, routines,
 // webhooks, reactions and unread marks. Idempotent: anything already there by name in the "Test bots" section is kept
 // as it is and skipped. Never reads, changes or deletes anything outside what it creates.
@@ -55,7 +55,7 @@ export function teamBackup(now, bots = BOTS, rooms = ROOMS) {
       tasks: [{ key: "main", title: room.name, createdAt: now - room.ago, activeLeafId: messages.at(-1).id, messages }],
     };
   });
-  return { format: "openmaus.backup", version: 1, name: "OpenMausBot test bots", exportedAt: now, warnings: [], bots: backupBots, groups, routines: [] };
+  return { format: "openmaus.backup", version: 1, name: "Dusk Bot test bots", exportedAt: now, warnings: [], bots: backupBots, groups, routines: [] };
 }
 
 /**
@@ -117,7 +117,7 @@ export async function seedBots(base, now, log = console.log) {
 
   await Promise.all(Object.entries(SKILLS).filter(([key]) => fresh.has(key)).flatMap(([key, skills]) => skills.map((skill) =>
     call(base, "POST", `/api/bots/${ids.get(key)}/skill-template`, {
-      name: skill.name, description: skill.description, warnings: [], source: "openmausbot-test-bots", text: skill.text, enabled: true,
+      name: skill.name, description: skill.description, warnings: [], source: "duskbot-test-bots", text: skill.text, enabled: true,
     }))));
 
   const [routineList, webhookList] = await Promise.all([call(base, "GET", "/api/routines"), call(base, "GET", "/api/webhooks")]);

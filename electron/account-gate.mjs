@@ -1,4 +1,4 @@
-export const accountGateRequired = ({ env, packaged, remote, custom }) => !remote && env.OMB_ALLOW_SIGNED_OUT !== "1" && (packaged || custom);
+export const accountGateRequired = ({ env, packaged, remote, custom }) => !remote && env.DUSK_ALLOW_SIGNED_OUT !== "1" && (packaged || custom);
 export const gateBlocks = state => !(state?.account && ["connected", "unavailable"].includes(state.status));
 const plain = value => typeof value === "string" ? value : "";
 

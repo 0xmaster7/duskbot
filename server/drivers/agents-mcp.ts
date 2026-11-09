@@ -34,7 +34,7 @@ export function agentsMcp(env: NodeJS.ProcessEnv, stop?: AbortSignal): (msg: Jso
         return ok(id, {
           protocolVersion: (params.protocolVersion as string) ?? "2024-11-05",
           capabilities: { tools: {} },
-          serverInfo: { name: "openmausbot-agents", version: "0.1.0" },
+          serverInfo: { name: "duskbot-agents", version: "0.1.0" },
         });
       case "notifications/initialized":
       case "notifications/cancelled":

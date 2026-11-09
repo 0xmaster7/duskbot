@@ -36,7 +36,7 @@ async function fixture() {
     if (command.includes("omb-home start")) {
       if (!sandbox.volume.size) {
         sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
-        sandbox.volume.set("__system__/data/.openmausbot/bots.json", Buffer.from(JSON.stringify([{ id: "bot-1", name: "Test bot" }])));
+        sandbox.volume.set("__system__/data/.duskbot/bots.json", Buffer.from(JSON.stringify([{ id: "bot-1", name: "Test bot" }])));
       }
       return { exitCode: 0, stdout: "started\n" };
     }
@@ -108,7 +108,7 @@ async function withUnbackedData(f: F, s: S) {
   const { c, sub } = await f.paid(s);
   f.advance(DAY_MS); await sleepCycle(f, s, c);
   await wake(f, s, c);
-  f.api.sandboxes.get(c.serverId!)!.volume.set("__system__/data/.openmausbot/precious.json", Buffer.from("newer"));
+  f.api.sandboxes.get(c.serverId!)!.volume.set("__system__/data/.duskbot/precious.json", Buffer.from("newer"));
   await sleepCycle(f, s, c);
   expect(c.managed!.backups).toHaveLength(1);
   return { c, sub, original: c.serverId! };
@@ -120,7 +120,7 @@ function blackout(provider: ReturnType<F["instance"]>["provider"], id: string, u
   if (unlisted) provider.listed = async x => x === id ? false : listed(x);
   return () => { provider.sandbox = sandbox; provider.listed = listed; };
 }
-const holds = (f: F) => [...f.api.sandboxes.values()].some(x => x.volume.has("__system__/data/.openmausbot/precious.json") || x.snapshots.some(sn => sn.volume.has("__system__/data/.openmausbot/precious.json")));
+const holds = (f: F) => [...f.api.sandboxes.values()].some(x => x.volume.has("__system__/data/.duskbot/precious.json") || x.snapshots.some(sn => sn.volume.has("__system__/data/.duskbot/precious.json")));
 
 for (const count of [1, 2, 3]) {
   it(`${count} 404s inside 30 minutes, then an answer: no rebuild`, async () => {
@@ -252,7 +252,7 @@ it("a changed backup secret refuses to start unless the previous one is given, a
   await f.settle(A.service, c, c => c.status === "stopped");
   await f.settle(A.service, c, c => (c.managed!.backups.at(-1)?.verifiedAt ?? null) !== null);
   A.service.close();
-  // the operator sets OMB_BOAT_BACKUP_KEY (or rotates the seal key) after backups were written
+  // the operator sets DUSK_BOAT_BACKUP_KEY (or rotates the seal key) after backups were written
   expect(() => f.instance(Buffer.alloc(32, 1))).toThrow("backup secret changed");
   // given the old one, every backup is sealed again first
   const B = f.instance(Buffer.alloc(32, 1), BACKUP_SECRET); const cB = B.service.get(c.id)!;

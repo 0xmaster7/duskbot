@@ -66,7 +66,7 @@ pnpm exec vitest run scripts/testing/bot-tools-ui.e2e.test.ts src/state/store.te
 ```
 
 It uses the disposable `control-omb ui` launcher, not the running app. Set
-`OMB_UI_E2E=1` to install the pinned browser if unavailable.
+`DUSK_UI_E2E=1` to install the pinned browser if unavailable.
 
 This browser fixture verifies renderer interaction and persistence, not
 packaged Electron privileges, actual operating-system access, or the
@@ -151,7 +151,7 @@ tabbed panel instead, and that one is driven through
 
 ```sh
 node --experimental-strip-types scripts/control-omb.ts ui launch
-H=/tmp/openmausbot-verify-data-XXXXXX/ui.json
+H=/tmp/duskbot-verify-data-XXXXXX/ui.json
 # The preview reads as an existing install, so it starts in Advanced mode.
 pnpm control:omb ui eval --ui $H --js "localStorage.setItem('omb-advanced-mode','0'); location.reload(); 'simple'"
 pnpm control:omb ui click --ui $H --name "Open Pepper's profile"

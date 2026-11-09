@@ -1,13 +1,13 @@
 // Seeds a fixture data folder for scripts/bench-switching.ts before its server starts: five conversations of text,
 // tool rows and pictures of different shapes, and some quiet bots around them. Runs only in a child whose
-// OMB_DATA_DIR and HOME are the fixture's own folder; prints the ids the bench needs as JSON.
-//   OMB_DATA_DIR=... node --experimental-strip-types scripts/testing/bench-switching-seed.ts MESSAGES
+// DUSK_DATA_DIR and HOME are the fixture's own folder; prints the ids the bench needs as JSON.
+//   DUSK_DATA_DIR=... node --experimental-strip-types scripts/testing/bench-switching-seed.ts MESSAGES
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 
-const dataDir = process.env.OMB_DATA_DIR;
-if (!dataDir || !dataDir.includes("openmausbot-bench-")) throw new Error("bench-switching-seed runs only on a bench fixture folder");
+const dataDir = process.env.DUSK_DATA_DIR;
+if (!dataDir || !dataDir.includes("duskbot-bench-")) throw new Error("bench-switching-seed runs only on a bench fixture folder");
 const [messages = 80] = process.argv.slice(2).map(Number);
 
 const { Store } = await import("../../server/store.ts");

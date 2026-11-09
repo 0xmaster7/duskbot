@@ -199,7 +199,7 @@ describe("GitHub Copilot ACP driver", () => {
   it("removes only the session folder the discovery itself left behind", async () => {
     const home = join(scratch, "copilot-home");
     // The fields and their plain-scalar style are Copilot CLI 1.0.105's own workspace.yaml.
-    const session = (id: string, cwd: string, client = "openmausbot-model-discovery") => {
+    const session = (id: string, cwd: string, client = "duskbot-model-discovery") => {
       mkdirSync(join(home, "session-state", id, "checkpoints"), { recursive: true });
       writeFileSync(join(home, "session-state", id, "workspace.yaml"), `id: ${id}\ncwd: ${cwd}\nclient_name: ${client}\nuser_named: false\n`
         + "summary_count: 0\nfork_count: 0\ncreated_at: 2026-10-28T01:45:38.058Z\nupdated_at: 2026-10-28T01:45:38.116Z\n");
@@ -279,9 +279,9 @@ describe("GitHub Copilot ACP driver", () => {
         threadId: "copilot-tools", text: "Which automation controls are available?", model: "auto",
         integrations: {
           agents: { command: process.execPath, args: [SPAWNED_PROXIES.agents],
-            env: { OMB_HARNESS_URL: "http://127.0.0.1:1", OMB_COMMS_TOKEN: "fixture-token", OMB_BOT_ID: "fixture" } },
+            env: { DUSK_HARNESS_URL: "http://127.0.0.1:1", DUSK_COMMS_TOKEN: "fixture-token", DUSK_BOT_ID: "fixture" } },
           browser: { command: process.execPath, args: [SPAWNED_PROXIES.mcpRemote],
-            env: { OMB_REMOTE_MCP_SERVER: JSON.stringify({ type: "http", url: browser.url }) } },
+            env: { DUSK_REMOTE_MCP_SERVER: JSON.stringify({ type: "http", url: browser.url }) } },
         },
       });
       expect(await recorder.until((event) => event.type === "turn.completed" && event.turnId === turnId)).toMatchObject({ ok: true });
@@ -297,7 +297,7 @@ describe("GitHub Copilot ACP driver", () => {
     const launches = join(scratch, "launches.txt");
     const { instance, recorder } = await create({ FAKE_ACP_MODE: "mcp-tools", FAKE_ACP_LAUNCH_COUNT_FILE: launches });
     const agents = (token: string) => ({ agents: { command: process.execPath, args: [SPAWNED_PROXIES.agents],
-      env: { OMB_HARNESS_URL: "http://127.0.0.1:1", OMB_COMMS_TOKEN: token, OMB_BOT_ID: "fixture" } } });
+      env: { DUSK_HARNESS_URL: "http://127.0.0.1:1", DUSK_COMMS_TOKEN: token, DUSK_BOT_ID: "fixture" } } });
     const run = async (threadId: string, token: string, allow: string[], resumeCursor?: string) => {
       const { turnId } = await instance.adapter.sendTurn({
         threadId, text: "List tools", model: "auto", resumeCursor, integrations: agents(token), toolScope: { allow },

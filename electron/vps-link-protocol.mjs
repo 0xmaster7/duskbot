@@ -474,7 +474,7 @@ export function openResult({ id, priv, pub, vpsPub, sealed }) {
     && typeof value.pairing?.code === "string" && /^[A-Z0-9-]{4,40}$/.test(value.pairing.code)
     && typeof value.tunnel?.key === "string" && typeof value.tunnel?.token === "string" && value.tunnel.id === id
     && (value.mode === "relay" || (typeof value.origin === "string" && /^https:\/\/[a-z0-9.-]+$/.test(value.origin) && typeof value.spki === "string"));
-  if (!ok) throw new Error("The server's answer was not one this app understands. Update OpenMausBot and try again.");
+  if (!ok) throw new Error("The server's answer was not one this app understands. Update Dusk Bot and try again.");
   return { ...value, name: typeof value.name === "string" && value.name.trim() ? value.name.trim().slice(0, 60) : "My server" };
 }
 

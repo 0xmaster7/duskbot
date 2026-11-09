@@ -1,4 +1,4 @@
-// The OMB_* switches the harness gives the agents proxy, read into the profile agents-catalog.ts lists tools for.
+// The DUSK_* switches the harness gives the agents proxy, read into the profile agents-catalog.ts lists tools for.
 
 /** Which tools a conversation is shown, the same on every one of its turns. Presentation only: the server still
  * authenticates and scopes every call. */
@@ -21,8 +21,8 @@ export interface CatalogProfile {
   botId: string;
   /** A Team Cloud: message_person is mounted. */
   team?: boolean;
-  /** The person's MausBot with a Chief's powers: its notification tools are mounted. */
-  mausbot?: boolean;
+  /** The person's Dusk with a Chief's powers: its notification tools are mounted. */
+  dusk?: boolean;
   /** A direct chat whose bot may pick where it works (Works on is not Off and no team computer is its own): select_computer
    * is mounted, and the harness refuses a pick on any turn but a person's own message. */
   computerSelection?: boolean;
@@ -34,18 +34,18 @@ export interface CatalogProfile {
 /** Everything is off unless the harness says "1". */
 export function catalogProfileFromEnv(env: NodeJS.ProcessEnv): CatalogProfile {
   return {
-    skillAuthoring: env.OMB_SKILL_AUTHORING_ENABLED === "1",
-    voiceNotes: env.OMB_VOICE_NOTES === "1",
-    xResearch: env.OMB_X_RESEARCH === "1",
-    research: env.OMB_RESEARCH === "1",
-    slack: env.OMB_SLACK === "1",
-    cloudHome: env.OMB_CLOUD_HOME === "1",
-    memoryEnabled: env.OMB_MEMORY_ENABLED !== "0",
-    chief: env.OMB_CHIEF_OF_STAFF === "1",
-    botId: env.OMB_BOT_ID ?? "",
-    team: env.OMB_TEAM_PEOPLE === "1",
-    mausbot: env.OMB_MAUSBOT === "1",
-    computerSelection: env.OMB_COMPUTER_SELECTION === "1",
-    room: env.OMB_ROOM === "1",
+    skillAuthoring: env.DUSK_SKILL_AUTHORING_ENABLED === "1",
+    voiceNotes: env.DUSK_VOICE_NOTES === "1",
+    xResearch: env.DUSK_X_RESEARCH === "1",
+    research: env.DUSK_RESEARCH === "1",
+    slack: env.DUSK_SLACK === "1",
+    cloudHome: env.DUSK_CLOUD_HOME === "1",
+    memoryEnabled: env.DUSK_MEMORY_ENABLED !== "0",
+    chief: env.DUSK_CHIEF_OF_STAFF === "1",
+    botId: env.DUSK_BOT_ID ?? "",
+    team: env.DUSK_TEAM_PEOPLE === "1",
+    dusk: env.DUSK_DEFAULT_BOT === "1",
+    computerSelection: env.DUSK_COMPUTER_SELECTION === "1",
+    room: env.DUSK_ROOM === "1",
   };
 }

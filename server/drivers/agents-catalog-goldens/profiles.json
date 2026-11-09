@@ -646,7 +646,7 @@
       "mcp_server"
     ]
   },
-  "default+mausbot": {
+  "default+dusk": {
     "bytes": 59464,
     "sha256": "c3512b45e0e2cb24864d2fd00a58e46748a1f6492023309838c141b0a31c138c",
     "tools": [
@@ -698,7 +698,7 @@
       "mark_notifications_read"
     ]
   },
-  "skills+voice+mausbot": {
+  "skills+voice+dusk": {
     "bytes": 63064,
     "sha256": "6c206d03d4dab0f1dde23eb874e9b89f74a2b99363b0b7e04d3b1f4ca8b5cf33",
     "tools": [

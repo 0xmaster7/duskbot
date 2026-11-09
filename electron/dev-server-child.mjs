@@ -1,8 +1,8 @@
 import net from "node:net";
 
-// `pnpm dev:app` (OMB_DEV_OWN_SERVER=1): a source checkout runs the harness as this app's own utility child, the way
+// `pnpm dev:app` (DUSK_DEV_OWN_SERVER=1): a source checkout runs the harness as this app's own utility child, the way
 // the packaged app does, so the local computer grant reaches it over the child's private port and nowhere else.
-export const DEV_OWN_SERVER = "OMB_DEV_OWN_SERVER";
+export const DEV_OWN_SERVER = "DUSK_DEV_OWN_SERVER";
 const QUICK_EXIT_MS = 10_000;
 const MAX_QUICK_EXITS = 5;
 
@@ -49,7 +49,7 @@ export function createDevServerChild({
   const spawn = () => {
     timer = null;
     if (stopping) return;
-    const proc = fork(entry, [], { env, stdio: "inherit", execArgv: ["--experimental-strip-types"], serviceName: "OpenMausBot dev server" });
+    const proc = fork(entry, [], { env, stdio: "inherit", execArgv: ["--experimental-strip-types"], serviceName: "Dusk Bot dev server" });
     const startedAt = now();
     current = proc;
     let markExited;

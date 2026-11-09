@@ -38,7 +38,7 @@ const MAIN = readFileSync(join(REPO_ROOT, "electron", "main.mjs"), "utf8").repla
 const SPLASH_ICON = join(REPO_ROOT, "electron", "resources", "app-icon.png");
 export const ACCOUNT_ID = "acct-fixture";
 /** The renderer's own routes to its server; the same keys as vite.config.ts, so none of its own targets is kept. */
-const PROXIED = ["/api", "/.well-known/openmausbot/environment"];
+const PROXIED = ["/api", "/.well-known/duskbot/environment"];
 
 type Cdp = Awaited<ReturnType<typeof connectCdp>>;
 type Handler = (params: any, sessionId?: string) => void;
@@ -223,7 +223,7 @@ export interface HomeWorld {
   home: ReturnType<typeof createHomeWindow>;
   /** A launch of the app: the startup screen, then show() as main's launch does. */
   launch(): Promise<void>;
-  /** The MausBot Cloud sign-in main reads: its state, and the power word of a Cloud that sleeps. */
+  /** The Dusk Cloud sign-in main reads: its state, and the power word of a Cloud that sleeps. */
   account: { state: Record<string, any>; power: { state: "awake" | "asleep" | "waking"; since: number; sleeps: true } | null; wakeMs: number; wakes: number; signIns: string[] };
   /** Down: every request on the way to My Cloud fails, the window's and main's alike; `teamDown`: the team's Cloud only;
    * `nameMissing`: My Cloud's name isn't found (a resolver kept the answer it got while My Cloud was set up). */
@@ -240,7 +240,7 @@ export interface HomeWorld {
   environments(): { environments: any[]; activeId: string };
   /** The switcher's entries as main's native menu would list them (environments.cjs). */
   menu(): Array<{ label?: string; sublabel?: string; checked?: boolean }>;
-  /** The MausBot Cloud sign-in changed: main's own two steps (the places follow the session, then the window). */
+  /** The Dusk Cloud sign-in changed: main's own two steps (the places follow the session, then the window). */
   sync(): Promise<void>;
   /** Each request My Cloud's edge passed on, in order. */
   cloudRequests: Array<{ path: string; at: number }>;
@@ -342,7 +342,7 @@ export async function launchHomeWorld(fx: CloudSendFixture, { chrome, ports, ver
       }
       next();
     });
-  }, Object.fromEntries(PROXIED.map((path) => [path, { target: fx.desktopBase, ws: true, headers: { "x-openmausbot-desktop-owner": fx.ownerCapability } }])));
+  }, Object.fromEntries(PROXIED.map((path) => [path, { target: fx.desktopBase, ws: true, headers: { "x-dusk-desktop-owner": fx.ownerCapability } }])));
   cleanup.push(() => localEdge.close());
 
   // Main's ipcMain, reached by the preload's ipcRenderer.
@@ -360,7 +360,7 @@ export async function launchHomeWorld(fx: CloudSendFixture, { chrome, ports, ver
       const listed = req.method === "POST" && req.headers.authorization === "Bearer omc_fixture" && account.state.status === "connected" && (account.state.teams ?? []).some((team: any) => team.id === id) && !admin.removed.has(id);
       if (!listed) return reply(404, { error: "not_found" });
       admin.teamPairings.push(id);
-      const grant = await fx.grant("OpenMausBot app (Team Cloud)");
+      const grant = await fx.grant("Dusk Bot app (Team Cloud)");
       return reply(200, { cloudContractVersion: 1, origin: teamOrigin, code: grant.code, pairingUrl: `${teamOrigin}/pair#code=${grant.code}`, expiresAt: grant.expiresAt, credential: "omb_pair_fixture" });
     }
     if (!sync && !asked) { res.writeHead(200, { "content-type": "text/html" }); res.end("<!doctype html><title>Another server</title><p>Another server</p>"); return; }
@@ -444,7 +444,7 @@ export async function launchHomeWorld(fx: CloudSendFixture, { chrome, ports, ver
   });
   const pairHome = async () => {
     if (account.state.status !== "connected" || network.down) throw new Error("My Cloud is not ready to connect yet.");
-    const grant = await fx.grant("OpenMausBot app (Cloud)");
+    const grant = await fx.grant("Dusk Bot app (Cloud)");
     return { ...grant, origin: cloudOrigin };
   };
   /** The real client's `pairTeam` shape against the fake Admin's route: the Admin's answer, read as the app reads it. */
@@ -494,7 +494,7 @@ export async function launchHomeWorld(fx: CloudSendFixture, { chrome, ports, ver
   };
   const home = createHomeWindow({
     journal: () => (moves.moved ? { v: 1, phase: "done", cloud: { origin: cloudOrigin, account: ACCOUNT_ID, machine: cloudOrigin }, doneAt: Date.now() } : null),
-    frozen: async () => (moves.moved ? (await fetch(`${fx.desktopBase}/api/move/freeze`, { headers: { "x-openmausbot-desktop-owner": fx.ownerCapability } })).json() : { frozen: false }),
+    frozen: async () => (moves.moved ? (await fetch(`${fx.desktopBase}/api/move/freeze`, { headers: { "x-dusk-desktop-owner": fx.ownerCapability } })).json() : { frozen: false }),
     // The window's Electron session: its own resolver and host cache, for My Cloud's name.
     hosts: () => ({
       clearHostResolverCache: async () => { hostCache.cleared++; },
@@ -563,7 +563,7 @@ export async function launchHomeWorld(fx: CloudSendFixture, { chrome, ports, ver
 }
 
 export function shotsDir(fallback: string): string {
-  const dir = process.env.OMB_ONE_WORKSPACE_SHOTS ?? join(fallback, "shots");
+  const dir = process.env.DUSK_ONE_WORKSPACE_SHOTS ?? join(fallback, "shots");
   mkdirSync(dir, { recursive: true });
   return dir;
 }

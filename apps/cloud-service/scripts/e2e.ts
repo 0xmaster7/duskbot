@@ -39,7 +39,7 @@ const api = fake ? await startFakeBoatApi() : null;
 if (api) api.onCommand(({ sandbox, command }) => {
   if (command.includes("omb-home start") && !sandbox.volume.size) {
     sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
-    sandbox.volume.set("__system__/data/.openmausbot/config.json", Buffer.from("{}"));
+    sandbox.volume.set("__system__/data/.duskbot/config.json", Buffer.from("{}"));
   }
   return { exitCode: 0, stdout: command.includes("omb-home install") ? "installed\n" : command.includes("omb-home start") ? "started\n" : command.includes("restore") ? "restored\n" : "" };
 });
@@ -53,7 +53,7 @@ const rawSandbox = async (id: string) => (await (await fetch(`${apiBase}/sandbox
 if (adopt) scope = (await rawSandbox(adopt))?.labels?.["omb.scope"] ?? scope;
 const ops = createBoatProvider({ apiKey: key, baseUrl, scope });
 let adopted = false;
-const WIPE = ["/data", "/etc/openmausbot", "/usr/lib/openmausbot", "/opt/openmausbot", "/usr/local/sbin/omb-home", "/usr/local/bin/node", "/usr/local/bin/caddy",
+const WIPE = ["/data", "/etc/duskbot", "/usr/lib/duskbot", "/opt/duskbot", "/usr/local/sbin/omb-home", "/usr/local/bin/node", "/usr/local/bin/caddy",
   "/etc/systemd/system/omb-home.service", "/etc/systemd/system/omb-docker-gate.service", "/home/user/.boat", "/home/user/.boatignore", "/home/user/omb-home.tgz"];
 
 // the homes' signed reads go to the real origins; in --fake mode the "homes" answer from here
@@ -84,18 +84,18 @@ const homeFetch: typeof fetch = async (input, init) => {
 };
 
 // a real home is a release build: it trusts only the pinned entitlement key, so a real run signs with the production one
-const entitlementKey = process.env.OMB_ENTITLEMENT_SIGNING_KEY ?? (fake ? generateEntitlementSigner("dev-e2e").env : "");
-if (!entitlementKey) { console.error("OMB_ENTITLEMENT_SIGNING_KEY is required for a real run (the release home refuses anything else)."); process.exit(2); }
+const entitlementKey = process.env.DUSK_ENTITLEMENT_SIGNING_KEY ?? (fake ? generateEntitlementSigner("dev-e2e").env : "");
+if (!entitlementKey) { console.error("DUSK_ENTITLEMENT_SIGNING_KEY is required for a real run (the release home refuses anything else)."); process.exit(2); }
 const store = createStore(dataDir);
 const account = { id: "acct_e2e", email: "e2e@example.test" };
 const billing = createBilling({ dataDir, publicUrl: "https://dashboard.e2e.invalid", dashboard: { state: store.state, changed: () => store.changed() }, fetch: homeFetch,
   accounts: { fromCookie: () => account, fromBearer: () => account },
   mail: (cloud, letter) => note(`notice to owner: ${letter.subject} for ${cloud.id}`),
   alert: entry => note(`ALERT ${entry.action} ${entry.cloudId} (${entry.reason})`),
-  env: { OMB_BILLING_PROVIDER: "fake", OMB_CLOUD_SEAL_KEY: randomBytes(32).toString("base64url"), OMB_MANAGED: "1", BOAT_API_KEY: key, BOAT_BASE_URL: baseUrl, OMB_MANAGED_SCOPE: scope,
-    OMB_MANAGED_KINDS: "shared_s", OMB_MANAGED_HOME_PACKAGE_FILE: packageFile, OMB_MANAGED_HOME_PACKAGE_SHA256: sha256, OMB_MANAGED_LEASE_HOURS: "1", OMB_MANAGED_IDLE_MINUTES: "5", OMB_MANAGED_LOST_AFTER_MINUTES: "2", OMB_POOL_DRIVER: "fake",
+  env: { DUSK_BILLING_PROVIDER: "fake", DUSK_CLOUD_SEAL_KEY: randomBytes(32).toString("base64url"), DUSK_MANAGED: "1", BOAT_API_KEY: key, BOAT_BASE_URL: baseUrl, DUSK_MANAGED_SCOPE: scope,
+    DUSK_MANAGED_KINDS: "shared_s", DUSK_MANAGED_HOME_PACKAGE_FILE: packageFile, DUSK_MANAGED_HOME_PACKAGE_SHA256: sha256, DUSK_MANAGED_LEASE_HOURS: "1", DUSK_MANAGED_IDLE_MINUTES: "5", DUSK_MANAGED_LOST_AFTER_MINUTES: "2", DUSK_POOL_DRIVER: "fake",
     // no machine can reach this harness, and nobody uses it: no claim, no public domain, an unsigned test package
-    OMB_MANAGED_TEST_HARNESS: "1", OMB_ENTITLEMENT_SIGNING_KEY: entitlementKey } });
+    DUSK_MANAGED_TEST_HARNESS: "1", DUSK_ENTITLEMENT_SIGNING_KEY: entitlementKey } });
 const webhooks = createServer((req, res) => void billing.handle(req, res, new URL(req.url ?? "/", "http://127.0.0.1")).then(handled => { if (!handled) { res.writeHead(404); res.end(); } }));
 await new Promise<void>(r => webhooks.listen(0, "127.0.0.1", r));
 const hookBase = `http://127.0.0.1:${(webhooks.address() as { port: number }).port}`;
@@ -138,7 +138,7 @@ try {
   // a synthetic engine on the home, so a bot can answer (test tooling only, never part of the product install)
   if (!fake) {
     const engine = readFileSync(resolve(option("--engine")!));
-    const wrapper = `#!/bin/sh\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"email":"person@example.test"}'; exit 0; fi\nexport FAKE_CLAUDE_VERSION=2.1.284\nexec /usr/lib/openmausbot/node/bin/node /opt/omb-test/fake-claude.mjs "$@"\n`;
+    const wrapper = `#!/bin/sh\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"email":"person@example.test"}'; exit 0; fi\nexport FAKE_CLAUDE_VERSION=2.1.284\nexec /usr/lib/duskbot/node/bin/node /opt/omb-test/fake-claude.mjs "$@"\n`;
     await ops.upload(cloud().serverId!, "/home/user/fake-claude.mjs", engine);
     await ops.upload(cloud().serverId!, "/home/user/claude-wrapper.sh", Buffer.from(wrapper));
     const done = await ops.run(cloud().serverId!, "sudo install -d -m 0755 /opt/omb-test && sudo install -m 0755 /home/user/fake-claude.mjs /opt/omb-test/fake-claude.mjs && sudo install -m 0755 /home/user/claude-wrapper.sh /usr/local/bin/claude && sudo systemctl restart omb-home && sleep 10 && echo ok", 120);

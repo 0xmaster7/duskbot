@@ -42,7 +42,7 @@ const controlReady = controlToken ? Promise.resolve() : new Promise<void>((resol
 parentPort?.on("message", ({ data }) => {
   if (!data || typeof data !== "object") return;
   const message = data as Record<string, unknown>;
-  if (message.type !== "openmausbot:companion-mutation-token") return;
+  if (message.type !== "duskbot:companion-mutation-token") return;
   if (typeof message.token === "string" && /^[A-Za-z0-9_-]{43}$/.test(message.token)) {
     mutationToken = message.token;
   }
@@ -58,15 +58,15 @@ const num = (value: string | undefined, fallback: number): number => {
   return Number.isInteger(parsed) && parsed > 0 && parsed < 65536 ? parsed : fallback;
 };
 
-const HARNESS_PORT = num(process.env.OMB_PORT, 8799);
-const WEBHOOK_PORT = num(process.env.OMB_WEBHOOK_PORT, HARNESS_PORT + 1);
-const COMPANION_PORT = num(process.env.OMB_COMPANION_PORT, 8810);
-const CONTROL_PORT = num(process.env.OMB_CONTROL_PORT, 8811);
-const SERVICE_TYPE = "_openmausbot._tcp";
-let hostedUrl = hostedCompanionUrl(process.env.OMB_COMPANION_HOSTED_URL);
-const PRIVATE_ORIGIN = companionOriginSocket(process.env.OMB_COMPANION_INTERNAL_ORIGIN);
+const HARNESS_PORT = num(process.env.DUSK_PORT, 8799);
+const WEBHOOK_PORT = num(process.env.DUSK_WEBHOOK_PORT, HARNESS_PORT + 1);
+const COMPANION_PORT = num(process.env.DUSK_COMPANION_PORT, 8810);
+const CONTROL_PORT = num(process.env.DUSK_CONTROL_PORT, 8811);
+const SERVICE_TYPE = "_duskbot._tcp";
+let hostedUrl = hostedCompanionUrl(process.env.DUSK_COMPANION_HOSTED_URL);
+const PRIVATE_ORIGIN = companionOriginSocket(process.env.DUSK_COMPANION_INTERNAL_ORIGIN);
 const SECRET_PUBLIC_KEY = normalizedPhoneSecretPublicKey(
-  process.env.OMB_PHONE_SECRET_PUBLIC_KEY ?? "",
+  process.env.DUSK_PHONE_SECRET_PUBLIC_KEY ?? "",
 );
 
 /** Checked up front: the collision is a race, and the loser's error surfaces
@@ -81,12 +81,12 @@ const conflict = (name: string, port: number): string | null => {
   return owner ? `${name} is set to port ${port}, which is ${owner}` : null;
 };
 
-/** OMB_COMPANION_NAME wins; otherwise the name set in Settings or the owner's profile name, re-read every 30
+/** DUSK_COMPANION_NAME wins; otherwise the name set in Settings or the owner's profile name, re-read every 30
  * seconds so a rename, or a harness that answered late, reaches the phone. Failures keep the last name. */
-const fixedName = process.env.OMB_COMPANION_NAME?.trim() || "";
+const fixedName = process.env.DUSK_COMPANION_NAME?.trim() || "";
 let cachedName = fixedName;
 
-const machineName = (): string => cachedName || "OpenMausBot";
+const machineName = (): string => cachedName || "Dusk Bot";
 
 /** True when the name changed. */
 async function refreshMachineName(): Promise<boolean> {
@@ -181,7 +181,7 @@ const listen = (server: ReturnType<typeof createServer>, port: number, host: str
     const onError = (error: NodeJS.ErrnoException) => {
       server.removeListener("listening", onListening);
       const hint = ` — another copy of the companion may already be running; ${
-        port === COMPANION_PORT ? "OMB_COMPANION_PORT" : "OMB_CONTROL_PORT"
+        port === COMPANION_PORT ? "DUSK_COMPANION_PORT" : "DUSK_CONTROL_PORT"
       } chooses a different one`;
       reject(
         error.code === "EADDRINUSE"
@@ -205,13 +205,13 @@ const listen = (server: ReturnType<typeof createServer>, port: number, host: str
 
 async function main(): Promise<void> {
   const clash =
-    conflict("OMB_COMPANION_PORT", COMPANION_PORT) ?? conflict("OMB_CONTROL_PORT", CONTROL_PORT);
+    conflict("DUSK_COMPANION_PORT", COMPANION_PORT) ?? conflict("DUSK_CONTROL_PORT", CONTROL_PORT);
   if (clash) throw new Error(`${clash}. Pick another port.`);
 
   // 127.0.0.1 and 0.0.0.0 on one port collide; name it rather than EADDRINUSE.
   if (COMPANION_PORT === CONTROL_PORT) {
     throw new Error(
-      `OMB_COMPANION_PORT and OMB_CONTROL_PORT are both port ${COMPANION_PORT}, and they cannot share one: ` +
+      `DUSK_COMPANION_PORT and DUSK_CONTROL_PORT are both port ${COMPANION_PORT}, and they cannot share one: ` +
         `the first is open to your network and the second must never be. Pick another port.`,
     );
   }

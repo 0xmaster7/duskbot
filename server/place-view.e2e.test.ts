@@ -77,11 +77,11 @@ describe("a cloud computer that can't start, against the real server", () => {
     const proc = spawn(process.execPath, [join(ROOT, "server/index.ts")], {
       cwd: ROOT, env: {
         PATH: dirname(process.execPath), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
-        HOME: home, USERPROFILE: home, OMB_DATA_DIR: data,
+        HOME: home, USERPROFILE: home, DUSK_DATA_DIR: data,
         APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
-        TEMP: home, TMP: home, TMPDIR: home, OMB_TEST_SEALED_PATH: "1",
-        OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), OMB_STATIC_DIR: ui,
-        OMB_USER_DATA: join(home, "user-data"),
+        TEMP: home, TMP: home, TMPDIR: home, DUSK_TEST_SEALED_PATH: "1",
+        DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1), DUSK_STATIC_DIR: ui,
+        DUSK_USER_DATA: join(home, "user-data"),
       }, stdio: ["ignore", "pipe", "pipe"],
     });
     child = proc;
@@ -204,7 +204,7 @@ describe("a cloud computer that can't start, against the real server", () => {
     createAnswer = refusal(402, "subscription_inactive", "Cloud computers are included with an active Cloud subscription.");
     await send(bot.id, bot.threadId, "Open the desktop.");
     const row = await failedRow(bot.threadId);
-    expect(row.tool.name).toBe("error: Your MausBot Cloud plan has ended, so cloud desktops are off. See your plan on the Plan page.");
+    expect(row.tool.name).toBe("error: Your Dusk Cloud plan has ended, so cloud desktops are off. See your plan on the Plan page.");
     expect(row.tool.place).toEqual({ state: "cc-ended", params: { bot: "Ended Bot" }, source: "works-on" });
   }, 90_000);
 

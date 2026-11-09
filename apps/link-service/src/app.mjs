@@ -451,8 +451,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     const method = req.method ?? "GET";
     let parts;
 
-    if (method === "GET" && path === "/.well-known/openmausbot/dashboard") {
-      const dashboard = process.env.OMB_LINK_DASHBOARD_URL;
+    if (method === "GET" && path === "/.well-known/duskbot/dashboard") {
+      const dashboard = process.env.DUSK_LINK_DASHBOARD_URL;
       return dashboard ? send(res, 200, { v: 1, url: dashboard }) : fail(res, 404, "No account dashboard is configured.");
     }
     if (method === "GET" && path === "/healthz") return send(res, 200, { ok: true });

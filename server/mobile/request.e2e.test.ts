@@ -6,7 +6,7 @@ import type { MobilePairingResponse, MobileRedeemResponse } from "../../shared/m
 import { sessionCookieName } from "../request-auth.ts";
 
 it("serves a redeemed phone's JSON, upload, download and SSE with bearer-only CORS", async () => {
-  const fixture = await launchVerificationServer({ OMB_DEV_TRUST_LOCAL_BROWSER: "0" });
+  const fixture = await launchVerificationServer({ DUSK_DEV_TRUST_LOCAL_BROWSER: "0" });
   const base = fixture.info.url;
   const origin = "capacitor://localhost";
   const jsonHeaders = { "content-type": "application/json" };

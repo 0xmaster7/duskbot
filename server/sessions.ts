@@ -18,10 +18,10 @@ export function daysMs(value: string | undefined, fallbackDays: number): number 
   const ok = Number.isInteger(days) && days >= 1 && days <= 3650;
   return (ok ? days : fallbackDays) * 24 * 60 * 60_000;
 }
-/** OMB_SESSION_TTL_DAYS (default 30): a session used with half its term or less left renews for the full term. */
-export const SESSION_TTL_MS = daysMs(process.env.OMB_SESSION_TTL_DAYS, 30);
-/** OMB_SESSION_MAX_DAYS (default 180): renewal never passes this, so a stolen cookie has a bounded life. */
-export const SESSION_MAX_AGE_MS = daysMs(process.env.OMB_SESSION_MAX_DAYS, 180);
+/** DUSK_SESSION_TTL_DAYS (default 30): a session used with half its term or less left renews for the full term. */
+export const SESSION_TTL_MS = daysMs(process.env.DUSK_SESSION_TTL_DAYS, 30);
+/** DUSK_SESSION_MAX_DAYS (default 180): renewal never passes this, so a stolen cookie has a bounded life. */
+export const SESSION_MAX_AGE_MS = daysMs(process.env.DUSK_SESSION_MAX_DAYS, 180);
 export const SESSION_RENEW_WHEN_LEFT_MS = SESSION_TTL_MS / 2;
 
 export function cookieMaxAgeSeconds(session: { expiresAt: number }, now = Date.now()): number {

@@ -409,7 +409,7 @@ describe("DeepSeek Harness when a turn's tools change", () => {
       await removeTempDir(scratch);
     };
     writeFileSync(join(scratch, "reject"), "1");
-    const agents = (token: string) => ({ agents: { command: process.execPath, args: [FAKE_CLI], env: { OMB_COMMS_TOKEN: token } } });
+    const agents = (token: string) => ({ agents: { command: process.execPath, args: [FAKE_CLI], env: { DUSK_COMMS_TOKEN: token } } });
     const run = async (text: string, token: string, resumeCursor?: string) => {
       const { turnId } = await instance.adapter.sendTurn({ threadId: "t-active", text, integrations: agents(token), ...(resumeCursor ? { resumeCursor } : {}) });
       return recorder.until((event) => event.type === "turn.completed" && event.turnId === turnId);
@@ -425,7 +425,7 @@ describe("DeepSeek Harness when a turn's tools change", () => {
     expect(Number(readFileSync(join(scratch, "launches"), "utf8"))).toBe(2);
     const servers = JSON.parse(readFileSync(join(scratch, "dump.mcp.json"), "utf8")) as Array<{ name: string }>;
     const agentsServer = JSON.stringify(servers.find((server) => server.name === "agents"));
-    expect(agentsServer).toContain("OMB_COMMS_TOKEN");
+    expect(agentsServer).toContain("DUSK_COMMS_TOKEN");
     expect(agentsServer).toContain("token-two");
   });
 });

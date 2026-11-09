@@ -1,5 +1,5 @@
 // The X card in the real Apps pop-up, against fake-engine servers and one loopback stand-in for both treg and the
-// MausBot Cloud relay: no real treg key, account or call.
+// Dusk Cloud relay: no real treg key, account or call.
 import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
 import { mkdirSync } from "node:fs";
@@ -29,15 +29,15 @@ async function serveStub(): Promise<{ server: Server; url: string }> {
 }
 
 const stub = await serveStub();
-const output = process.env.OMB_UI_EVIDENCE_DIR || "/tmp/omb-x-connector-evidence";
+const output = process.env.DUSK_UI_EVIDENCE_DIR || "/tmp/omb-x-connector-evidence";
 mkdirSync(output, { recursive: true });
-const { chromium } = await import(process.env.OMB_VERIFY_PLAYWRIGHT || "playwright");
-const browser = await chromium.launch({ headless: true, executablePath: process.env.OMB_VERIFY_BROWSER_CHROME || undefined });
+const { chromium } = await import(process.env.DUSK_VERIFY_PLAYWRIGHT || "playwright");
+const browser = await chromium.launch({ headless: true, executablePath: process.env.DUSK_VERIFY_BROWSER_CHROME || undefined });
 const opened: Array<{ fixture: VerificationServer; ui: MountedPreview }> = [];
 
 async function open(plan: boolean) {
-  const fixture = await launchVerificationServer({ ...process.env, OMB_TREG_URL: stub.url,
-    ...(plan ? { OMB_CLOUD_X_URL: `${stub.url}${RELAY_PATH}`, OMB_CLOUD_X_TOKEN: PLAN_TOKEN } : {}) });
+  const fixture = await launchVerificationServer({ ...process.env, DUSK_TREG_URL: stub.url,
+    ...(plan ? { DUSK_CLOUD_X_URL: `${stub.url}${RELAY_PATH}`, DUSK_CLOUD_X_TOKEN: PLAN_TOKEN } : {}) });
   const ui = await mountPreview(fixture, {
     entry: "/scripts/testing/whop-preview.tsx", route: "/__x.html", title: "Isolated X card",
     extraRoutes: [

@@ -1,19 +1,19 @@
 {
-  "name": "openmausbot",
+  "name": "duskbot",
   "private": true,
   "version": "0.1.141",
   "description": "A local-first chat app for running a team of AI agents.",
-  "homepage": "https://github.com/SiddDevZ/OpenMausBot",
+  "homepage": "https://github.com/goatedgrokbotalternative/thebot",
   "repository": {
     "type": "git",
-    "url": "https://github.com/SiddDevZ/OpenMausBot.git"
+    "url": "https://github.com/goatedgrokbotalternative/thebot.git"
   },
   "author": {
     "name": "Milind Soni",
     "email": "46266943+milind-soni@users.noreply.github.com"
   },
   "license": "SEE LICENSE IN LICENSE",
-  "desktopName": "com.openmausbot.app.desktop",
+  "desktopName": "bot.dusk.app.desktop",
   "type": "module",
   "main": "electron/main.mjs",
   "engines": {
@@ -28,10 +28,10 @@
     "i18n:check": "node scripts/generate-locale.mjs --check",
     "dev": "vite",
     "mobile:preview": "node apps/mobile/scripts/phone-preview.mjs",
-    "mobile:build": "pnpm --filter @openmausbot/mobile build",
+    "mobile:build": "pnpm --filter @duskbot/mobile build",
     "companion": "node --experimental-strip-types apps/companion/src/index.ts",
-    "omb": "node --experimental-strip-types server/openmausbot.ts",
-    "pair": "node --experimental-strip-types server/openmausbot.ts pair",
+    "omb": "node --experimental-strip-types server/duskbot.ts",
+    "pair": "node --experimental-strip-types server/duskbot.ts pair",
     "dev:server": "node --experimental-strip-types server/dev-server.ts",
     "demo": "node scripts/demo/demo.mjs",
     "test-bots": "node scripts/demo/test-bots.mjs",

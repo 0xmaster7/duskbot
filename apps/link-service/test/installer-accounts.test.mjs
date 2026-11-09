@@ -27,10 +27,10 @@ async function fixture(body) {
 ROOT=$1
 CALLS=$ROOT/calls; export CALLS
 UNITS=$ROOT/units; TMP=$ROOT/tmp; STATE=$ROOT/state
-SVC_HOME=$ROOT/home/maus; DATA=$SVC_HOME/.openmausbot
+SVC_HOME=$ROOT/home/maus; DATA=$SVC_HOME/.duskbot
 LINK_HOME=$ROOT/var/lib/omb-link; HANDOFF=$LINK_HOME/handoff
-ETC=$ROOT/etc/openmausbot; LIB=$ROOT/usr/local/lib/openmausbot; GATE=$LIB/docker-gate.mjs
-NAME=fixture; AGENT=/opt/openmausbot-link/agent.mjs
+ETC=$ROOT/etc/duskbot; LIB=$ROOT/usr/local/lib/duskbot; GATE=$LIB/docker-gate.mjs
+NAME=fixture; AGENT=/opt/duskbot-link/agent.mjs
 mkdir -p "$UNITS" "$TMP" "$STATE"
 touch "$ROOT/users"
 log() { printf '%s\\n' "$*" >> "$CALLS"; }
@@ -63,9 +63,9 @@ const read = (path) => readFile(path, "utf8");
 describe("the installer's units", () => {
   it("runs the server hardened, out of the docker group, with every turn boxed and docker only through the gate", async () => {
     const dir = await fixture("server_unit; helper_units; handoff_script");
-    const server = await read(join(dir, "units", "openmausbot.service"));
-    for (const line of ["User=maus", "SupplementaryGroups=omb-dockergate", "Environment=OMB_BOT_BOX=required", `Environment=OMB_BOX_CODE_ROOTS=${dir}/home/maus/.local/bin:${dir}/home/maus/.local/lib`,
-      "Environment=OPENMAUSBOT_VPS_DOCKER=local", "Environment=DOCKER_HOST=unix:///run/openmausbot-docker/docker.sock", `EnvironmentFile=-${dir}/etc/openmausbot/engines.env`,
+    const server = await read(join(dir, "units", "duskbot.service"));
+    for (const line of ["User=maus", "SupplementaryGroups=omb-dockergate", "Environment=DUSK_BOT_BOX=required", `Environment=DUSK_BOX_CODE_ROOTS=${dir}/home/maus/.local/bin:${dir}/home/maus/.local/lib`,
+      "Environment=DUSK_VPS_DOCKER=local", "Environment=DOCKER_HOST=unix:///run/duskbot-docker/docker.sock", `EnvironmentFile=-${dir}/etc/duskbot/engines.env`,
       "NoNewPrivileges=yes", "CapabilityBoundingSet=", "ProtectSystem=strict", "ProtectHome=tmpfs", `BindPaths=${dir}/home/maus`, `ReadWritePaths=${dir}/home/maus`,
       "PrivateTmp=yes", "RestrictSUIDSGID=yes", "ProtectProc=invisible", "UMask=0077"]) {
       expect(server.split("\n"), line).toContain(line);
@@ -76,26 +76,26 @@ describe("the installer's units", () => {
     // and mounts a fresh /proc, which the kernel refuses under a partly covered one
     for (const masking of ["ProtectKernelTunables", "ProtectKernelLogs", "ProcSubset", "PrivateDevices"]) expect(server).not.toContain(masking);
     expect(server).toContain("RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK");
-    expect(server).not.toContain("config/openmausbot/engines.env");
+    expect(server).not.toContain("config/duskbot/engines.env");
 
-    const link = await read(join(dir, "units", "openmausbot-link.service"));
-    for (const line of ["User=omb-link", `Environment=HOME=${dir}/var/lib/omb-link`, `Environment=OMB_LINK_ENGINES_FILE=${dir}/var/lib/omb-link/handoff/engines.env`,
-      `Environment=OMB_LINK_CODEX_AUTH_FILE=${dir}/var/lib/omb-link/handoff/codex-auth.json`, "NoNewPrivileges=yes", "ProtectHome=yes", "RestrictNamespaces=yes", "ProtectKernelTunables=yes", "PrivateDevices=yes", `ReadWritePaths=${dir}/var/lib/omb-link`]) {
+    const link = await read(join(dir, "units", "duskbot-link.service"));
+    for (const line of ["User=omb-link", `Environment=HOME=${dir}/var/lib/omb-link`, `Environment=DUSK_LINK_ENGINES_FILE=${dir}/var/lib/omb-link/handoff/engines.env`,
+      `Environment=DUSK_LINK_CODEX_AUTH_FILE=${dir}/var/lib/omb-link/handoff/codex-auth.json`, "NoNewPrivileges=yes", "ProtectHome=yes", "RestrictNamespaces=yes", "ProtectKernelTunables=yes", "PrivateDevices=yes", `ReadWritePaths=${dir}/var/lib/omb-link`]) {
       expect(link.split("\n"), line).toContain(line);
     }
     expect(link).not.toContain("User=maus");
 
     const gate = await read(join(dir, "units", "omb-docker-gate.service"));
-    for (const line of ["User=omb-docker", "Group=omb-dockergate", "SupplementaryGroups=docker", "RuntimeDirectory=openmausbot-docker", "RestrictAddressFamilies=AF_UNIX", "IPAddressDeny=any", "NoNewPrivileges=yes", "CapabilityBoundingSet="]) {
+    for (const line of ["User=omb-docker", "Group=omb-dockergate", "SupplementaryGroups=docker", "RuntimeDirectory=duskbot-docker", "RestrictAddressFamilies=AF_UNIX", "IPAddressDeny=any", "NoNewPrivileges=yes", "CapabilityBoundingSet="]) {
       expect(gate.split("\n"), line).toContain(line);
     }
-    expect(gate).toContain(`ExecStart=/usr/bin/node ${dir}/usr/local/lib/openmausbot/docker-gate.mjs --listen /run/openmausbot-docker/docker.sock --upstream /var/run/docker.sock`);
+    expect(gate).toContain(`ExecStart=/usr/bin/node ${dir}/usr/local/lib/duskbot/docker-gate.mjs --listen /run/duskbot-docker/docker.sock --upstream /var/run/docker.sock`);
 
-    const path = await read(join(dir, "units", "openmausbot-engines.path"));
+    const path = await read(join(dir, "units", "duskbot-engines.path"));
     expect(path).toContain(`PathExists=${dir}/var/lib/omb-link/handoff/engines.env`);
-    expect(path).toContain("Unit=openmausbot-handoff.service");
-    expect(existsSync(join(dir, "units", "openmausbot-restart.service"))).toBe(false);
-    expect((await stat(join(dir, "usr", "local", "lib", "openmausbot", "engine-handoff.sh"))).mode & 0o777).toBe(0o755);
+    expect(path).toContain("Unit=duskbot-handoff.service");
+    expect(existsSync(join(dir, "units", "duskbot-restart.service"))).toBe(false);
+    expect((await stat(join(dir, "usr", "local", "lib", "duskbot", "engine-handoff.sh"))).mode & 0o777).toBe(0o755);
   });
 
   it("the hand-off keeps only the Claude token line, puts the codex sign-in in maus's home and restarts the server", async () => {
@@ -104,14 +104,14 @@ mkdir -p "$HANDOFF" "$ETC" "$SVC_HOME"
 printf 'NODE_OPTIONS=--require /tmp/x.js\\n${TOKEN}\\nPATH=/evil\\n' > "$HANDOFF/engines.env"
 printf '{"tokens":{"id_token":"x"}}' > "$HANDOFF/codex-auth.json"
 sh "$LIB/engine-handoff.sh"`);
-    expect(await read(join(dir, "etc", "openmausbot", "engines.env"))).toBe(`${TOKEN}\n`);
+    expect(await read(join(dir, "etc", "duskbot", "engines.env"))).toBe(`${TOKEN}\n`);
     expect(await read(join(dir, "home", "maus", ".codex", "auth.json"))).toBe('{"tokens":{"id_token":"x"}}');
     expect(existsSync(join(dir, "var", "lib", "omb-link", "handoff", "engines.env"))).toBe(false);
     expect(existsSync(join(dir, "var", "lib", "omb-link", "handoff", "codex-auth.json"))).toBe(false);
     const calls = await read(join(dir, "calls"));
     expect(calls).toContain("runuser omb-link");
     expect(calls).toContain("runuser maus");
-    expect(calls).toContain("systemctl restart openmausbot.service");
+    expect(calls).toContain("systemctl restart duskbot.service");
   });
 
   it("a hand-off with no valid token changes nothing and restarts nothing", async () => {
@@ -120,19 +120,19 @@ mkdir -p "$HANDOFF" "$ETC"
 printf '${TOKEN}\\n' > "$ETC/engines.env"
 printf 'NODE_OPTIONS=--require /tmp/x.js\\n' > "$HANDOFF/engines.env"
 sh "$LIB/engine-handoff.sh"`);
-    expect(await read(join(dir, "etc", "openmausbot", "engines.env"))).toBe(`${TOKEN}\n`);
+    expect(await read(join(dir, "etc", "duskbot", "engines.env"))).toBe(`${TOKEN}\n`);
     expect(await read(join(dir, "calls")).catch(() => "")).not.toContain("systemctl restart");
   });
 });
 
 describe("the installer's account split on an older install", () => {
   const older = `
-mkdir -p "$SVC_HOME/.config/openmausbot-link" "$SVC_HOME/.config/openmausbot" "$SVC_HOME/.ssh" "$DATA/workspaces/b1" "$SVC_HOME/.codex/sessions/2026" "$SVC_HOME/.claude/projects/p"
+mkdir -p "$SVC_HOME/.config/duskbot-link" "$SVC_HOME/.config/duskbot" "$SVC_HOME/.ssh" "$DATA/workspaces/b1" "$SVC_HOME/.codex/sessions/2026" "$SVC_HOME/.claude/projects/p"
 echo maus >> "$ROOT/users"; echo docker >> "$ROOT/group-names"
 echo "maus docker" > "$ROOT/groups-maus"
-printf '{"v":1,"id":"abcdefghij","key":"k"}' > "$SVC_HOME/.config/openmausbot-link/tunnel.json"
-printf 'ssh-ed25519 AAAA mine\\nrestrict,command="/usr/bin/node /opt/openmausbot-link/agent.mjs direct" ssh-ed25519 BBBB omb-link-abcdefghij\\n' > "$SVC_HOME/.ssh/authorized_keys"
-printf 'NODE_OPTIONS=--require /tmp/x.js\\n${TOKEN}\\n' > "$SVC_HOME/.config/openmausbot/engines.env"
+printf '{"v":1,"id":"abcdefghij","key":"k"}' > "$SVC_HOME/.config/duskbot-link/tunnel.json"
+printf 'ssh-ed25519 AAAA mine\\nrestrict,command="/usr/bin/node /opt/duskbot-link/agent.mjs direct" ssh-ed25519 BBBB omb-link-abcdefghij\\n' > "$SVC_HOME/.ssh/authorized_keys"
+printf 'NODE_OPTIONS=--require /tmp/x.js\\n${TOKEN}\\n' > "$SVC_HOME/.config/duskbot/engines.env"
 echo rollout > "$SVC_HOME/.codex/sessions/2026/r.jsonl"; echo transcript > "$SVC_HOME/.claude/projects/p/s.jsonl"; echo '{}' > "$SVC_HOME/.claude.json"
 echo db > "$DATA/messages.db"
 `;
@@ -141,18 +141,18 @@ echo db > "$DATA/messages.db"
     const dir = await fixture(`${older}
 do_user > "$ROOT/out" 2>&1 || { cat "$ROOT/out" >&2; exit 1; }`);
     const home = join(dir, "home", "maus"), linkHome = join(dir, "var", "lib", "omb-link");
-    expect(await read(join(linkHome, ".config", "openmausbot-link", "tunnel.json"))).toBe('{"v":1,"id":"abcdefghij","key":"k"}');
-    expect(existsSync(join(home, ".config", "openmausbot-link"))).toBe(false);
+    expect(await read(join(linkHome, ".config", "duskbot-link", "tunnel.json"))).toBe('{"v":1,"id":"abcdefghij","key":"k"}');
+    expect(existsSync(join(home, ".config", "duskbot-link"))).toBe(false);
     expect(await read(join(home, ".ssh", "authorized_keys"))).toBe("ssh-ed25519 AAAA mine\n");
-    expect(await read(join(dir, "etc", "openmausbot", "engines.env"))).toBe(`${TOKEN}\n`);
-    expect(existsSync(join(home, ".config", "openmausbot", "engines.env"))).toBe(false);
-    const engine = join(home, ".openmausbot", "engine-home");
+    expect(await read(join(dir, "etc", "duskbot", "engines.env"))).toBe(`${TOKEN}\n`);
+    expect(existsSync(join(home, ".config", "duskbot", "engines.env"))).toBe(false);
+    const engine = join(home, ".duskbot", "engine-home");
     expect(await read(join(engine, ".codex", "sessions", "2026", "r.jsonl"))).toBe("rollout\n");
     expect(await read(join(engine, ".claude", "projects", "p", "s.jsonl"))).toBe("transcript\n");
     expect(await read(join(engine, ".claude.json"))).toBe("{}\n");
-    expect(await read(join(home, ".openmausbot", "messages.db"))).toBe("db\n");
+    expect(await read(join(home, ".duskbot", "messages.db"))).toBe("db\n");
     expect((await stat(home)).mode & 0o777).toBe(0o700);
-    expect((await stat(join(home, ".openmausbot"))).mode & 0o777).toBe(0o700);
+    expect((await stat(join(home, ".duskbot"))).mode & 0o777).toBe(0o700);
     const calls = await read(join(dir, "calls"));
     expect(calls).toContain("gpasswd -d maus docker");
     expect(calls).toMatch(/useradd --system --no-create-home .* --gid omb-dockergate omb-docker/);
@@ -173,8 +173,8 @@ do_user > "$ROOT/out2" 2>&1 || { cat "$ROOT/out2" >&2; exit 1; }`);
     expect(calls).not.toContain("useradd");
     expect(calls).not.toContain("groupadd");
     expect(calls).not.toContain("gpasswd");
-    expect(await read(join(dir, "home", "maus", ".openmausbot", "engine-home", ".codex", "kept"))).toBe("later\n");
-    expect(await read(join(dir, "var", "lib", "omb-link", ".config", "openmausbot-link", "tunnel.json"))).toContain("abcdefghij");
+    expect(await read(join(dir, "home", "maus", ".duskbot", "engine-home", ".codex", "kept"))).toBe("later\n");
+    expect(await read(join(dir, "var", "lib", "omb-link", ".config", "duskbot-link", "tunnel.json"))).toContain("abcdefghij");
   });
 });
 

@@ -85,22 +85,22 @@ export function providersFromEnv(env: NodeJS.ProcessEnv): ProviderConfigs {
     return value;
   }
   for (const id of OAUTH_PROVIDERS) {
-    const prefix = `OMB_AUTH_${id.toUpperCase()}_`;
+    const prefix = `DUSK_AUTH_${id.toUpperCase()}_`;
     if (!Object.keys(env).some(key => key.startsWith(prefix) && env[key] !== undefined)) continue;
     const clientId = required(`${prefix}CLIENT_ID`);
     if (id === "google") configs.google = { ...defaults.google, clientId, clientSecret: required(`${prefix}CLIENT_SECRET`) };
-    else if (id === "x") configs.x = { ...defaults.x, clientId, ...(env.OMB_AUTH_X_CLIENT_SECRET ? { clientSecret: env.OMB_AUTH_X_CLIENT_SECRET } : {}), scopes: env.OMB_AUTH_X_SCOPES?.trim() || defaults.x.scopes };
+    else if (id === "x") configs.x = { ...defaults.x, clientId, ...(env.DUSK_AUTH_X_CLIENT_SECRET ? { clientSecret: env.DUSK_AUTH_X_CLIENT_SECRET } : {}), scopes: env.DUSK_AUTH_X_SCOPES?.trim() || defaults.x.scopes };
     else {
       const teamId = required(`${prefix}TEAM_ID`), keyId = required(`${prefix}KEY_ID`);
       let privateKey: string;
-      if (env.OMB_AUTH_APPLE_PRIVATE_KEY) privateKey = env.OMB_AUTH_APPLE_PRIVATE_KEY.replace(/\\n/g, "\n");
-      else if (env.OMB_AUTH_APPLE_PRIVATE_KEY_FILE) {
-        try { privateKey = readFileSync(env.OMB_AUTH_APPLE_PRIVATE_KEY_FILE, "utf8"); } catch { throw new Error("Cannot read OMB_AUTH_APPLE_PRIVATE_KEY_FILE."); }
-      } else throw new Error("Missing OMB_AUTH_APPLE_PRIVATE_KEY or OMB_AUTH_APPLE_PRIVATE_KEY_FILE for sign-in provider.");
+      if (env.DUSK_AUTH_APPLE_PRIVATE_KEY) privateKey = env.DUSK_AUTH_APPLE_PRIVATE_KEY.replace(/\\n/g, "\n");
+      else if (env.DUSK_AUTH_APPLE_PRIVATE_KEY_FILE) {
+        try { privateKey = readFileSync(env.DUSK_AUTH_APPLE_PRIVATE_KEY_FILE, "utf8"); } catch { throw new Error("Cannot read DUSK_AUTH_APPLE_PRIVATE_KEY_FILE."); }
+      } else throw new Error("Missing DUSK_AUTH_APPLE_PRIVATE_KEY or DUSK_AUTH_APPLE_PRIVATE_KEY_FILE for sign-in provider.");
       try {
         const key = createPrivateKey(privateKey);
         if (key.asymmetricKeyType !== "ec" || key.asymmetricKeyDetails?.namedCurve !== "prime256v1") throw new Error();
-      } catch { throw new Error("Invalid OMB_AUTH_APPLE_PRIVATE_KEY or OMB_AUTH_APPLE_PRIVATE_KEY_FILE: expected a P-256 private key."); }
+      } catch { throw new Error("Invalid DUSK_AUTH_APPLE_PRIVATE_KEY or DUSK_AUTH_APPLE_PRIVATE_KEY_FILE: expected a P-256 private key."); }
       configs.apple = { ...defaults.apple, clientId, apple: { teamId, keyId, privateKey } };
     }
   }

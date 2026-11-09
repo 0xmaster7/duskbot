@@ -28,15 +28,15 @@ const HIDING_BWRAP = `#!/bin/sh
 shown=1
 while [ "$1" != "--" ]; do
   case "$1" in
-    --bind|--bind-try|--ro-bind|--ro-bind-try) case "$OMB_HOOK_TOKEN_FILE" in "$3"|"$3"/*) shown=1;; esac; shift 3;;
-    --tmpfs|--dir|--proc|--dev) case "$OMB_HOOK_TOKEN_FILE" in "$2"|"$2"/*) shown=0;; esac; shift 2;;
+    --bind|--bind-try|--ro-bind|--ro-bind-try) case "$DUSK_HOOK_TOKEN_FILE" in "$3"|"$3"/*) shown=1;; esac; shift 3;;
+    --tmpfs|--dir|--proc|--dev) case "$DUSK_HOOK_TOKEN_FILE" in "$2"|"$2"/*) shown=0;; esac; shift 2;;
     --symlink) shift 3;;
     --chdir|--hostname|--seccomp) shift 2;;
     *) shift;;
   esac
 done
 shift
-if [ "$shown" = 0 ] && [ -n "$OMB_HOOK_TOKEN_FILE" ]; then OMB_HOOK_TOKEN_FILE="$OMB_HOOK_TOKEN_FILE.not-in-the-box"; export OMB_HOOK_TOKEN_FILE; fi
+if [ "$shown" = 0 ] && [ -n "$DUSK_HOOK_TOKEN_FILE" ]; then DUSK_HOOK_TOKEN_FILE="$DUSK_HOOK_TOKEN_FILE.not-in-the-box"; export DUSK_HOOK_TOKEN_FILE; fi
 exec "$@"
 `;
 const TMPDIR = process.env.TMPDIR;

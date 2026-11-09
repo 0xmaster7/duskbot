@@ -180,7 +180,7 @@ teammate's cards through the broker's own course: the Chief's chip says
 denied, or that nobody answered and the step did not run, never "got your
 approval". The fixture fires the broker's fifteen-minute deadline through a
 marker file (`server/testing/approval-clock-hooks.mjs`, loaded only when
-`OMB_TEST_APPROVAL_CLOCK=1` reaches the isolated launcher). The result a
+`DUSK_TEST_APPROVAL_CLOCK=1` reaches the isolated launcher). The result a
 Chief's coordination, a routine run's hand-off and a room's coordinator each
 read then leads with the action that did not run; a failed teammate turn
 carries it after its failure, and an action the model asked again and was
@@ -258,7 +258,7 @@ A message from the person in their own chat never waits behind a long tool
 call. The e2e test launches the isolated fixture as the desktop app runs it
 (the owner capability makes the send the person's own), scripts one Bash call
 that holds like a CI poll, and sends a second message, which is steered into
-the turn and stays unread. `OMB_PERSON_FIRST_MS=1500` stands in for the minute a
+the turn and stays unread. `DUSK_PERSON_FIRST_MS=1500` stands in for the minute a
 tool call may hold it. The turn must be stopped with the row "Stopped a step
 that had run for N s, to answer you first", the person's message must stay one
 row, and the next turn must lead with their words and the note naming the
@@ -288,5 +288,5 @@ engines. What stays one at a time, and what the person sees:
 - One bot's browser: a call from another thread waits, the row says who has it, and a holder quiet for a minute gives it
   to the waiter. The holder's next call is refused once, so nothing lands on a page it did not open.
 - One computer: a turn takes it at its first screen call, not when it starts, and keeps it until it ends.
-- Memory on a Linux Cloud: a turn that would run the machine out says "Waiting for memory", with what runs and what is ahead of it, and starts by itself. `OMB_TEST_MEMORY_GATE=1` runs the gate in a fixture on any OS, on the memory `<data dir>/host-memory.json` says; `server/memory-order.e2e.test.ts` shows whose turn goes next.
-- A Cloud that just woke: a hand-off starts at once. `OMB_TEST_RESUME_CLOCK=1` lets a fixture move `Date.now()` on as a wake does, by writing milliseconds to `<data dir>/resume-clock-ms`; `server/handoff-wake.e2e.test.ts` uses it.
+- Memory on a Linux Cloud: a turn that would run the machine out says "Waiting for memory", with what runs and what is ahead of it, and starts by itself. `DUSK_TEST_MEMORY_GATE=1` runs the gate in a fixture on any OS, on the memory `<data dir>/host-memory.json` says; `server/memory-order.e2e.test.ts` shows whose turn goes next.
+- A Cloud that just woke: a hand-off starts at once. `DUSK_TEST_RESUME_CLOCK=1` lets a fixture move `Date.now()` on as a wake does, by writing milliseconds to `<data dir>/resume-clock-ms`; `server/handoff-wake.e2e.test.ts` uses it.

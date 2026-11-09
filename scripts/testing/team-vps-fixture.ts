@@ -41,12 +41,12 @@ if (${JSON.stringify(options.holdScreenshots === true)} && args[0] === 'exec' &&
   while(fs.existsSync(${JSON.stringify(screenshotHold)}))Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,25);
 }
 const image = 'sha256:' + 'a'.repeat(64);
-const labels = {'com.openmausbot.local-vm':'1','com.openmausbot.cua-driver':${JSON.stringify(CUA_DRIVER_VERSION)},
-  'com.openmausbot.cua-base':${JSON.stringify(BASE_IMAGE_DIGEST)},'com.openmausbot.image-layer':${JSON.stringify(IMAGE_LAYER_VERSION)}};
+const labels = {'bot.dusk.local-vm':'1','bot.dusk.cua-driver':${JSON.stringify(CUA_DRIVER_VERSION)},
+  'bot.dusk.cua-base':${JSON.stringify(BASE_IMAGE_DIGEST)},'bot.dusk.image-layer':${JSON.stringify(IMAGE_LAYER_VERSION)}};
 const rows = () => fs.readdirSync(records).map(name => JSON.parse(fs.readFileSync(path.join(records,name),'utf8')));
 const save = row => fs.writeFileSync(path.join(records,row.Id+'.json'),JSON.stringify(row));
 const make = name => ({Id:crypto.createHash('sha256').update(name).digest('hex'),Name:'/'+name,Image:image,
-  Config:{Image:${JSON.stringify(IMAGE)},Env:['VNC_PW=fixture-only'],Labels:{...labels,'com.openmausbot.vps':'1','com.openmausbot.container':name,'com.openmausbot.vps-viewer':'1'}},
+  Config:{Image:${JSON.stringify(IMAGE)},Env:['VNC_PW=fixture-only'],Labels:{...labels,'bot.dusk.vps':'1','bot.dusk.container':name,'bot.dusk.vps-viewer':'1'}},
   State:{Running:true,Status:'running'},Mounts:[],
   HostConfig:{Binds:[],VolumesFrom:[],NetworkMode:'bridge',PortBindings:{},PublishAllPorts:false,Memory:4294967296,MemorySwap:4294967296,
     NanoCpus:2000000000,PidsLimit:4096,CapDrop:['ALL'],CapAdd:['CAP_SETUID','CAP_SETGID'],Privileged:false,PidMode:'',IpcMode:'private',
@@ -66,11 +66,11 @@ let out;
 if (args[0] === 'image' && args[1] === 'inspect') out = [{Id:image,Config:{Labels:labels}}];
 else if (args[0] === 'inspect') {
   const name = args[1];
-  if (!/^openmausbot-vps-[a-z0-9-]+$/.test(name)) missing();
+  if (!/^duskbot-vps-[a-z0-9-]+$/.test(name)) missing();
   const row = find(name) || (${JSON.stringify(options.missingInitially === true)} ? missing() : make(name));save(row);out = [row];
 } else if (args[0] === 'run') {
   const name=args[args.indexOf('--name')+1];
-  if(!name || !/^openmausbot-vps-[a-z0-9-]+$/.test(name))missing();
+  if(!name || !/^duskbot-vps-[a-z0-9-]+$/.test(name))missing();
   const row=make(name);save(row);out=row.Id;
 } else if (args[0] === 'container' && args[1] === 'ls') out = rows().map(row => row.Id).join('\\n');
 else if (args[0] === 'container' && args[1] === 'inspect') {out=args.slice(2).map(find);if(out.some(row=>!row))missing();}

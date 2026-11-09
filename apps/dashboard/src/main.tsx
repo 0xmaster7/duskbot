@@ -100,7 +100,7 @@ function SignedIn() {
 function App() {
   const { path } = useLocation();
   const { account } = useSession();
-  useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "Bot" : path.startsWith("/workspaces/") ? "Workspace" : deletePageId(path) !== null ? "Delete cloud data" : "OpenMausBot")} · OpenMausBot`; }, [path]);
+  useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "Bot" : path.startsWith("/workspaces/") ? "Workspace" : deletePageId(path) !== null ? "Delete cloud data" : "Dusk Bot")} · Dusk Bot`; }, [path]);
   if (account === undefined) return <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
   if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} note={path === "/claim" ? "Sign in to connect the workspace you opened this from." : path === "/cloud/desktop" ? "Sign in to finish signing in the desktop app." : deleteSignInNote(path)} />;
   return <SignedIn />;

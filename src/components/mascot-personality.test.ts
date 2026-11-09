@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { MARK_CLIPS, createAnimator, markClip } from "./mascot-motion-engine";
-import { OMB_CLIPS } from "./mascot-clips";
+import { DUSK_CLIPS } from "./mascot-clips";
 import {
   BLINK_FIRST_MS, BLINK_GAP_MS, DOUBLE_BLINK_GAP_MS, DOZE_AFTER_MS, FIRST_ACT_MS, IDLE_ACTS, IDLE_GAP_MS, PEEK, REACTION_MOVES, createPersona,
   type PersonaBody,
@@ -224,7 +224,7 @@ describe("clips", () => {
   });
 
   it("plays each of our clips through grok's animator and moves the body", () => {
-    for (const clip of Object.values(OMB_CLIPS)) {
+    for (const clip of Object.values(DUSK_CLIPS)) {
       const animator = createAnimator({ body: "blob" });
       const rest = JSON.stringify(animator.frame());
       animator.load(clip, { isPlaying: true });

@@ -9,7 +9,7 @@ const payload: MobileLinkPayload = {
   grant: { id: "g1", secret: "s3cret", expiresAt: 1_900_000_000_000 },
   via: [
     { kind: "https", url: "https://vps.example.com" },
-    { kind: "relay", base: "https://link.apps.siddz.com", channel: "abcdefghij", token: "tok_1", key: "k".repeat(43) },
+    { kind: "relay", base: "https://link.dusk.bot", channel: "abcdefghij", token: "tok_1", key: "k".repeat(43) },
   ],
 };
 
@@ -17,7 +17,7 @@ describe("mobile pairing link adapter", () => {
   it("reads a v2 link into the phone's view", () => {
     expect(parseMobilePairingLink(mobileLinkUrl(payload))).toMatchObject({
       v: 2, transport: "https", origin: "https://vps.example.com", credential: "s3cret", name: "My VPS", environmentId: "env_1",
-      relay: { base: "https://link.apps.siddz.com", channel: "abcdefghij", token: "tok_1" }, grantId: "g1", workspaceKind: "vps",
+      relay: { base: "https://link.dusk.bot", channel: "abcdefghij", token: "tok_1" }, grantId: "g1", workspaceKind: "vps",
     });
   });
 
@@ -33,14 +33,14 @@ describe("mobile pairing link adapter", () => {
   });
 
   it("refuses malformed links", () => {
-    expect(parseMobilePairingLink("openmausbot://pair?token=short&address=https://a.b")).toBeNull();
-    expect(parseMobilePairingLink(`openmausbot://pair?token=${token}`)).toBeNull();
-    expect(parseMobilePairingLink("openmausbot://pair?m=notjson")).toBeNull();
+    expect(parseMobilePairingLink("duskbot://pair?token=short&address=https://a.b")).toBeNull();
+    expect(parseMobilePairingLink(`duskbot://pair?token=${token}`)).toBeNull();
+    expect(parseMobilePairingLink("duskbot://pair?m=notjson")).toBeNull();
   });
 
   it("round-trips an open link", () => {
     const target = { environmentId: "env_1", botId: "nova", threadId: "t-1", view: "computer" as const };
     expect(parseMobileOpenLink(mobileOpenLink(target))).toEqual(target);
-    expect(parseMobileOpenLink("openmausbot://open?view=nope&bot=a b")).toEqual({});
+    expect(parseMobileOpenLink("duskbot://open?view=nope&bot=a b")).toEqual({});
   });
 });

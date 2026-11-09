@@ -14,7 +14,7 @@ async function harness(slow = false) {
   const vps = await createTeamVpsFixture();
   let fixture: VerificationServer;
   try {
-    fixture = await launchVerificationServer({ OMB_TEST_VPS_IDLE_CLOCK: "1", ...(slow ? {
+    fixture = await launchVerificationServer({ DUSK_TEST_VPS_IDLE_CLOCK: "1", ...(slow ? {
       FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_SLOW_FINISH_GATE: join(dirname(vps.calls), "engine.finish"),
     } : {}) }, undefined, vps.localVm);
   } catch (error) { await vps.close(); throw error; }
@@ -109,7 +109,7 @@ it.skipIf(process.platform === "win32")("keeps an active GUI turn awake, sleeps 
       try {
         const dump = JSON.parse(readFileSync(dumpFile, "utf8"));
         const env = dump.mcpConfig?.mcpServers?.computer?.env;
-        if (env?.OMB_CONTROL_URL && env?.OMB_CONTROL_TOKEN) connection = { url: env.OMB_CONTROL_URL, token: env.OMB_CONTROL_TOKEN };
+        if (env?.DUSK_CONTROL_URL && env?.DUSK_CONTROL_TOKEN) connection = { url: env.DUSK_CONTROL_URL, token: env.DUSK_CONTROL_TOKEN };
       } catch {}
       return Boolean(connection);
     }, { timeout: 10_000, interval: 50 }).toBe(true);

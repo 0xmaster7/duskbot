@@ -1,7 +1,7 @@
 // This computer's page with no bots of its own, while the person's live somewhere else (the server they moved to, My
 // Cloud, a team's Cloud, a server they linked): the page says where they are and opens that place, never a blank first
 // run. Signed in, the place is also noted for the account (account-setup-store.mjs), so a fresh install of the same
-// account says "You already set up OpenMausBot on …" and offers to connect.
+// account says "You already set up Dusk Bot on …" and offers to connect.
 
 const RANK = { moved: 0, cloud: 1, team: 2, server: 3 };
 /** The id of My Cloud while it is home and saved as no place of its own. */

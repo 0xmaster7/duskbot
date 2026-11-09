@@ -56,13 +56,13 @@ it.skipIf(process.platform === "win32")("keeps a running shared turn and human c
     const target = await api("GET", `/api/bots/${bot.id}/computer`);
     expect(target.teamComputer?.id).toBeTypeOf("string");
     await api("POST", `/api/bots/${bot.id}/messages`, { text: "Hold this fixture turn on its shared desktop." });
-    let mounted: { args: string[]; env: { OMB_CONTROL_URL: string; OMB_CONTROL_TOKEN: string } } | undefined;
+    let mounted: { args: string[]; env: { DUSK_CONTROL_URL: string; DUSK_CONTROL_TOKEN: string } } | undefined;
     await expect.poll(() => {
       try { mounted = JSON.parse(readFileSync(fixture!.fixtureDumpPath, "utf8")).mcpConfig?.mcpServers?.computer; }
       catch { return false; }
-      return Boolean(mounted?.env.OMB_CONTROL_URL);
+      return Boolean(mounted?.env.DUSK_CONTROL_URL);
     }, { timeout: 10_000 }).toBe(true);
-    const gate = createControlClient({ url: mounted!.env.OMB_CONTROL_URL, token: mounted!.env.OMB_CONTROL_TOKEN });
+    const gate = createControlClient({ url: mounted!.env.DUSK_CONTROL_URL, token: mounted!.env.DUSK_CONTROL_TOKEN });
     expect(await gate.state(true)).toMatchObject({ held: false });
     const lease = "fixture-held-shared-privacy";
     try {

@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "OpenMausBot",
-  "short_name": "OpenMausBot",
+  "name": "Dusk Bot",
+  "short_name": "Dusk Bot",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

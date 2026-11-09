@@ -1,13 +1,13 @@
 #!/bin/sh
-# openmausbot vps installer: the app shows one line to paste on a fresh server,
-#   curl -fsSL https://link.apps.siddz.com/i/<token> | sh
+# duskbot vps installer: the app shows one line to paste on a fresh server,
+#   curl -fsSL https://link.dusk.bot/i/<token> | sh
 # and this script installs everything, reports each step to the app through the link service, and links the server.
 # safe to run again: every step checks what is already there, and a server that is already linked is only repaired.
 # the link service bakes __LINK_BASE__ and __LINK_TOKEN__ in when it serves /i/<token>; run from a file it takes
 # the token as $1 and LINK_BASE from the environment.
-# knobs (env): LINK_BASE; OMB_PACKAGE (an npm spec or tarball url: installs that instead of the build the link service
-# serves, only when set); BOT_DESKTOP_IMAGE; NO_COLOR, OMB_ASCII=1, OMB_PLAIN=1, OMB_NO_ANIM=1, OMB_VERBOSE=1 (terminal);
-# OMB_INSTALL_DEMO=1 (or =fail) plays the whole screen with pretend steps and changes nothing, no root needed.
+# knobs (env): LINK_BASE; DUSK_PACKAGE (an npm spec or tarball url: installs that instead of the build the link service
+# serves, only when set); BOT_DESKTOP_IMAGE; NO_COLOR, DUSK_ASCII=1, DUSK_PLAIN=1, DUSK_NO_ANIM=1, DUSK_VERBOSE=1 (terminal);
+# DUSK_INSTALL_DEMO=1 (or =fail) plays the whole screen with pretend steps and changes nothing, no root needed.
 set -eu
 
 PLACEHOLDER_BASE="__LINK""_BASE__"
@@ -16,41 +16,41 @@ BAKED_BASE="__LINK_BASE__"
 BAKED_TOKEN="__LINK_TOKEN__"
 
 if [ -z "${LINK_BASE:-}" ]; then
-  if [ "$BAKED_BASE" = "$PLACEHOLDER_BASE" ]; then LINK_BASE="https://link.apps.siddz.com"; else LINK_BASE="$BAKED_BASE"; fi
+  if [ "$BAKED_BASE" = "$PLACEHOLDER_BASE" ]; then LINK_BASE="https://link.dusk.bot"; else LINK_BASE="$BAKED_BASE"; fi
 fi
 LINK_BASE=${LINK_BASE%/}
 if [ "$BAKED_TOKEN" = "$PLACEHOLDER_TOKEN" ]; then TOKEN="${1:-}"; else TOKEN="$BAKED_TOKEN"; fi
 
-OMB_PACKAGE="${OMB_PACKAGE:-}"
+DUSK_PACKAGE="${DUSK_PACKAGE:-}"
 # the bot computer: the link service names the image (BOT_DESKTOP_IMAGE in shared/bot-desktop.ts) and hands out
 # deploy/bot-desktop/ as a kit; the image is pulled when a registry copy exists, else built here. the env wins.
 BOT_DESKTOP_IMAGE="${BOT_DESKTOP_IMAGE:-}"
-KIT_DIR=/opt/openmausbot-link/bot-desktop
-DEMO="${OMB_INSTALL_DEMO:-}"
+KIT_DIR=/opt/duskbot-link/bot-desktop
+DEMO="${DUSK_INSTALL_DEMO:-}"
 [ "$DEMO" = 0 ] && DEMO=""
 
 SVC_USER=maus
 SVC_HOME=/home/maus
-DATA=$SVC_HOME/.openmausbot
+DATA=$SVC_HOME/.duskbot
 # accounts: the server runs as maus and never holds docker, the link agent as omb-link (tunnel.json and the app's ssh key
-# are its own), docker only through the gate as omb-docker; every bot's turn runs in the bot box (OMB_BOT_BOX=required)
+# are its own), docker only through the gate as omb-docker; every bot's turn runs in the bot box (DUSK_BOT_BOX=required)
 LINK_USER=omb-link
 LINK_HOME=/var/lib/omb-link
 HANDOFF=$LINK_HOME/handoff
 GATE_USER=omb-docker
 GATE_GROUP=omb-dockergate
-GATE_SOCK=/run/openmausbot-docker/docker.sock
-LIB=/usr/local/lib/openmausbot
+GATE_SOCK=/run/duskbot-docker/docker.sock
+LIB=/usr/local/lib/duskbot
 GATE=$LIB/docker-gate.mjs
-ETC=/etc/openmausbot
+ETC=/etc/duskbot
 CLAUDE_TOKEN_LINE='^CLAUDE_CODE_OAUTH_TOKEN=[A-Za-z0-9._~+/=-]{20,}$'
-STATE=/var/lib/openmausbot-link
-LOGS=/var/log/openmausbot-link
+STATE=/var/lib/duskbot-link
+LOGS=/var/log/duskbot-link
 LOGS_SHOWN=$LOGS
 # what this script added that was not here before (packages, apt sources, config it replaced), one line each, so
 # uninstall.sh puts back exactly that. kept apart from $STATE: a plain uninstall leaves it for a later --all.
-MANIFEST=/var/lib/openmausbot/install-manifest
-AGENT=/opt/openmausbot-link/agent.mjs
+MANIFEST=/var/lib/duskbot/install-manifest
+AGENT=/opt/duskbot-link/agent.mjs
 PORT=8799
 UNITS=/etc/systemd/system
 export DEBIAN_FRONTEND=noninteractive
@@ -64,7 +64,7 @@ ESC=$(printf '\033')
 UI=plain DEPTH=0 ASCII=1 COLS=80 ROWS=24 LIST=0 MS=1 TICK=0.12 MASCOT=0 MASCOT_COL=61 TICKS=0
 R="" BOLD="" DIM="" OK="" ACC="" WARN="" ERR="" SHADOW="" FAINT="" EL=""
 ui_init() {
-  if [ -t 1 ] && [ "${TERM:-dumb}" != dumb ] && [ "${OMB_PLAIN:-}" != 1 ]; then UI="tty"; fi
+  if [ -t 1 ] && [ "${TERM:-dumb}" != dumb ] && [ "${DUSK_PLAIN:-}" != 1 ]; then UI="tty"; fi
   size=$( { stty size </dev/tty; } 2>/dev/null || true)
   case "$size" in
     [0-9]*' '[0-9]*) ROWS=${size% *}; COLS=${size#* } ;;
@@ -74,7 +74,7 @@ ui_init() {
   case "$(date +%s%N 2>/dev/null)" in *N*|'') MS=0 ;; esac
   [ "$UI" = tty ] || return 0
   ASCII=0
-  [ "${OMB_ASCII:-}" = 1 ] && ASCII=1
+  [ "${DUSK_ASCII:-}" = 1 ] && ASCII=1
   EL="${ESC}[K"
   if [ -z "${NO_COLOR:-}" ]; then
     case "${COLORTERM:-}" in
@@ -136,12 +136,12 @@ EOF
 banner() {
   say ""
   if [ "$UI" != tty ] || [ "$ASCII" = 1 ] || [ "$COLS" -lt 80 ]; then
-    say "  ${ACC}${BOLD}open${R}${BOLD}mausbot${R}  ${DIM}server setup${R}"
+    say "  ${ACC}${BOLD}open${R}${BOLD}dusk${R}  ${DIM}server setup${R}"
     say ""
     MASCOT=0
     return 0
   fi
-  anim=0; [ "$DEPTH" -ge 8 ] && [ "${OMB_NO_ANIM:-}" != 1 ] && anim=1
+  anim=0; [ "$DEPTH" -ge 8 ] && [ "${DUSK_NO_ANIM:-}" != 1 ] && anim=1
   say "  ${DIM}o p e n${R}"
   banner_art | awk -v depth="$DEPTH" -v esc="$ESC" -v shade="$SHADOW" -v reset="$R" -v anim="$anim" -v seed="$$" '
     function lerp(a, b, t) { return int(a + (b - a) * t + 0.5) }
@@ -290,12 +290,12 @@ become_root() {
   fi
   say "Asking for administrator rights..."
   if [ -r "$0" ] && [ "${0##*/}" != "sh" ] && [ "${0##*/}" != "dash" ]; then
-    exec sudo env LINK_BASE="$LINK_BASE" OMB_PACKAGE="$OMB_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" \
-      COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" OMB_ASCII="${OMB_ASCII:-}" OMB_PLAIN="${OMB_PLAIN:-}" OMB_NO_ANIM="${OMB_NO_ANIM:-}" OMB_VERBOSE="${OMB_VERBOSE:-}" sh "$0" "$TOKEN"
+    exec sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" \
+      COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh "$0" "$TOKEN"
   fi
   # piped: the script is gone from stdin, so fetch it again for root
-  curl -fsSL --retry 3 "$LINK_BASE/i" | sudo env LINK_BASE="$LINK_BASE" OMB_PACKAGE="$OMB_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" \
-    COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" OMB_ASCII="${OMB_ASCII:-}" OMB_PLAIN="${OMB_PLAIN:-}" OMB_NO_ANIM="${OMB_NO_ANIM:-}" OMB_VERBOSE="${OMB_VERBOSE:-}" sh -s "$TOKEN"
+  curl -fsSL --retry 3 "$LINK_BASE/i" | sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" \
+    COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh -s "$TOKEN"
   exit $?
 }
 
@@ -460,13 +460,13 @@ report() { # step status [logfile]
 # plain words for a failed step, printed once in the terminal
 failure_words() {
   case "$1" in
-    check) say "This server can't run OpenMausBot: it needs Ubuntu or Debian on a 64-bit processor with systemd." ;;
+    check) say "This server can't run Dusk Bot: it needs Ubuntu or Debian on a 64-bit processor with systemd." ;;
     basics) say "Couldn't install the basic tools. Check this server's internet connection and paste the line again." ;;
     user) say "Couldn't create the account your bots run under." ;;
     node) say "Couldn't install Node. Check this server's internet connection and paste the line again." ;;
-    app) say "Couldn't install OpenMausBot. Paste the line again; it picks up where it stopped." ;;
+    app) say "Couldn't install Dusk Bot. Paste the line again; it picks up where it stopped." ;;
     engines) say "Couldn't install the Claude and ChatGPT tools. Paste the line again; it picks up where it stopped." ;;
-    service) say "OpenMausBot didn't start. The app shows the last lines of its log." ;;
+    service) say "Dusk Bot didn't start. The app shows the last lines of its log." ;;
     address) say "Couldn't set up this server's address. Paste the line again." ;;
     desktop|sandbox|fence) say "Couldn't get the bot computer ready." ;;
     link) say "Couldn't link this server to your app. Make a new line in the app and paste it here." ;;
@@ -481,9 +481,9 @@ step_title() {
     docker) say "Installing Docker" ;;
     user) say "Making a home for your bots" ;;
     node) say "Installing Node" ;;
-    app) say "Installing OpenMausBot" ;;
+    app) say "Installing Dusk Bot" ;;
     engines) say "Installing Claude and ChatGPT" ;;
-    service) say "Starting OpenMausBot" ;;
+    service) say "Starting Dusk Bot" ;;
     address) say "Setting up the connection" ;;
     sandbox) say "Sandboxing bot computers" ;;
     fence) say "Fencing their network" ;;
@@ -499,7 +499,7 @@ phase_title() {
   case "$1" in
     prepare) say "Preparing your server" ;;
     runtime) say "Installing the runtime" ;;
-    omb) say "Installing OpenMausBot" ;;
+    omb) say "Installing Dusk Bot" ;;
     computer) say "Setting up the bot computer" ;;
     link) say "Linking to your app" ;;
   esac
@@ -635,20 +635,20 @@ bwrap_userns() {
   [ -x /usr/bin/bwrap ] && [ -d /sys/kernel/security/apparmor ] && command -v apparmor_parser >/dev/null 2>&1 || return 0
   [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null || echo 0)" = 1 ] || return 0
   cat > "$TMP/new" <<'EOF'
-# managed by openmausbot-link: bubblewrap may make the user namespaces each bot's turn runs in
+# managed by duskbot-link: bubblewrap may make the user namespaces each bot's turn runs in
 abi <abi/4.0>,
 include <tunables/global>
 
-profile openmausbot-bwrap /usr/bin/bwrap flags=(unconfined) {
+profile duskbot-bwrap /usr/bin/bwrap flags=(unconfined) {
   userns,
 
-  include if exists <local/openmausbot-bwrap>
+  include if exists <local/duskbot-bwrap>
 }
 EOF
-  new_file /etc/apparmor.d/openmausbot-bwrap
+  new_file /etc/apparmor.d/duskbot-bwrap
   install -d -m 0755 /etc/apparmor.d
-  put_file /etc/apparmor.d/openmausbot-bwrap 0644 || true
-  x apparmor_parser -r /etc/apparmor.d/openmausbot-bwrap
+  put_file /etc/apparmor.d/duskbot-bwrap 0644 || true
+  x apparmor_parser -r /etc/apparmor.d/duskbot-bwrap
 }
 
 # what the server's box check does: a user namespace with its own pid, network and mounts, as maus
@@ -692,7 +692,7 @@ do_user() {
   # useradd leaves the password "!" (locked), and sshd without PAM refuses every key for a locked account; "*" still
   # allows no password but lets the app's restricted direct key in (OpenSSH auth.c allowed_user)
   if [ "$(getent shadow "$LINK_USER" | cut -d: -f2)" = "!" ]; then usermod -p '*' "$LINK_USER"; fi
-  for dir in "$LINK_HOME" "$LINK_HOME/.config" "$LINK_HOME/.config/openmausbot-link" "$LINK_HOME/.ssh" "$HANDOFF"; do
+  for dir in "$LINK_HOME" "$LINK_HOME/.config" "$LINK_HOME/.config/duskbot-link" "$LINK_HOME/.ssh" "$HANDOFF"; do
     install -d -o "$LINK_USER" -g "$LINK_USER" -m 0700 "$dir"
   done
   install -d -o root -g root -m 0700 "$ETC"
@@ -710,8 +710,8 @@ do_user() {
 # an older install kept the link agent's files in maus's home; they move to omb-link, read as maus so no link in maus's
 # home can point root at another file
 move_link_files() {
-  old="$SVC_HOME/.config/openmausbot-link"
-  new="$LINK_HOME/.config/openmausbot-link/tunnel.json"
+  old="$SVC_HOME/.config/duskbot-link"
+  new="$LINK_HOME/.config/duskbot-link/tunnel.json"
   if [ -f "$old/tunnel.json" ] && [ ! -f "$new" ]; then
     show mv "$old/tunnel.json" "$new"
     as_user cat "$old/tunnel.json" | runuser -u "$LINK_USER" -- sh -c 'umask 077; cat > "$1.tmp" && mv -f "$1.tmp" "$1"' sh "$new"
@@ -729,13 +729,13 @@ move_link_files() {
 
 # the engine token an older install kept in maus's home goes to $ETC/engines.env, which only systemd reads
 move_engine_token() {
-  old="$SVC_HOME/.config/openmausbot/engines.env"
+  old="$SVC_HOME/.config/duskbot/engines.env"
   [ -f "$old" ] || return 0
   as_user cat "$old" | grep -E "$CLAUDE_TOKEN_LINE" | awk "length <= 4200" | tail -n 1 > "$TMP/engines.env" || true
   if [ -s "$TMP/engines.env" ]; then install -o root -g root -m 0600 "$TMP/engines.env" "$ETC/engines.env"; echo "the Claude sign-in moved to $ETC/engines.env"; fi
   rm -f "$TMP/engines.env"
   as_user rm -f "$old"
-  as_user rmdir "$SVC_HOME/.config/openmausbot" 2>/dev/null || true
+  as_user rmdir "$SVC_HOME/.config/duskbot" 2>/dev/null || true
 }
 
 # the bot box gives engines their own home in the data folder; conversations from before keep their engine sessions
@@ -815,32 +815,32 @@ verified_download() { # url file sha256 size timeout label
 }
 
 get_package() { # file
-  verified_download "$LINK_BASE/pkg/$LINK_ID/$PKG_SHA.tgz" "$1" "$PKG_SHA" "$PKG_SIZE" 1800 OpenMausBot
+  verified_download "$LINK_BASE/pkg/$LINK_ID/$PKG_SHA.tgz" "$1" "$PKG_SHA" "$PKG_SIZE" 1800 Dusk Bot
 }
 do_app() {
-  bin="$SVC_HOME/.local/bin/openmausbot"
-  if [ -n "$OMB_PACKAGE" ]; then
+  bin="$SVC_HOME/.local/bin/duskbot"
+  if [ -n "$DUSK_PACKAGE" ]; then
     # explicit only: an npm spec or tarball url instead of our build
-    if [ -x "$bin" ] && [ "$(state_get package)" = "npm:$OMB_PACKAGE" ]; then echo "already installed: $OMB_PACKAGE"; return 0; fi
-    retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" "$OMB_PACKAGE"
-    [ -x "$bin" ] || { echo "openmausbot is missing after install"; return 1; }
-    state_set package "npm:$OMB_PACKAGE"
+    if [ -x "$bin" ] && [ "$(state_get package)" = "npm:$DUSK_PACKAGE" ]; then echo "already installed: $DUSK_PACKAGE"; return 0; fi
+    retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" "$DUSK_PACKAGE"
+    [ -x "$bin" ] || { echo "duskbot is missing after install"; return 1; }
+    state_set package "npm:$DUSK_PACKAGE"
     return 0
   fi
   if [ -z "$PKG_SHA" ]; then
     if [ -x "$bin" ] && [ "$OFFLINE" = 1 ]; then echo "keeping the installed build ($(state_get package))"; return 0; fi
-    echo "the link service has no OpenMausBot build to hand out yet"
+    echo "the link service has no Dusk Bot build to hand out yet"
     return 1
   fi
   if [ -x "$bin" ] && [ "$(state_get package)" = "sha256:$PKG_SHA" ]; then echo "already installed: build ${PKG_SHA%"${PKG_SHA#????????????}"}"; return 0; fi
-  cache="$SVC_HOME/.cache/openmausbot-link"
+  cache="$SVC_HOME/.cache/duskbot-link"
   install -d -o "$SVC_USER" -g "$SVC_USER" -m 0700 "$cache"
-  file="$cache/openmausbot-$PKG_SHA.tgz"
+  file="$cache/duskbot-$PKG_SHA.tgz"
   get_package "$file"
   chown "$SVC_USER:$SVC_USER" "$file"
-  find "$cache" -name 'openmausbot-*.tgz*' ! -name "openmausbot-$PKG_SHA.tgz" ! -name "openmausbot-$PKG_SHA.tgz.part" -exec rm -f {} + 2>/dev/null || true
+  find "$cache" -name 'duskbot-*.tgz*' ! -name "duskbot-$PKG_SHA.tgz" ! -name "duskbot-$PKG_SHA.tgz.part" -exec rm -f {} + 2>/dev/null || true
   retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" "$file"
-  [ -x "$bin" ] || { echo "openmausbot is missing after install"; return 1; }
+  [ -x "$bin" ] || { echo "duskbot is missing after install"; return 1; }
   state_set package "sha256:$PKG_SHA"
 }
 
@@ -883,9 +883,9 @@ server_unit() {
   public=""
   [ "$(state_get mode)" = "direct" ] && public=" --public-url https://$(state_get host)"
   cat > "$TMP/new" <<EOF
-# managed by openmausbot-link
+# managed by duskbot-link
 [Unit]
-Description=OpenMausBot server
+Description=Dusk Bot server
 After=network-online.target omb-docker-gate.service
 Wants=network-online.target
 
@@ -897,12 +897,12 @@ WorkingDirectory=$SVC_HOME
 Environment=HOME=$SVC_HOME
 Environment=PATH=$SVC_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin
 # every bot's turn in the bot box, in its own engine home, never unboxed; docker only through the gate
-Environment=OMB_BOT_BOX=required
-Environment=OMB_BOX_CODE_ROOTS=$SVC_HOME/.local/bin:$SVC_HOME/.local/lib
-Environment=OPENMAUSBOT_VPS_DOCKER=local
+Environment=DUSK_BOT_BOX=required
+Environment=DUSK_BOX_CODE_ROOTS=$SVC_HOME/.local/bin:$SVC_HOME/.local/lib
+Environment=DUSK_VPS_DOCKER=local
 Environment=DOCKER_HOST=unix://$GATE_SOCK
 EnvironmentFile=-$ETC/engines.env
-ExecStart=$SVC_HOME/.local/bin/openmausbot serve --port $PORT --no-pair --label $NAME$public
+ExecStart=$SVC_HOME/.local/bin/duskbot serve --port $PORT --no-pair --label $NAME$public
 Restart=always
 RestartSec=5
 # when memory runs out the kernel takes a bot computer (docker --oom-score-adj 500) long before the server
@@ -917,13 +917,13 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
 [Install]
 WantedBy=multi-user.target
 EOF
-  put_file "$UNITS/openmausbot.service" 0644
+  put_file "$UNITS/duskbot.service" 0644
 }
 
 handoff_script() {
   cat > "$TMP/new" <<EOF
 #!/bin/sh
-# managed by openmausbot-link: takes what the link agent was handed for the server's engines to the server. the files
+# managed by duskbot-link: takes what the link agent was handed for the server's engines to the server. the files
 # are read as $LINK_USER and the codex sign-in written as $SVC_USER, so neither account can point root at another file.
 set -eu
 umask 077
@@ -937,7 +937,7 @@ if [ -e $HANDOFF/codex-auth.json ]; then
   runuser -u $LINK_USER -- head -c 65536 $HANDOFF/codex-auth.json | runuser -u $SVC_USER -- sh -c 'umask 077; mkdir -p $SVC_HOME/.codex; cat > $SVC_HOME/.codex/.auth.json.handoff && mv -f $SVC_HOME/.codex/.auth.json.handoff $SVC_HOME/.codex/auth.json'
   runuser -u $LINK_USER -- rm -f $HANDOFF/codex-auth.json
 fi
-[ "\$restart" = 0 ] || systemctl restart openmausbot.service
+[ "\$restart" = 0 ] || systemctl restart duskbot.service
 EOF
   install -d -m 0755 "$LIB"
   put_file "$LIB/engine-handoff.sh" 0755
@@ -946,23 +946,23 @@ EOF
 helper_units() {
   changed=1
   cat > "$TMP/new" <<EOF
-# managed by openmausbot-link: the app sent an engine sign-in; the hand-off takes it to the server
+# managed by duskbot-link: the app sent an engine sign-in; the hand-off takes it to the server
 [Unit]
-Description=OpenMausBot engine sign-in handed off
+Description=Dusk Bot engine sign-in handed off
 
 [Path]
 PathExists=$HANDOFF/engines.env
 PathExists=$HANDOFF/codex-auth.json
-Unit=openmausbot-handoff.service
+Unit=duskbot-handoff.service
 
 [Install]
 WantedBy=multi-user.target
 EOF
-  put_file "$UNITS/openmausbot-engines.path" 0644 && changed=0
+  put_file "$UNITS/duskbot-engines.path" 0644 && changed=0
   cat > "$TMP/new" <<EOF
-# managed by openmausbot-link
+# managed by duskbot-link
 [Unit]
-Description=Hand an engine sign-in to OpenMausBot
+Description=Hand an engine sign-in to Dusk Bot
 
 [Service]
 Type=oneshot
@@ -974,21 +974,21 @@ ProtectKernelTunables=yes
 ProtectKernelModules=yes
 ProtectControlGroups=yes
 EOF
-  put_file "$UNITS/openmausbot-handoff.service" 0644 && changed=0
-  if [ -f "$UNITS/openmausbot-restart.service" ]; then rm -f "$UNITS/openmausbot-restart.service"; changed=0; fi
+  put_file "$UNITS/duskbot-handoff.service" 0644 && changed=0
+  if [ -f "$UNITS/duskbot-restart.service" ]; then rm -f "$UNITS/duskbot-restart.service"; changed=0; fi
   cat > "$TMP/new" <<EOF
-# managed by openmausbot-link: the outbound tunnel and control channel to the app
+# managed by duskbot-link: the outbound tunnel and control channel to the app
 [Unit]
-Description=OpenMausBot link
-After=network-online.target openmausbot.service
+Description=Dusk Bot link
+After=network-online.target duskbot.service
 Wants=network-online.target
 
 [Service]
 User=$LINK_USER
 Group=$LINK_USER
 Environment=HOME=$LINK_HOME
-Environment=OMB_LINK_ENGINES_FILE=$HANDOFF/engines.env
-Environment=OMB_LINK_CODEX_AUTH_FILE=$HANDOFF/codex-auth.json
+Environment=DUSK_LINK_ENGINES_FILE=$HANDOFF/engines.env
+Environment=DUSK_LINK_CODEX_AUTH_FILE=$HANDOFF/codex-auth.json
 ExecStart=/usr/bin/node $AGENT tunnel
 Restart=always
 RestartSec=5
@@ -1007,11 +1007,11 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
 [Install]
 WantedBy=multi-user.target
 EOF
-  put_file "$UNITS/openmausbot-link.service" 0644 && changed=0
+  put_file "$UNITS/duskbot-link.service" 0644 && changed=0
   cat > "$TMP/new" <<EOF
-# managed by openmausbot-link: the only way to docker on this server, for the server's own labelled bot computers
+# managed by duskbot-link: the only way to docker on this server, for the server's own labelled bot computers
 [Unit]
-Description=OpenMausBot docker gate
+Description=Dusk Bot docker gate
 After=docker.service
 Requires=docker.service
 
@@ -1019,7 +1019,7 @@ Requires=docker.service
 User=$GATE_USER
 Group=$GATE_GROUP
 SupplementaryGroups=docker
-RuntimeDirectory=openmausbot-docker
+RuntimeDirectory=duskbot-docker
 RuntimeDirectoryMode=0750
 ExecStart=/usr/bin/node $GATE --listen $GATE_SOCK --upstream /var/run/docker.sock
 Restart=always
@@ -1076,7 +1076,7 @@ wait_health() { # url seconds
 }
 
 # sshd is the way back in: never the kernel's choice, and its memory is not reclaimed away under pressure
-SSH_GUARD="# managed by openmausbot-link
+SSH_GUARD="# managed by duskbot-link
 [Service]
 OOMScoreAdjust=-1000
 MemoryMin=64M"
@@ -1086,7 +1086,7 @@ ssh_guard() {
     systemctl cat "$unit.service" >/dev/null 2>&1 || continue
     install -d -m 0755 "$UNITS/$unit.service.d"
     printf '%s\n' "$SSH_GUARD" > "$TMP/new"
-    put_file "$UNITS/$unit.service.d/10-openmausbot-oom.conf" 0644 && changed=0
+    put_file "$UNITS/$unit.service.d/10-duskbot-oom.conf" 0644 && changed=0
     # the running daemon takes it now; a restart would only pick up the same value
     pid=$(systemctl show -p MainPID --value "$unit.service" 2>/dev/null)
     [ -n "$pid" ] && [ "$pid" != 0 ] && echo -1000 > "/proc/$pid/oom_score_adj" 2>/dev/null || true
@@ -1102,20 +1102,20 @@ do_service() {
   helper_units && reload=0
   ssh_guard && reload=0
   [ "$reload" = 0 ] && x systemctl daemon-reload
-  systemctl enable openmausbot.service openmausbot-engines.path >/dev/null 2>&1
-  x systemctl restart openmausbot-engines.path
+  systemctl enable duskbot.service duskbot-engines.path >/dev/null 2>&1
+  x systemctl restart duskbot-engines.path
   gate_up
   if box_works >/dev/null 2>&1; then echo "bot box: bubblewrap works for $SVC_USER"; else echo "bot box: bubblewrap cannot make a user namespace here; bots' turns are refused until it can"; fi
-  if [ "$reload" = 0 ]; then x systemctl restart openmausbot.service; else x systemctl start openmausbot.service; fi
+  if [ "$reload" = 0 ]; then x systemctl restart duskbot.service; else x systemctl start duskbot.service; fi
   show curl "http://127.0.0.1:$PORT/api/health"
   if wait_health "http://127.0.0.1:$PORT/api/health" 120; then echo "server answers on 127.0.0.1:$PORT"; return 0; fi
   echo "the server did not answer on 127.0.0.1:$PORT within two minutes"
-  journalctl -u openmausbot.service -n 30 --no-pager 2>/dev/null || true
+  journalctl -u duskbot.service -n 30 --no-pager 2>/dev/null || true
   return 1
 }
 
 get_agent() {
-  install -d -o root -g root -m 0755 /opt/openmausbot-link
+  install -d -o root -g root -m 0755 /opt/duskbot-link
   if fetch "$LINK_BASE/agent.mjs" "$TMP/agent.mjs"; then
     install -o root -g root -m 0644 "$TMP/agent.mjs" "$AGENT"
   elif [ ! -f "$AGENT" ]; then
@@ -1135,7 +1135,7 @@ caddy_setup() { # host
     apt_install caddy
   fi
   cat > "$TMP/new" <<EOF
-# managed by openmausbot-link
+# managed by duskbot-link
 $1 {
 	tls {
 		# the app pins this server's key, so renewals keep it
@@ -1157,15 +1157,15 @@ $1 {
 }
 EOF
   install -d -m 0755 /etc/caddy
-  put_file /etc/caddy/openmausbot.caddy 0644 || true
+  put_file /etc/caddy/duskbot.caddy 0644 || true
   main=/etc/caddy/Caddyfile
-  if [ ! -f "$main" ] || grep -q "managed by openmausbot-link" "$main" || grep -q "/usr/share/caddy" "$main"; then
+  if [ ! -f "$main" ] || grep -q "managed by duskbot-link" "$main" || grep -q "/usr/share/caddy" "$main"; then
     if [ ! -f "$main" ]; then manifest_add "caddyfile new"
-    elif ! grep -q "managed by openmausbot-link" "$main"; then [ -f "$main.omb-before" ] || cp -p "$main" "$main.omb-before"; manifest_add "caddyfile replaced"; fi
-    printf '# managed by openmausbot-link\nimport /etc/caddy/openmausbot.caddy\n' > "$main"
-  elif ! grep -q "import /etc/caddy/openmausbot.caddy" "$main"; then
+    elif ! grep -q "managed by duskbot-link" "$main"; then [ -f "$main.omb-before" ] || cp -p "$main" "$main.omb-before"; manifest_add "caddyfile replaced"; fi
+    printf '# managed by duskbot-link\nimport /etc/caddy/duskbot.caddy\n' > "$main"
+  elif ! grep -q "import /etc/caddy/duskbot.caddy" "$main"; then
     # someone else's caddy: add our site, never replace theirs
-    printf '\nimport /etc/caddy/openmausbot.caddy\n' >> "$main"
+    printf '\nimport /etc/caddy/duskbot.caddy\n' >> "$main"
     manifest_add "caddyfile appended"
   fi
   x caddy validate --adapter caddyfile --config "$main"
@@ -1208,11 +1208,11 @@ do_address() {
   fi
   state_set mode direct
   state_set host "$host"
-  server_unit && systemctl daemon-reload && systemctl restart openmausbot.service
+  server_unit && systemctl daemon-reload && systemctl restart duskbot.service
   if wait_health "https://$host/api/health" 120; then echo "https://$host answers"; return 0; fi
   echo "https://$host did not answer in two minutes; using the private relay instead"
   state_set mode relay
-  server_unit && systemctl daemon-reload && systemctl restart openmausbot.service
+  server_unit && systemctl daemon-reload && systemctl restart duskbot.service
   wait_health "http://127.0.0.1:$PORT/api/health" 120 || true
   return 0
 }
@@ -1419,12 +1419,12 @@ do_link() {
 
 start_link_service() {
   helper_units && systemctl daemon-reload
-  systemctl enable openmausbot-link.service >/dev/null 2>&1
-  x systemctl restart openmausbot-link.service
+  systemctl enable duskbot-link.service >/dev/null 2>&1
+  x systemctl restart duskbot-link.service
 }
 
 # ---------- demo ----------
-# OMB_INSTALL_DEMO=1 sh install.sh: the real screen with pretend steps. writes only to its own temp dir.
+# DUSK_INSTALL_DEMO=1 sh install.sh: the real screen with pretend steps. writes only to its own temp dir.
 demo_lines() { _d=$1; shift; for _l in "$@"; do sleep "$_d"; printf '%s\n' "$_l"; done; }
 demo_bytes() { # total unit seconds*10
   _t=0
@@ -1448,7 +1448,7 @@ demo_work() {
     node) demo_lines 0.35 "$ curl -fsSL --connect-timeout 15 -m 300 https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key -o /tmp/nodesource.key" "$ apt-get -y -q install nodejs" "Get:1 https://deb.nodesource.com/node_24.x nodistro InRelease [12.1 kB]" \
       "Get:4 https://deb.nodesource.com/node_24.x nodistro/main arm64 nodejs 24.11.0-1nodesource1 [31.2 MB]" \
       "Unpacking nodejs (24.11.0-1nodesource1) ..." "node v24.11.0, npm 11.6.1" ;;
-    app) echo "$ curl -fsSL -H 'authorization: Bearer [redacted]' https://link.apps.siddz.com/pkg/demodemoab/7c2f0a9e41d6.tgz"; echo "downloading OpenMausBot 0.1.141 (41.6 MB)"; demo_bytes 43620000 MB 32
+    app) echo "$ curl -fsSL -H 'authorization: Bearer [redacted]' https://link.dusk.bot/pkg/demodemoab/7c2f0a9e41d6.tgz"; echo "downloading Dusk Bot 0.1.141 (41.6 MB)"; demo_bytes 43620000 MB 32
       demo_lines 0.4 "sha256 ok: 7c2f0a9e41d6b3c88f1e2a07d95b6e4f3a10c2d8e7f6b5a4c3d2e1f0a9b8c7d6" \
         "added 3 packages in 2s" "changed 61 packages in 4s" ;;
     engines)
@@ -1463,7 +1463,7 @@ demo_work() {
         return 1
       fi
       demo_lines 0.4 "added 4 packages in 6s" ;;
-    service) demo_lines 0.5 "Created symlink /etc/systemd/system/multi-user.target.wants/openmausbot.service" \
+    service) demo_lines 0.5 "Created symlink /etc/systemd/system/multi-user.target.wants/duskbot.service" \
       "waiting for 127.0.0.1:8799/api/health" "server answers on 127.0.0.1:8799" ;;
     address) demo_lines 0.4 "probe: http://203.0.113.10/.well-known/omb-link/... refused" \
       "not reachable from the internet directly; using the private relay (nothing inbound is opened)" ;;
@@ -1496,7 +1496,7 @@ finale() {
     docker="29.1.3, gVisor sandbox, network fenced" link="private relay"
     computer="ghcr.io/sidddevz/omb-bot-desktop:v1, built here"
   else
-    app=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$SVC_HOME/.local/lib/node_modules/openmausbot/package.json" 2>/dev/null | head -n 1)
+    app=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$SVC_HOME/.local/lib/node_modules/duskbot/package.json" 2>/dev/null | head -n 1)
     pkg=$(state_get package)
     case "$pkg" in sha256:*) app="${app:-?}, build $(printf '%s' "${pkg#sha256:}" | cut -c1-12)" ;; npm:*) app="${app:-?}, from npm (${pkg#npm:})" ;; esac
     u="runuser -u $SVC_USER -- env HOME=$SVC_HOME PATH=$SVC_HOME/.local/bin:/usr/bin:/bin"
@@ -1526,9 +1526,9 @@ finale() {
   mascot 0
   glyph ok; _ok=$G; glyph sep
   where="$NAME $G $SYS $ARCH $G $link"
-  printf '\n  %s%s %sOpenMausBot is ready%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$R" "$DIM" "$G" "$total" "$R"
+  printf '\n  %s%s %sDuskBot is ready%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$R" "$DIM" "$G" "$total" "$R"
   printf '    %s%s%s\n\n' "$DIM" "$where" "$R"
-  if [ "${OMB_VERBOSE:-}" = 1 ]; then printf '%s\n' "$table" | sed 's/^/    /'; printf '\n'; fi
+  if [ "${DUSK_VERBOSE:-}" = 1 ]; then printf '%s\n' "$table" | sed 's/^/    /'; printf '\n'; fi
   printf '  %s%sYour bots now live here, go back to the app.%s\n\n' "$ACC" "$BOLD" "$R"
 }
 
@@ -1642,7 +1642,7 @@ main() {
   umask 022
   TMP=$(mktemp -d)
   PROGRESS="$TMP/progress"
-  if [ -n "$DEMO" ]; then STATE="$TMP/state" LOGS="$TMP/logs" LINK_BASE="https://link.apps.siddz.com"; fi
+  if [ -n "$DEMO" ]; then STATE="$TMP/state" LOGS="$TMP/logs" LINK_BASE="https://link.dusk.bot"; fi
   install -d -m 0700 "$STATE"
   install -d -m 0700 "$LOGS"
   ui_init

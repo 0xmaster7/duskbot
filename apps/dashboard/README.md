@@ -1,10 +1,10 @@
-# OpenMausBot account dashboard
+# Dusk Bot account dashboard
 
-One hosted web app for everyone's OpenMausBot workspaces. A person signs in with their OpenMausBot account and sees
+One hosted web app for everyone's Dusk Bot workspaces. A person signs in with their Dusk Bot account and sees
 each of their workspaces (their Mac, each VPS) side by side: bots, usage, the machine and its bot computers, devices.
 
 ```
- workspace (an OpenMausBot server)            dashboard service (apps/dashboard/server)          browser (apps/dashboard/src)
+ workspace (a Dusk Bot server)            dashboard service (apps/dashboard/server)          browser (apps/dashboard/src)
  ---------------------------------            ------------------------------------          -----------------------
  POST /api/dashboard/link  (app menu)  ---->  POST /v1/enroll {ed25519 public key}
    opens the claim link in the browser        <---- {workspaceId, claimUrl}
@@ -22,8 +22,8 @@ each of their workspaces (their Mac, each VPS) side by side: bots, usage, the ma
   states only: machine stats, bot names, colours and models, computer states, device names, daily usage totals. Never
   messages, prompts, files or secrets.
 - **Transport.** Plain HTTPS from the workspace to the service, so it does not depend on any relay. A relay can name
-  its dashboard at `/.well-known/openmausbot/dashboard` (`OMB_LINK_DASHBOARD_URL` on the link service); a workspace
-  uses, in order, the URL it is given, `OMB_DASHBOARD_URL`, its relay's discovery answer, then `DEFAULT_DASHBOARD_URL`.
+  its dashboard at `/.well-known/duskbot/dashboard` (`DUSK_LINK_DASHBOARD_URL` on the link service); a workspace
+  uses, in order, the URL it is given, `DUSK_DASHBOARD_URL`, its relay's discovery answer, then `DEFAULT_DASHBOARD_URL`.
 - **Accounts.** The service owns email-code sign-in, accounts and browser/app sessions (`shared/account-api.ts`).
   Accounts and token hashes live in `auth.json`; codes and one-time grants stay in memory. Browser mutations echo
   the `omb_csrf` cookie in `x-omb-csrf`. Apps use the existing Admin contract v1 bearer routes. Social providers are
@@ -37,7 +37,7 @@ each of their workspaces (their Mac, each VPS) side by side: bots, usage, the ma
 ## Slack while a cloud desktop sleeps
 
 Opt-in per desktop ("Wake for Slack" on its Cloud desktop page) and off unless the service runs with
-`OMB_SLACK_EDGE=1` (which then needs `OMB_CLOUD_SEAL_KEY` outside loopback development). It is the one exception to
+`DUSK_SLACK_EDGE=1` (which then needs `DUSK_CLOUD_SEAL_KEY` outside loopback development). It is the one exception to
 "Slack traffic stays between the harness and Slack": a bot's Socket Mode connection needs its app-level token, so a
 desktop that wants to answer while asleep lends that token to this service.
 
@@ -45,7 +45,7 @@ desktop that wants to answer while asleep lends that token to this service.
  cloud desktop (repo server/slack/handover.ts)     this service (server/slack-edge)                Slack
  every 60 s and at boot: signed POST /v1/slack-edge/sync
    {x25519 public key, bots: id + token hash, acks}  ---->  remembers the key, asks for changed tokens
- POST /v1/slack-edge/tokens {xapp tokens}  -------------->  seals them at rest (OMB_CLOUD_SEAL_KEY)
+ POST /v1/slack-edge/tokens {xapp tokens}  -------------->  seals them at rest (DUSK_CLOUD_SEAL_KEY)
                                                           desktop stopped or asleep: opens Socket Mode  <---->  events
                                                           acks each event at once, seals it to the desktop's key,
                                                           DM or mention: wakes the desktop (again each minute)
@@ -76,26 +76,26 @@ more were measured; the plan cards print a wake time only from it.
 
 ```sh
 pnpm build:dashboard            # the page, into apps/dashboard/dist
-pnpm dashboard:service          # OMB_DASHBOARD_PORT, _HOST, _DATA, _PUBLIC_URL, _STATIC
+pnpm dashboard:service          # DUSK_DASHBOARD_PORT, _HOST, _DATA, _PUBLIC_URL, _STATIC
 ```
 
-Production mail uses `OMB_MAIL_PROVIDER=resend`, `OMB_RESEND_API_KEY` and `OMB_MAIL_FROM`. Loopback HTTP or
-`OMB_DASHBOARD_DEV=1` enables development console mail. Set `OMB_AUTH_SIGNUP_OPEN=0` to close signups and
-`OMB_TRUST_PROXY=1` only behind a trusted proxy. `OMB_OPS_TOKEN` (32 characters or more) turns on the operator's checkout funnel:
+Production mail uses `DUSK_MAIL_PROVIDER=resend`, `DUSK_RESEND_API_KEY` and `DUSK_MAIL_FROM`. Loopback HTTP or
+`DUSK_DASHBOARD_DEV=1` enables development console mail. Set `DUSK_AUTH_SIGNUP_OPEN=0` to close signups and
+`DUSK_TRUST_PROXY=1` only behind a trusted proxy. `DUSK_OPS_TOKEN` (32 characters or more) turns on the operator's checkout funnel:
 `GET /v1/billing/ops/funnel?days=30` with `Authorization: Bearer <token>` counts checkouts started, paid and still active
-by where they started (`CHECKOUT_SOURCES` in `shared/billing-api.ts`); without the token the route does not exist. `OMB_AUTH_SECRET` must be at least 32 characters if supplied;
+by where they started (`CHECKOUT_SOURCES` in `shared/billing-api.ts`); without the token the route does not exist. `DUSK_AUTH_SECRET` must be at least 32 characters if supplied;
 otherwise the service creates a private `auth-secret` file beside its data.
 
 Local work on the page: `pnpm dashboard:fixture` starts the service on `127.0.0.1:7480` with a temporary data folder,
 a memory mailer, a signed-in session and a demo workspace (made-up numbers, fixture only). Sign-in codes print in
 its terminal. Then `pnpm dev:dashboard` serves the page on `127.0.0.1:5288` with `/v1` proxied to it
-(`OMB_DASHBOARD_SERVICE` to point elsewhere).
+(`DUSK_DASHBOARD_SERVICE` to point elsewhere).
 
 The page keeps its own English strings: it is a separate web app outside `src/` and its locales.
 
 ### Sign-in providers
 
-Google uses `OMB_AUTH_GOOGLE_CLIENT_ID` and `OMB_AUTH_GOOGLE_CLIENT_SECRET`. Apple uses `OMB_AUTH_APPLE_CLIENT_ID` (Services ID), `OMB_AUTH_APPLE_TEAM_ID`, `OMB_AUTH_APPLE_KEY_ID`, and the .p8 key in `OMB_AUTH_APPLE_PRIVATE_KEY` (PEM, literal `\n` accepted) or `OMB_AUTH_APPLE_PRIVATE_KEY_FILE`. X uses `OMB_AUTH_X_CLIENT_ID`, optional `OMB_AUTH_X_CLIENT_SECRET`, and optional `OMB_AUTH_X_SCOPES` (default `users.read tweet.read`). Register `<public url>/v1/auth/oauth/google/callback`, `<public url>/v1/auth/oauth/apple/callback` (Apple's Return URL), and `<public url>/v1/auth/oauth/x/callback`. Partial provider configuration fails startup; endpoint overrides are available only through code options for isolated fixtures. The dashboard fixture runs local fake Google, Apple and X providers without external accounts.
+Google uses `DUSK_AUTH_GOOGLE_CLIENT_ID` and `DUSK_AUTH_GOOGLE_CLIENT_SECRET`. Apple uses `DUSK_AUTH_APPLE_CLIENT_ID` (Services ID), `DUSK_AUTH_APPLE_TEAM_ID`, `DUSK_AUTH_APPLE_KEY_ID`, and the .p8 key in `DUSK_AUTH_APPLE_PRIVATE_KEY` (PEM, literal `\n` accepted) or `DUSK_AUTH_APPLE_PRIVATE_KEY_FILE`. X uses `DUSK_AUTH_X_CLIENT_ID`, optional `DUSK_AUTH_X_CLIENT_SECRET`, and optional `DUSK_AUTH_X_SCOPES` (default `users.read tweet.read`). Register `<public url>/v1/auth/oauth/google/callback`, `<public url>/v1/auth/oauth/apple/callback` (Apple's Return URL), and `<public url>/v1/auth/oauth/x/callback`. Partial provider configuration fails startup; endpoint overrides are available only through code options for isolated fixtures. The dashboard fixture runs local fake Google, Apple and X providers without external accounts.
 
 ## Type
 

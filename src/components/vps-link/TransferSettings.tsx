@@ -1,4 +1,4 @@
-// Settings > Transfer: where the bots live now, moving them back to this computer, taking OpenMausBot off the server, and
+// Settings > Transfer: where the bots live now, moving them back to this computer, taking Dusk Bot off the server, and
 // the backups a move keeps
 import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";

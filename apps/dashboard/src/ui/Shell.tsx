@@ -186,9 +186,9 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
 
 function Brand() {
   return (
-    <Link to="/" className="flex items-center gap-2.5 rounded-row px-2.5 py-1" aria-label="OpenMausBot, home">
+    <Link to="/" className="flex items-center gap-2.5 rounded-row px-2.5 py-1" aria-label="Dusk Bot, home">
       <Mascot color="blue" size={24} still />
-      <span className="text-14 font-medium tracking-[-0.01em] text-ink">OpenMausBot</span>
+      <span className="text-14 font-medium tracking-[-0.01em] text-ink">Dusk Bot</span>
     </Link>
   );
 }

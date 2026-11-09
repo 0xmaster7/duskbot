@@ -3,10 +3,10 @@ import { macCuaPermissionHelper, macCuaPermissionMessage, missingMacCuaPermissio
 
 describe("macOS CUA permission recovery", () => {
   it("names only the grants the host reported missing", () => {
-    expect(missingMacCuaPermissions("embedded host failed: Screen Recording required; restart OpenMausBot")).toEqual(["screen"]);
+    expect(missingMacCuaPermissions("embedded host failed: Screen Recording required; restart Dusk Bot")).toEqual(["screen"]);
     expect(missingMacCuaPermissions("Accessibility and Screen Recording required")).toEqual(["screen", "accessibility"]);
-    expect(macCuaPermissionMessage(["accessibility"])).toContain("Accessibility is required for MausBot");
-    expect(macCuaPermissionMessage(["screen"])).toContain("relaunch MausBot");
+    expect(macCuaPermissionMessage(["accessibility"])).toContain("Accessibility is required for Dusk");
+    expect(macCuaPermissionMessage(["screen"])).toContain("relaunch Dusk");
   });
 
   it("tells the person to turn on CuaDriver, not to relaunch, when the helper app waits for a grant", () => {
@@ -18,9 +18,9 @@ describe("macOS CUA permission recovery", () => {
     expect(message).toContain("Screen Recording");
     expect(message).not.toContain("relaunch");
     expect(macCuaPermissionMessage(["screen", "accessibility"], reason)).toContain("Screen Recording and Accessibility");
-    expect(macCuaPermissionHelper("embedded host failed: Screen Recording required; restart OpenMausBot")).toBeNull();
+    expect(macCuaPermissionHelper("embedded host failed: Screen Recording required; restart Dusk Bot")).toBeNull();
     // the server's line for the chat names the grant the same way, so the card offers its pane
-    expect(missingMacCuaPermissions("OpenMausBot can't use this computer yet: Screen Recording required. Turn on CuaDriver in System Settings > Privacy & Security > Screen Recording; OpenMausBot notices by itself, no restart needed.")).toEqual(["screen"]);
+    expect(missingMacCuaPermissions("Dusk Bot can't use this computer yet: Screen Recording required. Turn on CuaDriver in System Settings > Privacy & Security > Screen Recording; Dusk Bot notices by itself, no restart needed.")).toEqual(["screen"]);
   });
 
   it("does not diagnose missing or malformed status as a grant failure", () => {

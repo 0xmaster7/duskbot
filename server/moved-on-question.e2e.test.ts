@@ -18,7 +18,7 @@ it("stops waiting on a question the person moved on from: their next message clo
     });
     return { status: response.status, body: await response.json() };
   };
-  const cli = (...args: string[]) => runControlOmb(args, { env: { OPENMAUSBOT_URL: fixture.info.url } }) as Promise<any>;
+  const cli = (...args: string[]) => runControlOmb(args, { env: { DUSK_URL: fixture.info.url } }) as Promise<any>;
   let socket: Socket | undefined;
   console.log(`moved-on question fixture: ${fixture.info.logPath}`);
   try {

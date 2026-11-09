@@ -175,8 +175,8 @@ describe("ACP threads sharing one agent process", () => {
   });
 
   it("ends a shared process holding closed sessions once none has run a turn for a while; threads reload in a new one", async () => {
-    const previous = process.env.OMB_ACP_SHARED_RECYCLE_MS;
-    process.env.OMB_ACP_SHARED_RECYCLE_MS = "200";
+    const previous = process.env.DUSK_ACP_SHARED_RECYCLE_MS;
+    process.env.DUSK_ACP_SHARED_RECYCLE_MS = "200";
     try {
       const f = await fixture();
       await f.run("thread-a");
@@ -187,14 +187,14 @@ describe("ACP threads sharing one agent process", () => {
       expect((await f.run("thread-b")).done).toMatchObject({ ok: true });
       expect(f.spawned).toHaveLength(2);
     } finally {
-      if (previous === undefined) delete process.env.OMB_ACP_SHARED_RECYCLE_MS;
-      else process.env.OMB_ACP_SHARED_RECYCLE_MS = previous;
+      if (previous === undefined) delete process.env.DUSK_ACP_SHARED_RECYCLE_MS;
+      else process.env.DUSK_ACP_SHARED_RECYCLE_MS = previous;
     }
   });
 
   it("never recycles a shared process while one of its sessions runs a turn", async () => {
-    const previous = process.env.OMB_ACP_SHARED_RECYCLE_MS;
-    process.env.OMB_ACP_SHARED_RECYCLE_MS = "200";
+    const previous = process.env.DUSK_ACP_SHARED_RECYCLE_MS;
+    process.env.DUSK_ACP_SHARED_RECYCLE_MS = "200";
     try {
       const f = await fixture({}, { FAKE_ACP_HANG_ON: "HANG" });
       await f.run("thread-a");
@@ -207,8 +207,8 @@ describe("ACP threads sharing one agent process", () => {
       expect((await long).done).toMatchObject({ ok: true, stopReason: "cancelled" });
       await exited(f.spawned[0]!);
     } finally {
-      if (previous === undefined) delete process.env.OMB_ACP_SHARED_RECYCLE_MS;
-      else process.env.OMB_ACP_SHARED_RECYCLE_MS = previous;
+      if (previous === undefined) delete process.env.DUSK_ACP_SHARED_RECYCLE_MS;
+      else process.env.DUSK_ACP_SHARED_RECYCLE_MS = previous;
     }
   });
 

@@ -40,7 +40,7 @@ const log = (line: string) => process.stderr.write(`bench-switching: ${line}\n`)
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const median = (samples: number[]) => { const sorted = [...samples].sort((a, b) => a - b); return sorted.length ? sorted[Math.floor(sorted.length / 2)]! : NaN; };
 const round = (value: number, digits = 1) => Math.round(value * 10 ** digits) / 10 ** digits;
-const work = mkdtempSync(join(tmpdir(), "openmausbot-bench-work-"));
+const work = mkdtempSync(join(tmpdir(), "duskbot-bench-work-"));
 const chromePath = values.chrome ?? join(process.env.HOME ?? "", "Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell");
 
 interface Chat { id: string; threadId: string; name: string; lastId: string }
@@ -112,7 +112,7 @@ async function buildUi(outDir: string) {
 }
 
 function newDataDir(): string {
-  const dir = mkdtempSync(join("/tmp", "openmausbot-bench-"));
+  const dir = mkdtempSync(join("/tmp", "duskbot-bench-"));
   mkdirSync(join(dir, "tmp"), { recursive: true });
   writeFileSync(join(dir, "config.json"), JSON.stringify({
     features: { smartSetupChoices: false },
@@ -125,7 +125,7 @@ function newDataDir(): string {
 /** One fake-engine server on a fixed port, so a restart keeps the page's origin. */
 async function startServer(dataDir: string, port: number, staticDir: string): Promise<() => Promise<void>> {
   const env = verificationServerEnvironment({ LANG: process.env.LANG, TZ: process.env.TZ }, dataDir, port);
-  env.OMB_STATIC_DIR = staticDir;
+  env.DUSK_STATIC_DIR = staticDir;
   if (values.live) Object.assign(env, liveEngineEnvironment(dataDir));
   const logFd = openSync(join(work, `server-${port}.log`), "a", 0o600);
   const child: ChildProcess = spawn(process.execPath, verificationServerArgs(env), { cwd: ROOT, env, stdio: ["ignore", logFd, logFd] });
@@ -150,7 +150,7 @@ async function run() {
   }
   const dataDir = newDataDir();
   const seedOut = execFileSync(process.execPath, ["--experimental-strip-types", join(ROOT, "scripts", "testing", "bench-switching-seed.ts"), values.messages!], {
-    cwd: ROOT, encoding: "utf8", env: { PATH: dirname(process.execPath), HOME: dataDir, OMB_DATA_DIR: dataDir, TMPDIR: join(dataDir, "tmp") }, maxBuffer: 16 * 1024 * 1024,
+    cwd: ROOT, encoding: "utf8", env: { PATH: dirname(process.execPath), HOME: dataDir, DUSK_DATA_DIR: dataDir, TMPDIR: join(dataDir, "tmp") }, maxBuffer: 16 * 1024 * 1024,
   });
   const { chats } = JSON.parse(seedOut.trim().split("\n").at(-1)!) as { chats: Chat[] };
   const port = await freePortBlock([0, 1]);

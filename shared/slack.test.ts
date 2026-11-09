@@ -16,11 +16,11 @@ describe("Slack OAuth deep links", () => {
 
   it.each([
     undefined, null, {}, 1, "", `https://slack/oauth?code=abcdefgh&state=${state}`,
-    `OPENMAUSBOT://slack/oauth?code=abcdefgh&state=${state}`,
-    `openmausbot://SLACK/oauth?code=abcdefgh&state=${state}`,
-    `openmausbot://slack/OAuth?code=abcdefgh&state=${state}`,
-    `openmausbot://slack/oauth/?code=abcdefgh&state=${state}`,
-    `openmausbot://slack/oauth?code=abcdefgh&state=${state}#fragment`,
+    `DUSK://slack/oauth?code=abcdefgh&state=${state}`,
+    `duskbot://SLACK/oauth?code=abcdefgh&state=${state}`,
+    `duskbot://slack/OAuth?code=abcdefgh&state=${state}`,
+    `duskbot://slack/oauth/?code=abcdefgh&state=${state}`,
+    `duskbot://slack/oauth?code=abcdefgh&state=${state}#fragment`,
     link(`code=abcdefgh&state=${state}#`),
     link(`code=abcdefgh&state=${state}&extra=1`),
     link(`code=abcdefgh&state=${state}&code=ijklmnop`),

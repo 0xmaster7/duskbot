@@ -92,7 +92,7 @@ describe("desktop notifications", () => {
     const { notices } = installNotification("granted");
     showNotification(frame, vi.fn());
     expect(notices).toHaveLength(1);
-    expect(notices[0]).toMatchObject({ title: frame.title, options: { body: frame.body, tag: `openmausbot:${frame.botId}` } });
+    expect(notices[0]).toMatchObject({ title: frame.title, options: { body: frame.body, tag: `duskbot:${frame.botId}` } });
   });
 
   it("stays quiet only when the exact target thread is already visible", () => {
@@ -109,7 +109,7 @@ describe("desktop notifications", () => {
     showNotification({ ...frame, kind: "spend", title: "Monthly spend limit reached" }, vi.fn(), "https://avatar.test/a.png", frame.threadId);
 
     expect(notices).toHaveLength(1);
-    expect(notices[0]!.options).toMatchObject({ tag: "openmausbot:spend", icon: undefined });
+    expect(notices[0]!.options).toMatchObject({ tag: "duskbot:spend", icon: undefined });
   });
 
   it("still alerts a focused app when another task is visible", () => {
@@ -144,10 +144,10 @@ describe("desktop notifications", () => {
       vi.fn(),
     );
 
-    expect(notices[0]?.options?.tag).toBe(`openmausbot:${frame.botId}`);
-    expect(notices[1]?.options?.tag).toBe(`openmausbot:${frame.botId}`);
+    expect(notices[0]?.options?.tag).toBe(`duskbot:${frame.botId}`);
+    expect(notices[1]?.options?.tag).toBe(`duskbot:${frame.botId}`);
     showNotification({ ...frame, botId: "bot-2" }, vi.fn());
-    expect(notices[2]?.options?.tag).toBe(`openmausbot:bot-2`);
+    expect(notices[2]?.options?.tag).toBe(`duskbot:bot-2`);
   });
 
   it("carries the bot's avatar when its profile has one", () => {
@@ -176,7 +176,7 @@ describe("on the desktop app, where main shows the banner so its click outlives 
     showNotification(frame, vi.fn(), "/api/attachments/face.png");
     await flush();
     expect(show).toHaveBeenCalledWith({
-      title: frame.title, body: frame.body, tag: "openmausbot:bot-1", silent: true, picture: "/api/attachments/face.png", botId: "bot-1", threadId: "thread-1",
+      title: frame.title, body: frame.body, tag: "duskbot:bot-1", silent: true, picture: "/api/attachments/face.png", botId: "bot-1", threadId: "thread-1",
     });
     expect(notices).toHaveLength(0);
   });
@@ -239,7 +239,7 @@ describe("notification sounds", () => {
 describe("buildNotificationOptions", () => {
   it("keys coalescing on botId and omits a missing avatar", () => {
     expect(buildNotificationOptions({ id: "bot-9" })).toEqual({
-      tag: "openmausbot:bot-9",
+      tag: "duskbot:bot-9",
       icon: undefined,
     });
   });

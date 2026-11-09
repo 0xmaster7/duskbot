@@ -27,8 +27,8 @@ beforeAll(() => {
     project_id: "fixture-project", client_email: "push@fixture.example", token_uri: "https://oauth.example/token",
     private_key: rsa.privateKey.export({ format: "pem", type: "pkcs8" }).toString(),
   }));
-  apnsEnv = { OMB_APNS_KEY_FILE: apnsFile, OMB_APNS_KEY_ID: "key-id", OMB_APNS_TEAM_ID: "team-id", OMB_APNS_TOPIC: "com.example.omb" };
-  fcmEnv = { OMB_FCM_SERVICE_ACCOUNT_FILE: accountFile, OMB_FCM_HOST: "https://fcm.example" };
+  apnsEnv = { DUSK_APNS_KEY_FILE: apnsFile, DUSK_APNS_KEY_ID: "key-id", DUSK_APNS_TEAM_ID: "team-id", DUSK_APNS_TOPIC: "com.example.omb" };
+  fcmEnv = { DUSK_FCM_SERVICE_ACCOUNT_FILE: accountFile, DUSK_FCM_HOST: "https://fcm.example" };
 });
 afterAll(() => { rmSync(directory, { recursive: true, force: true }); });
 
@@ -89,7 +89,7 @@ describe("APNs push", () => {
   });
 
   function sender() {
-    return createPushSender({ ...apnsEnv, OMB_APNS_HOST: origin }, {
+    return createPushSender({ ...apnsEnv, DUSK_APNS_HOST: origin }, {
       now: () => clock,
       http2Connect: ((...args: Parameters<typeof connect>) => {
         const client = connect(...args);
@@ -306,7 +306,7 @@ describe("FCM push", () => {
   });
 
   it("uses the default origin and omits an absent group id", async () => {
-    const push = createPushSender({ OMB_FCM_SERVICE_ACCOUNT_FILE: fcmEnv.OMB_FCM_SERVICE_ACCOUNT_FILE }, { fetch });
+    const push = createPushSender({ DUSK_FCM_SERVICE_ACCOUNT_FILE: fcmEnv.DUSK_FCM_SERVICE_ACCOUNT_FILE }, { fetch });
     expect(await push.send(target, { ...message, groupId: undefined })).toBe("sent");
     expect(requests[1].url).toBe("https://fcm.googleapis.com/v1/projects/fixture-project/messages:send");
     expect(JSON.parse(String(requests[1].init.body)).message.data).not.toHaveProperty("groupId");
@@ -328,7 +328,7 @@ describe("push configuration", () => {
     const log = vi.fn();
     const push = createPushSender({ ...apnsEnv, ...fcmEnv }, {
       log, readFile: (path) => {
-        if (path === apnsEnv.OMB_APNS_KEY_FILE) throw new Error("sensitive fixture details");
+        if (path === apnsEnv.DUSK_APNS_KEY_FILE) throw new Error("sensitive fixture details");
         return JSON.stringify({ private_key: "sensitive fixture details" });
       },
     });
@@ -351,7 +351,7 @@ describe("push configuration", () => {
 
   it("rejects incomplete APNs credentials", () => {
     const log = vi.fn();
-    expect(createPushSender({ OMB_APNS_KEY_ID: "key-id" }, { log }).configured).toEqual([]);
+    expect(createPushSender({ DUSK_APNS_KEY_ID: "key-id" }, { log }).configured).toEqual([]);
     expect(log).toHaveBeenCalledTimes(1);
   });
 });
@@ -388,10 +388,10 @@ describe("push relay", () => {
     expect(await send(429, { code: "rate_limited" })).toBe("failed");
   });
 
-  it("reads OMB_PUSH_RELAY", () => {
+  it("reads DUSK_PUSH_RELAY", () => {
     expect(pushRelayBase({}, "https://link.example")).toBe("https://link.example");
-    expect(pushRelayBase({ OMB_PUSH_RELAY: "off" }, "https://link.example")).toBeNull();
-    expect(pushRelayBase({ OMB_PUSH_RELAY: "https://push.example/" }, null)).toBe("https://push.example");
-    expect(pushRelayBase({ OMB_PUSH_RELAY: "not a url" }, "https://link.example")).toBeNull();
+    expect(pushRelayBase({ DUSK_PUSH_RELAY: "off" }, "https://link.example")).toBeNull();
+    expect(pushRelayBase({ DUSK_PUSH_RELAY: "https://push.example/" }, null)).toBe("https://push.example");
+    expect(pushRelayBase({ DUSK_PUSH_RELAY: "not a url" }, "https://link.example")).toBeNull();
   });
 });

@@ -7,8 +7,8 @@ import { expect, it } from "vitest";
 
 import { launchVerificationServer, runControlOmb, type VerificationServer } from "../control-omb.ts";
 
-const binaryPath = process.env.OMB_VERIFY_BROWSER_BINARY;
-const executablePath = process.env.OMB_VERIFY_BROWSER_CHROME;
+const binaryPath = process.env.DUSK_VERIFY_BROWSER_BINARY;
+const executablePath = process.env.DUSK_VERIFY_BROWSER_CHROME;
 
 it.skipIf(process.platform !== "darwin" || !binaryPath || !executablePath)("uses native local browser tools for a real form with no VPS or container commands", async () => {
   const page = createServer((_req, res) => {
@@ -22,7 +22,7 @@ it.skipIf(process.platform !== "darwin" || !binaryPath || !executablePath)("uses
   const origin = `http://127.0.0.1:${(page.address() as { port: number }).port}`;
   let fixture: VerificationServer;
   try {
-    fixture = await launchVerificationServer({ OMB_TEST_LOCAL_BROWSER_GUARD: "1" }, undefined, undefined,
+    fixture = await launchVerificationServer({ DUSK_TEST_LOCAL_BROWSER_GUARD: "1" }, undefined, undefined,
       { binaryPath: binaryPath!, executablePath: executablePath! }, { scripted: true });
   } catch (error) { await new Promise<void>((resolve) => page.close(() => resolve())); throw error; }
   const api = async (method: string, path: string, body?: unknown) => {
@@ -101,7 +101,7 @@ it.skipIf(process.platform !== "darwin" || !binaryPath || !executablePath)("runs
   const origin = `http://127.0.0.1:${(page.address() as { port: number }).port}`;
   let fixture: VerificationServer;
   try {
-    fixture = await launchVerificationServer({ OMB_TEST_LOCAL_BROWSER_GUARD: "1" }, undefined, undefined,
+    fixture = await launchVerificationServer({ DUSK_TEST_LOCAL_BROWSER_GUARD: "1" }, undefined, undefined,
       { binaryPath: binaryPath!, executablePath: executablePath! }, { scripted: true });
   } catch (error) { await new Promise<void>((resolve) => page.close(() => resolve())); throw error; }
   const api = async (method: string, path: string, body?: unknown) => {

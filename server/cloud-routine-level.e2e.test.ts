@@ -48,7 +48,7 @@ async function api(method: string, path: string, options: { body?: unknown; toke
 }
 
 async function adminPairing(): Promise<string> {
-  const body = JSON.stringify({ label: "OpenMausBot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
@@ -60,7 +60,7 @@ async function adminPairing(): Promise<string> {
 
 beforeAll(async () => {
   home = mkdtempSync(join(tmpdir(), "omb-cloud-routine-level-"));
-  dataDir = join(home, ".openmausbot");
+  dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   // Claude's turns hold until the test writes the release file; each engine dumps its latest start.
   const claude = join(home, "claude-cli.mjs");
@@ -89,15 +89,15 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-co
   const offline = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
   boot = async () => {
     // The stall clock runs only where HOME is the data dir, and a bot box would then hide the engines kept beside it.
-    const stall = stallClock ? { HOME: dataDir, USERPROFILE: dataDir, OMB_TEST_STALL_CLOCK: "1", OMB_BOT_BOX: "0" } : {};
+    const stall = stallClock ? { HOME: dataDir, USERPROFILE: dataDir, DUSK_TEST_STALL_CLOCK: "1", DUSK_BOT_BOX: "0" } : {};
     const hooks = stallClock ? ["--import", pathToFileURL(join(SERVER_DIR, "testing", "stall-clock-hooks.mjs")).href] : [];
     child = spawnWithSecrets(process.execPath, ["--import", offline, ...hooks, join(SERVER_DIR, "index.ts")], {
       PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
-      HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1),
-      OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: MACHINE_ID, OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
-      OMB_PUBLIC_URL: `https://${HOST}`, OMB_CLOUD_VOICE_URL: "https://cloud.example.test/api/cloud/services/voice/v1",
-      OMB_CLOUD_SECRETS_FD: "3", ...stall,
-    }, { OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_CLOUD_VOICE_TOKEN: `box_omb_${randomBytes(32).toString("base64url")}` }, undefined, true);
+      HOME: home, USERPROFILE: home, DUSK_DATA_DIR: dataDir, DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1),
+      DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: MACHINE_ID, DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test",
+      DUSK_PUBLIC_URL: `https://${HOST}`, DUSK_CLOUD_VOICE_URL: "https://cloud.example.test/api/cloud/services/voice/v1",
+      DUSK_CLOUD_SECRETS_FD: "3", ...stall,
+    }, { DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_CLOUD_VOICE_TOKEN: `box_omb_${randomBytes(32).toString("base64url")}` }, undefined, true);
     for (const stream of [child.stdout, child.stderr]) stream?.on("data", (chunk) => { log += chunk; });
     const deadline = Date.now() + 20_000;
     for (;;) {

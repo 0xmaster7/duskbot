@@ -77,7 +77,7 @@ function linuxDescriptor(userData: string, { session = "x11" }: { session?: "x11
       args: ["mcp", "--embedded", "--socket", socket],
       env: {
         CUA_DRIVER_EMBEDDED: "1",
-        CUA_DRIVER_HOST_BUNDLE_ID: "com.openmausbot.app",
+        CUA_DRIVER_HOST_BUNDLE_ID: "bot.dusk.app",
         CUA_DRIVER_RS_UPDATE_CHECK: "false",
         CUA_DRIVER_RS_TELEMETRY_ENABLED: "false",
         ...(session === "wayland" ? { CUA_DRIVER_RS_ENABLE_WAYLAND: "1" } : {}),
@@ -97,9 +97,9 @@ describe("local computer descriptor contract", () => {
     };
     const gated = gatedLocalComputer(connection, { url: "http://127.0.0.1:1234/control", token: "fixture-token" });
     expect(gated).toMatchObject({ command: process.execPath, args: ["--experimental-strip-types", SPAWNED_PROXIES.localComputer], platform: "linux", scope: "local-computer", generation: connection.generation });
-    expect(gated.env).toEqual({ ...connection.env, ELECTRON_RUN_AS_NODE: "1", OMB_CUA_COMMAND: connection.command, OMB_CUA_ARGS: JSON.stringify(connection.args), OMB_CUA_PLATFORM: "linux", OMB_CONTROL_URL: "http://127.0.0.1:1234/control", OMB_CONTROL_TOKEN: "fixture-token" });
+    expect(gated.env).toEqual({ ...connection.env, ELECTRON_RUN_AS_NODE: "1", DUSK_CUA_COMMAND: connection.command, DUSK_CUA_ARGS: JSON.stringify(connection.args), DUSK_CUA_PLATFORM: "linux", DUSK_CONTROL_URL: "http://127.0.0.1:1234/control", DUSK_CONTROL_TOKEN: "fixture-token" });
     expect(gated.args.join(" ")).not.toContain("fixture-token");
-    expect(connection.env).not.toHaveProperty("OMB_CONTROL_TOKEN");
+    expect(connection.env).not.toHaveProperty("DUSK_CONTROL_TOKEN");
   });
   it("owns the helper's Node mode even when the daemon environment disagrees", () => {
     const gated = gatedLocalComputer({ command: "/trusted/cua-driver", args: ["mcp"], env: { ELECTRON_RUN_AS_NODE: "0" }, platform: "darwin", scope: "local-computer" }, { url: "http://127.0.0.1:1234/control", token: "fixture-token" });
@@ -131,7 +131,7 @@ afterEach(() => {
 
 describe("local computer descriptor", () => {
   it("reports an unavailable reason without making that record mountable", () => {
-    const reason = "embedded host failed: Screen Recording required; grant access in System Settings and restart OpenMausBot";
+    const reason = "embedded host failed: Screen Recording required; grant access in System Settings and restart Dusk Bot";
     const record = { mode: "unavailable", reason };
     expect(decodeCuaConnection(record, { platform: "darwin" })).toBeNull();
     expect(cuaUnavailableReason(record, "darwin")).toBe(reason);

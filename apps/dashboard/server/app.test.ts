@@ -287,7 +287,7 @@ describe("hosted dashboard service", () => {
   });
 
   it("serves discovery and html fallback, blocks traversal and dotfiles, and disables pages without staticDir", async () => {
-    const discovery = await page("/.well-known/openmausbot/dashboard");
+    const discovery = await page("/.well-known/duskbot/dashboard");
     expect(await discovery.json()).toEqual({ v: 1, url: origin });
     expect(discovery.headers.get("cache-control")).toBe("no-store");
     const fallback = await page("/claim");

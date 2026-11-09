@@ -60,7 +60,7 @@ import {
 } from "./vps-computer.ts";
 
 // these fixtures are the Cua XFCE desktop; the bot desktop has its own in bot-desktop.test.ts
-beforeAll(() => { vi.stubEnv("OPENMAUSBOT_VPS_DESKTOP", "cua"); });
+beforeAll(() => { vi.stubEnv("DUSK_VPS_DESKTOP", "cua"); });
 afterAll(() => { vi.unstubAllEnvs(); });
 
 const BOT_ID = "bot-1234-abcd";
@@ -225,7 +225,7 @@ function fixture({
     }
     if (command === "exec") {
       if (screenshotCaptureFails && args.includes("--screenshot-out-file")) throw new Error("capture failed");
-      if (args.includes("openmausbot-preview")) return { stdout: screenshotValid ? screenshot.toString("base64") : "not-an-image", stderr: "" };
+      if (args.includes("duskbot-preview")) return { stdout: screenshotValid ? screenshot.toString("base64") : "not-an-image", stderr: "" };
       if (args.includes("tail")) {
         return { stdout: "X display :1 did not become ready within 45 seconds\n", stderr: "" };
       }
@@ -301,7 +301,7 @@ describe("VPS computer", () => {
   it("uses a deterministic, bot-id-derived managed container name", () => {
     expect(vpsContainerName(BOT_ID)).toBe(vpsContainerName(BOT_ID));
     expect(vpsContainerName(BOT_ID)).not.toBe(vpsContainerName("another-bot"));
-    expect(vpsContainerName(BOT_ID)).toMatch(/^openmausbot-vps-[a-z0-9-]+$/);
+    expect(vpsContainerName(BOT_ID)).toMatch(/^duskbot-vps-[a-z0-9-]+$/);
   });
 
   it("passes the SSH target as one validated Docker argv value", () => {
@@ -353,7 +353,7 @@ describe("VPS computer", () => {
     expect(probes.every(({ args }) => !args.includes(fake.name))).toBe(true);
     expect(probes.every(({ args }) => args.includes(`DISPLAY=${DISPLAY}`))).toBe(true);
     expect(probes.every(({ args }) => args.includes("CUA_DRIVER_RS_TELEMETRY_ENABLED=0"))).toBe(true);
-    expect(fake.calls.some(({ args }) => args.includes("openmausbot-preview"))).toBe(false);
+    expect(fake.calls.some(({ args }) => args.includes("duskbot-preview"))).toBe(false);
     expect(fake.calls.some(({ args }) => args.includes("--screenshot-out-file"))).toBe(false);
   });
 
@@ -547,7 +547,7 @@ esac
     expect(run.at(-1)).toBe(IMAGE_ID);
     expect(run.join(" ")).toContain(`--label ${VPS_MANAGED_LABEL}=1`);
     expect(run.find((arg) => arg.startsWith(`${VPS_ENVIRONMENT_LABEL}=`)))
-      .toMatch(/^com\.openmausbot\.environment=[0-9a-f-]{36}$/i);
+      .toMatch(/^com\.duskbot\.environment=[0-9a-f-]{36}$/i);
     expect(run.join(" ")).toContain(`--label ${IMAGE_LAYER_LABEL}=${IMAGE_LAYER_VERSION}`);
     expect(run.join(" ")).toContain(`--label ${VPS_VIEWER_LABEL}=1`);
     expect(run.join(" ")).toContain("--memory 1536m --memory-swap 1536m --cpu-shares 256 --oom-score-adj 500");
@@ -617,13 +617,13 @@ esac
       if (command === "info") { fake.calls.push({ args, options }); return { stdout: String(12 * 1024 ** 3), stderr: "" }; }
       if (command === "ps") {
         fake.calls.push({ args, options });
-        const others = busyHost ? Array.from({ length: 6 }, (_, index) => `openmausbot-vps-busy${index}-${"b".repeat(11)}${index}\t\topenmausbot-vps-busy${index}-${"b".repeat(11)}${index}`) : [];
+        const others = busyHost ? Array.from({ length: 6 }, (_, index) => `duskbot-vps-busy${index}-${"b".repeat(11)}${index}\t\tduskbot-vps-busy${index}-${"b".repeat(11)}${index}`) : [];
         return { stdout: others.join("\n"), stderr: "" };
       }
       if (command === "update") { fake.calls.push({ args, options }); return { stdout: "", stderr: "" }; }
       return fake.runner(args, options);
     };
-    setVpsCapacityHost({ owned: () => new Set(Array.from({ length: 6 }, (_, index) => `openmausbot-vps-busy${index}-${"b".repeat(11)}${index}`)), sleepLeastRecent: async () => false });
+    setVpsCapacityHost({ owned: () => new Set(Array.from({ length: 6 }, (_, index) => `duskbot-vps-busy${index}-${"b".repeat(11)}${index}`)), sleepLeastRecent: async () => false });
     try {
       busyHost = true;
       vi.useFakeTimers({ toFake: ["setTimeout", "Date"] });
@@ -785,10 +785,10 @@ esac
       "-e",
       "CUA_DRIVER_RS_TELEMETRY_ENABLED=0",
       vpsContainerName(BOT_ID),
-      "/usr/local/libexec/openmausbot/cua-driver",
+      "/usr/local/libexec/duskbot/cua-driver",
       "mcp",
       "--socket",
-      "/run/user/1000/openmausbot-cua.sock",
+      "/run/user/1000/duskbot-cua.sock",
     ]);
   });
 
@@ -797,10 +797,10 @@ esac
     const frame = await vpsComputerScreenshot(CONFIG, BOT_ID, fake.runner);
     expect(frame).toEqual({ png: screenshot.toString("base64"), format: "png" });
     expect(fake.calls.some(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")))).toBe(true);
-    const transfer = fake.calls.find(({ args }) => args.includes("openmausbot-preview"))!.args;
+    const transfer = fake.calls.find(({ args }) => args.includes("duskbot-preview"))!.args;
     expect(transfer.slice(2)).toEqual([
       "exec", "-u", "cua", "-e", "HOME=/home/cua", CONTAINER_ID,
-      "sh", "-c", expect.stringContaining('quality=70'), "openmausbot-preview", "/tmp/openmausbot-vps-preview.png",
+      "sh", "-c", expect.stringContaining('quality=70'), "duskbot-preview", "/tmp/duskbot-vps-preview.png",
     ]);
     expect(transfer[transfer.indexOf("-c") + 1]).toContain("image.thumbnail((1280, 1280))");
     expect(fake.calls.some(({ args }) => args.includes("rm") && args.includes("-f"))).toBe(true);
@@ -815,7 +815,7 @@ esac
   it.skipIf(!hasPillow)("transfers real JPEG previews at quality 70, within 1280px without upscaling", async () => {
     const fake = fixture();
     await vpsComputerScreenshot(CONFIG, BOT_ID, fake.runner);
-    const transfer = fake.calls.find(({ args }) => args.includes("openmausbot-preview"))!.args;
+    const transfer = fake.calls.find(({ args }) => args.includes("duskbot-preview"))!.args;
     // The exact in-container script with only the local Pillow interpreter and a disposable image swapped in; no Docker or SSH.
     const script = transfer[transfer.indexOf("-c") + 1].replace("/opt/venv/bin/python", "python3");
     const scratch = mkdtempSync(join(tmpdir(), "omb-vps-preview-image-"));
@@ -824,7 +824,7 @@ esac
         const original = execFileSync("python3", ["-I", "-c", `from PIL import Image; import sys; Image.effect_noise((${width}, ${height}), 64).convert("RGBA").save(sys.stdout.buffer, format="PNG")`], { maxBuffer: 32 * 1024 * 1024 });
         const path = join(scratch, "preview.png");
         writeFileSync(path, original);
-        const encoded = execFileSync("sh", ["-c", script, "openmausbot-preview", path], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+        const encoded = execFileSync("sh", ["-c", script, "duskbot-preview", path], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
         const jpeg = Buffer.from(encoded, "base64");
         const decoded = execFileSync("python3", ["-I", "-c", [
           "from PIL import Image",
@@ -838,7 +838,7 @@ esac
         expect(JSON.parse(decoded)).toEqual({ format: "JPEG", size: expected, mode: "RGB", quality70: true });
         expect(jpeg.length).toBeLessThan(original.length / 2);
         expect(readFileSync(path).equals(original)).toBe(true);
-        const frame = await vpsComputerScreenshot(CONFIG, BOT_ID, async (args, options) => args.includes("openmausbot-preview")
+        const frame = await vpsComputerScreenshot(CONFIG, BOT_ID, async (args, options) => args.includes("duskbot-preview")
           ? { stdout: encoded, stderr: "" }
           : fake.runner(args, options));
         expect(frame).toEqual({ png: encoded, format: "jpeg" });
@@ -849,7 +849,7 @@ esac
   it.skipIf(process.platform === "win32")("falls back to the original PNG when conversion is unavailable or fails", async () => {
     const fake = fixture();
     await vpsComputerScreenshot(CONFIG, BOT_ID, fake.runner);
-    const transfer = fake.calls.find(({ args }) => args.includes("openmausbot-preview"))!.args;
+    const transfer = fake.calls.find(({ args }) => args.includes("duskbot-preview"))!.args;
     const originalScript = transfer[transfer.indexOf("-c") + 1];
     const scratch = mkdtempSync(join(tmpdir(), "omb-vps-preview-fallback-"));
     try {
@@ -857,7 +857,7 @@ esac
       writeFileSync(path, screenshot);
       for (const interpreter of [join(scratch, "missing-python"), "false"]) {
         const script = originalScript.replace("/opt/venv/bin/python", interpreter);
-        const encoded = execFileSync("sh", ["-c", script, "openmausbot-preview", path], { encoding: "utf8" });
+        const encoded = execFileSync("sh", ["-c", script, "duskbot-preview", path], { encoding: "utf8" });
         expect(encoded).toBe(screenshot.toString("base64"));
       }
     } finally { rmSync(scratch, { recursive: true, force: true }); }
@@ -881,7 +881,7 @@ esac
     const frames = await Promise.all([first, second]);
     expect(frames[0]).toEqual(frames[1]);
     expect(fake.calls.filter(({ args }) => args.includes("--screenshot-out-file"))).toHaveLength(1);
-    expect(fake.calls.filter(({ args }) => args.includes("openmausbot-preview"))).toHaveLength(1);
+    expect(fake.calls.filter(({ args }) => args.includes("duskbot-preview"))).toHaveLength(1);
     expect(fake.calls.filter(({ args }) => args.includes("rm"))).toHaveLength(1);
     expect(vpsLifecycleBusy()).toBe(false);
   });
@@ -905,7 +905,7 @@ esac
     await first;
     for (const alias of ["first-preview-vps", "second-preview-vps"]) {
       expect(fake.calls.filter(({ args }) => args[1] === `ssh://${alias}` && args.includes("--screenshot-out-file"))).toHaveLength(1);
-      expect(fake.calls.filter(({ args }) => args[1] === `ssh://${alias}` && args.includes("openmausbot-preview"))).toHaveLength(1);
+      expect(fake.calls.filter(({ args }) => args[1] === `ssh://${alias}` && args.includes("duskbot-preview"))).toHaveLength(1);
     }
   });
 
@@ -917,7 +917,7 @@ esac
       const runner: VpsCommandRunner = async (args, options) => {
         const timeoutMs = options?.timeoutMs ?? 120_000;
         calls.push({ args, timeoutMs });
-        if (args.includes("openmausbot-preview") || args.includes("rm")) {
+        if (args.includes("duskbot-preview") || args.includes("rm")) {
           // Like defaultRunner: time out, terminate, then wait its 6s kill grace before settling.
           await new Promise((resolve) => setTimeout(resolve, timeoutMs + 6_000));
           throw new Error("Docker-over-SSH command timed out");
@@ -930,7 +930,7 @@ esac
       const first = vpsComputerScreenshot(CONFIG, BOT_ID, runner).finally(() => { settled = true; });
       const rejected = expect(first).rejects.toMatchObject({ status: 504 });
       await vi.advanceTimersByTimeAsync(35_000);
-      expect(calls.find(({ args }) => args.includes("openmausbot-preview"))?.timeoutMs).toBe(21_000);
+      expect(calls.find(({ args }) => args.includes("duskbot-preview"))?.timeoutMs).toBe(21_000);
       expect(calls.find(({ args }) => args.includes("rm"))?.timeoutMs).toBe(4_000);
       expect(vpsLifecycleBusy()).toBe(true);
       expect(settled).toBe(false);
@@ -1194,7 +1194,7 @@ esac
     expect(rebuilt.ready).toBe(true);
   });
 
-  it("never removes a container OpenMausBot did not create", async () => {
+  it("never removes a container Dusk Bot did not create", async () => {
     const unowned = fixture({ managed: false });
     await expect(vpsComputerAction("remove", CONFIG, BOT_ID, unowned.runner)).rejects.toThrow(/did not create/);
     expect(unowned.calls.some(({ args }) => args[2] === "rm")).toBe(false);
@@ -1260,7 +1260,7 @@ esac
       };
       const pending = vpsComputerAction("provision", CONFIG, BOT_ID, runner);
       await vi.advanceTimersByTimeAsync(3_000);
-      expect(await pending).toMatchObject({ ready: false, desktopReady: false, container: "stopped", problem: "The OpenMausBot VPS container is stopped" });
+      expect(await pending).toMatchObject({ ready: false, desktopReady: false, container: "stopped", problem: "The Dusk Bot VPS container is stopped" });
       expect(waits).toBe(1);
     } finally { vi.useRealTimers(); }
   });

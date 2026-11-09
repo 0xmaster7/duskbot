@@ -26,12 +26,12 @@ it("Chief creation uses the workspace default or a validated explicit model with
     await api("PATCH", "/api/config", { defaultModelSelection: defaultModel });
     const chiefModel = { instanceId: "claude", model: claude.models.default };
     const chief = (await api("POST", "/api/bots", { name: "Chief", section: "Design", modelSelection: chiefModel }, 201)).bot;
-    // At Ask too, each creation applies at once: OpenMausBot adds no card of its own.
+    // At Ask too, each creation applies at once: Dusk Bot adds no card of its own.
     await api("PATCH", `/api/bots/${chief.id}`, { chiefOfStaff: true, approvalMode: "ask", connectorScopes: { apps: { gmail: "read" } } });
     await api("POST", `/api/bots/${chief.id}/messages`, { text: "Prepare a specialist." }, 202);
     await expect.poll(() => existsSync(fixture.fixtureDumpPath), { timeout: 15_000 }).toBe(true);
     const dump = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8"));
-    let token = dump.mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN;
+    let token = dump.mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN;
     const create = (name: string, modelSelection?: unknown, expected = 201) => api("POST", "/api/internal/create-bot", {
       fromBotId: chief.id, fromThreadId: chief.threadId, name,
       role: "Specialist", instructions: "Complete assigned work.",
@@ -74,7 +74,7 @@ it("Chief creation uses the workspace default or a validated explicit model with
     unlinkSync(fixture.fixtureDumpPath);
     await api("POST", `/api/bots/${chief.id}/messages`, { text: "Prepare the next specialist." }, 202);
     await expect.poll(() => existsSync(fixture.fixtureDumpPath), { timeout: 15_000 }).toBe(true);
-    token = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN;
+    token = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN;
     const updated = applied(await create("Updated default specialist"));
     writeFileSync(gate, "finish");
     await idle();

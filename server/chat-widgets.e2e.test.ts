@@ -44,7 +44,7 @@ it("shows, replaces and answers a widget on a bot's own conversation, once per p
     await control("send", "--bot", bot.id, "--task", bot.threadId, "--text", "What is open?");
     let token = "";
     await expect.poll(() => {
-      try { token = dump().mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN; }
+      try { token = dump().mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN; }
       catch { return false; }
       return Boolean(token);
     }, { timeout: 15_000 }).toBe(true);
@@ -123,7 +123,7 @@ it("shows, replaces and answers a widget on a bot's own conversation, once per p
       expect(await api("POST", `/api/bots/${bot.id}/messages`, { threadId: bot.threadId, sendId: "widget-press-another-01", widgetAction }, 409))
         .toEqual({ error: "This was already answered." });
     }
-    token = dump().mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN;
+    token = dump().mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN;
     expect(await card({ tool: "update_widget", widget_id: draft.messageId, widget: WIDGET_SAMPLES.buildStatus }, 409, token))
       .toEqual({ error: "The person already answered that widget. Show a new one." });
     const next = await card({ tool: "show_widget", widget: WIDGET_SAMPLES.buildStatus, fallback_text: "  Build 25 is uploading.  " }, 201, token);

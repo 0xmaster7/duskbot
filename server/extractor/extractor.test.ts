@@ -33,8 +33,8 @@ const sent = (fetchImpl: FetchMock, index = 0) => {
 /** Answers like Workers AI, by model, from the fixture. */
 const workersAi = () => vi.fn<typeof fetch>(async (url) => json(String(url).endsWith("/clairic") ? workersFixture.clairic.response : workersFixture.clef.response));
 const cloud = () => {
-  vi.stubEnv("OMB_CLOUD_DECIDER_URL", RELAY);
-  vi.stubEnv("OMB_CLOUD_DECIDER_TOKEN", INCLUDED);
+  vi.stubEnv("DUSK_CLOUD_DECIDER_URL", RELAY);
+  vi.stubEnv("DUSK_CLOUD_DECIDER_TOKEN", INCLUDED);
 };
 
 afterEach(() => {

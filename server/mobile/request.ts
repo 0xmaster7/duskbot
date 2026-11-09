@@ -45,7 +45,7 @@ export function mobileBearer(req: IncomingMessage, auth: RequestAuth): boolean {
 export function applyMobileCors(req: IncomingMessage, res: ServerResponse, auth: RequestAuth): void {
   if (!mobileBearer(req, auth)) return;
   allowOrigin(res, req.headers.origin!);
-  res.setHeader("access-control-expose-headers", "Content-Disposition, X-Openmausbot-Folder, X-Omb-Cloud-Power");
+  res.setHeader("access-control-expose-headers", "Content-Disposition, X-duskbot-Folder, X-Omb-Cloud-Power");
 }
 
 export function takeViewerAccessToken(req: IncomingMessage, url: URL): string | null | undefined {

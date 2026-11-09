@@ -16,7 +16,7 @@ export function backgroundCallArgs(input: {
   model: string;
   outputFormat: "json" | "text";
   supports: (flag: BackgroundFlag) => boolean;
-  /** False while OMB_CLAUDE_INHERIT_USER_CONFIG asks for the person's own setup. */
+  /** False while DUSK_CLAUDE_INHERIT_USER_CONFIG asks for the person's own setup. */
   isolated: boolean;
 }): string[] {
   const args = ["-p", "--model", input.model, "--output-format", input.outputFormat, "--settings", BACKGROUND_SETTINGS];

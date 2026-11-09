@@ -303,7 +303,7 @@ export function IslandIntro({ onDone, titleId = "welcome-title" }: { onDone: (ch
             </motion.span>
           )}
 
-          {/* MausBot drops out of the notch, says hello, and flies home into the island */}
+          {/* Dusk drops out of the notch, says hello, and flies home into the island */}
           {!reduced && (phase === "bloom" || phase === "hero" || phase === "home") && (
             <motion.span aria-hidden className="pointer-events-none absolute left-0 top-0 flex" style={{ width: HERO, height: HERO, zIndex: heroStage === "in" ? 0 : 2 }}
               initial={{ x: MID - HERO / 2, y: -HERO / 2, scale: 0.4, opacity: 0 }}

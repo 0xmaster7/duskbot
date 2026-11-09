@@ -8,7 +8,7 @@ import { licenseFiles } from "../../scripts/license-files.ts";
 const root = fileURLToPath(new URL(".", import.meta.url));
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 const { version } = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string };
-const target = `http://127.0.0.1:${process.env.OMB_PORT || 8799}`;
+const target = `http://127.0.0.1:${process.env.DUSK_PORT || 8799}`;
 
 export default defineConfig({
   root,
@@ -17,12 +17,12 @@ export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(version) },
   server: {
     host: "127.0.0.1",
-    port: Number(process.env.OMB_MOBILE_PORT) || 5320,
+    port: Number(process.env.DUSK_MOBILE_PORT) || 5320,
     strictPort: true,
     fs: { allow: [repoRoot] },
     proxy: {
       "/api": { ws: true, target },
-      "/.well-known/openmausbot/environment": { target },
+      "/.well-known/duskbot/environment": { target },
     },
   },
   build: {

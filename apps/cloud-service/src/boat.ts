@@ -210,7 +210,7 @@ export function createBoatProvider(options: BoatProviderOptions): BoatProvider {
         type: boatSize(input.spec, options.smallest), ttlSeconds: input.ttlSeconds, noEnv: true, monitoring: false, name: `omb-${input.cloudId}`,
         labels: { "omb.cloud": input.cloudId, "omb.scope": options.scope },
         ...(input.userData ? { setupScript: input.userData } : {}), ...(input.files?.length ? { files: input.files } : {}), ...(input.from ? { from: input.from } : {}),
-        hostedPorts: [{ port: BOAT_HOME_PORT, public: true, title: "OpenMausBot" }],
+        hostedPorts: [{ port: BOAT_HOME_PORT, public: true, title: "Dusk Bot" }],
       };
       // one key per cloud and attempt: a lost answer retried within 24 h returns the same sandbox, never a second one
       const idempotency = `omb-${options.scope}-${input.cloudId}-${input.attempt ?? 0}`;
@@ -240,7 +240,7 @@ export function createBoatProvider(options: BoatProviderOptions): BoatProvider {
     async origin(serverId) {
       const known = origins.get(serverId);
       if (known) return known;
-      const data = await call("POST", `/sandboxes/${serverId}/host`, { body: { port: BOAT_HOME_PORT, public: true, title: "OpenMausBot" } });
+      const data = await call("POST", `/sandboxes/${serverId}/host`, { body: { port: BOAT_HOME_PORT, public: true, title: "Dusk Bot" } });
       const origin = typeof data?.url === "string" ? new URL(data.url).origin : "";
       if (!/^https:\/\/[a-z0-9-]+\.on\.boat\.dev$/.test(origin) && !origin.startsWith("https://")) throw new RetryableCloudError();
       origins.set(serverId, origin);

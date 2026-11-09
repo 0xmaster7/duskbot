@@ -179,13 +179,13 @@ const endpointSnapshot = (options: ProxyOptions): CompanionEndpointSnapshot => {
 export function companionIdentityHeaders(authenticatedDeviceId?: string, mutationToken?: string): Record<string, string> {
   const out: Record<string, string> = {
     // Carries no authority; it only narrows behavior at the harness.
-    "x-openmausbot-companion": "1",
+    "x-dusk-companion": "1",
   };
   // Never a caller-supplied header: this id comes only from the registry entry
   // that authenticated the bearer.
   if (authenticatedDeviceId && /^[\w-]{1,128}$/.test(authenticatedDeviceId)) {
-    out["x-openmausbot-companion-device"] = authenticatedDeviceId;
-    if (mutationToken) out["x-openmausbot-companion-auth"] = mutationToken;
+    out["x-dusk-companion-device"] = authenticatedDeviceId;
+    if (mutationToken) out["x-dusk-companion-auth"] = mutationToken;
   }
   return out;
 }
@@ -319,7 +319,7 @@ function forwardMobile(req: IncomingMessage, res: ServerResponse, options: Proxy
     clearTimeout(deadline);
     if (res.destroyed || res.writableEnded) return;
     sendJson(res, timedOut ? 504 : 502, {
-      error: timedOut ? "OpenMausBot did not respond" : "OpenMausBot is not running on this computer",
+      error: timedOut ? "Dusk Bot did not respond" : "Dusk Bot is not running on this computer",
     });
   });
   res.on("close", () => {
@@ -410,10 +410,10 @@ function harnessControlCheck(options: ProxyOptions) {
       accept: "application/json",
       "content-type": "application/json",
       "content-length": String(Buffer.byteLength(body)),
-      "x-openmausbot-companion": "1",
-      "x-openmausbot-companion-device": deviceId,
+      "x-dusk-companion": "1",
+      "x-dusk-companion-device": deviceId,
     };
-    if (mutationToken) headers["x-openmausbot-companion-auth"] = mutationToken;
+    if (mutationToken) headers["x-dusk-companion-auth"] = mutationToken;
     const request = httpRequest({
       hostname: "127.0.0.1",
       port: options.harnessPort,
@@ -506,7 +506,7 @@ export function createProxyHandler(options: ProxyOptions) {
     // session; the owner enables this per device, off by default.
     if (isCloudDesktopAccess(method, path) && !device?.cloudDesktopAccess) {
       return sendJson(res, 403, {
-        error: "computer access is off for this device — enable it in OpenMausBot → Settings → Remote access",
+        error: "computer access is off for this device — enable it in Dusk Bot → Settings → Remote access",
       });
     }
 
@@ -590,7 +590,7 @@ export function createProxyHandler(options: ProxyOptions) {
           const fail = () => {
             if (finished) return;
             finished = true;
-            sendJson(res, 502, { error: "OpenMausBot is not ready on this computer" });
+            sendJson(res, 502, { error: "Dusk Bot is not ready on this computer" });
           };
           harness.on("data", (chunk: Buffer) => {
             size += chunk.length;
@@ -616,13 +616,13 @@ export function createProxyHandler(options: ProxyOptions) {
             if (
               (harness.statusCode ?? 500) < 200 ||
               (harness.statusCode ?? 500) >= 300 ||
-              (identity as { app?: unknown } | null)?.app !== "openmausbot"
+              (identity as { app?: unknown } | null)?.app !== "duskbot"
             ) {
               fail();
               return;
             }
             finished = true;
-            sendJson(res, 200, { app: "openmausbot" });
+            sendJson(res, 200, { app: "duskbot" });
           });
           return;
         }
@@ -744,7 +744,7 @@ export function createProxyHandler(options: ProxyOptions) {
           if (size > MAX_JSON_BODY_BYTES) {
             harness.destroy();
             if (res.headersSent) res.destroy();
-            else sendJson(res, 502, { error: "the response from OpenMausBot was too large" });
+            else sendJson(res, 502, { error: "the response from Dusk Bot was too large" });
             return;
           }
           chunks.push(chunk);
@@ -828,8 +828,8 @@ export function createProxyHandler(options: ProxyOptions) {
         res,
         timedOut ? 504 : 502,
         timedOut
-          ? { error: "OpenMausBot did not respond" }
-          : { error: "OpenMausBot is not running on this computer" },
+          ? { error: "Dusk Bot did not respond" }
+          : { error: "Dusk Bot is not running on this computer" },
       );
     });
     req.pipe(upstream);

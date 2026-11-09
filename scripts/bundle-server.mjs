@@ -32,8 +32,8 @@ const NODE_REQUIRE = {
 const ENTRY_POINTS = [
   "index.ts",
   "message-search.worker.ts",
-  // the `openmausbot` command
-  "openmausbot.ts",
+  // the `duskbot` command
+  "duskbot.ts",
   "pair-cli.ts",
   "workspace-backup.worker.ts",
   "pdf-text.worker.ts",
@@ -97,7 +97,7 @@ await build({
   plugins: [serverLocalePlugin],
 });
 
-// `openmausbot serve --tunnel` spawns the connector guardian as its own
+// `duskbot serve --tunnel` spawns the connector guardian as its own
 // process, so it must exist as a file beside the server.
 await build({
   entryPoints: [join(root, "electron", "managed-companion-guardian-main.mjs")],

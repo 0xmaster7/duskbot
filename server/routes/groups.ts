@@ -26,8 +26,8 @@ export function checkedGroupResponder(value: unknown, memberIds: string[]): Grou
   if (responder.kind === "everyone") return { kind: "everyone" };
   if (responder.kind === "mentions") return { kind: "mentions" };
   if (responder.kind === "auto") {
-    if (responder.by !== undefined && responder.by !== "mausbot") return null;
-    const by = responder.by === "mausbot" ? { by: "mausbot" as const } : {};
+    if (responder.by !== undefined && responder.by !== "dusk") return null;
+    const by = responder.by === "dusk" ? { by: "dusk" as const } : {};
     if (responder.fallbackBotId === undefined || responder.fallbackBotId === null) return { kind: "auto", ...by };
     return typeof responder.fallbackBotId === "string" && memberIds.includes(responder.fallbackBotId)
       ? { kind: "auto", fallbackBotId: responder.fallbackBotId, ...by }

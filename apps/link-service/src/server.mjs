@@ -1,5 +1,5 @@
 // `npm start`: the link service on process.env.PORT. config (all optional):
-//   LINK_BASE         public address people's servers reach, default https://link.apps.siddz.com
+//   LINK_BASE         public address people's servers reach, default https://link.dusk.bot
 //   LINK_DATA_DIR     where state.json lives, default ./data
 //   LINK_PACKAGES_DIR the private server builds install.sh downloads, default $LINK_DATA_DIR/packages
 //   LINK_TRUST_PROXY  "0" when nothing sits in front of it (then forwarded headers are ignored), default "1"
@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { createLinkService } from "./app.mjs";
 
-export const DEFAULT_BASE = "https://link.apps.siddz.com";
+export const DEFAULT_BASE = "https://link.dusk.bot";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const base = (process.env.LINK_BASE || DEFAULT_BASE).replace(/\/+$/, "");
 if (!/^https?:\/\/[^/\s]+$/.test(base)) throw new Error("LINK_BASE must be an origin like https://link.example.com");

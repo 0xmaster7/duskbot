@@ -59,7 +59,7 @@ describe("billing pricing", () => {
   });
   it("charges the difference on upgrades, nothing on downgrades, and validates product configuration", () => {
     expect(changeCharge(2000, 5000)).toBe(3000); expect(changeCharge(5000, 2000)).toBe(0);
-    expect(dodoProducts({ OMB_DODO_PRODUCTS: '{"license_solo:month":"p1"}' })).toEqual({ "license_solo:month": "p1" });
-    expect(() => dodoProducts({ OMB_DODO_PRODUCTS: '{"bad":1}' })).toThrow();
+    expect(dodoProducts({ DUSK_DODO_PRODUCTS: '{"license_solo:month":"p1"}' })).toEqual({ "license_solo:month": "p1" });
+    expect(() => dodoProducts({ DUSK_DODO_PRODUCTS: '{"bad":1}' })).toThrow();
   });
 });

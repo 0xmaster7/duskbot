@@ -80,7 +80,7 @@ describe("local account service", () => {
     const started = await start(" OWNER@EXAMPLE.TEST ");
     expect(started).toMatchObject({ expiresIn: 600, resendAfter: 30, signupOpen: true });
     expect(started.attempt).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect(mailer.outbox[0]).toMatchObject({ to: email, subject: "Your OpenMausBot code" });
+    expect(mailer.outbox[0]).toMatchObject({ to: email, subject: "Your Dusk Bot code" });
     expect(mailer.outbox[0].text).toContain("It expires in 10 minutes.");
     expect(mailer.outbox[0].html).toContain(code());
     const first = await body<WebSignInAnswer>(call("/v1/auth/verify", { attempt: started.attempt, code: code() }));
@@ -248,7 +248,7 @@ describe("local account service", () => {
     for (const path of ["/api/cloud/app/sign-in/start", "/api/cloud/app/sign-in/verify", "/api/cloud/desktop/session", "/v1/app/enroll-grant", "/v1/auth/app/token"]) {
       const response = await call(path, undefined, { origin: "capacitor://localhost", "access-control-request-method": "POST" }, "OPTIONS");
       expect(response.status).toBe(204); expect(response.headers.get("access-control-allow-origin")).toBe("*");
-      expect(response.headers.get("access-control-allow-headers")).toBe("content-type, authorization, x-openmausbot-version");
+      expect(response.headers.get("access-control-allow-headers")).toBe("content-type, authorization, x-dusk-version");
       expect(response.headers.get("access-control-allow-methods")).toBe("GET, POST, DELETE, OPTIONS");
       expect(response.headers.get("access-control-allow-credentials")).toBeNull(); expect(response.headers.get("cache-control")).toBe("no-store");
     }

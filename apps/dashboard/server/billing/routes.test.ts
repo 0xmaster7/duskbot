@@ -34,7 +34,7 @@ function dataDirectory() {
   cleanup.push(() => rmSync(dir, { recursive: true, force: true })); return dir;
 }
 async function fixture() {
-  for (const key of ["OMB_BILLING_PROVIDER", "OMB_CLOUD_PROVIDER", "OMB_POOL_DRIVER", "OMB_CLOUD_SEAL_KEY", "OMB_DODO_PRODUCTS"]) vi.stubEnv(key, undefined);
+  for (const key of ["DUSK_BILLING_PROVIDER", "DUSK_CLOUD_PROVIDER", "DUSK_POOL_DRIVER", "DUSK_CLOUD_SEAL_KEY", "DUSK_DODO_PRODUCTS"]) vi.stubEnv(key, undefined);
   const dir = dataDirectory(), mailer = memoryMailer(), csrf = new Map<string, string>();
   let time = Date.now();
   const app = createDashboardApp({ dataDir: dir, publicUrl: "http://127.0.0.1", mailer, staticDir: null, now: () => time });
@@ -258,24 +258,24 @@ it("keeps billing off outside loopback, checks startup configuration, and never 
   expect((await fetch(`${origin}/v1/billing/catalog`)).status).toBe(200);
   expect((await fetch(`${origin}/v1/billing/quote`, { method: "POST", body: JSON.stringify({ cart: bundle("starter") }) })).status).toBe(200);
   expect((await fetch(`${origin}/v1/billing/overview`)).status).toBe(503);
-  const env = { OMB_BILLING_PROVIDER: "dodo", OMB_DODO_API_KEY: "fixture-key", OMB_DODO_WEBHOOK_SECRET: `whsec_${Buffer.alloc(32).toString("base64")}`, OMB_DODO_PRODUCTS: JSON.stringify({ "license_solo:month": "fixture-product" }) };
-  for (const key of ["OMB_DODO_API_KEY", "OMB_DODO_WEBHOOK_SECRET", "OMB_DODO_PRODUCTS"] as const) expect(() => createBilling(options({ env: { ...env, [key]: undefined } }))).toThrow(key);
+  const env = { DUSK_BILLING_PROVIDER: "dodo", DUSK_DODO_API_KEY: "fixture-key", DUSK_DODO_WEBHOOK_SECRET: `whsec_${Buffer.alloc(32).toString("base64")}`, DUSK_DODO_PRODUCTS: JSON.stringify({ "license_solo:month": "fixture-product" }) };
+  for (const key of ["DUSK_DODO_API_KEY", "DUSK_DODO_WEBHOOK_SECRET", "DUSK_DODO_PRODUCTS"] as const) expect(() => createBilling(options({ env: { ...env, [key]: undefined } }))).toThrow(key);
   const dodo = createBilling(options({ env })); cleanup.push(() => dodo.close());
   expect(dodo.fake).toBeNull();
   const dodoOrigin = await listen(createServer(async (req, res) => { if (!await dodo.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
   expect((await fetch(`${dodoOrigin}/v1/billing/fake/complete`, { method: "POST", body: "{}" })).status).toBe(404);
-  for (const key of ["OMB_HETZNER_TOKEN", "OMB_CLOUD_SEAL_KEY", "OMB_CLOUD_HOME_IMAGE"] as const) {
-    const cloudEnv = { OMB_CLOUD_PROVIDER: "hetzner", OMB_HETZNER_TOKEN: "fixture-token", OMB_CLOUD_SEAL_KEY: Buffer.alloc(32, 1).toString("base64url"), OMB_CLOUD_HOME_IMAGE: "ghcr.io/example/home:fixture", [key]: undefined };
+  for (const key of ["DUSK_HETZNER_TOKEN", "DUSK_CLOUD_SEAL_KEY", "DUSK_CLOUD_HOME_IMAGE"] as const) {
+    const cloudEnv = { DUSK_CLOUD_PROVIDER: "hetzner", DUSK_HETZNER_TOKEN: "fixture-token", DUSK_CLOUD_SEAL_KEY: Buffer.alloc(32, 1).toString("base64url"), DUSK_CLOUD_HOME_IMAGE: "ghcr.io/example/home:fixture", [key]: undefined };
     expect(() => createBilling(options({ env: cloudEnv }))).toThrow(key);
   }
-  const noClouds = createBilling(options({ env: { OMB_BILLING_PROVIDER: "fake" } })); cleanup.push(() => noClouds.close());
+  const noClouds = createBilling(options({ env: { DUSK_BILLING_PROVIDER: "fake" } })); cleanup.push(() => noClouds.close());
   const checkout = await noClouds.service.checkout({ id: "a", email: "a@example.test" }, { kind: "cart", cart: { ...BILLING_CONFIG.bundles[1].cart, interval: "month" } });
   for (const delivery of noClouds.fake!.complete([...noClouds.fake!.sessions.keys()][0])) noClouds.service.handleWebhook(delivery.headers, delivery.body);
   await noClouds.clouds.reconcile(); expect(noClouds.clouds.get(checkout.cloudId!)!).toMatchObject({ status: "provisioning", error: "Cloud desktops are not configured." });
 });
 
 it("never mounts fake completion at a public origin even when fake mode is explicitly configured", async () => {
-  const billing = createBilling(options({ env: { OMB_BILLING_PROVIDER: "fake" } })); cleanup.push(() => billing.close());
+  const billing = createBilling(options({ env: { DUSK_BILLING_PROVIDER: "fake" } })); cleanup.push(() => billing.close());
   const origin = await listen(createServer(async (req, res) => { if (!await billing.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
   expect((await fetch(`${origin}/v1/billing/fake/complete`, { method: "POST", body: "{}" })).status).toBe(404);
 });
@@ -413,16 +413,16 @@ it("deletes accounts with no billing and recovers a crash between account deleti
   expect(empty.app.auth.account(free.account.id)).toBeNull(); expect(empty.saved().closures![0].steps).toContain("scrubbed");
 });
 
-it("shows the operator's checkout funnel only with OMB_OPS_TOKEN, and refuses a short token at startup", async () => {
+it("shows the operator's checkout funnel only with DUSK_OPS_TOKEN, and refuses a short token at startup", async () => {
   const token = "ops-fixture-token-0123456789abcdef";
-  expect(() => createBilling(options({ env: { OMB_OPS_TOKEN: "short" } }))).toThrow("OMB_OPS_TOKEN");
-  for (const env of [{}, { OMB_OPS_TOKEN: token }]) {
+  expect(() => createBilling(options({ env: { DUSK_OPS_TOKEN: "short" } }))).toThrow("DUSK_OPS_TOKEN");
+  for (const env of [{}, { DUSK_OPS_TOKEN: token }]) {
     const billing = createBilling(options({ env })); cleanup.push(() => billing.close());
     const origin = await listen(createServer(async (req, res) => { if (!await billing.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
     const read = (auth?: string, query = "") => fetch(`${origin}/v1/billing/ops/funnel${query}`, auth ? { headers: { authorization: auth } } : {});
     expect((await read()).status).toBe(404);
     expect((await read(`Bearer ${token}x`)).status).toBe(404);
-    if (!("OMB_OPS_TOKEN" in env)) { expect((await read(`Bearer ${token}`)).status).toBe(404); continue; }
+    if (!("DUSK_OPS_TOKEN" in env)) { expect((await read(`Bearer ${token}`)).status).toBe(404); continue; }
     const answer = await read(`Bearer ${token}`, "?days=7");
     expect(answer.status).toBe(200);
     expect(await answer.json()).toMatchObject({ v: 1, rows: [], totals: { started: 0, paid: 0, active: 0 } });

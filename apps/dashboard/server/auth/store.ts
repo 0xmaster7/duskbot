@@ -19,8 +19,8 @@ export function createAuthStore(dataDir: string) {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
-  let secret = process.env.OMB_AUTH_SECRET;
-  if (secret !== undefined && secret.length < 32) throw new Error("OMB_AUTH_SECRET must contain at least 32 characters.");
+  let secret = process.env.DUSK_AUTH_SECRET;
+  if (secret !== undefined && secret.length < 32) throw new Error("DUSK_AUTH_SECRET must contain at least 32 characters.");
   if (secret === undefined) {
     const secretPath = `${dataDir}/auth-secret`;
     try { secret = readFileSync(secretPath, "utf8"); } catch (error) {

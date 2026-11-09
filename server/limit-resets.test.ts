@@ -72,7 +72,7 @@ describe("LimitResetClock", () => {
   const dirs: string[] = [];
   afterEach(() => {
     vi.useRealTimers();
-    delete process.env.OMB_TEST_PLAN_USAGE_FILE;
+    delete process.env.DUSK_TEST_PLAN_USAGE_FILE;
     for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
   });
   const accounts = [{ id: "claude", name: "Claude", driver: "claude" as const, environment: {} }];
@@ -160,8 +160,8 @@ describe("LimitResetClock", () => {
 
     const dir = mkdtempSync(join(tmpdir(), "omb-limit-fixture-"));
     dirs.push(dir);
-    process.env.OMB_TEST_PLAN_USAGE_FILE = join(dir, "usage.json");
-    writeFileSync(process.env.OMB_TEST_PLAN_USAGE_FILE, JSON.stringify(report(claude([91, NOW + 5 * HOUR], [1, NOW + 90 * HOUR]))));
+    process.env.DUSK_TEST_PLAN_USAGE_FILE = join(dir, "usage.json");
+    writeFileSync(process.env.DUSK_TEST_PLAN_USAGE_FILE, JSON.stringify(report(claude([91, NOW + 5 * HOUR], [1, NOW + 90 * HOUR]))));
     const fixture = clock().instance;
     await fixture.refresh(true);
     expect(fixture.limit("claude")).toMatchObject({ usedPercent: 91, resetsAt: NOW + 5 * HOUR });

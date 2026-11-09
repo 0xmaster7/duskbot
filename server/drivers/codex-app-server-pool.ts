@@ -8,15 +8,15 @@ import { armIdleClose, sessionIdlePolicy, stopIdleClose } from "./session-idle.t
 export const CODEX_IDLE_MS = 5 * 60_000;
 const UNSUBSCRIBE_TIMEOUT_MS = 5_000;
 
-/** OMB_CODEX_SESSION_IDLE_MS (or OMB_SESSION_IDLE_MS) when set, else five minutes or the box's shorter default. */
+/** DUSK_CODEX_SESSION_IDLE_MS (or DUSK_SESSION_IDLE_MS) when set, else five minutes or the box's shorter default. */
 export function codexIdleMs(env: Record<string, string | undefined> = process.env): number {
   const policy = sessionIdlePolicy("CODEX", env);
-  return env.OMB_CODEX_SESSION_IDLE_MS || env.OMB_SESSION_IDLE_MS ? policy.idleMs : Math.min(CODEX_IDLE_MS, policy.idleMs);
+  return env.DUSK_CODEX_SESSION_IDLE_MS || env.DUSK_SESSION_IDLE_MS ? policy.idleMs : Math.min(CODEX_IDLE_MS, policy.idleMs);
 }
 
-/** OMB_CODEX_WARM=0 starts one app-server per turn, as before warm reuse. */
+/** DUSK_CODEX_WARM=0 starts one app-server per turn, as before warm reuse. */
 export function codexWarmEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  return env.OMB_CODEX_WARM !== "0";
+  return env.DUSK_CODEX_WARM !== "0";
 }
 
 /** What one app-server was launched with. Two turns with the same key may share a process. */
@@ -147,7 +147,7 @@ export class CodexAppServer {
         this.sink.message(message);
       } else if (message?.id !== undefined && message.method) {
         // A server request with no turn to answer it: refuse it rather than leave the app-server waiting.
-        this.write({ jsonrpc: "2.0", id: message.id, error: { code: -32603, message: "No OpenMausBot turn is running on this thread." } });
+        this.write({ jsonrpc: "2.0", id: message.id, error: { code: -32603, message: "No Dusk Bot turn is running on this thread." } });
       }
     }
   }

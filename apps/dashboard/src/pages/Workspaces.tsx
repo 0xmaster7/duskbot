@@ -111,7 +111,7 @@ export function WorkspacesPage() {
               <div className="min-w-0 md:pr-6">
                 <h3 className="mb-5 text-14 font-medium text-ink">Your Mac</h3>
                 <ol className="flex flex-col gap-5">
-                  <Step n={1} title={<a className="hover-link underline decoration-line-2 underline-offset-4" href={DOWNLOAD_URL} target="_blank" rel="noreferrer">Download OpenMausBot for Mac</a>} />
+                  <Step n={1} title={<a className="hover-link underline decoration-line-2 underline-offset-4" href={DOWNLOAD_URL} target="_blank" rel="noreferrer">Download Dusk Bot for Mac</a>} />
                   <Step n={2} title="Sign in with this account">It shows up here by itself a few seconds later.</Step>
                   <Step n={3} title="Keep it awake">Your bots run while the Mac is on.</Step>
                 </ol>
@@ -160,7 +160,7 @@ export function WorkspacePage({ id }: { id: string }) {
       <header className="mb-8 flex items-center gap-4"><span className="grid size-14 shrink-0 place-items-center rounded-[12px] bg-card-2 text-ink-2" aria-hidden>{workspaceIcon(w, cloud, 24)}</span><div className="min-w-0 flex-1"><h1 className="t-title truncate">{w.name}</h1><div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-ink-3"><span>{KIND_LABEL(w.kind, cloud)}</span><FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} /></div></div></header>
       <div className="flex flex-col gap-4">
         {cloud && <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line px-6 py-4"><div className="min-w-0"><p className="text-14 text-ink">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</p><CloudStatus cloud={cloud} className="mt-1" /></div><ButtonLink to="/cloud" size="sm">Open cloud desktop</ButtonLink></div>}
-        {!detail || selected?.id !== id ? selected?.id === id && detailError ? <Card><p role="alert" className="text-13 text-bad">{detailError}</p></Card> : <Skeleton className="h-60 !rounded-card" /> : !detail.report ? <SkyEmpty title="Waiting for its first report">Keep OpenMausBot running there. Its first report usually arrives in a few seconds.</SkyEmpty> : <><MachineView detail={detail} now={now} /><WorkspaceDevices detail={detail} now={now} ready={selected?.id === id} /></>}
+        {!detail || selected?.id !== id ? selected?.id === id && detailError ? <Card><p role="alert" className="text-13 text-bad">{detailError}</p></Card> : <Skeleton className="h-60 !rounded-card" /> : !detail.report ? <SkyEmpty title="Waiting for its first report">Keep Dusk Bot running there. Its first report usually arrives in a few seconds.</SkyEmpty> : <><MachineView detail={detail} now={now} /><WorkspaceDevices detail={detail} now={now} ready={selected?.id === id} /></>}
       </div>
     </>}
   </div>;

@@ -4,7 +4,7 @@
 import { MARK_FILL, MARK_RECIPES, createAnimator, createStateDriver, gazeFromPointer, markAppearance, markClip, markFillScale, markShapeFor, markTree, patchMark, type MarkAnimator, type MarkClip, type MarkGaze, type MarkNode, type MarkPoke, type MarkStateDriver } from "./mascot-motion-engine";
 import { nextFrameAt } from "./mascot-motion";
 import { createPersona, type MarkReaction } from "./mascot-personality";
-import { OMB_CLIPS } from "./mascot-clips";
+import { DUSK_CLIPS } from "./mascot-clips";
 import type { MascotClock, MascotTicket } from "./mascot-clock";
 
 /** Every state Grok's mark knows, ours included: idle, working, streaming, blocked, finished and the rest. */
@@ -362,7 +362,7 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
     playClip(name) {
       if (isStill()) return;
       persona.touch(env.now());
-      playOnce(Object.hasOwn(OMB_CLIPS, name) ? OMB_CLIPS[name as keyof typeof OMB_CLIPS] : markClip(name));
+      playOnce(Object.hasOwn(DUSK_CLIPS, name) ? DUSK_CLIPS[name as keyof typeof DUSK_CLIPS] : markClip(name));
       refresh();
     },
     react(kind) {

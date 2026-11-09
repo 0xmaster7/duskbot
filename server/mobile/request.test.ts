@@ -48,7 +48,7 @@ it.each(origins)("allows only the requested preflight method and headers from %s
 
 it.each([
   ["TRACE", "authorization"], ["GET", "content-type"], ["GET", "authorization, cookie"],
-  ["GET", "authorization, x-openmausbot-desktop-owner"], ["GET", "authorization, x-arbitrary"],
+  ["GET", "authorization, x-dusk-desktop-owner"], ["GET", "authorization, x-arbitrary"],
 ])("refuses a preflight for %s with %s", (method, headers) => {
   const { req, res, url } = request({ origin: origins[0], "access-control-request-method": method,
     "access-control-request-headers": headers }, "OPTIONS");

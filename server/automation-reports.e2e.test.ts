@@ -76,7 +76,7 @@ async function server(env: NodeJS.ProcessEnv = {}) {
 async function brokerOf(s: Awaited<ReturnType<typeof server>>, threadId: string): Promise<any[]> {
   const dump = join(s.dataDir, "fake-claude-dump.json");
   await expect.poll(() => {
-    try { return JSON.parse(readFileSync(dump, "utf8")).mcpConfig?.mcpServers?.agents?.env?.OMB_THREAD_ID === threadId; } catch { return false; }
+    try { return JSON.parse(readFileSync(dump, "utf8")).mcpConfig?.mcpServers?.agents?.env?.DUSK_THREAD_ID === threadId; } catch { return false; }
   }, { timeout: 20_000 }).toBe(true);
   const socketPath = JSON.parse(readFileSync(dump, "utf8")).mcpConfig.mcpServers.ogb.args.at(-1);
   const socket = broker = connect(socketPath);

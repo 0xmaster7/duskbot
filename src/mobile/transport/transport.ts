@@ -56,7 +56,7 @@ export function createSseParser(onEvent: (event: SseEvent) => void) {
 }
 
 function apiPath(path: string): boolean {
-  return path.startsWith("/api/") || path.startsWith("/.well-known/openmausbot/");
+  return path.startsWith("/api/") || path.startsWith("/.well-known/duskbot/");
 }
 
 function workspaceUrl(origin: string): URL {

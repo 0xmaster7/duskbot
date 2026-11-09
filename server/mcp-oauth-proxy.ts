@@ -105,16 +105,16 @@ export async function mcpOAuthProxyRoutes({ req, res, path, method }: RouteConte
   let answer: Response;
   try {
     const token = await route.manager.accessToken(route.name, route.url);
-    if (!token) return refuse(res, 502, `${route.name} needs you to sign in again in OpenMausBot.`);
+    if (!token) return refuse(res, 502, `${route.name} needs you to sign in again in Dusk Bot.`);
     answer = await send(token);
     if (answer.status === 401) {
       void answer.body?.cancel().catch(() => {});
       const fresh = await route.manager.refreshRejected(route.name, route.url, token);
-      if (!fresh) return refuse(res, 502, `${route.name} refused its sign-in. Sign in to it again in OpenMausBot.`);
+      if (!fresh) return refuse(res, 502, `${route.name} refused its sign-in. Sign in to it again in Dusk Bot.`);
       answer = await send(fresh);
       if (answer.status === 401) {
         void answer.body?.cancel().catch(() => {});
-        return refuse(res, 502, `${route.name} refused its sign-in. Sign in to it again in OpenMausBot.`);
+        return refuse(res, 502, `${route.name} refused its sign-in. Sign in to it again in Dusk Bot.`);
       }
     }
   } catch (error) {

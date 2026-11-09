@@ -38,7 +38,7 @@ async function api(method: string, path: string, body?: unknown) {
 }
 
 async function adminPairing(): Promise<string> {
-  const body = JSON.stringify({ label: "OpenMausBot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
@@ -60,7 +60,7 @@ const written = (file: string, shape: "document" | "lines" = "document") => {
 
 beforeAll(async () => {
   home = mkdtempSync(join(tmpdir(), "omb-opencode-keys-"));
-  dataDir = join(home, ".openmausbot");
+  dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   dump = join(home, "opencode.json");
   // Only OpenCode: nothing probes a CLI installed on this machine.
@@ -78,12 +78,12 @@ beforeAll(async () => {
   const offlinePrelude = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
   child = spawnWithSecrets(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
     PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
-    HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1),
-    OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
-    OMB_PUBLIC_URL: `https://${HOST}`, OMB_CLOUD_SECRETS_FD: "3",
+    HOME: home, USERPROFILE: home, DUSK_DATA_DIR: dataDir, DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1),
+    DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test",
+    DUSK_PUBLIC_URL: `https://${HOST}`, DUSK_CLOUD_SECRETS_FD: "3",
     // Provider keys in the server's own environment: never the owner's to spend from a bot.
     ANTHROPIC_API_KEY: "anthropic-server-own", OPENAI_API_KEY: "openai-server-own",
-  }, { OMB_CLOUD_BOOTSTRAP_SECRET: secret }, undefined, true);
+  }, { DUSK_CLOUD_BOOTSTRAP_SECRET: secret }, undefined, true);
   for (const stream of [child.stdout, child.stderr]) stream?.on("data", (chunk) => { log += chunk; });
   const deadline = Date.now() + 20_000;
   for (;;) {
@@ -147,9 +147,9 @@ it("saves keys for any OpenCode provider on a Cloud, shows only their names, and
 
 it("refuses a name OpenMaus keeps, in one plain line, and saves nothing", async () => {
   const before = readFileSync(join(dataDir, "config.json"), "utf8");
-  const refused = await api("PUT", "/api/config", { opencodeGo: { providerKeys: { OMB_CLOUD_VOICE_TOKEN: "x-token", VENICE_API_KEY: VENICE } } });
+  const refused = await api("PUT", "/api/config", { opencodeGo: { providerKeys: { DUSK_CLOUD_VOICE_TOKEN: "x-token", VENICE_API_KEY: VENICE } } });
   expect(refused.status).toBe(400);
-  expect(refused.body.error).toBe("OpenMaus keeps OMB_CLOUD_VOICE_TOKEN for itself, so OpenCode can't be given it here. Put this key in opencode.json instead.");
+  expect(refused.body.error).toBe("OpenMaus keeps DUSK_CLOUD_VOICE_TOKEN for itself, so OpenCode can't be given it here. Put this key in opencode.json instead.");
   expect(readFileSync(join(dataDir, "config.json"), "utf8")).toBe(before);
   const opencodeKey = await api("PUT", "/api/config", { opencodeGo: { providerKeys: { OPENCODE_API_KEY: "zen" } } });
   expect(opencodeKey.status).toBe(400);

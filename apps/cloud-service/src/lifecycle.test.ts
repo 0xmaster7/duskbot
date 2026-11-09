@@ -21,7 +21,7 @@ it("provisions a paid cloud on Boat: labelled sandbox, secrets only in its boot 
   expect(create.files[0].content).toContain(secret);
   const commands = f.api.requests.filter(r => r.path.endsWith("/commands")).map(r => (r.body as { command: string }).command);
   expect(commands[0]).toContain(`omb-home install /home/user/omb-home.tgz ${SHA}`);
-  expect(commands[1]).toBe(`sudo -n /usr/lib/openmausbot/bin/omb-home start '${c.origin}' '${c.origin}'`);
+  expect(commands[1]).toBe(`sudo -n /usr/lib/duskbot/bin/omb-home start '${c.origin}' '${c.origin}'`);
   expect(JSON.stringify(f.audit.entries(c.id))).not.toContain(secret);
   expect(f.service.view(c)).toMatchObject({ provider: "managed", status: "running" });
 });
@@ -262,7 +262,7 @@ it("a replaced sandbox that answers again is backed up from its own state and ke
   await f.settle(c, c => c.managed!.backups.length === 1);
   await f.service.power(c.accountId, c.id, "on"); await f.settle(c, c => c.status === "running");
   const original = c.serverId!;
-  f.api.sandboxes.get(original)!.volume.set("__system__/data/.openmausbot/newer.json", Buffer.from("after the backup"));
+  f.api.sandboxes.get(original)!.volume.set("__system__/data/.duskbot/newer.json", Buffer.from("after the backup"));
   // Boat stops answering for this one sandbox long enough, and leaves it off the list: it is taken for lost
   const sandbox = f.provider.sandbox, listed = f.provider.listed;
   f.provider.sandbox = async id => id === original ? null : sandbox(id);

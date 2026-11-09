@@ -293,7 +293,7 @@
       "use_tool"
     ]
   },
-  "default+mausbot": {
+  "default+dusk": {
     "bytes": 17649,
     "sha256": "d578b93f5a7238eb7d24d98965e5620b9e49f1931757dd16d38d6fd47c83a6f3",
     "tools": [
@@ -315,7 +315,7 @@
       "use_tool"
     ]
   },
-  "skills+voice+mausbot": {
+  "skills+voice+dusk": {
     "bytes": 18457,
     "sha256": "54baa869b9945125b35cae5c4edfce9f13bbb178f8350905a1583277a7ebeec5",
     "tools": [

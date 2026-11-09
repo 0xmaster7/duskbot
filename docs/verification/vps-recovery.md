@@ -148,7 +148,7 @@ configuration changes, shutdown and bounded retries after an unreachable
 daemon. Three failed stop attempts wait for new activity before trying again.
 
 The standard isolated launcher runs the real server with owned Docker/SSH
-fixtures. Its explicit `OMB_TEST_VPS_IDLE_CLOCK=1` hook shortens nonzero windows
+fixtures. Its explicit `DUSK_TEST_VPS_IDLE_CLOCK=1` hook shortens nonzero windows
 to 750 ms only in a disposable home. The API fixture proves read-only status
 and screenshot traffic cannot keep a computer awake, a person's hold protects
 it until handback, Stop ends an active GUI lease, and a later bot turn or manual

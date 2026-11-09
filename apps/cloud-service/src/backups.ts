@@ -72,7 +72,7 @@ export function homeVolumeProblem(tar: Buffer, cloudId: string): string | null {
   const marker = entries.find(e => e.name.split("/").slice(-1)[0] === MARKER_FILE && e.name.split("/").length <= 3);
   if (!marker) return "no_marker";
   try { if ((JSON.parse(marker.data.toString("utf8")) as { machine?: unknown }).machine !== cloudId) return "other_cloud"; } catch { return "bad_marker"; }
-  if (!entries.some(e => /(^|\/)\.openmausbot\//.test(e.name))) return "no_data";
+  if (!entries.some(e => /(^|\/)\.duskbot\//.test(e.name))) return "no_data";
   return null;
 }
 

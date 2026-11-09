@@ -13,7 +13,7 @@ import { parseMemberClaim, teamRoleScopes, type CloudTeam } from "./cloud-team.t
 import { formatPairingCode, type SessionRegistry } from "./sessions.ts";
 
 /** Any of these switches the server into Cloud home mode; then all are required. */
-export const CLOUD_HOME_KEYS = ["OMB_CLOUD_ROLE", "OMB_CLOUD_MACHINE_ID", "OMB_CLOUD_ADMIN_URL", "OMB_CLOUD_BOOTSTRAP_SECRET"] as const;
+export const CLOUD_HOME_KEYS = ["DUSK_CLOUD_ROLE", "DUSK_CLOUD_MACHINE_ID", "DUSK_CLOUD_ADMIN_URL", "DUSK_CLOUD_BOOTSTRAP_SECRET"] as const;
 export const CLOUD_PAIRING_PATH = "/api/cloud/pairing";
 export const CLOUD_HEALTH_PATH = "/api/cloud/health";
 export const CLOUD_PAIRING_DEFAULT_TTL_S = 300;
@@ -66,16 +66,16 @@ function exactHttpsOrigin(raw: string | undefined, name: string): string {
 /** Null on any machine that is not a Cloud home; throws, so the server refuses to start, on a partial or invalid one. */
 export function cloudHomeConfiguration(env: NodeJS.ProcessEnv = process.env): CloudHomeConfig | null {
   if (!cloudHomeConfigured(env)) return null;
-  if (env.OMB_DESKTOP_PARENT === "1") invalid("the desktop app cannot run as a Cloud home machine");
-  const role = env.OMB_CLOUD_ROLE;
-  if (role !== "home" && role !== "team") invalid('OMB_CLOUD_ROLE must be "home" or "team"; this image runs the home machine');
+  if (env.DUSK_DESKTOP_PARENT === "1") invalid("the desktop app cannot run as a Cloud home machine");
+  const role = env.DUSK_CLOUD_ROLE;
+  if (role !== "home" && role !== "team") invalid('DUSK_CLOUD_ROLE must be "home" or "team"; this image runs the home machine');
   const team = role === "team" ? cloudTeamConfiguration(env) : null;
-  const machineId = env.OMB_CLOUD_MACHINE_ID ?? "";
-  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/.test(machineId)) invalid("OMB_CLOUD_MACHINE_ID must be the Admin's machine id (letters, digits, dashes)");
-  const adminOrigin = exactHttpsOrigin(env.OMB_CLOUD_ADMIN_URL, "OMB_CLOUD_ADMIN_URL");
-  const publicOrigin = exactHttpsOrigin(env.OMB_PUBLIC_URL, "OMB_PUBLIC_URL");
-  const bootstrapSecret = env.OMB_CLOUD_BOOTSTRAP_SECRET ?? "";
-  if (!/^[A-Za-z0-9_-]{43,128}$/.test(bootstrapSecret)) invalid("OMB_CLOUD_BOOTSTRAP_SECRET must be at least 256 bits of base64url");
+  const machineId = env.DUSK_CLOUD_MACHINE_ID ?? "";
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/.test(machineId)) invalid("DUSK_CLOUD_MACHINE_ID must be the Admin's machine id (letters, digits, dashes)");
+  const adminOrigin = exactHttpsOrigin(env.DUSK_CLOUD_ADMIN_URL, "DUSK_CLOUD_ADMIN_URL");
+  const publicOrigin = exactHttpsOrigin(env.DUSK_PUBLIC_URL, "DUSK_PUBLIC_URL");
+  const bootstrapSecret = env.DUSK_CLOUD_BOOTSTRAP_SECRET ?? "";
+  if (!/^[A-Za-z0-9_-]{43,128}$/.test(bootstrapSecret)) invalid("DUSK_CLOUD_BOOTSTRAP_SECRET must be at least 256 bits of base64url");
   const warnings: string[] = [];
   return { role, team, machineId, adminOrigin, publicOrigin, bootstrapSecret, warnings };
 }
@@ -87,12 +87,12 @@ const TEAM_LANGUAGE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/;
 
 /** A Team Cloud boots with the Admin's team id and the team's name, and answers by that name. */
 function cloudTeamConfiguration(env: NodeJS.ProcessEnv): CloudTeam {
-  const id = env.OMB_CLOUD_TEAM_ID ?? "";
-  if (!TEAM_ID.test(id)) invalid("OMB_CLOUD_TEAM_ID must be the Admin's team id (letters, digits, dashes)");
-  const name = (env.OMB_CLOUD_TEAM_NAME ?? "").trim();
-  if (!TEAM_NAME.test(name)) invalid("OMB_CLOUD_TEAM_NAME must be the team's name (1 to 80 characters)");
+  const id = env.DUSK_CLOUD_TEAM_ID ?? "";
+  if (!TEAM_ID.test(id)) invalid("DUSK_CLOUD_TEAM_ID must be the Admin's team id (letters, digits, dashes)");
+  const name = (env.DUSK_CLOUD_TEAM_NAME ?? "").trim();
+  if (!TEAM_NAME.test(name)) invalid("DUSK_CLOUD_TEAM_NAME must be the team's name (1 to 80 characters)");
   // A language the app doesn't know is ignored rather than refused: the Team Cloud still boots, in its own default.
-  const language = (env.OMB_CLOUD_TEAM_LANGUAGE ?? "").trim().toLowerCase();
+  const language = (env.DUSK_CLOUD_TEAM_LANGUAGE ?? "").trim().toLowerCase();
   return { id, name, ...(TEAM_LANGUAGE.test(language) ? { language } : {}) };
 }
 
@@ -102,7 +102,7 @@ export { cloudHomeOffersPlace } from "../shared/cloud-home.ts";
 
 /** In the person's words; a turn's error shows 160 characters, so each fits. */
 export function cloudHomePlaceRefusal(place: Surface): string | undefined {
-  if (place === "local") return "This computer isn't a place in the Cloud. Set Works on to Auto, Cloud desktop or Browser; your own computer is reached while OpenMausBot is open on it.";
+  if (place === "local") return "This computer isn't a place in the Cloud. Set Works on to Auto, Cloud desktop or Browser; your own computer is reached while Dusk Bot is open on it.";
   if (place === "vm") return "Cloud bots can't use a private desktop. Set Works on to Auto, Cloud desktop or Browser.";
   return undefined;
 }
@@ -196,7 +196,7 @@ export function createCloudPairing(options: {
       if (member) sessions.revokeMember(member.email, member.role);
       const opened = sessions.openPairing({
         scopes: member ? teamRoleScopes(member.role) : ["admin", "client"],
-        label: typeof label === "string" && label.trim() ? label.trim() : "MausBot Cloud",
+        label: typeof label === "string" && label.trim() ? label.trim() : "Dusk Cloud",
         ttlMs: ttl * 1000,
         browser,
         ...(browser ? { owner: owner as string } : {}),

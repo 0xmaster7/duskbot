@@ -1,4 +1,4 @@
-// Only the desktop app's own server may use this computer. A second OpenMausBot server on the same computer (a copy run
+// Only the desktop app's own server may use this computer. A second Dusk Bot server on the same computer (a copy run
 // from source, a demo) finds the app's driver record on disk, in the folder the app keeps it in, and still never mounts
 // this computer or drives it; the app's own server, which hears the record over its parent port, still can.
 import { spawn, type ChildProcess } from "node:child_process";
@@ -12,7 +12,7 @@ import { freePortBlock } from "./testing/ports.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const NOT_THE_APP = "Only the OpenMausBot app on this computer can let a bot use it.";
+const NOT_THE_APP = "Only the Dusk Bot app on this computer can let a bot use it.";
 
 describe("this computer belongs to the desktop app's own server", () => {
   let home = "";
@@ -74,13 +74,13 @@ describe("this computer belongs to the desktop app's own server", () => {
     const proc = spawn(process.execPath, [...hooks, join(ROOT, "server/index.ts")], {
       cwd: ROOT, env: {
         PATH: dirname(process.execPath), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
-        HOME: home, USERPROFILE: home, OMB_DATA_DIR: data,
+        HOME: home, USERPROFILE: home, DUSK_DATA_DIR: data,
         APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
         TEMP: home, TMP: home, TMPDIR: home,
-        OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), OMB_STATIC_DIR: ui, OMB_TEST_VM_STATE: stateFile,
+        DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1), DUSK_STATIC_DIR: ui, DUSK_TEST_VM_STATE: stateFile,
         // The app's record, where the app keeps it and where this server is pointed: neither lets it in.
-        OMB_USER_DATA: join(home, "user-data"),
-        ...(desktop ? { OMB_TEST_DESKTOP_CUA_CONNECTION: join(home, "user-data", "cua-connection.json") } : {}),
+        DUSK_USER_DATA: join(home, "user-data"),
+        ...(desktop ? { DUSK_TEST_DESKTOP_CUA_CONNECTION: join(home, "user-data", "cua-connection.json") } : {}),
         ...env,
       }, stdio: ["ignore", "pipe", "pipe"],
     });
@@ -113,7 +113,7 @@ describe("this computer belongs to the desktop app's own server", () => {
     mkdirSync(join(ui, "assets"), { recursive: true });
     writeFileSync(join(ui, "index.html"), "<title>Desktop computer</title>");
     writeFileSync(join(ui, "assets", "test.css"), "body{}");
-    for (const folder of [join(home, "user-data"), join(home, "Library", "Application Support", "OpenMausBot")]) {
+    for (const folder of [join(home, "user-data"), join(home, "Library", "Application Support", "Dusk Bot")]) {
       mkdirSync(folder, { recursive: true, mode: 0o700 });
       writeFileSync(join(folder, "cua-connection.json"), JSON.stringify(record), { mode: 0o600 });
     }
@@ -165,7 +165,7 @@ describe("this computer belongs to the desktop app's own server", () => {
     resetTurn();
     await apiOk("POST", `/api/bots/${bot.id}/messages`, { text: "Open Chrome on this computer.", threadId: task.threadId });
     const sent = await dump();
-    expect(sent.mcpConfig.mcpServers.computer.env.OMB_CUA_COMMAND).toBe("/fixture/cua-driver");
+    expect(sent.mcpConfig.mcpServers.computer.env.DUSK_CUA_COMMAND).toBe("/fixture/cua-driver");
     writeFileSync(finishFile, "finish");
     await idle(bot.id, task.threadId);
   });
@@ -184,7 +184,7 @@ describe("this computer belongs to the desktop app's own server", () => {
     expect((await rows(task.threadId)).join("\n")).not.toContain("can't use this computer yet");
     writeFileAtomic(grantFile, JSON.stringify(record));
     const sent = await dump();
-    expect(sent.mcpConfig.mcpServers.computer.env.OMB_CUA_COMMAND).toBe("/fixture/cua-driver");
+    expect(sent.mcpConfig.mcpServers.computer.env.DUSK_CUA_COMMAND).toBe("/fixture/cua-driver");
     writeFileSync(finishFile, "finish");
     await idle(bot.id, task.threadId);
     expect((await rows(task.threadId)).filter(line => line === "Open Chrome on this computer.")).toHaveLength(1);

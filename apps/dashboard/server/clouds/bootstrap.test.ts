@@ -11,7 +11,7 @@ import { CLOUD_HOME_MARKER_FILE, dedicatedUserData, homeEnv, linkKeys, originFor
 const cleanup: string[] = [];
 afterEach(() => { for (const dir of cleanup.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 function temporaryDir(): string { const dir = mkdtempSync(join(tmpdir(), "omb-cloud-bootstrap-")); cleanup.push(dir); return dir; }
-const image = `ghcr.io/example/openmausbot-cloud-home@sha256:${"a".repeat(64)}`;
+const image = `ghcr.io/example/duskbot-cloud-home@sha256:${"a".repeat(64)}`;
 const cloudId = `c${"a".repeat(24)}`;
 const input = { cloudId, adminOrigin: "https://admin.example.test", secret: "S".repeat(43), dashboardUrl: "https://dash.example.test", link: { v: 1 as const, url: "https://dash.example.test", workspaceId: "w1", ...linkKeys(), enrolledAt: 123, claimed: true } };
 it("generates dashboard-compatible ed25519 keys", () => {
@@ -53,7 +53,7 @@ systemctl(){ printf 'systemctl %s\n' "$*" >> "$fixture/commands"; }
   runSetup();
   const env = files.get("/root/omb-home.env")!;
   expect(env).toEqual({ mode: 0o600, content: Object.entries(homeEnv({ ...input, secret: value, origin: "https://203-0-113-2.sslip.io" })).map(([k, v]) => `${k}=${v}`).join("\n") + "\n" });
-  expect(files.get("/srv/omb-data/.openmausbot/dashboard-link.json")).toEqual({ mode: 0o600, content: JSON.stringify(input.link) });
+  expect(files.get("/srv/omb-data/.duskbot/dashboard-link.json")).toEqual({ mode: 0o600, content: JSON.stringify(input.link) });
   expect(files.get(`/srv/omb-data/${CLOUD_HOME_MARKER_FILE}`)).toEqual({ mode: 0o600, content: JSON.stringify({ version: 1, machine: cloudId }) });
   expect(files.get("/etc/caddy/Caddyfile")?.content).toBe("203-0-113-2.sslip.io {\n reverse_proxy 127.0.0.1:8080\n}\n");
   const commands = readFileSync(join(dir, "commands"), "utf8").trim().split("\n");
@@ -61,7 +61,7 @@ systemctl(){ printf 'systemctl %s\n' "$*" >> "$fixture/commands"; }
     "apt-get update", "apt-get install -y ca-certificates curl caddy nodejs", "apt-get install -y docker.io e2fsprogs", "install -d -m 755 /etc/systemd/system/docker.service.d",
     "install -m 700 /dev/stdin /usr/local/sbin/omb-storage", "install -m 644 /dev/stdin /etc/systemd/system/omb-storage.service",
     "install -m 644 /dev/stdin /etc/systemd/system/docker.service.d/omb-storage.conf", "systemctl daemon-reload", "systemctl enable --now omb-storage", "systemctl enable --now docker",
-    "install -d -m 700 /srv/omb-data /srv/omb-data/.openmausbot",
+    "install -d -m 700 /srv/omb-data /srv/omb-data/.duskbot",
     `docker run --rm --entrypoint id ${image} -u maus`, `docker run --rm --entrypoint id ${image} -g maus`,
     "chown -R 1234:5678 /srv/omb-data",
     `docker run -d --name omb-home --restart unless-stopped --env-file /root/omb-home.env -v /srv/omb-data:/data -p 127.0.0.1:8080:8080 ${image}`,
@@ -69,18 +69,18 @@ systemctl(){ printf 'systemctl %s\n' "$*" >> "$fixture/commands"; }
   ]);
   expect(script).toContain("set +x\nset -euo pipefail\numask 077");
   expect(script).not.toContain("set -x");
-  expect(script).not.toContain("openmausbot serve");
+  expect(script).not.toContain("duskbot serve");
   expect(script).not.toContain("npm install");
   for (const ipv4 of ["999.0.0.1", "203.0.113.2;false", "not-an-ip"]) expect(() => runSetup(ipv4)).toThrow("invalid");
 });
 it.each([
-  "ghcr.io/example/openmausbot-cloud-home", "ghcr.io/example/openmausbot-cloud-home:1.2.3",
+  "ghcr.io/example/duskbot-cloud-home", "ghcr.io/example/duskbot-cloud-home:1.2.3",
   `registry.example.test:5000/team/cloud_home:release-1@sha256:${"b".repeat(64)}`,
 ])("accepts a container image reference: %s", image => {
   expect(dedicatedUserData({ ...input, image })).toContain(shellQuote(image));
 });
 it.each([
-  "", "openmausbot", "https://ghcr.io/example/home", "ghcr.io//home", "ghcr.io/example/../home", "ghcr.io/Example/home",
+  "", "duskbot", "https://ghcr.io/example/home", "ghcr.io//home", "ghcr.io/example/../home", "ghcr.io/Example/home",
   "ghcr.io/example/home:", "ghcr.io/example/home:tag;false", "ghcr.io/example/home:$(false)", "ghcr.io/example/home tag",
   "ghcr.io/example/home@sha256:abc", `ghcr.io/example/home@sha256:${"z".repeat(64)}`, "ghcr.io/example/home\n", "ghcr.io/example/home\r",
 ])("rejects an invalid image reference: %j", image => {
@@ -96,21 +96,21 @@ it("rejects environment line injection and invalid templates before bootstrappin
 });
 it("gives the pool image the same env, link and volume marker", () => {
   const payload = JSON.parse(poolBootstrap({ ...input, origin: `https://${cloudId}.pool.example.test` }));
-  expect(payload.env).toEqual({ ...homeEnv({ ...input, origin: `https://${cloudId}.pool.example.test` }), HOME: "/data", OMB_DATA_DIR: "/data/.openmausbot", OMB_PORT: "8799" });
+  expect(payload.env).toEqual({ ...homeEnv({ ...input, origin: `https://${cloudId}.pool.example.test` }), HOME: "/data", DUSK_DATA_DIR: "/data/.duskbot", DUSK_PORT: "8799" });
   expect(payload.files).toEqual([
-    { path: "/data/.openmausbot/dashboard-link.json", mode: 0o600, content: JSON.stringify(input.link) },
+    { path: "/data/.duskbot/dashboard-link.json", mode: 0o600, content: JSON.stringify(input.link) },
     { path: `/data/${CLOUD_HOME_MARKER_FILE}`, mode: 0o600, content: JSON.stringify({ version: 1, machine: cloudId }) },
   ]);
   expect(CLOUD_HOME_MARKER_FILE).toBe(CLOUD_HOME_MARKER);
   const dir = temporaryDir();
-  mkdirSync(join(dir, ".openmausbot"), { mode: 0o700 });
+  mkdirSync(join(dir, ".duskbot"), { mode: 0o700 });
   for (const file of payload.files) writeFileSync(join(dir, file.path.slice("/data/".length)), file.content, { mode: file.mode });
   expect(prepareCloudHomeVolume(dir, cloudId)).toBe("existing");
 });
 
 it("mounts and grows the data volume before Docker starts, failing closed without exactly one disk", () => {
   const script = dedicatedUserData({ ...input, image }), dir = temporaryDir();
-  const storage = script.split("<<'OMB_STORAGE'\n")[1].split("OMB_STORAGE\n")[0].replaceAll("/dev/disk/by-id", dir).replaceAll(" -b ", " -f ");
+  const storage = script.split("<<'DUSK_STORAGE'\n")[1].split("DUSK_STORAGE\n")[0].replaceAll("/dev/disk/by-id", dir).replaceAll(" -b ", " -f ");
   const mocks = `sleep(){ :; }
 install(){ :; }
 mountpoint(){ return 1; }

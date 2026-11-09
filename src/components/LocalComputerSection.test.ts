@@ -75,7 +75,7 @@ describe("computer inventory request wiring", () => {
   it("builds the exact confirmed Local VM and VPS lifecycle requests", () => {
     const confirm = vi.fn(() => true);
     const local = confirmComputerAction(perBotLocalVmDeletePlan(cloudVm), confirm);
-    const vpsName = "openmausbot-vps-current-123456abcdef";
+    const vpsName = "duskbot-vps-current-123456abcdef";
     const vps = confirmComputerAction(vpsComputerRemovePlan({
       name: vpsName,
       state: "running",
@@ -197,7 +197,7 @@ describe("Local VM inventory UI", () => {
     }));
 
     expect(markup).toContain("Not managed");
-    expect(markup).toContain("not managed by MausBot");
+    expect(markup).toContain("not managed by Dusk");
     expect(markup).toContain("remove it directly in Docker or Podman");
     expect(markup).not.toContain(">Delete</button>");
     expect(markup).not.toContain("Container labels do not match");
@@ -206,7 +206,7 @@ describe("Local VM inventory UI", () => {
 
 describe("VPS computer inventory UI", () => {
   const ownedVps: VpsComputerInventoryInstance = {
-    name: "openmausbot-vps-current-123456abcdef",
+    name: "duskbot-vps-current-123456abcdef",
     state: "running",
     vpsAlias: "production-vps",
     ownerBotId: "current-owner",
@@ -229,7 +229,7 @@ describe("VPS computer inventory UI", () => {
     }));
 
   it("shows the configured host, owners, orphans, and status without raw container details", () => {
-    const orphanName = "openmausbot-vps-deleted-abcdef123456";
+    const orphanName = "duskbot-vps-deleted-abcdef123456";
     const markup = renderCard({
       instances: [
         ownedVps,
@@ -254,7 +254,7 @@ describe("VPS computer inventory UI", () => {
   });
 
   it("derives a stable identifier without exposing the bot-derived container name", () => {
-    expect(vpsComputerShortId("openmausbot-vps-deleted-abcdef123456")).toBe("ef123456");
+    expect(vpsComputerShortId("duskbot-vps-deleted-abcdef123456")).toBe("ef123456");
     expect(vpsComputerShortId("unexpected-provider-name")).toBe("unknown");
   });
 
@@ -281,7 +281,7 @@ describe("VPS computer inventory UI", () => {
   it("tags computers on more than one server and keeps reachable rows beside the warning", () => {
     const second = {
       ...ownedVps,
-      name: "openmausbot-vps-second-123456abcdef",
+      name: "duskbot-vps-second-123456abcdef",
       vpsAlias: "alpha-vps",
       ownerName: "Ops",
     };

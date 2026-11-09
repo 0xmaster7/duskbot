@@ -101,7 +101,7 @@ function everythingArrived(report: Awaited<ReturnType<CloudSendFixture["check"]>
  * starts again over its own data with those lines stripped of who wrote them, before anything reads them. */
 async function asABringLeftThem(threadIds: string[]) {
   const strip = `import { DatabaseSync } from "node:sqlite"; import { join } from "node:path";
-const db = new DatabaseSync(join(process.env.OMB_DATA_DIR, "messages.db"));
+const db = new DatabaseSync(join(process.env.DUSK_DATA_DIR, "messages.db"));
 const forget = db.prepare("UPDATE messages SET json = json_remove(json, '$.sender') WHERE thread_id = ? AND role = 'user'");
 for (const id of ${JSON.stringify(threadIds)}) forget.run(id);
 db.close(); delete process.env.NODE_OPTIONS;`;
@@ -120,7 +120,7 @@ async function turnDump(botId: string, threadId: string, seen: Set<string>) {
       let found: typeof dump;
       try { found = JSON.parse(readFileSync(join(scratch, "turns", name), "utf8")); } catch { continue; }
       const env = found?.mcpConfig?.mcpServers?.agents?.env;
-      if (env?.OMB_BOT_ID === botId && env.OMB_THREAD_ID === threadId) { dump = found; return true; }
+      if (env?.DUSK_BOT_ID === botId && env.DUSK_THREAD_ID === threadId) { dump = found; return true; }
     }
     return false;
   }, { timeout: 30_000 }).toBe(true);
@@ -199,7 +199,7 @@ it("a move carries everything, apps and keys first, and its check finds every ro
     expect((await local("POST", "/api/mcp/servers", server)).status).toBe(201);
     expect((await local("PATCH", `/api/mcp/servers/${server.name}`, { enabled: true })).status).toBe(200);
   }
-  const desktopSignIns = join(fx.root, "desktop", ".openmausbot", "mcp-oauth.json");
+  const desktopSignIns = join(fx.root, "desktop", ".duskbot", "mcp-oauth.json");
   writeFileSync(desktopSignIns, JSON.stringify({ servers: { linear: { url: LINEAR_URL, state: "signed-in", clientId: "omb-fixture-client", tokenAuth: "client_secret_post",
     tokenEndpoint, tokens: { access: ACCESS, refresh: REFRESH, expiresAt: Date.now() + 3_600_000 } } } }));
   expect((await local("PATCH", "/api/config", { openrouter: { key: OPENROUTER_KEY } })).status).toBe(200);

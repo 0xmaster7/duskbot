@@ -12,7 +12,7 @@ export function normalizeGroupDefaultResponder(
     if (candidate.kind === "everyone") return { kind: "everyone" };
     if (candidate.kind === "mentions") return { kind: "mentions" };
     if (candidate.kind === "auto") {
-      const by = candidate.by === "mausbot" ? { by: "mausbot" as const } : {};
+      const by = candidate.by === "dusk" ? { by: "dusk" as const } : {};
       return typeof candidate.fallbackBotId === "string" && memberIds.includes(candidate.fallbackBotId)
         ? { kind: "auto", fallbackBotId: candidate.fallbackBotId, ...by }
         : { kind: "auto", ...by };

@@ -193,20 +193,20 @@ test("ssh first, then 443; a transport that failed on this network goes last the
 });
 
 test("the agent names its https address and key only when it has one", async () => {
-  const before = process.env.OMB_LINK_WSS_URL;
+  const before = process.env.DUSK_LINK_WSS_URL;
   try {
-    delete process.env.OMB_LINK_WSS_URL;
+    delete process.env.DUSK_LINK_WSS_URL;
     assert.equal(wssUrl({ origin: "https://203-0-113-10.sslip.io" }), "wss://203-0-113-10.sslip.io/omb-direct");
     assert.equal(wssUrl({ origin: null }), null);
     await assert.rejects(control("direct-wss", {}, { id: ID, origin: null }), /no https address/);
-    process.env.OMB_LINK_WSS_URL = "wss://box.example.com/omb-direct";
+    process.env.DUSK_LINK_WSS_URL = "wss://box.example.com/omb-direct";
     const asked = [];
     const answer = await control("direct-wss", {}, { id: ID, origin: null, spkiOf: async (host, port) => { asked.push([host, port]); return "K".repeat(43) + "="; } });
     assert.deepEqual(answer, { v: 1, url: "wss://box.example.com/omb-direct", spki: "K".repeat(43) + "=" });
     assert.deepEqual(asked, [["box.example.com", 443]]);
-    process.env.OMB_LINK_WSS_URL = "https://box.example.com/x";
+    process.env.DUSK_LINK_WSS_URL = "https://box.example.com/x";
     assert.throws(() => wssUrl({}), /not a wss/);
-  } finally { if (before === undefined) delete process.env.OMB_LINK_WSS_URL; else process.env.OMB_LINK_WSS_URL = before; }
+  } finally { if (before === undefined) delete process.env.DUSK_LINK_WSS_URL; else process.env.DUSK_LINK_WSS_URL = before; }
 });
 
 test("the app asks once for the server's https details, keeps them, and dials ssh then 443", async () => {

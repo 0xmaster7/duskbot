@@ -45,9 +45,9 @@ import { MANAGED_VPS_CONTAINER_NAME, VPS_CONTAINER_LABEL, VPS_MANAGED_LABEL, isR
 
 export const VPS_IMAGE = CUA_IMAGE;
 export { VPS_CONTAINER_LABEL, VPS_MANAGED_LABEL } from "./vps-managed-names.ts";
-export const VPS_ENVIRONMENT_LABEL = "com.openmausbot.environment";
-export const VPS_VIEWER_LABEL = "com.openmausbot.vps-viewer";
-export const VPS_CONTAINER_PREFIX = "openmausbot-vps";
+export const VPS_ENVIRONMENT_LABEL = "bot.dusk.environment";
+export const VPS_VIEWER_LABEL = "bot.dusk.vps-viewer";
+export const VPS_CONTAINER_PREFIX = "duskbot-vps";
 // Lazy: index must finish data migration and take the writer lease before this may create the data directory.
 let vpsEnvironmentIdCache: string | null = null;
 function vpsEnvironmentId(): string {
@@ -63,7 +63,7 @@ const CONTAINER_NAME = /^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/;
 const CONTAINER_ID = /^[a-f0-9]{12,64}$/i;
 const FULL_CONTAINER_ID = /^[a-f0-9]{64}$/i;
 const IMAGE_ID = /^sha256:[a-f0-9]{64}$/i;
-const SCREENSHOT_PATH = "/tmp/openmausbot-vps-preview.png";
+const SCREENSHOT_PATH = "/tmp/duskbot-vps-preview.png";
 // The Cua XFCE base ships Pillow in /opt/venv; a container without it returns the original PNG.
 const SCREENSHOT_TRANSFER = `/opt/venv/bin/python -I -c 'import base64, io, sys
 from PIL import Image
@@ -440,16 +440,16 @@ function statusProblem(status: VpsComputerStatus, desktopVersion?: string): stri
   }
   if (!status.image) {
     return status.desktop === "cua"
-      ? `Prepare the pinned OpenMausBot Cua image on the VPS (Driver ${CUA_DRIVER_VERSION})`
-      : `Prepare the OpenMausBot bot desktop image on the VPS (${BOT_DESKTOP_IMAGE})`;
+      ? `Prepare the pinned Dusk Bot Cua image on the VPS (Driver ${CUA_DRIVER_VERSION})`
+      : `Prepare the Dusk Bot bot desktop image on the VPS (${BOT_DESKTOP_IMAGE})`;
   }
-  if (status.container === "missing") return "No OpenMausBot container exists for this bot on the VPS";
-  if (!status.imageMatches) return "The VPS container uses an incompatible or untrusted OpenMausBot image";
-  if (!status.managed) return "The VPS container name is occupied by a container OpenMausBot did not create";
+  if (status.container === "missing") return "No Dusk Bot container exists for this bot on the VPS";
+  if (!status.imageMatches) return "The VPS container uses an incompatible or untrusted Dusk Bot image";
+  if (!status.managed) return "The VPS container name is occupied by a container Dusk Bot did not create";
   if (status.network === "unsafe") return "The VPS container uses an unapproved network or publishes ports; refusing to use it";
   if (status.mounts === "unsafe") return "The VPS container has host mounts; refusing to use it";
   if (status.security === "unsafe") return "The VPS container has unsupported privilege, isolation, or automatic-removal settings";
-  if (status.container === "stopped") return "The OpenMausBot VPS container is stopped";
+  if (status.container === "stopped") return "The Dusk Bot VPS container is stopped";
   if (status.desktop_error) return `The VPS Cua desktop failed to start: ${status.desktop_error}`;
   if (!status.desktopReady) return "The VPS container started, but Cua Driver is not ready yet";
   return null;
@@ -1077,7 +1077,7 @@ export async function vpsComputerAction(
         if (before.container === "missing") return before;
         if (!before.managed) {
           throw Object.assign(
-            new Error("The VPS container name is occupied by a container OpenMausBot did not create — remove it on the VPS yourself"),
+            new Error("The VPS container name is occupied by a container Dusk Bot did not create — remove it on the VPS yourself"),
             { status: 409 },
           );
         }
@@ -1342,7 +1342,7 @@ export async function vpsComputerScreenshot(
         "sh",
         "-c",
         SCREENSHOT_TRANSFER,
-        "openmausbot-preview",
+        "duskbot-preview",
         SCREENSHOT_PATH,
       ]), { timeoutMs: 30_000 })).stdout.trim();
       const checked = wholeScreenshot(Buffer.from(encoded, "base64"));

@@ -1,7 +1,7 @@
-# Verifying OpenMausBot
+# Verifying Dusk Bot
 
-OpenMausBot has one development control surface: `pnpm control:omb`. It runs
-the published `openmausbot` verbs (docs/headless-cli.md), which call the MCP
+Dusk Bot has one development control surface: `pnpm control:omb`. It runs
+the published `duskbot` verbs (docs/headless-cli.md), which call the MCP
 tools in `scripts/mcp-server.ts`, so verification uses the same URL
 validation, task pinning, bounded transcripts, wait states, and redaction as
 external MCP clients and scripts.
@@ -20,14 +20,14 @@ it receives Ctrl-C and can stop its child before removing the temporary data.
 It gives the child a temporary data directory and home, chooses a free
 harness/webhook port pair, installs only the repository's fake engine, prints
 the URL, PID, data directory, and persistent log path, then stays attached to
-that exact child. The parent shell and the user's OpenMausBot data are
+that exact child. The parent shell and the user's Dusk Bot data are
 untouched. Only `FAKE_CLAUDE_*` variables cross from the launcher's
 environment into that child, so a recipe can script the fake engine's mode,
 replies and tool calls without writing a wrapper CLI. Live calls add one
-exception: `OMB_OPENAI_LIVE_URL` crosses when it is a loopback
+exception: `DUSK_OPENAI_LIVE_URL` crosses when it is a loopback
 `http://127.0.0.1:PORT` (the fake GPT-Live that
 `node --experimental-strip-types server/testing/fake-openai-live.ts` prints),
-and `OMB_OPENAI_LIVE_KEY` crosses only with it, so that key can only ever
+and `DUSK_OPENAI_LIVE_KEY` crosses only with it, so that key can only ever
 reach the fake.
 
 Pass the printed URL explicitly from a second terminal:
@@ -52,7 +52,7 @@ Use only mapped, tested commands:
 - [OpenCode model variants through ACP](opencode-variants.md)
 - [Bot setup, model scope, and file continuity](bot-continuity.md)
 - [Reviewed Chief team setup and scoped deletion](team-setup.md)
-- [MausBot, everyone's helper](mausbot.md)
+- [Dusk, everyone's helper](dusk.md)
 - [Profile proposal and credential-card lifecycle](proposal-cards.md)
 - [Full Access without duplicate approvals](full-access.md)
 - [Gmail draft creation, send approval and revision](gmail-drafts.md)

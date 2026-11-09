@@ -148,13 +148,13 @@ beforeAll(async () => {
     cwd: ROOT,
     env: {
       PATH: [fakebin, dirname(process.execPath), "/usr/bin", "/bin"].join(delimiter),
-      HOME: fixtureHome, USERPROFILE: fixtureHome, OMB_DATA_DIR: data,
-      OMB_AGENTS_TOOL_BRIDGE: "0",
+      HOME: fixtureHome, USERPROFILE: fixtureHome, DUSK_DATA_DIR: data,
+      DUSK_AGENTS_TOOL_BRIDGE: "0",
       APPDATA: join(fixtureHome, "appdata"), LOCALAPPDATA: join(fixtureHome, "localappdata"),
       TEMP: fixtureHome, TMP: fixtureHome, TMPDIR: fixtureHome,
-      OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), OMB_STATIC_DIR: ui,
-      OMB_TEST_VM_STATE: stateFile, OMB_EXTRA_PATH: fakebin,
-      OMB_USER_DATA: join(fixtureHome, "user-data"),
+      DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1), DUSK_STATIC_DIR: ui,
+      DUSK_TEST_VM_STATE: stateFile, DUSK_EXTRA_PATH: fakebin,
+      DUSK_USER_DATA: join(fixtureHome, "user-data"),
       ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -254,6 +254,6 @@ describe("openai-compat Local VM tools", () => {
     }, Boolean);
     await idle(bot.id);
     expect(dump!.mcpConfig?.mcpServers?.computer).toBeTruthy();
-    expect(String(dump!.mcpConfig!.mcpServers!.computer.env?.OMB_CONTROL_URL ?? "")).toContain("127.0.0.1");
+    expect(String(dump!.mcpConfig!.mcpServers!.computer.env?.DUSK_CONTROL_URL ?? "")).toContain("127.0.0.1");
   }, 60_000);
 });

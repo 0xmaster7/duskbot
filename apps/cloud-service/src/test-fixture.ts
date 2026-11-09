@@ -35,7 +35,7 @@ export async function boatFixture(options: { retentionDays?: number; setupPolls?
     if (command.includes("omb-home start")) {
       if (!sandbox.volume.size) {
         sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
-        sandbox.volume.set("__system__/data/.openmausbot/bots.json", Buffer.from(JSON.stringify([{ id: "bot-1", name: "Test bot" }])));
+        sandbox.volume.set("__system__/data/.duskbot/bots.json", Buffer.from(JSON.stringify([{ id: "bot-1", name: "Test bot" }])));
       }
       return { exitCode: 0, stdout: "started\n" };
     }

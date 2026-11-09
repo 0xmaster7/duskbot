@@ -65,7 +65,7 @@ describe("OAuth over isolated HTTP", () => {
   const oauth = async (provider: OAuthProvider, query = "") => callback(await authorization(provider, query));
   const account = async () => (await (await call("/v1/account")).json()) as AccountAnswer;
   const error = (res: Response) => new URL(location(res), url).searchParams.get("error");
-  async function emailLogin(email = "sid@openmausbot.test", pending?: string) {
+  async function emailLogin(email = "sid@duskbot.test", pending?: string) {
     const start = await call("/v1/auth/start", { email, ...(pending ? { pending } : {}) }); expect(start.status).toBe(200);
     const { attempt } = await start.json() as { attempt: string };
     const code = mailer.outbox.findLast(message => message.to === email)!.text.match(/\b\d{8}\b/)![0];
@@ -85,8 +85,8 @@ describe("OAuth over isolated HTTP", () => {
     const response = await oauth("google", "?next=/account"); expect(location(response)).toBe("/account");
     expect(response.headers.getSetCookie()).toHaveLength(3); expect(jar.values.has("omb_oauth")).toBe(false);
     const first = await account();
-    expect(first.account).toMatchObject({ email: "sid@openmausbot.test", name: "Sid Fixture", providers: ["email", "google"] });
-    expect(first.identities).toEqual([{ provider: "google", email: "sid@openmausbot.test", label: "Sid Fixture", addedAt: time }]);
+    expect(first.account).toMatchObject({ email: "sid@duskbot.test", name: "Sid Fixture", providers: ["email", "google"] });
+    expect(first.identities).toEqual([{ provider: "google", email: "sid@duskbot.test", label: "Sid Fixture", addedAt: time }]);
     jar = new CookieJar(); expect(location(await oauth("google"))).toBe("/");
     expect((await account()).account.id).toBe(first.account.id);
     restart({}); jar = new CookieJar(); await oauth("google"); expect((await account()).account.id).toBe(first.account.id);
@@ -242,7 +242,7 @@ describe("OAuth over isolated HTTP", () => {
   });
   it("exchanges an app deep-link code for an accepted mobile omc_ grant, without cookies", async () => {
     const flow = await appAuthorization();
-    expect(flow.target.protocol).toBe("openmausbot:"); expect(flow.target.hostname).toBe("auth"); expect(flow.target.searchParams.get("state")).toBe(flow.state);
+    expect(flow.target.protocol).toBe("duskbot:"); expect(flow.target.hostname).toBe("auth"); expect(flow.target.searchParams.get("state")).toBe(flow.state);
     const code = flow.target.searchParams.get("code")!; expect(code).toMatch(/^[A-Za-z0-9_-]{43}$/); expect(jar.values.has("omb_dash")).toBe(false);
     const response = await redeem(code, flow.verifier); expect(response.status).toBe(200); expect(response.headers.get("set-cookie")).toBeNull(); expect(response.headers.get("access-control-allow-origin")).toBe("*");
     const grant = await response.json() as AppGrant; expect(grant.accessToken).toMatch(/^omc_[A-Za-z0-9_-]{43}$/);
@@ -262,15 +262,15 @@ describe("OAuth over isolated HTTP", () => {
   it("completes the app's pending email and returns a fresh PKCE deep link", async () => {
     const flow = await appAuthorization("x"); expect(flow.target.pathname).toBe("/sign-in");
     const signed = await (await emailLogin("phone@example.test", flow.target.searchParams.get("pending")!)).json() as WebSignInAnswer;
-    const deep = new URL(signed.redirect!); expect(deep.protocol).toBe("openmausbot:"); expect(deep.searchParams.get("state")).toBe(flow.state);
+    const deep = new URL(signed.redirect!); expect(deep.protocol).toBe("duskbot:"); expect(deep.searchParams.get("state")).toBe(flow.state);
     expect((await redeem(deep.searchParams.get("code")!, flow.verifier)).status).toBe(200);
   });
   it("returns app errors to the exact deep link with its state", async () => {
     fake.deny("google"); const flow = await appAuthorization();
-    expect(flow.target.protocol).toBe("openmausbot:"); expect(flow.target.searchParams.get("error")).toBe("oauth_denied"); expect(flow.target.searchParams.get("state")).toBe(flow.state);
+    expect(flow.target.protocol).toBe("duskbot:"); expect(flow.target.searchParams.get("error")).toBe("oauth_denied"); expect(flow.target.searchParams.get("state")).toBe(flow.state);
   });
   it.each([
-    { provider: "missing" }, { provider: "email" }, { code_challenge: "bad" }, { code_challenge_method: "plain" }, { state: "short" }, { state: "x".repeat(257) }, { redirect_uri: "https://evil.example" }, { redirect_uri: "openmausbot://auth/" }, { link: "1" },
+    { provider: "missing" }, { provider: "email" }, { code_challenge: "bad" }, { code_challenge_method: "plain" }, { state: "short" }, { state: "x".repeat(257) }, { redirect_uri: "https://evil.example" }, { redirect_uri: "duskbot://auth/" }, { link: "1" },
   ])("rejects invalid app authorization parameters %j", async change => {
     const params = new URLSearchParams({ provider: "google", code_challenge: random(), code_challenge_method: "S256", state: random(), redirect_uri: APP_AUTH_REDIRECT });
     for (const [key, value] of Object.entries(change)) if (value !== undefined) params.set(key, value);
@@ -300,7 +300,7 @@ describe("OAuth over isolated HTTP", () => {
 describe("provider environment configuration", () => {
   it("loads production defaults, optional X auth and escaped Apple PEM without env URL overrides", () => {
     const key = generateKeyPairSync("ec", { namedCurve: "prime256v1" }).privateKey.export({ type: "pkcs8", format: "pem" }).toString();
-    const env = { OMB_AUTH_GOOGLE_CLIENT_ID: "google", OMB_AUTH_GOOGLE_CLIENT_SECRET: "secret", OMB_AUTH_GOOGLE_TOKEN_URL: "https://evil.example", OMB_AUTH_X_CLIENT_ID: "x", OMB_AUTH_X_SCOPES: "users.read offline.access", OMB_AUTH_APPLE_CLIENT_ID: "apple", OMB_AUTH_APPLE_TEAM_ID: "team", OMB_AUTH_APPLE_KEY_ID: "key", OMB_AUTH_APPLE_PRIVATE_KEY: key.replace(/\n/g, "\\n") };
+    const env = { DUSK_AUTH_GOOGLE_CLIENT_ID: "google", DUSK_AUTH_GOOGLE_CLIENT_SECRET: "secret", DUSK_AUTH_GOOGLE_TOKEN_URL: "https://evil.example", DUSK_AUTH_X_CLIENT_ID: "x", DUSK_AUTH_X_SCOPES: "users.read offline.access", DUSK_AUTH_APPLE_CLIENT_ID: "apple", DUSK_AUTH_APPLE_TEAM_ID: "team", DUSK_AUTH_APPLE_KEY_ID: "key", DUSK_AUTH_APPLE_PRIVATE_KEY: key.replace(/\n/g, "\\n") };
     const config = providersFromEnv(env);
     expect(config.google).toMatchObject({ tokenUrl: "https://oauth2.googleapis.com/token", scopes: "openid email profile" });
     expect(config.x).toMatchObject({ clientId: "x", scopes: "users.read offline.access" }); expect(config.x?.clientSecret).toBeUndefined();
@@ -308,16 +308,16 @@ describe("provider environment configuration", () => {
     const dir = mkdtempSync(join(tmpdir(), "omb-apple-key-"));
     try {
       const file = join(dir, "key.p8"); writeFileSync(file, key, { mode: 0o600 });
-      expect(providersFromEnv({ ...env, OMB_AUTH_APPLE_PRIVATE_KEY: undefined, OMB_AUTH_APPLE_PRIVATE_KEY_FILE: file }).apple?.apple?.privateKey).toBe(key);
+      expect(providersFromEnv({ ...env, DUSK_AUTH_APPLE_PRIVATE_KEY: undefined, DUSK_AUTH_APPLE_PRIVATE_KEY_FILE: file }).apple?.apple?.privateKey).toBe(key);
     } finally { rmSync(dir, { recursive: true, force: true }); }
     expect(providersFromEnv({})).toEqual({});
   });
   it.each([
-    [{ OMB_AUTH_GOOGLE_CLIENT_ID: "client" }, "OMB_AUTH_GOOGLE_CLIENT_SECRET"],
-    [{ OMB_AUTH_GOOGLE_CLIENT_SECRET: "secret" }, "OMB_AUTH_GOOGLE_CLIENT_ID"],
-    [{ OMB_AUTH_X_CLIENT_SECRET: "secret" }, "OMB_AUTH_X_CLIENT_ID"],
-    [{ OMB_AUTH_APPLE_CLIENT_ID: "client" }, "OMB_AUTH_APPLE_TEAM_ID"],
-    [{ OMB_AUTH_APPLE_CLIENT_ID: "client", OMB_AUTH_APPLE_TEAM_ID: "team" }, "OMB_AUTH_APPLE_KEY_ID"],
-    [{ OMB_AUTH_APPLE_CLIENT_ID: "client", OMB_AUTH_APPLE_TEAM_ID: "team", OMB_AUTH_APPLE_KEY_ID: "key" }, "OMB_AUTH_APPLE_PRIVATE_KEY"],
+    [{ DUSK_AUTH_GOOGLE_CLIENT_ID: "client" }, "DUSK_AUTH_GOOGLE_CLIENT_SECRET"],
+    [{ DUSK_AUTH_GOOGLE_CLIENT_SECRET: "secret" }, "DUSK_AUTH_GOOGLE_CLIENT_ID"],
+    [{ DUSK_AUTH_X_CLIENT_SECRET: "secret" }, "DUSK_AUTH_X_CLIENT_ID"],
+    [{ DUSK_AUTH_APPLE_CLIENT_ID: "client" }, "DUSK_AUTH_APPLE_TEAM_ID"],
+    [{ DUSK_AUTH_APPLE_CLIENT_ID: "client", DUSK_AUTH_APPLE_TEAM_ID: "team" }, "DUSK_AUTH_APPLE_KEY_ID"],
+    [{ DUSK_AUTH_APPLE_CLIENT_ID: "client", DUSK_AUTH_APPLE_TEAM_ID: "team", DUSK_AUTH_APPLE_KEY_ID: "key" }, "DUSK_AUTH_APPLE_PRIVATE_KEY"],
   ])("names missing configuration without values", (env, name) => { expect(() => providersFromEnv(env)).toThrow(name); });
 });

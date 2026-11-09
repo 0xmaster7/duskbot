@@ -8,15 +8,15 @@ import { KEY_CATALOG, KEY_SECTIONS, keyEntry, keyForInstance, keyMatches, looksL
 
 const NOT_A_PERSONS_KEY: Record<string, string> = {
   BOX_TOKEN: "retired credential kept in the engine secret denylist",
-  OMB_ANTHROPIC_API_URL: "the address the Anthropic key goes to, set by a hosted install",
-  OMB_COMPOSIO_BROKER_TOKEN: "MausBot Cloud's connected-apps broker",
-  OMB_CLOUD_VOICE_TOKEN: "MausBot Cloud's included voice",
-  OMB_CLOUD_DECIDER_TOKEN: "MausBot Cloud's included decisions",
-  OMB_CLOUD_AI_TOKEN: "MausBot Cloud's included AI",
-  OMB_CLOUD_X_TOKEN: "MausBot Cloud's included X research",
-  OMB_CLOUD_CONNECTED_APPS_GRANT: "MausBot Cloud's connected apps",
-  OMB_BROWSER_CONNECTION: "the app's own browser, not a credential",
-  OMB_USER_DATA: "the app's own data folder, not a credential",
+  DUSK_ANTHROPIC_API_URL: "the address the Anthropic key goes to, set by a hosted install",
+  DUSK_COMPOSIO_BROKER_TOKEN: "Dusk Cloud's connected-apps broker",
+  DUSK_CLOUD_VOICE_TOKEN: "Dusk Cloud's included voice",
+  DUSK_CLOUD_DECIDER_TOKEN: "Dusk Cloud's included decisions",
+  DUSK_CLOUD_AI_TOKEN: "Dusk Cloud's included AI",
+  DUSK_CLOUD_X_TOKEN: "Dusk Cloud's included X research",
+  DUSK_CLOUD_CONNECTED_APPS_GRANT: "Dusk Cloud's connected apps",
+  DUSK_BROWSER_CONNECTION: "the app's own browser, not a credential",
+  DUSK_USER_DATA: "the app's own data folder, not a credential",
 };
 
 const electron = (file: string) => readFileSync(new URL(`../../../electron/${file}`, import.meta.url), "utf8");

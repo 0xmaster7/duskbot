@@ -1,12 +1,12 @@
 // "This computer" is the desktop app's own computer, and only the server the app launched may drive it. The app proves
 // that by handing the driver connection to that one child over Electron's private utility-process port, which only the
 // app's main process can write to and which plain Node never has. No file, environment variable or HTTP route supplies
-// it, so a second OpenMausBot server on the same computer (a copy run from source, a demo, a test) never finds this
+// it, so a second Dusk Bot server on the same computer (a copy run from source, a demo, a test) never finds this
 // computer, even with the app's own record of its driver in reach.
 import { COMPUTER_HELPER_APP, permissionHolder, THIS_COMPUTER_NOT_GRANTED, THIS_COMPUTER_NOT_READY } from "../shared/your-computer.ts";
 import { cuaUnavailableReason, decodeCuaConnection, type LocalComputerConnection } from "./local-computer.ts";
 
-export const DESKTOP_COMPUTER_GRANT = "openmausbot:local-computer";
+export const DESKTOP_COMPUTER_GRANT = "duskbot:local-computer";
 
 export interface DesktopComputer {
   /** Only ever called with a message from the parent port; true when it was this grant. */
@@ -84,16 +84,16 @@ export const desktopComputer = createDesktopComputer();
 export function thisComputerNotReady(desktop: DesktopComputer = desktopComputer, platform: NodeJS.Platform = process.platform): string {
   if (!desktop.granted()) return THIS_COMPUTER_NOT_GRANTED;
   const reason = desktop.unavailableReason();
-  if (!reason) return `${THIS_COMPUTER_NOT_READY}make sure OpenMausBot has the permissions it asks for, then restart it`;
+  if (!reason) return `${THIS_COMPUTER_NOT_READY}make sure Dusk Bot has the permissions it asks for, then restart it`;
   const permission = platform === "darwin" && /(?:Screen Recording|Accessibility).*required/i.test(reason);
   if (permission) {
     const missing = [reason.includes("Screen Recording") && "Screen Recording", reason.includes("Accessibility") && "Accessibility"].filter(Boolean) as string[];
     const holder = permissionHolder(reason);
     // "<grant> required" first: the app reads it to offer the right System Settings pane
     const where = missing.map((name) => `Privacy & Security > ${name}`).join(" and ");
-    const after = holder === COMPUTER_HELPER_APP ? "OpenMausBot notices by itself, no restart needed." : "then quit and reopen OpenMausBot.";
+    const after = holder === COMPUTER_HELPER_APP ? "Dusk Bot notices by itself, no restart needed." : "then quit and reopen Dusk Bot.";
     return `${THIS_COMPUTER_NOT_READY}${missing.join(" and ")} required. Turn on ${holder} in System Settings > ${where}; ${after}`;
   }
-  if (platform === "darwin") return `${THIS_COMPUTER_NOT_READY}the computer helper did not answer. Press Retry in Settings > Computer; if it still fails, quit and reopen OpenMausBot.`;
+  if (platform === "darwin") return `${THIS_COMPUTER_NOT_READY}the computer helper did not answer. Press Retry in Settings > Computer; if it still fails, quit and reopen Dusk Bot.`;
   return `${THIS_COMPUTER_NOT_READY}${reason}`;
 }

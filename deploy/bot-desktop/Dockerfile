@@ -1,4 +1,4 @@
-# OpenMausBot bot desktop: a small dark Linux desktop for a workspace or bot, driven by Cua Driver and viewed through noVNC.
+# Dusk Bot bot desktop: a small dark Linux desktop for a workspace or bot, driven by Cua Driver and viewed through noVNC.
 # Multi-arch (linux/amd64, linux/arm64). Build: deploy/bot-desktop/build.sh
 ARG DEBIAN=debian:trixie-slim
 
@@ -77,13 +77,13 @@ RUN set -eux; \
       noVNC-1.6.0/vendor noVNC-1.6.0/vnc.html noVNC-1.6.0/vnc_lite.html noVNC-1.6.0/LICENSE.txt; \
     rm -f /tmp/novnc.tgz
 
-COPY --from=driver /out/cua-driver /usr/local/libexec/openmausbot/cua-driver
+COPY --from=driver /out/cua-driver /usr/local/libexec/duskbot/cua-driver
 
 # The harness's screenshot transfer runs /opt/venv/bin/python with Pillow; the system python has it.
 # Two modes (omb-init): "free" (the host fences the network, the bot has sudo and a writable root) and "strict" (the box
 # fences itself, read-only root, no sudo). Runtime state points into /run, /tmp or the home volume in both.
 RUN set -eux; \
-    test "$(/usr/local/libexec/openmausbot/cua-driver --version)" = "cua-driver ${CUA_DRIVER_VERSION}"; \
+    test "$(/usr/local/libexec/duskbot/cua-driver --version)" = "cua-driver ${CUA_DRIVER_VERSION}"; \
     install -d /opt/venv/bin; ln -s /usr/bin/python3 /opt/venv/bin/python; \
     useradd --uid 1000 --user-group --create-home --shell /bin/bash cua; \
     install -d -o cua -g cua -m 0700 /home/cua/Downloads /home/cua/workspace; \
@@ -106,11 +106,11 @@ RUN chmod 0755 /usr/local/bin/omb-* && chmod 0644 /etc/chromium.d/omb \
  && printf '%s\n' '[Icon Theme]' 'Inherits=omb-hidden' > /usr/share/icons/default/index.theme
 
 ARG BOT_DESKTOP_VERSION=3
-LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
-      com.openmausbot.cua-driver="${CUA_DRIVER_VERSION}" \
+LABEL bot.dusk.bot-desktop="${BOT_DESKTOP_VERSION}" \
+      bot.dusk.cua-driver="${CUA_DRIVER_VERSION}" \
       org.opencontainers.image.title="omb-bot-desktop" \
-      org.opencontainers.image.description="OpenMausBot bot computer: a sandboxed dark Linux desktop" \
-      org.opencontainers.image.source="https://github.com/SiddDevZ/OpenMausBot"
+      org.opencontainers.image.description="Dusk Bot bot computer: a sandboxed dark Linux desktop" \
+      org.opencontainers.image.source="https://github.com/goatedgrokbotalternative/thebot"
 
 ENV HOME=/home/cua USER=cua DISPLAY=:1 XDG_RUNTIME_DIR=/run/user/1000 XDG_CONFIG_HOME=/home/cua/.config \
     XCURSOR_THEME=omb-hidden XCURSOR_SIZE=24 NO_AT_BRIDGE=0 \

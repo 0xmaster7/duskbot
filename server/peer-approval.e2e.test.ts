@@ -68,7 +68,7 @@ it("preserves peer approval outcomes through real HTTP responses and sends no wo
     }, { timeout: 15_000 }).toBe(true);
     let token = "";
     await expect.poll(() => {
-      try { token = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN; }
+      try { token = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN; }
       catch { return false; }
       return Boolean(token);
     }, { timeout: 15_000 }).toBe(true);
@@ -123,7 +123,7 @@ it("preserves peer approval outcomes through real HTTP responses and sends no wo
     const other = (await cli("new-bot", "--name", "Second approval target")).bot;
     await cli("send", "--bot", from.id, "--task", from.threadId, "--text", "Check the completed handoff and request two teammates.");
     await expect.poll(() => {
-      try { token = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN; }
+      try { token = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN; }
       catch { return false; }
       return Boolean(token);
     }, { timeout: 15_000 }).toBe(true);

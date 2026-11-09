@@ -65,7 +65,7 @@ export interface PoolHostDriver {
   destroySlot(hostId: string, slotId: string): Promise<void>;
 }
 
-/** the admin's signed requests to a cloud desktop's own OpenMausBot (server/cloud-home.ts) */
+/** the admin's signed requests to a cloud desktop's own Dusk Bot (server/cloud-home.ts) */
 export interface HomeClient {
   pair(origin: string, secret: string, input: { label: string; ttlSeconds?: number }): Promise<{ code: string; expiresAt: number }>;
   /** true once the install answers its signed health read */
@@ -102,7 +102,7 @@ export interface StoredCloud {
   ipv4: string | null;
   origin: string | null;
   destroyedOrigin?: string;
-  /** aes-256-gcm sealed when a key is configured; the signing key for its OpenMausBot */
+  /** aes-256-gcm sealed when a key is configured; the signing key for its Dusk Bot */
   bootstrapSecret: string;
   workspaceId: string | null;
   primary: boolean;

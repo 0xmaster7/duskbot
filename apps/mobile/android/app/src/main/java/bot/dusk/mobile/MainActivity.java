@@ -1,4 +1,4 @@
-package com.openmausbot.mobile;
+package bot.dusk.mobile;
 
 import com.getcapacitor.BridgeActivity;
 

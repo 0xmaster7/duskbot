@@ -8,7 +8,7 @@ import type { CloudDesktop } from "../data/contracts";
 
 const state = vi.hoisted(() => ({
   cloud: { clouds: null as CloudDesktop[] | null, billing: null, refresh: () => {} },
-  session: { account: { id: "fx-sid", email: "sid@openmausbot.test" }, setAccount: (_: null) => {}, toast: (_: string) => {} },
+  session: { account: { id: "fx-sid", email: "sid@duskbot.test" }, setAccount: (_: null) => {}, toast: (_: string) => {} },
 }));
 vi.mock("../data/cloud", () => ({ useCloud: () => state.cloud }));
 vi.mock("../data/session", () => ({ useSession: () => state.session }));
@@ -59,7 +59,7 @@ test("the emailed link: token kept out of the URL, sign in again, confirm shows 
   await first.unmount();
 
   // signed back in: the page comes back with the token from this tab and finishes what was asked
-  const attempt = await api.start("sid@openmausbot.test");
+  const attempt = await api.start("sid@duskbot.test");
   await api.verify(attempt.attempt, "12345678");
   const confirm = vi.spyOn(api, "confirmDeleteData");
   const second = await render(createElement(DeleteDataPage, { id: "fx-cloud" }));

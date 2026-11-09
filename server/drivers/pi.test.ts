@@ -167,9 +167,9 @@ describe("buildMcpServers", () => {
       custom: { motion: { ...url }, shop: { ...url } },
       customResultBudgets: { motion: 40_000 },
     } }) as Record<string, { args: string[]; env: Record<string, string> }>;
-    expect(servers.motion.env.OMB_GATE_BUDGET).toBe("40000");
+    expect(servers.motion.env.DUSK_GATE_BUDGET).toBe("40000");
     expect(servers.motion.args[0]).toContain("mcp-gate");
-    expect(servers.shop.env).not.toHaveProperty("OMB_GATE_BUDGET");
+    expect(servers.shop.env).not.toHaveProperty("DUSK_GATE_BUDGET");
     expect(servers.shop.args[0]).toContain("mcp-remote-proxy");
   });
 
@@ -211,15 +211,15 @@ describe("buildMcpServers", () => {
     const mounted = servers?.whop as { command: string; args: string[]; env: Record<string, string> };
     expect(mounted).toMatchObject({ command: process.execPath, scope: "custom", directory: true });
     expect(mounted.args[0]).toContain("mcp-remote-proxy");
-    expect(JSON.parse(mounted.env.OMB_REMOTE_MCP_DIRECTORY)).toEqual({ name: "whop" });
+    expect(JSON.parse(mounted.env.DUSK_REMOTE_MCP_DIRECTORY)).toEqual({ name: "whop" });
     expect(JSON.stringify(mounted.args)).not.toContain("disposable-pi-token");
     expect(servers?.notes).not.toHaveProperty("directory");
     const toolScope = { allow: ["mcp:whop:*"], deny: ["mcp:whop:payments_create"] };
     const scoped = buildMcpServers({ threadId: "t", text: "hi", toolScope, integrations: { custom: { whop } } })?.whop as { args: string[]; env: Record<string, string> };
     expect(scoped).toMatchObject({ directory: true });
     expect(scoped.args[0]).toContain("mcp-gate");
-    expect(scoped.env.OMB_GATE_DIRECTORY).toBe("1");
-    expect(JSON.parse(JSON.parse(scoped.env.OMB_GATE_UPSTREAM).env.OMB_REMOTE_MCP_DIRECTORY)).toEqual({ name: "whop", toolScope });
+    expect(scoped.env.DUSK_GATE_DIRECTORY).toBe("1");
+    expect(JSON.parse(JSON.parse(scoped.env.DUSK_GATE_UPSTREAM).env.DUSK_REMOTE_MCP_DIRECTORY)).toEqual({ name: "whop", toolScope });
   });
 
   it("marks a host computer with scope so the extension gates its tools", () => {
@@ -507,7 +507,7 @@ describe("PiDriver turns (fake CLI)", () => {
     expect(second.message).toBe("second");
     const third = await send("third", "Memory: moved to Toronto.", first.cursor);
     expect(third.message)
-      .toBe("Context from OpenMausBot updated since this conversation started; it replaces any earlier copy:\n\nMemory: moved to Toronto.\n\nthird");
+      .toBe("Context from Dusk Bot updated since this conversation started; it replaces any earlier copy:\n\nMemory: moved to Toronto.\n\nthird");
   });
 
   it("re-establishes the full prompt after pi compaction summarizes the session", async () => {
@@ -1265,7 +1265,7 @@ describe("applyPiLocalCatalog", () => {
           { id: "omlx/MiniMax-M3-4bit", label: "MiniMax-M3-4bit", custom: true },
         ],
       },
-      { VITEST: "true", OPENMAUSBOT_PROBE_LOCAL_INJECT: "1" },
+      { VITEST: "true", DUSK_PROBE_LOCAL_INJECT: "1" },
       async (url) => {
         if (String(url).includes(":8080")) {
           return new Response(JSON.stringify({ data: [{ id: "MiniMax-M3-4bit" }] }), { status: 200 });

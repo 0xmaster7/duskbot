@@ -1,7 +1,7 @@
 // The phone link: how the mobile app pairs with one workspace (a VPS or a Mac) and reaches it from anywhere.
 //
 // A desktop owner or admin opens a short-lived grant (POST /api/mobile/pairing). It is shown three ways: a QR of
-// `mobileLinkUrl(payload)`, the same `openmausbot://pair?m=...` deep link, and a typed code. The phone redeems the
+// `mobileLinkUrl(payload)`, the same `duskbot://pair?m=...` deep link, and a typed code. The phone redeems the
 // grant once (POST /api/mobile/redeem) and from then on holds one workspace session token, the same credential on
 // every route: a direct HTTPS origin, the link relay (a VPS without public ingress) or the Mac's companion sidecar.
 //
@@ -24,7 +24,7 @@ import { qrEndpoints, type CompanionEndpoint, type CompanionEndpointKind } from 
 
 export const MOBILE_LINK_VERSION = 2;
 export const MOBILE_LOOKUP_SALT = "omb-mobile-v1";
-export const DEFAULT_MOBILE_RELAY = "https://link.apps.siddz.com";
+export const DEFAULT_MOBILE_RELAY = "https://link.dusk.bot";
 /** A grant lives this long; the QR, the deep link and the typed code die together. */
 export const MOBILE_GRANT_TTL_MS = 5 * 60_000;
 export const MOBILE_PLATFORMS = ["ios", "android", "other"] as const;
@@ -161,14 +161,14 @@ const fromBase64Url = (value: string): string => {
 };
 
 export function mobileLinkUrl(payload: MobileLinkPayload): string {
-  return `openmausbot://pair?m=${toBase64Url(JSON.stringify(payload))}`;
+  return `duskbot://pair?m=${toBase64Url(JSON.stringify(payload))}`;
 }
 
 /** The payload a scanned QR or opened deep link carries, validated; null for anything else (an older link included). */
 export function parseMobileLink(link: string): MobileLinkPayload | null {
   try {
     const url = new URL(link);
-    if (url.protocol !== "openmausbot:" || (url.host !== "pair" && url.pathname.replace(/^\/+/, "") !== "pair")) return null;
+    if (url.protocol !== "duskbot:" || (url.host !== "pair" && url.pathname.replace(/^\/+/, "") !== "pair")) return null;
     const encoded = url.searchParams.get("m");
     if (!encoded || encoded.length > 8192 || !B64URL.test(encoded)) return null;
     return parseMobilePayload(JSON.parse(fromBase64Url(encoded)));
@@ -262,7 +262,7 @@ export interface MobileConnectionRecord {
 }
 
 /** A place in a workspace, opened by link in either direction. The desktop's own chat links
- * (openmausbot://thread/..., openmausbot://bot/...) open chats; this adds views and notification targets. */
+ * (duskbot://thread/..., duskbot://bot/...) open chats; this adds views and notification targets. */
 export interface MobileOpenTarget {
   environmentId?: string;
   botId?: string;
@@ -307,14 +307,14 @@ function legacyOrigin(value: string | null): string | undefined {
   }
 }
 
-/** A scanned QR or opened pairing link: a v2 link first, else an older `openmausbot://pair?address=&token=` link from
+/** A scanned QR or opened pairing link: a v2 link first, else an older `duskbot://pair?address=&token=` link from
  * the server pairing card or the companion. Null when it is neither or anything required is malformed. */
 export function parseMobilePairingLink(link: string): MobilePairingPayload | null {
   const payload = parseMobileLink(link.trim());
   if (payload) return pairingFromPayload(payload);
   let url: URL;
   try { url = new URL(link.trim()); } catch { return null; }
-  if (url.protocol !== "openmausbot:" || (url.hostname || url.pathname.replace(/^\/+/, "")) !== "pair") return null;
+  if (url.protocol !== "duskbot:" || (url.hostname || url.pathname.replace(/^\/+/, "")) !== "pair") return null;
   const q = url.searchParams;
   const credential = q.get("token") ?? "";
   if (!LEGACY_CREDENTIAL.test(credential)) return null;
@@ -332,20 +332,20 @@ export function parseMobilePairingLink(link: string): MobilePairingPayload | nul
   };
 }
 
-/** `openmausbot://open?...`: a view or notification target on the phone. */
+/** `duskbot://open?...`: a view or notification target on the phone. */
 export function mobileOpenLink(target: MobileOpenTarget): string {
   const fields: Array<[string, string | undefined]> = [
     ["env", target.environmentId], ["bot", target.botId], ["group", target.groupId],
     ["thread", target.threadId], ["message", target.messageId], ["view", target.view],
   ];
   const query = fields.filter(([, value]) => value).map(([key, value]) => `${key}=${encodeURIComponent(value!)}`).join("&");
-  return `openmausbot://open${query ? `?${query}` : ""}`;
+  return `duskbot://open${query ? `?${query}` : ""}`;
 }
 
 export function parseMobileOpenLink(link: string): MobileOpenTarget | null {
   let url: URL;
   try { url = new URL(link.trim()); } catch { return null; }
-  if (url.protocol !== "openmausbot:" || (url.hostname || url.pathname.replace(/^\/+/, "")) !== "open") return null;
+  if (url.protocol !== "duskbot:" || (url.hostname || url.pathname.replace(/^\/+/, "")) !== "open") return null;
   const q = url.searchParams;
   const id = (key: string) => { const value = q.get(key); return value && /^[A-Za-z0-9_.:-]{1,200}$/.test(value) ? value : undefined; };
   const view = q.get("view") as MobileOpenTarget["view"] | null;

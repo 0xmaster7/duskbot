@@ -22,12 +22,12 @@ describe("the bot's own Slack tools on the agents server", () => {
     for (const name of NAMES) expect(bridgedCallName("mcp__agents__use_tool", { name, arguments: {} })).toBe(`mcp__agents__${name}`);
   });
 
-  it("reads OMB_SLACK only as 1 and carries it over the MCP bridge", () => {
-    for (const value of [undefined, "", "0", "true", "1"]) expect(catalogProfileFromEnv({ OMB_SLACK: value }).slack).toBe(value === "1");
-    expect(AGENTS_MCP_ENV).toContain("OMB_SLACK");
+  it("reads DUSK_SLACK only as 1 and carries it over the MCP bridge", () => {
+    for (const value of [undefined, "", "0", "true", "1"]) expect(catalogProfileFromEnv({ DUSK_SLACK: value }).slack).toBe(value === "1");
+    expect(AGENTS_MCP_ENV).toContain("DUSK_SLACK");
   });
 
-  it("writes OMB_SLACK on each turn from the host's per-bot flag", () => {
+  it("writes DUSK_SLACK on each turn from the host's per-bot flag", () => {
     const conversation: AgentsConversation = {
       threadId: "thread", bot: { id: "bot" }, room: false, teamComputer: false,
       host: { skillAuthoring: false, cloudHome: false, team: false, voiceNotes: false, x: false, research: false },
@@ -35,7 +35,7 @@ describe("the bot's own Slack tools on the agents server", () => {
     for (const slack of [undefined, false, true]) {
       const env = agentsServerEnv({ ...conversation, host: { ...conversation.host, slack } },
         { generation: "turn", depth: 0, skillAuthoring: false }, () => "fixture-capability", "http://127.0.0.1:9");
-      expect(env.OMB_SLACK).toBe(slack === true ? "1" : "0");
+      expect(env.DUSK_SLACK).toBe(slack === true ? "1" : "0");
     }
   });
 

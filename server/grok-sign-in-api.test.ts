@@ -37,7 +37,7 @@ describe.skipIf(process.platform === "win32")("Grok Build sign-in over HTTP", ()
     base = `http://127.0.0.1:${port}`;
     logPath = join(tmpdir(), `omb-grok-api-${port}-${process.pid}.log`);
     writeFileSync(join(home, "config.json"), JSON.stringify({ instances: {
-      [ID]: { driver: "grokAgent", displayName: "Grok", environment: { OMB_DEVICE_AUTH_FIXTURE: "1", FAKE_GROK_MODE: "approve" }, config: { cli: FAKE_GROK } },
+      [ID]: { driver: "grokAgent", displayName: "Grok", environment: { DUSK_DEVICE_AUTH_FIXTURE: "1", FAKE_GROK_MODE: "approve" }, config: { cli: FAKE_GROK } },
     } }));
     const log = openSync(logPath, "a", 0o600);
     try {

@@ -15,7 +15,7 @@ import { startFakeProviders } from "../server/auth/fake-providers.ts";
 import { memoryMailer } from "../server/auth/mail.ts";
 import { CSRF_HEADER } from "../../../shared/account-api.ts";
 
-const { values } = parseArgs({ options: { port: { type: "string", default: "7480" }, email: { type: "string", default: "sid@openmausbot.test" }, demo: { type: "boolean", default: false }, "session-file": { type: "string" } } });
+const { values } = parseArgs({ options: { port: { type: "string", default: "7480" }, email: { type: "string", default: "sid@duskbot.test" }, demo: { type: "boolean", default: false }, "session-file": { type: "string" } } });
 const port = Number(values.port);
 const url = `http://127.0.0.1:${port}`;
 const dataDir = mkdtempSync(join(tmpdir(), "omb-dashboard-"));
@@ -90,7 +90,7 @@ async function demo(session: string) {
     const t = Date.now();
     const body: WorkspaceReport = {
       v: 1, seq: seq++, at: t, workspace: { name: "Demo Mac (fixture)", kind: "mac", version: "0.1.141", platform: "darwin" },
-      machine: { host: { hostname: "demo-mac", platform: "darwin", arch: "arm64", cpus: 10, cpuModel: "Apple M2 Pro" }, cpu: { percent: 18 + 12 * Math.sin(t / 9000), load: [2.1, 1.8, 1.6] }, memory: { usedBytes: 9.2e9 + 4e8 * Math.sin(t / 20000), totalBytes: 17.18e9 }, disk: { usedBytes: 312e9, totalBytes: 994e9, path: "/" }, network: { rxBytesPerSec: 90_000 + 60_000 * Math.abs(Math.sin(t / 7000)), txBytesPerSec: 24_000 }, uptimeSec: 3.2 * day / 1000, processUptimeSec: 7200, app: { version: "0.1.141", node: "24.11.0" }, update: { available: false, latest: null, how: null }, services: [{ id: "server", name: "OpenMausBot server", state: "running", detail: null }, { id: "docker", name: "Bot computers", state: "running", detail: null }] },
+      machine: { host: { hostname: "demo-mac", platform: "darwin", arch: "arm64", cpus: 10, cpuModel: "Apple M2 Pro" }, cpu: { percent: 18 + 12 * Math.sin(t / 9000), load: [2.1, 1.8, 1.6] }, memory: { usedBytes: 9.2e9 + 4e8 * Math.sin(t / 20000), totalBytes: 17.18e9 }, disk: { usedBytes: 312e9, totalBytes: 994e9, path: "/" }, network: { rxBytesPerSec: 90_000 + 60_000 * Math.abs(Math.sin(t / 7000)), txBytesPerSec: 24_000 }, uptimeSec: 3.2 * day / 1000, processUptimeSec: 7200, app: { version: "0.1.141", node: "24.11.0" }, update: { available: false, latest: null, how: null }, services: [{ id: "server", name: "Dusk Bot server", state: "running", detail: null }, { id: "docker", name: "Bot computers", state: "running", detail: null }] },
       computers: { provider: "vps", computers: [...computers].map(([id, state]) => ({ id: `omb-${id}`, botId: id, botName: bots.find((b) => b.id === id)!.name, kind: "vps" as const, name: `omb-${id}`, state, memoryBytes: state === "running" ? 812e6 : null, memoryLimitBytes: state === "running" ? 2147e6 : null, cpuPercent: null, lastUsedAt: t - 300_000, alias: null })) },
       bots,
       activity: { from: "", to: "", timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, days, byBot: bots.map((b, i) => ({ botId: b.id, botName: b.name, turns: 120 - i * 40, tokens: 2e6 - i * 6e5, costUsd: 14 - i * 4 })), byModel: [{ model: "gpt-5.5", turns: 160, tokens: 2.6e6, costUsd: 18 }, { model: "claude-opus-4.6", turns: 80, tokens: 1.4e6, costUsd: 12 }], totals: { turns: 240, tokens: 4e6, costUsd: 30 } },
