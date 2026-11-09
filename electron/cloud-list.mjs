@@ -13,6 +13,8 @@ export const CLOUD_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 export const CLOUD_NAME_LIMIT = 40;
 const TEAM_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const TIER = /^[a-z][a-z0-9-]{0,23}$/;
+/** Who runs a MausBot-run Cloud's machine, when the Admin says (additive: absent from an older Admin). */
+const PROVIDER = /^[a-z][a-z0-9-]{0,23}$/;
 const RUNS_ON = Object.freeze(["cloud", "server"]);
 const VERSION = /^[0-9A-Za-z][0-9A-Za-z.+-]{0,39}$/;
 /** Each status as the app's machine summary (cloud-home.mjs CLOUD_MACHINE_STATUSES) reads it; a Cloud still at checkout
@@ -63,10 +65,12 @@ function parseCloudEntry(input) {
   // list (an Admin with Remove from list says so only for one of their own, in no team, that ended or was never paid for).
   const deleteAfter = DEAD.includes(input.status) && Number.isSafeInteger(input.deleteAfter) && input.deleteAfter > 0 ? input.deleteAfter : null;
   const removable = input.removable === true && DEAD.includes(input.status) && managed && input.role === "owner" && teamId === null;
+  // Additive: who runs a Cloud's machine ("boat"); a malformed one, or one on a server of the person's own, is none.
+  const provider = managed && typeof input.provider === "string" && PROVIDER.test(input.provider) ? input.provider : null;
   return { id: input.id, name, color: Object.hasOwn(CLOUD_SWATCH_COLORS, input.color) ? input.color : null, role: input.role,
     tier: typeof input.tier === "string" && TIER.test(input.tier) ? input.tier : null, runsOn: input.runsOn, status: input.status, origin, teamId,
     primary: input.primary, managed, ...(setup ? { setup } : {}), ...(lastSeenAt ? { lastSeenAt } : {}), ...(version ? { version } : {}), ...(power ? { power } : {}),
-    ...(deleteAfter ? { deleteAfter } : {}), ...(removable ? { removable: true } : {}) };
+    ...(deleteAfter ? { deleteAfter } : {}), ...(removable ? { removable: true } : {}), ...(provider ? { provider } : {}) };
 }
 
 /** What this app says of a listed Cloud it doesn't open, on this computer's own screen (never by its address): it has ended

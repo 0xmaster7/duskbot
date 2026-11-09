@@ -37,7 +37,8 @@ function retiredIn(text: string, boat: RegExp = BOAT): string[] {
   return found;
 }
 
-const PENDING_KEY_PREFIXES: string[] = [];
+// the works-on choices' Boat cloud row: a test option beside the Cloud as it is, named for what it runs on until it ships
+const PENDING_KEY_PREFIXES: string[] = ["place.boat."];
 const EN_ALLOWED: Record<string, string> = {};
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));

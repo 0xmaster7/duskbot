@@ -38,6 +38,8 @@ const SERVER_ENV_NAMES = new Set([
   "OMB_COMPOSIO_BROKER_URL",
   // The bot box switch (server/bot-box/detect.ts): the Admin may turn a home's box off for support.
   "OMB_BOT_BOX",
+  // A home on its own machine (a Boat sandbox) runs bot computers on that machine's Docker, only through the gate's socket.
+  "OPENMAUSBOT_VPS_DOCKER", "DOCKER_HOST",
   // An ended Cloud started only for its owner's export: the server runs frozen (server/move-freeze.ts).
   "OMB_CLOUD_EXPORT_ONLY",
 ]);

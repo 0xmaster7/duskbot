@@ -192,6 +192,18 @@ test("a connection that fails while the Admin says My Cloud can't be reached say
   await assert.rejects(f.client.pairHome(), { message: "Cloud request failed." });
 });
 
+test("the plan snapshot says who runs My Cloud's machine, only from the session's list and only for the person's own primary Cloud", () => {
+  const entry = (over = {}) => ({ id: "c-home", name: "My Cloud", color: null, role: "owner", tier: "pro", runsOn: "cloud", status: "ready", origin: "https://home.example.test",
+    teamId: null, primary: true, managed: true, ...over });
+  const connected = clouds => ({ status: "connected", entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: null, version: 1 }, ...(clouds ? { clouds } : {}) });
+  assert.deepEqual(cloudPlanSnapshot(connected([entry({ provider: "boat" })])), { status: "paid", tier: "pro", provider: "boat" });
+  assert.deepEqual(cloudPlanSnapshot(connected([entry()])), { status: "paid", tier: "pro" }, "no provider listed");
+  assert.deepEqual(cloudPlanSnapshot(connected(undefined)), { status: "paid", tier: "pro" }, "an Admin without the list");
+  assert.deepEqual(cloudPlanSnapshot(connected([entry({ provider: "boat", primary: false })])), { status: "paid", tier: "pro" }, "another Cloud's provider is not My Cloud's");
+  assert.deepEqual(cloudPlanSnapshot(connected([entry({ provider: "boat", role: "member", teamId: "t-1" })])), { status: "paid", tier: "pro" }, "a team's Cloud is no Cloud of the person's own");
+  assert.deepEqual(cloudPlanSnapshot({ status: "signed-out", clouds: [entry({ provider: "boat" })] }), { status: "none" }, "never from an unverified session");
+});
+
 test("a free trial and its AI credit come with a verified session, for display only; an Admin without them changes nothing", async t => {
   const f = await fixture(t); await f.connect();
   const DAY = 86_400_000, endsAt = f.now + 2 * DAY, origin = "https://home-7f3k2.fly.dev";

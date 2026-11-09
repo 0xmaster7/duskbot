@@ -25,6 +25,21 @@ export function createHomeClient(options: { fetch?: typeof fetch; now?: () => nu
     } catch { throw new Error("Cloud home request failed."); }
   }
   return {
+    async power(origin, secret, idleMinutes) {
+      const value = await request(origin, secret, "GET", `/api/cloud/power?idleMinutes=${Math.round(idleMinutes)}`) as Record<string, unknown> | null;
+      if (!value || value.v !== 1 || typeof value.idle !== "boolean" || !Array.isArray(value.busy)) throw new Error("Invalid cloud power answer.");
+      const moment = (v: unknown) => Number.isSafeInteger(v) ? v as number : null;
+      return { idle: value.idle, busy: value.busy.filter((b): b is string => typeof b === "string" && /^[a-z-]{1,32}$/.test(b)), lastActivityAt: moment(value.lastActivityAt), nextDueAt: moment(value.nextDueAt), wokeAt: moment(value.wokeAt) };
+    },
+    async sleep(origin, secret, idleMinutes) {
+      try {
+        const value = await request(origin, secret, "POST", "/api/cloud/power/sleep", JSON.stringify({ v: 1, idleMinutes: Math.round(idleMinutes) })) as Record<string, unknown> | null;
+        return { ok: value?.ok === true, nextDueAt: Number.isSafeInteger(value?.nextDueAt) ? value!.nextDueAt as number : null };
+      } catch { return { ok: false, nextDueAt: null }; }
+    },
+    async plan(origin, secret, input) {
+      await request(origin, secret, "POST", "/api/cloud/plan", JSON.stringify({ v: 1, cancelled: input.cancelled }));
+    },
     async pair(origin, secret, input) {
       const value = await request(origin, secret, "POST", "/api/cloud/pairing", JSON.stringify(input)) as { code?: unknown; expiresAt?: unknown } | null;
       if (!value || typeof value.code !== "string" || !/^[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/.test(value.code) || !Number.isSafeInteger(value.expiresAt) || (value.expiresAt as number) <= now() || (value.expiresAt as number) > now() + 600_000) throw new Error("Invalid cloud pairing answer.");

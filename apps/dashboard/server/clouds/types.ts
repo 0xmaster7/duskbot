@@ -22,7 +22,7 @@ export interface CreateServerInput {
 
 /** provisioning backend. dedicated: fake or hetzner. pool: PoolProvider over pool hosts (fake driver in tests). */
 export interface CloudProvider {
-  readonly name: "fake" | "hetzner" | "pool";
+  readonly name: "fake" | "hetzner" | "pool" | "boat";
   /** the server a create made for this cloud id, if any (idempotent create) */
   find(cloudId: string): Promise<ProviderServer | null>;
   create(input: CreateServerInput): Promise<ProviderServer>;
@@ -70,7 +70,14 @@ export interface HomeClient {
   pair(origin: string, secret: string, input: { label: string; ttlSeconds?: number }): Promise<{ code: string; expiresAt: number }>;
   /** true once the install answers its signed health read */
   healthy(origin: string, secret: string): Promise<boolean>;
+  /** the home's idle read (server/cloud-power.ts); only Boat homes are asked */
+  power?(origin: string, secret: string, idleMinutes: number): Promise<HomePower>;
+  /** the sleep handshake: ok once the home agreed and closed for the stop */
+  sleep?(origin: string, secret: string, idleMinutes: number): Promise<{ ok: boolean; nextDueAt: number | null }>;
+  /** tells the home its plan was cancelled or renewed, so it holds its routines (docs/cloud-pro.md) */
+  plan?(origin: string, secret: string, input: { cancelled: boolean }): Promise<void>;
 }
+export interface HomePower { idle: boolean; busy: string[]; lastActivityAt: number | null; nextDueAt: number | null; wokeAt: number | null }
 
 export interface StoredCloud {
   id: string;
@@ -122,6 +129,45 @@ export interface StoredCloud {
   suspensionApplied?: boolean;
   /** the owner or the slack edge asked a stopped or sleeping desktop to wake; the edge times it to the desktop's next sync */
   wakeRequestedAt?: number;
+  /** set at activation when Boat runs this cloud: its lifecycle is boat-lifecycle.ts, never the generic one */
+  backend?: "boat";
+  boat?: BoatCloudState;
+}
+
+/** one Boat home's lifecycle record (boat-lifecycle.ts) */
+export interface BoatCloudState {
+  /** bumped for each deliberate new sandbox (a recovery); part of Boat's idempotency key */
+  attempt: number;
+  installed: string | null;
+  /** a backup generation to restore into the next fresh sandbox */
+  restoreFrom: string | null;
+  /** the generation the running sandbox came back from, for the notice */
+  restoredFrom?: { file: string; at: number } | null;
+  sleptAt: number | null;
+  sleepReason: "idle" | "plan" | "owner" | "operator" | null;
+  nextDueAt: number | null;
+  lastPowerAt: number | null;
+  busy: string[];
+  leaseAt: number | null;
+  lastStopAt: number | null;
+  wakeStartedAt: number | null;
+  backups: Array<{ file: string; at: number; bytes: number; sha256: string; verifiedAt: number | null; snapshotAt: number }>;
+  lastBackupTryAt: number | null;
+  backupProblem: string | null;
+  /** the billing record's end of the plan, as first seen: the retention clock */
+  endedAt: number | null;
+  notices: Array<{ kind: string; at: number }>;
+  deleteRequest: { requestedAt: number; tokenHash: string | null; tokenExpiresAt: number | null; confirmedAt: number | null; executeAfter: number | null; cancelledAt: number | null } | null;
+  /** Boat's receipt for an accepted delete: never sent twice */
+  deletion: { serverId: string; operationId: string | null; at: number; reason: string; sent?: boolean } | null;
+  deletedAt: number | null;
+  backupsDeleteAfter: number | null;
+  /** sandboxes this cloud had before a recovery, stopped, deleted once the new one has its own verified backup */
+  retired: Array<{ serverId: string; at: number; deletion: { operationId: string | null; at: number } | null }>;
+  recoveries: number;
+  hold: boolean;
+  /** when the current sandbox's setup began */
+  setupSince?: number;
 }
 
 export interface DesktopPlan { kind: Exclude<DesktopKind, "none">; placement: Placement; spec: MachineSpec; botComputers: number | null }
@@ -165,5 +211,7 @@ export interface CloudsService {
   pair(accountId: string, cloudId: string): Promise<{ origin: string; code: string; expiresAt: number }>;
   /** one pass over every desktop that needs work; safe to run concurrently with itself (serialized inside) */
   reconcile(): Promise<void>;
+  /** the Boat lifecycle when Boat is configured: owner delete requests and operator holds */
+  readonly boat?: import("./boat-lifecycle.ts").BoatLifecycle | null;
   close(): void;
 }

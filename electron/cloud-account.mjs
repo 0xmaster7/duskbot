@@ -947,6 +947,12 @@ export function cloudMenuSublabel(state, date) {
   return state.machine || trial ? "Stopped" : null;
 }
 
+/** Who runs My Cloud's machine, as the session's list says (`provider`); nothing from an Admin that doesn't say. */
+const homeProvider = clouds => {
+  const provider = Array.isArray(clouds) ? clouds.find(cloud => cloud.primary && ownCloud(cloud))?.provider : undefined;
+  return typeof provider === "string" ? { provider } : {};
+};
+
 /** What the person's own Cloud page may show of the plan: never the account, a credential or an address. */
 export function cloudPlanSnapshot(state, { notice = null } = {}) {
   const tier = state?.status === "connected" ? state.entitlement?.tier : state?.lastPlan?.tier;
@@ -954,7 +960,7 @@ export function cloudPlanSnapshot(state, { notice = null } = {}) {
   const trial = state?.status === "connected"
     ? { ...(state.trial ? { trial: state.trial } : {}), ...(state.credit ? { credit: state.credit } : {}), ...(notice && state.trial ? { notice } : {}),
       ...(state.machine?.power?.sleeps ? { sleeps: true } : {}), ...(state.usage ? { usage: state.usage } : {}), ...(state.room ? { room: state.room } : {}),
-      ...(state.renewal ? { renewal: state.renewal } : {}) } : {};
+      ...(state.renewal ? { renewal: state.renewal } : {}), ...homeProvider(state.clouds) } : {};
   if (state?.status === "connected" && state.entitlement?.plan === "pro") return { status: state.entitlement.status === "active" ? "paid" : "attention", ...named, ...trial };
   if (state?.status === "reauth-required") return { status: "signin", ...(state.lastPlan ? { tier: state.lastPlan.tier ?? "pro" } : {}) };
   if (state?.status !== "connected" && state?.lastPlan) return { status: "checking", ...named };

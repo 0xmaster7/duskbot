@@ -237,3 +237,16 @@ test("the saved place of My Cloud takes the name and colour the Admin lists it u
   assert.equal(homeLook(at(undefined)), null);
   assert.equal(homeLook({ status: "signed-out" }), null);
 });
+
+test("each Cloud's `provider` is carried as the Admin says it, and an Admin without it changes nothing", () => {
+  assert.equal(parseCloudList([primary])[0].provider, undefined, "absent: no provider at all");
+  assert.equal(parseCloudList([cloud({ provider: "boat" })])[0].provider, "boat");
+  assert.equal(parseCloudList([cloud({ provider: "boat", power: { state: "asleep", since: 1_761_000_000_000, sleeps: true } })])[0].power.state, "asleep", "beside the power it already had");
+  for (const bad of ["Boat!", "", 7, null, { name: "boat" }, "x".repeat(25)]) {
+    const [shown] = parseCloudList([cloud({ provider: bad })]);
+    assert.ok(shown, `a malformed provider never drops the Cloud: ${JSON.stringify(bad)}`);
+    assert.equal(shown.provider, undefined, JSON.stringify(bad));
+  }
+  const server = { ...cloud({ id: "s-1", runsOn: "server", managed: false, provider: "boat" }) };
+  assert.equal(parseCloudList([server])[0].provider, undefined, "a server of the person's own has no provider");
+});

@@ -1,0 +1,446 @@
+// A Boat-backed My Cloud from paid to deleted: provision, sleep when idle, wake for a person, a routine or Slack, back up,
+// come back from a lost machine, keep a plan's data 45 days after it ended, and delete only through the verdict in
+// boat-retention.ts. One step per reconcile, each safe to repeat after a crash.
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { linkKeys } from "./bootstrap.ts";
+import type { BoatProvider } from "./boat.ts";
+import { backupKey, BOAT_HOME_VOLUME, BOAT_PACKAGE_FILE, BOAT_RESTORE_FILE, boatBootFile, boatSetupScript, installCommand, RESTORE_COMMAND, startCommand } from "./boat-home.ts";
+import { homeVolumeProblem, type BackupStore } from "./boat-backups.ts";
+import { DAY_MS, DEFAULT_DELETE_DELAY_DAYS, DEFAULT_RETENTION_DAYS, deletionVerdict, dueNotice, type Entitlement, type NoticeKind, type Verdict } from "./boat-retention.ts";
+import type { Audit, AuditActor } from "./boat-audit.ts";
+import { RetryableCloudError } from "./http.ts";
+import type { BoatCloudState, HomeClient, StoredCloud } from "./types.ts";
+
+const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE;
+
+export interface BoatSettings {
+  /** minutes without use before a home is asked to sleep (OMB_BOAT_IDLE_MINUTES) */
+  idleMinutes: number;
+  /** Boat's own auto-stop, extended while the home is up: a dead-man switch if this service stops (OMB_BOAT_LEASE_HOURS) */
+  leaseSeconds: number;
+  /** a backup at most this often (OMB_BOAT_BACKUP_HOURS) */
+  backupEveryMs: number;
+  /** generations kept per cloud (OMB_BOAT_BACKUP_KEEP), at least 2 */
+  backupKeep: number;
+  /** wake a stopped home this long before Boat may purge its disk (OMB_BOAT_REFRESH_DAYS) */
+  refreshAfterMs: number;
+  retentionDays: number;
+  deleteDelayDays: number;
+  /** after a retention deletion the backups stay this long more (OMB_BOAT_BACKUP_TAIL_DAYS) */
+  backupTailMs: number;
+  /** a routine's run wakes its home this long before */
+  wakeLeadMs: number;
+  powerReadMs: number;
+  template: string | null;
+  /** the home's app package: a URL the sandbox downloads, or a file this service uploads */
+  package: { sha256: string; url?: string; file?: string } | null;
+  maxBackupBytes: number;
+}
+export const DEFAULT_BOAT_SETTINGS: BoatSettings = {
+  idleMinutes: 15, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, refreshAfterMs: 11 * DAY_MS, retentionDays: DEFAULT_RETENTION_DAYS,
+  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 2 * MINUTE, powerReadMs: MINUTE, template: null, package: null, maxBackupBytes: 4 * 1024 ** 3,
+};
+
+export function boatSettingsFromEnv(env: NodeJS.ProcessEnv): BoatSettings {
+  const number = (name: string, min: number, max: number, fallback: number) => {
+    const raw = env[name];
+    if (raw === undefined || raw === "") return fallback;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < min || value > max) throw new Error(`Invalid ${name}.`);
+    return value;
+  };
+  const sha256 = env.OMB_BOAT_HOME_PACKAGE_SHA256;
+  const pkg = env.OMB_BOAT_HOME_PACKAGE_URL || env.OMB_BOAT_HOME_PACKAGE_FILE
+    ? { sha256: sha256 && /^[a-f0-9]{64}$/.test(sha256) ? sha256 : (() => { throw new Error("Invalid OMB_BOAT_HOME_PACKAGE_SHA256."); })(),
+      ...(env.OMB_BOAT_HOME_PACKAGE_URL ? { url: env.OMB_BOAT_HOME_PACKAGE_URL } : { file: env.OMB_BOAT_HOME_PACKAGE_FILE }) }
+    : null;
+  const template = env.OMB_BOAT_TEMPLATE || null;
+  if (template !== null && !/^[a-z0-9][a-z0-9-]{0,62}$/.test(template)) throw new Error("Invalid OMB_BOAT_TEMPLATE.");
+  if (!pkg && !template) throw new Error("Boat needs OMB_BOAT_HOME_PACKAGE_URL (or _FILE) with OMB_BOAT_HOME_PACKAGE_SHA256, or OMB_BOAT_TEMPLATE.");
+  return { ...DEFAULT_BOAT_SETTINGS, template, package: pkg,
+    idleMinutes: number("OMB_BOAT_IDLE_MINUTES", 5, 24 * 60, 15),
+    leaseSeconds: number("OMB_BOAT_LEASE_HOURS", 1, 720, 2) * 3600,
+    backupEveryMs: number("OMB_BOAT_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
+    backupKeep: number("OMB_BOAT_BACKUP_KEEP", 2, 30, 3),
+    refreshAfterMs: number("OMB_BOAT_REFRESH_DAYS", 3, 13, 11) * DAY_MS,
+    retentionDays: number("OMB_BOAT_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
+    deleteDelayDays: number("OMB_BOAT_DELETE_DELAY_DAYS", DEFAULT_DELETE_DELAY_DAYS, 90, DEFAULT_DELETE_DELAY_DAYS),
+    backupTailMs: number("OMB_BOAT_BACKUP_TAIL_DAYS", 7, 365, 30) * DAY_MS,
+    maxBackupBytes: number("OMB_BOAT_BACKUP_MAX_MB", 64, 64 * 1024, 4096) * 1024 * 1024 };
+}
+
+export function freshBoatState(): BoatCloudState {
+  return { attempt: 0, installed: null, restoreFrom: null, restoredFrom: null, sleptAt: null, sleepReason: null, nextDueAt: null, lastPowerAt: null, busy: [], leaseAt: null,
+    lastStopAt: null, wakeStartedAt: null, backups: [], lastBackupTryAt: null, backupProblem: null, endedAt: null, notices: [], deleteRequest: null, deletion: null,
+    deletedAt: null, backupsDeleteAfter: null, retired: [], recoveries: 0, hold: false };
+}
+
+export interface BoatLifecycleDeps {
+  provider: BoatProvider;
+  backups: BackupStore;
+  home: HomeClient;
+  audit: Audit;
+  settings: BoatSettings;
+  /** the billing system of record, read fresh at every decision */
+  entitlement(cloud: StoredCloud): Entitlement;
+  notify(cloud: StoredCloud, kind: NoticeKind, at: number | null, link?: string): void;
+  unseal(value: string): string;
+  seal(value: string): string;
+  dashboardUrl: string;
+  adminOrigin: string;
+  removeWorkspace(workspaceId: string): void;
+  now(): number;
+  save(cloud: StoredCloud): void;
+}
+
+export class BoatLifecycleError extends Error {
+  readonly status: number;
+  readonly code: string;
+  constructor(status: number, code: string) { super(code); this.name = "BoatLifecycleError"; this.status = status; this.code = code; }
+}
+
+export function createBoatLifecycle(deps: BoatLifecycleDeps) {
+  const { provider, settings, audit, now } = deps;
+  const log = (c: StoredCloud, action: string, actor: AuditActor, reason: string, detail?: Record<string, string | number | boolean | null>) =>
+    audit.record({ cloudId: c.id, action, actor, reason, serverId: c.serverId, ...(detail ? { detail } : {}) });
+  const state = (c: StoredCloud) => (c.boat ??= freshBoatState());
+  const secret = (c: StoredCloud) => deps.unseal(c.bootstrapSecret);
+  const latestVerified = (b: BoatCloudState) => [...b.backups].reverse().find(g => g.verifiedAt !== null) ?? null;
+  function notice(c: StoredCloud, kind: NoticeKind, at: number | null, link?: string) {
+    const b = state(c);
+    if (["ended", "left_30", "left_7", "left_1", "deleted"].includes(kind) && b.notices.some(n => n.kind === kind)) return;
+    b.notices.push({ kind, at: now() });
+    deps.save(c);
+    try { deps.notify(c, kind, at, link); } catch { console.warn(`boat: notice ${kind} for ${c.id} was not delivered`); }
+  }
+
+  function verdictFor(c: StoredCloud, entitlement = deps.entitlement(c)): Verdict {
+    const b = state(c), final = latestVerified(b);
+    return deletionVerdict({ now: now(), retentionDays: settings.retentionDays, entitlement, finalBackup: final ? { at: final.snapshotAt, verifiedAt: final.verifiedAt } : null,
+      lastStopAt: b.lastStopAt, ownerRequest: b.deleteRequest, hold: b.hold || c.suspended !== null && c.suspended !== "Account deleted" });
+  }
+
+  /** a backup of the volume from the newest snapshot of a stopped (or, past twice the interval, running) sandbox */
+  async function backup(c: StoredCloud, reason: string): Promise<boolean> {
+    const b = state(c);
+    if (!c.serverId) return false;
+    b.lastBackupTryAt = now(); deps.save(c);
+    const snapshot = await provider.latestSnapshot(c.serverId);
+    if (!snapshot) { b.backupProblem = "no_snapshot"; deps.save(c); return false; }
+    if (b.backups.some(g => g.snapshotAt >= snapshot.at && g.verifiedAt !== null)) return true;
+    let stream: ReadableStream<Uint8Array>;
+    try { stream = await provider.snapshotTar(snapshot.id, BOAT_HOME_VOLUME); }
+    catch (error) { b.backupProblem = "snapshot_read"; deps.save(c); log(c, "backup_failed", "reconciler", "snapshot_read"); throw error; }
+    const chunks: Buffer[] = [];
+    let size = 0;
+    const reader = stream.getReader();
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.length;
+        if (size > settings.maxBackupBytes) { await reader.cancel(); b.backupProblem = "too_large"; deps.save(c); log(c, "backup_skipped", "reconciler", "too_large"); return false; }
+        chunks.push(Buffer.from(value));
+      }
+    } finally { reader.releaseLock(); }
+    const tar = Buffer.concat(chunks), problem = homeVolumeProblem(tar, c.id);
+    if (problem) { b.backupProblem = problem; deps.save(c); log(c, "backup_refused", "reconciler", problem); return false; }
+    const key = backupKey(secret(c)), record = deps.backups.write(c.id, key, tar);
+    // restorable means: it opens with this cloud's key and is still this cloud's volume
+    const verified = homeVolumeProblem(deps.backups.read(c.id, key, record.file), c.id) === null && deps.backups.sha256(c.id, record.file) === record.sha256;
+    b.backups.push({ ...record, verifiedAt: verified ? now() : null, snapshotAt: snapshot.at });
+    b.backupProblem = verified ? null : "unverified";
+    log(c, "backup", "reconciler", reason, { file: record.file, bytes: record.bytes, verified });
+    // keep the newest `backupKeep` verified generations, and the newest one at least a week older than the newest, so a home
+    // that wiped its own data cannot push every good copy out within a few days
+    const verifiedOnes = b.backups.filter(g => g.verifiedAt !== null), newest = verifiedOnes.at(-1);
+    const pinned = newest ? [...verifiedOnes].reverse().find(g => newest.snapshotAt - g.snapshotAt >= 7 * DAY_MS) : undefined;
+    for (const old of verifiedOnes.slice(0, Math.max(0, verifiedOnes.length - settings.backupKeep))) {
+      if (old === pinned) continue;
+      deps.backups.remove(c.id, old.file); b.backups.splice(b.backups.indexOf(old), 1);
+      log(c, "backup_pruned", "reconciler", "generations", { file: old.file });
+    }
+    deps.save(c);
+    return verified;
+  }
+
+  /** a setup step still under way is waiting, not failing: polled again soon, and only a setup past 45 minutes fails */
+  function wait(c: StoredCloud, ms: number) {
+    if (now() - (state(c).setupSince ?? c.provisionedAt ?? c.createdAt) > 45 * MINUTE) throw new Error("Cloud setup timed out.");
+    c.nextAttemptAt = now() + ms; deps.save(c);
+  }
+
+  async function provisionStep(c: StoredCloud, entitled: boolean) {
+    const b = state(c);
+    if (!entitled) { log(c, "provision_held", "reconciler", "not_entitled"); c.status = "stopped"; c.setupStep = null; deps.save(c); return; }
+    if (c.setupStep === "reserving") {
+      if (!c.workspaceId || !c.linkPublicKey || !c.sealedLinkPrivateKey) throw new Error("Missing cloud bootstrap.");
+      const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
+      const fromTemplate = settings.template !== null && b.restoreFrom === null && b.attempt === 0;
+      const server = await provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData: boatSetupScript(), ttlSeconds: settings.leaseSeconds, attempt: b.attempt,
+        files: [boatBootFile({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link })],
+        ...(fromTemplate ? { from: settings.template! } : {}) });
+      c.serverId = server.id; c.origin = server.origin ?? null; b.installed = fromTemplate ? b.installed : null; b.leaseAt = now(); b.setupSince = now();
+      log(c, "create", "reconciler", b.attempt ? "recovery" : "paid", { attempt: b.attempt, template: fromTemplate });
+      c.setupStep = "storage"; deps.save(c); return;
+    }
+    if (!c.serverId) throw new Error("Missing cloud server.");
+    if (c.setupStep === "storage") {
+      const s = await provider.sandbox(c.serverId);
+      if (!s || !["ready", "idle", "running"].includes(s.state) || (s.setup !== "done" && s.setup !== null && s.setup !== "failed")) return wait(c, 5_000);
+      if (s.setup === "failed") throw new Error("Cloud setup failed.");
+      const pkg = settings.package;
+      if (pkg && b.installed !== pkg.sha256) {
+        if (pkg.file) await provider.upload(c.serverId, BOAT_PACKAGE_FILE, readFileSync(pkg.file));
+        const done = await provider.run(c.serverId, installCommand(pkg.sha256, pkg.url), 600);
+        if (!done.ok || !done.stdout.includes("installed")) throw new RetryableCloudError("Cloud package install failed.");
+        b.installed = pkg.sha256; deps.save(c);
+      }
+      if (b.restoreFrom) {
+        const tar = deps.backups.read(c.id, backupKey(secret(c)), b.restoreFrom);
+        await provider.upload(c.serverId, BOAT_RESTORE_FILE, tar);
+        const done = await provider.run(c.serverId, RESTORE_COMMAND, 600);
+        if (!done.ok || !done.stdout.includes("restored")) throw new RetryableCloudError("Cloud restore failed.");
+        const from = b.backups.find(g => g.file === b.restoreFrom);
+        b.restoredFrom = { file: b.restoreFrom, at: from?.snapshotAt ?? now() }; b.restoreFrom = null;
+        log(c, "restore", "reconciler", "recovery", { file: b.restoredFrom.file });
+      }
+      c.setupStep = "starting"; deps.save(c); return;
+    }
+    if (c.setupStep === "starting") {
+      const origin = c.origin ?? await provider.origin(c.serverId);
+      c.origin = origin;
+      const started = await provider.run(c.serverId, startCommand(origin), 120);
+      if (!started.ok) throw new RetryableCloudError("Cloud home did not start.");
+      c.setupStep = "checking"; deps.save(c); return;
+    }
+    if (!c.origin || !(await deps.home.healthy(c.origin, secret(c)))) return wait(c, 5_000);
+    c.status = "running"; c.setupStep = null; c.lastCheckedAt = now(); c.powerSince = now(); c.wantPower = "on";
+    b.wakeStartedAt = null; b.lastPowerAt = now(); b.sleptAt = null; b.sleepReason = null;
+    c.attempts = 0; c.nextAttemptAt = 0; c.error = null;
+    log(c, "running", "reconciler", b.restoredFrom ? "recovered" : "provisioned");
+    if (b.restoredFrom && b.attempt > 0) notice(c, "recovered", b.restoredFrom.file ? b.restoredFrom.at : null);
+    deps.save(c);
+  }
+
+  /** a lost machine: a fresh sandbox, from the newest verified backup when there is one; the old one is retired, never deleted here */
+  function recover(c: StoredCloud, why: string) {
+    const b = state(c), from = latestVerified(b);
+    if (c.serverId && !b.retired.some(r => r.serverId === c.serverId)) b.retired.push({ serverId: c.serverId, at: now(), deletion: null });
+    b.attempt++; b.recoveries++; b.restoreFrom = from?.file ?? null; b.installed = null; b.restoredFrom = from ? null : { file: "", at: 0 };
+    c.serverId = null; c.origin = null; c.status = "provisioning"; c.setupStep = "reserving"; c.attempts = 0; c.nextAttemptAt = 0;
+    if (!c.sealedLinkPrivateKey) { const keys = linkKeys(); c.linkPublicKey = keys.publicKey; c.sealedLinkPrivateKey = deps.seal(keys.privateKey); }
+    log(c, "recover", "reconciler", why, { backup: from?.file ?? null, attempt: b.attempt });
+    deps.save(c);
+  }
+
+  async function sleepNow(c: StoredCloud, reason: BoatCloudState["sleepReason"], actor: AuditActor) {
+    const b = state(c);
+    if (!c.serverId) return;
+    await provider.power(c.serverId, "off");
+    b.sleptAt = now(); b.sleepReason = reason; c.status = reason === "plan" ? "stopped" : "sleeping"; c.powerSince = now(); c.wantPower = "off";
+    log(c, "sleep", actor, reason ?? "idle", { nextDueAt: b.nextDueAt });
+    deps.save(c);
+  }
+
+  async function deleteStep(c: StoredCloud, verdict: Extract<Verdict, { delete: true }>) {
+    const b = state(c);
+    if (b.deletion && b.deletion.sent === false && (await provider.sandbox(b.deletion.serverId)) !== null) {
+      // a DELETE whose answer never came, and the sandbox is still there: asked again only if the verdict still says so
+      const again = verdictFor(c);
+      if (!again.delete) { log(c, "delete_aborted", "reconciler", again.reason); b.deletion = null; c.status = "stopped"; deps.save(c); return; }
+      const answer = await provider.requestDelete(b.deletion.serverId);
+      b.deletion.operationId = answer.operationId; b.deletion.sent = true; deps.save(c);
+      if (!answer.gone) return;
+    }
+    if (!b.deletion && c.serverId) {
+      // last check against the record, right before Boat is asked
+      const again = verdictFor(c);
+      if (!again.delete) { log(c, "delete_refused", "reconciler", again.reason); return; }
+      // recorded before the call, so a lost answer is never read as a lost machine (and rebuilt)
+      c.status = "destroying"; b.deletion = { serverId: c.serverId, operationId: null, at: now(), reason: verdict.reason, sent: false }; deps.save(c);
+      log(c, "delete_requested", "reconciler", verdict.reason);
+      const answer = await provider.requestDelete(c.serverId);
+      b.deletion.operationId = answer.operationId; b.deletion.sent = true;
+      log(c, "delete_accepted", "reconciler", verdict.reason, { operation: answer.operationId });
+      deps.save(c);
+      if (!answer.gone) return;
+    }
+    if (b.deletion?.operationId) {
+      const op = await provider.deletion(b.deletion.operationId);
+      if (op && op.status !== "completed") return;
+    }
+    if (b.deletion && (await provider.sandbox(b.deletion.serverId)) !== null) return;
+    for (const old of b.retired) if (!old.deletion) {
+      const answer = await provider.requestDelete(old.serverId);
+      old.deletion = { operationId: answer.operationId, at: now() };
+      log(c, "delete_requested", "reconciler", "retired_with_cloud", { operation: answer.operationId });
+    }
+    if (c.workspaceId) deps.removeWorkspace(c.workspaceId);
+    c.destroyedOrigin = c.origin ?? c.destroyedOrigin;
+    c.status = "destroyed"; c.setupStep = null; c.origin = null; c.serverId = null; c.ipv4 = null;
+    b.deletedAt = now();
+    b.backupsDeleteAfter = verdict.reason === "owner_request" ? now() : now() + settings.backupTailMs;
+    log(c, "deleted", "reconciler", verdict.reason);
+    notice(c, "deleted", now());
+    deps.save(c);
+  }
+
+  /** backups outlive the sandbox for a while, then go through the same record check */
+  function dropBackupsWhenDue(c: StoredCloud) {
+    const b = state(c);
+    if (b.deletedAt === null || b.backupsDeleteAfter === null || b.backupsDeleteAfter > now() || !b.backups.length || b.hold) return;
+    if (deps.entitlement(c).active) { log(c, "delete_refused", "reconciler", "subscribed"); return; }
+    for (const g of [...b.backups]) { deps.backups.remove(c.id, g.file); b.backups.splice(b.backups.indexOf(g), 1); }
+    log(c, "backups_deleted", "reconciler", b.deletion?.reason ?? "retention_over");
+    deps.save(c);
+  }
+
+  async function retiredStep(c: StoredCloud) {
+    const b = state(c), mine = latestVerified(b);
+    for (const old of b.retired) {
+      if (old.deletion) continue;
+      const s = await provider.sandbox(old.serverId);
+      if (!s) { old.deletion = { operationId: null, at: now() }; log(c, "retired_gone", "reconciler", "missing", { old: old.serverId }); deps.save(c); continue; }
+      if (["ready", "idle", "running"].includes(s.state)) { await provider.power(old.serverId, "off"); log(c, "retired_stopped", "reconciler", "recovery", { old: old.serverId }); continue; }
+      // the replacement has run and was backed up since: only then is the old disk redundant
+      if (c.status !== "running" && c.status !== "sleeping" || !mine || mine.at <= old.at || now() - old.at < 7 * DAY_MS) continue;
+      const answer = await provider.requestDelete(old.serverId);
+      old.deletion = { operationId: answer.operationId, at: now() };
+      log(c, "delete_requested", "reconciler", "retired_after_recovery", { old: old.serverId, operation: answer.operationId });
+      deps.save(c);
+    }
+  }
+
+  async function reconcile(c: StoredCloud): Promise<void> {
+    const b = state(c);
+    if (c.status === "checkout") return;
+    if (c.status === "destroyed") { dropBackupsWhenDue(c); return; }
+    const entitlement = deps.entitlement(c);
+    const verdict = verdictFor(c, entitlement);
+    if (verdict.delete || b.deletion) return deleteStep(c, verdict.delete ? verdict : { delete: true, reason: (b.deletion?.reason ?? "retention_over") as "retention_over", earliestAt: now() });
+    if (c.status === "provisioning") return provisionStep(c, entitlement.active);
+    if (!c.serverId) return;
+    if (c.suspended !== null) {
+      const s = await provider.sandbox(c.serverId);
+      if (s && ["ready", "idle", "running", "provisioned", "cloning"].includes(s.state)) await sleepNow(c, "operator", "operator");
+      c.status = "suspended"; c.suspensionApplied = true; deps.save(c); return;
+    }
+    const s = await provider.sandbox(c.serverId);
+    if (!s || s.state === "cancelled" || s.dataExpired) return recover(c, !s ? "missing" : s.dataExpired ? "data_expired" : "cancelled");
+    // the snapshot a stop saved: a final backup must be at least this new
+    const stopSnapshot = s.state === "archived" ? s.snapshotAt ?? s.stoppedAt : null;
+    if (stopSnapshot !== null && stopSnapshot !== b.lastStopAt) { b.lastStopAt = stopSnapshot; deps.save(c); }
+
+    if (!entitlement.active) {
+      if (b.endedAt === null) {
+        b.endedAt = now();
+        log(c, "plan_ended", "billing", "record", { until: entitlement.until });
+        if (c.origin && ["ready", "idle", "running"].includes(s.state)) await deps.home.plan?.(c.origin, secret(c), { cancelled: true }).catch(() => {});
+      }
+      if (["ready", "idle", "running"].includes(s.state)) return sleepNow(c, "plan", "billing");
+      if (s.state === "archived") {
+        c.status = "stopped";
+        if (!latestVerified(b) || latestVerified(b)!.snapshotAt < (s.snapshotAt ?? 0)) { if ((b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "plan_ended"); }
+        if (verdict.earliestAt !== null) { const kind = dueNotice({ now: now(), earliestAt: verdict.earliestAt, sent: b.notices.map(n => n.kind as NoticeKind) }); if (kind) notice(c, kind, verdict.earliestAt); }
+        // keep Boat's copy of the disk alive while we promise to keep it: a short resume restarts its 14-day clock
+        if (s.stoppedAt !== null && now() - s.stoppedAt >= settings.refreshAfterMs && verdict.earliestAt !== null && verdict.earliestAt - now() > DAY_MS) {
+          await provider.power(c.serverId, "on"); b.wakeStartedAt = now(); log(c, "refresh", "reconciler", "disk_age"); deps.save(c);
+        }
+      }
+      return;
+    }
+    if (b.endedAt !== null) {
+      b.endedAt = null; b.notices = b.notices.filter(n => !["ended", "left_30", "left_7", "left_1"].includes(n.kind));
+      log(c, "plan_renewed", "billing", "record"); notice(c, "resumed", null);
+      if (b.deleteRequest && b.deleteRequest.cancelledAt === null) { b.deleteRequest.cancelledAt = now(); b.deleteRequest.tokenHash = null; log(c, "delete_cancelled", "billing", "plan_renewed"); }
+      if (c.status === "stopped") { c.status = "sleeping"; c.wantPower = "on"; }
+      if (c.origin) await deps.home.plan?.(c.origin, secret(c), { cancelled: false }).catch(() => {});
+    }
+
+    const up = ["ready", "idle", "running"].includes(s.state);
+    if (s.state === "error") { await provider.power(c.serverId, "on").catch(() => {}); b.wakeStartedAt = now(); log(c, "resume", "reconciler", "boat_error"); deps.save(c); return; }
+    if (s.state === "archived") {
+      const due = b.nextDueAt !== null && b.nextDueAt - settings.wakeLeadMs <= now();
+      const stale = s.stoppedAt !== null && now() - s.stoppedAt >= settings.refreshAfterMs;
+      if (c.wantPower === "on" || due || stale) {
+        await provider.power(c.serverId, "on"); b.wakeStartedAt = now(); c.wantPower = "on";
+        log(c, "wake", c.wakeRequestedAt && now() - c.wakeRequestedAt < 5 * MINUTE ? "owner" : "reconciler", due ? "routine_due" : stale ? "disk_age" : "asked");
+        deps.save(c); return;
+      }
+      if (c.status !== "sleeping" && c.status !== "stopped") { c.status = "sleeping"; deps.save(c); }
+      const last = b.backups.at(-1);
+      if ((!last || now() - last.at >= settings.backupEveryMs) && (s.snapshotAt ?? 0) > (last?.snapshotAt ?? 0) && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "scheduled");
+      await retiredStep(c);
+      return;
+    }
+    if (!up) return;
+    if (!c.origin) c.origin = await provider.origin(c.serverId);
+    if (b.wakeStartedAt !== null || c.status !== "running") {
+      // a resume onto a held machine keeps the service the pre-stop hook stopped: start it again every time
+      const started = await provider.run(c.serverId, startCommand(c.origin), 120);
+      if (!started.ok || !(await deps.home.healthy(c.origin, secret(c)))) throw new RetryableCloudError("Cloud home not answering after a wake.");
+      log(c, "awake", "reconciler", "healthy", { ms: b.wakeStartedAt === null ? null : now() - b.wakeStartedAt });
+      c.status = "running"; c.powerSince = now(); b.wakeStartedAt = null; b.sleptAt = null; b.sleepReason = null; b.lastPowerAt = now(); b.leaseAt = now();
+      await provider.lease(c.serverId, settings.leaseSeconds);
+      deps.save(c); return;
+    }
+    if (c.wantPower === "off") return sleepNow(c, "owner", "owner");
+    if (b.leaseAt === null || now() - b.leaseAt >= Math.min(30 * MINUTE, settings.leaseSeconds * 500)) { await provider.lease(c.serverId, settings.leaseSeconds); b.leaseAt = now(); deps.save(c); }
+    if (b.lastPowerAt !== null && now() - b.lastPowerAt < settings.powerReadMs) return;
+    b.lastPowerAt = now();
+    const power = deps.home.power ? await deps.home.power(c.origin, secret(c), settings.idleMinutes).catch(() => null) : null;
+    if (!power) { deps.save(c); return; }
+    b.busy = power.busy; b.nextDueAt = power.nextDueAt;
+    const minAwake = c.powerSince + 2 * MINUTE;
+    if (power.idle && now() >= minAwake && deps.home.sleep) {
+      const agreed = await deps.home.sleep(c.origin, secret(c), settings.idleMinutes);
+      if (agreed.ok) { b.nextDueAt = agreed.nextDueAt ?? power.nextDueAt; return sleepNow(c, "idle", "reconciler"); }
+    }
+    // a home that never sleeps still gets a backup, from Boat's background snapshot
+    const last = b.backups.at(-1);
+    if ((!last || now() - last.at >= 2 * settings.backupEveryMs) && (b.lastBackupTryAt ?? 0) + 6 * HOUR <= now()) await backup(c, "awake_overdue").catch(() => false);
+    deps.save(c);
+  }
+
+  // owner's delete request: never acts at once; the reconciler deletes after the undo window, through the same verdict
+  const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
+  return {
+    reconcile,
+    verdict: (c: StoredCloud) => verdictFor(c),
+    backup: (c: StoredCloud) => backup(c, "manual"),
+    requestDelete(c: StoredCloud, link: (token: string) => string) {
+      const b = state(c);
+      if (c.status === "destroyed" || c.status === "destroying") throw new BoatLifecycleError(409, "unavailable");
+      if (deps.entitlement(c).active) throw new BoatLifecycleError(409, "billing_active");
+      const token = randomBytes(32).toString("base64url");
+      b.deleteRequest = { requestedAt: now(), tokenHash: hashToken(token), tokenExpiresAt: now() + HOUR, confirmedAt: null, executeAfter: null, cancelledAt: null };
+      log(c, "delete_asked", "owner", "email_sent");
+      deps.save(c);
+      notice(c, "delete_requested", null, link(token));
+    },
+    confirmDelete(c: StoredCloud, token: string) {
+      const b = state(c), request = b.deleteRequest;
+      if (!request || request.cancelledAt !== null || request.confirmedAt !== null || !request.tokenHash || request.tokenExpiresAt === null || request.tokenExpiresAt < now()) throw new BoatLifecycleError(409, "confirmation_required");
+      const given = Buffer.from(hashToken(token)), want = Buffer.from(request.tokenHash);
+      if (given.length !== want.length || !timingSafeEqual(given, want)) throw new BoatLifecycleError(409, "confirmation_required");
+      if (deps.entitlement(c).active) throw new BoatLifecycleError(409, "billing_active");
+      request.confirmedAt = now(); request.executeAfter = now() + settings.deleteDelayDays * DAY_MS; request.tokenHash = null; request.tokenExpiresAt = null;
+      log(c, "delete_confirmed", "owner", "email_link", { executeAfter: request.executeAfter });
+      deps.save(c);
+      notice(c, "delete_scheduled", request.executeAfter);
+      return request.executeAfter;
+    },
+    cancelDelete(c: StoredCloud) {
+      const b = state(c);
+      if (!b.deleteRequest || b.deleteRequest.cancelledAt !== null || b.deletion || c.status === "destroying" || c.status === "destroyed") throw new BoatLifecycleError(409, "unavailable");
+      b.deleteRequest.cancelledAt = now(); b.deleteRequest.tokenHash = null;
+      log(c, "delete_cancelled", "owner", "undo");
+      deps.save(c);
+      notice(c, "delete_cancelled", null);
+    },
+    setHold(c: StoredCloud, hold: boolean) { state(c).hold = hold; log(c, hold ? "hold" : "hold_released", "operator", "manual"); deps.save(c); },
+  };
+}
+export type BoatLifecycle = ReturnType<typeof createBoatLifecycle>;
