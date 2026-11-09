@@ -2448,6 +2448,24 @@ describe("RoutineManager", () => {
     expect(h.interruptedTurns).toEqual([]);
   });
 
+  it("stops a run that is still working when its routine is deleted", async () => {
+    const h = harness();
+    const routine = h.manager.create({
+      name: "Long digest",
+      prompt: "Summarize the inbox",
+      botId: "chief-1",
+      schedule: { type: "once", at: new Date(2026, 7, 17, 8, 1).getTime() },
+    });
+    h.setNow(routine.nextRunAt!);
+    await h.manager.tick();
+    const run = h.manager.listRuns()[0]!;
+    expect(run.status).toBe("running");
+
+    expect(h.manager.remove(routine.id)).toBe(true);
+    await vi.waitFor(() => expect(h.interruptedTurns).toEqual([{ botId: "chief-1", threadId: run.threadId }]));
+    expect(h.manager.listRuns()[0]).toMatchObject({ status: "cancelled", error: "Stopped because its routine was deleted" });
+  });
+
   it("fails a queued room goal when its room or coordinator disappears", async () => {
     const h = harness();
     h.setGoal("busy");
