@@ -5177,5 +5177,20 @@
   "mobile.unreachable.others": "Diğer kurulumlar",
   "composer.freeBackup": "{engine} tarafından sunulan ücretsiz yedek model yanıt veriyor",
   "composer.freeBackup.connect": "Kendi yapay zekânı bağla",
-  "createBot.creating": "Oluşturuluyor…"
+  "createBot.creating": "Oluşturuluyor…",
+  "elsewhere.botsOn.title": "Botların {name} üzerinde",
+  "elsewhere.why.moved": "Botlarını, sohbetlerini ve rutinlerini {name} üzerine taşıdın, bu yüzden Bu bilgisayarın kendine ait botu yok. Bu pencerenin boş görünmesinin nedeni bu.",
+  "elsewhere.why.cloud": "{name} senin Cloud'un ve botların orada yaşıyor. Bu pencere, kendine ait botu olmayan Bu bilgisayarı gösteriyor.",
+  "elsewhere.why.team": "{name} ekibinin Cloud'u ve botların orada yaşıyor. Bu pencere, kendine ait botu olmayan Bu bilgisayarı gösteriyor.",
+  "elsewhere.why.server": "{name} bağladığın bir sunucu ve botların orada yaşıyor. Bu pencere, kendine ait botu olmayan Bu bilgisayarı gösteriyor.",
+  "elsewhere.open": "{name} aç",
+  "elsewhere.startHere": "Bu bilgisayarda sıfırdan başla",
+  "elsewhere.others": "Diğer yerlerin",
+  "elsewhere.setUpOn.title": "{app} uygulamasını zaten {name} üzerinde kurdun",
+  "elsewhere.setUpOn.why": "Bu bilgisayar {app} için yeni, ama hesabının {name} üzerinde botları var. Yeniden kurmak yerine bağlan ve kaldığın yerden devam et.",
+  "elsewhere.connect": "{name} bağla",
+  "elsewhere.setUpHere": "Bunun yerine Bu bilgisayarı kur",
+  "elsewhere.dev.simulate": "Dev: VPS ile yeni kurulum",
+  "elsewhere.dev.stop": "Dev: simülasyonu durdur",
+  "elsewhere.dev.simulated": "Simüle edilmiş yeni kurulum"
 }

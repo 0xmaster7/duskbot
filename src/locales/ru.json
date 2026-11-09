@@ -6225,5 +6225,20 @@
   "mobile.unreachable.others": "Другие установки",
   "composer.freeBackup": "Отвечает бесплатная резервная модель от {engine}",
   "composer.freeBackup.connect": "Подключить свой ИИ",
-  "createBot.creating": "Создаём…"
+  "createBot.creating": "Создаём…",
+  "elsewhere.botsOn.title": "Ваши боты на {name}",
+  "elsewhere.why.moved": "Вы перенесли ботов, чаты и рутины на {name}, поэтому у Этого компьютера нет своих. Вот почему это окно выглядит пустым.",
+  "elsewhere.why.cloud": "Ваши боты живут на {name}, это ваш Cloud. Это окно показывает Этот компьютер, у которого своих нет.",
+  "elsewhere.why.team": "Ваши боты живут на {name}, это Cloud вашей команды. Это окно показывает Этот компьютер, у которого своих нет.",
+  "elsewhere.why.server": "Ваши боты живут на {name}, это подключённый вами сервер. Это окно показывает Этот компьютер, у которого своих нет.",
+  "elsewhere.open": "Открыть {name}",
+  "elsewhere.startHere": "Начать заново на Этом компьютере",
+  "elsewhere.others": "Другие ваши места",
+  "elsewhere.setUpOn.title": "Вы уже настроили {app} на {name}",
+  "elsewhere.setUpOn.why": "Этот компьютер впервые видит {app}, но у вашего аккаунта есть боты на {name}. Подключите его и продолжайте с того же места, а не настраивайте всё заново.",
+  "elsewhere.connect": "Подключить {name}",
+  "elsewhere.setUpHere": "Вместо этого настроить Этот компьютер",
+  "elsewhere.dev.simulate": "Dev: новая установка с VPS",
+  "elsewhere.dev.stop": "Dev: остановить симуляцию",
+  "elsewhere.dev.simulated": "Симуляция новой установки"
 }

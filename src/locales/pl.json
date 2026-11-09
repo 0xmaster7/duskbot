@@ -6218,5 +6218,20 @@
   "mobile.unreachable.others": "Inne instalacje",
   "composer.freeBackup": "Odpowiada darmowy model zapasowy od {engine}",
   "composer.freeBackup.connect": "Połącz swoją AI",
-  "createBot.creating": "Tworzenie…"
+  "createBot.creating": "Tworzenie…",
+  "elsewhere.botsOn.title": "Twoje boty są na {name}",
+  "elsewhere.why.moved": "Przeniesiono Twoje boty, czaty i rutyny na {name}, więc Ten komputer nie ma własnych. Dlatego to okno wygląda na puste.",
+  "elsewhere.why.cloud": "{name} to Twoja Cloud i tam żyją Twoje boty. To okno pokazuje Ten komputer, który nie ma własnych.",
+  "elsewhere.why.team": "{name} to Cloud Twojego zespołu i tam żyją Twoje boty. To okno pokazuje Ten komputer, który nie ma własnych.",
+  "elsewhere.why.server": "{name} to połączony przez Ciebie serwer i tam żyją Twoje boty. To okno pokazuje Ten komputer, który nie ma własnych.",
+  "elsewhere.open": "Otwórz {name}",
+  "elsewhere.startHere": "Zacznij od nowa na Tym komputerze",
+  "elsewhere.others": "Twoje inne miejsca",
+  "elsewhere.setUpOn.title": "{app} jest już skonfigurowany na {name}",
+  "elsewhere.setUpOn.why": "Ten komputer jest nowy w {app}, ale Twoje konto ma boty na {name}. Połącz go, aby kontynuować, zamiast konfigurować wszystko od nowa.",
+  "elsewhere.connect": "Połącz {name}",
+  "elsewhere.setUpHere": "Zamiast tego skonfiguruj Ten komputer",
+  "elsewhere.dev.simulate": "Dev: nowa instalacja z VPS",
+  "elsewhere.dev.stop": "Dev: zakończ symulację",
+  "elsewhere.dev.simulated": "Symulowana nowa instalacja"
 }

@@ -6806,5 +6806,20 @@
   "mobile.unreachable.trying": "正在重试...",
   "mobile.unreachable.next": "{seconds} 秒后重试",
   "mobile.unreachable.others": "其他安装",
-  "createBot.creating": "正在创建…"
+  "createBot.creating": "正在创建…",
+  "elsewhere.botsOn.title": "你的机器人在 {name}",
+  "elsewhere.why.moved": "你已把机器人、聊天和例行任务移到 {name}，所以这台电脑没有自己的机器人。这就是这个窗口看起来是空的原因。",
+  "elsewhere.why.cloud": "{name} 是你的 Cloud，你的机器人在那里。这个窗口显示的是没有自己机器人的这台电脑。",
+  "elsewhere.why.team": "{name} 是你团队的 Cloud，你的机器人在那里。这个窗口显示的是没有自己机器人的这台电脑。",
+  "elsewhere.why.server": "{name} 是你连接的服务器，你的机器人在那里。这个窗口显示的是没有自己机器人的这台电脑。",
+  "elsewhere.open": "打开 {name}",
+  "elsewhere.startHere": "在这台电脑上重新开始",
+  "elsewhere.others": "你的其他地方",
+  "elsewhere.setUpOn.title": "你已经在 {name} 上设置好 {app}",
+  "elsewhere.setUpOn.why": "这台电脑第一次使用 {app}，但你的账号在 {name} 上有机器人。连接即可接着使用，无需重新设置。",
+  "elsewhere.connect": "连接 {name}",
+  "elsewhere.setUpHere": "改为设置这台电脑",
+  "elsewhere.dev.simulate": "Dev：有 VPS 的全新安装",
+  "elsewhere.dev.stop": "Dev：停止模拟",
+  "elsewhere.dev.simulated": "模拟全新安装"
 }

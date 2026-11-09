@@ -6633,5 +6633,20 @@
   "mobile.unreachable.others": "다른 설치 환경",
   "composer.freeBackup": "{engine}의 무료 백업 모델이 답하고 있어요",
   "composer.freeBackup.connect": "내 AI 연결",
-  "createBot.creating": "만드는 중…"
+  "createBot.creating": "만드는 중…",
+  "elsewhere.botsOn.title": "봇은 {name}에 있어요",
+  "elsewhere.why.moved": "봇, 채팅, 루틴을 {name}(으)로 옮겨서 이 컴퓨터에는 자체 봇이 없어요. 그래서 이 창이 비어 보여요.",
+  "elsewhere.why.cloud": "{name}은(는) 내 Cloud이고 봇은 거기에 있어요. 이 창은 봇이 없는 이 컴퓨터를 보여주고 있어요.",
+  "elsewhere.why.team": "{name}은(는) 팀의 Cloud이고 봇은 거기에 있어요. 이 창은 봇이 없는 이 컴퓨터를 보여주고 있어요.",
+  "elsewhere.why.server": "{name}은(는) 연결한 서버이고 봇은 거기에 있어요. 이 창은 봇이 없는 이 컴퓨터를 보여주고 있어요.",
+  "elsewhere.open": "{name} 열기",
+  "elsewhere.startHere": "이 컴퓨터에서 새로 시작",
+  "elsewhere.others": "다른 장소",
+  "elsewhere.setUpOn.title": "이미 {name}에 {app}을(를) 설정했어요",
+  "elsewhere.setUpOn.why": "이 컴퓨터에서는 {app}이(가) 처음이지만 계정의 봇은 {name}에 있어요. 다시 설정하는 대신 연결해서 이어서 사용하세요.",
+  "elsewhere.connect": "{name} 연결",
+  "elsewhere.setUpHere": "대신 이 컴퓨터 설정",
+  "elsewhere.dev.simulate": "Dev: VPS가 있는 새 설치",
+  "elsewhere.dev.stop": "Dev: 시뮬레이션 중지",
+  "elsewhere.dev.simulated": "새 설치 시뮬레이션"
 }

@@ -6243,5 +6243,20 @@
   "mobile.unreachable.others": "ほかのインストール環境",
   "composer.freeBackup": "{engine}の無料バックアップモデルが応答しています",
   "composer.freeBackup.connect": "自分のAIを接続",
-  "createBot.creating": "作成中…"
+  "createBot.creating": "作成中…",
+  "elsewhere.botsOn.title": "ボットは {name} にあります",
+  "elsewhere.why.moved": "ボット、チャット、ルーティンを {name} に移したため、このコンピューターには自分のボットがありません。このウィンドウが空に見えるのはそのためです。",
+  "elsewhere.why.cloud": "{name} はあなたの Cloud で、ボットはそこにいます。このウィンドウはボットのないこのコンピューターを表示しています。",
+  "elsewhere.why.team": "{name} はチームの Cloud で、ボットはそこにいます。このウィンドウはボットのないこのコンピューターを表示しています。",
+  "elsewhere.why.server": "{name} はあなたが接続したサーバーで、ボットはそこにいます。このウィンドウはボットのないこのコンピューターを表示しています。",
+  "elsewhere.open": "{name} を開く",
+  "elsewhere.startHere": "このコンピューターで新しく始める",
+  "elsewhere.others": "ほかの場所",
+  "elsewhere.setUpOn.title": "{app} はすでに {name} にセットアップ済みです",
+  "elsewhere.setUpOn.why": "このコンピューターで {app} を使うのは初めてですが、あなたのアカウントには {name} にボットがあります。もう一度セットアップする代わりに接続して続きから始めましょう。",
+  "elsewhere.connect": "{name} に接続",
+  "elsewhere.setUpHere": "代わりにこのコンピューターをセットアップ",
+  "elsewhere.dev.simulate": "Dev: VPS ありの新規インストール",
+  "elsewhere.dev.stop": "Dev: シミュレーションを終了",
+  "elsewhere.dev.simulated": "新規インストールのシミュレーション"
 }
