@@ -148,9 +148,14 @@ export interface BotRowProps {
   onPin: (pinned: boolean) => void;
   /** Marks a fresh reply or failure seen without opening it. */
   onDismiss?: () => void;
+  /** Its ask is answered somewhere else on screen (the mini chat open under it). */
+  hideTray?: boolean;
 }
 
-export function BotRow({ bot: given, labels, lang, now, side, open, sent, mascot, recent = false, onOpen, onAct, onPin, onDismiss }: BotRowProps) {
+/** The island's rows open their mini chat in place rather than the app. */
+const opensInPlace = (side: BotRowProps["side"]) => side === "island";
+
+export function BotRow({ bot: given, labels, lang, now, side, open, sent, mascot, recent = false, onOpen, onAct, onPin, onDismiss, hideTray = false }: BotRowProps) {
   // a seen reply or failure rests like an idle bot, keeping only its line
   const bot = recent ? { ...given, status: "idle" as const, unread: false } : given;
   const fresh = !recent && (bot.status === "done" || bot.status === "error");
@@ -162,15 +167,15 @@ export function BotRow({ bot: given, labels, lang, now, side, open, sent, mascot
   const line = sent ? { text: say(labels, "sent"), kind: "none" as LineKind } : recent ? { text: given.line, kind: "recent" as LineKind } : rowLine(bot, labels);
   const busy = isBusy(bot.status);
   const time = (bot.status === "idle" && !recent) || busy ? "" : shortAgo(bot.at, now, lang, say(labels, "now"));
-  const label = [say(labels, "open", { name: bot.name }), bot.status === "idle" ? "" : say(labels, bot.status), line.text].filter(Boolean).join(". ");
+  const label = [opensInPlace(side) ? bot.name : say(labels, "open", { name: bot.name }), bot.status === "idle" ? "" : say(labels, bot.status), line.text].filter(Boolean).join(". ");
   const act = (next: AmbientAct) => { setField(null); onAct(next); };
   // in the dock the column beside a waiting row says what kind of ask it is, even with the words put away
   const Glyph = side !== "dock" ? null : ask ? ASK_ICON[bot.waits ?? "other"] : bot.status === "error" ? CircleAlert : null;
-  const tray = sent ? null : trayFor(bot, labels, field, setField, act, onOpen, onPin);
+  const tray = sent || hideTray ? null : trayFor(bot, labels, field, setField, act, onOpen, onPin);
 
   return (
     <div className="amb-row" data-side={side} data-status={bot.status} data-sent={sent || undefined}>
-      <button type="button" className="amb-row-main" tabIndex={side === "dock" ? -1 : 0} aria-label={label} onClick={onOpen}>
+      <button type="button" className="amb-row-main" tabIndex={side === "dock" ? -1 : 0} aria-label={label} aria-expanded={opensInPlace(side) ? hideTray : undefined} onClick={onOpen}>
         <span className="amb-row-top">
           <span className="amb-row-name">{bot.name}</span>
           {bot.unread && bot.status === "done" && <span className="amb-unread" aria-hidden />}
@@ -215,7 +220,7 @@ export function BotRow({ bot: given, labels, lang, now, side, open, sent, mascot
 }
 
 /** Height from nothing and back on the panel's own spring; opacity on its short clock. */
-function Reveal({ children, className }: { children: ReactNode; className: string }) {
+export function Reveal({ children, className }: { children: ReactNode; className: string }) {
   const reduced = useReducedMotion() === true;
   return (
     <motion.div
@@ -229,7 +234,7 @@ function Reveal({ children, className }: { children: ReactNode; className: strin
   );
 }
 
-function trayFor(
+export function trayFor(
   bot: AmbientBot, labels: AmbientLabels, field: "reply" | "answer" | null, setField: (next: "reply" | "answer" | null) => void,
   act: (next: AmbientAct) => void, onOpen: () => void, onPin: (pinned: boolean) => void,
 ): ReactNode {
@@ -278,19 +283,25 @@ function trayFor(
   return null;
 }
 
-function TextField({ label, send, focus = true, onPin, onCancel, onSend }: {
+export function TextField({ label, send, focus = true, onPin, onCancel, onSend }: {
   label: string; send: string; focus?: boolean; onPin: (pinned: boolean) => void; onCancel: () => void; onSend: (text: string) => void;
 }) {
   const [text, setText] = useState("");
+  const [focused, setFocused] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (focus) input.current?.focus({ preventScroll: true });
-    return () => onPin(false);
-  }, [focus, onPin]);
+  }, [focus]);
+  // an unsent draft holds the surface open (and keeps the keyboard); an empty field, or one just sent, does not
+  const drafting = focused && text.trim().length > 0;
+  useEffect(() => { onPin(drafting); }, [drafting, onPin]);
+  useEffect(() => () => onPin(false), [onPin]);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const message = text.trim();
-    if (message) onSend(message);
+    if (!message) return;
+    onSend(message);
+    setText("");
   };
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key !== "Escape") return;
@@ -304,8 +315,8 @@ function TextField({ label, send, focus = true, onPin, onCancel, onSend }: {
         className="amb-reply-input"
         value={text}
         onChange={(event) => setText(event.target.value)}
-        onFocus={() => onPin(true)}
-        onBlur={() => onPin(false)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         onKeyDown={onKeyDown}
         aria-label={label}
         placeholder={label}

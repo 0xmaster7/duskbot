@@ -11,7 +11,7 @@ import { Island } from "./Island";
 import { IslandShowcase } from "./IslandShowcase";
 import { BotMark } from "./shared";
 import { ambientLabels } from "./labels";
-import type { AmbientBot, AmbientBridge, AmbientSnapshot, AmbientStatus, DockLayout, IslandLayout } from "./types";
+import type { AmbientBot, AmbientBridge, AmbientMessage, AmbientSnapshot, AmbientStatus, DockLayout, IslandLayout } from "./types";
 import "../font-faces";
 
 const params = new URLSearchParams(location.search);
@@ -25,8 +25,20 @@ const min = 60_000;
 
 const make = (id: string, name: string, color: AmbientBot["color"], body: string, fields: Partial<AmbientBot> = {}): AmbientBot => ({
   id, threadId: `t-${id}`, name, color, body, face: null, avatar: null, status: "idle", detail: "", line: "", at: now - 3 * 60 * min, unread: false, asks: 0,
-  approval: null, waits: null, question: null, step: null, ...fields,
+  approval: null, waits: null, question: null, step: null, chat: CHATS[id] ?? [], ...fields,
 });
+const said = (...lines: Array<[AmbientMessage["from"], string]>): AmbientMessage[] => lines.map(([from, text], index) => ({ id: `c${index}`, from, text, at: now - (lines.length - index) * 4 * min }));
+const CHATS: Record<string, AmbientMessage[]> = {
+  nova: said(["you", "Find me a flight to Lisbon on the 14th, morning if possible"], ["bot", "On it. I'll compare the direct ones first and check bag fees."]),
+  quill: said(["you", "Can you turn the release notes into a launch post?"], ["bot", "Here's a first draft: \"Faster turns, a calmer dock, and answers right where you are.\" I'd like to run the build to check the screenshots."]),
+  rivet: said(["you", "The footer overlaps the cookie banner on mobile"], ["bot", "Fixed: the banner now sits above the footer, and I removed the old fixed positioning."], ["bot", "The footer is fixed and deployed. I also cleaned up the old styles."]),
+  tally: said(["you", "How are we doing on the October budget?"]),
+  echo: said(["you", "Check the replies on my launch thread"], ["bot", "Couldn't reach Gmail: the sign-in expired."]),
+  juno: said(["you", "Book the flight home on Sunday"], ["bot", "Found two that work: 18:10 and 20:45, both direct. Going with 18:10 unless you'd rather the later one."]),
+  lark: said(["you", "Sort my inbox"], ["bot", "I need to sign in to Gmail to do that."]),
+  moss: said(["you", "Remind me what we decided about the garden"], ["bot", "You picked the raised beds on the south side, and tomatoes in the first row."]),
+  wren: [],
+};
 const base: AmbientBot[] = [
   make("nova", "Nova", "blue", "blob", { line: "Booked the 9:40 to Lisbon and sent the receipt." }),
   make("quill", "Quill", "purple", "sparkle", { line: "Draft of the launch post is in your docs." }),

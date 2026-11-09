@@ -48,3 +48,65 @@ it("puts the question first with its choices, stops a working bot, and says how 
   expect(rows[1]!.querySelector('[aria-label="Stop Echo"]')).toBeNull();
   await act(async () => root.unmount());
 });
+
+it("opens a row into that bot's mini chat in place, with its messages and a reply field, and never the app", async () => {
+  let feed: (snapshot: AmbientSnapshot) => void = () => {};
+  const acts: AmbientAct[] = [];
+  const opened: string[] = [];
+  const bridge: AmbientBridge = {
+    surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open: (botId) => opened.push(botId), act: (next) => acts.push(next), order() {}, ready() {},
+  };
+  const host = document.body.appendChild(document.createElement("div"));
+  const root = createRoot(host);
+  await act(async () => root.render(createElement(Island, { bridge, forceOpen: true })));
+  await act(async () => feed({ lang: "en", labels: { replyTo: "Reply to {name}" }, bots: [
+    bot("Nova", { status: "working", detail: "Comparing flights", chat: [{ id: "m1", from: "you", text: "Find me a flight", at: 1 }] }),
+  ] }));
+  await act(async () => host.querySelector<HTMLButtonElement>(".amb-row-main")!.click());
+  expect(opened).toEqual([]);
+  expect([...host.querySelectorAll(".amb-island-chat .amb-bubble-msg")].map((bubble) => bubble.textContent)).toEqual(["Find me a flight"]);
+  expect(host.querySelector(".amb-island-chat .amb-chat-note")?.textContent).toBe("Comparing flights");
+  expect(host.querySelector(".amb-island-chat .amb-reply-input")?.getAttribute("aria-label")).toBe("Reply to Nova");
+  // back to every bot
+  await act(async () => host.querySelector<HTMLButtonElement>(".amb-back")!.click());
+  expect(host.querySelector(".amb-island-chat")).toBeNull();
+  expect(host.querySelector(".amb-row-main")).not.toBeNull();
+  // the notch is never outlined while it is open: its hit target is gone
+  expect(host.querySelector(".amb-island-hit")).toBeNull();
+  await act(async () => root.unmount());
+});
+
+it("closes gently: a pointer in the margin around it or back within the leave delay keeps it open", async () => {
+  let feed: (snapshot: AmbientSnapshot) => void = () => {};
+  const bridge: AmbientBridge = {
+    surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act() {}, order() {}, ready() {},
+  };
+  const host = document.body.appendChild(document.createElement("div"));
+  const root = createRoot(host);
+  await act(async () => root.render(createElement(Island, { bridge })));
+  await act(async () => feed({ lang: "en", labels: {}, bots: [bot("Nova", { status: "working" })] }));
+  const stage = host.querySelector(".amb-stage")!;
+  const move = (x: number, y: number) => act(async () => { document.dispatchEvent(new MouseEvent("mousemove", { clientX: x, clientY: y })); });
+  const wait = (ms: number) => act(async () => new Promise((resolve) => setTimeout(resolve, ms)));
+  // the island sits at the top middle of its 560 wide stage; the open panel is 432 wide
+  await move(280, 12);
+  expect(stage.hasAttribute("data-open")).toBe(true);
+  await wait(400);
+  // just past the panel's side, inside the margin: still on it
+  await move(280 + 432 / 2 + 10, 40);
+  await wait(400);
+  expect(stage.hasAttribute("data-open")).toBe(true);
+  // away, and back before the delay runs out: nothing happened
+  await move(10, 490);
+  await wait(150);
+  await move(280, 40);
+  await wait(400);
+  expect(stage.hasAttribute("data-open")).toBe(true);
+  // away for good: open through the delay, then closed
+  await move(10, 490);
+  await wait(200);
+  expect(stage.hasAttribute("data-open")).toBe(true);
+  await wait(200);
+  expect(stage.hasAttribute("data-open")).toBe(false);
+  await act(async () => root.unmount());
+});

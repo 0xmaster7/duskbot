@@ -18,9 +18,9 @@ const NOTCH_FALLBACK_HEIGHT = 37;
  * with a 37 pt menu bar): erring wide keeps the island from ever being smaller than the notch. */
 const NOTCH_ASPECT = 5.2;
 
-/** The bot dock: a column of mascots `column` wide that opens leftwards to `open` wide, rows `cell` tall. Its window runs
+/** The bot dock: a column of mascots `column` wide, rows `cell` tall, in a window `open` wide so its chat card fits beside it. Its window runs
  * `overhang` past the screen's edge, so no rounding of the window's place or of the slide ever shows a seam there. */
-export const DOCK = Object.freeze({ cell: 56, tile: 36, column: 64, open: 348, pad: 8, ear: 18, sliver: 6, margin: 28, overhang: 4 });
+export const DOCK = Object.freeze({ cell: 56, tile: 36, column: 64, open: 404, pad: 8, ear: 18, sliver: 6, margin: 28, overhang: 4 });
 export const DISPLAY_CHOICES = Object.freeze(["active", "built-in", "main"]);
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
