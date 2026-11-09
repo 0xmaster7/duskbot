@@ -83,8 +83,11 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
   }
   function kick() { void service.reconcile().catch(() => {}); }
   function retry(c: StoredCloud, error: unknown) {
+    // the backend's own timing first (a provider limit backs off and never counts against the cloud, even in setup)
+    const backendAt = c.backend ? managed?.retryAt(c, error) ?? null : null;
+    if (backendAt !== null) { c.nextAttemptAt = backendAt; save(c); return; }
     if (c.backend && c.status !== "provisioning") {
-      c.attempts++; c.nextAttemptAt = managed?.retryAt(c, error) ?? now() + Math.min(15_000 * 2 ** Math.min(c.attempts - 1, 6), 900_000);
+      c.attempts++; c.nextAttemptAt = now() + Math.min(15_000 * 2 ** Math.min(c.attempts - 1, 6), 900_000);
       if (c.attempts === 8) console.warn(`clouds: managed cloud ${c.id} keeps failing its lifecycle step`);
       save(c); return;
     }

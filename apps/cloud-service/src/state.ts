@@ -46,6 +46,11 @@ export interface BoatCloudState {
   /** the opaque public label of its user-facing origin, and the machine's own hosted URL behind it */
   label?: string | null;
   upstream?: string | null;
+  /** the provider has answered "too many requests" this many times in a row */
+  limitStreak?: number;
+  /** the machine's stop has been failing since this time (it stays up, stopping); alerted once past 15 minutes */
+  stopFailingSince?: number | null;
+  stopFailingAlerted?: boolean;
   /** a size Boat refused (shrinking below the data, say), not tried again */
   resizeBlocked?: string | null;
 }

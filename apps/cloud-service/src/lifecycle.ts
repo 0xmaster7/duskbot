@@ -4,7 +4,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { linkKeys } from "../../dashboard/server/clouds/bootstrap.ts";
-import { BoatError, type BoatProvider } from "./boat.ts";
+import { BoatError, ProviderLimitError, type BoatProvider } from "./boat.ts";
 import { backupKey, BOAT_HOME_VOLUME, BOAT_PACKAGE_FILE, BOAT_RESTORE_FILE, boatBootFile, bootContent, boatSetupScript, claimBootFile, installCommand, RESTORE_COMMAND, startCommand } from "./home.ts";
 import { verifyRelease, type ReleaseKey } from "./release-signing.ts";
 import { boatBackupKey, homeVolumeProblem, type BackupStore } from "./backups.ts";
@@ -15,7 +15,7 @@ import { ManagedCloudError } from "../../dashboard/server/clouds/managed.ts";
 import type { HomeClient, StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import type { BoatCloudState } from "./state.ts";
 
-const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE;
+const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, REFRESH_SPACING_MS = 10 * MINUTE;
 
 export interface BoatSettings {
   /** minutes without use before a home is asked to sleep (OMB_MANAGED_IDLE_MINUTES) */
@@ -52,7 +52,7 @@ export interface BoatSettings {
 }
 export const DEFAULT_BOAT_SETTINGS: BoatSettings = {
   idleMinutes: 15, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, refreshAfterMs: 11 * DAY_MS, retentionDays: DEFAULT_RETENTION_DAYS,
-  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 2 * MINUTE, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
+  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 5 * MINUTE, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
 /** settings from OMB_MANAGED_* (index.ts `managedEnv` maps the older names onto these) */
@@ -83,6 +83,7 @@ export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopba
     backupEveryMs: number("OMB_MANAGED_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
     backupKeep: number("OMB_MANAGED_BACKUP_KEEP", 2, 30, 3),
     refreshAfterMs: number("OMB_MANAGED_REFRESH_DAYS", 3, 13, 11) * DAY_MS,
+    wakeLeadMs: number("OMB_MANAGED_WAKE_LEAD_MINUTES", 1, 30, 5) * MINUTE,
     retentionDays: number("OMB_MANAGED_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
     deleteDelayDays: number("OMB_MANAGED_DELETE_DELAY_DAYS", DEFAULT_DELETE_DELAY_DAYS, 90, DEFAULT_DELETE_DELAY_DAYS),
     backupTailMs: number("OMB_MANAGED_BACKUP_TAIL_DAYS", 7, 365, 30) * DAY_MS,
@@ -147,6 +148,30 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     if (!settings.template || !settings.templateSignature) return null;
     try { return verifyRelease(settings.templateSignature, { kind: "template", name: settings.template }, deps.releaseKeys).version; } catch { return null; }
   })();
+  // the provider purges a disk 14 days after its stop, and starts are budgeted per day: one keep-alive start per 10
+  // minutes across the deployment, the oldest stopped disk first (144 a day at most)
+  let lastRefreshAt = 0;
+  function mayRefresh(c: StoredCloud, stoppedAt: number | null): boolean {
+    if (stoppedAt === null || now() - stoppedAt < settings.refreshAfterMs || now() - lastRefreshAt < REFRESH_SPACING_MS) return false;
+    const due = deps.clouds().filter(x => x.backend && x.id !== c.id && x.serverId && x.managed?.lastStopAt != null && (x.status === "sleeping" || x.status === "stopped")
+      && now() - x.managed.lastStopAt >= settings.refreshAfterMs);
+    if (due.some(x => (x.managed!.lastStopAt ?? Infinity) < stoppedAt)) return false;
+    lastRefreshAt = now();
+    return true;
+  }
+  /** a stop the provider could not finish (its pre-stop hook timed out, say) leaves the machine up with the stop failing:
+   *  it is stopping, never awake, never started again by us and never deleted; past 15 minutes the operator hears */
+  function stopFailing(c: StoredCloud, failing: boolean): boolean {
+    const b = state(c);
+    if (!failing) { if (b.stopFailingSince) { log(c, "stop_recovered", "reconciler", "provider"); b.stopFailingSince = null; b.stopFailingAlerted = false; deps.save(c); } return false; }
+    if (!b.stopFailingSince) { b.stopFailingSince = now(); log(c, "stop_failing", "reconciler", "provider"); }
+    else if (now() - b.stopFailingSince >= 15 * MINUTE && !b.stopFailingAlerted) {
+      b.stopFailingAlerted = true; log(c, "stop_failing_long", "reconciler", "operator_decides");
+      console.warn(`managed: ALERT cloud ${c.id}: its machine has failed to stop for 15 minutes; it is left as it is`);
+    }
+    c.nextAttemptAt = now() + 30_000; deps.save(c);
+    return true;
+  }
   /** a hosted home serves no client without a fresh entitlement: pushed when it comes up, refreshed hourly */
   async function entitle(c: StoredCloud, force: boolean) {
     if (!deps.home.entitle || (!force && c.entitledAt !== undefined && now() - c.entitledAt < HOUR)) return;
@@ -329,6 +354,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
 
   async function deleteStep(c: StoredCloud, verdict: Extract<Verdict, { delete: true }>) {
     const b = state(c);
+    if (c.serverId && !b.deletion && (await provider.sandbox(c.serverId))?.stopStatus === "failing") { log(c, "delete_waiting", "reconciler", "stop_failing"); return; }
     if (b.deletion && b.deletion.sent === false && (await provider.sandbox(b.deletion.serverId)) !== null) {
       // a DELETE whose answer never came, and the sandbox is still there: asked again only if the verdict still says so
       if (!rereadStored(c)) return;
@@ -408,7 +434,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
         continue;
       }
       // its disk is still the only full copy of that state on Boat: keep Boat's 14-day clock from running out
-      if (s.stoppedAt !== null && now() - s.stoppedAt >= settings.refreshAfterMs) { await provider.power(old.serverId, "on"); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
+      if (mayRefresh(c, s.stoppedAt)) { await provider.power(old.serverId, "on"); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
     }
   }
 
@@ -455,7 +481,14 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     }
   }
 
+  /** one step; a step that ran through ends a streak of provider limits */
   async function reconcile(c: StoredCloud): Promise<void> {
+    await reconcileStep(c);
+    const b = state(c);
+    if (b.limitStreak) { b.limitStreak = 0; deps.save(c); }
+  }
+
+  async function reconcileStep(c: StoredCloud): Promise<void> {
     const b = state(c);
     if (b.backups.length) rekeyBackups(c);
     if (c.status === "checkout") return;
@@ -478,6 +511,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     if (!s || s.state === "cancelled") { if (await confirmLost(c)) return recover(c, "missing"); return; }
     if (b.missingSince) { log(c, "missing_cleared", "reconciler", "answered"); b.missingSince = null; b.missingChecks = 0; deps.save(c); }
     if (s.dataExpired) return recover(c, "data_expired");
+    if (stopFailing(c, s.stopStatus === "failing")) return;
     // the snapshot a stop saved: a final backup must be at least this new
     const stopSnapshot = s.state === "archived" ? s.snapshotAt ?? s.stoppedAt : null;
     if (stopSnapshot !== null && stopSnapshot !== b.lastStopAt) { b.lastStopAt = stopSnapshot; deps.save(c); }
@@ -490,7 +524,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
         if (!latestVerified(b) || latestVerified(b)!.snapshotAt < (s.snapshotAt ?? 0)) { if ((b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "plan_ended"); }
         await retiredStep(c);
         // keep Boat's copy of the disk alive while we promise to keep it: a short resume restarts its 14-day clock
-        if (s.stoppedAt !== null && now() - s.stoppedAt >= settings.refreshAfterMs && verdict.earliestAt !== null && verdict.earliestAt - now() > DAY_MS) {
+        if (verdict.earliestAt !== null && verdict.earliestAt - now() > DAY_MS && mayRefresh(c, s.stoppedAt)) {
           await provider.power(c.serverId, "on"); b.wakeStartedAt = now(); log(c, "refresh", "reconciler", "disk_age"); deps.save(c);
         }
       }
@@ -522,7 +556,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     }
     if (s.state === "archived") {
       const due = b.nextDueAt !== null && b.nextDueAt - settings.wakeLeadMs <= now();
-      const stale = s.stoppedAt !== null && now() - s.stoppedAt >= settings.refreshAfterMs;
+      const stale = c.wantPower !== "on" && !due && mayRefresh(c, s.stoppedAt);
       if (c.wantPower === "on" || due || stale) {
         await provider.power(c.serverId, "on"); b.wakeStartedAt = now(); c.wantPower = "on";
         log(c, "wake", c.wakeRequestedAt && now() - c.wakeRequestedAt < 5 * MINUTE ? "owner" : "reconciler", due ? "routine_due" : stale ? "disk_age" : "asked");
@@ -626,7 +660,16 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     resizeNow(c: StoredCloud) { state(c).resizeAskedAt = now(); c.nextAttemptAt = 0; deps.save(c); },
     resizing(c: StoredCloud) { return c.desiredSpec.vcpu !== c.spec.vcpu || c.desiredSpec.ramGb !== c.spec.ramGb || c.desiredSpec.diskGb !== c.spec.diskGb || state(c).wakeStartedAt !== null; },
     /** when a failed step runs again; null: the clouds service's own backoff */
-    retryAt(_c: StoredCloud, _error: unknown): number | null { return null; },
+    /** a provider limit (429) is no failure: backed off 30 s doubling to 5 minutes (or as long as it asks), never counted */
+    retryAt(c: StoredCloud, error: unknown): number | null {
+      const b = state(c);
+      if (!(error instanceof ProviderLimitError)) { if (b.limitStreak) { b.limitStreak = 0; deps.save(c); } return null; }
+      b.limitStreak = (b.limitStreak ?? 0) + 1;
+      if (b.limitStreak === 1) log(c, "provider_limit", "reconciler", "rate_limited");
+      const backoff = Math.min(5 * MINUTE, 30_000 * 2 ** Math.min(b.limitStreak - 1, 4));
+      deps.save(c);
+      return now() + Math.max(backoff, Math.min(error.retryAfterMs ?? 0, 15 * MINUTE));
+    },
     setHold(c: StoredCloud, hold: boolean) { state(c).hold = hold; log(c, hold ? "hold" : "hold_released", "operator", "manual"); deps.save(c); },
   };
 }

@@ -19,6 +19,14 @@ export const BOAT_HOME_VOLUME = "__system__/data";
 const ROOT = "/usr/lib/openmausbot", APP = `${ROOT}/app`, BIN = `${ROOT}/bin`, NODE_DIR = `${ROOT}/node`;
 export const BOAT_NODE_BIN = `${NODE_DIR}/bin/node`;
 export const BOAT_CONTROL = `${BIN}/omb-home`;
+/** set by the pre-stop hook while the provider saves the disk; the home's unit will not start while it exists */
+export const PRE_STOP_FLAG = "/run/openmausbot/pre-stop";
+/** merges cgroup-parent into docker's daemon.json; exits 0 only when it changed the file */
+const DOCKER_SLICE = `const fs = require("node:fs"), p = "/etc/docker/daemon.json";
+let c = {}; try { c = JSON.parse(fs.readFileSync(p, "utf8")); } catch {}
+if (c["cgroup-parent"] === "omb-bots.slice") process.exit(1);
+c["cgroup-parent"] = "omb-bots.slice";
+fs.writeFileSync(p, JSON.stringify(c, null, 2) + "\\n");`;
 
 export interface BoatBootInput { cloudId: string; adminOrigin: string; secret: string; dashboardUrl: string; link: DashboardLink }
 
@@ -71,6 +79,8 @@ Description=OpenMausBot My Cloud home
 After=network-online.target omb-docker-gate.service
 Wants=network-online.target
 ConditionPathExists=${APP}/dist-server/cloud-home-start.js
+# while the provider saves the disk nothing may reopen the databases (omb-home start clears it)
+ConditionPathExists=!${PRE_STOP_FLAG}
 
 [Service]
 EnvironmentFile=/etc/openmausbot/home.env
@@ -78,7 +88,13 @@ ExecStart=${BOAT_NODE_BIN} ${APP}/dist-server/cloud-home-start.js
 Restart=always
 RestartSec=3
 KillMode=mixed
-TimeoutStopSec=45
+TimeoutStopSec=35
+# a runaway agent build is killed before the home: the home and its engines stay under 90% of memory, the bot
+# computers' containers under omb-bots.slice, and the kernel picks anything else before this unit
+MemoryHigh=80%
+MemoryMax=90%
+OOMScoreAdjust=-500
+OOMPolicy=continue
 
 [Install]
 WantedBy=multi-user.target
@@ -109,9 +125,41 @@ IPAddressDeny=any
 [Install]
 WantedBy=multi-user.target
 `;
-  // Boat runs ~/.boat/pre-stop before every stop it saves (60 s at most): the home closes its databases first
+  // Boat runs ~/.boat/pre-stop before every stop it saves (60 s at most): the home closes its databases first. The flag
+  // keeps systemd from starting it again during the save; if the provider then cancels the stop, or resumes the machine
+  // held in memory with nobody to start it, the timer brings the home back after 15 minutes of uptime.
   const preStop = `#!/bin/bash
-sudo -n systemctl stop omb-home.service >/dev/null 2>&1 || true
+sudo -n install -d -o root -g root -m 0755 /run/openmausbot
+sudo -n touch ${PRE_STOP_FLAG}
+sudo -n systemd-run --quiet --unit=omb-stop-cancelled --on-active=15min --timer-property=AccuracySec=30s ${BOAT_CONTROL} resume-if-cancelled >/dev/null 2>&1 || true
+sudo -n timeout 40 systemctl stop omb-home.service >/dev/null 2>&1 || sudo -n systemctl kill -s KILL omb-home.service >/dev/null 2>&1 || true
+`;
+  // compressed swap at half the memory, so a burst does not kill anything; best effort (some kernels have no zram)
+  const zram = `#!/bin/sh
+modprobe zram num_devices=1 2>/dev/null || exit 0
+[ -b /dev/zram0 ] || exit 0
+grep -q /dev/zram0 /proc/swaps && exit 0
+echo zstd > /sys/block/zram0/comp_algorithm 2>/dev/null || true
+echo "$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) / 2 ))K" > /sys/block/zram0/disksize
+mkswap /dev/zram0 >/dev/null && swapon -p 100 /dev/zram0
+`;
+  const zramUnit = `[Unit]
+Description=OpenMausBot compressed swap
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=${BIN}/omb-zram
+
+[Install]
+WantedBy=multi-user.target
+`;
+  const botsSlice = `[Unit]
+Description=OpenMausBot bot computers
+
+[Slice]
+MemoryHigh=65%
+MemoryMax=75%
 `;
   const moveBoot = `const fs = require("node:fs");
 const boot = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
@@ -146,8 +194,11 @@ if [ ! -x ${BIN}/caddy ]; then
   tar -xzf "$work/caddy.tar.gz" -C "$work" caddy
   sudo install -o root -g root -m 0755 "$work/caddy" ${BIN}/caddy
 fi
-sudo apt-get update -qq >/dev/null 2>&1 || true
-sudo apt-get install -y -qq bubblewrap socat python3 poppler-utils unzip util-linux >/dev/null 2>&1 || true
+# a template already has them: skip the network then
+if ! command -v bwrap >/dev/null || ! command -v socat >/dev/null || ! command -v python3 >/dev/null || ! command -v pdftotext >/dev/null || ! command -v unzip >/dev/null; then
+  sudo apt-get update -qq >/dev/null 2>&1 || true
+  sudo apt-get install -y -qq bubblewrap socat python3 poppler-utils unzip util-linux >/dev/null 2>&1 || true
+fi
 id maus >/dev/null 2>&1 || sudo useradd --system --home-dir /data --shell /bin/bash --user-group maus
 id omb-docker >/dev/null 2>&1 || sudo useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin --gid maus omb-docker
 getent group docker >/dev/null 2>&1 && sudo usermod -aG docker omb-docker
@@ -176,7 +227,19 @@ install -d -m 0700 /home/user/.boat
 install -m 0700 /dev/stdin /home/user/.boat/pre-stop <<'OMB_PRESTOP'
 ${preStop}OMB_PRESTOP
 printf '%s\\n' /tmp /var/tmp /var/cache/apt > /home/user/.boatignore
+sudo install -o root -g root -m 0755 /dev/stdin ${BIN}/omb-zram <<'OMB_ZRAM'
+${zram}OMB_ZRAM
+sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-zram.service <<'OMB_ZRAMUNIT'
+${zramUnit}OMB_ZRAMUNIT
+sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-bots.slice <<'OMB_SLICE'
+${botsSlice}OMB_SLICE
 sudo systemctl daemon-reload
+sudo systemctl enable --now omb-zram.service >/dev/null 2>&1 || true
+# bot computers' containers go under omb-bots.slice (merged into any daemon.json there; docker restarts once)
+if [ -d /etc/docker ] || command -v dockerd >/dev/null; then
+  sudo install -d -m 0755 /etc/docker
+  if sudo ${BOAT_NODE_BIN} -e ${shellQuote(DOCKER_SLICE)}; then sudo systemctl restart docker >/dev/null 2>&1 || true; fi
+fi
 `;
 }
 
@@ -234,6 +297,11 @@ case "\${1:-}" in
     ${BOAT_NODE_BIN} -e "$verify" ${ROOT}/template.sig "$(tree "$app")" template || { echo "bad template"; exit 2; }
     echo verified ;;
   tree) tree "$app" ;;
+  resume-if-cancelled)
+    # the stop this flag guarded never came (cancelled, or a resume that kept the machine in memory): start again
+    if [ -f ${PRE_STOP_FLAG} ] && [ $(( $(date +%s) - $(stat -c %Y ${PRE_STOP_FLAG}) )) -ge 300 ]; then
+      rm -f ${PRE_STOP_FLAG}; systemctl start omb-home.service; echo resumed
+    else echo kept; fi ;;
   start)
     origin="$2"; upstream="\${3:-$2}"
     [[ "$origin" =~ ^https://[a-z0-9.-]+$ ]] || { echo "bad origin"; exit 2; }
@@ -241,6 +309,7 @@ case "\${1:-}" in
     sed -i "/^OMB_PUBLIC_URL=/d; /^OMB_CLOUD_UPSTREAM_HOST=/d" /etc/openmausbot/home.env
     echo "OMB_PUBLIC_URL=$origin" >> /etc/openmausbot/home.env
     echo "OMB_CLOUD_UPSTREAM_HOST=\${upstream#https://}" >> /etc/openmausbot/home.env
+    rm -f ${PRE_STOP_FLAG}; systemctl stop omb-stop-cancelled.timer >/dev/null 2>&1 || true
     systemctl enable omb-home.service >/dev/null 2>&1
     if [ -S /var/run/docker.sock ] && [ -f "$app/link/docker-gate.mjs" ]; then systemctl enable --now omb-docker-gate.service >/dev/null 2>&1 || true; fi
     systemctl restart omb-home.service
@@ -248,7 +317,7 @@ case "\${1:-}" in
     echo "not answering"; exit 3 ;;
   stop) systemctl stop omb-home.service; echo stopped ;;
   status) systemctl is-active omb-home.service || true; [ -f ${ROOT}/installed ] && cat ${ROOT}/installed || echo none ;;
-  *) echo "usage: omb-home install|restore|start|stop|status|verify-template|tree"; exit 2 ;;
+  *) echo "usage: omb-home install|restore|start|stop|status|verify-template|tree|resume-if-cancelled"; exit 2 ;;
 esac
 `;
 }

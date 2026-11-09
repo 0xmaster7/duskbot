@@ -10,7 +10,7 @@ export interface FakeSandbox {
   id: string; name: string; state: string; type: string; labels: Record<string, string>; ttlSeconds: number | null;
   createdAt: number; stoppedAt: number | null; dataExpiredAt: number | null; setupStatus: string | null; setupPolls: number; bootPolls: number;
   snapshotCompletedAt: number | null; files: Map<string, Buffer>; volume: Map<string, Buffer>; snapshots: Array<{ id: string; at: number; volume: Map<string, Buffer> }>;
-  hosted: string | null; stop: { id: string; status: string } | null;
+  hosted: string | null; stop: { id: string; status: string } | null; refuseStop?: boolean;
 }
 export interface FakeCommand { sandbox: FakeSandbox; command: string }
 
@@ -20,7 +20,8 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
   const operations = new Map<string, { id: string; kind: string; targetId: string; status: string }>();
   const requests: Array<{ method: string; path: string; body: unknown }> = [];
   const alphabet = "23456789abcdefghjkmnpqrstuvwxyz";
-  let failNext = 0, sequence = 0;
+  let failNext = 0, limitNext = 0, sequence = 0;
+  const named = new Map<string, { name: string; status: string; createdAt: number; polls: number }>();
   const id = () => `bx_${Array.from(randomBytes(8), b => alphabet[b % alphabet.length]).join("")}`;
   const iso = (t: number | null) => t === null ? null : new Date(t).toISOString();
   function view(s: FakeSandbox) {
@@ -63,6 +64,22 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
     const path = url.pathname.replace(/^\/api\/v1/, "");
     requests.push({ method, path: `${path}${url.search}`, body });
     if (failNext > 0) { failNext--; return error(res, 503, "unavailable"); }
+    if (limitNext > 0) { limitNext--; res.writeHead(429, { "content-type": "application/json", "retry-after": "40" }); res.end(JSON.stringify({ ok: false, code: "rate_limited" })); return; }
+    if (path === "/named-snapshots" && method === "GET") return send(res, 200, { ok: true, snapshots: [...named.values()].map(x => ({ name: x.name, status: x.status, createdAt: iso(x.createdAt) })) });
+    if (path === "/named-snapshots" && method === "POST") {
+      if (!sandboxes.has(body?.sandboxId) || typeof body?.name !== "string") return error(res, 404, "not_found");
+      if (named.has(body.name)) return error(res, 409, "snapshot_exists");
+      named.set(body.name, { name: body.name, status: "saving", createdAt: now(), polls: 0 });
+      return send(res, 202, { ok: true, snapshot: { name: body.name, status: "saving" } });
+    }
+    const namedMatch = /^\/named-snapshots\/([a-z0-9-]+)$/.exec(path);
+    if (namedMatch) {
+      const x = named.get(namedMatch[1]!);
+      if (!x) return error(res, 404, "not_found");
+      if (method === "DELETE") { named.delete(x.name); return send(res, 202, { ok: true }); }
+      if (x.status === "saving" && ++x.polls >= 1) x.status = "ready";
+      return send(res, 200, { ok: true, snapshot: { name: x.name, status: x.status, createdAt: iso(x.createdAt) } });
+    }
     if (path === "/sandboxes" && method === "POST") {
       const idem = String(req.headers["idempotency-key"] ?? "");
       const prior = idem && keys.get(idem);
@@ -108,6 +125,7 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
     }
     if (action === "stop" && method === "POST") {
       if (s.state === "archived") return send(res, 200, { ok: true, status: "archived", sandbox: view(s) });
+      if (s.refuseStop) { s.stop = { id: `stop_${randomBytes(8).toString("hex")}`, status: "failing" }; return send(res, 202, { ok: true, status: "running", sandbox: view(s) }); }
       s.stop = { id: `stop_${randomBytes(8).toString("hex")}`, status: "pending" }; s.state = "archiving";
       return send(res, 202, { ok: true, status: "archiving", sandbox: view(s) });
     }
@@ -140,6 +158,11 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
   return {
     baseUrl: `http://127.0.0.1:${port}`, key, sandboxes, requests,
     failNext(count: number) { failNext = count; },
+    /** the next requests answer 429 with Retry-After: 40 */
+    limitNext(count: number) { limitNext = count; },
+    /** stops of this sandbox fail (the pre-stop hook timed out, say): it keeps running with stop.status "failing" */
+    refuseStop(sandboxId: string, refuse = true) { const x = sandboxes.get(sandboxId); if (x) { x.refuseStop = refuse; if (!refuse && x.stop?.status === "failing") x.stop = null; } },
+    named,
     onCommand(fn: typeof command) { command = fn; },
     /** the machine is lost without anyone deleting it through the API */
     lose(sandboxId: string) { sandboxes.delete(sandboxId); },

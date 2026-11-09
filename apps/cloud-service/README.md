@@ -115,7 +115,7 @@ Machines are named `omb-<cloud id>` at the provider (no email), labelled with th
   publishes the package and its `.sig`, and the service gets `OMB_MANAGED_HOME_PACKAGE_URL`, `_SHA256` and
   `_SIGNATURE` (or `_SIGNATURE_FILE`). The service checks the signature at start and refuses an unsigned package off
   loopback.
-- **Template.** See "Pre-baked template" below. The service gets `OMB_MANAGED_TEMPLATE` and
+- **Template.** See "Pre-baked template" below; it runs only in CI, with the template key. The service gets `OMB_MANAGED_TEMPLATE` and
   `OMB_MANAGED_TEMPLATE_SIGNATURE` and checks it at start.
 - **Test and production** use different provider keys and, preferably, different provider accounts, and every list and
   delete is limited to the deployment's scope label.
@@ -129,6 +129,68 @@ and checked by the machine (theirs are pinned by checksum only); the user-facing
 clients reach machines through their relay); the app and the home verify entitlements offline with pinned keys and an
 explicit clock tolerance; machine labels carry no email; backups live off the provider with 45-day retention.
 
+## Lifecycle hardening
+
+### Pre-baked template
+
+`scripts/build-template.ts` runs in the release job with `BOAT_TEMPLATE_API_KEY` and `OMB_RELEASE_SIGNING_KEY`:
+
+1. creates a builder (`noEnv`, no boot file, its own scope, a 2-hour lease) with the same setup script as every home;
+2. uploads the signed home package; root's `omb-home install` checks the signature;
+3. checks the app never ran (no env, no machine id, an empty data folder) and refuses to save otherwise;
+4. hashes the installed app (`omb-home tree`), signs `{kind: template, name, version: <package sha256>, sha256: <tree>}`
+   and places the signature in the image;
+5. saves the named snapshot `omb-home-<version>` (never replacing an existing name), waits for it, deletes the builder;
+6. keeps the three newest templates plus any `--in-use` one, and prints `OMB_MANAGED_TEMPLATE` and
+   `OMB_MANAGED_TEMPLATE_SIGNATURE` for the service.
+
+A machine started from it checks the signature against its app's tree hash before anything starts, skips the downloads
+and system packages it already has, and the service skips installing the package the template carries. Saved
+snapshots need a paid provider plan (the trial refuses them). Engine CLIs are still installed by the home on first use;
+baking them in is a later step.
+
+### Provider limits, conflicts and failing stops
+
+- A 429 is never a failure: the cloud keeps its state, the step is retried 30 s, 1, 2, 4 then 5 minutes later (or as
+  long as `Retry-After` asks, up to 15 minutes), attempts are not counted, and the audit says `provider_limit` once
+  per streak. This holds during setup too.
+- A 409 or a "busy" answer to a resume or a stop means the machine is already on its way: in progress, not an error,
+  never a reason to rebuild.
+- A stop the provider reports as `failing` is read as stopping: the home is not started again, the cloud is not counted
+  awake, nothing is deleted while it lasts, and after 15 minutes the operator is alerted (`stop_failing_long`).
+
+### Pre-stop hook
+
+`~/.boat/pre-stop` (the provider allows 60 s): sets `/run/openmausbot/pre-stop`, which the home's unit refuses to start
+under (`ConditionPathExists=!`), arms a 15-minute timer (`omb-home resume-if-cancelled`) that starts the home again if
+the flag is older than 5 minutes and the machine is still up (a cancelled stop, or a resume that kept the machine in
+memory while the service was down), then stops the home within 40 s or kills it (`TimeoutStopSec=35`). `omb-home start`,
+which the service runs after every wake, clears the flag and the timer first.
+
+### Keeping stopped disks
+
+The provider purges a disk 14 days after its stop. A sleeping or ended cloud, and a retired machine, is started briefly
+after 11 days (`OMB_MANAGED_REFRESH_DAYS`, 3 to 13) and stops again. Starts are spaced 10 minutes apart across the
+deployment, oldest disk first: at most 144 a day, so up to about 430 disks due on the same day still make it within
+the 3-day margin. A recovery from backup covers the rest.
+
+### Idle sleep and waking for routines
+
+The home itself reports, through the signed `GET /api/cloud/power` read once a minute while it is up, whether it is
+busy (a turn, a run, a call, a computer, maintenance, recent use, work finished under 2 minutes ago, a run due within
+5 minutes) and when its next routine or retry is due; the sleep handshake returns the same. Background polls from open
+windows are marked and never count as use, so an idle open app does not keep a machine running. The service sleeps a
+home only on the home's word and wakes it 5 minutes before its next run (`OMB_MANAGED_WAKE_LEAD_MINUTES`), the same
+window in which the home refuses to sleep.
+
+### Memory guard
+
+On every machine: the home's unit (launcher, edge, server and its engines) runs under `MemoryHigh=80%`,
+`MemoryMax=90%`, `OOMScoreAdjust=-500` and `OOMPolicy=continue`; bot computers' containers run under `omb-bots.slice`
+(`MemoryMax=75%`, docker's `cgroup-parent`); compressed swap of half the memory (`omb-zram`, best effort). Not done yet:
+a separate OOM score for engine processes inside the home and holding new turns when free memory is low; both need
+changes in the server's process spawning.
+
 ## Settings
 
 `OMB_MANAGED=1`, `BOAT_API_KEY`, `BOAT_BASE_URL`, `OMB_CLOUD_SEAL_KEY`, `OMB_ENTITLEMENT_SIGNING_KEY`,
@@ -136,7 +198,7 @@ explicit clock tolerance; machine labels carry no email; backups live off the pr
 `_SHA256`, `_SIGNATURE`) or a template (`OMB_MANAGED_TEMPLATE`, `OMB_MANAGED_TEMPLATE_SIGNATURE`). Optional:
 `OMB_MANAGED_KINDS`, `_SMALLEST`, `_SCOPE`, `_IDLE_MINUTES`, `_LEASE_HOURS`, `_BACKUP_DIR`, `_BACKUP_KEY`,
 `_BACKUP_KEY_PREVIOUS`, `_BACKUP_HOURS`, `_BACKUP_KEEP`, `_BACKUP_TAIL_DAYS`, `_BACKUP_MAX_MB`, `_REFRESH_DAYS`,
-`_RETENTION_DAYS`, `_DELETE_DELAY_DAYS`, `_LOST_AFTER_MINUTES`, `OMB_RELEASE_PUBLIC_KEYS` (staging keys),
+`_RETENTION_DAYS`, `_DELETE_DELAY_DAYS`, `_LOST_AFTER_MINUTES`, `_WAKE_LEAD_MINUTES`, `OMB_RELEASE_PUBLIC_KEYS` (staging keys),
 `OMB_OPS_ALERT_EMAIL`. Every older `OMB_BOAT_*` name still works; the neutral one wins.
 
 ## Tests

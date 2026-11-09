@@ -74,7 +74,23 @@ export interface BoatProvider extends CloudProvider {
   deletion(operationId: string): Promise<BoatDeletion | null>;
   /** sends the DELETE once; the operation id is the receipt */
   requestDelete(serverId: string): Promise<{ operationId: string | null; gone: boolean }>;
+  /** named snapshots (templates): the template key's business, never the runtime's */
+  namedSnapshots(): Promise<NamedSnapshot[]>;
+  namedSnapshot(name: string): Promise<NamedSnapshot | null>;
+  saveNamedSnapshot(serverId: string, name: string): Promise<void>;
+  deleteNamedSnapshot(name: string): Promise<void>;
 }
+
+/** the provider's rate or quota limit (429): never a failure of the cloud, retried with backoff (lifecycle.ts retryAt) */
+export class ProviderLimitError extends RetryableCloudError {
+  readonly retryAfterMs: number | null;
+  constructor(retryAfterMs: number | null) { super("The cloud provider asked us to slow down."); this.name = "ProviderLimitError"; this.retryAfterMs = retryAfterMs; }
+}
+/** the provider is already doing something with this machine (resuming, stopping, saving): in progress, not a failure */
+export class ProviderBusyError extends RetryableCloudError {
+  constructor(code: string) { super(`Boat is busy: ${code}.`); this.name = "ProviderBusyError"; }
+}
+export interface NamedSnapshot { name: string; status: "saving" | "ready" | "failed" | string; createdAt: number | null }
 
 export class BoatError extends Error {
   readonly status: number;
@@ -139,12 +155,17 @@ export function createBoatProvider(options: BoatProviderOptions): BoatProvider {
         ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }) });
     } catch { throw new RetryableCloudError(); }
     if (init.missingOk && (response.status === 404 || response.status === 410)) { await response.body?.cancel(); return null; }
-    if (response.status === 429 || response.status >= 500) { await response.body?.cancel(); throw new RetryableCloudError(); }
+    if (response.status === 429) {
+      const after = Number(response.headers.get("retry-after"));
+      await response.body?.cancel();
+      throw new ProviderLimitError(Number.isFinite(after) && after > 0 ? Math.min(after, 3600) * 1000 : null);
+    }
+    if (response.status >= 500) { await response.body?.cancel(); throw new RetryableCloudError(); }
     let data: Record<string, any> | null = null;
     try { data = await boundedJson(response, init.limit ?? 2_097_152) as Record<string, any>; } catch { if (response.ok) throw new RetryableCloudError(); }
     if (!response.ok || data?.ok === false) {
       const code = safeCode(data?.error?.code ?? data?.code);
-      if (["idempotency_in_progress", "sandbox_resuming", "sandbox_stopping", "boat_starting", "sandbox_starting", "save_in_progress", "sandbox_busy"].includes(code)) throw new RetryableCloudError(`Boat is busy: ${code}.`);
+      if (["idempotency_in_progress", "sandbox_resuming", "sandbox_stopping", "boat_starting", "sandbox_starting", "save_in_progress", "sandbox_busy"].includes(code)) throw new ProviderBusyError(code);
       throw new BoatError(response.status, code);
     }
     return data ?? {};
@@ -227,10 +248,16 @@ export function createBoatProvider(options: BoatProviderOptions): BoatProvider {
     },
     async power(serverId, action) {
       if (!SANDBOX_ID.test(serverId)) throw new Error("Invalid Boat sandbox id.");
-      if (action === "off") { await call("POST", `/sandboxes/${serverId}/stop`, { body: {} }); return; }
-      const s = await get(serverId);
-      if (!s) throw new BoatError(404, "not_found");
-      if (["archived", "archiving", "error"].includes(s.state)) await call("POST", `/sandboxes/${serverId}/resume`, { body: RESUME });
+      try {
+        if (action === "off") { await call("POST", `/sandboxes/${serverId}/stop`, { body: {} }); return; }
+        const s = await get(serverId);
+        if (!s) throw new BoatError(404, "not_found");
+        if (["archived", "archiving", "error"].includes(s.state)) await call("POST", `/sandboxes/${serverId}/resume`, { body: RESUME });
+      } catch (error) {
+        // a 409 means the machine is already where we asked or on its way: in progress, never a failure (and never a reason to rebuild)
+        if (error instanceof ProviderBusyError || (error instanceof BoatError && error.status === 409 && error.code !== "snapshot_data_expired")) return;
+        throw error;
+      }
     },
     async suspend(serverId) { await provider.power(serverId, "off"); },
     async resize(serverId, spec) {
@@ -286,6 +313,25 @@ export function createBoatProvider(options: BoatProviderOptions): BoatProvider {
       if (!data) return { operationId: null, gone: true };
       const id = data.operation?.id;
       return { operationId: typeof id === "string" && OPERATION_ID.test(id) ? id : null, gone: false };
+    },
+    async namedSnapshots() {
+      const data = await call("GET", "/named-snapshots");
+      return (Array.isArray(data?.snapshots) ? data.snapshots : []).flatMap((x: Record<string, unknown>) => typeof x?.name === "string" && SNAPSHOT_NAME.test(x.name)
+        ? [{ name: x.name, status: String(x.status ?? ""), createdAt: time(x.createdAt) }] : []);
+    },
+    async namedSnapshot(name) {
+      if (!SNAPSHOT_NAME.test(name)) throw new Error("Invalid Boat snapshot name.");
+      const data = await call("GET", `/named-snapshots/${name}`, { missingOk: true });
+      const x = data?.snapshot;
+      return x && x.name === name ? { name, status: String(x.status ?? ""), createdAt: time(x.createdAt) } : null;
+    },
+    async saveNamedSnapshot(serverId, name) {
+      if (!SANDBOX_ID.test(serverId) || !SNAPSHOT_NAME.test(name)) throw new Error("Invalid Boat snapshot request.");
+      await call("POST", "/named-snapshots", { body: { sandboxId: serverId, name }, timeoutMs: 120_000 });
+    },
+    async deleteNamedSnapshot(name) {
+      if (!SNAPSHOT_NAME.test(name)) throw new Error("Invalid Boat snapshot name.");
+      await call("DELETE", `/named-snapshots/${name}`, { missingOk: true });
     },
     // the clouds service never reaches this: Boat clouds are deleted only by the gated reconciler, through requestDelete
     async destroy() { throw new Error("Boat sandboxes are deleted only by the retention reconciler."); },
