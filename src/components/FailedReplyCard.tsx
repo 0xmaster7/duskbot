@@ -118,6 +118,7 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
   } else if (lead.kind !== "credits" && retry) {
     actions.push({ label: t("failedReply.tryAgain"), onClick: retry });
   }
+  if (actions.length === 0 && !update && lead.kind !== "place" && leadBotId) actions.push({ label: t("chat.rescue.switchAi"), onClick: () => openBotSettings(dispatch, "model", { botId: leadBotId }) });
   // a sign-out notice beside a failure for another reason: still one card, its Sign in a pill on it
   if (signInNotice && !actions.some((action) => action.label === t("chat.notice.signIn"))) actions.unshift({ label: t("chat.notice.signIn"), onClick: () => dispatch(openEngines) });
   return (
