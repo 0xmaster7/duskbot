@@ -2033,7 +2033,7 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
   output.write(DIRECT_MAGIC);
   writer.push({ t: "hello", v: 1, ...agentHello() });
   const session = {
-    done, stop: () => finish("stopped"), live: () => !ended && greeted,
+    done, stop: () => finish("stopped"), live: () => !ended && greeted, heard: () => heard,
     path: { send: (frame) => writer.push(frame), bytes: (r, chunk) => writer.bytes(r, chunk, true), queued: () => writer.size, onDrain: (resume) => writer.onDrain(resume) },
   };
   return session;
@@ -2049,7 +2049,13 @@ export function createDirectHub({ id, key, server = SERVER, guard, egress = null
   const greeted = [];
   return {
     accept(input, output) {
-      if (all.size >= max) { input.destroy?.(); output.destroy?.(); return null; }
+      // full: the oldest connection that never sent a frame the tunnel key opens makes room (anyone may connect on 443)
+      if (all.size >= max) {
+        const stranger = [...all].find((one) => !one.heard());
+        if (!stranger) { input.destroy?.(); output.destroy?.(); return null; }
+        stranger.stop();
+        all.delete(stranger);
+      }
       const session = serveDirect({ input, output, id, key, server, log, guard, egress, context, onFrame, onHello: (one) => greeted.push(one) });
       all.add(session);
       void session.done.then(() => {

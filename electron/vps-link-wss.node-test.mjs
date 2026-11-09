@@ -152,6 +152,24 @@ test("a websocket that is not the agent's, or carries text, is refused", async (
   assert.match(errors[0], /binary/);
 });
 
+test("connections that never open a frame cannot crowd the app out of the hub", async () => {
+  const { PassThrough } = await import("node:stream");
+  const hub = createDirectHub({ id: ID, key: KEY, server: { host: "127.0.0.1", port: 9 }, guard: frameGuard(), log: () => {}, max: 2 });
+  const strangers = [hub.accept(new PassThrough(), new PassThrough()), hub.accept(new PassThrough(), new PassThrough())];
+  assert.equal(hub.size, 2);
+  const proxy = createTunnelProxy({ base: "https://relay.test", id: ID, key: KEY, token: "t", fetch: async () => new Promise(() => {}), direct: { connect: async () => {
+    const up = new PassThrough(), down = new PassThrough();
+    hub.accept(up, down);
+    return { readable: down, writable: up, close: () => { up.destroy(); down.destroy(); } };
+  } } });
+  try {
+    await proxy.start();
+    await until(() => proxy.transport() === "direct");
+    assert.ok(hub.best(), "the app got in");
+    assert.equal(await Promise.race([strangers[0].done, new Promise((resolve) => setTimeout(() => resolve("still open"), 200))]), "stopped", "the oldest stranger made room");
+  } finally { await proxy.close(); hub.stop(); }
+});
+
 test("ssh first, then 443; a transport that failed on this network goes last there, and a new network tries ssh again", async () => {
   let network = "home", sshUp = false;
   const tries = [];
