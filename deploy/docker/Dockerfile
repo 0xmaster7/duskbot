@@ -46,7 +46,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/mobile/package.json ./apps/mobile/package.json
 # package.json's `prepare` runs during install. The script itself is written to
 # no-op without a .git (it exits 0 here), but node still has to be able to LOAD
-# it, and Dockerfile.dockerignore keeps .git out — so copy it in before install or the
+# it, and Dockerfile.dockerignore keeps .git out, so copy it in before install or the
 # whole build dies on MODULE_NOT_FOUND.
 COPY scripts/install-git-hooks.mjs ./scripts/install-git-hooks.mjs
 RUN pnpm install --frozen-lockfile

@@ -90,12 +90,12 @@ The suite is colocated (`server/**/*.test.ts`) and runs with `pnpm test`. Three 
 
 - **Unit** — registry, bus, store. Pure in-process, use the fake driver in
   [`server/testing/fake-driver.ts`](../server/testing/fake-driver.ts).
-- **Driver contract** — [`claude.test.ts`](../server/drivers/claude.test.ts) and
+- **Driver contract**: [`claude.test.ts`](../server/drivers/claude.test.ts) and
   [`codex.test.ts`](../server/drivers/codex.test.ts) spawn the scripted fake CLIs in `server/testing/`
   and assert the canonical event stream, argv/env hygiene, interrupts, and the permission broker.
   Failure modes are toggled by env var (`FAKE_CLAUDE_MODE=exit-early`, etc.) — extend those fakes
   rather than mocking `child_process`.
-- **API smoke** — [`index.test.ts`](../server/index.test.ts) boots the real server against a throwaway
+- **API smoke**: [`index.test.ts`](../server/index.test.ts) boots the real server against a throwaway
   home directory and exercises the HTTP surface.
 
 House rules for tests:
@@ -263,7 +263,7 @@ PRs run the docs tests, while translation-only PRs run the locale subset. Runtim
 changes select broader tests and smokes.
 
 - **typecheck + lint** — the static job always runs the checks above, and adds typecheck, Electron syntax checks, and a production UI build when selected. It runs before the dependent jobs.
-- **vitest (os, part)** — full platform suites use eight Linux or Windows shards and four macOS shards; subset jobs have their own file lists and shard counts. Windows jobs run on PRs whose changes can affect Windows or carry the `windows` label. macOS Vitest shards run in the nightly/manual full lane. Files run serially within each shard, balanced by recorded platform time. Use the [reproduction steps](ci.md#vitest-shards) for the failing job.
+- **vitest (os, part)**: full platform suites use eight Linux or Windows shards and four macOS shards; subset jobs have their own file lists and shard counts. Windows jobs run on PRs whose changes can affect Windows or carry the `windows` label. macOS Vitest shards run in the nightly/manual full lane. Files run serially within each shard, balanced by recorded platform time. Use the [reproduction steps](ci.md#vitest-shards) for the failing job.
 - **packaged server smoke (os)** — when selected, the server bundle is copied out of the repo and started with no `node_modules` in reach.
 - **Windows CUA host smoke**, **macOS smokes (packaged server + Electron)** — when selected, real Electron utility processes run against disposable homes; never the live app.
 - **CI** — the required aggregate gate checks that selected jobs passed and unselected jobs were skipped. Its log names any failing dependency.
