@@ -266,6 +266,19 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     return true;
   }
 
+  /** the final backup, opened now with this service's key and checked to be this cloud's volume: the copy deletion relies on */
+  function finalBackupOpens(c: StoredCloud): boolean {
+    const final = latestVerified(state(c));
+    let problem: string | null = "no_final_backup";
+    if (final) {
+      try { problem = homeVolumeProblem(deps.backups.read(c.id, keyOf(c), final.file, legacyKeyOf(c)), c.id); } catch { problem = "unreadable"; }
+    }
+    if (problem === null) return true;
+    log(c, "delete_refused", "reconciler", `backup_${problem}`);
+    console.warn(`boat: ALERT cloud ${c.id} is due for deletion but its final backup does not open (${problem}); nothing was deleted`);
+    return false;
+  }
+
   async function deleteStep(c: StoredCloud, verdict: Extract<Verdict, { delete: true }>) {
     const b = state(c);
     if (b.deletion && b.deletion.sent === false && (await provider.sandbox(b.deletion.serverId)) !== null) {
@@ -282,6 +295,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       if (!rereadStored(c)) return;
       const again = verdictFor(c);
       if (!again.delete) { log(c, "delete_refused", "reconciler", again.reason); return; }
+      if (again.reason === "retention_over" && !finalBackupOpens(c)) return;
       // recorded before the call, so a lost answer is never read as a lost machine (and rebuilt)
       c.status = "destroying"; b.deletion = { serverId: c.serverId, operationId: null, at: now(), reason: verdict.reason, sent: false }; deps.save(c);
       log(c, "delete_requested", "reconciler", verdict.reason);

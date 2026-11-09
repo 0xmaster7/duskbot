@@ -11,6 +11,8 @@ import type { createSealer } from "./seal.ts";
 import type { CloudProvider, CloudsService, DesktopPlan, HomeClient, SlotQuota, StoredCloud } from "./types.ts";
 import { createBoatLifecycle, freshBoatState, type BoatLifecycle, type BoatLifecycleDeps } from "./boat-lifecycle.ts";
 import { createBoatSweep } from "./boat-sweep.ts";
+import { boatBackupKey } from "./boat-backups.ts";
+import { guardBackupSecret } from "./boat-key-guard.ts";
 import { lockDataDir } from "../data-dir-lock.ts";
 
 export class CloudError extends Error {
@@ -43,7 +45,8 @@ export interface CloudsServiceOptions {
   now?: () => number;
   random?: (size: number) => Buffer;
   /** Boat runs these desktop kinds (boat-lifecycle.ts); every other cloud keeps its placement's provider */
-  boat?: Omit<BoatLifecycleDeps, "home" | "unseal" | "seal" | "dashboardUrl" | "adminOrigin" | "removeWorkspace" | "now" | "save" | "stored"> & { kinds: ReadonlyArray<DesktopPlan["kind"]> };
+  /** `previousBackupSecret`: the secret the backups were sealed with, to seal them again after a deliberate change */
+  boat?: Omit<BoatLifecycleDeps, "home" | "unseal" | "seal" | "dashboardUrl" | "adminOrigin" | "removeWorkspace" | "now" | "save" | "stored"> & { kinds: ReadonlyArray<DesktopPlan["kind"]>; previousBackupSecret?: Buffer | null };
 }
 interface State { v: 1; clouds: StoredCloud[] }
 const sameSpec = (a: MachineSpec, b: MachineSpec) => a.vcpu === b.vcpu && a.ramGb === b.ramGb && a.diskGb === b.diskGb;
@@ -100,6 +103,27 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     save(c);
   }
   function viewOf(c: StoredCloud): CloudDesktopView { return { id: c.id, name: c.name, color: c.color, kind: c.kind, placement: c.placement, status: c.status === "running" && c.paymentProblem ? "payment_problem" : c.status, setupStep: c.setupStep, region: c.region, machine: { ...c.spec }, botComputers: c.botComputers, origin: c.origin, workspaceId: c.workspaceId, lastReportAt: c.workspaceId ? workspaces.lastReportAt(c.workspaceId) : null, destroyAt: c.destroyAt, error: c.error, subscriptionId: c.subscriptionId, createdAt: c.createdAt }; }
+  if (options.boat) {
+    const { backups, backupSecret } = options.boat, previous = options.boat.previousBackupSecret ?? null;
+    const generations = () => store.state.clouds.flatMap(c => (c.boat?.backups ?? []).map(g => ({ c, g }))).filter(({ c, g }) => backups.version(c.id, g.file) === 2);
+    try {
+      guardBackupSecret(options.dataDir, backupSecret, previous, old => {
+        for (const { c, g } of generations()) {
+          const tar = backups.read(c.id, boatBackupKey(old, c.id), g.file);
+          const record = backups.write(c.id, boatBackupKey(backupSecret, c.id), tar);
+          if (!backups.read(c.id, boatBackupKey(backupSecret, c.id), record.file).equals(tar)) throw new Error("A backup did not verify after sealing it with the new secret.");
+          const file = g.file;
+          Object.assign(g, { file: record.file, bytes: record.bytes, sha256: record.sha256 });
+          store.commit();
+          backups.remove(c.id, file);
+        }
+      }, secret => {
+        const newest = generations().sort((a, b) => b.g.at - a.g.at)[0];
+        if (!newest) return null;
+        try { backups.read(newest.c.id, boatBackupKey(secret, newest.c.id), newest.g.file); return true; } catch { return false; }
+      });
+    } catch (error) { store.close(); unlock(); throw error; }
+  }
   const boat: BoatLifecycle | null = options.boat ? createBoatLifecycle({ ...options.boat, home, now, save, dashboardUrl: config.dashboardUrl, adminOrigin: config.adminOrigin,
     unseal: value => sealer.unseal(value), seal: value => sealer.seal(value), removeWorkspace: id => workspaces.remove(id),
     stored(id) {

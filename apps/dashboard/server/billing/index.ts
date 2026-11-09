@@ -98,6 +98,7 @@ export function createBilling(options: BillingOptions) {
       : sealKey ? Buffer.from(hkdfSync("sha256", sealKey, Buffer.alloc(0), Buffer.from("omb-boat-backup-secret"), 32))
       : localSecret(join(options.dataDir, "boat-backup-secret"));
     boat = { kinds: kinds as Array<Exclude<(typeof DESKTOP_KINDS)[number], "none">>, settings: boatSettingsFromEnv(env), backupSecret,
+      previousBackupSecret: env.OMB_BOAT_BACKUP_KEY_PREVIOUS ? parseSealKey(env.OMB_BOAT_BACKUP_KEY_PREVIOUS) : null,
       provider: createBoatProvider({ apiKey, baseUrl: env.BOAT_BASE_URL, scope, fetch: options.fetch, smallest: smallest as BoatSize }),
       backups: createBackupStore({ dir: env.OMB_BOAT_BACKUP_DIR || join(options.dataDir, "boat-backups"), now }),
       audit: createAudit({ dataDir: options.dataDir, now, alert: options.alert }),

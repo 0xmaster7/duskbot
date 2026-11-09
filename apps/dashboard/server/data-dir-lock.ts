@@ -31,7 +31,9 @@ export function lockDataDir(dataDir: string): () => void {
       try { owner = JSON.parse(readFileSync(path, "utf8")); } catch {}
       // an unreadable lock is one a crash left half written
       const unreadable = typeof owner.pid !== "number" && Date.now() - statSync(path).mtimeMs > 60_000;
-      const stale = unreadable || (owner.host === hostname() && typeof owner.pid === "number" && owner.pid !== process.pid && !alive(owner.pid));
+      // this process's own pid on a lock it does not hold is an earlier run's (a restarted container is pid 1 again)
+      const sameHost = owner.host === hostname() && typeof owner.pid === "number";
+      const stale = unreadable || (sameHost && (owner.pid === process.pid ? !held.has(dir) : !alive(owner.pid as number)));
       if (!stale) throw new DataDirLockedError();
       rmSync(path, { force: true });
     }
