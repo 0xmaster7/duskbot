@@ -116,6 +116,11 @@ afterEach(() => { for (const root of scratch.splice(0)) rmSync(root, { recursive
 
 describe("encrypted full workspace backups", () => {
   it("leaves waits out of backups and Cloud sends", () => expect(omittedFromWorkspaceBackup("waits.json")).toBe(true));
+  it("leaves the bot list's own safety copies out, since they hold a team member's private bots too", () => {
+    expect(omittedFromWorkspaceBackup("bots.json.last-good")).toBe(true);
+    expect(omittedFromWorkspaceBackup("groups.json.unreadable-1799999999999")).toBe(true);
+    expect(omittedFromWorkspaceBackup("bots.json")).toBe(false);
+  });
 
   it("carries no waits, and a restore ends the waits already here, keeping them in the safety copy", async () => {
     const source = directory();
