@@ -3,6 +3,7 @@
 // Boat runs the setup script once, as `user` with passwordless sudo; every later step is one command the reconciler sends.
 import { createHmac } from "node:crypto";
 import { CLOUD_HOME_MARKER_FILE, homeEnv, shellQuote, type DashboardLink } from "../../dashboard/server/clouds/bootstrap.ts";
+import { machineVerifyScript, type ReleaseKey } from "./release-signing.ts";
 
 /** pinned runtime downloads, verified before use */
 export const BOAT_NODE = { version: "24.22.2", sha256: "48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75" } as const;
@@ -21,11 +22,38 @@ export const BOAT_CONTROL = `${BIN}/omb-home`;
 
 export interface BoatBootInput { cloudId: string; adminOrigin: string; secret: string; dashboardUrl: string; link: DashboardLink }
 
-/** the per-cloud secrets as one file for Boat's create `files` (it never appears in a script, a command or a log) */
-export function boatBootFile(input: BoatBootInput): { path: string; content: string } {
+/** what a machine needs to become this cloud's home: its env (the bootstrap secret among it), its dashboard link, its id */
+export function bootContent(input: BoatBootInput): { v: 1; env: Record<string, string>; link: DashboardLink; machine: string } {
   const env = { ...homeEnv({ ...input, origin: "https://pending.invalid" }), OMB_CLOUD_EDGE_HOLD: "30s" };
-  return { path: BOAT_BOOT_FILE, content: JSON.stringify({ v: 1, env, link: input.link, machine: input.cloudId }) };
+  return { v: 1, env, link: input.link, machine: input.cloudId };
 }
+
+/** the per-cloud secrets as one boot file (a loopback service only: no machine can reach it to redeem a claim) */
+export function boatBootFile(input: BoatBootInput): { path: string; content: string } {
+  return { path: BOAT_BOOT_FILE, content: JSON.stringify(bootContent(input)) };
+}
+
+/** the one-time claim the machine redeems at first boot for its boot content: the provider's API never carries a secret */
+export function claimBootFile(input: { cloudId: string; claim: string; redeem: string }): { path: string; content: string } {
+  if (!/^c[0-9a-f]{24}$/.test(input.cloudId) || !/^[A-Za-z0-9_-]{43}$/.test(input.claim) || !input.redeem.startsWith("https://")) throw new Error("Invalid machine claim.");
+  return { path: BOAT_BOOT_FILE, content: JSON.stringify({ v: 2, machine: input.cloudId, claim: input.claim, redeem: input.redeem }) };
+}
+
+/** redeems a v2 boot file's claim at the account service, writing the v1 boot content root keeps; retried, never on a 403 */
+export const REDEEM_SCRIPT = `const fs = require("node:fs");
+const b = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+if (b.v !== 2 || !/^c[0-9a-f]{24}$/.test(b.machine) || typeof b.claim !== "string" || !/^https:\\/\\/[^/]+\\/v1\\/managed\\/claims\\/redeem$/.test(b.redeem)) process.exit(1);
+(async () => {
+  for (let i = 0; i < 10; i++) {
+    try {
+      const r = await fetch(b.redeem, { method: "POST", redirect: "error", signal: AbortSignal.timeout(20000), headers: { "content-type": "application/json" }, body: JSON.stringify({ cloud: b.machine, claim: b.claim }) });
+      if (r.status === 403) process.exit(1);
+      if (r.ok) { const a = await r.json(); if (a.v !== 1 || a.machine !== b.machine) process.exit(1); fs.writeFileSync(process.argv[2], JSON.stringify(a), { mode: 0o600 }); return; }
+    } catch {}
+    await new Promise((f) => setTimeout(f, 3000 * (i + 1)));
+  }
+  process.exit(1);
+})();`;
 
 /** the sha256 a home package must have, from OMB_BOAT_HOME_PACKAGE_SHA256 or the uploaded file */
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -35,7 +63,7 @@ const SHA256 = /^[a-f0-9]{64}$/;
  * systemd units and the helper commands, and moves the boot secrets into root's files. It never starts the home: the
  * reconciler installs the app package and starts it once it knows the sandbox's public origin.
  */
-export function boatSetupScript(): string {
+export function boatSetupScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean } = { releaseKeys: [], requireSigned: false }): string {
   const node = `node-v${BOAT_NODE.version}-linux-x64`;
   const caddy = `caddy_${BOAT_CADDY.version}_linux_amd64.tar.gz`;
   const unit = `[Unit]
@@ -126,8 +154,14 @@ getent group docker >/dev/null 2>&1 && sudo usermod -aG docker omb-docker
 sudo install -d -o root -g root -m 0700 /etc/openmausbot
 sudo install -d -o maus -g maus -m 0700 /data /data/.openmausbot
 if [ -f ${BOAT_BOOT_FILE} ]; then
-  sudo ${BOAT_NODE_BIN} -e ${shellQuote(moveBoot)} ${BOAT_BOOT_FILE}
+  boot=${BOAT_BOOT_FILE}
+  if grep -q '"v":2' ${BOAT_BOOT_FILE}; then
+    sudo ${BOAT_NODE_BIN} -e ${shellQuote(REDEEM_SCRIPT)} ${BOAT_BOOT_FILE} /etc/openmausbot/boot.json
+    boot=/etc/openmausbot/boot.json
+  fi
+  sudo ${BOAT_NODE_BIN} -e ${shellQuote(moveBoot)} "$boot"
   sudo chown maus:maus /data/.openmausbot/dashboard-link.json /data/${CLOUD_HOME_MARKER_FILE}
+  sudo shred -u /etc/openmausbot/boot.json 2>/dev/null || sudo rm -f /etc/openmausbot/boot.json
   shred -u ${BOAT_BOOT_FILE} 2>/dev/null || rm -f ${BOAT_BOOT_FILE}
 fi
 sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-home.service <<'OMB_UNIT'
@@ -135,7 +169,9 @@ ${unit}OMB_UNIT
 sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-docker-gate.service <<'OMB_GATE'
 ${gate}OMB_GATE
 sudo install -o root -g root -m 0755 /dev/stdin ${BOAT_CONTROL} <<'OMB_CTL'
-${boatControlScript()}OMB_CTL
+${boatControlScript(options)}OMB_CTL
+# a machine started from a template runs only the app the template's signature names
+if [ -f ${ROOT}/installed ]; then sudo -n ${BOAT_CONTROL} verify-template; fi
 install -d -m 0700 /home/user/.boat
 install -m 0700 /dev/stdin /home/user/.boat/pre-stop <<'OMB_PRESTOP'
 ${preStop}OMB_PRESTOP
@@ -148,17 +184,26 @@ sudo systemctl daemon-reload
  * /usr/lib/openmausbot/bin/omb-home, root's: `install <file> <sha256>`, `restore <tar>`, `start <origin>`, `stop`, `status`. Each
  * prints only fixed words. Running it again is safe.
  */
-export function boatControlScript(): string {
+export function boatControlScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean } = { releaseKeys: [], requireSigned: false }): string {
   return `#!/bin/bash
 set +x
 set -euo pipefail
 umask 077
 app=${APP}
+verify=${shellQuote(machineVerifyScript(options.releaseKeys))}
+signed=${options.requireSigned ? 1 : 0}
+tree() { (cd "$1" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1); }
 case "\${1:-}" in
   install)
-    file="$2"; sum="$3"
+    file="$2"; sum="$3"; sig="\${4:-}"
     [[ "$sum" =~ ^[a-f0-9]{64}$ ]] || { echo "bad checksum"; exit 2; }
     echo "$sum  $file" | sha256sum -c --quiet
+    if [ -n "$sig" ] || [ "$signed" = 1 ]; then
+      [[ "$sig" =~ ^r1\\.[a-z0-9-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$ ]] || { echo "unsigned package"; exit 2; }
+      sigfile="$(mktemp)"; printf '%s' "$sig" > "$sigfile"
+      ${BOAT_NODE_BIN} -e "$verify" "$sigfile" "$sum" home-package || { rm -f "$sigfile"; echo "bad signature"; exit 2; }
+      rm -f "$sigfile"
+    fi
     next="$app.next"; rm -rf "$next"; install -d -o root -g root -m 0755 "$next"
     tar -xzf "$file" -C "$next" --no-same-owner --no-same-permissions
     chown -R root:root "$next"; chmod -R go-w,a+rX "$next"
@@ -183,11 +228,19 @@ case "\${1:-}" in
     install -o maus -g maus -m 0600 "$link" /data/.openmausbot/dashboard-link.json
     chown -R maus:maus /data; chmod 0700 /data; rm -rf "$stage" "$link" "$file" /data.old
     echo restored ;;
+  verify-template)
+    # the template's signature names the tree hash of the app it carries; anything else never starts
+    [ -f ${ROOT}/template.sig ] || { [ "$signed" = 1 ] && { echo "unsigned template"; exit 2; }; echo "no template signature"; exit 0; }
+    ${BOAT_NODE_BIN} -e "$verify" ${ROOT}/template.sig "$(tree "$app")" template || { echo "bad template"; exit 2; }
+    echo verified ;;
+  tree) tree "$app" ;;
   start)
-    origin="$2"
+    origin="$2"; upstream="\${3:-$2}"
     [[ "$origin" =~ ^https://[a-z0-9.-]+$ ]] || { echo "bad origin"; exit 2; }
-    sed -i "/^OMB_PUBLIC_URL=/d" /etc/openmausbot/home.env
+    [[ "$upstream" =~ ^https://[a-z0-9.-]+$ ]] || { echo "bad origin"; exit 2; }
+    sed -i "/^OMB_PUBLIC_URL=/d; /^OMB_CLOUD_UPSTREAM_HOST=/d" /etc/openmausbot/home.env
     echo "OMB_PUBLIC_URL=$origin" >> /etc/openmausbot/home.env
+    echo "OMB_CLOUD_UPSTREAM_HOST=\${upstream#https://}" >> /etc/openmausbot/home.env
     systemctl enable omb-home.service >/dev/null 2>&1
     if [ -S /var/run/docker.sock ] && [ -f "$app/link/docker-gate.mjs" ]; then systemctl enable --now omb-docker-gate.service >/dev/null 2>&1 || true; fi
     systemctl restart omb-home.service
@@ -195,22 +248,27 @@ case "\${1:-}" in
     echo "not answering"; exit 3 ;;
   stop) systemctl stop omb-home.service; echo stopped ;;
   status) systemctl is-active omb-home.service || true; [ -f ${ROOT}/installed ] && cat ${ROOT}/installed || echo none ;;
-  *) echo "usage: omb-home install|restore|start|stop|status"; exit 2 ;;
+  *) echo "usage: omb-home install|restore|start|stop|status|verify-template|tree"; exit 2 ;;
 esac
 `;
 }
 
-export function installCommand(sha256: string, url?: string): string {
+export function installCommand(sha256: string, url?: string, signature?: string): string {
   if (!SHA256.test(sha256)) throw new Error("Invalid home package checksum.");
-  if (url === undefined) return `sudo -n ${BOAT_CONTROL} install ${BOAT_PACKAGE_FILE} ${sha256}`;
+  if (signature !== undefined && !/^r1\.[a-z0-9-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(signature)) throw new Error("Invalid home package signature.");
+  const install = `sudo -n ${BOAT_CONTROL} install ${BOAT_PACKAGE_FILE} ${sha256}${signature ? ` ${signature}` : ""}`;
+  if (url === undefined) return install;
   const parsed = new URL(url);
   if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error("Invalid home package URL.");
-  return `curl -fsSL --retry 3 -o ${BOAT_PACKAGE_FILE} ${shellQuote(parsed.href)} && sudo -n ${BOAT_CONTROL} install ${BOAT_PACKAGE_FILE} ${sha256}`;
+  return `curl -fsSL --retry 3 -o ${BOAT_PACKAGE_FILE} ${shellQuote(parsed.href)} && ${install}`;
 }
-export function startCommand(origin: string): string {
-  const url = new URL(origin);
-  if (url.origin !== origin || url.protocol !== "https:") throw new Error("Invalid cloud origin.");
-  return `sudo -n ${BOAT_CONTROL} start ${shellQuote(origin)}`;
+/** `origin`: what people use (ours, through the edge); `upstream`: the machine's own hosted URL, which the edge forwards to */
+export function startCommand(origin: string, upstream: string = origin): string {
+  for (const value of [origin, upstream]) {
+    const url = new URL(value);
+    if (url.origin !== value || url.protocol !== "https:") throw new Error("Invalid cloud origin.");
+  }
+  return `sudo -n ${BOAT_CONTROL} start ${shellQuote(origin)} ${shellQuote(upstream)}`;
 }
 export const RESTORE_COMMAND = `sudo -n ${BOAT_CONTROL} restore ${BOAT_RESTORE_FILE}`;
 export const STATUS_COMMAND = "sudo -n ${BOAT_CONTROL} status";

@@ -28,8 +28,6 @@ export interface ManagedCloudContext {
 
 export interface ManagedCloudRoutesContext {
   publicUrl: string;
-  /** the signed-in owner (cookie session, CSRF checked on POST) and when that session signed in */
-  owner(req: IncomingMessage): { id: string; signedInAt: number };
   readJson(req: IncomingMessage): Promise<Record<string, unknown>>;
   json(res: ServerResponse, status: number, data: unknown): void;
   /** the client's address as the edge reports it, for rate limits */

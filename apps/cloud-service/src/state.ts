@@ -41,6 +41,11 @@ export interface BoatCloudState {
   missingChecks?: number;
   /** the owner asked to apply a plan change now (resize-now) */
   resizeAskedAt?: number | null;
+  /** the machine's one-time claim for its secrets (only its hash), cleared once it runs */
+  claim?: { hash: string; expiresAt: number; redeemedAt: number | null } | null;
+  /** the opaque public label of its user-facing origin, and the machine's own hosted URL behind it */
+  label?: string | null;
+  upstream?: string | null;
   /** a size Boat refused (shrinking below the data, say), not tried again */
   resizeBlocked?: string | null;
 }

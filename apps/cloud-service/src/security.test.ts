@@ -41,7 +41,7 @@ async function fixture() {
     const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
     if (url.hostname.endsWith(".on.boat.dev")) {
       const body = url.pathname === "/api/cloud/health" ? { v: 1 } : url.pathname === "/api/cloud/power" ? { v: 1, idle, busy: idle ? [] : ["turn"], nextDueAt: null }
-        : url.pathname === "/api/cloud/power/sleep" ? { ok: idle } : { ok: true };
+        : url.pathname === "/api/cloud/power/sleep" ? { ok: idle } : url.pathname === "/api/cloud/entitlement" ? { ok: true, expiresAt: now() + 86_400_000 } : { ok: true };
       return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
     }
     return fetch(input, init);

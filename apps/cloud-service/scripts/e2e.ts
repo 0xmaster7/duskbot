@@ -10,6 +10,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { appendFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
+import { generateEntitlementSigner } from "../../../shared/entitlement.ts";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createBilling } from "../../dashboard/server/billing/index.ts";
@@ -75,12 +76,16 @@ const homeFetch: typeof fetch = async (input, init) => {
   }
   if (fake && url.hostname.endsWith(".on.boat.dev")) {
     const body = url.pathname === "/api/cloud/health" ? { v: 1 } : url.pathname === "/api/cloud/power" ? { v: 1, idle: false, busy: ["turn"], nextDueAt: null }
-      : url.pathname === "/api/cloud/pairing" ? { code: "ABCD-EFGH-JKLM", expiresAt: Date.now() + 300_000 } : { ok: true };
+      : url.pathname === "/api/cloud/pairing" ? { code: "ABCD-EFGH-JKLM", expiresAt: Date.now() + 300_000 }
+      : url.pathname === "/api/cloud/entitlement" ? { ok: true, expiresAt: Date.now() + 86_400_000 } : { ok: true };
     return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
   }
   return fetch(input, init);
 };
 
+// a real home is a release build: it trusts only the pinned entitlement key, so a real run signs with the production one
+const entitlementKey = process.env.OMB_ENTITLEMENT_SIGNING_KEY ?? (fake ? generateEntitlementSigner("dev-e2e").env : "");
+if (!entitlementKey) { console.error("OMB_ENTITLEMENT_SIGNING_KEY is required for a real run (the release home refuses anything else)."); process.exit(2); }
 const store = createStore(dataDir);
 const account = { id: "acct_e2e", email: "e2e@example.test" };
 const billing = createBilling({ dataDir, publicUrl: "https://dashboard.e2e.invalid", dashboard: { state: store.state, changed: () => store.changed() }, fetch: homeFetch,
@@ -88,7 +93,9 @@ const billing = createBilling({ dataDir, publicUrl: "https://dashboard.e2e.inval
   mail: (cloud, letter) => note(`notice to owner: ${letter.subject} for ${cloud.id}`),
   alert: entry => note(`ALERT ${entry.action} ${entry.cloudId} (${entry.reason})`),
   env: { OMB_BILLING_PROVIDER: "fake", OMB_CLOUD_SEAL_KEY: randomBytes(32).toString("base64url"), OMB_MANAGED: "1", BOAT_API_KEY: key, BOAT_BASE_URL: baseUrl, OMB_MANAGED_SCOPE: scope,
-    OMB_MANAGED_KINDS: "shared_s", OMB_MANAGED_HOME_PACKAGE_FILE: packageFile, OMB_MANAGED_HOME_PACKAGE_SHA256: sha256, OMB_MANAGED_LEASE_HOURS: "1", OMB_MANAGED_IDLE_MINUTES: "5", OMB_MANAGED_LOST_AFTER_MINUTES: "2", OMB_POOL_DRIVER: "fake" } });
+    OMB_MANAGED_KINDS: "shared_s", OMB_MANAGED_HOME_PACKAGE_FILE: packageFile, OMB_MANAGED_HOME_PACKAGE_SHA256: sha256, OMB_MANAGED_LEASE_HOURS: "1", OMB_MANAGED_IDLE_MINUTES: "5", OMB_MANAGED_LOST_AFTER_MINUTES: "2", OMB_POOL_DRIVER: "fake",
+    // no machine can reach this harness, and nobody uses it: no claim, no public domain, an unsigned test package
+    OMB_MANAGED_TEST_HARNESS: "1", OMB_ENTITLEMENT_SIGNING_KEY: entitlementKey } });
 const webhooks = createServer((req, res) => void billing.handle(req, res, new URL(req.url ?? "/", "http://127.0.0.1")).then(handled => { if (!handled) { res.writeHead(404); res.end(); } }));
 await new Promise<void>(r => webhooks.listen(0, "127.0.0.1", r));
 const hookBase = `http://127.0.0.1:${(webhooks.address() as { port: number }).port}`;

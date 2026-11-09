@@ -11,6 +11,7 @@ import { createSealer, parseSealKey } from "../clouds/seal.ts";
 import type { CloudProvider, HomeClient } from "../clouds/types.ts";
 import type { StoredCloud } from "../clouds/types.ts";
 import { managedCloudFromEnv } from "../../../cloud-service/src/index.ts";
+import { entitlementSignerFromEnv } from "../entitlements.ts";
 import type { Catalog } from "../../../../shared/billing-api.ts";
 import { createBillingStore } from "./store.ts";
 import { BillingError, createBillingService } from "./service.ts";
@@ -89,7 +90,9 @@ export function createBilling(options: BillingOptions) {
     healthy: (origin, secret) => (fakeOrigin(origin) ? fakeHome : realHome).healthy(origin, secret),
     pair: (origin, secret, input) => (fakeOrigin(origin) ? fakeHome : realHome).pair(origin, secret, input),
   };
-  const clouds = createCloudsService({ dataDir: options.dataDir, now, providers: { pool, dedicated }, home, sealer: createSealer(sealKey), managed, managedHome: realHome,
+  // every hosted home refuses clients without a signed entitlement, so a service that runs homes must be able to sign one
+  const entitlements = entitlementSignerFromEnv(env, { dataDir: options.dataDir, loopback, now, required: !loopback && (cloudProvider !== "off" || poolDriver !== "off" || managed !== null) });
+  const clouds = createCloudsService({ entitlements, dataDir: options.dataDir, now, providers: { pool, dedicated }, home, sealer: createSealer(sealKey), managed, managedHome: realHome,
     workspaces: {
       register({ accountId, name, publicKey }) {
         const id = `ws_${randomBytes(16).toString("base64url")}`;

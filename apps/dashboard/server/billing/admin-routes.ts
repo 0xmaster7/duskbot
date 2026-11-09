@@ -43,6 +43,11 @@ export function createAdminRoutes(ctx: BillingContext) {
     if (!sub) throw new BillingError(409, "not_subscribed"); return sub;
   }
   /** a managed cloud desktop sleeps when idle: Ready, with the power the app wakes it through (contract v1, `cloud.power`) */
+  /** the app shows a managed cloud desktop only with a token that verifies offline for it (electron/entitlement.mjs) */
+  function entitlementOf(c: StoredCloud): { entitlement?: string } {
+    const token = clouds.entitlement?.(c) ?? null;
+    return token ? { entitlement: token } : {};
+  }
   function managedPower(c: StoredCloud) {
     if (!c.backend || !c.origin || !["running", "sleeping"].includes(c.status) || c.ended) return null;
     const state = c.status === "running" ? "awake" : c.wantPower === "on" ? "waking" : "asleep";
@@ -56,7 +61,7 @@ export function createAdminRoutes(ctx: BillingContext) {
     const tier = sub?.bundle ?? config.bundles.find(b => b.cart.desktop.kind === c.kind)?.id ?? "custom";
     const runs = sub && sub.status !== "ended" && sub.status !== "pending" && sub.currentPeriodEnd !== null && sub.currentPeriodEnd > now();
     return { id: c.id, name: c.name, color: c.color, role: "owner", tier, runsOn: "cloud", status, origin: c.origin, teamId: null, primary: isPrimary, managed: true,
-      ...(c.backend ? { provider: "managed" } : {}), ...(power ? { power } : {}),
+      ...(c.backend ? { provider: "managed" } : {}), ...(power ? { power } : {}), ...entitlementOf(c),
       ...(status === "setting_up" ? { setup: { step: c.setupStep ?? "reserving", progress: ({ reserving: 0.15, storage: 0.4, starting: 0.65, checking: 0.9 })[c.setupStep ?? "reserving"] } } : {}),
       ...(view.lastReportAt === null ? {} : { lastSeenAt: view.lastReportAt }),
       ...(["stopped", "ended"].includes(status) && c.destroyAt !== null ? { deleteAfter: c.destroyAt } : {}),

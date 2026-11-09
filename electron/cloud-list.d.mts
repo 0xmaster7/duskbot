@@ -63,7 +63,7 @@ export declare function ownCloud(cloud: CloudListEntry | null | undefined): bool
 export declare function signedInServers(clouds: CloudListEntry[] | null | undefined): CloudListEntry[];
 export declare function releaseVersion(value: unknown): string | null;
 export declare function olderRelease(version: unknown, latest: unknown): boolean;
-export declare function parseCloudList(input: unknown): CloudListEntry[] | null;
+export declare function parseCloudList(input: unknown, trust?: { keys: ReadonlyArray<{ kid: string; x: string }>; now(): number }): CloudListEntry[] | null;
 export declare function otherOwnClouds(clouds: CloudListEntry[] | null | undefined): CloudListEntry[];
 export declare function cloudMachine(cloud: CloudListEntry | null | undefined): import("./cloud-home.mjs").CloudMachine | null;
 export declare function stepProgress(step: unknown): number;

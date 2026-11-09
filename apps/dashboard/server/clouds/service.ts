@@ -122,6 +122,14 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       unseal: value => sealer.unseal(value), seal: value => sealer.seal(value), dashboardUrl: config.dashboardUrl, adminOrigin: config.adminOrigin,
       removeWorkspace: id => workspaces.remove(id), entitlement: signEntitlement }) : null;
   } catch (error) { store.close(); unlock(); throw error; }
+  /** a hosted home refuses clients without a fresh entitlement: pushed when it comes up, refreshed hourly */
+  async function entitle(c: StoredCloud, force = false): Promise<void> {
+    if (!c.origin || !home.entitle || (!force && c.entitledAt !== undefined && now() - c.entitledAt < 3_600_000)) return;
+    const token = signEntitlement(c);
+    if (!token) return;
+    try { await home.entitle(c.origin, sealer.unseal(c.bootstrapSecret), token); c.entitledAt = now(); save(c); }
+    catch { console.warn(`clouds: the entitlement push to ${c.id} failed; it is tried again`); }
+  }
   function succeeded(c: StoredCloud) { c.attempts = 0; c.nextAttemptAt = 0; c.poolFullSince = undefined; c.error = null; save(c); }
   async function reconcileCloud(c: StoredCloud) {
     // any backend, an older record's included: never the generic lifecycle, which could destroy its machine
@@ -194,6 +202,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
         succeeded(c); return;
       }
       if (!c.origin || !(await home.healthy(c.origin, sealer.unseal(c.bootstrapSecret)))) throw new RetryableCloudError();
+      await entitle(c, true);
       c.status = "running"; c.setupStep = null; c.lastCheckedAt = now(); c.powerSince = now(); succeeded(c); return;
     }
     if (!c.serverId) return;
@@ -228,6 +237,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       if (state.state === "missing" || state.state === "error") throw new Error("Cloud server unavailable.");
       succeeded(c);
     }
+    if (c.status === "running") await entitle(c);
   }
   const service: CloudsService = {
     managed,

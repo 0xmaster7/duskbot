@@ -1,12 +1,13 @@
 // The managed cloud backend the account service plugs in (apps/dashboard/server/clouds/managed.ts): one machine per cloud at
-// the provider, its lifecycle, backups, retention and the stray-machine sweep.
+// the provider, its lifecycle, backups, retention, the stray-machine sweep, the machine claim and the edge's route lookup.
 // The provider's API key, backup storage and backup secret exist only in this process.
-import { hkdfSync, randomBytes } from "node:crypto";
+import { createHash, hkdfSync, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { DESKTOP_KINDS, type CloudDesktopView } from "../../../shared/billing-api.ts";
 import type { StoredSubscription } from "../../dashboard/server/billing/store.ts";
-import type { ManagedCloud, ManagedCloudContext, ManagedCloudFactory } from "../../dashboard/server/clouds/managed.ts";
+import type { ManagedCloud, ManagedCloudContext, ManagedCloudFactory, ManagedCloudRoutesContext } from "../../dashboard/server/clouds/managed.ts";
 import { parseSealKey } from "../../dashboard/server/clouds/seal.ts";
 import type { DesktopPlan, StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import { createAudit, type Audit, type AuditEntry } from "./audit.ts";
@@ -15,6 +16,7 @@ import { boatScope, createBoatProvider, type BoatProvider, type BoatSize } from 
 import { guardBackupSecret } from "./key-guard.ts";
 import { createBoatLifecycle, freshBoatState, managedSettingsFromEnv, type BoatSettings } from "./lifecycle.ts";
 import { entitlementOf, noticeText, type Entitlement, type NoticeKind } from "./retention.ts";
+import { parseReleaseKeys, PINNED_RELEASE_KEYS, verifyRelease, type ReleaseKey } from "./release-signing.ts";
 import { createBoatSweep } from "./sweep.ts";
 import "./state.ts";
 
@@ -31,6 +33,12 @@ export interface ManagedCloudDeps {
   /** the billing system of record, read fresh at every decision */
   entitlement(cloud: StoredCloud): Entitlement;
   notify(cloud: StoredCloud, kind: NoticeKind, at: number | null, link?: string): void;
+  /** public keys a release must be signed with (the pinned ones unless a test says otherwise) */
+  releaseKeys?: readonly ReleaseKey[];
+  /** the bearer the edge proxy presents to look up a label's upstream (OMB_MANAGED_EDGE_TOKEN) */
+  edgeToken?: string | null;
+  /** keys the opaque public labels; defaults to one derived from the backup secret */
+  labelKey?: Buffer;
 }
 
 /** a record written before the rename: backend "boat" and its lifecycle record under `boat` */
@@ -65,8 +73,40 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         try { backups.read(newest.c.id, boatBackupKey(secret, newest.c.id), newest.g.file); return true; } catch { return false; }
       });
       const lifecycle = createBoatLifecycle({ ...deps, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
-        dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace  });
+        dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace, clouds: ctx.clouds, entitle: ctx.entitlement,
+        releaseKeys: deps.releaseKeys ?? PINNED_RELEASE_KEYS, labelKey: deps.labelKey ?? Buffer.from(hkdfSync("sha256", backupSecret, Buffer.alloc(0), Buffer.from("omb-managed-label"), 32))  });
       const sweep = createBoatSweep({ dataDir: ctx.dataDir, provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });
+      const claimLimits = new Map<string, { count: number; until: number }>();
+      function limited(key: string, max: number, windowMs: number): boolean {
+        const now = ctx.now(), item = claimLimits.get(key);
+        if (!item || item.until <= now) { claimLimits.set(key, { count: 1, until: now + windowMs }); return false; }
+        return ++item.count > max;
+      }
+      const digest = (value: string) => createHash("sha256").update(value).digest();
+      async function handle(req: IncomingMessage, res: ServerResponse, url: URL, routes: ManagedCloudRoutesContext): Promise<boolean> {
+        if (url.pathname === "/v1/managed/claims/redeem") {
+          if (req.method !== "POST") { routes.json(res, 405, { error: "method_not_allowed" }); return true; }
+          // the claim is the credential; a guesser gets 30 tries per address per 15 minutes
+          if (limited(`claim:${routes.clientIp(req)}`, 30, 15 * 60_000)) { routes.json(res, 429, { error: "rate_limited" }); return true; }
+          const body = await routes.readJson(req).catch(() => ({} as Record<string, unknown>));
+          const answer = lifecycle.redeemClaim(body.cloud, body.claim);
+          if (!answer) { routes.json(res, 403, { error: "invalid_claim" }); return true; }
+          res.setHeader("cache-control", "no-store");
+          routes.json(res, 200, answer);
+          return true;
+        }
+        if (url.pathname === "/v1/managed/edge/route") {
+          const want = deps.edgeToken ? `Bearer ${deps.edgeToken}` : null;
+          // only the edge proxy may ask; to anyone else the route does not exist
+          if (req.method !== "GET" || !want || !digest(String(req.headers.authorization ?? "")).equals(digest(want))) { routes.json(res, 404, { error: "not_found" }); return true; }
+          const upstream = lifecycle.upstreamFor(url.searchParams.get("label") ?? "");
+          if (!upstream) { routes.json(res, 404, { error: "not_found" }); return true; }
+          res.setHeader("cache-control", "no-store");
+          routes.json(res, 200, { upstream });
+          return true;
+        }
+        return false;
+      }
       return {
         kinds: deps.kinds,
         fresh: () => freshBoatState(),
@@ -86,6 +126,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         resizeNow: c => lifecycle.resizeNow(c),
         resizing: c => lifecycle.resizing(c),
         setHold: (c, hold) => lifecycle.setHold(c, hold),
+        handle,
         close: () => sweep.close(),
       };
     },
@@ -129,7 +170,13 @@ export function managedCloudFromEnv(source: NodeJS.ProcessEnv, options: ManagedC
   // the runtime key: sandbox lifecycle, commands and files on its own machines, snapshot reads for backups; never the template key
   const apiKey = required("BOAT_API_KEY");
   if (env.BOAT_TEMPLATE_API_KEY && env.BOAT_TEMPLATE_API_KEY === apiKey) throw new Error("BOAT_TEMPLATE_API_KEY must be a different key from BOAT_API_KEY.");
-  if (!options.loopback) required("OMB_CLOUD_SEAL_KEY");
+  // the e2e harness's service is on a name no machine resolves and nobody uses (.invalid or .test): it may relax these
+  const harness = env.OMB_MANAGED_TEST_HARNESS === "1" && /\.(?:invalid|test)$/.test(new URL(options.publicUrl).hostname);
+  const lenient = options.loopback || harness;
+  // a service people use: user-facing names on our own domain behind the edge, and signed releases only
+  if (!lenient) { required("OMB_CLOUD_SEAL_KEY"); required("OMB_MANAGED_PUBLIC_DOMAIN"); required("OMB_MANAGED_EDGE_TOKEN"); }
+  const edgeToken = env.OMB_MANAGED_EDGE_TOKEN || null;
+  if (edgeToken !== null && edgeToken.length < 32) throw new Error("OMB_MANAGED_EDGE_TOKEN must be at least 32 characters.");
   const kinds = (env.OMB_MANAGED_KINDS ?? "shared_s,shared_m,dedicated").split(",").map(k => k.trim());
   if (!kinds.length || kinds.some(k => k === "none" || !(DESKTOP_KINDS as readonly string[]).includes(k))) throw new Error("Invalid OMB_MANAGED_KINDS.");
   const smallest = env.OMB_MANAGED_SMALLEST ?? "small";
@@ -139,8 +186,13 @@ export function managedCloudFromEnv(source: NodeJS.ProcessEnv, options: ManagedC
   const backupSecret = env.OMB_MANAGED_BACKUP_KEY ? parseSealKey(env.OMB_MANAGED_BACKUP_KEY)
     : options.sealKey ? Buffer.from(hkdfSync("sha256", options.sealKey, Buffer.alloc(0), Buffer.from("omb-boat-backup-secret"), 32))
     : localSecret(join(options.dataDir, "boat-backup-secret"));
-  const settings = managedSettingsFromEnv(env);
-  return createManagedCloud({ kinds: kinds as Array<DesktopPlan["kind"]>, settings, backupSecret,
+  const settings = managedSettingsFromEnv(env, { loopback: lenient });
+  const releaseKeys = [...PINNED_RELEASE_KEYS, ...parseReleaseKeys(env.OMB_RELEASE_PUBLIC_KEYS)];
+  if (settings.package?.signature) verifyRelease(settings.package.signature, { kind: "home-package", sha256: settings.package.sha256 }, releaseKeys);
+  else if (settings.requireSigned && settings.package) throw new Error("OMB_MANAGED_HOME_PACKAGE_SIGNATURE is required: a home package must be signed by a release key.");
+  if (settings.templateSignature) verifyRelease(settings.templateSignature, { kind: "template", name: settings.template ?? "" }, releaseKeys);
+  else if (settings.requireSigned && settings.template) throw new Error("OMB_MANAGED_TEMPLATE_SIGNATURE is required: a template must be signed by a release key.");
+  return createManagedCloud({ kinds: kinds as Array<DesktopPlan["kind"]>, settings, backupSecret, releaseKeys, edgeToken,
     previousBackupSecret: env.OMB_MANAGED_BACKUP_KEY_PREVIOUS ? parseSealKey(env.OMB_MANAGED_BACKUP_KEY_PREVIOUS) : null,
     provider: createBoatProvider({ apiKey, baseUrl: env.BOAT_BASE_URL, scope, fetch: options.fetch, smallest: smallest as BoatSize }),
     backups: createBackupStore({ dir: env.OMB_MANAGED_BACKUP_DIR || join(options.dataDir, "boat-backups"), now: options.now }),

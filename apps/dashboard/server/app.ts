@@ -239,6 +239,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (await edgeHost.handle(req, res, url, { readBody, bodyObject, json, signed: (request, body) => signed(request, body),
       account: (request, mutation) => auth.requireWeb(request, { mutation }) })) return;
     if (await managedRoutes.handle(req, res, url)) return;
+    if (billing.clouds.managed?.handle && await billing.clouds.managed.handle(req, res, url, { publicUrl, json, readJson: async request => bodyObject(await readBody(request)),
+      clientIp: request => { const forwarded = request.headers["x-forwarded-for"]; return options.trustProxy && typeof forwarded === "string" ? forwarded.split(",")[0]!.trim() : request.socket.remoteAddress ?? "unknown"; } })) return;
     if (await billing.handle(req, res, url)) return;
     if (!path.startsWith("/v1/") && !path.startsWith("/.well-known/")) {
       if (method === "GET") return staticPage(req, res);

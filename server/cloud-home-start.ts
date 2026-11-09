@@ -132,6 +132,8 @@ export function cloudHomeChildEnvironments(config: CloudHomeConfig, env: NodeJS.
     PATH: env.PATH ?? "/usr/local/bin:/usr/bin:/bin", HOME: "/tmp/omb-edge",
     XDG_DATA_HOME: "/tmp/omb-edge/data", XDG_CONFIG_HOME: "/tmp/omb-edge/config",
     OMB_CLOUD_PUBLIC_HOST: cloudHomeHost(config),
+    // the host a public edge forwards to, when it differs from the public one (a managed machine's own hosted name)
+    OMB_CLOUD_UPSTREAM_HOST: /^[a-z0-9.-]{1,253}$/.test(env.OMB_CLOUD_UPSTREAM_HOST ?? "") ? env.OMB_CLOUD_UPSTREAM_HOST! : cloudHomeHost(config),
     // A plan whose home sleeps: requests wait this long for the server while it starts (deploy/fly/Caddyfile). Unset: 0s.
     OMB_CLOUD_EDGE_HOLD: edgeHold(env.OMB_CLOUD_EDGE_HOLD),
     ...edgeClientAddress(env),

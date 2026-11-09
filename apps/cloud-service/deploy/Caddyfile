@@ -1,5 +1,5 @@
 # Edge for one My Cloud home on a Boat sandbox (apps/cloud-service/docs/provider.md). Boat's hosted-port proxy terminates TLS for
-# <subdomain>-8080.on.boat.dev and reaches this machine on :8080. The OpenMausBot server listens only on 127.0.0.1, and
+# <subdomain>-8080.on.boat.dev and reaches this machine on :8080; people reach it as https://<label>.<public domain>. The OpenMausBot server listens only on 127.0.0.1, and
 # every request forwarded to it carries X-Forwarded-*, so it is never the loopback owner (server/request-auth.ts): a
 # remote client needs a paired session.
 #
@@ -29,8 +29,9 @@
 		}
 	}
 
-	# Everything else answers only for this machine's own public name.
-	@home host {$OMB_CLOUD_PUBLIC_HOST}
+	# Everything else answers only for this machine's own names: the public one, and the provider's hosted name the
+	# public edge (apps/cloud-service/edge/worker.js) forwards to.
+	@home host {$OMB_CLOUD_PUBLIC_HOST} {$OMB_CLOUD_UPSTREAM_HOST}
 	handle @home {
 		# Webhook ingress has its own per-hook secrets.
 		handle /hooks/* {

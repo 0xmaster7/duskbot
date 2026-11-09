@@ -1,11 +1,12 @@
 // A Boat-backed My Cloud from paid to deleted: provision, sleep when idle, wake for a person, a routine or Slack, back up,
 // come back from a lost machine, keep a plan's data 45 days after it ended, and delete only through the verdict in
 // boat-retention.ts. One step per reconcile, each safe to repeat after a crash.
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { linkKeys } from "../../dashboard/server/clouds/bootstrap.ts";
 import { BoatError, type BoatProvider } from "./boat.ts";
-import { backupKey, BOAT_HOME_VOLUME, BOAT_PACKAGE_FILE, BOAT_RESTORE_FILE, boatBootFile, boatSetupScript, installCommand, RESTORE_COMMAND, startCommand } from "./home.ts";
+import { backupKey, BOAT_HOME_VOLUME, BOAT_PACKAGE_FILE, BOAT_RESTORE_FILE, boatBootFile, bootContent, boatSetupScript, claimBootFile, installCommand, RESTORE_COMMAND, startCommand } from "./home.ts";
+import { verifyRelease, type ReleaseKey } from "./release-signing.ts";
 import { boatBackupKey, homeVolumeProblem, type BackupStore } from "./backups.ts";
 import { DAY_MS, DEFAULT_DELETE_DELAY_DAYS, DEFAULT_RETENTION_DAYS, deletionVerdict, dueNotice, type Entitlement, type NoticeKind, type Verdict } from "./retention.ts";
 import type { Audit, AuditActor } from "./audit.ts";
@@ -35,19 +36,27 @@ export interface BoatSettings {
   wakeLeadMs: number;
   powerReadMs: number;
   template: string | null;
-  /** the home's app package: a URL the sandbox downloads, or a file this service uploads */
-  package: { sha256: string; url?: string; file?: string } | null;
+  /** the template's release signature (CI's release key), checked here at start and by the machine at first boot */
+  templateSignature: string | null;
+  /** the home's app package: a URL the sandbox downloads, or a file this service uploads; its release signature travels with it */
+  package: { sha256: string; url?: string; file?: string; signature?: string } | null;
+  /** machines refuse an unsigned package or template (every service that is not loopback) */
+  requireSigned: boolean;
+  /** user-facing origins are https://<label>.<publicDomain>, proxied to the machine (edge/worker.js); null: the provider's own */
+  publicDomain: string | null;
+  /** the machine redeems a one-time claim for its secrets, so the provider's API never carries them; off where no machine can reach this service */
+  claims: boolean;
   maxBackupBytes: number;
   /** a sandbox Boat stops finding is lost only after this long of direct 404s and absence from the account's list */
   lostAfterMs: number;
 }
 export const DEFAULT_BOAT_SETTINGS: BoatSettings = {
   idleMinutes: 15, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, refreshAfterMs: 11 * DAY_MS, retentionDays: DEFAULT_RETENTION_DAYS,
-  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 2 * MINUTE, powerReadMs: MINUTE, template: null, package: null, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
+  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 2 * MINUTE, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
 /** settings from OMB_MANAGED_* (index.ts `managedEnv` maps the older names onto these) */
-export function managedSettingsFromEnv(env: NodeJS.ProcessEnv): BoatSettings {
+export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopback?: boolean } = {}): BoatSettings {
   const number = (name: string, min: number, max: number, fallback: number) => {
     const raw = env[name];
     if (raw === undefined || raw === "") return fallback;
@@ -60,10 +69,15 @@ export function managedSettingsFromEnv(env: NodeJS.ProcessEnv): BoatSettings {
     ? { sha256: sha256 && /^[a-f0-9]{64}$/.test(sha256) ? sha256 : (() => { throw new Error("Invalid OMB_MANAGED_HOME_PACKAGE_SHA256."); })(),
       ...(env.OMB_MANAGED_HOME_PACKAGE_URL ? { url: env.OMB_MANAGED_HOME_PACKAGE_URL } : { file: env.OMB_MANAGED_HOME_PACKAGE_FILE }) }
     : null;
+  const signature = env.OMB_MANAGED_HOME_PACKAGE_SIGNATURE || (env.OMB_MANAGED_HOME_PACKAGE_SIGNATURE_FILE ? readFileSync(env.OMB_MANAGED_HOME_PACKAGE_SIGNATURE_FILE, "utf8").trim() : "");
+  if (signature && pkg) Object.assign(pkg, { signature });
+  const publicDomain = env.OMB_MANAGED_PUBLIC_DOMAIN || null;
+  if (publicDomain !== null && !/^(?=.{4,200}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(publicDomain)) throw new Error("Invalid OMB_MANAGED_PUBLIC_DOMAIN.");
   const template = env.OMB_MANAGED_TEMPLATE || null;
   if (template !== null && !/^[a-z0-9][a-z0-9-]{0,62}$/.test(template)) throw new Error("Invalid OMB_MANAGED_TEMPLATE.");
   if (!pkg && !template) throw new Error("A managed cloud needs OMB_MANAGED_HOME_PACKAGE_URL (or _FILE) with OMB_MANAGED_HOME_PACKAGE_SHA256, or OMB_MANAGED_TEMPLATE.");
-  return { ...DEFAULT_BOAT_SETTINGS, template, package: pkg,
+  return { ...DEFAULT_BOAT_SETTINGS, template, package: pkg, templateSignature: env.OMB_MANAGED_TEMPLATE_SIGNATURE || null, publicDomain,
+    requireSigned: !options.loopback, claims: !options.loopback,
     idleMinutes: number("OMB_MANAGED_IDLE_MINUTES", 5, 24 * 60, 15),
     leaseSeconds: number("OMB_MANAGED_LEASE_HOURS", 1, 720, 2) * 3600,
     backupEveryMs: number("OMB_MANAGED_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
@@ -102,6 +116,14 @@ export interface BoatLifecycleDeps {
   backupSecret: Buffer;
   /** the cloud's record as stored on disk now, re-read right before anything irreversible */
   stored(cloudId: string): StoredCloud | null;
+  /** every cloud, for the claim and the edge's route lookup */
+  clouds(): StoredCloud[];
+  /** a fresh signed entitlement for the cloud's home, or null when none is signed */
+  entitle(cloud: StoredCloud): string | null;
+  /** the release keys a package or template must be signed with */
+  releaseKeys: readonly ReleaseKey[];
+  /** keys the opaque public labels (never on a machine) */
+  labelKey: Buffer;
 }
 
 export function createBoatLifecycle(deps: BoatLifecycleDeps) {
@@ -112,6 +134,28 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
   const secret = (c: StoredCloud) => deps.unseal(c.bootstrapSecret);
   const keyOf = (c: StoredCloud) => boatBackupKey(deps.backupSecret, c.id);
   const legacyKeyOf = (c: StoredCloud) => { try { return c.bootstrapSecret ? backupKey(secret(c)) : undefined; } catch { return undefined; } };
+  /** where this service reaches the home: the machine's own hosted URL, never through the public proxy */
+  const homeOrigin = (c: StoredCloud) => state(c).upstream ?? c.origin!;
+  const label = (c: StoredCloud) => (state(c).label ??= `d${createHmac("sha256", deps.labelKey).update(`omb-managed-label:${c.id}`).digest("hex").slice(0, 20)}`);
+  /** the user-facing origin for a machine's hosted URL: ours when a public domain is set */
+  function publish(c: StoredCloud, upstream: string) {
+    const b = state(c);
+    b.upstream = upstream;
+    c.origin = settings.publicDomain ? `https://${label(c)}.${settings.publicDomain}` : upstream;
+  }
+  const templatePackage = (() => {
+    if (!settings.template || !settings.templateSignature) return null;
+    try { return verifyRelease(settings.templateSignature, { kind: "template", name: settings.template }, deps.releaseKeys).version; } catch { return null; }
+  })();
+  /** a hosted home serves no client without a fresh entitlement: pushed when it comes up, refreshed hourly */
+  async function entitle(c: StoredCloud, force: boolean) {
+    if (!deps.home.entitle || (!force && c.entitledAt !== undefined && now() - c.entitledAt < HOUR)) return;
+    const token = deps.entitle(c);
+    if (!token) return;
+    try { await deps.home.entitle(homeOrigin(c), secret(c), token); }
+    catch { throw new RetryableCloudError("Cloud home refused its entitlement."); }
+    c.entitledAt = now(); deps.save(c);
+  }
   const latestVerified = (b: BoatCloudState) => [...b.backups].reverse().find(g => g.verifiedAt !== null) ?? null;
   function notice(c: StoredCloud, kind: NoticeKind, at: number | null, link?: string) {
     const b = state(c);
@@ -186,10 +230,16 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       if (!c.workspaceId || !c.linkPublicKey || !c.sealedLinkPrivateKey) throw new Error("Missing cloud bootstrap.");
       const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
       const fromTemplate = settings.template !== null && b.restoreFrom === null && b.attempt === 0;
-      const server = await provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData: boatSetupScript(), ttlSeconds: settings.leaseSeconds, attempt: b.attempt,
-        files: [boatBootFile({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link })],
-        ...(fromTemplate ? { from: settings.template! } : {}) });
-      c.serverId = server.id; c.origin = server.origin ?? null; b.installed = fromTemplate ? b.installed : null; b.leaseAt = now(); b.setupSince = now();
+      // the machine gets a one-time claim, never its secrets: the provider's API and its logs never carry them
+      let boot = boatBootFile({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
+      if (settings.claims) {
+        const claim = randomBytes(32).toString("base64url");
+        b.claim = { hash: createHash("sha256").update(claim).digest("hex"), expiresAt: now() + HOUR, redeemedAt: null };
+        boot = claimBootFile({ cloudId: c.id, claim, redeem: `${deps.dashboardUrl}/v1/managed/claims/redeem` });
+      }
+      const server = await provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData: boatSetupScript({ releaseKeys: deps.releaseKeys, requireSigned: settings.requireSigned }),
+        ttlSeconds: settings.leaseSeconds, attempt: b.attempt, files: [boot], ...(fromTemplate ? { from: settings.template! } : {}) });
+      c.serverId = server.id; b.upstream = server.origin ?? null; c.origin = null; b.installed = fromTemplate ? templatePackage : null; b.leaseAt = now(); b.setupSince = now();
       log(c, "create", "reconciler", b.attempt ? "recovery" : "paid", { attempt: b.attempt, template: fromTemplate });
       c.setupStep = "storage"; deps.save(c); return;
     }
@@ -201,7 +251,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       const pkg = settings.package;
       if (pkg && b.installed !== pkg.sha256) {
         if (pkg.file) await provider.upload(c.serverId, BOAT_PACKAGE_FILE, readFileSync(pkg.file));
-        const done = await provider.run(c.serverId, installCommand(pkg.sha256, pkg.url), 600);
+        const done = await provider.run(c.serverId, installCommand(pkg.sha256, pkg.url, pkg.signature), 600);
         if (!done.ok || !done.stdout.includes("installed")) throw new RetryableCloudError("Cloud package install failed.");
         b.installed = pkg.sha256; deps.save(c);
       }
@@ -217,13 +267,14 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       c.setupStep = "starting"; deps.save(c); return;
     }
     if (c.setupStep === "starting") {
-      const origin = c.origin ?? await provider.origin(c.serverId);
-      c.origin = origin;
-      const started = await provider.run(c.serverId, startCommand(origin), 120);
+      publish(c, state(c).upstream ?? await provider.origin(c.serverId));
+      const started = await provider.run(c.serverId, startCommand(c.origin!, homeOrigin(c)), 120);
       if (!started.ok) throw new RetryableCloudError("Cloud home did not start.");
       c.setupStep = "checking"; deps.save(c); return;
     }
-    if (!c.origin || !(await deps.home.healthy(c.origin, secret(c)))) return wait(c, 5_000);
+    if (!c.origin || !(await deps.home.healthy(homeOrigin(c), secret(c)))) return wait(c, 5_000);
+    await entitle(c, true);
+    if (b.claim) b.claim = null;
     c.status = "running"; c.setupStep = null; c.lastCheckedAt = now(); c.powerSince = now(); c.wantPower = "on";
     b.wakeStartedAt = null; b.lastPowerAt = now(); b.sleptAt = null; b.sleepReason = null;
     c.attempts = 0; c.nextAttemptAt = 0; c.error = null;
@@ -237,7 +288,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     const b = state(c), from = latestVerified(b);
     if (c.serverId && !b.retired.some(r => r.serverId === c.serverId)) b.retired.push({ serverId: c.serverId, at: now(), deletion: null });
     b.attempt++; b.recoveries++; b.restoreFrom = from?.file ?? null; b.installed = null; b.restoredFrom = from ? null : { file: "", at: 0 };
-    c.serverId = null; c.origin = null; c.status = "provisioning"; c.setupStep = "reserving"; c.attempts = 0; c.nextAttemptAt = 0;
+    c.serverId = null; c.origin = null; b.upstream = null; b.claim = null; c.status = "provisioning"; c.setupStep = "reserving"; c.attempts = 0; c.nextAttemptAt = 0;
     if (!c.sealedLinkPrivateKey) { const keys = linkKeys(); c.linkPublicKey = keys.publicKey; c.sealedLinkPrivateKey = deps.seal(keys.privateKey); }
     log(c, "recover", "reconciler", why, { backup: from?.file ?? null, attempt: b.attempt });
     deps.save(c);
@@ -379,7 +430,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     if (b.endedAt === null) {
       b.endedAt = now();
       log(c, "plan_ended", "billing", "record", { until: entitlement.until });
-      if (c.origin && up) await deps.home.plan?.(c.origin, secret(c), { cancelled: true }).catch(() => {});
+      if (c.origin && up) await deps.home.plan?.(homeOrigin(c), secret(c), { cancelled: true }).catch(() => {});
       deps.save(c);
     }
     if (verdict.earliestAt !== null) { const kind = dueNotice({ now: now(), earliestAt: verdict.earliestAt, sent: b.notices.map(n => n.kind as NoticeKind) }); if (kind) notice(c, kind, verdict.earliestAt); }
@@ -450,7 +501,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       log(c, "plan_renewed", "billing", "record"); notice(c, "resumed", null);
       if (b.deleteRequest && b.deleteRequest.cancelledAt === null) { b.deleteRequest.cancelledAt = now(); b.deleteRequest.tokenHash = null; log(c, "delete_cancelled", "billing", "plan_renewed"); }
       if (c.status === "stopped") { c.status = "sleeping"; c.wantPower = "on"; }
-      if (c.origin) await deps.home.plan?.(c.origin, secret(c), { cancelled: false }).catch(() => {});
+      if (c.origin) await deps.home.plan?.(homeOrigin(c), secret(c), { cancelled: false }).catch(() => {});
     }
 
     const up = ["ready", "idle", "running"].includes(s.state);
@@ -484,11 +535,12 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       return;
     }
     if (!up) return;
-    if (!c.origin) c.origin = await provider.origin(c.serverId);
+    if (!c.origin || !b.upstream) publish(c, b.upstream ?? c.origin ?? await provider.origin(c.serverId));
     if (b.wakeStartedAt !== null || c.status !== "running") {
       // a resume onto a held machine keeps the service the pre-stop hook stopped: start it again every time
-      const started = await provider.run(c.serverId, startCommand(c.origin), 120);
-      if (!started.ok || !(await deps.home.healthy(c.origin, secret(c)))) throw new RetryableCloudError("Cloud home not answering after a wake.");
+      const started = await provider.run(c.serverId, startCommand(c.origin!, homeOrigin(c)), 120);
+      if (!started.ok || !(await deps.home.healthy(homeOrigin(c), secret(c)))) throw new RetryableCloudError("Cloud home not answering after a wake.");
+      await entitle(c, true);
       log(c, "awake", "reconciler", "healthy", { ms: b.wakeStartedAt === null ? null : now() - b.wakeStartedAt });
       c.status = "running"; c.powerSince = now(); b.wakeStartedAt = null; b.sleptAt = null; b.sleepReason = null; b.lastPowerAt = now(); b.leaseAt = now();
       await provider.lease(c.serverId, settings.leaseSeconds);
@@ -500,12 +552,13 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     if (b.leaseAt === null || now() - b.leaseAt >= Math.min(30 * MINUTE, settings.leaseSeconds * 500)) { await provider.lease(c.serverId, settings.leaseSeconds); b.leaseAt = now(); deps.save(c); }
     if (b.lastPowerAt !== null && now() - b.lastPowerAt < settings.powerReadMs) return;
     b.lastPowerAt = now();
-    const power = deps.home.power ? await deps.home.power(c.origin, secret(c), settings.idleMinutes).catch(() => null) : null;
+    await entitle(c, false).catch(() => console.warn(`managed: the entitlement refresh for ${c.id} failed; it is tried again`));
+    const power = deps.home.power ? await deps.home.power(homeOrigin(c), secret(c), settings.idleMinutes).catch(() => null) : null;
     if (!power) { deps.save(c); return; }
     b.busy = power.busy; b.nextDueAt = power.nextDueAt;
     const minAwake = c.powerSince + 2 * MINUTE;
     if (power.idle && now() >= minAwake && deps.home.sleep) {
-      const agreed = await deps.home.sleep(c.origin, secret(c), settings.idleMinutes);
+      const agreed = await deps.home.sleep(homeOrigin(c), secret(c), settings.idleMinutes);
       if (agreed.ok) { b.nextDueAt = agreed.nextDueAt ?? power.nextDueAt; return sleepNow(c, "idle", "reconciler"); }
     }
     // a home that never sleeps still gets a backup, from Boat's background snapshot
@@ -516,7 +569,26 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
 
   // owner's delete request: never acts at once; the reconciler deletes after the undo window, through the same verdict
   const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
+  /** the machine's one-time claim, answered once (again within 10 minutes, for a lost answer) with what its boot file used to carry */
+  function redeemClaim(cloudId: unknown, claim: unknown): Record<string, unknown> | null {
+    if (typeof cloudId !== "string" || typeof claim !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(claim)) return null;
+    const c = deps.clouds().find(x => x.id === cloudId && x.backend && x.status === "provisioning");
+    const held = c?.managed?.claim;
+    if (!c || !held || held.expiresAt < now() || (held.redeemedAt !== null && now() - held.redeemedAt > 10 * MINUTE)) return null;
+    const given = Buffer.from(createHash("sha256").update(claim).digest("hex")), want = Buffer.from(held.hash);
+    if (given.length !== want.length || !timingSafeEqual(given, want) || !c.workspaceId || !c.linkPublicKey || !c.sealedLinkPrivateKey) return null;
+    if (held.redeemedAt === null) { held.redeemedAt = now(); log(c, "claim_redeemed", "system", "first_boot"); deps.save(c); }
+    const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
+    return bootContent({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
+  }
   return {
+    redeemClaim,
+    /** the edge's lookup: the machine's own hosted URL behind a public label */
+    upstreamFor(value: string): string | null {
+      if (!/^d[0-9a-f]{20}$/.test(value)) return null;
+      const c = deps.clouds().find(x => x.backend && x.managed?.label === value && x.status !== "destroyed" && x.status !== "destroying");
+      return c?.managed?.upstream ?? null;
+    },
     reconcile,
     verdict: (c: StoredCloud) => verdictFor(c),
     backup: (c: StoredCloud) => backup(c, "manual"),

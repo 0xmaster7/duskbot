@@ -1,6 +1,7 @@
 // The verified session's `clouds` (contract v1, additive): every Cloud this person owns and every team's Cloud they are
 // in, the account's primary Cloud first. Only the Admin lists a Cloud; a page never names one.
 import { CLOUD_SETUP_STEPS, homeOrigin, parseCloudPower } from "./cloud-home.mjs";
+import { entitlementKeys, verifyEntitlement } from "./entitlement.mjs";
 import environments from "./environments.cjs";
 
 export const MAX_CLOUDS = 20;
@@ -45,7 +46,7 @@ function setupOf(input) {
  * setup, last-seen time or version is simply left out, and a field this app doesn't know is ignored. `managed: false`
  * (absent means MausBot runs or manages it) is a server or computer of the person's own that signed in with their
  * account: always on a server of theirs, and with no address while it is only reachable on its own network. */
-function parseCloudEntry(input) {
+function parseCloudEntry(input, trust) {
   if (!record(input) || typeof input.id !== "string" || !CLOUD_ID.test(input.id)) return null;
   const name = cleanCloudListName(input.name);
   if (!name || !environments.TEAM_ROLES.includes(input.role) || !CLOUD_LIST_STATUSES.includes(input.status) || !RUNS_ON.includes(input.runsOn) || typeof input.primary !== "boolean") return null;
@@ -66,7 +67,9 @@ function parseCloudEntry(input) {
   const deleteAfter = DEAD.includes(input.status) && Number.isSafeInteger(input.deleteAfter) && input.deleteAfter > 0 ? input.deleteAfter : null;
   const removable = input.removable === true && DEAD.includes(input.status) && managed && input.role === "owner" && teamId === null;
   // additive: who runs a cloud's machine ("managed"); a malformed one, or one on a server of the person's own, is none.
-  const provider = managed && typeof input.provider === "string" && PROVIDER.test(input.provider) ? input.provider : null;
+  // a managed one counts only with the account service's signed entitlement for this very cloud, checked offline
+  const provider = managed && typeof input.provider === "string" && PROVIDER.test(input.provider)
+    && verifyEntitlement(input.entitlement, { keys: trust.keys, audience: "app", cloudId: input.id, now: trust.now() }).ok ? input.provider : null;
   return { id: input.id, name, color: Object.hasOwn(CLOUD_SWATCH_COLORS, input.color) ? input.color : null, role: input.role,
     tier: typeof input.tier === "string" && TIER.test(input.tier) ? input.tier : null, runsOn: input.runsOn, status: input.status, origin, teamId,
     primary: input.primary, managed, ...(setup ? { setup } : {}), ...(lastSeenAt ? { lastSeenAt } : {}), ...(version ? { version } : {}), ...(power ? { power } : {}),
@@ -106,12 +109,12 @@ export const signedInServers = clouds => (Array.isArray(clouds) ? clouds.filter(
  * The session's list, at most MAX_CLOUDS, each Cloud once; null when the Admin sends none (it predates many Clouds, and
  * the session's `cloud` and `teams` say everything). At most one Cloud is primary, and only one of the person's own.
  */
-export function parseCloudList(input) {
+export function parseCloudList(input, trust = { keys: entitlementKeys(process.env, !process.defaultApp), now: Date.now }) {
   if (!Array.isArray(input)) return null;
   const clouds = [], seen = new Set();
   let primary = false;
   for (const entry of input.slice(0, MAX_CLOUDS)) {
-    const cloud = parseCloudEntry(entry);
+    const cloud = parseCloudEntry(entry, trust);
     if (!cloud || seen.has(cloud.id)) continue;
     seen.add(cloud.id);
     const first = cloud.primary && !primary && ownCloud(cloud);
