@@ -27,6 +27,8 @@ export const LEGACY = Object.freeze({
   vpsUnits: { server: `${OLD}.service`, link: `${OLD}-link.service` },
   serveLabel: `com.${OLD}.serve`,
   controlPlaneService: `${OLD}-control-plane`,
+  // the hosted control plane issues managed companion addresses under these until it is moved to cloud.dusk.bot
+  companionHostSuffixes: [`${OLD}.com`, "mausbot.si"],
   sentinelUnit: `${OLD}-sentinel`,
 });
 
@@ -78,14 +80,16 @@ const NEW_WELL_KNOWN = "/.well-known/duskbot";
 const NEW_STORAGE = "duskbot.";
 const NEW_PROTOCOL = "duskbot";
 
-/** OMB_X and OPENMAUSBOT_X become DUSK_X unless DUSK_X is set; the old ones stay so older children still read them. */
+/** OMB_X and OPENMAUSBOT_X move to DUSK_X (a DUSK_X already set wins). moved, not copied: every list that keeps a
+ * secret out of a child's env names only DUSK_*, so an old name left behind would reach engines and bots. */
 export function aliasLegacyEnv(env) {
   if (!env || typeof env !== "object") return env;
   for (const key of Object.keys(env)) {
-    const prefix = LEGACY.envPrefixes.find((p) => key.startsWith(p));
+    const prefix = LEGACY.envPrefixes.find((p) => key.toUpperCase().startsWith(p));
     if (!prefix) continue;
     const next = NEW_ENV + key.slice(prefix.length);
     if (env[next] === undefined) env[next] = env[key];
+    delete env[key];
   }
   return env;
 }
@@ -243,6 +247,9 @@ export function migrateLegacyUserData(next, appData, { fs = node("node:fs"), log
   }
 }
 
+/** `security` with args and stdin; blocking on purpose, so the key is in place before chromium first reads it */
+const securityCli = (args, input) => node("node:child_process").spawnSync("/usr/bin/security", args, { input, encoding: "utf8", timeout: 60_000 });
+
 /** electron's keychain item for an app called `name` (macOS): "<name> Safe Storage", account "<name> Key" */
 export const safeStorageItem = (name) => ({ service: `${name} Safe Storage`, account: `${name} Key` });
 
@@ -251,7 +258,7 @@ export const safeStorageItem = (name) => ({ service: `${name} Safe Storage`, acc
  * key is copied under the new name so files sealed before the rename still open. `run` is `security` with args and
  * stdin. returns what happened.
  */
-export function carryLegacySafeStorageKey({ name, packaged = true, run }) {
+export function carryLegacySafeStorageKey({ name, packaged = true, run = securityCli }) {
   const next = safeStorageItem(name);
   const olds = (packaged ? [LEGACY.product, LEGACY.devName] : [LEGACY.devName, LEGACY.product]).map(safeStorageItem);
   const find = (item, reveal) => run(["find-generic-password", "-s", item.service, "-a", item.account, ...(reveal ? ["-w"] : [])]);

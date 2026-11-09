@@ -287,7 +287,8 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
 it("does not add blocking subprocess calls to Electron runtime modules", () => {
   const root = dirname(fileURLToPath(import.meta.url));
   // These synchronous ownership checks need separate lifecycle work: the boot ID read, the Windows creation-time query, Linux group validation.
-  const allowed = { "data-dir-lease.mjs": 3, "cua-linux.cjs": 2 };
+  // The keychain key from before the rename is copied before Chromium first reads it, once, on the first launch after.
+  const allowed = { "data-dir-lease.mjs": 3, "cua-linux.cjs": 2, "legacy-names.mjs": 1 };
   for (const entry of readdirSync(root, { recursive: true })) {
     const name = String(entry).replaceAll("\\", "/");
     if (!/\.(?:mjs|cjs)$/.test(name) || /(?:\.test\.|\.node-test\.|^vendor\/|^build-)/.test(name)) continue;

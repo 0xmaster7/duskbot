@@ -36,7 +36,7 @@ export function systemdUnit(spec: ServiceSpec): string {
   const lines = [
     "# Written by `duskbot service install`. Re-run it to change the options.",
     "[Unit]",
-    `Description=DuskBot${spec.label ? ` (${spec.label})` : ""}`,
+    `Description=Dusk Bot${spec.label ? ` (${spec.label})` : ""}`,
     "After=network-online.target",
     "Wants=network-online.target",
     "",

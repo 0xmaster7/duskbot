@@ -6,10 +6,11 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { chmodSync, closeSync, constants, existsSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, writeSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, relative, resolve, isAbsolute } from "node:path";
+import { basename, dirname, join, relative, resolve, isAbsolute } from "node:path";
 import { z } from "zod";
 
 import type { SavedSecretSummary } from "../shared/saved-secrets.ts";
+import { LEGACY } from "../electron/legacy-names.mjs";
 import { writeFileAtomic } from "./atomic.ts";
 import { decryptBrowserState, encryptBrowserState } from "./browser-sites.ts";
 
@@ -47,6 +48,7 @@ export interface SavedSecretsKey {
 /** A headless server's key: `<config>/duskbot/saved-secrets-<data folder hash>.key`, outside the data folder,
  * 0600 in a 0700 folder, owned by this user. A link, a foreign owner or a loose mode is refused or tightened. */
 export function fileSavedSecretsKey(dataDir: string, file = defaultKeyFile(dataDir)): SavedSecretsKey & { file: string } {
+  const legacy = file === defaultKeyFile(dataDir) ? legacyKeyFiles(dataDir) : [];
   const inside = relative(resolve(dataDir), resolve(file));
   // A data folder that holds the config folder (a home used as the data folder) gets no key: saving to the Vault is
   // refused, and Use once still works. Set DUSK_SAVED_SECRETS_KEY_FILE to a path outside it.
@@ -58,24 +60,45 @@ export function fileSavedSecretsKey(dataDir: string, file = defaultKeyFile(dataD
     get() {
       if (cached) return cached;
       outside();
-      cached = readKeyFile(file) ?? createKeyFile(file);
+      cached = readKeyFile(file) ?? carryLegacyKey(file, legacy) ?? createKeyFile(file);
       return cached;
     },
     peek() {
       if (cached) return cached;
       if (misplaced) return null;
-      cached = readKeyFile(file);
+      cached = readKeyFile(file) ?? legacy.map(readKeyFile).find(Boolean) ?? null;
       return cached;
     },
   };
 }
 
+const keyBase = () => process.env.XDG_CONFIG_HOME?.trim() || join(homedir(), ".config");
+const keyTag = (dataDir: string) => createHash("sha256").update(resolve(dataDir)).digest("hex").slice(0, 16);
+
 function defaultKeyFile(dataDir: string): string {
   const configured = process.env.DUSK_SAVED_SECRETS_KEY_FILE?.trim();
   if (configured) return configured;
-  const base = process.env.XDG_CONFIG_HOME?.trim() || join(homedir(), ".config");
-  const tag = createHash("sha256").update(resolve(dataDir)).digest("hex").slice(0, 16);
-  return join(base, "duskbot", `saved-secrets-${tag}.key`);
+  return join(keyBase(), "duskbot", `saved-secrets-${keyTag(dataDir)}.key`);
+}
+
+/** where a build from before the rename kept this data folder's key: its own config folder, named for the data folder
+ * by its path then (the old folder name when the data folder has since moved to the new one) */
+function legacyKeyFiles(dataDir: string): string[] {
+  const dirs = [dataDir, ...(basename(resolve(dataDir)) === ".duskbot" ? [join(dirname(resolve(dataDir)), LEGACY.dataDirName)] : [])];
+  return dirs.map((dir) => join(keyBase(), LEGACY.devName, `saved-secrets-${keyTag(dir)}.key`));
+}
+
+/** the key from before the rename, copied to its new place; the old file stays */
+function carryLegacyKey(file: string, legacy: string[]): string | null {
+  for (const old of legacy) {
+    const key = readKeyFile(old);
+    if (!key) continue;
+    mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
+    ownedPlain(dirname(file), "folder");
+    writeKey(file, key);
+    return key;
+  }
+  return null;
 }
 
 function ownedPlain(path: string, kind: "file" | "folder"): void {
@@ -99,6 +122,11 @@ function createKeyFile(file: string): string {
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
   ownedPlain(dirname(file), "folder");
   const key = randomBytes(32).toString("hex");
+  writeKey(file, key);
+  return key;
+}
+
+function writeKey(file: string, key: string): void {
   const noFollow = typeof constants.O_NOFOLLOW === "number" ? constants.O_NOFOLLOW : 0;
   const fd = openSync(file, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | noFollow, 0o600);
   try {
@@ -106,7 +134,6 @@ function createKeyFile(file: string): string {
   } finally {
     closeSync(fd);
   }
-  return key;
 }
 
 /** The desktop app's key: the main process sends it, or says the keychain is unavailable, in which case the headless

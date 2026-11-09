@@ -1932,7 +1932,7 @@ describe("workspace credential env strip", () => {
     const operator = {
       DUSK_CLOUD_READY_TOKEN: "ready", DUSK_CLOUD_BOOTSTRAP: "bootstrap", DUSK_CLOUD_GATEWAY_TOKEN: "gateway",
       DUSK_CLOUD_MODELS: "models", DUSK_CLOUD_REVISION: "revision", DUSK_CLOUD_FUTURE_SECRET: "later",
-      DUSK_LICENSE_KEY: "license", DUSK_INSTALLATION_CREDENTIAL: "fleet", omb_cloud_ready_token: "windows-spelling",
+      DUSK_LICENSE_KEY: "license", DUSK_INSTALLATION_CREDENTIAL: "fleet", dusk_cloud_ready_token: "windows-spelling",
     };
     // What an engine deliberately receives (the hosted model token as its provider key), plus look-alike names.
     const engine = {

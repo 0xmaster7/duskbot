@@ -150,7 +150,7 @@ export async function explain(error: unknown, baseUrl?: string): Promise<Headles
   const cause = (error as { cause?: { code?: unknown } })?.cause?.code;
   if ((error instanceof TypeError && /fetch failed/i.test(message)) || cause === "ECONNREFUSED" || cause === "ENOTFOUND"
     || (error instanceof Error && (error.name === "TimeoutError" || /timed out|aborted due to timeout/i.test(message)))) {
-    return new HeadlessError(`cannot reach DuskBot${baseUrl ? ` at ${baseUrl}` : ""}`, EXIT.unreachable,
+    return new HeadlessError(`cannot reach Dusk Bot${baseUrl ? ` at ${baseUrl}` : ""}`, EXIT.unreachable,
       "check the server is running and the address is right (duskbot doctor)");
   }
   if (error instanceof Error && error.name === "AbortError") return new HeadlessError("stopped", EXIT.interrupted);

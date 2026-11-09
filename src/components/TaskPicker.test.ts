@@ -16,7 +16,7 @@ describe("filterTasks", () => {
   });
 
   it("matches titles case-insensitively", () => {
-    expect(filterTasks(tasks, "openmaus").map((task) => task.title)).toEqual(["Dusk Bot Update"]);
+    expect(filterTasks(tasks, "dusk b").map((task) => task.title)).toEqual(["Dusk Bot Update"]);
   });
 
   it("ranks prefix hits ahead of substring hits, keeping input order in each tier", () => {

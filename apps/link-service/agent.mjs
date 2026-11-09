@@ -31,8 +31,10 @@ const OLD_HEADER = "x-openmausbot-";
 const OLD_WELL_KNOWN = "/.well-known/openmausbot";
 const OLD_CONFIG = "openmausbot-link";
 for (const key of Object.keys(process.env)) {
-  const prefix = OLD_ENV.find((p) => key.startsWith(p));
-  if (prefix && process.env[`DUSK_${key.slice(prefix.length)}`] === undefined) process.env[`DUSK_${key.slice(prefix.length)}`] = process.env[key];
+  const prefix = OLD_ENV.find((p) => key.toUpperCase().startsWith(p));
+  if (!prefix) continue;
+  if (process.env[`DUSK_${key.slice(prefix.length)}`] === undefined) process.env[`DUSK_${key.slice(prefix.length)}`] = process.env[key];
+  delete process.env[key];
 }
 const isOwnHeader = (lower) => lower.startsWith("x-dusk-") || lower.startsWith(OLD_HEADER);
 const withLegacyHeaders = (headers) => Object.fromEntries(Object.entries(headers).flatMap(([key, value]) =>

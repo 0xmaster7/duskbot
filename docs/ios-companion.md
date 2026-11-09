@@ -183,7 +183,7 @@ WireGuard inside the tailnet. Use the MagicDNS name rather than the
 `100.64.0.0/10` address: App Transport Security exceptions are domain-based,
 and `ios/project.yml` narrowly allows insecure HTTP for `ts.net` subdomains.
 
-Tailscale is optional. The direct path does not use a DuskBot-operated
+Tailscale is optional. The direct path does not use a Dusk Bot-operated
 relay or create a cloud copy of local transcript data.
 
 ### Optional hosted HTTPS

@@ -42,7 +42,7 @@ Talk to them like contacts. Watch them work. Approve what matters.
 <br>
 
 <a href="https://github.com/sponsors/milind-soni">
-  <img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F%20%20Support%20DuskBot-GitHub%20Sponsors-38d591?style=for-the-badge&labelColor=070707" alt="Support Dusk Bot via GitHub Sponsors" height="40">
+  <img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F%20%20Support%20Dusk%20Bot-GitHub%20Sponsors-38d591?style=for-the-badge&labelColor=070707" alt="Support Dusk Bot via GitHub Sponsors" height="40">
 </a>
 
 <br>

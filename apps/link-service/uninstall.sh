@@ -846,7 +846,7 @@ finale() {
   glyph sep
   if [ "$LEFT" -eq 0 ]; then
     glyph ok; _ok=$G; glyph sep
-    printf '\n  %s%s %sDuskBot is gone from %s%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$NAME" "$R" "$DIM" "$G" "$total" "$R"
+    printf '\n  %s%s %sDusk Bot is gone from %s%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$NAME" "$R" "$DIM" "$G" "$total" "$R"
     if [ -f "$BACKUP_FILE" ]; then printf '    %syour bots are saved in %s%s\n' "$DIM" "$BACKUP_FILE" "$R"; fi
     printf '\n  %s%sAll clean. Paste the install line from the app whenever you want it back.%s\n\n' "$ACC" "$BOLD" "$R"
   else

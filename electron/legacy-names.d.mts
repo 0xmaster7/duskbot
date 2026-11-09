@@ -16,6 +16,7 @@ export declare const LEGACY: Readonly<{
   vpsUnits: Readonly<{ server: string; link: string }>;
   serveLabel: string;
   controlPlaneService: string;
+  companionHostSuffixes: readonly string[];
   sentinelUnit: string;
 }>;
 export declare const UPSTREAM: Readonly<{ teamLibrary: { repository: string; raw: string }; composioBroker: string }>;
@@ -45,5 +46,5 @@ export declare function safeStorageItem(name: string): { service: string; accoun
 export declare function carryLegacySafeStorageKey(options: {
   name: string;
   packaged?: boolean;
-  run: (args: string[], input?: string) => { status: number | null; stdout?: string };
+  run?: (args: string[], input?: string) => { status: number | null; stdout?: string };
 }): "present" | "none" | "copied" | "failed";

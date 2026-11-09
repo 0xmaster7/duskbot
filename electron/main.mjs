@@ -1,5 +1,4 @@
 import { carryLegacySafeStorageKey, DATA_DIR_NAMES, dataDirFor, fromLegacyLink, LEGACY, migrateLegacyUserData } from "./legacy-names.mjs";
-import { spawnSync } from "node:child_process";
 import { app, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, nativeImage, net, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess, nativeTheme } from "electron";
 import { createRequire } from "node:module";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -192,8 +191,7 @@ unlimitTunnelConnections(app);
 // before electron opens its folder or its keychain key: an install from before the rename brings both along
 if (!app.commandLine.hasSwitch("user-data-dir") && migrateLegacyUserData(app.getPath("userData"), app.getPath("appData"), { packaged: app.isPackaged, log: line => console.log(`[desktop] ${line}`) })
   && process.platform === "darwin") {
-  const carried = carryLegacySafeStorageKey({ name: app.getName(), packaged: app.isPackaged,
-    run: (args, input) => spawnSync("/usr/bin/security", args, { input, encoding: "utf8", timeout: 60_000 }) });
+  const carried = carryLegacySafeStorageKey({ name: app.getName(), packaged: app.isPackaged });
   console.log(`[desktop] keychain key from before the rename: ${carried}`);
 }
 

@@ -22,7 +22,9 @@ test("old env names count as the new ones, and a new name already set wins", () 
   assert.equal(env.DUSK_DATA_DIR, "/old");
   assert.equal(env.DUSK_TOKEN, "t");
   assert.equal(env.DUSK_PORT, "2");
-  assert.equal(env[`${LEGACY.envPrefixes[0]}DATA_DIR`], "/old", "kept for a child from before the rename");
+  assert.equal(env[`${LEGACY.envPrefixes[0]}DATA_DIR`], undefined, "moved, so no secret stays under a name the env filters miss");
+  const lower = aliasLegacyEnv({ [`${LEGACY.envPrefixes[0].toLowerCase()}cloud_ready_token`]: "t" });
+  assert.deepEqual(lower, { DUSK_cloud_ready_token: "t" }, "windows spells env names in any case");
 });
 
 test("an old data folder moves to the new name once, its bots readable by both paths", (t) => {

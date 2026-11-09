@@ -1,3 +1,4 @@
+import { LEGACY } from "./legacy-names.mjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import http, { createServer } from "node:http";
@@ -64,13 +65,13 @@ describe("desktop companion endpoint", () => {
     expect(normalizeDesktopCompanionEndpoint(`${LABEL}.cloud.dusk.bot`)).toBe(
       `https://${LABEL}.cloud.dusk.bot`,
     );
-    // The control plane's second Cloudflare account gives addresses here.
-    expect(normalizeDesktopCompanionEndpoint(`https://${LABEL}.cloud.dusk.bot`)).toBe(
+    expect(normalizeDesktopCompanionEndpoint(` ${LABEL.toUpperCase()}.Cloud.DUSK.Bot/ `)).toBe(
       `https://${LABEL}.cloud.dusk.bot`,
     );
-    expect(normalizeDesktopCompanionEndpoint(` ${LABEL.toUpperCase()}.Dusk.SI/ `)).toBe(
-      `https://${LABEL}.cloud.dusk.bot`,
-    );
+    // the hosted control plane still gives addresses under its names from before the rename
+    for (const host of LEGACY.companionHostSuffixes) {
+      expect(normalizeDesktopCompanionEndpoint(`https://${LABEL}.${host}`)).toBe(`https://${LABEL}.${host}`);
+    }
     for (const endpoint of [
       "https://unrelated.example.com",
       `http://${LABEL}.cloud.dusk.bot`,

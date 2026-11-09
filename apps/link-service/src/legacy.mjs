@@ -5,8 +5,10 @@ const OLD_WELL_KNOWN = "/.well-known/openmausbot";
 
 export function aliasLegacyEnv(env) {
   for (const key of Object.keys(env)) {
-    const prefix = OLD_ENV.find((p) => key.startsWith(p));
-    if (prefix && env[`DUSK_${key.slice(prefix.length)}`] === undefined) env[`DUSK_${key.slice(prefix.length)}`] = env[key];
+    const prefix = OLD_ENV.find((p) => key.toUpperCase().startsWith(p));
+    if (!prefix) continue;
+    if (env[`DUSK_${key.slice(prefix.length)}`] === undefined) env[`DUSK_${key.slice(prefix.length)}`] = env[key];
+    delete env[key];
   }
   return env;
 }

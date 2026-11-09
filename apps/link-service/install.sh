@@ -1586,7 +1586,7 @@ finale() {
   mascot 0
   glyph ok; _ok=$G; glyph sep
   where="$NAME $G $SYS $ARCH $G $link"
-  printf '\n  %s%s %sDuskBot is ready%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$R" "$DIM" "$G" "$total" "$R"
+  printf '\n  %s%s %sDusk Bot is ready%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$R" "$DIM" "$G" "$total" "$R"
   printf '    %s%s%s\n\n' "$DIM" "$where" "$R"
   if [ "${DUSK_VERBOSE:-}" = 1 ]; then printf '%s\n' "$table" | sed 's/^/    /'; printf '\n'; fi
   printf '  %s%sYour bots now live here, go back to the app.%s\n\n' "$ACC" "$BOLD" "$R"
