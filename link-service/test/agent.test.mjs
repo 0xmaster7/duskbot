@@ -233,4 +233,47 @@ describe("egress fallback", () => {
       await proxy.stop();
     }
   });
+
+  it("a slow dial leaves the streams already open, and only an app silent for good closes them", async () => {
+    // live 2026-11-09: one dial past the limit closed every open stream, the http/2 connections carrying a page's css
+    // and scripts with them, and instagram.com/zuck stayed unstyled html with broken images
+    let offset = 0;
+    const sent = [], carried = [];
+    const proxy = createEgressProxy({ send: (frame) => sent.push(frame), bytes: (r, chunk) => carried.push([r, chunk.toString()]), queued: () => 0, onDrain: () => {},
+      report: null, probe: null, reportMs: 25, now: () => Date.now() + offset, dialMs: 150, bind: () => ({ host: "127.0.0.1", port: 0, allow: () => true }) });
+    await proxy.start();
+    const socket = tcpConnect({ host: "127.0.0.1", port: proxy.listening.port });
+    try {
+      proxy.handle({ t: "egress", ready: true });
+      let got = Buffer.alloc(0);
+      const closed = new Promise((resolve) => socket.on("close", resolve));
+      socket.on("data", (chunk) => { got = Buffer.concat([got, chunk]); });
+      const until = async (check) => { for (let i = 0; i < 100 && !check(); i += 1) await new Promise((resolve) => setTimeout(resolve, 10)); expect(check()).toBe(true); };
+      socket.write(Buffer.from([5, 1, 0]));
+      await until(() => got.length >= 2);
+      const name = Buffer.from("static.cdninstagram.com");
+      socket.write(Buffer.concat([Buffer.from([5, 1, 0, 3, name.length]), name, Buffer.from([1, 187])]));
+      await until(() => sent.some((frame) => frame.t === "dial"));
+      const { r } = sent.find((frame) => frame.t === "dial");
+      proxy.handle({ t: "dialed", r, ok: true });
+      await until(() => got.length >= 12);
+      expect(got[3]).toBe(0);
+
+      const slow = await socksConnect(proxy.listening.port);
+      expect(slow.code).toBe(1);
+      expect(proxy.online()).toBe(false);
+      expect(proxy.stats().active).toBe(1);
+      socket.write("css please");
+      await until(() => carried.some(([id, text]) => id === r && text === "css please"));
+      proxy.handle({ t: "bytes", r, b: Buffer.from("body{}") });
+      await until(() => got.subarray(12).toString() === "body{}");
+
+      offset = 41_000;
+      await closed;
+      expect(proxy.stats().active).toBe(0);
+    } finally {
+      socket.destroy();
+      await proxy.stop();
+    }
+  });
 });

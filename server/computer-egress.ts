@@ -26,6 +26,13 @@ export const FAST_DIAL_MS = 200;
 export const SLOW_DIAL_MS = 350;
 /** sites that refuse or rate-limit datacenter addresses (Instagram answers 429): through the person's computer even when that path is slow */
 export const HOME_ONLY_SITES = ["instagram.com", "facebook.com", "threads.net", "x.com", "twitter.com", "linkedin.com", "tiktok.com", "reddit.com"] as const;
+/**
+ * those sites' own css, script and image servers: public files that answer this server's address (checked 2026-11-09),
+ * so they always load direct. through the person's computer a page's css and scripts share a few long-lived connections,
+ * and a path that dropped mid-load took them all and left the page as unstyled html (instagram.com/zuck, 2026-11-09)
+ */
+export const DIRECT_ASSET_SITES = ["cdninstagram.com", "fbcdn.net", "twimg.com", "licdn.com", "tiktokcdn.com", "tiktokcdn-us.com", "ttwstatic.com",
+  "redditstatic.com", "redditmedia.com", "redd.it"] as const;
 
 export interface EgressAgentReport {
   online: boolean;
@@ -74,6 +81,7 @@ export function egressPac(proxy: { host: string; port: number }, generation: num
     "  var scheme = m ? m[1].toLowerCase() : \"\";",
     "  var port = m && m[2] ? +m[2] : scheme === \"https\" || scheme === \"wss\" ? 443 : scheme === \"http\" || scheme === \"ws\" ? 80 : 0;",
     `  if (${EGRESS_PORTS.map((one) => `port !== ${one}`).join(" && ")}) return "DIRECT";`,
+    `  if (${JSON.stringify(DIRECT_ASSET_SITES)}.some(function (s) { return h === s || dnsDomainIs(h, "." + s); })) return "DIRECT";`,
     ...(only ? [`  if (!${JSON.stringify(only)}.some(function (s) { return h === s || dnsDomainIs(h, "." + s); })) return "DIRECT";`] : []),
     `  return "SOCKS5 ${proxy.host}:${proxy.port}; DIRECT";`,
     "}",
@@ -112,7 +120,7 @@ export function egressApplyArgs(container: string, policy: { proxy: { host: stri
 
 export function egressPrompt(enabled: boolean): string {
   return enabled
-    ? "Web traffic from your cloud computer's browser leaves through the person's own internet connection while their computer is online and that path is fast, so sites see their home address; otherwise it uses the server's own network, switching by itself. Sites that block servers (Instagram, Facebook, Threads, X, LinkedIn, TikTok, Reddit) always go through the person's connection while their computer is online, even when that path is slow. To tell the person which address sites see right now, check it in the browser. Only web ports go that way; other connections always use the server's network."
+    ? "Web traffic from your cloud computer's browser leaves through the person's own internet connection while their computer is online and that path is fast, so sites see their home address; otherwise it uses the server's own network, switching by itself. Sites that block servers (Instagram, Facebook, Threads, X, LinkedIn, TikTok, Reddit) always go through the person's connection while their computer is online, even when that path is slow; their image and script servers always use the server's network. To tell the person which address sites see right now, check it in the browser. Only web ports go that way; other connections always use the server's network."
     : "";
 }
 

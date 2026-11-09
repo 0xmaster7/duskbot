@@ -1392,12 +1392,17 @@ export function createEgressProxy({
     if (tell) (over ?? entry.via).send({ t: "cancel", r });
   }
 
-  /** the app went away: its streams are dead, so their browsers see the close now instead of waiting */
-  function gone() {
+  /**
+   * new connections go direct until the app answers again. `dead` (the app said goodbye, or has been silent past
+   * EGRESS_SEEN_MS) also closes the streams it carries, so their browsers see the close now instead of waiting. a slow
+   * dial alone leaves them: one page's css and scripts ride a few long-lived connections, and closing them mid-load left
+   * pages as unstyled html (2026-11-09)
+   */
+  function gone(dead = true) {
     ready = false;
     for (const [r, entry] of streams) {
       if (entry.settle) { const settle = entry.settle; entry.settle = null; clearTimeout(entry.timer); settle({ ok: false, code: "closed" }); }
-      else if (entry.relaying) forget(r, false);
+      else if (dead && entry.relaying) forget(r, false);
     }
   }
 
@@ -1419,7 +1424,7 @@ export function createEgressProxy({
         log("egress: the app did not answer; bot computers use this server's own network until it is back");
         entry.settle = null;
         settle({ ok: false, code: "timeout" });
-        gone();
+        gone(false);
         void tick();
       }, dialMs) };
       streams.set(r, entry);
@@ -1476,6 +1481,7 @@ export function createEgressProxy({
   }
 
   async function tick() {
+    if (streams.size && now() - seenAt >= EGRESS_SEEN_MS) gone();
     await relisten();
     if (report && !stopped) {
       try {
