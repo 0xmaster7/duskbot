@@ -3328,5 +3328,12 @@
   "mobile.onboarding.linkShort": "Öffne {app} auf deinem Computer und scanne den Code unter Einstellungen › Phone.",
   "mobile.onboarding.pasteInstead": "Stattdessen einen Link einfügen",
   "mobile.home.onlyPinnedTitle": "Deine anderen Chats erscheinen hier",
-  "mobile.home.onlyPinnedBody": "Erstelle einen Bot für eine Aufgabe wie E-Mails, Recherche oder ein Projekt. Sein Chat erscheint dann in dieser Liste."
+  "mobile.home.onlyPinnedBody": "Erstelle einen Bot für eine Aufgabe wie E-Mails, Recherche oder ein Projekt. Sein Chat erscheint dann in dieser Liste.",
+  "routines.cloudUpsell.title": "Routinen stoppen, wenn dein Computer im Ruhezustand ist",
+  "routines.cloudUpsell.titleMac": "Routinen stoppen, wenn dein Mac im Ruhezustand ist",
+  "routines.cloudUpsell.body": "{name} läuft hier. Eine Cloud führt die Routine rund um die Uhr aus, auch wenn dieser Computer ausgeschaltet ist.",
+  "routines.cloudUpsell.asleep": "Stoppt im Ruhezustand",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "Rund um die Uhr aktiv",
+  "routines.cloudUpsell.getCloud": "Cloud holen"
 }

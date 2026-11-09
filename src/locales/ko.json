@@ -6599,5 +6599,12 @@
   "mobile.onboarding.linkShort": "컴퓨터에서 {app}을 열고 설정 › Phone에 있는 코드를 스캔하세요.",
   "mobile.onboarding.pasteInstead": "대신 링크 붙여넣기",
   "mobile.home.onlyPinnedTitle": "다른 채팅은 여기에 표시돼요",
-  "mobile.home.onlyPinnedBody": "메일 정리, 조사, 프로젝트 같은 일을 맡길 봇을 만들면 이 목록에 해당 채팅이 표시돼요."
+  "mobile.home.onlyPinnedBody": "메일 정리, 조사, 프로젝트 같은 일을 맡길 봇을 만들면 이 목록에 해당 채팅이 표시돼요.",
+  "routines.cloudUpsell.title": "컴퓨터가 잠자기 상태가 되면 루틴이 멈춥니다",
+  "routines.cloudUpsell.titleMac": "Mac이 잠자기 상태가 되면 루틴이 멈춥니다",
+  "routines.cloudUpsell.body": "{name} 루틴은 여기서 실행됩니다. 클라우드를 사용하면 이 컴퓨터가 꺼져 있어도 24시간 계속 실행됩니다.",
+  "routines.cloudUpsell.asleep": "잠자기 중 중지",
+  "routines.cloudUpsell.cloud": "클라우드",
+  "routines.cloudUpsell.alwaysOn": "24시간 가동",
+  "routines.cloudUpsell.getCloud": "클라우드 이용하기"
 }

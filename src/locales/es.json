@@ -5620,5 +5620,12 @@
   "mobile.onboarding.linkShort": "Abre {app} en tu ordenador y escanea el código en Ajustes › Phone.",
   "mobile.onboarding.pasteInstead": "Pegar un enlace en su lugar",
   "mobile.home.onlyPinnedTitle": "Tus otros chats aparecen aquí",
-  "mobile.home.onlyPinnedBody": "Crea un bot para una tarea, como revisar el correo, investigar o trabajar en un proyecto, y su chat aparecerá en esta lista."
+  "mobile.home.onlyPinnedBody": "Crea un bot para una tarea, como revisar el correo, investigar o trabajar en un proyecto, y su chat aparecerá en esta lista.",
+  "routines.cloudUpsell.title": "Las rutinas se detienen cuando tu equipo entra en reposo",
+  "routines.cloudUpsell.titleMac": "Las rutinas se detienen cuando tu Mac entra en reposo",
+  "routines.cloudUpsell.body": "{name} se ejecuta aquí. Una Cloud la mantiene en marcha las 24 horas, incluso cuando este equipo está apagado.",
+  "routines.cloudUpsell.asleep": "Se detiene en reposo",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "Activa las 24 horas",
+  "routines.cloudUpsell.getCloud": "Obtener una Cloud"
 }

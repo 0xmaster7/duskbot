@@ -6052,5 +6052,12 @@
   "mobile.onboarding.linkShort": "Abra {app} no computador e leia o código em Configurações › Phone.",
   "mobile.onboarding.pasteInstead": "Colar um link em vez disso",
   "mobile.home.onlyPinnedTitle": "Suas outras conversas aparecem aqui",
-  "mobile.home.onlyPinnedBody": "Crie um bot para uma tarefa, como cuidar dos e-mails, pesquisar ou trabalhar em um projeto, e a conversa dele aparecerá nesta lista."
+  "mobile.home.onlyPinnedBody": "Crie um bot para uma tarefa, como cuidar dos e-mails, pesquisar ou trabalhar em um projeto, e a conversa dele aparecerá nesta lista.",
+  "routines.cloudUpsell.title": "As rotinas param quando o computador entra em repouso",
+  "routines.cloudUpsell.titleMac": "As rotinas param quando o Mac entra em repouso",
+  "routines.cloudUpsell.body": "{name} é executada aqui. Um Cloud a mantém funcionando 24 horas por dia, mesmo quando este computador está desligado.",
+  "routines.cloudUpsell.asleep": "Para durante o repouso",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "Ativo 24 horas por dia",
+  "routines.cloudUpsell.getCloud": "Obter um Cloud"
 }

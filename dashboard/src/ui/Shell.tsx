@@ -6,6 +6,7 @@ import type { CloudDesktop } from "../data/contracts";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
 import { Link, navigate, useLocation } from "../lib/router";
+import { RoutineUpsell } from "../pages/routine-upsell";
 import { PlanSheet } from "../pages/plan-sheet";
 import { Button, cx, FreshnessTag } from "./kit";
 import { Mascot } from "./Mascot";
@@ -139,7 +140,7 @@ function SideUpsell() {
   const { path } = useLocation();
   const [hiddenUntil, setHiddenUntil] = useState(() => Number(localStorage.getItem(HIDE_KEY) ?? 0));
   const [open, setOpen] = useState(false);
-  if (!clouds || clouds.length || path === "/billing" || hiddenUntil > Date.now()) return open ? <PlanSheet start="starter" onClose={() => setOpen(false)} /> : null;
+  if (!clouds || clouds.length || path === "/billing" || hiddenUntil > Date.now()) return open ? <PlanSheet source="dash_home" start="starter" onClose={() => setOpen(false)} /> : null;
   const hide = () => { const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
   return (
     <div className="relative rounded-[14px] bg-card p-3.5">
@@ -149,7 +150,7 @@ function SideUpsell() {
         <p className="min-w-0 text-13 leading-[1.45] text-ink-2">Your bots stop when your Mac sleeps.</p>
       </div>
       <Button size="sm" variant="primary" className="mt-3 w-full" onClick={() => setOpen(true)}>Keep them on 24/7</Button>
-      {open && <PlanSheet start="starter" onClose={() => setOpen(false)} />}
+      {open && <PlanSheet source="dash_home" start="starter" onClose={() => setOpen(false)} />}
     </div>
   );
 }
@@ -242,6 +243,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <main id="main" className="lg:ps-[260px]">
         <div className="mx-auto w-full max-w-[1120px] px-12 pb-20 pt-12 max-lg:px-6 max-lg:pt-6 max-sm:px-4">{children}</div>
       </main>
+      <RoutineUpsell />
       <Toasts />
     </div>
   );

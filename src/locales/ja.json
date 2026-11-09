@@ -6209,5 +6209,12 @@
   "mobile.onboarding.linkShort": "パソコンで{app}を開き、設定 › Phoneのコードを読み取ってください。",
   "mobile.onboarding.pasteInstead": "代わりにリンクを貼り付け",
   "mobile.home.onlyPinnedTitle": "ほかのチャットはここに表示されます",
-  "mobile.home.onlyPinnedBody": "メールの整理、調べもの、プロジェクトなどの仕事用にボットを作ると、そのチャットがこのリストに表示されます。"
+  "mobile.home.onlyPinnedBody": "メールの整理、調べもの、プロジェクトなどの仕事用にボットを作ると、そのチャットがこのリストに表示されます。",
+  "routines.cloudUpsell.title": "コンピュータがスリープするとルーティンは停止します",
+  "routines.cloudUpsell.titleMac": "Macがスリープするとルーティンは停止します",
+  "routines.cloudUpsell.body": "{name}はここで実行されます。Cloudなら、このコンピュータの電源が切れていても24時間実行し続けられます。",
+  "routines.cloudUpsell.asleep": "スリープ中は停止",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "24時間稼働",
+  "routines.cloudUpsell.getCloud": "Cloudを入手"
 }

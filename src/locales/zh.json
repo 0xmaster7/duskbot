@@ -6772,5 +6772,12 @@
   "mobile.onboarding.linkShort": "在电脑上打开 {app}，扫描设置 › Phone 中的二维码。",
   "mobile.onboarding.pasteInstead": "改为粘贴链接",
   "mobile.home.onlyPinnedTitle": "你的其他聊天会显示在这里",
-  "mobile.home.onlyPinnedBody": "创建机器人来处理邮件、研究或项目等任务，它的聊天就会显示在此列表中。"
+  "mobile.home.onlyPinnedBody": "创建机器人来处理邮件、研究或项目等任务，它的聊天就会显示在此列表中。",
+  "routines.cloudUpsell.title": "电脑休眠时，例行任务会停止",
+  "routines.cloudUpsell.titleMac": "Mac 休眠时，例行任务会停止",
+  "routines.cloudUpsell.body": "{name}在这里运行。Cloud 能让它全天候持续运行，即使这台电脑已关机。",
+  "routines.cloudUpsell.asleep": "休眠时停止",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "全天候运行",
+  "routines.cloudUpsell.getCloud": "获取 Cloud"
 }

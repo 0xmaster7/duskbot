@@ -4693,5 +4693,12 @@
   "mobile.onboarding.linkShort": "在電腦上開啟 {app}，掃描設定 › Phone 中的 QR 碼。",
   "mobile.onboarding.pasteInstead": "改為貼上連結",
   "mobile.home.onlyPinnedTitle": "你的其他聊天會顯示在這裡",
-  "mobile.home.onlyPinnedBody": "建立機器人來處理郵件、研究或專案等工作，它的聊天就會顯示在此清單中。"
+  "mobile.home.onlyPinnedBody": "建立機器人來處理郵件、研究或專案等工作，它的聊天就會顯示在此清單中。",
+  "routines.cloudUpsell.title": "電腦睡眠時，例行工作會停止",
+  "routines.cloudUpsell.titleMac": "Mac 睡眠時，例行工作會停止",
+  "routines.cloudUpsell.body": "{name}在這裡執行。Cloud 能讓它全天候持續運作，即使這台電腦已關機。",
+  "routines.cloudUpsell.asleep": "睡眠時停止",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "全天候運作",
+  "routines.cloudUpsell.getCloud": "取得 Cloud"
 }

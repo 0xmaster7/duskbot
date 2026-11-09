@@ -6018,5 +6018,12 @@
   "mobile.onboarding.linkShort": "Apri {app} sul computer e scansiona il codice in Impostazioni › Phone.",
   "mobile.onboarding.pasteInstead": "Incolla un link invece",
   "mobile.home.onlyPinnedTitle": "Le altre chat appaiono qui",
-  "mobile.home.onlyPinnedBody": "Crea un bot per un compito, come gestire la posta, fare ricerche o seguire un progetto. La sua chat apparirà in questo elenco."
+  "mobile.home.onlyPinnedBody": "Crea un bot per un compito, come gestire la posta, fare ricerche o seguire un progetto. La sua chat apparirà in questo elenco.",
+  "routines.cloudUpsell.title": "Le routine si fermano quando il computer è in stop",
+  "routines.cloudUpsell.titleMac": "Le routine si fermano quando il Mac è in stop",
+  "routines.cloudUpsell.body": "{name} viene eseguita qui. Un Cloud la mantiene attiva 24 ore su 24, anche quando questo computer è spento.",
+  "routines.cloudUpsell.asleep": "Si ferma durante lo stop",
+  "routines.cloudUpsell.cloud": "Cloud",
+  "routines.cloudUpsell.alwaysOn": "Attivo 24 ore su 24",
+  "routines.cloudUpsell.getCloud": "Ottieni un Cloud"
 }
