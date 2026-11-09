@@ -170,16 +170,17 @@ const hasData = (fs, dir) => { try { return fs.readdirSync(dir).length > 0; } ca
  * the one-time move of a folder from its old name to its new one. the old path becomes a link to the new folder, so
  * absolute paths saved inside (engine configs, hooks) and anything still holding the old path keep working. nothing is
  * ever deleted: a new folder that already holds data wins and the old one is left as it was; a new folder made empty
- * (or holding only what was written before this ran, with no `marker`) is set aside next to it; a move that fails
- * leaves everything in place and the old folder is used.
+ * (or holding only what was written before this ran: none of the `markers` the old one has) is set aside next to it;
+ * a move that fails leaves everything in place and the old folder is used.
  */
-export function migrateLegacyDir(next, old, { fs = node("node:fs"), marker = null, now = Date.now, log = () => {} } = {}) {
+export function migrateLegacyDir(next, old, { fs = node("node:fs"), markers = [], now = Date.now, log = () => {} } = {}) {
   const o = exists(fs, old);
   if (!o || o.isSymbolicLink() || !o.isDirectory()) return next;
   if (!hasData(fs, old)) return next;
   const n = exists(fs, next);
   if (n) {
-    const fresh = n.isDirectory() && (!hasData(fs, next) || (marker && !exists(fs, join(next, marker)) && exists(fs, join(old, marker))));
+    const holds = (dir) => markers.some((name) => exists(fs, join(dir, name)));
+    const fresh = n.isDirectory() && (!hasData(fs, next) || (!holds(next) && holds(old)));
     if (!fresh) return next;
     const aside = `${next}.before-move-${now()}`;
     try { fs.renameSync(next, aside); } catch (error) { log(`legacy move: could not set ${next} aside: ${error?.message ?? error}`); return old; }
@@ -201,7 +202,7 @@ export function migrateLegacyDir(next, old, { fs = node("node:fs"), marker = nul
 
 /** the data folder in `home`, moved from its old name on first use */
 export function defaultDataDir(home, options = {}) {
-  return migrateLegacyDir(join(home, ".duskbot"), join(home, LEGACY.dataDirName), { marker: "config.json", ...options });
+  return migrateLegacyDir(join(home, ".duskbot"), join(home, LEGACY.dataDirName), { markers: ["config.json", "bots.json", "messages.db"], ...options });
 }
 
 /** the data folder a setting names, or the default; a setting naming the default (a container image's) moves the old one too */

@@ -34,7 +34,7 @@ export declare function toLegacyPath(pathname: string): string;
 export declare function isOwnAppId(app: unknown): boolean;
 export declare function fromLegacyLink(link: string): string;
 export declare function migrateLegacyStorage(storage: Storage | null | undefined): number;
-interface MoveOptions { fs?: typeof import("node:fs"); marker?: string | null; now?: () => number; log?: (line: string) => void }
+interface MoveOptions { fs?: typeof import("node:fs"); markers?: readonly string[]; now?: () => number; log?: (line: string) => void }
 export declare function migrateLegacyDir(next: string, old: string, options?: MoveOptions): string;
 export declare function defaultDataDir(home: string, options?: MoveOptions): string;
 export declare function dataDirFor(configured: string | undefined, home: string, options?: MoveOptions): string;

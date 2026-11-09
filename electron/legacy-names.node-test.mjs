@@ -49,13 +49,17 @@ test("a new folder that already holds data wins, and the old one is left as it w
   assert.ok(!fs.lstatSync(path.join(dir, LEGACY.dataDirName)).isSymbolicLink());
 });
 
-test("a new folder holding only what was written before the move (no config) is set aside, never deleted", (t) => {
+test("a new folder holding only what was written before the move (no config, bots or messages) is set aside, never deleted", (t) => {
   const dir = home(t);
   write(path.join(dir, LEGACY.dataDirName, "config.json"), "old");
   write(path.join(dir, ".duskbot", "logs", "early.log"), "early");
   const used = defaultDataDir(dir, { now: () => 7 });
   assert.equal(fs.readFileSync(path.join(used, "config.json"), "utf8"), "old");
   assert.equal(fs.readFileSync(path.join(dir, ".duskbot.before-move-7", "logs", "early.log"), "utf8"), "early");
+  const other = home(t);
+  write(path.join(other, LEGACY.dataDirName, "bots.json"), "[]");
+  write(path.join(other, ".duskbot", "logs", "early.log"), "early");
+  assert.equal(fs.readFileSync(path.join(defaultDataDir(other, { now: () => 8 }), "bots.json"), "utf8"), "[]", "an install that never saved settings");
 });
 
 test("a move that fails keeps using the old folder where it is", (t) => {
