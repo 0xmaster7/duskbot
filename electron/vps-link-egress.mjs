@@ -113,10 +113,10 @@ export function seenAsCache(fetchIp, { ttlMs = SELF_TTL_MS, retryMs = SELF_RETRY
  * frame, `bytes(r, chunk)` a stream's bytes, `queued()` how many bytes wait to leave, `onDrain(fn)` calls back once they
  * fell low again: the relay. `direct` is the same api plus `live()` for the direct path. `handle(frame, via)` takes the
  * vps's frames ("relay" or "direct") and answers true for the ones that were egress; a stream answers on the path its
- * dial came by.
+ * dial came by. `onUse()` hears every dial and every piece of a stream, both ways (it keeps this computer awake).
  */
 export function createEgressEndpoint({
-  send, bytes, queued, onDrain, direct = null, dialer = createEgressDialer(), log = () => {}, now = Date.now,
+  send, bytes, queued, onDrain, direct = null, dialer = createEgressDialer(), log = () => {}, now = Date.now, onUse = () => {},
   maxStreams = EGRESS_MAX_STREAMS, dialsPerMinute = EGRESS_DIALS_PER_MINUTE, bytesPerSecond = EGRESS_BYTES_PER_SECOND,
   queueHigh = EGRESS_QUEUE_HIGH, helloMs = EGRESS_HELLO_MS, idleMs = IDLE_MS,
 }) {
@@ -153,6 +153,7 @@ export function createEgressEndpoint({
     const resume = () => { entry.wait = null; if (streams.get(r) === entry && !entry.paused) socket.resume(); };
     socket.on("data", (chunk) => {
       if (streams.get(r) !== entry) return;
+      onUse();
       path.bytes(r, chunk);
       const wait = take(chunk.length);
       if (path.queued() >= queueHigh) { entry.paused = true; socket.pause(); path.onDrain(() => { entry.paused = false; if (!entry.wait) resume(); }); }
@@ -177,6 +178,7 @@ export function createEgressEndpoint({
     if (closed) return refuse("closed");
     if (streams.size >= maxStreams || dials.length >= dialsPerMinute) return refuse("busy");
     dials.push(t);
+    onUse();
     streams.set(r, { socket: null, path, early: [], peerEnded: false, endSent: false, paused: false, wait: null });
     let result;
     try { result = await dialer.open({ host, port: Number(port) }); }
@@ -211,6 +213,7 @@ export function createEgressEndpoint({
       const entry = typeof frame?.r === "string" ? streams.get(frame.r) : undefined;
       if (!entry) return false;
       if (frame.t === "bytes") {
+        onUse();
         if (!entry.socket) entry.early.push(frame.b);
         else if (entry.socket.writableLength + frame.b.length > 8 * 1024 * 1024) forget(frame.r, true);
         else entry.socket.write(frame.b);

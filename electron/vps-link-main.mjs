@@ -9,6 +9,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 import { createMacControlHost } from "./mac-control.mjs";
+import { createLinkAwake } from "./vps-link-awake.mjs";
 import { createMacExecutor } from "./mac-control-tools.mjs";
 import { newDirectKey, sshConnector, wssConnector } from "./vps-link-direct.mjs";
 import { createEgressDialer, createEgressEndpoint, seenAsCache } from "./vps-link-egress.mjs";
@@ -116,7 +117,8 @@ export function installLinkDirectIpc({ ipcMain, pageOrigin, link }) {
  *   environments(): any, persist(next: any): void, withEnvironment: Function, makeId(): string, forgetEnvironment(id: string): unknown,
  *   ownHome: any, localRequest(route: string, init?: RequestInit): Promise<Response>, switchTo(id: string): unknown, relaunch(): void,
  *   dataDir(): string | null, label(): string, tell(view: unknown): void, log(line: string): void, base?: string,
- *   powerMonitor?: { on(event: string, listener: () => void): unknown },
+ *   powerMonitor?: { on(event: string, listener: () => void): unknown, isOnBatteryPower?(): boolean },
+ *   powerSaveBlocker?: { start(type: string): number, stop(id: number): void, isStarted(id: number): boolean },
  *   pageOrigin?(event: any): string | null,
  * }} deps
  */
@@ -132,13 +134,18 @@ export function installVpsLink(deps) {
   const base = (deps.base || process.env.OMB_LINK_BASE || DEFAULT_LINK_BASE).replace(/\/+$/, "");
   // the link service tells this computer the public address it connects from, so its home router stays out of reach
   // the linked server's bots reach this mac through the app's own session there (mac-control.mjs)
+  // OMB_LINK_KEEP_AWAKE=off lets this mac sleep even while its server's bots use it
+  const awake = deps.powerSaveBlocker && process.env.OMB_LINK_KEEP_AWAKE !== "off"
+    ? createLinkAwake({ blocker: deps.powerSaveBlocker, onBattery: () => deps.powerMonitor?.isOnBatteryPower?.() === true, log })
+    : null;
+  const execute = createMacExecutor({ log });
   const macHost = process.env.OMB_MAC_CONTROL === "off" ? null
-    : createMacControlHost({ fetch: (...args) => session.defaultSession.fetch(...args), name: deps.label, execute: createMacExecutor({ log }), log });
+    : createMacControlHost({ fetch: (...args) => session.defaultSession.fetch(...args), name: deps.label, execute: (job, io) => (awake ? awake.busy(execute(job, io)) : execute(job, io)), log });
   const followMac = (view) => macHost?.follow(view?.server?.origin ?? null);
   const seenAs = seenAsCache(async () => (await (await fetch(`${base}/v1/ip`, { signal: AbortSignal.timeout(5000) })).json())?.ip, { log });
   const link = createVpsLink({
     base,
-    egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs }) }),
+    egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs }), ...(awake ? { onUse: awake.touch } : {}) }),
     serverFetch: (...args) => session.defaultSession.fetch(...args),
     store: jsonFile(path.join(userData, "vps-link.json")),
     protect, unprotect,
@@ -226,9 +233,10 @@ export function installVpsLink(deps) {
     // a wake or an unlocked screen: sockets may be dead, so the tunnels reconnect now instead of after their timeouts
     // (powerMonitor only works once electron is ready)
     for (const event of ["resume", "unlock-screen"]) deps.powerMonitor?.on(event, () => link.nudge());
+    for (const event of ["on-ac", "on-battery"]) deps.powerMonitor?.on(event, () => awake?.check());
     return link.resume();
   }).then(() => followMac(link.view())).catch((error) => log(`vps link: ${error?.message ?? error}`));
   const closeLink = link.close;
-  link.close = () => { macHost?.close(); return closeLink(); };
+  link.close = () => { macHost?.close(); awake?.close(); return closeLink(); };
   return link;
 }
