@@ -568,7 +568,7 @@ import { gzipTunnelReplies, json, onJsonBody, parsedBodyOf, readBody } from "./h
 import { holdBodyDeadline } from "./body-deadline.ts";
 import { createNoAiNotice } from "./host/no-ai-notice.ts"; import { PASS, ROUTES, dispatchRoutes } from "./routes/table.ts"; import { createSecretCards } from "./host/secret-cards.ts"; import { createInternalCredentialRequestRoutes, createSavedSecretRoutes, createSecretCardRoutes } from "./routes/secret-cards.ts"; import { SavedSecretStore, desktopSavedSecretsKey, fileSavedSecretsKey } from "./saved-secrets.ts"; import { applyIncludedPagesMessage } from "./pages/access.ts"; import { createPublishedPages } from "./pages/service.ts"; import { createInternalToolRoutes } from "./routes/internal-tools.ts"; import { createHelperSuggestionRoutes } from "./routes/helper-suggestion.ts"; import { createXConnectorRoutes } from "./routes/x-connector.ts"; import { createMoveFreeze, switchAutomationsOff } from "./move-freeze.ts"; import { createMoveFreezeRoutes } from "./routes/move-freeze.ts"; import { createMoveWaits } from "./move-waits.ts"; import { assertBotHere, createBotMoves } from "./bot-moves.ts"; import { createBotMoveRoutes } from "./routes/bot-moves.ts"; import { createTeamMoveIn, moveInRefusal } from "./team-move-in.ts";
 import { createCardSealer, loadSealIdentity } from "./card-seal.ts"; import { createSealKeyRoutes } from "./routes/seal-key.ts";
-import { createConnectorDirectoryRoutes } from "./routes/connector-directory.ts"; import { createComposioConnectRoutes } from "./composio-connect.ts"; import { withMcpSignIn as signedInMcp } from "./mcp-oauth.ts"; import { composioProvider } from "./connectors/composio-provider.ts"; import { remoteMcpProvider } from "./connectors/remote-mcp.ts";
+import { createConnectorDirectoryRoutes } from "./routes/connector-directory.ts"; import { createComposioConnectRoutes } from "./composio-connect.ts"; import { withMcpSignIn as signedInMcp } from "./mcp-oauth.ts"; import { harnessPort } from "./harness-port.ts"; import { composioProvider } from "./connectors/composio-provider.ts"; import { remoteMcpProvider } from "./connectors/remote-mcp.ts";
 import { createBotPresetRoutes } from "./routes/bot-presets.ts"; import { createWorkspaceBannerRoutes, workspaceBannerStore, workspaceBannerSummary } from "./routes/workspace-banner.ts";
 import { createBotMemoryRoutes } from "./routes/bot-memory.ts";
 import { createBotCreateRoutes } from "./routes/bots-create.ts";
@@ -633,7 +633,7 @@ import { connectorRequestItems } from "./connector-request-items.ts";
 import { onThreadSeen, personAsks as personAskAt, sawThread } from "./thread-presence.ts"; import { createWarmSummaryHost, HARNESS_IDLE_FRACTION } from "./host/warm-summary-host.ts";
 
 let recheckRemoteViewers = () => {};
-const PORT = Number(process.env.OMB_PORT || process.env.OGB_PORT || 8799);
+const PORT = harnessPort();
 const WEBHOOK_PORT = Number(process.env.OMB_WEBHOOK_PORT || PORT + 1);
 const WEBHOOK_PUBLIC_URL = process.env.OMB_WEBHOOK_PUBLIC_URL || undefined;
 const STATIC_DIR = process.env.OMB_STATIC_DIR || null;
@@ -8680,7 +8680,7 @@ async function beginTurn(
       const shareNote = skillsHost.shareNote(bot, threadId, Boolean(privateWorkspace));
       const startupRecovery = (opts?.automaticRecoveryIndex ?? 0) < startupBackups(liveBot ?? bot, cfg.automaticRecovery).length;
       const held = limitTakeover.heldAtStart(bot, { instanceId, model }, startupRecovery); // a limit or a sign-out already known: straight to an AI that can carry on, with the reset only when one was named
-      if (held) throw held.scope === "signed-out" ? new TurnAuthenticationRefusedError(`signed-out-${randomUUID()}`, `${engineName(instanceId)} is signed out.`, true) : new TurnUsageLimitRefusedError(`limit-${randomUUID()}`, `${engineName(instanceId)} is at its usage limit.`, held.resetsAt, held.scope, true);
+      if (held) throw held.scope === "signed-out" ? new TurnAuthenticationRefusedError(`signed-out-${randomUUID()}`, `${engineName(instanceId)} is signed out.`, true) : new TurnUsageLimitRefusedError(`limit-${randomUUID()}`, held.scope === "provider" ? `${engineName(instanceId)} did not answer a few minutes ago.` : `${engineName(instanceId)} is at its usage limit.`, held.resetsAt, held.scope, true);
       const dispatch = await guardTurnDispatch(shareNote.after(quickFallback.sendTurn(instance, {
         threadId,
         botId: bot.id,
@@ -8760,7 +8760,7 @@ async function beginTurn(
         directTurnClaimIsCurrent(bot.id, dispatchClaimId, threadId);
       if (e instanceof TurnNotStartedError) {
         retireProviderTurn(e.turnId);
-        if (e instanceof TurnUsageLimitRefusedError && !e.known) { if (e.scope === "engine") limitClock.noteLimit(instanceId, e.resetsAt); else limitTakeover.holdModel({ instanceId, model }, e.scope, e.resetsAt); } else if (e instanceof TurnAuthenticationRefusedError && !e.known) limitTakeover.noteSignedOut(instanceId);
+        if (e instanceof TurnUsageLimitRefusedError && !e.known) { if (e.scope === "engine") limitClock.noteLimit(instanceId, e.resetsAt); else if (e.scope !== "provider") limitTakeover.holdModel({ instanceId, model }, e.scope, e.resetsAt); } else if (e instanceof TurnAuthenticationRefusedError && !e.known) limitTakeover.noteSignedOut(instanceId);
         if (!mayRecover) e = new DirectTurnSetupCancelled("turn stopped during provider setup");
       }
       handoffs.abandon(threadId, dispatchClaimId);

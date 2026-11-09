@@ -8,6 +8,8 @@ import { cardOwner, McpOAuthError, McpOAuthManager, mcpCallbackOrigin, mcpOAuthR
 import type { McpOAuthClientConfig } from "./mcp-registry.ts";
 import { startFakeHttpMcp, type FakeHttpMcp } from "./testing/fake-http-mcp-server.ts";
 import { startFakeOAuth, type FakeOAuth, type FakeOAuthOptions } from "./testing/fake-oauth-server.ts";
+import { engineMcpSignIn, MCP_OAUTH_PROXY_PATH, mcpOAuthProxyRoutes } from "./mcp-oauth-proxy.ts";
+import { PASS } from "./routes/table.ts";
 import { withFreeSignInPort } from "./testing/ports.ts";
 
 let dir: string;
@@ -16,9 +18,12 @@ let mcp: FakeHttpMcp;
 let manager: McpOAuthManager;
 let registered: McpOAuthClientConfig | undefined;
 
+/** Tokens the MCP server refuses although they are unexpired, as after the provider revoked them. */
+const refusedTokens = new Set<string>();
+
 async function setup(options: FakeOAuthOptions = {}, lifetimeMs?: number) {
   oauth = await startFakeOAuth(options);
-  mcp = await startFakeHttpMcp({ acceptBearer: oauth.isValid, wwwAuthenticate: oauth.challenge });
+  mcp = await startFakeHttpMcp({ acceptBearer: (auth) => oauth.isValid(auth) && !refusedTokens.has(auth ?? ""), wwwAuthenticate: oauth.challenge });
   // a pre-registered app returns to the port derived from the URL: make it a free one
   if (options.preRegistered) mcp = { ...mcp, url: await withFreeSignInPort(mcp.url) };
   manager = new McpOAuthManager({
@@ -759,5 +764,74 @@ describe("mcpCallbackOrigin", () => {
     expect(mcpCallbackOrigin("http://192.168.1.5:3000", [])).toBeNull();
     expect(mcpCallbackOrigin(null, ["http://me.example", "https://me.example/omb", "https://user:pw@me.example", "not a url"])).toBeNull();
     expect(mcpCallbackOrigin(null, [])).toBeNull();
+  });
+});
+
+describe("MCP OAuth through the local proxy", () => {
+  let proxy: ReturnType<typeof createServer>;
+  let port: number;
+  beforeEach(async () => {
+    refusedTokens.clear();
+    proxy = createServer((req, res) => {
+      const url = new URL(req.url ?? "/", "http://127.0.0.1");
+      void mcpOAuthProxyRoutes({ req, res, url, path: url.pathname, method: req.method ?? "GET" } as Parameters<typeof mcpOAuthProxyRoutes>[0])
+        .then((out) => { if (out === PASS) { res.writeHead(404); res.end(); } });
+    });
+    await new Promise<void>((resolve) => proxy.listen(0, "127.0.0.1", resolve));
+    port = (proxy.address() as { port: number }).port;
+  });
+  afterEach(async () => { await new Promise((resolve) => proxy.close(resolve)); });
+
+  async function signedIn(options: FakeOAuthOptions = {}) {
+    await setup(options);
+    const started = await manager.start("docs", mcp.url);
+    await approve(started);
+    await settled("docs", started.flowId);
+  }
+  const initialize = (spec: { url: string; headers: Record<string, string> }) => fetch(spec.url, {
+    method: "POST",
+    headers: { ...spec.headers, "content-type": "application/json", accept: "application/json, text/event-stream" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "engine", version: "1" } } }),
+  });
+  const engineSpec = async () => (await engineMcpSignIn({ docs: { type: "http", url: mcp.url, headers: { "x-team": "team-header-fixture" } } }, manager, port)).docs as { url: string; headers: Record<string, string> };
+
+  it("gives an engine this server's address and a bearer of its own, never the token or the server's headers", async () => {
+    await signedIn();
+    const token = (await manager.accessToken("docs", mcp.url))!;
+    const spec = await engineSpec();
+    expect(spec.url).toMatch(new RegExp(`^http://127\\.0\\.0\\.1:${port}${MCP_OAUTH_PROXY_PATH}[\\w-]+$`));
+    expect(Object.keys(spec.headers)).toEqual(["Authorization"]);
+    expect(JSON.stringify(spec)).not.toContain(token);
+    expect(JSON.stringify(spec)).not.toContain("team-header-fixture");
+    const answer = await initialize(spec);
+    expect(answer.status).toBe(200);
+    expect(await answer.text()).toContain("protocolVersion");
+  });
+
+  it("refreshes a token the server refuses once, and retries with the new one", async () => {
+    await signedIn();
+    const spec = await engineSpec();
+    refusedTokens.add(`Bearer ${(await manager.accessToken("docs", mcp.url))!}`);
+    const answer = await initialize(spec);
+    expect(answer.status).toBe(200);
+    expect(oauth.counts.refresh).toBe(1);
+    expect(manager.authState("docs", mcp.url)).toBe("signed-in");
+  });
+
+  it("answers a refused sign-in it cannot refresh without a 401, so the engine never starts its own sign-in", async () => {
+    await signedIn({ rejectRefresh: true });
+    const spec = await engineSpec();
+    refusedTokens.add(`Bearer ${(await manager.accessToken("docs", mcp.url))!}`);
+    const answer = await initialize(spec);
+    expect(answer.status).toBe(502);
+    expect(((await answer.json()) as { error: { message: string } }).error.message).toContain("Sign in to it again");
+    expect(manager.authState("docs", mcp.url)).toBe("needs-sign-in");
+  });
+
+  it("refuses a request without its route's bearer", async () => {
+    await signedIn();
+    const spec = await engineSpec();
+    expect((await initialize({ ...spec, headers: { Authorization: "Bearer not-the-route-bearer" } })).status).toBe(403);
+    expect((await initialize({ url: `${spec.url}x`, headers: spec.headers })).status).toBe(403);
   });
 });

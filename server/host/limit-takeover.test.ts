@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RuntimeEvent } from "../../shared/runtime-events.ts";
 import type { ModelSelection } from "../../shared/wire.ts";
 import type { InstanceConfigMap } from "../contracts.ts";
+import { PROVIDER_FAILURE_HOLD_MS } from "../drivers/provider-failover.ts";
 import { LimitResetClock, UNNAMED_LIMIT_MS } from "../limit-resets.ts";
 import { MODEL_HOLD_MS, SIGNED_OUT_RECHECK_MS, createLimitTakeover, signedOutStop, type LimitTakeoverDeps, type TakeoverEngine } from "./limit-takeover.ts";
 
@@ -367,4 +368,37 @@ it("sends a signed-out AI's turns only to the backups a turn its AI never starte
   expect(instance.backups("kai", on("codex", "gpt-6")), "a usage limit's backups stay its own").toEqual([on("opencode", "go-default")]);
   startup = [on("codex", "gpt-6")];
   expect(instance.heldAtStart(KAI, on("claude", "claude-opus-5-5"))).toEqual({ scope: "signed-out" });
+});
+
+describe("a model whose provider failed a turn before it did anything", () => {
+  const OPUS = on("claude", "claude-opus-5-5");
+
+  it("is skipped by every new turn for ten minutes, and only for a backup the person chose", () => {
+    const { instance, now } = takeover({ chosen: () => [on("codex", "gpt-6")] });
+    expect(instance.holdProvider(OPUS)).toBe(NOW + PROVIDER_FAILURE_HOLD_MS);
+    expect(instance.heldAtStart(KAI, OPUS)).toEqual({ scope: "provider", resetsAt: NOW + PROVIDER_FAILURE_HOLD_MS });
+    expect(instance.heldAtStart(KAI, on("claude", "claude-sonnet-5")), "only that model").toBeNull();
+    expect(instance.backups("kai", OPUS, "provider")).toEqual([on("codex", "gpt-6")]);
+    expect(instance.backups("kai", on("codex", "gpt-6"), "engine"), "nor does a limit move to it").toEqual([on("opencode", "go-default")]);
+    now.at += PROVIDER_FAILURE_HOLD_MS;
+    expect(instance.heldAtStart(KAI, OPUS)).toBeNull();
+  });
+
+  it("carries no turn when the person chose no backup", () => {
+    const { instance } = takeover();
+    instance.holdProvider(OPUS);
+    expect(instance.backups("kai", OPUS, "provider")).toEqual([]);
+    expect(instance.heldAtStart(KAI, OPUS)).toBeNull();
+  });
+
+  it("is told only in the conversation, and a turn on it that works ends the hold", () => {
+    const { instance, told, record } = takeover({ chosen: () => [on("codex", "gpt-6")] });
+    const until = instance.holdProvider(OPUS);
+    expect(instance.carriedOn(KAI, "t1", OPUS, on("codex", "gpt-6"), { scope: "provider", resetsAt: until }))
+      .toEqual([{ name: "recovery: Claude claude-opus-5-5 did not answer, so Codex took over.", ok: true }]);
+    expect(told).toEqual([]);
+    expect(record).toHaveBeenCalledWith(expect.objectContaining({ why: "provider", resetsAt: until }));
+    instance.worked("kai", OPUS);
+    expect(instance.heldAtStart(KAI, OPUS)).toBeNull();
+  });
 });

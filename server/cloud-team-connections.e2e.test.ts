@@ -360,8 +360,13 @@ it("signs Cleo in to a notes server of her own, and only her chat gets her token
   expect(page).toBe("200 Signed in. You can close this tab and return to OpenMausBot.");
   expect((await team.as(cleo, "GET", "/api/team/my-connections")).body.mcp).toEqual(expect.arrayContaining([expect.objectContaining({ name: "notes", connected: true, how: "sign-in" })]));
   const cleos = await turn(cleo, cleoThread, "Read my notes.");
-  const token = /Bearer ([\w.-]+)/.exec(JSON.stringify((cleos.mcpConfig.mcpServers as Record<string, unknown>).notes))?.[1];
-  expect(oauth.isValid(`Bearer ${token}`)).toBe(true);
+  const entry = JSON.stringify((cleos.mcpConfig.mcpServers as Record<string, unknown>).notes);
+  const token = /Bearer ([\w.-]+)/.exec(entry)?.[1];
+  expect(oauth.isValid(`Bearer ${token}`), "the engine holds the proxy's bearer, never her OAuth token").toBe(false);
+  const address = /http:\/\/127\.0\.0\.1:\d+\/api\/internal\/mcp-oauth\/[\w-]+/.exec(entry)?.[0];
+  const through = await fetch(address!, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json", accept: "application/json, text/event-stream" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "engine", version: "1" } } }) });
+  expect(through.status, "her sign-in reaches the server through it").toBe(200);
   const adas = await turn(ada, adaThread, "Read the notes.");
   expect(adas.servers).not.toContain("notes");
   expect(adas.config).not.toContain(token!);

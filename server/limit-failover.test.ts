@@ -63,6 +63,16 @@ describe("LimitFailovers", () => {
     expect(f.notes).toHaveLength(1);
   });
 
+  it("brings a conversation back after a provider failure's ten-minute hold, kept across a restart", () => {
+    const f = fixture();
+    f.failovers.record({ botId: "scout", threadId: "t", from, to, resetsAt: NOW + 10 * 60_000, at: NOW, why: "provider" });
+    const restarted = new LimitFailovers(f.deps);
+    expect(restarted.restore("scout", "t")).toBe(false);
+    f.at(NOW + 10 * 60_000 + 1);
+    expect(restarted.restore("scout", "t")).toBe(true);
+    expect(f.notes).toEqual(["Claude gets another try, so this conversation is back on Claude."]);
+  });
+
   it("stays on the backup while the engine is still known to refuse, or the switch is not allowed now", () => {
     const blocked = fixture({ blocked: NOW + 5 * HOUR });
     blocked.failovers.record({ botId: "scout", threadId: "t", from, to, resetsAt: NOW + HOUR, at: NOW });

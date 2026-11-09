@@ -7,6 +7,7 @@ import { recoveryCapabilityError } from "./automatic-recovery.ts";
 import type { EngineAccess, ModelCatalog, ModelSelection, ProviderAdapter, ProviderSnapshot } from "./contracts.ts";
 import type { Coordinator } from "./coordinator.ts";
 import { readyToRun, selectDefaultModelSelection, type SelectableInstance } from "./default-model-selection.ts";
+import { providerFailure } from "./drivers/provider-failover.ts";
 import { classifyError } from "./drivers/retry.ts";
 import { PROBE_TIMEOUT_MS } from "./engine-install.ts";
 import { spokenLineFields } from "./live-call-record.ts";
@@ -41,7 +42,7 @@ export interface QuotaSwitchDeps {
   registry: { instances(): QuotaSwitchEngine[] };
   turnStops: Pick<TurnStops, "failureCause"> & Partial<Pick<TurnStops, "read">>;
   /** Which AIs carry on while one is limited or signed out, and the one notice for each stretch of either. */
-  takeover?: Pick<LimitTakeover, "backups" | "tell" | "moved">;
+  takeover?: Pick<LimitTakeover, "backups" | "tell" | "moved"> & Partial<Pick<LimitTakeover, "holdProvider">>;
   /** A custom endpoint brings its own credential, so its sign-in state does not count. */
   access?: (instanceId: string) => EngineAccess | undefined;
   refusal?: (engine: QuotaSwitchEngine) => string | undefined;
@@ -99,6 +100,8 @@ export function createQuotaSwitch(deps: QuotaSwitchDeps): QuotaSwitch {
   const building = new Set<{ threadId: string; stale: boolean }>();
   /** A second press while the engine is read is the same answer, never another. */
   const answering = new Map<string, Promise<QuotaAnswer>>();
+  /** Messages already sent again after a provider failure: a second one on the backup is reported, not rerun. */
+  const rerun = new Set<string>();
 
   const notice = (threadId: string, text: string, ok: boolean, setup = false): void => {
     // `notice:` makes it a status row every client shows, never a folded tool step; `setup`: signing in fixes it.
@@ -169,7 +172,8 @@ export function createQuotaSwitch(deps: QuotaSwitchDeps): QuotaSwitch {
     }
     deps.takeover?.moved(botId, threadId, before.modelSelection, checked.selection, resetsAt, scope);
     const name = engine.instanceId === current.instanceId ? `${nameOf(engine)} ${checked.selection.model}` : nameOf(engine);
-    const why = scope === "signed-out" ? `while ${nameOf(current)} is signed out` : "after hitting the usage limit";
+    const why = scope === "signed-out" ? `while ${nameOf(current)} is signed out`
+      : scope === "provider" ? `because ${nameOf(current)} did not answer` : "after hitting the usage limit";
     const held = heldBy(botId, threadId, rootOf(threadId, request));
     const original = held ? undefined : resendable(store, threadId, request.messageId);
     if (held === "card") notice(threadId, `switched to ${name}. Your request waits on a card above and continues on ${name} once you act on it.`, true);
@@ -199,18 +203,22 @@ export function createQuotaSwitch(deps: QuotaSwitchDeps): QuotaSwitch {
     try {
       // Read before any await: the record is this turn's only now.
       const request = deps.request(threadId);
-      const flags = deps.turnStops.read?.(threadId, event.turnId)?.flags;
+      const stop = deps.turnStops.read?.(threadId, event.turnId);
+      const flags = stop?.flags;
       const cause = deps.turnStops.failureCause(event);
       // A tool call's failure names the tool, never the engine's own limit, whatever its words.
       const scope: TakeoverScope | undefined = signedOutStop(event.stopReason, cause) ? "signed-out"
-        : flags?.limit ?? (event.stopReason !== "tool_error" && classifyError({ text: cause ?? "" }).reason === "quota" ? "engine" : undefined);
+        : flags?.limit ?? (event.stopReason !== "tool_error" && classifyError({ text: cause ?? "" }).reason === "quota" ? "engine"
+        // Only a turn that showed and ran nothing: rerunning it elsewhere can repeat no words and no action.
+        : stop && !stop.acted && providerFailure(cause, event.stopReason) && !(request?.messageId && rerun.has(request.messageId)) ? "provider" : undefined);
       if (!scope) return null;
       const thread = store.projectBotForTask(bot.id, threadId) ?? bot;
       const from = thread.modelSelection;
       if (scope === "engine") limited.add(from.instanceId);
+      const providerUntil = scope === "provider" ? deps.takeover?.holdProvider?.(from) : undefined;
       // OMB_QUOTA_SWITCH=0: nothing carries on by itself; the person still hears once that the bot waits.
       const backups = enabled() ? deps.takeover?.backups(bot.id, from, scope, approvalModeFor(thread)) ?? [] : [];
-      const resetsAt = scope === "signed-out" ? undefined : flags?.limitResetsAt;
+      const resetsAt = scope === "signed-out" ? undefined : scope === "provider" ? providerUntil : flags?.limitResetsAt;
       // A sign-out is told once, first and without a backup's name: what the person must do is sign in again.
       const told = scope === "signed-out" ? deps.takeover?.tell(thread, from, { scope }) : undefined;
       if (told) notice(threadId, told, true, true);
@@ -228,6 +236,10 @@ export function createQuotaSwitch(deps: QuotaSwitchDeps): QuotaSwitch {
       const build = { threadId, stale: false };
       building.add(build);
       try {
+        if (scope === "provider" && request.messageId) {
+          rerun.add(request.messageId);
+          if (rerun.size > 500) rerun.delete(rerun.values().next().value!);
+        }
         for (const selection of backups) {
           if (await continueOn(bot.id, threadId, selection, request, build, resetsAt, scope)) {
             tell(selection);

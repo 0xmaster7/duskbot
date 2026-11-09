@@ -38,10 +38,10 @@ describe("TurnStops", () => {
   it("takes a provider's error sent as a reply for the cause", () => {
     const stops = new TurnStops();
     stops.note(event({ type: "item.completed", itemType: "assistant_text", turnId: "turn-1", text: "Half the export is done." }));
-    expect(stops.read("t1", "turn-1")).toBeUndefined();
+    expect(stops.read("t1", "turn-1")?.error).toBeUndefined();
     const limit = "You've hit your weekly limit · resets 6pm (Europe/Berlin)";
     stops.note(event({ type: "item.completed", itemType: "assistant_text", turnId: "turn-1", text: limit, synthetic: true }));
-    expect(stops.read("t1", "turn-1")).toEqual({ turnId: "turn-1", error: limit });
+    expect(stops.read("t1", "turn-1"), "it wrote words before the error, so it may not run again").toEqual({ turnId: "turn-1", error: limit, acted: true });
   });
 
   it("says why a settled turn failed: its own last error, else the provider's stop reason in words, and nothing for a turn that worked", () => {

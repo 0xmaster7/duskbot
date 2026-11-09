@@ -956,7 +956,7 @@ it("does not offer a message the person stopped before any reply again on Codex"
   const next = f.turns().at(-1);
   expect(next.resumedThread).toBeTruthy();
   expect(f.prompt(next)).not.toContain("CODEX_STOPPED_ASK");
-}, { codex: {} }), hostTimeout(90_000));
+}, { codex: {}, env: { OMB_CODEX_WARM: "0" } }), hostTimeout(90_000));
 
 it("offers a steered message again when the turn fails before the provider used it", () => fixture(async (f) => {
   f.plan[f.chief.id] = { turns: [{ reply: "Noted." }, { progress: "Looking into it", gateFile: f.gate("turn"), fail: true }, { reply: "Covered" }] };
@@ -1309,7 +1309,7 @@ it("moves a Codex chat to a new thread with its history when the person clears a
   const next = f.turns().at(-1);
   expect(next.resumedThread).toBeTruthy();
   expect(f.prompt(next)).not.toContain("ORCHID_7Q");
-}, { codex: {} }), hostTimeout(90_000));
+}, { codex: {}, env: { OMB_CODEX_WARM: "0" } }), hostTimeout(90_000));
 
 it("keeps today's fresh return on a Claude CLI that cannot refresh a resumed system prompt", () => fixture(async (f) => {
   await warmUp(f);

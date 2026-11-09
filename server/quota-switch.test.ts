@@ -900,4 +900,66 @@ describe("quota switch", () => {
       expect(pending()).toBeUndefined();
     });
   });
+
+  describe("a provider failure before the turn did anything", () => {
+    const CODEX = { instanceId: "codex", model: "codex-default" };
+    const OUTAGE = "codex exited 1 before turn/completed: Error: 503 Service Unavailable";
+    let acted: boolean;
+    let held: ModelSelection[];
+    let moves: Array<{ to: ModelSelection; resetsAt?: number }>;
+    beforeEach(() => {
+      acted = false;
+      held = [];
+      moves = [];
+      deps.turnStops = { failureCause: () => cause, read: () => ({ acted }) };
+      deps.takeover = {
+        backups: (_botId, _from, scope) => (scope === "provider" ? [CODEX] : []),
+        tell: () => null,
+        moved: (_botId, _threadId, _from, to, resetsAt) => { moves.push({ to, ...(resetsAt ? { resetsAt } : {}) }); },
+        holdProvider: (selection) => { held.push(selection); return 1_000_000; },
+      };
+      quota = createQuotaSwitch(deps);
+    });
+    const failedOn = (why: string, record: Partial<QuotaRequest> = {}) => {
+      const turn = begin(bot.threadId, record);
+      coordinator.endTurn(turn.id, { ok: false, text: why });
+      cause = why;
+      return quota.turnFailed(thread(), { ...turn.event, stopReason: "exit_before_result" }, false);
+    };
+
+    it("sends the person's message again on the bot's backup, holds the failed model and says so in one quiet line", async () => {
+      const messageId = said("summarize the report");
+      await failedOn(OUTAGE, { messageId });
+      expect(held).toEqual([defaultSelection()]);
+      expect(thread().modelSelection).toEqual(CODEX);
+      expect(moves).toEqual([{ to: CODEX, resetsAt: 1_000_000 }]);
+      expect(resend).toHaveBeenCalledTimes(1);
+      expect(resend.mock.calls[0]![2]).toMatchObject({ id: messageId });
+      expect(notices()).toEqual([{ name: "notice: continuing on Codex because Claude did not answer", ok: true }]);
+    });
+
+    it("never reruns a turn that already wrote words or ran a tool", async () => {
+      acted = true;
+      await failedOn(OUTAGE, { messageId: said("summarize the report") });
+      expect(resend).not.toHaveBeenCalled();
+      expect(held).toEqual([]);
+    });
+
+    it("reruns a message only once: the backup failing it too is reported, not moved again", async () => {
+      const messageId = said("summarize the report");
+      await failedOn(OUTAGE, { messageId });
+      await failedOn(OUTAGE, { messageId });
+      expect(resend).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ["a refused request", "unexpected status 400 Bad Request: invalid_request"],
+      ["a sign-in problem", "unexpected status 401 Unauthorized"],
+      ["a safety block", "This task was blocked by our safety systems."],
+    ])("leaves %s to its own handling", async (_label, why) => {
+      await failedOn(why, { messageId: said("summarize the report") });
+      expect(resend).not.toHaveBeenCalled();
+      expect(held).toEqual([]);
+    });
+  });
 });

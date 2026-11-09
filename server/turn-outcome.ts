@@ -3,6 +3,7 @@ import { isOutboundTool } from "../shared/outbound.ts";
 import type { RuntimeEvent } from "./contracts.ts";
 import { buildTurnDigest, digestTools } from "./digest.ts";
 import { stopCause } from "./drivers/engine-errors.ts";
+import { turnActed } from "./drivers/provider-failover.ts";
 import type { TurnEvidence } from "./runtime/types.ts";
 import type { Message } from "./store.ts";
 
@@ -17,6 +18,8 @@ export interface TurnStop {
   /** The engine's own flags on that error (a setup or credit refusal, a stall, a usage limit and its reset). */
   flags?: Pick<RuntimeError, "setup" | "stalled" | "trialCredit" | "limitResetsAt" | "limit">;
   handoffPath?: string;
+  /** The turn wrote words of its reply, ran a tool or asked something. */
+  acted?: boolean;
 }
 
 export class TurnStops {
@@ -27,6 +30,7 @@ export class TurnStops {
       this.#byThread.delete(event.threadId);
       return;
     }
+    if (turnActed(event)) this.#turn(event.threadId, event.turnId).acted = true;
     const error = event.type === "runtime.error" ? event.message
       : event.type === "item.completed" && event.itemType === "assistant_text" && event.synthetic ? event.text : undefined;
     if (event.type !== "cap.exhausted" && (error === undefined || errorTranscript(error).kind !== "error")) return;
