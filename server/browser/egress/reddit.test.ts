@@ -60,6 +60,7 @@ describe("which browsers skip Reddit", () => {
       { name: "agent_browser_read", arguments: { url: "https://www.reddit.com/" } },
       { name: "agent_browser_tabs", arguments: { action: "new", url: "https://reddit.com/" } },
       { name: "agent_browser_tab_new", arguments: { url: "https://reddit.app.link/x" } },
+      { name: "agent_browser_batch", arguments: { steps: [{ do: "open", url: "example.com" }, { do: "open", url: "www.reddit.com/r/test" }] } },
     ];
     for (const call of calls) {
       expect(opensReddit("cloud", call), JSON.stringify(call)).toBe(true);
@@ -71,6 +72,7 @@ describe("which browsers skip Reddit", () => {
       { name: "agent_browser_open", arguments: {} },
       { name: "agent_browser_snapshot", arguments: {} },
       { name: "agent_browser_wait", arguments: { urlIncludes: "reddit.com" } },
+      { name: "agent_browser_batch", arguments: { steps: [{ do: "open", url: "example.com" }, { do: "fill", selector: "#q", text: "reddit.com" }] } },
       { name: "agent_browser_open" },
       null,
     ]) expect(opensReddit("cloud", call), JSON.stringify(call)).toBe(false);
