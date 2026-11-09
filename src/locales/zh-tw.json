@@ -4693,5 +4693,14 @@
   "mobile.onboarding.linkShort": "在電腦上開啟 {app}，掃描設定 › Phone 中的 QR 碼。",
   "mobile.onboarding.pasteInstead": "改為貼上連結",
   "mobile.home.onlyPinnedTitle": "你的其他聊天會顯示在這裡",
-  "mobile.home.onlyPinnedBody": "建立機器人來處理郵件、研究或專案等工作，它的聊天就會顯示在此清單中。"
+  "mobile.home.onlyPinnedBody": "建立機器人來處理郵件、研究或專案等工作，它的聊天就會顯示在此清單中。",
+  "reconnect.title": "正在重新連線至 {name}",
+  "reconnect.next": "{seconds} 秒後重試。",
+  "reconnect.checking": "正在尋找…",
+  "reconnect.kept": "什麼都沒有遺失。它一有回應就會自動重新開啟；在那之前，這裡唯讀顯示它最後的內容。",
+  "reconnect.retry": "立即重試",
+  "reconnect.lastSeen": "上次看到 {time}",
+  "reconnect.groups": "群組聊天",
+  "reconnect.other": "在此期間可以開啟",
+  "reconnect.opening": "正在開啟…"
 }

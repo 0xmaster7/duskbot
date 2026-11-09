@@ -5143,5 +5143,14 @@
   "mobile.onboarding.linkShort": "Bilgisayarında {app} uygulamasını aç ve Ayarlar › Phone bölümündeki kodu tara.",
   "mobile.onboarding.pasteInstead": "Bunun yerine bağlantı yapıştır",
   "mobile.home.onlyPinnedTitle": "Diğer sohbetlerin burada görünür",
-  "mobile.home.onlyPinnedBody": "E-postalar, araştırma veya bir proje gibi bir iş için bot oluştur. Sohbeti bu listede görünür."
+  "mobile.home.onlyPinnedBody": "E-postalar, araştırma veya bir proje gibi bir iş için bot oluştur. Sohbeti bu listede görünür.",
+  "reconnect.title": "{name} ile yeniden bağlanılıyor",
+  "reconnect.next": "Sonraki deneme {seconds} sn sonra.",
+  "reconnect.checking": "Şimdi aranıyor…",
+  "reconnect.kept": "Hiçbir şey kaybolmadı. Yanıt verdiğinde kendiliğinden yeniden açılır; o zamana kadar en son gösterdiği burada, salt okunur.",
+  "reconnect.retry": "Şimdi dene",
+  "reconnect.lastSeen": "Son görülme {time}",
+  "reconnect.groups": "Grup sohbetleri",
+  "reconnect.other": "Bu arada açabilirsin",
+  "reconnect.opening": "Açılıyor…"
 }

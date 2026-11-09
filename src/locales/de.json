@@ -3328,5 +3328,14 @@
   "mobile.onboarding.linkShort": "Öffne {app} auf deinem Computer und scanne den Code unter Einstellungen › Phone.",
   "mobile.onboarding.pasteInstead": "Stattdessen einen Link einfügen",
   "mobile.home.onlyPinnedTitle": "Deine anderen Chats erscheinen hier",
-  "mobile.home.onlyPinnedBody": "Erstelle einen Bot für eine Aufgabe wie E-Mails, Recherche oder ein Projekt. Sein Chat erscheint dann in dieser Liste."
+  "mobile.home.onlyPinnedBody": "Erstelle einen Bot für eine Aufgabe wie E-Mails, Recherche oder ein Projekt. Sein Chat erscheint dann in dieser Liste.",
+  "reconnect.title": "Verbinde erneut mit {name}",
+  "reconnect.next": "Nächster Versuch in {seconds} s.",
+  "reconnect.checking": "Wird gerade gesucht…",
+  "reconnect.kept": "Nichts geht verloren. Es öffnet sich von selbst wieder, sobald es antwortet; bis dahin siehst du hier den letzten Stand, nur zum Lesen.",
+  "reconnect.retry": "Jetzt versuchen",
+  "reconnect.lastSeen": "Zuletzt gesehen {time}",
+  "reconnect.groups": "Gruppenchats",
+  "reconnect.other": "In der Zwischenzeit kannst du öffnen",
+  "reconnect.opening": "Wird geöffnet…"
 }

@@ -144,6 +144,8 @@ const __APP_VERSION__: string;
       cloudPlan?: import("../../electron/cloud-account.mjs").CloudPlanBridge;
       /** This computer's page, and My Cloud's own page once it is the person's home: the window onto My Cloud. */
       home?: import("../../electron/home-window.mjs").HomeBridge;
+      /** This computer's page while the chosen server isn't answering: its last-seen chats and the next look. */
+      reconnect?: import("../../electron/workspace-reconnect.mjs").ReconnectBridge;
       desktopNotices?: import("../../electron/desktop-prefs.mjs").DesktopNoticesBridge;
       desktopNotifications?: import("../../electron/desktop-notifications.mjs").DesktopNotificationsBridge;
       /** This computer's own page only: the account's full name, for a first run's profile (system-name.mjs), and its login. */

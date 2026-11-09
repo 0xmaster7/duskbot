@@ -6184,5 +6184,14 @@
   "mobile.onboarding.linkShort": "Otwórz {app} na komputerze i zeskanuj kod w sekcji Ustawienia › Phone.",
   "mobile.onboarding.pasteInstead": "Zamiast tego wklej link",
   "mobile.home.onlyPinnedTitle": "Twoje pozostałe czaty pojawią się tutaj",
-  "mobile.home.onlyPinnedBody": "Utwórz bota do zadania, na przykład obsługi poczty, zbierania informacji lub pracy nad projektem, a jego czat pojawi się na tej liście."
+  "mobile.home.onlyPinnedBody": "Utwórz bota do zadania, na przykład obsługi poczty, zbierania informacji lub pracy nad projektem, a jego czat pojawi się na tej liście.",
+  "reconnect.title": "Ponowne łączenie z {name}",
+  "reconnect.next": "Następna próba za {seconds} s.",
+  "reconnect.checking": "Szukam teraz…",
+  "reconnect.kept": "Nic nie przepadło. Otworzy się samo, gdy odpowie; do tego czasu widzisz tu ostatni stan, tylko do odczytu.",
+  "reconnect.retry": "Spróbuj teraz",
+  "reconnect.lastSeen": "Ostatnio widziane {time}",
+  "reconnect.groups": "Czaty grupowe",
+  "reconnect.other": "W międzyczasie możesz otworzyć",
+  "reconnect.opening": "Otwieranie…"
 }

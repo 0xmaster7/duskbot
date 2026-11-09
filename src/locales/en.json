@@ -7573,5 +7573,14 @@
   "mobile.onboarding.linkShort": "Open {app} on your computer and scan the code in Settings › Phone.",
   "mobile.onboarding.pasteInstead": "Paste a link instead",
   "mobile.home.onlyPinnedTitle": "Your other chats land here",
-  "mobile.home.onlyPinnedBody": "Make a bot for a job, like inbox, research or a project, and its chat shows up in this list."
+  "mobile.home.onlyPinnedBody": "Make a bot for a job, like inbox, research or a project, and its chat shows up in this list.",
+  "reconnect.title": "Reconnecting to {name}",
+  "reconnect.next": "Next try in {seconds}s.",
+  "reconnect.checking": "Looking for it now…",
+  "reconnect.kept": "Nothing is lost. It opens again by itself when it answers; until then this is what it showed last, read only.",
+  "reconnect.retry": "Try now",
+  "reconnect.lastSeen": "Last seen {time}",
+  "reconnect.groups": "Group chats",
+  "reconnect.other": "Meanwhile, you can open",
+  "reconnect.opening": "Opening…"
 }

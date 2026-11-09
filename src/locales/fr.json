@@ -3251,5 +3251,14 @@
   "mobile.onboarding.linkShort": "Ouvrez {app} sur votre ordinateur et scannez le code dans Paramètres › Phone.",
   "mobile.onboarding.pasteInstead": "Coller un lien à la place",
   "mobile.home.onlyPinnedTitle": "Vos autres discussions apparaissent ici",
-  "mobile.home.onlyPinnedBody": "Créez un bot pour une tâche, comme gérer vos e-mails, faire des recherches ou travailler sur un projet. Sa discussion apparaîtra dans cette liste."
+  "mobile.home.onlyPinnedBody": "Créez un bot pour une tâche, comme gérer vos e-mails, faire des recherches ou travailler sur un projet. Sa discussion apparaîtra dans cette liste.",
+  "reconnect.title": "Reconnexion à {name}",
+  "reconnect.next": "Prochain essai dans {seconds} s.",
+  "reconnect.checking": "Recherche en cours…",
+  "reconnect.kept": "Rien n'est perdu. Il se rouvre tout seul dès qu'il répond ; en attendant, voici ce qu'il affichait en dernier, en lecture seule.",
+  "reconnect.retry": "Réessayer maintenant",
+  "reconnect.lastSeen": "Vu pour la dernière fois {time}",
+  "reconnect.groups": "Discussions de groupe",
+  "reconnect.other": "En attendant, vous pouvez ouvrir",
+  "reconnect.opening": "Ouverture…"
 }

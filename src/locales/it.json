@@ -6018,5 +6018,14 @@
   "mobile.onboarding.linkShort": "Apri {app} sul computer e scansiona il codice in Impostazioni › Phone.",
   "mobile.onboarding.pasteInstead": "Incolla un link invece",
   "mobile.home.onlyPinnedTitle": "Le altre chat appaiono qui",
-  "mobile.home.onlyPinnedBody": "Crea un bot per un compito, come gestire la posta, fare ricerche o seguire un progetto. La sua chat apparirà in questo elenco."
+  "mobile.home.onlyPinnedBody": "Crea un bot per un compito, come gestire la posta, fare ricerche o seguire un progetto. La sua chat apparirà in questo elenco.",
+  "reconnect.title": "Riconnessione a {name}",
+  "reconnect.next": "Prossimo tentativo tra {seconds} s.",
+  "reconnect.checking": "Lo sto cercando…",
+  "reconnect.kept": "Non si perde nulla. Si riapre da solo quando risponde; nel frattempo ecco l'ultima cosa che mostrava, in sola lettura.",
+  "reconnect.retry": "Riprova ora",
+  "reconnect.lastSeen": "Visto l'ultima volta {time}",
+  "reconnect.groups": "Chat di gruppo",
+  "reconnect.other": "Nel frattempo puoi aprire",
+  "reconnect.opening": "Apertura…"
 }

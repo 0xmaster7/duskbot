@@ -6772,5 +6772,14 @@
   "mobile.onboarding.linkShort": "在电脑上打开 {app}，扫描设置 › Phone 中的二维码。",
   "mobile.onboarding.pasteInstead": "改为粘贴链接",
   "mobile.home.onlyPinnedTitle": "你的其他聊天会显示在这里",
-  "mobile.home.onlyPinnedBody": "创建机器人来处理邮件、研究或项目等任务，它的聊天就会显示在此列表中。"
+  "mobile.home.onlyPinnedBody": "创建机器人来处理邮件、研究或项目等任务，它的聊天就会显示在此列表中。",
+  "reconnect.title": "正在重新连接 {name}",
+  "reconnect.next": "{seconds} 秒后重试。",
+  "reconnect.checking": "正在查找…",
+  "reconnect.kept": "什么都没有丢失。它一有响应就会自动重新打开；在此之前，这里只读显示它最后的内容。",
+  "reconnect.retry": "立即重试",
+  "reconnect.lastSeen": "上次看到 {time}",
+  "reconnect.groups": "群聊",
+  "reconnect.other": "在此期间可以打开",
+  "reconnect.opening": "正在打开…"
 }

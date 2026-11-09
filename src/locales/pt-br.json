@@ -6052,5 +6052,14 @@
   "mobile.onboarding.linkShort": "Abra {app} no computador e leia o código em Configurações › Phone.",
   "mobile.onboarding.pasteInstead": "Colar um link em vez disso",
   "mobile.home.onlyPinnedTitle": "Suas outras conversas aparecem aqui",
-  "mobile.home.onlyPinnedBody": "Crie um bot para uma tarefa, como cuidar dos e-mails, pesquisar ou trabalhar em um projeto, e a conversa dele aparecerá nesta lista."
+  "mobile.home.onlyPinnedBody": "Crie um bot para uma tarefa, como cuidar dos e-mails, pesquisar ou trabalhar em um projeto, e a conversa dele aparecerá nesta lista.",
+  "reconnect.title": "Reconectando a {name}",
+  "reconnect.next": "Próxima tentativa em {seconds} s.",
+  "reconnect.checking": "Procurando agora…",
+  "reconnect.kept": "Nada se perde. Ele abre de novo sozinho quando responder; até lá, isto é o que ele mostrou por último, só para leitura.",
+  "reconnect.retry": "Tentar agora",
+  "reconnect.lastSeen": "Visto pela última vez {time}",
+  "reconnect.groups": "Chats em grupo",
+  "reconnect.other": "Enquanto isso, você pode abrir",
+  "reconnect.opening": "Abrindo…"
 }

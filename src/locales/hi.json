@@ -3248,5 +3248,14 @@
   "mobile.onboarding.linkShort": "कंप्यूटर पर {app} खोलें और सेटिंग्स › Phone में कोड स्कैन करें।",
   "mobile.onboarding.pasteInstead": "इसके बजाय लिंक पेस्ट करें",
   "mobile.home.onlyPinnedTitle": "आपकी बाकी चैट यहाँ दिखेंगी",
-  "mobile.home.onlyPinnedBody": "ईमेल, रिसर्च या किसी प्रोजेक्ट जैसे काम के लिए बॉट बनाएँ। उसकी चैट इस सूची में दिखेगी।"
+  "mobile.home.onlyPinnedBody": "ईमेल, रिसर्च या किसी प्रोजेक्ट जैसे काम के लिए बॉट बनाएँ। उसकी चैट इस सूची में दिखेगी।",
+  "reconnect.title": "{name} से फिर से जुड़ रहे हैं",
+  "reconnect.next": "अगली कोशिश {seconds} सेकंड में।",
+  "reconnect.checking": "अभी ढूँढ रहे हैं…",
+  "reconnect.kept": "कुछ भी नहीं खोया है। जवाब मिलते ही यह अपने आप फिर खुल जाएगा; तब तक यह वही है जो इसने आख़िरी बार दिखाया था, सिर्फ़ पढ़ने के लिए।",
+  "reconnect.retry": "अभी कोशिश करें",
+  "reconnect.lastSeen": "आख़िरी बार देखा {time}",
+  "reconnect.groups": "ग्रुप चैट",
+  "reconnect.other": "तब तक आप यह खोल सकते हैं",
+  "reconnect.opening": "खुल रहा है…"
 }

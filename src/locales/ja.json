@@ -6209,5 +6209,14 @@
   "mobile.onboarding.linkShort": "パソコンで{app}を開き、設定 › Phoneのコードを読み取ってください。",
   "mobile.onboarding.pasteInstead": "代わりにリンクを貼り付け",
   "mobile.home.onlyPinnedTitle": "ほかのチャットはここに表示されます",
-  "mobile.home.onlyPinnedBody": "メールの整理、調べもの、プロジェクトなどの仕事用にボットを作ると、そのチャットがこのリストに表示されます。"
+  "mobile.home.onlyPinnedBody": "メールの整理、調べもの、プロジェクトなどの仕事用にボットを作ると、そのチャットがこのリストに表示されます。",
+  "reconnect.title": "{name} に再接続しています",
+  "reconnect.next": "{seconds} 秒後に再試行します。",
+  "reconnect.checking": "探しています…",
+  "reconnect.kept": "何も失われていません。応答があれば自動で開き直します。それまでは最後に表示されていた内容を読み取り専用で表示します。",
+  "reconnect.retry": "今すぐ試す",
+  "reconnect.lastSeen": "最終表示 {time}",
+  "reconnect.groups": "グループチャット",
+  "reconnect.other": "その間に開けるもの",
+  "reconnect.opening": "開いています…"
 }
