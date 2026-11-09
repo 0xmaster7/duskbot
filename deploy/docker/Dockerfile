@@ -11,10 +11,12 @@
 # Caddy in the same network namespace to terminate TLS and authentication at
 # the edge.
 #
-#   docker build -t openmausbot .
-#   docker build --build-arg ENGINES="@anthropic-ai/claude-code @openai/codex" -t openmausbot .
-#   docker build --target cloud-home -t omb-cloud-home .
-#   docker buildx build --platform linux/arm64 -t openmausbot .   # Raspberry Pi 4/5, ARM servers
+# Built from the repository root (the context), with Dockerfile.dockerignore beside it:
+#
+#   docker build -f deploy/docker/Dockerfile -t openmausbot .
+#   docker build -f deploy/docker/Dockerfile --build-arg ENGINES="@anthropic-ai/claude-code @openai/codex" -t openmausbot .
+#   docker build -f deploy/docker/Dockerfile --target cloud-home -t omb-cloud-home .
+#   docker buildx build -f deploy/docker/Dockerfile --platform linux/arm64 -t openmausbot .   # Raspberry Pi 4/5, ARM servers
 #
 # HOME is the /data volume, so engine CLI logins (~/.claude, ~/.codex, ~/.grok,
 # ...) and OpenMausBot's own state (~/.openmausbot) persist across container
@@ -41,11 +43,10 @@ RUN npm install -g pnpm@10.33.0
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # every workspace member's manifest must exist before install resolves the lockfile
-COPY apps/docs/package.json ./apps/docs/package.json
-COPY cloudflare/control-plane/package.json ./cloudflare/control-plane/package.json
+COPY apps/mobile/package.json ./apps/mobile/package.json
 # package.json's `prepare` runs during install. The script itself is written to
 # no-op without a .git (it exits 0 here), but node still has to be able to LOAD
-# it, and .dockerignore keeps .git out — so copy it in before install or the
+# it, and Dockerfile.dockerignore keeps .git out — so copy it in before install or the
 # whole build dies on MODULE_NOT_FOUND.
 COPY scripts/install-git-hooks.mjs ./scripts/install-git-hooks.mjs
 RUN pnpm install --frozen-lockfile
@@ -201,7 +202,7 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
 USER root
 CMD ["node", "/app/dist-server/cloud-home-start.js"]
 
-# The self-hosted server, last so a plain `docker build .` builds it.
+# The self-hosted server, last so a build without --target builds it.
 FROM runtime AS server
 # Optional engine CLIs baked into the image (space-separated npm packages).
 ARG ENGINES=""

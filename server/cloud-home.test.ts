@@ -421,7 +421,7 @@ it("ships an edge and a Fly template that keep the server private", () => {
   expect(caddy).toMatch(/^\t\ttrusted_proxies static \{\$OMB_CLOUD_EDGE_TRUSTED_PROXIES\}\r?\n\t\ttrusted_proxies_strict\r?\n\t\tclient_ip_headers \{\$OMB_CLOUD_EDGE_CLIENT_IP_HEADER\}\r?\n/m);
   expect(caddy.match(/^\s*(?:trusted_proxies|client_ip_headers)\b/gm)).toHaveLength(2);
   // The root supervisor's code is root's, maus owns only the volume; the image's last step refuses to build otherwise.
-  const dockerfile = readFileSync(join(import.meta.dirname, "../Dockerfile"), "utf8");
+  const dockerfile = readFileSync(join(import.meta.dirname, "../deploy/docker/Dockerfile"), "utf8");
   const image = dockerfile.slice(dockerfile.indexOf("FROM runtime AS cloud-home"), dockerfile.indexOf("FROM runtime AS server"));
   const check = image.indexOf('untrusted="$(find /app /usr/local/bin/caddy \\( ! -user root -o ! -type l -perm /022 \\) -print)"');
   expect(image.slice(check)).toMatch(/^untrusted=.*\n && if \[ -n "\$untrusted" \]; then .*exit 1; fi \\\n/);

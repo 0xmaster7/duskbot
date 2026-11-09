@@ -328,10 +328,6 @@ and worker exports using synthetic data, with isolated backup workflow checks.
 The [Japanese desktop font recipe](japanese-desktop.md) checks real Firefox and
 XFCE glyph rendering in disposable managed desktops, including fresh recreation.
 
-The optional [Podman full-stack acceptance recipe](podman-self-hosting.md)
-checks the Compose deployment with a fresh home, fake engine, and two desktops.
-It includes workspace ownership, persistence, and proxy authentication checks.
-
 The [Podman Firefox sandbox recipe](podman-firefox.md) checks the capability set a
 managed desktop keeps so Firefox can start, with before/after acceptance evidence.
 

@@ -195,14 +195,6 @@ app's managed phone endpoint.
 
 ## Docker (with HTTPS on your own domain)
 
-For a single rootless Podman engine running the server, Caddy, and per-bot
-desktops, see the optional [Podman full-stack recipe](../deploy/podman/README.md)
-for Windows/WSL2 and Linux x64. It is separate from the Docker deployment below.
-
-For local Docker Desktop or private Tailscale access without a public domain,
-use the [local Compose setup](../deploy/local/README.md). It defaults to
-`http://localhost:8080` and supports optional `.env` overrides.
-
 One tenant = one container for the server plus Caddy for HTTPS.
 Requirements: Docker with Compose, a DNS name pointing at the machine, and
 ports 80/443 open.
@@ -234,7 +226,7 @@ base the app prints on new hooks because the stack sets
 
 What the stack does, so you can adapt it:
 
-- [`Dockerfile`](../Dockerfile) builds the UI and the self-contained
+- [`deploy/docker/Dockerfile`](../deploy/docker/Dockerfile) builds the UI and the self-contained
   server bundle, and runs them as an unprivileged user with `HOME=/data`.
   `--build-arg ENGINES="…"` (or `ENGINES=` in `.env`) bakes engine CLIs
   into the image.
