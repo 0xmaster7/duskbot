@@ -1,7 +1,7 @@
 import { createContext, useMemo, useState } from "react";
 import { t } from "@/lib/i18n";
 import { botEngine, claudeUpdateTarget } from "@/lib/failed-turn";
-import { canOfferSignIn, failedReplyDetail, failedReplyKind, failedReplyTitle, mostActionable, trailingRows } from "@/lib/failed-reply";
+import { canOfferSignIn, failedReplyDetail, failedReplyKind, failedReplyTitle, mostActionable, restartAlreadyDid, trailingRows } from "@/lib/failed-reply";
 import { statusActivity } from "@/lib/activity-runs";
 import { openPlaceAction, placeRowViewFor, usePlaceSeat, worksOnSimpleLabel } from "@/lib/place-view";
 import { useStore, type Message } from "@/state/store";
@@ -54,6 +54,8 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
   const platform = capabilities.host?.platform;
   const seat = usePlaceSeat(state.config, platform);
   const [, setClosed] = useState(0);
+  // a retry that may repeat what a cut turn already did asks once more first; keyed by the row it is for
+  const [confirming, setConfirming] = useState<string | null>(null);
   const failures = rows?.failures ?? [];
   const notices = (rows?.notices ?? []).filter((m) => !dismissed.has(m.id));
   const items = failures.filter((m) => !dismissed.has(m.id)).map((message) => {
@@ -87,7 +89,9 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
 
   const onServer = aiRunsOnServer(state.config, capabilities);
   const engineName = lead.engine?.displayName ?? t("failedReply.yourAi");
-  let detail: string | null = failedReplyDetail(lead.kind, engineName, onServer);
+  const cause = failedTurnCause(tool.name) ?? "";
+  let detail: string | null = failedReplyDetail(lead.kind, engineName, onServer, cause);
+  let did: string | null = null;
   const actions: Array<{ label: string; onClick: () => void }> = [];
   const retry = onRetry;
   let update = null;
@@ -107,6 +111,13 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
     if (target) { detail = null; update = <ClaudeUpdatePrompt instance={target} onRetry={retry} />; }
   } else if (lead.kind === "signed_out") {
     if (canOfferSignIn(lead.kind, lead.engine) || signInNotice) actions.push({ label: t("chat.notice.signIn"), onClick: () => dispatch(openEngines) });
+  } else if (lead.kind === "restart_interrupted") {
+    did = restartAlreadyDid(cause);
+    if (retry && confirming === lead.message.id) {
+      detail = t("failedReply.retryRepeats");
+      actions.push({ label: t("failedReply.retryAnyway"), onClick: () => { setConfirming(null); retry(); } });
+      actions.push({ label: t("failedReply.retryCancel"), onClick: () => setConfirming(null) });
+    } else if (retry) actions.push({ label: t("failedReply.tryAgain"), onClick: () => setConfirming(lead.message.id) });
   } else if (lead.kind === "usage_limit") {
     if (resume) actions.push(resume);
   } else if (lead.kind === "no_answer" && !group && tool.rescue) {
@@ -132,6 +143,7 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
         ))}
       >
         {detail && <p dir="auto" className="text-ink-secondary">{detail}</p>}
+        {did && <p dir="auto" className="text-ink-secondary">{t("failedReply.restartedDid", { done: did })}</p>}
         {update}
       </ChatErrorCard>
     </div>

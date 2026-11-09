@@ -70,3 +70,32 @@ describe("a failure card always offers a way on", () => {
     expect(labels(await show(failed("API Error: 529 Overloaded"), vi.fn()))).toEqual(["Try again"]);
   });
 });
+
+describe("the card says what really stopped the reply", () => {
+  const text = () => document.querySelector("[data-chat-error]")?.textContent ?? "";
+
+  it("a plain server cause is said as it is, not as Something went wrong", async () => {
+    await show(failed("The workspace was restored from a backup before this finished."), vi.fn());
+    expect(text()).toContain("The workspace was restored from a backup before this finished.");
+    expect(text()).not.toContain("Something went wrong");
+  });
+
+  it("a turn a restart cut says so, and Try again warns before it can repeat what already ran", async () => {
+    const onRetry = vi.fn();
+    const buttons = await show(failed("Interrupted by another OpenMausBot restart after resuming once; not resumed again. Some of its steps may already have taken effect."), onRetry);
+    expect(text()).toContain("OpenMausBot restarted while this was running");
+    expect(labels(buttons)).toEqual(["Try again"]);
+    await act(async () => buttons[0]!.click());
+    expect(onRetry).not.toHaveBeenCalled();
+    expect(text()).toContain("could happen twice");
+    const confirm = [...document.querySelectorAll<HTMLButtonElement>("[data-chat-error] button:not([aria-label])")];
+    expect(labels(confirm)).toEqual(["Try again anyway", "Don't retry"]);
+    await act(async () => confirm[0]!.click());
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it("names what a cut turn had already done outside", async () => {
+    await show(failed("Interrupted by an OpenMausBot restart after it already sent an email (gmail_send); not resumed, so nothing is done twice."), vi.fn());
+    expect(text()).toContain("Already done: sent an email (gmail_send)");
+  });
+});

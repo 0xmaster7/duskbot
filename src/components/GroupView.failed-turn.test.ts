@@ -72,13 +72,15 @@ describe("failed replies in a room", () => {
     expect(markup).not.toContain("529");
   });
 
-  it("maps a stored reason, and falls back to a short generic line", () => {
+  it("maps a stored reason, says a plain cause as it is, and a technical one as a short generic line", () => {
     expect(card([ask, failed("Echo", "x", { reason: "rate_limit" })])).toContain("This request has been rate limited, try again shortly");
     expect(card([ask, failed("Echo", "The operation timed out.")])).toContain("The reply timed out");
-    const generic = card([ask, failed("Echo", "Your Pro plan includes 2 cloud computers at once.")]);
-    expect(generic).toContain("Echo couldn&#x27;t respond");
-    expect(generic).toContain("Something went wrong. Try again.");
-    expect(generic).not.toContain("Pro plan");
+    const plain = card([ask, failed("Echo", "Your Pro plan includes 2 cloud computers at once.")]);
+    expect(plain).toContain("Echo couldn&#x27;t respond");
+    expect(plain).toContain("Your Pro plan includes 2 cloud computers at once.");
+    const technical = card([ask, failed("Echo", "TypeError: Cannot read properties of undefined (reading 'id')")]);
+    expect(technical).toContain("Something went wrong. Try again.");
+    expect(technical).not.toContain("TypeError");
   });
 
   it("goes away once a bot replies or the person writes again", () => {
