@@ -61,7 +61,7 @@ export async function buildTemplate(input: TemplateBuild): Promise<{ name: strin
     const installed = await provider.run(builder.id, installCommand(sha256, undefined, input.signature), 600);
     if (!installed.ok || !installed.stdout.includes("installed")) throw new Error("The package did not install on the builder.");
     // the app never ran here: no env, no machine id, no data
-    const clean = await provider.run(builder.id, `sudo -n test ! -e ${CLOUD_HOME.etc}/home.env && sudo -n test ! -e ${CLOUD_HOME.etc}/machine && sudo -n test -z \"$(sudo -n ls -A ${CLOUD_HOME.data} 2>/dev/null)\" && echo clean`, 60);
+    const clean = await provider.run(builder.id, `sudo -n test ! -e ${CLOUD_HOME.etc}/home.env && sudo -n test ! -e ${CLOUD_HOME.etc}/machine && sudo -n test -z "$(sudo -n ls -A ${CLOUD_HOME.data} 2>/dev/null)" && echo clean`, 60);
     if (!clean.stdout.includes("clean")) throw new Error("The builder is not clean; nothing was saved.");
     const tree = (await provider.run(builder.id, `sudo -n ${BOAT_CONTROL} tree`, 300)).stdout.trim();
     if (!/^[a-f0-9]{64}$/.test(tree)) throw new Error("The builder's app could not be hashed.");

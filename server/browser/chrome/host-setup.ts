@@ -34,7 +34,7 @@ export const APPARMOR_PROFILE_PATH = `/etc/apparmor.d/${APPARMOR_PROFILE_NAME}`;
  * write, or a pattern, would let any program claim the exemption.
  */
 export function appArmorProfile(executable: string): string {
-  if (!isAbsolute(executable) || /[\s\x00-\x1f\x7f*?[\]{}"'\\^]/.test(executable.replaceAll(" ", "")) || !executable.startsWith("/opt/")) {
+  if (!isAbsolute(executable) || /[\s\p{Cc}*?[\]{}"'\\^]/u.test(executable.replaceAll(" ", "")) || !executable.startsWith("/opt/")) {
     throw new Error(`The browser's AppArmor exemption is only for a root-owned path under /opt, not ${executable}.`);
   }
   return `# Written by \`duskbot browser setup\`: lets Dusk Bot's Chrome use its sandbox.
