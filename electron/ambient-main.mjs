@@ -24,6 +24,7 @@ const PAGE = "/ambient.html";
  * `openChat` gets the origin of the page whose bots the surfaces show: the chat opens in that place, not This computer.
  */
 export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, openChat, reveal, activity = null, platform = process.platform, log = () => {}, readPage = null, trace: given = undefined }) {
+  let throttled = null;
   let prefs = null, snapshot = null, from = null, screen = null, started = false, follow = null, displayId = null, dockCount = -1, stillness = null;
   const saved = () => (prefs ??= (() => { try { return parsePrefs(file.read(), platform); } catch { return parsePrefs(null, platform); } })());
   const save = next => { prefs = next; try { file.write(next); } catch (error) { log(`ambient prefs not saved: ${error?.message ?? error}`); } };
@@ -43,6 +44,13 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
       if (!act) return;
       if (act.kind === "new-bot") reveal();
       appPage()?.send("ambient:act", act);
+      return;
+    }
+    if (channel === "ambient:viewing") {
+      // the chat a surface shows: the app's page puts a long stretch of it in that bot's summary
+      const botId = typeof payload?.botId === "string" && /^[\w.:-]{1,128}$/.test(payload.botId) ? payload.botId : null;
+      const limit = Number.isFinite(payload?.limit) ? Math.max(1, Math.min(120, Math.floor(payload.limit))) : 40;
+      appPage()?.send("ambient:viewing", botId ? { botId, limit } : null);
       return;
     }
     if (channel === "ambient:seen") {
@@ -99,8 +107,16 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
     dockCount = snapshot?.bots.length ?? -1;
     if (on.dock && target) dock.layout(target, { count: dockCount, order: on.order }); else dock.close();
     tellAll();
-    // the app's page summarises its bots only while a surface shows them
+    // the app's page summarises its bots only while a surface shows them; meanwhile it must keep up even behind other
+    // windows: Electron's background throttling would slow its timers, and (since it also makes the page read as
+    // hidden) its live stream would not reconnect, so a reply could wait until the app is shown again
     appPage()?.send("ambient:wanted", wanted());
+    const throttle = !wanted();
+    if (appPage() && throttled !== throttle) {
+      throttled = throttle;
+      note("page-throttling", String(throttle));
+      appPage().setBackgroundThrottling?.(throttle);
+    }
     followPointer();
   }
 

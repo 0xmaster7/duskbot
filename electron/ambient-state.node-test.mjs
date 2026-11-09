@@ -78,14 +78,19 @@ test("seen replies and failures are kept by key, newest last, capped, and nothin
   assert.deepEqual(parsePrefs({ v: 2, seen: ["a:error:1"] }, "darwin").seen, ["a:error:1"]);
 });
 
-test("a bot's mini chat keeps only its newest few messages, each cut short, and nothing else", () => {
-  const chat = [...Array.from({ length: 9 }, (_, index) => ({ id: `m${index}`, from: index % 2 ? "you" : "bot", text: `line ${index}`, at: index + 1 })),
-    { id: "m9", from: "admin", text: "x".repeat(900), at: 10, html: "<b>" }, { id: "m10", from: "bot", text: "   " }, "nope"];
-  const [parsed] = parseSnapshot({ bots: [bot({ chat })] }).bots;
-  assert.equal(parsed.chat.length, 4);
-  assert.deepEqual(parsed.chat[0], { id: "m6", from: "bot", text: "line 6", at: 7 });
+test("a bot's chat keeps its newest messages, lines kept and each cut short, the reply it streams, and a whole summary stays bounded", () => {
+  const chat = [...Array.from({ length: 130 }, (_, index) => ({ id: `m${index}`, from: index % 2 ? "you" : "bot", text: `line ${index}`, at: index + 1 })),
+    { id: "x", from: "admin", text: `first\n\n  second  line\n${"y".repeat(3000)}`, at: 200, html: "<b>" }, { id: "z", from: "bot", text: "   " }, "nope"];
+  const [parsed] = parseSnapshot({ bots: [bot({ chat, streaming: "  Looking   at\nflights ", hasMore: true })] }).bots;
+  assert.equal(parsed.chat.length, 118);
   assert.deepEqual(Object.keys(parsed.chat.at(-1)), ["id", "from", "text", "at"]);
   assert.equal(parsed.chat.at(-1).from, "bot");
-  assert.equal(parsed.chat.at(-1).text.length, 500);
+  assert.ok(parsed.chat.at(-1).text.startsWith("first\nsecond line\n"));
+  assert.equal(parsed.chat.at(-1).text.length, 2000);
+  assert.equal(parsed.streaming, "Looking at\nflights");
+  assert.equal(parsed.hasMore, true);
   assert.deepEqual(parseSnapshot({ bots: [bot({ chat: "x" })] }).bots[0].chat, []);
+  // forty bots with long chats: never more than 400 messages in one summary
+  const many = parseSnapshot({ bots: Array.from({ length: 10 }, (_, index) => bot({ id: `b${index}`, threadId: `t${index}`, chat })) }).bots;
+  assert.equal(many.reduce((sum, entry) => sum + entry.chat.length, 0), 400);
 });

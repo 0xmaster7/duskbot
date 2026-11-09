@@ -9,7 +9,7 @@ export const ISLAND_SIZES = Object.freeze({
 });
 export const ISLAND_SIZE_IDS = Object.freeze(Object.keys(ISLAND_SIZES));
 /** The window holds the panel at its largest, transparent and click-through outside the island's shape. */
-export const ISLAND_WINDOW = Object.freeze({ width: 560, height: 500 });
+export const ISLAND_WINDOW = Object.freeze({ width: 560, height: 680 });
 /** A pill floats this far below the top of a display without a notch. */
 export const PILL_TOP = 6;
 const NOTCH_MIN_MENU_BAR = 30;

@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld("ambient", {
   pointer: (on) => ipcRenderer.send("ambient:pointer", on === true),
   /** A text field on the surface has focus: the panel keeps the keyboard while the pointer is away. */
   typing: (on) => ipcRenderer.send("ambient:typing", on === true),
+  /** The chat this surface shows (a bot and how many of its messages), or null. */
+  viewing: (viewing) => ipcRenderer.send("ambient:viewing", viewing && typeof viewing === "object" ? { botId: word(viewing.botId), limit: Number(viewing.limit) || 40 } : null),
   /** The surface has finished closing: the panel may give the keyboard back now without cutting it short. */
   settled: () => ipcRenderer.send("ambient:settled"),
   open: (botId, threadId) => ipcRenderer.send("ambient:open", { botId: word(botId), threadId: word(threadId) }),

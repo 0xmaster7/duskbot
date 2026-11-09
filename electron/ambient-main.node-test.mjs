@@ -31,7 +31,7 @@ function fakes({ prefs = { island: true, dock: true }, activity = null, platform
   }
   const handlers = new Map(), listeners = new Map();
   const ipcMain = { handle: (channel, fn) => handlers.set(channel, fn), on: (channel, fn) => listeners.set(channel, fn) };
-  const appPage = Object.assign(new EventEmitter(), { sent: [], send(channel, payload) { this.sent.push([channel, payload]); }, isDestroyed: () => false, getURL: () => "http://127.0.0.1:5199/" });
+  const appPage = Object.assign(new EventEmitter(), { sent: [], throttling: [], send(channel, payload) { this.sent.push([channel, payload]); }, isDestroyed: () => false, getURL: () => "http://127.0.0.1:5199/", setBackgroundThrottling(on) { this.throttling.push(on); } });
   const builtIn = { id: 1, internal: true, label: "Built-in Liquid Retina XDR Display", bounds: { x: 0, y: 0, width: 1512, height: 982 }, workArea: { x: 0, y: 37, width: 1512, height: 945 } };
   const screen = Object.assign(new EventEmitter(), { getAllDisplays: () => [builtIn], getPrimaryDisplay: () => builtIn, getCursorScreenPoint: () => ({ x: 10, y: 10 }) });
   let saved = prefs;
@@ -282,5 +282,22 @@ test("a surface in use or still closing is never moved or resized: the new place
   // every window action is in the trace, in order
   const actions = lines.filter((line) => line.startsWith("dock win:") || line.startsWith("dock page:settled")).map((line) => line.split(" ").slice(0, 2).join(" "));
   assert.deepEqual(actions.slice(-6), ["dock win:setIgnoreMouseEvents", "dock win:focus", "dock win:setIgnoreMouseEvents", "dock page:settled", "dock win:setBounds", "dock win:blur"]);
+  ambient.close();
+});
+
+test("a surface showing a bot's chat asks the app's page for a long stretch of it, and that page keeps up behind other windows", async () => {
+  const { windows, screen, ambient, appPage, handlers } = fakes();
+  ambient.start(screen);
+  await tick();
+  // while a surface is on, the page is never throttled, so a reply streams in even with the app behind other windows
+  assert.deepEqual(appPage.throttling, [false]);
+  const dock = surface(windows, "dock");
+  dock.webContents.emit("ipc-message", {}, "ambient:viewing", { botId: "nova", limit: 999 });
+  dock.webContents.emit("ipc-message", {}, "ambient:viewing", { botId: "../x", limit: 5 });
+  dock.webContents.emit("ipc-message", {}, "ambient:viewing", null);
+  assert.deepEqual(appPage.sent.filter(([channel]) => channel === "ambient:viewing").map(([, viewing]) => viewing), [{ botId: "nova", limit: 120 }, null, null]);
+  // both surfaces off: the page may rest again
+  handlers.get("ambient:set")({ sender: appPage }, { island: false, dock: false });
+  assert.deepEqual(appPage.throttling, [false, true]);
   ambient.close();
 });
