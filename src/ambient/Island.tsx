@@ -4,8 +4,9 @@
 // flares where it meets the top of the screen all ride it. Each row answers its bot's ask in place, or stops it.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion, useTransform } from "motion/react";
-import { Plus } from "lucide-react";
+import { ChevronLeft, Plus } from "lucide-react";
 import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, moodOf, rankBots, waitingCount, type Mood } from "./mood";
+import { MiniChat } from "./MiniChat";
 import { BotRow, useHoverBand, useRowMoments } from "./rows";
 import { attention, eventKey, isFresh, recentOf, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
@@ -16,8 +17,10 @@ const PANEL_W = 432;
 /** The flares where a notch island meets the top edge of the screen. */
 const EAR = 10;
 /** The island stays this long after the pointer leaves, and keeps a little margin around it while open. */
-const HOVER_OUT_MS = 250;
-const GRACE = 12;
+const HOVER_OUT_MS = 300;
+const GRACE = 16;
+/** Longer than the island takes to fold away. */
+const CHAT_RESET_MS = 600;
 /** The island widens this much for a moment when someone starts needing the person, or a turn finishes. */
 const NUDGE = 22;
 const NUDGE_MS = 1600;
@@ -165,7 +168,7 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
 
   return (
-    <div ref={stage} className="amb-stage" style={{ width: stageW, height: stageH }} onKeyDown={onKeyDown}>
+    <div ref={stage} className="amb-stage" data-open={open || undefined} style={{ width: stageW, height: stageH }} onKeyDown={onKeyDown}>
       {notch && (
         <>
           <motion.div aria-hidden className="amb-ear amb-ear-left" style={{ x: leftEar, width: EAR, height: EAR }} />
@@ -179,21 +182,24 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
         aria-label={say(labels, "island")}
         style={{ left: (stageW - panelW) / 2, top: c.top, width: panelW, height: maxH, clipPath: clip }}
       >
-        <button
-          type="button"
-          className="amb-island-hit"
-          aria-expanded={open}
-          aria-label={islandLabel}
-          style={{ height: c.height, left: (panelW - c.width) / 2, width: c.width }}
-          onClick={() => setHovered(true)}
-        />
+        {/* only while closed: open, the panel's own controls take over, and nothing outlines the notch */}
+        {!open && (
+          <button
+            type="button"
+            className="amb-island-hit"
+            aria-expanded={false}
+            aria-label={islandLabel}
+            style={{ height: c.height, left: (panelW - c.width) / 2, width: c.width }}
+            onClick={() => setHovered(true)}
+          />
+        )}
         <motion.div
           className="amb-panel"
           inert={!open}
           style={{ paddingTop: c.height }}
           initial={false}
           animate={open ? { opacity: 1, y: 0 } : { opacity: 0, y: reduced ? 0 : -6 }}
-          transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: { duration: 0.18, ease: EASE_OUT }, y: SOFT_EXIT }}
+          transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: { duration: 0.14, ease: EASE_OUT }, y: SOFT_EXIT }}
         >
           <div ref={panel}>
             <PanelBody bots={bots} seen={seen} mark={mark} cheer={allClear} labels={labels} lang={lang} open={open} bridge={bridge} onPin={setPinned} />
@@ -266,6 +272,39 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
     if (isFresh(bot, seen)) mark([eventKey(bot)]);
     bridge.open(bot.id, bot.threadId);
   };
+  // a row opens into that bot's mini chat, right here: its newest messages, a reply field, its ask; one at a time
+  const [chatWith, setChatWith] = useState<string | null>(null);
+  // back to every bot only once the island has finished folding away, so nothing swaps while it closes
+  useEffect(() => {
+    if (open) return;
+    const timer = setTimeout(() => setChatWith(null), CHAT_RESET_MS);
+    return () => clearTimeout(timer);
+  }, [open]);
+  const look = (bot: AmbientBot) => {
+    if (isFresh(bot, seen)) mark([eventKey(bot)]);
+    setChatWith((was) => (was === bot.id ? null : bot.id));
+  };
+  const chat = (bot: AmbientBot) => (
+    <motion.div key={bot.id} className="amb-island-chat" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0, transition: { opacity: FADE, y: SETTLE } }}>
+      <button type="button" className="amb-back" aria-label={say(labels, "island")} title={say(labels, "island")} onClick={() => setChatWith(null)}>
+        <ChevronLeft size={16} strokeWidth={1.75} aria-hidden />
+        <BotMark bot={bot} size={26} animated={open} awake={open} />
+      </button>
+      <MiniChat
+        bot={bot}
+        labels={labels}
+        lang={lang}
+        now={now}
+        sent={sent.has(bot.id)}
+        fresh={isFresh(bot, seen) && !bot.quiet}
+        onAct={(next) => act(bot, next)}
+        onOpen={() => openChat(bot)}
+        onPin={onPin}
+        onDismiss={() => mark([eventKey(bot)])}
+      />
+    </motion.div>
+  );
+  const chatBot = chatWith ? bots.find((bot) => bot.id === chatWith) ?? null : null;
   const act = (bot: AmbientBot, next: AmbientAct) => {
     if (next.kind === "answer" || next.kind === "allow" || next.kind === "deny") markSent(bot);
     bridge.act(next);
@@ -287,14 +326,14 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
           <Plus size={14} strokeWidth={1.75} aria-hidden />
         </button>
       </header>
-      {bots.length === 0 ? (
+      {chatBot ? chat(chatBot) : bots.length === 0 ? (
         <div className="amb-empty">
           <p className="amb-empty-title">{say(labels, "empty")}</p>
           <p className="amb-empty-hint">{say(labels, "emptyHint")}</p>
           <button type="button" className="amb-pill amb-pill-primary" onClick={() => bridge.act({ kind: "new-bot" })}>{say(labels, "newBot")}</button>
         </div>
       ) : quiet && !recent.length ? (
-        <Shelf bots={rankBots(bots)} labels={labels} open={open} cheer={cheer} onOpen={openChat} />
+        <Shelf bots={rankBots(bots)} labels={labels} open={open} cheer={cheer} chatWith={chatWith} onOpen={look} />
       ) : (
         <ul ref={list} className="amb-rows" onPointerLeave={() => band.point(null)}>
           {band.element}
@@ -309,7 +348,8 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
                 open={open}
                 sent={sent.has(bot.id)}
                 mascot={<BotMark bot={bot} size={30} state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : undefined} animated={open} awake={open} shown={open} index={index} cheer={cheer} />}
-                onOpen={() => openChat(bot)}
+                hideTray={chatWith === bot.id}
+                onOpen={() => look(bot)}
                 onAct={(next) => act(bot, next)}
                 onPin={onPin}
                 onDismiss={() => mark([eventKey(bot)])}
@@ -329,7 +369,7 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
                 sent={false}
                 recent
                 mascot={<BotMark bot={bot} size={30} state="idle" animated={open} awake={open} shown={open} index={ranked.length + index} cheer={cheer} />}
-                onOpen={() => openChat(bot)}
+                onOpen={() => look(bot)}
                 onAct={(next) => act(bot, next)}
                 onPin={onPin}
               />
@@ -342,12 +382,12 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
 }
 
 /** Nothing going on: the bots awake and idling together, each blinking on its own time. */
-function Shelf({ bots, labels, open, cheer, onOpen }: { bots: readonly AmbientBot[]; labels: AmbientLabels; open: boolean; cheer: number; onOpen: (bot: AmbientBot) => void }) {
+function Shelf({ bots, labels, open, cheer, chatWith, onOpen }: { bots: readonly AmbientBot[]; labels: AmbientLabels; open: boolean; cheer: number; chatWith: string | null; onOpen: (bot: AmbientBot) => void }) {
   return (
     <div className="amb-shelf">
       <div className="amb-shelf-bots">
         {bots.slice(0, 8).map((bot, index) => (
-          <button key={bot.id} type="button" className="amb-shelf-bot" onClick={() => onOpen(bot)} aria-label={say(labels, "open", { name: bot.name })}>
+          <button key={bot.id} type="button" className="amb-shelf-bot" data-on={chatWith === bot.id || undefined} aria-expanded={chatWith === bot.id} onClick={() => onOpen(bot)} aria-label={bot.name}>
             <BotMark bot={bot} size={34} state="idle" animated={open} awake={open} shown={open} index={index} cheer={cheer} />
             <span className="amb-shelf-name">{bot.name}</span>
           </button>

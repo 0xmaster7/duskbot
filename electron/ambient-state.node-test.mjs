@@ -77,3 +77,15 @@ test("seen replies and failures are kept by key, newest last, capped, and nothin
   assert.equal(seenKeys(many).at(-1), `b:done:${MAX_SEEN + 19}`);
   assert.deepEqual(parsePrefs({ v: 2, seen: ["a:error:1"] }, "darwin").seen, ["a:error:1"]);
 });
+
+test("a bot's mini chat keeps only its newest few messages, each cut short, and nothing else", () => {
+  const chat = [...Array.from({ length: 9 }, (_, index) => ({ id: `m${index}`, from: index % 2 ? "you" : "bot", text: `line ${index}`, at: index + 1 })),
+    { id: "m9", from: "admin", text: "x".repeat(900), at: 10, html: "<b>" }, { id: "m10", from: "bot", text: "   " }, "nope"];
+  const [parsed] = parseSnapshot({ bots: [bot({ chat })] }).bots;
+  assert.equal(parsed.chat.length, 4);
+  assert.deepEqual(parsed.chat[0], { id: "m6", from: "bot", text: "line 6", at: 7 });
+  assert.deepEqual(Object.keys(parsed.chat.at(-1)), ["id", "from", "text", "at"]);
+  assert.equal(parsed.chat.at(-1).from, "bot");
+  assert.equal(parsed.chat.at(-1).text.length, 500);
+  assert.deepEqual(parseSnapshot({ bots: [bot({ chat: "x" })] }).bots[0].chat, []);
+});

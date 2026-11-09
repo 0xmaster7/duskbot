@@ -50,9 +50,12 @@
 .amb-ear-left { background: radial-gradient(circle farthest-side at 0 100%, transparent 96%, var(--amb-notch) 100%); }
 .amb-ear-right { background: radial-gradient(circle farthest-side at 100% 100%, transparent 96%, var(--amb-notch) 100%); }
 .amb-island-hit { position: absolute; top: 0; padding: 0; border: 0; background: transparent; border-radius: 0 0 14px 14px; }
-.amb-island-hit:focus-visible { outline-offset: -3px; }
+.amb-island-hit:focus { outline: none; }
+.amb-island-hit:focus-visible { box-shadow: inset 0 -2px 0 var(--amb-focus); }
 .amb-panel { position: absolute; inset: 0 0 auto 0; }
-.amb-compact { position: absolute; left: 0; display: grid; place-items: center; pointer-events: none; }
+.amb-compact { position: absolute; left: 0; display: grid; place-items: center; pointer-events: none; transition: opacity var(--amb-fast) var(--amb-ease-out); }
+/* open, the notch row stays plain black, one piece with the camera housing; the header below says it all */
+.amb-stage[data-open] .amb-compact { opacity: 0; }
 .amb-compact-mark { display: grid; place-items: center; }
 /* more waiting behind the one the compact island shows */
 .amb-more {
@@ -97,7 +100,7 @@
 .amb-row[data-status="idle"] .amb-row-name { color: var(--amb-ink-2); font-weight: 475; }
 /* a working bot's line shimmers while someone looks at it */
 @keyframes amb-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
-:is(.amb-card:not([inert]), .amb-island[data-open]) .amb-row-line[data-kind="busy"] .amb-row-words {
+:is(.amb-card:not([inert]), .amb-island[data-open]) :is(.amb-row-line[data-kind="busy"], .amb-chat-note[data-kind="busy"]) .amb-row-words {
   background: linear-gradient(90deg, var(--amb-ink-3) 0%, var(--amb-ink-3) 35%, var(--amb-ink) 50%, var(--amb-ink-3) 65%, var(--amb-ink-3) 100%) 0 0 / 200% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent; animation: amb-shimmer 2.4s linear infinite;
 }
@@ -145,6 +148,7 @@
 
 .amb-shelf { padding: 8px 0 2px; }
 .amb-shelf-bots { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 10px; }
+.amb-shelf-bot[data-on] { background: var(--amb-raised); }
 .amb-shelf-bot { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 56px; padding: 6px 0 4px; border: 0; border-radius: 12px; background: none; }
 .amb-shelf-name { max-width: 56px; font-size: 11px; line-height: 14px; color: var(--amb-ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .amb-shelf-hint { margin: 10px 0 0; text-align: center; font-size: 12px; line-height: 16px; color: var(--amb-ink-3); }
@@ -189,13 +193,43 @@
   box-shadow: 0 0 0 0.5px rgb(245 245 245 / 0.12), 0 14px 36px rgb(0 0 0 / 0.38); will-change: transform;
 }
 .amb-card[inert] { pointer-events: none; }
-.amb-card-inner { position: relative; padding: 4px; }
+.amb-card-inner { position: relative; padding: 2px 0 0; }
 .amb-row[data-side="card"] { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main actions" "tray tray"; }
 .amb-row[data-side="card"] .amb-row-main { grid-area: main; padding: 10px 10px 10px 12px; }
 .amb-row[data-side="card"] .amb-row-actions { grid-area: actions; align-self: start; padding: 6px 6px 0 0; }
 .amb-row[data-side="card"] .amb-tray-wrap { grid-area: tray; }
 .amb-row[data-side="card"] .amb-tray { padding: 0 10px 10px 12px; }
 .amb-row[data-side="card"] .amb-row-words { white-space: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+
+/* a bot's chat, small: the dock's card and an opened island row */
+.amb-chat { display: flex; flex-direction: column; min-width: 0; }
+.amb-chat-head { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 6px 4px 2px 12px; }
+.amb-chat-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; line-height: 16px; color: var(--amb-ink-3); white-space: nowrap; }
+.amb-chat-status[data-status="needs-you"] { color: var(--amb-blue); }
+.amb-chat-status[data-status="error"] { color: var(--amb-bad-ink); }
+.amb-chat-head .amb-row-time { margin-inline-start: 0; }
+.amb-chat-tools { display: flex; align-items: center; gap: 0; margin-inline-start: auto; }
+.amb-chat-list {
+  display: flex; flex-direction: column; gap: 6px; padding: 6px 12px 8px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  scrollbar-color: rgb(245 245 245 / 0.16) transparent; user-select: text;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%);
+}
+.amb-bubble-msg { margin: 0; max-width: 86%; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); overflow-wrap: anywhere; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+.amb-bubble-msg[data-from="you"] { align-self: flex-end; padding: 6px 10px; border-radius: 14px 14px 4px 14px; background: var(--amb-raised-hover); }
+.amb-bubble-msg[data-from="bot"] { align-self: flex-start; color: rgb(245 245 245 / 0.86); }
+.amb-chat-note { display: flex; align-items: flex-start; gap: 5px; margin: 0; font-size: 12px; line-height: 16px; color: var(--amb-ink-3); }
+.amb-chat-note > svg { flex-shrink: 0; margin-top: 2px; }
+.amb-chat-note[data-kind="error"] { color: var(--amb-bad-ink); }
+.amb-chat-ask { padding: 2px 12px 8px; }
+.amb-chat-ask-line { margin: 0 0 2px; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); }
+.amb-chat-compose { padding: 4px 8px 8px; }
+/* the island showing one bot's chat: a way back on the left, the chat beside it */
+.amb-island-chat { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: start; margin-top: 2px; }
+.amb-back {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; border: 0; border-radius: 14px; background: none;
+  color: var(--amb-ink-3); transition: background-color var(--amb-fast) ease, color var(--amb-fast) ease;
+}
+.amb-back:focus-visible { outline-offset: -2px; }
 
 @media (hover: hover) and (pointer: fine) {
   .amb-row .amb-quiet { opacity: 0; }
@@ -208,9 +242,10 @@
   .amb-shelf-bot:hover .amb-shelf-name { color: var(--amb-ink-2); }
   .amb-dock-plus:hover { color: var(--amb-ink); background: var(--amb-raised-hover); }
   .amb-dock-bot:hover { background: var(--amb-raised); }
+  .amb-back:hover { background: var(--amb-raised); color: var(--amb-ink); }
 }
 @media (prefers-reduced-motion: reduce) {
   .amb-breathe[data-on] { animation: none; }
   .amb-pill:active, .amb-send:active:enabled, .amb-dock-plus:active { transform: none; }
-  :is(.amb-card:not([inert]), .amb-island[data-open]) .amb-row-line[data-kind="busy"] .amb-row-words { animation: none; background: none; color: var(--amb-ink-2); }
+  :is(.amb-card:not([inert]), .amb-island[data-open]) :is(.amb-row-line[data-kind="busy"], .amb-chat-note[data-kind="busy"]) .amb-row-words { animation: none; background: none; color: var(--amb-ink-2); }
 }

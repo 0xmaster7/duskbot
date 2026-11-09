@@ -15,7 +15,10 @@ import { answersInOneTap, cardQuestions } from "@/components/QuestionCard";
 import { isQuestionCard } from "@/lib/question-card";
 import { openPersonWait, restingOnPerson, type PersonWait } from "../../shared/person-wait";
 import { ambientLabels } from "./labels";
-import type { AmbientBot, AmbientSnapshot, AmbientStatus, AmbientStep, AmbientWait } from "./types";
+import type { AmbientBot, AmbientMessage, AmbientSnapshot, AmbientStatus, AmbientStep, AmbientWait } from "./types";
+import { isReceipt } from "@/lib/receipts";
+import { withoutCitationMarkers } from "@/lib/citations";
+import { isClientCancellation } from "../../shared/client-cancel";
 
 /** A proposal (a routine, a skill, a profile, a model, a team setup) needs its full card: the island only opens it. */
 export function answerableInPlace(pending: Pending): boolean {
@@ -70,6 +73,23 @@ const stepOf = (live: TurnLive): AmbientStep | null => {
   return activity && STEPS.has(activity as AmbientStep) ? (activity as AmbientStep) : null;
 };
 
+/** The mini chat holds this many of the newest messages, each cut to this length. */
+export const CHAT_MESSAGES = 6;
+const CHAT_CHARS = 500;
+
+/** The newest things said in the chat, as plain text: the person's messages and the bot's replies, nothing else. */
+export function chatOf(visible: readonly Message[]): AmbientMessage[] {
+  const said: AmbientMessage[] = [];
+  for (let index = visible.length - 1; index >= 0 && said.length < CHAT_MESSAGES; index--) {
+    const message = visible[index]!;
+    if (message.kind !== "text" || isReceipt(message)) continue;
+    const text = plainPreviewText(withoutCitationMarkers(message.text ?? "")).slice(0, CHAT_CHARS);
+    if (!text || (message.role !== "user" && isClientCancellation(message.text ?? ""))) continue;
+    said.unshift({ id: message.id, from: message.role === "user" ? "you" : "bot", text, at: message.at });
+  }
+  return said;
+}
+
 /** What a wait without a card of its own says it needs, in the person's words. */
 function askLine(wait: PersonWait): string {
   const name = plainPreviewText(wait.label);
@@ -118,6 +138,7 @@ export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threa
       ? { requestId: question.card.requestId!, threadId: bot.threadId, title: cardQuestions(question.card)[0]?.question || question.card.title, choices: question.choices ?? [], custom: question.custom }
       : null,
     step: bot.busy ? stepOf(live) : null,
+    chat: chatOf(visible),
   };
 }
 

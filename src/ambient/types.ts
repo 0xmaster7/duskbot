@@ -35,6 +35,15 @@ export interface AmbientBot {
   step?: AmbientStep | null;
   /** The person watched this turn or this news in the app's own focused window: nothing here to catch their eye. */
   quiet?: boolean;
+  /** The newest few messages of its chat, plain text, for the surfaces' mini chat. */
+  chat?: AmbientMessage[];
+}
+
+export interface AmbientMessage {
+  id: string;
+  from: "you" | "bot";
+  text: string;
+  at: number;
 }
 
 export interface AmbientSnapshot {

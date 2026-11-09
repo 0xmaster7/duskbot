@@ -65,6 +65,17 @@ describe("the summary the island and the dock draw", () => {
     expect(ambientBot(bot(), [], turnLive).step).toBeNull();
   });
 
+  it("carries the newest few things said, as plain text, for the mini chat", () => {
+    const said = [
+      message({ role: "user", text: "Plan **Friday**" }),
+      message({ kind: "activity", tool: { name: "Bash", ok: true } } as Partial<Message>),
+      message({ text: "Booked [the table](https://example.com) for 8." }),
+    ];
+    expect(ambientBot(bot({ messages: said }), [], turnLive).chat?.map((entry) => [entry.from, entry.text])).toEqual([["you", "Plan Friday"], ["bot", "Booked the table for 8."]]);
+    const many = Array.from({ length: 10 }, (_, index) => message({ text: `line ${index}` }));
+    expect(ambientBot(bot({ messages: many }), [], turnLive).chat?.map((entry) => entry.text)).toEqual(["line 4", "line 5", "line 6", "line 7", "line 8", "line 9"]);
+  });
+
   it("marks an unread reply done, a failed step an error, and the rest idle with their newest line", () => {
     const reply = message({ text: "The footer is fixed." });
     expect(ambientBot(bot({ unread: true, messages: [reply] }), [], turnLive)).toMatchObject({ status: "done", unread: true, line: "The footer is fixed.", at: reply.at });

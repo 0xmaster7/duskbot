@@ -9,6 +9,9 @@ const ID = /^[\w.:-]{1,128}$/;
 const BODY = /^[a-z0-9-]{1,40}$/;
 const MAX_BOTS = 40;
 const MAX_CHOICES = 4;
+/** A mini chat: the newest few messages of a bot's chat, each cut short. */
+const MAX_CHAT = 6;
+const MAX_CHAT_TEXT = 500;
 const WAITS = ["question", "approval", "sign-in", "password", "connect", "review", "other"];
 const STEPS = ["thinking", "reply", "read", "fetch", "web", "search", "command", "write", "edit", "tool"];
 /** A typed answer to a question that takes one. */
@@ -21,6 +24,13 @@ const id = value => (typeof value === "string" && ID.test(value) ? value : null)
 const count = value => (Number.isFinite(value) ? Math.max(0, Math.min(99, Math.floor(value))) : 0);
 // only this app's own pictures, from the page's own origin
 const avatar = value => (typeof value === "string" && /^\/[^/\\]/.test(value) && value.length <= 512 ? value : null);
+
+function chatLine(raw, index) {
+  if (!raw || typeof raw !== "object") return null;
+  const said = text(raw.text, MAX_CHAT_TEXT);
+  if (!said) return null;
+  return { id: id(raw.id) ?? `m${index}`, from: raw.from === "you" ? "you" : "bot", text: said, at: Number.isFinite(raw.at) && raw.at > 0 ? Math.floor(raw.at) : 0 };
+}
 
 function bot(raw) {
   if (!raw || typeof raw !== "object") return null;
@@ -54,6 +64,7 @@ function bot(raw) {
     question,
     step: STEPS.includes(raw.step) ? raw.step : null,
     quiet: raw.quiet === true,
+    chat: Array.isArray(raw.chat) ? raw.chat.slice(-MAX_CHAT).map(chatLine).filter(Boolean) : [],
   };
 }
 

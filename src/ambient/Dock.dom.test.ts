@@ -2,7 +2,7 @@
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { DWELL_MS, Dock } from "./Dock";
+import { CARD_LEAVE_MS, DWELL_MS, Dock } from "./Dock";
 import type { AmbientAct, AmbientBot, AmbientBridge, AmbientSnapshot } from "./types";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -32,7 +32,7 @@ async function mount(bots: AmbientBot[]) {
   // lays nothing out)
   const hover = (id: string) => act(async () => {
     cell(id).dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
-    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 340, clientY: 360 }));
+    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 400, clientY: 360 }));
   });
   return { host, acts, seen, cell, hover, unmount: () => act(async () => root.unmount()) };
 }
@@ -87,7 +87,7 @@ it("answers an ask in the card and says so, without opening the chat", async () 
   await hover("Juno");
   await wait(DWELL_MS + 60);
   const card = host.querySelector(".amb-card")!;
-  expect(card.querySelector(".amb-row-line")?.textContent).toBe("Aisle or window?");
+  expect(card.querySelector(".amb-chat-ask-line")?.textContent).toBe("Aisle or window?");
   await act(async () => [...card.querySelectorAll<HTMLButtonElement>(".amb-pill")].find((pill) => pill.textContent === "Window")!.click());
   await hover("Quill");
   await act(async () => [...card.querySelectorAll<HTMLButtonElement>(".amb-pill")].find((pill) => pill.textContent === "Allow")!.click());
@@ -96,6 +96,52 @@ it("answers an ask in the card and says so, without opening the chat", async () 
     { kind: "allow", botId: "Quill", threadId: "t-Quill", requestId: "r1" },
   ]);
   await hover("Juno");
-  expect(card.querySelector('[data-sent] .amb-row-line')?.textContent).toBe("Sent");
+  expect(card.querySelector(".amb-chat-status")?.textContent).toBe("Sent");
+  await unmount();
+});
+
+it("shows the hovered bot's recent chat, even an idle one's, and a reply sent there goes to that chat", async () => {
+  const { host, acts, hover, unmount } = await mount([
+    bot("Ada", { chat: [
+      { id: "m1", from: "you", text: "Can you check the invoice from Friday?", at: 1 },
+      { id: "m2", from: "bot", text: "Done: it was paid on Saturday, receipt is in your inbox.", at: 2 },
+    ] }),
+  ]);
+  await hover("Ada");
+  await wait(DWELL_MS + 60);
+  const card = host.querySelector(".amb-card")!;
+  const bubbles = [...card.querySelectorAll(".amb-bubble-msg")].map((bubble) => [bubble.getAttribute("data-from"), bubble.textContent]);
+  expect(bubbles).toEqual([["you", "Can you check the invoice from Friday?"], ["bot", "Done: it was paid on Saturday, receipt is in your inbox."]]);
+  const input = card.querySelector<HTMLInputElement>(".amb-chat-compose .amb-reply-input")!;
+  expect(input.getAttribute("aria-label")).toBe("Reply to Ada");
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "Thanks, file it under taxes");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await act(async () => card.querySelector<HTMLFormElement>(".amb-chat-compose .amb-reply")!.requestSubmit());
+  expect(acts).toEqual([{ kind: "reply", botId: "Ada", threadId: "t-Ada", text: "Thanks, file it under taxes" }]);
+  // the field is ready for the next message
+  expect(input.value).toBe("");
+  await unmount();
+});
+
+it("closes gently: the card stays through a short slip off it, and goes only after the leave delay", async () => {
+  const { host, hover, unmount } = await mount([bot("Ada", { chat: [{ id: "m1", from: "bot", text: "Hi", at: 1 }] })]);
+  await hover("Ada");
+  await wait(DWELL_MS + 60);
+  const card = host.querySelector(".amb-card")!;
+  expect(card.getAttribute("data-card")).toBe("Ada");
+  // off the bots (to the plus, say) and straight back: nothing closes
+  await act(async () => host.querySelector(".amb-dock-list")!.dispatchEvent(new PointerEvent("pointerout", { bubbles: true })));
+  await wait(CARD_LEAVE_MS / 2);
+  await hover("Ada");
+  await wait(CARD_LEAVE_MS);
+  expect(card.getAttribute("data-card")).toBe("Ada");
+  // gone for good: the card waits out the delay, then goes
+  await act(async () => host.querySelector(".amb-dock-list")!.dispatchEvent(new PointerEvent("pointerout", { bubbles: true })));
+  await wait(CARD_LEAVE_MS - 120);
+  expect(card.getAttribute("data-card")).toBe("Ada");
+  await wait(200);
+  expect(card.getAttribute("data-card")).toBeNull();
   await unmount();
 });

@@ -7,32 +7,38 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Keyboar
 import { AnimatePresence, Reorder, motion, useDragControls, useReducedMotion, useTransform } from "motion/react";
 import { Plus } from "lucide-react";
 import { dockOrder, isBusy } from "./mood";
-import { BotRow, useRowMoments } from "./rows";
+import { MiniChat } from "./MiniChat";
+import { useRowMoments } from "./rows";
 import { LOOK_MS, attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, useAllClear, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, SOFT_EASE, SOFT_EXIT, useAllClear, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, DockLayout } from "./types";
 
 /** How near the right edge the pointer has to be, beside the body, to bring the dock in. */
 const EDGE = 14;
-/** The column stays this long after the pointer leaves, so slipping off it for a moment changes nothing. */
-const HIDE_MS = 260;
-/** The card waits this long after the pointer leaves the bots and the card before it goes. */
-export const CARD_LEAVE_MS = 180;
+/** The card waits this long after the pointer leaves the bots and the card before it goes, and the column a little
+ * longer, so the card is on its way out first and slipping off either for a moment changes nothing. */
+export const CARD_LEAVE_MS = 300;
+export const HIDE_MS = 380;
+/** This much around the card and the column still counts as on them, so heading back never closes anything. */
+const GRACE = 16;
 /** The first card of a visit waits for intent: resting on a bot this long, or moving this far on the column. */
 export const DWELL_MS = 450;
 const NUDGE_PX = 6;
 /** A bot that starts needing the person, or fails, brings the dock out this long. */
 const PEEK_MS = 3600;
 const RADIUS = 22;
-export const CARD_W = 272;
+export const CARD_W = 304;
 const CARD_GAP = 10;
 const CARD_MARGIN = 8;
-/** The card goes quickly, not abruptly. */
-const CARD_OUT = { duration: 0.18, ease: EASE_OUT } as const;
+/** The card leaves gently: its words fade first, the card follows them out quickly (never an empty box hanging there)
+ * while it eases away, a touch smaller, on a longer clock. */
+const CARD_OUT = { duration: 0.32, ease: SOFT_EASE } as const;
+const CARD_FADE_OUT = { duration: 0.2, ease: EASE_OUT, delay: 0.04 } as const;
+const WORDS_OUT = { duration: 0.14, ease: EASE_OUT } as const;
 // one empty list for "nothing yet": a fresh [] each render would rerun the order effect forever
 const NONE: readonly never[] = [];
-const FALLBACK_DOCK: DockLayout["dock"] = { cell: 56, tile: 36, column: 64, open: 348, pad: 8, ear: 18, sliver: 6, margin: 28, overhang: 4 };
+const FALLBACK_DOCK: DockLayout["dock"] = { cell: 56, tile: 36, column: 64, open: 404, pad: 8, ear: 18, sliver: 6, margin: 28, overhang: 4 };
 
 export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const { snapshot, layout } = useAmbientFeed(bridge);
@@ -108,7 +114,7 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   }, []);
   const bodyH = Math.min(contentH, maxBody);
   const h = useSurfaceValue(bodyH, reduced);
-  const slide = useSurfaceValue(slidOut ? 0 : d.column - d.sliver, reduced, slidOut);
+  const slide = useSurfaceValue(slidOut ? 0 : d.column - d.sliver, reduced, slidOut, SOFT_EXIT);
   const top = useTransform(h, (value) => Math.round((stageH - value) / 2));
   const clip = useTransform(() => {
     const t = top.get();
@@ -148,16 +154,15 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const overCard = useCallback((x: number, y: number) => {
     const { cardShown: showing, cardY: cy, cardH: ch } = live.current;
     // the gap between the card and the column counts, so crossing it never closes the card
-    return showing && x >= cardLeft - 2 && x <= columnLeft + 2 && y >= cy - 6 && y <= cy + ch + 6;
+    return showing && x >= cardLeft - GRACE && x <= columnLeft + 2 && y >= cy - GRACE && y <= cy + ch + GRACE;
   }, [cardLeft, columnLeft]);
   // where clicks land: the column where it is headed (a quick move onto a mascot while it still slides in must not
   // count as leaving), or the card
   const hit = useCallback((x: number, y: number) => {
     if (overCard(x, y)) return true;
     const t = top.get();
-    if (y < t - d.ear || y > t + h.get() + d.ear) return false;
-    if (!live.current.slidOut) return x >= edge - EDGE;
-    return x >= columnLeft - 2;
+    if (!live.current.slidOut) return y >= t - d.ear && y <= t + h.get() + d.ear && x >= edge - EDGE;
+    return y >= t - d.ear - GRACE && y <= t + h.get() + d.ear + GRACE && x >= columnLeft - GRACE;
   }, [overCard, top, h, d.ear, edge, columnLeft]);
 
   // a visit: from the column coming out to it going away. Its first card waits for intent; after that, moving from bot
@@ -332,12 +337,12 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
         initial={false}
         animate={cardShown
           ? { opacity: 1, scale: 1, x: 0, y: cardY, height: cardH }
-          : { opacity: 0, scale: reduced ? 1 : 0.98, x: reduced ? 0 : 6, y: cardY, height: cardH }}
+          : { opacity: 0, scale: reduced ? 1 : 0.96, x: reduced ? 0 : 10, y: cardY, height: cardH }}
         transition={cardShown
           ? { opacity: FADE, scale: glide === SETTLE ? SETTLE : LIVELY, x: SETTLE, y: glide, height: glide }
-          : { opacity: CARD_OUT, scale: CARD_OUT, x: CARD_OUT, y: { duration: 0 }, height: { duration: 0 } }}
+          : { opacity: CARD_FADE_OUT, scale: CARD_OUT, x: CARD_OUT, y: { duration: 0 }, height: { duration: 0 } }}
       >
-        <div ref={cardInner} className="amb-card-inner">
+        <motion.div ref={cardInner} className="amb-card-inner" initial={false} animate={{ opacity: cardShown ? 1 : 0 }} transition={cardShown ? FADE : WORDS_OUT}>
           <AnimatePresence initial={false} mode="popLayout">
             {cardBot && (
               <motion.div
@@ -347,16 +352,13 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
                 animate={{ opacity: 1, filter: "blur(0px)", transition: FADE }}
                 exit={{ opacity: 0, filter: "blur(2px)", transition: FADE_OUT }}
               >
-                <BotRow
+                <MiniChat
                   bot={cardBot}
                   labels={labels}
                   lang={lang}
                   now={now}
-                  side="card"
-                  open={cardShown}
                   sent={sent.has(cardBot.id)}
-                  mascot={null}
-                  recent={isSeenEvent(cardBot, seen)}
+                  fresh={isFresh(cardBot, seen) && !cardBot.quiet}
                   onOpen={() => open(cardBot)}
                   onAct={(next) => act(cardBot, next)}
                   onPin={pin}
@@ -365,7 +367,7 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );
