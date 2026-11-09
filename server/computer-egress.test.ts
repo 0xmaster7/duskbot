@@ -3,7 +3,7 @@ import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 import { BOT_DESKTOP_BRIDGE } from "../shared/bot-desktop.ts";
 import { EGRESS_PORTS as MAC_PORTS } from "../electron/vps-link-egress.mjs";
-import { EGRESS_POLICY_PATH, EGRESS_PORTS, FAST_DIAL_MS, HOME_ONLY_SITES, SLOW_DIAL_MS, createComputerEgress, egressPac, egressPolicy, parseEgressReport, type EgressAgentReport } from "./computer-egress.ts";
+import { DIRECT_ASSET_SITES, EGRESS_POLICY_PATH, EGRESS_PORTS, FAST_DIAL_MS, HOME_ONLY_SITES, SLOW_DIAL_MS, createComputerEgress, egressPac, egressPolicy, parseEgressReport, type EgressAgentReport } from "./computer-egress.ts";
 import { createComputerEgressRoutes } from "./routes/computer-egress.ts";
 import { PASS, type RouteContext } from "./routes/table.ts";
 
@@ -41,6 +41,21 @@ describe("the PAC script", () => {
     expect(find("https://x.com/home")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
     expect(find("https://example.com/")).toBe("DIRECT");
     expect(find("https://notinstagram.com/")).toBe("DIRECT");
+  });
+
+  it("loads those sites' css, scripts and images direct on either path, so a path that drops mid-load cannot strip a page", () => {
+    // live 2026-11-09: the path to the person's computer closed while instagram.com/zuck loaded, its connections to
+    // static.cdninstagram.com and scontent.cdninstagram.com went with it, and the page stayed unstyled html
+    for (const find of [pacFor(1), pacFor(1, HOME_ONLY_SITES)]) {
+      expect(find("https://www.instagram.com/zuck/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
+      expect(find("https://www.facebook.com/ig_xsite_user_info/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
+      for (const url of ["https://static.cdninstagram.com/rsrc.php/v5/y2/l/0,cross/a.css", "https://scontent.cdninstagram.com/v/t51/a.jpg", "https://static.xx.fbcdn.net/rsrc.php/a.js",
+        "https://abs.twimg.com/responsive-web/main.js", "https://pbs.twimg.com/media/a.jpg", "https://static.licdn.com/aero-v1/a.css", "https://www.redditstatic.com/shreddit/a.js", "https://i.redd.it/a.png"]) {
+        expect(find(url), url).toBe("DIRECT");
+      }
+    }
+    expect(pacFor(1)("https://notcdninstagram.com/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
+    expect(DIRECT_ASSET_SITES.some((site: string) => HOME_ONLY_SITES.some((home: string) => site === home || site.endsWith(`.${home}`)))).toBe(false);
   });
 
   it("sends web ports on public names to the person's computer, with a direct fallback", () => {
@@ -145,7 +160,7 @@ describe("routing the bot computers", () => {
     const fake = fakeDocker(["aaaaaaaaaaaa"]);
     const egress = createComputerEgress({ enabled: () => true, docker: () => fake.docker });
     const route = async (dialMs: number | null) => { egress.report(report({ dialMs })); await egress.changed(); return egress.status().route; };
-    const applied = () => fake.calls.filter((args) => args[0] === "exec").map((args) => (args[7] === "on" && Buffer.from(JSON.parse(args[10]!).ProxySettings.ProxyPacUrl.split(",")[1], "base64").toString().includes("dnsDomainIs") ? "sites" : args[7]));
+    const applied = () => fake.calls.filter((args) => args[0] === "exec").map((args) => (args[7] === "on" && Buffer.from(JSON.parse(args[10]!).ProxySettings.ProxyPacUrl.split(",")[1], "base64").toString().includes(JSON.stringify(HOME_ONLY_SITES)) ? "sites" : args[7]));
     expect(await route(null)).toBe("server");
     expect(await route(450)).toBe("server");
     expect(await route(FAST_DIAL_MS + 1)).toBe("server");
