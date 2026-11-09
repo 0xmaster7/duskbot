@@ -8,7 +8,7 @@ export const COPY_FEEDBACK_MS = 1200;
 /** Bounds a web write that never settles; Chromium rejects an unfocused write at once. */
 export const WEB_WRITE_TIMEOUT_MS = 3000;
 
-function writeWeb(text: string): Promise<boolean> {
+function writeWeb(write: () => Promise<void> | undefined): Promise<boolean> {
   return new Promise((resolve) => {
     let done = false;
     const finish = (ok: boolean) => {
@@ -19,8 +19,9 @@ function writeWeb(text: string): Promise<boolean> {
     };
     const timer = setTimeout(() => finish(false), WEB_WRITE_TIMEOUT_MS);
     try {
-      if (!navigator.clipboard?.writeText) return finish(false);
-      Promise.resolve(navigator.clipboard.writeText(text)).then(() => finish(true), () => finish(false));
+      const pending = write();
+      if (!pending) return finish(false);
+      Promise.resolve(pending).then(() => finish(true), () => finish(false));
     } catch {
       finish(false);
     }
@@ -30,7 +31,23 @@ function writeWeb(text: string): Promise<boolean> {
 /** The web Clipboard API rejects unfocused, denied and insecure-context writes; then the desktop bridge runs. Never throws. */
 export async function copyText(text: string): Promise<CopyResult> {
   if (!text.trim()) return "empty";
-  if (await writeWeb(text)) return "copied";
+  if (await writePlain(text)) return "copied";
+  return copyThroughDesktop(text);
+}
+
+const writePlain = (text: string) => writeWeb(() => navigator.clipboard?.writeText?.(text));
+
+/** text/html beside text/plain, so mail and documents paste formatting; the desktop bridge takes the plain text alone. */
+export async function copyRichText(text: string, html: string): Promise<CopyResult> {
+  if (!text.trim()) return "empty";
+  const rich = () => typeof ClipboardItem === "function" && navigator.clipboard?.write
+    ? navigator.clipboard.write([new ClipboardItem({ "text/html": new Blob([html], { type: "text/html" }), "text/plain": new Blob([text], { type: "text/plain" }) })])
+    : undefined;
+  if (await writeWeb(rich) || await writePlain(text)) return "copied";
+  return copyThroughDesktop(text);
+}
+
+async function copyThroughDesktop(text: string): Promise<CopyResult> {
   try {
     if (typeof window !== "undefined" && (await window.ogb?.copyText?.(text)) === true) return "copied";
   } catch {
@@ -90,17 +107,19 @@ export function createCopyFeedback({
   };
 }
 
-export function useCopyFeedback(text: string) {
+export function useCopyFeedback(text: string, copy: (text: string) => Promise<CopyResult> = copyText) {
   const [state, setState] = useState<CopyFeedback>("idle");
   const controller = useRef<ReturnType<typeof createCopyFeedback> | null>(null);
+  const copier = useRef(copy);
+  copier.current = copy;
   useEffect(() => {
-    const next = createCopyFeedback({ copy: copyText, onChange: setState });
+    const next = createCopyFeedback({ copy: (value) => copier.current(value), onChange: setState });
     controller.current = next;
     return () => {
       next.dispose();
       controller.current = null;
     };
   }, []);
-  const copy = useCallback(() => void controller.current?.click(text), [text]);
-  return { state, copy };
+  const click = useCallback(() => void controller.current?.click(text), [text]);
+  return { state, copy: click };
 }

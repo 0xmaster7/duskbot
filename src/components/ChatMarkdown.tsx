@@ -771,6 +771,13 @@ const threadListId = (threads: object) => {
 };
 
 /** Test seam: drops every cached message. */
+const COPY_REMARK_PLUGINS: NonNullable<MarkdownOptions["remarkPlugins"]> = [[remarkGfm, GFM_OPTIONS], remarkMath, remarkSoftBreaks];
+
+/** A message as plain HTML elements for the clipboard: no app components or styles, math left as its TeX. */
+export function plainMarkdownElements(text: string): ReactNode {
+  return Markdown({ children: normalizeMessageMarkdown(text).source, remarkPlugins: COPY_REMARK_PLUGINS, urlTransform: defaultUrlTransform });
+}
+
 export function clearChatMarkdownCache(): void {
   markdownCache.clear();
 }

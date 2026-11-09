@@ -4,7 +4,7 @@ import { ThreadLinkContext } from "@/components/ThreadLinkMenu";
 import { ChevronLeft, ChevronRight, Copy, Monitor, RefreshCw, Square, Webhook } from "lucide-react";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { ACTION_ICON, ChatBusyContext, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction, type MessageMenuItem } from "@/components/MessageActions";
-import { copyText } from "@/lib/copy-text";
+import { copyMessage } from "@/lib/message-copy";
 import { ReactAction, ReactionChips } from "@/components/Reactions";
 import { useBotMessageMenu, userMessageMenu } from "@/components/message-menu";
 import { useSpeech } from "@/lib/tts/useSpeech";
@@ -299,7 +299,7 @@ export { MessageBoundary };
 
 /** A message keeps its Copy in its "…" menu, after the reaction and Reply buttons. */
 function copyItem(text: string): MessageMenuItem[] {
-  return text.trim() ? [{ key: "copy", icon: <Copy {...ACTION_ICON} />, label: t("chat.copyMessage"), onSelect: () => { void copyText(text); } }] : [];
+  return text.trim() ? [{ key: "copy", icon: <Copy {...ACTION_ICON} />, label: t("chat.copyMessage"), onSelect: () => { void copyMessage(text); } }] : [];
 }
 
 const Bubble = memo(function Bubble({
