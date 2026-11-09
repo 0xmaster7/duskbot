@@ -1,8 +1,12 @@
 /* Overlays: menus, popovers, dialogs, tooltips and toasts in Grok Bot's look. Imported after styles.css and unlayered,
    so these win over the `animate-pop-*` utilities for overlay surfaces only; a reaction chip or a jump button keeps the
-   general pop. Like Grok's, every overlay here opens and closes raw, with no fade, scale or travel. */
+   general pop. Anchored surfaces (menus, listboxes, popovers) move as bencho's menu does; dialogs, tooltips and toasts
+   open and close raw, like Grok's. */
 
 :root {
+  --ease-menu-in: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-bencho: cubic-bezier(0.22, 1, 0.36, 1);
+  --overlay-fast: 100ms;
   --shadow-popover: 0 10px 20px -3px rgb(28 28 28 / 0.1), 0 4px 6px -4px rgb(28 28 28 / 0.1), 0 0 0 1px rgb(28 28 28 / 0.004);
   --shadow-modal: 0 20px 32px -5px rgb(28 28 28 / 0.1), 0 8px 12px -6px rgb(28 28 28 / 0.1), 0 0 0 1px rgb(28 28 28 / 0.004);
   --shadow-inline: 0 4px 12px -1px rgb(28 28 28 / 0.08), 0 2px 4px -2px rgb(28 28 28 / 0.06), 0 0 0 1px rgb(28 28 28 / 0.004);
@@ -26,17 +30,46 @@
   box-shadow: none;
 }
 
-/* Grok's overlays open and close raw: a menu, listbox, popover, tooltip or toast is there the frame it opens and gone the
-   frame it closes. A surface still carrying the general pop utility is held still here. */
-:is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)):is(.animate-pop-in, .animate-pop-out) {
-  animation: none;
+/* bencho's menu: in from 4px toward the trigger at .97 over 120ms, out 2px at .98 over 80ms. A menu that opens above its
+   trigger sets --menu-shift to a positive value, and its transform-origin to the trigger, so it grows out of it. */
+@keyframes overlay-menu-in {
+  from { opacity: 0; transform: translate3d(0, calc(var(--menu-shift, -4px)), 0) scale(0.97); }
+}
+@keyframes overlay-menu-out {
+  to { opacity: 0; transform: translate3d(0, calc(var(--menu-shift, -4px) / 2), 0) scale(0.98); }
+}
+@keyframes overlay-fade-in {
+  from { opacity: 0; }
+}
+@keyframes overlay-fade-out {
+  to { opacity: 0; }
+}
+
+/* anchored surfaces: a menu, listbox or popover grows out of its trigger; a non-modal dialog is a popover */
+:is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-in {
+  animation: overlay-menu-in 120ms var(--ease-menu-in);
 }
 :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-out {
-  opacity: 0;
+  animation: overlay-menu-out 80ms var(--ease-out-bencho) forwards;
+}
+/* less movement, not less feedback: the same surfaces fade without scaling or travel */
+@media (prefers-reduced-motion: reduce) {
+  :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-in {
+    animation: overlay-fade-in var(--overlay-fast) ease-out;
+  }
+  :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-out {
+    animation: overlay-fade-out var(--overlay-fast) ease-out forwards;
+  }
+}
+:root[data-reduced-motion="true"] :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-in {
+  animation: overlay-fade-in var(--overlay-fast) ease-out;
+}
+:root[data-reduced-motion="true"] :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-out {
+  animation: overlay-fade-out var(--overlay-fast) ease-out forwards;
 }
 /* a menu or listbox holds focus only to steer its highlighted row (Grok moves focus onto the row instead), so the
    container draws no ring of its own; the highlighted row is the cue */
-:is([role="menu"], [role="listbox"]):is(.raw-popup, .animate-pop-in, .animate-pop-out, .fixed):focus-visible { outline: none; }
+:is([role="menu"], [role="listbox"]):is(.animate-pop-in, .animate-pop-out, .fixed):focus-visible { outline: none; }
 
 /* centred surfaces: a dialog is simply there, and gone the moment it closes */
 :is([role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog):not(.popover-surface, .menu-surface).animate-pop-in,

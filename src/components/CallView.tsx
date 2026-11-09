@@ -324,7 +324,7 @@ export function CallTargetButton({
         <div
           ref={keyRef}
           id={keyId}
-          className={cn("absolute right-0 z-30 max-h-[calc(100dvh-80px)] w-[340px] max-w-[90vw] overflow-y-auto overscroll-contain rounded-xl shadow-2xl", composer ? "bottom-full mb-1.5" : "top-full mt-1.5")}
+          className={cn("animate-pop-in absolute right-0 z-30 max-h-[calc(100dvh-80px)] w-[340px] max-w-[90vw] overflow-y-auto overscroll-contain rounded-xl shadow-2xl", composer ? "bottom-full mb-1.5" : "top-full mt-1.5")}
         >
           <LiveKeyNeeded />
         </div>
@@ -414,7 +414,7 @@ export function CallModeMenu({ id, mode, onChoose, onClose, placement = "header"
         if (event.key === "Tab") onClose();
         else navigateThreadMenu(event);
       }}
-      className={cn("absolute right-0 z-30 w-[280px] text-left", MENU_SHEET, placement === "composer" ? "bottom-full mb-1.5" : "top-full mt-1.5")}
+      className={cn("animate-pop-in absolute right-0 z-30 w-[280px] text-left", MENU_SHEET, placement === "composer" ? "bottom-full mb-1.5" : "top-full mt-1.5")}
     >
       {CALL_MODES.map((entry) => {
         const unavailable = entry.id === "turns" ? turnsUnavailable : null;

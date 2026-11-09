@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // No DOM here: state is held by call order, layout effects run after each render when their deps change, and a state
@@ -63,41 +64,92 @@ vi.mock("react", async (importOriginal) => ({
   useLayoutEffect: react.useLayoutEffect,
 }));
 
-const { useHeldMenuMotion, useMenuMotion } = await import("./MenuMotion");
+const { MENU_MOTION_MS, useHeldMenuMotion, useMenuMotion } = await import("./MenuMotion");
 
+let reduced = false;
 beforeEach(() => {
   vi.useFakeTimers();
+  reduced = false;
+  vi.stubGlobal("window", {
+    setTimeout: (run: () => void, ms: number) => setTimeout(run, ms),
+    clearTimeout: (id: ReturnType<typeof setTimeout>) => clearTimeout(id),
+    matchMedia: () => ({ matches: reduced }),
+  });
+  vi.stubGlobal("document", { documentElement: { dataset: {} } });
 });
 afterEach(() => {
   react.reset();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("menu motion", () => {
-  it("shows a menu on the render it opens, raw, with no pop", () => {
+  it("shows a menu on the render it opens and pops it in", () => {
     expect(react.render(() => useMenuMotion(false))).toMatchObject({ shown: false, closing: false });
     const open = react.render(() => useMenuMotion(true));
-    expect(open).toMatchObject({ shown: true, closing: false, className: "raw-popup", exitProps: {} });
-    expect(open.className).not.toMatch(/animate-/);
+    expect(open).toMatchObject({ shown: true, closing: false, className: "animate-pop-in", exitProps: {} });
   });
 
-  it("drops a menu on the render it closes, as grok's do", () => {
+  it("keeps a closing menu on screen for the pop, but out of reach and out of the accessibility tree", () => {
     react.render(() => useMenuMotion(true));
-    const closed = react.render(() => useMenuMotion(false));
-    expect(closed).toMatchObject({ shown: false, closing: false, exitProps: {} });
-    expect(vi.getTimerCount()).toBe(0);
+    const closing = react.render(() => useMenuMotion(false));
+    expect(closing.shown).toBe(true);
+    expect(closing.closing).toBe(true);
+    expect(closing.className).toBe("animate-pop-out pointer-events-none");
+    expect(closing.exitProps).toEqual({ inert: true, "aria-hidden": true });
+    vi.advanceTimersByTime(MENU_MOTION_MS - 1);
+    expect(react.render(() => useMenuMotion(false)).shown).toBe(true);
+    vi.advanceTimersByTime(1);
+    expect(react.changed).toBe(true);
+    expect(react.render(() => useMenuMotion(false))).toMatchObject({ shown: false, closing: false, exitProps: {} });
   });
 
-  it("reopens at once", () => {
+  it("closes at once under reduced motion", () => {
+    reduced = true;
+    react.render(() => useMenuMotion(true));
+    expect(react.render(() => useMenuMotion(false))).toMatchObject({ shown: false, closing: false, exitProps: {} });
+  });
+
+  it("reopens a menu that is still closing as a live menu", () => {
     react.render(() => useMenuMotion(true));
     react.render(() => useMenuMotion(false));
-    expect(react.render(() => useMenuMotion(true))).toMatchObject({ shown: true, closing: false, exitProps: {} });
+    const reopened = react.render(() => useMenuMotion(true));
+    expect(reopened).toMatchObject({ shown: true, closing: false, className: "animate-pop-in", exitProps: {} });
+    vi.advanceTimersByTime(MENU_MOTION_MS * 2);
+    expect(react.render(() => useMenuMotion(true)).shown).toBe(true);
   });
 
-  it("keeps the last payload of a positioned menu", () => {
+  it("holds the last payload while a positioned menu closes", () => {
     const anchor = { x: 10, y: 20 };
     react.render(() => useHeldMenuMotion(anchor));
-    const closed = react.render(() => useHeldMenuMotion<typeof anchor>(null));
-    expect(closed).toMatchObject({ shown: false, closing: false, value: anchor });
+    const closing = react.render(() => useHeldMenuMotion<typeof anchor>(null));
+    expect(closing).toMatchObject({ shown: true, closing: true, value: anchor });
+    expect(closing.exitProps).toEqual({ inert: true, "aria-hidden": true });
+  });
+});
+
+// the hook's classes only move a menu while overlays.css animates them; a "raw" rewrite once set both to nothing
+describe("the menu motion in overlays.css", () => {
+  const css = readFileSync(new URL("../styles/overlays.css", import.meta.url), "utf8");
+  const anchored = ':is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog))';
+  const rule = (selector: string) => css.match(new RegExp(`^${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`, "m"))?.[1] ?? "";
+
+  it("grows a menu in from .97 toward its trigger and shrinks it out", () => {
+    expect(rule(`${anchored}.animate-pop-in`)).toMatch(/animation:\s*overlay-menu-in 120ms var\(--ease-menu-in\)/);
+    expect(rule(`${anchored}.animate-pop-out`)).toMatch(/animation:\s*overlay-menu-out 80ms var\(--ease-out-bencho\) forwards/);
+    expect(css).toMatch(/@keyframes overlay-menu-in \{\s*from \{ opacity: 0; transform: translate3d\(0, calc\(var\(--menu-shift, -4px\)\), 0\) scale\(0\.97\); \}/);
+    expect(css).toMatch(/@keyframes overlay-menu-out \{\s*to \{ opacity: 0; transform: translate3d\(0, calc\(var\(--menu-shift, -4px\) \/ 2\), 0\) scale\(0\.98\); \}/);
+    expect(css).toMatch(/--ease-menu-in: cubic-bezier\(0\.16, 1, 0\.3, 1\);/);
+  });
+
+  it("never holds an anchored surface still", () => {
+    expect(css).not.toMatch(/\.animate-pop-in, \.animate-pop-out\)\s*\{\s*animation:\s*none/);
+    expect(MENU_MOTION_MS).toBeGreaterThanOrEqual(80);
+  });
+
+  it("fades instead of moving under reduced motion", () => {
+    const reducedBlock = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reducedBlock).toMatch(/\.animate-pop-in \{\s*animation: overlay-fade-in/);
+    expect(reducedBlock).toMatch(/\.animate-pop-out \{\s*animation: overlay-fade-out .* forwards/);
   });
 });
