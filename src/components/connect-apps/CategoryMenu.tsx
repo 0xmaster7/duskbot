@@ -77,7 +77,7 @@ export function CategoryMenu({ label, ariaLabel, choices, selected, onPick, onOp
           role="menu"
           aria-label={ariaLabel}
           onKeyDown={onMenuKey}
-          className={cn(MENU_SHEET, "fixed z-[70] w-[200px] origin-top-left rounded-[12px]")}
+          className={cn(MENU_SHEET, "omb-popup-in fixed z-[70] w-[200px] origin-top-left rounded-[12px]")}
           style={{ left: place?.left ?? 0, top: place?.top ?? 0, visibility: place ? undefined : "hidden" }}
         >
           {choices.map((choice) => (

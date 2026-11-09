@@ -311,6 +311,25 @@ describe("clearing a search after a pick that keeps the menu open", () => {
   });
 });
 
+describe("the menu's motion", () => {
+  it("pops in from its chip, and pops out held out of reach before it goes", async () => {
+    delete document.documentElement.dataset.reducedMotion;
+    await openWith("click");
+    expect(menu()!.classList.contains("menu-surface")).toBe(true);
+    expect(menu()!.classList.contains("animate-pop-in")).toBe(true);
+    expect(menu()!.style.transformOrigin).not.toBe("");
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    flushSync(() => outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
+    expect(menu()!.classList.contains("animate-pop-out")).toBe(true);
+    expect(menu()!.hasAttribute("inert")).toBe(true);
+    expect(menu()!.getAttribute("aria-hidden")).toBe("true");
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(menu()).toBeNull();
+    outside.remove();
+  });
+});
+
 describe("the floating menu and the pointer", () => {
   it("stays open for a click inside its portal and closes for one outside, without taking focus", async () => {
     await openWith("click");
