@@ -35,8 +35,13 @@ session named `omb-ui-<port>`, and prints a handle:
 }
 ```
 
-`--tool-calls` and `--mode` script the fake engine (`FAKE_CLAUDE_TOOL_CALLS`
-and `FAKE_CLAUDE_MODE` in `server/testing/fake-claude-cli.ts`). Pass `ui.json`
+`--tool-calls`, `--script` and `--mode` script the fake engine
+(`FAKE_CLAUDE_TOOL_CALLS`, `FAKE_CLAUDE_SCRIPT` and `FAKE_CLAUDE_MODE` in
+`server/testing/fake-claude-cli.ts`). `--script` plays one whole turn in order:
+`{"text": "..."}` is a bot message of its own, `{"tool": {"name", "input"}}` a
+call answered "ok" (or its `output`), `{"waitMs": n}` a pause, so a turn can
+send an ack, set its status with `mcp__agents__set_status`, run a tool, send a
+plan, wait and reply. Pass `ui.json`
 to every other verb as `--ui`; there is no discovery, so a recipe cannot drive
 a browser it did not launch.
 
