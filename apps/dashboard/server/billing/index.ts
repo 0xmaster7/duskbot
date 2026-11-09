@@ -9,6 +9,14 @@ import { createHetznerProvider } from "../clouds/hetzner.ts";
 import { createHomeClient } from "../clouds/home-client.ts";
 import { createSealer, parseSealKey } from "../clouds/seal.ts";
 import type { CloudProvider, HomeClient } from "../clouds/types.ts";
+import { join } from "node:path";
+import { boatScope, createBoatProvider, type BoatSize } from "../clouds/boat.ts";
+import { createAudit, type AuditEntry } from "../clouds/boat-audit.ts";
+import { createBackupStore } from "../clouds/boat-backups.ts";
+import { boatSettingsFromEnv } from "../clouds/boat-lifecycle.ts";
+import { entitlementOf, type NoticeKind } from "../clouds/boat-retention.ts";
+import type { StoredCloud } from "../clouds/types.ts";
+import { DESKTOP_KINDS } from "../../../../shared/billing-api.ts";
 import type { Catalog } from "../../../../shared/billing-api.ts";
 import { createBillingStore } from "./store.ts";
 import { BillingError, createBillingService } from "./service.ts";
@@ -26,6 +34,10 @@ export interface BillingOptions {
   env?: NodeJS.ProcessEnv; now?: () => number; fetch?: typeof fetch;
   /** measured wake times the catalog may show (the slack edge times wakes) */
   wakeStats?: () => NonNullable<Catalog["wake"]>;
+  /** a Boat cloud's notice to its owner (retention, recovery, deletion requests); delivery failures are logged, never thrown */
+  notify?: (cloud: StoredCloud, kind: NoticeKind, at: number | null, link?: string) => void;
+  /** the operator's alert for every Boat deletion */
+  alert?: (entry: AuditEntry) => void;
 }
 /** the hosted app's Bearer resolver remains null until shared/account-api.ts supplies the accounts service */
 export function createBilling(options: BillingOptions) {
@@ -63,17 +75,41 @@ export function createBilling(options: BillingOptions) {
   /** a real pool host driver does not exist yet; only the isolated fake driver is available */
   const fakePool = poolDriver === "fake" ? createFakePoolDriver({ hosts: [1, 2].map(n => ({ id: `fake-${n}`, region: "fsn1", domain: "pool.openmausbot.test", draining: false, capacity: { vcpu: 64, ramGb: 128, diskGb: 4000, slots: 100 } })) }) : null;
   const pool = fakePool ? createPoolProvider({ driver: fakePool, now }) : { ...disabled, suspend: unavailable, resume: unavailable };
+  // Boat (OMB_BOAT=1): the Boat API key stays in this process; homes never receive it
+  let boat: Parameters<typeof createCloudsService>[0]["boat"];
+  let billingStore: ReturnType<typeof createBillingStore> | null = null;
+  if (env.OMB_BOAT !== undefined && env.OMB_BOAT !== "0" && env.OMB_BOAT !== "1") throw new Error("Invalid OMB_BOAT.");
+  if (env.OMB_BOAT === "1") {
+    const apiKey = required("BOAT_API_KEY");
+    if (!loopback) required("OMB_CLOUD_SEAL_KEY");
+    const kinds = (env.OMB_BOAT_KINDS ?? "shared_s,shared_m,dedicated").split(",").map(k => k.trim());
+    if (!kinds.length || kinds.some(k => k === "none" || !(DESKTOP_KINDS as readonly string[]).includes(k))) throw new Error("Invalid OMB_BOAT_KINDS.");
+    const smallest = env.OMB_BOAT_SMALLEST ?? "small";
+    if (!["small", "default", "large", "xlarge"].includes(smallest)) throw new Error("Invalid OMB_BOAT_SMALLEST.");
+    const scope = env.OMB_BOAT_SCOPE ?? boatScope(url.origin);
+    boat = { kinds: kinds as Array<Exclude<(typeof DESKTOP_KINDS)[number], "none">>, settings: boatSettingsFromEnv(env),
+      provider: createBoatProvider({ apiKey, baseUrl: env.BOAT_BASE_URL, scope, fetch: options.fetch, smallest: smallest as BoatSize }),
+      backups: createBackupStore({ dir: env.OMB_BOAT_BACKUP_DIR || join(options.dataDir, "boat-backups"), now }),
+      audit: createAudit({ dataDir: options.dataDir, now, alert: options.alert }),
+      // the billing system of record, read at the moment of each decision
+      entitlement: cloud => entitlementOf(billingStore?.state.subscriptions ?? [], cloud, now()),
+      notify: (cloud, kind, at, link) => options.notify?.(cloud, kind, at, link) };
+  }
   const realHome = createHomeClient({ fetch: options.fetch, now });
   const fakeHome: HomeClient = { healthy: async () => true, pair: async () => {
     const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", bytes = randomBytes(12);
     const code = [...bytes].map(b => alphabet[b % alphabet.length]).join("").match(/.{4}/g)!.join("-");
     return { code, expiresAt: now() + 300_000 };
   } };
+  const boatHome = (origin: string) => origin.endsWith(".on.boat.dev");
   const home: HomeClient = {
-    healthy: (origin, secret) => (loopback && (origin.endsWith(".pool.openmausbot.test") ? poolDriver === "fake" : cloudProvider === "fake") ? fakeHome : realHome).healthy(origin, secret),
-    pair: (origin, secret, input) => (loopback && (origin.endsWith(".pool.openmausbot.test") ? poolDriver === "fake" : cloudProvider === "fake") ? fakeHome : realHome).pair(origin, secret, input),
+    power: (origin, secret, minutes) => realHome.power!(origin, secret, minutes),
+    sleep: (origin, secret, minutes) => realHome.sleep!(origin, secret, minutes),
+    plan: (origin, secret, input) => realHome.plan!(origin, secret, input),
+    healthy: (origin, secret) => boatHome(origin) ? realHome.healthy(origin, secret) : (loopback && (origin.endsWith(".pool.openmausbot.test") ? poolDriver === "fake" : cloudProvider === "fake") ? fakeHome : realHome).healthy(origin, secret),
+    pair: (origin, secret, input) => boatHome(origin) ? realHome.pair(origin, secret, input) : (loopback && (origin.endsWith(".pool.openmausbot.test") ? poolDriver === "fake" : cloudProvider === "fake") ? fakeHome : realHome).pair(origin, secret, input),
   };
-  const clouds = createCloudsService({ dataDir: options.dataDir, now, providers: { pool, dedicated }, home, sealer: createSealer(sealKey),
+  const clouds = createCloudsService({ dataDir: options.dataDir, now, providers: { pool, dedicated }, home, sealer: createSealer(sealKey), ...(boat ? { boat } : {}),
     workspaces: {
       register({ accountId, name, publicKey }) {
         const id = `ws_${randomBytes(16).toString("base64url")}`;
@@ -88,6 +124,7 @@ export function createBilling(options: BillingOptions) {
       poolQuota(kind, spec, botComputers) { return { ...spec, ...(config.poolQuotas[kind as "shared_s" | "shared_m"] ?? config.poolQuotas.shared_m), botComputers }; } },
   });
   const store = createBillingStore(options.dataDir);
+  billingStore = store;
   const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now });
   if (options.accountExists) service.scrubDeleted(options.accountExists);
   const opsToken = env.OMB_OPS_TOKEN || null;

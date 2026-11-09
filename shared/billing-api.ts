@@ -227,6 +227,12 @@ export interface CloudDesktopView {
   error: string | null;
   subscriptionId: string | null;
   createdAt: number;
+  /** additive: "boat" when a Boat sandbox runs this cloud (it sleeps when idle and keeps backups) */
+  provider?: "boat";
+  /** additive, Boat only: the newest backup of its data */
+  lastBackupAt?: number | null;
+  /** additive, Boat only: when an owner-confirmed deletion happens unless cancelled */
+  deleteScheduledAt?: number | null;
 }
 
 export type PowerAction = "on" | "off";
