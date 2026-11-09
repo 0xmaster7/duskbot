@@ -42,7 +42,7 @@ export type DecisionSource =
   | "auto-review"
   | "auto-review-shadow";
 
-/** Who answered a card: a signed-in session (a portal session's id is its membership grant and is never written), `loopback`, or `worker`. */
+/** Who answered a card: a signed-in session, `loopback`, or `worker`. */
 export type DecisionActor =
   | { kind: "session"; sessionId: string; label: string; email?: string; userId?: string }
   | { kind: "loopback" }

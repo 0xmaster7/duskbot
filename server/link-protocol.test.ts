@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 // @ts-expect-error the link agent is a standalone script without type declarations
-import { LINK_MIN_SERVER, LINK_PROTOCOL } from "../link-service/agent.mjs";
+import { LINK_MIN_SERVER, LINK_PROTOCOL } from "../apps/link-service/agent.mjs";
 import { MIN_AGENT_LINK_PROTOCOL, SERVER_LINK_PROTOCOL, linkProtocolInfo } from "./link-protocol.ts";
 
 describe("the server's link protocol", () => {

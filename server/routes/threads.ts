@@ -63,7 +63,6 @@ export interface ThreadRouteDeps {
   userName(threadId: string): PersonName;
   sessions: ResolveOptions["sessions"];
   groupUsageReader: Pick<GroupUsageReader, "refresh">;
-  hostedWorkspace: boolean;
   sessionCookie: string;
   loopback: { trust: ResolveOptions["loopbackTrust"]; localBrowsers: boolean };
   /** The event stream's cursor now: a client that drew this snapshot resumes the stream from it instead of reading it again. */
@@ -96,7 +95,7 @@ export interface ThreadRouteDeps {
 export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
   const {
     store, userName: userNameFor, sessions, groupUsageReader,
-    hostedWorkspace: HOSTED_WORKSPACE, sessionCookie: SESSION_COOKIE, loopback: LOOPBACK, defaultPage: DEFAULT_PAGE,
+    sessionCookie: SESSION_COOKIE, loopback: LOOPBACK, defaultPage: DEFAULT_PAGE,
     pageSize, messagePage, messageWindow, publicBotQueuedMessages, publicGroupState, wireBot,
     botComputerControlSnapshot, messageFileRootsForThread, viewerFor, visibleTo,
   } = deps;
@@ -517,9 +516,6 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
       };
       const found = await searchMessagesAsync(q, visible.everything ? limit : Math.min(limit * 10, 1_000), threadId);
       // A scan may outlive a revocation or audience edit: authorize again after the await.
-      if (HOSTED_WORKSPACE && auth.kind === "session") {
-        return json(res, 503, { error: "Workspace sign-in is unavailable." });
-      }
       const current = resolveRequestAuth(req, {
         sessions, cookieName: SESSION_COOKIE, streamPath: "/api/events", url,
         loopbackMutationToken: desktopMutationToken, companionMutationToken,

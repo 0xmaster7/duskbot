@@ -1,4 +1,4 @@
-// the app's half of linking a vps (link-service/agent.mjs is the server's half; the crypto block is the same in both and
+// the app's half of linking a vps (apps/link-service/agent.mjs is the server's half; the crypto block is the same in both and
 // a test proves they interoperate). the link service only ever sees verifiers, public keys and sealed blobs.
 import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
 import { Agent as HttpAgent, STATUS_CODES, createServer, request as httpRequest } from "node:http";
@@ -159,7 +159,7 @@ export function randomB32(length) {
   return out;
 }
 
-// ---- crypto shared with link-service/agent.mjs ----
+// ---- crypto shared with apps/link-service/agent.mjs ----
 export const sha256hex = (value) => createHash("sha256").update(value).digest("hex");
 export const vpsTokenOf = (secret) => sha256hex(`omb-link-v1|vps|${secret}`);
 export function x25519Pair() {
@@ -227,7 +227,7 @@ export function openFrame(key, id, dir, sealed, guard) {
 }
 // ---- end shared crypto ----
 
-// ---- relay transport shared with link-service/agent.mjs ----
+// ---- relay transport shared with apps/link-service/agent.mjs ----
 /** how long a streamed read may stay silent before this end decides a proxy holds the lines back and polls instead */
 export const STREAM_STALL_MS = 5000;
 const STREAM_OFF_MS = 10 * 60_000;

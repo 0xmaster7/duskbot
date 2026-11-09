@@ -1,5 +1,3 @@
-// WebSocket upgrades go through the same request handler as HTTP, so they pass the same authentication,
-// hosted-workspace and maintenance gates; the route that owns the path then answers the handshake.
 import { ServerResponse, type IncomingMessage, type Server } from "node:http";
 import { Socket } from "node:net";
 

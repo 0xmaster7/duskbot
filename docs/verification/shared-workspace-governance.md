@@ -82,8 +82,7 @@ pnpm exec vitest run server/bot-visibility.test.ts server/bot-visibility.e2e.tes
 
 - The Settings screens (Activity, Who can see it) were checked by rendering
   and unit tests, not in Electron or a browser against a live server.
-- No hosted tenant, portal membership, Slack worker or cloud Admin was
-  involved; portal admin sessions carry the same `admin` scope the tests use.
+- No Slack worker or cloud Admin was involved.
 - The live stream's narrowing costs one visibility check per frame per
   member stream while a bot is restricted; it was not load-tested.
 - Words already quoted into a visible conversation (an earlier delegation
@@ -105,8 +104,6 @@ above passed. Before that rebase (main `0bb37982` plus #1708),
 `server/runtime-coordinator.test.ts`, `server/chief-of-staff.test.ts`,
 `server/thread-capacity-api.test.ts`, `server/cli-service-trust.e2e.test.ts`
 and the Settings/People/session UI tests passed on macOS.
-`server/hosted-access.test.ts` passed except once for its 8-second licence
-expiry case, which failed under load and passed when rerun alone.
 
 Mutation checks, each restored afterwards, turned a named test red: the
 per-path gate off; the bot list unfiltered; the live stream unfiltered;
@@ -116,7 +113,7 @@ creation or routine targets unchecked; a member's copy of a bot keeping its
 audience list; refused admin requests still logged; secrets not hidden in
 the log; the command line not named; the activity routes readable by
 members. Every server, session and engine was a local fixture. This is not
-production qualification: no hosted tenant, portal, Slack worker, cloud
+production qualification: no Slack worker, cloud
 Admin or real email was involved.
 
 ## Review follow-ups — 2026-09-23

@@ -94,9 +94,6 @@ Use only mapped, tested commands:
 - [Full workspace backups](workspace-backups.md)
 - [Optional company cloud backups](company-backups.md)
 - [Organization library: the desktop channel](desktop-library.md)
-- [Fleet: many workspaces on one server](fleet.md)
-- [Workspaces screen and the fleet agent](workspaces.md)
-- [Hosted workspace access refusals](hosted-workspaces.md)
 - [Shared-workspace trust: loopback, card answerers, decision log](shared-workspace-trust.md)
 - [Shared-workspace governance: bot visibility and admin activity](shared-workspace-governance.md)
 - [Who can see, chat with and change each team bot](team-bot-access.md)
@@ -108,8 +105,8 @@ Use only mapped, tested commands:
 `control-omb ui` ([Chat UI, driven headlessly](chat-ui.md)) drives the real
 renderer in a headless Chrome by accessible name, so composer sends, transcript
 rows, tool chips and server feature flags are provable from the command line.
-Other renderer-only behavior—Settings, sidebar drag-and-drop, the VM modal, the
-built-in browser panel, and updater UI—is still not proven by the harness. Use
+Other renderer-only behavior (Settings, sidebar drag-and-drop, the VM modal, and
+the built-in browser panel) is still not proven by the harness. Use
 the relevant Electron/package smoke test and state that limitation. Add a map
 entry only after the shared control surface can really drive it.
 
@@ -228,7 +225,7 @@ interaction in a disposable workspace.
 The [recent files fixture](computer-files.md) mounts the Files panel with synthetic
 digest rows and real message-scoped downloads from a disposable workspace.
 
-The [people invitation fixture](people.md) checks hosted workspace sign-in,
+The [people invitation fixture](people.md) checks local workspace sign-in,
 roles and device revocation through the real HTTP API with a stubbed email
 service. It does not drive the People settings UI through `control-omb`.
 
@@ -330,10 +327,6 @@ and worker exports using synthetic data, with isolated backup workflow checks.
 
 The [Japanese desktop font recipe](japanese-desktop.md) checks real Firefox and
 XFCE glyph rendering in disposable managed desktops, including fresh recreation.
-
-The optional [Podman full-stack acceptance recipe](podman-self-hosting.md)
-checks the Compose deployment with a fresh home, fake engine, and two desktops.
-It includes workspace ownership, persistence, and proxy authentication checks.
 
 The [Podman Firefox sandbox recipe](podman-firefox.md) checks the capability set a
 managed desktop keeps so Firefox can start, with before/after acceptance evidence.

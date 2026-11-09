@@ -151,7 +151,7 @@ async function main() {
 
   // Client-facing fixtures go through the sidecar, which scrubs, rewrites SSE
   // frames and refuses device routes; the harness directly only for setup.
-  const sidecar = start("companion", [join(ROOT, "companion", "src", "index.ts")], {
+  const sidecar = start("companion", [join(ROOT, "apps", "companion", "src", "index.ts")], {
     HOME: home,
     USERPROFILE: home,
     OMB_PORT: String(HARNESS_PORT),

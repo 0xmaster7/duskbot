@@ -844,7 +844,7 @@ test("another Cloud of the person's own that the Admin says is asleep is never a
   await w.tick();
   await w.tick();
   assert.equal(versions().length, read, "a Cloud the Admin says is asleep is never asked");
-  assert.deepEqual([w.home.asleepAt(CLIENT), w.home.asleepAt(CLOUD)], [true, false], "and the quiet updater asks the same: only that Cloud sleeps");
+  assert.deepEqual([w.home.asleepAt(CLIENT), w.home.asleepAt(CLOUD)], [true, false], "only that Cloud sleeps");
   w.state = { ...w.state, clouds: [{ ...CLIENT_A, power: { state: "awake", since: 6, sleeps: true } }] };
   await w.tick();
   assert.equal(versions().length, read + 1, "awake again, it is asked");

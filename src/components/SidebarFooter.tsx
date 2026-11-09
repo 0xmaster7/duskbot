@@ -9,7 +9,6 @@ import { CloudUsageCard } from "./CloudUsageMeter";
 import { endCloudHowTo, useWorkspacePlace, type WorkspacePlace } from "./DesktopWorkspaceSwitcher";
 import { ConnectAppsButton, useSidebarApps } from "./SidebarConnectApps";
 import { SidebarProfileMenu, useSimpleAccount, type ArchivedBots } from "./SidebarProfileMenu";
-import { UpdateIndicator } from "./UpdateIndicator";
 
 export function useSimplePlace(): WorkspacePlace {
   const { state, dispatch } = useStore();
@@ -41,12 +40,10 @@ export function SidebarFooter({ owner = null, archived }: { owner?: string | nul
       <div className="flex items-center gap-1.5 not-first:mt-2" onPointerLeave={() => setAppsEngaged(false)}>
         {apps.connected ? <>
           <div className="me-auto min-w-0"><SidebarProfileMenu simple={account} named nameHidden={appsEngaged} /></div>
-          <UpdateIndicator className="size-9" />
           <ConnectAppsButton circle apps={apps} engaged={appsEngaged} onEngage={setAppsEngaged} />
         </> : <>
           <SidebarProfileMenu simple={account} />
           <ConnectAppsButton circle={false} apps={apps} />
-          <UpdateIndicator className="size-9" />
         </>}
       </div>
     </div>

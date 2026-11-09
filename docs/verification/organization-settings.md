@@ -222,8 +222,7 @@ locale key changed. The app now says **Organization** (US spelling, as Admin
 does), **Settings → Servers** / **Server → Connect to a server…** for saved
 remote servers, "this installation" for the whole app and its data, and "folder" for bot and task
 folders. The Anthropic Console's "workspace API key" and ChatGPT's "workspace
-admin" keep their own words. `server/hosted-models.ts` keeps its two model
-errors word for word, because the cloud Slack worker matches that text.
+admin" keep their own words.
 
 Tested, not production qualification:
 

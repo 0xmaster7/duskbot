@@ -130,8 +130,8 @@ export function waitSourceRefusal(turn: {
   return null;
 }
 
-export function hostWaitRefusal(turn: { cloudHome: boolean; hosted: boolean; guest: boolean; place: Surface | null }): string | null {
-  if (turn.cloudHome || turn.hosted) return WAIT_MESSAGES.serverHost;
+export function hostWaitRefusal(turn: { cloudHome: boolean; guest: boolean; place: Surface | null }): string | null {
+  if (turn.cloudHome) return WAIT_MESSAGES.serverHost;
   if (turn.guest) return WAIT_MESSAGES.guest;
   if (turn.place === "vm" || turn.place === "cloud") return WAIT_MESSAGES.otherComputer;
   return null;

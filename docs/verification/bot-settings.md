@@ -113,7 +113,7 @@ execution; those require the native approval verification separately.
 
 Companion connections make the bot with a single request: they cannot read
 host defaults or patch host settings, so the host applies its defaults.
-`companion/test/proxy.test.ts` checks creation succeeds while those routes
+`apps/companion/test/proxy.test.ts` checks creation succeeds while those routes
 remain blocked, and `src/lib/new-bot.test.ts` that a paired device sends only
 that request. The dialog tests also check that a caller's synchronous
 exception or rejected promise after creation is reported without leaving a

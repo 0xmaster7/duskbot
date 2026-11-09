@@ -114,7 +114,7 @@ desktop client relay, the companion and its control page and gateway, the Vite
 dev server, the Local VM viewer, every port the server process has listened
 on, the ports the desktop app reports, each gate, and agent-browser's stream
 servers and Chrome DevTools ports. Servers add their HTTPS edge (8080),
-Caddy's admin API (2019) and the ports of fleet workspaces.
+Caddy's admin API (2019).
 
 "A bot's own processes" means a process in the session of an engine running
 a bot's turns, so a dev server the bot started keeps counting after the shell

@@ -16,7 +16,6 @@ import {
   isCredentialTargetId,
   isPendingCredentialRequest,
   isPendingCustomSecretRequest,
-  isProviderCredentialTarget,
   type CredentialTargetId,
   type SecretDelivery,
 } from "../../shared/credential-request.ts";
@@ -24,7 +23,6 @@ import { EMAIL_CREDENTIAL, type EmailConnectAnswer, type EmailConnectRequest, ty
 import type { SecretRequestCardData } from "../../shared/wire.ts";
 import type { AppConfig } from "../config.ts";
 import { perBotLocalVmTarget, poolLocalVmTarget, SHARED_LOCAL_VM_TARGET, VM_WORKSPACE_GUEST } from "../container-computer.ts";
-import { HOSTED_PROVIDER_SETTINGS_ERROR } from "../hosted-models.ts";
 import { addHeldSecretScrubber } from "../redact.ts";
 import { CardSealError, createCardSealer, type CardSealer } from "../card-seal.ts";
 import { HeldSecrets } from "../login-store.ts";
@@ -70,7 +68,6 @@ export interface SecretCardsDeps {
   followCard(threadId: string, from: string, to: string): void;
   dataDir: string;
   /** Admin manages this server's models: an AI provider key cannot be saved here. */
-  providerKeysRefused: boolean;
   /** The bot's own folder a turn in this conversation writes to (on a Team Cloud, the member's or room's layer). */
   layerFolder(botId: string, threadId: string): string;
   /** The Local VM (its target key) this conversation's turn holds right now, if any. */
@@ -461,7 +458,6 @@ export function createSecretCards(deps: SecretCardsDeps) {
     if (credentialIsConfigured(botLogins.credentialConfig(cfg), credentialId)) {
       return { status: 200, body: { alreadyConfigured: true, label: target.label } };
     }
-    if (deps.providerKeysRefused && isProviderCredentialTarget(credentialId)) return { status: 403, body: { error: HOSTED_PROVIDER_SETTINGS_ERROR } };
     // A later request supersedes pending cards; the fresh card is appended FIRST, so a failed save leaves the prior cards actionable.
     const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 240) : "";
     const language = deps.threadLanguage?.(fromThreadId);

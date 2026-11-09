@@ -1,0 +1,181 @@
+import type { DeleteAccountOptions } from "../../../../shared/billing-api";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { api, ApiError, FIXTURE, type AccountData } from "../lib/api";
+import type { BillingOverview, CheckoutRequest, CloudDesktop, DesktopId, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection } from "./contracts";
+import { fixtureCatalog } from "./fixtures";
+import type { CancelAnswer } from "./wire";
+
+export interface CloudData {
+  catalog: PlanCatalog | null;
+  billing: BillingOverview | null;
+  clouds: CloudDesktop[] | null;
+  account: AccountData | null;
+  connections: Record<string, string[]> | null;
+  error: string | null;
+  refresh(): void;
+  checkout(req: CheckoutRequest): Promise<boolean>;
+  power(id: string, on: boolean): Promise<void>;
+  resize(id: string, req: { tier: Exclude<DesktopId, "none">; size: MachineSpec | null }): Promise<void>;
+  /** what changing to `selection` charges now, in dollars; a change that charges anything is confirmed with that amount */
+  changeCharge(selection: Selection): Promise<number>;
+  changePlan(selection: Selection, approvedUsd?: number): Promise<void>;
+  cancel(reason: CancelAnswer | ""): Promise<void>;
+  openPortal(): Promise<void>;
+  setNotifications(p: NotificationPrefs): Promise<void>;
+  updateProfile(name: string): Promise<void>;
+  unlinkIdentity(p: IdentityProvider): Promise<void>;
+  revokeDevice(id: string): Promise<void>;
+  signOutEverywhere(): Promise<void>;
+  deleteAccount(confirm: string, options?: DeleteAccountOptions): Promise<void>;
+  finishOnboarding(): Promise<void>;
+}
+
+const Ctx = createContext<CloudData | null>(null);
+const visible = () => typeof document === "undefined" || document.visibilityState === "visible";
+const apiError = (error: unknown) => error instanceof ApiError ? error : new ApiError(error instanceof Error ? error.message : "Something went wrong.", 0, null);
+
+export function CloudDataProvider({ children, signedIn }: { children: ReactNode; signedIn: boolean }) {
+  const [catalog, setCatalog] = useState<PlanCatalog | null>(null);
+  const [billing, setBilling] = useState<BillingOverview | null>(null);
+  const [clouds, setClouds] = useState<CloudDesktop[] | null>(null);
+  const [account, setAccount] = useState<AccountData | null>(null);
+  const [connections, setConnections] = useState<Record<string, string[]> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+  const [pending, setPending] = useState<Record<string, { on: boolean; until: number }>>({});
+  const catalogRequest = useRef<Promise<PlanCatalog> | null>(null);
+  const active = useRef(signedIn);
+  const previousSignedIn = useRef(signedIn);
+  const generation = useRef(0);
+  const cloudRequest = useRef(0);
+  if (previousSignedIn.current !== signedIn) { active.current = signedIn; previousSignedIn.current = signedIn; }
+
+  const clearAccount = useCallback(() => {
+    setBilling(null); setClouds(null); setAccount(null); setConnections(null); setPending({});
+  }, []);
+  const refresh = useCallback(() => setTick((value) => value + 1), []);
+
+  useEffect(() => {
+    const version = ++generation.current;
+    if (!signedIn || !active.current) { clearAccount(); setError(null); return; }
+    let alive = true;
+    const request = ++cloudRequest.current;
+    catalogRequest.current ??= api.catalog();
+    void Promise.allSettled([catalogRequest.current, api.overview(), api.account(), api.connections()] as const).then(([plans, overview, profile, apps]) => {
+      if (!alive || !active.current || generation.current !== version) return;
+      const errors: string[] = [];
+      if (plans.status === "fulfilled") setCatalog(plans.value);
+      else {
+        if (plans.reason instanceof ApiError && plans.reason.status === 404) setCatalog(fixtureCatalog);
+        errors.push(apiError(plans.reason).message);
+      }
+      if (overview.status === "fulfilled") {
+        setBilling(overview.value.billing);
+        if (request === cloudRequest.current) setClouds(overview.value.clouds);
+      } else {
+        setBilling(null);
+        if (request === cloudRequest.current) setClouds(null);
+        errors.push(apiError(overview.reason).message);
+      }
+      if (profile.status === "fulfilled") setAccount(profile.value); else { setAccount(null); errors.push(apiError(profile.reason).message); }
+      if (apps.status === "fulfilled") setConnections(apps.value.byWorkspace); else { setConnections(null); errors.push(apiError(apps.reason).message); }
+      setError([...new Set(errors)].join(" ") || null);
+    });
+    return () => { alive = false; };
+  }, [signedIn, tick, clearAccount]);
+
+  useEffect(() => {
+    if (!signedIn || !active.current) return;
+    let alive = true, loading = false;
+    const version = generation.current;
+    const load = async () => {
+      if (!visible() || loading || !active.current) return;
+      loading = true;
+      const request = ++cloudRequest.current;
+      try {
+        const result = await api.clouds();
+        if (!alive || !active.current || version !== generation.current || request !== cloudRequest.current) return;
+        setClouds(result.clouds);
+        setPending((previous) => {
+          const entries = Object.entries(previous).filter(([id, power]) => {
+            const cloud = result.clouds.find((c) => c.id === id);
+            return cloud && Date.now() < power.until && !(power.on ? cloud.status === "running" : cloud.status === "sleeping" || cloud.status === "stopped");
+          });
+          return entries.length === Object.keys(previous).length ? previous : Object.fromEntries(entries);
+        });
+      } catch (e) {
+        if (alive && active.current && version === generation.current) setError(apiError(e).message);
+      } finally { loading = false; }
+    };
+    const fast = clouds?.some((cloud) => cloud.status === "provisioning") || Object.keys(pending).length > 0;
+    const id = setInterval(() => { void load(); }, fast ? 2000 : 15_000);
+    const onVisibility = () => { void load(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => { alive = false; clearInterval(id); document.removeEventListener("visibilitychange", onVisibility); };
+  }, [signedIn, tick, clouds, pending]);
+
+  const mutate = useCallback(async (action: () => Promise<unknown>) => {
+    const version = generation.current;
+    try {
+      if (!active.current) throw new ApiError("Sign in to continue.", 401, "unauthorized");
+      await action();
+      if (active.current && version === generation.current) { setError(null); refresh(); }
+    } catch (e) {
+      const failure = apiError(e);
+      if (version === generation.current) setError(failure.message);
+      throw failure;
+    }
+  }, [refresh]);
+
+  const checkout = useCallback(async (req: CheckoutRequest) => {
+    try {
+      await mutate(async () => {
+        const answer = await api.checkout(req);
+        if (!FIXTURE) window.location.assign(answer.url);
+      });
+      return true;
+    } catch { return false; }
+  }, [mutate]);
+
+  const power = useCallback(async (id: string, on: boolean) => {
+    if (!active.current) return mutate(() => api.power(id, on));
+    setPending((previous) => ({ ...previous, [id]: { on, until: Date.now() + 30_000 } }));
+    try { await mutate(() => api.power(id, on)); }
+    catch (e) { setPending((previous) => { const next = { ...previous }; delete next[id]; return next; }); throw e; }
+  }, [mutate]);
+
+  const signOutEverywhere = useCallback(async () => {
+    await mutate(() => api.signOutEverywhere());
+    active.current = false; generation.current++; clearAccount();
+  }, [mutate, clearAccount]);
+
+  const deleteAccount = useCallback(async (confirm: string, options?: DeleteAccountOptions) => {
+    await mutate(() => api.deleteAccount(confirm, options));
+    active.current = false; generation.current++; clearAccount();
+  }, [mutate, clearAccount]);
+
+  const value = useMemo<CloudData>(() => ({
+    catalog, billing, clouds, account, connections, error, refresh, checkout, power,
+    resize: (id, req) => mutate(() => api.resize(id, req)),
+    changeCharge: (selection) => api.changeCharge(selection),
+    changePlan: (selection, approvedUsd) => mutate(() => api.changePlan(selection, approvedUsd)),
+    cancel: (reason) => mutate(() => api.cancel(reason)),
+    openPortal: () => mutate(async () => { const answer = await api.portal(); if (!FIXTURE) window.location.assign(answer.url); }),
+    setNotifications: (p) => mutate(() => api.setNotifications(p)),
+    updateProfile: (name) => mutate(() => api.updateProfile({ name })),
+    unlinkIdentity: (p) => mutate(() => api.unlinkIdentity(p)),
+    revokeDevice: (id) => mutate(() => api.revokeDevice(id)),
+    finishOnboarding: () => mutate(() => api.finishOnboarding()),
+    signOutEverywhere, deleteAccount,
+  }), [catalog, billing, clouds, account, connections, error, refresh, checkout, power, mutate, signOutEverywhere, deleteAccount]);
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+export function useCloud(): CloudData {
+  const data = useContext(Ctx);
+  if (!data) throw new Error("useCloud outside CloudDataProvider");
+  return data;
+}
+
+export const cloudForWorkspace = (clouds: CloudDesktop[] | null, workspaceId: string | null | undefined): CloudDesktop | null => clouds?.find((cloud) => cloud.workspaceId !== null && cloud.workspaceId === workspaceId) ?? null;

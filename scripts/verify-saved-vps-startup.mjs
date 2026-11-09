@@ -61,7 +61,7 @@ if (!process.versions.electron) {
   const localOrigin = createRequire(import.meta.url)("../electron/local-origin.cjs");
   localOrigin.setLocalOrigin(null);
   ipcMain.handle("cloud-account:state", localOrigin.localOnly("cloud-account:state", () => ({ fixture: true })));
-  for (const channel of ["home:page", "update:offered", "home:updating", "desktop-analytics:read", "desktop-language:read"]) {
+  for (const channel of ["home:page", "home:updating", "desktop-analytics:read", "desktop-language:read"]) {
     ipcMain.on(channel, event => { event.returnValue = false; });
   }
   let finishLocal, window;

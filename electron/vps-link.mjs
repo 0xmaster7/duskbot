@@ -924,7 +924,7 @@ export function createVpsLink(deps) {
     return view();
   }
 
-  /** the line that takes OpenMausBot off the server again (link-service/uninstall.sh), from the service it was linked through */
+  /** the line that takes OpenMausBot off the server again (apps/link-service/uninstall.sh), from the service it was linked through */
   function uninstallLine() { return `curl -fsSL ${currentLink()?.base ?? base}/uninstall | sh`; }
 
   function where() {

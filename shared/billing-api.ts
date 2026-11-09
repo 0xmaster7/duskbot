@@ -1,5 +1,5 @@
-// the billing, license and cloud desktop contract between the hosted service (dashboard/server/billing,
-// dashboard/server/clouds) and its clients (the dashboard page, the desktop app through the Admin contract).
+// the billing, license and cloud desktop contract between the hosted service (apps/dashboard/server/billing,
+// apps/dashboard/server/clouds) and its clients (the dashboard page, the desktop app through the Admin contract).
 // version 1; additive changes only. amounts are integer US cents before tax; times are epoch milliseconds.
 
 export const BILLING_API_VERSION = 1 as const;

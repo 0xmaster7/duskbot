@@ -3,7 +3,6 @@ import { teamPlan } from "../../electron/cloud-team-plan.mjs";
 import type { LocaleKey } from "@/locales";
 import { cloudPlanView } from "./cloud-plan";
 import type { Action } from "@/state/store";
-import { readMembership } from "./membership";
 import { isOwnerOrAdmin, readSessionState, type SessionState } from "./session";
 
 export type PhonePairingTarget = "computer" | "cloud" | "server";
@@ -75,10 +74,7 @@ let pending: Promise<PhonePairingAccess> | null = null;
 export function loadPhonePairingAccess(fetchImpl: typeof fetch = fetch): Promise<PhonePairingAccess> {
   pending ??= readSessionState(fetchImpl).then(async (session): Promise<PhonePairingAccess> => {
     if (!isOwnerOrAdmin(session)) return { session, pairingCodes: false };
-    const config: unknown = await fetchImpl("/api/config", { credentials: "same-origin" })
-      .then((res) => (res.ok ? res.json() : null))
-      .catch(() => null);
-    return { session, pairingCodes: readMembership(config).pairingCodes };
+    return { session, pairingCodes: true };
   });
   return pending;
 }

@@ -1,4 +1,4 @@
-// The Slack wake edge for sleeping cloud desktops (dashboard/server/slack-edge). While a desktop sleeps, the hosted
+// The Slack wake edge for sleeping cloud desktops (apps/dashboard/server/slack-edge). While a desktop sleeps, the hosted
 // service holds its bots' Socket Mode connections, seals every event to the desktop's own key at once, wakes the
 // desktop, and hands the sealed events back when the desktop syncs. Only the desktop can open them.
 import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";

@@ -56,7 +56,7 @@ function storage() {
 
 const fresh = { onboarding: EMPTY_ONBOARDING };
 const LOCAL_PAGE = { ogb: { platform: "darwin", remoteClient: { active: false }, workspaces: {} } };
-// A hosted workspace the desktop app opened: preload exposes only its remote-safe subset, still truthy.
+// remote pages get only the bridge's reduced subset.
 const REMOTE_PAGE = { ogb: { platform: "darwin", workspaces: {}, getCapabilities: () => ({}) } };
 beforeEach(() => {
   fixture.values = [];
@@ -79,7 +79,7 @@ describe("who gets the welcome flow", () => {
     vi.stubGlobal("window", LOCAL_PAGE);
     const { tree } = gate(LOCAL_VIEWER);
     expect(tree?.type).toBe(WelcomeFlow);
-    expect(tree?.props).toMatchObject({ hosted: false, replay: false });
+    expect(tree?.props).toMatchObject({ replay: false });
   });
 
   it("lands in the chat with the bot the person chose on the Chief screen", () => {
@@ -124,58 +124,33 @@ describe("who gets the welcome flow", () => {
     expect(store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "select" }));
   });
 
-  it("opens the hosted beat set for a hosted workspace's admin", () => {
-    const { tree } = gate({ hosted: true, canSave: true });
-    expect(tree?.type).toBe(WelcomeFlow);
-    expect(tree?.props.hosted).toBe(true);
-  });
-
   it("leaves an OMB Cloud home's first run to its engine sign-in", () => {
     vi.stubGlobal("window", REMOTE_PAGE);
-    expect(gate({ hosted: false, canSave: true, cloudHome: true }).tree).toBeNull();
+    expect(gate({ canSave: true, cloudHome: true }).tree).toBeNull();
     store.state = { ...store.state, welcomeOpen: true };
-    expect(gate({ hosted: false, canSave: true, cloudHome: true }).tree?.type).toBe(WelcomeFlow);
+    expect(gate({ canSave: true, cloudHome: true }).tree?.type).toBe(WelcomeFlow);
   });
 
-  it("gives a hosted member nothing: no first run, no note, and a replay closes without writing the workspace config", async () => {
-    store.state = { ...store.state, config: {} };
-    expect(gate({ hosted: true, canSave: false }).tree).toBeNull();
-    store.state = { ...store.state, welcomeOpen: true };
-    expect(gate({ hosted: true, canSave: false }).tree).toBeNull();
-    for (const effect of fixture.effects) effect();
-    expect(store.dispatch).toHaveBeenCalledWith({ type: "toggleWelcome", open: false });
-    await flush();
-    expect(store.api).not.toHaveBeenCalled();
-  });
-
-  it("adds nothing for a member of a server that is not hosted, such as the owner's own paired browser", () => {
-    const { tree, html } = gate({ hosted: false, canSave: false });
+  it("adds nothing for a paired browser without admin scope", () => {
+    const { tree, html } = gate({ canSave: false });
     expect(tree).toBeNull();
     expect(html).toBe("");
     store.state = { ...store.state, welcomeOpen: true };
-    const replay = gate({ hosted: false, canSave: false }).tree!;
+    const replay = gate({ canSave: false }).tree!;
     expect(replay.type).toBe(WelcomeFlow);
-    expect(replay.props).toMatchObject({ hosted: false, replay: true });
-  });
-
-  it("treats a hosted workspace opened inside the desktop app like a browser", () => {
-    vi.stubGlobal("window", REMOTE_PAGE);
-    expect(gate({ hosted: true, canSave: false }).tree).toBeNull();
-    const admin = gate({ hosted: true, canSave: true }).tree!;
-    expect(admin.type).toBe(WelcomeFlow);
-    expect(admin.props.hosted).toBe(true);
+    expect(replay.props).toMatchObject({ replay: true });
   });
 
   it("shows nothing to a remote client member or while a browser's session is unknown", () => {
     expect(gate(null).tree).toBeNull();
     vi.stubGlobal("window", { ogb: { remoteClient: { active: true } } });
-    expect(gate({ hosted: true, canSave: false }).tree).toBeNull();
+    expect(gate({ canSave: false }).tree).toBeNull();
     expect(gate(LOCAL_VIEWER).tree).toBeNull();
   });
 
   it("stays closed after the admin finished it", () => {
     store.state = { ...store.state, config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-09-23T00:00:00.000Z", version: WELCOME_VERSION } } };
-    expect(gate({ hosted: true, canSave: true }).tree).toBeNull();
+    expect(gate({ canSave: true }).tree).toBeNull();
     expect(gate(LOCAL_VIEWER).tree).toBeNull();
   });
 
@@ -237,23 +212,23 @@ describe("useWelcomeViewer", () => {
     expect(store.api).not.toHaveBeenCalled();
   });
 
-  it("asks the server from a hosted page the desktop app opened, whose bridge is reduced", async () => {
+  it("asks the server from a remote page the desktop app opened, whose bridge is reduced", async () => {
     vi.stubGlobal("window", REMOTE_PAGE);
-    store.api.mockResolvedValueOnce({ kind: "session", scopes: ["client"], hosted: true });
+    store.api.mockResolvedValueOnce({ kind: "session", scopes: ["client"] });
     expect(viewer()).toBeNull();
     for (const effect of fixture.effects) effect();
     await flush();
     expect(store.api).toHaveBeenCalledExactlyOnceWith("/api/auth/session", { timeoutMs: 10_000 });
-    expect(viewer()).toEqual({ hosted: true, canSave: false });
+    expect(viewer()).toEqual({ canSave: false });
   });
 
-  it("asks a browser's server once and reads hosted and scope from the answer", async () => {
-    store.api.mockResolvedValueOnce({ kind: "session", scopes: ["client"], hosted: true });
+  it("asks a browser's server once and reads scope from the answer", async () => {
+    store.api.mockResolvedValueOnce({ kind: "session", scopes: ["client"] });
     expect(viewer()).toBeNull();
     for (const effect of fixture.effects) effect();
     await flush();
     expect(store.api).toHaveBeenCalledExactlyOnceWith("/api/auth/session", { timeoutMs: 10_000 });
-    expect(viewer()).toEqual({ hosted: true, canSave: false });
+    expect(viewer()).toEqual({ canSave: false });
   });
 
   it("keeps today's behaviour when the answer does not come", async () => {

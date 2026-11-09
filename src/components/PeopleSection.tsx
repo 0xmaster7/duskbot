@@ -1,17 +1,15 @@
 // Security: the invite link is convenience, not a second door; the one-time code still goes to the address itself.
 import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, Link2 } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { api } from "@/state/store";
-import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { formatUsd, hasFiniteCost } from "@/lib/usage";
-import { readMembership, type Membership } from "../lib/membership";
 import { readSessionState, type SessionState } from "../lib/session";
 import { canPairDevices } from "./ServerPairingCard";
 import { normalizeAccessEntry, withEntry, withoutEntry, type SignInLists } from "./SignInAccessCard";
 import { SettingRow } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
-import { CopyRow, FormDialog, FormField, ItemRow, NoteRow, rowCls } from "./ListRows";
+import { CopyRow, FormDialog, FormField, ItemRow, NoteRow } from "./ListRows";
 import { textFieldCls } from "./ui/GrokDialog";
 
 export type Role = "admin" | "member";
@@ -62,29 +60,6 @@ export function mergePeople(
   return people;
 }
 
-export function peopleFromSessions(
-  sessions: Array<{ email?: string; lastSeenAt: number; scopes?: string[] }>,
-  usage: Array<{ key: string; turns: number; costUsd: number | null }>,
-): Person[] {
-  const byEmail = new Map<string, Array<{ lastSeenAt: number; scopes?: string[] }>>();
-  for (const session of sessions) {
-    const email = session.email?.trim().toLowerCase();
-    if (email) byEmail.set(email, [...(byEmail.get(email) ?? []), session]);
-  }
-  return [...byEmail.entries()].map(([entry, devices]) => {
-    const month = usage.find((group) => group.key === `user:${entry}`);
-    return {
-      entry,
-      role: devices.some((device) => device.scopes?.includes("admin")) ? "admin" : "member",
-      isDomain: false,
-      lastSeenAt: Math.max(...devices.map((device) => device.lastSeenAt)),
-      devices: devices.length,
-      turns: month?.turns ?? 0,
-      costUsd: month?.costUsd ?? null,
-    } satisfies Person;
-  }).sort((a, b) => (a.role === b.role ? a.entry.localeCompare(b.entry) : a.role === "admin" ? -1 : 1));
-}
-
 export function lastSeenLabel(lastSeenAt: number | null, now = Date.now()): string {
   if (lastSeenAt === null) return t("people.never");
   if (now - lastSeenAt < 24 * 60 * 60_000) return t("people.today");
@@ -92,15 +67,14 @@ export function lastSeenLabel(lastSeenAt: number | null, now = Date.now()): stri
 }
 
 /** Each person as a panel row: who, their role, last seen and this month's spend as one quiet line, and their actions. */
-export function PeopleTable({ people, busy, onRole, onRemove, onLink, readOnly = false }: {
+export function PeopleTable({ people, busy, onRole, onRemove, onLink }: {
   people: Person[];
   busy: boolean;
   onRole: (person: Person, role: Role) => void;
   onRemove: (person: Person) => void;
   onLink: (person: Person) => void;
-  readOnly?: boolean;
 }) {
-  if (people.length === 0) return <NoteRow>{t(readOnly ? "people.portal.empty" : "people.empty")}</NoteRow>;
+  if (people.length === 0) return <NoteRow>{t("people.empty")}</NoteRow>;
   return (
     <>
       {people.map((person) => {
@@ -113,14 +87,12 @@ export function PeopleTable({ people, busy, onRole, onRemove, onLink, readOnly =
         ].filter(Boolean).join(" · ");
         return (
           <ItemRow key={person.entry} title={person.isDomain ? t("people.everyoneAt", { domain: person.entry.slice(1) }) : person.entry} hint={<span title={t("people.turns", { turns: String(person.turns) })}>{hint}</span>}>
-            {!readOnly && <>
               <button type="button" disabled={busy} onClick={() => onLink(person)} aria-label={t("people.link")} title={t("people.link")}
                 className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-secondary hover:bg-ink/[0.035] hover:text-ink disabled:opacity-45"><Link2 size={13} aria-hidden="true" /></button>
               <button type="button" disabled={busy} onClick={() => onRole(person, person.role === "admin" ? "member" : "admin")} className="ui-button">
                 {person.role === "admin" ? t("people.makeMember") : t("people.makeAdmin")}
               </button>
               <button type="button" disabled={busy} onClick={() => onRemove(person)} className="ui-button text-danger">{t("people.remove")}</button>
-            </>}
           </ItemRow>
         );
       })}
@@ -133,28 +105,10 @@ export function CopyLink({ link }: { link: string }) {
   return <CopyRow title={t("people.link")} text={link} />;
 }
 
-export function PortalPeople({ peopleUrl, people }: { peopleUrl: string | null; people: Person[] }) {
-  const noop = () => {};
-  return (
-    <div data-people-portal="" className="contents">
-      <NoteRow>{t("people.portal.managed")}</NoteRow>
-      {peopleUrl && (
-        <a href={peopleUrl} target="_blank" rel="noopener noreferrer" className={cn(rowCls, "cursor-pointer text-[13px] leading-[18px] text-ink hover:bg-ink/[0.035]")}>
-          <span className="min-w-0 flex-1">{t("people.portal.open")}</span>
-          <ExternalLink size={12} aria-hidden="true" className="shrink-0 text-ink-tertiary" />
-        </a>
-      )}
-      <PeopleTable people={people} busy={false} readOnly onRole={noop} onRemove={noop} onLink={noop} />
-      <NoteRow>{t("people.portal.note")}</NoteRow>
-    </div>
-  );
-}
-
 export function PeopleSection() {
   const [inviting, setInviting] = useState(false);
   const [tried, setTried] = useState(false);
   const [session, setSession] = useState<SessionState | null>(null);
-  const [membership, setMembership] = useState<Membership | null>(null);
   const [lists, setLists] = useState<SignInLists | null>(null);
   const [people, setPeople] = useState<Person[]>([]);
   const [base, setBase] = useState<string>(typeof window !== "undefined" ? window.location.origin : "");
@@ -181,12 +135,10 @@ export function PeopleSection() {
         admins: Array.isArray(config?.signIn?.admins) ? config.signIn.admins : [],
         members: Array.isArray(config?.signIn?.members) ? config.signIn.members : [],
       };
-      const authority = readMembership(config);
-      setMembership(authority);
       setLists(current);
       const signedIn = Array.isArray(sessions?.sessions) ? sessions.sessions : [];
       const spent = Array.isArray(usage?.groups) ? usage.groups : [];
-      setPeople(authority.authority === "portal" ? peopleFromSessions(signedIn, spent) : mergePeople(current, signedIn, spent));
+      setPeople(mergePeople(current, signedIn, spent));
       if (typeof domain?.publicUrl === "string" && domain.publicUrl) setBase(domain.publicUrl);
       setEmailOffered(environment?.capabilities?.emailSignIn === true ? true : environment ? false : null);
     } catch (cause) {
@@ -231,10 +183,9 @@ export function PeopleSection() {
   };
 
   if (!canPairDevices(session)) return null;
-  if (membership?.authority === "portal") return <PortalPeople peopleUrl={membership.peopleUrl} people={people} />;
   return (
     <div data-people-summary="" className="contents">
-      {emailOffered === false && tried && <NoteRow tone="warn">{t(membership?.pairingCodes === false ? "people.portalSignIn" : "people.notHosted")}</NoteRow>}
+      {emailOffered === false && tried && <NoteRow tone="warn">{t("people.notHosted")}</NoteRow>}
       <ItemRow title={t("people.title")} hint={t("settings.simple.people")}>
         <button type="button" onClick={() => void load()} disabled={loading || busy} className="ui-button">{t("people.refresh")}</button>
         <button type="button" data-settings-open="people-invite" disabled={busy} className="ui-button" onClick={() => { setError(null); setInviting(true); }}>{t("settings.simple.people.invite")}</button>

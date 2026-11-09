@@ -50,7 +50,6 @@ function teamMember(role: TeamRole, phone = false) {
   if (!paired.ok) throw new Error(paired.error);
   return bearer(paired.token);
 }
-const portal = (scopes: Scope[]) => bearer(sessions.issuePortal({ email: "person@acme.test", grant: "g".repeat(43), scopes }).token);
 const SERVICE = { resolve: { loopbackTrust: "service" as const } };
 const CALL = "gets a call";
 const AT_LIMIT = `limit: ${LIVE_AZURE_REFUSAL}`;
@@ -116,22 +115,6 @@ describe("an Azure Live call", () => {
     });
     it("is refused to a bot's shell", () => {
       expect(verdict(LOCAL, place)).toMatch(/^sign-in gate 403: forbidden: on this shared server/);
-    });
-  });
-
-  describe("on a shared company workspace", () => {
-    const place = { ...SERVICE, othersOnLoopback: true };
-    beforeEach(() => {
-      sessions.close();
-      sessions = new SessionRegistry({ file: join(dir, "portal-sessions.json"), portalMembership: true });
-    });
-    it("goes to a workspace admin", () => {
-      expect(verdict(portal(["admin", "client"]), place)).toBe(CALL);
-    });
-    it("is refused to anyone else, and to a local request even where an operator made loopback the owner", () => {
-      expect(verdict(portal(["client"]), place)).toBe(AT_SIGN_IN);
-      expect(verdict(LOCAL, place)).toMatch(/^sign-in gate 403: forbidden: on this shared server/);
-      expect(verdict(LOCAL, { othersOnLoopback: true, resolve: { loopbackTrust: "owner" } })).toBe(AT_LIMIT);
     });
   });
 

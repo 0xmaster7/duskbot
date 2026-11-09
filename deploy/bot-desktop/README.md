@@ -166,7 +166,7 @@ out in this order:
 2. Optionally publish the image: `deploy/bot-desktop/build.sh --push`, and make the registry package public, since
    VPSes pull anonymously. Without it every server builds its own copy (Docker with BuildKit, `docker-buildx` on
    Ubuntu; about 90 s warm, longer on a small VPS).
-3. Publish the VPS package to the link service (`link-service/README.md`, "The server build"). It carries this folder
+3. Publish the VPS package to the link service (`apps/link-service/README.md`, "The server build"). It carries this folder
    twice: as the installer's kit and inside the server package.
 4. Update the server on each linked VPS to that package. New bot computers then pull or build the new image on first
    use. To prepare it ahead of time, run `IMAGE=<BOT_DESKTOP_IMAGE> sh deploy/bot-desktop/build.sh` from the

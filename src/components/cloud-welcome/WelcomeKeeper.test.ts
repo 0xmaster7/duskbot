@@ -37,7 +37,7 @@ import { CloudWelcome } from "./CloudWelcome";
 import { WelcomeKeeper } from "./WelcomeKeeper";
 import { resetCloudWelcome, useCloudWelcome } from "@/lib/cloud-welcome";
 
-const owner = { hosted: false, canSave: true, cloudHome: true };
+const owner = { canSave: true, cloudHome: true };
 
 let host: HTMLDivElement;
 let root: Root;

@@ -497,10 +497,6 @@ describe("resolveRequestAuth", () => {
     ["GET", "/api/usage?from=2026-09-01&to=2026-09-30"],
     ["GET", "/api/usage.csv?from=2026-09-01&to=2026-09-30"],
     ["POST", "/api/keys/test"],
-    ["GET", "/api/fleet"],
-    ["POST", "/api/fleet/workspaces"],
-    ["DELETE", "/api/fleet/workspaces/acme"],
-    ["POST", "/api/fleet/upgrade"],
     ["POST", "/api/instances/antigravity/auth/complete"],
     ["GET", "/api/computers/usage"],
   ])("requires admin for server Settings: %s %s", (method, path) => {
@@ -611,7 +607,7 @@ describe("loopback trust: owner on one person's machine, service on a shared wor
     ["POST", "/api/bots"], ["PATCH", "/api/bots/bot-1"], ["DELETE", "/api/bots/bot-1"],
     ["POST", "/api/instances"], ["GET", "/api/instances"], ["POST", "/api/mcp-servers"],
     ["POST", "/api/keys/test"], ["GET", "/api/usage"], ["GET", "/api/decisions"], ["GET", "/api/decisions.csv"],
-    ["POST", "/api/fleet/workspaces"], ["POST", "/api/settings/custom-domain"], ["POST", "/api/workspace-backup/export"],
+    ["POST", "/api/settings/custom-domain"], ["POST", "/api/workspace-backup/export"],
     ["POST", "/api/bots/bot-1/messages"], ["POST", "/api/bots/bot-1/respond"], ["POST", "/api/bots/bot-1/always-allow"],
     ["POST", "/api/threads/thread-1/undo"], ["POST", "/api/groups/room-1/messages"], ["POST", "/api/routines"], ["GET", "/api/events"],
   ];
@@ -652,28 +648,26 @@ describe("loopback trust: owner on one person's machine, service on a shared wor
       .toEqual({ kind: "loopback", scopes: ["admin", "client"] });
   });
 
-  it("defaults to service on a hosted workspace, owner elsewhere, and lets the operator choose", () => {
-    const pick = (env: NodeJS.ProcessEnv, flags: { desktopManaged?: boolean; hostedWorkspace?: boolean } = {}) =>
-      resolveLoopbackTrust({ env, desktopManaged: false, hostedWorkspace: false, ...flags });
+  it("defaults to owner and lets the operator choose", () => {
+    const pick = (env: NodeJS.ProcessEnv, flags: { desktopManaged?: boolean } = {}) =>
+      resolveLoopbackTrust({ env, desktopManaged: false, ...flags });
     expect(pick({})).toEqual({ trust: "owner", reason: "self-hosted default", localBrowsers: false });
-    expect(pick({}, { hostedWorkspace: true })).toEqual({ trust: "service", reason: "hosted workspace", localBrowsers: false });
     expect(pick({ OMB_LOOPBACK_TRUST: "service" })).toEqual({ trust: "service", reason: "OMB_LOOPBACK_TRUST", localBrowsers: false });
     expect(pick({ OMB_LOOPBACK_TRUST: " Service " }).trust).toBe("service");
-    const forced = pick({ OMB_LOOPBACK_TRUST: "owner" }, { hostedWorkspace: true });
+    const forced = pick({ OMB_LOOPBACK_TRUST: "owner" });
     expect(forced.trust).toBe("owner");
-    expect(forced.warning).toMatch(/shared workspace/);
     const typo = pick({ OMB_LOOPBACK_TRUST: "own3r\n" });
     expect(typo.trust).toBe("service");
     expect(typo.warning).toMatch(/not owner or service/);
     expect(typo.warning).not.toContain("\n");
     expect(pick({ OMB_LOOPBACK_TRUST: "" }).trust).toBe("owner");
-    const desktop = pick({ OMB_LOOPBACK_TRUST: "service" }, { desktopManaged: true, hostedWorkspace: true });
+    const desktop = pick({ OMB_LOOPBACK_TRUST: "service" }, { desktopManaged: true });
     expect(desktop.trust).toBe("owner");
     expect(desktop.warning).toMatch(/ignored in the desktop app/);
   });
 
   it("is always service on an OMB Cloud home, where a local request is only ever a process on the machine", () => {
-    const pick = (env: NodeJS.ProcessEnv) => resolveLoopbackTrust({ env, desktopManaged: false, hostedWorkspace: false, cloudHome: true });
+    const pick = (env: NodeJS.ProcessEnv) => resolveLoopbackTrust({ env, desktopManaged: false, cloudHome: true });
     expect(pick({})).toEqual({ trust: "service", reason: "MausBot Cloud home", localBrowsers: false });
     expect(pick({ OMB_LOOPBACK_TRUST: "service" })).toEqual({ trust: "service", reason: "MausBot Cloud home", localBrowsers: false });
     const forced = pick({ OMB_LOOPBACK_TRUST: "owner" });
@@ -798,15 +792,14 @@ describe("a browser on this machine is not the owner", () => {
     expect(check(page, "/api/bots", "GET", { localBrowsers: true }).auth).toEqual({ kind: "loopback", scopes: ["admin", "client"] });
     // The desktop owner header is still required for desktop mutations.
     expect(check(page, "/api/bots/bot-1", "PATCH", { localBrowsers: true, desktopToken: "owner-token-123" }).status).toBe(403);
-    const pick = (env: NodeJS.ProcessEnv, flags: { fromSource?: boolean; desktopManaged?: boolean; hostedWorkspace?: boolean } = {}) =>
-      resolveLoopbackTrust({ env, desktopManaged: false, hostedWorkspace: false, ...flags });
+    const pick = (env: NodeJS.ProcessEnv, flags: { fromSource?: boolean; desktopManaged?: boolean } = {}) =>
+      resolveLoopbackTrust({ env, desktopManaged: false, ...flags });
     const dev = { OMB_DEV_TRUST_LOCAL_BROWSER: "1" };
     expect(pick(dev, { fromSource: true })).toMatchObject({ trust: "owner", localBrowsers: true, warning: expect.stringMatching(/development only/) });
     expect(pick(dev, { fromSource: false })).toMatchObject({ localBrowsers: false, warning: expect.stringMatching(/ignored/) });
     expect(pick(dev, { fromSource: true, desktopManaged: true })).toMatchObject({ localBrowsers: false, warning: expect.stringMatching(/ignored/) });
-    expect(pick(dev, { fromSource: true, hostedWorkspace: true })).toMatchObject({ trust: "service", localBrowsers: false });
     expect(pick({ ...dev, OMB_LOOPBACK_TRUST: "service" }, { fromSource: true }).localBrowsers).toBe(false);
     expect(pick({ OMB_DEV_TRUST_LOCAL_BROWSER: "true" }, { fromSource: true })).toEqual({ trust: "owner", reason: "self-hosted default", localBrowsers: false });
-    expect(resolveLoopbackTrust({ env: dev, desktopManaged: false, hostedWorkspace: false, cloudHome: true, fromSource: true }).localBrowsers).toBe(false);
+    expect(resolveLoopbackTrust({ env: dev, desktopManaged: false, cloudHome: true, fromSource: true }).localBrowsers).toBe(false);
   });
 });

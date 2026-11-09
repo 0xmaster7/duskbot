@@ -8,7 +8,7 @@ interactive shell, or change to the user's environment is required.
 ## Offline verification
 
 ```sh
-pnpm exec vitest run companion/test/tailscale-cli.test.ts companion/test/listener.test.ts companion/test/endpoints.test.ts companion/test/control.test.ts server/tailscale.test.ts
+pnpm exec vitest run apps/companion/test/tailscale-cli.test.ts apps/companion/test/listener.test.ts apps/companion/test/endpoints.test.ts apps/companion/test/control.test.ts server/tailscale.test.ts
 ```
 
 The fixture starts a real loopback companion control server with disposable

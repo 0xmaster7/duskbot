@@ -18,7 +18,7 @@ const LISTED_FROM = 1000;
 const LINES: Record<string, number> = {
   "server/index.ts": 15799,
   "src/state/store.tsx": 3365,
-  "electron/main.mjs": 3298,
+  "electron/main.mjs": 3258,
   "server/store.ts": 2348,
   "shared/wire.ts": 1005,
   "src/components/Sidebar.tsx": 1858,
@@ -42,14 +42,13 @@ const LINES: Record<string, number> = {
   "server/container-computer.ts": 1225,
   "src/components/ModelPicker.tsx": 1046,
   "src/components/PhoneSetupFlow.tsx": 1146,
-  "server/cli.ts": 1080,
   "src/components/AttachmentPreview.tsx": 1107,
   "src/components/Composer.tsx": 1038,
   "src/components/grok-icon-glyphs.ts": 1234,
 };
 
 function sourceFiles(): string[] {
-  const out = execFileSync("git", ["ls-files", "server", "shared", "src", "scripts", "evals", "electron", "companion"], { cwd: ROOT, encoding: "utf8" });
+  const out = execFileSync("git", ["ls-files", "server", "shared", "src", "scripts", "evals", "electron", "apps/companion"], { cwd: ROOT, encoding: "utf8" });
   return out.split("\n").filter((file) => /\.(ts|tsx|mjs|cjs)$/.test(file))
     .filter((file) => !file.includes(".test.") && !file.includes("/testing/") && !file.includes("goldens") && !file.startsWith("electron/vendor/"))
     // git still lists a file deleted in the working tree until the deletion is committed

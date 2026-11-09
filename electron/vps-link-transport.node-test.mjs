@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { createOutbox, createTunnelProxy, keepAliveFetch, openFrame, sealBytes, sealFrame } from "./vps-link-protocol.mjs";
-import { createOutbox as createAgentOutbox, keepAliveFetch as agentKeepAliveFetch } from "../link-service/agent.mjs";
+import { createOutbox as createAgentOutbox, keepAliveFetch as agentKeepAliveFetch } from "../apps/link-service/agent.mjs";
 
 const deferred = () => {
   let resolve, reject;

@@ -33,7 +33,6 @@ import { standaloneAssetFor, standaloneEngineDir } from "../../engine-standalone
 import { cloudHomeConfigured } from "../../cloud-home.ts";
 import { DATA_DIR, OPENCODE_PROVIDER_ENV } from "../../config.ts";
 import * as quietStatus from "./quiet-status.ts";
-import { hostedWorkspaceConfigured } from "../../hosted-workspace.ts";
 import { TASK_WORKSPACES_DIR, workspaceDir } from "../../workspace.ts";
 import type { ModelCatalog, ProviderInstance, SendTurnInput } from "../../contracts.ts";
 
@@ -407,7 +406,7 @@ describe("OpenCode catalog", () => {
   });
 
   it("allows provider keys only where the server's environment is one person's own", () => {
-    const own = { cloudHome: false, hostedWorkspace: false, organisationManaged: false, sharedSignIn: false };
+    const own = { cloudHome: false, organisationManaged: false, sharedSignIn: false };
     expect(openCodeProviderKeysAllowed(own)).toBe(true);
     for (const key of Object.keys(own) as Array<keyof typeof own>) {
       expect(openCodeProviderKeysAllowed({ ...own, [key]: true }), key).toBe(false);
@@ -417,14 +416,13 @@ describe("OpenCode catalog", () => {
   it("is wired in index.ts before the first catalog probe, with the sign-in list", () => {
     const source = readFileSync(new URL("../../index.ts", import.meta.url), "utf8").replace(/\r\n/g, "\n");
     const wired = source.indexOf("setOpenCodeProviderKeyPolicy(openCodeKeysAllowed);");
-    const firstLoad = source.indexOf("await registry.load(providerConfigs(), decorateHostedProvider);");
+    const firstLoad = source.indexOf("await registry.load(instanceConfigs(cfg));");
     expect(wired).toBeGreaterThan(0);
     expect(firstLoad).toBeGreaterThan(wired);
     expect(source.match(/setOpenCodeProviderKeyPolicy\(/g)).toHaveLength(1);
     const policy = source.slice(source.indexOf("const openCodeKeysAllowed = "), wired);
     expect(policy).toContain("sharedSignIn: sharedSignIn(signInAllowList())");
     expect(policy).toContain("cloudHome: Boolean(CLOUD_HOME)");
-    expect(policy).toContain("hostedWorkspace: HOSTED_WORKSPACE");
     expect(policy).toContain("organisationManaged: openCodeOrganisationManaged()");
     expect(source).toContain("openCodeOrganisationManaged = () => managedPolicy.current() !== null || managedDesktop.enrolled();");
   });
@@ -450,7 +448,7 @@ describe("OpenCode catalog", () => {
       await instance.dispose();
     } finally {
       vi.unstubAllEnvs();
-      setOpenCodeProviderKeyPolicy(() => !cloudHomeConfigured() && !hostedWorkspaceConfigured());
+      setOpenCodeProviderKeyPolicy(() => !cloudHomeConfigured());
       await removeTempDir(scratch);
     }
   });
@@ -486,7 +484,7 @@ describe("OpenCode catalog", () => {
       await instance.dispose();
     } finally {
       vi.unstubAllEnvs();
-      setOpenCodeProviderKeyPolicy(() => !cloudHomeConfigured() && !hostedWorkspaceConfigured());
+      setOpenCodeProviderKeyPolicy(() => !cloudHomeConfigured());
       await removeTempDir(scratch);
     }
   });

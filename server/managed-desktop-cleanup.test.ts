@@ -94,7 +94,7 @@ function fixture(kind: "direct" | "group", threadIds = ["first"]) {
     cancelYourComputerAsks: (threadId: string, generation?: string) => {
       if (generation === undefined || yourComputerAsks.get(threadId) === generation) yourComputerAsks.delete(threadId);
     },
-    turnResources: { release() {} }, cloudComputerPower: { released() {} }, settlingResourceOwners: new Map(), turnComputerResources: new Map(), teamComputerTurns: new Map(),
+    turnResources: { release() {} }, cloudComputerPower: { released() {} }, settlingResourceOwners: new Map(), turnComputerResources: new Map(), teamComputerTurns: new Map(), turnVpsTargets: new Map(), computerRelay: { close() {} },
     coordinator: { stopAwaitingDirect: (threadId: string) => { stopAwaiting.push(threadId); } },
     stopParkedCards: (threadId: string) => stoppedCards.push(threadId),
     cancelDirectTurnDispatch: (_botId: string, threadId: string) => cancelled.push(threadId),
@@ -294,8 +294,7 @@ function reloadFixture() {
     .map(turn => [`cap-${turn.threadId}`, { botId: turn.botId, threadId: turn.threadId }]));
   const context = vm.createContext({
     providerFleetReloading: false, providerInstancesChanging: new Set<string>(),
-    providerConfigs: () => configs, changedInstanceIds, engineLaunches: (launched: typeof configs) => engineLaunches(launched, {}),
-    decorateHostedProvider: undefined,
+    instanceConfigs: () => configs, cfg: {}, changedInstanceIds, engineLaunches: (launched: typeof configs) => engineLaunches(launched, {}),
     internalCapabilities: capabilities, sessionCredentials: bearers,
     revokeEarlierTurnCapabilities: (threadId: string) => {
       revoked.push(threadId);

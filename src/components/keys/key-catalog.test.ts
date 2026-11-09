@@ -11,8 +11,6 @@ const NOT_A_PERSONS_KEY: Record<string, string> = {
   OMB_CLOUD_BOAT_TOKEN: "retired credential kept in the engine secret denylist",
   OMB_BOAT_API: "retired endpoint kept in the engine secret denylist",
   OMB_ANTHROPIC_API_URL: "the address the Anthropic key goes to, set by a hosted install",
-  OMB_HOSTED_MODEL_TOKEN: "a hosted install's model token",
-  OMB_HOSTED_MODELS: "a hosted install's model list",
   OMB_COMPOSIO_BROKER_TOKEN: "MausBot Cloud's connected-apps broker",
   OMB_CLOUD_VOICE_TOKEN: "MausBot Cloud's included voice",
   OMB_CLOUD_DECIDER_TOKEN: "MausBot Cloud's included decisions",

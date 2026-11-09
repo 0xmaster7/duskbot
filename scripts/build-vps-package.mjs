@@ -1,7 +1,7 @@
 // Builds our server, from this checkout, into the one .tgz the VPS installer
 // downloads from the link service. It is private: never `npm publish` it and
 // never put it at a public url; the link service hands it only to a claimed
-// install session (link-service/README.md, "The server build").
+// install session (apps/link-service/README.md, "The server build").
 //
 //   node scripts/build-vps-package.mjs                       # build, pack into release/vps/
 //   node scripts/build-vps-package.mjs --skip-build          # pack what dist-server/ and dist/ already hold

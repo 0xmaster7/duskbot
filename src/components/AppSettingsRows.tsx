@@ -1,10 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { skillAuthoringEnabled } from "@/lib/feature-flags";
 import { localeChoices } from "@/locales";
 import { activeLocale, t } from "@/lib/i18n";
-import { useUpdaterState } from "@/lib/updater";
-import { productName } from "../lib/brand";
 import { NewBrowserSettings } from "./BrowserSettingsRows";
 import { SIMPLE_CARD, SettingRow, Switch } from "./SettingsPrimitives";
 import { cn } from "@/lib/cn";
@@ -16,76 +14,6 @@ import { alternateSendLabel, parseFollowUpDefault, setFollowUpDefault, useFollow
 import { effectiveLanguage, setLanguageChoice, useLanguageChoice } from "@/lib/language-preference";
 import { SettingsSelect } from "./SettingsSelect";
 import { TALKING_STYLES, talkingStyleOf } from "../../shared/talking-style";
-
-const UP_TO_DATE_MS = 3000;
-
-export function UpdatesRow({ title = t("settings.updates.title") }: { title?: string }) {
-  const s = useUpdaterState();
-  const updater = window.ogb?.updater;
-  const [asked, setAsked] = useState(false);
-  const answered = asked && s?.status === "idle";
-  useEffect(() => {
-    if (!answered) return;
-    const timer = setTimeout(() => setAsked(false), UP_TO_DATE_MS);
-    return () => clearTimeout(timer);
-  }, [answered]);
-  if (!s || !updater) return null;
-  const label =
-    s.status === "checking"
-      ? t("settings.updates.checking")
-      : s.status === "downloading"
-        ? s.percent == null
-          ? t("settings.updates.startingDownload")
-          : t("settings.updates.downloading", { percent: Math.round(s.percent) })
-        : s.status === "preparing"
-          ? t("settings.updates.preparing")
-          : s.status === "downloaded"
-            ? s.installMode === "handoff"
-              ? t("settings.updates.readyInstall", { app: productName(), version: s.version ?? "" })
-              : t("settings.updates.ready", { app: productName(), version: s.version ?? "" })
-            : s.status === "installing"
-              ? s.message ||
-                (s.installMode === "handoff"
-                  ? t("settings.updates.openingTerminal")
-                  : t("settings.updates.restarting"))
-              : s.status === "handed-off"
-                ? t("settings.updates.handedOff")
-                : s.status === "error"
-                  ? t("settings.updates.failed", { message: s.message ?? t("settings.updates.unknownError") })
-                  : answered
-                    ? t("sidebar.update.upToDate")
-                    : t("settings.updates.latest");
-  return (
-    <SettingRow title={title} subtitle={label}>
-      <button
-        onClick={() => {
-          if (s.status === "downloaded") return void updater.install();
-          setAsked(true);
-          void updater.check();
-        }}
-        disabled={
-          s.status === "checking" || s.status === "downloading" || s.status === "preparing" ||
-          s.status === "installing" || s.retryable === false
-        }
-        className="ui-button"
-      >
-        {s.retryable === false
-          ? t("settings.updates.quitReopen")
-          : s.status === "downloaded"
-            ? s.installMode === "handoff"
-              ? t("settings.updates.install")
-              : t("settings.updates.restart")
-            : s.status === "preparing"
-              ? t("settings.updates.preparingShort")
-              : s.status === "installing"
-                ? s.installMode === "handoff"
-                  ? t("settings.updates.opening")
-                  : t("settings.updates.restartingShort")
-                : t("settings.updates.check")}
-      </button>
-    </SettingRow>
-  );
-}
 
 export function NewBotEffortRow() {
   const { state, dispatch } = useStore();

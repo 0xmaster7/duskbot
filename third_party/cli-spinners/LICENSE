@@ -1,4 +1,4 @@
-link-service/install.sh draws its spinner with the ten frames of the "dots" spinner from cli-spinners
+apps/link-service/install.sh draws its spinner with the ten frames of the "dots" spinner from cli-spinners
 (https://github.com/sindresorhus/cli-spinners, spinners.json). Only those frames are used; no code was copied.
 
 MIT License

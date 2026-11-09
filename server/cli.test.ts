@@ -25,17 +25,6 @@ describe("openmausbot command line", () => {
     expect(serve).toMatchObject({ command: "serve", port: 9001, dataDir: resolve("/tmp/x"), label: "cab mini", tailscale: true, pair: false });
     expect(parseArgs(["pair", "--client", "--public-url", "https://h/"], {})).toMatchObject({ command: "pair", client: true, publicUrl: "https://h" });
     expect(parseArgs(["sessions", "revoke", "abc"], {})).toMatchObject({ command: "sessions", revoke: "abc" });
-    expect(parseArgs(["fleet", "create", "acme", "--admin", "ada@example.test", "--member", "@acme.test", "--member", "bob@acme.test", "--cap", "40", "--memory", "1G", "--dry-run"], {})).toMatchObject({
-      command: "fleet", fleetAction: "create", slug: "acme", admins: ["ada@example.test"], members: ["@acme.test", "bob@acme.test"], cap: 40, memory: "1G", dryRun: true,
-    });
-    expect(parseArgs(["fleet", "users", "acme", "add", "bob@acme.test", "--chat-only"], {})).toMatchObject({ command: "fleet", fleetAction: "users", slug: "acme", fleetUserAction: "add", email: "bob@acme.test", chatOnly: true });
-    expect(parseArgs(["fleet", "delete", "acme", "--yes", "--keep-data"], {})).toMatchObject({ fleetAction: "delete", slug: "acme", yes: true, keepData: true });
-    expect(parseArgs(["fleet", "init", "--domain", "AgentAda.cc", "--operator", "maus"], {})).toMatchObject({ fleetAction: "init", domain: "agentada.cc", operator: "maus" });
-    expect(parseArgs(["fleet", "agent", "--socket", "/run/x.sock", "--group", "maus"], {})).toMatchObject({ fleetAction: "agent", socket: "/run/x.sock", group: "maus" });
-    expect(parseArgs(["fleet"], {})).toMatchObject({ error: expect.stringContaining("fleet needs one of") });
-    expect(parseArgs(["fleet", "create"], {})).toMatchObject({ error: "fleet create needs a workspace name" });
-    expect(parseArgs(["fleet", "users", "acme"], {})).toMatchObject({ error: expect.stringContaining("add|remove") });
-    expect(parseArgs(["fleet", "create", "acme", "--cap", "-5"], {})).toMatchObject({ error: expect.stringContaining("--cap") });
     expect(parseArgs([], { OMB_PORT: "8123" })).toMatchObject({ command: "start", port: 8123 });
     expect(parseArgs(["--port", "8125", "--no-open", "--local"], {})).toMatchObject({ command: "start", port: 8125, open: false, local: true });
     expect(parseArgs(["--help"], {})).toMatchObject({ command: "help" });
@@ -422,65 +411,6 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
     }
   }, 30_000);
 
-  it("a fleet credential in the environment serves --tunnel with no account file and no code", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-cli-fleet-"));
-    const dataDir = join(home, "data");
-    mkdirSync(dataDir, { recursive: true });
-    const stub = await startControlPlaneStub();
-    const fake = join(home, "cloudflared");
-    writeFileSync(fake, "#!/bin/sh\nexec sleep 300\n", { mode: 0o755 });
-    const port = await freePortBlock([0, 1, 10_000]);
-    const originPort = port + 10_000;
-    const fleetEnv = {
-      HOME: home,
-      USERPROFILE: home,
-      OMB_WEBHOOK_PORT: String(port + 1),
-      OMB_BROWSER_CONNECTION: join(home, "browser-connection.json"),
-      OMB_CONTROL_PLANE_URL: stub.url,
-      OMB_CLOUDFLARED_PATH: fake,
-      OMB_TUNNEL_ORIGIN_PORT: String(originPort),
-    };
-    const rejected = cli(["serve", "--tunnel", "--no-pair", "--port", String(port), "--data-dir", dataDir], {
-      ...fleetEnv,
-      OMB_INSTALLATION_CREDENTIAL: `omb_install_${"x".repeat(22)}.${"y".repeat(43)}`,
-    });
-    let err = "";
-    rejected.stderr?.on("data", (chunk) => (err += String(chunk)));
-    expect(await exited(rejected)).toBe(1);
-    expect(err).toContain("was rejected");
-
-    const child = cli(["serve", "--tunnel", "--no-pair", "--port", String(port), "--data-dir", dataDir], {
-      ...fleetEnv,
-      OMB_INSTALLATION_CREDENTIAL: stub.seedInstallation("fleet box"),
-    });
-    let out = "";
-    child.stdout?.on("data", (chunk) => (out += String(chunk)));
-    child.stderr?.on("data", (chunk) => (out += String(chunk)));
-    const gateway = `http://127.0.0.1:${originPort}`;
-    try {
-      const deadline = Date.now() + 60_000;
-      while (!out.includes("OpenMausBot is running") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
-      expect(out).toContain("using the installation credential from OMB_INSTALLATION_CREDENTIAL");
-      expect(out).toContain(`reachable at ${stub.endpointUrl}`);
-      expect(existsSync(join(dataDir, "tunnel-account.json"))).toBe(false);
-      let status = 0;
-      const gatewayDeadline = Date.now() + 20_000;
-      while (Date.now() < gatewayDeadline && status !== 200) {
-        try {
-          status = (await fetch(`${gateway}/.well-known/openmausbot/environment`)).status;
-        } catch {
-          status = 0;
-        }
-        if (status !== 200) await new Promise((r) => setTimeout(r, 250));
-      }
-      expect(status).toBe(200);
-    } finally {
-      child.kill("SIGTERM");
-      await exited(child);
-      await stub.close();
-      await removeTempDir(home);
-    }
-  }, 120_000);
 
   it("serves at the account's public address through the gateway, where every request is remote", async () => {
     const home = mkdtempSync(join(tmpdir(), "omb-cli-tunnel-"));

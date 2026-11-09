@@ -1,7 +1,7 @@
 // whether this app, a linked server's link agent and the server behind it can work together, and what to update when
 // they cannot. protocol numbers decide, never app versions; an optional feature checks its capability instead.
 
-/** the link protocol this app speaks with the agent (link-service/agent.mjs LINK_PROTOCOL) and the oldest agent it uses */
+/** the link protocol this app speaks with the agent (apps/link-service/agent.mjs LINK_PROTOCOL) and the oldest agent it uses */
 export const APP_LINK_PROTOCOL = 2;
 export const MIN_AGENT_PROTOCOL = 1;
 

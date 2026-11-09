@@ -82,7 +82,7 @@ describe("the welcome in this session", () => {
 });
 
 describe("the welcome's progress", () => {
-  const owner = { hosted: false, canSave: true, cloudHome: true };
+  const owner = { canSave: true, cloudHome: true };
   const stored = new Map<string, string>();
   const read = async () => {
     const { createElement } = await import("react");

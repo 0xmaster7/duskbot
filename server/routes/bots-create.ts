@@ -7,7 +7,6 @@ import { parseVisibility } from "../bot-visibility.ts";
 import type { createCloudRoutineAuthors } from "../cloud-owner-turns.ts";
 import type { AppConfig } from "../config.ts";
 import type { ModelSelection } from "../contracts.ts";
-import type { hostedModelPolicy } from "../hosted-models.ts";
 import { MAX_MCP_SERVERS, mcpServerNameError } from "../mcp-registry.ts";
 import { journalMemoryWrite } from "../memory-journal.ts";
 import { resolveBotCreationDefaults } from "../new-bot-defaults.ts";
@@ -27,14 +26,10 @@ export interface BotCreateRouteDeps {
   cfg: AppConfig;
   presetStore: Pick<PresetStore, "resolve">;
   orgInstallStatuses(): ReadonlyMap<string, OrgInstallStatus>;
-  /** A hosted (company) workspace: Full access comes only from its policy. */
-  hostedWorkspace: boolean;
-  hostedFullAccessRefusal: string;
   desktopManaged: boolean;
   maxWorkspaceBots: number;
   botLimit: Pick<BotLimit, "refusal">;
   cloudOwnerKey: string | null;
-  hostedModels: ReturnType<typeof hostedModelPolicy>;
   cloudRoutineAuthors: ReturnType<typeof createCloudRoutineAuthors> | null;
   routines(): RoutineManager | null;
   storedAvatarExists(avatarUrl: string): boolean;
@@ -74,9 +69,9 @@ function askedSettings(body: Record<string, unknown>): Record<string, unknown> {
 export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
   const {
     store, cfg, presetStore, orgInstallStatuses,
-    hostedWorkspace: HOSTED_WORKSPACE, hostedFullAccessRefusal: HOSTED_FULL_ACCESS_REFUSAL, desktopManaged: DESKTOP_MANAGED,
+    desktopManaged: DESKTOP_MANAGED,
     maxWorkspaceBots: MAX_WORKSPACE_BOTS, cloudOwnerKey: CLOUD_OWNER_KEY,
-    hostedModels, cloudRoutineAuthors,
+    cloudRoutineAuthors,
     storedAvatarExists, defaultSelection, checkedModelSelection, cloudOwnerSession, wireBot,
   } = deps;
   return async ({ req, res, path, method, auth, json, readBody }) => {
@@ -115,7 +110,6 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
       if (settings.approvalMode === "custom") {
         return json(res, 403, { error: "Custom approval requires the desktop permission flow. Use the bot creation dialog or choose another level for API creation." });
       }
-      if (settings.approvalMode === "full" && HOSTED_WORKSPACE) return json(res, 403, { error: HOSTED_FULL_ACCESS_REFUSAL });
       if (settings.computer === "local" && settings.approvalMode === "auto" && body.acknowledgeLocalAuto !== true) {
         return json(res, 400, { error: "Auto mode on this computer requires confirming the warning first (acknowledgeLocalAuto)" });
       }
@@ -177,7 +171,6 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
         if (!checked.ok) return json(res, checked.status, { error: checked.error });
         selection = checked.selection;
       }
-      if (hostedModels && !hostedModels.allows(selection)) return json(res, 400, { error: hostedModels.error() });
       // The capacity check sits beside the synchronous write, after every await.
       if (store.bots.length >= MAX_WORKSPACE_BOTS) {
         return json(res, 409, { error: `this workspace is limited to ${MAX_WORKSPACE_BOTS} bots` });

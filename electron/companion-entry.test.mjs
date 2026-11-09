@@ -7,7 +7,7 @@ const RESOURCES = path.join("/tmp", "resources");
 const APP = path.join("/tmp", "app");
 const PACKAGED = path.join(RESOURCES, "companion", "index.js");
 const BUILT = path.join(APP, "dist-companion", "index.js");
-const SOURCE = path.join(APP, "companion", "src", "index.ts");
+const SOURCE = path.join(APP, "apps", "companion", "src", "index.ts");
 
 const resolve = (isPackaged, present) =>
   resolveCompanionEntry({

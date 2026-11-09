@@ -1,7 +1,7 @@
 // Never log Tailscale's raw stderr (it can contain auth keys and node names): failures are classified into a closed set.
 import { execFile } from "node:child_process";
 
-import { tailscaleCandidates, tailscaleEnvironment } from "../companion/src/listener.ts";
+import { tailscaleCandidates, tailscaleEnvironment } from "../apps/companion/src/listener.ts";
 
 export interface TailscaleStatus {
   cli: string;

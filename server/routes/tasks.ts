@@ -5,7 +5,6 @@ import { validateBotCwd } from "../bot-cwd.ts";
 import type { ModelSelection, ProviderInstance } from "../contracts.ts";
 import type { Coordinator } from "../coordinator.ts";
 import type { Handoffs } from "../delta-context.ts";
-import type { hostedModelPolicy } from "../hosted-models.ts";
 import type { PhoneSecretSubmissionRegistry } from "../phone-secret.ts";
 import { ownerOrAdmin, type RequestAuth } from "../request-auth.ts";
 import type { RoutineManager } from "../routines.ts";
@@ -20,8 +19,6 @@ import { PASS, type RouteHandler } from "./table.ts";
 import { sawThread } from "../thread-presence.ts";
 import { readThreadNotifications } from "./notifications.ts";
 
-type HostedModels = NonNullable<ReturnType<typeof hostedModelPolicy>>;
-
 export interface TaskRouteDeps {
   store: Pick<Store,
     | "bot" | "bots" | "taskByThread" | "project" | "projectBotForTask" | "patchTask" | "patchProject" | "tasks"
@@ -31,10 +28,6 @@ export interface TaskRouteDeps {
   cloudHome: boolean;
   /** The desktop app owns this server, so a loopback caller is its owner. */
   desktopManaged: boolean;
-  /** A shared company workspace: Full access comes only from its operator. */
-  hostedWorkspace: boolean;
-  hostedFullAccessRefusal: string;
-  hostedModels: Pick<HostedModels, "resetTask"> | null;
   routines(): Pick<RoutineManager, "isActiveThread"> | null;
   coordinator: Pick<Coordinator, "cancelDirect">;
   handoffs: Pick<Handoffs, "forget">;
@@ -74,7 +67,7 @@ export interface TaskRouteDeps {
 /** `deleteTasks`: the same deletion for the server's own use (a person leaving a Team Cloud, host/team-member-left.ts). */
 export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTasks(botId: string, threadIds: string[]): ReturnType<TaskRouteDeps["store"]["deleteTasks"]> } {
   const {
-    store, hostedModels, coordinator, handoffs, skillReview, threadStarters, phoneSecretSubmissions, titleRegenerations,
+    store, coordinator, handoffs, skillReview, threadStarters, phoneSecretSubmissions, titleRegenerations,
     directTurnGenerationByThread, actorKey, cloudOwnerSession, cloudThreadRefusal,
     supportsApprovalMode, threadBusy, broadcast, publicBot, wireBot, wireTask, pageSize, messagePage, checkedModelSelection,
     checkedTaskModelSwitch, threadTitleGate, generateThreadTitle, settleDirectFollowup, clearTurnDigestState,
@@ -82,8 +75,6 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
   } = deps;
   const CLOUD_HOME = deps.cloudHome;
   const DESKTOP_MANAGED = deps.desktopManaged;
-  const HOSTED_WORKSPACE = deps.hostedWorkspace;
-  const HOSTED_FULL_ACCESS_REFUSAL = deps.hostedFullAccessRefusal;
   const deleteRefusal = (auth: RequestAuth, botId: string, threadId: string): { status: 403 | 404 | 409; error: string } | null => {
     if (!store.taskByThread(botId, threadId)) return { status: 404, error: "no such task" };
     const notYours = cloudThreadRefusal(auth, threadId);
@@ -276,9 +267,6 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
         if (nextMode === "custom") {
           return json(res, 403, { error: "Refresh Custom access from the packaged desktop app" });
         }
-        if (nextMode === "full" && HOSTED_WORKSPACE && approvalModeFor(current) !== "full") {
-          return json(res, 403, { error: HOSTED_FULL_ACCESS_REFUSAL });
-        }
         if (approvalModeFor(current) === "custom") {
           return json(res, 403, { error: "Leaving Custom approval requires the packaged desktop app" });
         }
@@ -357,7 +345,6 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
         if (!isApprovalMode(mode)) return json(res, 400, { error: "approvalMode must be ask, edits, auto, full, or custom" });
         // A thread PATCH cannot manufacture Custom: it needs the trusted desktop transition.
         if (mode === "custom") return json(res, 403, { error: "Custom access requires trusted desktop confirmation" });
-        if (mode === "full" && HOSTED_WORKSPACE && approvalModeFor(current) !== "full") return json(res, 403, { error: HOSTED_FULL_ACCESS_REFUSAL });
         if (approvalModeFor(current) === "custom") return json(res, 403, { error: "Leaving Custom approval requires confirmation in the packaged desktop app" });
         if (!supportsApprovalMode(patch.modelSelection ?? current.modelSelection, mode)) {
           return json(res, 400, { error: "This provider does not support the selected approval level" });
@@ -380,7 +367,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
       }
       const task = patch.modelSelection
         ? store.switchTaskModel(m[1], m[2], patch.modelSelection, body.updateBotDefault === true, body.resetApprovalToAsk === true,
-          { ...patch, ...hostedModels?.resetTask(current.modelSelection, patch.modelSelection) })!
+          patch)!
         : store.patchTask(m[1], m[2], patch)!;
       return json(res, 200, { task: wireTask(task, store.bot(m[1])!.modelSelection), bot: publicBot(store.bot(m[1])!) });
     }

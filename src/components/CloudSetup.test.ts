@@ -29,7 +29,7 @@ function nodes(value: ReactNode): Node[] {
   if (!isValidElement(value)) return [];
   const node = value as Node; return [node, ...Children.toArray(node.props.children).flatMap(nodes)];
 }
-const owner: WelcomeViewer = { hosted: false, canSave: true, cloudHome: true };
+const owner: WelcomeViewer = { canSave: true, cloudHome: true };
 let viewer: WelcomeViewer | null = owner;
 let welcomeShown = false;
 function render() {
@@ -96,7 +96,7 @@ it("is not shown before the page knows what it is, or before the Cloud has answe
 });
 
 it("off a Cloud home, and to a Cloud guest, there is no checklist", async () => {
-  for (const who of [{ hosted: false, canSave: true }, { ...owner, canSave: false }]) {
+  for (const who of [{ canSave: true }, { ...owner, canSave: false }]) {
     viewer = who; f.values = [];
     await mount();
     expect(render().html).toBe("");

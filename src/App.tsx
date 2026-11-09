@@ -16,7 +16,7 @@ import { parseComputerHelp } from "@/lib/computer-control";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatView } from "@/components/ChatView";
 import { GroupView } from "@/components/GroupView";
-import { PHONE_LAYOUT, SIDEBAR_INLINE, useMediaQuery } from "@/lib/use-media-query";
+import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
 import { useEdgeSwipeOpen } from "@/components/SidebarDrawer";
 import { usePhoneViewport } from "@/lib/phone-viewport";
 import { preloadConnectedApps } from "@/lib/connected-apps";
@@ -27,7 +27,6 @@ import {
 } from "@/components/lazy-screens";
 import { useRoomPanelShown } from "@/lib/room-panel";
 import { WorkspaceBackupRecovery } from "@/components/WorkspaceBackupSettings";
-import { UpdateBanner } from "@/components/UpdateBanner";
 import { AppNotices } from "@/components/AppNotices";
 import { RoutineCloudUpsell } from "@/components/RoutineCloudUpsell";
 import { EgressFallbackNotice } from "@/components/EgressFallbackNotice";
@@ -97,7 +96,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     state.bots.filter((bot) => !bot.hidden).reduce((sum, bot) => sum + botUnreadCount(bot), 0) +
     state.groups.filter((group) => group.unread).length;
   const remoteClient = window.ogb?.remoteClient?.active === true;
-  const sidebarInline = useMediaQuery(SIDEBAR_INLINE, false);
   // As Grok Bot: the bot's panel docks beside the sidebar only while the chat keeps its 424px and the panel its 280.
   const botPanelDocks = useMediaQuery(`(min-width: ${BOT_PANEL_DOCKS_AT}px)`, true);
   useEffect(() => {
@@ -266,7 +264,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const panelLoading = state.settingsOpen && !bot && !group && state.hydrated !== true && !remoteClient && !settingsOverlay;
   const framed = windowFramed(capabilities);
   const strips = <>
-    <UpdateBanner sidebarIndicator={framed || sidebarInline || drawerOpen} />
     <CloudAsleepStrip />
     <LiveConnectionStrip connected={state.connected} hydrated={state.hydrated === true} />
     <CloudSendStrip cloudHome={state.config?.cloudHome === true} />

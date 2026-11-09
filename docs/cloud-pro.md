@@ -20,7 +20,7 @@ person connects their own AI ([Trial Claude credit](#trial-claude-credit)).
 
 This page is the OpenMausBot half of a contract with three parties:
 
-- **the home machine**: this repository's `cloud-home` image (`Dockerfile`, `deploy/fly/`);
+- **the home machine**: this repository's `cloud-home` image (`deploy/docker/Dockerfile`);
 - **the Admin** (openmaus-cloud, `docs/consumer-cloud.md` there): provisions
   the app, holds the machine's signing secret, and answers the desktop's Cloud
   session;
@@ -592,7 +592,7 @@ layers (Node, Chrome's libraries, agent-browser and its Chrome) and adds:
   any file under `/app`, or Caddy, is not root's or is writable by others.
 
 ```sh
-docker build --target cloud-home -t omb-cloud-home .
+docker build -f deploy/docker/Dockerfile --target cloud-home -t omb-cloud-home .
 ```
 
 The app files are the last layers, so an image built from a later commit
@@ -794,28 +794,13 @@ never echoes a secret.
 | `OMB_CLOUD_BOOTSTRAP_SECRET` | secret | 43 base64url characters (256 bits): the key the Admin signs pairing requests with. |
 | `OMB_PUBLIC_URL` | env | The machine's exact `https://` origin, `https://<app>.fly.dev`. |
 
-- The machine must not also carry `OMB_ADMIN_URL`, `OMB_ADMIN_WORKSPACE` or
-  `OMB_ADMIN_MEMBERSHIP`: a Cloud home is a personal server with pairing codes
-  on, not a hosted team workspace with portal membership.
 - `HOME=/data` and `OMB_DATA_DIR=/data/.openmausbot` are set by the image.
 - The server keeps the secret in memory and removes it from its environment at
   startup; no engine or tool it starts ever inherits it.
 
 ### No model gateway
 
-OMB Cloud includes no AI, so the contract has no model gateway. If a Cloud
-home is ever given `OMB_HOSTED_MODEL_URL`, `OMB_HOSTED_MODEL_TOKEN` or
-`OMB_HOSTED_MODELS` (an Admin from before this decision set all three), it
-still boots, logs one warning naming the variables (never their values), and
-ignores them:
-
-- the launcher drops them from the server's environment, and the server drops
-  them from its own at startup, so no engine or tool ever sees them;
-- the portal workspace model policy (`server/hosted-models.ts`) stays off on a
-  Cloud home whatever they hold, so no instance is routed to a gateway;
-- no `included.*` or other read-only instance is served, apart from a free
-  trial's Claude credit (below); the person's own engines are otherwise the
-  only way to a model.
+OMB Cloud includes no AI, so the contract has no model gateway. Apart from a free trial's Claude credit, the person's own engines are the only way to a model.
 
 ### Included voice and decisions
 
@@ -921,7 +906,7 @@ a grant it signs for the machine id, which the server presents to the service
 once it holds its token. The service then gives this installation a paid
 Cloud's app-event limit (2,000 a day instead of a desktop's 500). Without it a
 Cloud gets the desktop limit. The grant's format is in
-[the broker's README](../cloudflare/composio-broker/README.md#paid-clouds).
+[the broker's README](../apps/cloudflare/composio-broker/README.md#paid-clouds).
 
 ### Trial Claude credit
 
@@ -1325,8 +1310,7 @@ without them works as before; a malformed one is dropped, never the machine):
   renewsAt, endsAt, keptDays, team?}` without the Cloud's id, which stays in
   main. See [Cancel trial / Cancel plan](#cancel-trial--cancel-plan). And each
   Ready Cloud's `power` (additive, as `cloud.power`, for a plan that sleeps):
-  the window's version check
-  and the quiet updater never reach a Cloud the Admin says is asleep, and go on
+  the window's version check never reaches a Cloud the Admin says is asleep, and go on
   at the next session read that says it is awake (`electron/cloud-account.mjs`
   `powerOf`).
 - `offer` (top level, beside `cloud`): what this account may buy now, only
@@ -1394,9 +1378,6 @@ was (**Manage in your browser**). If the routes are missing anyway (its own
 404, 405 or 501, never its `not_found` for the Cloud), main opens the Cloud
 page's billing (`/cloud/personal/billing`) in the browser and the sheet says
 so. Deploy the Admin before the app release that uses it.
-
-`previews/cancel-plan-preview.html` (dev only, `pnpm dev`) shows the real cards with a
-fake bridge: `?view=settings|cloud&plan=trial|paid|team&cancelled=1&admin=old&skin=midnight|daylight&lang=de`.
 
 #### One card at a time: the notice queue
 
@@ -1743,9 +1724,7 @@ tests.
   characters.
 - The signing secret is removed from the server's environment at startup and
   is never passed to engines or to Caddy.
-- There is no platform model gateway: stray `OMB_HOSTED_*` settings are
-  ignored with one warning and never reach the server's environment or an
-  engine. Every model call uses the person's own sign-in or key.
+- There is no platform model gateway. Every model call uses the person's own sign-in or key.
 - A volume binds to one machine and is never adopted by another.
 - Each customer's app lives in its own Fly private network.
 

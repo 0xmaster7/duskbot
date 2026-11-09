@@ -91,7 +91,6 @@ describe("testing an AI with one tiny message before a new bot's default trusts 
   const make = (extra: Partial<TestedAiDeps> = {}) => createTestedAi({
     engine: (instanceId) => engineFor(instanceId),
     saved: () => [saved, profile],
-    hosted: () => false,
     context: { company: (instanceId) => company(instanceId) },
     store: () => store as unknown as ReturnType<TestedAiDeps["store"]>,
     threadBusy: (botId, threadId) => busy.has(`${botId}/${threadId}`),

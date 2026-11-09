@@ -20,7 +20,7 @@ import {
   MANAGED_COMPANION_ORIGIN_PORT,
   type CompanionOriginEndpoint,
 } from "../electron/companion-origin-gateway.mjs";
-import { ControlPlaneError, createControlPlaneClient } from "../electron/control-plane-client.mjs";
+import { createControlPlaneClient } from "../electron/control-plane-client.mjs";
 import {
   createManagedCompanionTunnel,
   managedCompanionTunnelAccess,
@@ -167,31 +167,6 @@ export function createTunnelAccount(options: {
       : {}),
   });
   return { service, credentials, controlPlane };
-}
-
-export const FLEET_CREDENTIAL_ENV = "OMB_INSTALLATION_CREDENTIAL";
-
-/** A fleet container's installation credential comes from the environment; nothing is written to disk. */
-export function fleetCredential(env: NodeJS.ProcessEnv = process.env): string | null {
-  const value = env[FLEET_CREDENTIAL_ENV]?.trim();
-  return value ? value : null;
-}
-
-export async function fleetAccess(options: { credential: string; version?: string; env?: NodeJS.ProcessEnv; fetchImpl?: typeof fetch }): Promise<ManagedTunnelAccess> {
-  const env = options.env ?? process.env;
-  const controlPlane = resolveCompanionControlPlaneURL({ isPackaged: true, environment: env });
-  if (!controlPlane) throw new Error("OMB_CONTROL_PLANE_URL is set but is not an https address");
-  const client = createControlPlaneClient({ baseURL: controlPlane, fetchImpl: options.fetchImpl });
-  try {
-    const { endpoint, connectorToken } = await client.ensureEndpoint(options.credential, { appVersion: options.version });
-    return { endpoint: endpoint.url, token: connectorToken };
-  } catch (error) {
-    if (error instanceof ControlPlaneError && error.status === 401) {
-      throw new Error(`the installation credential in ${FLEET_CREDENTIAL_ENV} was rejected by ${controlPlane}; the fleet has to issue a new one`);
-    }
-    const reference = error instanceof ControlPlaneError && error.requestId ? ` (reference ${error.requestId})` : "";
-    throw new Error(`could not get this machine's public address from ${controlPlane}: ${error instanceof Error ? error.message : String(error)}${reference}`);
-  }
 }
 
 /** OMB_CLOUDFLARED_PATH, then the copy this command downloaded into the data

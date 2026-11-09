@@ -22,7 +22,7 @@ Run on Windows to exercise the actual Windows tray implementation.
 
 Unit tests additionally cover minimized/maximized restoration, renderer
 failure, a renderer that never mounts, quit during startup, missing-tray
-fallback, and the existing server shutdown and updater instance-lock paths.
+fallback, and the existing server shutdown paths.
 
 These checks do not exercise physical clicks on the Windows notification-area
 menu, the full packaged app, update downloads, or helper-console suppression.

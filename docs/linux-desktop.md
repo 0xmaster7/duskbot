@@ -100,20 +100,6 @@ A full desktop install (for example EndeavourOS with KDE or GNOME) usually has a
 `--needed` skips the ones that are present. This was checked with the v0.1.138 AppImage on a current Arch
 Linux image (fuse3 3.18, gtk3 3.24, mesa 26.2): the app opens to the welcome screen.
 
-### Updating
-
-The app checks for updates in the background and downloads them by itself. Nothing restarts until you click
-**Restart to update**.
-
-- **Debian package.** The click asks for your password once, in the system's own prompt, installs the update with
-  `apt-get` (so new dependencies are resolved) and reopens OpenMausBot. The downloaded file is copied to a
-  root-only folder and checked against the checksum in the update feed first; a file that does not match is
-  refused and nothing is installed. Closing the prompt leaves the update ready to try again. If the session cannot
-  show a prompt (SSH, no desktop, no `pkexec`), the app falls back to copying the `sudo apt-get install` command
-  and opening a terminal, and says why. Set `OMB_UPDATE_INSTALL=terminal` to always use the terminal.
-- **AppImage.** The update replaces the AppImage when you restart; no password is needed.
-- **rpm and pacman packages** still use the terminal hand-off.
-
 ### Bundled bot browser on Ubuntu 24.04
 
 The desktop packages include the browser engine and browser runtime; no separate browser download is needed.

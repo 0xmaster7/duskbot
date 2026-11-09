@@ -1,4 +1,3 @@
-import { hostedWorkspaceConfiguration } from "../hosted-workspace.ts";
 import { runsElsewhere, type McpConfig, type McpConfigDeps, type McpConfigResult } from "../host/mcp-config.ts";
 import { McpOAuthError, McpSignInError, mcpCallbackOrigin } from "../mcp-oauth.ts";
 import { isRemoteMcpServer, mcpServerBody, mcpServerServes, parseMcpServerMutation, parseMcpServersImport, parseStoredMcpServer } from "../mcp-registry.ts";
@@ -128,7 +127,7 @@ export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
           const remote = auth.kind === "session" && (isProxied(req) || !isLoopbackHost(req.headers.host));
           const origin = remote
             ? mcpCallbackOrigin(provesSameOrigin(req) ? requestOrigin(req) : null,
-              [CLOUD_HOME?.publicOrigin, hostedWorkspaceConfiguration()?.tenant.origin, savedCustomDomain(), FALLBACK_PUBLIC_URL])
+              [CLOUD_HOME?.publicOrigin, savedCustomDomain(), FALLBACK_PUBLIC_URL])
             : null;
           const started = await mcpOAuth.start(name!, url, undefined, owner, { remote, origin });
           if (auth.kind === "session" && !sessions.isLive(auth.session.id)) {

@@ -1,4 +1,4 @@
-// the account contract of the hosted service (dashboard/server): who a person is, how they sign in, and the sessions
+// the account contract of the hosted service (apps/dashboard/server): who a person is, how they sign in, and the sessions
 // the website and the apps hold. version 1. the Admin contract v1 routes the desktop app already speaks
 // (/api/cloud/app/sign-in/*, /api/cloud/desktop/{authorize,token,session}) keep their shapes; everything here is additive.
 // owned by the accounts work: other modules import it, they do not edit it.

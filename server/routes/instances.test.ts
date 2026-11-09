@@ -38,7 +38,7 @@ async function serve(extra: Partial<InstanceRouteDeps> = {}) {
     registry,
     sessions: { isLive: () => true },
     providerAuthSessions: new ProviderAuthSessions(),
-    hostedModels: false,
+
     providerConfigBusy: { get: () => false, set: () => {} },
     providerInstancesChanging: new Set<string>(),
     describeInstances: () => registry.describe({ reuse: { ms: ENGINE_LIST_REUSE_MS, changed: () => {} } }),
@@ -138,7 +138,7 @@ describe("installing an engine's own build from Settings", () => {
       },
       sessions: { isLive: () => true },
       providerAuthSessions: new ProviderAuthSessions(),
-      hostedModels: false,
+
       providerConfigBusy: { get: () => options.busy === true, set: () => {} },
       providerInstancesChanging: new Set<string>(),
       describeInstances: async () => [],

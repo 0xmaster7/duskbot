@@ -5,7 +5,7 @@ import { createServer, request } from "node:http";
 import { connect as netConnect, createServer as createTcpServer } from "node:net";
 import test, { mock } from "node:test";
 
-import { createServing } from "../link-service/agent.mjs";
+import { createServing } from "../apps/link-service/agent.mjs";
 import { BACKOFF_MS, createDirectLink, networkFingerprint, newDirectKey, sshConnector } from "./vps-link-direct.mjs";
 import { createTunnelProxy, openFrame, sealFrame } from "./vps-link-protocol.mjs";
 

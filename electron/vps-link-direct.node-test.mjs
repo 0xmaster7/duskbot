@@ -1,5 +1,5 @@
 // the direct path: the app's half (vps-link-direct.mjs, vps-link-protocol.mjs) against the agent's real half
-// (link-service/agent.mjs serveDirect), with an in-memory pipe for the ssh channel and a small fake relay beside it.
+// (apps/link-service/agent.mjs serveDirect), with an in-memory pipe for the ssh channel and a small fake relay beside it.
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer, request } from "node:http";
@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 
-import { control, createServing, directKeyLine, refreshDirectKey, serveDirect, setDirectKey } from "../link-service/agent.mjs";
+import { control, createServing, directKeyLine, refreshDirectKey, serveDirect, setDirectKey } from "../apps/link-service/agent.mjs";
 import { DIRECT_MAGIC, createDirectWriter, directReader, loadSsh2, newDirectKey, sshConnector } from "./vps-link-direct.mjs";
 import { createTunnelProxy, openFrame, sealFrame } from "./vps-link-protocol.mjs";
 import { createVpsLink } from "./vps-link.mjs";
@@ -346,7 +346,7 @@ test("the app asks a linked server for a direct key once, keeps it protected, an
 
 test("the blocks shared with the agent are the same text on both sides", () => {
   const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-  const agent = read("../link-service/agent.mjs");
+  const agent = read("../apps/link-service/agent.mjs");
   const between = (text, from, to) => text.slice(text.indexOf(from), text.indexOf(to));
   for (const [file, from, to] of [
     ["./vps-link-direct.mjs", "/** each end writes this first", "// ---- end direct transport ----"],

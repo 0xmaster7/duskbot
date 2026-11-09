@@ -9,11 +9,11 @@ import { createServer, request as httpRequest, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { createMobileSessions } from "../companion/src/mobile.ts";
-import { createProxyHandler } from "../companion/src/proxy.ts";
+import { createMobileSessions } from "../apps/companion/src/mobile.ts";
+import { createProxyHandler } from "../apps/companion/src/proxy.ts";
 import { createTunnelProxy, sealKeyOf, sha256hex, x25519Pair } from "../electron/vps-link-protocol.mjs";
-import { createPhoneHub, harnessSync } from "../link-service/agent.mjs";
-import { createLinkService } from "../link-service/src/app.mjs";
+import { createPhoneHub, harnessSync } from "../apps/link-service/agent.mjs";
+import { createLinkService } from "../apps/link-service/src/app.mjs";
 import { parseMobileLink, type MobilePairingResponse, type MobileRedeemResponse } from "../shared/mobile-link.ts";
 import { lookupKeys, openLookup } from "../server/mobile/lookup.ts";
 
@@ -160,7 +160,7 @@ async function exercise(label: string, harness: string, phone: ReturnType<typeof
 async function relayPath(harness: string, botId: string, cleanups: Array<() => unknown>) {
   const dir = mkdtempSync(join(tmpdir(), "omb-mobile-relay-"));
   cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
-  const service = createLinkService({ base: "http://link.test", dataDir: join(dir, "data"), scriptPath: "link-service/install.sh", agentPath: "link-service/agent.mjs", trustProxy: false });
+  const service = createLinkService({ base: "http://link.test", dataDir: join(dir, "data"), scriptPath: "apps/link-service/install.sh", agentPath: "apps/link-service/agent.mjs", trustProxy: false });
   const relayServer = createServer((req, res) => void service.handler(req, res));
   const base = `http://127.0.0.1:${await listen(relayServer)}`;
   cleanups.push(() => { relayServer.closeAllConnections(); relayServer.close(); service.close(); });

@@ -65,7 +65,7 @@ async function vpsThread({ relayBase, directPort, gzip, ca }) {
   // without --gzip the stream is written as the server wrote it before server/harness/sse-gzip.ts
   const { gzipTunnelReplies } = gzip ? await import("../server/harness/tunnel-gzip.ts") : {};
   const { openEventStream } = gzip ? await import("../server/harness/sse-gzip.ts") : { openEventStream: (res, headers) => { res.writeHead(200, headers); return res; } };
-  const { createTunnelAgent, keepAliveFetch, openFrame, relayFetch, serveDirect } = await import("../link-service/agent.mjs");
+  const { createTunnelAgent, keepAliveFetch, openFrame, relayFetch, serveDirect } = await import("../apps/link-service/agent.mjs");
   const key = Buffer.from(keyText, "base64url");
   const streams = new Set();
   const marks = [];
@@ -157,10 +157,10 @@ async function relayThread({ tls }) {
   const { createServer } = await import("node:http");
   const { createSecureServer } = await import("node:http2");
   const { fileURLToPath } = await import("node:url");
-  const { createLinkService, sha256hex } = await import("../link-service/src/app.mjs");
-  const { openFrame } = await import("../link-service/agent.mjs");
+  const { createLinkService, sha256hex } = await import("../apps/link-service/src/app.mjs");
+  const { openFrame } = await import("../apps/link-service/agent.mjs");
   const key = Buffer.from(keyText, "base64url");
-  const root = fileURLToPath(new URL("../link-service/", import.meta.url));
+  const root = fileURLToPath(new URL("../apps/link-service/", import.meta.url));
   const service = createLinkService({ base: "http://fixture.invalid", scriptPath: `${root}install.sh`, agentPath: `${root}agent.mjs`, trustProxy: false });
   service.store.tunnels.set(id, { id, vpsVerifier: sha256hex(vpsToken), appVerifier: sha256hex(appToken) });
   const marks = [];
@@ -189,7 +189,7 @@ async function relayThread({ tls }) {
     void service.handler(req, res);
   };
   const server = tls ? createSecureServer({ ...tls, allowHTTP1: true }, handle) : createServer(handle);
-  // as link-service/src/server.mjs: an idle keep-alive socket is not closed under a client about to reuse it
+  // as apps/link-service/src/server.mjs: an idle keep-alive socket is not closed under a client about to reuse it
   server.keepAliveTimeout = 65_000;
   const port = await listen(server);
   parentPort.on("message", (message) => { if (message.t === "marks") parentPort.postMessage({ t: "marks", marks: marks.splice(0) }); });

@@ -1,7 +1,7 @@
 // "Route traffic through this computer": the bot computers on this linked VPS send their browsers' web traffic out
 // through the person's own computer while it is online, and through this server's network while it is not.
 //
-// The link agent (link-service/agent.mjs createEgressProxy) serves the proxy on the bot computers' bridge and says
+// The link agent (apps/link-service/agent.mjs createEgressProxy) serves the proxy on the bot computers' bridge and says
 // every few seconds whether the person's computer takes streams. This side turns the setting and that report into a
 // Chromium managed policy inside each running bot computer: a PAC script that tries the proxy and falls back to a
 // direct connection, written only while the route is up and the box can reach the proxy, removed otherwise. Chromium

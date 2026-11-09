@@ -41,7 +41,7 @@ unchanged. The desktop and web app show that sentence under the call button
 with **Open API keys**, which opens Settings at API keys.
 
 ```sh
-pnpm exec vitest run server/live-settings.test.ts server/live-call-controller.test.ts server/routes/live.test.ts companion/test/proxy-response.test.ts
+pnpm exec vitest run server/live-settings.test.ts server/live-call-controller.test.ts server/routes/live.test.ts apps/companion/test/proxy-response.test.ts
 pnpm exec vitest run src/lib/live-call-media.test.ts src/components/CallView.live-mode.test.ts src/components/LiveKeyNeeded.test.ts src/components/LiveCallBar.render.test.ts
 ```
 
@@ -114,8 +114,6 @@ without the admin scope `live.provider`, never `azureEndpoint` or
 `azureDeployment`. `server/live-access.test.ts` runs each caller above through
 the sign-in gate and the limit. `server/live-azure-access.e2e.test.ts` does it on
 the full server with a made-up key and its `fetch` stubbed.
-`server/hosted-access.test.ts` does it for a shared workspace, with no key saved,
-so a caller who gets through stops at the setup prompt.
 
 ## User path
 

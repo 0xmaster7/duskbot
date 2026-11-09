@@ -19,9 +19,7 @@ release
 .wrangler/
 .dev.vars
 .dev.vars.*
-!cloudflare/control-plane/.dev.vars.example
-cloudflare/composio-broker/worker-configuration.d.ts
-cloudflare/control-plane/worker-configuration.d.ts
+apps/cloudflare/composio-broker/worker-configuration.d.ts
 .claude/worktrees/
 .vercel/
 .pi/
@@ -36,9 +34,6 @@ cloudflare/control-plane/worker-configuration.d.ts
 
 # per-tenant deploy settings (see deploy/.env.example)
 deploy/.env
-deploy/podman/.env
-deploy/podman/.env.*
-!deploy/podman/.env.example
 /.env
 .env*
 !.env.example

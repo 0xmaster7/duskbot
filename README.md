@@ -458,7 +458,7 @@ No code needed at all for your own engines: any ACP-speaking CLI or OpenAI-compa
 plugs in through config — see [`docs/custom-engines.md`](docs/custom-engines.md).
 Users can add their own MCP tool servers with zero code via [`docs/custom-mcp-servers.md`](docs/custom-mcp-servers.md).
 To run bots on OpenRouter, Fireworks AI, DeepSeek, Cline or your own OpenAI- or Anthropic-compatible provider,
-see [Other model providers](apps/docs/content/docs/providers/model-providers.mdx).
+see [Other model providers](docs/custom-engines.md).
 
 ## Privacy
 
@@ -520,8 +520,8 @@ AI-provider sign-in. Devices pair once with a short code. The deployment guide i
 
 This repository is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE): free for
 noncommercial use, commercial use needs a separate license. The original OpenMausBot code, © 2026 Milind Soni and
-OpenMausBot contributors, stays under the Apache License 2.0; that license and its NOTICE are in [`licenses/`](licenses/).
-See [LICENSING.md](LICENSING.md).
+OpenMausBot contributors, stays under the Apache License 2.0; that license and its NOTICE are in [`third_party/openmausbot/`](third_party/openmausbot/).
+See [LICENSING.md](docs/LICENSING.md).
 
 Packaged Cua Driver components retain their upstream MIT, SIL OFL 1.1, MPL-2.0, and other dependency terms;
 the corresponding notices, license texts, source locations, and SBOM are in
