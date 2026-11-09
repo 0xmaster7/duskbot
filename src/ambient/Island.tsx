@@ -17,7 +17,7 @@ const PANEL_W = 432;
 /** The flares where a notch island meets the top edge of the screen. */
 const EAR = 10;
 /** The island stays this long after the pointer leaves, and keeps a little margin around it while open. */
-const HOVER_OUT_MS = 150;
+const HOVER_OUT_MS = 260;
 const GRACE = 16;
 /** Longer than the island takes to fold away. */
 const CHAT_RESET_MS = 450;
@@ -212,7 +212,7 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
           style={{ paddingTop: c.height }}
           initial={false}
           animate={open ? { opacity: 1, y: 0 } : { opacity: 0, y: reduced ? 0 : -6 }}
-          transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: { duration: 0.12, ease: EASE_OUT }, y: ISLAND_EXIT }}
+          transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: { duration: 0.2, ease: EASE_OUT }, y: ISLAND_EXIT }}
         >
           <div ref={panel}>
             <PanelBody bots={bots} seen={seen} mark={mark} cheer={allClear} labels={labels} lang={lang} open={open} bridge={bridge} onPin={setPinned} />

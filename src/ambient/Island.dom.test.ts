@@ -80,7 +80,7 @@ it("opens a row into that bot's mini chat in place, with its messages and a repl
   await act(async () => root.unmount());
 });
 
-it("closes in a balanced beat: a pointer in the margin or back within 150 ms keeps it open, then it folds", async () => {
+it("closes in a balanced beat: a pointer in the margin or back within 260 ms keeps it open, then it folds", async () => {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
   const bridge: AmbientBridge = {
     surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act() {}, order() {}, ready() {},
@@ -108,7 +108,7 @@ it("closes in a balanced beat: a pointer in the margin or back within 150 ms kee
   expect(stage.hasAttribute("data-open")).toBe(true);
   // away for good: open a beat, then folded
   await move(10, 490);
-  await wait(90);
+  await wait(200);
   expect(stage.hasAttribute("data-open")).toBe(true);
   await wait(120);
   expect(stage.hasAttribute("data-open")).toBe(false);
