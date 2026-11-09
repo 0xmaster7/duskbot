@@ -20,8 +20,17 @@ const listeners = new Map<string, Set<() => void>>();
 const orphanTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const streamed = new Set<string>();
 
+const anyListeners = new Set<() => void>();
+
 function notify(threadId: string): void {
   for (const listener of Array.from(listeners.get(threadId) ?? [])) listener();
+  for (const listener of Array.from(anyListeners)) listener();
+}
+
+/** Any thread's streaming reply changed (the island and the dock show it as it streams: src/ambient/AmbientPublisher). */
+export function onAnyLiveReply(listener: () => void): () => void {
+  anyListeners.add(listener);
+  return () => { anyListeners.delete(listener); };
 }
 
 function cancelOrphan(threadId: string): void {

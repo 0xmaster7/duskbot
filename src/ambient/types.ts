@@ -35,8 +35,19 @@ export interface AmbientBot {
   step?: AmbientStep | null;
   /** The person watched this turn or this news in the app's own focused window: nothing here to catch their eye. */
   quiet?: boolean;
-  /** The newest few messages of its chat, plain text, for the surfaces' mini chat. */
+  /** The newest messages of its chat, plain text, for the surfaces' chat: a few for every bot, a long stretch for the one
+   * a surface is showing (AmbientViewing). */
   chat?: AmbientMessage[];
+  /** The reply it is writing right now, as far as it has got. */
+  streaming?: string;
+  /** Older messages wait to be loaded for it. */
+  hasMore?: boolean;
+}
+
+/** The bot a surface is showing a chat for, and how many of its messages it wants. */
+export interface AmbientViewing {
+  botId: string;
+  limit: number;
 }
 
 export interface AmbientMessage {
@@ -101,6 +112,8 @@ export interface AmbientBridge {
   typing?(on: boolean): void;
   /** The surface has finished closing (absent on an older app). */
   settled?(): void;
+  /** The chat this surface shows now (null when none), so that bot's summary carries a long stretch of it. */
+  viewing?(viewing: AmbientViewing | null): void;
   /** Present only while main traces the surfaces (OMB_AMBIENT_TRACE): one event of this page's side of the timeline. */
   trace?(event: string, detail?: string): void;
   open(botId: string, threadId: string): void;
@@ -120,6 +133,8 @@ export interface AmbientAppBridge {
   onWanted(cb: (wanted: boolean) => void): () => void;
   publish(snapshot: AmbientSnapshot): void;
   onAct(cb: (act: AmbientAct) => void): () => void;
+  /** Which bot's chat a surface is showing (absent on an older app). */
+  onViewing?(cb: (viewing: AmbientViewing | null) => void): () => void;
 }
 
 /** The app page's side of electron/desktop-bots.mjs: its working bots for ⌘Q, the pill a single ⌘Q shows, and Stop. */

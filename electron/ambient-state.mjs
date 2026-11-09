@@ -9,9 +9,14 @@ const ID = /^[\w.:-]{1,128}$/;
 const BODY = /^[a-z0-9-]{1,40}$/;
 const MAX_BOTS = 40;
 const MAX_CHOICES = 4;
-/** A mini chat: the newest few messages of a bot's chat, each cut short. */
-const MAX_CHAT = 6;
-const MAX_CHAT_TEXT = 500;
+/** A bot's chat: the newest few messages of each, a long stretch of the one a surface shows, each cut short, and never
+ * more than MAX_CHAT_TOTAL messages in one summary. */
+const MAX_CHAT = 120;
+const MAX_CHAT_TEXT = 2000;
+const MAX_CHAT_TOTAL = 400;
+const MAX_STREAMING = 4000;
+/** Spaces collapse; a chat line keeps its line breaks. */
+const lines = (value, max) => (typeof value === "string" ? value.replace(/\r/g, "").replace(/[^\S\n]+/g, " ").replace(/ *\n[\n ]*/g, "\n").trim().slice(0, max) : "");
 const WAITS = ["question", "approval", "sign-in", "password", "connect", "review", "other"];
 const STEPS = ["thinking", "reply", "read", "fetch", "web", "search", "command", "write", "edit", "tool"];
 /** A typed answer to a question that takes one. */
@@ -27,7 +32,7 @@ const avatar = value => (typeof value === "string" && /^\/[^/\\]/.test(value) &&
 
 function chatLine(raw, index) {
   if (!raw || typeof raw !== "object") return null;
-  const said = text(raw.text, MAX_CHAT_TEXT);
+  const said = lines(raw.text, MAX_CHAT_TEXT);
   if (!said) return null;
   return { id: id(raw.id) ?? `m${index}`, from: raw.from === "you" ? "you" : "bot", text: said, at: Number.isFinite(raw.at) && raw.at > 0 ? Math.floor(raw.at) : 0 };
 }
@@ -65,6 +70,8 @@ function bot(raw) {
     step: STEPS.includes(raw.step) ? raw.step : null,
     quiet: raw.quiet === true,
     chat: Array.isArray(raw.chat) ? raw.chat.slice(-MAX_CHAT).map(chatLine).filter(Boolean) : [],
+    ...(typeof raw.streaming === "string" && raw.streaming.trim() ? { streaming: lines(raw.streaming, MAX_STREAMING) } : {}),
+    ...(raw.hasMore === true ? { hasMore: true } : {}),
   };
 }
 
@@ -73,10 +80,13 @@ export function parseSnapshot(raw) {
   if (!raw || typeof raw !== "object" || !Array.isArray(raw.bots)) return null;
   const seen = new Set();
   const bots = [];
+  let budget = MAX_CHAT_TOTAL;
   for (const entry of raw.bots.slice(0, MAX_BOTS)) {
     const parsed = bot(entry);
     if (!parsed || seen.has(parsed.id)) continue;
     seen.add(parsed.id);
+    parsed.chat = budget > 0 ? parsed.chat.slice(-budget) : [];
+    budget -= parsed.chat.length;
     bots.push(parsed);
   }
   // the page's own words for the surfaces, already in the person's language, so their pages carry no language packs

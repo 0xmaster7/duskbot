@@ -15,7 +15,8 @@ import { answersInOneTap, cardQuestions } from "@/components/QuestionCard";
 import { isQuestionCard } from "@/lib/question-card";
 import { openPersonWait, restingOnPerson, type PersonWait } from "../../shared/person-wait";
 import { ambientLabels } from "./labels";
-import type { AmbientBot, AmbientMessage, AmbientSnapshot, AmbientStatus, AmbientStep, AmbientWait } from "./types";
+import type { AmbientBot, AmbientMessage, AmbientSnapshot, AmbientStatus, AmbientStep, AmbientViewing, AmbientWait } from "./types";
+import { liveReply, shownReplyText } from "@/state/live-reply";
 import { isReceipt } from "@/lib/receipts";
 import { withoutCitationMarkers } from "@/lib/citations";
 import { isClientCancellation } from "../../shared/client-cancel";
@@ -73,21 +74,33 @@ const stepOf = (live: TurnLive): AmbientStep | null => {
   return activity && STEPS.has(activity as AmbientStep) ? (activity as AmbientStep) : null;
 };
 
-/** The mini chat holds this many of the newest messages, each cut to this length. */
+/** Every bot's summary holds this many of its newest messages, each cut to this length; the bot a surface shows holds
+ * up to AmbientViewing.limit of them, each cut to the longer length. */
 export const CHAT_MESSAGES = 6;
 const CHAT_CHARS = 500;
+export const VIEWED_CHARS = 2000;
+/** The longest stretch of one chat a surface may ask for. */
+export const VIEWED_MAX = 120;
+const STREAM_CHARS = 4000;
 
 /** The newest things said in the chat, as plain text: the person's messages and the bot's replies, nothing else. */
-export function chatOf(visible: readonly Message[]): AmbientMessage[] {
+export function chatOf(visible: readonly Message[], limit = CHAT_MESSAGES, chars = CHAT_CHARS): AmbientMessage[] {
   const said: AmbientMessage[] = [];
-  for (let index = visible.length - 1; index >= 0 && said.length < CHAT_MESSAGES; index--) {
+  for (let index = visible.length - 1; index >= 0 && said.length < limit; index--) {
     const message = visible[index]!;
     if (message.kind !== "text" || isReceipt(message)) continue;
-    const text = plainPreviewText(withoutCitationMarkers(message.text ?? "")).slice(0, CHAT_CHARS);
+    const raw = withoutCitationMarkers(message.text ?? "");
+    // a long stretch keeps its lines, each read plain; a preview is one line
+    const text = (chars > CHAT_CHARS ? raw.split(/\n+/).map(plainPreviewText).filter(Boolean).join("\n") : plainPreviewText(raw)).slice(0, chars);
     if (!text || (message.role !== "user" && isClientCancellation(message.text ?? ""))) continue;
     said.unshift({ id: message.id, from: message.role === "user" ? "you" : "bot", text, at: message.at });
   }
   return said;
+}
+
+function streamingOf(threadId: string): { streaming?: string } {
+  const text = liveReply(threadId)?.text;
+  return text ? { streaming: plainPreviewText(shownReplyText(text)).slice(-STREAM_CHARS) } : {};
 }
 
 /** What a wait without a card of its own says it needs, in the person's words. */
@@ -101,7 +114,7 @@ function askLine(wait: PersonWait): string {
   return "";
 }
 
-export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threadId: string) => TurnLive): AmbientBot {
+export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threadId: string) => TurnLive, viewed = 0): AmbientBot {
   const visible = sidebarPreviewMessages(bot);
   const approvals = pendingApprovals(visible);
   const asks = Math.max(openAsksOf(bot), approvals.length);
@@ -138,7 +151,10 @@ export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threa
       ? { requestId: question.card.requestId!, threadId: bot.threadId, title: cardQuestions(question.card)[0]?.question || question.card.title, choices: question.choices ?? [], custom: question.custom }
       : null,
     step: bot.busy ? stepOf(live) : null,
-    chat: chatOf(visible),
+    chat: viewed ? chatOf(visible, Math.min(VIEWED_MAX, viewed), VIEWED_CHARS) : chatOf(visible),
+    // what it is writing now, word by word, in the chat it writes it to
+    ...(bot.busy ? streamingOf(workingOn) : {}),
+    ...(viewed && bot.hasMore ? { hasMore: true } : {}),
   };
 }
 
@@ -165,11 +181,11 @@ function watching(bot: Bot, ambient: AmbientBot, watch: Watch): AmbientBot {
 }
 
 /** Every bot the sidebar lists, as the surfaces show them. */
-export function ambientSnapshot(bots: Bot[], instances: InstanceInfo[], turnLive: (threadId: string) => TurnLive, lang: string, watch?: Watch): AmbientSnapshot {
+export function ambientSnapshot(bots: Bot[], instances: InstanceInfo[], turnLive: (threadId: string) => TurnLive, lang: string, watch?: Watch, viewing?: AmbientViewing | null): AmbientSnapshot {
   const shown = bots.filter((bot) => !bot.hidden && !bot.movedTo);
   return {
     bots: shown.map((bot) => {
-      const ambient = ambientBot(bot, instances, turnLive);
+      const ambient = ambientBot(bot, instances, turnLive, viewing?.botId === bot.id ? viewing.limit : 0);
       return watch ? watching(bot, ambient, watch) : ambient;
     }),
     labels: ambientLabels(),

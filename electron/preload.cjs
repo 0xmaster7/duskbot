@@ -230,6 +230,11 @@ const bridge = {
       return () => ipcRenderer.removeListener("ambient:wanted", handler);
     },
     publish: (snapshot) => ipcRenderer.send("ambient:publish", snapshot),
+    onViewing: (cb) => {
+      const handler = (_event, viewing) => cb(viewing && typeof viewing === "object" ? viewing : null);
+      ipcRenderer.on("ambient:viewing", handler);
+      return () => ipcRenderer.removeListener("ambient:viewing", handler);
+    },
     onAct: (cb) => {
       const handler = (_event, act) => cb(act);
       ipcRenderer.on("ambient:act", handler);

@@ -81,7 +81,10 @@
 [data-status="done"] > .amb-dot { background: var(--amb-ok); }
 [data-status="working"] > .amb-dot { background: var(--amb-ink); }
 .amb-recent-head { margin: 10px 0 2px; padding-inline: 8px; font-size: 11px; line-height: 16px; font-weight: 550; color: var(--amb-ink-3); }
-.amb-rows { position: relative; list-style: none; margin: 2px 0 0; padding: 0; max-height: 392px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; scrollbar-width: thin; scrollbar-color: rgb(245 245 245 / 0.18) transparent; }
+/* the one highlight that glides from row to row (rows.tsx useHoverBand): under the rows, out of their flow, never
+   in the way of a click */
+.amb-band { position: absolute; top: 0; left: 0; right: 0; border-radius: 14px; background: var(--amb-raised); pointer-events: none; list-style: none; }
+.amb-rows { position: relative; list-style: none; margin: 2px 0 0; padding: 0; max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; scrollbar-width: thin; scrollbar-color: rgb(245 245 245 / 0.18) transparent; }
 
 /* one bot: the dock puts its mascot at the edge and its words to the left; the island the other way round */
 .amb-row { position: relative; display: grid; align-items: center; border-radius: 14px; transition: background-color var(--amb-fast) ease; }
@@ -230,7 +233,7 @@
 .amb-row[data-side="card"] .amb-row-words { white-space: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
 
 /* a bot's chat, small: the dock's card and an opened island row */
-.amb-chat { display: flex; flex-direction: column; min-width: 0; }
+.amb-chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .amb-chat-head { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 6px 4px 2px 12px; }
 .amb-chat-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; line-height: 16px; color: var(--amb-ink-3); white-space: nowrap; }
 .amb-chat-status[data-status="needs-you"] { color: var(--amb-blue); }
@@ -238,11 +241,11 @@
 .amb-chat-head .amb-row-time { margin-inline-start: 0; }
 .amb-chat-tools { display: flex; align-items: center; gap: 0; margin-inline-start: auto; }
 .amb-chat-list {
-  display: flex; flex-direction: column; gap: 6px; padding: 6px 12px 8px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 6px 12px 8px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
   scrollbar-color: rgb(245 245 245 / 0.16) transparent; user-select: text;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%);
 }
-.amb-bubble-msg { flex-shrink: 0; margin: 0; max-width: 86%; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); overflow-wrap: anywhere; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+.amb-bubble-msg { flex-shrink: 0; margin: 0; max-width: 86%; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); overflow-wrap: anywhere; white-space: pre-wrap; }
 .amb-bubble-msg[data-from="you"] { align-self: flex-end; padding: 6px 10px; border-radius: 14px 14px 4px 14px; background: var(--amb-raised-hover); }
 .amb-bubble-msg[data-from="bot"] { align-self: flex-start; color: rgb(245 245 245 / 0.86); }
 .amb-chat-note { flex-shrink: 0; display: flex; align-items: flex-start; gap: 5px; margin: 0; font-size: 12px; line-height: 16px; color: var(--amb-ink-3); }
@@ -250,7 +253,17 @@
 .amb-chat-note[data-kind="error"] { color: var(--amb-bad-ink); }
 .amb-chat-ask { padding: 2px 12px 8px; }
 .amb-chat-ask-line { margin: 0 0 2px; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); }
-.amb-chat-compose { padding: 4px 8px 8px; }
+.amb-chat-compose { flex-shrink: 0; padding: 4px 8px 8px; }
+.amb-chat-head, .amb-tray-wrap { flex-shrink: 0; }
+.amb-bubble-msg[data-pending] { opacity: 0.7; }
+/* a reply as it streams, with a soft caret at its end */
+.amb-bubble-msg[data-streaming]::after { content: ""; display: inline-block; width: 6px; height: 12px; margin-inline-start: 2px; vertical-align: -1px; border-radius: 2px; background: var(--amb-ink-3); animation: amb-caret 1s steps(2, start) infinite; }
+@keyframes amb-caret { to { visibility: hidden; } }
+.amb-dots { display: inline-flex; gap: 3px; align-items: center; margin-top: 6px; }
+.amb-dots > i { width: 4px; height: 4px; border-radius: 50%; background: var(--amb-ink-3); animation: amb-dot 1.2s ease-in-out infinite; }
+.amb-dots > i:nth-child(2) { animation-delay: 0.15s; }
+.amb-dots > i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes amb-dot { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-2px); } }
 /* the island showing one bot's chat: a way back on the left, the chat beside it */
 .amb-island-chat { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: start; margin-top: 2px; }
 .amb-back {
@@ -274,6 +287,7 @@
   .amb-back:hover { background: var(--amb-raised); color: var(--amb-ink); }
 }
 @media (prefers-reduced-motion: reduce) {
+  .amb-dots > i, .amb-bubble-msg[data-streaming]::after { animation: none; }
   .amb-dock:not([data-hidden]) .amb-pip { animation: none; }
   .amb-lift { transition: none; }
   .amb-breathe[data-on] { animation: none; }

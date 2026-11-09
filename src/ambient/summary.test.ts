@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { Bot, Message } from "@/state/store";
 import { noteTurnEvent, resetTurnLive, turnLive } from "@/state/turn-status";
+import { noteReplyEvent, resetLiveReplies } from "@/state/live-reply";
 import { ambientBot, ambientSnapshot } from "./summary";
 
 let at = 0;
@@ -74,6 +75,18 @@ describe("the summary the island and the dock draw", () => {
     expect(ambientBot(bot({ messages: said }), [], turnLive).chat?.map((entry) => [entry.from, entry.text])).toEqual([["you", "Plan Friday"], ["bot", "Booked the table for 8."]]);
     const many = Array.from({ length: 10 }, (_, index) => message({ text: `line ${index}` }));
     expect(ambientBot(bot({ messages: many }), [], turnLive).chat?.map((entry) => entry.text)).toEqual(["line 4", "line 5", "line 6", "line 7", "line 8", "line 9"]);
+  });
+
+  it("carries the reply a working bot is writing, and a long stretch with its lines for the bot a surface shows", () => {
+    const busy = bot({ busy: true, messages: [message({ role: "user", text: "Plan Friday" })] });
+    noteReplyEvent({ type: "content.delta", threadId: "t1", turnId: "u1", streamKind: "assistant_text", delta: "Booked **the** table" } as never);
+    expect(ambientBot(busy, [], turnLive).streaming).toBe("Booked the table");
+    resetLiveReplies();
+    const long = bot({ messages: Array.from({ length: 50 }, (_, index) => message({ text: index === 49 ? "First line\n\n- second line" : `line ${index}` })) });
+    expect(ambientBot(long, [], turnLive).chat).toHaveLength(6);
+    const viewed = ambientBot(long, [], turnLive, 40).chat!;
+    expect(viewed).toHaveLength(40);
+    expect(viewed.at(-1)!.text).toBe("First line\nsecond line");
   });
 
   it("marks an unread reply done, a failed step an error, and the rest idle with their newest line", () => {
