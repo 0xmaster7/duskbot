@@ -10,17 +10,17 @@ import { MiniChat } from "./MiniChat";
 import { BotRow, useHoverBand, useRowMoments } from "./rows";
 import { attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, EASE_OUT, FADE, FADE_OUT, HOLD_MS, SOFT_EXIT, useSettledSignal, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, HOLD_MS, ISLAND_EXIT, useSettledSignal, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, IslandLayout } from "./types";
 
 const PANEL_W = 432;
 /** The flares where a notch island meets the top edge of the screen. */
 const EAR = 10;
 /** The island stays this long after the pointer leaves, and keeps a little margin around it while open. */
-const HOVER_OUT_MS = 300;
+const HOVER_OUT_MS = 150;
 const GRACE = 16;
 /** Longer than the island takes to fold away. */
-const CHAT_RESET_MS = 600;
+const CHAT_RESET_MS = 450;
 /** The island widens this much for a moment when someone starts needing the person, or a turn finishes. */
 const NUDGE = 22;
 const NUDGE_MS = 1600;
@@ -95,8 +95,8 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   const targetW = open ? panelW : restW;
   const targetH = open ? openH : c.height;
 
-  const w = useSurfaceValue(targetW, reduced, undefined, SOFT_EXIT);
-  const h = useSurfaceValue(targetH, reduced, undefined, SOFT_EXIT);
+  const w = useSurfaceValue(targetW, reduced, undefined, ISLAND_EXIT);
+  const h = useSurfaceValue(targetH, reduced, undefined, ISLAND_EXIT);
 
   const closedR = notch ? Math.min(14, Math.round(c.height * 0.38)) : c.height / 2;
   const openR = notch ? 26 : 24;
@@ -200,7 +200,7 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
           style={{ paddingTop: c.height }}
           initial={false}
           animate={open ? { opacity: 1, y: 0 } : { opacity: 0, y: reduced ? 0 : -6 }}
-          transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: { duration: 0.14, ease: EASE_OUT }, y: SOFT_EXIT }}
+          transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: { duration: 0.12, ease: EASE_OUT }, y: ISLAND_EXIT }}
         >
           <div ref={panel}>
             <PanelBody bots={bots} seen={seen} mark={mark} cheer={allClear} labels={labels} lang={lang} open={open} bridge={bridge} onPin={setPinned} />
@@ -290,7 +290,6 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
     <motion.div key={bot.id} className="amb-island-chat" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0, transition: { opacity: FADE, y: SETTLE } }}>
       <button type="button" className="amb-back" aria-label={say(labels, "island")} title={say(labels, "island")} onClick={() => setChatWith(null)}>
         <ChevronLeft size={16} strokeWidth={1.75} aria-hidden />
-        <BotMark bot={bot} size={26} animated={open} awake={open} />
       </button>
       <MiniChat
         bot={bot}
@@ -352,7 +351,11 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
                   open={open}
                   sent={sent.has(bot.id)}
                   recent={recent}
-                  mascot={<BotMark bot={bot} size={30} state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : undefined} animated={open} awake={open} shown={open} index={index} cheer={cheer} />}
+                  mascot={(
+                    <button type="button" className="amb-row-open" aria-label={say(labels, "open", { name: bot.name })} title={say(labels, "openShort")} onClick={() => openChat(bot)}>
+                      <BotMark bot={bot} size={30} state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : undefined} animated={open} awake={open} shown={open} index={index} cheer={cheer} />
+                    </button>
+                  )}
                   onOpen={() => look(bot)}
                   onAct={(next) => act(bot, next)}
                   onPin={onPin}

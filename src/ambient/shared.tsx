@@ -21,6 +21,8 @@ export const EXIT = { duration: 0.14, ease: EASE_OUT } as const;
 /** Surfaces fold away gently: a long, soft ease-out, after their words have begun to fade. */
 export const SOFT_EASE = [0.25, 0.8, 0.25, 1] as const;
 export const SOFT_EXIT = { duration: 0.34, ease: SOFT_EASE, delay: 0.06 } as const;
+/** The island folds back in a balanced beat: smooth, never a snap, never dragging. */
+export const ISLAND_EXIT = { duration: 0.22, ease: SOFT_EASE, delay: 0.02 } as const;
 
 /** A number that moves to `target`: out on the settle spring, away on the quick exit clock. Retargets from wherever it
  * is, keeping its velocity. `out` says which way is out; by default growing is. */
