@@ -5,11 +5,11 @@ This repository is source-available, not open source.
 ## Which license covers what
 
 - **The work as a whole, and every change made in this fork:** the
-  [PolyForm Noncommercial License 1.0.0](LICENSE). You may use, copy, change
+  [PolyForm Noncommercial License 1.0.0](../LICENSE). You may use, copy, change
   and share it for noncommercial purposes only.
 - **The original OpenMausBot code** by Milind Soni and the OpenMausBot
-  contributors: the [Apache License 2.0](licenses/OpenMausBot-Apache-2.0.txt),
-  with its notices in [licenses/NOTICE](licenses/NOTICE). That code stays
+  contributors: the [Apache License 2.0](../third_party/openmausbot/OpenMausBot-Apache-2.0.txt),
+  with its notices in [third_party/openmausbot/NOTICE](../third_party/openmausbot/NOTICE). That code stays
   available under Apache 2.0.
 
 Files from the original project have been modified in this fork (Apache 2.0,
@@ -22,7 +22,7 @@ Commercial use needs a separate license: https://openmausbot.com.
 ## Third-party components and trademarks
 
 Bundled third-party software keeps its own licenses; notices, license texts,
-source locations and the SBOM are listed in [licenses/NOTICE](licenses/NOTICE)
-and [`third_party/`](third_party/). The OpenMausBot and MausBot names and the
+source locations and the SBOM are listed in [third_party/openmausbot/NOTICE](../third_party/openmausbot/NOTICE)
+and [`third_party/`](../third_party/). The OpenMausBot and MausBot names and the
 mascot are trademarks of Supamaus Software Private Limited; neither license
 grants trademark rights.

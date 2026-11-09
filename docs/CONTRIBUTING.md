@@ -13,7 +13,7 @@ makes a PR easy to merge. Read it once before opening anything; it's short on pu
   will do. New runtime dependencies need a reason in the PR description.
 - **Keep it green.** `pnpm typecheck && pnpm test` must pass. Server changes need tests (see below).
 - **UI changes need screenshots.** Before/after images in the PR body; video for anything animated.
-  Match the existing palette and tone in [`src/styles.css`](src/styles.css).
+  Match the existing palette and tone in [`src/styles.css`](../src/styles.css).
 
 ## Dev setup
 
@@ -39,7 +39,7 @@ pnpm package:mac   # DMG + ZIP; requires Swift/Xcode tools
 pnpm package:linux # Ubuntu x64 .deb + AppImage; no Swift required
 ```
 
-To reproduce a failing CI test job, follow [Vitest shards](docs/ci.md#vitest-shards).
+To reproduce a failing CI test job, follow [Vitest shards](ci.md#vitest-shards).
 Use the job's checkout revision, OS, file filters, shard fraction, and
 `OMB_VITEST_E2E` value; the same shard number alone does not select the same files.
 
@@ -49,7 +49,7 @@ binary. Packaging continues to use `pnpm build:cloudflared`, which stages every 
 host's desktop package build requires. To stage only the current development target without
 launching Electron, run `node scripts/prepare-cloudflared.mjs --current`.
 
-For Ubuntu installation and real desktop checks, see [`docs/linux-desktop.md`](docs/linux-desktop.md).
+For Ubuntu installation and real desktop checks, see [`docs/linux-desktop.md`](linux-desktop.md).
 
 ## Ubuntu release checklist
 
@@ -89,13 +89,13 @@ Data lives in `~/.openmausbot/` (bots, transcripts, per-thread NDJSON event logs
 The suite is colocated (`server/**/*.test.ts`) and runs with `pnpm test`. Three layers:
 
 - **Unit** — registry, bus, store. Pure in-process, use the fake driver in
-  [`server/testing/fake-driver.ts`](server/testing/fake-driver.ts).
-- **Driver contract** — [`claude.test.ts`](server/drivers/claude.test.ts) and
-  [`codex.test.ts`](server/drivers/codex.test.ts) spawn the scripted fake CLIs in `server/testing/`
+  [`server/testing/fake-driver.ts`](../server/testing/fake-driver.ts).
+- **Driver contract** — [`claude.test.ts`](../server/drivers/claude.test.ts) and
+  [`codex.test.ts`](../server/drivers/codex.test.ts) spawn the scripted fake CLIs in `server/testing/`
   and assert the canonical event stream, argv/env hygiene, interrupts, and the permission broker.
   Failure modes are toggled by env var (`FAKE_CLAUDE_MODE=exit-early`, etc.) — extend those fakes
   rather than mocking `child_process`.
-- **API smoke** — [`index.test.ts`](server/index.test.ts) boots the real server against a throwaway
+- **API smoke** — [`index.test.ts`](../server/index.test.ts) boots the real server against a throwaway
   home directory and exercises the HTTP surface.
 
 House rules for tests:
@@ -109,10 +109,10 @@ House rules for tests:
 
 ## Adding a provider driver
 
-The SPI in [`server/contracts.ts`](server/contracts.ts) is deliberately small. A driver PR should:
+The SPI in [`server/contracts.ts`](../server/contracts.ts) is deliberately small. A driver PR should:
 
 1. Add `server/drivers/<name>.ts` implementing `ProviderDriver` and register it in
-   [`builtIn.ts`](server/drivers/builtIn.ts).
+   [`builtIn.ts`](../server/drivers/builtIn.ts).
 2. `decodeConfig` **throws** on invalid config; `create` **rejects** (never throws synchronously) on
    failure — the registry downgrades both to an unavailable shadow instead of crashing the fleet.
    Do not remove or work around that behavior; it's what makes configs forward/backward compatible.
@@ -125,7 +125,7 @@ The SPI in [`server/contracts.ts`](server/contracts.ts) is deliberately small. A
 ## Agent-facing control CLIs
 
 Before claiming a server or conversation change works, use the isolated flow
-in [`docs/verification/README.md`](docs/verification/README.md). For new CLIs
+in [`docs/verification/README.md`](verification/README.md). For new CLIs
 intended for automation:
 
 - Reuse an existing MCP or API operation; keep the CLI to argument parsing and
@@ -189,7 +189,7 @@ The helper runs the model without repository access, custom instructions, or
 write-capable tools. It accepts only one complete JSON object. Do not edit
 `src/locales/source-hashes.json` for new keys: the release records their
 English source hashes. See
-[`docs/localization.md`](docs/localization.md) for the workflow and safety rules.
+[`docs/localization.md`](localization.md) for the workflow and safety rules.
 
 Only a slice of the UI is extracted so far. Move strings into the catalog
 with `t("…")` as you touch components — never in big sweeps, which conflict
@@ -258,19 +258,19 @@ out of its commits and screenshots.
 
 Every PR runs locale validation (`pnpm i18n:check`), lint, CI-selection tests,
 verification-documentation checks, and the required `CI` gate. The changed files
-select the remaining checks; see [CI job selection](docs/ci.md). Documentation-only
+select the remaining checks; see [CI job selection](ci.md). Documentation-only
 PRs run the docs tests, while translation-only PRs run the locale subset. Runtime
 changes select broader tests and smokes.
 
 - **typecheck + lint** — the static job always runs the checks above, and adds typecheck, Electron syntax checks, and a production UI build when selected. It runs before the dependent jobs.
-- **vitest (os, part)** — full platform suites use eight Linux or Windows shards and four macOS shards; subset jobs have their own file lists and shard counts. Windows jobs run on PRs whose changes can affect Windows or carry the `windows` label. macOS Vitest shards run in the nightly/manual full lane. Files run serially within each shard, balanced by recorded platform time. Use the [reproduction steps](docs/ci.md#vitest-shards) for the failing job.
+- **vitest (os, part)** — full platform suites use eight Linux or Windows shards and four macOS shards; subset jobs have their own file lists and shard counts. Windows jobs run on PRs whose changes can affect Windows or carry the `windows` label. macOS Vitest shards run in the nightly/manual full lane. Files run serially within each shard, balanced by recorded platform time. Use the [reproduction steps](ci.md#vitest-shards) for the failing job.
 - **packaged server smoke (os)** — when selected, the server bundle is copied out of the repo and started with no `node_modules` in reach.
 - **Windows CUA host smoke**, **macOS smokes (packaged server + Electron)** — when selected, real Electron utility processes run against disposable homes; never the live app.
 - **CI** — the required aggregate gate checks that selected jobs passed and unselected jobs were skipped. Its log names any failing dependency.
 
 For eligible owner runs on Boat, the static job also runs the selected Linux
 test lanes; their logs appear in groups named for each lane. Fork PRs use
-GitHub-hosted jobs. See [Linux on Boat](docs/ci.md#linux-on-boat).
+GitHub-hosted jobs. See [Linux on Boat](ci.md#linux-on-boat).
 
 A `pre-push` hook installed by `pnpm install` checks the files a push changes, in seconds: lint, the locale check when a catalog changed, and the size and vocabulary guards when a source they read changed. Typecheck and the suite stay in CI. A checkout without dependencies checks nothing and lets the push go. `git push --no-verify` skips it once; `OMB_SKIP_HOOKS=1` skips it for a session.
 
@@ -289,7 +289,7 @@ Provider fakes under `server/testing/fake-*.ts` must stay dependency-free: they 
 - [ ] UI changes include before/after screenshots
 
 By contributing you agree your contributions are licensed under the
-[PolyForm Noncommercial License 1.0.0](LICENSE); see [LICENSING.md](LICENSING.md).
+[PolyForm Noncommercial License 1.0.0](../LICENSE); see [LICENSING.md](LICENSING.md).
 
 ## Moving code out of server/index.ts
 

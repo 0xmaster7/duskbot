@@ -25,8 +25,8 @@ cpSync(join(root, "dist-server"), join(out, "dist-server"), { recursive: true })
 cpSync(join(root, "dist"), join(out, "dist"), { recursive: true });
 if (existsSync(join(root, "skills"))) cpSync(join(root, "skills"), join(out, "skills"), { recursive: true });
 cpSync(join(root, "LICENSE"), join(out, "LICENSE"));
-cpSync(join(root, "LICENSING.md"), join(out, "LICENSING.md"));
-cpSync(join(root, "licenses"), join(out, "licenses"), { recursive: true });
+cpSync(join(root, "docs", "LICENSING.md"), join(out, "LICENSING.md"));
+cpSync(join(root, "third_party", "openmausbot"), join(out, "licenses"), { recursive: true });
 
 // The bin lives next to the bundle so serverEntry() finds index.js by path.
 writeFileSync(join(out, "cli.js"), `#!/usr/bin/env node\nimport "./dist-server/openmausbot.js";\n`);
