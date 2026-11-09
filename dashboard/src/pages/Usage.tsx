@@ -222,7 +222,7 @@ export function UsagePage() {
         ) : <p className="border-y border-line py-8 text-14 text-ink-3">No usage events yet this month.</p>}
         <p className="mt-4 text-13 text-ink-3">Costs are estimates. Workspaces report daily totals, never your messages.</p>
       </section>
-      <BuyCredits open={buying} onClose={() => setBuying(false)} />
+      <BuyCredits source="dash_credits" open={buying} onClose={() => setBuying(false)} />
     </div>
   );
 }

@@ -62,6 +62,7 @@ export function Onboarding() {
             <Card className="mt-6">
               {catalog ? (
                 <QuickPick
+                  source="dash_onboarding"
                   catalog={catalog}
                   onDone={() => { setBought(true); setStep("apps"); }}
                   secondary={<Button variant="ghost" onClick={() => setStep("apps")}>Not now</Button>}

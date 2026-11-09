@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Minus, Plus } from "lucide-react";
 import { useCloud } from "../data/cloud";
-import type { BillingInterval, BundleId, LicenseId, PlanCatalog, Selection } from "../data/contracts";
+import type { BillingInterval, BundleId, CheckoutSource, LicenseId, PlanCatalog, Selection } from "../data/contracts";
 import { botsLine, bundleOf, desktopOf, dollars, licenseMonthly, licenseOf, perMonthOn, yearlyPerk } from "../data/pricing";
 import { useCart } from "../data/quote";
 import { useSession } from "../data/session";
@@ -56,7 +56,7 @@ export function planSelection(catalog: PlanCatalog, plan: PaidPlan, opts: { inte
 }
 
 /** one place to buy plus or pro: the plan, the billing period, the region and an optional work license */
-export function PlanSheet({ start, work = false, onClose }: { start: PaidPlan; work?: boolean; onClose(): void }) {
+export function PlanSheet({ start, source, work = false, onClose }: { source: CheckoutSource; start: PaidPlan; work?: boolean; onClose(): void }) {
   const { catalog, billing, checkout, changePlan } = useCloud();
   const { toast } = useSession();
   const owned = billing?.subscription?.selection ?? null;
@@ -78,7 +78,7 @@ export function PlanSheet({ start, work = false, onClose }: { start: PaidPlan; w
     setBusy(true); setError(null);
     try {
       if (owned) { await changePlan(sel); toast(`You are on ${b?.name}`); onClose(); }
-      else if (await checkout({ kind: "plan", selection: sel, bundle: null })) { toast("Paid. Your cloud desktop is being set up."); onClose(); navigate("/cloud"); }
+      else if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("Paid. Your cloud desktop is being set up."); onClose(); navigate("/cloud"); }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const line = (id: PaidPlan): ReactNode => {
@@ -151,7 +151,7 @@ function Stepper({ value, min, max, onChange }: { value: number; min: number; ma
 }
 
 /** the work license on its own: personal, one person, or a team with seats */
-export function LicenseSheet({ start, onClose, onNothingLeft }: { start: { license: LicenseId; members: number }; onClose(): void; onNothingLeft(): void }) {
+export function LicenseSheet({ start, source, onClose, onNothingLeft }: { source: CheckoutSource; start: { license: LicenseId; members: number }; onClose(): void; onNothingLeft(): void }) {
   const { catalog, billing, checkout, changePlan } = useCloud();
   const { toast } = useSession();
   const owned = billing?.subscription?.selection ?? null;
@@ -168,7 +168,7 @@ export function LicenseSheet({ start, onClose, onNothingLeft }: { start: { licen
     setBusy(true); setError(null);
     try {
       if (owned) { await changePlan(sel); toast(sel.license === "personal" ? "License removed" : "License updated"); onClose(); }
-      else if (await checkout({ kind: "plan", selection: sel, bundle: null })) { toast("License active. Thanks for backing OpenMausBot."); onClose(); }
+      else if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("License active. Thanks for backing OpenMausBot."); onClose(); }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const free = catalog.workFreeUntil && catalog.workFreeUntil > Date.now() ? catalog.workFreeUntil : null;

@@ -79,3 +79,6 @@ export const botsLine = (n: number | null) => (n === null ? "Unlimited bot compu
 
 /** how the yearly saving reads: "2 months free" when it is exactly that, else a percent */
 export const yearlyPerk = (c: Pick<PlanCatalog, "yearlyDiscount">) => (Math.abs(c.yearlyDiscount * 12 - 2) < 0.05 ? "2 months free" : `-${Math.round(c.yearlyDiscount * 100)}%`);
+
+/** a measured wake as it reads on a card: one decimal under 10 s, never "0.0" */
+export const wakeSeconds = (medianMs: number): string => (Math.max(100, medianMs) / 1000).toFixed(medianMs < 9_950 ? 1 : 0);

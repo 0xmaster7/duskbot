@@ -1,6 +1,6 @@
 import type { DeletionBlocker, DeleteAccountOptions } from "../../../shared/billing-api";
 import type { CommandKind, CommandView, WorkspaceDetail, WorkspaceSummary } from "../../../shared/dashboard-protocol";
-import type { AccountDevice, AccountProfile, AuthProviders, BillingOverview, CheckoutAnswer, CheckoutRequest, CloudDesktop, DesktopId, EmailCodeStart, Identity, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection } from "../data/contracts";
+import type { AccountDevice, AccountProfile, AuthProviders, BillingOverview, CheckoutAnswer, CheckoutRequest, CloudDesktop, DesktopId, EmailCodeStart, Identity, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection, SlackWake } from "../data/contracts";
 import { accountFromWire, billingFromWire, cartFromQuote, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire } from "../data/live";
 import { CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, type AccountAnswer, type AccountView, type BillingOverview as WireBillingOverview, type CancelAnswer, type Catalog, type ChangePreview, type CheckoutAnswer as WireCheckoutAnswer, type CloudDesktopView, type DeviceLookupAnswer, type EmailStartAnswer, type MeAnswer, type ProvidersAnswer, type Quote, type WebSignInAnswer } from "../data/wire";
 
@@ -66,7 +66,7 @@ async function call<T>(path: string, init?: { method?: string; body?: unknown; s
     res = await fetch(path, {
       method,
       credentials: "same-origin",
-      headers: { accept: "application/json", ...(init?.body !== undefined ? { "content-type": "application/json" } : {}), ...(["POST", "PATCH", "DELETE"].includes(method) ? { [CSRF_HEADER]: csrfHeader() } : {}) },
+      headers: { accept: "application/json", ...(init?.body !== undefined ? { "content-type": "application/json" } : {}), ...(["POST", "PUT", "PATCH", "DELETE"].includes(method) ? { [CSRF_HEADER]: csrfHeader() } : {}) },
       body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
       signal: init?.signal,
     });
@@ -167,7 +167,7 @@ export const api = {
   billing: async () => FIXTURE ? call<BillingOverview>("/v1/billing") : (await overview()).billing,
   checkout: async (req: CheckoutRequest): Promise<CheckoutAnswer> => {
     if (FIXTURE) return send("/v1/billing/checkout", "POST", req);
-    const answer = await send<WireCheckoutAnswer>("/v1/billing/checkout", "POST", req.kind === "plan" ? { kind: "cart", cart: cartFromSelection(req.selection, await catalog()) } : req);
+    const answer = await send<WireCheckoutAnswer>("/v1/billing/checkout", "POST", req.kind === "plan" ? { kind: "cart", source: req.source, cart: cartFromSelection(req.selection, await catalog()) } : req);
     return { url: answer.checkoutUrl, id: answer.checkoutId };
   },
   portal: () => send<{ url: string }>("/v1/billing/portal", "POST"),
@@ -188,6 +188,8 @@ export const api = {
     const answer = await send<{ cloud: CloudDesktopView }>(`${cloudPath(id)}/power`, "POST", { action: on ? "on" : "off" });
     return cloudFromWire(answer.cloud);
   },
+  slackWake: (id: string, signal?: AbortSignal) => call<SlackWake>(`${cloudPath(id)}/slack-wake`, { signal }),
+  setSlackWake: (id: string, enabled: boolean) => send<SlackWake>(`${cloudPath(id)}/slack-wake`, "PUT", { enabled }),
   resize: (id: string, req: { tier: Exclude<DesktopId, "none">; size: MachineSpec | null }) => send<CloudDesktop>(`${cloudPath(id)}/resize`, "POST", req),
   connections: () => FIXTURE ? call<{ byWorkspace: Record<string, string[]> }>("/v1/connectors") : Promise.resolve({ byWorkspace: {} as Record<string, string[]> }),
   workspaces: (signal?: AbortSignal) => call<{ workspaces: WorkspaceSummary[] }>("/v1/workspaces", { signal }),

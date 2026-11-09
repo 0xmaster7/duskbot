@@ -1,3 +1,6 @@
+import type { CheckoutSource, WakeStat } from "../../../shared/billing-api";
+export type { CheckoutSource } from "../../../shared/billing-api";
+
 // the account and billing shapes the dashboard reads. they follow CLOUD-PLAN.md until shared/account-api.ts and
 // shared/billing-api.ts land; then these become re-exports of those files.
 
@@ -118,6 +121,7 @@ export interface PlanCatalog {
   licenses: LicenseTier[];
   desktops: DesktopTier[];
   custom: CustomPricing;
+  wake?: Partial<Record<Exclude<DesktopId, "none">, WakeStat>>;
   regions: Region[];
   /** where shared desktops can be bought; absent means every region */
   poolRegions?: string[];
@@ -191,8 +195,10 @@ export interface CloudDesktop extends MachineSpec {
 }
 
 export type CheckoutRequest =
-  | { kind: "plan"; selection: Selection; bundle: BundleId | null }
-  | { kind: "credits"; pack: string };
+  | { kind: "plan"; selection: Selection; bundle: BundleId | null; source: CheckoutSource }
+  | { kind: "credits"; pack: string; source: CheckoutSource };
 
 /** the provider's hosted checkout; the dashboard opens it and waits for the webhook to land */
 export interface CheckoutAnswer { url: string; id: string }
+
+export interface SlackWake { available: boolean; enabled: boolean; state: "off" | "waiting" | "holding" | "waking"; bots: number; buffered: number }

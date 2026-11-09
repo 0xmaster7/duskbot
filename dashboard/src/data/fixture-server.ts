@@ -17,6 +17,7 @@ function createState() {
     account: fixtureAccount(scenario, now), billing: fixtureBilling(scenario, now), clouds,
     workspaces: new Map(fixtureWorkspaces(scenario, now).map((detail) => [detail.workspace.id, detail])),
     connections: fixtureConnections(),
+    slackWake: new Map<string, boolean>(),
     power: new Map<string, { on: boolean; at: number }>(),
     runningSince: new Map(clouds.filter((cloud) => cloud.status === "running").map((cloud) => [cloud.id, now - (cloud.uptimeSec ?? 0) * 1000])),
     nextId: 1,
@@ -224,7 +225,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
   if (method === "GET" && path === "/v1/billing") return s.billing;
   if (method === "POST" && path === "/v1/billing/portal") return { url: "" };
   if (method === "POST" && path === "/v1/billing/checkout") {
-    const req = b as unknown as CheckoutRequest;
+    const { source: _source, ...req } = b as unknown as CheckoutRequest;
     const id = `fx-checkout-${s.nextId++}`;
     if (req.kind === "credits") {
       const pack = fixtureCatalog.creditPacks.find((p) => p.id === req.pack);
@@ -257,6 +258,17 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
     s.billing.subscription!.cancelAt = s.billing.subscription!.currentPeriodEnd; return s.billing;
   }
   if (method === "GET" && path === "/v1/clouds") return { clouds: s.clouds };
+  const slackWakeRoute = path.match(/^\/v1\/clouds\/([^/]+)\/slack-wake$/);
+  if ((method === "GET" || method === "PUT") && slackWakeRoute) {
+    const id = decodeURIComponent(slackWakeRoute[1]!);
+    if (!s.clouds.some((cloud) => cloud.id === id)) return fail("Cloud not found.", 404, "not_found");
+    if (method === "PUT") {
+      if (typeof b.enabled !== "boolean") return fail("Choose whether to wake for Slack.");
+      s.slackWake.set(id, b.enabled);
+    }
+    const enabled = s.slackWake.get(id) ?? false;
+    return { available: true, enabled, state: enabled ? "waiting" : "off", bots: 0, buffered: 0 };
+  }
   const cloudRoute = path.match(/^\/v1\/clouds\/([^/]+)\/(power|resize)$/);
   if (method === "POST" && cloudRoute) {
     const cloud = s.clouds.find((c) => c.id === decodeURIComponent(cloudRoute[1]!));
