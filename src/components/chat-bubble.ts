@@ -10,8 +10,8 @@ import type { Message } from "@/state/store";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 import { isPureLeakedSystemHarnessMessage } from "../../shared/system-message-guard.ts";
 
-/** Simple mode's message text: 15/22, the size whose cap height matches the design. */
-export const SIMPLE_BUBBLE_TEXT = "text-[15px] leading-[22px]";
+/** Simple mode's message text: 15/20 on both sides, as Grok Bot's bubbles measure. */
+export const SIMPLE_BUBBLE_TEXT = "text-[15px] leading-5";
 
 const SIMPLE_BUBBLE_SHAPE = `min-w-9 rounded-[18px] px-3 py-[7px] ${SIMPLE_BUBBLE_TEXT}`;
 
@@ -55,14 +55,16 @@ export function plainBotBubble(): string {
 /** Simple mode's transcript spaces rows 16px apart (ChatView's data-simple-rows); a row in the same group pulls up 12px, to 4px. */
 export const SIMPLE_STACKED = "-mt-3";
 
-/** Where a Simple bubble meets its group's neighbours. Grok keeps every bubble fully round, so nothing tightens. */
+/** Where a Simple bubble meets its group's neighbours. */
 export interface BubbleJoin {
   above: boolean;
   below: boolean;
 }
 
-export function joinedCorners(_side: "start" | "end", _join: BubbleJoin): string {
-  return "";
+/** Grok's bot bubble ends its group on a tail, 18 18 18 6: the bottom corner on the bot's side tightens to 6px on the
+ * group's last bubble. The person's bubbles stay fully round. */
+export function joinedCorners(side: "start" | "end", join: BubbleJoin): string {
+  return side === "start" && !join.below ? "rounded-es-[6px]" : "";
 }
 
 /** Which bubble group a transcript row belongs to in Simple mode: this bot's words, the person's own words, or none. */
