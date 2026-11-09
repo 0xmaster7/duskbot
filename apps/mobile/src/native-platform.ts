@@ -158,6 +158,9 @@ export async function nativePlatform(): Promise<MobilePlatform> {
     onResume(listener) {
       return unsubscribe([App.addListener("resume", listener)]);
     },
+    onPause(listener) {
+      return unsubscribe([App.addListener("pause", listener)]);
+    },
     prefs: {
       get: async (key) => (await Preferences.get({ key })).value,
       set: (key, value) => Preferences.set({ key, value }),

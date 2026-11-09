@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { parseMobileLink, type MobilePairingResponse, type MobileRedeemResponse } from "../../shared/mobile-link.ts";
 import type { RequestAuth } from "../request-auth.ts";
@@ -159,6 +159,91 @@ describe("mobile link", () => {
     expect(sent).toEqual([{ target: { service: "apns", token: "abcdef0123456789", environment: "sandbox" }, message: { id: "n1", kind: "mention", title: "Nova", botId: "b1", botName: "Nova", threadId: "t1" } }]);
     await mobile.notify({ id: "n1", at: 1, read: false, kind: "mention", botId: "b1", botName: "Nova", threadId: "t1", title: "Nova", body: "again" });
     expect(sent).toHaveLength(1);
+  });
+
+  describe("away phones", () => {
+    afterEach(() => { vi.useRealTimers(); });
+    async function pushPhone(mobile: ReturnType<typeof link>, attempt: string) {
+      const answer = (await call(mobile, owner, "POST", "/api/mobile/pairing")).body as MobilePairingResponse;
+      const phone = (await redeem(mobile, { secret: answer.payload.grant.secret, attemptId: attempt, device: { name: "p", platform: "ios" } })).body as MobileRedeemResponse;
+      const auth: RequestAuth = { kind: "session", session: sessions.authenticate(phone.token)!, via: "bearer", scopes: phone.scopes };
+      await call(mobile, auth, "PUT", "/api/mobile/push", { service: "apns", token: "abcdef0123456789" });
+      return auth;
+    }
+    const note = (id: string, threadId = "t1") => ({ id, at: 1, read: false, kind: "mention" as const, botId: "b1", botName: "Nova", threadId, title: "Nova", body: "x" });
+
+    it("holds an event while the app is open and pushes it once the phone has stayed away", async () => {
+      vi.useFakeTimers();
+      const read = new Set<string>();
+      const mobile = link({ isRead: (id) => read.has(id) });
+      const auth = await pushPhone(mobile, "attempt-0101");
+      expect((await call(mobile, auth, "PUT", "/api/mobile/presence", { away: false })).status).toBe(200);
+      await mobile.notify(note("n1"));
+      await mobile.notify(note("n2", "t2"));
+      await mobile.notify(note("n3", "t2"));
+      await mobile.notify(note("n4", "t3"));
+      read.add("n4");
+      expect(sent).toHaveLength(0);
+      await call(mobile, auth, "PUT", "/api/mobile/presence", { away: true });
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(sent).toHaveLength(0);
+      await vi.advanceTimersByTimeAsync(1_500);
+      // the newest per conversation, and nothing already read
+      expect(sent.map((one) => one.message.id)).toEqual(["n1", "n3"]);
+    });
+
+    it("keeps the push back when the phone returns within the settle window, and drops events older than five minutes", async () => {
+      vi.useFakeTimers();
+      const mobile = link();
+      const auth = await pushPhone(mobile, "attempt-0102");
+      await call(mobile, auth, "PUT", "/api/mobile/presence", { away: false });
+      await mobile.notify(note("n1"));
+      await call(mobile, auth, "PUT", "/api/mobile/presence", { away: true });
+      await vi.advanceTimersByTimeAsync(1_000);
+      await call(mobile, auth, "PUT", "/api/mobile/presence", { away: false });
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(sent).toHaveLength(0);
+      for (let i = 0; i < 6; i++) { await vi.advanceTimersByTimeAsync(50_000); await call(mobile, auth, "PUT", "/api/mobile/presence", { away: false }); }
+      await call(mobile, auth, "PUT", "/api/mobile/presence", { away: true });
+      await vi.advanceTimersByTimeAsync(4_000);
+      expect(sent).toHaveLength(0);
+    });
+
+    it("counts an app that stopped checking in as away", async () => {
+      vi.useFakeTimers();
+      const mobile = link();
+      const auth = await pushPhone(mobile, "attempt-0103");
+      await call(mobile, auth, "PUT", "/api/mobile/presence", { away: false });
+      await mobile.notify(note("n1"));
+      expect(sent).toHaveLength(0);
+      await vi.advanceTimersByTimeAsync(64_000);
+      expect(sent.map((one) => one.message.id)).toEqual(["n1"]);
+      await mobile.notify(note("n2"));
+      expect(sent.map((one) => one.message.id)).toEqual(["n1", "n2"]);
+    });
+
+    it("pushes at once to a phone that never reported, and tries a failed push again at 10 s and 60 s", async () => {
+      vi.useFakeTimers();
+      const outcomes = ["failed", "failed", "sent"] as const;
+      const tries: string[] = [];
+      const mobile = link({ push: { configured: ["apns"], send: async (_target, message) => { tries.push(message.id); return outcomes[tries.length - 1] ?? "sent"; } } });
+      await pushPhone(mobile, "attempt-0104");
+      await mobile.notify(note("n1"));
+      expect(tries).toEqual(["n1"]);
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(tries).toEqual(["n1", "n1"]);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(tries).toEqual(["n1", "n1", "n1"]);
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(tries).toHaveLength(3);
+    });
+
+    it("takes presence only from a paired phone", async () => {
+      const mobile = link();
+      const auth = await pushPhone(mobile, "attempt-0105");
+      expect((await call(mobile, owner, "PUT", "/api/mobile/presence", { away: false })).status).toBe(403);
+      expect((await call(mobile, auth, "PUT", "/api/mobile/presence", { away: "no" })).status).toBe(400);
+    });
   });
 
   it("reads the typed-code relay from the environment", () => {

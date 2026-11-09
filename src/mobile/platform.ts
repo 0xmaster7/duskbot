@@ -47,6 +47,8 @@ export interface MobilePlatform {
    * true when the link was its kind; the link that launched the app waits for the first listener that takes it. */
   onAppUrl?(listener: (url: string) => boolean): () => void;
   onResume?(listener: () => void): () => void;
+  /** The app went to the background. */
+  onPause?(listener: () => void): () => void;
   /** Non-secret key/value storage. */
   prefs: {
     get(key: string): Promise<string | null>;

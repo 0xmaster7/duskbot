@@ -11,6 +11,8 @@ import { Onboarding } from "../onboarding/Onboarding";
 import { Success } from "../onboarding/Success";
 import { connectToWorkspace, createConnectionStore } from "./connections";
 import { PairError, parseTypedPairing, type TypedPairing } from "./pair";
+import { ActiveConnection } from "./active";
+import { reportPresence } from "./presence";
 import { registerPushForConnection } from "./push";
 
 type GateState = { kind: "loading" } | { kind: "pair"; reason?: "revoked" } | { kind: "ready"; id: string };
@@ -73,6 +75,8 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     if (state.kind === "ready" && platform.native) void registerPushForConnection(platform);
   }, [state, platform]);
 
+  useEffect(() => (state.kind === "ready" && platform.native ? reportPresence(platform) : undefined), [state, platform]);
+
   useEffect(() => {
     if (state.kind === "ready" && account?.account) void enrollWorkspace(platform, state.id, account.account.id, account.enrollGrant);
   }, [state, platform, account]);
@@ -121,7 +125,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
   }
   return (
     <>
-      <Fragment key={state.id}>{children}</Fragment>
+      <ActiveConnection value={state.id}><Fragment key={state.id}>{children}</Fragment></ActiveConnection>
       {(incoming || adding > 0) && (
         <div className="fixed inset-0 z-50">
           <Onboarding key={incoming ? `in-${incoming.sequence}` : `add-${adding}`} initial={incoming?.payload} startAtLink

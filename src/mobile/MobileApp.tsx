@@ -18,6 +18,7 @@ import { SheetHost } from "./SheetHost";
 import { closeTopSheet } from "./Sheet";
 import { useKeyboardSync } from "./keyboard";
 import { useChatHaptics } from "./use-chat-haptics";
+import { useOutbox } from "./outbox";
 import { usePlatform } from "./platform";
 import type { MobileSheet } from "./sheets";
 
@@ -33,6 +34,7 @@ function Shell() {
   usePageLanguage(effectiveLanguage(useLanguageChoice(), state.config?.language));
   useKeyboardSync(platform, rootRef);
   useChatHaptics(state, chatId);
+  useOutbox();
 
   const latest = useRef(state);
   latest.current = state;
