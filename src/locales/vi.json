@@ -5123,6 +5123,8 @@
   "ambient.island": "Bot của bạn",
   "ambient.dock": "Dock bot",
   "ambient.reorder": "Kéo để di chuyển hoặc nhấn Option cùng một phím mũi tên",
+  "ambient.stop": "Dừng {name}",
+  "ambient.more": "Còn {count} mục đang chờ",
   "ambient.quitHint.one": "{name} đang làm việc. Giữ {key} để thoát.",
   "ambient.quitHint.some": "{names} đang làm việc. Giữ {key} để thoát.",
   "ambient.quitHint.many": "{count} bot đang làm việc. Giữ {key} để thoát.",

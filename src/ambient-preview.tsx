@@ -20,15 +20,15 @@ const now = Date.now();
 const min = 60_000;
 
 const base: AmbientBot[] = [
-  { id: "nova", threadId: "t-nova", name: "Nova", color: "blue", body: "blob", face: null, avatar: null, status: "idle", detail: "", line: "Booked the 9:40 to Lisbon and sent the receipt.", at: now - 3 * min, unread: false, asks: 0, approval: null },
-  { id: "quill", threadId: "t-quill", name: "Quill", color: "purple", body: "sparkle", face: null, avatar: null, status: "idle", detail: "", line: "Draft of the launch post is in your docs.", at: now - 18 * min, unread: false, asks: 0, approval: null },
-  { id: "rivet", threadId: "t-rivet", name: "Rivet", color: "orange", body: "hex", face: null, avatar: null, status: "idle", detail: "", line: "The footer is fixed and deployed.", at: now - 42 * min, unread: false, asks: 0, approval: null },
-  { id: "tally", threadId: "t-tally", name: "Tally", color: "green", body: "clover", face: null, avatar: null, status: "idle", detail: "", line: "October spend is 12% under budget.", at: now - 2 * 60 * min, unread: false, asks: 0, approval: null },
-  { id: "echo", threadId: "t-echo", name: "Echo", color: "yellow", body: "star", face: null, avatar: null, status: "idle", detail: "", line: "Three new replies to your thread.", at: now - 5 * 60 * min, unread: false, asks: 0, approval: null },
-  { id: "juno", threadId: "t-juno", name: "Juno", color: "pink", body: "heart", face: null, avatar: null, status: "idle", detail: "", line: "Your flight checks in tomorrow at 7.", at: now - 26 * 60 * min, unread: false, asks: 0, approval: null },
+  { id: "nova", threadId: "t-nova", name: "Nova", color: "blue", body: "blob", face: null, avatar: null, status: "idle", detail: "", line: "Booked the 9:40 to Lisbon and sent the receipt.", at: now - 3 * min, unread: false, asks: 0, approval: null, waits: null, question: null },
+  { id: "quill", threadId: "t-quill", name: "Quill", color: "purple", body: "sparkle", face: null, avatar: null, status: "idle", detail: "", line: "Draft of the launch post is in your docs.", at: now - 18 * min, unread: false, asks: 0, approval: null, waits: null, question: null },
+  { id: "rivet", threadId: "t-rivet", name: "Rivet", color: "orange", body: "hex", face: null, avatar: null, status: "idle", detail: "", line: "The footer is fixed and deployed.", at: now - 42 * min, unread: false, asks: 0, approval: null, waits: null, question: null },
+  { id: "tally", threadId: "t-tally", name: "Tally", color: "green", body: "clover", face: null, avatar: null, status: "idle", detail: "", line: "October spend is 12% under budget.", at: now - 2 * 60 * min, unread: false, asks: 0, approval: null, waits: null, question: null },
+  { id: "echo", threadId: "t-echo", name: "Echo", color: "yellow", body: "star", face: null, avatar: null, status: "idle", detail: "", line: "Three new replies to your thread.", at: now - 5 * 60 * min, unread: false, asks: 0, approval: null, waits: null, question: null },
+  { id: "juno", threadId: "t-juno", name: "Juno", color: "pink", body: "heart", face: null, avatar: null, status: "idle", detail: "", line: "Your flight checks in tomorrow at 7.", at: now - 26 * 60 * min, unread: false, asks: 0, approval: null, waits: null, question: null },
 ];
 const set = (id: string, fields: Partial<AmbientBot>) => (bot: AmbientBot) => (bot.id === id ? { ...bot, ...fields } : bot);
-const mood = (status: AmbientStatus, detail = "") => base.map(set("nova", { status, detail, at: now - 20_000, unread: status === "done" }));
+const mood = (status: AmbientStatus, detail = "") => base.map(set("nova", { status, detail, at: now - 20_000, unread: status === "done", waits: status === "needs-you" ? "approval" : null }));
 const SCENES: Record<string, AmbientBot[]> = {
   quiet: base,
   empty: [],
@@ -39,7 +39,8 @@ const SCENES: Record<string, AmbientBot[]> = {
   "needs-you": mood("needs-you", "Wants to run a command"),
   error: mood("error"),
   busy: base
-    .map(set("quill", { status: "needs-you", detail: "Wants to run a command", asks: 1, at: now - 40_000, approval: { requestId: "r1", threadId: "t-quill", title: "npm run build" } }))
+    .map(set("quill", { status: "needs-you", waits: "approval", detail: "Wants to run a command", asks: 1, at: now - 40_000, approval: { requestId: "r1", threadId: "t-quill", title: "npm run build" } }))
+    .map(set("juno", { status: "needs-you", waits: "question", asks: 1, at: now - 4 * min, question: { requestId: "q1", threadId: "t-juno", title: "Aisle or window for the flight home?", choices: ["Aisle", "Window", "Either"] } }))
     .map(set("nova", { status: "working", detail: "Comparing 14 flights to Lisbon", at: now - 2 * min }))
     .map(set("tally", { status: "thinking", detail: "Thinking", at: now - 50_000 }))
     .map(set("rivet", { status: "done", unread: true, at: now - 6 * min }))

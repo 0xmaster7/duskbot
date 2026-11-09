@@ -3228,6 +3228,8 @@
   "ambient.island": "आपके बॉट",
   "ambient.dock": "बॉट डॉक",
   "ambient.reorder": "खिसकाने के लिए खींचें या Option के साथ कोई तीर कुंजी दबाएँ",
+  "ambient.stop": "{name} को रोकें",
+  "ambient.more": "{count} और इंतज़ार में",
   "ambient.quitHint.one": "{name} काम कर रहा है। बंद करने के लिए {key} दबाए रखें।",
   "ambient.quitHint.some": "{names} काम कर रहे हैं। बंद करने के लिए {key} दबाए रखें।",
   "ambient.quitHint.many": "{count} बॉट काम कर रहे हैं। बंद करने के लिए {key} दबाए रखें।",

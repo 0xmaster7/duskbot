@@ -3533,6 +3533,8 @@
   "ambient.island": "Ваші боти",
   "ambient.dock": "Док ботів",
   "ambient.reorder": "Перетягніть, щоб перемістити, або натисніть Option разом із клавішею зі стрілкою",
+  "ambient.stop": "Зупинити: {name}",
+  "ambient.more": "Ще чекають: {count}",
   "ambient.quitHint.one": "{name} працює. Утримуйте {key}, щоб вийти.",
   "ambient.quitHint.some": "{names} працюють. Утримуйте {key}, щоб вийти.",
   "ambient.quitHint.many": "Ботів, що працюють: {count}. Утримуйте {key}, щоб вийти.",

@@ -6032,6 +6032,8 @@
   "ambient.island": "Seus bots",
   "ambient.dock": "Dock de bots",
   "ambient.reorder": "Arraste para mover ou pressione Option junto com uma tecla de seta",
+  "ambient.stop": "Parar {name}",
+  "ambient.more": "Mais {count} aguardando",
   "ambient.quitHint.one": "{name} está trabalhando. Mantenha {key} pressionado para sair.",
   "ambient.quitHint.some": "{names} estão trabalhando. Mantenha {key} pressionado para sair.",
   "ambient.quitHint.many": "{count} bots estão trabalhando. Mantenha {key} pressionado para sair.",

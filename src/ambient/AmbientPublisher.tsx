@@ -8,7 +8,10 @@ import { activeLocale } from "@/lib/i18n";
 import { openCreateBot } from "@/lib/create-bot-request";
 import { pendingApprovals } from "@/components/PendingApproval";
 import { sidebarPreviewMessages } from "@/components/sidebar-preview";
-import { ambientSnapshot, answerableInPlace } from "./summary";
+import { workingThreadId } from "@/components/SidebarWorkingStep";
+import { cardQuestions } from "@/components/QuestionCard";
+import { formatQuestionAnswers } from "../../shared/ask-question";
+import { ambientSnapshot, answerableInPlace, questionOf } from "./summary";
 import { DesktopBots } from "./DesktopBots";
 import type { AmbientAct } from "./types";
 
@@ -17,13 +20,25 @@ export const PUBLISH_MS = 160;
 
 type Dispatch = ReturnType<typeof useStore>["dispatch"];
 
-/** Checked again here: the island may only answer a plain approval the page itself still shows as open. */
+/** Checked again here: the island may only answer a plain approval, or a question with one of its own choices, that the
+ * page itself still shows as open, and stop only a bot that is working. */
 export function runAmbientAct(act: AmbientAct, state: AppState, dispatch: Dispatch): void {
   if (act.kind === "new-bot") return openCreateBot();
   const bot = state.bots.find((entry) => entry.id === act.botId);
   if (!bot) return;
   if (act.kind === "reply") {
     if (act.text.trim()) dispatch({ type: "send", botId: bot.id, threadId: act.threadId, text: act.text.trim() });
+    return;
+  }
+  if (act.kind === "stop") {
+    if (bot.busy) dispatch({ type: "interrupt", botId: bot.id, threadId: workingThreadId(bot) });
+    return;
+  }
+  if (act.kind === "answer") {
+    const open = questionOf(sidebarPreviewMessages(bot));
+    if (!open?.choices?.includes(act.text) || open.card.requestId !== act.requestId || act.threadId !== bot.threadId) return;
+    const message = open.card.questionRequest ? formatQuestionAnswers(cardQuestions(open.card), [[act.text]]) : act.text;
+    dispatch({ type: "decideRequest", threadId: act.threadId, requestId: act.requestId, behavior: "answer", message });
     return;
   }
   const pending = pendingApprovals(sidebarPreviewMessages(bot)).find((entry) => entry.requestId === act.requestId);

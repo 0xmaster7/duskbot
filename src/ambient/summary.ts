@@ -10,6 +10,8 @@ import { pendingApprovals, type Pending } from "@/components/PendingApproval";
 import { lastLine, lastPreviewable, sidebarPreviewMessages, waitingLine } from "@/components/sidebar-preview";
 import { workingThreadId } from "@/components/SidebarWorkingStep";
 import { toolLabel, titledCard } from "@/components/ApprovalCard";
+import { answersInOneTap, cardQuestions } from "@/components/QuestionCard";
+import { isQuestionCard } from "@/lib/question-card";
 import { ambientLabels } from "./labels";
 import type { AmbientBot, AmbientSnapshot, AmbientStatus } from "./types";
 
@@ -25,6 +27,26 @@ function statusOf(bot: Bot, waiting: boolean, live: TurnLive, visible: Message[]
   if (stateForBot({ ...bot, messages: visible }) === "failed") return "error";
   if (botShowsUnread(bot)) return "done";
   return "idle";
+}
+
+/** The island shows at most this many of a question's choices; a longer list opens the chat. */
+export const ISLAND_CHOICES = 4;
+
+const openQuestion = (message: Message) => {
+  const card = message.kind === "options" ? message.card : undefined;
+  return card && isQuestionCard(card) && !card.answered && !card.pendingAnswer && !card.dismissed && !card.expired && !card.stopped ? card : null;
+};
+
+/** The newest open question in the bot's chat, and its choices when one tap answers it. */
+export function questionOf(visible: Message[]): { card: NonNullable<Message["card"]>; choices: string[] | null } | null {
+  const message = visible.findLast((entry) => openQuestion(entry));
+  const card = message && openQuestion(message);
+  if (!card) return null;
+  const questions = cardQuestions(card);
+  const choices = answersInOneTap(questions) && !card.accessRequest ? questions[0]!.options.map((option) => option.label) : null;
+  // what main lets through unchanged (electron/ambient-state.mjs), so a tap answers with the very same words
+  const fits = choices && choices.length <= ISLAND_CHOICES && choices.every((label) => label.length <= 60 && label === label.replace(/\s+/g, " ").trim());
+  return { card, choices: fits ? choices : null };
 }
 
 /** Whether the bot waits on the person: a question, an approval or a card of choices in any of its chats. */
@@ -48,6 +70,8 @@ export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threa
   const detail = status === "needs-you"
     ? inPlace ? t("ambient.wantsTo", { action: toolLabel(inPlace.tool) }) : waitingLine(bot, visible, instances)
     : bot.busy ? turnNowPhrases(live.status, workingOn === bot.threadId ? newest : undefined)?.phrases[0] ?? t("chat.activity.thinking") : "";
+  const question = status === "needs-you" ? questionOf(visible) : null;
+  const waits = status !== "needs-you" ? null : question ? "question" : approvals.length ? "approval" : "other";
   return {
     id: bot.id,
     threadId: bot.threadId,
@@ -63,6 +87,10 @@ export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threa
     unread: botShowsUnread(bot),
     asks,
     approval: inPlace ? { requestId: inPlace.requestId, threadId: bot.threadId, title: inPlace.detail || toolLabel(inPlace.tool) } : null,
+    waits,
+    question: question?.choices && question.card.requestId
+      ? { requestId: question.card.requestId, threadId: bot.threadId, title: cardQuestions(question.card)[0]?.question || question.card.title, choices: question.choices }
+      : null,
   };
 }
 

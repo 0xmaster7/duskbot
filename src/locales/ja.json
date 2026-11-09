@@ -6189,6 +6189,8 @@
   "ambient.island": "あなたのボット",
   "ambient.dock": "ボットDock",
   "ambient.reorder": "ドラッグして移動するか、Optionキーと矢印キーを押してください",
+  "ambient.stop": "{name}を停止",
+  "ambient.more": "ほかに{count}件が待機中",
   "ambient.quitHint.one": "{name}が作業中です。終了するには{key}を長押ししてください。",
   "ambient.quitHint.some": "{names}が作業中です。終了するには{key}を長押ししてください。",
   "ambient.quitHint.many": "ボット {count} 体が作業中です。終了するには{key}を長押ししてください。",

@@ -3334,7 +3334,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8961,7 +8963,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12219,7 +12223,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -15474,7 +15480,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -21499,7 +21507,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -27715,7 +27725,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -34321,7 +34333,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40512,7 +40526,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -46571,7 +46587,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -52769,7 +52787,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -57919,7 +57939,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -61479,7 +61501,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -66629,7 +66653,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -73408,7 +73434,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -78108,7 +78136,9 @@
       "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
       "ambient.quitHint.one": "9b3b644e589a19fd7beee8112d652c306d3845b72c8db7dd2f2257410cace8f5",
       "ambient.quitHint.some": "87360f1baef203c30c330be0ce7f17e7b4e392dab9175f6d42b037b2156a72ad",
-      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71"
+      "ambient.quitHint.many": "7c86b77d52764650449ccaae2c03886825fefa97e773a43c87c6e495411dcb71",
+      "ambient.stop": "300c88bb31db226580ea35a28b2e930ddb05f328b4e6a63601850a6643b882df",
+      "ambient.more": "26b2c5b6341c2c909b0005aa7f8e51363317a4769bc24a358b756faeea11bf65"
     }
   }
 }

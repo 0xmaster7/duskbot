@@ -3231,6 +3231,8 @@
   "ambient.island": "Vos bots",
   "ambient.dock": "Dock des bots",
   "ambient.reorder": "Faites glisser pour déplacer, ou appuyez sur Option et une touche fléchée",
+  "ambient.stop": "Arrêter {name}",
+  "ambient.more": "{count} de plus en attente",
   "ambient.quitHint.one": "{name} est en train de travailler. Maintenez {key} pour quitter.",
   "ambient.quitHint.some": "{names} sont en train de travailler. Maintenez {key} pour quitter.",
   "ambient.quitHint.many": "{count} bots sont en train de travailler. Maintenez {key} pour quitter.",

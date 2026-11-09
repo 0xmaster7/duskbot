@@ -27,6 +27,8 @@ export const AMBIENT_LABELS = {
   island: "ambient.island",
   dock: "ambient.dock",
   reorder: "ambient.reorder",
+  stop: "ambient.stop",
+  more: "ambient.more",
 } as const satisfies Record<AmbientLabel, LocaleKey>;
 
 export type { AmbientLabel, AmbientLabels } from "./say";

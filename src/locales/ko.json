@@ -6579,6 +6579,8 @@
   "ambient.island": "내 봇",
   "ambient.dock": "봇 Dock",
   "ambient.reorder": "드래그해서 옮기거나 Option 키와 방향키를 함께 누르세요",
+  "ambient.stop": "{name} 중지",
+  "ambient.more": "{count}개 더 대기 중",
   "ambient.quitHint.one": "{name}이(가) 작업 중이에요. 종료하려면 {key}를 길게 누르세요.",
   "ambient.quitHint.some": "{names}이(가) 작업 중이에요. 종료하려면 {key}를 길게 누르세요.",
   "ambient.quitHint.many": "봇 {count}개가 작업 중이에요. 종료하려면 {key}를 길게 누르세요.",

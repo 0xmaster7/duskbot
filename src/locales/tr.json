@@ -5123,6 +5123,8 @@
   "ambient.island": "Botlarınız",
   "ambient.dock": "Bot Dock’u",
   "ambient.reorder": "Taşımak için sürükleyin veya Option ile bir ok tuşuna birlikte basın",
+  "ambient.stop": "Durdur: {name}",
+  "ambient.more": "{count} tane daha bekliyor",
   "ambient.quitHint.one": "{name} çalışıyor. Çıkmak için {key} tuşunu basılı tutun.",
   "ambient.quitHint.some": "{names} çalışıyor. Çıkmak için {key} tuşunu basılı tutun.",
   "ambient.quitHint.many": "{count} bot çalışıyor. Çıkmak için {key} tuşunu basılı tutun.",

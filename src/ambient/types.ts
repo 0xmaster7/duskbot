@@ -23,6 +23,10 @@ export interface AmbientBot {
   asks: number;
   /** The one approval the island can answer in place. */
   approval: { requestId: string; threadId: string; title: string } | null;
+  /** What it waits on the person for, the most urgent first: a question, then an approval, then anything else. */
+  waits: "question" | "approval" | "other" | null;
+  /** A question the island answers in place with one of its choices. */
+  question: { requestId: string; threadId: string; title: string; choices: string[] } | null;
 }
 
 export interface AmbientSnapshot {
@@ -35,6 +39,8 @@ export interface AmbientSnapshot {
 export type AmbientAct =
   | { kind: "reply"; botId: string; threadId: string; text: string }
   | { kind: "allow" | "deny"; botId: string; threadId: string; requestId: string }
+  | { kind: "answer"; botId: string; threadId: string; requestId: string; text: string }
+  | { kind: "stop"; botId: string; threadId: string }
   | { kind: "new-bot" };
 
 export interface IslandLayout {

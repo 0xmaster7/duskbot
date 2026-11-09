@@ -8,6 +8,8 @@ const COLORS = new Set(["green", "blue", "red", "orange", "purple", "cyan", "pin
 const ID = /^[\w.:-]{1,128}$/;
 const BODY = /^[a-z0-9-]{1,40}$/;
 const MAX_BOTS = 40;
+const MAX_CHOICES = 4;
+const WAITS = ["question", "approval", "other"];
 const MAX_LABELS = 48;
 const LABEL = /^[a-z][\w.-]{0,40}$/i;
 
@@ -24,6 +26,11 @@ function bot(raw) {
   const approval = raw.approval && typeof raw.approval === "object" && id(raw.approval.requestId) && id(raw.approval.threadId)
     ? { requestId: raw.approval.requestId, threadId: raw.approval.threadId, title: text(raw.approval.title, 160) }
     : null;
+  const asked = raw.question && typeof raw.question === "object" ? raw.question : null;
+  const choices = Array.isArray(asked?.choices) ? asked.choices.slice(0, MAX_CHOICES).map(entry => text(entry, 60)).filter(Boolean) : [];
+  const question = asked && id(asked.requestId) && id(asked.threadId) && choices.length
+    ? { requestId: asked.requestId, threadId: asked.threadId, title: text(asked.title, 240), choices }
+    : null;
   return {
     id: botId,
     threadId,
@@ -39,6 +46,8 @@ function bot(raw) {
     unread: raw.unread === true,
     asks: count(raw.asks),
     approval,
+    waits: WAITS.includes(raw.waits) ? raw.waits : null,
+    question,
   };
 }
 
@@ -75,6 +84,11 @@ export function parseAct(raw) {
     const requestId = id(raw.requestId);
     return requestId ? { kind: raw.kind, botId, threadId, requestId } : null;
   }
+  if (raw.kind === "answer") {
+    const requestId = id(raw.requestId), choice = text(raw.text, 60);
+    return requestId && choice ? { kind: "answer", botId, threadId, requestId, text: choice } : null;
+  }
+  if (raw.kind === "stop") return { kind: "stop", botId, threadId };
   return null;
 }
 

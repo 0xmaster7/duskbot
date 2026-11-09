@@ -7553,6 +7553,8 @@
   "ambient.island": "Your bots",
   "ambient.dock": "Bot dock",
   "ambient.reorder": "Drag to move it, or press Option with an arrow key",
+  "ambient.stop": "Stop {name}",
+  "ambient.more": "{count} more waiting",
   "ambient.quitHint.one": "{name} is working. Hold {key} to quit.",
   "ambient.quitHint.some": "{names} are working. Hold {key} to quit.",
   "ambient.quitHint.many": "{count} bots are working. Hold {key} to quit.",
