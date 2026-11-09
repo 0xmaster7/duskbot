@@ -2358,6 +2358,7 @@
   "composer.dictation.start": "Start dictation",
   "composer.dictation.stop": "Stop dictation",
   "composer.dictation.stopHint": "Stop dictation (Esc)",
+  "composer.dictation.discard": "Discard dictation",
   "composer.dictation.hint": "Dictate",
   "composer.failed.notSent": "Not sent: “{text}”",
   "composer.failed.attachment": "attachment",

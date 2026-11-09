@@ -1006,6 +1006,7 @@
   "composer.dictation.start": "Почати диктування",
   "composer.dictation.stop": "Зупинити диктування",
   "composer.dictation.stopHint": "Зупинити диктування (Esc)",
+  "composer.dictation.discard": "Скасувати диктування",
   "composer.dictation.hint": "Диктувати",
   "composer.failed.notSent": "Не надіслано: «{text}»",
   "composer.failed.attachment": "вкладення",

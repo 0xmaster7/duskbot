@@ -2174,6 +2174,7 @@
   "composer.dictation.start": "开始听写",
   "composer.dictation.stop": "停止听写",
   "composer.dictation.stopHint": "停止听写（Esc）",
+  "composer.dictation.discard": "放弃听写",
   "composer.dictation.hint": "听写",
   "composer.failed.notSent": "未发送：「{text}」",
   "composer.failed.attachment": "附件",

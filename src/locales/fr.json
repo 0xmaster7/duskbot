@@ -873,6 +873,7 @@
   "composer.dictation.start": "Démarrer la dictée",
   "composer.dictation.stop": "Arrêter la dictée",
   "composer.dictation.stopHint": "Arrêter la dictée (Échap)",
+  "composer.dictation.discard": "Annuler la dictée",
   "composer.dictation.hint": "Dicter",
   "composer.failed.notSent": "Non envoyé : « {text} »",
   "composer.failed.attachment": "pièce jointe",

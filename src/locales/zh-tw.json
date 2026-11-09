@@ -1401,6 +1401,7 @@
   "composer.dictation.start": "開始語音輸入",
   "composer.dictation.stop": "停止語音輸入",
   "composer.dictation.stopHint": "停止語音輸入（Esc）",
+  "composer.dictation.discard": "捨棄語音輸入",
   "composer.dictation.hint": "語音輸入",
   "composer.failed.notSent": "未送出：「{text}」",
   "composer.failed.attachment": "附件",

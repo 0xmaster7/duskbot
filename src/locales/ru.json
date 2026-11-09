@@ -1974,6 +1974,7 @@
   "composer.dictation.start": "Начать диктовку",
   "composer.dictation.stop": "Остановить диктовку",
   "composer.dictation.stopHint": "Остановить диктовку (Esc)",
+  "composer.dictation.discard": "Отменить диктовку",
   "composer.dictation.hint": "Диктовать",
   "composer.failed.notSent": "Не отправлено: «{text}»",
   "composer.failed.attachment": "вложение",

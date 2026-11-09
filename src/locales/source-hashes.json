@@ -3331,7 +3331,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8955,7 +8956,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12210,7 +12212,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -15462,7 +15465,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -21484,7 +21488,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -27697,7 +27702,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -34300,7 +34306,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40488,7 +40495,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -46544,7 +46552,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -52739,7 +52748,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -57886,7 +57896,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -61443,7 +61454,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -66590,7 +66602,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -73366,7 +73379,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -78063,7 +78077,8 @@
       "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
       "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
       "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
-      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf",
+      "composer.dictation.discard": "96fd465eacf4733078b4a17e036f729f952e72355feb8fd724e933af8d6d3110"
     }
   }
 }

@@ -224,7 +224,7 @@ export function Composer({
     },
     [text, editText, editAttachments],
   );
-  const { recording, ready: micReady, speechError, toggle: toggleMic, stop: stopDictation } = useComposerDictation({ draftId, text, onText: editText });
+  const { recording, ready: micReady, speechError, toggle: toggleMic, stop: stopDictation, discard: discardDictation } = useComposerDictation({ draftId, text, onText: editText });
   const [caret, setCaret] = useState(0);
   const shellRef = useRef<HTMLDivElement>(null);
   const [highlight, setHighlight] = useState(0);
@@ -805,7 +805,7 @@ export function Composer({
           )}
           <MentionTextarea
           // grok keeps 80px clear at the field's end for its mic and voice buttons, whether or not the mic shows
-          wrapperClassName={singleRow ? undefined : simpleDock ? cn(stacked ? "order-first basis-full" : !(micReady && !busy && !locked) && "me-9") : cn("@max-[30rem]/composer:order-first @max-[30rem]/composer:basis-full", stacked && "order-first basis-full")}
+          wrapperClassName={singleRow ? undefined : simpleDock ? cn(stacked ? "order-first basis-full" : !(micReady && !locked) && "me-9") : cn("@max-[30rem]/composer:order-first @max-[30rem]/composer:basis-full", stacked && "order-first basis-full")}
           inputRef={inputRef}
           peers={[...(group ? members ?? [] : state.bots.filter((member) => member.id !== bot?.id)), ...teammates.peers]}
           everyone={Boolean(group && !group.dm)}
@@ -939,7 +939,21 @@ export function Composer({
             <Square size={simpleDock ? 10 : 14} className={cn("fill-current", stopInSlot && "composer-glyph")} />
           </button>
         )}
-        {!locked && !busy && micReady && (
+        {!locked && micReady && recording && (
+          <button
+            onClick={discardDictation}
+            aria-label={t("composer.dictation.discard")}
+            title={t("composer.dictation.discard")}
+            className={cn(
+              "flex shrink-0 items-center justify-center rounded-full",
+              simpleDock ? "size-7" : "size-8 max-md:size-10",
+              singleRow ? "text-ink-secondary hover:bg-raised hover:text-ink" : SIMPLE_CONTROL,
+            )}
+          >
+            <GrokIcon name="close" size={14} />
+          </button>
+        )}
+        {!locked && micReady && (
           <button
             onClick={toggleMic}
             aria-label={recording ? t("composer.dictation.stop") : t("composer.dictation.start")}

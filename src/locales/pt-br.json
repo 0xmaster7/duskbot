@@ -1904,6 +1904,7 @@
   "composer.dictation.start": "Iniciar o ditado",
   "composer.dictation.stop": "Parar o ditado",
   "composer.dictation.stopHint": "Parar o ditado (Esc)",
+  "composer.dictation.discard": "Descartar o ditado",
   "composer.dictation.hint": "Ditar",
   "composer.failed.notSent": "Não enviada: “{text}”",
   "composer.failed.attachment": "anexo",

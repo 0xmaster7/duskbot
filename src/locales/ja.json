@@ -1990,6 +1990,7 @@
   "composer.dictation.start": "音声入力を開始",
   "composer.dictation.stop": "音声入力を停止",
   "composer.dictation.stopHint": "音声入力を停止（Esc）",
+  "composer.dictation.discard": "音声入力を破棄",
   "composer.dictation.hint": "音声入力",
   "composer.failed.notSent": "未送信: 「{text}」",
   "composer.failed.attachment": "添付ファイル",

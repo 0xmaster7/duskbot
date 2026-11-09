@@ -1940,6 +1940,7 @@
   "composer.dictation.start": "Rozpocznij dyktowanie",
   "composer.dictation.stop": "Zatrzymaj dyktowanie",
   "composer.dictation.stopHint": "Zatrzymaj dyktowanie (Esc)",
+  "composer.dictation.discard": "Odrzuć dyktowanie",
   "composer.dictation.hint": "Dyktuj",
   "composer.failed.notSent": "Nie wysłano: „{text}”",
   "composer.failed.attachment": "załącznik",

@@ -96,5 +96,11 @@ export function useComposerDictation({ draftId, text, onText }: {
       setRecording(true);
     }
   };
-  return { recording, ready, speechError, toggle, stop };
+  const discard = () => {
+    if (!recording) return;
+    const { base } = session.current;
+    stop();
+    onText(base);
+  };
+  return { recording, ready, speechError, toggle, stop, discard };
 }
