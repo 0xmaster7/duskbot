@@ -30,7 +30,7 @@ const carries = (event: DragEvent<HTMLElement>) => event.dataTransfer.types.incl
 const failure = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause));
 
 export function botRowDropClass(drop: BotDropPlace | null | undefined, dragging: boolean | undefined, simple = false): string {
-  return cn(dragging && (simple ? "opacity-50" : "opacity-40"), drop === "group" && "rounded-[10px] bg-accent/10 outline outline-2 -outline-offset-2 outline-accent/70");
+  return cn(dragging && (simple ? "opacity-50" : "opacity-40"), drop === "group" && "rounded-[12px] bg-accent/10 outline outline-2 -outline-offset-2 outline-accent/70");
 }
 
 type Lift = { botId: string; left: number; top: number; x: number; y: number };
