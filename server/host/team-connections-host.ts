@@ -15,7 +15,8 @@ import type * as Composio from "../composio.ts";
 import type { AppConfig } from "../config.ts";
 import type { McpServerSpec } from "../contracts.ts";
 import { serviceSlugFor } from "../connector-verdict.ts";
-import { type McpOAuthManager, type McpSignInPhase, withMcpSignIn, withoutPendingSignIn } from "../mcp-oauth.ts";
+import { type McpOAuthManager, type McpSignInPhase, withoutPendingSignIn } from "../mcp-oauth.ts";
+import { engineMcpSignIn } from "../mcp-oauth-proxy.ts";
 import { isRemoteMcpServer, parseStoredMcpServer } from "../mcp-registry.ts";
 import { OWN_APPS_SERVER } from "../../shared/own-apps.ts";
 import { appLabel, ConnectionScopes, PeopleConnections, personAppOf, SCOPES_FILE, type BrokerAccess } from "../team-connections.ts";
@@ -180,8 +181,8 @@ export function createTeamConnectionsHost(deps: TeamConnectionsHostDeps) {
   const personSpec = async (person: string, name: string, spec: Extract<McpServerSpec, { url: string }>): Promise<McpServerSpec | null> => {
     const manager = people.oauth(person);
     if (manager.authState(name, spec.url) === "signed-in") {
-      const token = await manager.accessToken(name, spec.url);
-      if (token) return { ...spec, headers: { Authorization: `Bearer ${token}` } };
+      const signedIn = (await engineMcpSignIn({ [name]: { ...spec, headers: {} } }, manager))[name];
+      if (signedIn) return signedIn;
     }
     const key = people.key(person, name, spec.url);
     // The team's own headers never ride along: only this person's.
@@ -283,7 +284,7 @@ export function createTeamConnectionsHost(deps: TeamConnectionsHostDeps) {
      * member, the `person` servers they connected, with their own key or sign-in. What isn't mounted, prompt() says. */
     async turnMcp(bot: McpBot, threadId: string, generation: string): Promise<Record<string, McpServerSpec>> {
       const all = deps.botMcp(bot), names = personMcp();
-      const out = await withMcpSignIn(without(all, names), deps.mcpOAuth);
+      const out = await engineMcpSignIn(without(all, names), deps.mcpOAuth);
       const person = names.length ? turnPerson(threadId, generation) : null;
       if (!person) return out;
       for (const name of names) {

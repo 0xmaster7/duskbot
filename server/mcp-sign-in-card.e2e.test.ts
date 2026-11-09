@@ -1,3 +1,4 @@
+import { MCP_OAUTH_PROXY_PATH } from "./mcp-oauth-proxy.ts";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -56,7 +57,7 @@ async function onSignInCard(run: (f: {
   }
 }
 
-it("a bot adds an OAuth server and asks the person to sign in; they sign in on the provider's page and the bot carries on by itself with the server's tools", () => onSignInCard(async ({ api, dump, provider, url, serverUrl, iris, messages, card, endTurn }) => {
+it("a bot adds an OAuth server and asks the person to sign in; they sign in on the provider's page and the bot carries on by itself with the server's tools", () => onSignInCard(async ({ api, dump, provider, url, iris, messages, card, endTurn }) => {
   await endTurn();
   const shown = await card();
   expect(shown.connector).toMatchObject({ slug: "postiz", label: "Postiz", status: "required" });
@@ -78,7 +79,9 @@ it("a bot adds an OAuth server and asks the person to sign in; they sign in on t
 
   let resumed: any;
   await expect.poll(() => { resumed = dump(); return JSON.stringify(resumed?.prompt ?? "").includes("the person signed in to postiz"); }, { timeout: 20_000 }).toBe(true);
-  expect(resumed.mcpConfig.mcpServers.postiz, "the resumed turn has the server, signed in").toMatchObject({ url: serverUrl, headers: { Authorization: `Bearer ${provider.issued[0]}` } });
+  const postiz = JSON.stringify(resumed.mcpConfig.mcpServers.postiz);
+  expect(postiz, "the resumed turn has the server, signed in through this server's proxy").toContain(MCP_OAUTH_PROXY_PATH);
+  expect(postiz, "the engine never holds the token").not.toContain(provider.issued[0]);
   await expect.poll(async () => (await messages()).find((message) => message.id === shown.id)?.connector, { timeout: 20_000 })
     .toMatchObject({ status: "connected", resumed: true });
   const transcript = JSON.stringify(await messages());

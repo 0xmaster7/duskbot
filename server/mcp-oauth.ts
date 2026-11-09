@@ -367,6 +367,21 @@ export class McpOAuthManager {
     return refreshed;
   }
 
+  /** The server refused `rejected` (a 401): a new token by refresh, the one already refreshed meanwhile, or null when
+   * none can be had. Never the refused one again. */
+  async refreshRejected(name: string, url: string, rejected: string): Promise<string | null> {
+    const record = this.store.get(name, url);
+    if (!record || record.state !== "signed-in" || !record.tokens) return null;
+    if (record.tokens.access !== rejected) return record.tokens.access;
+    let pending = this.refreshing.get(name);
+    if (!pending) {
+      pending = this.refresh(name, { ...record, tokens: { ...record.tokens, expiresAt: 0 } }).finally(() => this.refreshing.delete(name));
+      this.refreshing.set(name, pending);
+    }
+    const token = await pending;
+    return token && token !== rejected ? token : null;
+  }
+
   dispose(): void {
     this.disposed = true;
     for (const pending of this.starting.values()) pending.cancelled = true;

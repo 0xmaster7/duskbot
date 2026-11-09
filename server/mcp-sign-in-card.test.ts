@@ -1,6 +1,7 @@
 // A bot's Sign in card for an MCP server, end to end against a stand-in OAuth provider: the bot's mcp_server sign_in
 // posts the card, the card's routes start the provider's sign-in, the provider's callback settles the card and resumes
 // the bot, and the next turn mounts the server with the new token.
+import { MCP_OAUTH_PROXY_PATH } from "./mcp-oauth-proxy.ts";
 import { EventEmitter } from "node:events";
 import { mkdtempSync, rmSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -419,6 +420,8 @@ describe("the Sign in card", () => {
     const { card } = await f.signIn();
     expect(await f.approve((await f.authorize(card)).body.url as string)).toBe(200);
     const mounted = await f.team.turnMcp(kiwi, "main-chat", "turn-2");
-    expect(mounted.linear).toMatchObject({ url: f.url, headers: { Authorization: `Bearer ${f.provider.issued[0]}` } });
+    // Through this server's proxy: the engine never holds the token it was issued.
+    expect(mounted.linear).toMatchObject({ url: expect.stringContaining(MCP_OAUTH_PROXY_PATH), headers: { Authorization: expect.stringMatching(/^Bearer /) } });
+    expect(JSON.stringify(mounted.linear)).not.toContain(f.provider.issued[0]);
   });
 });
