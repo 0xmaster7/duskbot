@@ -39,7 +39,13 @@ export interface TurnProgressFields {
   quiet?: StepQuiet;
   /** A running command's last lines of output, redacted, oldest first. */
   tail?: string[];
+  /** The bot's own words for what it is doing in this turn, set with its set_status tool ("Comparing keyboard reviews"):
+   * sentence case, no trailing punctuation, at most STATUS_LABEL_MAX characters. It stands until the bot sets another or
+   * the turn ends. */
+  label?: string;
 }
+
+export const STATUS_LABEL_MAX = 40;
 
 const KB = 1024;
 const MB = 1024 * KB;
@@ -64,5 +70,5 @@ export function progressKey(event: Omit<TurnProgressFields, "type" | "activity">
   const size = progressSize(event.bytes);
   const quiet = event.quiet ? `${event.quiet.kind}${event.quiet.kind === "output" ? `@${event.quiet.at}` : ""}` : "";
   return [event.turnId ?? "", event.itemId ?? "", event.activity, event.tool ?? "", event.file ?? "", size ? `${size.count}${size.unit}` : "",
-    event.target ?? "", event.detail ?? "", quiet, (event.tail ?? []).join("\n")].join("|");
+    event.target ?? "", event.detail ?? "", quiet, (event.tail ?? []).join("\n"), event.label ?? ""].join("|");
 }
