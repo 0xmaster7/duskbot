@@ -1106,7 +1106,7 @@ export function ComputerPanel({
       <Suspense fallback={null}>
         {/* inline, the panel itself holds the waking picture, so it plays once through the whole wake */}
         <LiveDesktop key={viewerConnectionKey} waking={(expanded) => (inline && !expanded ? null : wakingView(expanded || Boolean(fullscreen)))} onScreenSize={(width, height) => setScreenAspect(width / height)}
-          target={liveTarget} threadId={bot.threadId} name={bot.name} poster={frameSrc} viewOnly={!liveHere} wake={wakingHere} taking={controlPending}
+          target={liveTarget} threadId={bot.threadId} botId={bot.id} name={bot.name} poster={frameSrc} viewOnly={!liveHere} wake={wakingHere} taking={controlPending}
           expanded={takeover.expanded} onExpandedChange={(expanded) => {
             if (!expanded && inline && takeover.here) void handBack(); else takeover.setExpanded(expanded);
           }}

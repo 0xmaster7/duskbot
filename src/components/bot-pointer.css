@@ -1,0 +1,24 @@
+/* the bot's pointer glides between the spots it acts on; a press leaves one small ring there once it arrives */
+.bot-pointer {
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease;
+}
+.bot-pointer-press {
+  animation: bot-pointer-press 580ms linear both;
+}
+@keyframes bot-pointer-press {
+  0%, 48% { opacity: 0; transform: scale(0.5); animation-timing-function: ease-out; }
+  49% { opacity: 0.7; transform: scale(0.5); animation-timing-function: ease-out; }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes bot-pointer-press-still {
+  from { opacity: 0.7; }
+  to { opacity: 0; }
+}
+
+/* less motion: the pointer moves without travelling, and a press still shows, as a fade */
+@media (prefers-reduced-motion: reduce) {
+  .bot-pointer { transition: opacity 200ms ease; }
+  .bot-pointer-press { animation: bot-pointer-press-still 300ms ease-out both; }
+}
+:root[data-reduced-motion="true"] .bot-pointer { transition: opacity 200ms ease; }
+:root[data-reduced-motion="true"] .bot-pointer-press { animation: bot-pointer-press-still 300ms ease-out both; }

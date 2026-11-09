@@ -54,6 +54,7 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
   const client = new RFB(screen, websocket.href, {
     credentials: { password: config?.password ?? "", username: "", target: "" },
   });
+  hideDesktopPointer(client);
   client.viewOnly = true;
   client.focusOnClick = false;
   client.scaleViewport = true;
@@ -95,6 +96,19 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
     if (!cancelled.aborted && !ended) events.clipboard?.(event.detail.text);
   });
   return client;
+}
+
+type DrawsPointer = { _cursor?: { change?: unknown; clear?: unknown } };
+
+/** noVNC draws the desktop's own pointer image under the person's mouse (on a phone, where they last tapped), not where
+ * the desktop's pointer is: a frozen second pointer beside the bot's. The bot's pointer is drawn over the view instead
+ * and a person keeps their own. noVNC 1.7 has no public switch, so its cursor's draw calls are emptied before it
+ * attaches, on the next tick. */
+export function hideDesktopPointer(client: RFB): void {
+  const cursor = (client as unknown as DrawsPointer)._cursor;
+  if (!cursor) return;
+  cursor.change = () => {};
+  cursor.clear = () => {};
 }
 
 const XK_SHIFT_L = 0xffe1;

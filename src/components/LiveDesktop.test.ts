@@ -38,6 +38,7 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
 }));
 
 const { LiveDesktop } = await import("./LiveDesktop");
+const { publishBotPointer } = await import("@/lib/bot-pointer");
 const css = readFileSync("src/styles.css", "utf8");
 const noDragSelector = /\/\* Window drag regions\.[\s\S]*?\*\/\s*([^{]+)\{\s*-webkit-app-region: no-drag;/.exec(css)![1].trim();
 let root: Root;
@@ -295,6 +296,30 @@ describe("the live desktop", () => {
       expect(writeText.mock.calls).toEqual([["copied on the desktop"]]);
     } finally {
       delete (navigator as { clipboard?: unknown }).clipboard;
+    }
+  });
+
+  it("draws the bot's pointer where it acts while watching, scaled to the picture, and none once a person drives", () => {
+    const fit = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      return (this instanceof HTMLCanvasElement ? { left: 10, top: 20, width: 640, height: 400 } : { left: 0, top: 0, width: 660, height: 440 }) as DOMRect;
+    });
+    const sized = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(640);
+    try {
+      draw({ viewOnly: true, botId: "bot-1" });
+      flushSync(() => fixture.attempts[0]!.events.connected());
+      expect(document.querySelector("[data-bot-pointer]")).toBeNull();
+      flushSync(() => publishBotPointer({ kind: "computer-pointer", botId: "bot-1", x: 640, y: 400, phase: "click" }));
+      const pointer = document.querySelector<HTMLElement>("[data-bot-pointer]")!;
+      expect(pointer.dataset.botPointer).toBe("click");
+      expect(pointer.style.transform).toBe("translate3d(330px, 220px, 0)");
+      expect(pointer.parentElement!.getAttribute("aria-hidden")).toBe("true");
+      flushSync(() => publishBotPointer({ kind: "computer-pointer", botId: "another-bot", x: 0, y: 0, phase: "move" }));
+      expect(document.querySelector<HTMLElement>("[data-bot-pointer]")!.style.transform).toBe("translate3d(330px, 220px, 0)");
+      draw({ viewOnly: false });
+      expect(document.querySelector("[data-bot-pointer]")).toBeNull();
+    } finally {
+      fit.mockRestore();
+      sized.mockRestore();
     }
   });
 });

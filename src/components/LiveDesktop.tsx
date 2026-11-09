@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { connectDesktop, isPasteShortcut, pasteOnDesktop, typeOnDesktop } from "@/lib/desktop-connection";
 import { t } from "@/lib/i18n";
 import { isMacPlatform } from "@/lib/keyboard-shortcuts";
+import { BotPointer } from "./BotPointer";
 import { ComputerFullscreen } from "./ComputerFullscreen";
 import { GrokIcon } from "./GrokIcon";
 import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities";
@@ -12,8 +13,10 @@ import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities"
 type Connection = "connecting" | "connected" | "disconnected";
 
 /** The computer the person took control of, live and drivable where they were watching it. */
-export function LiveDesktop({ target, threadId, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable, onReadyChange, onTakeControl, onOpenPreview, onScreenSize, waking, originalViewer = false, viewOnly = false, wake = false, taking = false }: {
+export function LiveDesktop({ target, threadId, botId, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable, onReadyChange, onTakeControl, onOpenPreview, onScreenSize, waking, originalViewer = false, viewOnly = false, wake = false, taking = false }: {
   target: string;
+  /** Whose pointer to draw over the screen while it is watched. */
+  botId?: string;
   viewOnly?: boolean;
   /** The computer is waking: the picture is asked for beside the wake and shows the moment the desktop answers. */
   wake?: boolean;
@@ -199,6 +202,7 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
           <img src={poster} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-contain opacity-50" />
         )}
         <div ref={screen} role="application" aria-label={label} data-live-desktop-screen="" data-watching={viewOnly ? "" : undefined} className="absolute inset-0" />
+        {botId && viewOnly && connection === "connected" && <BotPointer host={screen} botId={botId} />}
         {viewOnly && (originalViewer ? !expanded && onOpenPreview : onTakeControl) && (
           <button type="button" data-panel-action={originalViewer ? "open-computer" : undefined} aria-label={originalViewer ? t("computer.open") : t("computer.takeControl")}
             title={originalViewer ? t("computer.open") : t("computer.takeControl")}
