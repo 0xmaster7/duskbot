@@ -9,8 +9,8 @@
 // traffic through this computer": a socks5 and http connect proxy on the bot computers' bridge (see createEgressProxy).
 import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
 import { createSocket } from "node:dgram";
-import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { BlockList, createServer as createTcpServer } from "node:net";
+import { chmodSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { BlockList, createConnection, createServer as createTcpServer } from "node:net";
 import { Agent as HttpAgent, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
 import { isIP, Socket } from "node:net";
@@ -216,9 +216,9 @@ export function sealBytes(key, id, dir, r, bytes, raw = false) {
   return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
 }
 /**
- * `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way. the app keeps one guard for both
- * paths; on the vps the tunnel process and each direct session keep their own, which is enough there: a relay frame
- * cannot be replayed into a direct session without the app's ssh key, and direct frames never pass the relay
+ * `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way. each end keeps one guard for
+ * every path: on the vps the tunnel process serves the relay and every direct connection with the same one (only a
+ * direct command that found no tunnel to hand its connection to keeps its own)
  */
 export function openFrame(key, id, dir, sealed, guard) {
   const plain = open(key, `${id}|${dir}`, sealed);
@@ -481,6 +481,11 @@ const DIRECT_ACK_EVERY = 32 * 1024;
 const DIRECT_MAX_RECORD = 1024 * 1024;
 const DIRECT_HIGH = 2 * 1024 * 1024;
 const DIRECT_LOW = 512 * 1024;
+/**
+ * a lane's streams (egress: a bot's tls handshakes and pages) have their own allowance of unacknowledged bytes and go
+ * first in each round, so a full desktop window never holds a page's first bytes back for an ack
+ */
+const DIRECT_LANE_INFLIGHT = 256 * 1024;
 
 export function directRecord(type, payload) {
   const head = Buffer.allocUnsafe(5);
@@ -517,7 +522,8 @@ export function directReader(onRecord) {
 /**
  * the sending half of a direct link. a frame for a stream with bytes still queued waits behind them (its order is kept);
  * every other frame goes first. queued bytes take turns, a piece per stream, with at most DIRECT_INFLIGHT unacknowledged,
- * so a busy desktop or a download never holds an api call back for long.
+ * so a busy desktop or a download never holds an api call back for long. `bytes(r, chunk, true)` puts a stream in the
+ * lane (DIRECT_LANE_INFLIGHT).
  */
 export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, write, inflight: fixed = null, now = () => performance.now() }) {
   const urgent = [];
@@ -545,38 +551,49 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
   }
   const streams = new Map();
   const drains = new Set();
-  let queued = 0, unacked = 0, received = 0, blocked = false, closed = false, scheduled = false;
+  // what is unacknowledged, oldest first, by lane: the other end acks bytes in the order they left
+  const flight = [];
+  let queued = 0, unacked = 0, laneUnacked = 0, received = 0, blocked = false, closed = false, scheduled = false;
   const release = () => { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); };
+  function piece(r, items) {
+    const item = items[0];
+    let need = Math.min(DIRECT_PIECE, item.size);
+    const pieces = [];
+    while (need > 0) {
+      const part = item.parts[0];
+      if (part.length <= need) { pieces.push(part); item.parts.shift(); need -= part.length; }
+      else { pieces.push(part.subarray(0, need)); item.parts[0] = part.subarray(need); need = 0; }
+    }
+    const one = pieces.length === 1 ? pieces[0] : Buffer.concat(pieces);
+    item.size -= one.length;
+    queued -= one.length;
+    if (items.lane) laneUnacked += one.length; else unacked += one.length;
+    const last = flight[flight.length - 1];
+    if (last && last.lane === Boolean(items.lane)) last.size += one.length; else flight.push({ lane: Boolean(items.lane), size: one.length });
+    sentTotal += one.length;
+    sent.push({ end: sentTotal, at: now() });
+    if (sent.length > 4096) sent.shift();
+    if (!item.size) items.shift();
+    streams.delete(r);
+    if (items.length) streams.set(r, items);
+    return directRecord(REC_SEALED, sealPiece(r, one));
+  }
   function next() {
     if (urgent.length) return urgent.shift();
-    for (const [r, items] of streams) {
-      const item = items[0];
-      if (item.record) { items.shift(); }
-      else {
-        if (unacked >= inflight) continue;
-        let need = Math.min(DIRECT_PIECE, item.size);
-        const pieces = [];
-        while (need > 0) {
-          const part = item.parts[0];
-          if (part.length <= need) { pieces.push(part); item.parts.shift(); need -= part.length; }
-          else { pieces.push(part.subarray(0, need)); item.parts[0] = part.subarray(need); need = 0; }
+    for (const lane of [true, false]) {
+      for (const [r, items] of streams) {
+        if (Boolean(items.lane) !== lane) continue;
+        const item = items[0];
+        if (!item.record) {
+          if (lane ? laneUnacked >= DIRECT_LANE_INFLIGHT : unacked >= inflight) continue;
+          return piece(r, items);
         }
-        const piece = pieces.length === 1 ? pieces[0] : Buffer.concat(pieces);
-        item.size -= piece.length;
-        queued -= piece.length;
-        unacked += piece.length;
-        sentTotal += piece.length;
-        sent.push({ end: sentTotal, at: now() });
-        if (sent.length > 4096) sent.shift();
-        if (!item.size) items.shift();
+        // a frame that waited behind its stream's bytes; the stream goes to the back of the line
+        items.shift();
         streams.delete(r);
         if (items.length) streams.set(r, items);
-        return directRecord(REC_SEALED, sealPiece(r, piece));
+        return item.record;
       }
-      // a frame that waited behind its stream's bytes; the stream goes to the back of the line
-      streams.delete(r);
-      if (items.length) streams.set(r, items);
-      return item.record;
     }
     return null;
   }
@@ -608,10 +625,10 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
       kick();
     },
     /** false: stop reading this stream until `onDrain` calls back */
-    bytes(r, chunk) {
+    bytes(r, chunk, lane = false) {
       if (closed) return true;
       let items = streams.get(r);
-      if (!items) streams.set(r, (items = []));
+      if (!items) { streams.set(r, (items = [])); items.lane = lane; }
       const last = items[items.length - 1];
       if (last && !last.record) { last.parts.push(chunk); last.size += chunk.length; }
       else items.push({ parts: [chunk], size: chunk.length });
@@ -628,7 +645,17 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
       if (queued < DIRECT_LOW) release();
     },
     /** the other end got this many stream bytes */
-    acked(count) { unacked = Math.max(0, unacked - count); learn(count); kick(); },
+    acked(count) {
+      for (let left = count; left > 0 && flight.length;) {
+        const head = flight[0], used = Math.min(left, head.size);
+        head.size -= used;
+        left -= used;
+        if (head.lane) laneUnacked -= used; else unacked -= used;
+        if (!head.size) flight.shift();
+      }
+      learn(count);
+      kick();
+    },
     /** stream bytes that arrived here: acknowledged every so often, ahead of everything else */
     received(count) {
       received += count;
@@ -642,7 +669,7 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
     drained() { blocked = false; kick(); },
     close() { closed = true; urgent.length = 0; streams.clear(); queued = 0; release(); },
     get size() { return queued; },
-    get unacked() { return unacked; },
+    get unacked() { return unacked + laneUnacked; },
     get inflight() { return inflight; },
   };
 }
@@ -1022,16 +1049,20 @@ const egressCode = (code) => (code === "port" || code === "home-network" || code
 /**
  * the server's half of "route traffic through this computer": a proxy the bot computers reach on their bridge, whose
  * connections the app opens from the person's own computer. it rides any tunnel with the stream api `send(frame)`,
- * `bytes(r, chunk)`, `queued()` and `onDrain(fn)`, and takes the app's frames through `handle(frame)`.
+ * `bytes(r, chunk)`, `queued()` and `onDrain(fn)` (the relay), and takes the app's frames through `handle(frame)`.
+ * `path()` names a faster way with the same api while there is one (a direct session): each stream keeps the path it
+ * was dialled on, and `dropPath(path)` ends the streams of one that is gone.
  * Security: it never connects anywhere itself (a box reaching this host must not get past the host fence), only
  * answers on the bridge, and refuses the bridge's own address so processes on this host cannot use it. the app checks
  * every destination again on its side.
  */
 export function createEgressProxy({
-  send, bytes, queued, onDrain, log = () => {}, now = Date.now,
+  send, bytes, queued, onDrain, path = () => null, log = () => {}, now = Date.now,
   bind = () => bridgeAddress(), port = EGRESS_PORT, report = null, reportMs = 5000, dialMs = EGRESS_DIAL_MS,
   probe = EGRESS_PROBE, probeEveryMs = DIAL_PROBE_EVERY_MS,
 }) {
+  const relay = { send, bytes, queued, onDrain };
+  const pick = () => path() ?? relay;
   const streams = new Map();
   const probes = new Map();
   let samples = [];
@@ -1046,14 +1077,14 @@ export function createEgressProxy({
   const online = () => ready && now() - seenAt < EGRESS_SEEN_MS;
   const randomId = () => Array.from(randomBytes(12), (byte) => "abcdefghijklmnopqrstuvwxyz234567"[byte & 31]).join("");
 
-  function forget(r, tell) {
+  function forget(r, tell, over = null) {
     const entry = streams.get(r);
     if (!entry) return;
     streams.delete(r);
     clearTimeout(entry.timer);
     entry.settle?.({ ok: false, code: "closed" });
     entry.socket.destroy();
-    if (tell) send({ t: "cancel", r });
+    if (tell) (over ?? entry.via).send({ t: "cancel", r });
   }
 
   /** the app went away: its streams are dead, so their browsers see the close now instead of waiting */
@@ -1075,8 +1106,9 @@ export function createEgressProxy({
     if (!enabled || !online()) return fallBack();
     const r = randomId();
     const dialedAt = now();
+    const via = pick();
     const answer = await new Promise((settle) => {
-      const entry = { socket, settle, endSent: false, timer: setTimeout(() => {
+      const entry = { socket, settle, via, endSent: false, timer: setTimeout(() => {
         sample(dialMs);
         // the app did not answer in time: it is asleep or gone, so new connections go direct until it says hello again
         log("egress: the app did not answer; bot computers use this server's own network until it is back");
@@ -1086,11 +1118,11 @@ export function createEgressProxy({
         void tick();
       }, dialMs) };
       streams.set(r, entry);
-      send({ t: "dial", r, host: asked.host, port: asked.port });
+      via.send({ t: "dial", r, host: asked.host, port: asked.port });
     });
     const entry = streams.get(r);
     if (!answer.ok || !entry) {
-      if (entry) { streams.delete(r); clearTimeout(entry.timer); if (answer.code === "timeout") send({ t: "cancel", r }); }
+      if (entry) { streams.delete(r); clearTimeout(entry.timer); if (answer.code === "timeout") via.send({ t: "cancel", r }); }
       if (answer.code === "timeout" || answer.code === "busy" || answer.code === "closed") return fallBack();
       stats.refused += 1;
       return asked.fail(egressCode(answer.code));
@@ -1099,14 +1131,14 @@ export function createEgressProxy({
     stats.relayed += 1;
     entry.relaying = true;
     asked.reply(true);
-    if (asked.rest.length) bytes(r, asked.rest);
+    if (asked.rest.length) via.bytes(r, asked.rest);
     socket.setNoDelay(true);
     socket.on("data", (chunk) => {
       if (streams.get(r) !== entry) return;
-      bytes(r, chunk);
-      if (queued() >= EGRESS_QUEUE_HIGH) { socket.pause(); onDrain(() => { if (streams.get(r) === entry) socket.resume(); }); }
+      via.bytes(r, chunk);
+      if (via.queued() >= EGRESS_QUEUE_HIGH) { socket.pause(); via.onDrain(() => { if (streams.get(r) === entry) socket.resume(); }); }
     });
-    socket.on("end", () => { if (streams.get(r) === entry) { entry.endSent = true; send({ t: "end", r }); } });
+    socket.on("end", () => { if (streams.get(r) === entry) { entry.endSent = true; via.send({ t: "end", r }); } });
     socket.on("close", () => { if (streams.get(r) === entry) forget(r, !entry.endSent); });
     socket.resume();
   }
@@ -1133,9 +1165,9 @@ export function createEgressProxy({
   function measure() {
     const last = samples.at(-1)?.at ?? -Infinity;
     if (!probe || !enabled || !online() || probes.size || now() - last < probeEveryMs) return;
-    const r = randomId(), at = now();
-    probes.set(r, { at, timer: setTimeout(() => { if (probes.delete(r)) { sample(dialMs); send({ t: "cancel", r }); } }, dialMs) });
-    send({ t: "dial", r, host: probe.host, port: probe.port });
+    const r = randomId(), at = now(), via = pick();
+    probes.set(r, { at, via, timer: setTimeout(() => { if (probes.delete(r)) { sample(dialMs); via.send({ t: "cancel", r }); } }, dialMs) });
+    via.send({ t: "dial", r, host: probe.host, port: probe.port });
   }
 
   async function tick() {
@@ -1177,7 +1209,7 @@ export function createEgressProxy({
           seenAt = now();
           ready = true;
           sample(now() - probed.at);
-          if (frame.ok === true) send({ t: "cancel", r: frame.r });
+          if (frame.ok === true) probed.via.send({ t: "cancel", r: frame.r });
         }
         return true;
       }
@@ -1196,6 +1228,15 @@ export function createEgressProxy({
       else if (frame.t === "cancel") forget(frame.r, false);
       else return false;
       return true;
+    },
+    /** a path that is gone: its streams end, and the app hears it over the relay */
+    dropPath(gone) {
+      for (const [r, probed] of probes) if (probed.via === gone) { probes.delete(r); clearTimeout(probed.timer); }
+      for (const [r, entry] of [...streams]) {
+        if (entry.via !== gone) continue;
+        if (entry.settle) { const settle = entry.settle; entry.settle = null; clearTimeout(entry.timer); streams.delete(r); settle({ ok: false, code: "closed" }); relay.send({ t: "cancel", r }); }
+        else forget(r, true, relay);
+      }
     },
     async stop() {
       stopped = true;
@@ -1338,6 +1379,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     terminal = reason;
     abort.abort();
     void egress?.stop();
+    hub.stop();
     if (!given) fetchImpl.close();
     serving.destroyAll();
   }
@@ -1346,13 +1388,14 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
 
   const epoch = Array.from(randomBytes(12), (byte) => "abcdefghijklmnopqrstuvwxyz234567"[byte & 31]).join("");
   let ordered = false;
-  const post = async (frames, at) => {
+  // the egress lane's posts carry no sequence: they never wait in the relay behind the main queue's held posts
+  const post = async (frames, at, lane = false) => {
     for (let attempt = 0; !stopped; attempt += 1) {
       try {
-        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
+        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(lane ? { frames, lane: true } : { frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
         // read, not cancelled: a cancelled body closes the socket the next post would reuse
         const said = await response.text().catch(() => "");
-        if (response.ok && !ordered) ordered = /"ordered":true/.test(said);
+        if (response.ok && !ordered && !lane) ordered = /"ordered":true/.test(said);
         if (response.ok) { successfulPosts += 1; pollRetry?.abort(); return true; }
         if (response.status === 404) { stop("unlinked"); return false; }
       } catch { /* retried below */ }
@@ -1368,7 +1411,11 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     server, stopped: () => stopped, context: { id },
     sink: { push: emit, bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard },
   });
-  const egress = egressOptions ? createEgressProxy({ send: emit, bytes: (r, chunk) => outbox.bytes(r, chunk), queued: () => outbox.size, onDrain: (resume) => outbox.onDrain(resume), log, ...egressOptions }) : null;
+  // egress over the relay: its own queue and posts, so a bot's tls handshake never waits behind a batch of desktop frames
+  const lane = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post: (frames, at) => post(frames, at, true), delayMs: 0, signal: abort.signal, onError: () => log("link: an egress post failed") });
+  const laneSend = (frame) => { if (stopped) return; if (frame.t === "cancel") lane.discard(frame.r); lane.push(sealFrame(key, id, "to-app", frame), frame.r); };
+  const egress = egressOptions ? createEgressProxy({ send: laneSend, bytes: (r, chunk) => lane.bytes(r, chunk), queued: () => lane.size, onDrain: (resume) => lane.onDrain(resume), path: () => hub.best(), log, ...egressOptions }) : null;
+  const hub = createDirectHub({ id, key: keyText, server, guard, egress, log });
   const handle = (frame) => (egress?.handle(frame) ? undefined : serving.handle(frame));
 
   async function run() {
@@ -1424,7 +1471,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     unwarm();
     return terminal;
   }
-  return { run, stop, egress };
+  return { run, stop, egress, direct: hub };
 }
 
 export function harnessSync(server = SERVER) {
@@ -1625,13 +1672,13 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
 }
 
 /**
- * the direct link's server half, one per ssh connection: frames in on `input`, replies out on `output`. it says hello
- * first (sealed, so the app knows it holds the key), answers pings, and ends with the connection.
+ * the direct link's server half, one per connection: frames in on `input`, replies out on `output`. it says hello
+ * first (sealed, so the app knows it holds the key), answers pings, and ends with the connection. `egress` takes the
+ * app's egress frames; `path` is this connection as a way for egress streams to the app, usable once `onHello` said so.
  */
-export function serveDirect({ input, output, id, key: keyText, server = SERVER, log = (line) => console.error(line), idleMs = 20_000 }) {
+export function serveDirect({ input, output, id, key: keyText, server = SERVER, log = (line) => console.error(line), idleMs = 20_000, guard = frameGuard(), egress = null, onHello = () => {} }) {
   const key = Buffer.from(keyText, "base64url");
-  const guard = frameGuard();
-  let ended = false, heard = false, finish;
+  let ended = false, heard = false, greeted = false, finish;
   const done = new Promise((resolve) => { finish = (why) => {
     if (ended) return;
     ended = true;
@@ -1658,7 +1705,9 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
     heard = true;
     if (frame.t === "bytes") writer.received(frame.b.length);
     if (frame.t === "ping") { writer.push({ t: "pong", n: frame.n }); return; }
-    if (frame.t !== "hello") void serving.handle(frame);
+    if (frame.t === "hello") { if (!greeted) { greeted = true; onHello(session); } return; }
+    if (egress?.handle(frame)) return;
+    void serving.handle(frame);
   });
   output.on("drain", () => writer.drained());
   output.on("error", () => finish("closed"));
@@ -1667,7 +1716,77 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
   input.on("close", () => finish("closed"));
   output.write(DIRECT_MAGIC);
   writer.push({ t: "hello", v: 1 });
-  return { done, stop: () => finish("stopped") };
+  const session = {
+    done, stop: () => finish("stopped"), live: () => !ended && greeted,
+    path: { send: (frame) => writer.push(frame), bytes: (r, chunk) => writer.bytes(r, chunk, true), queued: () => writer.size, onDrain: (resume) => writer.onDrain(resume) },
+  };
+  return session;
+}
+
+/**
+ * every direct connection of this tunnel, served in the tunnel's own process (ssh sessions arrive through
+ * `agent.mjs direct`, which only pipes them here), so egress streams can ride the newest one the app said hello on.
+ * one replay guard covers them all and the relay.
+ */
+export function createDirectHub({ id, key, server = SERVER, guard, egress = null, log = () => {}, max = 16 }) {
+  const all = new Set();
+  const greeted = [];
+  return {
+    accept(input, output) {
+      if (all.size >= max) { input.destroy?.(); output.destroy?.(); return null; }
+      const session = serveDirect({ input, output, id, key, server, log, guard, egress, onHello: (one) => greeted.push(one) });
+      all.add(session);
+      void session.done.then(() => {
+        all.delete(session);
+        const at = greeted.indexOf(session);
+        if (at >= 0) greeted.splice(at, 1);
+        egress?.dropPath(session.path);
+      });
+      return session;
+    },
+    /** the newest live session's path, or null */
+    best() {
+      for (let at = greeted.length - 1; at >= 0; at -= 1) if (greeted[at].live()) return greeted[at].path;
+      return null;
+    },
+    get size() { return all.size; },
+    stop() { for (const session of [...all]) session.stop(); },
+  };
+}
+
+/** where `agent.mjs direct` finds the tunnel's process: in this account's own private folder */
+export const directSocketPath = () => join(configDir(), "direct.sock");
+
+/** the tunnel's end of that socket; null when it could not listen (the direct command then serves in its own process) */
+export async function listenDirectSocket(hub, file = directSocketPath(), log = (line) => console.error(line)) {
+  mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
+  try { unlinkSync(file); } catch { /* none left over */ }
+  const listening = createTcpServer((socket) => { socket.on("error", () => {}); hub.accept(socket, socket); });
+  try {
+    await new Promise((resolve, reject) => { listening.once("error", reject); listening.listen(file, () => resolve()); });
+    chmodSync(file, 0o600);
+    return listening;
+  } catch (error) {
+    log(`link: direct sessions stay in their own processes (${error?.code ?? error?.message ?? error})`);
+    return null;
+  }
+}
+
+/** `agent.mjs direct` hands its connection to the tunnel's process: the exit code, or null when nobody listens there */
+export function pipeToTunnel(file, input, output) {
+  return new Promise((resolve) => {
+    const socket = createConnection(file);
+    let piped = false;
+    socket.once("error", () => { if (!piped) resolve(null); });
+    socket.once("connect", () => {
+      piped = true;
+      socket.on("error", () => {});
+      input.pipe(socket);
+      socket.pipe(output);
+      socket.once("close", () => resolve(0));
+      input.once("end", () => socket.end());
+    });
+  });
 }
 
 async function direct() {
@@ -1675,6 +1794,8 @@ async function direct() {
   try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet"); return 1; }
   // a socket on the pipe, not process.stdout: on linux a piped stdout writes synchronously and would stall the reads
   const output = new Socket({ fd: 1, readable: false, writable: true });
+  const piped = await pipeToTunnel(directSocketPath(), process.stdin, output);
+  if (piped !== null) return piped;
   const why = await serveDirect({ input: process.stdin, output, id: saved.id, key: saved.key }).done;
   return why === "closed" || why === "stopped" ? 0 : 1;
 }
@@ -1699,13 +1820,15 @@ async function tunnel() {
     if (keys && (typeof keys.pub !== "string" || typeof keys.priv !== "string")) { console.error("link: phone keys are not valid; phones are off"); keys = null; }
     if (keys) phones = createPhoneHub({ base: saved.base, id: saved.id, token: saved.token, keys, origin: saved.mode === "direct" ? saved.origin : null, spki: null, sync: harnessSync(SERVER) });
   }
-  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { phones?.stop(); agent.stop(); process.exit(0); });
+  const directSocket = await listenDirectSocket(agent.direct);
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { phones?.stop(); agent.stop(); directSocket?.close(); process.exit(0); });
   const phoneRun = phones?.run();
   const how = await agent.run();
   phones?.stop();
   await phoneRun;
   // unlinked: stay quiet instead of letting systemd restart a tunnel that no longer exists
   if (how === "unlinked") {
+    directSocket?.close();
     try { setDirectKey(saved.id, null); } catch (error) { console.error(`link: the app's ssh key could not be removed (${error?.message ?? error})`); }
     setInterval(() => {}, 1 << 30);
     await new Promise(() => {});

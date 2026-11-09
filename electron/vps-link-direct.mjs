@@ -30,6 +30,11 @@ const DIRECT_ACK_EVERY = 32 * 1024;
 const DIRECT_MAX_RECORD = 1024 * 1024;
 const DIRECT_HIGH = 2 * 1024 * 1024;
 const DIRECT_LOW = 512 * 1024;
+/**
+ * a lane's streams (egress: a bot's tls handshakes and pages) have their own allowance of unacknowledged bytes and go
+ * first in each round, so a full desktop window never holds a page's first bytes back for an ack
+ */
+const DIRECT_LANE_INFLIGHT = 256 * 1024;
 
 export function directRecord(type, payload) {
   const head = Buffer.allocUnsafe(5);
@@ -66,7 +71,8 @@ export function directReader(onRecord) {
 /**
  * the sending half of a direct link. a frame for a stream with bytes still queued waits behind them (its order is kept);
  * every other frame goes first. queued bytes take turns, a piece per stream, with at most DIRECT_INFLIGHT unacknowledged,
- * so a busy desktop or a download never holds an api call back for long.
+ * so a busy desktop or a download never holds an api call back for long. `bytes(r, chunk, true)` puts a stream in the
+ * lane (DIRECT_LANE_INFLIGHT).
  */
 export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, write, inflight: fixed = null, now = () => performance.now() }) {
   const urgent = [];
@@ -94,38 +100,49 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
   }
   const streams = new Map();
   const drains = new Set();
-  let queued = 0, unacked = 0, received = 0, blocked = false, closed = false, scheduled = false;
+  // what is unacknowledged, oldest first, by lane: the other end acks bytes in the order they left
+  const flight = [];
+  let queued = 0, unacked = 0, laneUnacked = 0, received = 0, blocked = false, closed = false, scheduled = false;
   const release = () => { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); };
+  function piece(r, items) {
+    const item = items[0];
+    let need = Math.min(DIRECT_PIECE, item.size);
+    const pieces = [];
+    while (need > 0) {
+      const part = item.parts[0];
+      if (part.length <= need) { pieces.push(part); item.parts.shift(); need -= part.length; }
+      else { pieces.push(part.subarray(0, need)); item.parts[0] = part.subarray(need); need = 0; }
+    }
+    const one = pieces.length === 1 ? pieces[0] : Buffer.concat(pieces);
+    item.size -= one.length;
+    queued -= one.length;
+    if (items.lane) laneUnacked += one.length; else unacked += one.length;
+    const last = flight[flight.length - 1];
+    if (last && last.lane === Boolean(items.lane)) last.size += one.length; else flight.push({ lane: Boolean(items.lane), size: one.length });
+    sentTotal += one.length;
+    sent.push({ end: sentTotal, at: now() });
+    if (sent.length > 4096) sent.shift();
+    if (!item.size) items.shift();
+    streams.delete(r);
+    if (items.length) streams.set(r, items);
+    return directRecord(REC_SEALED, sealPiece(r, one));
+  }
   function next() {
     if (urgent.length) return urgent.shift();
-    for (const [r, items] of streams) {
-      const item = items[0];
-      if (item.record) { items.shift(); }
-      else {
-        if (unacked >= inflight) continue;
-        let need = Math.min(DIRECT_PIECE, item.size);
-        const pieces = [];
-        while (need > 0) {
-          const part = item.parts[0];
-          if (part.length <= need) { pieces.push(part); item.parts.shift(); need -= part.length; }
-          else { pieces.push(part.subarray(0, need)); item.parts[0] = part.subarray(need); need = 0; }
+    for (const lane of [true, false]) {
+      for (const [r, items] of streams) {
+        if (Boolean(items.lane) !== lane) continue;
+        const item = items[0];
+        if (!item.record) {
+          if (lane ? laneUnacked >= DIRECT_LANE_INFLIGHT : unacked >= inflight) continue;
+          return piece(r, items);
         }
-        const piece = pieces.length === 1 ? pieces[0] : Buffer.concat(pieces);
-        item.size -= piece.length;
-        queued -= piece.length;
-        unacked += piece.length;
-        sentTotal += piece.length;
-        sent.push({ end: sentTotal, at: now() });
-        if (sent.length > 4096) sent.shift();
-        if (!item.size) items.shift();
+        // a frame that waited behind its stream's bytes; the stream goes to the back of the line
+        items.shift();
         streams.delete(r);
         if (items.length) streams.set(r, items);
-        return directRecord(REC_SEALED, sealPiece(r, piece));
+        return item.record;
       }
-      // a frame that waited behind its stream's bytes; the stream goes to the back of the line
-      streams.delete(r);
-      if (items.length) streams.set(r, items);
-      return item.record;
     }
     return null;
   }
@@ -157,10 +174,10 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
       kick();
     },
     /** false: stop reading this stream until `onDrain` calls back */
-    bytes(r, chunk) {
+    bytes(r, chunk, lane = false) {
       if (closed) return true;
       let items = streams.get(r);
-      if (!items) streams.set(r, (items = []));
+      if (!items) { streams.set(r, (items = [])); items.lane = lane; }
       const last = items[items.length - 1];
       if (last && !last.record) { last.parts.push(chunk); last.size += chunk.length; }
       else items.push({ parts: [chunk], size: chunk.length });
@@ -177,7 +194,17 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
       if (queued < DIRECT_LOW) release();
     },
     /** the other end got this many stream bytes */
-    acked(count) { unacked = Math.max(0, unacked - count); learn(count); kick(); },
+    acked(count) {
+      for (let left = count; left > 0 && flight.length;) {
+        const head = flight[0], used = Math.min(left, head.size);
+        head.size -= used;
+        left -= used;
+        if (head.lane) laneUnacked -= used; else unacked -= used;
+        if (!head.size) flight.shift();
+      }
+      learn(count);
+      kick();
+    },
     /** stream bytes that arrived here: acknowledged every so often, ahead of everything else */
     received(count) {
       received += count;
@@ -191,7 +218,7 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
     drained() { blocked = false; kick(); },
     close() { closed = true; urgent.length = 0; streams.clear(); queued = 0; release(); },
     get size() { return queued; },
-    get unacked() { return unacked; },
+    get unacked() { return unacked + laneUnacked; },
     get inflight() { return inflight; },
   };
 }
@@ -378,7 +405,8 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
       });
     },
     push: (frame) => writer?.push(frame),
-    bytes: (r, chunk) => (writer ? writer.bytes(r, chunk) : true),
+    bytes: (r, chunk, lane = false) => (writer ? writer.bytes(r, chunk, lane) : true),
+    queued: () => writer?.size ?? 0,
     onDrain: (resume) => (writer ? writer.onDrain(resume) : resume()),
     discard: (r) => writer?.discard(r),
     /**

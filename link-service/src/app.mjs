@@ -34,6 +34,11 @@ const MAX_WAIT_S = 25;
 const FRAME_MAX = 1024 * 1024 + 64;
 const QUEUE_FRAMES = 1024;
 const QUEUE_BYTES = 16 * 1024 * 1024;
+/** a streamed line holds at most this much, so a lane frame queued a moment later waits behind one small line, not 4 MB */
+const STREAM_LINE_BYTES = 256 * 1024;
+/** the egress lane's own room: its frames are small (dials, answers, a page's first bytes) */
+const LANE_FRAMES = 512;
+const LANE_BYTES = 4 * 1024 * 1024;
 const HELD_POSTS = 8;
 const GAP_MS = 5000;
 const EPOCH = /^[a-z2-7]{12}$/;
@@ -107,10 +112,14 @@ export function publicIp(ip) {
   return false;
 }
 
-/** queues of sealed frames, one per direction per tunnel, with long-poll waiters. never persisted. */
+/**
+ * queues of sealed frames, one per direction per tunnel, with long-poll waiters. never persisted. a post marked `lane`
+ * (egress: a bot's handshakes) is read out ahead of what waits in the main queue, in its own order.
+ */
 function frameQueue(onPush = () => {}) {
   const frames = [];
-  let bytes = 0, reader = 0, gap = null, reading = null;
+  const lane = [];
+  let bytes = 0, laneBytes = 0, reader = 0, gap = null, reading = null;
   const waiters = new Set();
   const order = { epoch: null, next: 0, held: new Map(), retired: [] };
   function drainHeld() {
@@ -129,24 +138,29 @@ function frameQueue(onPush = () => {}) {
     gap.unref?.();
   }
   const queue = {
-    push(list) {
+    push(list, first = false) {
       const size = list.reduce((sum, frame) => sum + frame.length, 0);
-      if (frames.length + list.length > QUEUE_FRAMES || bytes + size > QUEUE_BYTES) return false;
-      frames.push(...list);
-      bytes += size;
+      // the lane has room of its own: a main queue full of desktop frames never refuses a handshake
+      if (first ? lane.length + list.length > LANE_FRAMES || laneBytes + size > LANE_BYTES : frames.length + list.length > QUEUE_FRAMES || bytes + size > QUEUE_BYTES) return false;
+      if (first) { lane.push(...list); laneBytes += size; }
+      else { frames.push(...list); bytes += size; }
       for (const wake of waiters) wake();
       waiters.clear();
       onPush();
       return true;
     },
     take(max = 256, maxBytes = 4 * 1024 * 1024) {
-      let count = 0, size = 0;
-      while (count < frames.length && count < max && (count === 0 || size + frames[count].length <= maxBytes)) size += frames[count++].length;
-      const out = frames.splice(0, count);
-      bytes -= out.reduce((sum, frame) => sum + frame.length, 0);
+      const out = [];
+      let size = 0;
+      for (const from of [lane, frames]) {
+        let count = 0, taken = 0;
+        while (count < from.length && out.length + count < max && (out.length + count === 0 || size + from[count].length <= maxBytes)) { size += from[count].length; taken += from[count++].length; }
+        out.push(...from.splice(0, count));
+        if (from === lane) laneBytes -= taken; else bytes -= taken;
+      }
       return out;
     },
-    get length() { return frames.length; },
+    get length() { return frames.length + lane.length; },
     wait(ms, signal) {
       return new Promise((resolve) => {
         const done = () => { clearTimeout(timer); waiters.delete(done); signal?.removeEventListener("abort", done); resolve(); };
@@ -392,7 +406,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (phone && !phoneRate(res, channel, "BYTES", frames.reduce((sum, frame) => sum + frame.length, 0))) return;
     const ordered = typeof body.epoch === "string" && EPOCH.test(body.epoch) && Number.isSafeInteger(body.seq) && body.seq >= 0;
     const q = queue(id, dir);
-    if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames))) return fail(res, 429, "the other side is behind; try again", "queue_full");
+    if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames, body.lane === true))) return fail(res, 429, "the other side is behind; try again", "queue_full");
     return send(res, 200, { ok: true, ordered: true });
   }
 
@@ -790,7 +804,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         }
         const ordered = typeof body.epoch === "string" && EPOCH.test(body.epoch) && Number.isSafeInteger(body.seq) && body.seq >= 0;
         const q = queue(id, action);
-        if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames))) return fail(res, 429, "the other side is behind; try again", "queue_full");
+        if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames, body.lane === true))) return fail(res, 429, "the other side is behind; try again", "queue_full");
         return send(res, 200, { ok: true, ordered: true });
       }
       if (method === "GET") {
@@ -825,7 +839,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
           continue;
         }
         first = false;
-        await writeLine(res, { frames: q.take() }, signal);
+        await writeLine(res, { frames: q.take(256, STREAM_LINE_BYTES) }, signal);
       }
     } finally { res.end(); }
   }

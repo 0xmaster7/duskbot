@@ -213,9 +213,9 @@ export function sealBytes(key, id, dir, r, bytes, raw = false) {
   return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
 }
 /**
- * `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way. the app keeps one guard for both
- * paths; on the vps the tunnel process and each direct session keep their own, which is enough there: a relay frame
- * cannot be replayed into a direct session without the app's ssh key, and direct frames never pass the relay
+ * `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way. each end keeps one guard for
+ * every path: on the vps the tunnel process serves the relay and every direct connection with the same one (only a
+ * direct command that found no tunnel to hand its connection to keeps its own)
  */
 export function openFrame(key, id, dir, sealed, guard) {
   const plain = open(key, `${id}|${dir}`, sealed);
@@ -521,8 +521,8 @@ function clampedDial(host, port) {
  * request takes the best path when it starts and keeps it; a lost direct path sends a request that had no answer yet
  * and can safely be sent again over the relay, and fails the rest.
  * `egress`: makes this app's end of "route traffic through this computer" (vps-link-egress.mjs createEgressEndpoint) from
- * the tunnel's stream api; without it the vps's stream requests go unanswered. it always rides the relay, where the
- * agent's half of it lives.
+ * the tunnel's stream api; without it the vps's stream requests go unanswered. on the relay it has a queue and posts of
+ * its own; while the direct path is up the agent dials over that instead, in the direct writer's lane.
  */
 export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
   const fetchImpl = given ?? relayFetch({ dial: clampedDial });
@@ -538,17 +538,18 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
 
   const epoch = randomB32(12);
   let ordered = false;
-  async function post(frames, at) {
+  // the egress lane's posts carry no sequence: they never wait in the relay behind the main queue's held posts
+  async function post(frames, at, lane = false) {
     for (let attempt = 0; !closed; attempt += 1) {
       try {
-        const response = await fetchImpl(`${route}/to-vps`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
+        const response = await fetchImpl(`${route}/to-vps`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(lane ? { frames, lane: true } : { frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
         // read, not cancelled: a cancelled body closes the socket the next post would reuse
         const said = await response.text().catch(() => "");
-        if (response.ok && !ordered) ordered = /"ordered":true/.test(said);
+        if (response.ok && !ordered && !lane) ordered = /"ordered":true/.test(said);
         if (response.ok) { successfulPosts += 1; pollRetry?.abort(); return true; }
         if (response.status === 404) { closed = true; abort.abort(); fail("This server was unlinked."); return false; }
       } catch { if (closed) return false; }
-      if (attempt >= 6) { fail("The link service did not answer."); return false; }
+      if (attempt >= 6) { if (!lane) fail("The link service did not answer."); return false; }
       await sleep(Math.min(5000, 200 * 2 ** attempt), undefined, { signal: abort.signal }).catch(() => {});
     }
     return false;
@@ -574,9 +575,21 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
     for (const entry of waiting.values()) entry.fail(message);
     waiting.clear();
   }
-  const egress = makeEgress?.({ send: relayPath.push, bytes: (r, chunk) => outbox.bytes(r, chunk), queued: () => outbox.size, onDrain: (resume) => outbox.onDrain(resume), log }) ?? null;
+  const lane = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-vps", r, bytes), post: (frames, at) => post(frames, at, true), delayMs: 0, signal: abort.signal, onError: () => log("vps link: an egress post failed") });
+  const egressDirect = {
+    live: () => Boolean(direct?.ready()),
+    send: (frame) => direct?.push(frame),
+    bytes: (r, chunk) => (direct ? direct.bytes(r, chunk, true) : true),
+    queued: () => direct?.queued?.() ?? 0,
+    onDrain: (resume) => (direct ? direct.onDrain(resume) : resume()),
+  };
+  const egress = makeEgress?.({
+    send: (frame) => { if (frame.t === "cancel") lane.discard(frame.r); lane.push(sealFrame(key, id, "to-vps", frame), frame.r); },
+    bytes: (r, chunk) => lane.bytes(r, chunk), queued: () => lane.size, onDrain: (resume) => lane.onDrain(resume), direct: egressDirect, log,
+  }) ?? null;
 
   function directChanged({ state, lost }) {
+    if (lost) egress?.pathLost?.("direct");
     if (lost) {
       // what was on the direct path: sent again over the relay when that is safe, failed otherwise
       for (const [r, entry] of [...waiting]) {
@@ -599,12 +612,12 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
     direct?.close();
     direct = null;
     if (!spec || closed) return;
-    direct = directFactory({ id, key: keyText, guard, connect: spec.connect, onFrame: (frame) => deliver(frame), onChange: directChanged, onFailure: spec.onFailure ?? (() => {}), log });
+    direct = directFactory({ id, key: keyText, guard, connect: spec.connect, onFrame: (frame) => deliver(frame, "direct"), onChange: directChanged, onFailure: spec.onFailure ?? (() => {}), log });
     direct.start();
   }
 
-  function deliver(frame) {
-    if (egress?.handle(frame)) return;
+  function deliver(frame, via = "relay") {
+    if (egress?.handle(frame, via)) return;
     const entry = waiting.get(frame.r);
     if (!entry) return;
     entry.touch();
