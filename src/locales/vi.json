@@ -5177,5 +5177,20 @@
   "mobile.unreachable.others": "Các bản cài đặt khác",
   "composer.freeBackup": "Một mô hình dự phòng miễn phí của {engine} đang trả lời",
   "composer.freeBackup.connect": "Kết nối AI của bạn",
-  "createBot.creating": "Đang tạo…"
+  "createBot.creating": "Đang tạo…",
+  "elsewhere.botsOn.title": "Bot của bạn ở trên {name}",
+  "elsewhere.why.moved": "Bạn đã chuyển bot, cuộc trò chuyện và quy trình sang {name}, nên Máy tính này không có bot riêng. Đó là lý do cửa sổ này trông trống.",
+  "elsewhere.why.cloud": "{name} là Cloud của bạn, và bot của bạn ở đó. Cửa sổ này đang hiện Máy tính này, nơi không có bot riêng.",
+  "elsewhere.why.team": "{name} là Cloud của nhóm bạn, và bot của bạn ở đó. Cửa sổ này đang hiện Máy tính này, nơi không có bot riêng.",
+  "elsewhere.why.server": "{name} là máy chủ bạn đã liên kết, và bot của bạn ở đó. Cửa sổ này đang hiện Máy tính này, nơi không có bot riêng.",
+  "elsewhere.open": "Mở {name}",
+  "elsewhere.startHere": "Bắt đầu lại trên Máy tính này",
+  "elsewhere.others": "Những nơi khác của bạn",
+  "elsewhere.setUpOn.title": "Bạn đã thiết lập {app} trên {name}",
+  "elsewhere.setUpOn.why": "Máy tính này mới dùng {app}, nhưng tài khoản của bạn có bot trên {name}. Hãy kết nối để tiếp tục thay vì thiết lập lại từ đầu.",
+  "elsewhere.connect": "Kết nối {name}",
+  "elsewhere.setUpHere": "Thay vào đó, thiết lập Máy tính này",
+  "elsewhere.dev.simulate": "Dev: cài mới có VPS",
+  "elsewhere.dev.stop": "Dev: dừng mô phỏng",
+  "elsewhere.dev.simulated": "Cài mới mô phỏng"
 }

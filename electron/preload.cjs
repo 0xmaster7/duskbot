@@ -239,6 +239,12 @@ const bridge = {
       return () => ipcRenderer.removeListener("ambient:act", handler);
     },
   },
+  // This computer's page only: where the person's bots live while it has none (electron/bots-elsewhere.mjs).
+  elsewhere: {
+    state: () => ipcRenderer.invoke("elsewhere:state"),
+    open: (id) => ipcRenderer.invoke("elsewhere:open", typeof id === "string" ? id : ""),
+    connect: () => ipcRenderer.invoke("elsewhere:connect"),
+  },
   // The window's working bots for ⌘Q (main counts only this computer's page), and the menu's Stop commands.
   desktopBots: {
     busy: (names) => ipcRenderer.send("desktop-bots:busy", Array.isArray(names) ? names.slice(0, 40).map((entry) => String(entry).slice(0, 60)) : []),

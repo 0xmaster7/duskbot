@@ -5654,5 +5654,20 @@
   "mobile.unreachable.others": "Otras instalaciones",
   "composer.freeBackup": "Está respondiendo un modelo gratuito de respaldo de {engine}",
   "composer.freeBackup.connect": "Conecta tu IA",
-  "createBot.creating": "Creando…"
+  "createBot.creating": "Creando…",
+  "elsewhere.botsOn.title": "Tus bots están en {name}",
+  "elsewhere.why.moved": "Moviste tus bots, chats y rutinas a {name}, así que Este equipo no tiene ninguno propio. Por eso esta ventana se ve vacía.",
+  "elsewhere.why.cloud": "{name} es tu Cloud y tus bots viven allí. Esta ventana muestra Este equipo, que no tiene ninguno propio.",
+  "elsewhere.why.team": "{name} es la Cloud de tu equipo y tus bots viven allí. Esta ventana muestra Este equipo, que no tiene ninguno propio.",
+  "elsewhere.why.server": "{name} es un servidor que vinculaste y tus bots viven allí. Esta ventana muestra Este equipo, que no tiene ninguno propio.",
+  "elsewhere.open": "Abrir {name}",
+  "elsewhere.startHere": "Empezar de cero en Este equipo",
+  "elsewhere.others": "Tus otros lugares",
+  "elsewhere.setUpOn.title": "Ya configuraste {app} en {name}",
+  "elsewhere.setUpOn.why": "Este equipo es nuevo en {app}, pero tu cuenta tiene bots en {name}. Conéctalo para seguir donde lo dejaste en lugar de configurarlo de nuevo.",
+  "elsewhere.connect": "Conectar {name}",
+  "elsewhere.setUpHere": "Configurar Este equipo en su lugar",
+  "elsewhere.dev.simulate": "Dev: instalación nueva con un VPS",
+  "elsewhere.dev.stop": "Dev: dejar de simular",
+  "elsewhere.dev.simulated": "Instalación nueva simulada"
 }

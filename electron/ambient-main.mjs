@@ -15,13 +15,14 @@ const PAGE = "/ambient.html";
 
 /**
  * @param {{ ipcMain: any, BrowserWindow: any, page: () => any, origin: () => string | null,
- *   file: { read(): unknown, write(value: unknown): void }, openChat: (botId: string, threadId: string) => void,
+ *   file: { read(): unknown, write(value: unknown): void }, openChat: (botId: string, threadId: string, origin: string | null) => void,
  *   reveal: () => void, activity?: { app: any, powerMonitor: any, focused: () => boolean } | null, platform?: string,
  *   log?: (line: string) => void }} deps `page()`: the app window's webContents, the only page whose summary counts and
  * the one that carries out the surfaces' asks. `activity`: what tells the surfaces to hold still (ambient-still.mjs).
+ * `openChat` gets the origin of the page whose bots the surfaces show: the chat opens in that place, not This computer.
  */
 export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, openChat, reveal, activity = null, platform = process.platform, log = () => {} }) {
-  let prefs = null, snapshot = null, screen = null, started = false, follow = null, displayId = null, dockCount = -1, stillness = null;
+  let prefs = null, snapshot = null, from = null, screen = null, started = false, follow = null, displayId = null, dockCount = -1, stillness = null;
   const saved = () => (prefs ??= (() => { try { return parsePrefs(file.read(), platform); } catch { return parsePrefs(null, platform); } })());
   const save = next => { prefs = next; try { file.write(next); } catch (error) { log(`ambient prefs not saved: ${error?.message ?? error}`); } };
   const address = surface => { const base = origin(); return base ? `${base}${PAGE}?surface=${surface}` : null; };
@@ -30,7 +31,7 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
   const onMessage = surface => (channel, payload) => {
     if (channel === "ambient:ready") return tellAll();
     if (channel === "ambient:open") {
-      if (typeof payload?.botId === "string" && typeof payload?.threadId === "string") openChat(payload.botId, payload.threadId);
+      if (typeof payload?.botId === "string" && typeof payload?.threadId === "string") openChat(payload.botId, payload.threadId, from);
       return;
     }
     if (channel === "ambient:act") {
@@ -86,6 +87,7 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
     const next = parseSnapshot(raw);
     if (!next) return;
     snapshot = next;
+    try { from = new URL(event.senderFrame?.url ?? event.sender.getURL()).origin; } catch { from = null; }
     if (next.bots.length !== dockCount && saved().dock) relayout();
     else tellAll();
   });

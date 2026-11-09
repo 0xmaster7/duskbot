@@ -7607,5 +7607,20 @@
   "mobile.unreachable.body": "It may be asleep, restarting or offline. This phone is still linked, so there is no need to pair again.",
   "mobile.unreachable.trying": "Trying again...",
   "mobile.unreachable.next": "Trying again in {seconds} s",
-  "mobile.unreachable.others": "Other installations"
+  "mobile.unreachable.others": "Other installations",
+  "elsewhere.botsOn.title": "Your bots are on {name}",
+  "elsewhere.why.moved": "You moved your bots, chats and routines to {name}, so This computer has none of its own. That's why this window looks empty.",
+  "elsewhere.why.cloud": "{name} is your Cloud, and your bots live there. This window shows This computer, which has none of its own.",
+  "elsewhere.why.team": "{name} is your team's Cloud, and your bots live there. This window shows This computer, which has none of its own.",
+  "elsewhere.why.server": "{name} is a server you linked, and your bots live there. This window shows This computer, which has none of its own.",
+  "elsewhere.open": "Open {name}",
+  "elsewhere.startHere": "Start fresh on This computer",
+  "elsewhere.others": "Your other places",
+  "elsewhere.setUpOn.title": "You already set up {app} on {name}",
+  "elsewhere.setUpOn.why": "This computer is new to {app}, but your account has bots on {name}. Connect it to pick up where you left off instead of setting up again.",
+  "elsewhere.connect": "Connect {name}",
+  "elsewhere.setUpHere": "Set up This computer instead",
+  "elsewhere.dev.simulate": "Dev: fresh install with a VPS",
+  "elsewhere.dev.stop": "Dev: stop simulating",
+  "elsewhere.dev.simulated": "Simulated fresh install"
 }
