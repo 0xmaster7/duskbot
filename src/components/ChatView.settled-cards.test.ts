@@ -63,6 +63,16 @@ const permission = { title: "Approval needed", subtitle: "ls ~/Desktop", options
 const card = (id: string, fields: NonNullable<Message["card"]>): Message => ({ id, parentId: "m2", role: "bot", kind: "options", text: fields.subtitle, at: at(3), card: fields });
 
 describe("a settled card in a simple chat", () => {
+  // the server dismisses the intro's card on the first typed message (dismissOnboardingCard); its bubbles must stay
+  it("keeps MausBot's intro after the person has written, with only its chips gone", async () => {
+    const intro: Message = { id: "i1", parentId: null, role: "bot", kind: "options", helperIntro: true, text: "Hey!", at: at(0),
+      card: { title: "Hey!", subtitle: "", options: ["What are my bots up to?"], dismissed: true } };
+    await draw([intro, { ...transcript([])[0]!, parentId: "i1" }, transcript([])[1]!]);
+    expect(document.querySelector('[data-helper-intro="i1"]')).not.toBeNull();
+    expect(document.querySelectorAll("[data-helper-line]").length).toBeGreaterThan(0);
+    expect(document.querySelector("[data-helper-step]")).toBeNull();
+  });
+
   it("keeps an answered question in place, its title grey and only the picked choice", async () => {
     await draw(transcript([card("c1", { ...question, answered: "answer", answeredText: "Pricing" })]));
     const answered = document.querySelector<HTMLElement>('[data-ask-card="answered"]');

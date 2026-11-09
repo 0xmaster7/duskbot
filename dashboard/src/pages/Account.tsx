@@ -6,7 +6,7 @@ import { useCloud } from "../data/cloud";
 import type { IdentityProvider, NotificationPrefs } from "../data/contracts";
 import { useSession } from "../data/session";
 import { api, ApiError } from "../lib/api";
-import { API_DOCS } from "../lib/usage";
+import { API_DOCS, PHONE_WEB_APP } from "../lib/usage";
 import { ago } from "../lib/format";
 import { setTheme, useTheme, type ThemePref } from "../lib/theme";
 import { Field, Modal, Switch } from "../ui/controls";
@@ -118,7 +118,7 @@ export function AccountPage() {
         const Icon = device.kind === "desktop" ? Monitor : device.kind === "phone" ? Smartphone : Globe;
         return <li key={device.id} className="py-3"><div className="flex flex-wrap items-center gap-3"><Icon {...ICON} className="shrink-0 text-ink-3" aria-hidden /><div className="min-w-0 flex-1"><p className="truncate text-14 text-ink">{device.label}</p><p className="text-13 text-ink-3">{[device.platform, device.current ? "Active now" : `Last active ${ago(device.lastSeenAt, now)}`].filter(Boolean).join(" · ")}</p></div>{device.current ? <span className="text-13 text-ink-3">This device</span> : <Button size="sm" variant="ghost" className="-me-3.5" disabled={busy !== null} onClick={() => void revoke(device.id)}>{busy === `device-${device.id}` ? "Revoking" : "Revoke"}</Button>}</div>{deviceError?.id === device.id && <p role="alert" className="mt-2 text-13 text-bad">{deviceError.message}</p>}</li>;
       })}</ul> : <p className="text-14 text-ink-3">No devices reported yet.</p>}
-      <p className="mt-4 text-13 text-ink-3">Get the phone app: <a className="hover-link text-ink-2" href="https://apps.apple.com/app/openmausbot" target="_blank" rel="noreferrer">App Store</a> · <a className="hover-link text-ink-2" href="https://play.google.com/store/apps/details?id=com.openmausbot" target="_blank" rel="noreferrer">Google Play</a></p>
+      <p className="mt-4 text-13 text-ink-3">{PHONE_WEB_APP}</p>
       <Button variant="ghost" className="-ms-4 mt-4" disabled={busy !== null} onClick={() => { setConfirmError(null); setConfirm("signout"); }}>Sign out everywhere</Button>
     </section>
     <section className="mt-10" aria-labelledby="notifications-title">

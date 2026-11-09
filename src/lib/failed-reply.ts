@@ -3,7 +3,7 @@ import { offersSignIn } from "@/components/EngineSetup";
 import { statusActivity } from "@/lib/activity-runs";
 import { t } from "@/lib/i18n";
 import { peerLine } from "@/lib/peer-message";
-import { plainErrorKind } from "@/lib/plain-error";
+import { plainErrorKind, plainErrorLine } from "@/lib/plain-error";
 import { isReceipt } from "@/lib/receipts";
 import type { LocaleKey } from "@/locales";
 import type { InstanceInfo, Message } from "@/state/store";
@@ -11,7 +11,7 @@ import { failedTurnCause, type FailedReplyReason } from "../../shared/failed-tur
 import { trialCreditKind } from "../../shared/trial-credit";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 
-export type FailedReplyKind = FailedReplyReason | "claude_update" | "trial_credit" | "place" | "no_answer" | "other";
+export type FailedReplyKind = FailedReplyReason | "claude_update" | "trial_credit" | "place" | "restart_interrupted" | "no_answer" | "other";
 
 /** A failed turn's row: a reply that never came, not one that came back with a step that failed. */
 export function isFailedReply(message: Message): boolean {
@@ -50,6 +50,15 @@ export function trailingRows(messages: readonly Message[], scan = 200): { failur
   return { failures: failures.reverse(), notices: notices.reverse() };
 }
 
+// the runtime's own words for a turn a restart cut (server/runtime/tree.ts CUT_TWICE, INTERRUPTED_OUTWARD)
+const RESTART_CUT = /^Interrupted by (?:another |an )?OpenMausBot restart\b/;
+const RESTART_DID = /\bafter it already (.+?); not resumed\b/;
+
+/** What a turn a restart cut had already done outside, in the server's words: "sent an email (gmail_send)". */
+export function restartAlreadyDid(cause: string): string | null {
+  return RESTART_DID.exec(cause)?.[1]?.trim() || null;
+}
+
 const SIGNED_OUT_WORDS = /not logged in|logged out|\/login|not signed in|sign in again|authentication required|unauthori[sz]ed|invalid api key|\b401\b/i;
 const USAGE_WORDS = /usage limit|limit reached|hit your [\w' -]{0,30}limit/i;
 const CREDIT_WORDS = /out of credits?|payment required|insufficient (?:funds|balance|credits?)/i;
@@ -61,6 +70,7 @@ export function failedReplyKind(tool: NonNullable<Message["tool"]>, engine: Inst
   if (tool.place) return "place";
   if (trialCreditKind(cause)) return "trial_credit";
   if (tool.claudeUpdate) return "claude_update";
+  if (RESTART_CUT.test(cause)) return "restart_interrupted";
   let kind: FailedReplyKind = tool.reason ?? (
     CREDIT_WORDS.test(cause) ? "credits"
     : tool.limitResetsAt || USAGE_WORDS.test(cause) ? "usage_limit"
@@ -84,7 +94,7 @@ export function plainFailureWords(cause: string): string | null {
 }
 
 /** Most actionable first: when bots fail for different reasons, the card says the one a person can fix. */
-const PRIORITY: FailedReplyKind[] = ["signed_out", "claude_update", "credits", "trial_credit", "usage_limit", "place", "rate_limit", "overloaded", "timeout", "no_answer", "other"];
+const PRIORITY: FailedReplyKind[] = ["signed_out", "claude_update", "credits", "trial_credit", "usage_limit", "place", "restart_interrupted", "rate_limit", "overloaded", "timeout", "no_answer", "other"];
 
 export function mostActionable<T extends { kind: FailedReplyKind }>(items: readonly T[]): T | undefined {
   return [...items].sort((a, b) => PRIORITY.indexOf(a.kind) - PRIORITY.indexOf(b.kind))[0];
@@ -95,16 +105,19 @@ const DETAIL: Record<Exclude<FailedReplyKind, "signed_out" | "credits" | "claude
   rate_limit: "failedReply.rateLimited",
   overloaded: "failedReply.overloaded",
   timeout: "failedReply.timeout",
+  restart_interrupted: "failedReply.restarted",
   no_answer: "error.plain.generic",
   other: "error.plain.generic",
 };
 
-/** The card's one plain line for a kind; place, trial and update failures bring their own words. */
-export function failedReplyDetail(kind: FailedReplyKind, engineName: string, onServer: boolean): string {
+/** The card's one plain line for a kind; place, trial and update failures bring their own words. Any other failure says
+ * the server's own cause, as the sidebar does, unless it is technical. */
+export function failedReplyDetail(kind: FailedReplyKind, engineName: string, onServer: boolean, cause = ""): string {
   if (kind === "signed_out") return t(onServer ? "failedReply.signedOutServer" : "failedReply.signedOutHere", { engine: engineName });
   if (kind === "credits") return t("failedReply.credits", { engine: engineName });
   if (kind === "claude_update") return t("chat.claudeUpdate.offer");
   if (kind === "trial_credit" || kind === "place") return t("error.plain.generic");
+  if (kind === "other" && cause.trim()) return plainErrorLine(cause) ?? cause.trim();
   return t(DETAIL[kind]);
 }
 

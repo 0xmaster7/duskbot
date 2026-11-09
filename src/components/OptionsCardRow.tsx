@@ -20,6 +20,12 @@ export function settledCardStays(card: NonNullable<Message["card"]>): boolean {
   return Boolean(card.requestId && card.tool) && !card.dismissed;
 }
 
+/** A settled card the chat drops. MausBot's intro is a card only for its asks: a typed message dismisses it
+ * (dismissOnboardingCard), and its bubbles and follow-up stay while only the chips go. */
+export function settledCardGoes(m: Message): boolean {
+  return Boolean(m.card && !m.helperIntro && (m.card.answered || m.card.dismissed) && !settledCardStays(m.card));
+}
+
 /**
  * Called, not mounted: a quiz that dropped out must come back as null so the transcript draws no row and no day
  * separator.

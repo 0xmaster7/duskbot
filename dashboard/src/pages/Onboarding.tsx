@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { useCloud } from "../data/cloud";
 import { useSession } from "../data/session";
 import { navigate } from "../lib/router";
-import { DOWNLOAD_URL } from "../lib/usage";
+import { DOWNLOAD_URL, PHONE_WEB_APP } from "../lib/usage";
 import { Button, ButtonLink, Card, cx, Skeleton } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 import { QuickPick } from "./cloud-bits";
@@ -85,10 +85,7 @@ export function Onboarding() {
               </li>
               <li className="flex flex-wrap items-center justify-between gap-4 py-5">
                 <h2 className="text-14 font-medium text-ink">Phone</h2>
-                <div className="flex gap-4 text-14">
-                  <a href="https://apps.apple.com/app/openmausbot" target="_blank" rel="noreferrer" className="hover-link text-ink-2">App Store</a>
-                  <a href="https://play.google.com/store/apps/details?id=com.openmausbot" target="_blank" rel="noreferrer" className="hover-link text-ink-2">Google Play</a>
-                </div>
+                <p className="max-w-[420px] text-13 text-ink-3">{PHONE_WEB_APP}</p>
               </li>
             </ul>
             <div className="mt-8 flex justify-end">

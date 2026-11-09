@@ -171,10 +171,18 @@ export const api = {
     return { url: answer.checkoutUrl, id: answer.checkoutId };
   },
   portal: () => send<{ url: string }>("/v1/billing/portal", "POST"),
-  changePlan: async (selection: Selection) => {
+  /** what a plan change charges now, in dollars, before anything is applied */
+  changeCharge: async (selection: Selection): Promise<number> => {
+    if (FIXTURE) return 0;
+    const preview = await send<ChangePreview>(`${subscriptionPath()}/preview`, "POST", { cart: cartFromSelection(selection, await catalog()) });
+    return preview.chargeNowCents / 100;
+  },
+  /** applies a plan change only while it charges no more than the person was shown (`approvedUsd`) */
+  changePlan: async (selection: Selection, approvedUsd = 0) => {
     if (FIXTURE) return send("/v1/billing/change", "POST", { selection });
     const path = subscriptionPath();
     const preview = await send<ChangePreview>(`${path}/preview`, "POST", { cart: cartFromSelection(selection, await catalog()) });
+    if (preview.chargeNowCents > Math.round(approvedUsd * 100)) throw new ApiError("The price changed. Check it and confirm again.", 409, "price_changed");
     return send(`${path}/change`, "POST", { confirmation: preview.confirmation });
   },
   cancel: (answer: CancelAnswer | "") => send(FIXTURE ? "/v1/billing/cancel" : `${subscriptionPath()}/cancel`, "POST", answer === "" ? {} : { survey: { answer } }),

@@ -16,6 +16,7 @@ import { Mascot } from "../ui/Mascot";
 import { useWorkspaceDetail } from "../data/detail";
 import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 import { MachineView } from "./Machine";
+import { money, useChangeCharge } from "./plan-sheet";
 import { useNow } from "../lib/now";
 
 /** no cloud desktop yet: the one pitch, then the sizes it comes in */
@@ -78,10 +79,12 @@ function SettingUp({ cloud }: { cloud: CloudDesktop }) {
 
 /** the size it is, what that includes, and the next size up */
 function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog }) {
-  const { billing, changePlan } = useCloud();
+  const { billing } = useCloud();
   const { toast } = useSession();
   const [open, setOpen] = useState(false);
   const [to, setTo] = useState<DesktopTier["id"]>(cloud.tier);
+  const target = billing?.subscription ? { ...billing.subscription.selection, desktop: to, size: null } : null;
+  const { charge, apply } = useChangeCharge(target);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sub = billing?.subscription;
@@ -90,7 +93,7 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
   const go = async () => {
     if (!sub) return;
     setBusy(true); setError(null);
-    try { await changePlan({ ...sub.selection, desktop: to, size: null }); toast(`Resizing ${cloud.name}. It restarts once, in under a minute.`); setOpen(false); }
+    try { if (await apply({ ...sub.selection, desktop: to, size: null })) { toast(`Resizing ${cloud.name}. It restarts once, in under a minute.`); setOpen(false); } }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const includes = [
@@ -114,8 +117,8 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
           </div>
         </div>
       )}
-      <Modal open={open} onClose={() => setOpen(false)} title={`Resize ${cloud.name}`} wide footer={<><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" onClick={() => void go()} disabled={busy || to === cloud.tier}>{busy ? "Resizing" : "Resize"}</Button></>}>
-        <p>It restarts once, usually in under a minute. Bots, files and logins come along. The new price starts today, prorated.</p>
+      <Modal open={open} onClose={() => setOpen(false)} title={`Resize ${cloud.name}`} wide footer={<><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" onClick={() => void go()} disabled={busy || to === cloud.tier}>{busy ? "Resizing" : charge !== null ? `Pay ${money(charge)} and resize` : "Resize"}</Button></>}>
+        <p>It restarts once, usually in under a minute. Bots, files and logins come along. A bigger size charges the difference now; you see the amount before you confirm.</p>
         <fieldset className="mt-4 min-w-0">
           <legend className="sr-only">Size</legend>
           <div className="flex flex-col gap-1">
@@ -124,6 +127,7 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
             ))}
           </div>
         </fieldset>
+        {charge !== null && <p role="status" className="num mt-3 text-13 text-ink-2">You pay {money(charge)} now, then the new size's price from {longDate(billing?.subscription?.currentPeriodEnd ?? 0)}.</p>}
         {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
       </Modal>
     </Card>

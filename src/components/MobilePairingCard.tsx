@@ -236,17 +236,7 @@ export function MobilePairingCard({ remote }: { remote: boolean }) {
                   <p className="mt-2 text-[14px] leading-5 text-ink-secondary">{t("mobile.desktop.hint")}</p>
                 </div>
                 <button type="button" onClick={() => void create()} disabled={busy || devices === null} aria-busy={busy} className={primaryButton}>{t("settings.mobile.pair")}</button>
-                <div className="flex flex-wrap gap-2">
-                  {(["appStore", "googlePlay"] as const).map((store) => (
-                    <span key={store} aria-label={t("mobile.desktop.storeComingSoon", { store: t(`mobile.desktop.${store}`) })} className="inline-flex items-center gap-2 rounded-full border border-hairline px-3 py-2">
-                      <Smartphone size={16} aria-hidden="true" className="text-ink-secondary" />
-                      <span className="flex flex-col">
-                        <span className="text-[12px] font-medium leading-4 text-ink-secondary">{t(`mobile.desktop.${store}`)}</span>
-                        <span className="text-[11px] leading-4 text-ink-tertiary">{t("mobile.desktop.comingSoon")}</span>
-                      </span>
-                    </span>
-                  ))}
-                </div>
+                <p data-phone-web-app="" className="text-[13px] leading-5 text-ink-tertiary">{t("mobile.desktop.noStoreApp")}</p>
               </div>
             )}
           </motion.div>

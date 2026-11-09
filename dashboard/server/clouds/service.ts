@@ -100,6 +100,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       succeeded(c); return;
     }
     if (c.status === "destroyed") return;
+    if (!c.ended && c.endsAt !== undefined && c.endsAt <= now()) { delete c.endsAt; c.ended = true; c.wantPower = "off"; save(c); }
     if (c.ended && c.status === "provisioning") {
       if (!c.serverId) c.serverId = (await provider.find(c.id))?.id ?? null;
       if (c.serverId) await provider.power(c.serverId, "off");
@@ -209,7 +210,9 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     setPaymentProblem(id, problem) { const c = requireCloud(id); c.paymentProblem = problem; save(c); },
     scheduleDestroy(id, at) { const c = requireCloud(id); if (c.status === "destroyed" || c.status === "destroying") return; c.destroyAt = c.ended && c.destroyAt !== null ? Math.min(c.destroyAt, at) : at; save(c); },
     cancelDestroy(id) { const c = requireCloud(id); if (c.status === "destroyed" || c.status === "destroying" || c.ended || c.paymentProblem || c.destroyAt !== null && c.destroyAt <= now()) return; c.destroyAt = null; save(c); },
-    end(id, at) { const c = requireCloud(id); if (c.status === "destroyed") return; c.ended = true; c.wantPower = "off"; c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); c.nextAttemptAt = 0; save(c); kick(); },
+    end(id, at, from) { const c = requireCloud(id); if (c.status === "destroyed") return;
+      if (from !== undefined && from > now() && !c.ended) { c.endsAt = c.endsAt === undefined ? from : Math.min(c.endsAt, from); c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); save(c); return; }
+      delete c.endsAt; c.ended = true; c.wantPower = "off"; c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); c.nextAttemptAt = 0; save(c); kick(); },
     abandon(id) { const c = requireCloud(id); if (c.status === "checkout") { c.status = "destroyed"; save(c); } },
     get,
     scrubAccount(accountId, anonId) {

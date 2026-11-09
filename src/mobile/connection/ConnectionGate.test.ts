@@ -1,0 +1,67 @@
+// @vitest-environment happy-dom
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { setLocale } from "@/lib/i18n";
+import type { MobileConnectionRecord } from "../../../shared/mobile-link";
+import { PlatformContext, webPlatform, type MobilePlatform } from "../platform";
+import { ConnectionGate } from "./ConnectionGate";
+
+vi.mock("@/components/Avatar", () => ({ MausAvatar: () => createElement("span") }));
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+const record = (id: string, label: string): MobileConnectionRecord => ({
+  id, environmentId: `env-${id}`, label, transport: "https", origin: `https://${id}.example.test`, sessionRef: `token.${id}`,
+  capabilities: {} as MobileConnectionRecord["capabilities"], addedAt: 1, lastUsedAt: 1,
+});
+let host: HTMLDivElement, root: Root, platform: MobilePlatform, prefs: Map<string, string>;
+let fetcher: ReturnType<typeof vi.fn<typeof fetch>>;
+beforeEach(() => {
+  setLocale("en");
+  host = document.createElement("div"); document.body.append(host);
+  prefs = new Map([["omb.mobile.connections.v1", JSON.stringify([record("mac", "Studio Mac"), record("vps", "Box")])], ["omb.mobile.active.v1", "mac"]]);
+  const secrets = new Map([["token.mac", "mac-token"], ["token.vps", "vps-token"]]);
+  platform = { ...webPlatform(),
+    prefs: { get: async (key) => prefs.get(key) ?? null, set: async (key, value) => { prefs.set(key, value); }, remove: async (key) => { prefs.delete(key); } },
+    secrets: { get: async (key) => secrets.get(key) ?? null, set: async (key, value) => { secrets.set(key, value); }, remove: async (key) => { secrets.delete(key); } },
+  };
+  fetcher = vi.fn<typeof fetch>(); vi.stubGlobal("fetch", fetcher);
+  // happy-dom has no EventSource; the installed transport wraps it
+  vi.stubGlobal("EventSource", class {});
+});
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
+
+const mount = () => act(async () => {
+  root = createRoot(host);
+  root.render(createElement(PlatformContext, { value: platform }, createElement(ConnectionGate, null, createElement("p", null, "home"))));
+});
+const settle = () => act(async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); await new Promise((resolve) => setTimeout(resolve, 0)); });
+const click = (text: string) => act(async () => { [...host.querySelectorAll("button")].find((button) => button.textContent?.includes(text))!.click(); });
+
+it("an offline server at launch keeps the link, retries, and offers the other saved installations", async () => {
+  fetcher.mockRejectedValue(new TypeError("offline"));
+  await mount(); await settle();
+  expect(host.querySelector("h1")?.textContent).toBe("Can't reach Studio Mac");
+  expect(host.textContent).not.toContain("Link to your");
+  expect(host.textContent).toContain("Box");
+  expect(prefs.get("omb.mobile.active.v1")).toBe("mac");
+
+  fetcher.mockResolvedValue(new Response("{}"));
+  await click("Try again"); await settle();
+  expect(host.textContent).toBe("home");
+});
+
+it("switches to another saved installation from the unreachable screen", async () => {
+  fetcher.mockImplementation(async (input) => String(input).startsWith("https://vps.") ? new Response("{}") : Promise.reject(new TypeError("offline")));
+  await mount(); await settle();
+  await click("Box"); await settle();
+  expect(prefs.get("omb.mobile.active.v1")).toBe("vps");
+  expect(host.textContent).toBe("home");
+});
+
+it("a refused token still goes to pairing", async () => {
+  fetcher.mockResolvedValue(new Response("{}", { status: 401 }));
+  await mount(); await settle();
+  expect(host.querySelector("h1")?.textContent).not.toContain("Can't reach");
+  expect(prefs.get("omb.mobile.active.v1")).toBeUndefined();
+});

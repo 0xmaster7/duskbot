@@ -16,7 +16,9 @@ export interface CloudData {
   checkout(req: CheckoutRequest): Promise<boolean>;
   power(id: string, on: boolean): Promise<void>;
   resize(id: string, req: { tier: Exclude<DesktopId, "none">; size: MachineSpec | null }): Promise<void>;
-  changePlan(selection: Selection): Promise<void>;
+  /** what changing to `selection` charges now, in dollars; a change that charges anything is confirmed with that amount */
+  changeCharge(selection: Selection): Promise<number>;
+  changePlan(selection: Selection, approvedUsd?: number): Promise<void>;
   cancel(reason: CancelAnswer | ""): Promise<void>;
   openPortal(): Promise<void>;
   setNotifications(p: NotificationPrefs): Promise<void>;
@@ -155,7 +157,8 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
   const value = useMemo<CloudData>(() => ({
     catalog, billing, clouds, account, connections, error, refresh, checkout, power,
     resize: (id, req) => mutate(() => api.resize(id, req)),
-    changePlan: (selection) => mutate(() => api.changePlan(selection)),
+    changeCharge: (selection) => api.changeCharge(selection),
+    changePlan: (selection, approvedUsd) => mutate(() => api.changePlan(selection, approvedUsd)),
     cancel: (reason) => mutate(() => api.cancel(reason)),
     openPortal: () => mutate(async () => { const answer = await api.portal(); if (!FIXTURE) window.location.assign(answer.url); }),
     setNotifications: (p) => mutate(() => api.setNotifications(p)),

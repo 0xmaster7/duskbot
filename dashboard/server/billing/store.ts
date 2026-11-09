@@ -9,7 +9,9 @@ export type CloudAction =
   | { kind: "change"; cloudId: string; plan: DesktopPlan }
   | { kind: "activate"; cloudId: string; subscriptionId: string; plan: DesktopPlan }
   | { kind: "payment"; cloudId: string; problem: boolean }
-  | { kind: "schedule" | "end"; cloudId: string; at: number }
+  | { kind: "schedule"; cloudId: string; at: number }
+  /** `from`: the desktop runs until then (the paid period's end), and `at` deletes it */
+  | { kind: "end"; cloudId: string; at: number; from?: number }
   | { kind: "keep"; cloudId: string };
 export interface StoredCheckout {
   id: string; accountId: string; email: string; kind: "cart" | "credits"; cart: Cart | null; packId: string | null; cloudId: string | null;

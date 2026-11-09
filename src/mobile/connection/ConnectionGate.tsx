@@ -14,8 +14,10 @@ import { PairError, parseTypedPairing, type TypedPairing } from "./pair";
 import { ActiveConnection } from "./active";
 import { reportPresence } from "./presence";
 import { registerPushForConnection } from "./push";
+import { Unreachable } from "./Unreachable";
 
-type GateState = { kind: "loading" } | { kind: "pair"; reason?: "revoked" } | { kind: "ready"; id: string };
+type GateState = { kind: "loading" } | { kind: "pair"; reason?: "revoked" } | { kind: "ready"; id: string }
+  | { kind: "offline"; record: MobileConnectionRecord; others: MobileConnectionRecord[]; attempts: number; trying: boolean };
 
 export function ConnectionGate({ children, forcePair }: { children: ReactNode; forcePair?: boolean }) {
   const platform = usePlatform();
@@ -33,11 +35,14 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
   }, []);
   const sequence = useRef(0);
   const uninstall = useRef<(() => void) | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   useEffect(() => {
     let stopped = false;
     const controller = new AbortController();
-    setState({ kind: "loading" });
+    // a retry keeps the unreachable screen up while it tries
+    setState((s) => s.kind === "offline" ? { ...s, trying: true } : { kind: "loading" });
     const decide = async () => {
       if (forcePair) { setState({ kind: "pair" }); return; }
       const active = await store.active();
@@ -54,7 +59,11 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
           if (error instanceof PairError && error.code === "refused") {
             await store.remove(active.record.id);
             if (!stopped) setState({ kind: "pair", reason: "revoked" });
-          } else setState({ kind: "pair" });
+          } else {
+            // offline or asleep is not unpaired: keep the link and the other saved installations reachable
+            const others = (await store.list().catch(() => [])).filter((record) => record.id !== active.record.id);
+            if (!stopped) setState((s) => ({ kind: "offline", record: active.record, others, attempts: s.kind === "offline" ? s.attempts + 1 : 1, trying: false }));
+          }
         }
         return;
       }
@@ -69,7 +78,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     };
     void decide().catch(() => { if (!stopped) setState({ kind: "pair" }); });
     return () => { stopped = true; controller.abort(); uninstall.current?.(); uninstall.current = null; };
-  }, [forcePair, platform, store]);
+  }, [forcePair, platform, store, attempt]);
 
   useEffect(() => {
     if (state.kind === "ready" && platform.native) void registerPushForConnection(platform);
@@ -112,6 +121,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     setState({ kind: "ready", id: record.id });
   }, [platform, store]);
   const cancel = () => { ++sequence.current; setIncoming(null); };
+  const switchTo = useCallback((id: string) => { void store.setActive(id).then(retry, retry); }, [store, retry]);
 
   const success = (
     <AnimatePresence>
@@ -120,6 +130,10 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
   );
   const onboarding = state.kind !== "ready" || (forcePair && !entered);
   if (state.kind === "loading" && !incoming && !forcePair) return <div className="omb-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
+  if (state.kind === "offline" && !forcePair) {
+    if (!incoming && adding === 0) return <>{success}<Unreachable record={state.record} others={state.others} attempts={state.attempts} trying={state.trying} onRetry={retry} onSwitch={switchTo} onLink={() => setAdding((n) => n + 1)} /></>;
+    return <>{success}<Onboarding key={incoming ? `in-${incoming.sequence}` : `add-${adding}`} initial={incoming?.payload} startAtLink onLinked={linked} onCancel={() => { cancel(); setAdding(0); }} /></>;
+  }
   if (onboarding) {
     return <>{success}<Onboarding key={incoming?.sequence ?? 0} initial={incoming?.payload} reason={state.kind === "pair" ? state.reason : null} onLinked={linked} onCancel={cancel} /></>;
   }

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FocusEvent as ReactFocusEvent,
 import { GROK_BODIES, type GrokBodyId } from "../../shared/grok-bodies";
 import { isMausColor, type MausColor } from "../../shared/wire";
 import { useStore } from "@/state/store";
+import { stoppedAtBotLimit } from "@/lib/bot-limit";
 import { CREATE_BOT_EVENT, openCreateBot, takeCreateBotSection } from "@/lib/create-bot-request";
 import { openNewGroup } from "@/lib/new-group-request";
 import { t } from "@/lib/i18n";
@@ -70,7 +71,16 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
   const [look, setLook] = useState<{ x: number; y: number }>(FACING);
   const titleId = useId();
   const pending = state.botCreationPending === true;
-  const canCreate = name.trim().length > 0 && !pending;
+  // the dialog stays until the bot exists, and keeps the draft when it could not be made
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const started = useRef(false);
+  const canCreate = name.trim().length > 0 && !pending && !creating;
+  useEffect(() => {
+    if (pending) started.current = true;
+    // settled with neither answer: a plan's bot limit refused it and its popup took over
+    else if (creating && started.current) onClose();
+  }, [pending, creating, onClose]);
 
   const lookAt = (target: HTMLElement) => {
     const mark = preview.current?.getBoundingClientRect();
@@ -92,8 +102,12 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
 
   const create = () => {
     if (!canCreate) return;
-    dispatch({ type: "newBot", section, look: { name: name.trim(), color, mascotBody: body } });
-    onClose();
+    if (stoppedAtBotLimit(state)) { onClose(); return; }
+    started.current = false;
+    setError(null);
+    setCreating(true);
+    dispatch({ type: "newBot", section, look: { name: name.trim(), color, mascotBody: body },
+      onCreated: () => onClose(), onError: (message) => { setCreating(false); setError(message); } });
   };
 
   useEffect(() => {
@@ -187,6 +201,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
             </div>
           </div>
         </div>
+        {error && <p role="alert" data-create-bot-error="" className="m-0 shrink-0 px-4 pb-3 text-[13px] leading-[18px] text-danger">{error}</p>}
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-ink/12 py-3 pl-4 pr-3">
           <button
             type="button"
@@ -200,10 +215,11 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
           <button
             type="button"
             disabled={!canCreate}
+            aria-busy={creating}
             onClick={create}
             className={cn(KIT_BUTTON, "bg-ink text-app hover:bg-[color-mix(in_srgb,var(--color-ink)_88%,var(--color-app))] disabled:bg-ink/15 disabled:text-ink/30")}
           >
-            <span>Create</span>
+            <span>{creating ? t("createBot.creating") : "Create"}</span>
           </button>
         </div>
       </div>

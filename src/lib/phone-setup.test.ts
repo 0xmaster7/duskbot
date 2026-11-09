@@ -460,7 +460,8 @@ describe("phone setup flow", () => {
 
   it("turns a disabled start result into a stable actionable error", () => {
     expect(companionStartFailure({ enabled: true })).toBeNull();
-    expect(companionStartFailure({ enabled: false })).toContain("Advanced & troubleshooting");
+    // never a pointer to a Settings section that does not exist
+    expect(companionStartFailure({ enabled: false })).toBe("Remote access could not start. Try turning Remote access on again.");
     expect(companionStartFailure({ enabled: false, error: "Port 8811 is already in use" })).toBe(
       "Port 8811 is already in use",
     );

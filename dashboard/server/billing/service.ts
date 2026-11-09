@@ -234,7 +234,7 @@ export function createBillingService(options: BillingServiceOptions) {
       else if (action.kind === "activate") clouds.activate(action.cloudId, action.subscriptionId, action.plan);
       else if (action.kind === "payment") clouds.setPaymentProblem(action.cloudId, action.problem);
       else if (action.kind === "schedule") clouds.scheduleDestroy(action.cloudId, action.at);
-      else if (action.kind === "end") clouds.end(action.cloudId, action.at);
+      else if (action.kind === "end") { if (action.from === undefined) clouds.end(action.cloudId, action.at); else clouds.end(action.cloudId, action.at, action.from); }
       else clouds.cancelDestroy(action.cloudId);
       state.cloudActions.shift();
       try { store.commit(); } catch (error) { state.cloudActions.unshift(action); throw error; }
@@ -251,7 +251,11 @@ export function createBillingService(options: BillingServiceOptions) {
         cloudAction({ kind: "order", cloudId: sub.cloudId!, input: { ...plan, accountId: sub.accountId, name: "My Cloud", color: null, region: cart.desktop.region! } });
         cloudAction({ kind: "activate", cloudId: sub.cloudId!, subscriptionId: sub.id, plan });
       } else if (!sameCart({ ...cart, license: previous.license }, previous) && sub.cloudId) cloudAction({ kind: "change", cloudId: sub.cloudId, plan });
-    } else if (previous.desktop.kind !== "none" && sub.cloudId) { cloudAction({ kind: "end", cloudId: sub.cloudId, at: now() + config.graceDays * day }); sub.cloudId = null; }
+    } else if (previous.desktop.kind !== "none" && sub.cloudId) {
+      // the desktop is paid to the period's end (a downgrade refunds nothing): it runs until then, and the grace starts there
+      const paidTo = sub.currentPeriodEnd !== null && sub.currentPeriodEnd > now() ? sub.currentPeriodEnd : now();
+      cloudAction({ kind: "end", cloudId: sub.cloudId, at: paidTo + config.graceDays * day, ...(paidTo > now() ? { from: paidTo } : {}) }); sub.cloudId = null;
+    }
     if (sub.cloudId && sub.cancelAtPeriodEnd && sub.currentPeriodEnd !== null) cloudAction({ kind: "schedule", cloudId: sub.cloudId, at: sub.currentPeriodEnd + config.graceDays * day });
     delete sub.pendingChange;
   }

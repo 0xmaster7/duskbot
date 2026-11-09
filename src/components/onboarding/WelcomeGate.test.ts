@@ -210,6 +210,14 @@ describe("who gets the welcome flow", () => {
     store.state = { ...store.state, appSettingsOpen: false };
     expect(gate(LOCAL_VIEWER).tree?.type).toBe(WelcomeFlow);
   });
+
+  it("steps aside for the API keys its Open API keys opens, so Settings is not hidden under it", () => {
+    vi.stubGlobal("window", LOCAL_PAGE);
+    store.state = { ...store.state, appSettingsOpen: true, appSettingsSection: "connections" };
+    expect(gate(LOCAL_VIEWER).tree).toBeNull();
+    store.state = { ...store.state, appSettingsOpen: false };
+    expect(gate(LOCAL_VIEWER).tree?.type).toBe(WelcomeFlow);
+  });
 });
 
 describe("useWelcomeViewer", () => {

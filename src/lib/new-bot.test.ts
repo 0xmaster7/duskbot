@@ -141,4 +141,11 @@ describe("New bot", () => {
     expect(calls).toEqual([{ method: "POST", path: "/api/bots", body: { greeting: false, section: "Sales" } }]);
     expect(sent.map((action) => action.type)).toEqual(["botAdded"]);
   });
+
+  it("from a paired device, sends Create New Bot's name, shape and colour in the one create request", async () => {
+    vi.stubGlobal("window", { ogb: { remoteClient: { active: true } } });
+    const { calls, request } = server();
+    await newBot(request, { look: { name: "Ada", color: "blue", mascotBody: "cloud" } });
+    expect(calls).toEqual([{ method: "POST", path: "/api/bots", body: { greeting: false, name: "Ada", settings: { color: "blue", mascotBody: "cloud" } } }]);
+  });
 });

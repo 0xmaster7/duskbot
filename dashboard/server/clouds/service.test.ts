@@ -114,6 +114,17 @@ it("cancels destruction and ends by stopping now then destroying at the deadline
   f.advance(4999); await f.service.reconcile(); expect(c.status).toBe("stopped");
   f.advance(1); await f.service.reconcile(); expect(c.status).toBe("destroyed");
 });
+it("a desktop dropped from a paid period keeps running until the period ends, then stops and is destroyed after the grace", async () => {
+  const f = fixture(), c = f.order(); f.service.activate(c.id, "sub", dedicatedPlan); await f.ready(c);
+  const periodEnd = f.now() + 10_000;
+  f.service.end(c.id, periodEnd + 5000, periodEnd); await f.service.reconcile();
+  expect(c.status).toBe("running"); expect(c.ended).toBeFalsy(); expect(f.service.view(c).destroyAt).toBe(periodEnd + 5000);
+  await f.service.power("a", c.id, "off"); await f.service.power("a", c.id, "on"); expect(c.status).toBe("running");
+  f.advance(9999); await f.service.reconcile(); expect(c.status).toBe("running");
+  f.advance(1); await f.service.reconcile(); await f.service.reconcile(); expect(c.status).toBe("stopped"); expect(c.ended).toBe(true);
+  f.advance(4999); await f.service.reconcile(); expect(c.status).toBe("stopped");
+  f.advance(1); await f.service.reconcile(); expect(c.status).toBe("destroyed");
+});
 it("enforces owner and state checks, pairs only running desktops and validates cosmetic changes", async () => {
   const f = fixture(), c = f.order();
   for (const id of [c.id, "missing"]) {
