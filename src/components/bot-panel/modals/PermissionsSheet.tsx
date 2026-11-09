@@ -6,7 +6,7 @@ import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { useStore, type Bot } from "@/state/store";
 import { useTeamPeople } from "@/state/team-people";
 import type { ApprovalMode } from "../../../../shared/approval-mode";
-import { DEFAULT_OUTBOUND_POLICY, type OutboundPolicy } from "../../../../shared/outbound";
+import { effectiveOutboundPolicy, type OutboundPolicy } from "../../../../shared/outbound";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
 import { CommandAllowlistDialog } from "../../CommandAllowlistDialog";
 import { LocalComputerAutoWarning } from "../../LocalComputerAutoWarning";
@@ -107,7 +107,7 @@ export function PermissionsSheet({ bot, derived }: { bot: Bot; derived: Derived 
         {ownerOrAdmin === true && <NavRow data-sheet-row="allowlist" title={t("botPanel.sheet.allowlist")} onClick={() => setAllowlistOpen(true)} />}
       </Card>
 
-      <Sending key={bot.id} bot={bot} onChange={(outbound) => patch({ outbound })} />
+      <Sending key={bot.id} bot={bot} fullAccess={approvalMode === "full"} onChange={(outbound) => patch({ outbound })} />
 
       {allowlistOpen && <CommandAllowlistDialog key={`command-allowlist:${bot.id}`} botId={bot.id} botName={bot.name} onClose={() => setAllowlistOpen(false)} />}
       <LocalComputerAutoWarning
@@ -159,8 +159,8 @@ function ChiefTeams({ ownTeam, teams, allowed, onSave }: {
   );
 }
 
-function Sending({ bot, onChange }: { bot: Bot; onChange: (policy: OutboundPolicy) => void }) {
-  const policy = bot.outbound ?? DEFAULT_OUTBOUND_POLICY;
+function Sending({ bot, fullAccess, onChange }: { bot: Bot; fullAccess: boolean; onChange: (policy: OutboundPolicy) => void }) {
+  const policy = effectiveOutboundPolicy(bot.outbound, fullAccess);
   const [today, setToday] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
 

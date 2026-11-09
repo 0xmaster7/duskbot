@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { OUTBOUND_DEFAULT_CAP, connectorCallsIn, isOutboundTool, isReadOnlyTool, normalizeOutboundPolicy, outboundCallsIn } from "./outbound.ts";
+import { OUTBOUND_DEFAULT_CAP, connectorCallsIn, effectiveOutboundPolicy, isOutboundTool, isReadOnlyTool, normalizeOutboundPolicy, outboundCallsIn } from "./outbound.ts";
 
 describe("isOutboundTool", () => {
   it("flags tools that send, reply, post, publish, invite, share, or move money", () => {
@@ -149,5 +149,13 @@ describe("outboundCallsIn", () => {
     expect(sends.map((call) => call.slug)).toEqual(["GMAIL_SEND_EMAIL"]);
     expect(outboundCallsIn("GMAIL_FETCH_EMAILS", {})).toEqual([]);
     expect(isOutboundTool("COMPOSIO_PROXY_EXECUTE")).toBe(true);
+  });
+});
+
+describe("effectiveOutboundPolicy", () => {
+  it("reads a Full access bot with no rule of its own as sending up to the default cap, as the harness does", () => {
+    expect(effectiveOutboundPolicy(undefined, true)).toEqual({ policy: "allow", dailyCap: OUTBOUND_DEFAULT_CAP });
+    expect(effectiveOutboundPolicy(undefined, false)).toEqual({ policy: "ask", dailyCap: OUTBOUND_DEFAULT_CAP });
+    expect(effectiveOutboundPolicy({ policy: "ask", dailyCap: 3 }, true)).toEqual({ policy: "ask", dailyCap: 3 });
   });
 });

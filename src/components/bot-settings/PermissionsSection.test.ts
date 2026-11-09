@@ -122,6 +122,26 @@ describe("PermissionsSection parts", () => {
   });
 });
 
+describe("sending on the person's behalf", () => {
+  it("never shows Ask every time for a Full access bot that sends up to the default cap without asking", () => {
+    const derived = (approvalMode: string) => ({
+      patch: vi.fn(), engine: { instanceId: "claude", driverKind: "claudeAgent", displayName: "Claude" },
+      canCoordinate: true, approvalMode, trustedModesAvailable: false, sectionName: "General", currentChief: undefined,
+    }) as unknown as Derived;
+    const shown = (approvalMode: string, bot: Bot) => {
+      flushSync(() => root.render(createElement(BotEditorStore, {
+        value: { state: { ...initialState, bots: [bot] }, dispatch,
+          flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} },
+        children: createElement(PermissionsSection, { bot, derived: derived(approvalMode), parts: ["outbound"] }),
+      })));
+      return host.querySelector('button[aria-pressed="true"]')?.textContent;
+    };
+    expect(shown("full", { ...base, outbound: undefined })).toContain(t("permissions.outbound.allow"));
+    expect(shown("ask", { ...base, outbound: undefined })).toContain(t("permissions.outbound.ask"));
+    expect(shown("full", { ...base, outbound: { policy: "ask", dailyCap: 25 } })).toContain(t("permissions.outbound.ask"));
+  });
+});
+
 describe("who a bot talks to", () => {
   const quill: Bot = { ...base, id: "quill", name: "Quill", threadId: "quill-main", tasks: [] };
   const button = () => [...host.querySelectorAll("button")].find((candidate) => candidate.textContent === "Let it talk to every bot");

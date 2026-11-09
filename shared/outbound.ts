@@ -118,6 +118,12 @@ export function normalizeOutboundPolicy(value: unknown): OutboundPolicy | null {
 /** What a bot without a stored policy does: ask, every time. */
 export const DEFAULT_OUTBOUND_POLICY: OutboundPolicy = { policy: "ask", dailyCap: OUTBOUND_DEFAULT_CAP };
 
+/** What a bot really does with sends (server/outbound-hold.ts): at Full access with no rule of its own it sends without
+ * asking, up to the default cap, so the app must never show "ask" for it. */
+export function effectiveOutboundPolicy(rule: OutboundPolicy | undefined, fullAccess: boolean): OutboundPolicy {
+  return rule ?? (fullAccess ? { policy: "allow", dailyCap: OUTBOUND_DEFAULT_CAP } : DEFAULT_OUTBOUND_POLICY);
+}
+
 /** One app tool a connector request would run, with its arguments when the
  * request carries them. */
 export interface ConnectorCall {
