@@ -5,6 +5,7 @@ import { Agent as HttpAgent, STATUS_CODES, createServer, request as httpRequest 
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
 import { connect as http2Connect, constants as h2Constants } from "node:http2";
 import { connect as netConnect, isIP } from "node:net";
+import { lookup as lookupDns, setDefaultResultOrder } from "node:dns";
 import { Readable } from "node:stream";
 import { connect as tlsConnect } from "node:tls";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -507,9 +508,13 @@ const MOVE_AFTER_MS = 3000;
  */
 export const UPGRADE_HOLD_MS = 700;
 
+// the same for every other request this process makes (the relay client, pairing, the vps checks)
+setDefaultResultOrder("ipv4first");
+
 /** the relay's tcp socket, with what this computer sends kept under a lossy vpn's real mtu once it connects */
 function clampedDial(host, port) {
-  const socket = netConnect({ host, port });
+  // ipv4 first: a nat64 network (64:ff9b::/96) can hand back an ipv6 route that connects and then stalls, seen on jio
+  const socket = netConnect({ host, port, autoSelectFamily: true, lookup: (name, options, done) => lookupDns(name, { ...options, all: true, order: "ipv4first" }, done) });
   socket.once("connect", () => void clampMss(socket));
   return socket;
 }
