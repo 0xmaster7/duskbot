@@ -77,24 +77,24 @@ const FULL = "skills+voice+x+team";
  * either: lock a saving in by lowering the number. A Chief's list is longer
  * than another bot's only by the Chief-only names in find_tool's description. */
 const BUDGET_BASELINE: Record<string, number> = {
-  "default": 17486,
-  "voice": 18340,
-  "skills": 17513,
-  "skills+voice": 18367,
-  "non-chief": 17369,
-  "voice+non-chief": 18150,
-  "skills+non-chief": 17396,
-  "skills+voice+non-chief": 18177,
-  "skills+voice+cloud-home": 18384,
-  "skills+voice+non-chief+cloud-home": 18233,
-  "skills+voice+x": 18428,
-  "skills+voice+x+team": 18466,
-  "default+legacy-switches": 17486,
-  "default+dusk": 17538,
-  "skills+voice+dusk": 18419,
-  "default+no-computer-pick": 16274,
-  "default+room": 16213,
-  "non-chief+room": 16096,
+  "default": 18101,
+  "voice": 18955,
+  "skills": 18128,
+  "skills+voice": 18982,
+  "non-chief": 17984,
+  "voice+non-chief": 18765,
+  "skills+non-chief": 18011,
+  "skills+voice+non-chief": 18792,
+  "skills+voice+cloud-home": 18999,
+  "skills+voice+non-chief+cloud-home": 18848,
+  "skills+voice+x": 19043,
+  "skills+voice+x+team": 19081,
+  "default+legacy-switches": 18101,
+  "default+dusk": 18153,
+  "skills+voice+dusk": 19034,
+  "default+no-computer-pick": 16889,
+  "default+room": 16828,
+  "non-chief+room": 16711,
 };
 
 type RpcAnswer = { id: number; result?: { tools?: unknown[]; content?: Array<{ text: string }>; isError?: boolean }; error?: { code: number; message: string } };
@@ -263,7 +263,7 @@ describe("agents proxy tools/list golden with the tool bridge on", () => {
   it("keeps the same hot tools whatever the role and features, except the ones a profile does not have", () => {
     const hotOf = (name: string) => toolsOf(wires[name]!).slice(0, -2).map((tool) => tool.name);
     const base = hotOf("default");
-    expect(base).toEqual(["tool_result_read", "list_room_targets", "coordinate_bots", "list_bots", "list_rooms", "select_computer", "attach_file", "publish_page", "post_to_room", "request_credential", "request_sign_in", "fill_login", "message_person", "memory_update"]);
+    expect(base).toEqual(["set_status", "tool_result_read", "list_room_targets", "coordinate_bots", "list_bots", "list_rooms", "select_computer", "attach_file", "publish_page", "post_to_room", "request_credential", "request_sign_in", "fill_login", "message_person", "memory_update"]);
     for (const name of Object.keys(PROFILES)) {
       const selects = PROFILES[name]!.DUSK_COMPUTER_SELECTION === "1";
       expect(hotOf(name).filter((tool) => tool !== "send_voice_note"), name).toEqual(selects ? base : base.filter((tool) => tool !== "select_computer"));

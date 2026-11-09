@@ -12,6 +12,7 @@ import { DUSK_TOOL_DEFINITIONS } from "./agents-dusk-tools.ts";
 import { PERSON_TOOL_DEFINITIONS } from "./agents-person-tools.ts";
 import { RESEARCH_TOOL_DEFINITIONS, RESEARCH_TOOL_NAMES, X_TOOL_NAMES } from "./agents-research-tools.ts";
 import { SLACK_TOOL_DEFINITIONS, SLACK_TOOL_NAMES } from "./agents-slack-tools.ts";
+import { STATUS_TOOL_DEFINITION } from "./agents-status-tool.ts";
 import type { CatalogProfile } from "./agents-catalog-profile.ts";
 import { advertisedSchema } from "./agents-schema.ts";
 export { catalogProfileFromEnv, type CatalogProfile } from "./agents-catalog-profile.ts";
@@ -165,6 +166,7 @@ const APPLIES_OUTCOME = " Read the result: it applies immediately at every acces
 
 
 const TOOL_DEFINITIONS = [
+  STATUS_TOOL_DEFINITION,
   {
     name: "create_options_card",
     description:
