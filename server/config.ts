@@ -6,7 +6,7 @@ import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { normalizeImageGenerationUrl, type ImageGenerationConfig } from "../shared/image-generation.ts";
 import { botAvatarUrlSchema } from "../shared/bot-avatar.ts"; import { TALKING_STYLES, type TalkingStyle } from "../shared/talking-style.ts";
-import { writeFileAtomic } from "./atomic.ts";
+import { writeFileAtomic } from "./atomic.ts"; import { setAsideUnreadable } from "./registry-file.ts";
 import { defaultBotThreads, MAX_CONCURRENT_BOT_THREADS } from "./bot-thread-limits.ts";
 import { anthropicKeyEnv } from "./anthropic-key-env.ts";
 import { THIS_SERVER_VPS, vpsIsThisServer } from "./vps-local.ts";
@@ -899,7 +899,10 @@ export function saveConfig(
   try {
     const parsed = jsonObjectSchema.safeParse(parseJson(readFileSync(p, "utf8")));
     if (parsed.success) disk = parsed.data;
-  } catch {
+    else setAsideUnreadable(p);
+  } catch (error) {
+    // the save below rebuilds config.json from defaults: keep what could not be read (accounts, keys) beside it
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") setAsideUnreadable(p);
   }
   const checkedPatch = appConfigSchema.partial().extend({ threads: threadsPatchSchema.optional(), newBots: newBotsPatchSchema.optional() }).parse(patch);
   const before = configSaveListeners.size ? structuredClone(disk) : disk;

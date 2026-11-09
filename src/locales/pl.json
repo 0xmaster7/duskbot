@@ -1936,6 +1936,7 @@
   "composer.dictation.macOnly": "Dyktowanie jest na razie dostępne tylko na macOS.",
   "composer.dictation.disabled": "Włącz dyktowanie w Ustawieniach systemowych → Klawiatura, a następnie spróbuj ponownie.",
   "composer.dictation.failed": "Nie udało się uruchomić dyktowania. Spróbuj ponownie.",
+  "composer.dictation.micFailed": "Dyktowanie nie mogło użyć mikrofonu. Włącz {app} w Ustawieniach systemowych → Prywatność i bezpieczeństwo → Mikrofon i sprawdź, czy mikrofon jest podłączony.",
   "composer.dictation.unavailable": "Dyktowanie nie jest dostępne w tej kompilacji.",
   "composer.dictation.start": "Rozpocznij dyktowanie",
   "composer.dictation.stop": "Zatrzymaj dyktowanie",
@@ -3467,6 +3468,9 @@
   "computer.mac.permission.accessibilitySettings": "Otwórz ustawienia dostępności",
   "computer.mac.permission.relaunch": "Uruchom ponownie {app}",
   "computer.mac.permission.driverDetail": "Szczegóły sterownika",
+  "computer.mac.permission.helperOne": "Włącz {helper} w Ustawieniach systemowych → Prywatność i bezpieczeństwo → {permission}. {app} zauważy to sam, bez ponownego uruchamiania.",
+  "computer.mac.permission.helperBoth": "Włącz {helper} w Ustawieniach systemowych → Prywatność i bezpieczeństwo, zarówno w Nagrywaniu ekranu, jak i w Dostępności. {app} zauważy to sam, bez ponownego uruchamiania.",
+  "computer.mac.permission.checkAgain": "Sprawdź ponownie",
   "computer.phase.vmUnavailable": "Prywatny pulpit nie jest dostępny dla tego bota",
   "computer.phase.error": "Nie udało się połączyć z ekranem bota",
   "computer.resizeAria": "Zmień rozmiar panelu",
@@ -5567,6 +5571,7 @@
   "vpsLink.transfer.moveBack": "Przenieś na to urządzenie ({device})",
   "vpsLink.transfer.moveBackHint": "Sprowadź wszystko z {name} na to urządzenie ({device})",
   "vpsLink.transfer.moveBackConfirm": "Przenieść wszystko z {name} z powrotem na to urządzenie ({device})? Najpierw zapisze się kopia zapasowa.",
+  "vpsLink.transfer.moveBackRoutines": "Rutyny wrócą wstrzymane: włącz je ponownie po przeniesieniu.",
   "vpsLink.transfer.moveBackStarted": "Przenoszę z powrotem. Aplikacja uruchomi się ponownie na końcu.",
   "vpsLink.transfer.forget": "Zapomnij {name}",
   "vpsLink.transfer.forgetHint": "Odłącz od tej aplikacji. Nic tam nie zostanie usunięte.",
@@ -6233,5 +6238,7 @@
   "elsewhere.setUpHere": "Zamiast tego skonfiguruj Ten komputer",
   "elsewhere.dev.simulate": "Dev: nowa instalacja z VPS",
   "elsewhere.dev.stop": "Dev: zakończ symulację",
-  "elsewhere.dev.simulated": "Symulowana nowa instalacja"
+  "elsewhere.dev.simulated": "Symulowana nowa instalacja",
+  "keys.row.removeConfirm": "Usunąć {label}? Wszystko, co z niego korzysta, przestanie działać, dopóki nie wkleisz go ponownie.",
+  "confirm.signOutStopsWork": "Boty, które z niego korzystają, będą wymagać ponownego logowania. To, co teraz z nim robią, zostanie zatrzymane."
 }

@@ -2086,6 +2086,7 @@
   "composer.dictation.permission": "받아쓰기에는 마이크와 음성 인식 권한이 필요해요 — 시스템 설정 → 개인정보 보호 및 보안.",
   "composer.dictation.disabled": "시스템 설정 → 키보드에서 받아쓰기를 켠 뒤 다시 시도하세요.",
   "composer.dictation.failed": "받아쓰기를 시작하지 못했어요. 다시 시도하세요.",
+  "composer.dictation.micFailed": "받아쓰기가 마이크를 쓰지 못했어요. 시스템 설정 → 개인정보 보호 및 보안 → 마이크에서 {app}을(를) 켜고, 마이크가 연결되어 있는지 확인하세요.",
   "composer.dictation.unavailable": "이 빌드에서는 받아쓰기를 쓸 수 없어요.",
   "composer.dictation.start": "받아쓰기 시작",
   "composer.dictation.stop": "받아쓰기 중지",
@@ -3809,6 +3810,9 @@
   "computer.mac.permission.accessibilitySettings": "손쉬운 사용 설정 열기",
   "computer.mac.permission.relaunch": "{app} 다시 실행",
   "computer.mac.permission.driverDetail": "드라이버 세부 정보",
+  "computer.mac.permission.helperOne": "시스템 설정 → 개인정보 보호 및 보안 → {permission}에서 {helper}을(를) 켜세요. {app}이 알아서 감지하니 다시 실행할 필요가 없어요.",
+  "computer.mac.permission.helperBoth": "시스템 설정 → 개인정보 보호 및 보안의 화면 기록과 손쉬운 사용 모두에서 {helper}을(를) 켜세요. {app}이 알아서 감지하니 다시 실행할 필요가 없어요.",
+  "computer.mac.permission.checkAgain": "다시 확인",
   "computer.phase.vmUnavailable": "이 봇은 비공개 데스크톱을 쓸 수 없어요",
   "computer.phase.error": "봇의 화면에 연결할 수 없어요",
   "computer.resizeAria": "패널 크기 조절",
@@ -5741,6 +5745,7 @@
   "keys.row.hide": "키 숨기기",
   "keys.row.replace": "교체",
   "keys.row.remove": "제거",
+  "keys.row.removeConfirm": "{label}을(를) 삭제할까요? 다시 붙여넣을 때까지 이 키를 쓰는 모든 것이 작동하지 않아요.",
   "keys.row.useOwn": "내 키 사용",
   "keys.row.getKey": "키 받기",
   "keys.row.endsIn": "{label} 저장됨, 끝자리 {last4}",
@@ -6017,6 +6022,7 @@
   "vpsLink.transfer.moveBack": "이 {device}로 옮기기",
   "vpsLink.transfer.moveBackHint": "{name}에서 모든 걸 이 {device}로 다시 가져와요",
   "vpsLink.transfer.moveBackConfirm": "{name}에서 모든 걸 이 {device}로 다시 가져올까요? 먼저 백업을 저장해요.",
+  "vpsLink.transfer.moveBackRoutines": "루틴은 일시 중지된 상태로 옮겨져요. 이동이 끝나면 다시 켜 주세요.",
   "vpsLink.transfer.moveBackStarted": "다시 가져오는 중이에요. 끝나면 앱이 다시 시작돼요.",
   "vpsLink.transfer.forget": "{name} 삭제",
   "vpsLink.transfer.forgetHint": "이 앱과의 연결을 끊어요. 거기서는 아무것도 지워지지 않아요.",
@@ -6648,5 +6654,6 @@
   "elsewhere.setUpHere": "대신 이 컴퓨터 설정",
   "elsewhere.dev.simulate": "Dev: VPS가 있는 새 설치",
   "elsewhere.dev.stop": "Dev: 시뮬레이션 중지",
-  "elsewhere.dev.simulated": "새 설치 시뮬레이션"
+  "elsewhere.dev.simulated": "새 설치 시뮬레이션",
+  "confirm.signOutStopsWork": "이 계정을 쓰는 봇은 다시 로그인해야 해요. 지금 이 계정으로 하고 있는 작업은 멈춰요."
 }

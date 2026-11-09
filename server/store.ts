@@ -1,8 +1,8 @@
 import { UNTITLED_TASK, UNTITLED_THREAD, threadTitleFrom, titleFromMessage } from "./thread-title.ts";
-import { chmodSync, existsSync, readFileSync, mkdirSync, rmSync, statSync, unlinkSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, rmSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path"; import { isDeepStrictEqual } from "node:util";
 
-import { OwnedFile, writeFileAtomic } from "./atomic.ts"; import { saveSoon } from "./save-batch.ts"; import { discardNativeLog } from "./drivers/native.ts";
+import { OwnedFile, writeFileAtomic } from "./atomic.ts"; import { readRegistryFile } from "./registry-file.ts"; import { saveSoon } from "./save-batch.ts"; import { discardNativeLog } from "./drivers/native.ts";
 import { commitRegistryChange, keptRevocation, saveRegistryFor, touchesPermissions } from "./registry-save.ts";
 import { parseToolScope, toolScopeWidens } from "../shared/tool-scope.ts"; import { grantScopedApps } from "../shared/connector-scopes.ts";
 import { reorderStable } from "../shared/bot-order.ts"; import { normalizeGroupDefaultResponder } from "./group-responder.ts";
@@ -269,17 +269,13 @@ export class Store {
     mkdirSync(DATA_DIR, { recursive: true });
     for (const file of [BOTS_FILE, GROUPS_FILE]) tightenRegistryFile(file);
     // An unreadable bots.json must never read as "every member was deleted".
-    let botsLoaded = false;
-    try {
-      const text = readFileSync(BOTS_FILE, "utf8"); this.bots = JSON.parse(text); this.botsFile.loaded(text); botsLoaded = Array.isArray(this.bots);
-    } catch {
-      this.bots = [];
-    }
-    try {
-      const text = readFileSync(GROUPS_FILE, "utf8"); this.groups = JSON.parse(text); this.groupsFile.loaded(text);
-    } catch {
-      this.groups = [];
-    }
+    const botsRead = readRegistryFile<BotRecord>(BOTS_FILE);
+    this.bots = botsRead.records;
+    if (botsRead.state === "loaded") this.botsFile.loaded(botsRead.text);
+    const botsLoaded = botsRead.state === "loaded" || botsRead.state === "recovered";
+    const groupsRead = readRegistryFile<GroupRecord>(GROUPS_FILE);
+    this.groups = groupsRead.records;
+    if (groupsRead.state === "loaded") this.groupsFile.loaded(groupsRead.text);
     this.rememberSections([...this.bots, ...this.groups].map((record) => record.section));
     let botsMigrated = false;
     const browserProfileAliases = loadBrowserProfileIdAliases();

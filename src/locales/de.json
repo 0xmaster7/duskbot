@@ -2674,6 +2674,7 @@
   "vpsLink.transfer.moveBack": "Auf diesen {device} umziehen",
   "vpsLink.transfer.moveBackHint": "Alles von {name} zurück auf diesen {device} holen",
   "vpsLink.transfer.moveBackConfirm": "Alles von {name} zurück auf diesen {device} umziehen? Zuerst wird ein Backup gespeichert.",
+  "vpsLink.transfer.moveBackRoutines": "Routinen kommen pausiert an: Schalte sie nach dem Umzug wieder ein.",
   "vpsLink.transfer.moveBackStarted": "Umzug zurück läuft. Die App startet neu, wenn er fertig ist.",
   "vpsLink.transfer.forget": "{name} vergessen",
   "vpsLink.transfer.forgetHint": "Von dieser App trennen. Dort wird nichts gelöscht.",
@@ -3377,5 +3378,11 @@
   "elsewhere.setUpHere": "Stattdessen Diesen Computer einrichten",
   "elsewhere.dev.simulate": "Dev: Neuinstallation mit VPS",
   "elsewhere.dev.stop": "Dev: Simulation beenden",
-  "elsewhere.dev.simulated": "Simulierte Neuinstallation"
+  "elsewhere.dev.simulated": "Simulierte Neuinstallation",
+  "computer.mac.permission.helperOne": "Schalte {helper} unter Systemeinstellungen → Datenschutz & Sicherheit → {permission} ein. {app} merkt es von selbst, kein Neustart nötig.",
+  "computer.mac.permission.helperBoth": "Schalte {helper} unter Systemeinstellungen → Datenschutz & Sicherheit ein, sowohl bei Bildschirmaufnahme als auch bei Bedienungshilfen. {app} merkt es von selbst, kein Neustart nötig.",
+  "computer.mac.permission.checkAgain": "Erneut prüfen",
+  "keys.row.removeConfirm": "{label} entfernen? Alles, was ihn nutzt, funktioniert erst wieder, wenn du ihn erneut einfügst.",
+  "confirm.signOutStopsWork": "Bots, die es nutzen, brauchen eine neue Anmeldung. Alles, was sie gerade damit tun, wird gestoppt.",
+  "composer.dictation.micFailed": "Die Diktierfunktion konnte das Mikrofon nicht nutzen. Schalte {app} unter Systemeinstellungen → Datenschutz & Sicherheit → Mikrofon ein und prüfe, ob ein Mikrofon angeschlossen ist."
 }

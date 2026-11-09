@@ -1581,6 +1581,7 @@
   "composer.dictation.macOnly": "Tính năng đọc chính tả hiện chỉ khả dụng trên macOS.",
   "composer.dictation.disabled": "Bật Đọc chính tả trong Cài đặt hệ thống → Bàn phím, rồi thử lại.",
   "composer.dictation.failed": "Không thể bắt đầu đọc chính tả. Vui lòng thử lại.",
+  "composer.dictation.micFailed": "Đọc chính tả không dùng được micrô. Bật {app} trong Cài đặt hệ thống → Quyền riêng tư & Bảo mật → Micrô, và kiểm tra đã cắm micrô.",
   "composer.dictation.unavailable": "Đọc chính tả không khả dụng trong bản dựng này.",
   "composer.dictation.start": "Bắt đầu đọc chính tả",
   "composer.dictation.stop": "Dừng đọc chính tả",
@@ -2867,6 +2868,9 @@
   "computer.mac.permission.accessibilitySettings": "Mở Cài đặt trợ năng",
   "computer.mac.permission.relaunch": "Khởi chạy lại {app}",
   "computer.mac.permission.driverDetail": "Chi tiết trình điều khiển",
+  "computer.mac.permission.helperOne": "Bật {helper} trong Cài đặt hệ thống → Quyền riêng tư & Bảo mật → {permission}. {app} sẽ tự nhận ra, không cần khởi động lại.",
+  "computer.mac.permission.helperBoth": "Bật {helper} trong Cài đặt hệ thống → Quyền riêng tư & Bảo mật, ở cả Ghi màn hình và Trợ năng. {app} sẽ tự nhận ra, không cần khởi động lại.",
+  "computer.mac.permission.checkAgain": "Kiểm tra lại",
   "computer.phase.vmUnavailable": "Desktop riêng không khả dụng cho bot này",
   "computer.phase.error": "Không thể kết nối với màn hình của bot",
   "computer.resizeAria": "Thay đổi kích thước bảng điều khiển",
@@ -4525,6 +4529,7 @@
   "vpsLink.transfer.moveBack": "Chuyển về {device} này",
   "vpsLink.transfer.moveBackHint": "Mang mọi thứ từ {name} về {device} này",
   "vpsLink.transfer.moveBackConfirm": "Mang mọi thứ từ {name} về {device} này? Một bản sao lưu được lưu trước.",
+  "vpsLink.transfer.moveBackRoutines": "Các quy trình sẽ chuyển về ở trạng thái tạm dừng: hãy bật lại sau khi chuyển xong.",
   "vpsLink.transfer.moveBackStarted": "Đang chuyển về. Ứng dụng sẽ khởi động lại khi xong.",
   "vpsLink.transfer.forget": "Quên {name}",
   "vpsLink.transfer.forgetHint": "Gỡ liên kết khỏi ứng dụng này. Không có gì trên đó bị xóa.",
@@ -5192,5 +5197,7 @@
   "elsewhere.setUpHere": "Thay vào đó, thiết lập Máy tính này",
   "elsewhere.dev.simulate": "Dev: cài mới có VPS",
   "elsewhere.dev.stop": "Dev: dừng mô phỏng",
-  "elsewhere.dev.simulated": "Cài mới mô phỏng"
+  "elsewhere.dev.simulated": "Cài mới mô phỏng",
+  "keys.row.removeConfirm": "Gỡ {label}? Mọi thứ dùng nó sẽ ngừng hoạt động cho đến khi bạn dán lại.",
+  "confirm.signOutStopsWork": "Các bot dùng nó sẽ cần đăng nhập lại. Mọi việc chúng đang làm với nó sẽ dừng lại."
 }

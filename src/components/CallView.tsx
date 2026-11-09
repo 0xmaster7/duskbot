@@ -643,7 +643,9 @@ function Call({ bot }: { bot: Bot }) {
               ? t("composer.dictation.disabled")
               : reason === "speech-not-authorized"
                 ? t("call.allowSpeech")
-                : t("composer.dictation.failed")),
+                : reason === "mic-failed"
+                  ? t("composer.dictation.micFailed")
+                  : t("composer.dictation.failed")),
         );
         return;
       }

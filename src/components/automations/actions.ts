@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Automation } from "@/lib/automations";
 import { copyText } from "@/lib/copy-text";
 import type { RoutineRun } from "@/lib/routines";
-import { loadWebhookCredentials, removeWebhookCredential, saveWebhookCredential, webhookCredentialStore } from "@/lib/webhook-credentials";
+import { keptWebhookAddress, loadWebhookCredentials, removeWebhookCredential, saveWebhookCredential, webhookCredentialStore } from "@/lib/webhook-credentials";
 import type { WebhookCredential } from "@/lib/webhooks";
 import { api, openBotThread, useStore } from "@/state/store";
 
@@ -63,8 +63,7 @@ export function useAutomationActions() {
   const copyAddress = (webhookId: string, replace = false) => attempt(`copy:${webhookId}`, async () => {
     let credential: WebhookCredential | undefined;
     if (!replace) {
-      credential = await api(`/api/webhooks/${webhookId}/address`).then((response) => response.credential as WebhookCredential, () => undefined)
-        ?? loadWebhookCredentials(webhookCredentialStore())[webhookId];
+      credential = await keptWebhookAddress(() => api(`/api/webhooks/${webhookId}/address`), loadWebhookCredentials(webhookCredentialStore())[webhookId]);
       if (credential) saveWebhookCredential(webhookCredentialStore(), webhookId, credential);
     }
     if (!credential) {

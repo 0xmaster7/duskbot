@@ -282,6 +282,7 @@ export function KeyRow({
 
   const remove = async () => {
     if (busyRef.current) return;
+    if (!window.confirm(t("keys.row.removeConfirm", { label }))) return;
     busyRef.current = true;
     generation.current += 1;
     setBusy("removing");

@@ -153,6 +153,12 @@ describe("native dictation in the real composer", () => {
     await expect.poll(() => input().value).toBe("元スレッドの文章。");
   });
 
+  it("says which permission to turn on when the microphone could not be used", () => {
+    flushSync(() => end({ code: 1, reason: "mic-failed" }));
+    expect(container.textContent).toContain("Privacy & Security → Microphone");
+    expect(container.textContent).not.toContain(t("composer.dictation.failed"));
+  });
+
   it("retains text when recognition ends in an error", () => {
     hear("失敗しても残す文章。");
     flushSync(() => end({ code: 1, reason: "recognition-error" }));

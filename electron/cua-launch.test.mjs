@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const fixture = vi.hoisted(() => ({ home: "", script: "", socketExists: false, socketReady: false, children: [], calls: [], embeddedDelays: [], hosts: [], handlers: new Map() }));
+const fixture = vi.hoisted(() => ({ home: "", script: "", ps: "", gated: false, socketExists: false, socketReady: false, children: [], calls: [], embeddedDelays: [], hosts: [], handlers: new Map() }));
 vi.mock("electron", () => ({ app: { isPackaged: false, getPath: () => fixture.home }, ipcMain: { handle: (name, handler) => fixture.handlers.set(name, handler) } }));
 vi.mock("@trycua/cua-driver/embedded", () => ({
   EmbeddedCuaDriverHost: class {
@@ -49,8 +49,9 @@ vi.mock("node:child_process", async (original) => {
   const execFile = (command, args, options, callback) => {
     fixture.calls.push({ command, args, options });
     // Always run this inert Node child, never open the operator's native app.
-    const child = process.execFile(globalThis.process.execPath, ["-e", fixture.script], options, (error, stdout, stderr) => {
-      if (!error && command === "/usr/bin/open") fixture.socketReady = true;
+    const script = command === "/bin/ps" ? `process.stdout.write(${JSON.stringify(fixture.ps)})` : fixture.script;
+    const child = process.execFile(globalThis.process.execPath, ["-e", script], options, (error, stdout, stderr) => {
+      if (!error && command === "/usr/bin/open" && !fixture.gated) fixture.socketReady = true;
       callback(error, stdout, stderr);
     });
     fixture.children.push(child);
@@ -75,6 +76,8 @@ beforeEach(async () => {
   fixture.script = "setTimeout(() => process.exit(0), 120)";
   fixture.socketReady = false;
   fixture.socketExists = false;
+  fixture.ps = "";
+  fixture.gated = false;
   fixture.children = [];
   fixture.calls = [];
   fixture.embeddedDelays = [];
@@ -122,12 +125,28 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
     vi.stubEnv("OPENMAUSBOT_CUA_EMBEDDED", "");
     fixture.script = "process.stderr.write('fixture launch failure'); process.exit(4)";
     const failure = await cua.startCua();
-    expect(failure).toEqual({ mode: "unavailable", reason: "The computer helper could not start. Restart OpenMausBot and try again." });
+    expect(failure).toEqual({ mode: "unavailable", reason: "The computer helper (CuaDriver) did not answer. Press Retry; if it still fails, quit and reopen OpenMausBot." });
     fixture.script = "setTimeout(() => process.exit(0), 120)";
     const results = await Promise.all([cua.requestComputerUse(), cua.requestComputerUse()]);
     expect(results).toEqual([{ enabled: true, status: "ready", reasonCode: undefined, message: undefined }, { enabled: true, status: "ready", reasonCode: undefined, message: undefined }]);
     expect(fixture.calls).toHaveLength(2);
   });
+
+  it("names the grant a waiting CuaDriver needs, then picks it up by itself once it is given", async () => {
+    vi.stubEnv("OPENMAUSBOT_CUA_EMBEDDED", "");
+    fixture.gated = true;
+    fixture.ps = "/Applications/CuaDriver.app/Contents/MacOS/cua-driver serve --cua-internal-gate-engaged --cua-internal-gate-missing-screen-recording\n";
+    const states = [];
+    cua.setCuaStateListener((connection) => states.push(connection));
+    await expect(cua.startCua()).resolves.toEqual({
+      mode: "unavailable",
+      reason: "Screen Recording required for CuaDriver; turn on CuaDriver in System Settings > Privacy & Security",
+    });
+    // the person turns CuaDriver on: its gate goes and its socket opens, with no Retry and no restart
+    fixture.ps = "";
+    fixture.socketReady = true;
+    await vi.waitFor(() => expect(states.at(-1)).toMatchObject({ mode: "standalone", mcpCommand: "/fixture/cua-driver" }), { timeout: 8_000, interval: 100 });
+  }, 20_000);
 
   it("keeps the event loop responsive and publishes the existing descriptor shape", async () => {
     let ticks = 0;

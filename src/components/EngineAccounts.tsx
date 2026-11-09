@@ -131,7 +131,7 @@ function AccountMenu({ group, instance, onRename }: { group: AccountGroup; insta
       <ConfirmDialog
         open={confirm === "signOut"}
         title={t("accounts.signOutTitle", { name: instance.displayName })}
-        body={t("confirm.signOut")}
+        body={t(instance.snapshot.chatgptPlan === true ? "confirm.signOutStopsWork" : "confirm.signOut")}
         confirmLabel={t("accounts.signOut")}
         onCancel={() => setConfirm(null)}
         onConfirm={() => void run("signOut")}

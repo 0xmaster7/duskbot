@@ -135,6 +135,7 @@ export function routineFailure(error: string | undefined, stopReason: string | n
 
 /** How long a routine may be held up before it acts: a deferred run tells the owner, a waiting run gives way. */
 export const ROUTINE_DEFERRAL_NOTICE_MS = 30 * 60_000;
+export const ROUTINE_DELETED = "Stopped because its routine was deleted";
 export const ROUTINE_SUPERSEDED = "Stopped waiting: the next scheduled run of this routine started instead";
 export const ROUTINE_SKIPPED_WHILE_WAITING = "Skipped because the previous run of this routine is still waiting";
 

@@ -19,7 +19,7 @@ import {
 } from "../shared/routines.ts";
 import type { PartPair, RoutinePart } from "./package-parts.ts";
 import {
-  composeExecutionPrompt, continuityCarry, ROUTINE_DEFERRAL_NOTICE_MS, ROUTINE_SKIPPED_WHILE_WAITING, ROUTINE_SUPERSEDED,
+  composeExecutionPrompt, continuityCarry, ROUTINE_DEFERRAL_NOTICE_MS, ROUTINE_DELETED, ROUTINE_SKIPPED_WHILE_WAITING, ROUTINE_SUPERSEDED,
   routineFailure, routineHostWarning, skipNeedsNotice, supersededBy,
 } from "./routine-execution.ts";
 import {
@@ -637,6 +637,8 @@ export class RoutineManager {
     const at = this.routines.findIndex((r) => r.id === id);
     if (at === -1) return false;
     const changedRuns: RoutineRun[] = [];
+    // deleting a routine is how most people stop it, so a run still working stops with it
+    const active = this.runs.filter((run) => run.routineId === id && (run.status === "running" || run.status === "waiting"));
     this.commitMutation(() => {
       this.routines.splice(at, 1);
       for (const run of this.runs) {
@@ -654,6 +656,7 @@ export class RoutineManager {
       if (request) this.rememberRoutineRequest(request, id, this.now());
     });
     for (const run of changedRuns) this.emitRun(run);
+    for (const run of active) void this.cancelRun(run.id, ROUTINE_DELETED).catch(() => {});
     this.options.emit?.({ kind: "routine.deleted", routineId: id });
     return true;
   }

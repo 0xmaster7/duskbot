@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -717,6 +717,22 @@ describe("a config.json saved with a byte order mark", () => {
       });
     } finally {
       rmSync(path, { force: true });
+    }
+  });
+
+  it("keeps a config.json it cannot read beside the one a save writes", () => {
+    const path = join(DATA_DIR, "config.json");
+    mkdirSync(DATA_DIR, { recursive: true });
+    const damaged = '{"xai":{"key":"xai-fixture"},"mcpServers":{"notes":';
+    writeFileSync(path, damaged);
+    const asides = () => readdirSync(DATA_DIR).filter((name) => name.startsWith("config.json.unreadable-"));
+    try {
+      saveConfig({ rooms: { turnTimeoutMinutes: 25 } });
+      expect(JSON.parse(readFileSync(path, "utf8"))).toMatchObject({ rooms: { turnTimeoutMinutes: 25 } });
+      expect(asides().map((name) => readFileSync(join(DATA_DIR, name), "utf8"))).toEqual([damaged]);
+    } finally {
+      rmSync(path, { force: true });
+      for (const name of asides()) rmSync(join(DATA_DIR, name), { force: true });
     }
   });
 

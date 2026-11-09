@@ -67,7 +67,7 @@ export function TransferSettings() {
         {where && (server
           ? <>
               <NavRow title={t("vpsLink.transfer.moveBack", { device })} hint={t("vpsLink.transfer.moveBackHint", { name: server.name, device })} disabled={busy}
-                onClick={() => void perform(t("vpsLink.transfer.moveBackConfirm", { name: server.name, device }), () => bridge.moveBack(), t("vpsLink.transfer.moveBackStarted"))} />
+                onClick={() => void perform(`${t("vpsLink.transfer.moveBackConfirm", { name: server.name, device })} ${t("vpsLink.transfer.moveBackRoutines")}`, () => bridge.moveBack(), t("vpsLink.transfer.moveBackStarted"))} />
               {where.uninstall && <>
                 <NavRow title={t("vpsLink.transfer.remove")} hint={t("vpsLink.transfer.removeHint", { name: server.name })} drill={false}
                   aria-expanded={removing} onClick={() => setRemoving((open) => !open)} />

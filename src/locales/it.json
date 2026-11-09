@@ -1893,6 +1893,7 @@
   "composer.dictation.macOnly": "La dettatura è disponibile solo su macOS, per ora.",
   "composer.dictation.disabled": "Attiva Dettatura in Impostazioni di Sistema → Tastiera, poi riprova.",
   "composer.dictation.failed": "La dettatura non è partita. Riprova.",
+  "composer.dictation.micFailed": "La dettatura non ha potuto usare il microfono. Attiva {app} in Impostazioni di Sistema → Privacy e sicurezza → Microfono e controlla che un microfono sia collegato.",
   "composer.dictation.unavailable": "La dettatura non è disponibile in questa versione.",
   "composer.dictation.start": "Avvia la dettatura",
   "composer.dictation.stop": "Interrompi la dettatura",
@@ -3377,6 +3378,9 @@
   "computer.mac.permission.accessibilitySettings": "Apri le impostazioni di Accessibilità",
   "computer.mac.permission.relaunch": "Riavvia {app}",
   "computer.mac.permission.driverDetail": "Dettaglio driver",
+  "computer.mac.permission.helperOne": "Attiva {helper} in Impostazioni di Sistema → Privacy e sicurezza → {permission}. {app} se ne accorge da solo, senza riavvio.",
+  "computer.mac.permission.helperBoth": "Attiva {helper} in Impostazioni di Sistema → Privacy e sicurezza, sia in Registrazione schermo sia in Accessibilità. {app} se ne accorge da solo, senza riavvio.",
+  "computer.mac.permission.checkAgain": "Controlla di nuovo",
   "computer.phase.vmUnavailable": "Il desktop privato non è disponibile per questo bot",
   "computer.phase.error": "Impossibile raggiungere lo schermo del bot",
   "computer.resizeAria": "Ridimensiona il pannello",
@@ -5400,6 +5404,7 @@
   "vpsLink.transfer.moveBack": "Sposta su questo {device}",
   "vpsLink.transfer.moveBackHint": "Riporta tutto da {name} su questo {device}",
   "vpsLink.transfer.moveBackConfirm": "Riportare tutto da {name} su questo {device}? Prima si salva un backup.",
+  "vpsLink.transfer.moveBackRoutines": "Le routine arrivano in pausa: riattivale quando hai finito il trasferimento.",
   "vpsLink.transfer.moveBackStarted": "Sto riportando tutto. L'app si riavvia alla fine.",
   "vpsLink.transfer.forget": "Dimentica {name}",
   "vpsLink.transfer.forgetHint": "Scollegalo da questa app. Lì non si cancella nulla.",
@@ -6067,5 +6072,7 @@
   "elsewhere.setUpHere": "Configura invece Questo computer",
   "elsewhere.dev.simulate": "Dev: nuova installazione con un VPS",
   "elsewhere.dev.stop": "Dev: interrompi simulazione",
-  "elsewhere.dev.simulated": "Nuova installazione simulata"
+  "elsewhere.dev.simulated": "Nuova installazione simulata",
+  "keys.row.removeConfirm": "Rimuovere {label}? Tutto ciò che la usa smette di funzionare finché non la incolli di nuovo.",
+  "confirm.signOutStopsWork": "I bot che lo usano dovranno accedere di nuovo. Quello che stanno facendo con esso ora si interrompe."
 }

@@ -201,7 +201,7 @@ export function ErrorRow({
     capabilities.localComputer.available === false && capabilities.localComputer.reasonCode !== "remote-server" &&
     isThisComputerNotReady(message) &&
     failedPermissions.length > 0 && failedPermissions.join(",") === currentPermissions.join(",")
-    ? macCuaPermissionMessage(currentPermissions)
+    ? macCuaPermissionMessage(currentPermissions, capabilities.localComputer.message)
     : null;
   const notGranted = isThisComputerNotGranted(message);
   const headline = macCuaReason ?? (notGranted ? t(capabilities.host.platform === "darwin" ? "chat.error.cantUseThisMac" : "chat.error.cantUseThisComputer") : null) ?? plainHeadline ?? message;

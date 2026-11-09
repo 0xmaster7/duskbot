@@ -364,7 +364,7 @@ describe("deleting a Chief of Staff", () => {
     fixture.state = { ...fixture.state, bots: [chief, bot("bea")] };
     askToDelete(chief);
     const dialog = openDialog()!;
-    expect(dialog.props.body).toBe("It's your Chief of Staff. Archive it instead to keep its chats.");
+    expect(dialog.props.body).toBe("It's your Chief of Staff. Archive it instead to keep its chats. Its chats, memory, files and private desktop go too. This can't be undone.");
     const alternative = dialog.props.alternative as { label: string; onClick: () => void };
     expect(alternative.label).toBe("Archive instead");
     alternative.onClick();

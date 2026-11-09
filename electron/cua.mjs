@@ -13,6 +13,7 @@ import { pathToFileURL } from "node:url";
 import localOriginModule from "./local-origin.cjs";
 import { createLocalComputerGrant } from "./local-computer-grant.mjs";
 import { driverFailure } from "./cua-failure.mjs";
+import { driverGateFromReason, driverGateReason, parseDriverGate } from "./cua-gate.mjs";
 
 const { localOnly } = localOriginModule;
 
@@ -53,6 +54,9 @@ const RETRY_AFTER_MS = [15_000, 60_000];
 let retryTimer = null;
 let lifecycleGeneration = 0;
 let macRetry = null;
+let gateWatch = null;
+const GATE_POLL_MS = 2_000;
+const GATE_WATCH_MS = 30 * 60_000;
 let linuxRuntime = null;
 let linuxBundleStage = null;
 let stateListener = () => {};
@@ -216,7 +220,10 @@ async function attachStandalone(signal) {
       await delay(200, undefined, { signal });
     }
   }
-  if (!(await socketAlive(STANDALONE_SOCKET))) return null;
+  if (!(await socketAlive(STANDALONE_SOCKET))) {
+    const missing = await driverGate();
+    return missing ? { mode: "unavailable", reason: driverGateReason(missing) } : null;
+  }
   return {
     mode: "standalone",
     socketPath: STANDALONE_SOCKET,
@@ -224,6 +231,44 @@ async function attachStandalone(signal) {
     mcpArgs: ["mcp"],
     mcpEnv: { ...CUA_ENV },
   };
+}
+
+async function driverGate() {
+  try {
+    const { stdout } = await execFileAsync("/bin/ps", ["-axo", "args="], {
+      encoding: "utf8", timeout: 3_000, killSignal: "SIGKILL", maxBuffer: 4 * 1024 * 1024,
+    });
+    return parseDriverGate(stdout);
+  } catch {
+    return null;
+  }
+}
+
+/** While CuaDriver waits for a grant, notices the moment it is given (its socket opens, or it asks for something else)
+ * and starts again, so nobody has to restart anything. */
+function watchDriverGate(missing) {
+  clearInterval(gateWatch);
+  const generation = lifecycleGeneration;
+  const until = Date.now() + GATE_WATCH_MS;
+  let busy = false;
+  const stop = () => { clearInterval(gateWatch); gateWatch = null; };
+  gateWatch = setInterval(async () => {
+    if (busy) return;
+    if (generation !== lifecycleGeneration || Date.now() > until) return stop();
+    busy = true;
+    try {
+      const ready = await socketAlive(STANDALONE_SOCKET);
+      const now = ready ? null : await driverGate();
+      if (generation !== lifecycleGeneration) return;
+      if (ready || now?.join() !== missing.join()) {
+        stop();
+        void startCua().catch((error) => console.error("[cua] Computer helper restart after a grant failed:", error));
+      }
+    } finally {
+      busy = false;
+    }
+  }, GATE_POLL_MS);
+  gateWatch.unref?.();
 }
 
 async function startEmbedded(binary, signal) {
@@ -268,6 +313,8 @@ export async function startCua({ attempt = 0 } = {}) {
   if (process.platform === "linux") return ensureLinuxRuntime().initialize();
   clearTimeout(retryTimer);
   retryTimer = null;
+  clearInterval(gateWatch);
+  gateWatch = null;
   lifecycleGeneration++;
   startupAbort?.abort();
   startupAbort = new AbortController();
@@ -317,18 +364,21 @@ export async function startCua({ attempt = 0 } = {}) {
   } else {
     try {
       nextConnection = await attachStandalone(signal);
-      if (nextConnection) nextConnection.mcpCommand = binary;
+      if (nextConnection?.mode === "standalone") nextConnection.mcpCommand = binary;
     } catch (error) {
       signal.throwIfAborted();
       console.error("[cua] Computer helper launch failed:", error);
     }
     nextConnection ??= {
       mode: "unavailable",
-      reason: "The computer helper could not start. Restart OpenMausBot and try again.",
+      reason: "The computer helper (CuaDriver) did not answer. Press Retry; if it still fails, quit and reopen OpenMausBot.",
     };
   }
 
   signal.throwIfAborted();
+  const gated = process.platform === "darwin" && nextConnection.mode === "unavailable"
+    ? driverGateFromReason(nextConnection.reason) : null;
+  if (gated) watchDriverGate(gated);
   if (process.platform === "win32" && nextConnection.mode === "unavailable" && !driverBlocked(nextConnection.reason) && attempt < RETRY_AFTER_MS.length) {
     retryTimer = setTimeout(() => { retryTimer = null; void startCua({ attempt: attempt + 1 }).catch(() => {}); }, RETRY_AFTER_MS[attempt]);
     retryTimer.unref?.();
@@ -356,6 +406,8 @@ export async function cuaPermissionsStatus() {
 export async function stopCua() {
   clearTimeout(retryTimer);
   retryTimer = null;
+  clearInterval(gateWatch);
+  gateWatch = null;
   lifecycleGeneration++;
   startupAbort?.abort();
   startupAbort = null;

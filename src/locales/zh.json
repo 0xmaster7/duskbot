@@ -2170,6 +2170,7 @@
   "composer.dictation.permission": "听写需要麦克风和语音识别权限。请在系统设置 → 隐私与安全性中把两项都打开。",
   "composer.dictation.disabled": "请在系统设置 → 键盘中打开听写，然后重试。",
   "composer.dictation.failed": "听写无法启动，请重试。",
+  "composer.dictation.micFailed": "听写无法使用麦克风。请在系统设置 → 隐私与安全性 → 麦克风中打开 {app}，并确认已连接麦克风。",
   "composer.dictation.unavailable": "此版本不支持听写。",
   "composer.dictation.start": "开始听写",
   "composer.dictation.stop": "停止听写",
@@ -3928,6 +3929,9 @@
   "computer.mac.permission.accessibilitySettings": "打开辅助功能设置",
   "computer.mac.permission.relaunch": "重新启动 {app}",
   "computer.mac.permission.driverDetail": "驱动详情",
+  "computer.mac.permission.helperOne": "请在系统设置 → 隐私与安全性 → {permission} 中打开 {helper}。{app} 会自动发现，无需重新启动。",
+  "computer.mac.permission.helperBoth": "请在系统设置 → 隐私与安全性的「屏幕录制」和「辅助功能」中都打开 {helper}。{app} 会自动发现，无需重新启动。",
+  "computer.mac.permission.checkAgain": "再次检查",
   "computer.phase.vmUnavailable": "此机器人无法使用私有桌面",
   "computer.phase.error": "无法连接到机器人的屏幕",
   "computer.resizeAria": "调整面板大小",
@@ -5921,6 +5925,7 @@
   "keys.row.hide": "隐藏密钥",
   "keys.row.replace": "替换",
   "keys.row.remove": "移除",
+  "keys.row.removeConfirm": "移除{label}？在你重新粘贴之前，所有用到它的功能都会停止工作。",
   "keys.row.useOwn": "使用你自己的密钥",
   "keys.row.getKey": "获取密钥",
   "keys.row.endsIn": "{label} 已保存，末四位为 {last4}",
@@ -6190,6 +6195,7 @@
   "vpsLink.transfer.moveBack": "搬回这台{device}",
   "vpsLink.transfer.moveBackHint": "把 {name} 上的一切搬回这台{device}",
   "vpsLink.transfer.moveBackConfirm": "把 {name} 上的一切搬回这台{device}吗？会先保存一份备份。",
+  "vpsLink.transfer.moveBackRoutines": "例行任务搬回来时是暂停的：搬完后请重新打开。",
   "vpsLink.transfer.moveBackStarted": "正在搬回。完成后应用会重启。",
   "vpsLink.transfer.forget": "移除 {name}",
   "vpsLink.transfer.forgetHint": "与这个应用解除连接。那边不会删除任何东西。",
@@ -6821,5 +6827,6 @@
   "elsewhere.setUpHere": "改为设置这台电脑",
   "elsewhere.dev.simulate": "Dev：有 VPS 的全新安装",
   "elsewhere.dev.stop": "Dev：停止模拟",
-  "elsewhere.dev.simulated": "模拟全新安装"
+  "elsewhere.dev.simulated": "模拟全新安装",
+  "confirm.signOutStopsWork": "使用它的机器人需要重新登录。它们当前用它进行的工作会停止。"
 }

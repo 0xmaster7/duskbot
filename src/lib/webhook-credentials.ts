@@ -51,3 +51,20 @@ export function webhookCredentialStore(): Store {
     return undefined;
   }
 }
+
+/** The address an app may already hold: the server's kept one, else this device's copy. Undefined only when the server says
+ * none was ever kept (a webhook from before addresses were kept), the one case a new address may be made; a failed read
+ * (offline, a server restart) must never turn into a new address, which would cut off every app sending to the old one. */
+export async function keptWebhookAddress(
+  read: () => Promise<{ credential?: WebhookCredential }>,
+  cached: WebhookCredential | undefined,
+): Promise<WebhookCredential | undefined> {
+  try {
+    return (await read()).credential ?? cached;
+  } catch (failure) {
+    if (cached) return cached;
+    const refusal = failure as { status?: unknown; body?: { kept?: unknown } } | null;
+    if (refusal?.status === 404 && refusal.body?.kept === false) return undefined;
+    throw failure;
+  }
+}

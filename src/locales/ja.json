@@ -1986,6 +1986,7 @@
   "composer.dictation.macOnly": "音声入力は今のところ macOS でのみ利用できます。",
   "composer.dictation.disabled": "「システム設定 → キーボード」で音声入力をオンにしてから、もう一度お試しください。",
   "composer.dictation.failed": "音声入力を開始できませんでした。もう一度お試しください。",
+  "composer.dictation.micFailed": "音声入力でマイクを使えませんでした。システム設定 → プライバシーとセキュリティ → マイクで {app} をオンにし、マイクが接続されているか確認してください。",
   "composer.dictation.unavailable": "このビルドでは音声入力を利用できません。",
   "composer.dictation.start": "音声入力を開始",
   "composer.dictation.stop": "音声入力を停止",
@@ -3524,6 +3525,9 @@
   "computer.mac.permission.accessibilitySettings": "アクセシビリティの設定を開く",
   "computer.mac.permission.relaunch": "{app} を再起動",
   "computer.mac.permission.driverDetail": "ドライバーの詳細",
+  "computer.mac.permission.helperOne": "システム設定 → プライバシーとセキュリティ → {permission} で {helper} をオンにしてください。{app} が自動で検知するので、再起動は不要です。",
+  "computer.mac.permission.helperBoth": "システム設定 → プライバシーとセキュリティの画面収録とアクセシビリティの両方で {helper} をオンにしてください。{app} が自動で検知するので、再起動は不要です。",
+  "computer.mac.permission.checkAgain": "もう一度確認",
   "computer.phase.vmUnavailable": "このボットでは専用デスクトップを利用できません",
   "computer.phase.error": "ボットの画面に接続できませんでした",
   "computer.resizeAria": "パネルのサイズを変更",
@@ -5593,6 +5597,7 @@
   "vpsLink.transfer.moveBack": "この {device} に戻す",
   "vpsLink.transfer.moveBackHint": "{name} からすべてをこの {device} に戻します",
   "vpsLink.transfer.moveBackConfirm": "{name} からすべてをこの {device} に戻しますか?先にバックアップを保存します。",
+  "vpsLink.transfer.moveBackRoutines": "ルーティンは一時停止の状態で戻ります。移動が終わったらオンに戻してください。",
   "vpsLink.transfer.moveBackStarted": "戻しています。終わるとアプリが再起動します。",
   "vpsLink.transfer.forget": "{name} を削除",
   "vpsLink.transfer.forgetHint": "このアプリとの接続を外します。向こうでは何も消えません。",
@@ -6258,5 +6263,7 @@
   "elsewhere.setUpHere": "代わりにこのコンピューターをセットアップ",
   "elsewhere.dev.simulate": "Dev: VPS ありの新規インストール",
   "elsewhere.dev.stop": "Dev: シミュレーションを終了",
-  "elsewhere.dev.simulated": "新規インストールのシミュレーション"
+  "elsewhere.dev.simulated": "新規インストールのシミュレーション",
+  "keys.row.removeConfirm": "{label}を削除しますか？もう一度貼り付けるまで、これを使うものはすべて動かなくなります。",
+  "confirm.signOutStopsWork": "これを使うボットは再サインインが必要です。今これで行っている作業は止まります。"
 }

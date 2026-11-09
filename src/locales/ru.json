@@ -1970,6 +1970,7 @@
   "composer.dictation.macOnly": "Диктовка пока доступна только на macOS.",
   "composer.dictation.disabled": "Включите диктовку в Системных настройках → Клавиатура и попробуйте снова.",
   "composer.dictation.failed": "Диктовка не запустилась. Попробуйте снова.",
+  "composer.dictation.micFailed": "Диктовке не удалось использовать микрофон. Включите {app} в Системных настройках → Конфиденциальность и безопасность → Микрофон и проверьте, что микрофон подключён.",
   "composer.dictation.unavailable": "Диктовка недоступна в этой сборке.",
   "composer.dictation.start": "Начать диктовку",
   "composer.dictation.stop": "Остановить диктовку",
@@ -3497,6 +3498,9 @@
   "computer.mac.permission.accessibilitySettings": "Открыть настройки универсального доступа",
   "computer.mac.permission.relaunch": "Перезапустить {app}",
   "computer.mac.permission.driverDetail": "Сведения о драйвере",
+  "computer.mac.permission.helperOne": "Включите {helper} в Системных настройках → Конфиденциальность и безопасность → {permission}. {app} заметит это сам, перезапуск не нужен.",
+  "computer.mac.permission.helperBoth": "Включите {helper} в Системных настройках → Конфиденциальность и безопасность, и в «Запись экрана», и в «Универсальный доступ». {app} заметит это сам, перезапуск не нужен.",
+  "computer.mac.permission.checkAgain": "Проверить снова",
   "computer.phase.vmUnavailable": "Личный рабочий стол недоступен для этого бота",
   "computer.phase.error": "Не удалось подключиться к экрану бота",
   "computer.resizeAria": "Изменить размер панели",
@@ -5575,6 +5579,7 @@
   "vpsLink.transfer.moveBack": "Перенести на это устройство ({device})",
   "vpsLink.transfer.moveBackHint": "Вернуть всё с {name} на это устройство ({device})",
   "vpsLink.transfer.moveBackConfirm": "Вернуть всё с {name} на это устройство ({device})? Сначала сохранится копия.",
+  "vpsLink.transfer.moveBackRoutines": "Рутины переедут на паузе: включите их снова после переезда.",
   "vpsLink.transfer.moveBackStarted": "Возвращаю. Приложение перезапустится в конце.",
   "vpsLink.transfer.forget": "Забыть {name}",
   "vpsLink.transfer.forgetHint": "Отвязать от этого приложения. Там ничего не удалится.",
@@ -6240,5 +6245,7 @@
   "elsewhere.setUpHere": "Вместо этого настроить Этот компьютер",
   "elsewhere.dev.simulate": "Dev: новая установка с VPS",
   "elsewhere.dev.stop": "Dev: остановить симуляцию",
-  "elsewhere.dev.simulated": "Симуляция новой установки"
+  "elsewhere.dev.simulated": "Симуляция новой установки",
+  "keys.row.removeConfirm": "Удалить {label}? Всё, что его использует, перестанет работать, пока вы не вставите его снова.",
+  "confirm.signOutStopsWork": "Ботам, которые его используют, понадобится снова войти. То, что они делают с ним сейчас, остановится."
 }

@@ -1397,6 +1397,7 @@
   "composer.dictation.macOnly": "語音輸入目前僅在 macOS 上提供。",
   "composer.dictation.disabled": "請在「系統設定」→「鍵盤」中開啟「聽寫」，然後再試一次。",
   "composer.dictation.failed": "無法開始語音輸入，請再試一次。",
+  "composer.dictation.micFailed": "聽寫無法使用麥克風。請在系統設定 → 隱私權與安全性 → 麥克風中開啟 {app}，並確認已連接麥克風。",
   "composer.dictation.unavailable": "此版本不支援語音輸入。",
   "composer.dictation.start": "開始語音輸入",
   "composer.dictation.stop": "停止語音輸入",
@@ -2472,6 +2473,9 @@
   "computer.mac.permission.accessibilitySettings": "開啟輔助使用設定",
   "computer.mac.permission.relaunch": "重新啟動 {app}",
   "computer.mac.permission.driverDetail": "驅動程式詳細資訊",
+  "computer.mac.permission.helperOne": "請在系統設定 → 隱私權與安全性 → {permission} 中開啟 {helper}。{app} 會自動偵測，不需重新啟動。",
+  "computer.mac.permission.helperBoth": "請在系統設定 → 隱私權與安全性的「螢幕錄製」和「輔助使用」中都開啟 {helper}。{app} 會自動偵測，不需重新啟動。",
+  "computer.mac.permission.checkAgain": "再次檢查",
   "computer.phase.vmUnavailable": "這個機器人無法使用私人桌面",
   "computer.phase.error": "無法連線到機器人的畫面",
   "computer.resizeAria": "調整面板大小",
@@ -4067,6 +4071,7 @@
   "vpsLink.transfer.moveBack": "搬回這台{device}",
   "vpsLink.transfer.moveBackHint": "把 {name} 上的一切搬回這台{device}",
   "vpsLink.transfer.moveBackConfirm": "要把 {name} 上的一切搬回這台{device}嗎？會先儲存一份備份。",
+  "vpsLink.transfer.moveBackRoutines": "例行任務搬回來時是暫停的：搬完後請重新開啟。",
   "vpsLink.transfer.moveBackStarted": "正在搬回。完成後 App 會重新啟動。",
   "vpsLink.transfer.forget": "移除 {name}",
   "vpsLink.transfer.forgetHint": "與這個 App 解除連結。那邊不會刪除任何東西。",
@@ -4742,5 +4747,7 @@
   "elsewhere.setUpHere": "改為設定這台電腦",
   "elsewhere.dev.simulate": "Dev：有 VPS 的全新安裝",
   "elsewhere.dev.stop": "Dev：停止模擬",
-  "elsewhere.dev.simulated": "模擬全新安裝"
+  "elsewhere.dev.simulated": "模擬全新安裝",
+  "keys.row.removeConfirm": "移除{label}？在你重新貼上之前，所有用到它的功能都會停止運作。",
+  "confirm.signOutStopsWork": "使用它的機器人需要重新登入。它們目前用它進行的工作會停止。"
 }

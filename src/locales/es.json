@@ -1841,6 +1841,7 @@
   "composer.dictation.macOnly": "El dictado solo está disponible en macOS por ahora.",
   "composer.dictation.disabled": "Activa Dictado en Ajustes del Sistema → Teclado e inténtalo de nuevo.",
   "composer.dictation.failed": "No se pudo iniciar el dictado. Inténtalo de nuevo.",
+  "composer.dictation.micFailed": "El dictado no pudo usar el micrófono. Activa {app} en Ajustes del Sistema → Privacidad y seguridad → Micrófono y comprueba que haya un micrófono conectado.",
   "composer.dictation.unavailable": "El dictado no está disponible en esta versión.",
   "composer.dictation.start": "Iniciar el dictado",
   "composer.dictation.stop": "Detener el dictado",
@@ -3169,6 +3170,9 @@
   "computer.mac.permission.accessibilitySettings": "Abrir los ajustes de Accesibilidad",
   "computer.mac.permission.relaunch": "Reiniciar {app}",
   "computer.mac.permission.driverDetail": "Detalles del controlador",
+  "computer.mac.permission.helperOne": "Activa {helper} en Ajustes del Sistema → Privacidad y seguridad → {permission}. {app} lo detecta solo, sin reiniciar.",
+  "computer.mac.permission.helperBoth": "Activa {helper} en Ajustes del Sistema → Privacidad y seguridad, tanto en Grabación de pantalla como en Accesibilidad. {app} lo detecta solo, sin reiniciar.",
+  "computer.mac.permission.checkAgain": "Comprobar de nuevo",
   "computer.phase.vmUnavailable": "El escritorio privado no está disponible para este bot",
   "computer.phase.error": "No se pudo acceder a la pantalla del bot",
   "computer.resizeAria": "Cambiar el tamaño del panel",
@@ -5002,6 +5006,7 @@
   "vpsLink.transfer.moveBack": "Mover a este {device}",
   "vpsLink.transfer.moveBackHint": "Traer todo de {name} a este {device}",
   "vpsLink.transfer.moveBackConfirm": "¿Traer todo de {name} de vuelta a este {device}? Primero se guarda una copia.",
+  "vpsLink.transfer.moveBackRoutines": "Las rutinas llegan en pausa: actívalas de nuevo cuando termine el traslado.",
   "vpsLink.transfer.moveBackStarted": "Volviendo. La app se reinicia al terminar.",
   "vpsLink.transfer.forget": "Olvidar {name}",
   "vpsLink.transfer.forgetHint": "Desconectarlo de esta app. No se borra nada allí.",
@@ -5669,5 +5674,7 @@
   "elsewhere.setUpHere": "Configurar Este equipo en su lugar",
   "elsewhere.dev.simulate": "Dev: instalación nueva con un VPS",
   "elsewhere.dev.stop": "Dev: dejar de simular",
-  "elsewhere.dev.simulated": "Instalación nueva simulada"
+  "elsewhere.dev.simulated": "Instalación nueva simulada",
+  "keys.row.removeConfirm": "¿Quitar {label}? Todo lo que la usa deja de funcionar hasta que la pegues de nuevo.",
+  "confirm.signOutStopsWork": "Los bots que la usan necesitan que vuelvas a iniciar sesión. Lo que estén haciendo con ella ahora se detiene."
 }
