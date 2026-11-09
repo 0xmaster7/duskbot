@@ -52,13 +52,29 @@ and never logs the query. The app completes the exchange with its own harness, s
 
 A relay-linked server also gets a direct path, picked automatically and kept up in the background, with the relay as
 the fallback. Nothing is opened on the server and the person configures nothing: it rides the server's own sshd on port
-22, which every VPS already answers (Oracle Cloud included).
+22, which every VPS already answers (Oracle Cloud included). Where the person's network blocks port 22 (Jio, often),
+the same byte stream rides a WebSocket to the server's own HTTPS on 443 instead. The app tries ssh, then 443, then
+stays on the relay; a transport that failed on a network is tried last there for 30 minutes.
 
 ```
  app (electron main)                                         vps
- vps-link-direct.mjs  -- ssh, tcp 22, host key pinned -->    sshd -> forced command: node agent.mjs direct (as maus)
-   same sealed frames as the relay, length-prefixed            -> http://127.0.0.1:8799 (marked remote)
+ vps-link-direct.mjs  -- ssh, tcp 22, host key pinned -->    sshd -> forced command: node agent.mjs direct (as omb-link)
+                                                                -> unix socket ~/.config/openmausbot-link/direct.sock
+                      -- wss, tcp 443, tls key pinned -->    https front (caddy, nginx) /omb-direct -> 127.0.0.1:8797
+   same sealed frames as the relay, length-prefixed          both end in the tunnel process: http://127.0.0.1:8799 (marked remote)
 ```
+
+- **443.** The tunnel process listens on `127.0.0.1:8797` (`OMB_LINK_WSS_PORT`) for a WebSocket at `/omb-direct`; its
+  binary messages carry exactly the ssh channel's byte stream. A direct-mode install's Caddy passes `/omb-direct` to it.
+  On a relay-mode server whose operator runs their own HTTPS (nginx with a real certificate), add a location for
+  `/omb-direct` that proxies WebSocket upgrades to `127.0.0.1:8797` and set `OMB_LINK_WSS_URL=wss://<host>/omb-direct` in
+  the link unit's environment. The app asks for the address with the sealed control op `direct-wss`; the agent answers
+  the URL and the SHA-256 of its certificate's public key (read from the server itself), which the app pins on top of
+  the usual certificate checks. A changed key (a renewal that made a new key) asks again over the sealed tunnel, at most
+  once an hour. A server with no address says so, and is asked again an hour later.
+- **Egress.** Egress streams ride the direct connection the app said hello on last, in the writer's lane (its own
+  256 KB of unacknowledged bytes, served first each round), and the relay otherwise, where they have their own queue,
+  unnumbered posts marked `lane`, and room of their own in the link service, which reads them out first.
 
 - **Setup.** Once a link's tunnel is up, the app makes its own ed25519 key and sends the public half as the sealed
   control op `direct-key`. The agent adds one line to `~maus/.ssh/authorized_keys`:
@@ -70,8 +86,8 @@ the fallback. Nothing is opened on the server and the person configures nothing:
   again after 6 hours. `OMB_LINK_DIRECT=off` (agent's environment, or the app's) keeps everything on the relay;
   `OMB_LINK_DIRECT_HOST` / `OMB_LINK_DIRECT_PORT` override the address the agent reports.
 - **Sealing and identity.** The channel carries exactly the relay's frames (AES-256-GCM with the tunnel key, AAD
-  `<id>|to-vps` / `<id>|to-app`, timestamps, one replay guard across both paths in the app; on the server the tunnel and each direct session keep
-  their own, and a relay frame cannot enter a direct session without the app's key) as `[u32 length][type][iv|ct|tag]`
+  `<id>|to-vps` / `<id>|to-app`, timestamps, one replay guard across every path on each end: the tunnel process serves
+  the relay and every direct connection) as `[u32 length][type][iv|ct|tag]`
   records after a `\0OMBD1\n` magic. The agent says a sealed hello first; the app uses the path only after opening it,
   so a server without the tunnel key is never used. sshd's host key must be one the agent sent inside the sealed
   tunnel, so neither the network nor the relay can stand in. An auth or host-key failure asks for a new key over the
@@ -91,9 +107,30 @@ the fallback. Nothing is opened on the server and the person configures nothing:
   new public port (symmetric NAT), and the VPS drops unsolicited UDP (OCI security list and host firewall), so STUN
   hole punching delivered nothing in 25 s either way. TCP 22 is open on every VPS. A WebRTC tier could be added beside
   this one for networks where punching works; it would not help behind such VPNs.
-- **When it cannot work.** sshd set to refuse `maus` (`AllowUsers`, `AllowGroups`, `DenyUsers`), sshd off port 22
-  without `OMB_LINK_DIRECT_PORT`, or outbound port 22 blocked on the person's network: the app logs it and stays on
-  the relay.
+- **When it cannot work.** sshd set to refuse the link account (`AllowUsers`, `AllowGroups`, `DenyUsers`), sshd off
+  port 22 without `OMB_LINK_DIRECT_PORT`, or outbound port 22 blocked on the person's network, and no HTTPS address for
+  443: the app logs it and stays on the relay.
+
+## Versions and updates
+
+- **Handshake.** The agent says what it speaks (`LINK_PROTOCOL`, the oldest app and server it works with, `AGENT_VERSION`
+  and its capabilities) in its direct hello and in answer to the sealed control op `hello`, which also carries the
+  server's version and link protocol (`server/link-protocol.ts`, the `link` field of
+  `/.well-known/openmausbot/environment`). Protocol numbers decide, never versions; an optional feature is a capability
+  the app checks for. The app's view gets `compat: { update: null | "app" | "agent" | "server", message, ... }`. An
+  agent from before the handshake answers "unknown request" and works as protocol 1.
+- **Self-update.** Every 6 hours (5 minutes after start first) the tunnel reads `GET /v1/release` (the version, protocol
+  and sha256 of the agent this service serves, and `agent.mjs.sig` when there is one) and stages a newer release in
+  `~/.config/openmausbot-link/releases/<version>/` only when the file matches its hash and its own version line, a
+  signature checks out when release keys are pinned (`RELEASE_KEYS` in agent.mjs or `OMB_LINK_RELEASE_KEYS`; sign with
+  `node release.mjs sign <key>`), and `agent.mjs selftest` runs; `ready.json` is written last. It never takes an older
+  version or a lower protocol. It applies only after 5 minutes without a request, a stream byte or an egress stream
+  from the app (or at once for the `update` op with `apply: "now"`), by ending the tunnel so systemd starts it again.
+  The installed `/opt/openmausbot-link/agent.mjs` then launches the staged file, and stops launching one that did not
+  stay up for 2 minutes three starts in a row, so a bad release leaves the installed agent running.
+  It stays off until at least one release key is pinned, since an update runs downloaded code as the agent;
+  `OMB_LINK_UPDATES=off` turns it off for good. The server's own build is not updated this way: it is root's, and only
+  `install.sh` replaces it.
 
 ## Phone channels
 

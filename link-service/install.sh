@@ -1145,6 +1145,10 @@ $1 {
 	handle /hooks/* {
 		reverse_proxy 127.0.0.1:8800
 	}
+	# the app's direct path when its network blocks ssh: the link agent's websocket (sealed frames only)
+	handle /omb-direct {
+		reverse_proxy 127.0.0.1:8797
+	}
 	handle {
 		reverse_proxy 127.0.0.1:$PORT {
 			flush_interval -1

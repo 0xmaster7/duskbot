@@ -111,13 +111,16 @@ export function seenAsCache(fetchIp, { ttlMs = SELF_TTL_MS, retryMs = SELF_RETRY
 /**
  * this app's end of the egress streams, over any tunnel that carries per-stream frames. `send(frame)` queues a control
  * frame, `bytes(r, chunk)` a stream's bytes, `queued()` how many bytes wait to leave, `onDrain(fn)` calls back once they
- * fell low again. `handle(frame)` takes the vps's frames and answers true for the ones that were egress.
+ * fell low again: the relay. `direct` is the same api plus `live()` for the direct path. `handle(frame, via)` takes the
+ * vps's frames ("relay" or "direct") and answers true for the ones that were egress; a stream answers on the path its
+ * dial came by. `onUse()` hears every dial and every piece of a stream, both ways (it keeps this computer awake).
  */
 export function createEgressEndpoint({
-  send, bytes, queued, onDrain, dialer = createEgressDialer(), log = () => {}, now = Date.now,
+  send, bytes, queued, onDrain, direct = null, dialer = createEgressDialer(), log = () => {}, now = Date.now, onUse = () => {},
   maxStreams = EGRESS_MAX_STREAMS, dialsPerMinute = EGRESS_DIALS_PER_MINUTE, bytesPerSecond = EGRESS_BYTES_PER_SECOND,
   queueHigh = EGRESS_QUEUE_HIGH, helloMs = EGRESS_HELLO_MS, idleMs = IDLE_MS,
 }) {
+  const relay = { send, bytes, queued, onDrain };
   const streams = new Map();
   const dials = [];
   let budget = bytesPerSecond, refilledAt = now(), closed = false, hello = null;
@@ -131,30 +134,32 @@ export function createEgressEndpoint({
     return budget >= 0 ? 0 : Math.ceil((-budget / bytesPerSecond) * 1000);
   }
 
-  function forget(r, tell) {
+  function forget(r, tell, over = null) {
     const entry = streams.get(r);
     if (!entry) return;
     streams.delete(r);
     clearTimeout(entry.wait);
     entry.socket?.destroy();
-    if (tell) send({ t: "cancel", r });
+    if (tell) (over ?? entry.path).send({ t: "cancel", r });
   }
 
   function attach(r, socket) {
     const entry = streams.get(r);
     if (!entry || closed) { socket.destroy(); return; }
     entry.socket = socket;
+    const { path } = entry;
     socket.setNoDelay(true);
     socket.setTimeout(idleMs, () => forget(r, true));
     const resume = () => { entry.wait = null; if (streams.get(r) === entry && !entry.paused) socket.resume(); };
     socket.on("data", (chunk) => {
       if (streams.get(r) !== entry) return;
-      bytes(r, chunk);
+      onUse();
+      path.bytes(r, chunk);
       const wait = take(chunk.length);
-      if (queued() >= queueHigh) { entry.paused = true; socket.pause(); onDrain(() => { entry.paused = false; if (!entry.wait) resume(); }); }
+      if (path.queued() >= queueHigh) { entry.paused = true; socket.pause(); path.onDrain(() => { entry.paused = false; if (!entry.wait) resume(); }); }
       else if (wait > 0 && !entry.wait) { socket.pause(); entry.wait = setTimeout(resume, wait); }
     });
-    socket.on("end", () => { if (streams.get(r) === entry) { entry.endSent = true; send({ t: "end", r }); } });
+    socket.on("end", () => { if (streams.get(r) === entry) { entry.endSent = true; path.send({ t: "end", r }); } });
     socket.on("error", () => {});
     // a clean close after its end went out needs no cancel: the vps closes its side when its browser does
     socket.on("close", () => { if (streams.get(r) === entry) forget(r, !entry.endSent); });
@@ -163,16 +168,18 @@ export function createEgressEndpoint({
     if (entry.peerEnded) socket.end();
   }
 
-  async function dial(frame) {
+  async function dial(frame, via) {
     const { r, host, port } = frame;
-    const refuse = (code) => { stats.refused += 1; send({ t: "dialed", r, ok: false, code }); };
+    const path = via === "direct" && direct?.live() ? direct : relay;
+    const refuse = (code) => { stats.refused += 1; path.send({ t: "dialed", r, ok: false, code }); };
     if (typeof r !== "string" || !/^[a-z2-7]{12}$/.test(r) || streams.has(r)) return;
     const t = now();
     while (dials.length && t - dials[0] > 60_000) dials.shift();
     if (closed) return refuse("closed");
     if (streams.size >= maxStreams || dials.length >= dialsPerMinute) return refuse("busy");
     dials.push(t);
-    streams.set(r, { socket: null, early: [], peerEnded: false, endSent: false, paused: false, wait: null });
+    onUse();
+    streams.set(r, { socket: null, path, early: [], peerEnded: false, endSent: false, paused: false, wait: null });
     let result;
     try { result = await dialer.open({ host, port: Number(port) }); }
     catch (error) { log(`egress: dial failed (${error?.message ?? error})`); result = { failed: "unreachable" }; }
@@ -182,7 +189,7 @@ export function createEgressEndpoint({
       return refuse(result.refused ?? result.failed ?? "unreachable");
     }
     stats.relayed += 1;
-    send({ t: "dialed", r, ok: true });
+    path.send({ t: "dialed", r, ok: true });
     attach(r, result.socket);
   }
 
@@ -192,16 +199,21 @@ export function createEgressEndpoint({
     start() {
       if (hello || closed) return;
       dialer.warm?.();
-      const say = () => send({ t: "egress", v: 1, ready: true, max: maxStreams });
+      const say = () => {
+        const hello = { t: "egress", v: 1, ready: true, max: maxStreams };
+        send(hello);
+        if (direct?.live()) direct.send(hello);
+      };
       say();
       hello = setInterval(say, helloMs);
       hello.unref?.();
     },
-    handle(frame) {
-      if (frame?.t === "dial") { void dial(frame); return true; }
+    handle(frame, via = "relay") {
+      if (frame?.t === "dial") { void dial(frame, via); return true; }
       const entry = typeof frame?.r === "string" ? streams.get(frame.r) : undefined;
       if (!entry) return false;
       if (frame.t === "bytes") {
+        onUse();
         if (!entry.socket) entry.early.push(frame.b);
         else if (entry.socket.writableLength + frame.b.length > 8 * 1024 * 1024) forget(frame.r, true);
         else entry.socket.write(frame.b);
@@ -212,11 +224,18 @@ export function createEgressEndpoint({
       else return false;
       return true;
     },
+    /** the direct path went away: its streams are gone on the vps too, and it hears so over the relay as well */
+    pathLost(name) {
+      if (name !== "direct" || !direct) return;
+      for (const [r, entry] of [...streams]) if (entry.path === direct) forget(r, true, relay);
+    },
     close() {
       if (closed) return;
       closed = true;
       clearInterval(hello);
-      send({ t: "egress", v: 1, ready: false });
+      const goodbye = { t: "egress", v: 1, ready: false };
+      send(goodbye);
+      if (direct?.live()) direct.send(goodbye);
       for (const r of streams.keys()) forget(r, false);
     },
   };

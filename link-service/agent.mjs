@@ -3,18 +3,20 @@
 //   node agent.mjs link     (omb-link)  mint a pairing code, seal it for the app, report the result, write tunnel.json
 //   node agent.mjs tunnel   (omb-link)  the steady-state relay: requests from the app, sealed end to end, to 127.0.0.1:8799
 //   node agent.mjs direct   (omb-link)  the same frames on stdin/stdout: what the app's own ssh key may run, and nothing else
+//   node agent.mjs selftest (anyone)    prints this agent's version and protocol: how a staged update proves it loads
 // omb-link is its own account, never the server's: tunnel.json and the app's ssh key stay out of the bots' reach.
 // standalone on purpose: node's own modules only, one file the link service serves at /agent.mjs.
 // it also lends the bot computers on this server the app's own internet connection when the person turns on "route
 // traffic through this computer": a socks5 and http connect proxy on the bot computers' bridge (see createEgressProxy).
-import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
+import { spawn } from "node:child_process";
+import { X509Certificate, createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, verify as verifySignature } from "node:crypto";
 import { createSocket } from "node:dgram";
-import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { BlockList, createServer as createTcpServer } from "node:net";
+import { chmodSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { BlockList, createConnection, createServer as createTcpServer } from "node:net";
 import { Agent as HttpAgent, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
 import { isIP, Socket } from "node:net";
-import { Readable } from "node:stream";
+import { Duplex, Readable } from "node:stream";
 import { connect as tlsConnect } from "node:tls";
 import { connect as http2Connect, constants as h2Constants } from "node:http2";
 import { homedir, hostname, networkInterfaces, userInfo } from "node:os";
@@ -23,6 +25,18 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
 export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_PORT) || 8799 };
+/**
+ * the link protocol this agent speaks with the app, and the oldest app and server (server/link-protocol.ts) it works
+ * with. a change an older peer cannot work with raises the protocol and that peer's minimum; an optional feature is a
+ * capability instead, which the app checks for before it uses the feature
+ */
+export const LINK_PROTOCOL = 2;
+export const LINK_MIN_APP = 1;
+export const LINK_MIN_SERVER = 1;
+export const AGENT_VERSION = "2.0.0";
+export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "egress", "egress-lane", "self-update"]);
+/** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
+export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
 const FRAME_SKEW_MS = 5 * 60_000;
 const CHUNK = 128 * 1024;
 /** one post stays well under a proxy's usual 1 MB body limit (nginx's default) */
@@ -216,9 +230,9 @@ export function sealBytes(key, id, dir, r, bytes, raw = false) {
   return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
 }
 /**
- * `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way. the app keeps one guard for both
- * paths; on the vps the tunnel process and each direct session keep their own, which is enough there: a relay frame
- * cannot be replayed into a direct session without the app's ssh key, and direct frames never pass the relay
+ * `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way. each end keeps one guard for
+ * every path: on the vps the tunnel process serves the relay and every direct connection with the same one (only a
+ * direct command that found no tunnel to hand its connection to keeps its own)
  */
 export function openFrame(key, id, dir, sealed, guard) {
   const plain = open(key, `${id}|${dir}`, sealed);
@@ -481,6 +495,11 @@ const DIRECT_ACK_EVERY = 32 * 1024;
 const DIRECT_MAX_RECORD = 1024 * 1024;
 const DIRECT_HIGH = 2 * 1024 * 1024;
 const DIRECT_LOW = 512 * 1024;
+/**
+ * a lane's streams (egress: a bot's tls handshakes and pages) have their own allowance of unacknowledged bytes and go
+ * first in each round, so a full desktop window never holds a page's first bytes back for an ack
+ */
+const DIRECT_LANE_INFLIGHT = 256 * 1024;
 
 export function directRecord(type, payload) {
   const head = Buffer.allocUnsafe(5);
@@ -517,7 +536,8 @@ export function directReader(onRecord) {
 /**
  * the sending half of a direct link. a frame for a stream with bytes still queued waits behind them (its order is kept);
  * every other frame goes first. queued bytes take turns, a piece per stream, with at most DIRECT_INFLIGHT unacknowledged,
- * so a busy desktop or a download never holds an api call back for long.
+ * so a busy desktop or a download never holds an api call back for long. `bytes(r, chunk, true)` puts a stream in the
+ * lane (DIRECT_LANE_INFLIGHT).
  */
 export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, write, inflight: fixed = null, now = () => performance.now() }) {
   const urgent = [];
@@ -545,38 +565,49 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
   }
   const streams = new Map();
   const drains = new Set();
-  let queued = 0, unacked = 0, received = 0, blocked = false, closed = false, scheduled = false;
+  // what is unacknowledged, oldest first, by lane: the other end acks bytes in the order they left
+  const flight = [];
+  let queued = 0, unacked = 0, laneUnacked = 0, received = 0, blocked = false, closed = false, scheduled = false;
   const release = () => { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); };
+  function piece(r, items) {
+    const item = items[0];
+    let need = Math.min(DIRECT_PIECE, item.size);
+    const pieces = [];
+    while (need > 0) {
+      const part = item.parts[0];
+      if (part.length <= need) { pieces.push(part); item.parts.shift(); need -= part.length; }
+      else { pieces.push(part.subarray(0, need)); item.parts[0] = part.subarray(need); need = 0; }
+    }
+    const one = pieces.length === 1 ? pieces[0] : Buffer.concat(pieces);
+    item.size -= one.length;
+    queued -= one.length;
+    if (items.lane) laneUnacked += one.length; else unacked += one.length;
+    const last = flight[flight.length - 1];
+    if (last && last.lane === Boolean(items.lane)) last.size += one.length; else flight.push({ lane: Boolean(items.lane), size: one.length });
+    sentTotal += one.length;
+    sent.push({ end: sentTotal, at: now() });
+    if (sent.length > 4096) sent.shift();
+    if (!item.size) items.shift();
+    streams.delete(r);
+    if (items.length) streams.set(r, items);
+    return directRecord(REC_SEALED, sealPiece(r, one));
+  }
   function next() {
     if (urgent.length) return urgent.shift();
-    for (const [r, items] of streams) {
-      const item = items[0];
-      if (item.record) { items.shift(); }
-      else {
-        if (unacked >= inflight) continue;
-        let need = Math.min(DIRECT_PIECE, item.size);
-        const pieces = [];
-        while (need > 0) {
-          const part = item.parts[0];
-          if (part.length <= need) { pieces.push(part); item.parts.shift(); need -= part.length; }
-          else { pieces.push(part.subarray(0, need)); item.parts[0] = part.subarray(need); need = 0; }
+    for (const lane of [true, false]) {
+      for (const [r, items] of streams) {
+        if (Boolean(items.lane) !== lane) continue;
+        const item = items[0];
+        if (!item.record) {
+          if (lane ? laneUnacked >= DIRECT_LANE_INFLIGHT : unacked >= inflight) continue;
+          return piece(r, items);
         }
-        const piece = pieces.length === 1 ? pieces[0] : Buffer.concat(pieces);
-        item.size -= piece.length;
-        queued -= piece.length;
-        unacked += piece.length;
-        sentTotal += piece.length;
-        sent.push({ end: sentTotal, at: now() });
-        if (sent.length > 4096) sent.shift();
-        if (!item.size) items.shift();
+        // a frame that waited behind its stream's bytes; the stream goes to the back of the line
+        items.shift();
         streams.delete(r);
         if (items.length) streams.set(r, items);
-        return directRecord(REC_SEALED, sealPiece(r, piece));
+        return item.record;
       }
-      // a frame that waited behind its stream's bytes; the stream goes to the back of the line
-      streams.delete(r);
-      if (items.length) streams.set(r, items);
-      return item.record;
     }
     return null;
   }
@@ -608,10 +639,10 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
       kick();
     },
     /** false: stop reading this stream until `onDrain` calls back */
-    bytes(r, chunk) {
+    bytes(r, chunk, lane = false) {
       if (closed) return true;
       let items = streams.get(r);
-      if (!items) streams.set(r, (items = []));
+      if (!items) { streams.set(r, (items = [])); items.lane = lane; }
       const last = items[items.length - 1];
       if (last && !last.record) { last.parts.push(chunk); last.size += chunk.length; }
       else items.push({ parts: [chunk], size: chunk.length });
@@ -628,7 +659,17 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
       if (queued < DIRECT_LOW) release();
     },
     /** the other end got this many stream bytes */
-    acked(count) { unacked = Math.max(0, unacked - count); learn(count); kick(); },
+    acked(count) {
+      for (let left = count; left > 0 && flight.length;) {
+        const head = flight[0], used = Math.min(left, head.size);
+        head.size -= used;
+        left -= used;
+        if (head.lane) laneUnacked -= used; else unacked -= used;
+        if (!head.size) flight.shift();
+      }
+      learn(count);
+      kick();
+    },
     /** stream bytes that arrived here: acknowledged every so often, ahead of everything else */
     received(count) {
       received += count;
@@ -642,9 +683,93 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
     drained() { blocked = false; kick(); },
     close() { closed = true; urgent.length = 0; streams.clear(); queued = 0; release(); },
     get size() { return queued; },
-    get unacked() { return unacked; },
+    get unacked() { return unacked + laneUnacked; },
     get inflight() { return inflight; },
   };
+}
+
+/** the direct path over https: one websocket (rfc 6455) of binary messages that carry the same byte stream as ssh */
+export const WS_PATH = "/omb-direct";
+const WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+const WS_MAX_FRAME = 4 * 1024 * 1024;
+export const wsAccept = (key) => createHash("sha1").update(`${key}${WS_GUID}`).digest("base64");
+
+/** one websocket frame; the client masks what it sends (the rfc requires it), the server never does */
+export function wsFrame(opcode, payload, masked) {
+  const length = payload.length;
+  const extra = length < 126 ? 0 : length < 65536 ? 2 : 8;
+  const head = Buffer.alloc(2 + extra + (masked ? 4 : 0));
+  head[0] = 0x80 | opcode;
+  head[1] = (masked ? 0x80 : 0) | (extra === 0 ? length : extra === 2 ? 126 : 127);
+  if (extra === 2) head.writeUInt16BE(length, 2);
+  else if (extra === 8) head.writeBigUInt64BE(BigInt(length), 2);
+  if (!masked) return Buffer.concat([head, payload]);
+  const mask = randomBytes(4);
+  mask.copy(head, 2 + extra);
+  const body = Buffer.allocUnsafe(length);
+  for (let at = 0; at < length; at += 1) body[at] = payload[at] ^ mask[at & 3];
+  return Buffer.concat([head, body]);
+}
+
+/** frames out of a byte stream: data to `onData`, pings answered by the caller, a close ends it. throws on anything else */
+export function wsReader({ masked, onData, onPing = () => {}, onClose = () => {} }) {
+  let buf = Buffer.alloc(0);
+  return (chunk) => {
+    buf = buf.length ? Buffer.concat([buf, chunk]) : chunk;
+    while (buf.length >= 2) {
+      const opcode = buf[0] & 0x0f, hasMask = (buf[1] & 0x80) !== 0;
+      if (hasMask !== masked) throw new Error("websocket masking is wrong");
+      let length = buf[1] & 0x7f, at = 2;
+      if (length === 126) { if (buf.length < 4) return; length = buf.readUInt16BE(2); at = 4; }
+      else if (length === 127) {
+        if (buf.length < 10) return;
+        const big = buf.readBigUInt64BE(2);
+        if (big > BigInt(WS_MAX_FRAME)) throw new Error("websocket frame too large");
+        length = Number(big);
+        at = 10;
+      }
+      if (length > WS_MAX_FRAME) throw new Error("websocket frame too large");
+      const start = at + (hasMask ? 4 : 0), end = start + length;
+      if (buf.length < end) return;
+      let payload = buf.subarray(start, end);
+      if (hasMask) {
+        const mask = buf.subarray(at, start), open = Buffer.allocUnsafe(length);
+        for (let i = 0; i < length; i += 1) open[i] = payload[i] ^ mask[i & 3];
+        payload = open;
+      }
+      buf = buf.subarray(end);
+      if (opcode === 0 || opcode === 2) { if (payload.length) onData(payload); }
+      else if (opcode === 8) { onClose(); return; }
+      else if (opcode === 9) onPing(payload);
+      else if (opcode !== 10) throw new Error("not a binary websocket");
+    }
+  };
+}
+
+/** a websocket over `socket` as a plain duplex byte stream; `head` is what arrived after the handshake */
+export function wsDuplex(socket, { client, head = null }) {
+  let ended = false;
+  const duplex = new Duplex({
+    writableHighWaterMark: 1024 * 1024,
+    write(chunk, _encoding, callback) { if (socket.destroyed) callback(new Error("closed")); else socket.write(wsFrame(2, chunk, client), callback); },
+    final(callback) { if (!socket.destroyed) socket.end(wsFrame(8, Buffer.alloc(0), client)); callback(); },
+    read() { socket.resume(); },
+    destroy(error, callback) { socket.destroy(); callback(error); },
+  });
+  const finish = () => { if (!ended) { ended = true; duplex.push(null); } };
+  const read = wsReader({
+    masked: !client,
+    onData: (data) => { if (!ended && !duplex.push(data)) socket.pause(); },
+    onPing: (data) => { if (!socket.destroyed) socket.write(wsFrame(10, data, client)); },
+    onClose: () => { finish(); socket.end(); },
+  });
+  const take = (chunk) => { try { read(chunk); } catch (error) { duplex.destroy(error); } };
+  socket.on("data", take);
+  socket.once("end", finish);
+  socket.once("close", () => { finish(); duplex.destroy(); });
+  socket.on("error", (error) => duplex.destroy(error));
+  if (head?.length) take(head);
+  return duplex;
 }
 // ---- end direct transport ----
 
@@ -705,14 +830,17 @@ function local(method, path, body) {
   });
 }
 
-/** the leaf certificate's public key as the app pins it: sha256 of the spki der, base64 */
-export function spkiOf(host, port = 443) {
+/**
+ * the leaf certificate's public key as the app pins it: sha256 of the spki der, base64. node's `cert.pubkey` is not that
+ * (for an ec key it is the bare point), so the der comes from the certificate itself
+ */
+export function spkiOf(host, port = 443, tlsOptions = {}) {
   return new Promise((resolve, reject) => {
-    const socket = tlsConnect({ host, port, servername: host, rejectUnauthorized: true, timeout: 10_000 }, () => {
+    const socket = tlsConnect({ host, port, ...(isIP(host) ? {} : { servername: host }), rejectUnauthorized: true, timeout: 10_000, ...tlsOptions }, () => {
       const cert = socket.getPeerCertificate();
       socket.end();
-      if (!cert?.pubkey) return reject(new Error("no certificate"));
-      resolve(createHash("sha256").update(cert.pubkey).digest("base64"));
+      if (!cert?.raw) return reject(new Error("no certificate"));
+      resolve(createHash("sha256").update(new X509Certificate(cert.raw).publicKey.export({ type: "spki", format: "der" })).digest("base64"));
     });
     socket.on("timeout", () => socket.destroy(new Error("timed out")));
     socket.on("error", reject);
@@ -792,7 +920,7 @@ const directTag = (id) => `omb-link-${id}`;
 const SAFE_PATH = /^\/[\w./+-]+$/;
 
 /** the authorized_keys line for the app's key: restrict (no shell, pty, agent or port forwarding) and one forced command */
-export function directKeyLine({ pub, id, node = process.execPath, agent = fileURLToPath(import.meta.url) }) {
+export function directKeyLine({ pub, id, node = process.execPath, agent = installedAgent() }) {
   const match = /^ssh-ed25519 ([A-Za-z0-9+/]{68})$/.exec(typeof pub === "string" ? pub.trim() : "");
   const blob = match ? Buffer.from(match[1], "base64") : null;
   if (!blob || blob.length !== 51 || blob.readUInt32BE(0) !== 11 || blob.toString("latin1", 4, 15) !== "ssh-ed25519" || blob.readUInt32BE(15) !== 32) throw new Error("that is not an ed25519 key");
@@ -870,9 +998,49 @@ async function directKey(data, context) {
   return { v: 1, host, port, user: userInfo().username, hostKeys: keys };
 }
 
+/**
+ * the address of this server's direct path over https: OMB_LINK_WSS_URL when its operator put the agent's websocket
+ * behind their own https (any reverse proxy to 127.0.0.1:OMB_LINK_WSS_PORT), else the https address this install set up
+ */
+export function wssUrl({ origin = null } = {}, env = process.env) {
+  const given = env.OMB_LINK_WSS_URL?.trim();
+  if (given) {
+    if (!/^wss:\/\/[a-z0-9.-]+(:\d{1,5})?\/[A-Za-z0-9._~/-]*$/i.test(given)) throw new Error("OMB_LINK_WSS_URL is not a wss:// address");
+    return given;
+  }
+  return typeof origin === "string" && /^https:\/\/[a-z0-9.-]+$/i.test(origin) ? `wss://${new URL(origin).host}${WS_PATH}` : null;
+}
+
+async function directWss(context, readSpki = spkiOf) {
+  if (process.env.OMB_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
+  const url = wssUrl(context);
+  if (!url) throw new Error("this server has no https address for a direct link");
+  const target = new URL(url);
+  return { v: 1, url, spki: await readSpki(target.hostname, Number(target.port) || 443) };
+}
+
+/** the server's version and link protocol, from its public descriptor; a server from before it counts as protocol 1 */
+export async function serverLink(read = () => local("GET", "/.well-known/openmausbot/environment")) {
+  try {
+    const answer = await read();
+    if (answer.status !== 200 || !answer.body || typeof answer.body !== "object") return null;
+    const { version, link } = answer.body;
+    const whole = (value) => (Number.isInteger(value) && value > 0 ? value : 1);
+    return { version: typeof version === "string" ? version.slice(0, 40) : null, protocol: whole(link?.protocol), minAgent: whole(link?.minAgent) };
+  } catch { return null; }
+}
+
 export async function control(op, data, context = {}) {
   if (op === "ping") return { ok: true };
+  if (op === "hello") return { ...agentHello(), server: await (context.serverLink ?? serverLink)(), ...(context.updater ? { update: context.updater.status() } : {}) };
+  if (op === "update") {
+    if (!context.updater) throw new Error("this agent does not update itself here");
+    await context.updater.check();
+    const restarting = data?.apply === "now" ? context.updater.maybeApply(true) : context.updater.maybeApply();
+    return { ...context.updater.status(), restarting };
+  }
   if (op === "direct-key") return directKey(data, context);
+  if (op === "direct-wss") return directWss(context, context.spkiOf);
   if (op === "direct-off") { if (context.id) setDirectKey(context.id, null); return { ok: true }; }
   if (op === "pair") {
     // a fresh one-time code for the app's own sign-in here, when its session lapsed (sessions end after 180 days)
@@ -905,6 +1073,170 @@ export async function control(op, data, context = {}) {
     return { ok: true };
   }
   throw new Error("unknown request");
+}
+
+// ---- self-update ----
+
+/**
+ * the file the install put here (root's, read-only to this account). a staged update runs from this account's own
+ * folder, launched by that file, which ssh's forced command keeps naming
+ */
+export const installedAgent = () => process.env.OMB_LINK_LAUNCHER || fileURLToPath(import.meta.url);
+const releasesDir = () => join(configDir(), "releases");
+/** ed25519 public keys (base64, raw 32 bytes) a release must be signed by; with none, the link service's tls and hash vouch, as for the install */
+export const RELEASE_KEYS = Object.freeze([]);
+const UPDATE_EVERY_MS = 6 * 60 * 60_000;
+const UPDATE_FIRST_MS = 5 * 60_000;
+/** no request, stream byte or egress stream from the app for this long, and nothing open on egress: an update may restart the tunnel */
+export const UPDATE_IDLE_MS = 5 * 60_000;
+/** a staged agent that did not stay up this long, this many starts in a row, is never launched again */
+const TRIAL_GOOD_MS = 2 * 60_000;
+const TRIAL_STARTS = 3;
+
+/** a.b.c compared as numbers; anything else sorts below every version */
+export function compareVersions(a, b) {
+  const parts = (value) => (/^\d+\.\d+\.\d+$/.test(String(value)) ? String(value).split(".").map(Number) : null);
+  const left = parts(a), right = parts(b);
+  if (!left || !right) return left ? 1 : right ? -1 : 0;
+  for (let at = 0; at < 3; at += 1) if (left[at] !== right[at]) return left[at] < right[at] ? -1 : 1;
+  return 0;
+}
+
+/** what a release file says it is, read from its own text */
+export function releaseOf(text) {
+  const version = /^export const AGENT_VERSION = "(\d+\.\d+\.\d+)";$/m.exec(text)?.[1] ?? null;
+  const protocol = Number(/^export const LINK_PROTOCOL = (\d+);$/m.exec(text)?.[1] ?? NaN);
+  return { version, protocol: Number.isInteger(protocol) ? protocol : null };
+}
+
+/** the line a release key signs: the version, the protocol and the file's sha256 */
+export const releaseMessage = ({ version, protocol, sha256 }) => Buffer.from(`omb-link-release-v1\n${version}\n${protocol}\n${sha256}`);
+const ED25519_SPKI = Buffer.from("302a300506032b6570032100", "hex");
+export function releaseSigned(manifest, keys) {
+  if (typeof manifest.sig !== "string") return false;
+  const signature = Buffer.from(manifest.sig, "base64");
+  return keys.some((key) => {
+    try { return verifySignature(null, releaseMessage(manifest), createPublicKey({ key: Buffer.concat([ED25519_SPKI, Buffer.from(key, "base64")]), format: "der", type: "spki" }), signature); }
+    catch { return false; }
+  });
+}
+
+/** runs `node --check` and `selftest` on a staged file: it must parse and say the version it claims */
+function proveRelease(file, version) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [file, "selftest"], { stdio: ["ignore", "pipe", "ignore"], timeout: 20_000 });
+    let out = "";
+    child.stdout.on("data", (chunk) => { out = (out + chunk).slice(-4096); });
+    child.once("error", () => resolve(false));
+    child.once("close", (code) => {
+      try { resolve(code === 0 && JSON.parse(out).version === version); } catch { resolve(false); }
+    });
+  });
+}
+
+/**
+ * keeps this agent current: every 6 hours it reads the link service's release manifest, and stages a newer release
+ * (never an older one, never a lower protocol) only once its hash, its own version line, a signature when release keys
+ * are pinned, and a trial run all check out; `ready.json` is written last. it applies only after UPDATE_IDLE_MS idle,
+ * by ending the tunnel so systemd starts it again, and the installed file launches the staged one (launchRelease).
+ */
+export function createUpdater({ base, dir = releasesDir(), current = AGENT_VERSION, protocol = LINK_PROTOCOL, keys = [...RELEASE_KEYS, ...(process.env.OMB_LINK_RELEASE_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean)], fetchImpl = fetch, prove = proveRelease, idle = () => false, apply = () => {}, now = Date.now, log = () => {}, everyMs = UPDATE_EVERY_MS, firstMs = UPDATE_FIRST_MS }) {
+  let staged = null, checkedAt = null, error = null, timer = null, checking = null, applying = false;
+  try {
+    const ready = JSON.parse(readFileSync(join(dir, "ready.json"), "utf8"));
+    if (compareVersions(ready.version, current) > 0) staged = ready.version;
+  } catch { /* nothing staged */ }
+
+  async function stage() {
+    checkedAt = now();
+    const answer = await fetchImpl(`${base}/v1/release`, { signal: AbortSignal.timeout(30_000) });
+    if (!answer.ok) throw new Error(`the link service answered ${answer.status} for the release`);
+    const manifest = await answer.json();
+    const release = { version: manifest?.agent?.version, protocol: manifest?.agent?.protocol, sha256: manifest?.agent?.sha256, sig: manifest?.sig };
+    if (compareVersions(release.version, current) <= 0 || !Number.isInteger(release.protocol) || release.protocol < protocol) return null;
+    if (staged === release.version) return staged;
+    if (!/^[0-9a-f]{64}$/.test(String(release.sha256))) throw new Error("the release has no usable hash");
+    if (keys.length && !releaseSigned(release, keys)) throw new Error(`release ${release.version} is not signed by a pinned key`);
+    const download = await fetchImpl(`${base}/agent.mjs`, { signal: AbortSignal.timeout(120_000) });
+    if (!download.ok) throw new Error(`the link service answered ${download.status} for the agent`);
+    const bytes = Buffer.from(await download.arrayBuffer());
+    if (createHash("sha256").update(bytes).digest("hex") !== release.sha256) throw new Error(`release ${release.version} does not match its hash`);
+    const said = releaseOf(bytes.toString("utf8"));
+    if (said.version !== release.version || said.protocol !== release.protocol) throw new Error(`release ${release.version} says it is ${said.version ?? "something else"}`);
+    const folder = join(dir, release.version), file = join(folder, "agent.mjs");
+    rmSync(folder, { recursive: true, force: true });
+    mkdirSync(folder, { recursive: true, mode: 0o700 });
+    writePrivate(file, bytes);
+    if (!await prove(file, release.version)) { rmSync(folder, { recursive: true, force: true }); throw new Error(`release ${release.version} did not start`); }
+    writePrivate(join(dir, "ready.json"), JSON.stringify({ v: 1, version: release.version, sha256: release.sha256, at: now() }));
+    for (const old of readdirSync(dir)) if (/^\d+\.\d+\.\d+$/.test(old) && old !== release.version && old !== current) rmSync(join(dir, old), { recursive: true, force: true });
+    staged = release.version;
+    log(`link: agent ${release.version} is staged; it starts once nobody uses this link for a while`);
+    return staged;
+  }
+
+  async function check() {
+    checking ??= stage().then((found) => { error = null; return found; }, (failed) => { error = failed?.message ?? String(failed); log(`link: no update (${error})`); return staged; }).finally(() => { checking = null; });
+    return checking;
+  }
+
+  function maybeApply(force = false) {
+    if (!staged || applying || (!force && !idle())) return false;
+    applying = true;
+    log(`link: restarting into agent ${staged}`);
+    apply(staged);
+    return true;
+  }
+
+  let idleTimer = null;
+  return {
+    check, maybeApply,
+    status: () => ({ running: current, staged, checkedAt, ...(error ? { error } : {}) }),
+    start() {
+      if (timer) return;
+      const again = () => { void check().then(() => maybeApply()); timer = setTimeout(again, everyMs); timer.unref?.(); };
+      timer = setTimeout(again, firstMs);
+      timer.unref?.();
+      // a staged release waits for the link to fall idle; this looks every minute
+      idleTimer = setInterval(() => maybeApply(), 60_000);
+      idleTimer.unref?.();
+    },
+    stop() { clearTimeout(timer); clearInterval(idleTimer); timer = null; idleTimer = null; },
+  };
+}
+
+/**
+ * at start: the staged release this installed file should run instead of itself, or null. a release is launched only
+ * when newer than this file and still matching its hash; one that did not stay up for TRIAL_GOOD_MS on TRIAL_STARTS
+ * starts in a row is skipped for good, so a bad release leaves this one running
+ */
+export function stagedRelease({ dir = releasesDir(), current = AGENT_VERSION, log = () => {} } = {}) {
+  let ready;
+  try { ready = JSON.parse(readFileSync(join(dir, "ready.json"), "utf8")); } catch { return null; }
+  if (compareVersions(ready.version, current) <= 0) return null;
+  const file = join(dir, ready.version, "agent.mjs");
+  let bytes;
+  try { bytes = readFileSync(file); } catch { return null; }
+  if (createHash("sha256").update(bytes).digest("hex") !== ready.sha256) { log(`link: staged agent ${ready.version} changed on disk; staying on ${current}`); return null; }
+  let trial = {};
+  try { trial = JSON.parse(readFileSync(join(dir, "trial.json"), "utf8")); } catch { /* first start */ }
+  if (trial.version !== ready.version) trial = { version: ready.version, starts: 0, good: false };
+  if (!trial.good && trial.starts >= TRIAL_STARTS) { log(`link: staged agent ${ready.version} did not stay up; staying on ${current}`); return null; }
+  return { version: ready.version, file, trial };
+}
+
+/** runs a staged release in place of this file, as long as it runs; the exit code is the release's */
+export function launchRelease(release, { dir = releasesDir(), argv = ["tunnel"], log = (line) => console.error(line) } = {}) {
+  const trial = { ...release.trial, starts: (release.trial.starts ?? 0) + (release.trial.good ? 0 : 1) };
+  writePrivate(join(dir, "trial.json"), JSON.stringify(trial));
+  log(`link: running agent ${release.version}`);
+  const child = spawn(process.execPath, [release.file, ...argv], { stdio: "inherit", env: { ...process.env, OMB_LINK_LAUNCHER: installedAgent() } });
+  const healthy = setTimeout(() => { if (!trial.good) writePrivate(join(dir, "trial.json"), JSON.stringify({ ...trial, good: true })); }, TRIAL_GOOD_MS);
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => child.kill(signal));
+  return new Promise((resolve) => {
+    child.once("error", () => { clearTimeout(healthy); resolve(1); });
+    child.once("exit", (code) => { clearTimeout(healthy); resolve(code ?? 1); });
+  });
 }
 
 // ---- egress ----
@@ -1022,16 +1354,20 @@ const egressCode = (code) => (code === "port" || code === "home-network" || code
 /**
  * the server's half of "route traffic through this computer": a proxy the bot computers reach on their bridge, whose
  * connections the app opens from the person's own computer. it rides any tunnel with the stream api `send(frame)`,
- * `bytes(r, chunk)`, `queued()` and `onDrain(fn)`, and takes the app's frames through `handle(frame)`.
+ * `bytes(r, chunk)`, `queued()` and `onDrain(fn)` (the relay), and takes the app's frames through `handle(frame)`.
+ * `path()` names a faster way with the same api while there is one (a direct session): each stream keeps the path it
+ * was dialled on, and `dropPath(path)` ends the streams of one that is gone.
  * Security: it never connects anywhere itself (a box reaching this host must not get past the host fence), only
  * answers on the bridge, and refuses the bridge's own address so processes on this host cannot use it. the app checks
  * every destination again on its side.
  */
 export function createEgressProxy({
-  send, bytes, queued, onDrain, log = () => {}, now = Date.now,
+  send, bytes, queued, onDrain, path = () => null, log = () => {}, now = Date.now,
   bind = () => bridgeAddress(), port = EGRESS_PORT, report = null, reportMs = 5000, dialMs = EGRESS_DIAL_MS,
   probe = EGRESS_PROBE, probeEveryMs = DIAL_PROBE_EVERY_MS,
 }) {
+  const relay = { send, bytes, queued, onDrain };
+  const pick = () => path() ?? relay;
   const streams = new Map();
   const probes = new Map();
   let samples = [];
@@ -1046,14 +1382,14 @@ export function createEgressProxy({
   const online = () => ready && now() - seenAt < EGRESS_SEEN_MS;
   const randomId = () => Array.from(randomBytes(12), (byte) => "abcdefghijklmnopqrstuvwxyz234567"[byte & 31]).join("");
 
-  function forget(r, tell) {
+  function forget(r, tell, over = null) {
     const entry = streams.get(r);
     if (!entry) return;
     streams.delete(r);
     clearTimeout(entry.timer);
     entry.settle?.({ ok: false, code: "closed" });
     entry.socket.destroy();
-    if (tell) send({ t: "cancel", r });
+    if (tell) (over ?? entry.via).send({ t: "cancel", r });
   }
 
   /** the app went away: its streams are dead, so their browsers see the close now instead of waiting */
@@ -1075,8 +1411,9 @@ export function createEgressProxy({
     if (!enabled || !online()) return fallBack();
     const r = randomId();
     const dialedAt = now();
+    const via = pick();
     const answer = await new Promise((settle) => {
-      const entry = { socket, settle, endSent: false, timer: setTimeout(() => {
+      const entry = { socket, settle, via, endSent: false, timer: setTimeout(() => {
         sample(dialMs);
         // the app did not answer in time: it is asleep or gone, so new connections go direct until it says hello again
         log("egress: the app did not answer; bot computers use this server's own network until it is back");
@@ -1086,11 +1423,11 @@ export function createEgressProxy({
         void tick();
       }, dialMs) };
       streams.set(r, entry);
-      send({ t: "dial", r, host: asked.host, port: asked.port });
+      via.send({ t: "dial", r, host: asked.host, port: asked.port });
     });
     const entry = streams.get(r);
     if (!answer.ok || !entry) {
-      if (entry) { streams.delete(r); clearTimeout(entry.timer); if (answer.code === "timeout") send({ t: "cancel", r }); }
+      if (entry) { streams.delete(r); clearTimeout(entry.timer); if (answer.code === "timeout") via.send({ t: "cancel", r }); }
       if (answer.code === "timeout" || answer.code === "busy" || answer.code === "closed") return fallBack();
       stats.refused += 1;
       return asked.fail(egressCode(answer.code));
@@ -1099,14 +1436,14 @@ export function createEgressProxy({
     stats.relayed += 1;
     entry.relaying = true;
     asked.reply(true);
-    if (asked.rest.length) bytes(r, asked.rest);
+    if (asked.rest.length) via.bytes(r, asked.rest);
     socket.setNoDelay(true);
     socket.on("data", (chunk) => {
       if (streams.get(r) !== entry) return;
-      bytes(r, chunk);
-      if (queued() >= EGRESS_QUEUE_HIGH) { socket.pause(); onDrain(() => { if (streams.get(r) === entry) socket.resume(); }); }
+      via.bytes(r, chunk);
+      if (via.queued() >= EGRESS_QUEUE_HIGH) { socket.pause(); via.onDrain(() => { if (streams.get(r) === entry) socket.resume(); }); }
     });
-    socket.on("end", () => { if (streams.get(r) === entry) { entry.endSent = true; send({ t: "end", r }); } });
+    socket.on("end", () => { if (streams.get(r) === entry) { entry.endSent = true; via.send({ t: "end", r }); } });
     socket.on("close", () => { if (streams.get(r) === entry) forget(r, !entry.endSent); });
     socket.resume();
   }
@@ -1133,9 +1470,9 @@ export function createEgressProxy({
   function measure() {
     const last = samples.at(-1)?.at ?? -Infinity;
     if (!probe || !enabled || !online() || probes.size || now() - last < probeEveryMs) return;
-    const r = randomId(), at = now();
-    probes.set(r, { at, timer: setTimeout(() => { if (probes.delete(r)) { sample(dialMs); send({ t: "cancel", r }); } }, dialMs) });
-    send({ t: "dial", r, host: probe.host, port: probe.port });
+    const r = randomId(), at = now(), via = pick();
+    probes.set(r, { at, via, timer: setTimeout(() => { if (probes.delete(r)) { sample(dialMs); via.send({ t: "cancel", r }); } }, dialMs) });
+    via.send({ t: "dial", r, host: probe.host, port: probe.port });
   }
 
   async function tick() {
@@ -1177,7 +1514,7 @@ export function createEgressProxy({
           seenAt = now();
           ready = true;
           sample(now() - probed.at);
-          if (frame.ok === true) send({ t: "cancel", r: frame.r });
+          if (frame.ok === true) probed.via.send({ t: "cancel", r: frame.r });
         }
         return true;
       }
@@ -1196,6 +1533,15 @@ export function createEgressProxy({
       else if (frame.t === "cancel") forget(frame.r, false);
       else return false;
       return true;
+    },
+    /** a path that is gone: its streams end, and the app hears it over the relay */
+    dropPath(gone) {
+      for (const [r, probed] of probes) if (probed.via === gone) { probes.delete(r); clearTimeout(probed.timer); }
+      for (const [r, entry] of [...streams]) {
+        if (entry.via !== gone) continue;
+        if (entry.settle) { const settle = entry.settle; entry.settle = null; clearTimeout(entry.timer); streams.delete(r); settle({ ok: false, code: "closed" }); relay.send({ t: "cancel", r }); }
+        else forget(r, true, relay);
+      }
     },
     async stop() {
       stopped = true;
@@ -1322,7 +1668,12 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
 }
 
 /** `egress`: options for createEgressProxy, which then rides this tunnel; without it the app's hellos are ignored */
-export function createTunnelAgent({ base, id, key: keyText, token, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
+/** `update`: options for createUpdater, which then keeps this agent current and restarts the tunnel only when idle */
+export function createTunnelAgent({ base, id, key: keyText, token, origin = null, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, update: updateOptions = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
+  const context = { id, origin };
+  // the app's last use of this link: anything but liveness, the handshake and the update op itself
+  let lastUse = Date.now();
+  const used = (frame) => { if (frame.t !== "egress" && !(frame.t === "ctl" && ["ping", "hello", "update"].includes(frame.op))) lastUse = Date.now(); };
   const fetchImpl = given ?? relayFetch();
   const stream = streamChoice();
   const key = Buffer.from(keyText, "base64url");
@@ -1338,6 +1689,8 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     terminal = reason;
     abort.abort();
     void egress?.stop();
+    updater?.stop();
+    hub.stop();
     if (!given) fetchImpl.close();
     serving.destroyAll();
   }
@@ -1346,13 +1699,14 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
 
   const epoch = Array.from(randomBytes(12), (byte) => "abcdefghijklmnopqrstuvwxyz234567"[byte & 31]).join("");
   let ordered = false;
-  const post = async (frames, at) => {
+  // the egress lane's posts carry no sequence: they never wait in the relay behind the main queue's held posts
+  const post = async (frames, at, lane = false) => {
     for (let attempt = 0; !stopped; attempt += 1) {
       try {
-        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
+        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(lane ? { frames, lane: true } : { frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
         // read, not cancelled: a cancelled body closes the socket the next post would reuse
         const said = await response.text().catch(() => "");
-        if (response.ok && !ordered) ordered = /"ordered":true/.test(said);
+        if (response.ok && !ordered && !lane) ordered = /"ordered":true/.test(said);
         if (response.ok) { successfulPosts += 1; pollRetry?.abort(); return true; }
         if (response.status === 404) { stop("unlinked"); return false; }
       } catch { /* retried below */ }
@@ -1365,16 +1719,24 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
   const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: () => (fetchImpl.multiplexed?.() ? 0 : H1_POST_DELAY_MS), signal: abort.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => { log("link: reply queue failed; restarting the tunnel"); stop(); } });
   const emit = (frame) => { if (!stopped) outbox.push(sealFrame(key, id, "to-app", frame), frame.r); };
   const serving = createServing({
-    server, stopped: () => stopped, context: { id },
+    server, stopped: () => stopped, context,
     sink: { push: emit, bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard },
   });
-  const egress = egressOptions ? createEgressProxy({ send: emit, bytes: (r, chunk) => outbox.bytes(r, chunk), queued: () => outbox.size, onDrain: (resume) => outbox.onDrain(resume), log, ...egressOptions }) : null;
-  const handle = (frame) => (egress?.handle(frame) ? undefined : serving.handle(frame));
+  // egress over the relay: its own queue and posts, so a bot's tls handshake never waits behind a batch of desktop frames
+  const lane = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post: (frames, at) => post(frames, at, true), delayMs: 0, signal: abort.signal, onError: () => log("link: an egress post failed") });
+  const laneSend = (frame) => { if (stopped) return; if (frame.t === "cancel") lane.discard(frame.r); lane.push(sealFrame(key, id, "to-app", frame), frame.r); };
+  const egress = egressOptions ? createEgressProxy({ send: laneSend, bytes: (r, chunk) => lane.bytes(r, chunk), queued: () => lane.size, onDrain: (resume) => lane.onDrain(resume), path: () => hub.best(), log, ...egressOptions }) : null;
+  const hub = createDirectHub({ id, key: keyText, server, guard, egress, log, context, onFrame: used });
+  const handle = (frame) => { used(frame); return egress?.handle(frame) ? undefined : serving.handle(frame); };
+  const idle = () => Date.now() - lastUse >= UPDATE_IDLE_MS && (egress?.stats().active ?? 0) === 0;
+  const updater = updateOptions ? createUpdater({ base, idle, apply: () => stop("update"), log, ...updateOptions }) : null;
+  if (updater) context.updater = updater;
 
   async function run() {
     let failures = 0, ahead = null;
     const unwarm = given ? () => {} : fetchImpl.warm(base);
     void egress?.start();
+    updater?.start();
     while (!stopped) {
       const postsBefore = successfulPosts;
       const next = ahead;
@@ -1424,7 +1786,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     unwarm();
     return terminal;
   }
-  return { run, stop, egress };
+  return { run, stop, egress, direct: hub, updater };
 }
 
 export function harnessSync(server = SERVER) {
@@ -1625,13 +1987,13 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
 }
 
 /**
- * the direct link's server half, one per ssh connection: frames in on `input`, replies out on `output`. it says hello
- * first (sealed, so the app knows it holds the key), answers pings, and ends with the connection.
+ * the direct link's server half, one per connection: frames in on `input`, replies out on `output`. it says hello
+ * first (sealed, so the app knows it holds the key), answers pings, and ends with the connection. `egress` takes the
+ * app's egress frames; `path` is this connection as a way for egress streams to the app, usable once `onHello` said so.
  */
-export function serveDirect({ input, output, id, key: keyText, server = SERVER, log = (line) => console.error(line), idleMs = 20_000 }) {
+export function serveDirect({ input, output, id, key: keyText, server = SERVER, log = (line) => console.error(line), idleMs = 20_000, guard = frameGuard(), egress = null, onHello = () => {}, onFrame = () => {}, context = { id } }) {
   const key = Buffer.from(keyText, "base64url");
-  const guard = frameGuard();
-  let ended = false, heard = false, finish;
+  let ended = false, heard = false, greeted = false, finish;
   const done = new Promise((resolve) => { finish = (why) => {
     if (ended) return;
     ended = true;
@@ -1646,7 +2008,7 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
     sealBytes: (r, bytes) => sealBytes(key, id, "to-app", r, bytes, true),
     write: (record) => !ended && output.write(record),
   });
-  const serving = createServing({ server, sink: writer, stopped: () => ended, context: { id } });
+  const serving = createServing({ server, sink: writer, stopped: () => ended, context });
   // nothing that opens within a while: not the app, so this process does not linger
   const idle = setTimeout(() => { if (!heard) finish("idle"); }, idleMs);
   const read = directReader((type, payload) => {
@@ -1658,7 +2020,10 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
     heard = true;
     if (frame.t === "bytes") writer.received(frame.b.length);
     if (frame.t === "ping") { writer.push({ t: "pong", n: frame.n }); return; }
-    if (frame.t !== "hello") void serving.handle(frame);
+    onFrame(frame);
+    if (frame.t === "hello") { if (!greeted) { greeted = true; onHello(session); } return; }
+    if (egress?.handle(frame)) return;
+    void serving.handle(frame);
   });
   output.on("drain", () => writer.drained());
   output.on("error", () => finish("closed"));
@@ -1666,8 +2031,114 @@ export function serveDirect({ input, output, id, key: keyText, server = SERVER, 
   input.on("end", () => finish("closed"));
   input.on("close", () => finish("closed"));
   output.write(DIRECT_MAGIC);
-  writer.push({ t: "hello", v: 1 });
-  return { done, stop: () => finish("stopped") };
+  writer.push({ t: "hello", v: 1, ...agentHello() });
+  const session = {
+    done, stop: () => finish("stopped"), live: () => !ended && greeted, heard: () => heard,
+    path: { send: (frame) => writer.push(frame), bytes: (r, chunk) => writer.bytes(r, chunk, true), queued: () => writer.size, onDrain: (resume) => writer.onDrain(resume) },
+  };
+  return session;
+}
+
+/**
+ * every direct connection of this tunnel, served in the tunnel's own process (ssh sessions arrive through
+ * `agent.mjs direct`, which only pipes them here), so egress streams can ride the newest one the app said hello on.
+ * one replay guard covers them all and the relay.
+ */
+export function createDirectHub({ id, key, server = SERVER, guard, egress = null, log = () => {}, max = 16, context = { id }, onFrame = () => {} }) {
+  const all = new Set();
+  const greeted = [];
+  return {
+    accept(input, output) {
+      // full: the oldest connection that never sent a frame the tunnel key opens makes room (anyone may connect on 443)
+      if (all.size >= max) {
+        const stranger = [...all].find((one) => !one.heard());
+        if (!stranger) { input.destroy?.(); output.destroy?.(); return null; }
+        stranger.stop();
+        all.delete(stranger);
+      }
+      const session = serveDirect({ input, output, id, key, server, log, guard, egress, context, onFrame, onHello: (one) => greeted.push(one) });
+      all.add(session);
+      void session.done.then(() => {
+        all.delete(session);
+        const at = greeted.indexOf(session);
+        if (at >= 0) greeted.splice(at, 1);
+        egress?.dropPath(session.path);
+      });
+      return session;
+    },
+    /** the newest live session's path, or null */
+    best() {
+      for (let at = greeted.length - 1; at >= 0; at -= 1) if (greeted[at].live()) return greeted[at].path;
+      return null;
+    },
+    get size() { return all.size; },
+    stop() { for (const session of [...all]) session.stop(); },
+  };
+}
+
+/** where `agent.mjs direct` finds the tunnel's process: in this account's own private folder */
+export const directSocketPath = () => join(configDir(), "direct.sock");
+
+/** the tunnel's end of that socket; null when it could not listen (the direct command then serves in its own process) */
+export async function listenDirectSocket(hub, file = directSocketPath(), log = (line) => console.error(line)) {
+  mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
+  try { unlinkSync(file); } catch { /* none left over */ }
+  const listening = createTcpServer((socket) => { socket.on("error", () => {}); hub.accept(socket, socket); });
+  try {
+    await new Promise((resolve, reject) => { listening.once("error", reject); listening.listen(file, () => resolve()); });
+    chmodSync(file, 0o600);
+    return listening;
+  } catch (error) {
+    log(`link: direct sessions stay in their own processes (${error?.code ?? error?.message ?? error})`);
+    return null;
+  }
+}
+
+/**
+ * the direct path over https: a websocket on loopback (OMB_LINK_WSS_PORT, 8797) that this server's https front passes
+ * WS_PATH to (caddy in a direct install, or an operator's own reverse proxy). anyone may connect; only frames sealed
+ * with the tunnel key are ever opened, as on every other path. null when the port is taken
+ */
+export async function listenDirectWss(hub, { host = "127.0.0.1", port = Number(process.env.OMB_LINK_WSS_PORT) || 8797, log = (line) => console.error(line) } = {}) {
+  const refuse = (socket) => socket.end("HTTP/1.1 404 Not Found\r\ncontent-length: 0\r\nconnection: close\r\n\r\n");
+  const listening = createServer((_req, res) => { res.writeHead(404, { "content-type": "text/plain" }); res.end("not found"); });
+  listening.on("upgrade", (req, socket, head) => {
+    socket.on("error", () => {});
+    const nonce = String(req.headers["sec-websocket-key"] ?? "");
+    let path = "";
+    try { path = new URL(req.url ?? "/", "http://localhost").pathname; } catch { /* not a path */ }
+    if (path !== WS_PATH || String(req.headers.upgrade ?? "").toLowerCase() !== "websocket" || !/^[A-Za-z0-9+/]{22}==$/.test(nonce)) { refuse(socket); return; }
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${wsAccept(nonce)}\r\n\r\n`);
+    socket.setNoDelay(true);
+    socket.setKeepAlive(true, 15_000);
+    const duplex = wsDuplex(socket, { client: false, head });
+    duplex.on("error", () => {});
+    hub.accept(duplex, duplex);
+  });
+  try {
+    await new Promise((resolve, reject) => { listening.once("error", reject); listening.listen(port, host, () => resolve()); });
+    return listening;
+  } catch (error) {
+    log(`link: the direct path over https is off here (${error?.code ?? error?.message ?? error} on ${host}:${port})`);
+    return null;
+  }
+}
+
+/** `agent.mjs direct` hands its connection to the tunnel's process: the exit code, or null when nobody listens there */
+export function pipeToTunnel(file, input, output) {
+  return new Promise((resolve) => {
+    const socket = createConnection(file);
+    let piped = false;
+    socket.once("error", () => { if (!piped) resolve(null); });
+    socket.once("connect", () => {
+      piped = true;
+      socket.on("error", () => {});
+      input.pipe(socket);
+      socket.pipe(output);
+      socket.once("close", () => resolve(0));
+      input.once("end", () => socket.end());
+    });
+  });
 }
 
 async function direct() {
@@ -1675,6 +2146,8 @@ async function direct() {
   try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet"); return 1; }
   // a socket on the pipe, not process.stdout: on linux a piped stdout writes synchronously and would stall the reads
   const output = new Socket({ fd: 1, readable: false, writable: true });
+  const piped = await pipeToTunnel(directSocketPath(), process.stdin, output);
+  if (piped !== null) return piped;
   const why = await serveDirect({ input: process.stdin, output, id: saved.id, key: saved.key }).done;
   return why === "closed" || why === "stopped" ? 0 : 1;
 }
@@ -1682,8 +2155,16 @@ async function direct() {
 async function tunnel() {
   let saved;
   try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet; nothing to do"); return 0; }
+  // the installed file hands over to a newer staged release; a staged release (OMB_LINK_LAUNCHER set) never looks further
+  // self-update runs downloaded code as this agent, so it waits for a pinned release key
+  const releaseKeys = [...RELEASE_KEYS, ...(process.env.OMB_LINK_RELEASE_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean)];
+  const updates = process.env.OMB_LINK_UPDATES !== "off" && releaseKeys.length > 0;
+  if (updates && !process.env.OMB_LINK_LAUNCHER) {
+    const release = stagedRelease({ log: (line) => console.error(line) });
+    if (release) return launchRelease(release);
+  }
   try { if (refreshDirectKey(saved.id)) console.error("link: the app's direct key now runs this agent"); } catch (error) { console.error(`link: the app's direct key was not refreshed (${error?.message ?? error})`); }
-  const agent = createTunnelAgent({ ...saved, egress: {
+  const agent = createTunnelAgent({ ...saved, ...(updates ? { update: {} } : {}), egress: {
     report: async (state) => { const answer = await local("POST", "/api/computer/egress/agent", state); return answer.status === 200 ? answer.body : null; },
   } });
   let phones = null;
@@ -1699,13 +2180,16 @@ async function tunnel() {
     if (keys && (typeof keys.pub !== "string" || typeof keys.priv !== "string")) { console.error("link: phone keys are not valid; phones are off"); keys = null; }
     if (keys) phones = createPhoneHub({ base: saved.base, id: saved.id, token: saved.token, keys, origin: saved.mode === "direct" ? saved.origin : null, spki: null, sync: harnessSync(SERVER) });
   }
-  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { phones?.stop(); agent.stop(); process.exit(0); });
+  const [directSocket, directWs] = await Promise.all([listenDirectSocket(agent.direct), process.env.OMB_LINK_DIRECT === "off" ? null : listenDirectWss(agent.direct)]);
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
   const phoneRun = phones?.run();
   const how = await agent.run();
   phones?.stop();
   await phoneRun;
   // unlinked: stay quiet instead of letting systemd restart a tunnel that no longer exists
   if (how === "unlinked") {
+    directSocket?.close();
+    directWs?.close();
     try { setDirectKey(saved.id, null); } catch (error) { console.error(`link: the app's ssh key could not be removed (${error?.message ?? error})`); }
     setInterval(() => {}, 1 << 30);
     await new Promise(() => {});
@@ -1713,9 +2197,15 @@ async function tunnel() {
   return 0;
 }
 
-const main = { probe, link, tunnel, direct };
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+async function selftest() {
+  console.log(JSON.stringify({ version: AGENT_VERSION, protocol: LINK_PROTOCOL }));
+  return 0;
+}
+
+const main = { probe, link, tunnel, direct, selftest };
+const runAs = (file) => { try { return realpathSync(file); } catch { return file; } };
+if (process.argv[1] && runAs(fileURLToPath(import.meta.url)) === runAs(process.argv[1])) {
   const command = main[process.argv[2]];
-  if (!command) { console.error("usage: node agent.mjs probe|link|tunnel|direct"); process.exit(2); }
+  if (!command) { console.error("usage: node agent.mjs probe|link|tunnel|direct|selftest"); process.exit(2); }
   command().then((code) => process.exit(code ?? 0), (error) => { console.error(error?.message ?? String(error)); process.exit(1); });
 }

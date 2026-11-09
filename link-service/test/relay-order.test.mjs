@@ -28,6 +28,33 @@ const post = (frames, extra = {}) => fetch(`${base}/v1/tunnels/${id}/to-app`, {
 }).then((response) => response.json());
 const take = () => fetch(`${base}/v1/tunnels/${id}/to-app?wait=0`, { headers: { authorization: `Bearer ${app}` } }).then((response) => response.json());
 
+describe("the egress lane", () => {
+  it("is read out ahead of what already waits in the main queue, in its own order", async () => {
+    await post(["main1", "main2"], { epoch: "e".repeat(12), seq: 0 });
+    await post(["laneA"], { lane: true });
+    await post(["laneB"], { lane: true });
+    await post(["main3"], { epoch: "e".repeat(12), seq: 1 });
+    expect((await take()).frames).toEqual(["laneA", "laneB", "main1", "main2", "main3"]);
+  });
+
+  it("has room of its own: a full main queue never refuses it", async () => {
+    let refused = null;
+    for (let i = 0; i < 8 && !refused; i += 1) {
+      const answer = await post(Array(256).fill("desk"), { epoch: "e".repeat(12), seq: i });
+      if (answer.code === "queue_full") refused = answer;
+    }
+    expect(refused?.code).toBe("queue_full");
+    expect(await post(["lane"], { lane: true })).toEqual({ ok: true, ordered: true });
+    expect((await take()).frames[0]).toBe("lane");
+  });
+
+  it("is never held behind a numbered post that has not come yet", async () => {
+    await post(["late"], { epoch: "e".repeat(12), seq: 1 });
+    await post(["lane"], { lane: true });
+    expect((await take()).frames).toEqual(["lane"]);
+  });
+});
+
 describe("numbered posts", () => {
   it("say the relay orders them, and land in the writer's order however they arrive", async () => {
     expect(await post(["cccc"], { epoch: "e".repeat(12), seq: 2 })).toEqual({ ok: true, ordered: true });

@@ -4,9 +4,14 @@
 // and the server identity stay exactly as they are on the relay, and sshd's host key is pinned on top. stun hole punching
 // (webrtc) was measured first and fails against a vps whose firewall drops unsolicited udp when the app sits behind a
 // symmetric nat (most vpns), while tcp 22 is open on every vps; see link-service/README.md "Direct path".
+// where a network blocks port 22 (Jio, often), the same byte stream rides a websocket to the server's own https on 443,
+// with its tls key pinned the same way (wssConnector). ssh is tried first, then 443, and the relay stays underneath.
+import { X509Certificate, createHash, randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
-import { connect as netConnect } from "node:net";
+import { connect as netConnect, isIP } from "node:net";
 import { networkInterfaces } from "node:os";
+import { Duplex } from "node:stream";
+import { checkServerIdentity, connect as tlsConnect } from "node:tls";
 
 import { openFrame, sealBytes, sealFrame } from "./vps-link-protocol.mjs";
 import { clampMss } from "./tcp-clamp.mjs";
@@ -30,6 +35,11 @@ const DIRECT_ACK_EVERY = 32 * 1024;
 const DIRECT_MAX_RECORD = 1024 * 1024;
 const DIRECT_HIGH = 2 * 1024 * 1024;
 const DIRECT_LOW = 512 * 1024;
+/**
+ * a lane's streams (egress: a bot's tls handshakes and pages) have their own allowance of unacknowledged bytes and go
+ * first in each round, so a full desktop window never holds a page's first bytes back for an ack
+ */
+const DIRECT_LANE_INFLIGHT = 256 * 1024;
 
 export function directRecord(type, payload) {
   const head = Buffer.allocUnsafe(5);
@@ -66,7 +76,8 @@ export function directReader(onRecord) {
 /**
  * the sending half of a direct link. a frame for a stream with bytes still queued waits behind them (its order is kept);
  * every other frame goes first. queued bytes take turns, a piece per stream, with at most DIRECT_INFLIGHT unacknowledged,
- * so a busy desktop or a download never holds an api call back for long.
+ * so a busy desktop or a download never holds an api call back for long. `bytes(r, chunk, true)` puts a stream in the
+ * lane (DIRECT_LANE_INFLIGHT).
  */
 export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, write, inflight: fixed = null, now = () => performance.now() }) {
   const urgent = [];
@@ -94,38 +105,49 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
   }
   const streams = new Map();
   const drains = new Set();
-  let queued = 0, unacked = 0, received = 0, blocked = false, closed = false, scheduled = false;
+  // what is unacknowledged, oldest first, by lane: the other end acks bytes in the order they left
+  const flight = [];
+  let queued = 0, unacked = 0, laneUnacked = 0, received = 0, blocked = false, closed = false, scheduled = false;
   const release = () => { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); };
+  function piece(r, items) {
+    const item = items[0];
+    let need = Math.min(DIRECT_PIECE, item.size);
+    const pieces = [];
+    while (need > 0) {
+      const part = item.parts[0];
+      if (part.length <= need) { pieces.push(part); item.parts.shift(); need -= part.length; }
+      else { pieces.push(part.subarray(0, need)); item.parts[0] = part.subarray(need); need = 0; }
+    }
+    const one = pieces.length === 1 ? pieces[0] : Buffer.concat(pieces);
+    item.size -= one.length;
+    queued -= one.length;
+    if (items.lane) laneUnacked += one.length; else unacked += one.length;
+    const last = flight[flight.length - 1];
+    if (last && last.lane === Boolean(items.lane)) last.size += one.length; else flight.push({ lane: Boolean(items.lane), size: one.length });
+    sentTotal += one.length;
+    sent.push({ end: sentTotal, at: now() });
+    if (sent.length > 4096) sent.shift();
+    if (!item.size) items.shift();
+    streams.delete(r);
+    if (items.length) streams.set(r, items);
+    return directRecord(REC_SEALED, sealPiece(r, one));
+  }
   function next() {
     if (urgent.length) return urgent.shift();
-    for (const [r, items] of streams) {
-      const item = items[0];
-      if (item.record) { items.shift(); }
-      else {
-        if (unacked >= inflight) continue;
-        let need = Math.min(DIRECT_PIECE, item.size);
-        const pieces = [];
-        while (need > 0) {
-          const part = item.parts[0];
-          if (part.length <= need) { pieces.push(part); item.parts.shift(); need -= part.length; }
-          else { pieces.push(part.subarray(0, need)); item.parts[0] = part.subarray(need); need = 0; }
+    for (const lane of [true, false]) {
+      for (const [r, items] of streams) {
+        if (Boolean(items.lane) !== lane) continue;
+        const item = items[0];
+        if (!item.record) {
+          if (lane ? laneUnacked >= DIRECT_LANE_INFLIGHT : unacked >= inflight) continue;
+          return piece(r, items);
         }
-        const piece = pieces.length === 1 ? pieces[0] : Buffer.concat(pieces);
-        item.size -= piece.length;
-        queued -= piece.length;
-        unacked += piece.length;
-        sentTotal += piece.length;
-        sent.push({ end: sentTotal, at: now() });
-        if (sent.length > 4096) sent.shift();
-        if (!item.size) items.shift();
+        // a frame that waited behind its stream's bytes; the stream goes to the back of the line
+        items.shift();
         streams.delete(r);
         if (items.length) streams.set(r, items);
-        return directRecord(REC_SEALED, sealPiece(r, piece));
+        return item.record;
       }
-      // a frame that waited behind its stream's bytes; the stream goes to the back of the line
-      streams.delete(r);
-      if (items.length) streams.set(r, items);
-      return item.record;
     }
     return null;
   }
@@ -157,10 +179,10 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
       kick();
     },
     /** false: stop reading this stream until `onDrain` calls back */
-    bytes(r, chunk) {
+    bytes(r, chunk, lane = false) {
       if (closed) return true;
       let items = streams.get(r);
-      if (!items) streams.set(r, (items = []));
+      if (!items) { streams.set(r, (items = [])); items.lane = lane; }
       const last = items[items.length - 1];
       if (last && !last.record) { last.parts.push(chunk); last.size += chunk.length; }
       else items.push({ parts: [chunk], size: chunk.length });
@@ -177,7 +199,17 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
       if (queued < DIRECT_LOW) release();
     },
     /** the other end got this many stream bytes */
-    acked(count) { unacked = Math.max(0, unacked - count); learn(count); kick(); },
+    acked(count) {
+      for (let left = count; left > 0 && flight.length;) {
+        const head = flight[0], used = Math.min(left, head.size);
+        head.size -= used;
+        left -= used;
+        if (head.lane) laneUnacked -= used; else unacked -= used;
+        if (!head.size) flight.shift();
+      }
+      learn(count);
+      kick();
+    },
     /** stream bytes that arrived here: acknowledged every so often, ahead of everything else */
     received(count) {
       received += count;
@@ -191,9 +223,93 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
     drained() { blocked = false; kick(); },
     close() { closed = true; urgent.length = 0; streams.clear(); queued = 0; release(); },
     get size() { return queued; },
-    get unacked() { return unacked; },
+    get unacked() { return unacked + laneUnacked; },
     get inflight() { return inflight; },
   };
+}
+
+/** the direct path over https: one websocket (rfc 6455) of binary messages that carry the same byte stream as ssh */
+export const WS_PATH = "/omb-direct";
+const WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+const WS_MAX_FRAME = 4 * 1024 * 1024;
+export const wsAccept = (key) => createHash("sha1").update(`${key}${WS_GUID}`).digest("base64");
+
+/** one websocket frame; the client masks what it sends (the rfc requires it), the server never does */
+export function wsFrame(opcode, payload, masked) {
+  const length = payload.length;
+  const extra = length < 126 ? 0 : length < 65536 ? 2 : 8;
+  const head = Buffer.alloc(2 + extra + (masked ? 4 : 0));
+  head[0] = 0x80 | opcode;
+  head[1] = (masked ? 0x80 : 0) | (extra === 0 ? length : extra === 2 ? 126 : 127);
+  if (extra === 2) head.writeUInt16BE(length, 2);
+  else if (extra === 8) head.writeBigUInt64BE(BigInt(length), 2);
+  if (!masked) return Buffer.concat([head, payload]);
+  const mask = randomBytes(4);
+  mask.copy(head, 2 + extra);
+  const body = Buffer.allocUnsafe(length);
+  for (let at = 0; at < length; at += 1) body[at] = payload[at] ^ mask[at & 3];
+  return Buffer.concat([head, body]);
+}
+
+/** frames out of a byte stream: data to `onData`, pings answered by the caller, a close ends it. throws on anything else */
+export function wsReader({ masked, onData, onPing = () => {}, onClose = () => {} }) {
+  let buf = Buffer.alloc(0);
+  return (chunk) => {
+    buf = buf.length ? Buffer.concat([buf, chunk]) : chunk;
+    while (buf.length >= 2) {
+      const opcode = buf[0] & 0x0f, hasMask = (buf[1] & 0x80) !== 0;
+      if (hasMask !== masked) throw new Error("websocket masking is wrong");
+      let length = buf[1] & 0x7f, at = 2;
+      if (length === 126) { if (buf.length < 4) return; length = buf.readUInt16BE(2); at = 4; }
+      else if (length === 127) {
+        if (buf.length < 10) return;
+        const big = buf.readBigUInt64BE(2);
+        if (big > BigInt(WS_MAX_FRAME)) throw new Error("websocket frame too large");
+        length = Number(big);
+        at = 10;
+      }
+      if (length > WS_MAX_FRAME) throw new Error("websocket frame too large");
+      const start = at + (hasMask ? 4 : 0), end = start + length;
+      if (buf.length < end) return;
+      let payload = buf.subarray(start, end);
+      if (hasMask) {
+        const mask = buf.subarray(at, start), open = Buffer.allocUnsafe(length);
+        for (let i = 0; i < length; i += 1) open[i] = payload[i] ^ mask[i & 3];
+        payload = open;
+      }
+      buf = buf.subarray(end);
+      if (opcode === 0 || opcode === 2) { if (payload.length) onData(payload); }
+      else if (opcode === 8) { onClose(); return; }
+      else if (opcode === 9) onPing(payload);
+      else if (opcode !== 10) throw new Error("not a binary websocket");
+    }
+  };
+}
+
+/** a websocket over `socket` as a plain duplex byte stream; `head` is what arrived after the handshake */
+export function wsDuplex(socket, { client, head = null }) {
+  let ended = false;
+  const duplex = new Duplex({
+    writableHighWaterMark: 1024 * 1024,
+    write(chunk, _encoding, callback) { if (socket.destroyed) callback(new Error("closed")); else socket.write(wsFrame(2, chunk, client), callback); },
+    final(callback) { if (!socket.destroyed) socket.end(wsFrame(8, Buffer.alloc(0), client)); callback(); },
+    read() { socket.resume(); },
+    destroy(error, callback) { socket.destroy(); callback(error); },
+  });
+  const finish = () => { if (!ended) { ended = true; duplex.push(null); } };
+  const read = wsReader({
+    masked: !client,
+    onData: (data) => { if (!ended && !duplex.push(data)) socket.pause(); },
+    onPing: (data) => { if (!socket.destroyed) socket.write(wsFrame(10, data, client)); },
+    onClose: () => { finish(); socket.end(); },
+  });
+  const take = (chunk) => { try { read(chunk); } catch (error) { duplex.destroy(error); } };
+  socket.on("data", take);
+  socket.once("end", finish);
+  socket.once("close", () => { finish(); duplex.destroy(); });
+  socket.on("error", (error) => duplex.destroy(error));
+  if (head?.length) take(head);
+  return duplex;
 }
 // ---- end direct transport ----
 
@@ -223,10 +339,10 @@ export function networkFingerprint(interfaces = networkInterfaces()) {
  * one direct link, kept up in the background: dial, wait for the agent's sealed hello, ping for liveness and rtt, redial
  * with backoff. `connect()` gives { readable, writable, close }. while it is not up, the caller uses the relay.
  */
-export function createDirectLink({ id, key: keyText, guard, connect, onFrame, onChange = () => {}, onFailure = () => {}, log = () => {}, pingMs = 5000, helloMs = 20_000, connectMs = 25_000, backoff = BACKOFF_MS, network = networkFingerprint, watchMs = 15_000 }) {
+export function createDirectLink({ id, key: keyText, guard, connect, onFrame, onChange = () => {}, onFailure = () => {}, log = () => {}, pingMs = 5000, helloMs = 20_000, connectMs = 30_000, backoff = BACKOFF_MS, network = networkFingerprint, watchMs = 15_000, hello = {} }) {
   const key = Buffer.from(keyText, "base64url");
   let state = "idle", conn = null, writer = null, closed = false, attempt = 0, retryTimer = null, watchTimer = null, pingTimer = null, helloTimer = null;
-  let rtt = null, everUp = false, pingSeq = 0, suspect = false, heardAt = 0, upAt = 0, failing = false, failedOn = null;
+  let rtt = null, everUp = false, pingSeq = 0, suspect = false, heardAt = 0, upAt = 0, failing = false, failedOn = null, via = null, peer = null;
   const outstanding = new Map();
   const waiters = new Set();
   const set = (next, extra = {}) => { state = next; for (const wake of [...waiters]) wake(); onChange({ state, ...extra }); };
@@ -309,6 +425,7 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
     } finally { clearTimeout(deadline); }
     if (closed) { link.close(); return; }
     conn = link;
+    via = link.via ?? "ssh";
     const mine = link;
     writer = createDirectWriter({
       sealFrame: (frame) => sealFrame(key, id, "to-vps", frame, true),
@@ -325,6 +442,7 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
       if (!frame) return;
       if (frame.t === "hello") {
         clearTimeout(helloTimer);
+        peer = frame;
         everUp = true;
         failing = false;
         failedOn = null;
@@ -357,7 +475,7 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
     helloTimer = setTimeout(() => { if (conn === mine) drop("no hello"); }, helloMs);
     helloTimer.unref?.();
     link.writable.write(DIRECT_MAGIC);
-    writer.push({ t: "hello", v: 1 });
+    writer.push({ ...hello, t: "hello", v: 1 });
   }
 
   return {
@@ -377,8 +495,13 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
         waiters.add(wake);
       });
     },
+    /** "ssh" or "wss": how the connection that is up now got there */
+    via: () => (conn ? via : null),
+    /** the agent's last direct hello as it came (vps-link-compat.mjs agentInfo reads it), null before one */
+    peer: () => peer,
     push: (frame) => writer?.push(frame),
-    bytes: (r, chunk) => (writer ? writer.bytes(r, chunk) : true),
+    bytes: (r, chunk, lane = false) => (writer ? writer.bytes(r, chunk, lane) : true),
+    queued: () => writer?.size ?? 0,
     onDrain: (resume) => (writer ? writer.onDrain(resume) : resume()),
     discard: (r) => writer?.discard(r),
     /**
@@ -470,4 +593,104 @@ export function sshConnector({ host, port = 22, user, privateKey, hostKeys, time
       },
     });
   });
+}
+
+const PIN_ERROR = "the server's https key is not the one it said";
+
+/**
+ * dials the agent's websocket on the server's own https (port 443 unless the url says otherwise). the tls key must hash to
+ * `spki`, which the agent sent inside the sealed tunnel, on top of the usual certificate checks: neither the network
+ * nor the relay can stand in for the server, and the frames inside stay sealed end to end as on every path.
+ */
+export function wssConnector({ url, spki, timeoutMs = 15_000, connect: dial = netConnect, tls: tlsOptions = {} }) {
+  const target = new URL(url);
+  const host = target.hostname.replace(/^\[|\]$/g, ""), port = Number(target.port) || 443;
+  return () => new Promise((resolve, reject) => {
+    let settled = false, pinned = false;
+    const raw = dial({ host, port });
+    raw.setNoDelay?.(true);
+    raw.setKeepAlive?.(true, 15_000);
+    raw.once("connect", () => void clampMss(raw));
+    const socket = tlsConnect({
+      socket: raw, host, ...(isIP(host) ? {} : { servername: host }), ALPNProtocols: ["http/1.1"], ...tlsOptions,
+      checkServerIdentity: (name, cert) => {
+        const usual = checkServerIdentity(name, cert);
+        if (usual) return usual;
+        // the spki der, as the agent's spkiOf hashes it (node's cert.pubkey is the bare point for an ec key)
+        pinned = Boolean(cert.raw) && createHash("sha256").update(new X509Certificate(cert.raw).publicKey.export({ type: "spki", format: "der" })).digest("base64") === spki;
+        return pinned ? undefined : Object.assign(new Error(PIN_ERROR), { code: "PIN" });
+      },
+    });
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      socket.destroy();
+      raw.destroy();
+      reject(error?.code === "PIN" || (error?.message === PIN_ERROR) ? Object.assign(new Error(PIN_ERROR), { code: "PIN" }) : error);
+    };
+    const timer = setTimeout(() => fail(Object.assign(new Error("the server's https did not answer"), { code: "ETIMEDOUT" })), timeoutMs);
+    timer.unref?.();
+    socket.on("error", fail);
+    socket.once("close", () => fail(new Error("the connection closed before the handshake")));
+    const nonce = randomBytes(16).toString("base64");
+    socket.once("secureConnect", () => {
+      if (!pinned) { fail(Object.assign(new Error(PIN_ERROR), { code: "PIN" })); return; }
+      socket.write([`GET ${target.pathname}${target.search} HTTP/1.1`, `Host: ${target.host}`, "Upgrade: websocket", "Connection: Upgrade",
+        `Sec-WebSocket-Key: ${nonce}`, "Sec-WebSocket-Version: 13", "", ""].join("\r\n"));
+    });
+    let buffered = Buffer.alloc(0);
+    const onData = (chunk) => {
+      buffered = Buffer.concat([buffered, chunk]);
+      const end = buffered.indexOf("\r\n\r\n");
+      if (end < 0) { if (buffered.length > 16 * 1024) fail(new Error("the server's answer was not a websocket")); return; }
+      socket.off("data", onData);
+      const lines = buffered.subarray(0, end).toString("latin1").split("\r\n");
+      const status = /^HTTP\/1\.1 (\d{3})/.exec(lines[0])?.[1];
+      const headers = new Map(lines.slice(1).map((line) => [line.slice(0, line.indexOf(":")).trim().toLowerCase(), line.slice(line.indexOf(":") + 1).trim()]));
+      if (status !== "101" || headers.get("sec-websocket-accept") !== wsAccept(nonce)) {
+        fail(Object.assign(new Error(`the server's https answered ${status ?? "something else"} for the direct path`), { code: status === "404" ? "NOWSS" : "EPROTO" }));
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      socket.off("error", fail);
+      socket.removeAllListeners("close");
+      socket.setKeepAlive?.(true, 15_000);
+      const duplex = wsDuplex(socket, { client: true, head: buffered.subarray(end + 4) });
+      resolve({ readable: duplex, writable: duplex, close: () => duplex.destroy(), via: "wss" });
+    };
+    socket.on("data", onData);
+  });
+}
+
+/** a transport that failed on a network is tried last there for this long, so a blocked port costs nothing per dial */
+const SKIP_FAILED_MS = 30 * 60_000;
+
+/**
+ * one connect() over several transports, in order (ssh, then 443): the first that connects is used. one that failed on
+ * this network goes to the back of the line there for a while. the error of the last try is thrown with every other
+ * try's error in `errors`.
+ */
+export function orderedConnect(list, { network = networkFingerprint, now = Date.now, log = () => {} } = {}) {
+  const failed = new Map();
+  const here = () => { try { return network(); } catch { return null; } };
+  return async () => {
+    const at = here();
+    const fresh = (name) => { const seen = failed.get(name); return !seen || seen.on !== at || now() - seen.at > SKIP_FAILED_MS; };
+    const order = [...list.filter((one) => fresh(one.name)), ...list.filter((one) => !fresh(one.name))];
+    const errors = [];
+    for (const one of order) {
+      try {
+        const link = await one.connect();
+        failed.delete(one.name);
+        return { ...link, via: one.name };
+      } catch (error) {
+        failed.set(one.name, { on: at, at: now() });
+        errors.push(Object.assign(error ?? new Error("failed"), { via: one.name }));
+        if (order.length > 1) log(`vps link: direct path over ${one.name} did not connect (${error?.message ?? error})`);
+      }
+    }
+    throw Object.assign(errors.at(-1) ?? new Error("no direct transport"), { errors });
+  };
 }

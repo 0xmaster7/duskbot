@@ -22,6 +22,7 @@ function setup({ direct = true, controlFails = new Set(), extra = {} } = {}) {
     start: async () => ORIGIN,
     close: async () => {},
     control: async (op) => {
+      if (op === "hello") return { protocol: 2, caps: ["direct-ssh"] };
       controls.push(op);
       if (controlFails.has(op)) throw new Error("Your server did not answer. Is it on?");
       if (op === "direct-key") return { v: 1, host: "203.0.113.9", port: 22, user: "maus", hostKeys: [HOST_KEY] };
