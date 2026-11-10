@@ -25,6 +25,7 @@ import { pagesRoutesFromEnv } from "../../dashboard/server/pages/routes.ts";
 import { createSealer, parseSealKey } from "../../dashboard/server/clouds/seal.ts";
 import { createPagesClient } from "../../../server/pages/client.ts";
 import edge from "../edge/worker.js";
+import { fakeHookQueues } from "../src/fake-hook-queue.ts";
 
 const args = process.argv.slice(2), fake = args.includes("--fake");
 const option = (name: string) => { const at = args.indexOf(name); return at === -1 ? null : args[at + 1] ?? null; };
@@ -268,6 +269,31 @@ try {
     mark("webhook woke it through the edge");
     await billing.clouds.power(account.id, cloudId, "off");
     await reconcileUntil(cloudId, () => cloud().status === "sleeping", 10 * 60_000, "sleep again");
+
+    // 6d. with the hook queue bound, the edge answers at once (202) and the queue delivers after the wake, from a fresh isolate
+    const queued: Parameters<typeof edge.fetch>[1] = { ...env, HOOK_SEAL_KEY: randomBytes(32).toString("base64url") };
+    const queues = fakeHookQueues(() => queued);
+    queued.HOOK_QUEUE = queues.namespace;
+    globalThis.fetch = edgeFetch;
+    const quiet = console.log;
+    const lines: string[] = [];
+    console.log = (line: string) => { lines.push(line); };
+    const sentAt = Date.now(), seen = hooksSeen.length, label = cloud().managed!.label!;
+    const queueLooper = setInterval(() => { const c = cloud(); c.nextAttemptAt = 0; }, 100);
+    try {
+      const hook = await edge.fetch(new Request(`${cloud().origin}/hooks/github`, { method: "POST", body: "{\"ref\":\"queued\"}", headers: { "x-github-delivery": "e2e-1" } }), queued, { waitUntil() {} });
+      const answeredMs = Date.now() - sentAt;
+      queues.restart(label);
+      for (let n = 0; n < 240 && hooksSeen.length === seen; n++) { await sleep(250); await queues.runAlarm(label); }
+      console.log = quiet;
+      note(`queued webhook: ${hook.status} in ${answeredMs} ms; delivered ${JSON.stringify(hooksSeen.at(-1))} after ${Date.now() - sentAt} ms; ${lines.filter(l => l.includes("edge_hook_delivered")).length} delivery line`);
+      results.webhookQueued = hook.status === 202 && answeredMs < 2_000 && hooksSeen.length === seen + 1 && hooksSeen.at(-1)!.endsWith("{\"ref\":\"queued\"}") && cloud().status === "running";
+      results.webhookQueuedMs = Date.now() - sentAt;
+    } finally { console.log = quiet; globalThis.fetch = real; clearInterval(queueLooper); }
+    if (!results.webhookQueued) throw new Error("the queued webhook was not delivered after the wake");
+    mark("queued webhook delivered after the wake");
+    await billing.clouds.power(account.id, cloudId, "off");
+    await reconcileUntil(cloudId, () => cloud().status === "sleeping", 10 * 60_000, "sleep after the queued hook");
   }
 
   // 7. resumed for its owner
