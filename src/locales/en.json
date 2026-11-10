@@ -3497,7 +3497,7 @@
   "routines.timing.exact": "Exact time",
   "routines.timing.around": "Around this time",
   "routines.timing.aroundShort": "around this time",
-  "routines.timing.aroundHint": "It may run up to 30 minutes either side, which lets a Cloud computer sleep longer.",
+  "routines.timing.aroundHint": "It may run up to 30 minutes either side, which lets your cloud desktop sleep longer.",
   "routines.hours.term": "Hours",
   "routines.hours.quiet": "Runs {start} to {end}, quiet at night",
   "routines.hours.quietAtNight": "Quiet at night",
