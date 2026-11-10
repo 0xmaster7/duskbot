@@ -87,7 +87,8 @@ describe("a stop that fails", () => {
     const { c } = await f.paid();
     f.api.refuseStop(c.serverId!);
     f.power.idle = true; f.power.busy = [];
-    f.advance(5 * MINUTE);
+    // past the rails' minimum uptime
+    f.advance(7 * MINUTE);
     c.nextAttemptAt = 0; await f.service.reconcile();
     expect(c.status).toBe("sleeping");
     const starts = () => f.api.requests.filter(r => r.path.endsWith("/commands") && String((r.body as { command: string }).command).includes("omb-home start")).length;
@@ -110,7 +111,7 @@ describe("keeping stopped disks alive", () => {
     f.advance(MINUTE);
     const b = (await f.paid("acct_b")).c;
     f.power.idle = true; f.power.busy = [];
-    f.advance(5 * MINUTE);
+    f.advance(7 * MINUTE);
     // asleep, and the provider has saved each disk (its stop time)
     await f.settle(a, c => c.status === "sleeping" && c.managed!.lastStopAt !== null);
     f.advance(2 * MINUTE);

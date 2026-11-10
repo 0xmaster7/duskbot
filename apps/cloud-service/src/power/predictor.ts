@@ -38,7 +38,7 @@ export interface PredictorParams {
   /** the prior for returns within a session, worth this many sessions */
   priorSessions: number;
 }
-export const DEFAULT_PREDICTOR: PredictorParams = { halfLifeMs: 14 * DAY, priorSessionsPerDay: 3, priorDays: 2, priorSessions: 3 };
+export const DEFAULT_PREDICTOR: PredictorParams = { halfLifeMs: 28 * DAY, priorSessionsPerDay: 3, priorDays: 0.25, priorSessions: 1 };
 /** the shape of the prior for gaps within a session (per GAP_EDGES bin), and of ending one; scaled by priorSessions */
 const PRIOR_GAPS = [0.9, 0.6, 0.6, 0.45, 0.35, 0.3, 0.25, 0.2, 0.15, 0.12, 0.08];
 const PRIOR_END = 1;

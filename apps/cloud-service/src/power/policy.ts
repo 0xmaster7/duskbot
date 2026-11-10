@@ -52,12 +52,13 @@ export interface PolicyParams {
   /** a stop must beat staying by this many cents (at most half a minute's compute, see decide) */
   marginCents: number;
 }
+/** tuned on the simulator (scripts/lifecycle-sim.ts); the wait prices are the objective's, not tuned */
 export const DEFAULT_POLICY: PolicyParams = {
-  prices: { includedStartCents: 1, startRiskCents: 0.25, userWaitCents: 2, connectorWaitCents: 1 },
+  prices: { includedStartCents: 0.75, startRiskCents: 1, userWaitCents: 2, connectorWaitCents: 1 },
   predictor: DEFAULT_PREDICTOR,
-  schedule: { leadMs: 4 * MINUTE, spreadMs: 4 * MINUTE },
+  schedule: { leadMs: 4 * MINUTE, spreadMs: 0 },
   rails: DEFAULT_RAILS,
-  marginCents: 0.02,
+  marginCents: 0.01,
 };
 
 export interface SleepPolicy {

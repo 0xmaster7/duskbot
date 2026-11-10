@@ -50,7 +50,7 @@ export interface RailSettings {
   hardCapShare: number;
 }
 export const DEFAULT_RAILS: RailSettings = {
-  minUptimeMs: 4 * MINUTE, minIdleMs: 3 * MINUTE, wakeGraceMs: 3 * MINUTE, focusCapMs: 30 * MINUTE, routineGuardMs: 5 * MINUTE,
+  minUptimeMs: 6 * MINUTE, minIdleMs: 3 * MINUTE, wakeGraceMs: 3 * MINUTE, focusCapMs: 30 * MINUTE, routineGuardMs: 5 * MINUTE,
   maxStartsPerHour: 4, maxStartsPerDay: 16, flapMs: 10 * MINUTE, maxMinIdleMs: 2 * HOUR,
   breakerFailures: 3, breakerWindowMs: 30 * MINUTE, breakerBaseMs: 5 * MINUTE, breakerMaxMs: 2 * HOUR, poolSoftShare: 0.5, hardCapShare: 0.9,
 };

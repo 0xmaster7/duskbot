@@ -132,16 +132,22 @@ const KNOBS: Knob[] = [
   { name: "decision margin", unit: "cents", values: [0, 0.01, 0.02], get: p => p.marginCents, set: (p, v) => ({ ...p, marginCents: v }) },
 ];
 
+/** the tuning set: every persona as its own fleet, and two mixed fleets (the realistic case), all on seed 7 */
+function tuneJobs(decider: string, params: PolicyParams, size: { n: number; days: number; warmup: number }): Job[] {
+  return [...personaJobs(decider, params, size, 7),
+    ...[{ label: "tune fleet $100/300", plan: "100" as BoatPlan, n: 300 }, { label: "tune fleet $2000/1000", plan: "2000" as BoatPlan, n: 1000 }].map(f =>
+      ({ label: f.label, group: "fleet", users: { mix: true, n: f.n }, days: size.days - 14, warmup: size.warmup, plan: f.plan, scale: 1, decider, seed: 7, params }))];
+}
 async function tune(start: PolicyParams, size: { n: number; days: number; warmup: number }, rounds: number, log: string[]): Promise<PolicyParams> {
-  const baselines = await runAll(BASELINES.flatMap(d => personaJobs(d, start, size, 7)));
+  const baselines = await runAll(BASELINES.flatMap(d => tuneJobs(d, start, size)));
   reference = new Map([...new Set(baselines.map(r => r.label))].map(label => [label, Math.min(...baselines.filter(r => r.label === label).map(r => r.total))]));
-  let best = start, bestScore = objective(await runAll(personaJobs("adaptive", start, size, 7)));
+  let best = start, bestScore = objective(await runAll(tuneJobs("adaptive", start, size)));
   log.push(`| start | | | ${bestScore.toFixed(3)} |`);
   for (let round = 1; round <= rounds; round++) {
     let moved = false;
     for (const knob of KNOBS) {
       const tried = knob.values.filter(v => v !== knob.get(best));
-      const scores = await Promise.all(tried.map(async v => ({ v, score: objective(await runAll(personaJobs("adaptive", knob.set(best, v), size, 7))) })));
+      const scores = await Promise.all(tried.map(async v => ({ v, score: objective(await runAll(tuneJobs("adaptive", knob.set(best, v), size))) })));
       const win = scores.reduce((a, b) => b.score < a.score ? b : a, { v: knob.get(best), score: bestScore });
       log.push(`| ${round} | ${knob.name} (${knob.unit}) | ${[`${knob.get(best)}: ${bestScore.toFixed(3)}`, ...scores.map(s => `${s.v}: ${s.score.toFixed(3)}`)].join(", ")} | ${win.score < bestScore - 1e-9 ? `**${win.v}** (${win.score.toFixed(3)})` : "kept"} |`);
       if (win.score < bestScore - 1e-9) { best = knob.set(best, win.v); bestScore = win.score; moved = true; }
@@ -241,7 +247,7 @@ function report(r: { params: PolicyParams; personaRows: Summary[]; fleetRows: Su
     "```",
     "",
     ...(r.log.length ? ["## Tuning iterations", "",
-      `Coordinate descent over the knobs below, each persona as a ${r.tuneSize.n}-user fleet over ${r.tuneSize.days - r.tuneSize.warmup} measured days (seed 7, a different seed from every table here). The objective is the mean over the eight personas of the adaptive total per user-month divided by that persona's best baseline total (1.000 = no better than the best fixed rule; lower is better), with a late or missed run costing $1; a step is kept only when it lowers it. Rounds repeat until no knob moves (3 at most).`, "",
+      `Coordinate descent over the knobs below, each persona as a ${r.tuneSize.n}-user fleet over ${r.tuneSize.days - r.tuneSize.warmup} measured days (seed 7, a different seed from every table here). The objective is the mean over the eight personas and two mixed fleets ($100 plan with 300 users, $2000 plan with 1,000) of the adaptive total per user-month divided by that set's best baseline total (1.000 = no better than the best fixed rule; lower is better), with a late or missed run costing $1; a step is kept only when it lowers it. Rounds repeat until no knob moves (3 at most).`, "",
       "| round | knob | value: objective | kept |", "| --- | --- | --- | --- |", ...r.log, ""] : []),
     "## Per persona, every policy",
     "",
