@@ -98,32 +98,18 @@ it("never starts a routine again that the turn watchdog stopped as stalled: it f
   expect((await s.prompts(threadId)).filter((text) => text.includes(ROUTINE_HEADER))).toHaveLength(1);
 }, hostTimeout(120_000));
 
-it("starts a routine that crashed again once, and it completes in the same conversation", async () => {
+it("fails a routine that crashed before doing anything at once, says so once, and never starts it again on the same AI", async () => {
   const s = await server();
   s.engine("exit-early");
   const { id } = await s.runNow((await s.routine()).id);
-  await expect.poll(async () => (await s.run(id))?.retried, { timeout: hostTimeout(30_000) }).toBe("failed");
-  const { threadId } = await s.run(id);
-  expect(await s.run(id)).toMatchObject({ status: "queued" });
-  s.engine("happy");
-
-  await expect.poll(async () => (await s.run(id))?.status, { timeout: hostTimeout(60_000) }).toBe("completed");
-  expect(await s.run(id)).toMatchObject({ retried: "failed", threadId });
-  expect(JSON.stringify(JSON.parse(readFileSync(s.dump, "utf8")).prompt)).toContain("this run's first start failed before it finished");
-  expect((await s.prompts(threadId)).filter((text) => text.includes(ROUTINE_HEADER))).toHaveLength(2);
-  expect(s.notified().filter((notification) => notification.kind === "routine-failed")).toEqual([]);
-}, hostTimeout(120_000));
-
-it("fails a routine that crashes again on its retry, says so, and never retries it a second time", async () => {
-  const s = await server();
-  s.engine("exit-early");
-  const { id } = await s.runNow((await s.routine()).id);
-  await expect.poll(async () => (await s.run(id))?.status, { timeout: hostTimeout(90_000) }).toBe("failed");
+  await expect.poll(async () => (await s.run(id))?.status, { timeout: hostTimeout(60_000) }).toBe("failed");
   const failed = await s.run(id);
-  expect(failed).toMatchObject({ retried: "failed", error: expect.stringMatching(/^Failed after one automatic retry: /) });
+  expect(failed.retried).toBeUndefined();
+  expect(failed.error).toMatch(/\(not retried: it failed before doing anything\)$/);
   await expect.poll(() => s.notified().filter((notification) => notification.kind === "routine-failed"), { timeout: hostTimeout(15_000) })
     .toEqual([expect.objectContaining({ title: "Inbox bot's routine failed", body: `Inbox brief: ${failed.error}` })]);
-  expect((await s.prompts(failed.threadId)).filter((text) => text.includes(ROUTINE_HEADER))).toHaveLength(2);
+  await new Promise((resolve) => setTimeout(resolve, 20_000));
+  expect((await s.prompts(failed.threadId)).filter((text) => text.includes(ROUTINE_HEADER))).toHaveLength(1);
   expect(await s.runs()).toHaveLength(1);
 }, hostTimeout(150_000));
 

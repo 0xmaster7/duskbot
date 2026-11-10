@@ -64,14 +64,19 @@ export function continuityCarry(run: RoutineRun, routines: readonly Pick<Routine
   };
 }
 
+export const DRY_RUN_NOTE = "[Dusk Bot: this is a test run. Nothing may leave this computer: do not send, post, book, buy, pay, " +
+  "delete or submit anything, in an app or in the browser. Where the routine would, stop before that step and put exactly what it " +
+  "would send or do in your reply as a draft. Read whatever you need.]";
+
 export function composeExecutionPrompt(
-  routine: { id: string; name: string; trigger: RoutineRunTrigger; runOn: RoutineRunOn },
+  routine: { id: string; name: string; trigger: RoutineRunTrigger; runOn: RoutineRunOn; dryRun?: boolean },
   prompt: string,
   attachments: readonly RoutineContextAttachment[] | undefined,
   carry?: RoutineContinuityCarry | null,
   retried?: RoutineRetryCause,
 ): string {
-  const parts = [`${routineHeader(routine.name, routine.trigger)}${routine.trigger === "webhook" ? "" : `Trigger id: ${routine.id}\n`}${prompt}`, retried ? retryNote(retried) : ""];
+  const parts = [`${routineHeader(routine.name, routine.trigger)}${routine.trigger === "webhook" ? "" : `Trigger id: ${routine.id}\n`}${prompt}`, retried ? retryNote(retried) : "",
+    routine.dryRun ? DRY_RUN_NOTE : ""];
   const foreign = foreignPaths([prompt, ...(attachments ?? []).map((attachment) => attachment.path)], runHostPlatform(routine.runOn));
   if (foreign.length) {
     parts.push(`[Dusk Bot: this run is on a ${hostName(runHostPlatform(routine.runOn))} computer, where ${foreign.join(", ")} cannot exist. If the work needs ${foreign.length > 1 ? "them" : "it"}, say plainly what is missing instead of reporting success.]`);

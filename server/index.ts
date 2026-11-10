@@ -398,7 +398,7 @@ import {
   LEARN_PROMPT,
   PROFILE_PROMPT,
   TRIGGER_PROMPT,
-  ROUTINE_EXECUTION_PROMPT, READ_ONLY_ROUTINE_EXECUTION_PROMPT,
+  ROUTINE_EXECUTION_PROMPT, READ_ONLY_ROUTINE_EXECUTION_PROMPT, NOT_YET_PROMPT,
   WEBHOOK_PROMPT, BOT_API_PROMPT, AUTOMATION_REPLY_PROMPT,
   resolveComputerPromptKind,
   savedLoginsPrompt,
@@ -612,7 +612,7 @@ import { findAntigravityLeftovers, removeAntigravityLeftovers } from "./drivers/
 import { createLiveRoutes } from "./routes/live.ts";
 import { createNotificationRoutes } from "./routes/notifications.ts";
 import { createTodayRoutes } from "./routes/today.ts"; import { createInboxRoutes } from "./routes/inbox.ts"; import { createSidebarSectionRoutes } from "./routes/sidebar-sections.ts";
-import { createToolTimingRoute, createUsageRoutes } from "./routes/usage.ts";
+import { createToolTimingRoute, createUsageRoutes } from "./routes/usage.ts"; import { createSpendRoutes } from "./routes/spend.ts"; import { createSpend } from "./spend.ts"; import { createRoutineGuard, DRY_RUN_REFUSAL } from "./host/routine-guard.ts";
 import { createBotMessageRoutes } from "./routes/bot-messages.ts";
 import { clearInternalTurn, isInternalTurn, markInternalTurn } from "./internal-turns.ts"; import { createFirstReplyRescue } from "./first-reply-rescue.ts"; import { createTurnBeats } from "./turn-beats.ts";
 import { createReactionRoutes } from "./routes/reactions.ts";
@@ -1290,10 +1290,12 @@ function adminAuditRows(
 }
 
 
+const spend = createSpend({ dataDir: DATA_DIR, onHit: (hit) => routineGuard.capHit(hit) }); const routineGuard = createRoutineGuard({ dataDir: DATA_DIR, routine: (id) => routines?.listRoutines().find((one) => one.id === id), runs: () => routines?.listRuns() ?? [], pause: (id) => { try { routines?.update(id, { enabled: false }); } catch (error) { console.error(`routines: could not pause ${id}: ${error instanceof Error ? error.message : String(error)}`); } }, recheck: (id, at) => void routines?.deferNextRun(id, at, true), language: (threadId) => (threadId ? conversationLanguage(threadId) : undefined), spendOver: (botId, routineId) => spend.over(botId, routineId),
+  tell: (botId, threadId, text, quiet) => { const bot = store.bot(botId); if (!bot) return; const thread = threadId && store.taskByThread(botId, threadId) ? threadId : bot.threadId; store.appendMessage(thread, { role: "bot", kind: "activity", tool: { name: `notice: ${text}`, ok: true } }); if (!quiet) notify(buildNoticeNotification(bot, thread, text)); } });
 const attributeUsage = createUsageAttribution({ threadTrigger: (threadId) => turnTriggers.get(threadId), routineWriter: (id) => { const key = cloudRoutineAuthors?.writer(id); return key ? teamOwners.people?.list().find((one) => personKey({ id: "", email: one.email }) === key)?.email : undefined; } }); function bookTurnUsage(row: Omit<UsageRow, "at" | "costSource">, tokensReported = true): void {
   const cost = tokensReported || row.costUsd !== null ? ledgerCost(row, null) : { costUsd: null };
   const booked = attributeUsage({ ...row, ...cost, ...usageTrace.settle(row.threadId), at: new Date().toISOString() });
-  void appendUsage(DATA_DIR, booked);
+  void appendUsage(DATA_DIR, booked); spend.booked(booked);
 }
 
 const providerAuthSessions = new ProviderAuthSessions({ signedIn: (instanceId) => limitTakeover.signedIn(instanceId) }); const mcpServersHost = createMcpServersHost({ dataDir: DATA_DIR, cfg: () => cfg, persist: persistMcpServers, bots: () => store.bots, policy: (servers) => managedPolicy.filterMcp(servers), tell: (text, about) => notify(buildNoticeNotification(about, store.bot(about.id)?.threadId ?? "", text)), startsServers: (botId) => { const bot = store.bot(botId); return Boolean(bot && registry.get(bot.modelSelection.instanceId)?.adapter.capabilities.customMcp === true); }, boxed: () => botBox.enabled(),
@@ -8618,7 +8620,7 @@ async function beginTurn(
           include: (CLOUD_TEAM || CLOUD_HOME) ? (id) => Boolean(threadOwner(id)) && (recentWorkFilter(threadId).include?.(id) ?? false) : undefined,
           title: (id) => store.taskByThread(bot.id, id)?.title ?? store.groupByThread(id)?.name,
         }) : "" },
-        { id: "routine-execution", label: "Routine execution", text: opts?.automationSource === "schedule" || opts?.automationSource === "manual" || opts?.automationSource === "startup" ? (confined ? READ_ONLY_ROUTINE_EXECUTION_PROMPT : ROUTINE_EXECUTION_PROMPT) : "" },
+        { id: "routine-execution", label: "Routine execution", text: opts?.automationSource === "schedule" || opts?.automationSource === "manual" || opts?.automationSource === "startup" ? (confined ? READ_ONLY_ROUTINE_EXECUTION_PROMPT : ROUTINE_EXECUTION_PROMPT) + (opts?.automationSource === "schedule" && !confined ? NOT_YET_PROMPT : "") : "" },
         { id: "profile", label: "Profile changes", text: profilePrompt },
         { id: "learn", label: "Skill authoring", text: learnPrompt },
         // Volatile, so a teammate starting or finishing never changes the stable half.
@@ -8999,7 +9001,7 @@ const limitFailovers = new LimitFailovers({ file: join(DATA_DIR, "limit-failover
 const automationDestinations = createAutomationDestinations({ store, mainThread: botMainThread, runs: () => routines?.listRuns() ?? [],
   cloud: CLOUD_HOME ? { owner: CLOUD_OWNER_KEY!, opener: routineOpener, reportFromOthers: cloudReportFromOthers, opened: (threadId, person) => threadStarters.set(threadId, person), outside: (threadId) => outsideLineage.mark(threadId) } : null });
 const runHealth = startRunHealth({ dataDir: DATA_DIR, turns: () => liveTurnByThread.size, log: (line) => console.log(line) }); const wakeGate = new WakeGate({ onRelease: () => routines?.lookAgain(), log: (line) => console.log(line) }); routines = new RoutineManager({ heldAfterWake: () => wakeGate.held(),
-  emit: broadcast, limitResetAt: (engine) => limitClock.resetAt(engine), checks: proactive.checks,
+  emit: broadcast, limitResetAt: (engine) => limitClock.resetAt(engine), checks: proactive.checks, held: (run) => routineGuard.held(run), decorate: (routine) => routineGuard.pausedFor(routine),
   limitBackup: (botId, scope) => { const bot = store.bot(botId); return quotaSwitchEnabled() ? Boolean(bot && limitTakeover.backups(botId, bot.modelSelection, scope, approvalModeFor(bot)).length) : Boolean(bot && startupBackups(bot, cfg.automaticRecovery).length); },
   launchId: DESKTOP_MANAGED && /^[\w-]{1,100}$/.test(process.env.DUSK_DESKTOP_LAUNCH_ID ?? "")
     ? process.env.DUSK_DESKTOP_LAUNCH_ID : undefined,
@@ -9083,10 +9085,10 @@ const runHealth = startRunHealth({ dataDir: DATA_DIR, turns: () => liveTurnByThr
     }
   },
   interruptGoal: interruptRoutineGroupGoal,
-  onRunChanged: (run) => { cloudHealth?.noteRoutineRun(run); syncRoutineRunToSource(run); },
+  onRunChanged: (run) => { cloudHealth?.noteRoutineRun(run); syncRoutineRunToSource(run); routineGuard.changed(run); },
   onRunCut: (run) => run.groupId ? coordinator.cancelRoom(run.groupId, run.threadId!, ROUTINE_RESTARTED) : coordinator.cancelDirect(run.threadId!, ROUTINE_RESTARTED),
   onRunFailed: (run, alert) => {
-    cloudHealth?.noteRoutineRun(run);
+    cloudHealth?.noteRoutineRun(run); routineGuard.failed(run);
     const bot = store.bot(run.botId);
     if (!bot || alert === null || run.deliver === "brief") return;
     const said = alert?.detail ?? run.error, detail = said ? `${run.routineName}: ${said}` : run.routineName;
@@ -12487,7 +12489,7 @@ ROUTES.push(createUsageRoutes({
     return bot ? { botId: bot.id, botName: bot.name, model: bot.modelSelection.model, driverKind: registry.get(bot.modelSelection.instanceId)?.driverKind ?? "" } : null;
   },
   canSee: (auth) => { const visible = visibleTo(viewerFor(auth)); return (threadId) => visible.thread(threadId); },
-}));
+}), createSpendRoutes({ spend, botName: (id) => store.bot(id)?.name, mayChangeCaps: ownerOrAdmin, routine: (auth, id) => { const found = routines?.listRoutines().find((one) => one.id === id); return found && routineVisible(found, visibleTo(viewerFor(auth))) ? found : undefined; } }));
 ROUTES.push(createThreadModelRoutes({
   bot: (id) => store.bot(id),
   busy: (botId, threadId) => threadBusy(botId, threadId),
@@ -14607,7 +14609,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         const connectorCalls = rpc?.method === "tools/call" && typeof rpcParams?.name === "string"
           ? connectorCallsIn(rpcParams.name, rpcParams.arguments)
           : [];
-        if (proactive.fence.refusesConnectorCall(currentSender, internalCapability.threadId, body)) return refuseOutbound(READ_AND_DRAFT_REFUSAL);
+        if (proactive.fence.refusesConnectorCall(currentSender, internalCapability.threadId, body)) return refuseOutbound(READ_AND_DRAFT_REFUSAL); if (outboundTool && routineGuard.dryRun(routines?.runForThread(internalCapability.threadId) ?? null)) return refuseOutbound(DRY_RUN_REFUSAL);
         const scopeRefusal = managedPolicy.appsCallRefusal(connectorCalls, serviceSlugs) ?? await teamConnections.callRefusal(internalCapability, connectorCalls); if (scopeRefusal) return refuseOutbound(scopeRefusal);
         const access = connectorAccessDecision(currentSender.connectorScopes, connectorCalls, serviceSlugs);
         if (!access.ok) {
@@ -14819,7 +14821,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     }
     let routineMatch = path.match(/^\/api\/routines\/([\w-]+)\/run$/);
     if (routineMatch && method === "POST") {
-      const run = routines!.runNow(routineMatch[1]);
+      const run = routines!.runNow(routineMatch[1], undefined, url.searchParams.get("test") === "1");
       if (run && (CLOUD_HOME ? cloudOwnerSession(auth) : ownerOrAdmin(auth))) ownerStartedRoutineRuns.add(run.id);
       return run ? json(res, 201, { run }) : json(res, 404, { error: "no such routine" });
     }

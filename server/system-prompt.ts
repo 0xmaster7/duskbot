@@ -232,6 +232,8 @@ export const AUTOMATION_REPLY_PROMPT =
 export const READ_ONLY_ROUTINE_EXECUTION_PROMPT = " Execute this automation now within its read-and-draft limits.";
 export const ROUTINE_EXECUTION_PROMPT =
   " Execute this routine now: use coordinate_bots for required handoffs rather than merely announcing that you will wait; after an accepted hand-off, end this turn for automatic resumption, and report a concrete blocker if no handoff is possible." + AUTOMATION_COMPLETION_PROMPT;
+export const NOT_YET_PROMPT =
+  " If what this run needs has not arrived yet (an email, a file, a reply, a page update), start your reply with \"Not yet:\" and say in one line what is missing. Dusk Bot checks again later by itself, so do not report it as done or failed.";
 export const LEARN_PROMPT =
   " If the user sends /learn or asks you to save a reusable procedure from this work, use skills_list and skill_manage. Create new skills; update an existing learned skill only when the user explicitly asks to revise that exact name. Include source provenance." + APPLIED_RESULT_PROMPT;
 export const WEBHOOK_PROMPT =

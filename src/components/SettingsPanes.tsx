@@ -39,6 +39,7 @@ import { OrganizationSettings } from "./OrganizationSettings";
 import { PeopleSection } from "./PeopleSection";
 import { PlaceLookRows } from "./PlaceLookCard";
 import { PlanUsageSummary } from "./PlanUsage";
+import { BatteryCard } from "./usage/BatteryCard";
 import { ProfileAvatar, ProfileFields } from "./ProfileSettings";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { RoutineWakeRow } from "./routines/RoutineWakeRow";
@@ -421,6 +422,7 @@ export function UsagePane({ has, cloudAccount }: { has: Has; cloudAccount: React
         </SettingsGroup>
       ) : null}
       {usage && <div data-settings-block="cloudUsage" className="scroll-mt-4"><CloudUsageSummaryView usage={usage} upgrade={upgrade}>{dialog}</CloudUsageSummaryView></div>}
+      {has("usage") && <AdminOnly note="settings.adminOnly.usage"><BatteryCard version={0} /></AdminOnly>}
       {/* no limits yet: one quiet line in the same card as the breakdown, never a greyed-out row */}
       {((!limits.length && !usage) || usage || has("usage")) && (
         <RowsCard data-settings-block={!limits.length && !usage ? "usage" : undefined}>

@@ -663,7 +663,7 @@ export type Action =
   | { type: "createRoutine"; input: RoutineInput }
   | { type: "updateRoutine"; routineId: string; patch: Partial<RoutineInput> }
   | { type: "deleteRoutine"; routineId: string }
-  | { type: "runRoutine"; routineId: string; onStarted?: (run: RoutineRun) => void; onError?: (error: unknown) => void; onSettled?: () => void }
+  | { type: "runRoutine"; routineId: string; test?: boolean; onStarted?: (run: RoutineRun) => void; onError?: (error: unknown) => void; onSettled?: () => void }
   | { type: "cancelRoutineRun"; runId: string }
   | { type: "markRoutineRunSeen"; runId: string }
   | { type: "markAllRoutineRunsSeen" }
@@ -2338,7 +2338,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           break;
         case "runRoutine":
           void waitForExecutionSettings(executionBotsBeforeAction)
-            .then(() => api(`/api/routines/${action.routineId}/run`, { method: "POST" }))
+            .then(() => api(`/api/routines/${action.routineId}/run${action.test ? "?test=1" : ""}`, { method: "POST" }))
             .then(({ run }) => action.onStarted?.(run))
             .catch((error) => {
               if (action.onError) action.onError(error);

@@ -8,6 +8,8 @@ import { useAppTriggers } from "@/lib/app-triggers";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { routineRunsOn } from "@/lib/routine-display";
+import { fetchForecast, forecastLine, pauseLine, useLoaded } from "@/lib/spend";
+import { formatCost } from "@/lib/usage-trace";
 import { isRoutineProblemRun, type Routine, type RoutineRunOn } from "@/lib/routines";
 import { saveWebhookCredential, webhookCredentialStore } from "@/lib/webhook-credentials";
 import { useStore, type Bot } from "@/state/store";
@@ -16,6 +18,7 @@ import { AppEventEditor } from "../automations/AppEventEditor";
 import { WebhookEditor } from "../WebhookTrigger";
 import { BotSwitch, buttonCls, Card, PanelEmpty, rowCls, RowText } from "../bot-panel/rows";
 import { RoutineForm } from "./RoutineForm";
+import { SpendCap } from "../usage/SpendCap";
 
 const termCls = "text-[12px] leading-4 tracking-[0.01em] text-ink-secondary";
 const valueCls = "mt-0.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink";
@@ -170,6 +173,8 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
 }) {
   const { state, dispatch } = useStore();
   const [confirming, setConfirming] = useState(false);
+  const [capSaved, setCapSaved] = useState(0);
+  const forecast = useLoaded(() => (routine ? fetchForecast(routine.id) : Promise.resolve(null)), `${routine?.id}:${routine?.updatedAt}:${capSaved}:${automation.runs[0]?.status}`);
   const status = automationStatus(automation);
   const runs = automation.runs.filter((run) => run.status !== "queued").slice(0, RECENT_RUNS);
   const roomGoal = routine?.target === "room-goal";
@@ -183,6 +188,7 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
     status.state === "needs-you" ? status.reason : null,
     status.state === "done" ? t("automations.reason.done") : null,
     routine?.warning,
+    routine && !routine.enabled && routine.pausedFor ? pauseLine(routine.pausedFor) : null,
   ].filter((note): note is string => Boolean(note));
   const looksAt = routine?.checks?.map((check) => t(`routines.inline.check.${check}`));
   const busy = Boolean(actions.busy);
@@ -202,6 +208,13 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
         {automation.instructions.trim() && <Fact term={t("routines.inline.what")}><span className="whitespace-pre-wrap">{automation.instructions.trim()}</span></Fact>}
         <Fact term={t("routines.inline.worksOn")}>{worksOn.label}</Fact>
         {automation.kind === "schedule" && <Fact term={t("routines.inline.resultsTo")}>{resultsTo}</Fact>}
+        {routine && forecast?.warnings && (
+          <Fact term={t("routines.cost.term")}>
+            <span data-routine-forecast="">{forecastLine(forecast)}</span>
+            {forecast.warnings.map((warning) => <span key={warning} className="block text-[12px] leading-4 text-warning">{t(warning === "frequent" ? "routines.cost.frequent" : "routines.cost.costly")}</span>)}
+          </Fact>
+        )}
+        {routine && <Fact term={t("usage.cap.label")}><SpendCap kind="routine" id={routine.id} capUsd={forecast?.capUsd} onSaved={() => setCapSaved((n) => n + 1)} className="mt-0.5" /></Fact>}
         {(looksAt?.length || automation.readsAndDrafts) && (
           <Fact term={t("routines.inline.uses")}>{[looksAt?.join(", "), automation.readsAndDrafts ? t("automations.readsAndDrafts") : null].filter(Boolean).join(" · ")}</Fact>
         )}
@@ -223,7 +236,9 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
                     >
                       <span className="shrink-0 text-ink-secondary">{line.when}</span>
                       <span className={cn("shrink-0", line.mark === "✓" ? "text-success" : line.mark === "✗" ? "text-danger" : "text-warning")}>{line.mark}</span>
+                      {run.dryRun && <span className="shrink-0 rounded bg-ink/6 px-1 text-[11px] leading-4 text-ink-secondary">{t("automations.run.test")}</span>}
                       <span className="min-w-0 truncate">{line.text}</span>
+                      {forecast?.runCosts?.[run.id] ? <span className="ms-auto shrink-0 tabular-nums text-ink-secondary">{formatCost(forecast.runCosts[run.id])}</span> : null}
                     </button>
                   </li>
                 );
@@ -256,6 +271,11 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
             <button type="button" data-routine-action="run" disabled={busy} onClick={() => void actions.runNow(automation)} className={buttonCls}>
               {actions.busy === `run:${automation.id}` ? t("automations.starting") : t("automations.runNow")}
             </button>
+            {automation.kind === "schedule" && (
+              <button type="button" data-routine-action="test" disabled={busy} onClick={() => void actions.test(automation)} title={t("automations.testHint")} className={buttonCls}>
+                {actions.busy === `test:${automation.id}` ? t("automations.starting") : t("automations.test")}
+              </button>
+            )}
             <button type="button" data-routine-action="edit" onClick={onEdit} className={buttonCls}>{t("automations.edit")}</button>
             <button type="button" data-routine-action="delete" disabled={busy} onClick={() => setConfirming(true)} className={buttonCls}>{t("common.delete")}</button>
           </>
