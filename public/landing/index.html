@@ -14,7 +14,7 @@
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/site.css?v=c4183a86">
 <link rel="stylesheet" href="/motion-kit-v2.css?v=21fb5bf1">
-<link rel="stylesheet" href="/home.css?v=c653e66d">
+<link rel="stylesheet" href="/home.css?v=7545d9a2">
 </head>
 <body class="is-home">
 <header class="bar"><a class="brand" href="/"><img src="/art/cursor-88.webp" alt="" width="28" height="28">dusk bot</a><nav><a href="/download">download</a><a href="/docs">docs</a><a href="/pricing">pricing</a><a class="cta" href="https://app.dusk.bot">sign in</a></nav></header>
@@ -124,7 +124,7 @@
   <div class="tiles">
     <article class="tile t-sky wide" data-mk-reveal>
       <div class="tile-copy"><h3>each bot gets its own computer</h3><p>it signs in to sites and clicks through them like you would. watch it live, or take the mouse back any time.</p></div>
-      <img class="sticker" src="/art/s-computer.webp?v=dac42fe1" alt="" width="520" height="567">
+      <img class="sticker side" src="/art/s-computer.webp?v=690cf13b" alt="" width="520" height="599">
     </article>
     <article class="tile t-lemon wide" data-mk-reveal>
       <img class="sticker corner" src="/art/s-clock.webp?v=67ca93f2" alt="" width="520" height="502">
@@ -148,14 +148,10 @@
       <h3>they ask before the scary stuff</h3><p>sending, buying, deleting: a bot stops and waits for your yes.</p>
     </article>
     <article class="tile t-lilac wider" data-mk-reveal>
-      <div class="notch">
-        <div class="notch-chips"><span><i class="dot is-ask"></i>needs you 1</span><span><i class="dot is-work"></i>working 2</span><span><i class="dot is-done"></i>done 1</span></div>
-        <ul>
-          <li><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>quill</b><span>wants to run a command</span></div><em class="pill yes">allow</em></li>
-          <li><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>nova</b><span>comparing 14 flights to lisbon</span></div></li>
-        </ul>
+      <div class="tile-copy"><h3>they live in your notch</h3><p>one glance at the top of your screen: who's working, who's done, who needs you.</p>
+        <p class="glance"><span><i class="dot is-ask"></i>needs you 1</span><span><i class="dot is-work"></i>working 2</span><span><i class="dot is-done"></i>done 1</span></p>
       </div>
-      <div class="tile-copy low"><h3>they live in your notch</h3><p>one glance at the top of your screen: who's working, who's done, who needs you.</p></div>
+      <img class="sticker side" src="/art/s-notch.webp?v=0b197880" alt="" width="520" height="381">
     </article>
     <article class="tile t-cream" data-mk-reveal>
       <img class="sticker top" src="/art/s-phone.webp?v=550f01a8" alt="" width="520" height="387">
@@ -170,17 +166,30 @@
     <p data-mk-reveal>dusk bot has no model of its own. sign in with the account you already have, and your bots run on it. no second bill from us, no markup.</p>
     <ul class="facts" data-mk-reveal data-mk-stagger="70">
       <li><b>your login, your plan</b>replies go straight from your machine to your provider.</li>
-      <li><b>a model per bot</b>one for writing, one for code, something cheap for the chores.</li>
       <li><b>swap any time</b>the bot keeps its chats, files and memory.</li>
     </ul>
   </div>
-  <div class="signin" data-mk-reveal data-mk-stagger="60">
-    <span class="si"><i class="px px-claude"></i>continue with claude</span>
-    <span class="si"><i class="px px-chatgpt"></i>continue with chatgpt</span>
-    <span class="si"><i class="px px-gemini"></i>continue with gemini</span>
-    <span class="si"><i class="px px-grok"></i>continue with grok</span>
-    <p class="or"><span>also</span></p>
-    <p class="more-models"><span>cursor</span><span>copilot</span><span>deepseek</span><span>kimi</span><span>qwen</span><span>opencode</span><span>cline</span><span>your own api key</span></p>
+  <div class="brain" data-mk-tabs data-mk-reveal>
+    <div class="brain-top"><svg class="bot c-blue brain-bot" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><p><b>nova</b><span>same bot. pick its brain.</span></p></div>
+    <div class="brain-pick" role="tablist" aria-label="the ai nova runs on">
+      <span class="brain-ind" data-mk-indicator aria-hidden="true"></span>
+      <button type="button" role="tab" id="bt-claude" aria-controls="bp-claude" aria-selected="true"><i class="px px-claude"></i>claude</button>
+      <button type="button" role="tab" id="bt-chatgpt" aria-controls="bp-chatgpt" aria-selected="false"><i class="px px-chatgpt"></i>chatgpt</button>
+      <button type="button" role="tab" id="bt-gemini" aria-controls="bp-gemini" aria-selected="false"><i class="px px-gemini"></i>gemini</button>
+      <button type="button" role="tab" id="bt-grok" aria-controls="bp-grok" aria-selected="false"><i class="px px-grok"></i>grok</button>
+    </div>
+    <p class="brain-line" role="tabpanel" id="bp-claude" aria-labelledby="bt-claude" tabindex="0">nova is on <b>claude</b>, signed in as you. we charge $0 for that.</p>
+    <p class="brain-line" role="tabpanel" id="bp-chatgpt" aria-labelledby="bt-chatgpt" tabindex="0">nova is on <b>chatgpt</b> now. it still remembers you like the aisle seat.</p>
+    <p class="brain-line" role="tabpanel" id="bp-gemini" aria-labelledby="bt-gemini" tabindex="0">nova is on <b>gemini</b> now. same chats, same files, nothing to move.</p>
+    <p class="brain-line" role="tabpanel" id="bp-grok" aria-labelledby="bt-grok" tabindex="0">nova is on <b>grok</b> now. took one click. nobody had to migrate anything.</p>
+    <p class="brain-label">or give every bot its own</p>
+    <ul class="brain-team">
+      <li><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><b>juno</b><span>writes like you</span><em><i class="px px-claude"></i>claude</em></li>
+      <li><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>rivet</b><span>writes the code</span><em><i class="px px-chatgpt"></i>chatgpt</em></li>
+      <li><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><b>tally</b><span>does the chores</span><em><i class="px px-deepseek"></i>deepseek</em></li>
+    </ul>
+    <p class="brain-label">also works with</p>
+    <p class="more-models"><span>cursor</span><span>copilot</span><span>kimi</span><span>qwen</span><span>opencode</span><span>cline</span><span>your own api key</span></p>
   </div>
 </section>
 
@@ -351,6 +360,6 @@
 </footer>
 <script src="/motion.min.js?v=882ea65c"></script>
 <script src="/motion-kit-v2.js?v=2d0ef0af"></script>
-<script src="/home.js?v=c1f17373"></script>
+<script src="/home.js?v=ea332a01"></script>
 </body>
 </html>

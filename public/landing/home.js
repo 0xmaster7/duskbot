@@ -24,7 +24,7 @@ if (!still) addEventListener('pointermove', (e) => { px = e.clientX; py = e.clie
 const quips = ['hi', 'busy', 'on it', 'five more minutes', 'ok ok', 'that tickles', 'did you need something', 'working, promise', 'not the face'];
 let said = 0;
 document.addEventListener('click', (e) => {
-  const b = e.target.closest?.('.relay .bot, .shapes .bot, .work .bot, .peek-bot, .hill .bot, .faq-bots .bot');
+  const b = e.target.closest?.('.relay .bot, .shapes .bot, .work .bot, .peek-bot, .hill .bot, .faq-bots .bot, .brain .bot');
   if (!b) return;
   if (!still) { b.classList.remove('hop'); void b.getBoundingClientRect(); b.classList.add('hop'); }
   const r = b.getBoundingClientRect(), q = document.createElement('span');
@@ -43,6 +43,13 @@ if (M && chat && !still && 'IntersectionObserver' in window) {
   }, { rootMargin: '0px 0px 160px 0px' });
   io.observe(chat);
 }
+
+// nova hops each time its brain is swapped
+const brainBot = document.querySelector('.brain-bot');
+if (brainBot && !still) document.querySelector('.brain-pick').addEventListener('click', (e) => {
+  if (!e.target.closest('button')) return;
+  brainBot.classList.remove('hop'); void brainBot.getBoundingClientRect(); brainBot.classList.add('hop');
+});
 
 // each job starts as "working" and flips to how it ended, one after another, the first time the day is seen
 const work = document.querySelector('.work');

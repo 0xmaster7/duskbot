@@ -11,7 +11,7 @@ for n in ['wide-layers', 'wide-sails', 'wide-islands', 'end-meadow', 'price-sky'
 # sky straight onto trees and meadow, with the pale bands and the clouds left out, so the big $0 reads on white
 em = rgb('end-meadow'); fill = Image.new('RGB', (1000, 640)); fill.paste(em.crop((270, 150, 1270, 510)), (0, 0)); fill.paste(em.crop((270, 650, 1270, 930)), (0, 360)); print('zero', save(fill, 'zero', 1000))
 cat = Image.open('cat.png').convert('RGBA'); cat = cat.crop(cat.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print('cat', save(cat, 'cat', 600, 90))
-for n in ['s-computer', 's-clock', 's-notebook', 's-button', 's-phone']:
+for n in ['s-computer', 's-notch', 's-clock', 's-notebook', 's-button', 's-phone']:
     im = Image.open(n + '.png').convert('RGBA'); im = im.crop(im.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print(n, save(im, n, 520, 90))
 og = rgb('wide-layers'); og.crop((0, 110, 1536, 916)).resize((1200, 630), Image.LANCZOS).save(OUT + 'og.jpg', quality=86)
 for s in ['circle', 'star', 'heart', 'clover', 'hex', 'drop']: shutil.copy(f'icons/{s}.png', OUT + f'm-{s}.png')
