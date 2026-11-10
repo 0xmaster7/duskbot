@@ -995,7 +995,7 @@ do_app() {
   case "$verdict" in
     ok\ *) ;;
     *)
-      rm -f "$file"
+      [ "sha256:$PKG_SHA" = "$(state_get package-prev)" ] || rm -f "$file"
       if [ -x "$bin" ]; then echo "keeping the installed build: the offered one is not taken (${verdict#refuse })"; return 0; fi
       echo "the offered build is not taken (${verdict#refuse })"; return 1 ;;
   esac
