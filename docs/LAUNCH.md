@@ -89,7 +89,7 @@ Nothing here was deployed with real keys. app.dusk.bot and dev.dusk.bot still se
    `pnpm` is installed for root (`corepack enable`).
 2. Fill a copy of `deploy/account/production.env.example` outside the repo (`chmod 600`), at least:
    `DUSK_DASHBOARD_PUBLIC_URL=https://app.dusk.bot`, `DUSK_DASHBOARD_DATA=/var/lib/dusk-account`,
-   `DUSK_TRUST_PROXY=1`, `DUSK_ENVIRONMENT=production`, `DUSK_MAIL_PROVIDER=resend`, `DUSK_RESEND_API_KEY`,
+   `DUSK_TRUST_PROXY=1`, `DUSK_ENVIRONMENT=production`, `DUSK_MAIL_PROVIDER=brevo`, `DUSK_BREVO_API_KEY`,
    `DUSK_MAIL_FROM`, `DUSK_OPS_ALERT_EMAIL`, `DUSK_ERROR_DSN`, and for billing `DUSK_BILLING_PROVIDER=dodo`,
    `DUSK_DODO_MODE=live`, `DUSK_DODO_API_KEY`, `DUSK_DODO_WEBHOOK_SECRET`, `DUSK_DODO_PRODUCTS`,
    `DUSK_ENTITLEMENT_SIGNING_KEY`. Add the cloud desktop names only when Dusk Cloud opens.
@@ -104,8 +104,8 @@ Nothing here was deployed with real keys. app.dusk.bot and dev.dusk.bot still se
    curl -4 -fsS https://app.dusk.bot/v1/health
    ```
    The deploy key must be able to read the private repo (a read-only deploy key on the repo).
-4. **Resend**: add the domain dusk.bot, put its SPF, DKIM and a DMARC record (`v=DMARC1; p=quarantine; rua=mailto:hello@dusk.bot`)
-   in Spaceship DNS, create a sending-only key.
+4. **Brevo**: add and authenticate the domain dusk.bot (its Brevo code, DKIM and a DMARC record
+   `v=DMARC1; p=quarantine; rua=mailto:hello@dusk.bot`) in DNS, create an API key.
 5. **Dodo Payments**: live mode products for each plan id in `shared/billing-api.ts`; webhook
    `https://app.dusk.bot/v1/billing/webhooks/dodo` with its secret; business verification and payout details
    (payment details are yours to enter).

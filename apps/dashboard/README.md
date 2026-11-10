@@ -79,7 +79,7 @@ pnpm build:dashboard            # the page, into apps/dashboard/dist
 pnpm dashboard:service          # DUSK_DASHBOARD_PORT, _HOST, _DATA, _PUBLIC_URL, _STATIC
 ```
 
-Production mail uses `DUSK_MAIL_PROVIDER=resend`, `DUSK_RESEND_API_KEY` and `DUSK_MAIL_FROM`. Loopback HTTP or
+Production mail uses `DUSK_MAIL_PROVIDER=brevo`, `DUSK_BREVO_API_KEY` and `DUSK_MAIL_FROM` (or `resend` with `DUSK_RESEND_API_KEY`). Loopback HTTP or
 `DUSK_DASHBOARD_DEV=1` enables development console mail. Set `DUSK_AUTH_SIGNUP_OPEN=0` to close signups and
 `DUSK_TRUST_PROXY=1` only behind a trusted proxy. `DUSK_OPS_TOKEN` (32 characters or more) turns on the operator's checkout funnel:
 `GET /v1/billing/ops/funnel?days=30` with `Authorization: Bearer <token>` counts checkouts started, paid and still active

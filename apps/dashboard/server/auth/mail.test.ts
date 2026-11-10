@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { codeMessage, consoleMailer, mailerFromEnv, memoryMailer, recoveryMessage, resendMailer } from "./mail.ts";
+import { brevoMailer, codeMessage, consoleMailer, mailerFromEnv, memoryMailer, recoveryMessage, resendMailer } from "./mail.ts";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -44,13 +44,29 @@ describe("account mail", () => {
     await expect(resendMailer({ apiKey: "fixture-key", from: "mail@example.test", fetch: request }).send(codeMessage("fixture@example.test", "01234567"))).rejects.toThrow("Email delivery failed.");
     expect(log).not.toHaveBeenCalled();
   });
+  it("posts messages to Brevo with its api-key header and a parsed sender", async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(new Response("{}", { status: 201 }));
+    const message = codeMessage("fixture@example.test", "01234567");
+    await brevoMailer({ apiKey: "fixture-key", from: "Fixture <mail@example.test>", fetch: request }).send(message);
+    expect(request).toHaveBeenCalledWith("https://api.brevo.com/v3/smtp/email", expect.objectContaining({ method: "POST", redirect: "error",
+      headers: { "api-key": "fixture-key", "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ sender: { name: "Fixture", email: "mail@example.test" }, to: [{ email: message.to }], subject: message.subject, textContent: message.text, htmlContent: message.html }) }));
+    await brevoMailer({ apiKey: "fixture-key", from: "mail@example.test", fetch: request }).send(message);
+    expect(JSON.parse(String(request.mock.calls[1][1]?.body)).sender).toEqual({ email: "mail@example.test" });
+  });
+  it.each([400, 401, 429, 500])("hides Brevo failure details for status %s", async status => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(new Response("sensitive provider details", { status }));
+    await expect(brevoMailer({ apiKey: "fixture-key", from: "mail@example.test", fetch: request }).send(codeMessage("fixture@example.test", "01234567"))).rejects.toThrow("Email delivery failed.");
+  });
   it("validates mail configuration at startup and restricts console mail to development", () => {
     expect(mailerFromEnv({}, { dev: true })).toHaveProperty("send");
-    expect(() => mailerFromEnv({}, { dev: false })).toThrow("Configure DUSK_MAIL_PROVIDER=resend");
+    expect(() => mailerFromEnv({}, { dev: false })).toThrow("Configure DUSK_MAIL_PROVIDER=brevo or resend");
     expect(() => mailerFromEnv({ DUSK_MAIL_PROVIDER: "console" }, { dev: false })).toThrow("console mail is allowed only in development");
     expect(() => mailerFromEnv({ DUSK_MAIL_PROVIDER: "other" }, { dev: true })).toThrow();
     expect(() => mailerFromEnv({ DUSK_MAIL_PROVIDER: "resend" }, { dev: true })).toThrow("DUSK_RESEND_API_KEY and DUSK_MAIL_FROM");
     expect(() => mailerFromEnv({ DUSK_MAIL_PROVIDER: "resend", DUSK_RESEND_API_KEY: "fixture-key" }, { dev: false })).toThrow("DUSK_MAIL_FROM");
     expect(mailerFromEnv({ DUSK_MAIL_PROVIDER: "resend", DUSK_RESEND_API_KEY: "fixture-key", DUSK_MAIL_FROM: "mail@example.test" }, { dev: false })).toHaveProperty("send");
+    expect(() => mailerFromEnv({ DUSK_MAIL_PROVIDER: "brevo", DUSK_MAIL_FROM: "mail@example.test" }, { dev: false })).toThrow("DUSK_BREVO_API_KEY and DUSK_MAIL_FROM");
+    expect(mailerFromEnv({ DUSK_MAIL_PROVIDER: "brevo", DUSK_BREVO_API_KEY: "fixture-key", DUSK_MAIL_FROM: "Dusk Bot <hello@example.test>" }, { dev: false })).toHaveProperty("send");
   });
 });

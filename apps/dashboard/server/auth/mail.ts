@@ -19,14 +19,33 @@ export function resendMailer(options: { apiKey: string; from: string; fetch?: ty
     } catch { throw new Error("Email delivery failed."); }
   } };
 }
+/** `from` is "Name <address>" or a bare address */
+export function brevoMailer(options: { apiKey: string; from: string; fetch?: typeof fetch }): Mailer {
+  const request = options.fetch ?? fetch;
+  const named = options.from.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+  const sender = named ? { name: named[1] || undefined, email: named[2] } : { email: options.from.trim() };
+  return { async send(message) {
+    try {
+      const response = await request("https://api.brevo.com/v3/smtp/email", { method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),
+        headers: { "api-key": options.apiKey, "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ sender, to: [{ email: message.to }], subject: message.subject, textContent: message.text, htmlContent: message.html }) });
+      await response.body?.cancel();
+      if (!response.ok) throw new Error();
+    } catch { throw new Error("Email delivery failed."); }
+  } };
+}
 export function mailerFromEnv(env: NodeJS.ProcessEnv, { dev }: { dev: boolean }): Mailer {
   const provider = env.DUSK_MAIL_PROVIDER ?? (dev ? "console" : "");
   if (provider === "resend") {
     if (!env.DUSK_RESEND_API_KEY || !env.DUSK_MAIL_FROM) throw new Error("DUSK_MAIL_PROVIDER=resend requires DUSK_RESEND_API_KEY and DUSK_MAIL_FROM.");
     return resendMailer({ apiKey: env.DUSK_RESEND_API_KEY, from: env.DUSK_MAIL_FROM });
   }
+  if (provider === "brevo") {
+    if (!env.DUSK_BREVO_API_KEY || !env.DUSK_MAIL_FROM) throw new Error("DUSK_MAIL_PROVIDER=brevo requires DUSK_BREVO_API_KEY and DUSK_MAIL_FROM.");
+    return brevoMailer({ apiKey: env.DUSK_BREVO_API_KEY, from: env.DUSK_MAIL_FROM });
+  }
   if (provider === "console" && dev) return consoleMailer();
-  throw new Error("Configure DUSK_MAIL_PROVIDER=resend for email delivery; console mail is allowed only in development.");
+  throw new Error("Configure DUSK_MAIL_PROVIDER=brevo or resend for email delivery; console mail is allowed only in development.");
 }
 export function codeMessage(to: string, code: string): MailMessage {
   return { to, subject: "Your Dusk Bot code", text: `Your Dusk Bot code is ${code}. It expires in 10 minutes.`,
