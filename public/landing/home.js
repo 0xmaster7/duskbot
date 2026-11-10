@@ -95,7 +95,8 @@ if (view) {
   const at = (el, dx, dy) => { const b = view.getBoundingClientRect(), r = el.getBoundingClientRect(); ptr.style.transform = `translate(${r.left - b.left + r.width / 2 - 4 + dx}px, ${r.top - b.top + r.height / 2 - 3 + dy}px)`; };
   const hot = (row) => rows.forEach((r) => r.classList.toggle('hot', r === row));
   const mark = (on) => { hold.classList.toggle('held', on); hold.textContent = on ? 'held' : 'hold'; };
-  const rest = () => { if (!held) at(hold, 6, 4); };
+  // once the fare is held the pointer parks in the open middle of the page, clear of the text
+  const rest = () => { if (!held) at($('span', rows[1]), 30, 16); };
   ptr.classList.add('on'); rest();
   addEventListener('load', rest); addEventListener('resize', rest);
   if (!still) once(view, async () => {
@@ -106,6 +107,7 @@ if (view) {
     at(hold, 6, 4); await wait(620);
     if (held) return;
     hold.style.scale = '0.9'; await wait(140); hold.style.scale = ''; mark(true);
+    await wait(450); if (!held) rest();
   }, 0.7);
   take.addEventListener('click', () => {
     held = !held;

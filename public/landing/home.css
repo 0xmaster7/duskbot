@@ -53,7 +53,7 @@
 .hero h1:hover .h-mark { transform: rotate(-10deg) scale(1.06); }
 @keyframes floaty { 50% { translate: 0 -4%; } }
 /* the availability pill in place of the old tag: a small badge, then each platform with its mark */
-.home .tag.avail { gap: 10px; padding: 5px 16px 5px 5px; font: 450 14px/1 var(--sans); letter-spacing: -0.005em; color: var(--ink); flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 32px); }
+.home .tag.avail { gap: 10px; padding: 9px 16px; font: 450 14px/1 var(--sans); letter-spacing: -0.005em; color: var(--ink); flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 32px); }
 .tag.avail b { padding: 7px 10px; border-radius: 999px; background: #fff; font: 500 12px/1 var(--pixel); letter-spacing: 0.04em; text-transform: uppercase; box-shadow: 0 0 0 1px var(--line); }
 .tag.avail .avail-on { color: var(--ink-3); }
 .tag.avail span { display: inline-flex; align-items: center; gap: 6px; }
@@ -144,7 +144,7 @@ main.home { font-weight: 450; }
 .browser { padding-bottom: 2px; }
 .browser-bar { display: flex; align-items: center; gap: 6px; padding: 2px 4px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .browser-bar i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: #d2d2cd; }
-.browser-bar span { flex: 1; min-width: 0; margin-left: 6px; font: 400 11.5px/1.5 var(--mono); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
+.browser-bar span { flex: 1; min-width: 0; font: 400 11.5px/1.5 var(--mono); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
 .fig .page-h { display: flex; align-items: baseline; gap: 10px; padding: 14px 8px 6px; white-space: nowrap; }
 .page-h b { font-weight: 550; }
 .page-h span { font-size: 12.5px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; }
