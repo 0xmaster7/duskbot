@@ -479,7 +479,9 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 @keyframes float { to { translate: 0 3px; } }
 .foam { fill: #fff; opacity: 0.9; transition: opacity 0.2s; }
 /* the foam line only shows while its bot is up */
-.sb.dive .foam, .end.arm .sb:not(.up) .foam { opacity: 0; }
+.end.arm .sb:not(.up) .foam { opacity: 0; }
+/* going under, the foam stays until the bot is nearly gone, then closes over it; coming up it shows with the bot */
+.sb.dive .foam { opacity: 0; transition: opacity 0.14s 0.22s; }
 .dip { transition: transform 0.55s var(--pop); }
 .sb.dive .dip { transform: translateY(112px); transition: transform 0.3s cubic-bezier(0.5, 0, 0.75, 0); }
 /* with script on, the bots start under water and come up one by one the first time the picture is seen */
