@@ -112,7 +112,7 @@ describe("the weekly allowance", () => {
     await turn("question 5");
     await expect.poll(async () => (await f.notices(bot.id)).length, { timeout: 10_000 }).toBe(2);
     const over = (await f.notices(bot.id))[1]!;
-    expect(over).toContain("You've hit this week's $0.05. I finished the step I was on");
+    expect(over).toContain("You've hit this week's $0.05. I finished the step I was on, and new tasks are paused. These routines");
     expect(over).toContain("These routines will skip until the reset (1): Morning digest.");
     expect(over).toContain("Basic chat still works in Saver mode.");
     const report = (await f.api("GET", "/api/usage/allowance")).body;

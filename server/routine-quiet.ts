@@ -1,13 +1,11 @@
 // Quiet, honest routines: what a probe check may read, when a routine may move ("around this time"), and the strip of
 // its last seven outcomes, which tells "didn't fire" from "fired, nothing new". Pure over a routine and its runs.
-import { ROUTINE_AROUND_MS, type RoutineCheck, type RoutineCheckTick, type RoutineProbe, type RoutineStripEntry, type RoutineTiming } from "../shared/routines.ts";
+import { ROUTINE_AROUND_MS, runStrip, STRIP_RUNS, type RoutineCheck, type RoutineCheckTick, type RoutineProbe, type RoutineStripEntry, type RoutineTiming } from "../shared/routines.ts";
+export { SELF_CAP_STOP } from "../shared/routines.ts";
 import type { Routine, RoutineRun } from "./routines.ts";
 import type { RoutineSchedule } from "./routine-schedules.ts";
 
-export const STRIP_RUNS = 7;
 const MAX_URL = 2_000;
-/** A run the self-cap stopped (server/routine-self-cap.ts): cancelled, but its strip shows it as failed. */
-export const SELF_CAP_STOP = "Stopped at 3 times its usual cost";
 
 let freeRerun: (runId: string) => boolean = () => false;
 /** The runs re-run free after an update was rolled back (server/host/routine-quiet-host.ts), marked on the strip. */
@@ -74,21 +72,7 @@ export function loadTicks(value: unknown): RoutineCheckTick[] | undefined {
   return ticks.length ? ticks : undefined;
 }
 
-function outcomeOf(run: RoutineRun): RoutineStripEntry["outcome"] | null {
-  if (run.status === "completed") return run.report?.state === "quiet" ? "quiet" : "ok";
-  if (run.status === "failed") return "failed";
-  if (run.status === "missed") return "missed";
-  if (run.status === "cancelled" && run.error?.startsWith(SELF_CAP_STOP)) return "failed";
-  return null;
-}
-
 /** The last seven outcomes, oldest first: finished runs (not tests) and the checks' ticks. */
 export function stripOf(runs: readonly RoutineRun[], routine: Pick<Routine, "id" | "ticks">): RoutineStripEntry[] {
-  const entries: RoutineStripEntry[] = [...(routine.ticks ?? [])];
-  for (const run of runs) {
-    if (run.routineId !== routine.id || run.dryRun) continue;
-    const outcome = outcomeOf(run);
-    if (outcome) entries.push({ at: run.finishedAt ?? run.scheduledFor, outcome, ...(freeRerun(run.id) ? { rerun: true as const } : {}) });
-  }
-  return entries.sort((a, b) => a.at - b.at).slice(-STRIP_RUNS);
+  return runStrip(runs, routine, freeRerun);
 }

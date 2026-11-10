@@ -275,3 +275,27 @@ export interface RoutineInput extends RoutineQuietInput {
   /** Omission preserves routing; null resets it to the bot's main thread. */
   resultsThreadId?: string | null;
 }
+
+export const STRIP_RUNS = 7;
+/** A run the self-cap stopped (server/routine-self-cap.ts): cancelled, but its strip shows it as failed. */
+export const SELF_CAP_STOP = "Stopped at 3 times its usual cost";
+
+function stripOutcome(run: Pick<RoutineRun, "status" | "report" | "error">): RoutineStripEntry["outcome"] | null {
+  if (run.status === "completed") return run.report?.state === "quiet" ? "quiet" : "ok";
+  if (run.status === "failed") return "failed";
+  if (run.status === "missed") return "missed";
+  if (run.status === "cancelled" && run.error?.startsWith(SELF_CAP_STOP)) return "failed";
+  return null;
+}
+
+/** A routine's last seven outcomes, oldest first: its finished runs (not tests) and its checks' ticks. The server sends
+ * it on the routine; the app builds it again from the runs it holds, so it moves the moment a run ends. */
+export function runStrip(runs: readonly RoutineRun[], routine: Pick<Routine, "id" | "ticks">, rerun: (runId: string) => boolean = () => false): RoutineStripEntry[] {
+  const entries: RoutineStripEntry[] = [...(routine.ticks ?? [])];
+  for (const run of runs) {
+    if (run.routineId !== routine.id || run.dryRun) continue;
+    const outcome = stripOutcome(run);
+    if (outcome) entries.push({ at: run.finishedAt ?? run.scheduledFor, outcome, ...(rerun(run.id) ? { rerun: true as const } : {}) });
+  }
+  return entries.sort((a, b) => a.at - b.at).slice(-STRIP_RUNS);
+}

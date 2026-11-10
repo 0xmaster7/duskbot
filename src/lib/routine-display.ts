@@ -1,4 +1,5 @@
-import type { Routine, RoutineRun } from "./routines";
+import type { Routine, RoutineRun, RoutineStripEntry } from "./routines";
+import { runStrip } from "../../shared/routines";
 import { activeLocale, t } from "./i18n";
 
 export function routineRunTime(run: RoutineRun): number {
@@ -68,4 +69,11 @@ export function probeLine(probe: NonNullable<Routine["probe"]>): string {
   let place = probe.url;
   try { const url = new URL(probe.url); place = url.hostname + (url.pathname.length > 1 ? url.pathname : ""); } catch { /* as given */ }
   return t(`routines.probe.${probe.kind}`, { place });
+}
+
+/** The strip from the runs the app holds, so it moves the moment a run ends; the server's own says which were free
+ * re-runs after an update problem. */
+export function liveStrip(routine: Routine, runs: readonly RoutineRun[]): RoutineStripEntry[] {
+  const reruns = new Set((routine.strip ?? []).filter((entry) => entry.rerun).map((entry) => entry.at));
+  return runStrip(runs, routine).map((entry) => (reruns.has(entry.at) ? { ...entry, rerun: true as const } : entry));
 }

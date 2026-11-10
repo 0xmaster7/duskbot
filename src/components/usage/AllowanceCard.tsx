@@ -157,7 +157,7 @@ export function AllowanceCard() {
       {set && editing !== "weekly" && (
         <div className={cn(rowCls, "gap-1.5")}>
           <button type="button" className={buttonCls} onClick={() => setEditing("weekly")}>{t("usage.cap.change")}</button>
-          <button type="button" disabled={busy} className={buttonCls} onClick={() => void act(() => saveAllowance(null))}>{t("usage.cap.remove")}</button>
+          <button type="button" disabled={busy} className={buttonCls} onClick={() => void act(() => saveAllowance(null))}>{t("usage.allowance.remove")}</button>
         </div>
       )}
       {error && <p role="alert" className="m-0 px-2 pb-1.5 text-[12px] leading-4 text-danger">{error}</p>}

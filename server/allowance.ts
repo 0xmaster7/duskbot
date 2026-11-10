@@ -167,7 +167,8 @@ export function createAllowance(deps: AllowanceDeps) {
     const skipped = deps.upcoming(resetOf(state.week));
     const names = skipped.slice(0, 5).map((one) => one.name).join(", ") + (skipped.length > 5 ? ` +${skipped.length - 5}` : "");
     deps.tell(botId, [
-      serverLine(language, "server.allowance.over", { limit: money(limit()!, language), over: money(cents(state.overrunUsd), language) }),
+      serverLine(language, "server.allowance.over", { limit: money(limit()!, language) }),
+      cents(state.overrunUsd) > 0 ? serverLine(language, "server.allowance.overrun", { over: money(cents(state.overrunUsd), language) }) : "",
       skipped.length ? serverLine(language, "server.allowance.skips", { count: skipped.length, names }) : "",
       serverLine(language, "server.allowance.overTail", words),
     ].filter(Boolean).join(" "));

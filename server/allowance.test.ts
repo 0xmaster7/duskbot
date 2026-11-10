@@ -72,7 +72,7 @@ describe("the weekly allowance", () => {
     h.spend(5.9);
     h.spend(0.13);
     const over = h.told.at(-1)!.text;
-    expect(over).toContain("You've hit this week's $6.00. I finished the step I was on, and the $0.03 I went over is on us. New tasks are paused.");
+    expect(over).toContain("You've hit this week's $6.00. I finished the step I was on, and new tasks are paused. The $0.03 I went over is on us.");
     expect(over).toContain("These routines will skip until the reset (2): Morning digest, Inbox check.");
     expect(over).toMatch(/Basic chat still works in Saver mode\. Resets Monday 12:00 AM, in 4 days\./);
     expect(h.allowance.over()).toBe(true);
