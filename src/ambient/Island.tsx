@@ -320,7 +320,7 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
               >
                 <span className="amb-strip-mark">
                   <span className="amb-lift">
-                    <BotMark bot={bot} size={30} state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : isSeenEvent(bot, seen) ? "idle" : undefined} animated={open} awake={open} shown={open} index={index} cheer={cheer} />
+                    <BotMark bot={bot} size={28} state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : isSeenEvent(bot, seen) ? "idle" : undefined} animated={open} awake={open} shown={open} index={index} cheer={cheer} />
                   </span>
                   {bubble && <span className="amb-bubble" data-kind={bubble} aria-hidden>{bubble === "ask" ? Math.max(1, bot.asks) : "!"}</span>}
                   {dot && <span className="amb-state-dot" data-state={dot} aria-hidden />}
