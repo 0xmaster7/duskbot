@@ -29,6 +29,8 @@ const SOUL_CHARS = 1_200;
 const ASKS_FIRST = /\b(?:ask|check with|confirm with)\b[^.]{0,80}\b(?:before|first)\b|\bbefore (?:using|running|calling) any tool/i;
 const ASK_CHARS = 1_500;
 const STEP_CHARS = 90;
+const SAID_CHARS = 300;
+const MAX_SAID_BEFORE_PLAN = 2;
 const MAX_WORDS = { ack: 26, plan: 55, milestone: 45 } as const;
 
 export type BeatWriter = (prompt: string, options: { signal: AbortSignal; timeoutMs: number }) => Promise<string>;
@@ -73,12 +75,12 @@ interface Watch {
   turnId?: string;
   tools: number;
   toolsDone: number;
-  lastToolAt: number;
   /** When the engine's own text last arrived, and how many messages it has finished. */
   engineTextAt: number;
   engineMessages: number;
-  /** Messages the engine finished after its first tool began: its own progress notes. */
-  engineNotes: number;
+  /** Every message of the turn so far, the engine's and the harness's, in order. */
+  said: string[];
+  streaming: boolean;
   steps: string[];
   stepsAtLastWord: number;
   lastWordAt: number;
@@ -137,7 +139,8 @@ export function beatPrompt(kind: BeatKind, input: { name: string; soul?: string;
       `${input.name} already told them:`, said || "- (nothing yet)", "",
       `What ${input.name} has done so far:`, steps, "",
       "Write the second message: what they will get and its shape (a short list, a table, a file, a link, a summary), any default you can see being assumed, and the one check that will happen before sending, only a check the request and the steps make natural (comparing sources, checking prices are current, checking a page loads).",
-      "- 15 to 40 words, 1 or 2 sentences. Do not repeat the acknowledgement.",
+      "- 15 to 40 words, 1 or 2 sentences. Do not repeat what was already said.",
+      "- If what was already said tells them what they will get, reply exactly SKIP.",
       "- Never promise a format, file or page the request does not call for.",
       SHARED_RULES(input.name),
     ].join("\n");
@@ -179,7 +182,6 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
     if (watch.posted.length) notes.set(watch.threadId, [...(notes.get(watch.threadId) ?? []), ...watch.posted].slice(-6));
   };
 
-  const said = (watch: Watch) => watch.posted.slice();
 
   const write = (watch: Watch, kind: BeatKind, beat: Beat) => {
     const writer = deps.writer(watch.botId);
@@ -191,7 +193,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
     beat.phase = "writing";
     beat.abort = new AbortController();
     const steps = kind === "milestone" ? watch.steps.slice(watch.stepsAtLastWord) : watch.steps;
-    const prompt = beatPrompt(kind, { name: bot.name, soul: bot.soul, ask: watch.ask, steps, said: said(watch), minutes: Math.round((now() - watch.startedAt) / 60_000) });
+    const prompt = beatPrompt(kind, { name: bot.name, soul: bot.soul, ask: watch.ask, steps, said: watch.said.slice(-4), minutes: Math.round((now() - watch.startedAt) / 60_000) });
     void writer(prompt, { signal: beat.abort.signal, timeoutMs: WRITE_TIMEOUT_MS }).then((reply) => {
       if (beat.phase !== "writing") return;
       const text = cleanBeat(kind, reply);
@@ -213,6 +215,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
     beat.phase = "posted";
     const text = beat.text!;
     watch.posted.push(text);
+    watch.said.push(text);
     watch.lastWordAt = now();
     watch.stepsAtLastWord = watch.steps.length;
     try {
@@ -223,8 +226,8 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
     }
   };
 
-  /** The engine is writing what looks like its result: its text came after its last tool call began. */
-  const composing = (watch: Watch) => watch.engineTextAt > watch.lastToolAt && watch.engineTextAt > 0;
+  /** The engine is writing a message right now, maybe its result. */
+  const composing = (watch: Watch) => watch.streaming;
 
   const tick = (watch: Watch) => {
     if (watches.get(watch.threadId) !== watch) return;
@@ -246,8 +249,8 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
     if (ack.phase === "writing" || (ack.phase === "idle" && !engineSpoke && !watch.tools)) return;
 
     const spokenBefore = watch.posted.length + watch.engineMessages;
-    // Only after one ack, whoever sent it: two messages, or a note of the engine's own while working, already told them.
-    const planWanted = spokenBefore === 1 && watch.engineNotes === 0;
+    // After an ack, whoever sent it; the writer skips it when what was said already tells them what they will get.
+    const planWanted = spokenBefore >= 1 && spokenBefore <= MAX_SAID_BEFORE_PLAN;
     if (plan.phase === "idle" && elapsed >= PLAN_WRITE_MS && watch.tools > 0 && planWanted && !composing(watch)) write(watch, "plan", plan);
     if (plan.phase === "ready") {
       if (composing(watch) || !planWanted) plan.phase = "dropped";
@@ -278,7 +281,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
       const watch: Watch = {
         botId: input.botId, threadId: input.threadId, ask: input.text, work: looksLikeWork(input.text, input.attachments), startedAt: now(),
         asksFirst: ASKS_FIRST.test(deps.bot(input.botId)?.soul ?? ""),
-        tools: 0, toolsDone: 0, lastToolAt: 0, engineTextAt: 0, engineMessages: 0, engineNotes: 0, steps: [], stepsAtLastWord: 0, lastWordAt: 0, waiting: false,
+        tools: 0, toolsDone: 0, engineTextAt: 0, engineMessages: 0, said: [], streaming: false, steps: [], stepsAtLastWord: 0, lastWordAt: 0, waiting: false,
         ack: { phase: "idle" }, plan: { phase: "idle" }, milestone: { phase: "idle" }, milestones: 0, milestoneTriedAt: 0, posted: [],
         timer: setInterval(() => tick(watch), TICK_MS),
       };
@@ -300,7 +303,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
         case "item.started":
           if (event.itemType !== "tool") return;
           watch.tools++;
-          watch.lastToolAt = now();
+          watch.streaming = false;
           {
             const step = derivedLabel(event, "en", undefined, STEP_CHARS)?.label;
             if (step && watch.steps.at(-1) !== step) watch.steps.push(step);
@@ -310,12 +313,16 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
           if (event.itemType === "tool") watch.toolsDone++;
           else if (event.itemType === "assistant_text" && event.text.trim()) {
             watch.engineMessages++;
-            if (watch.tools > 0) watch.engineNotes++;
+            watch.streaming = false;
+            watch.said.push(event.text.replace(/\s+/g, " ").trim().slice(0, SAID_CHARS));
             watch.engineTextAt = now();
           }
           break;
         case "content.delta":
-          if (event.streamKind === "assistant_text" && event.delta.trim()) watch.engineTextAt = now();
+          if (event.streamKind === "assistant_text" && event.delta.trim()) {
+            watch.engineTextAt = now();
+            watch.streaming = true;
+          }
           break;
         case "request.opened":
           watch.waiting = true;

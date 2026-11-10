@@ -140,24 +140,28 @@ describe("turn beats", () => {
     expect(gone.posts).toEqual([]);
   });
 
-  it("sends the second message after the engine's own ack, but not after two messages or a progress note of its own", async () => {
+  it("sends the second message after the engine's own ack or note, with what was said, but not after three messages", async () => {
     const own = setup();
     own.beats.start({ botId: "b", threadId: THREAD, text: "Research keyboard prices in India", attachments: 0, unattended: false });
     own.send(event({ type: "turn.started" }));
     own.send(said("On it, checking keyboard prices."));
     own.send(toolStart("WebSearch", { query: "keyboard prices" }, "s1"));
-    await vi.advanceTimersByTimeAsync(PLAN_MIN_MS + 500);
+    await vi.advanceTimersByTimeAsync(2_000);
+    own.send(said("Amazon blocked the page, so I'm trying Flipkart."));
+    await vi.advanceTimersByTimeAsync(PLAN_MIN_MS);
     expect(own.posts.map((p) => p.kind)).toEqual(["plan"]);
+    expect(own.prompts.at(-1)!.prompt).toContain("- Amazon blocked the page, so I'm trying Flipkart.");
     vi.useRealTimers();
 
-    const both = setup();
-    both.beats.start({ botId: "b", threadId: THREAD, text: "Research keyboard prices in India", attachments: 0, unattended: false });
-    both.send(event({ type: "turn.started" }));
-    both.send(toolStart("WebSearch", { query: "keyboard prices" }, "s1"));
+    const chatty = setup();
+    chatty.beats.start({ botId: "b", threadId: THREAD, text: "Research keyboard prices in India", attachments: 0, unattended: false });
+    chatty.send(event({ type: "turn.started" }));
+    chatty.send(toolStart("WebSearch", { query: "keyboard prices" }, "s1"));
     await vi.advanceTimersByTimeAsync(2_500);
-    both.send(said("Amazon blocked the page, so I'm trying Flipkart."));
+    chatty.send(said("Amazon blocked the page."));
+    chatty.send(said("Trying Flipkart instead."));
     await vi.advanceTimersByTimeAsync(PLAN_MIN_MS);
-    expect(both.posts.map((p) => p.kind)).toEqual(["ack"]);
+    expect(chatty.posts.map((p) => p.kind)).toEqual(["ack"]);
   });
 
   it("drops the second message once the engine is writing its result", async () => {
