@@ -212,3 +212,17 @@ export function TextRow({ value, placeholder, label, action, disabled, onChange,
     </form>
   );
 }
+
+/** One small closed disclosure under a tab's everyday rows, for what a person rarely needs. Native details: Enter and
+ * Space open it, and it stays put (no motion). */
+export function Disclosure({ label, children, ...rest }: { label: string; children: ReactNode; "data-panel-advanced"?: string }) {
+  return (
+    <details {...rest} className="group mt-3">
+      <summary className="flex w-fit cursor-pointer list-none items-center gap-1 rounded-md px-1 py-0.5 text-[12px] leading-4 text-ink/[0.56] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus [&::-webkit-details-marker]:hidden">
+        <ChevronRight size={12} aria-hidden="true" className="group-open:rotate-90" />
+        {label}
+      </summary>
+      <div className="mt-2 flex flex-col gap-3">{children}</div>
+    </details>
+  );
+}

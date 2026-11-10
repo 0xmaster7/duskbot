@@ -99,6 +99,15 @@ export function useCloudDesktop() {
 
   return view && {
     view,
+    cloudPage,
+    account,
+    keep,
+    /** the one-time move's line from main, while it runs or once it is done */
+    move: notice?.move ?? null,
+    /** off moves this computer's bots to the Cloud desktop; on keeps them here, and brings them back once moved */
+    setKeep: (on: boolean) => send!.setKeepHere!(on).then((next) => { setKeep(next); return next; }),
+    openHome: accountBridge ? () => accountBridge.connectHome() : undefined,
+    openPlan: accountBridge ? () => accountBridge.openDashboard() : undefined,
     label: t("place.cloudDesktop.title"),
     // a failure outside the confirm (Open, Manage) says why on the row itself
     hint: failed && confirming === null ? failed : cloudDesktopHint(view.step),

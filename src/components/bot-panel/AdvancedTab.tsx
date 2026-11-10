@@ -41,14 +41,15 @@ export function AdvancedTab({ bot, derived, onOpen }: {
     <PanelSections data-panel-tabpanel="advanced">
       <LibrarySection bot={bot} onOpen={onOpen} />
       <VoiceChatCard bot={bot} patch={derived.patch} />
-      <SettingsPage bot={bot} derived={derived} onOpen={openPage} />
-      <Card anchor="advanced-features">
-        <NavRow
-          data-panel-row="advanced-features"
-          title={t("settings.pane.advanced")}
-          onClick={() => dispatch(openSettings("advanced"))}
-        />
-      </Card>
+      <SettingsPage bot={bot} derived={derived} onOpen={openPage} more={(
+        <Card anchor="advanced-features">
+          <NavRow
+            data-panel-row="advanced-features"
+            title={t("settings.pane.advanced")}
+            onClick={() => dispatch(openSettings("advanced"))}
+          />
+        </Card>
+      )} />
     </PanelSections>
   );
 }

@@ -118,7 +118,7 @@ const { DetailsTab } = await import("./bot-panel/DetailsTab");
 const { AdvancedTab } = await import("./bot-panel/AdvancedTab");
 const { SettingsPage } = await import("./bot-panel/SettingsPage");
 const { LibraryPage, LibrarySection } = await import("./bot-panel/LibraryTab");
-const { ComputerTab, WherePage } = await import("./bot-panel/ComputerTab");
+const { ComputerTab, RunsOnCard, WherePage } = await import("./bot-panel/ComputerTab");
 const { PageBody, AppsPage, RoutinesPage, MemoryPage, SkillsPage, FolderPage, BrowserPage } = await import("./bot-panel/pages");
 const { BrowserLogins } = await import("./bot-panel/browser-logins");
 const { PAGES, sectionTarget } = await import("./bot-panel/page-registry");
@@ -141,7 +141,7 @@ function nodes(value: ReactNode): Node[] {
   return Children.toArray(value).flatMap((child) => {
     if (!isValidElement(child)) return [];
     const node = child as Node;
-    return [node, ...nodes(node.props.children), ...nodes(node.props.action as ReactNode), ...nodes(node.props.extra as ReactNode), ...nodes(node.props.label as ReactNode), ...nodes(node.props.hint as ReactNode)];
+    return [node, ...nodes(node.props.children), ...nodes(node.props.action as ReactNode), ...nodes(node.props.extra as ReactNode), ...nodes(node.props.label as ReactNode), ...nodes(node.props.hint as ReactNode), ...nodes(node.props.more as ReactNode)];
   });
 }
 
@@ -318,13 +318,16 @@ describe("the bot panel in Simple mode", () => {
     expect(shown(panel(bot))).toEqual({ tab: "advanced", page: undefined });
   });
 
-  it("draws the Advanced tab: Library, Voice chat, This bot, Actions, then Advanced features, and no Model", () => {
+  it("draws the Advanced tab: Library, Voice chat, This bot, then the rest under More settings, and no Model", () => {
     const bot = makeBot();
     const rendered = capture(() => AdvancedTab({ bot, derived: derived(), onOpen }));
-    const order = ['data-panel-card="library"', 'data-panel-card="call"', 'data-panel-card="uses"', 'data-panel-card="actions"', 'data-panel-card="advanced-features"'].map((marker) => rendered.html.indexOf(marker));
+    const order = ['data-panel-card="library"', 'data-panel-card="call"', 'data-panel-card="uses"', 'data-panel-advanced="settings"', 'data-panel-card="access"', 'data-panel-card="actions"', 'data-panel-card="advanced-features"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((at, index) => at > 0 && (index === 0 || at > order[index - 1]!))).toBe(true);
     expect(rendered.html).not.toContain('data-panel-card="model"');
-    for (const label of ["Voice chat", "This bot", "Actions", "Advanced features"]) expect(rendered.html).toContain(`>${label}<`);
+    // one closed disclosure holds what few people change
+    expect(rendered.html.match(/<details/g)).toHaveLength(1);
+    expect(rendered.html).not.toMatch(/<details[^>]* open/);
+    for (const label of ["Voice chat", "This bot", "More settings", "Actions", "Advanced features"]) expect(rendered.html).toContain(`>${label}<`);
     // an empty library is grok's centred line, with no heading or card over it
     expect(rendered.html).not.toContain(">Library<");
     expect(rendered.html).not.toContain(">Settings for the whole app<");
@@ -614,14 +617,16 @@ describe("the Details tab", () => {
 });
 
 describe("the Bot settings page", () => {
-  it("is two list cards of rows that each open their page of the sheet, then the actions, with the model left to Details", () => {
+  it("leads with what the bot knows, tucks the rest and the actions under More settings, and leaves where it works to the Computer tab", () => {
     const rendered = settingsPage(makeBot());
     expect(rendered.html).not.toContain('data-panel-card="model"');
-    const order = ['data-panel-card="uses"', 'data-panel-card="access"', 'data-panel-card="actions"'].map((marker) => rendered.html.indexOf(marker));
+    const order = ['data-panel-card="uses"', 'data-panel-advanced="settings"', 'data-panel-card="access"', 'data-panel-card="actions"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     const pages = [...rendered.html.matchAll(/data-panel-page="(\w+)"/g)].map((match) => match[1]);
-    expect(pages).toEqual(["instructions", "memory", "skills", "identity", "tools", "permissions", "folder", "where", "backups"]);
+    expect(pages).toEqual(["instructions", "memory", "skills", "identity", "tools", "permissions", "folder", "backups"]);
+    const tucked = rendered.html.slice(rendered.html.indexOf('data-panel-advanced="settings"'));
+    for (const page of ["identity", "tools", "permissions", "folder", "backups"]) expect(tucked, page).toContain(`data-panel-page="${page}"`);
     for (const page of pages) {
       click(find(rendered, "data-panel-page", page));
       expect(onOpen).toHaveBeenLastCalledWith(page);
@@ -635,7 +640,7 @@ describe("the Bot settings page", () => {
     expect(row("memory").value).toBe("Off");
     expect(row("skills").value).toBe("None");
     expect(row("backups").value).toBe("None");
-    for (const page of ["instructions", "memory", "skills", "folder", "where", "backups"]) expect(row(page).hint, page).toBeUndefined();
+    for (const page of ["instructions", "memory", "skills", "folder", "backups"]) expect(row(page).hint, page).toBeUndefined();
     // instructions already written need no value; an empty one says None
     expect(row("instructions").value).toBeUndefined();
     expect(find(settingsPage(makeBot({ soul: "" })), "data-panel-page", "instructions").props.value).toBe("None");
@@ -676,6 +681,10 @@ describe("the Library", () => {
 describe("the Computer tab", () => {
   const cloudBot = (extra: Partial<Bot> = {}) => makeBot({ computer: "cloud", ...extra });
   const placeSelect = (rendered: Rendered) => find(rendered, "data-panel-select", "place");
+  const runsOn = (bot: Bot) => {
+    const card = ofType(computer(bot), RunsOnCard)!;
+    return capture(() => RunsOnCard(card.props as Parameters<typeof RunsOnCard>[0]));
+  };
 
   it("renders the original grey sleeping mascot and caption before the live panel module or status resolves", () => {
     const rendered = computer(cloudBot());
@@ -709,29 +718,46 @@ describe("the Computer tab", () => {
   it("keeps the panel and dropdown in place while its inline viewer owns opening and control", () => {
     const rendered = computer(cloudBot());
     expect(rendered.nodes.find((node) => node.props.inline === true)).toBeDefined();
-    expect(placeSelect(rendered)).toBeDefined();
+    expect(placeSelect(runsOn(cloudBot()))).toBeDefined();
     expect(rendered.nodes.some((node) => node.props.fullscreen !== undefined)).toBe(false);
     expect(fixture.dispatch).not.toHaveBeenCalledWith({ type: "toggleComputer", open: true });
     expect(fixture.dispatch).not.toHaveBeenCalledWith({ type: "toggleSettings", open: false });
   });
 
-  it("picks this computer or the cloud desktop beside the caption, and ends with adding one in Settings", () => {
+  it("leads with one Runs on card above the screen: where the bot runs and whether it is awake", () => {
+    const rendered = computer(cloudBot());
+    const card = rendered.html.indexOf('data-panel-card="runs-on"'), screen = rendered.html.indexOf('data-asleep-mascot=""');
+    expect(card).toBeGreaterThan(-1);
+    expect(screen).toBeGreaterThan(card);
+    expect(rendered.html).toContain(">Runs on<");
+    const card2 = runsOn(cloudBot());
+    expect(card2.html).toContain('data-runs-on="pc"');
+    expect(card2.html).toContain(">This PC<");
+    expect(card2.html).toMatch(/data-runs-on-status="(asleep|offline)"/);
+    const before = fixture.storeState;
+    fixture.storeState = { ...before, config: { cloudHome: true } };
+    try {
+      expect(runsOn(cloudBot()).html).toContain('data-runs-on="cloud"');
+    } finally { fixture.storeState = before; }
+    // the screen picker joined the card: nothing under the screen but its caption, and the rest behind Advanced
+    expect(rendered.html.slice(screen)).not.toContain('data-panel-select="place"');
+    expect(rendered.html).toContain('data-panel-advanced="computer"');
+    expect(rendered.html).not.toMatch(/<details[^>]* open/);
+  });
+
+  it("picks the screen inside the card, naming the VPS's desktop as the VPS, with nothing to add there", () => {
     fixture.places.browser = [true, false, "Not installed"];
-    const select = placeSelect(computer(cloudBot()));
+    const select = placeSelect(runsOn(cloudBot()));
     expect(select.props.value).toBe("cloud");
     expect(select.props["aria-label"]).toBe("Where Scout works");
     expect((select.props.options as Array<{ value: string; label: string; disabled?: boolean; title?: string }>).map((option) => [option.value, option.label, Boolean(option.disabled), option.title]))
-      .toEqual([["local", "This PC", false, undefined], ["cloud", "Cloud desktop", false, undefined], ["add", "Add cloud desktop…", false, undefined]]);
+      .toEqual([["local", "This PC", false, undefined], ["cloud", "Your VPS", false, undefined]]);
     (select.props.onChange as (value: string) => void)("local");
     expect(patch).toHaveBeenLastCalledWith({ computer: "local" });
     patch.mockReset();
-    (placeSelect(computer(cloudBot())).props.onChange as (value: string) => void)("add");
-    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "computer" });
-    expect(patch).not.toHaveBeenCalled();
-    expect((select.props.options as Array<{ icon?: string; separated?: boolean }>).map((option) => [option.icon, Boolean(option.separated)]))
-      .toEqual([["laptop", false], ["cloud", false], ["plus", true]]);
-    expect((placeSelect(computer(makeBot())).props.options as Array<{ value: string }>).map((option) => option.value)).toEqual(["auto", "local", "cloud", "add"]);
-    expect(placeSelect(computer(cloudBot({ yourAccess: "view" }))).props.disabled).toBe(true);
+    expect((select.props.options as Array<{ icon?: string }>).map((option) => option.icon)).toEqual(["laptop", "cloud"]);
+    expect((placeSelect(runsOn(makeBot())).props.options as Array<{ value: string }>).map((option) => option.value)).toEqual(["auto", "local", "cloud"]);
+    expect(placeSelect(runsOn(cloudBot({ yourAccess: "view" }))).props.disabled).toBe(true);
   });
 });
 

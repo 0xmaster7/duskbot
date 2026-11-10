@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { t } from "@/lib/i18n";
 import { shortPath } from "@/lib/short-path";
 import { useStore, type Bot } from "@/state/store";
@@ -9,11 +11,11 @@ import { useDeleteAllThreads } from "../BotMenuDelete";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { SoulField } from "../SoulField";
 import { BackupAis } from "./BackupAis";
-import { usePlaceChoices } from "./ComputerTab";
 import { BotConversations } from "./Conversations";
 import { panelMemoryNotes } from "./memory-notes";
 import type { SheetPage } from "./modals/panel-modal";
 import { Card, NavRow } from "../ListRows";
+import { Disclosure } from "./rows";
 import { useMemoryDoc } from "./use-memory-doc";
 import { useSlackAvailable, useSlackBotState } from "../slack/use-slack";
 
@@ -28,22 +30,22 @@ function useMemoryLine(bot: Bot): string {
 
 /** The bot's settings as Grok-style list rows: what it knows, then what it can reach, each row opening its page of the
  * bot's settings in Settings (its Bots page); then its rare actions. The Advanced tab draws it; the model lives on Details. */
-export function SettingsPage({ bot, onOpen }: {
+export function SettingsPage({ bot, onOpen, more }: {
   bot: Bot;
   derived?: Derived;
   onOpen?: (page: SheetPage) => void;
+  /** rows that join the rest under More settings */
+  more?: ReactNode;
 }) {
   const { state, dispatch } = useStore();
   const skills = useManagedSkills(bot);
   const { capabilities } = useDesktopCapabilities();
-  const { currentLabel } = usePlaceChoices(bot);
   const memoryLine = useMemoryLine(bot);
   const clearThreads = useDeleteAllThreads(true);
   const team = useTeamName();
   const slackAvailable = useSlackAvailable();
   const slackState = useSlackBotState(bot.id);
   const slackValue = slackState ? t(({ online: "slack.state.online", offline: "slack.state.offline", not_linked: "slack.state.notAdded", provisioned: "slack.state.needsStep", installed: "slack.state.needsStep", error: "slack.state.problem" } as const)[slackState]) : undefined;
-  const name = bot.name;
   const open = (page: SheetPage) => () => onOpen?.(page);
 
   const skillsOn = skills.skills.filter((skill) => skill.enabled).length;
@@ -58,34 +60,37 @@ export function SettingsPage({ bot, onOpen }: {
         <NavRow data-panel-page="instructions" title={t("botSettings.simple.instructions")} value={(bot.soul ?? "").trim() ? undefined : t("botPanel.none")} onClick={open("instructions")} />
         <NavRow data-panel-page="memory" title={t("botPanel.memoryRow")} value={memoryLine} onClick={open("memory")} />
         <NavRow data-panel-page="skills" title={t("botSettings.simple.skills")} value={skills.loading ? undefined : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
-        <NavRow data-panel-page="identity" title={t("botSettings.sections.identity")} value={bot.title?.trim() || undefined} onClick={open("identity")} />
-      </Card>
-
-      <Card label={t("botSettings.sections.access")} anchor="access">
-        <NavRow data-panel-page="tools" title={t("botPanel.page.tools")} value={bot.toolScope !== undefined ? t("botPanel.tools.custom") : undefined} onClick={open("tools")} />
-        <NavRow data-panel-page="permissions" title={t("botSettings.sections.permissions")} value={bot.chiefOfStaff ? t("permissions.chief.title") : undefined} onClick={open("permissions")} />
-        <NavRow data-panel-page="folder" title={t("computer.files.folder")} value={bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")} tooltip={bot.cwd ?? undefined} onClick={open("folder")} />
-        <NavRow data-panel-page="where" title={t("computer.simple.whereWorks", { name })} value={currentLabel ?? t("computer.simple.dest.letItChoose")} onClick={open("where")} />
-        <NavRow data-panel-page="backups" title={t("botPanel.page.backups")} value={backups > 0 ? t("botPanel.backups.count", { count: backups }) : t("botPanel.none")} onClick={open("backups")} />
         {slackAvailable && <NavRow data-panel-page="slack" title={t("slack.title")} value={slackValue} onClick={open("slack")} />}
       </Card>
 
-      {editable && (
-        <Card label={t("botPanel.section.actions")} anchor="actions">
-          {!team && (
-            <NavRow
-              data-panel-row="chief"
-              drill={false}
-              title={bot.chiefOfStaff ? t("sidebar.bot.removeChief") : t("sidebar.bot.makeChief")}
-              disabled={!bot.chiefOfStaff && engineCoordinates !== true}
-              tooltip={!bot.chiefOfStaff && engineCoordinates !== true ? t("sidebar.bot.chiefNeedsEngine") : undefined}
-              onClick={() => dispatch({ type: "updateBot", botId: bot.id, patch: { chiefOfStaff: !bot.chiefOfStaff } })}
-            />
-          )}
-          <NavRow data-panel-row="duplicate" drill={false} title={t("botPanel.actions.duplicate")} onClick={() => dispatch({ type: "duplicateBot", botId: bot.id })} />
-          <NavRow data-panel-row="delete-all" drill={false} danger title={t("task.deleteAllConversations")} onClick={() => clearThreads.ask(bot.id)} />
+      {/* the rest, which few people change, stays behind one disclosure; where it works lives on the Computer tab */}
+      <Disclosure data-panel-advanced="settings" label={t("botPanel.moreSettings")}>
+        <Card label={t("botSettings.sections.access")} anchor="access">
+          <NavRow data-panel-page="identity" title={t("botSettings.sections.identity")} value={bot.title?.trim() || undefined} onClick={open("identity")} />
+          <NavRow data-panel-page="tools" title={t("botPanel.page.tools")} value={bot.toolScope !== undefined ? t("botPanel.tools.custom") : undefined} onClick={open("tools")} />
+          <NavRow data-panel-page="permissions" title={t("botSettings.sections.permissions")} value={bot.chiefOfStaff ? t("permissions.chief.title") : undefined} onClick={open("permissions")} />
+          <NavRow data-panel-page="folder" title={t("computer.files.folder")} value={bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")} tooltip={bot.cwd ?? undefined} onClick={open("folder")} />
+          <NavRow data-panel-page="backups" title={t("botPanel.page.backups")} value={backups > 0 ? t("botPanel.backups.count", { count: backups }) : t("botPanel.none")} onClick={open("backups")} />
         </Card>
-      )}
+
+        {editable && (
+          <Card label={t("botPanel.section.actions")} anchor="actions">
+            {!team && (
+              <NavRow
+                data-panel-row="chief"
+                drill={false}
+                title={bot.chiefOfStaff ? t("sidebar.bot.removeChief") : t("sidebar.bot.makeChief")}
+                disabled={!bot.chiefOfStaff && engineCoordinates !== true}
+                tooltip={!bot.chiefOfStaff && engineCoordinates !== true ? t("sidebar.bot.chiefNeedsEngine") : undefined}
+                onClick={() => dispatch({ type: "updateBot", botId: bot.id, patch: { chiefOfStaff: !bot.chiefOfStaff } })}
+              />
+            )}
+            <NavRow data-panel-row="duplicate" drill={false} title={t("botPanel.actions.duplicate")} onClick={() => dispatch({ type: "duplicateBot", botId: bot.id })} />
+            <NavRow data-panel-row="delete-all" drill={false} danger title={t("task.deleteAllConversations")} onClick={() => clearThreads.ask(bot.id)} />
+          </Card>
+        )}
+        {more}
+      </Disclosure>
       {clearThreads.dialog}
     </div>
   );

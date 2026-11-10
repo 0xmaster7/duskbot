@@ -1,9 +1,15 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
+import { Cloud, Laptop, Monitor, Server, type LucideIcon } from "lucide-react";
+
+import { cloudMoveStage, openCloudMove, runsOnHost, runsOnStatus, type CloudMoveStage, type RunsOnHost, type RunsOnKind, type RunsOnStatus } from "@/lib/cloud-move";
+import { cn } from "@/lib/cn";
 import { writeComputerPanelView, type ComputerPanelView } from "@/lib/computer-panel-view";
 import { t } from "@/lib/i18n";
 import type { Place } from "@/lib/place";
-import { openPlaceAction, placeHasIssue, worksOnSimpleLabel } from "@/lib/place-view";
+import { desktopShowsOtherServer, useOtherServerName } from "@/lib/other-server";
+import { placeHasIssue, worksOnSimpleLabel } from "@/lib/place-view";
+import { openAddVps, vpsLinkAvailable } from "@/lib/vps-link";
 import { useStore, type Bot } from "@/state/store";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { LocalComputerAutoWarning } from "../LocalComputerAutoWarning";
@@ -11,10 +17,12 @@ import { usePlaceViews } from "../PlaceChip";
 import type { GrokIconName } from "../GrokIcon";
 import { SelectPill } from "../ui/SelectPill";
 import type { BotPatch, useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
-import type { PlaceActionId } from "../../../shared/place-view";
 import type { SimplePageId } from "./page-registry";
-import { Card, RadioRow } from "./rows";
-import { CloudDesktopListRow, useCloudDesktop } from "./CloudDesktop";
+import type { InlineReport } from "../ComputerPanel";
+import { deviceWord } from "../vps-link/parts";
+import { Card, Disclosure, NavRow, NoteRow, RadioRow, RowIcon, RowText, rowCls } from "./rows";
+import { pillPrimaryCls } from "../ListRows";
+import { CloudDesktopListRow, useCloudDesktop, type CloudDesktopRow } from "./CloudDesktop";
 import { AsleepMascot, COMPUTER_FRAME_CLASS, COMPUTER_SCREEN_ASPECT, COMPUTER_WAKE_BUTTON_CLASS, ComputerWaking } from "./ComputerScreenMascot";
 import { queueComputerWake } from "./computer-wake-queue";
 import "./computer-tab.css";
@@ -134,8 +142,6 @@ export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
   );
 }
 
-const PANEL_ACTIONS: ReadonlySet<PlaceActionId> = new Set(["watch", "open-computer-panel", "turn-on-browser", "start", "wake", "try-again"]);
-
 /** Whether the element is in view; the live screen pauses while the panel is scrolled away or covered by layout. */
 function useOnScreen(element: HTMLElement | null) {
   const [onScreen, setOnScreen] = useState(true);
@@ -169,66 +175,125 @@ export function AsleepScreen({ bot, off }: { bot: Bot; off: boolean }) {
   );
 }
 
-type TabChoice = PlaceChoice | "add" | "cloud-desktop";
-
-const CHOICE_ICON: Record<TabChoice, GrokIconName> = {
+const CHOICE_ICON: Record<PlaceChoice, GrokIconName> = {
   auto: "sparkle",
   local: "laptop",
   browser: "browser",
   cloud: "cloud",
   vm: "lock",
   off: "minus",
-  add: "plus",
-  "cloud-desktop": "cloud-laptop",
 };
 
-export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOpen: (page: SimplePageId) => void }) {
+/** a quiet secondary move: plain 12px words that darken on hover, under the one primary action */
+const quietCls = "inline-flex h-7 cursor-pointer items-center rounded-full px-2.5 text-[12px] leading-4 text-ink/[0.56] hover:bg-ink/[0.04] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
+
+const HOST_ICON: Record<RunsOnKind, LucideIcon> = { mac: Laptop, pc: Monitor, vps: Server, cloud: Cloud };
+const STATUS_DOT: Record<RunsOnStatus, string> = { awake: "bg-success", asleep: "bg-ink/30", offline: "bg-warning" };
+
+/** The card at the top of the tab: where this bot runs and whether it is up, which screen it uses, and the move. */
+export function RunsOnCard({ bot, host, status, stage, picker }: {
+  bot: Bot;
+  host: RunsOnHost;
+  status: RunsOnStatus;
+  stage: CloudMoveStage | null;
+  picker: ReturnType<typeof usePlacePicker>;
+}) {
+  const { state } = useStore();
+  const device = deviceWord();
+  const editable = bot.yourAccess !== "view";
+  const { options, current, usingNow, choosePlace } = picker;
+  const title = host.kind === "mac" ? t("computer.simple.dest.thisMac") : host.kind === "pc" ? t("computer.simple.dest.thisPc")
+    : host.kind === "vps" ? host.name ?? t("runsOn.hint.vps") : t("place.cloudDesktop.title");
+  const hint = stage === "moved" && !state.config?.cloudHome ? t("runsOn.hint.moved")
+    : host.kind === "cloud" ? t("runsOn.hint.cloud", { device }) : t(`runsOn.hint.${host.kind}`);
+  // the screen it uses for computer work, in the card's words: the cloud place on a page of one's own is the VPS's desktop
+  const screenLabel = (option: (typeof options)[number]) =>
+    option.value === "cloud" && !state.config?.cloudHome ? t("runsOn.screen.vps") : option.label;
+  const screens = options.filter((option) => option.value === "local" || option.value === "cloud" || option.value === current);
+  const toCloud = host.kind !== "cloud" && stage !== null;
+  const cloudLabel = stage === "preparing" || stage === "moving" ? t("runsOn.movingCloud")
+    : stage === "moved" || stage === "open" ? t("runsOn.openCloud")
+    : stage === "coming-back" ? t("runsOn.movingBack") : t("runsOn.moveCloud");
+  const toVps = host.kind !== "vps" && host.kind !== "cloud" && vpsLinkAvailable() && stage !== "moved";
+  const toHome = (host.kind === "vps" && stage === "elsewhere") || (host.kind === "cloud" && stage === "moved");
+  return (
+    <Card label={t("runsOn.title")} anchor="runs-on">
+      <div data-panel-row="runs-on" data-runs-on={host.kind} className={rowCls}>
+        <RowIcon icon={HOST_ICON[host.kind]} />
+        <RowText title={title} hint={hint} />
+        <span data-runs-on-status={status} className="flex shrink-0 items-center gap-1.5 pr-1 text-[12px] leading-4 text-ink/[0.68]">
+          <span aria-hidden="true" className={cn("size-1.5 rounded-full", STATUS_DOT[status])} />
+          {t(`runsOn.status.${status}`)}
+        </span>
+      </div>
+      {screens.length > 1 && (
+        <div data-panel-row="screen" className={rowCls}>
+          <RowText title={t("runsOn.screen")} hint={usingNow ? t("computer.simple.usingNow", { place: usingNow }) : undefined} />
+          <SelectPill<PlaceChoice>
+            data-panel-select="place"
+            aria-label={t("computer.simple.whereWorks", { name: bot.name })}
+            value={current}
+            disabled={!editable}
+            onChange={choosePlace}
+            options={screens.map((option) => ({ value: option.value, label: screenLabel(option), icon: CHOICE_ICON[option.value], disabled: option.disabled, title: option.hint }))}
+          />
+        </div>
+      )}
+      {editable && (toCloud || toVps || toHome) && (
+        <div className="flex flex-col gap-1 px-2 pb-1.5 pt-1">
+          {toCloud && <button type="button" data-panel-action="move-cloud" className={cn(pillPrimaryCls, "w-full")} onClick={() => openCloudMove("cloud")}>{cloudLabel}</button>}
+          {(toVps || toHome) && (
+            <div className="flex flex-wrap items-center justify-center gap-1">
+              {toVps && <button type="button" data-panel-action="move-vps" className={quietCls} onClick={openAddVps}>{t("runsOn.moveVps")}</button>}
+              {toHome && <button type="button" data-panel-action="move-home" className={quietCls} onClick={() => openCloudMove("home")}>{t("runsOn.moveHome", { device })}</button>}
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/** One small disclosure for what a person rarely needs: the computer's own words for a problem, and its settings. */
+function ComputerAdvanced({ detail, cloudDesktop, stage }: { detail: string | null; cloudDesktop: CloudDesktopRow | null; stage: CloudMoveStage | null }) {
   const { dispatch } = useStore();
-  const { options, current, usingNow, choosePlace, warning, cloudDesktop } = usePlacePicker(bot, derived);
-  const placeViews = usePlaceViews(bot);
+  return (
+    <Disclosure data-panel-advanced="computer" label={t("runsOn.advanced")}>
+      <Card>
+        {detail && <NoteRow data-sheet-row="problem-detail">{detail}</NoteRow>}
+        {cloudDesktop && stage === "manage" && <CloudDesktopListRow cloudDesktop={cloudDesktop} />}
+        <NavRow data-panel-row="computer-settings" title={t("runsOn.computerSettings")} onClick={() => dispatch({ type: "toggleAppSettings", open: true, section: "computer" })} />
+      </Card>
+    </Disclosure>
+  );
+}
+
+export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOpen: (page: SimplePageId) => void }) {
+  const { state } = useStore();
+  const { capabilities } = useDesktopCapabilities();
+  const picker = usePlacePicker(bot, derived);
+  const { current, warning, cloudDesktop } = picker;
+  const otherServer = useOtherServerName();
   const [screenBox, setScreenBox] = useState<HTMLElement | null>(null);
   const onScreen = useOnScreen(screenBox);
+  const [report, setReport] = useState<InlineReport | null>(null);
   const screenOf = t("computer.screenOf", { name: bot.name });
-  const whereTitle = t("computer.simple.whereWorks", { name: bot.name });
-  const editable = bot.yourAccess !== "view";
-  const choices = [
-    ...options.filter((option) => option.value === "local" || option.value === "cloud" || option.value === current),
-    { value: "add" as const, label: t("computer.simple.addCloud") },
-  ];
-  // the cloud desktop's own row, apart from the choices: its name, and what choosing it does (or where it stands, unchosen)
-  const cloudDesktopOption = cloudDesktop ? [{
-    value: "cloud-desktop" as const, icon: CHOICE_ICON["cloud-desktop"], separated: true, disabled: !cloudDesktop.view.acts || cloudDesktop.busy, title: cloudDesktop.hint,
-    label: <>{cloudDesktop.label} <span className="text-ink-secondary">{cloudDesktop.hint}</span></>,
-  }] : [];
-  const addCloud = () => {
-    const step = placeViews.cloud.view.action;
-    if (step && !PANEL_ACTIONS.has(step.id) && openPlaceAction(step.id, { botId: bot.id, threadId: bot.threadId, place: "cloud" }, dispatch)) return;
-    dispatch({ type: "toggleAppSettings", open: true, section: "computer" });
-  };
+  const host = runsOnHost({ cloudHome: state.config?.cloudHome === true, otherServer, platform: capabilities.host?.platform ?? "other" });
+  const stage = cloudDesktop ? cloudMoveStage(cloudDesktop.view, cloudDesktop.keep) : desktopShowsOtherServer() ? "elsewhere" : null;
+  const status = runsOnStatus(state.connected, report?.stage ?? (current === "off" ? "off" : "asleep"));
 
   return (
     <div data-panel-tabpanel="computer">
-      <div ref={setScreenBox}>
+      <RunsOnCard bot={bot} host={host} status={status} stage={stage} picker={picker} />
+      <div ref={setScreenBox} className="mt-3">
         <Suspense fallback={<AsleepScreen bot={bot} off={current === "off"} />}>
-          <ComputerPanel bot={bot} inline visible={onScreen} />
+          <ComputerPanel bot={bot} inline visible={onScreen} onReport={setReport} />
         </Suspense>
       </div>
-      <div className="mt-[5px] flex min-h-6 items-center justify-between gap-2 pl-1">
+      <div className="mt-[5px] flex min-h-6 items-center pl-1">
         <span data-panel-screen-of="" className="min-w-0 truncate text-[12px] leading-4 tracking-normal text-ink/[0.56]">{screenOf}</span>
-        <SelectPill<TabChoice>
-          data-panel-select="place"
-          aria-label={whereTitle}
-          title={usingNow ? t("computer.simple.usingNow", { place: usingNow }) : whereTitle}
-          value={current}
-          disabled={!editable}
-          onChange={(value) => value === "add" ? addCloud() : value === "cloud-desktop" ? cloudDesktop?.choose() : choosePlace(value)}
-          options={[...choices.map((option) => ({
-            value: option.value, label: option.label, icon: CHOICE_ICON[option.value], separated: option.value === "add",
-            disabled: "disabled" in option ? option.disabled : undefined, title: "hint" in option ? option.hint : undefined,
-          })), ...cloudDesktopOption]}
-          className="my-0 mr-0"
-        />
       </div>
+      <ComputerAdvanced detail={report?.detail ?? null} cloudDesktop={cloudDesktop} stage={stage} />
       {warning}
     </div>
   );
