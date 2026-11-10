@@ -510,7 +510,7 @@ import {
 } from "./turn-dispatch-guard.ts";
 import { createGracefulShutdown } from "./graceful-shutdown.ts";
 import { acquireDataDirLeaseForProcess } from "./data-dir-lease.ts";
-import { environmentDescriptor, loadEnvironmentId, serverVersion } from "./environment.ts"; import { linkProtocolInfo } from "./link-protocol.ts";
+import { environmentDescriptor, loadEnvironmentId, serverVersion } from "./environment.ts"; import { linkProtocolInfo } from "./link-protocol.ts"; import "./error-reporting.ts";
 import { WorkspaceBackupMaintenance } from "./workspace-backup-maintenance.ts";
 import { createWorkspaceBackupRoutes, isWorkspaceBackupSessionControl } from "./workspace-backup-http.ts";
 import { applyPendingWorkspaceRestore, readLastWorkspaceRestore, type WorkspaceRestoreResult } from "./workspace-backup.ts";

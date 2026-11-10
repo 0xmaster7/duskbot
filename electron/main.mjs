@@ -88,7 +88,7 @@ import {
 import capabilitiesModule from "./capabilities.cjs";
 import environmentsModule from "./environments.cjs";
 import localOriginModule from "./local-origin.cjs";
-import { buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs";
+import { buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs";
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
@@ -3044,6 +3044,9 @@ app.whenReady().then(async () => {
     askRemoteMicrophone,
     homeOrigin: () => homeWindow.placeOrigin(),
   });
+  startDesktopErrorReporting({ app, prefs: desktopPrefs });
+  if (app.isPackaged) createUpdateNotice({ request: localServerRequest, open: url => void shell.openExternal(url), memory: jsonFile(path.join(app.getPath("userData"), "update-notice.json")), log: slog,
+    notify: ({ title, body, click }) => { if (!Notification.isSupported()) return; const note = new Notification({ title, body }); note.on("click", click); note.show(); } }).start();
   session.defaultSession.setPermissionRequestHandler(appPermissions.request);
   session.defaultSession.setPermissionCheckHandler(appPermissions.check);
   // Before the window, so the harness has the CUA descriptor on first render.
