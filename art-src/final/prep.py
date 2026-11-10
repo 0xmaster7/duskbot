@@ -7,7 +7,7 @@ def save(im, name, w, q=86):
     im.save(OUT + name + '.webp', quality=q, method=6); return im.size
 rgb = lambda n: Image.open(n + '.png').convert('RGB')
 print('terraces', save(rgb('r02-terraces'), 'terraces', 1086))
-for n in ['wide-layers', 'wide-sails', 'end-meadow', 'price-sky']: print(n, save(rgb(n), n, 1536))
+for n in ['wide-layers', 'wide-sails', 'wide-islands', 'end-meadow', 'price-sky']: print(n, save(rgb(n), n, 1536))
 # sky straight onto trees and meadow, with the pale bands and the clouds left out, so the big $0 reads on white
 em = rgb('end-meadow'); fill = Image.new('RGB', (1000, 640)); fill.paste(em.crop((270, 150, 1270, 510)), (0, 0)); fill.paste(em.crop((270, 650, 1270, 930)), (0, 360)); print('zero', save(fill, 'zero', 1000))
 cat = Image.open('cat.png').convert('RGBA'); cat = cat.crop(cat.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print('cat', save(cat, 'cat', 600, 90))

@@ -24,7 +24,7 @@ if (!still) addEventListener('pointermove', (e) => { px = e.clientX; py = e.clie
 const quips = ['hi', 'busy', 'on it', 'five more minutes', 'ok ok', 'that tickles', 'did you need something', 'working, promise', 'not the face'];
 let said = 0;
 document.addEventListener('click', (e) => {
-  const b = e.target.closest?.('.relay .bot, .shapes .bot, .log .bot, .peek-bot, .hill .bot, .faq-bots .bot');
+  const b = e.target.closest?.('.relay .bot, .shapes .bot, .work .bot, .peek-bot, .hill .bot, .faq-bots .bot');
   if (!b) return;
   if (!still) { b.classList.remove('hop'); void b.getBoundingClientRect(); b.classList.add('hop'); }
   const r = b.getBoundingClientRect(), q = document.createElement('span');
@@ -42,6 +42,22 @@ if (M && chat && !still && 'IntersectionObserver' in window) {
     M.animate([...chat.children], { opacity: [0, 1], y: [14, 0] }, { type: 'spring', duration: 0.6, bounce: 0.2, delay: M.stagger(0.45, { startDelay: 0.35 }) });
   }, { rootMargin: '0px 0px 160px 0px' });
   io.observe(chat);
+}
+
+// each job starts as "working" and flips to how it ended, one after another, the first time the day is seen
+const work = document.querySelector('.work');
+if (M && work && !still && 'IntersectionObserver' in window) {
+  const tags = [...work.querySelectorAll('.tag')].map((el) => ({ el, text: el.textContent, cls: el.className }));
+  const io = new IntersectionObserver((entries) => {
+    if (!entries.some((e) => e.isIntersecting)) return;
+    io.disconnect();
+    for (const t of tags) { t.el.textContent = 'working'; t.el.className = 'tag is-work'; }
+    tags.forEach((t, i) => setTimeout(() => {
+      t.el.textContent = t.text; t.el.className = t.cls;
+      M.animate(t.el, { scale: [0.7, 1] }, { type: 'spring', duration: 0.5, bounce: 0.45 });
+    }, 1100 + i * 420));
+  }, { threshold: 0.25 });
+  io.observe(work);
 }
 
 if (!still) for (const el of document.querySelectorAll('[data-cycle]')) {
