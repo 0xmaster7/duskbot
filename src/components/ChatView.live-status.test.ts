@@ -256,13 +256,13 @@ describe("what the bot is doing right now", () => {
   const toggle = () => host.querySelector<HTMLButtonElement>(".turn-presence button[aria-expanded]");
   const steps = () => [...host.querySelectorAll("[data-now-step]")].map((step) => `${step.getAttribute("data-now-step")}: ${step.querySelector("[dir=auto]")?.textContent}`);
 
-  it("is one calm line, where the card unfolds too", () => {
+  it("is one calm line with no steps to unfold, as grok shows none in the chat", () => {
     engine({ type: "turn.started" });
     engine({ type: "item.started", itemType: "tool", itemId: "b1", title: "Bash" } as Partial<RuntimeEvent>);
     engine({ type: "turn.progress", activity: "command", itemId: "b1", target: "scrape.py", quiet: { kind: "idle" } } as Partial<RuntimeEvent>);
     render(busyBot([ask, search, bash]));
     expect(statusLine()).toBe("Running a few commands · idle, no output yet");
-    act(() => toggle()!.click());
-    expect(steps()).toEqual(["done: Searched the web for “Acme construction leads”", "now: Running scrape.py"]);
+    expect(toggle(), "the step list unfolds only with tool calls shown").toBeNull();
+    expect(steps()).toEqual([]);
   });
 });

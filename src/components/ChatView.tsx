@@ -1307,6 +1307,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             label={teammatesWorking ? t("chat.teammatesWorking") : undefined}
             visible={presenceVisible}
             {...now}
+            // grok shows no steps in the chat: the list under the line only with tool calls shown
+            card={showToolCalls ? now.card : undefined}
             phrases={teammatesWorking ? undefined : writing ? typingPhrases : turnLabel ? [turnLabel] : now.phrases}
             phase={writing ? TYPING_PHASE : turnLabel ? `label:${turnLabel}` : now.phase}
             seed={presenceSeed}
