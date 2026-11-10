@@ -149,6 +149,45 @@ if (dl) {
   dl.addEventListener('keydown', (e) => { if (e.key === 'Escape') { open(false); more.focus(); } });
 }
 
+// a dashed arrow that curves from the pointer to the download button whenever you are near it
+const cta = $('.split-main');
+if (cta && fine && !still) {
+  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'), line = document.createElementNS(NS, 'path'), head = document.createElementNS(NS, 'path');
+  svg.setAttribute('class', 'aim'); svg.setAttribute('aria-hidden', 'true'); line.setAttribute('class', 'aim-line'); head.setAttribute('class', 'aim-head');
+  svg.append(line, head); document.body.append(svg);
+  const REACH = 720;
+  let mx = -1, my = -1, sx = 0, sy = 0, ex = 0, ey = 0, bend = 0, show = 0, frame = 0, warm = false;
+  const ease = (a, b, k) => a + (b - a) * k;
+  const tick = () => {
+    frame = 0;
+    const r = cta.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const inside = mx >= r.left - 6 && mx <= r.right + 6 && my >= r.top - 6 && my <= r.bottom + 6;
+    const d = Math.hypot(mx - cx, my - cy), want = mx < 0 || inside || r.bottom < 0 || r.top > innerHeight ? 0 : Math.max(0, Math.min(1, (REACH - d) / 180));
+    // the arrow lands on the edge of the button that faces you, a little short of it
+    const tx = Math.min(Math.max(mx, r.left), r.right), ty = Math.min(Math.max(my, r.top), r.bottom);
+    const ax = tx - mx, ay = ty - my, al = Math.hypot(ax, ay) || 1, gap = Math.min(14, al * 0.2);
+    const k = warm ? 0.18 : 1; warm = true;
+    sx = ease(sx, mx + (ax / al) * 18, k); sy = ease(sy, my + (ay / al) * 18, k);
+    ex = ease(ex, tx - (ax / al) * gap, k); ey = ease(ey, ty - (ay / al) * gap, k);
+    // it bows below the straight line, more when the button is far, and the bow follows the pointer gently
+    bend = ease(bend, Math.min(160, al * 0.32) * (ax >= 0 ? 1 : -1), 0.12);
+    show = ease(show, want, 0.14);
+    const dx = ex - sx, dy = ey - sy, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+    const qx = (sx + ex) / 2 + nx * bend, qy = (sy + ey) / 2 + ny * bend;
+    line.setAttribute('d', `M${sx.toFixed(1)} ${sy.toFixed(1)}Q${qx.toFixed(1)} ${qy.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
+    const tl = Math.hypot(ex - qx, ey - qy) || 1, ux = (ex - qx) / tl, uy = (ey - qy) / tl, w = 0.5, h = 11;
+    const p1 = [ex - h * (ux * Math.cos(w) - uy * Math.sin(w)), ey - h * (uy * Math.cos(w) + ux * Math.sin(w))];
+    const p2 = [ex - h * (ux * Math.cos(w) + uy * Math.sin(w)), ey - h * (uy * Math.cos(w) - ux * Math.sin(w))];
+    head.setAttribute('d', `M${p1[0].toFixed(1)} ${p1[1].toFixed(1)}L${ex.toFixed(1)} ${ey.toFixed(1)}L${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`);
+    svg.style.opacity = show.toFixed(3);
+    if (show > 0.01 || want > 0) frame = requestAnimationFrame(tick);
+  };
+  const go = () => { frame ||= requestAnimationFrame(tick); };
+  addEventListener('pointermove', (e) => { mx = e.clientX; my = e.clientY; go(); }, { passive: true });
+  addEventListener('scroll', go, { passive: true });
+  document.addEventListener('pointerleave', () => { mx = -1; go(); });
+}
+
 const title = document.title;
 document.addEventListener('visibilitychange', () => { document.title = document.hidden ? 'the bots miss you' : title; });
 
