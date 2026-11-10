@@ -47,6 +47,16 @@ export function createHomeClient(options: { fetch?: typeof fetch; now?: () => nu
       if (value?.ok !== true || !Number.isSafeInteger(value.expiresAt)) throw new Error("Invalid cloud entitlement answer.");
       return { expiresAt: value.expiresAt as number };
     },
+    async update(origin, secret) {
+      const value = await request(origin, secret, "GET", "/api/cloud/update") as Record<string, unknown> | null;
+      if (!value || value.v !== 1) throw new Error("Invalid cloud update answer.");
+      const selfTest = ["running", "passed", "failed"].includes(value.selfTest as string) ? value.selfTest as "running" | "passed" | "failed" : null;
+      const runs = Array.isArray(value.runs) ? value.runs.slice(0, 20).flatMap((r: unknown) => {
+        const run = r as { id?: unknown; ok?: unknown; at?: unknown };
+        return typeof run?.id === "string" && /^[A-Za-z0-9_-]{1,80}$/.test(run.id) && typeof run.ok === "boolean" && Number.isSafeInteger(run.at) ? [{ id: run.id, ok: run.ok, at: run.at as number }] : [];
+      }) : [];
+      return { version: typeof value.version === "string" && /^\d+\.\d+\.\d+$/.test(value.version) ? value.version : null, selfTest, runs };
+    },
     async plan(origin, secret, input) {
       await request(origin, secret, "POST", "/api/cloud/plan", JSON.stringify({ v: 1, cancelled: input.cancelled }));
     },

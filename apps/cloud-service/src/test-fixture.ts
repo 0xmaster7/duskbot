@@ -10,6 +10,9 @@ import { createAudit } from "./audit.ts";
 import { createBackupStore } from "./backups.ts";
 import { DEFAULT_MANAGED_SETTINGS, type ManagedSettings } from "./lifecycle.ts";
 import type { ReleaseKey } from "./release-signing.ts";
+import type { HomeRelease } from "./home-update.ts";
+import type { PolicySource } from "./update-policy.ts";
+import type { HomeUpdateReport } from "../../dashboard/server/clouds/types.ts";
 import { DAY_MS, entitlementOf } from "./retention.ts";
 import { createFakeCloudProvider } from "../../dashboard/server/clouds/fake-provider.ts";
 import { startFakeBoatApi } from "./fake-boat-api.ts";
@@ -25,7 +28,7 @@ export const SHA = "a".repeat(64);
 export const BACKUP_SECRET = Buffer.alloc(32, 9);
 
 export async function boatFixture(options: { retentionDays?: number; setupPolls?: number; settings?: Partial<ManagedSettings>; releaseKeys?: ReleaseKey[]; edgeToken?: string;
-  entitlements?: { sign(cloud: StoredCloud): string } } = {}) {
+  entitlements?: { sign(cloud: StoredCloud): string }; release?: () => HomeRelease | null; updatePolicy?: PolicySource } = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), "omb-boat-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
   let at = Date.UTC(2026, 10, 9, 12);
   const now = () => at;
@@ -33,6 +36,7 @@ export async function boatFixture(options: { retentionDays?: number; setupPolls?
   // the machine: the launcher marks its volume on first start, a bot writes data
   api.onCommand(({ sandbox, command }) => {
     if (command.includes("omb-home install")) return { exitCode: 0, stdout: "installed\n" };
+    if (command.includes("omb-home rollback")) return { exitCode: 0, stdout: "rolled back\n" };
     if (command.includes("omb-home start")) {
       if (!sandbox.volume.size) {
         sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
@@ -50,7 +54,8 @@ export async function boatFixture(options: { retentionDays?: number; setupPolls?
   });
   const provider = createBoatProvider({ apiKey: api.key, baseUrl: api.baseUrl, scope: "0123456789abcdef" });
   const power: HomePower = { idle: false, busy: ["recent-activity"], lastActivityAt: null, nextDueAt: null, wokeAt: at };
-  const home = { healthy: vi.fn(async () => true), pair: vi.fn(async () => ({ code: "ABCD-EFGH-JKLM", expiresAt: at + 300_000 })),
+  const update: HomeUpdateReport = { version: null, selfTest: null, runs: [] };
+  const home = { update: vi.fn(async () => ({ ...update, runs: [...update.runs] })), healthy: vi.fn(async () => true), pair: vi.fn(async () => ({ code: "ABCD-EFGH-JKLM", expiresAt: at + 300_000 })),
     power: vi.fn(async () => ({ ...power })), entitle: vi.fn(async (_origin: string, _secret: string, _token: string) => ({ expiresAt: at + DAY_MS })), sleep: vi.fn(async () => ({ ok: power.idle, nextDueAt: power.nextDueAt })), plan: vi.fn(async () => {}) };
   const subscriptions: StoredSubscription[] = [];
   const notices: Array<{ cloudId: string; kind: string; at: number | null; link?: string }> = [];
@@ -64,6 +69,7 @@ export async function boatFixture(options: { retentionDays?: number; setupPolls?
     managed: createManagedCloud({ provider, backups, audit, kinds: ["shared_s", "shared_m", "dedicated"], backupSecret: BACKUP_SECRET,
       settings: { ...DEFAULT_MANAGED_SETTINGS, package: { sha256: SHA, url: "https://packages.example.test/home.tgz" }, ...(options.retentionDays ? { retentionDays: options.retentionDays } : {}), ...options.settings },
       ...(options.releaseKeys ? { releaseKeys: options.releaseKeys } : {}), ...(options.edgeToken ? { edgeToken: options.edgeToken } : {}),
+      ...(options.release ? { release: options.release } : {}), ...(options.updatePolicy ? { updatePolicy: options.updatePolicy } : {}),
       entitlement: cloud => entitlementOf(subscriptions, cloud, at),
       notify: (cloud, kind, when, link) => notices.push({ cloudId: cloud.id, kind, at: when, ...(link ? { link } : {}) }) }) });
   cleanup.push(() => service.close());
@@ -88,7 +94,7 @@ export async function boatFixture(options: { retentionDays?: number; setupPolls?
     power.idle = true; power.busy = [];
     await settle(c, x => x.status === "sleeping", 60, 5 * 60_000);
   }
-  return { api, provider, service, home, power, subscriptions, notices, alerts, audit, backups, dataDir, paid, settle, asleep, workspaces,
+  return { api, provider, service, home, power, update, subscriptions, notices, alerts, audit, backups, dataDir, paid, settle, asleep, workspaces,
     advance(ms: number) { at += ms; }, now };
 }
 
