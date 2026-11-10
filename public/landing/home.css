@@ -143,9 +143,9 @@
 /* the download button is split: the main half follows your system, the arrow opens every other platform */
 .split { position: relative; display: inline-flex; }
 .aim { position: fixed; inset: 0; z-index: 40; width: 100vw; height: 100vh; overflow: visible; pointer-events: none; opacity: 0; }
-.aim-line, .aim-head { fill: none; stroke: #9a9aa6; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.aim-line { stroke-dasharray: 7 8; animation: aim-march 0.9s linear infinite; }
-@keyframes aim-march { to { stroke-dashoffset: -15; } }
+.aim-line, .aim-head { fill: none; stroke: rgba(255, 255, 255, 0.92); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.aim-line { stroke-dasharray: 8 9; animation: aim-march 0.8s linear infinite; }
+@keyframes aim-march { to { stroke-dashoffset: -17; } }
 .split .btn { gap: 8px; }
 .home .split-main { border-radius: 999px 0 0 999px; padding: 0 14px 0 20px; }
 .home .split-more { border-radius: 0 999px 999px 0; padding: 0 14px 0 11px; border: 0; box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.16); cursor: pointer; }
