@@ -94,13 +94,25 @@ test("a window that showed My Cloud as a saved server before the move is opened 
   assert.equal(w.local.at(-1), true, "My Cloud ended: the window leaves it for this computer");
 });
 
-test("launching with My Cloud asleep says Waking My Cloud… and wakes it through the Admin, never by a look, then shows the page", async () => {
+test("launching with My Cloud asleep never wakes it: its last-seen chats show until the person types, then the page", async () => {
   const w = world({ power: { state: "asleep", since: 1, sleeps: true } });
   await w.home.show();
-  assert.deepEqual(w.splash, [SPLASH_TEXT.waking]);
-  assert.equal(w.wakes, 1);
+  assert.equal(w.wakes, 0, "opening the app is no reason to wake it");
   assert.equal(w.fetched.some(([route]) => route === "/api/health"), false, "a sleeping Cloud is never looked at");
-  assert.deepEqual(w.went, [[CLOUD, CLOUD]]);
+  assert.deepEqual(w.home.view(), { screen: "asleep" });
+  assert.deepEqual(w.went, [[`${LOCAL}${HOME_SCREEN_PATH}`, null]]);
+  // the screen looking again (focus, back online) still never wakes it
+  await w.home.retry();
+  assert.equal(w.wakes, 0);
+  await assert.rejects(w.home.wake("open"), /Invalid wake intent/);
+  await assert.rejects(w.home.wake("view"), /Invalid wake intent/);
+  assert.equal(w.wakes, 0);
+  const asked = await w.home.wake("type");
+  assert.deepEqual(asked, { screen: "asleep", waking: true }, "the screen shows it waking at once");
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(w.intents, ["type"]);
+  assert.deepEqual(w.went.at(-1), [CLOUD, CLOUD]);
   assert.ok(w.calls.includes("woke"));
 });
 
@@ -218,28 +230,56 @@ test("while home is My Cloud the startup screen says Opening My Cloud…, whiche
   }
 });
 
-test("a slow wake never moves the window after a newer request; a long one hands the startup screen to this computer's", async () => {
+test("a slow wake keeps the asleep screen, waking, and never moves the window after a newer request", async () => {
   let woken;
   const w = world({ power: { state: "asleep", since: 1, sleeps: true }, cloud: { wakeGate: new Promise((resolve) => { woken = resolve; }) } });
-  const waking = w.home.show();
-  await w.later(0);
-  assert.deepEqual(w.went, [], "the startup screen says it first");
+  await w.home.show();
+  const send = { botId: "bot-1", threadId: "thread-1", text: "draft the reply to Sam", sendId: "send-0123456789" };
+  await w.home.wake("send", send);
   await w.later(6_000);
-  assert.deepEqual(w.went, [[`${LOCAL}${HOME_SCREEN_PATH}`, null]], "the screen says Waking My Cloud… once the startup screen has been up long enough");
-  assert.equal(w.home.view().screen, "waking");
+  assert.deepEqual(w.home.view(), { screen: "asleep", waking: true, held: send.text }, "the cached chats stay, with the message held and the waking line");
+  assert.equal(await w.home.wake("click"), w.home.view(), "a second action asks nothing more");
+  assert.equal(w.wakes, 1);
   woken();
-  await waking;
+  for (let i = 0; i < 4; i++) await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(w.went.at(-1), [CLOUD, CLOUD], "then the page");
+  assert.deepEqual(w.intents, ["send"]);
+  // the page takes the held message once, and only My Cloud's own page
+  const event = { sender: w.contents, senderFrame: w.contents.mainFrame };
+  assert.equal(w.home.takeHeld({ sender: {}, senderFrame: {} }), null);
+  w.url = `${CLOUD}/`;
+  assert.deepEqual(w.home.takeHeld(event), send);
+  assert.equal(w.home.takeHeld(event), null, "sent once");
   let release;
   const settled = world({ power: { state: "asleep", since: 1, sleeps: true }, cloud: { wakeGate: new Promise((resolve) => { release = resolve; }) } });
-  const first = settled.home.show();
+  await settled.home.show();
+  const first = settled.home.wake("type");
   await new Promise((resolve) => setImmediate(resolve));
   settled.journal = { ...done(), phase: "home-again" };
   const second = settled.home.show();
   release();
   await Promise.all([first, second]);
+  for (let i = 0; i < 4; i++) await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(settled.went.filter(([, origin]) => origin === CLOUD), [], "the newer request (this computer, home again) wins");
   assert.deepEqual(settled.local, [true]);
+});
+
+test("My Cloud's own page keeps its last-seen chats for the asleep screen; no other page can", async () => {
+  const kept = [];
+  const lastSeen = { read: async (origin) => kept.findLast((entry) => entry.origin === origin)?.snapshot ?? null, write: async (origin, snapshot) => { kept.push({ origin, snapshot }); return true; }, forget: async () => { kept.length = 0; } };
+  const w = world({ deps: { lastSeen } });
+  await w.home.show();
+  const snapshot = { bots: [{ id: "bot-1", threadId: "thread-1", name: "Scout", messages: [] }] };
+  const event = { sender: w.contents, senderFrame: w.contents.mainFrame };
+  w.url = `${TEAM}/`;
+  assert.equal(await w.home.saveLastSeen(event, snapshot), false, "another site in the window");
+  w.url = `${CLOUD}/`;
+  assert.equal(await w.home.saveLastSeen({ sender: {}, senderFrame: {} }, snapshot), false, "another window");
+  assert.equal(await w.home.saveLastSeen(event, snapshot), true);
+  assert.deepEqual(await w.home.lastSeen(), snapshot);
+  w.home.accountLeaving();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(await w.home.lastSeen(), null, "forgotten when the account leaves");
 });
 
 test("a newer My Cloud page reloads at a quiet moment; an asleep My Cloud is never asked", async () => {

@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { defaultBotPerson } from "../shared/default-bot.ts";
 import { englishFollowup, type HelperFollowupFacts } from "../shared/helper-followup.ts";
+import { isJob } from "./first-message-job.ts";
 import type { RequestAuth } from "./request-auth.ts";
 import type { BotRecord, Message } from "./store.ts";
 
@@ -49,12 +50,17 @@ export function followupFacts(
   };
 }
 
-/** The follow-up to append to `transcript`, or the one already there: a conversation gets one, under Dusk's intro. */
+/** The follow-up to append to `transcript`, or the one already there: a conversation gets one, under Dusk's intro.
+ * `skip`: the person's first line after the intro already gave Dusk a job, so a "here's what I found" would only
+ * land between their ask and its answer. */
 export function helperFollowup(transcript: readonly Message[], facts: () => HelperFollowupFacts):
-  { existing: Message } | { append: Omit<Message, "id" | "at"> } | null {
-  if (!transcript.some((message) => message.helperIntro)) return null;
+  { existing: Message } | { append: Omit<Message, "id" | "at"> } | { skip: true } | null {
+  const intro = transcript.findIndex((message) => message.helperIntro);
+  if (intro < 0) return null;
   const existing = transcript.find((message) => message.helperFollowup);
   if (existing) return { existing };
+  const first = transcript.slice(intro + 1).find((message) => message.role === "user");
+  if (first && isJob(first.text)) return { skip: true };
   const found = facts();
   return { append: { role: "bot", kind: "text", text: englishFollowup(found), helperFollowup: found } };
 }

@@ -111,9 +111,10 @@ export const api = {
     return { account: rememberAccount(answer.account, answer.csrfToken) };
   },
   authProviders: async (): Promise<AuthProviders> => FIXTURE ? call("/v1/auth/providers") : providersFromWire(await call<ProvidersAnswer>("/v1/auth/providers")),
-  start: async (email: string, intent: "signin" | "signup" = "signin", pending?: string): Promise<EmailCodeStart> => {
-    if (FIXTURE) return send("/v1/auth/start", "POST", { email, intent });
-    const answer = await send<EmailStartAnswer>("/v1/auth/start", "POST", { email, pending });
+  /** `recover`: "Can't sign in?": the mail names the ways the address signs in and carries a one-time link too. */
+  start: async (email: string, intent: "signin" | "signup" = "signin", pending?: string, recover = false): Promise<EmailCodeStart> => {
+    if (FIXTURE) return send("/v1/auth/start", "POST", { email, intent, ...(recover ? { recover } : {}) });
+    const answer = await send<EmailStartAnswer>("/v1/auth/start", "POST", { email, pending, ...(recover ? { recover } : {}) });
     return { attempt: answer.attempt, resendAfter: answer.resendAfter, expiresIn: answer.expiresIn, codeLength: EMAIL_CODE_DIGITS };
   },
   verify: async (attempt: string, code: string): Promise<{ account: Account; created: boolean; redirect?: string }> => {

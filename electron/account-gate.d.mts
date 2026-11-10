@@ -5,12 +5,15 @@ export interface AccountGateState {
   status: CloudAccountState["status"];
   message?: string;
   enrollment?: CloudAccountState["enrollment"];
+  browser?: CloudAccountState["browser"];
 }
 export declare function accountGateRequired(options: { env: Record<string, string | undefined>; packaged: boolean; remote: boolean; custom: boolean }): boolean;
 export declare function gateBlocks(state: CloudAccountState | null | undefined): boolean;
 export interface AccountGateBridge {
   state(): Promise<AccountGateState>;
-  signInStart(email: string): ReturnType<CloudAccountClient["emailStart"]>;
+  signInStart(email: string, options?: { recover?: boolean }): ReturnType<CloudAccountClient["emailStart"]>;
+  options(): ReturnType<CloudAccountClient["signInOptions"]>;
+  reopen(): Promise<AccountGateState>;
   signInVerify(code: string): Promise<{ outcome: Awaited<ReturnType<CloudAccountClient["emailVerify"]>>["outcome"]; triesLeft?: number }>;
   signInCancel(): Promise<void>;
   browser(provider?: string): Promise<AccountGateState>;

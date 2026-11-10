@@ -12,6 +12,8 @@ import type { ConnectorPhase, Connectors } from "./use-connectors";
 import { COMPOSIO_AUTH_CONFIGS_URL } from "../../../shared/connector-availability";
 import { composioPage, loadToolkitActions, type SnapshotToolkit, type ToolkitActions } from "./composio-snapshot";
 import { ComposioKeyStep } from "./ComposioKeyStep";
+import { GmailCard, gmailCard } from "./GmailCard";
+import { PrimaryButton, type Primary } from "./PrimaryButton";
 import type { ConnectorAccount } from "@/lib/connector-status";
 
 /** One way an app connects, when it has more than one: our own card, the vendor's server, Composio. */
@@ -40,19 +42,6 @@ export interface AppPageModel {
   onOpenKeys: () => void;
   /** A vendor's own MCP server: connect signs in there, managing it is the MCP servers page. */
   remote?: { open: boolean; busy: boolean; onConnect: () => void; onCancel: () => void; onManage: () => void };
-}
-
-interface Primary { label: string; busy?: boolean; busyLabel?: string; disabled?: boolean; quiet?: boolean; signIn?: boolean; onClick?: () => void; onCancel?: () => void; /** a sign-in is out: Open page again, with Cancel beside it */ waiting?: boolean }
-
-function PrimaryButton({ primary }: { primary: Primary }) {
-  const labels = [primary.label, primary.busyLabel ?? t("connectApps.connecting")];
-  const shown = primary.busy ? labels[1] : labels[0];
-  return (
-    <button type="button" className="ca-primary" data-tone={primary.quiet ? "quiet" : undefined} disabled={primary.busy || primary.disabled}
-      aria-busy={primary.busy || undefined} data-composio-sign-in={primary.signIn ? "" : undefined} onClick={primary.onClick}>
-      {labels.map((label) => <span key={label} aria-hidden={label === shown ? undefined : true}>{label}</span>)}
-    </button>
-  );
 }
 
 /** One app's page: its tile, name and main action, what it does, its accounts, and the facts about it. */
@@ -115,6 +104,13 @@ export function AppPage({ model }: { model: AppPageModel }) {
     }
   })();
 
+  // gmail connects on one card: its promise, the one button, and where the sign-in stands
+  const gmail = composio && slug === "gmail" && !ways && !model.remote && phase !== null
+    ? gmailCard({
+      name: entry.label, primary, connected: model.connection === "connected", via: viaSteps, viaSignedIn, flow, phase,
+      ...(model.remoteClient ? {} : { onOwnKey: model.onOpenKeys }),
+    })
+    : null;
   const facts = appFacts(model);
   const ownCard = entry.kind !== "composio";
 
@@ -124,12 +120,13 @@ export function AppPage({ model }: { model: AppPageModel }) {
         <header className="ca-detail-header">
           <AppTile entry={entry} size={56} />
           <h3 className="ca-detail-name" data-detail-hero-title="">{entry.label}</h3>
-          {primary?.onCancel && (primary.busy || primary.waiting) && <CancelLink onCancel={primary.onCancel} />}
-          {primary ? <PrimaryButton primary={primary} /> : (entry.kind === "composio" || entry.kind === "remote") && model.connection === "connected" && <ConnectedMark />}
+          {!gmail && primary?.onCancel && (primary.busy || primary.waiting) && <CancelLink onCancel={primary.onCancel} />}
+          {gmail ? null : primary ? <PrimaryButton primary={primary} /> : (entry.kind === "composio" || entry.kind === "remote") && model.connection === "connected" && <ConnectedMark />}
         </header>
         <p className="ca-detail-desc">{entry.description}</p>
       </div>
       <div className="ca-groups">
+        {gmail && <GmailCard model={gmail} />}
         {setup && (
           <p className="ca-notice" data-tone={setup.tone === "warning" ? "danger" : undefined}>
             {t(setup.key)}{" "}
@@ -159,7 +156,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
           </div>
         )}
         {model.remote && !ways && <p className="ca-notice">{t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label })}</p>}
-        {viaSteps && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} />}
+        {viaSteps && !gmail && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} />}
         {composio && (accounts.length > 0 || askingAlias) && (
           <div data-accounts="">
             <h3 className="ca-group-label">{t("connectApps.accounts")}</h3>
@@ -194,7 +191,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
             </div>
           </div>
         )}
-        {model.toolkit && <ToolkitAbilities toolkit={model.toolkit} />}
+        {model.toolkit && !gmail && <ToolkitAbilities toolkit={model.toolkit} />}
         {!ownCard && <AppFacts facts={facts} />}
       </div>
     </div>

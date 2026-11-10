@@ -528,14 +528,16 @@ describe("grok's profile menu", () => {
 
   it("keeps grok's own rows alone while nothing needs the person", () => {
     const items = grokProfileMenuItems(base);
-    expect(items.map((item) => item.key)).toEqual(["mobile", "support", "settings", "add-account"]);
+    expect(items.map((item) => item.key)).toEqual(["mobile", "support", "settings", "sign-in"]);
     expect(items[0]!.separatorBefore).toBeUndefined();
+    // signed out, the account button's last row is the sign-in, by name
+    expect(items.at(-1)).toMatchObject({ label: "Sign in", separatorBefore: true });
   });
 
   it("puts the account dashboard right under the phone row when the menu can open it", () => {
     const onDashboard = vi.fn();
     const items = grokProfileMenuItems({ ...base, onDashboard });
-    expect(items.map((item) => item.key)).toEqual(["mobile", "dashboard", "support", "settings", "add-account"]);
+    expect(items.map((item) => item.key)).toEqual(["mobile", "dashboard", "support", "settings", "sign-in"]);
     expect(items[1]).toMatchObject({ label: "Account dashboard" });
     items[1]!.onSelect();
     expect(onDashboard).toHaveBeenCalledOnce();

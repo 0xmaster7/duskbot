@@ -27,7 +27,9 @@ describe("api() and a Cloud home that sleeps", () => {
     await expect(api("/api/team-map", { background: true })).rejects.toMatchObject({ status: 503 });
     expect(fetch).not.toHaveBeenCalled();
     await api("/api/threads");
-    expect(fetch.mock.calls.map(([path]) => path)).toEqual(["/api/auth/session", "/api/threads"]);
+    expect(fetch.mock.calls.map(([path]) => path)).toEqual(["/api/cloud/wake", "/api/threads"]);
+    // a POST naming the intent: through the public edge, only a credentialed POST starts a stopped machine
+    expect(fetch.mock.calls[0]![1]).toMatchObject({ method: "POST", body: JSON.stringify({ intent: "click" }) });
     expect(cloudAsleep()).toBe(false);
   });
 

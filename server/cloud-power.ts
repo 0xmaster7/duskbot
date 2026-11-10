@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { writeFileAtomic } from "./atomic.ts";
 
 /** Why a home is not idle, as fixed codes (the Admin keeps the latest one for its operator page). */
-export type CloudPowerBusy = "turn" | "run" | "live-call" | "computer" | "maintenance" | "recent-activity" | "recent-work" | "just-woke" | "due-soon" | "team";
+export type CloudPowerBusy = "turn" | "run" | "live-call" | "computer" | "maintenance" | "recent-activity" | "recent-work" | "just-woke" | "due-soon" | "team" | "focus";
 
 export interface CloudPowerReport {
   v: 1; at: number; bootedAt: number; wokeAt: number;
@@ -52,6 +52,13 @@ export const CLOUD_IDLE_DUE_MS = 5 * 60_000;
 export const CLOUD_SLEEP_PENDING_MS = 120_000;
 /** The clock tick that notices a resume: a jump this much larger than the tick means the machine was suspended. */
 const TICK_MS = 5_000, RESUME_JUMP_MS = 15_000;
+/** The app pings `POST /api/cloud/focus` this often while its window is focused on the home. */
+export const CLOUD_FOCUS_PING_MS = 4 * 60_000;
+/** A focus ping counts this long (a ping and a missed one's slack). */
+export const CLOUD_FOCUS_FRESH_MS = CLOUD_FOCUS_PING_MS + 2 * 60_000;
+/** A focused window keeps the home up this long at most without use (the managed rails' `focusCapMs`). */
+export const CLOUD_FOCUS_CAP_MS = 30 * 60_000;
+export const CLOUD_FOCUS_PATH = "/api/cloud/focus";
 /** The first request this soon after a wake or a boot is taken for what woke the home (`wokeBy`). */
 export const WOKE_BY_MS = 30_000;
 /** Each kind of request, as a fixed code, by its path: never more of the request than that. Anything else is a page. */
@@ -65,7 +72,7 @@ const WAKE_CODES: readonly [RegExp, string][] = [
 export const wakeCode = (path: string) => WAKE_CODES.find(([pattern]) => pattern.test(path))?.[1] ?? "page";
 /** Paths that never count as someone using the home: the event stream, the public probe, Files loops, the Admin's own
  * power reads, and the polls of an older desktop that still lends its computer (lending is retired; those get a 404). */
-const BACKGROUND = [/^\/api\/events$/, /^\/api\/health$/, /^\/api\/sync(\/|$)/, /^\/api\/shared-computers(\/|$)/, /^\/api\/cloud\/power(\/|$)/];
+const BACKGROUND = [/^\/api\/events$/, /^\/api\/health$/, /^\/api\/sync(\/|$)/, /^\/api\/shared-computers(\/|$)/, /^\/api\/cloud\/power(\/|$)/, /^\/api\/cloud\/focus$/];
 export const CLOUD_POWER_PATH = "/api/cloud/power";
 export const CLOUD_POWER_SLEEP_PATH = "/api/cloud/power/sleep";
 export const CLOUD_BACKGROUND_HEADER = "x-omb-background";
@@ -115,6 +122,8 @@ export function createCloudPower(options: {
   /** The first request since `wokeAt` (`arrived`), and whether one came. */
   let wokeBy: CloudPowerReport["wokeBy"] = null, wokeSeen = false;
   let sleepingSince: number | null = null, inFlight = 0;
+  /** The app's focus pings: the last one, and the first of the current run of them. */
+  let focusAt: number | null = null, focusSince: number | null = null;
   let sleepAbort = new AbortController();
   let lastTick = now();
 
@@ -166,6 +175,8 @@ export function createCloudPower(options: {
     if (at - wokeAt < CLOUD_IDLE_AWAKE_MS) busy.push("just-woke");
     const due = options.probes.nextDueAt();
     if (due !== null && due - at < CLOUD_IDLE_DUE_MS) busy.push("due-soon");
+    // a hint, not work: capped from the later of the focus starting and the last use, as the managed rails cap it
+    if (focusAt !== null && focusSince !== null && at - focusAt < CLOUD_FOCUS_FRESH_MS && at - Math.max(focusSince, lastActivityAt ?? 0) < CLOUD_FOCUS_CAP_MS) busy.push("focus");
     return busy;
   };
 
@@ -186,6 +197,12 @@ export function createCloudPower(options: {
   return {
     noteActivity,
     begin,
+    /** The app's window is focused on the home (a ping): never someone using it, and it never ends a pending sleep. */
+    noteFocus() {
+      const at = now();
+      if (focusAt === null || at - focusAt >= CLOUD_FOCUS_FRESH_MS) focusSince = at;
+      focusAt = at;
+    },
     /** Any request at all, first thing (the server's own and its webhooks'): the first after a wake or a boot is what woke
      * it (`wokeBy`). Only its kind is kept. A resume is noticed here too, before the clock tick. */
     arrived(path: string, headers: IncomingHttpHeaders) {
@@ -228,6 +245,6 @@ export function createCloudPower(options: {
 export type CloudPower = ReturnType<typeof createCloudPower>;
 
 /** The running home's power, for route modules built before it (Files sync); null on any server that is not a Cloud home. */
-let registered: Pick<CloudPower, "sleeping" | "sleepSignal"> | null = null;
-export function registerCloudPower(power: Pick<CloudPower, "sleeping" | "sleepSignal"> | null) { registered = power; }
+let registered: Pick<CloudPower, "sleeping" | "sleepSignal"> & Partial<Pick<CloudPower, "noteFocus">> | null = null;
+export function registerCloudPower(power: Pick<CloudPower, "sleeping" | "sleepSignal"> & Partial<Pick<CloudPower, "noteFocus">> | null) { registered = power; }
 export const cloudPowerNow = () => registered;

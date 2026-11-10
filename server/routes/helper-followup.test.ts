@@ -76,6 +76,21 @@ describe("Dusk's follow-up", () => {
     expect(store.messagesFor(maus.threadId)).toHaveLength(2);
   });
 
+  it("is skipped when the person's first line already gave Dusk a job, and written when it only said hello", async () => {
+    const asked = await fixture();
+    asked.store.appendMessage(asked.maus.threadId, { role: "user", kind: "text", text: "Hi! Can you sort my inbox every morning?" });
+    const skipped = await asked.post({ ai: "own" });
+    expect(skipped.status).toBe(200);
+    expect(skipped.body).toEqual({ skipped: true });
+    expect(asked.store.messagesFor(asked.maus.threadId).some((message) => message.helperFollowup)).toBe(false);
+
+    const greeted = await fixture();
+    greeted.store.appendMessage(greeted.maus.threadId, { role: "user", kind: "text", text: "hey 👋" });
+    const written = await greeted.post({ ai: "own" });
+    expect(written.status).toBe(201);
+    expect(written.body.message?.helperFollowup).toBeTruthy();
+  });
+
   it("is Dusk's own person's only: never a bot's shell, nor another member on a Team Cloud", async () => {
     const place = await fixture();
     expect((await place.post({ ai: "own" }, BOT_SHELL)).status).toBe(403);

@@ -3,17 +3,19 @@
 import { PassThrough } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import worker, { wakeReason } from "../edge/worker.js";
+import worker, { deliveryId, wakeReason, QUEUE_LIMITS, type EdgeEnv } from "../edge/worker.js";
 import { boatFixture } from "./test-fixture.ts";
+import { fakeHookQueues } from "./fake-hook-queue.ts";
 
 const TOKEN = "e".repeat(40), DOMAIN = "desktops.example.com", ROUTE_URL = "https://dash.example.test";
 afterEach(() => vi.unstubAllGlobals());
 
-async function edged(edgeWakesPerHour = 3) {
+async function edged(edgeWakesPerHour = 3, { queue = false } = {}) {
   const f = await boatFixture({ settings: { publicDomain: DOMAIN, edgeWakesPerHour }, edgeToken: TOKEN });
   const { c } = await f.paid();
   const handle = f.service.managed!.handle!;
   const hooks: Array<{ path: string; body: string }> = [];
+  const raw: Array<{ bytes: Uint8Array; headers: Headers }> = [];
   // the account service's routes as the Worker reaches them, and the machine's hosted url, which answers only while up
   vi.stubGlobal("fetch", async (input: Request | string, init?: RequestInit) => {
     const request = input instanceof Request ? input : new Request(input, init);
@@ -28,12 +30,17 @@ async function edged(edgeWakesPerHour = 3) {
     }
     if (url.origin === c.managed!.upstream) {
       if (f.api.sandboxes.get(c.serverId!)!.state !== "ready") return new Response("down", { status: 502 });
-      hooks.push({ path: url.pathname, body: await request.text() });
+      const bytes = new Uint8Array(await request.arrayBuffer());
+      raw.push({ bytes, headers: request.headers });
+      hooks.push({ path: url.pathname, body: new TextDecoder().decode(bytes) });
       return new Response("ok", { status: 200, headers: { server: "machine", "x-powered-by": "x" } });
     }
     throw new Error(`unexpected request to ${url.href}`);
   });
-  const env = { ROUTE_URL, EDGE_TOKEN: TOKEN, PUBLIC_DOMAIN: DOMAIN }, ctx = { waitUntil() {} };
+  // the queue's own clock runs ahead of the real one by `skew`, to reach its give-up time without waiting
+  const clock = { skew: 0 };
+  const queues = fakeHookQueues(() => env, () => Date.now() + clock.skew);
+  const env: EdgeEnv = { ROUTE_URL, EDGE_TOKEN: TOKEN, PUBLIC_DOMAIN: DOMAIN, ...(queue ? { HOOK_QUEUE: queues.namespace, HOOK_SEAL_KEY: "k".repeat(43) } : {}) }, ctx = { waitUntil() {} };
   const send = (path: string, init: RequestInit = {}) => worker.fetch(new Request(`${c.origin}${path}`, init), env, ctx);
   async function asleep() {
     await f.asleep(c);
@@ -41,7 +48,8 @@ async function edged(edgeWakesPerHour = 3) {
     expect(f.api.sandboxes.get(c.serverId!)!.state).toBe("archived");
     f.power.idle = false; f.power.busy = ["recent-activity"];
   }
-  return { f, c, hooks, send, asleep };
+  const label = c.managed!.label!;
+  return { f, c, hooks, raw, send, asleep, queues, label, clock };
 }
 
 describe("the public edge and a sleeping home", () => {
@@ -113,5 +121,129 @@ describe("the public edge and a sleeping home", () => {
     expect(wakeReason(new Request("https://d.example/api/bots/b1/messages", { method: "POST" }), new URL("https://d.example/api/bots/b1/messages"))).toBeNull();
     expect(at("/")).toBeNull();
     expect(at("/favicon.ico")).toBeNull();
+  });
+
+  it("never wakes a home for the app's background hints, even a credentialed send", () => {
+    const focus = new Request("https://d.example/api/cloud/focus", { method: "POST", headers: { authorization: "Bearer t", "x-omb-background": "1" } });
+    expect(wakeReason(focus, new URL(focus.url))).toBeNull();
+    const hook = new Request("https://d.example/hooks/github", { method: "POST", headers: { "x-omb-background": "1" } });
+    expect(wakeReason(hook, new URL(hook.url))).toBe("webhook");
+  });
+});
+
+describe("the edge's hook queue for a sleeping home", () => {
+  const dueOrForce = async (queues: ReturnType<typeof fakeHookQueues>, label: string, until: () => boolean) => {
+    for (let n = 0; n < 60 && !until(); n++) { await new Promise(r => setTimeout(r, 250)); await queues.runAlarm(label, true); }
+  };
+
+  it("still forwards to an awake home directly, queueing nothing", async () => {
+    const { send, hooks, queues, label } = await edged(3, { queue: true });
+    const response = await send("/hooks/github", { method: "POST", body: "{\"a\":1}", headers: { "x-github-delivery": "d-1" } });
+    expect(response.status).toBe(200);
+    expect(hooks).toEqual([{ path: "/hooks/github", body: "{\"a\":1}" }]);
+    expect(queues.storage(label).data.size).toBe(0);
+  });
+
+  it("accepts at once with 202, keeps the hook sealed, and delivers it byte for byte after the wake, across a new isolate", async () => {
+    const { f, c, send, hooks, raw, asleep, queues, label } = await edged(3, { queue: true });
+    await asleep();
+    const body = new Uint8Array([0x7b, 0x22, 0x72, 0x22, 0x3a, 0xff, 0x00, 0xfe, 0x7d]);
+    const started = Date.now();
+    const response = await send("/hooks/github?x=1", { method: "POST", body, headers: { "x-hub-signature-256": "sha256=secret-signature", "x-github-delivery": "d-2", "content-type": "application/json" } });
+    expect(response.status).toBe(202);
+    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(hooks).toEqual([]);
+    expect(f.audit.entries(c.id).map(e => `${e.action}:${e.actor}`)).toContain("wake_asked:edge");
+    // at rest: only ciphertext and a hash id, never the body, the path or the signature
+    const stored = queues.storage(label);
+    const dump = Buffer.concat([...stored.data.entries()].map(([k, v]) => Buffer.from(k + (v instanceof Uint8Array ? Buffer.from(v).toString("latin1") : JSON.stringify(v)), "latin1")));
+    for (const secret of ["secret-signature", "hooks/github", "d-2", Buffer.from(body).toString("latin1")]) expect(dump.includes(Buffer.from(secret, "latin1"))).toBe(false);
+    expect(stored.alarm).not.toBeNull();
+    // the isolate that took it ends; the alarm in a fresh one delivers it once the home answers
+    queues.restart(label);
+    const logged = vi.spyOn(console, "log").mockImplementation(() => {});
+    await dueOrForce(queues, label, () => hooks.length > 0);
+    expect(hooks.map(h => h.path)).toEqual(["/hooks/github"]);
+    expect(raw[0]!.bytes).toEqual(body);
+    expect(raw[0]!.headers.get("x-hub-signature-256")).toBe("sha256=secret-signature");
+    expect(raw[0]!.headers.get("x-github-delivery")).toBe("d-2");
+    expect(raw[0]!.headers.get("x-forwarded-host")).toBe(new URL(c.origin!).hostname);
+    expect(c.status).toBe("running");
+    expect(logged.mock.calls.map(call => JSON.parse(String(call[0])).event)).toContain("edge_hook_delivered");
+    logged.mockRestore();
+    expect([...stored.data.keys()].filter(k => !k.startsWith("s:") && k !== "meta")).toEqual([]);
+  }, 30_000);
+
+  it("deduplicates by delivery id, before and after delivery, without a second wake", async () => {
+    const { f, c, send, hooks, asleep, queues, label } = await edged(3, { queue: true });
+    await asleep();
+    const hook = () => send("/hooks/github", { method: "POST", body: "{\"n\":1}", headers: { "x-github-delivery": "same" } });
+    expect((await hook()).status).toBe(202);
+    expect((await hook()).status).toBe(202);
+    expect([...queues.storage(label).data.keys()].filter(k => k.startsWith("e:"))).toHaveLength(1);
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await dueOrForce(queues, label, () => hooks.length > 0);
+    await queues.runAlarm(label, true);
+    expect(hooks).toHaveLength(1);
+    // asleep again: a retry of the delivered hook is answered, not delivered twice, and wakes nothing
+    await asleep();
+    const wakes = f.audit.entries(c.id).filter(e => e.action === "wake_asked").length;
+    expect((await hook()).status).toBe(202);
+    expect(f.audit.entries(c.id).filter(e => e.action === "wake_asked").length).toBe(wakes);
+    expect(hooks).toHaveLength(1);
+    vi.restoreAllMocks();
+  }, 60_000);
+
+  it("gives up after the limit with an audit line, and keeps nothing", async () => {
+    const { f, send, hooks, asleep, queues, label, clock } = await edged(3, { queue: true });
+    await asleep();
+    expect((await send("/hooks/x", { method: "POST", body: "late" })).status).toBe(202);
+    // the home never comes up in time (the reconciler does not run here) and the clock passes the limit
+    f.power.busy = ["recent-activity"];
+    clock.skew = QUEUE_LIMITS.dropAfterMs;
+    const logged = vi.spyOn(console, "log").mockImplementation(() => {});
+    await queues.runAlarm(label);
+    const lines = logged.mock.calls.map(call => JSON.parse(String(call[0])));
+    logged.mockRestore();
+    expect(lines).toEqual([expect.objectContaining({ event: "edge_hook_dropped", label, reason: "expired" })]);
+    expect(JSON.stringify(lines)).not.toContain("late");
+    expect([...queues.storage(label).data.keys()].filter(k => k.startsWith("e:") || k.startsWith("c:"))).toEqual([]);
+    expect(queues.storage(label).alarm).toBeNull();
+    expect(hooks).toEqual([]);
+  });
+
+  it("keeps the wake cap and the size limit: a capped hook is refused and not kept", async () => {
+    const { send, asleep, queues, label } = await edged(1, { queue: true });
+    await asleep();
+    expect((await send("/hooks/x", { method: "POST", body: "x".repeat(2 * 1024 * 1024 + 1) })).status).toBe(413);
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    expect((await send("/hooks/x", { method: "POST", body: "1" })).status).toBe(202);
+    await dueOrForce(queues, label, () => queues.storage(label).data.size > 0 && ![...queues.storage(label).data.keys()].some(k => k.startsWith("e:")));
+    await asleep();
+    const capped = await send("/hooks/x", { method: "POST", body: "2" });
+    expect(capped.status).toBe(429);
+    expect([...queues.storage(label).data.keys()].filter(k => k.startsWith("e:"))).toEqual([]);
+    vi.restoreAllMocks();
+  }, 60_000);
+
+  it("holds as before when the queue's secret is missing", async () => {
+    const { c, hooks, asleep } = await edged(3);
+    await asleep();
+    const env: EdgeEnv = { ROUTE_URL, EDGE_TOKEN: TOKEN, PUBLIC_DOMAIN: DOMAIN };
+    env.HOOK_QUEUE = fakeHookQueues(() => env).namespace;
+    const response = await worker.fetch(new Request(`${c.origin}/hooks/github`, { method: "POST", body: "held" }), env, { waitUntil() {} });
+    expect(response.status).toBe(200);
+    expect(hooks).toEqual([{ path: "/hooks/github", body: "held" }]);
+  }, 30_000);
+
+  it("takes the sender's delivery id where there is one, else a hash of method, path and body", async () => {
+    const id = (path: string, headers: Record<string, string>, body: string) => deliveryId(new Request(`https://d.example${path}`, { method: "POST", headers, body }), new URL(`https://d.example${path}`), new TextEncoder().encode(body).buffer as ArrayBuffer);
+    expect(await id("/hooks/gh", { "x-github-delivery": "a" }, "1")).toBe(await id("/hooks/gh", { "x-github-delivery": "a" }, "2"));
+    expect(await id("/hooks/gh", { "x-github-delivery": "a" }, "1")).not.toBe(await id("/hooks/gh", { "x-github-delivery": "b" }, "1"));
+    expect(await id("/hooks/s", { "stripe-signature": "t=1" }, "{\"id\":\"evt_1\",\"n\":1}")).toBe(await id("/hooks/s", { "stripe-signature": "t=2" }, "{\"id\":\"evt_1\",\"n\":2}"));
+    expect(await id("/hooks/x", {}, "1")).toBe(await id("/hooks/x", {}, "1"));
+    expect(await id("/hooks/x", {}, "1")).not.toBe(await id("/hooks/x", {}, "2"));
+    expect(await id("/hooks/x", {}, "1")).not.toBe(await id("/hooks/y", {}, "1"));
+    expect(await id("/hooks/x", {}, "1")).toMatch(/^[0-9a-f]{64}$/);
   });
 });

@@ -4,7 +4,7 @@ The managed cloud desktop backend. It runs inside the account service (`apps/das
 with `DUSK_MANAGED=1` and talks to it only through `apps/dashboard/server/clouds/managed.ts`. Everything that names the
 provider lives here: the provider client (`src/boat.ts`), the lifecycle (`src/lifecycle.ts`), the machine setup
 (`src/home.ts`), backups, retention, the stray-machine sweep, the fake provider API for tests, the home package and
-template builders, the e2e harness, the home's edge config (`deploy/Caddyfile`), the public edge (`edge/worker.js`) and
+template builders, the e2e harness, the home's edge config (`deploy/Caddyfile`), the public edge (`edge/worker.js`, notes in `docs/edge.md`) and
 the provider notes (`docs/provider.md`).
 
 The app, the home server and the public docs never name the provider. `scripts/provider-names.test.ts` fails the build if
