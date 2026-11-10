@@ -13,13 +13,14 @@ import { parseSealKey } from "../../dashboard/server/clouds/seal.ts";
 import type { DesktopPlan, StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import { createAudit, type Audit, type AuditEntry } from "./audit.ts";
 import { boatBackupKey, createBackupStore, type BackupStore } from "./backups.ts";
-import { boatScope, createBoatProvider, type BoatProvider, type BoatSize } from "./boat.ts";
+import { BOAT_PRICING, boatScope, createBoatProvider, type BoatProvider, type BoatSize } from "./boat.ts";
 import { guardBackupSecret } from "./key-guard.ts";
 import { createBoatLifecycle, freshBoatState, managedSettingsFromEnv, type BoatSettings } from "./lifecycle.ts";
 import { entitlementOf, noticeText, type Entitlement, type NoticeKind } from "./retention.ts";
 import { parseReleaseKeys, PINNED_RELEASE_KEYS, verifyRelease, type ReleaseKey } from "./release-signing.ts";
 import { createBoatSweep } from "./sweep.ts";
 import { createStartLedger } from "./starts.ts";
+import { createSleepPolicy } from "./sleep-policy.ts";
 import "./state.ts";
 
 export interface ManagedCloudDeps {
@@ -43,6 +44,8 @@ export interface ManagedCloudDeps {
   labelKey?: Buffer;
   /** the operator's alert, also used when the day's provider starts approach the included count */
   alert?(entry: AuditEntry): void;
+  /** the provider's prices for the start ledger and the sleep policy (Boat's by default) */
+  pricing?: import("./sleep-policy.ts").ProviderPricing;
 }
 
 /** a record written before the rename: backend "boat" and its lifecycle record under `boat` */
@@ -77,9 +80,10 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         try { backups.read(newest.c.id, boatBackupKey(secret, newest.c.id), newest.g.file); return true; } catch { return false; }
       });
       // starts, not compute, are the provider's main cost: counted per day, alerted on, and the sleep policy's budget
-      const starts = createStartLedger({ dataDir: ctx.dataDir, included: deps.settings.includedStarts, now: ctx.now,
+      const starts = createStartLedger({ dataDir: ctx.dataDir, included: deps.settings.includedStarts, pricing: deps.pricing ?? BOAT_PRICING, now: ctx.now,
         alert: text => { console.warn(`managed: ${text}`); deps.alert?.({ at: ctx.now(), cloudId: "fleet", action: "starts_alert", actor: "reconciler", reason: text.slice(0, 120) }); } });
-      const lifecycle = createBoatLifecycle({ ...deps, starts, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
+      const sleepPolicy = createSleepPolicy({ pricing: deps.pricing ?? BOAT_PRICING, includedStarts: deps.settings.includedStarts, starts });
+      const lifecycle = createBoatLifecycle({ ...deps, starts, sleepPolicy, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
         dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace, clouds: ctx.clouds, entitle: ctx.entitlement,
         releaseKeys: deps.releaseKeys ?? PINNED_RELEASE_KEYS, labelKey: deps.labelKey ?? Buffer.from(hkdfSync("sha256", backupSecret, Buffer.alloc(0), Buffer.from("omb-managed-label"), 32))  });
       const sweep = createBoatSweep({ dataDir: ctx.dataDir, provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });

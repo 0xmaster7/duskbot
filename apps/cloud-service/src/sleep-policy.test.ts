@@ -2,11 +2,15 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BASE_IDLE_MS, breakEvenMs, HOUR, HOURLY_CENTS, MINUTE, nextStartCents, predictReturn, sleepDecision, startCostCents, type SleepInput } from "./sleep-policy.ts";
+import { BASE_IDLE_MS, breakEvenMs, createSleepPolicy, HOUR, MINUTE, nextStartCents, predictReturn, sleepDecision, type SleepInput } from "./sleep-policy.ts";
+import { BOAT_PRICING } from "./boat.ts";
+
+const HOURLY_CENTS = { small: 1.8, large: 7.2 };
+const startCostCents = BOAT_PRICING.startCostCents;
 import { createStartLedger, StartCapError } from "./starts.ts";
 
 const now = Date.UTC(2026, 10, 10, 12);
-const input = (patch: Partial<SleepInput> = {}): SleepInput => ({ now, awakeSince: now - HOUR, lastActivityAt: now - 20 * MINUTE, busy: [], focusSince: null, nextDueAt: null,
+const input = (patch: Partial<SleepInput> = {}): SleepInput => ({ pricing: BOAT_PRICING, now, awakeSince: now - HOUR, lastActivityAt: now - 20 * MINUTE, busy: [], focusSince: null, nextDueAt: null,
   startsToday: 20, includedStarts: 200, predictedReturnMs: null, hourlyCents: HOURLY_CENTS.small, ...patch });
 const decide = (patch: Partial<SleepInput> = {}) => sleepDecision(input(patch));
 
@@ -15,9 +19,9 @@ describe("start prices", () => {
     expect([200, 201, 300, 301, 400, 401, 1200, 1201].map(n => startCostCents(n, 200))).toEqual([0, 3, 3, 5, 5, 7, 7, Number.POSITIVE_INFINITY]);
   });
   it("values an included start low, and like a paid one once the pool is past 70%", () => {
-    expect(nextStartCents(20, 200)).toBe(1.5);
-    expect(nextStartCents(140, 200)).toBe(3);
-    expect(nextStartCents(399, 200)).toBe(5);
+    expect(nextStartCents(BOAT_PRICING, 20, 200)).toBe(1.5);
+    expect(nextStartCents(BOAT_PRICING, 140, 200)).toBe(3);
+    expect(nextStartCents(BOAT_PRICING, 399, 200)).toBe(5);
     // a small machine: one $0.03 start is 1 h 40 min of compute, a $0.07 one almost 4 h
     expect(breakEvenMs(3, HOURLY_CENTS.small) / MINUTE).toBeCloseTo(100, 0);
     expect(breakEvenMs(7, HOURLY_CENTS.small) / HOUR).toBeCloseTo(3.89, 1);
@@ -74,6 +78,18 @@ describe("the sleep decision", () => {
   });
 });
 
+describe("the policy behind its one interface", () => {
+  it("takes a provider-neutral snapshot, prices from the adapter, and its budget and history from the ledger", () => {
+    const starts = { count: () => 150, wakes: () => [] as number[] };
+    const policy = createSleepPolicy({ pricing: BOAT_PRICING, includedStarts: 200, starts });
+    const snapshot = { now, cloudId: "c1", spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, awakeSince: now - 8 * HOUR, lastActivityAt: now - 60 * MINUTE, busy: [], focusSince: null, nextDueAt: null, homeIdle: true };
+    expect(policy.decide(snapshot)).toMatchObject({ action: "stay", reason: "pool_pressure" });
+    // the same hour of idleness on a large machine is past its break-even
+    expect(policy.decide({ ...snapshot, spec: { vcpu: 8, ramGb: 16, diskGb: 100 } })).toMatchObject({ action: "stop" });
+    expect(BOAT_PRICING.hourlyCents({ vcpu: 2, ramGb: 4, diskGb: 40 })).toBe(1.8);
+  });
+});
+
 describe("the owner's predicted return", () => {
   it("is the median next wake after this time of day over 14 days, or nothing without 3 days of history", () => {
     const at = (daysAgo: number, minutesAfter: number) => now - daysAgo * 24 * HOUR + minutesAfter * MINUTE;
@@ -87,7 +103,7 @@ describe("the start ledger", () => {
     const dir = mkdtempSync(join(tmpdir(), "omb-starts-")), alerts: string[] = [];
     let t = now;
     try {
-      const ledger = createStartLedger({ dataDir: dir, included: 10, now: () => t, alert: text => alerts.push(text) });
+      const ledger = createStartLedger({ dataDir: dir, included: 10, pricing: BOAT_PRICING, now: () => t, alert: text => alerts.push(text) });
       for (let n = 0; n < 7; n++) ledger.record("c1", "wake");
       expect(alerts).toHaveLength(1);
       expect(alerts[0]).toContain("7 today, 70% of the 10 included");
@@ -101,7 +117,7 @@ describe("the start ledger", () => {
       expect(ledger.count()).toBe(0);
       expect(() => ledger.admit()).not.toThrow();
       ledger.close();
-      expect(createStartLedger({ dataDir: dir, included: 10, now: () => t }).days()).toHaveLength(1);
+      expect(createStartLedger({ dataDir: dir, included: 10, pricing: BOAT_PRICING, now: () => t }).days()).toHaveLength(1);
     } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 });

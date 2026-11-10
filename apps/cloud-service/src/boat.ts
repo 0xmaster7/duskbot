@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import type { MachineSpec } from "../../../shared/billing-api.ts";
 import { boundedJson, RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
 import type { CloudProvider, CreateServerInput, ProviderServer } from "../../dashboard/server/clouds/types.ts";
+import type { ProviderPricing } from "./sleep-policy.ts";
 
 export const BOAT_SIZES = [
   { type: "small", vcpu: 2, ramGb: 4, diskGb: 51 },
@@ -15,6 +16,19 @@ export const BOAT_SIZES = [
   { type: "xlarge", vcpu: 16, ramGb: 32, diskGb: 251 },
 ] as const;
 export type BoatSize = (typeof BOAT_SIZES)[number]["type"];
+/** Boat's prices (docs.boat.dev pricing.md and limits.md, read 2026-11-10): per second while running; starts included per
+ *  plan per day, then $0.03 to 1.5x, $0.05 to 2x, $0.07 to 6x, and refused past 6x */
+export const BOAT_PRICING: ProviderPricing = {
+  hourlyCents: spec => ({ small: 1.8, default: 3.6, large: 7.2, xlarge: 20 })[BOAT_SIZES.find(z => z.vcpu >= spec.vcpu && z.ramGb >= spec.ramGb)?.type ?? "xlarge"],
+  startCostCents(nth, included) {
+    if (nth <= included) return 0;
+    if (nth <= included * 1.5) return 3;
+    if (nth <= included * 2) return 5;
+    if (nth <= included * 6) return 7;
+    return Number.POSITIVE_INFINITY;
+  },
+  hardCapFactor: 6,
+};
 /** the public port of the home's edge (server/cloud-home-start.ts) */
 export const BOAT_HOME_PORT = 8080;
 const SANDBOX_ID = /^bx_[23456789abcdefghjkmnpqrstuvwxyz]{8}$/;

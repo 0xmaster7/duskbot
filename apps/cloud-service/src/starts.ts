@@ -3,7 +3,7 @@
 // cloud's intent wakes (a person or a connector, never our own refresh) for the sleep policy's return prediction.
 import { join } from "node:path";
 import { createJsonStore } from "../../dashboard/server/billing/json-store.ts";
-import { HARD_CAP_FACTOR, startCostCents } from "./sleep-policy.ts";
+import type { ProviderPricing } from "./sleep-policy.ts";
 
 export type StartKind = "create" | "wake" | "routine" | "refresh" | "resize" | "recover";
 interface Day { day: string; starts: number; byKind: Partial<Record<StartKind, number>>; extraCents: number; alerted: number[] }
@@ -17,7 +17,7 @@ export class StartCapError extends Error {
   constructor() { super("Today's provider starts are used up."); this.name = "StartCapError"; }
 }
 
-export function createStartLedger(options: { dataDir: string; included: number; now?: () => number; alert?: (text: string) => void }) {
+export function createStartLedger(options: { dataDir: string; included: number; pricing: ProviderPricing; now?: () => number; alert?: (text: string) => void }) {
   const now = options.now ?? Date.now;
   if (!Number.isSafeInteger(options.included) || options.included < 1) throw new Error("Invalid included starts.");
   const store = createJsonStore<State>(join(options.dataDir, "provider-starts.json"), () => ({ v: 1, days: [], wakes: {} }),
@@ -34,10 +34,10 @@ export function createStartLedger(options: { dataDir: string; included: number; 
     /** starts made today */
     count: () => today().starts,
     /** refuses a start that would pass the provider's hard cap (6x the included), which would fail anyway */
-    admit() { if (today().starts + 1 > options.included * HARD_CAP_FACTOR) throw new StartCapError(); },
+    admit() { if (today().starts + 1 > options.included * options.pricing.hardCapFactor) throw new StartCapError(); },
     record(cloudId: string, kind: StartKind) {
       const d = today();
-      d.starts++; d.byKind[kind] = (d.byKind[kind] ?? 0) + 1; d.extraCents += startCostCents(d.starts, options.included);
+      d.starts++; d.byKind[kind] = (d.byKind[kind] ?? 0) + 1; d.extraCents += options.pricing.startCostCents(d.starts, options.included);
       if (kind === "wake" || kind === "routine") {
         const kept = (store.state.wakes[cloudId] ?? []).filter(t => t > now() - 14 * DAY_MS);
         if (kind === "wake") kept.push(now());

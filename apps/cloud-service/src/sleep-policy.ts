@@ -1,7 +1,8 @@
-// When a sleeping-plan home should stop. Starts, not compute, are the provider's main cost: one extra start is worth 2 to
-// 4 hours of a small machine. So the home stops after the base idle window, but stays up longer when a stop would
-// likely be paid back by an early wake: the shared daily start pool is filling, its owner usually comes back soon, or a
-// routine is due before a start would pay for itself. Prices: docs.boat.dev pricing.md and limits.md, read 2026-11-10.
+// When a sleeping-plan home should stop: the one decision lifecycle.ts asks for, behind SleepPolicy.decide(snapshot), so
+// a later policy replaces this file without touching the lifecycle. This first version: the home's 15 min idle window,
+// never a stop with a run due within 10 min, and, since starts rather than compute are the provider's main cost, staying
+// up when a stop would likely be paid back by an early wake. Prices come from the provider adapter (ProviderPricing).
+import type { MachineSpec } from "../../../shared/billing-api.ts";
 
 export const MINUTE = 60_000, HOUR = 60 * MINUTE;
 /** the base idle window, as OpenBot's; never stop with a run due within the guard */
@@ -16,23 +17,22 @@ export const POOL_PRESSURE = 0.7;
 export const INCLUDED_START_CENTS = 1.5;
 /** however good the reasons, an idle home stops after this long (except near the hard cap, where a stop could strand it) */
 export const MAX_IDLE_MS = 6 * HOUR;
-export const HARD_CAP_FACTOR = 6;
-export const HOURLY_CENTS = { small: 1.8, default: 3.6, large: 7.2, xlarge: 20 } as const;
 
-/** what the nth start of the day costs in cents: included, then $0.03 to 1.5x, $0.05 to 2x, $0.07 to 6x; past 6x it fails */
-export function startCostCents(nth: number, included: number): number {
-  if (nth <= included) return 0;
-  if (nth <= included * 1.5) return 3;
-  if (nth <= included * 2) return 5;
-  if (nth <= included * HARD_CAP_FACTOR) return 7;
-  return Number.POSITIVE_INFINITY;
+/** what a provider charges, from its adapter */
+export interface ProviderPricing {
+  /** compute per hour while running, in cents */
+  hourlyCents(spec: MachineSpec): number;
+  /** the nth start of a day, in cents: 0 while included, Infinity past the provider's hard cap */
+  startCostCents(nth: number, included: number): number;
+  /** starts beyond included x this fail at the provider */
+  hardCapFactor: number;
 }
 
 /** what the next start is worth to us: its price, or a nominal value for an included one, a paid one's once the pool fills */
-export function nextStartCents(startsToday: number, included: number): number {
-  const price = startCostCents(startsToday + 1, included);
+export function nextStartCents(pricing: ProviderPricing, startsToday: number, included: number): number {
+  const price = pricing.startCostCents(startsToday + 1, included);
   if (price > 0) return price;
-  return startsToday + 1 > included * POOL_PRESSURE ? 3 : INCLUDED_START_CENTS;
+  return startsToday + 1 > included * POOL_PRESSURE ? pricing.startCostCents(Math.ceil(included * 1.01) + 1, included) || 3 : INCLUDED_START_CENTS;
 }
 
 /** how long staying up costs the same as one start */
@@ -40,7 +40,30 @@ export function breakEvenMs(startCents: number, hourlyCents: number): number {
   return Number.isFinite(startCents) ? (startCents / hourlyCents) * HOUR : Number.POSITIVE_INFINITY;
 }
 
+/** what the lifecycle knows about one awake home when it asks; nothing provider-specific */
+export interface SleepSnapshot {
+  now: number;
+  cloudId: string;
+  spec: MachineSpec;
+  awakeSince: number;
+  lastActivityAt: number | null;
+  busy: readonly string[];
+  focusSince: number | null;
+  nextDueAt: number | null;
+  homeIdle: boolean;
+}
+export interface SleepPolicy { decide(snapshot: SleepSnapshot): SleepDecision }
+
+/** the first policy: its own start budget and wake history from the ledger, the prices from the provider adapter */
+export function createSleepPolicy(options: { pricing: ProviderPricing; includedStarts: number; starts?: { count(): number; wakes(cloudId: string): number[] } }): SleepPolicy {
+  return {
+    decide: snapshot => sleepDecision({ ...snapshot, pricing: options.pricing, startsToday: options.starts?.count() ?? 0, includedStarts: options.includedStarts,
+      predictedReturnMs: options.starts ? predictReturn(options.starts.wakes(snapshot.cloudId), snapshot.now) : null, hourlyCents: options.pricing.hourlyCents(snapshot.spec) }),
+  };
+}
+
 export interface SleepInput {
+  pricing: ProviderPricing;
   now: number;
   /** when the machine came up this time */
   awakeSince: number;
@@ -74,9 +97,9 @@ export function sleepDecision(input: SleepInput): SleepDecision {
   if (input.busy.includes("focus") && input.focusSince !== null && now - input.focusSince < FOCUS_CAP_MS) return stay("focused", input.focusSince + FOCUS_CAP_MS);
   if (!input.homeIdle && idleMs < BASE_IDLE_MS) return stay("recent_use", now + BASE_IDLE_MS - idleMs);
   // near the hard cap a stop might be the last start anyone gets today: stay up until the day's pool resets
-  if (input.startsToday + 1 >= input.includedStarts * HARD_CAP_FACTOR * 0.95) return stay("near_hard_cap", nextUtcDay(now));
+  if (input.startsToday + 1 >= input.includedStarts * input.pricing.hardCapFactor * 0.95) return stay("near_hard_cap", nextUtcDay(now));
   if (idleMs >= MAX_IDLE_MS) return { action: "stop", reason: "max_idle", recheckAt: now };
-  const cents = nextStartCents(input.startsToday, input.includedStarts), breakEven = breakEvenMs(cents, input.hourlyCents);
+  const cents = nextStartCents(input.pricing, input.startsToday, input.includedStarts), breakEven = breakEvenMs(cents, input.hourlyCents);
   // a routine due before a start pays for itself: cheaper to stay up and run it on this wake
   if (due !== null && due <= breakEven) return stay("routine_cheaper_awake", input.nextDueAt! + MINUTE);
   if (input.predictedReturnMs !== null && input.predictedReturnMs <= breakEven) return stay("owner_back_soon", now + input.predictedReturnMs + BASE_IDLE_MS);

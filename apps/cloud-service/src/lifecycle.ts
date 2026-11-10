@@ -3,7 +3,7 @@
 // boat-retention.ts. One step per reconcile, each safe to repeat after a crash.
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { HOURLY_CENTS, predictReturn, sleepDecision } from "./sleep-policy.ts";
+import { ROUTINE_GUARD_MS, type SleepPolicy } from "./sleep-policy.ts";
 import type { StartKind, StartLedger } from "./starts.ts";
 import { linkKeys } from "../../dashboard/server/clouds/bootstrap.ts";
 import { BoatError, ProviderLimitError, type BoatProvider } from "./boat.ts";
@@ -135,6 +135,8 @@ export interface BoatLifecycleDeps {
   labelKey: Buffer;
   /** the day's provider starts (starts.ts): counted, alerted, refused past the provider's hard cap */
   starts?: StartLedger;
+  /** whether an idle home stops now (sleep-policy.ts); without one, the home's own idle word, never with a run due within 10 min */
+  sleepPolicy?: SleepPolicy;
 }
 
 export function createBoatLifecycle(deps: BoatLifecycleDeps) {
@@ -629,10 +631,10 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     if (!power) { deps.save(c); return; }
     b.busy = power.busy; b.nextDueAt = power.nextDueAt;
     b.focusSince = power.busy.includes("focus") ? b.focusSince ?? now() : null;
-    // the home says idle for the base window; the policy says whether a stop now is likely to cost more in starts than it saves
-    const decision = sleepDecision({ now: now(), homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy: power.busy, focusSince: b.focusSince ?? null,
-      nextDueAt: power.nextDueAt, startsToday: deps.starts?.count() ?? 0, includedStarts: deps.starts?.included ?? settings.includedStarts,
-      predictedReturnMs: deps.starts ? predictReturn(deps.starts.wakes(c.id), now()) : null, hourlyCents: HOURLY_CENTS[(c.serverId ? s.type : null) as keyof typeof HOURLY_CENTS] ?? HOURLY_CENTS.small });
+    // the home says idle for the base window; the policy says whether a stop now is worth it
+    const snapshot = { now: now(), cloudId: c.id, spec: c.spec, homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy: power.busy, focusSince: b.focusSince ?? null, nextDueAt: power.nextDueAt };
+    const decision = deps.sleepPolicy?.decide(snapshot) ?? (power.nextDueAt !== null && power.nextDueAt - now() <= ROUTINE_GUARD_MS ? { action: "stay" as const, reason: "routine_due", recheckAt: power.nextDueAt }
+      : { action: power.idle && now() >= c.powerSince + 2 * MINUTE ? "stop" as const : "stay" as const, reason: "home_idle", recheckAt: now() + MINUTE });
     if (b.stayReason !== (decision.action === "stay" ? decision.reason : null)) b.stayReason = decision.action === "stay" ? decision.reason : null;
     if (power.idle && decision.action === "stop" && deps.home.sleep) {
       const agreed = await deps.home.sleep(homeOrigin(c), secret(c), settings.idleMinutes);
