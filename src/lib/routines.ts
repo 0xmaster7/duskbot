@@ -11,5 +11,8 @@ export type {
   Routine,
   RoutineRun,
   RoutineInput,
+  RoutineProbe,
+  RoutineStripEntry,
+  RoutineTiming,
 } from "../../shared/routines";
 export { ROUTINE_PROBLEM_STATUSES, isRoutineProblemRun } from "../../shared/routines";

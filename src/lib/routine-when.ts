@@ -1,8 +1,8 @@
 // The routine editor's one "when" picker: a few plain presets and a time, mapped to and from the schedules the server
-// keeps. A schedule no preset can say (a cron line, an interval with a window, after a limit resets) stays as it is.
+// keeps. A schedule no preset can say (a cron line, another interval, after a limit resets) stays as it is.
 import type { LocaleKey } from "@/locales";
 import { toLocalDateInput, toLocalTimeInput } from "@/lib/routine-calendar";
-import type { RoutineSchedule, RoutineScheduleInput } from "@/lib/routines";
+import type { RoutineIntervalWindow, RoutineSchedule, RoutineScheduleInput } from "@/lib/routines";
 
 export type WhenPreset = "daily" | "weekdays" | "weekly" | "hourly" | "once" | "keep";
 
@@ -14,6 +14,9 @@ export interface WhenDraft {
   day: number;
   /** "YYYY-MM-DD", local, for "once". */
   date: string;
+  /** "hourly" only: the hours it runs in, null for all day, missing on a new one (the server picks the person's waking
+   * hours, quiet at night). */
+  window?: RoutineIntervalWindow | null;
 }
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
@@ -42,8 +45,8 @@ export function whenDraftFor(schedule: RoutineSchedule | undefined, now = Date.n
     if (sameDays(schedule.weekdays, WEEKDAYS)) return { ...draft, preset: "weekdays", time };
     if (schedule.weekdays.length === 1) return { ...draft, preset: "weekly", time, day: schedule.weekdays[0]! };
   }
-  if (schedule.type === "interval" && schedule.everyMinutes === 60 && !schedule.weekdays && !schedule.window && schedule.endsAt == null) {
-    return { ...draft, preset: "hourly" };
+  if (schedule.type === "interval" && schedule.everyMinutes === 60 && !schedule.weekdays && schedule.endsAt == null) {
+    return { ...draft, preset: "hourly", window: schedule.window ?? null };
   }
   return { ...draft, preset: "keep" };
 }
@@ -58,7 +61,10 @@ export function nextLocalHour(now = Date.now()): number {
 /** The schedule a draft saves as. `keep` returns no schedule: the saved one stays untouched. */
 export function scheduleFromDraft(draft: WhenDraft, now = Date.now()): { schedule?: RoutineScheduleInput; error?: LocaleKey } {
   if (draft.preset === "keep") return {};
-  if (draft.preset === "hourly") return { schedule: { type: "interval", everyMinutes: 60, anchorAt: nextLocalHour(now), weekdays: null, window: null, endsAt: null } };
+  if (draft.preset === "hourly") {
+    if (draft.window && !(TIME.test(draft.window.start) && TIME.test(draft.window.end) && draft.window.start < draft.window.end)) return { error: "routines.inline.error.hours" };
+    return { schedule: { type: "interval", everyMinutes: 60, anchorAt: nextLocalHour(now), weekdays: null, ...(draft.window === undefined ? {} : { window: draft.window }), endsAt: null } };
+  }
   if (!TIME.test(draft.time)) return { error: "routines.inline.error.time" };
   if (draft.preset === "once") {
     const at = new Date(`${draft.date}T${draft.time}`).getTime();

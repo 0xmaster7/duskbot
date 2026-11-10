@@ -94,7 +94,7 @@ import { CallRecordRow } from "./CallRecordRow";
 import { AttachmentGallery, collectMessageFiles, replyAttachmentGroup, splitMessageAttachments } from "./AttachmentGallery";
 import { ScreenFrame } from "./ScreenFrame";
 import { noteMediaSizes } from "@/lib/image-cache";
-import { DigestChip } from "./DigestChip";
+import { CostReceipt, DigestChip } from "./DigestChip";
 import { ChatHeadRole, chiefOfStaffBadge } from "./BotRole";
 import { ChatHeadPill } from "./ChatHeadPill"; import { useStoreRef } from "@/state/store-ref";
 import { ELEVATED_FLOAT, ELEVATED_HOVER } from "./elevated";
@@ -848,7 +848,7 @@ const MessagesList = memo(function MessagesList({
               return <ActivityChip message={m} place={place} />;
             }
             case "digest":
-              return showToolCalls ? <DigestChip message={m} /> : null;
+              return showToolCalls ? <DigestChip message={m} /> : <CostReceipt message={m} />;
             case "compaction":
               return null;
             case "screen":

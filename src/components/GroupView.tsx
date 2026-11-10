@@ -26,7 +26,7 @@ import { ThreadRefText } from "./ThreadRefs";
 import { handoffWorkIds, RoomWorkingLines, roomWorkingIds } from "./RoomWorkingLines";
 import { roomRetryRequest, roomRetryText } from "@/lib/room-retry";
 import { showToolCallsEnabled } from "@/lib/feature-flags";
-import { DigestChip } from "./DigestChip";
+import { CostReceipt, DigestChip } from "./DigestChip";
 import { roomActivityVisible } from "@/lib/room-activity";
 import { StatusActivityRow } from "@/components/StatusActivityRow"; import { BugReportNote } from "@/components/BugReportNote";
 import { normalizeState } from "@/lib/mascot";
@@ -410,7 +410,7 @@ export const Transcript = memo(function Transcript({
     ) : m.kind === "compaction" ? (
       null
     ) : m.kind === "digest" ? (
-      showToolCalls ? <DigestChip message={m} /> : null
+      showToolCalls ? <DigestChip message={m} /> : <CostReceipt message={m} />
     ) : m.publishedPage ? <PublishedPageCard message={m} /> : m.kind === "text" && (m.text || m.attachments?.length) ? (
       !user && isPureLeakedSystemHarnessMessage(m.text) && !m.attachments?.length ? null : (
         <RoomTextMessage

@@ -11,6 +11,7 @@ import { routineRunsOn } from "@/lib/routine-display";
 import { fetchForecast, forecastLine, pauseLine, useLoaded } from "@/lib/spend";
 import { formatCost } from "@/lib/usage-trace";
 import { isRoutineProblemRun, type Routine, type RoutineRunOn } from "@/lib/routines";
+import { hoursLine, probeLine } from "@/lib/routine-display";
 import { saveWebhookCredential, webhookCredentialStore } from "@/lib/webhook-credentials";
 import { useStore, type Bot } from "@/state/store";
 import { useAllAutomationActions } from "../automations/app-actions";
@@ -18,6 +19,7 @@ import { AppEventEditor } from "../automations/AppEventEditor";
 import { WebhookEditor } from "../WebhookTrigger";
 import { BotSwitch, buttonCls, Card, PanelEmpty, rowCls, RowText } from "../bot-panel/rows";
 import { RoutineForm } from "./RoutineForm";
+import { RunStrip } from "./RunStrip";
 import { SpendCap } from "../usage/SpendCap";
 
 const termCls = "text-[12px] leading-4 tracking-[0.01em] text-ink-secondary";
@@ -190,7 +192,8 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
     routine?.warning,
     routine && !routine.enabled && routine.pausedFor ? pauseLine(routine.pausedFor) : null,
   ].filter((note): note is string => Boolean(note));
-  const looksAt = routine?.checks?.map((check) => t(`routines.inline.check.${check}`));
+  const looksAt = routine?.checks?.map((check) => (check === "probe" && routine.probe ? probeLine(routine.probe) : t(`routines.inline.check.${check}`)));
+  const hours = routine ? hoursLine(routine.schedule) : null;
   const busy = Boolean(actions.busy);
   const fix = (kind: AutomationFix) => {
     if (kind === "usage") dispatch({ type: "toggleAppSettings", open: true, section: "usage" });
@@ -203,8 +206,11 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
       <dl className="m-0 flex flex-col gap-2.5">
         <Fact term={t("routines.inline.when")}>
           {whenLine(automation)}
+          {routine?.timing === "around" && <span className="text-ink-secondary" data-routine-timing="around"> · {t("routines.timing.aroundShort")}</span>}
           {automation.enabled && automation.nextRunAt != null && <span className="text-ink-secondary"> · {t("automations.next", { when: nextWhen(automation.nextRunAt) })}</span>}
         </Fact>
+        {hours && <Fact term={t("routines.hours.term")}><span data-routine-hours="">{hours}</span></Fact>}
+        {routine?.strip?.length ? <Fact term={t("routines.strip.term")}><RunStrip strip={routine.strip} /></Fact> : null}
         {automation.instructions.trim() && <Fact term={t("routines.inline.what")}><span className="whitespace-pre-wrap">{automation.instructions.trim()}</span></Fact>}
         <Fact term={t("routines.inline.worksOn")}>{worksOn.label}</Fact>
         {automation.kind === "schedule" && <Fact term={t("routines.inline.resultsTo")}>{resultsTo}</Fact>}

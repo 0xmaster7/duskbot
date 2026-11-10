@@ -2,14 +2,37 @@ import { useEffect, useRef, useState } from "react";
 import { activeLocale, t } from "@/lib/i18n";
 import { formatCost } from "@/lib/usage-trace";
 import { api } from "@/state/store";
-import type { BatteryReport, RoutineForecast, SpendCapInput } from "../../shared/spend";
+import type { AllowanceReport, AutoTopUp, BatteryReport, RoutineForecast, SpendCapInput } from "../../shared/spend";
 import type { RoutinePause } from "../../shared/routines";
 
-export type { BatteryReport, BatteryRow, RoutineForecast } from "../../shared/spend";
+export type { AllowanceReport, BatteryReport, BatteryRow, RoutineForecast } from "../../shared/spend";
 
 export const fetchBattery = (): Promise<BatteryReport> => api("/api/usage/battery");
 export const fetchForecast = (routineId: string): Promise<RoutineForecast> => api(`/api/routines/${encodeURIComponent(routineId)}/forecast`);
 export const saveCap = (input: SpendCapInput): Promise<unknown> => api("/api/usage/caps", { method: "PUT", body: JSON.stringify(input) });
+
+const post = (path: string, body: unknown, method = "POST"): Promise<AllowanceReport> => api(path, { method, body: JSON.stringify(body) });
+export const fetchAllowance = (): Promise<AllowanceReport> => api("/api/usage/allowance");
+export const saveAllowance = (usd: number | null) => post("/api/usage/allowance", { usd }, "PUT");
+export const addForWeek = (usd: number) => post("/api/usage/allowance/top-up", { usd });
+export const setSaver = (on: boolean) => post("/api/usage/allowance/saver", { on });
+export const saveAutoTopUp = (input: AutoTopUp) => post("/api/usage/allowance/auto", input, "PUT");
+export const dismissAllowance = () => post("/api/usage/allowance/dismiss", {});
+
+/** What "Add for this week" offers: a third of the week, in whole cents, at least a cent. */
+export const topUpOffer = (weeklyUsd: number): number => Math.max(0.01, Math.round((weeklyUsd / 3) * 100) / 100);
+
+/** "Monday 12:00 AM" for a reset time, in the app's language. */
+export function resetWhen(at: number): string {
+  return new Date(at).toLocaleString(activeLocale(), { weekday: "long", hour: "numeric", minute: "2-digit" });
+}
+
+/** "in 2 days" or "in 5 hours" until a reset. */
+export function resetIn(at: number, now = Date.now()): string {
+  const hours = Math.max(1, Math.round((at - now) / 3_600_000));
+  const format = new Intl.RelativeTimeFormat(activeLocale(), { numeric: "always" });
+  return hours >= 48 ? format.format(Math.floor(hours / 24), "day") : format.format(hours, "hour");
+}
 
 export function sharePercent(share: number): string {
   return new Intl.NumberFormat(activeLocale(), { style: "percent", maximumFractionDigits: share > 0 && share < 0.01 ? 1 : 0 }).format(share);

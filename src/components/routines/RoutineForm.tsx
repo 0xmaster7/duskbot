@@ -3,12 +3,12 @@ import { useId, useState, type FormEvent, type KeyboardEvent } from "react";
 import { isDone, plainWhen } from "@/lib/automations";
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
-import type { Routine, RoutineInput, RoutineRunOn } from "@/lib/routines";
+import type { Routine, RoutineInput, RoutineProbe, RoutineRunOn } from "@/lib/routines";
 import { autoRoutineName, newWhenDraft, scheduleFromDraft, whenDraftFor, type WhenDraft, type WhenPreset } from "@/lib/routine-when";
 import { imeComposing } from "@/lib/send-key";
 import { useStore, type Bot } from "@/state/store";
 import { useBotEditor } from "../bot-settings/BotEditorContext";
-import { buttonCls, fieldCls } from "../bot-panel/rows";
+import { buttonCls, fieldCls, Segmented } from "../bot-panel/rows";
 import { SelectPill } from "../ui/SelectPill";
 
 const labelCls = "block text-[12px] leading-4 tracking-[0.01em] text-ink-secondary";
@@ -65,8 +65,12 @@ function TimeField({ value, onChange }: { value: string; onChange: (time: string
 
 const dayName = (day: number) => new Date(2026, 0, 4 + day).toLocaleDateString(activeLocale(), { weekday: "long" });
 
-/** One routine's name, when and what, edited in place: a new one for `bot`, or `routine` as it is saved. Only these three
- * change here; everything else a routine carries (where it runs, where results go, files) is kept as it is. */
+const PROBE_KINDS: readonly RoutineProbe["kind"][] = ["page", "feed", "price"];
+const WAKING = { start: "07:00", end: "23:00" };
+
+/** One routine's name, when and what, edited in place: a new one for `bot`, or `routine` as it is saved, with how exact
+ * its time is, the hours an hourly one keeps, and an optional page, feed or price it checks before waking the bot.
+ * Everything else a routine carries (where it runs, where results go, files) is kept as it is. */
 export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
   bot: Bot;
   routine?: Routine;
@@ -79,6 +83,10 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
   const [name, setName] = useState(routine?.name ?? "");
   const [prompt, setPrompt] = useState(routine?.prompt ?? "");
   const [when, setWhen] = useState<WhenDraft>(() => (routine ? whenDraftFor(routine.schedule) : newWhenDraft()));
+  // a new daily routine runs around its time unless the person pins it
+  const [timing, setTiming] = useState<"exact" | "around">(routine ? (routine.timing === "around" ? "around" : "exact") : "around");
+  const [probe, setProbe] = useState<RoutineProbe | null>(routine?.probe ?? null);
+  const [watching, setWatching] = useState(Boolean(routine?.probe));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const patchWhen = (next: Partial<WhenDraft>) => setWhen((current) => ({ ...current, ...next }));
@@ -96,9 +104,11 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
     const { schedule, error: whenError } = scheduleFromDraft(when);
     if (whenError) { setError(t(whenError)); return; }
     const named = name.trim() || autoRoutineName(what);
+    const timed = when.preset !== "hourly" && when.preset !== "keep" ? { timing: timing === "around" ? "around" as const : null } : {};
+    const watched = watching && probe?.url.trim() ? { probe: { kind: probe.kind, url: probe.url.trim() } } : routine?.probe ? { probe: null } : {};
     const body: Partial<RoutineInput> = routine
-      ? { name: named, prompt: what, ...(schedule ? { schedule } : {}), ...(schedule && !routine.enabled && isDone(routine) ? { enabled: true } : {}) }
-      : { name: named, prompt: what, botId: bot.id, enabled: true, schedule, ...(defaultRunOn ? { runOn: defaultRunOn } : {}) };
+      ? { name: named, prompt: what, ...(schedule ? { schedule } : {}), ...timed, ...watched, ...(schedule && !routine.enabled && isDone(routine) ? { enabled: true } : {}) }
+      : { name: named, prompt: what, botId: bot.id, enabled: true, schedule, ...timed, ...watched, ...(defaultRunOn ? { runOn: defaultRunOn } : {}) };
     setSaving(true);
     setError("");
     try {
@@ -143,6 +153,29 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
             <TimeField value={when.time} onChange={(time) => patchWhen({ time })} />
           )}
         </div>
+        {when.preset !== "hourly" && when.preset !== "keep" && (
+          <div className="mt-1.5">
+            <Segmented label={t("routines.timing.label")} attr="routine-timing" compact value={timing} onChange={setTiming}
+              options={[{ value: "exact", label: t("routines.timing.exact") }, { value: "around", label: t("routines.timing.around") }]} />
+            {timing === "around" && <p className="m-0 mt-1 text-[12px] leading-4 text-ink-secondary">{t("routines.timing.aroundHint")}</p>}
+          </div>
+        )}
+        {when.preset === "hourly" && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5" data-routine-quiet="">
+            <label className="flex items-center gap-1.5 text-[13px] leading-[18px] text-ink">
+              <input type="checkbox" checked={when.window !== null} onChange={(event) => patchWhen({ window: event.target.checked ? (routine ? WAKING : undefined) : null })} />
+              {t("routines.hours.quietAtNight")}
+            </label>
+            {when.window && (
+              <>
+                <TimeField value={when.window.start} onChange={(start) => patchWhen({ window: { ...when.window!, start } })} />
+                <span className="text-[13px] text-ink-secondary">{t("routines.hours.to")}</span>
+                <TimeField value={when.window.end} onChange={(end) => patchWhen({ window: { ...when.window!, end } })} />
+              </>
+            )}
+            {when.window === undefined && <span className="text-[12px] leading-4 text-ink-secondary">{t("routines.hours.learned")}</span>}
+          </div>
+        )}
       </div>
       <div>
         <label htmlFor={`${id}-what`} className={labelCls}>{t("routines.inline.what")}</label>
@@ -156,6 +189,23 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
           className={cn(fieldCls, "mt-1 h-auto max-h-[40vh] min-h-[4.75rem] w-full resize-none py-1.5 [field-sizing:content]")}
         />
       </div>
+      {when.preset !== "once" && (
+        <div data-routine-probe="">
+          <label className="flex items-center gap-1.5 text-[13px] leading-[18px] text-ink">
+            <input type="checkbox" checked={watching} onChange={(event) => { setWatching(event.target.checked); if (event.target.checked && !probe) setProbe({ kind: "page", url: "" }); }} />
+            {t("routines.probe.toggle")}
+          </label>
+          {watching && probe && (
+            <div className="mt-1 flex items-center gap-1.5">
+              <SelectPill aria-label={t("routines.probe.kind")} value={probe.kind} options={PROBE_KINDS.map((kind) => ({ value: kind, label: t(`routines.probe.kind.${kind}`) }))}
+                onChange={(kind) => setProbe({ ...probe, kind })} />
+              <input type="url" inputMode="url" aria-label={t("routines.probe.url")} placeholder="https://" value={probe.url}
+                onChange={(event) => setProbe({ ...probe, url: event.target.value })} className={cn(fieldCls, "w-full")} />
+            </div>
+          )}
+          {watching && <p className="m-0 mt-1 text-[12px] leading-4 text-ink-secondary">{t("routines.probe.hint")}</p>}
+        </div>
+      )}
       {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
       <div className="flex justify-end gap-1.5">
         <button type="button" onClick={() => onDone()} className={buttonCls}>{t("common.cancel")}</button>

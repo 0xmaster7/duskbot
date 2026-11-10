@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ClipboardList } from "lucide-react";
 
+import { receiptLine } from "@/lib/cost-why";
 import { t } from "@/lib/i18n";
-import { formatDuration } from "@/lib/usage-trace";
+import { formatCost, formatDuration } from "@/lib/usage-trace";
 import type { Message } from "@/state/store";
 import { traceRootId } from "../../shared/usage-trace";
 import { TraceDialog } from "./usage/TraceView";
@@ -17,6 +18,7 @@ export function DigestChip({ message }: { message: Message }) {
   const label = [
     digest.durationMs > 0 ? t("trace.workedFor", { duration: formatDuration(digest.durationMs) }) : null,
     worked ? files === null ? t("chat.digestChipNoFiles", { tools }) : t("chat.digestChip", { tools, files }) : null,
+    receiptLine(digest, formatCost),
   ].filter(Boolean).join(" · ");
   if (!label) return null;
   return (
@@ -34,4 +36,11 @@ export function DigestChip({ message }: { message: Message }) {
       {tracing && <TraceDialog id={traceRootId(digest.threadId, digest.turnId)} at={digest.at} onClose={() => setTracing(false)} />}
     </div>
   );
+}
+
+/** A reply's cost and why, when tool calls are hidden: "$0.18 · mostly reading 42 emails". Nothing for a turn with no price. */
+export function CostReceipt({ message }: { message: Message }) {
+  const line = message.digest ? receiptLine(message.digest, formatCost) : null;
+  if (!line) return null;
+  return <div className="flex justify-start px-1 text-[12px] leading-4 tabular-nums text-ink-tertiary" data-testid="cost-receipt">{line}</div>;
 }

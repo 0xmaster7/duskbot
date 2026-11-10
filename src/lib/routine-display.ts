@@ -52,3 +52,20 @@ export function routineRunsOn({ roomGoal, runOn, computer, cloudHome }: {
   if (computer === "vm" && !cloudHome) return { label: t("routines.runsOn.botVm"), hint };
   return { label: t(cloudHome ? "routines.runsOn.cloudHome" : "routines.runsOn.local"), hint };
 }
+
+const clockText = (time: string) => {
+  const [hour, minute] = time.split(":").map(Number);
+  return new Date(2026, 0, 1, hour ?? 0, minute ?? 0).toLocaleTimeString(activeLocale(), { hour: "numeric", minute: "2-digit" });
+};
+
+/** "Runs 7:00 AM to 11:00 PM, quiet at night" for a routine that runs only in some hours; null for one that runs all day. */
+export function hoursLine(schedule: Routine["schedule"]): string | null {
+  return schedule.type === "interval" && schedule.window ? t("routines.hours.quiet", { start: clockText(schedule.window.start), end: clockText(schedule.window.end) }) : null;
+}
+
+/** "Changes to example.com", "New posts in example.com/feed", "The price on shop.example". */
+export function probeLine(probe: NonNullable<Routine["probe"]>): string {
+  let place = probe.url;
+  try { const url = new URL(probe.url); place = url.hostname + (url.pathname.length > 1 ? url.pathname : ""); } catch { /* as given */ }
+  return t(`routines.probe.${probe.kind}`, { place });
+}
