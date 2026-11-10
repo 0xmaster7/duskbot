@@ -1,4 +1,4 @@
-// A quiet cost lever on new routines only, where it costs the person nothing: a frequent one (every two hours or more
+// A quiet cost lever on new routines only, where it costs the person nothing: a frequent one (every six hours or more
 // often) made without a time window runs in their waking hours, so a Cloud home can sleep at night, and the first
 // morning check reads everything since the last, so nothing is missed. A daily or rarer one made without a timing
 // runs "around" its time. Anything time-critical, or that asks for nights or all day, keeps its schedule, and so does
@@ -8,8 +8,8 @@ import { clockMinutes } from "./routine-intervals.ts";
 import type { RoutineInput } from "./routines.ts";
 import { WAKING_FALLBACK } from "./waking-hours.ts";
 
-/** Every two hours or more often. */
-export const FREQUENT_MINUTES = 120;
+/** Every six hours or more often. */
+export const FREQUENT_MINUTES = 360;
 
 // time-critical work or a person asking for nights: the schedule stays as asked
 const URGENT = new RegExp([

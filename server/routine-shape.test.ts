@@ -37,7 +37,7 @@ describe("shaping a new routine", () => {
   });
 
   it("leaves rarer intervals, price probes, room goals and unknown waking hours alone", () => {
-    const rare = frequent("Check the shared inbox", { schedule: { type: "interval", everyMinutes: 180, anchorAt: 0 } });
+    const rare = frequent("Check the shared inbox", { schedule: { type: "interval", everyMinutes: 480, anchorAt: 0 } });
     expect(shapeNewRoutine(rare, morning)).toEqual(rare);
     const price = frequent("Watch this jacket", { probe: { kind: "price", url: "https://shop.example/j" } });
     expect(shapeNewRoutine(price, morning)).toEqual(price);
