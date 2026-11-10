@@ -11,10 +11,11 @@ import { join } from "node:path";
 const MAGIC = Buffer.from("OMBB2\n"), LEGACY_MAGIC = Buffer.from("OMBB1\n");
 
 /** a cloud's backup key: HKDF over this service's backup secret, bound to the cloud id */
-export function boatBackupKey(secret: Buffer, cloudId: string): Buffer {
+export function homeBackupKey(secret: Buffer, cloudId: string): Buffer {
   if (secret.length < 32) throw new Error("Invalid Boat backup secret.");
   return Buffer.from(hkdfSync("sha256", secret, Buffer.from(cloudId), Buffer.from("omb-boat-backup-v2"), 32));
 }
+export const boatBackupKey = homeBackupKey;
 const IV_BYTES = 12, TAG_BYTES = 16;
 const CLOUD_ID = /^c[0-9a-f]{24}$/;
 const FILE = /^(\d{13})-([a-f0-9]{8})\.ombb$/;

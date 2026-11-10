@@ -58,7 +58,7 @@ it("never deletes through destroy, and deletes only with Boat's confirm header a
   const answer = await provider.requestDelete(server.id);
   expect(answer.operationId).toMatch(/^bdop_[a-f0-9]{32}$/);
   expect((await provider.deletion(answer.operationId!))?.status).toBe("completed");
-  expect(await provider.sandbox(server.id)).toBeNull();
+  expect(await provider.machine(server.id)).toBeNull();
 });
 
 it("sees only its own deployment's sandboxes and keeps the API key out of every error", async () => {

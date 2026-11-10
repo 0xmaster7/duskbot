@@ -4,6 +4,7 @@
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { createHmac } from "node:crypto";
 import { CLOUD_HOME_MARKER_FILE, homeEnv, shellQuote, type DashboardLink } from "../../dashboard/server/clouds/bootstrap.ts";
+import type { MachineImage, HomeBootInput } from "./provider.ts";
 import { machineVerifyScript, type ReleaseKey } from "./release-signing.ts";
 
 /** pinned runtime downloads, verified before use */
@@ -29,7 +30,7 @@ if (c["cgroup-parent"] === "omb-bots.slice") process.exit(1);
 c["cgroup-parent"] = "omb-bots.slice";
 fs.writeFileSync(p, JSON.stringify(c, null, 2) + "\\n");`;
 
-export interface BoatBootInput { cloudId: string; adminOrigin: string; secret: string; dashboardUrl: string; link: DashboardLink }
+export type BoatBootInput = HomeBootInput;
 
 /** what a machine needs to become this cloud's home: its env (the bootstrap secret among it), its dashboard link, its id */
 export function bootContent(input: BoatBootInput): { v: 1; env: Record<string, string>; link: DashboardLink; machine: string } {
@@ -350,3 +351,9 @@ export const STATUS_COMMAND = "sudo -n ${BOAT_CONTROL} status";
 
 /** the key a cloud's backups are sealed with, derived from its bootstrap secret, so nothing else needs storing */
 export function backupKey(secret: string): Buffer { return createHmac("sha256", secret).update("omb-boat-backup-v1").digest(); }
+
+export const BOAT_IMAGE: MachineImage = {
+  homeVolume: BOAT_HOME_VOLUME, packagePath: BOAT_PACKAGE_FILE, restorePath: BOAT_RESTORE_FILE,
+  bootFile: boatBootFile, claimBootFile, bootContent, setupScript: boatSetupScript,
+  installCommand, startCommand, restoreCommand: RESTORE_COMMAND, legacyBackupKey: backupKey,
+};

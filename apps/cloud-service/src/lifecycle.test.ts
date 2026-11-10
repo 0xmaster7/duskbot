@@ -155,7 +155,7 @@ it("stops sandboxes no live cloud runs on and never deletes one that may hold so
   const stray = await f.provider.create({ cloudId: `c${"e".repeat(24)}`, spec: plan.spec, region: "eu", userData: "", ttlSeconds: 3600 });
   f.advance(1000);
   const duplicate = await f.provider.create({ cloudId: c.id, spec: plan.spec, region: "eu", userData: "", ttlSeconds: 3600, attempt: 9 });
-  for (const id of [stray.id, duplicate.id]) await f.provider.sandbox(id);
+  for (const id of [stray.id, duplicate.id]) await f.provider.machine(id);
   f.advance(31 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile();
   expect(f.api.sandboxes.get(stray.id)!.state).toMatch(/archiv/);
   expect(f.api.sandboxes.get(duplicate.id)!.state).toMatch(/archiv/);
@@ -265,13 +265,13 @@ it("a replaced sandbox that answers again is backed up from its own state and ke
   const original = c.serverId!;
   f.api.sandboxes.get(original)!.volume.set(`__system__${CLOUD_HOME.data}/newer.json`, Buffer.from("after the backup"));
   // Boat stops answering for this one sandbox long enough, and leaves it off the list: it is taken for lost
-  const sandbox = f.provider.sandbox, listed = f.provider.listed;
-  f.provider.sandbox = async id => id === original ? null : sandbox(id);
+  const sandbox = f.provider.machine, listed = f.provider.listed;
+  f.provider.machine = async id => id === original ? null : sandbox(id);
   f.provider.listed = async id => id === original ? false : listed(id);
   for (let n = 0; n < 40 && !(c.status === "running" && c.serverId !== original); n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
   expect(c.serverId).not.toBe(original);
   // it answers again: stopped, its disk backed up as its own kept generation, the operator alerted; nothing deleted
-  f.provider.sandbox = sandbox; f.provider.listed = listed;
+  f.provider.machine = sandbox; f.provider.listed = listed;
   for (let n = 0; n < 6; n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
   const kept = c.managed!.backups.find(g => g.keep && g.source === original);
   expect(kept?.verifiedAt).not.toBeNull();

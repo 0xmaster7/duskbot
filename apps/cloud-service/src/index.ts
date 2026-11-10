@@ -13,21 +13,23 @@ import { parseSealKey } from "../../dashboard/server/clouds/seal.ts";
 import type { DesktopPlan, StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import { createAudit, type Audit, type AuditEntry } from "./audit.ts";
 import { boatBackupKey, createBackupStore, type BackupStore } from "./backups.ts";
-import { BOAT_PRICING, boatScope, createBoatProvider, type BoatProvider, type BoatSize } from "./boat.ts";
+import { BOAT_PRICING, boatScope, createBoatProvider, type BoatSize } from "./boat.ts";
+import type { MachineProvider } from "./provider.ts";
+import { BOAT_IMAGE } from "./home.ts";
 import { guardBackupSecret } from "./key-guard.ts";
-import { createBoatLifecycle, freshBoatState, managedSettingsFromEnv, type BoatSettings } from "./lifecycle.ts";
+import { createLifecycle, freshManagedState, managedSettingsFromEnv, type ManagedSettings } from "./lifecycle.ts";
 import { entitlementOf, noticeText, type Entitlement, type NoticeKind } from "./retention.ts";
 import { parseReleaseKeys, PINNED_RELEASE_KEYS, verifyRelease, type ReleaseKey } from "./release-signing.ts";
-import { createBoatSweep } from "./sweep.ts";
+import { createSweep } from "./sweep.ts";
 import { createStartLedger } from "./starts.ts";
 import { createSleepPolicy } from "./sleep-policy.ts";
 import "./state.ts";
 
 export interface ManagedCloudDeps {
-  provider: BoatProvider;
+  provider: MachineProvider;
   backups: BackupStore;
   audit: Audit;
-  settings: BoatSettings;
+  settings: ManagedSettings;
   kinds: ReadonlyArray<DesktopPlan["kind"]>;
   /** this service's backup secret; never on a machine */
   backupSecret: Buffer;
@@ -83,10 +85,10 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
       const starts = createStartLedger({ dataDir: ctx.dataDir, included: deps.settings.includedStarts, pricing: deps.pricing ?? BOAT_PRICING, now: ctx.now,
         alert: text => { console.warn(`managed: ${text}`); deps.alert?.({ at: ctx.now(), cloudId: "fleet", action: "starts_alert", actor: "reconciler", reason: text.slice(0, 120) }); } });
       const sleepPolicy = createSleepPolicy({ pricing: deps.pricing ?? BOAT_PRICING, includedStarts: deps.settings.includedStarts, starts });
-      const lifecycle = createBoatLifecycle({ ...deps, starts, sleepPolicy, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
+      const lifecycle = createLifecycle({ ...deps, image: BOAT_IMAGE, starts, sleepPolicy, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
         dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace, clouds: ctx.clouds, entitle: ctx.entitlement,
         releaseKeys: deps.releaseKeys ?? PINNED_RELEASE_KEYS, labelKey: deps.labelKey ?? Buffer.from(hkdfSync("sha256", backupSecret, Buffer.alloc(0), Buffer.from("omb-managed-label"), 32))  });
-      const sweep = createBoatSweep({ dataDir: ctx.dataDir, provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });
+      const sweep = createSweep({ dataDir: ctx.dataDir, file: "boat-sweep.json", provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });
       const claimLimits = new Map<string, { count: number; until: number }>();
       /** failed redemptions per address: 30 per 15 minutes; a machine's own successful boot never counts */
       function limited(key: string): boolean {
@@ -137,7 +139,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
       }
       return {
         kinds: deps.kinds,
-        fresh: () => freshBoatState(),
+        fresh: () => freshManagedState(),
         reconcile: c => lifecycle.reconcile(c),
         retryAt: (c, error) => lifecycle.retryAt(c, error),
         view(c): Partial<CloudDesktopView> {

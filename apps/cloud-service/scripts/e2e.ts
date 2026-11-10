@@ -70,8 +70,8 @@ const homeFetch: typeof fetch = async (input, init) => {
   if (adopt && !adopted && init?.method === "POST" && url.pathname.endsWith("/api/v1/sandboxes")) {
     adopted = true;
     const body = JSON.parse(String(init.body)) as { setupScript: string; files: Array<{ path: string; content: string }> };
-    if ((await ops.sandbox(adopt))?.state === "archived") await ops.power(adopt, "on");
-    for (let n = 0; n < 60 && !["ready", "idle", "running"].includes((await ops.sandbox(adopt))?.state ?? ""); n++) await sleep(3000);
+    if ((await ops.machine(adopt))?.state === "stopped") await ops.power(adopt, "on");
+    for (let n = 0; n < 60 && (await ops.machine(adopt))?.state !== "running"; n++) await sleep(3000);
     const wipe = await ops.run(adopt, `sudo systemctl stop omb-home omb-docker-gate >/dev/null 2>&1; sudo rm -r -f ${WIPE.join(" ")}; sudo systemctl daemon-reload; echo wiped`, 120);
     note(`adopted ${adopt}: wiped ${wipe.ok}`);
     await ops.upload(adopt, body.files[0]!.path, Buffer.from(body.files[0]!.content));
@@ -281,7 +281,7 @@ try {
   const lost = cloud().serverId!;
   if (api) api.lose(lost); else await ops.requestDelete(lost);
   note(`deleted sandbox ${lost} (as if the machine were lost)`);
-  for (let n = 0; n < 40 && (await ops.sandbox(lost)) !== null; n++) await sleep(fake ? 0 : 3000);
+  for (let n = 0; n < 40 && (await ops.machine(lost)) !== null; n++) await sleep(fake ? 0 : 3000);
   await reconcileUntil(cloudId, () => cloud().status === "running" && cloud().serverId !== lost, 30 * 60_000, "recovery");
   note(`recovered into ${cloud().serverId} at ${cloud().origin}`);
   results.recoveryMs = Date.now() - last; mark("recovered from backup");
@@ -303,11 +303,11 @@ try {
     note(`teardown delete ${id}: ${JSON.stringify(answer)}`);
   }
   for (let n = 0; n < 40; n++) {
-    const left = (await Promise.all([...created].map(async id => (await ops.sandbox(id).catch(() => ({ id }))) ? id : null))).filter(Boolean);
+    const left = (await Promise.all([...created].map(async id => (await ops.machine(id).catch(() => ({ id }))) ? id : null))).filter(Boolean);
     if (!left.length) break;
     await sleep(fake ? 0 : 3000);
   }
-  const remaining = (await Promise.all([...created].map(async id => (await ops.sandbox(id).catch(() => ({ id }))) ? id : null))).filter(Boolean);
+  const remaining = (await Promise.all([...created].map(async id => (await ops.machine(id).catch(() => ({ id }))) ? id : null))).filter(Boolean);
   const listed = await ops.inventory().catch(() => [{ id: "unknown" }]);
   note(`after teardown: direct reads find ${remaining.length}, scope list finds ${listed.length}`);
   results.leftOnBoat = remaining.length + listed.length;

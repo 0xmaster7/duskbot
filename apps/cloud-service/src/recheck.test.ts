@@ -13,7 +13,7 @@ import { createBoatProvider } from "./boat.ts";
 import { createAudit } from "./audit.ts";
 import { boatBackupKey, createBackupStore, tarEntries } from "./backups.ts";
 import { backupKey } from "./home.ts";
-import { DEFAULT_BOAT_SETTINGS } from "./lifecycle.ts";
+import { DEFAULT_MANAGED_SETTINGS } from "./lifecycle.ts";
 import { DAY_MS, entitlementOf } from "./retention.ts";
 import { createFakeCloudProvider } from "../../dashboard/server/clouds/fake-provider.ts";
 import { startFakeBoatApi } from "./fake-boat-api.ts";
@@ -65,7 +65,7 @@ async function fixture() {
       providers: { dedicated: createFakeCloudProvider(), pool: { ...createFakeCloudProvider(), suspend: async () => {}, resume: async () => {} } },
       config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", image: "ghcr.io/example/home:1", poolQuota: (_k, spec, botComputers) => ({ ...spec, netMbps: 1, pids: 1, botComputers }) },
       managed: createManagedCloud({ provider, backups, audit, kinds: ["shared_s", "shared_m", "dedicated"], backupSecret: secret, previousBackupSecret: previous,
-        settings: { ...DEFAULT_BOAT_SETTINGS, package: { sha256: "a".repeat(64), url: "https://packages.example.test/home.tgz" } },
+        settings: { ...DEFAULT_MANAGED_SETTINGS, package: { sha256: "a".repeat(64), url: "https://packages.example.test/home.tgz" } },
         entitlement: cloud => entitlementOf(subscriptions, cloud, at),
         notify: (cloud, kind, when, link) => notices.push({ cloudId: cloud.id, kind, at: when, ...(link ? { link } : {}) }) }) });
     cleanup.push(() => service.close());
@@ -116,10 +116,10 @@ async function withUnbackedData(f: F, s: S) {
 }
 /** Boat answers 404 for `id` (and, when `unlisted`, leaves it out of the account list) until restored */
 function blackout(provider: ReturnType<F["instance"]>["provider"], id: string, unlisted: boolean) {
-  const sandbox = provider.sandbox, listed = provider.listed;
-  provider.sandbox = async x => x === id ? null : sandbox(x);
+  const sandbox = provider.machine, listed = provider.listed;
+  provider.machine = async x => x === id ? null : sandbox(x);
   if (unlisted) provider.listed = async x => x === id ? false : listed(x);
-  return () => { provider.sandbox = sandbox; provider.listed = listed; };
+  return () => { provider.machine = sandbox; provider.listed = listed; };
 }
 const holds = (f: F) => [...f.api.sandboxes.values()].some(x => x.volume.has(`__system__${CLOUD_HOME.data}/precious.json`) || x.snapshots.some(sn => sn.volume.has(`__system__${CLOUD_HOME.data}/precious.json`)));
 

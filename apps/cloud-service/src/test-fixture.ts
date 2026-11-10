@@ -8,7 +8,7 @@ import type { StoredSubscription } from "../../dashboard/server/billing/store.ts
 import { createBoatProvider } from "./boat.ts";
 import { createAudit } from "./audit.ts";
 import { createBackupStore } from "./backups.ts";
-import { DEFAULT_BOAT_SETTINGS, type BoatSettings } from "./lifecycle.ts";
+import { DEFAULT_MANAGED_SETTINGS, type ManagedSettings } from "./lifecycle.ts";
 import type { ReleaseKey } from "./release-signing.ts";
 import { DAY_MS, entitlementOf } from "./retention.ts";
 import { createFakeCloudProvider } from "../../dashboard/server/clouds/fake-provider.ts";
@@ -24,7 +24,7 @@ export const plan: DesktopPlan = { kind: "shared_s", placement: "pool", spec: { 
 export const SHA = "a".repeat(64);
 export const BACKUP_SECRET = Buffer.alloc(32, 9);
 
-export async function boatFixture(options: { retentionDays?: number; setupPolls?: number; settings?: Partial<BoatSettings>; releaseKeys?: ReleaseKey[]; edgeToken?: string;
+export async function boatFixture(options: { retentionDays?: number; setupPolls?: number; settings?: Partial<ManagedSettings>; releaseKeys?: ReleaseKey[]; edgeToken?: string;
   entitlements?: { sign(cloud: StoredCloud): string } } = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), "omb-boat-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
   let at = Date.UTC(2026, 10, 9, 12);
@@ -62,7 +62,7 @@ export async function boatFixture(options: { retentionDays?: number; setupPolls?
     providers: { dedicated: createFakeCloudProvider(), pool: { ...createFakeCloudProvider(), suspend: async () => {}, resume: async () => {} } },
     config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", image: "ghcr.io/example/home:1", poolQuota: (_k, spec, botComputers) => ({ ...spec, netMbps: 1, pids: 1, botComputers }) },
     managed: createManagedCloud({ provider, backups, audit, kinds: ["shared_s", "shared_m", "dedicated"], backupSecret: BACKUP_SECRET,
-      settings: { ...DEFAULT_BOAT_SETTINGS, package: { sha256: SHA, url: "https://packages.example.test/home.tgz" }, ...(options.retentionDays ? { retentionDays: options.retentionDays } : {}), ...options.settings },
+      settings: { ...DEFAULT_MANAGED_SETTINGS, package: { sha256: SHA, url: "https://packages.example.test/home.tgz" }, ...(options.retentionDays ? { retentionDays: options.retentionDays } : {}), ...options.settings },
       ...(options.releaseKeys ? { releaseKeys: options.releaseKeys } : {}), ...(options.edgeToken ? { edgeToken: options.edgeToken } : {}),
       entitlement: cloud => entitlementOf(subscriptions, cloud, at),
       notify: (cloud, kind, when, link) => notices.push({ cloudId: cloud.id, kind, at: when, ...(link ? { link } : {}) }) }) });

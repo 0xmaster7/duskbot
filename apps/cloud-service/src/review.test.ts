@@ -9,7 +9,7 @@ import { createBoatProvider } from "./boat.ts";
 import { createAudit } from "./audit.ts";
 import { boatBackupKey, createBackupStore, tarEntries } from "./backups.ts";
 import { backupKey } from "./home.ts";
-import { DEFAULT_BOAT_SETTINGS } from "./lifecycle.ts";
+import { DEFAULT_MANAGED_SETTINGS } from "./lifecycle.ts";
 import { DAY_MS, entitlementOf } from "./retention.ts";
 import { createFakeCloudProvider } from "../../dashboard/server/clouds/fake-provider.ts";
 import { startFakeBoatApi } from "./fake-boat-api.ts";
@@ -61,7 +61,7 @@ async function fixture() {
       providers: { dedicated: createFakeCloudProvider(), pool: { ...createFakeCloudProvider(), suspend: async () => {}, resume: async () => {} } },
       config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", image: "ghcr.io/example/home:1", poolQuota: (_k, spec, botComputers) => ({ ...spec, netMbps: 1, pids: 1, botComputers }) },
       managed: createManagedCloud({ provider, backups, audit, kinds: ["shared_s", "shared_m", "dedicated"], backupSecret: BACKUP_SECRET,
-        settings: { ...DEFAULT_BOAT_SETTINGS, package: { sha256: "a".repeat(64), url: "https://packages.example.test/home.tgz" } },
+        settings: { ...DEFAULT_MANAGED_SETTINGS, package: { sha256: "a".repeat(64), url: "https://packages.example.test/home.tgz" } },
         entitlement: cloud => entitlementOf(subscriptions, cloud, at),
         notify: (cloud, kind, when, link) => notices.push({ cloudId: cloud.id, kind, at: when, ...(link ? { link } : {}) }) }) });
     cleanup.push(() => service.close());
@@ -152,8 +152,8 @@ it("one transient 404 from Boat must not rebuild a paid cloud and later delete t
   await sleepCycle(f, s, c);
   expect(c.managed!.backups).toHaveLength(1);
   // one GET answers 404 (a Boat incident, a proxy, a rotated key for one deploy); the sandbox is in fact still there
-  const real = provider.sandbox; let blip = true;
-  provider.sandbox = async id => { if (blip && id === original) { blip = false; return null; } return real(id); };
+  const real = provider.machine; let blip = true;
+  provider.machine = async id => { if (blip && id === original) { blip = false; return null; } return real(id); };
   c.nextAttemptAt = 0; await s.reconcile();
   expect.soft(c.serverId, "a single 404 rebuilt the cloud").toBe(original);
   if (c.serverId !== original) await f.settle(s, c, c => c.status === "running" && c.serverId !== null);

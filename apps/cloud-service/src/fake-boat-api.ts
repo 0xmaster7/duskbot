@@ -65,6 +65,7 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
     requests.push({ method, path: `${path}${url.search}`, body });
     if (failNext > 0) { failNext--; return error(res, 503, "unavailable"); }
     if (limitNext > 0) { limitNext--; res.writeHead(429, { "content-type": "application/json", "retry-after": "40" }); res.end(JSON.stringify({ ok: false, code: "rate_limited" })); return; }
+    if (req.method === "GET" && path === "/limits") { send(res, 200, { nextStartDollars: 0 }); return; }
     if (path === "/named-snapshots" && method === "GET") return send(res, 200, { ok: true, snapshots: [...named.values()].map(x => ({ name: x.name, status: x.status, createdAt: iso(x.createdAt) })) });
     if (path === "/named-snapshots" && method === "POST") {
       if (!sandboxes.has(body?.sandboxId) || typeof body?.name !== "string") return error(res, 404, "not_found");
