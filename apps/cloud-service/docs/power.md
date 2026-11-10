@@ -194,4 +194,8 @@ operator's alerts as the rolling day passes 70%, 100%, 150%, 200% and 500% of th
 
 `scripts/lifecycle-sim.ts` simulates fleets on the provider's real prices (personas, mixed fleets by plan tier, faults),
 tunes the policy's settings by coordinate descent and writes the report. It drives this exact `decide()`/`wake()` and
-rails. The fuzz tests (`src/power/fuzz.test.ts`) use the same simulator.
+rails. The fuzz tests (`src/power/fuzz.test.ts`) use the same simulator. Each simulated home keeps its monthly book (6 GB of
+backups charged to it) and the report shows each policy's worst calendar month as a share of the ceiling; with the
+ceiling in place every persona costs the same to the cent as before it, and the worst month any adaptive home reached is
+96.3% (the monitor-heavy persona, up all month). `src/power/ceiling.fuzz.test.ts` runs 600 month-long fault streams
+against the ledger and the rule, and 12 fleets through the simulator.
