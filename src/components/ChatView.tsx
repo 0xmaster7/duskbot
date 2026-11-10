@@ -1280,7 +1280,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             </div>
           )}
           <div className={statusSlot ? cn("turn-status-slot h-9 shrink-0", presenceUnderBubble && SIMPLE_STACKED) : "contents"} onMouseEnter={() => setMarkEmphasized(true)} onMouseLeave={() => setMarkEmphasized(false)} onClick={() => markRef.current?.poke?.()}>
-          {<TurnPresence
+          {(presenceVisible || presenceShown) && <TurnPresence
             avatar={
               <MarkCrossfade swap={presenceMarkState}>
                 <StatusMark

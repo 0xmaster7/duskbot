@@ -44,9 +44,9 @@ export function lifeAt(seed: string, elapsedMs: number, typing = false): { beat:
   return { beat: "mascot", nextAtMs: Infinity };
 }
 
-/** The state the mark plays for a beat. Only the quiet wait lives this way (its base is thinking, or streaming while the
- * reply is written); a named step keeps its own state. */
+/** The state the mark plays for a beat. Only the quiet wait lives this way (its base is thinking); a reply being written
+ * (streaming) or a named step keeps its own state. */
 export function lifeMarkState(base: MarkState, beat: LifeBeat | null | undefined): MarkState {
-  if (!beat || (base !== "thinking" && base !== "streaming")) return base;
+  if (!beat || base !== "thinking") return base;
   return beat === "mascot" ? LIFE_MASCOT_STATE : LIFE_DOTS_STATE;
 }

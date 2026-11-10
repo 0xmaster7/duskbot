@@ -42,6 +42,7 @@ describe("what the mark plays", () => {
     expect(lifeMarkState("thinking", "mascot")).toBe(LIFE_MASCOT_STATE);
     expect(lifeMarkState("thinking", "dots")).toBe(LIFE_DOTS_STATE);
     expect(lifeMarkState("thinking", undefined)).toBe("thinking");
+    expect(lifeMarkState("streaming", "dots"), "typing is the bot itself").toBe("streaming");
     for (const step of ["reading", "searching", "running", "coding", "working", "blocked", "finished"] as const) {
       expect(lifeMarkState(step, "mascot")).toBe(step);
     }
