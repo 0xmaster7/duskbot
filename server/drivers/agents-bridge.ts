@@ -34,6 +34,7 @@ export type BridgeRoute = { name: string; arguments: Json } | { answer: BridgeAn
  * rules. Every tool the host counts as outbound is listed as well (calledByItsOwnName). */
 export const BRIDGE_HOT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "set_status",
+  "send_message",
   "create_options_card",
   "tool_result_read",
   "list_room_targets",

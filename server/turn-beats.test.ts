@@ -1,0 +1,237 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import type { RuntimeEvent } from "./contracts.ts";
+import { toolStep } from "./step-summary.ts";
+import {
+  ACK_IDLE_MS, beatsNote, cleanBeat, createTurnBeats, looksLikeWork, MILESTONE_QUIET_MS, PLAN_MIN_MS, PLAN_WRITE_MS, type BeatKind,
+} from "./turn-beats.ts";
+
+const THREAD = "th1";
+const TURN = "turn-1";
+
+function event(fields: Record<string, unknown>): RuntimeEvent {
+  return { eventId: `e${Math.random()}`, provider: "claudeAgent", threadId: THREAD, turnId: TURN, createdAt: new Date().toISOString(), ...fields } as RuntimeEvent;
+}
+const toolStart = (title: string, input: unknown, id = title) =>
+  event({ type: "item.started", itemType: "tool", itemId: id, title, input: JSON.stringify(input), step: toolStep({ title, input: JSON.stringify(input) }) });
+const toolDone = (id: string) => event({ type: "item.completed", itemType: "tool", itemId: id, ok: true });
+const said = (text: string) => event({ type: "item.completed", itemType: "assistant_text", text });
+
+function setup(options: { replies?: Partial<Record<BeatKind, string>>; enabled?: boolean; writerMs?: number; soul?: string } = {}) {
+  vi.useFakeTimers();
+  const prompts: Array<{ kind: BeatKind; prompt: string }> = [];
+  const posts: Array<{ kind: BeatKind; text: string; turnId: string }> = [];
+  let live = true;
+  const replies = { ack: "On it, comparing budget keyboards now.", plan: "You'll get a short list of three picks with prices. I'll check the prices are current before sending.", milestone: "Seven review sites read so far; now checking prices.", ...options.replies };
+  const beats = createTurnBeats({
+    enabled: () => options.enabled !== false,
+    writer: () => (prompt) => {
+      const kind: BeatKind = prompt.includes("Write the acknowledgement") ? "ack" : prompt.includes("Write the second message") ? "plan" : "milestone";
+      prompts.push({ kind, prompt });
+      return new Promise((resolve) => setTimeout(() => resolve(replies[kind]), options.writerMs ?? 2_000));
+    },
+    bot: () => ({ name: "Nova", soul: options.soul ?? "You are Nova, a market researcher." }),
+    live: (_threadId, turnId) => live && turnId === TURN,
+    post: ({ kind, text, turnId }) => posts.push({ kind, text, turnId }),
+  });
+  const send = (e: RuntimeEvent) => beats.onEvent(e);
+  return { beats, prompts, posts, send, stop: () => { live = false; } };
+}
+
+describe("turn beats", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("acks real work as its first tool runs, then says what they'll get, and tells the engine afterwards", async () => {
+    const { beats, prompts, posts, send } = setup();
+    beats.start({ botId: "b", threadId: THREAD, text: "Research the best budget mechanical keyboards in India", attachments: 0, unattended: false });
+    expect(prompts.map((p) => p.kind)).toEqual(["ack"]);
+    expect(prompts[0]!.prompt).toContain("You are Nova");
+    send(event({ type: "turn.started" }));
+    await vi.advanceTimersByTimeAsync(1_000);
+    send(toolStart("WebSearch", { query: "budget mechanical keyboards India" }, "s1"));
+    await vi.advanceTimersByTimeAsync(900);
+    expect(posts).toEqual([]);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(posts).toEqual([{ kind: "ack", text: "On it, comparing budget keyboards now.", turnId: TURN }]);
+    send(toolDone("s1"));
+    send(toolStart("WebFetch", { url: "https://www.rtings.com/keyboard" }, "f1"));
+    await vi.advanceTimersByTimeAsync(PLAN_WRITE_MS - 2_100);
+    expect(prompts.map((p) => p.kind)).toEqual(["ack", "plan"]);
+    expect(prompts[1]!.prompt).toContain("- Searching for budget mechanical keyboards");
+    expect(prompts[1]!.prompt).toContain("- Reading rtings.com");
+    expect(prompts[1]!.prompt).toContain("On it, comparing budget keyboards now.");
+    await vi.advanceTimersByTimeAsync(PLAN_MIN_MS - PLAN_WRITE_MS + 300);
+    expect(posts.map((p) => p.kind)).toEqual(["ack", "plan"]);
+    send(said("My pick is the Keychron K2."));
+    send(event({ type: "turn.completed", ok: true }));
+    const note = beats.note(THREAD);
+    expect(note).toContain("\"On it, comparing budget keyboards now.\"");
+    expect(note).toContain("I'll check the prices are current");
+    expect(beats.note(THREAD)).toBe("");
+  });
+
+  it("drops its ack when the engine speaks first", async () => {
+    const { beats, posts, send } = setup();
+    beats.start({ botId: "b", threadId: THREAD, text: "Research standing desks under 30k", attachments: 0, unattended: false });
+    send(event({ type: "turn.started" }));
+    send(event({ type: "content.delta", streamKind: "assistant_text", delta: "On it, " }));
+    send(toolStart("WebSearch", { query: "standing desks" }, "s1"));
+    await vi.advanceTimersByTimeAsync(ACK_IDLE_MS);
+    expect(posts).toEqual([]);
+  });
+
+  it("waits for a quick question to show it is work, and says nothing when it is answered", async () => {
+    const quiet = setup();
+    quiet.beats.start({ botId: "b", threadId: THREAD, text: "what's 18% of 2450?", attachments: 0, unattended: false });
+    quiet.send(event({ type: "turn.started" }));
+    await vi.advanceTimersByTimeAsync(4_000);
+    quiet.send(said("It's 441."));
+    quiet.send(event({ type: "turn.completed", ok: true }));
+    expect(quiet.prompts).toEqual([]);
+    expect(quiet.posts).toEqual([]);
+    vi.useRealTimers();
+
+    const tool = setup();
+    tool.beats.start({ botId: "b", threadId: THREAD, text: "weather in Pune today?", attachments: 0, unattended: false });
+    tool.send(event({ type: "turn.started" }));
+    expect(tool.prompts).toEqual([]);
+    tool.send(toolStart("WebSearch", { query: "weather Pune" }, "s1"));
+    expect(tool.prompts.map((p) => p.kind)).toEqual(["ack"]);
+    await vi.advanceTimersByTimeAsync(2_100);
+    expect(tool.posts.map((p) => p.kind)).toEqual(["ack"]);
+  });
+
+  it("waits for the engine before acking work that has run no tool yet", async () => {
+    const { beats, posts, send } = setup();
+    beats.start({ botId: "b", threadId: THREAD, text: "Write a launch plan for the spring candle line", attachments: 0, unattended: false });
+    send(event({ type: "turn.started" }));
+    await vi.advanceTimersByTimeAsync(ACK_IDLE_MS - 500);
+    expect(posts).toEqual([]);
+    await vi.advanceTimersByTimeAsync(600);
+    expect(posts.map((p) => p.kind)).toEqual(["ack"]);
+  });
+
+  it("holds the ack for a bot set up to ask before it uses tools until a tool runs", async () => {
+    const { beats, posts, send } = setup({ soul: "You are Echo. If asked to fetch real data, say what you would do and ask before using any tool." });
+    beats.start({ botId: "b", threadId: THREAD, text: "Research candle shops' refund policies", attachments: 0, unattended: false });
+    send(event({ type: "turn.started" }));
+    await vi.advanceTimersByTimeAsync(ACK_IDLE_MS * 2);
+    expect(posts).toEqual([]);
+    send(toolStart("WebSearch", { query: "candle refunds" }, "s1"));
+    await vi.advanceTimersByTimeAsync(300);
+    expect(posts.map((p) => p.kind)).toEqual(["ack"]);
+  });
+
+  it("never runs for unattended turns, when switched off, or for a turn that is no longer live", async () => {
+    const off = setup({ enabled: false });
+    off.beats.start({ botId: "b", threadId: THREAD, text: "Research keyboards", attachments: 0, unattended: false });
+    expect(off.prompts).toEqual([]);
+    vi.useRealTimers();
+    const routine = setup();
+    routine.beats.start({ botId: "b", threadId: THREAD, text: "Research keyboards", attachments: 0, unattended: true });
+    expect(routine.prompts).toEqual([]);
+    vi.useRealTimers();
+    const gone = setup();
+    gone.beats.start({ botId: "b", threadId: THREAD, text: "Research keyboards", attachments: 0, unattended: false });
+    gone.send(event({ type: "turn.started" }));
+    gone.send(toolStart("WebSearch", { query: "k" }, "s1"));
+    gone.stop();
+    await vi.advanceTimersByTimeAsync(PLAN_MIN_MS);
+    expect(gone.posts).toEqual([]);
+  });
+
+  it("sends the second message after the engine's own ack or note, with what was said, but not after three messages", async () => {
+    const own = setup();
+    own.beats.start({ botId: "b", threadId: THREAD, text: "Research keyboard prices in India", attachments: 0, unattended: false });
+    own.send(event({ type: "turn.started" }));
+    own.send(said("On it, checking keyboard prices."));
+    own.send(toolStart("WebSearch", { query: "keyboard prices" }, "s1"));
+    await vi.advanceTimersByTimeAsync(2_000);
+    own.send(said("Amazon blocked the page, so I'm trying Flipkart."));
+    await vi.advanceTimersByTimeAsync(PLAN_MIN_MS);
+    expect(own.posts.map((p) => p.kind)).toEqual(["plan"]);
+    expect(own.prompts.at(-1)!.prompt).toContain("- Amazon blocked the page, so I'm trying Flipkart.");
+    vi.useRealTimers();
+
+    const chatty = setup();
+    chatty.beats.start({ botId: "b", threadId: THREAD, text: "Research keyboard prices in India", attachments: 0, unattended: false });
+    chatty.send(event({ type: "turn.started" }));
+    chatty.send(toolStart("WebSearch", { query: "keyboard prices" }, "s1"));
+    await vi.advanceTimersByTimeAsync(2_500);
+    chatty.send(said("Amazon blocked the page."));
+    chatty.send(said("Trying Flipkart instead."));
+    await vi.advanceTimersByTimeAsync(PLAN_MIN_MS);
+    expect(chatty.posts.map((p) => p.kind)).toEqual(["ack"]);
+  });
+
+  it("writes the second message again when the engine says something while it waits, and holds it while the engine writes", async () => {
+    const { beats, prompts, posts, send } = setup();
+    beats.start({ botId: "b", threadId: THREAD, text: "Research keyboard prices in India", attachments: 0, unattended: false });
+    send(event({ type: "turn.started" }));
+    send(toolStart("WebSearch", { query: "keyboard prices" }, "s1"));
+    await vi.advanceTimersByTimeAsync(PLAN_WRITE_MS + 2_500);
+    expect(prompts.map((p) => p.kind)).toEqual(["ack", "plan"]);
+    send(event({ type: "content.delta", streamKind: "assistant_text", delta: "Amazon blocked" }));
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(posts.map((p) => p.kind)).toEqual(["ack"]);
+    send(said("Amazon blocked the page, so I'm trying Flipkart."));
+    send(toolStart("WebFetch", { url: "https://www.flipkart.com/x" }, "f1"));
+    await vi.advanceTimersByTimeAsync(2_100);
+    expect(prompts.map((p) => p.kind)).toEqual(["ack", "plan", "plan"]);
+    expect(prompts.at(-1)!.prompt).toContain("Amazon blocked the page");
+    expect(posts.map((p) => p.kind)).toEqual(["ack", "plan"]);
+  });
+
+  it("drops the second message once the engine is writing its result", async () => {
+    const { beats, posts, send } = setup();
+    beats.start({ botId: "b", threadId: THREAD, text: "Compare Notion and Coda for a team of five", attachments: 0, unattended: false });
+    send(event({ type: "turn.started" }));
+    send(toolStart("WebSearch", { query: "notion pricing" }, "s1"));
+    await vi.advanceTimersByTimeAsync(2_500);
+    send(toolDone("s1"));
+    await vi.advanceTimersByTimeAsync(PLAN_WRITE_MS);
+    send(event({ type: "content.delta", streamKind: "assistant_text", delta: "I'd go with Notion." }));
+    await vi.advanceTimersByTimeAsync(PLAN_MIN_MS);
+    expect(posts.map((p) => p.kind)).toEqual(["ack"]);
+  });
+
+  it("sends a milestone after a long quiet stretch of work, and does not retry a declined one at once", async () => {
+    const { beats, prompts, posts, send } = setup({ replies: { milestone: "SKIP" }, writerMs: 100 });
+    beats.start({ botId: "b", threadId: THREAD, text: "Build a 6-slide deck on the Bangalore pet market", attachments: 0, unattended: false });
+    send(event({ type: "turn.started" }));
+    send(toolStart("WebSearch", { query: "pet market" }, "s1"));
+    await vi.advanceTimersByTimeAsync(PLAN_MIN_MS + 1_000);
+    expect(posts.map((p) => p.kind)).toEqual(["ack", "plan"]);
+    send(toolStart("Write", { file_path: "/w/slide1.md" }, "w1"));
+    send(toolStart("Write", { file_path: "/w/slide2.md" }, "w2"));
+    await vi.advanceTimersByTimeAsync(MILESTONE_QUIET_MS);
+    expect(prompts.filter((p) => p.kind === "milestone")).toHaveLength(1);
+    expect(prompts.at(-1)!.prompt).toContain("- Writing slide2.md");
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(prompts.filter((p) => p.kind === "milestone")).toHaveLength(1);
+    expect(posts.map((p) => p.kind)).toEqual(["ack", "plan"]);
+  });
+});
+
+describe("beat text", () => {
+  it("keeps one short plain line and refuses the rest", () => {
+    expect(cleanBeat("ack", "\"On it, checking the fares now!\"")).toBe("On it, checking the fares now.");
+    expect(cleanBeat("ack", "Message: Got it, pulling the reviews.")).toBe("Got it, pulling the reviews.");
+    expect(cleanBeat("ack", "SKIP")).toBeNull();
+    expect(cleanBeat("ack", "Want me to check prices too?")).toBeNull();
+    expect(cleanBeat("ack", "word ".repeat(40))).toBeNull();
+    expect(cleanBeat("plan", "one\ntwo\nthree")).toBeNull();
+    expect(cleanBeat("ack", "On it, testing sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789 now")).not.toContain("abcdefghijklmnopqrstuvwxyz0123456789");
+  });
+
+  it("tells apart work from a quick question", () => {
+    expect(looksLikeWork("Research the best budget keyboards", 0)).toBe(true);
+    expect(looksLikeWork("what's 18% of 2450?", 0)).toBe(false);
+    expect(looksLikeWork("hi", 1)).toBe(true);
+  });
+
+  it("is nothing for the engine when nothing was sent", () => {
+    expect(beatsNote([])).toBe("");
+  });
+});
+

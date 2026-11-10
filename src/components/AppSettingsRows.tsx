@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
-import { skillAuthoringEnabled } from "@/lib/feature-flags";
+import { quickUpdatesEnabled, skillAuthoringEnabled } from "@/lib/feature-flags";
 import { localeChoices } from "@/locales";
 import { activeLocale, t } from "@/lib/i18n";
 import { NewBrowserSettings } from "./BrowserSettingsRows";
@@ -87,6 +87,43 @@ export function TalkingStyleRow() {
         data-settings-select="talking-style"
         options={TALKING_STYLES.map((style) => ({ value: style, label: t(`settings.talkingStyle.${style}`) }))}
         onChange={(event) => void save(event.target.value)}
+      />
+    </SettingRow>
+  );
+}
+
+export function QuickUpdatesRow() {
+  const { state, dispatch } = useStore();
+  const enabled = quickUpdatesEnabled(state.config);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const save = async (next: boolean) => {
+    if (saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const config: ConfigStatus = await api("/api/config", {
+        method: "PATCH",
+        body: JSON.stringify({ features: { quickUpdates: next } }),
+      });
+      dispatch({ type: "configStatus", config });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("settings.quickUpdates.error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <SettingRow
+      title={t("settings.quickUpdates.title")}
+      subtitle={t("settings.quickUpdates.subtitle")}
+      message={error ? <p role="alert" className="text-danger">{error}</p> : null}
+    >
+      <Switch
+        checked={enabled}
+        aria-label={t("settings.quickUpdates.aria")}
+        disabled={saving}
+        onClick={() => void save(!enabled)}
       />
     </SettingRow>
   );

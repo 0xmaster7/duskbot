@@ -62,7 +62,7 @@ export class EventBus {
   private readonly drainWaiters: Array<() => void> = [];
   private readonly queuedLogWarnings = new Map<string, RuntimeEvent>();
   // A status-line report is live only: delivered to listeners, never queued for the log.
-  private readonly status = new TurnStatus();
+  private readonly status: TurnStatus;
   private readonly progress = new ProgressGate((event) => {
     if (this.pendingText.has(event.threadId)) this.flushThread(event.threadId);
     this.deliver(this.status.stamp(event));
@@ -75,10 +75,12 @@ export class EventBus {
 
   private readonly gate?: (event: RuntimeEvent) => boolean;
 
-  /** `gate` sees each adapter event first; true means it took the event and publishes what it chooses. */
-  constructor(appendLog: EventLogAppend = defaultAppend, gate?: (event: RuntimeEvent) => boolean) {
+  /** `gate` sees each adapter event first; true means it took the event and publishes what it chooses.
+   * `statusLanguage`: the language a thread's derived status labels are written in. */
+  constructor(appendLog: EventLogAppend = defaultAppend, gate?: (event: RuntimeEvent) => boolean, options: { statusLanguage?: (threadId: string) => string | undefined } = {}) {
     this.appendLog = appendLog;
     this.gate = gate;
+    this.status = new TurnStatus({ emit: (frame) => this.progress.offer(frame), language: options.statusLanguage });
   }
 
   attach(instances: ProviderInstance[]) {
@@ -112,10 +114,15 @@ export class EventBus {
       if (this.pendingText.has(raw.threadId)) this.flushThread(raw.threadId);
       this.enqueue(raw);
       if (statusCall.frame) this.progress.offer(statusCall.frame);
+      if (statusCall.message) {
+        this.progress.supersede(raw.threadId, false);
+        this.write(statusCall.message);
+      }
       return;
     }
     if (raw.type === "turn.started" || isTerminalEvent(raw)) this.status.forget(raw.threadId);
     const event = this.steps.observe(raw, isTerminalEvent(raw));
+    if (event.type === "item.started") this.status.derive(event);
     if (STATUS_LINE_EVENTS.has(event.type) || isTerminalEvent(event)) this.progress.supersede(event.threadId, isTerminalEvent(event));
     const pending = this.pendingText.get(event.threadId);
     if (event.type === "content.delta") {
