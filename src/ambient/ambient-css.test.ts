@@ -17,3 +17,14 @@ it("keeps the gliding highlight out of the rows' flow and out of the way of ever
 it("keeps a focused reply field's border as it was", () => {
   expect(css).not.toMatch(/\.amb-reply:focus-within\s*\{/);
 });
+
+it("lays the open island's mascots out in a wrapping grid: no sideways scroll or edge fade, four rows at most before it scrolls", () => {
+  const grid = rule(".amb-strip");
+  expect(grid).toContain("flex-wrap: wrap");
+  expect(grid).toContain("justify-content: center");
+  expect(grid).toContain("gap: var(--amb-strip-gap)");
+  expect(grid).toContain("max-height: calc(4 * 44px + 3 * var(--amb-strip-gap)");
+  expect(grid).toContain("overflow-x: hidden");
+  expect(grid).toContain("overflow-y: auto");
+  expect(grid).not.toContain("mask-image");
+});

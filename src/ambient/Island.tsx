@@ -2,7 +2,7 @@
 // the left and the team's mood as an emoji on the right, only for what happens out of sight: what the person is watching
 // in the app never shows here, and a change has to hold a moment before it does. Under the pointer it grows into a panel,
 // on one spring (its width, height, corners and the two flares where it meets the top of the screen all ride it): every
-// bot's mascot in one row with its state, and below it any ask waiting on the person, answered in place.
+// bot's mascot in a wrapping grid with its state, and below it any ask waiting on the person, answered in place.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion, useTransform } from "motion/react";
 import { Check, Plus } from "lucide-react";
@@ -253,12 +253,13 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   );
 }
 
-/** Under the pointer, a mascot says whose it is in a small tip below the row, kept this far inside the panel's edges. */
+/** Under the pointer, a mascot says whose it is in a small tip just below it, kept this far inside the panel's edges. */
 const TIP_EDGE = 40;
 
-/** The open island: every bot as a mascot in one row, the most urgent first, each with its state as the dock shows it
- * (blue working, green unseen reply, a numbered bubble for asks, "!" for a failure). A click opens that bot in the app;
- * an ask waiting on the person is answered below the row, only for that bot. More bots than fit scroll sideways. */
+/** The open island: every bot as a mascot in a grid that wraps onto as many rows as it needs (past four it scrolls), the
+ * most urgent first, each with its state as the dock shows it (blue working, green unseen reply, a numbered bubble for
+ * asks, "!" for a failure). A click opens that bot in the app; an ask waiting on the person is answered below the grid,
+ * only for that bot. */
 function PanelBody({ bots, seen, mark, cheer, labels, open, bridge, onPin }: {
   bots: readonly AmbientBot[]; seen: ReadonlySet<string>; mark: (keys: string[]) => void; cheer: number; labels: AmbientLabels; open: boolean;
   bridge: AmbientBridge; onPin: (pinned: boolean) => void;
@@ -278,13 +279,14 @@ function PanelBody({ bots, seen, mark, cheer, labels, open, bridge, onPin }: {
   const asking = all.map((shown) => byId.get(shown.id) ?? shown).filter((bot) => bot.status === "needs-you");
 
   const strip = useRef<HTMLUListElement>(null);
-  const [tip, setTip] = useState<{ id: string; name: string; x: number } | null>(null);
+  const [tip, setTip] = useState<{ id: string; name: string; x: number; y: number } | null>(null);
   const showTip = (bot: AmbientBot, target: HTMLElement) => {
     const row = strip.current;
     if (!row) return;
-    // the button's offsetParent is the wrap too (the row is not positioned), so only the row's scroll is taken off
-    const x = target.offsetLeft - row.scrollLeft + target.offsetWidth / 2;
-    setTip({ id: bot.id, name: bot.name, x: Math.round(Math.min(Math.max(x, TIP_EDGE), row.offsetLeft + row.clientWidth - TIP_EDGE)) });
+    // the button's offsetParent is the wrap too (the grid is not positioned), so only the grid's scroll is taken off
+    const x = target.offsetLeft + target.offsetWidth / 2;
+    const y = target.offsetTop - row.scrollTop + target.offsetHeight + 2;
+    setTip({ id: bot.id, name: bot.name, x: Math.round(Math.min(Math.max(x, TIP_EDGE), row.offsetLeft + row.clientWidth - TIP_EDGE)), y: Math.round(y) });
   };
   const hideTip = (id: string) => setTip((was) => (was?.id === id ? null : was));
   useEffect(() => { if (!open) setTip(null); }, [open]);
@@ -296,8 +298,6 @@ function PanelBody({ bots, seen, mark, cheer, labels, open, bridge, onPin }: {
         className="amb-strip"
         aria-label={say(labels, "island")}
         onScroll={() => setTip(null)}
-        // a mouse wheel scrolls the row sideways
-        onWheel={(event) => { if (strip.current && Math.abs(event.deltaY) > Math.abs(event.deltaX)) strip.current.scrollLeft += event.deltaY; }}
       >
         {all.map((shown, index) => {
           const bot = byId.get(shown.id) ?? shown;
@@ -332,7 +332,7 @@ function PanelBody({ bots, seen, mark, cheer, labels, open, bridge, onPin }: {
           </button>
         </li>
       </ul>
-      {tip && <span className="amb-tip" aria-hidden style={{ left: tip.x }}>{tip.name}</span>}
+      {tip && <span className="amb-tip" aria-hidden style={{ left: tip.x, top: tip.y }}>{tip.name}</span>}
       <AnimatePresence initial={false}>
         {asking.map((bot) => (
           <Reveal key={bot.id} className="amb-tray-wrap">
