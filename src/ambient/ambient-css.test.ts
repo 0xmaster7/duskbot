@@ -22,8 +22,11 @@ it("lays the open island's mascots out in a wrapping grid: no sideways scroll or
   const grid = rule(".amb-strip");
   expect(grid).toContain("flex-wrap: wrap");
   expect(grid).toContain("justify-content: center");
-  expect(grid).toContain("gap: var(--amb-strip-gap)");
-  expect(grid).toContain("max-height: calc(4 * 76px + 3 * var(--amb-strip-gap)");
+  expect(grid).toContain("gap: var(--amb-strip-gap) 2px");
+  expect(grid).toContain("max-height: calc(4 * var(--amb-cell-h) + 3 * var(--amb-strip-gap)");
+  // exactly four whole rows tall, padding included
+  expect(grid).toContain("box-sizing: border-box");
+  expect(grid).not.toContain("scroll-snap-type");
   expect(grid).toContain("overflow-x: hidden");
   expect(grid).toContain("overflow-y: auto");
   expect(grid).not.toContain("mask-image");
