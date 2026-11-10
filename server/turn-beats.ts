@@ -24,7 +24,9 @@ export const MAX_MILESTONES = 6;
 const WRITE_TIMEOUT_MS = 12_000;
 const TICK_MS = 250;
 const UNSTARTED_MS = 60_000;
-const SOUL_CHARS = 600;
+const SOUL_CHARS = 1_200;
+/** A setup that has the bot ask before it uses tools: its ack waits for a tool to run. */
+const ASKS_FIRST = /\b(?:ask|check with|confirm with)\b[^.]{0,80}\b(?:before|first)\b|\bbefore (?:using|running|calling) any tool/i;
 const ASK_CHARS = 1_500;
 const STEP_CHARS = 90;
 const MAX_WORDS = { ack: 26, plan: 55, milestone: 45 } as const;
@@ -65,6 +67,8 @@ interface Watch {
   threadId: string;
   ask: string;
   work: boolean;
+  /** Its setup has it ask before using tools. */
+  asksFirst: boolean;
   startedAt: number;
   turnId?: string;
   tools: number;
@@ -122,7 +126,7 @@ export function beatPrompt(kind: BeatKind, input: { name: string; soul?: string;
     return [...head, "",
       "Write the acknowledgement they see first.",
       "- One sentence, 6 to 20 words, present tense, naming the concrete action and object, like \"On it, pulling this week's Delhi to Goa fares.\" or \"Got it, comparing the three plans now.\"",
-      `- Reply exactly SKIP if the message is only a greeting, thanks or small talk, if it is outside what ${input.name} does, or if ${input.name} would need to ask the person something before starting.`,
+      `- Reply exactly SKIP if the message is only a greeting, thanks or small talk, if it is outside what ${input.name} does, if ${input.name}'s setup says it asks before using tools or fetching data, or if ${input.name} would need to ask the person something before starting.`,
       SHARED_RULES(input.name),
     ].join("\n");
   }
@@ -235,7 +239,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
     if (!deps.live(watch.threadId, watch.turnId)) return;
     if (ack.phase === "ready") {
       if (engineSpoke) ack.phase = "dropped";
-      else if (elapsed >= ACK_MIN_MS && (watch.tools > 0 || elapsed >= ACK_IDLE_MS)) post(watch, "ack", ack);
+      else if (elapsed >= ACK_MIN_MS && (watch.tools > 0 || (elapsed >= ACK_IDLE_MS && !watch.asksFirst))) post(watch, "ack", ack);
     }
     if (ack.phase === "writing" || (ack.phase === "idle" && !engineSpoke && !watch.tools)) return;
 
@@ -270,6 +274,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
       if (input.unattended || !input.text.trim() || !deps.enabled()) return;
       const watch: Watch = {
         botId: input.botId, threadId: input.threadId, ask: input.text, work: looksLikeWork(input.text, input.attachments), startedAt: now(),
+        asksFirst: ASKS_FIRST.test(deps.bot(input.botId)?.soul ?? ""),
         tools: 0, toolsDone: 0, lastToolAt: 0, engineTextAt: 0, engineMessages: 0, steps: [], stepsAtLastWord: 0, lastWordAt: 0, waiting: false,
         ack: { phase: "idle" }, plan: { phase: "idle" }, milestone: { phase: "idle" }, milestones: 0, milestoneTriedAt: 0, posted: [],
         timer: setInterval(() => tick(watch), TICK_MS),

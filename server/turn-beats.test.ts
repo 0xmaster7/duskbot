@@ -17,7 +17,7 @@ const toolStart = (title: string, input: unknown, id = title) =>
 const toolDone = (id: string) => event({ type: "item.completed", itemType: "tool", itemId: id, ok: true });
 const said = (text: string) => event({ type: "item.completed", itemType: "assistant_text", text });
 
-function setup(options: { replies?: Partial<Record<BeatKind, string>>; enabled?: boolean; writerMs?: number } = {}) {
+function setup(options: { replies?: Partial<Record<BeatKind, string>>; enabled?: boolean; writerMs?: number; soul?: string } = {}) {
   vi.useFakeTimers();
   const prompts: Array<{ kind: BeatKind; prompt: string }> = [];
   const posts: Array<{ kind: BeatKind; text: string; turnId: string }> = [];
@@ -30,7 +30,7 @@ function setup(options: { replies?: Partial<Record<BeatKind, string>>; enabled?:
       prompts.push({ kind, prompt });
       return new Promise((resolve) => setTimeout(() => resolve(replies[kind]), options.writerMs ?? 2_000));
     },
-    bot: () => ({ name: "Nova", soul: "You are Nova, a market researcher." }),
+    bot: () => ({ name: "Nova", soul: options.soul ?? "You are Nova, a market researcher." }),
     live: (_threadId, turnId) => live && turnId === TURN,
     post: ({ kind, text, turnId }) => posts.push({ kind, text, turnId }),
   });
@@ -108,6 +108,17 @@ describe("turn beats", () => {
     await vi.advanceTimersByTimeAsync(ACK_IDLE_MS - 500);
     expect(posts).toEqual([]);
     await vi.advanceTimersByTimeAsync(600);
+    expect(posts.map((p) => p.kind)).toEqual(["ack"]);
+  });
+
+  it("holds the ack for a bot set up to ask before it uses tools until a tool runs", async () => {
+    const { beats, posts, send } = setup({ soul: "You are Echo. If asked to fetch real data, say what you would do and ask before using any tool." });
+    beats.start({ botId: "b", threadId: THREAD, text: "Research candle shops' refund policies", attachments: 0, unattended: false });
+    send(event({ type: "turn.started" }));
+    await vi.advanceTimersByTimeAsync(ACK_IDLE_MS * 2);
+    expect(posts).toEqual([]);
+    send(toolStart("WebSearch", { query: "candle refunds" }, "s1"));
+    await vi.advanceTimersByTimeAsync(300);
     expect(posts.map((p) => p.kind)).toEqual(["ack"]);
   });
 
