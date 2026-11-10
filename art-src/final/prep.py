@@ -23,6 +23,15 @@ for n in ['s-computer', 's-clock', 's-notebook', 's-button', 's-phone']:
     im = Image.open(n + '.png').convert('RGBA'); im = im.crop(im.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print(n, save(im, n, 520, 90))
 og = rgb('hero-bg'); og.crop((0, 218, 1536, 1024)).resize((1200, 630), Image.LANCZOS).save(OUT + 'og.jpg', quality=86)
 for s in ['circle', 'star', 'heart', 'clover', 'hex', 'drop']: shutil.copy(f'icons/{s}.png', OUT + f'm-{s}.png')
+# two small pixel clouds that drift across the skies
+def cloud(under, name):
+    rows = [(9, 15), (6, 18), (3, 21), (1, 23), (0, 24), (0, 24), (2, 22), (5, 9)]
+    c = Image.new('RGBA', (24, 8), (0, 0, 0, 0))
+    for y, (a, b) in enumerate(rows):
+        for x in range(a, b): c.putpixel((x, y), (255, 252, 244, 255) if y < 5 else under)
+    for x in range(14, 20): c.putpixel((x, 7), under)
+    c.resize((240, 80), Image.NEAREST).save(OUT + name + '.png')
+cloud((255, 190, 222, 255), 'cloud-pink'); cloud((255, 240, 120, 255), 'cloud-lemon')
 # white pixels thickening downward, so the last picture breaks up into the footer
 random.seed(7); cols, rows = 96, 10
 d = Image.new('RGBA', (cols, rows), (0, 0, 0, 0))

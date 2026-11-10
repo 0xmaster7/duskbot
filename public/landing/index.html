@@ -12,9 +12,9 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/art/cursor-88.webp" type="image/webp">
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/site.css?v=632c3d9c">
+<link rel="stylesheet" href="/site.css?v=a84220d1">
 <link rel="stylesheet" href="/motion-kit-v2.css?v=21fb5bf1">
-<link rel="stylesheet" href="/home.css?v=33aa9935">
+<link rel="stylesheet" href="/home.css?v=c1e3ad52">
 </head>
 <body class="is-home">
 <header class="bar"><a class="brand" href="/"><img src="/art/cursor-88.webp" alt="" width="28" height="28">dusk bot</a><nav><a href="/download">download</a><a href="/docs">docs</a><a href="/pricing">pricing</a><a class="cta" href="https://app.dusk.bot">sign in</a></nav></header>
@@ -30,6 +30,7 @@
 <section class="hero-stage">
   <div class="stage" data-mk-reveal="clip">
     <img src="/art/hero-bg.webp?v=20507db9" alt="" width="1536" height="1024" data-mk-parallax="0.08">
+    <i class="cloud pink k1"></i><i class="cloud lemon k2"></i>
     <div class="app" aria-hidden="true">
       <aside class="app-side">
         <div class="lights"><i></i><i></i><i></i></div>
@@ -112,19 +113,21 @@
     <h2 data-mk-reveal="lines">not a chatbot. a coworker with a computer.</h2>
   </div>
   <div class="tiles">
-    <article class="tile t-sky wider peek" data-mk-reveal>
-      <div class="tile-copy"><h3>message bots like teammates</h3><p>give a bot a task the way you'd text a coworker. it takes the job from start to finish, keeps you posted, and comes back when it needs a yes.</p></div>
+    <article class="tile t-sky wider peek" data-mk-reveal data-tilt>
+      <div class="tile-copy"><h3>message bots like teammates</h3><p>give a bot a task the way you'd text a coworker. it takes the job from start to finish, keeps you posted, and comes back when it needs a yes.</p>
+        <p class="texts"><span class="t me">book me the cheap one to lisbon</span><span class="t">found it. €84. need a yes first.</span><span class="t me late">yes</span><span class="t late">booked. aisle seat, like always.</span></p>
+      </div>
       <svg class="bot c-blue peek-bot" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg>
     </article>
-    <article class="tile t-lime" data-mk-reveal>
-      <img class="sticker top" src="/art/s-notebook.webp?v=e67faeee" alt="" width="520" height="378">
+    <article class="tile t-lime" data-mk-reveal data-tilt>
+      <div class="art memo-art"><img class="sticker" src="/art/s-notebook.webp?v=e67faeee" alt="" width="520" height="378"><span class="memo">aisle seat</span><span class="memo">dana, not sam</span><span class="memo">no posts before 9</span></div>
       <h3>they remember</h3><p>what you like, who's who, how you want it done. every note is yours to read and edit.</p>
     </article>
-    <article class="tile t-lilac wide" data-mk-reveal>
+    <article class="tile t-lilac wide" data-mk-reveal data-tilt>
       <div class="tile-copy"><h3>each bot gets its own computer</h3><p>it signs in to sites and clicks through them like you would. watch it live, or take the mouse back any time.</p></div>
-      <img class="sticker side" src="/art/s-computer.webp?v=690cf13b" alt="" width="520" height="599">
+      <div class="desk"><svg class="bot c-blue desk-bot" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><img class="sticker" src="/art/s-computer.webp?v=690cf13b" alt="" width="520" height="599"></div>
     </article>
-    <article class="tile t-lemon wide" data-mk-reveal>
+    <article class="tile t-lemon wide" data-mk-reveal data-tilt>
       <img class="sticker corner" src="/art/s-clock.webp?v=67ca93f2" alt="" width="520" height="502">
       <div class="tile-copy"><h3>routines run while you sleep</h3><p>ask once. it runs every morning, every monday, or the moment something happens.</p></div>
       <ul class="routines">
@@ -133,12 +136,12 @@
         <li><div><b>triage new issues</b><span>when a github issue opens</span></div><i class="toggle"></i></li>
       </ul>
     </article>
-    <article class="tile t-peach wide" data-mk-reveal>
-      <img class="sticker top" src="/art/s-button.webp?v=612c2a25" alt="" width="520" height="780">
+    <article class="tile t-peach wide" data-mk-reveal data-tilt>
+      <div class="art"><img class="sticker" src="/art/s-button.webp?v=612c2a25" alt="" width="520" height="780"><span class="confirm"><span>delete 2,140 files?</span><b class="pill yes">allow</b><b class="pill no">deny</b></span></div>
       <h3>they ask before the scary stuff</h3><p>sending, buying, deleting: a bot stops and waits for your yes.</p>
     </article>
-    <article class="tile t-pink wide" data-mk-reveal>
-      <img class="sticker top" src="/art/s-phone.webp?v=550f01a8" alt="" width="520" height="387">
+    <article class="tile t-pink wide" data-mk-reveal data-tilt>
+      <div class="art"><img class="sticker" src="/art/s-phone.webp?v=550f01a8" alt="" width="520" height="387"><span class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="heard">"morning. three things need you."</span></div>
       <h3>they talk back</h3><p>give a bot a voice. or just call it and talk the job through.</p>
     </article>
   </div>
@@ -264,18 +267,19 @@
 <section class="pricing" id="pricing">
   <div class="pricing-panel" data-mk-reveal="clip">
     <img class="pricing-sky" src="/art/price-sky.webp?v=bea68bf4" alt="" width="1536" height="1024">
+    <i class="cloud lemon k3"></i><i class="cloud pink k4"></i>
     <div class="pricing-in">
       <h2>simple pricing</h2>
       <p class="pricing-sub">start free. pay when you want bots that never clock out.</p>
       <div class="plans" id="plans" data-mk-reveal data-mk-stagger="80">
-        <article class="plan">
+        <article class="plan" data-mk-lift="5">
           <div class="lights"><i></i><i></i><i></i></div>
           <h3>free</h3><p class="plan-line">your bots, on your computer.</p>
           <p class="price">$0</p><p class="per">free forever, no card</p>
           <a class="btn" href="/download" data-mk-press>start free</a>
           <ul><li>every feature of the app</li><li>runs on your computer or server</li><li>bring your own ai plan</li><li class="off">a cloud computer</li><li class="off">a work license</li></ul>
         </article>
-        <article class="plan is-pick">
+        <article class="plan is-pick" data-mk-lift="5">
           <p class="plan-tag">popular</p>
           <div class="lights"><i></i><i></i><i></i></div>
           <h3>plus</h3><p class="plan-line">your bots work around the clock.</p>
@@ -283,9 +287,9 @@
           <a class="btn dark" href="https://app.dusk.bot/billing" data-mk-press data-mk-magnet="0.2">get plus</a>
           <ul><li>everything in free</li><li>a cloud computer for your bots</li><li>2 bot computers, each with a screen</li><li>routines run while you sleep</li><li class="off">a work license</li></ul>
         </article>
-        <article class="plan has-cat">
+        <article class="plan has-cat" data-mk-lift="5">
           <div class="lights"><i></i><i></i><i></i></div>
-          <figure class="cat"><img src="/art/cat.webp?v=c37b13b6" alt="a pixel cat, asleep" width="600" height="324"><figcaption>gary. not included.</figcaption></figure>
+          <figure class="cat"><span class="zz">z</span><span class="zz">z</span><span class="zz">z</span><img src="/art/cat.webp?v=c37b13b6" alt="a pixel cat, asleep" width="600" height="324"><figcaption>gary. not included.</figcaption></figure>
           <h3>pro</h3><p class="plan-line">for real work.</p>
           <p class="price">$50</p><p class="per">per month</p>
           <a class="btn dark" href="https://app.dusk.bot/billing" data-mk-press>get pro</a>
@@ -312,6 +316,7 @@
 
 <section class="end">
   <img src="/art/end-meadow.webp?v=0bfd27f5" alt="" width="1536" height="1024">
+  <i class="cloud pink k5"></i><i class="cloud lemon k6"></i>
   <div class="end-text">
     <h2 data-mk-reveal="lines">meet your first bot</h2>
     <p data-mk-reveal>it could be working in two minutes. free on your own computer.</p>
@@ -333,6 +338,6 @@
 </footer>
 <script src="/motion.min.js?v=882ea65c"></script>
 <script src="/motion-kit-v2.js?v=2d0ef0af"></script>
-<script src="/home.js?v=7986e199"></script>
+<script src="/home.js?v=6bc0af00"></script>
 </body>
 </html>

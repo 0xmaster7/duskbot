@@ -20,7 +20,8 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 
 .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1240px; width: 100%; margin: 0 auto; padding: 18px 24px; }
 .brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 550; font-size: 17px; letter-spacing: -0.02em; text-decoration: none; }
-.brand img { width: 28px; height: 28px; }
+.brand img { width: 28px; height: 28px; transition: rotate 0.4s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.brand:hover img { rotate: -18deg; }
 .bar nav { display: flex; align-items: center; gap: 4px; }
 .bar nav a { color: var(--ink-2); text-decoration: none; font-size: 15px; padding: 8px 12px; border-radius: 999px; }
 .bar nav a:hover, .bar nav a[aria-current="page"] { color: var(--ink); background: var(--wash); }

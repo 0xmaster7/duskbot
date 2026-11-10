@@ -21,17 +21,68 @@ function look() {
 }
 if (!still) addEventListener('pointermove', (e) => { px = e.clientX; py = e.clientY; frame ||= requestAnimationFrame(look); }, { passive: true });
 
-const quips = ['hi', 'busy', 'on it', 'five more minutes', 'ok ok', 'that tickles', 'did you need something', 'working, promise', 'not the face'];
+const quips = ['hi', 'busy', 'on it', 'five more minutes', 'ok ok', 'that tickles', 'did you need something', 'working, promise', 'not the face', 'hire me', 'i was told there would be snacks'];
+const purrs = ['mrrp', 'zzz', 'five more minutes', 'not a bot'];
+const sparkColours = ['#2f7bf2', '#ff7d1f', '#8d5cf0', '#ff5c9d', '#1fb866', '#f8c623'];
+const pokeable = '.shapes .bot, .work .bot, .peek-bot, .hill .bot, .faq-bots .bot, .brain-bot, .desk-bot';
 let said = 0;
-document.addEventListener('click', (e) => {
-  const b = e.target.closest?.('.shapes .bot, .work .bot, .peek-bot, .hill .bot, .faq-bots .bot, .brain-bot');
-  if (!b) return;
-  if (!still) { b.classList.remove('hop'); void b.getBoundingClientRect(); b.classList.add('hop'); }
-  const r = b.getBoundingClientRect(), q = document.createElement('span');
-  q.className = 'quip'; q.textContent = quips[said++ % quips.length];
+function hop(b) { if (!still) { b.classList.remove('hop'); void b.getBoundingClientRect(); b.classList.add('hop'); } }
+function say(el, text) {
+  const r = el.getBoundingClientRect(), q = document.createElement('span');
+  q.className = 'quip'; q.textContent = text;
   q.style.left = `${r.left + r.width / 2 + scrollX}px`; q.style.top = `${Math.max(r.top, 0) + scrollY}px`;
   document.body.append(q); setTimeout(() => q.remove(), 1500);
+}
+// a burst of little squares where something was poked
+function sparkle(x, y) {
+  if (still) return;
+  for (let i = 0; i < 9; i++) {
+    const s = document.createElement('i'), a = (Math.PI * 2 * i) / 9 + Math.random() * 0.5, d = 34 + Math.random() * 34;
+    s.className = 'spark'; s.style.background = sparkColours[i % sparkColours.length];
+    s.style.left = `${x + scrollX - 4}px`; s.style.top = `${y + scrollY - 4}px`;
+    s.style.setProperty('--dx', `${(Math.cos(a) * d).toFixed(0)}px`); s.style.setProperty('--dy', `${(Math.sin(a) * d).toFixed(0)}px`);
+    document.body.append(s); setTimeout(() => s.remove(), 720);
+  }
+}
+document.addEventListener('click', (e) => {
+  const cat = e.target.closest?.('.cat img');
+  if (cat) { say(cat, purrs[said++ % purrs.length]); sparkle(e.clientX, e.clientY); return; }
+  const b = e.target.closest?.(pokeable);
+  if (!b) return;
+  hop(b); say(b, quips[said++ % quips.length]); sparkle(e.clientX, e.clientY);
 });
+// the standing bots hop when the pointer reaches them, and do a wave the first time they are seen
+document.addEventListener('pointerover', (e) => { const b = e.target.closest?.('.hill .bot, .faq-bots .bot'); if (b && !b.contains(e.relatedTarget)) hop(b); });
+if ('IntersectionObserver' in window) for (const row of document.querySelectorAll('.hill, .faq-bots')) {
+  const io = new IntersectionObserver((entries) => {
+    if (!entries.some((en) => en.isIntersecting)) return;
+    io.disconnect(); [...row.children].forEach((b, i) => setTimeout(() => hop(b), 250 + i * 110));
+  }, { threshold: 0.6 });
+  io.observe(row);
+}
+for (const q of document.querySelectorAll('.qs details')) q.addEventListener('toggle', () => {
+  const row = document.querySelectorAll('.faq-bots .bot');
+  if (q.open && row.length) hop(row[Math.floor(Math.random() * row.length)]);
+});
+
+// cards lean a little toward the pointer
+if (!still && matchMedia('(hover: hover) and (pointer: fine)').matches) for (const card of document.querySelectorAll('[data-tilt]')) {
+  card.addEventListener('pointermove', (e) => {
+    const r = card.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    card.style.setProperty('--ry', `${(x * 3.2).toFixed(2)}deg`); card.style.setProperty('--rx', `${(-y * 3.2).toFixed(2)}deg`);
+  });
+  card.addEventListener('pointerleave', () => { card.style.removeProperty('--rx'); card.style.removeProperty('--ry'); });
+}
+
+// the picture inside the big $0 slides a little with the pointer
+const zero = document.querySelector('.zero');
+if (zero && !still) zero.parentElement.addEventListener('pointermove', (e) => {
+  const r = zero.getBoundingClientRect();
+  zero.style.backgroundPosition = `${(50 + ((e.clientX - r.left) / r.width - 0.5) * 60).toFixed(1)}% ${(50 + ((e.clientY - r.top) / r.height - 0.5) * 60).toFixed(1)}%`;
+});
+
+const title = document.title;
+document.addEventListener('visibilitychange', () => { document.title = document.hidden ? 'the bots miss you' : title; });
 
 // the chat in the app plays out once, just before it scrolls into view; nothing is hidden until then
 const chat = document.querySelector('.chat');
