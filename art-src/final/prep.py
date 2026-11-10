@@ -46,3 +46,6 @@ d.save(OUT + 'dissolve.png')
 print('every-meadow', save(rgb('end-meadow'), 'every-meadow', 1536))
 for n in ['d-laptop', 'd-monitor', 'd-phone-a', 'd-phone-b']:
     im = Image.open(n + '.png').convert('RGBA'); im = im.crop(im.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print(n, save(im, n, 640, 90))
+
+# the ending sea: the pale strip at the horizon becomes sea, and the sea's top edge gets stepped pixel waves
+# (re-run by hand: see the commit that added this note; it reads end-sea.png and writes end-sea.webp)
