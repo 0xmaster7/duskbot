@@ -16,6 +16,8 @@ const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.sh': 'text/plain; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',
+  '.sha256': 'text/plain; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.svg': 'image/svg+xml',
@@ -37,6 +39,8 @@ function resolveFile(urlPath) {
 const server = http.createServer((req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'");
+  res.setHeader('X-Frame-Options', 'DENY');
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { Allow: 'GET, HEAD', 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end('method not allowed\n');
@@ -55,8 +59,8 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, {
     'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream',
     'Content-Length': body.length,
-    // the installer must never be served stale after a refresh
-    'Cache-Control': file.endsWith('.sh') ? 'no-cache' : 'public, max-age=300',
+    // the installer, its checksum and the update manifest must never be served stale after a refresh
+    'Cache-Control': /\.(sh|sha256|json)$/.test(file) ? 'no-cache' : 'public, max-age=300',
   });
   res.end(req.method === 'HEAD' ? undefined : body);
 });

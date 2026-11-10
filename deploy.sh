@@ -4,11 +4,12 @@
 #   sites/dusk/deploy.sh            # all three
 #   sites/dusk/deploy.sh landing    # just dusk.bot (+ /install.sh)
 #   sites/dusk/deploy.sh app|dev
-# INSTALLER overrides where install.sh is copied from (default: the OpenMausBot checkout).
+# DUSK_REPO is the Dusk Bot checkout (pages read docs/legal there); INSTALLER overrides where install.sh comes from.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALLER="${INSTALLER:-$HOME/Desktop/code/OpenMausBot/apps/link-service/install.sh}"
+DUSK_REPO="${DUSK_REPO:-$HOME/Desktop/code/OpenMausBot}"
+INSTALLER="${INSTALLER:-$DUSK_REPO/apps/link-service/install.sh}"
 DEPLOY="${DEPLOY:-deploy}"
 WHICH="${1:-all}"
 
@@ -18,6 +19,9 @@ SITES=(
   "dusk-app app.dusk.bot app"
   "dusk-dev dev.dusk.bot dev"
 )
+
+# the pages and the legal drafts (docs/legal in the Dusk Bot repo) become the landing site's html
+if [ "$WHICH" = all ] || [ "$WHICH" = landing ]; then node "$HERE/build-pages.mjs" "$DUSK_REPO"; fi
 
 stage=$(mktemp -d "${TMPDIR:-/tmp}/dusk-sites.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
@@ -33,6 +37,7 @@ for row in "${SITES[@]}"; do
   if [ "$site" = landing ]; then
     [ -f "$INSTALLER" ] || { echo "error: installer not found at $INSTALLER" >&2; exit 1; }
     cp "$INSTALLER" "$dir/public/landing/install.sh"
+    (cd "$dir/public/landing" && shasum -a 256 install.sh > install.sh.sha256)
     echo "install.sh from $INSTALLER ($(shasum -a 256 "$INSTALLER" | cut -c1-12))"
   fi
   "$DEPLOY" "$dir" --name "$name" --domain "$domain" --install true \
