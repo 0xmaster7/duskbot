@@ -25,6 +25,9 @@ const TYPES = {
   '.webp': 'image/webp',
   '.jpg': 'image/jpeg',
   '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.wav': 'audio/wav',
   '.ico': 'image/x-icon',
 };
 
@@ -42,8 +45,13 @@ function resolveFile(urlPath) {
 const server = http.createServer((req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'");
-  res.setHeader('X-Frame-Options', 'DENY');
+  // /demo/ is the app's own interface running on canned data; the home page shows it in a frame, and its
+  // code highlighter writes style attributes
+  const demo = (req.url || '').startsWith('/demo/');
+  res.setHeader('Content-Security-Policy', demo
+    ? "default-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'; object-src 'none'"
+    : "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'");
+  res.setHeader('X-Frame-Options', demo ? 'SAMEORIGIN' : 'DENY');
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { Allow: 'GET, HEAD', 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end('method not allowed\n');

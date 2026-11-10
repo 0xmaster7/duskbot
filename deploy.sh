@@ -21,7 +21,12 @@ SITES=(
 )
 
 # the pages and the legal drafts (docs/legal in the Dusk Bot repo) become the landing site's html
-if [ "$WHICH" = all ] || [ "$WHICH" = landing ]; then node "$HERE/build-pages.mjs" "$DUSK_REPO"; fi
+if [ "$WHICH" = all ] || [ "$WHICH" = landing ]; then
+  node "$HERE/build-pages.mjs" "$DUSK_REPO"
+  # the live app in the home page's hero is built from the app itself (kept out of this repo: it is 24 MB of build output)
+  if [ -f "$DUSK_REPO/apps/site-demo/build.mjs" ]; then (cd "$DUSK_REPO" && node apps/site-demo/build.mjs "$HERE/public/landing/demo"); fi
+  [ -f "$HERE/public/landing/demo/index.html" ] || echo "warning: public/landing/demo is missing; the home page falls back to a still picture of the app" >&2
+fi
 
 stage=$(mktemp -d "${TMPDIR:-/tmp}/dusk-sites.XXXXXX")
 trap 'rm -rf "$stage"' EXIT

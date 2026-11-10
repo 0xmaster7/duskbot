@@ -81,6 +81,13 @@ if (zero && !still) zero.parentElement.addEventListener('pointermove', (e) => {
   zero.style.backgroundPosition = `${(50 + ((e.clientX - r.left) / r.width - 0.5) * 60).toFixed(1)}% ${(50 + ((e.clientY - r.top) / r.height - 0.5) * 60).toFixed(1)}%`;
 });
 
+// the framed app is laid out at 1180 by 680 and scaled to whatever width its window has
+const win = document.querySelector('[data-frame]');
+if (win && 'ResizeObserver' in window) new ResizeObserver(() => {
+  const fit = Math.min(1, win.clientWidth / 1180);
+  win.style.setProperty('--fit', fit.toFixed(4)); win.parentElement.style.setProperty('--fit', fit.toFixed(4));
+}).observe(win);
+
 const title = document.title;
 document.addEventListener('visibilitychange', () => { document.title = document.hidden ? 'the bots miss you' : title; });
 
