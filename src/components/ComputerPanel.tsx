@@ -54,11 +54,16 @@ import { openPlaceAction, placeBlocked, placeFacts, placeViewFor, usePlaceSeat, 
 import { type PlaceActionId, type PlaceFacts, type PlaceView } from "../../shared/place-view";
 import { t } from "@/lib/i18n";
 import { LocalizedPanelError, panelErrorText } from "@/lib/computer-messages";
+import { computerProblem, type ComputerFix } from "@/lib/computer-problem";
+import type { LocaleKey } from "@/locales";
 import { LiveScreenVideo } from "./bot-panel/LiveScreenVideo";
+import { smallButtonCls } from "./ui/GrokDialog";
 import { LIVE_FPS, useLiveScreen } from "./bot-panel/local-screen-stream";
 
 interface VpsComputerStatus {
   configured: boolean;
+  daemonUp?: boolean;
+  desktop?: "cua" | "bot-desktop";
   imageMatches: boolean;
   managed: boolean;
   container: "running" | "stopped" | "missing";
@@ -122,10 +127,13 @@ export function ComputerPanel({
   fullscreen,
   inline = false,
   visible = true,
+  onReport,
 }: {
   bot: Bot;
   inline?: boolean;
   visible?: boolean;
+  /** Inline: the screen's stage and the server's own words for a problem, for the tab's status and its Advanced. */
+  onReport?: (report: InlineReport) => void;
   /** Grok's full view of the screen over the whole window, opened from the bot panel; `wake` wakes a sleeping desktop. */
   fullscreen?: { wake: boolean; onExit: () => void };
 }) {
@@ -244,7 +252,7 @@ export function ComputerPanel({
   const viewerConnectionKey = `${bot.id}:${bot.threadId}:${bot.computer}:vps:${vpsStatus?.resourceKey ?? ""}:${vpsStatus?.viewerKey ?? ""}`;
   const [localFrame, setLocalFrame] = useState<string | null>(null);
   const [pending, setPending] = useState<
-    "join" | "sleep" | "provision" | "vm-start" | "vm-create" | "vm-recreate" | null
+    "join" | "sleep" | "provision" | "replace" | "vm-start" | "vm-create" | "vm-recreate" | null
   >(null);
   const [controlPending, setControlPending] = useState(false);
   // the person woke this computer: its picture is asked for beside the wake, keyed to the conversation it began in
@@ -900,6 +908,25 @@ export function ComputerPanel({
 
   const startCloudComputer = () => run("provision");
 
+  // a new computer from the current version: the old one goes, then provision makes it again on the bot's home volume
+  const replaceComputer = async (keepsFiles: boolean) => {
+    if (computerAction.current) return;
+    if (!keepsFiles && !window.confirm(t("computer.problem.replaceLoses", { name: bot.name }))) return;
+    const controller = new AbortController();
+    computerAction.current = controller;
+    setPending("replace");
+    setError(null);
+    try {
+      await api(threadPath("computer/remove"), { method: "POST", signal: controller.signal });
+    } catch (e) {
+      if (!controller.signal.aborted) { setError(e instanceof Error ? e.message : String(e)); setPhase("error"); }
+      return;
+    } finally {
+      if (computerAction.current === controller) { computerAction.current = null; setPending(null); }
+    }
+    if (!controller.signal.aborted) void run("provision");
+  };
+
   const runVmAction = async (action: "vm-start" | "vm-create" | "vm-recreate") => {
     if (
       action === "vm-recreate" &&
@@ -1124,7 +1151,18 @@ export function ComputerPanel({
     const wakeQueued = queuedWake === wakeKey;
     // still checking looks and acts asleep: a click queues the wake instead of waiting out the status
     const checking = phase === "checking" && pending === null;
-    const waking = pending === "provision" || pending === "vm-start" || phase === "starting" || wakeQueued;
+    const waking = pending === "provision" || pending === "replace" || pending === "vm-start" || phase === "starting" || wakeQueued;
+    // a problem in plain words with one way out; the server's own words go to the tab's Advanced
+    const problem = phase === "vps-stopped" || phase === "vps-unconfigured" || waking ? null
+      : computerProblem({ phase, failed: Boolean(errorText), vps: vpsStatus })
+        ?? (errorText ? { line: "computer.problem.failed" as const, fix: "retry" as const, keepsFiles: true } : null);
+    const fix = (kind: ComputerFix, keepsFiles: boolean) => {
+      if (kind === "replace") void replaceComputer(keepsFiles);
+      else if (kind === "settings") openConnectionSettings();
+      else if (wakeCloud) void run("provision");
+      else if (wakeVm) void runVmAction("vm-start");
+      else { setError(null); setRetry(value => value + 1); }
+    };
     // no computer to show: the bot gets its own (from the browser it was set to), or one is added; never a browser-only card
     const noComputer = phase === "browser" || phase === "auto-unavailable" || (phase === "off" && profileBot.computer !== "off");
     const ownComputer = noComputer && profileBot.computer === "browser" && Boolean(state.config?.vps?.configured);
@@ -1134,12 +1172,13 @@ export function ComputerPanel({
       else if (wakeCloud) void run("provision");
       else if (wakeVm) void runVmAction("vm-start");
       else if (ownComputer) { updateComputerSelection({ computer: null }); setQueuedWake(wakeKey); }
-      else if (noComputer || phase === "vps-unconfigured" || phase === "vps-incompatible") openConnectionSettings();
+      else if (phase === "vps-incompatible" && problem) fix(problem.fix, problem.keepsFiles);
+      else if (noComputer || phase === "vps-unconfigured") openConnectionSettings();
       else setRetry(value => value + 1);
     };
     const frameActionLabel = waking ? t("computer.wakingUp") : checking || wakeCloud || wakeVm || ownComputer ? t("botPanel.screen.wake")
       : needsAdmin ? t("place.askAdmin") : noComputer ? t("computer.simple.addCloud")
-      : phase === "vps-incompatible" ? t("computer.openVpsSettings") : screenLine;
+      : phase === "vps-incompatible" && problem ? t(problem.line, { name: bot.name }) : screenLine;
     const frame = remoteFrame ?? (localPicture && liveLocal.stream
       ? <LiveScreenVideo stream={liveLocal.stream} playing={pageVisible} className="absolute inset-0 size-full object-contain" />
       : !waking && frameSrc ? <img src={frameSrc} alt={t("computer.screenOf", { name: bot.name })} className="absolute inset-0 size-full object-contain" /> : null);
@@ -1166,7 +1205,8 @@ export function ComputerPanel({
           </button>}
           {wakingShown ? wakingView() : null}
         </div>
-        {errorText && phase !== "vps-stopped" && phase !== "vps-unconfigured" && <p role="alert" className="mt-1 px-1 text-[12px] text-danger">{errorText}</p>}
+        {problem && <ProblemLine problem={problem} name={bot.name} lineShown={phase === "vps-incompatible" && !frame} disabled={needsAdmin} onFix={() => fix(problem.fix, problem.keepsFiles)} />}
+        {onReport && <InlineReporter stage={stage} detail={errorText || null} onReport={onReport} />}
       </div>
     );
   }
@@ -1531,5 +1571,28 @@ export function ComputerPanel({
 
     </aside>
     </>
+  );
+}
+
+export interface InlineReport { stage: "screen" | "loading" | "asleep" | "off"; detail: string | null }
+
+function InlineReporter({ stage, detail, onReport }: InlineReport & { onReport: (report: InlineReport) => void }) {
+  useEffect(() => { onReport({ stage, detail }); }, [stage, detail, onReport]);
+  return null;
+}
+
+const FIX_LABEL: Record<ComputerFix, LocaleKey> = { replace: "computer.problem.fix", retry: "common.tryAgain", settings: "computer.problem.openSettings" };
+
+/** Under the screen: what is wrong in plain words (unless the screen already says it), and the one button that fixes it. */
+function ProblemLine({ problem, name, lineShown, disabled, onFix }: {
+  problem: NonNullable<ReturnType<typeof computerProblem>>; name: string; lineShown: boolean; disabled: boolean; onFix: () => void;
+}) {
+  return (
+    <div role="alert" data-panel-problem={problem.fix} className="mt-1.5 flex min-h-7 items-center gap-2 px-1">
+      <span className="min-w-0 flex-1 text-[12px] leading-4 text-ink/[0.68]">
+        {lineShown ? problem.fix === "replace" && t(problem.keepsFiles ? "computer.problem.keepsFiles" : "computer.problem.losesFiles") : t(problem.line, { name })}
+      </span>
+      <button type="button" data-panel-action="fix" disabled={disabled} onClick={onFix} className={smallButtonCls}>{t(FIX_LABEL[problem.fix])}</button>
+    </div>
   );
 }

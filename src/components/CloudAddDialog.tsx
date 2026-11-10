@@ -12,6 +12,7 @@ import { cloudAddView, offerPlan, sameTerms, startedSleeps, type CloudAddView, t
 import { t } from "@/lib/i18n";
 import { welcomeOnScreen } from "@/lib/onboarding";
 import { useStore } from "@/state/store";
+import { openCloudMove } from "@/lib/cloud-move";
 import { AddCloudFlow } from "./cloud-buy/AddCloudFlow";
 import { ChooseScreen } from "./cloud-buy/ChooseScreen";
 import { OneCloudScreen, StatusScreen } from "./cloud-buy/OneCloudScreen";
@@ -221,6 +222,8 @@ export function CloudAddDialog({ now = Date.now }: { now?: () => number }) {
   // Ready while this sheet is open in the focused window: "Opening in 3…", then the Cloud opens; Not now stops it.
   useEffect(() => {
     if (kind !== "ready" || auto !== null) return;
+    // a Cloud bought to move bots there: the move's own sheet takes over, so the window stays here while they move
+    if (request?.source === "app_computer_move") { close(); openCloudMove(); return; }
     setAuto(!overWelcome && typeof document.hasFocus === "function" && document.hasFocus() ? 3 : "off");
   }, [kind]);
   const resendAt = signIn?.step === "code" ? signIn.resendAt : 0;

@@ -9,6 +9,7 @@ const fixture = vi.hoisted(() => ({
   container: "missing" as string,
   configured: true,
   imageMatches: true,
+  desktop: "bot-desktop" as string,
   posts: [] as string[],
   actions: [] as Action[],
   shared: false,
@@ -59,7 +60,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
       return { surface: "cloud", backend: "vps", configured: fixture.configured, ready: fixture.container === "running" && fixture.imageMatches && !fixture.screenStopped,
         ...(fixture.screenStopped ? { state: "stopped", viewerKey: "unallocated" } : {}),
         ...(fixture.shared ? { teamComputer: { id: "shared", name: "Shared desktop" } } : {}),
-        container: fixture.container, managed: fixture.container !== "missing", imageMatches: fixture.imageMatches, problem: "Fixture desktop is not running" };
+        container: fixture.container, managed: fixture.container !== "missing", imageMatches: fixture.imageMatches, desktop: fixture.desktop, problem: "Fixture desktop is not running" };
     }
     return {};
   },
@@ -120,6 +121,7 @@ afterEach(() => {
   fixture.container = "missing";
   fixture.configured = true;
   fixture.imageMatches = true;
+  fixture.desktop = "bot-desktop";
   fixture.looks = 0;
   fixture.instancesLoaded = true;
   fixture.owner = true;
@@ -271,15 +273,49 @@ describe("VPS computer preparation", () => {
     expect(document.querySelector("[data-live-screen]")).toBeNull();
   });
 
-  it.each([false, true])("opens settings for an incompatible inline desktop without changing it (shared=%s)", async (shared) => {
+  it("replaces an incompatible inline desktop on its home volume with one Fix, in plain words", async () => {
     fixture.container = "running";
     fixture.imageMatches = false;
-    fixture.shared = shared;
+    await open(makeBot({ computer: "cloud" }), true);
+    expect(text()).not.toContain("Fixture desktop");
+    const frame = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
+    expect(frame?.textContent).toContain("Scout's computer needs an update");
+    expect(document.querySelector("[data-panel-problem]")?.textContent).toContain("Its files and website sign-ins are kept.");
+    const fix = document.querySelector<HTMLButtonElement>('[data-panel-action="fix"]');
+    expect(fix?.textContent).toBe("Fix");
+    flushSync(() => fix!.click());
+    await settle();
+    expect(fixture.posts).toEqual(["/api/bots/scout/computer/remove", "/api/bots/scout/computer/provision"]);
+    expect(fixture.actions.some((action) => action.type === "toggleAppSettings")).toBe(false);
+  });
+
+  it("asks before a Fix that would lose an older desktop's files, and changes nothing on No", async () => {
+    fixture.container = "running";
+    fixture.imageMatches = false;
+    fixture.desktop = "cua";
+    const confirm = vi.fn(() => false);
+    const before = window.confirm;
+    window.confirm = confirm;
+    try {
+      await open(makeBot({ computer: "cloud" }), true);
+      expect(document.querySelector("[data-panel-problem]")?.textContent).toContain("Files saved inside its old desktop are removed.");
+      flushSync(() => document.querySelector<HTMLButtonElement>('[data-panel-action="fix"]')!.click());
+      await settle();
+      expect(confirm).toHaveBeenCalledOnce();
+      expect(fixture.posts).toEqual([]);
+    } finally { window.confirm = before; }
+  });
+
+  it("opens settings for a shared incompatible desktop without changing it", async () => {
+    fixture.container = "running";
+    fixture.imageMatches = false;
+    fixture.shared = true;
     const external = vi.spyOn(window, "open").mockImplementation(() => null);
     try {
       await open(makeBot({ computer: "cloud" }), true);
       const settings = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
-      expect(settings?.textContent).toContain("Open VPS settings");
+      expect(settings?.textContent).toContain("Scout's computer needs an update");
+      expect(document.querySelector('[data-panel-action="fix"]')?.textContent).toBe("Open settings");
       flushSync(() => settings!.click());
       await settle();
       expect(fixture.actions).toContainEqual({ type: "toggleAppSettings", open: true, section: "computer" });
