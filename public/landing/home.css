@@ -27,16 +27,9 @@
 
 /* bots */
 .bot { display: block; overflow: visible; flex: none; }
-.bot .body, .sb .body { fill: currentColor; stroke: currentColor; }
-.bot .eyes, .sb .eyes { fill: #fff; transition: transform 0.14s ease-out; }
-.bot .eyes rect { transform-box: fill-box; transform-origin: center; animation: blink 5.2s infinite; }
+/* each is one of the app's mascots: the engine draws it into .mk, a canvas wider than the bot (see mascot-src) */
 .c-blue { color: var(--blue); } .c-orange { color: var(--orange); } .c-purple { color: var(--purple); } .c-pink { color: #ff5c9d; } .c-green { color: var(--green); } .c-yellow { color: var(--yellow); }
-.c-orange .eyes rect { animation-delay: -1.1s; } .c-purple .eyes rect { animation-delay: -2.3s; } .c-pink .eyes rect { animation-delay: -3.4s; } .c-green .eyes rect { animation-delay: -0.6s; } .c-yellow .eyes rect { animation-delay: -4.1s; }
-.bot.hop { animation: hop 0.5s var(--pop); }
-@keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
-@keyframes hop { 30% { transform: translateY(-16%) scale(0.94, 1.08); } 60% { transform: translateY(0) scale(1.08, 0.9); } }
 @keyframes pulse { 50% { opacity: 0.35; } }
-@keyframes bob { 50% { translate: 0 -5%; } }
 @keyframes ring { 25% { rotate: -16deg; } 75% { rotate: -2deg; } }
 .quip { position: absolute; z-index: 20; pointer-events: none; font: 500 12.5px/1 var(--mono); background: var(--ink); color: #fff; padding: 8px 11px; border-radius: 10px; transform: translate(-50%, -100%); animation: quip 1.5s ease-out forwards; white-space: nowrap; }
 @keyframes quip { 0% { opacity: 0; margin-top: 4px; } 12%, 75% { opacity: 1; margin-top: -8px; } 100% { opacity: 0; margin-top: -18px; } }
@@ -49,9 +42,7 @@
 .tag:hover { color: var(--ink); }
 .tag i { width: 7px; height: 7px; border-radius: 2px; background: var(--green); animation: pulse 1.8s ease-in-out infinite; }
 .hero h1 { font-size: clamp(52px, 9.2vw, 128px); line-height: 0.95; letter-spacing: -0.055em; font-weight: 500; margin: 26px 0 0; }
-.h-mark { display: inline-block; height: 0.8em; width: 0.8em; vertical-align: -0.11em; margin: 0 0.02em; cursor: pointer; transition: transform 0.3s var(--pop); animation: floaty 4s ease-in-out infinite; }
-.hero h1:hover .h-mark { transform: rotate(-10deg) scale(1.06); }
-@keyframes floaty { 50% { translate: 0 -4%; } }
+.h-mark { display: inline-block; height: 0.8em; width: 0.8em; vertical-align: -0.11em; margin: 0 0.02em; cursor: pointer; }
 /* the availability pill in place of the old tag: a small badge, then each platform with its mark */
 .home .tag.avail { gap: 10px; padding: 9px 16px; font: 450 14px/1 var(--sans); letter-spacing: -0.005em; color: var(--ink); flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 32px); }
 .tag.avail b { padding: 7px 10px; border-radius: 999px; background: #fff; font: 500 12px/1 var(--pixel); letter-spacing: 0.04em; text-transform: uppercase; box-shadow: 0 0 0 1px var(--line); }
@@ -109,6 +100,24 @@
 }
 .hero .lede { font-size: clamp(17px, 1.5vw, 20px); line-height: 1.45; color: var(--ink-2); max-width: 40ch; margin: 24px auto 0; text-wrap: balance; }
 .hero .actions { margin-top: 30px; }
+.hero .lede b { font-weight: 550; color: var(--ink); white-space: nowrap; }
+.hero .lede .logo { display: inline-block; width: 0.95em; height: 0.95em; margin: 0 0.22em 0 0.05em; vertical-align: -0.13em; }
+/* the download button is split: the main half follows your system, the arrow opens every other platform */
+.split { position: relative; display: inline-flex; }
+.split .btn { gap: 9px; }
+.split-main { border-radius: 999px 0 0 999px; padding-right: 18px; }
+.split-more { border-radius: 0 999px 999px 0; padding: 0 16px 0 14px; border: 0; box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.16); cursor: pointer; }
+.split-more .i { width: 17px; height: 17px; transition: rotate 0.25s var(--pop); }
+.split-more[aria-expanded="true"] .i { rotate: 180deg; }
+.dl-os .os { display: block; width: 16px; height: 16px; }
+.dl-menu { position: absolute; z-index: 20; left: 0; top: calc(100% + 8px); min-width: 100%; margin: 0; padding: 6px; list-style: none; border-radius: 18px; background: #fff; text-align: left; box-shadow: 0 0 0 1px var(--line), 0 18px 40px -16px rgba(0, 0, 0, 0.25); transform-origin: 50% 0; animation: dl-in 0.18s var(--mk-ease-out); }
+.dl-menu[hidden] { display: none; }
+@keyframes dl-in { from { opacity: 0; scale: 0.96; translate: 0 -4px; } }
+.dl-menu a { display: grid; grid-template-columns: 16px auto 1fr; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.dl-menu a:hover, .dl-menu a:focus-visible { background: var(--wash); }
+.dl-menu .os { width: 16px; height: 16px; }
+.dl-menu b { font-weight: 500; }
+.dl-menu small { justify-self: end; padding-left: 14px; font-size: 13px; color: var(--ink-3); }
 .hero .hint { font: 400 13px/1 var(--pixel); letter-spacing: 0; }
 .hero-stage { max-width: 1388px; margin: 56px auto 0; padding: 0 24px; }
 /* the window sits in the middle of the picture with the same border of sky on every side, at every width */
@@ -215,7 +224,6 @@ main.home { font-weight: 450; }
 .rows .logo { width: 13px; height: 13px; }
 /* a routine switched off: its bot goes to sleep */
 .rows li:has([aria-checked="false"]) div { opacity: 0.5; }
-.rows li:has([aria-checked="false"]) .eyes rect { animation: none; transform: scaleY(0.12); }
 .toggle { position: relative; display: block; flex: none; width: 38px; height: 22px; padding: 0; border: 0; border-radius: 999px; background: #d6d6d1; transition: background-color 0.2s ease; }
 button.toggle { cursor: pointer; }
 button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
@@ -373,9 +381,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .terr-art > img { width: 100%; height: 100%; }
 .tb { position: absolute; left: var(--x); top: var(--y); width: max(22px, 2.9%); translate: -50% -97%; }
 .t1 { --x: 10%; --y: 75.5%; } .t2 { --x: 30%; --y: 60.5%; } .t3 { --x: 50%; --y: 48.5%; } .t4 { --x: 70%; --y: 37.5%; }
-.tb .bot { width: 100%; cursor: pointer; animation: bob 3.2s ease-in-out infinite; }
-.t2 .bot { animation-delay: -0.8s; } .t3 .bot { animation-delay: -1.6s; } .t4 .bot { animation-delay: -2.4s; }
-.tb .bot.hop { animation: hop 0.5s var(--pop); }
+.tb .bot { width: 100%; cursor: pointer; }
 .tchip { position: absolute; left: calc(100% + 8px); top: 50%; translate: 0 -50%; display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px 0 10px; border-radius: 999px; background: #fff; font: 500 13px/1 var(--sans); white-space: nowrap; }
 .tchip .logo { width: 14px; height: 14px; }
 
@@ -416,7 +422,6 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .faq { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: start; }
 .faq-side p { font-size: 17px; color: var(--text); margin: 20px 0 0; }
 .listener { display: block; width: 124px; margin-top: 40px; padding: 0; border: 0; background: none; cursor: pointer; }
-.listener .bot { animation: bob 3.2s ease-in-out infinite; }
 .qs { display: grid; gap: 8px; }
 .qs details { border-radius: var(--r-xl); background: var(--wash); }
 .qs summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 68px; padding: 14px 16px 14px 28px; border-radius: var(--r-xl); font-size: 19px; line-height: 1.25; font-weight: 550; letter-spacing: -0.02em; cursor: pointer; list-style: none; }
@@ -449,14 +454,10 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 /* with script on, the bots start under water and come up one by one the first time the picture is seen */
 .end.arm .sb:not(.up) .dip { transform: translateY(112px); transition: none; }
 .end.off .sb { animation-play-state: paused; }
-.listener .bot.hop { animation: hop 0.5s var(--pop); }
 
 @media (hover: hover) and (pointer: fine) {
   .stk[data-sticker] { cursor: grab; }
-  .wa-row:hover .wa-av { transform: rotate(16deg); }
   .go:hover .i { translate: 3px 0; }
-  .team-rows li:hover .bot, .steps > li:hover .shapes .bot { animation: hop 0.5s var(--pop); }
-  .steps > li:hover .shapes .bot:nth-child(2) { animation-delay: 0.06s; } .steps > li:hover .shapes .bot:nth-child(3) { animation-delay: 0.12s; } .steps > li:hover .shapes .bot:nth-child(4) { animation-delay: 0.18s; } .steps > li:hover .shapes .bot:nth-child(5) { animation-delay: 0.24s; } .steps > li:hover .shapes .bot:nth-child(6) { animation-delay: 0.3s; }
   .steps > li:hover .step-n { animation: ring 0.4s ease-in-out; }
   .phone:hover { animation: ring 0.28s ease-in-out 2; }
   .cat:hover img { transform: scale(1.06) rotate(-2deg); }

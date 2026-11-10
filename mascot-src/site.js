@@ -160,6 +160,12 @@ document.addEventListener('click', (e) => {
   if (rec) react(rec, 'tap');
 });
 
+// for the rest of the page: duskBots.react(el, 'hop'), duskBots.state(el, 'working'); el is a bot or anything around bots
+window.duskBots = {
+  react: (el, kind) => (botOf(el) ? [botOf(el)] : botsIn(el)).forEach((rec) => react(rec, kind)),
+  state: (el, state) => (botOf(el) ? [botOf(el)] : botsIn(el)).forEach((rec) => setState(rec, state)),
+};
+
 query.addEventListener?.('change', (e) => {
   reduced = e.matches;
   for (const rec of bots.values()) rec.mark?.update({ isReducedMotion: reduced });

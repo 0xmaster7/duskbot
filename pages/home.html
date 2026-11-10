@@ -1,8 +1,20 @@
 <section class="hero">
   <a class="tag avail" href="#everywhere" data-mk-reveal><span class="avail-on">available on</span><span>{{os apple}}macos</span><i></i><span>{{os windows}}windows</span><i></i><span>{{os linux}}linux</span><i class="bar-sep"></i><span>{{os apple}}ios</span><i></i><span>{{os android}}android</span></a>
   <h1 data-mk-reveal>meet {{bot clover pink h-mark}} dusk bot</h1>
-  <p class="lede" data-mk-reveal>a team of ai bots you text like teammates. they work on your computer, your server or ours.</p>
-  <p class="actions" data-mk-reveal><a class="btn dark" href="/download" data-mk-press>download for macos</a><a class="btn" href="#where" data-mk-press>get a cloud computer</a></p>
+  <p class="lede" data-mk-reveal>text a team of ai bots like teammates. they run on <b>{{logo chatgpt}}chatgpt</b>, <b>{{logo claude}}claude</b>, <b>{{logo gemini}}gemini</b>, <b>{{logo grok}}grok</b> or any model you bring, on your computer, your server or ours.</p>
+  <div class="actions" data-mk-reveal>
+    <div class="split" data-dl>
+      <a class="btn dark split-main" href="/download" data-mk-press><span class="dl-os">{{os apple}}</span><span class="dl-label">download for macos</span></a><button class="btn dark split-more" type="button" aria-label="other downloads" aria-expanded="false" aria-controls="dl-menu">{{i chevron-down}}</button>
+      <ul class="dl-menu" id="dl-menu" hidden>
+        <li><a href="/download" data-os="mac">{{os apple}}<b>macos</b><small>apple silicon and intel</small></a></li>
+        <li><a href="/download" data-os="windows">{{os windows}}<b>windows</b><small>10 and 11</small></a></li>
+        <li><a href="/download" data-os="linux">{{os linux}}<b>linux</b><small>.deb and appimage</small></a></li>
+        <li><a href="/download" data-os="ios">{{os apple}}<b>iphone</b><small>text your bots</small></a></li>
+        <li><a href="/download" data-os="android">{{os android}}<b>android</b><small>text your bots</small></a></li>
+      </ul>
+    </div>
+    <a class="btn" href="#where" data-mk-press>get a cloud computer</a>
+  </div>
 </section>
 
 <section class="hero-stage">

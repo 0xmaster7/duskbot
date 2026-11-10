@@ -12,32 +12,12 @@ function once(el, fn, threshold = 0.4) {
   io.observe(el);
 }
 
-// every bot on the page looks at the pointer; the sea adds its own crowd below
-const bots = $$('.bot').map((el) => ({ el, eyes: $('.eyes', el) }));
-let seen = new Set(bots), frame = 0, px = innerWidth / 2, py = 0, seaLook = null;
-if (hasIO) {
-  seen = new Set();
-  const by = new Map(bots.map((b) => [b.el, b]));
-  const io = new IntersectionObserver((es) => { for (const e of es) e.isIntersecting ? seen.add(by.get(e.target)) : seen.delete(by.get(e.target)); });
-  bots.forEach((b) => io.observe(b.el));
-}
-function look() {
-  frame = 0;
-  for (const b of seen) {
-    const r = b.el.getBoundingClientRect();
-    if (!r.width) continue;
-    const dx = px - (r.left + r.width / 2), dy = py - (r.top + r.height / 2), d = Math.hypot(dx, dy) || 1, reach = Math.min(1, d / 260) * 5.5;
-    b.eyes.style.transform = `translate(${(dx / d * reach).toFixed(2)}px, ${(dy / d * reach * 0.8).toFixed(2)}px)`;
-  }
-  seaLook?.();
-}
-const point = (e) => { px = e.clientX; py = e.clientY; frame ||= requestAnimationFrame(look); };
-if (!still) { addEventListener('pointermove', point, { passive: true }); addEventListener('pointerdown', point, { passive: true }); }
+// the bots themselves (looks, blinks, moods, answers to a poke) are the app's mascot code, in mascot.js; this file
+// only gives them something to say
 
 const quips = ['hi', 'busy', 'on it', 'five more minutes', 'ok ok', 'that tickles', 'did you need something', 'working, promise', 'not the face', 'hire me', 'i was told there would be snacks'];
 const sparkColours = ['#2f7bf2', '#ff7d1f', '#8d5cf0', '#ff5c9d', '#1fb866', '#f8c623'];
 let said = 0;
-function hop(b) { if (!still && b) { b.classList.remove('hop'); void b.getBoundingClientRect(); b.classList.add('hop'); } }
 function sayAt(x, y, text) {
   const q = document.createElement('span');
   q.className = 'quip'; q.textContent = text;
@@ -63,14 +43,13 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest?.('.bot');
   if (!b || b.closest('[data-own]')) return;
   const asleep = b.closest('li')?.querySelector('[aria-checked="false"]');
-  hop(b); say(b, asleep ? 'zzz' : quips[said++ % quips.length]); sparkle(e.clientX, e.clientY);
+  say(b, asleep ? 'zzz' : quips[said++ % quips.length]); sparkle(e.clientX, e.clientY);
 });
 
 // the bot beside the questions nods along
 const listener = $('.listener'), hellos = ['hi', 'ask away', 'good question', 'i know this one', 'still free, by the way'];
 if (listener) {
-  for (const q of $$('.qs details')) q.addEventListener('toggle', () => { if (q.open) hop($('.bot', listener)); });
-  listener.addEventListener('click', (e) => { hop($('.bot', listener)); say(listener, hellos[said++ % hellos.length]); sparkle(e.clientX || 0, e.clientY || 0); });
+  listener.addEventListener('click', (e) => { say(listener, hellos[said++ % hellos.length]); sparkle(e.clientX || 0, e.clientY || 0); });
 }
 
 // the stickers in the big sentence can be picked up; they spring back when dropped
@@ -124,10 +103,10 @@ if (view) {
   });
 }
 
-// a routine switched off puts its bot to sleep (the look is css; this is the yawn)
+// a routine switched off puts its bot to sleep (mascot.js); this is what it mumbles
 for (const t of $$('.rows .toggle')) t.addEventListener('click', () => {
   if (!document.documentElement.classList.contains('mk-ready')) t.setAttribute('aria-checked', t.getAttribute('aria-checked') !== 'true');
-  setTimeout(() => { const b = $('.bot', t.closest('li')); if (t.getAttribute('aria-checked') === 'true') { hop(b); say(b, 'back on it'); } else say(b, 'zzz'); });
+  setTimeout(() => { const b = $('.bot', t.closest('li')); say(b, t.getAttribute('aria-checked') === 'true' ? 'back on it' : 'zzz'); });
 });
 
 // the newest note in the notebook types itself in once, and is really yours to edit. emptied, it goes back to what it said
@@ -180,36 +159,20 @@ if (bill) {
   });
 }
 
-// the bots on the terraces stay put; pointing at one of the four steps makes its bot hop
-for (const li of $$('.steps > li')) li.addEventListener('pointerenter', () => hop($(`.t${li.dataset.step} .bot`)));
-
-// the last picture: bots in the water. they come up one by one when first seen; each turns its eyes to the pointer and
-// ducks under when the pointer gets close
-const end = $('.end'), shore = $('.sea-bots');
-if (end && shore && !still) {
-  const vb = shore.viewBox.baseVal;
-  const few = $$('.sb', shore).map((el) => { const m = el.transform.baseVal.consolidate().matrix; return { el, eyes: $('.eyes', el), x: m.e + 50 * m.a, y: m.f + 45 * m.a, size: 100 * m.a, shore: el.classList.contains('shore'), cool: 0, t: 0 }; });
-  let live = !hasIO, idle = 0;
-  const dive = (b, ms) => { b.el.classList.add('dive'); clearTimeout(b.t); b.t = setTimeout(() => b.el.classList.remove('dive'), ms); };
-  seaLook = () => {
-    if (!live) return;
-    const r = shore.getBoundingClientRect(), k = r.width / vb.width;
-    for (const b of few) {
-      const dx = px - (r.left + b.x * k), dy = py - (r.top + b.y * k), d = Math.hypot(dx, dy) || 1;
-      b.eyes.style.transform = `translate(${(dx / d * 6).toFixed(1)}px, ${(dy / d * 5).toFixed(1)}px)`;
-      if (d > 22 + b.size * k) continue;
-      if (!b.shore) dive(b, 700 + Math.random() * 900);
-      else if (performance.now() > b.cool) { b.cool = performance.now() + 900; dive(b, 170); }
-    }
-  };
-  let shown = !hasIO;
-  if (hasIO) end.classList.add('arm');
-  const surface = () => { shown = true; [...few].sort(() => Math.random() - 0.5).forEach((b, i) => setTimeout(() => b.el.classList.add('up'), 250 + i * 140)); };
-  if (hasIO) new IntersectionObserver(([e]) => {
-    if (e.isIntersecting && !shown) surface();
-    live = e.isIntersecting; end.classList.toggle('off', !live); clearInterval(idle);
-    if (live) idle = setInterval(() => { const up = few.filter((b) => !b.shore && !b.el.classList.contains('dive')); if (up.length) dive(up[Math.floor(Math.random() * up.length)], 520); }, 2600);
-  }).observe(end);
+// the hero download follows your system; the arrow lists every other platform
+const dl = $('[data-dl]');
+if (dl) {
+  const more = $('.split-more', dl), menu = $('.dl-menu', dl), ua = navigator.userAgent;
+  const mine = /android/i.test(ua) ? 'android' : /iphone|ipad/i.test(ua) ? 'ios' : /windows/i.test(ua) ? 'windows' : /linux|cros/i.test(ua) ? 'linux' : 'mac';
+  if (mine !== 'mac') {
+    const item = $(`[data-os="${mine}"]`, menu);
+    $('.dl-os', dl).replaceChildren($('.os', item).cloneNode(true));
+    $('.dl-label', dl).textContent = mine === 'ios' || mine === 'android' ? `get it for ${$('b', item).textContent}` : `download for ${mine}`;
+  }
+  const open = (on) => { menu.hidden = !on; more.setAttribute('aria-expanded', on); };
+  more.addEventListener('click', () => open(menu.hidden));
+  document.addEventListener('click', (e) => { if (!dl.contains(e.target)) open(false); });
+  dl.addEventListener('keydown', (e) => { if (e.key === 'Escape') { open(false); more.focus(); } });
 }
 
 const title = document.title;
