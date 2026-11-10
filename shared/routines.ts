@@ -64,9 +64,43 @@ export interface RoutineContextAttachment {
 export type RoutineRunTrigger = "schedule" | "manual" | "webhook" | "startup" | "api";
 
 /** A check a routine runs on each tick before any AI turn, in plain code: `calendar` reads the next 36 hours, `mail`
- * new inbox mail since the last check, `runs` other routines' finished runs. Nothing new means no AI turn. */
-export type RoutineCheck = "calendar" | "mail" | "runs";
-export const ROUTINE_CHECKS: readonly RoutineCheck[] = ["calendar", "mail", "runs"];
+ * new inbox mail since the last check, `runs` other routines' finished runs, `probe` one public page, feed or price
+ * (`Routine.probe`). Nothing new means no AI turn. */
+export type RoutineCheck = "calendar" | "mail" | "runs" | "probe";
+export const ROUTINE_CHECKS: readonly RoutineCheck[] = ["calendar", "mail", "runs", "probe"];
+
+/** What a `probe` check reads: a page's words, a feed's newest items, or the first price on a page. */
+export interface RoutineProbe {
+  kind: "page" | "feed" | "price";
+  url: string;
+}
+
+/** `around`: the run may move up to ROUTINE_AROUND_MS either way, so a Cloud home can fold it into a wake it has
+ * anyway. Missing means its exact time. */
+export type RoutineTiming = "around";
+export const ROUTINE_AROUND_MS = 30 * 60_000;
+
+/** One of a routine's last runs as its strip shows them: `ok` did something, `quiet` fired and found nothing new,
+ * `failed` went wrong, `missed` never fired. Oldest first. */
+export interface RoutineStripEntry { at: number; outcome: "ok" | "quiet" | "failed" | "missed" }
+
+export interface RoutineCheckTick { at: number; outcome: "quiet" | "failed" }
+
+/** The fields a routine carries for quiet checks and flexible timing. */
+export interface RoutineQuietFields {
+  probe?: RoutineProbe;
+  timing?: RoutineTiming;
+  /** Its checks' last ticks that started no run, newest last, at most seven: nothing new, or a read that failed. */
+  ticks?: RoutineCheckTick[];
+  /** Its last seven outcomes, built for the client. */
+  strip?: RoutineStripEntry[];
+}
+
+/** The same, as a create or update asks for them: `null` removes one on updates; omission preserves it. */
+export interface RoutineQuietInput {
+  probe?: RoutineProbe | null;
+  timing?: RoutineTiming | null;
+}
 
 /** What a routine's runs may do. `read-and-draft`: read Gmail and Google Calendar and write reply drafts; every other
  * tool is refused outright, never turned into a card. Missing means the bot's own level. */
@@ -114,7 +148,7 @@ export function isRoutineProblemRun(run: { status: RoutineRunStatus }): boolean 
   return ROUTINE_PROBLEM_STATUSES.includes(run.status);
 }
 
-export interface Routine {
+export interface Routine extends RoutineQuietFields {
   id: string;
   name: string;
   prompt: string;
@@ -212,7 +246,7 @@ export interface RoutineRun {
   seenAt?: number;
 }
 
-export interface RoutineInput {
+export interface RoutineInput extends RoutineQuietInput {
   name: string;
   prompt: string;
   target?: RoutineTarget;

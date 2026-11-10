@@ -2,6 +2,7 @@
 import { runsOnce } from "../shared/limit-reset.ts";
 import { cleanAttachments, cleanTimeoutMinutes } from "./routine-attachments.ts";
 import { loadChecks } from "./routine-load.ts";
+import { cleanProbe, cleanTiming } from "./routine-quiet.ts";
 import { cleanSchedule } from "./routine-schedules.ts";
 import type { Routine, RoutineInput } from "./routines.ts";
 
@@ -36,9 +37,14 @@ export function sanitizeInput(input: RoutineInput, after: number): Omit<Routine,
     throw new Error("Room goals do not carry continuity yet");
   }
   const schedule = cleanSchedule(input.schedule, after);
-  const asked = Array.isArray(input.checks) && input.checks.length === 0 ? null : input.checks;
+  const probe = cleanProbe(input.probe);
+  // a probe is its own check: giving one turns it on, removing one turns it off
+  const named = Array.isArray(input.checks) ? input.checks.filter((check) => check !== "probe") : input.checks;
+  const asked = probe ? [...(named ?? []), "probe"] : named?.length ? named : null;
   const checks = asked == null ? undefined : loadChecks(asked);
   if (asked != null && (!checks || checks.length !== new Set(asked).size)) throw new Error("Choose checks from calendar, mail and runs");
+  if (probe && checks!.length > 1) throw new Error("A page, feed or price check runs on its own, without other checks");
+  if (probe && input.deliver === "brief") throw new Error("A page, feed or price check reports in its chat, not the brief");
   if (checks && (target !== "bot" || runsOnce(schedule))) throw new Error("Checks need a bot routine that repeats");
   if (input.access != null && input.access !== "read-and-draft") throw new Error("Choose read-and-draft access or none");
   if (input.deliver != null && (input.deliver !== "brief" || target !== "bot")) throw new Error("Only a bot routine can deliver to the brief");
@@ -60,5 +66,7 @@ export function sanitizeInput(input: RoutineInput, after: number): Omit<Routine,
     ...(checks ? { checks } : {}),
     ...(input.access === "read-and-draft" ? { access: "read-and-draft" as const } : {}),
     ...(input.deliver === "brief" ? { deliver: "brief" as const } : {}),
+    ...(probe ? { probe } : {}),
+    ...(cleanTiming(input.timing, schedule, checks) ? { timing: "around" as const } : {}),
   };
 }

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash } from "node:crypto"; import { shapeNewRoutine } from "./routine-shape.ts";
 import { isDeepStrictEqual } from "node:util";
 
 import { cronScheduleLabel } from "../shared/cron-label.ts";
@@ -839,7 +839,7 @@ function revalidateOperation(operation: RoutineRequestOperation, manager: Routin
         && definition.schedule.type === "interval" && definition.schedule.anchorAt === undefined
         ? { ...schedule, anchorAt: routine.schedule.anchorAt }
         : schedule;
-      return isDeepStrictEqual(candidate, routine.schedule);
+      return isDeepStrictEqual(candidate, routine.schedule) || (candidate.type === "interval" && routine.schedule.type === "interval" && !candidate.window && isDeepStrictEqual({ ...candidate, window: routine.schedule.window }, routine.schedule));
     });
     if (duplicate) {
       // The tool cannot choose a result destination.
@@ -1403,11 +1403,11 @@ export class RoutineRequestService {
     const confirmationAt = this.now();
     switch (operation.action) {
       case "create":
-        return this.routines.create(inputFromDefinition(
+        return this.routines.create(shapeNewRoutine(inputFromDefinition(
           operation.routine,
           operation.forBot?.botId ?? payload.botId,
           confirmationAt,
-        ), {
+        )), {
           requestId: payload.requestId,
           messageId,
           botId: payload.botId,

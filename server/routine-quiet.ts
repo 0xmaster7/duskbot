@@ -1,0 +1,90 @@
+// Quiet, honest routines: what a probe check may read, when a routine may move ("around this time"), and the strip of
+// its last seven outcomes, which tells "didn't fire" from "fired, nothing new". Pure over a routine and its runs.
+import { ROUTINE_AROUND_MS, type RoutineCheck, type RoutineCheckTick, type RoutineProbe, type RoutineStripEntry, type RoutineTiming } from "../shared/routines.ts";
+import type { Routine, RoutineRun } from "./routines.ts";
+import type { RoutineSchedule } from "./routine-schedules.ts";
+
+export const STRIP_RUNS = 7;
+const MAX_URL = 2_000;
+/** A run the self-cap stopped (server/routine-self-cap.ts): cancelled, but its strip shows it as failed. */
+export const SELF_CAP_STOP = "Stopped at 3 times its usual cost";
+
+/** A probe as asked for: undefined for none, an error for one that cannot be read. */
+export function cleanProbe(value: unknown): RoutineProbe | undefined {
+  if (value == null) return undefined;
+  const { kind, url } = value as Partial<RoutineProbe>;
+  if (kind !== "page" && kind !== "feed" && kind !== "price") throw new Error("Choose a page, a feed or a price to check");
+  const text = typeof url === "string" ? url.trim() : "";
+  let parsed: URL;
+  try { parsed = new URL(text); } catch { throw new Error("Give the page's full web address, starting with https://"); }
+  if ((parsed.protocol !== "http:" && parsed.protocol !== "https:") || parsed.username || parsed.password || text.length > MAX_URL) {
+    throw new Error("Only an http or https address with no sign-in details can be checked");
+  }
+  return { kind, url: parsed.toString() };
+}
+
+/** A probe as kept on disk; anything out of range is dropped. */
+export function loadProbe(value: unknown): RoutineProbe | undefined {
+  try { return cleanProbe(value); } catch { return undefined; }
+}
+
+/** Only a run at a time of day may move: a daily, weekly, one-off or cron run. */
+export const mayMove = (schedule: RoutineSchedule): boolean => schedule.type === "daily" || schedule.type === "cron" || schedule.type === "once";
+
+export function cleanTiming(value: unknown, schedule: RoutineSchedule, checks: readonly RoutineCheck[] | undefined): RoutineTiming | undefined {
+  if (value == null) return undefined;
+  if (value !== "around") throw new Error("Choose an exact time or around this time");
+  return mayMove(schedule) && !checks?.length ? "around" : undefined;
+}
+
+/** How far this routine's run may move either way; 0 for its exact time. */
+export const flexOf = (routine: Pick<Routine, "timing" | "schedule" | "checks">): number =>
+  routine.timing === "around" && mayMove(routine.schedule) && !routine.checks?.length ? ROUTINE_AROUND_MS : 0;
+
+/** The probe and timing a patch leaves: its own, or the routine's when it names none. */
+export function quietPatch(patch: { probe?: RoutineProbe | null; timing?: RoutineTiming | null }, routine: Pick<Routine, "probe" | "timing">) {
+  return {
+    probe: Object.hasOwn(patch, "probe") ? patch.probe : routine.probe,
+    timing: Object.hasOwn(patch, "timing") ? patch.timing : routine.timing,
+  };
+}
+
+/** Drops the quiet fields an update cleared, and the probe's ticks once it has no checks. */
+export function dropQuietFields(routine: Routine, clean: Pick<Routine, "probe" | "timing" | "checks">): void {
+  if (!clean.probe) delete routine.probe;
+  if (!clean.timing) delete routine.timing;
+  if (!clean.checks) delete routine.ticks;
+}
+
+/** A check that started no run leaves a tick: "quiet" when it read everything and found nothing, "failed" when it could
+ * not read. One that started a run leaves none: that run is the strip's entry. */
+export function nextTicks(routine: Pick<Routine, "ticks">, result: { run?: unknown; trouble?: string; held?: true }, at: number): RoutineCheckTick[] | undefined {
+  if (result.run || result.held) return routine.ticks;
+  return [...(routine.ticks ?? []), { at, outcome: result.trouble ? "failed" as const : "quiet" as const }].slice(-STRIP_RUNS);
+}
+
+export function loadTicks(value: unknown): RoutineCheckTick[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const ticks = value.filter((tick): tick is RoutineCheckTick => Boolean(tick) && Number.isSafeInteger(tick.at) && tick.at >= 0 &&
+    (tick.outcome === "quiet" || tick.outcome === "failed")).map(({ at, outcome }) => ({ at, outcome })).slice(-STRIP_RUNS);
+  return ticks.length ? ticks : undefined;
+}
+
+function outcomeOf(run: RoutineRun): RoutineStripEntry["outcome"] | null {
+  if (run.status === "completed") return run.report?.state === "quiet" ? "quiet" : "ok";
+  if (run.status === "failed") return "failed";
+  if (run.status === "missed") return "missed";
+  if (run.status === "cancelled" && run.error?.startsWith(SELF_CAP_STOP)) return "failed";
+  return null;
+}
+
+/** The last seven outcomes, oldest first: finished runs (not tests) and the checks' ticks. */
+export function stripOf(runs: readonly RoutineRun[], routine: Pick<Routine, "id" | "ticks">): RoutineStripEntry[] {
+  const entries: RoutineStripEntry[] = [...(routine.ticks ?? [])];
+  for (const run of runs) {
+    if (run.routineId !== routine.id || run.dryRun) continue;
+    const outcome = outcomeOf(run);
+    if (outcome) entries.push({ at: run.finishedAt ?? run.scheduledFor, outcome });
+  }
+  return entries.sort((a, b) => a.at - b.at).slice(-STRIP_RUNS);
+}

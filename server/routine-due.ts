@@ -1,15 +1,19 @@
 // When routines next need this machine: the desktop's keep-awake (`wakeHold`) and a Cloud home's sleep check
 // (server/cloud-power.ts). Pure over RoutineManager's routines and runs.
 import type { Routine, RoutineRun } from "./routines.ts";
+import { flexOf } from "./routine-quiet.ts";
+import { nextOccurrence } from "./routine-schedules.ts";
 import { activeMs } from "./routine-waits.ts";
 
-type Due = Pick<Routine, "enabled" | "nextRunAt" | "checks" | "wakeAt" | "checkedAt">;
+type Due = Pick<Routine, "enabled" | "nextRunAt" | "checks" | "wakeAt" | "checkedAt"> & Partial<Pick<Routine, "timing" | "schedule">>;
+/** The latest a run may start: its time, or the end of its window when it may move. */
+const latestOf = (routine: Due): number | null => routine.nextRunAt == null ? null : routine.nextRunAt + (routine.schedule ? flexOf(routine as Pick<Routine, "timing" | "schedule" | "checks">) : 0);
 type Run = Pick<RoutineRun, "status" | "retryAt">;
 const startsLater = (run: Run, now: number) => run.status === "queued" && (run.retryAt ?? 0) > now;
 /** Every time a run is due: enabled routines' next runs and queued runs' retries. A routine with checks counts only the
  * next time they have something to do on time (`checksDue`). */
-const dueTimes = (routines: readonly Due[], runs: readonly Run[], now: number, checksDue: (routine: Due) => number | undefined) =>
-  [...routines.filter((routine) => routine.enabled).map((routine) => routine.checks ? checksDue(routine) : routine.nextRunAt),
+const dueTimes = (routines: readonly Due[], runs: readonly Run[], now: number, checksDue: (routine: Due) => number | undefined, at: (routine: Due) => number | null = (routine) => routine.nextRunAt) =>
+  [...routines.filter((routine) => routine.enabled).map((routine) => routine.checks ? checksDue(routine) : at(routine)),
     ...runs.filter((run) => startsLater(run, now)).map((run) => run.retryAt)].filter((at): at is number => typeof at === "number");
 
 /** The longest a sleeping Cloud home leaves its routines' checks unread. */
@@ -36,20 +40,38 @@ export function wakeHoldOf(routines: readonly Due[], runs: readonly Run[], now: 
  * not: their answer wakes the home. */
 export const activeRunsOf = (runs: readonly Run[], now: number) => runs.some((run) => run.status === "running" || (run.status === "queued" && !startsLater(run, now)));
 
-/** The earliest time a run is due; null when none. */
+/** The earliest time a run is due; null when none. A run that may move counts at the end of its window: an Admin that
+ * reads only this still wakes the home in time, and one that reads `upcomingOf` can fold it into an earlier wake. */
 export function nextDueOf(routines: readonly Due[], runs: readonly Run[], now: number): number | null {
-  const due = dueTimes(routines, runs, now, cloudChecksDue(now));
+  const due = dueTimes(routines, runs, now, cloudChecksDue(now), latestOf);
   return due.length ? Math.min(...due) : null;
+}
+
+const UPCOMING_MS = 24 * 60 * 60_000;
+export const UPCOMING_MAX = 96;
+
+/** The runs due in the next day for a Cloud home's power report (apps/cloud-service/docs/power.md): each with how far
+ * it may move (`flexMs`, 0 for its exact time), at most 96, in order. Checks and retries keep their exact times. */
+export function upcomingOf(routines: readonly Due[], runs: readonly Run[], now: number): Array<{ at: number; flexMs: number }> {
+  const out = dueTimes(routines.filter((routine) => routine.checks), runs, now, cloudChecksDue(now)).map((at) => ({ at, flexMs: 0 }));
+  for (const routine of routines) {
+    if (!routine.enabled || routine.checks || routine.nextRunAt == null || !routine.schedule) continue;
+    const flexMs = flexOf(routine as Pick<Routine, "timing" | "schedule" | "checks">);
+    for (let at: number | null = routine.nextRunAt, count = 0; at !== null && at <= now + UPCOMING_MS && count < UPCOMING_MAX; at = nextOccurrence(routine.schedule, at), count += 1) {
+      out.push({ at, flexMs });
+    }
+  }
+  return out.filter((run) => run.at <= now + UPCOMING_MS).sort((a, b) => a.at - b.at).slice(0, UPCOMING_MAX);
 }
 
 type Started = Run & Pick<RoutineRun, "startedAt" | "timeoutMinutes" | "waitedMs" | "asked">;
 /** When this process's scheduler next has work: a routine's next run, or its checks once `checksFrom` has passed; a queued
  * run (now, or its retry); a started run reaching its time limit. `skip` leaves out routines whose target is gone. */
-export function schedulerDueOf<R extends Due>(routines: readonly R[], runs: readonly Started[], now: number, checksFrom: number, skip: (routine: R) => boolean = () => false): number | null {
+export function schedulerDueOf<R extends Due>(routines: readonly R[], runs: readonly Started[], now: number, checksFrom: number, skip: (routine: R) => boolean = () => false, early?: (routine: R) => number): number | null {
   let at = Infinity;
   for (const routine of routines) {
     if (!routine.enabled || skip(routine)) continue;
-    const next = Math.min(routine.nextRunAt ?? Infinity, routine.checks ? routine.wakeAt ?? Infinity : Infinity);
+    const next = Math.min(routine.nextRunAt == null ? Infinity : routine.nextRunAt - (early?.(routine) ?? 0), routine.checks ? routine.wakeAt ?? Infinity : Infinity);
     if (next !== Infinity) at = Math.min(at, routine.checks ? Math.max(next, checksFrom) : next);
   }
   for (const run of runs) {

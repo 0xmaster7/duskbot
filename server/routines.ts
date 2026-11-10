@@ -6,7 +6,7 @@ import { DATA_DIR } from "./config.ts";
 import type { RuntimeEvent } from "./contracts.ts";
 import { OwnedFile } from "./atomic.ts"; import { saveSoon } from "./save-batch.ts";
 import { redactSecretsInText } from "./redact.ts";
-import { activeRunsOf, nextDueOf, schedulerDueOf, wakeHoldOf } from "./routine-due.ts";
+import { activeRunsOf, nextDueOf, schedulerDueOf, upcomingOf, wakeHoldOf } from "./routine-due.ts"; import { dropQuietFields, nextTicks, quietPatch, stripOf } from "./routine-quiet.ts";
 import { startDueTimer, type DueTimer } from "./due-timer.ts";
 import type { GroupGoalRunStatus } from "../shared/group-goal-run.ts";
 import type { RoutineRequestOperation } from "../shared/routine-request.ts";
@@ -14,7 +14,7 @@ import { intervalAllowsOccurrence, intervalHasRestrictions, isSameLocalDay, late
 import { cloneSchedule, limitResetOccurrence, mergeScheduleUpdate, nextOccurrence, RoutineScheduleError, type RoutineSchedule, type RoutineScheduleInput } from "./routine-schedules.ts";
 import { runsOnce } from "../shared/limit-reset.ts";
 import {
-  isRoutineProblemRun, type RoutineAccess, type RoutineCheck, type RoutineContextAttachment, type RoutineDelivery, type RoutineIntervalWindow, type RoutineRetryCause,
+  isRoutineProblemRun, type RoutineQuietFields, type RoutineQuietInput, type RoutineAccess, type RoutineCheck, type RoutineContextAttachment, type RoutineDelivery, type RoutineIntervalWindow, type RoutineRetryCause,
   type RoutineHoldCause, type RoutinePause, type RoutineRunReport, type RoutineRunStatus, type RoutineRunTrigger,
 } from "../shared/routines.ts";
 import type { PartPair, RoutinePart } from "./package-parts.ts";
@@ -46,7 +46,7 @@ export type RoutineTarget = "bot" | "room-goal";
 export type RoutineGoalStatus = Exclude<GroupGoalRunStatus, "working">;
 
 
-export interface Routine {
+export interface Routine extends RoutineQuietFields {
   id: string;
   name: string;
   prompt: string;
@@ -162,7 +162,7 @@ export interface RoutineRequestCommit {
 type RoutineRequestCommitFor<Action extends RoutineRequestOperation["action"]> =
   Omit<RoutineRequestCommit, "action"> & { action: Action };
 
-export interface RoutineInput {
+export interface RoutineInput extends RoutineQuietInput {
   name: string;
   prompt: string;
   target?: RoutineTarget;
@@ -204,7 +204,7 @@ function routineRequestOwnerKey(owner: RoutineRequestOwner): string {
 
 /** What a routine's checks found: items for one AI run, a sentence while an app cannot be read, and the next time they
  * have something to do on time. */
-export interface RoutineCheckResult { run?: { prompt: string; key: string }; trouble?: string; wakeAt?: number }
+export interface RoutineCheckResult { run?: { prompt: string; key: string }; trouble?: string; wakeAt?: number; /** It read nothing: a run holds its last change, or none may start now. */ held?: true }
 
 export interface RoutineChecks {
   /** Runs a routine's checks. With `hold` they may do only what needs no AI, and their items wait. */
@@ -271,7 +271,7 @@ export interface RoutineManagerOptions {
   skipStartupRuns?: boolean;
   checks?: RoutineChecks;
   /** The computer woke and is not back on the network yet (server/wake-gate.ts): due runs wait, then each runs once. */
-  heldAfterWake?: () => boolean; held?: (run: RoutineRun) => string | null; decorate?: (routine: Routine) => Partial<Routine>;
+  heldAfterWake?: () => boolean; held?: (run: RoutineRun) => string | null; decorate?: (routine: Routine) => Partial<Routine>; /** How much earlier than its time a run may start (a Cloud home folding an "around" run into its wake). */ earlyMs?: (routine: Routine) => number;
 }
 
 const CATCH_UP_MS = 12 * 60 * 60_000;
@@ -392,7 +392,7 @@ export class RoutineManager {
     const failures = success < 0 ? outcomes.length : success;
     const { installedPackage: _installedPackage, ...visible } = cloneRoutine(routine);
     const warning = routineHostWarning(routine), week = weekRuns(this.runs, routine.id, this.now());
-    return { ...visible, ...(failures ? { failureStreak: failures } : {}), ...(week ? { weekRuns: week } : {}), ...(warning ? { warning } : {}), ...this.options.decorate?.(routine) };
+    return { ...visible, ...(failures ? { failureStreak: failures } : {}), ...(week ? { weekRuns: week } : {}), ...(warning ? { warning } : {}), strip: stripOf(this.runs, routine), ...this.options.decorate?.(routine) };
   }
 
   packageStamps(): Array<{ routineId: string; botId: string; enabled: boolean; stamp: RoutinePackageStamp }> {
@@ -415,7 +415,7 @@ export class RoutineManager {
   wakeHold(horizonMs = WAKE_HORIZON_MS) { return wakeHoldOf(this.routines, this.runs, this.now(), horizonMs); }
   /** A Cloud home's sleep check (server/routine-due.ts). */
   hasActiveRuns(): boolean { return activeRunsOf(this.runs, this.now()); }
-  nextDueAt(): number | null { return nextDueOf(this.routines, this.runs, this.now()); }
+  nextDueAt(): number | null { return nextDueOf(this.routines, this.runs, this.now()); } /** The runs due in the next day, for a Cloud home's power report. */ upcoming() { return upcomingOf(this.routines, this.runs, this.now()); }
 
   listRuns(from?: number, to?: number): RoutineRun[] {
     return this.runs
@@ -580,7 +580,7 @@ export class RoutineManager {
       runOnStartup: patch.runOnStartup ?? routine.runOnStartup,
       checks: Object.hasOwn(patch, "checks") ? patch.checks : routine.checks,
       access: Object.hasOwn(patch, "access") ? patch.access : routine.access,
-      deliver: Object.hasOwn(patch, "deliver") ? patch.deliver : routine.deliver,
+      deliver: Object.hasOwn(patch, "deliver") ? patch.deliver : routine.deliver, ...quietPatch(patch, routine),
     }, now);
     clean.schedule = this.timedSchedule(clean.schedule, routine.id);
     if (this.targetState(clean) === "missing") throw new Error(this.missingTargetMessage(clean.target));
@@ -609,7 +609,7 @@ export class RoutineManager {
       if (clean.overlap !== "queue") delete routine.overlap;
       if (!clean.runOnStartup) delete routine.runOnStartup;
       if (!clean.access) delete routine.access;
-      if (!clean.deliver) delete routine.deliver;
+      if (!clean.deliver) delete routine.deliver; dropQuietFields(routine, clean);
       if (!clean.checks) for (const key of ["checks", "checkedAt", "checkTrouble", "wakeAt"] as const) delete routine[key];
       if (Object.hasOwn(patch, "timeoutMinutes") && patch.timeoutMinutes == null) {
         delete routine.timeoutMinutes;
@@ -941,7 +941,7 @@ export class RoutineManager {
     if (this.closing || this.timer) return;
     if (!this.startupRunsQueued) this.startupRunsQueued = this.queueStartupRuns();
     this.timer = startDueTimer({ run: () => this.tick(), now: this.now, onError: (error) => console.error("routines: a scheduler pass failed", error),
-      next: () => schedulerDueOf(this.routines, this.runs, this.now(), this.bootedAt + CHECK_BOOT_HOLD_MS, (routine) => this.targetState(routine) === "missing") });
+      next: () => schedulerDueOf(this.routines, this.runs, this.now(), this.bootedAt + CHECK_BOOT_HOLD_MS, (routine) => this.targetState(routine) === "missing", this.options.earlyMs) });
   }
 
   stop() {
@@ -1004,7 +1004,7 @@ export class RoutineManager {
       }
       if (this.options.heldAfterWake?.()) return;
       const isDue = (routine: Routine) => !this.closing && routine.enabled && this.targetState(routine) !== "missing" && (!routine.checks
-        ? routine.nextRunAt != null && routine.nextRunAt <= now
+        ? routine.nextRunAt != null && routine.nextRunAt - (this.options.earlyMs?.(routine) ?? 0) <= now
         : now >= this.bootedAt + CHECK_BOOT_HOLD_MS && [routine.nextRunAt, routine.wakeAt].some((at) => at != null && at <= now));
       // An unanswered wait gives way to its routine's next occurrence, which would otherwise be skipped behind it.
       for (const routine of this.routines.filter(isDue)) {
@@ -1217,7 +1217,7 @@ export class RoutineManager {
       this.commitMutation(() => {
         for (const field of ["wakeAt", "checkTrouble"] as const) delete current[field];
         Object.assign(current, result.wakeAt === undefined ? {} : { wakeAt: result.wakeAt }, result.trouble ? { checkTrouble: result.trouble.slice(0, 300) } : {},
-          result.trouble || result.run ? {} : { checkedAt: this.now() });
+          result.trouble || result.run ? {} : { checkedAt: this.now() }, manual === undefined ? { ticks: nextTicks(current, result, this.now()) } : {});
         if (result.run) {
           run = queued ?? this.newRun(current, this.now(), false, allocations);
           if (queued) Object.assign(run, routineRunDefinition(current), {

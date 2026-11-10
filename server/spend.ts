@@ -20,11 +20,12 @@ import { readUsage, type UsageRow } from "./usage-ledger.ts";
 const DAY_MS = 24 * 60 * 60_000;
 export const WEEK_MS = 7 * DAY_MS;
 const FORECAST_RUNS = 5;
+const USUAL_RUNS = 3;
 const RUN_COSTS_SHOWN = 20;
 /** A schedule that fires every minute all week, the most a forecast counts. */
 const MAX_OCCURRENCES = 7 * 24 * 60;
 
-interface Entry {
+export interface Entry {
   at: number;
   botId: string;
   botName: string;
@@ -157,18 +158,39 @@ export function createSpend(deps: SpendDeps) {
   }
 
   return {
-    booked(row: UsageRow): void {
+    /** Keeps a booked turn; its entry, for the allowance. */
+    booked(row: UsageRow): Entry | null {
       const entry = entryOf(row);
-      if (!Number.isFinite(entry.at)) return;
+      if (!Number.isFinite(entry.at)) return null;
       window().push(entry);
       check("bot", entry.botId, entry.botId, entry.botName);
       if (entry.routineId) check("routine", entry.routineId, entry.botId, entry.routineName ?? entry.routineId);
+      return entry;
     },
 
     /** The cap that holds this bot's unattended work back right now, its routine's own first. */
     over(botId: string, routineId?: string): CapHit | null {
       return (routineId ? hitOf("routine", routineId, botId, of("routine", routineId)[0]?.routineName ?? routineId) : null) ??
         hitOf("bot", botId, botId, of("bot", botId).at(-1)?.botName ?? botId);
+    },
+
+    /** What was booked since `at` (within the last seven days), oldest first. */
+    since(at: number): ReadonlyArray<Readonly<Entry>> {
+      return window().filter((entry) => entry.at >= at);
+    },
+
+    /** A routine's usual run: the median of its last five priced runs, once it has three; null before. */
+    usualRunUsd(routineId: string): number | null {
+      const runs = new Map<string, { usd: number; at: number }>();
+      for (const entry of of("routine", routineId)) {
+        if (!entry.runId) continue;
+        const run = runs.get(entry.runId) ?? { usd: 0, at: entry.at };
+        run.usd += entry.usd;
+        run.at = Math.max(run.at, entry.at);
+        runs.set(entry.runId, run);
+      }
+      const priced = [...runs.values()].filter((run) => run.usd > 0).sort((a, b) => b.at - a.at).slice(0, FORECAST_RUNS).map((run) => run.usd).sort((a, b) => a - b);
+      return priced.length >= USUAL_RUNS ? priced[Math.floor((priced.length - 1) / 2)]! : null;
     },
 
     caps(): { bots: Readonly<Record<string, number>>; routines: Readonly<Record<string, number>> } {

@@ -32,6 +32,8 @@ export interface RoutineGuardDeps {
   tell(botId: string, threadId: string | undefined, text: string, quiet?: boolean): void;
   language(threadId: string | undefined): string | undefined;
   spendOver(botId: string, routineId: string): CapHit | null;
+  /** Why no run may start while the account's weekly allowance is used up (server/allowance.ts), or null. */
+  allowanceHeld?(language: string | undefined): string | null;
 }
 
 export const isNotYet = (output: string | undefined): boolean => Boolean(output && NOT_YET.test(output));
@@ -88,8 +90,11 @@ export function createRoutineGuard(deps: RoutineGuardDeps) {
   const resultsThread = (routine: Routine) => routine.resultsThreadId ?? routine.sourceThreadId;
 
   return {
-    /** Why an unattended run may not start now, or null. A run someone started, or a test, always may. */
+    /** Why a run may not start now, or null. Past a cap, a run someone started, or a test, still may. */
     held(run: RoutineRun): string | null {
+      // a used-up allowance holds every new run, a person's included: they wait for the reset or a top-up
+      const waiting = deps.allowanceHeld?.(deps.language(run.resultsThreadId ?? run.sourceThreadId));
+      if (waiting) return waiting;
       if (run.manual || run.dryRun || run.target !== "bot") return null;
       const hit = deps.spendOver(run.botId, run.routineId);
       if (!hit) return null;
@@ -156,6 +161,9 @@ export function createRoutineGuard(deps: RoutineGuardDeps) {
       }
       return why ? { pausedFor: why } : {};
     },
+
+    /** One notice the person sees (see RoutineGuardDeps.tell). */
+    tell: deps.tell,
 
     dryRun(run: RoutineRun | null): boolean {
       return run?.dryRun === true && (run.status === "running" || run.status === "waiting");
