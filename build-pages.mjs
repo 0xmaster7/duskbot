@@ -75,8 +75,9 @@ export function bot(shape, colour, extra = '') {
   return `<svg class="bot c-${colour}${extra ? ' ' + extra : ''}" viewBox="0 0 100 100" aria-hidden="true"><g class="body">${body}</g><g class="eyes"><rect x="36" y="${y}" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="${y}" width="9.5" height="23" rx="4.75"/></g></svg>`;
 }
 const CHIP_NAMES = { calendar: 'google calendar', drive: 'google drive', docs: 'google docs', sheets: 'google sheets' };
-// {{chips a b c}} becomes a run of connector chips, each a coloured pixel tile and a name
-const withChips = (html) => html.replace(/\{\{chips ([\w ]+)\}\}/g, (_, names) => names.split(' ').map((n) => `<span class="chip"><i class="px px-${n}"></i>${CHIP_NAMES[n] ?? n}</span>`).join(''));
+const logo = (name) => `<img class="logo" src="/art/logos/${name}.${fs.existsSync(path.join(site, 'art', 'logos', `${name}.svg`)) ? 'svg' : 'png'}" alt="" width="20" height="20">`;
+// {{logo name}} is one mark; {{chips a b c}} is a run of connector chips, each a logo and a name
+const withChips = (html) => html.replace(/\{\{logo (\w+)\}\}/g, (_, name) => logo(name)).replace(/\{\{chips ([\w ]+)\}\}/g, (_, names) => names.split(' ').map((n) => `<span class="chip">${logo(n)}${CHIP_NAMES[n] ?? n}</span>`).join(''));
 const withBots = (html) => withChips(html).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()));
 
 // stamps a file's content hash on its url, so an edit is seen at once despite the cache header
@@ -100,7 +101,7 @@ export function layout({ title, description, body, page }) {
 <meta property="og:image" content="https://dusk.bot/art/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/art/cursor-88.webp" type="image/webp">
-<link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="${stamped('site.css')}">${home ? `\n<link rel="stylesheet" href="${stamped('motion-kit-v2.css')}">\n<link rel="stylesheet" href="${stamped('home.css')}">` : ''}
 </head>
 <body${home ? ' class="is-home"' : ''}>

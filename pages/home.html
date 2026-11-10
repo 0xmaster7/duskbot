@@ -8,7 +8,7 @@
 
 <section class="hero-stage">
   <div class="stage" data-mk-reveal="clip">
-    <img src="/art/wide-layers.webp" alt="" width="1536" height="1024" data-mk-parallax="0.08">
+    <img src="/art/hero-bg.webp" alt="" width="1536" height="1024" data-mk-parallax="0.08">
     <div class="app" aria-hidden="true">
       <aside class="app-side">
         <div class="lights"><i></i><i></i><i></i></div>
@@ -43,16 +43,6 @@
   </div>
 </section>
 
-<section class="wrap">
-  <div class="peek" data-mk-reveal>
-    <div class="peek-text">
-      <h2>message bots like teammates</h2>
-      <p>give a bot a task the way you'd text a coworker. it takes the job from start to finish, keeps you posted, and comes back when it needs a yes.</p>
-    </div>
-    {{bot circle blue peek-bot}}
-  </div>
-</section>
-
 <section class="wrap done">
   <div class="head center">
     <h2 data-mk-reveal="lines">a normal tuesday, with six bots on it</h2>
@@ -63,17 +53,17 @@
     <ol class="work" data-mk-reveal data-mk-stagger="80">
       <li>
         <header>{{bot heart pink}}<b>juno</b><time>7:58</time><em class="tag is-done">done</em></header>
-        <div class="proof"><span class="row"><i class="px px-gmail"></i>dana, contract redline<u class="flag">needs you</u></span><span class="row"><i class="px px-gmail"></i>bank, card expiring<u class="flag">needs you</u></span><span class="row dim">38 more, filed</span></div>
+        <div class="proof"><span class="row">{{logo gmail}}dana, contract redline<u class="flag">needs you</u></span><span class="row">{{logo gmail}}bank, card expiring<u class="flag">needs you</u></span><span class="row dim">38 more, filed</span></div>
         <p>read 41 emails and drafted 6 replies in your voice.</p>
       </li>
       <li>
         <header>{{bot star green}}<b>tally</b><time>8:00</time><em class="tag is-done">done</em></header>
-        <div class="proof"><span class="row"><i class="px px-figma"></i>figma<u>$15.00</u></span><span class="row hot"><i class="px px-figma"></i>figma<u>$15.00, again</u></span><span class="row dim">21 more, matched</span></div>
+        <div class="proof"><span class="row">{{logo figma}}figma<u>$15.00</u></span><span class="row hot">{{logo figma}}figma<u>$15.00, again</u></span><span class="row dim">21 more, matched</span></div>
         <p>matched 23 receipts and found one you paid for twice.</p>
       </li>
       <li>
         <header>{{bot hex orange}}<b>rivet</b><time>9:12</time><em class="tag is-done">done</em></header>
-        <div class="proof"><span class="row"><i class="px px-github"></i>#212 fix sign-in on safari</span><span class="chips"><u class="plus">+18</u><u class="minus">-4</u><u class="ok">checks passed</u></span></div>
+        <div class="proof"><span class="row">{{logo github}}#212 fix sign-in on safari</span><span class="chips"><u class="plus">+18</u><u class="minus">-4</u><u class="ok">checks passed</u></span></div>
         <p>found the bug, fixed it, opened the pull request.</p>
       </li>
       <li>
@@ -101,38 +91,32 @@
     <h2 data-mk-reveal="lines">not a chatbot. a coworker with a computer.</h2>
   </div>
   <div class="tiles">
-    <article class="tile t-sky wide" data-mk-reveal>
+    <article class="tile t-sky wider peek" data-mk-reveal>
+      <div class="tile-copy"><h3>message bots like teammates</h3><p>give a bot a task the way you'd text a coworker. it takes the job from start to finish, keeps you posted, and comes back when it needs a yes.</p></div>
+      {{bot circle blue peek-bot}}
+    </article>
+    <article class="tile t-lime" data-mk-reveal>
+      <img class="sticker top" src="/art/s-notebook.webp" alt="" width="520" height="378">
+      <h3>they remember</h3><p>what you like, who's who, how you want it done. every note is yours to read and edit.</p>
+    </article>
+    <article class="tile t-lilac wide" data-mk-reveal>
       <div class="tile-copy"><h3>each bot gets its own computer</h3><p>it signs in to sites and clicks through them like you would. watch it live, or take the mouse back any time.</p></div>
       <img class="sticker side" src="/art/s-computer.webp" alt="" width="520" height="599">
     </article>
     <article class="tile t-lemon wide" data-mk-reveal>
       <img class="sticker corner" src="/art/s-clock.webp" alt="" width="520" height="502">
       <div class="tile-copy"><h3>routines run while you sleep</h3><p>ask once. it runs every morning, every monday, or the moment something happens.</p></div>
-      <ul class="runs">
-        <li><span>weekdays 8:00</span><b>inbox summary</b><i class="strip"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></i></li>
-        <li><span>mondays</span><b>competitor prices</b><i class="strip"><i></i><i></i><i></i><i></i><i class="miss"></i><i></i><i></i></i></li>
-        <li><span>new github issue</span><b>triage it</b><i class="strip"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></i></li>
+      <ul class="routines">
+        <li><div><b>inbox summary</b><span>every weekday at 8:00</span></div><i class="toggle"></i></li>
+        <li><div><b>competitor prices</b><span>every monday at 9:00</span></div><i class="toggle"></i></li>
+        <li><div><b>triage new issues</b><span>when a github issue opens</span></div><i class="toggle"></i></li>
       </ul>
     </article>
-    <article class="tile t-lime" data-mk-reveal>
-      <img class="sticker top" src="/art/s-notebook.webp" alt="" width="520" height="378">
-      <h3>they remember</h3><p>what you like, who's who, how you want it done. every note is yours to read and edit.</p>
-    </article>
-    <article class="tile t-pink" data-mk-reveal>
-      <div class="relay">{{bot hex orange}}<i></i>{{bot clover purple}}<i></i>{{bot heart pink}}</div>
-      <h3>put them in a room</h3><p>bots hand work to each other in one thread. watch, or jump in.</p>
-    </article>
-    <article class="tile t-peach" data-mk-reveal>
+    <article class="tile t-peach wide" data-mk-reveal>
       <img class="sticker top" src="/art/s-button.webp" alt="" width="520" height="780">
       <h3>they ask before the scary stuff</h3><p>sending, buying, deleting: a bot stops and waits for your yes.</p>
     </article>
-    <article class="tile t-lilac wider" data-mk-reveal>
-      <div class="tile-copy"><h3>they live in your notch</h3><p>one glance at the top of your screen: who's working, who's done, who needs you.</p>
-        <p class="glance"><span><i class="dot is-ask"></i>needs you 1</span><span><i class="dot is-work"></i>working 2</span><span><i class="dot is-done"></i>done 1</span></p>
-      </div>
-      <img class="sticker side" src="/art/s-notch.webp" alt="" width="520" height="381">
-    </article>
-    <article class="tile t-cream" data-mk-reveal>
+    <article class="tile t-pink wide" data-mk-reveal>
       <img class="sticker top" src="/art/s-phone.webp" alt="" width="520" height="387">
       <h3>they talk back</h3><p>give a bot a voice. or just call it and talk the job through.</p>
     </article>
@@ -140,36 +124,25 @@
 </section>
 
 <section class="wrap models" id="models">
-  <div class="head">
+  <div class="head center">
     <h2 data-mk-reveal="lines">bring the ai you already pay for</h2>
-    <p data-mk-reveal>dusk bot has no model of its own. sign in with the account you already have, and your bots run on it. no second bill from us, no markup.</p>
-    <ul class="facts" data-mk-reveal data-mk-stagger="70">
-      <li><b>your login, your plan</b>replies go straight from your machine to your provider.</li>
-      <li><b>swap any time</b>the bot keeps its chats, files and memory.</li>
-    </ul>
+    <p data-mk-reveal>dusk bot has no model of its own. sign in with the account you already have and your bots run on it. no second bill from us, no markup.</p>
   </div>
   <div class="brain" data-mk-tabs data-mk-reveal>
-    <div class="brain-top">{{bot circle blue brain-bot}}<p><b>nova</b><span>same bot. pick its brain.</span></p></div>
+    {{bot circle blue brain-bot}}
     <div class="brain-pick" role="tablist" aria-label="the ai nova runs on">
       <span class="brain-ind" data-mk-indicator aria-hidden="true"></span>
-      <button type="button" role="tab" id="bt-claude" aria-controls="bp-claude" aria-selected="true"><i class="px px-claude"></i>claude</button>
-      <button type="button" role="tab" id="bt-chatgpt" aria-controls="bp-chatgpt" aria-selected="false"><i class="px px-chatgpt"></i>chatgpt</button>
-      <button type="button" role="tab" id="bt-gemini" aria-controls="bp-gemini" aria-selected="false"><i class="px px-gemini"></i>gemini</button>
-      <button type="button" role="tab" id="bt-grok" aria-controls="bp-grok" aria-selected="false"><i class="px px-grok"></i>grok</button>
+      <button type="button" role="tab" id="bt-claude" aria-controls="bp-claude" aria-selected="true">{{logo claude}}claude</button>
+      <button type="button" role="tab" id="bt-chatgpt" aria-controls="bp-chatgpt" aria-selected="false">{{logo chatgpt}}chatgpt</button>
+      <button type="button" role="tab" id="bt-gemini" aria-controls="bp-gemini" aria-selected="false">{{logo gemini}}gemini</button>
+      <button type="button" role="tab" id="bt-grok" aria-controls="bp-grok" aria-selected="false">{{logo grok}}grok</button>
     </div>
     <p class="brain-line" role="tabpanel" id="bp-claude" aria-labelledby="bt-claude" tabindex="0">nova is on <b>claude</b>, signed in as you. we charge $0 for that.</p>
     <p class="brain-line" role="tabpanel" id="bp-chatgpt" aria-labelledby="bt-chatgpt" tabindex="0">nova is on <b>chatgpt</b> now. it still remembers you like the aisle seat.</p>
     <p class="brain-line" role="tabpanel" id="bp-gemini" aria-labelledby="bt-gemini" tabindex="0">nova is on <b>gemini</b> now. same chats, same files, nothing to move.</p>
-    <p class="brain-line" role="tabpanel" id="bp-grok" aria-labelledby="bt-grok" tabindex="0">nova is on <b>grok</b> now. took one click. nobody had to migrate anything.</p>
-    <p class="brain-label">or give every bot its own</p>
-    <ul class="brain-team">
-      <li>{{bot heart pink}}<b>juno</b><span>writes like you</span><em><i class="px px-claude"></i>claude</em></li>
-      <li>{{bot hex orange}}<b>rivet</b><span>writes the code</span><em><i class="px px-chatgpt"></i>chatgpt</em></li>
-      <li>{{bot star green}}<b>tally</b><span>does the chores</span><em><i class="px px-deepseek"></i>deepseek</em></li>
-    </ul>
-    <p class="brain-label">also works with</p>
-    <p class="more-models"><span>cursor</span><span>copilot</span><span>kimi</span><span>qwen</span><span>opencode</span><span>cline</span><span>your own api key</span></p>
+    <p class="brain-line" role="tabpanel" id="bp-grok" aria-labelledby="bt-grok" tabindex="0">nova is on <b>grok</b> now. took one click.</p>
   </div>
+  <p class="also"><span>also works with</span><em>{{logo cursor}}cursor</em><em>{{logo copilot}}copilot</em><em>{{logo deepseek}}deepseek</em><em>{{logo kimi}}kimi</em><em>{{logo qwen}}qwen</em><em>{{logo opencode}}opencode</em><em>{{logo cline}}cline</em><em>your own api key</em></p>
 </section>
 
 <section class="connect">
@@ -213,7 +186,7 @@
     </li>
     <li>
       <div class="step-copy"><span class="step-n">2</span><h3>sign in to an ai you already have</h3><p>the first screen shows which ones are on your computer. pick one and sign in the usual way.</p></div>
-      <div class="mock"><span class="mock-row"><i class="px px-claude"></i><b>claude</b><em class="ok">signed in</em></span><span class="mock-row"><i class="px px-chatgpt"></i><b>chatgpt</b><em>sign in</em></span><span class="mock-row"><i class="px px-gemini"></i><b>gemini</b><em>sign in</em></span></div>
+      <div class="mock"><span class="mock-row">{{logo claude}}<b>claude</b><em class="ok">signed in</em></span><span class="mock-row">{{logo chatgpt}}<b>chatgpt</b><em>sign in</em></span><span class="mock-row">{{logo gemini}}<b>gemini</b><em>sign in</em></span></div>
     </li>
     <li>
       <div class="step-copy"><span class="step-n">3</span><h3>make a bot</h3><p>name it, pick a shape, and tell it its job in plain words. that's the whole setup.</p></div>
@@ -232,9 +205,9 @@
     <p class="where-sub" data-mk-reveal>same app and same bots in all three. you pick where they live, and you can move later.</p>
     <div class="places" role="tablist" aria-label="where it runs">
       <span class="place-ind" data-mk-indicator aria-hidden="true"></span>
-      <button type="button" role="tab" id="pt-mac" aria-controls="pp-mac" aria-selected="true"><b>on your computer</b><span>free</span></button>
-      <button type="button" role="tab" id="pt-server" aria-controls="pp-server" aria-selected="false"><b>on your own server</b><span>free</span></button>
-      <button type="button" role="tab" id="pt-cloud" aria-controls="pp-cloud" aria-selected="false"><b>on a dusk cloud computer</b><span>from $20</span></button>
+      <button type="button" role="tab" id="pt-mac" aria-controls="pp-mac" aria-selected="true">your computer</button>
+      <button type="button" role="tab" id="pt-server" aria-controls="pp-server" aria-selected="false">your server</button>
+      <button type="button" role="tab" id="pt-cloud" aria-controls="pp-cloud" aria-selected="false">dusk cloud</button>
     </div>
   </div>
   <div class="where-art">
