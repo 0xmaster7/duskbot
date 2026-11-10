@@ -133,6 +133,9 @@ export function AccountPage() {
       <SectionTitle id="api-title">Developers</SectionTitle>
       <p className="text-14 text-ink-3">Drive your bots from your own scripts with the bot API. <a href={API_DOCS} target="_blank" rel="noreferrer" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">Read the API docs</a></p>
     </section>
+    <section className="mt-10" aria-labelledby="download-title">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line py-3"><div className="min-w-0 flex-1"><SectionTitle id="download-title">Download your data</SectionTitle><p className="text-13 text-ink-3">A copy of your account, sign-ins, devices, workspaces, cloud desktops and plans as a JSON file.</p></div><Button onClick={() => window.location.assign("/v1/account/export")}>Download</Button></div>
+    </section>
     <section className="mt-10" aria-labelledby="delete-title">
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line py-3"><div className="min-w-0 flex-1"><SectionTitle id="delete-title">Delete account</SectionTitle><p className="text-13 text-ink-3">Close your account and remove its workspaces from the dashboard.</p></div><Button variant="danger" disabled={busy !== null} onClick={() => { setConfirmError(null); setConfirmEmail(""); setConfirm("delete"); }}>Delete account</Button></div>
     </section>

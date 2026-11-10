@@ -15,7 +15,7 @@ import { RowMenu, Table, Td, Th, type MenuItem } from "../ui/table";
 import { KIND_LABEL } from "../ui/Shell";
 import { SkyEmpty } from "../ui/Sky";
 import { CloudStatus, regionName, tierName, workspaceIcon } from "./cloud-bits";
-import { CommandButton } from "./common";
+import { CommandButton, LoadError } from "./common";
 import { MachineView } from "./Machine";
 import { useNow } from "../lib/now";
 
@@ -88,7 +88,7 @@ function Step({ n, title, children }: { n: number; title: ReactNode; children?: 
 }
 
 export function WorkspacesPage() {
-  const { workspaces } = useSession();
+  const { workspaces, workspacesError, refresh } = useSession();
   const { clouds } = useCloud();
   const rank = (w: WorkspaceSummary) => (cloudForWorkspace(clouds, w.id) ? 0 : w.kind === "vps" ? 2 : 1);
   const sorted = [...(workspaces ?? [])].sort((a, b) => rank(a) - rank(b));
@@ -97,7 +97,7 @@ export function WorkspacesPage() {
       <PageHeader title="Workspaces" sub="Where your bots run." />
       <div className="flex flex-col gap-4">
         <section className="enter min-w-0" aria-label="Your workspaces">
-          {workspaces === null ? <div className="flex flex-col gap-2" aria-busy="true">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-14" />)}</div> : workspaces.length ? (
+          {workspacesError && workspaces === null ? <LoadError error={workspacesError} retry={refresh} /> : workspaces === null ? <div className="flex flex-col gap-2" aria-busy="true">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-14" />)}</div> : workspaces.length ? (
             <Table label="Workspaces" className="max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
               <thead><tr><Th>Name</Th><Th className="max-md:hidden">Type</Th><Th className="max-sm:w-[120px]">Status</Th><Th className="max-lg:hidden">Version</Th><Th className="max-lg:hidden">Connected</Th><Th className="w-0 max-sm:w-11"><span className="sr-only">More</span></Th></tr></thead>
               <tbody>{sorted.map((w) => <WorkspaceRow key={w.id} w={w} cloud={cloudForWorkspace(clouds, w.id)} />)}</tbody>
@@ -147,7 +147,7 @@ function WorkspaceDevices({ detail, now, ready }: { detail: WorkspaceDetail; now
 }
 
 export function WorkspacePage({ id }: { id: string }) {
-  const { workspaces, workspace: selected, pick, detailError } = useSession();
+  const { workspaces, workspacesError, workspace: selected, pick, detailError, refresh } = useSession();
   const now = useNow();
   const { clouds, catalog } = useCloud();
   const w = workspaces?.find((item) => item.id === id);
@@ -156,11 +156,11 @@ export function WorkspacePage({ id }: { id: string }) {
   useEffect(() => { if (w) pick(id); }, [id, Boolean(w), pick]);
   return <div className="min-w-0">
     <Link to="/workspaces" className="press-soft hover-ghost -ms-2 mb-6 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-13 text-ink-2"><ArrowLeft size={15} strokeWidth={1.5} aria-hidden /> Workspaces</Link>
-    {workspaces === null ? <Skeleton className="h-60 !rounded-card" /> : !w ? <SkyEmpty title="That workspace is not on your account">It may have been removed. Choose a workspace from the list.</SkyEmpty> : <>
+    {workspacesError && workspaces === null ? <LoadError error={workspacesError} retry={refresh} /> : workspaces === null ? <Skeleton className="h-60 !rounded-card" /> : !w ? <SkyEmpty title="That workspace is not on your account">It may have been removed. Choose a workspace from the list.</SkyEmpty> : <>
       <header className="mb-8 flex items-center gap-4"><span className="grid size-14 shrink-0 place-items-center rounded-[12px] bg-card-2 text-ink-2" aria-hidden>{workspaceIcon(w, cloud, 24)}</span><div className="min-w-0 flex-1"><h1 className="t-title truncate">{w.name}</h1><div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-ink-3"><span>{KIND_LABEL(w.kind, cloud)}</span><FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} /></div></div></header>
       <div className="flex flex-col gap-4">
         {cloud && <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line px-6 py-4"><div className="min-w-0"><p className="text-14 text-ink">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</p><CloudStatus cloud={cloud} className="mt-1" /></div><ButtonLink to="/cloud" size="sm">Open cloud desktop</ButtonLink></div>}
-        {!detail || selected?.id !== id ? selected?.id === id && detailError ? <Card><p role="alert" className="text-13 text-bad">{detailError}</p></Card> : <Skeleton className="h-60 !rounded-card" /> : !detail.report ? <SkyEmpty title="Waiting for its first report">Keep Dusk Bot running there. Its first report usually arrives in a few seconds.</SkyEmpty> : <><MachineView detail={detail} now={now} /><WorkspaceDevices detail={detail} now={now} ready={selected?.id === id} /></>}
+        {!detail || selected?.id !== id ? selected?.id === id && detailError ? <Card><LoadError error={detailError} retry={refresh} /></Card> : <Skeleton className="h-60 !rounded-card" /> : !detail.report ? <SkyEmpty title="Waiting for its first report">Keep Dusk Bot running there. Its first report usually arrives in a few seconds.</SkyEmpty> : <><MachineView detail={detail} now={now} /><WorkspaceDevices detail={detail} now={now} ready={selected?.id === id} /></>}
       </div>
     </>}
   </div>;

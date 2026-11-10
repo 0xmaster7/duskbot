@@ -75,7 +75,7 @@ async function call<T>(path: string, init?: { method?: string; body?: unknown; s
     throw new ApiError("The dashboard could not be reached. Check your connection.", 0, "offline");
   }
   const data = (await res.json().catch(() => null)) as (T & { error?: string; code?: string; blockers?: DeletionBlocker[] }) | null;
-  if (!res.ok) throw new ApiError(data?.error ?? `The dashboard answered ${res.status}.`, res.status, data?.code ?? null, data?.blockers);
+  if (!res.ok) throw new ApiError(data?.error ?? "Something went wrong on our side. Try again.", res.status, data?.code ?? null, data?.blockers);
   return data as T;
 }
 

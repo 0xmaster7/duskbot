@@ -17,6 +17,10 @@ export function LoadingPage() {
   );
 }
 
+export function LoadError({ error, retry }: { error: string; retry(): void }) {
+  return <section><p role="alert" className="text-13 text-bad">{error}</p><Button className="mt-4" size="sm" onClick={retry}>Retry</Button></section>;
+}
+
 export function NoWorkspace() {
   return (
     <SkyEmpty
@@ -30,12 +34,13 @@ export function NoWorkspace() {
 
 /** waits for the chosen workspace's newest report; says so when there is none yet */
 export function WorkspaceGate({ children }: { children: (detail: WorkspaceDetail) => ReactNode }) {
-  const { workspaces, workspace, detail, detailError } = useSession();
+  const { workspaces, workspacesError, workspace, detail, detailError, refresh } = useSession();
+  if (workspacesError && workspaces === null) return <LoadError error={workspacesError} retry={refresh} />;
   if (workspaces === null) return <LoadingPage />;
   if (!workspace) return <NoWorkspace />;
   if (!detail) {
     return detailError ? (
-      <Card><p className="text-14 text-bad">{detailError}</p></Card>
+      <Card><LoadError error={detailError} retry={refresh} /></Card>
     ) : <LoadingPage />;
   }
   if (!detail.report) {
