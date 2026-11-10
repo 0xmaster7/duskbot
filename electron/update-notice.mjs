@@ -11,7 +11,7 @@ export function createUpdateNotice({ request, notify, open, memory, log = () => 
       if (!response.ok) return null;
       const answer = await response.json();
       if (answer?.install !== "desktop" || answer.available !== true || typeof answer.latest !== "string" || typeof answer.releaseUrl !== "string") return null;
-      if (!/^https:\/\/dusk\.bot\//.test(answer.releaseUrl)) return null;
+      if (!answer.releaseUrl.startsWith("https://dusk.bot/")) return null;
       let told = null;
       try { told = memory.read()?.told ?? null; } catch {}
       if (told === answer.latest) return null;

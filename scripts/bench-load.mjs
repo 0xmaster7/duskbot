@@ -20,7 +20,6 @@ import { extname, join, resolve } from "node:path";
 const args = process.argv.slice(2);
 const mode = args[0];
 const opt = (name, fallback) => { const at = args.indexOf(`--${name}`); return at >= 0 ? args[at + 1] : fallback; };
-const has = (name) => args.includes(`--${name}`);
 
 const CURSOR = "bench0001:1";
 const keyOf = (pathAndQuery) => createHash("sha256").update(pathAndQuery).digest("hex").slice(0, 24);

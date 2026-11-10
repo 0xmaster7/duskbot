@@ -19,7 +19,7 @@ const defaults = {
   apple: { authorizeUrl: "https://appleid.apple.com/auth/authorize", tokenUrl: "https://appleid.apple.com/auth/token", jwksUrl: "https://appleid.apple.com/auth/keys", issuers: ["https://appleid.apple.com"], scopes: "name email" },
   x: { authorizeUrl: "https://x.com/i/oauth2/authorize", tokenUrl: "https://api.x.com/2/oauth2/token", userUrl: "https://api.x.com/2/users/me?user.fields=confirmed_email", scopes: "users.read tweet.read" },
 };
-const text = (value: unknown, max: number) => typeof value === "string" && value.trim() && value.trim().length <= max && !/[\x00-\x1f\x7f]/.test(value) ? value.trim() : null;
+const text = (value: unknown, max: number) => typeof value === "string" && value.trim() && value.trim().length <= max && !Array.from(value).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) ? value.trim() : null;
 function email(value: unknown) {
   const address = text(value, 254)?.toLowerCase();
   return address && /^[^\s@]{1,64}@[^\s@.]+(?:\.[^\s@.]+)+$/.test(address) ? address : null;

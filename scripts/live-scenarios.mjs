@@ -185,7 +185,7 @@ async function scenario(item) {
     toolCount: allTools.length,
     maxConcurrent: Math.max(0, ...turns.map((one) => one.maxConcurrent)),
     toolErrors: allTools.filter((tool) => tool.includes("!")).length,
-    turns: turns.map(({ spawnAt, startAt, firstItemAt, firstTextAt, ...rest }) => rest),
+    turns: turns.map(({ spawnAt: _spawnAt, startAt: _startAt, firstItemAt: _firstItemAt, firstTextAt: _firstTextAt, ...rest }) => rest),
     reply: String(result.reply?.text ?? result.reply ?? "").slice(0, 1200),
     error: result.error ?? result.reason ?? null,
   };
@@ -220,7 +220,7 @@ async function eventStream(signal) {
 
 const api = async (method, path, body) => {
   const started = Date.now();
-  const response = await fetch(`${base}${path}`, { method, headers: { ...LOOPBACK, ...(body ? { "content-type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const response = await fetch(`${base}${path}`, { method, headers: { ...LOOPBACK, ...(body ? { "content-type": "application/json" } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
   const text = await response.text();
   let json = null; try { json = JSON.parse(text); } catch { }
   return { status: response.status, json, ms: Date.now() - started };

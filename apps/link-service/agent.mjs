@@ -1571,7 +1571,7 @@ export function createEgressProxy({
     /** a path that is gone: its streams end, and the app hears it over the relay */
     dropPath(gone) {
       for (const [r, probed] of probes) if (probed.via === gone) { probes.delete(r); clearTimeout(probed.timer); }
-      for (const [r, entry] of [...streams]) {
+      for (const [r, entry] of Array.from(streams)) {
         if (entry.via !== gone) continue;
         if (entry.settle) { const settle = entry.settle; entry.settle = null; clearTimeout(entry.timer); streams.delete(r); settle({ ok: false, code: "closed" }); relay.send({ t: "cancel", r }); }
         else forget(r, true, relay);
@@ -2106,7 +2106,7 @@ export function createDirectHub({ id, key, server = SERVER, guard, egress = null
       return null;
     },
     get size() { return all.size; },
-    stop() { for (const session of [...all]) session.stop(); },
+    stop() { for (const session of Array.from(all)) session.stop(); },
   };
 }
 

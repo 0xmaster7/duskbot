@@ -28,12 +28,13 @@ function loadPreload(origin) {
 // Windows hides the native caption buttons (titleBarStyle "hidden"), so a remote server's page must still be able to draw them.
 test("a remote server's page gets the window controls, and they reach only the window channels", async () => {
   const remote = loadPreload(REMOTE);
-  assert.deepEqual(Object.keys(remote.bridge.windowControls).sort(), ["close", "minimize", "onMaximizedChanged", "state", "toggleMaximize"]);
+  assert.deepEqual(Object.keys(remote.bridge.windowControls).sort(), ["close", "minimize", "onMaximizedChanged", "resizeWidthBy", "state", "toggleMaximize"]);
   await remote.bridge.windowControls.minimize();
   await remote.bridge.windowControls.toggleMaximize();
   await remote.bridge.windowControls.state();
   await remote.bridge.windowControls.close();
-  assert.deepEqual(remote.invoked, [["window:minimize"], ["window:toggle-maximize"], ["window:state"], ["window:close"]]);
+  await remote.bridge.windowControls.resizeWidthBy(120);
+  assert.deepEqual(remote.invoked, [["window:minimize"], ["window:toggle-maximize"], ["window:state"], ["window:close"], ["window:resize-width-by", 120]]);
   assert.equal(remote.bridge.copyText, undefined, "local-only APIs stay off the remote bridge");
 });
 

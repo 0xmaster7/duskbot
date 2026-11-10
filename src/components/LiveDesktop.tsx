@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { Hand, Loader2, Minimize2, RefreshCw, Send } from "lucide-react";
 import type RFB from "@novnc/novnc";
 import { cn } from "@/lib/cn";
+import { copyText } from "@/lib/copy-text";
 import { connectDesktop, isPasteShortcut, pasteOnDesktop, typeOnDesktop } from "@/lib/desktop-connection";
 import { t } from "@/lib/i18n";
 import { isMacPlatform } from "@/lib/keyboard-shortcuts";
@@ -104,7 +105,7 @@ export function LiveDesktop({ target, threadId, botId, name, poster, expanded, o
         },
         disconnected: lost,
         // in control, what the person copies on the desktop reaches their own clipboard, so pasting it back works too
-        clipboard: (copied) => { if (!watching.current && copied) void navigator.clipboard?.writeText(copied).catch(() => {}); },
+        clipboard: (copied) => { if (!watching.current && copied) void copyText(copied); },
       },
     }).then((connected) => {
       if (controller.signal.aborted) return connected.disconnect();

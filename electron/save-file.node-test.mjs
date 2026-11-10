@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { after, before, describe, it } from "node:test";
 import { pathToFileURL } from "node:url";
+import { runInNewContext } from "node:vm";
 
 import { collisionFreeDownloadPath, defaultSaveName, htmlCopyName, openHtmlCopy, openLogsFolder, resolveSavablePath, revealDownloadWhenDone, revealInFolder, withSavableFile } from "./save-file.mjs";
 
@@ -287,7 +288,11 @@ describe("openLogsFolder", () => {
   it("is wired in main to its own logs folder, for this computer's page and My Cloud's once it is home", () => {
     const main = fs.readFileSync(new URL("./main.mjs", import.meta.url), "utf8");
     assert.match(main, /ipcMain\.handle\("desktop:open-logs", localOrHome\("desktop:open-logs", \(\) => openLogsFolder\(LOG_DIR, \{ open: \(folder\) => shell\.openPath\(folder\) \}\)\)\);/);
-    assert.match(main, /const LOG_DIR = app\.getPath\("logs"\);/);
+    const declaration = main.match(/^const LOG_DIR = .+;$/m)?.[0];
+    assert.ok(declaration);
+    for (const [isPackaged, override, expected] of [[true, undefined, "/app/logs"], [true, "/dev/logs", "/app/logs"], [false, undefined, "/app/logs"], [false, "/dev/logs", "/dev/logs"]]) {
+      assert.equal(runInNewContext(`${declaration} LOG_DIR`, { app: { isPackaged, getPath: () => "/app/logs" }, process: { env: { DUSK_LOG_DIR: override } } }), expected);
+    }
   });
 });
 

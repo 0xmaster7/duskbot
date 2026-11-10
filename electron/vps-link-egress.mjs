@@ -227,7 +227,7 @@ export function createEgressEndpoint({
     /** the direct path went away: its streams are gone on the vps too, and it hears so over the relay as well */
     pathLost(name) {
       if (name !== "direct" || !direct) return;
-      for (const [r, entry] of [...streams]) if (entry.path === direct) forget(r, true, relay);
+      for (const [r, entry] of Array.from(streams)) if (entry.path === direct) forget(r, true, relay);
     },
     close() {
       if (closed) return;

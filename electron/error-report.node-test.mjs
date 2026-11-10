@@ -53,6 +53,7 @@ test("an event carries only the error, the component and the release, and the sa
   const event = JSON.parse(calls[0].init.body.split("\n")[2]);
   assert.deepEqual(Object.keys(event).sort(), ["environment", "event_id", "exception", "level", "platform", "release", "tags", "timestamp"]);
   assert.deepEqual(event.tags, { component: "dashboard", route: "/v1/report" });
+  assert.match(event.event_id, /^[0-9a-f]{32}$/);
   assert.equal(event.exception.values[0].type, "TypeError");
   assert.equal(event.exception.values[0].value, "Cannot read [text] of undefined");
 });

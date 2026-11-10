@@ -258,7 +258,7 @@ export function createSlackEdge(options: SlackEdgeOptions) {
     },
     tick,
     holding: (cloudId: string) => holding.has(cloudId),
-    close() { closed = true; clearInterval(timer); for (const cloudId of [...holding.keys()]) release(cloudId); store.close(); },
+    close() { closed = true; clearInterval(timer); for (const cloudId of Array.from(holding.keys())) release(cloudId); store.close(); },
   };
 }
 export type SlackEdge = ReturnType<typeof createSlackEdge>;

@@ -345,7 +345,7 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
   let rtt = null, everUp = false, pingSeq = 0, suspect = false, heardAt = 0, upAt = 0, failing = false, failedOn = null, via = null, peer = null;
   const outstanding = new Map();
   const waiters = new Set();
-  const set = (next, extra = {}) => { state = next; for (const wake of [...waiters]) wake(); onChange({ state, ...extra }); };
+  const set = (next, extra = {}) => { state = next; for (const wake of Array.from(waiters)) wake(); onChange({ state, ...extra }); };
   const ready = () => state === "up" && !suspect;
   const here = () => { try { return network(); } catch { return null; } };
   /** a new network is a new chance: the backoff starts over and the next dial goes now */

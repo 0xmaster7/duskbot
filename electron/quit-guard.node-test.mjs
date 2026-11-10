@@ -13,7 +13,7 @@ function clock() {
     clearTimer: (id) => timers.delete(id),
     advance(ms) {
       at += ms;
-      for (const [id, timer] of [...timers]) if (timer.due <= at) { timers.delete(id); timer.fn(); }
+      for (const [id, timer] of Array.from(timers)) if (timer.due <= at) { timers.delete(id); timer.fn(); }
     },
   };
 }

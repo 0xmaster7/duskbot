@@ -16,7 +16,7 @@ function world({ focused = true } = {}) {
     clearTimer: (id) => timers.delete(id),
     defer: (fn) => fn(),
   });
-  const tickChecks = () => { for (const { fn } of [...timers.values()]) fn(); };
+  const tickChecks = () => { for (const { fn } of Array.from(timers.values())) fn(); };
   return { app, powerMonitor, at, timers, told, watcher, tickChecks };
 }
 

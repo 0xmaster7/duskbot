@@ -324,7 +324,7 @@ export function createMobileLink(deps: MobileLinkDeps) {
     if (done > applied && done <= rev) {
       applied = done;
       failed = new Set(Array.isArray(body.failed) ? body.failed.filter((id): id is string => typeof id === "string") : []);
-      for (const check of [...applyWaiters]) check();
+      for (const check of Array.from(applyWaiters)) check();
     }
     prune();
     const wait = Math.min(SYNC_WAIT_MAX_S, Math.max(0, Number(body.wait) || 0)) * 1000;

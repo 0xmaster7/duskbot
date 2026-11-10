@@ -21,7 +21,7 @@ export function parseDsn(dsn) {
 const SCRUB = [
   [/-----BEGIN [A-Z ]+-----[\s\S]*?(-----END [A-Z ]+-----|$)/g, "[key]"],
   [/\b[Bb]earer\s+[^\s"',;]+/g, "Bearer [redacted]"],
-  [/\b(sk-ant-|sk-proj-|sk-|xox[abprs]-|xapp-|ghp_|github_pat_|re_|whsec_|AKIA)[A-Za-z0-9_\-]{8,}/g, "[secret]"],
+  [/\b(sk-ant-|sk-proj-|sk-|xox[abprs]-|xapp-|ghp_|github_pat_|re_|whsec_|AKIA)[A-Za-z0-9_-]{8,}/g, "[secret]"],
   [/\b([A-Za-z0-9_-]*(token|secret|password|passwd|api[_-]?key|authorization|cookie|session)[A-Za-z0-9_-]*)(["']?\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;&]+)/gi, "$1$3[redacted]"],
   [/[a-z][a-z0-9+.-]*:\/\/[^\s"'<>)]+/gi, "[url]"],
   [/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[email]"],
@@ -60,6 +60,13 @@ export function stackFrames(stack) {
   return frames.reverse();
 }
 
+// getRandomValues, not randomUUID: a phone or page opened over plain http has only the former
+function eventId() {
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
 /** the whole event: nothing else from the error or its surroundings is read */
 export function errorEvent(error, context) {
   const err = error instanceof Error ? error : new Error(typeof error === "string" ? error : "non-error thrown");
@@ -67,7 +74,7 @@ export function errorEvent(error, context) {
   const tags = { component: context.component };
   for (const [key, value] of Object.entries(context.tags ?? {})) if (/^[a-z][a-z0-9_.-]{0,31}$/.test(key) && /^[\w.:/-]{1,64}$/.test(String(value))) tags[key] = String(value);
   return {
-    event_id: globalThis.crypto.randomUUID().replace(/-/g, ""),
+    event_id: eventId(),
     timestamp: context.now() / 1000,
     platform: "javascript",
     level: context.level ?? "error",
