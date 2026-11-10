@@ -32,6 +32,7 @@ import { RoutineCloudUpsell } from "@/components/RoutineCloudUpsell";
 import { EgressFallbackNotice } from "@/components/EgressFallbackNotice";
 import { BotLimitPopup } from "@/components/BotLimitPopup";
 import { CloudAsleepStrip } from "@/components/CloudAsleepStrip";
+import { useCloudLastSeen, useHeldSend } from "@/lib/cloud-last-seen";
 import { LiveConnectionStrip } from "@/components/LiveConnectionStrip";
 import { CloudSendStrip } from "@/components/CloudSendStrip";
 import { HomeLine } from "@/components/HomeLine";
@@ -82,6 +83,8 @@ const BOT_PANEL_DOCKS_AT = 280 + CHAT_MIN_WIDTH + 280;
 
 function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const { state, dispatch } = useStore();
+  useCloudLastSeen(state);
+  useHeldSend(state, dispatch);
   useTeamChats(state.config);
   const needsYou = needsYouVersion(state.bots, state.groups, state.notifications);
   useTeamPeopleLoader(state.config, needsYou);

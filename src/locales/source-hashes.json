@@ -257,7 +257,6 @@
       "files.asleep": "0ce693a1419968f746a2003a868ca44e7a0be5f4175a9a129633c66071d28038",
       "files.signedOut": "283f69dba20a4dd1dd762dc7f768df2969bad68566ddc2550ddb2a30a402c023",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
       "cloudHome.readySleeps": "d987a4b7f74017259017630980f03520f80ed5375143bba2df0cc5a8d7cec893",
@@ -3578,7 +3577,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -4187,7 +4191,6 @@
       "files.failed": "d010a8621f3358d1491856e8ce9da938f4e64d596f8fbdd240ee36b3972485c0",
       "files.failedWith": "16d343e4cbc20c4f2db61b81ca0f03265c052989cc0ba33c9eb47b41d10f3d5f",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
       "cloudHome.readySleeps": "d987a4b7f74017259017630980f03520f80ed5375143bba2df0cc5a8d7cec893",
@@ -9420,7 +9423,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -9598,7 +9606,6 @@
       "files.asleep": "0ce693a1419968f746a2003a868ca44e7a0be5f4175a9a129633c66071d28038",
       "files.signedOut": "283f69dba20a4dd1dd762dc7f768df2969bad68566ddc2550ddb2a30a402c023",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
       "cloudHome.readySleeps": "d987a4b7f74017259017630980f03520f80ed5375143bba2df0cc5a8d7cec893",
@@ -12922,7 +12929,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -13100,7 +13112,6 @@
       "files.asleep": "0ce693a1419968f746a2003a868ca44e7a0be5f4175a9a129633c66071d28038",
       "files.signedOut": "283f69dba20a4dd1dd762dc7f768df2969bad68566ddc2550ddb2a30a402c023",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
       "cloudHome.readySleeps": "d987a4b7f74017259017630980f03520f80ed5375143bba2df0cc5a8d7cec893",
@@ -16421,7 +16432,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -17123,7 +17139,6 @@
       "files.signedOut": "283f69dba20a4dd1dd762dc7f768df2969bad68566ddc2550ddb2a30a402c023",
       "files.failed": "d010a8621f3358d1491856e8ce9da938f4e64d596f8fbdd240ee36b3972485c0",
       "files.failedWith": "16d343e4cbc20c4f2db61b81ca0f03265c052989cc0ba33c9eb47b41d10f3d5f",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudPower.wake": "67f1ea0adfbc80d72091c5378ea71f8822f5da51adde0582b7fbc5b6a01feac1",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
@@ -22663,7 +22678,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -23387,7 +23407,6 @@
       "files.failed": "d010a8621f3358d1491856e8ce9da938f4e64d596f8fbdd240ee36b3972485c0",
       "files.failedWith": "16d343e4cbc20c4f2db61b81ca0f03265c052989cc0ba33c9eb47b41d10f3d5f",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudPower.wake": "67f1ea0adfbc80d72091c5378ea71f8822f5da51adde0582b7fbc5b6a01feac1",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
@@ -29094,7 +29113,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -29981,7 +30005,6 @@
       "files.failed": "d010a8621f3358d1491856e8ce9da938f4e64d596f8fbdd240ee36b3972485c0",
       "files.failedWith": "16d343e4cbc20c4f2db61b81ca0f03265c052989cc0ba33c9eb47b41d10f3d5f",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudPower.wake": "67f1ea0adfbc80d72091c5378ea71f8822f5da51adde0582b7fbc5b6a01feac1",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
@@ -35910,7 +35933,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -36627,7 +36655,6 @@
       "files.failed": "d010a8621f3358d1491856e8ce9da938f4e64d596f8fbdd240ee36b3972485c0",
       "files.failedWith": "16d343e4cbc20c4f2db61b81ca0f03265c052989cc0ba33c9eb47b41d10f3d5f",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudPower.wake": "67f1ea0adfbc80d72091c5378ea71f8822f5da51adde0582b7fbc5b6a01feac1",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
@@ -42316,7 +42343,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -42971,7 +43003,6 @@
       "files.failed": "d010a8621f3358d1491856e8ce9da938f4e64d596f8fbdd240ee36b3972485c0",
       "files.failedWith": "16d343e4cbc20c4f2db61b81ca0f03265c052989cc0ba33c9eb47b41d10f3d5f",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
       "cloudHome.readySleeps": "d987a4b7f74017259017630980f03520f80ed5375143bba2df0cc5a8d7cec893",
@@ -48590,7 +48621,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -49314,7 +49350,6 @@
       "files.failed": "d010a8621f3358d1491856e8ce9da938f4e64d596f8fbdd240ee36b3972485c0",
       "files.failedWith": "16d343e4cbc20c4f2db61b81ca0f03265c052989cc0ba33c9eb47b41d10f3d5f",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudPower.wake": "67f1ea0adfbc80d72091c5378ea71f8822f5da51adde0582b7fbc5b6a01feac1",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
@@ -55003,7 +55038,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -55470,7 +55510,6 @@
       "files.asleep": "0ce693a1419968f746a2003a868ca44e7a0be5f4175a9a129633c66071d28038",
       "files.signedOut": "283f69dba20a4dd1dd762dc7f768df2969bad68566ddc2550ddb2a30a402c023",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
       "cloudHome.readySleeps": "d987a4b7f74017259017630980f03520f80ed5375143bba2df0cc5a8d7cec893",
@@ -60368,7 +60407,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -60637,7 +60681,6 @@
       "files.asleep": "0ce693a1419968f746a2003a868ca44e7a0be5f4175a9a129633c66071d28038",
       "files.signedOut": "283f69dba20a4dd1dd762dc7f768df2969bad68566ddc2550ddb2a30a402c023",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
       "cloudHome.readySleeps": "d987a4b7f74017259017630980f03520f80ed5375143bba2df0cc5a8d7cec893",
@@ -64172,7 +64215,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -64639,7 +64687,6 @@
       "files.asleep": "0ce693a1419968f746a2003a868ca44e7a0be5f4175a9a129633c66071d28038",
       "files.signedOut": "283f69dba20a4dd1dd762dc7f768df2969bad68566ddc2550ddb2a30a402c023",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
       "cloudHome.readySleeps": "d987a4b7f74017259017630980f03520f80ed5375143bba2df0cc5a8d7cec893",
@@ -69537,7 +69584,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -69862,7 +69914,6 @@
       "files.asleep": "0ce693a1419968f746a2003a868ca44e7a0be5f4175a9a129633c66071d28038",
       "files.signedOut": "283f69dba20a4dd1dd762dc7f768df2969bad68566ddc2550ddb2a30a402c023",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
       "cloudHome.readySleeps": "d987a4b7f74017259017630980f03520f80ed5375143bba2df0cc5a8d7cec893",
@@ -76526,7 +76577,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -76961,7 +77017,6 @@
       "files.asleep": "0ce693a1419968f746a2003a868ca44e7a0be5f4175a9a129633c66071d28038",
       "files.signedOut": "283f69dba20a4dd1dd762dc7f768df2969bad68566ddc2550ddb2a30a402c023",
       "cloudHome.title": "b977b950c1ae31e5aeb9ef778cc20a66fc034eb81e738e0206104b677962c465",
-      "cloudPower.asleep": "97889899fe8de99ceccd5bc510d8d96a8b261084e9515355c8cfb1c82cb03298",
       "cloudHome.provisioning": "b6f89d5eabba154360cc1786a62fae00a576f20a7572a54a59abcb22fa24ce93",
       "cloudHome.ready": "3de962b37568a19b335e2f8c8b1002b0c2c0a49491dd7493a029fc75f2c77718",
       "cloudHome.readySleeps": "d987a4b7f74017259017630980f03520f80ed5375143bba2df0cc5a8d7cec893",
@@ -81460,7 +81515,12 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "cloudAsleep.line": "b718f65271971822f4c020355079b6708a09cb211a3d858bc647089c8bf8a125",
+      "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
+      "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
+      "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
     }
   }
 }
