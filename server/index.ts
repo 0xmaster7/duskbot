@@ -1429,7 +1429,7 @@ utilityParentPort?.on("message", (event) => {
 });
 
 const quickFallback = new QuickModelFallback({ file: join(DATA_DIR, "refused-quick-models.json"), publish: (event) => bus.publish(event), stopped: (threadId) => directRequestOwners.get(threadId)?.stopped === true });
-const bus = new EventBus(undefined, (event) => quickFallback.take(event));
+const bus = new EventBus(undefined, (event) => quickFallback.take(event), { statusLanguage: (threadId) => threadLanguage(threadId) });
 bus.attach(registry.instances());
 let companyRuntimeReady!: () => void;
 const companyRuntimeStarted = new Promise<void>(resolve => { companyRuntimeReady = resolve; });
