@@ -176,7 +176,7 @@ export function createAuth(options: AuthOptions) {
       // can't sign in: the code, a one-time link for the website, and the ways this address signs in; for no account, only
       // that. answered before delivery, the same either way, so the answer never tells whether the address has an account
       const owner = state.accounts.find(item => item.email === email);
-      const link = owner && !app ? `${publicUrl}/sign-in?${new URLSearchParams({ attempt, code })}` : null;
+      const link = owner && !app ? `${publicUrl}/sign-in#${new URLSearchParams({ attempt, code })}` : null;
       void options.mailer.send(recoveryMessage(email, { code, link, ways: owner ? view(owner).providers : null })).catch(() => console.error("Email delivery failed."));
     } else if (options.signupOpen) {
       try { await options.mailer.send(codeMessage(email, code)); } catch { attempts.delete(hash(attempt)); fail(502, "failed"); }

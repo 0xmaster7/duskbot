@@ -418,12 +418,13 @@ describe("local account service", () => {
     const mail = mailer.outbox.at(-1)!;
     expect(mail).toMatchObject({ to: email, subject: "Sign in to Dusk Bot" });
     expect(mail.text).toContain("This account signs in with an emailed code.");
-    const link = new URL(/Or open this link to sign in: (\S+)/.exec(mail.text)![1]!);
-    expect(link.origin + link.pathname).toBe("http://127.0.0.1:7480/sign-in");
-    expect(link.searchParams.get("attempt")).toBe(recovered.attempt);
-    const signedIn = await call("/v1/auth/verify", { attempt: link.searchParams.get("attempt"), code: link.searchParams.get("code") });
+    const link = new URL(/Or open this link to sign in: (\S+)/.exec(mail.text)![1]!), secret = new URLSearchParams(link.hash.slice(1));
+    // in the fragment: never sent to a server, so never in a log
+    expect(`${link.origin}${link.pathname}${link.search}`).toBe("http://127.0.0.1:7480/sign-in");
+    expect(secret.get("attempt")).toBe(recovered.attempt);
+    const signedIn = await call("/v1/auth/verify", { attempt: secret.get("attempt"), code: secret.get("code") });
     expect(signedIn.status).toBe(200); expect((await body<WebSignInAnswer>(signedIn)).account.id).toBe(first.account.id);
-    expect((await call("/v1/auth/verify", { attempt: link.searchParams.get("attempt"), code: link.searchParams.get("code") })).status).toBe(410);
+    expect((await call("/v1/auth/verify", { attempt: secret.get("attempt"), code: secret.get("code") })).status).toBe(410);
     // the app gets the code alone: a link would sign in the browser, not this computer
     time += 30_000;
     const app = await body<EmailStartAnswer>(call("/api/cloud/app/sign-in/start", { email, ...device, recover: true }));
