@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createServer } from "node:http";
 import { createCloudAccountClient } from "./cloud-account.mjs";
-import { cleanCode, cleanEmail, parseSignInStart, SIGN_IN_TRIES, signInIdentity, startFailure, verifyFailure } from "./cloud-signin.mjs";
+import { createHash } from "node:crypto";
+import { APP_LINK, cleanCode, cleanEmail, isAppLink, linkFailure, linkSignIn, parseAppLink, parseProviders, parseSignInStart, SIGN_IN_TRIES, signInIdentity, startFailure, verifyFailure } from "./cloud-signin.mjs";
 
 const accessToken = `omc_${"E".repeat(43)}`, ATTEMPT = "a".repeat(43), CODE = "48201937";
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -31,6 +32,12 @@ async function fixture(t, options = {}) {
     if (req.url === "/api/cloud/desktop/session" && req.headers.authorization === `Bearer ${accessToken}`) {
       if (req.method === "DELETE") return send(200, { ok: true });
       return send(200, { ...identity(), entitlement: f.entitlement, cloud: null });
+    }
+    if (req.url === "/v1/auth/providers") return f.providers ? send(200, f.providers) : send(404, { error: "not_found" });
+    if (req.url === "/v1/auth/app/token" && req.method === "POST") {
+      const input = JSON.parse(body);
+      if (input.code !== "C".repeat(43) || createHash("sha256").update(input.codeVerifier).digest("base64url") !== f.challenge) return send(400, { error: "invalid_grant" });
+      return send(200, { ...identity(), accessToken });
     }
     if (req.url === "/api/cloud/desktop/authorize") return send(201, { cloudContractVersion: 1, deviceCode: "A".repeat(43), userCode: "ABCDE-FGHJK",
       verificationUriComplete: `${f.origin}/cloud/desktop?code=ABCDE-FGHJK`, expiresIn: 600, interval: 5 });
@@ -197,4 +204,70 @@ test("a token that cannot be stored is revoked and nothing is signed in; cancell
   g.client.emailCancel();
   assert.deepEqual(await g.client.emailVerify(CODE), { outcome: "expired" });
   assert.equal(g.requests.filter(row => row.route.endsWith("/verify")).length, 0);
+});
+
+test("the app's sign-in link: PKCE start address, strict link reading, the service's providers", () => {
+  const link = linkSignIn("https://app.dusk.bot", "google");
+  const url = new URL(link.url);
+  assert.equal(`${url.origin}${url.pathname}`, "https://app.dusk.bot/v1/auth/app/start");
+  assert.deepEqual(Object.fromEntries(url.searchParams), { provider: "google", code_challenge: createHash("sha256").update(link.verifier).digest("base64url"),
+    code_challenge_method: "S256", state: link.state, redirect_uri: APP_LINK });
+  assert.equal(link.url.includes(link.verifier), false, "the verifier never leaves main");
+  assert.equal(linkSignIn("https://app.dusk.bot", "email"), null);
+  const state = "s".repeat(43), code = "c".repeat(43);
+  assert.deepEqual(parseAppLink(`duskbot://auth?code=${code}&state=${state}`), { state, code });
+  assert.deepEqual(parseAppLink(`duskbot://auth?error=oauth_denied&state=${state}`), { state, error: "oauth_denied" });
+  for (const bad of [`duskbot://auth?code=${code}`, `duskbot://auth?code=${code}&state=${state}&state=${state}`, `duskbot://auth?code=short&state=${state}`,
+    `duskbot://auth?code=${code}&error=x&state=${state}`, `duskbot://authx?code=${code}&state=${state}`, `https://app.dusk.bot/?code=${code}&state=${state}`, `duskbot://thread/x`, 42, null]) {
+    assert.equal(parseAppLink(bad), null, String(bad));
+  }
+  assert.equal(isAppLink("duskbot://auth?x=1"), true); assert.equal(isAppLink("duskbot://authorize"), false);
+  assert.deepEqual(["oauth_denied", "oauth_expired", "signup_closed", "identity_taken", "oauth_failed", "anything"].map(linkFailure),
+    ["signin-cancelled", "enrollment-expired", "signup-closed", "identity-taken", "signin-failed", "signin-failed"]);
+  assert.deepEqual(parseProviders({ v: 1, recovery: true, providers: [{ id: "apple", enabled: true }, { id: "google", enabled: true }, { id: "x", enabled: false, comingSoon: true }, { id: "other", enabled: true }] }),
+    { providers: ["google", "apple"], recovery: true });
+  for (const bad of [null, {}, { v: 2, providers: [] }, { v: 1 }]) assert.deepEqual(parseProviders(bad), { providers: [], recovery: false });
+});
+
+test("one tap: the browser comes back through the link and this computer is signed in; a stale or foreign link does nothing", async t => {
+  const f = await fixture(t, { appLinks: true });
+  f.providers = { v: 1, signupOpen: true, recovery: true, providers: [{ id: "google", enabled: true }, { id: "apple", enabled: false, comingSoon: false }] };
+  assert.deepEqual(await f.client.signInOptions(), { providers: ["google"], recovery: true });
+  const waiting = await f.client.begin(null, { provider: "google" });
+  assert.equal(waiting.status, "connecting"); assert.equal(waiting.browser, "google"); assert.equal(waiting.enrollment, undefined);
+  assert.equal(f.requests.some(row => row.route === "/api/cloud/desktop/authorize"), false, "no device code, nothing to approve");
+  const opened = new URL(f.browsers.at(-1));
+  f.challenge = opened.searchParams.get("code_challenge");
+  const state = opened.searchParams.get("state");
+  assert.equal((await f.client.finishLink(`duskbot://auth?code=${"C".repeat(43)}&state=${"x".repeat(43)}`)).outcome, "ignored");
+  await f.client.reopen();
+  assert.equal(f.browsers.at(-1), opened.href, "Reopen opens the same sign-in again");
+  const done = await f.client.finishLink(`duskbot://auth?code=${"C".repeat(43)}&state=${state}`);
+  assert.equal(done.outcome, "signed-in"); assert.equal(done.state.status, "connected");
+  assert.equal(f.saved.token, accessToken);
+  const token = JSON.parse(f.requests.find(row => row.route === "/v1/auth/app/token").body);
+  assert.deepEqual({ ...token, codeVerifier: typeof token.codeVerifier }, { code: "C".repeat(43), codeVerifier: "string", deviceName: "Fixture computer", platform: "darwin", appVersion: "0.1.113" });
+  assert.equal((await f.client.finishLink(`duskbot://auth?code=${"C".repeat(43)}&state=${state}`)).outcome, "ignored", "used once");
+});
+
+test("one tap: a link after ten minutes or a refused code ends the sign-in plainly; a service without providers leaves only the code", async t => {
+  const f = await fixture(t, { appLinks: true });
+  assert.deepEqual(await f.client.signInOptions(), { providers: [], recovery: false });
+  await f.client.begin(null, { provider: "apple" });
+  let state = new URL(f.browsers.at(-1)).searchParams.get("state");
+  f.now += 600_001;
+  assert.deepEqual((await f.client.finishLink(`duskbot://auth?code=${"C".repeat(43)}&state=${state}`)).state, { status: "signed-out", message: "enrollment-expired" });
+  await f.client.begin(null, { provider: "apple" });
+  state = new URL(f.browsers.at(-1)).searchParams.get("state");
+  f.challenge = "not-this-one";
+  const refused = await f.client.finishLink(`duskbot://auth?code=${"C".repeat(43)}&state=${state}`);
+  assert.equal(refused.outcome, "failed"); assert.equal(refused.state.message, "signin-failed"); assert.equal(f.saved, null);
+});
+
+test("Can't sign in? asks the Admin to mail the ways in with the code", async t => {
+  const f = await fixture(t);
+  assert.equal((await f.client.emailStart("person@example.test", { recover: true })).outcome, "sent");
+  assert.equal(JSON.parse(f.requests.at(-1).body).recover, true);
+  assert.equal((await f.client.emailStart("person@example.test")).outcome, "sent");
+  assert.equal("recover" in JSON.parse(f.requests.at(-1).body), false);
 });

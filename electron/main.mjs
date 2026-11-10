@@ -92,7 +92,7 @@ import { buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots }
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
-import { CHECKOUT_SOURCES, cloudMenuSublabel, cloudTarget, createCloudAccountClient, createCloudAccountStore } from "./cloud-account.mjs";
+import { CHECKOUT_SOURCES, cloudMenuSublabel, cloudTarget, createCloudAccountClient, createCloudAccountStore } from "./cloud-account.mjs"; import { isAppLink } from "./cloud-signin.mjs";
 import { installCloudPlanIpc } from "./cloud-plan-ipc.mjs";
 import { cloudLinkOpensSheet, colorDotIcons, createCloudLook, createCloudReadyNotice, installCloudBuy, lookFile } from "./cloud-buy.mjs";
 import { createAccountEnroll } from "./account-enroll.mjs"; import { accountGateRequired, installAccountGate } from "./account-gate.mjs";
@@ -261,6 +261,14 @@ function queuePackageInstall(rawLink) {
   return true;
 }
 
+/** duskbot://auth: the browser back from a Google or Apple sign-in this app started; the client ignores any other. */
+function takeSignInLink(rawLink) {
+  if (!isAppLink(rawLink)) return false;
+  revealForLink();
+  try { void ensureCloudAccount().finishLink(rawLink).catch(() => {}); } catch {}
+  return true;
+}
+
 function queueChatLink(rawLink) {
   const link = chatLinkFrom(rawLink);
   if (!link) return false;
@@ -272,12 +280,13 @@ function queueChatLink(rawLink) {
 
 app.on("open-url", (event, rawUrl) => {
   const url = fromLegacyLink(rawUrl);
-  if (!queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url) && !slackOAuthLinks.queue(url)) return;
+  if (!takeSignInLink(url) && !queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url) && !slackOAuthLinks.queue(url)) return;
   event.preventDefault();
 });
 
 app.on("second-instance", (_event, rawCommandLine) => {
   const commandLine = rawCommandLine.map(fromLegacyLink);
+  if (takeSignInLink(commandLine.find(isAppLink))) return;
   if (takeOrganizationDeepLink(commandLine)) {
     queueOrganizationEntry("duskbot://organization");
     return;
@@ -870,7 +879,7 @@ function ensureCloudAccount() {
   cloudAccount = createCloudAccountClient({
     store: cloudAccountStore(),
     platform: process.platform, deviceName: os.hostname().slice(0, 100) || "My computer", appVersion: app.getVersion(), origin: cloudTarget(process.env).origin, custom: cloudTarget(process.env).custom,
-    openBrowser: url => shell.openExternal(url), awaitingWake: () => cloudPower.awaiting(),
+    openBrowser: url => shell.openExternal(url), awaitingWake: () => cloudPower.awaiting(), appLinks: app.isPackaged,
     onState: state => {
       cloudSync.accountChanged(state.account?.id ?? null); rememberCloudHome(state);
       rememberedHome = rememberedCloudHome(rememberedHome, state);

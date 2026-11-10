@@ -8,6 +8,7 @@ import { createDashboardApp, type DashboardAppOptions } from "../app.ts";
 import { startFakeProviders } from "./fake-providers.ts";
 import { memoryMailer } from "./mail.ts";
 import { providersFromEnv } from "./providers.ts";
+import { createCloudAccountClient } from "../../../../electron/cloud-account.mjs";
 import { APP_AUTH_REDIRECT, CSRF_HEADER, type AccountAnswer, type AppGrant, type OAuthProvider, type WebSignInAnswer } from "../../../../shared/account-api.ts";
 
 class CookieJar {
@@ -275,6 +276,57 @@ describe("OAuth over isolated HTTP", () => {
     const params = new URLSearchParams({ provider: "google", code_challenge: random(), code_challenge_method: "S256", state: random(), redirect_uri: APP_AUTH_REDIRECT });
     for (const [key, value] of Object.entries(change)) if (value !== undefined) params.set(key, value);
     const response = await call(`/v1/auth/app/start?${params}`); expect(response.status).toBe(400); expect(await response.json()).toMatchObject({ code: "invalid_request" });
+  });
+  it("signs the desktop app in with one tap: provider, back through the app's link, plan intent straight on, no approval page", async () => {
+    let saved: unknown = null;
+    const opened: string[] = [];
+    const desktop = (appLinks: boolean) => createCloudAccountClient({ origin: url, fixture: true, deviceName: "Fixture Mac", platform: "darwin", appVersion: "1.2.3", now: () => time, appLinks,
+      store: { async read() { return saved; }, async write(value: unknown) { saved = value; } }, async openBrowser(target: string) { opened.push(target); },
+      setTimer: () => 1, clearTimer: () => {} });
+    const client = desktop(true);
+    try {
+      await client.start();
+      expect(await client.signInOptions()).toEqual({ providers: ["google", "apple", "x"], recovery: true });
+      expect(await client.begin({ plan: "pro", source: "app_settings" }, { provider: "google" })).toMatchObject({ status: "connecting", browser: "google" });
+      expect(client.state().enrollment).toBeUndefined();
+      const start = new URL(opened[0]!);
+      expect(`${start.origin}${start.pathname}`).toBe(`${url}/v1/auth/app/start`);
+      expect(start.searchParams.get("redirect_uri")).toBe(APP_AUTH_REDIRECT);
+      const providerResponse = await fetch(location(await call(`${start.pathname}${start.search}`)), { redirect: "manual" });
+      const link = location(await call(location(providerResponse)));
+      expect(link.startsWith(`${APP_AUTH_REDIRECT}?code=`)).toBe(true);
+      // a link this app did not start, or a forged state, does nothing
+      expect((await client.finishLink(`${APP_AUTH_REDIRECT}?code=${"c".repeat(43)}&state=${"s".repeat(43)}`)).outcome).toBe("ignored");
+      expect(client.state().status).toBe("connecting");
+      const done = await client.finishLink(link);
+      expect(done.outcome).toBe("signed-in");
+      expect(client.state()).toMatchObject({ status: "connected", account: { email: "sid@duskbot.test" } });
+      // the plan chosen before signing in comes through the sign-in with it: no second step to find it again
+      expect(client.state().checkout).toMatchObject({ plan: "pro", signIn: true });
+      expect(opened).toHaveLength(1);
+      expect((await client.finishLink(link)).outcome).toBe("ignored");
+    } finally { client.close(); }
+  });
+  it("ends the desktop's provider sign-in on a denied link and keeps the code flow where the app has no link", async () => {
+    let saved: unknown = null;
+    const opened: string[] = [];
+    const make = (appLinks: boolean) => createCloudAccountClient({ origin: url, fixture: true, deviceName: "Fixture Mac", platform: "darwin", now: () => time, appLinks,
+      store: { async read() { return saved; }, async write(value: unknown) { saved = value; } }, async openBrowser(target: string) { opened.push(target); },
+      setTimer: () => 1, clearTimer: () => {} });
+    const client = make(true);
+    try {
+      await client.start();
+      await client.begin(null, { provider: "apple" });
+      const state = new URL(opened[0]!).searchParams.get("state")!;
+      const ended = await client.finishLink(`${APP_AUTH_REDIRECT}?error=oauth_denied&state=${state}`);
+      expect(ended).toMatchObject({ outcome: "failed", state: { status: "signed-out", message: "signin-cancelled" } });
+    } finally { client.close(); }
+    const plain = make(false);
+    try {
+      await plain.start();
+      expect((await plain.begin(null, { provider: "google" })).enrollment?.userCode).toMatch(/^[A-Z2-9]{5}-[A-Z2-9]{5}$/);
+      expect(opened.at(-1)).toContain("/v1/auth/oauth/google/start?next=");
+    } finally { plain.close(); }
   });
   it("rejects forged or invalid id tokens before creating an account", async () => {
     const keys = generateKeyPairSync("rsa", { modulusLength: 2048 });

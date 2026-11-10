@@ -484,7 +484,9 @@ const bridge = {
   },
   accountGate: process.argv.includes("--omb-account-gate=1") ? {
     state: () => ipcRenderer.invoke("account-gate:state"),
-    signInStart: email => ipcRenderer.invoke("account-gate:signInStart", String(email)),
+    signInStart: (email, options) => ipcRenderer.invoke("account-gate:signInStart", String(email), { recover: options?.recover === true }),
+    options: () => ipcRenderer.invoke("account-gate:options"),
+    reopen: () => ipcRenderer.invoke("account-gate:reopen"),
     signInVerify: code => ipcRenderer.invoke("account-gate:signInVerify", String(code)),
     signInCancel: () => ipcRenderer.invoke("account-gate:signInCancel"),
     browser: provider => ipcRenderer.invoke("account-gate:browser", String(provider)),

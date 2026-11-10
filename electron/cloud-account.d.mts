@@ -5,6 +5,8 @@ export interface CloudAccountState {
   status: "signed-out" | "connecting" | "connected" | "reauth-required" | "unavailable";
   message?: string;
   enrollment?: { userCode: string; expiresAt: number };
+  /** Signing in at this provider in the browser, which comes back to the app's own link (packaged app only). */
+  browser?: import("./cloud-signin.mjs").CloudLinkProvider;
   account?: { id: string; email: string };
   deviceId?: string;
   expiresAt?: number;
@@ -286,9 +288,14 @@ export interface CloudAccountClient {
   openDashboard(): Promise<CloudAccountState>;
   offer(): Promise<import("./cloud-home.mjs").CloudOffer | null>;
   checkout(plan: string, source: string): Promise<CloudCheckoutResult>;
-  emailStart(email: string): Promise<CloudSignInStart>;
+  /** `recover`: "Can't sign in?": the mail also names the ways this address signs in. */
+  emailStart(email: string, options?: { recover?: boolean }): Promise<CloudSignInStart>;
   emailVerify(code: string): Promise<CloudSignInVerify>;
   emailCancel(): void;
+  /** duskbot://auth from the browser: redeems the code of the sign-in this app started; any other link is ignored. */
+  finishLink(url: string): Promise<{ outcome: "signed-in" | "failed" | "ignored"; state: CloudAccountState }>;
+  /** The provider buttons the account service says sign in, and whether it mails recovery; none when it doesn't say. */
+  signInOptions(): Promise<{ providers: import("./cloud-signin.mjs").CloudLinkProvider[]; recovery: boolean }>;
   reopenCheckout(plan?: string, source?: string): Promise<CloudCheckoutResult>;
   /** Main only (the clipboard): the kept checkout page, or null. */
   checkoutLink(): string | null;
@@ -381,6 +388,8 @@ export declare function createCloudAccountClient(options: {
   warn?: (message: string) => void;
   /** Files or lending waits for a sleeping Cloud to wake: the session is read every 15 s. */
   awaitingWake?: () => boolean;
+  /** This app owns duskbot:// (packaged): provider sign-in comes back through the link instead of a code to approve. */
+  appLinks?: boolean;
 }): CloudAccountClient;
 export declare function cloudPlanSnapshot(state: CloudAccountState | null | undefined, extra?: { notice?: import("./cloud-home.mjs").CloudTrialState | null }): CloudPlanSnapshot;
 /** My Cloud's line under its name in the server menus, or null for none. */
