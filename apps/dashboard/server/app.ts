@@ -353,14 +353,15 @@ export function createDashboardApp(options: DashboardAppOptions) {
       return;
     }
     if (method === "GET" && path === "/v1/account/export") {
-      const owner = account(req);
+      const owner = auth.requireWeb(req, { mutation: false });
       const answer = auth.exportAccount(owner);
       const data = { v: 1, exportedAt: new Date(now()).toISOString(), ...answer,
         workspaces: state.workspaces.filter(ws => ws.ownerAccountId === owner.id).map(ws => ({ ...summary(ws), report: ws.report })),
         ...billing.exportAccount(owner.id) };
       res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store",
         "content-disposition": `attachment; filename="dusk-bot-account-${new Date(now()).toISOString().slice(0, 10)}.json"` });
-      return res.end(JSON.stringify(data, null, 2));
+      res.end(JSON.stringify(data, null, 2));
+      return;
     }
     if (method === "POST" && path === "/v1/client-error") {
       rate(req, "client-error", 60);
@@ -371,7 +372,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
       error.stack = `${error.name}: ${error.message}\n${text(input.stack, 8000)}`;
       options.errors?.page.capture(error, { tags: { page: text(input.page, 64).replace(/[^\w/-]/g, "") || "unknown" } });
       res.writeHead(204, { "cache-control": "no-store" });
-      return res.end();
+      res.end();
+      return;
     }
     if (method === "GET" && path === "/v1/workspaces") {
       const owner = account(req);
