@@ -188,12 +188,13 @@
 /* no box behind a bot: the mascot itself rises a little under the pointer, and a little more while its card is out */
 .amb-lift { display: grid; place-items: center; transition: transform 220ms var(--amb-ease-out); }
 .amb-dock-bot[data-showing] .amb-lift { transform: translateY(-1px) scale(1.08); }
-.amb-pip {
-  position: absolute; right: 5px; bottom: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--amb-ink);
-  box-shadow: 0 0 0 2px var(--amb-panel); pointer-events: none;
+/* how a bot is doing, in the island's colours: blue while it works, green for a reply not yet seen; still, never pulsing */
+.amb-state-dot {
+  position: absolute; right: 6px; bottom: 7px; width: 7px; height: 7px; border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--amb-panel); pointer-events: none; transition: background-color var(--amb-fast) ease;
 }
-.amb-dock:not([data-hidden]) .amb-pip { animation: amb-pip 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
-@keyframes amb-pip { 50% { opacity: 0.35; } }
+.amb-state-dot[data-state="working"] { background: var(--amb-blue); }
+.amb-state-dot[data-state="done"] { background: var(--amb-ok); }
 /* the bot's mascot in a chat's header: the one way from here into the app */
 .amb-chat-mascot { display: grid; place-items: center; width: 28px; height: 28px; margin-inline-start: -4px; padding: 0; border: 0; border-radius: 50%; background: none; transition: transform 200ms var(--amb-ease-out); }
 .amb-chat-mascot:active { transform: scale(0.94); }
@@ -208,12 +209,12 @@
   font-variant-numeric: tabular-nums; box-shadow: 0 0 0 2px var(--amb-panel); pointer-events: none;
 }
 .amb-bubble[data-kind="error"] { background: #d93a3a; }
-.amb-bubble[data-kind="reply"] { top: 5px; left: 5px; min-width: 9px; width: 9px; height: 9px; padding: 0; background: var(--amb-ink); }
 /* hidden, the sliver still says who waits, failed, works or replied: by shape as much as colour */
 .amb-tick { position: absolute; left: -7px; top: 50%; width: 3px; height: 8px; border-radius: 2px; translate: 0 -50%; background: rgb(245 245 245 / 0.55); opacity: 0; pointer-events: none; transition: opacity var(--amb-fast) var(--amb-ease-out); }
 .amb-tick[data-kind="ask"] { height: 16px; background: var(--amb-blue); }
 .amb-tick[data-kind="error"] { height: 16px; background: var(--amb-bad); }
-.amb-tick[data-kind="reply"] { width: 4px; height: 4px; border-radius: 50%; background: var(--amb-ink); }
+.amb-tick[data-kind="busy"] { background: var(--amb-blue); }
+.amb-tick[data-kind="reply"] { width: 4px; height: 4px; border-radius: 50%; background: var(--amb-ok); }
 .amb-dock[data-hidden] .amb-tick { opacity: 1; }
 .amb-dock-foot { display: grid; place-items: center; flex-shrink: 0; }
 .amb-dock-plus { position: relative; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--amb-ink-3); transition: color var(--amb-fast) ease, background-color var(--amb-fast) ease, transform var(--amb-fast) var(--amb-ease-out); }
@@ -288,7 +289,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .amb-dots > i, .amb-bubble-msg[data-streaming]::after { animation: none; }
-  .amb-dock:not([data-hidden]) .amb-pip { animation: none; }
   .amb-lift { transition: none; }
   .amb-breathe[data-on] { animation: none; }
   .amb-pill:active, .amb-send:active:enabled, .amb-dock-plus:active { transform: none; }
