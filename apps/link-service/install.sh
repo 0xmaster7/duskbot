@@ -880,6 +880,94 @@ verified_download() { # url file sha256 size timeout label
   return 1
 }
 
+# updates that can't break a server (shared/update-guard.ts): a build is taken only when it is signed by a pinned release
+# key (required once this server has taken one signed build), newer than the one here, at or above the signed floor and
+# not on the signed block list; the build it replaces stays cached, and if the new one does not answer or fails its own
+# self-test (server/update-state.ts) the one before is put back. the keys match apps/cloud-service/src/release-signing.ts.
+RELEASE_KEYS="rel-2026-11:wtwZypDwVPBXZ25XsZOVpd0PZPBbVMhugheUj5_NLIM${DUSK_RELEASE_PUBLIC_KEYS:+,$DUSK_RELEASE_PUBLIC_KEYS}"
+NODE_BIN=${NODE_BIN:-/usr/bin/node}
+PKG_SIG="" POLICY_BODY="" POLICY_SIG=""
+update_check() { # file sha256 -> "ok <version> signed|unsigned" or "refuse <reason> [version]"
+  cat > "$TMP/update-check.js" <<'DUSK_CHECK'
+const c = require("node:crypto"), fs = require("node:fs"), e = process.env, SEM = /^\d+\.\d+\.\d+$/;
+const keys = (e.KEYS || "").split(",").map((s) => s.trim().split(":")).filter(([kid, x]) => kid && x).map(([kid, x]) => ({ kid, x }));
+const cmp = (a, b) => { const p = (v) => (SEM.test(v || "") ? v.split(".").map(Number) : null), l = p(a), r = p(b); if (!l || !r) return l ? 1 : r ? -1 : 0; for (let i = 0; i < 3; i++) if (l[i] !== r[i]) return l[i] < r[i] ? -1 : 1; return 0; };
+const out = (line) => { process.stdout.write(line + "\n"); process.exit(0); };
+function verify(sig, kind, sha) {
+  const p = String(sig || "").trim().split(".");
+  if (p.length !== 4 || p[0] !== "r1") return null;
+  const k = keys.find((x) => x.kid === p[1]);
+  if (!k) return null;
+  try {
+    const pub = c.createPublicKey({ key: { kty: "OKP", crv: "Ed25519", x: k.x }, format: "jwk" });
+    if (!c.verify(null, Buffer.from(p.slice(0, 3).join(".")), pub, Buffer.from(p[3], "base64url"))) return null;
+    const m = JSON.parse(Buffer.from(p[2], "base64url").toString());
+    return m.v === 1 && m.kind === kind && m.sha256 === sha ? m : null;
+  } catch { return null; }
+}
+let held = { serial: 0, floor: null, blocked: [] };
+try { held = JSON.parse(fs.readFileSync(e.HELD_POLICY, "utf8")); } catch {}
+if (e.POLICY_BODY && e.POLICY_SIG) {
+  try {
+    const body = Buffer.from(e.POLICY_BODY, "base64url").toString("utf8"), p = JSON.parse(body);
+    const m = verify(e.POLICY_SIG, "update-policy", c.createHash("sha256").update(body).digest("hex"));
+    if (m && m.name === "update-policy" && Number.isSafeInteger(p.serial) && m.version === String(p.serial) && p.serial > (held.serial || 0)
+      && (p.floor === null || SEM.test(p.floor)) && Array.isArray(p.blocked) && p.blocked.every((v) => SEM.test(v))) {
+      held = { serial: p.serial, floor: p.floor, blocked: p.blocked };
+      fs.writeFileSync(e.HELD_POLICY, JSON.stringify(held), { mode: 0o600 });
+    }
+  } catch {}
+}
+let version = null;
+if (e.SIG) { const m = verify(e.SIG, "vps-package", e.SHA); if (!m || !SEM.test(m.version)) out("refuse unsigned"); version = m.version; }
+else { if (e.SIGNED_BEFORE === "1") out("refuse unsigned"); version = SEM.test(e.OFFER_VERSION || "") ? e.OFFER_VERSION : null; }
+if (version) {
+  if ((held.blocked || []).includes(version)) out("refuse blocked " + version);
+  if (held.floor && cmp(version, held.floor) < 0) out("refuse below_floor " + version);
+  if ((e.FAILED || "").split(",").includes(version)) out("refuse failed_here " + version);
+  if (e.INSTALLED && cmp(version, e.INSTALLED) < 0) out("refuse older " + version);
+}
+out("ok " + (version || "unknown") + " " + (e.SIG ? "signed" : "unsigned"));
+DUSK_CHECK
+  KEYS="$RELEASE_KEYS" SHA="$2" SIG="$PKG_SIG" OFFER_VERSION="${PKG_VERSION:-}" POLICY_BODY="$POLICY_BODY" POLICY_SIG="$POLICY_SIG" \
+    HELD_POLICY="$STATE/update-policy.json" INSTALLED="$(installed_version)" FAILED="$(state_get update-failed)" SIGNED_BEFORE="$(state_get signed)" \
+    "$NODE_BIN" "$TMP/update-check.js" || echo "refuse check"
+}
+installed_version() { sed -n 's/^ *"version": *"\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)".*/\1/p' "$SVC_HOME/.local/lib/node_modules/duskbot/package.json" 2>/dev/null | head -n 1; }
+# the server's own self-test on <version> (server/update-state.ts): passed, failed, or nothing yet
+selftest_result() {
+  "$NODE_BIN" -e 'try { const s = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).selfTest; if (s && s.version === process.argv[2]) console.log(s.ok ? "passed" : "failed"); } catch {}' "$DATA/update-state.json" "$1" 2>/dev/null || true
+}
+# after the server restarted on a new build: settles it, or puts the build before back. $1: 1 when the server answered
+update_settle() {
+  pending=$(state_get update-pending)
+  [ -n "$pending" ] || return "$((1 - $1))"
+  ok=$1
+  if [ "$ok" = 1 ] && [ "$pending" != unknown ]; then
+    _i=0 result=""
+    while [ "$_i" -lt "${SELFTEST_WAIT:-180}" ]; do
+      result=$(selftest_result "$pending")
+      [ -z "$result" ] || break
+      sleep 2; _i=$((_i + 2))
+    done
+    [ "$result" = passed ] || ok=0
+  fi
+  state_set update-pending ""
+  if [ "$ok" = 1 ]; then echo "Updated to $pending"; return 0; fi
+  prev=$(state_get package-prev)
+  file="$SVC_HOME/.cache/duskbot-link/duskbot-${prev#sha256:}.tgz"
+  case "$prev" in sha256:*) [ -f "$file" ] || prev="" ;; *) prev="" ;; esac
+  if [ -z "$prev" ]; then echo "the update to $pending did not pass its self-test and there is no build here to go back to"; return 1; fi
+  echo "the update to $pending did not pass its self-test: going back to the build before"
+  failed=$(state_get update-failed)
+  state_set update-failed "$(printf '%s\n' ${failed:+$(printf '%s' "$failed" | tr ',' ' ')} "$pending" | tail -n 20 | paste -sd, -)"
+  retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" "$file" || return 1
+  state_set package "$prev"; state_set package-prev ""
+  x systemctl restart duskbot.service
+  if wait_health "http://127.0.0.1:$PORT/api/health" 120; then echo "Update rolled back, nothing lost"; return 0; fi
+  return 1
+}
+
 get_package() { # file
   verified_download "$LINK_BASE/pkg/$LINK_ID/$PKG_SHA.tgz" "$1" "$PKG_SHA" "$PKG_SIZE" 1800 Dusk Bot
 }
@@ -903,11 +991,25 @@ do_app() {
   install -d -o "$SVC_USER" -g "$SVC_USER" -m 0700 "$cache"
   file="$cache/duskbot-$PKG_SHA.tgz"
   get_package "$file"
+  verdict=$(update_check "$file" "$PKG_SHA")
+  case "$verdict" in
+    ok\ *) ;;
+    *)
+      rm -f "$file"
+      if [ -x "$bin" ]; then echo "keeping the installed build: the offered one is not taken (${verdict#refuse })"; return 0; fi
+      echo "the offered build is not taken (${verdict#refuse })"; return 1 ;;
+  esac
   chown "$SVC_USER:$SVC_USER" "$file"
-  find "$cache" -name 'duskbot-*.tgz*' ! -name "duskbot-$PKG_SHA.tgz" ! -name "duskbot-$PKG_SHA.tgz.part" -exec rm -f {} + 2>/dev/null || true
+  prev=$(state_get package)
+  # the build before stays cached: it is what a failed update goes back to
+  find "$cache" -name 'duskbot-*.tgz*' ! -name "duskbot-$PKG_SHA.tgz" ! -name "duskbot-$PKG_SHA.tgz.part" ! -name "duskbot-${prev#sha256:}.tgz" -exec rm -f {} + 2>/dev/null || true
   retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" "$file"
   [ -x "$bin" ] || { echo "duskbot is missing after install"; return 1; }
   state_set package "sha256:$PKG_SHA"
+  case "$verdict" in *" signed") state_set signed 1 ;; esac
+  if [ -n "$prev" ] && [ "$prev" != "sha256:$PKG_SHA" ]; then
+    state_set package-prev "$prev"; state_set update-pending "$(printf '%s' "$verdict" | cut -d' ' -f2)"
+  fi
 }
 
 do_engines() {
@@ -1174,9 +1276,10 @@ do_service() {
   if box_works >/dev/null 2>&1; then echo "bot box: bubblewrap works for $SVC_USER"; else echo "bot box: bubblewrap cannot make a user namespace here; bots' turns are refused until it can"; fi
   if [ "$reload" = 0 ]; then x systemctl restart duskbot.service; else x systemctl start duskbot.service; fi
   show curl "http://127.0.0.1:$PORT/api/health"
-  if wait_health "http://127.0.0.1:$PORT/api/health" 120; then echo "server answers on 127.0.0.1:$PORT"; return 0; fi
+  if wait_health "http://127.0.0.1:$PORT/api/health" 120; then echo "server answers on 127.0.0.1:$PORT"; update_settle 1 && return 0; return 1; fi
   echo "the server did not answer on 127.0.0.1:$PORT within two minutes"
   journalctl -u duskbot.service -n 30 --no-pager 2>/dev/null || true
+  update_settle 0 && return 0
   return 1
 }
 
@@ -1624,6 +1727,9 @@ claim() {
       PKG_SHA=$(sed -n 's/.*"package":{[^}]*"sha256":"\([0-9a-f]\{64\}\)".*/\1/p' "$TMP/claim" | head -n 1)
       PKG_SIZE=$(sed -n 's/.*"package":{[^}]*"size":\([0-9]\{1,12\}\).*/\1/p' "$TMP/claim" | head -n 1)
       PKG_VERSION=$(sed -n 's/.*"package":{[^}]*"version":"\([0-9A-Za-z.+-]\{1,40\}\)".*/\1/p' "$TMP/claim" | head -n 1)
+      PKG_SIG=$(sed -n 's/.*"package":{[^}]*"signature":"\(r1\.[a-z0-9-]\{1,32\}\.[A-Za-z0-9_-]\{1,\}\.[A-Za-z0-9_-]\{40,\}\)".*/\1/p' "$TMP/claim" | head -n 1)
+      POLICY_BODY=$(sed -n 's/.*"policy":{"body":"\([A-Za-z0-9_-]\{1,\}\)","signature":"\(r1\.[A-Za-z0-9._-]\{1,\}\)"}.*/\1/p' "$TMP/claim" | head -n 1)
+      POLICY_SIG=$(sed -n 's/.*"policy":{"body":"\([A-Za-z0-9_-]\{1,\}\)","signature":"\(r1\.[A-Za-z0-9._-]\{1,\}\)"}.*/\2/p' "$TMP/claim" | head -n 1)
       PKG_SIZE=${PKG_SIZE:-0}
       KIT_SHA=$(sed -n 's/.*"desktop":{[^}]*"sha256":"\([0-9a-f]\{64\}\)".*/\1/p' "$TMP/claim" | head -n 1)
       KIT_SIZE=$(sed -n 's/.*"desktop":{[^}]*"size":\([0-9]\{1,12\}\).*/\1/p' "$TMP/claim" | head -n 1)

@@ -15,6 +15,9 @@
 // and to build the image when the registry has no copy of BOT_DESKTOP_IMAGE.
 // The same deploy/bot-desktop/ also goes inside the package, beside dist-server/,
 // so the installed server builds the image itself after an update (server/bot-desktop.ts).
+// With DUSK_RELEASE_SIGNING_KEY set (CI's release environment) the build is signed (kind vps-package, its version and
+// sha256) and the signature rides in manifest.json and current.json: an install that has once taken a signed build takes
+// only signed ones after, and never one older than it runs, below the signed floor or blocked (apps/link-service/install.sh).
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
@@ -68,7 +71,13 @@ let commit = "";
 try { commit = quiet("git", ["rev-parse", "--short=12", "HEAD"]); } catch { /* not a checkout */ }
 const name = `duskbot-${pkg.version}-${sha256.slice(0, 12)}.tgz`;
 renameSync(join(out, packed), join(out, name));
-const manifest = { sha256, version: pkg.version, size: bytes.length, commit, builtAt: new Date().toISOString(), file: name };
+let signature = null;
+if (process.env.DUSK_RELEASE_SIGNING_KEY) {
+  run(process.execPath, ["--experimental-strip-types", join(root, "apps", "cloud-service", "scripts", "sign-release.ts"), join(out, name), "--kind", "vps-package", "--name", "duskbot", "--version", pkg.version]);
+  signature = readFileSync(join(out, `${name}.sig`), "utf8").trim();
+  rmSync(join(out, `${name}.sig`));
+}
+const manifest = { sha256, version: pkg.version, size: bytes.length, commit, builtAt: new Date().toISOString(), file: name, ...(signature ? { signature } : {}) };
 writeFileSync(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 console.log(`vps package: ${join(out, name)} (${(bytes.length / 1048576).toFixed(1)} MB, sha256 ${sha256})`);
 
@@ -93,7 +102,7 @@ if (publishTo) {
     copyFileSync(join(out, file), join(dir, `${sha}.tgz.tmp`));
     renameSync(join(dir, `${sha}.tgz.tmp`), join(dir, `${sha}.tgz`));
   }
-  const pointer = { sha256, version: pkg.version, commit, builtAt: manifest.builtAt, desktop: { sha256: kitSha, image } };
+  const pointer = { sha256, version: pkg.version, commit, builtAt: manifest.builtAt, ...(signature ? { signature } : {}), desktop: { sha256: kitSha, image } };
   writeFileSync(join(dir, "current.json.tmp"), JSON.stringify(pointer) + "\n", { mode: 0o600 });
   renameSync(join(dir, "current.json.tmp"), join(dir, "current.json"));
   console.log(`published to ${dir}: new installs get ${pkg.version} (${sha256.slice(0, 12)})`);
