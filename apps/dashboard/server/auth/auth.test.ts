@@ -434,7 +434,7 @@ describe("local account service", () => {
     // no account: the same answer, a mail that says so, and no code that could create one
     const sent = mailer.outbox.length;
     const nobody = await call("/v1/auth/start", { email: "nobody@example.test", recover: true });
-    expect(nobody.status).toBe(200); expect(Object.keys(await nobody.json()).sort()).toEqual(Object.keys(recovered).sort());
+    expect(nobody.status).toBe(200); expect(Object.keys(await nobody.json() as object).sort()).toEqual(Object.keys(recovered as object).sort());
     expect(mailer.outbox).toHaveLength(sent + 1);
     expect(mailer.outbox.at(-1)!.text).toContain("no Dusk Bot account uses it"); expect(mailer.outbox.at(-1)!.text).not.toMatch(/\b\d{8}\b/);
     for (const bad of [{ email, recover: "yes" }, { email, recover: false }]) expect((await call("/v1/auth/start", bad)).status).toBe(400);

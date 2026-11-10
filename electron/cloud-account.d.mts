@@ -383,6 +383,8 @@ export declare function createCloudAccountClient(options: {
   custom?: boolean;
   fetch?: typeof fetch;
   now?: () => number;
+  setTimer?: (work: () => void, ms: number) => unknown;
+  clearTimer?: (timer: unknown) => void;
   onState?: (state: CloudAccountState) => void;
   /** Told once per plan name this app predates. Defaults to console.warn. */
   warn?: (message: string) => void;
