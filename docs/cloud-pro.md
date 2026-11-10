@@ -1682,7 +1682,7 @@ screen's note.
   nothing was charged; `404`/`405`/`501` is an Admin before the route.
   `source` is one of `app_card`, `app_howto`, `app_menu`, `app_settings`,
   `app_routines`, `app_pages`, `app_whats_new_pro`, `app_whats_new_team`,
-  `app_onboarding` (main refuses any other, and any plan the offer doesn't
+  `app_onboarding`, `app_computer_move` (main refuses any other, and any plan the offer doesn't
   sell).
 - **Interest** `POST /api/cloud/desktop/interest` `{kind: "another_cloud"}` → `{ok: true}`.
 - Every signed-in request carries this app's version in `x-dusk-version`.
