@@ -3511,7 +3511,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -9286,7 +9297,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12721,7 +12743,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -16153,7 +16186,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -22328,7 +22372,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -28692,7 +28747,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -35441,7 +35507,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -41780,7 +41857,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -47987,7 +48075,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -54333,7 +54432,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -59631,7 +59741,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -63368,7 +63489,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -68666,7 +68798,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -75588,7 +75731,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -80455,7 +80609,18 @@
       "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
       "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
       "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
-      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640",
+      "chat.blocker.title": "a93b8223c86d1f6635bbd871905ca0e494651b3b07b3b2c60bbcc73f1953bd3a",
+      "chat.blocker.loop": "31ae882176bebaa3dfbe2c79c9c9afe53588d34c1702eb8cc311cd4959b06449",
+      "chat.blocker.loopOn": "bc30c5ecf29a43c11f74e19dd45f979ece108be33e5228a9f1d91d8e400101d2",
+      "chat.blocker.credentials": "901cb0b44c2df8a90073e3aaf2bbcd107925b461d4ffa270acc841e0a1e6adc7",
+      "chat.blocker.credit": "bb552248ab9b2b7b64c95697b60df4fc30a86d7c00e4196bd5ca5de436a5942c",
+      "chat.blocker.blocked": "4ac2a5e0a6c3120a3a9aa0c37686f2b804200fc42ed8b591dd7e9bf54c9f5bd0",
+      "chat.blocker.theSite": "0cbb8b176295463f2c802a6099720aeb8ecdffdf47f11e3993942229aa6497fb",
+      "chat.blocker.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "chat.blocker.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "chat.blocker.stop": "cae7d57bc067a514b8e34c9589631a95c7dc051638ddd2a190773269279a99df",
+      "chat.blocker.skipText": "f98b624a0d7e89278e20c878d9b3a0e5e42fc6d1745d405c1487c6a5f5c51b8f"
     }
   }
 }
