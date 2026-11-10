@@ -6,11 +6,11 @@ def save(im, name, w, q=86):
     if im.width > w: im = im.resize((w, round(im.height * w / im.width)), Image.LANCZOS)
     im.save(OUT + name + '.webp', quality=q, method=6); return im.size
 rgb = lambda n: Image.open(n + '.png').convert('RGB')
-for src, name in [('hero-peaks', 'hero-peaks'), ('r09-dunes', 'dunes'), ('r03-birches', 'birches'), ('r05-white-cliffs', 'cliffs'), ('r17-islands', 'islands'), ('r02-terraces', 'terraces')]: print(name, save(rgb(src), name, 1086))
-for n in ['wide-layers', 'wide-sails', 'wide-meadow']: print(n, save(rgb(n), n, 1536))
-m = rgb('wide-meadow'); print('meadow-crop', save(m.crop((0, 300, 1536, 940)), 'meadow-crop', 1536))
+print('terraces', save(rgb('r02-terraces'), 'terraces', 1086))
+for n in ['wide-layers', 'wide-sails', 'end-meadow', 'price-sky']: print(n, save(rgb(n), n, 1536))
+# sky straight onto trees and meadow, with the pale bands and the clouds left out, so the big $0 reads on white
+em = rgb('end-meadow'); fill = Image.new('RGB', (1000, 640)); fill.paste(em.crop((270, 150, 1270, 510)), (0, 0)); fill.paste(em.crop((270, 650, 1270, 930)), (0, 360)); print('zero', save(fill, 'zero', 1000))
 cat = Image.open('cat.png').convert('RGBA'); cat = cat.crop(cat.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print('cat', save(cat, 'cat', 600, 90))
-sky = rgb('wide-layers'); print('plan-sky', save(sky.crop((500, 30, 1536, 375)), 'plan-sky', 900))
 for n in ['s-computer', 's-clock', 's-notebook', 's-button', 's-phone']:
     im = Image.open(n + '.png').convert('RGBA'); im = im.crop(im.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print(n, save(im, n, 520, 90))
 og = rgb('wide-layers'); og.crop((0, 110, 1536, 916)).resize((1200, 630), Image.LANCZOS).save(OUT + 'og.jpg', quality=86)

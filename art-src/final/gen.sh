@@ -20,3 +20,8 @@ s "A big round red emergency push button on a square lemon-yellow base, with a c
 s "A cream-white door with a large lilac padlock hanging on it and a lemon-yellow key beside it." s-lock &
 s "A cotton-candy pink rotary telephone with a cream dial and a curly cord." s-phone &
 wait
+
+# the ending and the pricing sky: calm in the middle so the words read, clouds kept to the sides
+e "Redraw this meadow scene as a wide 3:2 landscape with a much calmer sky: the whole upper two thirds is one single flat band of bright cyan sky blue with no band edges crossing it, then one slightly lighter band just above the hills. Exactly two flat pixel clouds, both at mid height and both touching the side edges of the picture: a white one with a lemon underside at the far left and a white one with a pink underside at the far right. The centre of the sky is completely empty. No sun. Keep the lilac hills, emerald trees and the pale lime meadow with drifts of small white, pink and lemon flowers in the lower third." end-meadow wide-meadow 1536x1024 &
+e "Redraw this as a wide 3:2 picture of only sky, no land at all: bright cyan sky blue at the top, one slightly lighter band in the lower half, the two bands meeting in scattered pixels. Five small flat pixel clouds, white with pink or lemon undersides, placed only near the left edge, the right edge and the bottom corners. The centre is empty sky. No sun, no ground, no water." price-sky wide-layers 1536x1024 &
+wait

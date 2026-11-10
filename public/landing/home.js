@@ -24,7 +24,7 @@ if (!still) addEventListener('pointermove', (e) => { px = e.clientX; py = e.clie
 const quips = ['hi', 'busy', 'on it', 'five more minutes', 'ok ok', 'that tickles', 'did you need something', 'working, promise', 'not the face'];
 let said = 0;
 document.addEventListener('click', (e) => {
-  const b = e.target.closest?.('.relay .bot, .shapes .bot, .log .bot');
+  const b = e.target.closest?.('.relay .bot, .shapes .bot, .log .bot, .peek-bot, .hill .bot, .faq-bots .bot');
   if (!b) return;
   if (!still) { b.classList.remove('hop'); void b.getBoundingClientRect(); b.classList.add('hop'); }
   const r = b.getBoundingClientRect(), q = document.createElement('span');
