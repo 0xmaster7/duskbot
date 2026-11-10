@@ -91,7 +91,10 @@ function filled(language: string | undefined, key: ServerLineKey, name: string, 
 const WEB_SEARCH = /web.?search|search.?(?:the.?)?web|google.?search|brave|bing|tavily|exa.?search|duckduckgo|perplexity|x_search|research_search/i;
 const BROWSER = /browser|navigate|playwright|open_url|goto|new_tab|tab_new/i;
 const COMPUTER = /computer|screenshot|screen|click|type_text|press_key|keypress|scroll|mouse|keyboard/i;
-const MEMORY = /memory|session_search|session_read|recall|notes?_search/i;
+const MEMORY = /memory|session_search|session_read|recall|notes?_search|knowledge/i;
+const SEARCH = /search|lookup|look_up|query/i;
+/** Commands that only read files: what they read is the bot's business, not a step worth naming. */
+const READING_COMMAND = /^(?:sed|cat|head|tail|less|rg|grep|ls|find|nl|wc|jq|tree|stat|file)\b/;
 const FILES_SEARCH = /^(?:grep|glob|find|search_files|list_files|ls)$/i;
 const PUBLISH = /publish_page|deploy/i;
 
@@ -121,9 +124,17 @@ export function derivedLabel(call: DerivedCall, language: string | undefined, la
   if (step?.activity === "write") return withLabel(filled(language, "server.status.writing", "file", step.target, max));
   if (step?.activity === "edit") return withLabel(filled(language, "server.status.editing", "file", step.target, max));
   if (step?.activity === "read") return withLabel(filled(language, "server.status.reading", "target", step.target, max));
-  if (step?.activity === "command") return withLabel(filled(language, "server.status.running", "target", step.target, max));
+  if (step?.activity === "command") {
+    if (READING_COMMAND.test(step.target)) return { label: serverLine(language, "server.status.lookingThroughFiles") };
+    return withLabel(filled(language, "server.status.running", "target", step.target, max));
+  }
   if (COMPUTER.test(name)) return { label: serverLine(language, "server.status.usingComputer") };
   if (MEMORY.test(name)) return { label: serverLine(language, "server.status.checkingNotes") };
+  if (SEARCH.test(name)) {
+    const query = field(args, ["query", "q", "queries", "search_query", "searchQuery"]);
+    const topic = query ? searchTopic(query) : "";
+    if (topic) return withLabel(filled(language, "server.status.searchingFor", "topic", topic, max));
+  }
   if (FILES_SEARCH.test(name)) return { label: serverLine(language, "server.status.lookingThroughFiles") };
   if (PUBLISH.test(name)) return { label: serverLine(language, "server.status.publishing") };
   return undefined;

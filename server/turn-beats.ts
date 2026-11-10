@@ -14,7 +14,7 @@ export type BeatKind = "ack" | "plan" | "milestone";
 /** The earliest an ack goes out, so a fast reply never follows one. */
 export const ACK_MIN_MS = 1_500;
 /** An ack for work that has run no tool yet waits this long for the engine to answer by itself first. */
-export const ACK_IDLE_MS = 6_000;
+export const ACK_IDLE_MS = 4_000;
 /** The second message is written from here, once a tool has run, and goes out from PLAN_MIN_MS. */
 export const PLAN_WRITE_MS = 11_000;
 export const PLAN_MIN_MS = 15_000;
@@ -122,7 +122,7 @@ export function beatPrompt(kind: BeatKind, input: { name: string; soul?: string;
     return [...head, "",
       "Write the acknowledgement they see first.",
       "- One sentence, 6 to 20 words, present tense, naming the concrete action and object, like \"On it, pulling this week's Delhi to Goa fares.\" or \"Got it, comparing the three plans now.\"",
-      "- If the message is only a greeting, thanks or small talk, reply exactly SKIP.",
+      `- Reply exactly SKIP if the message is only a greeting, thanks or small talk, if it is outside what ${input.name} does, or if ${input.name} would need to ask the person something before starting.`,
       SHARED_RULES(input.name),
     ].join("\n");
   }
@@ -211,6 +211,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
     watch.stepsAtLastWord = watch.steps.length;
     try {
       deps.post({ botId: watch.botId, threadId: watch.threadId, turnId: watch.turnId!, text, kind });
+      deps.log?.(`turn beats: sent the ${kind} in ${watch.threadId} ${now() - watch.startedAt} ms after the message`);
     } catch (error) {
       deps.log?.(`turn beats: could not post in ${watch.threadId}: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -239,9 +240,10 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
     if (ack.phase === "writing" || (ack.phase === "idle" && !engineSpoke && !watch.tools)) return;
 
     const spokenBefore = watch.posted.length + watch.engineMessages;
-    if (plan.phase === "idle" && elapsed >= PLAN_WRITE_MS && watch.tools > 0 && spokenBefore >= 1 && watch.engineMessages < 2 && !composing(watch)) write(watch, "plan", plan);
+    // A message of the engine's own already told them what is going on.
+    if (plan.phase === "idle" && elapsed >= PLAN_WRITE_MS && watch.tools > 0 && spokenBefore >= 1 && watch.engineMessages === 0 && !composing(watch)) write(watch, "plan", plan);
     if (plan.phase === "ready") {
-      if (composing(watch) || watch.engineMessages >= 2) plan.phase = "dropped";
+      if (composing(watch) || watch.engineMessages > 0) plan.phase = "dropped";
       else if (elapsed >= PLAN_MIN_MS && !watch.waiting) post(watch, "plan", plan);
     }
 
