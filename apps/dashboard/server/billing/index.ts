@@ -122,6 +122,16 @@ export function createBilling(options: BillingOptions) {
       await service.closeAccount(owner, { destroyDesktopsNow: body.destroyDesktopsNow === true });
     },
     accountDeleted: service.accountDeleted,
+    /** the account's plans, payments and cloud desktops for its owner's export: no provider ids, keys or sealed secrets */
+    exportAccount(accountId: string) {
+      const billingState = store.state;
+      return {
+        subscriptions: billingState.subscriptions.filter(sub => sub.accountId === accountId).map(({ id, lines, totalCents, status, currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, createdAt, updatedAt }) =>
+          ({ id, lines, totalCents, status, currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, createdAt, updatedAt })),
+        payments: billingState.invoices.filter(invoice => invoice.accountId === accountId).map(({ id, amountCents, currency, status, description, createdAt }) => ({ id, amountCents, currency, status, description, createdAt })),
+        cloudDesktops: clouds.list(accountId, true).map(({ id, name, kind, region, spec, status, createdAt, updatedAt, destroyAt }) => ({ id, name, kind, region, spec, status, createdAt, updatedAt, destroyAt })),
+      };
+    },
     enabled: context.enabled, sessionFields: admin.sessionFields, licenseCheck: service.licenseCheck, service, clouds, fake, fakePool,
     close() { clouds.close(); service.close(); },
   };

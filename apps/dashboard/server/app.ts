@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash, createPublicKey, randomBytes, timingSafeEqual, verify } from "node:crypto";
-import { readFileSync, realpathSync, statSync } from "node:fs";
+import { accessSync, constants, readFileSync, realpathSync, statSync } from "node:fs";
 import { CLAIM_TTL_MS, COMMAND_KINDS, COMMAND_TTL_MS, DASHBOARD_DISCOVERY_PATH, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATURE_SKEW_MS, SLOW_REPORT_MS,
   freshnessOf, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../../shared/dashboard-protocol.ts";
 import type { CommandKind, CommandView, MachineSample, ReportAnswer, WorkspaceDetail, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
@@ -14,6 +14,7 @@ import { BillingError } from "./billing/service.ts";
 import { createSlackEdgeHost } from "./slack-edge/index.ts";
 import { createManagedRoutes } from "./clouds/managed-routes.ts";
 import { clientIp } from "./client-ip.ts";
+import type { ErrorReporter } from "../../../electron/error-report.mjs";
 import type { EdgeSocketFactory } from "./slack-edge/service.ts";
 
 export interface DashboardAppOptions {
@@ -27,6 +28,9 @@ export interface DashboardAppOptions {
   staticDir: string | null;
   now?: () => number;
   fetch?: typeof fetch;
+  /** errors worth an operator's look: the service's own failures, and the page's (sent to POST /v1/client-error) */
+  errors?: { service: ErrorReporter; page: ErrorReporter };
+  version?: string;
   /** the slack wake edge: DUSK_SLACK_EDGE and DUSK_CLOUD_SEAL_KEY from env; tests pass a fake socket */
   slackEdge?: { env?: NodeJS.ProcessEnv; socket?: EdgeSocketFactory };
 }
@@ -39,6 +43,13 @@ const hash = (value: string | Buffer) => createHash("sha256").update(value).dige
 const random = (bytes: number) => randomBytes(bytes).toString("base64url");
 const hourMs = 60 * 60_000;
 const sections = ["machine", "computers", "bots", "activity", "devices", "plans"] as const;
+
+/** the page's content security policy: its own scripts plus the hashes of its inline ones (the theme bootstrap) */
+export function pagePolicy(html: string): string {
+  const inline = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(match => `'sha256-${createHash("sha256").update(match[1]!).digest("base64")}'`);
+  return ["default-src 'self'", `script-src 'self'${inline.length ? ` ${inline.join(" ")}` : ""}`, "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob: https:",
+    "font-src 'self' data:", "connect-src 'self'", "frame-src 'none'", "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'"].join("; ");
+}
 
 export function createDashboardApp(options: DashboardAppOptions) {
   const now = options.now ?? Date.now;
@@ -214,7 +225,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
       const ext = file.slice(file.lastIndexOf(".")).toLowerCase();
       const types: Record<string, string> = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".ico": "image/x-icon", ".woff2": "font/woff2", ".json": "application/json" };
       res.writeHead(200, { "content-type": types[ext] ?? "application/octet-stream", "cache-control": ext === ".json" ? "no-store" : ext !== ".html" && path.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache",
-        "content-security-policy": "frame-ancestors 'none'", "x-frame-options": "DENY", "referrer-policy": "no-referrer", "x-content-type-options": "nosniff" });
+        "content-security-policy": ext === ".html" ? pagePolicy(content.toString("utf8")) : "frame-ancestors 'none'", "x-frame-options": "DENY", "referrer-policy": "no-referrer", "x-content-type-options": "nosniff",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()", "cross-origin-opener-policy": "same-origin" });
       res.end(content);
     } catch (error) {
       if (error instanceof RequestError) throw error;
@@ -227,6 +239,10 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const method = req.method ?? "GET";
     const url = new URL(req.url ?? "/", publicUrl);
     const path = url.pathname;
+    if ((method === "GET" || method === "HEAD") && path === "/v1/health") {
+      try { accessSync(options.dataDir, constants.W_OK); } catch { return json(res, 503, { ok: false, error: "data folder is not writable" }); }
+      return json(res, 200, { ok: true, version: options.version ?? null });
+    }
     const mutation = ["POST", "PATCH", "DELETE"].includes(method);
     const appleCallback = method === "POST" && path === "/v1/auth/oauth/apple/callback" && req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() === "application/x-www-form-urlencoded";
     if (mutation && !isAppCorsRoute(path) && !appleCallback) {
@@ -336,6 +352,27 @@ export function createDashboardApp(options: DashboardAppOptions) {
       res.on("close", clear);
       return;
     }
+    if (method === "GET" && path === "/v1/account/export") {
+      const owner = account(req);
+      const answer = auth.exportAccount(owner);
+      const data = { v: 1, exportedAt: new Date(now()).toISOString(), ...answer,
+        workspaces: state.workspaces.filter(ws => ws.ownerAccountId === owner.id).map(ws => ({ ...summary(ws), report: ws.report })),
+        ...billing.exportAccount(owner.id) };
+      res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store",
+        "content-disposition": `attachment; filename="dusk-bot-account-${new Date(now()).toISOString().slice(0, 10)}.json"` });
+      return res.end(JSON.stringify(data, null, 2));
+    }
+    if (method === "POST" && path === "/v1/client-error") {
+      rate(req, "client-error", 60);
+      const input = bodyObject(await readBody(req));
+      const text = (value: unknown, max: number) => typeof value === "string" ? value.slice(0, max) : "";
+      const error = new Error(text(input.message, 500));
+      error.name = /^[A-Za-z_$][\w$]{0,60}$/.test(text(input.type, 61)) ? text(input.type, 61) : "Error";
+      error.stack = `${error.name}: ${error.message}\n${text(input.stack, 8000)}`;
+      options.errors?.page.capture(error, { tags: { page: text(input.page, 64).replace(/[^\w/-]/g, "") || "unknown" } });
+      res.writeHead(204, { "cache-control": "no-store" });
+      return res.end();
+    }
     if (method === "GET" && path === "/v1/workspaces") {
       const owner = account(req);
       watch(owner);
@@ -397,7 +434,10 @@ export function createDashboardApp(options: DashboardAppOptions) {
     handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
       return route(req, res).catch(error => {
         if (error instanceof RequestError || error instanceof AuthError) json(res, error.status, req.url?.startsWith("/api/cloud/") ? { error: error.code } : { error: error.message, code: error.code });
-        else json(res, 500, req.url?.startsWith("/api/cloud/") ? { error: "failed" } : { error: "Request failed.", code: "failed" });
+        else {
+          options.errors?.service.capture(error, { tags: { route: (req.url ?? "/").split("?")[0]!.split("/").slice(0, 3).join("/") } });
+          json(res, 500, req.url?.startsWith("/api/cloud/") ? { error: "failed" } : { error: "Request failed.", code: "failed" });
+        }
       });
     },
     close() {
