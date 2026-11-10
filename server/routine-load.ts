@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import type { RoutineRequestOperation } from "../shared/routine-request.ts";
 import { ROUTINE_CHECKS, type RoutineCheck } from "../shared/routines.ts";
+import { loadProbe, loadTicks, mayMove } from "./routine-quiet.ts";
 import { ROUTINE_PARTS, type PartPair, type RoutinePart } from "./package-parts.ts";
 import { loadAttachments, loadTimeoutMinutes } from "./routine-attachments.ts";
 import { isRoutineHoldCause } from "./routine-holds.ts";
@@ -61,11 +62,17 @@ export function loadChecks(value: unknown): RoutineCheck[] | undefined {
 }
 
 /** A routine's checks, access and delivery as it may hold them; a field out of range is left out. */
-export function withCheckFields<T extends Pick<Routine, "target" | "checks" | "access" | "deliver">>(routine: T): T {
-  const clean = { ...routine, checks: routine.target === "bot" ? loadChecks(routine.checks) : undefined,
+export function withCheckFields<T extends Pick<Routine, "target" | "checks" | "access" | "deliver" | "probe" | "timing" | "ticks" | "schedule">>(routine: T): T {
+  const probe = routine.target === "bot" ? loadProbe(routine.probe) : undefined;
+  const loaded = routine.target === "bot" ? loadChecks(routine.checks)?.filter((check) => check !== "probe" || probe) : undefined;
+  const checks = loaded?.length ? loaded : undefined;
+  const clean = { ...routine, checks,
     access: routine.access === "read-and-draft" ? "read-and-draft" as const : undefined,
-    deliver: routine.target === "bot" && routine.deliver === "brief" ? "brief" as const : undefined };
-  return withoutUndefined(clean, ["checks", "access", "deliver"]);
+    deliver: routine.target === "bot" && routine.deliver === "brief" ? "brief" as const : undefined,
+    probe: checks?.includes("probe") ? probe : undefined,
+    timing: routine.timing === "around" && mayMove(routine.schedule) && !checks ? "around" as const : undefined,
+    ticks: checks ? loadTicks(routine.ticks) : undefined };
+  return withoutUndefined(clean, ["checks", "access", "deliver", "probe", "timing", "ticks"]);
 }
 
 const instant = (value: unknown): number | undefined =>

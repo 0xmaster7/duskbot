@@ -54,3 +54,46 @@ export const FREQUENT_RUNS_PER_DAY = 12;
 /** A routine forecast to take more than this share of the week. */
 export const COSTLY_SHARE = 0.1;
 export const MAX_CAP_USD = 100_000;
+
+/** One of the week's top spenders: a bot's own work, or one routine's. */
+export interface AllowanceSpender {
+  kind: "bot" | "routine";
+  id: string;
+  name: string;
+  usd: number;
+  /** The bot a routine belongs to. */
+  botId?: string;
+}
+
+/** The account's weekly allowance in dollars, from Monday 12:00 AM to the next, on this computer's clock. */
+export interface AllowanceReport {
+  /** Null while no allowance is set: nothing waits and nothing is said. */
+  weeklyUsd: number | null;
+  /** Added for this week only. */
+  extraUsd: number;
+  limitUsd: number | null;
+  /** What counts against it this week, never more than the limit. */
+  spentUsd: number;
+  /** What the step that crossed the limit went over by: on us, never counted. */
+  overrunUsd: number;
+  /** spentUsd of limitUsd, 0 to 1. */
+  share: number;
+  /** "near" from 80%, "over" at 100%. */
+  level: "off" | "ok" | "near" | "over";
+  weekStart: number;
+  resetAt: number;
+  top: AllowanceSpender[];
+  /** Routines that skip until the reset while it is over, with their next time. */
+  skipped: Array<{ routineId: string; name: string; at: number }>;
+  /** Saver mode: chats run on a cheaper model until the reset. Only ever the person's choice. */
+  saver: boolean;
+  saverUsd: number;
+  /** The person dismissed this level's notice for the week. */
+  dismissed: boolean;
+  autoTopUp: AutoTopUp & { monthUsd: number };
+}
+
+/** Off by default; when on, at most `monthlyCeilingUsd` a calendar month, `stepUsd` at a time. */
+export interface AutoTopUp { on: boolean; stepUsd: number; monthlyCeilingUsd: number }
+
+export const NEAR_SHARE = 0.8;

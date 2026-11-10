@@ -64,9 +64,49 @@ export interface RoutineContextAttachment {
 export type RoutineRunTrigger = "schedule" | "manual" | "webhook" | "startup" | "api";
 
 /** A check a routine runs on each tick before any AI turn, in plain code: `calendar` reads the next 36 hours, `mail`
- * new inbox mail since the last check, `runs` other routines' finished runs. Nothing new means no AI turn. */
-export type RoutineCheck = "calendar" | "mail" | "runs";
-export const ROUTINE_CHECKS: readonly RoutineCheck[] = ["calendar", "mail", "runs"];
+ * new inbox mail since the last check, `runs` other routines' finished runs, `probe` one public page, feed or price
+ * (`Routine.probe`). Nothing new means no AI turn. */
+export type RoutineCheck = "calendar" | "mail" | "runs" | "probe";
+export const ROUTINE_CHECKS: readonly RoutineCheck[] = ["calendar", "mail", "runs", "probe"];
+
+/** What a `probe` check reads: a page's words, a feed's newest items, or the first price on a page. */
+export interface RoutineProbe {
+  kind: "page" | "feed" | "price";
+  url: string;
+}
+
+/** `around`: the run may move up to ROUTINE_AROUND_MS either way, so a Cloud home can fold it into a wake it has
+ * anyway. Missing means its exact time. */
+export type RoutineTiming = "around";
+export const ROUTINE_AROUND_MS = 30 * 60_000;
+
+/** One of a routine's last runs as its strip shows them: `ok` did something, `quiet` fired and found nothing new,
+ * `failed` went wrong, `missed` never fired. Oldest first. */
+export interface RoutineStripEntry {
+  at: number;
+  /** `skipped`: held back by the account's weekly limit, which is no failure. */
+  outcome: "ok" | "quiet" | "failed" | "missed" | "skipped";
+  /** Re-ran once, free, after an update was rolled back. */
+  rerun?: true;
+}
+
+export interface RoutineCheckTick { at: number; outcome: "quiet" | "failed" }
+
+/** The fields a routine carries for quiet checks and flexible timing. */
+export interface RoutineQuietFields {
+  probe?: RoutineProbe;
+  timing?: RoutineTiming;
+  /** Its checks' last ticks that started no run, newest last, at most seven: nothing new, or a read that failed. */
+  ticks?: RoutineCheckTick[];
+  /** Its last seven outcomes, built for the client. */
+  strip?: RoutineStripEntry[];
+}
+
+/** The same, as a create or update asks for them: `null` removes one on updates; omission preserves it. */
+export interface RoutineQuietInput {
+  probe?: RoutineProbe | null;
+  timing?: RoutineTiming | null;
+}
 
 /** What a routine's runs may do. `read-and-draft`: read Gmail and Google Calendar and write reply drafts; every other
  * tool is refused outright, never turned into a card. Missing means the bot's own level. */
@@ -114,7 +154,7 @@ export function isRoutineProblemRun(run: { status: RoutineRunStatus }): boolean 
   return ROUTINE_PROBLEM_STATUSES.includes(run.status);
 }
 
-export interface Routine {
+export interface Routine extends RoutineQuietFields {
   id: string;
   name: string;
   prompt: string;
@@ -212,7 +252,7 @@ export interface RoutineRun {
   seenAt?: number;
 }
 
-export interface RoutineInput {
+export interface RoutineInput extends RoutineQuietInput {
   name: string;
   prompt: string;
   target?: RoutineTarget;
@@ -235,4 +275,29 @@ export interface RoutineInput {
   attachments?: RoutineContextAttachment[];
   /** Omission preserves routing; null resets it to the bot's main thread. */
   resultsThreadId?: string | null;
+}
+
+export const STRIP_RUNS = 7;
+/** A run the self-cap stopped (server/routine-self-cap.ts): cancelled, but its strip shows it as failed. */
+export const SELF_CAP_STOP = "Stopped at 3 times its usual cost";
+
+function stripOutcome(run: Pick<RoutineRun, "status" | "report" | "error">): RoutineStripEntry["outcome"] | null {
+  if (run.status === "completed") return run.report?.state === "quiet" ? "quiet" : "ok";
+  if (run.status === "failed") return "failed";
+  if (run.status === "missed") return "missed";
+  if (run.status === "cancelled" && run.error?.startsWith(SELF_CAP_STOP)) return "failed";
+  return null;
+}
+
+/** A routine's last seven outcomes, oldest first: its finished runs (not tests) and its checks' ticks. The server sends
+ * it on the routine; the app builds it again from the runs it holds, so it moves the moment a run ends. */
+export function runStrip(runs: readonly RoutineRun[], routine: Pick<Routine, "id" | "ticks">, rerun: (runId: string) => boolean = () => false,
+  skipped: (runId: string) => boolean = () => false): RoutineStripEntry[] {
+  const entries: RoutineStripEntry[] = [...(routine.ticks ?? [])];
+  for (const run of runs) {
+    if (run.routineId !== routine.id || run.dryRun) continue;
+    const outcome = run.status === "missed" && skipped(run.id) ? "skipped" : stripOutcome(run);
+    if (outcome) entries.push({ at: run.finishedAt ?? run.scheduledFor, outcome, ...(rerun(run.id) ? { rerun: true as const } : {}) });
+  }
+  return entries.sort((a, b) => a.at - b.at).slice(-STRIP_RUNS);
 }

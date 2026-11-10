@@ -20,6 +20,9 @@ export interface CloudPowerReport {
   /** The earliest scheduled run (an enabled routine's next run or a queued run's retry, or 30 minutes on while a bot
    * waits for something), null when none: the Admin starts a sleeping home a minute before it. */
   nextDueAt: number | null;
+  /** The runs due in the next day, each with how far it may move (`flexMs`, 0 for its exact time): runs inside the
+   * person's waking hours leave the night's quiet gap in plain view (apps/cloud-service/docs/power.md). */
+  upcoming?: Array<{ at: number; flexMs: number }>;
   /** The home said yes to a sleep request and has not been used or woken since. */
   sleeping: boolean;
   /** What the first request after its last wake (or boot) was, if one came within WOKE_BY_MS: a fixed code for its kind
@@ -38,6 +41,7 @@ export interface CloudPowerProbes {
   /** Backup or restore, Move to Cloud, an engine or browser install, a provider sign-in. */
   maintenance(): boolean;
   nextDueAt(): number | null;
+  upcoming?(): Array<{ at: number; flexMs: number }>;
 }
 
 /** No user activity for this long (the Admin may ask for another window in its sleep request). */
@@ -167,6 +171,7 @@ export function createCloudPower(options: {
   const timer = setInterval(tick, TICK_MS);
   timer.unref?.();
 
+  const upcoming = () => { const runs = options.probes.upcoming?.(); return runs ? { upcoming: runs } : {}; };
   const busyNow = (activityMs: number): CloudPowerBusy[] => {
     tick();
     const at = now(), busy = working(), workingNow = busy.length > 0;
@@ -219,7 +224,7 @@ export function createCloudPower(options: {
     },
     report(activityMs = CLOUD_IDLE_ACTIVITY_MS): CloudPowerReport {
       const busy = busyNow(activityMs);
-      return { v: 1, at: now(), bootedAt, wokeAt, idle: busy.length === 0, busy, lastActivityAt, lastWorkAt, nextDueAt: options.probes.nextDueAt(), sleeping: sleeping(), wokeBy };
+      return { v: 1, at: now(), bootedAt, wokeAt, idle: busy.length === 0, busy, lastActivityAt, lastWorkAt, nextDueAt: options.probes.nextDueAt(), ...upcoming(), sleeping: sleeping(), wokeBy };
     },
     /** The Admin is about to suspend or stop this machine: yes only when idle now. From here until a resume, someone's
      * use or CLOUD_SLEEP_PENDING_MS, held polls answer "asleep" and new ones are refused (`sleeping`). */

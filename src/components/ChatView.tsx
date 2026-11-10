@@ -95,6 +95,7 @@ import { AttachmentGallery, collectMessageFiles, replyAttachmentGroup, splitMess
 import { ScreenFrame } from "./ScreenFrame";
 import { noteMediaSizes } from "@/lib/image-cache";
 import { DigestChip } from "./DigestChip";
+import { WeeklyLimitLine } from "./usage/WeeklyLimitLine";
 import { ChatHeadRole, chiefOfStaffBadge } from "./BotRole";
 import { ChatHeadPill } from "./ChatHeadPill"; import { useStoreRef } from "@/state/store-ref";
 import { ELEVATED_FLOAT, ELEVATED_HOVER } from "./elevated";
@@ -1074,6 +1075,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   // while the turn runs its notices stay in the chat; once it ends, what it left is one card above the composer
   const trailing = useTrailingRows(messages, !bot.busy);
   const folded = useMemo(() => foldedNoticeIds(trailing), [trailing]);
+  const clearLimitError = useCallback(() => dispatch({ type: "error", message: null }), [dispatch]);
   const regenerate = useCallback(() => {
     if (lastUserMessage?.text && !bot.busy && !lastUserMessage.id.startsWith("optimistic-")) {
       dispatch({ type: "editMessage", botId: bot.id, threadId: bot.threadId, messageId: lastUserMessage.id, text: lastUserMessage.text });
@@ -1332,6 +1334,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       {/* grok's usage warning rides just above the composer, near or at a limit; a failed turn that already says so wins */}
       {canWrite !== false && !(lastShownRow && codexUsageLimitReached(`${lastShownRow.text ?? ""} ${lastShownRow.tool?.name ?? ""}`)) && (
         <div className="pointer-events-auto px-5 pb-2">
+          <WeeklyLimitLine onSeeUsage={() => dispatch(openSettings("usage"))} error={state.error} clearError={clearLimitError} />
           <UsageBanner engine={bot.modelSelection?.instanceId} onSeeUsage={() => dispatch(openSettings("usage"))} />
         </div>
       )}

@@ -8,6 +8,7 @@ import { formatCost } from "@/lib/usage-trace";
 import { useStore } from "@/state/store";
 import { BotAvatar } from "../Avatar";
 import { Card as RowsCard, NavRow, NoteRow, rowCls } from "../ListRows";
+import { AllowanceCard } from "./AllowanceCard";
 import { SpendCap } from "./SpendCap";
 
 const SHOWN = 6;
@@ -54,6 +55,8 @@ export function BatteryCard({ version }: { version: number }) {
   };
 
   return (
+    <>
+    <AllowanceCard />
     <RowsCard label={t("usage.battery.title")} footnote={report?.basis === "tokens" && report.rows.length ? t("usage.battery.tokensNote") : undefined} data-settings-block="battery">
       {!report ? <NoteRow>{t("common.checking")}</NoteRow> : !bots.length ? <NoteRow>{t("usage.battery.empty")}</NoteRow> : (
         <ul className="contents">
@@ -62,5 +65,6 @@ export function BatteryCard({ version }: { version: number }) {
       )}
       {bots.length > SHOWN && !all && <NavRow drill={false} title={t("usage.battery.all", { count: String(bots.length) })} onClick={() => setAll(true)} />}
     </RowsCard>
+    </>
   );
 }

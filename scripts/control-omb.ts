@@ -202,6 +202,9 @@ export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, data
   // Slack reaches a loopback fake only (server/testing/fake-slack.ts), else a closed port: a fixture never talks to slack.com.
   const slackUrl = parentEnv.DUSK_SLACK_API_URL?.trim() ?? "";
   childEnv.DUSK_SLACK_API_URL = /^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(slackUrl) ? slackUrl : "http://127.0.0.1:9";
+  // Routine probe checks may read this one loopback page server (server/host/routine-quiet-host.ts), and nothing else local.
+  const probeOrigin = parentEnv.DUSK_PROBE_LOOPBACK_ORIGIN?.trim() ?? "";
+  if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(probeOrigin)) childEnv.DUSK_PROBE_LOOPBACK_ORIGIN = probeOrigin;
   const tregUrl = parentEnv.DUSK_TREG_URL?.trim() ?? "";
   if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(tregUrl)) childEnv.DUSK_TREG_URL = tregUrl;
   // Loopback only, for harness mechanics: a fake ElevenLabs the measurement

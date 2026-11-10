@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import type { RoutineRun } from "./routines";
-import { routineRunLabel, routineRunTone, routineRunsOn } from "./routine-display";
+import { automationStatus, runLine } from "./automations";
+import { isLimitSkip, routineRunLabel, routineRunTone, routineRunsOn } from "./routine-display";
 
 describe("where a routine runs", () => {
   it("on the Cloud, every routine runs on schedule even when the person's computer is off", () => {
@@ -54,5 +55,19 @@ describe("a run's status", () => {
     expect(routineRunLabel(run({}))).toBe("Failed");
     expect(routineRunTone(run({}))).toBe("text-danger");
     expect(routineRunLabel(run({ status: "completed", partial: true }))).toBe("Completed");
+  });
+});
+
+describe("a run the weekly limit skipped", () => {
+  const run = (extra: Partial<RoutineRun>): RoutineRun => ({ id: "r", routineId: "x", routineName: "Digest", target: "bot", botId: "b", runOn: "maus",
+    scheduledFor: 0, status: "missed", manual: false, createdAt: 0, ...extra });
+
+  it("reads as skipped, never as a failure that needs the person", () => {
+    const skipped = run({ error: "Skipped: weekly limit reached. It resets Monday 12:00 AM, in 5 days." });
+    expect(isLimitSkip(skipped)).toBe(true);
+    expect(runLine(skipped)).toMatchObject({ mark: "–", text: "Skipped: weekly limit" });
+    expect(automationStatus({ enabled: true, runs: [skipped] }).state).not.toBe("needs-you");
+    expect(isLimitSkip(run({ error: "This computer was offline for more than 12 hours after the scheduled time" }))).toBe(false);
+    expect(isLimitSkip(run({ status: "failed", error: "Skipped: weekly limit reached. It resets Monday 12:00 AM, in 5 days." }))).toBe(false);
   });
 });

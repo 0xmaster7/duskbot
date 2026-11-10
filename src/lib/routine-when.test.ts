@@ -13,7 +13,8 @@ describe("the routine editor's when", () => {
     expect(whenDraftFor({ type: "daily", time: "08:30", weekdays: [1, 2, 3, 4, 5] }, now)).toMatchObject({ preset: "weekdays", time: "08:30" });
     expect(whenDraftFor({ type: "daily", time: "10:00", weekdays: [4] }, now)).toMatchObject({ preset: "weekly", day: 4, time: "10:00" });
     expect(whenDraftFor({ type: "interval", everyMinutes: 60, anchorAt: now }, now).preset).toBe("hourly");
-    expect(whenDraftFor({ type: "interval", everyMinutes: 60, anchorAt: now, window: { start: "09:00", end: "17:00" } }, now).preset).toBe("keep");
+    expect(whenDraftFor({ type: "interval", everyMinutes: 60, anchorAt: now, window: { start: "09:00", end: "17:00" } }, now)).toMatchObject({ preset: "hourly", window: { start: "09:00", end: "17:00" } });
+    expect(whenDraftFor({ type: "interval", everyMinutes: 30, anchorAt: now, window: { start: "09:00", end: "17:00" } }, now).preset).toBe("keep");
     expect(whenDraftFor({ type: "daily", time: "10:00", weekdays: [1, 3] }, now).preset).toBe("keep");
     expect(whenDraftFor({ type: "cron", expression: "0 9 1 * *", timeZone: "UTC" }, now).preset).toBe("keep");
     expect(scheduleFromDraft(whenDraftFor({ type: "cron", expression: "0 9 1 * *", timeZone: "UTC" }, now), now)).toEqual({});
@@ -22,7 +23,12 @@ describe("the routine editor's when", () => {
   it("saves each preset as the schedule the server keeps", () => {
     const draft = newWhenDraft(now);
     expect(scheduleFromDraft({ ...draft, preset: "weekly", day: 2, time: "18:00" }, now).schedule).toEqual({ type: "daily", time: "18:00", weekdays: [2] });
-    expect(scheduleFromDraft({ ...draft, preset: "hourly" }, now).schedule).toEqual({ type: "interval", everyMinutes: 60, anchorAt: nextLocalHour(now), weekdays: null, window: null, endsAt: null });
+    // a new one leaves its hours to the server (the person's waking hours); a saved one keeps what it says
+    expect(scheduleFromDraft({ ...draft, preset: "hourly" }, now).schedule).toEqual({ type: "interval", everyMinutes: 60, anchorAt: nextLocalHour(now), weekdays: null, endsAt: null });
+    expect(scheduleFromDraft({ ...draft, preset: "hourly", window: null }, now).schedule).toMatchObject({ window: null });
+    expect(scheduleFromDraft({ ...draft, preset: "hourly", window: { start: "07:00", end: "23:00" } }, now).schedule).toMatchObject({ window: { start: "07:00", end: "23:00" } });
+    expect(scheduleFromDraft({ ...draft, preset: "hourly", window: { start: "23:00", end: "07:00" } }, now).error).toBe("routines.inline.error.hours");
+    expect(whenDraftFor({ type: "interval", everyMinutes: 60, anchorAt: now, window: { start: "07:00", end: "23:00" } }, now)).toMatchObject({ preset: "hourly", window: { start: "07:00", end: "23:00" } });
     expect(new Date(nextLocalHour(now)).getHours()).toBe(22);
     expect(scheduleFromDraft({ ...draft, preset: "once", date: "2026-11-08", time: "07:00" }, now).schedule).toEqual({ type: "once", at: new Date(2026, 10, 8, 7, 0).getTime() });
   });

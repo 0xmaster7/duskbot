@@ -8,7 +8,7 @@ import type { WebhookAttempt, WebhookTrigger } from "@/lib/webhooks";
 import type { AppTrigger } from "@/lib/app-triggers";
 import { appProblem, appStatusParts, appWhen, skippedToday } from "@/lib/app-automations";
 import { limitResetWhen } from "@/lib/limit-resets";
-import { partlyDone } from "@/lib/routine-display";
+import { isLimitSkip, partlyDone } from "@/lib/routine-display";
 import type { OptionCardData } from "@/state/store";
 
 export type AutomationKind = "schedule" | "webhook" | "app";
@@ -255,7 +255,7 @@ export function automationStatus(automation: Pick<Automation, "enabled" | "runs"
   const app = automation.appTrigger && appProblem(automation.appTrigger);
   if (app) return { state: "needs-you", ...app };
   if (automation.checkTrouble) return { state: "needs-you", reason: automation.checkTrouble, fix: SIGNED_OUT.test(automation.checkTrouble) ? "reconnect" : "run" };
-  const settled = automation.runs.filter((run) => run.status !== "cancelled" && run.status !== "queued");
+  const settled = automation.runs.filter((run) => run.status !== "cancelled" && run.status !== "queued" && !isLimitSkip(run));
   const latest = settled[0];
   if (latest?.status === "waiting") return { state: "needs-you", reason: t("automations.reason.answer"), fix: "answer" };
   if (latest && isProblem(latest)) {
@@ -315,12 +315,13 @@ export function statusLine(automation: Automation, now = Date.now()): string {
 }
 
 /** One recent run in plain words: "Today 9:02 AM", a mark, and its one-line result or reason. */
-export function runLine(run: RoutineRun, now = Date.now()): { when: string; mark: "✓" | "✗" | "…" | "!"; text: string } {
+export function runLine(run: RoutineRun, now = Date.now()): { when: string; mark: "✓" | "✗" | "…" | "!" | "–"; text: string } {
   const firstLine = (text: string | undefined) => (text ?? "").split("\n").map((line) => line.trim()).find(Boolean) ?? "";
   const short = (text: string) => (text.length > 110 ? `${text.slice(0, 109).trimEnd()}…` : text);
   const when = capital(lastWhen(runTime(run), now));
   if (run.status === "completed") return { when, mark: "✓", text: run.report?.state === "quiet" ? t("automations.run.nothingNew") : short(firstLine(run.output)) || t("automations.run.done") };
   if (run.status === "waiting") return { when, mark: "!", text: t("automations.reason.answer") };
+  if (isLimitSkip(run)) return { when, mark: "–", text: t("routines.strip.skipped") };
   if (run.status === "running" || run.status === "queued") return { when, mark: "…", text: t("automations.runningNow") };
   if (run.status === "cancelled") {
     const reason = short(firstLine(run.error));

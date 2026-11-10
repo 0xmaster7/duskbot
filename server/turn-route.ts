@@ -61,6 +61,8 @@ export interface RouteInput {
   /** Quick models this engine instance refused before. */
   refused?: ReadonlySet<string>;
   effortLevels?: readonly EffortLevel[];
+  /** Saver mode (server/allowance.ts): every turn a person starts runs on the quick model, or at the lowest effort. */
+  saver?: boolean;
 }
 
 export interface RouteResult {
@@ -74,6 +76,7 @@ export interface RouteResult {
 
 export function routeTurn(input: RouteInput): RouteResult {
   const keep: RouteResult = { tier: null, model: input.model, effort: input.effort, variant: input.variant };
+  if (input.saver && !input.automated) return saverRoute(input, keep);
   if (!input.conversational || !input.followsBotModel || input.automated) return keep;
   const tier = classifyTurn(input.signals);
   if (tier === "complex") return { ...keep, tier };
@@ -88,6 +91,15 @@ export function routeTurn(input: RouteInput): RouteResult {
   return { tier, model: fast, quickModel: option?.label ?? fast };
 }
 
+function saverRoute(input: RouteInput, keep: RouteResult): RouteResult {
+  const fast = fastModelFor(input.catalog, input.model, input.refused);
+  const option = fast ? input.catalog?.options.find((candidate) => candidate.id === fast) : undefined;
+  const fits = !option?.contextWindow || (input.contextTokens ?? 0) <= option.contextWindow * QUICK_CONTEXT_SHARE;
+  if (fast && fast !== input.model && fits) return { tier: "simple", model: fast, quickModel: option?.label ?? fast };
+  const low = input.effortLevels?.includes("low") ? "low" : input.effortLevels?.includes("none") ? "none" : undefined;
+  return { ...keep, tier: "simple", effort: input.effort && low ? low : input.effort };
+}
+
 /** Routines, webhooks, peer turns, card continuations and unattended runs pass `automated`. */
 export function routeDirectTurn(
   bot: { replyStyle?: ReplyStyle; modelSelection: ModelSelection },
@@ -97,6 +109,7 @@ export function routeDirectTurn(
   instance: { models?: ModelCatalog; quickModelsUsable?: () => boolean; adapter: { capabilities: { effortLevels?: readonly EffortLevel[] } } },
   automated: boolean,
   refused?: ReadonlySet<string>,
+  saver?: boolean,
 ): RouteResult {
   const lastAsk = path.findLastIndex((m) => m.role === "user" && m.kind === "text");
   return routeTurn({
@@ -115,5 +128,6 @@ export function routeDirectTurn(
     refused,
     effortLevels: instance.adapter.capabilities.effortLevels,
     contextTokens: task.usage?.context?.tokens,
+    saver,
   });
 }

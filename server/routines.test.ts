@@ -943,8 +943,8 @@ describe("persistent routine results destinations", () => {
       expect(h.failed).toHaveLength(trigger === "missed" ? 1 : 0);
       expect(observations.length).toBeGreaterThan(0);
       for (const { payload, persisted: saved } of observations) {
-        // A week's tally is derived from the runs on every read, never stored on the routine.
-        const { weekRuns: _derived, ...value } = payload.kind === "routine" ? payload.routine : payload.run;
+        // A week's tally and the runs strip are derived from the runs on every read, never stored on the routine.
+        const { weekRuns: _derived, strip: _strip, ...value } = payload.kind === "routine" ? payload.routine : payload.run;
         const records = payload.kind === "routine" ? saved.routines : saved.runs;
         expect(records.find((record: any) => record.id === value.id)).toEqual(JSON.parse(JSON.stringify(value)));
       }
