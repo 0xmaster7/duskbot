@@ -52,8 +52,9 @@
 .hero .hint { color: var(--ink-3); }
 
 /* every screen: one scene. a laptop, a monitor and a phone stand apart on the grass, each showing the same bot in a slice
-   of the real app, each with its own label underneath. a device is placed by its left edge, bottom and width; its screen box
-   is measured off its picture, and everything on a screen is sized in em off a font size set from that screen's size */
+   of the real app, each with its own label underneath. the devices are flat and drawn in css: a device is placed by its left
+   edge, bottom and width (--wn, in percent of the scene), its parts are sized in em where 1em is 1% of its own width, and
+   everything on a screen is sized off that screen's own size */
 .ev-scene { position: relative; aspect-ratio: 2.2 / 1; border-radius: var(--r-xl); overflow: clip; background: #01c0fe; container-type: inline-size; }
 .ev-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; }
 .ev-cloud { position: absolute; aspect-ratio: 3 / 1; background: center / contain no-repeat; image-rendering: pixelated; animation: ev-drift 11s ease-in-out infinite alternate; }
@@ -61,19 +62,35 @@
 .ev-c2 { right: 12%; top: 17%; width: 4.5%; background-image: url("/art/cloud-pink.png"); animation-delay: -5s; }
 @keyframes ev-drift { to { translate: 40% 0; } }
 .ev-devs { position: absolute; inset: 0; }
-.ev-dev { position: absolute; left: var(--x); bottom: var(--b, 5.5%); width: var(--w); margin: 0; display: flex; flex-direction: column; align-items: center; }
-.ev-frame { position: relative; display: block; width: 100%; }
-.ev-frame > img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
-.ev-laptop { --x: 4%; --w: 31%; } .ev-monitor { --x: 38.5%; --w: 37.5%; } .ev-phone { --x: 80.5%; --w: 13%; }
+.ev-dev { position: absolute; left: var(--x); bottom: var(--b, 5.5%); width: calc(var(--wn) * 1%); margin: 0; display: flex; flex-direction: column; align-items: center; }
+.ev-frame { position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; width: 100%; font-size: calc(var(--wn) * 0.01cqw); --cream: #f6ead0; --cream-2: #ecdfbc; --cream-3: #dfcfa3; }
+.ev-laptop { --x: 4%; --wn: 33; } .ev-monitor { --x: 41%; --wn: 35; } .ev-phone { --x: 82.5%; --wn: 10.5; }
+.ev-frame i { display: block; }
+/* one soft flat shadow on the grass under each device */
+.ev-frame::after { content: ""; position: absolute; z-index: -1; left: 3em; right: 3em; bottom: -2.2em; height: 5em; border-radius: 50%; background: rgba(70, 120, 0, 0.2); }
+.ev-monitor .ev-frame::after { left: 22em; right: 22em; }
+.ev-phone .ev-frame::after { left: 6em; right: 6em; bottom: -4em; height: 9em; }
+.ev-body { display: block; width: 100%; padding: 2.4em; border-radius: 3.2em; background: var(--cream); box-shadow: inset 0 0 0 1px rgba(120, 95, 30, 0.16); }
+.ev-laptop .ev-body { width: 86%; padding: 1.8em; border-radius: 3em 3em 1em 1em; }
+.ev-phone .ev-body { padding: 5em; border-radius: 17em; background: #ff9cc4; box-shadow: inset 0 0 0 1px rgba(160, 30, 80, 0.14); }
+/* the laptop's deck, a gentle trapezoid with two rows of flat keys and a trackpad, and its front edge */
+.ev-deck { display: block; width: 100%; padding: 2em 9em 1.6em; background: var(--cream-2); clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%); }
+.ev-keys { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 0.9em; }
+.ev-keys i { height: 2.4em; border-radius: 0.7em; background: #fff8e8; }
+.ev-keys i:nth-child(5n + 1) { background: #ffd0e2; } .ev-keys i:nth-child(7n + 3) { background: #cfe8ff; } .ev-keys i:nth-child(6n + 5) { background: #fff0a8; } .ev-keys i:nth-child(8n + 2) { background: #dccfff; }
+.ev-pad { width: 24em; height: 2.4em; margin: 1.2em auto 0; border-radius: 0.8em; background: var(--cream-3); }
+.ev-lip { width: 100%; height: 1.8em; border-radius: 0 0 2em 2em; background: var(--cream-3); }
+.ev-neck { width: 13em; height: 9em; background: var(--cream-2); }
+.ev-foot { width: 40em; height: 2.6em; border-radius: 1.4em 1.4em 0.8em 0.8em; background: var(--cream-3); }
 /* the phone's label lines up with its right edge, so the long label never runs off the picture */
 .ev-phone { align-items: flex-end; }
-.ev-scr { position: absolute; display: block; overflow: hidden; container-type: size; }
-/* each screen covers the sprite's whole blue screen, measured from the art, so no blue edge shows */
-.ev-laptop .ev-scr { inset: 6.2% 14.5% 36.4% 14.2%; } .ev-monitor .ev-scr { inset: 4.8% 2.8% 26.2% 2.8%; } .ev-phone .ev-scr { inset: 4.3% 6.7% 3.8% 6.7%; }
+/* the screen: the app fills it edge to edge, with one inner radius per device */
+.ev-scr { position: relative; display: block; overflow: hidden; container-type: size; aspect-ratio: 16 / 9.4; border-radius: 1.4em; }
+.ev-laptop .ev-scr { aspect-ratio: 16 / 10; border-radius: 1.4em; } .ev-phone .ev-scr { aspect-ratio: 9 / 19; border-radius: 12em; }
 /* a slice of the app, in its own colours, sizes and case */
-.ev-app { position: absolute; inset: 0; display: flex; border-radius: 0.2em; background: #fcfcfc; color: #1c1c1c; font-weight: 425; line-height: 1.3; letter-spacing: 0.01em; --e2: rgba(28, 28, 28, 0.6); --eline: rgba(28, 28, 28, 0.09); }
+.ev-app { position: absolute; inset: 0; display: flex; border-radius: inherit; background: #fcfcfc; color: #1c1c1c; font-weight: 425; line-height: 1.3; letter-spacing: 0.01em; --e2: rgba(28, 28, 28, 0.6); --eline: rgba(28, 28, 28, 0.09); }
 .ev-app b { font-weight: 550; }
-.ev-win { font-size: 7.6cqh; } .ev-monitor .ev-win { font-size: 6.6cqh; }
+.ev-win { font-size: 6.6cqh; }
 .ev-side { display: flex; flex-direction: column; gap: 0.15em; width: 6.6em; flex: none; padding: 0.5em 0.4em; background: #f3f3f2; }
 .ev-side > span { display: flex; align-items: center; gap: 0.45em; height: 1.9em; padding: 0 0.4em; border-radius: 0.55em; font-size: 0.86em; }
 .ev-side > .on { background: #fff; box-shadow: 0 0 0 1px var(--eline); }
@@ -87,16 +104,15 @@
 .ev-msg.ev-me { background: #126fd4; color: #fff; }
 .ev-input { display: flex; align-items: center; height: 1.9em; margin-top: 0.55em; padding: 0 0.75em; border-radius: 1em; box-shadow: inset 0 0 0 1px var(--eline); color: var(--e2); font-size: 0.8em; }
 /* the phone: a chat thread under the notch */
-.ev-chat { flex-direction: column; padding: 2.3em 0.7em 0.8em; border-radius: 1em; font-size: 9.6cqw; }
-.ev-chat::before { content: ""; position: absolute; top: 0.75em; left: 50%; width: 2.8em; height: 0.85em; border-radius: 1em; background: #1c4a3c; translate: -50% 0; }
+.ev-chat { flex-direction: column; padding: 2.3em 0.7em 0.8em; font-size: 9.6cqw; }
+.ev-chat::before { content: ""; position: absolute; top: 0.75em; left: 50%; width: 2.8em; height: 0.85em; border-radius: 1em; background: #1c1c1c; translate: -50% 0; }
 .ev-chat .ev-top .bot { width: 1.5em; height: 1.5em; }
 .ev-chat .ev-top { font-size: 1em; }
 .ev-chat .ev-msg { margin-top: 0.5em; font-size: 0.9em; }
 .ev-chat .ev-me { margin-top: auto; margin-left: auto; }
 .ev-chat .ev-input { margin-top: 0.8em; }
 /* narrow screens keep the bots in the sidebar and drop their names */
-@container (max-width: 150px) { .ev-side { width: auto; } .ev-side b { display: none; } }
-/* with script on, the screens start dark and come on one after another the first time the scene is seen */
+@container (max-width: 180px) { .ev-side { width: auto; } .ev-side b { display: none; } }
 .ev-dev figcaption { margin-top: 10px; }
 .ev-tag { position: relative; display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 14px 0 12px; border-radius: 999px; background: #fff; color: var(--ink); font: 500 14px/1 var(--sans); letter-spacing: -0.01em; white-space: nowrap; text-decoration: none; transition: translate 0.3s var(--pop), scale 0.16s var(--mk-ease-out); }
 .ev-tag::before { content: ""; position: absolute; inset: -5px 0; }
@@ -106,7 +122,7 @@
 @media (hover: hover) and (pointer: fine) { .ev-tag:hover { translate: 0 -3px; } }
 @media (max-width: 1000px) {
   .ev-scene { aspect-ratio: 1.85 / 1; }
-  .ev-laptop { --x: 2%; --w: 32%; } .ev-monitor { --x: 36.5%; --w: 39%; } .ev-phone { --x: 80.5%; --w: 16.5%; }
+  .ev-laptop { --x: 2%; --wn: 34; } .ev-monitor { --x: 38.5%; --wn: 37; } .ev-phone { --x: 81.5%; --wn: 14; }
   .ev-tag { font-size: 13px; }
 }
 /* phones: the monitor stands at the back, the laptop and the phone in front; the picture is held at the same pixel size so
@@ -115,8 +131,8 @@
   .ev-scene { aspect-ratio: 2 / 3; }
   .ev-bg { inset: auto auto 0 50%; width: auto; height: 190%; max-width: none; object-fit: fill; translate: -50% 0; }
   .ev-cloud { display: none; }
-  .ev-monitor { --x: 15%; --w: 70%; --b: 52%; } .ev-laptop { --x: 3%; --w: 55%; --b: 4%; } .ev-phone { --x: 63%; --w: 30%; --b: 4%; }
-  .ev-win { font-size: 10cqh; } .ev-monitor .ev-win { font-size: 8.6cqh; } .ev-chat { font-size: 10.4cqw; }
+  .ev-monitor { --x: 13%; --wn: 74; --b: 52%; } .ev-laptop { --x: 2%; --wn: 60; --b: 4%; } .ev-phone { --x: 68%; --wn: 26; --b: 4%; }
+  .ev-win { font-size: 9cqh; } .ev-chat { font-size: 10.4cqw; }
   .ev-tag { height: 32px; padding: 0 11px 0 10px; font-size: 13px; }
   .ev-tag::before { inset: -6px 0; }
 }
@@ -301,7 +317,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 /* where it runs: three cards on a picture. each panel is the same slice of the real app, in the hero demo's own sizes and
    colours: a few bot rows, then one status card. only the picture sits behind the panel */
 .ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gut); }
-.way-art { position: relative; aspect-ratio: 10 / 10.6; border-radius: var(--r-xl); overflow: hidden; }
+.way-art { position: relative; aspect-ratio: 10 / 9.9; border-radius: var(--r-xl); overflow: hidden; }
 /* the picture is cut away under the panel's far corner, so no colour bleeds round the card's rounded edge */
 .way-art > img:not(.perch) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; clip-path: polygon(0 0, 100% 0, 100% 60%, 60% 60%, 60% 100%, 0 100%); }
 .wa-panel { position: absolute; left: 12%; right: 0; top: 24%; bottom: 0; display: flex; flex-direction: column; margin: 0; padding: 10px 8px 8px; border-radius: var(--r-l) 0 0 0; overflow: hidden; container-type: inline-size; background: #f5f5f5; color: #1c1c1c; font: 425 14px/20px var(--sans); letter-spacing: 0.01em; --wa-2: rgba(28, 28, 28, 0.68); --wa-line: rgba(28, 28, 28, 0.08); }

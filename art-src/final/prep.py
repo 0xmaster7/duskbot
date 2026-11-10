@@ -42,7 +42,7 @@ for y in range(rows):
     for x in range(cols):
         if random.random() < p: d.putpixel((x, y), (255, 255, 255, 255))
 d.save(OUT + 'dissolve.png')
-# the "every screen" scene: the meadow behind, and four devices cropped to their pixels
+# the "every screen" scene: the meadow behind (the devices on it are drawn in css)
 # the big clouds are painted out with the sky colour of their own row, so the devices are the subject; small clouds go on in css
 def no_clouds(im, below=500):
     a = np.asarray(im).copy(); hsv = np.asarray(im.convert('HSV')).astype(int); w = a.shape[1]
@@ -54,8 +54,6 @@ def no_clouds(im, below=500):
         a[y, ~sky[y]] = fill
     return Image.fromarray(a)
 print('every-meadow', save(no_clouds(rgb('end-meadow')), 'every-meadow', 1536))
-for n in ['d-laptop', 'd-monitor', 'd-phone-a']:
-    im = Image.open(n + '.png').convert('RGBA'); im = im.crop(im.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print(n, save(im, n, 640, 90))
 
 # the ending sea: the pale strip at the horizon becomes sea, and the sea's top edge gets stepped pixel waves
 # (re-run by hand: see the commit that added this note; it reads end-sea.png and writes end-sea.webp)
