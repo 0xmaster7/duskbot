@@ -33,7 +33,7 @@ export interface RoutineGuardDeps {
   language(threadId: string | undefined): string | undefined;
   spendOver(botId: string, routineId: string): CapHit | null;
   /** Why no run may start while the account's weekly allowance is used up (server/allowance.ts), or null. */
-  allowanceHeld?(language: string | undefined): string | null;
+  allowanceHeld?(run: RoutineRun, language: string | undefined): string | null;
 }
 
 export const isNotYet = (output: string | undefined): boolean => Boolean(output && NOT_YET.test(output));
@@ -93,7 +93,7 @@ export function createRoutineGuard(deps: RoutineGuardDeps) {
     /** Why a run may not start now, or null. Past a cap, a run someone started, or a test, still may. */
     held(run: RoutineRun): string | null {
       // a used-up allowance holds every new run, a person's included: they wait for the reset or a top-up
-      const waiting = deps.allowanceHeld?.(deps.language(run.resultsThreadId ?? run.sourceThreadId));
+      const waiting = deps.allowanceHeld?.(run, deps.language(run.resultsThreadId ?? run.sourceThreadId));
       if (waiting) return waiting;
       if (run.manual || run.dryRun || run.target !== "bot") return null;
       const hit = deps.spendOver(run.botId, run.routineId);

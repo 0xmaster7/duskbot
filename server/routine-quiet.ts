@@ -9,6 +9,10 @@ const MAX_URL = 2_000;
 /** A run the self-cap stopped (server/routine-self-cap.ts): cancelled, but its strip shows it as failed. */
 export const SELF_CAP_STOP = "Stopped at 3 times its usual cost";
 
+let freeRerun: (runId: string) => boolean = () => false;
+/** The runs re-run free after an update was rolled back (server/host/routine-quiet-host.ts), marked on the strip. */
+export function useFreeReruns(isFree: (runId: string) => boolean): void { freeRerun = isFree; }
+
 /** A probe as asked for: undefined for none, an error for one that cannot be read. */
 export function cleanProbe(value: unknown): RoutineProbe | undefined {
   if (value == null) return undefined;
@@ -84,7 +88,7 @@ export function stripOf(runs: readonly RoutineRun[], routine: Pick<Routine, "id"
   for (const run of runs) {
     if (run.routineId !== routine.id || run.dryRun) continue;
     const outcome = outcomeOf(run);
-    if (outcome) entries.push({ at: run.finishedAt ?? run.scheduledFor, outcome });
+    if (outcome) entries.push({ at: run.finishedAt ?? run.scheduledFor, outcome, ...(freeRerun(run.id) ? { rerun: true as const } : {}) });
   }
   return entries.sort((a, b) => a.at - b.at).slice(-STRIP_RUNS);
 }

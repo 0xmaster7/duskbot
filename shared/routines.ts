@@ -82,7 +82,12 @@ export const ROUTINE_AROUND_MS = 30 * 60_000;
 
 /** One of a routine's last runs as its strip shows them: `ok` did something, `quiet` fired and found nothing new,
  * `failed` went wrong, `missed` never fired. Oldest first. */
-export interface RoutineStripEntry { at: number; outcome: "ok" | "quiet" | "failed" | "missed" }
+export interface RoutineStripEntry {
+  at: number;
+  outcome: "ok" | "quiet" | "failed" | "missed";
+  /** Re-ran once, free, after an update was rolled back. */
+  rerun?: true;
+}
 
 export interface RoutineCheckTick { at: number; outcome: "quiet" | "failed" }
 

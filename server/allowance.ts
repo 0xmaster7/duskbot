@@ -30,6 +30,8 @@ export interface AllowanceDeps {
   now?: () => number;
   /** What was booked since a time, from server/spend.ts. */
   since(at: number): ReadonlyArray<Readonly<Entry>>;
+  /** A run that is never charged: a free re-run after an update was rolled back. */
+  free?(runId: string): boolean;
   names: { bot(id: string): string | undefined; routine(id: string): { name: string; botId: string } | undefined };
   /** Enabled routines with a run before `until`: what skips while the allowance is used up. */
   upcoming(until: number): Array<{ routineId: string; name: string; at: number }>;
@@ -143,7 +145,8 @@ export function createAllowance(deps: AllowanceDeps) {
   }
 
   const limit = () => (state.weeklyUsd === undefined ? null : cents(state.weeklyUsd + state.extraUsd));
-  const spentTotal = () => state.weeklyUsd === undefined ? 0 : cents(deps.since(state.week).reduce((sum, entry) => sum + entry.usd, 0));
+  const charged = (at: number) => deps.since(at).filter((entry) => !(entry.runId && deps.free?.(entry.runId)));
+  const spentTotal = () => state.weeklyUsd === undefined ? 0 : cents(charged(state.week).reduce((sum, entry) => sum + entry.usd, 0));
   const saverOn = () => state.saverUntil !== undefined && now() < state.saverUntil;
   const monthUsd = () => { const month = monthOf(now()); return cents(state.topUps.filter((one) => monthOf(one.at) === month).reduce((sum, one) => sum + one.usd, 0)); };
 
@@ -154,7 +157,7 @@ export function createAllowance(deps: AllowanceDeps) {
   }
 
   function topLine(language: string | undefined): string {
-    const top = topSpenders(deps.since(state.week), deps.names);
+    const top = topSpenders(charged(state.week), deps.names);
     const named = top.map((one) => serverLine(language, "server.allowance.spender", { name: one.name, amount: money(one.usd, language) }));
     return named.length === 2 ? serverLine(language, "server.allowance.topTwo", { first: named[0]!, second: named[1]! }) : named[0] ?? "";
   }
@@ -175,7 +178,7 @@ export function createAllowance(deps: AllowanceDeps) {
     booked(entry: Readonly<Entry>): void {
       roll();
       const cap = limit();
-      if (cap === null || !(entry.usd > 0)) return;
+      if (cap === null || !(entry.usd > 0) || (entry.runId && deps.free?.(entry.runId))) return;
       const spent = spentTotal();
       const language = deps.language();
       if (state.hitAt !== undefined) {
@@ -239,7 +242,7 @@ export function createAllowance(deps: AllowanceDeps) {
         level,
         weekStart: state.week,
         resetAt,
-        top: cap === null ? [] : topSpenders(deps.since(state.week), deps.names),
+        top: cap === null ? [] : topSpenders(charged(state.week), deps.names),
         skipped: level === "over" ? deps.upcoming(resetAt) : [],
         saver: saverOn(),
         saverUsd: cents(state.saverUsd),
