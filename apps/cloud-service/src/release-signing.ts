@@ -6,7 +6,7 @@ import { createPrivateKey, createPublicKey, sign, verify } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 export interface ReleaseKey { kid: string; x: string }
-export type ReleaseKind = "home-package" | "template" | "desktop";
+export type ReleaseKind = "home-package" | "template" | "desktop" | "vps-package" | "update-policy";
 export interface ReleaseManifest { v: 1; kind: ReleaseKind; name: string; version: string; sha256: string; signedAt: number }
 
 /** CI's release keys, newest first; ship the next one here before CI signs with it */
@@ -53,7 +53,8 @@ export function readReleaseSignature(path: string): string { return readFileSync
 
 /**
  * The machine's own check, run by root's `omb-home install` with the pinned node before anything is unpacked:
- * `node -e <this> <signature file> <sha256> <kind>`. The keys are fixed into the script the service generates.
+ * `node -e <this> <signature file> <sha256> <kind> [print]`, `print` writing the signed version. The keys are fixed into the
+ * script the service generates.
  */
 export function machineVerifyScript(keys: readonly ReleaseKey[]): string {
   return `const c=require("node:crypto"),fs=require("node:fs");const keys=${JSON.stringify(keys)};
@@ -61,5 +62,6 @@ const [file,sum,kind]=process.argv.slice(1);const p=fs.readFileSync(file,"utf8")
 if(p.length!==4||p[0]!=="r1")process.exit(3);const k=keys.find(x=>x.kid===p[1]);if(!k)process.exit(3);
 const pub=c.createPublicKey({key:{kty:"OKP",crv:"Ed25519",x:k.x},format:"jwk"});
 if(!c.verify(null,Buffer.from(p.slice(0,3).join(".")),pub,Buffer.from(p[3],"base64url")))process.exit(3);
-const m=JSON.parse(Buffer.from(p[2],"base64url").toString());if(m.v!==1||m.kind!==kind||m.sha256!==sum)process.exit(3);`;
+const m=JSON.parse(Buffer.from(p[2],"base64url").toString());if(m.v!==1||m.kind!==kind||m.sha256!==sum)process.exit(3);
+if(process.argv[4]==="print"&&/^\\d+\\.\\d+\\.\\d+$/.test(m.version))process.stdout.write(m.version);`;
 }

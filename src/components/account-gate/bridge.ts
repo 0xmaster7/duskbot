@@ -9,13 +9,18 @@ export type GateState = {
   status: "signed-out" | "connecting" | "connected" | "unavailable" | "reauth-required";
   message?: string;
   enrollment?: { userCode: string; expiresAt: number };
+  /** Signing in at this provider in the browser, which comes back to the app signed in. */
+  browser?: OAuthProvider;
 };
 export interface AccountGateBridge {
   state(): Promise<GateState>;
-  signInStart(email: string): Promise<CloudSignInStart>;
+  signInStart(email: string, options?: { recover: true }): Promise<CloudSignInStart>;
+  /** Which providers the account service says sign in; absent on an older app build's bridge. */
+  options?(): Promise<{ providers: OAuthProvider[]; recovery: boolean }>;
   signInVerify(code: string): Promise<SignInVerify>;
   signInCancel(): Promise<unknown>;
   browser(provider: OAuthProvider): Promise<GateState>;
   cancel(): Promise<GateState>;
+  reopen(): Promise<GateState>;
   onChange(cb: (state: GateState) => void): () => void;
 }

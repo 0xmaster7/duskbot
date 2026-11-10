@@ -171,6 +171,14 @@ export function createReadyClock({ store = null, now = Date.now } = {}) {
   };
 }
 
+/** A message sent from the asleep screen: its bot, chat, text and the id My Cloud's page sends it with (once). */
+export function heldSend(input) {
+  const id = (value) => typeof value === "string" && value.length > 0 && value.length <= 200 && !/\p{Cc}/u.test(value);
+  if (!input || typeof input !== "object" || !id(input.botId) || !id(input.threadId) || typeof input.text !== "string" || !input.text.trim()
+    || input.text.length > 20_000 || typeof input.sendId !== "string" || !/^[A-Za-z0-9_-]{8,80}$/.test(input.sendId)) return null;
+  return { botId: input.botId, threadId: input.threadId, text: input.text, sendId: input.sendId };
+}
+
 /** Only a same-origin path survives a sign-in: never another site, never a code. */
 export function routeOf(url, origin) {
   try {
@@ -226,7 +234,7 @@ export function createHomeWindow(deps) {
   const { journal, frozen, account, restored = async () => {}, window, ensureWindow, localOrigin, cookieFetch, power, go, showLocal, clean = null,
     remembered = () => null, remember = () => {}, left = () => {}, drop = (place) => { if (place.kind === "team") left(place.name); remember(null); },
     splash = () => null, lastInput = () => 0, publish = () => {}, rehomed = () => {}, versionEveryMs = VERSION_EVERY_MS, quietMs = QUIET_MS,
-    now = Date.now, timers = DEFAULT_TIMERS, hosts = () => null, readyStore = null, ownMove = () => null, log = () => {} } = deps;
+    now = Date.now, timers = DEFAULT_TIMERS, hosts = () => null, readyStore = null, ownMove = () => null, lastSeen = null, log = () => {} } = deps;
   let home = { kind: "computer" }, screen = null, status = null, opens = 0, retry = null, tries = 0, loaded = null, newer = false, repairing = null;
   /** My Cloud asked for before the move made it home (`{ open }`), until its page loads or the person goes elsewhere;
    * `naming`: since when, and how often, a brand-new My Cloud's name was not found. */
@@ -236,6 +244,9 @@ export function createHomeWindow(deps) {
   let shown = null, opening = null, renewal = null, updatingAt = null;
   /** The window shows a place or this computer's screen, which this computer's page replaces once home is here again. */
   let away = false;
+  /** My Cloud asleep: what the person did that wakes it (`type`, `click`, `send`), until its page opens; and the message they
+   *  sent from the asleep screen, held for My Cloud's page to send once (`takeHeld`). */
+  let wakeIntent = null, held = null;
   const state = () => account()?.state() ?? null;
   const wanted = (token) => token === opens;
   const cloudOrigin = () => (home.kind === "cloud" ? home.origin : null);
@@ -317,6 +328,9 @@ export function createHomeWindow(deps) {
     onSplash(splashText("opening", teamName()));
     goScreen();
   }
+
+  /** My Cloud asleep on this computer's screen: `waking` once the person asked, `held` the message they sent meanwhile. */
+  const asleepScreen = () => ({ screen: "asleep", ...(wakeIntent ? { waking: true } : {}), ...(held ? { held: held.text } : {}) });
 
   /** The place didn't answer: this computer's screen says so, with the Admin's reason for My Cloud, and looks again by itself. */
   function offline(token) {
@@ -451,8 +465,9 @@ export function createHomeWindow(deps) {
     const win = window();
     const blank = !win || win.isDestroyed() || !originOf(win.webContents.getURL());
     // A team's Cloud never sleeps, and the Admin wakes only My Cloud: a team that answers asleep is simply not reachable yet.
-    let asleep = place.kind === "cloud" && power.asleep();
-    say(asleep ? "waking" : "opening");
+    // once the person asked My Cloud to wake, its page is only looked for through the wake: a waking machine answers nothing
+    let asleep = place.kind === "cloud" && (power.asleep() || Boolean(wakeIntent));
+    say(asleep && wakeIntent ? "waking" : "opening");
     const handoff = blank ? timers.set(() => { if (wanted(token) && status) goScreen(); }, SPLASH_HANDOFF_MS) : null;
     try {
       if (!asleep) {
@@ -460,11 +475,14 @@ export function createHomeWindow(deps) {
         const look = await answers(origin);
         if (look === "no") return unreachable(place, token);
         if (look === "asleep" && otherPlace(place)) return offline(token);
-        if (look === "asleep") { power.hold(); asleep = true; say("waking"); }
+        if (look === "asleep") { power.hold(); asleep = true; }
       }
+      // opening never wakes My Cloud: its last-seen chats show, read-only, until the person types, clicks or sends there
+      if (asleep && place.kind === "cloud" && !wakeIntent) { clearRetry(); return toScreen(asleepScreen()); }
       let session = null;
+      const intent = wakeIntent;
       const signedIn = asleep
-        ? await openSleepingCloud({ power: client?.power() ?? { state: "asleep" }, wake: () => client?.wakeHome(), waking: (on) => client?.setWaking(on), signedIn: (ms) => signedInAt(origin, ms) })
+        ? await openSleepingCloud({ power: client?.power() ?? { state: "asleep" }, wake: () => client?.wakeHome(intent), waking: (on) => client?.setWaking(on), signedIn: (ms) => signedInAt(origin, ms) })
         : Boolean(session = await sessionAt(origin, SIGNED_IN_MS));
       if (!wanted(token)) return;
       let grant = null;
@@ -488,12 +506,14 @@ export function createHomeWindow(deps) {
         new Promise((done) => { slow = timers.set(() => done(false), OPEN_MS); })]);
       timers.clear(slow);
       if (!loaded) { log(`home: ${otherPlace(place) ? place.name : "My Cloud"} didn't load in ${OPEN_MS / 1000} s`); return offline(token); }
-      if (place.kind === "cloud") { clearRenewal(); power.woke(); }
+      if (place.kind === "cloud") { clearRenewal(); power.woke(); wakeIntent = null; }
       else if (place.kind === "team") renewLater(place, grant || !session?.expiresAt ? TEAM_RENEW_MS : session.expiresAt - now() - TEAM_RENEW_EARLY_MS);
       else clearRenewal();
       tell();
     } finally {
       if (handoff) timers.clear(handoff);
+      // a wake that didn't open the page asks again from the next screen's own words, never by itself
+      if (wakeIntent && screen && screen.screen !== "asleep") wakeIntent = null;
     }
   }
 
@@ -669,8 +689,9 @@ export function createHomeWindow(deps) {
     accountLeaving() {
       opens++;
       clearRetry(); clearRenewal();
-      asked = null; naming = null; shown = null; opening = null; screen = null; status = null;
+      asked = null; naming = null; shown = null; opening = null; screen = null; status = null; wakeIntent = null; held = null;
       away = away || !shows(localOrigin());
+      void lastSeen?.forget?.()?.catch?.(() => {});
     },
     /** A response the window got (Electron's webRequest): a 401 from the place's API means its session ended. */
     responded({ url, statusCode, webContentsId }) {
@@ -728,6 +749,44 @@ export function createHomeWindow(deps) {
     },
     /** Signs the team on screen in again now, without moving the page (the timer's own step; also for tests). */
     renew: () => renew(),
+    /** This computer's screen, while My Cloud sleeps: the person typed or clicked in its composer (`type`, `click`), or sent
+     *  (`send`, with the message, held for My Cloud's page to send once it opens). The first wakes it; a later one only adds
+     *  the message. Never from opening or viewing. */
+    async wake(intent, send = null) {
+      if (!["type", "click", "send"].includes(intent)) throw new Error("Invalid wake intent.");
+      const origin = cloudOrigin() ?? (asked ? readyCloudOrigin(state()) : null);
+      if (!origin || screen?.screen !== "asleep") return view();
+      if (intent === "send") {
+        const message = heldSend(send);
+        if (!message) throw new Error("Invalid message.");
+        held = { ...message, origin, at: now() };
+      }
+      if (wakeIntent) { screen = asleepScreen(); tell(); return view(); }
+      wakeIntent = intent;
+      screen = asleepScreen();
+      tell();
+      void show({ place: "cloud" }).catch(() => {});
+      return view();
+    },
+    /** My Cloud's own page, once open: the message sent from the asleep screen, once (null when none, or it was another Cloud's). */
+    takeHeld(event) {
+      const origin = cloudOrigin();
+      if (!held || !origin || held.origin !== origin || !homePage(event) || otherPlace(shown)) return null;
+      const { origin: _origin, at: _at, ...message } = held;
+      held = null;
+      return message;
+    },
+    /** My Cloud's chats as last seen, for the asleep screen; null without a snapshot (or for any other place). */
+    async lastSeen() {
+      const origin = cloudOrigin() ?? (asked ? readyCloudOrigin(state()) : null);
+      return origin && lastSeen ? await lastSeen.read(origin).catch(() => null) : null;
+    },
+    /** My Cloud's own page keeps its chats as last seen; any other page is refused. */
+    async saveLastSeen(event, snapshot) {
+      const origin = cloudOrigin() ?? readyCloudOrigin(state());
+      if (!origin || !lastSeen || !homePage(event) || otherPlace(shown) || originOf(event.senderFrame.url) !== origin) return false;
+      return lastSeen.write(origin, snapshot).catch(() => false);
+    },
     close() { opens++; clearRetry(); clearRenewal(); timers.clear(watcher); },
   };
 }
@@ -745,6 +804,10 @@ export function installHomeWindowIpc({ ipcMain, homeWindow, cloudPage }) {
   ipcMain.handle("home:remove", from("home:remove", screenPage, () => homeWindow.remove()));
   ipcMain.handle("home:sign-in", from("home:sign-in", (event) => screenPage(event) || cloudPage(event) === "cloud" || (homeWindow.homePage(event) && homeWindow.shown()?.kind === "own"), () => homeWindow.signIn()));
   ipcMain.handle("home:repair", from("home:repair", (event) => homeWindow.homePage(event), () => homeWindow.repair()));
+  ipcMain.handle("home:wake", from("home:wake", screenPage, (intent, send) => homeWindow.wake(intent, send)));
+  ipcMain.handle("home:last-seen", from("home:last-seen", screenPage, () => homeWindow.lastSeen()));
+  ipcMain.handle("home:last-seen-save", (event, snapshot) => homeWindow.saveLastSeen(event, snapshot));
+  ipcMain.handle("home:held", (event) => homeWindow.takeHeld(event));
   ipcMain.on("home:page", (event) => { try { event.returnValue = homeWindow.homePage(event); } catch { event.returnValue = false; } });
   ipcMain.on("home:updating", (event) => { try { event.returnValue = homeWindow.updating(event); } catch { event.returnValue = false; } });
 }

@@ -26,7 +26,7 @@ export function world({ clean = null, journal = done(), marker = null, state = c
     team: { down: false, signedIn: true, version: "0.1.130", health: 200, gone: false, ...team },
     /** Another Cloud of the person's own, answering at CLIENT; `gone`: the Admin's pairing says it is no longer theirs. */
     client: { down: false, signedIn: true, version: "0.1.130", health: 200, gone: false, ...client },
-    went: [], calls: [], fetched: [], pairs: 0, teamPairs: [], ownPairs: [], wakes: 0, waking: [], splash: [], published: [], local: [], reloads: 0, signIns: [],
+    went: [], calls: [], fetched: [], intents: [], pairs: 0, teamPairs: [], ownPairs: [], wakes: 0, waking: [], splash: [], published: [], local: [], reloads: 0, signIns: [],
     remembered, remembers: [], left: [], dropped: [], redeemed: [], rehomes: [], rehomeThrows: false,
     url, timers: [], intervals: [],
     /** Remove from list on the Admin: each Cloud asked about, and what the Admin answers (`removed` takes it off the session's list). */
@@ -46,7 +46,7 @@ export function world({ clean = null, journal = done(), marker = null, state = c
     state: () => w.state,
     power: () => w.power,
     powerOf: (origin) => (origin === CLOUD ? w.power : (w.state?.clouds ?? []).find((cloud) => cloud.origin === origin)?.power ?? null),
-    async wakeHome() { w.wakes++; await w.cloud.wakeGate; if (w.cloud.wakes) w.power = { ...w.power, state: "awake" }; return "awake"; },
+    async wakeHome(intent) { w.wakes++; w.intents.push(intent); await w.cloud.wakeGate; if (w.cloud.wakes) w.power = { ...w.power, state: "awake" }; return "awake"; },
     setWaking: (on) => w.waking.push(on),
     async pairHome(cloudId = null) {
       if (cloudId) {

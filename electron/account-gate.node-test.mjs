@@ -24,7 +24,8 @@ function fixture() {
     emailStart: async (...args) => { calls.push(["emailStart", ...args]); return { outcome: "sent" }; },
     emailVerify: async (...args) => { calls.push(["emailVerify", ...args]); return f.verify ?? { outcome: "signed-in", state: { token: "private" } }; },
     emailCancel: () => calls.push(["emailCancel"]),
-    begin: async (...args) => { calls.push(["begin", ...args]); }, cancel: async () => { calls.push(["cancel"]); f.state = { status: "signed-out" }; } };
+    begin: async (...args) => { calls.push(["begin", ...args]); }, cancel: async () => { calls.push(["cancel"]); f.state = { status: "signed-out" }; },
+    reopen: async () => { calls.push(["reopen"]); }, signInOptions: async () => ({ providers: ["google", "apple"], recovery: true }) };
   f.gate = installAccountGate({ ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) },
     guard: (channel, handler) => (...args) => { guarded.push(channel); return handler(...args); }, client: () => client, required: () => f.required,
     window: () => f.noWindow ? null : { isDestroyed: () => !f.alive, webContents: { send: (...args) => sent.push(args) } } });
@@ -33,10 +34,11 @@ function fixture() {
 
 test("every gate channel is guarded, accepts plain strings only, and strips identity and tokens from answers and changes", async () => {
   const f = fixture();
-  assert.deepEqual([...f.handlers.keys()], ["state", "signInStart", "signInVerify", "signInCancel", "browser", "cancel"].map(name => `account-gate:${name}`));
+  assert.deepEqual([...f.handlers.keys()], ["state", "signInStart", "options", "signInVerify", "signInCancel", "browser", "cancel", "reopen"].map(name => `account-gate:${name}`));
   const expected = { required: true, blocked: true, status: "connecting", message: "waiting", enrollment: { userCode: "ABCDE-FGHJK", expiresAt: 100 } };
   assert.deepEqual(await f.call("state"), expected);
-  await f.call("signInStart", { email: "x" }); await f.call("signInStart", "a@example.test");
+  await f.call("signInStart", { email: "x" }); await f.call("signInStart", "a@example.test"); await f.call("signInStart", "a@example.test", { recover: true }); await f.call("signInStart", "a@example.test", { recover: "yes" });
+  assert.deepEqual(await f.call("options"), { providers: ["google", "apple"], recovery: true });
   assert.deepEqual(await f.call("signInVerify", 12345678), { outcome: "signed-in" });
   f.verify = { outcome: "wrong-code", triesLeft: 3, state: { token: "private" } };
   assert.deepEqual(await f.call("signInVerify", "12345678"), { outcome: "wrong-code", triesLeft: 3 });
@@ -46,8 +48,11 @@ test("every gate channel is guarded, accepts plain strings only, and strips iden
   f.alive = false; f.gate.changed(f.state); f.noWindow = true; f.gate.changed(f.state); assert.equal(f.sent.length, 1);
   assert.deepEqual(await f.call("cancel", "ignored"), { required: true, blocked: true, status: "signed-out" });
   f.required = false; assert.equal((await f.call("state")).blocked, false);
-  assert.deepEqual(f.calls, [["emailStart", ""], ["emailStart", "a@example.test"], ["emailVerify", ""], ["emailVerify", "12345678"], ["emailCancel"], ["begin", null, { provider: "google" }], ["begin", null, { provider: "" }], ["cancel"]]);
-  assert.equal(f.guarded.length, 10); assert.ok(!JSON.stringify(f.sent).includes("private"));
+  await f.call("reopen");
+  f.state = { status: "connecting", browser: "google", token: "private" };
+  assert.deepEqual(await f.call("state"), { required: false, blocked: false, status: "connecting", browser: "google" });
+  assert.deepEqual(f.calls, [["emailStart", "", { recover: false }], ["emailStart", "a@example.test", { recover: false }], ["emailStart", "a@example.test", { recover: true }], ["emailStart", "a@example.test", { recover: false }], ["emailVerify", ""], ["emailVerify", "12345678"], ["emailCancel"], ["begin", null, { provider: "google" }], ["begin", null, { provider: "" }], ["cancel"], ["reopen"]]);
+  assert.equal(f.guarded.length, 15); assert.ok(!JSON.stringify(f.sent).includes("private"));
 });
 
 function preload({ enabled = true, remote = false } = {}) {
@@ -67,7 +72,10 @@ test("the gate bridge is flag-gated and local, coerces words and unsubscribes fr
   const f = preload(), gate = f.bridge.accountGate;
   assert.equal(preload({ enabled: false }).bridge.accountGate, undefined); assert.equal(preload({ remote: true }).bridge.accountGate, undefined);
   await gate.state(); await gate.signInStart({ toString: () => "a@example.test" }); await gate.signInVerify(12345678); await gate.signInCancel("ignored"); await gate.browser("apple"); await gate.cancel("ignored");
-  assert.deepEqual(f.calls, [["account-gate:state"], ["account-gate:signInStart", "a@example.test"], ["account-gate:signInVerify", "12345678"], ["account-gate:signInCancel"], ["account-gate:browser", "apple"], ["account-gate:cancel"]]);
+  await gate.signInStart("a@example.test", { recover: true }); await gate.options("ignored"); await gate.reopen("ignored");
+  // the options object is made in the preload's own realm
+  assert.deepEqual(JSON.parse(JSON.stringify(f.calls)), [["account-gate:state"], ["account-gate:signInStart", "a@example.test", { recover: false }], ["account-gate:signInVerify", "12345678"], ["account-gate:signInCancel"], ["account-gate:browser", "apple"], ["account-gate:cancel"],
+    ["account-gate:signInStart", "a@example.test", { recover: true }], ["account-gate:options"], ["account-gate:reopen"]]);
   const changes = [], unsubscribe = gate.onChange(state => changes.push(state)); f.listeners.get("account-gate:changed")({}, { status: "connected" });
   assert.deepEqual(changes, [{ status: "connected" }]); unsubscribe(); assert.equal(f.listeners.has("account-gate:changed"), false);
 });

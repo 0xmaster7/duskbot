@@ -5,6 +5,8 @@ export interface CloudAccountState {
   status: "signed-out" | "connecting" | "connected" | "reauth-required" | "unavailable";
   message?: string;
   enrollment?: { userCode: string; expiresAt: number };
+  /** Signing in at this provider in the browser, which comes back to the app's own link (packaged app only). */
+  browser?: import("./cloud-signin.mjs").CloudLinkProvider;
   account?: { id: string; email: string };
   deviceId?: string;
   expiresAt?: number;
@@ -286,9 +288,14 @@ export interface CloudAccountClient {
   openDashboard(): Promise<CloudAccountState>;
   offer(): Promise<import("./cloud-home.mjs").CloudOffer | null>;
   checkout(plan: string, source: string): Promise<CloudCheckoutResult>;
-  emailStart(email: string): Promise<CloudSignInStart>;
+  /** `recover`: "Can't sign in?": the mail also names the ways this address signs in. */
+  emailStart(email: string, options?: { recover?: boolean }): Promise<CloudSignInStart>;
   emailVerify(code: string): Promise<CloudSignInVerify>;
   emailCancel(): void;
+  /** duskbot://auth from the browser: redeems the code of the sign-in this app started; any other link is ignored. */
+  finishLink(url: string): Promise<{ outcome: "signed-in" | "failed" | "ignored"; state: CloudAccountState }>;
+  /** The provider buttons the account service says sign in, and whether it mails recovery; none when it doesn't say. */
+  signInOptions(): Promise<{ providers: import("./cloud-signin.mjs").CloudLinkProvider[]; recovery: boolean }>;
   reopenCheckout(plan?: string, source?: string): Promise<CloudCheckoutResult>;
   /** Main only (the clipboard): the kept checkout page, or null. */
   checkoutLink(): string | null;
@@ -314,7 +321,7 @@ export interface CloudAccountClient {
   /** The Admin's last word on a Cloud whose plan sleeps; null for any other. */
   power(): import("./cloud-power.mjs").CloudPower | null;
   /** Asks the Admin to start a sleeping Cloud (POST /api/cloud/desktop/wake), then reads the session again. */
-  wakeHome(): Promise<"awake" | "waking" | null>;
+  wakeHome(intent: WakeIntent): Promise<"awake" | "waking" | "asleep" | null>;
   setWaking(on: boolean): void;
   /** My Cloud's one-time code, or (`cloudId`) another Cloud of the person's own that the verified session lists, its
    * grant for that Cloud's own address only. Rejects with `gone: true` once that Cloud is no longer theirs. */
@@ -376,12 +383,20 @@ export declare function createCloudAccountClient(options: {
   custom?: boolean;
   fetch?: typeof fetch;
   now?: () => number;
+  setTimer?: (work: () => void, ms: number) => unknown;
+  clearTimer?: (timer: unknown) => void;
   onState?: (state: CloudAccountState) => void;
   /** Told once per plan name this app predates. Defaults to console.warn. */
   warn?: (message: string) => void;
   /** Files or lending waits for a sleeping Cloud to wake: the session is read every 15 s. */
   awaitingWake?: () => boolean;
+  /** This app owns duskbot:// (packaged): provider sign-in comes back through the link instead of a code to approve. */
+  appLinks?: boolean;
 }): CloudAccountClient;
 export declare function cloudPlanSnapshot(state: CloudAccountState | null | undefined, extra?: { notice?: import("./cloud-home.mjs").CloudTrialState | null }): CloudPlanSnapshot;
 /** My Cloud's line under its name in the server menus, or null for none. */
 export declare function cloudMenuSublabel(state: CloudAccountState | null | undefined, date: (value: number) => string): string | null;
+
+/** What a person did that may wake a sleeping Cloud (only `type`, `click` and `send` do). */
+export type WakeIntent = "type" | "click" | "send" | "open" | "view";
+export declare const WAKE_INTENTS: readonly WakeIntent[];

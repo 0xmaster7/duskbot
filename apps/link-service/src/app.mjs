@@ -563,7 +563,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         const build = packages.current();
         return send(res, 200, {
           ok: true, expiresAt: session.createdAt + SESSION_LIFE_MS, appPub: session.appPub, label: session.label,
-          ...(build ? { package: { sha256: build.sha256, size: build.size, version: build.version, path: `/pkg/${id}/${build.sha256}.tgz` } } : {}),
+          ...(build ? { package: { sha256: build.sha256, size: build.size, version: build.version, ...(build.signature ? { signature: build.signature } : {}), path: `/pkg/${id}/${build.sha256}.tgz` } } : {}),
+          ...(packages.policy() ? { policy: packages.policy() } : {}),
           ...(build?.desktop ? { desktop: { sha256: build.desktop.sha256, size: build.desktop.size, image: build.desktop.image, path: `/pkg/${id}/${build.desktop.sha256}.tgz` } } : {}),
         });
       }

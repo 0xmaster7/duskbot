@@ -2,6 +2,7 @@
 import type {} from "../../dashboard/server/clouds/types.ts";
 import type { PowerMemory } from "./power/rails.ts";
 import type { PlannedRun } from "./power/schedule.ts";
+import type { HomeUpdateState } from "./home-update.ts";
 
 /** one managed home's lifecycle record (lifecycle.ts) */
 export interface HomeLifecycleState {
@@ -69,6 +70,8 @@ export interface HomeLifecycleState {
   stopFailingAlerted?: boolean;
   /** a size the provider refused (shrinking below the data, say), not tried again */
   resizeBlocked?: string | null;
+  /** the home's updates: the version it runs, the one before, the trial of a new one, the signed policy held (home-update.ts) */
+  update?: HomeUpdateState;
 }
 
 declare module "../../dashboard/server/clouds/types.ts" {

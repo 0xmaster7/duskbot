@@ -1,18 +1,21 @@
 // A Cloud home on a plan that sleeps tells its pages it is going to sleep (a `power` frame on the event stream, or an
 // "asleep" answer). From then on the page sends nothing in the background: any request reaching the Cloud would wake it.
-// The next thing the person does (a click, a key, the window regaining focus) wakes it again, which takes about a second.
+// The next thing the person does (a key press or a click; never the window regaining focus, which is no intent) wakes it
+// again: one POST the home counts as someone using it, which through the public edge also starts a stopped machine.
 // On every other Cloud, and on a computer's own server, nothing here ever changes state.
 
 /** Background requests (polls nobody asked for just now) carry this header, so the home doesn't count them as someone
  * using it (server/cloud-power.ts `countsAsActivity`). */
 export const BACKGROUND_HEADER = "x-omb-background";
 export const CLOUD_POWER_HEADER = "x-omb-cloud-power";
-const WAKE_PATH = "/api/auth/session";
+const WAKE_PATH = "/api/cloud/wake";
+export type PageWakeIntent = "type" | "click";
 
 type Listener = (asleep: boolean) => void;
 const listeners = new Set<Listener>();
-let asleep = false;
+let asleep = false, waking = false;
 let detach: (() => void) | null = null;
+const wakingListeners = new Set<Listener>();
 
 export function cloudAsleep(): boolean {
   return asleep;
@@ -21,6 +24,22 @@ export function cloudAsleep(): boolean {
 export function onCloudPower(listener: Listener): () => void {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
+}
+
+/** The person acted and the home hasn't answered yet: the page says it is waking. */
+export function cloudWaking(): boolean {
+  return waking;
+}
+
+export function onCloudWaking(listener: Listener): () => void {
+  wakingListeners.add(listener);
+  return () => { wakingListeners.delete(listener); };
+}
+
+function setWaking(next: boolean) {
+  if (waking === next) return;
+  waking = next;
+  for (const listener of wakingListeners) listener(next);
 }
 
 function set(next: boolean) {
@@ -32,9 +51,11 @@ function set(next: boolean) {
 /** The person is back: wake the Cloud by using it. One request the home counts as someone using it (the event stream
  * reconnecting is not one) also ends a sleep it agreed to but has not carried out, so its held polls stop answering
  * "asleep". */
-export function markCloudAwake(): void {
+export function markCloudAwake(intent: PageWakeIntent = "click"): void {
   if (!asleep) return;
-  void fetch(WAKE_PATH).catch(() => {});
+  setWaking(true);
+  void fetch(WAKE_PATH, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ intent }) })
+    .catch(() => {}).finally(() => setWaking(false));
   detach?.();
   detach = null;
   set(false);
@@ -45,10 +66,10 @@ export function markCloudAsleep(target: Pick<Window, "addEventListener" | "remov
   if (asleep) return;
   set(true);
   if (!target) return;
-  const wake = () => markCloudAwake();
-  const events = ["pointerdown", "keydown", "focus", "touchstart"] as const;
-  for (const name of events) target.addEventListener(name, wake, { capture: true });
-  detach = () => { for (const name of events) target.removeEventListener(name, wake, { capture: true }); };
+  const typed = () => markCloudAwake("type"), clicked = () => markCloudAwake("click");
+  const events = [["keydown", typed], ["pointerdown", clicked], ["touchstart", clicked]] as const;
+  for (const [name, wake] of events) target.addEventListener(name, wake, { capture: true });
+  detach = () => { for (const [name, wake] of events) target.removeEventListener(name, wake, { capture: true }); };
 }
 
 /** The page is out of sight: a background tab, a minimized or hidden window. */
@@ -84,5 +105,7 @@ export function resetCloudPowerForTests(): void {
   detach?.();
   detach = null;
   asleep = false;
+  waking = false;
   listeners.clear();
+  wakingListeners.clear();
 }

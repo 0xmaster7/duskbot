@@ -66,7 +66,7 @@ export type OAuthErrorCode = "oauth_denied" | "oauth_failed" | "oauth_expired" |
 export const ACCOUNT_ROUTES = {
   // website, no session needed
   providers: "/v1/auth/providers", //           GET  -> ProvidersAnswer
-  emailStart: "/v1/auth/start", //              POST { email, pending? } -> EmailStartAnswer
+  emailStart: "/v1/auth/start", //              POST { email, pending?, recover? } -> EmailStartAnswer
   emailVerify: "/v1/auth/verify", //            POST { attempt, code } -> WebSignInAnswer (+ session and csrf cookies)
   /** GET ?next=/path (same-origin path, default /): 302 to the provider; it comes back to oauthCallback and then to next. */
   oauthStart: (provider: OAuthProvider) => `/v1/auth/oauth/${provider}/start`,
@@ -99,7 +99,9 @@ export const ACCOUNT_ROUTES = {
   appSession: "/api/cloud/desktop/session", //  GET -> AppSessionAnswer; DELETE {} -> { ok: true }
 } as const;
 
-export interface ProvidersAnswer { v: 1; providers: ProviderView[]; signupOpen: boolean }
+/** `recovery`: start takes `recover: true` ("Can't sign in?"): the code goes out with the ways the address signs in (and a
+ * one-time link for the website), or, for an address no account uses, only that. */
+export interface ProvidersAnswer { v: 1; providers: ProviderView[]; signupOpen: boolean; recovery?: boolean }
 export interface EmailStartAnswer { attempt: string; expiresIn: number; resendAfter: number; signupOpen: boolean }
 export interface WebSignInAnswer { account: AccountView; csrfToken: string; created: boolean; redirect?: string }
 export interface MeAnswer { account: AccountView; csrfToken: string }

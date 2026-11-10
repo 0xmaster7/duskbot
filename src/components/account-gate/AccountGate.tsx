@@ -4,6 +4,20 @@ import { t } from "@/lib/i18n";
 import type { AccountGateBridge, GateState } from "./bridge";
 import { SignIn } from "./SignIn";
 
+/** Why the sheet is back: a session that ended, or a browser sign-in that came back without one. */
+export function gateNotice(state: GateState | null): string | undefined {
+  if (state?.status === "reauth-required") return state.message === "access-ended" || state.message === "expired" ? t("accountGate.ended") : undefined;
+  if (state?.status !== "signed-out") return undefined;
+  switch (state.message) {
+    case "signin-cancelled": case "enrollment-ended": return t("accountGate.oauthDenied");
+    case "enrollment-expired": return t("accountGate.oauthExpired");
+    case "identity-taken": return t("accountGate.identityTaken");
+    case "signup-closed": return t("cloudBuy.signIn.signupClosed");
+    case "signin-failed": return t("accountGate.oauthFailed");
+    default: return undefined;
+  }
+}
+
 export function AccountGate({ bridge }: { bridge: AccountGateBridge }) {
   const [state, setState] = useState<GateState | null>(null);
   useEffect(() => {
@@ -26,5 +40,15 @@ export function AccountGate({ bridge }: { bridge: AccountGateBridge }) {
       <button type="button" className="ui-button ui-button-pill" onClick={() => void bridge.cancel().then(setState)}>{t("cloudAdd.cancel")}</button>
     </div>
   </main>;
-  return <SignIn emailStart={email => bridge.signInStart(email)} emailVerify={code => bridge.signInVerify(code)} cancelEmail={() => bridge.signInCancel()} browser={async provider => { setState(await bridge.browser(provider)); }} onSignedIn={() => { void bridge.state().then(setState); }} notice={state?.status === "reauth-required" && (state.message === "access-ended" || state.message === "expired") ? t("accountGate.ended") : undefined} />;
+  if (state?.status === "connecting" && state.browser) return <main className="flex size-full items-center justify-center bg-app px-6 text-ink">
+    <div className="flex max-w-[360px] flex-col items-center gap-5 text-center">
+      <MausAvatar color="green" size={80} state="idle" animated={false} personality={false} />
+      <div><h1 className="text-[24px] font-semibold">{t("accountGate.browser")}</h1><p className="mt-2 text-[14px] leading-5 text-ink-secondary">{t("accountGate.browserBody")}</p></div>
+      <div className="flex flex-col items-center gap-2">
+        <button type="button" className="ui-button ui-button-pill" onClick={() => void bridge.reopen().then(setState)}>{t("accountGate.reopen")}</button>
+        <button type="button" className="min-h-11 rounded-full px-3 text-[13px] text-ink-secondary underline underline-offset-2 outline-none hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" onClick={() => void bridge.cancel().then(setState)}>{t("cloudAdd.cancel")}</button>
+      </div>
+    </div>
+  </main>;
+  return <SignIn options={bridge.options ? () => bridge.options!() : undefined} emailStart={(email, options) => options ? bridge.signInStart(email, options) : bridge.signInStart(email)} emailVerify={code => bridge.signInVerify(code)} cancelEmail={() => bridge.signInCancel()} browser={async provider => { setState(await bridge.browser(provider)); }} onSignedIn={() => { void bridge.state().then(setState); }} notice={gateNotice(state)} />;
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import type { HomeView, HomeBridge } from "../../electron/home-window.mjs";
+import { CloudAsleepHome } from "./CloudAsleepHome";
 import { CloudSetupSteps } from "./CloudSetupSteps";
 
 const MACHINE: Record<string, LocaleKey> = {
@@ -36,6 +37,7 @@ export function homeScreenText(view: HomeView | null, now = Date.now()): { title
     reason: null, action: "buy", busy: false };
   if (view?.screen === "checkout") return { title: named("cloudHome.checkout", "cloudHome.checkoutNamed"), body: null, reason: null, action: "continue", busy: false };
   if (view?.screen === "payment") return { title: named("cloudHome.payment", "cloudHome.paymentNamed"), body: t("cloudHome.paymentBody"), reason: null, action: "card", busy: false };
+  if (view?.screen === "asleep") return { title: t(view.waking ? "cloudAsleep.waking" : "cloudAsleep.line"), body: null, reason: null, action: null, busy: view.waking === true };
   if (view?.screen === "waking") return { title: t("homeScreen.waking"), body: null, reason: null, action: null, busy: true };
   if (view?.screen === "moving") return { title: named("homeScreen.moving", "homeScreen.movingNamed"), body: null, reason: null, action: null, busy: true };
   return { title: named("homeScreen.opening", "homeScreen.openingNamed"), body: null, reason: null, action: null, busy: true };
@@ -99,6 +101,7 @@ export function HomeScreen({ bridge, manage }: { bridge: HomeBridge; manage?: ()
   };
   const button = text.action && text.action !== "sign-in" && text.action !== "manage" ? text.action : null;
   const removable = (view?.screen === "ended" || view?.screen === "payment") && view.removable === true && typeof bridge.remove === "function";
+  if (view?.screen === "asleep") return <CloudAsleepHome bridge={bridge} view={view} />;
   return (
     <main data-home-screen={view?.screen ?? "opening"} className="flex min-h-screen items-center justify-center bg-app px-6 text-ink" style={{ WebkitAppRegion: "drag" } as React.CSSProperties}>
       <div className="flex w-full max-w-[420px] flex-col items-start gap-3" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>

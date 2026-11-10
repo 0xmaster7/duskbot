@@ -78,7 +78,10 @@ export interface HomeClient {
   entitle?(origin: string, secret: string, token: string): Promise<{ expiresAt: number }>;
   /** tells the home its plan was cancelled or renewed, so it holds its routines (docs/cloud-pro.md) */
   plan?(origin: string, secret: string, input: { cancelled: boolean }): Promise<void>;
+  /** the home's own report after an update (server/update-state.ts): the version it runs, its self-test, its finished runs */
+  update?(origin: string, secret: string): Promise<HomeUpdateReport>;
 }
+export interface HomeUpdateReport { version: string | null; selfTest: "running" | "passed" | "failed" | null; runs: Array<{ id: string; ok: boolean; at: number }> }
 export interface HomePower {
   idle: boolean; busy: string[]; lastActivityAt: number | null; nextDueAt: number | null; wokeAt: number | null;
   /** the runs due in the next day, when the home reports them; `flexMs` is how far a run may move (0: its exact time) */

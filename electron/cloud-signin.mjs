@@ -1,3 +1,5 @@
+import { createHash, randomBytes } from "node:crypto";
+
 // The email-code sign-in the phone apps use (openmaus-cloud server/cloud-app-signin.ts), typed into the app: it ends in
 // the same omc_ device token as the browser approval. The attempt and the token stay in main; the page sees outcomes only.
 export const SIGN_IN_START = "/api/cloud/app/sign-in/start";
@@ -63,4 +65,57 @@ export function verifyFailure(error) {
   if (said(error, 429)) return "rate-limited";
   if (noEmailRoute(error)) return "browser";
   return "failed";
+}
+
+// One tap with Google or Apple: the account service's app sign-in (apps/dashboard, /v1/auth/app/start) with PKCE. The browser
+// signs in at the provider and comes back to this app's own link with a one-time code only this app can redeem (it holds the
+// verifier), so no page in between asks to approve anything, and a link sent by someone else signs in nobody.
+export const APP_START = "/v1/auth/app/start";
+export const APP_TOKEN = "/v1/auth/app/token";
+export const APP_PROVIDERS = "/v1/auth/providers";
+export const APP_LINK = "duskbot://auth";
+export const LINK_PROVIDERS = Object.freeze(["google", "apple", "x"]);
+/** How long the browser has to come back: the service keeps an app flow 10 minutes. */
+export const LINK_MS = 600_000;
+
+/** The address to open, and what stays in main: the verifier and the state the link must bring back. */
+export function linkSignIn(origin, provider, random = randomBytes) {
+  if (!LINK_PROVIDERS.includes(provider)) return null;
+  const verifier = random(32).toString("base64url"), state = random(32).toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  const query = new URLSearchParams({ provider, code_challenge: challenge, code_challenge_method: "S256", state, redirect_uri: APP_LINK });
+  return { url: `${origin}${APP_START}?${query}`, verifier, state };
+}
+
+/** duskbot://auth?code=...&state=... or ?error=...&state=...; anything else is no sign-in link. */
+export function isAppLink(value) {
+  return typeof value === "string" && (value === APP_LINK || value.startsWith(`${APP_LINK}?`) || value.startsWith(`${APP_LINK}/?`));
+}
+export function parseAppLink(value) {
+  if (!isAppLink(value) || value.length > 4096) return null;
+  let url;
+  try { url = new URL(value); } catch { return null; }
+  const one = key => { const all = url.searchParams.getAll(key); return all.length === 1 ? all[0] : null; };
+  const state = one("state"), code = one("code"), error = one("error");
+  if (!state || !/^[A-Za-z0-9_-]{16,256}$/.test(state)) return null;
+  if (code && !error && /^[A-Za-z0-9_-]{43}$/.test(code)) return { state, code };
+  if (error && !code && /^[a-z_]{1,40}$/.test(error)) return { state, error };
+  return null;
+}
+
+/** What the service's link error means for the sheet. */
+export function linkFailure(error) {
+  if (error === "oauth_denied") return "signin-cancelled";
+  if (error === "oauth_expired") return "enrollment-expired";
+  if (error === "signup_closed") return "signup-closed";
+  if (error === "identity_taken") return "identity-taken";
+  return "signin-failed";
+}
+
+/** The service's word on which buttons sign in, and whether "Can't sign in?" mails the ways in; nothing from a service that
+ * doesn't say. */
+export function parseProviders(answer) {
+  if (answer?.v !== 1 || !Array.isArray(answer.providers)) return { providers: [], recovery: false };
+  const on = new Set(answer.providers.filter(item => item && item.enabled === true).map(item => item.id));
+  return { providers: LINK_PROVIDERS.filter(id => on.has(id)), recovery: answer.recovery === true };
 }

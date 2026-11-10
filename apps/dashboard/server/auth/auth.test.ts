@@ -412,6 +412,41 @@ describe("local account service", () => {
     expect((await call("/v1/auth/start", { email: "nobody@example.test" })).status).toBe(200);
   });
 
+  it("recovers a sign-in by email: the code, a one-time website link and the ways in, the same answer for no account", async () => {
+    const first = await login(); time += 30_000;
+    const recovered = await body<EmailStartAnswer>(call("/v1/auth/start", { email, recover: true }));
+    const mail = mailer.outbox.at(-1)!;
+    expect(mail).toMatchObject({ to: email, subject: "Sign in to Dusk Bot" });
+    expect(mail.text).toContain("This account signs in with an emailed code.");
+    const link = new URL(/Or open this link to sign in: (\S+)/.exec(mail.text)![1]!), secret = new URLSearchParams(link.hash.slice(1));
+    // in the fragment: never sent to a server, so never in a log
+    expect(`${link.origin}${link.pathname}${link.search}`).toBe("http://127.0.0.1:7480/sign-in");
+    expect(secret.get("attempt")).toBe(recovered.attempt);
+    const signedIn = await call("/v1/auth/verify", { attempt: secret.get("attempt"), code: secret.get("code") });
+    expect(signedIn.status).toBe(200); expect((await body<WebSignInAnswer>(signedIn)).account.id).toBe(first.account.id);
+    expect((await call("/v1/auth/verify", { attempt: secret.get("attempt"), code: secret.get("code") })).status).toBe(410);
+    // the app gets the code alone: a link would sign in the browser, not this computer
+    time += 30_000;
+    const app = await body<EmailStartAnswer>(call("/api/cloud/app/sign-in/start", { email, ...device, recover: true }));
+    expect(mailer.outbox.at(-1)!.text).not.toContain("http");
+    const grant = await call("/api/cloud/app/sign-in/verify", { attempt: app.attempt, code: code() });
+    expect((await body<AppGrant>(grant)).account.id).toBe(first.account.id);
+    // no account: the same answer, a mail that says so, and no code that could create one
+    const sent = mailer.outbox.length;
+    const nobody = await call("/v1/auth/start", { email: "nobody@example.test", recover: true });
+    expect(nobody.status).toBe(200); expect(Object.keys(await nobody.json() as object).sort()).toEqual(Object.keys(recovered as object).sort());
+    expect(mailer.outbox).toHaveLength(sent + 1);
+    expect(mailer.outbox.at(-1)!.text).toContain("no Dusk Bot account uses it"); expect(mailer.outbox.at(-1)!.text).not.toMatch(/\b\d{8}\b/);
+    for (const bad of [{ email, recover: "yes" }, { email, recover: false }]) expect((await call("/v1/auth/start", bad)).status).toBe(400);
+  });
+
+  it("answers recovery before mail goes out and keeps the resend limit", async () => {
+    await login(); time += 30_000;
+    restart({ mailer: { send: () => new Promise<void>(() => {}) } });
+    expect((await call("/v1/auth/start", { email, recover: true })).status).toBe(200);
+    expect((await call("/v1/auth/start", { email, recover: true })).status).toBe(429);
+  });
+
   it("deletes accounts, identities, sessions, attempts, grants and owned workspaces, awaiting hooks", async () => {
     const grant = await appLogin(); time += 30_000;
     const browser = await login();
@@ -489,9 +524,9 @@ describe("local account service", () => {
   });
 
   it("advertises an empty provider registry, with coming soon only in development", async () => {
-    expect(await body(call("/v1/auth/providers"))).toEqual({ v: 1, signupOpen: true, providers: ["google", "apple", "x"].map(id => ({ id, enabled: false, comingSoon: true })) });
+    expect(await body(call("/v1/auth/providers"))).toEqual({ v: 1, signupOpen: true, recovery: true, providers: ["google", "apple", "x"].map(id => ({ id, enabled: false, comingSoon: true })) });
     restart({ dev: false });
-    expect(await body(call("/v1/auth/providers"))).toEqual({ v: 1, signupOpen: true, providers: ["google", "apple", "x"].map(id => ({ id, enabled: false, comingSoon: false })) });
+    expect(await body(call("/v1/auth/providers"))).toEqual({ v: 1, signupOpen: true, recovery: true, providers: ["google", "apple", "x"].map(id => ({ id, enabled: false, comingSoon: false })) });
   });
 
   it("works with the desktop client's email flow, browser flow, identity parser and revoke", async () => {

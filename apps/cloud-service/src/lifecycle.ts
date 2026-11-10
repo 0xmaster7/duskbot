@@ -20,6 +20,7 @@ import { RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
 import { ManagedCloudError } from "../../dashboard/server/clouds/managed.ts";
 import type { HomeClient, StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import type { HomeLifecycleState } from "./state.ts";
+import type { HomeUpdates } from "./home-update.ts";
 
 const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, REFRESH_SPACING_MS = 10 * MINUTE;
 
@@ -148,6 +149,8 @@ export interface LifecycleDeps {
   rails?: RailSettings;
   /** every home's monthly cost book (spend.ts): the rails keep each under its ceiling */
   spend?: SpendLedger;
+  /** staged updates of a running home, with their self-test and rollback (home-update.ts) */
+  updates?: HomeUpdates;
 }
 
 /** a start the rails held back (a failing home's backoff, the provider's hard cap or not-before time, a busy minute):
@@ -757,6 +760,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     b.lastPowerAt = now();
     await entitle(c, false).catch(() => console.warn(`managed: the entitlement refresh for ${c.id} failed; it is tried again`));
     const power = deps.home.power ? await deps.home.power(homeOrigin(c), secret(c), Math.max(1, Math.round(rails.minIdleMs / MINUTE))).catch(() => null) : null;
+    if (await deps.updates?.step(c, { origin: c.origin!, upstream: homeOrigin(c), secret: secret(c), busy: power?.busy ?? null })) { deps.save(c); return; }
     if (!power) { deps.save(c); return; }
     const m = memory(c);
     b.busy = power.busy; b.nextDueAt = power.nextDueAt; b.upcoming = power.upcoming ?? null;

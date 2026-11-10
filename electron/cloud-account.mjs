@@ -2,7 +2,7 @@ import { createManagedDesktopStore, retryDelay, unreadableRecord } from "./manag
 import { CLOUD_MACHINE_CONNECTABLE, cloudUnreachableText, parseCloudCredit, parseCloudOffer, parseCloudPurchase, parseCloudSummary, parseCloudTeams, parseCloudRoom, parseCloudTrial, parseCloudUsage, parsePairingGrant, parsePublicOffer, withoutTrial } from "./cloud-home.mjs";
 import { CLOUD_ID, CLOUD_SWATCHES, cleanCloudListName, ORGANIZATION_BLOCKS, otherOwnClouds, ownCloud, parseCloudList, parseCloudRenewal, parseOrganizations, releaseVersion } from "./cloud-list.mjs";
 import { planTeam, teamPlan } from "./cloud-team-plan.mjs";
-import { cleanCode, cleanEmail, parseSignInStart, SIGN_IN_START, SIGN_IN_TRIES, SIGN_IN_VERIFY, signInIdentity, startFailure, verifyFailure } from "./cloud-signin.mjs";
+import { APP_PROVIDERS, APP_TOKEN, cleanCode, cleanEmail, LINK_MS, LINK_PROVIDERS, linkFailure, linkSignIn, parseAppLink, parseProviders, parseSignInStart, SIGN_IN_START, SIGN_IN_TRIES, SIGN_IN_VERIFY, signInIdentity, startFailure, verifyFailure } from "./cloud-signin.mjs";
 
 export const CLOUD_ORIGIN = "https://app.dusk.bot";
 /** The staging Admin (Dodo test mode, real test Clouds): a fixed address, on only with DUSK_CLOUD_STAGING=1. */
@@ -26,7 +26,9 @@ const STEADY_MS = 15 * 60_000;
 const SETUP_REFRESH_MS = 15_000;
 /** While My Cloud sleeps and Files or lending waits for it: the session every 15 s, so they resume soon after it wakes. */
 const ASLEEP_REFRESH_MS = 15_000;
-const WAKE_STATES = Object.freeze(["awake", "waking"]);
+const WAKE_STATES = Object.freeze(["awake", "waking", "asleep"]);
+/** What a person did that may wake a sleeping Cloud: opening the app or viewing chats never does (the Admin answers `asleep`). */
+export const WAKE_INTENTS = Object.freeze(["type", "click", "send", "open", "view"]);
 /** While a checkout this app opened waits for its payment and setup: the session every 3 s (30 minutes at most). */
 const WATCH_REFRESH_MS = 3_000;
 const CHECKING_AFTER = 2;
@@ -100,7 +102,7 @@ function addOffer(result) {
 
 export function createCloudAccountClient({ store, openBrowser, platform, deviceName, appVersion,
   origin = CLOUD_ORIGIN, fixture = false, custom = false, fetch: fetcher = globalThis.fetch, now = Date.now, onState = () => {},
-  setTimer = setTimeout, clearTimer = clearTimeout, warn = message => console.warn(message), awaitingWake = () => false }) {
+  setTimer = setTimeout, clearTimer = clearTimeout, warn = message => console.warn(message), awaitingWake = () => false, appLinks = false }) {
   origin = cloudOrigin(origin, fixture, custom);
   const staging = origin === STAGING_CLOUD_ORIGIN;
   let grant = null, issued = null, cleanup = null, pending = null, cleanupNeeded = false;
@@ -342,13 +344,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     try {
       const result = await request("token", { method: "POST", body: { deviceCode: attempt.deviceCode } });
       if (!(await adopt(result, stamp))) return state();
-      const intent = opened;
-      const signedIn = await refresh();
-      if (intent && current(stamp) && opened === intent && signedIn.status === "connected") {
-        if (signedIn.entitlement?.plan !== "free" || signedIn.purchase || signedIn.machine) { opened = null; return publish(value); }
-        if (!signedIn.offer) return (await openCheckout(intent.plan, intent.source).catch(() => ({ state: state() }))).state;
-      }
-      return signedIn;
+      return await signedInWith(opened, stamp);
     } catch (error) {
       if (!current(stamp)) return state();
       if (issued) return signOut();
@@ -359,11 +355,57 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       return state();
     }
   }
+  /** Signed in: the session is read at once, so a plan already bought is there with it; one chosen before signing in goes
+   * straight on to its checkout, unless the account already has a plan. */
+  async function signedInWith(intent, stamp) {
+    const signedIn = await refresh();
+    if (intent && current(stamp) && opened === intent && signedIn.status === "connected") {
+      if (signedIn.entitlement?.plan !== "free" || signedIn.purchase || signedIn.machine) { opened = null; return publish(value); }
+      if (!signedIn.offer) return (await openCheckout(intent.plan, intent.source).catch(() => ({ state: state() }))).state;
+    }
+    return signedIn;
+  }
+  /** The browser came back with this app's sign-in link: its one-time code, redeemed with the verifier kept here. A link
+   * this app didn't start, or one already used, does nothing. */
+  async function finishLink(raw) {
+    const answer = parseAppLink(raw), attempt = pending;
+    if (!answer || !attempt?.link || answer.state !== attempt.link.state) return { outcome: "ignored", state: state() };
+    const stamp = generation;
+    pending = null; stopTimer();
+    if (now() >= attempt.expiresAt) { opened = null; return { outcome: "failed", state: publish({ status: "signed-out", message: "enrollment-expired" }) }; }
+    if ("error" in answer) { opened = null; return { outcome: "failed", state: publish({ status: "signed-out", message: linkFailure(answer.error) }) }; }
+    try {
+      const result = await request(null, { method: "POST", path: APP_TOKEN,
+        body: { code: answer.code, codeVerifier: attempt.link.verifier, deviceName, platform, ...(text(appVersion, 40) && /^[0-9A-Za-z][0-9A-Za-z.+-]{0,39}$/.test(appVersion) ? { appVersion } : {}) } });
+      if (!(await adopt(result, stamp))) return { outcome: "failed", state: state() };
+      return { outcome: "signed-in", state: await signedInWith(opened, stamp) };
+    } catch {
+      if (!current(stamp)) return { outcome: "failed", state: state() };
+      if (issued) return { outcome: "failed", state: await signOut() };
+      opened = null;
+      return { outcome: "failed", state: publish({ status: "signed-out", message: "signin-failed" }) };
+    }
+  }
+  /** Which provider buttons sign in, as the service says; none from one that doesn't say or can't be reached, and the
+   * emailed code stays. */
+  async function signInOptions() {
+    try { return parseProviders(await request(null, { path: APP_PROVIDERS, timeoutMs: 8_000, signal: AbortSignal.timeout(8_000) })); }
+    catch { return { providers: [], recovery: false }; }
+  }
   async function begin(intent = null, { provider } = {}) {
     if (!intent || typeof intent !== "object" || !text(intent.plan, 24) || !CHECKOUT_SOURCES.includes(intent.source)) intent = null;
     if (closed || restoring || clearing || grant || issued || cleanupNeeded) throw new Error("Sign out before starting another Cloud connection.");
     const stamp = reset();
     opened = intent ? { plan: intent.plan, source: intent.source, startedAt: now(), signIn: true } : null;
+    // the packaged app owns duskbot://, so the browser comes back here signed in: no code to compare, no page to approve
+    const link = appLinks && LINK_PROVIDERS.includes(provider) ? linkSignIn(origin, provider) : null;
+    if (link) {
+      pending = { link: { verifier: link.verifier, state: link.state }, verificationUri: link.url, expiresAt: now() + LINK_MS };
+      publish({ status: "connecting", browser: provider });
+      try { await openBrowser(link.url); } catch { if (current(stamp)) { pending = null; opened = null; publish({ status: "signed-out", message: "signin-failed" }); } return state(); }
+      if (current(stamp)) schedule(async () => { if (current(stamp) && pending?.link) { pending = null; opened = null; publish({ status: "signed-out", message: "enrollment-expired" }); } }, LINK_MS);
+      return state();
+    }
     publish({ status: "connecting" });
     try {
       if (!text(deviceName, 100) || !["darwin", "win32", "linux"].includes(platform)) throw new Error("Invalid desktop.");
@@ -382,7 +424,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   }
   const signInBlocked = () => closed || restoring || clearing || grant || issued || cleanupNeeded;
   /** Sends the 8-digit code to `email`. Nothing is signed in yet; the answer says what the sheet shows next. */
-  async function emailStart(email) {
+  async function emailStart(email, { recover = false } = {}) {
     if (signInBlocked() || value.status === "connecting") throw new Error("Sign out before starting another Cloud connection.");
     const address = cleanEmail(email), app = signInIdentity({ deviceName, platform, appVersion });
     if (!address) return { outcome: "invalid-email" };
@@ -391,7 +433,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     // A code already sent stays good until a new one is: a refused Resend (too many, offline) must not lose it.
     if (emailed && emailed.email !== address) emailed = null;
     try {
-      const started = parseSignInStart(await request(null, { method: "POST", path: SIGN_IN_START, body: { email: address, ...app } }));
+      const started = parseSignInStart(await request(null, { method: "POST", path: SIGN_IN_START, body: { email: address, ...app, ...(recover === true ? { recover: true } : {}) } }));
       if (!current(stamp)) return { outcome: "failed" };
       if (!started) return { outcome: "failed" };
       emailed = { attempt: started.attempt, email: address, expiresAt: now() + started.expiresIn * 1000, wrong: 0 };
@@ -503,6 +545,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     },
     emailStart, emailVerify,
     emailCancel() { emailed = null; },
+    finishLink, signInOptions,
     checkout: openCheckout,
     reopenCheckout,
     /** For main's clipboard only: the kept checkout page, while it is the one being waited on. */
@@ -631,13 +674,15 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       return (value.clouds ?? []).find(cloud => cloud.origin === origin)?.power ?? null;
     },
     /** Starts a sleeping Cloud through the Admin (`awake` once started, `waking` if it is still starting), then reads the
-     *  session again so Files and lending resume. Null when there is nothing to wake or the Admin can't say. */
-    async wakeHome() {
+     *  session again so Files and lending resume. `intent` says what the person did: `type`, `click` and `send` wake it,
+     *  `open` and `view` leave it `asleep`. Null when there is nothing to wake or the Admin can't say. */
+    async wakeHome(intent) {
       const current = grant, power = value.status === "connected" ? value.machine?.power : null;
       if (!current || !power || power.state === "awake") return null;
+      if (!WAKE_INTENTS.includes(intent)) throw new Error("Invalid wake intent.");
       let woke = null;
       try {
-        const result = await request("wake", { method: "POST", body: {}, token: current.token });
+        const result = await request("wake", { method: "POST", body: { intent }, token: current.token });
         woke = WAKE_STATES.includes(result?.state) ? result.state : null;
       } catch {}
       await refresh().catch(() => {});

@@ -92,13 +92,15 @@ import { buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots }
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
-import { CHECKOUT_SOURCES, cloudMenuSublabel, cloudTarget, createCloudAccountClient, createCloudAccountStore } from "./cloud-account.mjs";
+import { CHECKOUT_SOURCES, cloudMenuSublabel, cloudTarget, createCloudAccountClient, createCloudAccountStore } from "./cloud-account.mjs"; import { isAppLink } from "./cloud-signin.mjs";
 import { installCloudPlanIpc } from "./cloud-plan-ipc.mjs";
 import { cloudLinkOpensSheet, colorDotIcons, createCloudLook, createCloudReadyNotice, installCloudBuy, lookFile } from "./cloud-buy.mjs";
 import { createAccountEnroll } from "./account-enroll.mjs"; import { accountGateRequired, installAccountGate } from "./account-gate.mjs";
 import { createTrialNotices } from "./cloud-trial-notice.mjs";
 import { createDesktopPrefs, DESKTOP_PORTS, jsonFile, registerDesktopPrefs } from "./desktop-prefs.mjs";
 import { createDesktopIncludedX } from "./included-x.mjs"; import { createDesktopIncludedPages } from "./included-pages.mjs";
+import { createLastSeenStore } from "./cloud-last-seen.mjs";
+import { createCloudFocus } from "./cloud-focus.mjs";
 import { cloudPageSenderAllowed, cloudPlanDisk, createCloudPowerGate, isCloudHomeEntry, myCloudOrigin, rememberedCloudHome, signInCloudSession, withCloudHome } from "./cloud-home.mjs";
 import { installCloudFiles } from "./cloud-sync-main.mjs";
 import { createCloudEntry } from "./cloud-entry.mjs";
@@ -259,6 +261,14 @@ function queuePackageInstall(rawLink) {
   return true;
 }
 
+/** duskbot://auth: the browser back from a Google or Apple sign-in this app started; the client ignores any other. */
+function takeSignInLink(rawLink) {
+  if (!isAppLink(rawLink)) return false;
+  revealForLink();
+  try { void ensureCloudAccount().finishLink(rawLink).catch(() => {}); } catch {}
+  return true;
+}
+
 function queueChatLink(rawLink) {
   const link = chatLinkFrom(rawLink);
   if (!link) return false;
@@ -270,12 +280,13 @@ function queueChatLink(rawLink) {
 
 app.on("open-url", (event, rawUrl) => {
   const url = fromLegacyLink(rawUrl);
-  if (!queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url) && !slackOAuthLinks.queue(url)) return;
+  if (!takeSignInLink(url) && !queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url) && !slackOAuthLinks.queue(url)) return;
   event.preventDefault();
 });
 
 app.on("second-instance", (_event, rawCommandLine) => {
   const commandLine = rawCommandLine.map(fromLegacyLink);
+  if (takeSignInLink(commandLine.find(isAppLink))) return;
   if (takeOrganizationDeepLink(commandLine)) {
     queueOrganizationEntry("duskbot://organization");
     return;
@@ -868,7 +879,7 @@ function ensureCloudAccount() {
   cloudAccount = createCloudAccountClient({
     store: cloudAccountStore(),
     platform: process.platform, deviceName: os.hostname().slice(0, 100) || "My computer", appVersion: app.getVersion(), origin: cloudTarget(process.env).origin, custom: cloudTarget(process.env).custom,
-    openBrowser: url => shell.openExternal(url), awaitingWake: () => cloudPower.awaiting(),
+    openBrowser: url => shell.openExternal(url), awaitingWake: () => cloudPower.awaiting(), appLinks: app.isPackaged,
     onState: state => {
       cloudSync.accountChanged(state.account?.id ?? null); rememberCloudHome(state);
       rememberedHome = rememberedCloudHome(rememberedHome, state);
@@ -2682,7 +2693,7 @@ const homePlaces = createHomePlaces({ store: jsonFile(path.join(app.getPath("use
 const homeWindow = createHomeWindow({ clean: cleanWorkspace, journal: oneHome.journal, frozen: oneHome.marker, account: () => (app.isPackaged && !desktopRemoteAccess ? cloudAccount : null), restored: cloudAccountRestored,
   window: () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null), ensureWindow: () => { if (!mainWindow || mainWindow.isDestroyed()) createWindow({ deferNavigation: true }); },
   localOrigin: rendererOrigin, cookieFetch: (...args) => session.defaultSession.fetch(...args), power: cloudPower, splash: () => startupScreen, lastInput: oneHome.lastInput, rehomed: () => talk.homeChanged(), log: slog,
-  hosts: () => session.defaultSession, readyStore: jsonFile(path.join(app.getPath("userData"), "cloud-ready.json")), ownMove: () => ownHome?.underWay() ?? null,
+  hosts: () => session.defaultSession, readyStore: jsonFile(path.join(app.getPath("userData"), "cloud-ready.json")), ownMove: () => ownHome?.underWay() ?? null, lastSeen: createLastSeenStore({ file: path.join(app.getPath("userData"), "cloud-last-seen.bin"), encryption: cloudEncryption }),
   remembered: homePlaces.remembered, remember: homePlaces.remember, left: homePlaces.left, drop: homePlaces.drop,
   publish: view => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("home:state-changed", view); },
   go: (url, origin, place) => { if (place?.kind === "team" || place?.kind === "own") { activatePlace(place); if (place.kind === "team") teamProfileSeeds.opened(place.origin); } else if (origin) activateCloud(origin); return navigateMainWindow(url); },
@@ -2693,6 +2704,10 @@ const homeWindow = createHomeWindow({ clean: cleanWorkspace, journal: oneHome.jo
     return navigateMainWindow(rendererOrigin());
   } });
 installHomeWindowIpc({ ipcMain, homeWindow, cloudPage: cloudPageAsking });
+// My Cloud's page focused in the window: the home hears it every few minutes, so its power policy keeps it up meanwhile
+const cloudFocus = createCloudFocus({ fetch: (...args) => session.defaultSession.fetch(...args), lastInput: oneHome.lastInput, log: slog, focused: () => Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.isFocused()),
+  origin: () => { const origin = myCloud(); if (!origin || homeWindow.placeOrigin() !== origin || cloudPower.asleep() || homeWindow.asleepAt(origin)) return null; try { return new URL(mainWindow.webContents.getURL()).origin === origin ? origin : null; } catch { return null; } } });
+app.on("browser-window-focus", () => { cloudFocus.check(); });
 /** Every path that shows the window: My Cloud once it is the person's home, else as before. */
 function showHome(options) {
   return homeWindow.show(options).catch(error => slog(`home: ${error?.message ?? error}`));

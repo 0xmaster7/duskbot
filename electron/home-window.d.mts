@@ -3,6 +3,9 @@
  * team whose Cloud is being opened (absent for My Cloud). */
 export type HomeView = { name?: string } & (
   | { screen: "opening" | "waking" | "moving" }
+  /** My Cloud asleep: its last-seen chats, read-only, until the person types, clicks or sends; `waking` once they did,
+   * `held` the message they sent meanwhile. */
+  | { screen: "asleep"; waking?: true; held?: string }
   /** The Admin is setting it up (or a brand-new one's name isn't found yet, at `checking`): the step it reports. */
   | { screen: "setup"; step?: import("./cloud-home.mjs").CloudSetupStep; slow?: true }
   | { screen: "offline"; reason?: string }
@@ -29,7 +32,21 @@ export interface HomeBridge {
   repair(): Promise<void>;
   /** My Cloud's own page only: the window reloaded it just now for its newer version. */
   updating?: boolean;
+  /** This computer's screen only, while My Cloud sleeps: the person typed, clicked or sent there (absent: an older app). */
+  wake?(intent: "type" | "click" | "send", send?: HeldSend | null): Promise<HomeView>;
+  /** This computer's screen only: My Cloud's chats as last seen, or null. */
+  lastSeen?(): Promise<LastSeen | null>;
+  /** My Cloud's own page only: keeps its chats as last seen. */
+  saveLastSeen?(snapshot: LastSeen): Promise<boolean>;
+  /** My Cloud's own page only: the message sent from the asleep screen, once. */
+  takeHeld?(): Promise<HeldSend | null>;
 }
+
+export interface HeldSend { botId: string; threadId: string; text: string; sendId: string }
+export interface LastSeenMessage { id: string; role: "bot" | "user"; text: string; at: number }
+export interface LastSeenBot { id: string; threadId: string; name: string; color?: string; messages: LastSeenMessage[] }
+export interface LastSeen { bots: LastSeenBot[]; savedAt?: number }
+export declare function heldSend(input: unknown): HeldSend | null;
 
 export type Home = { kind: "computer" } | { kind: "cloud"; origin: string } | { kind: "signin"; other?: true };
 /** A place the window shows: My Cloud, or a team's Cloud or another Cloud of the person's own (`own`), from the verified session. */
@@ -94,13 +111,17 @@ export interface HomeWindow {
   screenPage(event: unknown): boolean;
   /** Signs the team on screen in again now, without moving the page. */
   renew(): Promise<void>;
+  wake(intent: "type" | "click" | "send", send?: HeldSend | null): Promise<HomeView>;
+  takeHeld(event: unknown): HeldSend | null;
+  lastSeen(): Promise<LastSeen | null>;
+  saveLastSeen(event: unknown, snapshot: unknown): Promise<boolean>;
   close(): void;
 }
 
 export function createHomeWindow(deps: {
   journal(): unknown;
   frozen(): Promise<{ frozen: boolean; cloud?: string } | null>;
-  account(): { state(): any; power(): any; wakeHome(): Promise<unknown>; setWaking(on: boolean): void; pairHome(cloudId?: string | null): Promise<{ origin: string; code: string; expiresAt: number }>;
+  account(): { state(): any; power(): any; wakeHome(intent: import("./cloud-account.mjs").WakeIntent): Promise<unknown>; setWaking(on: boolean): void; pairHome(cloudId?: string | null): Promise<{ origin: string; code: string; expiresAt: number }>;
     pairTeam?(teamId: string): Promise<{ origin: string; code: string; expiresAt: number }>; signInAgain(): Promise<unknown>; begin(): Promise<unknown>; signOut?(): Promise<unknown>; reopen?(): Promise<unknown>;
     hideCloud?(cloudId: string): Promise<{ outcome: import("./cloud-account.mjs").CloudRemoveOutcome }> } | null;
   restored?(): Promise<unknown>;
@@ -127,6 +148,8 @@ export function createHomeWindow(deps: {
   timers?: Timers;
   hosts?(): { clearHostResolverCache(): Promise<void>; resolveHost(host: string, options?: { cacheUsage?: "allowed" | "staleAllowed" | "disallowed" }): Promise<{ endpoints: unknown[] }> } | null;
   readyStore?: { read(): unknown; write(value: unknown): void } | null;
+  /** My Cloud's chats as last seen (cloud-last-seen.mjs), for the asleep screen. */
+  lastSeen?: { read(origin: string): Promise<LastSeen | null>; write(origin: string, snapshot: unknown): Promise<boolean>; forget?(): Promise<void> } | null;
   log?(line: string): void;
 }): HomeWindow;
 

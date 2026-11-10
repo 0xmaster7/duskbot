@@ -251,7 +251,7 @@ fi
 }
 
 /**
- * <root>/bin/omb-home, root's: `install <file> <sha256>`, `restore <tar>`, `start <origin>`, `stop`, `status`. Each
+ * <root>/bin/omb-home, root's: `install <file> <sha256> [signature] [floor]`, `rollback`, `restore <tar>`, `start <origin>`, `stop`, `status`. Each
  * prints only fixed words. Running it again is safe.
  */
 export function boatControlScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean } = { releaseKeys: [], requireSigned: false }): string {
@@ -265,14 +265,22 @@ signed=${options.requireSigned ? 1 : 0}
 tree() { (cd "$1" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1); }
 case "\${1:-}" in
   install)
-    file="$2"; sum="$3"; sig="\${4:-}"
+    file="$2"; sum="$3"; sig="\${4:-}"; floor="\${5:-}"; ver=""
     [[ "$sum" =~ ^[a-f0-9]{64}$ ]] || { echo "bad checksum"; exit 2; }
     echo "$sum  $file" | sha256sum -c --quiet
     if [ -n "$sig" ] || [ "$signed" = 1 ]; then
       [[ "$sig" =~ ^r1\\.[a-z0-9-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$ ]] || { echo "unsigned package"; exit 2; }
       sigfile="$(mktemp)"; printf '%s' "$sig" > "$sigfile"
-      ${BOAT_NODE_BIN} -e "$verify" "$sigfile" "$sum" home-package || { rm -f "$sigfile"; echo "bad signature"; exit 2; }
+      ver="$(${BOAT_NODE_BIN} -e "$verify" "$sigfile" "$sum" home-package print)" || { rm -f "$sigfile"; echo "bad signature"; exit 2; }
       rm -f "$sigfile"
+    fi
+    # the same package again (a lost answer): nothing to swap, and the version before stays the one to roll back to
+    if [ -d "$app" ] && [ "$(cat ${ROOT}/installed 2>/dev/null)" = "$sum" ]; then rm -f "$file"; echo installed; exit 0; fi
+    # never older than what runs (a rollback is its own command), never below the signed floor
+    if [ -n "$ver" ]; then
+      cur="$(cat ${ROOT}/installed-version 2>/dev/null || true)"
+      if [ -n "$cur" ] && [ "$(printf '%s\\n%s\\n' "$cur" "$ver" | sort -V | head -n 1)" != "$cur" ]; then rm -f "$file"; echo "older package"; exit 2; fi
+      if [[ "$floor" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]] && [ "$(printf '%s\\n%s\\n' "$floor" "$ver" | sort -V | head -n 1)" != "$floor" ]; then rm -f "$file"; echo "below floor"; exit 2; fi
     fi
     next="$app.next"; rm -rf "$next"; install -d -o root -g root -m 0755 "$next"
     tar -xzf "$file" -C "$next" --no-same-owner --no-same-permissions
@@ -280,8 +288,17 @@ case "\${1:-}" in
     test -f "$next/dist-server/cloud-home-start.js"
     systemctl stop omb-home.service >/dev/null 2>&1 || true
     rm -rf "$app.prev"; [ ! -d "$app" ] || mv "$app" "$app.prev"; mv "$next" "$app"
-    echo "$sum" > ${ROOT}/installed; rm -f "$file"
+    for f in installed installed-version; do if [ -f ${ROOT}/$f ]; then mv ${ROOT}/$f ${ROOT}/$f.prev; else rm -f ${ROOT}/$f.prev; fi; done
+    echo "$sum" > ${ROOT}/installed; [ -z "$ver" ] || echo "$ver" > ${ROOT}/installed-version; rm -f "$file"
     echo installed ;;
+  rollback)
+    # back to the app the last install replaced; the reconciler starts it again
+    [ -d "$app.prev" ] && [ -f ${ROOT}/installed.prev ] || { echo "nothing to roll back to"; exit 2; }
+    systemctl stop omb-home.service >/dev/null 2>&1 || true
+    rm -rf "$app.bad"; mv "$app" "$app.bad"; mv "$app.prev" "$app"; rm -rf "$app.bad"
+    mv ${ROOT}/installed.prev ${ROOT}/installed
+    if [ -f ${ROOT}/installed-version.prev ]; then mv ${ROOT}/installed-version.prev ${ROOT}/installed-version; else rm -f ${ROOT}/installed-version; fi
+    echo "rolled back" ;;
   restore)
     file="$2"
     systemctl stop omb-home.service >/dev/null 2>&1 || true
@@ -324,15 +341,16 @@ case "\${1:-}" in
     echo "not answering"; exit 3 ;;
   stop) systemctl stop omb-home.service; echo stopped ;;
   status) systemctl is-active omb-home.service || true; [ -f ${ROOT}/installed ] && cat ${ROOT}/installed || echo none ;;
-  *) echo "usage: omb-home install|restore|start|stop|status|verify-template|tree|resume-if-cancelled"; exit 2 ;;
+  *) echo "usage: omb-home install|rollback|restore|start|stop|status|verify-template|tree|resume-if-cancelled"; exit 2 ;;
 esac
 `;
 }
 
-export function installCommand(sha256: string, url?: string, signature?: string): string {
+export function installCommand(sha256: string, url?: string, signature?: string, floor?: string | null): string {
   if (!SHA256.test(sha256)) throw new Error("Invalid home package checksum.");
   if (signature !== undefined && !/^r1\.[a-z0-9-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(signature)) throw new Error("Invalid home package signature.");
-  const install = `sudo -n ${BOAT_CONTROL} install ${BOAT_PACKAGE_FILE} ${sha256}${signature ? ` ${signature}` : ""}`;
+  if (floor && (!signature || !/^\d+\.\d+\.\d+$/.test(floor))) throw new Error("Invalid home package floor.");
+  const install = `sudo -n ${BOAT_CONTROL} install ${BOAT_PACKAGE_FILE} ${sha256}${signature ? ` ${signature}` : ""}${floor ? ` ${floor}` : ""}`;
   if (url === undefined) return install;
   const parsed = new URL(url);
   if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error("Invalid home package URL.");
@@ -347,6 +365,7 @@ export function startCommand(origin: string, upstream: string = origin): string 
   return `sudo -n ${BOAT_CONTROL} start ${shellQuote(origin)} ${shellQuote(upstream)}`;
 }
 export const RESTORE_COMMAND = `sudo -n ${BOAT_CONTROL} restore ${BOAT_RESTORE_FILE}`;
+export const ROLLBACK_COMMAND = `sudo -n ${BOAT_CONTROL} rollback`;
 export const STATUS_COMMAND = "sudo -n ${BOAT_CONTROL} status";
 
 /** the key a cloud's backups are sealed with, derived from its bootstrap secret, so nothing else needs storing */
@@ -355,5 +374,5 @@ export function backupKey(secret: string): Buffer { return createHmac("sha256", 
 export const BOAT_IMAGE: MachineImage = {
   homeVolume: BOAT_HOME_VOLUME, packagePath: BOAT_PACKAGE_FILE, restorePath: BOAT_RESTORE_FILE,
   bootFile: boatBootFile, claimBootFile, bootContent, setupScript: boatSetupScript,
-  installCommand, startCommand, restoreCommand: RESTORE_COMMAND, legacyBackupKey: backupKey,
+  installCommand, startCommand, restoreCommand: RESTORE_COMMAND, rollbackCommand: ROLLBACK_COMMAND, legacyBackupKey: backupKey,
 };

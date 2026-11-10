@@ -1,6 +1,7 @@
 // One end-to-end run of a Boat-backed My Cloud: paid (fake billing), provisioned on Boat, paired, a bot made and messaged
 // with a synthetic engine, a bot moved there from a local fixture with the app's own send, slept, backed up, woken, its
-// machine deleted and rebuilt from the backup, then everything this run made on Boat deleted and proven gone.
+// machine deleted and rebuilt from the backup, then everything this run made on Boat deleted and proven gone. With --fake
+// it also rolls a signed update out to the running home and rolls a second one back after its self-test fails.
 //
 //   node --experimental-strip-types apps/cloud-service/scripts/e2e.ts --fake                     # loopback fake Boat, no VM
 //   BOAT_API_KEY=... BOAT_BASE_URL=... node --experimental-strip-types apps/cloud-service/scripts/e2e.ts --package release/home/omb-home.tgz --engine <fake-claude.mjs> --ledger <file>
@@ -8,8 +9,8 @@
 // Real runs create at most two `small` sandboxes (the cloud, and its rebuild) under a scope label of their own, and the
 // teardown deletes every sandbox with that label whatever happened. Prints timings and ids, never a key or a token.
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
-import { createHash, randomBytes } from "node:crypto";
-import { appendFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { createHash, createPublicKey, generateKeyPairSync, randomBytes } from "node:crypto";
+import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http, { createServer } from "node:http";
 import { generateEntitlementSigner } from "../../../shared/entitlement.ts";
 import { tmpdir } from "node:os";
@@ -25,6 +26,8 @@ import { pagesRoutesFromEnv } from "../../dashboard/server/pages/routes.ts";
 import { createSealer, parseSealKey } from "../../dashboard/server/clouds/seal.ts";
 import { createPagesClient } from "../../../server/pages/client.ts";
 import edge from "../edge/worker.js";
+import { signRelease } from "../src/release-signing.ts";
+import { fakeHookQueues } from "../src/fake-hook-queue.ts";
 
 const args = process.argv.slice(2), fake = args.includes("--fake");
 const option = (name: string) => { const at = args.indexOf(name); return at === -1 ? null : args[at + 1] ?? null; };
@@ -41,18 +44,35 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 const dataDir = mkdtempSync(join(tmpdir(), "omb-boat-e2e-"));
 const api = fake ? await startFakeBoatApi() : null;
+// --fake: a release key of this run's own signs every home package, so the update path runs signed end to end; each fake
+// machine keeps the version it runs and the one before, and a version listed here fails its self-test
+const releaseKey = fake ? generateKeyPairSync("ed25519").privateKey : null;
+const releaseSigning = releaseKey ? `e2e-rel:${releaseKey.export({ format: "der", type: "pkcs8" }).toString("base64url")}` : null;
+const releasePublic = releaseKey ? `e2e-rel:${createPublicKey(releaseKey).export({ format: "jwk" }).x}` : null;
+const versions = new Map<string, string>(), apps = new Map<string, { now: string | null; before: string | null }>(), failingSelfTest = new Set<string>();
+const signedPackage = (version: string, file: string) => {
+  writeFileSync(file, `fake package ${version}`);
+  const sum = createHash("sha256").update(readFileSync(file)).digest("hex");
+  versions.set(sum, version);
+  return { sha256: sum, file, signature: signRelease({ kind: "home-package", name: "omb-home", version, sha256: sum, signedAt: Date.now() }, releaseSigning!) };
+};
 if (api) api.onCommand(({ sandbox, command }) => {
   if (command.includes("omb-home start") && !sandbox.volume.size) {
     sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
     sandbox.volume.set(`__system__${CLOUD_HOME.data}/config.json`, Buffer.from("{}"));
   }
-  return { exitCode: 0, stdout: command.includes("omb-home install") ? "installed\n" : command.includes("omb-home start") ? "started\n" : command.includes("restore") ? "restored\n" : "" };
+  const app = apps.get(sandbox.id) ?? { now: null, before: null };
+  apps.set(sandbox.id, app);
+  if (command.includes("omb-home install")) { const sum = /omb-home install \S+ ([a-f0-9]{64})/.exec(command)?.[1] ?? ""; app.before = app.now; app.now = versions.get(sum) ?? null; }
+  if (command.includes("omb-home rollback")) { if (!app.before) return { exitCode: 2, stdout: "nothing to roll back to\n" }; app.now = app.before; app.before = null; }
+  return { exitCode: 0, stdout: command.includes("omb-home install") ? "installed\n" : command.includes("omb-home rollback") ? "rolled back\n" : command.includes("omb-home start") ? "started\n" : command.includes("restore") ? "restored\n" : "" };
 });
 const key = api?.key ?? process.env.BOAT_API_KEY, baseUrl = api?.baseUrl ?? process.env.BOAT_BASE_URL;
 if (!key || !baseUrl) { console.error("BOAT_API_KEY and BOAT_BASE_URL are required (or --fake)."); process.exit(2); }
 const packageFile = fake ? join(dataDir, "pkg.tgz") : resolve(option("--package") ?? "release/home/omb-home.tgz");
-if (fake) (await import("node:fs")).writeFileSync(packageFile, "fake package");
+const firstRelease = fake ? signedPackage("1.0.0", packageFile) : null;
 const sha256 = createHash("sha256").update(readFileSync(packageFile)).digest("hex");
+const releaseFile = join(dataDir, "home-release.json");
 const apiBase = `${baseUrl.replace(/\/$/, "")}${baseUrl.includes("/api/v1") ? "" : "/api/v1"}`;
 const rawSandbox = async (id: string) => (await (await fetch(`${apiBase}/sandboxes/${id}`, { headers: { authorization: `Bearer ${key}` } })).json() as { sandbox?: { labels?: Record<string, string> } }).sandbox;
 if (adopt) scope = (await rawSandbox(adopt))?.labels?.["omb.scope"] ?? scope;
@@ -65,6 +85,8 @@ const WIPE = ["/data", CLOUD_HOME.etc, CLOUD_HOME.root, "/opt/duskbot", "/usr/lo
 const hooksSeen: string[] = [];
 // what the fake homes say about their power: at work until the lifecycle scenario changes it
 const fakePower: { idle: boolean; busy: string[]; lastActivityAt: number | null; nextDueAt: number | null } = { idle: false, busy: ["turn"], lastActivityAt: null, nextDueAt: null };
+// the runs the fake homes say finished (the update scenario's trial reads them)
+const fakeRuns: Array<{ id: string; ok: boolean; at: number }> = [];
 // the edge step swaps the global fetch for the Worker's; everything else keeps the real one
 const realFetch = globalThis.fetch;
 const homeFetch: typeof fetch = async (input, init) => {
@@ -88,7 +110,9 @@ const homeFetch: typeof fetch = async (input, init) => {
     const up = [...api!.sandboxes.values()].find(x => x.hosted && new URL(x.hosted).hostname === url.hostname);
     if (up && up.state !== "ready") return new Response("down", { status: 502 });
     if (url.pathname.startsWith("/hooks/")) { hooksSeen.push(`${init?.method ?? "GET"} ${url.pathname} ${init?.body ? new TextDecoder().decode(init.body as ArrayBuffer) : ""}`); return new Response("ok", { status: 200 }); }
+    const running = up ? apps.get(up.id)?.now ?? null : null;
     const body = url.pathname === "/api/cloud/health" ? { v: 1 } : url.pathname === "/api/cloud/power" ? { v: 1, ...fakePower }
+      : url.pathname === "/api/cloud/update" ? { v: 1, version: running, selfTest: running && failingSelfTest.has(running) ? "failed" : "passed", runs: fakeRuns }
       : url.pathname === "/api/cloud/pairing" ? { code: "ABCD-EFGH-JKLM", expiresAt: Date.now() + 300_000 }
       : url.pathname === "/api/cloud/entitlement" ? { ok: true, expiresAt: Date.now() + 86_400_000 } : { ok: true };
     return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
@@ -107,7 +131,8 @@ const billing = createBilling({ dataDir, publicUrl: "https://dashboard.e2e.inval
   mail: (cloud, letter) => note(`notice to owner: ${letter.subject} for ${cloud.id}`),
   alert: entry => note(`ALERT ${entry.action} ${entry.cloudId} (${entry.reason})`),
   env: { DUSK_BILLING_PROVIDER: "fake", DUSK_CLOUD_SEAL_KEY: sealKey, DUSK_MANAGED: "1", DUSK_MANAGED_EDGE_TOKEN: edgeToken, ...(fake ? { DUSK_MANAGED_PUBLIC_DOMAIN: PUBLIC_DOMAIN } : {}), BOAT_API_KEY: key, BOAT_BASE_URL: baseUrl, DUSK_MANAGED_SCOPE: scope,
-    DUSK_MANAGED_KINDS: "shared_s", DUSK_MANAGED_HOME_PACKAGE_FILE: packageFile, DUSK_MANAGED_HOME_PACKAGE_SHA256: sha256, DUSK_MANAGED_LEASE_HOURS: "1", DUSK_MANAGED_IDLE_MINUTES: "5", DUSK_MANAGED_LOST_AFTER_MINUTES: "2", DUSK_POOL_DRIVER: "fake",
+    DUSK_MANAGED_KINDS: "shared_s", DUSK_MANAGED_HOME_PACKAGE_FILE: packageFile, DUSK_MANAGED_HOME_PACKAGE_SHA256: sha256,
+    ...(firstRelease ? { DUSK_MANAGED_HOME_PACKAGE_SIGNATURE: firstRelease.signature, DUSK_RELEASE_PUBLIC_KEYS: releasePublic!, DUSK_MANAGED_HOME_RELEASE_FILE: releaseFile } : {}), DUSK_MANAGED_LEASE_HOURS: "1", DUSK_MANAGED_IDLE_MINUTES: "5", DUSK_MANAGED_LOST_AFTER_MINUTES: "2", DUSK_POOL_DRIVER: "fake",
     // no machine can reach this harness, and nobody uses it: no claim, no public domain, an unsigned test package
     DUSK_MANAGED_TEST_HARNESS: "1", DUSK_ENTITLEMENT_SIGNING_KEY: entitlementKey } });
 // published pages: the account service's own routes, with object storage in memory for this run
@@ -268,6 +293,31 @@ try {
     mark("webhook woke it through the edge");
     await billing.clouds.power(account.id, cloudId, "off");
     await reconcileUntil(cloudId, () => cloud().status === "sleeping", 10 * 60_000, "sleep again");
+
+    // 6d. with the hook queue bound, the edge answers at once (202) and the queue delivers after the wake, from a fresh isolate
+    const queued: Parameters<typeof edge.fetch>[1] = { ...env, HOOK_SEAL_KEY: randomBytes(32).toString("base64url") };
+    const queues = fakeHookQueues(() => queued);
+    queued.HOOK_QUEUE = queues.namespace;
+    globalThis.fetch = edgeFetch;
+    const quiet = console.log;
+    const lines: string[] = [];
+    console.log = (line: string) => { lines.push(line); };
+    const sentAt = Date.now(), seen = hooksSeen.length, label = cloud().managed!.label!;
+    const queueLooper = setInterval(() => { const c = cloud(); c.nextAttemptAt = 0; }, 100);
+    try {
+      const hook = await edge.fetch(new Request(`${cloud().origin}/hooks/github`, { method: "POST", body: "{\"ref\":\"queued\"}", headers: { "x-github-delivery": "e2e-1" } }), queued, { waitUntil() {} });
+      const answeredMs = Date.now() - sentAt;
+      queues.restart(label);
+      for (let n = 0; n < 240 && hooksSeen.length === seen; n++) { await sleep(250); await queues.runAlarm(label); }
+      console.log = quiet;
+      note(`queued webhook: ${hook.status} in ${answeredMs} ms; delivered ${JSON.stringify(hooksSeen.at(-1))} after ${Date.now() - sentAt} ms; ${lines.filter(l => l.includes("edge_hook_delivered")).length} delivery line`);
+      results.webhookQueued = hook.status === 202 && answeredMs < 2_000 && hooksSeen.length === seen + 1 && hooksSeen.at(-1)!.endsWith("{\"ref\":\"queued\"}") && cloud().status === "running";
+      results.webhookQueuedMs = Date.now() - sentAt;
+    } finally { console.log = quiet; globalThis.fetch = real; clearInterval(queueLooper); }
+    if (!results.webhookQueued) throw new Error("the queued webhook was not delivered after the wake");
+    mark("queued webhook delivered after the wake");
+    await billing.clouds.power(account.id, cloudId, "off");
+    await reconcileUntil(cloudId, () => cloud().status === "sleeping", 10 * 60_000, "sleep after the queued hook");
   }
 
   // 7. resumed for its owner
@@ -301,6 +351,37 @@ try {
       throw new Error(`the power rails did not hold: ${JSON.stringify(results.lifecycle)}`);
     Object.assign(fakePower, { idle: false, busy: ["turn"], nextDueAt: null });
     mark("power policy and rails held");
+  }
+  // 7c. staged updates: a newer signed release goes in at an idle moment and settles after its self-test and two runs;
+  // the next one fails its self-test and is rolled back to the version before on its own
+  if (fake) {
+    const pass = async () => { cloud().nextAttemptAt = 0; cloud().managed!.lastPowerAt = 0; await billing.clouds.reconcile(); };
+    const running = () => apps.get(cloud().serverId!)?.now ?? null;
+    const actions = () => (JSON.parse(`[${readFileSync(join(dataDir, "boat-audit.jsonl"), "utf8").trim().split("\n").join(",")}]`) as Array<{ cloudId: string; action: string; reason: string; detail?: Record<string, unknown> }>)
+      .filter(e => e.cloudId === cloudId && e.action.startsWith("update_") && e.action !== "update_policy");
+    Object.assign(fakePower, { idle: false, busy: ["turn"], nextDueAt: null });
+    writeFileSync(releaseFile, JSON.stringify(signedPackage("1.1.0", join(dataDir, "pkg-1.1.0.tgz"))));
+    await pass(); await pass();
+    const heldWhileBusy = running();
+    fakePower.busy = [];
+    for (let n = 0; n < 5 && running() !== "1.1.0"; n++) await pass();
+    fakeRuns.push({ id: "run-1", ok: true, at: Date.now() + 1 }, { id: "run-2", ok: true, at: Date.now() + 2 });
+    for (let n = 0; n < 5 && cloud().managed!.update?.guard.trial; n++) await pass();
+    const updated = { running: running(), last: cloud().managed!.update?.guard.last ?? null };
+    note(`update: held at ${heldWhileBusy} while a turn ran, then ${JSON.stringify(updated)}`);
+    mark("updated to 1.1.0");
+    failingSelfTest.add("1.2.0"); fakeRuns.length = 0;
+    writeFileSync(releaseFile, JSON.stringify(signedPackage("1.2.0", join(dataDir, "pkg-1.2.0.tgz"))));
+    for (let n = 0; n < 8 && !actions().some(e => e.action === "update_rolled_back"); n++) await pass();
+    for (let n = 0; n < 3; n++) await pass();
+    const rolled = { running: running(), installed: cloud().managed!.installed, last: cloud().managed!.update?.guard.last ?? null, status: cloud().status };
+    note(`update to 1.2.0: ${JSON.stringify(rolled)}`);
+    results.updates = { heldWhileBusy, updated, rolled, audit: actions().map(e => `${e.action}:${e.reason}`) };
+    if (heldWhileBusy !== "1.0.0" || updated.running !== "1.1.0" || updated.last?.kind !== "updated" || rolled.running !== "1.1.0" || rolled.last?.kind !== "rolled_back"
+      || rolled.last?.reason !== "self_test" || rolled.status !== "running" || !actions().some(e => e.action === "update_refused" && e.reason === "failed_here"))
+      throw new Error(`the update path did not hold: ${JSON.stringify(results.updates)}`);
+    Object.assign(fakePower, { idle: false, busy: ["turn"], nextDueAt: null });
+    mark("update rolled back after a failed self-test");
   }
   if (session) {
     const bots = await session.call("GET", "/api/bots?messages=0");
