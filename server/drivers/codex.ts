@@ -3,6 +3,7 @@ import { codexShellDisabled, GUEST_CONFINED_CODEX_ARGS } from "./codex-guest.ts"
 import { TEAM_TOOLS_FAILED, teamToolsFailed } from "./team-tools.ts";
 import { enabledMcpMounts, mcpStartupTracker, supportsMcpStartup } from "./codex-mcp-startup.ts";
 import { codexMountsOwnMcpOverHttp, codexParallelMcpArgs, type McpApprovalMode, mountMcpServer, OWN_MCP_ENV_FAMILY } from "./codex-mcp-mount.ts";
+import { codexDynamicToolReply, codexStatusThreadParams } from "./codex-status-tool.ts";
 import { reportUnsupportedCalls, rolloutMark, type RolloutMark } from "./codex-unsupported-calls.ts";
 // The `codex` CLI headless over its app-server JSON-RPC (NDJSON on stdio): completion is
 // `turn/completed`, approvals arrive as server→client requests, resumeCursor is the codex thread id.
@@ -880,6 +881,10 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         const isPermission = legacy || isMcpPermission || isAdditionalPermission ||
           method === "item/commandExecution/requestApproval" ||
           method === "item/fileChange/requestApproval";
+        if (method === "item/tool/call") {
+          send({ jsonrpc: "2.0", id: msg.id, ...codexDynamicToolReply(params) });
+          return;
+        }
         // An MCP elicitation asks for real input, not permission; unknown server requests fail closed instead of being accepted by Full access.
         if (!isQuestion && !isPermission) {
           if (isMcpElicitation) {
@@ -1129,7 +1134,9 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
                     ? (runs ?? item.tool ?? item.name ?? "mcp")
                     : item.type === "webSearch"
                       ? "web_search"
-                      : null;
+                      : item.type === "dynamicToolCall" && typeof item.tool === "string"
+                        ? item.tool
+                        : null;
             if (title) {
               emit({
                 ...base(threadId, turnId),
@@ -1138,7 +1145,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
                 itemId: item.id,
                 title,
                 summary: item.type === "commandExecution" ? commandSummary({ command: item.command }) : undefined,
-                input: toolDetailPreview(item.type === "commandExecution" ? { command: item.command, cwd: item.cwd } : item.type === "mcpToolCall" ? (runs ? item.arguments?.arguments ?? {} : item.arguments) : item.type === "fileChange" ? item.changes : item.query),
+                input: toolDetailPreview(item.type === "commandExecution" ? { command: item.command, cwd: item.cwd } : item.type === "mcpToolCall" || item.type === "dynamicToolCall" ? (runs ? item.arguments?.arguments ?? {} : item.arguments) : item.type === "fileChange" ? item.changes : item.query),
               });
             }
             break;
@@ -1168,14 +1175,14 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
                   alt: typeof item.revisedPrompt === "string" ? item.revisedPrompt : undefined,
                 });
               }
-            } else if (["commandExecution", "fileChange", "mcpToolCall", "webSearch"].includes(item.type)) {
+            } else if (["commandExecution", "fileChange", "mcpToolCall", "webSearch", "dynamicToolCall"].includes(item.type)) {
               emit({
                 ...base(threadId, turnId),
                 type: "item.completed",
                 itemType: "tool",
                 itemId: item.id,
                 ok: item.status !== "failed" && item.status !== "declined",
-                output: toolDetailPreview(item.type === "commandExecution" ? { output: item.aggregatedOutput, exitCode: item.exitCode } : item.type === "mcpToolCall" ? item.error ?? item.result : item.type === "fileChange" ? item.changes : item.action),
+                output: toolDetailPreview(item.type === "commandExecution" ? { output: item.aggregatedOutput, exitCode: item.exitCode } : item.type === "mcpToolCall" ? item.error ?? item.result : item.type === "fileChange" ? item.changes : item.type === "dynamicToolCall" ? item.contentItems : item.action),
               });
               if (item.type === "mcpToolCall") {
                 for (const img of extractMcpImages(item.result)) {
@@ -1496,6 +1503,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
               ...(selection.modelProvider ? { modelProvider: selection.modelProvider } : {}),
               ...approvalParams.thread,
               ...(turn.guestConfined ? { environments: [] } : {}),
+              ...codexStatusThreadParams(cliVersionSeen),
               ephemeral: false,
             });
           let started;
