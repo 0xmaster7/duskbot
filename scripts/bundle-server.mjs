@@ -32,12 +32,12 @@ const NODE_REQUIRE = {
 const ENTRY_POINTS = [
   "index.ts",
   "message-search.worker.ts",
-  // the `openmausbot` command
-  "openmausbot.ts",
+  // the `duskbot` command
+  "duskbot.ts",
   "pair-cli.ts",
   "workspace-backup.worker.ts",
   "pdf-text.worker.ts",
-  // the OMB Cloud Pro home image's entry point
+  // the Dusk Cloud Pro home image's entry point
   "cloud-home-start.ts",
   // the container image's entry point
   "server-launcher.ts",
@@ -81,6 +81,8 @@ await build({
   logLevel: "info",
   plugins: [yamlEsmPlugin, serverLocalePlugin],
   banner: NODE_REQUIRE,
+  // every entry reads the old env names first, whichever process starts it
+  inject: [join(root, "electron", "legacy-names.mjs")],
 });
 
 // External MCP clients launch this as an independent stdio process, so release
@@ -97,7 +99,7 @@ await build({
   plugins: [serverLocalePlugin],
 });
 
-// `openmausbot serve --tunnel` spawns the connector guardian as its own
+// `duskbot serve --tunnel` spawns the connector guardian as its own
 // process, so it must exist as a file beside the server.
 await build({
   entryPoints: [join(root, "electron", "managed-companion-guardian-main.mjs")],

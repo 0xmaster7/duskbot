@@ -90,7 +90,7 @@ beforeAll(async () => {
   gateway = await startFakeHttpMcp({ tools: [{ name: "lookup_order", inputSchema: { type: "object", properties: {} } }], callResult: () => ({ content: [{ type: "text", text: "ok" }] }) });
   broker = await startBrokerFake();
   fx = await launchCloudSendFixture({ onePasswordToken: `ops_fake-team-${randomBytes(8).toString("hex")}`, broker, team: { id: "team-acme-3", name: "Acme", engine: ENGINE,
-    env: { OMB_BOT_BOX: "0", OMB_TEST_WAIT_CLOCK: CLOCK, NODE_OPTIONS: `--import=${new URL("./testing/wait-clock-hooks.mjs", import.meta.url).href}`, FIXTURE_ADMIN_STAND_IN: `http://127.0.0.1:${(adminServer.address() as AddressInfo).port}` } } });
+    env: { DUSK_BOT_BOX: "0", DUSK_TEST_WAIT_CLOCK: CLOCK, NODE_OPTIONS: `--import=${new URL("./testing/wait-clock-hooks.mjs", import.meta.url).href}`, FIXTURE_ADMIN_STAND_IN: `http://127.0.0.1:${(adminServer.address() as AddressInfo).port}` } } });
   team = fx.team!;
   ada = (await team.pair(ADA)).token!;
   mira = (await team.pair(MIRA)).token!;
@@ -203,7 +203,7 @@ it("a question left for a day is said in the person's own inbox chat, once the c
   const reporter = await create({ name: "Reporter", title: "Reports", section: "Support", reportsTo: MIRA.email });
   expect((await team.as(ada, "PATCH", `/api/bots/${reporter.id}`, { approvalMode: "ask" })).status).toBe(200);
   const bots = async () => (await team.as(mira, "GET", "/api/bots")).body.bots as Array<Bot & { defaultBot?: unknown; tasks?: Array<{ threadId: string; inbox?: true; openAsks?: number }> }>;
-  // A User's own MausBot: no crown and no Chief's powers, and it cannot reach a bot shared with everyone.
+  // A User's own Dusk: no crown and no Chief's powers, and it cannot reach a bot shared with everyone.
   const own = (await bots()).find((bot) => bot.defaultBot) as Bot & { chiefOfStaff?: boolean };
   expect(MIRA.role).toBe("member");
   expect(own.chiefOfStaff).toBeFalsy();

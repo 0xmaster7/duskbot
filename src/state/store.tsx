@@ -2064,7 +2064,7 @@ export const StoreContext = createContext<{
 } | null>(null);
 
 /** Grok Bot keeps its info pane open across reloads (`sand.infoPane.open`): only the person closes it. */
-export const BOT_PANEL_OPEN_KEY = "openmausbot.botPanelOpen.v1";
+export const BOT_PANEL_OPEN_KEY = "duskbot.botPanelOpen.v1";
 
 function restoreBotSettingsSection(state: AppState): AppState {
   const section = readLastBotSection();

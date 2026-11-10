@@ -66,7 +66,7 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
       relayout("dock order");
     }
   };
-  // OMB_AMBIENT_TRACE=1 or `trace: true` in the prefs file: a millisecond timeline of both surfaces (ambient-trace.mjs)
+  // DUSK_AMBIENT_TRACE=1 or `trace: true` in the prefs file: a millisecond timeline of both surfaces (ambient-trace.mjs)
   let rawPrefs = null;
   try { rawPrefs = file.read(); } catch { /* no prefs yet */ }
   const trace = given !== undefined ? given : traceWanted(process.env, rawPrefs) ? createTrace({ folder: traceFolder(platform) }) : null;

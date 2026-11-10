@@ -112,7 +112,7 @@ export function createDesktopPrefs({ read, write, frameByDefault = true }) {
 /**
  * `page(event)`: "local" for this computer's page, "cloud" for My Cloud's own page as main verifies it, "server" for
  * another saved server open in this desktop's window, null for anything else. `cloudOffered()`: this desktop sells
- * MausBot Cloud, asked once its Cloud sign-in is restored. `localConfig()`: This computer's own workspace's config.json.
+ * Dusk Cloud, asked once its Cloud sign-in is restored. `localConfig()`: This computer's own workspace's config.json.
  * `languageChanged(language, sender)`: tells this desktop's other pages the language picked on one of them.
  */
 export function registerDesktopPrefs({ prefs: given, ipcMain, read, write, page, cloudOffered, localConfig = () => null, languageChanged = () => {}, frame = null, systemName = accountFullName, loginName = () => os.userInfo().username }) {

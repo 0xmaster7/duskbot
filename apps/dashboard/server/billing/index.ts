@@ -43,34 +43,34 @@ export function createBilling(options: BillingOptions) {
     const value = env[key]; if (value !== undefined && !allowed.includes(value)) throw new Error(`Invalid ${key}.`);
     return value ?? (loopback ? "fake" : "off");
   }
-  const billingProvider = choice("OMB_BILLING_PROVIDER", ["fake", "dodo"]);
-  const cloudProvider = choice("OMB_CLOUD_PROVIDER", ["fake", "hetzner"]), poolDriver = choice("OMB_POOL_DRIVER", ["fake"]);
+  const billingProvider = choice("DUSK_BILLING_PROVIDER", ["fake", "dodo"]);
+  const cloudProvider = choice("DUSK_CLOUD_PROVIDER", ["fake", "hetzner"]), poolDriver = choice("DUSK_POOL_DRIVER", ["fake"]);
   const fake = billingProvider === "fake" ? createFakeBillingProvider({ now }) : null;
   const unavailable = () => { throw new BillingProviderError("unavailable"); };
   let provider: BillingProvider;
   if (billingProvider === "dodo") {
-    const apiKey = required("OMB_DODO_API_KEY"), webhookSecret = required("OMB_DODO_WEBHOOK_SECRET");
-    const mode = env.OMB_DODO_MODE ?? "test";
-    if (mode !== "test" && mode !== "live") throw new Error("Invalid OMB_DODO_MODE.");
-    required("OMB_DODO_PRODUCTS");
+    const apiKey = required("DUSK_DODO_API_KEY"), webhookSecret = required("DUSK_DODO_WEBHOOK_SECRET");
+    const mode = env.DUSK_DODO_MODE ?? "test";
+    if (mode !== "test" && mode !== "live") throw new Error("Invalid DUSK_DODO_MODE.");
+    required("DUSK_DODO_PRODUCTS");
     provider = createDodoProvider({ apiKey, webhookSecret, mode, now, fetch: options.fetch });
   } else provider = fake ?? { name: "dodo", createCheckout: unavailable, portal: unavailable, verifyWebhook: unavailable, cancelAtPeriodEnd: unavailable, changePlan: unavailable, invoiceUrl: unavailable, invoicePdf: unavailable };
   let products: Record<string, string>;
-  try { products = dodoProducts(env); } catch { throw new Error("Invalid OMB_DODO_PRODUCTS."); }
+  try { products = dodoProducts(env); } catch { throw new Error("Invalid DUSK_DODO_PRODUCTS."); }
   const config = { ...BILLING_CONFIG, products };
-  const sealKey = env.OMB_CLOUD_SEAL_KEY ? parseSealKey(env.OMB_CLOUD_SEAL_KEY) : null;
-  const image = cloudProvider === "hetzner" ? required("OMB_CLOUD_HOME_IMAGE") : env.OMB_CLOUD_HOME_IMAGE ?? "ghcr.io/openmausbot/openmausbot-cloud-home:latest";
+  const sealKey = env.DUSK_CLOUD_SEAL_KEY ? parseSealKey(env.DUSK_CLOUD_SEAL_KEY) : null;
+  const image = cloudProvider === "hetzner" ? required("DUSK_CLOUD_HOME_IMAGE") : env.DUSK_CLOUD_HOME_IMAGE ?? "ghcr.io/duskbot/duskbot-cloud-home:latest";
   const disabled: CloudProvider = { name: "fake", find: unavailable, create: unavailable, status: unavailable, power: unavailable, resize: unavailable, destroy: unavailable };
   let dedicated: CloudProvider = disabled;
   if (cloudProvider === "fake") dedicated = createFakeCloudProvider();
   if (cloudProvider === "hetzner") {
-    const token = required("OMB_HETZNER_TOKEN"); required("OMB_CLOUD_SEAL_KEY");
+    const token = required("DUSK_HETZNER_TOKEN"); required("DUSK_CLOUD_SEAL_KEY");
     dedicated = createHetznerProvider({ token, fetch: options.fetch });
   }
   /** a real pool host driver does not exist yet; only the isolated fake driver is available */
-  const fakePool = poolDriver === "fake" ? createFakePoolDriver({ hosts: [1, 2].map(n => ({ id: `fake-${n}`, region: "fsn1", domain: "pool.openmausbot.test", draining: false, capacity: { vcpu: 64, ramGb: 128, diskGb: 4000, slots: 100 } })) }) : null;
+  const fakePool = poolDriver === "fake" ? createFakePoolDriver({ hosts: [1, 2].map(n => ({ id: `fake-${n}`, region: "fsn1", domain: "pool.duskbot.test", draining: false, capacity: { vcpu: 64, ramGb: 128, diskGb: 4000, slots: 100 } })) }) : null;
   const pool = fakePool ? createPoolProvider({ driver: fakePool, now }) : { ...disabled, suspend: unavailable, resume: unavailable };
-  // a managed backend (OMB_MANAGED=1, apps/cloud-service): its provider key stays in this process; homes never receive it
+  // a managed backend (DUSK_MANAGED=1, apps/cloud-service): its provider key stays in this process; homes never receive it
   let billingStore: ReturnType<typeof createBillingStore> | null = null;
   const managed = managedCloudFromEnv(env, { dataDir: options.dataDir, publicUrl: url.origin, loopback, sealKey, now, fetch: options.fetch,
     subscriptions: () => billingStore?.state.subscriptions ?? [], mail: options.mail, alert: options.alert });
@@ -81,7 +81,7 @@ export function createBilling(options: BillingOptions) {
     return { code, expiresAt: now() + 300_000 };
   } };
   // a loopback service fakes the homes of its fake providers; a managed backend's homes are always real (managedHome)
-  const fakeOrigin = (origin: string) => loopback && (origin.endsWith(".pool.openmausbot.test") ? poolDriver === "fake" : cloudProvider === "fake");
+  const fakeOrigin = (origin: string) => loopback && (origin.endsWith(".pool.duskbot.test") ? poolDriver === "fake" : cloudProvider === "fake");
   const home: HomeClient = {
     power: (origin, secret, minutes) => realHome.power!(origin, secret, minutes),
     sleep: (origin, secret, minutes) => realHome.sleep!(origin, secret, minutes),
@@ -102,7 +102,7 @@ export function createBilling(options: BillingOptions) {
       lastReportAt: id => options.dashboard.state.workspaces.find(ws => ws.id === id)?.lastReportAt ?? null,
       remove(id) { options.dashboard.state.workspaces = options.dashboard.state.workspaces.filter(ws => ws.id !== id); options.dashboard.changed(); options.dashboard.close?.(); },
     },
-    config: { adminOrigin: url.origin, dashboardUrl: url.origin, image, originTemplate: env.OMB_CLOUD_ORIGIN_TEMPLATE,
+    config: { adminOrigin: url.origin, dashboardUrl: url.origin, image, originTemplate: env.DUSK_CLOUD_ORIGIN_TEMPLATE,
       configured: { pool: poolDriver !== "off", dedicated: cloudProvider !== "off" },
       poolQuota(kind, spec, botComputers) { return { ...spec, ...(config.poolQuotas[kind as "shared_s" | "shared_m"] ?? config.poolQuotas.shared_m), botComputers }; } },
   });
@@ -110,8 +110,8 @@ export function createBilling(options: BillingOptions) {
   billingStore = store;
   const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now });
   if (options.accountExists) service.scrubDeleted(options.accountExists);
-  const opsToken = env.OMB_OPS_TOKEN || null;
-  if (opsToken !== null && opsToken.length < 32) throw new Error("OMB_OPS_TOKEN must be at least 32 characters.");
+  const opsToken = env.DUSK_OPS_TOKEN || null;
+  if (opsToken !== null && opsToken.length < 32) throw new Error("DUSK_OPS_TOKEN must be at least 32 characters.");
   const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})), opsToken };
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
@@ -130,6 +130,6 @@ export type BillingContext = {
   service: ReturnType<typeof createBillingService>; clouds: ReturnType<typeof createCloudsService>; store: ReturnType<typeof createBillingStore>;
   config: typeof BILLING_CONFIG; accounts: AccountResolver; now(): number; enabled: boolean; fake: ReturnType<typeof createFakeBillingProvider> | null;
   wakeStats(): NonNullable<Catalog["wake"]>;
-  /** OMB_OPS_TOKEN: unset hides the operator's funnel read */
+  /** DUSK_OPS_TOKEN: unset hides the operator's funnel read */
   opsToken: string | null;
 };

@@ -31,7 +31,7 @@ function workspace(): SlackWorkspaceRecord {
 
 function bot(botId = "bot1"): SlackBotRecord {
   return { botId, appId: "A1", teamId: "T1", clientId: "C1", clientSecret: `${canary}-client`, signingSecret: `${canary}-signing`,
-    redirectUri: "https://link.apps.siddz.com/slack/callback", manifestHash: "a".repeat(64),
+    redirectUri: "https://link.dusk.bot/slack/callback", manifestHash: "a".repeat(64),
     oauthState: { hash: "b".repeat(64), expiresAt: 3000 }, botToken: `${canary}-bot`, botUserId: "UB1", teamName: "Test team", handle: "helper",
     installedAt: 1000, appToken: `${canary}-app`, appTokenAt: 2000, createdAt: 500 };
 }

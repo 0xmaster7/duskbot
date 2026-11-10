@@ -1,7 +1,8 @@
+import { UPSTREAM } from "./legacy-names.mjs";
 const TOKEN = /^[0-9a-f]{64}$/;
 
-/** OpenMausBot's connected-apps service (cloudflare/composio-broker): the packaged desktop app and a Cloud home use it. */
-export const DEFAULT_MANAGED_COMPOSIO_BROKER_URL = "https://openmausbot-composio.milindsoni201.workers.dev";
+/** Dusk Bot's connected-apps service (cloudflare/composio-broker): the packaged desktop app and a Cloud home use it. */
+export const DEFAULT_MANAGED_COMPOSIO_BROKER_URL = UPSTREAM.composioBroker;
 
 /** An explicit URL wins; otherwise the default, only for a shipped build, so development and tests never register. */
 export function managedComposioBrokerUrl(configured, shipped) {
@@ -32,12 +33,12 @@ export function managedComposioAccess(brokerUrl, credentials) {
 
 export function managedComposioChildEnvironment(brokerUrl, credentials, environment) {
   const next = { ...environment };
-  delete next.OMB_COMPOSIO_BROKER_URL;
-  delete next.OMB_COMPOSIO_BROKER_TOKEN;
+  delete next.DUSK_COMPOSIO_BROKER_URL;
+  delete next.DUSK_COMPOSIO_BROKER_TOKEN;
   const access = managedComposioAccess(brokerUrl, credentials);
   if (access) {
-    next.OMB_COMPOSIO_BROKER_URL = access.url;
-    next.OMB_COMPOSIO_BROKER_TOKEN = access.token;
+    next.DUSK_COMPOSIO_BROKER_URL = access.url;
+    next.DUSK_COMPOSIO_BROKER_TOKEN = access.token;
   }
   return next;
 }

@@ -1,6 +1,6 @@
-// Assemble the `openmausbot` npm package: the self-contained server bundle,
+// Assemble the `duskbot` npm package: the self-contained server bundle,
 // the built UI, the bundled skills and the CLI, with a package.json of its
-// own. `npx openmausbot serve` then needs Node 24+ and nothing else.
+// own. `npx duskbot serve` then needs Node 24+ and nothing else.
 //
 //   pnpm build:server && pnpm exec vite build && node scripts/build-npm-package.mjs
 //   cd release/npm && npm pack        # or npm publish --access public
@@ -12,7 +12,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "release", "npm");
 const app = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 
-for (const required of ["dist-server/index.js", "dist-server/openmausbot.js", "dist/index.html"]) {
+for (const required of ["dist-server/index.js", "dist-server/duskbot.js", "dist/index.html"]) {
   if (!existsSync(join(root, required))) {
     console.error(`missing ${required}: run \`pnpm build:server && pnpm exec vite build\` first`);
     process.exit(1);
@@ -29,19 +29,19 @@ cpSync(join(root, "docs", "LICENSING.md"), join(out, "LICENSING.md"));
 cpSync(join(root, "third_party", "openmausbot"), join(out, "licenses"), { recursive: true });
 
 // The bin lives next to the bundle so serverEntry() finds index.js by path.
-writeFileSync(join(out, "cli.js"), `#!/usr/bin/env node\nimport "./dist-server/openmausbot.js";\n`);
+writeFileSync(join(out, "cli.js"), `#!/usr/bin/env node\nimport "./dist-server/duskbot.js";\n`);
 
 writeFileSync(
   join(out, "package.json"),
   JSON.stringify(
     {
-      name: "openmausbot",
+      name: "duskbot",
       private: true,
       version: app.version,
-      description: "Run the OpenMausBot server anywhere and pair your devices to it",
+      description: "Run the Dusk Bot server anywhere and pair your devices to it",
       license: "SEE LICENSE IN LICENSE",
       type: "module",
-      bin: { openmausbot: "cli.js" },
+      bin: { duskbot: "cli.js" },
       // Never bundled, so npm installs them beside the server: DuckDB and
       // resvg are native addons that npm picks per platform from their
       // optional packages, and the 1Password SDK reads its WebAssembly core
@@ -55,7 +55,7 @@ writeFileSync(
       engines: { node: ">=24" },
       repository: app.repository,
       homepage: app.homepage,
-      keywords: ["openmausbot", "agents", "self-hosted", "server"],
+      keywords: ["duskbot", "agents", "self-hosted", "server"],
     },
     null,
     2,
@@ -64,17 +64,17 @@ writeFileSync(
 
 writeFileSync(
   join(out, "README.md"),
-  `# OpenMausBot private server
+  `# Dusk Bot private server
 
 Install the reviewed private archive supplied by your operator. Requires Node 24+.
 
 \`\`\`sh
-npm install --global --prefix "$HOME/.local" ./openmausbot-private.tgz
-"$HOME/.local/bin/openmausbot" setup
+npm install --global --prefix "$HOME/.local" ./duskbot-private.tgz
+"$HOME/.local/bin/duskbot" setup
 \`\`\`
 
-Use the installed \`openmausbot\` command on later launches. Add
-\`$HOME/.local/bin\` to PATH if needed. \`openmausbot start\` is an alias for
+Use the installed \`duskbot\` command on later launches. Add
+\`$HOME/.local/bin\` to PATH if needed. \`duskbot start\` is an alias for
 the bare command. The desktop's Add your VPS flow installs this private build
 through its one-time link; app and server upgrades are operator-managed.
 
@@ -87,14 +87,14 @@ conversations keep their settings.
 One optional step connects your phone, defaulting to Skip for now. Choose
 an explicitly approved managed public HTTPS endpoint protected by pairing,
 existing Tailscale, or an HTTPS reverse proxy you already configured.
-Managed access uses a separate OpenMausBot account and asks permission for
+Managed access uses a separate Dusk Bot account and asks permission for
 the public endpoint and possible connector download. The pairing page and
 basic server identity are public; chat and settings require pairing.
 Tailscale must already be installed and signed in on both devices.
 
 After the HTTPS connection is checked, scan the QR with your phone. When
 you pair an Android phone the QR is an app link, so scan it inside the
-OpenMausBot app; the web address is printed beside it if you would rather
+Dusk Bot app; the web address is printed beside it if you would rather
 use a browser. On iPhone or iPad, scan with Camera for Safari, or use the
 app's own scanner. Choose Connect on the phone; scanning alone is not a
 completed pairing. Codes
@@ -102,23 +102,23 @@ are private, single-use, and expire after five minutes. Guided phone
 access permits chat and approvals, not settings or pairing administration.
 Localhost and a bare LAN address cannot connect your phone to this server.
 
-Later launches reuse your saved choices and open OpenMausBot on this computer.
+Later launches reuse your saved choices and open Dusk Bot on this computer.
 Keep the terminal open: this is a foreground server, not a background
 service. Ctrl-C stops the server without deleting saved work. Automatic
 browser opening uses only the local address; it is skipped for SSH and
 headless sessions, and can be disabled with \`--no-open\`.
 
 \`\`\`sh
-openmausbot setup          # reconfigure AI and optional phone access; not a reset
-openmausbot --no-open      # do not open a browser
-openmausbot --local        # ignore saved remote access for this launch
-openmausbot --no-pair      # suppress phone prompts and invitations
-openmausbot pair           # another phone while the HTTPS server is running
-openmausbot sessions       # list devices; sessions revoke ID signs one out
-openmausbot serve          # no onboarding prompts; explicit remote flags for services
-openmausbot vps status     # Linux service, link, computers and host resources
-openmausbot vps doctor    # status with suggested next steps
-openmausbot vps logs --service link --lines 100
+duskbot setup          # reconfigure AI and optional phone access; not a reset
+duskbot --no-open      # do not open a browser
+duskbot --local        # ignore saved remote access for this launch
+duskbot --no-pair      # suppress phone prompts and invitations
+duskbot pair           # another phone while the HTTPS server is running
+duskbot sessions       # list devices; sessions revoke ID signs one out
+duskbot serve          # no onboarding prompts; explicit remote flags for services
+duskbot vps status     # Linux service, link, computers and host resources
+duskbot vps doctor    # status with suggested next steps
+duskbot vps logs --service link --lines 100
 \`\`\`
 
 Stop an existing server before reconfiguring or changing access mode.
@@ -136,14 +136,14 @@ ChatGPT/Claude subscriptions. New API keys in config.json and managed
 account credentials in tunnel-account.json are plaintext, not encrypted,
 with owner-only permissions (0600 on Unix). Keep these files private.
 
-Ctrl-C before saving AI setup leaves its pending OMB changes unapplied.
+Ctrl-C before saving AI setup leaves its pending Dusk Bot changes unapplied.
 During the later phone step, it keeps the AI setup already saved and exits
 without starting a server. Completed installs and sign-ins remain; run
-\`openmausbot setup\` to continue without deleting your data.
+\`duskbot setup\` to continue without deleting your data.
 
 For a service, use \`serve --tunnel\` after \`login\` for managed HTTPS,
 \`serve --tailscale\` for your tailnet, or your own reverse proxy. The
-\`login\` command signs in to an OpenMausBot account, not an AI provider;
+\`login\` command signs in to a Dusk Bot account, not an AI provider;
 it does not start the tunnel itself.
 
 Scripts, CI and other agents can drive a running workspace without a screen:
@@ -151,9 +151,9 @@ set a team up from a file, give a bot one job and wait until it and every
 teammate it asked are done, and export what they made.
 
 \`\`\`sh
-openmausbot team apply team.yaml
-openmausbot run "Room Lead" "Rehearse the launch of https://example.com" --export ./out
-openmausbot help run       # every verb: doctor, run, wait, send, export, events, team, engine, connect, mcp
+duskbot team apply team.yaml
+duskbot run "Room Lead" "Rehearse the launch of https://example.com" --export ./out
+duskbot help run       # every verb: doctor, run, wait, send, export, events, team, engine, connect, mcp
 \`\`\`
 
 [Setup guide](${app.homepage}/blob/custom/docs/cli-onboarding.md)
@@ -161,4 +161,4 @@ openmausbot help run       # every verb: doctor, run, wait, send, export, events
 · [Hosting guide](${app.homepage}/blob/custom/docs/self-hosting.md)
 `,
 );
-console.log(`npm package assembled at ${out} (openmausbot@${app.version})`);
+console.log(`npm package assembled at ${out} (duskbot@${app.version})`);

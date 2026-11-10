@@ -35,7 +35,7 @@ export function parseElsewhereView(raw: unknown): ElsewhereView {
   };
 }
 
-/** No bots of the person's own here: MausBot, the helper every place gets, and bots taken off the sidebar don't count. */
+/** No bots of the person's own here: Dusk, the helper every place gets, and bots taken off the sidebar don't count. */
 export function emptyHere(bots: readonly { defaultBot?: unknown; hidden?: boolean }[]): boolean {
   return !bots.some((bot) => !bot.defaultBot && !bot.hidden);
 }
@@ -65,7 +65,7 @@ export function dismissPlace(key: string): void {
   try { localStorage.setItem(DISMISSED, JSON.stringify([...dismissedPlaces().filter((entry) => entry !== key), key].slice(-20))); } catch { /* storage full or off */ }
 }
 
-/** The dev button's stand-in: a fresh install whose account already set up OpenMausBot on a VPS. */
+/** The dev button's stand-in: a fresh install whose account already set up Dusk Bot on a VPS. */
 export const SIMULATED_FRESH_INSTALL: ElsewhereView = { places: [], known: { kind: "server", name: "My VPS" } };
 
 /** Dev builds, or any build with localStorage "omb-dev-tools" set to "1". */

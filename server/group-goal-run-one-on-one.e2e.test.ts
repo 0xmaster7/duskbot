@@ -58,7 +58,7 @@ beforeAll(async () => {
   home = mkdtempSync(join(tmpdir(), "omb-one-on-one-goal-"));
   slowGate = join(home, "slow-finish");
   patientGate = join(home, "patient-finish");
-  const data = join(home, ".openmausbot");
+  const data = join(home, ".duskbot");
   mkdirSync(data, { recursive: true });
   const fixture = (name: string, environment: Record<string, string>) => ({
     driver: "claudeAgent",
@@ -108,8 +108,8 @@ beforeAll(async () => {
       ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
       HOME: home,
       USERPROFILE: home,
-      OMB_PORT: String(port),
-      OMB_WEBHOOK_PORT: String(port + 1),
+      DUSK_PORT: String(port),
+      DUSK_WEBHOOK_PORT: String(port + 1),
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

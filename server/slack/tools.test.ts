@@ -22,7 +22,7 @@ async function fixture() {
   fakes.push(fake);
   const tmpDir = await mkdtemp(join(tmpdir(), "omb-slack-tools-"));
   dirs.push(tmpDir);
-  const api = createSlackApi({ env: { OMB_SLACK_API_URL: fake.url }, minGapMs: 0, maxRetries: 0 });
+  const api = createSlackApi({ env: { DUSK_SLACK_API_URL: fake.url }, minGapMs: 0, maxRetries: 0 });
   const redirect = "http://127.0.0.1:3210/callback";
   const app = await api.call<{ app_id: string }>("apps.manifest.create", fake.config.access, {
     manifest: { features: { bot_user: { display_name: "Helper" } }, oauth_config: { redirect_urls: [redirect] } },

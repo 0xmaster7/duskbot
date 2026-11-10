@@ -101,7 +101,7 @@ describe("platformLabel", () => {
 describe("outward links", () => {
   it("sends Help Center to the docs the website also links to", () => {
     expect(HELP_CENTER_URL).toBe(DOCS_URL);
-    expect(DOCS_URL).toBe("https://github.com/SiddDevZ/OpenMausBot/tree/custom/docs");
+    expect(DOCS_URL).toBe("https://github.com/goatedgrokbotalternative/thebot/tree/custom/docs");
   });
 
   it("sends Send Feedback to the Discord community", () => {
@@ -169,7 +169,7 @@ describe("the phone entries", () => {
 
   it("never offers the iOS-only entry it replaced", () => {
     for (const target of ["computer", "server"] as const) {
-      expect(items(target, null).list.map((item) => item.label)).not.toContain("Get OpenMausBot for iOS");
+      expect(items(target, null).list.map((item) => item.label)).not.toContain("Get Dusk Bot for iOS");
     }
   });
 
@@ -206,7 +206,7 @@ describe("choosing where the phone connects", () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it("when the Cloud cannot be opened, lands on Settings → MausBot Cloud, which says what to do", async () => {
+  it("when the Cloud cannot be opened, lands on Settings → Dusk Cloud, which says what to do", async () => {
     const bridge = { connectHomeForPhone: vi.fn().mockRejectedValue(new Error("offline")) };
     const dispatch = vi.fn();
     selectPhoneDestination(destinations(readyCloud)[0]!, { bridge, dispatch });
@@ -263,7 +263,7 @@ describe("profileMenuItems", () => {
     phone: [{ key: "phone-app", label: "Get the phone app", onSelect: noop }],
     usage: true,
     update: null,
-    account: "OpenMausBot Cloud",
+    account: "Dusk Bot Cloud",
     onUsage: noop, onSettings: noop, onShortcuts: noop, onAbout: noop, onHelp: noop, onFeedback: noop, onAccount: noop,
     ...patch,
   });
@@ -273,7 +273,7 @@ describe("profileMenuItems", () => {
     expect(items.map((item) => item.key)).toEqual(["usage", "phone-app", "support", "settings", "account"]);
     expect(items.filter((item) => item.separatorBefore).map((item) => item.key)).toEqual(["account"]);
     expect(items.find((item) => item.key === "support")!.submenu!.map((item) => item.key)).toEqual(["help", "feedback", "shortcuts", "about"]);
-    expect(items.find((item) => item.key === "account")!.label).toBe("OpenMausBot Cloud");
+    expect(items.find((item) => item.key === "account")!.label).toBe("Dusk Bot Cloud");
   });
 
   it("only offers what this window has: no usage on a remote server, no account without one", () => {
@@ -313,7 +313,7 @@ describe("Simple mode's account menu", () => {
     phone: simplePhoneItems({ connected: false, onGetApp: noop }),
     usage: true,
     update: { key: "update", label: "Check for updates", onSelect: noop },
-    account: "MausBot Cloud",
+    account: "Dusk Cloud",
     simple: { tools, places: placeMenuItems(place(), { owner: null, onCloudSettings: noop }) },
     onUsage: noop, onSettings: noop, onShortcuts: noop, onAbout: noop, onHelp: noop, onFeedback: noop, onAccount: noop,
     ...patch,
@@ -335,7 +335,7 @@ describe("Simple mode's account menu", () => {
   });
 
   it("raises an update that is ready or failed to its own top row with a pill, and keeps it out of support", () => {
-    const update = { key: "update", label: "Restart to update to MausBot 0.2.0", subtitle: "notes", attention: true, onSelect: noop };
+    const update = { key: "update", label: "Restart to update to Dusk 0.2.0", subtitle: "notes", attention: true, onSelect: noop };
     const items = build({ update, updateTop: { label: "Update ready", action: "Restart" } });
     expect(groups(items)[0]).toEqual(["update"]);
     expect(items[0]).toMatchObject({ label: "Update ready", subtitle: undefined, attention: false });
@@ -405,7 +405,7 @@ describe("Simple mode's account menu", () => {
 
   it("puts the move's row first, in its own group, above a raised update", () => {
     const move = [{ key: "cloud-move", label: "Try My Cloud move again", title: "My Cloud did not answer.", onSelect: noop }];
-    const update = { key: "update", label: "OpenMausBot 0.2.0 ready, restart", onSelect: noop };
+    const update = { key: "update", label: "Dusk Bot 0.2.0 ready, restart", onSelect: noop };
     expect(groups(build({ move }))).toEqual([
       ["cloud-move"],
       ["usage", "phone-app", "support", "settings"],

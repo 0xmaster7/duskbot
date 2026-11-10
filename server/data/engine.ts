@@ -51,9 +51,9 @@ export interface DataEngineOptions {
 
 /** Null means the server's own node_modules. */
 export function duckdbDirectory(env: NodeJS.ProcessEnv = process.env): string | null {
-  if (env.OMB_DUCKDB_DIR) return env.OMB_DUCKDB_DIR;
-  if (env.OMB_RESOURCES_PATH) {
-    const staged = join(env.OMB_RESOURCES_PATH, "duckdb");
+  if (env.DUSK_DUCKDB_DIR) return env.DUSK_DUCKDB_DIR;
+  if (env.DUSK_RESOURCES_PATH) {
+    const staged = join(env.DUSK_RESOURCES_PATH, "duckdb");
     if (existsSync(staged)) return staged;
   }
   return null;
@@ -61,7 +61,7 @@ export function duckdbDirectory(env: NodeJS.ProcessEnv = process.env): string | 
 
 /** createRequire resolves upwards from the anchor, so one inside <dir>/node_modules finds the staged @duckdb and @resvg first. */
 export function nativeRequire(directory: string | null = duckdbDirectory()): NodeJS.Require {
-  return createRequire(directory ? join(directory, "node_modules", "openmausbot-duckdb-anchor.js") : import.meta.url);
+  return createRequire(directory ? join(directory, "node_modules", "duskbot-duckdb-anchor.js") : import.meta.url);
 }
 
 function loadBinding(directory: string | null): Binding {
@@ -73,15 +73,15 @@ export function instanceSettings(folder: string, dataDir: string, duckdbVersion:
   const quarterOfRam = Math.floor(totalmem() / 4);
   const memoryMiB = Math.max(256, Math.floor(Math.min(2 * 1024 ** 3, quarterOfRam) / 1024 ** 2));
   return {
-    memory_limit: env.OMB_DUCKDB_MEMORY_LIMIT || `${memoryMiB}MiB`,
+    memory_limit: env.DUSK_DUCKDB_MEMORY_LIMIT || `${memoryMiB}MiB`,
     temp_directory: join(folder, DATA_TMP_DIR),
-    max_temp_directory_size: env.OMB_DUCKDB_MAX_TEMP_SIZE || "20GB",
+    max_temp_directory_size: env.DUSK_DUCKDB_MAX_TEMP_SIZE || "20GB",
     threads: String(Math.max(1, Math.min(4, cpus().length || 1))),
     // Extensions are tied to the exact DuckDB version.
     extension_directory: join(dataDir, "duckdb-extensions", duckdbVersion),
     autoinstall_known_extensions: "false",
     autoload_known_extensions: "true",
-    // Persistent secrets sit unencrypted on disk; OMB's broker issues temporary ones.
+    // Persistent secrets sit unencrypted on disk; Dusk Bot's broker issues temporary ones.
     allow_persistent_secrets: "false",
     preserve_insertion_order: "false",
   };
@@ -727,8 +727,8 @@ class Engine implements DataEngine {
       const detail = (error instanceof Error ? error.message : String(error)).split("\n")[0].trim();
       const where = directory ? `from ${directory}` : "from the server's node_modules";
       const action = directory
-        ? "Reinstall OpenMausBot, or point OMB_DUCKDB_DIR at a folder holding node_modules/@duckdb."
-        : "Run pnpm install, or set OMB_DUCKDB_DIR to a folder holding node_modules/@duckdb.";
+        ? "Reinstall Dusk Bot, or point DUSK_DUCKDB_DIR at a folder holding node_modules/@duckdb."
+        : "Run pnpm install, or set DUSK_DUCKDB_DIR to a folder holding node_modules/@duckdb.";
       this.loaded = { reason: `DuckDB did not load ${where}: ${detail}. ${action}` };
     }
     return this.loaded;

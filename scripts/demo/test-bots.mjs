@@ -1,4 +1,4 @@
-// `pnpm test-bots`: adds the invented test bots (scripts/demo/content.mjs) to a running OpenMausBot, by default the
+// `pnpm test-bots`: adds the invented test bots (scripts/demo/content.mjs) to a running Dusk Bot, by default the
 // one on this computer at 127.0.0.1:8799, through its HTTP API only. Run it again and it skips what is already there.
 // `pnpm test-bots --remove` deletes only what it created, by the ids in its manifest, never anything else.
 //
@@ -12,11 +12,11 @@ import { call, seedBots } from "./seed-live.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
-const base = (flag("--url") || process.env.OMB_TEST_BOTS_URL || "http://127.0.0.1:8799").replace(/\/$/, "");
+const base = (flag("--url") || process.env.DUSK_TEST_BOTS_URL || "http://127.0.0.1:8799").replace(/\/$/, "");
 const remove = args.includes("--remove");
 // --first-run: what `pnpm dev:server` runs on start; seeds a brand-new workspace once, and never again after
 const firstRun = args.includes("--first-run");
-const MANIFESTS = join(homedir(), ".openmausbot-test-bots");
+const MANIFESTS = join(homedir(), ".duskbot-test-bots");
 
 if (!/^http:\/\/(127\.0\.0\.1|localhost):\d{1,5}$/.test(base)) {
   console.error("pnpm test-bots: --url must be http://127.0.0.1:PORT, a server on this computer");
@@ -28,8 +28,8 @@ const empty = () => ({ bots: [], rooms: [], routines: [], webhooks: [], sections
 
 async function target() {
   const health = await call(base, "GET", "/api/health").catch(() => null);
-  if (health?.app !== "openmausbot") throw new Error(`no OpenMausBot server answers at ${base}`);
-  const environment = await call(base, "GET", "/.well-known/openmausbot/environment");
+  if (health?.app !== "duskbot") throw new Error(`no Dusk Bot server answers at ${base}`);
+  const environment = await call(base, "GET", "/.well-known/duskbot/environment");
   if (!environment?.environmentId) throw new Error("the server did not say which workspace it is");
   return join(MANIFESTS, `manifest-${environment.environmentId}.json`);
 }

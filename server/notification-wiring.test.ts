@@ -52,9 +52,9 @@ posixOnly("routine failure notification wiring", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
     home = mkdtempSync(join(tmpdir(), "omb-notifications-e2e-"));
-    mkdirSync(join(home, ".openmausbot"), { recursive: true });
+    mkdirSync(join(home, ".duskbot"), { recursive: true });
     writeFileSync(
-      join(home, ".openmausbot", "config.json"),
+      join(home, ".duskbot", "config.json"),
       JSON.stringify({
         instances: {
           grok: {
@@ -70,8 +70,8 @@ posixOnly("routine failure notification wiring", () => {
     const env: NodeJS.ProcessEnv = {
       HOME: home,
       USERPROFILE: home,
-      OMB_PORT: String(PORT),
-      OMB_WEBHOOK_PORT: String(WEBHOOK_PORT),
+      DUSK_PORT: String(PORT),
+      DUSK_WEBHOOK_PORT: String(WEBHOOK_PORT),
     };
     if (process.env.PATH) env.PATH = process.env.PATH;
     if (process.env.SystemRoot) env.SystemRoot = process.env.SystemRoot;

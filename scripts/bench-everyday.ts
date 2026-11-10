@@ -90,7 +90,7 @@ const instance = await OpenAICompatDriver.create({
 });
 const recorder = recordEvents(instance.adapter);
 const custom = Object.fromEntries(Object.entries(FIXTURE_TOOLS).map(([name, tools]) => [name, { command: process.execPath, args: [server], env: { TOOLS: JSON.stringify(tools), LOG: log, NAME: name } }]));
-const agents = { command: process.execPath, args: [SPAWNED_PROXIES.agents], env: { OMB_HARNESS_URL: harnessUrl, OMB_BOT_ID: "everyday", OMB_THREAD_ID: "everyday", OMB_COMMS_TOKEN: "fixture", OMB_TURN_DEPTH: "0" } };
+const agents = { command: process.execPath, args: [SPAWNED_PROXIES.agents], env: { DUSK_HARNESS_URL: harnessUrl, DUSK_BOT_ID: "everyday", DUSK_THREAD_ID: "everyday", DUSK_COMMS_TOKEN: "fixture", DUSK_TURN_DEPTH: "0" } };
 
 const rows: string[] = [];
 let passed = 0, total = 0;

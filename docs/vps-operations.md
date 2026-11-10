@@ -4,16 +4,16 @@ The private server build includes a small operations CLI. Run it over SSH on
 the Linux VPS from the account that installed or operates the server:
 
 ```sh
-openmausbot vps status
-openmausbot vps doctor
-openmausbot vps logs
-openmausbot vps logs --service link --lines 200
-openmausbot vps logs --service fence --lines 50
-openmausbot vps doctor --json
+duskbot vps status
+duskbot vps doctor
+duskbot vps logs
+duskbot vps logs --service link --lines 200
+duskbot vps logs --service fence --lines 50
+duskbot vps doctor --json
 ```
 
-If the installer used its default `maus` account, its executable is
-`/home/maus/.local/bin/openmausbot`. Use that path when it is absent from your
+If the installer used its default `dusk` account, its executable is
+`/home/dusk/.local/bin/duskbot`. Use that path when it is absent from your
 SSH account's PATH.
 
 `status` checks the local HTTP endpoint, server/link/network-fence systemd
@@ -38,14 +38,14 @@ health; an active link process does not prove that the remote relay or a
 particular desktop client's network is reachable.
 
 For bot and conversation operations against a running workspace, use the
-existing `openmausbot doctor`, `bots`, `messages`, `run`, `wait`, and `events`
+existing `duskbot doctor`, `bots`, `messages`, `run`, `wait`, and `events`
 commands documented in [the headless CLI](headless-cli.md).
 
 App and server upgrades are operator-managed for this private fork. The
 desktop does not initialize an update provider, query release feeds, or install
 downloaded updates on quit or while idle. The server's update check returns no
 release offer or public npm install command. Packaging has no publish target;
-project and release links point to `SiddDevZ/OpenMausBot`.
+project and release links point to `goatedgrokbotalternative/thebot`.
 
 Install a reviewed private build before restarting the services you intend to
 update.
@@ -54,7 +54,7 @@ Verification uses temporary homes and a disposable fake-engine server:
 
 ```sh
 pnpm exec vitest run server/vps-ops.test.ts server/vps-ops.e2e.test.ts
-node --experimental-strip-types server/openmausbot.ts vps --help
+node --experimental-strip-types server/duskbot.ts vps --help
 pnpm exec vitest run server/update-check.test.ts server/update-check.e2e.test.ts
 ```
 

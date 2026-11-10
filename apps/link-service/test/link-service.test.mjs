@@ -27,14 +27,14 @@ beforeAll(async () => {
   relayServer = createServer((req, res) => { largestPost = Math.max(largestPost, Number(req.headers["content-length"] ?? 0)); void service.handler(req, res); });
   base = `http://127.0.0.1:${await listen(relayServer)}`;
   seen = [];
-  // stands in for OpenMausBot on the vps
+  // stands in for Dusk Bot on the vps
   fakeServer = createServer((req, res) => {
     const chunks = [];
     req.on("data", (chunk) => chunks.push(chunk));
     req.on("end", () => {
       seen.push({ method: req.method, url: req.url, headers: req.headers, body: Buffer.concat(chunks).toString("utf8") });
       if (req.url === "/api/auth/pairing") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ code: "RR8Y-BLR6-H939", expiresAt: 123 })); }
-      if (req.url === "/.well-known/openmausbot/environment") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ environmentId: "6f1c2d3e-0000-4000-8000-000000000001" })); }
+      if (req.url === "/.well-known/duskbot/environment") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ environmentId: "6f1c2d3e-0000-4000-8000-000000000001" })); }
       if (req.url === "/binary") { res.writeHead(200, { "content-type": "application/octet-stream" }); return res.end(binaryReply); }
       if (req.url === "/events") {
         res.writeHead(200, { "content-type": "text/event-stream" });
@@ -169,14 +169,14 @@ describe("setup sessions", () => {
     expect(streamed.lines.join("").length).toBeLessThanOrEqual(16 * 1024);
     expect(streamed.lines.at(-1)).toMatch(/^Get:59 /);
 
-    // the agent's own `link` command, with this suite's fake OpenMausBot as the server
+    // the agent's own `link` command, with this suite's fake Dusk Bot as the server
     const home = mkdtempSync(join(dir, "home-"));
     await run(process.execPath, [join(root, "agent.mjs"), "link"], {
       env: { ...process.env, HOME: home, LINK_BASE: base, LINK_ID: made.id, LINK_TOKEN: vpsToken, LINK_MODE: "relay", LINK_NAME: "oracle-arm", LINK_SERVER_PORT: String(fakePort) },
     });
     const pairingAsk = seen.find((entry) => entry.url === "/api/auth/pairing");
     expect(JSON.parse(pairingAsk.body)).toEqual({ label: "Sid's MacBook" });
-    const tunnelFile = join(home, ".config", "openmausbot-link", "tunnel.json");
+    const tunnelFile = join(home, ".config", "duskbot-link", "tunnel.json");
     expect(statSync(tunnelFile).mode & 0o777).toBe(0o600);
 
     const done = await relay.watch(made.id, made.watch, 0);

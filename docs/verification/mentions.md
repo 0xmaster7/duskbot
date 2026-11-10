@@ -61,7 +61,7 @@ node --experimental-strip-types scripts/control-omb.ts messages --channel 18b5bf
 ```
 
 Printed log:
-`%TEMP%/openmausbot-verification-evidence/server-1788957885515-22688.log`.
+`%TEMP%/duskbot-verification-evidence/server-1788957885515-22688.log`.
 As always, fresh runs must use their own printed URL and returned channel ID.
 The 65 focused tests (including direction forwarding, existing bidi controls,
 mention rendering and cloudflared retries), typecheck, production renderer
@@ -127,7 +127,7 @@ node --experimental-strip-types scripts/control-omb.ts messages --channel ec952c
 ```
 
 The printed server log was
-`%TEMP%/openmausbot-verification-evidence/server-1788790736762-24868.log`.
+`%TEMP%/duskbot-verification-evidence/server-1788790736762-24868.log`.
 Fresh runs must use their own printed URL and channel ID.
 
 ### Review fixes and mentions authored by bots
@@ -163,7 +163,7 @@ node --experimental-strip-types scripts/control-omb.ts messages --channel 2ee9e1
 ```
 
 Recorded on 2026-09-07; printed log:
-`%TEMP%/openmausbot-verification-evidence/server-1788791336713-2520.log`.
+`%TEMP%/duskbot-verification-evidence/server-1788791336713-2520.log`.
 The channel settled.
 All 792 renderer tests (102 files), typecheck, renderer build and targeted
 oxlint passed. The full server/Electron suite was not repeated for these

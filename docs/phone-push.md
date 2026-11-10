@@ -25,9 +25,9 @@ The code is in `server/mobile/presence.ts` (the rule), `server/mobile/link.ts` (
 
 APNs and FCM accept pushes only from whoever holds the app's keys. A workspace sends a push:
 
-1. with its own keys, when `OMB_APNS_*` or `OMB_FCM_SERVICE_ACCOUNT_FILE` are set on it (below), else
-2. through a push relay: `OMB_PUSH_RELAY` if set (`off` turns this off), else the link service its VPS link agent uses,
-   else `OMB_MOBILE_RELAY`, else `https://link.apps.siddz.com`.
+1. with its own keys, when `DUSK_APNS_*` or `DUSK_FCM_SERVICE_ACCOUNT_FILE` are set on it (below), else
+2. through a push relay: `DUSK_PUSH_RELAY` if set (`off` turns this off), else the link service its VPS link agent uses,
+   else `DUSK_MOBILE_RELAY`, else `https://link.dusk.bot`.
 
 The relay is `POST /v1/push` on the link service (`apps/link-service/src/push-relay.mjs`). It sees the device token, APNs or
 FCM, the bot's name and the ids a tap opens (notification, bot, conversation, room). It never gets a notification's
@@ -40,30 +40,30 @@ None of this is in the repo: keys and Firebase files are secrets or tied to your
 
 ### iOS (APNs)
 
-1. In the Apple Developer account that signs the app (bundle id `com.openmausbot.mobile`), open Certificates, IDs &
+1. In the Apple Developer account that signs the app (bundle id `bot.dusk.mobile`), open Certificates, IDs &
    Profiles, Keys, and create a key with **Apple Push Notifications service (APNs)** enabled. Download the `.p8` file
    (only once) and note its Key ID and your Team ID.
 2. In Xcode, open `apps/mobile/ios/App/App.xcworkspace`, select the App target, Signing & Capabilities, and add
    **Push Notifications**. Xcode writes the `aps-environment` entitlement; commit that change.
 3. Put the key where the pushes leave from (the link service host for the relay, or the workspace itself) and set:
-   - `OMB_APNS_KEY_FILE`: path to the `.p8` file (readable only by the service user, `chmod 600`)
-   - `OMB_APNS_KEY_ID`: the key's ID
-   - `OMB_APNS_TEAM_ID`: your Team ID
-   - `OMB_APNS_TOPIC`: `com.openmausbot.mobile`
+   - `DUSK_APNS_KEY_FILE`: path to the `.p8` file (readable only by the service user, `chmod 600`)
+   - `DUSK_APNS_KEY_ID`: the key's ID
+   - `DUSK_APNS_TEAM_ID`: your Team ID
+   - `DUSK_APNS_TOPIC`: `bot.dusk.mobile`
 4. Restart the link service (or the workspace). `GET /v1/push` on the link service should answer
    `{"services":["apns",...]}`.
 
 A build run from Xcode gets sandbox tokens; TestFlight and App Store builds get production tokens. The app marks its
 token sandbox only when its web part was built in development mode, so for a push test from Xcode build with
-`OMB_MOBILE_DEV_URL` (live reload) or use TestFlight; a production-marked sandbox token is refused by APNs and dropped.
+`DUSK_MOBILE_DEV_URL` (live reload) or use TestFlight; a production-marked sandbox token is refused by APNs and dropped.
 
 ### Android (FCM)
 
-1. In the Firebase console, create a project (or use one), add an Android app with package `com.openmausbot.mobile`,
+1. In the Firebase console, create a project (or use one), add an Android app with package `bot.dusk.mobile`,
    and download `google-services.json` into `apps/mobile/android/app/` (it is already git-ignored there; the build
    applies the Google services plugin only when the file exists). Rebuild the app.
 2. In Project settings, Service accounts, generate a new private key. That JSON file is a secret.
-3. Where the pushes leave from, set `OMB_FCM_SERVICE_ACCOUNT_FILE` to that file's path (`chmod 600`) and restart.
+3. Where the pushes leave from, set `DUSK_FCM_SERVICE_ACCOUNT_FILE` to that file's path (`chmod 600`) and restart.
 
 ### Check it
 

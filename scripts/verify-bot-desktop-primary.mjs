@@ -9,12 +9,12 @@ import WebSocket from "ws";
 import { connectMcp, eventually, httpFixture, socket } from "./testing/bot-desktop-fixture.mjs";
 
 const run = promisify(execFile);
-const image = process.env.OMB_VERIFY_DESKTOP_IMAGE;
-assert.ok(image, "select a fixture image with OMB_VERIFY_DESKTOP_IMAGE");
+const image = process.env.DUSK_VERIFY_DESKTOP_IMAGE;
+assert.ok(image, "select a fixture image with DUSK_VERIFY_DESKTOP_IMAGE");
 const imageId = (await run("docker", ["image", "inspect", image, "--format", "{{.Id}}"])).stdout.trim();
 assert.match(imageId, /^sha256:[a-f0-9]{64}$/);
 const evidence = await mkdtemp(join(process.platform === "win32" ? tmpdir() : "/tmp", "omb-primary-"));
-process.env.OMB_DATA_DIR = join(evidence, "server-data");
+process.env.DUSK_DATA_DIR = join(evidence, "server-data");
 const { boxChromeExecArgs, boxChromeRelay } = await import("../server/vps-local.ts");
 const suffix = `${process.pid}-${Date.now()}`;
 const volume = `omb-primary-home-${suffix}`;
@@ -27,12 +27,12 @@ async function create(label, browser = true) {
   const name = `omb-primary-${suffix}-${label}`;
   names.add(name);
   const result = await docker([
-    "run", "-d", "--name", name, "--label", "com.openmausbot.verification=primary-lifecycle",
+    "run", "-d", "--name", name, "--label", "bot.dusk.verification=primary-lifecycle",
     "--network", "none", "--user", "1000:1000", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
     "--read-only", "--memory", "4g", "--cpus", "2", "--pids-limit", "4096", "--shm-size", "512m",
     "--mount", `type=volume,source=${volume},target=/home/cua`,
     "--tmpfs", "/tmp:rw,nosuid,nodev,size=512m", "--tmpfs", "/run:rw,nosuid,nodev,size=128m,uid=1000,gid=1000,mode=0755",
-    "-e", "OMB_START_URL=about:blank", "-e", `OMB_BROWSER_AT_START=${browser ? "on" : "off"}`, imageId,
+    "-e", "DUSK_START_URL=about:blank", "-e", `DUSK_BROWSER_AT_START=${browser ? "on" : "off"}`, imageId,
   ]);
   const container = result.stdout.trim();
   assert.match(container, /^[a-f0-9]{64}$/);
@@ -97,7 +97,7 @@ async function navigate(send, url) {
 }
 
 try {
-  await docker(["volume", "create", "--label", "com.openmausbot.verification=primary-lifecycle", volume]);
+  await docker(["volume", "create", "--label", "bot.dusk.verification=primary-lifecycle", volume]);
   madeVolume = true;
   const fixture = await create("cookie");
   await fixtureServer(fixture);

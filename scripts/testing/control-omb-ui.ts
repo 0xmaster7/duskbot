@@ -159,7 +159,7 @@ export function installedChrome(toolsDir = UI_TOOLS_DIR, platform: NodeJS.Platfo
   return null;
 }
 
-/** OMB_AGENT_BROWSER_PATH, then the tools directory, then PATH; otherwise the
+/** DUSK_AGENT_BROWSER_PATH, then the tools directory, then PATH; otherwise the
  * pinned download, verified by size and SHA-256. Chrome follows the same rule
  * with AGENT_BROWSER_EXECUTABLE_PATH. Both land once under UI_TOOLS_DIR. */
 export async function ensureUiBrowser(

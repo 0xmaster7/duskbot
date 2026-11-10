@@ -722,7 +722,7 @@ export function createVpsLink(deps) {
   async function local(method, route, body) {
     const response = await localRequest(route, { method, ...(body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }) });
     const parsed = await response.json().catch(() => ({}));
-    if (!response.ok) throw Object.assign(new Error(typeof parsed?.error === "string" ? parsed.error : "OpenMausBot on this Mac did not answer."), { status: response.status });
+    if (!response.ok) throw Object.assign(new Error(typeof parsed?.error === "string" ? parsed.error : "Dusk Bot on this Mac did not answer."), { status: response.status });
     return parsed;
   }
 
@@ -924,7 +924,7 @@ export function createVpsLink(deps) {
     return view();
   }
 
-  /** the line that takes OpenMausBot off the server again (apps/link-service/uninstall.sh), from the service it was linked through */
+  /** the line that takes Dusk Bot off the server again (apps/link-service/uninstall.sh), from the service it was linked through */
   function uninstallLine() { return `curl -fsSL ${currentLink()?.base ?? base}/uninstall | sh`; }
 
   function where() {

@@ -80,8 +80,8 @@ async function delayedBody(path: string, body: unknown) {
 function bridge(botId: string, threadId: string) {
   const child = spawn(process.execPath, [fileURLToPath(new URL("./drivers/agents-proxy.ts", import.meta.url))], {
     env: { ...verificationServerEnvironment({}, data, Number(new URL(base).port)),
-      OMB_HARNESS_URL: base, OMB_BOT_ID: botId, OMB_THREAD_ID: threadId,
-      OMB_COMMS_TOKEN: TOKEN, OMB_EXTERNAL_RUNTIME: "1" },
+      DUSK_HARNESS_URL: base, DUSK_BOT_ID: botId, DUSK_THREAD_ID: threadId,
+      DUSK_COMMS_TOKEN: TOKEN, DUSK_EXTERNAL_RUNTIME: "1" },
     stdio: ["pipe", "pipe", "pipe"],
   });
   child.stderr.resume();

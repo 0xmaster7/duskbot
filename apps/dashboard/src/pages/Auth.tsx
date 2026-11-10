@@ -28,7 +28,7 @@ const OAUTH_ERROR: Record<string, string> = {
   oauth_expired: "That sign-in took too long. Start again.",
   provider_unavailable: "That sign-in option is not available right now. Use your email instead.",
   signup_closed: "New accounts are not open yet.",
-  identity_taken: "That account is already linked to another OpenMausBot account. Sign in with it instead.",
+  identity_taken: "That account is already linked to another Dusk Bot account. Sign in with it instead.",
 };
 
 type Mode = "signin" | "signup";
@@ -79,7 +79,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
     try {
       const r = await api.verify(attempt, value.replace(/\D/g, ""));
       // a phone sign-in that needed an email goes back to the app with its one-time code
-      if (r.redirect?.startsWith("openmausbot://auth?")) { window.location.assign(r.redirect); return; }
+      if (r.redirect?.startsWith("duskbot://auth?")) { window.location.assign(r.redirect); return; }
       navigate(home, { replace: true }); setAccount(r.account);
     }
     catch (e) { setError(reason(e)); setCode(""); codeRef.current?.focus(); if (e instanceof ApiError && e.code === "expired") setAttempt(null); }
@@ -90,7 +90,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
     if (!FIXTURE) { window.location.assign(api.oauthUrl(p, mode, { next: home })); return; }
     // fixtures have no provider page to bounce through: sign the demo account in
     setBusy(p);
-    try { const s = await api.start("sid@openmausbot.test", mode); const r = await api.verify(s.attempt, "123456"); navigate("/", { replace: true }); setAccount(r.account); }
+    try { const s = await api.start("sid@duskbot.test", mode); const r = await api.verify(s.attempt, "123456"); navigate("/", { replace: true }); setAccount(r.account); }
     catch (e) { setError(reason(e)); } finally { setBusy(null); }
   };
   const wait = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
@@ -98,11 +98,11 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   return (
     <div className="relative grid min-h-[100dvh] place-items-center overflow-hidden bg-bg px-4 py-14">
       <div className="w-full max-w-[360px]">
-        <div className="mb-6"><Mascot color="blue" size={40} still label="OpenMausBot" /></div>
+        <div className="mb-6"><Mascot color="blue" size={40} still label="Dusk Bot" /></div>
         <div>
           {step === "start" ? (
             <div key="start" className="step-in">
-              <h1 className="t-title">{signup ? "Create your account" : "Sign in to OpenMausBot"}</h1>
+              <h1 className="t-title">{signup ? "Create your account" : "Sign in to Dusk Bot"}</h1>
               <p className="mt-1.5 text-14 leading-[1.5] text-ink-3">One account for the app, your phone and your cloud desktop.</p>
               {note && <div className="mt-3 text-13 leading-[1.5] text-ink-2">{note}</div>}
               {pending && <div className="mt-3 text-13 leading-[1.5] text-ink-2">One more step: your provider did not share an email, so enter the one you want to sign in with.</div>}
@@ -160,10 +160,10 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
           )}
         </div>
         <p className="mt-6 text-center text-13 text-ink-3">
-          {signup ? <>Have an account? <Link to="/signin" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">Sign in</Link></> : <>New to OpenMausBot? <Link to="/signup" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">Create an account</Link></>}
+          {signup ? <>Have an account? <Link to="/signin" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">Sign in</Link></> : <>New to Dusk Bot? <Link to="/signup" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">Create an account</Link></>}
         </p>
         <p className="mt-3 text-center text-13 leading-[1.5] text-ink-3">
-          {signup ? <>By continuing you agree to the <a href="https://openmausbot.com/terms" className="hover-link underline decoration-line-2 underline-offset-4">Terms</a> and <a href="https://openmausbot.com/privacy" className="hover-link underline decoration-line-2 underline-offset-4">Privacy Policy</a>.</> : "Your chats and files stay on your own computers."}
+          {signup ? <>By continuing you agree to the <a href="https://dusk.bot/terms" className="hover-link underline decoration-line-2 underline-offset-4">Terms</a> and <a href="https://dusk.bot/privacy" className="hover-link underline decoration-line-2 underline-offset-4">Privacy Policy</a>.</> : "Your chats and files stay on your own computers."}
         </p>
       </div>
     </div>

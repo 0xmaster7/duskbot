@@ -42,7 +42,7 @@ it("a bot's server from a conversation folder is kept in its own folder, and a s
     const iris = (await api("POST", "/api/bots", { name: "Iris" }, 201)).bot;
     const paul = (await api("POST", "/api/bots", { name: "Paul" }, 201)).bot;
     const first = await turnOf(iris);
-    const token: string = first.mounts.agents.env.OMB_COMMS_TOKEN;
+    const token: string = first.mounts.agents.env.DUSK_COMMS_TOKEN;
 
     // Iris writes a server into this conversation's folder and adds it, as it did on the Cloud.
     const chatFolder = join(fixture.info.dataDir, "task-workspaces", iris.id, iris.threadId, "sketch");

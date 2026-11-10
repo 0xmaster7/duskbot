@@ -17,11 +17,11 @@ describe("a group's leader", () => {
   it("survives saving, and a leader who left hands the room to the first member", () => {
     expect(normalizeGroupDefaultResponder({ kind: "member", botId: "quill", leader: true }, ["nova", "quill"])).toEqual({ kind: "member", botId: "quill", leader: true });
     expect(normalizeGroupDefaultResponder({ kind: "member", botId: "gone", leader: true }, ["nova", "quill"])).toEqual({ kind: "member", botId: "nova", leader: true });
-    expect(normalizeGroupDefaultResponder({ kind: "auto", by: "mausbot", fallbackBotId: "quill" }, ["nova", "quill"])).toEqual({ kind: "auto", fallbackBotId: "quill", by: "mausbot" });
+    expect(normalizeGroupDefaultResponder({ kind: "auto", by: "dusk", fallbackBotId: "quill" }, ["nova", "quill"])).toEqual({ kind: "auto", fallbackBotId: "quill", by: "dusk" });
     expect(checkedGroupResponder({ kind: "member", botId: "quill", leader: true }, ["nova", "quill"])).toEqual({ kind: "member", botId: "quill", leader: true });
     expect(checkedGroupResponder({ kind: "member", botId: "quill", leader: "yes" }, ["nova", "quill"])).toBeNull();
     expect(checkedGroupResponder({ kind: "auto", by: "someone" }, ["nova"])).toBeNull();
-    expect(checkedGroupResponder({ kind: "auto", by: "mausbot" }, ["nova"])).toEqual({ kind: "auto", by: "mausbot" });
+    expect(checkedGroupResponder({ kind: "auto", by: "dusk" }, ["nova"])).toEqual({ kind: "auto", by: "dusk" });
   });
 
   it("is told who is on the team with ids and roles, and how to hand off; members are told who they work for", () => {

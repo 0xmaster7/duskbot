@@ -19,7 +19,7 @@ const MARKS: Record<Exclude<AccountProvider, "email">, ReactNode> = {
 const ROW = "mobile-press flex h-14 w-full items-center justify-center gap-2.5 rounded-full text-[17px] font-semibold disabled:opacity-60";
 
 /** Create an account or sign in (one set of buttons does both): the provider's own page opens in the system browser and
- * comes back through openmausbot://auth, where this phone's PKCE verifier turns the code into its account token. */
+ * comes back through duskbot://auth, where this phone's PKCE verifier turns the code into its account token. */
 export function AccountStep({ platform, service, onDone }: { platform: MobilePlatform; service: string; onDone: () => void }) {
   const [waiting, setWaiting] = useState<AccountProvider | null>(null);
   const [finishing, setFinishing] = useState(false);

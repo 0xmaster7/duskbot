@@ -23,7 +23,7 @@ export function NoWorkspace() {
       title="Connect your first workspace"
       action={<ButtonLink to="/connect" variant="primary">How to connect</ButtonLink>}
     >
-      Your bots live on your own Mac or VPS. Open OpenMausBot there, then choose Account dashboard in the account menu. It shows up here a few seconds later.
+      Your bots live on your own Mac or VPS. Open Dusk Bot there, then choose Account dashboard in the account menu. It shows up here a few seconds later.
     </SkyEmpty>
   );
 }
@@ -41,7 +41,7 @@ export function WorkspaceGate({ children }: { children: (detail: WorkspaceDetail
   if (!detail.report) {
     return (
       <SkyEmpty title={`Waiting for ${workspace.name}`}>
-        It is connected but has not reported yet. Keep OpenMausBot running there; the first report usually lands within a few seconds.
+        It is connected but has not reported yet. Keep Dusk Bot running there; the first report usually lands within a few seconds.
       </SkyEmpty>
     );
   }

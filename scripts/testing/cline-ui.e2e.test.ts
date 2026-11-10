@@ -5,7 +5,7 @@ import { launchVerificationServer, runControlOmb } from "../control-omb.ts";
 import { agentBrowser, ensureUiBrowser, sessionEnv } from "./control-omb-ui.ts";
 import { mountPreview } from "./preview-fixture.ts";
 
-const enabled = process.env.OMB_UI_E2E === "1";
+const enabled = process.env.DUSK_UI_E2E === "1";
 
 (enabled ? it : it.skip)("selects the configured Cline model in both picker modes and sends a specialist turn", async () => {
   const tools = await ensureUiBrowser();

@@ -19,7 +19,7 @@ At the next start (the runtime's restart policy, `server/runtime/runtime.ts` `op
   cut review, "Resumed with … results after a restart, reviewing"), and a
   direct requester's chat shows "Mira was cut off by a restart; resuming".
 - Never a second automatic run. A restart that cuts that rerun too ends it,
-  failed: "Interrupted by another OpenMausBot restart after resuming once; not
+  failed: "Interrupted by another Dusk Bot restart after resuming once; not
   resumed again. Some of its steps may already have taken effect." The
   requester gets that result like any other; a Chief's own review ended that
   way says so in the Chief's conversation.
@@ -41,13 +41,13 @@ At the next start (the runtime's restart policy, `server/runtime/runtime.ts` `op
   started, "Stopped before it resumed", and a rerun already running, like any
   teammate mid-turn.
 - A routine run still going at a restart fails, as before, and its
-  teammates' work ends with it, "OpenMausBot restarted while this routine was
+  teammates' work ends with it, "Dusk Bot restarted while this routine was
   running": none of it runs again, so no result lands after the person was
   told the routine failed.
 - On a quit or update, shutdown dispatches nothing more and leaves the turns
   it tears down cut for the next start, so a quit ends where a crash does,
   whatever the engine. Each conversation with a turn still running gets
-  "error: turn interrupted — OpenMausBot restarted", as a provider reload's
+  "error: turn interrupted — Dusk Bot restarted", as a provider reload's
   does, and nothing more (no unread mark, no notification), unless the next
   start goes on with that turn: a cut teammate turn, or a requester's turn
   that had sent work, says what happened when it resumes instead (a failed
@@ -69,7 +69,7 @@ pnpm exec vitest run server/runtime/ server/runtime-coordinator.test.ts server/d
 pnpm exec vitest run server/delta-context.e2e.test.ts -t "restart"
 pnpm exec vitest run server/full-access-workflows.e2e.test.ts server/room-recovery.e2e.test.ts
 pnpm exec vitest run server/room-roots.e2e.test.ts
-OMB_UI_E2E=1 pnpm exec vitest run scripts/testing/direct-coordination-ui.e2e.test.ts
+DUSK_UI_E2E=1 pnpm exec vitest run scripts/testing/direct-coordination-ui.e2e.test.ts
 ```
 
 The long-running Chief suite plays one Chief of Staff job per scenario through
@@ -376,7 +376,7 @@ pnpm exec vitest run server/direct-coordination.e2e.test.ts --maxWorkers=1
 pnpm exec vitest run server/turn-dispatch-guard.test.ts
 pnpm exec vitest run server/comms.test.ts server/thread-aware-bots.e2e.test.ts server/routine-delegation.e2e.test.ts server/independent-threads-api.test.ts server/peer-allowlist.e2e.test.ts server/steer-queue.test.ts
 pnpm exec vitest run server/runtime-paths.e2e.test.ts server/notification-routing.e2e.test.ts server/post-to-room.test.ts
-OMB_UI_E2E=1 pnpm exec vitest run scripts/testing/direct-coordination-ui.e2e.test.ts
+DUSK_UI_E2E=1 pnpm exec vitest run scripts/testing/direct-coordination-ui.e2e.test.ts
 ```
 
 The integration suite launches the disposable control fixture and drives the
@@ -512,7 +512,7 @@ Two isolated `gpt-5.6-sol` trials used temporary work folders and real tools:
   `/tmp/omb-live-team-0913.MwRY2k/nested-gpt-5.6-sol-1789253398198/result.json`.
 
 The first run also exposed a model-quality limitation: Patch claimed Nora had
-verified its work without a corresponding OMB handoff. Clive correctly treated
+verified its work without a corresponding Dusk Bot handoff. Clive correctly treated
 that claim as insufficient and requested an actual independent check. Prompts
 now explicitly require real coordination receipts for named-bot participation;
 this is guidance, not a guarantee that every model report is truthful. The

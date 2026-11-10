@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // The first run: Grok Bot's three screens, then the chat. Meeting the app (and connecting an AI when none works); what it
-// saves, where it lands (MausBot, made the Chief where none is), and what a replay does.
+// saves, where it lands (Dusk, made the Chief where none is), and what a replay does.
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -33,7 +33,7 @@ const freeOpenCode: InstanceInfo = {
   snapshot: { state: "available", authenticated: true, freeFallback: true }, models: { default: "opencode/big-pickle", options: [] }, aiTest: "passed",
 };
 const signIn = (): InstanceInfo => ({ ...claude(false), snapshot: { state: "available", authenticated: false }, authentication: { method: "paste-code" } } as InstanceInfo);
-const maus = { id: "maus", threadId: "t", name: "MausBot", title: "", description: "", notifications: true, color: "chrome", unread: false,
+const maus = { id: "maus", threadId: "t", name: "Dusk", title: "", description: "", notifications: true, color: "chrome", unread: false,
   modelSelection: { instanceId: "claude", model: "m" }, messages: [], defaultBot: {}, chiefOfStaff: true };
 
 let host: HTMLDivElement, root: Root;
@@ -96,9 +96,9 @@ afterEach(async () => {
 });
 
 describe("a new install's first run", () => {
-  it("is Grok Bot's three screens with an AI already working, then MausBot's chat, as the Chief", async () => {
+  it("is Grok Bot's three screens with an AI already working, then Dusk's chat, as the Chief", async () => {
     await show();
-    expect(host.querySelector("h1")?.textContent).toBe("Meet MausBot");
+    expect(host.querySelector("h1")?.textContent).toBe("Meet Dusk");
     expect(host.querySelector("[data-demo-composer]")?.textContent, "reduced motion shows the whole sentence").toContain("Hand off any task to your team of Bots");
     for (const gone of ["Step 1", "Back", "Skip", "Your name", "Connect an AI", "Set up later"]) expect(text()).not.toContain(gone);
     expect(button("Next")!.disabled).toBe(false);
@@ -106,7 +106,7 @@ describe("a new install's first run", () => {
     await press("Next");
     expect(button("Back"), "from the second screen on, Back goes a screen back").toBeDefined();
     await press("Back");
-    expect(host.querySelector("h1")?.textContent).toBe("Meet MausBot");
+    expect(host.querySelector("h1")?.textContent).toBe("Meet Dusk");
     await press("Next");
     await throughGrokScreens();
     expect(text(), "no Chief of Staff screen to ask").not.toContain("Introducing your Chief of Staff");
@@ -125,7 +125,7 @@ describe("a new install's first run", () => {
   });
 });
 
-describe("MausBot as the Chief", () => {
+describe("Dusk as the Chief", () => {
   const finishesAtNext = async () => {
     await show();
     await throughAll();
@@ -133,7 +133,7 @@ describe("MausBot as the Chief", () => {
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith(null);
   };
 
-  it("makes MausBot the Chief only where there is none", async () => {
+  it("makes Dusk the Chief only where there is none", async () => {
     f.state = { ...f.state, bots: [{ ...maus, chiefOfStaff: false }] };
     await show();
     await throughAll();
@@ -141,7 +141,7 @@ describe("MausBot as the Chief", () => {
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
   });
 
-  it("is skipped once MausBot has met the person", async () => {
+  it("is skipped once Dusk has met the person", async () => {
     f.state = { ...f.state, bots: [{ ...maus, welcomed: true }] };
     await finishesAtNext();
   });
@@ -151,7 +151,7 @@ describe("MausBot as the Chief", () => {
     await finishesAtNext();
   });
 
-  it("is skipped where there is no MausBot", async () => {
+  it("is skipped where there is no Dusk", async () => {
     f.state = { ...f.state, bots: [] };
     await finishesAtNext();
   });
@@ -161,7 +161,7 @@ describe("with no AI working yet", () => {
   it("keeps the screen's shape: the pill signs in, and the line under it offers other ways or later", async () => {
     f.state = { ...f.state, instances: [signIn()] };
     await show();
-    expect(host.querySelector("h1")?.textContent).toBe("Meet MausBot");
+    expect(host.querySelector("h1")?.textContent).toBe("Meet Dusk");
     expect(button("Next")).toBeUndefined();
     expect(button("Sign in with Claude")).toBeDefined();
     expect(button("Other ways to connect")).toBeDefined();
@@ -183,7 +183,7 @@ describe("with no AI working yet", () => {
     expect(dialog.querySelector('[data-engine-setup="claude"]')).not.toBeNull();
     await act(async () => { dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
     expect(host.querySelector("[data-connect-ai]")).toBeNull();
-    expect(text(), "Escape closed the dialog only").toContain("Meet MausBot");
+    expect(text(), "Escape closed the dialog only").toContain("Meet Dusk");
   });
 
   it("says why an AI didn't answer its test, under the pill and in the dialog with Check again", async () => {
@@ -224,7 +224,7 @@ describe("with no AI working yet", () => {
     await show();
     await key("Enter");
     expect(host.querySelector("[data-connect-ai]"), "Enter pressed Connect Claude").not.toBeNull();
-    expect(text()).toContain("Meet MausBot");
+    expect(text()).toContain("Meet Dusk");
     await act(async () => { host.querySelector("[data-connect-ai]")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
     await key("Escape");
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");

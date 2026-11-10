@@ -1,5 +1,5 @@
-# OpenMausBot harness server — hosted/self-hosted tenant image, and the
-# OMB Cloud Pro home machine (docs/cloud-pro.md).
+# Dusk Bot harness server — hosted/self-hosted tenant image, and the
+# Dusk Cloud Pro home machine (docs/cloud-pro.md).
 #
 # Build the renderer + the self-contained server bundle, then ship only those
 # artifacts on a slim Node runtime. The runtime stage holds what changes
@@ -13,13 +13,13 @@
 #
 # Built from the repository root (the context), with Dockerfile.dockerignore beside it:
 #
-#   docker build -f deploy/docker/Dockerfile -t openmausbot .
-#   docker build -f deploy/docker/Dockerfile --build-arg ENGINES="@anthropic-ai/claude-code @openai/codex" -t openmausbot .
+#   docker build -f deploy/docker/Dockerfile -t duskbot .
+#   docker build -f deploy/docker/Dockerfile --build-arg ENGINES="@anthropic-ai/claude-code @openai/codex" -t duskbot .
 #   docker build -f deploy/docker/Dockerfile --target cloud-home -t omb-cloud-home .
-#   docker buildx build -f deploy/docker/Dockerfile --platform linux/arm64 -t openmausbot .   # Raspberry Pi 4/5, ARM servers
+#   docker buildx build -f deploy/docker/Dockerfile --platform linux/arm64 -t duskbot .   # Raspberry Pi 4/5, ARM servers
 #
 # HOME is the /data volume, so engine CLI logins (~/.claude, ~/.codex, ~/.grok,
-# ...) and OpenMausBot's own state (~/.openmausbot) persist across container
+# ...) and Dusk Bot's own state (~/.duskbot) persist across container
 # restarts.
 #
 # A plain `docker run` of either image wants `--init --shm-size=512m`, as the
@@ -59,7 +59,7 @@ RUN pnpm build:server && pnpm exec vite build && chmod -R go-w dist dist-server 
 # (pnpm-workspace.yaml supportedArchitectures).
 ARG TARGETARCH
 RUN arch=x64 && if [ "$TARGETARCH" = arm64 ]; then arch=arm64; fi \
-  && OMB_DUCKDB_ARCH=$arch node scripts/prepare-duckdb.mjs \
+  && DUSK_DUCKDB_ARCH=$arch node scripts/prepare-duckdb.mjs \
   && mv "dist-native/duckdb/linux-$arch" dist-native/duckdb/target && chmod -R go-w dist-native/duckdb
 
 FROM node:24-bookworm-slim AS runtime
@@ -95,9 +95,9 @@ RUN echo "agent-browser ${AGENT_BROWSER_VERSION}, Chrome for Testing ${CHROME_CA
   && npm install -g --cache /tmp/npm-cache agent-browser@${AGENT_BROWSER_VERSION} \
   && if [ "$TARGETARCH" = arm64 ]; then \
        apt-get update && apt-get install -y --no-install-recommends chromium && rm -rf /var/lib/apt/lists/* \
-       && mkdir -p /opt/openmausbot-browser && ln -s /usr/lib/chromium/chromium /opt/openmausbot-browser/chrome; \
-     else HOME=/opt/openmausbot-browser agent-browser install \
-       && ln -s /opt/openmausbot-browser/.agent-browser/browsers/chrome-*/chrome /opt/openmausbot-browser/chrome; \
+       && mkdir -p /opt/duskbot-browser && ln -s /usr/lib/chromium/chromium /opt/duskbot-browser/chrome; \
+     else HOME=/opt/duskbot-browser agent-browser install \
+       && ln -s /opt/duskbot-browser/.agent-browser/browsers/chrome-*/chrome /opt/duskbot-browser/chrome; \
      fi \
   && native="$(readlink -f "$(command -v agent-browser)")" \
   && case "$native" in */agent-browser/bin/agent-browser-linux-*) ;; *) echo "agent-browser is not a native binary: $native" >&2; exit 1;; esac \
@@ -109,13 +109,13 @@ RUN echo "agent-browser ${AGENT_BROWSER_VERSION}, Chrome for Testing ${CHROME_CA
 # which may be an existing mounted volume. Session state still lives in HOME,
 # which each image sets after its last build step, so no build step writes
 # into what a fresh volume starts with.
-#  OMB_DUCKDB_DIR: the DuckDB binding tree the server requires (no node_modules here).
-ENV AGENT_BROWSER_EXECUTABLE_PATH=/opt/openmausbot-browser/chrome \
-    OMB_DUCKDB_DIR=/app/duckdb \
-    OMB_DATA_DIR=/data/.openmausbot \
-    OMB_STATIC_DIR=/app/dist \
-    OMB_PORT=8799 \
-    OMB_WEBHOOK_PORT=8800 \
+#  DUSK_DUCKDB_DIR: the DuckDB binding tree the server requires (no node_modules here).
+ENV AGENT_BROWSER_EXECUTABLE_PATH=/opt/duskbot-browser/chrome \
+    DUSK_DUCKDB_DIR=/app/duckdb \
+    DUSK_DATA_DIR=/data/.duskbot \
+    DUSK_STATIC_DIR=/app/dist \
+    DUSK_PORT=8799 \
+    DUSK_WEBHOOK_PORT=8800 \
     NODE_ENV=production
 WORKDIR /app
 
@@ -184,7 +184,7 @@ COPY --from=build /src/skills ./skills
 RUN export HOME=/tmp/omb-build-home \
  && chmod go-w /app/cloud /app/cloud/Caddyfile \
  && caddy version \
- && OMB_CLOUD_PUBLIC_HOST=validate.fly.dev caddy validate --config /app/cloud/Caddyfile --adapter caddyfile \
+ && DUSK_CLOUD_PUBLIC_HOST=validate.fly.dev caddy validate --config /app/cloud/Caddyfile --adapter caddyfile \
  && test -f /app/dist-server/cloud-home-start.js \
  && untrusted="$(find /app /usr/local/bin/caddy \( ! -user root -o ! -type l -perm /022 \) -print)" \
  && if [ -n "$untrusted" ]; then echo "not root's, or writable by others:" >&2; echo "$untrusted" >&2; exit 1; fi \
@@ -194,7 +194,7 @@ VOLUME ["/data"]
 EXPOSE 8080
 # Fly uses the checks in fly.toml; this one serves a plain `docker run`.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
-  CMD curl -sf http://127.0.0.1:8080/api/health | grep -q openmausbot || exit 1
+  CMD curl -sf http://127.0.0.1:8080/api/health | grep -q duskbot || exit 1
 # Starts as root: hands a fresh volume to `maus`, runs the server and the edge
 # as `maus`, and hands the server its secrets over a pipe, never an
 # environment `maus` could read (server/cloud-home-start.ts). It runs only
@@ -215,7 +215,7 @@ ENV HOME=/data
 VOLUME ["/data"]
 USER maus
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -sf http://127.0.0.1:8799/api/health | grep -q openmausbot || exit 1
+  CMD curl -sf http://127.0.0.1:8799/api/health | grep -q duskbot || exit 1
 # The launcher runs dist-server/index.js and starts it again when it asks to
 # (a copied workspace committing, server/restart.ts), so the container, and a
 # Caddy sharing its network, stays up through that restart.

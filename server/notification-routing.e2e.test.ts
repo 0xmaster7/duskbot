@@ -50,7 +50,7 @@ const capability = async (
     "POST",
     "/api/testing/internal-capability",
     { botId, threadId, kind },
-    { "x-openmausbot-test-capability": TEST_CAPABILITY_KEY },
+    { "x-dusk-test-capability": TEST_CAPABILITY_KEY },
   );
   expect(minted.status).toBe(201);
   return { authorization: `Bearer ${minted.body.token}` };
@@ -89,7 +89,7 @@ beforeAll(async () => {
   chmodSync(FAKE_CLAUDE, 0o755);
   chmodSync(FAKE_ACP, 0o755);
   home = mkdtempSync(join(tmpdir(), "omb-notification-routing-"));
-  const data = join(home, ".openmausbot");
+  const data = join(home, ".duskbot");
   mkdirSync(data, { recursive: true });
   dumpFile = join(home, "quick-dump.json");
   writeFileSync(join(data, "config.json"), JSON.stringify({
@@ -144,9 +144,9 @@ beforeAll(async () => {
       ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
       HOME: home,
       USERPROFILE: home,
-      OMB_PORT: String(port),
-      OMB_WEBHOOK_PORT: String(port + 1),
-      OMB_TEST_INTERNAL_CAPABILITY_KEY: TEST_CAPABILITY_KEY,
+      DUSK_PORT: String(port),
+      DUSK_WEBHOOK_PORT: String(port + 1),
+      DUSK_TEST_INTERNAL_CAPABILITY_KEY: TEST_CAPABILITY_KEY,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -341,7 +341,7 @@ describe("a reply that tags the person", () => {
 });
 
 describe("bot-to-bot coordination is recorded, not announced", () => {
-  const handoffs = () => readHandoffs(join(home, ".openmausbot"));
+  const handoffs = () => readHandoffs(join(home, ".duskbot"));
   const consultation = async (requestId: string) => {
     await expect.poll(() => handoffs().some((node) => node.id === requestId), { timeout: 15_000 }).toBe(true);
     return handoffs().find((node) => node.id === requestId)!;

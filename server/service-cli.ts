@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import {
-  currentUser, launchdPlist, sentinelCommand, sentinelLaunchdPlist, sentinelServicePlan, sentinelSystemdService, sentinelSystemdTimer,
+  currentUser, launchdPlist, legacyServicePlan, sentinelCommand, sentinelLaunchdPlist, sentinelServicePlan, sentinelSystemdService, sentinelSystemdTimer,
   servicePlan, shippedSentinelCli, systemdUnit, unstableInstallWarning,
 } from "./service-unit.ts";
 import { defaultSentinelOut, outRefusal } from "./sentinel/paths.ts";
@@ -50,7 +50,7 @@ export function runServiceCommand(input: ServiceInstallInput, io: ServiceIo): nu
   if (input.sentinel) return runSentinelService(input, platform, home, io);
   const plan = servicePlan(platform, input.dataDir, home);
   if (!plan) {
-    io.error("services are written for Linux (systemd) and macOS (launchd); on Windows, use Task Scheduler to run `openmausbot serve` at startup");
+    io.error("services are written for Linux (systemd) and macOS (launchd); on Windows, use Task Scheduler to run `duskbot serve` at startup");
     return 1;
   }
   if (input.action === "uninstall") {
@@ -58,6 +58,7 @@ export function runServiceCommand(input: ServiceInstallInput, io: ServiceIo): nu
     for (const line of plan.deactivate) io.log(`  ${line}`);
     return 0;
   }
+  retireLegacy(platform, "serve", home, input.exists ?? existsSync, io);
   const warning = unstableInstallWarning(input.script);
   if (warning) {
     io.error(warning);
@@ -82,9 +83,17 @@ export function runServiceCommand(input: ServiceInstallInput, io: ServiceIo): nu
   for (const line of plan.activate) io.log(`  ${line}`);
   io.log("");
   if (input.domain && platform === "linux") io.log("the unit grants Caddy the capability for ports 80 and 443, so no setcap is needed under the service");
-  io.log(`logs: ${platform === "darwin" ? `${input.dataDir}/logs/service.log` : "journalctl -u openmausbot -f"}`);
-  io.log(`change options later by running \`openmausbot service install\` again with the new ones, then: ${platform === "darwin" ? plan.activate[1] : "sudo systemctl daemon-reload && sudo systemctl restart openmausbot"}`);
+  io.log(`logs: ${platform === "darwin" ? `${input.dataDir}/logs/service.log` : "journalctl -u duskbot -f"}`);
+  io.log(`change options later by running \`duskbot service install\` again with the new ones, then: ${platform === "darwin" ? plan.activate[1] : "sudo systemctl daemon-reload && sudo systemctl restart duskbot"}`);
   return 0;
+}
+
+function retireLegacy(platform: NodeJS.Platform, kind: "serve" | "sentinel", home: string, exists: (path: string) => boolean, io: ServiceIo): void {
+  const legacy = legacyServicePlan(platform, kind, home);
+  if (!legacy || !legacy.installed.some((file) => exists(file))) return;
+  io.log("first remove the one installed before the rename, so the two never run at once:");
+  for (const line of legacy.deactivate) io.log(`  ${line}`);
+  io.log("");
 }
 
 function bundleHasSentinel(script: string): boolean {
@@ -103,7 +112,7 @@ function runSentinelService(input: ServiceInstallInput, platform: NodeJS.Platfor
     // command line as one argument, with its own quotes escaped
     const command = sentinelCommand({ ...input, out }).map((arg) => `\\"${arg}\\"`).join(" ");
     io.error("services are written for Linux (systemd) and macOS (launchd); on Windows, use Task Scheduler to run Sentinel every two minutes:");
-    io.error(`  schtasks /Create /SC MINUTE /MO 2 /TN "OpenMausBot Sentinel" /TR "${command}"`);
+    io.error(`  schtasks /Create /SC MINUTE /MO 2 /TN "Dusk Bot Sentinel" /TR "${command}"`);
     return 1;
   }
   if (input.action === "uninstall") {
@@ -111,6 +120,7 @@ function runSentinelService(input: ServiceInstallInput, platform: NodeJS.Platfor
     for (const line of plan.deactivate) io.log(`  ${line}`);
     return 0;
   }
+  retireLegacy(platform, "sentinel", home, input.exists ?? existsSync, io);
   const refusal = outRefusal(out, input.dataDir);
   if (refusal) {
     io.error(refusal);
@@ -148,7 +158,7 @@ function runSentinelService(input: ServiceInstallInput, platform: NodeJS.Platfor
   for (const line of plan.activate) io.log(`  ${line}`);
   io.log("");
   io.log(`issues: ${join(out, "issues.jsonl")}`);
-  io.log(`logs: ${platform === "darwin" ? join(out, "sentinel.log") : "journalctl --user -u openmausbot-sentinel"}`);
-  io.log("after an app update or a Node upgrade, check the schedule still points at both: openmausbot sentinel --check-install");
+  io.log(`logs: ${platform === "darwin" ? join(out, "sentinel.log") : "journalctl --user -u duskbot-sentinel"}`);
+  io.log("after an app update or a Node upgrade, check the schedule still points at both: duskbot sentinel --check-install");
   return 0;
 }

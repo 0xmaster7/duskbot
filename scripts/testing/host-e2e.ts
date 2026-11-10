@@ -1,8 +1,8 @@
 import { globSync } from "node:fs";
 import path from "node:path";
 
-// Most e2e files drive OMB's own logic through a real server and fake engines, which is the same on every OS, so CI
-// runs them on Linux only. The files below also run on the Windows and macOS shards, which set OMB_VITEST_E2E=host:
+// Most e2e files drive Dusk Bot's own logic through a real server and fake engines, which is the same on every OS, so CI
+// runs them on Linux only. The files below also run on the Windows and macOS shards, which set DUSK_VITEST_E2E=host:
 // each one either has a test that never runs on Linux or depends on how the OS treats paths, processes or Chrome.
 export const E2E = /\.e2e\.test\.[cm]?[jt]s$/;
 
@@ -29,7 +29,7 @@ export const HOST_E2E: Readonly<Record<string, string>> = {
 
 /** True on the CI shards that run only HOST_E2E of the e2e files. */
 export function hostE2eOnly(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.OMB_VITEST_E2E === "host";
+  return env.DUSK_VITEST_E2E === "host";
 }
 
 /** Whether a repo-relative POSIX path is an e2e file that runs on Linux only. */

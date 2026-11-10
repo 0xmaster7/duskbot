@@ -1,5 +1,5 @@
-// Where a signed-in account set OpenMausBot up (a server of its own, My Cloud), so another install of the same account
-// can say "You already set up OpenMausBot on …" instead of starting over. One interface, two sides: this computer's own
+// Where a signed-in account set Dusk Bot up (a server of its own, My Cloud), so another install of the same account
+// can say "You already set up Dusk Bot on …" instead of starting over. One interface, two sides: this computer's own
 // record now, and the account's record on our side once that database exists (remoteAccountSetupStore is its stub).
 //
 // Only a hash of the account's id is kept here, never its email or token.

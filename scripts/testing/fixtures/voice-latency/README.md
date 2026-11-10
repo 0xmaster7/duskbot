@@ -37,8 +37,8 @@ Totals: 116 blocks, mean ~66 chars.
 Synthesis comes from the record stub, not the live engine:
 `voice-latency-stub.ts` serves the ElevenLabs wire shape
 (`server/tts/elevenlabs.ts`) on loopback, and the harness points the fixture
-server at it through `OMB_ELEVENLABS_API`. No live engine call, no engine key:
-record runs need no `OMB_TTS_KEY` and never reach api.elevenlabs.io; the stub
+server at it through `DUSK_ELEVENLABS_API`. No live engine call, no engine key:
+record runs need no `DUSK_TTS_KEY` and never reach api.elevenlabs.io; the stub
 key in the fixture config is a literal that only ever reaches loopback.
 
 Modeled timing, identical on both sides and pinned in `manifest.json`
@@ -96,7 +96,7 @@ node --experimental-strip-types scripts/testing/voice-latency-harness.ts --label
 
 No environment setup: the run is keyless and self-contained (it launches the
 stub, the disposable fixture server and the browser itself, and never reads
-the live `~/.openmausbot/config.json`). One warmup reply is spoken and
+the live `~/.duskbot/config.json`). One warmup reply is spoken and
 discarded, then every corpus reply in order. Each log row: reply id, shape,
 t0-to-first-audio ms, gap count, total gap ms, longest gap ms (plus
 t0→message-frame and message-frame→first-audio splits). The summary carries

@@ -7,7 +7,7 @@ line. The product behaviour is described in
 [../org-library.md](../org-library.md). Nothing here talks to a real Admin.
 A catalog is relayed into a disposable fixture through
 `POST /api/testing/org-library`, which exists only when the fixture was
-started with `OMB_TEST_ORG_LIBRARY_KEY`.
+started with `DUSK_TEST_ORG_LIBRARY_KEY`.
 
 ## Library units
 
@@ -80,7 +80,7 @@ pnpm exec vitest run server/org-library.e2e.test.ts --silent=false
 ```
 
 This launches and cleans its own fake-engine fixture with
-`launchVerificationServer`, passing a random `OMB_TEST_ORG_LIBRARY_KEY`. It
+`launchVerificationServer`, passing a random `DUSK_TEST_ORG_LIBRARY_KEY`. It
 checks the following:
 
 - With no relay, `GET /api/org-library` is `{organization: null, packages: []}`.
@@ -98,14 +98,14 @@ checks the following:
 
 ```sh
 pnpm exec vitest run src/lib/org-library.test.ts
-OMB_UI_E2E=1 pnpm exec vitest run scripts/testing/org-library-ui.e2e.test.ts --silent=false
+DUSK_UI_E2E=1 pnpm exec vitest run scripts/testing/org-library-ui.e2e.test.ts --silent=false
 ```
 
 The first command renders the shelf cards and the preview to markup. It
 checks:
 
 - Add appears only for a checked file, and there is no confirm step;
-- Added, "Update OpenMausBot to add this", the Recommended badge, the
+- Added, "Update Dusk Bot to add this", the Recommended badge, the
   waiting-release sentence and "Withdrawn by …";
 - "Included skills — switched on";
 - a skills-only preview with no team;
@@ -134,7 +134,7 @@ This ran on macOS (arm64) against disposable fixtures only. These passed:
 
 - `pnpm typecheck`, `pnpm lint` and `pnpm i18n:check`;
 - the four commands above, including the headless-renderer run with
-  `OMB_UI_E2E=1`;
+  `DUSK_UI_E2E=1`;
 - `server/package-import.test.ts`, `server/package-export.test.ts`,
   `shared/package-format.test.ts`, `server/bot-package.test.ts`,
   `server/skills.test.ts`, `server/routines.test.ts`, `server/store.test.ts`,
@@ -192,7 +192,7 @@ fixtures only:
   Bot settings on an installation with no organization.
 
 These passed: `pnpm typecheck`, `pnpm lint`, the four commands above
-(including the headless-renderer run with `OMB_UI_E2E=1`), and the neighbouring tests
+(including the headless-renderer run with `DUSK_UI_E2E=1`), and the neighbouring tests
 listed in the section above plus `src/lib/team-share.test.ts`.
 
 Each of these was mutation-checked, with the named test seen failing:

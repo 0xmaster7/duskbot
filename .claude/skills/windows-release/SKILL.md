@@ -16,13 +16,13 @@ Test-Path release\win-unpacked\resources\server\index.js
 Test-Path release\win-unpacked\resources\ui\index.html
 ```
 
-The output contains `OpenMausBot-<version>-setup.exe` and
-`OpenMausBot-<version>-x64.zip`. Confirm the installed app launches, renders the
+The output contains `DuskBot-<version>-setup.exe` and
+`DuskBot-<version>-x64.zip`. Confirm the installed app launches, renders the
 chat window, and lists a provider in the model picker. Logs live in
-`%APPDATA%\OpenMausBot\logs\server.log`.
+`%APPDATA%\Dusk Bot\logs\server.log`.
 
 Upload the installers to the version's release together with the other
-platforms. Keep a stable `OpenMausBot-setup.exe` copy for download links.
+platforms. Keep a stable `DuskBot-setup.exe` copy for download links.
 
 The Windows build is unsigned. SmartScreen shows "unknown publisher" and users
 choose **More info → Run anyway**. Signing configuration belongs under

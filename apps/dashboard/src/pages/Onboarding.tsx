@@ -116,7 +116,7 @@ export function Onboarding() {
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-bg">
       <header className="relative mx-auto flex h-16 max-w-[960px] items-center justify-between px-6 max-sm:px-4">
-        <span className="flex items-center gap-2.5"><Mascot color="blue" size={20} still /><span className="text-14 font-medium text-ink">OpenMausBot</span></span>
+        <span className="flex items-center gap-2.5"><Mascot color="blue" size={20} still /><span className="text-14 font-medium text-ink">Dusk Bot</span></span>
         <div className="flex items-center gap-4">
           <ol className="flex items-center gap-1.5" aria-label={`Step ${ORDER.indexOf(step) + 1} of ${ORDER.length}`}>
             {ORDER.map((s, i) => <li key={s} aria-hidden className={cx("h-1 rounded-full", i <= ORDER.indexOf(step) ? "bg-ink" : "bg-track", s === step ? "w-6" : "w-3")} />)}

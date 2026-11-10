@@ -13,7 +13,7 @@ version="${BOT_DESKTOP_VERSION:-$(read_const BOT_DESKTOP_VERSION)}"
 version="${version:-3}"
 image="${IMAGE:-$(read_const BOT_DESKTOP_IMAGE)}"
 image="${image:-ghcr.io/sidddevz/omb-bot-desktop:v$version}"
-resolution="${OMB_RESOLUTION:-1280x800}"
+resolution="${DUSK_RESOLUTION:-1280x800}"
 
 start="$(date +%s)"
 if [ "${1:-}" = "--push" ]; then

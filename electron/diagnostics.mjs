@@ -7,39 +7,39 @@ export const CREDENTIAL_ENV_NAMES = [
   "XAI_API_KEY",
   "MISTRAL_API_KEY",
   "CEREBRAS_API_KEY",
-  "OMB_GROQ_API_KEY",
-  "OMB_GREENFERENCE_API_KEY",
-  "OMB_META_API_KEY",
-  "OMB_DEEPSEEK_API_KEY",
-  "OMB_ANTHROPIC_API_KEY",
-  "OMB_ANTHROPIC_API_URL",
+  "DUSK_GROQ_API_KEY",
+  "DUSK_GREENFERENCE_API_KEY",
+  "DUSK_META_API_KEY",
+  "DUSK_DEEPSEEK_API_KEY",
+  "DUSK_ANTHROPIC_API_KEY",
+  "DUSK_ANTHROPIC_API_URL",
   "OPENAI_COMPAT_API_KEY",
   "OPENAI_COMPAT_URL",
-  "OMB_OPENAI_API_KEY",
-  "OMB_OPENROUTER_API_KEY",
+  "DUSK_OPENAI_API_KEY",
+  "DUSK_OPENROUTER_API_KEY",
   "BOX_TOKEN",
   "OPENCODE_API_KEY",
-  "OMB_TTS_KEY",
-  "OMB_FISH_AUDIO_API_KEY",
-  "OMB_GEMINI_API_KEY",
-  "OMB_JEV_API_KEY",
-  "OMB_OPENROUTER_DECIDER_KEY",
-  "OMB_GATEWAY_DECIDER_KEY",
-  "OMB_WORKERS_AI_TOKEN",
-  "OMB_OPENAI_IMAGE_KEY",
-  "OMB_CUSTOM_IMAGE_KEY",
-  "OMB_OPENAI_LIVE_KEY",
-  "OMB_TREG_KEY",
+  "DUSK_TTS_KEY",
+  "DUSK_FISH_AUDIO_API_KEY",
+  "DUSK_GEMINI_API_KEY",
+  "DUSK_JEV_API_KEY",
+  "DUSK_OPENROUTER_DECIDER_KEY",
+  "DUSK_GATEWAY_DECIDER_KEY",
+  "DUSK_WORKERS_AI_TOKEN",
+  "DUSK_OPENAI_IMAGE_KEY",
+  "DUSK_CUSTOM_IMAGE_KEY",
+  "DUSK_OPENAI_LIVE_KEY",
+  "DUSK_TREG_KEY",
   "COMPOSIO_API_KEY",
-  "OMB_COMPOSIO_BROKER_TOKEN",
-  "OMB_CLOUD_VOICE_TOKEN",
-  "OMB_CLOUD_DECIDER_TOKEN",
-  "OMB_CLOUD_AI_TOKEN",
-  "OMB_CLOUD_X_TOKEN",
-  "OMB_CLOUD_CONNECTED_APPS_GRANT",
+  "DUSK_COMPOSIO_BROKER_TOKEN",
+  "DUSK_CLOUD_VOICE_TOKEN",
+  "DUSK_CLOUD_DECIDER_TOKEN",
+  "DUSK_CLOUD_AI_TOKEN",
+  "DUSK_CLOUD_X_TOKEN",
+  "DUSK_CLOUD_CONNECTED_APPS_GRANT",
   // Private even though they are not traditional API credentials.
-  "OMB_BROWSER_CONNECTION",
-  "OMB_USER_DATA",
+  "DUSK_BROWSER_CONNECTION",
+  "DUSK_USER_DATA",
 ];
 
 // Kept in parity with server/redact.ts: unmistakable token formats are masked wherever they appear, keyed or not.
@@ -271,7 +271,7 @@ export function buildDiagnosticsReport({
   now = new Date().toISOString(),
 } = {}) {
   const lines = [];
-  lines.push("OpenMausBot diagnostics");
+  lines.push("Dusk Bot diagnostics");
   lines.push(`Generated: ${now}`);
   lines.push("");
   lines.push("## App");
@@ -311,7 +311,7 @@ export function buildDiagnosticsReport({
 export function diagnosticsFileName(date = new Date()) {
   const pad = (n) => String(n).padStart(2, "0");
   return (
-    `openmausbot-diagnostics-${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
+    `duskbot-diagnostics-${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
     `-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}.txt`
   );
 }

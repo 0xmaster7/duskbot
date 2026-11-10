@@ -1,3 +1,4 @@
+import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, createPublicKey, generateKeyPairSync } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -139,14 +140,14 @@ describe("waking for a routine", () => {
 describe("the machine's own guards", () => {
   const setup = boatSetupScript(), control = boatControlScript();
   it("the pre-stop hook flags the save, stops the home within 40 s or kills it, and arms a restart if the stop never comes", () => {
-    expect(setup).toContain("sudo -n touch /run/openmausbot/pre-stop");
+    expect(setup).toContain(`sudo -n touch ${CLOUD_HOME.run}/pre-stop`);
     expect(setup).toContain("sudo -n timeout 40 systemctl stop omb-home.service >/dev/null 2>&1 || sudo -n systemctl kill -s KILL omb-home.service");
     expect(setup).toContain("--on-active=15min");
-    expect(setup).toContain("ConditionPathExists=!/run/openmausbot/pre-stop");
+    expect(setup).toContain(`ConditionPathExists=!${CLOUD_HOME.run}/pre-stop`);
     expect(setup).toContain("TimeoutStopSec=35");
     expect(control).toContain("resume-if-cancelled)");
     // starting clears the flag first, so a resume that kept the machine in memory starts the home again
-    expect(control.indexOf("rm -f /run/openmausbot/pre-stop; systemctl stop omb-stop-cancelled.timer")).toBeLessThan(control.indexOf("systemctl restart omb-home.service"));
+    expect(control.indexOf(`rm -f ${CLOUD_HOME.run}/pre-stop; systemctl stop omb-stop-cancelled.timer`)).toBeLessThan(control.indexOf("systemctl restart omb-home.service"));
   });
 
   it("caps memory: the home under 90%, bot computers under their slice, compressed swap, and the home killed last", () => {
@@ -157,7 +158,7 @@ describe("the machine's own guards", () => {
     const dir = mkdtempSync(join(tmpdir(), "omb-prestop-")); dirs.push(dir);
     const branch = control.slice(control.indexOf("  resume-if-cancelled)"), control.indexOf("  start)"));
     const flag = join(dir, "pre-stop"), log = join(dir, "log");
-    const script = `set -e\nsystemctl() { echo "systemctl $*" >> ${log}; }\nstat() { if [ "$1" = -c ]; then cat ${dir}/mtime; fi; }\ncase "resume-if-cancelled" in\n${branch.replaceAll("/run/openmausbot/pre-stop", flag)}\nesac\n`;
+    const script = `set -e\nsystemctl() { echo "systemctl $*" >> ${log}; }\nstat() { if [ "$1" = -c ]; then cat ${dir}/mtime; fi; }\ncase "resume-if-cancelled" in\n${branch.replaceAll(`${CLOUD_HOME.run}/pre-stop`, flag)}\nesac\n`;
     writeFileSync(join(dir, "run.sh"), script);
     writeFileSync(flag, ""); writeFileSync(join(dir, "mtime"), String(Math.floor(Date.now() / 1000) - 60));
     expect(execFileSync("bash", [join(dir, "run.sh")], { encoding: "utf8" }).trim()).toBe("kept");

@@ -46,7 +46,7 @@ async function fixture() {
   const spec = { type: "http" as const, url: `http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`, headers: { Authorization: "Bearer fixture-one" } };
   const file = join(directory, `${remoteMcpCacheKey(spec, {})}.json`);
   function start(target: RemoteMcpSpec = spec, privateEnv = false) {
-    const configEnvName = privateEnv ? `OMB_REMOTE_MCP_CONFIG_${"a".repeat(64)}` : undefined;
+    const configEnvName = privateEnv ? `DUSK_REMOTE_MCP_CONFIG_${"a".repeat(64)}` : undefined;
     const descriptor = mcpStdioServer(target, { configEnvName })!;
     const env = { ...descriptor.env };
     if (configEnvName) env[configEnvName] = JSON.stringify({ ...JSON.parse(env[configEnvName]!), [REMOTE_MCP_CACHE_ENV]: directory });

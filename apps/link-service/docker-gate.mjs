@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// OpenMausBot docker gate. The server user is not in the docker group: it reaches docker only through this socket,
-// which forwards the Engine API requests OpenMausBot sends, on its own labelled containers with fixed safe flags,
+// Dusk Bot docker gate. The server user is not in the docker group: it reaches docker only through this socket,
+// which forwards the Engine API requests Dusk Bot sends, on its own labelled containers with fixed safe flags,
 // and answers everything else 403. Security invariant: nothing forwarded may give the caller host root.
 import { chmodSync, lstatSync, realpathSync, unlinkSync } from "node:fs";
 import { request } from "node:http";
@@ -8,10 +8,12 @@ import { connect, createServer } from "node:net";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
-export const DEFAULT_LISTEN = "/run/openmausbot-docker/docker.sock";
+export const DEFAULT_LISTEN = "/run/duskbot-docker/docker.sock";
 export const DEFAULT_UPSTREAM = "/var/run/docker.sock";
 export const DEFAULT_PULL = ["ghcr.io/sidddevz/omb-bot-desktop", "docker.io/trycua/xfce-cua"];
 
+// docker names from before the rename, kept: the bot computers, volumes and network on a server and the published
+// image carry them (the app's copy is DOCKER_NAMES in electron/legacy-names.mjs; this file stands alone)
 export const VPS_LABEL = "com.openmausbot.vps";
 export const BOT_DESKTOP_LABEL = "com.openmausbot.bot-desktop";
 export const NETWORK_LABEL = "com.openmausbot.vps-network";
@@ -304,7 +306,7 @@ function homeMount(value, name) {
 
 function checkDesktop(config, name, runsc) {
   if (config.get("labels")[VPS_LABEL] !== "1") refuse(`label ${VPS_LABEL} must be 1`);
-  if (typeof name !== "string" || !DESKTOP_NAME.test(name)) refuse("an OpenMausBot computer must be named openmausbot-vps-<bot>-<hex>");
+  if (typeof name !== "string" || !DESKTOP_NAME.test(name)) refuse(`a Dusk Bot computer must be named like ${DESKTOP_NAME.source}`);
   if (!config.get("image")) refuse("Image is required");
   const host = struct(config.get("hostconfig"), "HostConfig", HOST_RULES);
   const strict = host.get("readonlyrootfs") === true && noNewPrivileges(host.get("securityopt"));
@@ -342,7 +344,7 @@ function checkProbe(config, name) {
   return { kind: "probe", image };
 }
 
-/** POST /containers/create: an OpenMausBot computer (label com.openmausbot.vps=1) or one of the two host probes. */
+/** POST /containers/create: a Dusk Bot computer (label VPS_LABEL=1) or one of the two host probes. */
 export function checkCreate(body, { name, runsc = false } = {}) {
   if (!isObject(body)) refuse("the container config must be an object");
   const config = struct(body, "Config", CONFIG_RULES);
@@ -447,7 +449,7 @@ function assertRunsSafely(detail) {
     (Array.isArray(host.MaskedPaths) && host.MaskedPaths.length === 0) ||
     (Array.isArray(host.ReadonlyPaths) && host.ReadonlyPaths.length === 0) ||
     (Array.isArray(detail.Mounts) && detail.Mounts.some((mount) => mount?.Type !== "volume" && mount?.Type !== "tmpfs"));
-  if (unsafe) refuse("this computer was not made with the gate's safe flags; remove it and let OpenMausBot recreate it");
+  if (unsafe) refuse("this computer was not made with the gate's safe flags; remove it and let Dusk Bot recreate it");
 }
 
 const CONTAINER_OPS = {
@@ -585,7 +587,7 @@ async function route(method, target, body, ctx) {
     if (found.status === 404) refuse(found.json?.message ?? `No such container: ${ref}`, 404);
     if (found.status !== 200 || !FULL_ID.test(found.json?.Id ?? "")) throw new Error("docker returned no container");
     const detail = found.json;
-    if (detail.Config?.Labels?.[VPS_LABEL] !== "1") refuse("this container is not an OpenMausBot computer");
+    if (detail.Config?.Labels?.[VPS_LABEL] !== "1") refuse("this container is not a Dusk Bot computer");
     if (rule.safe) assertRunsSafely(detail);
     return pass(`/containers/${detail.Id}${op ? `/${op}` : ""}`, {
       json: Boolean(rule.body),
@@ -1132,7 +1134,7 @@ function isMain() {
 if (isMain()) {
   try {
     const { values } = parseArgs({ options: { listen: { type: "string", default: DEFAULT_LISTEN }, upstream: { type: "string", default: DEFAULT_UPSTREAM } } });
-    const configured = process.env.OMB_GATE_PULL?.split(",").map((entry) => entry.trim()).filter(Boolean);
+    const configured = process.env.DUSK_GATE_PULL?.split(",").map((entry) => entry.trim()).filter(Boolean);
     const gate = await startGate({ listen: values.listen, upstream: values.upstream, pull: configured?.length ? configured : DEFAULT_PULL });
     process.stderr.write(`docker gate: listening on ${values.listen}, forwarding to ${values.upstream}\n`);
     const stop = () => gate.close().then(() => process.exit(0));

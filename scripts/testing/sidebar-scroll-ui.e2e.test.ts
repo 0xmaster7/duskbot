@@ -14,8 +14,8 @@ import { fixtureApi } from "./preview-fixture.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
-const enabled = process.env.OMB_UI_E2E === "1" || Boolean(binary);
-if (!enabled) console.info("skipping sidebar scroll UI e2e: set OMB_UI_E2E=1 to install the pinned browser");
+const enabled = process.env.DUSK_UI_E2E === "1" || Boolean(binary);
+if (!enabled) console.info("skipping sidebar scroll UI e2e: set DUSK_UI_E2E=1 to install the pinned browser");
 
 type WireBot = { id: string; name: string; threadId: string; mainThreadId?: string; tasks?: Array<{ threadId: string; unread?: boolean }> };
 

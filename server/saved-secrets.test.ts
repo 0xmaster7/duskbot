@@ -1,7 +1,9 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { renameSync } from "node:fs";
+import { LEGACY } from "../electron/legacy-names.mjs";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { sealCardSecret } from "../src/lib/card-seal.ts";
@@ -18,10 +20,31 @@ afterEach(() => { while (removals.length) removals.pop()!(); });
 
 function homes() {
   const root = mkdtempSync(join(tmpdir(), "omb-saved-secrets-"));
-  return { dataDir: join(root, "data"), keyFile: join(root, "config", "openmausbot", "saved-secrets.key") };
+  return { dataDir: join(root, "data"), keyFile: join(root, "config", "duskbot", "saved-secrets.key") };
 }
 
 describe("saved secrets at rest", () => {
+  it("a headless server from before the rename keeps its Vault: the old key file is found and copied, never replaced", () => {
+    const root = mkdtempSync(join(tmpdir(), "omb-saved-secrets-legacy-"));
+    const previous = process.env.XDG_CONFIG_HOME;
+    process.env.XDG_CONFIG_HOME = join(root, "config");
+    removals.push(() => { if (previous === undefined) delete process.env.XDG_CONFIG_HOME; else process.env.XDG_CONFIG_HOME = previous; });
+    // the old build: data in the old folder, its key under the old config folder name
+    const oldData = join(root, LEGACY.dataDirName);
+    const tag = createHash("sha256").update(oldData).digest("hex").slice(0, 16);
+    const oldKey = fileSavedSecretsKey(oldData, join(root, "config", LEGACY.devName, `saved-secrets-${tag}.key`));
+    new SavedSecretStore({ dataDir: oldData, key: oldKey }).save({ label: "Card", botId: "b", value: CANARY });
+    const moved = join(root, ".duskbot");
+    renameSync(oldData, moved);
+    const key = fileSavedSecretsKey(moved);
+    expect(key.peek()).toBe(oldKey.get());
+    const carried = fileSavedSecretsKey(moved);
+    expect(carried.get()).toBe(oldKey.get());
+    expect(new SavedSecretStore({ dataDir: moved, key }).list().map((item) => item.label)).toEqual(["Card"]);
+    expect(readFileSync(carried.file, "utf8").trim()).toBe(oldKey.get());
+    expect(existsSync(oldKey.file)).toBe(true);
+  });
+
   it("seals every value under a key outside the data folder, 0600, and lists only labels", () => {
     const { dataDir, keyFile } = homes();
     const store = new SavedSecretStore({ dataDir, key: fileSavedSecretsKey(dataDir, keyFile), now: () => 1_000 });
@@ -66,7 +89,7 @@ describe("saved secrets at rest", () => {
     expect(store.ready()).toBe(false);
     expect(() => store.save({ label: "Key", botId: "b", value: CANARY })).toThrow(SavedSecretsUnavailable);
     expect(store.secretValues()).toEqual([]);
-    expect(key.receive({ type: "openmausbot:saved-secrets-key", key: randomBytes(32).toString("hex") })).toBe(true);
+    expect(key.receive({ type: "duskbot:saved-secrets-key", key: randomBytes(32).toString("hex") })).toBe(true);
     const saved = store.save({ label: "Key", botId: "b", value: CANARY });
     expect(existsSync(keyFile)).toBe(false);
     expect(store.remove(saved.id)).toBe(true);

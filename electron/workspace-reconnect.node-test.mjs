@@ -18,7 +18,7 @@ async function fakeServer() {
   const served = [];
   const handler = (req, res) => {
     served.push(req.url);
-    if (req.url === "/.well-known/openmausbot/environment") return void res.writeHead(200, { "content-type": "application/json" }).end("{}");
+    if (req.url === "/.well-known/duskbot/environment") return void res.writeHead(200, { "content-type": "application/json" }).end("{}");
     if (req.url === "/api/bots?messages=0") return void res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(BOTS));
     res.writeHead(404).end();
   };

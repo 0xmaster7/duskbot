@@ -193,7 +193,7 @@ export function LicenseSheet({ start, source, onClose, onNothingLeft }: { source
     setBusy(true); setError(null);
     try {
       if (owned) { if (await apply(sel)) { toast(sel.license === "personal" ? "License removed" : "License updated"); onClose(); } }
-      else if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("License active. Thanks for backing OpenMausBot."); onClose(); }
+      else if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("License active. Thanks for backing Dusk Bot."); onClose(); }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const free = catalog.workFreeUntil && catalog.workFreeUntil > Date.now() ? catalog.workFreeUntil : null;

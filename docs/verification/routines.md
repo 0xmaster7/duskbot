@@ -47,7 +47,7 @@ The launcher prepares these cases:
   decide to call the tool.
 - **Manual inbox check** is created through the routine API and run twice for
   Pepper. Both fresh executions report into **Fleet health reports**, inside
-  the **OMB management** folder. Its next scheduled occurrence is an hour later.
+  the **Dusk Bot management** folder. Its next scheduled occurrence is an hour later.
 - **Provider failure example** is created for **Miso** and run once. Miso's
   isolated fake engine deliberately exits early, producing a failure receipt.
 - **Automatic scheduled check** is scheduled for Pepper about twelve seconds
@@ -88,7 +88,7 @@ The final startup JSON includes the server `url`, `previewUrl`, `pepperId`,
    routine in its bot's panel; the card's **Edit** opens it in its form.
 6. The Computer panel's **Routines** tab (Advanced mode) shows the same list.
 7. A new bot's draft (New bot → Routines) uses the same form.
-8. Expand Pepper's threads. **OMB management** contains one **Fleet health
+8. Expand Pepper's threads. **Dusk Bot management** contains one **Fleet health
    reports** thread, not separate sidebar entries for the two executions.
    Right-click the folder (or use its actions menu) → **Mark folder as read**.
    Its unread dots clear without selecting a conversation or resolving any
@@ -129,7 +129,7 @@ result and scheduled/manual trigger must agree with the saved server record.
 
 ## Run on startup
 
-A repeating routine's **Advanced** section offers **Also run when OpenMausBot
+A repeating routine's **Advanced** section offers **Also run when Dusk Bot
 starts**. In the isolated renderer, create a daily routine with it ticked, then
 reopen the editor: the box stays ticked. A one-time routine does not offer it.
 Startup needs a restart on the same data, which this launcher does not do;
@@ -137,7 +137,7 @@ Startup needs a restart on the same data, which this launcher does not do;
 store and requires exactly one completed **On startup** run.
 
 The desktop gives every server child of one launch the same
-`OMB_DESKTOP_LAUNCH_ID`, and `routines.json` records the launch whose startup
+`DUSK_DESKTOP_LAUNCH_ID`, and `routines.json` records the launch whose startup
 runs were queued. A crash recovery or switching back to a workspace within
 that launch queues none; the next launch does. A server without the variable,
 such as a standalone one, counts every process start.

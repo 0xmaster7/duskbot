@@ -8,13 +8,13 @@ import { classifyContinuable, writeTurnHandoff } from "./turn-continuation.ts";
 let temp: string | undefined;
 afterEach(() => {
   if (temp) { rmSync(temp, { recursive: true, force: true }); temp = undefined; }
-  delete process.env.OMB_DATA_DIR;
+  delete process.env.DUSK_DATA_DIR;
   vi.restoreAllMocks();
 });
 
 function withTempDataDir(): string {
   temp = mkdtempSync(join(tmpdir(), "omb-handoff-"));
-  process.env.OMB_DATA_DIR = temp;
+  process.env.DUSK_DATA_DIR = temp;
   return temp;
 }
 
@@ -48,7 +48,7 @@ describe("writeTurnHandoff", () => {
   });
 
   it("returns null when the handoff cannot be written", () => {
-    process.env.OMB_DATA_DIR = join(tmpdir(), "omb-handoff-", "does-not-exist", "nested");
+    process.env.DUSK_DATA_DIR = join(tmpdir(), "omb-handoff-", "does-not-exist", "nested");
     expect(writeTurnHandoff({ threadId: "t", turnId: "u", toolCalls: 0, messages: [] })).not.toBeNull();
     rmSync(join(tmpdir(), "omb-handoff-"), { recursive: true, force: true });
   });

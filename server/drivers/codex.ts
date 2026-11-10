@@ -102,14 +102,14 @@ export function chatgptPlanCodexArgs(): string[] {
     "-c", 'model_provider="openai_chatgpt_plan"',
     "-c", 'model_providers.openai_chatgpt_plan.name="ChatGPT plan"',
     "-c", 'model_providers.openai_chatgpt_plan.base_url="https://api.openai.com/v1"',
-    "-c", 'model_providers.openai_chatgpt_plan.env_key="OPENMAUSBOT_CHATGPT_TOKEN"',
+    "-c", 'model_providers.openai_chatgpt_plan.env_key="DUSK_CHATGPT_TOKEN"',
     "-c", 'model_providers.openai_chatgpt_plan.wire_api="responses"',
     "-c", "model_providers.openai_chatgpt_plan.requires_openai_auth=false",
     "-c", "model_providers.openai_chatgpt_plan.supports_websockets=false",
     "-c", 'cli_auth_credentials_store="ephemeral"',
     "-c", "features.tool_search=false",
     "-c", "shell_environment_policy.ignore_default_excludes=false",
-    // OPENMAUSBOT_CHATGPT_TOKEN is excluded via extendShellExclusions: a `-c exclude` here would replace the lower layers' list.
+    // DUSK_CHATGPT_TOKEN is excluded via extendShellExclusions: a `-c exclude` here would replace the lower layers' list.
   ];
 }
 
@@ -132,7 +132,7 @@ export function managedCodexArgs(config: NonNullable<CodexConfig["managed"]>): s
     "-c", 'model_provider="openmaus_company"',
     "-c", 'model_providers.openmaus_company.name="Company"',
     "-c", `model_providers.openmaus_company.base_url=${JSON.stringify(config.url)}`,
-    "-c", 'model_providers.openmaus_company.env_key="OPENMAUSBOT_COMPANY_API_KEY"',
+    "-c", 'model_providers.openmaus_company.env_key="DUSK_COMPANY_API_KEY"',
     "-c", 'model_providers.openmaus_company.wire_api="responses"',
     "-c", "model_providers.openmaus_company.requires_openai_auth=false",
     "-c", 'cli_auth_credentials_store="ephemeral"',
@@ -140,12 +140,12 @@ export function managedCodexArgs(config: NonNullable<CodexConfig["managed"]>): s
   ];
 }
 
-const PRIVATE_ENV_FAMILIES = ["OMB_GATE_CONFIG_", "OMB_REMOTE_MCP_CONFIG_", OWN_MCP_ENV_FAMILY];
+const PRIVATE_ENV_FAMILIES = ["DUSK_GATE_CONFIG_", "DUSK_REMOTE_MCP_CONFIG_", OWN_MCP_ENV_FAMILY];
 const PROXY_LITERAL_ENV = ["NODE_USE_ENV_PROXY", "NO_PROXY", "no_proxy"];
 const SHELL_ESSENTIALS = new Set(["PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "TERM", "LANG", "TZ"]);
 
 const DENY_TIMEOUT_NOTE =
-  "OpenMausBot: nobody answered this permission request in time. Skip this action and finish what you can without it.";
+  "Dusk Bot: nobody answered this permission request in time. Skip this action and finish what you can without it.";
 
 const renamedMcpServers = new Set<string>();
 function noteRenamedMcpServer(name: string, mountName: string): void {
@@ -349,7 +349,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       // A leaked API key silently flips Codex's own ChatGPT login to pay-as-you-go.
       delete env.OPENAI_API_KEY;
       stripWorkspaceCredentialEnv(env);
-      delete env.OPENMAUSBOT_CHATGPT_TOKEN;
+      delete env.DUSK_CHATGPT_TOKEN;
       if (plan) env.CODEX_HOME = join(planDirectory, "codex");
       return env;
     };
@@ -488,8 +488,8 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         if (!config.managed.models.includes(turn.model)) {
           throw new Error("Company model access is unavailable: " + turn.model + " is not approved for your organization. Reconnect your organization; personal billing will not be used.");
         }
-        if (!input.environment.OPENMAUSBOT_COMPANY_API_KEY) {
-          throw new Error("Company model access is unavailable: OPENMAUSBOT_COMPANY_API_KEY is missing. Reconnect your organization; personal billing will not be used.");
+        if (!input.environment.DUSK_COMPANY_API_KEY) {
+          throw new Error("Company model access is unavailable: DUSK_COMPANY_API_KEY is missing. Reconnect your organization; personal billing will not be used.");
         }
         if (!input.environment.CODEX_HOME) {
           throw new Error("Company model access is unavailable: CODEX_HOME is missing. Reconnect your organization; personal billing will not be used.");
@@ -545,7 +545,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       const launchAttempt = async (attempt: number, cold = false): Promise<void> => {
         const env = childEnv();
         const launchedLogin = chatgptTurn ? storedCodexLogin(env) : null;
-        if (planToken) env.OPENMAUSBOT_CHATGPT_TOKEN = planToken;
+        if (planToken) env.DUSK_CHATGPT_TOKEN = planToken;
         const appServerArgs = ["app-server", ...(plan ? chatgptPlanCodexArgs() : config.managed ? managedCodexArgs(config.managed) : codexLocalProviderArgs(env, turn.model)), ...codexToolSurfaceArgs(),
           // Native shell snapshots can restore variables the shell policy removed.
           ...(turn.toolScope === undefined ? [] : ["-c", "features.shell_snapshot=false"]),
@@ -560,7 +560,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         const literalEnvs = new Map<string, Record<string, string>>();
         const scopedServer = (name: string, mountName: string, server: McpServerSpec): StdioMcpSpec | null => {
           if (!canUseMcpServer(turn.toolScope, name)) return null;
-          // Every URL server goes through OpenMausBot's remote proxy: Codex's own client adds fields
+          // Every URL server goes through Dusk Bot's remote proxy: Codex's own client adds fields
           // strict servers refuse (codex-cli 0.160.1 sends elicitation.form/url; rmcp 3.2 can add
           // schemaValidation), and Codex does not speak SSE. A plan turn has no tool_search, so its URL
           // servers use the proxy's tool directory.
@@ -570,8 +570,8 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
           const hash = createHash("sha256").update(mountName).digest("hex");
           // Codex starts MCP children with only a few env names.
           const proxy = turn.toolScope === undefined && "url" in server
-            ? mcpStdioServer(server, { nodeEnv: { ELECTRON_RUN_AS_NODE: "1" }, ...(directory ? { directory: { name } } : {}), configEnvName: `OMB_REMOTE_MCP_CONFIG_${hash}`, sourceEnv: env, apps })
-            : gateServer({ name, server, threadId, budget: 0, toolScope: turn.toolScope, nodeEnv: { ELECTRON_RUN_AS_NODE: "1" }, configEnvName: `OMB_GATE_CONFIG_${hash}`, directory, sourceEnv: env, apps });
+            ? mcpStdioServer(server, { nodeEnv: { ELECTRON_RUN_AS_NODE: "1" }, ...(directory ? { directory: { name } } : {}), configEnvName: `DUSK_REMOTE_MCP_CONFIG_${hash}`, sourceEnv: env, apps })
+            : gateServer({ name, server, threadId, budget: 0, toolScope: turn.toolScope, nodeEnv: { ELECTRON_RUN_AS_NODE: "1" }, configEnvName: `DUSK_GATE_CONFIG_${hash}`, directory, sourceEnv: env, apps });
           if (proxy && directory) directoryMounts.add(mountName);
           if (!proxy) return null;
           const shared = { ...proxy.env };
@@ -592,10 +592,10 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
             appServerArgs.push(...codexParallelMcpArgs(name, mountName, cliVersionSeen));
           }
         };
-        if (turn.integrations?.composio) mountSelected("composio", "openmausbot_connectors", turn.integrations.composio);
-        if (turn.integrations?.composioOwn) mountSelected(OWN_APPS_SERVER, `openmausbot_${OWN_APPS_SERVER}`, turn.integrations.composioOwn);
+        if (turn.integrations?.composio) mountSelected("composio", "duskbot_connectors", turn.integrations.composio);
+        if (turn.integrations?.composioOwn) mountSelected(OWN_APPS_SERVER, `duskbot_${OWN_APPS_SERVER}`, turn.integrations.composioOwn);
         if (turn.integrations?.agents) {
-          // OpenMausBot's own coordination tools never ask: "auto" quiets only read-only tools.
+          // Dusk Bot's own coordination tools never ask: "auto" quiets only read-only tools.
           mountSelected("agents", "agents", turn.integrations.agents, "approve"); if (selectedMcp.has("agents")) appServerArgs.push("-c", `mcp_servers.agents.tool_timeout_sec=${AGENTS_TOOL_TIMEOUT_SECONDS}`);
         }
         if (turn.integrations?.localComputer) {
@@ -619,13 +619,13 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         }
         if (turn.integrations?.phone) {
           if (turn.toolScope !== undefined) {
-            mountSelected("phone", "openmausbot_phone", turn.integrations.phone);
+            mountSelected("phone", "duskbot_phone", turn.integrations.phone);
           } else {
           const bridge = turn.integrations.phone;
           Object.assign(env, bridge.env);
           for (const name of Object.keys(bridge.env)) mountedNames.add(name);
-          const prefix = "mcp_servers.openmausbot_phone";
-          directMounts.push("openmausbot_phone");
+          const prefix = "mcp_servers.duskbot_phone";
+          directMounts.push("duskbot_phone");
           appServerArgs.push(
             "-c", `${prefix}.command=${JSON.stringify(bridge.command)}`,
             "-c", `${prefix}.args=${JSON.stringify(bridge.args)}`,
@@ -640,7 +640,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         const mountedEnv = [...mountedNames].filter((name) => env[name] !== undefined && !SHELL_ESSENTIALS.has(name) && !name.startsWith("LC_")
           && (name === "ELECTRON_RUN_AS_NODE" || baseEnv.get(name) !== env[name]));
         const privateEnv = [...new Set([
-          ...(turn.toolScope !== undefined ? ["OMB_GATE_CONFIG_*"] : []),
+          ...(turn.toolScope !== undefined ? ["DUSK_GATE_CONFIG_*"] : []),
           ...PRIVATE_ENV_FAMILIES.filter((family) => mountedEnv.some((name) => name.startsWith(family))).map((family) => `${family}*`),
           ...mountedEnv.filter((name) => !PRIVATE_ENV_FAMILIES.some((family) => name.startsWith(family))).sort(),
         ])];
@@ -787,7 +787,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       const settle = async (ok: boolean, stopReason: string | null, keep = false) => {
         if (state.settled) return;
         state.settled = true;
-        for (const finish of Array.from(asks.values())) finish("deny", "OpenMausBot: the turn ended", "system");
+        for (const finish of Array.from(asks.values())) finish("deny", "Dusk Bot: the turn ended", "system");
         for (const p of rpcPending.values()) p.reject(new Error("turn settled"));
         rpcPending.clear();
         const complete = () => {
@@ -884,7 +884,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         if (!isQuestion && !isPermission) {
           if (isMcpElicitation) {
             send({ jsonrpc: "2.0", id: msg.id, result: { action: "decline" } });
-            emit({ ...base(threadId, turnId), type: "runtime.notice", message: `${boundedLabel(params.serverName) ?? "An MCP server"} asked for input OpenMausBot can't show yet, so the request was declined.` });
+            emit({ ...base(threadId, turnId), type: "runtime.notice", message: `${boundedLabel(params.serverName) ?? "An MCP server"} asked for input Dusk Bot can't show yet, so the request was declined.` });
           } else {
             send({
               jsonrpc: "2.0",
@@ -1337,7 +1337,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         let initialized = server.initialized as { userAgent?: unknown } | undefined;
         if (initialized === undefined) {
           initialized = await request("initialize", {
-            clientInfo: { name: "openmausbot", title: "OpenMausBot", version: serverVersion() },
+            clientInfo: { name: "duskbot", title: "Dusk Bot", version: serverVersion() },
             // Named permission profiles are an experimental app-server field in Codex 0.151.
             capabilities: { experimentalApi: true },
           });
@@ -1373,7 +1373,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
             throw new Error("Codex could not confirm its shell environment policy. No prompt was sent.");
           }
           selectionConfig.config = { ...selectionConfig.config,
-            ...extendShellExclusions((rawPolicy ?? {}) as Record<string, unknown>, [...(plan ? ["OPENMAUSBOT_CHATGPT_TOKEN"] : []), ...privateEnv]) };
+            ...extendShellExclusions((rawPolicy ?? {}) as Record<string, unknown>, [...(plan ? ["DUSK_CHATGPT_TOKEN"] : []), ...privateEnv]) };
         }
         if (turn.toolScope !== undefined) {
           const catalog = (effectiveConfig as { mcp_servers?: unknown } | null)?.mcp_servers;
@@ -1603,7 +1603,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
     const { version } = probe; cliVersionSeen = version;
     if (planAuth) return { state: "available", version, chatgptPlan: true, billing: "subscription", ...await planAuth.snapshot(), update: await codexReleaseUpdate(version, config.cli),
       ...(planWarning ? { warning: { title: "Check ChatGPT connection", message: planWarning } } : {}) };
-    if (config.managed) return { state: "available", version, authenticated: Boolean(input.environment.OPENMAUSBOT_COMPANY_API_KEY && input.environment.CODEX_HOME), billing: "metered" };
+    if (config.managed) return { state: "available", version, authenticated: Boolean(input.environment.DUSK_COMPANY_API_KEY && input.environment.CODEX_HOME), billing: "metered" };
     const previousCliVersion = modelsCliVersion;
     modelsCliVersion = version;
     if (previousCliVersion !== null && previousCliVersion !== version) await refreshModels();
@@ -1634,12 +1634,12 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
     if (planAuth) {
       if (planSigningOut) throw new Error("This ChatGPT account is being disconnected.");
       if (!models.options.length) await refreshModels();
-      env.OPENMAUSBOT_CHATGPT_TOKEN = await planAuth.accessToken();
+      env.DUSK_CHATGPT_TOKEN = await planAuth.accessToken();
       if (planSigningOut || disposed) throw new Error("This ChatGPT account is being disconnected.");
       mkdirSync(join(planDirectory, "codex"), { recursive: true, mode: 0o700 });
       providerArgs = chatgptPlanCodexArgs();
     } else if (config.managed) {
-      if (!input.environment.OPENMAUSBOT_COMPANY_API_KEY || !input.environment.CODEX_HOME) {
+      if (!input.environment.DUSK_COMPANY_API_KEY || !input.environment.CODEX_HOME) {
         throw new Error("Company model access is unavailable. Reconnect your organization; personal billing will not be used.");
       }
       providerArgs = managedCodexArgs(config.managed);

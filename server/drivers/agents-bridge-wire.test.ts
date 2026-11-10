@@ -1,5 +1,5 @@
 // What the agents proxy puts on the wire for `tools/list` with the tool
-// bridge on (OMB_AGENTS_TOOL_BRIDGE=1, agents-bridge.ts), pinned byte for
+// bridge on (DUSK_AGENTS_TOOL_BRIDGE=1, agents-bridge.ts), pinned byte for
 // byte and measured, the way agents-catalog-wire.test.ts pins the whole
 // catalog. That file and its goldens are not this one's to change: with the
 // switch off the proxy serves them to the byte, which it keeps checking and
@@ -31,7 +31,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PROXY_SOURCE = join(HERE, "agents-proxy.ts");
 const GOLDENS = join(HERE, "agents-catalog-goldens");
 const UPDATE = process.env.UPDATE_AGENTS_CATALOG_GOLDENS === "1";
-const BRIDGE_ON = { OMB_AGENTS_TOOL_BRIDGE: "1" };
+const BRIDGE_ON = { DUSK_AGENTS_TOOL_BRIDGE: "1" };
 
 const flag = (on: boolean) => (on ? "1" : "0");
 
@@ -46,23 +46,23 @@ function profiles(): Record<string, Record<string, string>> {
         const name = [skills && "skills", voice && "voice", !chief && "non-chief"]
           .filter(Boolean).join("+") || "default";
         all[name] = {
-          OMB_SKILL_AUTHORING_ENABLED: flag(skills),
-          OMB_VOICE_NOTES: flag(voice),
-          OMB_CHIEF_OF_STAFF: flag(chief),
-          OMB_COMPUTER_SELECTION: "1",
+          DUSK_SKILL_AUTHORING_ENABLED: flag(skills),
+          DUSK_VOICE_NOTES: flag(voice),
+          DUSK_CHIEF_OF_STAFF: flag(chief),
+          DUSK_COMPUTER_SELECTION: "1",
         };
       }
     }
   }
   for (const name of ["skills+voice", "skills+voice+non-chief"]) {
-    all[`${name}+cloud-home`] = { ...all[name]!, OMB_CLOUD_HOME: "1" };
+    all[`${name}+cloud-home`] = { ...all[name]!, DUSK_CLOUD_HOME: "1" };
   }
-  all["skills+voice+x"] = { ...all["skills+voice"]!, OMB_X_RESEARCH: "1", OMB_RESEARCH: "1" };
-  all["skills+voice+x+team"] = { ...all["skills+voice+x"]!, OMB_TEAM_PEOPLE: "1" };
-  all["default+legacy-switches"] = { ...all.default!, OMB_ROOM_TURN: "1", OMB_OWN_THREAD_CREATION: "1", OMB_EXTERNAL_RUNTIME: "1", OMB_ACTIVE_WAITS: "0" };
-  for (const name of ["default", "skills+voice"]) all[`${name}+mausbot`] = { ...all[name]!, OMB_MAUSBOT: "1" };
-  all["default+no-computer-pick"] = { ...all.default!, OMB_COMPUTER_SELECTION: "0" };
-  for (const name of ["default", "non-chief"]) all[`${name}+room`] = { ...all[name]!, OMB_COMPUTER_SELECTION: "0", OMB_ROOM: "1" };
+  all["skills+voice+x"] = { ...all["skills+voice"]!, DUSK_X_RESEARCH: "1", DUSK_RESEARCH: "1" };
+  all["skills+voice+x+team"] = { ...all["skills+voice+x"]!, DUSK_TEAM_PEOPLE: "1" };
+  all["default+legacy-switches"] = { ...all.default!, DUSK_ROOM_TURN: "1", DUSK_OWN_THREAD_CREATION: "1", DUSK_EXTERNAL_RUNTIME: "1", DUSK_ACTIVE_WAITS: "0" };
+  for (const name of ["default", "skills+voice"]) all[`${name}+dusk`] = { ...all[name]!, DUSK_DEFAULT_BOT: "1" };
+  all["default+no-computer-pick"] = { ...all.default!, DUSK_COMPUTER_SELECTION: "0" };
+  for (const name of ["default", "non-chief"]) all[`${name}+room`] = { ...all[name]!, DUSK_COMPUTER_SELECTION: "0", DUSK_ROOM: "1" };
   return all;
 }
 
@@ -90,8 +90,8 @@ const BUDGET_BASELINE: Record<string, number> = {
   "skills+voice+x": 18428,
   "skills+voice+x+team": 18466,
   "default+legacy-switches": 17486,
-  "default+mausbot": 17538,
-  "skills+voice+mausbot": 18419,
+  "default+dusk": 17538,
+  "skills+voice+dusk": 18419,
   "default+no-computer-pick": 16274,
   "default+room": 16213,
   "non-chief+room": 16096,
@@ -102,11 +102,11 @@ type RpcAnswer = { id: number; result?: { tools?: unknown[]; content?: Array<{ t
 /** One freshly spawned proxy's raw answer lines to `requests`, in the order
  * asked, read off its stdout as they arrive. */
 async function proxyLines(entry: string, env: Record<string, string>, requests: Array<{ method: string; params?: unknown }>): Promise<string[]> {
-  // A developer shell (or an OpenMausBot turn running this suite) can carry
-  // OMB_* switches of its own; the profile must be the only source.
-  const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("OMB_")));
+  // A developer shell (or a Dusk Bot turn running this suite) can carry
+  // DUSK_* switches of its own; the profile must be the only source.
+  const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("DUSK_")));
   const child = spawn(process.execPath, [entry], {
-    env: { ...inherited, OMB_HARNESS_URL: "http://127.0.0.1:9", OMB_BOT_ID: "bot-golden", OMB_THREAD_ID: "thread-golden", OMB_COMMS_TOKEN: "unused", OMB_TURN_DEPTH: "0", ...env },
+    env: { ...inherited, DUSK_HARNESS_URL: "http://127.0.0.1:9", DUSK_BOT_ID: "bot-golden", DUSK_THREAD_ID: "thread-golden", DUSK_COMMS_TOKEN: "unused", DUSK_TURN_DEPTH: "0", ...env },
     stdio: ["pipe", "pipe", "inherit"],
   });
   try {
@@ -160,7 +160,7 @@ type Tool = { name: string; description: string; inputSchema: Record<string, unk
 const toolsOf = (wire: string) => (JSON.parse(wire) as { tools: Tool[] }).tools;
 /** The turn's whole catalog as the proxy serializes it with the switch off;
  * agents-catalog-wire.test.ts proves these are the proxy's bytes. */
-const unbridgedWire = (name: string) => JSON.stringify({ tools: availableTools(catalogProfileFromEnv({ OMB_BOT_ID: "bot-golden", ...PROFILES[name]! })) });
+const unbridgedWire = (name: string) => JSON.stringify({ tools: availableTools(catalogProfileFromEnv({ DUSK_BOT_ID: "bot-golden", ...PROFILES[name]! })) });
 
 const goldenPath = join(GOLDENS, "bridged.tools-list.json");
 const manifestPath = join(GOLDENS, "bridged.profiles.json");
@@ -251,7 +251,7 @@ describe("agents proxy tools/list golden with the tool bridge on", () => {
       expect(namedHidden(wire), name).toEqual(twinNames.filter((tool) => !listed.has(tool)));
     }
     // So a bot that is not a Chief is not told the Chief-only tools exist.
-    const nonChief = Object.keys(PROFILES).filter((name) => PROFILES[name]!.OMB_CHIEF_OF_STAFF === "0");
+    const nonChief = Object.keys(PROFILES).filter((name) => PROFILES[name]!.DUSK_CHIEF_OF_STAFF === "0");
     expect(nonChief).toHaveLength(6);
     for (const name of nonChief) {
       for (const tool of CHIEF_ONLY_TOOLS) expect(wires[name], `${name}: ${tool}`).not.toContain(tool);
@@ -265,15 +265,15 @@ describe("agents proxy tools/list golden with the tool bridge on", () => {
     const base = hotOf("default");
     expect(base).toEqual(["tool_result_read", "list_room_targets", "coordinate_bots", "list_bots", "list_rooms", "select_computer", "attach_file", "publish_page", "post_to_room", "request_credential", "request_sign_in", "fill_login", "message_person", "memory_update"]);
     for (const name of Object.keys(PROFILES)) {
-      const selects = PROFILES[name]!.OMB_COMPUTER_SELECTION === "1";
+      const selects = PROFILES[name]!.DUSK_COMPUTER_SELECTION === "1";
       expect(hotOf(name).filter((tool) => tool !== "send_voice_note"), name).toEqual(selects ? base : base.filter((tool) => tool !== "select_computer"));
-      expect(hotOf(name).includes("send_voice_note"), name).toBe(PROFILES[name]!.OMB_VOICE_NOTES === "1");
+      expect(hotOf(name).includes("send_voice_note"), name).toBe(PROFILES[name]!.DUSK_VOICE_NOTES === "1");
     }
   });
 
   it("is what the catalog and the bridge compute in-process, so another front end lists the same tools", () => {
     for (const name of Object.keys(PROFILES)) {
-      const turn = catalogProfileFromEnv({ OMB_BOT_ID: "bot-golden", ...PROFILES[name]! });
+      const turn = catalogProfileFromEnv({ DUSK_BOT_ID: "bot-golden", ...PROFILES[name]! });
       const tools = createToolBridge(availableTools(turn) as BridgeTool[]).listed;
       expect(JSON.stringify({ tools }), name).toBe(wires[name]);
     }
@@ -298,7 +298,7 @@ describe("agents proxy tools/list golden with the tool bridge on", () => {
   it("serves the unbridged goldens unless the switch is exactly 1", async () => {
     const full = JSON.stringify(readJson(join(GOLDENS, "full.tools-list.json")));
     expect(unbridgedWire(FULL)).toBe(full);
-    const served = await Promise.all(["0", "", "true", "yes", "on"].map((value) => toolsListWire(PROXY_SOURCE, { ...PROFILES[FULL]!, OMB_AGENTS_TOOL_BRIDGE: value })));
+    const served = await Promise.all(["0", "", "true", "yes", "on"].map((value) => toolsListWire(PROXY_SOURCE, { ...PROFILES[FULL]!, DUSK_AGENTS_TOOL_BRIDGE: value })));
     for (const wire of [...served, await toolsListWire(PROXY_SOURCE, PROFILES[FULL]!)]) expect(wire).toBe(full);
   }, 60_000);
 });

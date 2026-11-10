@@ -1,4 +1,4 @@
-// A real Cloud home and its agents tools: a bot asks for two secrets OpenMausBot does not keep, the person types each
+// A real Cloud home and its agents tools: a bot asks for two secrets Dusk Bot does not keep, the person types each
 // into its card, and the bot uses them. Each recognisable value is then searched for in everything the server wrote (the
 // data folder, its events, transcripts, usage spans and logs), every answer it gave, every tool result and its own log.
 // The file secret is found only in its private file; the ref secret only in the MCP server settings it was saved into.
@@ -49,7 +49,7 @@ async function api(method: string, path: string, body?: unknown) {
 }
 
 async function pairOwner(): Promise<string> {
-  const body = JSON.stringify({ label: "OpenMausBot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
@@ -90,7 +90,7 @@ async function proxyFor(start: () => Promise<void>) {
 
 beforeAll(async () => {
   home = mkdtempSync(join(tmpdir(), "omb-secret-requests-"));
-  const dataDir = join(home, ".openmausbot");
+  const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
   writeFileSync(cli, `#!/usr/bin/env node
@@ -105,13 +105,13 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
   } }));
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
-  const contract = { OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: "7d1c3b5a-2e4f-4a6b-8c9d-0e1f2a3b4c5d", OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
-    OMB_CLOUD_BOOTSTRAP_SECRET: bootstrap, OMB_PUBLIC_URL: `https://${HOST}` };
-  const imageEnv = { PATH: process.env.PATH, OMB_DUCKDB_DIR: join(home, "empty-tree"), ...contract };
+  const contract = { DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: "7d1c3b5a-2e4f-4a6b-8c9d-0e1f2a3b4c5d", DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test",
+    DUSK_CLOUD_BOOTSTRAP_SECRET: bootstrap, DUSK_PUBLIC_URL: `https://${HOST}` };
+  const imageEnv = { PATH: process.env.PATH, DUSK_DUCKDB_DIR: join(home, "empty-tree"), ...contract };
   const { server, secrets } = cloudHomeChildEnvironments(cloudHomeConfiguration(imageEnv)!, imageEnv, home);
   const offline = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
   child = spawnWithSecrets(process.execPath, ["--import", offline, join(SERVER_DIR, "index.ts")], {
-    ...server, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), USERPROFILE: home,
+    ...server, DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1), USERPROFILE: home,
     ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
   }, secrets, null, true);
   child.stdout?.on("data", (chunk) => { log += chunk; });
@@ -177,7 +177,7 @@ it("keeps a file secret and a ref secret out of every record, and the bot uses e
   expect(await save(fileCard.id, FILE_CANARY)).toMatchObject({ status: 200, body: { provided: true } });
   expect(await save(fileCard.id, FILE_CANARY)).toMatchObject({ status: 409, body: { error: "this secret was already saved" } });
   const fileText = (await tools.call("request_credential", { label: "Stripe secret key", reason: "To create test charges.", delivery: "file" })).text;
-  const secretFile = join(home, ".openmausbot", "workspaces", bot.id, ".openmausbot-secrets", bot.threadId, fileCard.id);
+  const secretFile = join(home, ".duskbot", "workspaces", bot.id, ".duskbot-secrets", bot.threadId, fileCard.id);
   expect(fileText).toContain(`saved Stripe secret key to the file ${secretFile}`);
   expect(fileText).toContain("never print, echo, log or copy it anywhere else");
   expect(readFileSync(secretFile, "utf8")).toBe(FILE_CANARY);
@@ -186,19 +186,19 @@ it("keeps a file secret and a ref secret out of every record, and the bot uses e
   // A one-use secretRef for mcp_server.
   await tools.call("request_credential", { label: "Notion key", reason: "For Notion's MCP server.", delivery: "ref" });
   const refCard = (await cards()).at(-1);
-  expect(refCard.secret.description).toBe("For Notion's MCP server. Ledger gets a one-use reference for OpenMausBot's own tools and never sees it.");
+  expect(refCard.secret.description).toBe("For Notion's MCP server. Ledger gets a one-use reference for Dusk Bot's own tools and never sees it.");
   expect(await save(refCard.id, REF_CANARY)).toMatchObject({ status: 200, body: { provided: true } });
   const refText = (await tools.call("request_credential", { label: "Notion key", reason: "For Notion's MCP server.", delivery: "ref" })).text;
   const ref = /secret-ref:[0-9a-f]{32}/u.exec(refText)?.[0];
   expect(ref, refText).toBeDefined();
-  // The person agreed to OpenMausBot's tools only: a file needs a new card.
+  // The person agreed to Dusk Bot's tools only: a file needs a new card.
   const asFile = await tools.call("request_credential", { label: "Notion key", reason: "For a script.", delivery: "file" });
   expect(asFile.text).toContain("not as a file for your commands (not a file request), so this card asks for it again");
   expect((await cards()).at(-1).secret).toMatchObject({ label: "Notion key", delivery: "file" });
 
   const added = await tools.call("mcp_server", { action: "add", name: "notion", url: "https://mcp.notion.test/mcp", headers: { Authorization: `Bearer ${ref}`, "Notion-Version": "2022-06-28" } });
   expect(added).toEqual({ isError: false, text: expect.stringMatching(/^Added MCP server notion and turned it on\. Test: /u) });
-  const config = JSON.parse(readFileSync(join(home, ".openmausbot", "config.json"), "utf8"));
+  const config = JSON.parse(readFileSync(join(home, ".duskbot", "config.json"), "utf8"));
   expect(config.mcpServers.notion.headers).toEqual({ Authorization: `Bearer ${REF_CANARY}`, "Notion-Version": "2022-06-28" });
   const reused = await tools.call("mcp_server", { action: "add", name: "notion2", url: "https://mcp.notion.test/mcp", headers: { Authorization: `Bearer ${ref}` } });
   expect(reused).toEqual({ isError: true, text: `${ref} was already used: each secretRef works once. Ask again with request_credential.` });
@@ -222,14 +222,14 @@ it("keeps a file secret and a ref secret out of every record, and the bot uses e
   expect(await api("DELETE", `/api/saved-secrets/${vaultList.body.secrets[0].id}`)).toMatchObject({ status: 200, body: { removed: true } });
   expect((await api("GET", "/api/saved-secrets")).body.secrets).toEqual([]);
   expect((await tools.call("request_credential", { label: "OpenRouter API key", reason: "Once more.", delivery: "ref" })).text).toMatch(/^A secure card for OpenRouter API key/u);
-  const vaultFile = join(home, ".openmausbot", "workspaces", bot.id, ".openmausbot-secrets", bot.threadId, vaultCard.id);
+  const vaultFile = join(home, ".duskbot", "workspaces", bot.id, ".duskbot-secrets", bot.threadId, vaultCard.id);
 
   // A bot that disobeys and writes a value into its memory still leaves it out of every record.
   expect((await tools.call("memory_update", { action: "append", text: `Stripe test key: ${FILE_CANARY}` })).isError).toBe(false);
 
   // Only the secret file holds one value, and only the MCP server's settings the other.
   expect(filesHolding(home, FILE_CANARY)).toEqual([relative(home, secretFile)]);
-  expect(filesHolding(home, REF_CANARY)).toEqual([join(".openmausbot", "config.json")]);
+  expect(filesHolding(home, REF_CANARY)).toEqual([join(".duskbot", "config.json")]);
   // the Vault kept it sealed (and has since forgotten it): only the card's own private file ever held it in the clear
   expect(filesHolding(home, VAULT_CANARY)).toEqual([relative(home, vaultFile)]);
   for (const where of [...said, log]) {

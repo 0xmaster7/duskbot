@@ -33,20 +33,20 @@ export function agentsServerEnv(conversation: AgentsConversation, turn: AgentsTu
   const { bot, host } = conversation;
   return {
     ...AGENTS_PROXY_ENV,
-    OMB_HARNESS_URL: harnessUrl,
-    OMB_BOT_ID: bot.id,
-    OMB_THREAD_ID: conversation.threadId,
-    OMB_COMMS_TOKEN: bearer(turn),
-    OMB_TURN_DEPTH: String(turn.depth),
-    OMB_SKILL_AUTHORING_ENABLED: flag(host.skillAuthoring),
-    OMB_MEMORY_ENABLED: flag(bot.memoryEnabled !== false),
-    OMB_CLOUD_HOME: flag(host.cloudHome), OMB_TEAM_PEOPLE: flag(host.team), OMB_ROOM: flag(conversation.room),
-    OMB_VOICE_NOTES: flag(host.voiceNotes),
-    OMB_SLACK: flag(host.slack === true),
-    OMB_X_RESEARCH: flag(host.x && bot.xResearch !== false),
-    OMB_RESEARCH: flag(host.x && host.research && bot.xResearch !== false),
+    DUSK_HARNESS_URL: harnessUrl,
+    DUSK_BOT_ID: bot.id,
+    DUSK_THREAD_ID: conversation.threadId,
+    DUSK_COMMS_TOKEN: bearer(turn),
+    DUSK_TURN_DEPTH: String(turn.depth),
+    DUSK_SKILL_AUTHORING_ENABLED: flag(host.skillAuthoring),
+    DUSK_MEMORY_ENABLED: flag(bot.memoryEnabled !== false),
+    DUSK_CLOUD_HOME: flag(host.cloudHome), DUSK_TEAM_PEOPLE: flag(host.team), DUSK_ROOM: flag(conversation.room),
+    DUSK_VOICE_NOTES: flag(host.voiceNotes),
+    DUSK_SLACK: flag(host.slack === true),
+    DUSK_X_RESEARCH: flag(host.x && bot.xResearch !== false),
+    DUSK_RESEARCH: flag(host.x && host.research && bot.xResearch !== false),
     ...roleToolEnv(bot),
-    OMB_COMPUTER_SELECTION: flag(!conversation.room && bot.computer !== "off" && !conversation.teamComputer),
+    DUSK_COMPUTER_SELECTION: flag(!conversation.room && bot.computer !== "off" && !conversation.teamComputer),
   };
 }
 

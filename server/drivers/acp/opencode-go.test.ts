@@ -383,7 +383,7 @@ describe("OpenCode catalog", () => {
           CLINE_API_KEY: "cline-provider-key",
           XAI_API_KEY: "saved-for-grok",
           MISTRAL_API_KEY: "saved-for-mistral",
-          OMB_ANTHROPIC_API_KEY: "workspace-anthropic",
+          DUSK_ANTHROPIC_API_KEY: "workspace-anthropic",
           FAKE_ACP_DUMP: dump,
         },
         enabled: true,
@@ -398,7 +398,7 @@ describe("OpenCode catalog", () => {
       expect(child.env.CLINE_API_KEY).toBe("cline-provider-key");
       expect(child.env.XAI_API_KEY).toBeUndefined();
       expect(child.env.MISTRAL_API_KEY).toBeUndefined();
-      expect(child.env.OMB_ANTHROPIC_API_KEY).toBeUndefined();
+      expect(child.env.DUSK_ANTHROPIC_API_KEY).toBeUndefined();
       await instance.dispose();
     } finally {
       await removeTempDir(scratch);
@@ -784,8 +784,8 @@ describe("OpenCode turns without a sign-in gate", () => {
 
   it("names a rate limit OpenCode logged for this turn's main request while the turn stays quiet", async () => {
     vi.spyOn(quietStatus, "sampleProcessTree").mockResolvedValue({ cpuMs: 0, connections: 1 });
-    vi.stubEnv("OMB_ACP_QUIET_NOTICE_MS", "300");
-    vi.stubEnv("OMB_ACP_QUIET_TICK_MS", "50");
+    vi.stubEnv("DUSK_ACP_QUIET_NOTICE_MS", "300");
+    vi.stubEnv("DUSK_ACP_QUIET_TICK_MS", "50");
     // The row format of a real opencode log, with a synthetic run and model.
     const row = (session: string, small: boolean, error: string) =>
       `timestamp=2026-10-01T00:00:03.000Z level=ERROR run=fixture_run message="stream error" providerID=opencode modelID=mimo-v2.6-flash-free session.id=${session} small=${small} agent=build mode=primary error.error="${error}"`;
@@ -813,9 +813,9 @@ describe("OpenCode turns without a sign-in gate", () => {
   // error" row in its log, then nothing over ACP while it sleeps the whole retry-after, uncapped, five times over.
   it("ends a turn that waits out a usage limit as that limit, so another AI can carry on", async () => {
     vi.spyOn(quietStatus, "sampleProcessTree").mockResolvedValue({ cpuMs: 0, connections: 0 });
-    vi.stubEnv("OMB_ACP_QUIET_NOTICE_MS", "300");
-    vi.stubEnv("OMB_ACP_QUIET_TICK_MS", "50");
-    vi.stubEnv("OMB_ACP_LIMIT_QUIET_MS", "400");
+    vi.stubEnv("DUSK_ACP_QUIET_NOTICE_MS", "300");
+    vi.stubEnv("DUSK_ACP_QUIET_TICK_MS", "50");
+    vi.stubEnv("DUSK_ACP_LIMIT_QUIET_MS", "400");
     const row = `timestamp=2026-10-28T22:11:15.919Z level=ERROR run=fixture_run message="stream error" providerID=opencode-go modelID=kimi-k3 session.id={session} small=false agent=build mode=primary error.error="AI_APICallError: Usage limit reached"`;
     const f = await open("opencode-go-limit", () => ({
       FAKE_ACP_MODE: "quiet-then-answer", FAKE_ACP_QUIET_MS: "30000", FAKE_ACP_MODELS: "opencode/big-pickle",
@@ -843,9 +843,9 @@ describe("OpenCode turns without a sign-in gate", () => {
 
   it("stops an engine with no open request, no CPU use and nothing logged after a few minutes, not the full silence guard", async () => {
     vi.spyOn(quietStatus, "sampleProcessTree").mockResolvedValue({ cpuMs: 0, connections: 0 });
-    vi.stubEnv("OMB_ACP_QUIET_NOTICE_MS", "200");
-    vi.stubEnv("OMB_ACP_QUIET_TICK_MS", "50");
-    vi.stubEnv("OMB_ACP_NO_SIGNS_STOP_MS", "500");
+    vi.stubEnv("DUSK_ACP_QUIET_NOTICE_MS", "200");
+    vi.stubEnv("DUSK_ACP_QUIET_TICK_MS", "50");
+    vi.stubEnv("DUSK_ACP_NO_SIGNS_STOP_MS", "500");
     const f = await open("opencode-lifeless", () => ({ FAKE_ACP_MODE: "quiet-then-answer", FAKE_ACP_QUIET_MS: "30000", FAKE_ACP_MODELS: "opencode/big-pickle" }));
     try {
       const { done, events } = await f.run("t-lifeless", "opencode/big-pickle");
@@ -1480,7 +1480,7 @@ describe("OpenCode without Node.js", () => {
 
 describe.skipIf(process.platform === "win32")("which OpenCode runs", () => {
   async function runTurn(scratch: string, log: string, withOwnCopy: boolean) {
-    const original = process.env.PATH, sealed = process.env.OMB_TEST_SEALED_PATH;
+    const original = process.env.PATH, sealed = process.env.DUSK_TEST_SEALED_PATH;
     const dump = join(scratch, "env.json");
     const copy = (folder: string, label: string) => {
       mkdirSync(folder, { recursive: true });
@@ -1492,7 +1492,7 @@ describe.skipIf(process.platform === "win32")("which OpenCode runs", () => {
     copy(enginesBinDir(), "npm");
     copy(join(standaloneEngineDir("opencode"), "bin"), "standalone");
     // Only these copies and node: a real OpenCode on this computer (Homebrew, npm) must never answer the test's turn.
-    process.env.OMB_TEST_SEALED_PATH = "1";
+    process.env.DUSK_TEST_SEALED_PATH = "1";
     process.env.PATH = withOwnCopy ? `${own}${delimiter}${dirname(process.execPath)}` : dirname(process.execPath);
     resetPathCacheForTests();
     registerPathDir(enginesBinDir());
@@ -1512,8 +1512,8 @@ describe.skipIf(process.platform === "win32")("which OpenCode runs", () => {
       recorder.stop();
       await instance.dispose();
       process.env.PATH = original;
-      if (sealed === undefined) delete process.env.OMB_TEST_SEALED_PATH;
-      else process.env.OMB_TEST_SEALED_PATH = sealed;
+      if (sealed === undefined) delete process.env.DUSK_TEST_SEALED_PATH;
+      else process.env.DUSK_TEST_SEALED_PATH = sealed;
       resetPathCacheForTests();
     }
   }

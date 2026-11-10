@@ -23,14 +23,14 @@ describe("account sign-in", () => {
   it("builds the app start url with the deep link as redirect", () => {
     const url = new URL(appStartUrl("https://accounts.test", "google", "abc", "st"));
     expect(url.pathname).toBe("/v1/auth/app/start");
-    expect(Object.fromEntries(url.searchParams)).toEqual({ provider: "google", code_challenge: "abc", code_challenge_method: "S256", state: "st", redirect_uri: "openmausbot://auth" });
+    expect(Object.fromEntries(url.searchParams)).toEqual({ provider: "google", code_challenge: "abc", code_challenge_method: "S256", state: "st", redirect_uri: "duskbot://auth" });
   });
 
   it("reads the auth deep link and ignores others", () => {
-    expect(parseAuthLink("openmausbot://auth?code=c1&state=s1")).toEqual({ code: "c1", state: "s1" });
-    expect(parseAuthLink("openmausbot://auth?error=oauth_denied&state=s1")).toEqual({ error: "oauth_denied", state: "s1" });
-    expect(parseAuthLink("openmausbot://pair?m=x")).toBeNull();
-    expect(parseAuthLink("openmausbot://auth?code=c1")).toBeNull();
+    expect(parseAuthLink("duskbot://auth?code=c1&state=s1")).toEqual({ code: "c1", state: "s1" });
+    expect(parseAuthLink("duskbot://auth?error=oauth_denied&state=s1")).toEqual({ error: "oauth_denied", state: "s1" });
+    expect(parseAuthLink("duskbot://pair?m=x")).toBeNull();
+    expect(parseAuthLink("duskbot://auth?code=c1")).toBeNull();
   });
 
   it("refuses a code whose state this phone did not start", async () => {

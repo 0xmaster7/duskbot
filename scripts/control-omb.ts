@@ -1,5 +1,5 @@
 #!/usr/bin/env -S node --experimental-strip-types
-// The openmausbot headless verbs for verifying an isolated fixture. A verb that
+// The duskbot headless verbs for verifying an isolated fixture. A verb that
 // changes something never runs on a server it merely found.
 import { spawn, type ChildProcess } from "node:child_process";
 import { closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, writeFileSync } from "node:fs";
@@ -47,7 +47,7 @@ export const HELP_UI = `renderer (needs a ui launch handle; every verb takes --u
   ui wait-settle --ui HANDLE [--timeout 30]
   ui help`;
 
-export const HELP = `control-omb — the openmausbot headless verbs (docs/headless-cli.md), for verifying a fixture
+export const HELP = `control-omb — the duskbot headless verbs (docs/headless-cli.md), for verifying a fixture
 
 read-only (every verb also takes --url URL):
   doctor
@@ -61,7 +61,7 @@ read-only (every verb also takes --url URL):
   export --thread ID --out DIR
   events --job THREAD_ID --until-settled
 
-mutating (an explicit --url or OPENMAUSBOT_URL/OMB_PORT is required):
+mutating (an explicit --url or DUSK_URL/DUSK_PORT is required):
   new-bot --name NAME [--section TEAM]
   new-channel --name NAME --members ID,ID
   send --bot ID --text TEXT [--task ID] [--dry-run]
@@ -150,9 +150,9 @@ export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, data
     TMP: fixtureTemp,
     TMPDIR: fixtureTemp,
     HERMES_HOME: join(dataDir, ".hermes"),
-    OMB_DATA_DIR: dataDir,
-    OMB_PORT: String(port),
-    OMB_WEBHOOK_PORT: String(port + 1),
+    DUSK_DATA_DIR: dataDir,
+    DUSK_PORT: String(port),
+    DUSK_WEBHOOK_PORT: String(port + 1),
     // A caller's FAKE_CLAUDE_MODE overrides this below to drive failure paths.
     FAKE_CLAUDE_MODE: parentEnv.FAKE_CLAUDE_MODE || "happy",
     FAKE_CLAUDE_DUMP: join(dataDir, "fake-claude-dump.json"),
@@ -161,7 +161,7 @@ export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, data
     PATH: dirname(process.execPath),
     // Without it the server also scans /opt/homebrew/bin, /usr/local/bin and the
     // login shell's PATH, finding a developer's own engine CLIs that CI lacks.
-    OMB_TEST_SEALED_PATH: "1",
+    DUSK_TEST_SEALED_PATH: "1",
   });
   // The fake engines' knobs are the one thing a caller may script into the child.
   for (const [key, value] of Object.entries(parentEnv)) {
@@ -169,82 +169,82 @@ export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, data
     if ((key.startsWith("FAKE_CLAUDE_") || key.startsWith("FAKE_CODEX_TEXT_") || key.startsWith("FAKE_CODEX_COMMAND") || key === "FAKE_ACP_HANG_ON") && key !== "FAKE_CLAUDE_DUMP" && value) childEnv[key] = value;
   }
   // Enables POST /api/testing/org-library; the route does not exist without it.
-  if (parentEnv.OMB_TEST_ORG_LIBRARY_KEY) childEnv.OMB_TEST_ORG_LIBRARY_KEY = parentEnv.OMB_TEST_ORG_LIBRARY_KEY;
+  if (parentEnv.DUSK_TEST_ORG_LIBRARY_KEY) childEnv.DUSK_TEST_ORG_LIBRARY_KEY = parentEnv.DUSK_TEST_ORG_LIBRARY_KEY;
   // One log line per browser call and preview frame.
-  if (parentEnv.OMB_BROWSER_TIMING === "1") childEnv.OMB_BROWSER_TIMING = "1";
+  if (parentEnv.DUSK_BROWSER_TIMING === "1") childEnv.DUSK_BROWSER_TIMING = "1";
   // Warm summaries' minutes as seconds (server/warm-summary.ts), and the switch that turns them off.
-  for (const key of ["OMB_WARM_SUMMARY_TIME_SCALE", "OMB_WARM_SUMMARY", "OMB_CODEX_WARM"]) if (parentEnv[key]) childEnv[key] = parentEnv[key];
+  for (const key of ["DUSK_WARM_SUMMARY_TIME_SCALE", "DUSK_WARM_SUMMARY", "DUSK_CODEX_WARM"]) if (parentEnv[key]) childEnv[key] = parentEnv[key];
   // A loopback fake only: the key never reaches a real provider.
-  const liveUrl = parentEnv.OMB_OPENAI_LIVE_URL?.trim() ?? "";
+  const liveUrl = parentEnv.DUSK_OPENAI_LIVE_URL?.trim() ?? "";
   if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(liveUrl)) {
-    childEnv.OMB_OPENAI_LIVE_URL = liveUrl;
-    if (parentEnv.OMB_OPENAI_LIVE_KEY) childEnv.OMB_OPENAI_LIVE_KEY = parentEnv.OMB_OPENAI_LIVE_KEY;
+    childEnv.DUSK_OPENAI_LIVE_URL = liveUrl;
+    if (parentEnv.DUSK_OPENAI_LIVE_KEY) childEnv.DUSK_OPENAI_LIVE_KEY = parentEnv.DUSK_OPENAI_LIVE_KEY;
   }
   // A loopback connected-apps service only (server/testing/broker-fake.ts): its token never reaches the real one.
-  const brokerUrl = parentEnv.OMB_COMPOSIO_BROKER_URL?.trim() ?? "";
-  if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(brokerUrl) && parentEnv.OMB_COMPOSIO_BROKER_TOKEN) {
-    childEnv.OMB_COMPOSIO_BROKER_URL = brokerUrl;
-    childEnv.OMB_COMPOSIO_BROKER_TOKEN = parentEnv.OMB_COMPOSIO_BROKER_TOKEN;
+  const brokerUrl = parentEnv.DUSK_COMPOSIO_BROKER_URL?.trim() ?? "";
+  if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(brokerUrl) && parentEnv.DUSK_COMPOSIO_BROKER_TOKEN) {
+    childEnv.DUSK_COMPOSIO_BROKER_URL = brokerUrl;
+    childEnv.DUSK_COMPOSIO_BROKER_TOKEN = parentEnv.DUSK_COMPOSIO_BROKER_TOKEN;
   }
   // Research against loopback stubs only (server/x-research.e2e.test.ts): the relay token crosses only with its stub,
   // and a treg stand-in replaces treg.to, so no test reaches a real relay or treg.
-  const xUrl = parentEnv.OMB_CLOUD_X_URL?.trim() ?? "";
+  const xUrl = parentEnv.DUSK_CLOUD_X_URL?.trim() ?? "";
   if (/^http:\/\/127\.0\.0\.1:\d{1,5}(?:\/[A-Za-z0-9_-]+)*$/.test(xUrl)) {
-    childEnv.OMB_CLOUD_X_URL = xUrl;
-    if (parentEnv.OMB_CLOUD_X_TOKEN) childEnv.OMB_CLOUD_X_TOKEN = parentEnv.OMB_CLOUD_X_TOKEN;
+    childEnv.DUSK_CLOUD_X_URL = xUrl;
+    if (parentEnv.DUSK_CLOUD_X_TOKEN) childEnv.DUSK_CLOUD_X_TOKEN = parentEnv.DUSK_CLOUD_X_TOKEN;
   }
-  // @devs reports reach a loopback fake only, else a closed port: never the MausBot team.
-  const bugReportUrl = parentEnv.OMB_BUG_REPORT_URL?.trim() ?? "";
-  childEnv.OMB_BUG_REPORT_URL = /^http:\/\/127\.0\.0\.1:\d{1,5}\/[A-Za-z0-9/_-]*$/.test(bugReportUrl) ? bugReportUrl : "http://127.0.0.1:9/api/bug-reports";
+  // @devs reports reach a loopback fake only, else a closed port: never the Dusk team.
+  const bugReportUrl = parentEnv.DUSK_BUG_REPORT_URL?.trim() ?? "";
+  childEnv.DUSK_BUG_REPORT_URL = /^http:\/\/127\.0\.0\.1:\d{1,5}\/[A-Za-z0-9/_-]*$/.test(bugReportUrl) ? bugReportUrl : "http://127.0.0.1:9/api/bug-reports";
   // A Vault key file a test made outside the fixture's data folder (the default sits inside it there, so none is used).
-  const keyFile = parentEnv.OMB_SAVED_SECRETS_KEY_FILE?.trim() ?? "";
-  if (isAbsolute(keyFile) && relative(dataDir, keyFile).startsWith("..")) childEnv.OMB_SAVED_SECRETS_KEY_FILE = keyFile;
+  const keyFile = parentEnv.DUSK_SAVED_SECRETS_KEY_FILE?.trim() ?? "";
+  if (isAbsolute(keyFile) && relative(dataDir, keyFile).startsWith("..")) childEnv.DUSK_SAVED_SECRETS_KEY_FILE = keyFile;
   // Slack reaches a loopback fake only (server/testing/fake-slack.ts), else a closed port: a fixture never talks to slack.com.
-  const slackUrl = parentEnv.OMB_SLACK_API_URL?.trim() ?? "";
-  childEnv.OMB_SLACK_API_URL = /^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(slackUrl) ? slackUrl : "http://127.0.0.1:9";
-  const tregUrl = parentEnv.OMB_TREG_URL?.trim() ?? "";
-  if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(tregUrl)) childEnv.OMB_TREG_URL = tregUrl;
+  const slackUrl = parentEnv.DUSK_SLACK_API_URL?.trim() ?? "";
+  childEnv.DUSK_SLACK_API_URL = /^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(slackUrl) ? slackUrl : "http://127.0.0.1:9";
+  const tregUrl = parentEnv.DUSK_TREG_URL?.trim() ?? "";
+  if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(tregUrl)) childEnv.DUSK_TREG_URL = tregUrl;
   // Loopback only, for harness mechanics: a fake ElevenLabs the measurement
   // substrate can drive without a key. Never a real address.
-  const elevenApi = parentEnv.OMB_ELEVENLABS_API?.trim() ?? "";
-  if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(elevenApi)) childEnv.OMB_ELEVENLABS_API = elevenApi;
+  const elevenApi = parentEnv.DUSK_ELEVENLABS_API?.trim() ?? "";
+  if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(elevenApi)) childEnv.DUSK_ELEVENLABS_API = elevenApi;
   // Live calls need Pro; without it the fixture refuses a call with 402 needsPro.
-  if (parentEnv.OMB_PRO_PLAN?.trim() === "1") childEnv.OMB_PRO_PLAN = "1";
+  if (parentEnv.DUSK_PRO_PLAN?.trim() === "1") childEnv.DUSK_PRO_PLAN = "1";
   // Arms the one-shot audio-append failure inside the fixture server.
-  if (parentEnv.OMB_TEST_FAIL_AUDIO_APPEND_ONCE) {
-    childEnv.OMB_TEST_FAIL_AUDIO_APPEND_ONCE = parentEnv.OMB_TEST_FAIL_AUDIO_APPEND_ONCE;
+  if (parentEnv.DUSK_TEST_FAIL_AUDIO_APPEND_ONCE) {
+    childEnv.DUSK_TEST_FAIL_AUDIO_APPEND_ONCE = parentEnv.DUSK_TEST_FAIL_AUDIO_APPEND_ONCE;
   }
   // The Claude broker's approval deadline fires on a marker file, not after 15 minutes.
-  if (parentEnv.OMB_TEST_APPROVAL_CLOCK === "1") childEnv.OMB_TEST_APPROVAL_CLOCK = "1";
+  if (parentEnv.DUSK_TEST_APPROVAL_CLOCK === "1") childEnv.DUSK_TEST_APPROVAL_CLOCK = "1";
   // The stall watchdog fires on a marker file, not after 20 minutes of silence.
-  if (parentEnv.OMB_TEST_STALL_CLOCK === "1") childEnv.OMB_TEST_STALL_CLOCK = "1";
+  if (parentEnv.DUSK_TEST_STALL_CLOCK === "1") childEnv.DUSK_TEST_STALL_CLOCK = "1";
   // Date.now() jumps when a marker file says so, as it does when a suspended machine wakes; timers don't.
-  if (parentEnv.OMB_TEST_RESUME_CLOCK === "1") childEnv.OMB_TEST_RESUME_CLOCK = "1";
+  if (parentEnv.DUSK_TEST_RESUME_CLOCK === "1") childEnv.DUSK_TEST_RESUME_CLOCK = "1";
   // The memory gate runs here too, on the memory a fixture file says this machine has.
-  if (parentEnv.OMB_TEST_MEMORY_GATE === "1") childEnv.OMB_TEST_MEMORY_GATE = "1";
-  if (parentEnv.OMB_TEST_VPS_IDLE_CLOCK === "1") childEnv.OMB_TEST_VPS_IDLE_CLOCK = "1";
-  if (/^[1-9][0-9]?$/.test(parentEnv.OMB_VPS_MAX_DESKTOPS ?? "")) childEnv.OMB_VPS_MAX_DESKTOPS = parentEnv.OMB_VPS_MAX_DESKTOPS;
-  if (parentEnv.OMB_TEST_LOCAL_BROWSER_GUARD === "1") childEnv.OMB_TEST_LOCAL_BROWSER_GUARD = "1";
+  if (parentEnv.DUSK_TEST_MEMORY_GATE === "1") childEnv.DUSK_TEST_MEMORY_GATE = "1";
+  if (parentEnv.DUSK_TEST_VPS_IDLE_CLOCK === "1") childEnv.DUSK_TEST_VPS_IDLE_CLOCK = "1";
+  if (/^[1-9][0-9]?$/.test(parentEnv.DUSK_VPS_MAX_DESKTOPS ?? "")) childEnv.DUSK_VPS_MAX_DESKTOPS = parentEnv.DUSK_VPS_MAX_DESKTOPS;
+  if (parentEnv.DUSK_TEST_LOCAL_BROWSER_GUARD === "1") childEnv.DUSK_TEST_LOCAL_BROWSER_GUARD = "1";
   // The first-reply rescue's delay in ms, so a check need not sit through 20 s of silence.
-  if (/^\d{1,6}$/.test(parentEnv.OMB_FIRST_REPLY_NOTICE_MS ?? "")) childEnv.OMB_FIRST_REPLY_NOTICE_MS = parentEnv.OMB_FIRST_REPLY_NOTICE_MS;
+  if (/^\d{1,6}$/.test(parentEnv.DUSK_FIRST_REPLY_NOTICE_MS ?? "")) childEnv.DUSK_FIRST_REPLY_NOTICE_MS = parentEnv.DUSK_FIRST_REPLY_NOTICE_MS;
   // How long a tool call may hold the person's message unread, in ms, so a check need not sit through a minute.
-  if (/^\d{1,6}$/.test(parentEnv.OMB_PERSON_FIRST_MS ?? "")) childEnv.OMB_PERSON_FIRST_MS = parentEnv.OMB_PERSON_FIRST_MS;
+  if (/^\d{1,6}$/.test(parentEnv.DUSK_PERSON_FIRST_MS ?? "")) childEnv.DUSK_PERSON_FIRST_MS = parentEnv.DUSK_PERSON_FIRST_MS;
   // How often @devs reports are asked about, in ms, so a check sees a fix arrive without an hour's wait.
-  if (/^\d{1,7}$/.test(parentEnv.OMB_DEVS_STATUS_MS ?? "")) childEnv.OMB_DEVS_STATUS_MS = parentEnv.OMB_DEVS_STATUS_MS;
+  if (/^\d{1,7}$/.test(parentEnv.DUSK_DEVS_STATUS_MS ?? "")) childEnv.DUSK_DEVS_STATUS_MS = parentEnv.DUSK_DEVS_STATUS_MS;
   // The quiet-status knobs in ms, so a long tool call shows its sign of life without a minute's wait.
-  for (const knob of ["OMB_ACP_QUIET_NOTICE_MS", "OMB_ACP_QUIET_TICK_MS"] as const) {
+  for (const knob of ["DUSK_ACP_QUIET_NOTICE_MS", "DUSK_ACP_QUIET_TICK_MS"] as const) {
     if (/^\d{1,7}$/.test(parentEnv[knob] ?? "")) childEnv[knob] = parentEnv[knob];
   }
-  // The UI checks drive this fixture from a real browser, as `pnpm dev` does; OMB_DEV_TRUST_LOCAL_BROWSER=0 tests the sign-in.
-  if (parentEnv.OMB_DEV_TRUST_LOCAL_BROWSER !== "0") childEnv.OMB_DEV_TRUST_LOCAL_BROWSER = "1";
+  // The UI checks drive this fixture from a real browser, as `pnpm dev` does; DUSK_DEV_TRUST_LOCAL_BROWSER=0 tests the sign-in.
+  if (parentEnv.DUSK_DEV_TRUST_LOCAL_BROWSER !== "0") childEnv.DUSK_DEV_TRUST_LOCAL_BROWSER = "1";
   // Desktop mode: the owner capability the app would hand the server.
-  if (parentEnv.OMB_TEST_DESKTOP_OWNER_TOKEN) {
-    childEnv.OMB_TEST_DESKTOP_OWNER_TOKEN = parentEnv.OMB_TEST_DESKTOP_OWNER_TOKEN;
-    childEnv.OMB_DESKTOP_PARENT = "1";
-    if (parentEnv.OMB_TEST_DESKTOP_PAGES_ACCESS) childEnv.OMB_TEST_DESKTOP_PAGES_ACCESS = parentEnv.OMB_TEST_DESKTOP_PAGES_ACCESS;
+  if (parentEnv.DUSK_TEST_DESKTOP_OWNER_TOKEN) {
+    childEnv.DUSK_TEST_DESKTOP_OWNER_TOKEN = parentEnv.DUSK_TEST_DESKTOP_OWNER_TOKEN;
+    childEnv.DUSK_DESKTOP_PARENT = "1";
+    if (parentEnv.DUSK_TEST_DESKTOP_PAGES_ACCESS) childEnv.DUSK_TEST_DESKTOP_PAGES_ACCESS = parentEnv.DUSK_TEST_DESKTOP_PAGES_ACCESS;
   }
   // The driver record the app hands its own server: without it, no server may use this computer.
-  if (parentEnv.OMB_TEST_DESKTOP_CUA_CONNECTION) childEnv.OMB_TEST_DESKTOP_CUA_CONNECTION = parentEnv.OMB_TEST_DESKTOP_CUA_CONNECTION;
+  if (parentEnv.DUSK_TEST_DESKTOP_CUA_CONNECTION) childEnv.DUSK_TEST_DESKTOP_CUA_CONNECTION = parentEnv.DUSK_TEST_DESKTOP_CUA_CONNECTION;
   return childEnv;
 }
 
@@ -253,14 +253,14 @@ export function verificationServerArgs(childEnv: NodeJS.ProcessEnv): string[] {
   const hook = (file: string) => ["--import", pathToFileURL(join(ROOT, "server", "testing", file)).href];
   return [
     "--experimental-strip-types",
-    ...(childEnv.OMB_TEST_FAIL_AUDIO_APPEND_ONCE === "1" ? hook("fail-audio-append-once.mjs") : []),
-    ...(childEnv.OMB_TEST_DESKTOP_OWNER_TOKEN || childEnv.OMB_TEST_DESKTOP_CUA_CONNECTION ? hook("desktop-parent.mjs") : []),
-    ...(childEnv.OMB_TEST_APPROVAL_CLOCK === "1" ? hook("approval-clock-hooks.mjs") : []),
-    ...(childEnv.OMB_TEST_STALL_CLOCK === "1" ? hook("stall-clock-hooks.mjs") : []),
-    ...(childEnv.OMB_TEST_RESUME_CLOCK === "1" ? hook("resume-clock-hooks.mjs") : []),
-    ...(childEnv.OMB_TEST_MEMORY_GATE === "1" ? hook("memory-gate-hooks.mjs") : []),
-    ...(childEnv.OMB_TEST_VPS_IDLE_CLOCK === "1" ? hook("vps-idle-clock-hooks.mjs") : []),
-    ...(childEnv.OMB_TEST_LOCAL_BROWSER_GUARD === "1" ? hook("local-browser-guard.mjs") : []),
+    ...(childEnv.DUSK_TEST_FAIL_AUDIO_APPEND_ONCE === "1" ? hook("fail-audio-append-once.mjs") : []),
+    ...(childEnv.DUSK_TEST_DESKTOP_OWNER_TOKEN || childEnv.DUSK_TEST_DESKTOP_CUA_CONNECTION ? hook("desktop-parent.mjs") : []),
+    ...(childEnv.DUSK_TEST_APPROVAL_CLOCK === "1" ? hook("approval-clock-hooks.mjs") : []),
+    ...(childEnv.DUSK_TEST_STALL_CLOCK === "1" ? hook("stall-clock-hooks.mjs") : []),
+    ...(childEnv.DUSK_TEST_RESUME_CLOCK === "1" ? hook("resume-clock-hooks.mjs") : []),
+    ...(childEnv.DUSK_TEST_MEMORY_GATE === "1" ? hook("memory-gate-hooks.mjs") : []),
+    ...(childEnv.DUSK_TEST_VPS_IDLE_CLOCK === "1" ? hook("vps-idle-clock-hooks.mjs") : []),
+    ...(childEnv.DUSK_TEST_LOCAL_BROWSER_GUARD === "1" ? hook("local-browser-guard.mjs") : []),
     join(ROOT, "server", "index.ts"),
   ];
 }
@@ -283,18 +283,18 @@ export async function launchVerificationServer(
       throw new ControlOmbError("Local VM verification requires an explicit loopback Podman machine");
     }
   }
-  // OMB_TEST_PORTS=19975-19999 keeps a recipe's fixture in a range of its own.
-  const range = /^(\d+)-(\d+)$/.exec((parentEnv.OMB_TEST_PORTS ?? process.env.OMB_TEST_PORTS)?.trim() ?? "");
+  // DUSK_TEST_PORTS=19975-19999 keeps a recipe's fixture in a range of its own.
+  const range = /^(\d+)-(\d+)$/.exec((parentEnv.DUSK_TEST_PORTS ?? process.env.DUSK_TEST_PORTS)?.trim() ?? "");
   const port = range ? await freePortBlock([0, 1], Number(range[1]), Number(range[2]) - Number(range[1])) : await freePortBlock([0, 1]);
   if (signal?.aborted) throw new ControlOmbError("verification launch cancelled");
   const url = `http://127.0.0.1:${port}`;
   // Native browser daemons use UNIX sockets, and a macOS temp home can exceed
   // their path limit.
-  const dataDir = mkdtempSync(join(browser && process.platform !== "win32" ? "/tmp" : tmpdir(), "openmausbot-verify-data-"));
+  const dataDir = mkdtempSync(join(browser && process.platform !== "win32" ? "/tmp" : tmpdir(), "duskbot-verify-data-"));
   const fixtureTemp = join(dataDir, "tmp");
   const fixtureDumpPath = join(dataDir, "fake-claude-dump.json");
   mkdirSync(fixtureTemp, { recursive: true });
-  const evidenceDir = join(tmpdir(), "openmausbot-verification-evidence");
+  const evidenceDir = join(tmpdir(), "duskbot-verification-evidence");
   mkdirSync(evidenceDir, { recursive: true });
   const logPath = join(evidenceDir, `server-${Date.now()}-${process.pid}.log`);
   writeFileSync(join(dataDir, "config.json"), JSON.stringify({
@@ -335,17 +335,17 @@ export async function launchVerificationServer(
   // Opt-in live Local VM fixture: keep the temporary home and fake engine,
   // granting only the explicitly selected machine connection and static UI.
   if (localVm) Object.assign(childEnv, {
-    OMB_EXTRA_PATH: [localVm.binDir, ...(process.platform === "win32" ? [join(childEnv.SYSTEMROOT || "C:\\Windows", "System32")] : [])].join(delimiter),
+    DUSK_EXTRA_PATH: [localVm.binDir, ...(process.platform === "win32" ? [join(childEnv.SYSTEMROOT || "C:\\Windows", "System32")] : [])].join(delimiter),
     CONTAINER_HOST: localVm.host,
     CONTAINER_SSHKEY: localVm.sshKey,
-    OMB_STATIC_DIR: localVm.staticDir,
-    ...(localVm.vpsDesktop === "cua" ? { OPENMAUSBOT_VPS_DESKTOP: "cua" } : {}),
+    DUSK_STATIC_DIR: localVm.staticDir,
+    ...(localVm.vpsDesktop === "cua" ? { DUSK_VPS_DESKTOP: "cua" } : {}),
   });
   if (browser) Object.assign(childEnv, {
-    OMB_AGENT_BROWSER_PATH: browser.binaryPath,
+    DUSK_AGENT_BROWSER_PATH: browser.binaryPath,
     AGENT_BROWSER_EXECUTABLE_PATH: browser.executablePath,
   });
-  if (staticDir) childEnv.OMB_STATIC_DIR = staticDir;
+  if (staticDir) childEnv.DUSK_STATIC_DIR = staticDir;
   const child = spawn(process.execPath, verificationServerArgs(childEnv), {
     cwd: ROOT,
     env: childEnv,
@@ -374,7 +374,7 @@ export async function launchVerificationServer(
           signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
         });
         const body = response.ok ? await response.json() as { app?: string } : null;
-        if (body?.app === "openmausbot") break;
+        if (body?.app === "duskbot") break;
       } catch {
       }
       if (Date.now() >= deadline) throw new Error(`verification server did not become ready; see ${logPath}${logTail()}`);

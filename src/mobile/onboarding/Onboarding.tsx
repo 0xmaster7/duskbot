@@ -223,7 +223,7 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
                   ) : (
                     <div className="mt-8 flex w-full gap-2">
                       <input id={fieldId} autoFocus value={value} disabled={busy} onChange={(event) => setValue(event.target.value)}
-                        inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="openmausbot://pair?..."
+                        inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="duskbot://pair?..."
                         className="h-14 min-w-0 flex-1 rounded-[18px] bg-white/[0.07] px-4 text-[16px] text-white placeholder:text-white/30" />
                       {platform.readClipboard && <button type="button" onClick={() => void paste()} aria-label={t("mobile.onboarding.pasteFromClipboard")} className="mobile-press flex size-14 shrink-0 items-center justify-center rounded-[18px] bg-white/[0.08] text-white"><ClipboardPaste size={20} /></button>}
                     </div>

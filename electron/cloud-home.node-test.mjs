@@ -383,7 +383,7 @@ test("a malformed offer is no offer, and a malformed plan or extra is left out, 
 });
 
 test("the public offer is the catalog, with the free trial for new customers when the Admin says so", () => {
-  const offer = parsePublicOffer({ name: "OpenMausBot", surface: "cloud", plans: catalog(), trial: { days: 7, holdDays: 3, creditUsd: 5, reminderDays: 2 }, refundDays: 14 });
+  const offer = parsePublicOffer({ name: "Dusk Bot", surface: "cloud", plans: catalog(), trial: { days: 7, holdDays: 3, creditUsd: 5, reminderDays: 2 }, refundDays: 14 });
   assert.deepEqual(offer.plans.map(plan => plan.trialDays), [7, 7, 7]);
   assert.deepEqual([offer.recommended, offer.creditUsd, offer.reminderDays, offer.refundDays, offer.checkout], ["pro", 5, 2, 14, undefined]);
   const today = parsePublicOffer({ plans: catalog() });
@@ -469,7 +469,7 @@ test("the Server menu opens My Cloud through the Cloud's own connection, never a
   context.cloudAccount = { homeTarget: () => null, state: () => ({ status: "connected", machine: { status: "stopped" } }) }; context.remember({ accountId: "a1", origin });
   connect = async () => { calls.push("connect"); throw new Error("Your Cloud is not ready to connect yet."); };
   calls.length = 0; await context.switchEnvironment("cloud");
-  assert.deepEqual(calls, ["remember:null", "connect", "settings"], "not signed in there: Settings → OMB Cloud says what to do next");
+  assert.deepEqual(calls, ["remember:null", "connect", "settings"], "not signed in there: Settings → Dusk Cloud says what to do next");
   signedIn = true; calls.length = 0; await context.switchEnvironment("cloud");
   assert.deepEqual(calls, ["remember:null", "connect", "active:cloud", `navigate:${origin}`], "signed in there already: it opens as any server does");
   context.cloudAccount = null; context.environmentsState = { environments: [entry, other], activeId: environments.LOCAL_ID };

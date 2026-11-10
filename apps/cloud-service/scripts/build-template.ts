@@ -4,8 +4,9 @@
 // identity, claim or data is in it. The template is signed (its app's tree hash) and every machine checks that before it
 // starts. The three newest templates are kept, plus the one the service uses now.
 //
-//   BOAT_TEMPLATE_API_KEY=... BOAT_BASE_URL=... OMB_RELEASE_SIGNING_KEY=... \
+//   BOAT_TEMPLATE_API_KEY=... BOAT_BASE_URL=... DUSK_RELEASE_SIGNING_KEY=... \
 //   node apps/cloud-service/scripts/build-template.ts --package release/home/omb-home.tgz --signature release/home/omb-home.tgz.sig --version 0.1.150 [--in-use omb-home-0-1-149]
+import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
@@ -60,14 +61,14 @@ export async function buildTemplate(input: TemplateBuild): Promise<{ name: strin
     const installed = await provider.run(builder.id, installCommand(sha256, undefined, input.signature), 600);
     if (!installed.ok || !installed.stdout.includes("installed")) throw new Error("The package did not install on the builder.");
     // the app never ran here: no env, no machine id, no data
-    const clean = await provider.run(builder.id, "sudo -n test ! -e /etc/openmausbot/home.env && sudo -n test ! -e /etc/openmausbot/machine && sudo -n test -z \"$(sudo -n ls -A /data/.openmausbot 2>/dev/null)\" && echo clean", 60);
+    const clean = await provider.run(builder.id, `sudo -n test ! -e ${CLOUD_HOME.etc}/home.env && sudo -n test ! -e ${CLOUD_HOME.etc}/machine && sudo -n test -z "$(sudo -n ls -A ${CLOUD_HOME.data} 2>/dev/null)" && echo clean`, 60);
     if (!clean.stdout.includes("clean")) throw new Error("The builder is not clean; nothing was saved.");
     const tree = (await provider.run(builder.id, `sudo -n ${BOAT_CONTROL} tree`, 300)).stdout.trim();
     if (!/^[a-f0-9]{64}$/.test(tree)) throw new Error("The builder's app could not be hashed.");
     const signature = signRelease({ kind: "template", name, version: sha256, sha256: tree, signedAt: Date.now() }, input.signingKey);
     verifyRelease(signature, { kind: "template", name, sha256: tree }, input.releaseKeys);
     await provider.upload(builder.id, "/home/user/template.sig", Buffer.from(signature));
-    const placed = await provider.run(builder.id, "sudo -n install -o root -g root -m 0644 /home/user/template.sig /usr/lib/openmausbot/template.sig && rm -f /home/user/template.sig && echo placed", 60);
+    const placed = await provider.run(builder.id, `sudo -n install -o root -g root -m 0644 /home/user/template.sig ${CLOUD_HOME.root}/template.sig && rm -f /home/user/template.sig && echo placed`, 60);
     if (!placed.stdout.includes("placed")) throw new Error("The template signature was not placed.");
     await provider.saveNamedSnapshot(builder.id, name);
     for (let n = 0; ; n++) {
@@ -90,13 +91,13 @@ export async function buildTemplate(input: TemplateBuild): Promise<{ name: strin
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { values } = parseArgs({ options: { package: { type: "string" }, signature: { type: "string" }, version: { type: "string" }, "in-use": { type: "string", multiple: true } } });
   // the template key, never the runtime key: only CI holds it
-  const key = process.env.BOAT_TEMPLATE_API_KEY, signingKey = process.env.OMB_RELEASE_SIGNING_KEY;
+  const key = process.env.BOAT_TEMPLATE_API_KEY, signingKey = process.env.DUSK_RELEASE_SIGNING_KEY;
   if (!key || !signingKey || !values.package || !values.signature || !values.version) {
-    console.error("usage: BOAT_TEMPLATE_API_KEY=... OMB_RELEASE_SIGNING_KEY=... build-template.ts --package <tgz> --signature <sig file> --version <v> [--in-use <name>]");
+    console.error("usage: BOAT_TEMPLATE_API_KEY=... DUSK_RELEASE_SIGNING_KEY=... build-template.ts --package <tgz> --signature <sig file> --version <v> [--in-use <name>]");
     process.exit(2);
   }
   const provider = createBoatProvider({ apiKey: key, baseUrl: process.env.BOAT_BASE_URL, scope: createHash("sha256").update("omb-template").digest("hex").slice(0, 16) });
   const built = await buildTemplate({ provider, pkg: readFileSync(values.package), signature: readFileSync(values.signature, "utf8").trim(), version: values.version, signingKey,
-    releaseKeys: [...PINNED_RELEASE_KEYS, ...parseReleaseKeys(process.env.OMB_RELEASE_PUBLIC_KEYS)], inUse: values["in-use"], log: line => console.log(line) });
-  console.log(`OMB_MANAGED_TEMPLATE=${built.name}\nOMB_MANAGED_TEMPLATE_SIGNATURE=${built.signature}`);
+    releaseKeys: [...PINNED_RELEASE_KEYS, ...parseReleaseKeys(process.env.DUSK_RELEASE_PUBLIC_KEYS)], inUse: values["in-use"], log: line => console.log(line) });
+  console.log(`DUSK_MANAGED_TEMPLATE=${built.name}\nOMB_MANAGED_TEMPLATE_SIGNATURE=${built.signature}`);
 }

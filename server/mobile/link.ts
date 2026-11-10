@@ -92,9 +92,9 @@ export function notifyPhones(notification: unknown, options: { adminOnly?: boole
   if (activeNotify && entry && typeof entry.id === "string" && typeof entry.threadId === "string") activeNotify(entry, options);
 }
 
-/** OMB_MOBILE_RELAY: the relay that holds typed-code lookups when no link agent names one ("default" for the public one); unset, none */
+/** DUSK_MOBILE_RELAY: the relay that holds typed-code lookups when no link agent names one ("default" for the public one); unset, none */
 export function mobileLookupRelay(env: NodeJS.ProcessEnv = process.env): string | null {
-  const value = env.OMB_MOBILE_RELAY?.trim();
+  const value = env.DUSK_MOBILE_RELAY?.trim();
   if (value === "default") return DEFAULT_MOBILE_RELAY;
   return value && /^https?:\/\/[^/\s]+$/.test(value) ? value : null;
 }

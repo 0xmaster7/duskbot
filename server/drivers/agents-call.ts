@@ -17,7 +17,7 @@ import { callResearchTool, RESEARCH_TOOL_NAMES } from "./agents-research-tools.t
 import { callHelperTool, HELPER_TOOL_NAMES } from "./agents-helper-tools.ts";
 import { callUsageLimitsTool, USAGE_LIMITS_TOOL } from "./agents-usage-tool.ts";
 import { callWaitTool, WAIT_TOOL_NAMES } from "./agents-wait-tools.ts";
-import { callMausBotTool, MAUSBOT_TOOL_NAMES } from "./agents-mausbot-tools.ts";
+import { callDuskTool, DUSK_TOOL_NAMES } from "./agents-dusk-tools.ts";
 import { callPageTool, PAGE_TOOL_NAMES } from "./agents-pages-tools.ts";
 import { callSlackTool, SLACK_TOOL_NAMES } from "./agents-slack-tools.ts";
 import { callPersonTool, PERSON_TOOL_NAMES } from "./agents-person-tools.ts";
@@ -42,9 +42,9 @@ export function toolCallContextFromEnv(env: NodeJS.ProcessEnv, stop?: AbortSigna
   const profile = catalogProfileFromEnv(env);
   return {
     botId: profile.botId,
-    threadId: env.OMB_THREAD_ID ?? "",
-    depth: Number(env.OMB_TURN_DEPTH ?? "0") || 0,
-    externalRuntime: env.OMB_EXTERNAL_RUNTIME === "1",
+    threadId: env.DUSK_THREAD_ID ?? "",
+    depth: Number(env.DUSK_TURN_DEPTH ?? "0") || 0,
+    externalRuntime: env.DUSK_EXTERNAL_RUNTIME === "1",
     client: harnessClientFromEnv(env, stop),
   };
 }
@@ -214,7 +214,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
   if (CARD_TOOL_NAMES.has(name)) return callCardTool(name, args, context);
   if (RESEARCH_TOOL_NAMES.has(name)) return callResearchTool(name, args, context);
   if (HELPER_TOOL_NAMES.has(name)) return callHelperTool(name, args, context);
-  if (MAUSBOT_TOOL_NAMES.has(name)) return callMausBotTool(name, args, context);
+  if (DUSK_TOOL_NAMES.has(name)) return callDuskTool(name, args, context);
   if (PAGE_TOOL_NAMES.has(name)) return callPageTool(name, args, context);
   if (SLACK_TOOL_NAMES.has(name)) return callSlackTool(name, args, context);
   if (PERSON_TOOL_NAMES.has(name)) return callPersonTool(name, args, context);
@@ -550,10 +550,10 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
       return { text: `${r.label ?? CREDENTIAL_TARGETS[credentialId].label} is already configured. Continue the task.` };
     }
     if (credentialId === "onePasswordToken") {
-      return { text: `A secure ${r.label ?? CREDENTIAL_TARGETS[credentialId].label} request is ready: the person pastes it into its card in OpenMausBot, on their computer or in My Cloud, and OpenMausBot checks it with 1Password before keeping it. End this turn; OpenMausBot will resume the task after they save or decline. Never ask them to paste the token into chat, and never pass it to a command line.` };
+      return { text: `A secure ${r.label ?? CREDENTIAL_TARGETS[credentialId].label} request is ready: the person pastes it into its card in Dusk Bot, on their computer or in My Cloud, and Dusk Bot checks it with 1Password before keeping it. End this turn; Dusk Bot will resume the task after they save or decline. Never ask them to paste the token into chat, and never pass it to a command line.` };
     }
     return {
-      text: `A secure ${r.label ?? CREDENTIAL_TARGETS[credentialId].label} request is now in this conversation, and the person was notified. The desktop app and a freshly QR-paired mobile app show its secure entry card; older mobile pairings explain how to pair again or finish on the computer. End this turn; OpenMausBot will resume the task after the user saves or declines. Never ask them to paste the key into chat.`,
+      text: `A secure ${r.label ?? CREDENTIAL_TARGETS[credentialId].label} request is now in this conversation, and the person was notified. The desktop app and a freshly QR-paired mobile app show its secure entry card; older mobile pairings explain how to pair again or finish on the computer. End this turn; Dusk Bot will resume the task after the user saves or declines. Never ask them to paste the key into chat.`,
     };
   }
   if (name === "request_sign_in") {
@@ -565,7 +565,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
       body: JSON.stringify({ fromBotId: BOT_ID, fromThreadId: THREAD_ID, site, ...(reason ? { reason } : {}) }),
     });
     return {
-      text: `The person was asked to sign in to ${r.site ?? site} on ${SIGN_IN_PLACES[String(r.place)] ?? "the place you work"}. Your turn ends now: say in one short line that you are waiting for them, then stop. OpenMausBot resumes you when they finish or decline. Never ask for the password or a code in chat.`,
+      text: `The person was asked to sign in to ${r.site ?? site} on ${SIGN_IN_PLACES[String(r.place)] ?? "the place you work"}. Your turn ends now: say in one short line that you are waiting for them, then stop. Dusk Bot resumes you when they finish or decline. Never ask for the password or a code in chat.`,
     };
   }
   if (name === "fill_login") {
@@ -854,7 +854,7 @@ async function requestEmailCard(args: Json, context: ToolCallContext): Promise<T
   });
   if (!r.ok) return { text: String(r.body.error ?? `request_credential failed (HTTP ${r.status}).`), isError: true };
   if (r.body.alreadyConfigured === true) return { text: `${String(r.body.label)} is already connected. Use the email tools.` };
-  return { text: "A secure card for the mailbox is ready in OpenMausBot, on the computer and on a freshly QR-paired phone. End this turn now and say in one line that you are waiting for it; OpenMausBot resumes you when the person connects it or declines." };
+  return { text: "A secure card for the mailbox is ready in Dusk Bot, on the computer and on a freshly QR-paired phone. End this turn now and say in one line that you are waiting for it; Dusk Bot resumes you when the person connects it or declines." };
 }
 
 /** A website login on a sealed card: kept for fill_login, which types it; the bot never gets it back. */
@@ -866,10 +866,10 @@ async function requestLoginCard(args: Json, context: ToolCallContext): Promise<T
   if (!r.ok) return { text: String(r.body.error ?? `request_credential failed (HTTP ${r.status}).`), isError: true };
   if (typeof r.body.text === "string") return { text: r.body.text };
   const site = typeof r.body.site === "string" ? r.body.site : "the site";
-  return { text: `A secure login card for ${site} is now in this conversation, and the person was notified. End this turn now and say in one line that you are waiting for it; OpenMausBot resumes you when they save it or decline, and then you sign in with fill_login. Never ask for the password in chat.` };
+  return { text: `A secure login card for ${site} is now in this conversation, and the person was notified. End this turn now and say in one line that you are waiting for it; Dusk Bot resumes you when they save it or decline, and then you sign in with fill_login. Never ask for the password in chat.` };
 }
 
-/** A secret OpenMausBot does not keep: the person agrees to one use, and the bot gets a secretRef or a file path back. */
+/** A secret Dusk Bot does not keep: the person agrees to one use, and the bot gets a secretRef or a file path back. */
 async function requestCustomSecret(args: Json, context: ToolCallContext): Promise<ToolCallResult> {
   const r = await context.client.apiResponse("/api/internal/request-credential", {
     method: "POST",
@@ -879,9 +879,9 @@ async function requestCustomSecret(args: Json, context: ToolCallContext): Promis
   if (!r.ok) return { text: String(r.body.error ?? `request_credential failed (HTTP ${r.status}).`), isError: true };
   if (typeof r.body.text === "string") return { text: `${r.body.text} Continue the task.` };
   const asked = r.body.savedAs === "ref"
-    ? ` ${label} was saved earlier for OpenMausBot's tools only, not as a file for your commands (not a file request), so this card asks for it again.`
+    ? ` ${label} was saved earlier for Dusk Bot's tools only, not as a file for your commands (not a file request), so this card asks for it again.`
     : r.body.savedAs === "file" ? ` ${label} was saved earlier as a file for your commands, not as a secretRef, so this card asks for it again.` : "";
   return {
-    text: `A secure card for ${label} is now in this conversation, in the app and on a QR-paired phone, and the person was notified. If they can't find it, tell them it is in this conversation, and the notification opens it.${asked} End this turn now and say in one line that you are waiting for it; OpenMausBot resumes you when the person saves or declines, and tells you how to use it. Never ask for it in chat.`,
+    text: `A secure card for ${label} is now in this conversation, in the app and on a QR-paired phone, and the person was notified. If they can't find it, tell them it is in this conversation, and the notification opens it.${asked} End this turn now and say in one line that you are waiting for it; Dusk Bot resumes you when the person saves or declines, and tells you how to use it. Never ask for it in chat.`,
   };
 }

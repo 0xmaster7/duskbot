@@ -243,10 +243,10 @@ export const CopilotAgentDriver = {
             : { type: server.type, url: server.url,
               headers: Object.fromEntries(server.headers.map(({ name, value }) => [name, value])), tools: ["*"] }]));
           writeFileAtomicIfChanged(path, JSON.stringify({ mcpServers: servers }), { mode: 0o600, durable: false });
-          env.OMB_COPILOT_MCP_CONFIG = path;
+          env.DUSK_COPILOT_MCP_CONFIG = path;
         },
         resolveCommand(env, config) {
-          const path = env.OMB_COPILOT_MCP_CONFIG;
+          const path = env.DUSK_COPILOT_MCP_CONFIG;
           if (!path) throw new Error("GitHub Copilot's tool configuration was not prepared.");
           return Promise.resolve({ command: config.cli, args: ["--additional-mcp-config", `@${path}`] });
         },

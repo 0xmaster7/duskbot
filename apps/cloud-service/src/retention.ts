@@ -4,9 +4,9 @@
 import type { StoredSubscription } from "../../dashboard/server/billing/store.ts";
 
 export const DAY_MS = 86_400_000;
-/** days a home and its data are kept after the plan that paid for it ended (OMB_BOAT_RETENTION_DAYS) */
+/** days a home and its data are kept after the plan that paid for it ended (DUSK_BOAT_RETENTION_DAYS) */
 export const DEFAULT_RETENTION_DAYS = 45;
-/** days a confirmed owner request to delete waits, so it can be undone (OMB_BOAT_DELETE_DELAY_DAYS) */
+/** days a confirmed owner request to delete waits, so it can be undone (DUSK_BOAT_DELETE_DELAY_DAYS) */
 export const DEFAULT_DELETE_DELAY_DAYS = 7;
 /** notices before deletion: days left */
 export const NOTICE_DAYS = [30, 7, 1] as const;

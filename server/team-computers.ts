@@ -1,3 +1,4 @@
+import { SEAL_LABELS } from "../electron/legacy-names.mjs";
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { z } from "zod";
@@ -21,7 +22,7 @@ const entrySchema = z.object({
 const fileSchema = z.object({ version: z.literal(1), environmentId: z.string().uuid(), computers: z.array(entrySchema).max(101) }).strict();
 export type TeamComputerRecord = z.infer<typeof entrySchema>;
 export function workspaceComputerId(environmentId: string): string {
-  const bytes = createHash("sha1").update(`openmausbot:workspace-computer:${environmentId}`).digest().subarray(0, 16);
+  const bytes = createHash("sha1").update(`${SEAL_LABELS.workspaceComputer}${environmentId}`).digest().subarray(0, 16);
   bytes[6] = (bytes[6]! & 15) | 80;
   bytes[8] = (bytes[8]! & 63) | 128;
   const hex = bytes.toString("hex");

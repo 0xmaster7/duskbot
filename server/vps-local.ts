@@ -1,5 +1,6 @@
 // A server that "Add your VPS" installed runs on the VPS itself: its bots' VPS computers live on this machine's own
 // Docker (the install gave the service user the docker group, gVisor and the host fence), with no SSH in between.
+import { LEGACY } from "../electron/legacy-names.mjs";
 import { independentScreenExecArgs, isManagedScreenViewerPort, type IndependentScreenTarget } from "./shared-desktop-screens.ts";
 import type { ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -13,20 +14,20 @@ export const THIS_SERVER_VPS = "this-server";
 const RECHECK_MS = 10_000;
 let known: { at: number; value: boolean } | null = null;
 
-/** OPENMAUSBOT_VPS_DOCKER=local forces it on, =ssh off; otherwise the link agent's tunnel file on Linux says so. */
+/** DUSK_VPS_DOCKER=local forces it on, =ssh off; otherwise the link agent's tunnel file on Linux says so. */
 export function detectThisServerVps(
   env: NodeJS.ProcessEnv = process.env,
   platform: NodeJS.Platform = process.platform,
   home: string = env.HOME || homedir(),
 ): boolean {
-  if (env.OPENMAUSBOT_VPS_DOCKER === "local") return true;
-  if (env.OPENMAUSBOT_VPS_DOCKER === "ssh" || platform !== "linux") return false;
-  return existsSync(join(home, ".config", "openmausbot-link", "tunnel.json"));
+  if (env.DUSK_VPS_DOCKER === "local") return true;
+  if (env.DUSK_VPS_DOCKER === "ssh" || platform !== "linux") return false;
+  return ["duskbot-link", LEGACY.linkConfigDir].some((dir) => existsSync(join(home, ".config", dir, "tunnel.json")));
 }
 
 /** Rechecked every few seconds: the link step writes the tunnel file after the server first starts. */
 export function vpsIsThisServer(now = Date.now()): boolean {
-  const forced = process.env.OPENMAUSBOT_VPS_DOCKER;
+  const forced = process.env.DUSK_VPS_DOCKER;
   if (forced === "local" || forced === "ssh") return forced === "local";
   if (!known || now - known.at >= RECHECK_MS) known = { at: now, value: detectThisServerVps() };
   return known.value;

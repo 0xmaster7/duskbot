@@ -66,7 +66,7 @@ const bytes = readFileSync(join(out, packed));
 const sha256 = createHash("sha256").update(bytes).digest("hex");
 let commit = "";
 try { commit = quiet("git", ["rev-parse", "--short=12", "HEAD"]); } catch { /* not a checkout */ }
-const name = `openmausbot-${pkg.version}-${sha256.slice(0, 12)}.tgz`;
+const name = `duskbot-${pkg.version}-${sha256.slice(0, 12)}.tgz`;
 renameSync(join(out, packed), join(out, name));
 const manifest = { sha256, version: pkg.version, size: bytes.length, commit, builtAt: new Date().toISOString(), file: name };
 writeFileSync(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");

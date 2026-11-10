@@ -10,7 +10,7 @@ import { closeFixtureBrowser, connectMcp, driver, eventually, httpFixture, socke
 
 const run = promisify(execFile);
 const root = fileURLToPath(new URL("..", import.meta.url));
-const image = process.env.OMB_VERIFY_DESKTOP_IMAGE || "omb-bot-desktop:lean-fixture";
+const image = process.env.DUSK_VERIFY_DESKTOP_IMAGE || "omb-bot-desktop:lean-fixture";
 const evidence = await mkdtemp(join(process.platform === "win32" ? tmpdir() : "/tmp", "omb-di-"));
 const imageId = (await run("docker", ["image", "inspect", image, "--format", "{{.Id}}"])).stdout.trim();
 assert.match(imageId, /^sha256:[a-f0-9]{64}$/);
@@ -26,12 +26,12 @@ async function measure(forced) {
   receipt.results.push(result);
   try {
     container = (await run("docker", [
-      "run", "--rm", "-d", "--name", name, "--label", "com.openmausbot.verification=interaction",
+      "run", "--rm", "-d", "--name", name, "--label", "bot.dusk.verification=interaction",
       "--network", "none", "--user", "1000:1000", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
       "--read-only", "--memory", "2g", "--cpus", "2", "--pids-limit", "512", "--shm-size", "512m",
       "--tmpfs", "/home/cua:rw,nosuid,nodev,size=256m,uid=1000,gid=1000,mode=0700",
       "--tmpfs", "/tmp:rw,nosuid,nodev,size=512m", "--tmpfs", "/run:rw,nosuid,nodev,size=64m,uid=1000,gid=1000,mode=0755",
-      "-e", "OMB_BROWSER_AT_START=off", "--entrypoint", "/usr/local/bin/omb-session", imageId,
+      "-e", "DUSK_BROWSER_AT_START=off", "--entrypoint", "/usr/local/bin/omb-session", imageId,
     ], { timeout: 15_000 })).stdout.trim();
     result.container = container;
     const exec = args => run("docker", ["exec", "-u", "1000:1000", "-e", "CUA_DRIVER_RS_TELEMETRY_ENABLED=0", container, ...args], {
@@ -130,14 +130,14 @@ async function measure(forced) {
     }
     if (!forced) {
       const { boxChromeRelay, boxChromeExecArgs } = await import("../server/vps-local.ts");
-      const binary = process.env.OMB_AGENT_BROWSER_PATH || join(root, ".omb-scratch", "verify-tools", "tools", "agent-browser", "0.37.0", "agent-browser");
+      const binary = process.env.DUSK_AGENT_BROWSER_PATH || join(root, ".omb-scratch", "verify-tools", "tools", "agent-browser", "0.37.0", "agent-browser");
       const home = join(evidence, "app-home");
       const relay = await boxChromeRelay(() => spawn("docker", boxChromeExecArgs(container), { stdio: ["pipe", "pipe", "ignore"] }));
       try {
         const { tools } = await transport.list();
         const app = await run(process.execPath, ["--experimental-strip-types", join(root, "scripts/testing/bot-desktop-app-browser.mjs"), relay.url, evidence, JSON.stringify(tools.map(tool => tool.name))], {
           cwd: root, timeout: 90_000, maxBuffer: 4 * 1024 * 1024,
-          env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home, OMB_DATA_DIR: join(evidence, "app-data"), OMB_AGENT_BROWSER_PATH: binary },
+          env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home, DUSK_DATA_DIR: join(evidence, "app-data"), DUSK_AGENT_BROWSER_PATH: binary },
         }).catch(async error => {
           await writeFile(join(evidence, "app-browser.log"), (error.stdout ?? "") + (error.stderr ?? ""));
           throw new Error(`App browser verification failed; see ${join(evidence, "app-browser.log")}`);

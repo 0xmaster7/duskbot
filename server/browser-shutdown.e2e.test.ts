@@ -58,7 +58,7 @@ async function startServer(home: string, engine: string) {
   const base = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
     cwd: ROOT,
-    env: { ...verificationServerEnvironment(process.env, home, port), OMB_AGENT_BROWSER_PATH: engine },
+    env: { ...verificationServerEnvironment(process.env, home, port), DUSK_AGENT_BROWSER_PATH: engine },
     stdio: ["ignore", "pipe", "pipe"],
   });
   children.push(child);
@@ -89,7 +89,7 @@ async function browserTurnThenQuit(config: Record<string, unknown> = {}, browser
   await expect.poll(async () => (await api("GET", "/api/bots?messages=0")).body.bots
     .find((item: { id: string }) => item.id === bot.id)?.busy, { timeout: 20_000 }).toBe(false);
   const session = browserProfile ?? `bot-${bot.id}`;
-  // The person's Chrome has no saved state of OMB's to prepare, so a turn on
+  // The person's Chrome has no saved state of Dusk Bot's to prepare, so a turn on
   // My Chrome runs no engine command of its own; every other browser does.
   const turnCommands = fixture.commands();
   // The bot's browser is open when the person quits.

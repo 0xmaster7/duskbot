@@ -64,7 +64,7 @@ test("the quoted path survives a shell round-trip", { skip: posixShell }, () => 
 });
 
 test("the whole command parses into the arguments apt-get would receive", { skip: posixShell }, () => {
-  const file = "/home/o'brien/Downloads/OpenMausBot-0.1.44-amd64.deb";
+  const file = "/home/o'brien/Downloads/DuskBot-0.1.44-amd64.deb";
   const command = packageInstallCommand("deb", file);
 
   // The privileged verb is replaced with a printer, so the shell shows exactly the flags and the one path it would pass.

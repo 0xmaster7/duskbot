@@ -16,7 +16,7 @@ export const VOICE_LANGUAGES = [
 export interface VoicePrefs { speed: VoiceSpeed; language: string }
 
 const DEFAULTS: VoicePrefs = { speed: "1", language: "auto" };
-const key = (botId: string) => `openmausbot.voicePrefs.v1:${botId}`;
+const key = (botId: string) => `duskbot.voicePrefs.v1:${botId}`;
 const watchers = new Set<() => void>();
 const cache = new Map<string, VoicePrefs>();
 

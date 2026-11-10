@@ -9,15 +9,15 @@ let fixture: Awaited<ReturnType<typeof launchVerificationServer>>;
 const request = (route: string, init?: RequestInit) => fetch(`${fixture.info.url}${route}`, init);
 
 beforeAll(async () => {
-  globalThis.fetch = (input, init = {}) => realFetch(input, { ...init, headers: { ...Object.fromEntries(new Headers(init.headers)), "x-openmausbot-desktop-owner": owner } });
-  fixture = await launchVerificationServer({ ...process.env, OMB_TEST_DESKTOP_OWNER_TOKEN: owner });
+  globalThis.fetch = (input, init = {}) => realFetch(input, { ...init, headers: { ...Object.fromEntries(new Headers(init.headers)), "x-dusk-desktop-owner": owner } });
+  fixture = await launchVerificationServer({ ...process.env, DUSK_TEST_DESKTOP_OWNER_TOKEN: owner });
 }, 90_000);
 afterAll(async () => {
   globalThis.fetch = realFetch;
   await fixture?.close();
 });
 
-it("asks MausBot in its own Quick asks chat, as the desktop app does, and follows the reply to the end", async () => {
+it("asks Dusk in its own Quick asks chat, as the desktop app does, and follows the reply to the end", async () => {
   let saved: TalkChat | null = null;
   const talk = createTalkServer({ request, serverKey: () => "fixture", prefs: { quickAsksChat: () => saved, setQuickAsksChat: (_s, chat) => { saved = chat; } } });
   const before = (await (await request("/api/bots?messages=0")).json() as any).bots.find((b: any) => b.defaultBot);

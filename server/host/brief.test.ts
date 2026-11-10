@@ -75,7 +75,7 @@ describe("the brief", () => {
     expect(message.widget).toBeUndefined();
     expect(message.text).toBe([
       ENGLISH_BRIEF.intro,
-      `Quick heads-up, one thing needs you:\n- [Juno asked you](<openmausbot://thread/${juno.threadId}?bot=${juno.id}>): Should I book the 9:40 flight to Lisbon?`,
+      `Quick heads-up, one thing needs you:\n- [Juno asked you](<duskbot://thread/${juno.threadId}?bot=${juno.id}>): Should I book the 9:40 flight to Lisbon?`,
     ].join("\n\n"));
     expect(message.text).not.toMatch(/Your brief|Thursday|October/);
     expect(s.notified).toEqual(["Your brief: 1 needs you"]);
@@ -226,7 +226,7 @@ describe("the brief", () => {
 
   it("a routine run that published a page links the page itself, beside the link to its chat", async () => {
     const s = setup({ needsYou: [{ kind: "signed-out", id: "x", at: 0, instanceId: "claude", botIds: [] }] });
-    const PAGE = "https://abcdefghijklmnopqrstuvwxyz.mausbot.page/";
+    const PAGE = "https://abcdefghijklmnopqrstuvwxyz.page.dusk.bot/";
     const run = (id: string, name: string, card?: "live" | "unpublished"): RoutineRun => {
       const threadId = s.store.createTask(s.chief.id, name, false)!.threadId, startedAt = Date.now();
       if (card) s.store.appendMessage(threadId, { role: "bot", kind: "text", text: `Published “Sales”: ${PAGE}`, publishedPage: { state: card, title: "Sales", pageId: "abcdefghijklmnopqrstuvwxyz", url: PAGE } });
@@ -237,9 +237,9 @@ describe("the brief", () => {
     s.runs.push(run("dash", "Refresh the sales dashboard", "live"), run("gone", "Old dashboard", "unpublished"), run("plain", "Tidy my inbox"));
     await s.brief.active("desktop", "UTC");
     const dash = s.store.bot(s.chief.id)!.tasks!.find((task) => task.title === "Refresh the sales dashboard")!.threadId;
-    expect(s.shown()).toContain(`- [Refresh the sales dashboard](<openmausbot://thread/${dash}?bot=${s.chief.id}>): Updated the dashboard. · [Open page](<${PAGE}>)`);
+    expect(s.shown()).toContain(`- [Refresh the sales dashboard](<duskbot://thread/${dash}?bot=${s.chief.id}>): Updated the dashboard. · [Open page](<${PAGE}>)`);
     expect(s.shown().match(/\[Open page\]/g)).toHaveLength(1);
-    expect(s.shown().match(/\(<openmausbot:\/\/thread\//g)).toHaveLength(3);
+    expect(s.shown().match(/\(<duskbot:\/\/thread\//g)).toHaveLength(3);
   });
 
   it("a watch run's answer becomes lines and a prep card, and tells the person once", async () => {

@@ -1,3 +1,6 @@
+import { DOCKER_NAMES } from "../../../electron/legacy-names.mjs";
+import * as sharedDesktop from "../../../shared/bot-desktop.ts";
+import * as managedNames from "../../../server/vps-managed-names.ts";
 import { once } from "node:events";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { connect, createServer } from "node:net";
@@ -9,7 +12,7 @@ import {
   parseJson, startGate,
 } from "../docker-gate.mjs";
 
-const NAME = "openmausbot-vps-abc-0123456789ab";
+const NAME = `${DOCKER_NAMES.vpsPrefix}-abc-0123456789ab`;
 const CID = "c".repeat(64);
 const EID = "e".repeat(64);
 const PROBE_ID = "d".repeat(64);
@@ -20,10 +23,10 @@ function desktop(mode = "strict", edit = () => {}) {
   const strict = mode === "strict";
   const body = {
     Hostname: "bot", Domainname: "", User: "", AttachStdin: false, AttachStdout: false, AttachStderr: false, Tty: false,
-    OpenStdin: false, StdinOnce: false, Env: [`OMB_MODE=${mode}`, "VNC_PW=x"], Cmd: null, Image: IMAGE, Volumes: {}, WorkingDir: "",
-    Entrypoint: null, Labels: { "com.openmausbot.container": NAME, "com.openmausbot.vps": "1" },
+    OpenStdin: false, StdinOnce: false, Env: [`DUSK_MODE=${mode}`, "VNC_PW=x"], Cmd: null, Image: IMAGE, Volumes: {}, WorkingDir: "",
+    Entrypoint: null, Labels: { [DOCKER_NAMES.label("container")]: NAME, [DOCKER_NAMES.label("vps")]: "1" },
     HostConfig: {
-      Binds: null, ContainerIDFile: "", LogConfig: { Type: "", Config: {} }, NetworkMode: "openmausbot-desktops", PortBindings: {},
+      Binds: null, ContainerIDFile: "", LogConfig: { Type: "", Config: {} }, NetworkMode: DOCKER_NAMES.desktopNetwork, PortBindings: {},
       RestartPolicy: { Name: "no", MaximumRetryCount: 0 }, AutoRemove: false, VolumeDriver: "", VolumesFrom: null, ConsoleSize: [0, 0],
       CapAdd: strict ? ["CAP_NET_ADMIN", "CAP_SETGID", "CAP_SETUID"] : FREE_CAPABILITIES.map((cap) => `CAP_${cap}`), CapDrop: ["ALL"],
       CgroupnsMode: "private", Dns: ["1.1.1.1", "9.9.9.9"], DnsOptions: [], DnsSearch: [], ExtraHosts: null, GroupAdd: null,
@@ -75,10 +78,10 @@ function probe(kind = "fence", edit = () => {}) {
 
 const network = (edit = () => {}) => {
   const body = {
-    Name: "openmausbot-desktops", Driver: "bridge", Scope: "", IPAM: { Driver: "default", Options: {}, Config: [] }, Internal: false,
+    Name: DOCKER_NAMES.desktopNetwork, Driver: "bridge", Scope: "", IPAM: { Driver: "default", Options: {}, Config: [] }, Internal: false,
     Attachable: false, Ingress: false, ConfigOnly: false, ConfigFrom: null,
     Options: { "com.docker.network.bridge.enable_icc": "false", "com.docker.network.bridge.name": "omb-desk0" },
-    Labels: { "com.openmausbot.vps-network": "1" },
+    Labels: { [DOCKER_NAMES.label("vps-network")]: "1" },
   };
   edit(body);
   return body;
@@ -112,7 +115,7 @@ describe("docker gate container create", () => {
   it("refuses host paths, devices and other containers' volumes", () => {
     createRefused(desktop("strict", (_, host) => { host.Binds = ["/:/host"]; }), /Binds/);
     createRefused(desktop("strict", (_, host) => { host.Mounts = [{ Type: "bind", Source: "/", Target: "/home/cua" }]; }), /Mounts/);
-    createRefused(desktop("strict", (_, host) => { host.Mounts[0].Source = "openmausbot-vps-other-0123456789ab-home"; }), /Mounts/);
+    createRefused(desktop("strict", (_, host) => { host.Mounts[0].Source = `${DOCKER_NAMES.vpsPrefix}-other-0123456789ab-home`; }), /Mounts/);
     createRefused(desktop("strict", (_, host) => { host.Mounts[0].Target = "/etc"; }), /Mounts/);
     createRefused(desktop("strict", (_, host) => { host.Mounts.push({ Type: "volume", Source: "x", Target: "/x" }); }), /Mounts/);
     createRefused(desktop("strict", (_, host) => {
@@ -164,7 +167,7 @@ describe("docker gate container create", () => {
     createRefused(desktop("strict", (_, host) => { host.OomScoreAdj = -1000; }), /OomScoreAdj/);
     createRefused(desktop("strict", (body) => { body.NetworkingConfig.EndpointsConfig = { bridge: {} }; }), /own network/);
     createRefused(desktop("strict", (body) => {
-      body.NetworkingConfig.EndpointsConfig = { "openmausbot-desktops": { DriverOpts: { "com.docker.network.endpoint.sysctls": "x" } } };
+      body.NetworkingConfig.EndpointsConfig = { [DOCKER_NAMES.desktopNetwork]: { DriverOpts: { "com.docker.network.endpoint.sysctls": "x" } } };
     }), /DriverOpts/);
   });
 
@@ -185,10 +188,10 @@ describe("docker gate container create", () => {
     expect(Object.getPrototypeOf(parseJson('{"__proto__":{"x":1}}'))).toBe(Object.prototype);
   });
 
-  it("ties labelled containers to an openmausbot name and its own home volume", () => {
+  it("ties labelled containers to a managed name and its own home volume", () => {
     createRefused(desktop("strict"), /must be named/, { name: undefined });
     createRefused(desktop("strict"), /must be named/, { name: "evil" });
-    createRefused(desktop("strict", (body) => { body.Labels["com.openmausbot.vps"] = "0"; }), /must be 1/);
+    createRefused(desktop("strict", (body) => { body.Labels[DOCKER_NAMES.label("vps")] = "0"; }), /must be 1/);
   });
 
   it("allows host networking only for the two exact probes", () => {
@@ -268,7 +271,7 @@ function fakeContext(containers = {}) {
     lookups: [],
     async runsc() { return false; },
     async inspectImage(ref) {
-      return ref === IMAGE ? { status: 200, json: { Id: IMAGE, Config: { Labels: { "com.openmausbot.bot-desktop": "3" } } } } : { status: 404, json: { message: "No such image" } };
+      return ref === IMAGE ? { status: 200, json: { Id: IMAGE, Config: { Labels: { [DOCKER_NAMES.label("bot-desktop")]: "3" } } } } : { status: 404, json: { message: "No such image" } };
     },
     async inspectContainer(ref) {
       this.lookups.push(ref);
@@ -278,18 +281,18 @@ function fakeContext(containers = {}) {
   };
 }
 
-const own = { Id: CID, Config: { Labels: { "com.openmausbot.vps": "1" } }, HostConfig: { CapDrop: ["ALL"], CapAdd: ["CAP_SETUID", "CAP_SETGID"], MaskedPaths: ["/proc/kcore"] }, Mounts: [] };
+const own = { Id: CID, Config: { Labels: { [DOCKER_NAMES.label("vps")]: "1" } }, HostConfig: { CapDrop: ["ALL"], CapAdd: ["CAP_SETUID", "CAP_SETGID"], MaskedPaths: ["/proc/kcore"] }, Mounts: [] };
 const foreign = { Id: "b".repeat(64), Config: { Labels: {} }, HostConfig: { CapDrop: ["ALL"] }, Mounts: [] };
-const tainted = { Id: "a".repeat(64), Config: { Labels: { "com.openmausbot.vps": "1" } }, HostConfig: { Privileged: true }, Mounts: [{ Type: "bind" }] };
+const tainted = { Id: "a".repeat(64), Config: { Labels: { [DOCKER_NAMES.label("vps")]: "1" } }, HostConfig: { Privileged: true }, Mounts: [{ Type: "bind" }] };
 const json = (value) => Buffer.from(JSON.stringify(value));
 
 describe("docker gate routing", () => {
   it("allows the read-only endpoints, versioned or not, and refuses old API versions", async () => {
     const ctx = fakeContext();
     for (const [method, target] of [
-      ["HEAD", "/_ping"], ["GET", "/_ping"], ["GET", "/v1.47/version"], ["GET", "/info"], ["GET", "/v1.47/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.openmausbot.vps%3D1%22%5D%7D"],
+      ["HEAD", "/_ping"], ["GET", "/_ping"], ["GET", "/v1.47/version"], ["GET", "/info"], ["GET", `/v1.47/containers/json?all=1&filters=${encodeURIComponent(JSON.stringify({ label: [DOCKER_NAMES.label("vps") + "=1"] }))}`],
       ["GET", "/v1.47/images/json"], ["GET", "/v1.47/images/ghcr.io/sidddevz/omb-bot-desktop:v3/json"], ["GET", `/v1.47/images/${IMAGE}/json`],
-      ["GET", "/v1.47/networks/openmausbot-desktops"], ["GET", "/v1.47/networks?filters=%7B%7D"], ["GET", "/v1.47/system/df"], ["GET", "/v1.47/events?since=1"],
+      ["GET", `/v1.47/networks/${DOCKER_NAMES.desktopNetwork}`], ["GET", "/v1.47/networks?filters=%7B%7D"], ["GET", "/v1.47/system/df"], ["GET", "/v1.47/events?since=1"],
       ["GET", "/v1.47/volumes/x-home"], ["GET", "/v1.47/plugins/x/json"],
     ]) {
       expect(await decide(method, target, null, ctx), `${method} ${target}`).toMatchObject({ allow: true, target });
@@ -408,13 +411,12 @@ describe("docker gate routing", () => {
     const listed = (name) => JSON.parse(new RegExp(`export const ${name} = (\\[[^\\]]*\\])`).exec(source)[1].replace(/,\s*\]/, "]"));
     expect(listed("FREE_CAPABILITIES")).toEqual(FREE_CAPABILITIES);
     expect(listed("STRICT_CAPABILITIES")).toEqual(STRICT_CAPABILITIES);
-    const shared = await readFile(new URL("../../../shared/bot-desktop.ts", import.meta.url), "utf8");
-    for (const [constant, value] of [["BOT_DESKTOP_LABEL", "com.openmausbot.bot-desktop"], ["BOT_DESKTOP_NETWORK", "openmausbot-desktops"], ["BOT_DESKTOP_NETWORK_LABEL", "com.openmausbot.vps-network"], ["BOT_DESKTOP_BRIDGE", "omb-desk0"], ["BOT_DESKTOP_HOME", "/home/cua"]]) {
-      expect(shared).toContain(`export const ${constant} = "${value}";`);
+    for (const [constant, value] of [["BOT_DESKTOP_LABEL", DOCKER_NAMES.label("bot-desktop")], ["BOT_DESKTOP_NETWORK", DOCKER_NAMES.desktopNetwork], ["BOT_DESKTOP_NETWORK_LABEL", DOCKER_NAMES.label("vps-network")], ["BOT_DESKTOP_BRIDGE", "omb-desk0"], ["BOT_DESKTOP_HOME", "/home/cua"]]) {
+      expect(sharedDesktop[constant]).toBe(value);
     }
-    const names = await readFile(new URL("../../../server/vps-managed-names.ts", import.meta.url), "utf8");
-    expect(names).toContain('export const VPS_MANAGED_LABEL = "com.openmausbot.vps";');
-    expect(names).toContain("export const MANAGED_VPS_CONTAINER_NAME = /^openmausbot-vps-[a-z0-9]{1,12}-[a-f0-9]{12}$/;");
+    expect(managedNames.VPS_MANAGED_LABEL).toBe(DOCKER_NAMES.label("vps"));
+    expect(managedNames.VPS_CONTAINER_LABEL).toBe(DOCKER_NAMES.label("container"));
+    expect(managedNames.MANAGED_VPS_CONTAINER_NAME.source).toBe(`^${DOCKER_NAMES.vpsPrefix}-[a-z0-9]{1,12}-[a-f0-9]{12}$`);
   });
 });
 

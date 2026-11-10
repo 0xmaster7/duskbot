@@ -11,17 +11,17 @@ export function slackCallback(res, params) {
     (codes.length === 1 && errors.length === 0 && CODE.test(codes[0])) ||
     (errors.length === 1 && codes.length === 0 && ERROR.test(errors[0]))
   );
-  let content = "<h1>This Slack link is not valid. Start again from OpenMausBot.</h1>";
+  let content = "<h1>This Slack link is not valid. Start again from Dusk Bot.</h1>";
   let refresh = "";
   if (valid) {
     const query = new URLSearchParams(codes.length ? { code: codes[0], state: states[0] } : { error: errors[0], state: states[0] });
-    const link = escapeHtml(`openmausbot://slack/oauth?${query}`);
+    const link = escapeHtml(`duskbot://slack/oauth?${query}`);
     const denied = errors[0] === "access_denied";
     refresh = `<meta http-equiv="refresh" content="0;url=${link}">`;
-    content = `<h1>${escapeHtml(denied ? "Slack didn't add the bot" : "Returning to OpenMausBot")}</h1>
-<p>${denied ? "You can close this tab." : "If nothing happens, open OpenMausBot yourself."}</p>
-<p><a href="${link}">Open OpenMausBot</a></p>
-<p>Or copy this link and paste it into OpenMausBot:</p>
+    content = `<h1>${escapeHtml(denied ? "Slack didn't add the bot" : "Returning to Dusk Bot")}</h1>
+<p>${denied ? "You can close this tab." : "If nothing happens, open Dusk Bot yourself."}</p>
+<p><a href="${link}">Open Dusk Bot</a></p>
+<p>Or copy this link and paste it into Dusk Bot:</p>
 <code>${link}</code>`;
   }
   res.writeHead(valid ? 200 : 400, {
@@ -37,7 +37,7 @@ export function slackCallback(res, params) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Returning to OpenMausBot</title>
+<title>Returning to Dusk Bot</title>
 ${refresh}
 <style>
 body{font-family:system-ui,sans-serif;background:#fafafa;color:#222;margin:0;min-height:100vh;display:grid;place-items:center}

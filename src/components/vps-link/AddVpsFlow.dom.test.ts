@@ -20,7 +20,7 @@ import { TransferSettings } from "./TransferSettings";
 import { SignInScreen } from "./SignInStage";
 import { InstallScreen } from "./CommandStage";
 
-const COMMAND = "curl -fsSL https://link.apps.siddz.com/i/ab3d7fgh2k-q4mxw7e2r5t6y7u8i9o2p3a4s5 | sh";
+const COMMAND = "curl -fsSL https://link.dusk.bot/i/ab3d7fgh2k-q4mxw7e2r5t6y7u8i9o2p3a4s5 | sh";
 const SERVER = { id: "vps-1", name: "My VPS", origin: "http://vps-ab3d7fgh2k.localhost:47811" };
 const steps = (done: number, failed?: { at: number; log: string }) => VPS_STEP_IDS.map((id, index) => ({
   id, status: index < done ? "done" as const : failed && index === failed.at ? "failed" as const : "waiting" as const,
@@ -380,8 +380,8 @@ describe("VPS install output", () => {
     const view: VpsLinkView = { ...EMPTY_VIEW, stage: "installing", steps: [{ id: "app", status: "running" }] };
     await act(async () => { root.render(createElement(InstallScreen, { view, onRetry: () => {} })); });
     await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
-    expect(document.querySelector("[data-vps-term]")?.textContent).toBe("Installing OpenMausBot · Working…");
-    expect(text()).not.toContain("openmausbot@latest");
+    expect(document.querySelector("[data-vps-term]")?.textContent).toBe("Installing Dusk Bot · Working…");
+    expect(text()).not.toContain("duskbot@latest");
     expect(text()).not.toContain("Reading package lists");
   });
 
@@ -396,7 +396,7 @@ describe("VPS install output", () => {
     await act(async () => { root.render(createElement(InstallScreen, { view: older, onRetry: () => {} })); });
     expect(document.querySelector("[data-vps-term]")?.textContent).toContain("$ install /tmp/verified-build");
     expect(document.querySelector("[data-vps-term]")?.textContent).toContain("SHA256 verified");
-    expect(document.querySelector("[data-vps-term]")?.textContent).toContain("Installing OpenMausBot · Done");
+    expect(document.querySelector("[data-vps-term]")?.textContent).toContain("Installing Dusk Bot · Done");
   });
 
   it("keeps unknown progress indeterminate within the original installer layout", async () => {
@@ -444,9 +444,9 @@ describe("Settings > Transfer", () => {
     expect(fake.bridge.moveBack).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the line that takes OpenMausBot off the server, only when asked", async () => {
+  it("shows the line that takes Dusk Bot off the server, only when asked", async () => {
     const fake = fakeBridge();
-    const UNINSTALL = "curl -fsSL https://link.apps.siddz.com/uninstall | sh";
+    const UNINSTALL = "curl -fsSL https://link.dusk.bot/uninstall | sh";
     fake.bridge.where.mockImplementation(async () => ({ place: "vps" as const, server: SERVER, uninstall: UNINSTALL }));
     vi.stubGlobal("ogb", { platform: "darwin", vpsLink: fake.bridge, confirm: vi.fn(async () => true) });
     await act(async () => { root.render(createElement(TransferSettings)); });

@@ -104,7 +104,7 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     async function follow(path) {
       let url = new URL(path, f.url), init = {};
       for (let hop = 0; hop < 12; hop++) {
-        if (url.protocol === "openmausbot:" || (url.origin === f.url && ["/", "/sign-in", "/cloud/desktop"].includes(url.pathname))) return url;
+        if (url.protocol === "duskbot:" || (url.origin === f.url && ["/", "/sign-in", "/cloud/desktop"].includes(url.pathname))) return url;
         const response = await request(url, init);
         if ([302, 303].includes(response.status)) {
           url = new URL(response.headers.get("location"), url); init = {}; await response.body?.cancel();
@@ -143,7 +143,7 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     const response = await jar.json("/v1/workspaces"); expect(response.status).toBe(200); return (await response.json()).workspaces;
   }
   async function desktop() {
-    const target = cloudTarget({ OMB_CLOUD_ORIGIN: f.url });
+    const target = cloudTarget({ DUSK_CLOUD_ORIGIN: f.url });
     expect(target.custom).toBe(true); expect(target.file).toBe("cloud-account-custom.bin");
     const d = { saved: null, opened: [], timers: new Map(), nextTimer: 0 };
     d.client = createCloudAccountClient({ origin: target.origin, custom: target.custom, platform: "darwin", deviceName: "Fixture Mac", appVersion: "1.2.3",
@@ -293,7 +293,7 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     expect(await bearer(emailToken)).toEqual({ status: 401, data: { error: "invalid_token" } });
     await p.client.oauthStart("google");
     const deep = await browser().follow(p.opened.at(-1));
-    expect(deep.protocol).toBe("openmausbot:"); expect(deep.host).toBe("auth"); expect(deep.searchParams.has("code")).toBe(true);
+    expect(deep.protocol).toBe("duskbot:"); expect(deep.host).toBe("auth"); expect(deep.searchParams.has("code")).toBe(true);
     expect(await p.client.handleAuthUrl(deep.href)).toEqual({ outcome: "signed-in" });
     expect((await bearer(p.token())).data.account).toEqual(p.client.account());
     const signedToken = p.token(); await p.client.signOut();
@@ -307,7 +307,7 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     expect(pendingUrl.pathname).toBe("/sign-in"); expect(pending).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect((await browser().json(R.emailStart, { email: "phone-x@accounts.test", pending })).status).toBe(400);
     const verified = await webSignIn(jar, "phone-x@accounts.test", pending);
-    expect(new URL(verified.redirect).protocol).toBe("openmausbot:");
+    expect(new URL(verified.redirect).protocol).toBe("duskbot:");
     expect(await p.client.handleAuthUrl(verified.redirect)).toEqual({ outcome: "signed-in" });
     expect((await bearer(p.token())).data.account).toEqual(p.client.account());
     expect(p.client.account().id).toBe(verified.account.id);
@@ -317,7 +317,7 @@ describe("accounts across the website, desktop, workspace and phone", () => {
   it("gates signed-out desktops, honors escape hatches and signs in through sanitized gate IPC", async () => {
     expect(accountGateRequired({ env: {}, packaged: true, remote: false, custom: false })).toBe(true);
     for (const custom of [false, true]) {
-      expect(accountGateRequired({ env: { OMB_ALLOW_SIGNED_OUT: "1" }, packaged: true, remote: false, custom })).toBe(false);
+      expect(accountGateRequired({ env: { DUSK_ALLOW_SIGNED_OUT: "1" }, packaged: true, remote: false, custom })).toBe(false);
       for (const packaged of [false, true]) expect(accountGateRequired({ env: {}, packaged, remote: true, custom })).toBe(false);
     }
     const d = await desktop(), ipc = fakeIpc(), sent = [];

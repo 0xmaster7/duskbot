@@ -9,6 +9,7 @@ import test from "node:test";
 import vm from "node:vm";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createServerSupervisor } from "./server-supervisor.mjs";
+import { DATA_DIR_NAMES } from "./legacy-names.mjs";
 
 const require = createRequire(import.meta.url);
 const env = require("./environments.cjs");
@@ -225,7 +226,7 @@ test("repeated quit requests join the exact same child cleanup", async (t) => {
   assert.equal(f.children.length, 1);
 });
 
-const LOCAL_FIXTURE = { id: "l1", kind: "local", name: "Work", dataDir: "/Users/me/.openmausbot-work", missing: false };
+const LOCAL_FIXTURE = { id: "l1", kind: "local", name: "Work", dataDir: "/Users/me/.duskbot-work", missing: false };
 
 function runForget(state) {
   const start = MAIN_SOURCE.indexOf("async function forgetEnvironment(");
@@ -234,6 +235,7 @@ function runForget(state) {
   const calls = { dialogs: [], persisted: [], navigated: [], rm: [] };
   const rmOptions = [];
   const ctx = {
+    DATA_DIR_NAMES,
     environmentsState: state,
     localSwitchInFlight: false,
     runningDataDir: null,
@@ -249,7 +251,7 @@ function runForget(state) {
     path,
     AbortSignal,
     remoteMicrophoneRefused: new Set(),
-    desktopDataDir: () => "/Users/me/.openmausbot",
+    desktopDataDir: () => "/Users/me/.duskbot",
     slog: () => {},
     session: { defaultSession: { fetch: async () => ({ ok: true }), clearStorageData: async () => {} } },
   };
@@ -349,7 +351,7 @@ function switchFixture(t, { startResults = [], releaseLeaseThrows = false, stopU
       return outcome === undefined ? { proc: { pid: 4000 + forkIndex } } : outcome;
     },
     environmentsState: { environments: [{ id: "l1", kind: "local", name: "Work", dataDir: targetDir }], activeId: "local" },
-    desktopDataDir: () => "/Users/me/.openmausbot",
+    desktopDataDir: () => "/Users/me/.duskbot",
     startupEnvironmentDir: env.startupEnvironmentDir,
     withActive: env.withActive,
     persistEnvironments: (next) => { context.environmentsState = next; },

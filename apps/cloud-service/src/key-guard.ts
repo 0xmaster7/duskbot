@@ -10,7 +10,7 @@ export const backupFingerprint = (secret: Buffer) => createHmac("sha256", secret
 
 export class BackupSecretChangedError extends Error {
   constructor() {
-    super("The Boat backup secret changed (OMB_BOAT_BACKUP_KEY or OMB_CLOUD_SEAL_KEY), so existing backups would no longer open. Set the old one as OMB_BOAT_BACKUP_KEY_PREVIOUS to seal them again with the new one, or put the old one back.");
+    super("The Boat backup secret changed (DUSK_BOAT_BACKUP_KEY or DUSK_CLOUD_SEAL_KEY), so existing backups would no longer open. Set the old one as DUSK_BOAT_BACKUP_KEY_PREVIOUS to seal them again with the new one, or put the old one back.");
     this.name = "BackupSecretChangedError";
   }
 }

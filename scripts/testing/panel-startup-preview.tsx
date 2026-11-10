@@ -8,7 +8,7 @@ import "../../src/styles/motion.css";
 
 setEmailGateDone("skipped");
 localStorage.setItem(GROK_MOVE_NOTICE, "1");
-localStorage.setItem("openmausbot.botPanelOpen.v1", "1");
+localStorage.setItem("duskbot.botPanelOpen.v1", "1");
 const probe = { firstChatAt: null as number | null, mascotAtFirstChat: false, panelAtFirstChat: false };
 Object.assign(window, { __panelStartupProbe: probe });
 const observer = new MutationObserver(() => {

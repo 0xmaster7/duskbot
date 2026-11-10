@@ -15,14 +15,14 @@ import { ownTurnText } from "./testing/room-handoff-agent.ts";
 import { withAnswer } from "./testing/your-computer.ts";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const RERUN_NOTE = "OpenMausBot restarted while your previous turn here was running";
+const RERUN_NOTE = "Dusk Bot restarted while your previous turn here was running";
 const RERUN_CHIP = "Resuming after a restart";
-const SECRET_PROVIDED = "OpenMausBot credential update: the user securely provided";
+const SECRET_PROVIDED = "Dusk Bot credential update: the user securely provided";
 const SEAT_FREE = "the computer this conversation waited for is free again";
-const INTERRUPTED_OUTWARD = "Interrupted by an OpenMausBot restart after it already";
+const INTERRUPTED_OUTWARD = "Interrupted by a Dusk Bot restart after it already";
 const SETTLED = "Your downstream room requests have settled.";
 const GOAL_RUN_ENDED = "The goal run this step belonged to ended with the restart.";
-const INTERRUPTED_LINE = "turn interrupted — OpenMausBot restarted";
+const INTERRUPTED_LINE = "turn interrupted — Dusk Bot restarted";
 
 const jsonl = (path: string): any[] => existsSync(path)
   ? readFileSync(path, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)) : [];
@@ -317,9 +317,9 @@ itHost("R5 queues a member's root on the computer seat at the wait ceiling, FIFO
   };
   const dumpFor = (botId: string): Promise<any> => until((): any => {
     if (!existsSync(dumpFile)) return null;
-    try { const sent = JSON.parse(readFileSync(dumpFile, "utf8")); return sent.mcpConfig?.mcpServers?.computer?.env?.OMB_CONTROL_URL?.includes(botId) ? sent : null; } catch { return null; }
+    try { const sent = JSON.parse(readFileSync(dumpFile, "utf8")); return sent.mcpConfig?.mcpServers?.computer?.env?.DUSK_CONTROL_URL?.includes(botId) ? sent : null; } catch { return null; }
   }, Boolean);
-  const gate = (sent: any) => createControlClient({ url: sent.mcpConfig.mcpServers.computer.env.OMB_CONTROL_URL, token: sent.mcpConfig.mcpServers.computer.env.OMB_CONTROL_TOKEN }).state(true);
+  const gate = (sent: any) => createControlClient({ url: sent.mcpConfig.mcpServers.computer.env.DUSK_CONTROL_URL, token: sent.mcpConfig.mcpServers.computer.env.DUSK_CONTROL_TOKEN }).state(true);
   const taskOf = (botId: string, threadId: string) => api("GET", "/api/bots?messages=0").then(({ body }) =>
     body.bots.find((bot: any) => bot.id === botId)?.tasks.find((task: any) => task.threadId === threadId));
   const botOf = (botId: string) => api("GET", "/api/bots?messages=0").then(({ body }) => body.bots.find((bot: any) => bot.id === botId));
@@ -345,10 +345,10 @@ itHost("R5 queues a member's root on the computer seat at the wait ceiling, FIFO
       "--import", pathToFileURL(join(ROOT, "server/testing/desktop-parent.mjs")).href, join(ROOT, "server/index.ts")], {
       cwd: ROOT, env: {
         PATH: dirname(process.execPath), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
-        HOME: home, USERPROFILE: home, OMB_DATA_DIR: data, APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
-        TEMP: home, TMP: home, TMPDIR: home, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), OMB_STATIC_DIR: ui, OMB_TEST_VM_STATE: stateFile,
-        OMB_TEST_DESKTOP_CUA_CONNECTION: join(home, "user-data", "cua-connection.json"), OMB_COMPUTER_CALL_WAIT_MS: "4000", OMB_COMPUTER_CALL_ACT_WITHIN_MS: "1000",
-        OMB_COMPUTER_WAIT_MAX_MS: String(CEILING_MS),
+        HOME: home, USERPROFILE: home, DUSK_DATA_DIR: data, APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
+        TEMP: home, TMP: home, TMPDIR: home, DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1), DUSK_STATIC_DIR: ui, DUSK_TEST_VM_STATE: stateFile,
+        DUSK_TEST_DESKTOP_CUA_CONNECTION: join(home, "user-data", "cua-connection.json"), DUSK_COMPUTER_CALL_WAIT_MS: "4000", DUSK_COMPUTER_CALL_ACT_WITHIN_MS: "1000",
+        DUSK_COMPUTER_WAIT_MAX_MS: String(CEILING_MS),
       }, stdio: ["ignore", "pipe", "pipe"],
     });
     child = proc;
@@ -543,7 +543,7 @@ it("R7 a goal step the watchdog stops after it posted a credential card fails as
   f.open("step");
   await expect.poll(async () => (await messages()).find((message) => message.kind === "goal.run")?.goalRun?.status, { timeout: 30_000 }).not.toBe("working");
   expect(nothingLive(f)).toEqual([]);
-}, { fake: { OMB_TEST_STALL_CLOCK: "1" } }), hostTimeout(60_000));
+}, { fake: { DUSK_TEST_STALL_CLOCK: "1" } }), hostTimeout(60_000));
 
 it("R8 runs a chained @mention as a root of its own, with the hop recorded", () => scenario(async (f) => {
   const mira = await f.bot("Mira", "Engineering");

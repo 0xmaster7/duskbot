@@ -1,9 +1,10 @@
+import { dataDirFor } from "../electron/legacy-names.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
 export function handoffDir(): string {
-  return join(process.env.OMB_DATA_DIR || join(homedir(), ".openmausbot"), "handoffs");
+  return join(dataDirFor(process.env.DUSK_DATA_DIR, homedir()), "handoffs");
 }
 
 export interface HandoffInput {

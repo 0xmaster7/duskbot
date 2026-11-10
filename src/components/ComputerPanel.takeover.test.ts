@@ -320,7 +320,7 @@ describe("taking control of a Local VM", () => {
     await settle();
     expect(releases()).toHaveLength(1);
     expect(liveDesktop()).toBeNull();
-    expect(document.body.textContent).toContain("MausBot couldn't open the live desktop. Try again.");
+    expect(document.body.textContent).toContain("Dusk couldn't open the live desktop. Try again.");
     expect(fixture.posts).toContain("/api/bots/scout/local-computer/screenshot");
   });
 });

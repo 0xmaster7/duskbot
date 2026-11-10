@@ -248,7 +248,7 @@ describe("mobile link", () => {
 
   it("reads the typed-code relay from the environment", () => {
     expect(mobileLookupRelay({})).toBeNull();
-    expect(mobileLookupRelay({ OMB_MOBILE_RELAY: "default" })).toBe("https://link.apps.siddz.com");
-    expect(mobileLookupRelay({ OMB_MOBILE_RELAY: "http://127.0.0.1:9" })).toBe("http://127.0.0.1:9");
+    expect(mobileLookupRelay({ DUSK_MOBILE_RELAY: "default" })).toBe("https://link.dusk.bot");
+    expect(mobileLookupRelay({ DUSK_MOBILE_RELAY: "http://127.0.0.1:9" })).toBe("http://127.0.0.1:9");
   });
 });

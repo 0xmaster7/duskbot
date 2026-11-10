@@ -70,7 +70,7 @@ const linkType = process.platform === "win32" ? "junction" : "dir";
 
 describe("Antigravity's temp folder", () => {
   it("is one short, stable folder per instance under tmp/agy", () => {
-    const dataDir = join("C:", "Users", "ada", ".openmausbot");
+    const dataDir = join("C:", "Users", "ada", ".duskbot");
     const work = antigravityTempDir(dataDir, "work");
     expect(work).toBe(antigravityTempDir(dataDir, "work"));
     expect(dirname(work)).toBe(join(dataDir, "tmp", "agy"));
@@ -83,11 +83,11 @@ describe("Antigravity's temp folder", () => {
   it("replaces every spelling of TEMP and TMP on Windows and changes nothing elsewhere", () => {
     const inherited = { Temp: "C:\\Users\\ada\\AppData\\Local\\Temp", tmp: "C:\\Temp", Path: "C:\\bin" };
     const windows: NodeJS.ProcessEnv = { ...inherited };
-    setAntigravityTempEnvironment(windows, "C:\\Users\\ada\\.openmausbot\\tmp\\agy\\0123456789ab", "win32");
+    setAntigravityTempEnvironment(windows, "C:\\Users\\ada\\.duskbot\\tmp\\agy\\0123456789ab", "win32");
     expect(windows).toEqual({
       Path: "C:\\bin",
-      TEMP: "C:\\Users\\ada\\.openmausbot\\tmp\\agy\\0123456789ab",
-      TMP: "C:\\Users\\ada\\.openmausbot\\tmp\\agy\\0123456789ab",
+      TEMP: "C:\\Users\\ada\\.duskbot\\tmp\\agy\\0123456789ab",
+      TMP: "C:\\Users\\ada\\.duskbot\\tmp\\agy\\0123456789ab",
     });
     for (const platform of ["darwin", "linux"] as const) {
       const posix: NodeJS.ProcessEnv = { ...inherited };
@@ -168,7 +168,7 @@ describe("the automatic sweep", () => {
     expect(existsSync(system)).toBe(true);
   });
 
-  it("never follows a link out of OMB's own folder", async () => {
+  it("never follows a link out of Dusk Bot's own folder", async () => {
     const dataDir = tempRoot("links");
     const outside = tempRoot("outside");
     const precious = unpackFolder(outside, hexName(0x2222));
@@ -182,7 +182,7 @@ describe("the automatic sweep", () => {
     expect(existsSync(join(precious, "google3", "payload.bin"))).toBe(true);
   });
 
-  it("never follows a linked tmp folder out of OMB's own folder", async () => {
+  it("never follows a linked tmp folder out of Dusk Bot's own folder", async () => {
     const dataDir = tempRoot("linked-tmp");
     const outside = tempRoot("outside-tmp");
     const precious = unpackFolder(join(outside, "agy", antigravityTempDir(dataDir, "work").slice(-12)), hexName(0x2222));

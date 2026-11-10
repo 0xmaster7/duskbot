@@ -18,19 +18,19 @@ import type { BoatCloudState } from "./state.ts";
 const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, REFRESH_SPACING_MS = 10 * MINUTE;
 
 export interface BoatSettings {
-  /** minutes without use before a home is asked to sleep (OMB_MANAGED_IDLE_MINUTES) */
+  /** minutes without use before a home is asked to sleep (DUSK_MANAGED_IDLE_MINUTES) */
   idleMinutes: number;
-  /** Boat's own auto-stop, extended while the home is up: a dead-man switch if this service stops (OMB_MANAGED_LEASE_HOURS) */
+  /** Boat's own auto-stop, extended while the home is up: a dead-man switch if this service stops (DUSK_MANAGED_LEASE_HOURS) */
   leaseSeconds: number;
-  /** a backup at most this often (OMB_MANAGED_BACKUP_HOURS) */
+  /** a backup at most this often (DUSK_MANAGED_BACKUP_HOURS) */
   backupEveryMs: number;
-  /** generations kept per cloud (OMB_MANAGED_BACKUP_KEEP), at least 2 */
+  /** generations kept per cloud (DUSK_MANAGED_BACKUP_KEEP), at least 2 */
   backupKeep: number;
-  /** wake a stopped home this long before Boat may purge its disk (OMB_MANAGED_REFRESH_DAYS) */
+  /** wake a stopped home this long before Boat may purge its disk (DUSK_MANAGED_REFRESH_DAYS) */
   refreshAfterMs: number;
   retentionDays: number;
   deleteDelayDays: number;
-  /** after a retention deletion the backups stay this long more (OMB_MANAGED_BACKUP_TAIL_DAYS) */
+  /** after a retention deletion the backups stay this long more (DUSK_MANAGED_BACKUP_TAIL_DAYS) */
   backupTailMs: number;
   /** a routine's run wakes its home this long before */
   wakeLeadMs: number;
@@ -55,7 +55,7 @@ export const DEFAULT_BOAT_SETTINGS: BoatSettings = {
   deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 5 * MINUTE, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
-/** settings from OMB_MANAGED_* (index.ts `managedEnv` maps the older names onto these) */
+/** settings from DUSK_MANAGED_* (index.ts `managedEnv` maps the older names onto these) */
 export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopback?: boolean } = {}): BoatSettings {
   const number = (name: string, min: number, max: number, fallback: number) => {
     const raw = env[name];
@@ -64,31 +64,31 @@ export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopba
     if (!Number.isFinite(value) || value < min || value > max) throw new Error(`Invalid ${name}.`);
     return value;
   };
-  const sha256 = env.OMB_MANAGED_HOME_PACKAGE_SHA256;
-  const pkg = env.OMB_MANAGED_HOME_PACKAGE_URL || env.OMB_MANAGED_HOME_PACKAGE_FILE
-    ? { sha256: sha256 && /^[a-f0-9]{64}$/.test(sha256) ? sha256 : (() => { throw new Error("Invalid OMB_MANAGED_HOME_PACKAGE_SHA256."); })(),
-      ...(env.OMB_MANAGED_HOME_PACKAGE_URL ? { url: env.OMB_MANAGED_HOME_PACKAGE_URL } : { file: env.OMB_MANAGED_HOME_PACKAGE_FILE }) }
+  const sha256 = env.DUSK_MANAGED_HOME_PACKAGE_SHA256;
+  const pkg = env.DUSK_MANAGED_HOME_PACKAGE_URL || env.DUSK_MANAGED_HOME_PACKAGE_FILE
+    ? { sha256: sha256 && /^[a-f0-9]{64}$/.test(sha256) ? sha256 : (() => { throw new Error("Invalid DUSK_MANAGED_HOME_PACKAGE_SHA256."); })(),
+      ...(env.DUSK_MANAGED_HOME_PACKAGE_URL ? { url: env.DUSK_MANAGED_HOME_PACKAGE_URL } : { file: env.DUSK_MANAGED_HOME_PACKAGE_FILE }) }
     : null;
-  const signature = env.OMB_MANAGED_HOME_PACKAGE_SIGNATURE || (env.OMB_MANAGED_HOME_PACKAGE_SIGNATURE_FILE ? readFileSync(env.OMB_MANAGED_HOME_PACKAGE_SIGNATURE_FILE, "utf8").trim() : "");
+  const signature = env.DUSK_MANAGED_HOME_PACKAGE_SIGNATURE || (env.DUSK_MANAGED_HOME_PACKAGE_SIGNATURE_FILE ? readFileSync(env.DUSK_MANAGED_HOME_PACKAGE_SIGNATURE_FILE, "utf8").trim() : "");
   if (signature && pkg) Object.assign(pkg, { signature });
-  const publicDomain = env.OMB_MANAGED_PUBLIC_DOMAIN || null;
-  if (publicDomain !== null && !/^(?=.{4,200}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(publicDomain)) throw new Error("Invalid OMB_MANAGED_PUBLIC_DOMAIN.");
-  const template = env.OMB_MANAGED_TEMPLATE || null;
-  if (template !== null && !/^[a-z0-9][a-z0-9-]{0,62}$/.test(template)) throw new Error("Invalid OMB_MANAGED_TEMPLATE.");
-  if (!pkg && !template) throw new Error("A managed cloud needs OMB_MANAGED_HOME_PACKAGE_URL (or _FILE) with OMB_MANAGED_HOME_PACKAGE_SHA256, or OMB_MANAGED_TEMPLATE.");
-  return { ...DEFAULT_BOAT_SETTINGS, template, package: pkg, templateSignature: env.OMB_MANAGED_TEMPLATE_SIGNATURE || null, publicDomain,
+  const publicDomain = env.DUSK_MANAGED_PUBLIC_DOMAIN || null;
+  if (publicDomain !== null && !/^(?=.{4,200}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(publicDomain)) throw new Error("Invalid DUSK_MANAGED_PUBLIC_DOMAIN.");
+  const template = env.DUSK_MANAGED_TEMPLATE || null;
+  if (template !== null && !/^[a-z0-9][a-z0-9-]{0,62}$/.test(template)) throw new Error("Invalid DUSK_MANAGED_TEMPLATE.");
+  if (!pkg && !template) throw new Error("A managed cloud needs DUSK_MANAGED_HOME_PACKAGE_URL (or _FILE) with DUSK_MANAGED_HOME_PACKAGE_SHA256, or DUSK_MANAGED_TEMPLATE.");
+  return { ...DEFAULT_BOAT_SETTINGS, template, package: pkg, templateSignature: env.DUSK_MANAGED_TEMPLATE_SIGNATURE || null, publicDomain,
     requireSigned: !options.loopback, claims: !options.loopback,
-    idleMinutes: number("OMB_MANAGED_IDLE_MINUTES", 5, 24 * 60, 15),
-    leaseSeconds: number("OMB_MANAGED_LEASE_HOURS", 1, 720, 2) * 3600,
-    backupEveryMs: number("OMB_MANAGED_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
-    backupKeep: number("OMB_MANAGED_BACKUP_KEEP", 2, 30, 3),
-    refreshAfterMs: number("OMB_MANAGED_REFRESH_DAYS", 3, 13, 11) * DAY_MS,
-    wakeLeadMs: number("OMB_MANAGED_WAKE_LEAD_MINUTES", 1, 30, 5) * MINUTE,
-    retentionDays: number("OMB_MANAGED_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
-    deleteDelayDays: number("OMB_MANAGED_DELETE_DELAY_DAYS", DEFAULT_DELETE_DELAY_DAYS, 90, DEFAULT_DELETE_DELAY_DAYS),
-    backupTailMs: number("OMB_MANAGED_BACKUP_TAIL_DAYS", 7, 365, 30) * DAY_MS,
-    maxBackupBytes: number("OMB_MANAGED_BACKUP_MAX_MB", 64, 64 * 1024, 4096) * 1024 * 1024,
-    lostAfterMs: number("OMB_MANAGED_LOST_AFTER_MINUTES", 2, 24 * 60, 30) * MINUTE };
+    idleMinutes: number("DUSK_MANAGED_IDLE_MINUTES", 5, 24 * 60, 15),
+    leaseSeconds: number("DUSK_MANAGED_LEASE_HOURS", 1, 720, 2) * 3600,
+    backupEveryMs: number("DUSK_MANAGED_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
+    backupKeep: number("DUSK_MANAGED_BACKUP_KEEP", 2, 30, 3),
+    refreshAfterMs: number("DUSK_MANAGED_REFRESH_DAYS", 3, 13, 11) * DAY_MS,
+    wakeLeadMs: number("DUSK_MANAGED_WAKE_LEAD_MINUTES", 1, 30, 5) * MINUTE,
+    retentionDays: number("DUSK_MANAGED_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
+    deleteDelayDays: number("DUSK_MANAGED_DELETE_DELAY_DAYS", DEFAULT_DELETE_DELAY_DAYS, 90, DEFAULT_DELETE_DELAY_DAYS),
+    backupTailMs: number("DUSK_MANAGED_BACKUP_TAIL_DAYS", 7, 365, 30) * DAY_MS,
+    maxBackupBytes: number("DUSK_MANAGED_BACKUP_MAX_MB", 64, 64 * 1024, 4096) * 1024 * 1024,
+    lostAfterMs: number("DUSK_MANAGED_LOST_AFTER_MINUTES", 2, 24 * 60, 30) * MINUTE };
 }
 
 export function freshBoatState(): BoatCloudState {
@@ -113,7 +113,7 @@ export interface BoatLifecycleDeps {
   removeWorkspace(workspaceId: string): void;
   now(): number;
   save(cloud: StoredCloud): void;
-  /** this service's backup secret (OMB_MANAGED_BACKUP_KEY, or derived from OMB_CLOUD_SEAL_KEY); never on a home */
+  /** this service's backup secret (DUSK_MANAGED_BACKUP_KEY, or derived from DUSK_CLOUD_SEAL_KEY); never on a home */
   backupSecret: Buffer;
   /** the cloud's record as stored on disk now, re-read right before anything irreversible */
   stored(cloudId: string): StoredCloud | null;

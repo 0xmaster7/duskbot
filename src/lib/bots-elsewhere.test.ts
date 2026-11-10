@@ -5,7 +5,7 @@ const VPS = { id: "srv", name: "my-vps", why: "moved" as const };
 const TEAM = { id: "team", name: "Studio", why: "team" as const };
 
 describe("bots elsewhere", () => {
-  it("counts only the person's own bots: MausBot and bots off the sidebar leave a place empty", () => {
+  it("counts only the person's own bots: Dusk and bots off the sidebar leave a place empty", () => {
     expect(emptyHere([])).toBe(true);
     expect(emptyHere([{ defaultBot: { person: "" } }, { hidden: true }])).toBe(true);
     expect(emptyHere([{ defaultBot: { person: "" } }, {}])).toBe(false);

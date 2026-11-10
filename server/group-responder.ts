@@ -1,3 +1,4 @@
+import { LEGACY } from "../electron/legacy-names.mjs";
 import type { GroupDefaultResponder } from "../shared/wire.ts";
 
 /** A stored or patched room responder, made valid for the room's members. */
@@ -12,7 +13,7 @@ export function normalizeGroupDefaultResponder(
     if (candidate.kind === "everyone") return { kind: "everyone" };
     if (candidate.kind === "mentions") return { kind: "mentions" };
     if (candidate.kind === "auto") {
-      const by = candidate.by === "mausbot" ? { by: "mausbot" as const } : {};
+      const by = candidate.by === "dusk" || candidate.by === LEGACY.short ? { by: "dusk" as const } : {};
       return typeof candidate.fallbackBotId === "string" && memberIds.includes(candidate.fallbackBotId)
         ? { kind: "auto", fallbackBotId: candidate.fallbackBotId, ...by }
         : { kind: "auto", ...by };

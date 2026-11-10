@@ -1,10 +1,10 @@
 import type { MobilePlatform } from "../platform";
 
 // the phone's half of the hosted account sign-in (w10/accounts, shared/account-api.ts there): the system browser runs
-// the provider sign-in and returns to openmausbot://auth with a one-time code, which the app trades for its own token
+// the provider sign-in and returns to duskbot://auth with a one-time code, which the app trades for its own token
 // with its PKCE verifier. Until that branch lands these mirror its contract; switch to its exports once it is in.
 export type AccountProvider = "apple" | "google" | "x" | "email";
-export const APP_AUTH_REDIRECT = "openmausbot://auth";
+export const APP_AUTH_REDIRECT = "duskbot://auth";
 const ROUTES = { appStart: "/v1/auth/app/start", appToken: "/v1/auth/app/token" } as const;
 
 export interface AccountGrant {
@@ -31,8 +31,8 @@ const TOKEN = "account.token";
 /** The hosted account service, or null while accounts are off: the onboarding then skips straight to linking. */
 export function accountService(search: string = typeof location === "undefined" ? "" : location.search): string | null {
   const env = import.meta.env as Record<string, string | undefined>;
-  const on = env.VITE_OMB_MOBILE_ACCOUNTS === "1" || new URLSearchParams(search).has("accounts");
-  return on ? (env.VITE_OMB_ACCOUNT_ORIGIN || "https://cloud.openmausbot.com") : null;
+  const on = env.VITE_DUSK_MOBILE_ACCOUNTS === "1" || new URLSearchParams(search).has("accounts");
+  return on ? (env.VITE_DUSK_ACCOUNT_ORIGIN || "https://app.dusk.bot") : null;
 }
 
 function base64url(bytes: Uint8Array): string {
@@ -64,11 +64,11 @@ export async function startAccountSignIn(platform: MobilePlatform, service: stri
   await platform.openExternal(appStartUrl(service, provider, await codeChallenge(verifier), state));
 }
 
-/** `openmausbot://auth?code=&state=` or `?error=&state=`; null for any other link. */
+/** `duskbot://auth?code=&state=` or `?error=&state=`; null for any other link. */
 export function parseAuthLink(link: string): { code?: string; error?: string; state: string } | null {
   let url: URL;
   try { url = new URL(link.trim()); } catch { return null; }
-  if (url.protocol !== "openmausbot:" || (url.hostname || url.pathname.replace(/^\/+/, "")) !== "auth") return null;
+  if (url.protocol !== "duskbot:" || (url.hostname || url.pathname.replace(/^\/+/, "")) !== "auth") return null;
   const state = url.searchParams.get("state") ?? "";
   const code = url.searchParams.get("code") ?? undefined;
   const error = url.searchParams.get("error") ?? undefined;

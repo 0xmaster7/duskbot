@@ -4,15 +4,15 @@ import { z } from "zod";
 /** The sidebar as it is, or "icons": the column of avatars the person dragged its edge down to. */
 export type SidebarDensity = "comfortable" | "icons";
 
-export const SIDEBAR_DENSITY_KEY = "openmausbot.sidebarDensity";
-export const SIDEBAR_WIDTH_KEY = "openmausbot.sidebarWidth";
-export const SIMPLE_SIDEBAR_WIDTH_KEY = "openmausbot.sidebarWidth.simple";
-export const SIDEBAR_COLLAPSED_SECTIONS_KEY = "openmausbot.sidebarCollapsedSections.v1";
-export const SIDEBAR_SECTION_ORDER_KEY = "openmausbot.sidebarSectionOrder.v1";
-export const SIMPLE_SIDEBAR_SECTION_ORDER_KEY = "openmausbot.sidebarSectionOrder.simple.v1";
-export const PINNED_CIRCLES_KEY = "openmausbot.pinnedCircles";
-export const UNIVERSAL_PINS_KEY = "openmausbot.universalPins";
-export const PINNED_CIRCLE_ORDER_KEY = "openmausbot.pinnedCircleOrder.v1";
+export const SIDEBAR_DENSITY_KEY = "duskbot.sidebarDensity";
+export const SIDEBAR_WIDTH_KEY = "duskbot.sidebarWidth";
+export const SIMPLE_SIDEBAR_WIDTH_KEY = "duskbot.sidebarWidth.simple";
+export const SIDEBAR_COLLAPSED_SECTIONS_KEY = "duskbot.sidebarCollapsedSections.v1";
+export const SIDEBAR_SECTION_ORDER_KEY = "duskbot.sidebarSectionOrder.v1";
+export const SIMPLE_SIDEBAR_SECTION_ORDER_KEY = "duskbot.sidebarSectionOrder.simple.v1";
+export const PINNED_CIRCLES_KEY = "duskbot.pinnedCircles";
+export const UNIVERSAL_PINS_KEY = "duskbot.universalPins";
+export const PINNED_CIRCLE_ORDER_KEY = "duskbot.pinnedCircleOrder.v1";
 
 /** What the sidebar's key keeps for the column of avatars. The values an older app kept there ("compact", "icons") open
  * the sidebar as it is. */

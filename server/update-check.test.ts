@@ -8,26 +8,26 @@ afterEach(() => vi.unstubAllGlobals());
 describe("server update check", () => {
   it("tells how this server was installed", () => {
     const none = () => false;
-    const root = ["", "srv", "OpenMausBot", "server"].join(sep);
+    const root = ["", "srv", "Dusk Bot", "server"].join(sep);
     expect(installKind({ desktopManaged: true, managed: false, serverRoot: root, exists: () => true })).toBe("desktop");
     expect(installKind({ desktopManaged: false, managed: true, serverRoot: root, exists: () => true })).toBe("managed");
     expect(installKind({ desktopManaged: false, managed: false, serverRoot: root, exists: (path) => path === "/.dockerenv" })).toBe("docker");
     expect(installKind({ desktopManaged: false, managed: false, serverRoot: root, exists: (path) => path === "/run/.containerenv" })).toBe("podman");
     expect(installKind({
       desktopManaged: false, managed: false, exists: none,
-      serverRoot: ["", "usr", "lib", "node_modules", "openmausbot", "dist-server"].join(sep),
+      serverRoot: ["", "usr", "lib", "node_modules", "duskbot", "dist-server"].join(sep),
     })).toBe("npm");
     expect(installKind({ desktopManaged: false, managed: false, serverRoot: root, exists: (path) => path === join(root, "..", ".git") })).toBe("git");
     expect(installKind({ desktopManaged: false, managed: false, serverRoot: root, exists: none })).toBe("unknown");
   });
 
   it("identifies only this fork as its release repository", () => {
-    expect(LATEST_RELEASE_URL).toBe("https://api.github.com/repos/SiddDevZ/OpenMausBot/releases/latest");
+    expect(LATEST_RELEASE_URL).toBe("https://api.github.com/repos/goatedgrokbotalternative/thebot/releases/latest");
   });
 
   it("never checks public feeds or suggests upstream install commands for any fork installation", async () => {
     const fetchRelease = vi.fn(async () => new Response(JSON.stringify({
-      tag_name: "v999.0.0", html_url: "https://github.com/milind-soni/OpenMausBot/releases/tag/v999.0.0",
+      tag_name: "v999.0.0", html_url: "https://github.com/goatedgrokbotalternative/thebot/releases/tag/v999.0.0",
     })));
     vi.stubGlobal("fetch", fetchRelease);
     const installs: InstallKind[] = ["desktop", "managed", "docker", "podman", "npm", "git", "unknown"];

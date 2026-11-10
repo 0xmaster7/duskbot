@@ -15,7 +15,7 @@ import { newDirectKey, sshConnector, wssConnector } from "./vps-link-direct.mjs"
 import { createEgressDialer, createEgressEndpoint, seenAsCache } from "./vps-link-egress.mjs";
 import { createVpsLink } from "./vps-link.mjs";
 
-export const DEFAULT_LINK_BASE = "https://link.apps.siddz.com";
+export const DEFAULT_LINK_BASE = "https://link.dusk.bot";
 
 /**
  * a linked server's page is http://vps-<id>.localhost, and every request it makes crosses the tunnel. chromium gives a
@@ -132,15 +132,15 @@ export function installVpsLink(deps) {
   const unprotect = unprotectWith(encryption);
   const ownHomeFiles = ["own-home.json", "own-home-choice.json", "own-home-send.json"].map((name) => jsonFile(path.join(userData, name)));
 
-  const base = (deps.base || process.env.OMB_LINK_BASE || DEFAULT_LINK_BASE).replace(/\/+$/, "");
+  const base = (deps.base || process.env.DUSK_LINK_BASE || DEFAULT_LINK_BASE).replace(/\/+$/, "");
   // the link service tells this computer the public address it connects from, so its home router stays out of reach
   // the linked server's bots reach this mac through the app's own session there (mac-control.mjs)
-  // OMB_LINK_KEEP_AWAKE=off lets this mac sleep even while its server's bots use it
-  const awake = deps.powerSaveBlocker && process.env.OMB_LINK_KEEP_AWAKE !== "off"
+  // DUSK_LINK_KEEP_AWAKE=off lets this mac sleep even while its server's bots use it
+  const awake = deps.powerSaveBlocker && process.env.DUSK_LINK_KEEP_AWAKE !== "off"
     ? createLinkAwake({ blocker: deps.powerSaveBlocker, onBattery: () => deps.powerMonitor?.isOnBatteryPower?.() === true, log })
     : null;
   const execute = createMacExecutor({ log });
-  const macHost = process.env.OMB_MAC_CONTROL === "off" ? null
+  const macHost = process.env.DUSK_MAC_CONTROL === "off" ? null
     : createMacControlHost({ fetch: (...args) => session.defaultSession.fetch(...args), name: deps.label, execute: (job, io) => (awake ? awake.busy(execute(job, io)) : execute(job, io)), log });
   const followMac = (view) => macHost?.follow(view?.server?.origin ?? null);
   const seenAs = seenAsCache(async () => (await (await fetch(`${base}/v1/ip`, { signal: AbortSignal.timeout(5000) })).json())?.ip, { log });
@@ -196,8 +196,8 @@ export function installVpsLink(deps) {
     },
     relaunch: deps.relaunch,
     dataSize: async () => { const dir = deps.dataDir(); return dir ? folderSize(dir) : null; },
-    // the direct path to a relay-linked server, over ssh or https on 443 (vps-link-direct.mjs); OMB_LINK_DIRECT=off keeps every link on the relay
-    ...(process.env.OMB_LINK_DIRECT === "off" ? {} : { direct: { newKey: newDirectKey, connector: sshConnector, wssConnector } }),
+    // the direct path to a relay-linked server, over ssh or https on 443 (vps-link-direct.mjs); DUSK_LINK_DIRECT=off keeps every link on the relay
+    ...(process.env.DUSK_LINK_DIRECT === "off" ? {} : { direct: { newKey: newDirectKey, connector: sshConnector, wssConnector } }),
     onChange: (view) => { deps.tell(view); followMac(view); },
     log,
   });

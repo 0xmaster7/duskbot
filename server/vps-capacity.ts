@@ -1,4 +1,5 @@
 // how many bot desktops one VPS keeps awake at once, and the limits each one runs under, so bots never take their host down.
+import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 import { totalmem } from "node:os";
 import { isThisServerVps } from "./vps-local.ts";
 import { MANAGED_VPS_CONTAINER_NAME, VPS_CONTAINER_LABEL, VPS_MANAGED_LABEL } from "./vps-managed-names.ts";
@@ -16,7 +17,7 @@ export const DESKTOP_CPU_SHARES = 256;
 const WAIT_MS = 30_000;
 const POLL_MS = 3_000;
 const MEMORY_TTL_MS = 10 * 60_000;
-const ENVIRONMENT_LABEL = "com.openmausbot.environment";
+const ENVIRONMENT_LABEL = DOCKER_NAMES.label("environment");
 
 export interface VpsDesktopLimits { memoryMb: number }
 export type VpsDocker = (args: string[], timeoutMs?: number) => Promise<{ stdout: string }>;
@@ -51,9 +52,9 @@ export function createVpsCapacityHost(deps: {
 let host: VpsCapacityHost | null = null;
 export function setVpsCapacityHost(next: VpsCapacityHost | null): void { host = next; }
 
-/** OMB_VPS_MAX_DESKTOPS overrides the memory rule for a host whose desktops are lighter or heavier than usual. */
+/** DUSK_VPS_MAX_DESKTOPS overrides the memory rule for a host whose desktops are lighter or heavier than usual. */
 export function desktopCapacity(memoryBytes: number, env: NodeJS.ProcessEnv = process.env): number {
-  const forced = Number(env.OMB_VPS_MAX_DESKTOPS);
+  const forced = Number(env.DUSK_VPS_MAX_DESKTOPS);
   if (Number.isInteger(forced) && forced >= 1) return Math.min(MAX_DESKTOPS, forced);
   return Math.max(1, Math.min(MAX_DESKTOPS, Math.floor((memoryBytes - HOST_RESERVE_BYTES) / DESKTOP_BYTES)));
 }

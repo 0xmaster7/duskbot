@@ -15,16 +15,16 @@ export interface BillingConfig {
 }
 
 /**
- * OMB_DODO_PRODUCTS is a JSON object mapping these keys to dodo ids, with month and year intervals:
+ * DUSK_DODO_PRODUCTS is a JSON object mapping these keys to dodo ids, with month and year intervals:
  * license_solo:<interval>, license_team:<interval>, desktop_shared_s:<interval>, desktop_shared_m:<interval>, desktop_dedicated:<interval>;
  * addon_member:<interval>, addon_shared_s:<interval>, addon_shared_m:<interval>, addon_dedicated:<interval>,
  * addon_vcpu:<interval>, addon_ram_gb:<interval>, addon_disk_10gb:<interval>; credits_c10, credits_c25, credits_c50.
  * base products and addons must match this config's prices; yearly prices include its yearly discount.
  */
 export function dodoProducts(env: Record<string, string | undefined>): Record<string, string> {
-  if (!env.OMB_DODO_PRODUCTS) return {};
-  const value: unknown = JSON.parse(env.OMB_DODO_PRODUCTS);
-  if (!value || typeof value !== "object" || Array.isArray(value) || Object.values(value).some(id => typeof id !== "string" || !id.trim())) throw new Error("Invalid OMB_DODO_PRODUCTS.");
+  if (!env.DUSK_DODO_PRODUCTS) return {};
+  const value: unknown = JSON.parse(env.DUSK_DODO_PRODUCTS);
+  if (!value || typeof value !== "object" || Array.isArray(value) || Object.values(value).some(id => typeof id !== "string" || !id.trim())) throw new Error("Invalid DUSK_DODO_PRODUCTS.");
   return value as Record<string, string>;
 }
 
@@ -37,7 +37,7 @@ function freeWorkUntil(value: string | undefined) {
 export const BILLING_CONFIG: BillingConfig = {
   // yearly is two months free: 12 months for the price of 10
   currency: "USD", yearlyDiscountPercent: 100 / 6, graceDays: 7, maxCloudsPerAccount: 5, checkoutOpenMinutes: 30, checkoutsPerHour: 10,
-  freeWorkUntil: freeWorkUntil(process.env.OMB_FREE_WORK_UNTIL),
+  freeWorkUntil: freeWorkUntil(process.env.DUSK_FREE_WORK_UNTIL),
   licenses: {
     solo: { kind: "solo", label: "Work license", monthlyCents: 1200, includedMembers: 1, extraMemberCents: null, maxMembers: 1, priority: false },
     team: { kind: "team", label: "Team license", monthlyCents: 3000, includedMembers: 2, extraMemberCents: 1800, maxMembers: 50, priority: false },

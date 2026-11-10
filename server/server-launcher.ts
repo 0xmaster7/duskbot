@@ -1,4 +1,5 @@
 // Container entry: restarts the server in place on RESTART_EXIT_CODE, since a container restart cuts off a Caddy sharing its network.
+import { dataDirFor } from "../electron/legacy-names.mjs";
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
@@ -12,10 +13,10 @@ import { restartPolicy } from "./restart.ts";
 export function serverCommand(here: string, env: NodeJS.ProcessEnv, options: { exists?: (path: string) => boolean; box?: BoxMemory } = {}) {
   const bootstrap = join(here, "desktop-entry.mjs");
   const cached = (options.exists ?? existsSync)(bootstrap);
-  const dataDir = env.OMB_DATA_DIR || join(homedir(), ".openmausbot");
+  const dataDir = dataDirFor(env.DUSK_DATA_DIR, homedir());
   return {
     args: [...heapSizeArgs((options.box ?? boxMemory()).cgroupLimit, env.NODE_OPTIONS), cached ? bootstrap : join(here, "index.js")],
-    env: cached ? { ...env, OMB_SERVER_COMPILE_CACHE: join(dataDir, "cache", "node-compile") } : env,
+    env: cached ? { ...env, DUSK_SERVER_COMPILE_CACHE: join(dataDir, "cache", "node-compile") } : env,
   };
 }
 
@@ -32,7 +33,7 @@ export function superviseServer(start: () => ChildProcess, options: { signals?: 
       child.once("error", () => finish(1));
       child.once("exit", (code, signal) => {
         if (policy.again(code, stopping)) {
-          console.log("OpenMausBot is starting again to finish installing a copy from the desktop app…");
+          console.log("Dusk Bot is starting again to finish installing a copy from the desktop app…");
           run();
           return;
         }

@@ -284,7 +284,7 @@ describe("SecretRequestCard custom secrets", () => {
     expect(file).toContain("Saved to a private file your bot&#x27;s commands can read for 24 hours, then deleted.");
     expect(file).not.toContain("Where to get this key");
     const ref = view({ target: "customSecret", label: "Notion key", reason: "For Notion.", helpUrl: "", delivery: "ref" });
-    expect(ref).toContain("MausBot gives its own tools a one-use reference. Your bot never sees it");
+    expect(ref).toContain("Dusk gives its own tools a one-use reference. Your bot never sees it");
     expect(ref).toContain('data-secret-remember=""');
     expect(ref).toMatch(/type="checkbox"[^>]*checked=""/u);
     expect(ref).toContain("Save to Vault");

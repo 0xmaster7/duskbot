@@ -27,12 +27,12 @@ afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("typed pairing", () => {
   it("parses phone links and 12-character workspace codes without inventing credentials", () => {
-    expect(parseTypedPairing(`openmausbot://pair?address=https%3A%2F%2Fworkspace.test&token=${credential}`)).toMatchObject(payload);
+    expect(parseTypedPairing(`duskbot://pair?address=https%3A%2F%2Fworkspace.test&token=${credential}`)).toMatchObject(payload);
     expect(parseTypedPairing("workspace.test abcd1234efgh")).toEqual({ ...payload, v: 1, credential: "", code: "ABCD1234EFGH" });
     expect((parseTypedPairing(" https://workspace.test:8443 ABCD1234EFGH ") as MobilePairingPayload)?.origin).toBe("https://workspace.test:8443");
   });
 
-  it.each(["workspace.test 123456", "http://workspace.test ABCD1234EFGH", "https://person:secret@workspace.test ABCD1234EFGH", "https://workspace.test/path ABCD1234EFGH", "https://workspace.test?query ABCD1234EFGH", "https://workspace.test#fragment ABCD1234EFGH", "https://workspace.test\\elsewhere ABCD1234EFGH", "openmausbot://pair?address=workspace.test", "unrelated text"])("rejects %s", (input) => {
+  it.each(["workspace.test 123456", "http://workspace.test ABCD1234EFGH", "https://person:secret@workspace.test ABCD1234EFGH", "https://workspace.test/path ABCD1234EFGH", "https://workspace.test?query ABCD1234EFGH", "https://workspace.test#fragment ABCD1234EFGH", "https://workspace.test\\elsewhere ABCD1234EFGH", "duskbot://pair?address=workspace.test", "unrelated text"])("rejects %s", (input) => {
     expect(parseTypedPairing(input)).toBeNull();
   });
 });

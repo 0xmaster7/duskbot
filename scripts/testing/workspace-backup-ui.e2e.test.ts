@@ -14,9 +14,9 @@ import { openTemplatesWhenFree } from "./grok-templates.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
-const forced = process.env.OMB_UI_E2E === "1";
+const forced = process.env.DUSK_UI_E2E === "1";
 const enabled = forced || Boolean(binary);
-if (!enabled) console.log("skipping workspace backup UI e2e: no agent-browser; set OMB_UI_E2E=1 to install the pinned release");
+if (!enabled) console.log("skipping workspace backup UI e2e: no agent-browser; set DUSK_UI_E2E=1 to install the pinned release");
 const LAUNCH_TIMEOUT_MS = forced && !binary ? 600_000 : 180_000;
 interface FixtureInfo { ui: string; url: string; dataDir: string; logPath: string }
 
@@ -125,7 +125,7 @@ describe("full backup Settings in the real renderer", () => {
     const evidence = join(ROOT, ".omb-scratch", "verify-evidence", "workspace-backup-preview.png");
     await ui("screenshot", "--out", evidence);
     await click("Replace installation");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Fully quit MausBot");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Fully quit Dusk");
     expect(await evaluate("window.backupFixture.calls.find(call => call.path.endsWith('/restore')).body")).toEqual({ id: "validated-stage", confirmation: "REPLACE" });
     expect(await evaluate("window.backupFixture.calls.find(call => call.path.endsWith('/upload')).rawFile")).toBe(true);
     expect(await evaluate("localStorage.getItem('omb-pending-workspace-restore')")).toBe("validated-stage");

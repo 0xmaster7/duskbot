@@ -22,9 +22,9 @@ vi.mock("@/state/store", () => ({ useStore: () => ({ state: f.state, dispatch: f
   CLOUD_LINK_SETTINGS: { type: "toggleAppSettings", open: true, section: "cloudAccount", cloudLink: true } }));
 vi.mock("@/lib/analytics", () => ({ emailGateDone: () => false, track: vi.fn() }));
 vi.mock("./cloud-buy/NightCard", () => ({ NightCard: ({ children }: { children: unknown }) => children }));
-// Who MausBot belongs to: unknown (as before the session answers) unless a test says otherwise.
+// Who Dusk belongs to: unknown (as before the session answers) unless a test says otherwise.
 vi.mock("@/lib/default-bot", async original => ({ ...await original<typeof import("@/lib/default-bot")>(), useViewerEmail: () => f.viewerEmail }));
-vi.mock("@/lib/brand", () => ({ productName: () => "MausBot" }));
+vi.mock("@/lib/brand", () => ({ productName: () => "Dusk" }));
 vi.mock("./Avatar", async original => ({ ...await original<typeof import("./Avatar")>(), MausAvatar: () => null }));
 vi.mock("@/components/EngineLibrary", () => ({ engineReady: (instance: { snapshot: { state: string; authenticated?: boolean } }) =>
   instance.snapshot.state === "available" && instance.snapshot.authenticated !== false }));
@@ -43,7 +43,7 @@ const plans = [
 const TRIAL_OFFER: CloudOffer = { plans, recommended: "pro", creditUsd: 5, refundDays: 14 };
 const PLAIN_OFFER: CloudOffer = { plans: plans.map(({ trialDays: _days, ...plan }) => plan), recommended: "pro", refundDays: 14 };
 const INTRO = "Keep your bots working when this computer is off";
-const STAR = "Enjoying MausBot?";
+const STAR = "Enjoying Dusk?";
 const signedOut: CloudAccountState = { status: "signed-out" };
 const free: CloudAccountState = { status: "connected", account: { id: "a", email: "person@example.test" }, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } };
 const paid = (extra: Partial<CloudAccountState> = {}): CloudAccountState => ({ ...free, entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: NOW + 30 * DAY, version: 2 }, ...extra });
@@ -157,7 +157,7 @@ describe("the card after the update", () => {
   it("offers the free trial to someone signed out who has used the app before, in the Admin's numbers, with Start free trial and Show me how", async () => {
     returning();
     const html = await launch();
-    const words = [INTRO, "Free for 7 days", "MausBot Cloud runs your bots for you in the cloud, always on.", "Routines run on time, day and night",
+    const words = [INTRO, "Free for 7 days", "Dusk Cloud runs your bots for you in the cloud, always on.", "Routines run on time, day and night",
       "Reach your bots from your phone, even with this computer off", "$5 of Claude credit to start", "Then from $15/month + tax. Cancel any time.",
       "14-day money-back on every plan.", "Start free trial", "Show me how", "Sign in to your Cloud plan", "Not now"];
     for (const text of words) expect(html).toContain(text);
@@ -185,7 +185,7 @@ describe("the card after the update", () => {
     offer = null; expect(await relaunch()).not.toContain(INTRO);
     offer = { ...TRIAL_OFFER, refundDays: undefined, creditUsd: undefined };
     html = await relaunch();
-    expect(html).toContain(INTRO); expect(html).toContain("MausBot Cloud runs your bots for you in the cloud, always on.");
+    expect(html).toContain(INTRO); expect(html).toContain("Dusk Cloud runs your bots for you in the cloud, always on.");
     expect(html).not.toContain("money-back"); expect(html).not.toContain("Claude credit");
   });
 
@@ -345,7 +345,7 @@ describe("upstream promotional campaigns", () => {
   it("does not advertise retired desktop provider credits, upstream mobile apps or community promotions to returning users", async () => {
     account = { ...free }; offer = { ...PLAIN_OFFER }; returning();
     const html = await launch();
-    for (const campaign of ["Enjoying MausBot?", "live on Product Hunt", "$50 of \x42oat credit", "\x62oat.dev", "Get MausBot updates?"]) expect(html).not.toContain(campaign);
+    for (const campaign of ["Enjoying Dusk?", "live on Product Hunt", "$50 of \x42oat credit", "\x62oat.dev", "Get Dusk updates?"]) expect(html).not.toContain(campaign);
   });
 
   it("keeps an expired account's sign-in recovery", async () => {

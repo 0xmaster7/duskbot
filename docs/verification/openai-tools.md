@@ -99,7 +99,7 @@ order, and prove that a ninth read and a following write wait. They also prove
 that denial and Stop prevent a later operation from being dispatched. These
 are synthetic protocol checks, not a live-provider latency benchmark.
 
-The chat runtime answers OpenMausBot's own built-in servers (agents, data,
+The chat runtime answers Dusk Bot's own built-in servers (agents, data,
 email, browser, phone) in the server's own process, through the code their
 stdio proxies run and with the environment those proxies would get, so a turn
 starts no child process for them; tool schemas are compiled once per schema

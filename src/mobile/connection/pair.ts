@@ -18,7 +18,7 @@ export class PairError extends Error {
 
 export function parseTypedPairing(input: string): MobilePairingPayload | TypedCode | null {
   const value = input.trim();
-  if (value.startsWith("openmausbot:")) return parseMobilePairingLink(value);
+  if (value.startsWith("duskbot:")) return parseMobilePairingLink(value);
   const code = value.replace(/[-\s]/g, "").toUpperCase();
   if (/^[A-Z0-9]{12}$/.test(code)) return { kind: "code", code };
   const match = /^(\S+)\s+([A-Za-z0-9]{12})$/.exec(value);

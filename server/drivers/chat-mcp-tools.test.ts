@@ -59,7 +59,7 @@ function fixture(body = "", toolSchema: Record<string, unknown> = schema) {
         const line = buffer.slice(0, newline); buffer = buffer.slice(newline + 1);
         const message = JSON.parse(line);
         calls.push(message);
-        writeFileSync(receipt, JSON.stringify({pid:process.pid,path:process.env.PATH,omb:Object.fromEntries(Object.entries(process.env).filter(([name]) => name.startsWith("OMB_"))),calls}));
+        writeFileSync(receipt, JSON.stringify({pid:process.pid,path:process.env.PATH,omb:Object.fromEntries(Object.entries(process.env).filter(([name]) => name.startsWith("DUSK_"))),calls}));
         ${body}
         if (message.method === "initialize") reply(message, {protocolVersion:"2024-11-05",capabilities:{tools:{}}});
         else if (message.method === "tools/list") reply(message, {tools:[{name:"write",description:"Fixture write",inputSchema:schema}]});
@@ -240,7 +240,7 @@ describe("Chat MCP session", () => {
       sessions.push(session);
       const [definition] = session.definitions;
       expect(schemaBytes(definition!.function.parameters)).toBeLessThanOrEqual(12_000);
-      expect(definition!.function.description).toContain("OpenMausBot shortened this tool's parameters to fit Kimi's size limit");
+      expect(definition!.function.description).toContain("Dusk Bot shortened this tool's parameters to fit Kimi's size limit");
       expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^chat-mcp: audit: kept only the top-level fields of tool "write"'s parameters/));
       expect(() => session.validate("audit_write", { field_000: { label: 5 } })).toThrow("input schema");
       expect(() => session.validate("audit_write", { field_000: { label: "five" } })).not.toThrow();
@@ -265,14 +265,14 @@ describe("Chat MCP session", () => {
   });
 
   it("keeps the operator's control-plane secrets from a chat bot's tool servers, but not what the descriptor grants", async () => {
-    const secrets = ["OMB_CLOUD_READY_TOKEN", "OMB_CLOUD_BOOTSTRAP", "OMB_LICENSE_KEY", "OMB_INSTALLATION_CREDENTIAL"];
+    const secrets = ["DUSK_CLOUD_READY_TOKEN", "DUSK_CLOUD_BOOTSTRAP", "DUSK_LICENSE_KEY", "DUSK_INSTALLATION_CREDENTIAL"];
     for (const name of secrets) vi.stubEnv(name, "should-not-leak");
-    vi.stubEnv("OMB_CLOUDFLARED_PATH", "/usr/local/bin/cloudflared");
+    vi.stubEnv("DUSK_CLOUDFLARED_PATH", "/usr/local/bin/cloudflared");
     const f = fixture();
-    f.server.env = { ...f.server.env, OMB_COMMS_TOKEN: "turn-capability" };
+    f.server.env = { ...f.server.env, DUSK_COMMS_TOKEN: "turn-capability" };
     await f.mount();
     const seen = f.read().omb;
-    expect(seen).toMatchObject({ OMB_CLOUDFLARED_PATH: "/usr/local/bin/cloudflared", OMB_COMMS_TOKEN: "turn-capability" });
+    expect(seen).toMatchObject({ DUSK_CLOUDFLARED_PATH: "/usr/local/bin/cloudflared", DUSK_COMMS_TOKEN: "turn-capability" });
     for (const name of secrets) expect(seen).not.toHaveProperty(name);
   });
 
@@ -656,7 +656,7 @@ describe("Chat MCP shutdown verdict", () => {
 const grantFor = (server: string, tool: string) => expect.stringMatching(new RegExp(`^\\["${server}","[0-9a-f]{64}","${tool}"\\]$`));
 
 describe("Chat MCP approvals by server", () => {
-  it("asks nothing for OpenMausBot's agents server, and grants no session-wide allow on the person's computer", async () => {
+  it("asks nothing for Dusk Bot's agents server, and grants no session-wide allow on the person's computer", async () => {
     const agents = fixture(); const audit = fixture(); const computer = fixture();
     const session = await mountChatTools({
       agents: agents.server, custom: { audit: audit.server },

@@ -3,9 +3,9 @@ import { DOWNLOAD_URL } from "./usage";
 
 /** the links the desktop app answers (electron/chat-link.mjs, electron/cloud-entry.mjs); the bare scheme only brings the app forward */
 export const appLink = {
-  app: "openmausbot://",
-  bot: (id: string) => `openmausbot://bot/${encodeURIComponent(id)}`,
-  cloud: "openmausbot://cloud",
+  app: "duskbot://",
+  bot: (id: string) => `duskbot://bot/${encodeURIComponent(id)}`,
+  cloud: "duskbot://cloud",
 };
 
 const GIVE_UP_MS = 1600;
@@ -21,6 +21,6 @@ export function openApp(link: string, then?: string) {
   setTimeout(() => {
     window.removeEventListener("blur", leave);
     document.removeEventListener("visibilitychange", leave);
-    if (!left && document.hasFocus()) toast(`OpenMausBot did not open. Get it at ${DOWNLOAD_URL.replace("https://", "")}, then try again.`, "bad");
+    if (!left && document.hasFocus()) toast(`Dusk Bot did not open. Get it at ${DOWNLOAD_URL.replace("https://", "")}, then try again.`, "bad");
   }, GIVE_UP_MS);
 }

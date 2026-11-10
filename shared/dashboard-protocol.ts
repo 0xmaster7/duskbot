@@ -5,10 +5,10 @@
 export const DASHBOARD_PROTOCOL = 1;
 
 // the default hosted instance, overridable by workspace configuration.
-export const DEFAULT_DASHBOARD_URL = "https://dashboard.apps.siddz.com";
+export const DEFAULT_DASHBOARD_URL = "https://app.dusk.bot";
 
 /** where a relay or a dashboard service says which dashboard it belongs to: `{ v: 1, url }` */
-export const DASHBOARD_DISCOVERY_PATH = "/.well-known/openmausbot/dashboard";
+export const DASHBOARD_DISCOVERY_PATH = "/.well-known/duskbot/dashboard";
 
 /** reports come every 5 s while someone has the dashboard open, every 3 minutes otherwise */
 export const FAST_REPORT_MS = 5_000;

@@ -490,7 +490,7 @@ export const PiDriver: ProviderDriver<PiConfig> = {
             env: piEnvironment({
               ...process.env,
               ...input.environment,
-              OMB_MCP_CONFIG: join(mcpTempDir, "mcp.json"),
+              DUSK_MCP_CONFIG: join(mcpTempDir, "mcp.json"),
             }),
           }, "bot");
         } catch (err) {
@@ -877,7 +877,7 @@ export const PiDriver: ProviderDriver<PiConfig> = {
           ready = receipt.ok === true && JSON.stringify(receipt.toolScope) === JSON.stringify(toolScope);
         } catch { /* Missing or malformed readiness is never a grant. */ }
         if (!ready) {
-          const message = "Pi tool selection enforcement is unavailable. Update Pi and check the OpenMausBot extension before retrying.";
+          const message = "Pi tool selection enforcement is unavailable. Update Pi and check the Dusk Bot extension before retrying.";
           emit({ ...base(threadId, turnId), type: "runtime.error", message });
           settle(false);
           throw new Error(message);

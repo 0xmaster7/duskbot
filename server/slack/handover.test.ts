@@ -11,7 +11,7 @@ it("a Mac or own VPS never talks to the edge, even with a dashboard link", async
   const dir = mkdtempSync(join(tmpdir(), "omb-handover-")); dirs.push(dir);
   writeFileSync(join(dir, "dashboard-link.json"), JSON.stringify({ v: 1, url: "https://dash.example.test", workspaceId: "ws_1", publicKey: "x", privateKey: "y", enrolledAt: 1 }));
   const fetch = vi.fn<typeof globalThis.fetch>();
-  for (const env of [{}, { OMB_CLOUD_ROLE: "home", OMB_SLACK_EDGE: "0" }]) {
+  for (const env of [{}, { DUSK_CLOUD_ROLE: "home", DUSK_SLACK_EDGE: "0" }]) {
     const handover = createSlackHandover({ dataDir: dir, env, fetch, bots: () => [{ botId: "b", appId: "A1", botUserId: "U1", appToken: "xapp-1-secret" }], deliver: async () => {} });
     handover.start();
     await handover.sync();

@@ -1,4 +1,4 @@
-// A fake `docker` on OMB_EXTRA_PATH stands in for the VPS (the server runs in its own process): argv in, canned inspect JSON out, every call logged.
+// A fake `docker` on DUSK_EXTRA_PATH stands in for the VPS (the server runs in its own process): argv in, canned inspect JSON out, every call logged.
 import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -192,7 +192,7 @@ posixOnly("VPS turn routing e2e (fake ACP fleet + fake docker over SSH)", () => 
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
     home = mkdtempSync(join(tmpdir(), "omb-vps-routing-"));
-    mkdirSync(join(home, ".openmausbot"), { recursive: true });
+    mkdirSync(join(home, ".duskbot"), { recursive: true });
     const fakeBin = join(home, "fakebin");
     mkdirSync(fakeBin, { recursive: true });
     gateFile = join(home, "turn.gate");
@@ -222,7 +222,7 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
     writeFileSync(dockerLog, "");
 
     writeFileSync(
-      join(home, ".openmausbot", "config.json"),
+      join(home, ".duskbot", "config.json"),
       JSON.stringify({
         instances: {
           vps: {
@@ -242,14 +242,14 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
     const env: NodeJS.ProcessEnv = {
       HOME: home,
       USERPROFILE: home,
-      OMB_PORT: String(PORT),
-      OMB_EXTRA_PATH: fakeBin,
+      DUSK_PORT: String(PORT),
+      DUSK_EXTRA_PATH: fakeBin,
       FAKE_DOCKER_DIR: fakeBin,
       FAKE_DOCKER_LOG: dockerLog,
-      OMB_COMPUTER_CALL_WAIT_MS: String(CALL_WAIT_MS),
-      OMB_CLOUD_COMPUTER_IDLE_MS: "1500",
+      DUSK_COMPUTER_CALL_WAIT_MS: String(CALL_WAIT_MS),
+      DUSK_CLOUD_COMPUTER_IDLE_MS: "1500",
       // the fake daemon speaks the Cua desktop; the bot desktop's own route is covered in bot-desktop.test.ts
-      OPENMAUSBOT_VPS_DESKTOP: "cua",
+      DUSK_VPS_DESKTOP: "cua",
     };
     if (process.env.PATH) env.PATH = process.env.PATH;
     if (process.env.SystemRoot) env.SystemRoot = process.env.SystemRoot;
@@ -278,7 +278,7 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
   });
 
   it("routes a fresh install's Auto and cloud bots to one workspace computer whose screens wake on demand", async () => {
-    expect(JSON.parse(readFileSync(join(home, ".openmausbot", "config.json"), "utf8")).vps).toEqual({ mode: "shared" });
+    expect(JSON.parse(readFileSync(join(home, ".duskbot", "config.json"), "utf8")).vps).toEqual({ mode: "shared" });
     expect((await api("PUT", "/api/config", { vps: { sshAlias: "production-vps" } })).status).toBe(200);
     const auto = (await api("POST", "/api/bots")).body.bot;
     const cloud = (await api("POST", "/api/bots")).body.bot;
@@ -326,7 +326,7 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
     const originalImage = readFileSync(imageFile, "utf8"), originalContainer = readFileSync(containerFile, "utf8");
     const old = JSON.parse(originalContainer)[0];
     Object.assign(old.Config.Labels, { [BOT_DESKTOP_LABEL]: "1", [BOT_DESKTOP_MODE_LABEL]: "strict" });
-    Object.assign(old.Config, { Image: "ghcr.io/sidddevz/omb-bot-desktop:v1", Env: [...old.Config.Env, "OMB_MODE=strict"] });
+    Object.assign(old.Config, { Image: "ghcr.io/sidddevz/omb-bot-desktop:v1", Env: [...old.Config.Env, "DUSK_MODE=strict"] });
     Object.assign(old, { Image: `sha256:${"e".repeat(64)}`, State: { Running: false }, Mounts: [{ Type: "volume", Name: "__NAME__-home", Destination: "/home/cua", Driver: "local" }] });
     Object.assign(old.HostConfig, { NetworkMode: BOT_DESKTOP_NETWORK, ReadonlyRootfs: true, CapAdd: ["CAP_NET_ADMIN", "CAP_SETUID", "CAP_SETGID"], SecurityOpt: ["no-new-privileges"] });
     old.NetworkSettings.Networks = { [BOT_DESKTOP_NETWORK]: { IPAddress: "172.30.0.2" } };
@@ -539,7 +539,7 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
           writeFileSync(template, original.replace('"Running":true', '"Running":false'));
         } else expect(first.find((tool: { name: string }) => tool.name === "computer")).toBeUndefined();
         const agents = first.find((tool: { name: string }) => tool.name === "agents");
-        const token = agents.env.find((entry: { name: string }) => entry.name === "OMB_COMMS_TOKEN").value;
+        const token = agents.env.find((entry: { name: string }) => entry.name === "DUSK_COMMS_TOKEN").value;
         const availability = await (await fetch(`${BASE}/api/internal/computer/select`, { headers: { authorization: `Bearer ${token}` } })).json() as any;
         expect(availability.options.find((option: any) => option.surface === "cloud")).toMatchObject({ available: true, ready: false,
           canStart: state !== "missing", canCreate: state === "missing" });
@@ -582,8 +582,8 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
     const mounted = (dump: string) => {
       const rows = JSON.parse(readFileSync(`${dump}.mcp.json`, "utf8")) as Array<{ name: string; args: string[]; env: Array<{ name: string; value: string }> }>;
       const computer = rows.find((row) => row.name === "computer")!;
-      return { args: computer.args, url: computer.env.find((entry) => entry.name === "OMB_CONTROL_URL")!.value,
-        token: computer.env.find((entry) => entry.name === "OMB_CONTROL_TOKEN")!.value };
+      return { args: computer.args, url: computer.env.find((entry) => entry.name === "DUSK_CONTROL_URL")!.value,
+        token: computer.env.find((entry) => entry.name === "DUSK_CONTROL_TOKEN")!.value };
     };
     try {
       for (const [bot, instanceId] of [[first, "vps"], [second, "asker"]] as const) {
@@ -872,7 +872,7 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
         const computer = servers.find((server) => server.name === "computer");
         expect(computer, "no computer MCP server reached the agent").toBeTruthy();
         const env = (name: string) => computer!.env?.find((entry) => entry.name === name)?.value ?? "";
-        return { args: computer!.args ?? [], url: env("OMB_CONTROL_URL"), token: env("OMB_CONTROL_TOKEN") };
+        return { args: computer!.args ?? [], url: env("DUSK_CONTROL_URL"), token: env("DUSK_CONTROL_TOKEN") };
       };
       // A computer call's check, exactly as the mounted bridge makes it: the real control client, with its own timeout.
       const gate = (mount: { url: string; token: string }) => createControlClient({ url: mount.url, token: mount.token }).state(true);
@@ -945,7 +945,7 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
       await until(async () => existsSync(`${askerDump}.mcp.json`), "the asker's turn");
       const agents = (JSON.parse(readFileSync(`${askerDump}.mcp.json`, "utf8")) as Array<{ name: string; env?: Array<{ name: string; value: string }> }>)
         .find((server) => server.name === "agents");
-      const token = agents?.env?.find((entry) => entry.name === "OMB_COMMS_TOKEN")?.value ?? "";
+      const token = agents?.env?.find((entry) => entry.name === "DUSK_COMMS_TOKEN")?.value ?? "";
       const sent = await fetch(`${BASE}/api/internal/coordinate-bots`, {
         method: "POST",
         headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
@@ -960,7 +960,7 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
       const thread = await replies();
       expect(thread.filter((message) => String(message.tool?.name ?? "").startsWith("error:"))).toEqual([]);
       const echo = thread.find((message) => message.text?.startsWith("echo: ")).text as string;
-      expect(echo).toContain("This bot's VPS computer is unavailable this turn (The OpenMausBot VPS container is stopped)");
+      expect(echo).toContain("This bot's VPS computer is unavailable this turn (The Dusk Bot VPS container is stopped)");
       expect(echo).toContain("Open Computer and enable Start VPS automatically");
     } finally {
       writeFileSync(template, original);

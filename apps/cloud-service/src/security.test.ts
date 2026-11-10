@@ -1,5 +1,6 @@
 // Every way in that could delete a Boat cloud, tried: none deletes anything before 45 days of no plan and a verified
 // final backup, and the owner's own request deletes only after an emailed link and a 7-day undo window.
+import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
@@ -28,13 +29,13 @@ async function fixture() {
   api.onCommand(({ sandbox, command }) => {
     if (command.includes("omb-home start") && !sandbox.volume.size) {
       sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
-      sandbox.volume.set("__system__/data/.openmausbot/config.json", Buffer.from("{}"));
+      sandbox.volume.set(`__system__${CLOUD_HOME.data}/config.json`, Buffer.from("{}"));
     }
     return { exitCode: 0, stdout: command.includes("install") ? "installed\n" : command.includes("start") ? "started\n" : "" };
   });
-  for (const key of ["OMB_BILLING_PROVIDER", "OMB_CLOUD_PROVIDER", "OMB_POOL_DRIVER", "OMB_CLOUD_SEAL_KEY", "OMB_DODO_PRODUCTS", "OMB_BOAT_TEMPLATE"]) vi.stubEnv(key, undefined);
-  vi.stubEnv("OMB_BOAT", "1"); vi.stubEnv("BOAT_API_KEY", api.key); vi.stubEnv("BOAT_BASE_URL", api.baseUrl);
-  vi.stubEnv("OMB_BOAT_HOME_PACKAGE_URL", "https://packages.example.test/home.tgz"); vi.stubEnv("OMB_BOAT_HOME_PACKAGE_SHA256", "b".repeat(64));
+  for (const key of ["DUSK_BILLING_PROVIDER", "DUSK_CLOUD_PROVIDER", "DUSK_POOL_DRIVER", "DUSK_CLOUD_SEAL_KEY", "DUSK_DODO_PRODUCTS", "DUSK_BOAT_TEMPLATE"]) vi.stubEnv(key, undefined);
+  vi.stubEnv("DUSK_BOAT", "1"); vi.stubEnv("BOAT_API_KEY", api.key); vi.stubEnv("BOAT_BASE_URL", api.baseUrl);
+  vi.stubEnv("DUSK_BOAT_HOME_PACKAGE_URL", "https://packages.example.test/home.tgz"); vi.stubEnv("DUSK_BOAT_HOME_PACKAGE_SHA256", "b".repeat(64));
   // the homes answer their signed reads; nothing else leaves the machine
   let idle = false;
   const fetcher: typeof fetch = async (input, init) => {

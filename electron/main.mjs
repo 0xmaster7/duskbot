@@ -1,3 +1,4 @@
+import { carryLegacySafeStorageKey, DATA_DIR_NAMES, dataDirFor, fromLegacyLink, LEGACY, migrateLegacyUserData } from "./legacy-names.mjs";
 import { app, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, nativeImage, net, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess, nativeTheme } from "electron";
 import { createRequire } from "node:module";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -140,6 +141,8 @@ let desktopViewerOwner = null;
 let desktopViewerContextId = null;
 let desktopWorkspaceManager = null;
 let desktopWorkspaceOwner = null;
+// a link with the old scheme opens like a new one
+process.argv.splice(0, process.argv.length, ...process.argv.map(fromLegacyLink));
 let pendingOrganizationEntry = takeOrganizationDeepLink(process.argv);
 function appWindows() {
   return BrowserWindow.getAllWindows().filter((win) => !isTalkPanel(win) && !isAmbientWindow(win));
@@ -180,13 +183,20 @@ function applyUnreadBadge(win = mainWindow) {
 // GNOME groups the window with its desktop entry only when both identities match; set before ready.
 if (process.platform === "linux") {
   if (linuxDisablesGpu()) app.disableHardwareAcceleration();
-  app.setDesktopName("com.openmausbot.app.desktop");
+  app.setDesktopName("bot.dusk.app.desktop");
 }
 
 unlimitTunnelConnections(app);
 
+// before electron opens its folder or its keychain key: an install from before the rename brings both along
+if (!app.commandLine.hasSwitch("user-data-dir") && migrateLegacyUserData(app.getPath("userData"), app.getPath("appData"), { packaged: app.isPackaged, log: line => console.log(`[desktop] ${line}`) })
+  && process.platform === "darwin") {
+  const carried = carryLegacySafeStorageKey({ name: app.getName(), packaged: app.isPackaged });
+  console.log(`[desktop] keychain key from before the rename: ${carried}`);
+}
+
 if (!app.requestSingleInstanceLock()) {
-  console.log("[desktop] OpenMausBot is already running — focusing that window");
+  console.log("[desktop] Dusk Bot is already running — focusing that window");
   process.exit(0);
 }
 
@@ -258,14 +268,16 @@ function queueChatLink(rawLink) {
   return true;
 }
 
-app.on("open-url", (event, url) => {
+app.on("open-url", (event, rawUrl) => {
+  const url = fromLegacyLink(rawUrl);
   if (!queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url) && !slackOAuthLinks.queue(url)) return;
   event.preventDefault();
 });
 
-app.on("second-instance", (_event, commandLine) => {
+app.on("second-instance", (_event, rawCommandLine) => {
+  const commandLine = rawCommandLine.map(fromLegacyLink);
   if (takeOrganizationDeepLink(commandLine)) {
-    queueOrganizationEntry("openmausbot://organization");
+    queueOrganizationEntry("duskbot://organization");
     return;
   }
   if (cloudEntry.fromArgs(commandLine)) return;
@@ -347,7 +359,7 @@ const serverSupervisor = createServerSupervisor({
     if (earlyVpsOpened && activeRemote(environmentsState)?.id === earlyVpsOpened && mainWindow && !mainWindow.isDestroyed()) return;
     dialog.showErrorBox(
       "The bot server stopped",
-      "Automatic recovery could not restart the background server. Quit and reopen OpenMausBot to try again. Interrupted chat turns were not resent.\n\n" +
+      "Automatic recovery could not restart the background server. Quit and reopen Dusk Bot to try again. Interrupted chat turns were not resent.\n\n" +
         `Server log: ${path.join(LOG_DIR, "server.log")}`,
     );
   },
@@ -355,8 +367,8 @@ const serverSupervisor = createServerSupervisor({
 });
 
 function desktopDataDir() {
-  // An empty OMB_DATA_DIR falls back here too; server/config.ts would not, so the child gets this path.
-  return process.env.OMB_DATA_DIR || path.join(app.getPath("home"), ".openmausbot");
+  // An empty DUSK_DATA_DIR falls back here too; server/config.ts would not, so the child gets this path.
+  return dataDirFor(process.env.DUSK_DATA_DIR, app.getPath("home"), { log: line => slog(line) });
 }
 
 async function stopUtilityServer(proc, timeoutMs = UTILITY_SERVER_STOP_TIMEOUT_MS) {
@@ -470,11 +482,11 @@ async function secureWorkspaceConfig() {
 }
 
 function composioBrokerUrl() {
-  return managedComposioBrokerUrl(process.env.OMB_COMPOSIO_BROKER_URL, app.isPackaged);
+  return managedComposioBrokerUrl(process.env.DUSK_COMPOSIO_BROKER_URL, app.isPackaged);
 }
 
 // Finder/Explorer launches have no usable stdio, so the server child's output goes to server.log here.
-const LOG_DIR = !app.isPackaged && process.env.OMB_LOG_DIR ? process.env.OMB_LOG_DIR : app.getPath("logs");
+const LOG_DIR = !app.isPackaged && process.env.DUSK_LOG_DIR ? process.env.DUSK_LOG_DIR : app.getPath("logs");
 const DESKTOP_CRASH_LOG = path.join(LOG_DIR, "desktop-crashes.log");
 const DESKTOP_CRASH_LOG_MAX_BYTES = 512 * 1024;
 let logStream = null;
@@ -852,7 +864,7 @@ function syncPhoneSecretKey(proc) {
 const accountGateNeeded = () => accountGateRequired({ env: process.env, packaged: app.isPackaged, remote: Boolean(desktopRemoteAccess), custom: cloudTarget(process.env).custom }); const cloudEncryption = { available: async () => (await safeStorage.isAsyncEncryptionAvailable()) && (process.platform !== "linux" || safeStorage.getSelectedStorageBackend() !== "basic_text"), encrypt: value => safeStorage.encryptStringAsync(value), decrypt: value => safeStorage.decryptStringAsync(value) }; let activeSignIn = null; const cloudAccountStore = () => (activeSignIn ??= createCloudAccountStore({ file: path.join(app.getPath("userData"), cloudTarget(process.env).file), encryption: cloudEncryption }));
 function ensureCloudAccount() {
   if (cloudAccount) return cloudAccount;
-  if ((!app.isPackaged && !cloudTarget(process.env).custom) || desktopRemoteAccess) throw new Error("MausBot Cloud sign-in requires the local desktop app.");
+  if ((!app.isPackaged && !cloudTarget(process.env).custom) || desktopRemoteAccess) throw new Error("Dusk Cloud sign-in requires the local desktop app.");
   cloudAccount = createCloudAccountClient({
     store: cloudAccountStore(),
     platform: process.platform, deviceName: os.hostname().slice(0, 100) || "My computer", appVersion: app.getVersion(), origin: cloudTarget(process.env).origin, custom: cloudTarget(process.env).custom,
@@ -1086,7 +1098,7 @@ async function runCompanyBackup(kind, input, scheduled = null) {
     const status = await localBackupStatus(proc);
     if (status.pendingRestore) {
       publishCompanyBackupState({ busy: false, pendingRestore: true });
-      throw new Error("Restart OpenMausBot to finish the pending restore before starting another backup operation.");
+      throw new Error("Restart Dusk Bot to finish the pending restore before starting another backup operation.");
     }
     if (status.busy) throw companyBackupDeferred();
     const transfers = createCompanyBackups({
@@ -1120,7 +1132,7 @@ async function runCompanyBackup(kind, input, scheduled = null) {
 function syncDesktopMutationToken(proc) {
   try {
     proc.postMessage({
-      type: "openmausbot:desktop-mutation-token",
+      type: "duskbot:desktop-mutation-token",
       token: desktopMutationToken,
       companionToken: companionMutationToken,
     });
@@ -1156,25 +1168,25 @@ async function startServerOn(port, dataDir = runningDataDir ?? startupEnvironmen
     ...process.env,
     // The parent owns the data-dir lease; a child only validates it, so fallback-port children never replace it.
     ...desktopDataDirLease.utilityServerLeaseEnvironment(),
-    OMB_DATA_DIR: dataDir,
+    DUSK_DATA_DIR: dataDir,
     // Fail-closed until this process sends the private connection; never a descriptor inherited from the shell.
-    OMB_DESKTOP_PARENT: "1",
-    OMB_DESKTOP_LAUNCH_ID: desktopLaunchId,
-    OMB_STATIC_DIR: path.join(process.resourcesPath, "ui"),
-    OMB_RESOURCES_PATH: process.resourcesPath,
-    OMB_SKILLS_DIR: path.join(process.resourcesPath, "skills"),
-    OMB_PORT: String(port),
-    OMB_APP_VERSION: app.getVersion(),
-    OMB_USER_DATA: app.getPath("userData"),
+    DUSK_DESKTOP_PARENT: "1",
+    DUSK_DESKTOP_LAUNCH_ID: desktopLaunchId,
+    DUSK_STATIC_DIR: path.join(process.resourcesPath, "ui"),
+    DUSK_RESOURCES_PATH: process.resourcesPath,
+    DUSK_SKILLS_DIR: path.join(process.resourcesPath, "skills"),
+    DUSK_PORT: String(port),
+    DUSK_APP_VERSION: app.getVersion(),
+    DUSK_USER_DATA: app.getPath("userData"),
     ...(secureCredentials.composioApiKey
       ? { COMPOSIO_API_KEY: secureCredentials.composioApiKey }
       : {}),
-    OMB_CREDENTIAL_STORE: credentialStoreUnavailable ? "unavailable" : "ok",
+    DUSK_CREDENTIAL_STORE: credentialStoreUnavailable ? "unavailable" : "ok",
     ...workspaceCredentialEnv(secureCredentials),
   });
-  delete childEnv.OMB_BROWSER_CONNECTION;
-  delete childEnv.OMB_SERVER_COMPILE_CACHE;
-  if (compileCacheDir) childEnv.OMB_SERVER_COMPILE_CACHE = compileCacheDir;
+  delete childEnv.DUSK_BROWSER_CONNECTION;
+  delete childEnv.DUSK_SERVER_COMPILE_CACHE;
+  if (compileCacheDir) childEnv.DUSK_SERVER_COMPILE_CACHE = compileCacheDir;
   slog(`fork ${entry} port=${port}`);
   const proc = utilityProcess.fork(entry, [], {
     env: childEnv,
@@ -1253,12 +1265,12 @@ async function startServerPackaged() {
 }
 
 async function startDevServer() {
-  SERVER_PORT = Number(process.env.OMB_PORT || process.env.OGB_PORT || 8799);
+  SERVER_PORT = Number(process.env.DUSK_PORT || process.env.OGB_PORT || 8799);
   const root = app.getAppPath();
   devServer = createDevServerChild({
     fork: (entry, args, options) => utilityProcess.fork(entry, args, options),
     entry: path.join(root, "server", "dev-server.ts"),
-    env: { ...process.env, OMB_PORT: String(SERVER_PORT) },
+    env: { ...process.env, DUSK_PORT: String(SERVER_PORT) },
     port: SERVER_PORT,
     grant: (proc, isCurrent) => { serverProc = proc; if (!proc.__ombDevWired) { proc.__ombDevWired = true; proc.on("message", (message) => { if (serverProc !== proc) return; try { if (trustedApprovalMode.receive(proc, message) || managedDesktopRelay.receive(proc, message) || orgLibrary?.receive(message) || receivePhoneSecretSave(proc, message)) return; oneHome.receive(proc, message); } catch (error) { slog(`desktop private sync rejected: ${error?.message ?? error}`); } }); } syncDesktopMutationToken(proc); grantLocalComputer(proc, isCurrent); }, // the dev child is this app's own server too: same private channel for moves, logins and approvals
     conflict: (port) => {
@@ -1273,7 +1285,7 @@ async function startDevServer() {
     log: (line) => console.log(`[dev-server] ${line}`),
   });
   if (!(await devServer.start())) return false;
-  if (process.env.OMB_DEV_SERVER_WATCH !== "0") {
+  if (process.env.DUSK_DEV_SERVER_WATCH !== "0") {
     const unwatch = watchServerSource({ watch: fs.watch, dirs: [path.join(root, "server"), path.join(root, "shared")], restart: () => {
       console.log("[dev-server] source changed, restarting");
       devServer.restart();
@@ -1287,7 +1299,7 @@ function syncManagedComposioCredentials() {
   if (!serverProc) return;
   try {
     serverProc.postMessage({
-      type: "openmausbot:managed-composio",
+      type: "duskbot:managed-composio",
       access: managedComposioAccess(composioBrokerUrl(), secureCredentials),
     });
   } catch (error) {
@@ -1326,7 +1338,7 @@ function notifyDesktopViewer(open) {
 }
 
 function openDesktopViewer(owner, rawUrl, rawTitle, contextId) {
-  if (!owner || owner.isDestroyed()) throw new Error("The OpenMausBot window is unavailable");
+  if (!owner || owner.isDestroyed()) throw new Error("The Dusk Bot window is unavailable");
   const url = desktopViewerUrl(rawUrl);
   const titleCandidate = Object.prototype.toString.call(rawTitle) === "[object String]" ? rawTitle.trim() : "";
   const title = titleCandidate ? titleCandidate.slice(0, 80) : "Live desktop";
@@ -1365,7 +1377,7 @@ function openDesktopViewer(owner, rawUrl, rawTitle, contextId) {
       contextIsolation: true,
       sandbox: true,
       // Non-persistent partition: provider cookies stay out of the app renderer and die on exit.
-      partition: "openmausbot-desktop-viewer",
+      partition: "duskbot-desktop-viewer",
     },
   });
   desktopViewerWindow = viewer;
@@ -1426,7 +1438,7 @@ function openDesktopViewer(owner, rawUrl, rawTitle, contextId) {
 }
 
 function ensureDesktopWorkspace(owner) {
-  if (!owner || owner.isDestroyed()) throw new Error("The OpenMausBot window is unavailable");
+  if (!owner || owner.isDestroyed()) throw new Error("The Dusk Bot window is unavailable");
   if (desktopWorkspaceManager) {
     if (desktopWorkspaceOwner !== owner) {
       throw new Error("The two-desktop view belongs to another app window");
@@ -1438,7 +1450,7 @@ function ensureDesktopWorkspace(owner) {
   const manager = createDesktopWorkspaceManager({
     owner,
     createView: (options) => new WebContentsView(options),
-    partitionPrefix: `openmausbot-desktop-workspace-${randomUUID()}`,
+    partitionPrefix: `duskbot-desktop-workspace-${randomUUID()}`,
     notify: (state) => {
       if (!owner.isDestroyed() && !owner.webContents.isDestroyed()) {
         owner.webContents.send("desktop-workspace:state", state);
@@ -1528,7 +1540,7 @@ function refreshApplicationMenu() {
       onSwitch: (id) => void workspaceMenuAction(() => switchEnvironment(id)),
       onAddFromClipboard: () => void addServerFromClipboard(),
       onConnect: () => void workspaceMenuAction(openWorkspaceSettings),
-      onOrganizationSignIn: () => queueOrganizationEntry("openmausbot://organization"),
+      onOrganizationSignIn: () => queueOrganizationEntry("duskbot://organization"),
       onForget: (id) => void workspaceMenuAction(() => forgetEnvironment(id)),
       onOpenSettings: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("app:open-settings"); },
       openAtLogin: loginItem.available() ? { checked: loginItem.chosen(), onToggle: on => { loginItem.choose(on); refreshApplicationMenu(); } } : null,
@@ -1593,7 +1605,7 @@ async function switchLocalEnvironmentTo(targetDir, targetId, quiet = false) {
   const failedSwitch = () => {
     if (!quiet) dialog.showErrorBox(
       "Could not switch environments",
-      "OpenMausBot could not switch to that environment. The app log has the details.",
+      "Dusk Bot could not switch to that environment. The app log has the details.",
     );
     return { ok: false, error: "switch-failed" };
   };
@@ -1708,7 +1720,7 @@ function createLocalEnvironment(name, dataDir) {
       ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
       : "";
     if (typeof name !== "string" || !name.trim()) return { ok: false, error: "name", state };
-    candidateDir = path.join(os.homedir(), `.openmausbot-${slug && slug !== "clean" ? slug : randomUUID().slice(0, 8)}`);
+    candidateDir = path.join(os.homedir(), `.duskbot-${slug && slug !== "clean" ? slug : randomUUID().slice(0, 8)}`);
   } else {
     candidateDir = typeof dataDir === "string" ? dataDir.trim() : "";
     if (
@@ -1783,8 +1795,8 @@ async function deliverOrganizationEntry() {
 }
 
 async function openCloudEntry() {
-  if (!app.isPackaged) throw new Error("MausBot Cloud requires the installed desktop app.");
-  if (desktopRemoteAccess) throw new Error("This app is connected to another computer. Disconnect it to use MausBot Cloud on this computer.");
+  if (!app.isPackaged) throw new Error("Dusk Cloud requires the installed desktop app.");
+  if (desktopRemoteAccess) throw new Error("This app is connected to another computer. Disconnect it to use Dusk Cloud on this computer.");
   if (!serverReady) throw new Error("This installation is unavailable. Restart the app and open My Cloud again.");
   await cloudAccountRestored();
   if ((await homeWindow.refresh()).kind !== "computer") { await showHome({ place: "cloud" }); return true; }
@@ -1941,7 +1953,7 @@ async function forgetEnvironment(id, purge = false, confirmed = false) {
     const resolvedCanon = canonical(resolved);
     const rootCanon = canonical(root);
     if (runningDataDir && canonical(runningDataDir) === resolvedCanon) return { ok: false, error: "active" };
-    if (path.basename(resolved).startsWith(".openmausbot") && resolvedCanon !== rootCanon && !resolvedCanon.startsWith(rootCanon + path.sep)) {
+    if (DATA_DIR_NAMES.some(name => path.basename(resolved).startsWith(name)) && resolvedCanon !== rootCanon && !resolvedCanon.startsWith(rootCanon + path.sep)) {
       try {
         await fs.promises.rm(resolved, { recursive: true, force: true });
       } catch (error) {
@@ -2131,14 +2143,14 @@ function createWindow({ deferNavigation = false } = {}) {
     showContextMenu(win, params);
   });
 
-  if (process.env.OMB_SMOKE_TEST === "1") {
+  if (process.env.DUSK_SMOKE_TEST === "1") {
     win.webContents.once("did-finish-load", async () => {
       try {
         const result = await win.webContents.executeJavaScript(`
           (async () => {
             if (!window.ogb?.getCapabilities) throw new Error("desktop preload bridge is unavailable");
             let crashPromise = null;
-            if (${JSON.stringify(process.env.OMB_SMOKE_CUA === "1")}) {
+            if (${JSON.stringify(process.env.DUSK_SMOKE_CUA === "1")}) {
               crashPromise = new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                   unsubscribe?.();
@@ -2194,7 +2206,7 @@ function createWindow({ deferNavigation = false } = {}) {
             `unexpected packaged renderer URL: ${result.location} (expected ${expectedLocation})`,
           );
         }
-        if (process.env.OMB_SMOKE_BUNDLED_CUA === "1") {
+        if (process.env.DUSK_SMOKE_BUNDLED_CUA === "1") {
           const connection = await cuaReady;
           const expectedDriver = path.join(
             process.resourcesPath,
@@ -2232,7 +2244,7 @@ function createWindow({ deferNavigation = false } = {}) {
       } catch (error) {
         console.error(`[smoke] renderer-failed ${error?.stack ?? error}`);
       } finally {
-        if (process.env.OMB_SMOKE_KEEP_OPEN !== "1") win.close();
+        if (process.env.DUSK_SMOKE_KEEP_OPEN !== "1") win.close();
       }
     });
   }
@@ -2306,7 +2318,7 @@ ipcMain.handle("desktop:export-diagnostics", localOrHome("desktop:export-diagnos
   return result.filePath;
 }));
 
-// The path is renderer-controlled: it must resolve inside ~/.openmausbot to a regular file, never a symlink escape.
+// The path is renderer-controlled: it must resolve inside ~/.duskbot to a regular file, never a symlink escape.
 ipcMain.handle("desktop:save-file", localOnly("desktop:save-file", async (event, rawPath) => {
   return withSavableFile(rawPath, { home: os.homedir() }, async ({ defaultName, copyTo }) => {
     const parent = BrowserWindow.fromWebContents(event.sender);
@@ -2554,7 +2566,7 @@ for (const method of ["state", "begin", "signInAgain", "reopen", "cancel", "refr
   ipcMain.handle(`cloud-account:${method}`, localWorkspaceOnly(`cloud-account:${method}`, () => (method === "signOut" ? accounts.signOutActive() : ensureCloudAccount()[method]())));
 }
 ipcMain.handle("cloud-account:checkout", localWorkspaceOnly("cloud-account:checkout", async (_event, plan, source) => {
-  if (!(await cloudOffersReady())) throw new Error("MausBot Cloud isn't offered in this app.");
+  if (!(await cloudOffersReady())) throw new Error("Dusk Cloud isn't offered in this app.");
   const client = ensureCloudAccount();
   if (typeof plan !== "string" || !CHECKOUT_SOURCES.includes(source)) throw new Error("Choose a plan to continue.");
   const offer = await client.offer();
@@ -2902,7 +2914,7 @@ app.whenReady().then(async () => {
     item.setSavePath(collisionFreeDownloadPath(app.getPath("downloads"), item.getFilename()));
     revealDownloadWhenDone(item, (filePath) => shell.showItemInFolder(filePath));
   });
-  // Registry before lease: the lease and the child's OMB_DATA_DIR both follow a named environment.
+  // Registry before lease: the lease and the child's DUSK_DATA_DIR both follow a named environment.
   environmentsState = environmentsStore.read();
   let bootDataDir = desktopDataDir();
   if (app.isPackaged) {
@@ -2912,7 +2924,7 @@ app.whenReady().then(async () => {
       persistEnvironments({ ...environmentsState, activeId: LOCAL_ID }, "unusable");
       dialog.showErrorBox(
         "The environment's folder is missing",
-        `${boot.missingDir} is not there anymore, so OpenMausBot came up on this computer's default data folder instead. Restore or remount that folder, then choose the environment again from the Server menu.`,
+        `${boot.missingDir} is not there anymore, so Dusk Bot came up on this computer's default data folder instead. Restore or remount that folder, then choose the environment again from the Server menu.`,
       );
     }
     bootDataDir = boot.dataDir;
@@ -2926,8 +2938,8 @@ app.whenReady().then(async () => {
       runningDataDir = bootDataDir;
     } catch (error) {
       dialog.showErrorBox(
-        "OpenMausBot could not start safely",
-        error?.message ?? "Another process is using this OpenMausBot data folder.",
+        "Dusk Bot could not start safely",
+        error?.message ?? "Another process is using this Dusk Bot data folder.",
       );
       app.quit();
       return;
@@ -2935,7 +2947,7 @@ app.whenReady().then(async () => {
   }
   installServerSessions({ app, defaultSession: session.defaultSession, serverPort: () => SERVER_PORT,
     ownerToken: () => (app.isPackaged && serverReady ? desktopMutationToken : null) });
-  if (app.isPackaged) app.setAsDefaultProtocolClient("openmausbot");
+  if (app.isPackaged) for (const scheme of ["duskbot", LEGACY.protocol]) app.setAsDefaultProtocolClient(scheme);
   if (process.platform === "darwin") app.dock.setIcon(APP_ICON);
   // An orphaned third-party key with no clear handler left: drop it rather than keep it at rest.
   if (secureCredentials && Object.hasOwn(secureCredentials, "assemblyAiApiKey") && !credentialStoreUnavailable) {
@@ -3091,8 +3103,8 @@ app.whenReady().then(async () => {
             runningDataDir = desktopDataDir();
           } catch (error) {
             dialog.showErrorBox(
-              "OpenMausBot could not start safely",
-              error?.message ?? "Another process is using this OpenMausBot data folder.",
+              "Dusk Bot could not start safely",
+              error?.message ?? "Another process is using this Dusk Bot data folder.",
             );
             app.quit();
             return;
@@ -3101,12 +3113,12 @@ app.whenReady().then(async () => {
           if (retried) {
             dialog.showErrorBox(
               "The environment was unhealthy",
-              `OpenMausBot could not start on ${bootDataDir} and came up on this computer's default data folder instead. Choose that environment again from the Server menu once it is available.`,
+              `Dusk Bot could not start on ${bootDataDir} and came up on this computer's default data folder instead. Choose that environment again from the Server menu once it is available.`,
             );
           } else {
             dialog.showErrorBox(
-              "OpenMausBot could not start",
-              `OpenMausBot could not start on ${bootDataDir} or on this computer's default data folder. Check that both folders are readable, then start the app again.`,
+              "Dusk Bot could not start",
+              `Dusk Bot could not start on ${bootDataDir} or on this computer's default data folder. Check that both folders are readable, then start the app again.`,
             );
             app.quit();
           }

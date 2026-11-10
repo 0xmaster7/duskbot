@@ -1,4 +1,4 @@
-// the openmausbot link agent on a person's vps. the install script runs it as:
+// the duskbot link agent on a person's vps. the install script runs it as:
 //   node agent.mjs probe    (root)  can the link service reach this server directly on port 80? exit 0 yes, 3 no
 //   node agent.mjs link     (omb-link)  mint a pairing code, seal it for the app, report the result, write tunnel.json
 //   node agent.mjs tunnel   (omb-link)  the steady-state relay: requests from the app, sealed end to end, to 127.0.0.1:8799
@@ -11,7 +11,7 @@
 import { spawn } from "node:child_process";
 import { X509Certificate, createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, verify as verifySignature } from "node:crypto";
 import { createSocket } from "node:dgram";
-import { chmodSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { BlockList, createConnection, createServer as createTcpServer } from "node:net";
 import { Agent as HttpAgent, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
@@ -23,6 +23,24 @@ import { homedir, hostname, networkInterfaces, userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+
+// names from before the rename, kept here because this file stands alone: an install made then still sets OMB_*,
+// keeps its files in ~/.config/openmausbot-link, and runs a server that knows only the old header and path names.
+const OLD_ENV = ["OMB_", "OPENMAUSBOT_"];
+const OLD_HEADER = "x-openmausbot-";
+const OLD_WELL_KNOWN = "/.well-known/openmausbot";
+const OLD_CONFIG = "openmausbot-link";
+for (const key of Object.keys(process.env)) {
+  const prefix = OLD_ENV.find((p) => key.toUpperCase().startsWith(p));
+  if (!prefix) continue;
+  if (process.env[`DUSK_${key.slice(prefix.length)}`] === undefined) process.env[`DUSK_${key.slice(prefix.length)}`] = process.env[key];
+  delete process.env[key];
+}
+const isOwnHeader = (lower) => lower.startsWith("x-dusk-") || lower.startsWith(OLD_HEADER);
+const withLegacyHeaders = (headers) => Object.fromEntries(Object.entries(headers).flatMap(([key, value]) =>
+  key.startsWith("x-dusk-") ? [[key, value], [OLD_HEADER + key.slice(7), value]] : [[key, value]]));
+const fromLegacyPath = (path) => path === OLD_WELL_KNOWN || path.startsWith(`${OLD_WELL_KNOWN}/`) ? `/.well-known/duskbot${path.slice(OLD_WELL_KNOWN.length)}` : path;
+const toLegacyPath = (path) => path.startsWith("/.well-known/duskbot") ? OLD_WELL_KNOWN + path.slice("/.well-known/duskbot".length) : path;
 
 export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_PORT) || 8799 };
 /**
@@ -773,12 +791,16 @@ export function wsDuplex(socket, { client, head = null }) {
 }
 // ---- end direct transport ----
 
-const configDir = () => join(homedir(), ".config", "openmausbot-link");
+/** an install from before the rename keeps its folder until the installer runs again and moves it */
+const configDir = () => {
+  const next = join(homedir(), ".config", "duskbot-link"), old = join(homedir(), ".config", OLD_CONFIG);
+  return !existsSync(next) && existsSync(old) ? old : next;
+};
 const tunnelFile = () => join(configDir(), "tunnel.json");
 // on an install where this agent has its own account, its unit names a hand-off folder for these two: a root unit takes
 // them from there to the server (the token into its environment, the sign-in into its engine home)
-const enginesFile = () => process.env.OMB_LINK_ENGINES_FILE || join(homedir(), ".config", "openmausbot", "engines.env");
-const codexAuthFile = () => process.env.OMB_LINK_CODEX_AUTH_FILE || join(process.env.CODEX_HOME || join(homedir(), ".codex"), "auth.json");
+const enginesFile = () => process.env.DUSK_LINK_ENGINES_FILE || join(homedir(), ".config", "duskbot", "engines.env");
+const codexAuthFile = () => process.env.DUSK_LINK_CODEX_AUTH_FILE || join(process.env.CODEX_HOME || join(homedir(), ".codex"), "auth.json");
 
 function writePrivate(path, text) {
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
@@ -812,10 +834,16 @@ async function relay(base, route, token, init = {}) {
   }
 }
 
-function local(method, path, body) {
+/** this server's own api; a server from before the rename knows only the old header and well-known names */
+async function local(method, path, body) {
+  const first = await localOnce(method, path, body);
+  return first.status === 404 && toLegacyPath(path) !== path ? localOnce(method, toLegacyPath(path), body) : first;
+}
+
+function localOnce(method, path, body) {
   return new Promise((resolve, reject) => {
     const payload = body === undefined ? null : Buffer.from(JSON.stringify(body));
-    const req = httpRequest({ ...SERVER, method, path, headers: { accept: "application/json", "x-openmausbot-cli": "1", ...(payload ? { "content-type": "application/json", "content-length": payload.length } : {}) }, timeout: 15_000 }, (res) => {
+    const req = httpRequest({ ...SERVER, method, path, headers: withLegacyHeaders({ accept: "application/json", "x-dusk-cli": "1", ...(payload ? { "content-type": "application/json", "content-length": String(payload.length) } : {}) }), timeout: 15_000 }, (res) => {
       const chunks = [];
       res.on("data", (chunk) => chunks.push(chunk));
       res.on("end", () => {
@@ -824,7 +852,7 @@ function local(method, path, body) {
         resolve({ status: res.statusCode ?? 0, body: parsed });
       });
     });
-    req.on("timeout", () => req.destroy(new Error("OpenMausBot on this server did not answer")));
+    req.on("timeout", () => req.destroy(new Error("Dusk Bot on this server did not answer")));
     req.on("error", reject);
     req.end(payload ?? undefined);
   });
@@ -880,10 +908,10 @@ async function link() {
   if (claimed.status !== 200) throw new Error(claimed.body?.error ?? `the link service answered ${claimed.status}`);
   const appPub = claimed.body.appPub;
   const [pairing, environment] = await Promise.all([
-    local("POST", "/api/auth/pairing", { label: claimed.body.label || "OpenMausBot app" }),
-    local("GET", "/.well-known/openmausbot/environment"),
+    local("POST", "/api/auth/pairing", { label: claimed.body.label || "Dusk Bot app" }),
+    local("GET", "/.well-known/duskbot/environment"),
   ]);
-  if (pairing.status !== 200 || typeof pairing.body?.code !== "string") throw new Error(`OpenMausBot here would not make a pairing code (${pairing.status})`);
+  if (pairing.status !== 200 || typeof pairing.body?.code !== "string") throw new Error(`Dusk Bot here would not make a pairing code (${pairing.status})`);
   const origin = mode === "direct" ? `https://${env("LINK_HOST")}` : null;
   const spki = mode === "direct" ? await spkiOf(env("LINK_HOST")) : null;
   const tunnel = { key: randomBytes(32).toString("base64url"), vps: randomBytes(32).toString("base64url"), app: randomBytes(32).toString("base64url") };
@@ -988,31 +1016,31 @@ export function publicAddress({ servers = STUN, timeoutMs = 2500 } = {}) {
 }
 
 async function directKey(data, context) {
-  if (process.env.OMB_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
+  if (process.env.DUSK_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
   const line = directKeyLine({ pub: data?.pub, id: context.id });
   const keys = hostKeys();
   if (!keys.length) throw new Error("this server's ssh keys could not be read");
-  const host = process.env.OMB_LINK_DIRECT_HOST || await publicAddress();
-  const port = Number(process.env.OMB_LINK_DIRECT_PORT) || 22;
+  const host = process.env.DUSK_LINK_DIRECT_HOST || await publicAddress();
+  const port = Number(process.env.DUSK_LINK_DIRECT_PORT) || 22;
   setDirectKey(context.id, line);
   return { v: 1, host, port, user: userInfo().username, hostKeys: keys };
 }
 
 /**
- * the address of this server's direct path over https: OMB_LINK_WSS_URL when its operator put the agent's websocket
- * behind their own https (any reverse proxy to 127.0.0.1:OMB_LINK_WSS_PORT), else the https address this install set up
+ * the address of this server's direct path over https: DUSK_LINK_WSS_URL when its operator put the agent's websocket
+ * behind their own https (any reverse proxy to 127.0.0.1:DUSK_LINK_WSS_PORT), else the https address this install set up
  */
 export function wssUrl({ origin = null } = {}, env = process.env) {
-  const given = env.OMB_LINK_WSS_URL?.trim();
+  const given = env.DUSK_LINK_WSS_URL?.trim();
   if (given) {
-    if (!/^wss:\/\/[a-z0-9.-]+(:\d{1,5})?\/[A-Za-z0-9._~/-]*$/i.test(given)) throw new Error("OMB_LINK_WSS_URL is not a wss:// address");
+    if (!/^wss:\/\/[a-z0-9.-]+(:\d{1,5})?\/[A-Za-z0-9._~/-]*$/i.test(given)) throw new Error("DUSK_LINK_WSS_URL is not a wss:// address");
     return given;
   }
   return typeof origin === "string" && /^https:\/\/[a-z0-9.-]+$/i.test(origin) ? `wss://${new URL(origin).host}${WS_PATH}` : null;
 }
 
 async function directWss(context, readSpki = spkiOf) {
-  if (process.env.OMB_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
+  if (process.env.DUSK_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
   const url = wssUrl(context);
   if (!url) throw new Error("this server has no https address for a direct link");
   const target = new URL(url);
@@ -1020,7 +1048,7 @@ async function directWss(context, readSpki = spkiOf) {
 }
 
 /** the server's version and link protocol, from its public descriptor; a server from before it counts as protocol 1 */
-export async function serverLink(read = () => local("GET", "/.well-known/openmausbot/environment")) {
+export async function serverLink(read = () => local("GET", "/.well-known/duskbot/environment")) {
   try {
     const answer = await read();
     if (answer.status !== 200 || !answer.body || typeof answer.body !== "object") return null;
@@ -1044,8 +1072,8 @@ export async function control(op, data, context = {}) {
   if (op === "direct-off") { if (context.id) setDirectKey(context.id, null); return { ok: true }; }
   if (op === "pair") {
     // a fresh one-time code for the app's own sign-in here, when its session lapsed (sessions end after 180 days)
-    const answer = await local("POST", "/api/auth/pairing", { label: typeof data?.label === "string" ? data.label.slice(0, 60) : "OpenMausBot app" });
-    if (answer.status !== 200 || typeof answer.body?.code !== "string") throw new Error("OpenMausBot here would not make a pairing code");
+    const answer = await local("POST", "/api/auth/pairing", { label: typeof data?.label === "string" ? data.label.slice(0, 60) : "Dusk Bot app" });
+    if (answer.status !== 200 || typeof answer.body?.code !== "string") throw new Error("Dusk Bot here would not make a pairing code");
     return { code: answer.body.code };
   }
   if (op === "claude-token") {
@@ -1053,7 +1081,7 @@ export async function control(op, data, context = {}) {
     if (!/^[A-Za-z0-9._~+/=-]{20,4096}$/.test(value)) throw new Error("that is not a Claude token");
     let current = "";
     try { current = readFileSync(enginesFile(), "utf8"); } catch { /* none yet */ }
-    // the path unit restarts openmausbot when this file changes, so the server's engines see the token
+    // the path unit restarts duskbot when this file changes, so the server's engines see the token
     writePrivate(enginesFile(), setEnvLine(current, "CLAUDE_CODE_OAUTH_TOKEN", value));
     return { ok: true };
   }
@@ -1069,7 +1097,7 @@ export async function control(op, data, context = {}) {
     const answer = op === "freeze"
       ? await local("POST", "/api/move/freeze", typeof data?.place === "string" ? { place: data.place.slice(0, 120) } : {})
       : await local("DELETE", "/api/move/freeze", undefined);
-    if (answer.status !== 200) throw new Error(answer.body?.error ?? `OpenMausBot here answered ${answer.status}`);
+    if (answer.status !== 200) throw new Error(answer.body?.error ?? `Dusk Bot here answered ${answer.status}`);
     return { ok: true };
   }
   throw new Error("unknown request");
@@ -1081,7 +1109,7 @@ export async function control(op, data, context = {}) {
  * the file the install put here (root's, read-only to this account). a staged update runs from this account's own
  * folder, launched by that file, which ssh's forced command keeps naming
  */
-export const installedAgent = () => process.env.OMB_LINK_LAUNCHER || fileURLToPath(import.meta.url);
+export const installedAgent = () => process.env.DUSK_LINK_LAUNCHER || fileURLToPath(import.meta.url);
 const releasesDir = () => join(configDir(), "releases");
 /** ed25519 public keys (base64, raw 32 bytes) a release must be signed by; with none, the link service's tls and hash vouch, as for the install */
 export const RELEASE_KEYS = Object.freeze([]);
@@ -1140,7 +1168,7 @@ function proveRelease(file, version) {
  * are pinned, and a trial run all check out; `ready.json` is written last. it applies only after UPDATE_IDLE_MS idle,
  * by ending the tunnel so systemd starts it again, and the installed file launches the staged one (launchRelease).
  */
-export function createUpdater({ base, dir = releasesDir(), current = AGENT_VERSION, protocol = LINK_PROTOCOL, keys = [...RELEASE_KEYS, ...(process.env.OMB_LINK_RELEASE_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean)], fetchImpl = fetch, prove = proveRelease, idle = () => false, apply = () => {}, now = Date.now, log = () => {}, everyMs = UPDATE_EVERY_MS, firstMs = UPDATE_FIRST_MS }) {
+export function createUpdater({ base, dir = releasesDir(), current = AGENT_VERSION, protocol = LINK_PROTOCOL, keys = [...RELEASE_KEYS, ...(process.env.DUSK_LINK_RELEASE_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean)], fetchImpl = fetch, prove = proveRelease, idle = () => false, apply = () => {}, now = Date.now, log = () => {}, everyMs = UPDATE_EVERY_MS, firstMs = UPDATE_FIRST_MS }) {
   let staged = null, checkedAt = null, error = null, timer = null, checking = null, applying = false;
   try {
     const ready = JSON.parse(readFileSync(join(dir, "ready.json"), "utf8"));
@@ -1230,7 +1258,7 @@ export function launchRelease(release, { dir = releasesDir(), argv = ["tunnel"],
   const trial = { ...release.trial, starts: (release.trial.starts ?? 0) + (release.trial.good ? 0 : 1) };
   writePrivate(join(dir, "trial.json"), JSON.stringify(trial));
   log(`link: running agent ${release.version}`);
-  const child = spawn(process.execPath, [release.file, ...argv], { stdio: "inherit", env: { ...process.env, OMB_LINK_LAUNCHER: installedAgent() } });
+  const child = spawn(process.execPath, [release.file, ...argv], { stdio: "inherit", env: { ...process.env, DUSK_LINK_LAUNCHER: installedAgent() } });
   const healthy = setTimeout(() => { if (!trial.good) writePrivate(join(dir, "trial.json"), JSON.stringify({ ...trial, good: true })); }, TRIAL_GOOD_MS);
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => child.kill(signal));
   return new Promise((resolve) => {
@@ -1565,7 +1593,7 @@ export function createEgressProxy({
 // ---- end egress ----
 
 /**
- * what the app's frames ask of this server, over either path: requests and websockets to OpenMausBot, control ops to this
+ * what the app's frames ask of this server, over either path: requests and websockets to Dusk Bot, control ops to this
  * agent. `sink` takes the replies: push(frame), bytes(r, chunk) (false: pause), onDrain(resume), discard(r).
  */
 export function createServing({ server = SERVER, sink, stopped = () => false, context = {}, controls = true, forwardedFor = "192.0.2.10", allow = null }) {
@@ -1606,7 +1634,7 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
     const headers = {};
     for (const [name, value] of Object.entries(frame.headers ?? {})) {
       const lower = name.toLowerCase();
-      if (!HOP.has(lower) && (controls || (lower !== "cookie" && !lower.startsWith("x-openmausbot-")))) headers[name] = value;
+      if (!HOP.has(lower) && (controls || (lower !== "cookie" && !isOwnHeader(lower)))) headers[name] = value;
     }
     if (frame.up === true) { headers.connection = "Upgrade"; headers.upgrade = "websocket"; }
     // marks every tunnelled request as remote (server/request-auth.ts isProxied): it needs a paired session, never loopback trust
@@ -1631,7 +1659,7 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
       res.on("end", () => { if (pending.delete(frame.r)) emit({ t: "end", r: frame.r }); });
       res.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "reply cut off" }); });
     }); } catch { emit({ t: "err", r: frame.r, message: "That request could not be sent." }); return; }
-    req.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "OpenMausBot on the server did not answer" }); });
+    req.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "Dusk Bot on the server did not answer" }); });
     // bytes the app sent before the handshake was answered wait for the socket
     const early = [];
     let earlyBytes = 0;
@@ -1798,7 +1826,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, origin = null
 export function harnessSync(server = SERVER) {
   return ({ base, tunnel, pub, origin = null, spki = null, applied, failed, wait, signal }) => new Promise((resolve, reject) => {
     const payload = Buffer.from(JSON.stringify({ base, tunnel, pub, origin, spki, applied, failed, wait }));
-    const req = httpRequest({ ...server, method: "POST", path: "/api/mobile/relay/sync", headers: { "x-openmausbot-cli": "1", "content-type": "application/json", "content-length": payload.length }, signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout((wait + 15) * 1000)]) }, (res) => {
+    const req = httpRequest({ ...server, method: "POST", path: "/api/mobile/relay/sync", headers: withLegacyHeaders({ "x-dusk-cli": "1", "content-type": "application/json", "content-length": String(payload.length) }), signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout((wait + 15) * 1000)]) }, (res) => {
       const chunks = [];
       res.on("data", (chunk) => chunks.push(chunk));
       res.on("error", reject);
@@ -1891,7 +1919,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
     const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, cid, "to-app", r, bytes), post, delayMs: () => (fetchImpl.multiplexed?.() ? 0 : H1_POST_DELAY_MS), signal: closed.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => { if (channels.get(cid) === channel) drop(cid); } });
     channel.serving = createServing({ server, controls: false, stopped: () => closed.signal.aborted,
       forwardedFor: `198.51.100.${1 + (createHash("sha256").update(cid).digest()[0] % 254)}`,
-      allow: channel.kind === "grant" ? (method, path) => (method === "POST" && path === "/api/mobile/redeem") || (method === "GET" && ["/.well-known/openmausbot/environment", "/api/health"].includes(path)) : null,
+      allow: channel.kind === "grant" ? (method, path) => (method === "POST" && path === "/api/mobile/redeem") || (method === "GET" && ["/.well-known/duskbot/environment", "/api/health"].includes(fromLegacyPath(path))) : null,
       sink: { push: (frame) => outbox.push(sealFrame(key, cid, "to-app", frame), frame.r), bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard },
     });
     return channel.serving;
@@ -2101,11 +2129,11 @@ export async function listenDirectSocket(hub, file = directSocketPath(), log = (
 }
 
 /**
- * the direct path over https: a websocket on loopback (OMB_LINK_WSS_PORT, 8797) that this server's https front passes
+ * the direct path over https: a websocket on loopback (DUSK_LINK_WSS_PORT, 8797) that this server's https front passes
  * WS_PATH to (caddy in a direct install, or an operator's own reverse proxy). anyone may connect; only frames sealed
  * with the tunnel key are ever opened, as on every other path. null when the port is taken
  */
-export async function listenDirectWss(hub, { host = "127.0.0.1", port = Number(process.env.OMB_LINK_WSS_PORT) || 8797, log = (line) => console.error(line) } = {}) {
+export async function listenDirectWss(hub, { host = "127.0.0.1", port = Number(process.env.DUSK_LINK_WSS_PORT) || 8797, log = (line) => console.error(line) } = {}) {
   const refuse = (socket) => socket.end("HTTP/1.1 404 Not Found\r\ncontent-length: 0\r\nconnection: close\r\n\r\n");
   const listening = createServer((_req, res) => { res.writeHead(404, { "content-type": "text/plain" }); res.end("not found"); });
   listening.on("upgrade", (req, socket, head) => {
@@ -2161,11 +2189,11 @@ async function direct() {
 async function tunnel() {
   let saved;
   try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet; nothing to do"); return 0; }
-  // the installed file hands over to a newer staged release; a staged release (OMB_LINK_LAUNCHER set) never looks further
+  // the installed file hands over to a newer staged release; a staged release (DUSK_LINK_LAUNCHER set) never looks further
   // self-update runs downloaded code as this agent, so it waits for a pinned release key
-  const releaseKeys = [...RELEASE_KEYS, ...(process.env.OMB_LINK_RELEASE_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean)];
-  const updates = process.env.OMB_LINK_UPDATES !== "off" && releaseKeys.length > 0;
-  if (updates && !process.env.OMB_LINK_LAUNCHER) {
+  const releaseKeys = [...RELEASE_KEYS, ...(process.env.DUSK_LINK_RELEASE_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean)];
+  const updates = process.env.DUSK_LINK_UPDATES !== "off" && releaseKeys.length > 0;
+  if (updates && !process.env.DUSK_LINK_LAUNCHER) {
     const release = stagedRelease({ log: (line) => console.error(line) });
     if (release) return launchRelease(release);
   }
@@ -2174,7 +2202,7 @@ async function tunnel() {
     report: async (state) => { const answer = await local("POST", "/api/computer/egress/agent", state); return answer.status === 200 ? answer.body : null; },
   } });
   let phones = null;
-  if (process.env.OMB_LINK_PHONES !== "off") {
+  if (process.env.DUSK_LINK_PHONES !== "off") {
     const file = join(configDir(), "phone-keys.json");
     let keys = null;
     try { keys = JSON.parse(readFileSync(file, "utf8")); }
@@ -2186,7 +2214,7 @@ async function tunnel() {
     if (keys && (typeof keys.pub !== "string" || typeof keys.priv !== "string")) { console.error("link: phone keys are not valid; phones are off"); keys = null; }
     if (keys) phones = createPhoneHub({ base: saved.base, id: saved.id, token: saved.token, keys, origin: saved.mode === "direct" ? saved.origin : null, spki: null, sync: harnessSync(SERVER) });
   }
-  const [directSocket, directWs] = await Promise.all([listenDirectSocket(agent.direct), process.env.OMB_LINK_DIRECT === "off" ? null : listenDirectWss(agent.direct)]);
+  const [directSocket, directWs] = await Promise.all([listenDirectSocket(agent.direct), process.env.DUSK_LINK_DIRECT === "off" ? null : listenDirectWss(agent.direct)]);
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
   const phoneRun = phones?.run();
   const how = await agent.run();

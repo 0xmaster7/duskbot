@@ -16,7 +16,7 @@ it("a bot's turn reads its accounts' usage limits through its own capability, an
     await runControlOmb(["send", "--bot", bot.id, "--task", bot.threadId, "--text", "How much Claude is left?", "--url", fixture.info.url]);
     let token = "";
     await expect.poll(() => {
-      try { token = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN; } catch { return false; }
+      try { token = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN; } catch { return false; }
       return Boolean(token);
     }, { timeout: 15_000 }).toBe(true);
 

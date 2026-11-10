@@ -59,7 +59,7 @@ it("extracts an uploaded multi-page PDF through the supported bot tool and isola
     await expect.poll(() => existsSync(dump), { timeout: 15_000 }).toBe(true);
     const mounted = JSON.parse(readFileSync(dump, "utf8"));
     const agentEnv = mounted.mcpConfig.mcpServers.agents.env;
-    const client = createHarnessClient(base, agentEnv.OMB_COMMS_TOKEN);
+    const client = createHarnessClient(base, agentEnv.DUSK_COMMS_TOKEN);
     const context = { client, botId: bot.id, threadId: bot.threadId, depth: 0, externalRuntime: false };
     const fields = { invoice: { type: "string" } };
     const tool = await callHelperTool("extract", { fields, file: file.path }, context);
@@ -79,7 +79,7 @@ it("extracts an uploaded multi-page PDF through the supported bot tool and isola
     const traversal = await callHelperTool("extract", { fields, file: join(home, "config.json") }, context);
     expect(traversal.isError).toBe(true);
     await api("POST", `/api/bots/${bot.id}/interrupt`, {});
-    expect((await api("POST", "/api/internal/helpers/extract", { fields, file: file.path }, agentEnv.OMB_COMMS_TOKEN)).status).toBe(401);
+    expect((await api("POST", "/api/internal/helpers/extract", { fields, file: file.path }, agentEnv.DUSK_COMMS_TOKEN)).status).toBe(401);
   } finally {
     await waitForExit(child, { signal: "SIGTERM" });
     await new Promise<void>((resolve, reject) => model.close(error => error ? reject(error) : resolve()));

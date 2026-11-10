@@ -1,7 +1,7 @@
 // Builds the app package a managed My Cloud home installs (apps/cloud-service/src/home.ts, `omb-home install`): the
 // bundled server with its launcher, the built UI, skills, the home's edge config, the docker gate and the bot computer
-// kit. Private like the VPS package: serve it only to the account service (OMB_MANAGED_HOME_PACKAGE_FILE, or an https URL
-// the operator controls as OMB_MANAGED_HOME_PACKAGE_URL) with its sha256 as OMB_MANAGED_HOME_PACKAGE_SHA256.
+// kit. Private like the VPS package: serve it only to the account service (DUSK_MANAGED_HOME_PACKAGE_FILE, or an https URL
+// the operator controls as DUSK_MANAGED_HOME_PACKAGE_URL) with its sha256 as DUSK_MANAGED_HOME_PACKAGE_SHA256.
 //
 //   node apps/cloud-service/scripts/build-home-package.mjs                # build, pack into release/home/omb-home.tgz
 //   node apps/cloud-service/scripts/build-home-package.mjs --skip-build   # pack what dist-server/ and dist/ already hold

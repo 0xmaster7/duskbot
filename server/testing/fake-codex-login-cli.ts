@@ -4,8 +4,8 @@ import { existsSync, writeFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 
 const home = process.env.HOME;
-if (process.env.OMB_DEVICE_AUTH_FIXTURE !== "1" || !home || !isAbsolute(home)) {
-  process.stderr.write("This fake CLI requires OMB_DEVICE_AUTH_FIXTURE=1 and an isolated HOME.\n");
+if (process.env.DUSK_DEVICE_AUTH_FIXTURE !== "1" || !home || !isAbsolute(home)) {
+  process.stderr.write("This fake CLI requires DUSK_DEVICE_AUTH_FIXTURE=1 and an isolated HOME.\n");
   process.exit(2);
 }
 const authenticated = join(home, ".omb-fake-codex-authenticated");
@@ -20,7 +20,7 @@ if (args === "--version") {
   process.exitCode = signedIn ? 0 : 1;
 } else if (args === "login --device-auth") {
   writeFileSync(join(home, ".omb-fake-codex-device.pid"), String(process.pid), { mode: 0o600 });
-  process.stderr.write("Offline OMB verification fixture — do not enter this code at OpenAI.\n");
+  process.stderr.write("Offline Dusk Bot verification fixture — do not enter this code at OpenAI.\n");
   process.stderr.write("https://auth.openai.com/codex/device\nTEST-12345\n");
   const timer = setInterval(() => {
     if (!existsSync(approved)) return;

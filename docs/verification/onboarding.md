@@ -1,8 +1,8 @@
 # Welcome flow
 
-The current first run introduces MausBot, its computer, jobs and the shared
+The current first run introduces Dusk, its computer, jobs and the shared
 talking style, then opens the chat. It offers AI sign-in when no engine has
-passed its test. MausBot becomes Chief only when there is no existing Chief;
+passed its test. Dusk becomes Chief only when there is no existing Chief;
 there is no separate Chief selection screen. There is no app tour.
 
 The current offline checks are:
@@ -54,7 +54,7 @@ What each first-run surface depends on, and how it was checked:
 |---|---|---|
 | Desktop app, own server (full bridge, `remoteClient` present) | The current first run, decided without a new request | `src/components/onboarding/WelcomeGate.test.ts`, `src/components/onboarding/WelcomeFlow.test.ts` |
 | Hosted workspace opened inside the desktop app (reduced bridge, no `remoteClient`) | Treated like a browser: the server is asked | `src/components/onboarding/WelcomeGate.test.ts` |
-| Packaged desktop with the organization bridge | An optional "Using OpenMausBot at work?" row under Other ways in Connect an AI; a signed-in Company engine counts as ready | `src/components/onboarding/beats/OrganisationRow.test.ts`, `src/components/onboarding/ConnectAi.test.ts` (fake bridge) |
+| Packaged desktop with the organization bridge | An optional "Using Dusk Bot at work?" row under Other ways in Connect an AI; a signed-in Company engine counts as ready | `src/components/onboarding/beats/OrganisationRow.test.ts`, `src/components/onboarding/ConnectAi.test.ts` (fake bridge) |
 | Browser, admin of a hosted workspace | The first screen only, with the shared-workspace line, then the chat | `src/components/onboarding/WelcomeGate.test.ts`, `src/components/onboarding/WelcomeFlow.test.ts`, `src/lib/onboarding.test.ts` |
 | Browser, hosted member (no admin scope) | No welcome flow; one dismissible note kept in browser storage; no first-conversation spotlights | `src/components/onboarding/WelcomeGate.test.ts` |
 | Browser, client-scope session on a server that is not hosted | Nothing new: the flow does not open itself (it could not be saved); Settings replay and spotlights as before | `src/components/onboarding/WelcomeGate.test.ts`, `src/lib/onboarding.test.ts` |
@@ -112,7 +112,7 @@ desktop's preload bridge are not exercised here; they are covered by
 ## Bring what you already use (Oct 16 2026)
 
 Skills and MCP servers another AI tool keeps on this computer, brought in with
-one button: in Settings → Import, and offered by MausBot's first messages as a
+one button: in Settings → Import, and offered by Dusk's first messages as a
 "Bring in your skills" chip when its look around finds some within two seconds.
 Desktop app only.
 
@@ -127,8 +127,8 @@ touches, and checks that none of them was listed or opened and that the
 sentinel reaches no answer, saved server or copied skill. The route test
 refuses a paired device, a service loopback and a hosted or Cloud server; the
 end-to-end test runs the real server from `launchVerificationServer` against a
-planted home, as the desktop app runs it (`OMB_TEST_DESKTOP_OWNER_TOKEN`), checks
-that a headless server (`openmausbot serve`) refuses the step, and checks that the starter bot and a bot made afterwards both
+planted home, as the desktop app runs it (`DUSK_TEST_DESKTOP_OWNER_TOKEN`), checks
+that a headless server (`duskbot serve`) refuses the step, and checks that the starter bot and a bot made afterwards both
 get the skills in their turn's index, task folder links and `/name`, that a
 Claude turn with "Also use my Claude Code skills" on sees a Claude Code skill
 once, and that a bot can switch one off for itself. The rows, working, failed
@@ -145,7 +145,7 @@ pnpm exec vitest run src/lib/onboarding.test.ts src/lib/welcome-draft.test.ts sr
 
 The current flow components cover first-run state and replay. The
 retired Chief selector, app tour, first-conversation spotlight component and Meet
-MausBot popup have no current renderer fixture; their removed tests must not
+Dusk popup have no current renderer fixture; their removed tests must not
 be treated as acceptance evidence.
 
 ## Notch and dock step (Nov 9 2026)

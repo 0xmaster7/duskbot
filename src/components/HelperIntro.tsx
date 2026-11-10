@@ -11,7 +11,7 @@ interface IntroProps {
   followup?: Message;
 }
 
-/** MausBot's first message: a few short bubbles and its follow-up. */
+/** Dusk's first message: a few short bubbles and its follow-up. */
 export function HelperIntro(props: IntroProps) {
   return <SimpleHelperIntro {...props} />;
 }

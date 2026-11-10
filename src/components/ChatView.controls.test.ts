@@ -294,10 +294,10 @@ describe("thread control placement", () => {
     }
   });
   it("says in a few words that this computer can't be used, with the server's reason under Details", () => {
-    const line = "Only the OpenMausBot app on this computer can let a bot use it. Open the app here, or let the bot work in its own browser or on a cloud desktop instead.";
+    const line = "Only the Dusk Bot app on this computer can let a bot use it. Open the app here, or let the bot work in its own browser or on a cloud desktop instead.";
     const markup = renderToStaticMarkup(createElement(ErrorRow, { message: line, action: { label: "Open screen", onClick: () => {} } }));
     expect(markup).toContain("I can&#x27;t use this computer right now.");
-    expect(markup).toMatch(/<details[\s\S]*Details[\s\S]*Only the OpenMausBot app/);
+    expect(markup).toMatch(/<details[\s\S]*Details[\s\S]*Only the Dusk Bot app/);
     expect(markup).toContain(">Open screen</button>");
   });
   it("directs ChatGPT plan limits to usage settings rather than repeatedly retrying", () => {
@@ -308,7 +308,7 @@ describe("thread control placement", () => {
   });
   it("sends a Codex usage limit to the account's Codex usage page, not Retry", () => {
     const codex = { instanceId: "codex", driverKind: "codex", displayName: "Codex", snapshot: { state: "available", authenticated: true } } as unknown as InstanceInfo;
-    const limit = `${CODEX_USAGE_LIMIT_REACHED} This is OpenAI's limit, not your MausBot plan. It resets at 5:23 PM (UTC).`;
+    const limit = `${CODEX_USAGE_LIMIT_REACHED} This is OpenAI's limit, not your Dusk plan. It resets at 5:23 PM (UTC).`;
     const markup = renderToStaticMarkup(createElement(FailedTurnRow, { tool: failedTurnTool(limit), engine: codex, onRetry: () => {} }));
     expect(markup).toContain(limit.replaceAll("'", "&#x27;"));
     expect(markup).toContain(`href="${CODEX_USAGE_URL}"`);
@@ -438,33 +438,33 @@ describe("thread control placement", () => {
     fixture.localMessage = "Screen Recording required";
     window.ogb = { platform: "darwin", permOpenSettings: vi.fn(), relaunch: vi.fn() } as unknown as NonNullable<Window["ogb"]>;
     const screen = renderToStaticMarkup(createElement(ErrorRow, {
-      message: "OpenMausBot can't use this computer yet — embedded host failed: Screen Recording required. Relaunch OpenMausBot after granting any missing macOS permission.",
+      message: "Dusk Bot can't use this computer yet — embedded host failed: Screen Recording required. Relaunch Dusk Bot after granting any missing macOS permission.",
     }));
     expect(screen).toContain("Open Screen Recording Settings");
-    expect(screen).toContain("Relaunch OpenMausBot");
+    expect(screen).toContain("Relaunch Dusk Bot");
     expect(screen).not.toContain("Open Accessibility Settings");
     fixture.localMessage = "Accessibility required";
     const accessibility = renderToStaticMarkup(createElement(ErrorRow, {
-      message: "OpenMausBot can't use this computer yet — Accessibility required",
+      message: "Dusk Bot can't use this computer yet — Accessibility required",
     }));
     expect(accessibility).toContain("Open Accessibility Settings");
     expect(accessibility).not.toContain("Open Screen Recording Settings");
     expect(renderToStaticMarkup(createElement(ErrorRow, {
-      message: "OpenMausBot can't use this computer yet — Screen Recording required",
+      message: "Dusk Bot can't use this computer yet — Screen Recording required",
     }))).not.toContain("Open Screen Recording Settings");
     expect(renderToStaticMarkup(createElement(ErrorRow, { message: "Network timeout" }))).not.toContain("Open Screen Recording Settings");
     // a copy run from source waits on CuaDriver's grant: name it, open its pane, check again instead of relaunching
     fixture.localMessage = "Screen Recording required for CuaDriver; turn on CuaDriver in System Settings > Privacy & Security";
     window.ogb = { platform: "darwin", permOpenSettings: vi.fn(), relaunch: vi.fn(), localControl: { retry: vi.fn() } } as unknown as NonNullable<Window["ogb"]>;
     const helper = renderToStaticMarkup(createElement(ErrorRow, {
-      message: "OpenMausBot can't use this computer yet: Screen Recording required. Turn on CuaDriver in System Settings > Privacy & Security > Screen Recording; OpenMausBot notices by itself, no restart needed.",
+      message: "Dusk Bot can't use this computer yet: Screen Recording required. Turn on CuaDriver in System Settings > Privacy & Security > Screen Recording; Dusk Bot notices by itself, no restart needed.",
     }));
     expect(helper).toContain("Turn on CuaDriver in System Settings");
     expect(helper).toContain("Open Screen Recording Settings");
     expect(helper).toContain("Check again");
     expect(helper).not.toContain("Relaunch");
     fixture.localReasonCode = "remote-server";
-    expect(renderToStaticMarkup(createElement(ErrorRow, { message: "OpenMausBot can't use this computer yet — Screen Recording required" }))).not.toContain("Open Screen Recording Settings");
+    expect(renderToStaticMarkup(createElement(ErrorRow, { message: "Dusk Bot can't use this computer yet — Screen Recording required" }))).not.toContain("Open Screen Recording Settings");
     fixture.localReasonCode = "cua-driver-unavailable";
     fixture.platform = "other";
     fixture.localMessage = "";

@@ -2,6 +2,7 @@
 // and uninstall scripts and the agent, (3) a relay tunnel of frames both ends seal, so it never reads a request, a reply or a credential.
 //
 // trust: the app holds the secrets. the relay stores only sha256 verifiers of bearer tokens and passes sealed blobs on.
+import { fromLegacyPath } from "./legacy.mjs";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { isIP } from "node:net";
@@ -447,12 +448,12 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
 
   async function handle(req, res) {
     const url = new URL(req.url ?? "/", "http://link.invalid");
-    const path = url.pathname;
+    const path = fromLegacyPath(url.pathname);
     const method = req.method ?? "GET";
     let parts;
 
-    if (method === "GET" && path === "/.well-known/openmausbot/dashboard") {
-      const dashboard = process.env.OMB_LINK_DASHBOARD_URL;
+    if (method === "GET" && path === "/.well-known/duskbot/dashboard") {
+      const dashboard = process.env.DUSK_LINK_DASHBOARD_URL;
       return dashboard ? send(res, 200, { v: 1, url: dashboard }) : fail(res, 404, "No account dashboard is configured.");
     }
     if (method === "GET" && path === "/healthz") return send(res, 200, { ok: true });

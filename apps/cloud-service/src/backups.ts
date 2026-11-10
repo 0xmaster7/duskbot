@@ -3,6 +3,7 @@
 // keyed per cloud from a secret only this service holds (boatBackupKey): nothing on the home can open one. Version 1 files,
 // keyed from the home's own bootstrap secret, are still read so the reconciler can seal them again as version 2.
 // Only the retention reconciler removes one (boat-retention.ts).
+import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
 import { chmodSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readdirSync, readSync, rmSync, statSync, writeSync } from "node:fs";
 import { join } from "node:path";
@@ -72,7 +73,8 @@ export function homeVolumeProblem(tar: Buffer, cloudId: string): string | null {
   const marker = entries.find(e => e.name.split("/").slice(-1)[0] === MARKER_FILE && e.name.split("/").length <= 3);
   if (!marker) return "no_marker";
   try { if ((JSON.parse(marker.data.toString("utf8")) as { machine?: unknown }).machine !== cloudId) return "other_cloud"; } catch { return "bad_marker"; }
-  if (!entries.some(e => /(^|\/)\.openmausbot\//.test(e.name))) return "no_data";
+  // a cloud home's data folder keeps its name from before the rename (CLOUD_HOME), so its backups do too
+  if (!entries.some(e => e.name.split("/").slice(0, -1).includes(CLOUD_HOME.dataName))) return "no_data";
   return null;
 }
 

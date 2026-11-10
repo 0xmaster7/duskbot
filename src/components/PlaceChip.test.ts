@@ -150,7 +150,7 @@ describe("the places a conversation can be pinned to", () => {
     expect(availability()).toMatchObject({ cloud: true, vm: true, local: true });
   });
 
-  it("never reaches them on an OMB Cloud home", () => {
+  it("never reaches them on a Dusk Bot Cloud home", () => {
     fixture.config = { cloudHome: true };
     expect(availability()).toMatchObject({ cloud: true, vm: false, local: false });
   });

@@ -25,9 +25,9 @@ export { BOT_DESKTOP_IMAGE, BOT_DESKTOP_LABEL, BOT_DESKTOP_NETWORK, BOT_DESKTOP_
 export type VpsDesktopKind = "bot-desktop" | "cua";
 export type BotDesktopMode = "free" | "strict";
 
-/** New VPS computers get the bot desktop; OPENMAUSBOT_VPS_DESKTOP=cua keeps making Cua XFCE containers. */
+/** New VPS computers get the bot desktop; DUSK_VPS_DESKTOP=cua keeps making Cua XFCE containers. */
 export function preferredVpsDesktop(env: NodeJS.ProcessEnv = process.env): VpsDesktopKind {
-  return env.OPENMAUSBOT_VPS_DESKTOP === "cua" ? "cua" : "bot-desktop";
+  return env.DUSK_VPS_DESKTOP === "cua" ? "cua" : "bot-desktop";
 }
 
 /** A container's own labels say what it was made from, whichever kind new ones get today. */
@@ -92,10 +92,10 @@ export function botDesktopRunArgs(input: {
     "--shm-size", "512m",
     // a reboot leaves desktops asleep: they wake one by one when a bot needs one, never all at once
     "--restart", "no",
-    "-e", `OMB_MODE=${input.mode}`,
-    "-e", "OMB_BROWSER_AT_START=off",
+    "-e", `DUSK_MODE=${input.mode}`,
+    "-e", "DUSK_BROWSER_AT_START=off",
     "-e", `VNC_PW=${input.viewerSecret}`,
-    ...(!free && blocked.length ? ["-e", `OMB_BLOCK_EXTRA=${blocked.join(",")}`] : []),
+    ...(!free && blocked.length ? ["-e", `DUSK_BLOCK_EXTRA=${blocked.join(",")}`] : []),
     input.imageRef,
   ];
 }
@@ -147,14 +147,14 @@ export interface HostIsolation {
 }
 
 /** From `docker info --format '{{json .}}'`: gVisor under Runtimes, remapping under SecurityOptions.
- * OPENMAUSBOT_VPS_GVISOR=off skips gVisor even when installed. */
+ * DUSK_VPS_GVISOR=off skips gVisor even when installed. */
 export function hostIsolation(infoJson: string, env: NodeJS.ProcessEnv = process.env): HostIsolation {
   try {
     const info = JSON.parse(infoJson) as { Runtimes?: Record<string, unknown> | null; SecurityOptions?: unknown } | null;
     const runsc = Boolean(info?.Runtimes && typeof info.Runtimes === "object" && "runsc" in info.Runtimes);
     const options = Array.isArray(info?.SecurityOptions) ? info.SecurityOptions : [];
     return {
-      runtime: runsc && env.OPENMAUSBOT_VPS_GVISOR !== "off" ? "runsc" : null,
+      runtime: runsc && env.DUSK_VPS_GVISOR !== "off" ? "runsc" : null,
       userns: options.some((option) => typeof option === "string" && /(^|,)name=userns(,|$)/.test(option)),
     };
   } catch {
@@ -164,7 +164,7 @@ export function hostIsolation(infoJson: string, env: NodeJS.ProcessEnv = process
 
 /** free only when the host fences the network and something stronger than plain runc guards the kernel. */
 export function botDesktopMode(fenced: boolean, isolation: HostIsolation, env: NodeJS.ProcessEnv = process.env): BotDesktopMode {
-  if (env.OPENMAUSBOT_VPS_BOX === "strict") return "strict";
+  if (env.DUSK_VPS_BOX === "strict") return "strict";
   return fenced && (isolation.runtime === "runsc" || isolation.userns) ? "free" : "strict";
 }
 
@@ -214,7 +214,7 @@ export function botDesktopMountsAreSafe(containerName: string, detail: {
 export function containerBotDesktopMode(labels: Record<string, string> | undefined, env: string[] | undefined): BotDesktopMode | undefined {
   const mode = labels?.[BOT_DESKTOP_MODE_LABEL];
   if (mode !== "free" && mode !== "strict") return undefined;
-  const envMode = env?.find((entry) => entry.startsWith("OMB_MODE="))?.slice("OMB_MODE=".length) ?? "strict";
+  const envMode = env?.find((entry) => entry.startsWith("DUSK_MODE="))?.slice("DUSK_MODE=".length) ?? "strict";
   return envMode === mode ? mode : undefined;
 }
 
@@ -238,10 +238,10 @@ export type BotDesktopProgress = "pulling" | "building";
 
 /**
  * The build folder for BOT_DESKTOP_IMAGE that ships with this server (deploy/bot-desktop beside dist-server or server),
- * or OMB_BOT_DESKTOP_KIT. Null unless its Dockerfile builds exactly BOT_DESKTOP_VERSION and docker can read it (not in an asar).
+ * or DUSK_BOT_DESKTOP_KIT. Null unless its Dockerfile builds exactly BOT_DESKTOP_VERSION and docker can read it (not in an asar).
  */
 export function botDesktopKit(env: NodeJS.ProcessEnv = process.env): string | null {
-  const dir = env.OMB_BOT_DESKTOP_KIT?.trim() ? resolve(env.OMB_BOT_DESKTOP_KIT.trim()) : fileURLToPath(new URL("../deploy/bot-desktop", import.meta.url));
+  const dir = env.DUSK_BOT_DESKTOP_KIT?.trim() ? resolve(env.DUSK_BOT_DESKTOP_KIT.trim()) : fileURLToPath(new URL("../deploy/bot-desktop", import.meta.url));
   if (dir.split(sep).some((part) => part.endsWith(".asar"))) return null;
   const dockerfile = `${dir}${sep}Dockerfile`;
   if (!existsSync(dockerfile)) return null;
@@ -297,7 +297,7 @@ async function prepareBotDesktop(run: DockerRun, imageId: string | null, onProgr
         Options?: Record<string, string> | null;
       };
       if (network.Labels?.[BOT_DESKTOP_NETWORK_LABEL] !== "1" || network.Options?.["com.docker.network.bridge.name"] !== BOT_DESKTOP_BRIDGE) {
-        throw Object.assign(new Error(`The VPS has a Docker network named ${BOT_DESKTOP_NETWORK} that OpenMausBot did not create`), { status: 409 });
+        throw Object.assign(new Error(`The VPS has a Docker network named ${BOT_DESKTOP_NETWORK} that Dusk Bot did not create`), { status: 409 });
       }
     } catch (error) {
       if (!missing(error)) throw error;
@@ -331,7 +331,7 @@ export async function provisionBotDesktop(run: DockerRun, input: {
   /** holds the host's room for this desktop around its start (server/vps-capacity.ts) */
   admit?: (start: (limits: VpsDesktopLimits) => Promise<unknown>) => Promise<unknown>;
 }): Promise<BotDesktopMode> {
-  const key = input.hostKey ? JSON.stringify([input.hostKey, input.imageId, process.env.OPENMAUSBOT_VPS_GVISOR, process.env.OPENMAUSBOT_VPS_BOX]) : null;
+  const key = input.hostKey ? JSON.stringify([input.hostKey, input.imageId, process.env.DUSK_VPS_GVISOR, process.env.DUSK_VPS_BOX]) : null;
   let preparation = key ? pendingPreparations.get(key) : undefined;
   if (!preparation) {
     preparation = prepareBotDesktop(run, input.imageId, input.onProgress);

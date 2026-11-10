@@ -1,48 +1,58 @@
 #!/bin/sh
-# openmausbot vps uninstaller: takes off this server everything apps/link-service/install.sh put on it, so the install line
+# duskbot vps uninstaller: takes off this server everything apps/link-service/install.sh put on it, so the install line
 # can be pasted again on a clean box.
-#   curl -fsSL https://link.apps.siddz.com/uninstall | sh                 shows what it removes, asks on the terminal
-#   curl -fsSL https://link.apps.siddz.com/uninstall | sh -s -- --yes     no question (also OMB_UNINSTALL_YES=1)
+#   curl -fsSL https://link.dusk.bot/uninstall | sh                 shows what it removes, asks on the terminal
+#   curl -fsSL https://link.dusk.bot/uninstall | sh -s -- --yes     no question (also DUSK_UNINSTALL_YES=1)
 # flags: --yes, --no-backup (no tarball of the bots' data first), --all (also the packages install.sh added, from its
 # manifest), --dry-run (only show what it would remove). with no terminal to ask on and no --yes it only shows.
 # safe to run again, and when nothing or only part is installed: every step looks before it removes.
-# knobs (env): LINK_BASE; NO_COLOR, OMB_ASCII=1, OMB_PLAIN=1, OMB_NO_ANIM=1 (terminal).
+# knobs (env): LINK_BASE; NO_COLOR, DUSK_ASCII=1, DUSK_PLAIN=1, DUSK_NO_ANIM=1 (terminal).
 set -eu
 
 PLACEHOLDER_BASE="__LINK""_BASE__"
 BAKED_BASE="__LINK_BASE__"
 if [ -z "${LINK_BASE:-}" ]; then
-  if [ "$BAKED_BASE" = "$PLACEHOLDER_BASE" ]; then LINK_BASE="https://link.apps.siddz.com"; else LINK_BASE="$BAKED_BASE"; fi
+  if [ "$BAKED_BASE" = "$PLACEHOLDER_BASE" ]; then LINK_BASE="https://link.dusk.bot"; else LINK_BASE="$BAKED_BASE"; fi
 fi
 LINK_BASE=${LINK_BASE%/}
 
-SVC_USER=maus
-SVC_HOME=/home/maus
-DATA=$SVC_HOME/.openmausbot
-STATE=/var/lib/openmausbot-link
-LOGS_DIR=/var/log/openmausbot-link
-OPT=/opt/openmausbot-link
-MANIFEST=/var/lib/openmausbot/install-manifest
+SVC_USER=dusk
+SVC_HOME=/home/dusk
+DATA=$SVC_HOME/.duskbot
+STATE=/var/lib/duskbot-link
+LOGS_DIR=/var/log/duskbot-link
+OPT=/opt/duskbot-link
+MANIFEST=/var/lib/duskbot/install-manifest
 FENCE=/usr/local/sbin/omb-host-fence
 UNITS=/etc/systemd/system
-OUR_UNITS="openmausbot-link.service openmausbot.service openmausbot-engines.path openmausbot-restart.service openmausbot-handoff.service omb-docker-gate.service omb-box-fence.service"
+OUR_UNITS="duskbot-link.service duskbot.service duskbot-engines.path duskbot-restart.service duskbot-handoff.service omb-docker-gate.service omb-box-fence.service"
 # the accounts install.sh splits the server into (link agent, docker gate) and their files
 LINK_USER=omb-link
 LINK_HOME=/var/lib/omb-link
 GATE_USER=omb-docker
 GATE_GROUP=omb-dockergate
-LIB=/usr/local/lib/openmausbot
-ETC=/etc/openmausbot
-BWRAP_PROFILE=/etc/apparmor.d/openmausbot-bwrap
+LIB=/usr/local/lib/duskbot
+ETC=/etc/duskbot
+BWRAP_PROFILE=/etc/apparmor.d/duskbot-bwrap
 NETWORK=openmausbot-desktops
 BRIDGE=omb-desk0
 DAEMON=/etc/docker/daemon.json
+CADDY_NAME=duskbot
+LINK_CONF=duskbot-link
+# a server set up before the rename and not installed again since keeps the old names (install.sh moves them)
+OLD=openmausbot
+if ! id "$SVC_USER" >/dev/null 2>&1 && id maus >/dev/null 2>&1; then SVC_USER=maus SVC_HOME=/home/maus DATA=/home/maus/.duskbot; fi
+if [ ! -d "$STATE" ] && { [ -d "/var/lib/$OLD-link" ] || [ -e "$UNITS/$OLD.service" ]; }; then
+  DATA=$SVC_HOME/.$OLD STATE=/var/lib/$OLD-link LOGS_DIR=/var/log/$OLD-link OPT=/opt/$OLD-link MANIFEST=/var/lib/$OLD/install-manifest
+  OUR_UNITS="$OLD-link.service $OLD.service $OLD-engines.path $OLD-restart.service $OLD-handoff.service omb-docker-gate.service omb-box-fence.service"
+  LIB=/usr/local/lib/$OLD ETC=/etc/$OLD BWRAP_PROFILE=/etc/apparmor.d/$OLD-bwrap CADDY_NAME=$OLD LINK_CONF=$OLD-link
+fi
 # kept even with --all: the line to install again needs them
 KEEP_PKGS="curl ca-certificates"
 export DEBIAN_FRONTEND=noninteractive
 
 YES=0 BACKUP=1 ALL=0 DRY=0
-[ "${OMB_UNINSTALL_YES:-}" = 1 ] && YES=1
+[ "${DUSK_UNINSTALL_YES:-}" = 1 ] && YES=1
 ARGS="$*"
 for arg in "$@"; do
   case "$arg" in
@@ -50,7 +60,7 @@ for arg in "$@"; do
     --no-backup) BACKUP=0 ;;
     --all) ALL=1 ;;
     --dry-run) DRY=1 ;;
-    -h|--help) printf '%s\n' "usage: curl -fsSL $LINK_BASE/uninstall | sh [-s -- options]" "  --yes        remove without asking (or OMB_UNINSTALL_YES=1)" \
+    -h|--help) printf '%s\n' "usage: curl -fsSL $LINK_BASE/uninstall | sh [-s -- options]" "  --yes        remove without asking (or DUSK_UNINSTALL_YES=1)" \
       "  --no-backup  don't save the bots' data to /root first" "  --all        also remove the packages the install added (Docker, Node, Caddy, gVisor)" \
       "  --dry-run    only show what it would remove"; exit 0 ;;
     *) printf 'unknown option: %s (try --yes, --no-backup, --all, --dry-run)\n' "$arg" >&2; exit 2 ;;
@@ -64,7 +74,7 @@ ESC=$(printf '\033')
 UI=plain DEPTH=0 ASCII=1 COLS=80 ROWS=24 LIST=0 MS=1 TICK=0.12 MASCOT=0 MASCOT_COL=61 TICKS=0
 R="" BOLD="" DIM="" OK="" ACC="" WARN="" ERR="" SHADOW="" FAINT="" EL=""
 ui_init() {
-  if [ -t 1 ] && [ "${TERM:-dumb}" != dumb ] && [ "${OMB_PLAIN:-}" != 1 ]; then UI="tty"; fi
+  if [ -t 1 ] && [ "${TERM:-dumb}" != dumb ] && [ "${DUSK_PLAIN:-}" != 1 ]; then UI="tty"; fi
   size=$( { stty size </dev/tty; } 2>/dev/null || true)
   case "$size" in
     [0-9]*' '[0-9]*) ROWS=${size% *}; COLS=${size#* } ;;
@@ -74,7 +84,7 @@ ui_init() {
   case "$(date +%s%N 2>/dev/null)" in *N*|'') MS=0 ;; esac
   [ "$UI" = tty ] || return 0
   ASCII=0
-  [ "${OMB_ASCII:-}" = 1 ] && ASCII=1
+  [ "${DUSK_ASCII:-}" = 1 ] && ASCII=1
   EL="${ESC}[K"
   if [ -z "${NO_COLOR:-}" ]; then
     case "${COLORTERM:-}" in
@@ -138,12 +148,12 @@ EOF
 banner() {
   say ""
   if [ "$UI" != tty ] || [ "$ASCII" = 1 ] || [ "$COLS" -lt 80 ]; then
-    say "  ${ACC}${BOLD}open${R}${BOLD}mausbot${R}  ${DIM}uninstall${R}"
+    say "  ${ACC}${BOLD}open${R}${BOLD}dusk${R}  ${DIM}uninstall${R}"
     say ""
     MASCOT=0
     return 0
   fi
-  anim=0; [ "$DEPTH" -ge 8 ] && [ "${OMB_NO_ANIM:-}" != 1 ] && anim=1
+  anim=0; [ "$DEPTH" -ge 8 ] && [ "${DUSK_NO_ANIM:-}" != 1 ] && anim=1
   say "  ${DIM}o p e n${R}"
   banner_art | awk -v depth="$DEPTH" -v esc="$ESC" -v shade="$SHADOW" -v reset="$R" -v anim="$anim" '
     function lerp(a, b, t) { return int(a + (b - a) * t + 0.5) }
@@ -191,7 +201,7 @@ banner() {
       for (f = 0; f <= S; f++) { frame(f); if (f < S) system("sleep 0.05") }
     }'
   say ""
-  printf '  %s%-58s%s%s<:3 )~%s\n' "$DIM" "taking OpenMausBot off this server" "$R" "$ACC" "$R"
+  printf '  %s%-58s%s%s<:3 )~%s\n' "$DIM" "taking Dusk Bot off this server" "$R" "$ACC" "$R"
   MASCOT_COL=61 MASCOT=1
   [ "$DEPTH" -gt 0 ] || MASCOT=0
   say ""
@@ -243,13 +253,13 @@ become_root() {
   say "Asking for administrator rights..."
   # shellcheck disable=SC2086
   if [ -r "$0" ] && [ "${0##*/}" != "sh" ] && [ "${0##*/}" != "dash" ]; then
-    exec sudo env LINK_BASE="$LINK_BASE" OMB_UNINSTALL_YES="${OMB_UNINSTALL_YES:-}" COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" \
-      OMB_ASCII="${OMB_ASCII:-}" OMB_PLAIN="${OMB_PLAIN:-}" OMB_NO_ANIM="${OMB_NO_ANIM:-}" sh "$0" $ARGS
+    exec sudo env LINK_BASE="$LINK_BASE" DUSK_UNINSTALL_YES="${DUSK_UNINSTALL_YES:-}" COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" \
+      DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" sh "$0" $ARGS
   fi
   # piped: the script is gone from stdin, so fetch it again for root
   # shellcheck disable=SC2086
-  curl -fsSL --retry 3 "$LINK_BASE/uninstall" | sudo env LINK_BASE="$LINK_BASE" OMB_UNINSTALL_YES="${OMB_UNINSTALL_YES:-}" \
-    COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" OMB_ASCII="${OMB_ASCII:-}" OMB_PLAIN="${OMB_PLAIN:-}" OMB_NO_ANIM="${OMB_NO_ANIM:-}" sh -s -- $ARGS
+  curl -fsSL --retry 3 "$LINK_BASE/uninstall" | sudo env LINK_BASE="$LINK_BASE" DUSK_UNINSTALL_YES="${DUSK_UNINSTALL_YES:-}" \
+    COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" sh -s -- $ARGS
   exit $?
 }
 
@@ -270,7 +280,7 @@ our_containers() {
   { for _l in com.openmausbot.bot-desktop com.openmausbot.vps com.openmausbot.cua-driver com.openmausbot.container; do
       docker ps -aq --no-trunc --filter "label=$_l"
     done
-    docker ps -a --no-trunc --format '{{.ID}} {{.Names}}' | awk '$2 ~ /^openmausbot-/ { print $1 }'
+    docker ps -a --no-trunc --format '{{.ID}} {{.Names}}' | awk '$2 ~ /^duskbot-/ { print $1 }'
   } 2>/dev/null | sort -u
 }
 our_volumes() {
@@ -298,9 +308,9 @@ daemon_ours() {
   in_manifest "daemon-key userns" && grep -q '"userns-remap"' "$DAEMON" && return 0
   grep -q -- '--overlay2=none' "$DAEMON" && grep -q '"/usr/bin/runsc"' "$DAEMON"
 }
-caddy_ours() { [ -f /etc/caddy/openmausbot.caddy ] || grep -qs 'openmausbot' /etc/caddy/Caddyfile; }
+caddy_ours() { [ -f /etc/caddy/$CADDY_NAME.caddy ] || grep -qs "$CADDY_NAME" /etc/caddy/Caddyfile; }
 our_paths() {
-  for _p in "$OPT" "$LOGS_DIR" "$STATE" "$FENCE" "$DAEMON.omb-before" /etc/caddy/openmausbot.caddy "$SVC_HOME" "$LINK_HOME" "$LIB" "$ETC" "$BWRAP_PROFILE"; do
+  for _p in "$OPT" "$LOGS_DIR" "$STATE" "$FENCE" "$DAEMON.omb-before" /etc/caddy/$CADDY_NAME.caddy "$SVC_HOME" "$LINK_HOME" "$LIB" "$ETC" "$BWRAP_PROFILE"; do
     [ -e "$_p" ] && printf '%s\n' "$_p"
   done
   for _u in $OUR_UNITS; do [ -e "$UNITS/$_u" ] && printf '%s\n' "$UNITS/$_u"; done
@@ -362,9 +372,9 @@ survey() {
 BACKUP_FILE=""
 plan() {
   glyph dot; _d=$G
-  printf '  %sThis takes OpenMausBot off %s%s%s:%s\n\n' "$BOLD" "$ACC" "$NAME" "$R$BOLD" "$R"
+  printf '  %sThis takes Dusk Bot off %s%s%s:%s\n\n' "$BOLD" "$ACC" "$NAME" "$R$BOLD" "$R"
   item() { printf '    %s%s%s %s\n' "$DIM" "$_d" "$R" "$*"; }
-  [ -n "$S_UNITS" ] && item "the OpenMausBot server and its link to your app ($(count "$S_UNITS") services)"
+  [ -n "$S_UNITS" ] && item "the Dusk Bot server and its link to your app ($(count "$S_UNITS") services)"
   _nc=$(count "$S_CONTAINERS") _nv=$(count "$S_VOLUMES")
   if [ "$_nc" -gt 0 ] || [ "$_nv" -gt 0 ]; then item "$(plural "$_nc" "bot computer" "bot computers") and $(plural "$_nv" "saved home" "saved homes") of bot computers"; fi
   if [ -n "$S_IMAGES" ] && [ -n "$S_NETWORKS" ]; then item "the bot computer image and network"
@@ -414,7 +424,7 @@ PHASES="unlink stop computer home packages"
 phase_title() {
   case "$1" in
     unlink) say "Unlinking from your app" ;;
-    stop) say "Stopping OpenMausBot" ;;
+    stop) say "Stopping Dusk Bot" ;;
     computer) say "Clearing the bot computers" ;;
     home) say "Removing your bots' home" ;;
     packages) say "Removing what it installed" ;;
@@ -428,7 +438,7 @@ step_title() {
     fence) say "Taking down the fence" ;;
     sandbox) say "Putting Docker back" ;;
     backup) say "Saving a backup" ;;
-    user) say "Removing the maus account" ;;
+    user) say "Removing the $SVC_USER account" ;;
     files) say "Removing its files" ;;
     caddy) say "Removing its Caddy site" ;;
     purge) say "Removing packages" ;;
@@ -500,7 +510,7 @@ step() { # id function
 failure_words() {
   case "$1" in
     backup) say "Couldn't save the backup, so nothing of your bots was removed. Free some disk space, or run it again with --no-backup." ;;
-    user) say "Couldn't remove the maus account. Paste the line again; it picks up where it stopped." ;;
+    user) say "Couldn't remove the $SVC_USER account. Paste the line again; it picks up where it stopped." ;;
     *) say "Something went wrong. Paste the line again; it picks up where it stopped." ;;
   esac
 }
@@ -512,14 +522,14 @@ failure_panel() {
   done
   glyph arrow
   printf '\n  %s%s%s %s\n' "$ACC" "$G" "$R" "$(failure_words "$1")"
-  cat "$TMP"/logs/*.log > /root/openmausbot-uninstall.log 2>/dev/null || true
-  printf '    %sfull log: /root/openmausbot-uninstall.log%s\n\n' "$DIM" "$R"
+  cat "$TMP"/logs/*.log > /root/duskbot-uninstall.log 2>/dev/null || true
+  printf '    %sfull log: /root/duskbot-uninstall.log%s\n\n' "$DIM" "$R"
 }
 
 # ---------- steps ----------
 do_revoke() {
-  file="$LINK_HOME/.config/openmausbot-link/tunnel.json"
-  [ -f "$file" ] || file="$SVC_HOME/.config/openmausbot-link/tunnel.json"
+  file="$LINK_HOME/.config/$LINK_CONF/tunnel.json"
+  [ -f "$file" ] || file="$SVC_HOME/.config/$LINK_CONF/tunnel.json"
   [ -f "$file" ] || { echo "not linked to an app"; return 10; }
   id=$(sed -n 's/.*"id":"\([a-z2-7]\{10\}\)".*/\1/p' "$file" | head -n 1)
   token=$(sed -n 's/.*"token":"\([A-Za-z0-9_-]\{20,100\}\)".*/\1/p' "$file" | head -n 1)
@@ -667,7 +677,7 @@ do_sandbox() {
 do_backup() {
   [ -d "$DATA" ] || { echo "no bot data to save"; return 10; }
   [ "$BACKUP" = 1 ] || { echo "no backup (--no-backup)"; return 10; }
-  x tar -czf "$BACKUP_FILE.tmp" -C "$SVC_HOME" .openmausbot
+  x tar -czf "$BACKUP_FILE.tmp" -C "$SVC_HOME" "${DATA##*/}"
   chmod 0600 "$BACKUP_FILE.tmp"
   mv "$BACKUP_FILE.tmp" "$BACKUP_FILE"
   echo "saved $(du -h "$BACKUP_FILE" | cut -f1) to $BACKUP_FILE"
@@ -690,7 +700,7 @@ do_user() {
   if ! id "$SVC_USER" >/dev/null 2>&1; then
     other_accounts
     if [ -d "$SVC_HOME" ]; then x rm -rf "$SVC_HOME"; echo "removed $SVC_HOME"; return 0; fi
-    echo "no maus account"; return 10
+    echo "no $SVC_USER account"; return 10
   fi
   if pgrep -u "$SVC_USER" >/dev/null 2>&1; then
     loginctl terminate-user "$SVC_USER" >/dev/null 2>&1 || true
@@ -698,23 +708,23 @@ do_user() {
     sleep 1
   fi
   x userdel -r "$SVC_USER" 2>&1 | grep -v 'mail spool' || true
-  id "$SVC_USER" >/dev/null 2>&1 && { echo "the maus account is still there"; return 1; }
+  id "$SVC_USER" >/dev/null 2>&1 && { echo "the $SVC_USER account is still there"; return 1; }
   getent group "$SVC_USER" >/dev/null 2>&1 && groupdel "$SVC_USER" 2>/dev/null || true
   [ -d "$SVC_HOME" ] && x rm -rf "$SVC_HOME"
   other_accounts
-  echo "removed the maus account and $SVC_HOME"
-  note "maus and its home removed"
+  echo "removed the $SVC_USER account and $SVC_HOME"
+  note "$SVC_USER and its home removed"
 }
 
 do_caddy() {
   caddy_ours || { echo "no Caddy site"; return 10; }
   main=/etc/caddy/Caddyfile
-  if [ -f /etc/caddy/openmausbot.caddy ]; then x rm -f /etc/caddy/openmausbot.caddy; fi
-  if [ -f "$main" ] && grep -q "managed by openmausbot-link" "$main"; then
+  if [ -f /etc/caddy/$CADDY_NAME.caddy ]; then x rm -f /etc/caddy/$CADDY_NAME.caddy; fi
+  if [ -f "$main" ] && grep -q "managed by duskbot-link" "$main"; then
     if [ -f "$main.omb-before" ]; then x mv -f "$main.omb-before" "$main"; else x rm -f "$main"; fi
-  elif [ -f "$main" ] && grep -q "import /etc/caddy/openmausbot.caddy" "$main"; then
-    show sed -i '/import \/etc\/caddy\/openmausbot.caddy/d' "$main"
-    sed -i '/import \/etc\/caddy\/openmausbot.caddy/d' "$main"
+  elif [ -f "$main" ] && grep -q "import /etc/caddy/$CADDY_NAME.caddy" "$main"; then
+    show sed -i "\\#import /etc/caddy/$CADDY_NAME.caddy#d" "$main"
+    sed -i "\\#import /etc/caddy/$CADDY_NAME.caddy#d" "$main"
   fi
   for port in $(manifest ufw); do command -v ufw >/dev/null 2>&1 && x ufw delete allow "$port" || true; done
   if command -v caddy >/dev/null 2>&1; then
@@ -836,7 +846,7 @@ finale() {
   glyph sep
   if [ "$LEFT" -eq 0 ]; then
     glyph ok; _ok=$G; glyph sep
-    printf '\n  %s%s %sOpenMausBot is gone from %s%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$NAME" "$R" "$DIM" "$G" "$total" "$R"
+    printf '\n  %s%s %sDusk Bot is gone from %s%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$NAME" "$R" "$DIM" "$G" "$total" "$R"
     if [ -f "$BACKUP_FILE" ]; then printf '    %syour bots are saved in %s%s\n' "$DIM" "$BACKUP_FILE" "$R"; fi
     printf '\n  %s%sAll clean. Paste the install line from the app whenever you want it back.%s\n\n' "$ACC" "$BOLD" "$R"
   else
@@ -870,14 +880,14 @@ main() {
   [ "$UI" = tty ] && printf '%s[?25l' "$ESC"
   NAME=$(hostname -s 2>/dev/null | tr -cd 'A-Za-z0-9.-' | cut -c1-40)
   [ -n "$NAME" ] || NAME="this server"
-  BACKUP_FILE="/root/openmausbot-backup-$(date +%Y%m%d-%H%M%S).tgz"
+  BACKUP_FILE="/root/duskbot-backup-$(date +%Y%m%d-%H%M%S).tgz"
   RUN_T0=$(now_ms)
 
   banner
   survey
   if [ "$S_ANY" = 0 ]; then
     glyph ok
-    printf '  %s%s %sNothing of OpenMausBot is on %s.%s\n' "$OK" "$G" "$BOLD" "$NAME" "$R"
+    printf '  %s%s %sNothing of Dusk Bot is on %s.%s\n' "$OK" "$G" "$BOLD" "$NAME" "$R"
     leftovers
     printf '\n  %sPaste the install line from the app to set it up.%s\n\n' "$DIM" "$R"
     return 0

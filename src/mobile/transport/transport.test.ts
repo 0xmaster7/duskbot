@@ -37,9 +37,9 @@ describe("SSE parser", () => {
 describe("API URL routing", () => {
   it.each([
     ["/api/events?since=a%2Fb#ignored", "https://workspace.test/api/events?since=a%2Fb"],
-    ["/.well-known/openmausbot/environment", "https://workspace.test/.well-known/openmausbot/environment"],
+    ["/.well-known/duskbot/environment", "https://workspace.test/.well-known/duskbot/environment"],
     ["https://localhost/api/bots", "https://workspace.test/api/bots"],
-    ["https://localhost/.well-known/openmausbot/environment", "https://workspace.test/.well-known/openmausbot/environment"],
+    ["https://localhost/.well-known/duskbot/environment", "https://workspace.test/.well-known/duskbot/environment"],
     ["https://other.test/api/bots", null],
     ["https://localhost:8080/api/bots", null],
     ["http://localhost/api/bots", null],

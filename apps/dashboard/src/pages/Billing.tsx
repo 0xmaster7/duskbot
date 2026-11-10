@@ -18,7 +18,7 @@ import { cartText, IntervalToggle, LicenseSheet, PlanSheet, priceText, useInterv
 
 export { IntervalToggle, useInterval };
 
-const CONTACT = "mailto:hello@openmausbot.com";
+const CONTACT = "mailto:hello@dusk.bot";
 const members = (n: number) => `${n} ${n === 1 ? "member" : "members"}`;
 type Tier = "free" | PaidPlan;
 type Use = "personal" | "work";

@@ -1,6 +1,7 @@
 // The managed cloud backend the account service plugs in (apps/dashboard/server/clouds/managed.ts): one machine per cloud at
 // the provider, its lifecycle, backups, retention, the stray-machine sweep, the machine claim and the edge's route lookup.
 // The provider's API key, backup storage and backup secret exist only in this process.
+import "../../../electron/legacy-names.mjs";
 import { createHash, hkdfSync, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -35,7 +36,7 @@ export interface ManagedCloudDeps {
   notify(cloud: StoredCloud, kind: NoticeKind, at: number | null, link?: string): void;
   /** public keys a release must be signed with (the pinned ones unless a test says otherwise) */
   releaseKeys?: readonly ReleaseKey[];
-  /** the bearer the edge proxy presents to look up a label's upstream (OMB_MANAGED_EDGE_TOKEN) */
+  /** the bearer the edge proxy presents to look up a label's upstream (DUSK_MANAGED_EDGE_TOKEN) */
   edgeToken?: string | null;
   /** keys the opaque public labels; defaults to one derived from the backup secret */
   labelKey?: Buffer;
@@ -147,8 +148,8 @@ function localSecret(path: string): Buffer {
 
 /** older deployments named every setting after the provider; those names still work, the neutral one wins */
 export function managedEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const legacy = /^OMB_BOAT(?=_|$)/, out: NodeJS.ProcessEnv = { ...env };
-  for (const [key, value] of Object.entries(env)) if (legacy.test(key)) { const name = key.replace(legacy, "OMB_MANAGED"); if (out[name] === undefined) out[name] = value; }
+  const legacy = /^DUSK_BOAT(?=_|$)/, out: NodeJS.ProcessEnv = { ...env };
+  for (const [key, value] of Object.entries(env)) if (legacy.test(key)) { const name = key.replace(legacy, "DUSK_MANAGED"); if (out[name] === undefined) out[name] = value; }
   return out;
 }
 
@@ -167,41 +168,41 @@ export interface ManagedCloudEnvOptions {
   alert?(entry: AuditEntry): void;
 }
 
-/** OMB_MANAGED=1 attaches the backend; anything else leaves the account service without one */
+/** DUSK_MANAGED=1 attaches the backend; anything else leaves the account service without one */
 export function managedCloudFromEnv(source: NodeJS.ProcessEnv, options: ManagedCloudEnvOptions): ManagedCloudFactory | null {
   const env = managedEnv(source);
-  if (env.OMB_MANAGED !== undefined && env.OMB_MANAGED !== "0" && env.OMB_MANAGED !== "1") throw new Error("Invalid OMB_MANAGED.");
-  if (env.OMB_MANAGED !== "1") return null;
+  if (env.DUSK_MANAGED !== undefined && env.DUSK_MANAGED !== "0" && env.DUSK_MANAGED !== "1") throw new Error("Invalid DUSK_MANAGED.");
+  if (env.DUSK_MANAGED !== "1") return null;
   const required = (key: string) => { const value = env[key]; if (!value) throw new Error(`${key} is required.`); return value; };
   // the runtime key: sandbox lifecycle, commands and files on its own machines, snapshot reads for backups; never the template key
   const apiKey = required("BOAT_API_KEY");
   if (env.BOAT_TEMPLATE_API_KEY && env.BOAT_TEMPLATE_API_KEY === apiKey) throw new Error("BOAT_TEMPLATE_API_KEY must be a different key from BOAT_API_KEY.");
   // the e2e harness's service is on a name no machine resolves and nobody uses (.invalid or .test): it may relax these
-  const harness = env.OMB_MANAGED_TEST_HARNESS === "1" && /\.(?:invalid|test)$/.test(new URL(options.publicUrl).hostname);
+  const harness = env.DUSK_MANAGED_TEST_HARNESS === "1" && /\.(?:invalid|test)$/.test(new URL(options.publicUrl).hostname);
   const lenient = options.loopback || harness;
   // a service people use: user-facing names on our own domain behind the edge, and signed releases only
-  if (!lenient) { required("OMB_CLOUD_SEAL_KEY"); required("OMB_MANAGED_PUBLIC_DOMAIN"); required("OMB_MANAGED_EDGE_TOKEN"); }
-  const edgeToken = env.OMB_MANAGED_EDGE_TOKEN || null;
-  if (edgeToken !== null && edgeToken.length < 32) throw new Error("OMB_MANAGED_EDGE_TOKEN must be at least 32 characters.");
-  const kinds = (env.OMB_MANAGED_KINDS ?? "shared_s,shared_m,dedicated").split(",").map(k => k.trim());
-  if (!kinds.length || kinds.some(k => k === "none" || !(DESKTOP_KINDS as readonly string[]).includes(k))) throw new Error("Invalid OMB_MANAGED_KINDS.");
-  const smallest = env.OMB_MANAGED_SMALLEST ?? "small";
-  if (!["small", "default", "large", "xlarge"].includes(smallest)) throw new Error("Invalid OMB_MANAGED_SMALLEST.");
-  const scope = env.OMB_MANAGED_SCOPE ?? boatScope(new URL(options.publicUrl).origin);
+  if (!lenient) { required("DUSK_CLOUD_SEAL_KEY"); required("DUSK_MANAGED_PUBLIC_DOMAIN"); required("DUSK_MANAGED_EDGE_TOKEN"); }
+  const edgeToken = env.DUSK_MANAGED_EDGE_TOKEN || null;
+  if (edgeToken !== null && edgeToken.length < 32) throw new Error("DUSK_MANAGED_EDGE_TOKEN must be at least 32 characters.");
+  const kinds = (env.DUSK_MANAGED_KINDS ?? "shared_s,shared_m,dedicated").split(",").map(k => k.trim());
+  if (!kinds.length || kinds.some(k => k === "none" || !(DESKTOP_KINDS as readonly string[]).includes(k))) throw new Error("Invalid DUSK_MANAGED_KINDS.");
+  const smallest = env.DUSK_MANAGED_SMALLEST ?? "small";
+  if (!["small", "default", "large", "xlarge"].includes(smallest)) throw new Error("Invalid DUSK_MANAGED_SMALLEST.");
+  const scope = env.DUSK_MANAGED_SCOPE ?? boatScope(new URL(options.publicUrl).origin);
   // the backup secret never leaves this service: its own key, or one derived from the seal key, or (loopback only) a local file
-  const backupSecret = env.OMB_MANAGED_BACKUP_KEY ? parseSealKey(env.OMB_MANAGED_BACKUP_KEY)
+  const backupSecret = env.DUSK_MANAGED_BACKUP_KEY ? parseSealKey(env.DUSK_MANAGED_BACKUP_KEY)
     : options.sealKey ? Buffer.from(hkdfSync("sha256", options.sealKey, Buffer.alloc(0), Buffer.from("omb-boat-backup-secret"), 32))
     : localSecret(join(options.dataDir, "boat-backup-secret"));
   const settings = managedSettingsFromEnv(env, { loopback: lenient });
-  const releaseKeys = [...PINNED_RELEASE_KEYS, ...parseReleaseKeys(env.OMB_RELEASE_PUBLIC_KEYS)];
+  const releaseKeys = [...PINNED_RELEASE_KEYS, ...parseReleaseKeys(env.DUSK_RELEASE_PUBLIC_KEYS)];
   if (settings.package?.signature) verifyRelease(settings.package.signature, { kind: "home-package", sha256: settings.package.sha256 }, releaseKeys);
-  else if (settings.requireSigned && settings.package) throw new Error("OMB_MANAGED_HOME_PACKAGE_SIGNATURE is required: a home package must be signed by a release key.");
+  else if (settings.requireSigned && settings.package) throw new Error("DUSK_MANAGED_HOME_PACKAGE_SIGNATURE is required: a home package must be signed by a release key.");
   if (settings.templateSignature) verifyRelease(settings.templateSignature, { kind: "template", name: settings.template ?? "" }, releaseKeys);
-  else if (settings.requireSigned && settings.template) throw new Error("OMB_MANAGED_TEMPLATE_SIGNATURE is required: a template must be signed by a release key.");
+  else if (settings.requireSigned && settings.template) throw new Error("DUSK_MANAGED_TEMPLATE_SIGNATURE is required: a template must be signed by a release key.");
   return createManagedCloud({ kinds: kinds as Array<DesktopPlan["kind"]>, settings, backupSecret, releaseKeys, edgeToken,
-    previousBackupSecret: env.OMB_MANAGED_BACKUP_KEY_PREVIOUS ? parseSealKey(env.OMB_MANAGED_BACKUP_KEY_PREVIOUS) : null,
+    previousBackupSecret: env.DUSK_MANAGED_BACKUP_KEY_PREVIOUS ? parseSealKey(env.DUSK_MANAGED_BACKUP_KEY_PREVIOUS) : null,
     provider: createBoatProvider({ apiKey, baseUrl: env.BOAT_BASE_URL, scope, fetch: options.fetch, smallest: smallest as BoatSize }),
-    backups: createBackupStore({ dir: env.OMB_MANAGED_BACKUP_DIR || join(options.dataDir, "boat-backups"), now: options.now }),
+    backups: createBackupStore({ dir: env.DUSK_MANAGED_BACKUP_DIR || join(options.dataDir, "boat-backups"), now: options.now }),
     audit: createAudit({ dataDir: options.dataDir, now: options.now, alert: options.alert }),
     entitlement: cloud => entitlementOf(options.subscriptions(), cloud, options.now()),
     notify: (cloud, kind, at, link) => options.mail?.(cloud, noticeText(kind, { name: cloud.name, at, dashboardUrl: options.publicUrl, link })) });

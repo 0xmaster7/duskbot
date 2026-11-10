@@ -140,23 +140,23 @@ describe("container images", () => {
     expect(last(home, "EXPOSE")).toBe("8080");
     expect(last(home, "CMD")).toBe('["node", "/app/dist-server/cloud-home-start.js"]');
     expect(last(home, "HEALTHCHECK")).toContain("http://127.0.0.1:8080/api/health");
-    expect(last(chain("runtime"), "ENV")).toMatch(/^AGENT_BROWSER_EXECUTABLE_PATH=\/opt\/openmausbot-browser\/chrome .*NODE_ENV=production$/);
+    expect(last(chain("runtime"), "ENV")).toMatch(/^AGENT_BROWSER_EXECUTABLE_PATH=\/opt\/duskbot-browser\/chrome .*NODE_ENV=production$/);
   });
 
   it("hands the Cloud home's server every setting the image's ENV gives it", () => {
     // The root supervisor passes the server an allow-listed environment; a setting the image sets but the list drops is
-    // lost silently (OMB_DUCKDB_DIR was: the server then found neither the 1Password SDK nor DuckDB in /app/duckdb).
+    // lost silently (DUSK_DUCKDB_DIR was: the server then found neither the 1Password SDK nor DuckDB in /app/duckdb).
     const image: Record<string, string> = {};
     for (const step of chain("cloud-home").filter(step => step.op === "ENV")) {
       for (const [, name, value] of step.args.matchAll(/(?:^|\s)([A-Z][A-Z0-9_]*)=(\S*)/g)) image[name] = value;
     }
-    expect(image.OMB_DUCKDB_DIR).toBe("/app/duckdb");
-    const contract = { OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
-      OMB_PUBLIC_URL: "https://omb-u-1a2b3c4d5e6f.fly.dev", OMB_CLOUD_BOOTSTRAP_SECRET: "S".repeat(43) };
+    expect(image.DUSK_DUCKDB_DIR).toBe("/app/duckdb");
+    const contract = { DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test",
+      DUSK_PUBLIC_URL: "https://omb-u-1a2b3c4d5e6f.fly.dev", DUSK_CLOUD_BOOTSTRAP_SECRET: "S".repeat(43) };
     const { server } = cloudHomeChildEnvironments(cloudHomeConfiguration(contract)!, { ...image, ...contract }, "/data");
     // The launcher sets HOME, the ports and the data folder itself; everything else must come through unchanged.
     for (const name of Object.keys(image)) expect(server, name).toHaveProperty(name);
-    expect(server.OMB_DUCKDB_DIR).toBe("/app/duckdb");
+    expect(server.DUSK_DUCKDB_DIR).toBe("/app/duckdb");
   });
 
   it("never runs a build step with HOME on the volume, so nothing lands in what a fresh volume starts with", () => {
@@ -211,7 +211,7 @@ describe("container images", () => {
         temporaryDirectories.push(root);
         mkdirSync(join(root, "scripts"));
         // A stand-in for the staging script: it stages the CPU it is told to, and records which.
-        writeFileSync(join(root, "scripts/prepare-duckdb.mjs"), 'import { mkdirSync, writeFileSync } from "node:fs"; const d = `dist-native/duckdb/linux-${process.env.OMB_DUCKDB_ARCH}`; mkdirSync(d, { recursive: true }); writeFileSync(`${d}/arch`, process.env.OMB_DUCKDB_ARCH);');
+        writeFileSync(join(root, "scripts/prepare-duckdb.mjs"), 'import { mkdirSync, writeFileSync } from "node:fs"; const d = `dist-native/duckdb/linux-${process.env.DUSK_DUCKDB_ARCH}`; mkdirSync(d, { recursive: true }); writeFileSync(`${d}/arch`, process.env.DUSK_DUCKDB_ARCH);');
         const result = spawnSync("sh", ["-c", stage.args], { cwd: root, env: { PATH: process.env.PATH, TARGETARCH: targetArch }, encoding: "utf8" });
         expect(result.status, `${targetArch}: ${result.stderr}`).toBe(0);
         expect(readdirSync(join(root, "dist-native/duckdb")), targetArch).toEqual(["target"]);
@@ -221,7 +221,7 @@ describe("container images", () => {
     // Chrome for Testing has no Linux ARM64 build: an arm64 image takes Debian's Chromium at the same path.
     const runtime = chain("runtime");
     expect(runtime.slice(0, runtime.indexOf(browserRun()))).toContainEqual({ op: "ARG", args: "TARGETARCH" });
-    expect(browserRun().args).toMatch(/if \[ "\$TARGETARCH" = arm64 \]; then .*apt-get install -y --no-install-recommends chromium .*ln -s \/usr\/lib\/chromium\/chromium \/opt\/openmausbot-browser\/chrome; +else .*agent-browser install .*; +fi/);
+    expect(browserRun().args).toMatch(/if \[ "\$TARGETARCH" = arm64 \]; then .*apt-get install -y --no-install-recommends chromium .*ln -s \/usr\/lib\/chromium\/chromium \/opt\/duskbot-browser\/chrome; +else .*agent-browser install .*; +fi/);
   });
 
   it("keys the browser and engine layers on the versions they install, so a release rebuilds them", () => {
@@ -241,7 +241,7 @@ describe("container images", () => {
   });
 
   // An init collects browser processes whose parents exit, and Chrome gets the
-  // shared memory OpenMausBot's desktop containers give it.
+  // shared memory Dusk Bot's desktop containers give it.
   it("runs the compose service of the server image with an init and Chrome's shared memory", () => {
     for (const file of ["../deploy/docker-compose.yml"]) {
       const service = parse(readFileSync(new URL(file, import.meta.url), "utf8")).services.omb;

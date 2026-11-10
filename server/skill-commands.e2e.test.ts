@@ -50,7 +50,7 @@ it("calls a skill mid-message from what a person typed, never from a webhook, an
     // Another bot's words, while its own turn holds a live capability.
     await api("POST", `/api/bots/${asker.id}/messages`, { threadId: asker.threadId, sendId: sendId(), text: "asker-start" });
     await reached("asker-start");
-    const comms: string = dump().mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN;
+    const comms: string = dump().mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN;
     const page = await api("POST", "/api/internal/options-card", { tool: "show_html", html: "<p>Pick a slot</p>", title: "Booking" }, comms);
     await api("POST", "/api/internal/coordinate-bots", { botIds: [scout.id], reply: "none", message: "/standup peer-marker please /standup now\n/standup again" }, comms);
     await reached("peer-marker");

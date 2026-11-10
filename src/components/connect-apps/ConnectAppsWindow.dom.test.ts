@@ -269,8 +269,8 @@ describe("the Connect Apps window", () => {
       expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/attio/authorize", expect.anything());
       expect(onClose, "no trip to Settings").not.toHaveBeenCalled();
       const step = dialog().querySelector("[data-app-page='attio'] [data-composio-key]")!;
-      expect(step.textContent).toContain("MausBot uses Composio to reach Attio. First, let MausBot use your free Composio account. You'll sign in once.");
-      expect(step.textContent, "what is shared").toContain("MausBot never sees your Attio password.");
+      expect(step.textContent).toContain("Dusk uses Composio to reach Attio. First, let Dusk use your free Composio account. You'll sign in once.");
+      expect(step.textContent, "what is shared").toContain("Dusk never sees your Attio password.");
       expect(dialog().querySelector("[data-app-page] [data-composio-sign-in]")?.textContent, "authorizing is the first step, said as such").toContain("Authorize Composio");
       await act(async () => { [...step.querySelectorAll("button")].find((element) => element.textContent === "Use my own Composio API key")!.click(); });
       expect([...step.querySelectorAll("li")].map((item) => item.textContent?.replace(/^\d/, ""))).toEqual([
@@ -413,7 +413,7 @@ describe("the Connect Apps window", () => {
         expect(steps()).toEqual(["authorize:current", "connect:next"]);
       });
 
-      it("MausBot restarting or the network down: says so and keeps trying, then connects", async () => {
+      it("Dusk restarting or the network down: says so and keeps trying, then connects", async () => {
         let down = true;
         await waitingThen(() => { if (down) throw new TypeError("Failed to fetch"); return { status: "connected" }; }, 2_100);
         expect(line()).toBe("Can't reach Composio right now. Trying again…");
@@ -533,7 +533,7 @@ describe("the Connect Apps window", () => {
       await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-primary")!.click(); });
       await flush();
       expect(fixture.opened, "no Composio tab the broker could not use").toEqual([]);
-      expect(dialog().querySelector("[data-composio-key]")?.textContent).toContain("MausBot uses Composio to reach Attio.");
+      expect(dialog().querySelector("[data-composio-key]")?.textContent).toContain("Dusk uses Composio to reach Attio.");
       await paste("ak_good");
       expect(fixture.opened).toEqual(["https://connect.example/attio"]);
     });

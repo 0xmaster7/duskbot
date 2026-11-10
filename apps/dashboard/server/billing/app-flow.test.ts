@@ -23,7 +23,7 @@ vi.mock("./index.ts", async importOriginal => {
 const cleanup: Array<() => void | Promise<void>> = [];
 afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 async function fixture() {
-  for (const key of ["OMB_BILLING_PROVIDER", "OMB_CLOUD_PROVIDER", "OMB_POOL_DRIVER", "OMB_CLOUD_SEAL_KEY", "OMB_DODO_PRODUCTS"]) vi.stubEnv(key, undefined);
+  for (const key of ["DUSK_BILLING_PROVIDER", "DUSK_CLOUD_PROVIDER", "DUSK_POOL_DRIVER", "DUSK_CLOUD_SEAL_KEY", "DUSK_DODO_PRODUCTS"]) vi.stubEnv(key, undefined);
   const dir = mkdtempSync(join(tmpdir(), "omb-billing-app-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
   let time = Date.now();
   const now = () => time, mailer = memoryMailer();

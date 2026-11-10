@@ -2,7 +2,7 @@
 
 The sidecar a phone talks to.
 
-OpenMausBot's harness listens on `127.0.0.1` and nothing else, which is the
+Dusk Bot's harness listens on `127.0.0.1` and nothing else, which is the
 right default and one it has recently gone out of its way to enforce: it now
 rejects any request whose `Host` is not loopback, defeating DNS rebinding.
 
@@ -116,23 +116,23 @@ it is switched on, so the opt-in is never implicit.
 
 | Environment | Default | |
 |---|---|---|
-| `OMB_PORT` | `8799` | where the harness is |
-| `OMB_WEBHOOK_PORT` | `OMB_PORT` + 1 | the harness's webhook receiver — refused, not used |
-| `OMB_COMPANION_PORT` | `8810` | where devices connect |
-| `OMB_CONTROL_PORT` | `8811` | the pairing page, loopback only, behind a per-launch token |
-| `OMB_CONTROL_TOKEN` | random | that token (43 base64url characters), for a script that starts the sidecar; the desktop app ignores it |
-| `OMB_COMPANION_DIR` | `~/.openmausbot-companion` | paired devices live here |
-| `OMB_COMPANION_NAME` | your name, from the harness | what the phone calls this computer |
+| `DUSK_PORT` | `8799` | where the harness is |
+| `DUSK_WEBHOOK_PORT` | `DUSK_PORT` + 1 | the harness's webhook receiver — refused, not used |
+| `DUSK_COMPANION_PORT` | `8810` | where devices connect |
+| `DUSK_CONTROL_PORT` | `8811` | the pairing page, loopback only, behind a per-launch token |
+| `DUSK_CONTROL_TOKEN` | random | that token (43 base64url characters), for a script that starts the sidecar; the desktop app ignores it |
+| `DUSK_COMPANION_DIR` | `~/.duskbot-companion` | paired devices live here |
+| `DUSK_COMPANION_NAME` | your name, from the harness | what the phone calls this computer |
 
-`OMB_COMPANION_NAME` overrides a name the sidecar otherwise asks the harness
+`DUSK_COMPANION_NAME` overrides a name the sidecar otherwise asks the harness
 for: the computer name set in Settings → Remote access, else the profile from
-onboarding, as *"Ada's computer"*. It falls back to `OpenMausBot` when neither
+onboarding, as *"Ada's computer"*. It falls back to `Dusk Bot` when neither
 is set. The sidecar asks again every 30 seconds; a changed name withdraws the
 old Bonjour record (a goodbye) before advertising the new one, so the phone
 does not see two computers.
 
 The harness owns two ports, not one: itself, and a webhook receiver one above
-it (`OMB_WEBHOOK_PORT`). The companion refuses to start on either and says
+it (`DUSK_WEBHOOK_PORT`). The companion refuses to start on either and says
 which — the alternative is a race for the socket, where starting second means
 the companion will not come up and starting first means webhooks quietly stop
 working with the explanation logged somewhere else entirely.

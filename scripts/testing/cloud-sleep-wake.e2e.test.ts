@@ -98,10 +98,10 @@ beforeAll(async () => {
   child = spawn(process.execPath, ["--import", offline, "--import", new URL("../../server/testing/power-clock-hooks.mjs", import.meta.url).href, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
-      PATH: process.env.PATH, HOME: home, USERPROFILE: home, OMB_DATA_DIR: home, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1),
-      OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: MACHINE, OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
-      OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_PUBLIC_URL: `https://${HOST}`, FAKE_CLAUDE_MODE: "happy",
-      OMB_TEST_POWER_CLOCK: "1", OMB_SSE_HEARTBEAT_MS: "250",
+      PATH: process.env.PATH, HOME: home, USERPROFILE: home, DUSK_DATA_DIR: home, DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1),
+      DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: MACHINE, DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test",
+      DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_PUBLIC_URL: `https://${HOST}`, FAKE_CLAUDE_MODE: "happy",
+      DUSK_TEST_POWER_CLOCK: "1", DUSK_SSE_HEARTBEAT_MS: "250",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -114,7 +114,7 @@ beforeAll(async () => {
     if (Date.now() > deadline) throw new Error(`the server did not start:\n${log}`);
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  const body = JSON.stringify({ label: "OpenMausBot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const granted = await (await realFetch(`${base}/api/cloud/pairing`, { method: "POST", body, headers: {
     ...EDGE, "content-type": "application/json",

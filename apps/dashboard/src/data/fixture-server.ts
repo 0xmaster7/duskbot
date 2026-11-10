@@ -8,14 +8,14 @@ import { CANCEL_ANSWERS } from "./wire";
 const DAY = 86_400_000;
 /** the managed fixture's emailed delete link: /clouds/fx-cloud/delete?fixture=managed#<this> */
 export const FIXTURE_DELETE_TOKEN = "fixture-delete-link".padEnd(43, "0");
-const steps = ["Reserving your machine", "Installing OpenMausBot", "Linking it to your account", "Waking your bots"];
+const steps = ["Reserving your machine", "Installing Dusk Bot", "Linking it to your account", "Waking your bots"];
 const fail = (message: string, status = 400, code = "invalid_request"): never => { throw new ApiError(message, status, code); };
 
 function createState() {
   const scenario = FIXTURE ?? "new", now = Date.now();
   const clouds = fixtureClouds(scenario, now);
   return {
-    signedIn: scenario !== "signedout", firstSignIn: scenario === "signedout", email: "sid@openmausbot.test", intent: "signin", attemptAt: null as number | null,
+    signedIn: scenario !== "signedout", firstSignIn: scenario === "signedout", email: "sid@duskbot.test", intent: "signin", attemptAt: null as number | null,
     account: fixtureAccount(scenario, now), billing: fixtureBilling(scenario, now), clouds,
     workspaces: new Map(fixtureWorkspaces(scenario, now).map((detail) => [detail.workspace.id, detail])),
     connections: fixtureConnections(),

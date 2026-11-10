@@ -45,13 +45,13 @@ async function main() {
   const agents = {
     command: process.execPath,
     args: [process.env.BENCH_AGENTS_PROXY ?? SPAWNED_PROXIES.agents],
-    env: { OMB_HARNESS_URL: harness.url, OMB_BOT_ID: "bench", OMB_THREAD_ID: "bench-thread", OMB_COMMS_TOKEN: "bench-token", OMB_TURN_DEPTH: "0" },
+    env: { DUSK_HARNESS_URL: harness.url, DUSK_BOT_ID: "bench", DUSK_THREAD_ID: "bench-thread", DUSK_COMMS_TOKEN: "bench-token", DUSK_TURN_DEPTH: "0" },
   };
   const fake = { command: process.execPath, args: [join(import.meta.dirname, "../server/testing/fake-mcp-server.ts")], env: { FAKE_MCP_TOOLS_FILE: toolsFile } };
   console.log(`agents proxy: ${agents.args[0]}`);
 
   const { listed } = agentsToolList(agents.env);
-  const bridged = agentsToolList({ ...agents.env, OMB_AGENTS_TOOL_BRIDGE: "1" }).listed;
+  const bridged = agentsToolList({ ...agents.env, DUSK_AGENTS_TOOL_BRIDGE: "1" }).listed;
   const bytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
   console.log(`agents tools/list: ${listed.length} tools, ${bytes(listed)} bytes (~${Math.round(bytes(listed) / 4)} tokens); bridged ${bridged.length} tools, ${bytes(bridged)} bytes`);
 

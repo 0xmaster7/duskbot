@@ -45,12 +45,12 @@ afterEach(async () => { await act(async () => root?.unmount()); host.remove(); v
 
 it("renders the title, providers and email step, and focuses the email field", async () => {
   const html = renderToStaticMarkup(createElement(AccountGate, { bridge }));
-  expect(html).toContain("Sign in to OpenMausBot");
+  expect(html).toContain("Sign in to Dusk Bot");
   expect(html).toContain("One account for your bots, your Mac and your cloud desktop.");
   for (const name of ["Google", "Apple", "X"]) expect(html).toContain(`Continue with ${name}`);
   expect(html).toContain('type="email"'); expect(html).toContain("Send code");
   await mount();
-  expect(host.querySelector("h1")?.textContent).toBe("Sign in to OpenMausBot");
+  expect(host.querySelector("h1")?.textContent).toBe("Sign in to Dusk Bot");
   expect(document.activeElement).toBe(email());
 });
 

@@ -16,7 +16,7 @@ const json = (value, status = 200) => new Response(JSON.stringify(value), { stat
 function computer(t, { frozen = { v: 1, at: 1, cloud: CLOUD } } = {}) {
   const parent = mkdtempSync(join(tmpdir(), "omb-clean-"));
   t.after(() => rmSync(parent, { recursive: true, force: true }));
-  const dataDir = join(parent, ".openmausbot");
+  const dataDir = join(parent, ".duskbot");
   const w = { dataDir, cleanDir: cleanWorkspaceDir(dataDir), running: dataDir, swaps: [], requests: [], swapFails: false, changes: 0 };
   mkdirSync(dataDir, { recursive: true });
   w.write = (name, text) => { writeFileSync(join(dataDir, name), text); };
@@ -32,7 +32,7 @@ function computer(t, { frozen = { v: 1, at: 1, cloud: CLOUD } } = {}) {
 }
 
 test("a clean workspace sits beside the data folder, never in it: a move carries that folder and forgetting the copy empties it", () => {
-  assert.equal(cleanWorkspaceDir("/Users/a/.openmausbot"), "/Users/a/.openmausbot-clean");
+  assert.equal(cleanWorkspaceDir("/Users/a/.duskbot"), "/Users/a/.duskbot-clean");
 });
 
 test("opening it starts the server on its own folder, once, set up so the new-user setup never shows", async (t) => {
@@ -115,7 +115,7 @@ test("the move's server, while the clean workspace runs: the copy's own marker a
   w.requests.length = 0;
   await w.clean.enter();
   assert.deepEqual(await (await request("/api/move/freeze")).json(), { frozen: true, cloud: CLOUD });
-  assert.deepEqual(await (await request("/.well-known/openmausbot/environment")).json(), { environmentId: "own-copy-id" }, "the Admin never hears the clean folder's identity as this computer's");
+  assert.deepEqual(await (await request("/.well-known/duskbot/environment")).json(), { environmentId: "own-copy-id" }, "the Admin never hears the clean folder's identity as this computer's");
   for (const [route, init] of [["/api/bots?messages=0"], ["/api/cloud-send?move=1"], ["/api/config"], ["/api/move/freeze", { method: "POST" }], ["/api/move/freeze", { method: "DELETE" }], ["/api/move/forget", { method: "POST" }], ["/api/workspace-backup/upload", { method: "POST" }]]) {
     await assert.rejects(request(route, init), { code: "clean-workspace" }, `${init?.method ?? "GET"} ${route}`);
   }

@@ -1,3 +1,4 @@
+import { LEGACY } from "./legacy-names.mjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import http, { createServer } from "node:http";
@@ -47,7 +48,7 @@ describe("desktop companion endpoint", () => {
     ]);
     expect(desktopCompanionRendererArguments("http://127.0.0.1:8798", access)).toEqual([
       "--omb-local-origin=http://127.0.0.1:8798",
-      "--openmausbot-remote-client",
+      "--duskbot-remote-client",
     ]);
   });
 
@@ -58,63 +59,63 @@ describe("desktop companion endpoint", () => {
     expect(normalizeTailscaleCompanionEndpoint("http://HOST.example-tailnet.ts.net:9910/")).toBe(
       "http://host.example-tailnet.ts.net:9910",
     );
-    expect(normalizeDesktopCompanionEndpoint(`https://${LABEL}.openmausbot.com`)).toBe(
-      `https://${LABEL}.openmausbot.com`,
+    expect(normalizeDesktopCompanionEndpoint(`https://${LABEL}.cloud.dusk.bot`)).toBe(
+      `https://${LABEL}.cloud.dusk.bot`,
     );
-    expect(normalizeDesktopCompanionEndpoint(`${LABEL}.openmausbot.com`)).toBe(
-      `https://${LABEL}.openmausbot.com`,
+    expect(normalizeDesktopCompanionEndpoint(`${LABEL}.cloud.dusk.bot`)).toBe(
+      `https://${LABEL}.cloud.dusk.bot`,
     );
-    // The control plane's second Cloudflare account gives addresses here.
-    expect(normalizeDesktopCompanionEndpoint(`https://${LABEL}.mausbot.si`)).toBe(
-      `https://${LABEL}.mausbot.si`,
+    expect(normalizeDesktopCompanionEndpoint(` ${LABEL.toUpperCase()}.Cloud.DUSK.Bot/ `)).toBe(
+      `https://${LABEL}.cloud.dusk.bot`,
     );
-    expect(normalizeDesktopCompanionEndpoint(` ${LABEL.toUpperCase()}.Mausbot.SI/ `)).toBe(
-      `https://${LABEL}.mausbot.si`,
-    );
+    // the hosted control plane still gives addresses under its names from before the rename
+    for (const host of LEGACY.companionHostSuffixes) {
+      expect(normalizeDesktopCompanionEndpoint(`https://${LABEL}.${host}`)).toBe(`https://${LABEL}.${host}`);
+    }
     for (const endpoint of [
       "https://unrelated.example.com",
-      `http://${LABEL}.openmausbot.com`,
+      `http://${LABEL}.cloud.dusk.bot`,
       "http://10.0.0.4:8810",
       "http://host.local:8810",
       "https://10.0.0.4",
       "http://host.example-tailnet.ts.net/path",
-      `https://${LABEL}.openmausbot.com/path`,
+      `https://${LABEL}.cloud.dusk.bot/path`,
       "http://user@host.example-tailnet.ts.net",
       "http://host.example-tailnet.ts.net.evil.test",
-      `https://${LABEL}.openmausbot.com.evil.test`,
-      `http://${LABEL}.mausbot.si`,
-      `https://${LABEL}.mausbot.si/path`,
-      `https://${LABEL}.mausbot.si.evil.test`,
-      "https://mausbot.si",
-      "mausbot.si",
-      "https://evilmausbot.si",
-      `https://${LABEL}.evilmausbot.si`,
-      "https://www.mausbot.si",
-      "https://app.mausbot.si",
-      "https://accounts.openmausbot.com",
-      "https://c-opaque.openmausbot.com",
-      "https://c-opaque.mausbot.si",
-      `https://${LABEL.slice(0, -1)}.mausbot.si`,
-      `https://${LABEL}0.mausbot.si`,
-      `https://${LABEL.replace("c-", "d-")}.mausbot.si`,
-      `https://${LABEL}.extra.mausbot.si`,
-      `https://www.${LABEL}.mausbot.si`,
+      `https://${LABEL}.cloud.dusk.bot.evil.test`,
+      `http://${LABEL}.cloud.dusk.bot`,
+      `https://${LABEL}.cloud.dusk.bot/path`,
+      `https://${LABEL}.cloud.dusk.bot.evil.test`,
+      "https://cloud.dusk.bot",
+      "cloud.dusk.bot",
+      "https://evilcloud.dusk.bot",
+      `https://${LABEL}.evilcloud.dusk.bot`,
+      "https://dusk.bot",
+      "https://app.cloud.dusk.bot",
+      "https://app.dusk.bot",
+      "https://c-opaque.cloud.dusk.bot",
+      "https://c-opaque.cloud.dusk.bot",
+      `https://${LABEL.slice(0, -1)}.cloud.dusk.bot`,
+      `https://${LABEL}0.cloud.dusk.bot`,
+      `https://${LABEL.replace("c-", "d-")}.cloud.dusk.bot`,
+      `https://${LABEL}.extra.cloud.dusk.bot`,
+      `https://www.${LABEL}.cloud.dusk.bot`,
     ]) {
       expect(normalizeDesktopCompanionEndpoint(endpoint), endpoint).toBe("");
     }
   });
 
   it("validates, adds, and removes the encrypted credential document field", () => {
-    const hostedAccess = { ...access, endpoint: `https://${LABEL}.openmausbot.com` };
+    const hostedAccess = { ...access, endpoint: `https://${LABEL}.cloud.dusk.bot` };
     expect(desktopCompanionAccess({ [DESKTOP_COMPANION_FIELD]: hostedAccess })).toEqual(
       hostedAccess,
     );
-    const secondDomain = { ...access, endpoint: `https://${LABEL}.mausbot.si` };
+    const secondDomain = { ...access, endpoint: `https://${LABEL}.cloud.dusk.bot` };
     expect(desktopCompanionAccess({ [DESKTOP_COMPANION_FIELD]: secondDomain })).toEqual(
       secondDomain,
     );
     expect(
-      desktopCompanionAccess({ [DESKTOP_COMPANION_FIELD]: { ...access, endpoint: "https://app.mausbot.si" } }),
+      desktopCompanionAccess({ [DESKTOP_COMPANION_FIELD]: { ...access, endpoint: "https://app.cloud.dusk.bot" } }),
     ).toBeNull();
 
     expect(desktopCompanionAccess({ [DESKTOP_COMPANION_FIELD]: access })).toEqual(access);
@@ -165,40 +166,40 @@ describe("desktop companion pairing", () => {
       }),
     );
     const paired = await pairDesktopCompanion({
-      endpoint: `https://${LABEL}.openmausbot.com`,
+      endpoint: `https://${LABEL}.cloud.dusk.bot`,
       code: "654321",
       deviceName: "Desktop client",
       requestId: "request-https-01",
       fetchImpl,
     });
-    expect(paired).toEqual({ ...access, endpoint: `https://${LABEL}.openmausbot.com` });
+    expect(paired).toEqual({ ...access, endpoint: `https://${LABEL}.cloud.dusk.bot` });
     expect(fetchImpl).toHaveBeenCalledWith(
-      `https://${LABEL}.openmausbot.com/api/pair`,
+      `https://${LABEL}.cloud.dusk.bot/api/pair`,
       expect.objectContaining({ method: "POST" }),
     );
 
     const secondDomain = await pairDesktopCompanion({
-      endpoint: `${LABEL}.mausbot.si`,
+      endpoint: `${LABEL}.cloud.dusk.bot`,
       code: "654321",
       deviceName: "Desktop client",
       requestId: "request-https-02",
       fetchImpl,
     });
-    expect(secondDomain).toEqual({ ...access, endpoint: `https://${LABEL}.mausbot.si` });
+    expect(secondDomain).toEqual({ ...access, endpoint: `https://${LABEL}.cloud.dusk.bot` });
     expect(fetchImpl).toHaveBeenLastCalledWith(
-      `https://${LABEL}.mausbot.si/api/pair`,
+      `https://${LABEL}.cloud.dusk.bot/api/pair`,
       expect.objectContaining({ method: "POST" }),
     );
 
     await expect(
       pairDesktopCompanion({
-        endpoint: "https://app.mausbot.si",
+        endpoint: "https://app.cloud.dusk.bot",
         code: "654321",
         deviceName: "Desktop client",
         requestId: "request-https-03",
         fetchImpl,
       }),
-    ).rejects.toThrow("OpenMausBot HTTPS companion address");
+    ).rejects.toThrow("Dusk Bot HTTPS companion address");
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 

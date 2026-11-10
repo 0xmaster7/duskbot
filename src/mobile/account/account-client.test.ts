@@ -107,39 +107,39 @@ describe("browser sign-in", () => {
     const pending = JSON.parse(secrets.get("omb.account.pending")!);
     const url = new URL(vi.mocked(platform.openExternal).mock.calls[0][0]);
     expect(url.origin + url.pathname).toBe(`${origin}/v1/auth/app/start`);
-    expect(Object.fromEntries(url.searchParams)).toMatchObject({ provider: "google", code_challenge_method: "S256", redirect_uri: "openmausbot://auth", state: pending.state,
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({ provider: "google", code_challenge_method: "S256", redirect_uri: "duskbot://auth", state: pending.state,
       code_challenge: createHash("sha256").update(pending.verifier).digest("base64url") });
     expect(pending.verifier).toHaveLength(43); expect(pending.state).toHaveLength(32);
   });
   it("leaves pairing links to the connection gate", async () => {
-    expect(await client.handleAuthUrl("openmausbot://pair?code=abc")).toBe(false);
-    expect(isAccountAuthUrl("https://auth")).toBe(false); expect(isAccountAuthUrl("openmausbot://auth/other")).toBe(false);
+    expect(await client.handleAuthUrl("duskbot://pair?code=abc")).toBe(false);
+    expect(isAccountAuthUrl("https://auth")).toBe(false); expect(isAccountAuthUrl("duskbot://auth/other")).toBe(false);
   });
   it("refuses a state mismatch and clears the pending attempt", async () => {
     await client.oauthStart("apple");
-    expect(await client.handleAuthUrl("openmausbot://auth?code=abc&state=wrong")).toEqual({ outcome: "invalid-state" });
+    expect(await client.handleAuthUrl("duskbot://auth?code=abc&state=wrong")).toEqual({ outcome: "invalid-state" });
     expect(fetcher).not.toHaveBeenCalled(); expect(secrets.has("omb.account.pending")).toBe(false);
   });
   it("refuses an old attempt", async () => {
     await client.oauthStart("x"); const pending = JSON.parse(secrets.get("omb.account.pending")!); pending.at -= 15 * 60_000;
     secrets.set("omb.account.pending", JSON.stringify(pending));
-    expect(await client.handleAuthUrl(`openmausbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "invalid-state" }); expect(fetcher).not.toHaveBeenCalled();
+    expect(await client.handleAuthUrl(`duskbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "invalid-state" }); expect(fetcher).not.toHaveBeenCalled();
   });
   it("exchanges a matching code and persists the grant", async () => {
     await client.oauthStart("google"); const pending = JSON.parse(secrets.get("omb.account.pending")!);
     fetcher.mockResolvedValueOnce(response(grant()));
-    expect(await client.handleAuthUrl(`openmausbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "signed-in" });
+    expect(await client.handleAuthUrl(`duskbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "signed-in" });
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({ code: "abc", codeVerifier: pending.verifier, platform: "ios" });
     expect(client.account()).toEqual(grant().account); expect(secrets.has("omb.account.pending")).toBe(false); expect(secrets.has("omb.account")).toBe(true);
   });
   it.each(["oauth_denied", "oauth_failed", "oauth_expired", "provider_unavailable", "signup_closed", "identity_taken"])("surfaces provider error %s", async error => {
     await client.oauthStart("x"); const pending = JSON.parse(secrets.get("omb.account.pending")!);
-    expect(await client.handleAuthUrl(`openmausbot://auth?error=${error}&state=${pending.state}`)).toEqual({ outcome: error });
+    expect(await client.handleAuthUrl(`duskbot://auth?error=${error}&state=${pending.state}`)).toEqual({ outcome: error });
     expect(secrets.has("omb.account.pending")).toBe(false); expect(fetcher).not.toHaveBeenCalled();
   });
   it("clears a pending attempt when code exchange fails", async () => {
     await client.oauthStart("x"); const pending = JSON.parse(secrets.get("omb.account.pending")!); fetcher.mockRejectedValue(new Error("offline"));
-    expect(await client.handleAuthUrl(`openmausbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "failed" }); expect(secrets.has("omb.account.pending")).toBe(false);
+    expect(await client.handleAuthUrl(`duskbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "failed" }); expect(secrets.has("omb.account.pending")).toBe(false);
   });
 });
 

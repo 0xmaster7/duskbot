@@ -24,7 +24,7 @@ type MacBot = { id: string; name: string; macControl?: boolean };
 /** a Mac not seen for this long no longer gets the tools mounted */
 const FORGET_MS = 30 * 24 * 60 * 60_000;
 const SAVE_SEEN_MS = 10 * 60_000;
-const NOT_HOST = "Only the owner's own MausBot app on their Mac can serve this server's bots.";
+const NOT_HOST = "Only the owner's own Dusk app on their Mac can serve this server's bots.";
 const OFF_TEXT = "Using the person's Mac is switched off for this bot or in Settings.";
 const NOT_OWNER_TEXT = "This conversation can't use the person's Mac: only the owner's own turns can.";
 

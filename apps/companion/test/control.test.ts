@@ -1,3 +1,4 @@
+import { MDNS_HOST_PREFIX } from "../../../electron/legacy-names.mjs";
 import { request, type Server } from "node:http";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -14,7 +15,7 @@ let tailscaleRefreshes = 0;
 let completedTailscaleRefreshes = 0;
 const CONTROL_TOKEN = "c".repeat(43);
 let controlToken: string | null = CONTROL_TOKEN;
-const withToken = { "x-openmausbot-control-token": CONTROL_TOKEN };
+const withToken = { "x-dusk-control-token": CONTROL_TOKEN };
 
 const ask = async (
   method: string,
@@ -75,22 +76,22 @@ describe("the per-launch control token", () => {
       expect(tokenless.status, `${method} ${path}`).toBe(403);
       expect(JSON.stringify(tokenless.body)).not.toMatch(/omb_pair_|"code"/);
     }
-    expect((await ask("POST", "/pairing", {}, undefined, { "x-openmausbot-control-token": "d".repeat(43) })).status).toBe(403);
-    expect((await ask("POST", "/pairing", {}, undefined, { "x-openmausbot-control-token": CONTROL_TOKEN.slice(1) })).status).toBe(403);
+    expect((await ask("POST", "/pairing", {}, undefined, { "x-dusk-control-token": "d".repeat(43) })).status).toBe(403);
+    expect((await ask("POST", "/pairing", {}, undefined, { "x-dusk-control-token": CONTROL_TOKEN.slice(1) })).status).toBe(403);
     expect(devices.pairing()).toBeNull();
   });
 
   it("serves the page itself, which holds no state, without one", async () => {
     const page = await ask("GET", "/", {}, undefined, {});
     expect(page.status).toBe(200);
-    expect(page.body).toContain("x-openmausbot-control-token");
+    expect(page.body).toContain("x-dusk-control-token");
     expect(page.body).not.toContain(CONTROL_TOKEN);
   });
 
   it("waits for the app's token when the app launched the sidecar, and otherwise takes a script's or makes one", () => {
-    expect(initialControlToken({ OMB_CONTROL_TOKEN: CONTROL_TOKEN }, true)).toBeNull();
-    expect(initialControlToken({ OMB_CONTROL_TOKEN: CONTROL_TOKEN }, false)).toBe(CONTROL_TOKEN);
-    for (const env of [{}, { OMB_CONTROL_TOKEN: "short" }, { OMB_CONTROL_TOKEN: `${"c".repeat(42)}!` }]) {
+    expect(initialControlToken({ DUSK_CONTROL_TOKEN: CONTROL_TOKEN }, true)).toBeNull();
+    expect(initialControlToken({ DUSK_CONTROL_TOKEN: CONTROL_TOKEN }, false)).toBe(CONTROL_TOKEN);
+    for (const env of [{}, { DUSK_CONTROL_TOKEN: "short" }, { DUSK_CONTROL_TOKEN: `${"c".repeat(42)}!` }]) {
       const token = initialControlToken(env, false);
       expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
       expect(token).not.toBe(CONTROL_TOKEN);
@@ -230,7 +231,7 @@ describe("hostCandidates", () => {
   it("orders by reachability: tailnet name, then LAN, then the mDNS name last", () => {
     const hosts = hostCandidates(["100.121.5.6", "192.168.1.42", "10.0.0.7"], "macbook.tail1234.ts.net");
     expect(hosts.slice(0, 3)).toEqual(["macbook.tail1234.ts.net", "192.168.1.42", "10.0.0.7"]);
-    expect(hosts.at(-1)).toMatch(/^openmausbot-[0-9a-f]{8}\.local$/);
+    expect(hosts.at(-1)).toMatch(new RegExp(`^${MDNS_HOST_PREFIX}[0-9a-f]{8}\\.local$`));
     expect(hosts).not.toContain("100.121.5.6");
   });
 
@@ -246,9 +247,9 @@ describe("hostCandidates", () => {
     expect(Array.isArray(body.hosts)).toBe(true);
     expect(Array.isArray(body.endpoints)).toBe(true);
     expect(body.secretPublicKey).toBe("BIPBQ12_dWnF1DZLsTZO3Vg0NGjds5-jp9h3jhjr2To7bJelczS0LM82rfXV68PmSJhz2ePosj3fL974XckCpDU");
-    expect(body.hosts.at(-1)).toMatch(/^openmausbot-[0-9a-f]{8}\.local$/);
+    expect(body.hosts.at(-1)).toMatch(new RegExp(`^${MDNS_HOST_PREFIX}[0-9a-f]{8}\\.local$`));
     expect(body.endpoints.at(-1)).toMatchObject({ kind: "bonjour", priority: 300 });
-    expect(body.endpoints.at(-1).url).toMatch(/^http:\/\/openmausbot-[0-9a-f]{8}\.local:8810$/);
+    expect(body.endpoints.at(-1).url).toMatch(new RegExp(`^http://${MDNS_HOST_PREFIX}[0-9a-f]{8}\\.local:8810$`));
   });
 
   it("says when its device list is only an unreadable file", async () => {
@@ -338,13 +339,13 @@ describe("hosted endpoint advertisement", () => {
       "PUT",
       "/hosted-endpoint",
       headers,
-      JSON.stringify({ url: "https://C-Opaque.OpenMausBot.Test/" }),
+      JSON.stringify({ url: "https://C-Opaque.Dusk.Bot/" }),
     );
     expect(published.status).toBe(200);
     expect(published.body.endpoints[0]).toEqual({
       kind: "hosted",
       priority: 0,
-      url: "https://c-opaque.openmausbot.test",
+      url: "https://c-opaque.dusk.bot",
     });
 
     expect(
@@ -371,7 +372,7 @@ describe("hosted endpoint advertisement", () => {
       { url: false },
       [],
       null,
-      "https://c-opaque.openmausbot.test",
+      "https://c-opaque.dusk.bot",
     ]) {
       const result = await ask("PUT", "/hosted-endpoint", headers, JSON.stringify(body));
       expect(result).toEqual({ status: 400, body: { error: "invalid JSON body" } });

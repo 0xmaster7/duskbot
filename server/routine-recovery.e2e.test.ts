@@ -80,7 +80,7 @@ async function server(env: NodeJS.ProcessEnv = {}) {
 }
 
 it("never starts a routine again that the turn watchdog stopped as stalled: it fails at once, and its owner hears once", async () => {
-  const s = await server({ OMB_TEST_STALL_CLOCK: "1" });
+  const s = await server({ DUSK_TEST_STALL_CLOCK: "1" });
   s.engine("hang");
   const { id } = await s.runNow((await s.routine()).id);
   await s.engineHas();
@@ -146,7 +146,7 @@ it("picks a run that a restart cut off up again once on the next start, and neve
   await expect.poll(async () => (await s.run(id))?.retried, { timeout: hostTimeout(20_000) }).toBe("restarted");
   await expect.poll(async () => (await s.run(id))?.status, { timeout: hostTimeout(60_000) }).toBe("completed");
   expect(await s.runs()).toMatchObject([{ id, threadId, retried: "restarted", status: "completed" }]);
-  expect(JSON.stringify(JSON.parse(readFileSync(s.dump, "utf8")).prompt)).toContain("this run's first start was cut off when OpenMausBot restarted");
+  expect(JSON.stringify(JSON.parse(readFileSync(s.dump, "utf8")).prompt)).toContain("this run's first start was cut off when Dusk Bot restarted");
   await new Promise((resolve) => setTimeout(resolve, 3_000));
   const sent = await s.prompts(threadId);
   expect(sent.filter((text) => text.includes(ROUTINE_HEADER))).toHaveLength(2);

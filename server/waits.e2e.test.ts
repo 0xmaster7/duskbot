@@ -32,7 +32,7 @@ async function scout(name: string) {
   const turnToken = async () => {
     let token = "";
     await expect.poll(() => {
-      try { token = dump().mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN; } catch { return false; }
+      try { token = dump().mcpConfig.mcpServers.agents.env.DUSK_COMMS_TOKEN; } catch { return false; }
       return Boolean(token);
     }, { timeout: 15_000 }).toBe(true);
     return token;

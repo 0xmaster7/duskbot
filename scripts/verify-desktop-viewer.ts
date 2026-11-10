@@ -1,5 +1,5 @@
 // Full server + built viewer + synthetic Docker/RFB, in disposable homes.
-// Build first, then run with explicit OMB_AGENT_BROWSER_PATH and
+// Build first, then run with explicit DUSK_AGENT_BROWSER_PATH and
 // AGENT_BROWSER_EXECUTABLE_PATH if reusing installed browser binaries.
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -31,24 +31,24 @@ const fs = require("node:fs");
 const stopped = ${JSON.stringify(join(scratch, "stopped"))};
 let args = process.argv.slice(2);
 if (args[0] === "-H") args = args.slice(2);
-const labels = ${JSON.stringify({ "com.openmausbot.local-vm": "1", "com.openmausbot.cua-driver": CUA_DRIVER_VERSION, "com.openmausbot.cua-base": BASE_IMAGE_DIGEST, "com.openmausbot.image-layer": IMAGE_LAYER_VERSION, "com.openmausbot.workspace": "1" })};
+const labels = ${JSON.stringify({ "bot.dusk.local-vm": "1", "bot.dusk.cua-driver": CUA_DRIVER_VERSION, "bot.dusk.cua-base": BASE_IMAGE_DIGEST, "bot.dusk.image-layer": IMAGE_LAYER_VERSION, "bot.dusk.workspace": "1" })};
 let result;
 const imageId = 'sha256:' + 'a'.repeat(64);
-if (args[0] === 'inspect' && /^openmausbot-vps-/.test(args[1])) result = [{
+if (args[0] === 'inspect' && /^duskbot-vps-/.test(args[1])) result = [{
   Id:'b'.repeat(64), Image:imageId, State:{Running:!fs.existsSync(stopped)}, Mounts:[],
   Config:{Image:${JSON.stringify(IMAGE)}, Env:['VNC_PW=fixture-password'], Labels:{...labels,
-    'com.openmausbot.vps':'1', 'com.openmausbot.container':args[1], 'com.openmausbot.vps-viewer':'1'}},
+    'bot.dusk.vps':'1', 'bot.dusk.container':args[1], 'bot.dusk.vps-viewer':'1'}},
   HostConfig:{Privileged:false,NetworkMode:'bridge',PortBindings:{},Memory:4294967296,MemorySwap:4294967296,NanoCpus:2000000000,
     PidsLimit:4096,CapDrop:['ALL'],CapAdd:['CAP_SETUID','CAP_SETGID'],IpcMode:'private',ShmSize:536870912,
     CgroupnsMode:'private',SecurityOpt:[],RestartPolicy:{Name:'unless-stopped',MaximumRetryCount:0}},
   NetworkSettings:{Networks:{bridge:{IPAddress:'172.17.0.5'}}}
 }];
-else if (['start','stop'].includes(args[0]) && (/^openmausbot-vps-/.test(args[1]) || args[1] === 'b'.repeat(64))) { if(args[0]==='start') fs.rmSync(stopped,{force:true}); else fs.writeFileSync(stopped,'stopped'); result = args[1]; }
+else if (['start','stop'].includes(args[0]) && (/^duskbot-vps-/.test(args[1]) || args[1] === 'b'.repeat(64))) { if(args[0]==='start') fs.rmSync(stopped,{force:true}); else fs.writeFileSync(stopped,'stopped'); result = args[1]; }
 else if (args[0] === 'exec') result = args.includes('--version') ? 'cua-driver ${CUA_DRIVER_VERSION}'
   : (args.includes('omb-desktop-probe') || args.includes('health_report')) ? {schema_version:'1',overall:'ok',checks:[]} : {};
 else if (args[0] === 'info') result = 'fixture';
 else if (args[0] === 'image' && args[1] === 'inspect') result = [{Id:imageId,Config:{Labels:labels}}];
-else if (args[0] === 'inspect' && args[1] === 'openmausbot-computer') result = [{
+else if (args[0] === 'inspect' && args[1] === 'duskbot-computer') result = [{
   Config:{Image:${JSON.stringify(IMAGE)},Labels:labels,Env:['VNC_PW=fixture-password']},
   State:{Running:true},Image:imageId,
   HostConfig:{PortBindings:{'6901/tcp':[{HostIp:'127.0.0.1',HostPort:'${desktop.port}'}]}},
@@ -266,7 +266,7 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
   assert.equal(status.viewer_url.includes("password"), false);
   const matchingBackgrounds = "getComputedStyle(document.querySelector('#screen > div')).backgroundColor === getComputedStyle(document.querySelector('main')).backgroundColor";
   assert.equal(await evaluate(matchingBackgrounds), true);
-  const evidenceDir = process.env.OMB_UI_EVIDENCE_DIR ? resolve(root, process.env.OMB_UI_EVIDENCE_DIR) : dirname(fixture.info.logPath);
+  const evidenceDir = process.env.DUSK_UI_EVIDENCE_DIR ? resolve(root, process.env.DUSK_UI_EVIDENCE_DIR) : dirname(fixture.info.logPath);
   mkdirSync(evidenceDir, { recursive: true });
   const desktopScreenshot = join(evidenceDir, `viewer-${process.pid}-desktop.png`);
   await command("wait", "--fn", "document.getAnimations().every(a => a.playState !== 'running')");

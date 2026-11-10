@@ -30,9 +30,9 @@ export interface PushSender {
   send(target: PushTarget, message: PushMessage): Promise<PushOutcome>;
 }
 
-/** OMB_PUSH_RELAY: where a server with no APNs or FCM keys of its own sends pushes ("off" for nowhere); unset, `fallback` */
+/** DUSK_PUSH_RELAY: where a server with no APNs or FCM keys of its own sends pushes ("off" for nowhere); unset, `fallback` */
 export function pushRelayBase(env: NodeJS.ProcessEnv, fallback: string | null): string | null {
-  const value = env.OMB_PUSH_RELAY?.trim().replace(/\/+$/, "");
+  const value = env.DUSK_PUSH_RELAY?.trim().replace(/\/+$/, "");
   if (value === "off") return null;
   if (value) return /^https?:\/\/[^/\s]+$/.test(value) ? value : null;
   return fallback;
@@ -78,7 +78,7 @@ export function createPushSender(env: NodeJS.ProcessEnv = process.env, deps: {
   let apns: { key: KeyObject; keyId: string; teamId: string; topic: string } | undefined;
   let fcm: { key: KeyObject; projectId: string; email: string; tokenUri: string } | undefined;
 
-  const { OMB_APNS_KEY_FILE: keyFile, OMB_APNS_KEY_ID: keyId, OMB_APNS_TEAM_ID: teamId, OMB_APNS_TOPIC: topic } = env;
+  const { DUSK_APNS_KEY_FILE: keyFile, DUSK_APNS_KEY_ID: keyId, DUSK_APNS_TEAM_ID: teamId, DUSK_APNS_TOPIC: topic } = env;
   if (keyFile || keyId || teamId || topic) {
     try {
       if (!keyFile || !keyId || !teamId || !topic) throw new Error("incomplete credentials");
@@ -90,9 +90,9 @@ export function createPushSender(env: NodeJS.ProcessEnv = process.env, deps: {
       log("mobile push: could not load APNs credentials; APNs is disabled");
     }
   }
-  if (env.OMB_FCM_SERVICE_ACCOUNT_FILE) {
+  if (env.DUSK_FCM_SERVICE_ACCOUNT_FILE) {
     try {
-      const account = JSON.parse(readFile(env.OMB_FCM_SERVICE_ACCOUNT_FILE).toString());
+      const account = JSON.parse(readFile(env.DUSK_FCM_SERVICE_ACCOUNT_FILE).toString());
       if (![account.project_id, account.client_email, account.private_key, account.token_uri].every((value) => typeof value === "string" && value.length > 0)) throw new Error("invalid account");
       const key = createPrivateKey(account.private_key);
       if (key.asymmetricKeyType !== "rsa") throw new Error("invalid key");
@@ -129,7 +129,7 @@ export function createPushSender(env: NodeJS.ProcessEnv = process.env, deps: {
         createdAt: timestamp,
       };
     }
-    const origin = env.OMB_APNS_HOST ?? (target.environment === "sandbox" ? "https://api.sandbox.push.apple.com" : "https://api.push.apple.com");
+    const origin = env.DUSK_APNS_HOST ?? (target.environment === "sandbox" ? "https://api.sandbox.push.apple.com" : "https://api.push.apple.com");
     const current = apnsSession(origin);
     return new Promise<PushOutcome>((resolve) => {
       const request = current.request({
@@ -193,7 +193,7 @@ export function createPushSender(env: NodeJS.ProcessEnv = process.env, deps: {
 
   async function sendFcm(target: PushTarget, message: PushMessage): Promise<PushOutcome> {
     const token = await fcmToken();
-    const origin = env.OMB_FCM_HOST ?? "https://fcm.googleapis.com";
+    const origin = env.DUSK_FCM_HOST ?? "https://fcm.googleapis.com";
     const response = await fetch(`${origin}/v1/projects/${encodeURIComponent(fcm!.projectId)}/messages:send`, {
       method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       body: JSON.stringify({ message: {

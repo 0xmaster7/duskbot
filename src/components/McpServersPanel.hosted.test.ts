@@ -221,7 +221,7 @@ describe("the Agentcard tile", () => {
     await mount();
     const tile = card(HOSTED_MCP_APPS.find((app) => app.id === "agentcard")!);
     expect(tile.querySelector("img")).toBeNull();
-    expect(tile.textContent).toContain("OpenMausBot stores no card details");
+    expect(tile.textContent).toContain("Dusk Bot stores no card details");
   });
 });
 

@@ -282,7 +282,7 @@ export async function prepareBrowserSessionState(
 }
 
 export type BrowserEngineStatus =
-  /** `managed`: the engine OMB installed (bundled or pinned), not one named by OMB_AGENT_BROWSER_PATH or found on PATH. */
+  /** `managed`: the engine Dusk Bot installed (bundled or pinned), not one named by DUSK_AGENT_BROWSER_PATH or found on PATH. */
   | { kind: "ready"; binaryPath: string; version: string; managed: boolean; warning?: string }
   | { kind: "unavailable"; reason: string; installable: boolean };
 
@@ -373,7 +373,7 @@ interface BrowserLookupOptions {
 }
 
 function packagedBrowser(options: BrowserLookupOptions) {
-  const resources = (options.env ?? process.env).OMB_RESOURCES_PATH;
+  const resources = (options.env ?? process.env).DUSK_RESOURCES_PATH;
   if (!resources) return null;
   try {
     return browserBundlePaths(join(resolve(resources), "browser-engine"), `${options.platform ?? process.platform}-${options.arch ?? process.arch}`);
@@ -390,7 +390,7 @@ export function resolveAgentBrowserBinary(options: BrowserLookupOptions = {}): s
   const env = options.env ?? process.env;
   const platform = options.platform ?? process.platform;
   const exists = options.exists ?? existsSync;
-  const override = env.OMB_AGENT_BROWSER_PATH?.trim();
+  const override = env.DUSK_AGENT_BROWSER_PATH?.trim();
   if (override) return resolve(override) && exists(resolve(override)) ? resolve(override) : null;
   const bundle = packagedBrowser(options);
   if (bundle && exists(bundle.directory)) return completePackage(bundle, exists) ? bundle.engine : null;
@@ -539,7 +539,7 @@ export function browserEngineStatus(options: BrowserLookupOptions = {}): Browser
     return { kind: "ready", binaryPath, version, managed, ...(warning ? { warning } : {}) };
   }
   if (bundle && (options.exists ?? existsSync)(bundle.directory)) {
-    return { kind: "unavailable", reason: "The desktop browser bundle is incomplete. Reinstall or update OpenMausBot to repair it.", installable: false };
+    return { kind: "unavailable", reason: "The desktop browser bundle is incomplete. Reinstall or update Dusk Bot to repair it.", installable: false };
   }
   const platform = options.platform ?? process.platform;
   const arch = options.arch ?? process.arch;
@@ -578,7 +578,7 @@ export function agentBrowserIntegration(input: {
   /** The person's own Chrome: agent-browser auto-connects (DevToolsActivePort, then ports 9222/9229) or uses `cdpUrl`, which
    * comes only from workspace config, never the ambient environment. */
   attach?: { cdpUrl?: string };
-  /** The Chrome OMB prepared for the engine to start (server/browser/chrome/launcher.ts); unused when attaching. */
+  /** The Chrome Dusk Bot prepared for the engine to start (server/browser/chrome/launcher.ts); unused when attaching. */
   launcher?: Record<string, string>;
   dataDir?: string;
 }): { command: string; args: string[]; env: Record<string, string> } {
@@ -597,7 +597,7 @@ export function agentBrowserIntegration(input: {
   // Headless on a displayless Linux host; an explicit AGENT_BROWSER_HEADED=0 also brings back headless a daemon that kept a headed launch config.
   const displayless = (input.platform ?? process.platform) === "linux" && !sourceEnv.DISPLAY && !sourceEnv.WAYLAND_DISPLAY;
   if (input.attach) {
-    // The person's Chrome keeps its own sign-ins: restoring or saving would copy cookies between it and OMB's store.
+    // The person's Chrome keeps its own sign-ins: restoring or saving would copy cookies between it and Dusk Bot's store.
     if (input.attach.cdpUrl) env.AGENT_BROWSER_CDP = input.attach.cdpUrl;
     else env.AGENT_BROWSER_AUTO_CONNECT = "1";
     env.AGENT_BROWSER_RESTORE_SAVE = "never";

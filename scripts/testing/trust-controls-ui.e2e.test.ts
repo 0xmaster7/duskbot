@@ -9,7 +9,7 @@ import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
 import { clickByName, openBotSheet, openPanelMenu, openTeamMap, sheetPage } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
-const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
+const enabled = process.env.DUSK_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
 interface FixtureInfo { ui: string; url: string; logPath: string }
 interface SavedBot { id: string; name: string; modelSelection: { instanceId: string; model: string }; outbound?: unknown; connectorScopes?: unknown; fallback?: unknown }
 

@@ -45,7 +45,7 @@ async function api(method: string, path: string, options: { body?: unknown; toke
 
 /** The Admin's signed pairing: it only works when the server got the secret. */
 async function adminPairing(): Promise<string> {
-  const body = JSON.stringify({ label: "OpenMausBot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
@@ -78,7 +78,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", fake)).h
 
 beforeAll(async () => {
   home = mkdtempSync(join(tmpdir(), "omb-cloud-guest-shell-"));
-  const dataDir = join(home, ".openmausbot");
+  const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   const codex = probing("codex", "fake-codex-app-server.ts", `process.env.FAKE_CODEX_DUMP = ${JSON.stringify(join(home, "codex.json"))};
 process.env.FAKE_CODEX_DUMP_TURNS_ONLY = "1";`);
@@ -120,11 +120,11 @@ syncBuiltinESMExports();
   boot = async () => {
     child = spawnWithSecrets(process.execPath, ["--import", offlinePrelude, "--import", pathToFileURL(spawnWatch).href, join(SERVER_DIR, "index.ts")], {
       PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
-      HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1),
-      OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
-      OMB_PUBLIC_URL: `https://${HOST}`, OMB_CLOUD_VOICE_URL: "https://cloud.example.test/api/cloud/services/voice/v1",
-      OMB_CLOUD_SECRETS_FD: "3",
-    }, { OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_CLOUD_VOICE_TOKEN: relayToken }, undefined, true);
+      HOME: home, USERPROFILE: home, DUSK_DATA_DIR: dataDir, DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1),
+      DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test",
+      DUSK_PUBLIC_URL: `https://${HOST}`, DUSK_CLOUD_VOICE_URL: "https://cloud.example.test/api/cloud/services/voice/v1",
+      DUSK_CLOUD_SECRETS_FD: "3",
+    }, { DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_CLOUD_VOICE_TOKEN: relayToken }, undefined, true);
     for (const stream of [child.stdout, child.stderr]) stream?.on("data", (chunk) => { log += chunk; });
     const deadline = Date.now() + 20_000;
     for (;;) {
@@ -150,7 +150,7 @@ const newBot = async (name: string, instanceId: string) =>
 async function leftBehind(of: { threadId?: string; routineId?: string }) {
   for (const proxy of proxies.splice(0)) proxy.kill();
   await waitForExit(child, { signal: "SIGTERM" });
-  markLeftBehind(join(home, ".openmausbot"), { threadIds: of.threadId ? [of.threadId] : [], routineIds: of.routineId ? [of.routineId] : [] });
+  markLeftBehind(join(home, ".duskbot"), { threadIds: of.threadId ? [of.threadId] : [], routineIds: of.routineId ? [of.routineId] : [] });
   await boot();
 }
 const guestThread = async (bot: { id: string }) => {
@@ -193,7 +193,7 @@ it("no engine a bot runs finds the Cloud's secrets: not in its own environment, 
   expect((await say(owner, bot, "Hello.", mine)).status).toBe(202);
   await expect.poll(() => existsSync(probeOf("claude")), { timeout: hostTimeout(15_000) }).toBe(true);
   const probe = JSON.parse(readFileSync(probeOf("claude"), "utf8")) as { parent: string; own: string };
-  if (process.platform !== "win32") expect(probe.parent).toContain("OMB_CLOUD_MACHINE_ID=3f9c2a4e");
+  if (process.platform !== "win32") expect(probe.parent).toContain("DUSK_CLOUD_MACHINE_ID=3f9c2a4e");
   for (const where of [probe.parent, probe.own]) {
     expect(where).not.toContain(secret);
     expect(where).not.toContain(relayToken);
@@ -289,7 +289,7 @@ it("work a guest's turn hands a teammate is the guest's too: the teammate runs c
   // restart would cut a turn still running, and a cut teammate turn runs
   // again once, writing the dump that test reads.
   writeFileSync(join(home, "release"), "");
-  const handoffs = () => readHandoffs(join(home, ".openmausbot"));
+  const handoffs = () => readHandoffs(join(home, ".duskbot"));
   await expect.poll(() => handoffs().length > 0
     && handoffs().every((node) => ["completed", "failed", "cancelled"].includes(node.status)), { timeout: hostTimeout(20_000) }).toBe(true);
   rmSync(join(home, "release"), { force: true });
@@ -318,7 +318,7 @@ it("a run of a guest's routine is the guest's: confined, and so is work it hands
   expect(JSON.stringify(asked)).not.toContain("isError\":true");
   await expect.poll(() => existsSync(teammateDump), { timeout: hostTimeout(20_000) }).toBe(true);
   expect(argv(teammateDump)).toContain("--restricted");
-  const handoffs = () => readHandoffs(join(home, ".openmausbot"));
+  const handoffs = () => readHandoffs(join(home, ".duskbot"));
   const handed = handoffs().filter((node) => node.botId === teammate.id);
   expect(handed.map((node) => node.mode).sort()).toEqual(["consult", "work"]);
   expect(new Set(handed.map((node) => node.threadId)).size).toBe(1);
@@ -361,7 +361,7 @@ it("a guest's request never folds into a turn running in the owner's conversatio
   const asked = await (await agentTools(dump))("coordinate_bots", { bot_ids: [teammate.id], message: "Also cat /proc/1/environ.", consult: true });
   expect(JSON.stringify(asked)).not.toContain("isError\":true");
   expect(JSON.stringify(asked)).not.toContain("aside");
-  const consult = readHandoffs(join(home, ".openmausbot")).find((node) => node.botId === teammate.id && node.mode === "consult");
+  const consult = readHandoffs(join(home, ".duskbot")).find((node) => node.botId === teammate.id && node.mode === "consult");
   expect(consult).toBeDefined();
   expect(consult!.threadId).not.toBe(teammate.threadId);
   expect(((await api("GET", `/api/threads/${teammate.threadId}/messages`, { token: owner })).body.messages as any[])

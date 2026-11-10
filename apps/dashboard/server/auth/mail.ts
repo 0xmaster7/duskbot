@@ -20,15 +20,15 @@ export function resendMailer(options: { apiKey: string; from: string; fetch?: ty
   } };
 }
 export function mailerFromEnv(env: NodeJS.ProcessEnv, { dev }: { dev: boolean }): Mailer {
-  const provider = env.OMB_MAIL_PROVIDER ?? (dev ? "console" : "");
+  const provider = env.DUSK_MAIL_PROVIDER ?? (dev ? "console" : "");
   if (provider === "resend") {
-    if (!env.OMB_RESEND_API_KEY || !env.OMB_MAIL_FROM) throw new Error("OMB_MAIL_PROVIDER=resend requires OMB_RESEND_API_KEY and OMB_MAIL_FROM.");
-    return resendMailer({ apiKey: env.OMB_RESEND_API_KEY, from: env.OMB_MAIL_FROM });
+    if (!env.DUSK_RESEND_API_KEY || !env.DUSK_MAIL_FROM) throw new Error("DUSK_MAIL_PROVIDER=resend requires DUSK_RESEND_API_KEY and DUSK_MAIL_FROM.");
+    return resendMailer({ apiKey: env.DUSK_RESEND_API_KEY, from: env.DUSK_MAIL_FROM });
   }
   if (provider === "console" && dev) return consoleMailer();
-  throw new Error("Configure OMB_MAIL_PROVIDER=resend for email delivery; console mail is allowed only in development.");
+  throw new Error("Configure DUSK_MAIL_PROVIDER=resend for email delivery; console mail is allowed only in development.");
 }
 export function codeMessage(to: string, code: string): MailMessage {
-  return { to, subject: "Your OpenMausBot code", text: `Your OpenMausBot code is ${code}. It expires in 10 minutes.`,
-    html: `<p>Your OpenMausBot code is <strong>${code}</strong>.</p><p>It expires in 10 minutes.</p>` };
+  return { to, subject: "Your Dusk Bot code", text: `Your Dusk Bot code is ${code}. It expires in 10 minutes.`,
+    html: `<p>Your Dusk Bot code is <strong>${code}</strong>.</p><p>It expires in 10 minutes.</p>` };
 }

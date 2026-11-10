@@ -1,21 +1,23 @@
-// Every test file gets a throwaway home, so DATA_DIR (~/.openmausbot) never touches the real one;
+// Every test file gets a throwaway home, so DATA_DIR (~/.duskbot) never touches the real one;
 // os.homedir() reads HOME / USERPROFILE at call time, and this runs before server/config.ts is imported.
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach } from "vitest";
 
+import { LEGACY } from "../../electron/legacy-names.mjs";
 import { removeTempDir } from "./cleanup.ts";
 
 const home = mkdtempSync(join(tmpdir(), "omb-test-home-"));
 process.env.HOME = home;
 process.env.USERPROFILE = home;
-// OMB_DATA_DIR must never escape the throwaway home the suite deletes.
-delete process.env.OMB_DATA_DIR;
+// DUSK_DATA_DIR must never escape the throwaway home the suite deletes.
+delete process.env.DUSK_DATA_DIR;
+for (const prefix of LEGACY.envPrefixes) delete process.env[`${prefix}DATA_DIR`];
 // Do not let a developer's Hermes global config path leak into per-test homes.
 delete process.env.HERMES_HOME;
 // Named explicitly although homedir() already covers it: the device tests delete this directory wholesale.
-process.env.OMB_COMPANION_DIR = join(home, ".openmausbot-companion");
+process.env.DUSK_COMPANION_DIR = join(home, ".duskbot-companion");
 
 // Product code follows navigator.language; pin it so English assertions do not depend on the host locale.
 Object.defineProperty(globalThis.navigator, "language", { value: "en", configurable: true });

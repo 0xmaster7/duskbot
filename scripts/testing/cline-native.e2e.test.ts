@@ -12,7 +12,7 @@ import { recordEvents } from "../../server/testing/events.ts";
 import { removeTempDir } from "../../server/testing/cleanup.ts";
 import type { ProviderInstance } from "../../server/contracts.ts";
 
-const cli = process.env.OMB_CLINE_NATIVE_PATH;
+const cli = process.env.DUSK_CLINE_NATIVE_PATH;
 (cli ? it : it.skip)("runs the native Cline CLI with its saved custom model and provider", async () => {
   const home = mkdtempSync(join(tmpdir(), "omb-cline-native-"));
   const requests: Array<{ path: string; model?: string; tools?: string[] }> = [];

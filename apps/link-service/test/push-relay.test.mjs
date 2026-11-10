@@ -50,7 +50,7 @@ describe("push relay", () => {
   });
 
   it("sends an FCM push with the bot's name and ids only, and reports a dead token", async () => {
-    await start(createPushRelay({ env: { OMB_FCM_SERVICE_ACCOUNT_FILE: "/keys/account.json", OMB_FCM_HOST: "https://fcm.example" }, fetch: fakeFetch(), readFile }));
+    await start(createPushRelay({ env: { DUSK_FCM_SERVICE_ACCOUNT_FILE: "/keys/account.json", DUSK_FCM_HOST: "https://fcm.example" }, fetch: fakeFetch(), readFile }));
     expect(await (await post({ service: "fcm", token: "fixture-token", message })).json()).toEqual({ outcome: "sent" });
     const sent = calls.find((one) => one.url.startsWith("https://fcm.example"));
     expect(sent.url).toBe("https://fcm.example/v1/projects/fixture-project/messages:send");
@@ -74,7 +74,7 @@ describe("push relay", () => {
       };
       return session;
     };
-    await start(createPushRelay({ env: { OMB_APNS_KEY_FILE: "/keys/apns.p8", OMB_APNS_KEY_ID: "key", OMB_APNS_TEAM_ID: "team", OMB_APNS_TOPIC: "com.example.omb" }, http2Connect, readFile }));
+    await start(createPushRelay({ env: { DUSK_APNS_KEY_FILE: "/keys/apns.p8", DUSK_APNS_KEY_ID: "key", DUSK_APNS_TEAM_ID: "team", DUSK_APNS_TOPIC: "com.example.omb" }, http2Connect, readFile }));
     expect(await (await post({ service: "apns", token: "abcdef0123456789", environment: "sandbox", message })).json()).toEqual({ outcome: "sent" });
     expect(requests[0].origin).toBe("https://api.sandbox.push.apple.com");
     expect(requests[0].headers[":path"]).toBe("/3/device/abcdef0123456789");
@@ -83,7 +83,7 @@ describe("push relay", () => {
   });
 
   it("refuses bad input and limits pushes per device token", async () => {
-    await start(createPushRelay({ env: { OMB_FCM_SERVICE_ACCOUNT_FILE: "/keys/account.json", OMB_FCM_HOST: "https://fcm.example" }, fetch: fakeFetch(), readFile }));
+    await start(createPushRelay({ env: { DUSK_FCM_SERVICE_ACCOUNT_FILE: "/keys/account.json", DUSK_FCM_HOST: "https://fcm.example" }, fetch: fakeFetch(), readFile }));
     expect((await post({ service: "sms", token: "fixture-token", message })).status).toBe(400);
     expect((await post({ service: "fcm", token: "bad token!", message })).status).toBe(400);
     expect((await post({ service: "fcm", token: "fixture-token", message: { ...message, botName: "" } })).status).toBe(400);

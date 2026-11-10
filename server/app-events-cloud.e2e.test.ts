@@ -34,7 +34,7 @@ async function api(method: string, path: string, body?: unknown) {
 }
 
 async function ownerToken(): Promise<string> {
-  const body = JSON.stringify({ label: "OpenMausBot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
@@ -49,7 +49,7 @@ beforeAll(async () => {
   vi.spyOn(console, "warn").mockImplementation(() => {});
   broker = await startBrokerFake();
   home = mkdtempSync(join(tmpdir(), "omb-app-events-cloud-"));
-  const dataDir = join(home, ".openmausbot");
+  const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   writeFileSync(join(dataDir, "config.json"), JSON.stringify({
     instances: { claude: { driver: "claudeAgent", displayName: "Fixture", config: { cli: join(SERVER_DIR, "testing", "fake-claude-cli.ts") } } },
@@ -61,10 +61,10 @@ beforeAll(async () => {
   child = spawn(process.execPath, ["--import", offline, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
-      PATH: process.env.PATH, HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1),
-      OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: MACHINE, OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
-      OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_PUBLIC_URL: `https://${HOST}`, FAKE_CLAUDE_MODE: "happy",
-      OMB_COMPOSIO_BROKER_URL: broker.url, OMB_CLOUD_CONNECTED_APPS_GRANT: broker.cloudGrant(MACHINE),
+      PATH: process.env.PATH, HOME: home, USERPROFILE: home, DUSK_DATA_DIR: dataDir, DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1),
+      DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: MACHINE, DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test",
+      DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_PUBLIC_URL: `https://${HOST}`, FAKE_CLAUDE_MODE: "happy",
+      DUSK_COMPOSIO_BROKER_URL: broker.url, DUSK_CLOUD_CONNECTED_APPS_GRANT: broker.cloudGrant(MACHINE),
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

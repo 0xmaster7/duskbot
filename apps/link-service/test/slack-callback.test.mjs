@@ -38,17 +38,17 @@ describe("Slack callback", () => {
       "x-frame-options": "DENY", "content-security-policy": CSP,
     })) expect(response.headers.get(name)).toBe(value);
     const html = await response.text();
-    const escaped = `openmausbot://slack/oauth?code=${CODE}&amp;state=${STATE}`;
+    const escaped = `duskbot://slack/oauth?code=${CODE}&amp;state=${STATE}`;
     expect(html).toContain('<!doctype html>');
     expect(html).toContain('<html lang="en">');
     expect(html).toContain('<meta name="viewport"');
-    expect(html).toContain('<title>Returning to OpenMausBot</title>');
+    expect(html).toContain('<title>Returning to Dusk Bot</title>');
     expect(html).toContain(`<meta http-equiv="refresh" content="0;url=${escaped}">`);
-    expect(html).toContain(`<a href="${escaped}">Open OpenMausBot</a>`);
+    expect(html).toContain(`<a href="${escaped}">Open Dusk Bot</a>`);
     expect(html).toContain(`<code>${escaped}</code>`);
     expect(html).toContain("user-select:all");
-    expect(html).toContain("If nothing happens, open OpenMausBot yourself.");
-    expect(html).toContain("Or copy this link and paste it into OpenMausBot:");
+    expect(html).toContain("If nothing happens, open Dusk Bot yourself.");
+    expect(html).toContain("Or copy this link and paste it into Dusk Bot:");
     expect(html).not.toContain(`&state=${STATE}`);
     expect(html).not.toMatch(/<script\b/i);
     expect(html).not.toContain("ignored");
@@ -64,14 +64,14 @@ describe("Slack callback", () => {
     const html = await response.text();
     expect(html).toContain("<h1>Slack didn&#39;t add the bot</h1>");
     expect(html).toContain("You can close this tab.");
-    expect(html).toContain(`openmausbot://slack/oauth?error=access_denied&amp;state=${STATE}`);
+    expect(html).toContain(`duskbot://slack/oauth?error=access_denied&amp;state=${STATE}`);
     expect(html).not.toMatch(/<script\b/i);
   });
 
   it("returns other Slack errors to the app", async () => {
     const response = await callback({ error: "server_error", state: STATE });
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain(`openmausbot://slack/oauth?error=server_error&amp;state=${STATE}`);
+    expect(await response.text()).toContain(`duskbot://slack/oauth?error=server_error&amp;state=${STATE}`);
   });
 
   it.each([
@@ -85,12 +85,12 @@ describe("Slack callback", () => {
     const response = await callback(params);
     expect(response.status).toBe(400);
     const html = await response.text();
-    expect(html).toContain("This Slack link is not valid. Start again from OpenMausBot.");
+    expect(html).toContain("This Slack link is not valid. Start again from Dusk Bot.");
     expect(html).not.toContain(CODE);
     expect(html).not.toContain(STATE);
     expect(html).not.toContain("injection");
     expect(html).not.toContain('http-equiv="refresh"');
-    expect(html).not.toContain("openmausbot://");
+    expect(html).not.toContain("duskbot://");
   });
 
   it("leaves POST to the existing not-found handling", async () => {

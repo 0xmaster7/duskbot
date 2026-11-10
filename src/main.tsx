@@ -1,3 +1,4 @@
+import "../electron/legacy-names.mjs";
 import { AccountGate } from "./components/account-gate/AccountGate";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

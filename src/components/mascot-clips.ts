@@ -29,7 +29,7 @@ function fromRest(source: ClipSource): ClipSource {
 
 const still = (duration: number) => [{ t: 0, v: [0, 0] }, { t: duration, v: [0, 0] }];
 
-export const OMB_CLIPS = {
+export const DUSK_CLIPS = {
   Hop: clip({
     name: "Hop",
     duration: 1,
@@ -263,4 +263,4 @@ export const OMB_CLIPS = {
   }),
 } satisfies Record<string, MarkClip>;
 
-export type OmbClipName = keyof typeof OMB_CLIPS;
+export type OmbClipName = keyof typeof DUSK_CLIPS;

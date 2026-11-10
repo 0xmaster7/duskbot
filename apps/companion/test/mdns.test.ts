@@ -1,3 +1,4 @@
+import { MDNS_HOST_PREFIX } from "../../../electron/legacy-names.mjs";
 // Packets are built and read by hand, so the wire format is tested against the
 // format rather than against our own encoder.
 import { createSocket } from "node:dgram";
@@ -26,15 +27,15 @@ import {
 
 const service: ServiceInfo = {
   name: "Milind's computer",
-  type: "_openmausbot._tcp",
+  type: "_duskbot._tcp",
   port: 8800,
-  host: "openmausbot-1a2b3c4d.local",
+  host: `${MDNS_HOST_PREFIX}1a2b3c4d.local`,
   addresses: ["192.168.1.42"],
   txt: ["v=1", "name=Milind's computer"],
 };
 
-const INSTANCE = "Milind's computer._openmausbot._tcp.local";
-const SERVICE_NAME = "_openmausbot._tcp.local";
+const INSTANCE = "Milind's computer._duskbot._tcp.local";
+const SERVICE_NAME = "_duskbot._tcp.local";
 
 function query(name: string, type: number, opts: { id?: number; unicast?: boolean } = {}): Buffer {
   const header = Buffer.alloc(12);
@@ -238,13 +239,13 @@ describe("naming", () => {
     expect(dnsLabel("Dr. Smith's computer")).toBe("Dr  Smith's computer");
     expect(dnsLabel("x".repeat(200)).length).toBeLessThanOrEqual(63);
     expect(Buffer.byteLength(dnsLabel("é".repeat(60)), "utf8")).toBeLessThanOrEqual(63);
-    expect(dnsLabel("")).toBe("OpenMausBot");
-    expect(dnsLabel("   ")).toBe("OpenMausBot");
+    expect(dnsLabel("")).toBe("Dusk Bot");
+    expect(dnsLabel("   ")).toBe("Dusk Bot");
   });
 
   it("claims a host name the system responder will not fight us for", () => {
     const name = defaultHostName("Milinds-MacBook-Pro");
-    expect(name).toMatch(/^openmausbot-[0-9a-f]{8}\.local$/);
+    expect(name).toMatch(new RegExp(`^${MDNS_HOST_PREFIX}[0-9a-f]{8}\\.local$`));
     expect(defaultHostName("Milinds-MacBook-Pro")).toBe(name);
     expect(defaultHostName("another-machine")).not.toBe(name);
     expect(name).not.toContain("Milinds-MacBook-Pro");

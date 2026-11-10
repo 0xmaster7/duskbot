@@ -31,7 +31,7 @@ function signed(method: "GET" | "POST", path: string, body = "") {
 
 beforeAll(async () => {
   home = mkdtempSync(join(tmpdir(), "omb-team-admin-"));
-  dataDir = join(home, ".openmausbot");
+  dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
   writeFileSync(cli, `#!/usr/bin/env node
@@ -50,7 +50,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     mcpServers: { linear: { type: "http", url: "https://mcp.linear.app/sse?token=query-never-shown", headers: { Authorization: "Bearer header-never-shown" } } },
   }));
   mkdirSync(join(home, "web"));
-  writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>OpenMausBot</title>");
+  writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>Dusk Bot</title>");
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
   const prelude = `data:text/javascript,${encodeURIComponent("globalThis.fetch = async () => new Response(\"offline fixture\", { status: 503 });")}`;
@@ -58,9 +58,9 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     cwd: join(SERVER_DIR, ".."),
     env: {
       PATH: process.env.PATH, ...(process.env.PATHEXT ? { PATHEXT: process.env.PATHEXT } : {}), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
-      HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), OMB_STATIC_DIR: join(home, "web"),
-      OMB_CLOUD_ROLE: "team", OMB_CLOUD_TEAM_ID: TEAM.id, OMB_CLOUD_TEAM_NAME: TEAM.name, OMB_CLOUD_TEAM_LANGUAGE: "de",
-      OMB_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", OMB_CLOUD_ADMIN_URL: "https://cloud.example.test", OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_PUBLIC_URL: `https://${HOST}`,
+      HOME: home, USERPROFILE: home, DUSK_DATA_DIR: dataDir, DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1), DUSK_STATIC_DIR: join(home, "web"),
+      DUSK_CLOUD_ROLE: "team", DUSK_CLOUD_TEAM_ID: TEAM.id, DUSK_CLOUD_TEAM_NAME: TEAM.name, DUSK_CLOUD_TEAM_LANGUAGE: "de",
+      DUSK_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test", DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_PUBLIC_URL: `https://${HOST}`,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -96,7 +96,7 @@ it("the Admin reads a Team Cloud's shared connections and AI by a signed request
 
 it("an Owner or Admin's paired session (as the Admin holds one) sets a team key and removes an MCP server through the app's own routes; a User's can't; the team's default language is the server's until it sets its own", async () => {
   const session = async (role: string) => {
-    const granted = await signed("POST", "/api/cloud/pairing", JSON.stringify({ label: "Team admin (MausBot Cloud)", ttlSeconds: 300, team: TEAM, member: { email: `${role}@acme.test`, role } }));
+    const granted = await signed("POST", "/api/cloud/pairing", JSON.stringify({ label: "Team admin (Dusk Cloud)", ttlSeconds: 300, team: TEAM, member: { email: `${role}@acme.test`, role } }));
     const token = (await call("POST", "/api/auth/pair", { body: JSON.stringify({ code: granted.body.code }), headers: { "content-type": "application/json" } })).body.token as string;
     return (method: string, path: string, body?: unknown) => call(method, path, { ...(body === undefined ? {} : { body: JSON.stringify(body) }), headers: { authorization: `Bearer ${token}`, ...(body === undefined ? {} : { "content-type": "application/json" }) } });
   };
@@ -118,7 +118,7 @@ it("an Owner or Admin's paired session (as the Admin holds one) sets a team key 
   expect(JSON.stringify(summary)).not.toContain("never-shown");
   const saved = JSON.parse(readFileSync(join(dataDir, "config.json"), "utf8"));
   expect([saved.openai?.key, saved.mcpServers, saved.language]).toEqual(["sk-team-key-never-shown", {}, undefined]);
-  // The language is the team's (OMB_CLOUD_TEAM_LANGUAGE), though config.json sets none.
+  // The language is the team's (DUSK_CLOUD_TEAM_LANGUAGE), though config.json sets none.
   const settings = await admin("GET", "/api/config");
   expect([settings.status, settings.body.language]).toEqual([200, "de"]);
 }, 30_000);

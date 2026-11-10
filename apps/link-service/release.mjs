@@ -1,5 +1,5 @@
 // signs the link agent the link service hands out, for servers that pin release keys (agent.mjs RELEASE_KEYS or
-// OMB_LINK_RELEASE_KEYS). keep the private key off the link service's machine, or the signature vouches for nothing.
+// DUSK_LINK_RELEASE_KEYS). keep the private key off the link service's machine, or the signature vouches for nothing.
 //   node release.mjs keygen <private-key-file>   makes a key pair: the private half only in that file (0600), the
 //                                                public half printed for RELEASE_KEYS
 //   node release.mjs sign <private-key-file>     writes agent.mjs.sig beside agent.mjs for the agent as it is now

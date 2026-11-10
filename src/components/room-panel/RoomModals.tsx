@@ -116,7 +116,7 @@ export function RoomFolderModal({ group }: { group: Group; onClose: () => void }
   );
 }
 
-/** Who answers a message that @mentions nobody: a leader who hands out the work, everyone, MausBot deciding or Jev
+/** Who answers a message that @mentions nobody: a leader who hands out the work, everyone, Dusk deciding or Jev
  * deciding (with Jev set up right under it). A leader picks who leads in the rows under it; arrow keys move between rows. */
 export function RoomResponderModal({ group, members }: { group: Group; members: Bot[]; onClose: () => void }) {
   const { dispatch } = useStore();
@@ -132,9 +132,9 @@ export function RoomResponderModal({ group, members }: { group: Group; members: 
     if (next === current) return;
     set(chosenResponder(next, responder));
   };
-  const behaviours: { choice: "everyone" | "mausbot" | "auto" | "mentions"; title: LocaleKey; hint: LocaleKey }[] = [
+  const behaviours: { choice: "everyone" | "dusk" | "auto" | "mentions"; title: LocaleKey; hint: LocaleKey }[] = [
     { choice: "everyone", title: "room.panel.responder.everyone", hint: "room.panel.responder.everyoneHint" },
-    { choice: "mausbot", title: "room.panel.responder.mausbot", hint: "room.panel.responder.mausbotHint" },
+    { choice: "dusk", title: "room.panel.responder.dusk", hint: "room.panel.responder.duskHint" },
     { choice: "auto", title: "room.panel.responder.jev", hint: "room.panel.responder.autoHint" },
     // only who is @mentioned stays for rooms already set that way
     ...(current === "mentions" ? [{ choice: "mentions" as const, title: "room.panel.responder.mentions" as LocaleKey, hint: "room.panel.responder.mentionsHint" as LocaleKey }] : []),

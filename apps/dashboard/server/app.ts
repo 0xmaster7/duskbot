@@ -26,7 +26,7 @@ export interface DashboardAppOptions {
   staticDir: string | null;
   now?: () => number;
   fetch?: typeof fetch;
-  /** the slack wake edge: OMB_SLACK_EDGE and OMB_CLOUD_SEAL_KEY from env; tests pass a fake socket */
+  /** the slack wake edge: DUSK_SLACK_EDGE and DUSK_CLOUD_SEAL_KEY from env; tests pass a fake socket */
   slackEdge?: { env?: NodeJS.ProcessEnv; socket?: EdgeSocketFactory };
 }
 class RequestError extends Error {
@@ -69,7 +69,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   };
   const billing = createBilling({ accountExists: id => auth.account(id) !== null,
     mail: (cloud, letter) => mail(auth.account(cloud.accountId)?.email, letter.subject, letter.text),
-    alert: entry => mail(process.env.OMB_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
+    alert: entry => mail(process.env.DUSK_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
     fromBearer: req => auth.appSession(req)?.account ?? null } });
   auth.beforeAccountDelete(async (owner, body) => {

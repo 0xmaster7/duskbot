@@ -1,8 +1,8 @@
 {
-  "name": "openmausbot-link",
+  "name": "duskbot-link",
   "private": true,
   "version": "0.1.0",
-  "description": "Links a person's VPS to their OpenMausBot app: one-time setup sessions, the install script, and an end-to-end sealed relay tunnel.",
+  "description": "Links a person's VPS to their Dusk Bot app: one-time setup sessions, the install script, and an end-to-end sealed relay tunnel.",
   "type": "module",
   "engines": { "node": ">=20" },
   "scripts": {

@@ -95,7 +95,7 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
       acceptFirstMouse: true,
       hiddenInMissionControl: true,
       enableLargerThanScreen: true,
-      title: surface === "island" ? "MausBot island" : "MausBot dock",
+      title: surface === "island" ? "Dusk island" : "Dusk dock",
       webPreferences: {
         contextIsolation: true,
         sandbox: true,

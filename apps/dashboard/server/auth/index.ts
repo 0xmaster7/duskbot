@@ -344,7 +344,7 @@ export function createAuth(options: AuthOptions) {
     res.setHeader("cache-control", "no-store");
     if (cors) {
       res.setHeader("access-control-allow-origin", "*");
-      res.setHeader("access-control-allow-headers", "content-type, authorization, x-openmausbot-version");
+      res.setHeader("access-control-allow-headers", "content-type, authorization, x-dusk-version");
       res.setHeader("access-control-allow-methods", "GET, POST, DELETE, OPTIONS");
       if (method === "OPTIONS") { res.writeHead(204); res.end(); return true; }
     }
