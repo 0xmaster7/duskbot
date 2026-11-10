@@ -302,7 +302,7 @@ if (listener) {
 }
 
 // the sea in the last picture: the bots come up one by one the first time it is seen, watch the pointer from across the
-// water, and when it gets close they startle and duck under, coming back up a moment later
+// water, and when it gets close they duck under, coming back up a moment later
 const end = $('.end'), water = $('.sea-bots');
 if (end && water && nearby && !reduced) {
   const box = water.viewBox.baseVal;
@@ -353,9 +353,8 @@ if (end && water && nearby && !reduced) {
       const gaze = { x: Math.round((dx / reach) * t * 100) / 100, y: Math.round((dy / reach) * t * 100) / 100 };
       if (b.rec.mark && (!b.look || b.look.x !== gaze.x || b.look.y !== gaze.y)) { b.look = gaze; b.rec.mark.gaze(gaze); }
       if (d > 22 + b.size * k || b.under) continue;
-      react(b.rec, 'startle');
-      b.under = true;
-      later(180, () => dive(b, between(900, 1700)));
+      // a plain, quick duck reads smoother than a startle followed by a drop
+      dive(b, between(900, 1700));
     }
     clearTimeout(letGo);
     letGo = later(ATTENTION.holdMs, rest);

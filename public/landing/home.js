@@ -187,11 +187,6 @@ else if (dusk && hour < 5) dusk.textContent = "it's late. the bots are still up,
 // she reacts on all three, because it is the same bot
 const ev = document.querySelector('[data-ev]');
 if (ev && !still) {
-  const scene = ev.closest('.ev-scene'), screens = [...ev.querySelectorAll('.ev-scr')];
-  if (hasIO) {
-    scene.classList.add('ev-arm');
-    once(ev, () => screens.forEach((s, i) => setTimeout(() => s.classList.add('ev-on'), 200 + i * 160)), 0.5);
-  }
   ev.addEventListener('click', (e) => {
     if (!e.target.closest('.ev-scr') || !window.duskBots) return;
     ev.querySelectorAll('.ev-j').forEach((b, i) => setTimeout(() => window.duskBots.react(b, 'hop'), i * 60));

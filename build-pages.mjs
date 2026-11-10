@@ -129,7 +129,12 @@ const withBots = (html) => (rested.clear(), withOs(withChips(withParts(html))).r
   .replace(/\{\{i ([\w-]+)\}\}/g, (_, name) => icon(name)).replace(/\{\{sea\}\}/g, sea));
 
 // stamps a file's content hash on its url, so an edit is seen at once despite the cache header
-const stamped = (file) => `/${file}?v=${createHash('sha256').update(fs.readFileSync(path.join(site, file))).digest('hex').slice(0, 8)}`;
+// a file that is not there yet is left unstamped (and named in the log) rather than failing the whole build
+const stamped = (file) => {
+  const full = path.join(site, file);
+  if (!fs.existsSync(full)) { console.warn(`missing ${file}`); return `/${file}`; }
+  return `/${file}?v=${createHash('sha256').update(fs.readFileSync(full)).digest('hex').slice(0, 8)}`;
+};
 
 export function layout({ title, description, body, page }) {
   const home = page === 'home';
