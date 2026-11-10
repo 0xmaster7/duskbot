@@ -32,12 +32,23 @@ runs still require `package.json`'s version to be bumped on the selected ref.
 A release is rejected if any installer, stable download
 name, size, or digest is absent or inconsistent.
 
-GitHub generates the release body from pull requests since the previous
-canonical tag. The docs changelog combines published canonical releases with
-the legacy archive into one complete history and caches it for five minutes.
-Configure the optional Vercel hook below to rebuild the docs immediately after
-publication; otherwise the live cache or the next normal docs deployment
-refreshes it.
+GitHub generates the release body (the changelog) from pull requests since the previous tag. Write PR titles for
+people: they become the release notes on the downloads repo.
+
+## Putting a release on dusk.bot
+
+The private repo's release is the canonical record; people download from the public downloads repo and dusk.bot.
+After publishing, run on the Mac:
+
+```sh
+scripts/publish-downloads.sh v0.1.142            # DRY_RUN=1 first to only verify
+```
+
+It downloads the release, checks every installer against the run's signed `SHA256SUMS`, uploads the installers to
+the public `goatedgrokbotalternative/duskbot-releases` release (stable `/releases/latest/download/` names that
+dusk.bot/download links to), then puts `latest.json` and `SHA256SUMS` on dusk.bot through the deployd landing site.
+Desktop apps read `https://dusk.bot/releases/latest.json` once a day, accept it only when a pinned release key
+signed it (server/update-check.ts), and show a notification that opens dusk.bot/download. Nothing installs itself.
 
 ## Why the gates exist
 
@@ -92,12 +103,13 @@ password for CI — revocable, scoped, no 2FA dance):
 base64 -i AuthKey_XXXXXXXX.p8 | pbcopy   # → APPLE_API_KEY_P8_BASE64
 ```
 
-### 3. Optional `DOCS_DEPLOY_HOOK_URL`
+### 3. `DUSK_RELEASE_SIGNING_KEY`
 
-In Vercel, open the docs project and create a **Deploy Hook** for its production
-branch. Store that private URL as the `DOCS_DEPLOY_HOOK_URL` repository secret.
-Publishing a release then requests a fresh docs deployment so the generated
-changelog appears immediately. Do not put the hook URL in source control.
+The Ed25519 release key (`kid:<pkcs8 base64url>`) whose public half is pinned in
+`apps/cloud-service/src/release-signing.ts` and `server/update-check.ts` (a test keeps them equal). The assemble job
+signs `latest.json` with it; without it the release still builds but apps never hear about it. A new key:
+`node apps/cloud-service/scripts/keygen.mjs rel-2027-01 ~/.config/duskbot/keys`, pin the printed public key in both
+files, ship an app with it, and only then switch the secret.
 
 ### Local fallback
 
