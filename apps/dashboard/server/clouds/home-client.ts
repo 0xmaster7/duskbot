@@ -29,7 +29,12 @@ export function createHomeClient(options: { fetch?: typeof fetch; now?: () => nu
       const value = await request(origin, secret, "GET", `/api/cloud/power?idleMinutes=${Math.round(idleMinutes)}`) as Record<string, unknown> | null;
       if (!value || value.v !== 1 || typeof value.idle !== "boolean" || !Array.isArray(value.busy)) throw new Error("Invalid cloud power answer.");
       const moment = (v: unknown) => Number.isSafeInteger(v) ? v as number : null;
-      return { idle: value.idle, busy: value.busy.filter((b): b is string => typeof b === "string" && /^[a-z-]{1,32}$/.test(b)), lastActivityAt: moment(value.lastActivityAt), nextDueAt: moment(value.nextDueAt), wokeAt: moment(value.wokeAt) };
+      const upcoming = Array.isArray(value.upcoming) ? value.upcoming.slice(0, 96).flatMap((r: unknown) => {
+        const at = moment((r as { at?: unknown })?.at), flex = (r as { flexMs?: unknown })?.flexMs;
+        return at === null ? [] : [{ at, flexMs: Number.isSafeInteger(flex) && (flex as number) >= 0 && (flex as number) <= 3_600_000 ? flex as number : 0 }];
+      }) : undefined;
+      return { idle: value.idle, busy: value.busy.filter((b): b is string => typeof b === "string" && /^[a-z-]{1,32}$/.test(b)), lastActivityAt: moment(value.lastActivityAt), nextDueAt: moment(value.nextDueAt), wokeAt: moment(value.wokeAt),
+        ...(upcoming ? { upcoming } : {}) };
     },
     async sleep(origin, secret, idleMinutes) {
       try {

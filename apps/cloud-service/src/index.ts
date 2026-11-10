@@ -13,21 +13,24 @@ import { parseSealKey } from "../../dashboard/server/clouds/seal.ts";
 import type { DesktopPlan, StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import { createAudit, type Audit, type AuditEntry } from "./audit.ts";
 import { boatBackupKey, createBackupStore, type BackupStore } from "./backups.ts";
-import { BOAT_PRICING, boatScope, createBoatProvider, type BoatProvider, type BoatSize } from "./boat.ts";
+import { BOAT_PLANS, boatCostProfile, boatScope, createBoatProvider, type BoatPlan, type BoatSize } from "./boat.ts";
+import type { MachineProvider } from "./provider.ts";
+import { BOAT_IMAGE } from "./home.ts";
 import { guardBackupSecret } from "./key-guard.ts";
-import { createBoatLifecycle, freshBoatState, managedSettingsFromEnv, type BoatSettings } from "./lifecycle.ts";
+import { createLifecycle, freshManagedState, managedSettingsFromEnv, type ManagedSettings } from "./lifecycle.ts";
 import { entitlementOf, noticeText, type Entitlement, type NoticeKind } from "./retention.ts";
 import { parseReleaseKeys, PINNED_RELEASE_KEYS, verifyRelease, type ReleaseKey } from "./release-signing.ts";
-import { createBoatSweep } from "./sweep.ts";
+import { createSweep } from "./sweep.ts";
 import { createStartLedger } from "./starts.ts";
-import { createSleepPolicy } from "./sleep-policy.ts";
+import { createPowerPolicy, DEFAULT_POLICY, type PolicyParams } from "./power/policy.ts";
+import type { ProviderCostProfile } from "./power/cost.ts";
 import "./state.ts";
 
 export interface ManagedCloudDeps {
-  provider: BoatProvider;
+  provider: MachineProvider;
   backups: BackupStore;
   audit: Audit;
-  settings: BoatSettings;
+  settings: ManagedSettings;
   kinds: ReadonlyArray<DesktopPlan["kind"]>;
   /** this service's backup secret; never on a machine */
   backupSecret: Buffer;
@@ -44,8 +47,10 @@ export interface ManagedCloudDeps {
   labelKey?: Buffer;
   /** the operator's alert, also used when the day's provider starts approach the included count */
   alert?(entry: AuditEntry): void;
-  /** the provider's prices for the start ledger and the sleep policy (Boat's by default) */
-  pricing?: import("./sleep-policy.ts").ProviderPricing;
+  /** the provider's prices and start pool, for the ledger, the policy and the rails (the $20 plan's pool, scaled to DUSK_MANAGED_DAILY_STARTS, by default) */
+  costProfile?: ProviderCostProfile;
+  /** the power policy's settings (the tuned defaults otherwise) */
+  policy?: PolicyParams;
 }
 
 /** a record written before the rename: backend "boat" and its lifecycle record under `boat` */
@@ -79,14 +84,17 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         if (!newest) return null;
         try { backups.read(newest.c.id, boatBackupKey(secret, newest.c.id), newest.g.file); return true; } catch { return false; }
       });
-      // starts, not compute, are the provider's main cost: counted per day, alerted on, and the sleep policy's budget
-      const starts = createStartLedger({ dataDir: ctx.dataDir, included: deps.settings.includedStarts, pricing: deps.pricing ?? BOAT_PRICING, now: ctx.now,
+      // starts, not compute, are the provider's scarce resource: counted in its rolling windows, priced by the policy, capped by the rails
+      const profile = deps.costProfile ?? boatCostProfile({ plan: "20", scale: deps.settings.includedStarts / BOAT_PLANS["20"].day });
+      const base = deps.policy ?? DEFAULT_POLICY;
+      const params: PolicyParams = { ...base, schedule: { ...base.schedule, leadMs: deps.settings.wakeLeadMs }, rails: { ...base.rails, minIdleMs: deps.settings.idleMinutes * 60_000 } };
+      const starts = createStartLedger({ dataDir: ctx.dataDir, profile, now: ctx.now,
         alert: text => { console.warn(`managed: ${text}`); deps.alert?.({ at: ctx.now(), cloudId: "fleet", action: "starts_alert", actor: "reconciler", reason: text.slice(0, 120) }); } });
-      const sleepPolicy = createSleepPolicy({ pricing: deps.pricing ?? BOAT_PRICING, includedStarts: deps.settings.includedStarts, starts });
-      const lifecycle = createBoatLifecycle({ ...deps, starts, sleepPolicy, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
+      const sleepPolicy = createPowerPolicy({ profile, params, pool: () => starts.view() });
+      const lifecycle = createLifecycle({ ...deps, image: BOAT_IMAGE, starts, sleepPolicy, costProfile: profile, rails: params.rails, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
         dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace, clouds: ctx.clouds, entitle: ctx.entitlement,
         releaseKeys: deps.releaseKeys ?? PINNED_RELEASE_KEYS, labelKey: deps.labelKey ?? Buffer.from(hkdfSync("sha256", backupSecret, Buffer.alloc(0), Buffer.from("omb-managed-label"), 32))  });
-      const sweep = createBoatSweep({ dataDir: ctx.dataDir, provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });
+      const sweep = createSweep({ dataDir: ctx.dataDir, file: "boat-sweep.json", provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });
       const claimLimits = new Map<string, { count: number; until: number }>();
       /** failed redemptions per address: 30 per 15 minutes; a machine's own successful boot never counts */
       function limited(key: string): boolean {
@@ -137,7 +145,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
       }
       return {
         kinds: deps.kinds,
-        fresh: () => freshBoatState(),
+        fresh: () => freshManagedState(),
         reconcile: c => lifecycle.reconcile(c),
         retryAt: (c, error) => lifecycle.retryAt(c, error),
         view(c): Partial<CloudDesktopView> {
@@ -215,12 +223,17 @@ export function managedCloudFromEnv(source: NodeJS.ProcessEnv, options: ManagedC
     : options.sealKey ? Buffer.from(hkdfSync("sha256", options.sealKey, Buffer.alloc(0), Buffer.from("omb-boat-backup-secret"), 32))
     : localSecret(join(options.dataDir, "boat-backup-secret"));
   const settings = managedSettingsFromEnv(env, { loopback: lenient });
+  // the provider plan whose start pool this account has; DUSK_MANAGED_DAILY_STARTS scales it (seats, a custom plan)
+  const plan = env.DUSK_MANAGED_PROVIDER_PLAN ?? "20";
+  if (!Object.hasOwn(BOAT_PLANS, plan)) throw new Error("Invalid DUSK_MANAGED_PROVIDER_PLAN.");
+  const daily = env.DUSK_MANAGED_DAILY_STARTS ? settings.includedStarts : BOAT_PLANS[plan as BoatPlan].day;
+  const costProfile = boatCostProfile({ plan: plan as BoatPlan, scale: daily / BOAT_PLANS[plan as BoatPlan].day });
   const releaseKeys = [...PINNED_RELEASE_KEYS, ...parseReleaseKeys(env.DUSK_RELEASE_PUBLIC_KEYS)];
   if (settings.package?.signature) verifyRelease(settings.package.signature, { kind: "home-package", sha256: settings.package.sha256 }, releaseKeys);
   else if (settings.requireSigned && settings.package) throw new Error("DUSK_MANAGED_HOME_PACKAGE_SIGNATURE is required: a home package must be signed by a release key.");
   if (settings.templateSignature) verifyRelease(settings.templateSignature, { kind: "template", name: settings.template ?? "" }, releaseKeys);
   else if (settings.requireSigned && settings.template) throw new Error("DUSK_MANAGED_TEMPLATE_SIGNATURE is required: a template must be signed by a release key.");
-  return createManagedCloud({ kinds: kinds as Array<DesktopPlan["kind"]>, settings, backupSecret, releaseKeys, edgeToken,
+  return createManagedCloud({ kinds: kinds as Array<DesktopPlan["kind"]>, settings: { ...settings, includedStarts: daily }, costProfile, backupSecret, releaseKeys, edgeToken,
     previousBackupSecret: env.DUSK_MANAGED_BACKUP_KEY_PREVIOUS ? parseSealKey(env.DUSK_MANAGED_BACKUP_KEY_PREVIOUS) : null,
     provider: createBoatProvider({ apiKey, baseUrl: env.BOAT_BASE_URL, scope, fetch: options.fetch, smallest: smallest as BoatSize }),
     backups: createBackupStore({ dir: env.DUSK_MANAGED_BACKUP_DIR || join(options.dataDir, "boat-backups"), now: options.now }),

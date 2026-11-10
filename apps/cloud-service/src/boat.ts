@@ -6,8 +6,9 @@
 import { createHash } from "node:crypto";
 import type { MachineSpec } from "../../../shared/billing-api.ts";
 import { boundedJson, RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
-import type { CloudProvider, CreateServerInput, ProviderServer } from "../../dashboard/server/clouds/types.ts";
-import type { ProviderPricing } from "./sleep-policy.ts";
+import type { ProviderServer } from "../../dashboard/server/clouds/types.ts";
+import { ProviderError, ProviderLimitError, ProviderBusyError, type MachineProvider, type MachineState, type MachineRecord, type MachineCreateInput, type MachineCommandResult, type MachineDeletion } from "./provider.ts";
+import type { ProviderCostProfile } from "./power/cost.ts";
 
 export const BOAT_SIZES = [
   { type: "small", vcpu: 2, ramGb: 4, diskGb: 51 },
@@ -16,19 +17,47 @@ export const BOAT_SIZES = [
   { type: "xlarge", vcpu: 16, ramGb: 32, diskGb: 251 },
 ] as const;
 export type BoatSize = (typeof BOAT_SIZES)[number]["type"];
-/** Boat's prices (docs.boat.dev pricing.md and limits.md, read 2026-11-10): per second while running; starts included per
- *  plan per day, then $0.03 to 1.5x, $0.05 to 2x, $0.07 to 6x, and refused past 6x */
-export const BOAT_PRICING: ProviderPricing = {
-  hourlyCents: spec => ({ small: 1.8, default: 3.6, large: 7.2, xlarge: 20 })[BOAT_SIZES.find(z => z.vcpu >= spec.vcpu && z.ramGb >= spec.ramGb)?.type ?? "xlarge"],
-  startCostCents(nth, included) {
-    if (nth <= included) return 0;
-    if (nth <= included * 1.5) return 3;
-    if (nth <= included * 2) return 5;
-    if (nth <= included * 6) return 7;
-    return Number.POSITIVE_INFINITY;
-  },
-  hardCapFactor: 6,
-};
+/** Boat's compute prices (docs.boat.dev pricing.md, read 2026-11-10): cents per hour, billed per second while running */
+export function boatHourlyCents(spec: MachineSpec): number {
+  return ({ small: 1.8, default: 3.6, large: 7.2, xlarge: 20 })[BOAT_SIZES.find(z => z.vcpu >= spec.vcpu && z.ramGb >= spec.ramGb)?.type ?? "xlarge"];
+}
+/** Boat's start pool per plan (limits.md, read 2026-11-10): included starts per rolling minute, hour and day, pooled per
+ *  wallet. Extra starts cost $0.03 to 1.5x, $0.05 to 2x, $0.07 to 6x (3x for the minute window), the highest of the three
+ *  windows' brackets; past that a start is refused with a 429 that names the window and `nextStartAt`. */
+export const BOAT_PLANS = {
+  trial: { minute: 5, hour: 25, day: 75 },
+  "20": { minute: 12, hour: 60, day: 200 },
+  "100": { minute: 30, hour: 210, day: 840 },
+  "500": { minute: 65, hour: 420, day: 1680 },
+  "2000": { minute: 90, hour: 600, day: 2400 },
+} as const;
+export type BoatPlan = keyof typeof BOAT_PLANS;
+const HARD_FACTOR = { minute: 3, hour: 6, day: 6 } as const;
+
+/** Boat as a ProviderCostProfile. `scale` multiplies the pool (seats on the $2000 plan, or one user's share of it in the
+ *  simulator). The kept machine: a resume within 10 minutes of a stop usually gets it back and is no start; "usually" is
+ *  unquantified, so 0.7. Wake times are ours: the machine is ready in seconds, our home answers about a minute after. */
+export function boatCostProfile(options: { plan?: BoatPlan; scale?: number; heldProbability?: number; coldWakeMs?: number; heldWakeMs?: number } = {}): ProviderCostProfile {
+  const base = BOAT_PLANS[options.plan ?? "20"], scale = options.scale ?? 1;
+  const included = { minute: base.minute * scale, hour: base.hour * scale, day: base.day * scale };
+  const hardCap = { minute: included.minute * HARD_FACTOR.minute, hour: included.hour * HARD_FACTOR.hour, day: included.day * HARD_FACTOR.day };
+  return {
+    computeCentsPerHour: boatHourlyCents,
+    included, hardCap,
+    startCents(used) {
+      let price = 0;
+      for (const w of ["minute", "hour", "day"] as const) {
+        const ratio = (used[w] + 1) / Math.max(1e-9, included[w]);
+        const bracket = ratio <= 1 ? 0 : ratio <= 1.5 ? 3 : ratio <= 2 ? 5 : ratio <= HARD_FACTOR[w] ? 7 : Number.POSITIVE_INFINITY;
+        price = Math.max(price, bracket);
+      }
+      return price;
+    },
+    held: { windowMs: 10 * 60_000, probability: options.heldProbability ?? 0.7 },
+    wakeMs: { cold: options.coldWakeMs ?? 60_000, held: options.heldWakeMs ?? 15_000 },
+  };
+}
+
 /** the public port of the home's edge (server/cloud-home-start.ts) */
 export const BOAT_HOME_PORT = 8080;
 const SANDBOX_ID = /^bx_[23456789abcdefghjkmnpqrstuvwxyz]{8}$/;
@@ -38,7 +67,19 @@ const CLOUD_ID = /^c[0-9a-f]{24}$/;
 /** every resume says no-env again: Boat documents it as one-way on resume, but not that a create's noEnv carries over */
 const RESUME = { noEnv: true } as const;
 
-export interface BoatSandbox {
+export type BoatSandbox = MachineRecord;
+export type BoatCommandResult = MachineCommandResult;
+export type BoatDeletion = MachineDeletion;
+export type BoatCreateInput = MachineCreateInput;
+export type { NamedSnapshot } from "./provider.ts";
+export { ProviderLimitError, ProviderBusyError } from "./provider.ts";
+
+export interface BoatProvider extends MachineProvider {
+  readonly name: "managed";
+  readonly scope: string;
+}
+
+interface RawBoatSandbox {
   id: string;
   state: string;
   cloudId: string | null;
@@ -51,65 +92,8 @@ export interface BoatSandbox {
   snapshotAt: number | null;
   createdAt: number | null;
 }
-export interface BoatCommandResult { ok: boolean; exitCode: number | null; stdout: string }
-export interface BoatDeletion { id: string; status: "pending" | "processing" | "blocked" | "completed" }
-export interface BoatCreateInput extends CreateServerInput {
-  /** written before the setup script runs, only at the first start (Boat `files`) */
-  files?: Array<{ path: string; content: string }>;
-  /** a saved snapshot to start from: the operator's template, or a backup */
-  from?: string;
-  ttlSeconds: number | null;
-  /** distinguishes a deliberate second create for the same cloud (a recovery) from a retry */
-  attempt?: number;
-}
-
-/** a Boat sandbox per cloud. destroy() is reachable only through the clouds service's deletion gate (boat-retention.ts). */
-export interface BoatProvider extends CloudProvider {
-  readonly name: "managed";
-  readonly scope: string;
-  create(input: BoatCreateInput): Promise<ProviderServer>;
-  sandbox(serverId: string): Promise<BoatSandbox | null>;
-  /** this deployment's sandboxes: every page, own scope only */
-  inventory(): Promise<BoatSandbox[]>;
-  /** whether the account's whole list (no filters) still shows this sandbox */
-  listed(serverId: string): Promise<boolean>;
-  /** https origin of the home's edge port, public, stable for the sandbox's life */
-  origin(serverId: string): Promise<string>;
-  /** a shell command as the sandbox user (passwordless sudo); stdout is bounded and never carries a secret by contract */
-  run(serverId: string, command: string, timeoutSeconds?: number): Promise<BoatCommandResult>;
-  /** the dead-man lease: Boat stops the sandbox by itself this many seconds from now unless extended again */
-  lease(serverId: string, ttlSeconds: number | null): Promise<void>;
-  /** id of the newest completed automatic snapshot, or null */
-  latestSnapshot(serverId: string): Promise<{ id: string; at: number } | null>;
-  /** a folder of a snapshot as a tar stream, read from storage: the machine is never contacted */
-  snapshotTar(snapshotId: string, path: string): Promise<ReadableStream<Uint8Array>>;
-  /** raw bytes to a path under /home/user on a running sandbox, through a short-lived upload URL */
-  upload(serverId: string, path: string, body: Uint8Array): Promise<void>;
-  deletion(operationId: string): Promise<BoatDeletion | null>;
-  /** sends the DELETE once; the operation id is the receipt */
-  requestDelete(serverId: string): Promise<{ operationId: string | null; gone: boolean }>;
-  /** named snapshots (templates): the template key's business, never the runtime's */
-  namedSnapshots(): Promise<NamedSnapshot[]>;
-  namedSnapshot(name: string): Promise<NamedSnapshot | null>;
-  saveNamedSnapshot(serverId: string, name: string): Promise<void>;
-  deleteNamedSnapshot(name: string): Promise<void>;
-}
-
-/** the provider's rate or quota limit (429): never a failure of the cloud, retried with backoff (lifecycle.ts retryAt) */
-export class ProviderLimitError extends RetryableCloudError {
-  readonly retryAfterMs: number | null;
-  constructor(retryAfterMs: number | null) { super("The cloud provider asked us to slow down."); this.name = "ProviderLimitError"; this.retryAfterMs = retryAfterMs; }
-}
-/** the provider is already doing something with this machine (resuming, stopping, saving): in progress, not a failure */
-export class ProviderBusyError extends RetryableCloudError {
-  constructor(code: string) { super(`Boat is busy: ${code}.`); this.name = "ProviderBusyError"; }
-}
-export interface NamedSnapshot { name: string; status: "saving" | "ready" | "failed" | string; createdAt: number | null }
-
-export class BoatError extends Error {
-  readonly status: number;
-  readonly code: string;
-  constructor(status: number, code: string) { super(`Boat refused the request: ${code}.`); this.name = "BoatError"; this.status = status; this.code = code; }
+export class BoatError extends ProviderError {
+  constructor(status: number, code: string) { super(status, code); this.message = `Boat refused the request: ${code}.`; this.name = "BoatError"; }
 }
 
 export function boatSize(spec: MachineSpec, smallest: BoatSize = "small"): BoatSize {
@@ -123,18 +107,23 @@ export function boatSize(spec: MachineSpec, smallest: BoatSize = "small"): BoatS
 export function boatScope(publicUrl: string): string { return createHash("sha256").update(new URL(publicUrl).origin).digest("hex").slice(0, 16); }
 
 const time = (value: unknown) => typeof value === "string" && Number.isFinite(Date.parse(value)) ? Date.parse(value) : null;
-function sandboxOf(value: unknown): BoatSandbox | null {
+function sandboxOf(value: unknown): RawBoatSandbox | null {
   if (!value || typeof value !== "object") return null;
   const s = value as Record<string, unknown>, labels = (s.labels && typeof s.labels === "object" ? s.labels : {}) as Record<string, unknown>;
   if (typeof s.id !== "string" || !SANDBOX_ID.test(s.id) || typeof s.state !== "string") return null;
   const cloudId = typeof labels["omb.cloud"] === "string" && CLOUD_ID.test(labels["omb.cloud"]) ? labels["omb.cloud"] : null;
-  const setup = ["pending", "running", "done", "failed"].includes(s.setupStatus as string) ? s.setupStatus as BoatSandbox["setup"] : null;
+  const setup = ["pending", "running", "done", "failed"].includes(s.setupStatus as string) ? s.setupStatus as RawBoatSandbox["setup"] : null;
   const stop = s.stop && typeof s.stop === "object" ? (s.stop as Record<string, unknown>).status : null;
   return { id: s.id, state: s.state, cloudId, scope: typeof labels["omb.scope"] === "string" ? labels["omb.scope"] : null, type: typeof s.type === "string" ? s.type : null,
     stoppedAt: time(s.stoppedAt), dataExpired: time(s.dataExpiredAt) !== null, setup, stopStatus: typeof stop === "string" ? stop : null,
     snapshotAt: time(s.snapshotCompletedAt), createdAt: time(s.createdAt) };
 }
-function mapped(s: BoatSandbox): ProviderServer {
+function machineOf(s: RawBoatSandbox): MachineRecord {
+  const states: Record<string, MachineState> = { init: "creating", provisioning: "creating", provisioned: "starting", cloning: "starting", ready: "running", idle: "running", running: "running", archiving: "stopping", archived: "stopped", error: "error" };
+  const { stopStatus, ...record } = s;
+  return { ...record, state: states[s.state] ?? "starting", stopFailing: stopStatus === "failing" };
+}
+function mapped(s: RawBoatSandbox): ProviderServer {
   const states: Record<string, ProviderServer["state"]> = { init: "creating", provisioning: "creating", provisioned: "starting", cloning: "starting", ready: "running", idle: "running", running: "running", archiving: "stopping", archived: "off", error: "error", cancelled: "missing" };
   // a refused stop keeps the sandbox up with stop.status failing: it is stopping, not running
   const state = s.stopStatus === "failing" && states[s.state] === "running" ? "stopping" : states[s.state] ?? "starting";
@@ -171,8 +160,14 @@ export function createBoatProvider(options: BoatProviderOptions): BoatProvider {
     if (init.missingOk && (response.status === 404 || response.status === 410)) { await response.body?.cancel(); return null; }
     if (response.status === 429) {
       const after = Number(response.headers.get("retry-after"));
-      await response.body?.cancel();
-      throw new ProviderLimitError(Number.isFinite(after) && after > 0 ? Math.min(after, 3600) * 1000 : null);
+      let data: Record<string, any> | null = null;
+      try { data = await boundedJson(response, init.limit ?? 2_097_152) as Record<string, any>; } catch {}
+      const info = { ...data, ...(data?.error && typeof data.error === "object" ? data.error : {}) };
+      const seconds = typeof info?.retryAfterSeconds === "number" ? info.retryAfterSeconds : null;
+      const retry = Number.isFinite(after) && after > 0 ? after : seconds;
+      const window = ["minute", "hour", "day"].includes(info?.window) ? info.window as "minute" | "hour" | "day" : null;
+      throw new ProviderLimitError(retry !== null && Number.isFinite(retry) && retry > 0 ? Math.min(retry, 3600) * 1000 : null,
+        { nextStartAt: time(info?.nextStartAt), window, cause: typeof info?.cause === "string" && !info.cause.includes(key) ? info.cause : null, startLimit: info?.code === "rate_limited" });
     }
     if (response.status >= 500) { await response.body?.cancel(); throw new RetryableCloudError(); }
     let data: Record<string, any> | null = null;
@@ -191,8 +186,8 @@ export function createBoatProvider(options: BoatProviderOptions): BoatProvider {
     if (data && !s) throw new RetryableCloudError();
     return s && s.state !== "cancelled" ? s : null;
   }
-  async function list(query: string): Promise<BoatSandbox[]> {
-    const found: BoatSandbox[] = [];
+  async function list(query: string): Promise<RawBoatSandbox[]> {
+    const found: RawBoatSandbox[] = [];
     let cursor: string | null = null;
     for (let page = 0; page < 50; page++) {
       const data: Record<string, any> | null = await call("GET", `/sandboxes?limit=200&${query}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`);
@@ -239,8 +234,15 @@ export function createBoatProvider(options: BoatProviderOptions): BoatProvider {
       const s = await get(serverId);
       return s ? mapped(s) : { id: serverId, state: "missing", ipv4: null, serverType: "", diskGb: 0 };
     },
-    sandbox: get,
-    inventory: () => list(scoped),
+    async machine(serverId) { const s = await get(serverId); return s ? machineOf(s) : null; },
+    async inventory() { return (await list(scoped)).filter(s => s.state !== "cancelled").map(machineOf); },
+    async limits() {
+      try {
+        const data = await call("GET", "/limits");
+        const dollars = data?.nextStartDollars;
+        return dollars === null ? { nextStartCents: null } : typeof dollars === "number" && Number.isFinite(dollars) ? { nextStartCents: Math.round(dollars * 100) } : null;
+      } catch { return null; }
+    },
     async listed(serverId) {
       let cursor: string | null = null;
       for (let page = 0; page < 50; page++) {

@@ -39,21 +39,24 @@ it("waits out a slow setup script without counting it as a failure", async () =>
 it("sleeps an idle home after the handshake, wakes it for its owner, and wakes it before a routine", async () => {
   const f = await boatFixture();
   const { c } = await f.paid();
-  f.advance(3 * 60_000); f.power.idle = true; f.power.busy = [];
-  await f.settle(c, c => c.status === "sleeping");
-  expect(f.home.sleep).toHaveBeenCalledWith(c.origin, expect.any(String), 15);
+  f.advance(5 * 60_000); f.power.idle = true; f.power.busy = [];
+  await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
+  // the handshake asks the home to agree to the idle time the policy saw, never less than the rails' minimum
+  const asked = f.home.sleep.mock.calls.at(-1)! as unknown as [string, string, number];
+  expect(asked[0]).toBe(c.origin);
+  expect(asked[2]).toBeGreaterThanOrEqual(3);
   expect(f.api.sandboxes.get(c.serverId!)!.state).toMatch(/archiv/);
   await f.service.reconcile();
   expect(f.api.sandboxes.get(c.serverId!)!.state).toBe("archived");
   await f.service.power(c.accountId, c.id, "on");
   await f.settle(c, c => c.status === "running");
   expect(f.audit.entries(c.id).map(e => e.action)).toEqual(expect.arrayContaining(["sleep", "wake", "awake"]));
-  // a routine at +90 minutes, past a start's break-even: asleep now, awake ten minutes before it
-  f.advance(3 * 60_000); f.power.nextDueAt = f.now() + 90 * 60_000;
-  await f.settle(c, c => c.status === "sleeping");
-  f.advance(70 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile();
+  // a routine three hours out, far past a start's break-even: asleep now, awake within the lead and this home's spread before it
+  f.advance(5 * 60_000); const due = f.now() + 3 * 60 * 60_000; f.power.nextDueAt = due;
+  await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
+  f.advance(due - 10 * 60_000 - f.now()); c.nextAttemptAt = 0; await f.service.reconcile();
   expect(c.status).toBe("sleeping");
-  f.advance(11 * 60_000); await f.settle(c, c => c.status === "running");
+  f.advance(9 * 60_000); await f.settle(c, c => c.status === "running");
   expect(f.audit.entries(c.id).filter(e => e.action === "wake").at(-1)!.reason).toBe("routine_due");
 });
 
@@ -62,7 +65,7 @@ it("backs up a sleeping home's volume encrypted outside Boat and keeps at least 
   const { c } = await f.paid();
   for (let day = 0; day < 4; day++) {
     f.advance(DAY_MS); f.power.idle = true; f.power.busy = [];
-    await f.settle(c, c => c.status === "sleeping");
+    await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
     await f.settle(c, c => c.managed!.backups.at(-1)?.at === f.now());
     await f.service.power(c.accountId, c.id, "on"); await f.settle(c, c => c.status === "running");
   }
@@ -77,7 +80,7 @@ it("recovers a lost machine from its newest backup into a fresh sandbox and tell
   const f = await boatFixture();
   const { c } = await f.paid();
   f.advance(DAY_MS); f.power.idle = true; f.power.busy = [];
-  await f.settle(c, c => c.status === "sleeping");
+  await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
   await f.settle(c, c => c.managed!.backups.length === 1);
   const lost = c.serverId!;
   f.api.lose(lost);
@@ -155,7 +158,7 @@ it("stops sandboxes no live cloud runs on and never deletes one that may hold so
   const stray = await f.provider.create({ cloudId: `c${"e".repeat(24)}`, spec: plan.spec, region: "eu", userData: "", ttlSeconds: 3600 });
   f.advance(1000);
   const duplicate = await f.provider.create({ cloudId: c.id, spec: plan.spec, region: "eu", userData: "", ttlSeconds: 3600, attempt: 9 });
-  for (const id of [stray.id, duplicate.id]) await f.provider.sandbox(id);
+  for (const id of [stray.id, duplicate.id]) await f.provider.machine(id);
   f.advance(31 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile();
   expect(f.api.sandboxes.get(stray.id)!.state).toMatch(/archiv/);
   expect(f.api.sandboxes.get(duplicate.id)!.state).toMatch(/archiv/);
@@ -218,7 +221,7 @@ it("backups sealed with the home's own key are sealed again with the service's k
   const f = await boatFixture();
   const { c } = await f.paid();
   f.advance(DAY_MS); f.power.idle = true; f.power.busy = [];
-  await f.settle(c, c => c.status === "sleeping");
+  await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
   await f.settle(c, c => c.managed!.backups.length === 1);
   // the file as an earlier version wrote it: keyed from the bootstrap secret the home also holds
   const g = c.managed!.backups[0]!, path = join(f.dataDir, "boat-backups", c.id, g.file);
@@ -243,7 +246,7 @@ it("a plan upgrade resizes the sandbox: stopped, backed up first, resumed on the
   expect(f.api.sandboxes.get(c.serverId!)!.type).toBe("small");
   f.service.changePlan(c.id, { kind: "shared_m", placement: "pool", spec: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5 });
   // waits for the owner's "restart now" (or the next idle sleep); here the owner asks
-  f.advance(3 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile();
+  f.advance(5 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile();
   expect(f.api.sandboxes.get(c.serverId!)!.type).toBe("small");
   f.service.managed!.resizeNow(c);
   for (let n = 0; n < 20 && !(c.status === "running" && !f.service.managed!.resizing(c)); n++) { c.nextAttemptAt = 0; await f.service.reconcile(); }
@@ -259,19 +262,19 @@ it("a replaced sandbox that answers again is backed up from its own state and ke
   const f = await boatFixture();
   const { c } = await f.paid();
   f.advance(DAY_MS); f.power.idle = true; f.power.busy = [];
-  await f.settle(c, c => c.status === "sleeping");
+  await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
   await f.settle(c, c => c.managed!.backups.length === 1);
   await f.service.power(c.accountId, c.id, "on"); await f.settle(c, c => c.status === "running");
   const original = c.serverId!;
   f.api.sandboxes.get(original)!.volume.set(`__system__${CLOUD_HOME.data}/newer.json`, Buffer.from("after the backup"));
   // Boat stops answering for this one sandbox long enough, and leaves it off the list: it is taken for lost
-  const sandbox = f.provider.sandbox, listed = f.provider.listed;
-  f.provider.sandbox = async id => id === original ? null : sandbox(id);
+  const sandbox = f.provider.machine, listed = f.provider.listed;
+  f.provider.machine = async id => id === original ? null : sandbox(id);
   f.provider.listed = async id => id === original ? false : listed(id);
   for (let n = 0; n < 40 && !(c.status === "running" && c.serverId !== original); n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
   expect(c.serverId).not.toBe(original);
   // it answers again: stopped, its disk backed up as its own kept generation, the operator alerted; nothing deleted
-  f.provider.sandbox = sandbox; f.provider.listed = listed;
+  f.provider.machine = sandbox; f.provider.listed = listed;
   for (let n = 0; n < 6; n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
   const kept = c.managed!.backups.find(g => g.keep && g.source === original);
   expect(kept?.verifiedAt).not.toBeNull();

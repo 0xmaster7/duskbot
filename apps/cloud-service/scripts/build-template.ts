@@ -51,8 +51,8 @@ export async function buildTemplate(input: TemplateBuild): Promise<{ name: strin
   log(`builder ${builder.id}`);
   try {
     for (let n = 0; ; n++) {
-      const s = await provider.sandbox(builder.id);
-      if (s && ["ready", "idle", "running"].includes(s.state) && (s.setup === "done" || s.setup === null)) break;
+      const s = await provider.machine(builder.id);
+      if (s && s.state === "running" && (s.setup === "done" || s.setup === null)) break;
       if (s?.setup === "failed") throw new Error("The builder's setup failed.");
       if (n > 180) throw new Error("The builder was not ready in time.");
       await sleep(poll);

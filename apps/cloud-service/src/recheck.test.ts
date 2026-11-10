@@ -13,7 +13,7 @@ import { createBoatProvider } from "./boat.ts";
 import { createAudit } from "./audit.ts";
 import { boatBackupKey, createBackupStore, tarEntries } from "./backups.ts";
 import { backupKey } from "./home.ts";
-import { DEFAULT_BOAT_SETTINGS } from "./lifecycle.ts";
+import { DEFAULT_MANAGED_SETTINGS } from "./lifecycle.ts";
 import { DAY_MS, entitlementOf } from "./retention.ts";
 import { createFakeCloudProvider } from "../../dashboard/server/clouds/fake-provider.ts";
 import { startFakeBoatApi } from "./fake-boat-api.ts";
@@ -50,7 +50,7 @@ async function fixture() {
     }
     return { exitCode: 0, stdout: "" };
   });
-  const power: HomePower = { idle: false, busy: ["recent-activity"], lastActivityAt: at, nextDueAt: null, wokeAt: at };
+  const power: HomePower = { idle: false, busy: ["recent-activity"], lastActivityAt: null, nextDueAt: null, wokeAt: at };
   const subscriptions: StoredSubscription[] = [];
   const notices: Array<{ cloudId: string; kind: string; at: number | null; link?: string }> = [];
   /** one dashboard process over the shared data dir */
@@ -65,14 +65,14 @@ async function fixture() {
       providers: { dedicated: createFakeCloudProvider(), pool: { ...createFakeCloudProvider(), suspend: async () => {}, resume: async () => {} } },
       config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", image: "ghcr.io/example/home:1", poolQuota: (_k, spec, botComputers) => ({ ...spec, netMbps: 1, pids: 1, botComputers }) },
       managed: createManagedCloud({ provider, backups, audit, kinds: ["shared_s", "shared_m", "dedicated"], backupSecret: secret, previousBackupSecret: previous,
-        settings: { ...DEFAULT_BOAT_SETTINGS, package: { sha256: "a".repeat(64), url: "https://packages.example.test/home.tgz" } },
+        settings: { ...DEFAULT_MANAGED_SETTINGS, package: { sha256: "a".repeat(64), url: "https://packages.example.test/home.tgz" } },
         entitlement: cloud => entitlementOf(subscriptions, cloud, at),
         notify: (cloud, kind, when, link) => notices.push({ cloudId: cloud.id, kind, at: when, ...(link ? { link } : {}) }) }) });
     cleanup.push(() => service.close());
     return { service, provider, audit, backups };
   }
-  async function settle(s: ReturnType<typeof createCloudsService>, c: StoredCloud, until: (c: StoredCloud) => boolean, max = 30) {
-    for (let n = 0; n < max && !until(c); n++) { c.nextAttemptAt = 0; await s.reconcile(); }
+  async function settle(s: ReturnType<typeof createCloudsService>, c: StoredCloud, until: (c: StoredCloud) => boolean, max = 30, stepMs = 0) {
+    for (let n = 0; n < max && !until(c); n++) { c.nextAttemptAt = 0; await s.reconcile(); if (!until(c)) at += stepMs; }
     expect(until(c)).toBe(true);
   }
   async function paid(s: ReturnType<typeof createCloudsService>) {
@@ -94,12 +94,12 @@ async function fixture() {
 type F = Awaited<ReturnType<typeof fixture>>;
 async function sleepCycle(f: F, s: ReturnType<typeof createCloudsService>, c: StoredCloud) {
   f.power.idle = true; f.power.busy = [];
-  await f.settle(s, c, c => c.status === "sleeping");
+  await f.settle(s, c, c => c.status === "sleeping", 60, 5 * 60_000);
   for (let n = 0; n < 3; n++) { c.nextAttemptAt = 0; await s.reconcile(); }
 }
 async function wake(f: F, s: ReturnType<typeof createCloudsService>, c: StoredCloud) {
   await s.power(c.accountId, c.id, "on"); await f.settle(s, c, c => c.status === "running");
-  f.advance(3 * 60_000);
+  f.advance(5 * 60_000);
 }
 
 
@@ -116,10 +116,10 @@ async function withUnbackedData(f: F, s: S) {
 }
 /** Boat answers 404 for `id` (and, when `unlisted`, leaves it out of the account list) until restored */
 function blackout(provider: ReturnType<F["instance"]>["provider"], id: string, unlisted: boolean) {
-  const sandbox = provider.sandbox, listed = provider.listed;
-  provider.sandbox = async x => x === id ? null : sandbox(x);
+  const sandbox = provider.machine, listed = provider.listed;
+  provider.machine = async x => x === id ? null : sandbox(x);
   if (unlisted) provider.listed = async x => x === id ? false : listed(x);
-  return () => { provider.sandbox = sandbox; provider.listed = listed; };
+  return () => { provider.machine = sandbox; provider.listed = listed; };
 }
 const holds = (f: F) => [...f.api.sandboxes.values()].some(x => x.volume.has(`__system__${CLOUD_HOME.data}/precious.json`) || x.snapshots.some(sn => sn.volume.has(`__system__${CLOUD_HOME.data}/precious.json`)));
 
@@ -294,14 +294,14 @@ it("a plan upgrade resizes the sandbox at its next sleep, backed up first, and i
 it("every resume (wake, disk refresh, resize) asks Boat for no-env again", async () => {
   const f = await fixture(); const { service: s } = f.instance();
   const { c } = await f.paid(s);
-  f.power.idle = true; f.power.busy = []; f.advance(3 * 60_000);
-  await f.settle(s, c, c => c.status === "sleeping");
+  f.power.idle = true; f.power.busy = []; f.advance(5 * 60_000);
+  await f.settle(s, c, c => c.status === "sleeping", 60, 5 * 60_000);
   await s.power(c.accountId, c.id, "on"); await f.settle(s, c, c => c.status === "running");
   s.changePlan(c.id, { kind: "shared_m", placement: "pool", spec: { vcpu: 4, ramGb: 8, diskGb: 40 }, botComputers: 2 });
   f.advance(DAY_MS);
-  await f.settle(s, c, c => c.status === "running" && c.spec.vcpu === 4, 40);
-  f.power.idle = true; f.power.busy = []; f.advance(3 * 60_000);
-  await f.settle(s, c, c => c.status === "sleeping");
+  await f.settle(s, c, c => c.status === "running" && c.spec.vcpu === 4, 80, 5 * 60_000);
+  f.power.idle = true; f.power.busy = []; f.advance(5 * 60_000);
+  await f.settle(s, c, c => c.status === "sleeping", 60, 5 * 60_000);
   for (let n = 0; n < 3; n++) { c.nextAttemptAt = 0; await s.reconcile(); }
   f.advance(12 * DAY_MS); await f.settle(s, c, c => c.status === "running", 20);
   const resumes = f.api.requests.filter(r => r.method === "POST" && r.path.endsWith("/resume"));

@@ -1,34 +1,37 @@
-// A Boat-backed My Cloud from paid to deleted: provision, sleep when idle, wake for a person, a routine or Slack, back up,
+// a managed My Cloud from paid to deleted: provision, sleep when idle, wake for a person, a routine or Slack, back up,
 // come back from a lost machine, keep a plan's data 45 days after it ended, and delete only through the verdict in
-// boat-retention.ts. One step per reconcile, each safe to repeat after a crash.
+// retention.ts. One step per reconcile, each safe to repeat after a crash.
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { ROUTINE_GUARD_MS, type SleepPolicy } from "./sleep-policy.ts";
-import type { StartKind, StartLedger } from "./starts.ts";
+import type { SleepPolicy } from "./power/policy.ts";
+import type { ProviderCostProfile } from "./power/cost.ts";
+import { DEFAULT_RAILS, freshMemory, noteFailure, noteHealthy, noteStart, noteStop, prune, startRefusal, stopRefusal, type PowerMemory, type RailSettings } from "./power/rails.ts";
+import { validStats } from "./power/predictor.ts";
+import { nextRun, plannedRuns, runnableFrom } from "./power/schedule.ts";
+import { StartCapError, type StartKind, type StartLedger } from "./starts.ts";
 import { linkKeys } from "../../dashboard/server/clouds/bootstrap.ts";
-import { BoatError, ProviderLimitError, type BoatProvider } from "./boat.ts";
-import { backupKey, BOAT_HOME_VOLUME, BOAT_PACKAGE_FILE, BOAT_RESTORE_FILE, boatBootFile, bootContent, boatSetupScript, claimBootFile, installCommand, RESTORE_COMMAND, startCommand } from "./home.ts";
+import { ProviderBusyError, ProviderError, ProviderLimitError, type MachineProvider, type MachineImage } from "./provider.ts";
 import { verifyRelease, type ReleaseKey } from "./release-signing.ts";
-import { boatBackupKey, homeVolumeProblem, type BackupStore } from "./backups.ts";
+import { homeBackupKey, homeVolumeProblem, type BackupStore } from "./backups.ts";
 import { DAY_MS, DEFAULT_DELETE_DELAY_DAYS, DEFAULT_RETENTION_DAYS, deletionVerdict, dueNotice, type Entitlement, type NoticeKind, type Verdict } from "./retention.ts";
 import type { Audit, AuditActor } from "./audit.ts";
 import { RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
 import { ManagedCloudError } from "../../dashboard/server/clouds/managed.ts";
 import type { HomeClient, StoredCloud } from "../../dashboard/server/clouds/types.ts";
-import type { BoatCloudState } from "./state.ts";
+import type { HomeLifecycleState } from "./state.ts";
 
 const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, REFRESH_SPACING_MS = 10 * MINUTE;
 
-export interface BoatSettings {
-  /** minutes without use before a home is asked to sleep (DUSK_MANAGED_IDLE_MINUTES) */
+export interface ManagedSettings {
+  /** the shortest idle before any stop, in minutes (DUSK_MANAGED_IDLE_MINUTES); the power policy decides past it */
   idleMinutes: number;
-  /** Boat's own auto-stop, extended while the home is up: a dead-man switch if this service stops (DUSK_MANAGED_LEASE_HOURS) */
+  /** the provider's own auto-stop, extended while the home is up: a dead-man switch if this service stops (DUSK_MANAGED_LEASE_HOURS) */
   leaseSeconds: number;
   /** a backup at most this often (DUSK_MANAGED_BACKUP_HOURS) */
   backupEveryMs: number;
   /** generations kept per cloud (DUSK_MANAGED_BACKUP_KEEP), at least 2 */
   backupKeep: number;
-  /** wake a stopped home this long before Boat may purge its disk (DUSK_MANAGED_REFRESH_DAYS) */
+  /** wake a stopped home this long before the provider may purge its disk (DUSK_MANAGED_REFRESH_DAYS) */
   refreshAfterMs: number;
   retentionDays: number;
   deleteDelayDays: number;
@@ -53,16 +56,16 @@ export interface BoatSettings {
   /** the machine redeems a one-time claim for its secrets, so the provider's API never carries them; off where no machine can reach this service */
   claims: boolean;
   maxBackupBytes: number;
-  /** a sandbox Boat stops finding is lost only after this long of direct 404s and absence from the account's list */
+  /** a sandbox the provider stops finding is lost only after this long of direct 404s and absence from the account's list */
   lostAfterMs: number;
 }
-export const DEFAULT_BOAT_SETTINGS: BoatSettings = {
-  idleMinutes: 15, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, refreshAfterMs: 11 * DAY_MS, retentionDays: DEFAULT_RETENTION_DAYS,
-  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 10 * MINUTE, edgeWakesPerHour: 20, includedStarts: 200, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
+export const DEFAULT_MANAGED_SETTINGS: ManagedSettings = {
+  idleMinutes: 3, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, refreshAfterMs: 11 * DAY_MS, retentionDays: DEFAULT_RETENTION_DAYS,
+  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 4 * MINUTE, edgeWakesPerHour: 20, includedStarts: 200, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
 /** settings from DUSK_MANAGED_* (index.ts `managedEnv` maps the older names onto these) */
-export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopback?: boolean } = {}): BoatSettings {
+export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopback?: boolean } = {}): ManagedSettings {
   const number = (name: string, min: number, max: number, fallback: number) => {
     const raw = env[name];
     if (raw === undefined || raw === "") return fallback;
@@ -82,14 +85,14 @@ export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopba
   const template = env.DUSK_MANAGED_TEMPLATE || null;
   if (template !== null && !/^[a-z0-9][a-z0-9-]{0,62}$/.test(template)) throw new Error("Invalid DUSK_MANAGED_TEMPLATE.");
   if (!pkg && !template) throw new Error("A managed cloud needs DUSK_MANAGED_HOME_PACKAGE_URL (or _FILE) with DUSK_MANAGED_HOME_PACKAGE_SHA256, or DUSK_MANAGED_TEMPLATE.");
-  return { ...DEFAULT_BOAT_SETTINGS, template, package: pkg, templateSignature: env.DUSK_MANAGED_TEMPLATE_SIGNATURE || null, publicDomain,
+  return { ...DEFAULT_MANAGED_SETTINGS, template, package: pkg, templateSignature: env.DUSK_MANAGED_TEMPLATE_SIGNATURE || null, publicDomain,
     requireSigned: !options.loopback, claims: !options.loopback,
-    idleMinutes: number("DUSK_MANAGED_IDLE_MINUTES", 5, 24 * 60, 15),
+    idleMinutes: number("DUSK_MANAGED_IDLE_MINUTES", 1, 24 * 60, 3),
     leaseSeconds: number("DUSK_MANAGED_LEASE_HOURS", 1, 720, 2) * 3600,
     backupEveryMs: number("DUSK_MANAGED_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
     backupKeep: number("DUSK_MANAGED_BACKUP_KEEP", 2, 30, 3),
     refreshAfterMs: number("DUSK_MANAGED_REFRESH_DAYS", 3, 13, 11) * DAY_MS,
-    wakeLeadMs: number("DUSK_MANAGED_WAKE_LEAD_MINUTES", 1, 30, 10) * MINUTE,
+    wakeLeadMs: number("DUSK_MANAGED_WAKE_LEAD_MINUTES", 2, 30, 4) * MINUTE,
     includedStarts: number("DUSK_MANAGED_DAILY_STARTS", 1, 100_000, 200),
     edgeWakesPerHour: number("DUSK_MANAGED_EDGE_WAKES_PER_HOUR", 1, 60, 20),
     retentionDays: number("DUSK_MANAGED_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
@@ -99,18 +102,19 @@ export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopba
     lostAfterMs: number("DUSK_MANAGED_LOST_AFTER_MINUTES", 2, 24 * 60, 30) * MINUTE };
 }
 
-export function freshBoatState(): BoatCloudState {
+export function freshManagedState(): HomeLifecycleState {
   return { attempt: 0, installed: null, restoreFrom: null, restoredFrom: null, sleptAt: null, sleepReason: null, nextDueAt: null, lastPowerAt: null, busy: [], leaseAt: null,
     lastStopAt: null, wakeStartedAt: null, backups: [], lastBackupTryAt: null, backupProblem: null, endedAt: null, notices: [], deleteRequest: null, deletion: null,
     deletedAt: null, backupsDeleteAfter: null, retired: [], recoveries: 0, hold: false };
 }
 
-export interface BoatLifecycleDeps {
-  provider: BoatProvider;
+export interface LifecycleDeps {
+  provider: MachineProvider;
+  image: MachineImage;
   backups: BackupStore;
   home: HomeClient;
   audit: Audit;
-  settings: BoatSettings;
+  settings: ManagedSettings;
   /** the billing system of record, read fresh at every decision */
   entitlement(cloud: StoredCloud): Entitlement;
   notify(cloud: StoredCloud, kind: NoticeKind, at: number | null, link?: string): void;
@@ -133,27 +137,64 @@ export interface BoatLifecycleDeps {
   releaseKeys: readonly ReleaseKey[];
   /** keys the opaque public labels (never on a machine) */
   labelKey: Buffer;
-  /** the day's provider starts (starts.ts): counted, alerted, refused past the provider's hard cap */
+  /** the provider's start pool (starts.ts): rolling windows, alerted, refused past the provider's hard cap or its not-before time */
   starts?: StartLedger;
-  /** whether an idle home stops now (sleep-policy.ts); without one, the home's own idle word, never with a run due within 10 min */
-  sleepPolicy?: SleepPolicy;
+  /** the power policy (power/policy.ts): whether an idle home stops now, and when a sleeping one wakes for a run */
+  sleepPolicy: SleepPolicy;
+  /** the provider's prices and start rules, for the rails */
+  costProfile: ProviderCostProfile;
+  /** the hard limits every stop and start passes, whatever the policy says (power/rails.ts) */
+  rails?: RailSettings;
 }
 
-export function createBoatLifecycle(deps: BoatLifecycleDeps) {
-  const { provider, settings, audit, now } = deps;
+/** a start the rails held back (a failing home's backoff, the provider's hard cap or not-before time, a busy minute):
+ *  not a failure, tried again at `retryAt` */
+export class StartHeldError extends RetryableCloudError {
+  readonly retryAt: number;
+  readonly reason: string;
+  constructor(reason: string, retryAt: number) { super("The start waits for the start limits."); this.name = "StartHeldError"; this.reason = reason; this.retryAt = retryAt; }
+}
+
+export function createLifecycle(deps: LifecycleDeps) {
+  const { provider, image, settings, audit, now } = deps;
   const log = (c: StoredCloud, action: string, actor: AuditActor, reason: string, detail?: Record<string, string | number | boolean | null>) =>
     audit.record({ cloudId: c.id, action, actor, reason, serverId: c.serverId, ...(detail ? { detail } : {}) });
-  const state = (c: StoredCloud): BoatCloudState => (c.managed ??= freshBoatState());
-  /** a provider start: refused past the day's hard cap, counted once it was asked for */
-  async function start<T>(cloudId: string, kind: StartKind, run: () => Promise<T>): Promise<T> {
+  const state = (c: StoredCloud): HomeLifecycleState => (c.managed ??= freshManagedState());
+  const rails = deps.rails ?? DEFAULT_RAILS;
+  const pool = () => deps.starts?.view() ?? { used: { minute: 0, hour: 0, day: 0 }, blockedUntil: null };
+  /** the home's power memory (its starts, stops, failed starts and activity), checked on every read */
+  function memory(c: StoredCloud): PowerMemory {
+    const b = state(c), m = b.power ?? freshMemory(now());
+    m.stats = validStats(m.stats, now());
+    for (const key of ["starts", "stops", "failures"] as const) if (!Array.isArray(m[key]) || !m[key].every(Number.isFinite)) m[key] = [];
+    if (m.breaker && !(Number.isFinite(m.breaker.openUntil) && Number.isFinite(m.breaker.trips))) m.breaker = null;
+    b.power = prune(m, now());
+    return m;
+  }
+  function breakerOpened(c: StoredCloud, m: PowerMemory) {
+    log(c, "starts_failing", "reconciler", "breaker_open", { trips: m.breaker?.trips ?? 0, until: m.breaker?.openUntil ?? null });
+    console.warn(`managed: ALERT cloud ${c.id}: its machine failed to come up ${rails.breakerFailures} times; automatic starts wait until ${new Date(m.breaker?.openUntil ?? now()).toISOString()}`);
+  }
+  /** a provider start: through the rails first, counted once it was asked for; one the rails hold back is tried again later */
+  async function start<T>(c: StoredCloud, kind: StartKind, run: () => Promise<T>, latest: number | null = null): Promise<T> {
+    const m = memory(c), refused = startRefusal({ now: now(), kind, latest, memory: m, pool: pool(), profile: deps.costProfile }, rails);
+    if (refused) throw new StartHeldError(refused.reason, refused.recheckAt);
     deps.starts?.admit();
-    const result = await run();
-    deps.starts?.record(cloudId, kind);
+    let result: T;
+    try { result = await run(); }
+    catch (error) {
+      if (error instanceof ProviderLimitError) { if (error.info.nextStartAt !== null) deps.starts?.block(error.info.nextStartAt); }
+      else if (!(error instanceof ProviderBusyError) && noteFailure(m, now(), rails)) breakerOpened(c, m);
+      deps.save(c);
+      throw error;
+    }
+    deps.starts?.record(c.id, kind);
+    noteStart(m, now()); deps.save(c);
     return result;
   }
   const secret = (c: StoredCloud) => deps.unseal(c.bootstrapSecret);
-  const keyOf = (c: StoredCloud) => boatBackupKey(deps.backupSecret, c.id);
-  const legacyKeyOf = (c: StoredCloud) => { try { return c.bootstrapSecret ? backupKey(secret(c)) : undefined; } catch { return undefined; } };
+  const keyOf = (c: StoredCloud) => homeBackupKey(deps.backupSecret, c.id);
+  const legacyKeyOf = (c: StoredCloud) => { try { return c.bootstrapSecret ? image.legacyBackupKey(secret(c)) : undefined; } catch { return undefined; } };
   /** where this service reaches the home: the machine's own hosted URL, never through the public proxy */
   const homeOrigin = (c: StoredCloud) => state(c).upstream ?? c.origin!;
   const label = (c: StoredCloud) => (state(c).label ??= `d${createHmac("sha256", deps.labelKey).update(`omb-managed-label:${c.id}`).digest("hex").slice(0, 20)}`);
@@ -219,13 +260,13 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     catch { throw new RetryableCloudError("Cloud home refused its entitlement."); }
     c.entitledAt = now(); deps.save(c);
   }
-  const latestVerified = (b: BoatCloudState) => [...b.backups].reverse().find(g => g.verifiedAt !== null) ?? null;
+  const latestVerified = (b: HomeLifecycleState) => [...b.backups].reverse().find(g => g.verifiedAt !== null) ?? null;
   function notice(c: StoredCloud, kind: NoticeKind, at: number | null, link?: string) {
     const b = state(c);
     if (["ended", "left_30", "left_7", "left_1", "deleted"].includes(kind) && b.notices.some(n => n.kind === kind)) return;
     b.notices.push({ kind, at: now() });
     deps.save(c);
-    try { deps.notify(c, kind, at, link); } catch { console.warn(`boat: notice ${kind} for ${c.id} was not delivered`); }
+    try { deps.notify(c, kind, at, link); } catch { console.warn(`managed: notice ${kind} for ${c.id} was not delivered`); }
   }
 
   function verdictFor(c: StoredCloud, given = deps.entitlement(c)): Verdict {
@@ -245,7 +286,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     if (!snapshot) { b.backupProblem = "no_snapshot"; deps.save(c); return false; }
     if (b.backups.some(g => g.snapshotAt >= snapshot.at && g.verifiedAt !== null && (g.source ?? c.serverId) === serverId)) return true;
     let stream: ReadableStream<Uint8Array>;
-    try { stream = await provider.snapshotTar(snapshot.id, BOAT_HOME_VOLUME); }
+    try { stream = await provider.snapshotTar(snapshot.id, image.homeVolume); }
     catch (error) { b.backupProblem = "snapshot_read"; deps.save(c); log(c, "backup_failed", "reconciler", "snapshot_read"); throw error; }
     const chunks: Buffer[] = [];
     let size = 0;
@@ -294,14 +335,14 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
       const fromTemplate = settings.template !== null && b.restoreFrom === null && b.attempt === 0;
       // the machine gets a one-time claim, never its secrets: the provider's API and its logs never carry them
-      let boot = boatBootFile({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
+      let boot = image.bootFile({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
       if (settings.claims) {
         // the same claim for the same attempt: a retried create gets the first machine back, with the first boot file
         const claim = createHmac("sha256", deps.backupSecret).update(`omb-managed-claim:${c.id}:${b.attempt}`).digest("base64url");
         b.claim = { hash: createHash("sha256").update(claim).digest("hex"), expiresAt: now() + HOUR, redeemedAt: null };
-        boot = claimBootFile({ cloudId: c.id, claim, redeem: `${deps.dashboardUrl}/v1/managed/claims/redeem` });
+        boot = image.claimBootFile({ cloudId: c.id, claim, redeem: `${deps.dashboardUrl}/v1/managed/claims/redeem` });
       }
-      const server = await start(c.id, b.attempt > 0 ? "recover" : "create", () => provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData: boatSetupScript({ releaseKeys: deps.releaseKeys, requireSigned: settings.requireSigned }),
+      const server = await start(c, b.attempt > 0 ? "recover" : "create", () => provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData: image.setupScript({ releaseKeys: deps.releaseKeys, requireSigned: settings.requireSigned }),
         ttlSeconds: settings.leaseSeconds, attempt: b.attempt, files: [boot], ...(fromTemplate ? { from: settings.template! } : {}) }));
       c.serverId = server.id; b.upstream = server.origin ?? null; c.origin = null; b.installed = fromTemplate ? templatePackage : null; b.leaseAt = now(); b.setupSince = now();
       log(c, "create", "reconciler", b.attempt ? "recovery" : "paid", { attempt: b.attempt, template: fromTemplate });
@@ -309,20 +350,20 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     }
     if (!c.serverId) throw new Error("Missing cloud server.");
     if (c.setupStep === "storage") {
-      const s = await provider.sandbox(c.serverId);
-      if (!s || !["ready", "idle", "running"].includes(s.state) || (s.setup !== "done" && s.setup !== null && s.setup !== "failed")) return wait(c, 5_000);
+      const s = await provider.machine(c.serverId);
+      if (!s || s.state !== "running" || (s.setup !== "done" && s.setup !== null && s.setup !== "failed")) return wait(c, 5_000);
       if (s.setup === "failed") throw new Error("Cloud setup failed.");
       const pkg = settings.package;
       if (pkg && b.installed !== pkg.sha256) {
-        if (pkg.file) await provider.upload(c.serverId, BOAT_PACKAGE_FILE, readFileSync(pkg.file));
-        const done = await provider.run(c.serverId, installCommand(pkg.sha256, pkg.url, pkg.signature), 600);
+        if (pkg.file) await provider.upload(c.serverId, image.packagePath, readFileSync(pkg.file));
+        const done = await provider.run(c.serverId, image.installCommand(pkg.sha256, pkg.url, pkg.signature), 600);
         if (!done.ok || !done.stdout.includes("installed")) throw new RetryableCloudError("Cloud package install failed.");
         b.installed = pkg.sha256; deps.save(c);
       }
       if (b.restoreFrom) {
         const tar = deps.backups.read(c.id, keyOf(c), b.restoreFrom, legacyKeyOf(c));
-        await provider.upload(c.serverId, BOAT_RESTORE_FILE, tar);
-        const done = await provider.run(c.serverId, RESTORE_COMMAND, 600);
+        await provider.upload(c.serverId, image.restorePath, tar);
+        const done = await provider.run(c.serverId, image.restoreCommand, 600);
         if (!done.ok || !done.stdout.includes("restored")) throw new RetryableCloudError("Cloud restore failed.");
         const from = b.backups.find(g => g.file === b.restoreFrom);
         b.restoredFrom = { file: b.restoreFrom, at: from?.snapshotAt ?? now() }; b.restoreFrom = null;
@@ -332,7 +373,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     }
     if (c.setupStep === "starting") {
       publish(c, state(c).upstream ?? await provider.origin(c.serverId));
-      const started = await provider.run(c.serverId, startCommand(c.origin!, homeOrigin(c)), 120);
+      const started = await provider.run(c.serverId, image.startCommand(c.origin!, homeOrigin(c)), 120);
       if (!started.ok) throw new RetryableCloudError("Cloud home did not start.");
       c.setupStep = "checking"; deps.save(c); return;
     }
@@ -358,7 +399,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     deps.save(c);
   }
 
-  async function sleepNow(c: StoredCloud, reason: BoatCloudState["sleepReason"], actor: AuditActor) {
+  async function sleepNow(c: StoredCloud, reason: HomeLifecycleState["sleepReason"], actor: AuditActor) {
     const b = state(c);
     if (!c.serverId) return;
     await provider.power(c.serverId, "off");
@@ -387,14 +428,14 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     }
     if (problem === null) return true;
     log(c, "delete_refused", "reconciler", `backup_${problem}`);
-    console.warn(`boat: ALERT cloud ${c.id} is due for deletion but its final backup does not open (${problem}); nothing was deleted`);
+    console.warn(`managed: ALERT cloud ${c.id} is due for deletion but its final backup does not open (${problem}); nothing was deleted`);
     return false;
   }
 
   async function deleteStep(c: StoredCloud, verdict: Extract<Verdict, { delete: true }>) {
     const b = state(c);
-    if (c.serverId && !b.deletion && (await provider.sandbox(c.serverId))?.stopStatus === "failing") { log(c, "delete_waiting", "reconciler", "stop_failing"); return; }
-    if (b.deletion && b.deletion.sent === false && (await provider.sandbox(b.deletion.serverId)) !== null) {
+    if (c.serverId && !b.deletion && (await provider.machine(c.serverId))?.stopFailing) { log(c, "delete_waiting", "reconciler", "stop_failing"); return; }
+    if (b.deletion && b.deletion.sent === false && (await provider.machine(b.deletion.serverId)) !== null) {
       // a DELETE whose answer never came, and the sandbox is still there: asked again only if the verdict still says so
       if (!rereadStored(c)) return;
       const again = verdictFor(c);
@@ -404,7 +445,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       if (!answer.gone) return;
     }
     if (!b.deletion && c.serverId) {
-      // last check against the record, right before Boat is asked
+      // last check against the record, right before the provider is asked
       if (!rereadStored(c)) return;
       const again = verdictFor(c);
       if (!again.delete) { log(c, "delete_refused", "reconciler", again.reason); return; }
@@ -422,7 +463,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       const op = await provider.deletion(b.deletion.operationId);
       if (op && op.status !== "completed") return;
     }
-    if (b.deletion && (await provider.sandbox(b.deletion.serverId)) !== null) return;
+    if (b.deletion && (await provider.machine(b.deletion.serverId)) !== null) return;
     for (const old of b.retired) if (!old.deletion) {
       const answer = await provider.requestDelete(old.serverId);
       old.deletion = { operationId: answer.operationId, at: now() };
@@ -456,24 +497,24 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     const b = state(c);
     for (const old of b.retired) {
       if (old.deletion) continue;
-      const s = await provider.sandbox(old.serverId);
+      const s = await provider.machine(old.serverId);
       if (!s) continue;
-      if (["ready", "idle", "running"].includes(s.state)) { await provider.power(old.serverId, "off"); log(c, "retired_stopped", "reconciler", "kept", { old: old.serverId }); continue; }
-      if (s.state !== "archived") continue;
+      if (s.state === "running") { await provider.power(old.serverId, "off"); log(c, "retired_stopped", "reconciler", "kept", { old: old.serverId }); continue; }
+      if (s.state !== "stopped") continue;
       if (!old.backedUp && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) {
         if (await backup(c, "retired", old.serverId, true)) {
           old.backedUp = now();
           const restored = b.restoredFrom?.at ?? 0;
           if ((s.snapshotAt ?? 0) > restored) {
             log(c, "retired_has_newer_data", "reconciler", "operator_decides", { old: old.serverId });
-            console.warn(`boat: ALERT cloud ${c.id}: replaced sandbox ${old.serverId} holds data newer than the backup the cloud came back from; both are kept`);
+            console.warn(`managed: ALERT cloud ${c.id}: replaced sandbox ${old.serverId} holds data newer than the backup the cloud came back from; both are kept`);
           }
           deps.save(c);
         }
         continue;
       }
-      // its disk is still the only full copy of that state on Boat: keep Boat's 14-day clock from running out
-      if (mayRefresh(c, s.stoppedAt, true)) { await start(c.id, "refresh", () => provider.power(old.serverId, "on")); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
+      // its disk is still the only full copy of that state on the provider: keep the provider's 14-day clock from running out
+      if (mayRefresh(c, s.stoppedAt, true)) { await start(c, "refresh", () => provider.power(old.serverId, "on")); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
     }
   }
 
@@ -542,29 +583,29 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       return;
     }
     if (c.suspended !== null) {
-      const s = await provider.sandbox(c.serverId);
-      if (s && ["ready", "idle", "running", "provisioned", "cloning"].includes(s.state)) await sleepNow(c, "operator", "operator");
+      const s = await provider.machine(c.serverId);
+      if (s && (s.state === "running" || s.state === "starting")) await sleepNow(c, "operator", "operator");
       c.status = "suspended"; c.suspensionApplied = true; deps.save(c); return;
     }
-    const s = await provider.sandbox(c.serverId);
-    if (!s || s.state === "cancelled") { if (await confirmLost(c)) return recover(c, "missing"); return; }
+    const s = await provider.machine(c.serverId);
+    if (!s) { if (await confirmLost(c)) return recover(c, "missing"); return; }
     if (b.missingSince) { log(c, "missing_cleared", "reconciler", "answered"); b.missingSince = null; b.missingChecks = 0; deps.save(c); }
     if (s.dataExpired) return recover(c, "data_expired");
-    if (stopFailing(c, s.stopStatus === "failing")) return;
+    if (stopFailing(c, s.stopFailing)) return;
     // the snapshot a stop saved: a final backup must be at least this new
-    const stopSnapshot = s.state === "archived" ? s.snapshotAt ?? s.stoppedAt : null;
+    const stopSnapshot = s.state === "stopped" ? s.snapshotAt ?? s.stoppedAt : null;
     if (stopSnapshot !== null && stopSnapshot !== b.lastStopAt) { b.lastStopAt = stopSnapshot; deps.save(c); }
 
     if (!entitlement.active) {
-      await planEnded(c, entitlement, verdict, ["ready", "idle", "running"].includes(s.state));
-      if (["ready", "idle", "running"].includes(s.state)) return sleepNow(c, "plan", "billing");
-      if (s.state === "archived") {
+      await planEnded(c, entitlement, verdict, s.state === "running");
+      if (s.state === "running") return sleepNow(c, "plan", "billing");
+      if (s.state === "stopped") {
         c.status = "stopped";
         if (!latestVerified(b) || latestVerified(b)!.snapshotAt < (s.snapshotAt ?? 0)) { if ((b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "plan_ended"); }
         await retiredStep(c);
-        // keep Boat's copy of the disk alive while we promise to keep it: a short resume restarts its 14-day clock
+        // keep the provider's copy of the disk alive while we promise to keep it: a short resume restarts its 14-day clock
         if (verdict.earliestAt !== null && verdict.earliestAt - now() > DAY_MS && mayRefresh(c, s.stoppedAt)) {
-          await start(c.id, "refresh", () => provider.power(c.serverId!, "on")); b.wakeStartedAt = now(); log(c, "refresh", "reconciler", "disk_age"); deps.save(c);
+          await start(c, "refresh", () => provider.power(c.serverId!, "on")); b.wakeStartedAt = now(); log(c, "refresh", "reconciler", "disk_age"); deps.save(c);
         }
       }
       return;
@@ -577,29 +618,34 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       if (c.origin) await deps.home.plan?.(homeOrigin(c), secret(c), { cancelled: false }).catch(() => {});
     }
 
-    const up = ["ready", "idle", "running"].includes(s.state);
-    if (s.state === "error") { await start(c.id, "recover", () => provider.power(c.serverId!, "on")).catch(() => {}); b.wakeStartedAt = now(); log(c, "resume", "reconciler", "boat_error"); deps.save(c); return; }
+    const up = s.state === "running";
+    if (s.state === "error") { await start(c, "recover", () => provider.power(c.serverId!, "on")).catch(() => {}); b.wakeStartedAt = now(); log(c, "resume", "reconciler", "provider_error"); deps.save(c); return; }
     const resizeKey = `${c.desiredSpec.vcpu}-${c.desiredSpec.ramGb}-${c.desiredSpec.diskGb}`;
     const resizeWanted = (c.desiredSpec.vcpu !== c.spec.vcpu || c.desiredSpec.ramGb !== c.spec.ramGb || c.desiredSpec.diskGb !== c.spec.diskGb) && b.resizeBlocked !== resizeKey;
-    if (s.state === "archived" && resizeWanted) {
+    if (s.state === "stopped" && resizeWanted) {
       // a plan change: backed up from the stop first, then resumed onto the new size, then started like any wake
       const covered = b.backups.some(g => g.verifiedAt !== null && !g.keep && g.snapshotAt >= (s.snapshotAt ?? 0));
       if (!covered) { if ((b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now() || (b.lastBackupTryAt ?? 0) < (s.stoppedAt ?? 0)) await backup(c, "resize"); if (!b.backups.some(g => g.verifiedAt !== null && !g.keep && g.snapshotAt >= (s.snapshotAt ?? 0))) return; }
-      try { await start(c.id, "resize", () => provider.resize(c.serverId!, c.desiredSpec)); }
+      try { await start(c, "resize", () => provider.resize(c.serverId!, c.desiredSpec)); }
       catch (error) {
-        if (error instanceof BoatError && error.status < 500) { b.resizeBlocked = resizeKey; log(c, "resize_refused", "reconciler", error.code); deps.save(c); return; }
+        if (error instanceof ProviderError && error.status < 500) { b.resizeBlocked = resizeKey; log(c, "resize_refused", "reconciler", error.code); deps.save(c); return; }
         throw error;
       }
       log(c, "resize", b.resizeAskedAt ? "owner" : "reconciler", "plan_changed", { to: resizeKey });
       c.spec = { ...c.desiredSpec }; b.wakeStartedAt = now(); c.wantPower = "on"; b.resizeAskedAt = null; deps.save(c); return;
     }
-    if (s.state === "archived") {
-      const due = b.nextDueAt !== null && b.nextDueAt - settings.wakeLeadMs <= now();
-      const stale = c.wantPower !== "on" && !due && mayRefresh(c, s.stoppedAt);
-      if (c.wantPower === "on" || due || stale) {
-        const intent = c.wantPower === "on" && c.wakeRequestedAt !== undefined && now() - c.wakeRequestedAt < 5 * MINUTE;
-        await start(c.id, intent ? "wake" : due ? "routine" : stale ? "refresh" : "wake", () => provider.power(c.serverId!, "on")); b.wakeStartedAt = now(); c.wantPower = "on";
-        log(c, "wake", c.wakeRequestedAt && now() - c.wakeRequestedAt < 5 * MINUTE ? "owner" : "reconciler", due ? "routine_due" : stale ? "disk_age" : "asked");
+    if (s.state === "stopped") {
+      const m = memory(c), wanted = c.wantPower === "on";
+      // a routine's pre-wake comes from the policy (its spread, the rails); a person's wake is never held for one
+      const plan = wanted ? null : deps.sleepPolicy.wake({ now: now(), cloudId: c.id, nextDueAt: b.nextDueAt, upcoming: b.upcoming ?? null, memory: m });
+      const due = plan?.start === true;
+      const stale = !wanted && !due && mayRefresh(c, s.stoppedAt);
+      if (plan && !plan.start && b.stayReason !== plan.reason && !["not_yet", "nothing_due"].includes(plan.reason)) { b.stayReason = plan.reason; deps.save(c); }
+      if (wanted || due || stale) {
+        const intent = wanted && c.wakeRequestedAt !== undefined && now() - c.wakeRequestedAt < 5 * MINUTE;
+        if (intent) { deps.sleepPolicy.observe(m, c.wakeRequestedAt!, b.wakeBy === "webhook" ? "connector" : "user"); b.wakeBy = null; }
+        await start(c, intent ? "wake" : due ? "routine" : stale ? "refresh" : "wake", () => provider.power(c.serverId!, "on"), due ? plan!.latest : null); b.wakeStartedAt = now(); b.wakeFailureNoted = false; c.wantPower = "on";
+        log(c, "wake", intent ? "owner" : "reconciler", due ? "routine_due" : stale ? "disk_age" : "asked");
         deps.save(c); return;
       }
       if (c.status !== "sleeping" && c.status !== "stopped") { c.status = "sleeping"; deps.save(c); }
@@ -612,8 +658,18 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     if (!c.origin || !b.upstream) publish(c, b.upstream ?? c.origin ?? await provider.origin(c.serverId));
     if (b.wakeStartedAt !== null || c.status !== "running") {
       // a resume onto a held machine keeps the service the pre-stop hook stopped: start it again every time
-      const started = await provider.run(c.serverId, startCommand(c.origin!, homeOrigin(c)), 120);
-      if (!started.ok || !(await deps.home.healthy(homeOrigin(c), secret(c)))) throw new RetryableCloudError("Cloud home not answering after a wake.");
+      const started = await provider.run(c.serverId, image.startCommand(c.origin!, homeOrigin(c)), 120);
+      if (!started.ok || !(await deps.home.healthy(homeOrigin(c), secret(c)))) {
+        // a start that has not brought the home up in 5 minutes is a failed one, once: enough of them open the breaker
+        if (b.wakeStartedAt !== null && now() - b.wakeStartedAt > 5 * MINUTE && !b.wakeFailureNoted) {
+          const m = memory(c);
+          b.wakeFailureNoted = true;
+          if (noteFailure(m, now(), rails)) breakerOpened(c, m);
+          deps.save(c);
+        }
+        throw new RetryableCloudError("Cloud home not answering after a wake.");
+      }
+      noteHealthy(memory(c)); b.wakeFailureNoted = false;
       await entitle(c, true);
       log(c, "awake", "reconciler", "healthy", { ms: b.wakeStartedAt === null ? null : now() - b.wakeStartedAt });
       c.status = "running"; c.powerSince = now(); b.wakeStartedAt = null; b.sleptAt = null; b.sleepReason = null; b.lastPowerAt = now(); b.leaseAt = now();
@@ -627,20 +683,30 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     if (b.lastPowerAt !== null && now() - b.lastPowerAt < settings.powerReadMs) return;
     b.lastPowerAt = now();
     await entitle(c, false).catch(() => console.warn(`managed: the entitlement refresh for ${c.id} failed; it is tried again`));
-    const power = deps.home.power ? await deps.home.power(homeOrigin(c), secret(c), settings.idleMinutes).catch(() => null) : null;
+    const power = deps.home.power ? await deps.home.power(homeOrigin(c), secret(c), Math.max(1, Math.round(rails.minIdleMs / MINUTE))).catch(() => null) : null;
     if (!power) { deps.save(c); return; }
-    b.busy = power.busy; b.nextDueAt = power.nextDueAt;
+    const m = memory(c);
+    b.busy = power.busy; b.nextDueAt = power.nextDueAt; b.upcoming = power.upcoming ?? null;
     b.focusSince = power.busy.includes("focus") ? b.focusSince ?? now() : null;
-    // the home says idle for the base window; the policy says whether a stop now is worth it
-    const snapshot = { now: now(), cloudId: c.id, spec: c.spec, homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy: power.busy, focusSince: b.focusSince ?? null, nextDueAt: power.nextDueAt };
-    const decision = deps.sleepPolicy?.decide(snapshot) ?? (power.nextDueAt !== null && power.nextDueAt - now() <= ROUTINE_GUARD_MS ? { action: "stay" as const, reason: "routine_due", recheckAt: power.nextDueAt }
-      : { action: power.idle && now() >= c.powerSince + 2 * MINUTE ? "stop" as const : "stay" as const, reason: "home_idle", recheckAt: now() + MINUTE });
-    if (b.stayReason !== (decision.action === "stay" ? decision.reason : null)) b.stayReason = decision.action === "stay" ? decision.reason : null;
-    if (power.idle && decision.action === "stop" && deps.home.sleep) {
-      const agreed = await deps.home.sleep(homeOrigin(c), secret(c), settings.idleMinutes);
-      if (agreed.ok) { b.nextDueAt = agreed.nextDueAt ?? power.nextDueAt; return sleepNow(c, "idle", "reconciler"); }
+    if (power.lastActivityAt !== null) deps.sleepPolicy.observe(m, power.lastActivityAt, "user");
+    const snapshot = { now: now(), cloudId: c.id, spec: c.spec, homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy: power.busy, focusSince: b.focusSince ?? null,
+      nextDueAt: power.nextDueAt, upcoming: b.upcoming, wakeRequestedAt: c.wakeRequestedAt ?? null, memory: m };
+    const decision = deps.sleepPolicy.decide(snapshot);
+    // the rails again, whatever the policy said: no policy stops a home they hold up
+    const next = nextRun(plannedRuns(power.nextDueAt, b.upcoming, now()), now());
+    const held = decision.action === "stop" ? stopRefusal({ now: now(), awakeSince: c.powerSince, busy: power.busy, focusSince: b.focusSince ?? null, lastActivityAt: power.lastActivityAt,
+      wakeRequestedAt: c.wakeRequestedAt ?? null, nextRunAt: next ? runnableFrom(next) : null, memory: m, pool: pool(), profile: deps.costProfile }, rails) : null;
+    const reason = decision.action === "stay" ? decision.reason : held?.reason ?? null;
+    if (b.stayReason !== reason) b.stayReason = reason;
+    if (power.idle && decision.action === "stop" && !held && deps.home.sleep) {
+      const agreed = await deps.home.sleep(homeOrigin(c), secret(c), decision.idleMinutes);
+      if (agreed.ok) {
+        b.nextDueAt = agreed.nextDueAt ?? power.nextDueAt;
+        await sleepNow(c, "idle", "reconciler");
+        noteStop(memory(c), now()); deps.save(c); return;
+      }
     }
-    // a home that never sleeps still gets a backup, from Boat's background snapshot
+    // a home that never sleeps still gets a backup, from the provider's background snapshot
     const last = b.backups.at(-1);
     if (now() - (last?.at ?? c.provisionedAt ?? c.createdAt) >= 2 * settings.backupEveryMs && (b.lastBackupTryAt ?? 0) + 6 * HOUR <= now()) await backup(c, "awake_overdue").catch(() => false);
     deps.save(c);
@@ -663,7 +729,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       console.warn(`managed: ALERT cloud ${c.id}: its machine claim was redeemed a second time`);
     }
     const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
-    return bootContent({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
+    return image.bootContent({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
   }
   function edgeCloud(value: string): StoredCloud | null {
     if (!/^d[0-9a-f]{20}$/.test(value)) return null;
@@ -694,7 +760,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       // anyone can reach a public name: each wake is a provider start, so strangers get a small budget, never an open tap
       if (c.wantPower !== "on" && recent.length >= settings.edgeWakesPerHour) { b.edgeWakes = recent; deps.save(c); return { ok: false, status: 429 }; }
       if (c.wantPower !== "on") { recent.push(now()); log(c, "wake_asked", "edge", reason); }
-      b.edgeWakes = recent; c.wantPower = "on"; c.wakeRequestedAt = now(); c.nextAttemptAt = 0; deps.save(c);
+      b.edgeWakes = recent; b.wakeBy = reason; c.wantPower = "on"; c.wakeRequestedAt = now(); c.nextAttemptAt = 0; deps.save(c);
       return { ok: true, status: 202 };
     },
     reconcile,
@@ -737,6 +803,8 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     /** a provider limit (429) is no failure: backed off 30 s doubling to 5 minutes (or as long as it asks), never counted */
     retryAt(c: StoredCloud, error: unknown): number | null {
       const b = state(c);
+      // the rails held a start back, or the pool is full: waiting, not failing
+      if (error instanceof StartHeldError || error instanceof StartCapError) return Math.max(now() + 5_000, error.retryAt);
       if (!(error instanceof ProviderLimitError)) { if (b.limitStreak) { b.limitStreak = 0; deps.save(c); } return null; }
       // setup keeps its 45-minute ceiling: past it a limit fails setup like any other cause
       if (c.status === "provisioning" && now() - (b.setupSince ?? c.provisionedAt ?? c.createdAt) > 45 * MINUTE) return null;
@@ -745,9 +813,10 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       if (b.limitStreak === 12) { log(c, "provider_limit_long", "reconciler", "operator_decides"); console.warn(`managed: ALERT cloud ${c.id}: the provider has refused it 12 times in a row (rate or quota limit)`); }
       const backoff = Math.min(5 * MINUTE, 30_000 * 2 ** Math.min(b.limitStreak - 1, 4));
       deps.save(c);
-      return now() + Math.max(backoff, Math.min(error.retryAfterMs ?? 0, 15 * MINUTE));
+      const notBefore = error.info.nextStartAt !== null ? Math.min(error.info.nextStartAt - now(), 15 * MINUTE) : 0;
+      return now() + Math.max(backoff, Math.min(error.retryAfterMs ?? 0, 15 * MINUTE), notBefore);
     },
     setHold(c: StoredCloud, hold: boolean) { state(c).hold = hold; log(c, hold ? "hold" : "hold_released", "operator", "manual"); deps.save(c); },
   };
 }
-export type BoatLifecycle = ReturnType<typeof createBoatLifecycle>;
+export type Lifecycle = ReturnType<typeof createLifecycle>;

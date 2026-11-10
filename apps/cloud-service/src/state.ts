@@ -1,9 +1,11 @@
 // A managed cloud's own record, kept on the cloud as `StoredCloud.managed` (the dashboard stores it opaquely).
 import type {} from "../../dashboard/server/clouds/types.ts";
+import type { PowerMemory } from "./power/rails.ts";
+import type { PlannedRun } from "./power/schedule.ts";
 
 /** one managed home's lifecycle record (lifecycle.ts) */
-export interface BoatCloudState {
-  /** bumped for each deliberate new sandbox (a recovery); part of Boat's idempotency key */
+export interface HomeLifecycleState {
+  /** bumped for each deliberate new sandbox (a recovery); part of the provider's idempotency key */
   attempt: number;
   installed: string | null;
   /** a backup generation to restore into the next fresh sandbox */
@@ -21,7 +23,15 @@ export interface BoatCloudState {
   edgeWakes?: number[];
   /** when an open, focused app began keeping the home up (the sleep policy caps it at 30 minutes) */
   focusSince?: number | null;
-  /** why the sleep policy last kept an idle home up, for the operator */
+  /** the power policy's memory of this home: its starts, stops, failed starts, breaker and learned activity */
+  power?: PowerMemory;
+  /** the runs ahead as the home last reported them */
+  upcoming?: PlannedRun[] | null;
+  /** what asked for the pending wake: a webhook (a connector) or the app */
+  wakeBy?: "webhook" | "client" | null;
+  /** the current wake's failure was counted already */
+  wakeFailureNoted?: boolean;
+  /** why the power policy or the rails last kept a home up (or a sleeping one asleep), for the operator */
   stayReason?: string | null;
   wakeStartedAt: number | null;
   /** `keep`: from a replaced sandbox's own disk, never pruned; `source`: that sandbox */
@@ -32,7 +42,7 @@ export interface BoatCloudState {
   endedAt: number | null;
   notices: Array<{ kind: string; at: number }>;
   deleteRequest: { requestedAt: number; tokenHash: string | null; tokenExpiresAt: number | null; confirmedAt: number | null; executeAfter: number | null; cancelledAt: number | null } | null;
-  /** Boat's receipt for an accepted delete: never sent twice */
+  /** the provider's receipt for an accepted delete: never sent twice */
   deletion: { serverId: string; operationId: string | null; at: number; reason: string; sent?: boolean } | null;
   deletedAt: number | null;
   backupsDeleteAfter: number | null;
@@ -42,7 +52,7 @@ export interface BoatCloudState {
   hold: boolean;
   /** when the current sandbox's setup began */
   setupSince?: number;
-  /** Boat answered 404 for the current sandbox since this time, this many times; reset by any answer */
+  /** the provider answered 404 for the current sandbox since this time, this many times; reset by any answer */
   missingSince?: number | null;
   missingChecks?: number;
   /** the owner asked to apply a plan change now (resize-now) */
@@ -57,10 +67,10 @@ export interface BoatCloudState {
   /** the machine's stop has been failing since this time (it stays up, stopping); alerted once past 15 minutes */
   stopFailingSince?: number | null;
   stopFailingAlerted?: boolean;
-  /** a size Boat refused (shrinking below the data, say), not tried again */
+  /** a size the provider refused (shrinking below the data, say), not tried again */
   resizeBlocked?: string | null;
 }
 
 declare module "../../dashboard/server/clouds/types.ts" {
-  interface ManagedCloudState extends BoatCloudState {}
+  interface ManagedCloudState extends HomeLifecycleState {}
 }

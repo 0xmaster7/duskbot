@@ -79,7 +79,11 @@ export interface HomeClient {
   /** tells the home its plan was cancelled or renewed, so it holds its routines (docs/cloud-pro.md) */
   plan?(origin: string, secret: string, input: { cancelled: boolean }): Promise<void>;
 }
-export interface HomePower { idle: boolean; busy: string[]; lastActivityAt: number | null; nextDueAt: number | null; wokeAt: number | null }
+export interface HomePower {
+  idle: boolean; busy: string[]; lastActivityAt: number | null; nextDueAt: number | null; wokeAt: number | null;
+  /** the runs due in the next day, when the home reports them; `flexMs` is how far a run may move (0: its exact time) */
+  upcoming?: Array<{ at: number; flexMs: number }>;
+}
 
 export interface StoredCloud {
   id: string;
