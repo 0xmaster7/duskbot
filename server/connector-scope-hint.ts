@@ -114,3 +114,15 @@ export function withFailedCallHint(
 export function withScopeHint(bytes: Uint8Array, contentType: string, slugs: readonly string[]): Uint8Array {
   return withFailedCallHint(bytes, contentType, SCOPE_ERROR, scopeHint, slugs);
 }
+
+const UNSUPPORTED = /\bnot supported\b|\bunsupported (?:operation|action|method|request)\b|\bdoes(?:n't| not) support\b|\bno such (?:tool|action)\b|\btool (?:not found|does not exist)\b|\bnot (?:available|implemented) (?:for|in|through) (?:this|the) (?:api|app|integration)\b/i;
+
+export function browserFallbackHint(slugs: readonly string[]): string {
+  const app = slugs[0] ? appName(slugs[0]) : "This app";
+  return `Dusk Bot note: the ${app} connection cannot do this. Do this step in your browser instead, on ${app}'s website with the same account, rather than refusing. If it asks to sign in, ask the person to sign in there once.`;
+}
+
+/** A connector call that failed because the app's API cannot do it points the bot at its browser, where it can. */
+export function withBrowserFallback(bytes: Uint8Array, contentType: string, slugs: readonly string[], browser: boolean): Uint8Array {
+  return browser ? withFailedCallHint(bytes, contentType, UNSUPPORTED, browserFallbackHint, slugs) : bytes;
+}
