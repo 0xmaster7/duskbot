@@ -57,8 +57,11 @@ it("is a column of every bot in the person's order, with a bubble only for news"
   const bubble = (id: string) => cell(id).querySelector(".amb-bubble");
   expect([bubble("Moss"), bubble("Nova"), bubble("Juno")]).toEqual([null, null, null]);
   expect([bubble("Quill")?.getAttribute("data-kind"), bubble("Quill")?.textContent]).toEqual(["ask", "2"]);
-  expect(bubble("Rivet")?.getAttribute("data-kind")).toBe("reply");
+  expect(bubble("Rivet")).toBeNull();
   expect(bubble("Echo")?.getAttribute("data-kind")).toBe("error");
+  // how each is doing, in the island's colours: blue while working, green for a reply not yet seen, nothing at rest
+  const dot = (id: string) => cell(id).querySelector(".amb-state-dot")?.getAttribute("data-state") ?? null;
+  expect(["Moss", "Nova", "Quill", "Rivet", "Echo", "Juno"].map(dot)).toEqual([null, "working", null, "done", null, null]);
   // no list of words in the column itself
   expect(host.querySelector(".amb-dock-column .amb-row")).toBeNull();
   await unmount();

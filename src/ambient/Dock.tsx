@@ -3,16 +3,16 @@
 // resting on a bot (or moving onto it) brings out one card beside the column with that bot's status, its ask answered
 // right there. The card is one element for the whole visit: it glides and resizes from bot to bot and only goes once
 // the pointer has left both. A mascot carries a bubble only for news: an ask, an unseen reply, an unseen failure.
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { AnimatePresence, Reorder, motion, useDragControls, useReducedMotion, useTransform } from "motion/react";
 import { Plus } from "lucide-react";
 import { dockOrder, isBusy } from "./mood";
-import { HISTORY, MiniChat } from "./MiniChat";
+import { HISTORY, MiniChat, type ChatScroll } from "./MiniChat";
 import { useRowMoments } from "./rows";
 import { LOOK_MS, attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
 import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, SOFT_EXIT, useAllClear, useSettledSignal, useTraceTransitions, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
-import type { AmbientAct, AmbientBot, AmbientBridge, DockLayout } from "./types";
+import type { AmbientAct, AmbientBot, AmbientBridge, AmbientMessage, DockLayout } from "./types";
 
 /** How near the right edge the pointer has to be, beside the body, to bring the dock in. */
 const EDGE = 14;
@@ -29,16 +29,18 @@ const NUDGE_PX = 6;
 const PEEK_MS = 3600;
 const RADIUS = 22;
 export const CARD_W = 304;
-/** The card's chat at its tallest; messages scroll inside it. */
-const CARD_MAX_H = 520;
+/** The card's chat at its tallest, as a share of the screen's height (never under CHAT_MIN_H); messages scroll inside. */
+export const CHAT_SHARE = 0.75;
+const CHAT_MIN_H = 360;
+/** Moving from bot to bot, the card's words swap in place and settle from slightly faint in this long. */
+export const SWAP_MS = 120;
+/** The longest stretch of a bot's chat the card keeps between visits. */
+const KEPT_MESSAGES = 120;
 
 const CARD_GAP = 10;
 const CARD_MARGIN = 8;
 /** The card leaves quickly and smoothly, words and all: a fade with a touch of scale and drift. */
 const CARD_OUT = { duration: 0.14, ease: EASE_OUT } as const;
-/** Moving from bot to bot, the words swap fast through a blur while the card glides. */
-const SWAP_IN = { duration: 0.14, ease: EASE_OUT } as const;
-const SWAP_OUT = { duration: 0.08, ease: EASE_OUT } as const;
 // one empty list for "nothing yet": a fresh [] each render would rerun the order effect forever
 const NONE: readonly never[] = [];
 const FALLBACK_DOCK: DockLayout["dock"] = { cell: 56, tile: 36, column: 64, open: 404, pad: 8, ear: 18, sliver: 6, margin: 28, overhang: 4 };
@@ -47,7 +49,9 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const { snapshot, layout } = useAmbientFeed(bridge);
   const dock = layout?.surface === "dock" ? layout : null;
   const reduced = useReducedMotion() === true;
-  const labels = snapshot?.labels ?? {};
+  // the same words every summary: kept as one object, so the mascots are not drawn again for each streamed word
+  const labelsKey = JSON.stringify(snapshot?.labels ?? {});
+  const labels = useMemo(() => JSON.parse(labelsKey) as AmbientLabels, [labelsKey]);
   const bots: readonly AmbientBot[] = snapshot?.bots ?? NONE;
   const lang = snapshot?.lang ?? "";
   const d = dock?.dock ?? FALLBACK_DOCK;
@@ -67,7 +71,9 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const moved = useRef(false);
   useEffect(() => {
     if (dragging.current) return;
-    setIds(dockOrder(bots, dock?.order ?? NONE).map((bot) => bot.id));
+    const next = dockOrder(bots, dock?.order ?? NONE).map((bot) => bot.id);
+    // every summary brings new bot objects: the order changing is what counts
+    setIds((was) => (was.length === next.length && was.every((id, index) => id === next[index]) ? was : next));
   }, [bots, dock?.order]);
   const byId = new Map(bots.map((bot) => [bot.id, bot]));
   const shown = ids.map((id) => byId.get(id)).filter((bot): bot is AmbientBot => Boolean(bot));
@@ -246,11 +252,26 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
     if (id && (chosen.current || live.current.cardShown)) show(id);
     else if (!id && live.current.cardShown && !overCard(lastPoint.current.x, lastPoint.current.y)) letGo();
   };
-  // a click anywhere else (the window loses focus) puts the dock away, fields and all
+  // a mascot taking focus shows its card only when the keyboard moved it there: macOS hands this panel the key when
+  // another (the island) gives it up, and the page then puts focus back where it last was, which must not open anything
+  const keyboard = useRef(false);
+  useEffect(() => {
+    const key = (event: { key: string }) => { if (event.key === "Tab" || event.key.startsWith("Arrow")) keyboard.current = true; };
+    const point = () => { keyboard.current = false; };
+    const focus = () => bridge.trace?.("window-focus", `inside=${inside.current}`);
+    document.addEventListener("keydown", key, true);
+    document.addEventListener("pointerdown", point, true);
+    window.addEventListener("focus", focus);
+    return () => { document.removeEventListener("keydown", key, true); document.removeEventListener("pointerdown", point, true); window.removeEventListener("focus", focus); };
+  }, [bridge, inside]);
+  // a click anywhere else (the window loses focus) puts the dock away, fields and all, and leaves nothing focused to
+  // come back to
   useEffect(() => {
     const blur = () => {
+      keyboard.current = false;
       setPinned(false);
       bridge.typing?.(false);
+      (document.activeElement as HTMLElement | null)?.blur?.();
       if (!inside.current) { setCard(null); setOut(false); chosen.current = false; landing.current = null; }
     };
     window.addEventListener("blur", blur);
@@ -295,7 +316,19 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
     (document.activeElement as HTMLElement | null)?.blur();
   };
   const listMax = Math.max(d.cell, maxBody - 2 * d.pad - d.cell);
-  const cardBot = shownId ? byId.get(shownId) ?? null : null;
+  const shownBot = shownId ? byId.get(shownId) ?? null : null;
+  // each bot's chat as far back as the card has seen it this session: back on a bot, its history is there at once
+  // instead of the summary's few newest until the long stretch arrives
+  const kept = useRef(new Map<string, { chat: AmbientMessage[]; hasMore: boolean }>());
+  const scrolls = useRef(new Map<string, ChatScroll>());
+  const cardBot = useMemo(() => {
+    if (!shownBot) return null;
+    const was = kept.current.get(shownBot.id);
+    const chat = keepHistory(was?.chat, shownBot.chat ?? NONE);
+    const hasMore = shownBot.hasMore ?? (chat.length > (shownBot.chat?.length ?? 0) ? was?.hasMore ?? false : false);
+    kept.current.set(shownBot.id, { chat, hasMore });
+    return chat === shownBot.chat && hasMore === Boolean(shownBot.hasMore) ? shownBot : { ...shownBot, chat, hasMore };
+  }, [shownBot]);
   // the card is a real chat: the app's page sends a long stretch of the bot it shows, further back as the person scrolls
   const [history, setHistory] = useState<{ id: string | null; limit: number }>({ id: null, limit: HISTORY });
   useEffect(() => {
@@ -305,7 +338,31 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   useEffect(() => {
     bridge.viewing?.(history.id ? { botId: history.id, limit: history.limit } : null);
   }, [bridge, history]);
-  const chatMax = Math.round(Math.min(CARD_MAX_H, stageH * 0.6));
+  const chatMax = Math.round(Math.min(stageH - 2 * CARD_MARGIN, Math.max(CHAT_MIN_H, stageH * CHAT_SHARE)));
+  // one card, one chat: moving to another bot swaps the words in place (no blank frame, nothing mounted again) and
+  // they settle in from slightly faint
+  const page = useRef<HTMLDivElement>(null);
+  const pageOf = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const was = pageOf.current;
+    pageOf.current = cardBot?.id ?? null;
+    if (!was || !cardBot || was === cardBot.id || !wasShown.current) return;
+    page.current?.animate?.(
+      reduced ? [{ opacity: 0.5 }, { opacity: 1 }] : [{ opacity: 0.5, transform: "translateY(3px)" }, { opacity: 1, transform: "none" }],
+      { duration: SWAP_MS, easing: `cubic-bezier(${EASE_OUT.join(", ")})` },
+    );
+  }, [cardBot?.id, reduced]);
+  // the mascots' handlers, the same functions for the whole visit, so a mascot is drawn again only when it changes
+  const handlers = useRef<MascotHandlers>(null!);
+  handlers.current = {
+    open: (id) => { const bot = byId.get(id); if (bot) open(bot); },
+    point: (id) => pointAt(id),
+    focus: (id) => { if (keyboard.current) show(id); },
+    dragStart: () => { dragging.current = true; moved.current = true; setCard(null); },
+    dragEnd: () => { dragging.current = false; save(idsNow.current); },
+    press: () => { moved.current = false; },
+    move: (id, step) => nudge(id, step),
+  };
 
   return (
     // no bots, no dock: never an empty column or a lone "+" (kept laid out but unseen, so it measures itself when they come)
@@ -336,13 +393,7 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
                   showing={card === bot.id}
                   news={newsOf(bot, seen)}
                   state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : isSeenEvent(bot, seen) ? "idle" : undefined}
-                  onOpen={() => open(bot)}
-                  onPoint={() => pointAt(bot.id)}
-                  onFocus={() => show(bot.id)}
-                  onDragStart={() => { dragging.current = true; moved.current = true; setCard(null); }}
-                  onDragEnd={() => { dragging.current = false; save(idsNow.current); }}
-                  onPress={() => { moved.current = false; }}
-                  onMove={(step) => nudge(bot.id, step)}
+                  handlers={handlers}
                 />
               ))}
             </Reorder.Group>
@@ -370,32 +421,25 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
           : { opacity: CARD_OUT, scale: CARD_OUT, x: CARD_OUT, y: { duration: 0 }, height: { duration: 0 } }}
       >
         <div ref={cardInner} className="amb-card-inner">
-          <AnimatePresence initial={false} mode="popLayout">
-            {cardBot && (
-              <motion.div
-                key={cardBot.id}
-                className="amb-card-page"
-                initial={reduced ? { opacity: 0 } : { opacity: 0, filter: "blur(4px)" }}
-                animate={{ opacity: 1, filter: "blur(0px)", transition: SWAP_IN }}
-                exit={reduced ? { opacity: 0, transition: SWAP_OUT } : { opacity: 0, filter: "blur(4px)", transition: SWAP_OUT }}
-              >
-                <MiniChat
-                  bot={cardBot}
-                  labels={labels}
-                  lang={lang}
-                  now={now}
-                  sent={sent.has(cardBot.id)}
-                  fresh={isFresh(cardBot, seen) && !cardBot.quiet}
-                  onOpen={() => open(cardBot)}
-                  onAct={(next) => act(cardBot, next)}
-                  onPin={pin}
-                  onDismiss={() => mark([eventKey(cardBot)])}
-                  maxHeight={chatMax}
-                  onMore={() => setHistory((was) => (was.id === cardBot.id ? { id: was.id, limit: was.limit + HISTORY } : was))}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {cardBot && (
+            <div ref={page} className="amb-card-page" data-page={cardBot.id}>
+              <MiniChat
+                bot={cardBot}
+                labels={labels}
+                lang={lang}
+                now={now}
+                sent={sent.has(cardBot.id)}
+                fresh={isFresh(cardBot, seen) && !cardBot.quiet}
+                onOpen={() => open(cardBot)}
+                onAct={(next) => act(cardBot, next)}
+                onPin={pin}
+                onDismiss={() => mark([eventKey(cardBot)])}
+                maxHeight={chatMax}
+                scrolls={scrolls.current}
+                onMore={() => setHistory((was) => (was.id === cardBot.id ? { id: was.id, limit: Math.max(was.limit, cardBot.chat?.length ?? 0) + HISTORY } : was))}
+              />
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
@@ -412,20 +456,45 @@ export function newsOf(bot: AmbientBot, seen: ReadonlySet<string>): News {
   return bot.status === "error" ? "error" : "reply";
 }
 
-function DockMascot({ index, cheer, bot, labels, tile, cell, live, reduced, showing, news, state, onOpen, onPoint, onFocus, onDragStart, onDragEnd, onPress, onMove }: {
+interface MascotHandlers {
+  open: (id: string) => void;
+  point: (id: string) => void;
+  focus: (id: string) => void;
+  dragStart: () => void;
+  dragEnd: () => void;
+  press: () => void;
+  move: (id: string, step: -1 | 1) => void;
+}
+
+interface MascotProps {
   index: number; cheer: number; bot: AmbientBot; labels: AmbientLabels; tile: number; cell: number; live: boolean; reduced: boolean; showing: boolean;
-  news: News; state: "celebrate" | "approving" | "idle" | undefined; onOpen: () => void; onPoint: () => void; onFocus: () => void;
-  onDragStart: () => void; onDragEnd: () => void; onPress: () => void; onMove: (step: -1 | 1) => void;
-}) {
+  news: News; state: "celebrate" | "approving" | "idle" | undefined; handlers: RefObject<MascotHandlers>;
+}
+
+/** What a mascot draws from its bot: everything else in a summary (its chat, its line, the reply it streams) leaves it be. */
+const sameMascot = (a: AmbientBot, b: AmbientBot) => a.id === b.id && a.name === b.name && a.color === b.color && a.body === b.body && a.face === b.face
+  && a.avatar === b.avatar && a.status === b.status && a.step === b.step && a.asks === b.asks && a.quiet === b.quiet;
+
+/** The small mark on a mascot for how it is doing, as the island says it: blue while it works, green for a reply not
+ * yet seen. */
+export function dotOf(bot: AmbientBot, news: News): "working" | "done" | null {
+  if (isBusy(bot.status)) return "working";
+  return news === "reply" ? "done" : null;
+}
+
+const DockMascot = memo(function DockMascot({ index, cheer, bot, labels, tile, cell, live, reduced, showing, news, state, handlers }: MascotProps) {
   const controls = useDragControls();
+  const on = () => handlers.current;
   const onKeyDown = (event: KeyboardEvent) => {
     if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
     event.preventDefault();
-    onMove(event.key === "ArrowUp" ? -1 : 1);
+    on().move(bot.id, event.key === "ArrowUp" ? -1 : 1);
   };
-  const onPointerDown = (event: ReactPointerEvent) => { onPress(); controls.start(event); };
+  const onPointerDown = (event: ReactPointerEvent) => { on().press(); controls.start(event); };
   // hidden, the sliver still ticks who waits, failed, works or replied; what the person is watching ticks nothing
   const tick = bot.quiet ? null : news ?? (isBusy(bot.status) ? "busy" : null);
+  const dot = dotOf(bot, news);
+  const bubble = news === "ask" || news === "error" ? news : null;
   return (
     <Reorder.Item
       as="li"
@@ -433,11 +502,11 @@ function DockMascot({ index, cheer, bot, labels, tile, cell, live, reduced, show
       className="amb-dock-cell"
       data-row={bot.id}
       style={{ height: cell }}
-      onPointerEnter={onPoint}
+      onPointerEnter={() => on().point(bot.id)}
       dragListener={false}
       dragControls={controls}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      onDragStart={() => on().dragStart()}
+      onDragEnd={() => on().dragEnd()}
       whileDrag={reduced ? undefined : { scale: 1.06 }}
       transition={SETTLE}
     >
@@ -448,8 +517,8 @@ function DockMascot({ index, cheer, bot, labels, tile, cell, live, reduced, show
         aria-label={`${say(labels, "open", { name: bot.name })}. ${bot.status === "idle" ? "" : `${say(labels, bot.status)}. `}${say(labels, "reorder")}`}
         aria-expanded={showing}
         onPointerDown={onPointerDown}
-        onClick={onOpen}
-        onFocus={onFocus}
+        onClick={() => on().open(bot.id)}
+        onFocus={() => on().focus(bot.id)}
         onKeyDown={onKeyDown}
       >
         <span className="amb-lift">
@@ -458,24 +527,42 @@ function DockMascot({ index, cheer, bot, labels, tile, cell, live, reduced, show
           </motion.span>
         </span>
         <AnimatePresence initial={false}>
-          {news && (
+          {bubble && (
             <motion.span
-              key={news}
+              key={bubble}
               className="amb-bubble"
-              data-kind={news}
+              data-kind={bubble}
               aria-hidden
               initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1, transition: { opacity: FADE, scale: LIVELY } }}
               exit={{ opacity: 0, scale: reduced ? 1 : 0.6, transition: FADE_OUT }}
             >
-              {news === "ask" ? Math.max(1, bot.asks) : news === "error" ? "!" : null}
+              {bubble === "ask" ? Math.max(1, bot.asks) : "!"}
             </motion.span>
           )}
         </AnimatePresence>
-        {/* a working bot says so on its mascot too, not only by its pose */}
-        {isBusy(bot.status) && !bot.quiet && <span className="amb-pip" aria-hidden />}
+        {/* how it is doing, on its mascot too, not only by its pose */}
+        {dot && <span className="amb-state-dot" data-state={dot} aria-hidden />}
         {tick && <span className="amb-tick" data-kind={tick} aria-hidden />}
       </button>
     </Reorder.Item>
   );
+}, (a, b) => sameMascot(a.bot, b.bot) && a.index === b.index && a.cheer === b.cheer && a.labels === b.labels && a.tile === b.tile && a.cell === b.cell
+  && a.live === b.live && a.reduced === b.reduced && a.showing === b.showing && a.news === b.news && a.state === b.state && a.handlers === b.handlers);
+
+/** A bot's chat as far back as it has been seen: the summary's newest messages after the older ones kept from before
+ * (each message's longer copy wins: a summary for a bot not on show carries only a line of each). */
+export function keepHistory(kept: readonly AmbientMessage[] | undefined, chat: readonly AmbientMessage[]): AmbientMessage[] {
+  if (!kept?.length || !chat.length) return chat as AmbientMessage[];
+  const start = kept.findIndex((message) => message.id === chat[0]!.id);
+  if (start < 0) return chat as AmbientMessage[];
+  const longer = new Map(kept.slice(start).map((message) => [message.id, message.text]));
+  let changed = start > 0;
+  const newest = chat.map((message) => {
+    const text = longer.get(message.id);
+    if (text === undefined || text.length <= message.text.length) return message;
+    changed = true;
+    return { ...message, text };
+  });
+  return changed ? [...kept.slice(0, start), ...newest].slice(-KEPT_MESSAGES) : chat as AmbientMessage[];
 }
