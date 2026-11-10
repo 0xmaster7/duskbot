@@ -1,13 +1,19 @@
 // The public front of managed cloud desktops: https://<label>.<DUSK_MANAGED_PUBLIC_DOMAIN> -> the machine's own hosted
 // URL at the provider. The client only ever sees our domain. The label is opaque (it names no person, cloud id or
 // provider); the account service answers which upstream it maps to and whether that home is awake, for this Worker only.
-// A sleeping home is woken for a webhook (/hooks/*) or a signed-in client's action (a send or click, never a read), and
-// the request is held until the home answers; reads and anonymous traffic never wake one. The service caps the
-// wakes per home per hour, since each is a provider start.
+// A sleeping home is woken for a webhook (/hooks/*) or a signed-in client's action (a send or click, never a read);
+// reads, anonymous traffic and the app's background hints never wake one. The service caps the wakes per home per hour,
+// since each is a provider start. A webhook for a sleeping home is taken at once (202) and queued sealed in the
+// HookQueue Durable Object (hook-queue.js), which delivers it when the home answers; without that binding, and for a
+// client's action, the request is held until the home answers.
 //
 // Bindings: ROUTE_URL (the account service origin), EDGE_TOKEN (secret, same value as its DUSK_MANAGED_EDGE_TOKEN),
-// PUBLIC_DOMAIN (the wildcard's parent, e.g. desktops.example.com). Route: *.<PUBLIC_DOMAIN>/*.
-const LABEL = /^d[0-9a-f]{20}$/;
+// PUBLIC_DOMAIN (the wildcard's parent, e.g. desktops.example.com), and for the queue HOOK_QUEUE (Durable Object,
+// class HookQueue) with HOOK_SEAL_KEY (secret, 32+ characters, only here). Route: *.<PUBLIC_DOMAIN>/*.
+import { DOWN, LABEL, askWake, lookupRoute, upstreamRequest } from "./route.js";
+import { envelope, queueReady } from "./hook-queue.js";
+
+export { HookQueue, QUEUE_LIMITS } from "./hook-queue.js";
 const ROUTE_TTL_S = 60;
 /** a held request waits this long for a waking home; webhook senders time out not much later */
 export const HOLD_MS = 25_000;
@@ -21,12 +27,8 @@ export async function routeFor(label, env, ctx, { fresh = false } = {}) {
     const hit = await cache.match(key);
     if (hit) return { ...(await hit.json()), awake: true };
   }
-  const answer = await fetch(`${env.ROUTE_URL}/v1/managed/edge/route?label=${label}`, { headers: { authorization: `Bearer ${env.EDGE_TOKEN}` } });
-  if (answer.status === 404) return null;
-  if (!answer.ok) throw new Error("route lookup failed");
-  const body = await answer.json();
-  if (typeof body.upstream !== "string" || !body.upstream.startsWith("https://")) return null;
-  const route = { upstream: body.upstream, awake: body.awake !== false, wakeable: body.wakeable === true };
+  const route = await lookupRoute(label, env);
+  if (!route) return null;
   // only an awake home's route is cached: a sleeping one is asked again until it answers
   if (route.awake && cache) ctx.waitUntil(cache.put(key, new Response(JSON.stringify({ upstream: route.upstream }), { headers: { "cache-control": `max-age=${ROUTE_TTL_S}` } })));
   return route;
@@ -36,6 +38,8 @@ export async function routeFor(label, env, ctx, { fresh = false } = {}) {
  *  Opening the app or reading chats never wakes a home; the app shows its cached chats until the person acts. */
 export function wakeReason(request, url) {
   if (url.pathname.startsWith("/hooks/")) return "webhook";
+  // the app's background pings (focus and the like) are hints, never intent
+  if (request.headers.get("x-omb-background") === "1") return null;
   const acting = !["GET", "HEAD", "OPTIONS"].includes(request.method);
   if (acting && (request.headers.has("authorization") || request.headers.has("cookie"))) return "client";
   return null;
@@ -44,9 +48,9 @@ export function wakeReason(request, url) {
 const sleepFor = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function wakeAndWait(label, reason, env, ctx, now = () => Date.now()) {
-  const asked = await fetch(`${env.ROUTE_URL}/v1/managed/edge/wake?label=${label}&reason=${reason}`, { method: "POST", headers: { authorization: `Bearer ${env.EDGE_TOKEN}` } });
-  if (asked.status === 429) return { status: 429 };
-  if (!asked.ok) return { status: 503 };
+  const asked = await askWake(label, reason, env);
+  if (asked === 429) return { status: 429 };
+  if (asked !== 200 && asked !== 202) return { status: 503 };
   const deadline = now() + HOLD_MS;
   while (now() < deadline) {
     await sleepFor(1_000);
@@ -62,20 +66,47 @@ function waking(status) {
 }
 
 async function forward(request, url, upstream, body) {
-  const target = new URL(url.pathname + url.search, upstream);
-  const headers = new Headers(request.headers);
-  // the machine answers only for its own names and keeps its own idea of the public origin (DUSK_PUBLIC_URL)
-  headers.set("x-forwarded-host", url.hostname);
-  const init = { method: request.method, headers, redirect: "manual" };
-  if (body !== undefined) init.body = body;
-  else if (request.body) init.body = request.body;
-  const response = await fetch(new Request(target, init));
+  const response = await fetch(upstreamRequest(upstream, url.hostname, { method: request.method, path: url.pathname + url.search, headers: request.headers, body: body !== undefined ? body : request.body }));
   if (response.status === 101) return response;
   const out = new Response(response.body, response);
   for (const name of ["server", "via", "x-powered-by"]) out.headers.delete(name);
   const location = out.headers.get("location");
   if (location?.startsWith(upstream)) out.headers.set("location", `https://${url.hostname}${location.slice(upstream.length)}`);
   return out;
+}
+
+const hex = bytes => [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, "0")).join("");
+const sha256 = async data => hex(await crypto.subtle.digest("SHA-256", typeof data === "string" ? new TextEncoder().encode(data) : data));
+
+/** the id a queued hook is deduplicated by: the sender's own delivery id where it sends one (GitHub's
+ *  X-GitHub-Delivery, Standard Webhooks' webhook-id, Svix's svix-id, the event id in a Stripe body), else a hash of
+ *  method, path and body; hashed again with the path so it is always 64 hex characters */
+export async function deliveryId(request, url, body) {
+  const h = request.headers;
+  let source = h.get("x-github-delivery") ? `github:${h.get("x-github-delivery")}` : h.get("webhook-id") ? `webhook-id:${h.get("webhook-id")}` : h.get("svix-id") ? `svix:${h.get("svix-id")}` : null;
+  if (!source && h.has("stripe-signature") && body) {
+    try { const id = JSON.parse(new TextDecoder().decode(body)).id; if (typeof id === "string" && id.startsWith("evt_")) source = `stripe:${id}`; } catch { /* not json: hashed below */ }
+  }
+  if (!source) source = `body:${request.method}:${await sha256(body ?? new Uint8Array(0))}`;
+  return sha256(`${url.pathname}${url.search}\n${source}`);
+}
+
+/** a webhook for a sleeping home: queued sealed, then the wake asked; null when the queue cannot take it (held instead) */
+async function queueHook(request, url, label, body, env) {
+  const id = await deliveryId(request, url, body);
+  const queue = env.HOOK_QUEUE.get(env.HOOK_QUEUE.idFromName(label));
+  const accepted = await queue.fetch("https://hook-queue/accept", { method: "POST", headers: { "x-hook-id": id, "x-hook-label": label, "x-hook-host": url.hostname },
+    body: envelope({ method: request.method, path: url.pathname + url.search, headers: request.headers, body }) });
+  await accepted.body?.cancel().catch(() => {});
+  const taken = () => new Response("Accepted. This Dusk Bot is waking up and gets it as soon as it answers.", { status: 202, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "x-dusk-delivery": id } });
+  // already queued or delivered: a sender's retry, and no second wake
+  if (accepted.status === 200) return taken();
+  if (accepted.status !== 202) return accepted.status === 507 ? waking(503) : null;
+  const asked = await askWake(label, "webhook", env);
+  if (asked === 200 || asked === 202) return taken();
+  // not woken (over the cap, or no longer wakeable): the hook is not kept, and the sender hears why
+  await queue.fetch("https://hook-queue/forget", { method: "POST", headers: { "x-hook-id": id } }).then(r => r.body?.cancel()).catch(() => {});
+  return waking(asked === 429 ? 429 : 503);
 }
 
 export default {
@@ -96,7 +127,7 @@ export default {
     }
     if (route.awake) {
       const response = await forward(request, url, route.upstream, body).catch(() => null);
-      if (response && ![502, 503, 504, 521, 522, 523].includes(response.status)) return response;
+      if (response && !DOWN.includes(response.status)) return response;
       // a cached route can outlive the home's sleep: ask again, and wake it if it sleeps
       ctx.waitUntil(globalThis.caches?.default?.delete(cacheKey(label)) ?? Promise.resolve());
       if (request.body && body === undefined) return response ?? waking(503);
@@ -108,6 +139,10 @@ export default {
       const buffer = await request.arrayBuffer();
       if (buffer.byteLength > MAX_HELD_BODY) return new Response("Too large", { status: 413 });
       body = buffer;
+    }
+    if (reason === "webhook" && queueReady(env)) {
+      const queued = await queueHook(request, url, label, body, env).catch(() => null);
+      if (queued) return queued;
     }
     const woke = await wakeAndWait(label, reason, env, ctx);
     if (woke.status !== 200) return waking(woke.status);
