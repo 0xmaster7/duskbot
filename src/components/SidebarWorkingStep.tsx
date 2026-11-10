@@ -1,5 +1,5 @@
 import type { Bot, Message } from "@/state/store";
-import { useTurnLive } from "@/state/turn-status";
+import { useTurnLive, type TurnLive } from "@/state/turn-status";
 import { t } from "@/lib/i18n";
 import { turnNowPhrases } from "@/lib/live-activity";
 
@@ -10,7 +10,7 @@ export function workingThreadId(bot: Pick<Bot, "threadId" | "tasks">): string {
   return tasks.find((task) => task.busy)?.threadId ?? bot.threadId;
 }
 
-const statusLabel = (live: object): string | undefined => (live as { label?: string }).label?.trim() || undefined;
+const statusLabel = (live: TurnLive): string | undefined => live.label?.trim() || undefined;
 
 /** The status the bot set for its running turn, when it set one: grok's row says it while the bot works. */
 export function useWorkingLabel(bot: Pick<Bot, "threadId" | "tasks">, working: boolean): string | undefined {
