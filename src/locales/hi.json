@@ -1,4 +1,6 @@
 {
+  "updates.updated": "{version} पर अपडेट किया गया",
+  "updates.rolledBack": "अपडेट वापस लिया गया, कुछ भी नहीं खोया",
   "voice.gemini.keyPlaceholder": "अपनी Google AI Studio API कुंजी पेस्ट करें",
   "voice.gemini.model": "Gemini वाक् मॉडल",
   "keys.label.geminiTts": "Gemini वाक् API कुंजी",

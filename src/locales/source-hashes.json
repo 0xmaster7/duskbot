@@ -3578,7 +3578,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -9420,7 +9422,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12922,7 +12926,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -16421,7 +16427,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -22663,7 +22671,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -29094,7 +29104,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -35910,7 +35922,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -42316,7 +42330,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -48590,7 +48606,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -55003,7 +55021,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -60368,7 +60388,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -64172,7 +64194,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -69537,7 +69561,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -76526,7 +76552,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -81460,7 +81488,9 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "updates.updated": "da0fcccdc519425a9c333fda0838bbdd50d67fb0266194753bd1044abd0ecbb4",
+      "updates.rolledBack": "12ff3690109da90c1ffbe0a7d829d42fbf8589cc80cd622e045194d40a0d9f8f"
     }
   }
 }

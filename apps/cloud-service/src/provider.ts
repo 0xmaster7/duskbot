@@ -79,8 +79,10 @@ export interface MachineImage {
   claimBootFile(input: HomeClaimInput): { path: string; content: string };
   bootContent(input: HomeBootInput): HomeBootContent;
   setupScript(options: HomeSetupOptions): string;
-  installCommand(sha: string, url?: string, sig?: string): string;
+  installCommand(sha: string, url?: string, sig?: string, floor?: string | null): string;
   startCommand(origin: string, upstream?: string): string;
   restoreCommand: string;
+  /** back to the app the last install replaced (prints "rolled back") */
+  rollbackCommand: string;
   legacyBackupKey(secret: string): Buffer;
 }

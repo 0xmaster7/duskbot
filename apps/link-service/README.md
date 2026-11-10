@@ -320,11 +320,19 @@ The VPS installs our own server, built from this repo, not the upstream `duskbot
 private: the service hands it only to a claimed install session, at `/pkg/<session>/<sha256>.tgz`, with the session's
 own bearer token, while the session is still installing, at most 10 times across both archives. There is no public url for it.
 
-- The claim reply names the build: `"package": {"sha256", "size", "version", "path"}`. install.sh downloads it (the
+- The claim reply names the build: `"package": {"sha256", "size", "version", "signature"?, "path"}`. install.sh downloads it (the
   terminal shows a progress bar), checks the sha256, and installs it with `npm install -g <file>` as the server account (`dusk`).
   Interrupted downloads retain `.part` files and resume with an authenticated `Range: bytes=<offset>-` request.
   A checksum mismatch discards that partial file and retries from zero; a verified cache needs no download.
   Its three native dependencies (DuckDB, resvg, the 1Password SDK) still come from the npm registry, per platform.
+- Updates (running install.sh again with a new build published) can't break the server: with `DUSK_RELEASE_SIGNING_KEY`
+  set, `scripts/build-vps-package.mjs` signs the build and the claim carries `"signature"`; `<packages>/update-policy.json`
+  (`apps/cloud-service/scripts/sign-update-policy.ts`) rides as `"policy": {"body" (base64url), "signature"}`. install.sh
+  takes a build only when its signature verifies against the pinned release keys (required once one signed build was
+  taken), it is not older than the installed one, at or above the policy's floor, not blocked and not rolled back here
+  before; anything else keeps the installed build. The build before stays cached; after the restart the server must
+  answer and pass its own self-test (`$DATA/update-state.json`, server/update-state.ts), else install.sh puts the build
+  before back ("Update rolled back, nothing lost") and never takes that version again.
 - No build published means no `package` in the claim, and the install stops at "Installing Dusk Bot" with "the link
   service has no Dusk Bot build to hand out yet".
 - `DUSK_PACKAGE=<npm spec or tarball url>` before `sh` installs that instead. It is never the default.

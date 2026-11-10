@@ -1,4 +1,6 @@
 {
+  "updates.updated": "已更新到 {version}",
+  "updates.rolledBack": "更新已回滚，没有丢失任何内容",
   "voice.gemini.keyPlaceholder": "粘贴你的 Google AI Studio API 密钥",
   "voice.gemini.model": "Gemini 语音合成模型",
   "keys.label.geminiTts": "Gemini 语音合成 API 密钥",

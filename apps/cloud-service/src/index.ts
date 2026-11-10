@@ -25,6 +25,8 @@ import { createStartLedger } from "./starts.ts";
 import { createPowerPolicy, DEFAULT_POLICY, type PolicyParams } from "./power/policy.ts";
 import type { ProviderCostProfile } from "./power/cost.ts";
 import "./state.ts";
+import { createHomeUpdates, createReleaseFile, type HomeRelease } from "./home-update.ts";
+import { createPolicySource, UPDATE_POLICY_PATH, type PolicySource } from "./update-policy.ts";
 
 export interface ManagedCloudDeps {
   provider: MachineProvider;
@@ -51,6 +53,10 @@ export interface ManagedCloudDeps {
   costProfile?: ProviderCostProfile;
   /** the power policy's settings (the tuned defaults otherwise) */
   policy?: PolicyParams;
+  /** the signed update policy (DUSK_UPDATE_POLICY_FILE): the floor and the block list, served at /v1/updates/policy */
+  updatePolicy?: PolicySource | null;
+  /** the newest home release on offer (DUSK_MANAGED_HOME_RELEASE_FILE), ahead of settings.package */
+  release?: () => HomeRelease | null;
 }
 
 /** a record written before the rename: backend "boat" and its lifecycle record under `boat` */
@@ -91,7 +97,10 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
       const starts = createStartLedger({ dataDir: ctx.dataDir, profile, now: ctx.now,
         alert: text => { console.warn(`managed: ${text}`); deps.alert?.({ at: ctx.now(), cloudId: "fleet", action: "starts_alert", actor: "reconciler", reason: text.slice(0, 120) }); } });
       const sleepPolicy = createPowerPolicy({ profile, params, pool: () => starts.view() });
-      const lifecycle = createLifecycle({ ...deps, image: BOAT_IMAGE, starts, sleepPolicy, costProfile: profile, rails: params.rails, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
+      const releaseKeys = deps.releaseKeys ?? PINNED_RELEASE_KEYS;
+      const updates = createHomeUpdates({ provider: deps.provider, image: BOAT_IMAGE, home: ctx.home, audit: deps.audit, releaseKeys, requireSigned: deps.settings.requireSigned, now: ctx.now, save: ctx.save,
+        releases: () => [deps.release?.() ?? null, deps.settings.package], policy: () => deps.updatePolicy?.policy() ?? null });
+      const lifecycle = createLifecycle({ ...deps, updates, image: BOAT_IMAGE, starts, sleepPolicy, costProfile: profile, rails: params.rails, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
         dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace, clouds: ctx.clouds, entitle: ctx.entitlement,
         releaseKeys: deps.releaseKeys ?? PINNED_RELEASE_KEYS, labelKey: deps.labelKey ?? Buffer.from(hkdfSync("sha256", backupSecret, Buffer.alloc(0), Buffer.from("omb-managed-label"), 32))  });
       const sweep = createSweep({ dataDir: ctx.dataDir, file: "boat-sweep.json", provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });
@@ -118,6 +127,14 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
           if (!answer) { failed(address); routes.json(res, 403, { error: "invalid_claim" }); return true; }
           res.setHeader("cache-control", "no-store");
           routes.json(res, 200, answer);
+          return true;
+        }
+        if (url.pathname === UPDATE_POLICY_PATH) {
+          // public and signed: every install checks the signature against its own pinned keys
+          const signed = deps.updatePolicy?.signed() ?? null;
+          if (req.method !== "GET" || !signed) { routes.json(res, req.method === "GET" ? 404 : 405, { error: req.method === "GET" ? "not_found" : "method_not_allowed" }); return true; }
+          res.setHeader("cache-control", "public, max-age=300");
+          routes.json(res, 200, signed);
           return true;
         }
         if (url.pathname === "/v1/managed/edge/route") {
@@ -234,6 +251,7 @@ export function managedCloudFromEnv(source: NodeJS.ProcessEnv, options: ManagedC
   if (settings.templateSignature) verifyRelease(settings.templateSignature, { kind: "template", name: settings.template ?? "" }, releaseKeys);
   else if (settings.requireSigned && settings.template) throw new Error("DUSK_MANAGED_TEMPLATE_SIGNATURE is required: a template must be signed by a release key.");
   return createManagedCloud({ kinds: kinds as Array<DesktopPlan["kind"]>, settings: { ...settings, includedStarts: daily }, costProfile, backupSecret, releaseKeys, edgeToken,
+    updatePolicy: createPolicySource(env.DUSK_UPDATE_POLICY_FILE, releaseKeys), release: createReleaseFile(env.DUSK_MANAGED_HOME_RELEASE_FILE),
     previousBackupSecret: env.DUSK_MANAGED_BACKUP_KEY_PREVIOUS ? parseSealKey(env.DUSK_MANAGED_BACKUP_KEY_PREVIOUS) : null,
     provider: createBoatProvider({ apiKey, baseUrl: env.BOAT_BASE_URL, scope, fetch: options.fetch, smallest: smallest as BoatSize }),
     backups: createBackupStore({ dir: env.DUSK_MANAGED_BACKUP_DIR || join(options.dataDir, "boat-backups"), now: options.now }),

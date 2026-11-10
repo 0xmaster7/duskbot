@@ -8,6 +8,8 @@ import type { CloudHomeConfig } from "../cloud-home.ts";
 import type { CloudPower } from "../cloud-power.ts";
 import { json } from "../harness/http.ts";
 import { createCloudSignedRoutes } from "../routes/cloud-signed.ts";
+import { createCloudUpdateRoute } from "../routes/updates.ts";
+import type { UpdateState } from "../update-state.ts";
 import type { TeamAdminSummary } from "../cloud-team-admin.ts";
 import type { SessionRegistry } from "../sessions.ts";
 
@@ -28,6 +30,8 @@ export interface CloudSignedHostDeps {
   plan?: (cancelled: boolean) => void;
   /** Which plan this Cloud is on now (the Admin's signed request). */
   planTier?: (tier: string) => void;
+  /** The home's own update state (server/update-state.ts), read by the Admin after it installs a release. */
+  updates?: () => UpdateState | null;
 }
 
 export function createCloudSignedHost(deps: CloudSignedHostDeps): { cloudHealth: CloudHealth | null; cloudSigned: ReturnType<typeof createCloudSignedRoutes> | null } {
@@ -38,8 +42,10 @@ export function createCloudSignedHost(deps: CloudSignedHostDeps): { cloudHealth:
       ...(deps.cloudHome.team && deps.teamAdmin ? { teamAdmin: deps.teamAdmin } : {}),
       ...(deps.cloudHome.team && deps.memberLeft ? { memberLeft: deps.memberLeft } : {}), ...(deps.cloudHome.team && deps.policyChanged ? { policyChanged: deps.policyChanged } : {}), ...(deps.plan ? { plan: deps.plan } : {}), ...(deps.planTier ? { planTier: deps.planTier } : {}) })
     : null;
+  const update = deps.cloudHome && deps.updates ? createCloudUpdateRoute({ secret: deps.cloudHome.bootstrapSecret, state: deps.updates }) : null;
   // a hosted home without a valid entitlement answers only its signed routes and its liveness probe
   const cloudSigned: typeof routes = routes && (async (request) => {
+    if (update?.(request.req, request.res, request.url, request.path, request.method)) return true;
     if (await routes(request)) return true;
     const refused = entitlement?.gate(request.path);
     if (!refused) return false;

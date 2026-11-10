@@ -1,4 +1,6 @@
 {
+  "updates.updated": "Đã cập nhật lên {version}",
+  "updates.rolledBack": "Đã hoàn tác bản cập nhật, không mất gì",
   "voice.gemini.keyPlaceholder": "Dán khóa API Google AI Studio của bạn",
   "voice.gemini.model": "Mô hình giọng nói Gemini",
   "keys.label.geminiTts": "Khóa API giọng nói Gemini",

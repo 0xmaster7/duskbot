@@ -1,4 +1,6 @@
 {
+  "updates.updated": "Aggiornato a {version}",
+  "updates.rolledBack": "Aggiornamento annullato, non si è perso nulla",
   "voice.gemini.keyPlaceholder": "Incolla la tua chiave API di Google AI Studio",
   "voice.gemini.model": "Modello vocale Gemini",
   "keys.label.geminiTts": "Chiave API vocale Gemini",

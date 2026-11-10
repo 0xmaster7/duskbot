@@ -1,4 +1,6 @@
 {
+  "updates.updated": "{version}(으)로 업데이트됨",
+  "updates.rolledBack": "업데이트를 되돌렸습니다. 잃은 것은 없습니다",
   "voice.gemini.keyPlaceholder": "Google AI Studio API 키를 붙여넣으세요",
   "voice.gemini.model": "Gemini 음성 합성 모델",
   "keys.label.geminiTts": "Gemini 음성 합성 API 키",

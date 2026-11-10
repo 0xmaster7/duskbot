@@ -199,6 +199,21 @@ On every machine: the home's unit (launcher, edge, server and its engines) runs 
 a separate OOM score for engine processes inside the home and holding new turns when free memory is low; both need
 changes in the server's process spawning.
 
+## Updates
+
+A running home takes a new release only when it can't break it (`src/home-update.ts`, `shared/update-guard.ts`): the
+release (`DUSK_MANAGED_HOME_RELEASE_FILE`, `{ sha256, signature, url | file }`, read again when it changes, else the
+package the service started with) must be signed, newer than what the home runs, at or above the floor and not blocked
+in the signed update policy (`DUSK_UPDATE_POLICY_FILE`, signed with `scripts/sign-update-policy.ts`, read again when it
+changes, served unchanged at `GET /v1/updates/policy`). It goes in only while no turn, routine run, upload or backup
+runs. The home then self-tests (`server/update-state.ts`: health, a page in the bot's browser, one read per connected
+Google app; only a check that passed on the version before can fail it). A failed self-test, or the next two runs
+failing in a row, rolls it back (`omb-home rollback`), never below the floor; a blocked running version rolls back
+the same way. That version is never offered to the home again. The machine refuses an older package or one below the
+floor on its own as well. The owner sees one line in the app ("Updated to 1.4.2" / "Update rolled back, nothing lost").
+Audit actions: `update_applied`, `update_settled`, `update_rolled_back`, `update_refused`, `update_install_failed`,
+`update_stuck` (alerted: a rollback is due and nothing allowed is left to go back to).
+
 ## Settings
 
 `DUSK_MANAGED=1`, `BOAT_API_KEY`, `BOAT_BASE_URL`, `DUSK_CLOUD_SEAL_KEY`, `DUSK_ENTITLEMENT_SIGNING_KEY`,
@@ -207,7 +222,7 @@ changes in the server's process spawning.
 `DUSK_MANAGED_KINDS`, `_SMALLEST`, `_SCOPE`, `_IDLE_MINUTES`, `_LEASE_HOURS`, `_BACKUP_DIR`, `_BACKUP_KEY`,
 `_BACKUP_KEY_PREVIOUS`, `_BACKUP_HOURS`, `_BACKUP_KEEP`, `_BACKUP_TAIL_DAYS`, `_BACKUP_MAX_MB`, `_REFRESH_DAYS`,
 `_RETENTION_DAYS`, `_DELETE_DELAY_DAYS`, `_LOST_AFTER_MINUTES`, `_WAKE_LEAD_MINUTES`, `DUSK_RELEASE_PUBLIC_KEYS` (staging keys),
-`DUSK_OPS_ALERT_EMAIL`. Every older `DUSK_BOAT_*` name still works; the neutral one wins.
+`DUSK_OPS_ALERT_EMAIL`, `DUSK_UPDATE_POLICY_FILE`, `DUSK_MANAGED_HOME_RELEASE_FILE`. Every older `DUSK_BOAT_*` name still works; the neutral one wins.
 
 ## Tests
 
