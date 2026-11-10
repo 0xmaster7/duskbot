@@ -19,6 +19,7 @@ MS=0
 VPS_TOKEN=fixture
 SECRET=fixture
 LINK_ID=fixture
+PROTO="=http,https"
 sha256sum() { node -e 'const fs=require("fs"),crypto=require("crypto"); console.log(crypto.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex")+"  "+process.argv[1])' "$1"; }
 `;
 

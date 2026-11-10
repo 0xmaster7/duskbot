@@ -128,3 +128,18 @@ if ssh_guard; then echo "again 0" >> "$1/result"; else echo "again 1" >> "$1/res
     }
   });
 });
+
+describe("installer transport", () => {
+  const installer = new URL("../install.sh", import.meta.url).pathname;
+  it.each(["http://link.example.com", "ftp://link.example.com", "link.example.com"])("refuses a LINK_BASE of %s before doing anything", async (base) => {
+    const failed = await run("sh", [installer, "abcdefghij-abcdefghijklmnopqrstuvwxyz"], { env: { PATH: "/usr/bin:/bin", TERM: "dumb", LINK_BASE: base } }).then(() => null, error => error);
+    expect(failed?.code).toBe(1);
+    expect(failed?.stderr).toContain("LINK_BASE must be an https:// address.");
+  });
+  it("pins every request to the link service to https, redirects included", async () => {
+    const text = await readFile(installer, "utf8");
+    const calls = text.split("\n").filter(line => /\bcurl\b/.test(line) && /LINK_BASE|retry curl|\$_url|VPS_TOKEN/.test(line) && !/^\s*(#|show |echo |.*demo_lines)/.test(line));
+    expect(calls.length).toBeGreaterThanOrEqual(5);
+    for (const line of calls) expect(line, line).toContain('--proto "$PROTO" --proto-redir "$PROTO"');
+  });
+});
