@@ -72,8 +72,14 @@ export function probeLine(probe: NonNullable<Routine["probe"]>): string {
 }
 
 /** The strip from the runs the app holds, so it moves the moment a run ends; the server's own says which were free
- * re-runs after an update problem. */
+ * re-runs after an update problem and which the weekly limit skipped. */
 export function liveStrip(routine: Routine, runs: readonly RoutineRun[]): RoutineStripEntry[] {
-  const reruns = new Set((routine.strip ?? []).filter((entry) => entry.rerun).map((entry) => entry.at));
-  return runStrip(runs, routine).map((entry) => (reruns.has(entry.at) ? { ...entry, rerun: true as const } : entry));
+  const server = routine.strip ?? [];
+  const reruns = new Set(server.filter((entry) => entry.rerun).map((entry) => entry.at));
+  const skipped = new Set(server.filter((entry) => entry.outcome === "skipped").map((entry) => entry.at));
+  return runStrip(runs, routine).map((entry) => ({
+    ...entry,
+    ...(reruns.has(entry.at) ? { rerun: true as const } : {}),
+    ...(entry.outcome === "missed" && skipped.has(entry.at) ? { outcome: "skipped" as const } : {}),
+  }));
 }

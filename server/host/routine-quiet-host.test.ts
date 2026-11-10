@@ -64,6 +64,8 @@ describe("free re-runs after an update was rolled back", () => {
     await h.manager.tick();
     await h.settle();
     expect(h.manager.listRuns().find((run) => run.id === ordinary.id)?.status).toBe("missed");
+    expect(h.host.limitSkipped(ordinary.id)).toBe(true);
+    expect(h.manager.listRoutines().find((one) => one.id === routine.id)!.strip!.at(-1)).toMatchObject({ outcome: "skipped" });
   });
 
   it("lists what skips before the reset, each routine once, in order", () => {

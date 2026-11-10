@@ -9094,10 +9094,10 @@ const runHealth = startRunHealth({ dataDir: DATA_DIR, turns: () => liveTurnByThr
     }
   },
   interruptGoal: interruptRoutineGroupGoal,
-  onRunChanged: (run) => { cloudHealth?.noteRoutineRun(run); syncRoutineRunToSource(run); routineGuard.changed(run); },
+  onRunChanged: (run) => { cloudHealth?.noteRoutineRun(run); if (!routineHost.limitSkipped(run.id)) syncRoutineRunToSource(run); routineGuard.changed(run); },
   onRunCut: (run) => run.groupId ? coordinator.cancelRoom(run.groupId, run.threadId!, ROUTINE_RESTARTED) : coordinator.cancelDirect(run.threadId!, ROUTINE_RESTARTED),
   onRunFailed: (run, alert) => {
-    cloudHealth?.noteRoutineRun(run); routineGuard.failed(run);
+    cloudHealth?.noteRoutineRun(run); routineGuard.failed(run); if (routineHost.limitSkipped(run.id)) { routines?.markSeen(run.id); routines?.adopt(({ routines: all }) => all.filter((one) => one.id === run.routineId)); return; }
     const bot = store.bot(run.botId);
     if (!bot || alert === null || run.deliver === "brief") return;
     const said = alert?.detail ?? run.error, detail = said ? `${run.routineName}: ${said}` : run.routineName;

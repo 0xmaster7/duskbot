@@ -1,6 +1,7 @@
 // Quiet routines and the weekly allowance against the isolated fixture and the fake engine (docs/verification): a probe
 // check that wakes no model when nothing changed, one run when the page did, a failed read that surfaces, the strip;
-// and the allowance's 80% and 100% notices, held runs, a refused new task and Saver mode.
+// and the allowance: none by default, its quiet 80% and 100% app notices, skipped runs, a refused new task, Saver mode,
+// and no money in any chat.
 import { existsSync, readFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -41,9 +42,7 @@ async function launch(env: Record<string, string> = {}) {
       .toMatch(/^(completed|failed|missed|cancelled)$/);
     return run;
   };
-  const notices = async (botId: string) => ((await control(["messages", "--bot", botId, "--limit", "50"])).messages as any[] ?? [])
-    .map((message) => message.tool?.name ?? message.text ?? "").filter((text: string) => typeof text === "string" && text.startsWith("notice: "));
-  return { control, api, usageRows, runsOf, routineOf, runNow, notices, dataDir: session.info.dataDir };
+  return { control, api, usageRows, runsOf, routineOf, runNow, dataDir: session.info.dataDir };
 }
 
 describe("a quiet routine", () => {
@@ -88,55 +87,59 @@ describe("a quiet routine", () => {
 });
 
 describe("the weekly allowance", () => {
-  it("tells at 80% and 100%, holds new work, and keeps chat going only in Saver mode", async () => {
+  it("is off until the person sets it; then one quiet app notice at 80% and 100%, held work, Saver mode, and no money in any chat", async () => {
     const f = await launch();
     const bot = (await f.control(["new-bot", "--name", "Research"])).bot;
     const daily = await f.api("POST", "/api/routines", { name: "Morning digest", prompt: "Write my digest.", botId: bot.id, schedule: { type: "daily", time: "08:00", weekdays: [0, 1, 2, 3, 4, 5, 6] } });
     expect(daily.status).toBe(201);
     // a daily routine in waking hours, made with no timing, runs around its time
     expect(daily.body.routine.timing).toBe("around");
-    expect((await f.api("PUT", "/api/usage/allowance", { usd: 0.05 })).body).toMatchObject({ weeklyUsd: 0.05, level: "ok", autoTopUp: { on: false } });
-
     const turn = async (text: string) => {
       await f.control(["send", "--bot", bot.id, "--text", text]);
       expect(JSON.stringify(await f.control(["wait", "--bot", bot.id, "--timeout", "30"]))).toContain("settled");
     };
-    for (let n = 1; n <= 3; n++) await turn(`question ${n}`);
-    expect(await f.notices(bot.id)).toEqual([]);
+    // none by default, and nothing in this fresh install's data folder until the person sets one
+    await turn("question 1");
+    expect((await f.api("GET", "/api/usage/allowance")).body).toMatchObject({ weeklyUsd: null, limitUsd: null, level: "off" });
+    expect(existsSync(join(f.dataDir, "allowance.json"))).toBe(false);
+    expect((await f.api("PUT", "/api/usage/allowance", { usd: 0.05 })).body).toMatchObject({ weeklyUsd: 0.05, level: "ok", autoTopUp: { on: false } });
+
+    for (let n = 2; n <= 3; n++) await turn(`question ${n}`);
+    expect((await f.api("GET", "/api/usage/allowance/notice")).body).toEqual({ notice: null });
     await turn("question 4");
-    await expect.poll(() => f.notices(bot.id), { timeout: 10_000 }).toEqual([
-      "notice: You've used $0.04 of $0.05 this week. Most of it went to Research ($0.04). Resets Monday 12:00 AM.",
-    ]);
+    expect((await f.api("GET", "/api/usage/allowance/notice")).body).toEqual({ notice: "near" });
     expect((await f.api("GET", "/api/usage/allowance")).body).toMatchObject({ level: "near", spentUsd: 0.04, top: [{ kind: "bot", name: "Research", usd: 0.04 }] });
+    await f.api("POST", "/api/usage/allowance/notice/seen", {});
+    expect((await f.api("GET", "/api/usage/allowance/notice")).body).toEqual({ notice: null });
 
     await turn("question 5");
-    await expect.poll(async () => (await f.notices(bot.id)).length, { timeout: 10_000 }).toBe(2);
-    const over = (await f.notices(bot.id))[1]!;
-    expect(over).toContain("You've hit this week's $0.05. I finished the step I was on, and new tasks are paused. These routines");
-    expect(over).toContain("These routines will skip until the reset (1): Morning digest.");
-    expect(over).toContain("Basic chat still works in Saver mode.");
-    const report = (await f.api("GET", "/api/usage/allowance")).body;
-    expect(report).toMatchObject({ level: "over", spentUsd: 0.05, saver: false, skipped: [{ name: "Morning digest" }] });
+    expect((await f.api("GET", "/api/usage/allowance/notice")).body).toEqual({ notice: "over" });
+    expect((await f.api("GET", "/api/usage/allowance")).body).toMatchObject({ level: "over", spentUsd: 0.05, saver: false, skipped: [{ name: "Morning digest" }] });
 
-    // a new task waits, with the reset time; nothing is spent
+    // a new task waits, with the reset time and no amounts; nothing is spent
     const refused = await f.api("POST", `/api/bots/${bot.id}/messages`, { text: "question 6" });
     expect(refused.status).toBe(409);
-    expect(refused.body.error).toMatch(/^You've hit this week's \$0\.05, so new tasks wait until Monday/);
+    expect(refused.body.error).toMatch(/^Weekly limit reached, so new tasks wait until Monday/);
+    expect(refused.body.error).not.toMatch(/\$/);
     expect(f.usageRows()).toHaveLength(5);
 
-    // a routine run waits too, quietly: no failure alert
+    // a routine run is skipped: no card, no alert, only "skipped" on its strip
     const held = await f.runNow(daily.body.routine.id);
     expect(held).toMatchObject({ status: "missed" });
-    expect(held.error).toMatch(/^Not started: this week's allowance is used up\./);
-    expect((await f.routineOf(daily.body.routine.id)).strip.map((entry: any) => entry.outcome)).toEqual(["missed"]);
+    expect(held.error).toMatch(/^Skipped: weekly limit reached\./);
+    await expect.poll(async () => (await f.routineOf(daily.body.routine.id)).strip.map((entry: any) => entry.outcome), { timeout: 10_000 }).toEqual(["skipped"]);
+    expect((await f.runsOf(daily.body.routine.id))[0].seenAt).toBeTypeOf("number");
 
-    // Saver mode is the person's choice; then chat works again
+    // Saver mode is the person's choice; then chat works again, on the quick model
     expect((await f.api("POST", "/api/usage/allowance/saver", { on: true })).body).toMatchObject({ saver: true });
     await turn("question 7");
-    // the person's turn ran on the quick model
     expect(f.usageRows()[5]).toMatchObject({ model: expect.stringMatching(/haiku/), trigger: { kind: "owner" } });
     expect((await f.api("GET", "/api/usage/allowance")).body).toMatchObject({ level: "over", spentUsd: 0.05, overrunUsd: 0 });
-    await expect.poll(async () => (await f.api("GET", "/api/usage/allowance")).body.saverUsd, { timeout: 10_000 }).toBeGreaterThanOrEqual(0.01);
+
+    // no money and no allowance talk anywhere in the bot's chats
+    const messages = (await f.control(["messages", "--bot", bot.id, "--limit", "100"])).messages as any[];
+    const said = JSON.stringify(messages.map((message) => [message.kind, message.text, message.tool?.name, message.routineRun]));
+    expect(said).not.toMatch(/[$€£₹¥]\s?\d|allowance|weekly limit|Morning digest/i);
 
     // adding to the week at the price shown lifts the hold
     expect((await f.api("POST", "/api/usage/allowance/top-up", { usd: 0.05 })).body).toMatchObject({ limitUsd: 0.1, level: "ok", extraUsd: 0.05 });

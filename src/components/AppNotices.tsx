@@ -8,6 +8,7 @@ import { jobRoutine, useCloudIntent } from "@/lib/cloud-intent";
 import { CLOUD_INTENT_GIVEN, cloudSetupStage } from "@/lib/cloud-setup";
 import { cornerPopupWaits, firstChatQuiet } from "@/lib/corner-popup";
 import { CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, introShown, introStage, launchNotice, markLaunchNotice, nextNotice, noticeSeen, TWO_PLACES_NOTICE, usedBefore, WHATS_NEW_NOTICE } from "@/lib/notices";
+import { useAllowanceNotice } from "@/lib/allowance-notice";
 import { useTwoPlaces } from "@/lib/two-places";
 import { cloudSignInDue, onboardingCloudOffered, type WelcomeViewer } from "@/lib/onboarding";
 import { t } from "@/lib/i18n";
@@ -44,6 +45,8 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   const [busy, setBusy] = useState(false);
   const intent = useCloudIntent();
   const moving = useMoveQuiet(now);
+  // the weekly allowance at 80% and at 100%: one quiet line each, never in a chat, the amounts left to Usage
+  const allowance = useAllowanceNotice();
   // Bots in two places: this computer's page only, where main knows what lives here.
   const two = useTwoPlaces();
   const twoFact = !local || two.suggest === null ? false : two.suggest === undefined ? null : true;
@@ -131,6 +134,10 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   };
   const close = () => { setClosed(true); setTrialOpen(null); setFailed(false); };
   if (toast) return <NoticeToast text={toast} onDone={() => setToast(null)} />;
+  if (!notice && allowance && !waits) {
+    return <NoticeToast text={t(allowance.level === "over" ? "notices.allowance.over" : "notices.allowance.near")} tone={allowance.level === "over" ? "warning" : undefined}
+      onDone={allowance.seen} action={{ label: t("notices.allowance.see"), onClick: () => dispatch({ type: "toggleAppSettings", open: true, section: "usage" }) }} />;
+  }
   if (!notice) return null;
 
   if (notice === CLOUD_INTRO && offer) {

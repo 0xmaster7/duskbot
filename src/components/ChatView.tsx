@@ -94,7 +94,8 @@ import { CallRecordRow } from "./CallRecordRow";
 import { AttachmentGallery, collectMessageFiles, replyAttachmentGroup, splitMessageAttachments } from "./AttachmentGallery";
 import { ScreenFrame } from "./ScreenFrame";
 import { noteMediaSizes } from "@/lib/image-cache";
-import { CostReceipt, DigestChip } from "./DigestChip";
+import { DigestChip } from "./DigestChip";
+import { WeeklyLimitLine } from "./usage/WeeklyLimitLine";
 import { ChatHeadRole, chiefOfStaffBadge } from "./BotRole";
 import { ChatHeadPill } from "./ChatHeadPill"; import { useStoreRef } from "@/state/store-ref";
 import { ELEVATED_FLOAT, ELEVATED_HOVER } from "./elevated";
@@ -848,7 +849,7 @@ const MessagesList = memo(function MessagesList({
               return <ActivityChip message={m} place={place} />;
             }
             case "digest":
-              return showToolCalls ? <DigestChip message={m} /> : <CostReceipt message={m} />;
+              return showToolCalls ? <DigestChip message={m} /> : null;
             case "compaction":
               return null;
             case "screen":
@@ -1332,6 +1333,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       {/* grok's usage warning rides just above the composer, near or at a limit; a failed turn that already says so wins */}
       {canWrite !== false && !(lastShownRow && codexUsageLimitReached(`${lastShownRow.text ?? ""} ${lastShownRow.tool?.name ?? ""}`)) && (
         <div className="pointer-events-auto px-5 pb-2">
+          <WeeklyLimitLine onSeeUsage={() => dispatch(openSettings("usage"))} />
           <UsageBanner engine={bot.modelSelection?.instanceId} onSeeUsage={() => dispatch(openSettings("usage"))} />
         </div>
       )}

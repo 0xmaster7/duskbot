@@ -8,8 +8,10 @@ import type { RoutineSchedule } from "./routine-schedules.ts";
 const MAX_URL = 2_000;
 
 let freeRerun: (runId: string) => boolean = () => false;
-/** The runs re-run free after an update was rolled back (server/host/routine-quiet-host.ts), marked on the strip. */
-export function useFreeReruns(isFree: (runId: string) => boolean): void { freeRerun = isFree; }
+let limitSkip: (runId: string) => boolean = () => false;
+/** The runs re-run free after an update was rolled back, and those the weekly limit skipped
+ * (server/host/routine-quiet-host.ts): each marked on the strip. */
+export function useFreeReruns(isFree: (runId: string) => boolean, isSkipped: (runId: string) => boolean = () => false): void { freeRerun = isFree; limitSkip = isSkipped; }
 
 /** A probe as asked for: undefined for none, an error for one that cannot be read. */
 export function cleanProbe(value: unknown): RoutineProbe | undefined {
@@ -74,5 +76,5 @@ export function loadTicks(value: unknown): RoutineCheckTick[] | undefined {
 
 /** The last seven outcomes, oldest first: finished runs (not tests) and the checks' ticks. */
 export function stripOf(runs: readonly RoutineRun[], routine: Pick<Routine, "id" | "ticks">): RoutineStripEntry[] {
-  return runStrip(runs, routine, freeRerun);
+  return runStrip(runs, routine, freeRerun, limitSkip);
 }

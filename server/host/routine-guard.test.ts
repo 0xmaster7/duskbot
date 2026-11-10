@@ -103,7 +103,7 @@ describe("routine guard", () => {
     const routine = h.routine({ type: "interval", everyMinutes: 30, anchorAt: START });
     await h.advance(31 * MINUTE);
     const missed = h.manager.listRuns().find((run) => !run.manual)!;
-    expect(missed).toMatchObject({ status: "missed", error: "Not started: this routine reached its weekly cap of $2.00" });
+    expect(missed).toMatchObject({ status: "missed", error: "Not started: this routine reached its weekly cap" });
     expect(h.started).toEqual([]);
     expect(h.manager.listRoutines()[0]).toMatchObject({ enabled: false, pausedFor: { by: "cap", capUsd: 2 } });
 

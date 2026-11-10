@@ -38,7 +38,6 @@ export interface RoutineGuardDeps {
 
 export const isNotYet = (output: string | undefined): boolean => Boolean(output && NOT_YET.test(output));
 
-const money = (usd: number) => `$${usd.toFixed(2)}`;
 
 function clock(at: number, language: string | undefined): string {
   const options = { hour: "numeric", minute: "2-digit", timeZone: hostTimeZone() } as const;
@@ -100,7 +99,7 @@ export function createRoutineGuard(deps: RoutineGuardDeps) {
       if (!hit) return null;
       const routine = deps.routine(run.routineId);
       if (hit.kind === "routine" && routine) pause(routine, { by: "cap", capUsd: hit.capUsd, at: now() });
-      return `Not started: ${hit.kind === "routine" ? "this routine" : "its bot"} reached its weekly cap of ${money(hit.capUsd)}`;
+      return `Not started: ${hit.kind === "routine" ? "this routine" : "its bot"} reached its weekly cap`;
     },
 
     capHit(hit: CapHit): void {
@@ -109,10 +108,10 @@ export function createRoutineGuard(deps: RoutineGuardDeps) {
         if (!routine) return;
         const thread = resultsThread(routine);
         pause(routine, { by: "cap", capUsd: hit.capUsd, at: now() });
-        deps.tell(routine.botId, thread, serverLine(deps.language(thread), "server.spend.routineCap", { routine: routine.name, cap: money(hit.capUsd) }));
+        deps.tell(routine.botId, thread, serverLine(deps.language(thread), "server.spend.routineCap", { routine: routine.name }));
         return;
       }
-      deps.tell(hit.botId, undefined, serverLine(deps.language(undefined), "server.spend.botCap", { bot: hit.name, cap: money(hit.capUsd) }));
+      deps.tell(hit.botId, undefined, serverLine(deps.language(undefined), "server.spend.botCap", { bot: hit.name }));
     },
 
     /** After a run failed: the third identical failure in a row pauses its routine, with one alert. */

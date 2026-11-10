@@ -51,12 +51,14 @@ async function allowanceRoute(allowance: Allowance, owner: boolean, { req, res, 
   if (!owner) return json(res, 403, { error: "forbidden" });
   res.setHeader("cache-control", "no-store");
   if (method === "GET" && path === "/api/usage/allowance") return json(res, 200, allowance.report());
+  if (method === "GET" && path === "/api/usage/allowance/notice") return json(res, 200, { notice: allowance.notice() });
   const routes: Record<string, (body: unknown) => string | null> = {
     "PUT /api/usage/allowance": (body) => { const weekly = validWeekly(body); if (!weekly) return "usd (a positive amount, or null) is required"; allowance.setWeekly(weekly.usd); return null; },
     "POST /api/usage/allowance/top-up": (body) => { const usd = validTopUp(body); if (usd === null) return "usd (a positive amount up to 10000) is required"; allowance.addForWeek(usd); return null; },
     "POST /api/usage/allowance/saver": (body) => { const on = (body as { on?: unknown } | null)?.on; if (typeof on !== "boolean") return "on (true or false) is required"; allowance.setSaver(on); return null; },
     "PUT /api/usage/allowance/auto": (body) => { const auto = validAutoTopUp(body); if (!auto) return "on, and when on a stepUsd no larger than monthlyCeilingUsd, are required"; allowance.setAutoTopUp(auto); return null; },
     "POST /api/usage/allowance/dismiss": () => { allowance.dismiss(); return null; },
+    "POST /api/usage/allowance/notice/seen": () => { allowance.noticeSeen(); return null; },
   };
   const route = routes[`${method} ${path}`];
   if (!route) return json(res, 404, { error: "not found" });

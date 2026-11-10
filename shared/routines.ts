@@ -84,7 +84,8 @@ export const ROUTINE_AROUND_MS = 30 * 60_000;
  * `failed` went wrong, `missed` never fired. Oldest first. */
 export interface RoutineStripEntry {
   at: number;
-  outcome: "ok" | "quiet" | "failed" | "missed";
+  /** `skipped`: held back by the account's weekly limit, which is no failure. */
+  outcome: "ok" | "quiet" | "failed" | "missed" | "skipped";
   /** Re-ran once, free, after an update was rolled back. */
   rerun?: true;
 }
@@ -290,11 +291,12 @@ function stripOutcome(run: Pick<RoutineRun, "status" | "report" | "error">): Rou
 
 /** A routine's last seven outcomes, oldest first: its finished runs (not tests) and its checks' ticks. The server sends
  * it on the routine; the app builds it again from the runs it holds, so it moves the moment a run ends. */
-export function runStrip(runs: readonly RoutineRun[], routine: Pick<Routine, "id" | "ticks">, rerun: (runId: string) => boolean = () => false): RoutineStripEntry[] {
+export function runStrip(runs: readonly RoutineRun[], routine: Pick<Routine, "id" | "ticks">, rerun: (runId: string) => boolean = () => false,
+  skipped: (runId: string) => boolean = () => false): RoutineStripEntry[] {
   const entries: RoutineStripEntry[] = [...(routine.ticks ?? [])];
   for (const run of runs) {
     if (run.routineId !== routine.id || run.dryRun) continue;
-    const outcome = stripOutcome(run);
+    const outcome = run.status === "missed" && skipped(run.id) ? "skipped" : stripOutcome(run);
     if (outcome) entries.push({ at: run.finishedAt ?? run.scheduledFor, outcome, ...(rerun(run.id) ? { rerun: true as const } : {}) });
   }
   return entries.sort((a, b) => a.at - b.at).slice(-STRIP_RUNS);

@@ -15,14 +15,11 @@ function harness(options: { skipped?: Array<{ routineId: string; name: string; a
   // a Wednesday afternoon
   let now = new Date(2026, 10, 11, 15, 0).getTime();
   const entries: Entry[] = [];
-  const told: Array<{ botId: string; text: string }> = [];
   const make = () => createAllowance({
     dataDir, now: () => now,
     since: (at) => entries.filter((entry) => entry.at >= at),
     names: { bot: (id) => ({ research: "Research", chief: "Chief" })[id], routine: (id) => (id === "inbox" ? { name: "your inbox check", botId: "chief" } : undefined) },
     upcoming: () => options.skipped ?? [],
-    tell: (botId, text) => told.push({ botId, text }),
-    language: () => "en-US",
   });
   let allowance = make();
   const spend = (usd: number, botId = "research", routineId?: string) => {
@@ -30,7 +27,7 @@ function harness(options: { skipped?: Array<{ routineId: string; name: string; a
     entries.push(entry);
     allowance.booked(entry);
   };
-  return { get allowance() { return allowance; }, spend, told, entries, advance: (ms: number) => { now += ms; }, now: () => now, restart: () => { allowance = make(); } };
+  return { get allowance() { return allowance; }, spend, entries, advance: (ms: number) => { now += ms; }, now: () => now, restart: () => { allowance = make(); } };
 }
 
 describe("the weekly allowance", () => {
@@ -41,28 +38,29 @@ describe("the weekly allowance", () => {
     expect(new Date(weekStartOf(new Date(2026, 10, 15, 23, 59).getTime()))).toEqual(new Date(2026, 10, 9, 0, 0));
   });
 
-  it("says nothing and holds nothing while none is set", () => {
+  it("has none by default: nothing waits and no notice is due, however much is spent", () => {
     const h = harness();
     h.spend(50);
     expect(h.allowance.over()).toBe(false);
-    expect(h.allowance.report()).toMatchObject({ weeklyUsd: null, level: "off", top: [] });
-    expect(h.told).toEqual([]);
+    expect(h.allowance.notice()).toBeNull();
+    expect(h.allowance.report()).toMatchObject({ weeklyUsd: null, limitUsd: null, level: "off", top: [] });
   });
 
-  it("tells once at 80%, naming the top two spenders", () => {
+  it("has one quiet notice due at 80%, once a week, and names the top two spenders only in the report", () => {
     const h = harness();
     h.allowance.setWeekly(6);
     h.spend(2.1, "research");
     h.spend(1.2, "chief", "inbox");
     h.spend(0.5, "chief");
-    expect(h.told).toEqual([]);
+    expect(h.allowance.notice()).toBeNull();
     h.spend(1.0, "research");
-    expect(h.told).toHaveLength(1);
-    expect(h.told[0]!.text).toBe("You've used $4.80 of $6.00 this week. Most of it went to Research ($3.10) and your inbox check ($1.20). Resets Monday 12:00 AM.");
+    expect(h.allowance.notice()).toBe("near");
+    expect(h.allowance.report().top.map((one) => [one.name, one.usd])).toEqual([["Research", 3.1], ["your inbox check", 1.2]]);
+    h.allowance.noticeSeen();
     h.spend(0.1);
     h.restart();
     h.spend(0.1);
-    expect(h.told).toHaveLength(1);
+    expect(h.allowance.notice()).toBeNull();
     expect(h.allowance.report().level).toBe("near");
   });
 
@@ -71,18 +69,18 @@ describe("the weekly allowance", () => {
     h.allowance.setWeekly(6);
     h.spend(5.9);
     h.spend(0.13);
-    const over = h.told.at(-1)!.text;
-    expect(over).toContain("You've hit this week's $6.00. I finished the step I was on, and new tasks are paused. The $0.03 I went over is on us.");
-    expect(over).toContain("These routines will skip until the reset (2): Morning digest, Inbox check.");
-    expect(over).toMatch(/Basic chat still works in Saver mode\. Resets Monday 12:00 AM, in 4 days\./);
+    expect(h.allowance.notice()).toBe("over");
     expect(h.allowance.over()).toBe(true);
-    expect(h.allowance.report()).toMatchObject({ level: "over", spentUsd: 6, overrunUsd: 0.03, share: 1 });
-    expect(h.allowance.held("en-US")).toMatch(/^Not started: this week's allowance is used up/);
-    expect(h.allowance.refusal("en-US")).toMatch(/new tasks wait until Monday/);
+    expect(h.allowance.report()).toMatchObject({ level: "over", spentUsd: 6, overrunUsd: 0.03, share: 1, skipped: [{ name: "Morning digest" }, { name: "Inbox check" }] });
+    expect(h.allowance.held("en-US")).toBe("Skipped: weekly limit reached. It resets Monday 12:00 AM, in 4 days.");
+    expect(h.allowance.refusal("en-US")).toBe("Weekly limit reached, so new tasks wait until Monday 12:00 AM (in 4 days). Turn on Saver mode in Usage to keep chatting on a cheaper model.");
+    expect(h.allowance.refusal("en-US")).not.toMatch(/\$/);
     // a step still running when it hit is ours too
     h.spend(0.02);
     expect(h.allowance.report().overrunUsd).toBe(0.05);
-    expect(h.told.filter((one) => one.text.startsWith("You've hit"))).toHaveLength(1);
+    h.allowance.noticeSeen();
+    h.spend(0.02);
+    expect(h.allowance.notice()).toBeNull();
   });
 
   it("Saver mode is the person's choice: chat then works, and its spend is kept apart until the reset", () => {
@@ -118,11 +116,11 @@ describe("the weekly allowance", () => {
     h.allowance.setWeekly(1);
     h.allowance.setAutoTopUp(validAutoTopUp({ on: true, stepUsd: 1, monthlyCeilingUsd: 1 })!);
     h.spend(1.2);
-    expect(h.told.at(-1)!.text).toBe("Auto top-up added $1.00 for this week ($1.00 of your $1.00 monthly limit).");
+    expect(h.allowance.report()).toMatchObject({ limitUsd: 2, autoTopUp: { on: true, monthUsd: 1 } });
     expect(h.allowance.over()).toBe(false);
     h.spend(1);
     expect(h.allowance.over()).toBe(true);
-    expect(h.told.at(-1)!.text).toMatch(/^You've hit this week's \$2\.00/);
+    expect(h.allowance.report().limitUsd).toBe(2);
   });
 
   it("ranks a routine's spend apart from its bot's other work", () => {

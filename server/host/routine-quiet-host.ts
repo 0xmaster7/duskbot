@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { createAllowance, money } from "../allowance.ts";
+import { createAllowance } from "../allowance.ts";
 import { writeFileAtomic } from "../atomic.ts";
 import { ledgerCost } from "../model-prices.ts";
 import { createRoutineProbes, withProbes } from "../routine-probe.ts";
@@ -19,7 +19,17 @@ import { fetchPublicPage } from "../wait-probes.ts";
 import { createWakingHours } from "../waking-hours.ts";
 
 const FREE_FILE = "free-reruns.json";
+const SKIPPED_FILE = "limit-skips.json";
 const FREE_KEPT = 200;
+
+function loadIds(file: string): string[] {
+  try { const value = JSON.parse(readFileSync(file, "utf8")) as { runs?: unknown }; return Array.isArray(value.runs) ? value.runs.filter((id): id is string => typeof id === "string").slice(-FREE_KEPT) : []; }
+  catch { return []; }
+}
+function saveIds(file: string, runs: string[]): void {
+  try { writeFileAtomic(file, JSON.stringify({ runs }), { mode: 0o600 }); }
+  catch (error) { console.warn(`routines: could not save ${file}: ${error instanceof Error ? error.message : String(error)}`); }
+}
 
 export interface RoutineHostDeps {
   dataDir: string;
@@ -51,10 +61,12 @@ export function createRoutineHost(deps: RoutineHostDeps) {
 
   // the runs started again, free, after an update was rolled back: by their new run ids, so the strip and the
   // allowance know them across a restart
-  let free: string[] = [];
-  try { const value = JSON.parse(readFileSync(join(deps.dataDir, FREE_FILE), "utf8")) as { runs?: unknown }; if (Array.isArray(value.runs)) free = value.runs.filter((id): id is string => typeof id === "string").slice(-FREE_KEPT); } catch { /* none yet */ }
+  let free = loadIds(join(deps.dataDir, FREE_FILE));
   const isFree = (runId: string) => free.includes(runId);
-  useFreeReruns(isFree);
+  // the runs the weekly limit held back: never a card or an alert, only "skipped: weekly limit" on the routine's strip
+  let skipped = loadIds(join(deps.dataDir, SKIPPED_FILE));
+  const isSkipped = (runId: string) => skipped.includes(runId);
+  useFreeReruns(isFree, isSkipped);
 
   const allowance = createAllowance({
     dataDir: deps.dataDir,
@@ -65,8 +77,6 @@ export function createRoutineHost(deps: RoutineHostDeps) {
       routine: (id) => { const routine = list().find((one) => one.id === id); return routine ? { name: routine.name, botId: routine.botId } : undefined; },
     },
     upcoming: (until) => upcomingRuns(list(), Date.now(), until),
-    tell: (botId, text) => deps.tell(botId, undefined, text),
-    language: () => deps.language(undefined),
   });
 
   const probes = createRoutineProbes({
@@ -86,10 +96,10 @@ export function createRoutineHost(deps: RoutineHostDeps) {
       const model = run ? deps.model(run.botId) : undefined;
       return model ? ledgerCost({ ...model, input: usage.input, output: usage.output, ...(usage.cachedInput !== undefined ? { cachedInput: usage.cachedInput } : {}), costUsd: null }, null).costUsd : null;
     },
-    stop: (run: RoutineRun, reason, spent, usual) => {
+    stop: (run: RoutineRun, reason) => {
       void deps.routines()?.cancelRun(run.id, reason);
       const thread = run.resultsThreadId ?? run.sourceThreadId, language = deps.language(thread);
-      deps.tell(run.botId, thread, serverLine(language, "server.routine.selfCap", { routine: run.routineName, spent: money(spent, language), usual: money(usual, language) }));
+      deps.tell(run.botId, thread, serverLine(language, "server.routine.selfCap", { routine: run.routineName }));
     },
   });
 
@@ -118,15 +128,18 @@ export function createRoutineHost(deps: RoutineHostDeps) {
       }
       if (started.length) {
         free = [...free, ...started].slice(-FREE_KEPT);
-        try { writeFileAtomic(join(deps.dataDir, FREE_FILE), JSON.stringify({ runs: free }), { mode: 0o600 }); }
-        catch (error) { console.warn(`routines: could not save the free re-runs: ${error instanceof Error ? error.message : String(error)}`); }
+        saveIds(join(deps.dataDir, FREE_FILE), free);
       }
       return started;
     },
     /** Why a run may not start for the allowance, or null: a free re-run always may. */
     allowanceHeld(run: Pick<RoutineRun, "id">, language: string | undefined): string | null {
-      return isFree(run.id) ? null : allowance.held(language);
+      const held = isFree(run.id) ? null : allowance.held(language);
+      if (held && !isSkipped(run.id)) { skipped = [...skipped, run.id].slice(-FREE_KEPT); saveIds(join(deps.dataDir, SKIPPED_FILE), skipped); }
+      return held;
     },
+    /** A run the weekly limit skipped: it posts no card, raises no alert and counts as seen. */
+    limitSkipped: isSkipped,
     /** A person's new task waits while the allowance is used up and Saver mode is off. */
     assertMayStart(threadId: string, continuing: boolean): void {
       if (continuing) return;

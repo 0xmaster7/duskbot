@@ -1,5 +1,6 @@
 // One weekly allowance for the whole account, in dollars (allowance.json, 0600): Monday 12:00 AM to the next, on this
-// computer's clock. One notice at 80% naming the top two spenders, once a week. At 100% the step in flight finishes and
+// computer's clock. Set only by the person; none by default. One quiet app notice at 80% and one at 100%, never a line
+// in a chat: the amounts and the top two spenders live in Usage & Billing. At 100% the step in flight finishes and
 // what it went over is on us (never counted), new tasks and routine runs wait, the routines that will skip are listed,
 // and chat keeps working only in Saver mode, which is always the person's choice. Auto top-up is off by default and
 // needs a monthly ceiling. Nothing here applies while no allowance is set.
@@ -21,6 +22,8 @@ interface State {
   saverUsd: number;
   saverUntil?: number;
   dismissed?: "near" | "over";
+  /** The one quiet app notice waiting to be shown (never a chat line): at 80%, then at 100%. */
+  notice?: "near" | "over";
   autoTopUp: AutoTopUp;
   topUps: Array<{ at: number; usd: number; auto: boolean }>;
 }
@@ -35,9 +38,6 @@ export interface AllowanceDeps {
   names: { bot(id: string): string | undefined; routine(id: string): { name: string; botId: string } | undefined };
   /** Enabled routines with a run before `until`: what skips while the allowance is used up. */
   upcoming(until: number): Array<{ routineId: string; name: string; at: number }>;
-  /** One notice in this bot's main chat, with a notification. */
-  tell(botId: string, text: string): void;
-  language(): string | undefined;
 }
 
 const OFF: AutoTopUp = { on: false, stepUsd: 0, monthlyCeilingUsd: 0 };
@@ -60,11 +60,6 @@ export function resetOf(weekStart: number): number {
 }
 
 const monthOf = (at: number) => { const date = new Date(at); return date.getFullYear() * 12 + date.getMonth(); };
-
-export function money(usd: number, language?: string): string {
-  try { return new Intl.NumberFormat(language ?? "en-US", { style: "currency", currency: "USD" }).format(usd); }
-  catch { return `$${usd.toFixed(2)}`; }
-}
 
 /** "Monday 12:00 AM" and "in 2 days", in the person's language. */
 export function resetWords(resetAt: number, now: number, language?: string): { reset: string; left: string } {
@@ -121,6 +116,7 @@ export function createAllowance(deps: AllowanceDeps) {
         saverUsd: typeof value.saverUsd === "number" && value.saverUsd >= 0 ? value.saverUsd : 0,
         ...(Number.isSafeInteger(value.saverUntil) ? { saverUntil: value.saverUntil } : {}),
         ...(value.dismissed === "near" || value.dismissed === "over" ? { dismissed: value.dismissed } : {}),
+        ...(value.notice === "near" || value.notice === "over" ? { notice: value.notice } : {}),
         autoTopUp: auto?.on === true && step && ceiling ? { on: true, stepUsd: step, monthlyCeilingUsd: ceiling } : { ...OFF, ...(step ? { stepUsd: step } : {}), ...(ceiling ? { monthlyCeilingUsd: ceiling } : {}) },
         topUps: Array.isArray(value.topUps) ? value.topUps.filter((one) => one && Number.isSafeInteger(one.at) && amount(one.usd)).slice(-100) : [],
       };
@@ -140,7 +136,7 @@ export function createAllowance(deps: AllowanceDeps) {
     if (state.week === week) return;
     const month = monthOf(now());
     state = { ...state, week, extraUsd: 0, overrunUsd: 0, saverUsd: 0, topUps: state.topUps.filter((one) => monthOf(one.at) === month) };
-    for (const key of ["noticedNear", "hitAt", "saverUntil", "dismissed"] as const) delete state[key];
+    for (const key of ["noticedNear", "hitAt", "saverUntil", "dismissed", "notice"] as const) delete state[key];
     save();
   }
 
@@ -156,24 +152,6 @@ export function createAllowance(deps: AllowanceDeps) {
     return spent >= cents(cap * NEAR_SHARE) ? "near" : "ok";
   }
 
-  function topLine(language: string | undefined): string {
-    const top = topSpenders(charged(state.week), deps.names);
-    const named = top.map((one) => serverLine(language, "server.allowance.spender", { name: one.name, amount: money(one.usd, language) }));
-    return named.length === 2 ? serverLine(language, "server.allowance.topTwo", { first: named[0]!, second: named[1]! }) : named[0] ?? "";
-  }
-
-  function overLine(language: string | undefined, botId: string): void {
-    const at = now(), words = resetWords(resetOf(state.week), at, language);
-    const skipped = deps.upcoming(resetOf(state.week));
-    const names = skipped.slice(0, 5).map((one) => one.name).join(", ") + (skipped.length > 5 ? ` +${skipped.length - 5}` : "");
-    deps.tell(botId, [
-      serverLine(language, "server.allowance.over", { limit: money(limit()!, language) }),
-      cents(state.overrunUsd) > 0 ? serverLine(language, "server.allowance.overrun", { over: money(cents(state.overrunUsd), language) }) : "",
-      skipped.length ? serverLine(language, "server.allowance.skips", { count: skipped.length, names }) : "",
-      serverLine(language, "server.allowance.overTail", words),
-    ].filter(Boolean).join(" "));
-  }
-
   return {
     /** After every booked turn, from server/spend.ts's ledger. */
     booked(entry: Readonly<Entry>): void {
@@ -181,7 +159,6 @@ export function createAllowance(deps: AllowanceDeps) {
       const cap = limit();
       if (cap === null || !(entry.usd > 0) || (entry.runId && deps.free?.(entry.runId))) return;
       const spent = spentTotal();
-      const language = deps.language();
       if (state.hitAt !== undefined) {
         // past the limit: Saver chats are the person's choice; anything else is a step that was already running
         if (saverOn()) state.saverUsd += entry.usd;
@@ -194,20 +171,19 @@ export function createAllowance(deps: AllowanceDeps) {
           state.extraUsd = cents(state.extraUsd + auto.stepUsd);
           state.topUps.push({ at: now(), usd: auto.stepUsd, auto: true });
           save();
-          deps.tell(entry.botId, serverLine(language, "server.allowance.autoTopUp", { amount: money(auto.stepUsd, language), month: money(monthUsd(), language), ceiling: money(auto.monthlyCeilingUsd, language) }));
           if (spent < limit()!) return;
         }
         state.hitAt = now();
         state.overrunUsd = Math.max(0, spent - limit()!);
         delete state.dismissed;
         save();
-        return overLine(language, entry.botId);
+        state.notice = "over";
+        return save();
       }
       if (spent >= cents(cap * NEAR_SHARE) && !state.noticedNear) {
         state.noticedNear = true;
+        state.notice = "near";
         save();
-        const words = resetWords(resetOf(state.week), now(), language);
-        deps.tell(entry.botId, serverLine(language, "server.allowance.near", { spent: money(cents(spent), language), limit: money(cap, language), top: topLine(language), reset: words.reset }));
       }
     },
 
@@ -227,7 +203,7 @@ export function createAllowance(deps: AllowanceDeps) {
     /** Why a person's new task waits, or null; nothing while Saver mode is on. */
     refusal(language?: string): string | null {
       if (!this.over() || saverOn()) return null;
-      return serverLine(language, "server.allowance.refused", { limit: money(limit()!, language), ...resetWords(resetOf(state.week), now(), language) });
+      return serverLine(language, "server.allowance.refused", resetWords(resetOf(state.week), now(), language));
     },
 
     report(): AllowanceReport {
@@ -286,6 +262,14 @@ export function createAllowance(deps: AllowanceDeps) {
       state.autoTopUp = input.on ? { on: true, stepUsd: cents(input.stepUsd), monthlyCeilingUsd: cents(input.monthlyCeilingUsd) } : { ...state.autoTopUp, on: false };
       save();
     },
+
+    /** The app notice waiting to be shown once, or null; still due only while that level holds. */
+    notice(): "near" | "over" | null {
+      roll();
+      const level = levelOf(spentTotal(), limit());
+      return state.notice && (state.notice === level || (state.notice === "near" && level === "over")) ? level : null;
+    },
+    noticeSeen(): void { if (state.notice) { delete state.notice; save(); } },
 
     /** "Leave it" or "Wait for Monday": this level's notice stays out of the way for the week. */
     dismiss(): void {

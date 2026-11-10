@@ -7,15 +7,16 @@ const MARK: Record<RoutineStripEntry["outcome"], { mark: string; tone: string }>
   quiet: { mark: "✓", tone: "text-ink-tertiary" },
   failed: { mark: "✗", tone: "text-danger" },
   missed: { mark: "○", tone: "text-warning" },
+  skipped: { mark: "–", tone: "text-ink-tertiary" },
 };
 
 const when = (at: number) => new Date(at).toLocaleString(activeLocale(), { weekday: "short", hour: "numeric", minute: "2-digit" });
 
 /** A routine's last seven outcomes, oldest first: ✓ did something, a dim ✓ fired with nothing new, ✗ failed, ○ didn't
- * fire. Each says which in words for a screen reader and on hover, and the line under it counts them. */
+ * fire, – the weekly limit skipped it. Each says which in words for a screen reader and on hover, and the line under it counts them. */
 export function RunStrip({ strip }: { strip: RoutineStripEntry[] }) {
   const counts = (outcome: RoutineStripEntry["outcome"]) => strip.filter((entry) => entry.outcome === outcome).length;
-  const summary = (["ok", "quiet", "failed", "missed"] as const)
+  const summary = (["ok", "quiet", "failed", "missed", "skipped"] as const)
     .filter((outcome) => counts(outcome) > 0)
     .map((outcome) => t(`routines.strip.count.${outcome}`, { count: String(counts(outcome)) }))
     .join(" · ");
