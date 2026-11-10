@@ -94,11 +94,16 @@ const ICONS = {
   cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
 };
 const icon = (name) => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
-// {{sea}} is the handful of bots in the last picture, drawn in the picture's own 1600 by 1067 space so they sit on its
-// water and sand at any width: five swim near the shore (half under the waterline), three stand on the beach
+// {{sea}} is the bots in the last picture, drawn in the picture's own 1600 by 1067 space so they sit on its water at any
+// width, each half under the waterline
 function sea() {
-  const swim = [['circle', 'blue', 236, 872, 50], ['drop', 'yellow', 520, 908, 56], ['hex', 'orange', 748, 876, 46], ['clover', 'purple', 884, 922, 54], ['squircle', 'green', 1322, 892, 50]];
-  const shore = [['star', 'green', 396, 942, 64], ['heart', 'pink', 622, 946, 66], ['capsule', 'orange', 992, 940, 62]];
+  // far ones are small and sit higher on the water, near ones are bigger and lower; none on the sand or on a boat
+  const swim = [
+    ['circle', 'pink', 300, 770, 26], ['drop', 'green', 560, 752, 24], ['hex', 'purple', 820, 782, 28], ['squircle', 'yellow', 1290, 762, 26],
+    ['clover', 'blue', 1400, 800, 30], ['heart', 'orange', 680, 822, 30], ['star', 'yellow', 210, 830, 32],
+    ['circle', 'blue', 236, 884, 44], ['drop', 'yellow', 480, 900, 46], ['hex', 'orange', 748, 880, 40], ['clover', 'purple', 900, 916, 46],
+    ['heart', 'pink', 1230, 902, 42], ['squircle', 'green', 1372, 884, 38], ['star', 'green', 1060, 930, 40]];
+  const shore = [];
   const one = (cls, [shape, colour, x, y, size], rest = '') => `<g class="sb${cls} c-${colour}" transform="translate(${x} ${y}) scale(${size / 100})"${cls ? '' : ' clip-path="url(#sea-line)"'}><g class="dip"><use class="body" href="#sb-${shape}"/><use class="eyes" href="#sb-eyes" y="${BOTS[shape][1] - 38}"/></g>${rest}</g>`;
   const used = new Set([...swim, ...shore].map((b) => b[0]));
   const defs = [...used].map((name) => `<g id="sb-${name}">${BOTS[name][0]}</g>`).join('');

@@ -181,8 +181,8 @@ if (bill) {
 // the bots on the terraces stay put; pointing at one of the four steps makes its bot hop
 for (const li of $$('.steps > li')) li.addEventListener('pointerenter', () => hop($(`.t${li.dataset.step} .bot`)));
 
-// the last picture: a few bots near the shore. each is mapped from the picture to the screen, turns its eyes to the pointer,
-// and ducks under when the pointer gets close (the ones on the sand hop instead)
+// the last picture: bots in the water. they come up one by one when first seen; each turns its eyes to the pointer and
+// ducks under when the pointer gets close
 const end = $('.end'), shore = $('.sea-bots');
 if (end && shore && !still) {
   const vb = shore.viewBox.baseVal;
@@ -200,7 +200,11 @@ if (end && shore && !still) {
       else if (performance.now() > b.cool) { b.cool = performance.now() + 900; dive(b, 170); }
     }
   };
+  let shown = !hasIO;
+  if (hasIO) end.classList.add('arm');
+  const surface = () => { shown = true; [...few].sort(() => Math.random() - 0.5).forEach((b, i) => setTimeout(() => b.el.classList.add('up'), 250 + i * 140)); };
   if (hasIO) new IntersectionObserver(([e]) => {
+    if (e.isIntersecting && !shown) surface();
     live = e.isIntersecting; end.classList.toggle('off', !live); clearInterval(idle);
     if (live) idle = setInterval(() => { const up = few.filter((b) => !b.shore && !b.el.classList.contains('dive')); if (up.length) dive(up[Math.floor(Math.random() * up.length)], 520); }, 2600);
   }).observe(end);

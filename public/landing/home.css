@@ -395,10 +395,12 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 /* the ending: one scene. the picture is laid out as a box anchored to the bottom, so the sea and sand always show and the
    sky grows; the words sit in the sky in white, a few bots keep to the shore, and it tears into the footer */
 .end { --h: clamp(660px, 60vw, 940px); background: #00cfff; color: #fff; text-align: center; }
-.end-box { position: absolute; left: 50%; bottom: 0; --w: max(100cqw, calc(var(--h) * 1.5)); width: var(--w); height: calc(var(--w) / 1.5); translate: -50% 0; }
+/* cqw here measures the .end strip, which is the container, so the width is set on its children */
+.end-box, .end-sky { --w: max(100cqw, calc(var(--h) * 1.5)); }
+.end-box { position: absolute; left: 50%; bottom: 0; width: var(--w); height: calc(var(--w) / 1.5); translate: -50% 0; }
 .end-box > img { width: 100%; height: 100%; }
 /* the same blue, deeper toward the top, so white words read without a shadow or a box */
-.end-sky { position: absolute; inset: 0 0 auto; height: 64%; background: linear-gradient(#0b63cf, #0f77e0 50%, rgba(0, 207, 255, 0)); pointer-events: none; }
+.end-sky { position: absolute; inset: 0 0 auto; height: calc(var(--h) - 0.37 * var(--w) / 1.5); background: linear-gradient(#0b63cf, #0d6dd8 22%, #147ee1 40%, #1f95ea 56%, #1aaef3 70%, #0bc0fa 84%, #01ccfe); pointer-events: none; }
 .end-text { position: relative; z-index: 3; display: grid; justify-items: center; padding: clamp(84px, 9.5vw, 150px) 24px 0; }
 .home .end .mega { max-width: none; }
 .end-text > p:not(.actions) { font-size: clamp(18px, 1.6vw, 21px); font-weight: 500; letter-spacing: -0.012em; margin: 22px 0 0; max-width: 24em; text-wrap: balance; }
@@ -411,9 +413,8 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .foam { fill: #fff; opacity: 0.9; }
 .dip { transition: transform 0.55s var(--pop); }
 .sb.dive .dip { transform: translateY(112px); transition: transform 0.22s var(--mk-ease-out); }
-/* the three on the sand do not swim: the same signal makes them hop instead */
-.shore { animation: none; }
-.shore.dive .dip { transform: translateY(-30px); transition: transform 0.16s var(--mk-ease-out); }
+/* with script on, the bots start under water and come up one by one the first time the picture is seen */
+.end.arm .sb:not(.up) .dip { transform: translateY(112px); transition: none; }
 .end.off .sb { animation-play-state: paused; }
 .listener .bot.hop { animation: hop 0.5s var(--pop); }
 
