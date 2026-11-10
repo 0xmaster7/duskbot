@@ -1058,6 +1058,12 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const worked = useMemo(() => turnWorked(messages), [messages]);
   const writing = streamingReply || live.status?.activity === "reply" || hold.typing;
   const typingPhrases = useMemo(() => [t("chat.typing")], [locale]);
+  // the bot's own label stays on the line while it leaves, after the turn's end has cleared it
+  const shownLabel = useRef<{ seed: string; label?: string }>({ seed: presenceSeed });
+  // a new turn starts clean; the end of this one (busySince gone) keeps it
+  if (busySince !== null && shownLabel.current.seed !== presenceSeed) shownLabel.current = { seed: presenceSeed };
+  if (live.label) shownLabel.current.label = live.label;
+  const turnLabel = live.label ?? shownLabel.current.label;
   const presence = useHeldPresence(bot.busy && bot.activity !== "waiting-on-you" ? presenceKind({ writing, activity: live.status?.activity, worked }) : null);
   const lifeBeat = useReplyLife(presenceVisible && !teammatesWorking && presence === "waiting" ? [{ key: bot.id, seed: presenceSeed, typing: writing }] : NO_LIFE).get(bot.id);
   const presenceMarkState = presence === "typing" || writing ? TYPING_MARK : presence === "working" ? workingMark(live.status?.activity) : lifeMarkState(statusMarkState, lifeBeat);
@@ -1301,8 +1307,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             label={teammatesWorking ? t("chat.teammatesWorking") : undefined}
             visible={presenceVisible}
             {...now}
-            phrases={teammatesWorking ? undefined : writing ? typingPhrases : live.label ? [live.label] : now.phrases}
-            phase={writing ? TYPING_PHASE : live.label ? `label:${live.label}` : now.phase}
+            phrases={teammatesWorking ? undefined : writing ? typingPhrases : turnLabel ? [turnLabel] : now.phrases}
+            phase={writing ? TYPING_PHASE : turnLabel ? `label:${turnLabel}` : now.phase}
             seed={presenceSeed}
             since={busySince}
           />}

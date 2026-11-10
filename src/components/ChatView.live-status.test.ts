@@ -162,6 +162,11 @@ describe("the working line", () => {
     engine({ type: "turn.progress", activity: "tool", tool: "set_status", label: "Drafting the summary" } as Partial<RuntimeEvent>);
     expect(statusLine()).toBe("Drafting the summary");
     expect(host.querySelector("[data-turn-now]")?.classList, "each new label rises in").toContain("turn-label-in");
+    act(() => void vi.advanceTimersByTime(STATUS_HOLD_MS));
+    engine({ type: "turn.completed", ok: true } as Partial<RuntimeEvent>);
+    render(busyBot([ask], false));
+    expect(host.querySelector(".turn-status-out"), "it leaves").not.toBeNull();
+    expect(statusLine(), "with the bot's own words, not a stock phrase").toBe("Drafting the summary");
   });
 });
 
