@@ -4,6 +4,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import zlib from 'node:zlib';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = process.argv[2] || 'landing';
@@ -42,6 +43,14 @@ function resolveFile(urlPath) {
   return fs.statSync(file, { throwIfNoEntry: false })?.isFile() ? file : null;
 }
 
+// text is gzipped once per file version and kept in memory
+const zips = new Map();
+function zipped(file, body) {
+  const key = `${file}:${fs.statSync(file).mtimeMs}`;
+  if (!zips.has(key)) zips.set(key, zlib.gzipSync(body, { level: 9 }));
+  return zips.get(key);
+}
+
 const server = http.createServer((req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -66,13 +75,20 @@ const server = http.createServer((req, res) => {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end('not found\n');
   }
-  const body = fs.readFileSync(file);
-  res.writeHead(200, {
-    'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream',
-    'Content-Length': body.length,
-    // the installer, its checksum and the update manifest must never be served stale after a refresh
-    'Cache-Control': /\.(sh|sha256|json)$/.test(file) ? 'no-cache' : /\.woff2$/.test(file) ? 'public, max-age=86400' : 'public, max-age=300',
-  });
+  let body = fs.readFileSync(file);
+  const type = TYPES[path.extname(file)] || 'application/octet-stream';
+  const headers = {
+    'Content-Type': type,
+    // the installer, its checksum and the update manifest must never be served stale after a refresh; a url
+    // stamped with its content hash never changes, so it can be kept for good
+    'Cache-Control': /\.(sh|sha256|json)$/.test(file) ? 'no-cache' : /[?&]v=[0-9a-f]{8}\b/.test(req.url || '') ? 'public, max-age=31536000, immutable' : /\.woff2$/.test(file) ? 'public, max-age=86400' : 'public, max-age=300',
+  };
+  if (/^text\/|svg|json/.test(type) && body.length > 1024) {
+    headers.Vary = 'Accept-Encoding';
+    if (/\bgzip\b/.test(String(req.headers['accept-encoding'] || ''))) { body = zipped(file, body); headers['Content-Encoding'] = 'gzip'; }
+  }
+  headers['Content-Length'] = body.length;
+  res.writeHead(200, headers);
   res.end(req.method === 'HEAD' ? undefined : body);
 });
 

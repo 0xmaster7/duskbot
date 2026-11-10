@@ -75,10 +75,44 @@ export function bot(shape, colour, extra = '') {
   return `<svg class="bot c-${colour}${extra ? ' ' + extra : ''}" viewBox="0 0 100 100" aria-hidden="true"><g class="body">${body}</g><g class="eyes"><rect x="36" y="${y}" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="${y}" width="9.5" height="23" rx="4.75"/></g></svg>`;
 }
 const CHIP_NAMES = { calendar: 'google calendar', drive: 'google drive', docs: 'google docs', sheets: 'google sheets' };
-const logo = (name) => `<img class="logo" src="/art/logos/${name}.${fs.existsSync(path.join(site, 'art', 'logos', `${name}.svg`)) ? 'svg' : 'png'}" alt="" width="20" height="20">`;
-// {{logo name}} is one mark; {{chips a b c}} is a run of connector chips, each a logo and a name
-const withChips = (html) => html.replace(/\{\{logo (\w+)\}\}/g, (_, name) => logo(name)).replace(/\{\{chips ([\w ]+)\}\}/g, (_, names) => names.split(' ').map((n) => `<span class="chip">${logo(n)}${CHIP_NAMES[n] ?? n}</span>`).join(''));
-const withBots = (html) => withChips(html).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()));
+const logo = (name, eager) => `<img class="logo" src="/art/logos/${name}.${fs.existsSync(path.join(site, 'art', 'logos', `${name}.svg`)) ? 'svg' : 'png'}" alt="" width="20" height="20"${eager ? '' : ' loading="lazy"'} decoding="async">`;
+// {{logo name}} is one mark, lazy unless written {{logo name eager}} (the sliding tape, where lazy marks arrive blank);
+// {{chips a b c}} is a run of connector chips, each a logo and a name
+const withChips = (html) => html.replace(/\{\{logo (\w+)( eager)?\}\}/g, (_, name, eager) => logo(name, eager)).replace(/\{\{chips ([\w ]+)\}\}/g, (_, names) => names.split(' ').map((n) => `<span class="chip">${logo(n)}${CHIP_NAMES[n] ?? n}</span>`).join(''));
+// {{include name}} drops in pages/partials/name.html, so a big piece of a page can live in its own file
+const withParts = (html) => html.replace(/\{\{include ([\w-]+)\}\}/g, (_, name) => { const file = path.join(here, 'pages', 'partials', `${name}.html`); return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''; });
+const has = (file) => fs.existsSync(path.join(site, file));
+// {{i name}} is a lucide icon (paths copied from lucide-static, one stroke width for all)
+const ICONS = {
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  minus: '<path d="M5 12h14"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  'arrow-right': '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+  'hard-drive': '<path d="M10 16h.01"/><path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M21.946 12.013H2.054"/><path d="M6 16h.01"/>',
+  folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
+};
+const icon = (name) => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
+// {{sea}} is the crowd of small bots floating in the sea strip: one svg, so each bot sits where the picture's water is
+// at any width. rows run from the horizon (small) to the shore (large); the numbers come from a fixed seed
+function sea() {
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const shapes = Object.keys(BOTS), colours = ['blue', 'orange', 'purple', 'pink', 'green', 'yellow'];
+  const rows = [[100, 13], [128, 17], [160, 22], [206, 30], [248, 38], [288, 45]], out = [];
+  rows.forEach(([y, size], r) => {
+    const gap = size * 5.6;
+    for (let x = gap * (0.2 + 0.5 * (r % 2)); x < 2400 - size; x += gap * (0.75 + rnd() * 0.5)) {
+      const shape = shapes[Math.floor(rnd() * shapes.length)], colour = colours[Math.floor(rnd() * colours.length)], k = size * (0.85 + rnd() * 0.3) / 100;
+      out.push(`<g class="sb c-${colour}" transform="translate(${x.toFixed(0)} ${(y + rnd() * 14 - 7).toFixed(0)}) scale(${k.toFixed(3)})" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-${shape}"/><use class="eyes" href="#sb-eyes" y="${BOTS[shape][1] - 38}"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g>`);
+    }
+  });
+  const defs = Object.entries(BOTS).map(([name, [body]]) => `<g id="sb-${name}">${body}</g>`).join('');
+  return `<svg class="sea-bots" viewBox="0 0 2400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath>${defs}<g id="sb-eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></defs>${out.join('')}</svg>`;
+}
+const withBots = (html) => withChips(withParts(html)).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()))
+  .replace(/\{\{i ([\w-]+)\}\}/g, (_, name) => icon(name)).replace(/\{\{sea\}\}/g, sea);
 
 // stamps a file's content hash on its url, so an edit is seen at once despite the cache header
 const stamped = (file) => `/${file}?v=${createHash('sha256').update(fs.readFileSync(path.join(site, file))).digest('hex').slice(0, 8)}`;
@@ -102,7 +136,7 @@ export function layout({ title, description, body, page }) {
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/art/cursor-88.webp" type="image/webp">
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="${stamped('site.css')}">${home ? `\n<link rel="stylesheet" href="${stamped('motion-kit-v2.css')}">\n<link rel="stylesheet" href="${stamped('home.css')}">` : ''}
+<link rel="stylesheet" href="${stamped('site.css')}">${home ? `\n<link rel="stylesheet" href="${stamped('motion-kit-v2.css')}">\n<link rel="stylesheet" href="${stamped('home.css')}">${has('app-demo.css') ? `\n<link rel="stylesheet" href="${stamped('app-demo.css')}">` : ''}` : ''}
 </head>
 <body${home ? ' class="is-home"' : ''}>
 <header class="bar"><a class="brand" href="/"><img src="/art/cursor-88.webp" alt="" width="28" height="28">dusk bot</a><nav>${nav}<a class="cta" href="https://app.dusk.bot">sign in</a></nav></header>
@@ -116,8 +150,8 @@ ${foot('product', [['/download', 'download'], ['/pricing', 'pricing'], ['/docs',
 ${foot('legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/license', 'license'], ['/security', 'security']])}
 ${foot('say hi', [['mailto:hello@dusk.bot', 'hello@dusk.bot']])}
 </div>
-<p class="foot-fine">made at dusk. the bots did most of it.</p>
-</footer>${home ? `\n<script src="${stamped('motion.min.js')}"></script>\n<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>` : ''}
+<p class="foot-fine"><span data-dusk>made at dusk. the bots did most of it.</span>${home ? ' the bots, chats and numbers shown on this page are samples.' : ''}</p>
+</footer>${home ? `\n<script src="${stamped('motion.min.js')}"></script>\n<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>${has('app-demo.js') ? `\n<script src="${stamped('app-demo.js')}"></script>` : ''}` : ''}
 </body>
 </html>
 `;

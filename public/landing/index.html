@@ -14,7 +14,8 @@
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/site.css?v=94f786f7">
 <link rel="stylesheet" href="/motion-kit-v2.css?v=21fb5bf1">
-<link rel="stylesheet" href="/home.css?v=838a83d5">
+<link rel="stylesheet" href="/home.css?v=659d1199">
+<link rel="stylesheet" href="/app-demo.css?v=b6362fac">
 </head>
 <body class="is-home">
 <header class="bar"><a class="brand" href="/"><img src="/art/cursor-88.webp" alt="" width="28" height="28">dusk bot</a><nav><a href="/download">download</a><a href="/docs">docs</a><a href="/pricing">pricing</a><a class="cta" href="https://app.dusk.bot">sign in</a></nav></header>
@@ -29,42 +30,80 @@
 
 <section class="hero-stage">
   <div class="stage" data-mk-reveal="clip">
-    <img src="/art/hero-bg.webp?v=20507db9" alt="" width="1536" height="1024" data-mk-parallax="0.08">
+    <img src="/art/hero-bg.webp?v=20507db9" alt="" width="1536" height="1024" fetchpriority="high" data-mk-parallax="0.08">
     <i class="cloud pink k1"></i><i class="cloud lemon k2"></i>
-    <div class="win" data-frame>
+    <div class="win">
       <div class="win-bar"><span class="lights"><i></i><i></i><i></i></span><span class="win-title">dusk bot</span><span class="win-note">a live demo. click around.</span></div>
-      <div class="win-body"><iframe src="/demo/" title="the dusk bot app, running on sample data" loading="lazy" width="1180" height="680"></iframe></div>
-    </div>
-    <div class="app" aria-hidden="true">
-      <aside class="app-side">
-        <div class="lights"><i></i><i></i><i></i></div>
-        <div class="app-search">search</div>
-        <ul class="app-bots">
-          <li class="on"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>nova</b><span data-cycle="comparing 14 flights to lisbon|checking baggage rules|holding the 9:40 fare">comparing 14 flights to lisbon</span></div><i class="dot is-work"></i></li>
-          <li><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>quill</b><span>wants to run a command</span></div><i class="dot is-ask"></i></li>
-          <li><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>rivet</b><span>the footer is fixed and deployed</span></div><i class="dot is-done"></i></li>
-          <li><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><div><b>tally</b><span>october is 12% under budget</span></div><i class="dot is-done"></i></li>
-          <li><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><div><b>juno</b><span>3 emails need you, 41 handled</span></div><i class="dot is-work"></i></li>
-          <li><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg><div><b>echo</b><span>drafted this week's posts</span></div><i class="dot"></i></li>
-        </ul>
-      </aside>
-      <div class="app-main">
-        <header class="app-head"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>nova</b><span class="st"><i class="dot is-work"></i>working</span></header>
-        <div class="chat">
-          <p class="msg me">find the cheapest flight to lisbon in march. don't book anything without asking.</p>
-          <p class="msg">on it. checking three sites, cheapest first.</p>
-          <div class="screen-card">
-            <div class="screen-head"><span>nova's computer</span><span class="live">live</span></div>
-            <div class="screen">
-              <div class="url">flights · bom to lis · march</div>
-              <ul><li><b>9:40</b><span></span><em>€84</em></li><li><b>13:05</b><span></span><em>€112</em></li><li><b>18:20</b><span></span><em>€139</em></li></ul>
-              <svg class="pointer" viewBox="0 0 20 20"><path d="M3 2l13 7-5.500 1.800L8.500 17z" fill="#111" stroke="#fff" stroke-width="1.500" stroke-linejoin="round"/></svg>
-            </div>
-          </div>
-          <div class="ask-row"><span>book the 9:40 for €84?</span><b class="pill yes">allow</b><b class="pill">deny</b></div>
-        </div>
-        <div class="composer"><span>message nova</span><span class="engine">claude · your plan</span><i class="send"></i></div>
-      </div>
+      <div class="win-body"><div class="dd" data-dd>
+<svg class="dd-defs" width="0" height="0" aria-hidden="true"><defs><symbol id="dd-i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol><symbol id="dd-i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol><symbol id="dd-i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol><symbol id="dd-i-share" viewBox="0 0 24 24"><path d="M12 2v13m4-9-4-4-4 4M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol><symbol id="dd-i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="dd-i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8m-4-4v4"/></symbol><symbol id="dd-i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="dd-i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol><symbol id="dd-i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol><symbol id="dd-i-table" viewBox="0 0 24 24"><path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M3 15h18"/></symbol><symbol id="dd-i-wave" viewBox="0 0 24 24"><path d="M2 10v3m4-7v11m4-14v18m4-13v7m4-10v13m4-8v3"/></symbol><symbol id="dd-i-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7m-7 7V5"/></symbol><symbol id="dd-i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><path id="dd-b-dusk" d="M128.5 72 126.5 80.5 123 88.5 117.5 95 111 100.5 106 103 100.5 105 65 115 57.5 116.5 49.5 116 41.5 114 35.5 111.5 28.5 106.5 22.5 100 19 94 16 85.5 15 78.5 15.5 70 16.5 65.5 19 59.5 23.5 52 26.5 49 31.5 45 36.5 41.5 43.5 39 79 29 86.5 27.5 94.5 28 102.5 30 110.5 33.5 117.5 39 123 46 127 54 129 63Z"/><path id="dd-b-echo" d="M116 72 103.5 103 99 109.5 93 114.5 87.5 117 82.5 118 75.5 118 71 117 65.5 114.5 33.5 98.5 26 94 20.5 88 16.5 81.5 13.5 72 13 64 14.5 55 16 51.5 18.5 46.5 22.5 41.5 30.5 35.5 34.5 33.5 44 30.5 54.5 30 60 30.5 66.5 25.5 73.5 22.5 80 21 86.5 20.5 96.5 23 103.5 26 110.5 31.5 113.5 35.5 116 39 118 43 119.5 48 120.5 55.5 119.5 62Z"/><path id="dd-b-quill" d="M31.5 70 32 61 35 50.5 39.5 40.5 45 32.5 49 28.5 52.5 27 60.5 26 68.5 27 79.5 30 89.5 34.5 97 40 103.5 47.5 108.5 55 110 60 111.5 65.5 112.5 75.5 111.5 84.5 109.5 93.5 106 101 101.5 108.5 96.5 114.5 93.5 116.5 89.5 117.5 82.5 117.5 75.5 117 66 114.5 57.5 111 49.5 106 43.5 100.5 39 94.5 35 87.5 32.5 78.5Z"/><path id="dd-b-nova" d="M26 53 26.5 49.5 38.5 14.5 40.5 12 42.5 11 44.5 10.5 48 10.5 85 22.5 87.5 24 89 26 115.5 79.5 118 91 117.5 94.5 105.5 129.5 103.5 132 100.5 133.5 97 133.5 59 121.5 56.5 120 55 118 28.5 64.5Z"/><path id="dd-b-rivet" d="M19 60.5 19 56.5 20 52.5 22 48.5 24.5 44.5 28.5 40 32 36 41.5 29 53 23 65 19 72 18 78.5 17.5 87.5 19 94 21.5 97 24 99 27.5 124 78.5 125 83.5 124.5 88.5 123.5 92.5 121.5 96.5 115.5 104 107 112 97 118.5 87 122.5 75.5 125.5 65.5 126.5 56.5 125 50 122.5 47 120 45 116.5 20.5 67 19.5 64.5Z"/><path id="dd-b-moss" d="M20.5 76.5 21 67 23.5 58 28.5 48.5 34.5 40.5 41 34.5 49.5 29 58 25.5 68 23.5 77.5 23 88 24.5 97 27.5 105 32.5 110 36 113 39.5 119 46.5 123 55 124.5 61 125 65.5 125 76 122.5 85 118.5 93.5 112 102 104.5 109 94.5 115.5 85 119.5 74 121.5 63.5 122 52.5 120 44 117 36 111.5 30 105 26.5 100 24.5 96 21 86Z"/><path id="dd-b-tally" d="M15.5 52 16.5 48 18 45.5 23.5 39 29 36.5 85.5 21 89 20.5 92 21.5 95.5 24 98 27.5 126.5 86 127.5 88.5 128.5 92 127 97 120.5 105 115 107.5 58.5 123 55 123.5 52 122.5 48.5 120 45 115 17.5 58 16.5 55.5Z"/><path id="dd-b-basil" d="M91.5 113.5 85.5 112.5 81.5 117 75 120.5 70 122 63 122.5 56.5 120.5 50.5 118 45.5 114 40.5 108.5 37.5 103.5 35 97.5 34.5 92 35 86.5 29 82 24.5 76.5 20.5 68.5 19 62 19 54.5 22 47.5 24.5 44 32 35.5 38 32 44.5 30 50 30 58.5 31.5 62.5 27 68 23.5 73 22 78 21.5 84.5 22.5 91.5 25 98.5 30 103.5 35.5 106.5 40.5 109 46.5 109.5 52 109 57.5 115.5 62.5 118.5 65.5 121 70 123 74.5 124.5 79 125 83 125 87.5 123 94 121.5 98 112 108.5 106.5 111.5 102.5 113.5 97 114Z"/><path id="dd-b-juno" d="M131.5 72 131 76.5 129 84 125 91.5 122.5 94.5 114.5 100.5 107.5 104 103.5 105.5 101 108.5 94 114 87.5 117 83.5 118 72.5 119 68.5 118.5 62.5 117 58 119 50.5 120 46 119.5 42 118.5 36 115.5 29.5 110 25.5 104 23 98 22 92 22.5 88 23 84.5 25.5 78 23.5 70.5 23 61.5 23.5 57.5 26 50 31 41.5 33.5 38.5 41.5 32.5 51 28.5 62.5 27 72.5 28.5 77.5 26.5 86 25.5 92.5 26.5 97.5 29 102 32 105.5 35 108 38.5 110.5 43 115 45 118 47 125 54 127.5 58 129 61.5 131 68Z"/></defs></svg>
+<div class="dd-app dd-c-nova dd-open">
+<nav class="dd-side" aria-label="Bots">
+<div class="dd-top"><button class="dd-rb" type="button" data-do="search" aria-label="Search"><svg class="dd-i" aria-hidden="true"><use href="#dd-i-search"/></svg></button><button class="dd-rb" type="button" data-do="new" aria-label="New Bot"><svg class="dd-i" aria-hidden="true"><use href="#dd-i-plus"/></svg></button></div>
+<div class="dd-list">
+<button class="dd-row" type="button" data-bot="dusk"><span class="dd-avw"><svg class="dd-av dd-c-dusk" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-dusk"/><g class="dd-eyes"><g transform="translate(73.5 59.6) rotate(69)"><path class="dd-eye" stroke-width="10.1" d="M-8.9 0H8.9"/></g><g transform="translate(102.7 51.5) rotate(69)"><path class="dd-eye" stroke-width="10" d="M-8.9 0H8.9"/></g><path class="dd-grin" d="M67.5 63.6q6-11 12 0M96.7 55.5q6-11 12 0"/></g></svg><i class="dd-star"></i></span><span class="dd-rt"><span class="dd-nm"><b>Dusk</b><time class="dd-tm">1:16 AM</time></span><span class="dd-pv">I looked around and nothing's waiting on you yet. You have 8 other bots and 5 routines.</span></span><i class="dd-dot"></i><span class="dd-sr"></span></button>
+<button class="dd-row dd-unread" type="button" data-bot="echo"><span class="dd-avw"><svg class="dd-av dd-c-echo" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-echo"/><g class="dd-eyes"><g transform="translate(77.1 61.3) rotate(67.2)"><path class="dd-eye" stroke-width="9.9" d="M-7.1 0H7.1"/></g><g transform="translate(98.8 55.3) rotate(60.6)"><path class="dd-eye" stroke-width="8.8" d="M-7.6 0H7.6"/></g><path class="dd-grin" d="M71.1 65.3q6-11 12 0M92.8 59.3q6-11 12 0"/></g></svg></span><span class="dd-rt"><span class="dd-nm"><b>Echo</b><time class="dd-tm">12:26 AM</time></span><span class="dd-pv">Five new emails: two need your yes before I offer a replacement.</span></span><i class="dd-dot"></i><span class="dd-sr">Unread</span></button>
+<button class="dd-row dd-wait" type="button" data-bot="quill"><span class="dd-avw"><svg class="dd-av dd-c-quill" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-quill"/><g class="dd-eyes"><g transform="translate(78.9 59.3) rotate(68)"><path class="dd-eye" stroke-width="8.8" d="M-6 0H6"/></g><g transform="translate(97.2 54.3) rotate(62.3)"><path class="dd-eye" stroke-width="5.8" d="M-7.6 0H7.6"/></g><path class="dd-grin" d="M72.9 63.3q6-11 12 0M91.2 58.3q6-11 12 0"/></g></svg></span><span class="dd-rt"><span class="dd-nm"><b>Quill</b><time class="dd-tm">12:48 AM</time></span><span class="dd-pv">Waiting for you: All three fit the preview text. The first one tested best last year.</span></span><i class="dd-dot"></i><span class="dd-sr">Needs you</span></button>
+<button class="dd-row" type="button" data-bot="nova" aria-current="true"><span class="dd-avw"><svg class="dd-av dd-c-nova" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-nova"/><g class="dd-eyes"><g transform="translate(79.4 65.7) rotate(57.1)"><path class="dd-eye" stroke-width="8.1" d="M-6.4 0H6.4"/></g><g transform="translate(97.7 60.6) rotate(57.1)"><path class="dd-eye" stroke-width="8.1" d="M-6.4 0H6.4"/></g><path class="dd-grin" d="M73.4 69.7q6-11 12 0M91.7 64.6q6-11 12 0"/></g></svg></span><span class="dd-rt"><span class="dd-nm"><b>Nova</b><time class="dd-tm">11:15 PM</time></span><span class="dd-pv">Mostly, yes. In the reviews of the other shops, &quot;free shipping&quot; comes up 41 times and price only 9.</span></span><i class="dd-dot"></i><span class="dd-sr"></span></button>
+<button class="dd-row" type="button" data-bot="rivet"><span class="dd-avw"><svg class="dd-av dd-c-rivet" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-rivet"/><g class="dd-eyes"><g transform="translate(81.6 61.2) rotate(64.5)"><path class="dd-eye" stroke-width="11.6" d="M-7.3 0H7.3"/></g><g transform="translate(101.2 55.8) rotate(59.7)"><path class="dd-eye" stroke-width="7.8" d="M-9.3 0H9.3"/></g><path class="dd-grin" d="M75.6 65.2q6-11 12 0M95.2 59.8q6-11 12 0"/></g></svg></span><span class="dd-rt"><span class="dd-nm"><b>Rivet</b><time class="dd-tm">8:17 PM</time></span><span class="dd-pv">Fixed: the checkout button now works on phones. A promise was being dropped on iOS Safari.</span></span><i class="dd-dot"></i><span class="dd-sr"></span></button>
+<button class="dd-row" type="button" data-bot="moss"><span class="dd-avw"><svg class="dd-av dd-c-moss" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-moss"/><g class="dd-eyes"><g transform="translate(83.2 58.2) rotate(70.9)"><path class="dd-eye" stroke-width="11.4" d="M-8.5 0H8.5"/></g><g transform="translate(106.5 51.7) rotate(65.2)"><path class="dd-eye" stroke-width="7.7" d="M-10.5 0H10.5"/></g><path class="dd-grin" d="M77.2 62.2q6-11 12 0M100.5 55.7q6-11 12 0"/></g></svg></span><span class="dd-rt"><span class="dd-nm"><b>Moss</b><time class="dd-tm">7:16 PM</time></span><span class="dd-pv">Lower leaves going yellow is usually too much water rather than too little.</span></span><i class="dd-dot"></i><span class="dd-sr"></span></button>
+<button class="dd-row" type="button" data-bot="tally"><span class="dd-avw"><svg class="dd-av dd-c-tally" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-tally"/><g class="dd-eyes"><g transform="translate(71.1 72) rotate(57)"><path class="dd-eye" stroke-width="9.7" d="M-7.6 0H7.6"/></g><g transform="translate(90.8 66.6) rotate(57.1)"><path class="dd-eye" stroke-width="9.7" d="M-7.6 0H7.6"/></g><path class="dd-grin" d="M65.1 76q6-11 12 0M84.8 70.6q6-11 12 0"/></g></svg></span><span class="dd-rt"><span class="dd-nm"><b>Tally</b><time class="dd-tm">5:16 AM</time></span><span class="dd-pv">October made 2,780 profit on 4,960 in sales. Shipping labels were the biggest cost again.</span></span><i class="dd-dot"></i><span class="dd-sr"></span></button>
+<button class="dd-row" type="button" data-bot="basil"><span class="dd-avw"><svg class="dd-av dd-c-basil" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-basil"/><g class="dd-eyes"><g transform="translate(67.7 66.4) rotate(57.1)"><path class="dd-eye" stroke-width="9.2" d="M-7.2 0H7.2"/></g><g transform="translate(89.4 60.4) rotate(57.1)"><path class="dd-eye" stroke-width="9.2" d="M-7.2 0H7.2"/></g><path class="dd-grin" d="M61.7 70.4q6-11 12 0M83.4 64.4q6-11 12 0"/></g></svg></span><span class="dd-rt"><span class="dd-nm"><b>Basil</b><time class="dd-tm">Mon</time></span><span class="dd-pv">Swapped it for a tray-bake of sweet potato, chickpeas and spinach.</span></span><i class="dd-dot"></i><span class="dd-sr"></span></button>
+<button class="dd-row" type="button" data-bot="juno"><span class="dd-avw"><svg class="dd-av dd-c-juno" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-juno"/><g class="dd-eyes"><g transform="translate(79.4 59.7) rotate(57.2)"><path class="dd-eye" stroke-width="11" d="M-7.9 0H7.9"/></g><g transform="translate(102 53.5) rotate(57.9)"><path class="dd-eye" stroke-width="9.9" d="M-8.5 0H8.5"/></g><path class="dd-grin" d="M73.4 63.7q6-11 12 0M96 57.5q6-11 12 0"/></g></svg></span><span class="dd-rt"><span class="dd-nm"><b>Juno</b><time class="dd-tm">Mon</time></span><span class="dd-pv">Friday 07:52 train, arrive 11:40, check in near the Korenmarkt</span></span><i class="dd-dot"></i><span class="dd-sr"></span></button>
+<p class="dd-sec">Group chats</p>
+<button class="dd-row" type="button" data-bot="room"><span class="dd-avw dd-quad"><svg class="dd-av dd-c-nova" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-nova"/><g class="dd-eyes"><g transform="translate(79.4 65.7) rotate(57.1)"><path class="dd-eye" stroke-width="8.1" d="M-6.4 0H6.4"/></g><g transform="translate(97.7 60.6) rotate(57.1)"><path class="dd-eye" stroke-width="8.1" d="M-6.4 0H6.4"/></g><path class="dd-grin" d="M73.4 69.7q6-11 12 0M91.7 64.6q6-11 12 0"/></g></svg><svg class="dd-av dd-c-quill" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-quill"/><g class="dd-eyes"><g transform="translate(78.9 59.3) rotate(68)"><path class="dd-eye" stroke-width="8.8" d="M-6 0H6"/></g><g transform="translate(97.2 54.3) rotate(62.3)"><path class="dd-eye" stroke-width="5.8" d="M-7.6 0H7.6"/></g><path class="dd-grin" d="M72.9 63.3q6-11 12 0M91.2 58.3q6-11 12 0"/></g></svg><svg class="dd-av dd-c-rivet" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-rivet"/><g class="dd-eyes"><g transform="translate(81.6 61.2) rotate(64.5)"><path class="dd-eye" stroke-width="11.6" d="M-7.3 0H7.3"/></g><g transform="translate(101.2 55.8) rotate(59.7)"><path class="dd-eye" stroke-width="7.8" d="M-9.3 0H9.3"/></g><path class="dd-grin" d="M75.6 65.2q6-11 12 0M95.2 59.8q6-11 12 0"/></g></svg><svg class="dd-av dd-c-echo" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-echo"/><g class="dd-eyes"><g transform="translate(77.1 61.3) rotate(67.2)"><path class="dd-eye" stroke-width="9.9" d="M-7.1 0H7.1"/></g><g transform="translate(98.8 55.3) rotate(60.6)"><path class="dd-eye" stroke-width="8.8" d="M-7.6 0H7.6"/></g><path class="dd-grin" d="M71.1 65.3q6-11 12 0M92.8 59.3q6-11 12 0"/></g></svg></span><span class="dd-rt"><span class="dd-nm"><b>Shop standup</b><time class="dd-tm">10:25 PM</time></span><span class="dd-pv">Echo: Two breakage claims waiting for a yes on replacements.</span></span><i class="dd-dot"></i><span class="dd-sr"></span></button>
+</div>
+<div class="dd-foot"><button class="dd-rb dd-me" type="button" data-do="you" aria-label="You"><svg class="dd-i" aria-hidden="true"><use href="#dd-i-user"/></svg></button><button class="dd-apps" type="button" data-do="apps">Connect apps<span class="dd-faces"><img src="/art/logos/drive.png" alt="" width="14" height="14"><img src="/art/logos/calendar.png" alt="" width="14" height="14"><img src="/art/logos/gmail.png" alt="" width="14" height="14"></span></button></div>
+</nav>
+<section class="dd-main" aria-label="Chat">
+<div class="dd-head"><button class="dd-rb dd-back" type="button" aria-label="Back to all bots"><svg class="dd-i" aria-hidden="true"><use href="#dd-i-left"/></svg></button><button class="dd-pill" type="button" aria-label="Open Nova's profile"><svg class="dd-av dd-c-nova" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-nova"/><g class="dd-eyes"><g transform="translate(79.4 65.7) rotate(57.1)"><path class="dd-eye" stroke-width="8.1" d="M-6.4 0H6.4"/></g><g transform="translate(97.7 60.6) rotate(57.1)"><path class="dd-eye" stroke-width="8.1" d="M-6.4 0H6.4"/></g><path class="dd-grin" d="M73.4 69.7q6-11 12 0M91.7 64.6q6-11 12 0"/></g></svg><b>Nova</b></button></div>
+<div class="dd-scroll" tabindex="0">
+<div class="dd-log" role="log" aria-label="Conversation with Nova">
+<p class="dd-day">Yesterday 11:13 PM</p>
+<div class="dd-me-row"><div class="dd-b dd-own">How do our mug prices compare with the other small ceramic shops?</div></div>
+<div class="dd-msg">
+<div class="dd-b dd-md"><h4>Mug prices, small ceramic shops</h4><p>Short version: <strong>we're the cheapest handmade option by about 15%</strong>, and shipping is where we lose people.</p></div>
+<div class="dd-tbl"><table><thead><tr><th>Shop</th><th class="dd-r">350 ml mug</th><th>Shipping</th><th>Reviews</th></tr></thead><tbody><tr><td>Juniper Lane</td><td class="dd-r">28</td><td>9</td><td>4.8 (212)</td></tr><tr><td>Clayhouse Studio</td><td class="dd-r">34</td><td>free over 60</td><td>4.7 (530)</td></tr><tr><td>North Kiln</td><td class="dd-r">32</td><td>7</td><td>4.6 (98)</td></tr><tr><td>Glaze &amp; Co</td><td class="dd-r">38</td><td>free</td><td>4.9 (1,104)</td></tr></tbody></table></div>
+<div class="dd-b dd-md dd-reacted"><span class="dd-react" role="img" aria-label="You reacted: celebrate">&#127881;</span><pre class="dd-code"><code><i class="dd-k">import</i> pandas <i class="dd-k">as</i> pd
+df = pd.read_csv("<i class="dd-s">mug-prices.csv</i>")
+df["<i class="dd-s">total</i>"] = df["<i class="dd-s">price</i>"] + df["<i class="dd-s">shipping</i>"]
+<i class="dd-f">print</i>(df.sort_values("<i class="dd-s">total</i>")[["<i class="dd-s">shop</i>", "<i class="dd-s">total</i>"]])</code></pre><blockquote>Next: try free shipping over 60 for two weeks?</blockquote></div>
+<div class="dd-file"><span class="dd-doc dd-doc-csv"><i></i><i></i><i></i><u></u></span><span class="dd-fn"><b>mug-prices.csv</b><span>CSV</span></span><svg class="dd-i dd-ft" aria-hidden="true"><use href="#dd-i-table"/></svg></div>
+</div>
+<div class="dd-me-row"><div class="dd-b dd-own">Interesting. Is shipping really the problem?</div></div>
+<div class="dd-msg"><div class="dd-b dd-md"><p>Mostly, yes. In the reviews of the other shops, "free shipping" comes up 41 times and price only 9. Our 9 shipping on a 28 mug feels like a third extra.</p></div></div>
+<div class="dd-slot"></div>
+</div>
+</div>
+<div class="dd-comp"><div class="dd-box"><button class="dd-plus" type="button" data-do="add" aria-label="Add"><svg class="dd-i" aria-hidden="true"><use href="#dd-i-plus"/></svg></button><textarea class="dd-in" rows="1" placeholder="Message Nova" aria-label="Message Nova" autocomplete="off" enterkeyhint="send"></textarea><button class="dd-go" type="button" aria-label="Live call with Nova"><svg class="dd-i dd-g-wave" aria-hidden="true"><use href="#dd-i-wave"/></svg><svg class="dd-i dd-g-up" aria-hidden="true"><use href="#dd-i-up"/></svg><i class="dd-g-stop"></i></button></div></div>
+</section>
+<aside class="dd-panel" aria-label="Nova's profile">
+<div class="dd-ptop"><button class="dd-rb" type="button" data-do="share" aria-label="Share and more"><svg class="dd-i" aria-hidden="true"><use href="#dd-i-share"/></svg></button><button class="dd-rb dd-close" type="button" aria-label="Close"><svg class="dd-i" aria-hidden="true"><use href="#dd-i-x"/></svg></button></div>
+<div class="dd-pbody">
+<button class="dd-pav" type="button" aria-label="Say hi to Nova"><svg class="dd-av dd-c-nova" viewBox="15.65 15.65 112.7 112.7" aria-hidden="true"><use href="#dd-b-nova"/><g class="dd-eyes"><g transform="translate(79.4 65.7) rotate(57.1)"><path class="dd-eye" stroke-width="8.1" d="M-6.4 0H6.4"/></g><g transform="translate(97.7 60.6) rotate(57.1)"><path class="dd-eye" stroke-width="8.1" d="M-6.4 0H6.4"/></g><path class="dd-grin" d="M73.4 69.7q6-11 12 0M91.7 64.6q6-11 12 0"/></g></svg></button>
+<h3 class="dd-pname">Nova</h3>
+<div class="dd-tabs" role="tablist" aria-label="Bot settings"><button type="button" role="tab" aria-selected="false" data-tab="details">Details</button><button type="button" role="tab" aria-selected="true" data-tab="computer">Computer</button><button type="button" role="tab" aria-selected="false" data-tab="advanced">Advanced</button></div>
+<div class="dd-tp" data-pane="details" hidden>
+<p class="dd-hint">Routines are recurring tasks this Bot runs on a schedule. Ask it in chat to set one up.</p>
+<div class="dd-card"><div class="dd-prow"><span>Model</span><span class="dd-sel"><img class="dd-ml" src="/art/logos/claude.svg" alt="" width="14" height="14" loading="lazy"><span class="dd-mn">Claude</span><svg class="dd-i" aria-hidden="true"><use href="#dd-i-down"/></svg></span></div></div>
+</div>
+<div class="dd-tp" data-pane="computer">
+<p class="dd-ph">Runs on</p>
+<div class="dd-card"><div class="dd-prow dd-prow-2"><svg class="dd-i" aria-hidden="true"><use href="#dd-i-monitor"/></svg><span><span class="dd-pc">This PC</span><small>Stops while it sleeps</small></span><em class="dd-awake">Awake</em></div><div class="dd-prow"><span>Screen</span><span class="dd-sel">Your VPS<svg class="dd-i" aria-hidden="true"><use href="#dd-i-down"/></svg></span></div></div>
+<div class="dd-screen"><div class="dd-desk"><div class="dd-dtabs"><i></i>Mug prices, compared<i></i>Clayhouse Studio shop<i></i>mug-prices.csv</div><div class="dd-durl">compare.example/handmade-mugs?size=350ml</div><div class="dd-dpage"><b>Handmade ceramic mugs, 350 ml</b><span>Four small shops, checked this morning. Prices and shipping per mug.</span><div class="dd-dgrid"><u>Shop</u><u>Mug</u><u>Shipping</u><s>Juniper Lane</s><s>28</s><s>9</s><span>Clayhouse Studio</span><span>34</span><span>free over 60</span><span>North Kiln</span><span>32</span><span>7</span><span>Glaze &amp; Co</span><span>38</span><span>free</span></div></div><i class="dd-cur"></i></div></div>
+<p class="dd-cap">Nova's screen</p>
+<details class="dd-more"><summary><svg class="dd-i" aria-hidden="true"><use href="#dd-i-right"/></svg>Advanced</summary><div class="dd-card"><div class="dd-prow"><span>Computer settings</span><svg class="dd-i" aria-hidden="true"><use href="#dd-i-right"/></svg></div></div></details>
+</div>
+<div class="dd-tp" data-pane="advanced" hidden>
+<p class="dd-ph">Voice chat</p>
+<div class="dd-card"><div class="dd-prow"><span>Voice</span><span class="dd-sel">Default<svg class="dd-i" aria-hidden="true"><use href="#dd-i-down"/></svg></span></div><div class="dd-prow"><span>Speed</span><span class="dd-sel">1x<svg class="dd-i" aria-hidden="true"><use href="#dd-i-down"/></svg></span></div><div class="dd-prow"><span>Language</span><span class="dd-sel">Auto-detect<svg class="dd-i" aria-hidden="true"><use href="#dd-i-down"/></svg></span></div></div>
+<p class="dd-ph">This bot</p>
+<div class="dd-card"><div class="dd-prow"><span>Instructions</span><svg class="dd-i" aria-hidden="true"><use href="#dd-i-right"/></svg></div><div class="dd-prow"><span>What it remembers</span><small>Nothing yet</small><svg class="dd-i" aria-hidden="true"><use href="#dd-i-right"/></svg></div><div class="dd-prow"><span>Skills</span><small>None</small><svg class="dd-i" aria-hidden="true"><use href="#dd-i-right"/></svg></div></div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</div>
     </div>
   </div>
 </section>
@@ -72,276 +111,338 @@
 <div class="wrap runs" data-mk-reveal>
   <p>runs on the ai you already pay for</p>
   <ul>
-    <li><img class="logo" src="/art/logos/claude.svg" alt="" width="20" height="20">claude</li>
-    <li><img class="logo" src="/art/logos/chatgpt.svg" alt="" width="20" height="20">chatgpt</li>
-    <li><img class="logo" src="/art/logos/gemini.svg" alt="" width="20" height="20">gemini</li>
-    <li><img class="logo" src="/art/logos/grok.svg" alt="" width="20" height="20">grok</li>
-    <li><img class="logo" src="/art/logos/cursor.svg" alt="" width="20" height="20">cursor</li>
-    <li><img class="logo" src="/art/logos/copilot.svg" alt="" width="20" height="20">copilot</li>
-    <li><img class="logo" src="/art/logos/deepseek.svg" alt="" width="20" height="20">deepseek</li>
+    <li><img class="logo" src="/art/logos/claude.svg" alt="" width="20" height="20" loading="lazy" decoding="async">claude</li>
+    <li><img class="logo" src="/art/logos/chatgpt.svg" alt="" width="20" height="20" loading="lazy" decoding="async">chatgpt</li>
+    <li><img class="logo" src="/art/logos/gemini.svg" alt="" width="20" height="20" loading="lazy" decoding="async">gemini</li>
+    <li><img class="logo" src="/art/logos/grok.svg" alt="" width="20" height="20" loading="lazy" decoding="async">grok</li>
+    <li><img class="logo" src="/art/logos/cursor.svg" alt="" width="20" height="20" loading="lazy" decoding="async">cursor</li>
+    <li><img class="logo" src="/art/logos/copilot.svg" alt="" width="20" height="20" loading="lazy" decoding="async">copilot</li>
+    <li><img class="logo" src="/art/logos/deepseek.svg" alt="" width="20" height="20" loading="lazy" decoding="async">deepseek</li>
     <li>or your own api key</li>
   </ul>
 </div>
 
-<section class="wrap done">
-  <div class="head center">
-    <h2 data-mk-reveal="lines">a normal tuesday, with six bots on it</h2>
-    <p data-mk-reveal>you sent six messages. this is what came back while you did your actual job.</p>
-  </div>
-  <div class="day" data-mk-reveal="clip">
-    <img src="/art/wide-islands.webp?v=1e4f487c" alt="" width="1536" height="1024" data-mk-parallax="0.08">
-    <ol class="work" data-mk-reveal data-mk-stagger="80">
-      <li>
-        <header><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><b>juno</b><time>7:58</time><em class="tag is-done">done</em></header>
-        <div class="proof"><span class="row"><img class="logo" src="/art/logos/gmail.png" alt="" width="20" height="20">dana, contract redline<u class="flag">needs you</u></span><span class="row"><img class="logo" src="/art/logos/gmail.png" alt="" width="20" height="20">bank, card expiring<u class="flag">needs you</u></span><span class="row dim">38 more, filed</span></div>
-        <p>read 41 emails and drafted 6 replies in your voice.</p>
-      </li>
-      <li>
-        <header><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><b>tally</b><time>8:00</time><em class="tag is-done">done</em></header>
-        <div class="proof"><span class="row"><img class="logo" src="/art/logos/figma.png" alt="" width="20" height="20">figma<u>$15.00</u></span><span class="row hot"><img class="logo" src="/art/logos/figma.png" alt="" width="20" height="20">figma<u>$15.00, again</u></span><span class="row dim">21 more, matched</span></div>
-        <p>matched 23 receipts and found one you paid for twice.</p>
-      </li>
-      <li>
-        <header><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>rivet</b><time>9:12</time><em class="tag is-done">done</em></header>
-        <div class="proof"><span class="row"><img class="logo" src="/art/logos/github.svg" alt="" width="20" height="20">#212 fix sign-in on safari</span><span class="chips"><u class="plus">+18</u><u class="minus">-4</u><u class="ok">checks passed</u></span></div>
-        <p>found the bug, fixed it, opened the pull request.</p>
-      </li>
-      <li>
-        <header><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>nova</b><time>11:40</time><em class="tag is-ask">needs your yes</em></header>
-        <div class="proof"><span class="row"><b>9:40</b>bom to lisbon<u>€84</u></span><span class="row dim">cheapest of 14, held for 20 minutes</span><span class="chips"><u class="pill yes">allow</u><u class="pill">deny</u></span></div>
-        <p>compared 14 flights and is holding the best one.</p>
-      </li>
-      <li>
-        <header><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>quill</b><time>14:05</time><em class="tag is-done">done</em></header>
-        <div class="proof"><span class="row">design review<u>thu to fri 11:00</u></span><span class="row">1:1 with sam<u>thu to fri 14:30</u></span><span class="row">vendor call<u>thu to mon 10:00</u></span></div>
-        <p>moved thursday's three meetings. everyone said yes.</p>
-      </li>
-      <li>
-        <header><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg><b>echo</b><time>17:30</time><em class="tag is-work">working</em></header>
-        <div class="proof"><span class="quote">"shipped this week: routines can now start from a webhook, and bots ask before the scary stuff."</span><span class="row dim">draft 1 of 5</span></div>
-        <p>is drafting five posts from this week's changelog.</p>
-      </li>
-    </ol>
-  </div>
-  <p class="day-foot" data-mk-reveal="fade">none of them asked how your weekend was.</p>
-</section>
-
-<section class="wrap bento">
-  <div class="head">
-    <h2 data-mk-reveal="lines">not a chatbot. a coworker with a computer.</h2>
-  </div>
-  <div class="tiles">
-    <article class="tile t-sky wider peek" data-mk-reveal data-tilt>
-      <div class="tile-copy"><h3>message bots like teammates</h3><p>give a bot a task the way you'd text a coworker. it takes the job from start to finish, keeps you posted, and comes back when it needs a yes.</p>
-        <p class="texts"><span class="t me">book me the cheap one to lisbon</span><span class="t">found it. €84. need a yes first.</span><span class="t me late">yes</span><span class="t late">booked. aisle seat, like always.</span></p>
-      </div>
-      <svg class="bot c-blue peek-bot" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg>
-    </article>
-    <article class="tile t-lime" data-mk-reveal data-tilt>
-      <div class="art memo-art"><img class="sticker" src="/art/s-notebook.webp?v=e67faeee" alt="" width="520" height="378"><span class="memo">aisle seat</span><span class="memo">dana, not sam</span><span class="memo">no posts before 9</span></div>
-      <h3>they remember</h3><p>what you like, who's who, how you want it done. every note is yours to read and edit.</p>
-    </article>
-    <article class="tile t-lilac wide" data-mk-reveal data-tilt>
-      <div class="tile-copy"><h3>each bot gets its own computer</h3><p>it signs in to sites and clicks through them like you would. watch it live, or take the mouse back any time.</p></div>
-      <div class="desk"><svg class="bot c-blue desk-bot" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><img class="sticker" src="/art/s-computer.webp?v=690cf13b" alt="" width="520" height="599"></div>
-    </article>
-    <article class="tile t-lemon wide" data-mk-reveal data-tilt>
-      <img class="sticker corner" src="/art/s-clock.webp?v=67ca93f2" alt="" width="520" height="502">
-      <div class="tile-copy"><h3>routines run while you sleep</h3><p>ask once. it runs every morning, every monday, or the moment something happens.</p></div>
-      <ul class="routines">
-        <li><div><b>inbox summary</b><span>every weekday at 8:00</span></div><i class="toggle"></i></li>
-        <li><div><b>competitor prices</b><span>every monday at 9:00</span></div><i class="toggle"></i></li>
-        <li><div><b>triage new issues</b><span>when a github issue opens</span></div><i class="toggle"></i></li>
-      </ul>
-    </article>
-    <article class="tile t-peach wide" data-mk-reveal data-tilt>
-      <div class="art"><img class="sticker" src="/art/s-button.webp?v=612c2a25" alt="" width="520" height="780"><span class="confirm"><span>delete 2,140 files?</span><b class="pill yes">allow</b><b class="pill no">deny</b></span></div>
-      <h3>they ask before the scary stuff</h3><p>sending, buying, deleting: a bot stops and waits for your yes.</p>
-    </article>
-    <article class="tile t-pink wide" data-mk-reveal data-tilt>
-      <div class="art"><img class="sticker" src="/art/s-phone.webp?v=550f01a8" alt="" width="520" height="387"><span class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="heard">"morning. three things need you."</span></div>
-      <h3>they talk back</h3><p>give a bot a voice. or just call it and talk the job through.</p>
-    </article>
-  </div>
-</section>
-
-<section class="wrap models" id="models">
-  <div class="head center">
-    <h2 data-mk-reveal="lines">bring the ai you already pay for</h2>
-    <p data-mk-reveal>dusk bot has no model of its own. sign in with the account you already have and your bots run on it. no second bill from us, no markup.</p>
-  </div>
-  <div class="brain" data-mk-tabs data-mk-reveal>
-    <svg class="bot c-blue brain-bot" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg>
-    <div class="brain-pick" role="tablist" aria-label="the ai nova runs on">
-      <span class="brain-ind" data-mk-indicator aria-hidden="true"></span>
-      <button type="button" role="tab" id="bt-claude" aria-controls="bp-claude" aria-selected="true"><img class="logo" src="/art/logos/claude.svg" alt="" width="20" height="20">claude</button>
-      <button type="button" role="tab" id="bt-chatgpt" aria-controls="bp-chatgpt" aria-selected="false"><img class="logo" src="/art/logos/chatgpt.svg" alt="" width="20" height="20">chatgpt</button>
-      <button type="button" role="tab" id="bt-gemini" aria-controls="bp-gemini" aria-selected="false"><img class="logo" src="/art/logos/gemini.svg" alt="" width="20" height="20">gemini</button>
-      <button type="button" role="tab" id="bt-grok" aria-controls="bp-grok" aria-selected="false"><img class="logo" src="/art/logos/grok.svg" alt="" width="20" height="20">grok</button>
-    </div>
-    <p class="brain-line" role="tabpanel" id="bp-claude" aria-labelledby="bt-claude" tabindex="0">nova is on <b>claude</b>, signed in as you. we charge $0 for that.</p>
-    <p class="brain-line" role="tabpanel" id="bp-chatgpt" aria-labelledby="bt-chatgpt" tabindex="0">nova is on <b>chatgpt</b> now. it still remembers you like the aisle seat.</p>
-    <p class="brain-line" role="tabpanel" id="bp-gemini" aria-labelledby="bt-gemini" tabindex="0">nova is on <b>gemini</b> now. same chats, same files, nothing to move.</p>
-    <p class="brain-line" role="tabpanel" id="bp-grok" aria-labelledby="bt-grok" tabindex="0">nova is on <b>grok</b> now. took one click.</p>
-  </div>
-  <p class="also"><span>also works with</span><em><img class="logo" src="/art/logos/cursor.svg" alt="" width="20" height="20">cursor</em><em><img class="logo" src="/art/logos/copilot.svg" alt="" width="20" height="20">copilot</em><em><img class="logo" src="/art/logos/deepseek.svg" alt="" width="20" height="20">deepseek</em><em><img class="logo" src="/art/logos/kimi.svg" alt="" width="20" height="20">kimi</em><em><img class="logo" src="/art/logos/qwen.svg" alt="" width="20" height="20">qwen</em><em><img class="logo" src="/art/logos/opencode.svg" alt="" width="20" height="20">opencode</em><em><img class="logo" src="/art/logos/cline.svg" alt="" width="20" height="20">cline</em><em>your own api key</em></p>
-</section>
-
-<section class="connect">
-  <div class="wrap"><div class="head center">
-    <h2 data-mk-reveal="lines">plugs into the tools you already use</h2>
-    <p data-mk-reveal>connect an app once, then choose which bots may use it. over 60 apps, and any mcp server you add yourself.</p>
-  </div></div>
-  <div class="belt" aria-hidden="true">
-    <div class="belt-row"><span class="chip"><img class="logo" src="/art/logos/gmail.png" alt="" width="20" height="20">gmail</span><span class="chip"><img class="logo" src="/art/logos/calendar.png" alt="" width="20" height="20">google calendar</span><span class="chip"><img class="logo" src="/art/logos/drive.png" alt="" width="20" height="20">google drive</span><span class="chip"><img class="logo" src="/art/logos/docs.png" alt="" width="20" height="20">google docs</span><span class="chip"><img class="logo" src="/art/logos/sheets.svg" alt="" width="20" height="20">google sheets</span><span class="chip"><img class="logo" src="/art/logos/slack.png" alt="" width="20" height="20">slack</span><span class="chip"><img class="logo" src="/art/logos/notion.png" alt="" width="20" height="20">notion</span><span class="chip"><img class="logo" src="/art/logos/github.svg" alt="" width="20" height="20">github</span><span class="chip"><img class="logo" src="/art/logos/linear.png" alt="" width="20" height="20">linear</span><span class="chip"><img class="logo" src="/art/logos/figma.png" alt="" width="20" height="20">figma</span><span class="chip"><img class="logo" src="/art/logos/stripe.png" alt="" width="20" height="20">stripe</span><span class="chip"><img class="logo" src="/art/logos/discord.svg" alt="" width="20" height="20">discord</span><span class="chip"><img class="logo" src="/art/logos/gmail.png" alt="" width="20" height="20">gmail</span><span class="chip"><img class="logo" src="/art/logos/calendar.png" alt="" width="20" height="20">google calendar</span><span class="chip"><img class="logo" src="/art/logos/drive.png" alt="" width="20" height="20">google drive</span><span class="chip"><img class="logo" src="/art/logos/docs.png" alt="" width="20" height="20">google docs</span><span class="chip"><img class="logo" src="/art/logos/sheets.svg" alt="" width="20" height="20">google sheets</span><span class="chip"><img class="logo" src="/art/logos/slack.png" alt="" width="20" height="20">slack</span><span class="chip"><img class="logo" src="/art/logos/notion.png" alt="" width="20" height="20">notion</span><span class="chip"><img class="logo" src="/art/logos/github.svg" alt="" width="20" height="20">github</span><span class="chip"><img class="logo" src="/art/logos/linear.png" alt="" width="20" height="20">linear</span><span class="chip"><img class="logo" src="/art/logos/figma.png" alt="" width="20" height="20">figma</span><span class="chip"><img class="logo" src="/art/logos/stripe.png" alt="" width="20" height="20">stripe</span><span class="chip"><img class="logo" src="/art/logos/discord.svg" alt="" width="20" height="20">discord</span></div>
-    <div class="belt-row back"><span class="chip"><img class="logo" src="/art/logos/hubspot.png" alt="" width="20" height="20">hubspot</span><span class="chip"><img class="logo" src="/art/logos/airtable.svg" alt="" width="20" height="20">airtable</span><span class="chip"><img class="logo" src="/art/logos/asana.svg" alt="" width="20" height="20">asana</span><span class="chip"><img class="logo" src="/art/logos/trello.svg" alt="" width="20" height="20">trello</span><span class="chip"><img class="logo" src="/art/logos/dropbox.svg" alt="" width="20" height="20">dropbox</span><span class="chip"><img class="logo" src="/art/logos/outlook.png" alt="" width="20" height="20">outlook</span><span class="chip"><img class="logo" src="/art/logos/shopify.png" alt="" width="20" height="20">shopify</span><span class="chip"><img class="logo" src="/art/logos/sentry.svg" alt="" width="20" height="20">sentry</span><span class="chip"><img class="logo" src="/art/logos/vercel.png" alt="" width="20" height="20">vercel</span><span class="chip"><img class="logo" src="/art/logos/supabase.png" alt="" width="20" height="20">supabase</span><span class="chip"><img class="logo" src="/art/logos/posthog.png" alt="" width="20" height="20">posthog</span><span class="chip"><img class="logo" src="/art/logos/zapier.svg" alt="" width="20" height="20">zapier</span><span class="chip"><img class="logo" src="/art/logos/hubspot.png" alt="" width="20" height="20">hubspot</span><span class="chip"><img class="logo" src="/art/logos/airtable.svg" alt="" width="20" height="20">airtable</span><span class="chip"><img class="logo" src="/art/logos/asana.svg" alt="" width="20" height="20">asana</span><span class="chip"><img class="logo" src="/art/logos/trello.svg" alt="" width="20" height="20">trello</span><span class="chip"><img class="logo" src="/art/logos/dropbox.svg" alt="" width="20" height="20">dropbox</span><span class="chip"><img class="logo" src="/art/logos/outlook.png" alt="" width="20" height="20">outlook</span><span class="chip"><img class="logo" src="/art/logos/shopify.png" alt="" width="20" height="20">shopify</span><span class="chip"><img class="logo" src="/art/logos/sentry.svg" alt="" width="20" height="20">sentry</span><span class="chip"><img class="logo" src="/art/logos/vercel.png" alt="" width="20" height="20">vercel</span><span class="chip"><img class="logo" src="/art/logos/supabase.png" alt="" width="20" height="20">supabase</span><span class="chip"><img class="logo" src="/art/logos/posthog.png" alt="" width="20" height="20">posthog</span><span class="chip"><img class="logo" src="/art/logos/zapier.svg" alt="" width="20" height="20">zapier</span></div>
-  </div>
-  <p class="belt-list wrap">gmail, google calendar, drive, docs and sheets, slack, notion, github, linear, figma, stripe, discord, hubspot, airtable, asana, trello, dropbox, outlook, shopify, sentry, vercel, supabase, posthog, zapier and more.</p>
+<section class="wrap say">
+  <h2 class="vh">what dusk bot is</h2>
+  <p class="statement" data-mk-reveal>dusk bot is a desktop app where you run a team of ai bots <span class="inl-bots"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg></span> and text them like teammates. each one has a name, a job, a memory <img class="stk" data-sticker src="/art/s-notebook.webp?v=e67faeee" alt="" width="520" height="378" loading="lazy" draggable="false"> and, if you want, its own computer <img class="stk tall" data-sticker src="/art/s-computer.webp?v=690cf13b" alt="" width="520" height="599" loading="lazy" draggable="false">.</p>
 </section>
 
 <section class="wrap team">
-  <div class="team-poster" data-mk-reveal="clip">
-    <img src="/art/wide-sails.webp?v=399f57c0" alt="" width="1536" height="1024" data-mk-parallax="0.08">
+  <div class="poster" data-mk-reveal="clip">
+    <img src="/art/wide-sails.webp?v=399f57c0" alt="" width="1536" height="1024" loading="lazy" data-mk-parallax="0.08">
     <div class="team-card">
-      <h2>give each bot a job</h2>
-      <p class="team-sub">one bot, one job, one chat. start with one and hire as you go.</p>
-      <ul class="team-rows" data-mk-reveal data-mk-stagger="60">
-        <li><img src="/art/m-circle.png?v=56d60eb2" alt="" width="84" height="84"><div><b>nova, research</b><span>reads the 40 tabs so you don't. comes back with sources, a table and a straight answer.</span></div></li>
-        <li><img src="/art/m-heart.png?v=5cfebbb9" alt="" width="84" height="84"><div><b>juno, inbox</b><span>reads what came in overnight, drafts replies in your voice, leaves the three that need you on top.</span></div></li>
-        <li><img src="/art/m-hex.png?v=6947a675" alt="" width="84" height="84"><div><b>rivet, code</b><span>picks up an issue, opens a pull request, and fixes what the review finds.</span></div></li>
-        <li><img src="/art/m-star.png?v=56ccfefa" alt="" width="84" height="84"><div><b>tally, bookkeeping</b><span>matches receipts to charges, and tells you when a subscription quietly got pricier.</span></div></li>
-        <li><img src="/art/m-clover.png?v=5ebba6cb" alt="" width="84" height="84"><div><b>quill, travel</b><span>watches fares, holds the good one, and checks you in the day before.</span></div></li>
-        <li><img src="/art/m-drop.png?v=daef21c9" alt="" width="84" height="84"><div><b>echo, socials</b><span>drafts the week's posts from what you shipped. posts nothing until you say so.</span></div></li>
+      <h2>give each bot a job.</h2>
+      <p class="sub">one bot, one job, one chat. start with one and hire as you go.</p>
+      <ul class="team-rows" data-mk-reveal data-mk-stagger="50">
+        <li><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>nova, research</b><span>reads the 40 tabs so you don't. comes back with sources, a table and a straight answer.</span></div></li>
+        <li><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><div><b>juno, inbox</b><span>reads what came in overnight, drafts replies in your voice, leaves the three that need you on top.</span></div></li>
+        <li><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>rivet, code</b><span>picks up an issue, opens a pull request, and fixes what the review finds.</span></div></li>
+        <li><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><div><b>tally, bookkeeping</b><span>matches receipts to charges, and tells you when a subscription quietly got pricier.</span></div></li>
+        <li><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>quill, travel</b><span>watches fares, holds the good one, and checks you in the day before.</span></div></li>
+        <li><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg><div><b>echo, socials</b><span>drafts the week's posts from what you shipped. posts nothing until you say so.</span></div></li>
       </ul>
     </div>
   </div>
 </section>
 
-<section class="wrap how">
-  <div class="head">
-    <h2 data-mk-reveal="lines">from download to a working bot in about two minutes</h2>
+<section class="wrap many">
+  <div class="head split">
+    <h2 data-mk-reveal>work with many bots at once.</h2>
+    <p data-mk-reveal>start with one. add another when the work grows. each has its own chat, job and memory, and they all work at the same time.</p>
   </div>
-  <ol class="steps" data-mk-reveal data-mk-stagger="80">
-    <li>
-      <div class="step-copy"><span class="step-n">1</span><h3>download it and open it</h3><p>it's a normal app. no account, no card, nothing to set up first.</p></div>
-      <div class="mock"><span class="mock-row"><b>macos</b><em>apple silicon, intel</em></span><span class="mock-row"><b>windows</b><em>10 and 11</em></span><span class="mock-row"><b>linux</b><em>.deb, appimage</em></span></div>
-    </li>
-    <li>
-      <div class="step-copy"><span class="step-n">2</span><h3>sign in to an ai you already have</h3><p>the first screen shows which ones are on your computer. pick one and sign in the usual way.</p></div>
-      <div class="mock"><span class="mock-row"><img class="logo" src="/art/logos/claude.svg" alt="" width="20" height="20"><b>claude</b><em class="ok">signed in</em></span><span class="mock-row"><img class="logo" src="/art/logos/chatgpt.svg" alt="" width="20" height="20"><b>chatgpt</b><em>sign in</em></span><span class="mock-row"><img class="logo" src="/art/logos/gemini.svg" alt="" width="20" height="20"><b>gemini</b><em>sign in</em></span></div>
-    </li>
-    <li>
-      <div class="step-copy"><span class="step-n">3</span><h3>make a bot</h3><p>name it, pick a shape, and tell it its job in plain words. that's the whole setup.</p></div>
-      <div class="mock"><span class="mock-row"><em class="lead">name</em><b>nova</b></span><span class="shapes"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg></span><span class="mock-row"><em class="lead">job</em><b>find me cheap flights</b></span></div>
-    </li>
-    <li>
-      <div class="step-copy"><span class="step-n">4</span><h3>hand it something real</h3><p>the thing you've been putting off. it works, shows you, and asks before the scary stuff. like the result? make it a routine.</p></div>
-      <div class="mock chatty"><span class="b me">summarise what came in overnight</span><span class="b">41 emails. 3 need you. the rest are filed.</span><span class="mock-row"><b>every weekday, 8:00</b><i class="toggle"></i></span></div>
-    </li>
-  </ol>
+  <div class="moments" data-mk-reveal data-mk-stagger="70">
+
+    <article class="moment">
+      <h3>each bot gets its own computer</h3>
+      <p>a browser and a desktop it signs in to and clicks through. watch it live, and take the mouse back whenever you like.</p>
+      <figure class="fig screen" aria-label="nova's computer, live: a browser comparing four flights">
+        <figcaption class="fig-bar"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>nova's computer</b><span class="live"><i></i>live</span><button class="chip-btn" type="button" data-take aria-pressed="false">take the mouse</button></figcaption>
+        <div class="screen-view" data-play="browse">
+          <img class="wall" src="/art/wide-islands.webp?v=1e4f487c" alt="" width="1536" height="1024" loading="lazy">
+          <div class="browser">
+            <div class="browser-bar"><i></i><i></i><i></i><span>flights · lisbon · march</span></div>
+            <ul class="fares">
+              <li class="hot"><b>9:40</b><span>one stop</span><em>€84</em></li>
+              <li><b>13:05</b><span>direct</span><em>€112</em></li>
+              <li><b>18:20</b><span>direct</span><em>€139</em></li>
+              <li><b>21:10</b><span>one stop</span><em>€151</em></li>
+            </ul>
+          </div>
+          <img class="ptr" src="/art/cursor-88.webp?v=d1860c67" alt="" width="26" height="26" loading="lazy">
+        </div>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <h3>ask once and it becomes a routine</h3>
+      <p>it runs on a schedule, or the moment something happens. routines run while you sleep.</p>
+      <figure class="fig card" aria-label="three routines you can switch on and off">
+        <p class="msg me">summarise my inbox every weekday at 8.</p>
+        <ul class="rows">
+          <li><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><div><b>inbox summary</b><span>every weekday at 8:00</span></div><button class="toggle" type="button" role="switch" aria-checked="true" aria-label="inbox summary" data-mk-switch><i data-mk-thumb></i></button></li>
+          <li><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>competitor prices</b><span>every monday at 9:00</span></div><button class="toggle" type="button" role="switch" aria-checked="true" aria-label="competitor prices" data-mk-switch><i data-mk-thumb></i></button></li>
+          <li><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>triage new issues</b><span><img class="logo" src="/art/logos/github.svg" alt="" width="20" height="20" loading="lazy" decoding="async">when a github issue opens</span></div><button class="toggle" type="button" role="switch" aria-checked="true" aria-label="triage new issues" data-mk-switch><i data-mk-thumb></i></button></li>
+        </ul>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <h3>it remembers how you like things</h3>
+      <p>each bot keeps notes on what you like and who's who. every note is yours to read and edit.</p>
+      <figure class="fig card" data-play="note" aria-label="nova's notes about how you like things done">
+        <figcaption class="fig-head"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>nova's notes</b><button class="chip-btn" type="button" data-edit><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>edit</button></figcaption>
+        <ul class="notes">
+          <li>sources first, opinions after.</li>
+          <li>dana approves anything over €500.</li>
+          <li>no flights before 7:00. ever.</li>
+          <li class="new"><span data-note>aisle seat, always.</span></li>
+        </ul>
+        <p class="mem-foot" aria-live="polite"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-note-foot>nova updated its memory</span></p>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <h3>put bots in a room</h3>
+      <p>several bots in one thread hand work to each other. you step in when one of them needs a yes.</p>
+      <figure class="fig card" aria-label="a room called launch, where three bots hand work to each other">
+        <figcaption class="fig-head"><b># launch</b><span class="stack"><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg></span></figcaption>
+        <div class="said"><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>rivet</b><p>the fix is live. echo, you're up.</p></div></div>
+        <div class="said"><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg><div><b>echo</b><p>post is drafted. juno, can you email the list?</p></div></div>
+        <div class="said" data-ask><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><div><b>juno</b><p aria-live="polite" data-ask-line>ready to send to 1,204 people. need a yes first.</p><span class="ask-btns"><button class="pill yes" type="button" data-answer="sent. 1,204 emails, zero typos.">allow</button><button class="pill" type="button" data-answer="ok, holding it. nobody got emailed.">deny</button></span></div></div>
+      </figure>
+    </article>
+
+  </div>
+  <div class="also" data-mk-reveal>
+    <button class="phone" type="button" aria-label="ring a bot" data-ring><img class="stk" src="/art/s-phone.webp?v=550f01a8" alt="" width="520" height="387" loading="lazy" draggable="false"></button>
+    <p>also: voice, so a bot can talk back and you can call it. and 60+ apps <span class="apps"><img src="/art/logos/gmail.png" alt="gmail" width="28" height="28" loading="lazy"><img src="/art/logos/slack.png" alt="slack" width="28" height="28" loading="lazy"><img src="/art/logos/notion.png" alt="notion" width="28" height="28" loading="lazy"><img src="/art/logos/github.svg" alt="github" width="28" height="28" loading="lazy"><img src="/art/logos/linear.png" alt="linear" width="28" height="28" loading="lazy"><img src="/art/logos/figma.png" alt="figma" width="28" height="28" loading="lazy"><img src="/art/logos/stripe.png" alt="stripe" width="28" height="28" loading="lazy"></span> plus any mcp server you add.</p>
+  </div>
 </section>
 
-<section class="wrap where" id="where" data-mk-tabs>
-  <div class="where-text">
-    <h2 data-mk-reveal="lines">local first. cloud if you want it.</h2>
-    <p class="where-sub" data-mk-reveal>same app and same bots in all three. you pick where they live, and you can move later.</p>
-    <div class="places" role="tablist" aria-label="where it runs">
-      <span class="place-ind" data-mk-indicator aria-hidden="true"></span>
-      <button type="button" role="tab" id="pt-mac" aria-controls="pp-mac" aria-selected="true">your computer</button>
-      <button type="button" role="tab" id="pt-server" aria-controls="pp-server" aria-selected="false">your server</button>
-      <button type="button" role="tab" id="pt-cloud" aria-controls="pp-cloud" aria-selected="false">dusk cloud</button>
+<section class="wrap where" id="where">
+  <div class="head"><h2 data-mk-reveal>pick where your bots live.</h2></div>
+  <div class="ways" data-mk-reveal data-mk-stagger="70">
+
+    <article class="way">
+      <div class="way-art">
+        <img src="/art/use-birches.webp?v=c9b67136" alt="" width="900" height="537" loading="lazy">
+        <figure class="snip" aria-label="a folder on this computer holding bots, chats, files and memory">
+          <figcaption><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 16h.01"/><path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M21.946 12.013H2.054"/><path d="M6 16h.01"/></svg><b>on this computer</b><span class="live"><i></i>awake</span></figcaption>
+          <ul>
+            <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span>bots</span><em>6</em></li>
+            <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span>chats</span><em>214</em></li>
+            <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span>files</span><em>1.2 gb</em></li>
+            <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span>memory</span><em>38 notes</em></li>
+            <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span>browser data</span><em>6 profiles</em></li>
+          </ul>
+        </figure>
+      </div>
+      <h3>on your computer</h3>
+      <p>free. bots, chats, files and memory stay on your disk. no account, nothing to rent.</p>
+      <a class="go" href="/download">download the app<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+    </article>
+
+    <article class="way">
+      <div class="way-art">
+        <img src="/art/use-cliffs.webp?v=94916516" alt="" width="900" height="1200" loading="lazy">
+        <figure class="snip term" aria-label="a terminal running the one-line install on a server">
+          <figcaption><i></i><i></i><i></i><span>you@your-server</span><button class="copy" type="button" data-copy="curl -fsSL https://dusk.bot/install.sh | sh">copy</button></figcaption>
+          <pre><code><span class="p">$</span> curl -fsSL \
+    https://dusk.bot/install.sh <span class="p">|</span> sh
+
+<span class="p">installing dusk bot ...</span>
+<span class="g">done.</span> open the app and
+choose <span class="s">add a server</span>.
+<span class="p">$</span> <i class="caret" aria-hidden="true"></i></code></pre>
+        </figure>
+      </div>
+      <h3>on your own server</h3>
+      <p>free. paste one line on a server you already have, and your bots stay on all day.</p>
+      <a class="go" href="/docs">read the docs<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+    </article>
+
+    <article class="way">
+      <div class="way-art">
+        <img src="/art/use-layers.webp?v=18d38b19" alt="" width="900" height="1200" loading="lazy">
+        <figure class="snip" data-play="wake" aria-label="a dusk cloud computer that wakes itself for an 8:00 routine">
+          <figcaption><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg><b>cloud computer</b><span class="state"><span class="asleep">asleep</span><span class="live"><i></i>awake</span></span></figcaption>
+          <ul>
+            <li><span>next up</span><em>inbox summary, 8:00</em></li>
+            <li><span>your laptop</span><em>shut</em></li>
+            <li><span>size</span><em>2 vcpu · 4 gb · 40 gb</em></li>
+            <li><span>bot computers</span><em>2</em></li>
+          </ul>
+        </figure>
+      </div>
+      <h3>on a dusk cloud computer</h3>
+      <p>we host it. routines keep running with your laptop shut. it sleeps when idle and wakes for work.</p>
+      <a class="go" href="#pricing">see the plans<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+    </article>
+
+  </div>
+</section>
+
+<section class="byo" id="models">
+  <div class="wrap"><h2 class="mega" data-mk-reveal>bring the ai you already pay for.</h2></div>
+  <div class="tape mk-hover-pause" id="tape" data-mk-marquee="54">
+    <div class="tape-track" data-mk-marquee-track>
+      <ul class="tape-run">
+        <li><span class="lg"><img class="logo" src="/art/logos/claude.svg" alt="" width="20" height="20" decoding="async"></span>claude</li>
+        <li><span class="lg"><img class="logo" src="/art/logos/chatgpt.svg" alt="" width="20" height="20" decoding="async"></span>chatgpt</li>
+        <li><span class="lg"><img class="logo" src="/art/logos/gemini.svg" alt="" width="20" height="20" decoding="async"></span>gemini</li>
+        <li><span class="lg"><img class="logo" src="/art/logos/grok.svg" alt="" width="20" height="20" decoding="async"></span>grok</li>
+        <li><span class="lg"><img class="logo" src="/art/logos/cursor.svg" alt="" width="20" height="20" decoding="async"></span>cursor</li>
+        <li><span class="lg"><img class="logo" src="/art/logos/copilot.svg" alt="" width="20" height="20" decoding="async"></span>copilot</li>
+        <li><span class="lg"><img class="logo" src="/art/logos/deepseek.svg" alt="" width="20" height="20" decoding="async"></span>deepseek</li>
+        <li><span class="lg"><img class="logo" src="/art/logos/kimi.svg" alt="" width="20" height="20" decoding="async"></span>kimi</li>
+        <li><span class="lg"><img class="logo" src="/art/logos/qwen.svg" alt="" width="20" height="20" decoding="async"></span>qwen</li>
+        <li><span class="lg"><img class="logo" src="/art/logos/opencode.svg" alt="" width="20" height="20" decoding="async"></span>opencode</li>
+        <li><span class="lg"><img class="logo" src="/art/logos/cline.svg" alt="" width="20" height="20" decoding="async"></span>cline</li>
+        <li><span class="lg key">sk-</span>your own api key</li>
+      </ul>
     </div>
   </div>
-  <div class="where-art">
-    <img src="/art/terraces.webp?v=d8421733" alt="" width="1086" height="1448">
-    <div class="place" role="tabpanel" id="pp-mac" aria-labelledby="pt-mac" tabindex="0">
-      <h3>on your computer</h3>
-      <ul class="path"><li>you</li><li class="mid">dusk bot, on your mac</li><li>your ai provider</li></ul>
-      <ul class="ticks"><li>bots, chats, files and memory stay on your disk</li><li>replies go straight to your ai provider</li><li>no account, nothing to rent</li></ul>
-      <a href="/download">download</a>
-    </div>
-    <div class="place" role="tabpanel" id="pp-server" aria-labelledby="pt-server" tabindex="0">
-      <h3>on your own server</h3>
-      <p class="code">$ curl -fsSL https://dusk.bot/install.sh | sh</p>
-      <ul class="ticks"><li>have a vps? paste one line and your bots stay on all day</li><li>still your machine and your data</li><li>the app on your mac is the remote</li></ul>
-      <a href="/docs">read the docs</a>
-    </div>
-    <div class="place" role="tabpanel" id="pp-cloud" aria-labelledby="pt-cloud" tabindex="0">
-      <h3>on a dusk cloud computer</h3>
-      <ul class="path"><li>you, anywhere</li><li class="mid">a computer we host for your bots</li><li>your ai provider</li></ul>
-      <ul class="ticks"><li>routines keep running while your laptop is shut</li><li>each bot can have its own screen</li><li>it sleeps when idle and wakes itself for work</li></ul>
-      <a href="#pricing">see plans</a>
-    </div>
+  <div class="wrap facts" data-mk-reveal data-mk-stagger="60">
+    <p>dusk bot has no model of its own. you sign in with the one you have.</p>
+    <p>a different model for each bot. swap any time and the bot keeps its chats, files and memory.</p>
+    <p>your provider bills the usage. we never do. no second bill, no markup. <button class="tape-pause" type="button" aria-controls="tape" data-mk-marquee-toggle data-mk-pause="pause the tape" data-mk-play="run the tape">pause the tape</button></p>
   </div>
 </section>
 
 <section class="free" id="free">
-  <p class="free-over" data-mk-reveal>free for personal use</p>
+  <h2 data-mk-reveal>free for personal use.</h2>
   <p class="zero" aria-label="zero dollars" data-mk-reveal="scale">$0</p>
-  <ul data-mk-reveal><li>every feature, no trial timer</li><li>runs on your own computer</li><li>uses the ai plans you already pay for</li></ul>
+  <ul data-mk-reveal><li>every feature, no trial timer</li><li>no account, no card</li><li>runs on your own computer</li></ul>
   <p class="free-note">using it for work? that needs a license. it's in the plans below.</p>
 </section>
 
-<section class="pricing" id="pricing">
-  <div class="pricing-panel" data-mk-reveal="clip">
-    <img class="pricing-sky" src="/art/price-sky.webp?v=bea68bf4" alt="" width="1536" height="1024">
-    <i class="cloud lemon k3"></i><i class="cloud pink k4"></i>
-    <div class="pricing-in">
-      <h2>simple pricing</h2>
-      <p class="pricing-sub">start free. pay when you want bots that never clock out.</p>
-      <div class="plans" id="plans" data-mk-reveal data-mk-stagger="80">
-        <article class="plan" data-mk-lift="5">
-          <div class="lights"><i></i><i></i><i></i></div>
-          <h3>free</h3><p class="plan-line">your bots, on your computer.</p>
-          <p class="price">$0</p><p class="per">free forever, no card</p>
-          <a class="btn" href="/download" data-mk-press>start free</a>
-          <ul><li>every feature of the app</li><li>runs on your computer or server</li><li>bring your own ai plan</li><li class="off">a cloud computer</li><li class="off">a work license</li></ul>
-        </article>
-        <article class="plan is-pick" data-mk-lift="5">
-          <p class="plan-tag">popular</p>
-          <div class="lights"><i></i><i></i><i></i></div>
-          <h3>plus</h3><p class="plan-line">your bots work around the clock.</p>
-          <p class="price">$20</p><p class="per">per month</p>
-          <a class="btn dark" href="https://app.dusk.bot/billing" data-mk-press data-mk-magnet="0.2">get plus</a>
-          <ul><li>everything in free</li><li>a cloud computer for your bots</li><li>2 bot computers, each with a screen</li><li>routines run while you sleep</li><li class="off">a work license</li></ul>
-        </article>
-        <article class="plan has-cat" data-mk-lift="5">
-          <div class="lights"><i></i><i></i><i></i></div>
-          <figure class="cat"><span class="zz">z</span><span class="zz">z</span><span class="zz">z</span><img src="/art/cat.webp?v=c37b13b6" alt="a pixel cat, asleep" width="600" height="324"><figcaption>gary. not included.</figcaption></figure>
-          <h3>pro</h3><p class="plan-line">for real work.</p>
-          <p class="price">$50</p><p class="per">per month</p>
-          <a class="btn dark" href="https://app.dusk.bot/billing" data-mk-press>get pro</a>
-          <ul><li>everything in plus</li><li>a bigger cloud computer</li><li>5 bot computers, first in line to wake</li><li>a work license for one person</li></ul>
-        </article>
-      </div>
+<section class="wrap pricing" id="pricing">
+  <div class="head split">
+    <h2 data-mk-reveal>free on your machine. pay only for a computer in the cloud.</h2>
+    <div class="seg" role="group" aria-label="billing period" data-bill>
+      <span class="seg-ind" aria-hidden="true"></span>
+      <button type="button" aria-pressed="true" data-period="m">monthly</button>
+      <button type="button" aria-pressed="false" data-period="y">yearly<em>2 months free</em></button>
     </div>
   </div>
-  <p class="pricing-fine">pay yearly and two months are free. teams get a dedicated machine. ai usage is billed by your ai provider, never by us. <a href="/pricing">see all plans</a></p>
+  <div class="plans" data-mk-reveal data-mk-stagger="70">
+
+    <article class="plan">
+      <img class="plan-art" src="/art/p-free.webp?v=4e4830d2" alt="" width="800" height="354" loading="lazy">
+      <h3>free</h3>
+      <p class="why">your bots, on your own computer.</p>
+      <p class="plan-price"><span class="amt">$0</span><span class="per">forever. no card, no account.</span></p>
+      <a class="btn light" href="/download" data-mk-press>download</a>
+      <ul class="has">
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>every feature of the app</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>runs on your computer or your server</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>the ai plan you already have</li>
+        <li class="no"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>no cloud computer</li>
+        <li class="no"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>no work license</li>
+      </ul>
+    </article>
+
+    <article class="plan pick">
+      <img class="plan-art" src="/art/p-plus.webp?v=be272c9c" alt="" width="800" height="354" loading="lazy">
+      <h3>plus<span class="note">always on</span></h3>
+      <p class="why">your bots keep working with the laptop shut.</p>
+      <p class="plan-price"><span class="amt">$<span data-m="20" data-y="200">20</span></span><span class="per" data-m="a month" data-y="a year. two months free.">a month</span></p>
+      <a class="btn blue" href="https://app.dusk.bot/billing" data-mk-press>get plus</a>
+      <ul class="has">
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>everything in free</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>a cloud computer: 2 vcpu, 4 gb, 40 gb</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>2 bot computers, each with a screen</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>routines run around the clock</li>
+        <li class="no"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>no work license</li>
+      </ul>
+    </article>
+
+    <article class="plan has-cat">
+      <figure class="cat"><span class="zz">z</span><span class="zz">z</span><span class="zz">z</span><img src="/art/cat.webp?v=c37b13b6" alt="a pixel cat, asleep on top of the pro plan" width="600" height="324" loading="lazy"><figcaption>gary. not included.</figcaption></figure>
+      <img class="plan-art" src="/art/p-pro.webp?v=a5107b3e" alt="" width="800" height="354" loading="lazy">
+      <h3>pro</h3>
+      <p class="why">for work, and for more bots at once.</p>
+      <p class="plan-price"><span class="amt">$<span data-m="50" data-y="500">50</span></span><span class="per" data-m="a month" data-y="a year. two months free.">a month</span></p>
+      <a class="btn dark" href="https://app.dusk.bot/billing" data-mk-press>get pro</a>
+      <ul class="has">
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>everything in plus</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>a bigger cloud computer: 4 vcpu, 8 gb, 80 gb</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>5 bot computers, first in line to wake</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>a work license for one person</li>
+      </ul>
+    </article>
+
+  </div>
+  <p class="pricing-fine">a team? from $100 a month you get a dedicated machine and shared bots. <a href="mailto:hello@dusk.bot">write to us</a>. ai usage is billed by your ai provider, never by dusk. <a href="/pricing">see all plans</a></p>
+</section>
+
+<div class="strip terr" data-step="1">
+  <div class="terr-art">
+    <img src="/art/strip-terraces.webp?v=7cb3163b" alt="" width="1536" height="530" loading="lazy">
+    <button class="climber" type="button" aria-label="send the bot up a terrace" data-own><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg></button>
+  </div>
+</div>
+
+<section class="wrap how">
+  <div class="head"><h2 data-mk-reveal>from download to a working bot in about two minutes.</h2></div>
+  <ol class="steps" data-mk-reveal data-mk-stagger="70">
+    <li data-step="1">
+      <div class="step-copy"><span class="step-n" aria-hidden="true">1</span><h3>download it and open it</h3><p>it's a normal app. no account, no card, nothing to set up first.</p></div>
+      <div class="mock"><span class="mock-row"><b>macos</b><em>apple silicon, intel</em></span><span class="mock-row"><b>windows</b><em>10 and 11</em></span><span class="mock-row"><b>linux</b><em>.deb, appimage</em></span></div>
+    </li>
+    <li data-step="2">
+      <div class="step-copy"><span class="step-n" aria-hidden="true">2</span><h3>sign in to an ai you already have</h3><p>the first screen shows which ones are on your computer. pick one and sign in the usual way.</p></div>
+      <div class="mock"><span class="mock-row"><img class="logo" src="/art/logos/claude.svg" alt="" width="20" height="20" loading="lazy" decoding="async"><b>claude</b><em class="ok">signed in</em></span><span class="mock-row"><img class="logo" src="/art/logos/chatgpt.svg" alt="" width="20" height="20" loading="lazy" decoding="async"><b>chatgpt</b><em>sign in</em></span><span class="mock-row"><img class="logo" src="/art/logos/gemini.svg" alt="" width="20" height="20" loading="lazy" decoding="async"><b>gemini</b><em>sign in</em></span></div>
+    </li>
+    <li data-step="3">
+      <div class="step-copy"><span class="step-n" aria-hidden="true">3</span><h3>make a bot</h3><p>name it, pick a shape, and tell it its job in plain words. that's the whole setup.</p></div>
+      <div class="mock"><span class="mock-row"><em class="lead">name</em><b>nova</b></span><span class="shapes"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg></span><span class="mock-row"><em class="lead">job</em><b>find me cheap flights</b></span></div>
+    </li>
+    <li data-step="4">
+      <div class="step-copy"><span class="step-n" aria-hidden="true">4</span><h3>hand it something real</h3><p>the thing you've been putting off. it works, shows you, and asks before the scary stuff. like the result? make it a routine.</p></div>
+      <div class="mock chatty"><span class="msg me">summarise what came in overnight</span><span class="msg">41 emails. 3 need you. the rest are filed.</span><span class="mock-row"><b>every weekday, 8:00</b><i class="toggle on"><i></i></i></span></div>
+    </li>
+  </ol>
 </section>
 
 <section class="wrap faq">
-  <div class="faq-side"><h2 data-mk-reveal="lines">fair questions</h2><p>stuck on something else? write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>.</p><div class="faq-bots"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg></div></div>
+  <div class="faq-side">
+    <h2 data-mk-reveal>fair questions.</h2>
+    <p>stuck on something else? write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>.</p>
+    <button class="listener" type="button" aria-label="say hi to the bot" data-own><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg></button>
+  </div>
   <div class="qs">
-    <details data-mk-accordion name="faq"><summary>is dusk bot really free?</summary><p>yes, for personal use. the app runs on your computer with every feature. you only pay for a work license or a cloud computer.</p></details>
-    <details data-mk-accordion name="faq"><summary>which ai does it use?</summary><p>the ones you already have. sign in with claude, chatgpt, gemini, grok and others, or add an api key. replies go straight from your machine to them, on your plan.</p></details>
-    <details data-mk-accordion name="faq"><summary>where does my data go?</summary><p>nowhere, unless you choose a cloud computer. bots, chats, files and memory live on your machine or your own server.</p></details>
-    <details data-mk-accordion name="faq"><summary>what is a cloud computer?</summary><p>a desktop we host for your bots, so routines keep running when your laptop is closed. each bot can have its own screen to work on, and you can watch it.</p></details>
-    <details data-mk-accordion name="faq"><summary>can i run it on my own server?</summary><p>yes. open the app, choose add a server, and paste the line it shows. that is free too.</p></details>
-    <details data-mk-accordion name="faq"><summary>how is this different from a chatbot?</summary><p>a chatbot answers. a bot here has a computer, signs in to your tools, runs on a schedule and remembers how you like things done.</p></details>
-    <details data-mk-accordion name="faq"><summary>is it safe to let bots click around?</summary><p>bots ask before the scary stuff: sending, buying, deleting. you can watch or take over at any time.</p></details>
+    <details data-mk-accordion name="faq"><summary>is dusk bot really free?<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg></summary><p>yes, for personal use. the app runs on your computer with every feature. you only pay for a work license or a cloud computer.</p></details>
+    <details data-mk-accordion name="faq"><summary>which ai does it use?<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg></summary><p>the ones you already have. sign in with claude, chatgpt, gemini, grok and others, or add an api key. replies go straight from your machine to them, on your plan.</p></details>
+    <details data-mk-accordion name="faq"><summary>where does my data go?<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg></summary><p>nowhere, unless you choose a cloud computer. bots, chats, files and memory live on your machine or your own server.</p></details>
+    <details data-mk-accordion name="faq"><summary>what is a cloud computer?<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg></summary><p>a desktop we host for your bots, so routines keep running when your laptop is closed. each bot can have its own screen to work on, and you can watch it.</p></details>
+    <details data-mk-accordion name="faq"><summary>can i run it on my own server?<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg></summary><p>yes. open the app, choose add a server, and paste the line it shows. that is free too.</p></details>
+    <details data-mk-accordion name="faq"><summary>how is this different from a chatbot?<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg></summary><p>a chatbot answers. a bot here has a computer, signs in to your tools, runs on a schedule and remembers how you like things done.</p></details>
+    <details data-mk-accordion name="faq"><summary>is it safe to let bots click around?<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg></summary><p>bots ask before the scary stuff: sending, buying, deleting. you can watch or take over at any time.</p></details>
   </div>
 </section>
 
+<div class="strip sea" role="img" aria-label="a calm sea full of small bots, all watching you">
+  <div class="sea-run"><img src="/art/strip-sea.webp?v=6f0f63bc" alt="" width="2304" height="444" loading="lazy"><img src="/art/strip-sea.webp?v=6f0f63bc" alt="" width="2304" height="444" loading="lazy"></div>
+  <img class="boat b1" src="/art/boat-a.webp?v=22f388b0" alt="" width="143" height="163" loading="lazy">
+  <img class="boat b2" src="/art/boat-b.webp?v=77d41da7" alt="" width="223" height="248" loading="lazy">
+  <img class="boat b3" src="/art/boat-c.webp?v=400611af" alt="" width="108" height="124" loading="lazy">
+  <svg class="sea-bots" viewBox="0 0 2400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath><g id="sb-circle"><circle cx="50" cy="50" r="46"/></g><g id="sb-hex"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g id="sb-clover"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g id="sb-heart"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g id="sb-star"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g id="sb-drop"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g id="sb-squircle"><rect x="6" y="6" width="88" height="88" rx="30"/></g><g id="sb-capsule"><rect x="18" y="4" width="64" height="92" rx="32"/></g><g id="sb-gem"><rect x="17" y="17" width="66" height="66" rx="13" transform="rotate(45 50 50)"/></g><g id="sb-eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></defs><g class="sb c-yellow" transform="translate(15 96) scale(0.122)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(96 104) scale(0.140)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-star"/><use class="eyes" href="#sb-eyes" y="4"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(170 96) scale(0.142)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(238 103) scale(0.113)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(310 100) scale(0.115)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(398 106) scale(0.133)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(486 98) scale(0.143)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(546 106) scale(0.122)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-clover"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(621 97) scale(0.113)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(696 106) scale(0.118)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-star"/><use class="eyes" href="#sb-eyes" y="4"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(752 106) scale(0.136)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(826 98) scale(0.122)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-hex"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(896 96) scale(0.134)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-clover"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(983 102) scale(0.135)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-star"/><use class="eyes" href="#sb-eyes" y="4"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(1057 99) scale(0.147)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-star"/><use class="eyes" href="#sb-eyes" y="4"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(1137 98) scale(0.124)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-clover"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(1206 104) scale(0.115)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(1263 107) scale(0.114)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(1326 101) scale(0.128)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-drop"/><use class="eyes" href="#sb-eyes" y="14"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(1386 105) scale(0.145)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(1473 96) scale(0.111)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(1531 103) scale(0.120)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(1603 96) scale(0.145)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(1671 93) scale(0.130)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(1759 106) scale(0.111)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-drop"/><use class="eyes" href="#sb-eyes" y="14"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(1821 97) scale(0.137)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(1883 104) scale(0.113)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-hex"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(1963 95) scale(0.112)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(2051 94) scale(0.145)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-hex"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(2138 104) scale(0.148)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(2208 99) scale(0.145)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-clover"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(2271 98) scale(0.132)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(2348 99) scale(0.139)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(67 130) scale(0.195)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-clover"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(180 123) scale(0.177)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(275 128) scale(0.193)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-drop"/><use class="eyes" href="#sb-eyes" y="14"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(355 128) scale(0.178)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-star"/><use class="eyes" href="#sb-eyes" y="4"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(453 132) scale(0.163)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-star"/><use class="eyes" href="#sb-eyes" y="4"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(526 131) scale(0.155)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-clover"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(611 122) scale(0.166)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-clover"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(719 131) scale(0.191)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(836 131) scale(0.175)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(950 123) scale(0.149)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(1026 124) scale(0.193)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(1104 127) scale(0.157)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-hex"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(1222 127) scale(0.184)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(1313 135) scale(0.186)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(1392 124) scale(0.151)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(1492 130) scale(0.158)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-hex"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(1590 127) scale(0.148)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-star"/><use class="eyes" href="#sb-eyes" y="4"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(1676 122) scale(0.166)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(1759 127) scale(0.183)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(1871 129) scale(0.178)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(1959 129) scale(0.170)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(2065 133) scale(0.182)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-drop"/><use class="eyes" href="#sb-eyes" y="14"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(2176 134) scale(0.169)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(2294 133) scale(0.162)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(25 156) scale(0.239)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(132 164) scale(0.247)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(263 165) scale(0.216)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(390 159) scale(0.232)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(507 166) scale(0.202)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-hex"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(650 155) scale(0.245)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(761 159) scale(0.196)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(855 156) scale(0.198)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(1006 162) scale(0.195)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(1099 155) scale(0.237)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(1212 161) scale(0.223)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(1352 154) scale(0.226)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(1448 157) scale(0.225)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-drop"/><use class="eyes" href="#sb-eyes" y="14"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(1554 156) scale(0.241)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-drop"/><use class="eyes" href="#sb-eyes" y="14"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(1702 164) scale(0.214)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(1835 160) scale(0.248)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(1978 163) scale(0.239)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(2126 155) scale(0.235)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(2227 154) scale(0.191)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(2335 157) scale(0.250)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(118 201) scale(0.305)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(271 200) scale(0.260)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-star"/><use class="eyes" href="#sb-eyes" y="4"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(405 209) scale(0.328)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-drop"/><use class="eyes" href="#sb-eyes" y="14"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(574 213) scale(0.310)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(764 210) scale(0.309)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-gem"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(905 205) scale(0.313)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(1076 200) scale(0.266)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(1209 208) scale(0.273)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(1346 211) scale(0.330)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(1475 212) scale(0.291)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(1668 208) scale(0.273)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(1830 210) scale(0.323)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(1977 205) scale(0.284)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(2128 208) scale(0.333)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-clover"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(2296 210) scale(0.328)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(43 246) scale(0.404)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-squircle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(294 252) scale(0.398)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-hex"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(503 244) scale(0.328)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(684 250) scale(0.416)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(934 249) scale(0.347)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(1143 248) scale(0.409)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(1343 252) scale(0.403)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-star"/><use class="eyes" href="#sb-eyes" y="4"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(1534 254) scale(0.386)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-clover"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(1754 250) scale(0.388)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-clover"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(1975 246) scale(0.336)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-hex"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(2202 246) scale(0.367)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-blue" transform="translate(176 288) scale(0.390)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-hex"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-pink" transform="translate(413 287) scale(0.437)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-circle"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(614 283) scale(0.423)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-orange" transform="translate(829 289) scale(0.465)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-heart"/><use class="eyes" href="#sb-eyes" y="-8"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-purple" transform="translate(1113 291) scale(0.500)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(1317 289) scale(0.503)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-drop"/><use class="eyes" href="#sb-eyes" y="14"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(1628 282) scale(0.388)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-clover"/><use class="eyes" href="#sb-eyes" y="0"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(1856 289) scale(0.480)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-capsule"/><use class="eyes" href="#sb-eyes" y="-6"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-green" transform="translate(2075 292) scale(0.408)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-star"/><use class="eyes" href="#sb-eyes" y="4"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g><g class="sb c-yellow" transform="translate(2350 281) scale(0.424)" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-drop"/><use class="eyes" href="#sb-eyes" y="14"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g></svg>
+</div>
+
 <section class="end">
-  <img src="/art/end-meadow.webp?v=0bfd27f5" alt="" width="1536" height="1024">
-  <i class="cloud pink k5"></i><i class="cloud lemon k6"></i>
   <div class="end-text">
-    <h2 data-mk-reveal="lines">meet your first bot</h2>
+    <h2 class="mega" data-mk-reveal>meet your first bot.</h2>
     <p data-mk-reveal>it could be working in two minutes. free on your own computer.</p>
-    <p class="actions" data-mk-reveal><a class="btn dark next" href="/download" data-mk-press data-mk-magnet="0.2">download for macos</a><a class="btn down" href="#pricing" data-mk-press>see pricing</a></p>
+    <p class="actions" data-mk-reveal><a class="btn dark" href="/download" data-mk-press data-mk-magnet="0.2">download dusk bot</a><a class="btn" href="#pricing" data-mk-press>see the plans</a></p>
   </div>
-  <div class="hill"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg></div>
-  <i class="dissolve"></i>
+  <div class="end-scene">
+    <img src="/art/end-hills.webp?v=c72d3bf6" alt="" width="1536" height="1024" loading="lazy">
+    <i class="cloud pink k5"></i><i class="cloud lemon k6"></i>
+    <i class="dissolve up"></i>
+    <div class="hill"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg></div>
+    <i class="dissolve"></i>
+  </div>
 </section>
 
 </main>
@@ -352,10 +453,11 @@
 <div><h2>legal</h2><a href="/terms">terms</a><a href="/privacy">privacy</a><a href="/license">license</a><a href="/security">security</a></div>
 <div><h2>say hi</h2><a href="mailto:hello@dusk.bot">hello@dusk.bot</a></div>
 </div>
-<p class="foot-fine">made at dusk. the bots did most of it.</p>
+<p class="foot-fine"><span data-dusk>made at dusk. the bots did most of it.</span> the bots, chats and numbers shown on this page are samples.</p>
 </footer>
 <script src="/motion.min.js?v=882ea65c"></script>
 <script src="/motion-kit-v2.js?v=2d0ef0af"></script>
-<script src="/home.js?v=0409bfbc"></script>
+<script src="/home.js?v=f6579c56"></script>
+<script src="/app-demo.js?v=df4c599c"></script>
 </body>
 </html>
