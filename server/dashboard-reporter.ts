@@ -181,13 +181,10 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
     })();
     const workspace = deps.collect.workspace();
     const body: EnrollRequest = { v: 1, publicKey: keys.publicKey, name: workspace.name, kind: workspace.kind, version: workspace.version, ...(enrollToken === undefined ? {} : { enrollToken }) };
-    const bytes = JSON.stringify(body), headers: Record<string, string> = { "content-type": "application/json" };
-    if (enrollToken !== undefined) {
-      const time = now();
-      headers[SIGNATURE_HEADERS.time] = String(time);
-      headers[SIGNATURE_HEADERS.signature] = sign(null, Buffer.from(signedPayload("POST", new URL(`${normalized}/v1/enroll`).pathname, time, createHash("sha256").update(bytes).digest("hex"))),
-        createPrivateKey({ key: Buffer.from(keys.privateKey, "base64"), type: "pkcs8", format: "der" })).toString("base64");
-    }
+    const bytes = JSON.stringify(body), time = now();
+    const headers: Record<string, string> = { "content-type": "application/json", [SIGNATURE_HEADERS.time]: String(time),
+      [SIGNATURE_HEADERS.signature]: sign(null, Buffer.from(signedPayload("POST", new URL(`${normalized}/v1/enroll`).pathname, time, createHash("sha256").update(bytes).digest("hex"))),
+        createPrivateKey({ key: Buffer.from(keys.privateKey, "base64"), type: "pkcs8", format: "der" })).toString("base64") };
     const response = await fetcher(`${normalized}/v1/enroll`, { method: "POST", redirect: "error", headers, body: bytes, signal: AbortSignal.timeout(15_000) });
     if (!response.ok) throw new Error(`Dashboard enrollment failed (${response.status}).`);
     const answer = await response.json() as EnrollAnswer;

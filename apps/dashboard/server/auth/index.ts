@@ -7,6 +7,7 @@ import type { Account, Session } from "./store.ts";
 import { codeMessage } from "./mail.ts";
 import type { Mailer } from "./mail.ts";
 import { createProviderRegistry, type ProviderConfigs, type ProviderProfile } from "./providers.ts";
+import { clientIp } from "../client-ip.ts";
 
 export interface AuthOptions {
   dataDir: string; publicUrl: string; mailer: Mailer; now?: () => number; fetch?: typeof fetch;
@@ -89,10 +90,7 @@ export function createAuth(options: AuthOptions) {
   }
   const timer = setInterval(sweep, 60_000);
   timer.unref();
-  function ip(req: IncomingMessage) {
-    const forwarded = req.headers["x-forwarded-for"];
-    return options.trustProxy && typeof forwarded === "string" ? forwarded.split(",")[0]!.trim() : req.socket.remoteAddress ?? "unknown";
-  }
+  const ip = (req: IncomingMessage) => clientIp(req, options.trustProxy);
   function rate(key: string, max: number) {
     const item = limits.get(key) ?? { count: 0, until: now() + hour };
     limits.set(key, item);

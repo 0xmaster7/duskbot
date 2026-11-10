@@ -63,13 +63,13 @@ async function fixture(prefix = "") {
 const command: DashboardCommand = { id: "command", kind: "routine.pause", target: "routine", issuedAt: Date.now(), expiresAt: Date.now() + 60_000 };
 
 describe("dashboard reporter", () => {
-  it("signs the exact token enrollment body and prefixed path with the chosen workspace key, while legacy enrollment stays unsigned", async () => {
+  it("signs the exact token enrollment body and prefixed path with the chosen workspace key, and signs a claim-link enrollment too", async () => {
     const f = await fixture("/accounts"), reporter = f.make(), enrollToken = "e".repeat(43);
     await reporter.link(`${f.base}/`, { enrollToken });
     expect(f.enrollTokens).toEqual([enrollToken]); expect(f.enrollSignatures).toEqual([true]);
     const saved = readFileSync(join(f.dir, "dashboard-link.json"), "utf8"); expect(saved).not.toContain(enrollToken);
     await reporter.link(f.base, { enrollToken }); expect(f.enrollSignatures).toEqual([true, true]); expect(f.enrollKeys[1]).toBe(f.enrollKeys[0]);
-    await reporter.link(f.base); expect(f.enrollSignatures).toEqual([true, true, null]); expect(f.enrollTokens[2]).toBeUndefined();
+    await reporter.link(f.base); expect(f.enrollSignatures).toEqual([true, true, true]); expect(f.enrollTokens[2]).toBeUndefined();
   });
   it("enrolls, signs exact requests, executes a waited command and immediately delivers its result", async () => {
     const f = await fixture(), collect = collector(), activity = vi.spyOn(collect, "activity"), devices = vi.spyOn(collect, "devices"), plans = vi.spyOn(collect, "plans");

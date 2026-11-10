@@ -13,6 +13,7 @@ import { createBilling } from "./billing/index.ts";
 import { BillingError } from "./billing/service.ts";
 import { createSlackEdgeHost } from "./slack-edge/index.ts";
 import { createManagedRoutes } from "./clouds/managed-routes.ts";
+import { clientIp } from "./client-ip.ts";
 import type { EdgeSocketFactory } from "./slack-edge/service.ts";
 
 export interface DashboardAppOptions {
@@ -122,9 +123,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     }
   }
   function rate(req: IncomingMessage, kind: string, max: number) {
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = options.trustProxy && typeof forwarded === "string" ? forwarded.split(",")[0]!.trim() : req.socket.remoteAddress ?? "unknown";
-    const key = `${kind}:${ip}`;
+    const key = `${kind}:${clientIp(req, options.trustProxy ?? false)}`;
     const current = limits.get(key) ?? { count: 0, until: now() + hourMs };
     if (++current.count > max) fail(429, "rate_limited", "Try again later.");
     limits.set(key, current);
@@ -240,7 +239,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       account: (request, mutation) => auth.requireWeb(request, { mutation }) })) return;
     if (await managedRoutes.handle(req, res, url)) return;
     if (billing.clouds.managed?.handle && await billing.clouds.managed.handle(req, res, url, { publicUrl, json, readJson: async request => bodyObject(await readBody(request)),
-      clientIp: request => { const forwarded = request.headers["x-forwarded-for"]; return options.trustProxy && typeof forwarded === "string" ? forwarded.split(",")[0]!.trim() : request.socket.remoteAddress ?? "unknown"; } })) return;
+      clientIp: request => clientIp(request, options.trustProxy ?? false) })) return;
     if (await billing.handle(req, res, url)) return;
     if (!path.startsWith("/v1/") && !path.startsWith("/.well-known/")) {
       if (method === "GET") return staticPage(req, res);
@@ -261,13 +260,16 @@ export function createDashboardApp(options: DashboardAppOptions) {
         publicKey = der.toString("base64");
       } catch { fail(400, "invalid_key", "Public key is invalid."); }
       let ownerAccountId: string | null = null;
+      const proven = typeof input.enrollToken === "string" || req.headers["x-omb-signature"] !== undefined;
+      if (proven) verifySignature(req, body, publicKey);
       if (typeof input.enrollToken === "string") {
-        verifySignature(req, body, publicKey);
         ownerAccountId = auth.consumeEnrollGrant(input.enrollToken);
         if (!ownerAccountId) fail(403, "invalid_grant", "Enrollment grant is invalid.");
       }
       let ws = state.workspaces.find(item => item.publicKey === publicKey);
       if (ws?.ownerAccountId && !ownerAccountId) return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${publicUrl}/?workspace=${ws.id}`, claimExpiresAt: 0, dashboardUrl: publicUrl });
+      // a public key is not a secret: only its holder may replace an existing workspace's claim link
+      if (ws && !proven) fail(401, "bad_signature", "Signature is required.");
       const token = random(24);
       if (!ws) {
         ws = { id: `ws_${random(16)}`, publicKey, ownerAccountId: null, claimHash: null, claimExpiresAt: 0, name: data.name, kind: data.kind,

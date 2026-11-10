@@ -74,8 +74,14 @@ describe("hosted dashboard service", () => {
     csrf.set(cookie, (await verify.json() as { csrfToken: string }).csrfToken);
     return cookie;
   }
+  function enrollRequest(withSignature = true) {
+    const raw = JSON.stringify({ v: 1, publicKey: keys.publicKey.export({ type: "spki", format: "der" }).toString("base64"), ...workspace });
+    const at = time + ++nonce;
+    const signature = sign(null, Buffer.from(signedPayload("POST", "/v1/enroll", at, createHash("sha256").update(raw).digest("hex"))), keys.privateKey).toString("base64");
+    return fetch(`${url}/v1/enroll`, { method: "POST", body: raw, headers: { "content-type": "application/json", origin, ...(withSignature ? { "x-omb-time": String(at), "x-omb-signature": signature } : {}) } });
+  }
   async function enroll() {
-    const response = await page("/v1/enroll", { v: 1, publicKey: keys.publicKey.export({ type: "spki", format: "der" }).toString("base64"), ...workspace });
+    const response = await enrollRequest();
     expect(response.status).toBe(200);
     return readJson<EnrollAnswer>(response);
   }
@@ -156,6 +162,14 @@ describe("hosted dashboard service", () => {
     expect(claimed.workspaceId).toBe(first.workspaceId);
     expect(claimed.claimExpiresAt).toBe(0);
     expect(claimed.claimUrl).toBe(`${origin}/?workspace=${first.workspaceId}`);
+  });
+
+  it("lets only the key's holder replace a workspace's claim link", async () => {
+    const cookie = await login();
+    expect((await enrollRequest(false)).status).toBe(200);
+    const first = await enroll();
+    expect((await enrollRequest(false)).status).toBe(401);
+    expect((await page("/v1/claim", { token: first.claimUrl.split("#")[1] }, cookie)).status).toBe(200);
   });
 
   it("rejects other key types and removes unclaimed enrollments after 24 hours", async () => {
