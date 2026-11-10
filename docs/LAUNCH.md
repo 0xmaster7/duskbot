@@ -257,9 +257,18 @@ and identifiers); `.env*`, `.dev.vars.*` are ignored.
 
 ## CI on main today
 
-A local dry run of `ci.yml`'s static job on this branch: CI selection tests, locales, typecheck, Electron syntax,
-dashboard and phone checks, UI build and dashboard build pass. These were already red on `main` before this branch
-and are being fixed separately (listed so the first push is not a surprise): `pnpm lint` (about 38 warnings under
-`--deny-warnings`), 13 Electron node tests whose `main.mjs` slices went stale, `src/lib/copy-text.guard.test.ts`
-(LiveDesktop.tsx), `src/locales/vocabulary.test.ts` (reads the removed `apps/docs`), and a handful of slow e2e tests
-in `server/*.e2e.test.ts` that time out under load.
+A local dry run of `ci.yml`'s static job on this branch passes: CI selection tests, locales, typecheck, Electron
+syntax, dashboard and phone checks, UI build and dashboard build. This branch also fixed reds that were already on
+`main` (about 38 lint warnings, 13 stale Electron node tests, the clipboard guard). Still red on `main` and on this
+branch alike, so the first CI run will fail until they are fixed:
+
+- `pnpm lint`: two warnings in `src/components/chat-bubble.ts` (a chat file the chat track owns; use `\u` escapes in
+  its emoji character class).
+- Source guards: `src/lib/random-uuid.test.ts` (`apps/mobile`'s `src/mobile/connection/pair.ts` calls
+  `crypto.randomUUID()` without the fallback), `src/locales/vocabulary.test.ts` and `scripts/testing/analytics-docs.test.ts`
+  (read the removed `apps/docs`).
+- Linux shards: UI e2e tests whose clicks land on a fixed full-screen layer (`control-omb-ui`, `presets-ui`,
+  `sidebar-scroll-ui` and others), `ConnectAppsWindow.dom.test.ts`, `local-computer`, `setup-import`, `github-refs`,
+  `scripts/packaged-native-modules.test.mjs` (docs/LICENSING.md and the removed `deploy/podman`), the file-size
+  ratchet (main.mjs, codex.ts and three more files over their listed sizes), and slow `server/*.e2e.test.ts` timeouts.
+  Each was compared against `main` on the same machine: none is new on this branch.
