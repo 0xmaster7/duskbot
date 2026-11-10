@@ -322,6 +322,9 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .wa-i { display: block; flex: none; width: 15px; height: 15px; margin: 0 4.5px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; color: var(--wa-2); }
 .wa-awake { flex: none; display: flex; align-items: center; gap: 6px; padding-right: 4px; font-style: normal; font-size: 12px; color: var(--wa-2); }
 .wa-awake::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
+/* only the cloud looks wide awake: the mac has dozed off and the server is still being set up */
+.wa-asleep::before { background: #b4b4ba; box-shadow: 0 0 0 3px rgba(150, 150, 160, 0.16); }
+.wa-setup::before { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18); animation: pulse 1.6s ease-in-out infinite; }
 /* the one line: a label and copy above, then the whole command on a single line, sized to the panel so it never wraps or cuts */
 /* clouds float in the strip of sky above the panel, clear of it, drifting a little */
 .way-art > .perch { position: absolute; z-index: 1; right: 8%; top: 6%; width: 30%; height: auto; image-rendering: pixelated; pointer-events: none; animation: perch 9s ease-in-out infinite alternate; }
