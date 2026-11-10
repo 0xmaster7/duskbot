@@ -13,7 +13,7 @@ const bot = (id: string, fields: Partial<AmbientBot>): AmbientBot => ({
   approval: null, waits: null, question: null, ...fields,
 });
 
-it("puts the question first with its choices, stops a working bot, and says how many more wait", async () => {
+it("puts the asking bots first, answers each ask below the row for that bot only, and says how many more wait", async () => {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
   const acts: AmbientAct[] = [];
   const bridge: AmbientBridge = {
@@ -24,57 +24,58 @@ it("puts the question first with its choices, stops a working bot, and says how 
   await act(async () => root.render(createElement(Island, { bridge })));
   await act(async () => feed({
     lang: "en",
-    labels: { island: "Your bots", more: "{count} more waiting", stop: "Stop {name}", replyTo: "Reply to {name}" },
+    labels: { island: "Your bots", more: "{count} more waiting", allow: "Allow", deny: "Deny" },
     bots: [
-      bot("Echo", { status: "needs-you", waits: "approval", asks: 1, approval: { requestId: "r1", threadId: "t-Echo", title: "npm test" } }),
+      bot("Echo", { status: "needs-you", waits: "approval", asks: 1, detail: "Wants to run a command", approval: { requestId: "r1", threadId: "t-Echo", title: "npm test" } }),
       bot("Scout", { status: "working" }),
       bot("Nova", { status: "needs-you", waits: "question", asks: 1, question: { requestId: "q1", threadId: "t-Nova", title: "Which branch?", choices: ["main", "dev"] } }),
     ],
   }));
   // the compact island shows a change once it has held for a moment
   await act(async () => new Promise((resolve) => setTimeout(resolve, 650)));
-  const rows = [...host.querySelectorAll(".amb-row")];
-  expect(rows.map((row) => row.querySelector(".amb-row-name")?.textContent)).toEqual(["Nova", "Echo", "Scout"]);
+  expect([...host.querySelectorAll(".amb-strip [data-row]")].map((cell) => cell.getAttribute("data-row"))).toEqual(["Nova", "Echo", "Scout"]);
   expect(host.querySelector(".amb-more")?.textContent).toBe("+1");
   expect(host.querySelector(".amb-island-hit")?.getAttribute("aria-label")).toBe("Your bots, 1 more waiting");
-  const choices = [...rows[0]!.querySelectorAll<HTMLButtonElement>(".amb-choices button")];
-  expect(choices.map((choice) => choice.textContent)).toEqual(["main", "dev"]);
-  await act(async () => choices[1]!.click());
-  await act(async () => rows[2]!.querySelector<HTMLButtonElement>('[aria-label="Stop Scout"]')!.click());
+  // one ask per bot that waits, none for the one at work
+  const asks = [...host.querySelectorAll<HTMLElement>(".amb-ask")];
+  expect(asks.map((ask) => ask.getAttribute("data-ask"))).toEqual(["Nova", "Echo"]);
+  expect(asks[0]!.querySelector(".amb-ask-line")?.textContent).toBe("NovaWhich branch?");
+  await act(async () => [...asks[0]!.querySelectorAll<HTMLButtonElement>(".amb-choices button")].find((choice) => choice.textContent === "dev")!.click());
+  await act(async () => [...asks[1]!.querySelectorAll<HTMLButtonElement>(".amb-choices button")].find((choice) => choice.textContent === "Allow")!.click());
   expect(acts).toEqual([
     { kind: "answer", botId: "Nova", threadId: "t-Nova", requestId: "q1", text: "dev" },
-    { kind: "stop", botId: "Scout", threadId: "t-Scout" },
+    { kind: "allow", botId: "Echo", threadId: "t-Echo", requestId: "r1" },
   ]);
-  expect(rows[1]!.querySelector('[aria-label="Stop Echo"]')).toBeNull();
+  expect(host.querySelector('.amb-ask[data-ask="Scout"]')).toBeNull();
   await act(async () => root.unmount());
 });
 
-it("opens a row into that bot's mini chat in place, with its messages and a reply field, and never the app", async () => {
+it("opens into one row of mascots, no names or lines, the name in a tip under the pointer, and a click opens that bot", async () => {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
-  const acts: AmbientAct[] = [];
   const opened: string[] = [];
   const bridge: AmbientBridge = {
-    surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open: (botId) => opened.push(botId), act: (next) => acts.push(next), order() {}, ready() {},
+    surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open: (botId) => opened.push(botId), act() {}, order() {}, ready() {},
   };
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
   await act(async () => root.render(createElement(Island, { bridge, forceOpen: true })));
-  await act(async () => feed({ lang: "en", labels: { replyTo: "Reply to {name}" }, bots: [
-    bot("Nova", { status: "working", detail: "Comparing flights", chat: [{ id: "m1", from: "you", text: "Find me a flight", at: 1 }] }),
-  ] }));
-  await act(async () => host.querySelector<HTMLButtonElement>(".amb-row-main")!.click());
-  expect(opened).toEqual([]);
-  // in the chat, the bot's mascot is the way into the app
-  await act(async () => host.querySelector<HTMLButtonElement>(".amb-island-chat .amb-chat-mascot")!.click());
-  expect(opened).toEqual(["Nova"]);
-  expect([...host.querySelectorAll(".amb-island-chat .amb-bubble-msg")].map((bubble) => bubble.textContent)).toEqual(["Find me a flight"]);
-  expect(host.querySelector(".amb-island-chat .amb-chat-note")?.textContent).toBe("Comparing flights");
-  expect(host.querySelector(".amb-island-chat .amb-reply-input")?.getAttribute("aria-label")).toBe("Reply to Nova");
-  // back to every bot; there a row's mascot opens the app too
-  await act(async () => host.querySelector<HTMLButtonElement>(".amb-back")!.click());
-  expect(host.querySelector(".amb-island-chat")).toBeNull();
-  await act(async () => host.querySelector<HTMLButtonElement>(".amb-row-open")!.click());
-  expect(opened).toEqual(["Nova", "Nova"]);
+  const team = Array.from({ length: 14 }, (_, index) => bot(`Bot${index}`, { line: `said ${index}`, at: 5, chat: [{ id: "m1", from: "bot", text: "hello", at: 1 }] }));
+  await act(async () => feed({ lang: "en", labels: { open: "Open {name}" }, bots: team }));
+  const strip = host.querySelector(".amb-strip")!;
+  // every bot in the one row, however many: it scrolls sideways
+  expect(strip.querySelectorAll(".amb-strip-bot")).toHaveLength(14);
+  expect(host.querySelectorAll(".amb-strip")).toHaveLength(1);
+  // nothing but the mascots: no names, last lines, times or chats
+  expect(host.querySelector(".amb-panel")!.textContent).toBe("");
+  expect(host.querySelector(".amb-row, .amb-row-name, .amb-row-time, .amb-chat")).toBeNull();
+  const mascot = strip.querySelector<HTMLButtonElement>('[data-row="Bot3"] .amb-strip-bot')!;
+  expect(mascot.getAttribute("aria-label")).toBe("Open Bot3");
+  await act(async () => mascot.dispatchEvent(new PointerEvent("pointerover", { bubbles: true })));
+  expect(host.querySelector(".amb-tip")?.textContent).toBe("Bot3");
+  await act(async () => mascot.dispatchEvent(new PointerEvent("pointerout", { bubbles: true })));
+  expect(host.querySelector(".amb-tip")).toBeNull();
+  await act(async () => mascot.click());
+  expect(opened).toEqual(["Bot3"]);
   // the notch is never outlined while it is open: its hit target is gone
   expect(host.querySelector(".amb-island-hit")).toBeNull();
   await act(async () => root.unmount());
@@ -114,7 +115,7 @@ it("closes in a balanced beat: a pointer in the margin or back within 260 ms kee
   expect(stage.hasAttribute("data-open")).toBe(false);
   await act(async () => root.unmount());
 });
-it("lists every bot with its state in a word or two, the waiting ones first, and says when they all rest", async () => {
+it("marks each mascot's state as the dock does: blue working, green unseen reply, a numbered bubble for asks", async () => {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
   const bridge: AmbientBridge = {
     surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act() {}, order() {}, ready() {},
@@ -122,20 +123,18 @@ it("lists every bot with its state in a word or two, the waiting ones first, and
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
   await act(async () => root.render(createElement(Island, { bridge, forceOpen: true })));
-  const labels = { idle: "Idle", working: "Working", "needs-you": "Needs you", error: "Failed", done: "Replied", quiet: "Your bots are resting" };
-  await act(async () => feed({ lang: "en", labels, bots: [
+  await act(async () => feed({ lang: "en", labels: { working: "Working", "needs-you": "Needs you", open: "Open {name}" }, bots: [
     bot("Ada", {}),
     bot("Bolt", { status: "working", detail: "Deploying" }),
+    bot("Rivet", { status: "done", unread: true, line: "Fixed." }),
     bot("Cinder", { status: "error", unread: true, line: "Build failed." }),
-    bot("Atlas", { status: "needs-you", waits: "approval", asks: 1 }),
+    bot("Atlas", { status: "needs-you", waits: "approval", asks: 2 }),
   ] }));
-  const rows = [...host.querySelectorAll(".amb-row")].map((row) => [row.querySelector(".amb-row-name")?.textContent, row.querySelector(".amb-row-state")?.textContent]);
-  // a resting bot stays quiet: no state word
-  expect(rows).toEqual([["Atlas", "Needs you"], ["Cinder", "Failed"], ["Bolt", "Working"], ["Ada", undefined]]);
-  expect(host.querySelector('.amb-count[data-status="idle"]')).toBeNull();
-  await act(async () => feed({ lang: "en", labels, bots: [bot("Ada", {}), bot("Bolt", {})] }));
-  expect(host.querySelector('.amb-count[data-status="idle"]')?.textContent).toBe("Your bots are resting");
-  expect(host.querySelectorAll(".amb-row")).toHaveLength(2);
+  const cells = [...host.querySelectorAll(".amb-strip [data-row]")];
+  const marks = cells.map((cell) => [cell.getAttribute("data-row"), cell.querySelector(".amb-state-dot")?.getAttribute("data-state") ?? null, cell.querySelector(".amb-bubble")?.textContent ?? null]);
+  expect(marks).toEqual([["Atlas", null, "2"], ["Cinder", null, "!"], ["Bolt", "working", null], ["Rivet", "done", null], ["Ada", null, null]]);
+  // the state is in each mascot's name for a screen reader, not only its colour
+  expect(cells[2]!.querySelector("button")?.getAttribute("aria-label")).toBe("Open Bolt. Working");
   await act(async () => root.unmount());
 });
 
@@ -150,6 +149,6 @@ it("shows nothing with no bots: no notch face, no panel, no placeholder", async 
   await act(async () => feed({ lang: "en", labels: {}, bots: [] }));
   expect(host.querySelector(".amb-stage")?.hasAttribute("data-empty")).toBe(true);
   expect(host.querySelector(".amb-compact-tile")).toBeNull();
-  expect(host.querySelector(".amb-row")).toBeNull();
+  expect(host.querySelector(".amb-strip-bot")).toBeNull();
   await act(async () => root.unmount());
 });
