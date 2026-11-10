@@ -2,12 +2,14 @@
 // `spend/<YYYY-MM>.jsonl`, written and synced before the provider is asked for anything it could bill. On start the books
 // are rebuilt by replaying the last two months through the same functions the live path uses. Nothing here names a
 // provider: a start is cents, a machine is a rate.
-import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, writeSync } from "node:fs";
+import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readdirSync, readFileSync, writeSync } from "node:fs";
 import { join } from "node:path";
 import { advanceBook, applySpend, DEFAULT_CEILING, monthOf, openBook, spendView, storageCommitCents, worstStartCents, type CeilingSettings, type SpendBook, type SpendEvent, type SpendView } from "./power/ceiling.ts";
 import type { ProviderCostProfile } from "./power/cost.ts";
 
 export interface SpendStore {
+  /** the months the log has, as YYYY-MM */
+  months(): string[];
   /** the lines of these months, oldest month first, in the order written */
   lines(months: readonly string[]): string[];
   append(month: string, line: string): void;
@@ -15,6 +17,7 @@ export interface SpendStore {
 export function fileSpendStore(dataDir: string): SpendStore {
   const dir = join(dataDir, "spend");
   return {
+    months: () => existsSync(dir) ? readdirSync(dir).filter(f => /^\d{4}-\d{2}\.jsonl$/.test(f)).map(f => f.slice(0, 7)) : [],
     lines: months => months.flatMap(m => { const file = join(dir, `${m}.jsonl`); return existsSync(file) ? readFileSync(file, "utf8").split("\n") : []; }),
     append(month, line) {
       mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -25,7 +28,7 @@ export function fileSpendStore(dataDir: string): SpendStore {
 }
 export function memorySpendStore(): SpendStore & { all: Array<{ month: string; line: string }> } {
   const all: Array<{ month: string; line: string }> = [];
-  return { all, lines: months => months.flatMap(m => all.filter(x => x.month === m).map(x => x.line)), append: (month, line) => { all.push({ month, line }); } };
+  return { all, months: () => [...new Set(all.map(x => x.month))], lines: months => months.flatMap(m => all.filter(x => x.month === m).map(x => x.line)), append: (month, line) => { all.push({ month, line }); } };
 }
 
 /** what a home's book opens with when the log has none for it */
@@ -89,10 +92,9 @@ export function createSpendLedger(options: {
   }
   function write(t: number, c: string, ev: SpendEvent) { store.append(monthOf(t).key, JSON.stringify({ t, c, ...ev })); }
 
-  // replay: the previous month carries every book into this one
+  // replay the log's newest two months (whatever the clock says at boot): the older one carries every book into the newer
   {
-    const now = options.now(), cur = monthOf(now), prev = monthOf(cur.start - 1);
-    for (const raw of store.lines([prev.key, cur.key])) {
+    for (const raw of store.lines([...new Set(store.months())].sort().slice(-2))) {
       if (!raw.trim()) continue;
       const line = parse(raw);
       if (!line) { bad++; continue; }
@@ -107,6 +109,8 @@ export function createSpendLedger(options: {
     // a torn last line is a write that never finished, so nothing was asked of the provider after it
     if (bad) options.alert?.("fleet", `spend ledger: ${bad} unreadable line(s) skipped on load`);
   }
+  // the monotonic clock is anchored at boot: from here a wall-clock jump is not taken as time passing
+  clock();
 
   /** the book for a home, opened (and logged) when the log has none, accrued to now; a new month is logged as it carries */
   function book(c: string, init: () => SpendInit): { b: SpendBook; t: number } {

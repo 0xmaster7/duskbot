@@ -3,11 +3,12 @@
 // provider's own prices, and (for the fuzz tests) provider faults. It drives the production policy (decide and wake,
 // with its rails) or a baseline through the same small interface, and reports cost, starts, waits and routine timing.
 import type { MachineSpec } from "../../../../shared/billing-api.ts";
+import { advanceBook, applySpend, ceilingFactor, DEFAULT_CEILING, monthOf, openBook, spendView, worstStartCents, type SpendBook, type SpendEvent, type SpendView } from "./ceiling.ts";
 import { DAY, HOUR, MINUTE, type ProviderCostProfile } from "./cost.ts";
 import { createRollingPool, type RollingPool } from "./pool.ts";
 import { createPowerPolicy, DEFAULT_POLICY, type PolicyParams } from "./policy.ts";
 import { observe, type PredictorParams } from "./predictor.ts";
-import { freshMemory, noteFailure, noteHealthy, noteStart, noteStop, startRefusal, type PowerMemory, type StartKind } from "./rails.ts";
+import { DEFAULT_RAILS, freshMemory, INTENT_KINDS, noteFailure, noteHealthy, noteStart, noteStop, startRefusal, type PowerMemory, type StartKind } from "./rails.ts";
 import { plannedRuns } from "./schedule.ts";
 
 export function mulberry32(seed: number): () => number {
@@ -83,6 +84,9 @@ export interface SimHome {
   genDay: number;
   /** the next roll of the lost-machine fault */
   lostCheckAt: number;
+  /** the home's monthly cost book, as the lifecycle keeps it (spend.ts), and its worst start price */
+  book: SpendBook;
+  worstCents: number;
 }
 
 export interface Decider {
@@ -131,6 +135,11 @@ export interface UserResult {
   maxStartsDay: number;
   limited: number;
   failedStarts: number;
+  /** wakes somebody waited for that the monthly ceiling held back */
+  costRefusals: number;
+  /** what the provider billed per calendar month (compute, starts at their real price, backup storage) against the
+   *  ceiling; `complete` when the run covered the month's end (the first month counts from its first day, as the book does) */
+  months: Array<{ key: string; spendCents: number; ceilingCents: number; complete: boolean }>;
 }
 export interface SimResult {
   decider: string;
@@ -157,6 +166,8 @@ export interface SimOptions {
   caps?: { hour: number; day: number };
   /** faults stop at this time (the fleet then has to recover by itself) */
   faultsUntil?: number;
+  /** each home's backup storage, in bytes (counted against its ceiling) */
+  backupBytes?: number;
 }
 
 const FAIL_TIMEOUT_MS = 5 * MINUTE;
@@ -213,16 +224,19 @@ export function simulate(options: SimOptions): SimResult {
   const violations: string[] = [];
   const violate = (text: string) => { if (violations.length < 200) violations.push(text); else violations[199] = `${text} (and more)`; };
   const peak = { minute: 0, hour: 0, day: 0 };
+  const worst = worstStartCents(profile), bytes = options.backupBytes ?? 0;
   const results: UserResult[] = [];
   const startLog: number[][] = [];
   const homes: SimHome[] = options.users.map((user, i) => {
     results.push({ id: user.id, persona: user.persona.name, computeCents: 0, startCents: 0, starts: 0, paidStarts: 0, heldResumes: 0, intents: 0, waited: 0, waitMs: [], waitCents: 0,
-      runs: 0, runsLate: 0, runsMissed: 0, awakeMs: 0, stops: 0, quickRestarts: 0, minStopGapMs: Number.POSITIVE_INFINITY, maxStartsHour: 0, maxStartsDay: 0, limited: 0, failedStarts: 0 });
+      runs: 0, runsLate: 0, runsMissed: 0, awakeMs: 0, stops: 0, quickRestarts: 0, minStopGapMs: Number.POSITIVE_INFINITY, maxStartsHour: 0, maxStartsDay: 0, limited: 0, failedStarts: 0,
+      costRefusals: 0, months: [] });
     startLog.push([]);
     const skewMs = faults.skewMs ? Math.round((faultRand() * 2 - 1) * faults.skewMs) : 0;
     return { user, machine: "on", heldUntil: 0, readyAt: start, startAt: start, failing: false, stopDoneAt: 0, awakeSince: start, busyUntil: 0, busyKind: "turn",
       lastActivityAt: null, wakeRequestedAt: null, lastStopAt: null, skewMs, memory: freshMemory(start), events: [], ei: 0, runs: [], waiting: [], nextCheck: start + MINUTE + i % 60 * 1000,
-      plannedWakeAt: null, genDay: 0, lostCheckAt: start + HOUR } satisfies SimHome;
+      plannedWakeAt: null, genDay: 0, lostCheckAt: start + HOUR,
+      book: openBook(start, { e: "open", rate: profile.computeCentsPerHour(user.spec), floor: profile.floorCentsPerHour, up: true, bytes, prepaid: false, before: false }), worstCents: worst } satisfies SimHome;
   });
   const index = new Map(homes.map((h, i) => [h, i]));
   const rateOf = (h: SimHome) => profile.computeCentsPerHour(h.user.spec) / HOUR;
@@ -239,10 +253,19 @@ export function simulate(options: SimOptions): SimResult {
       h.genDay++;
     }
   }
+  /** the provider's bill by calendar month, apart from the measured window */
+  function bill(h: SimHome, at: number, cents: number) {
+    const key = monthOf(at).key, months = res(h).months;
+    let m = months.find(x => x.key === key);
+    if (!m) { m = { key, spendCents: 0, ceilingCents: 0, complete: false }; months.push(m); }
+    m.spendCents += cents;
+  }
   function compute(h: SimHome, from: number, to: number) {
     const a = Math.max(from, measureFrom), b = Math.min(to, end);
     if (b > a) { res(h).computeCents += rateOf(h) * (b - a); res(h).awakeMs += b - a; }
+    for (let x = from; x < Math.min(to, end);) { const until = Math.min(to, end, monthOf(x).end); bill(h, x, rateOf(h) * (until - x)); x = until; }
   }
+  function note(h: SimHome, now: number, ev: SpendEvent) { advanceBook(h.book, now); applySpend(h.book, ev); }
   function serve(h: SimHome, e: IntentEvent, at: number) {
     const wait = Math.max(0, at - e.at), r = res(h);
     if (e.at >= measureFrom) {
@@ -264,7 +287,9 @@ export function simulate(options: SimOptions): SimResult {
     h.lastStopAt = now;
     if (now >= measureFrom) res(h).stops++;
     if (decider.real && !(faults.crashMidStop && faultRand() < faults.crashMidStop)) noteStop(h.memory, now);
+    note(h, now, { e: "stop" });
     const stuck = faults.stuckStop && faultRand() < faults.stuckStop;
+    if (!stuck) note(h, now, { e: "down" });
     h.machine = stuck ? "stopping" : "off";
     h.stopDoneAt = stuck ? now + Math.floor(faultRand() * faults.stuckMs) : now;
     h.heldUntil = faultRand() < profile.held.probability ? h.stopDoneAt + profile.held.windowMs : 0;
@@ -275,12 +300,18 @@ export function simulate(options: SimOptions): SimResult {
     if (h.machine === "stopping") { h.nextCheck = Math.min(h.nextCheck, h.stopDoneAt); return false; }
     if (h.machine !== "off") return true;
     if (decider.real) {
-      const refused = startRefusal({ now, kind, latest: null, memory: h.memory, pool: { used: ledger.used(now), blockedUntil }, profile });
-      if (refused) { h.nextCheck = Math.min(h.nextCheck, refused.recheckAt); return false; }
+      const refused = startRefusal({ now, kind, latest: null, memory: h.memory, pool: { used: ledger.used(now), blockedUntil }, profile, spend: simSpendView(h, now) });
+      if (refused) {
+        if (refused.reason.startsWith("cost_") && INTENT_KINDS.has(kind) && now >= measureFrom) res(h).costRefusals++;
+        h.nextCheck = Math.min(h.nextCheck, refused.recheckAt); return false;
+      }
     }
     if (blockedUntil !== null && blockedUntil > now) { h.nextCheck = Math.min(h.nextCheck, blockedUntil); return false; }
     const r = res(h), counting = now >= measureFrom;
+    // charged to the book at the worst price before the provider is asked, settled once the ledger proves the price
+    note(h, now, { e: "start", kind, cents: worst });
     if (faults.limit && faultRand() < faults.limit) {
+      note(h, now, { e: "settle", cents: worst, void: true });
       blockedUntil = now + 30_000 + Math.floor(faultRand() * 270_000);
       if (counting) r.limited++;
       h.nextCheck = Math.min(h.nextCheck, blockedUntil); return false;
@@ -290,14 +321,17 @@ export function simulate(options: SimOptions): SimResult {
       const used = pool.used(now), price = profile.startCents(used);
       if (!Number.isFinite(price)) {
         violate(`${h.user.id} start refused by the provider's hard cap at ${now}`);
+        note(h, now, { e: "settle", cents: worst, void: true });
         blockedUntil = Math.min(...(["minute", "hour", "day"] as const).map(w => pool.roomAt(now, w, profile.hardCap[w])).filter(t => t > now), now + MINUTE);
         h.nextCheck = Math.min(h.nextCheck, blockedUntil); return false;
       }
-      pool.add(now);
+      pool.add(now); bill(h, now, price);
       const u = pool.used(now);
       peak.minute = Math.max(peak.minute, u.minute); peak.hour = Math.max(peak.hour, u.hour); peak.day = Math.max(peak.day, u.day);
       if (counting) { r.starts++; r.startCents += price; if (price > 0) r.paidStarts++; }
     } else if (counting) r.heldResumes++;
+    const proven = profile.startCents(ledger.used(now));
+    if (Number.isFinite(proven) && proven < worst) note(h, now, { e: "settle", cents: worst - proven });
     ledger.add(now);
     if (decider.real) noteStart(h.memory, now);
     const log = startLog[index.get(h)!]!;
@@ -351,16 +385,16 @@ export function simulate(options: SimOptions): SimResult {
     generate(h, t);
     // what is due now, in a fixed order
     if (h.machine === "starting" && h.failing && t >= h.startAt + FAIL_TIMEOUT_MS) {
-      compute(h, h.startAt, t); h.machine = "off"; h.heldUntil = 0;
+      compute(h, h.startAt, t); h.machine = "off"; h.heldUntil = 0; note(h, t, { e: "down" });
       if (t >= measureFrom) res(h).failedStarts++;
       if (decider.real) noteFailure(h.memory, t);
       h.nextCheck = t;
     } else if (h.machine === "starting" && !h.failing && t >= h.readyAt) ready(h, t);
-    if (h.machine === "stopping" && t >= h.stopDoneAt) h.machine = "off";
+    if (h.machine === "stopping" && t >= h.stopDoneAt) { h.machine = "off"; note(h, t, { e: "down" }); }
     if (h.machine === "on" && faults.lostPerHour && t >= h.lostCheckAt) {
       h.lostCheckAt = t + HOUR;
       // lost: it stops by itself (no pre-stop, no held machine); work under way is resumed at once, as the lifecycle does
-      if (faultRand() < faults.lostPerHour) { const busy = t < h.busyUntil; h.busyUntil = Math.min(h.busyUntil, t); compute(h, h.startAt, t); h.machine = "off"; h.heldUntil = 0; if (busy) startHome(h, t, "recover"); }
+      if (faultRand() < faults.lostPerHour) { const busy = t < h.busyUntil; h.busyUntil = Math.min(h.busyUntil, t); compute(h, h.startAt, t); h.machine = "off"; h.heldUntil = 0; note(h, t, { e: "down" }); if (busy) startHome(h, t, "recover"); }
     }
     while (h.events[h.ei] && h.events[h.ei]!.at <= t) intent(h, h.events[h.ei++]!, t);
     const run = h.runs.find(r => !r.started);
@@ -386,11 +420,29 @@ export function simulate(options: SimOptions): SimResult {
     heap.push(Math.max(t + 1, nextTime(h)), i);
   }
   for (const h of homes) if (h.machine === "on" || h.machine === "starting") compute(h, h.startAt, end);
+  // the ceiling per calendar month and the backups' storage; a month counts from its first day (the book opens that way)
+  for (const h of homes) {
+    const r = res(h), rate = profile.computeCentsPerHour(h.user.spec);
+    for (let at = monthOf(start).start; at < end; at = monthOf(at).end) {
+      const mo = monthOf(at), covered = (Math.min(end, mo.end) - Math.max(start, mo.start)) / HOUR;
+      bill(h, at, bytes / 1e9 * DEFAULT_CEILING.storageCentsPerGbMonth * covered / mo.hours);
+      const m = r.months.find(x => x.key === mo.key)!;
+      m.ceilingCents = rate * ceilingFactor(mo.hours) * (Math.min(end, mo.end) - mo.start) / HOUR;
+      m.complete = end >= mo.end;
+    }
+    r.months.sort((a, b) => a.key.localeCompare(b.key));
+  }
   if (options.caps) for (const r of results) {
     if (r.maxStartsHour > options.caps.hour) violations.push(`${r.id} made ${r.maxStartsHour} starts in an hour`);
     if (r.maxStartsDay > options.caps.day) violations.push(`${r.id} made ${r.maxStartsDay} starts in a day`);
   }
   return { decider: decider.name, days: options.days - (options.warmupDays ?? 0), users: results, peak, violations };
+}
+
+/** the home's book as the rails read it, accrued to `now` */
+export function simSpendView(h: SimHome, now: number): SpendView {
+  advanceBook(h.book, now);
+  return spendView(h.book, h.worstCents, DEFAULT_RAILS.costReserveStarts);
 }
 
 // ---- the deciders: the production policy, and the baselines it is measured against
@@ -406,12 +458,12 @@ export function adaptiveDecider(params: PolicyParams = DEFAULT_POLICY, name = "a
       decide(h, t) {
         now = t;
         const d = policy.decide({ now: t, cloudId: h.user.id, spec: h.user.spec, awakeSince: h.awakeSince, lastActivityAt: h.lastActivityAt, busy: env.busy(h, t), focusSince: null,
-          nextDueAt: null, upcoming: upcoming(h, t), homeIdle: true, wakeRequestedAt: h.wakeRequestedAt, memory: h.memory });
+          nextDueAt: null, upcoming: upcoming(h, t), homeIdle: true, wakeRequestedAt: h.wakeRequestedAt, memory: h.memory, spend: simSpendView(h, t) });
         return { stop: d.action === "stop", recheckAt: Math.min(Math.max(d.recheckAt, t + MINUTE), t + 5 * MINUTE), reason: d.reason };
       },
       wake(h, t) {
         now = t;
-        const w = policy.wake({ now: t, cloudId: h.user.id, nextDueAt: null, upcoming: upcoming(h, t), memory: h.memory });
+        const w = policy.wake({ now: t, cloudId: h.user.id, nextDueAt: null, upcoming: upcoming(h, t), memory: h.memory, spend: simSpendView(h, t) });
         return { start: w.start, recheckAt: w.recheckAt };
       },
     };
