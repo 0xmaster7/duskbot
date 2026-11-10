@@ -49,7 +49,7 @@ export async function boatFixture(options: { retentionDays?: number; setupPolls?
     return { exitCode: 0, stdout: "" };
   });
   const provider = createBoatProvider({ apiKey: api.key, baseUrl: api.baseUrl, scope: "0123456789abcdef" });
-  const power: HomePower = { idle: false, busy: ["recent-activity"], lastActivityAt: at, nextDueAt: null, wokeAt: at };
+  const power: HomePower = { idle: false, busy: ["recent-activity"], lastActivityAt: null, nextDueAt: null, wokeAt: at };
   const home = { healthy: vi.fn(async () => true), pair: vi.fn(async () => ({ code: "ABCD-EFGH-JKLM", expiresAt: at + 300_000 })),
     power: vi.fn(async () => ({ ...power })), entitle: vi.fn(async (_origin: string, _secret: string, _token: string) => ({ expiresAt: at + DAY_MS })), sleep: vi.fn(async () => ({ ok: power.idle, nextDueAt: power.nextDueAt })), plan: vi.fn(async () => {}) };
   const subscriptions: StoredSubscription[] = [];
@@ -78,11 +78,17 @@ export async function boatFixture(options: { retentionDays?: number; setupPolls?
     for (let n = 0; n < 20 && c.status === "provisioning"; n++) { await service.reconcile(); c.nextAttemptAt = 0; }
     return { c, sub };
   }
-  async function settle(c: StoredCloud, until: (c: StoredCloud) => boolean, max = 20) {
-    for (let n = 0; n < max && !until(c); n++) { c.nextAttemptAt = 0; await service.reconcile(); }
+  /** reconciles until `until` holds; `stepMs` lets time pass between passes (the power policy decides as time goes by) */
+  async function settle(c: StoredCloud, until: (c: StoredCloud) => boolean, max = 20, stepMs = 0) {
+    for (let n = 0; n < max && !until(c); n++) { c.nextAttemptAt = 0; await service.reconcile(); if (!until(c)) at += stepMs; }
     expect(until(c)).toBe(true);
   }
-  return { api, provider, service, home, power, subscriptions, notices, alerts, audit, backups, dataDir, paid, settle, workspaces,
+  /** an idle home, left alone until the policy puts it to sleep (at most five hours) */
+  async function asleep(c: StoredCloud) {
+    power.idle = true; power.busy = [];
+    await settle(c, x => x.status === "sleeping", 60, 5 * 60_000);
+  }
+  return { api, provider, service, home, power, subscriptions, notices, alerts, audit, backups, dataDir, paid, settle, asleep, workspaces,
     advance(ms: number) { at += ms; }, now };
 }
 

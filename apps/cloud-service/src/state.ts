@@ -1,5 +1,7 @@
 // A managed cloud's own record, kept on the cloud as `StoredCloud.managed` (the dashboard stores it opaquely).
 import type {} from "../../dashboard/server/clouds/types.ts";
+import type { PowerMemory } from "./power/rails.ts";
+import type { PlannedRun } from "./power/schedule.ts";
 
 /** one managed home's lifecycle record (lifecycle.ts) */
 export interface HomeLifecycleState {
@@ -21,7 +23,15 @@ export interface HomeLifecycleState {
   edgeWakes?: number[];
   /** when an open, focused app began keeping the home up (the sleep policy caps it at 30 minutes) */
   focusSince?: number | null;
-  /** why the sleep policy last kept an idle home up, for the operator */
+  /** the power policy's memory of this home: its starts, stops, failed starts, breaker and learned activity */
+  power?: PowerMemory;
+  /** the runs ahead as the home last reported them */
+  upcoming?: PlannedRun[] | null;
+  /** what asked for the pending wake: a webhook (a connector) or the app */
+  wakeBy?: "webhook" | "client" | null;
+  /** the current wake's failure was counted already */
+  wakeFailureNoted?: boolean;
+  /** why the power policy or the rails last kept a home up (or a sleeping one asleep), for the operator */
   stayReason?: string | null;
   wakeStartedAt: number | null;
   /** `keep`: from a replaced sandbox's own disk, never pruned; `source`: that sandbox */

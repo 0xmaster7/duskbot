@@ -9,8 +9,8 @@ import { boatFixture } from "./test-fixture.ts";
 const TOKEN = "e".repeat(40), DOMAIN = "desktops.example.com", ROUTE_URL = "https://dash.example.test";
 afterEach(() => vi.unstubAllGlobals());
 
-async function edged() {
-  const f = await boatFixture({ settings: { publicDomain: DOMAIN, edgeWakesPerHour: 3 }, edgeToken: TOKEN });
+async function edged(edgeWakesPerHour = 3) {
+  const f = await boatFixture({ settings: { publicDomain: DOMAIN, edgeWakesPerHour }, edgeToken: TOKEN });
   const { c } = await f.paid();
   const handle = f.service.managed!.handle!;
   const hooks: Array<{ path: string; body: string }> = [];
@@ -36,8 +36,7 @@ async function edged() {
   const env = { ROUTE_URL, EDGE_TOKEN: TOKEN, PUBLIC_DOMAIN: DOMAIN }, ctx = { waitUntil() {} };
   const send = (path: string, init: RequestInit = {}) => worker.fetch(new Request(`${c.origin}${path}`, init), env, ctx);
   async function asleep() {
-    f.advance(3 * 60_000); f.power.idle = true; f.power.busy = [];
-    await f.settle(c, c => c.status === "sleeping");
+    await f.asleep(c);
     await f.service.reconcile();
     expect(f.api.sandboxes.get(c.serverId!)!.state).toBe("archived");
     f.power.idle = false; f.power.busy = ["recent-activity"];
@@ -66,19 +65,30 @@ describe("the public edge and a sleeping home", () => {
     expect(f.audit.entries(c.id).map(e => `${e.action}:${e.actor}`)).toEqual(expect.arrayContaining(["wake_asked:edge", "awake:reconciler"]));
   }, 30_000);
 
-  it("never wakes a home for anonymous traffic, and caps the wakes strangers can cause", async () => {
-    const { f, c, send, asleep } = await edged();
+  it("never wakes a home for anonymous traffic, and webhook storms never make it flap", async () => {
+    const { f, c, send, asleep } = await edged(60);
     await asleep();
     const anonymous = await send("/");
     expect(anonymous.status).toBe(503);
     expect(anonymous.headers.get("retry-after")).toBe("5");
     await f.service.reconcile();
     expect(f.api.sandboxes.get(c.serverId!)!.state).toBe("archived");
-    // the cap counts wakes, not requests: three wakes an hour here, then 429 until the hour has passed
-    for (let n = 0; n < 3; n++) {
+    // a stranger's webhook every few minutes: each wake is a start, so the home's start budget keeps it up instead
+    for (let n = 0; n < 12; n++) {
       expect((await send("/hooks/x", { method: "POST", body: "1" })).status).toBe(200);
-      await asleep();
+      f.power.idle = true; f.power.busy = [];
+      for (let k = 0; k < 2 && c.status !== "sleeping"; k++) { f.advance(4 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
     }
+    const starts = f.audit.entries(c.id).filter(e => e.action === "wake" || e.action === "create").map(e => e.at);
+    for (const t of starts) expect(starts.filter(x => x > t - 3_600_000 && x <= t).length).toBeLessThanOrEqual(4);
+    expect(starts.length).toBeLessThan(12);
+  }, 90_000);
+
+  it("caps the wakes strangers can cause at the edge", async () => {
+    const { f, c, send, asleep } = await edged(1);
+    await asleep();
+    expect((await send("/hooks/x", { method: "POST", body: "1" })).status).toBe(200);
+    await asleep();
     const capped = await send("/hooks/x", { method: "POST", body: "1" });
     expect(capped.status).toBe(429);
     expect(f.api.sandboxes.get(c.serverId!)!.state).toBe("archived");

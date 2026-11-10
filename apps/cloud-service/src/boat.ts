@@ -8,7 +8,7 @@ import type { MachineSpec } from "../../../shared/billing-api.ts";
 import { boundedJson, RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
 import type { ProviderServer } from "../../dashboard/server/clouds/types.ts";
 import { ProviderError, ProviderLimitError, ProviderBusyError, type MachineProvider, type MachineState, type MachineRecord, type MachineCreateInput, type MachineCommandResult, type MachineDeletion } from "./provider.ts";
-import type { ProviderPricing } from "./sleep-policy.ts";
+import type { ProviderCostProfile } from "./power/cost.ts";
 
 export const BOAT_SIZES = [
   { type: "small", vcpu: 2, ramGb: 4, diskGb: 51 },
@@ -17,19 +17,47 @@ export const BOAT_SIZES = [
   { type: "xlarge", vcpu: 16, ramGb: 32, diskGb: 251 },
 ] as const;
 export type BoatSize = (typeof BOAT_SIZES)[number]["type"];
-/** Boat's prices (docs.boat.dev pricing.md and limits.md, read 2026-11-10): per second while running; starts included per
- *  plan per day, then $0.03 to 1.5x, $0.05 to 2x, $0.07 to 6x, and refused past 6x */
-export const BOAT_PRICING: ProviderPricing = {
-  hourlyCents: spec => ({ small: 1.8, default: 3.6, large: 7.2, xlarge: 20 })[BOAT_SIZES.find(z => z.vcpu >= spec.vcpu && z.ramGb >= spec.ramGb)?.type ?? "xlarge"],
-  startCostCents(nth, included) {
-    if (nth <= included) return 0;
-    if (nth <= included * 1.5) return 3;
-    if (nth <= included * 2) return 5;
-    if (nth <= included * 6) return 7;
-    return Number.POSITIVE_INFINITY;
-  },
-  hardCapFactor: 6,
-};
+/** Boat's compute prices (docs.boat.dev pricing.md, read 2026-11-10): cents per hour, billed per second while running */
+export function boatHourlyCents(spec: MachineSpec): number {
+  return ({ small: 1.8, default: 3.6, large: 7.2, xlarge: 20 })[BOAT_SIZES.find(z => z.vcpu >= spec.vcpu && z.ramGb >= spec.ramGb)?.type ?? "xlarge"];
+}
+/** Boat's start pool per plan (limits.md, read 2026-11-10): included starts per rolling minute, hour and day, pooled per
+ *  wallet. Extra starts cost $0.03 to 1.5x, $0.05 to 2x, $0.07 to 6x (3x for the minute window), the highest of the three
+ *  windows' brackets; past that a start is refused with a 429 that names the window and `nextStartAt`. */
+export const BOAT_PLANS = {
+  trial: { minute: 5, hour: 25, day: 75 },
+  "20": { minute: 12, hour: 60, day: 200 },
+  "100": { minute: 30, hour: 210, day: 840 },
+  "500": { minute: 65, hour: 420, day: 1680 },
+  "2000": { minute: 90, hour: 600, day: 2400 },
+} as const;
+export type BoatPlan = keyof typeof BOAT_PLANS;
+const HARD_FACTOR = { minute: 3, hour: 6, day: 6 } as const;
+
+/** Boat as a ProviderCostProfile. `scale` multiplies the pool (seats on the $2000 plan, or one user's share of it in the
+ *  simulator). The kept machine: a resume within 10 minutes of a stop usually gets it back and is no start; "usually" is
+ *  unquantified, so 0.7. Wake times are ours: the machine is ready in seconds, our home answers about a minute after. */
+export function boatCostProfile(options: { plan?: BoatPlan; scale?: number; heldProbability?: number; coldWakeMs?: number; heldWakeMs?: number } = {}): ProviderCostProfile {
+  const base = BOAT_PLANS[options.plan ?? "20"], scale = options.scale ?? 1;
+  const included = { minute: base.minute * scale, hour: base.hour * scale, day: base.day * scale };
+  const hardCap = { minute: included.minute * HARD_FACTOR.minute, hour: included.hour * HARD_FACTOR.hour, day: included.day * HARD_FACTOR.day };
+  return {
+    computeCentsPerHour: boatHourlyCents,
+    included, hardCap,
+    startCents(used) {
+      let price = 0;
+      for (const w of ["minute", "hour", "day"] as const) {
+        const ratio = (used[w] + 1) / Math.max(1e-9, included[w]);
+        const bracket = ratio <= 1 ? 0 : ratio <= 1.5 ? 3 : ratio <= 2 ? 5 : ratio <= HARD_FACTOR[w] ? 7 : Number.POSITIVE_INFINITY;
+        price = Math.max(price, bracket);
+      }
+      return price;
+    },
+    held: { windowMs: 10 * 60_000, probability: options.heldProbability ?? 0.7 },
+    wakeMs: { cold: options.coldWakeMs ?? 60_000, held: options.heldWakeMs ?? 15_000 },
+  };
+}
+
 /** the public port of the home's edge (server/cloud-home-start.ts) */
 export const BOAT_HOME_PORT = 8080;
 const SANDBOX_ID = /^bx_[23456789abcdefghjkmnpqrstuvwxyz]{8}$/;

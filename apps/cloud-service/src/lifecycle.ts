@@ -3,10 +3,14 @@
 // retention.ts. One step per reconcile, each safe to repeat after a crash.
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { ROUTINE_GUARD_MS, type SleepPolicy } from "./sleep-policy.ts";
-import type { StartKind, StartLedger } from "./starts.ts";
+import type { SleepPolicy } from "./power/policy.ts";
+import type { ProviderCostProfile } from "./power/cost.ts";
+import { DEFAULT_RAILS, freshMemory, noteFailure, noteHealthy, noteStart, noteStop, prune, startRefusal, stopRefusal, type PowerMemory, type RailSettings } from "./power/rails.ts";
+import { validStats } from "./power/predictor.ts";
+import { nextRun, plannedRuns, runnableFrom } from "./power/schedule.ts";
+import { StartCapError, type StartKind, type StartLedger } from "./starts.ts";
 import { linkKeys } from "../../dashboard/server/clouds/bootstrap.ts";
-import { ProviderError, ProviderLimitError, type MachineProvider, type MachineImage } from "./provider.ts";
+import { ProviderBusyError, ProviderError, ProviderLimitError, type MachineProvider, type MachineImage } from "./provider.ts";
 import { verifyRelease, type ReleaseKey } from "./release-signing.ts";
 import { homeBackupKey, homeVolumeProblem, type BackupStore } from "./backups.ts";
 import { DAY_MS, DEFAULT_DELETE_DELAY_DAYS, DEFAULT_RETENTION_DAYS, deletionVerdict, dueNotice, type Entitlement, type NoticeKind, type Verdict } from "./retention.ts";
@@ -19,7 +23,7 @@ import type { HomeLifecycleState } from "./state.ts";
 const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, REFRESH_SPACING_MS = 10 * MINUTE;
 
 export interface ManagedSettings {
-  /** minutes without use before a home is asked to sleep (DUSK_MANAGED_IDLE_MINUTES) */
+  /** the shortest idle before any stop, in minutes (DUSK_MANAGED_IDLE_MINUTES); the power policy decides past it */
   idleMinutes: number;
   /** the provider's own auto-stop, extended while the home is up: a dead-man switch if this service stops (DUSK_MANAGED_LEASE_HOURS) */
   leaseSeconds: number;
@@ -56,8 +60,8 @@ export interface ManagedSettings {
   lostAfterMs: number;
 }
 export const DEFAULT_MANAGED_SETTINGS: ManagedSettings = {
-  idleMinutes: 15, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, refreshAfterMs: 11 * DAY_MS, retentionDays: DEFAULT_RETENTION_DAYS,
-  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 10 * MINUTE, edgeWakesPerHour: 20, includedStarts: 200, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
+  idleMinutes: 3, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, refreshAfterMs: 11 * DAY_MS, retentionDays: DEFAULT_RETENTION_DAYS,
+  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 4 * MINUTE, edgeWakesPerHour: 20, includedStarts: 200, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
 /** settings from DUSK_MANAGED_* (index.ts `managedEnv` maps the older names onto these) */
@@ -83,12 +87,12 @@ export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopba
   if (!pkg && !template) throw new Error("A managed cloud needs DUSK_MANAGED_HOME_PACKAGE_URL (or _FILE) with DUSK_MANAGED_HOME_PACKAGE_SHA256, or DUSK_MANAGED_TEMPLATE.");
   return { ...DEFAULT_MANAGED_SETTINGS, template, package: pkg, templateSignature: env.DUSK_MANAGED_TEMPLATE_SIGNATURE || null, publicDomain,
     requireSigned: !options.loopback, claims: !options.loopback,
-    idleMinutes: number("DUSK_MANAGED_IDLE_MINUTES", 5, 24 * 60, 15),
+    idleMinutes: number("DUSK_MANAGED_IDLE_MINUTES", 1, 24 * 60, 3),
     leaseSeconds: number("DUSK_MANAGED_LEASE_HOURS", 1, 720, 2) * 3600,
     backupEveryMs: number("DUSK_MANAGED_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
     backupKeep: number("DUSK_MANAGED_BACKUP_KEEP", 2, 30, 3),
     refreshAfterMs: number("DUSK_MANAGED_REFRESH_DAYS", 3, 13, 11) * DAY_MS,
-    wakeLeadMs: number("DUSK_MANAGED_WAKE_LEAD_MINUTES", 1, 30, 10) * MINUTE,
+    wakeLeadMs: number("DUSK_MANAGED_WAKE_LEAD_MINUTES", 2, 30, 4) * MINUTE,
     includedStarts: number("DUSK_MANAGED_DAILY_STARTS", 1, 100_000, 200),
     edgeWakesPerHour: number("DUSK_MANAGED_EDGE_WAKES_PER_HOUR", 1, 60, 20),
     retentionDays: number("DUSK_MANAGED_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
@@ -133,10 +137,22 @@ export interface LifecycleDeps {
   releaseKeys: readonly ReleaseKey[];
   /** keys the opaque public labels (never on a machine) */
   labelKey: Buffer;
-  /** the day's provider starts (starts.ts): counted, alerted, refused past the provider's hard cap */
+  /** the provider's start pool (starts.ts): rolling windows, alerted, refused past the provider's hard cap or its not-before time */
   starts?: StartLedger;
-  /** whether an idle home stops now (sleep-policy.ts); without one, the home's own idle word, never with a run due within 10 min */
-  sleepPolicy?: SleepPolicy;
+  /** the power policy (power/policy.ts): whether an idle home stops now, and when a sleeping one wakes for a run */
+  sleepPolicy: SleepPolicy;
+  /** the provider's prices and start rules, for the rails */
+  costProfile: ProviderCostProfile;
+  /** the hard limits every stop and start passes, whatever the policy says (power/rails.ts) */
+  rails?: RailSettings;
+}
+
+/** a start the rails held back (a failing home's backoff, the provider's hard cap or not-before time, a busy minute):
+ *  not a failure, tried again at `retryAt` */
+export class StartHeldError extends RetryableCloudError {
+  readonly retryAt: number;
+  readonly reason: string;
+  constructor(reason: string, retryAt: number) { super("The start waits for the start limits."); this.name = "StartHeldError"; this.reason = reason; this.retryAt = retryAt; }
 }
 
 export function createLifecycle(deps: LifecycleDeps) {
@@ -144,11 +160,36 @@ export function createLifecycle(deps: LifecycleDeps) {
   const log = (c: StoredCloud, action: string, actor: AuditActor, reason: string, detail?: Record<string, string | number | boolean | null>) =>
     audit.record({ cloudId: c.id, action, actor, reason, serverId: c.serverId, ...(detail ? { detail } : {}) });
   const state = (c: StoredCloud): HomeLifecycleState => (c.managed ??= freshManagedState());
-  /** a provider start: refused past the day's hard cap, counted once it was asked for */
-  async function start<T>(cloudId: string, kind: StartKind, run: () => Promise<T>): Promise<T> {
+  const rails = deps.rails ?? DEFAULT_RAILS;
+  const pool = () => deps.starts?.view() ?? { used: { minute: 0, hour: 0, day: 0 }, blockedUntil: null };
+  /** the home's power memory (its starts, stops, failed starts and activity), checked on every read */
+  function memory(c: StoredCloud): PowerMemory {
+    const b = state(c), m = b.power ?? freshMemory(now());
+    m.stats = validStats(m.stats, now());
+    for (const key of ["starts", "stops", "failures"] as const) if (!Array.isArray(m[key]) || !m[key].every(Number.isFinite)) m[key] = [];
+    if (m.breaker && !(Number.isFinite(m.breaker.openUntil) && Number.isFinite(m.breaker.trips))) m.breaker = null;
+    b.power = prune(m, now());
+    return m;
+  }
+  function breakerOpened(c: StoredCloud, m: PowerMemory) {
+    log(c, "starts_failing", "reconciler", "breaker_open", { trips: m.breaker?.trips ?? 0, until: m.breaker?.openUntil ?? null });
+    console.warn(`managed: ALERT cloud ${c.id}: its machine failed to come up ${rails.breakerFailures} times; automatic starts wait until ${new Date(m.breaker?.openUntil ?? now()).toISOString()}`);
+  }
+  /** a provider start: through the rails first, counted once it was asked for; one the rails hold back is tried again later */
+  async function start<T>(c: StoredCloud, kind: StartKind, run: () => Promise<T>, latest: number | null = null): Promise<T> {
+    const m = memory(c), refused = startRefusal({ now: now(), kind, latest, memory: m, pool: pool(), profile: deps.costProfile }, rails);
+    if (refused) throw new StartHeldError(refused.reason, refused.recheckAt);
     deps.starts?.admit();
-    const result = await run();
-    deps.starts?.record(cloudId, kind);
+    let result: T;
+    try { result = await run(); }
+    catch (error) {
+      if (error instanceof ProviderLimitError) { if (error.info.nextStartAt !== null) deps.starts?.block(error.info.nextStartAt); }
+      else if (!(error instanceof ProviderBusyError) && noteFailure(m, now(), rails)) breakerOpened(c, m);
+      deps.save(c);
+      throw error;
+    }
+    deps.starts?.record(c.id, kind);
+    noteStart(m, now()); deps.save(c);
     return result;
   }
   const secret = (c: StoredCloud) => deps.unseal(c.bootstrapSecret);
@@ -301,7 +342,7 @@ export function createLifecycle(deps: LifecycleDeps) {
         b.claim = { hash: createHash("sha256").update(claim).digest("hex"), expiresAt: now() + HOUR, redeemedAt: null };
         boot = image.claimBootFile({ cloudId: c.id, claim, redeem: `${deps.dashboardUrl}/v1/managed/claims/redeem` });
       }
-      const server = await start(c.id, b.attempt > 0 ? "recover" : "create", () => provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData: image.setupScript({ releaseKeys: deps.releaseKeys, requireSigned: settings.requireSigned }),
+      const server = await start(c, b.attempt > 0 ? "recover" : "create", () => provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData: image.setupScript({ releaseKeys: deps.releaseKeys, requireSigned: settings.requireSigned }),
         ttlSeconds: settings.leaseSeconds, attempt: b.attempt, files: [boot], ...(fromTemplate ? { from: settings.template! } : {}) }));
       c.serverId = server.id; b.upstream = server.origin ?? null; c.origin = null; b.installed = fromTemplate ? templatePackage : null; b.leaseAt = now(); b.setupSince = now();
       log(c, "create", "reconciler", b.attempt ? "recovery" : "paid", { attempt: b.attempt, template: fromTemplate });
@@ -473,7 +514,7 @@ export function createLifecycle(deps: LifecycleDeps) {
         continue;
       }
       // its disk is still the only full copy of that state on the provider: keep the provider's 14-day clock from running out
-      if (mayRefresh(c, s.stoppedAt, true)) { await start(c.id, "refresh", () => provider.power(old.serverId, "on")); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
+      if (mayRefresh(c, s.stoppedAt, true)) { await start(c, "refresh", () => provider.power(old.serverId, "on")); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
     }
   }
 
@@ -564,7 +605,7 @@ export function createLifecycle(deps: LifecycleDeps) {
         await retiredStep(c);
         // keep the provider's copy of the disk alive while we promise to keep it: a short resume restarts its 14-day clock
         if (verdict.earliestAt !== null && verdict.earliestAt - now() > DAY_MS && mayRefresh(c, s.stoppedAt)) {
-          await start(c.id, "refresh", () => provider.power(c.serverId!, "on")); b.wakeStartedAt = now(); log(c, "refresh", "reconciler", "disk_age"); deps.save(c);
+          await start(c, "refresh", () => provider.power(c.serverId!, "on")); b.wakeStartedAt = now(); log(c, "refresh", "reconciler", "disk_age"); deps.save(c);
         }
       }
       return;
@@ -578,14 +619,14 @@ export function createLifecycle(deps: LifecycleDeps) {
     }
 
     const up = s.state === "running";
-    if (s.state === "error") { await start(c.id, "recover", () => provider.power(c.serverId!, "on")).catch(() => {}); b.wakeStartedAt = now(); log(c, "resume", "reconciler", "provider_error"); deps.save(c); return; }
+    if (s.state === "error") { await start(c, "recover", () => provider.power(c.serverId!, "on")).catch(() => {}); b.wakeStartedAt = now(); log(c, "resume", "reconciler", "provider_error"); deps.save(c); return; }
     const resizeKey = `${c.desiredSpec.vcpu}-${c.desiredSpec.ramGb}-${c.desiredSpec.diskGb}`;
     const resizeWanted = (c.desiredSpec.vcpu !== c.spec.vcpu || c.desiredSpec.ramGb !== c.spec.ramGb || c.desiredSpec.diskGb !== c.spec.diskGb) && b.resizeBlocked !== resizeKey;
     if (s.state === "stopped" && resizeWanted) {
       // a plan change: backed up from the stop first, then resumed onto the new size, then started like any wake
       const covered = b.backups.some(g => g.verifiedAt !== null && !g.keep && g.snapshotAt >= (s.snapshotAt ?? 0));
       if (!covered) { if ((b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now() || (b.lastBackupTryAt ?? 0) < (s.stoppedAt ?? 0)) await backup(c, "resize"); if (!b.backups.some(g => g.verifiedAt !== null && !g.keep && g.snapshotAt >= (s.snapshotAt ?? 0))) return; }
-      try { await start(c.id, "resize", () => provider.resize(c.serverId!, c.desiredSpec)); }
+      try { await start(c, "resize", () => provider.resize(c.serverId!, c.desiredSpec)); }
       catch (error) {
         if (error instanceof ProviderError && error.status < 500) { b.resizeBlocked = resizeKey; log(c, "resize_refused", "reconciler", error.code); deps.save(c); return; }
         throw error;
@@ -594,12 +635,17 @@ export function createLifecycle(deps: LifecycleDeps) {
       c.spec = { ...c.desiredSpec }; b.wakeStartedAt = now(); c.wantPower = "on"; b.resizeAskedAt = null; deps.save(c); return;
     }
     if (s.state === "stopped") {
-      const due = b.nextDueAt !== null && b.nextDueAt - settings.wakeLeadMs <= now();
-      const stale = c.wantPower !== "on" && !due && mayRefresh(c, s.stoppedAt);
-      if (c.wantPower === "on" || due || stale) {
-        const intent = c.wantPower === "on" && c.wakeRequestedAt !== undefined && now() - c.wakeRequestedAt < 5 * MINUTE;
-        await start(c.id, intent ? "wake" : due ? "routine" : stale ? "refresh" : "wake", () => provider.power(c.serverId!, "on")); b.wakeStartedAt = now(); c.wantPower = "on";
-        log(c, "wake", c.wakeRequestedAt && now() - c.wakeRequestedAt < 5 * MINUTE ? "owner" : "reconciler", due ? "routine_due" : stale ? "disk_age" : "asked");
+      const m = memory(c), wanted = c.wantPower === "on";
+      // a routine's pre-wake comes from the policy (its spread, the rails); a person's wake is never held for one
+      const plan = wanted ? null : deps.sleepPolicy.wake({ now: now(), cloudId: c.id, nextDueAt: b.nextDueAt, upcoming: b.upcoming ?? null, memory: m });
+      const due = plan?.start === true;
+      const stale = !wanted && !due && mayRefresh(c, s.stoppedAt);
+      if (plan && !plan.start && b.stayReason !== plan.reason && !["not_yet", "nothing_due"].includes(plan.reason)) { b.stayReason = plan.reason; deps.save(c); }
+      if (wanted || due || stale) {
+        const intent = wanted && c.wakeRequestedAt !== undefined && now() - c.wakeRequestedAt < 5 * MINUTE;
+        if (intent) { deps.sleepPolicy.observe(m, c.wakeRequestedAt!, b.wakeBy === "webhook" ? "connector" : "user"); b.wakeBy = null; }
+        await start(c, intent ? "wake" : due ? "routine" : stale ? "refresh" : "wake", () => provider.power(c.serverId!, "on"), due ? plan!.latest : null); b.wakeStartedAt = now(); b.wakeFailureNoted = false; c.wantPower = "on";
+        log(c, "wake", intent ? "owner" : "reconciler", due ? "routine_due" : stale ? "disk_age" : "asked");
         deps.save(c); return;
       }
       if (c.status !== "sleeping" && c.status !== "stopped") { c.status = "sleeping"; deps.save(c); }
@@ -613,7 +659,17 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (b.wakeStartedAt !== null || c.status !== "running") {
       // a resume onto a held machine keeps the service the pre-stop hook stopped: start it again every time
       const started = await provider.run(c.serverId, image.startCommand(c.origin!, homeOrigin(c)), 120);
-      if (!started.ok || !(await deps.home.healthy(homeOrigin(c), secret(c)))) throw new RetryableCloudError("Cloud home not answering after a wake.");
+      if (!started.ok || !(await deps.home.healthy(homeOrigin(c), secret(c)))) {
+        // a start that has not brought the home up in 5 minutes is a failed one, once: enough of them open the breaker
+        if (b.wakeStartedAt !== null && now() - b.wakeStartedAt > 5 * MINUTE && !b.wakeFailureNoted) {
+          const m = memory(c);
+          b.wakeFailureNoted = true;
+          if (noteFailure(m, now(), rails)) breakerOpened(c, m);
+          deps.save(c);
+        }
+        throw new RetryableCloudError("Cloud home not answering after a wake.");
+      }
+      noteHealthy(memory(c)); b.wakeFailureNoted = false;
       await entitle(c, true);
       log(c, "awake", "reconciler", "healthy", { ms: b.wakeStartedAt === null ? null : now() - b.wakeStartedAt });
       c.status = "running"; c.powerSince = now(); b.wakeStartedAt = null; b.sleptAt = null; b.sleepReason = null; b.lastPowerAt = now(); b.leaseAt = now();
@@ -627,18 +683,28 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (b.lastPowerAt !== null && now() - b.lastPowerAt < settings.powerReadMs) return;
     b.lastPowerAt = now();
     await entitle(c, false).catch(() => console.warn(`managed: the entitlement refresh for ${c.id} failed; it is tried again`));
-    const power = deps.home.power ? await deps.home.power(homeOrigin(c), secret(c), settings.idleMinutes).catch(() => null) : null;
+    const power = deps.home.power ? await deps.home.power(homeOrigin(c), secret(c), Math.max(1, Math.round(rails.minIdleMs / MINUTE))).catch(() => null) : null;
     if (!power) { deps.save(c); return; }
-    b.busy = power.busy; b.nextDueAt = power.nextDueAt;
+    const m = memory(c);
+    b.busy = power.busy; b.nextDueAt = power.nextDueAt; b.upcoming = power.upcoming ?? null;
     b.focusSince = power.busy.includes("focus") ? b.focusSince ?? now() : null;
-    // the home says idle for the base window; the policy says whether a stop now is worth it
-    const snapshot = { now: now(), cloudId: c.id, spec: c.spec, homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy: power.busy, focusSince: b.focusSince ?? null, nextDueAt: power.nextDueAt };
-    const decision = deps.sleepPolicy?.decide(snapshot) ?? (power.nextDueAt !== null && power.nextDueAt - now() <= ROUTINE_GUARD_MS ? { action: "stay" as const, reason: "routine_due", recheckAt: power.nextDueAt }
-      : { action: power.idle && now() >= c.powerSince + 2 * MINUTE ? "stop" as const : "stay" as const, reason: "home_idle", recheckAt: now() + MINUTE });
-    if (b.stayReason !== (decision.action === "stay" ? decision.reason : null)) b.stayReason = decision.action === "stay" ? decision.reason : null;
-    if (power.idle && decision.action === "stop" && deps.home.sleep) {
-      const agreed = await deps.home.sleep(homeOrigin(c), secret(c), settings.idleMinutes);
-      if (agreed.ok) { b.nextDueAt = agreed.nextDueAt ?? power.nextDueAt; return sleepNow(c, "idle", "reconciler"); }
+    if (power.lastActivityAt !== null) deps.sleepPolicy.observe(m, power.lastActivityAt, "user");
+    const snapshot = { now: now(), cloudId: c.id, spec: c.spec, homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy: power.busy, focusSince: b.focusSince ?? null,
+      nextDueAt: power.nextDueAt, upcoming: b.upcoming, wakeRequestedAt: c.wakeRequestedAt ?? null, memory: m };
+    const decision = deps.sleepPolicy.decide(snapshot);
+    // the rails again, whatever the policy said: no policy stops a home they hold up
+    const next = nextRun(plannedRuns(power.nextDueAt, b.upcoming, now()), now());
+    const held = decision.action === "stop" ? stopRefusal({ now: now(), awakeSince: c.powerSince, busy: power.busy, focusSince: b.focusSince ?? null, lastActivityAt: power.lastActivityAt,
+      wakeRequestedAt: c.wakeRequestedAt ?? null, nextRunAt: next ? runnableFrom(next) : null, memory: m, pool: pool(), profile: deps.costProfile }, rails) : null;
+    const reason = decision.action === "stay" ? decision.reason : held?.reason ?? null;
+    if (b.stayReason !== reason) b.stayReason = reason;
+    if (power.idle && decision.action === "stop" && !held && deps.home.sleep) {
+      const agreed = await deps.home.sleep(homeOrigin(c), secret(c), decision.idleMinutes);
+      if (agreed.ok) {
+        b.nextDueAt = agreed.nextDueAt ?? power.nextDueAt;
+        await sleepNow(c, "idle", "reconciler");
+        noteStop(memory(c), now()); deps.save(c); return;
+      }
     }
     // a home that never sleeps still gets a backup, from the provider's background snapshot
     const last = b.backups.at(-1);
@@ -694,7 +760,7 @@ export function createLifecycle(deps: LifecycleDeps) {
       // anyone can reach a public name: each wake is a provider start, so strangers get a small budget, never an open tap
       if (c.wantPower !== "on" && recent.length >= settings.edgeWakesPerHour) { b.edgeWakes = recent; deps.save(c); return { ok: false, status: 429 }; }
       if (c.wantPower !== "on") { recent.push(now()); log(c, "wake_asked", "edge", reason); }
-      b.edgeWakes = recent; c.wantPower = "on"; c.wakeRequestedAt = now(); c.nextAttemptAt = 0; deps.save(c);
+      b.edgeWakes = recent; b.wakeBy = reason; c.wantPower = "on"; c.wakeRequestedAt = now(); c.nextAttemptAt = 0; deps.save(c);
       return { ok: true, status: 202 };
     },
     reconcile,
@@ -737,6 +803,8 @@ export function createLifecycle(deps: LifecycleDeps) {
     /** a provider limit (429) is no failure: backed off 30 s doubling to 5 minutes (or as long as it asks), never counted */
     retryAt(c: StoredCloud, error: unknown): number | null {
       const b = state(c);
+      // the rails held a start back, or the pool is full: waiting, not failing
+      if (error instanceof StartHeldError || error instanceof StartCapError) return Math.max(now() + 5_000, error.retryAt);
       if (!(error instanceof ProviderLimitError)) { if (b.limitStreak) { b.limitStreak = 0; deps.save(c); } return null; }
       // setup keeps its 45-minute ceiling: past it a limit fails setup like any other cause
       if (c.status === "provisioning" && now() - (b.setupSince ?? c.provisionedAt ?? c.createdAt) > 45 * MINUTE) return null;
@@ -745,7 +813,8 @@ export function createLifecycle(deps: LifecycleDeps) {
       if (b.limitStreak === 12) { log(c, "provider_limit_long", "reconciler", "operator_decides"); console.warn(`managed: ALERT cloud ${c.id}: the provider has refused it 12 times in a row (rate or quota limit)`); }
       const backoff = Math.min(5 * MINUTE, 30_000 * 2 ** Math.min(b.limitStreak - 1, 4));
       deps.save(c);
-      return now() + Math.max(backoff, Math.min(error.retryAfterMs ?? 0, 15 * MINUTE));
+      const notBefore = error.info.nextStartAt !== null ? Math.min(error.info.nextStartAt - now(), 15 * MINUTE) : 0;
+      return now() + Math.max(backoff, Math.min(error.retryAfterMs ?? 0, 15 * MINUTE), notBefore);
     },
     setHold(c: StoredCloud, hold: boolean) { state(c).hold = hold; log(c, hold ? "hold" : "hold_released", "operator", "manual"); deps.save(c); },
   };

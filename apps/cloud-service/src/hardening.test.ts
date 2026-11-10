@@ -26,7 +26,7 @@ describe("provider limits and conflicts", () => {
     const { c } = await f.paid();
     expect(c.status).toBe("running");
     f.power.idle = true; f.power.busy = [];
-    f.advance(3 * MINUTE);
+    f.advance(5 * MINUTE);
     f.api.limitNext(3);
     c.nextAttemptAt = 0; await f.service.reconcile();
     expect(c.status).toBe("running");
@@ -37,7 +37,7 @@ describe("provider limits and conflicts", () => {
     for (let n = 0; n < 2; n++) { c.nextAttemptAt = 0; await f.service.reconcile(); }
     expect(c.nextAttemptAt - f.now()).toBe(120_000);
     expect(f.audit.entries(c.id).filter(e => e.action === "provider_limit")).toHaveLength(1);
-    await f.settle(c, c => c.status === "sleeping");
+    await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
     expect(c.managed!.limitStreak).toBe(0);
   });
 
@@ -58,7 +58,7 @@ describe("a stop that fails", () => {
     const { c } = await f.paid();
     f.api.refuseStop(c.serverId!);
     f.power.idle = true; f.power.busy = [];
-    f.advance(3 * MINUTE);
+    f.advance(5 * MINUTE);
     c.nextAttemptAt = 0; await f.service.reconcile();
     expect(c.status).toBe("sleeping");
     const starts = () => f.api.requests.filter(r => r.path.endsWith("/commands") && String((r.body as { command: string }).command).includes("omb-home start")).length;
@@ -81,7 +81,7 @@ describe("keeping stopped disks alive", () => {
     f.advance(MINUTE);
     const b = (await f.paid("acct_b")).c;
     f.power.idle = true; f.power.busy = [];
-    f.advance(3 * MINUTE);
+    f.advance(5 * MINUTE);
     // asleep, and the provider has saved each disk (its stop time)
     await f.settle(a, c => c.status === "sleeping" && c.managed!.lastStopAt !== null);
     f.advance(2 * MINUTE);
@@ -106,7 +106,7 @@ describe("a disk that may not be refreshed never starves the others", () => {
     f.advance(MINUTE);
     const live = (await f.paid("acct_live")).c;
     f.power.idle = true; f.power.busy = [];
-    f.advance(3 * MINUTE);
+    f.advance(5 * MINUTE);
     await f.settle(held, c => c.status === "sleeping" && c.managed!.lastStopAt !== null);
     f.advance(2 * MINUTE);
     await f.settle(live, c => c.status === "sleeping" && c.managed!.lastStopAt !== null);
@@ -121,19 +121,23 @@ describe("a disk that may not be refreshed never starves the others", () => {
 });
 
 describe("waking for a routine", () => {
-  it("starts a sleeping home ten minutes before its next run", async () => {
+  it("starts a sleeping home within the lead and its own spread before its next run, never later", async () => {
     const f = await boatFixture();
     const { c } = await f.paid();
-    f.power.idle = true; f.power.busy = []; f.power.nextDueAt = f.now() + 3 * 3_600_000;
-    f.advance(3 * MINUTE);
-    await f.settle(c, c => c.status === "sleeping");
-    expect(c.managed!.nextDueAt).toBe(f.power.nextDueAt);
-    f.advance(3 * 3_600_000 - 3 * MINUTE - 12 * MINUTE);
+    f.power.idle = true; f.power.busy = []; const due = f.now() + 3 * 3_600_000; f.power.nextDueAt = due;
+    f.advance(5 * MINUTE);
+    await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
+    expect(c.managed!.nextDueAt).toBe(due);
+    // the default lead is 4 minutes and the spread 4 more: no wake 9 minutes out, a wake by 4 minutes out
+    f.advance(due - 9 * MINUTE - f.now());
     c.nextAttemptAt = 0; await f.service.reconcile();
     expect(f.audit.entries(c.id).some(e => e.action === "wake" && e.reason === "routine_due")).toBe(false);
-    f.advance(3 * MINUTE);
-    c.nextAttemptAt = 0; await f.service.reconcile();
-    expect(f.audit.entries(c.id).some(e => e.action === "wake" && e.reason === "routine_due")).toBe(true);
+    for (let at = due - 8 * MINUTE; at <= due - 4 * MINUTE && !f.audit.entries(c.id).some(e => e.action === "wake"); at += 30_000) {
+      f.advance(at - f.now()); c.nextAttemptAt = 0; await f.service.reconcile();
+    }
+    const wake = f.audit.entries(c.id).find(e => e.action === "wake" && e.reason === "routine_due");
+    expect(wake).toBeDefined();
+    expect(due - wake!.at).toBeGreaterThanOrEqual(4 * MINUTE);
   });
 });
 

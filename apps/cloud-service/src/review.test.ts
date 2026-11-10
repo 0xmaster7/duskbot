@@ -46,7 +46,7 @@ async function fixture() {
     }
     return { exitCode: 0, stdout: "" };
   });
-  const power: HomePower = { idle: false, busy: ["recent-activity"], lastActivityAt: at, nextDueAt: null, wokeAt: at };
+  const power: HomePower = { idle: false, busy: ["recent-activity"], lastActivityAt: null, nextDueAt: null, wokeAt: at };
   const subscriptions: StoredSubscription[] = [];
   const notices: Array<{ cloudId: string; kind: string; at: number | null; link?: string }> = [];
   /** one dashboard process over the shared data dir */
@@ -67,8 +67,8 @@ async function fixture() {
     cleanup.push(() => service.close());
     return { service, provider, audit, backups };
   }
-  async function settle(s: ReturnType<typeof createCloudsService>, c: StoredCloud, until: (c: StoredCloud) => boolean, max = 30) {
-    for (let n = 0; n < max && !until(c); n++) { c.nextAttemptAt = 0; await s.reconcile(); }
+  async function settle(s: ReturnType<typeof createCloudsService>, c: StoredCloud, until: (c: StoredCloud) => boolean, max = 30, stepMs = 0) {
+    for (let n = 0; n < max && !until(c); n++) { c.nextAttemptAt = 0; await s.reconcile(); if (!until(c)) at += stepMs; }
     expect(until(c)).toBe(true);
   }
   async function paid(s: ReturnType<typeof createCloudsService>) {
@@ -90,12 +90,12 @@ async function fixture() {
 type F = Awaited<ReturnType<typeof fixture>>;
 async function sleepCycle(f: F, s: ReturnType<typeof createCloudsService>, c: StoredCloud) {
   f.power.idle = true; f.power.busy = [];
-  await f.settle(s, c, c => c.status === "sleeping");
+  await f.settle(s, c, c => c.status === "sleeping", 60, 5 * 60_000);
   for (let n = 0; n < 3; n++) { c.nextAttemptAt = 0; await s.reconcile(); }
 }
 async function wake(f: F, s: ReturnType<typeof createCloudsService>, c: StoredCloud) {
   await s.power(c.accountId, c.id, "on"); await f.settle(s, c, c => c.status === "running");
-  f.advance(3 * 60_000);
+  f.advance(5 * 60_000);
 }
 
 it("a backup restores byte for byte into a fresh sandbox after the machine is lost", async () => {
