@@ -87,6 +87,7 @@
 .statement .bot { display: inline-block; width: 0.8em; height: 0.8em; vertical-align: -0.1em; margin-right: 0.05em; cursor: pointer; }
 .stk { user-select: none; -webkit-user-drag: none; }
 .statement .stk { position: relative; display: inline-block; height: 1.25em; width: auto; vertical-align: -0.3em; rotate: 6deg; }
+.statement .stk.flat { height: 0.95em; vertical-align: -0.16em; rotate: -5deg; }
 .stk.held { z-index: 30; cursor: grabbing; }
 
 /* give each bot a job: one white card on a poster */
@@ -201,13 +202,17 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 
 /* also: the phone and the apps */
 .also { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr); align-items: center; gap: 44px; margin-top: 80px; }
-.phone { justify-self: end; width: min(200px, 72%); padding: 0; border: 0; background: none; cursor: pointer; rotate: -9deg; }
+.phone { justify-self: end; width: min(250px, 80%); padding: 0; border: 0; background: none; cursor: pointer; rotate: -9deg; }
 .home .phone:focus-visible { border-radius: 24px; }
 .phone img { width: 100%; }
 .phone.ringing { animation: ring 0.28s ease-in-out 3; }
-.also p { margin: 0; max-width: 23em; font-size: clamp(21px, 2.4vw, 34px); line-height: 1.2; letter-spacing: -0.03em; font-weight: 500; }
-.apps { white-space: nowrap; }
-.apps img { display: inline-block; width: 0.95em; height: 0.95em; vertical-align: -0.14em; margin-right: 0.14em; }
+.also p { margin: 0; font-size: clamp(26px, 3.5vw, 48px); line-height: 1.1; letter-spacing: -0.04em; font-weight: 500; text-wrap: balance; }
+.apps { list-style: none; margin: 26px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.apps li { display: grid; place-items: center; width: clamp(46px, 4.6vw, 62px); aspect-ratio: 1; border-radius: 28%; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px var(--line); transition: translate 0.35s var(--pop), rotate 0.35s var(--pop); }
+.apps img { width: 58%; height: 58%; object-fit: contain; }
+.apps .full img { width: 100%; height: 100%; }
+.apps .more { background: var(--wash); box-shadow: none; font: 500 15px/1 var(--mono); color: var(--ink-2); }
+@media (hover: hover) { .apps li:hover { translate: 0 -6px; rotate: -5deg; } .apps li:nth-child(even):hover { rotate: 5deg; } }
 
 /* where it runs: three cards, a picture and one piece of the app each */
 .ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gut); }
