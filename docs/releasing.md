@@ -10,7 +10,7 @@ reruns and recovery. It
 builds macOS (arm64 + x64, signed, notarized, stapled), Windows, and Ubuntu
 from a single pinned commit, verifies every artifact the way a user would
 receive it, and assembles the canonical draft in
-[Dusk Bot releases](https://github.com/goatedgrokbotalternative/thebot/releases).
+[Dusk Bot releases](https://github.com/goatedgrokbotalternative/duskbot/releases).
 Tick **publish** to publish the release immediately, or leave it unticked to
 review the draft first.
 

@@ -31,7 +31,7 @@ describe("placeCard", () => {
 describe("LinkHoverCard", () => {
   let host: HTMLDivElement;
   let root: Root;
-  const href = "https://github.com/goatedgrokbotalternative/thebot/pull/2547";
+  const href = "https://github.com/goatedgrokbotalternative/duskbot/pull/2547";
   const link = () => host.querySelector("a")!;
   const card = () => document.querySelector<HTMLElement>("[data-link-preview]");
   const fire = (target: EventTarget, type: string, init: PointerEventInit = {}) =>
@@ -58,7 +58,7 @@ describe("LinkHoverCard", () => {
     act(() => { vi.advanceTimersByTime(50); });
     expect(card()?.getAttribute("role")).toBe("tooltip");
     expect(card()?.textContent).toContain("Pull request #2547");
-    expect(card()?.textContent).toContain("goatedgrokbotalternative/thebot");
+    expect(card()?.textContent).toContain("goatedgrokbotalternative/duskbot");
     expect(card()?.textContent).toContain("github.com");
     expect(link().getAttribute("aria-describedby")).toBe(card()?.id);
   });

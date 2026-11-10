@@ -111,7 +111,7 @@ LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
       com.openmausbot.cua-driver="${CUA_DRIVER_VERSION}" \
       org.opencontainers.image.title="omb-bot-desktop" \
       org.opencontainers.image.description="Dusk bot computer: a sandboxed dark Linux desktop" \
-      org.opencontainers.image.source="https://github.com/goatedgrokbotalternative/thebot"
+      org.opencontainers.image.source="https://github.com/goatedgrokbotalternative/duskbot"
 
 ENV HOME=/home/cua USER=cua DISPLAY=:1 XDG_RUNTIME_DIR=/run/user/1000 XDG_CONFIG_HOME=/home/cua/.config \
     XCURSOR_THEME=omb-hidden XCURSOR_SIZE=24 NO_AT_BRIDGE=0 \

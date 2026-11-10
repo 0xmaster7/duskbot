@@ -200,7 +200,7 @@ Requirements: Docker with Compose, a DNS name pointing at the machine, and
 ports 80/443 open.
 
 ```sh
-git clone https://github.com/goatedgrokbotalternative/thebot && cd Dusk Bot/deploy
+git clone https://github.com/goatedgrokbotalternative/duskbot && cd Dusk Bot/deploy
 cp .env.example .env            # set DOMAIN
 docker compose pull omb && docker compose up -d
 ```
@@ -257,7 +257,7 @@ Requirements: Node 24+, pnpm, and at least one agent CLI installed and
 signed in on the server.
 
 ```sh
-git clone https://github.com/goatedgrokbotalternative/thebot && cd Dusk Bot
+git clone https://github.com/goatedgrokbotalternative/duskbot && cd Dusk Bot
 pnpm install
 
 # choose where data lives and start the server

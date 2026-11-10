@@ -78,7 +78,7 @@ export function CustomDomainGuide({ status }: { status: CustomDomainStatus }) {
   );
 }
 
-const SELF_HOSTING_GUIDE = "https://github.com/goatedgrokbotalternative/thebot/blob/main/docs/self-hosting.md#connect-a-custom-domain-in-settings";
+const SELF_HOSTING_GUIDE = "https://github.com/goatedgrokbotalternative/duskbot/blob/main/docs/self-hosting.md#connect-a-custom-domain-in-settings";
 
 export function CustomDomainSettings() {
   const [status, setStatus] = useState<CustomDomainStatus | null>(null);

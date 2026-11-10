@@ -1,5 +1,5 @@
 export const APP_NAME = "Dusk Bot";
-export const APP_REPOSITORY = "https://github.com/goatedgrokbotalternative/thebot";
+export const APP_REPOSITORY = "https://github.com/goatedgrokbotalternative/duskbot";
 export const DOCS_URL = `${APP_REPOSITORY}/tree/custom/docs`;
 export const HELP_CENTER_URL = DOCS_URL;
 export const APPROVAL_LEVELS_URL = `${APP_REPOSITORY}/blob/custom/docs/approval-levels.md`;

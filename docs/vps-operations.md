@@ -45,7 +45,7 @@ App and server upgrades are operator-managed for this private fork. The
 desktop does not initialize an update provider, query release feeds, or install
 downloaded updates on quit or while idle. The server's update check returns no
 release offer or public npm install command. Packaging has no publish target;
-project and release links point to `goatedgrokbotalternative/thebot`.
+project and release links point to `goatedgrokbotalternative/duskbot`.
 
 Install a reviewed private build before restarting the services you intend to
 update.

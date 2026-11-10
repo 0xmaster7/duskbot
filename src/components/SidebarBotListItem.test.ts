@@ -164,9 +164,9 @@ describe("BotListItem", () => {
 
   it("previews the last reply as plain text, without its markdown", () => {
     const markup = renderRow(bot({
-      messages: [{ id: "b1", role: "bot", kind: "text", text: "I read **[goatedgrokbotalternative/thebot](https://github.com/goatedgrokbotalternative/thebot)**. Run `pnpm install` first.", at: 1 }] as Bot["messages"],
+      messages: [{ id: "b1", role: "bot", kind: "text", text: "I read **[goatedgrokbotalternative/duskbot](https://github.com/goatedgrokbotalternative/duskbot)**. Run `pnpm install` first.", at: 1 }] as Bot["messages"],
     }));
-    expect(markup).toContain(">I read goatedgrokbotalternative/thebot. Run pnpm install first.<");
+    expect(markup).toContain(">I read goatedgrokbotalternative/duskbot. Run pnpm install first.<");
     expect(markup).not.toContain("**");
     expect(markup).not.toContain("](https://");
   });
