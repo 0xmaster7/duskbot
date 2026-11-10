@@ -14,7 +14,7 @@ export default defineConfig({
   root,
   plugins: [react(), tailwindcss(), licenseFiles(repoRoot)],
   resolve: { alias: { "@": fileURLToPath(new URL("../../src", import.meta.url)) } },
-  define: { __APP_VERSION__: JSON.stringify(version) },
+  define: { __APP_VERSION__: JSON.stringify(version), __DUSK_ERROR_DSN__: JSON.stringify(process.env.DUSK_ERROR_DSN ?? "") },
   server: {
     host: "127.0.0.1",
     port: Number(process.env.DUSK_MOBILE_PORT) || 5320,
