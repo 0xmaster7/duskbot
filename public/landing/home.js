@@ -170,7 +170,9 @@ if (cta && fine && !still) {
     const r = cta.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     const inside = mx >= r.left - 8 && mx <= r.right + 8 && my >= r.top - 8 && my <= r.bottom + 8;
     const d = Math.hypot(mx - cx, my - cy);
-    const want = mx < 0 || inside || r.bottom < 0 || r.top > innerHeight ? 0 : Math.max(0, Math.min(1, (REACH - d) / 220));
+    // it fades in as you come within reach, and out again over the last stretch, so the button itself takes over
+    const edge = Math.hypot(Math.max(r.left - mx, 0, mx - r.right), Math.max(r.top - my, 0, my - r.bottom));
+    const want = mx < 0 || inside || r.bottom < 0 || r.top > innerHeight ? 0 : Math.max(0, Math.min(1, (REACH - d) / 220, (edge - 40) / 160));
     // land on the side of the button that faces you, heading straight into it
     // the other button sits to its right, so from that side the arrow comes in over the top or from below instead
     const side = mx < cx && cx - mx - r.width / 2 > Math.abs(my - cy) * 0.8;

@@ -66,10 +66,6 @@
 .ev-frame { position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; width: 100%; font-size: calc(var(--wn) * 0.01cqw); --cream: #f6ead0; --cream-2: #ecdfbc; --cream-3: #dfcfa3; }
 .ev-laptop { --x: 4%; --wn: 33; } .ev-monitor { --x: 41%; --wn: 35; } .ev-phone { --x: 82.5%; --wn: 10.5; }
 .ev-frame i { display: block; }
-/* one soft flat shadow on the grass under each device */
-.ev-frame::after { content: ""; position: absolute; z-index: -1; left: 3em; right: 3em; bottom: -2.2em; height: 5em; border-radius: 50%; background: rgba(70, 120, 0, 0.2); }
-.ev-monitor .ev-frame::after { left: 22em; right: 22em; }
-.ev-phone .ev-frame::after { left: 6em; right: 6em; bottom: -4em; height: 9em; }
 .ev-body { display: block; width: 100%; padding: 2.4em; border-radius: 3.2em; background: var(--cream); box-shadow: inset 0 0 0 1px rgba(120, 95, 30, 0.16); }
 .ev-laptop .ev-body { width: 86%; padding: 1.8em; border-radius: 3em 3em 1em 1em; }
 .ev-phone .ev-body { padding: 5em; border-radius: 17em; background: #ff9cc4; box-shadow: inset 0 0 0 1px rgba(160, 30, 80, 0.14); }
