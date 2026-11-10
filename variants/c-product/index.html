@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dusk bot: a team of ai bots that lives on your computer</title>
+<meta name="description" content="dusk bot is a desktop app where you run a team of ai bots and message them like teammates. free for personal use, on the ai plan you already pay for.">
+<meta name="theme-color" content="#fcfcfb">
+<meta property="og:title" content="dusk bot: a team of ai bots that lives on your computer">
+<meta property="og:description" content="run a team of ai bots and message them like teammates. free for personal use, on the ai plan you already pay for.">
+<link rel="icon" href="art/cursor-88.webp" type="image/webp">
+<link rel="preload" href="fonts/switzer.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">skip to the page</a>
+
+<header class="bar">
+  <div class="wrap bar-in">
+    <a class="brand" href="./"><img src="art/cursor-88.webp" alt="" width="26" height="26">dusk bot</a>
+    <nav class="bar-links" aria-label="on this page">
+      <a href="#bots">what it does</a>
+      <a href="#use">where it runs</a>
+      <a href="#pricing">pricing</a>
+      <a href="/docs">docs</a>
+    </nav>
+    <div class="bar-end">
+      <a class="bar-quiet" href="https://app.dusk.bot">sign in</a>
+      <a class="btn dark sm" href="/download">download</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero">
+  <div class="wrap hero-top">
+    <h1>a team of ai bots that lives on your computer.</h1>
+    <div class="hero-side">
+      <p class="lede">give each bot a name and a job, then message it like a teammate. free for personal use, on the ai plan you already pay for.</p>
+      <p class="actions">
+        <a class="btn dark" href="/download"><svg class="os" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>download for macos</a>
+        <a class="more" href="#download">windows, linux and servers<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg></a>
+      </p>
+    </div>
+  </div>
+
+  <div class="wrap stage" data-stage>
+    <div class="tiles" aria-hidden="true">
+      <img class="tile t1" src="art/t-peaks.webp" alt="" width="520" height="355">
+      <img class="tile t2" src="art/t-sails.webp" alt="" width="520" height="410">
+      <img class="tile t3" src="art/t-birches.webp" alt="" width="520" height="512">
+      <img class="tile t4" src="art/t-islands.webp" alt="" width="520" height="550">
+      <img class="tile t5" src="art/t-flowers.webp" alt="" width="520" height="513">
+      <img class="tile t6" src="art/t-dunes.webp" alt="" width="520" height="545">
+      <svg class="bot c-pink peek" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg>
+    </div>
+    <figure class="win" data-demo>
+      <div class="win-bar">
+        <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="win-title">dusk bot</span>
+        <button class="try" type="button" data-try aria-pressed="false"><i aria-hidden="true"></i><span data-try-label>try it live</span></button>
+      </div>
+      <div class="win-body" data-frame>
+        <img class="still" src="art/app-1x.webp" srcset="art/app-1x.webp 1180w, art/app-2x.webp 2360w" sizes="(min-width: 1280px) 1200px, (min-width: 761px) 94vw, 720px" alt="the dusk bot app. on the left a list of bots, each with a name and its last message. in the middle a chat with nova, who has compared three mug shops and written a short script. on the right nova's own computer, with a browser open." width="1180" height="680" fetchpriority="high">
+      </div>
+      <figcaption class="win-note" aria-live="polite"><span data-note="still">a picture of the real app, with sample bots.<span class="win-note-more"> press try it live and click around.</span></span><span data-note="live" hidden>this is the live app, on sample data. click around.</span><span data-note="missing" hidden>the live app is not on this server. it runs on the preview site.</span></figcaption>
+    </figure>
+  </div>
+
+  <div class="wrap runs">
+    <p>runs on the ai you already pay for</p>
+    <ul>
+      <li><img class="logo" src="logos/claude.svg" alt="" width="18" height="18">claude</li>
+      <li><img class="logo" src="logos/chatgpt.svg" alt="" width="18" height="18">chatgpt</li>
+      <li><img class="logo" src="logos/gemini.svg" alt="" width="18" height="18">gemini</li>
+      <li><img class="logo" src="logos/grok.svg" alt="" width="18" height="18">grok</li>
+      <li><img class="logo" src="logos/cursor.svg" alt="" width="18" height="18">cursor</li>
+      <li><img class="logo" src="logos/copilot.svg" alt="" width="18" height="18">copilot</li>
+      <li><img class="logo" src="logos/deepseek.svg" alt="" width="18" height="18">deepseek</li>
+      <li class="runs-more">or your own api key</li>
+    </ul>
+  </div>
+</section>
+
+<section class="wrap sec" id="bots">
+  <div class="mate">
+    <div class="mate-copy">
+      <h2>message bots like teammates.</h2>
+      <p>give a bot a task the way you'd text a coworker. it does the work from start to finish, keeps you posted, and asks before the scary stuff.</p>
+    </div>
+    <figure class="snip chat" data-play="ask" aria-label="a chat with nova, a research bot">
+      <figcaption class="snip-head"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>nova</b><span>research</span></figcaption>
+      <p class="msg me">find the cheapest flight to lisbon in march.</p>
+      <p class="msg">found it. the 9:40 on the 14th, €84.</p>
+      <div class="ask" data-ask>
+        <span>book it for €84?</span>
+        <span class="ask-btns"><b class="pill yes" data-yes><span class="was">allow</span><span class="now"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>allowed</span></b><b class="pill" data-no>deny</b></span>
+      </div>
+      <p class="msg" data-late>booked. aisle seat, like always.</p>
+      <img class="ptr" data-ptr src="art/cursor-88.webp" alt="" width="26" height="26">
+    </figure>
+    <svg class="bot c-blue mate-face" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg>
+  </div>
+</section>
+
+<section class="wrap sec many">
+  <div class="head">
+    <h2>work with many bots at once.</h2>
+    <p>start with one. add another when the work grows. each has its own chat, job and memory, and they all work at the same time.</p>
+  </div>
+  <div class="moments">
+
+    <article class="moment">
+      <div class="moment-copy">
+        <h3>each bot gets its own computer</h3>
+        <p>a browser and a desktop it signs in to and clicks through. watch it live, and take the mouse back whenever you like.</p>
+      </div>
+      <figure class="fig screen" data-play="browse" aria-label="nova's computer, live: a browser comparing three flights">
+        <figcaption class="screen-bar"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>nova's computer</b><span class="live"><i></i>live</span><span class="take">take the mouse</span></figcaption>
+        <div class="screen-view">
+          <img class="wall" src="art/wide-islands.webp" alt="" width="1200" height="800" loading="lazy">
+          <div class="browser">
+            <div class="browser-bar"><i></i><i></i><i></i><span>flights · lisbon · march</span></div>
+            <ul class="fares">
+              <li data-row class="hot"><b>9:40</b><span>one stop</span><em>€84</em></li>
+              <li data-row><b>13:05</b><span>direct</span><em>€112</em></li>
+              <li data-row><b>18:20</b><span>direct</span><em>€139</em></li>
+              <li><b>21:10</b><span>one stop</span><em>€151</em></li>
+            </ul>
+          </div>
+          <img class="ptr" data-ptr src="art/cursor-88.webp" alt="" width="26" height="26">
+        </div>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <div class="moment-copy">
+        <h3>ask once and it becomes a routine</h3>
+        <p>it runs on a schedule, or the moment something happens. routines run while you sleep.</p>
+      </div>
+      <figure class="fig card routines" data-play="routine" aria-label="three routines, all switched on">
+        <p class="msg me">summarise my inbox every weekday at 8.</p>
+        <ul class="rows">
+          <li><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><div><b>inbox summary</b><span>every weekday at 8:00</span></div><i class="toggle on" data-toggle></i></li>
+          <li><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>competitor prices</b><span>every monday at 9:00</span></div><i class="toggle on"></i></li>
+          <li><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>triage new issues</b><span><img class="logo" src="logos/github.svg" alt="" width="18" height="18">when a github issue opens</span></div><i class="toggle on"></i></li>
+        </ul>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <div class="moment-copy">
+        <h3>it remembers how you like things</h3>
+        <p>each bot keeps notes on what you like and who's who. every note is yours to read and edit.</p>
+      </div>
+      <figure class="fig card memory" data-play="note" aria-label="nova's notes about how you like things done">
+        <figcaption class="mem-head"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>nova's notes</b><span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>edit</span></figcaption>
+        <ul class="notes">
+          <li>sources first, opinions after.</li>
+          <li>dana approves anything over €500.</li>
+          <li>no flights before 7:00. ever.</li>
+          <li class="new"><span data-type>aisle seat, always.</span><i class="caret" aria-hidden="true"></i></li>
+        </ul>
+        <p class="mem-foot"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>nova updated its memory</p>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <div class="moment-copy">
+        <h3>put bots in a room</h3>
+        <p>several bots in one thread hand work to each other. you step in when one of them needs a yes.</p>
+      </div>
+      <figure class="fig card room" aria-label="a room called launch, where three bots hand work to each other">
+        <figcaption class="room-head"><b># launch</b><span class="stack"><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg></span></figcaption>
+        <div class="said"><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><div><b>rivet</b><p>the fix is live. echo, you're up.</p></div></div>
+        <div class="said"><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg><div><b>echo</b><p>post is drafted. juno, can you email the list?</p></div></div>
+        <div class="said"><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><div><b>juno</b><p>ready to send to 1,204 people. need a yes first.</p><span class="ask-btns"><b class="pill yes">allow</b><b class="pill">deny</b></span></div></div>
+      </figure>
+    </article>
+
+  </div>
+  <div class="tools">
+    <p>and they work in the apps you already use.</p>
+    <ul aria-label="some of the apps a bot can connect to">
+      <li><img class="logo" src="logos/gmail.png" alt="gmail" width="18" height="18"></li>
+      <li><img class="logo" src="logos/calendar.png" alt="google calendar" width="18" height="18"></li>
+      <li><img class="logo" src="logos/drive.png" alt="google drive" width="18" height="18"></li>
+      <li><img class="logo" src="logos/slack.png" alt="slack" width="18" height="18"></li>
+      <li><img class="logo" src="logos/notion.png" alt="notion" width="18" height="18"></li>
+      <li><img class="logo" src="logos/github.svg" alt="github" width="18" height="18"></li>
+      <li><img class="logo" src="logos/linear.png" alt="linear" width="18" height="18"></li>
+      <li><img class="logo" src="logos/figma.png" alt="figma" width="18" height="18"></li>
+      <li><img class="logo" src="logos/stripe.png" alt="stripe" width="18" height="18"></li>
+      <li><img class="logo" src="logos/discord.svg" alt="discord" width="18" height="18"></li>
+      <li><img class="logo" src="logos/hubspot.png" alt="hubspot" width="18" height="18"></li>
+      <li><img class="logo" src="logos/airtable.svg" alt="airtable" width="18" height="18"></li>
+      <li class="tools-more">60+ apps, and any mcp server you add</li>
+    </ul>
+  </div>
+</section>
+
+<section class="wrap sec jobs" data-jobs>
+  <div class="jobs-copy">
+    <h2>give each bot a job.</h2>
+    <p class="jobs-sub">one bot, one job, one chat. each can run on a different ai, and you can swap it any time.</p>
+    <div class="chips" role="tablist" aria-label="six sample bots">
+      <span class="ind" data-ind aria-hidden="true"></span>
+      <button type="button" role="tab" id="jt-nova" aria-controls="jp-nova" aria-selected="true"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg>research</button>
+      <button type="button" role="tab" id="jt-juno" aria-controls="jp-juno" aria-selected="false"><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg>inbox</button>
+      <button type="button" role="tab" id="jt-rivet" aria-controls="jp-rivet" aria-selected="false"><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg>code</button>
+      <button type="button" role="tab" id="jt-tally" aria-controls="jp-tally" aria-selected="false"><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg>bookkeeping</button>
+      <button type="button" role="tab" id="jt-quill" aria-controls="jp-quill" aria-selected="false"><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg>travel</button>
+      <button type="button" role="tab" id="jt-echo" aria-controls="jp-echo" aria-selected="false"><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg>socials</button>
+    </div>
+    <div class="job-lines">
+      <p data-line="nova"><b>nova, research.</b> reads the 40 tabs so you don't. comes back with sources, a table and a straight answer.</p>
+      <p data-line="juno"><b>juno, inbox.</b> reads what came in overnight, drafts replies in your voice, and leaves the three that need you on top.</p>
+      <p data-line="rivet"><b>rivet, code.</b> picks up an issue, opens a pull request, and fixes what the review finds.</p>
+      <p data-line="tally"><b>tally, bookkeeping.</b> matches receipts to charges, and tells you when a subscription quietly got pricier.</p>
+      <p data-line="quill"><b>quill, travel.</b> watches fares, holds the good one, and asks before it books anything.</p>
+      <p data-line="echo"><b>echo, socials.</b> drafts the week's posts from what you shipped. posts nothing until you say so.</p>
+    </div>
+  </div>
+  <div class="jobs-stage">
+    <img class="jobs-art" src="art/wide-sails.webp" alt="" width="1536" height="1024" loading="lazy">
+    <div class="jobs-card">
+
+      <div class="job" role="tabpanel" id="jp-nova" aria-labelledby="jt-nova" tabindex="0">
+        <div class="job-head"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>nova</b><span class="runs-on"><img class="logo" src="logos/claude.svg" alt="" width="18" height="18">on claude</span></div>
+        <p class="msg me">which of these three mug shops is cheapest with shipping?</p>
+        <div class="msg wide">
+          <ul class="proof table">
+            <li><span>juniper lane</span><em>28 + 9</em><u class="best">37</u></li>
+            <li><span>north kiln</span><em>32 + 7</em><u>39</u></li>
+            <li><span>clayhouse studio</span><em>34 + 6</em><u>40</u></li>
+          </ul>
+          <p>juniper lane, by 2. sources are attached.</p>
+        </div>
+      </div>
+
+      <div class="job" role="tabpanel" id="jp-juno" aria-labelledby="jt-juno" tabindex="0">
+        <div class="job-head"><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><b>juno</b><span class="runs-on"><img class="logo" src="logos/chatgpt.svg" alt="" width="18" height="18">on chatgpt</span></div>
+        <p class="msg me">what came in overnight?</p>
+        <div class="msg wide">
+          <p>41 emails. 3 need you.</p>
+          <ul class="proof">
+            <li><img class="logo" src="logos/gmail.png" alt="" width="18" height="18"><span>dana, contract redline</span><u class="flag">needs you</u></li>
+            <li><img class="logo" src="logos/gmail.png" alt="" width="18" height="18"><span>bank, card expiring</span><u class="flag">needs you</u></li>
+            <li class="dim"><span>38 more</span><u>filed</u></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="job" role="tabpanel" id="jp-rivet" aria-labelledby="jt-rivet" tabindex="0">
+        <div class="job-head"><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>rivet</b><span class="runs-on"><img class="logo" src="logos/cursor.svg" alt="" width="18" height="18">on cursor</span></div>
+        <p class="msg me">sign-in is broken on safari. can you look?</p>
+        <div class="msg wide">
+          <p>found it, fixed it, opened a pull request.</p>
+          <ul class="proof">
+            <li><img class="logo" src="logos/github.svg" alt="" width="18" height="18"><span>#212 fix sign-in on safari</span><u class="plus">+18</u><u class="minus">-4</u></li>
+            <li><img class="logo" src="logos/github.svg" alt="" width="18" height="18"><span>review: 2 comments</span><u>both fixed</u></li>
+            <li class="chips-row"><u class="ok"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>checks passed</u><u>ready to merge</u></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="job" role="tabpanel" id="jp-tally" aria-labelledby="jt-tally" tabindex="0">
+        <div class="job-head"><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><b>tally</b><span class="runs-on"><img class="logo" src="logos/gemini.svg" alt="" width="18" height="18">on gemini</span></div>
+        <p class="msg me">anything odd in october?</p>
+        <div class="msg wide">
+          <p>one thing. you paid for figma twice.</p>
+          <ul class="proof">
+            <li><img class="logo" src="logos/figma.png" alt="" width="18" height="18"><span>figma, 3 oct</span><u>$15.00</u></li>
+            <li><img class="logo" src="logos/figma.png" alt="" width="18" height="18"><span>figma, 3 oct</span><u class="flag">$15.00, again</u></li>
+            <li class="dim"><span>21 more receipts</span><u>matched</u></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="job" role="tabpanel" id="jp-quill" aria-labelledby="jt-quill" tabindex="0">
+        <div class="job-head"><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><b>quill</b><span class="runs-on"><img class="logo" src="logos/grok.svg" alt="" width="18" height="18">on grok</span></div>
+        <p class="msg me">get me to lisbon on the 14th, cheap.</p>
+        <div class="msg wide">
+          <p>holding the cheapest one. aisle seat.</p>
+          <ul class="proof">
+            <li><span>9:40, one stop</span><u class="best">€84, held</u></li>
+            <li><span>13:05, direct</span><u>€112</u></li>
+            <li><span>book the 9:40?</span><span class="ask-btns"><b class="pill yes">allow</b><b class="pill">deny</b></span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="job" role="tabpanel" id="jp-echo" aria-labelledby="jt-echo" tabindex="0">
+        <div class="job-head"><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg><b>echo</b><span class="runs-on"><img class="logo" src="logos/chatgpt.svg" alt="" width="18" height="18">on chatgpt</span></div>
+        <p class="msg me">draft this week's posts.</p>
+        <div class="msg wide">
+          <p class="quote">"shipped this week: routines can start from a webhook, and bots ask before the scary stuff."</p>
+          <ul class="proof">
+            <li><span>draft 1 of 5</span><u class="flag">needs your yes</u></li>
+            <li class="dim"><span>4 more drafts</span><u>ready when you are</u></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section class="wrap sec use" id="use">
+  <h2>how to use dusk bot.</h2>
+  <div class="ways">
+
+    <article class="way">
+      <div class="way-art">
+        <img src="art/use-birches.webp" alt="" width="900" height="537" loading="lazy">
+        <figure class="way-snip disk" aria-label="a folder on this computer holding bots, chats, files and memory">
+          <figcaption><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 16h.01"/><path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M21.946 12.013H2.054"/><path d="M6 16h.01"/></svg><b>on this computer</b><span class="awake"><i></i>awake</span></figcaption>
+          <ul>
+            <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span>bots</span><em>6</em></li>
+            <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span>chats</span><em>214</em></li>
+            <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span>files</span><em>1.2 gb</em></li>
+            <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span>memory</span><em>38 notes</em></li>
+            <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span>browser data</span><em>6 profiles</em></li>
+          </ul>
+        </figure>
+      </div>
+      <h3>on your computer</h3>
+      <p>free. bots, chats, files and memory stay on your disk. no account, nothing to rent.</p>
+      <a class="go" href="/download">download the app<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+    </article>
+
+    <article class="way">
+      <div class="way-art">
+        <img src="art/use-cliffs.webp" alt="" width="900" height="1200" loading="lazy">
+        <figure class="way-snip term" aria-label="a terminal running the one-line install on a server">
+          <figcaption><i></i><i></i><i></i><span>you@your-server</span></figcaption>
+          <pre><code><span class="p">$</span> curl -fsSL \
+    https://dusk.bot/install.sh <span class="p">|</span> sh
+
+<span class="c">installing dusk bot ...</span>
+<span class="g">done.</span> open the app and
+choose <span class="s">add a server</span>.
+<span class="p">$</span> <i class="caret" aria-hidden="true"></i></code></pre>
+        </figure>
+      </div>
+      <h3>on your own server</h3>
+      <p>free. paste one line on a server you already have, and your bots stay on all day.</p>
+      <a class="go" href="/docs">read the docs<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+    </article>
+
+    <article class="way">
+      <div class="way-art">
+        <img src="art/use-layers.webp" alt="" width="900" height="1200" loading="lazy">
+        <figure class="way-snip cloud" data-play="wake" aria-label="a dusk cloud computer that wakes itself for an 8:00 routine">
+          <figcaption><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg><b>cloud computer</b><span class="state" data-state><span class="asleep">asleep</span><span class="awake"><i></i>awake</span></span></figcaption>
+          <ul>
+            <li><span>next up</span><em>inbox summary, 8:00</em></li>
+            <li><span>your laptop</span><em>shut</em></li>
+            <li><span>size</span><em>2 vcpu · 4 gb · 40 gb</em></li>
+            <li><span>bot computers</span><em>2</em></li>
+          </ul>
+        </figure>
+      </div>
+      <h3>on a dusk cloud computer</h3>
+      <p>we host it. routines keep running with your laptop shut. it sleeps when idle and wakes for work.</p>
+      <a class="go" href="#pricing">see the plans<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+    </article>
+
+  </div>
+</section>
+
+<section class="wrap sec cost" id="cost" data-cost>
+  <h2>what a month costs you.</h2>
+  <div class="cost-grid">
+    <div class="cost-big">
+      <p class="zero" aria-live="polite"><span class="cur">$</span><span data-total>0</span></p>
+      <p class="cost-cap">a month, from us. <span data-cap>for personal use, with every feature.</span></p>
+    </div>
+    <div class="chart">
+      <div class="bar-row">
+        <div class="bar-name"><b>dusk bot</b><span data-sub>on your computer</span></div>
+        <div class="track"><i class="fill" data-fill></i></div>
+        <div class="bar-val">$<span data-val>0</span></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name"><b>markup on ai usage</b><span>we add nothing</span></div>
+        <div class="track"><i class="fill"></i></div>
+        <div class="bar-val">$0</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name"><b>your ai plan</b><span>claude, chatgpt, gemini or grok</span></div>
+        <div class="track yours"><span>billed by them, the same as today</span></div>
+        <div class="bar-val quiet">no change</div>
+      </div>
+      <div class="seg" role="group" aria-label="where your bots run" data-seg>
+        <span class="ind" data-ind aria-hidden="true"></span>
+        <button type="button" aria-pressed="true" data-price="0" data-sub="on your computer" data-cap="for personal use, with every feature.">your computer</button>
+        <button type="button" aria-pressed="false" data-price="0" data-sub="on your own server" data-cap="for personal use, with every feature.">your server</button>
+        <button type="button" aria-pressed="false" data-price="20" data-sub="plus: a cloud computer" data-cap="for a cloud computer that works with your laptop shut.">dusk cloud</button>
+        <button type="button" aria-pressed="false" data-price="50" data-sub="pro: a bigger cloud computer" data-cap="for a bigger cloud computer and a work license.">dusk cloud, pro</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap sec pricing" id="pricing" data-pricing>
+  <div class="head">
+    <h2>free on your machine. pay only for a computer in the cloud.</h2>
+    <div class="seg bill" role="group" aria-label="billing period" data-seg>
+      <span class="ind" data-ind aria-hidden="true"></span>
+      <button type="button" aria-pressed="true" data-bill="month">monthly</button>
+      <button type="button" aria-pressed="false" data-bill="year">yearly<em>2 months free</em></button>
+    </div>
+  </div>
+  <div class="plans">
+
+    <article class="plan">
+      <img class="plan-art" src="art/p-free.webp" alt="" width="800" height="354" loading="lazy">
+      <h3>free</h3>
+      <p class="why">your bots, on your own computer.</p>
+      <p class="price"><span class="amt">$0</span><span class="per">forever. no card, no account.</span></p>
+      <a class="btn line" href="/download">download</a>
+      <ul class="has">
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>every feature of the app</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>runs on your computer or your server</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>the ai plan you already have</li>
+        <li class="no"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>no cloud computer</li>
+        <li class="no"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>no work license</li>
+      </ul>
+    </article>
+
+    <article class="plan pick">
+      <img class="plan-art" src="art/p-plus.webp" alt="" width="800" height="354" loading="lazy">
+      <h3>plus<span class="tag">always on</span></h3>
+      <p class="why">your bots keep working with the laptop shut.</p>
+      <p class="price"><span class="amt">$<span data-m="20" data-y="200">20</span></span><span class="per" data-per data-m="a month" data-y="a year. two months free.">a month</span></p>
+      <a class="btn blue" href="https://app.dusk.bot/billing">get plus</a>
+      <ul class="has">
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>everything in free</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>a cloud computer: 2 vcpu, 4 gb, 40 gb</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>2 bot computers, each with a screen</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>routines run around the clock</li>
+        <li class="no"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>no work license</li>
+      </ul>
+    </article>
+
+    <article class="plan has-cat">
+      <figure class="cat"><img src="art/cat.webp" alt="a pixel cat, asleep on top of the pro plan" width="520" height="280" loading="lazy"><figcaption>gary. not included.</figcaption></figure>
+      <img class="plan-art" src="art/p-pro.webp" alt="" width="800" height="354" loading="lazy">
+      <h3>pro</h3>
+      <p class="why">for work, and for more bots at once.</p>
+      <p class="price"><span class="amt">$<span data-m="50" data-y="500">50</span></span><span class="per" data-per data-m="a month" data-y="a year. two months free.">a month</span></p>
+      <a class="btn dark" href="https://app.dusk.bot/billing">get pro</a>
+      <ul class="has">
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>everything in plus</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>a bigger cloud computer: 4 vcpu, 8 gb, 80 gb</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>5 bot computers, first in line to wake</li>
+        <li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>a work license for one person</li>
+      </ul>
+    </article>
+
+  </div>
+  <p class="team">a team? from $100 a month you get a dedicated machine and shared bots. <a href="mailto:hello@dusk.bot">write to us</a></p>
+  <div class="own">
+    <span class="own-logos" aria-hidden="true"><img class="logo" src="logos/claude.svg" alt="" width="18" height="18"><img class="logo" src="logos/chatgpt.svg" alt="" width="18" height="18"><img class="logo" src="logos/gemini.svg" alt="" width="18" height="18"><img class="logo" src="logos/grok.svg" alt="" width="18" height="18"></span>
+    <p><b>already paying for claude or chatgpt?</b> sign in with your plan. ai usage is billed by your ai provider, never by dusk.</p>
+    <a class="btn line sm" href="/download">download and sign in</a>
+  </div>
+</section>
+
+<section class="wrap sec dl" id="download">
+  <div class="dl-copy">
+    <h2>download dusk bot.</h2>
+    <p>one app, on your desk. using it for yourself is free, and it stays free.</p>
+  </div>
+  <ul class="dl-list">
+    <li><a href="/download"><svg class="os" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg><span class="dl-name">macos</span><span class="dl-get">download<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></span></a></li>
+    <li><a href="/download"><svg class="os" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="9.4" height="9.4"/><rect x="12.6" y="2" width="9.4" height="9.4"/><rect x="2" y="12.6" width="9.4" height="9.4"/><rect x="12.6" y="12.6" width="9.4" height="9.4"/></svg><span class="dl-name">windows</span><span class="dl-get">download<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></span></a></li>
+    <li><a href="/download"><svg class="os" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.132 1.884 1.071.771-.06 1.592-.536 2.257-1.306.631-.765 1.683-1.084 2.378-1.503.348-.199.629-.469.649-.853.023-.4-.2-.811-.714-1.376v-.097l-.003-.003c-.17-.2-.25-.535-.338-.926-.085-.401-.182-.786-.492-1.046h-.003c-.059-.054-.123-.067-.188-.135a.357.357 0 00-.19-.064c.431-1.278.264-2.55-.173-3.694-.533-1.41-1.465-2.638-2.175-3.483-.796-1.005-1.576-1.957-1.56-3.368.026-2.152.236-6.133-3.544-6.139zm.529 3.405h.013c.213 0 .396.062.584.198.19.135.33.332.438.533.105.259.158.459.166.724 0-.02.006-.04.006-.06v.105a.086.086 0 01-.004-.021l-.004-.024a1.807 1.807 0 01-.15.706.953.953 0 01-.213.335.71.71 0 00-.088-.042c-.104-.045-.198-.064-.284-.133a1.312 1.312 0 00-.22-.066c.05-.06.146-.133.183-.198.053-.128.082-.264.088-.402v-.02a1.21 1.21 0 00-.061-.4c-.045-.134-.101-.2-.183-.333-.084-.066-.167-.132-.267-.132h-.016c-.093 0-.176.03-.262.132a.8.8 0 00-.205.334 1.18 1.18 0 00-.09.4v.019c.002.089.008.179.02.267-.193-.067-.438-.135-.607-.202a1.635 1.635 0 01-.018-.2v-.02a1.772 1.772 0 01.15-.768c.082-.22.232-.406.43-.533a.985.985 0 01.594-.2zm-2.962.059h.036c.142 0 .27.048.399.135.146.129.264.288.344.465.09.199.14.4.153.667v.004c.007.134.006.2-.002.266v.08c-.03.007-.056.018-.083.024-.152.055-.274.135-.393.2.012-.09.013-.18.003-.267v-.015c-.012-.133-.04-.2-.082-.333a.613.613 0 00-.166-.267.248.248 0 00-.183-.064h-.021c-.071.006-.13.04-.186.132a.552.552 0 00-.12.27.944.944 0 00-.023.33v.015c.012.135.037.2.08.334.046.134.098.2.166.268.01.009.02.018.034.024-.07.057-.117.07-.176.136a.304.304 0 01-.131.068 2.62 2.62 0 01-.275-.402 1.772 1.772 0 01-.155-.667 1.759 1.759 0 01.08-.668 1.43 1.43 0 01.283-.535c.128-.133.26-.2.418-.2zm1.37 1.706c.332 0 .733.065 1.216.399.293.2.523.269 1.052.468h.003c.255.136.405.266.478.399v-.131a.571.571 0 01.016.47c-.123.31-.516.643-1.063.842v.002c-.268.135-.501.333-.775.465-.276.135-.588.292-1.012.267a1.139 1.139 0 01-.448-.067 3.566 3.566 0 01-.322-.198c-.195-.135-.363-.332-.612-.465v-.005h-.005c-.4-.246-.616-.512-.686-.71-.07-.268-.005-.47.193-.6.224-.135.38-.271.483-.336.104-.074.143-.102.176-.131h.002v-.003c.169-.202.436-.47.839-.601.139-.036.294-.065.466-.065zm2.8 2.142c.358 1.417 1.196 3.475 1.735 4.473.286.534.855 1.659 1.102 3.024.156-.005.33.018.513.064.646-1.671-.546-3.467-1.089-3.966-.22-.2-.232-.335-.123-.335.59.534 1.365 1.572 1.646 2.757.13.535.16 1.104.021 1.67.067.028.135.06.205.067 1.032.534 1.413.938 1.23 1.537v-.043c-.06-.003-.12 0-.18 0h-.016c.151-.467-.182-.825-1.065-1.224-.915-.4-1.646-.336-1.77.465-.008.043-.013.066-.018.135-.068.023-.139.053-.209.064-.43.268-.662.669-.793 1.187-.13.533-.17 1.156-.205 1.869v.003c-.02.334-.17.838-.319 1.35-1.5 1.072-3.58 1.538-5.348.334a2.645 2.645 0 00-.402-.533 1.45 1.45 0 00-.275-.333c.182 0 .338-.03.465-.067a.615.615 0 00.314-.334c.108-.267 0-.697-.345-1.163-.345-.467-.931-.995-1.788-1.521-.63-.4-.986-.87-1.15-1.396-.165-.534-.143-1.085-.015-1.645.245-1.07.873-2.11 1.274-2.763.107-.065.037.135-.408.974-.396.751-1.14 2.497-.122 3.854a8.123 8.123 0 01.647-2.876c.564-1.278 1.743-3.504 1.836-5.268.048.036.217.135.289.202.218.133.38.333.59.465.21.201.477.335.876.335.039.003.075.006.11.006.412 0 .73-.134.997-.268.29-.134.52-.334.74-.4h.005c.467-.135.835-.402 1.044-.7zm2.185 8.958c.037.6.343 1.245.882 1.377.588.134 1.434-.333 1.791-.765l.211-.01c.315-.007.577.01.847.268l.003.003c.208.199.305.53.391.876.085.4.154.78.409 1.066.486.527.645.906.636 1.14l.003-.007v.018l-.003-.012c-.015.262-.185.396-.498.595-.63.401-1.746.712-2.457 1.57-.618.737-1.37 1.14-2.036 1.191-.664.053-1.237-.2-1.574-.898l-.005-.003c-.21-.4-.12-1.025.056-1.69.176-.668.428-1.344.463-1.897.037-.714.076-1.335.195-1.814.12-.465.308-.797.641-.984l.045-.022zm-10.814.049h.01c.053 0 .105.005.157.014.376.055.706.333 1.023.752l.91 1.664.003.003c.243.533.754 1.064 1.189 1.637.434.598.77 1.131.729 1.57v.006c-.057.744-.48 1.148-1.125 1.294-.645.135-1.52.002-2.395-.464-.968-.536-2.118-.469-2.857-.602-.369-.066-.61-.2-.723-.4-.11-.2-.113-.602.123-1.23v-.004l.002-.003c.117-.334.03-.752-.027-1.118-.055-.401-.083-.71.043-.94.16-.334.396-.4.69-.533.294-.135.64-.202.915-.47h.002v-.002c.256-.268.445-.601.668-.838.19-.201.38-.336.663-.336zm7.159-9.074c-.435.201-.945.535-1.488.535-.542 0-.97-.267-1.28-.466-.154-.134-.28-.268-.373-.335-.164-.134-.144-.333-.074-.333.109.016.129.134.199.2.096.066.215.2.36.333.292.2.68.467 1.167.467.485 0 1.053-.267 1.398-.466.195-.135.445-.334.648-.467.156-.136.149-.267.279-.267.128.016.034.134-.147.332a8.097 8.097 0 01-.69.468zm-1.082-1.583V5.64c-.006-.02.013-.042.029-.05.074-.043.18-.027.26.004.063 0 .16.067.15.135-.006.049-.085.066-.135.066-.055 0-.092-.043-.141-.068-.052-.018-.146-.008-.163-.065zm-.551 0c-.02.058-.113.049-.166.066-.047.025-.086.068-.14.068-.05 0-.13-.02-.136-.068-.01-.066.088-.133.15-.133.08-.031.184-.047.259-.005.019.009.036.03.03.05v.02h.003z"/></svg><span class="dl-name">linux</span><span class="dl-get">download<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></span></a></li>
+    <li class="dl-server">
+      <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19h8"/><path d="m4 17 6-6-6-6"/></svg>
+      <span class="dl-name">your own server<code>curl -fsSL https://dusk.bot/install.sh | sh</code></span>
+      <button class="copy" type="button" data-copy="curl -fsSL https://dusk.bot/install.sh | sh"><span data-copy-label aria-live="polite">copy</span></button>
+    </li>
+  </ul>
+</section>
+
+<section class="wrap sec faq">
+  <div class="faq-side">
+    <h2>questions.</h2>
+    <p>something we missed? write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>.</p>
+    <div class="faq-bots" data-eyes aria-hidden="true"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg></div>
+  </div>
+  <div class="qs">
+    <details name="faq" open><summary>is dusk bot really free?<i aria-hidden="true"></i></summary><div class="a"><p>yes, for personal use. you get every feature, on your own computer or your own server, with no trial timer. you pay only for a cloud computer or a work license.</p></div></details>
+    <details name="faq"><summary>which ai does it use?<i aria-hidden="true"></i></summary><div class="a"><p>the one you already pay for. dusk bot has no model of its own: you sign in with claude, chatgpt, gemini or grok. cursor, copilot, deepseek, kimi, qwen, opencode, cline and your own api key work too. each bot can use a different one, and when you swap, the bot keeps its chats, files and memory.</p></div></details>
+    <details name="faq"><summary>where does my data go?<i aria-hidden="true"></i></summary><div class="a"><p>nowhere, unless you choose a cloud computer. on your computer or your own server, bots, chats, files and memory stay on your disk.</p></div></details>
+    <details name="faq"><summary>what is a cloud computer?<i aria-hidden="true"></i></summary><div class="a"><p>a computer we host for your bots, so routines keep running with your laptop shut. it sleeps when idle and wakes for work.</p></div></details>
+    <details name="faq"><summary>is it safe to let bots click around?<i aria-hidden="true"></i></summary><div class="a"><p>bots ask before the scary stuff: sending, buying, deleting. you allow or deny. you can watch a bot's computer live and take the mouse back at any time.</p></div></details>
+    <details name="faq"><summary>what can a bot connect to?<i aria-hidden="true"></i></summary><div class="a"><p>more than 60 apps: gmail, google calendar, drive, docs and sheets, slack, notion, github, linear, figma, stripe, discord, hubspot, airtable, asana, trello, dropbox, outlook, shopify, sentry, vercel, supabase, posthog, zapier and more. you can also add any mcp server yourself.</p></div></details>
+    <details name="faq"><summary>can a bot talk?<i aria-hidden="true"></i></summary><div class="a"><p>yes. a bot can talk back, and you can call it and talk the job through.</p></div></details>
+    <details name="faq"><summary>can i use it for work?<i aria-hidden="true"></i></summary><div class="a"><p>yes, with a license. one comes with pro, for one person, and with team.</p></div></details>
+  </div>
+</section>
+
+<section class="end">
+  <div class="wrap end-copy">
+    <h2>say hi to your first bot.</h2>
+    <p class="actions"><a class="btn dark" href="/download"><svg class="os" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>download for macos</a></p>
+  </div>
+  <div class="end-art">
+    <img src="art/end-meadow.webp" alt="" width="1536" height="1024" loading="lazy">
+    <i class="dissolve top" aria-hidden="true"></i>
+    <div class="hill" data-eyes aria-hidden="true"><svg class="bot c-blue" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="50" cy="50" r="46"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-orange" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-purple" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></g><g class="eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-pink" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></g><g class="eyes"><rect x="36" y="30" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="30" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-green" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50.0 12.0 62.3 36.0 89.0 40.3 70.0 59.5 74.1 86.2 50.0 74.0 25.9 86.2 30.0 59.5 11.0 40.3 37.7 36.0z" stroke-width="12" stroke-linejoin="round"/></g><g class="eyes"><rect x="36" y="42" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="42" width="9.5" height="23" rx="4.75"/></g></svg><svg class="bot c-yellow" viewBox="0 0 100 100" aria-hidden="true"><g class="body"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></g><g class="eyes"><rect x="36" y="52" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="52" width="9.5" height="23" rx="4.75"/></g></svg></div>
+    <i class="dissolve bottom" aria-hidden="true"></i>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="./"><img src="art/cursor-88.webp" alt="" width="26" height="26">dusk bot</a>
+      <p>a team of ai bots that runs where you want it to.</p>
+    </div>
+    <nav class="foot-col" aria-label="product"><h2>product</h2><a href="/download">download</a><a href="/pricing">pricing</a><a href="/docs">docs</a><a href="https://app.dusk.bot">sign in</a></nav>
+    <nav class="foot-col" aria-label="legal"><h2>legal</h2><a href="/terms">terms</a><a href="/privacy">privacy</a><a href="/license">license</a><a href="/security">security</a></nav>
+    <nav class="foot-col" aria-label="contact"><h2>say hi</h2><a href="mailto:hello@dusk.bot">hello@dusk.bot</a></nav>
+  </div>
+  <p class="wrap foot-fine"><span>© 2026 dusk bot</span><span>the bots, shops and inboxes on this page are samples.</span></p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dusk bot: give a bot your inbox</title>
+<meta name="description" content="dusk bot is a desktop app where you run a team of ai bots and text them like teammates. free for personal use, on the ai you already pay for.">
+<meta name="theme-color" content="#fdfdfb">
+<link rel="icon" href="art/favicon.webp" type="image/webp">
+<link rel="preload" href="fonts/cabinet-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<script src="script.js" defer></script>
+</head>
+<body>
+
+<svg class="defs" aria-hidden="true" focusable="false">
+  <symbol id="b-circle" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></symbol>
+  <symbol id="b-hex" viewBox="0 0 100 100"><path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke="currentColor" stroke-width="10" stroke-linejoin="round"/></symbol>
+  <symbol id="b-clover" viewBox="0 0 100 100"><circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/></symbol>
+  <symbol id="b-heart" viewBox="0 0 100 100"><path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/></symbol>
+  <symbol id="b-star" viewBox="0 0 100 100"><path d="M50 12 62.3 36 89 40.3 70 59.5 74.1 86.2 50 74 25.9 86.2 30 59.5 11 40.3 37.7 36z" stroke="currentColor" stroke-width="12" stroke-linejoin="round"/></symbol>
+  <symbol id="b-drop" viewBox="0 0 100 100"><path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/></symbol>
+  <symbol id="b-eyes" viewBox="0 0 100 100"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></symbol>
+</svg>
+
+<a class="skip" href="#main">skip to the page</a>
+
+<div class="page">
+
+<header class="top">
+  <div class="sheet top-in">
+    <a class="brand" href="./"><img src="art/cursor.webp" alt="" width="34" height="34">dusk bot</a>
+    <nav class="nav" aria-label="main">
+      <a class="nav-mid" href="/download">download</a>
+      <a class="nav-wide" href="/docs">docs</a>
+      <a href="#pricing">pricing</a>
+      <a class="nav-in" href="https://app.dusk.bot">sign in</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero">
+  <div class="sheet">
+    <h1 class="mega">
+      <span class="mega-line">give a bot<svg class="bot pink mega-bot" id="hero-bot" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-heart"/><use class="eyes" href="#b-eyes" y="-8"/></svg></span>
+      <span class="mega-line">your <br class="br-m"><span class="swap-wrap"><button class="swap" id="swap" type="button" title="next job (this also stops it changing by itself)">inbox</button><img class="swap-cursor" id="swap-cursor" src="art/cursor.webp" alt="" width="256" height="256" draggable="false"></span>.</span>
+    </h1>
+
+    <div class="g3 hero-row">
+      <div class="cell hero-say">
+        <p class="lede">a team of ai bots that lives on your desktop. you text them like teammates and they do the work. free, on the ai you already pay for.</p>
+        <div class="acts">
+          <a class="pill" href="/download">download for macos</a>
+          <a class="quiet" href="/download">windows and linux too</a>
+        </div>
+        <p class="mono hero-fine">$0 for personal use · no account</p>
+      </div>
+
+      <div class="span2 stage">
+        <div class="stage-sky">
+          <picture>
+            <source media="(max-width: 899px)" srcset="art/app-900.webp">
+            <img class="app" src="art/app.webp" fetchpriority="high" width="1770" height="1020" alt="the dusk bot app: a list of bots on the left, a chat with nova in the middle, and nova's own computer open on the right, comparing mug prices in a browser" draggable="false">
+          </picture>
+        </div>
+        <img class="stk cloud cloud-a" data-sticker src="art/cloud-pink.png" alt="" width="240" height="80" draggable="false">
+        <button class="pill pill-paper try" id="try" type="button" hidden>try the real app</button>
+
+        <div class="dnp stk" data-sticker>
+          <span class="mono dnp-label">do not press</span>
+          <button class="dnp-btn" id="dnp" type="button" aria-label="do not press" aria-expanded="false" aria-controls="ask"><span class="dnp-cap"></span></button>
+        </div>
+        <div class="ask" id="ask" role="status" hidden>
+          <svg class="bot orange ask-bot" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-hex"/><use class="eyes" href="#b-eyes"/></svg>
+          <p class="mono ask-who">rivet wants to: press the big red button</p>
+          <p class="ask-q" id="ask-q">are you sure?</p>
+          <p class="ask-a" id="ask-a" hidden></p>
+          <div class="ask-acts" id="ask-acts">
+            <button class="pill pill-s" type="button" data-ask="allow">allow</button>
+            <button class="pill pill-s pill-soft" type="button" data-ask="deny">deny</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="say">
+  <div class="sheet">
+    <h2 class="vh">what dusk bot is</h2>
+    <p class="statement cell">dusk bot is a desktop app where you run a team of ai bots <span class="inl-bots"><svg class="bot blue" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-circle"/><use class="eyes" href="#b-eyes"/></svg><svg class="bot orange" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-hex"/><use class="eyes" href="#b-eyes"/></svg><svg class="bot green" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-star"/><use class="eyes" href="#b-eyes" y="4"/></svg></span> and text them like teammates. each one has a name, a job, a memory <img loading="lazy" decoding="async" class="inl stk inl-a" data-sticker src="art/s-notebook.webp" alt="" width="520" height="347" draggable="false"> and, if you want, its own computer <img loading="lazy" decoding="async" class="inl stk inl-b" data-sticker src="art/s-computer.webp" alt="" width="520" height="606" draggable="false">.</p>
+  </div>
+</section>
+
+<section class="jobs">
+  <div class="sheet">
+    <div class="g3 head">
+      <h2 class="h2 cell span2">give each bot a job.</h2>
+      <p class="cell note">these six are samples. make your own: name it, pick a shape, and tell it the job in plain words.</p>
+    </div>
+    <ul class="roster">
+      <li class="row t-sky">
+        <div class="cell who"><svg class="bot blue" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-circle"/><use class="eyes" href="#b-eyes"/></svg><span class="name">nova</span></div>
+        <p class="cell job mono"><span class="job-what">research</span><span class="job-on"><img loading="lazy" decoding="async" src="logos/claude.svg" alt="" width="18" height="18">on claude</span></p>
+        <p class="cell does">reads the forty tabs so you don't. comes back with a table and a straight answer.</p>
+      </li>
+      <li class="row t-pink">
+        <div class="cell who"><svg class="bot pink" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-heart"/><use class="eyes" href="#b-eyes" y="-8"/></svg><span class="name">juno</span></div>
+        <p class="cell job mono"><span class="job-what">inbox</span><span class="job-on"><img loading="lazy" decoding="async" src="logos/chatgpt.svg" alt="" width="18" height="18">on chatgpt</span></p>
+        <p class="cell does">sorts what came in overnight and drafts the replies in your voice. you press send.</p>
+      </li>
+      <li class="row t-peach">
+        <div class="cell who"><svg class="bot orange" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-hex"/><use class="eyes" href="#b-eyes"/></svg><span class="name">rivet</span></div>
+        <p class="cell job mono"><span class="job-what">code</span><span class="job-on"><img loading="lazy" decoding="async" src="logos/cursor.svg" alt="" width="18" height="18">on cursor</span></p>
+        <p class="cell does">picks up the issue, opens the pull request, fixes what the review finds.</p>
+      </li>
+      <li class="row t-mint">
+        <div class="cell who"><svg class="bot green" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-star"/><use class="eyes" href="#b-eyes" y="4"/></svg><span class="name">tally</span></div>
+        <p class="cell job mono"><span class="job-what">bookkeeping</span><span class="job-on"><img loading="lazy" decoding="async" src="logos/gemini.svg" alt="" width="18" height="18">on gemini</span></p>
+        <p class="cell does">matches receipts to charges and tells you when a subscription quietly got pricier.</p>
+      </li>
+      <li class="row t-lilac">
+        <div class="cell who"><svg class="bot purple" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-clover"/><use class="eyes" href="#b-eyes"/></svg><span class="name">quill</span></div>
+        <p class="cell job mono"><span class="job-what">travel</span><span class="job-on"><img loading="lazy" decoding="async" src="logos/grok.svg" alt="" width="18" height="18">on grok</span></p>
+        <p class="cell does">watches the fares, holds the good one, and asks before it books anything.</p>
+      </li>
+      <li class="row t-lemon">
+        <div class="cell who"><svg class="bot yellow" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-drop"/><use class="eyes" href="#b-eyes" y="14"/></svg><span class="name">echo</span></div>
+        <p class="cell job mono"><span class="job-what">socials</span><span class="job-on"><img loading="lazy" decoding="async" src="logos/claude.svg" alt="" width="18" height="18">on claude</span></p>
+        <p class="cell does">drafts the week's posts from what you shipped. posts nothing until you say so.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="can">
+  <div class="sheet">
+    <div class="g3 head">
+      <h2 class="h2 cell span2">three things a chatbot can't do.</h2>
+    </div>
+    <div class="g3 things">
+      <article class="thing">
+        <div class="pic c-sky">
+          <div class="win">
+            <p class="win-bar mono"><span>nova's screen</span><span class="live">live</span></p>
+            <img loading="lazy" decoding="async" src="art/screen.webp" alt="a browser on nova's own computer, open on a page comparing mug prices" width="560" height="320" draggable="false">
+          </div>
+          <span class="tag tag-a mono">nova is clicking</span>
+          <img loading="lazy" decoding="async" class="pic-cursor" src="art/cursor.webp" alt="" width="256" height="256" draggable="false">
+          <img loading="lazy" decoding="async" class="stk pic-stk pic-stk-a" data-sticker src="art/s-computer.webp" alt="" width="520" height="606" draggable="false">
+        </div>
+        <div class="cell thing-say">
+          <h3 class="h3">use a computer.</h3>
+          <p>a bot can have its own browser and desktop. it signs in and clicks through, and you can watch it live or take the mouse back.</p>
+        </div>
+      </article>
+
+      <article class="thing">
+        <div class="pic c-lemon">
+          <ul class="slips">
+            <li class="slip"><span class="slip-t">inbox summary</span><span class="mono slip-w">every weekday at 8:00</span><span class="sw" aria-hidden="true"></span></li>
+            <li class="slip"><span class="slip-t">triage new issues</span><span class="mono slip-w">when a github issue opens</span><span class="sw" aria-hidden="true"></span></li>
+          </ul>
+          <span class="tag tag-b mono">3:07 am. you: asleep. rivet: on it.</span>
+          <img loading="lazy" decoding="async" class="stk pic-stk pic-stk-b" data-sticker src="art/s-clock.webp" alt="" width="520" height="502" draggable="false">
+        </div>
+        <div class="cell thing-say">
+          <h3 class="h3">work while you sleep.</h3>
+          <p>ask once and it becomes a routine. it runs on a schedule, or the second something happens, like a new github issue.</p>
+        </div>
+      </article>
+
+      <article class="thing">
+        <div class="pic c-pink">
+          <div class="notes">
+            <p class="mono notes-h">juno's notes on you</p>
+            <ul>
+              <li>keep replies short. never open with “i hope this finds you well”.</li>
+              <li>nothing in the calendar before 10.</li>
+              <li>the landlord goes to the top. always.</li>
+            </ul>
+          </div>
+          <span class="tag tag-c mono">yours to read and edit</span>
+          <img loading="lazy" decoding="async" class="stk pic-stk pic-stk-c" data-sticker src="art/s-notebook.webp" alt="" width="520" height="347" draggable="false">
+        </div>
+        <div class="cell thing-say">
+          <h3 class="h3">remember how you like it.</h3>
+          <p>every bot keeps notes on how you work, in plain words. read them, fix them, delete the embarrassing ones.</p>
+        </div>
+      </article>
+    </div>
+
+    <div class="g3 also">
+      <div class="cell also-pic"><img loading="lazy" decoding="async" class="stk also-stk" data-sticker src="art/s-phone.webp" alt="" width="520" height="424" draggable="false"></div>
+      <p class="cell span2 also-say">also: rooms, where a few bots share one thread and hand work to each other. voice, so a bot can talk back and you can call it. and 60+ apps <span class="chips"><img loading="lazy" decoding="async" src="logos/gmail.png" alt="gmail" width="28" height="28"><img loading="lazy" decoding="async" src="logos/slack.png" alt="slack" width="28" height="28"><img loading="lazy" decoding="async" src="logos/notion.png" alt="notion" width="28" height="28"><img loading="lazy" decoding="async" src="logos/github.svg" alt="github" width="28" height="28"><img loading="lazy" decoding="async" src="logos/linear.png" alt="linear" width="28" height="28"><img loading="lazy" decoding="async" src="logos/figma.png" alt="figma" width="28" height="28"><img loading="lazy" decoding="async" src="logos/stripe.png" alt="stripe" width="28" height="28"></span> plus any mcp server you add.</p>
+    </div>
+  </div>
+</section>
+
+<section class="byo">
+  <div class="sheet">
+    <h2 class="h1 cell">bring the ai you already pay for.</h2>
+  </div>
+  <div class="tape" id="tape">
+    <ul class="tape-run">
+      <li><span class="lg"><img loading="lazy" decoding="async" src="logos/claude.svg" alt="" width="30" height="30"></span>claude</li>
+      <li><span class="lg"><img loading="lazy" decoding="async" src="logos/chatgpt.svg" alt="" width="30" height="30"></span>chatgpt</li>
+      <li><span class="lg"><img loading="lazy" decoding="async" src="logos/gemini.svg" alt="" width="30" height="30"></span>gemini</li>
+      <li><span class="lg"><img loading="lazy" decoding="async" src="logos/grok.svg" alt="" width="30" height="30"></span>grok</li>
+      <li><span class="lg"><img loading="lazy" decoding="async" src="logos/cursor.svg" alt="" width="30" height="30"></span>cursor</li>
+      <li><span class="lg"><img loading="lazy" decoding="async" src="logos/copilot.svg" alt="" width="30" height="30"></span>copilot</li>
+      <li><span class="lg"><img loading="lazy" decoding="async" src="logos/deepseek.svg" alt="" width="30" height="30"></span>deepseek</li>
+      <li><span class="lg"><img loading="lazy" decoding="async" src="logos/kimi.svg" alt="" width="30" height="30"></span>kimi</li>
+      <li><span class="lg"><img loading="lazy" decoding="async" src="logos/qwen.svg" alt="" width="30" height="30"></span>qwen</li>
+      <li><span class="lg"><img loading="lazy" decoding="async" src="logos/opencode.svg" alt="" width="30" height="30"></span>opencode</li>
+      <li><span class="lg"><img loading="lazy" decoding="async" src="logos/cline.svg" alt="" width="30" height="30"></span>cline</li>
+      <li><span class="lg lg-key mono">sk-</span>your own api key</li>
+    </ul>
+  </div>
+  <div class="sheet">
+    <div class="g3 facts">
+      <p class="cell fact">dusk bot has no model of its own. you sign in with the one you have.</p>
+      <p class="cell fact">a different model for each bot. swap any time and the bot keeps its chats, files and memory.</p>
+      <div class="cell fact-end">
+        <p class="fact">your provider bills the usage. we never do. no second bill, no markup.</p>
+        <button class="mono tape-pause" id="tape-pause" type="button" aria-pressed="false" hidden>pause the tape</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="where">
+  <div class="sheet">
+    <div class="g3 head">
+      <h2 class="h2 cell span2">pick where it lives.</h2>
+      <p class="cell note">the same app and the same bots in all three.</p>
+    </div>
+    <div class="g3 places">
+      <article class="cell place">
+        <div class="card"><img loading="lazy" decoding="async" class="stk card-art" data-sticker src="art/card-here.webp" alt="" width="640" height="480" draggable="false"><img loading="lazy" decoding="async" class="stk card-stk" data-sticker src="art/s-laptop.webp" alt="" width="520" height="381" draggable="false"></div>
+        <h3 class="word">here.</h3>
+        <p class="mono place-what">on your computer <span class="price-tag">free</span></p>
+        <p>everything stays on your disk. no account. “works on my machine”, but as a feature.</p>
+        <a class="go" href="/download">download</a>
+      </article>
+      <article class="cell place">
+        <div class="card"><img loading="lazy" decoding="async" class="stk card-art" data-sticker src="art/card-there.webp" alt="" width="640" height="480" draggable="false"><img loading="lazy" decoding="async" class="stk card-stk card-stk-b" data-sticker src="art/s-server.webp" alt="" width="440" height="542" draggable="false"></div>
+        <h3 class="word">there.</h3>
+        <p class="mono place-what">on your own server <span class="price-tag">free</span></p>
+        <p>one line and it's yours.</p>
+        <div class="code"><code id="curl">curl -fsSL https://dusk.bot/install.sh | sh</code><button class="mono copy" id="copy" type="button">copy</button></div>
+      </article>
+      <article class="cell place">
+        <div class="card"><img loading="lazy" decoding="async" class="stk card-art" data-sticker src="art/card-up.webp" alt="" width="640" height="480" draggable="false"></div>
+        <h3 class="word">up there.</h3>
+        <p class="mono place-what">on a dusk cloud computer <span class="price-tag tag-sky">from $20 a month</span></p>
+        <p>we host it. routines keep running with your laptop shut. it sleeps when idle and wakes up for work.</p>
+        <a class="go" href="#pricing">see the plans</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="zero">
+  <div class="scatter c-lemon" aria-hidden="true"></div>
+  <div class="zero-band c-lemon">
+    <div class="sheet g3">
+      <p class="span2 zero-num" aria-hidden="true">$0<svg class="bot blue zero-bot" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-circle"/><use class="eyes" href="#b-eyes"/></svg></p>
+      <div class="cell zero-say">
+        <h2 class="h2"><span class="vh">$0. </span>free for personal use.</h2>
+        <p>every feature. no trial timer. no account. it runs on your computer and on the ai plan you already have, so there is nothing for us to bill you for.</p>
+        <a class="pill" href="/download">download for macos</a>
+        <p class="mono zero-fine">using it for work? that needs a license. it's in the plans, right below.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="plans" id="pricing">
+  <div class="sheet">
+    <div class="g3 head">
+      <h2 class="h2 cell span2">the paid part is the cloud computer.</h2>
+      <div class="cell plans-side">
+        <p class="note">close the laptop and your bots keep working. that is what you pay for. the app is the same on every plan.</p>
+        <div class="bill" role="group" aria-label="billing period">
+          <button type="button" class="bill-b" data-bill="month" aria-pressed="true">monthly</button>
+          <button type="button" class="bill-b" data-bill="year" aria-pressed="false">yearly <span class="mono">2 months free</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="g3 tiers">
+      <article class="cell tier">
+        <h3 class="tier-name">free</h3>
+        <p class="tier-line">the whole app, on your machine.</p>
+        <p class="price"><span class="price-n">$0</span><span class="mono price-per">forever, for personal use</span></p>
+        <a class="pill pill-soft pill-wide" href="/download">download</a>
+        <ul class="has">
+          <li>every feature</li>
+          <li>runs on your computer or your server</li>
+          <li>the ai plan you already have</li>
+          <li class="no"><span class="vh">not included: </span>a cloud computer. bots stop when your laptop sleeps</li>
+          <li class="no"><span class="vh">not included: </span>a work license</li>
+        </ul>
+      </article>
+
+      <article class="cell tier tier-pick c-sky">
+        <div class="gary"><img loading="lazy" decoding="async" class="stk gary-cat" data-sticker src="art/cat.webp" alt="a sleeping orange cat" width="600" height="324" draggable="false"><span class="mono gary-note">gary. not included.</span></div>
+        <h3 class="tier-name">plus</h3>
+        <p class="tier-line">close the laptop. they keep going.</p>
+        <p class="price"><span class="price-n" data-month="$20" data-year="$200">$20</span><span class="mono price-per" data-month="a month" data-year="a year, two months free">a month</span></p>
+        <a class="pill pill-wide" href="https://app.dusk.bot/billing">get plus</a>
+        <ul class="has">
+          <li>everything in free</li>
+          <li>a cloud computer: 2 vcpu, 4 gb, 40 gb</li>
+          <li>2 bot computers</li>
+          <li>routines run with your laptop shut</li>
+          <li class="no"><span class="vh">not included: </span>a work license</li>
+        </ul>
+      </article>
+
+      <article class="cell tier">
+        <h3 class="tier-name">pro</h3>
+        <p class="tier-line">for the actual job.</p>
+        <p class="price"><span class="price-n" data-month="$50" data-year="$500">$50</span><span class="mono price-per" data-month="a month" data-year="a year, two months free">a month</span></p>
+        <a class="pill pill-soft pill-wide" href="https://app.dusk.bot/billing">get pro</a>
+        <ul class="has">
+          <li>everything in plus</li>
+          <li>a bigger cloud computer: 4 vcpu, 8 gb, 80 gb</li>
+          <li>5 bot computers</li>
+          <li>first in line to wake</li>
+          <li>a work license for one person</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="g3 plans-foot">
+      <p class="cell span2 team">a whole team? from $100 a month you get a dedicated machine and shared bots. <a href="mailto:hello@dusk.bot">hello@dusk.bot</a></p>
+      <p class="cell mono plans-fine">ai usage is billed by your ai provider, never by dusk. using it for work needs a license.</p>
+    </div>
+  </div>
+</section>
+
+<section class="qs">
+  <svg class="bot blue peek" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-circle"/><use class="eyes" href="#b-eyes"/></svg>
+  <div class="sheet g3">
+    <div class="cell qs-side">
+      <h2 class="h2">honest questions.</h2>
+      <p class="note">something else? write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>.</p>
+    </div>
+    <div class="span2 qs-list">
+      <details name="q" open><summary>is it really free?</summary><p>yes. for personal use you get every feature, forever, with no account. you only pay if you want a cloud computer or a license to use it at work.</p></details>
+      <details name="q"><summary>then how do you make money?</summary><p>from the cloud computers and the work licenses. that is the whole business model. there is no markup on ai, because we never touch that bill.</p></details>
+      <details name="q"><summary>which ai does it use?</summary><p>the one you already pay for: claude, chatgpt, gemini or grok. also cursor, copilot, deepseek, kimi, qwen, opencode, cline, or your own api key. dusk bot has no model of its own.</p></details>
+      <details name="q"><summary>where does my stuff go?</summary><p>on your computer, nowhere: it all stays on your disk. on your own server, your server. on a dusk cloud computer, that computer, which we host for you.</p></details>
+      <details name="q"><summary>is it safe to let a bot click around?</summary><p>bots ask before the scary stuff: sending, buying, deleting. you allow or deny. you can also watch any bot's screen live and take the mouse back.</p></details>
+      <details name="q"><summary>what happens when i close my laptop?</summary><p>bots on your computer stop until you are back. bots on a server or a dusk cloud computer keep going. the cloud one sleeps when idle and wakes up for work.</p></details>
+      <details name="q"><summary>can i switch models later?</summary><p>any time, one bot at a time. the bot keeps its chats, its files and its memory.</p></details>
+      <details name="q"><summary>can i use it at work?</summary><p>yes, with a license. pro includes one for one person, and team plans start at $100 a month.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="end">
+  <div class="sheet end-in">
+    <h2 class="mega end-h">go make <br class="br-m">a bot.</h2>
+    <div class="end-acts">
+      <a class="pill" href="/download">download for macos</a>
+      <a class="quiet" href="#pricing">or look at the plans</a>
+    </div>
+    <p class="mono end-fine">takes about as long as reading this page did.</p>
+  </div>
+  <img loading="lazy" decoding="async" class="stk cloud end-cloud-a" data-sticker src="art/cloud-lemon.png" alt="" width="240" height="80" draggable="false">
+  <img loading="lazy" decoding="async" class="stk cloud end-cloud-b" data-sticker src="art/cloud-pink.png" alt="" width="240" height="80" draggable="false">
+  <div class="meadow">
+    <img loading="lazy" decoding="async" class="meadow-art" src="art/meadow.webp" alt="" width="1536" height="512" draggable="false">
+    <div class="hill">
+      <svg class="bot blue stk" data-sticker="home" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-circle"/><use class="eyes" href="#b-eyes"/></svg>
+      <svg class="bot orange stk" data-sticker="home" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-hex"/><use class="eyes" href="#b-eyes"/></svg>
+      <svg class="bot purple stk" data-sticker="home" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-clover"/><use class="eyes" href="#b-eyes"/></svg>
+      <svg class="bot pink stk" data-sticker="home" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-heart"/><use class="eyes" href="#b-eyes" y="-8"/></svg>
+      <svg class="bot green stk" data-sticker="home" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-star"/><use class="eyes" href="#b-eyes" y="4"/></svg>
+      <svg class="bot yellow stk" data-sticker="home" viewBox="0 0 100 100" aria-hidden="true"><use class="body" href="#b-drop"/><use class="eyes" href="#b-eyes" y="14"/></svg>
+    </div>
+    <div class="scatter c-lime meadow-edge" aria-hidden="true"></div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot c-lime">
+  <div class="sheet g3 foot-in">
+    <div class="cell foot-brand">
+      <a class="brand" href="./"><img loading="lazy" decoding="async" src="art/cursor.webp" alt="" width="34" height="34">dusk bot</a>
+      <p>a team of ai bots. on your computer, your server, or ours.</p>
+    </div>
+    <div class="cell foot-links">
+      <nav aria-label="product">
+        <h2 class="mono">product</h2>
+        <a href="/download">download</a>
+        <a href="/pricing">pricing</a>
+        <a href="/docs">docs</a>
+        <a href="https://app.dusk.bot">sign in</a>
+      </nav>
+      <nav aria-label="legal">
+        <h2 class="mono">legal</h2>
+        <a href="/terms">terms</a>
+        <a href="/privacy">privacy</a>
+        <a href="/license">license</a>
+        <a href="/security">security</a>
+      </nav>
+    </div>
+    <div class="cell foot-hi">
+      <h2 class="mono">say hi</h2>
+      <a class="foot-mail" href="mailto:hello@dusk.bot">hello@dusk.bot</a>
+      <p class="mono foot-fine">made at dusk, mostly by bots. gary supervised.</p>
+    </div>
+  </div>
+  <div class="status mono">
+    <div class="sheet status-in">
+      <span class="status-l"><span class="status-on">[dusk]</span><a href="/download">0:download</a><a href="/docs">1:docs</a><a href="/pricing">2:pricing</a><a class="status-last" href="https://app.dusk.bot">3:sign in</a></span>
+      <span class="status-r">$0 · macos · windows · linux</span>
+    </div>
+  </div>
+</footer>
+
+</div>
+
+<dialog class="demo" id="demo" aria-label="the dusk bot app, live">
+  <div class="demo-bar">
+    <span class="mono">dusk bot, live. click around.</span>
+    <button class="pill pill-s" id="demo-close" type="button">close</button>
+  </div>
+  <div class="demo-fit" id="demo-fit">
+    <div class="demo-frame" id="demo-frame"><img loading="lazy" decoding="async" src="art/app.webp" alt="" width="1180" height="680"></div>
+  </div>
+</dialog>
+
+</body>
+</html>
