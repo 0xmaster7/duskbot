@@ -63,7 +63,8 @@ export function createSpendLedger(options: {
   now: () => number;
   /** a monotonic clock: a wall-clock jump inside one process is not taken as time passing */
   mono?: () => number;
-  alert?: (cloudId: string, text: string) => void;
+  /** `key`: what it is about (reserve, slack, backup, load), for the audit */
+  alert?: (cloudId: string, text: string, key: string) => void;
 }) {
   const s = options.ceiling ?? DEFAULT_CEILING, profile = options.profile, worst = worstStartCents(profile);
   const store = options.store ?? fileSpendStore(options.dataDir ?? (() => { throw new Error("A spend ledger needs a data directory or a store."); })());
@@ -107,7 +108,7 @@ export function createSpendLedger(options: {
       applySpend(b, line);
     }
     // a torn last line is a write that never finished, so nothing was asked of the provider after it
-    if (bad) options.alert?.("fleet", `spend ledger: ${bad} unreadable line(s) skipped on load`);
+    if (bad) options.alert?.("fleet", `spend ledger: ${bad} unreadable line(s) skipped on load`, "load");
   }
   // the monotonic clock is anchored at boot: from here a wall-clock jump is not taken as time passing
   clock();
@@ -136,7 +137,7 @@ export function createSpendLedger(options: {
     const tag = `${b.month}:${key}`;
     if (alerted.get(`${c}:${key}`) === tag) return;
     alerted.set(`${c}:${key}`, tag);
-    options.alert?.(c, text);
+    options.alert?.(c, text, key);
   }
 
   return {
@@ -167,7 +168,7 @@ export function createSpendLedger(options: {
       if (b) roll(c, b, clock());
       return { current: b ? { ...b } : null, closed: (closed.get(c) ?? []).map(x => ({ ...x })) };
     },
-    alert: (c: string, key: string, text: string) => { const b = books.get(c); if (b) alertOnce(c, b, key, text); else options.alert?.(c, text); },
+    alert: (c: string, key: string, text: string) => { const b = books.get(c); if (b) alertOnce(c, b, key, text); else options.alert?.(c, text, key); },
   };
 }
 export type SpendLedger = ReturnType<typeof createSpendLedger>;

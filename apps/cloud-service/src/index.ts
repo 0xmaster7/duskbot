@@ -102,7 +102,11 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
       const sleepPolicy = createPowerPolicy({ profile, params, pool: () => starts.view() });
       // each home's monthly cost book: nothing is charged to a home past its ceiling (power/ceiling.ts, docs/power.md)
       const spend = createSpendLedger({ dataDir: ctx.dataDir, profile, reserveStarts: params.rails.costReserveStarts, now: ctx.now, mono: deps.mono,
-        alert: (cloudId, text) => { console.warn(`managed: ALERT ${text}`); deps.alert?.({ at: ctx.now(), cloudId, action: "cost_ceiling", actor: "reconciler", reason: text.slice(0, 120) }); } });
+        alert: (cloudId, text, key) => {
+          console.warn(`managed: ALERT ${text}`);
+          deps.audit.record({ cloudId, action: "cost_ceiling_alert", actor: "reconciler", reason: key });
+          deps.alert?.({ at: ctx.now(), cloudId, action: "cost_ceiling", actor: "reconciler", reason: text.slice(0, 120) });
+        } });
       const releaseKeys = deps.releaseKeys ?? PINNED_RELEASE_KEYS;
       const updates = createHomeUpdates({ provider: deps.provider, image: BOAT_IMAGE, home: ctx.home, audit: deps.audit, releaseKeys, requireSigned: deps.settings.requireSigned, now: ctx.now, save: ctx.save,
         releases: () => [deps.release?.() ?? null, deps.settings.package], policy: () => deps.updatePolicy?.policy() ?? null });

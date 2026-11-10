@@ -285,3 +285,22 @@ it("a replaced sandbox that answers again is backed up from its own state and ke
   expect(f.api.deletes()).toHaveLength(0);
   expect(c.managed!.backups.some(g => g.file === kept!.file)).toBe(true);
 });
+
+it("charges every start to the home's monthly book, and keeps a home up once the provider caused the reserve's worth of starts", async () => {
+  const f = await boatFixture();
+  const { c } = await f.paid();
+  const lines = () => readFileSync(join(f.dataDir, "spend", "2026-11.jsonl"), "utf8").trim().split("\n").map(l => JSON.parse(l) as { c: string; e: string; cents?: number; kind?: string });
+  // the create: charged at the worst price before the provider was asked, settled to the included price the pool proves
+  expect(lines().filter(l => l.c === c.id).map(l => `${l.e}${l.cents === undefined ? "" : `:${l.cents}`}`).slice(0, 3)).toEqual(["open", "start:7", "settle:7"]);
+  // the provider stops the machine five times behind our back: each restart is a start nobody chose
+  for (let n = 0; n < 5; n++) {
+    f.api.sandboxes.get(c.serverId!)!.state = "archived";
+    await f.settle(c, c => c.status === "running" && f.api.sandboxes.get(c.serverId!)!.state === "ready", 20, 30_000);
+  }
+  expect(lines().filter(l => l.c === c.id && l.e === "start").length).toBe(6);
+  f.advance(5 * 60_000); f.power.idle = true; f.power.busy = [];
+  for (let n = 0; n < 20; n++) { c.nextAttemptAt = 0; await f.service.reconcile(); f.advance(5 * 60_000); }
+  expect(c.status).toBe("running");
+  expect(c.managed!.stayReason).toBe("cost_reserve_used");
+  expect(f.audit.entries(c.id).filter(e => e.action === "cost_ceiling_alert").map(e => e.reason)).toEqual(["reserve"]);
+});
