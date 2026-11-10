@@ -13,6 +13,7 @@ import { createBilling } from "./billing/index.ts";
 import { BillingError } from "./billing/service.ts";
 import { createSlackEdgeHost } from "./slack-edge/index.ts";
 import { createManagedRoutes } from "./clouds/managed-routes.ts";
+import { pagesRoutesFromEnv } from "./pages/routes.ts";
 import { clientIp } from "./client-ip.ts";
 import type { ErrorReporter } from "../../../electron/error-report.mjs";
 import type { EdgeSocketFactory } from "./slack-edge/service.ts";
@@ -84,6 +85,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     alert: entry => mail(process.env.DUSK_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
     fromBearer: req => auth.appSession(req)?.account ?? null } });
+  const pagesRoutes = pagesRoutesFromEnv({ dataDir: options.dataDir, publicUrl, clouds: billing.clouds, now, fetch: options.fetch });
   auth.beforeAccountDelete(async (owner, body) => {
     try { await billing.beforeAccountDelete(owner, body); } catch (error) { if (error instanceof BillingError && error.code === "billing_active") throw new AuthError(409, "billing_active", { blockers: error.blockers }); throw error; }
   });
@@ -238,6 +240,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     cleanup();
     const method = req.method ?? "GET";
     const url = new URL(req.url ?? "/", publicUrl);
+    if (await pagesRoutes.handle(req, res, url)) return;
     const path = url.pathname;
     if ((method === "GET" || method === "HEAD") && path === "/v1/health") {
       try { accessSync(options.dataDir, constants.W_OK); } catch { return json(res, 503, { ok: false, error: "data folder is not writable" }); }
