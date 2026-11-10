@@ -156,3 +156,16 @@ test("preferences saved under the old prefix carry over once; the new value wins
   assert.equal(data.get("duskbot.botPanelOpen.v1"), "0");
   assert.equal(migrateLegacyStorage(storage), 0);
 });
+
+test("a folder electron opened before the copy ran is set aside when it holds only caches", (t) => {
+  const appData = home(t);
+  write(path.join(appData, OLD, "environments.json"), '{"activeId":"vps"}');
+  write(path.join(appData, OLD, "vps-link.json"), "{}");
+  const next = path.join(appData, "duskbot");
+  write(path.join(next, "Cookies"), "cache");
+  assert.equal(migrateLegacyUserData(next, appData, { packaged: false }), true);
+  assert.equal(fs.readFileSync(path.join(next, "environments.json"), "utf8"), '{"activeId":"vps"}');
+  assert.ok(fs.readdirSync(appData).some((name) => name.startsWith("duskbot.fresh-")), "the opened folder is kept aside, not deleted");
+  write(path.join(next, "window-state.json"), "{}");
+  assert.equal(migrateLegacyUserData(next, appData, { packaged: false }), false, "a used folder is never replaced");
+});

@@ -227,11 +227,21 @@ export const DATA_DIR_NAMES = Object.freeze([".duskbot", LEGACY.dataDirName]);
  * electron's own folder (userData) under its old name, copied once to the new one before electron opens it. a copy, not
  * a move: it holds keychain-sealed files, and an older build started again still finds its own.
  */
+/** what only a used app's userData holds; chromium's own caches appear in any folder electron merely opened */
+const USER_DATA_MARKERS = ["environments.json", "vps-link.json", "desktop-prefs.json", "window-state.json", "ambient-prefs.json"];
+
 export function migrateLegacyUserData(next, appData, { fs = node("node:fs"), log = () => {}, packaged = true } = {}) {
-  if (exists(fs, next)) return false;
   const old = join(appData, packaged ? LEGACY.product : LEGACY.devName);
   const o = exists(fs, old);
   if (!o || !o.isDirectory() || !hasData(fs, old)) return false;
+  const marked = (dir) => USER_DATA_MARKERS.some((name) => exists(fs, join(dir, name)));
+  if (exists(fs, next)) {
+    // a folder electron opened before this copy ran (a test run, a first launch) holds only caches: set it aside
+    if (marked(next) || !marked(old)) return false;
+    const aside = `${next}.fresh-${Date.now()}`;
+    try { fs.renameSync(next, aside); log(`legacy copy: set aside ${next} -> ${aside}`); }
+    catch (error) { log(`legacy copy: kept ${next}: ${error?.message ?? error}`); return false; }
+  }
   const staging = `${next}.moving-${process.pid}`;
   try {
     fs.rmSync(staging, { recursive: true, force: true });
