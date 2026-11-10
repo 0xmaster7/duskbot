@@ -39,6 +39,7 @@ describe("derivedLabel", () => {
 
   it("says nothing for a call it cannot name, and keeps every label short and clean", () => {
     expect(derivedLabel(call("list_bots", {}), undefined)).toBeUndefined();
+    expect(derivedLabel(call("ToolSearch", { query: "select:WebSearch" }), undefined)).toBeUndefined();
     const long = derivedLabel(call("WebSearch", { query: "x".repeat(200) }), undefined)!.label;
     expect(long.length).toBeLessThanOrEqual(STATUS_LABEL_MAX);
     expect(derivedLabel(call("WebSearch", { query: "key sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789" }), undefined)!.label)

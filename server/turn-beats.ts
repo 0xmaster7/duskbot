@@ -77,6 +77,8 @@ interface Watch {
   /** When the engine's own text last arrived, and how many messages it has finished. */
   engineTextAt: number;
   engineMessages: number;
+  /** Messages the engine finished after its first tool began: its own progress notes. */
+  engineNotes: number;
   steps: string[];
   stepsAtLastWord: number;
   lastWordAt: number;
@@ -244,10 +246,11 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
     if (ack.phase === "writing" || (ack.phase === "idle" && !engineSpoke && !watch.tools)) return;
 
     const spokenBefore = watch.posted.length + watch.engineMessages;
-    // A message of the engine's own already told them what is going on.
-    if (plan.phase === "idle" && elapsed >= PLAN_WRITE_MS && watch.tools > 0 && spokenBefore >= 1 && watch.engineMessages === 0 && !composing(watch)) write(watch, "plan", plan);
+    // Only after one ack, whoever sent it: two messages, or a note of the engine's own while working, already told them.
+    const planWanted = spokenBefore === 1 && watch.engineNotes === 0;
+    if (plan.phase === "idle" && elapsed >= PLAN_WRITE_MS && watch.tools > 0 && planWanted && !composing(watch)) write(watch, "plan", plan);
     if (plan.phase === "ready") {
-      if (composing(watch) || watch.engineMessages > 0) plan.phase = "dropped";
+      if (composing(watch) || !planWanted) plan.phase = "dropped";
       else if (elapsed >= PLAN_MIN_MS && !watch.waiting) post(watch, "plan", plan);
     }
 
@@ -275,7 +278,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
       const watch: Watch = {
         botId: input.botId, threadId: input.threadId, ask: input.text, work: looksLikeWork(input.text, input.attachments), startedAt: now(),
         asksFirst: ASKS_FIRST.test(deps.bot(input.botId)?.soul ?? ""),
-        tools: 0, toolsDone: 0, lastToolAt: 0, engineTextAt: 0, engineMessages: 0, steps: [], stepsAtLastWord: 0, lastWordAt: 0, waiting: false,
+        tools: 0, toolsDone: 0, lastToolAt: 0, engineTextAt: 0, engineMessages: 0, engineNotes: 0, steps: [], stepsAtLastWord: 0, lastWordAt: 0, waiting: false,
         ack: { phase: "idle" }, plan: { phase: "idle" }, milestone: { phase: "idle" }, milestones: 0, milestoneTriedAt: 0, posted: [],
         timer: setInterval(() => tick(watch), TICK_MS),
       };
@@ -307,6 +310,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
           if (event.itemType === "tool") watch.toolsDone++;
           else if (event.itemType === "assistant_text" && event.text.trim()) {
             watch.engineMessages++;
+            if (watch.tools > 0) watch.engineNotes++;
             watch.engineTextAt = now();
           }
           break;

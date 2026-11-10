@@ -97,6 +97,8 @@ const SEARCH = /search|lookup|look_up|query/i;
 const READING_COMMAND = /^(?:sed|cat|head|tail|less|rg|grep|ls|find|nl|wc|jq|tree|stat|file)\b/;
 const FILES_SEARCH = /^(?:grep|glob|find|search_files|list_files|ls)$/i;
 const PUBLISH = /publish_page|deploy/i;
+/** An engine looking up its own tools: machinery, never a step. */
+const TOOL_LOOKUP = /^(?:ToolSearch|tool_search|find_tool|search_tools?|tool_describe)$/i;
 
 export interface Derived {
   label: string;
@@ -107,7 +109,7 @@ export interface Derived {
 /** The label for one tool call, or undefined when nothing short and true can be said about it. `max`: its length. */
 export function derivedLabel(call: DerivedCall, language: string | undefined, lastSite?: string, max = STATUS_LABEL_MAX): Derived | undefined {
   const { name, args } = unwrap(call);
-  if (!name) return undefined;
+  if (!name || TOOL_LOOKUP.test(name)) return undefined;
   const step = call.step;
   if (WEB_SEARCH.test(name) || step?.activity === "web") {
     const query = step?.activity === "web" ? step.detail ?? step.target : field(args, ["query", "q", "queries", "search_query", "searchQuery"]) ?? (typeof args === "string" ? args : undefined);

@@ -140,6 +140,26 @@ describe("turn beats", () => {
     expect(gone.posts).toEqual([]);
   });
 
+  it("sends the second message after the engine's own ack, but not after two messages or a progress note of its own", async () => {
+    const own = setup();
+    own.beats.start({ botId: "b", threadId: THREAD, text: "Research keyboard prices in India", attachments: 0, unattended: false });
+    own.send(event({ type: "turn.started" }));
+    own.send(said("On it, checking keyboard prices."));
+    own.send(toolStart("WebSearch", { query: "keyboard prices" }, "s1"));
+    await vi.advanceTimersByTimeAsync(PLAN_MIN_MS + 500);
+    expect(own.posts.map((p) => p.kind)).toEqual(["plan"]);
+    vi.useRealTimers();
+
+    const both = setup();
+    both.beats.start({ botId: "b", threadId: THREAD, text: "Research keyboard prices in India", attachments: 0, unattended: false });
+    both.send(event({ type: "turn.started" }));
+    both.send(toolStart("WebSearch", { query: "keyboard prices" }, "s1"));
+    await vi.advanceTimersByTimeAsync(2_500);
+    both.send(said("Amazon blocked the page, so I'm trying Flipkart."));
+    await vi.advanceTimersByTimeAsync(PLAN_MIN_MS);
+    expect(both.posts.map((p) => p.kind)).toEqual(["ack"]);
+  });
+
   it("drops the second message once the engine is writing its result", async () => {
     const { beats, posts, send } = setup();
     beats.start({ botId: "b", threadId: THREAD, text: "Compare Notion and Coda for a team of five", attachments: 0, unattended: false });
