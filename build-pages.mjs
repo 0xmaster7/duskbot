@@ -114,7 +114,13 @@ function sea() {
     ['circle', 'pink', 300, 770, 26], ['drop', 'green', 560, 752, 24], ['hex', 'purple', 820, 782, 28], ['squircle', 'yellow', 1290, 762, 26],
     ['clover', 'blue', 1400, 800, 30], ['heart', 'orange', 680, 822, 30], ['star', 'yellow', 210, 830, 32],
     ['circle', 'blue', 236, 884, 44], ['drop', 'yellow', 480, 900, 46], ['hex', 'orange', 748, 880, 40], ['clover', 'purple', 900, 916, 46],
-    ['heart', 'pink', 1230, 902, 42], ['squircle', 'green', 1372, 884, 38], ['star', 'green', 1060, 930, 40]];
+    ['heart', 'pink', 1230, 902, 42], ['squircle', 'green', 1372, 884, 38], ['star', 'green', 1060, 930, 40],
+    ['circle', 'yellow', 420, 722, 20], ['drop', 'blue', 680, 716, 18], ['heart', 'green', 900, 728, 20], ['hex', 'pink', 1220, 720, 18],
+    ['clover', 'orange', 1360, 740, 22], ['star', 'purple', 250, 724, 20],
+    ['squircle', 'pink', 360, 800, 28], ['circle', 'green', 520, 812, 30], ['drop', 'purple', 800, 840, 30], ['heart', 'yellow', 1310, 840, 28],
+    ['hex', 'blue', 620, 870, 32],
+    ['clover', 'pink', 100, 930, 40], ['circle', 'orange', 600, 935, 42], ['squircle', 'blue', 800, 940, 44], ['star', 'pink', 1160, 955, 38],
+    ['drop', 'green', 1300, 940, 40], ['hex', 'yellow', 1500, 925, 38]];
   const defs = [], bots = swim.map(([shape, colour, x, y, size]) => {
     const [def, canvas] = rest(BOTS[shape], '#fff');
     if (def) defs.push(def);
