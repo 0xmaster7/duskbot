@@ -4,6 +4,7 @@
 // connector sees on a cold wake. The policy weighs "stop now" against "stay up for tau, then stop" for a range of tau,
 // including "stay up through the next run", and takes the cheapest. Every answer passes the rails first.
 import type { MachineSpec } from "../../../../shared/billing-api.ts";
+import type { SpendView } from "./ceiling.ts";
 import { HOUR, MINUTE, breakEvenMs, startValueCents, type ProviderCostProfile, type ShadowPrices } from "./cost.ts";
 import { connectorShare, DEFAULT_PREDICTOR, GRID_MS, observe, predict, type PredictorParams } from "./predictor.ts";
 import { DEFAULT_RAILS, startRefusal, stopRefusal, type PoolView, type PowerMemory, type RailSettings, type StartKind } from "./rails.ts";
@@ -29,6 +30,8 @@ export interface PowerSnapshot {
   /** the last wake somebody asked for (the app, a connector), not yet long past */
   wakeRequestedAt?: number | null;
   memory: PowerMemory;
+  /** the home's monthly cost book (ceiling.ts), for the rails */
+  spend?: SpendView | null;
 }
 export interface PowerDecision {
   action: "stop" | "stay";
@@ -64,7 +67,7 @@ export const DEFAULT_POLICY: PolicyParams = {
 export interface SleepPolicy {
   decide(snapshot: PowerSnapshot): PowerDecision;
   /** for a stopped home: whether to start it now for a routine */
-  wake(snapshot: Pick<PowerSnapshot, "now" | "cloudId" | "nextDueAt" | "upcoming" | "memory">): WakePlan;
+  wake(snapshot: Pick<PowerSnapshot, "now" | "cloudId" | "nextDueAt" | "upcoming" | "memory" | "spend">): WakePlan;
   /** an event that needed the home (a person's use, a connector's), for the home's own activity model */
   observe(memory: PowerMemory, at: number, kind: "user" | "connector"): void;
 }
@@ -151,7 +154,7 @@ export function createPowerPolicy(options: { profile: ProviderCostProfile; pool(
       const stay = (reason: string, at: number, extra: Partial<PowerDecision> = {}): PowerDecision => ({ action: "stay", reason, recheckAt: Math.max(now + 15_000, Math.min(at, now + HOUR)), idleMinutes, ...extra });
       const pool = options.pool();
       const refusal = stopRefusal({ now, awakeSince: s.awakeSince, busy: s.busy, focusSince: s.focusSince, lastActivityAt: s.lastActivityAt, wakeRequestedAt: s.wakeRequestedAt ?? null,
-        nextRunAt: next ? runnableFrom(next) : null, memory: s.memory, pool, profile }, rails);
+        nextRunAt: next ? runnableFrom(next) : null, memory: s.memory, pool, profile, spend: s.spend ?? null }, rails);
       if (refusal) return stay(refusal.reason, refusal.recheckAt);
       const rate = profile.computeCentsPerHour(s.spec) / HOUR;
       const startCents = startValueCents(profile, pool.used, params.prices);
@@ -178,7 +181,7 @@ export function createPowerPolicy(options: { profile: ProviderCostProfile; pool(
       if (now < plan.latest - 45 * MINUTE) return { start: false, kind: "routine", reason: "not_yet", recheckAt: Math.min(plan.latest - 45 * MINUTE, now + HOUR), latest: plan.latest };
       const at = planner.slot(s.cloudId, plan.at, plan.latest, now);
       if (now < at) return { start: false, kind: "routine", reason: "not_yet", recheckAt: Math.min(at, now + HOUR), latest: plan.latest };
-      const refusal = startRefusal({ now, kind: "routine", latest: plan.latest, memory: s.memory, pool: options.pool(), profile }, params.rails);
+      const refusal = startRefusal({ now, kind: "routine", latest: plan.latest, memory: s.memory, pool: options.pool(), profile, spend: s.spend ?? null }, params.rails);
       if (refusal) return { start: false, kind: "routine", reason: refusal.reason, recheckAt: refusal.recheckAt, latest: plan.latest };
       planner.release(s.cloudId);
       return { start: true, kind: "routine", reason: "routine_due", recheckAt: now, latest: plan.latest };

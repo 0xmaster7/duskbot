@@ -10,6 +10,7 @@ import { availableParallelism } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { boatCostProfile, type BoatPlan } from "../src/boat.ts";
+import { monthlyCeilingCents } from "../src/power/ceiling.ts";
 import { DAY, HOUR, MINUTE } from "../src/power/cost.ts";
 import { MIX, PERSONAS } from "../src/power/personas.ts";
 import { DEFAULT_POLICY, type PolicyParams } from "../src/power/policy.ts";
@@ -24,9 +25,14 @@ interface Summary {
   starts: number; paid: number; held: number; waits: number; awakeH: number; stops: number; quick: number;
   waitP50: number; waitP95: number; runs: number; late: number; missed: number; maxHour: number; maxDay: number;
   peak: { minute: number; hour: number; day: number }; violations: number; ms: number;
+  /** the monthly ceiling: each home's worst complete calendar month as a share of its ceiling, the ceiling itself ($ per
+   *  home-month, 730 h), and wakes it held for cost per user and day */
+  ceilingShare: number; ceiling: number; costHeld: number;
 }
 
 const START = Date.UTC(2026, 10, 2);
+/** three backup generations of about 2 GB, charged against each home's ceiling */
+const BACKUP_BYTES = 6e9;
 const SMALL = { vcpu: 2, ramGb: 4, diskGb: 40 };
 
 /** half the users in one zone (bursts at the same local hour), the rest spread over the world */
@@ -58,9 +64,10 @@ export function runJob(job: Job): Summary {
     const compute = mean(x => x.computeCents) * month, startCash = mean(x => x.startCents) * month;
     return { label: job.label, group: job.group, decider: "oracle", users: n, days: bound.days, compute, startCash, cash: compute + startCash, waitCost: 0, total: compute + startCash,
       starts: mean(x => x.starts) / bound.days, paid: mean(x => x.paidStarts) / bound.days, held: 0, waits: 0, awakeH: 0, stops: mean(x => x.starts) / bound.days, quick: 0, waitP50: 0, waitP95: 0,
-      runs: mean(x => x.runs) / bound.days, late: 0, missed: 0, maxHour: 0, maxDay: 0, peak: { minute: 0, hour: 0, day: 0 }, violations: 0, ms: Math.round(performance.now() - t0) };
+      runs: mean(x => x.runs) / bound.days, late: 0, missed: 0, maxHour: 0, maxDay: 0, peak: { minute: 0, hour: 0, day: 0 }, violations: 0, ms: Math.round(performance.now() - t0),
+      ceilingShare: 0, ceiling: monthlyCeilingCents(profile.computeCentsPerHour(SMALL)) / 100, costHeld: 0 };
   }
-  const result = simulate({ users: usersOf(job), days: job.days, warmupDays: job.warmup, start: START, profile, seed: job.seed, decider: deciderOf(job.decider, job.params ?? DEFAULT_POLICY), waitPrices: job.waitPrices });
+  const result = simulate({ users: usersOf(job), days: job.days, warmupDays: job.warmup, start: START, profile, seed: job.seed, decider: deciderOf(job.decider, job.params ?? DEFAULT_POLICY), waitPrices: job.waitPrices, backupBytes: BACKUP_BYTES });
   const u = result.users, n = u.length, days = result.days, month = 30 / days / 100;
   const mean = (f: (x: (typeof u)[number]) => number) => u.reduce((a, x) => a + f(x), 0) / n;
   const waits = u.flatMap(x => x.waitMs);
@@ -74,6 +81,8 @@ export function runJob(job: Job): Summary {
     runs: mean(x => x.runs) / days, late: u.reduce((a, x) => a + x.runsLate, 0), missed: u.reduce((a, x) => a + x.runsMissed, 0),
     maxHour: Math.max(...u.map(x => x.maxStartsHour)), maxDay: Math.max(...u.map(x => x.maxStartsDay)),
     peak: result.peak, violations: result.violations.length, ms: Math.round(performance.now() - t0),
+    ceilingShare: Math.max(0, ...u.flatMap(x => x.months.filter(m => m.complete).map(m => m.spendCents / m.ceilingCents))),
+    ceiling: monthlyCeilingCents(profile.computeCentsPerHour(SMALL)) / 100, costHeld: mean(x => x.costRefusals) / days,
   };
 }
 
@@ -160,10 +169,10 @@ async function tune(start: PolicyParams, size: { n: number; days: number; warmup
 
 const usd = (x: number) => `$${x.toFixed(2)}`;
 function table(rows: Summary[], title: string): string {
-  const head = "| policy | total $/user-mo | cash $/user-mo | compute | starts $ | waits $ | starts/day | paid/day | held/day | waits/day | wait p50/p95 s | awake h/day | late+missed runs | max starts/h, /day | flaps/day |";
-  const sep = "|" + " --- |".repeat(15);
+  const head = "| policy | total $/user-mo | cash $/user-mo | compute | starts $ | waits $ | starts/day | paid/day | held/day | waits/day | wait p50/p95 s | awake h/day | late+missed runs | max starts/h, /day | flaps/day | worst month / ceiling |";
+  const sep = "|" + " --- |".repeat(16);
   const best = Math.min(...rows.filter(r => r.decider !== "oracle").map(r => r.total));
-  return [`#### ${title}`, "", head, sep, ...rows.map(r => `| ${r.decider === "adaptive" ? "**adaptive**" : r.decider} | ${r.total === best ? `**${usd(r.total)}**` : usd(r.total)} | ${usd(r.cash)} | ${usd(r.compute)} | ${usd(r.startCash)} | ${usd(r.waitCost)} | ${r.starts.toFixed(2)} | ${r.paid.toFixed(2)} | ${r.held.toFixed(2)} | ${r.waits.toFixed(2)} | ${r.waitP50.toFixed(0)}/${r.waitP95.toFixed(0)} | ${r.awakeH.toFixed(1)} | ${r.late + r.missed} | ${r.maxHour}, ${r.maxDay} | ${r.quick.toFixed(2)} |`), ""].join("\n");
+  return [`#### ${title}`, "", head, sep, ...rows.map(r => `| ${r.decider === "adaptive" ? "**adaptive**" : r.decider} | ${r.total === best ? `**${usd(r.total)}**` : usd(r.total)} | ${usd(r.cash)} | ${usd(r.compute)} | ${usd(r.startCash)} | ${usd(r.waitCost)} | ${r.starts.toFixed(2)} | ${r.paid.toFixed(2)} | ${r.held.toFixed(2)} | ${r.waits.toFixed(2)} | ${r.waitP50.toFixed(0)}/${r.waitP95.toFixed(0)} | ${r.awakeH.toFixed(1)} | ${r.late + r.missed} | ${r.maxHour}, ${r.maxDay} | ${r.quick.toFixed(2)} | ${r.decider === "oracle" ? "-" : `${(r.ceilingShare * 100).toFixed(1)}%`} |`), ""].join("\n");
 }
 
 async function main() {
@@ -210,6 +219,9 @@ function report(r: { params: PolicyParams; personaRows: Summary[]; fleetRows: Su
     "**Total** = compute + paid starts + the wait people saw, priced at $0.02 per cold wake a person waited through and $0.01 per",
     "one a connector event waited through (pro rata by wait length). A late or missed routine run costs $1 in the tuning objective.",
     "Every number is per user, scaled to 30 days, after a warm-up the predictor learns in.",
+    `**Monthly ceiling:** every home keeps a cost book (\`src/power/ceiling.ts\`) with ${BACKUP_BYTES / 1e9} GB of backups charged to it; the ceiling on`,
+    `\`small\` is $${(monthlyCeilingCents(1.8) / 100).toFixed(2)} a month. "Worst month / ceiling" is the highest share any home's complete calendar month (compute, starts at`,
+    "their real price, backup storage) reached; it is never above 100%.",
     "",
     "## Verdict",
     "",

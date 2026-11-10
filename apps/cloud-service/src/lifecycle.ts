@@ -5,10 +5,11 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 import { readFileSync } from "node:fs";
 import type { SleepPolicy } from "./power/policy.ts";
 import type { ProviderCostProfile } from "./power/cost.ts";
-import { DEFAULT_RAILS, freshMemory, noteFailure, noteHealthy, noteStart, noteStop, prune, startRefusal, stopRefusal, type PowerMemory, type RailSettings } from "./power/rails.ts";
+import { costChargeRefusal, costStopRefusal, DEFAULT_RAILS, freshMemory, noteFailure, noteHealthy, noteStart, noteStop, prune, startRefusal, stopRefusal, type PowerMemory, type RailSettings } from "./power/rails.ts";
 import { validStats } from "./power/predictor.ts";
 import { nextRun, plannedRuns, runnableFrom } from "./power/schedule.ts";
 import { StartCapError, type StartKind, type StartLedger } from "./starts.ts";
+import type { SpendInit, SpendLedger } from "./spend.ts";
 import { linkKeys } from "../../dashboard/server/clouds/bootstrap.ts";
 import { ProviderBusyError, ProviderError, ProviderLimitError, type MachineProvider, type MachineImage } from "./provider.ts";
 import { verifyRelease, type ReleaseKey } from "./release-signing.ts";
@@ -146,6 +147,8 @@ export interface LifecycleDeps {
   costProfile: ProviderCostProfile;
   /** the hard limits every stop and start passes, whatever the policy says (power/rails.ts) */
   rails?: RailSettings;
+  /** every home's monthly cost book (spend.ts): the rails keep each under its ceiling */
+  spend?: SpendLedger;
   /** staged updates of a running home, with their self-test and rollback (home-update.ts) */
   updates?: HomeUpdates;
 }
@@ -174,22 +177,67 @@ export function createLifecycle(deps: LifecycleDeps) {
     b.power = prune(m, now());
     return m;
   }
+  // ---- the monthly cost ceiling: every billable thing is charged to the home's book before it is asked for
+  const rateOf = (spec: StoredCloud["spec"]) => deps.costProfile.computeCentsPerHour(spec);
+  function spendInit(c: StoredCloud): SpendInit {
+    const b = state(c), fresh = c.status === "provisioning" && b.attempt === 0 && !c.serverId;
+    // a home already running before its book opened: what it spent so far this month is priced as always-on
+    return { rate: rateOf(c.spec), up: !fresh, bytes: b.backups.reduce((n, g) => n + g.bytes, 0), prepaid: fresh, before: !fresh };
+  }
+  const spendView = (c: StoredCloud) => deps.spend ? deps.spend.view(c.id, () => spendInit(c)) : null;
+  const spendNote = (c: StoredCloud, ev: Parameters<SpendLedger["record"]>[2]) => deps.spend?.record(c.id, () => spendInit(c), ev);
+  /** what the provider says about the home's own machine: billed unless it is stopped or gone */
+  const spendMark = (c: StoredCloud, up: boolean) => deps.spend?.mark(c.id, () => spendInit(c), up);
+  /** a retired machine's keep-alive runs until the next pass stops it, and at most until its lease does */
+  const extraMachineCents = (c: StoredCloud) => Math.max(rateOf(c.spec), rateOf(c.desiredSpec)) * settings.leaseSeconds / 3600;
+  const costHeldSeen = new Map<string, string>();
+  function costHeld(c: StoredCloud, reason: string, what: string) {
+    state(c).stayReason = reason;
+    if (costHeldSeen.get(c.id) === `${reason}:${what}`) return;
+    costHeldSeen.set(c.id, `${reason}:${what}`); log(c, "cost_ceiling", "reconciler", what);
+    console.warn(`managed: ALERT cloud ${c.id}: held at its monthly cost ceiling (${what})`);
+  }
+  function syncBytes(c: StoredCloud) { if (deps.spend) spendNote(c, { e: "bytes", bytes: state(c).backups.reduce((n, g) => n + g.bytes, 0) }); }
+
   function breakerOpened(c: StoredCloud, m: PowerMemory) {
     log(c, "starts_failing", "reconciler", "breaker_open", { trips: m.breaker?.trips ?? 0, until: m.breaker?.openUntil ?? null });
     console.warn(`managed: ALERT cloud ${c.id}: its machine failed to come up ${rails.breakerFailures} times; automatic starts wait until ${new Date(m.breaker?.openUntil ?? now()).toISOString()}`);
   }
-  /** a provider start: through the rails first, counted once it was asked for; one the rails hold back is tried again later */
-  async function start<T>(c: StoredCloud, kind: StartKind, run: () => Promise<T>, latest: number | null = null): Promise<T> {
-    const m = memory(c), refused = startRefusal({ now: now(), kind, latest, memory: m, pool: pool(), profile: deps.costProfile }, rails);
-    if (refused) throw new StartHeldError(refused.reason, refused.recheckAt);
+  /** a provider start: through the rails first, charged to the home's book at the worst price before it is asked for (and
+   *  settled to the price the pool ledger proves once it ran), counted once it was asked for; one the rails hold back is
+   *  tried again later. `extra`: a second machine of the home (a retired disk's keep-alive), charged with its compute. */
+  async function start<T>(c: StoredCloud, kind: StartKind, run: () => Promise<T>, latest: number | null = null, extra = false): Promise<T> {
+    const m = memory(c), extraCents = extra ? extraMachineCents(c) : 0;
+    const refused = startRefusal({ now: now(), kind, latest, memory: m, pool: pool(), profile: deps.costProfile, spend: spendView(c), extraCents }, rails);
+    if (refused) {
+      if (refused.reason.startsWith("cost_")) { costHeld(c, refused.reason, kind); deps.save(c); }
+      throw new StartHeldError(refused.reason, refused.recheckAt);
+    }
     deps.starts?.admit();
+    const worst = deps.spend?.worst ?? 0;
+    if (deps.spend) {
+      if (extra) spendNote(c, { e: "extra", cents: worst + extraCents, why: `retired_${kind}` });
+      else {
+        const spec = kind === "resize" ? c.desiredSpec : c.spec;
+        if (deps.spend.book(c.id).current?.rate !== rateOf(spec)) spendNote(c, { e: "rate", rate: rateOf(spec) });
+        spendNote(c, { e: "start", kind, cents: worst });
+      }
+    }
     let result: T;
     try { result = await run(); }
     catch (error) {
+      // refused outright (a limit, busy, a 4xx): nothing started, so nothing is owed; anything else may have been billed
+      const refusedByProvider = error instanceof ProviderLimitError || error instanceof ProviderBusyError || error instanceof ProviderError && error.status < 500;
+      if (deps.spend && refusedByProvider) spendNote(c, extra ? { e: "extra", cents: -(worst + extraCents), why: "refused" } : { e: "settle", cents: worst, void: true });
       if (error instanceof ProviderLimitError) { if (error.info.nextStartAt !== null) deps.starts?.block(error.info.nextStartAt); }
       else if (!(error instanceof ProviderBusyError) && noteFailure(m, now(), rails)) breakerOpened(c, m);
       deps.save(c);
       throw error;
+    }
+    if (deps.spend && deps.starts) {
+      // the pool ledger proves the price this start had (an included one is free); a held resume is not proven free
+      const price = deps.costProfile.startCents(deps.starts.view().used);
+      if (Number.isFinite(price) && price < worst) spendNote(c, extra ? { e: "extra", cents: -(worst - price), why: "settled" } : { e: "settle", cents: worst - price });
     }
     deps.starts?.record(c.id, kind);
     noteStart(m, now()); deps.save(c);
@@ -305,7 +353,15 @@ export function createLifecycle(deps: LifecycleDeps) {
     } finally { reader.releaseLock(); }
     const tar = Buffer.concat(chunks), problem = homeVolumeProblem(tar, c.id);
     if (problem) { b.backupProblem = problem; deps.save(c); log(c, "backup_refused", "reconciler", problem); return false; }
+    // its storage until the month ends is charged before it is written (the pruning after only gives some back)
+    const storage = deps.spend ? deps.spend.storageCents(c.id, () => spendInit(c), tar.length) : 0;
+    if (costChargeRefusal(spendView(c), storage, now())) {
+      b.backupProblem = "cost_ceiling"; deps.save(c); log(c, "backup_skipped", "reconciler", "cost_ceiling", { bytes: tar.length });
+      deps.spend?.alert(c.id, "backup", `cloud ${c.id}: a backup was skipped, its storage would pass the monthly cost ceiling`);
+      return false;
+    }
     const key = keyOf(c), record = deps.backups.write(c.id, key, tar);
+    if (deps.spend) spendNote(c, { e: "bytes", bytes: b.backups.reduce((n, g) => n + g.bytes, 0) + record.bytes });
     // restorable means: it opens with this cloud's key and is still this cloud's volume
     const verified = homeVolumeProblem(deps.backups.read(c.id, key, record.file), c.id) === null && deps.backups.sha256(c.id, record.file) === record.sha256;
     b.backups.push({ ...record, verifiedAt: verified ? now() : null, snapshotAt: snapshot.at, ...(keep ? { keep: true, source: serverId } : {}) });
@@ -320,6 +376,7 @@ export function createLifecycle(deps: LifecycleDeps) {
       deps.backups.remove(c.id, old.file); b.backups.splice(b.backups.indexOf(old), 1);
       log(c, "backup_pruned", "reconciler", "generations", { file: old.file });
     }
+    syncBytes(c);
     deps.save(c);
     return verified;
   }
@@ -406,6 +463,8 @@ export function createLifecycle(deps: LifecycleDeps) {
     const b = state(c);
     if (!c.serverId) return;
     await provider.power(c.serverId, "off");
+    // a stop the rails' cost rule allowed: the start that ends this sleep is already paid for
+    if (reason === "idle" || reason === "owner") spendNote(c, { e: "stop" });
     b.sleptAt = now(); b.sleepReason = reason; c.status = reason === "plan" ? "stopped" : "sleeping"; c.powerSince = now(); c.wantPower = "off";
     log(c, "sleep", actor, reason ?? "idle", { nextDueAt: b.nextDueAt });
     deps.save(c);
@@ -489,6 +548,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (!rereadStored(c) || b.hold) return;
     if (deps.entitlement(c).active) { log(c, "delete_refused", "reconciler", "subscribed"); return; }
     for (const g of b.backups.slice()) { deps.backups.remove(c.id, g.file); b.backups.splice(b.backups.indexOf(g), 1); }
+    syncBytes(c);
     log(c, "backups_deleted", "reconciler", b.deletion?.reason ?? "retention_over");
     deps.save(c);
   }
@@ -502,7 +562,14 @@ export function createLifecycle(deps: LifecycleDeps) {
       if (old.deletion) continue;
       const s = await provider.machine(old.serverId);
       if (!s) continue;
-      if (s.state === "running") { await provider.power(old.serverId, "off"); log(c, "retired_stopped", "reconciler", "kept", { old: old.serverId }); continue; }
+      if (s.state === "running") {
+        // not our keep-alive: a machine the provider called gone came back, billed for as long as nobody saw it
+        if (!old.refreshAt || now() - old.refreshAt > settings.leaseSeconds * 1000) {
+          if (deps.spend) spendNote(c, { e: "extra", cents: extraMachineCents(c), why: "retired_running" });
+          console.warn(`managed: ALERT cloud ${c.id}: replaced sandbox ${old.serverId} was found running; it is stopped and charged to the home`);
+        }
+        await provider.power(old.serverId, "off"); log(c, "retired_stopped", "reconciler", "kept", { old: old.serverId }); continue;
+      }
       if (s.state !== "stopped") continue;
       if (!old.backedUp && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) {
         if (await backup(c, "retired", old.serverId, true)) {
@@ -517,7 +584,7 @@ export function createLifecycle(deps: LifecycleDeps) {
         continue;
       }
       // its disk is still the only full copy of that state on the provider: keep the provider's 14-day clock from running out
-      if (mayRefresh(c, s.stoppedAt, true)) { await start(c, "refresh", () => provider.power(old.serverId, "on")); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
+      if (mayRefresh(c, s.stoppedAt, true)) { await start(c, "refresh", () => provider.power(old.serverId, "on"), null, true); old.refreshAt = now(); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); deps.save(c); }
     }
   }
 
@@ -587,11 +654,13 @@ export function createLifecycle(deps: LifecycleDeps) {
     }
     if (c.suspended !== null) {
       const s = await provider.machine(c.serverId);
+      if (s) spendMark(c, s.state !== "stopped");
       if (s && (s.state === "running" || s.state === "starting")) await sleepNow(c, "operator", "operator");
       c.status = "suspended"; c.suspensionApplied = true; deps.save(c); return;
     }
     const s = await provider.machine(c.serverId);
-    if (!s) { if (await confirmLost(c)) return recover(c, "missing"); return; }
+    if (!s) { if (await confirmLost(c)) { spendMark(c, false); return recover(c, "missing"); } return; }
+    spendMark(c, s.state !== "stopped");
     if (b.missingSince) { log(c, "missing_cleared", "reconciler", "answered"); b.missingSince = null; b.missingChecks = 0; deps.save(c); }
     if (s.dataExpired) return recover(c, "data_expired");
     if (stopFailing(c, s.stopFailing)) return;
@@ -640,7 +709,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (s.state === "stopped") {
       const m = memory(c), wanted = c.wantPower === "on";
       // a routine's pre-wake comes from the policy (its spread, the rails); a person's wake is never held for one
-      const plan = wanted ? null : deps.sleepPolicy.wake({ now: now(), cloudId: c.id, nextDueAt: b.nextDueAt, upcoming: b.upcoming ?? null, memory: m });
+      const plan = wanted ? null : deps.sleepPolicy.wake({ now: now(), cloudId: c.id, nextDueAt: b.nextDueAt, upcoming: b.upcoming ?? null, memory: m, spend: spendView(c) });
       const due = plan?.start === true;
       const stale = !wanted && !due && mayRefresh(c, s.stoppedAt);
       if (plan && !plan.start && b.stayReason !== plan.reason && !["not_yet", "nothing_due"].includes(plan.reason)) { b.stayReason = plan.reason; deps.save(c); }
@@ -679,9 +748,13 @@ export function createLifecycle(deps: LifecycleDeps) {
       await provider.lease(c.serverId, settings.leaseSeconds);
       deps.save(c); return;
     }
-    if (c.wantPower === "off") return sleepNow(c, "owner", "owner");
-    // the owner asked to apply a plan change now: stopped through the same pre-stop hook, resized while stopped
-    if (resizeWanted && b.resizeAskedAt) return sleepNow(c, "owner", "owner");
+    // the owner asked for a stop, or to apply a plan change now (stopped through the same pre-stop hook, resized while
+    // stopped): only once the start back is paid for under the monthly ceiling, else the home stays up
+    if (c.wantPower === "off" || resizeWanted && b.resizeAskedAt) {
+      const held = costStopRefusal(spendView(c), now(), true);
+      if (!held) return sleepNow(c, "owner", "owner");
+      costHeld(c, held.reason, "owner_stop");
+    }
     if (b.leaseAt === null || now() - b.leaseAt >= Math.min(30 * MINUTE, settings.leaseSeconds * 500)) { await provider.lease(c.serverId, settings.leaseSeconds); b.leaseAt = now(); deps.save(c); }
     if (b.lastPowerAt !== null && now() - b.lastPowerAt < settings.powerReadMs) return;
     b.lastPowerAt = now();
@@ -694,12 +767,12 @@ export function createLifecycle(deps: LifecycleDeps) {
     b.focusSince = power.busy.includes("focus") ? b.focusSince ?? now() : null;
     if (power.lastActivityAt !== null) deps.sleepPolicy.observe(m, power.lastActivityAt, "user");
     const snapshot = { now: now(), cloudId: c.id, spec: c.spec, homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy: power.busy, focusSince: b.focusSince ?? null,
-      nextDueAt: power.nextDueAt, upcoming: b.upcoming, wakeRequestedAt: c.wakeRequestedAt ?? null, memory: m };
+      nextDueAt: power.nextDueAt, upcoming: b.upcoming, wakeRequestedAt: c.wakeRequestedAt ?? null, memory: m, spend: spendView(c) };
     const decision = deps.sleepPolicy.decide(snapshot);
     // the rails again, whatever the policy said: no policy stops a home they hold up
     const next = nextRun(plannedRuns(power.nextDueAt, b.upcoming, now()), now());
     const held = decision.action === "stop" ? stopRefusal({ now: now(), awakeSince: c.powerSince, busy: power.busy, focusSince: b.focusSince ?? null, lastActivityAt: power.lastActivityAt,
-      wakeRequestedAt: c.wakeRequestedAt ?? null, nextRunAt: next ? runnableFrom(next) : null, memory: m, pool: pool(), profile: deps.costProfile }, rails) : null;
+      wakeRequestedAt: c.wakeRequestedAt ?? null, nextRunAt: next ? runnableFrom(next) : null, memory: m, pool: pool(), profile: deps.costProfile, spend: spendView(c) }, rails) : null;
     const reason = decision.action === "stay" ? decision.reason : held?.reason ?? null;
     if (b.stayReason !== reason) b.stayReason = reason;
     if (power.idle && decision.action === "stop" && !held && deps.home.sleep) {
