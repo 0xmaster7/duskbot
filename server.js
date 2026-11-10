@@ -22,6 +22,9 @@ const TYPES = {
   '.js': 'text/javascript; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.jpg': 'image/jpeg',
+  '.woff2': 'font/woff2',
   '.ico': 'image/x-icon',
 };
 
@@ -60,7 +63,7 @@ const server = http.createServer((req, res) => {
     'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream',
     'Content-Length': body.length,
     // the installer, its checksum and the update manifest must never be served stale after a refresh
-    'Cache-Control': /\.(sh|sha256|json)$/.test(file) ? 'no-cache' : 'public, max-age=300',
+    'Cache-Control': /\.(sh|sha256|json)$/.test(file) ? 'no-cache' : /\.woff2$/.test(file) ? 'public, max-age=86400' : 'public, max-age=300',
   });
   res.end(req.method === 'HEAD' ? undefined : body);
 });
