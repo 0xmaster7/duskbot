@@ -114,6 +114,10 @@ export class EventBus {
       if (this.pendingText.has(raw.threadId)) this.flushThread(raw.threadId);
       this.enqueue(raw);
       if (statusCall.frame) this.progress.offer(statusCall.frame);
+      if (statusCall.message) {
+        this.progress.supersede(raw.threadId, false);
+        this.write(statusCall.message);
+      }
       return;
     }
     if (raw.type === "turn.started" || isTerminalEvent(raw)) this.status.forget(raw.threadId);

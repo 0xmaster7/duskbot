@@ -24,6 +24,7 @@ import { callPersonTool, PERSON_TOOL_NAMES } from "./agents-person-tools.ts";
 import { callDevsTool, DEVS_TOOL_NAMES } from "./agents-devs-tools.ts";
 import { STATUS_TOOL } from "../../shared/turn-progress.ts";
 import { callStatusTool } from "./agents-status-tool.ts";
+import { callSendMessageTool, SEND_MESSAGE_TOOL } from "./agents-send-message-tool.ts";
 
 export interface ToolCallContext {
   botId: string;
@@ -225,6 +226,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
   if (WAIT_TOOL_NAMES.has(name)) return callWaitTool(name, args, context);
   if (name === USAGE_LIMITS_TOOL) return callUsageLimitsTool(context);
   if (name === STATUS_TOOL) return callStatusTool();
+  if (name === SEND_MESSAGE_TOOL) return callSendMessageTool();
   if (name === "tool_result_read") {
     if (typeof args.id !== "string" || !/^r-[0-9a-f-]{36}$/.test(args.id) ||
       (args.offset !== undefined && (!Number.isSafeInteger(args.offset) || Number(args.offset) < 0))) {

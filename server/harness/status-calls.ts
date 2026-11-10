@@ -2,6 +2,7 @@
 // call itself is never a step: the bus logs it but delivers only the label it sets.
 import { STATUS_LABEL_MAX, STATUS_TOOL } from "../../shared/turn-progress.ts";
 import { SERVER_PREFIXES, USE_TOOL } from "../drivers/agents-bridge.ts";
+import { SEND_MESSAGE_TOOL } from "../drivers/agents-send-message-tool.ts";
 import { newId, type RuntimeEvent } from "../contracts.ts";
 import { redactSecretsInText } from "../redact.ts";
 import { derivedLabel, LABEL_HOLD_MS, MODEL_HOLD_MS } from "./derived-status.ts";
@@ -59,6 +60,17 @@ export function statusCallText(title: string | undefined, input: unknown): strin
   return typeof input === "string" && NAME_FIELD.test(input) ? statusField(undefined, input) : null;
 }
 
+/** A send_message call's text, through the bridge's use_tool too; `null` for any other call, undefined when it names none
+ * that can be read whole. */
+export function sentMessageText(title: string | undefined, input: unknown): string | undefined | null {
+  const name = bareName(title);
+  const args = parsed(input);
+  const text = (value: unknown) => (record(value) && typeof value.text === "string" && value.text.trim() ? value.text : undefined);
+  if (name === SEND_MESSAGE_TOOL) return text(args);
+  if (name === USE_TOOL && record(args) && args.name === SEND_MESSAGE_TOOL) return text(args.arguments);
+  return null;
+}
+
 const TRAILING = /[\s.,;:!?…]+$/u;
 
 /** The status line's label for what the bot said: no leading "is ", sentence case, no trailing punctuation or ellipsis,
@@ -110,15 +122,21 @@ export class TurnStatus {
 
   /** True for a set_status call's start, update or end: the bus logs it and delivers nothing. A start that names a
    * status also sets the turn's label and gives the frame that shows it. */
-  take(event: RuntimeEvent): { frame?: ProgressEvent } | null {
+  take(event: RuntimeEvent): { frame?: ProgressEvent; message?: RuntimeEvent } | null {
     if (event.type === "item.started" && event.itemType === "tool") {
+      const sent = sentMessageText(event.title, event.input);
+      if (typeof sent === "string") {
+        this.hold(event);
+        return {
+          message: {
+            eventId: newId(), provider: event.provider, providerInstanceId: event.providerInstanceId, threadId: event.threadId,
+            createdAt: event.createdAt, turnId: event.turnId, type: "item.completed", itemType: "assistant_text", text: sent,
+          } as RuntimeEvent,
+        };
+      }
       const text = statusCallText(event.title, event.input);
       if (text === null) return null;
-      if (event.itemId) {
-        let calls = this.calls.get(event.threadId);
-        if (!calls) this.calls.set(event.threadId, (calls = new Set()));
-        calls.add(event.itemId);
-      }
+      this.hold(event);
       const label = statusLabel(text);
       if (!label) return {};
       this.labels.set(event.threadId, { turnId: event.turnId, label });
@@ -142,9 +160,16 @@ export class TurnStatus {
     return null;
   }
 
-  /** An engine's own report of a set_status call being written: never a step on the status line. */
+  private hold(event: Started): void {
+    if (!event.itemId) return;
+    let calls = this.calls.get(event.threadId);
+    if (!calls) this.calls.set(event.threadId, (calls = new Set()));
+    calls.add(event.itemId);
+  }
+
+  /** An engine's own report of a set_status or send_message call being written: never a step on the status line. */
   hides(event: ProgressEvent): boolean {
-    return event.label === undefined && isStatusToolName(event.tool);
+    return event.label === undefined && (isStatusToolName(event.tool) || bareName(event.tool) === SEND_MESSAGE_TOOL);
   }
 
   /** A frame of the turn carries the label the bot set last. */
