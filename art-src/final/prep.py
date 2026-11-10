@@ -21,6 +21,8 @@ em = rgb('end-meadow'); fill = Image.new('RGB', (1000, 640)); fill.paste(em.crop
 cat = Image.open('cat.png').convert('RGBA'); cat = cat.crop(cat.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print('cat', save(cat, 'cat', 600, 90))
 for n in ['s-computer', 's-clock', 's-notebook', 's-button', 's-phone']:
     im = Image.open(n + '.png').convert('RGBA'); im = im.crop(im.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print(n, save(im, n, 520, 90))
+for src, n in [('s-server', 's-server'), ('s-cloud', 's-cloud'), ('s-notch', 's-laptop')]:
+    im = Image.open(src + '.png').convert('RGBA'); im = im.crop(im.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print(n, save(im, n, 520, 90))
 og = rgb('hero-bg'); og.crop((0, 218, 1536, 1024)).resize((1200, 630), Image.LANCZOS).save(OUT + 'og.jpg', quality=86)
 for s in ['circle', 'star', 'heart', 'clover', 'hex', 'drop']: shutil.copy(f'icons/{s}.png', OUT + f'm-{s}.png')
 # two small pixel clouds that drift across the skies

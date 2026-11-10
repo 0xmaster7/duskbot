@@ -136,56 +136,7 @@
 
 <section class="wrap where" id="where">
   <div class="head"><h2 data-mk-reveal>pick where your bots live.</h2></div>
-  <div class="ways" data-mk-reveal data-mk-stagger="70">
-
-    <article class="way">
-      <div class="way-art">
-        <img src="/art/where-computer.webp" alt="" width="900" height="900" loading="lazy">
-        <figure class="snip" data-play="lid" aria-label="six bots living on this computer, awake while it is open">
-          <figcaption>{{i hard-drive}}<b>this computer</b><span class="state"><span class="asleep">asleep</span><span class="live"><i></i>awake</span></span></figcaption>
-          <button class="lap" type="button" aria-pressed="false" data-lid data-own><span class="vh">close the lid</span><span class="lap-screen">{{bot circle blue}}{{bot heart pink}}{{bot hex orange}}{{bot star green}}{{bot clover purple}}{{bot drop yellow}}</span><span class="lap-base"></span></button>
-          <p class="disk">214 chats, 38 notes, all on disk.</p>
-        </figure>
-      </div>
-      <h3>on your computer</h3>
-      <p>free. bots, chats, files and memory stay on your disk. no account, nothing to rent.</p>
-      <a class="go" href="/download">download the app{{i arrow-right}}</a>
-    </article>
-
-    <article class="way">
-      <div class="way-art">
-        <img src="/art/where-server.webp" alt="" width="900" height="900" loading="lazy">
-        <figure class="snip term" data-play="install" aria-label="a terminal: the one-line install runs on a server, then a bot comes online there and stays up">
-          <figcaption><i></i><i></i><i></i><span>you@your-server</span><button class="copy" type="button" data-copy="curl -fsSL https://dusk.bot/install.sh | sh">copy</button></figcaption>
-          <pre><code><span class="p">$</span> <span data-typed>curl -fsSL \
-    https://dusk.bot/install.sh | sh</span><i class="caret" aria-hidden="true"></i>
-<span data-step><span class="p">installing dusk bot</span> <i class="prog"><i></i></i></span>
-<span data-step><span class="g">done.</span> in the app, choose
-<span class="s">add a server</span>.</span></code></pre>
-          <p class="online" data-step>{{bot hex orange}}<span><b>rivet</b> is online here</span><em data-up>up 6d 02:14:09</em></p>
-        </figure>
-      </div>
-      <h3>on your own server</h3>
-      <p>free. paste one line on a server you already have, and your bots stay on all day.</p>
-      <a class="go" href="/docs">read the docs{{i arrow-right}}</a>
-    </article>
-
-    <article class="way">
-      <div class="way-art">
-        <img src="/art/where-cloud.webp" alt="" width="900" height="900" loading="lazy">
-        <figure class="snip" data-play="wake" aria-label="your laptop is shut. at 8:00 a bot on the dusk cloud wakes up and runs the inbox summary">
-          <figcaption>{{i cloud}}<b>dusk cloud</b><time data-clock>8:00</time></figcaption>
-          <div class="cl-sky"><span class="cl-cloud">{{bot heart pink}}</span><span class="state"><span class="asleep">asleep</span><span class="live"><i></i>awake</span></span></div>
-          <p class="cl-row"><span><b>inbox summary</b><em>every weekday at 8:00</em></span><span class="tick" data-run>done</span></p>
-          <p class="cl-row"><i class="lap-shut"></i><span><b>your laptop</b></span><em>shut</em></p>
-        </figure>
-      </div>
-      <h3>on a dusk cloud computer</h3>
-      <p>we host it. routines keep running with your laptop shut. it sleeps when idle and wakes for work.</p>
-      <a class="go" href="#pricing">see the plans{{i arrow-right}}</a>
-    </article>
-
-  </div>
+  {{include where-a}}
 </section>
 
 <section class="byo" id="models">
@@ -216,9 +167,8 @@
 </section>
 
 <section class="free" id="free">
-  <h2 class="free-over" data-mk-reveal>free for personal use</h2>
-  <p class="zero" aria-label="zero dollars" data-mk-reveal="scale">$0</p>
-  <ul data-mk-reveal><li>every feature, no trial timer</li><li>runs on your own computer</li><li>uses the ai plans you already pay for</li></ul>
+  <h2 class="free-over" data-mk-reveal>for personal use, dusk bot is <span class="zero" role="img" aria-label="free" data-mk-reveal="scale"></span></h2>
+  <ul data-mk-reveal><li>$0, forever</li><li>every feature, no trial timer</li><li>runs on your own computer</li></ul>
   <p class="free-note">using it for work? that needs a license. it's in the plans below.</p>
 </section>
 

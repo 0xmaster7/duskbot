@@ -29,3 +29,8 @@ wait
 
 # the sea behind the day's finished work: islands kept low so the cards sit on open sky
 e "Redraw this scene as a wide 3:2 landscape. The upper two thirds is calm banded cyan sky with one small flat cloud with a pink underside touching the far left edge and one with a lemon underside touching the far right edge, no sun. In the lower third: the banded sea with four round green islands with cream sand edges spread wide apart, and scattered white pixel sparkles on the water." wide-islands r17-islands 1536x1024
+
+# objects for the "pick where your bots live" cards, option b (the laptop there is s-notch)
+s "A small squat home server box seen straight from the front, wider than tall, cream-white body with a lilac top edge and two short cream feet. Its front is one plain flat cream panel with a single thin sky-blue horizontal slot line near the bottom and nothing else on it: no lights, no buttons, no screen. Very simple, very few details." s-server &
+s "One single wide flat cloud, cream-white on top with a cotton-candy pink underside along its whole bottom edge, three soft stepped bumps on top with the middle bump lowest so there is a shallow dip in the centre. Wide and low, about twice as wide as tall. Very simple, very few details." s-cloud &
+wait
