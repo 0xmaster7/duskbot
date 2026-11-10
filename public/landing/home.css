@@ -41,12 +41,14 @@
 .tag:hover { color: var(--ink); }
 .tag i { width: 7px; height: 7px; border-radius: 2px; background: var(--green); }
 .hero h1 { font-size: clamp(52px, 9.2vw, 128px); line-height: 0.95; letter-spacing: -0.055em; font-weight: 500; margin: 26px 0 0; }
-.h-mark { display: inline-block; height: 0.95em; width: auto; vertical-align: -0.2em; margin: 0 -0.1em 0 -0.06em; transition: transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.h-mark { display: inline-block; height: 0.8em; width: 0.8em; vertical-align: -0.11em; margin: 0 0.02em; cursor: pointer; transition: transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
 .hero h1:hover .h-mark { transform: rotate(-10deg) scale(1.06); }
-.hero .lede { font-size: clamp(17px, 1.5vw, 20px); line-height: 1.45; letter-spacing: -0.012em; color: var(--text); max-width: 54ch; margin: 26px auto 0; text-wrap: balance; }
+.hero .tag { margin: 0; font: 500 13px/1 var(--pixel); letter-spacing: 0; gap: 8px; padding: 9px 14px; }
+.hero .lede { font-size: clamp(17px, 1.5vw, 20px); line-height: 1.45; color: var(--ink-2); max-width: 44ch; margin: 26px auto 0; text-wrap: balance; }
 .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 0; }
 .hero .actions { margin-top: 30px; }
 .hint { margin: 16px 0 0; }
+.hero .hint { font: 400 13px/1 var(--pixel); letter-spacing: 0; }
 .hero-stage { max-width: 1388px; margin: 56px auto 0; padding: 0 24px; }
 
 .team-rows { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 26px; }
@@ -64,7 +66,17 @@
 .win-note { margin-left: auto; font: 400 12px/1 var(--mono); color: var(--ink-3); }
 .win-body { position: relative; height: calc(680px * var(--fit, 1)); overflow: hidden; }
 .win-body iframe { display: block; width: 1180px; height: 680px; border: 0; transform-origin: 0 0; transform: scale(var(--fit, 1)); }
-.stage:has(.win) { aspect-ratio: auto; height: calc(680px * var(--fit, 1) + 98px + clamp(110px, 12vw, 180px)); }
+/* the window sits in the middle of the picture with the same border of sky on every side */
+@media (min-width: 761px) {
+  .stage:has(.win) { aspect-ratio: auto; padding: 6%; }
+  .win { position: relative; left: auto; top: auto; translate: none; width: 100%; max-width: 1180px; margin: 0 auto; container-type: inline-size; }
+  .win-body { height: calc(100cqw * 680 / 1180); }
+}
+.runs { display: flex; align-items: center; justify-content: space-between; gap: 16px 40px; flex-wrap: wrap; margin-top: 44px; font-size: 15.5px; }
+.runs p { margin: 0; color: var(--ink); }
+.runs ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 30px; color: var(--ink-2); }
+.runs li { display: inline-flex; align-items: center; gap: 8px; }
+.runs .logo { width: 20px; height: 20px; }
 .stage:has(.win) > .app { display: none; }
 
 .stage { position: relative; aspect-ratio: 1160 / 640; border-radius: 28px; overflow: clip; background: #29a9f2; }

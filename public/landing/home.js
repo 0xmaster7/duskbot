@@ -24,7 +24,7 @@ if (!still) addEventListener('pointermove', (e) => { px = e.clientX; py = e.clie
 const quips = ['hi', 'busy', 'on it', 'five more minutes', 'ok ok', 'that tickles', 'did you need something', 'working, promise', 'not the face', 'hire me', 'i was told there would be snacks'];
 const purrs = ['mrrp', 'zzz', 'five more minutes', 'not a bot'];
 const sparkColours = ['#2f7bf2', '#ff7d1f', '#8d5cf0', '#ff5c9d', '#1fb866', '#f8c623'];
-const pokeable = '.shapes .bot, .work .bot, .peek-bot, .hill .bot, .faq-bots .bot, .brain-bot, .desk-bot';
+const pokeable = '.hero .bot, .shapes .bot, .work .bot, .peek-bot, .hill .bot, .faq-bots .bot, .brain-bot, .desk-bot';
 let said = 0;
 function hop(b) { if (!still) { b.classList.remove('hop'); void b.getBoundingClientRect(); b.classList.add('hop'); } }
 function say(el, text) {
