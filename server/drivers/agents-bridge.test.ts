@@ -69,6 +69,7 @@ describe("what a bridged turn is listed", () => {
   it("keeps the hot tools, in catalog order, then find_tool and use_tool", () => {
     // A bot that is not a Chief, with nothing optional on: the smallest turn.
     expect(names(bridgeFor().listed)).toEqual([
+      "set_status",
       "tool_result_read",
       "list_room_targets",
       "coordinate_bots",
@@ -88,6 +89,7 @@ describe("what a bridged turn is listed", () => {
     ]);
     // and the fullest: a Watcher with a voice, whatever its role and features
     expect(names(bridgeFor({ ...FULL_CHIEF, botId: WATCHER_OPTIONS_CARD_BOT_ID }).listed)).toEqual([
+      "set_status",
       "create_options_card",
       "tool_result_read",
       "list_room_targets",
@@ -112,12 +114,12 @@ describe("what a bridged turn is listed", () => {
   it("names every hot tool the catalog really has, so a renamed tool cannot fall out of the list unnoticed", () => {
     const everyName = new Set(everyProfile().flatMap(({ profile: turn }) => names(availableTools(turn))));
     for (const hot of BRIDGE_HOT_TOOL_NAMES) expect(everyName.has(hot), hot).toBe(true);
-    // 12 to 15 of them on any one turn, always fewer than the turn has
+    // 13 to 16 of them on any one turn, always fewer than the turn has
     for (const { name, profile: turn } of everyProfile()) {
       const tools = availableTools(turn);
       const hot = createToolBridge(tools as BridgeTool[]).listed.length - 2;
-      expect(hot, name).toBeGreaterThanOrEqual(12);
-      expect(hot, name).toBeLessThanOrEqual(15);
+      expect(hot, name).toBeGreaterThanOrEqual(13);
+      expect(hot, name).toBeLessThanOrEqual(16);
       expect(hot, name).toBeLessThan(tools.length / 2);
     }
   });
@@ -125,7 +127,7 @@ describe("what a bridged turn is listed", () => {
   it("adds a hot tool only where the profile has it: a voice, the Watcher's card, memory", () => {
     expect(names(bridgeFor({ voice: true }).listed)).toContain("send_voice_note");
     expect(names(bridgeFor().listed)).not.toContain("send_voice_note");
-    expect(names(bridgeFor({ botId: WATCHER_OPTIONS_CARD_BOT_ID }).listed)[0]).toBe("create_options_card");
+    expect(names(bridgeFor({ botId: WATCHER_OPTIONS_CARD_BOT_ID }).listed)[1]).toBe("create_options_card");
     expect(names(bridgeFor().listed)).not.toContain("create_options_card");
     expect(names(bridgeFor({ memory: false }).listed)).not.toContain("memory_update");
     // A role and the other features change only what sits behind use_tool.
