@@ -13,7 +13,7 @@ function fixture() {
   for (const dir of [bin, data, dest]) mkdirSync(dir);
   writeFileSync(join(data, "auth.json"), '{"accounts":[{"email":"owner@example.com"}]}');
   // age and rclone stand-ins: age marks its output so the test can tell it encrypted; rclone copies and logs deletes
-  writeFileSync(join(bin, "age"), '#!/bin/sh\nwhile [ $# -gt 0 ]; do case "$1" in -o) out=$2; shift 2;; -r) echo "$2" > "$out.recipient" 2>/dev/null || true; shift 2;; *) shift;; esac; done\n{ printf "AGE-ENCRYPTED\\n"; cat; } > "$out"\n');
+  writeFileSync(join(bin, "age"), '#!/bin/sh\nwhile [ $# -gt 0 ]; do case "$1" in -o) out=$2; shift 2;; -r) shift 2;; *) shift;; esac; done\n{ printf "AGE-ENCRYPTED\\n"; cat; } > "$out"\n');
   writeFileSync(join(bin, "rclone"), `#!/bin/sh\ncase "$1" in copyto) cp "$2" "$3";; delete) echo "$*" >> "${root}/deletes";; esac\n`);
   for (const tool of ["age", "rclone"]) chmodSync(join(bin, tool), 0o755);
   const env = { PATH: `${bin}:/usr/bin:/bin`, DUSK_DASHBOARD_DATA: data, DUSK_BACKUP_RECIPIENT: "age1examplepublickey", DUSK_BACKUP_DEST: dest };
