@@ -32,3 +32,20 @@ export function codeMessage(to: string, code: string): MailMessage {
   return { to, subject: "Your Dusk Bot code", text: `Your Dusk Bot code is ${code}. It expires in 10 minutes.`,
     html: `<p>Your Dusk Bot code is <strong>${code}</strong>.</p><p>It expires in 10 minutes.</p>` };
 }
+const WAYS: Record<string, string> = { email: "an emailed code", google: "Google", apple: "Apple", x: "X" };
+const escape = (value: string) => value.replace(/[&<>"']/g, char => `&#${char.charCodeAt(0)};`);
+/** "Can't sign in?": the code (and, for the website, a one-time link), plus the ways this address signs in. `ways` null: no
+ * account uses the address, so no code goes out, only that answer. */
+export function recoveryMessage(to: string, { code, link = null, ways }: { code: string; link?: string | null; ways: string[] | null }): MailMessage {
+  if (!ways) {
+    const text = "Someone asked to sign in to Dusk Bot with this address, but no Dusk Bot account uses it. Try another address you use. If you did not ask, you can ignore this email.";
+    return { to, subject: "Signing in to Dusk Bot", text, html: `<p>${text}</p>` };
+  }
+  const named = ways.map(way => WAYS[way] ?? way);
+  const list = named.length > 1 ? `${named.slice(0, -1).join(", ")} or ${named.at(-1)}` : named[0] ?? WAYS.email;
+  const lines = [`Your Dusk Bot code is ${code}. It expires in 10 minutes.`, ...(link ? [`Or open this link to sign in: ${link}`] : []),
+    `This account signs in with ${list}.`, "If you did not ask, you can ignore this email; nothing changes."];
+  return { to, subject: "Sign in to Dusk Bot", text: lines.join("\n\n"),
+    html: [`<p>Your Dusk Bot code is <strong>${code}</strong>. It expires in 10 minutes.</p>`, ...(link ? [`<p><a href="${escape(link)}">Sign in to Dusk Bot</a></p>`] : []),
+      `<p>This account signs in with ${escape(list)}.</p>`, "<p>If you did not ask, you can ignore this email; nothing changes.</p>"].join("") };
+}

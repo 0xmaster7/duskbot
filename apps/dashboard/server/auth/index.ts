@@ -4,7 +4,7 @@ import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL
 import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, AppSessionIdentity, OAuthErrorCode, OAuthProvider } from "../../../../shared/account-api.ts";
 import { createAuthStore } from "./store.ts";
 import type { Account, Session } from "./store.ts";
-import { codeMessage } from "./mail.ts";
+import { codeMessage, recoveryMessage } from "./mail.ts";
 import type { Mailer } from "./mail.ts";
 import { createProviderRegistry, type ProviderConfigs, type ProviderProfile } from "./providers.ts";
 import { clientIp } from "../client-ip.ts";
@@ -163,6 +163,7 @@ export function createAuth(options: AuthOptions) {
     const email = cleanEmail(data.email);
     if (!email) return fail(400, app ? "invalid_request" : "invalid_email");
     if (data.pending !== undefined && (app || !opaque(data.pending) || !pendingFor(req, data.pending))) fail(400, "invalid_request");
+    if (data.recover !== undefined && (data.recover !== true || data.pending !== undefined)) fail(400, "invalid_request");
     const device = app ? deviceInfo(data, true) : null;
     rate(`start:${ip(req)}`, 20);
     rate(`email:${email}`, 6);
@@ -171,7 +172,13 @@ export function createAuth(options: AuthOptions) {
     const attempt = random(), code = randomInt(0, 100_000_000).toString().padStart(8, "0");
     const item: Attempt = { email, ...(typeof data.pending === "string" ? { pending: data.pending } : {}), codeHash: hmac(`${attempt}:${code}`), device, expiresAt: now() + EMAIL_CODE_TTL_SECONDS * 1000, tries: 0 };
     attempts.set(hash(attempt), item);
-    if (options.signupOpen) {
+    if (data.recover === true) {
+      // can't sign in: the code, a one-time link for the website, and the ways this address signs in; for no account, only
+      // that. answered before delivery, the same either way, so the answer never tells whether the address has an account
+      const owner = state.accounts.find(item => item.email === email);
+      const link = owner && !app ? `${publicUrl}/sign-in?${new URLSearchParams({ attempt, code })}` : null;
+      void options.mailer.send(recoveryMessage(email, { code, link, ways: owner ? view(owner).providers : null })).catch(() => console.error("Email delivery failed."));
+    } else if (options.signupOpen) {
       try { await options.mailer.send(codeMessage(email, code)); } catch { attempts.delete(hash(attempt)); fail(502, "failed"); }
     } else if (state.accounts.some(item => item.email === email)) {
       // signups closed: answer before delivery so timing and mail failures never tell whether the address has an account
@@ -382,7 +389,7 @@ export function createAuth(options: AuthOptions) {
         if (found) { state.sessions = state.sessions.filter(item => item !== found.session); store.changed(); }
         cookies(res); json({ ok: true });
       } else if (method === "GET" && path === R.providers) {
-        json({ v: 1, providers: OAUTH_PROVIDERS.map(id => ({ id, enabled: providers.has(id), comingSoon: !providers.has(id) && options.dev })), signupOpen: options.signupOpen });
+        json({ v: 1, providers: OAUTH_PROVIDERS.map(id => ({ id, enabled: providers.has(id), comingSoon: !providers.has(id) && options.dev })), signupOpen: options.signupOpen, recovery: true });
       } else if (method === "GET" && path === R.me) {
         const owner = requireWeb(req, { mutation: false });
         json({ account: view(owner), csrfToken: csrfFor(webSession(req)!.session) });
