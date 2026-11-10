@@ -81,6 +81,7 @@ interface Watch {
   /** Every message of the turn so far, the engine's and the harness's, in order. */
   said: string[];
   streaming: boolean;
+  planRewritten: boolean;
   steps: string[];
   stepsAtLastWord: number;
   lastWordAt: number;
@@ -199,6 +200,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
       const text = cleanBeat(kind, reply);
       if (!text) {
         beat.phase = "dropped";
+        deps.log?.(`turn beats: the ${kind} for ${watch.threadId} was skipped`);
         return;
       }
       beat.text = text;
@@ -253,8 +255,8 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
     const planWanted = spokenBefore >= 1 && spokenBefore <= MAX_SAID_BEFORE_PLAN;
     if (plan.phase === "idle" && elapsed >= PLAN_WRITE_MS && watch.tools > 0 && planWanted && !composing(watch)) write(watch, "plan", plan);
     if (plan.phase === "ready") {
-      if (composing(watch) || !planWanted) plan.phase = "dropped";
-      else if (elapsed >= PLAN_MIN_MS && !watch.waiting) post(watch, "plan", plan);
+      if (!planWanted) plan.phase = "dropped";
+      else if (elapsed >= PLAN_MIN_MS && !watch.waiting && !composing(watch)) post(watch, "plan", plan);
     }
 
     const lastWord = Math.max(watch.lastWordAt, watch.engineTextAt, watch.milestoneTriedAt);
@@ -281,7 +283,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
       const watch: Watch = {
         botId: input.botId, threadId: input.threadId, ask: input.text, work: looksLikeWork(input.text, input.attachments), startedAt: now(),
         asksFirst: ASKS_FIRST.test(deps.bot(input.botId)?.soul ?? ""),
-        tools: 0, toolsDone: 0, engineTextAt: 0, engineMessages: 0, said: [], streaming: false, steps: [], stepsAtLastWord: 0, lastWordAt: 0, waiting: false,
+        tools: 0, toolsDone: 0, engineTextAt: 0, engineMessages: 0, said: [], streaming: false, planRewritten: false, steps: [], stepsAtLastWord: 0, lastWordAt: 0, waiting: false,
         ack: { phase: "idle" }, plan: { phase: "idle" }, milestone: { phase: "idle" }, milestones: 0, milestoneTriedAt: 0, posted: [],
         timer: setInterval(() => tick(watch), TICK_MS),
       };
@@ -314,6 +316,12 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
           else if (event.itemType === "assistant_text" && event.text.trim()) {
             watch.engineMessages++;
             watch.streaming = false;
+            // Written before this message: once more, so it does not repeat it.
+            if ((watch.plan.phase === "writing" || watch.plan.phase === "ready") && !watch.planRewritten) {
+              watch.plan.abort?.abort();
+              Object.assign(watch.plan, { phase: "idle", text: undefined, abort: undefined });
+              watch.planRewritten = true;
+            }
             watch.said.push(event.text.replace(/\s+/g, " ").trim().slice(0, SAID_CHARS));
             watch.engineTextAt = now();
           }

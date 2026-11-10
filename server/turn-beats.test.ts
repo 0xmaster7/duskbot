@@ -164,6 +164,24 @@ describe("turn beats", () => {
     expect(chatty.posts.map((p) => p.kind)).toEqual(["ack"]);
   });
 
+  it("writes the second message again when the engine says something while it waits, and holds it while the engine writes", async () => {
+    const { beats, prompts, posts, send } = setup();
+    beats.start({ botId: "b", threadId: THREAD, text: "Research keyboard prices in India", attachments: 0, unattended: false });
+    send(event({ type: "turn.started" }));
+    send(toolStart("WebSearch", { query: "keyboard prices" }, "s1"));
+    await vi.advanceTimersByTimeAsync(PLAN_WRITE_MS + 2_500);
+    expect(prompts.map((p) => p.kind)).toEqual(["ack", "plan"]);
+    send(event({ type: "content.delta", streamKind: "assistant_text", delta: "Amazon blocked" }));
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(posts.map((p) => p.kind)).toEqual(["ack"]);
+    send(said("Amazon blocked the page, so I'm trying Flipkart."));
+    send(toolStart("WebFetch", { url: "https://www.flipkart.com/x" }, "f1"));
+    await vi.advanceTimersByTimeAsync(2_100);
+    expect(prompts.map((p) => p.kind)).toEqual(["ack", "plan", "plan"]);
+    expect(prompts.at(-1)!.prompt).toContain("Amazon blocked the page");
+    expect(posts.map((p) => p.kind)).toEqual(["ack", "plan"]);
+  });
+
   it("drops the second message once the engine is writing its result", async () => {
     const { beats, posts, send } = setup();
     beats.start({ botId: "b", threadId: THREAD, text: "Compare Notion and Coda for a team of five", attachments: 0, unattended: false });
