@@ -88,7 +88,7 @@ export function layout({ title, description, body, page }) {
     .map(([href, label]) => `<a href="/${href}"${page === href ? ' aria-current="page"' : ''}>${label}</a>`).join('');
   const foot = (head, links) => `<div><h2>${head}</h2>${links.map(([href, label]) => `<a href="${href}">${label}</a>`).join('')}</div>`;
   return `<!doctype html>
-<html lang="en">
+<html lang="en"${home ? ' data-mk-smooth' : ''}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -101,12 +101,12 @@ export function layout({ title, description, body, page }) {
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/art/cursor-88.webp" type="image/webp">
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="${stamped('site.css')}">${home ? `\n<link rel="stylesheet" href="${stamped('home.css')}">\n<script src="${stamped('home.js')}" defer></script>` : ''}
+<link rel="stylesheet" href="${stamped('site.css')}">${home ? `\n<link rel="stylesheet" href="${stamped('motion-kit-v2.css')}">\n<link rel="stylesheet" href="${stamped('home.css')}">` : ''}
 </head>
 <body${home ? ' class="is-home"' : ''}>
 <header class="bar"><a class="brand" href="/"><img src="/art/cursor-88.webp" alt="" width="28" height="28">dusk bot</a><nav>${nav}<a class="cta" href="https://app.dusk.bot">sign in</a></nav></header>
 <main class="${home ? 'home' : 'page'}">
-${withBots(body)}
+${withBots(body).replace(/(src=")\/(art\/[\w.-]+)"/g, (_, lead, file) => `${lead}${stamped(file)}"`)}
 </main>
 <footer class="foot">
 <div class="foot-in">
@@ -116,7 +116,7 @@ ${foot('legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/license', 'lic
 ${foot('say hi', [['mailto:hello@dusk.bot', 'hello@dusk.bot']])}
 </div>
 <p class="foot-fine">made at dusk. the bots did most of it.</p>
-</footer>
+</footer>${home ? `\n<script src="${stamped('motion.min.js')}"></script>\n<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>` : ''}
 </body>
 </html>
 `;

@@ -10,8 +10,11 @@ for src, name in [('hero-peaks', 'hero-peaks'), ('r09-dunes', 'dunes'), ('r03-bi
 for n in ['wide-layers', 'wide-sails', 'wide-meadow']: print(n, save(rgb(n), n, 1536))
 m = rgb('wide-meadow'); print('meadow-crop', save(m.crop((0, 300, 1536, 940)), 'meadow-crop', 1536))
 cat = Image.open('cat.png').convert('RGBA'); cat = cat.crop(cat.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print('cat', save(cat, 'cat', 600, 90))
+sky = rgb('wide-layers'); print('plan-sky', save(sky.crop((500, 30, 1536, 375)), 'plan-sky', 900))
+for n in ['s-computer', 's-clock', 's-notebook', 's-button', 's-phone']:
+    im = Image.open(n + '.png').convert('RGBA'); im = im.crop(im.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print(n, save(im, n, 520, 90))
 og = rgb('wide-layers'); og.crop((0, 110, 1536, 916)).resize((1200, 630), Image.LANCZOS).save(OUT + 'og.jpg', quality=86)
-for s in ['circle', 'star', 'heart', 'clover']: shutil.copy(f'icons/{s}.png', OUT + f'm-{s}.png')
+for s in ['circle', 'star', 'heart', 'clover', 'hex', 'drop']: shutil.copy(f'icons/{s}.png', OUT + f'm-{s}.png')
 # white pixels thickening downward, so the last picture breaks up into the footer
 random.seed(7); cols, rows = 96, 10
 d = Image.new('RGBA', (cols, rows), (0, 0, 0, 0))

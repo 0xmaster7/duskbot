@@ -1,9 +1,9 @@
 <section class="hero">
   <div class="poster">
-    <img src="/art/hero-peaks.webp" alt="" width="1086" height="1448">
-    <div class="card">
+    <img src="/art/hero-peaks.webp" alt="" width="1086" height="1448" data-mk-parallax="0.06">
+    <div class="card" data-mk-reveal>
       <h2>your own team of ai bots</h2>
-      <ul class="card-rows">
+      <ul class="card-rows" data-mk-reveal data-mk-stagger="80">
         <li><img src="/art/m-circle.png" alt="" width="84" height="84"><div><b>bots with a computer</b><span>each bot gets its own screen, signs in to your tools and does the work</span></div></li>
         <li><img src="/art/m-star.png" alt="" width="84" height="84"><div><b>routines</b><span>ask once. it runs every morning, or the moment something happens</span></div></li>
         <li><img src="/art/m-heart.png" alt="" width="84" height="84"><div><b>memory</b><span>bots remember what you like and how you want it done</span></div></li>
@@ -14,15 +14,15 @@
     </div>
   </div>
   <div class="hero-side">
-    <img class="hero-mark" src="/art/cursor-256.webp" alt="" width="256" height="256">
-    <h1>meet dusk bot</h1>
-    <p class="lede">ai bots you message like teammates. they run on your own computer, on the ai plans you already pay for.</p>
-    <div class="stack">
-      <a class="btn dark" href="/download">download for macos</a>
-      <a class="btn" href="/download">download for windows</a>
-      <a class="btn" href="/download">download for linux</a>
+    <img class="hero-mark" src="/art/cursor-256.webp" alt="" width="256" height="256" data-mk-reveal="scale">
+    <h1 data-mk-reveal="lines">meet dusk bot</h1>
+    <p class="lede" data-mk-reveal>ai bots you message like teammates. they run on your own computer, on the ai plans you already pay for.</p>
+    <div class="stack" data-mk-reveal data-mk-stagger="60">
+      <a class="btn dark" href="/download" data-mk-press data-mk-magnet="0.2">download for macos</a>
+      <a class="btn" href="/download" data-mk-press>download for windows</a>
+      <a class="btn" href="/download" data-mk-press>download for linux</a>
       <p class="or"><span>or</span></p>
-      <a class="btn line" href="#where">get a cloud computer</a>
+      <a class="btn line" href="#where" data-mk-press>get a cloud computer</a>
     </div>
     <p class="hint">free for personal use. no account needed on your own computer.</p>
   </div>
@@ -30,12 +30,11 @@
 
 <section class="wrap show">
   <div class="head">
-    <p class="kicker">the app</p>
-    <h2>one app. a whole team in it.</h2>
-    <p>every bot has a name, a job and its own chat. you see who is working, who is done, and who is waiting on you.</p>
+    <h2 data-mk-reveal="lines">one app. a whole team in it.</h2>
+    <p data-mk-reveal>every bot has a name, a job and its own chat. you see who's working, who's done, and who's waiting on you.</p>
   </div>
-  <div class="stage">
-    <img src="/art/wide-layers.webp" alt="" width="1536" height="1024" loading="lazy">
+  <div class="stage" data-mk-reveal="clip">
+    <img src="/art/wide-layers.webp" alt="" width="1536" height="1024" data-mk-parallax="0.08">
     <div class="app" aria-hidden="true">
       <aside class="app-side">
         <div class="lights"><i></i><i></i><i></i></div>
@@ -70,18 +69,80 @@
   </div>
 </section>
 
+<section class="wrap done">
+  <div class="head center">
+    <h2 data-mk-reveal="lines">a normal tuesday, with six bots on it</h2>
+    <p data-mk-reveal>you sent six messages. this is what came back while you did your actual job.</p>
+  </div>
+  <ol class="log" data-mk-reveal data-mk-stagger="70">
+    <li><time>7:58</time>{{bot heart pink}}<p><b>juno</b> read 41 emails. 3 need you, 38 are filed, 6 replies are drafted in your voice.</p><em class="tag is-done">done</em></li>
+    <li><time>8:00</time>{{bot star green}}<p><b>tally</b> matched 23 receipts to charges and found one you paid for twice.</p><em class="tag is-done">done</em></li>
+    <li><time>9:12</time>{{bot hex orange}}<p><b>rivet</b> fixed the sign-in bug on safari. the pull request is open and the checks are green.</p><em class="tag is-done">done</em></li>
+    <li><time>11:40</time>{{bot circle blue}}<p><b>nova</b> compared 14 flights to lisbon and is holding the €84 one.</p><em class="tag is-ask">needs your yes</em></li>
+    <li><time>14:05</time>{{bot clover purple}}<p><b>quill</b> moved thursday's three meetings. everyone said yes.</p><em class="tag is-done">done</em></li>
+    <li><time>17:30</time>{{bot drop yellow}}<p><b>echo</b> is drafting five posts from this week's changelog.</p><em class="tag is-work">working</em></li>
+  </ol>
+  <p class="log-foot" data-mk-reveal="fade">none of them asked how your weekend was.</p>
+</section>
+
+<section class="wrap bento">
+  <div class="head">
+    <h2 data-mk-reveal="lines">not a chatbot. a coworker with a computer.</h2>
+  </div>
+  <div class="tiles">
+    <article class="tile t-sky wide" data-mk-reveal>
+      <div class="tile-copy"><h3>each bot gets its own computer</h3><p>it signs in to sites and clicks through them like you would. watch it live, or take the mouse back any time.</p></div>
+      <img class="sticker" src="/art/s-computer.webp" alt="" width="520" height="567">
+    </article>
+    <article class="tile t-lemon wide" data-mk-reveal>
+      <img class="sticker corner" src="/art/s-clock.webp" alt="" width="520" height="502">
+      <div class="tile-copy"><h3>routines run while you sleep</h3><p>ask once. it runs every morning, every monday, or the moment something happens.</p></div>
+      <ul class="runs">
+        <li><span>weekdays 8:00</span><b>inbox summary</b><i class="strip"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></i></li>
+        <li><span>mondays</span><b>competitor prices</b><i class="strip"><i></i><i></i><i></i><i></i><i class="miss"></i><i></i><i></i></i></li>
+        <li><span>new github issue</span><b>triage it</b><i class="strip"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></i></li>
+      </ul>
+    </article>
+    <article class="tile t-lime" data-mk-reveal>
+      <img class="sticker top" src="/art/s-notebook.webp" alt="" width="520" height="378">
+      <h3>they remember</h3><p>what you like, who's who, how you want it done. every note is yours to read and edit.</p>
+    </article>
+    <article class="tile t-pink" data-mk-reveal>
+      <div class="relay">{{bot hex orange}}<i></i>{{bot clover purple}}<i></i>{{bot heart pink}}</div>
+      <h3>put them in a room</h3><p>bots hand work to each other in one thread. watch, or jump in.</p>
+    </article>
+    <article class="tile t-peach" data-mk-reveal>
+      <img class="sticker top" src="/art/s-button.webp" alt="" width="520" height="780">
+      <h3>they ask before the scary stuff</h3><p>sending, buying, deleting: a bot stops and waits for your yes.</p>
+    </article>
+    <article class="tile t-lilac wider" data-mk-reveal>
+      <div class="notch">
+        <div class="notch-chips"><span><i class="dot is-ask"></i>needs you 1</span><span><i class="dot is-work"></i>working 2</span><span><i class="dot is-done"></i>done 1</span></div>
+        <ul>
+          <li>{{bot clover purple}}<div><b>quill</b><span>wants to run a command</span></div><em class="pill yes">allow</em></li>
+          <li>{{bot circle blue}}<div><b>nova</b><span>comparing 14 flights to lisbon</span></div></li>
+        </ul>
+      </div>
+      <div class="tile-copy low"><h3>they live in your notch</h3><p>one glance at the top of your screen: who's working, who's done, who needs you.</p></div>
+    </article>
+    <article class="tile t-cream" data-mk-reveal>
+      <img class="sticker top" src="/art/s-phone.webp" alt="" width="520" height="387">
+      <h3>they talk back</h3><p>give a bot a voice. or just call it and talk the job through.</p>
+    </article>
+  </div>
+</section>
+
 <section class="wrap models" id="models">
   <div class="head">
-    <p class="kicker">models</p>
-    <h2>bring the ai you already pay for</h2>
-    <p>dusk bot has no model of its own. sign in with the account you already have, and your bots run on it. no second bill from us, no markup.</p>
-    <ul class="facts">
+    <h2 data-mk-reveal="lines">bring the ai you already pay for</h2>
+    <p data-mk-reveal>dusk bot has no model of its own. sign in with the account you already have, and your bots run on it. no second bill from us, no markup.</p>
+    <ul class="facts" data-mk-reveal data-mk-stagger="70">
       <li><b>your login, your plan</b>replies go straight from your machine to your provider.</li>
       <li><b>a model per bot</b>one for writing, one for code, something cheap for the chores.</li>
       <li><b>swap any time</b>the bot keeps its chats, files and memory.</li>
     </ul>
   </div>
-  <div class="signin">
+  <div class="signin" data-mk-reveal data-mk-stagger="60">
     <span class="si"><i class="px px-claude"></i>continue with claude</span>
     <span class="si"><i class="px px-chatgpt"></i>continue with chatgpt</span>
     <span class="si"><i class="px px-gemini"></i>continue with gemini</span>
@@ -91,68 +152,10 @@
   </div>
 </section>
 
-<section class="wrap bento">
-  <div class="head">
-    <p class="kicker">what a bot can do</p>
-    <h2>not a chatbot. a coworker with a computer.</h2>
-  </div>
-  <div class="tiles">
-    <article class="tile t-art t-computer">
-      <img class="tile-bg" src="/art/dunes.webp" alt="" width="1086" height="1448" loading="lazy">
-      <div class="tile-text"><h3>its own computer</h3><p>it signs in to sites and clicks through them like you would. watch live, or take the mouse back.</p></div>
-      <div class="mini-screen">
-        <div class="mini-bar"><i></i><i></i><i></i><span>sheets · q3 invoices</span></div>
-        <div class="mini-grid"><span></span><span></span><span></span><span class="hot"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-        <svg class="pointer" viewBox="0 0 20 20"><path d="M3 2l13 7-5.500 1.800L8.500 17z" fill="#111" stroke="#fff" stroke-width="1.500" stroke-linejoin="round"/></svg>
-      </div>
-    </article>
-    <article class="tile t-lemon">
-      <h3>routines</h3><p>ask once. it runs every morning, every monday, or when something happens.</p>
-      <ul class="runs">
-        <li><span>weekdays 8:00</span><b>inbox summary</b><i class="strip"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></i></li>
-        <li><span>mondays</span><b>competitor prices</b><i class="strip"><i></i><i></i><i></i><i></i><i class="miss"></i><i></i><i></i></i></li>
-        <li><span>new issue</span><b>triage it</b><i class="strip"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></i></li>
-      </ul>
-    </article>
-    <article class="tile t-lilac">
-      <h3>memory</h3><p>it learns how you like things. every note is yours to read and edit.</p>
-      <ul class="notes"><li>prefers the aisle seat</li><li>invoices go to dana, not sam</li><li>never post before 9</li></ul>
-    </article>
-    <article class="tile t-sky">
-      <h3>rooms</h3><p>put bots in one thread. they hand work to each other.</p>
-      <ul class="thread">
-        <li>{{bot hex orange}}<span>the sign-in test fails on safari. quill, can you take it?</span></li>
-        <li>{{bot clover purple}}<span>fixed. tally, check the numbers still match.</span></li>
-        <li>{{bot star green}}<span>they match.</span></li>
-      </ul>
-    </article>
-    <article class="tile t-pink">
-      <h3>it asks first</h3><p>sending, buying, deleting: a bot stops and waits for your yes.</p>
-      <div class="ask-row big"><span>send 12 invoices?</span><b class="pill yes">allow</b><b class="pill">deny</b></div>
-    </article>
-    <article class="tile t-art t-notch">
-      <img class="tile-bg" src="/art/meadow-crop.webp" alt="" width="1536" height="640" loading="lazy">
-      <div class="notch">
-        <div class="notch-chips"><span><i class="dot is-ask"></i>needs you 1</span><span><i class="dot is-work"></i>working 2</span><span><i class="dot is-done"></i>done 1</span></div>
-        <ul>
-          <li>{{bot clover purple}}<div><b>quill</b><span>wants to run a command</span></div><em class="pill yes">allow</em></li>
-          <li>{{bot circle blue}}<div><b>nova</b><span>comparing 14 flights to lisbon</span></div></li>
-        </ul>
-      </div>
-      <div class="tile-text"><h3>it lives in your notch</h3><p>a glance at the top of your screen shows who is working and who needs you.</p></div>
-    </article>
-    <article class="tile t-lime t-voice">
-      <h3>it talks back</h3><p>give a bot a voice, or call it and talk the task through.</p>
-      <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    </article>
-  </div>
-</section>
-
 <section class="connect">
-  <div class="wrap"><div class="head">
-    <p class="kicker">connectors</p>
-    <h2>plugs into the tools you already use</h2>
-    <p>connect an app once, then choose which bots may use it. over 60 apps, and any mcp server you add yourself.</p>
+  <div class="wrap"><div class="head center">
+    <h2 data-mk-reveal="lines">plugs into the tools you already use</h2>
+    <p data-mk-reveal>connect an app once, then choose which bots may use it. over 60 apps, and any mcp server you add yourself.</p>
   </div></div>
   <div class="belt" aria-hidden="true">
     <div class="belt-row">{{chips gmail calendar drive docs sheets slack notion github linear figma stripe discord gmail calendar drive docs sheets slack notion github linear figma stripe discord}}</div>
@@ -161,82 +164,74 @@
   <p class="belt-list wrap">gmail, google calendar, drive, docs and sheets, slack, notion, github, linear, figma, stripe, discord, hubspot, airtable, asana, trello, dropbox, outlook, shopify, sentry, vercel, supabase, posthog, zapier and more.</p>
 </section>
 
-<section class="wrap how">
-  <div class="head">
-    <p class="kicker">how to use it</p>
-    <h2>three steps, about two minutes</h2>
-  </div>
-  <div class="steps">
-    <article>
-      <div class="step-art"><img src="/art/birches.webp" alt="" width="1086" height="1448" loading="lazy">
-        <div class="snip"><span class="field"><em>name</em>nova</span><span class="shapes">{{bot circle blue}}{{bot hex orange}}{{bot clover purple}}{{bot heart pink}}{{bot star green}}{{bot drop yellow}}</span><span class="field"><em>job</em>research</span></div>
-      </div>
-      <p class="step-n">1</p><h3>make a bot</h3><p>give it a name, a shape and a job. pick which ai it runs on.</p>
-    </article>
-    <article>
-      <div class="step-art"><img src="/art/cliffs.webp" alt="" width="1086" height="1448" loading="lazy">
-        <div class="snip chatty"><span class="b me">summarise what came in overnight</span><span class="b">41 emails. 3 need you. the rest are filed.</span></div>
-      </div>
-      <p class="step-n">2</p><h3>message it</h3><p>talk to it like a coworker. it replies, asks, and shows its work.</p>
-    </article>
-    <article>
-      <div class="step-art"><img src="/art/islands.webp" alt="" width="1086" height="1448" loading="lazy">
-        <div class="snip"><span class="snip-row"><i class="dot is-done"></i>inbox summary<em>8:00 done</em></span><span class="snip-row"><i class="dot is-work"></i>competitor prices<em>running</em></span><span class="snip-row dim"><i class="dot"></i>weekly report<em>fri 17:00</em></span></div>
-      </div>
-      <p class="step-n">3</p><h3>let it run</h3><p>turn a task into a routine. it keeps going while you do something else.</p>
-    </article>
-  </div>
-</section>
-
-<section class="wrap jobs">
-  <div class="jobs-pick">
-    <p class="kicker">jobs</p>
-    <h2>give each bot a job</h2>
-    <div class="chips" role="tablist" aria-label="jobs">
-      <button type="button" role="tab" aria-selected="true">research</button>
-      <button type="button" role="tab" aria-selected="false">inbox</button>
-      <button type="button" role="tab" aria-selected="false">code</button>
-      <button type="button" role="tab" aria-selected="false">bookkeeping</button>
-      <button type="button" role="tab" aria-selected="false">travel</button>
-      <button type="button" role="tab" aria-selected="false">socials</button>
+<section class="wrap team">
+  <div class="team-poster" data-mk-reveal="clip">
+    <img src="/art/wide-sails.webp" alt="" width="1536" height="1024" data-mk-parallax="0.08">
+    <div class="team-card">
+      <h2>give each bot a job</h2>
+      <p class="team-sub">one bot, one job, one chat. start with one and hire as you go.</p>
+      <ul class="team-rows" data-mk-reveal data-mk-stagger="60">
+        <li><img src="/art/m-circle.png" alt="" width="84" height="84"><div><b>nova, research</b><span>reads the 40 tabs so you don't. comes back with sources, a table and a straight answer.</span></div></li>
+        <li><img src="/art/m-heart.png" alt="" width="84" height="84"><div><b>juno, inbox</b><span>reads what came in overnight, drafts replies in your voice, leaves the three that need you on top.</span></div></li>
+        <li><img src="/art/m-hex.png" alt="" width="84" height="84"><div><b>rivet, code</b><span>picks up an issue, opens a pull request, and fixes what the review finds.</span></div></li>
+        <li><img src="/art/m-star.png" alt="" width="84" height="84"><div><b>tally, bookkeeping</b><span>matches receipts to charges, and tells you when a subscription quietly got pricier.</span></div></li>
+        <li><img src="/art/m-clover.png" alt="" width="84" height="84"><div><b>quill, travel</b><span>watches fares, holds the good one, and checks you in the day before.</span></div></li>
+        <li><img src="/art/m-drop.png" alt="" width="84" height="84"><div><b>echo, socials</b><span>drafts the week's posts from what you shipped. posts nothing until you say so.</span></div></li>
+      </ul>
     </div>
   </div>
-  <div class="jobs-show">
-    <div class="job on">{{bot circle blue}}<p><b>nova</b> reads the 40 tabs so you don't. comes back with sources, a table and a straight answer.</p></div>
-    <div class="job">{{bot heart pink}}<p><b>juno</b> reads what came in overnight, drafts replies in your voice, and leaves the three that need you on top.</p></div>
-    <div class="job">{{bot hex orange}}<p><b>rivet</b> picks up an issue, opens a pull request, and fixes what the review finds.</p></div>
-    <div class="job">{{bot star green}}<p><b>tally</b> matches receipts to charges, and tells you when a subscription quietly got more expensive.</p></div>
-    <div class="job">{{bot clover purple}}<p><b>quill</b> watches fares, holds the good one, and checks you in the day before.</p></div>
-    <div class="job">{{bot drop yellow}}<p><b>echo</b> drafts the week's posts from what you shipped. posts nothing until you say so.</p></div>
-  </div>
 </section>
 
-<section class="wrap where" id="where">
+<section class="wrap how">
+  <div class="head">
+    <h2 data-mk-reveal="lines">from download to a working bot in about two minutes</h2>
+  </div>
+  <ol class="steps" data-mk-reveal data-mk-stagger="80">
+    <li>
+      <div class="step-copy"><span class="step-n">1</span><h3>download it and open it</h3><p>it's a normal app. no account, no card, nothing to set up first.</p></div>
+      <div class="mock"><span class="mock-row"><b>macos</b><em>apple silicon, intel</em></span><span class="mock-row"><b>windows</b><em>10 and 11</em></span><span class="mock-row"><b>linux</b><em>.deb, appimage</em></span></div>
+    </li>
+    <li>
+      <div class="step-copy"><span class="step-n">2</span><h3>sign in to an ai you already have</h3><p>the first screen shows which ones are on your computer. pick one and sign in the usual way.</p></div>
+      <div class="mock"><span class="mock-row"><i class="px px-claude"></i><b>claude</b><em class="ok">signed in</em></span><span class="mock-row"><i class="px px-chatgpt"></i><b>chatgpt</b><em>sign in</em></span><span class="mock-row"><i class="px px-gemini"></i><b>gemini</b><em>sign in</em></span></div>
+    </li>
+    <li>
+      <div class="step-copy"><span class="step-n">3</span><h3>make a bot</h3><p>name it, pick a shape, and tell it its job in plain words. that's the whole setup.</p></div>
+      <div class="mock"><span class="mock-row"><em class="lead">name</em><b>nova</b></span><span class="shapes">{{bot circle blue}}{{bot hex orange}}{{bot clover purple}}{{bot heart pink}}{{bot star green}}{{bot drop yellow}}</span><span class="mock-row"><em class="lead">job</em><b>find me cheap flights</b></span></div>
+    </li>
+    <li>
+      <div class="step-copy"><span class="step-n">4</span><h3>hand it something real</h3><p>the thing you've been putting off. it works, shows you, and asks before the scary stuff. like the result? make it a routine.</p></div>
+      <div class="mock chatty"><span class="b me">summarise what came in overnight</span><span class="b">41 emails. 3 need you. the rest are filed.</span><span class="mock-row"><b>every weekday, 8:00</b><i class="toggle"></i></span></div>
+    </li>
+  </ol>
+</section>
+
+<section class="wrap where" id="where" data-mk-tabs>
   <div class="where-text">
-    <p class="kicker">where it runs</p>
-    <h2>local first. cloud if you want it.</h2>
-    <p class="where-sub">same app and same bots in all three. you pick where they live, and you can move later.</p>
+    <h2 data-mk-reveal="lines">local first. cloud if you want it.</h2>
+    <p class="where-sub" data-mk-reveal>same app and same bots in all three. you pick where they live, and you can move later.</p>
     <div class="places" role="tablist" aria-label="where it runs">
-      <button type="button" role="tab" aria-selected="true"><b>on your computer</b><span>free</span></button>
-      <button type="button" role="tab" aria-selected="false"><b>on your own server</b><span>free</span></button>
-      <button type="button" role="tab" aria-selected="false"><b>on a dusk cloud computer</b><span>from $20</span></button>
+      <span class="place-ind" data-mk-indicator aria-hidden="true"></span>
+      <button type="button" role="tab" id="pt-mac" aria-controls="pp-mac" aria-selected="true"><b>on your computer</b><span>free</span></button>
+      <button type="button" role="tab" id="pt-server" aria-controls="pp-server" aria-selected="false"><b>on your own server</b><span>free</span></button>
+      <button type="button" role="tab" id="pt-cloud" aria-controls="pp-cloud" aria-selected="false"><b>on a dusk cloud computer</b><span>from $20</span></button>
     </div>
   </div>
   <div class="where-art">
-    <img src="/art/terraces.webp" alt="" width="1086" height="1448" loading="lazy">
-    <div class="place on">
+    <img src="/art/terraces.webp" alt="" width="1086" height="1448">
+    <div class="place" role="tabpanel" id="pp-mac" aria-labelledby="pt-mac" tabindex="0">
       <h3>on your computer</h3>
       <ul class="path"><li>you</li><li class="mid">dusk bot, on your mac</li><li>your ai provider</li></ul>
       <ul class="ticks"><li>bots, chats, files and memory stay on your disk</li><li>replies go straight to your ai provider</li><li>no account, nothing to rent</li></ul>
       <a href="/download">download</a>
     </div>
-    <div class="place">
+    <div class="place" role="tabpanel" id="pp-server" aria-labelledby="pt-server" tabindex="0">
       <h3>on your own server</h3>
       <p class="code">$ curl -fsSL https://dusk.bot/install.sh | sh</p>
       <ul class="ticks"><li>have a vps? paste one line and your bots stay on all day</li><li>still your machine and your data</li><li>the app on your mac is the remote</li></ul>
       <a href="/docs">read the docs</a>
     </div>
-    <div class="place">
+    <div class="place" role="tabpanel" id="pp-cloud" aria-labelledby="pt-cloud" tabindex="0">
       <h3>on a dusk cloud computer</h3>
       <ul class="path"><li>you, anywhere</li><li class="mid">a computer we host for your bots</li><li>your ai provider</li></ul>
       <ul class="ticks"><li>routines keep running while your laptop is shut</li><li>each bot can have its own screen</li><li>it sleeps when idle and wakes itself for work</li></ul>
@@ -245,65 +240,95 @@
   </div>
 </section>
 
-<section class="free" id="free">
-  <p class="free-over">free for personal use</p>
-  <p class="zero" aria-label="zero dollars">$0</p>
-  <ul><li>every feature</li><li>runs on your own computer</li><li>uses the ai plans you already pay for</li></ul>
-  <p class="free-note">using it for work? that needs a license. it's on the <a href="/pricing">pricing page</a>.</p>
+<section class="wrap versus">
+  <div class="head center">
+    <h2 data-mk-reveal="lines">why not just use a chatbot?</h2>
+    <p data-mk-reveal>because a chatbot tells you how to do the thing. a bot does the thing.</p>
+  </div>
+  <div class="vs" role="table" aria-label="dusk bot compared" data-mk-reveal>
+    <div class="vs-row vs-head" role="row"><span role="columnheader"></span><span role="columnheader">a chat assistant</span><span role="columnheader">a hosted bot app</span><span role="columnheader" class="us">dusk bot</span></div>
+    <div class="vs-row" role="row"><span role="rowheader">does the task start to finish</span><span role="cell" class="no">tells you how</span><span role="cell" class="yes">yes</span><span role="cell" class="us yes">yes</span></div>
+    <div class="vs-row" role="row"><span role="rowheader">has its own computer and browser</span><span role="cell" class="no">no</span><span role="cell" class="yes">yes</span><span role="cell" class="us yes">yes</span></div>
+    <div class="vs-row" role="row"><span role="rowheader">keeps working on a schedule</span><span role="cell" class="no">no</span><span role="cell" class="yes">yes</span><span role="cell" class="us yes">yes</span></div>
+    <div class="vs-row" role="row"><span role="rowheader">runs on the ai plan you already pay for</span><span role="cell" class="no">no</span><span role="cell" class="no">their credits</span><span role="cell" class="us yes">yes</span></div>
+    <div class="vs-row" role="row"><span role="rowheader">runs on your own computer or server</span><span role="cell" class="no">no</span><span role="cell" class="no">their cloud only</span><span role="cell" class="us yes">yes</span></div>
+    <div class="vs-row" role="row"><span role="rowheader">any model, a different one per bot</span><span role="cell" class="no">one family</span><span role="cell" class="no">usually one</span><span role="cell" class="us yes">yes</span></div>
+    <div class="vs-row" role="row"><span role="rowheader">your chats and files stay with you</span><span role="cell" class="no">no</span><span role="cell" class="no">no</span><span role="cell" class="us yes">yes</span></div>
+    <div class="vs-row vs-price" role="row"><span role="rowheader">what it costs</span><span role="cell">about $20 a month</span><span role="cell">$30 to $200 a month</span><span role="cell" class="us">$0 for personal use</span></div>
+  </div>
+  <p class="vs-note">typical list prices for popular plans. yours may differ.</p>
 </section>
 
-<section class="pricing" id="pricing">
-  <img class="pricing-sky" src="/art/wide-sails.webp" alt="" width="1536" height="1024" loading="lazy">
-  <div class="pricing-in">
-    <h2>simple pricing</h2>
-    <p class="pricing-sub">start free. pay when you want bots that never clock out.</p>
-    <div class="plans">
-      <article class="plan">
-        <div class="lights"><i></i><i></i><i></i></div>
-        <h3>free</h3><p class="plan-line">your bots, on your computer.</p>
-        <p class="price">$0</p><p class="per">free forever, no card</p>
-        <a class="btn" href="/download">start free</a>
-        <ul><li>every feature of the app</li><li>personal use</li><li>bring your own ai plan</li></ul>
-      </article>
-      <article class="plan">
-        <div class="lights"><i></i><i></i><i></i></div>
-        <h3>plus</h3><p class="plan-line">your bots work around the clock.</p>
-        <p class="price">$20</p><p class="per">per month</p>
-        <a class="btn dark" href="https://app.dusk.bot/billing">get plus</a>
-        <ul><li>a cloud computer for your bots</li><li>2 bot computers</li><li>routines run while you sleep</li></ul>
-      </article>
-      <article class="plan has-cat">
-        <div class="lights"><i></i><i></i><i></i></div>
-        <figure class="cat"><img src="/art/cat.webp" alt="a pixel cat, asleep" width="600" height="324" loading="lazy"><figcaption>gary. not included.</figcaption></figure>
-        <h3>pro</h3><p class="plan-line">for real work.</p>
-        <p class="price">$50</p><p class="per">per month</p>
-        <a class="btn" href="https://app.dusk.bot/billing">get pro</a>
-        <ul><li>a bigger cloud computer</li><li>5 bot computers, first in line to wake</li><li>a work license for one person</li></ul>
-      </article>
+<section class="wrap free" id="free">
+  <div class="free-band" data-mk-reveal>
+    <p class="zero" aria-label="zero dollars">$0</p>
+    <div class="free-copy">
+      <h2>free for personal use</h2>
+      <ul><li>every feature, no trial timer</li><li>runs on your own computer</li><li>uses the ai plans you already pay for</li></ul>
+      <p class="free-note">using it for work? that needs a license. it's in the plans below.</p>
     </div>
-    <p class="pricing-fine">pay yearly and two months are free. teams get a dedicated machine. ai usage is billed by your ai provider, not by us. <a href="/pricing">all plans</a></p>
   </div>
 </section>
 
+<section class="wrap pricing" id="pricing">
+  <div class="head center">
+    <h2 data-mk-reveal="lines">pay when your bots need a computer of their own</h2>
+    <p data-mk-reveal>the app stays free. paid plans add a cloud computer, so the work carries on with your laptop shut.</p>
+    <p class="bill"><span id="bill-label">pay yearly, get two months free</span><button class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="bill-label" aria-controls="plans" data-mk-switch><span class="switch-thumb" data-mk-thumb></span></button></p>
+  </div>
+  <div class="plans" id="plans" data-mk-reveal data-mk-stagger="80">
+    <article class="plan p-free">
+      <h3>free</h3><p class="plan-line">your bots, on your computer.</p>
+      <p class="price">$0</p><p class="per">forever, no card</p>
+      <a class="btn" href="/download" data-mk-press>start free</a>
+      <ul>
+        <li>every feature of the app</li><li>runs on your computer or your own server</li><li>bring your own ai plan</li>
+        <li class="off">a cloud computer</li><li class="off">work without your laptop on</li><li class="off">a work license</li>
+      </ul>
+    </article>
+    <article class="plan p-plus">
+      <img class="plan-art" src="/art/plan-sky.webp" alt="" width="900" height="300">
+      <p class="plan-tag">most people start here</p>
+      <h3>plus</h3><p class="plan-line">your bots work around the clock.</p>
+      <p class="price"><span data-mk-alt="$16.67">$20</span></p><p class="per"><span data-mk-alt="per month, $200 billed yearly">per month</span></p>
+      <a class="btn dark" href="https://app.dusk.bot/billing" data-mk-press data-mk-magnet="0.2">get plus</a>
+      <ul>
+        <li>everything in free</li><li>a cloud computer: 2 vcpu, 4 gb, 40 gb</li><li>2 bot computers, each with a screen</li><li>routines run while you sleep</li>
+        <li class="off">first in line to wake</li><li class="off">a work license</li>
+      </ul>
+    </article>
+    <article class="plan p-pro">
+      <figure class="cat"><img src="/art/cat.webp" alt="a pixel cat, asleep" width="600" height="324"><figcaption>gary. not included.</figcaption></figure>
+      <h3>pro</h3><p class="plan-line">for real work.</p>
+      <p class="price"><span data-mk-alt="$41.67">$50</span></p><p class="per"><span data-mk-alt="per month, $500 billed yearly">per month</span></p>
+      <a class="btn light" href="https://app.dusk.bot/billing" data-mk-press>get pro</a>
+      <ul>
+        <li>everything in plus</li><li>a bigger cloud computer: 4 vcpu, 8 gb, 80 gb</li><li>5 bot computers</li><li>first in line to wake</li><li>a work license for one person</li>
+      </ul>
+    </article>
+  </div>
+  <p class="pricing-fine">teams get a dedicated machine and shared bots. ai usage is billed by your ai provider, never by us. <a href="/pricing">see all plans</a></p>
+</section>
+
 <section class="wrap faq">
-  <div class="faq-side"><p class="kicker">questions</p><h2>fair questions</h2><p>stuck on something else? write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>.</p></div>
+  <div class="faq-side"><h2 data-mk-reveal="lines">fair questions</h2><p>stuck on something else? write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>.</p></div>
   <div class="qs">
-    <details><summary>is dusk bot really free?</summary><p>yes, for personal use. the app runs on your computer with every feature. you only pay for a work license or a cloud computer.</p></details>
-    <details><summary>which ai does it use?</summary><p>the ones you already have. sign in with claude, chatgpt, gemini, grok and others, or add an api key. replies go straight from your machine to them, on your plan.</p></details>
-    <details><summary>where does my data go?</summary><p>nowhere, unless you choose a cloud computer. bots, chats, files and memory live on your machine or your own server.</p></details>
-    <details><summary>what is a cloud computer?</summary><p>a desktop we host for your bots, so routines keep running when your laptop is closed. each bot can have its own screen to work on, and you can watch it.</p></details>
-    <details><summary>can i run it on my own server?</summary><p>yes. open the app, choose add a server, and paste the line it shows. that is free too.</p></details>
-    <details><summary>how is this different from a chatbot?</summary><p>a chatbot answers. a bot here has a computer, signs in to your tools, runs on a schedule and remembers how you like things done.</p></details>
-    <details><summary>is it safe to let bots click around?</summary><p>bots ask before sending, buying or deleting, and you can watch or take over at any time.</p></details>
+    <details data-mk-accordion name="faq"><summary>is dusk bot really free?</summary><p>yes, for personal use. the app runs on your computer with every feature. you only pay for a work license or a cloud computer.</p></details>
+    <details data-mk-accordion name="faq"><summary>which ai does it use?</summary><p>the ones you already have. sign in with claude, chatgpt, gemini, grok and others, or add an api key. replies go straight from your machine to them, on your plan.</p></details>
+    <details data-mk-accordion name="faq"><summary>where does my data go?</summary><p>nowhere, unless you choose a cloud computer. bots, chats, files and memory live on your machine or your own server.</p></details>
+    <details data-mk-accordion name="faq"><summary>what is a cloud computer?</summary><p>a desktop we host for your bots, so routines keep running when your laptop is closed. each bot can have its own screen to work on, and you can watch it.</p></details>
+    <details data-mk-accordion name="faq"><summary>can i run it on my own server?</summary><p>yes. open the app, choose add a server, and paste the line it shows. that is free too.</p></details>
+    <details data-mk-accordion name="faq"><summary>how is this different from a chatbot?</summary><p>a chatbot answers. a bot here has a computer, signs in to your tools, runs on a schedule and remembers how you like things done.</p></details>
+    <details data-mk-accordion name="faq"><summary>is it safe to let bots click around?</summary><p>bots ask before the scary stuff: sending, buying, deleting. you can watch or take over at any time.</p></details>
   </div>
 </section>
 
 <section class="end">
-  <img src="/art/wide-meadow.webp" alt="" width="1536" height="1024" loading="lazy">
+  <img src="/art/wide-meadow.webp" alt="" width="1536" height="1024">
   <div class="end-text">
-    <h2>meet your first bot</h2>
-    <p>it takes about two minutes.</p>
-    <p class="actions"><a class="btn dark" href="/download">download for macos</a><a class="btn light" href="#pricing">see pricing</a></p>
+    <h2 data-mk-reveal="lines">your first bot could be working in two minutes</h2>
+    <p data-mk-reveal>free on your own computer. no account, no card.</p>
+    <p class="actions" data-mk-reveal><a class="btn dark" href="/download" data-mk-press data-mk-magnet="0.2">download for macos</a><a class="btn light" href="#pricing" data-mk-press>see pricing</a></p>
   </div>
   <i class="dissolve"></i>
 </section>

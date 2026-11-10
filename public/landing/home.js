@@ -1,4 +1,5 @@
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const M = window.Motion;
 
 // every bot on the page looks at the pointer
 const bots = [...document.querySelectorAll('.bot')];
@@ -23,7 +24,7 @@ if (!still) addEventListener('pointermove', (e) => { px = e.clientX; py = e.clie
 const quips = ['hi', 'busy', 'on it', 'five more minutes', 'ok ok', 'that tickles', 'did you need something', 'working, promise', 'not the face'];
 let said = 0;
 document.addEventListener('click', (e) => {
-  const b = e.target.closest?.('.job .bot, .shapes .bot, .thread .bot');
+  const b = e.target.closest?.('.relay .bot, .shapes .bot, .log .bot');
   if (!b) return;
   if (!still) { b.classList.remove('hop'); void b.getBoundingClientRect(); b.classList.add('hop'); }
   const r = b.getBoundingClientRect(), q = document.createElement('span');
@@ -32,17 +33,16 @@ document.addEventListener('click', (e) => {
   document.body.append(q); setTimeout(() => q.remove(), 1500);
 });
 
-// a row of tabs and the panels they switch between
-function tabs(tabList, panels, host) {
-  tabList.forEach((tab, n) => tab.addEventListener('click', () => {
-    tabList.forEach((t, i) => t.setAttribute('aria-selected', String(i === n)));
-    panels.forEach((p, i) => p.classList.toggle('on', i === n));
-    if (host) host.dataset.on = String(n);
-  }));
+// the chat in the app plays out once, just before it scrolls into view; nothing is hidden until then
+const chat = document.querySelector('.chat');
+if (M && chat && !still && 'IntersectionObserver' in window) {
+  const io = new IntersectionObserver((entries) => {
+    if (!entries.some((e) => e.isIntersecting)) return;
+    io.disconnect();
+    M.animate([...chat.children], { opacity: [0, 1], y: [14, 0] }, { type: 'spring', duration: 0.6, bounce: 0.2, delay: M.stagger(0.45, { startDelay: 0.35 }) });
+  }, { rootMargin: '0px 0px 160px 0px' });
+  io.observe(chat);
 }
-const show = document.querySelector('.jobs-show');
-tabs([...document.querySelectorAll('.chips button')], [...show.children], show);
-tabs([...document.querySelectorAll('.places button')], [...document.querySelectorAll('.place')]);
 
 if (!still) for (const el of document.querySelectorAll('[data-cycle]')) {
   const lines = el.dataset.cycle.split('|'); let i = 0;

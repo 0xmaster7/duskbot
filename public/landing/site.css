@@ -11,7 +11,6 @@
   --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
 html, body { margin: 0; background: var(--bg); color: var(--ink); }
 body { min-height: 100dvh; display: flex; flex-direction: column; font: 400 16px/1.55 var(--sans); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 img { max-width: 100%; height: auto; display: block; }
@@ -58,9 +57,9 @@ th { color: var(--ink); font-weight: 550; }
 .is-home .foot { margin-top: 0; }
 .foot-in { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; max-width: 1240px; margin: 0 auto; padding: 40px 24px 28px; }
 .foot-brand p { color: var(--ink-3); font-size: 14px; max-width: 26ch; margin: 12px 0 0; }
-.foot h2 { font: 500 13px/1 var(--pixel); color: var(--ink-3); margin: 6px 0 14px; letter-spacing: 0.02em; }
+.foot h2 { font: 400 12.5px/1 var(--mono); color: var(--ink-3); margin: 6px 0 14px; letter-spacing: 0.02em; }
 .foot-in > div:not(.foot-brand) a { display: block; color: var(--ink-2); text-decoration: none; font-size: 15px; padding: 4px 0; }
 .foot-in > div:not(.foot-brand) a:hover { color: var(--ink); }
-.foot-fine { max-width: 1240px; margin: 0 auto; padding: 0 24px 28px; font: 400 13px/1.4 var(--pixel); color: var(--ink-3); }
+.foot-fine { max-width: 1240px; margin: 0 auto; padding: 0 24px 28px; font: 400 12.5px/1.4 var(--mono); color: var(--ink-3); }
 @media (max-width: 760px) { .downloads { grid-template-columns: 1fr; } .foot-in { grid-template-columns: 1fr 1fr; } .foot-brand { grid-column: 1 / -1; } .bar { padding: 14px 16px; } .bar nav a { padding: 8px 9px; } .bar nav a.cta { margin-left: 2px; padding: 8px 13px; } }
 @media (max-width: 420px) { .bar nav a[href="/docs"] { display: none; } }
