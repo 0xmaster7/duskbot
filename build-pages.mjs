@@ -104,7 +104,10 @@ function sea() {
   const defs = [...used].map((name) => `<g id="sb-${name}">${BOTS[name][0]}</g>`).join('');
   return `<svg class="sea-bots" viewBox="0 0 1600 1067" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath>${defs}<g id="sb-eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></defs>${swim.map((b) => one('', b, '<rect class="foam" x="-14" y="64" width="128" height="8"/>')).join('')}${shore.map((b) => one(' shore', b)).join('')}</svg>`;
 }
-const withBots = (html) => withChips(withParts(html)).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()))
+// {{os name}} is a platform mark from public/landing/art/os (simple-icons, cc0), inlined so it takes the text colour
+const os = (name) => fs.readFileSync(path.join(site, 'art', 'os', `${name}.svg`), 'utf8').replace(/<title>.*?<\/title>/, '').replace('<svg ', '<svg class="os" aria-hidden="true" fill="currentColor" ').replace(/ role="img"| xmlns="[^"]*"/g, '').trim();
+const withOs = (html) => html.replace(/\{\{os (\w+)\}\}/g, (_, name) => os(name));
+const withBots = (html) => withOs(withChips(withParts(html))).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()))
   .replace(/\{\{i ([\w-]+)\}\}/g, (_, name) => icon(name)).replace(/\{\{sea\}\}/g, sea);
 
 // stamps a file's content hash on its url, so an edit is seen at once despite the cache header
