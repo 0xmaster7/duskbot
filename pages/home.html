@@ -8,7 +8,7 @@
 
 <section class="hero-stage">
   <div class="stage" data-mk-reveal="clip">
-    <img src="/art/hero-bg.webp" alt="" width="1536" height="1024" fetchpriority="high" data-mk-parallax="0.08">
+    <img src="/art/hero-bg.webp" alt="" width="1536" height="1024" fetchpriority="high">
     <i class="cloud pink k1"></i><i class="cloud lemon k2"></i>
     <div class="win">
       <div class="win-bar"><span class="lights"><i></i><i></i><i></i></span><span class="win-title">dusk bot</span><span class="win-note">a live demo. click around.</span></div>
@@ -33,12 +33,12 @@
 
 <section class="wrap say">
   <h2 class="vh">what dusk bot is</h2>
-  <p class="statement" data-mk-reveal>dusk bot is a desktop app where you run a team of ai bots <span class="inl-bots">{{bot circle blue}}{{bot hex orange}}{{bot star green}}</span> and text them like teammates. each one has a name, a job, a memory <img class="stk" data-sticker src="/art/s-notebook.webp" alt="" width="520" height="378" loading="lazy" draggable="false"> and, if you want, its own computer <img class="stk tall" data-sticker src="/art/s-computer.webp" alt="" width="520" height="599" loading="lazy" draggable="false">.</p>
+  <p class="statement" data-mk-reveal>text a bot <span class="inl-bots">{{bot circle blue}}{{bot hex orange}}{{bot star green}}</span> what you need. it gets it done on its own computer <img class="stk" data-sticker src="/art/s-computer.webp" alt="" width="520" height="599" loading="lazy" draggable="false">.</p>
 </section>
 
 <section class="wrap team">
   <div class="poster" data-mk-reveal="clip">
-    <img src="/art/wide-sails.webp" alt="" width="1536" height="1024" loading="lazy" data-mk-parallax="0.08">
+    <img src="/art/wide-sails.webp" alt="" width="1536" height="1024" loading="lazy">
     <div class="team-card">
       <h2>give each bot a job.</h2>
       <p class="sub">one bot, one job, one chat. start with one and hire as you go.</p>
@@ -64,33 +64,36 @@
     <article class="moment">
       <h3>each bot gets its own computer</h3>
       <p>a browser and a desktop it signs in to and clicks through. watch it live, and take the mouse back whenever you like.</p>
-      <figure class="fig screen" aria-label="nova's computer, live: a browser comparing four flights">
-        <figcaption class="fig-bar">{{bot circle blue}}<b>nova's computer</b><span class="live"><i></i>live</span><button class="chip-btn" type="button" data-take aria-pressed="false">take the mouse</button></figcaption>
-        <div class="screen-view" data-play="browse">
+      <figure class="fig screen" aria-label="nova's computer, live: its pointer is holding the cheapest of three flights in a browser">
+        <figcaption class="fig-head">{{bot circle blue}}<b>nova's computer</b><span class="live"><i></i>live</span><button class="chip-btn" type="button" data-take aria-pressed="false">take the mouse</button></figcaption>
+        <div class="desk" data-play="browse">
           <img class="wall" src="/art/wide-islands.webp" alt="" width="1536" height="1024" loading="lazy">
           <div class="browser">
-            <div class="browser-bar"><i></i><i></i><i></i><span>flights · lisbon · march</span></div>
+            <div class="browser-bar"><i></i><i></i><i></i><b>lisbon flights</b><span>skyfare.example/bom-lis</span></div>
+            <p class="page-h"><b>mumbai to lisbon</b><span>3 flights, cheapest first</span></p>
             <ul class="fares">
-              <li class="hot"><b>9:40</b><span>one stop</span><em>€84</em></li>
-              <li><b>13:05</b><span>direct</span><em>€112</em></li>
-              <li><b>18:20</b><span>direct</span><em>€139</em></li>
-              <li><b>21:10</b><span>one stop</span><em>€151</em></li>
+              <li class="hot"><b>9:40</b><span>one stop</span><em>€84</em><u class="held">held</u></li>
+              <li><b>13:05</b><span>direct</span><em>€112</em><u>hold</u></li>
+              <li><b>18:20</b><span>direct</span><em>€139</em><u>hold</u></li>
             </ul>
           </div>
-          <img class="ptr" src="/art/cursor-88.webp" alt="" width="26" height="26" loading="lazy">
+          <div class="dock"><i></i><i></i><i></i><i></i><span>9:41</span></div>
+          <span class="ptr"><img src="/art/cursor-88.webp" alt="" width="24" height="24" loading="lazy"><b>nova</b></span>
         </div>
+        <p class="act" aria-live="polite"><i></i><span data-act>nova is holding the €84 one. it books when you say yes.</span></p>
       </figure>
     </article>
 
     <article class="moment">
       <h3>ask once and it becomes a routine</h3>
       <p>it runs on a schedule, or the moment something happens. routines run while you sleep.</p>
-      <figure class="fig card" aria-label="three routines you can switch on and off">
+      <figure class="fig" aria-label="four routines you can switch on and off">
         <p class="msg me">summarise my inbox every weekday at 8.</p>
         <ul class="rows">
           <li>{{bot heart pink}}<div><b>inbox summary</b><span>every weekday at 8:00</span></div><button class="toggle" type="button" role="switch" aria-checked="true" aria-label="inbox summary" data-mk-switch><i data-mk-thumb></i></button></li>
           <li>{{bot circle blue}}<div><b>competitor prices</b><span>every monday at 9:00</span></div><button class="toggle" type="button" role="switch" aria-checked="true" aria-label="competitor prices" data-mk-switch><i data-mk-thumb></i></button></li>
           <li>{{bot hex orange}}<div><b>triage new issues</b><span>{{logo github}}when a github issue opens</span></div><button class="toggle" type="button" role="switch" aria-checked="true" aria-label="triage new issues" data-mk-switch><i data-mk-thumb></i></button></li>
+          <li>{{bot star green}}<div><b>the week in numbers</b><span>every friday at 17:00</span></div><button class="toggle" type="button" role="switch" aria-checked="true" aria-label="the week in numbers" data-mk-switch><i data-mk-thumb></i></button></li>
         </ul>
       </figure>
     </article>
@@ -98,33 +101,33 @@
     <article class="moment">
       <h3>it remembers how you like things</h3>
       <p>each bot keeps notes on what you like and who's who. every note is yours to read and edit.</p>
-      <figure class="fig card" data-play="note" aria-label="nova's notes about how you like things done">
-        <figcaption class="fig-head">{{bot circle blue}}<b>nova's notes</b><button class="chip-btn" type="button" data-edit>{{i pencil}}edit</button></figcaption>
+      <figure class="fig book" aria-label="nova's notebook: four things it has learned about you, the newest on top">
+        <img class="book-stk stk" src="/art/s-notebook.webp" alt="" width="520" height="378" loading="lazy" draggable="false">
+        <figcaption class="fig-head">{{bot circle blue}}<b>nova's notes on you</b><span class="count">4 so far</span></figcaption>
         <ul class="notes">
-          <li>sources first, opinions after.</li>
-          <li>dana approves anything over €500.</li>
-          <li>no flights before 7:00. ever.</li>
-          <li class="new"><span data-note>aisle seat, always.</span></li>
+          <li class="new"><p><span data-note>aisle seat, always.</span></p><span class="meta"><b>new</b><span aria-live="polite" data-note-foot>you said it in chat, just now</span></span><button class="chip-btn" type="button" data-edit>{{i pencil}}edit</button></li>
+          <li><p>dana signs off on anything over €500.</p><span class="meta">from dana's email, on tuesday</span></li>
+          <li><p>no flights before 7:00. ever.</p><span class="meta">you said it twice, last week</span></li>
+          <li><p>sources first, opinions after.</p><span class="meta">you fixed a summary, 3 march</span></li>
         </ul>
-        <p class="mem-foot" aria-live="polite">{{i check}}<span data-note-foot>nova updated its memory</span></p>
       </figure>
     </article>
 
     <article class="moment">
       <h3>put bots in a room</h3>
       <p>several bots in one thread hand work to each other. you step in when one of them needs a yes.</p>
-      <figure class="fig card" aria-label="a room called launch, where three bots hand work to each other">
-        <figcaption class="fig-head"><b># launch</b><span class="stack">{{bot hex orange}}{{bot drop yellow}}{{bot heart pink}}</span></figcaption>
-        <div class="said">{{bot hex orange}}<div><b>rivet</b><p>the fix is live. echo, you're up.</p></div></div>
-        <div class="said">{{bot drop yellow}}<div><b>echo</b><p>post is drafted. juno, can you email the list?</p></div></div>
-        <div class="said" data-ask>{{bot heart pink}}<div><b>juno</b><p aria-live="polite" data-ask-line>ready to send to 1,204 people. need a yes first.</p><span class="ask-btns"><button class="pill yes" type="button" data-answer="sent. 1,204 emails, zero typos.">allow</button><button class="pill" type="button" data-answer="ok, holding it. nobody got emailed.">deny</button></span></div></div>
+      <figure class="fig chan" aria-label="a channel called launch, where three bots tag each other to hand work over, and tag you when they need a yes">
+        <figcaption class="fig-head"><b><i>#</i>launch</b><span class="count">3 bots and you</span><span class="stack">{{bot hex orange}}{{bot drop yellow}}{{bot heart pink}}</span></figcaption>
+        <div class="said">{{bot hex orange}}<div><p class="who"><b>rivet</b><time>9:12</time></p><p>fix is live <span class="at yellow">@echo</span> you're up</p><span class="react">{{bot drop yellow}}{{bot heart pink}}<b>2</b></span></div></div>
+        <div class="said">{{bot drop yellow}}<div><p class="who"><b>echo</b><time>9:13</time></p><p>post drafted. <span class="at pink">@juno</span> can you email the list?</p></div></div>
+        <div class="said" data-ask>{{bot heart pink}}<div><p class="who"><b>juno</b><time>9:14</time></p><p aria-live="polite" data-ask-line><span class="at you">@you</span> ready to send to 1,204 people. need a yes first</p><span class="ask-btns"><button class="pill yes" type="button" data-answer="sent. 1,204 emails, zero typos.">allow</button><button class="pill" type="button" data-answer="ok, holding it. nobody got emailed.">deny</button></span></div></div>
       </figure>
     </article>
 
   </div>
   <div class="also" data-mk-reveal>
     <button class="phone" type="button" aria-label="ring a bot" data-ring><img class="stk" src="/art/s-phone.webp" alt="" width="520" height="387" loading="lazy" draggable="false"></button>
-    <p>also: voice, so a bot can talk back and you can call it. and 60+ apps <span class="apps"><img src="/art/logos/gmail.png" alt="gmail" width="28" height="28" loading="lazy"><img src="/art/logos/slack.png" alt="slack" width="28" height="28" loading="lazy"><img src="/art/logos/notion.png" alt="notion" width="28" height="28" loading="lazy"><img src="/art/logos/github.svg" alt="github" width="28" height="28" loading="lazy"><img src="/art/logos/linear.png" alt="linear" width="28" height="28" loading="lazy"><img src="/art/logos/figma.png" alt="figma" width="28" height="28" loading="lazy"><img src="/art/logos/stripe.png" alt="stripe" width="28" height="28" loading="lazy"></span> plus any mcp server you add.</p>
+    <p>you can call them, too. and they plug into 60+ apps <span class="apps"><img src="/art/logos/gmail.png" alt="gmail" width="28" height="28" loading="lazy"><img src="/art/logos/slack.png" alt="slack" width="28" height="28" loading="lazy"><img src="/art/logos/notion.png" alt="notion" width="28" height="28" loading="lazy"><img src="/art/logos/github.svg" alt="github" width="28" height="28" loading="lazy"><img src="/art/logos/linear.png" alt="linear" width="28" height="28" loading="lazy"><img src="/art/logos/figma.png" alt="figma" width="28" height="28" loading="lazy"><img src="/art/logos/stripe.png" alt="stripe" width="28" height="28" loading="lazy"></span>.</p>
   </div>
 </section>
 
@@ -219,9 +222,9 @@ choose <span class="s">add a server</span>.
 </section>
 
 <section class="free" id="free">
-  <h2 data-mk-reveal>free for personal use.</h2>
+  <h2 class="free-over" data-mk-reveal>free for personal use</h2>
   <p class="zero" aria-label="zero dollars" data-mk-reveal="scale">$0</p>
-  <ul data-mk-reveal><li>every feature, no trial timer</li><li>no account, no card</li><li>runs on your own computer</li></ul>
+  <ul data-mk-reveal><li>every feature, no trial timer</li><li>runs on your own computer</li><li>uses the ai plans you already pay for</li></ul>
   <p class="free-note">using it for work? that needs a license. it's in the plans below.</p>
 </section>
 
@@ -241,7 +244,7 @@ choose <span class="s">add a server</span>.
       <h3>free</h3>
       <p class="why">your bots, on your own computer.</p>
       <p class="plan-price"><span class="amt">$0</span><span class="per">forever. no card, no account.</span></p>
-      <a class="btn light" href="/download" data-mk-press>download</a>
+      <a class="btn light" href="/download" data-mk-press>get started</a>
       <ul class="has">
         <li>{{i check}}every feature of the app</li>
         <li>{{i check}}runs on your computer or your server</li>
@@ -251,12 +254,12 @@ choose <span class="s">add a server</span>.
       </ul>
     </article>
 
-    <article class="plan pick">
+    <article class="plan">
       <img class="plan-art" src="/art/p-plus.webp" alt="" width="800" height="354" loading="lazy">
-      <h3>plus<span class="note">always on</span></h3>
+      <h3>plus</h3>
       <p class="why">your bots keep working with the laptop shut.</p>
       <p class="plan-price"><span class="amt">$<span data-m="20" data-y="200">20</span></span><span class="per" data-m="a month" data-y="a year. two months free.">a month</span></p>
-      <a class="btn blue" href="https://app.dusk.bot/billing" data-mk-press>get plus</a>
+      <a class="btn light" href="https://app.dusk.bot/billing" data-mk-press>get started</a>
       <ul class="has">
         <li>{{i check}}everything in free</li>
         <li>{{i check}}a cloud computer: 2 vcpu, 4 gb, 40 gb</li>
@@ -272,7 +275,7 @@ choose <span class="s">add a server</span>.
       <h3>pro</h3>
       <p class="why">for work, and for more bots at once.</p>
       <p class="plan-price"><span class="amt">$<span data-m="50" data-y="500">50</span></span><span class="per" data-m="a month" data-y="a year. two months free.">a month</span></p>
-      <a class="btn dark" href="https://app.dusk.bot/billing" data-mk-press>get pro</a>
+      <a class="btn light" href="https://app.dusk.bot/billing" data-mk-press>get started</a>
       <ul class="has">
         <li>{{i check}}everything in plus</li>
         <li>{{i check}}a bigger cloud computer: 4 vcpu, 8 gb, 80 gb</li>
@@ -323,6 +326,7 @@ choose <span class="s">add a server</span>.
   <div class="qs">
     <details data-mk-accordion name="faq"><summary>is dusk bot really free?{{i plus}}</summary><p>yes, for personal use. the app runs on your computer with every feature. you only pay for a work license or a cloud computer.</p></details>
     <details data-mk-accordion name="faq"><summary>which ai does it use?{{i plus}}</summary><p>the ones you already have. sign in with claude, chatgpt, gemini, grok and others, or add an api key. replies go straight from your machine to them, on your plan.</p></details>
+    <details data-mk-accordion name="faq"><summary>which apps can a bot use?{{i plus}}</summary><p>60+ to start: gmail, google calendar, slack, notion, github, linear, figma, stripe and more. you connect an app once and pick which bots may use it. you can also add any mcp server yourself.</p></details>
     <details data-mk-accordion name="faq"><summary>where does my data go?{{i plus}}</summary><p>nowhere, unless you choose a cloud computer. bots, chats, files and memory live on your machine or your own server.</p></details>
     <details data-mk-accordion name="faq"><summary>what is a cloud computer?{{i plus}}</summary><p>a desktop we host for your bots, so routines keep running when your laptop is closed. each bot can have its own screen to work on, and you can watch it.</p></details>
     <details data-mk-accordion name="faq"><summary>can i run it on my own server?{{i plus}}</summary><p>yes. open the app, choose add a server, and paste the line it shows. that is free too.</p></details>
@@ -331,25 +335,17 @@ choose <span class="s">add a server</span>.
   </div>
 </section>
 
-<div class="strip sea" role="img" aria-label="a calm sea full of small bots, all watching you">
-  <div class="sea-run"><img src="/art/strip-sea.webp" alt="" width="2304" height="444" loading="lazy"><img src="/art/strip-sea.webp" alt="" width="2304" height="444" loading="lazy"></div>
-  <img class="boat b1" src="/art/boat-a.webp" alt="" width="143" height="163" loading="lazy">
-  <img class="boat b2" src="/art/boat-b.webp" alt="" width="223" height="248" loading="lazy">
-  <img class="boat b3" src="/art/boat-c.webp" alt="" width="108" height="124" loading="lazy">
-  {{sea}}
-</div>
-
 <section class="end">
   <div class="end-text">
     <h2 class="mega" data-mk-reveal>meet your first bot.</h2>
     <p data-mk-reveal>it could be working in two minutes. free on your own computer.</p>
     <p class="actions" data-mk-reveal><a class="btn dark" href="/download" data-mk-press data-mk-magnet="0.2">download dusk bot</a><a class="btn" href="#pricing" data-mk-press>see the plans</a></p>
   </div>
-  <div class="end-scene">
-    <img src="/art/end-hills.webp" alt="" width="1536" height="1024" loading="lazy">
-    <i class="cloud pink k5"></i><i class="cloud lemon k6"></i>
-    <i class="dissolve up"></i>
-    <div class="hill">{{bot circle blue}}{{bot hex orange}}{{bot clover purple}}{{bot heart pink}}{{bot star green}}{{bot drop yellow}}</div>
-    <i class="dissolve"></i>
+  <div class="strip sea" role="img" aria-label="a calm sea full of small bots, all watching you, with six more standing on the beach">
+    <div class="sea-run"><img src="/art/strip-sea.webp" alt="" width="2304" height="444" loading="lazy"><img src="/art/strip-sea.webp" alt="" width="2304" height="444" loading="lazy"></div>
+    <img class="boat b1" src="/art/boat-a.webp" alt="" width="143" height="163" loading="lazy">
+    <img class="boat b2" src="/art/boat-b.webp" alt="" width="223" height="248" loading="lazy">
+    <img class="boat b3" src="/art/boat-c.webp" alt="" width="108" height="124" loading="lazy">
+    {{sea}}
   </div>
 </section>

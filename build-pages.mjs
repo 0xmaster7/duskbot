@@ -104,9 +104,14 @@ function sea() {
   rows.forEach(([y, size], r) => {
     const gap = size * 5.6;
     for (let x = gap * (0.2 + 0.5 * (r % 2)); x < 2400 - size; x += gap * (0.75 + rnd() * 0.5)) {
+      if (r === 5 && x > 960 && x < 1400) continue;
       const shape = shapes[Math.floor(rnd() * shapes.length)], colour = colours[Math.floor(rnd() * colours.length)], k = size * (0.85 + rnd() * 0.3) / 100;
       out.push(`<g class="sb c-${colour}" transform="translate(${x.toFixed(0)} ${(y + rnd() * 14 - 7).toFixed(0)}) scale(${k.toFixed(3)})" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-${shape}"/><use class="eyes" href="#sb-eyes" y="${BOTS[shape][1] - 38}"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g>`);
     }
+  });
+  // the six sample bots stand on the beach in front, in their own shapes and colours
+  [['circle', 'blue'], ['hex', 'orange'], ['clover', 'purple'], ['heart', 'pink'], ['star', 'green'], ['drop', 'yellow']].forEach(([shape, colour], i) => {
+    out.push(`<g class="sb shore c-${colour}" transform="translate(${1011 + i * 66} ${[306, 303, 300, 300, 303, 306][i]}) scale(0.48)"><g class="dip"><use class="body" href="#sb-${shape}"/><use class="eyes" href="#sb-eyes" y="${BOTS[shape][1] - 38}"/></g></g>`);
   });
   const defs = Object.entries(BOTS).map(([name, [body]]) => `<g id="sb-${name}">${body}</g>`).join('');
   return `<svg class="sea-bots" viewBox="0 0 2400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath>${defs}<g id="sb-eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></defs>${out.join('')}</svg>`;
@@ -123,7 +128,7 @@ export function layout({ title, description, body, page }) {
     .map(([href, label]) => `<a href="/${href}"${page === href ? ' aria-current="page"' : ''}>${label}</a>`).join('');
   const foot = (head, links) => `<div><h2>${head}</h2>${links.map(([href, label]) => `<a href="${href}">${label}</a>`).join('')}</div>`;
   return `<!doctype html>
-<html lang="en"${home ? ' data-mk-smooth' : ''}>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
