@@ -314,7 +314,7 @@ export interface CloudAccountClient {
   /** The Admin's last word on a Cloud whose plan sleeps; null for any other. */
   power(): import("./cloud-power.mjs").CloudPower | null;
   /** Asks the Admin to start a sleeping Cloud (POST /api/cloud/desktop/wake), then reads the session again. */
-  wakeHome(): Promise<"awake" | "waking" | null>;
+  wakeHome(intent: WakeIntent): Promise<"awake" | "waking" | "asleep" | null>;
   setWaking(on: boolean): void;
   /** My Cloud's one-time code, or (`cloudId`) another Cloud of the person's own that the verified session lists, its
    * grant for that Cloud's own address only. Rejects with `gone: true` once that Cloud is no longer theirs. */
@@ -385,3 +385,7 @@ export declare function createCloudAccountClient(options: {
 export declare function cloudPlanSnapshot(state: CloudAccountState | null | undefined, extra?: { notice?: import("./cloud-home.mjs").CloudTrialState | null }): CloudPlanSnapshot;
 /** My Cloud's line under its name in the server menus, or null for none. */
 export declare function cloudMenuSublabel(state: CloudAccountState | null | undefined, date: (value: number) => string): string | null;
+
+/** What a person did that may wake a sleeping Cloud (only `type`, `click` and `send` do). */
+export type WakeIntent = "type" | "click" | "send" | "open" | "view";
+export declare const WAKE_INTENTS: readonly WakeIntent[];

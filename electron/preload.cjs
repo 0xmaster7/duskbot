@@ -721,6 +721,10 @@ const bridge = {
     signIn: () => isLocalPage || navigator.userActivation?.isActive === true
       ? ipcRenderer.invoke("home:sign-in") : Promise.reject(new Error("Choose Sign in to sign in again.")),
     repair: () => ipcRenderer.invoke("home:repair"),
+    wake: (intent, send) => ipcRenderer.invoke("home:wake", String(intent), send ?? null),
+    lastSeen: () => ipcRenderer.invoke("home:last-seen"),
+    saveLastSeen: snapshot => ipcRenderer.invoke("home:last-seen-save", snapshot),
+    takeHeld: () => ipcRenderer.invoke("home:held"),
     updating: onHomePage && reloadedForUpdate(),
   },
   /** This computer's page while the chosen server isn't answering (main refuses any other sender). */

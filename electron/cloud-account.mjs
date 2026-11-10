@@ -26,7 +26,9 @@ const STEADY_MS = 15 * 60_000;
 const SETUP_REFRESH_MS = 15_000;
 /** While My Cloud sleeps and Files or lending waits for it: the session every 15 s, so they resume soon after it wakes. */
 const ASLEEP_REFRESH_MS = 15_000;
-const WAKE_STATES = Object.freeze(["awake", "waking"]);
+const WAKE_STATES = Object.freeze(["awake", "waking", "asleep"]);
+/** What a person did that may wake a sleeping Cloud: opening the app or viewing chats never does (the Admin answers `asleep`). */
+export const WAKE_INTENTS = Object.freeze(["type", "click", "send", "open", "view"]);
 /** While a checkout this app opened waits for its payment and setup: the session every 3 s (30 minutes at most). */
 const WATCH_REFRESH_MS = 3_000;
 const CHECKING_AFTER = 2;
@@ -631,13 +633,15 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       return (value.clouds ?? []).find(cloud => cloud.origin === origin)?.power ?? null;
     },
     /** Starts a sleeping Cloud through the Admin (`awake` once started, `waking` if it is still starting), then reads the
-     *  session again so Files and lending resume. Null when there is nothing to wake or the Admin can't say. */
-    async wakeHome() {
+     *  session again so Files and lending resume. `intent` says what the person did: `type`, `click` and `send` wake it,
+     *  `open` and `view` leave it `asleep`. Null when there is nothing to wake or the Admin can't say. */
+    async wakeHome(intent) {
       const current = grant, power = value.status === "connected" ? value.machine?.power : null;
       if (!current || !power || power.state === "awake") return null;
+      if (!WAKE_INTENTS.includes(intent)) throw new Error("Invalid wake intent.");
       let woke = null;
       try {
-        const result = await request("wake", { method: "POST", body: {}, token: current.token });
+        const result = await request("wake", { method: "POST", body: { intent }, token: current.token });
         woke = WAKE_STATES.includes(result?.state) ? result.state : null;
       } catch {}
       await refresh().catch(() => {});
