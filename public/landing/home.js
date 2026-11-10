@@ -168,9 +168,47 @@ for (const b of $$('[data-copy]')) b.addEventListener('click', async () => {
   setTimeout(() => { b.textContent = 'copy'; }, 1600);
 });
 
-// the cloud computer is asleep until you look at it
+// on your computer: the lid opens the first time it is seen and the six wake up. shut it and they sleep
+const lid = $('[data-lid]');
+if (lid) {
+  const fig = lid.closest('figure'), crew = $$('.bot', lid), label = $('.vh', lid);
+  const set = (shut) => {
+    fig.classList.toggle('pre', shut); lid.setAttribute('aria-pressed', shut); label.textContent = shut ? 'open the lid' : 'close the lid';
+    if (!shut) crew.forEach((b, i) => setTimeout(() => hop(b), 180 + i * 70));
+  };
+  lid.addEventListener('click', () => { const shut = !fig.classList.contains('pre'); set(shut); say(lid, shut ? 'zzz' : 'morning'); });
+  if (hasIO && !still) { fig.classList.add('pre'); once(fig, () => setTimeout(() => set(false), 350), 0.6); }
+}
+
+// on your own server: the line types itself, the install runs, a bot comes online and its uptime starts counting
+const term = $('[data-play="install"]');
+if (term && hasIO && !still) {
+  const typed = $('[data-typed]', term), steps = $$('[data-step]', term), up = $('[data-up]', term), text = typed.textContent;
+  const two = (n) => String(n).padStart(2, '0');
+  typed.textContent = ''; steps.forEach((el) => el.classList.add('wait'));
+  once(term, async () => {
+    await wait(300);
+    for (let i = 1; i <= text.length; i++) { typed.textContent = text.slice(0, i); await wait(text[i - 1] === ' ' ? 8 : 24); }
+    await wait(260); steps[0].classList.remove('wait'); $('.prog', term).classList.add('run');
+    await wait(900); steps[1].classList.remove('wait');
+    await wait(380); steps[2].classList.remove('wait'); hop($('.bot', steps[2]));
+    const born = Date.now();
+    const tick = () => { const t = Math.floor((Date.now() - born) / 1000); up.textContent = `up 0d ${two(Math.floor(t / 3600))}:${two(Math.floor(t / 60) % 60)}:${two(t % 60)}`; };
+    tick(); setInterval(tick, 1000);
+  }, 0.6);
+}
+
+// on a dusk cloud computer: it is 7:59 and asleep until you look. then the clock turns, the bot wakes and the routine runs
 const cloud = $('[data-play="wake"]');
-if (cloud && hasIO && !still) { cloud.classList.add('pre'); once(cloud, () => setTimeout(() => cloud.classList.remove('pre'), 700), 0.7); }
+if (cloud && hasIO && !still) {
+  const clock = $('[data-clock]', cloud), run = $('[data-run]', cloud);
+  cloud.classList.add('pre'); clock.textContent = '7:59'; run.dataset.run = 'wait'; run.textContent = 'at 8:00';
+  once(cloud, async () => {
+    await wait(800); clock.textContent = '8:00'; cloud.classList.remove('pre'); hop($('.cl-cloud .bot', cloud));
+    run.dataset.run = 'go'; run.textContent = 'running';
+    await wait(1300); run.dataset.run = 'done'; run.textContent = 'done';
+  }, 0.6);
+}
 
 // the picture inside the big $0 slides a little with the pointer
 const zero = $('.zero');
