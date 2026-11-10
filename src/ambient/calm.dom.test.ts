@@ -45,6 +45,22 @@ describe("a calm island", () => {
     expect(glance([next], { ...background, selectedId: "rivet" })).toEqual(["nova:working"]);
   });
 
+  it("ignores a bot the person chats with from the dock's card, even with the app in the background", () => {
+    const watch: Watch = { selectedId: "rivet", focused: false, watched: new Map() };
+    const viewing = { botId: "nova", limit: 60 };
+    const glanceViewing = (bots: Bot[], view: typeof viewing | null) => attention(ambientSnapshot(bots, [], turnLive, "en", watch, view).bots, new Set()).map((entry) => `${entry.id}:${entry.status}`);
+    const asked = message({ role: "user", text: "Find flights" });
+    const nova = bot("nova", { busy: true, turnStartedAt: 100, messages: [asked] } as Partial<Bot>);
+    expect(glanceViewing([nova], viewing)).toEqual(["nova:idle"]);
+    // its reply landing while the card still shows it is no news for the notch either
+    const replied = bot("nova", { unread: true, messages: [asked, message({ text: "Booked." })] });
+    expect(glanceViewing([replied], viewing)).toEqual(["nova:idle"]);
+    // and it stays quiet once the card goes, until something new happens
+    expect(glanceViewing([replied], null)).toEqual(["nova:idle"]);
+    const again = bot("nova", { busy: true, turnStartedAt: 900, messages: [asked, message({ role: "user", text: "And hotels" })] } as Partial<Bot>);
+    expect(glanceViewing([again], null)).toEqual(["nova:working"]);
+  });
+
   it("coalesces quick changes into one, and shows a change only once it has held", async () => {
     vi.useFakeTimers();
     const seen: string[] = [];

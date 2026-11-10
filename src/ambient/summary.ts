@@ -171,11 +171,12 @@ function watchKey(bot: Bot, ambient: AmbientBot): string {
   return bot.busy ? `busy:${bot.turnStartedAt ?? ""}` : `${ambient.status}:${ambient.at}`;
 }
 
-/** A bot is quiet while what it is doing, or what it said, is what the person watched in the focused app: opening a
- * chat, or switching between chats, never changes the island or the dock. */
-function watching(bot: Bot, ambient: AmbientBot, watch: Watch): AmbientBot {
+/** A bot is quiet while what it is doing, or what it said, is what the person watched in the focused app or in a
+ * surface's chat (the dock's card, an opened island row): opening a chat, switching between chats, or chatting from the
+ * dock never changes the island. */
+function watching(bot: Bot, ambient: AmbientBot, watch: Watch, viewed: boolean): AmbientBot {
   const key = watchKey(bot, ambient);
-  if (watch.focused && watch.selectedId === bot.id) watch.watched.set(bot.id, key);
+  if ((watch.focused && watch.selectedId === bot.id) || viewed) watch.watched.set(bot.id, key);
   else if (watch.watched.has(bot.id) && watch.watched.get(bot.id) !== key) watch.watched.delete(bot.id);
   return watch.watched.get(bot.id) === key ? { ...ambient, quiet: true } : ambient;
 }
@@ -186,7 +187,7 @@ export function ambientSnapshot(bots: Bot[], instances: InstanceInfo[], turnLive
   return {
     bots: shown.map((bot) => {
       const ambient = ambientBot(bot, instances, turnLive, viewing?.botId === bot.id ? viewing.limit : 0);
-      return watch ? watching(bot, ambient, watch) : ambient;
+      return watch ? watching(bot, ambient, watch, viewing?.botId === bot.id) : ambient;
     }),
     labels: ambientLabels(),
     lang,
