@@ -5,7 +5,7 @@ import { teammateAvailabilityPrompt, type RosterMember } from "./peer-roster.ts"
 import type { ConnectorToolGrant } from "../shared/wire.ts";
 import { loginLabel, type LoginPlace } from "../shared/logins.ts";
 import { isConversational, type ReplyStyle } from "../shared/reply-style.ts";
-import { REPLY_HABITS_PROMPT } from "./reply-habits.ts";
+import { replyHabitsPrompt } from "./reply-habits.ts";
 import { talkingStylePrompt } from "./talking-style.ts";
 import type { TalkingStyle } from "../shared/talking-style.ts";
 
@@ -64,7 +64,7 @@ export function buildSystemPrompt(
   soul: string,
   parts: PromptPart[],
   agents?: { env?: Record<string, string | undefined> },
-  opts?: { replyStyle?: ReplyStyle; talkingStyle?: TalkingStyle },
+  opts?: { replyStyle?: ReplyStyle; talkingStyle?: TalkingStyle; quickUpdates?: boolean },
 ): { text: string; sections: PromptSection[]; stable: string; volatile: string } {
   const ordered: PromptPart[] = [
     { id: "persona", label: "Identity", text: persona },
@@ -75,7 +75,7 @@ export function buildSystemPrompt(
     ...parts,
     // the chosen guide, then the habits it does not cover; both in the stable half
     { id: "talking-style", label: "Talking style", text: talkingStylePrompt(opts?.talkingStyle) },
-    { id: "reply-habits", label: "How to reply", text: REPLY_HABITS_PROMPT },
+    { id: "reply-habits", label: "How to reply", text: replyHabitsPrompt(opts?.quickUpdates === true) },
   ];
   const sections = ordered
     .filter((part) => part.text.length > 0)

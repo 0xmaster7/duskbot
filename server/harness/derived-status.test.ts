@@ -31,7 +31,7 @@ describe("derivedLabel", () => {
     expect(derivedLabel(call("agent_browser_click", { ref: "e12" }), undefined, opened?.site)?.label).toBe("Checking news.ycombinator.com");
     expect(derivedLabel(call("agent_browser_click", { ref: "e12" }), undefined)?.label).toBe("Using the browser");
     expect(derivedLabel(call("Write", { file_path: "/tmp/w/report.md", content: "x" }), undefined)?.label).toBe("Writing report.md");
-    expect(derivedLabel({ title: "Bash", summary: "python3 scrape.py --all", step: toolStep({ title: "Bash", summary: "python3 scrape.py --all" }) }, undefined)?.label)
+    expect(derivedLabel({ title: "Bash", step: toolStep({ title: "Bash", summary: "python3 scrape.py --all" }) }, undefined)?.label)
       .toBe("Running scrape.py");
     expect(derivedLabel(call("computer", { action: "screenshot" }), undefined)?.label).toBe("Using the computer");
     expect(derivedLabel(call("mcp__agents__memory_update", { text: "x" }), undefined)?.label).toBe("Checking my notes");

@@ -1,0 +1,338 @@
+// The rhythm of a working turn, kept by the harness rather than left to the engine: a short ack a few seconds after the
+// person asks for real work, then about 15 s in a second message saying what they will get, and on a long job a milestone
+// when nothing has been said for a while. A small fast model writes each one in the bot's voice from what the person asked
+// and the steps run so far; the engine's own turn runs on untouched. Each beat is dropped the moment the engine has said
+// the same kind of thing itself, or is writing its result. Never for routines, teammates, cards or other turns nobody
+// watches, and only while features.quickUpdates is not false.
+import { classifyTurn } from "./turn-route.ts";
+import { derivedLabel } from "./harness/derived-status.ts";
+import type { RuntimeEvent } from "./contracts.ts";
+import { redactSecretsInText } from "./redact.ts";
+
+export type BeatKind = "ack" | "plan" | "milestone";
+
+/** The earliest an ack goes out, so a fast reply never follows one. */
+export const ACK_MIN_MS = 1_500;
+/** An ack for work that has run no tool yet waits this long for the engine to answer by itself first. */
+export const ACK_IDLE_MS = 6_000;
+/** The second message is written from here, once a tool has run, and goes out from PLAN_MIN_MS. */
+export const PLAN_WRITE_MS = 11_000;
+export const PLAN_MIN_MS = 15_000;
+/** A milestone after this long without any message from the bot, while tools keep running. */
+export const MILESTONE_QUIET_MS = 150_000;
+export const MAX_MILESTONES = 6;
+const WRITE_TIMEOUT_MS = 12_000;
+const TICK_MS = 250;
+const UNSTARTED_MS = 60_000;
+const SOUL_CHARS = 600;
+const ASK_CHARS = 1_500;
+const STEP_CHARS = 90;
+const MAX_WORDS = { ack: 26, plan: 55, milestone: 45 } as const;
+
+export type BeatWriter = (prompt: string, options: { signal: AbortSignal; timeoutMs: number }) => Promise<string>;
+
+export interface TurnBeatsDeps {
+  enabled(): boolean;
+  /** The bot's small one-off text call, or null when its engine has none. */
+  writer(botId: string): BeatWriter | null;
+  bot(botId: string): { name: string; soul?: string } | null | undefined;
+  /** Whether this turn is still the one the thread runs. */
+  live(threadId: string, turnId: string): boolean;
+  post(beat: { botId: string; threadId: string; turnId: string; text: string; kind: BeatKind }): void;
+  now?: () => number;
+  log?: (line: string) => void;
+}
+
+export interface BeatStart {
+  botId: string;
+  threadId: string;
+  text: string;
+  attachments: number;
+  /** A routine, webhook, teammate, card continuation, voice call or any other turn nobody reads live as it runs. */
+  unattended: boolean;
+}
+
+type Phase = "idle" | "writing" | "ready" | "posted" | "dropped";
+
+interface Beat {
+  phase: Phase;
+  text?: string;
+  abort?: AbortController;
+}
+
+interface Watch {
+  botId: string;
+  threadId: string;
+  ask: string;
+  work: boolean;
+  startedAt: number;
+  turnId?: string;
+  tools: number;
+  toolsDone: number;
+  lastToolAt: number;
+  /** When the engine's own text last arrived, and how many messages it has finished. */
+  engineTextAt: number;
+  engineMessages: number;
+  steps: string[];
+  stepsAtLastWord: number;
+  lastWordAt: number;
+  waiting: boolean;
+  ack: Beat;
+  plan: Beat;
+  milestone: Beat;
+  milestones: number;
+  milestoneTriedAt: number;
+  posted: string[];
+  timer: ReturnType<typeof setInterval>;
+}
+
+/** Whether a message asks for work that is worth an ack before any tool has run. */
+export function looksLikeWork(text: string, attachments: number): boolean {
+  return classifyTurn({ text, attachments, priorTurnUsedTools: false }) === "complex";
+}
+
+function personaLines(bot: { name: string; soul?: string }): string {
+  const soul = (bot.soul ?? "").replace(/\s+/g, " ").trim().slice(0, SOUL_CHARS);
+  return soul ? `About ${bot.name}, in its own setup: ${soul}` : `${bot.name} is a helpful assistant.`;
+}
+
+const SHARED_RULES = (name: string) => [
+  `- Write as ${name}, in the first person, in the language of the person's message.`,
+  "- Plain, warm and specific. No greeting, no emoji, no exclamation marks, no questions.",
+  "- Never state results, prices, numbers or facts that are not given above. Never promise a time.",
+  "- Never name tools, models, searches as a mechanism, files that hold notes, or the app.",
+  "- If nothing useful and true can be said, reply exactly SKIP.",
+  "Reply with the message only.",
+].join("\n");
+
+export function beatPrompt(kind: BeatKind, input: { name: string; soul?: string; ask: string; steps: string[]; said: string[]; minutes?: number }): string {
+  const ask = input.ask.slice(0, ASK_CHARS);
+  const steps = input.steps.slice(-10).map((step) => `- ${step}`).join("\n") || "- (none yet)";
+  const said = input.said.map((line) => `- ${line}`).join("\n");
+  const head = [
+    `You write one short chat message for ${input.name}. ${input.name} is working on the person's request right now; another process does the work. You only write a short message the person sees while it runs.`,
+    personaLines(input),
+    "",
+    "The person's message:",
+    "<<<",
+    ask,
+    ">>>",
+  ];
+  if (kind === "ack") {
+    return [...head, "",
+      "Write the acknowledgement they see first.",
+      "- One sentence, 6 to 20 words, present tense, naming the concrete action and object, like \"On it, pulling this week's Delhi to Goa fares.\" or \"Got it, comparing the three plans now.\"",
+      "- If the message is only a greeting, thanks or small talk, reply exactly SKIP.",
+      SHARED_RULES(input.name),
+    ].join("\n");
+  }
+  if (kind === "plan") {
+    return [...head, "",
+      `${input.name} already told them:`, said || "- (nothing yet)", "",
+      `What ${input.name} has done so far:`, steps, "",
+      "Write the second message: what they will get and its shape (a short list, a table, a file, a link, a summary), any default you can see being assumed, and the one check that will happen before sending, only a check the request and the steps make natural (comparing sources, checking prices are current, checking a page loads).",
+      "- 15 to 40 words, 1 or 2 sentences. Do not repeat the acknowledgement.",
+      "- Never promise a format, file or page the request does not call for.",
+      SHARED_RULES(input.name),
+    ].join("\n");
+  }
+  return [...head, "",
+    `${input.name} has been working for about ${input.minutes ?? 3} minutes. Already said:`, said || "- (nothing yet)", "",
+    "Steps since then:", steps, "",
+    "Write a short progress note: what has been covered so far, taken only from the steps, and what it is on now. 10 to 30 words. Not a status ping: say something concrete.",
+    SHARED_RULES(input.name),
+  ].join("\n");
+}
+
+/** The model's reply as a chat line, or null when it declined or wrote something that is not one short message. */
+export function cleanBeat(kind: BeatKind, reply: string): string | null {
+  let text = reply.replace(/\r/g, "").trim();
+  text = text.replace(/^(?:message|ack|reply|answer)\s*:\s*/i, "").replace(/^["“'‘]+|["”'’]+$/g, "").trim();
+  if (!text || /\bSKIP\b/.test(text) || text.includes("```") || text.split("\n").filter((line) => line.trim()).length > 2) return null;
+  text = redactSecretsInText(text.replace(/\s+/g, " ")).replace(/\s*!+/g, ".").replace(/\.\.+$/, ".");
+  const words = text.split(" ").length;
+  if (words < 3 || words > MAX_WORDS[kind] || /\?\s*$/.test(text)) return null;
+  return text;
+}
+
+/** What the engine reads before the next message: the lines the harness sent in its name, which it never saw itself. */
+export function beatsNote(lines: readonly string[]): string {
+  if (!lines.length) return "";
+  return `(While you worked on the person's previous request, these short updates were sent to them in your name, and they are part of this chat: ${lines.map((line) => `"${line}"`).join(" ")} Stay consistent with them.)\n\n`;
+}
+
+export function createTurnBeats(deps: TurnBeatsDeps) {
+  const now = deps.now ?? Date.now;
+  const watches = new Map<string, Watch>();
+  const notes = new Map<string, string[]>();
+
+  const end = (watch: Watch) => {
+    clearInterval(watch.timer);
+    for (const beat of [watch.ack, watch.plan, watch.milestone]) beat.abort?.abort();
+    if (watches.get(watch.threadId) === watch) watches.delete(watch.threadId);
+    if (watch.posted.length) notes.set(watch.threadId, [...(notes.get(watch.threadId) ?? []), ...watch.posted].slice(-6));
+  };
+
+  const said = (watch: Watch) => watch.posted.slice();
+
+  const write = (watch: Watch, kind: BeatKind, beat: Beat) => {
+    const writer = deps.writer(watch.botId);
+    const bot = deps.bot(watch.botId);
+    if (!writer || !bot) {
+      beat.phase = "dropped";
+      return;
+    }
+    beat.phase = "writing";
+    beat.abort = new AbortController();
+    const steps = kind === "milestone" ? watch.steps.slice(watch.stepsAtLastWord) : watch.steps;
+    const prompt = beatPrompt(kind, { name: bot.name, soul: bot.soul, ask: watch.ask, steps, said: said(watch), minutes: Math.round((now() - watch.startedAt) / 60_000) });
+    void writer(prompt, { signal: beat.abort.signal, timeoutMs: WRITE_TIMEOUT_MS }).then((reply) => {
+      if (beat.phase !== "writing") return;
+      const text = cleanBeat(kind, reply);
+      if (!text) {
+        beat.phase = "dropped";
+        return;
+      }
+      beat.text = text;
+      beat.phase = "ready";
+      tick(watch);
+    }, (error: unknown) => {
+      if (beat.phase !== "writing") return;
+      beat.phase = "dropped";
+      deps.log?.(`turn beats: the ${kind} for ${watch.threadId} was not written (${error instanceof Error ? error.message.slice(0, 160) : "unknown"})`);
+    });
+  };
+
+  const post = (watch: Watch, kind: BeatKind, beat: Beat) => {
+    beat.phase = "posted";
+    const text = beat.text!;
+    watch.posted.push(text);
+    watch.lastWordAt = now();
+    watch.stepsAtLastWord = watch.steps.length;
+    try {
+      deps.post({ botId: watch.botId, threadId: watch.threadId, turnId: watch.turnId!, text, kind });
+    } catch (error) {
+      deps.log?.(`turn beats: could not post in ${watch.threadId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  /** The engine is writing what looks like its result: its text came after its last tool call began. */
+  const composing = (watch: Watch) => watch.engineTextAt > watch.lastToolAt && watch.engineTextAt > 0;
+
+  const tick = (watch: Watch) => {
+    if (watches.get(watch.threadId) !== watch) return;
+    const at = now();
+    const elapsed = at - watch.startedAt;
+    const { ack, plan, milestone } = watch;
+    const engineSpoke = watch.engineTextAt > 0;
+    // Written while the engine starts up: the small model takes about as long as the ack may wait.
+    if (ack.phase === "idle" && (watch.work || watch.tools > 0) && !engineSpoke) write(watch, "ack", ack);
+    if (!watch.turnId) {
+      if (elapsed > UNSTARTED_MS) end(watch);
+      return;
+    }
+    if (!deps.live(watch.threadId, watch.turnId)) return;
+    if (ack.phase === "ready") {
+      if (engineSpoke) ack.phase = "dropped";
+      else if (elapsed >= ACK_MIN_MS && (watch.tools > 0 || elapsed >= ACK_IDLE_MS)) post(watch, "ack", ack);
+    }
+    if (ack.phase === "writing" || (ack.phase === "idle" && !engineSpoke && !watch.tools)) return;
+
+    const spokenBefore = watch.posted.length + watch.engineMessages;
+    if (plan.phase === "idle" && elapsed >= PLAN_WRITE_MS && watch.tools > 0 && spokenBefore >= 1 && watch.engineMessages < 2 && !composing(watch)) write(watch, "plan", plan);
+    if (plan.phase === "ready") {
+      if (composing(watch) || watch.engineMessages >= 2) plan.phase = "dropped";
+      else if (elapsed >= PLAN_MIN_MS && !watch.waiting) post(watch, "plan", plan);
+    }
+
+    const lastWord = Math.max(watch.lastWordAt, watch.engineTextAt, watch.milestoneTriedAt);
+    const quietFor = at - (lastWord || watch.startedAt);
+    if (milestone.phase === "posted" || milestone.phase === "dropped") Object.assign(milestone, { phase: "idle", text: undefined, abort: undefined });
+    if (milestone.phase === "idle" && watch.milestones < MAX_MILESTONES && plan.phase !== "writing" && plan.phase !== "ready" &&
+        quietFor >= MILESTONE_QUIET_MS && watch.steps.length - watch.stepsAtLastWord >= 2 && !composing(watch) && !watch.waiting) {
+      watch.milestones++;
+      watch.milestoneTriedAt = at;
+      write(watch, "milestone", milestone);
+    }
+    if (milestone.phase === "ready") {
+      if (composing(watch) || at - watch.engineTextAt < MILESTONE_QUIET_MS / 2) milestone.phase = "dropped";
+      else if (!watch.waiting) post(watch, "milestone", milestone);
+    }
+  };
+
+  return {
+    /** A direct turn is about to start for the person's message. */
+    start(input: BeatStart): void {
+      const old = watches.get(input.threadId);
+      if (old) end(old);
+      if (input.unattended || !input.text.trim() || !deps.enabled()) return;
+      const watch: Watch = {
+        botId: input.botId, threadId: input.threadId, ask: input.text, work: looksLikeWork(input.text, input.attachments), startedAt: now(),
+        tools: 0, toolsDone: 0, lastToolAt: 0, engineTextAt: 0, engineMessages: 0, steps: [], stepsAtLastWord: 0, lastWordAt: 0, waiting: false,
+        ack: { phase: "idle" }, plan: { phase: "idle" }, milestone: { phase: "idle" }, milestones: 0, milestoneTriedAt: 0, posted: [],
+        timer: setInterval(() => tick(watch), TICK_MS),
+      };
+      watch.timer.unref?.();
+      watches.set(input.threadId, watch);
+      tick(watch);
+    },
+
+    onEvent(event: RuntimeEvent): void {
+      const watch = watches.get(event.threadId);
+      if (!watch) return;
+      if (event.type === "turn.started") {
+        if (!watch.turnId && event.turnId) watch.turnId = event.turnId;
+        else if (event.turnId && event.turnId !== watch.turnId) end(watch);
+        return;
+      }
+      if (event.turnId && watch.turnId && event.turnId !== watch.turnId) return;
+      switch (event.type) {
+        case "item.started":
+          if (event.itemType !== "tool") return;
+          watch.tools++;
+          watch.lastToolAt = now();
+          {
+            const step = derivedLabel(event, "en", undefined, STEP_CHARS)?.label;
+            if (step && watch.steps.at(-1) !== step) watch.steps.push(step);
+          }
+          break;
+        case "item.completed":
+          if (event.itemType === "tool") watch.toolsDone++;
+          else if (event.itemType === "assistant_text" && event.text.trim()) {
+            watch.engineMessages++;
+            watch.engineTextAt = now();
+          }
+          break;
+        case "content.delta":
+          if (event.streamKind === "assistant_text" && event.delta.trim()) watch.engineTextAt = now();
+          break;
+        case "request.opened":
+          watch.waiting = true;
+          break;
+        case "request.resolved":
+          watch.waiting = false;
+          break;
+        case "turn.completed":
+        case "cap.exhausted":
+        case "session.exited":
+          end(watch);
+          return;
+        case "runtime.error":
+          if (event.terminal) end(watch);
+          return;
+        default:
+          return;
+      }
+      tick(watch);
+    },
+
+    /** The lines sent in the bot's name during the thread's last turn, said once to the engine with the next message. */
+    note(threadId: string): string {
+      const lines = notes.get(threadId);
+      notes.delete(threadId);
+      return beatsNote(lines ?? []);
+    },
+  };
+}
+
+export type TurnBeats = ReturnType<typeof createTurnBeats>;

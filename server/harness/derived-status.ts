@@ -81,9 +81,9 @@ function cutWords(text: string, max: number): string {
 }
 
 /** The line with its one `{name}` filled, the filler cut at a word so the whole label fits. */
-function filled(language: string | undefined, key: ServerLineKey, name: string, value: string): string | undefined {
+function filled(language: string | undefined, key: ServerLineKey, name: string, value: string, max: number): string | undefined {
   const template = serverLine(language, key);
-  const room = STATUS_LABEL_MAX - (template.length - `{${name}}`.length);
+  const room = max - (template.length - `{${name}}`.length);
   const shown = cutWords(redactSecretsInText(value.replace(/\p{Cc}/gu, " ").replace(/\s+/g, " ").trim()), Math.max(room, 8));
   return shown ? serverLine(language, key, { [name]: shown }) : undefined;
 }
@@ -101,27 +101,27 @@ export interface Derived {
   site?: string;
 }
 
-/** The label for one tool call, or undefined when nothing short and true can be said about it. */
-export function derivedLabel(call: DerivedCall, language: string | undefined, lastSite?: string): Derived | undefined {
+/** The label for one tool call, or undefined when nothing short and true can be said about it. `max`: its length. */
+export function derivedLabel(call: DerivedCall, language: string | undefined, lastSite?: string, max = STATUS_LABEL_MAX): Derived | undefined {
   const { name, args } = unwrap(call);
   if (!name) return undefined;
   const step = call.step;
   if (WEB_SEARCH.test(name) || step?.activity === "web") {
     const query = step?.activity === "web" ? step.detail ?? step.target : field(args, ["query", "q", "queries", "search_query", "searchQuery"]) ?? (typeof args === "string" ? args : undefined);
     const topic = query ? searchTopic(query) : "";
-    const label = topic ? filled(language, "server.status.searchingFor", "topic", topic) : undefined;
+    const label = topic ? filled(language, "server.status.searchingFor", "topic", topic, max) : undefined;
     return { label: label ?? serverLine(language, "server.status.searchingWeb") };
   }
   if (BROWSER.test(name)) {
     const site = hostOf(field(args, ["url", "uri", "href", "link"])) ?? lastSite;
-    const label = site ? filled(language, "server.status.checking", "site", site) : undefined;
+    const label = site ? filled(language, "server.status.checking", "site", site, max) : undefined;
     return { label: label ?? serverLine(language, "server.status.usingBrowser"), ...(site ? { site } : {}) };
   }
-  if (step?.activity === "fetch") return withLabel(filled(language, "server.status.reading", "target", step.target));
-  if (step?.activity === "write") return withLabel(filled(language, "server.status.writing", "file", step.target));
-  if (step?.activity === "edit") return withLabel(filled(language, "server.status.editing", "file", step.target));
-  if (step?.activity === "read") return withLabel(filled(language, "server.status.reading", "target", step.target));
-  if (step?.activity === "command") return withLabel(filled(language, "server.status.running", "target", step.target));
+  if (step?.activity === "fetch") return withLabel(filled(language, "server.status.reading", "target", step.target, max));
+  if (step?.activity === "write") return withLabel(filled(language, "server.status.writing", "file", step.target, max));
+  if (step?.activity === "edit") return withLabel(filled(language, "server.status.editing", "file", step.target, max));
+  if (step?.activity === "read") return withLabel(filled(language, "server.status.reading", "target", step.target, max));
+  if (step?.activity === "command") return withLabel(filled(language, "server.status.running", "target", step.target, max));
   if (COMPUTER.test(name)) return { label: serverLine(language, "server.status.usingComputer") };
   if (MEMORY.test(name)) return { label: serverLine(language, "server.status.checkingNotes") };
   if (FILES_SEARCH.test(name)) return { label: serverLine(language, "server.status.lookingThroughFiles") };
