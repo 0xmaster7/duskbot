@@ -22,6 +22,7 @@ import { entitlementOf, noticeText, type Entitlement, type NoticeKind } from "./
 import { parseReleaseKeys, PINNED_RELEASE_KEYS, verifyRelease, type ReleaseKey } from "./release-signing.ts";
 import { createSweep } from "./sweep.ts";
 import { createStartLedger } from "./starts.ts";
+import { createSpendLedger } from "./spend.ts";
 import { createPowerPolicy, DEFAULT_POLICY, type PolicyParams } from "./power/policy.ts";
 import type { ProviderCostProfile } from "./power/cost.ts";
 import "./state.ts";
@@ -51,6 +52,8 @@ export interface ManagedCloudDeps {
   costProfile?: ProviderCostProfile;
   /** the power policy's settings (the tuned defaults otherwise) */
   policy?: PolicyParams;
+  /** a monotonic clock for the cost ledger, so a wall-clock jump is not taken as time passing (only with the real clock) */
+  mono?: () => number;
 }
 
 /** a record written before the rename: backend "boat" and its lifecycle record under `boat` */
@@ -91,7 +94,10 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
       const starts = createStartLedger({ dataDir: ctx.dataDir, profile, now: ctx.now,
         alert: text => { console.warn(`managed: ${text}`); deps.alert?.({ at: ctx.now(), cloudId: "fleet", action: "starts_alert", actor: "reconciler", reason: text.slice(0, 120) }); } });
       const sleepPolicy = createPowerPolicy({ profile, params, pool: () => starts.view() });
-      const lifecycle = createLifecycle({ ...deps, image: BOAT_IMAGE, starts, sleepPolicy, costProfile: profile, rails: params.rails, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
+      // each home's monthly cost book: nothing is charged to a home past its ceiling (power/ceiling.ts, docs/power.md)
+      const spend = createSpendLedger({ dataDir: ctx.dataDir, profile, reserveStarts: params.rails.costReserveStarts, now: ctx.now, mono: deps.mono,
+        alert: (cloudId, text) => { console.warn(`managed: ALERT ${text}`); deps.alert?.({ at: ctx.now(), cloudId, action: "cost_ceiling", actor: "reconciler", reason: text.slice(0, 120) }); } });
+      const lifecycle = createLifecycle({ ...deps, image: BOAT_IMAGE, starts, spend, sleepPolicy, costProfile: profile, rails: params.rails, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
         dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace, clouds: ctx.clouds, entitle: ctx.entitlement,
         releaseKeys: deps.releaseKeys ?? PINNED_RELEASE_KEYS, labelKey: deps.labelKey ?? Buffer.from(hkdfSync("sha256", backupSecret, Buffer.alloc(0), Buffer.from("omb-managed-label"), 32))  });
       const sweep = createSweep({ dataDir: ctx.dataDir, file: "boat-sweep.json", provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });
@@ -239,6 +245,7 @@ export function managedCloudFromEnv(source: NodeJS.ProcessEnv, options: ManagedC
     backups: createBackupStore({ dir: env.DUSK_MANAGED_BACKUP_DIR || join(options.dataDir, "boat-backups"), now: options.now }),
     audit: createAudit({ dataDir: options.dataDir, now: options.now, alert: options.alert }),
     alert: options.alert,
+    mono: options.now === Date.now ? () => performance.now() : undefined,
     entitlement: cloud => entitlementOf(options.subscriptions(), cloud, options.now()),
     notify: (cloud, kind, at, link) => options.mail?.(cloud, noticeText(kind, { name: cloud.name, at, dashboardUrl: options.publicUrl, link })) });
 }

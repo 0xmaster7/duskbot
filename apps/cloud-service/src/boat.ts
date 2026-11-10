@@ -43,6 +43,7 @@ export function boatCostProfile(options: { plan?: BoatPlan; scale?: number; held
   const hardCap = { minute: included.minute * HARD_FACTOR.minute, hour: included.hour * HARD_FACTOR.hour, day: included.day * HARD_FACTOR.day };
   return {
     computeCentsPerHour: boatHourlyCents,
+    floorCentsPerHour: Math.min(...BOAT_SIZES.map(z => boatHourlyCents(z))),
     included, hardCap,
     startCents(used) {
       let price = 0;

@@ -3,6 +3,8 @@
 // starts are failing, or when the next start might be refused; a start is refused past the provider's hard cap or its
 // "not before" time, held back while its starts keep failing, and (when it can wait) spread out of a busy minute.
 // Caps are kept by refusing stops, never by refusing a person: a home that spent its budget simply stays up.
+// The monthly cost ceiling (ceiling.ts) is kept here too: nothing is charged to a home that its slack cannot pay for.
+import type { SpendView } from "./ceiling.ts";
 import { DAY, HOUR, MINUTE, POOL_WINDOWS, WINDOW_MS, type PoolCounts, type ProviderCostProfile } from "./cost.ts";
 import { freshStats, type ActivityStats } from "./predictor.ts";
 
@@ -48,11 +50,15 @@ export interface RailSettings {
   poolSoftShare: number;
   /** no stop while any window is past this share of the provider's hard cap */
   hardCapShare: number;
+  /** worst-priced starts each home's monthly ceiling keeps for what we do not choose: the breaker's failures (3) and a
+   *  probe, and one lost-machine rebuild; once that many such starts happened this month the home is not stopped again */
+  costReserveStarts: number;
 }
 export const DEFAULT_RAILS: RailSettings = {
   minUptimeMs: 6 * MINUTE, minIdleMs: 3 * MINUTE, wakeGraceMs: 3 * MINUTE, focusCapMs: 30 * MINUTE, routineGuardMs: 5 * MINUTE,
   maxStartsPerHour: 4, maxStartsPerDay: 16, flapMs: 10 * MINUTE, maxMinIdleMs: 2 * HOUR,
   breakerFailures: 3, breakerWindowMs: 30 * MINUTE, breakerBaseMs: 5 * MINUTE, breakerMaxMs: 2 * HOUR, poolSoftShare: 0.5, hardCapShare: 0.9,
+  costReserveStarts: 5,
 };
 
 /** the account's shared start pool, as the ledger counts it */
@@ -88,8 +94,43 @@ export interface StopContext {
   memory: PowerMemory;
   pool: PoolView;
   profile: ProviderCostProfile;
+  /** the home's monthly book; null only where no ledger is kept (a test) */
+  spend?: SpendView | null;
 }
 export type Refusal = { reason: string; recheckAt: number };
+
+// ---- the monthly cost ceiling. With W the worst start price, k the starts this month we did not choose and
+// reserve = W * max(0, N - k): a stop needs slack >= reserve + W (the start that ends the sleep is paid for), a start we
+// choose needs slack - W >= reserve, a start somebody waits for needs slack >= W, and any other charge X (backup storage,
+// a second machine) needs slack - X >= reserve + W. Slack only shrinks by such charges, so it never goes below zero.
+
+export const reserveCents = (v: SpendView) => v.worstStartCents * Math.max(0, v.reserveStarts - v.unplanned);
+/** when slack grows to `need`, or an hour from now when it barely grows (an awake home of the cheapest size) */
+const affordableAt = (v: SpendView, need: number, now: number) =>
+  v.gainCentsPerHour > 1e-9 ? Math.min(now + 6 * HOUR, now + Math.ceil((need - v.slackCents) / v.gainCentsPerHour * HOUR)) : now + HOUR;
+
+/** a stop is allowed only when the start after it is already paid for and the reserve is whole; `owner`: the owner asked,
+ *  which only needs the start back paid for */
+export function costStopRefusal(v: SpendView | null | undefined, now: number, owner = false): Refusal | null {
+  if (!v) return null;
+  if (owner) return v.slackCents >= v.worstStartCents ? null : { reason: "cost_ceiling", recheckAt: affordableAt(v, v.worstStartCents, now) };
+  if (v.unplanned >= v.reserveStarts) return { reason: "cost_reserve_used", recheckAt: now + HOUR };
+  const need = reserveCents(v) + v.worstStartCents;
+  return v.slackCents >= need ? null : { reason: "cost_ceiling", recheckAt: Math.max(now + MINUTE, affordableAt(v, need, now)) };
+}
+/** a start: one somebody waits for may use the reserve, one we choose may not; `extraCents` a second machine's own compute */
+export function costStartRefusal(v: SpendView | null | undefined, kind: StartKind, now: number, extraCents = 0): Refusal | null {
+  if (!v) return null;
+  const need = extraCents > 0 ? reserveCents(v) + 2 * v.worstStartCents + extraCents
+    : INTENT_KINDS.has(kind) ? v.worstStartCents : reserveCents(v) + v.worstStartCents;
+  return v.slackCents >= need ? null : { reason: "cost_ceiling", recheckAt: Math.max(now + 5_000, affordableAt(v, need, now)) };
+}
+/** any other charge (more backup storage): never into the reserve or the next start */
+export function costChargeRefusal(v: SpendView | null | undefined, cents: number, now: number): Refusal | null {
+  if (!v || cents <= 0) return null;
+  const need = reserveCents(v) + v.worstStartCents + cents;
+  return v.slackCents >= need ? null : { reason: "cost_ceiling", recheckAt: affordableAt(v, need, now) };
+}
 
 /** whether a stop may happen now; null when it may */
 export function stopRefusal(c: StopContext, rails: RailSettings = DEFAULT_RAILS): Refusal | null {
@@ -113,7 +154,7 @@ export function stopRefusal(c: StopContext, rails: RailSettings = DEFAULT_RAILS)
   if (c.pool.blockedUntil !== null && c.pool.blockedUntil > now) return no("provider_not_before", c.pool.blockedUntil);
   if (!Number.isFinite(c.profile.startCents(c.pool.used))) return no("pool_exhausted", now + 5 * MINUTE);
   for (const w of POOL_WINDOWS) if (c.pool.used[w] >= rails.hardCapShare * c.profile.hardCap[w]) return no(`near_hard_cap_${w}`, now + Math.min(WINDOW_MS[w], 15 * MINUTE));
-  return null;
+  return costStopRefusal(c.spend, now);
 }
 
 export interface StartContext {
@@ -124,6 +165,9 @@ export interface StartContext {
   memory: PowerMemory;
   pool: PoolView;
   profile: ProviderCostProfile;
+  spend?: SpendView | null;
+  /** a second machine of this home (a retired disk's keep-alive): its own compute until it is stopped again */
+  extraCents?: number;
 }
 
 /** whether a start may happen now; null when it may */
@@ -145,7 +189,7 @@ export function startRefusal(c: StartContext, rails: RailSettings = DEFAULT_RAIL
     // minutes of waiting cannot help the hour or day windows, so they are left to the price)
     if (pool.used.minute + 1 > profile.included.minute) return no("pool_smoothing", Math.min(c.latest, now + 20_000));
   }
-  return null;
+  return costStartRefusal(c.spend, c.kind, now, c.extraCents ?? 0);
 }
 
 export const breakerBackoff = (trips: number, rails: RailSettings) => Math.min(rails.breakerMaxMs, rails.breakerBaseMs * 2 ** Math.max(0, trips - 1));

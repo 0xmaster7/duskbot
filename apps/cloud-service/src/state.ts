@@ -47,7 +47,7 @@ export interface HomeLifecycleState {
   deletedAt: number | null;
   backupsDeleteAfter: number | null;
   /** sandboxes this cloud had before a recovery, stopped, deleted once the new one has its own verified backup */
-  retired: Array<{ serverId: string; at: number; deletion: { operationId: string | null; at: number } | null; backedUp?: number }>;
+  retired: Array<{ serverId: string; at: number; deletion: { operationId: string | null; at: number } | null; backedUp?: number; /** our last keep-alive start of it */ refreshAt?: number }>;
   recoveries: number;
   hold: boolean;
   /** when the current sandbox's setup began */
