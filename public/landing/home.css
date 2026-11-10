@@ -438,7 +438,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .end-box { position: absolute; left: 50%; bottom: 0; width: var(--w); height: calc(var(--w) / 1.5); translate: -50% 0; }
 .end-box > img { width: 100%; height: 100%; }
 /* the same blue, deeper toward the top, so white words read without a shadow or a box */
-.end-sky { position: absolute; inset: 0 0 auto; height: calc(var(--h) - 0.37 * var(--w) / 1.5); background: linear-gradient(#0b63cf, #0d6dd8 22%, #147ee1 40%, #1f95ea 56%, #1aaef3 70%, #0bc0fa 84%, #01ccfe); pointer-events: none; }
+.end-sky { position: absolute; inset: 0 0 auto; height: calc(var(--h) - 0.37 * var(--w) / 1.5); background: linear-gradient(#2c8ff0, #2f9af2 30%, #2aa8f5 55%, #17bafa 78%, #01ccfe); pointer-events: none; }
 .end-text { position: relative; z-index: 3; display: grid; justify-items: center; padding: clamp(84px, 9.5vw, 150px) 24px 0; }
 .home .end .mega { max-width: none; }
 .end-text > p:not(.actions) { font-size: clamp(18px, 1.6vw, 21px); font-weight: 500; letter-spacing: -0.012em; margin: 22px 0 0; max-width: 24em; text-wrap: balance; }
@@ -448,7 +448,9 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .sb { cursor: pointer; animation: float 2.8s steps(3, jump-none) infinite alternate; }
 .sb:nth-child(2n) { animation-delay: -1.1s; } .sb:nth-child(3n) { animation-delay: -1.9s; }
 @keyframes float { to { translate: 0 3px; } }
-.foam { fill: #fff; opacity: 0.9; }
+.foam { fill: #fff; opacity: 0.9; transition: opacity 0.2s; }
+/* the foam line only shows while its bot is up */
+.sb.dive .foam, .end.arm .sb:not(.up) .foam { opacity: 0; }
 .dip { transition: transform 0.55s var(--pop); }
 .sb.dive .dip { transform: translateY(112px); transition: transform 0.22s var(--mk-ease-out); }
 /* with script on, the bots start under water and come up one by one the first time the picture is seen */
