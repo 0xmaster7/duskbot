@@ -12,19 +12,10 @@ function once(el, fn, threshold = 0.4) {
   io.observe(el);
 }
 
-// the bots themselves (looks, blinks, moods, answers to a poke) are the app's mascot code, in mascot.js; this file
-// only gives them something to say
+// the bots themselves (looks, blinks, moods, answers to a poke) are the app's mascot code, in mascot.js. they show how
+// they feel by moving, never with words in a bubble
 
-const quips = ['hi', 'busy', 'on it', 'five more minutes', 'ok ok', 'that tickles', 'did you need something', 'working, promise', 'not the face', 'hire me', 'i was told there would be snacks'];
 const sparkColours = ['#2f7bf2', '#ff7d1f', '#8d5cf0', '#ff5c9d', '#1fb866', '#f8c623'];
-let said = 0;
-function sayAt(x, y, text) {
-  const q = document.createElement('span');
-  q.className = 'quip'; q.textContent = text;
-  q.style.left = `${Math.min(Math.max(x, 70), innerWidth - 70) + scrollX}px`; q.style.top = `${Math.max(y, 0) + scrollY}px`;
-  document.body.append(q); setTimeout(() => q.remove(), 1500);
-}
-function say(el, text) { const r = el.getBoundingClientRect(); sayAt(r.left + r.width / 2, r.top, text); }
 // a burst of little squares where something was poked
 function sparkle(x, y) {
   if (still) return;
@@ -36,21 +27,13 @@ function sparkle(x, y) {
     document.body.append(s); setTimeout(() => s.remove(), 720);
   }
 }
-const purrs = ['mrrp', 'zzz', 'five more minutes', 'not a bot'];
 document.addEventListener('click', (e) => {
-  const cat = e.target.closest?.('.cat img');
-  if (cat) { say(cat, purrs[said++ % purrs.length]); sparkle(e.clientX, e.clientY); return; }
-  const b = e.target.closest?.('.bot');
-  if (!b || b.closest('[data-own]')) return;
-  const asleep = b.closest('li')?.querySelector('[aria-checked="false"]');
-  say(b, asleep ? 'zzz' : quips[said++ % quips.length]); sparkle(e.clientX, e.clientY);
+  const hit = e.target.closest?.('.cat img, .bot');
+  if (!hit || hit.closest('[data-own]')) return;
+  sparkle(e.clientX, e.clientY);
 });
 
 // the bot beside the questions nods along
-const listener = $('.listener'), hellos = ['hi', 'ask away', 'good question', 'i know this one', 'still free, by the way'];
-if (listener) {
-  listener.addEventListener('click', (e) => { say(listener, hellos[said++ % hellos.length]); sparkle(e.clientX || 0, e.clientY || 0); });
-}
 
 // the stickers in the big sentence can be picked up; they spring back when dropped
 if (fine && !still) for (const el of $$('[data-sticker]')) {
@@ -65,7 +48,7 @@ if (fine && !still) for (const el of $$('[data-sticker]')) {
   el.addEventListener('pointerup', drop); el.addEventListener('pointercancel', drop);
 }
 
-// nova's computer: the pointer rests where nova left it after holding the cheapest fare; it only moves when you take the mouse
+// nova's computer: it has already held the cheapest fare; take the mouse and a pointer follows yours
 const view = $('[data-play="browse"]');
 if (view) {
   const ptr = $('.ptr', view), rows = $$('.fares li', view), hold = $('u', rows[0]), take = $('[data-take]');
@@ -76,13 +59,15 @@ if (view) {
   const mark = (on) => { hold.classList.toggle('held', on); hold.textContent = on ? 'held' : 'hold'; };
   // once the fare is held the pointer parks in the open middle of the page, clear of the text
   const rest = () => { if (!held) at($('span', rows[1]), 30, 16); };
-  ptr.classList.add('on'); rest();
+  // the pointer only shows while you hold the mouse
+  rest();
   addEventListener('load', rest); addEventListener('resize', rest);
   take.addEventListener('click', () => {
     held = !held;
     take.setAttribute('aria-pressed', held); take.textContent = held ? 'give it back' : 'take the mouse';
     view.style.cursor = held ? 'none' : '';
     ptr.style.transition = held ? 'none' : glide;
+    ptr.classList.toggle('on', held);
     if (!held) { hot(rows[0]); mark(true); rest(); }
   });
   view.addEventListener('pointermove', (e) => {
@@ -93,10 +78,9 @@ if (view) {
   });
 }
 
-// a routine switched off puts its bot to sleep (mascot.js); this is what it mumbles
+// a routine switched off puts its bot to sleep (mascot.js does the face)
 for (const t of $$('.rows .toggle')) t.addEventListener('click', () => {
   if (!document.documentElement.classList.contains('mk-ready')) t.setAttribute('aria-checked', t.getAttribute('aria-checked') !== 'true');
-  setTimeout(() => { const b = $('.bot', t.closest('li')); say(b, t.getAttribute('aria-checked') === 'true' ? 'back on it' : 'zzz'); });
 });
 
 // the newest note in the notebook types itself in once, and is really yours to edit. emptied, it goes back to what it said
@@ -114,8 +98,8 @@ if (note) {
   }, 0.9);
 }
 
-const phone = $('[data-ring]'), calls = ['ring ring', "it's nova. found your flight", 'juno here. 3 emails need you', 'new phone who dis'];
-phone?.addEventListener('click', () => { phone.classList.remove('ringing'); void phone.offsetWidth; phone.classList.add('ringing'); say(phone, calls[said++ % calls.length]); });
+const phone = $('[data-ring]');
+phone?.addEventListener('click', () => { phone.classList.remove('ringing'); void phone.offsetWidth; phone.classList.add('ringing'); });
 
 for (const b of $$('[data-copy]')) b.addEventListener('click', async () => {
   const label = b.dataset.label ||= b.textContent;

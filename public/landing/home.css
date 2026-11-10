@@ -31,8 +31,6 @@
 .c-blue { color: var(--blue); } .c-orange { color: var(--orange); } .c-purple { color: var(--purple); } .c-pink { color: #ff5c9d; } .c-green { color: var(--green); } .c-yellow { color: var(--yellow); }
 @keyframes pulse { 50% { opacity: 0.35; } }
 @keyframes ring { 25% { rotate: -16deg; } 75% { rotate: -2deg; } }
-.quip { position: absolute; z-index: 20; pointer-events: none; font: 500 12.5px/1 var(--mono); background: var(--ink); color: #fff; padding: 8px 11px; border-radius: 10px; transform: translate(-50%, -100%); animation: quip 1.5s ease-out forwards; white-space: nowrap; }
-@keyframes quip { 0% { opacity: 0; margin-top: 4px; } 12%, 75% { opacity: 1; margin-top: -8px; } 100% { opacity: 0; margin-top: -18px; } }
 .spark { position: absolute; z-index: 20; width: 8px; height: 8px; border-radius: 2px; pointer-events: none; animation: spark 0.7s ease-out forwards; }
 @keyframes spark { to { translate: var(--dx) var(--dy); rotate: 180deg; opacity: 0; scale: 0.4; } }
 
@@ -544,6 +542,5 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
   .cat figcaption { left: calc(100% + 8px); bottom: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .home *, .home *::before, .home *::after, .quip, .spark { animation: none !important; transition-property: color, background-color, opacity, box-shadow !important; }
-  .cloud, .zz { display: none; }
+  .home *, .home *::before, .home *::after,   .cloud, .zz { display: none; }
 }
