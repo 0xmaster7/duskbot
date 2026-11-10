@@ -96,8 +96,11 @@ describe("the public edge and a sleeping home", () => {
   it("tells a webhook and a credentialed client from anonymous traffic", () => {
     const at = (path: string, headers: Record<string, string> = {}) => wakeReason(new Request(`https://d.example${path}`, { headers }), new URL(`https://d.example${path}`));
     expect(at("/hooks/slack")).toBe("webhook");
-    expect(at("/api/bots", { authorization: "Bearer t" })).toBe("client");
-    expect(at("/", { cookie: "s=1" })).toBe("client");
+    // reading chats or opening the app never wakes: only an action does
+    expect(at("/api/bots", { authorization: "Bearer t" })).toBeNull();
+    expect(at("/", { cookie: "s=1" })).toBeNull();
+    expect(wakeReason(new Request("https://d.example/api/bots/b1/messages", { method: "POST", headers: { authorization: "Bearer t" } }), new URL("https://d.example/api/bots/b1/messages"))).toBe("client");
+    expect(wakeReason(new Request("https://d.example/api/bots/b1/messages", { method: "POST" }), new URL("https://d.example/api/bots/b1/messages"))).toBeNull();
     expect(at("/")).toBeNull();
     expect(at("/favicon.ico")).toBeNull();
   });

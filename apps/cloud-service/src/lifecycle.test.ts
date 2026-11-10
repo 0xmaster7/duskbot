@@ -48,12 +48,12 @@ it("sleeps an idle home after the handshake, wakes it for its owner, and wakes i
   await f.service.power(c.accountId, c.id, "on");
   await f.settle(c, c => c.status === "running");
   expect(f.audit.entries(c.id).map(e => e.action)).toEqual(expect.arrayContaining(["sleep", "wake", "awake"]));
-  // a routine at +30 minutes: asleep now, awake two minutes before it
-  f.advance(3 * 60_000); f.power.nextDueAt = f.now() + 30 * 60_000;
+  // a routine at +90 minutes, past a start's break-even: asleep now, awake ten minutes before it
+  f.advance(3 * 60_000); f.power.nextDueAt = f.now() + 90 * 60_000;
   await f.settle(c, c => c.status === "sleeping");
-  f.advance(20 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile();
+  f.advance(70 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile();
   expect(c.status).toBe("sleeping");
-  f.advance(9 * 60_000); await f.settle(c, c => c.status === "running");
+  f.advance(11 * 60_000); await f.settle(c, c => c.status === "running");
   expect(f.audit.entries(c.id).filter(e => e.action === "wake").at(-1)!.reason).toBe("routine_due");
 });
 

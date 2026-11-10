@@ -1,8 +1,8 @@
 // The public front of managed cloud desktops: https://<label>.<DUSK_MANAGED_PUBLIC_DOMAIN> -> the machine's own hosted
 // URL at the provider. The client only ever sees our domain. The label is opaque (it names no person, cloud id or
 // provider); the account service answers which upstream it maps to and whether that home is awake, for this Worker only.
-// A sleeping home is woken for a webhook (/hooks/*) or a client that carries credentials (the app, a signed-in
-// browser), and the request is held until the home answers; anonymous traffic never wakes one. The service caps the
+// A sleeping home is woken for a webhook (/hooks/*) or a signed-in client's action (a send or click, never a read), and
+// the request is held until the home answers; reads and anonymous traffic never wake one. The service caps the
 // wakes per home per hour, since each is a provider start.
 //
 // Bindings: ROUTE_URL (the account service origin), EDGE_TOKEN (secret, same value as its DUSK_MANAGED_EDGE_TOKEN),
@@ -32,11 +32,12 @@ export async function routeFor(label, env, ctx, { fresh = false } = {}) {
   return route;
 }
 
-/** a request a sleeping home is woken for: a webhook, or a client that carries a credential */
+/** a request a sleeping home is woken for: a webhook, or a signed-in client acting (a send, a click: never a read).
+ *  Opening the app or reading chats never wakes a home; the app shows its cached chats until the person acts. */
 export function wakeReason(request, url) {
   if (url.pathname.startsWith("/hooks/")) return "webhook";
-  if (request.headers.has("authorization") || request.headers.has("cookie")) return "client";
-  if ((request.headers.get("upgrade") ?? "").toLowerCase() === "websocket" && url.searchParams.has("token")) return "client";
+  const acting = !["GET", "HEAD", "OPTIONS"].includes(request.method);
+  if (acting && (request.headers.has("authorization") || request.headers.has("cookie"))) return "client";
   return null;
 }
 

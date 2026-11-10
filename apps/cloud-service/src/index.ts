@@ -19,6 +19,7 @@ import { createBoatLifecycle, freshBoatState, managedSettingsFromEnv, type BoatS
 import { entitlementOf, noticeText, type Entitlement, type NoticeKind } from "./retention.ts";
 import { parseReleaseKeys, PINNED_RELEASE_KEYS, verifyRelease, type ReleaseKey } from "./release-signing.ts";
 import { createBoatSweep } from "./sweep.ts";
+import { createStartLedger } from "./starts.ts";
 import "./state.ts";
 
 export interface ManagedCloudDeps {
@@ -40,6 +41,8 @@ export interface ManagedCloudDeps {
   edgeToken?: string | null;
   /** keys the opaque public labels; defaults to one derived from the backup secret */
   labelKey?: Buffer;
+  /** the operator's alert, also used when the day's provider starts approach the included count */
+  alert?(entry: AuditEntry): void;
 }
 
 /** a record written before the rename: backend "boat" and its lifecycle record under `boat` */
@@ -73,7 +76,10 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         if (!newest) return null;
         try { backups.read(newest.c.id, boatBackupKey(secret, newest.c.id), newest.g.file); return true; } catch { return false; }
       });
-      const lifecycle = createBoatLifecycle({ ...deps, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
+      // starts, not compute, are the provider's main cost: counted per day, alerted on, and the sleep policy's budget
+      const starts = createStartLedger({ dataDir: ctx.dataDir, included: deps.settings.includedStarts, now: ctx.now,
+        alert: text => { console.warn(`managed: ${text}`); deps.alert?.({ at: ctx.now(), cloudId: "fleet", action: "starts_alert", actor: "reconciler", reason: text.slice(0, 120) }); } });
+      const lifecycle = createBoatLifecycle({ ...deps, starts, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
         dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace, clouds: ctx.clouds, entitle: ctx.entitlement,
         releaseKeys: deps.releaseKeys ?? PINNED_RELEASE_KEYS, labelKey: deps.labelKey ?? Buffer.from(hkdfSync("sha256", backupSecret, Buffer.alloc(0), Buffer.from("omb-managed-label"), 32))  });
       const sweep = createBoatSweep({ dataDir: ctx.dataDir, provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });
@@ -145,7 +151,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         resizing: c => lifecycle.resizing(c),
         setHold: (c, hold) => lifecycle.setHold(c, hold),
         handle,
-        close: () => sweep.close(),
+        close: () => { sweep.close(); starts.close(); },
       };
     },
   };
@@ -215,6 +221,7 @@ export function managedCloudFromEnv(source: NodeJS.ProcessEnv, options: ManagedC
     provider: createBoatProvider({ apiKey, baseUrl: env.BOAT_BASE_URL, scope, fetch: options.fetch, smallest: smallest as BoatSize }),
     backups: createBackupStore({ dir: env.DUSK_MANAGED_BACKUP_DIR || join(options.dataDir, "boat-backups"), now: options.now }),
     audit: createAudit({ dataDir: options.dataDir, now: options.now, alert: options.alert }),
+    alert: options.alert,
     entitlement: cloud => entitlementOf(options.subscriptions(), cloud, options.now()),
     notify: (cloud, kind, at, link) => options.mail?.(cloud, noticeText(kind, { name: cloud.name, at, dashboardUrl: options.publicUrl, link })) });
 }
