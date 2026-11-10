@@ -79,9 +79,10 @@ function rest(body, eye) {
   }
   return [defs, `<svg class="mk" ${MK(100)}><use href="#${id}"/></svg>`];
 }
-// {{bot shape colour extra-classes}} in a page becomes one of the app's mascots; mascot.js brings it to life
+// {{bot shape colour extra-classes}} in a page becomes one of the app's mascots, in its white face (cut-out eyes would
+// show a picture behind through them); mascot.js brings it to life
 export function bot(shape, colour, extra = '') {
-  const [defs, canvas] = rest(BOTS[shape]);
+  const [defs, canvas] = rest(BOTS[shape], '#fff');
   return `<svg class="bot c-${colour}${extra ? ' ' + extra : ''}" viewBox="0 0 100 100" aria-hidden="true" data-body="${BOTS[shape]}">${defs ? `<defs>${defs}</defs>` : ''}${canvas}</svg>`;
 }
 const CHIP_NAMES = { calendar: 'google calendar', drive: 'google drive', docs: 'google docs', sheets: 'google sheets' };
@@ -114,7 +115,6 @@ function sea() {
     ['clover', 'blue', 1400, 800, 30], ['heart', 'orange', 680, 822, 30], ['star', 'yellow', 210, 830, 32],
     ['circle', 'blue', 236, 884, 44], ['drop', 'yellow', 480, 900, 46], ['hex', 'orange', 748, 880, 40], ['clover', 'purple', 900, 916, 46],
     ['heart', 'pink', 1230, 902, 42], ['squircle', 'green', 1372, 884, 38], ['star', 'green', 1060, 930, 40]];
-  // white eyes here: cut out, they would show the water through
   const defs = [], bots = swim.map(([shape, colour, x, y, size]) => {
     const [def, canvas] = rest(BOTS[shape], '#fff');
     if (def) defs.push(def);

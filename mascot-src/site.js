@@ -29,14 +29,13 @@ function enlist(host, body, seed, extra = {}) {
   bots.set(host, rec);
   return rec;
 }
-for (const el of $$('svg.bot[data-body]')) enlist(el, el.dataset.body, `${el.dataset.body}-${(/\bc-(\w+)/.exec(el.getAttribute('class')) || [])[1]}`);
+// the page's bots wear the app's white face, so a picture behind them never shows through their eyes
+for (const el of $$('svg.bot[data-body]')) enlist(el, el.dataset.body, `${el.dataset.body}-${(/\bc-(\w+)/.exec(el.getAttribute('class')) || [])[1]}`, { eye: '#fff' });
 $$('.sea-bots .sb[data-body]').forEach((el, i) => enlist(el, el.dataset.body, `sea-${i}`, { eye: '#fff', sea: true }));
 for (const el of $$('svg.wa-av')) {
   const name = (/\bwa-c-(\w+)/.exec(el.getAttribute('class')) || [])[1];
   if (WHERE[name]) enlist(el, WHERE[name], name, { where: true });
 }
-// over a picture, cut-out eyes would show the picture through: these wear the app's white face
-for (const el of $$('.terr svg.bot')) if (bots.has(el)) bots.get(el).eye = '#fff';
 const hero = $('.h-mark');
 if (hero && bots.has(hero)) bots.get(hero).seed = 'dusk';
 
@@ -256,7 +255,7 @@ if (room) {
 // the terraces: each bot works on its task, finishes it (the app's done, happy), rests a little, then takes the next
 // one, on its own clock. only while the strip is on screen
 const terraces = $$('.terr .tb svg.bot').map(botOf).filter(Boolean);
-if (terraces.length) {
+if (terraces.length && !reduced) {
   let on = false;
   const shift = (rec, wait) => {
     clearTimeout(rec.shift);
