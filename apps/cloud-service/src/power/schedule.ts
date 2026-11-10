@@ -46,3 +46,43 @@ export function prewake(cloudId: string, run: PlannedRun, params: ScheduleParams
   const latest = wakeBy(run, params);
   return { at: latest - Math.round(params.spreadMs * spreadOf(cloudId, run.at)), latest };
 }
+
+/** the fleet's pre-wakes by minute: each sleeping home with a run ahead holds one minute, at most `perMinute` homes to a
+ *  minute, so a burst of runs at the same hour never fills the provider's minute window. A home takes its own place in
+ *  the spread when it has room, else the nearest earlier minute with room (waking early costs a few minutes of compute,
+ *  a full minute window costs a paid or refused start), and only as a last resort its latest minute. */
+export interface WakePlanner {
+  slot(cloudId: string, want: number, latest: number, now: number): number;
+  release(cloudId: string): void;
+}
+export function createWakePlanner(options: { perMinute(): number; maxEarlyMs: number }): WakePlanner {
+  const taken = new Map<number, number>(), held = new Map<string, number>();
+  let pruned = 0;
+  const take = (cloudId: string, minute: number) => { held.set(cloudId, minute); taken.set(minute, (taken.get(minute) ?? 0) + 1); return minute * MINUTE; };
+  function release(cloudId: string) {
+    const minute = held.get(cloudId);
+    if (minute === undefined) return;
+    held.delete(cloudId);
+    const left = (taken.get(minute) ?? 1) - 1;
+    if (left > 0) taken.set(minute, left); else taken.delete(minute);
+  }
+  return {
+    release,
+    slot(cloudId, want, latest, now) {
+      const nowMinute = Math.floor(now / MINUTE);
+      if (nowMinute - pruned > 60) {
+        pruned = nowMinute;
+        for (const [id, minute] of held) if (minute < nowMinute - 30) release(id);
+      }
+      const cap = Math.max(1, Math.floor(options.perMinute()));
+      const last = Math.floor(latest / MINUTE), first = Math.max(nowMinute, Math.floor((latest - options.maxEarlyMs) / MINUTE));
+      const mine = held.get(cloudId);
+      if (mine !== undefined && mine <= last && mine >= first) return mine * MINUTE;
+      release(cloudId);
+      const preferred = Math.min(last, Math.max(first, Math.floor(want / MINUTE)));
+      for (let m = preferred; m >= first; m--) if ((taken.get(m) ?? 0) < cap) return take(cloudId, m);
+      for (let m = preferred + 1; m <= last; m++) if ((taken.get(m) ?? 0) < cap) return take(cloudId, m);
+      return take(cloudId, Math.max(nowMinute, last));
+    },
+  };
+}

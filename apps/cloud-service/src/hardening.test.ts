@@ -21,6 +21,35 @@ function releaseKey(kid = "rel-test"): { signing: string; key: ReleaseKey } {
 }
 
 describe("provider limits and conflicts", () => {
+  it("a start refused for the pool waits for its nextStartAt: no start before it for any home, no failure, and no stop that would need one", async () => {
+    const f = await boatFixture();
+    const { c } = await f.paid();
+    await f.asleep(c);
+    // a second home, up long enough that only the pool can keep it from sleeping
+    const other = (await f.paid("acct_2")).c;
+    other.powerSince = f.now() - 30 * MINUTE;
+    const resumes = () => f.api.requests.filter(r => r.method === "POST" && r.path.endsWith("/resume")).length;
+    const notBefore = f.now() + 4 * MINUTE;
+    f.api.limitNextStart(notBefore);
+    await f.service.power(c.accountId, c.id, "on");
+    expect(resumes()).toBe(1);
+    f.power.idle = true; f.power.busy = [];
+    // however often the service retries, nothing reaches the provider before its time, and nothing counts as a failure
+    for (let n = 0; n < 6; n++) {
+      f.advance(30_000);
+      for (const x of [c, other]) { x.nextAttemptAt = 0; x.managed!.lastPowerAt = 0; }
+      await f.service.reconcile();
+      expect(resumes()).toBe(1);
+      expect(c.attempts).toBe(0);
+      // the pool waits for everyone: another home is not stopped while the next start may be refused
+      expect(other.status).toBe("running");
+    }
+    expect(other.managed!.stayReason).toBe("provider_not_before");
+    f.advance(notBefore - f.now() + 1_000);
+    await f.settle(c, c => c.status === "running");
+    expect(resumes()).toBe(2);
+  });
+
   it("a 429 never fails a cloud: it backs off 30 s doubling to 5 minutes, honours Retry-After, and is logged once", async () => {
     const f = await boatFixture();
     const { c } = await f.paid();

@@ -75,7 +75,7 @@ export interface SimHome {
   memory: PowerMemory;
   events: IntentEvent[];
   ei: number;
-  runs: Array<SimRun & { started?: boolean }>;
+  runs: Array<SimRun & { started?: boolean; forced?: boolean }>;
   waiting: IntentEvent[];
   nextCheck: number;
   /** the oracle's planned wake */
@@ -125,6 +125,8 @@ export interface UserResult {
   stops: number;
   /** a stop followed by a start within 10 minutes */
   quickRestarts: number;
+  /** the shortest time between two of this home's stops */
+  minStopGapMs: number;
   maxStartsHour: number;
   maxStartsDay: number;
   limited: number;
@@ -153,6 +155,8 @@ export interface SimOptions {
   waitPrices?: { user: number; connector: number };
   /** per-home cap checks for the fuzz tests: hour and day */
   caps?: { hour: number; day: number };
+  /** faults stop at this time (the fleet then has to recover by itself) */
+  faultsUntil?: number;
 }
 
 const FAIL_TIMEOUT_MS = 5 * MINUTE;
@@ -197,7 +201,8 @@ export function busyCodes(h: SimHome, now: number): string[] {
 }
 
 export function simulate(options: SimOptions): SimResult {
-  const { profile, start } = options, faults = options.faults ?? NO_FAULTS, end = start + options.days * DAY;
+  const { profile, start } = options, end = start + options.days * DAY;
+  let faults = options.faults ?? NO_FAULTS;
   const measureFrom = start + (options.warmupDays ?? 0) * DAY;
   const waitPrices = options.waitPrices ?? { user: DEFAULT_POLICY.prices.userWaitCents, connector: DEFAULT_POLICY.prices.connectorWaitCents };
   const pool = createRollingPool(), ledger = createRollingPool();
@@ -206,12 +211,13 @@ export function simulate(options: SimOptions): SimResult {
   const decider = options.decider(env);
   const faultRand = mulberry32(seedOf(options.seed, "faults"));
   const violations: string[] = [];
+  const violate = (text: string) => { if (violations.length < 200) violations.push(text); else violations[199] = `${text} (and more)`; };
   const peak = { minute: 0, hour: 0, day: 0 };
   const results: UserResult[] = [];
   const startLog: number[][] = [];
   const homes: SimHome[] = options.users.map((user, i) => {
     results.push({ id: user.id, persona: user.persona.name, computeCents: 0, startCents: 0, starts: 0, paidStarts: 0, heldResumes: 0, intents: 0, waited: 0, waitMs: [], waitCents: 0,
-      runs: 0, runsLate: 0, runsMissed: 0, awakeMs: 0, stops: 0, quickRestarts: 0, maxStartsHour: 0, maxStartsDay: 0, limited: 0, failedStarts: 0 });
+      runs: 0, runsLate: 0, runsMissed: 0, awakeMs: 0, stops: 0, quickRestarts: 0, minStopGapMs: Number.POSITIVE_INFINITY, maxStartsHour: 0, maxStartsDay: 0, limited: 0, failedStarts: 0 });
     startLog.push([]);
     const skewMs = faults.skewMs ? Math.round((faultRand() * 2 - 1) * faults.skewMs) : 0;
     return { user, machine: "on", heldUntil: 0, readyAt: start, startAt: start, failing: false, stopDoneAt: 0, awakeSince: start, busyUntil: 0, busyKind: "turn",
@@ -252,8 +258,9 @@ export function simulate(options: SimOptions): SimResult {
     if (at + run.runMs > h.busyUntil) { h.busyUntil = at + run.runMs; h.busyKind = "run"; }
   }
   function stop(h: SimHome, now: number) {
-    if (now < h.busyUntil) violations.push(`${h.user.id} stopped during ${h.busyKind} at ${now}`);
+    if (now < h.busyUntil) violate(`${h.user.id} stopped during ${h.busyKind} at ${now}`);
     compute(h, h.startAt, now);
+    if (h.lastStopAt !== null && now >= measureFrom) res(h).minStopGapMs = Math.min(res(h).minStopGapMs, now - h.lastStopAt);
     h.lastStopAt = now;
     if (now >= measureFrom) res(h).stops++;
     if (decider.real && !(faults.crashMidStop && faultRand() < faults.crashMidStop)) noteStop(h.memory, now);
@@ -267,7 +274,7 @@ export function simulate(options: SimOptions): SimResult {
   function startHome(h: SimHome, now: number, kind: StartKind): boolean {
     if (h.machine === "stopping") { h.nextCheck = Math.min(h.nextCheck, h.stopDoneAt); return false; }
     if (h.machine !== "off") return true;
-    if (decider.real && kind !== "routine") {
+    if (decider.real) {
       const refused = startRefusal({ now, kind, latest: null, memory: h.memory, pool: { used: ledger.used(now), blockedUntil }, profile });
       if (refused) { h.nextCheck = Math.min(h.nextCheck, refused.recheckAt); return false; }
     }
@@ -282,7 +289,7 @@ export function simulate(options: SimOptions): SimResult {
     if (!held) {
       const used = pool.used(now), price = profile.startCents(used);
       if (!Number.isFinite(price)) {
-        violations.push(`${h.user.id} start refused by the provider's hard cap at ${now}`);
+        violate(`${h.user.id} start refused by the provider's hard cap at ${now}`);
         blockedUntil = Math.min(...(["minute", "hour", "day"] as const).map(w => pool.roomAt(now, w, profile.hardCap[w])).filter(t => t > now), now + MINUTE);
         h.nextCheck = Math.min(h.nextCheck, blockedUntil); return false;
       }
@@ -328,7 +335,7 @@ export function simulate(options: SimOptions): SimResult {
     const e = h.events[h.ei];
     if (e) t = Math.min(t, e.at);
     const run = h.runs.find(r => !r.started);
-    if (run) t = Math.min(t, h.machine === "on" ? Math.max(run.at - run.flexMs, 0) : run.at + run.flexMs);
+    if (run && (h.machine === "on" || !run.forced)) t = Math.min(t, h.machine === "on" ? Math.max(run.at - run.flexMs, 0) : run.at + run.flexMs);
     if (h.machine === "on" && faults.lostPerHour) t = Math.min(t, h.lostCheckAt);
     return t;
   }
@@ -340,6 +347,7 @@ export function simulate(options: SimOptions): SimResult {
     if (!top) break;
     const [t, i] = top, h = homes[i]!;
     if (t >= end) continue;
+    if (options.faultsUntil !== undefined && t >= options.faultsUntil) faults = NO_FAULTS;
     generate(h, t);
     // what is due now, in a fixed order
     if (h.machine === "starting" && h.failing && t >= h.startAt + FAIL_TIMEOUT_MS) {
@@ -358,7 +366,8 @@ export function simulate(options: SimOptions): SimResult {
     const run = h.runs.find(r => !r.started);
     if (run) {
       if (h.machine === "on" && t >= run.at - run.flexMs) runNow(h, run, t);
-      else if (h.machine !== "on" && t >= run.at + run.flexMs && h.machine === "off") startHome(h, t, "routine");
+      // overdue and still asleep: one forced start now; if the rails hold it, the next check tries again
+      else if (h.machine === "off" && t >= run.at + run.flexMs && !run.forced) { run.forced = true; startHome(h, t, "routine"); }
     }
     if (t >= h.nextCheck) {
       if (h.machine === "on") {
@@ -439,21 +448,46 @@ export const alwaysOnDecider = () => (_env: DeciderEnv): Decider => ({
   decide: (_h, t) => ({ stop: false, recheckAt: t + DAY, reason: "always_on" }),
   wake: (_h, t) => ({ start: true, recheckAt: t }),
 });
-/** perfect foresight: stops exactly when the next need is far enough that a start (at today's price, the kept machine's
- *  chance included) is cheaper than the compute, and wakes a cold wake's time before the need, so nobody waits */
-export const oracleDecider = () => (env: DeciderEnv): Decider => ({
-  name: "oracle", real: false,
-  decide(h, t) {
-    if (t < h.busyUntil) return { stop: false, recheckAt: h.busyUntil, reason: "busy" };
-    const e = h.events[h.ei], run = h.runs.find(r => !r.started);
-    const need = Math.min(e ? e.at : Number.POSITIVE_INFINITY, run ? run.at - run.flexMs : Number.POSITIVE_INFINITY);
-    const gap = need - t, rate = env.profile.computeCentsPerHour(h.user.spec) / HOUR, price = env.profile.startCents(env.pool.used(t));
-    const startCost = (gap < env.profile.held.windowMs ? 1 - env.profile.held.probability : 1) * price + rate * env.profile.wakeMs.cold;
-    if (!Number.isFinite(gap) || rate * gap > startCost) { h.plannedWakeAt = Number.isFinite(need) ? need - env.profile.wakeMs.cold : null; return { stop: true, recheckAt: t, reason: "foresight" }; }
-    return { stop: false, recheckAt: Math.min(need, t + 10 * MINUTE), reason: "foresight" };
-  },
-  wake(h, t) {
-    if (h.plannedWakeAt !== null && t >= h.plannedWakeAt) return { start: true, recheckAt: t };
-    return { start: false, recheckAt: h.plannedWakeAt ?? t + HOUR };
-  },
-});
+/** a lower bound in hindsight: every home's needs (its turns and runs) known in advance, each idle gap between them either
+ *  kept awake or bridged by a stop and a start timed so nobody waits, and the fleet's starts given to the gaps that save
+ *  the most first, priced by the day window's tiers (a gap under the kept-machine window costs only its chance of a full
+ *  start). The minute and hour windows, the rails and wake timing are relaxed, so no policy can do better. */
+export function hindsightBound(options: Pick<SimOptions, "users" | "days" | "start" | "profile" | "seed" | "warmupDays">): { users: Array<{ id: string; persona: string; computeCents: number; startCents: number; starts: number; paidStarts: number; runs: number }>; days: number } {
+  const { profile, start } = options, end = start + options.days * DAY, from = start + (options.warmupDays ?? 0) * DAY;
+  const out = options.users.map(u => ({ id: u.id, persona: u.persona.name, computeCents: 0, startCents: 0, starts: 0, paidStarts: 0, runs: 0 }));
+  const gaps: Array<{ user: number; day: number; gap: number; rate: number }> = [];
+  options.users.forEach((user, i) => {
+    const busy: Array<[number, number]> = [];
+    for (let d = 0; start + d * DAY - user.tzHours * HOUR < end + DAY; d++) {
+      const midnight = start + d * DAY - user.tzHours * HOUR;
+      const plan = user.persona.plan(mulberry32(seedOf(options.seed, user.id, d)), midnight, (1 + d) % 7);
+      for (const e of plan.events) busy.push([e.at, e.at + e.workMs]);
+      for (const r of plan.runs) { busy.push([r.at, r.at + r.runMs]); if (r.at >= from && r.at < end) out[i]!.runs++; }
+    }
+    busy.sort((a, b) => a[0] - b[0]);
+    const rate = profile.computeCentsPerHour(user.spec) / HOUR;
+    let cursor = from;
+    for (const [s0, e0] of busy) {
+      const s1 = Math.max(s0, from), e1 = Math.min(e0, end);
+      if (e1 <= cursor || s1 >= e1) continue;
+      if (s1 > cursor) gaps.push({ user: i, day: Math.floor((cursor - start) / DAY), gap: s1 - cursor, rate });
+      out[i]!.computeCents += rate * (e1 - Math.max(s1, cursor)); cursor = e1;
+    }
+    if (cursor < end) gaps.push({ user: i, day: Math.floor((cursor - start) / DAY), gap: end - cursor, rate });
+  });
+  const byDay = new Map<number, typeof gaps>();
+  for (const g of gaps) byDay.set(g.day, [...(byDay.get(g.day) ?? []), g]);
+  const p = profile.held.probability;
+  for (const list of byDay.values()) {
+    list.sort((a, b) => b.rate * (b.gap - profile.wakeMs.cold) - a.rate * (a.gap - profile.wakeMs.cold));
+    let used = 0;
+    for (const g of list) {
+      const held = g.gap < profile.held.windowMs, share = held ? 1 - p : 1;
+      const price = profile.startCents({ minute: 0, hour: 0, day: Math.floor(used) }), cost = share * (Number.isFinite(price) ? price : Number.POSITIVE_INFINITY) + g.rate * profile.wakeMs.cold;
+      const r = out[g.user]!;
+      if (g.rate * g.gap > cost) { used += share; r.computeCents += g.rate * profile.wakeMs.cold; r.startCents += share * price; r.starts += share; if (price > 0) r.paidStarts += share; }
+      else r.computeCents += g.rate * g.gap;
+    }
+  }
+  return { users: out, days: options.days - (options.warmupDays ?? 0) };
+}

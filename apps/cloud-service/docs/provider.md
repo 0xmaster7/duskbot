@@ -13,17 +13,19 @@ The code is `apps/cloud-service/src/lifecycle.ts`.
   - one `small`-or-larger sandbox per cloud, labelled `omb.cloud` and `omb.scope`;
   - created `noEnv`, with no Boat credentials on it;
   - its public URL is Boat's stable hosted URL for port 8080.
-- **Sleep.** After 15 minutes without use the dashboard reads the home's power and asks for the sleep handshake
-  (`server/cloud-power.ts`), then stops the sandbox. Boat's pre-stop hook stops the home first, so its databases close
-  cleanly.
-- **Wake** for:
-  - the app (`/api/cloud/desktop/wake`);
+- **Sleep.** The dashboard reads the home's power once a minute and asks the power policy (`src/power/policy.ts`)
+  whether a stop is worth it: the compute it saves over the predicted idle gap against the next wake's start, its risk
+  and the wait it causes. The rails (`src/power/rails.ts`) hold every stop and start to hard limits whatever the policy
+  says. A stop goes through the sleep handshake (`server/cloud-power.ts`); Boat's pre-stop hook stops the home first, so
+  its databases close cleanly. The policy, its rails and the cost study are in `docs/power.md`.
+- **Wake** on intent only:
+  - the app (`/api/cloud/desktop/wake`) for a send, a click or typing, never for opening or viewing;
   - the dashboard's power button;
-  - the Slack edge;
-  - a routine due within 2 minutes.
+  - the Slack edge and webhooks through our domain;
+  - a routine, a few minutes before its run (the lead and this home's place in the fleet's pre-wake plan).
 
   A Boat start does not run the home's start by itself, so the reconciler always runs `omb-home start` after a resume.
-- **Back up** `/data` from Boat's newest snapshot, encrypted, into `DUSK_MANAGED_BACKUP_DIR` (`boat-backups.ts`). The home
+- **Back up** `/data` (what lives there: `docs/home-data.md`) from Boat's newest snapshot, encrypted, into `DUSK_MANAGED_BACKUP_DIR` (`boat-backups.ts`). The home
   never holds a credential for that storage.
 - **Recover** a lost or expired machine: a fresh sandbox, then the newest verified backup restored into it.
 - **Retain.** When a plan ends, its cloud is stopped, kept for 45 days and the owner is notified at the end, then 30, 7

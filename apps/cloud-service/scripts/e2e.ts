@@ -63,6 +63,8 @@ const WIPE = ["/data", CLOUD_HOME.etc, CLOUD_HOME.root, "/opt/duskbot", "/usr/lo
 
 // the homes' signed reads go to the real origins; in --fake mode the "homes" answer from here
 const hooksSeen: string[] = [];
+// what the fake homes say about their power: at work until the lifecycle scenario changes it
+const fakePower: { idle: boolean; busy: string[]; lastActivityAt: number | null; nextDueAt: number | null } = { idle: false, busy: ["turn"], lastActivityAt: null, nextDueAt: null };
 // the edge step swaps the global fetch for the Worker's; everything else keeps the real one
 const realFetch = globalThis.fetch;
 const homeFetch: typeof fetch = async (input, init) => {
@@ -86,7 +88,7 @@ const homeFetch: typeof fetch = async (input, init) => {
     const up = [...api!.sandboxes.values()].find(x => x.hosted && new URL(x.hosted).hostname === url.hostname);
     if (up && up.state !== "ready") return new Response("down", { status: 502 });
     if (url.pathname.startsWith("/hooks/")) { hooksSeen.push(`${init?.method ?? "GET"} ${url.pathname} ${init?.body ? new TextDecoder().decode(init.body as ArrayBuffer) : ""}`); return new Response("ok", { status: 200 }); }
-    const body = url.pathname === "/api/cloud/health" ? { v: 1 } : url.pathname === "/api/cloud/power" ? { v: 1, idle: false, busy: ["turn"], nextDueAt: null }
+    const body = url.pathname === "/api/cloud/health" ? { v: 1 } : url.pathname === "/api/cloud/power" ? { v: 1, ...fakePower }
       : url.pathname === "/api/cloud/pairing" ? { code: "ABCD-EFGH-JKLM", expiresAt: Date.now() + 300_000 }
       : url.pathname === "/api/cloud/entitlement" ? { ok: true, expiresAt: Date.now() + 86_400_000 } : { ok: true };
     return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
@@ -272,6 +274,34 @@ try {
   await billing.clouds.power(account.id, cloudId, "on");
   await reconcileUntil(cloudId, () => cloud().status === "running", 10 * 60_000, "wake");
   results.wakeMs = Date.now() - last; mark("woken and healthy");
+
+  // 7b. the power policy and its rails on the live service: a home that says it is idle is not stopped right after a wake,
+  // nor while it works, nor with a run about to start; a burst of webhooks at an awake home starts nothing; and every
+  // start this run made is in the ledger's rolling windows
+  if (fake) {
+    const decide = async () => { cloud().nextAttemptAt = 0; cloud().managed!.lastPowerAt = 0; await billing.clouds.reconcile(); return cloud().managed!.stayReason ?? null; };
+    Object.assign(fakePower, { idle: true, busy: [], lastActivityAt: null, nextDueAt: null });
+    const justWoken = [await decide(), await decide(), await decide()];
+    // the same home, as if it had been up ten minutes (the rest of this run cannot wait out the real minimum uptime)
+    cloud().powerSince = Date.now() - 10 * 60_000;
+    Object.assign(fakePower, { idle: false, busy: ["turn"] });
+    const working = await decide();
+    Object.assign(fakePower, { idle: false, busy: ["due-soon"], nextDueAt: Date.now() + 2 * 60_000 });
+    const runDue = await decide();
+    const resumes = () => api!.requests.filter(r => r.method === "POST" && r.path.endsWith("/resume")).length, before = resumes();
+    const burst: number[] = [];
+    for (let n = 0; n < 10; n++) {
+      const asked = await fetch(`${hookBase}/v1/managed/edge/wake?label=${cloud().managed!.label}&reason=webhook`, { method: "POST", headers: { authorization: `Bearer ${edgeToken}` } });
+      burst.push(asked.status); await asked.body?.cancel(); await decide();
+    }
+    const ledger = JSON.parse(readFileSync(join(dataDir, "provider-starts.json"), "utf8")) as { v: number; times: number[] };
+    results.lifecycle = { justWoken, working, runDue, status: cloud().status, startsInLedger: ledger.times.length, resumesDuringBurst: resumes() - before, burst: [...new Set(burst)], power: cloud().managed!.power?.starts.length ?? 0 };
+    note(`power policy: just woken ${JSON.stringify(justWoken)}, working ${working}, run due ${runDue}; ledger v${ledger.v} holds ${ledger.times.length} starts`);
+    if (cloud().status !== "running" || !justWoken.every(r => r === "min_uptime" || r?.startsWith("busy:")) || working !== "busy:turn" || runDue !== "busy:due-soon" || ledger.v !== 2 || ledger.times.length < 2 || resumes() !== before)
+      throw new Error(`the power rails did not hold: ${JSON.stringify(results.lifecycle)}`);
+    Object.assign(fakePower, { idle: false, busy: ["turn"], nextDueAt: null });
+    mark("power policy and rails held");
+  }
   if (session) {
     const bots = await session.call("GET", "/api/bots?messages=0");
     note(`after wake the session still works: ${bots.status}, bots ${JSON.stringify((bots.body?.bots ?? bots.body ?? []).map((b: { name?: string }) => b.name))}`);

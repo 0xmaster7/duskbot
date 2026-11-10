@@ -44,7 +44,7 @@ export interface RailSettings {
   breakerWindowMs: number;
   breakerBaseMs: number;
   breakerMaxMs: number;
-  /** a start that can wait is held back while the minute or hour window is past this share of what it includes */
+  /** the share of the minute window's included starts the fleet's pre-wakes are planned into, per minute */
   poolSoftShare: number;
   /** no stop while any window is past this share of the provider's hard cap */
   hardCapShare: number;
@@ -141,8 +141,9 @@ export function startRefusal(c: StartContext, rails: RailSettings = DEFAULT_RAIL
   }
   if (c.kind === "refresh" && countSince(memory.starts, now - DAY) >= rails.maxStartsPerDay) return no("day_budget_spent", now + HOUR);
   if (c.latest !== null && now < c.latest) {
-    const busy = pool.used.minute + 1 > rails.poolSoftShare * profile.included.minute || pool.used.hour + 1 > rails.poolSoftShare * profile.included.hour;
-    if (busy) return no("pool_smoothing", Math.min(c.latest, now + 20_000));
+    // the planner gives pre-wakes poolSoftShare of each minute; this holds one that would make the minute window paid (a few
+    // minutes of waiting cannot help the hour or day windows, so they are left to the price)
+    if (pool.used.minute + 1 > profile.included.minute) return no("pool_smoothing", Math.min(c.latest, now + 20_000));
   }
   return null;
 }

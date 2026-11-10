@@ -7,7 +7,7 @@ import type { MachineSpec } from "../../../../shared/billing-api.ts";
 import { HOUR, MINUTE, breakEvenMs, startValueCents, type ProviderCostProfile, type ShadowPrices } from "./cost.ts";
 import { connectorShare, DEFAULT_PREDICTOR, GRID_MS, observe, predict, type PredictorParams } from "./predictor.ts";
 import { DEFAULT_RAILS, startRefusal, stopRefusal, type PoolView, type PowerMemory, type RailSettings, type StartKind } from "./rails.ts";
-import { nextRun, plannedRuns, prewake, runnableFrom, wakeBy, type PlannedRun, type ScheduleParams } from "./schedule.ts";
+import { createWakePlanner, nextRun, plannedRuns, prewake, runnableFrom, wakeBy, type PlannedRun, type ScheduleParams } from "./schedule.ts";
 
 /** what the lifecycle knows about one home when it asks; nothing provider-specific */
 export interface PowerSnapshot {
@@ -49,7 +49,7 @@ export interface PolicyParams {
   predictor: PredictorParams;
   schedule: ScheduleParams;
   rails: RailSettings;
-  /** a stop must beat staying by at least this many cents */
+  /** a stop must beat staying by this many cents (at most half a minute's compute, see decide) */
   marginCents: number;
 }
 export const DEFAULT_POLICY: PolicyParams = {
@@ -138,10 +138,13 @@ export function chooseStay(c: CostInputs): Choice {
 
 export function createPowerPolicy(options: { profile: ProviderCostProfile; pool(): PoolView; params?: PolicyParams }): SleepPolicy {
   const { profile } = options, params = options.params ?? DEFAULT_POLICY;
+  // one planner for the whole fleet this policy serves: pre-wakes share the minute window's soft share
+  const planner = createWakePlanner({ perMinute: () => params.rails.poolSoftShare * profile.included.minute, maxEarlyMs: 30 * MINUTE });
   return {
     observe(memory, at, kind) { if (Number.isFinite(at)) observe(memory.stats, at, kind, params.predictor); },
     decide(s) {
       const { now } = s, rails = params.rails;
+      planner.release(s.cloudId);
       const runs = plannedRuns(s.nextDueAt, s.upcoming, now), next = nextRun(runs, now);
       const idleMinutes = Math.max(1, Math.min(24 * 60, Math.floor((now - Math.max(s.lastActivityAt ?? 0, s.awakeSince)) / MINUTE)));
       const stay = (reason: string, at: number, extra: Partial<PowerDecision> = {}): PowerDecision => ({ action: "stay", reason, recheckAt: Math.max(now + 15_000, Math.min(at, now + HOUR)), idleMinutes, ...extra });
@@ -160,7 +163,9 @@ export function createPowerPolicy(options: { profile: ProviderCostProfile; pool(
       };
       const choice = chooseStay(inputs);
       const costs = { stopCents: round(choice.stopCents), stayCents: round(choice.stayCents), stayMs: choice.stayMs };
-      if (choice.stopCents + params.marginCents <= choice.stayCents) return { action: "stop", reason: next ? "cheaper_asleep_until_run" : "cheaper_asleep", recheckAt: now, idleMinutes, ...costs };
+      // staying one more minute is never more than a minute's compute dearer than stopping now, so a larger margin would
+      // keep every home up for good: it is capped at half of that
+      if (choice.stopCents + Math.min(params.marginCents, rate * MINUTE / 2) <= choice.stayCents) return { action: "stop", reason: next ? "cheaper_asleep_until_run" : "cheaper_asleep", recheckAt: now, idleMinutes, ...costs };
       if (choice.through) return stay(choice.stayMs <= breakEvenMs(startCents, rate * HOUR) ? "run_soon_cheaper_awake" : "cheaper_awake_until_run", now + Math.min(choice.stayMs, 10 * MINUTE), costs);
       return stay("likely_back_soon", now + Math.min(Math.max(choice.stayMs, MINUTE), 10 * MINUTE), costs);
     },
@@ -168,9 +173,13 @@ export function createPowerPolicy(options: { profile: ProviderCostProfile; pool(
       const { now } = s, runs = plannedRuns(s.nextDueAt, s.upcoming, now), next = nextRun(runs, now);
       if (!next) return { start: false, kind: "routine", reason: "nothing_due", recheckAt: now + HOUR, latest: null };
       const plan = prewake(s.cloudId, next, params.schedule);
-      if (now < plan.at) return { start: false, kind: "routine", reason: "not_yet", recheckAt: Math.min(plan.at, now + HOUR), latest: plan.latest };
+      // reserved only once the run is near: the reservation order is the order homes come up to it
+      if (now < plan.latest - 45 * MINUTE) return { start: false, kind: "routine", reason: "not_yet", recheckAt: Math.min(plan.latest - 45 * MINUTE, now + HOUR), latest: plan.latest };
+      const at = planner.slot(s.cloudId, plan.at, plan.latest, now);
+      if (now < at) return { start: false, kind: "routine", reason: "not_yet", recheckAt: Math.min(at, now + HOUR), latest: plan.latest };
       const refusal = startRefusal({ now, kind: "routine", latest: plan.latest, memory: s.memory, pool: options.pool(), profile }, params.rails);
       if (refusal) return { start: false, kind: "routine", reason: refusal.reason, recheckAt: refusal.recheckAt, latest: plan.latest };
+      planner.release(s.cloudId);
       return { start: true, kind: "routine", reason: "routine_due", recheckAt: now, latest: plan.latest };
     },
   };
