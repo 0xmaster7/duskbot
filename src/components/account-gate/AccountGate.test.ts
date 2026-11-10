@@ -36,7 +36,7 @@ beforeEach(() => {
   bridge = {
     state: vi.fn(async () => state), signInStart: vi.fn(async email => ({ outcome: "sent" as const, email, expiresAt: Date.now() + 600_000, resendAt: Date.now() + 30_000, signupOpen: true })),
     signInVerify: vi.fn(async () => ({ outcome: "signed-in" as const })), signInCancel: vi.fn(async () => {}),
-    browser: vi.fn(async () => state), cancel: vi.fn(async () => ({ ...state, status: "signed-out" as const })),
+    browser: vi.fn(async () => state), cancel: vi.fn(async () => ({ ...state, status: "signed-out" as const })), reopen: vi.fn(async () => state),
     onChange: vi.fn(cb => { change = cb; return vi.fn(); }),
   };
   host = document.createElement("div"); document.body.append(host); root = null;
@@ -101,4 +101,62 @@ it("reloads when the gate stops blocking and removes its listener on unmount", a
   expect(reload).toHaveBeenCalledOnce();
   await act(async () => root?.unmount()); root = null;
   expect(stop).toHaveBeenCalledOnce();
+});
+
+it("shows only the providers the account service says sign in, and none when it can't be asked", async () => {
+  bridge.options = vi.fn(async () => ({ providers: ["google" as const, "apple" as const], recovery: true }));
+  await mount();
+  expect(button("Continue with Google")).toBeTruthy(); expect(button("Continue with Apple")).toBeTruthy();
+  expect(button("Continue with X")).toBeUndefined();
+  await act(async () => root?.unmount()); root = null; host.innerHTML = "";
+  bridge.options = vi.fn(async () => { throw new Error("offline"); });
+  await mount();
+  expect([...host.querySelectorAll("button")].some(node => node.textContent?.startsWith("Continue with"))).toBe(false);
+  expect([...host.querySelectorAll("div")].some(node => node.textContent === "or")).toBe(false); expect(email()).toBeTruthy();
+});
+
+it("Can't sign in? sends a recovery code, says what comes, and gives plain help when the address is lost", async () => {
+  bridge.options = vi.fn(async () => ({ providers: ["google" as const], recovery: true }));
+  await mount();
+  await act(async () => button("Can't sign in?").click());
+  expect(host.querySelector("h1")?.textContent).toBe("Can't sign in?");
+  expect(button("Continue with Google")).toBeUndefined();
+  expect(host.querySelector("h2")?.textContent).toBe("Lost access to that email?");
+  expect(host.textContent).toContain("write to hello@dusk.bot from any email with your receipt");
+  await type(email(), "person@example.com"); await submit();
+  expect(bridge.signInStart).toHaveBeenCalledExactlyOnceWith("person@example.com", { recover: true });
+  expect(host.textContent).toContain("If an account uses this email, the code is on its way");
+  await paste(digit(1), "12345678"); await submit();
+  expect(bridge.signInVerify).toHaveBeenCalledExactlyOnceWith("12345678");
+});
+
+it("Back to sign in returns to the providers and a plain code", async () => {
+  bridge.options = vi.fn(async () => ({ providers: ["apple" as const], recovery: true }));
+  await mount();
+  await act(async () => button("Can't sign in?").click());
+  await act(async () => button("Back to sign in").click());
+  expect(host.querySelector("h1")?.textContent).toBe("Sign in to Dusk Bot");
+  await type(email(), "person@example.com"); await submit();
+  expect(bridge.signInStart).toHaveBeenCalledExactlyOnceWith("person@example.com");
+});
+
+it("waits for the browser to come back from a provider, reopens it and cancels", async () => {
+  state = { ...state, status: "connecting", browser: "google" };
+  await mount();
+  expect(host.querySelector("h1")?.textContent).toBe("Finish signing in in your browser");
+  expect(host.querySelector("code")).toBeNull();
+  await act(async () => button("Open the browser again").click());
+  expect(bridge.reopen).toHaveBeenCalledOnce();
+  await act(async () => button("Cancel").click());
+  expect(bridge.cancel).toHaveBeenCalledOnce(); expect(email()).toBeTruthy();
+});
+
+it.each([
+  ["signin-cancelled", "Sign-in was canceled. Try again when you are ready."],
+  ["enrollment-expired", "This sign-in expired. Please start again."],
+  ["signin-failed", "Browser sign-in failed. Please try again."],
+])("says why a browser sign-in came back without one: %s", async (message, line) => {
+  state = { ...state, status: "signed-out", message };
+  await mount();
+  expect(host.querySelector('[role="status"]')?.textContent).toBe(line);
 });

@@ -3578,7 +3578,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -9420,7 +9429,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12922,7 +12940,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -16421,7 +16448,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -22663,7 +22699,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -29094,7 +29139,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -35910,7 +35964,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -42316,7 +42379,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -48590,7 +48662,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -55003,7 +55084,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -60368,7 +60458,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -64172,7 +64271,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -69537,7 +69645,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -76526,7 +76643,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -81460,7 +81586,16 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "accountGate.browserBody": "81ff2c6f34be726a89317ff279d496fb1ea00abf5ecacc3ddfe4ea74572dafc5",
+      "accountGate.reopen": "96e91bde168e25b991495b21279e044defdc8baf05c81fad482dbcdfa7cde71d",
+      "accountGate.cantSignIn": "4506228bb42ab3fbcee593ab5f2ec4a6bf86d32dccfe0a1dfa2251b01cda1601",
+      "accountGate.recoverSub": "f6ccc13a6c802ba6e6f3c121a8cfe1bc3b65085876d405926ec15e9589c2c752",
+      "accountGate.recoverSend": "88d420398edd3a0618d02c3aba16d7b5dcad189194bab9bcaac51e38736bf233",
+      "accountGate.recoverSent": "9e1b2f04f13de35e1cefb83dc211a25c8a31a6db14b60bb0e8fa76103e269f95",
+      "accountGate.lostTitle": "e6dbcc4e8a242f0ec8cdede5497053391fe89c5c2daa4d23705dc010b991bb09",
+      "accountGate.lostBody": "244bd1dbe4e224daad09175dd5769d8d159a0e5dcfdb31c60ccdb3ab6a26a06e",
+      "accountGate.back": "71fe31ccd37c3268aebf694ffa7af26569e03f3af4454dc98c3746170c403745"
     }
   }
 }
