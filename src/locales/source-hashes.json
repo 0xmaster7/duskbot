@@ -3503,7 +3503,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -9270,7 +9278,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12697,7 +12713,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -16121,7 +16145,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -22288,7 +22320,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -28644,7 +28684,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -35385,7 +35433,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -41716,7 +41772,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -47915,7 +47979,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -54253,7 +54325,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -59543,7 +59623,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -63272,7 +63360,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -68562,7 +68658,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -75476,7 +75580,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -80335,7 +80447,15 @@
       "routines.cost.frequent": "63b7577515cb7c7c10a7a474a3c7dfd887eb813f77250df135d6ebfdfe75b751",
       "routines.cost.costly": "8cdcd9afea24b8b6608ef8343e5d2adbcc59200a5201895060804da2444273b4",
       "routines.paused.cap": "c8edd39052060102706ca12ff8d84a357026290a667be94d1d044f0b6e366873",
-      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f"
+      "routines.paused.failures": "447766890a081503dc1fbebea86503e2ef8ffdb89fbece29a90544fd96358d0f",
+      "server.finish.plan": "3d38845b8cd7c7ad595edb5aaa79aba575688646fe2bdebf00ea432a6d34e3b4",
+      "server.finish.ack": "a9886a63458514dc9ea928a3aa7842a82f0f240962f73463ddbb0b86ce7c4aca",
+      "chat.unconfirmed.label": "bc1c29a467aef97badbb3224895d56b469a31eb7821e6d3c7ee181e526595d2a",
+      "chat.unconfirmed.send": "8579febb587167e42b770d0721233b4d9f6f765b7634bb11192ccbcb083fcc5b",
+      "chat.unconfirmed.book": "1501a382e95e6b1fa8913c06f08193f9f8cb079d9179259b922fce9a52e8c236",
+      "chat.unconfirmed.buy": "46a87fd68c9ad6ef5728711ced2ce19eda4b2064f9038fd9434ba977c105dafa",
+      "chat.unconfirmed.file": "dc9e8010292e73cc922202c99e80ebc3d3705f8972fd065f481747dde4147363",
+      "chat.unconfirmed.download": "990b6f18a39ec91acd93a62be7d5ceec0b2a6bae5f2b071ba29c4acc88bee640"
     }
   }
 }

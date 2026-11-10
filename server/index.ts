@@ -613,6 +613,7 @@ import { createLiveRoutes } from "./routes/live.ts";
 import { createNotificationRoutes } from "./routes/notifications.ts";
 import { createTodayRoutes } from "./routes/today.ts"; import { createInboxRoutes } from "./routes/inbox.ts"; import { createSidebarSectionRoutes } from "./routes/sidebar-sections.ts";
 import { createToolTimingRoute, createUsageRoutes } from "./routes/usage.ts"; import { createSpendRoutes } from "./routes/spend.ts"; import { createSpend } from "./spend.ts"; import { createRoutineGuard, DRY_RUN_REFUSAL } from "./host/routine-guard.ts";
+import { createFinishGuard } from "./host/finish-guard.ts"; import { createActionReceipts } from "./host/action-receipts.ts";
 import { createBotMessageRoutes } from "./routes/bot-messages.ts";
 import { clearInternalTurn, isInternalTurn, markInternalTurn } from "./internal-turns.ts"; import { createFirstReplyRescue } from "./first-reply-rescue.ts"; import { createTurnBeats } from "./turn-beats.ts";
 import { createReactionRoutes } from "./routes/reactions.ts";
@@ -7355,6 +7356,11 @@ const repeats = createLoopGuard({
   },
 });
 bus.subscribe((event: RuntimeEvent) => { if (!shouldIgnoreProviderEvent(event)) repeats.onEvent(event); });
+const oneOnOne = (threadId: string): string | null => { const bot = store.botByThread(threadId); return bot && !store.groupByThread(threadId) && !isInternalTurn(threadId) && !activeRoutineRunForThread(threadId) && !proactive.fence.confines(threadId) ? bot.id : null; };
+const finishGuard = createFinishGuard({ botOf: oneOnOne, held: (threadId) => { const botId = oneOnOne(threadId); return !botId || watchdog.waiting(threadId) || threadBusy(botId, threadId) || hasQueuedSteeredMessages(botId, threadId); }, carryOn: (botId, threadId, note) => startTurn(botId, note, { threadId, unattended: true, cardContinuation: true }),
+  line: (threadId, reason) => void store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: `recovery: ${reason.kind === "plan" ? serverLine(threadLanguage(threadId), "server.finish.plan", { open: reason.open, total: reason.total }) : serverLine(threadLanguage(threadId), "server.finish.ack")}`, ok: true } }) });
+const actionReceipts = createActionReceipts({ dataDir: DATA_DIR, botOf: (threadId) => (store.groupByThread(threadId) ? null : store.botByThread(threadId)?.id ?? null), mark: (threadId, turnId, kinds) => { const said = turnId ? store.activePath(threadId).findLast((line) => line.role === "bot" && line.kind === "text" && line.turnId === turnId) : undefined; return Boolean(said && store.patchMessage(threadId, said.id, { unconfirmed: kinds })); } });
+bus.subscribe((event: RuntimeEvent) => { if (!shouldIgnoreProviderEvent(event)) { finishGuard.onEvent(event); actionReceipts.onEvent(event); } });
 const personFirst = createPersonFirst({ firstMs: Number(process.env.DUSK_PERSON_FIRST_MS) || undefined, waiting: (threadId) => watchdog.waiting(threadId) || activeRoutineRunForThread(threadId) !== null,
   stop: async (threadId, line) => { const bot = store.botByThread(threadId); if (!bot) return; store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: line, ok: true } }); turnStops.stopping(threadId, liveTurnByThread.get(threadId), line); await interruptDirectThread(bot.id, threadId, line); } });
 bus.subscribe((event: RuntimeEvent) => { if (!shouldIgnoreProviderEvent(event)) personFirst.onEvent(event); });
@@ -14682,7 +14688,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           "content-type": upstream.contentType,
           "cache-control": "no-store",
         };
-        if (upstream.transportSessionId) headers["mcp-session-id"] = upstream.transportSessionId;
+        if (upstream.transportSessionId) headers["mcp-session-id"] = upstream.transportSessionId; actionReceipts.relayed(internalCapability.threadId, outboundCalls.map((one) => one.slug), upstream.status, upstream.bytes);
         res.writeHead(upstream.status, headers);
         return res.end(Buffer.from(withScopeHint(proactive.fence.confines(internalCapability.threadId) ? recordsAnswer(upstream.bytes, upstream.contentType) : upstream.bytes, upstream.contentType, connectorCalls.map((call) => call.slug))));
       }
