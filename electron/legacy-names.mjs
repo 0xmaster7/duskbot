@@ -269,12 +269,13 @@ export const safeStorageItem = (name) => ({ service: `${name} Safe Storage`, acc
  * key is copied under the new name so files sealed before the rename still open. `run` is `security` with args and
  * stdin. returns what happened.
  */
-export function carryLegacySafeStorageKey({ name, packaged = true, run = securityCli }) {
+export function carryLegacySafeStorageKey({ name, packaged = true, run = securityCli, replace = false }) {
   const next = safeStorageItem(name);
   const olds = (packaged ? [LEGACY.product, LEGACY.devName] : [LEGACY.devName, LEGACY.product]).map(safeStorageItem);
   const find = (item, reveal) => run(["find-generic-password", "-s", item.service, "-a", item.account, ...(reveal ? ["-w"] : [])]);
   try {
-    if (find(next, false).status === 0) return "present";
+    // `replace`: userData was copied just now, so a key under the new name only sealed the folder that was set aside
+    if (!replace && find(next, false).status === 0) return "present";
     for (const old of olds) {
       const read = find(old, true);
       if (read.status !== 0) continue;
@@ -282,7 +283,7 @@ export function carryLegacySafeStorageKey({ name, packaged = true, run = securit
       if (!secret) continue;
       // through stdin, so the key never shows in a process list
       const quote = (value) => `"${String(value).replace(/["\\]/g, "\\$&")}"`;
-      const add = run(["-i"], `add-generic-password -s ${quote(next.service)} -a ${quote(next.account)} -w ${quote(secret)}\n`);
+      const add = run(["-i"], `add-generic-password -U -s ${quote(next.service)} -a ${quote(next.account)} -w ${quote(secret)}\n`);
       return add.status === 0 ? "copied" : "failed";
     }
     return "none";

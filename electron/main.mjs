@@ -191,7 +191,7 @@ unlimitTunnelConnections(app);
 // before electron opens its folder or its keychain key: an install from before the rename brings both along
 if (!app.commandLine.hasSwitch("user-data-dir") && migrateLegacyUserData(app.getPath("userData"), app.getPath("appData"), { packaged: app.isPackaged, log: line => console.log(`[desktop] ${line}`) })
   && process.platform === "darwin") {
-  const carried = carryLegacySafeStorageKey({ name: app.getName(), packaged: app.isPackaged });
+  const carried = carryLegacySafeStorageKey({ name: app.getName(), packaged: app.isPackaged, replace: true });
   console.log(`[desktop] keychain key from before the rename: ${carried}`);
 }
 
