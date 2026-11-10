@@ -1,5 +1,6 @@
 import type { Routine, RoutineRun, RoutineStripEntry } from "./routines";
 import { runStrip } from "../../shared/routines";
+import en from "@/locales/en.json";
 import { activeLocale, t } from "./i18n";
 
 export function routineRunTime(run: RoutineRun): number {
@@ -82,4 +83,14 @@ export function liveStrip(routine: Routine, runs: readonly RoutineRun[]): Routin
     ...(reruns.has(entry.at) ? { rerun: true as const } : {}),
     ...(entry.outcome === "missed" && skipped.has(entry.at) ? { outcome: "skipped" as const } : {}),
   }));
+}
+
+const templatePattern = (template: string) =>
+  new RegExp(`^${template.split(/\{\w+\}/).map((part) => part.replace(/[.*+?^$()|[\]{}\\]/g, "\\$&")).join("[\\s\\S]+")}$`);
+
+/** A run the account's weekly limit skipped (the server's line, in the app's language or English): no failure, nothing
+ * to fix, only "skipped: weekly limit" on its strip. */
+export function isLimitSkip(run: Pick<RoutineRun, "status" | "error">): boolean {
+  if (run.status !== "missed" || !run.error) return false;
+  return [t("server.allowance.held"), en["server.allowance.held"]].some((template) => templatePattern(template).test(run.error!));
 }

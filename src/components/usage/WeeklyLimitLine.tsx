@@ -1,13 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLimitReached } from "@/lib/allowance-notice";
 import { t } from "@/lib/i18n";
 import { resetWhen, setSaver } from "@/lib/spend";
 
+/** Whether a send failed only because the week's limit is reached (the server's refusal, in any language it has). */
+export function isLimitRefusal(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const pattern = t("server.allowance.refused").split(/\{\w+\}/).map((part) => part.replace(/[.*+?^$()|[\]{}\\]/g, "\\$&")).join("[\\s\\S]+");
+  return new RegExp(`^${pattern}$`).test(text);
+}
+
 /** One small line above the message box while the week's limit is reached: "Weekly limit reached · Saver mode". No
- * amounts here; they live in Usage & Billing. */
-export function WeeklyLimitLine({ onSeeUsage }: { onSeeUsage: () => void }) {
+ * amounts here; they live in Usage & Billing. While it shows, a send the limit refused says nothing more: the draft
+ * stays in the box and this line already says why. */
+export function WeeklyLimitLine({ onSeeUsage, error, clearError }: { onSeeUsage: () => void; error?: string | null; clearError?: () => void }) {
   const limit = useLimitReached();
   const [busy, setBusy] = useState(false);
+  const refused = Boolean(limit) && isLimitRefusal(error);
+  useEffect(() => { if (refused) clearError?.(); }, [refused, clearError]);
   if (!limit) return null;
   const { report } = limit;
   return (
