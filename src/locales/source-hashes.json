@@ -3578,7 +3578,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -9420,7 +9427,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12922,7 +12936,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -16421,7 +16442,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -22663,7 +22691,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -29094,7 +29129,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -35910,7 +35952,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -42316,7 +42365,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -48590,7 +48646,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -55003,7 +55066,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -60368,7 +60438,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -64172,7 +64249,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -69537,7 +69621,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -76526,7 +76617,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -81460,7 +81558,14 @@
       "computer.problem.keepsFiles": "7b52cc5ad5728bd8913bc9613273f5a7fae36f0abeb196daa5d63278460b9865",
       "computer.problem.losesFiles": "e9dc2d7686edb11b058e6a3bb2ac048d714f811f9b5358d227287403607c454c",
       "computer.problem.replaceLoses": "980a34d35e2a3d76761a890320a47c32f07fac955ea4e96b40f1c820d90614f9",
-      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8"
+      "botPanel.moreSettings": "fb39125df6db034fd02887363c6359f81a472738e86935368ff0f3aca223c8a8",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     }
   }
 }
