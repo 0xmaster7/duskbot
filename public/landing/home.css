@@ -128,10 +128,10 @@
 .hero .lede .logo { display: inline-block; width: 0.95em; height: 0.95em; margin: 0 0.22em 0 0.05em; vertical-align: -0.13em; }
 /* the download button is split: the main half follows your system, the arrow opens every other platform */
 .split { position: relative; display: inline-flex; }
-.split .btn { gap: 9px; }
-.split-main { border-radius: 999px 0 0 999px; padding-right: 18px; }
-.split-more { border-radius: 0 999px 999px 0; padding: 0 16px 0 14px; border: 0; box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.16); cursor: pointer; }
-.split-more .i { width: 17px; height: 17px; transition: rotate 0.25s var(--pop); }
+.split .btn { gap: 8px; }
+.home .split-main { border-radius: 999px 0 0 999px; padding: 0 14px 0 20px; }
+.home .split-more { border-radius: 0 999px 999px 0; padding: 0 14px 0 11px; border: 0; box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.16); cursor: pointer; }
+.split-more .i { width: 15px; height: 15px; transition: rotate 0.25s var(--pop); }
 .split-more[aria-expanded="true"] .i { rotate: 180deg; }
 .dl-os .os { display: block; width: 16px; height: 16px; }
 .dl-menu { position: absolute; z-index: 20; left: 0; top: calc(100% + 8px); min-width: 100%; margin: 0; padding: 6px; list-style: none; border-radius: 18px; background: #fff; text-align: left; box-shadow: 0 0 0 1px var(--line), 0 18px 40px -16px rgba(0, 0, 0, 0.25); transform-origin: 50% 0; animation: dl-in 0.18s var(--mk-ease-out); }
