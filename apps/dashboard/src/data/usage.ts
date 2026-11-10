@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BotReport, WorkspaceDetail } from "../../../../shared/dashboard-protocol";
 import { api, FIXTURE } from "../lib/api";
 import { useSession } from "./session";
@@ -15,8 +15,10 @@ export interface PlanWindow {
 
 interface Answer { detail: WorkspaceDetail | null; error: string | null }
 
-export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSource[]; loading: boolean; error: string | null; plans: PlanWindow[]; bots: Array<{ bot: BotReport; where: string }> } {
-  const { workspaces, workspace, detail } = useSession();
+export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSource[]; loading: boolean; error: string | null; refresh(): void; plans: PlanWindow[]; bots: Array<{ bot: BotReport; where: string }> } {
+  const { workspaces, workspacesError, workspace, detail, refresh: refreshSession } = useSession();
+  const [tick, setTick] = useState(0);
+  const refresh = useCallback(() => { refreshSession(); setTick((t) => t + 1); }, [refreshSession]);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const current = useRef({ workspace, detail });
   current.current = { workspace, detail };
@@ -44,7 +46,7 @@ export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSou
     const onVisibility = () => { void load(); };
     document.addEventListener("visibilitychange", onVisibility);
     return () => { alive = false; controller.abort(); clearInterval(timer); document.removeEventListener("visibilitychange", onVisibility); };
-  }, [workspaceIds]);
+  }, [workspaceIds, tick]);
 
   const reports = (workspaces ?? []).map((item) => {
     const fetched = answers[item.id]?.detail ?? null;
@@ -73,5 +75,5 @@ export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSou
   const month = useMemo(() => usageMonth(sources, Date.now(), { split: FIXTURE ? "exact" : "estimate" }), [sources]);
   const loading = workspaces === null || reports.some((item) => !item.detail && !answers[item.workspace.id]);
   const error = !loading && reports.length > 0 && reports.every((item) => !item.detail) ? reports.map((item) => answers[item.workspace.id]?.error).find((message) => message !== null && message !== undefined) ?? null : null;
-  return { month: sources.length || workspaces?.length === 0 ? month : null, sources, loading, error, plans, bots };
+  return { month: sources.length || workspaces?.length === 0 ? month : null, sources, loading, error: workspacesError ?? error, refresh, plans, bots };
 }

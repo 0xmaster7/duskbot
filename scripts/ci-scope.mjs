@@ -57,7 +57,7 @@ export const VITEST_SUBSETS = {
   },
   "docs-tests": {
     part: "docs tests",
-    files: ["scripts/testing/analytics-docs.test.ts", "server/model-providers-docs.test.ts", "src/locales/vocabulary.test.ts"],
+    files: ["scripts/testing/analytics-docs.test.ts"],
     shards: 1,
     nodeTests: false,
   },
@@ -73,6 +73,7 @@ export const SRC_OUTSIDE_RENDERER = [
   "src/lib/composer-attachments.ts",
   "src/lib/media-sizes.ts",
   "src/lib/random-uuid.ts",
+  "src/lib/upload-request.ts",
 ];
 
 export const DOCS = /^(?:[^/]+\.md|docs\/.+\.md|\.github\/FUNDING\.yml)$/;

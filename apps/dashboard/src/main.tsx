@@ -4,7 +4,8 @@ import { CloudDataProvider, useCloud } from "./data/cloud";
 import { SessionProvider, useSession } from "./data/session";
 import { navigate, useLocation } from "./lib/router";
 import { initTheme } from "./lib/theme";
-import { ButtonLink } from "./ui/kit";
+import { reportPageErrors } from "./lib/page-errors";
+import { Button, ButtonLink } from "./ui/kit";
 import { Shell } from "./ui/Shell";
 import { SkyEmpty } from "./ui/Sky";
 import { LoadingPage } from "./pages/common";
@@ -52,6 +53,7 @@ function prefetchPages() {
 }
 
 initTheme();
+reportPageErrors();
 stashClaim();
 stashDeleteToken();
 
@@ -99,8 +101,9 @@ function SignedIn() {
 
 function App() {
   const { path } = useLocation();
-  const { account } = useSession();
+  const { account, accountError, retryAccount } = useSession();
   useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "Bot" : path.startsWith("/workspaces/") ? "Workspace" : deletePageId(path) !== null ? "Delete cloud data" : "Dusk Bot")} · Dusk Bot`; }, [path]);
+  if (accountError) return <main className="flex min-h-[100dvh] items-center justify-center bg-bg px-6"><SkyEmpty title="Can't reach your Dusk Bot account right now." action={<Button variant="primary" onClick={retryAccount}>Retry</Button>} className="w-full max-w-[520px]" /></main>;
   if (account === undefined) return <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
   if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} note={path === "/claim" ? "Sign in to connect the workspace you opened this from." : path === "/cloud/desktop" ? "Sign in to finish signing in the desktop app." : deleteSignInNote(path)} />;
   return <SignedIn />;

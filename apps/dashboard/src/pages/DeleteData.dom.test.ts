@@ -8,7 +8,7 @@ import type { CloudDesktop } from "../data/contracts";
 
 const state = vi.hoisted(() => ({
   cloud: { clouds: null as CloudDesktop[] | null, billing: null, refresh: () => {} },
-  session: { account: { id: "fx-sid", email: "sid@duskbot.test" }, setAccount: (_: null) => {}, toast: (_: string) => {} },
+  session: { account: { id: "fx-sid", email: "sid@duskbot.test" }, setAccount: (_account: null) => {}, toast: (_message: string) => {} },
 }));
 vi.mock("../data/cloud", () => ({ useCloud: () => state.cloud }));
 vi.mock("../data/session", () => ({ useSession: () => state.session }));

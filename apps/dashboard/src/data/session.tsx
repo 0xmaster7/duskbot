@@ -10,6 +10,9 @@ const PICK = "omb-dash-workspace";
 interface Session {
   account: Account | null | undefined;
   setAccount(account: Account | null): void;
+  accountError: string | null;
+  retryAccount(): void;
+  workspacesError: string | null;
   workspaces: WorkspaceSummary[] | null;
   workspace: WorkspaceSummary | null;
   pick(id: string): void;
@@ -28,6 +31,10 @@ const visible = () => typeof document === "undefined" || document.visibilityStat
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<Account | null | undefined>(undefined);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [accountTick, setAccountTick] = useState(0);
+  const retryAccount = useCallback(() => setAccountTick((t) => t + 1), []);
+  const [workspacesError, setWorkspacesError] = useState<string | null>(null);
   const [workspaces, setWorkspaces] = useState<WorkspaceSummary[] | null>(null);
   const [picked, setPicked] = useState<string | null>(() => new URLSearchParams(location.search).get("workspace") ?? localStorage.getItem(PICK));
   const [detail, setDetail] = useState<WorkspaceDetail | null>(null);
@@ -36,8 +43,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const local = useRef(new Map<string, CommandView>());
 
   useEffect(() => {
-    api.me().then((r) => setAccount(r.account), (e) => setAccount(e instanceof ApiError && e.status === 401 ? null : null));
-  }, []);
+    let alive = true;
+    setAccountError(null);
+    api.me().then((r) => { if (alive) setAccount(r.account); }, (e) => {
+      if (!alive) return;
+      if (e instanceof ApiError && e.status === 401) setAccount(null);
+      else setAccountError((e as Error).message);
+    });
+    return () => { alive = false; };
+  }, [accountTick]);
 
   // the workspace list, and with it the "someone is watching" signal the service passes on to workspaces
   useEffect(() => {
@@ -46,9 +60,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const ctl = new AbortController();
     const load = () => {
       if (!visible()) return;
-      api.workspaces(ctl.signal).then((r) => alive && setWorkspaces((old) => same(old, r.workspaces) ? old : r.workspaces), (e) => {
+      api.workspaces(ctl.signal).then((r) => { if (alive) { setWorkspaces((old) => same(old, r.workspaces) ? old : r.workspaces); setWorkspacesError(null); } }, (e) => {
         if (!alive || (e as Error).name === "AbortError") return;
         if (e instanceof ApiError && e.status === 401) setAccount(null);
+        else setWorkspacesError((e as Error).message);
       });
     };
     load();
@@ -128,8 +143,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [detail, workspace?.name]);
 
   const value = useMemo<Session>(() => ({
-    account, setAccount, workspaces, workspace, pick, detail: detail?.workspace.id === workspace?.id ? detail : null, detailError, refresh, command, pendingFor, toast,
-  }), [account, workspaces, workspace, pick, detail, detailError, refresh, command, pendingFor]);
+    account, setAccount, accountError, retryAccount, workspacesError, workspaces, workspace, pick, detail: detail?.workspace.id === workspace?.id ? detail : null, detailError, refresh, command, pendingFor, toast,
+  }), [account, accountError, retryAccount, workspacesError, workspaces, workspace, pick, detail, detailError, refresh, command, pendingFor]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

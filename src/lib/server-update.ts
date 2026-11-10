@@ -34,7 +34,10 @@ export function serverUpdateRow(
 ): { label: string; subtitle?: string } {
   if (phase === "checking") return { label: t("sidebar.update.checking") };
   if (phase === "error") return { label: t("sidebar.update.checkFailed") };
-  if (check?.install === "desktop") return { label: t("sidebar.update.howDesktop") };
+  if (check?.install === "desktop") {
+    if (phase !== "available" || !check.latest || !check.releaseUrl) return { label: t("sidebar.update.howDesktop") };
+    return { label: t("sidebar.update.availableServer", { version: check.latest }), subtitle: t("sidebar.update.howDownload", { site: check.releaseUrl.replace(/^https:\/\//, "") }) };
+  }
   if (check?.install === "managed") return { label: t("sidebar.update.managed") };
   if (phase === "available" && check?.latest) {
     const how = otherServer

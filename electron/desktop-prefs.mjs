@@ -49,6 +49,7 @@ function parse(raw) {
     ...(isTalkKey(record.talkKey) ? { talkKey: record.talkKey } : {}),
     ...(typeof record.railHidden === "boolean" ? { railHidden: record.railHidden } : {}),
     ...(typeof record.windowFrame === "boolean" ? { windowFrame: record.windowFrame } : {}),
+    ...(typeof record.errorReports === "boolean" ? { errorReports: record.errorReports } : {}),
     ...(Object.keys(quickAsks).length ? { quickAsks } : {}) };
 }
 
@@ -78,6 +79,9 @@ export function createDesktopPrefs({ read, write, frameByDefault = true }) {
       if (current().language !== language) save({ ...current(), language });
       return true;
     },
+    /** crash and error reports, only ever sent by a build that names where to (electron/error-report.mjs) */
+    errorReports: () => current().errorReports ?? true,
+    setErrorReports(enabled) { save({ ...current(), errorReports: enabled === true }); },
     talkShortcut: () => current().talkShortcut ?? false,
     setTalkShortcut(enabled) { save({ ...current(), talkShortcut: enabled === true }); },
     talkKey: () => current().talkKey ?? DEFAULT_TALK_KEY,

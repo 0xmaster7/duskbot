@@ -135,8 +135,9 @@ describe("local account service", () => {
     for (let i = 0; i < 60; i++) expect((await call("/v1/auth/verify", { attempt: "missing", code: "12345678" })).status).toBe(410);
     expect((await call("/api/cloud/app/sign-in/verify", { attempt: "missing", code: "12345678" }, { "x-forwarded-for": "192.0.2.2" })).status).toBe(429);
     restart({ trustProxy: true });
-    for (let i = 0; i < 20; i++) await start(`proxy${i}@example.test`, false, { "x-forwarded-for": "192.0.2.1, 192.0.2.2" });
-    expect((await call("/v1/auth/start", { email: "full@example.test" }, { "x-forwarded-for": "192.0.2.1, 192.0.2.3" })).status).toBe(429);
+    // the proxy appends the address it saw; whatever the client put first must not pick a fresh bucket
+    for (let i = 0; i < 20; i++) await start(`proxy${i}@example.test`, false, { "x-forwarded-for": `198.51.100.${i}, 192.0.2.2` });
+    expect((await call("/v1/auth/start", { email: "full@example.test" }, { "x-forwarded-for": "198.51.100.99, 192.0.2.2" })).status).toBe(429);
     expect((await call("/v1/auth/start", { email: "fresh@example.test" }, { "x-forwarded-for": "192.0.2.2, 192.0.2.1" })).status).toBe(200);
   });
 

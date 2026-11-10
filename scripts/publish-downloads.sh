@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# puts a published release where people download it: the installers on the public downloads repo's release (stable
+# /releases/latest/download/ links), and the signed latest.json and SHA256SUMS on dusk.bot through the deployd landing
+# site. run on the Mac after Release published v<version>.
+#   scripts/publish-downloads.sh v0.1.142
+# env: DUSK_DOWNLOADS_REPO (public, default goatedgrokbotalternative/duskbot-releases), DUSK_SOURCE_REPO (private, the
+# release's home), DEPLOYD_DIR (default ~/Desktop/code/deployd), DRY_RUN=1 to stop before uploading.
+set -euo pipefail
+
+TAG="${1:?usage: publish-downloads.sh v<version>}"
+VERSION="${TAG#v}"
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "not a release tag: $TAG" >&2; exit 2; }
+SOURCE="${DUSK_SOURCE_REPO:-goatedgrokbotalternative/duskbot}"
+DOWNLOADS="${DUSK_DOWNLOADS_REPO:-goatedgrokbotalternative/duskbot-releases}"
+DEPLOYD="${DEPLOYD_DIR:-$HOME/Desktop/code/deployd}"
+work=$(mktemp -d "${TMPDIR:-/tmp}/dusk-publish.XXXXXX")
+trap 'rm -rf "$work"' EXIT
+
+[ "$(gh release view "$TAG" --repo "$SOURCE" --json isDraft --jq .isDraft)" = false ] || { echo "$TAG is still a draft in $SOURCE; publish it first" >&2; exit 1; }
+gh release download "$TAG" --repo "$SOURCE" --dir "$work/assets"
+
+# the release run that built this tag left the signed manifest as its dusk-site artifact
+sha=$(gh release view "$TAG" --repo "$SOURCE" --json targetCommitish --jq .targetCommitish)
+sha=$(gh api "repos/$SOURCE/commits/$sha" --jq .sha)
+run=$(gh run list --repo "$SOURCE" --workflow release.yml --json databaseId,headSha,conclusion --limit 50 \
+  --jq "[.[] | select(.headSha == \"$sha\" and .conclusion == \"success\")][0].databaseId")
+[ -n "$run" ] && [ "$run" != null ] || { echo "no successful Release run for $sha" >&2; exit 1; }
+gh run download "$run" --repo "$SOURCE" --name dusk-site --dir "$work/site"
+
+# the manifest must vouch for exactly these installers
+(cd "$work/assets" && shasum -a 256 -c "$work/site/SHA256SUMS")
+node -e 'const m=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); if (m.version!==process.argv[2]) { console.error(`latest.json is for ${m.version}`); process.exit(1); }' "$work/site/latest.json" "$VERSION"
+
+if [ "${DRY_RUN:-}" = 1 ]; then echo "dry run: verified $TAG (run $run); nothing uploaded"; exit 0; fi
+
+gh repo view "$DOWNLOADS" --json visibility --jq .visibility | grep -qx PUBLIC || { echo "$DOWNLOADS must exist and be public" >&2; exit 1; }
+gh release view "$TAG" --repo "$DOWNLOADS" >/dev/null 2>&1 || gh release create "$TAG" --repo "$DOWNLOADS" --title "Dusk Bot $VERSION" --notes "Dusk Bot $VERSION. Download from https://dusk.bot/download"
+gh release upload "$TAG" --repo "$DOWNLOADS" --clobber "$work"/assets/DuskBot* "$work/site/SHA256SUMS"
+gh release edit "$TAG" --repo "$DOWNLOADS" --latest
+
+mkdir -p "$DEPLOYD/sites/dusk/public/landing/releases/$VERSION"
+cp "$work/site/latest.json" "$DEPLOYD/sites/dusk/public/landing/releases/latest.json"
+cp "$work/site/SHA256SUMS" "$DEPLOYD/sites/dusk/public/landing/releases/$VERSION/SHA256SUMS"
+(cd "$DEPLOYD" && sites/dusk/deploy.sh landing)
+curl -fsS "https://dusk.bot/releases/latest.json" | grep -q "\"version\": \"$VERSION\"" && echo "dusk.bot announces $VERSION"

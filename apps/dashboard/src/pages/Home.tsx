@@ -15,6 +15,7 @@ import { BotMascot, Mascot } from "../ui/Mascot";
 import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 import { PlanSheet } from "./plan-sheet";
 import { useNow } from "../lib/now";
+import { LoadError } from "./common";
 import { Figure } from "../ui/Figure";
 
 function Big({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
@@ -156,7 +157,7 @@ function Recent() {
 export function HomePage() {
   const { account, detail, workspaces } = useSession();
   const now = useNow(60_000);
-  const { clouds } = useCloud();
+  const { clouds, error, refresh } = useCloud();
   const name = account?.name || account?.email.split("@")[0] || "";
   const cloud = clouds?.[0] ?? null;
   const cloudDetail = useWorkspaceDetail(cloud?.workspaceId ?? null);
@@ -166,7 +167,7 @@ export function HomePage() {
       {plan && <PlanSheet source="dash_home" start="starter" onClose={() => setPlan(false)} />}
       <h1 className="t-title enter mb-8 max-sm:mb-6">Welcome, {name}.</h1>
       <div className="flex flex-col gap-4">
-        {clouds === null ? <Skeleton className="h-[200px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudPitch source="dash_home" />}
+        {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[200px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudPitch source="dash_home" />}
         <div className="enter grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:gap-3" style={{ ["--i" as string]: 2 }}>
           <Tile icon={<Download {...ICON} />} title="Download the app" body="For Mac. Your bots, chats and their computers." to={DOWNLOAD_URL} external />
           <Tile icon={<TileCrew />} title="Cloud desktop" body={cloud ? `Open ${cloud.name}, on 24/7.` : "Keep your bots on 24/7."} {...(cloud ? { to: "/cloud" } : { onClick: () => setPlan(true) })} />

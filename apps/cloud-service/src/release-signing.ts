@@ -6,7 +6,7 @@ import { createPrivateKey, createPublicKey, sign, verify } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 export interface ReleaseKey { kid: string; x: string }
-export type ReleaseKind = "home-package" | "template";
+export type ReleaseKind = "home-package" | "template" | "desktop";
 export interface ReleaseManifest { v: 1; kind: ReleaseKind; name: string; version: string; sha256: string; signedAt: number }
 
 /** CI's release keys, newest first; ship the next one here before CI signs with it */

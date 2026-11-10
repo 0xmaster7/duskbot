@@ -38,7 +38,7 @@ function reader(res: IncomingMessage) {
   let text = "";
   const waiting = new Set<() => void>();
   body.setEncoding("utf8");
-  body.on("data", (chunk: string) => { text += chunk; for (const check of [...waiting]) check(); });
+  body.on("data", (chunk: string) => { text += chunk; for (const check of Array.from(waiting)) check(); });
   return (until: string) => new Promise<string>((resolve) => {
     const check = () => { if (text.includes(until)) { waiting.delete(check); resolve(text); } };
     waiting.add(check);

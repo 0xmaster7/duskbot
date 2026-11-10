@@ -425,7 +425,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     if (b.deletedAt === null || b.backupsDeleteAfter === null || b.backupsDeleteAfter > now() || !b.backups.length || b.hold) return;
     if (!rereadStored(c) || b.hold) return;
     if (deps.entitlement(c).active) { log(c, "delete_refused", "reconciler", "subscribed"); return; }
-    for (const g of [...b.backups]) { deps.backups.remove(c.id, g.file); b.backups.splice(b.backups.indexOf(g), 1); }
+    for (const g of b.backups.slice()) { deps.backups.remove(c.id, g.file); b.backups.splice(b.backups.indexOf(g), 1); }
     log(c, "backups_deleted", "reconciler", b.deletion?.reason ?? "retention_over");
     deps.save(c);
   }

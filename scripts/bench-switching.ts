@@ -94,7 +94,7 @@ const SWITCH = (botId: string, lastId: string, name: string, timeoutMs: number) 
       observer.disconnect();
       const late = shifts.filter((shift) => shift.at >= started);
       const settled = Math.max(lastChange, ...late.map((shift) => shift.at - started));
-      const reads = performance.getEntriesByType("resource").filter((entry) => entry.startTime >= started && /\/api\/threads\/|\/api\/transcripts|\/tasks\//.test(entry.name)).map((entry) => Math.round(entry.duration));
+      const reads = performance.getEntriesByType("resource").filter((entry) => entry.startTime >= started && new RegExp("/api/threads/|/api/transcripts|/tasks/").test(entry.name)).map((entry) => Math.round(entry.duration));
       resolve({ firstPaintMs: first ? Math.round(first.at) : null, firstGap: first?.gap ?? null, firstHadLast: first?.hasLast ?? false,
         finalMs: final ? Math.round(final.at) : null, settledMs: Math.round(settled), skeletonFrames, threadReadsMs: reads, cls: Math.round(late.reduce((sum, shift) => sum + shift.value, 0) * 10000) / 10000,
         shifts: late.length, viewportChanges: changes, contentChanges, placeholderFrames, frames });

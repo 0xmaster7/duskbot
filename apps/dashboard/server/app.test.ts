@@ -6,7 +6,7 @@ import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { CLAIM_TTL_MS, COMMAND_TTL_MS, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATURE_SKEW_MS, SLOW_REPORT_MS, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../../shared/dashboard-protocol.ts";
 import type { CommandView, EnrollAnswer, MachineReport, ReportAnswer, WorkspaceDetail, WorkspaceReport, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
-import { createDashboardApp } from "./app.ts";
+import { createDashboardApp, pagePolicy } from "./app.ts";
 import { memoryMailer } from "./auth/mail.ts";
 import { CSRF_HEADER } from "../../../shared/account-api.ts";
 import type { Account } from "./store.ts";
@@ -74,8 +74,14 @@ describe("hosted dashboard service", () => {
     csrf.set(cookie, (await verify.json() as { csrfToken: string }).csrfToken);
     return cookie;
   }
+  function enrollRequest(withSignature = true) {
+    const raw = JSON.stringify({ v: 1, publicKey: keys.publicKey.export({ type: "spki", format: "der" }).toString("base64"), ...workspace });
+    const at = time + ++nonce;
+    const signature = sign(null, Buffer.from(signedPayload("POST", "/v1/enroll", at, createHash("sha256").update(raw).digest("hex"))), keys.privateKey).toString("base64");
+    return fetch(`${url}/v1/enroll`, { method: "POST", body: raw, headers: { "content-type": "application/json", origin, ...(withSignature ? { "x-omb-time": String(at), "x-omb-signature": signature } : {}) } });
+  }
   async function enroll() {
-    const response = await page("/v1/enroll", { v: 1, publicKey: keys.publicKey.export({ type: "spki", format: "der" }).toString("base64"), ...workspace });
+    const response = await enrollRequest();
     expect(response.status).toBe(200);
     return readJson<EnrollAnswer>(response);
   }
@@ -156,6 +162,14 @@ describe("hosted dashboard service", () => {
     expect(claimed.workspaceId).toBe(first.workspaceId);
     expect(claimed.claimExpiresAt).toBe(0);
     expect(claimed.claimUrl).toBe(`${origin}/?workspace=${first.workspaceId}`);
+  });
+
+  it("lets only the key's holder replace a workspace's claim link", async () => {
+    const cookie = await login();
+    expect((await enrollRequest(false)).status).toBe(200);
+    const first = await enroll();
+    expect((await enrollRequest(false)).status).toBe(401);
+    expect((await page("/v1/claim", { token: first.claimUrl.split("#")[1] }, cookie)).status).toBe(200);
   });
 
   it("rejects other key types and removes unclaimed enrollments after 24 hours", async () => {
@@ -286,13 +300,64 @@ describe("hosted dashboard service", () => {
     expect((await readJson<ReportAnswer>(signed("/v1/report", id, report(3)).send())).nextReportMs).toBe(SLOW_REPORT_MS);
   });
 
+  it("allows the page's own inline theme script by hash and nothing else inline", () => {
+    const html = "<head><script>document.documentElement.dataset.theme = 'light';</script><script type=\"module\" src=\"/assets/a.js\"></script></head>";
+    const policy = pagePolicy(html);
+    const hash = createHash("sha256").update("document.documentElement.dataset.theme = 'light';").digest("base64");
+    expect(policy).toContain(`script-src 'self' 'sha256-${hash}';`);
+    expect(policy).not.toContain("unsafe-eval");
+    expect(policy).toContain("frame-ancestors 'none'");
+    expect(policy).toContain("connect-src 'self'");
+  });
+
+  it("answers a health check while its data folder is writable", async () => {
+    const health = await page("/v1/health");
+    expect(health.status).toBe(200);
+    expect(await health.json()).toEqual({ ok: true, version: null });
+    expect(health.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("exports the signed-in account's own data with no tokens or keys", async () => {
+    expect((await page("/v1/account/export")).status).toBe(401);
+    const cookie = await login();
+    const id = await claim(cookie);
+    const other = await login("other@example.com");
+    const answer = await page("/v1/account/export", undefined, cookie);
+    expect(answer.status).toBe(200);
+    expect(answer.headers.get("content-disposition")).toMatch(/^attachment; filename="dusk-bot-account-\d{4}-\d{2}-\d{2}\.json"$/);
+    const text = await answer.text(), data = JSON.parse(text);
+    expect(data.account.email).toBe("owner@example.com");
+    expect(data.workspaces.map((ws: { id: string }) => ws.id)).toEqual([id]);
+    expect(data.sessions.length).toBeGreaterThan(0);
+    expect(Object.keys(data).sort()).toEqual(["account", "cloudDesktops", "exportedAt", "identities", "payments", "sessions", "subscriptions", "v", "workspaces"]);
+    for (const secret of ["tokenHash", "publicKey", "claimHash", "bootstrapSecret", cookie.split("=")[1]!, "other@example.com"]) expect(text).not.toContain(secret);
+    expect(other).toBeTruthy();
+  });
+
+  it("forwards a page error through the scrubbing reporter, only from its own origin", async () => {
+    const captured: Error[] = [];
+    const reporter = { enabled: true, capture: (error: unknown) => { captured.push(error as Error); return "id"; }, flush: () => 0 };
+    app.close();
+    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir, now: () => time, errors: { service: reporter, page: reporter } });
+    server.removeAllListeners("request");
+    server.on("request", app.handle);
+    const sent = await page("/v1/client-error", { type: "TypeError", message: "x is undefined", stack: "at a (https://app.dusk.bot/assets/i.js:1:2)", page: "/billing" });
+    expect(sent.status).toBe(204);
+    expect(captured).toHaveLength(1);
+    expect(captured[0]!.name).toBe("TypeError");
+    const foreign = await fetch(`${url}/v1/client-error`, { method: "POST", headers: { "content-type": "application/json", origin: "https://evil.example" }, body: "{}" });
+    expect(foreign.status).toBe(403);
+    expect(captured).toHaveLength(1);
+  });
+
   it("serves discovery and html fallback, blocks traversal and dotfiles, and disables pages without staticDir", async () => {
     const discovery = await page("/.well-known/duskbot/dashboard");
     expect(await discovery.json()).toEqual({ v: 1, url: origin });
     expect(discovery.headers.get("cache-control")).toBe("no-store");
     const fallback = await page("/claim");
     expect(await fallback.text()).toContain("dashboard fixture");
-    expect(fallback.headers.get("content-security-policy")).toBe("frame-ancestors 'none'");
+    expect(fallback.headers.get("content-security-policy")).toBe(pagePolicy("<!doctype html><title>dashboard fixture</title>"));
+    expect(fallback.headers.get("content-security-policy")).toContain("script-src 'self'; ");
     expect(fallback.headers.get("x-frame-options")).toBe("DENY");
     expect(fallback.headers.get("referrer-policy")).toBe("no-referrer");
     expect(fallback.headers.get("cache-control")).toBe("no-cache");

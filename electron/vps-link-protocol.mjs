@@ -597,7 +597,7 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
     if (lost) egress?.pathLost?.("direct");
     if (lost) {
       // what was on the direct path: sent again over the relay when that is safe, failed otherwise
-      for (const [r, entry] of [...waiting]) {
+      for (const [r, entry] of Array.from(waiting)) {
         if (entry.via !== "direct") continue;
         if (entry.replay?.()) { entry.via = "relay"; log("vps link: a request moved to the relay"); continue; }
         waiting.delete(r);
@@ -608,7 +608,7 @@ export function createTunnelProxy({ base, id, route = `${base}/v1/tunnels/${id}`
     if (state === "up" && direct?.ready()) {
       moveTimer = setTimeout(() => {
         if (!direct?.ready()) return;
-        for (const [r, entry] of [...waiting]) if (entry.via === "relay" && entry.movable?.()) { waiting.delete(r); relayPath.push({ t: "cancel", r }); entry.move(); }
+        for (const [r, entry] of Array.from(waiting)) if (entry.via === "relay" && entry.movable?.()) { waiting.delete(r); relayPath.push({ t: "cancel", r }); entry.move(); }
       }, MOVE_AFTER_MS);
       moveTimer.unref?.();
     }

@@ -257,7 +257,7 @@ describe("phone relay hub", () => {
   function change(list) {
     channels = list;
     rev += 1;
-    for (const reply of [...waiters]) reply();
+    for (const reply of Array.from(waiters)) reply();
   }
   async function start(list, { polling = false, aheadMs } = {}) {
     change(list);

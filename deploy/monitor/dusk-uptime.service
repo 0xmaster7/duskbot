@@ -1,0 +1,10 @@
+[Unit]
+Description=Dusk Bot uptime checks
+
+[Service]
+Type=oneshot
+# DUSK_RESEND_API_KEY, DUSK_ALERT_TO, DUSK_ALERT_FROM, mode 0600
+EnvironmentFile=/etc/dusk-uptime.env
+ExecStart=/opt/dusk-uptime/uptime-check.sh
+DynamicUser=yes
+StateDirectory=dusk-uptime

@@ -7,6 +7,7 @@ import type { Account, Session } from "./store.ts";
 import { codeMessage } from "./mail.ts";
 import type { Mailer } from "./mail.ts";
 import { createProviderRegistry, type ProviderConfigs, type ProviderProfile } from "./providers.ts";
+import { clientIp } from "../client-ip.ts";
 
 export interface AuthOptions {
   dataDir: string; publicUrl: string; mailer: Mailer; now?: () => number; fetch?: typeof fetch;
@@ -89,10 +90,7 @@ export function createAuth(options: AuthOptions) {
   }
   const timer = setInterval(sweep, 60_000);
   timer.unref();
-  function ip(req: IncomingMessage) {
-    const forwarded = req.headers["x-forwarded-for"];
-    return options.trustProxy && typeof forwarded === "string" ? forwarded.split(",")[0]!.trim() : req.socket.remoteAddress ?? "unknown";
-  }
+  const ip = (req: IncomingMessage) => clientIp(req, options.trustProxy);
   function rate(key: string, max: number) {
     const item = limits.get(key) ?? { count: 0, until: now() + hour };
     limits.set(key, item);
@@ -131,8 +129,7 @@ export function createAuth(options: AuthOptions) {
   function view(owner: Account): AccountView {
     return { ...owner, providers: ["email", ...OAUTH_PROVIDERS.filter(provider => state.identities.some(item => item.accountId === owner.id && item.provider === provider))] };
   }
-  function accountAnswer(owner: Account, req: IncomingMessage): AccountAnswer {
-    const current = webSession(req)?.session.id;
+  function accountAnswer(owner: Account, current: string | undefined): AccountAnswer {
     return { account: view(owner), identities: state.identities.filter(item => item.accountId === owner.id).map(({ provider, email, label, addedAt }) => ({ provider, email, label, addedAt })),
       sessions: state.sessions.filter(item => item.accountId === owner.id).sort((a, b) => b.createdAt - a.createdAt).map(({ id, kind, name, platform, appVersion, createdAt, lastSeenAt, expiresAt }) =>
         ({ id, kind, name, platform, appVersion, createdAt, lastSeenAt, expiresAt, current: id === current })) };
@@ -395,13 +392,13 @@ export function createAuth(options: AuthOptions) {
           if (data.name !== null && !label(data.name, 80)) fail(400, "invalid_request");
           owner.name = data.name === null ? null : (data.name as string).trim(); store.changed();
         }
-        json(accountAnswer(owner, req));
+        json(accountAnswer(owner, webSession(req)?.session.id));
       } else if (method === "DELETE" && path.startsWith("/v1/account/identities/")) {
         const owner = requireWeb(req, { mutation: true }), provider = path.slice("/v1/account/identities/".length);
         const linked = state.identities.find(item => item.accountId === owner.id && item.provider === provider);
         if (!linked) fail(404, "not_found");
         if (!owner.email && state.identities.filter(item => item.accountId === owner.id).length <= 1) fail(409, "last_identity");
-        state.identities = state.identities.filter(item => item !== linked); store.changed(); json(accountAnswer(owner, req));
+        state.identities = state.identities.filter(item => item !== linked); store.changed(); json(accountAnswer(owner, webSession(req)?.session.id));
       } else if (method === "DELETE" && path.startsWith("/v1/account/sessions/")) {
         const owner = requireWeb(req, { mutation: true }), id = decodeURIComponent(path.slice("/v1/account/sessions/".length));
         const session = state.sessions.find(item => item.accountId === owner.id && item.id === id);
@@ -485,6 +482,11 @@ export function createAuth(options: AuthOptions) {
   }
   return {
     handle, webSession, requireWeb, appSession, account,
+    /** what the account holds, for its owner's export: no token, hash or code */
+    exportAccount(owner: Account) {
+      const { account: profile, identities, sessions } = accountAnswer(owner, undefined);
+      return { account: profile, identities, sessions: sessions.map(({ current: _current, ...session }) => session) };
+    },
     extendSession(fn: (accountId: string) => Promise<Record<string, unknown>> | Record<string, unknown>) { extensions.push(fn); },
     beforeAccountDelete(fn: (owner: Account, body: Record<string, unknown>) => void | Promise<void>) { beforeDeleteHooks.push(fn); },
     onAccountDeleted(fn: (accountId: string) => void | Promise<void>) { deletedHooks.push(fn); },

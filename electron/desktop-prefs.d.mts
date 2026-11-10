@@ -36,6 +36,8 @@ export interface DesktopPrefs {
   /** False for anything that is not a locale code or "". */
   setLanguage(language: unknown): boolean;
   /** True until switched off. */
+  errorReports(): boolean;
+  setErrorReports(enabled: boolean): void;
   talkShortcut(): boolean;
   setTalkShortcut(enabled: boolean): void;
   talkKey(): import("./talk-shortcut.mjs").TalkKeyId;

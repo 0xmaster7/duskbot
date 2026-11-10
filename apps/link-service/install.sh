@@ -19,6 +19,12 @@ if [ -z "${LINK_BASE:-}" ]; then
   if [ "$BAKED_BASE" = "$PLACEHOLDER_BASE" ]; then LINK_BASE="https://link.dusk.bot"; else LINK_BASE="$BAKED_BASE"; fi
 fi
 LINK_BASE=${LINK_BASE%/}
+# the token, root-run code and the server build come from here: https only (plain http just for a loopback test service)
+case "$LINK_BASE" in
+  https://*) PROTO="=https" ;;
+  http://127.0.0.1|http://127.0.0.1:*|http://localhost|http://localhost:*) PROTO="=http,https" ;;
+  *) printf 'LINK_BASE must be an https:// address.\n' >&2; exit 1 ;;
+esac
 if [ "$BAKED_TOKEN" = "$PLACEHOLDER_TOKEN" ]; then TOKEN="${1:-}"; else TOKEN="$BAKED_TOKEN"; fi
 
 DUSK_PACKAGE="${DUSK_PACKAGE:-}"
@@ -304,7 +310,7 @@ become_root() {
       COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh "$0" "$TOKEN"
   fi
   # piped: the script is gone from stdin, so fetch it again for root
-  curl -fsSL --retry 3 "$LINK_BASE/i" | sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" \
+  curl -fsSL --proto "$PROTO" --proto-redir "$PROTO" --retry 3 "$LINK_BASE/i" | sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" \
     COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh -s "$TOKEN"
   exit $?
 }
@@ -353,7 +359,7 @@ apt_install() {
   # shellcheck disable=SC2086
   apt_get_install --no-install-recommends $missing
 }
-fetch() { retry curl -fsSL --connect-timeout 15 -m 300 "$1" -o "$2"; }
+fetch() { retry curl -fsSL --proto "$PROTO" --proto-redir "$PROTO" --connect-timeout 15 -m 300 "$1" -o "$2"; }
 
 as_user() { runuser -u "$SVC_USER" -- env HOME="$SVC_HOME" PATH="$SVC_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" "$@"; }
 
@@ -420,7 +426,7 @@ progress_snapshot() {
 }
 
 post_event() {
-  _answer=$(curl -sS --connect-timeout 2 -m 5 -w '\n%{http_code}' -X POST -H "authorization: Bearer $VPS_TOKEN" -H "content-type: application/json" \
+  _answer=$(curl -sS --proto "$PROTO" --proto-redir "$PROTO" --connect-timeout 2 -m 5 -w '\n%{http_code}' -X POST -H "authorization: Bearer $VPS_TOKEN" -H "content-type: application/json" \
     --data "$1" "$LINK_BASE/v1/sessions/$LINK_ID/events" 2>/dev/null) || return 1
   case "$_answer" in
     *'"code":"cancelled"'*) : > "$TMP/cancelled" ;;
@@ -850,7 +856,7 @@ verified_download() { # url file sha256 size timeout label
     _offset=0; [ ! -f "$_part" ] || _offset=$(wc -c < "$_part" | tr -cd 0-9)
     echo "downloading $_label: attempt $_attempt/3, resuming at $_offset bytes"
     show curl -fsSL --connect-timeout 15 --speed-limit 1 --speed-time 60 -m "$_limit" -C - "$_url" -o "$_part"
-    if curl -fsSL --connect-timeout 15 --speed-limit 1 --speed-time 60 -m "$_limit" -C - -H "authorization: Bearer $VPS_TOKEN" "$_url" -o "$_part"; then
+    if curl -fsSL --proto "$PROTO" --proto-redir "$PROTO" --connect-timeout 15 --speed-limit 1 --speed-time 60 -m "$_limit" -C - -H "authorization: Bearer $VPS_TOKEN" "$_url" -o "$_part"; then
       if [ "$(sha256sum "$_part" | cut -d' ' -f1)" = "$_sha" ]; then
         mv "$_part" "$_file"
         rm -f "$PROGRESS" "$PROGRESS.json"
@@ -1601,7 +1607,7 @@ claim() {
   os=$(. /etc/os-release 2>/dev/null && echo "${ID:-unknown}-${VERSION_ID:-}")
   n=0
   while :; do
-    status=$(curl -sS -m 20 -o "$TMP/claim" -w '%{http_code}' -X POST -H "authorization: Bearer $VPS_TOKEN" \
+    status=$(curl -sS --proto "$PROTO" --proto-redir "$PROTO" -m 20 -o "$TMP/claim" -w '%{http_code}' -X POST -H "authorization: Bearer $VPS_TOKEN" \
       -H "content-type: application/json" --data "{\"host\":{\"arch\":\"$arch\",\"os\":\"$os\"}}" \
       "$LINK_BASE/v1/sessions/$LINK_ID/claim" 2>/dev/null) || status=000
     case "$status" in 000|5*) ;; *) break ;; esac

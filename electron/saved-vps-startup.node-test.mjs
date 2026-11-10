@@ -37,7 +37,7 @@ function startupFixture(overrides = {}) {
     savedVpsStartupTarget, startPackagedAlongsideVps,
     startServerPackaged: () => { events.push("local-start"); return local.promise; },
     bootDataDir: "/fixture/data", desktopDataDir: () => "/fixture/data", localRuntimeStarting: null,
-    mainWindow: null, earlyVpsOpened: null,
+    mainWindow: null, earlyVpsOpened: null, serverReady: false, startupTrace: { mark: () => {} },
     createWindow: () => { events.push("window"); context.mainWindow = { isDestroyed: () => false }; },
     navigateMainWindow: async origin => { events.push(`navigate:${origin}`); return true; },
     slog: text => events.push(`log:${text}`),

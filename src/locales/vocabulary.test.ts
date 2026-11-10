@@ -151,9 +151,9 @@ describe("one name per thing", () => {
       "restart OMB", "Cloud box", "Hosted desktop", "Run it in its cloud VM", `${PROVIDER_WORD} cloud runner`,
       "Open your Cloud dashboard", "Connect to my Cloud", "Your Cloud is ready", "Let my Cloud use this Mac",
       "Local (this computer)", "Choose Cloud to wake", "Auto, Cloud or Browser", "including one from T3",
-      ...[`Auto uses this ${PROVIDER_WORD}`, `New ${PROVIDER_WORD} computer`, `${PROVIDER_WORD}s`, PROVIDER_WORD.toUpperCase(), `place.${PROVIDER_WORD.toLowerCase()}.title`,
-        `Add a ${PROVIDER_WORD} API key in Settings → API keys`, `Connect ${PROVIDER_WORD}`, `Check ${PROVIDER_WORD.toLowerCase()}.dev`,
-        `Bots here can get their own cloud desktops from ${PROVIDER_WORD}, a paid service`, `Cloud desktops by ${PROVIDER_WORD}`],
+      `Auto uses this ${PROVIDER_WORD}`, `New ${PROVIDER_WORD} computer`, `${PROVIDER_WORD}s`, PROVIDER_WORD.toUpperCase(), `place.${PROVIDER_WORD.toLowerCase()}.title`,
+      `Add a ${PROVIDER_WORD} API key in Settings → API keys`, `Connect ${PROVIDER_WORD}`, `Check ${PROVIDER_WORD.toLowerCase()}.dev`,
+      `Bots here can get their own cloud desktops from ${PROVIDER_WORD}, a paid service`, `Cloud desktops by ${PROVIDER_WORD}`,
     ]) expect(retiredIn(bad), bad).not.toEqual([]);
     for (const good of [
       "Sign in to Dusk Cloud", "Pro active · verified by Dusk Cloud", "Restart Dusk Bot", "locked by another Dusk Bot process",

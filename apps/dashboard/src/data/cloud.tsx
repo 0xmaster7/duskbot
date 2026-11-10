@@ -66,6 +66,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
       const errors: string[] = [];
       if (plans.status === "fulfilled") setCatalog(plans.value);
       else {
+        catalogRequest.current = null;
         if (plans.reason instanceof ApiError && plans.reason.status === 404) setCatalog(fixtureCatalog);
         errors.push(apiError(plans.reason).message);
       }

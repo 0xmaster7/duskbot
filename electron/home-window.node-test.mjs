@@ -422,7 +422,7 @@ test("only the verified Cloud, open as this window's active server, counts as th
 });
 
 const MAIN = readFileSync(new URL("./main.mjs", import.meta.url), "utf8").replace(/\r\n/g, "\n");
-const PAGE_IPC = MAIN.slice(MAIN.indexOf("function myCloud() {"), MAIN.indexOf("const savedWorkspace = id =>"));
+const PAGE_IPC = MAIN.slice(MAIN.indexOf("function myCloud() {"), MAIN.indexOf("const cloudLook ="));
 
 const plain = (value) => JSON.parse(JSON.stringify(value));
 function pageIpc(overrides = {}) {

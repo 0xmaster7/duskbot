@@ -1,6 +1,7 @@
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { Download } from "lucide-react";
 import { useCloud } from "../data/cloud";
+import { LoadError } from "./common";
 import { useCreditControls } from "../data/credits";
 import { dollars } from "../data/pricing";
 import { useSession } from "../data/session";
@@ -130,8 +131,9 @@ function Stat({ label, value }: { label: string; value: ReactNode }) {
 
 export function UsagePage() {
   const now = useNow(60_000);
-  const { billing } = useCloud();
-  const { month, plans, loading, error } = useAccountUsage();
+  const cloud = useCloud();
+  const { billing } = cloud;
+  const { month, plans, loading, error, refresh } = useAccountUsage();
   const [buying, setBuying] = useState(false);
   const [group, setGroup] = useState<UsageGroup>("bot");
   const [limit, setLimit] = useState(PAGE);
@@ -145,6 +147,8 @@ export function UsagePage() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   const credit = billing?.credits.usedThisMonthUsd;
+  const loadError = error ?? cloud.error;
+  if (loadError && !month) return <div><PageHeader title="Usage" sub="This month, across every workspace." /><LoadError error={loadError} retry={() => { refresh(); cloud.refresh(); }} /></div>;
   return (
     <div className="min-w-0">
       <PageHeader title="Usage" sub="This month, across every workspace." />
@@ -171,8 +175,7 @@ export function UsagePage() {
             </div>
           }>Tokens per day</SectionHead>
           <div className="mt-6">
-            {error ? <p role="alert" className="py-16 text-center text-14 text-bad">{error}</p>
-              : loading || !month ? <Skeleton className="h-[260px]" />
+            {loading || !month ? <Skeleton className="h-[260px]" />
               : month.totals.tokens === 0 ? <p className="py-20 text-center text-14 text-ink-3">No bot turns yet this month. Usage shows up here after the first chat.</p>
               : <div key={group} className="swap-in"><UsageChart days={month.days} series={series} /></div>}
           </div>

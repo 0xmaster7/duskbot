@@ -231,7 +231,7 @@ async function companionPath(harness: string, botId: string, cleanups: Array<() 
   const phone = phoneClient(via.url, null, () => token);
   const redeemed = await phone.json("POST", "/api/mobile/redeem", { secret: payload.grant.secret, attemptId: randomUUID(), device: { name: "Mac phone", platform: "android" } });
   const answer = redeemed.body as MobileRedeemResponse;
-  check("mac", "redeem through the companion gives a session", redeemed.status === 200 && /^omb_sess_/.test(answer.token ?? ""), `${redeemed.status}`);
+  check("mac", "redeem through the companion gives a session", redeemed.status === 200 && (answer.token ?? "").startsWith("omb_sess_"), `${redeemed.status}`);
   token = answer.token;
   const browser = await fetch(`${companion}/api/bots?messages=0`, { headers: { authorization: `Bearer ${token}`, origin: "https://evil.example" } });
   check("mac", "a browser origin is still refused at the companion", browser.status === 403, `${browser.status}`);

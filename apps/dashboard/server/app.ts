@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash, createPublicKey, randomBytes, timingSafeEqual, verify } from "node:crypto";
-import { readFileSync, realpathSync, statSync } from "node:fs";
+import { accessSync, constants, readFileSync, realpathSync, statSync } from "node:fs";
 import { CLAIM_TTL_MS, COMMAND_KINDS, COMMAND_TTL_MS, DASHBOARD_DISCOVERY_PATH, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATURE_SKEW_MS, SLOW_REPORT_MS,
   freshnessOf, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../../shared/dashboard-protocol.ts";
 import type { CommandKind, CommandView, MachineSample, ReportAnswer, WorkspaceDetail, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
@@ -13,6 +13,8 @@ import { createBilling } from "./billing/index.ts";
 import { BillingError } from "./billing/service.ts";
 import { createSlackEdgeHost } from "./slack-edge/index.ts";
 import { createManagedRoutes } from "./clouds/managed-routes.ts";
+import { clientIp } from "./client-ip.ts";
+import type { ErrorReporter } from "../../../electron/error-report.mjs";
 import type { EdgeSocketFactory } from "./slack-edge/service.ts";
 
 export interface DashboardAppOptions {
@@ -26,6 +28,9 @@ export interface DashboardAppOptions {
   staticDir: string | null;
   now?: () => number;
   fetch?: typeof fetch;
+  /** errors worth an operator's look: the service's own failures, and the page's (sent to POST /v1/client-error) */
+  errors?: { service: ErrorReporter; page: ErrorReporter };
+  version?: string;
   /** the slack wake edge: DUSK_SLACK_EDGE and DUSK_CLOUD_SEAL_KEY from env; tests pass a fake socket */
   slackEdge?: { env?: NodeJS.ProcessEnv; socket?: EdgeSocketFactory };
 }
@@ -38,6 +43,13 @@ const hash = (value: string | Buffer) => createHash("sha256").update(value).dige
 const random = (bytes: number) => randomBytes(bytes).toString("base64url");
 const hourMs = 60 * 60_000;
 const sections = ["machine", "computers", "bots", "activity", "devices", "plans"] as const;
+
+/** the page's content security policy: its own scripts plus the hashes of its inline ones (the theme bootstrap) */
+export function pagePolicy(html: string): string {
+  const inline = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(match => `'sha256-${createHash("sha256").update(match[1]!).digest("base64")}'`);
+  return ["default-src 'self'", `script-src 'self'${inline.length ? ` ${inline.join(" ")}` : ""}`, "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob: https:",
+    "font-src 'self' data:", "connect-src 'self'", "frame-src 'none'", "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'"].join("; ");
+}
 
 export function createDashboardApp(options: DashboardAppOptions) {
   const now = options.now ?? Date.now;
@@ -122,9 +134,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     }
   }
   function rate(req: IncomingMessage, kind: string, max: number) {
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = options.trustProxy && typeof forwarded === "string" ? forwarded.split(",")[0]!.trim() : req.socket.remoteAddress ?? "unknown";
-    const key = `${kind}:${ip}`;
+    const key = `${kind}:${clientIp(req, options.trustProxy ?? false)}`;
     const current = limits.get(key) ?? { count: 0, until: now() + hourMs };
     if (++current.count > max) fail(429, "rate_limited", "Try again later.");
     limits.set(key, current);
@@ -215,7 +225,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
       const ext = file.slice(file.lastIndexOf(".")).toLowerCase();
       const types: Record<string, string> = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".ico": "image/x-icon", ".woff2": "font/woff2", ".json": "application/json" };
       res.writeHead(200, { "content-type": types[ext] ?? "application/octet-stream", "cache-control": ext === ".json" ? "no-store" : ext !== ".html" && path.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache",
-        "content-security-policy": "frame-ancestors 'none'", "x-frame-options": "DENY", "referrer-policy": "no-referrer", "x-content-type-options": "nosniff" });
+        "content-security-policy": ext === ".html" ? pagePolicy(content.toString("utf8")) : "frame-ancestors 'none'", "x-frame-options": "DENY", "referrer-policy": "no-referrer", "x-content-type-options": "nosniff",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()", "cross-origin-opener-policy": "same-origin" });
       res.end(content);
     } catch (error) {
       if (error instanceof RequestError) throw error;
@@ -228,6 +239,10 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const method = req.method ?? "GET";
     const url = new URL(req.url ?? "/", publicUrl);
     const path = url.pathname;
+    if ((method === "GET" || method === "HEAD") && path === "/v1/health") {
+      try { accessSync(options.dataDir, constants.W_OK); } catch { return json(res, 503, { ok: false, error: "data folder is not writable" }); }
+      return json(res, 200, { ok: true, version: options.version ?? null });
+    }
     const mutation = ["POST", "PATCH", "DELETE"].includes(method);
     const appleCallback = method === "POST" && path === "/v1/auth/oauth/apple/callback" && req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() === "application/x-www-form-urlencoded";
     if (mutation && !isAppCorsRoute(path) && !appleCallback) {
@@ -240,7 +255,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       account: (request, mutation) => auth.requireWeb(request, { mutation }) })) return;
     if (await managedRoutes.handle(req, res, url)) return;
     if (billing.clouds.managed?.handle && await billing.clouds.managed.handle(req, res, url, { publicUrl, json, readJson: async request => bodyObject(await readBody(request)),
-      clientIp: request => { const forwarded = request.headers["x-forwarded-for"]; return options.trustProxy && typeof forwarded === "string" ? forwarded.split(",")[0]!.trim() : request.socket.remoteAddress ?? "unknown"; } })) return;
+      clientIp: request => clientIp(request, options.trustProxy ?? false) })) return;
     if (await billing.handle(req, res, url)) return;
     if (!path.startsWith("/v1/") && !path.startsWith("/.well-known/")) {
       if (method === "GET") return staticPage(req, res);
@@ -261,13 +276,16 @@ export function createDashboardApp(options: DashboardAppOptions) {
         publicKey = der.toString("base64");
       } catch { fail(400, "invalid_key", "Public key is invalid."); }
       let ownerAccountId: string | null = null;
+      const proven = typeof input.enrollToken === "string" || req.headers["x-omb-signature"] !== undefined;
+      if (proven) verifySignature(req, body, publicKey);
       if (typeof input.enrollToken === "string") {
-        verifySignature(req, body, publicKey);
         ownerAccountId = auth.consumeEnrollGrant(input.enrollToken);
         if (!ownerAccountId) fail(403, "invalid_grant", "Enrollment grant is invalid.");
       }
       let ws = state.workspaces.find(item => item.publicKey === publicKey);
       if (ws?.ownerAccountId && !ownerAccountId) return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${publicUrl}/?workspace=${ws.id}`, claimExpiresAt: 0, dashboardUrl: publicUrl });
+      // a public key is not a secret: only its holder may replace an existing workspace's claim link
+      if (ws && !proven) fail(401, "bad_signature", "Signature is required.");
       const token = random(24);
       if (!ws) {
         ws = { id: `ws_${random(16)}`, publicKey, ownerAccountId: null, claimHash: null, claimExpiresAt: 0, name: data.name, kind: data.kind,
@@ -334,6 +352,29 @@ export function createDashboardApp(options: DashboardAppOptions) {
       res.on("close", clear);
       return;
     }
+    if (method === "GET" && path === "/v1/account/export") {
+      const owner = auth.requireWeb(req, { mutation: false });
+      const answer = auth.exportAccount(owner);
+      const data = { v: 1, exportedAt: new Date(now()).toISOString(), ...answer,
+        workspaces: state.workspaces.filter(ws => ws.ownerAccountId === owner.id).map(ws => ({ ...summary(ws), report: ws.report })),
+        ...billing.exportAccount(owner.id) };
+      res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store",
+        "content-disposition": `attachment; filename="dusk-bot-account-${new Date(now()).toISOString().slice(0, 10)}.json"` });
+      res.end(JSON.stringify(data, null, 2));
+      return;
+    }
+    if (method === "POST" && path === "/v1/client-error") {
+      rate(req, "client-error", 60);
+      const input = bodyObject(await readBody(req));
+      const text = (value: unknown, max: number) => typeof value === "string" ? value.slice(0, max) : "";
+      const error = new Error(text(input.message, 500));
+      error.name = /^[A-Za-z_$][\w$]{0,60}$/.test(text(input.type, 61)) ? text(input.type, 61) : "Error";
+      error.stack = `${error.name}: ${error.message}\n${text(input.stack, 8000)}`;
+      options.errors?.page.capture(error, { tags: { page: text(input.page, 64).replace(/[^\w/-]/g, "") || "unknown" } });
+      res.writeHead(204, { "cache-control": "no-store" });
+      res.end();
+      return;
+    }
     if (method === "GET" && path === "/v1/workspaces") {
       const owner = account(req);
       watch(owner);
@@ -395,7 +436,10 @@ export function createDashboardApp(options: DashboardAppOptions) {
     handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
       return route(req, res).catch(error => {
         if (error instanceof RequestError || error instanceof AuthError) json(res, error.status, req.url?.startsWith("/api/cloud/") ? { error: error.code } : { error: error.message, code: error.code });
-        else json(res, 500, req.url?.startsWith("/api/cloud/") ? { error: "failed" } : { error: "Request failed.", code: "failed" });
+        else {
+          options.errors?.service.capture(error, { tags: { route: (req.url ?? "/").split("?")[0]!.split("/").slice(0, 3).join("/") } });
+          json(res, 500, req.url?.startsWith("/api/cloud/") ? { error: "failed" } : { error: "Request failed.", code: "failed" });
+        }
       });
     },
     close() {

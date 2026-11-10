@@ -29,5 +29,5 @@ const server = createServer({ requestTimeout: 0, headersTimeout: 30_000 }, (req,
 server.keepAliveTimeout = 65_000;
 const sweep = setInterval(() => service.store.sweep(), 60_000);
 sweep.unref();
-server.listen(port, process.env.HOST || "0.0.0.0", () => console.log(`link service on :${port}, public base ${base}`));
+server.listen(port, process.env.HOST || "127.0.0.1", () => console.log(`link service on :${port}, public base ${base}`));
 for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { service.close(); server.close(); process.exit(0); });

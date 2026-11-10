@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Download } from "lucide-react";
 import { useCloud } from "../data/cloud";
+import { LoadError } from "./common";
 import type { BillingInterval, LicenseId, PlanCatalog } from "../data/contracts";
 import { bundleOf, desktopOf, gb, licenseMonthly, licenseOf, perMonthOn, wakeSeconds } from "../data/pricing";
 import { useCart } from "../data/quote";
@@ -210,7 +211,7 @@ function CancelDialog({ open, onClose }: { open: boolean; onClose(): void }) {
 }
 
 export function BillingPage() {
-  const { catalog, billing } = useCloud();
+  const { catalog, billing, error, refresh } = useCloud();
   const { query } = useLocation();
   const [interval, setIv] = useInterval();
   const owned = billing?.subscription?.selection ?? null;
@@ -233,6 +234,7 @@ export function BillingPage() {
     else if (want === "team") setLicenseSheet({ license: "team", members: licenseOf(catalog, "team")?.includedMembers ?? 2 });
   }, [catalog, billing, want]);
 
+  if (error && (!catalog || !billing)) return <div><PageHeader title="Plans & billing" /><LoadError error={error} retry={refresh} /></div>;
   if (!catalog || billing === null) {
     return (
       <div aria-busy="true" aria-label="Loading">

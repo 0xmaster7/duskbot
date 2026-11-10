@@ -60,6 +60,12 @@ describe("self-hosted update row", () => {
     expect(serverUpdateRow("up-to-date", check({ install: "managed" })).label).toBe("Kept up to date for you");
   });
 
+  it("points a desktop app with a newer signed release at the download page", () => {
+    const desktop = check({ install: "desktop", available: true, latest: "0.1.150", releaseUrl: "https://dusk.bot/download" });
+    expect(serverCheckPhase(desktop, "0.1.141")).toBe("available");
+    expect(serverUpdateRow("available", desktop)).toEqual({ label: "Version 0.1.150 available (release notes)", subtitle: "Download it from dusk.bot/download" });
+  });
+
   it("reports a failed check plainly", () => {
     expect(serverUpdateRow("error", null)).toEqual({ label: "Couldn't check for updates. Try again." });
   });

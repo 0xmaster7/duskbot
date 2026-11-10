@@ -232,9 +232,7 @@ export function phoneMenuItems({
 }
 
 export function toolMenuItems({ archived }: { archived?: ArchivedBots }): SidebarMenuItem[] {
-  return [
-    ...(archived?.count ? [{ key: "archived", label: t("sidebar.archived.title"), icon: <Archive size={16} />, value: String(archived.count), onSelect: archived.open }] : []),
-  ];
+  return archived?.count ? [{ key: "archived", label: t("sidebar.archived.title"), icon: <Archive size={16} />, value: String(archived.count), onSelect: archived.open }] : [];
 }
 
 /** The account button's name: the person, then whatever its dot is raised for, then the move to My Cloud while it goes.
