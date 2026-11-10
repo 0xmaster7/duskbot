@@ -3582,7 +3582,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -9428,7 +9435,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12934,7 +12948,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -16437,7 +16458,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -22683,7 +22711,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -29118,7 +29153,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -35938,7 +35980,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -42348,7 +42397,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -48626,7 +48682,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -55043,7 +55106,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -60412,7 +60482,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -64220,7 +64297,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -69589,7 +69673,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -76582,7 +76673,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -81520,7 +81618,14 @@
       "cloudAsleep.waking": "9d4c779773a08956936d3239a19699e3f2d79ceda084e078899026ac4c44cf08",
       "cloudAsleep.held": "78cff90e4a63d2e970e03af9ff9b3f3bd5d3a918d448d69231eb7422e13d5f6b",
       "cloudAsleep.empty": "c2bdf12f8f252f2650964accff69e4a302ddcf8884b228f8f933239569524186",
-      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118"
+      "cloudAsleep.bots": "f17c0acbd8e50c780760bb7c6493264736305603acae6f076b1eecb0e26f5118",
+      "connectApps.gmail.what": "1ae9136acf3f1ec4c557a950e4a8b240d26cc98fc338026d68a8d56fe8e38693",
+      "connectApps.gmail.how": "8f600c9436064402915c8a9d81eac10afdf3198ff181bf5aa683aef0821342e9",
+      "connectApps.gmail.howVia": "2bce005b4d3fb36f94ed36f88751681b65313b39abf16eccc158eb697287dd57",
+      "connectApps.gmail.next": "e20093ff4a832b3b6ccb26025e6bd36aeacf2a0944056696b97b4afd20c1a478",
+      "connectApps.gmail.waiting": "f053ebbe49c69ccde9172bbacda03c7ab9594265c3d5d55a039a16366f34cfb1",
+      "connectApps.gmail.connected": "27796dac0e96fb8749061af339a7201323a15724eb54a6d6835b8172a24e2e99",
+      "connectApps.gmail.reconnect": "66de84743e33af43cad98808e645d10334092c97a96db273e64965ec121345c5"
     }
   }
 }
