@@ -424,7 +424,7 @@ export async function launchUi(
   io: { stdout: NodeJS.WritableStream; stderr: NodeJS.WritableStream } = process,
   fixtureOptions: { localVm?: Parameters<typeof launchVerificationServer>[2] } = {},
 ): Promise<void> {
-  const values = parse("ui launch", args, { entry: { type: "string" }, "tool-calls": { type: "string" }, mode: { type: "string" }, engine: { type: "string" } });
+  const values = parse("ui launch", args, { entry: { type: "string" }, "tool-calls": { type: "string" }, script: { type: "string" }, mode: { type: "string" }, engine: { type: "string" } });
   if (values.engine !== undefined && values.engine !== "codex") {
     throw new ControlOmbError(`unknown --engine ${JSON.stringify(values.engine)}`, "the fake Claude CLI always runs; --engine codex adds the fake Codex app-server beside it");
   }
@@ -441,6 +441,19 @@ export async function launchUi(
       throw new ControlOmbError("--tool-calls must be a JSON array of {name, input?, ok?}", 'example: --tool-calls \'[{"name":"Bash","input":{"command":"echo hi"},"ok":true}]\'');
     }
     fakeEnv.FAKE_CLAUDE_TOOL_CALLS = JSON.stringify(calls);
+  }
+  if (values.script !== undefined) {
+    let steps: unknown;
+    try { steps = JSON.parse(String(values.script)); } catch { steps = undefined; }
+    const step = (value: unknown) => {
+      const s = value as { text?: unknown; waitMs?: unknown; tool?: { name?: unknown } } | null;
+      return typeof s?.text === "string" || (Number.isSafeInteger(s?.waitMs) && Number(s?.waitMs) >= 0) || typeof s?.tool?.name === "string";
+    };
+    if (!Array.isArray(steps) || !steps.every(step)) {
+      throw new ControlOmbError("--script must be a JSON array of {text}, {tool: {name, input?, ok?, output?}} or {waitMs}",
+        'example: --script \'[{"text":"On it."},{"tool":{"name":"mcp__agents__set_status","input":{"status":"checking prices"}}},{"text":"Done."}]\'');
+    }
+    fakeEnv.FAKE_CLAUDE_SCRIPT = JSON.stringify(steps);
   }
   if (values.mode !== undefined) {
     if (!FAKE_MODES.includes(String(values.mode))) throw new ControlOmbError(`unknown --mode ${JSON.stringify(values.mode)}`, `fake engine modes: ${FAKE_MODES.join(", ")}`);

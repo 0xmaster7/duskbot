@@ -17,7 +17,7 @@ describe("what a running turn's mark shows", () => {
   it("types only while the reply's words stream", () => {
     expect(presenceKind({ writing: true, activity: "command", worked: true })).toBe("typing");
     expect(presenceKind({ writing: false, activity: "reply", worked: true })).toBe("typing");
-    expect(TYPING_MARK).toBe("thinking");
+    expect(TYPING_MARK, "grok types as the bot itself; the dots only open a turn").toBe("streaming");
   });
 
   it("stays at work in the gap between two tools", () => {

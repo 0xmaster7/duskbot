@@ -44,8 +44,8 @@ export function turnWorked(messages: readonly Message[]): boolean {
   return false;
 }
 
-/** The dots: the mark's own morph for its thinking state. */
-export const TYPING_MARK: MarkState = "thinking";
+/** Typing is the bot itself, looking down at its words, as Grok Bot's mark does: the dots only open a turn. */
+export const TYPING_MARK: MarkState = "streaming";
 
 /** The kind to show now, given the one shown since `since`: a change waits until the shown one has held its time. */
 export function heldPresence(shown: { kind: PresenceKind | null; since: number }, next: PresenceKind | null, now: number): { kind: PresenceKind | null; since: number } {

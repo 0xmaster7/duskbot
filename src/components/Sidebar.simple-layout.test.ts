@@ -40,7 +40,7 @@ vi.mock("@/state/store", async (importOriginal) => {
   return { ...original, useStore: () => ({ state: fixture.state, dispatch: fixture.dispatch }) };
 });
 
-import { initialState } from "@/state/store";
+import { initialState, reducer, type Message } from "@/state/store";
 import { BOTS_SECTION_ID, CHANNELS_SECTION_ID, userSectionId } from "@/lib/sidebar-layout";
 import { SIDEBAR_COLLAPSED_SECTIONS_KEY, SIDEBAR_DENSITY_KEY, SIDEBAR_SECTION_ORDER_KEY, SIMPLE_SIDEBAR_SECTION_ORDER_KEY, setSidebarDensity } from "@/lib/sidebar-preferences";
 import { Sidebar } from "./Sidebar";
@@ -115,6 +115,24 @@ describe("Simple-mode sidebar layout", () => {
     expect(lines[2]!.props.onMenu).toBeUndefined();
     expect(labelled(tree, "Add or remove bots in Work")).toBe(false);
     expect(tree.some((node) => node.type === SidebarTileGrid)).toBe(false);
+  });
+
+  it("jumps a bot to the top at once when its turn starts and when a message arrives, and not on the person's own send", () => {
+    const at = Date.now() - 60_000;
+    const said = (id: string, when: number): Message => ({ id, at: when, role: "bot", kind: "text", text: id });
+    fixture.state = { ...fixture.state, sections: [], groups: [], bots: [
+      bot("atlas", { messages: [said("a1", at + 3)] }),
+      bot("bea", { messages: [said("b1", at + 2)] }),
+      bot("cora", { messages: [said("c1", at + 1)], tasks: [{ threadId: "cora-thread", title: "Chat", createdAt: at, updatedAt: at + 1 }] }),
+    ] };
+    expect(listedBots(render().tree)).toEqual(["atlas", "bea", "cora"]);
+    fixture.state = reducer(fixture.state, { type: "send", botId: "cora", text: "plan my week", sendId: "s1" });
+    expect(listedBots(render().tree)).toEqual(["atlas", "bea", "cora"]);
+    const cora = fixture.state.bots.find((candidate) => candidate.id === "cora")!;
+    fixture.state = reducer(fixture.state, { type: "botPatched", bot: { ...cora, busy: true, turnStartedAt: Date.now() + 1 } });
+    expect(listedBots(render().tree)).toEqual(["cora", "atlas", "bea"]);
+    fixture.state = reducer(fixture.state, { type: "messageAdded", threadId: "bea-thread", message: said("b2", Date.now() + 2) });
+    expect(listedBots(render().tree)).toEqual(["bea", "cora", "atlas"]);
   });
 
   it("leads with the main bot, headless, when it is the only bot outside every department", () => {

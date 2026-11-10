@@ -76,7 +76,41 @@ export function lastLine(bot: Bot, visible: Message[], instances: InstanceInfo[]
   const peer = peerLine(last);
   if (peer) return `${peer.name}: ${plainPreviewText(peer.body)}`;
   if (last.role !== "user" && isClientCancellation(last.text ?? "")) return t("chat.turnStopped");
-  return plainPreviewText(withoutCitationMarkers(last.text ?? ""));
+  return plainPreviewText(withoutCitationMarkers(last.text ?? "")) || sentPreview(last.attachments);
+}
+
+type SentKind = "pdf" | "spreadsheet" | "video" | "image" | "audio" | "document" | "file";
+
+const SENT = {
+  pdf: ["sidebar.preview.sent.pdf.one", "sidebar.preview.sent.pdf.many"],
+  spreadsheet: ["sidebar.preview.sent.spreadsheet.one", "sidebar.preview.sent.spreadsheet.many"],
+  video: ["sidebar.preview.sent.video.one", "sidebar.preview.sent.video.many"],
+  image: ["sidebar.preview.sent.image.one", "sidebar.preview.sent.image.many"],
+  audio: ["sidebar.preview.sent.audio.one", "sidebar.preview.sent.audio.many"],
+  document: ["sidebar.preview.sent.document.one", "sidebar.preview.sent.document.many"],
+  file: ["sidebar.preview.sent.file.one", "sidebar.preview.sent.file.many"],
+} as const satisfies Record<SentKind, readonly [string, string]>;
+
+function sentKind(attachment: NonNullable<Message["attachments"]>[number]): SentKind {
+  const mime = attachment.mime.toLowerCase();
+  const name = ("name" in attachment ? attachment.name ?? "" : "").toLowerCase();
+  const ext = name.includes(".") ? name.slice(name.lastIndexOf(".") + 1) : "";
+  if (attachment.kind === "image" || mime.startsWith("image/")) return "image";
+  if (attachment.kind === "audio" || mime.startsWith("audio/")) return "audio";
+  if (mime.startsWith("video/")) return "video";
+  if (mime === "application/pdf" || ext === "pdf") return "pdf";
+  if (/spreadsheet|excel|csv|tab-separated/.test(mime) || ["csv", "tsv", "xls", "xlsx", "ods", "numbers"].includes(ext)) return "spreadsheet";
+  if (/wordprocessing|msword|opendocument\.text|rtf/.test(mime) || ["doc", "docx", "odt", "rtf", "pages"].includes(ext)) return "document";
+  return "file";
+}
+
+/** grok's line for a message that is only files: "Sent 1 PDF", "Sent 2 images", and "Sent 3 files" for a mix. */
+export function sentPreview(attachments: Message["attachments"]): string {
+  if (!attachments?.length) return "";
+  const kinds = new Set(attachments.map(sentKind));
+  const kind = kinds.size === 1 ? [...kinds][0]! : "file";
+  const count = attachments.length;
+  return t(SENT[kind][count === 1 ? 0 : 1], { count });
 }
 
 const RUN_PREVIEW = {
@@ -108,7 +142,7 @@ export function groupPreview(group: Group, bots: Bot[], instances: InstanceInfo[
       : last.kind === "connector" && last.connector
         ? sidebarConnectorPreview(last.connector, t)
         : (last.text ?? "");
-  const readable = plainPreviewText(withoutCitationMarkers(text));
+  const readable = plainPreviewText(withoutCitationMarkers(text)) || sentPreview(last.attachments);
   if (last.role === "user") return t("sidebar.preview.you", { text: readable });
   return last.from ? `${last.from.name}: ${readable}` : readable;
 }

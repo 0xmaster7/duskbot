@@ -139,6 +139,12 @@ describe("readBotActivity", () => {
     ]);
   });
 
+  it("never lists the bot setting its own status line", () => {
+    toolRun("t1", "i1", "mcp__agents__set_status", "2026-09-07T09:00:00.000Z", true);
+    toolRun("t1", "i2", "Read", "2026-09-07T09:01:00.000Z", true);
+    expect(read().map((row) => row.tool)).toEqual(["Read"]);
+  });
+
   it("keeps reused provider item IDs separate across turns, including legacy no-turn events", () => {
     for (const [turnId, tool, ok, minute] of [["turn-one", "Read", true, "00"], ["turn-two", "Bash", false, "01"], [undefined, "Edit", true, "02"]] as const) {
       event("t1", `2026-09-07T09:${minute}:00.000Z`, { type: "item.started", itemType: "tool", itemId: "item_0", turnId, title: tool });

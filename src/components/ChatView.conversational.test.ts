@@ -74,13 +74,13 @@ describe("conversational replies", () => {
     const bubbles = [...document.querySelectorAll<HTMLElement>("[data-reply-segment]")];
     expect(bubbles).toHaveLength(3);
     expect(bubbles.every((el) => !el.classList.contains("reply-bubble-in"))).toBe(true);
-    for (const el of bubbles) expect([...el.classList]).toEqual(expect.arrayContaining(["chat-bubble-bot", "rounded-[18px]", "px-3", "text-[15px]", "leading-[22px]", "min-w-9"]));
-    // grok keeps every bubble fully round, even inside a group
-    for (const el of bubbles) expect([...el.classList].some((name) => /^rounded-(ss|se|es|ee)-/.test(name))).toBe(false);
+    for (const el of bubbles) expect([...el.classList]).toEqual(expect.arrayContaining(["chat-bubble-bot", "rounded-[18px]", "px-3", "text-[15px]", "leading-5", "min-w-9"]));
+    // grok's tail: only the group's last bubble tightens its bottom corner on the bot's side
+    expect(bubbles.map((el) => el.classList.contains("rounded-es-[6px]"))).toEqual([false, false, true]);
     expect(document.querySelector("[data-conversational-reply]")!.classList).toContain("gap-1");
   });
 
-  it("plays a reply that arrives while the chat is open in, one bubble after another", async () => {
+  it("lets a reply that arrives while the chat is open rise as one row, with no bubble-by-bubble stagger", async () => {
     root.unmount();
     const container = document.createElement("div");
     document.body.append(container);
@@ -89,8 +89,9 @@ describe("conversational replies", () => {
     const fresh: Message[] = [messages[0]!, { ...messages[1]!, id: "m3", at: later }];
     await draw(profile({ replyStyle: "conversational", messages: fresh, activeLeafId: "m3" }));
     const bubbles = [...document.querySelectorAll<HTMLElement>("[data-reply-segment]")];
-    expect(bubbles.map((el) => el.classList.contains("reply-bubble-in"))).toEqual([true, true, true]);
-    expect(bubbles.map((el) => el.style.animationDelay)).toEqual(["0ms", "120ms", "240ms"]);
+    expect(bubbles.map((el) => el.classList.contains("reply-bubble-in"))).toEqual([false, false, false]);
+    expect(bubbles.map((el) => el.style.animationDelay)).toEqual(["", "", ""]);
+    expect(document.querySelector("[data-arrival]")).not.toBeNull();
   });
 
   it("keeps a single bubble for a default bot", async () => {

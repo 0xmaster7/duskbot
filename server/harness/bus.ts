@@ -10,6 +10,7 @@ import { capThreadLog, currentThreadLogCap } from "../thread-log-rotation.ts";
 import { newId, type ProviderAdapter, type ProviderInstance, type RuntimeEvent, type RuntimeEventListener } from "../contracts.ts";
 import { LiveSteps } from "./live-steps.ts";
 import { ProgressGate } from "./progress-gate.ts";
+import { TurnStatus } from "./status-calls.ts";
 
 const INCOMPLETE_LOG_MESSAGE =
   "Canonical event history is incomplete: Dusk Bot could not write one or more events to disk. Live updates will continue.";
@@ -61,9 +62,10 @@ export class EventBus {
   private readonly drainWaiters: Array<() => void> = [];
   private readonly queuedLogWarnings = new Map<string, RuntimeEvent>();
   // A status-line report is live only: delivered to listeners, never queued for the log.
+  private readonly status = new TurnStatus();
   private readonly progress = new ProgressGate((event) => {
     if (this.pendingText.has(event.threadId)) this.flushThread(event.threadId);
-    this.deliver(event);
+    this.deliver(this.status.stamp(event));
   });
   private readonly adapters = new Map<string, ProviderAdapter>();
   private readonly steps = new LiveSteps({
@@ -98,13 +100,21 @@ export class EventBus {
 
   publish(raw: RuntimeEvent) {
     if (raw.type === "turn.progress") {
-      this.progress.offer(this.steps.progress(raw));
+      if (!this.status.hides(raw)) this.progress.offer(this.steps.progress(raw));
       return;
     }
     if (raw.type === "item.output") {
       this.steps.output(raw);
       return;
     }
+    const statusCall = this.status.take(raw);
+    if (statusCall) {
+      if (this.pendingText.has(raw.threadId)) this.flushThread(raw.threadId);
+      this.enqueue(raw);
+      if (statusCall.frame) this.progress.offer(statusCall.frame);
+      return;
+    }
+    if (raw.type === "turn.started" || isTerminalEvent(raw)) this.status.forget(raw.threadId);
     const event = this.steps.observe(raw, isTerminalEvent(raw));
     if (STATUS_LINE_EVENTS.has(event.type) || isTerminalEvent(event)) this.progress.supersede(event.threadId, isTerminalEvent(event));
     const pending = this.pendingText.get(event.threadId);

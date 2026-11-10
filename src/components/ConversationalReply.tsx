@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { splitConversationalReply } from "../../shared/reply-style";
@@ -7,10 +7,10 @@ import { joinedCorners, SIMPLE_BOT_BUBBLE, type BubbleJoin } from "./chat-bubble
 export { isConversational } from "../../shared/reply-style";
 
 /** A reply that arrives while its thread is open plays its parts in; parts already shown never replay. */
-export function useReplySegments(show: boolean, text: string, at: number, openedAt: number): { segments: string[]; firstNew: number } {
+export function useReplySegments(show: boolean, text: string): { segments: string[]; firstNew: number } {
   const segments = useMemo(() => (show ? splitConversationalReply(text) : []), [show, text]);
-  const [fresh] = useState(() => at >= openedAt);
-  const shown = useRef(fresh ? 0 : segments.length);
+  // a message that arrives whole rises as one row; only parts added to it later rise on their own
+  const shown = useRef(segments.length);
   const firstNew = shown.current;
   useEffect(() => {
     shown.current = Math.max(shown.current, segments.length);
@@ -43,7 +43,6 @@ export function ConversationalReply({ segments, firstNew, renderSegment, join }:
             joinedCorners("start", { above: index > 0 || Boolean(join?.above), below: index < segments.length - 1 || Boolean(join?.below) }),
             index >= firstNew && "reply-bubble-in",
           )}
-          style={index >= firstNew ? { animationDelay: `${(index - firstNew) * 120}ms` } : undefined}
         >
           {renderSegment(segment)}
         </div>

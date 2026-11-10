@@ -4,7 +4,7 @@ import { motion, type MotionStyle } from "motion/react";
 import { createPortal } from "react-dom";
 import { Bot as BotIcon, Check, ClipboardCopy, Crown, FolderPlus, Library, Loader2, MoreHorizontal, Pencil, Phone, Pin, Plus, TextQuote, Trash2, Users, X } from "lucide-react";
 import { api, useStore, formatTime, visibleMessages, botOpensTo, openBot, openThread, type Action, type AppState, type Bot, type Group, type InstanceInfo, type Message } from "@/state/store";
-import { SidebarWorkingStep } from "./SidebarWorkingStep";
+import { SidebarWorkingStep, useWorkingLabel } from "./SidebarWorkingStep";
 import { openBotRow } from "@/state/thread-navigation";
 import { llmThreadTitlesEnabled } from "@/lib/feature-flags";
 
@@ -65,6 +65,7 @@ import { BotContextMenu, GROK_LABEL, GROK_MENU_ITEM, GROK_ROW_FILL, GrokMenuIcon
 import { GROK_DANGER } from "./menu-recipe";
 export { BotContextMenu };
 import { AvatarActivityDot, RowDot, RowStatusText, rowSurface } from "./SidebarRowMarkers";
+import { botActivityAt, latestActivityFirst } from "./sidebar-order";
 
 
 import { useLiveMedia } from "@/lib/live-call-media";
@@ -147,7 +148,7 @@ export function GroupListItem({
       className={cn(
         "relative flex w-full items-center rounded-md text-left", SIMPLE_ROW_FOCUS,
         railTile ? "h-[54px] justify-center" : simpleRow
-          ? cn("gap-2 rounded-[10px] p-2 md:h-[54px] md:py-0", ROW_PRESS) : "gap-2 py-1.5 pl-2.5 pr-3",
+          ? cn("gap-2.5 rounded-[12px] p-2 md:h-[54px] md:py-0", ROW_PRESS) : "gap-2 py-1.5 pl-2.5 pr-3",
         simpleRow ? rowSurface(selected) : selected ? "bg-raised" : "hover:bg-raised/50",
       )}
       title={density === "icons" ? group.name : undefined}
@@ -519,7 +520,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   const title = bot.title.trim();
   const rowClass = cn(
     "flex w-full items-center rounded-xl text-left", SIMPLE_ROW_FOCUS,
-    iconOnly ? "h-[54px] justify-center" : cn("gap-2 rounded-[10px] p-2 leading-[normal] tracking-[0.24px] md:h-[54px]", ROW_PRESS),
+    iconOnly ? "h-[54px] justify-center" : cn("gap-2.5 rounded-[12px] p-2 leading-[normal] tracking-[0.24px] md:h-[54px]", ROW_PRESS),
     !iconOnly && "max-md:rounded-2xl max-md:py-2.5",
     simpleRow ? rowSurface(selected) : selected ? "bg-raised" : "hover:bg-raised/50",
   );
@@ -528,8 +529,9 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   const rowActivity = working ? (simpleRow ? null : "working") : teammateWait ? "teammate" : queued && !waiting ? "queued" : null;
   const { unread } = useBotUnread(bot);
   const markState = useBotMarkState(bot);
+  const workingLabel = useWorkingLabel(bot, simpleRow && working);
   // grok: hold ⌘ (⌃ elsewhere) and each row shows the number that opens it, where its dot sits
-  const preview = waiting ? simpleRow ? grokWaiting(waitingLine(bot, visible, instances)) : t("sidebar.preview.waiting") : teammateWait ? t("sidebar.preview.waitingOnTeammate") : queued ? t("task.queued") : simpleRow && working ? lastLine(bot, visible, instances) : botPreview(bot, visible, instances);
+  const preview = waiting ? simpleRow ? grokWaiting(waitingLine(bot, visible, instances)) : t("sidebar.preview.waiting") : teammateWait ? t("sidebar.preview.waitingOnTeammate") : queued ? t("task.queued") : simpleRow && working ? workingLabel ?? lastLine(bot, visible, instances) : botPreview(bot, visible, instances);
   // grok names a row with what it is doing: "Manager, Main Bot, Needs attention", "Koder, Working", "Content, Unread activity"
   const grokName = [bot.name, main ? t("sidebar.grok.mainBot") : "", waiting ? t("sidebar.grok.needsAttention") : working ? t("sidebar.grok.working") : unread ? t("sidebar.grok.unreadActivity") : ""].filter(Boolean).join(", ");
   const onLiveCall = liveBadgeFor(bot.id, liveMedia, liveCall);
@@ -904,10 +906,13 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
     ? { ...parts, primary: null, unsectionedChief: null, unsectionedBots: parts.unsectionedChief ? [parts.unsectionedChief, ...parts.unsectionedBots] : parts.unsectionedBots }
     : { ...parts, primary: null };
   // Shown order only: drag and Alt+Up/Down keep working on the saved order, so a reorder never stores this one.
-  const { primary, unsectionedChief, pinnedBots, sectionChiefs, sectionedBots, unsectionedBots } = { ...saved, ...activeBotsFirst(saved, (bot) => {
+  const activeFirst = activeBotsFirst(saved, (bot) => {
     const { waiting, working } = sidebarBotStatus(bot, state.pendingQueued);
     return waiting || working;
-  }) };
+  });
+  const { primary, unsectionedChief, pinnedBots, sectionChiefs, sectionedBots, unsectionedBots } = simple
+    ? { ...saved, ...activeFirst, sectionedBots: latestActivityFirst(saved.sectionedBots, botActivityAt), unsectionedBots: latestActivityFirst(saved.unsectionedBots, botActivityAt) }
+    : { ...saved, ...activeFirst };
   const { botChats, sectionedRooms, unsectionedRooms } = partitionSidebarGroups(visibleGroups);
 
   const sectionNames: string[] = [...(state.sections ?? []).filter((name) => !q || name.toLowerCase().includes(q.toLowerCase())), ...botDrag.pending];

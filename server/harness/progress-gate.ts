@@ -1,6 +1,6 @@
 // Coalesces turn.progress for the bus. An engine can report a tool call's input dozens of times a second; the chat's
 // status line needs a frame only when what it shows changes, and never more than a few a second.
-import { progressKey } from "../../shared/turn-progress.ts";
+import { progressKey, STATUS_TOOL } from "../../shared/turn-progress.ts";
 import type { RuntimeEvent } from "../contracts.ts";
 
 export type ProgressEvent = Extract<RuntimeEvent, { type: "turn.progress" }>;
@@ -28,8 +28,13 @@ export class ProgressGate {
     this.frameMs = options.frameMs ?? PROGRESS_FRAME_MS;
   }
 
-  /** A report that reads like the last one sent is dropped; a new one goes now, or when the thread's frame window ends. */
+  /** A report that reads like the last one sent is dropped; a new one goes now, or when the thread's frame window ends.
+   * The bot's own label goes at once, outside the frame window: nothing newer may drop it, and it delays no report. */
   offer(event: ProgressEvent): void {
+    if (event.tool === STATUS_TOOL) {
+      this.send(event);
+      return;
+    }
     let gate = this.threads.get(event.threadId);
     if (!gate) {
       gate = { shown: "", sentAt: -Infinity, pending: null, timer: null };

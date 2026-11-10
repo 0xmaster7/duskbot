@@ -79,7 +79,7 @@ import { RoomTurnDeadline, RoomTurnStallRegistry, effectiveRoomTurnTimeoutMinute
 import { roomTurnEnd, type RoomClaimEnd } from "./room-turn-end.ts";
 import { applyHoldDirective, classifyHoldDirective, heldMemberLine, rememberHeldMessage, stopWordPlacement } from "./room-holds.ts";
 import { createPersonStop } from "./host/person-stop.ts"; import { createTurnOrder } from "./host/turn-order.ts"; import { createQueuedNotes, createWaitWords } from "./host/wait-words.ts"; import { settleParkedFiles, type ParkedTurnAttachment } from "./host/turn-attachments.ts"; import type { DirectSendInput, DirectSendReceipt } from "./direct-send.ts";
-import { finishedWithoutSummaryLine, ROOM_SUMMARY_REASK, roomTurnNarrationIds, roomTurnReply } from "./room-reply.ts"; import { cleanBotVoice, roomTalkRules, roomTurnVoiceNote } from "./group-voice.ts";
+import { finishedWithoutSummaryLine, ROOM_SUMMARY_REASK, roomTurnNarrationIds, roomTurnReply } from "./room-reply.ts"; import { cleanBotVoice, roomTalkRules, roomTurnVoiceNote } from "./group-voice.ts"; import { replyBubbles } from "./reply-bubbles.ts";
 import { pickComputer } from "./computer-selection.ts";
 import { keyHint, keyStatus, nestedKeyStatus, withoutKeyHints } from "./key-hint.ts";
 import { chartRenderer, compileChart, dataEngine, validateVegaLite } from "./data/deps.ts";
@@ -6628,7 +6628,7 @@ bus.subscribe((event: RuntimeEvent) => {
       return;
     }
     const voiced = cleanBotVoice(spoken.text, (speaker ?? bot)?.name); if (voiced.taggedLine && turnId && group && !personTaggedTurns.has(`${event.threadId}:${turnId}`)) personTaggedTurns.set(`${event.threadId}:${turnId}`, voiced.taggedLine);
-    pushMessage({ role: "bot", kind: "text", text: voiced.text, turnId });
+    for (const bubble of replyBubbles(voiced.text)) pushMessage({ role: "bot", kind: "text", text: bubble, turnId });
     lastReply.set(event.threadId, voiced.text);
   };
   const landParkedFiles = (stopped: boolean) => {

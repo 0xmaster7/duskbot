@@ -79,7 +79,7 @@ describe("bot-first sidebar", () => {
   });
 
   it.each([
-    { advanced: false, enabled: false, density: "comfortable", size: 36, spacing: ["gap-2", "rounded-[10px]", "p-2", "md:h-[54px]"] },
+    { advanced: false, enabled: false, density: "comfortable", size: 36, spacing: ["gap-2.5", "rounded-[12px]", "p-2", "md:h-[54px]"] },
     { advanced: false, enabled: false, density: "icons", size: 36, spacing: ["h-[54px]", "justify-center"] },
   ] as const)("sizes bot portraits and row spacing in $density density with threads $enabled (advanced $advanced)", ({ advanced, density, size, spacing }) => {
     fixture.advanced = advanced;
@@ -133,8 +133,8 @@ describe("bot-first sidebar", () => {
     const line = markup.slice(markup.indexOf(">Done.<"));
     expect(line).toMatch(/^>Done\.<\/span><\/span><\/div><span class="sr-only">Unread<\/span>/);
     const name = markup.slice(markup.indexOf('class="flex items-baseline justify-between gap-2 pr-7"'), markup.indexOf(">Done.<"));
-    expect(name).toMatch(/<span aria-hidden="true" data-row-dot="" class="pointer-events-none absolute inset-y-0 right-2 flex items-center transition-opacity duration-\[120ms\] group-has-\[:focus-visible\]:opacity-0 touch:opacity-0 max-md:hidden"><span data-testid="unread-dot" title="Unread" class="size-2 shrink-0 rounded-full bg-accent"><\/span><\/span>/);
-    expect(name).toContain('<span aria-hidden="true" title="Unread" class="size-2 shrink-0 rounded-full bg-accent hidden self-center max-md:block touch:block"></span>');
+    expect(name).toMatch(/<span aria-hidden="true" data-row-dot="" class="pointer-events-none absolute inset-y-0 right-2 flex items-center transition-opacity duration-\[120ms\] group-has-\[:focus-visible\]:opacity-0 touch:opacity-0 max-md:hidden"><span data-testid="unread-dot" title="Unread activity" class="size-2 shrink-0 rounded-full animate-\[omb-fade-in_130ms_cubic-bezier\(\.22,1,\.36,1\)\] bg-\[var\(--color-unread,var\(--color-accent\)\)\]"><\/span><\/span>/);
+    expect(name).toContain('<span aria-hidden="true" title="Unread activity" class="size-2 shrink-0 rounded-full animate-[omb-fade-in_130ms_cubic-bezier(.22,1,.36,1)] bg-[var(--color-unread,var(--color-accent))] hidden self-center max-md:block touch:block"></span>');
     expect(markup).not.toContain("data-provider-mark=");
     expect(String(findElement(tree, "data-sidebar-bot-row", bot.id)!.props.className)).not.toContain("group-hover:pr-9");
     expect(markup).not.toContain("group-hover:pr-7");
@@ -206,7 +206,7 @@ describe("bot-first sidebar", () => {
     fixture.state = { ...fixture.state, selectedId: bot.id, activeView: "chat" };
     const candidate = { ...bot, tasks: [], projects: [] };
     const simple = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", candidate)));
-    expect(simple).toContain("bg-ink/[0.06]");
+    expect(simple).toContain("bg-ink/[0.08]");
     expect(simple).toMatch(/data-bot-actions="atlas"[^>]*class="[^"]*\bpointer-events-none opacity-0 group-has-\[:focus-visible\]:pointer-events-auto group-has-\[:focus-visible\]:opacity-100\b[^"]*\btouch:opacity-70/);
     expect(simple).not.toMatch(/data-bot-actions="atlas"[^>]*class="[^"]*\bgroup-hover:/);
     expect(simple).toContain('class="flex items-baseline justify-between gap-2 pr-7"');
@@ -251,7 +251,7 @@ describe("bot-first sidebar", () => {
   });
 
   it.each([
-    { advanced: false, density: "comfortable", face: 36, spacing: ["gap-2", "rounded-[10px]", "p-2", "md:h-[54px]"], name: "font-medium", preview: "text-[13px]" },
+    { advanced: false, density: "comfortable", face: 36, spacing: ["gap-2.5", "rounded-[12px]", "p-2", "md:h-[54px]"], name: "font-medium", preview: "text-[13px]" },
     { advanced: false, density: "icons", face: 36, spacing: ["h-[54px]", "justify-center"], name: "font-semibold", preview: "text-[11px]" },
   ] as const)("sizes group chat rows in $density density (advanced $advanced)", ({ advanced, density, face, spacing, name, preview }) => {
     fixture.advanced = advanced;

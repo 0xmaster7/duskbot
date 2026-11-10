@@ -39,6 +39,9 @@
 //     (default 30000) as 2.1.306 does; hold "busy" | "idle" | "network" also keeps a stand-in child process that burns CPU,
 //     sleeps, or holds a loopback TCP connection, as the call's command would
 //   FAKE_CLAUDE_TOOL_CALLS_FILE  path of the same JSON, read again each turn (a warm process's turns differ); missing: none
+//   FAKE_CLAUDE_SCRIPT  JSON array of steps each happy turn plays in order instead of its replies and tool calls:
+//     {"text": "..."} is an assistant message of its own, {"tool": {name, input?, ok?, output?}} a tool_use answered by its
+//     tool_result (output default "ok"), {"waitMs": n} a pause; e.g. an ack, set_status with a search, a plan, a wait, a result
 //   FAKE_CLAUDE_STREAM_CADENCE  "chars:ms" (happy mode): stream each scripted reply as
 //     text_delta chunks of `chars` chars every `ms` ms before its assistant message, after FAKE_CLAUDE_TOOL_CALLS_FILE's calls
 //   FAKE_CLAUDE_USES_CLOUD_COMPUTER  1: claim the mounted computer's control gate before continuing
@@ -175,6 +178,21 @@ const parseToolCalls = (raw: string | undefined): ScriptedToolCall[] | null => {
   }
 };
 const scriptedToolCallsAtStart = parseToolCalls(process.env.FAKE_CLAUDE_TOOL_CALLS);
+type ScriptStep = { text: string } | { tool: ScriptedToolCall } | { waitMs: number };
+const turnScript = ((): ScriptStep[] | null => {
+  const raw = process.env.FAKE_CLAUDE_SCRIPT;
+  if (!raw) return null;
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { throw new Error("FAKE_CLAUDE_SCRIPT is not JSON"); }
+  if (!Array.isArray(parsed)) throw new Error("FAKE_CLAUDE_SCRIPT must be a JSON array of steps");
+  return parsed.map((step, index): ScriptStep => {
+    if (typeof step?.text === "string") return { text: step.text };
+    if (Number.isSafeInteger(step?.waitMs) && step.waitMs >= 0) return { waitMs: step.waitMs };
+    const call = typeof step?.tool?.name === "string" ? parseToolCalls(JSON.stringify([step.tool]))?.[0] : undefined;
+    if (call) return { tool: call };
+    throw new Error(`FAKE_CLAUDE_SCRIPT step ${index} is not {text}, {tool: {name}} or {waitMs}`);
+  });
+})();
 const turnToolCalls = (): ScriptedToolCall[] | null => {
   const file = process.env.FAKE_CLAUDE_TOOL_CALLS_FILE;
   if (!file) return scriptedToolCallsAtStart;
@@ -833,6 +851,27 @@ const playHeldCalls = (calls: ScriptedToolCall[], usage: object, done: () => voi
   next(0);
 };
 
+const playScript = (steps: ScriptStep[], usage: object, done: () => void) => {
+  const next = (index: number) => {
+    const step = steps[index];
+    if (!step) return done();
+    if ("waitMs" in step) return void setTimeout(() => next(index + 1), step.waitMs);
+    if ("text" in step) {
+      out({ type: "assistant", message: { id: `msg-script-${process.pid}-${++toolUseCount}`, content: [{ type: "text", text: step.text }], usage } });
+      return next(index + 1);
+    }
+    const call = step.tool;
+    const id = call.id ?? `tu-${process.pid}-${++toolUseCount}`;
+    out({ type: "assistant", message: { id: `msg-${id}`, content: [{ type: "tool_use", id, name: call.name, input: call.input }], usage } });
+    const output = call.output ?? "ok";
+    out({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: id, is_error: !call.ok, content: output }] } });
+    runHooks(call.ok ? "PostToolUse" : "PostToolUseFailure", { tool_name: call.name, tool_input: call.input, tool_use_id: id,
+      ...(call.ok ? { tool_response: output } : { error: output }) });
+    next(index + 1);
+  };
+  next(0);
+};
+
 const playTurn = (prompt: JsonValue, late = false) => {
   turnRunning = true;
   lateContinuation = late;
@@ -1136,6 +1175,10 @@ const playTurn = (prompt: JsonValue, late = false) => {
     return;
   }
 
+  if (turnScript && mode === "happy") {
+    playScript(turnScript, usage, finish);
+    return;
+  }
   if (streamCadence && mode === "happy") {
     // Deterministic delta replay for the voice-latency harness: stream each
     // scripted reply part as fixed-size text_delta chunks at a fixed interval,

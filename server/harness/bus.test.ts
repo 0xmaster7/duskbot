@@ -589,6 +589,52 @@ describe("EventBus status-line progress", () => {
     expect(logged.some((event) => event.type === "turn.progress")).toBe(false);
   });
 
+  it("shows the bot's own label at once, keeps it on every later frame of the turn, and never delivers the call", async () => {
+    const bus = new EventBus();
+    const seen: RuntimeEvent[] = [];
+    bus.subscribe((event) => seen.push(event));
+    const thread = { threadId: "label", turnId: "turn-1" };
+    const frames = () => seen.filter((event) => event.type === "turn.progress") as Array<Extract<RuntimeEvent, { type: "turn.progress" }>>;
+    bus.publish(testEvent({ ...thread, type: "turn.started" } as Partial<RuntimeEvent>));
+    bus.publish(progress(0, { ...thread, activity: "tool", tool: "mcp__agents__set_status", file: undefined, itemId: "st_1" }));
+    bus.publish(testEvent({ ...thread, type: "item.started", itemType: "tool", itemId: "st_1", title: "mcp__agents__set_status",
+      input: JSON.stringify({ status: "is comparing keyboard reviews..." }) } as Partial<RuntimeEvent>));
+    bus.publish(testEvent({ ...thread, type: "item.completed", itemType: "tool", itemId: "st_1", ok: true, output: "ok" } as Partial<RuntimeEvent>));
+    expect(frames()).toEqual([expect.objectContaining({ type: "turn.progress", activity: "tool", tool: "set_status", label: "Comparing keyboard reviews" })]);
+    expect(frames()[0]).not.toHaveProperty("itemId");
+
+    bus.publish(testEvent({ ...thread, type: "item.started", itemType: "tool", itemId: "toolu_9", title: "Bash",
+      summary: "python3 scrape.py", input: JSON.stringify({ command: "python3 scrape.py" }) } as Partial<RuntimeEvent>));
+    expect(frames().at(-1)).toMatchObject({ itemId: "toolu_9", target: "scrape.py", label: "Comparing keyboard reviews" });
+    expect(seen.filter((event) => event.type !== "turn.progress").map((event) => event.type)).toEqual(["turn.started", "item.started"]);
+
+    bus.publish(testEvent({ ...thread, type: "turn.completed", ok: true } as Partial<RuntimeEvent>));
+    bus.publish(testEvent({ ...thread, turnId: "turn-2", type: "turn.started" } as Partial<RuntimeEvent>));
+    bus.publish(progress(2048, { ...thread, turnId: "turn-2" }));
+    expect(frames().at(-1)).toMatchObject({ turnId: "turn-2", bytes: 2048 });
+    expect(frames().at(-1)).not.toHaveProperty("label");
+
+    await bus.flush();
+    const logged = readFileSync(join(EVENTS_DIR, "label.ndjson"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
+    expect(logged.filter((event) => event.itemId === "st_1").map((event) => event.type)).toEqual(["item.started", "item.completed"]);
+    expect(logged.some((event) => event.type === "turn.progress")).toBe(false);
+  });
+
+  it("never lets a newer event drop a label frame waiting behind a step frame", async () => {
+    const bus = new EventBus();
+    const seen: RuntimeEvent[] = [];
+    bus.subscribe((event) => seen.push(event));
+    bus.publish(progress(2048, { threadId: "quick" }));
+    bus.publish(testEvent({ threadId: "quick", type: "item.started", itemType: "tool", itemId: "st_2", turnId: "turn-1", title: "set_status",
+      input: JSON.stringify({ status: "reading the docs" }) } as Partial<RuntimeEvent>));
+    bus.publish(testEvent({ threadId: "quick", type: "item.completed", itemType: "tool", itemId: "st_2", turnId: "turn-1", ok: true } as Partial<RuntimeEvent>));
+    bus.publish(testEvent({ threadId: "quick", type: "item.started", itemType: "tool", itemId: "toolu_1", turnId: "turn-1" } as Partial<RuntimeEvent>));
+    vi.advanceTimersByTime(1000);
+    expect(seen.filter((event) => event.type === "turn.progress").map((event) => (event as { label?: string }).label))
+      .toEqual([undefined, "Reading the docs"]);
+    await bus.flush();
+  });
+
   it("folds a command's streamed output into its frame's last lines and neither logs nor forwards the output itself", async () => {
     const bus = new EventBus();
     const seen: RuntimeEvent[] = [];

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { AGENTS_ACTION_TOOLS, agentsCallMember } from "../shared/agents-tool-names.ts";
 import { bridgedCallName } from "./agents-bridge-names.ts";
 import { readDecisions, type DecisionKind, type DecisionRow } from "./decision-log.ts";
+import { statusCallText } from "./harness/status-calls.ts";
 import { isRuntimeEvent, readRecentLines } from "./thread-events.ts";
 
 import type { ActivityOutcome, ActivityRow } from "../shared/activity.ts";
@@ -192,6 +193,7 @@ function readToolRuns(eventsDir: string, threadId: string): ActivityRow[] {
   const runs = new Map<string, ActivityRow>();
   for (const event of lines) {
     if (event.type === "item.started" && event.itemType === "tool") {
+      if (statusCallText(event.title, event.input) !== null) continue;
       const key = JSON.stringify([event.turnId ?? "", event.itemId ?? event.eventId]);
       runs.set(
         key,

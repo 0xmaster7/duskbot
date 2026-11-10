@@ -1,6 +1,6 @@
 import { Children, isValidElement, type EffectCallback, type ReactElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Action, AppState, Bot, Group, Task } from "@/state/store";
+import type { Action, AppState, Bot, Group, Message, Task } from "@/state/store";
 
 const fixture = vi.hoisted(() => ({
   values: [] as unknown[], index: 0, advanced: false, phone: false, admin: null as boolean | null,
@@ -217,28 +217,27 @@ describe("dragging a bot in Advanced's list", () => {
 
 });
 
-describe("bots that are working or waiting on the person", () => {
+describe("bots with the latest activity", () => {
   const busy = (id: string, extra: Partial<Bot>) => {
     fixture.state = { ...fixture.state, bots: fixture.state.bots.map((item) => (item.id === id ? { ...item, ...extra } : item)) };
   };
+  const said = (at: number) => [{ id: `m${at}`, at, role: "bot", kind: "text", text: "Done." } as Message];
 
-  it("move to the top of their own list, in the person's order, and go back when done", () => {
-    busy("cleo", { busy: true });
-    busy("bea", { activity: "waiting-on-you" });
-    busy("echo", { busy: true });
+  it("lead their own list from the moment their turn starts, and stay there once it ends, as grok's do", () => {
+    busy("cleo", { busy: true, turnStartedAt: 300 });
+    busy("echo", { busy: true, turnStartedAt: 200 });
+    expect(listed()).toEqual(["echo", "dodo", "cleo", "atlas", "bea"]);
+    busy("cleo", { busy: false, messages: said(400) });
+    busy("echo", { busy: false, messages: said(250) });
+    busy("bea", { activity: "waiting-on-you", messages: said(500) });
     expect(listed()).toEqual(["echo", "dodo", "bea", "cleo", "atlas"]);
-    busy("cleo", { busy: false });
-    busy("bea", { activity: "idle" });
-    busy("echo", { busy: false });
-    expect(listed()).toEqual(["dodo", "echo", "atlas", "bea", "cleo"]);
   });
 
-  it("count a working thread, but not a wait on a teammate", () => {
-    busy("cleo", { tasks: [{ threadId: "c1", title: "Run", createdAt: 1, busy: true } as Task] });
+  it("count a working thread's start, but not a wait on a teammate", () => {
+    busy("cleo", { tasks: [{ threadId: "c1", title: "Run", createdAt: 1, busy: true, turnStartedAt: 100 } as Task] });
     busy("bea", { waitingForTeammates: true });
     expect(listed()).toEqual(["dodo", "echo", "cleo", "atlas", "bea"]);
   });
-
 });
 
 describe("who may drag a bot: whoever the bot menu offers Move to department", () => {
