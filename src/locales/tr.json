@@ -1,4 +1,6 @@
 {
+  "updates.updated": "{version} sürümüne güncellendi",
+  "updates.rolledBack": "Güncelleme geri alındı, hiçbir şey kaybolmadı",
   "voice.gemini.keyPlaceholder": "Google AI Studio API anahtarınızı yapıştırın",
   "voice.gemini.model": "Gemini konuşma modeli",
   "keys.label.geminiTts": "Gemini konuşma API anahtarı",

@@ -1,4 +1,6 @@
 {
+  "updates.updated": "{version} に更新しました",
+  "updates.rolledBack": "更新を元に戻しました。失われたものはありません",
   "voice.gemini.keyPlaceholder": "Google AI Studio の API キーを貼り付け",
   "voice.gemini.model": "Gemini 音声合成モデル",
   "keys.label.geminiTts": "Gemini 音声合成 API キー",

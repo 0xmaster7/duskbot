@@ -1,4 +1,6 @@
 {
+  "updates.updated": "Updated to {version}",
+  "updates.rolledBack": "Update rolled back, nothing lost",
   "connectedWorkspaces.localTitle": "Environments on this computer",
   "connectedWorkspaces.missing": "missing",
   "connectedWorkspaces.current": "Current",

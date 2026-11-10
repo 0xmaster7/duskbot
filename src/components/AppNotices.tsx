@@ -9,6 +9,7 @@ import { CLOUD_INTENT_GIVEN, cloudSetupStage } from "@/lib/cloud-setup";
 import { cornerPopupWaits, firstChatQuiet } from "@/lib/corner-popup";
 import { CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, introShown, introStage, launchNotice, markLaunchNotice, nextNotice, noticeSeen, TWO_PLACES_NOTICE, usedBefore, WHATS_NEW_NOTICE } from "@/lib/notices";
 import { useTwoPlaces } from "@/lib/two-places";
+import { useUpdateDigest } from "@/lib/update-digest";
 import { cloudSignInDue, onboardingCloudOffered, type WelcomeViewer } from "@/lib/onboarding";
 import { t } from "@/lib/i18n";
 import { engineReady } from "./EngineLibrary";
@@ -44,6 +45,8 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   const [busy, setBusy] = useState(false);
   const intent = useCloudIntent();
   const moving = useMoveQuiet(now);
+  // only a server install (a Cloud home, a VPS) has a line: the desktop app's own server never updates itself
+  const digest = useUpdateDigest();
   // Bots in two places: this computer's page only, where main knows what lives here.
   const two = useTwoPlaces();
   const twoFact = !local || two.suggest === null ? false : two.suggest === undefined ? null : true;
@@ -131,6 +134,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   };
   const close = () => { setClosed(true); setTrialOpen(null); setFailed(false); };
   if (toast) return <NoticeToast text={toast} onDone={() => setToast(null)} />;
+  if (!notice && digest && !waits) return <NoticeToast text={digest.line} onDone={digest.seen} />;
   if (!notice) return null;
 
   if (notice === CLOUD_INTRO && offer) {

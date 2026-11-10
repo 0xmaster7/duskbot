@@ -1,4 +1,6 @@
 {
+  "updates.updated": "Обновлено до {version}",
+  "updates.rolledBack": "Обновление отменено, ничего не потеряно",
   "voice.gemini.keyPlaceholder": "Вставьте свой API-ключ Google AI Studio",
   "voice.gemini.model": "Модель синтеза речи Gemini",
   "keys.label.geminiTts": "API-ключ синтеза речи Gemini",
