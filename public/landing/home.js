@@ -89,8 +89,8 @@ if (fine && !still) for (const el of $$('[data-sticker]')) {
 // nova's computer: its pointer reads down the fares and holds the cheapest one, once. you can take the mouse
 const view = $('[data-play="browse"]');
 if (view) {
-  const ptr = $('.ptr', view), rows = $$('.fares li', view), hold = $('u', rows[0]), act = $('[data-act]'), take = $('[data-take]');
-  const done = act.textContent, glide = 'transform 0.55s cubic-bezier(0.77, 0, 0.175, 1)';
+  const ptr = $('.ptr', view), rows = $$('.fares li', view), hold = $('u', rows[0]), take = $('[data-take]');
+  const glide = 'transform 0.55s cubic-bezier(0.77, 0, 0.175, 1)';
   let held = false;
   const at = (el, dx, dy) => { const b = view.getBoundingClientRect(), r = el.getBoundingClientRect(); ptr.style.transform = `translate(${r.left - b.left + r.width / 2 - 4 + dx}px, ${r.top - b.top + r.height / 2 - 3 + dy}px)`; };
   const hot = (row) => rows.forEach((r) => r.classList.toggle('hot', r === row));
@@ -99,20 +99,19 @@ if (view) {
   ptr.classList.add('on'); rest();
   addEventListener('load', rest); addEventListener('resize', rest);
   if (!still) once(view, async () => {
-    hot(null); mark(false); act.textContent = 'nova is comparing 3 flights';
-    ptr.style.transition = 'none'; at($('em', rows[2]), 60, 70); await wait(350);
+    hot(null); mark(false);
+    ptr.style.transition = 'none'; at($('em', rows[2]), 50, 40); await wait(350);
     ptr.style.transition = glide;
     for (const row of [rows[2], rows[1], rows[0]]) { if (held) return; at($('em', row), 0, 4); await wait(400); if (held) return; hot(row); await wait(260); }
-    act.textContent = 'cheapest is €84. nova is holding it'; at(hold, 6, 4); await wait(620);
+    at(hold, 6, 4); await wait(620);
     if (held) return;
-    hold.style.scale = '0.9'; await wait(140); hold.style.scale = ''; mark(true); act.textContent = done;
+    hold.style.scale = '0.9'; await wait(140); hold.style.scale = ''; mark(true);
   }, 0.7);
   take.addEventListener('click', () => {
     held = !held;
     take.setAttribute('aria-pressed', held); take.textContent = held ? 'give it back' : 'take the mouse';
     view.style.cursor = held ? 'none' : '';
     ptr.style.transition = held ? 'none' : glide;
-    act.textContent = held ? 'you have the mouse. nova is watching' : done;
     if (!held) { hot(rows[0]); mark(true); rest(); }
   });
   view.addEventListener('pointermove', (e) => {
@@ -129,34 +128,19 @@ for (const t of $$('.rows .toggle')) t.addEventListener('click', () => {
   setTimeout(() => { const b = $('.bot', t.closest('li')); if (t.getAttribute('aria-checked') === 'true') { hop(b); say(b, 'back on it'); } else say(b, 'zzz'); });
 });
 
-// the newest note in the notebook types itself in once, and is really yours to edit
+// the newest note in the notebook types itself in once, and is really yours to edit. emptied, it goes back to what it said
 const note = $('[data-note]');
 if (note) {
+  const said = note.textContent;
   try { note.contentEditable = 'plaintext-only'; } catch { note.contentEditable = 'true'; }
   note.setAttribute('role', 'textbox'); note.setAttribute('aria-label', 'a note you can edit'); note.spellcheck = false;
   note.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); note.blur(); } });
   note.addEventListener('input', () => { $('[data-note-foot]').textContent = 'edited by you. nova will remember'; });
+  note.addEventListener('blur', () => { if (!note.textContent.trim()) note.textContent = said; });
   $('[data-edit]').addEventListener('click', () => { note.focus(); getSelection().selectAllChildren(note); getSelection().collapseToEnd(); });
   if (!still) once(note, async () => {
-    const text = note.textContent;
-    for (let i = 0; i <= text.length; i++) { if (document.activeElement === note) return; note.textContent = text.slice(0, i); await wait(42); }
+    for (let i = 1; i <= said.length; i++) { if (document.activeElement === note) return; note.textContent = said.slice(0, i); await wait(42); }
   }, 0.9);
-}
-
-// juno waits for a yes
-const ask = $('[data-ask]');
-if (ask) {
-  const line = $('[data-ask-line]', ask), btns = $('.ask-btns', ask), first = [line.innerHTML, btns.innerHTML];
-  btns.addEventListener('click', (e) => {
-    const b = e.target.closest('button');
-    if (!b) return;
-    if (b.dataset.answer) {
-      line.textContent = b.dataset.answer; hop($('.bot', ask));
-      if (b.classList.contains('yes')) sparkle(e.clientX, e.clientY);
-      btns.innerHTML = '<button class="pill" type="button">ask me again</button>';
-    } else { line.innerHTML = first[0]; btns.innerHTML = first[1]; }
-    btns.firstElementChild.focus({ preventScroll: true });
-  });
 }
 
 const phone = $('[data-ring]'), calls = ['ring ring', "it's nova. found your flight", 'juno here. 3 emails need you', 'new phone who dis'];
@@ -194,54 +178,32 @@ if (bill) {
   });
 }
 
-// the bot on the terraces climbs a step when poked, and goes to whichever of the four steps you point at
-const terr = $('.terr'), climber = $('.climber');
-if (terr && climber) {
-  const lines = ['back to the start', 'signed in', "it's alive", 'made it. now make it a routine'];
-  const go = (n) => { if (terr.dataset.step === String(n)) return; terr.dataset.step = n; hop($('.bot', climber)); };
-  climber.addEventListener('click', () => { const n = Number(terr.dataset.step) % 4 + 1; go(n); setTimeout(() => say(climber, lines[n - 1]), 420); });
-  for (const li of $$('.steps > li')) li.addEventListener('pointerenter', () => go(li.dataset.step));
-  if (!still) once(terr, async () => { for (const n of [2, 3, 4]) { await wait(420); go(n); } }, 0.6);
-}
+// the bots on the terraces stay put; pointing at one of the four steps makes its bot hop
+for (const li of $$('.steps > li')) li.addEventListener('pointerenter', () => hop($(`.t${li.dataset.step} .bot`)));
 
-// the sea. bots are drawn in one svg; this maps each to the screen, turns its eyes to the pointer wherever it is,
-// and ducks it under when the pointer gets close (the six on the beach hop instead). a click anywhere sends a ripple through the crowd
-const sea = $('.sea');
-if (sea && !still) {
-  const crowd = $$('.sb', sea).map((el) => { const m = el.transform.baseVal.consolidate().matrix; return { el, eyes: $('.eyes', el), x: m.e + 50 * m.a, y: m.f + 45 * m.a, size: 100 * m.a, shore: el.classList.contains('shore'), cool: 0, t: 0 }; });
-  const shouts = ['marco', 'polo', 'marco', 'polo', 'cannonball', "water's fine", 'no lifeguard on duty'];
-  let s = 1, ox = 0, oy = 0, live = false, idle = 0, shout = 0;
-  const measure = () => { const b = sea.getBoundingClientRect(); s = Math.max(b.width / 2400, b.height / 400); ox = b.left + (b.width - 2400 * s) / 2; oy = b.top + (b.height - 400 * s) / 2; };
+// the last picture: a few bots near the shore. each is mapped from the picture to the screen, turns its eyes to the pointer,
+// and ducks under when the pointer gets close (the ones on the sand hop instead)
+const end = $('.end'), shore = $('.sea-bots');
+if (end && shore && !still) {
+  const vb = shore.viewBox.baseVal;
+  const few = $$('.sb', shore).map((el) => { const m = el.transform.baseVal.consolidate().matrix; return { el, eyes: $('.eyes', el), x: m.e + 50 * m.a, y: m.f + 45 * m.a, size: 100 * m.a, shore: el.classList.contains('shore'), cool: 0, t: 0 }; });
+  let live = !hasIO, idle = 0;
   const dive = (b, ms) => { b.el.classList.add('dive'); clearTimeout(b.t); b.t = setTimeout(() => b.el.classList.remove('dive'), ms); };
-  const onScreen = (b) => { const x = ox + b.x * s; return x > -30 && x < innerWidth + 30; };
-  const watch = () => {
+  seaLook = () => {
     if (!live) return;
-    measure();
-    for (const b of crowd) {
-      if (!onScreen(b)) continue;
-      const dx = px - (ox + b.x * s), dy = py - (oy + b.y * s), d = Math.hypot(dx, dy) || 1;
+    const r = shore.getBoundingClientRect(), k = r.width / vb.width;
+    for (const b of few) {
+      const dx = px - (r.left + b.x * k), dy = py - (r.top + b.y * k), d = Math.hypot(dx, dy) || 1;
       b.eyes.style.transform = `translate(${(dx / d * 6).toFixed(1)}px, ${(dy / d * 5).toFixed(1)}px)`;
-      if (d > 22 + b.size * s) continue;
+      if (d > 22 + b.size * k) continue;
       if (!b.shore) dive(b, 700 + Math.random() * 900);
       else if (performance.now() > b.cool) { b.cool = performance.now() + 900; dive(b, 170); }
     }
   };
-  seaLook = watch;
-  sea.addEventListener('click', (e) => {
-    measure();
-    for (const b of crowd) if (onScreen(b)) setTimeout(() => dive(b, b.shore ? 170 : 240), Math.hypot(e.clientX - (ox + b.x * s), e.clientY - (oy + b.y * s)) * 0.9);
-    sayAt(e.clientX, e.clientY - 14, shouts[shout++ % shouts.length]);
-  });
-  if (hasIO) {
-    // they start under water and come up in a wave the first time the sea is seen
-    const swimmers = crowd.filter((b) => !b.shore);
-    swimmers.forEach((b) => b.el.classList.add('dive'));
-    once(sea, () => { measure(); swimmers.forEach((b) => { b.t = setTimeout(() => b.el.classList.remove('dive'), 120 + Math.abs(ox + b.x * s - innerWidth / 2) * 0.7 + Math.random() * 220); }); }, 0.3);
-    new IntersectionObserver(([e]) => {
-      live = e.isIntersecting; sea.classList.toggle('off', !live); clearInterval(idle);
-      if (live) idle = setInterval(() => { measure(); const up = swimmers.filter((b) => onScreen(b) && !b.el.classList.contains('dive')); if (up.length) dive(up[Math.floor(Math.random() * up.length)], 520); }, 1700);
-    }).observe(sea);
-  } else live = true;
+  if (hasIO) new IntersectionObserver(([e]) => {
+    live = e.isIntersecting; end.classList.toggle('off', !live); clearInterval(idle);
+    if (live) idle = setInterval(() => { const up = few.filter((b) => !b.shore && !b.el.classList.contains('dive')); if (up.length) dive(up[Math.floor(Math.random() * up.length)], 520); }, 2600);
+  }).observe(end);
 }
 
 const title = document.title;

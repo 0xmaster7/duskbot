@@ -94,27 +94,15 @@ const ICONS = {
   cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
 };
 const icon = (name) => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
-// {{sea}} is the crowd of small bots floating in the sea strip: one svg, so each bot sits where the picture's water is
-// at any width. rows run from the horizon (small) to the shore (large); the numbers come from a fixed seed
+// {{sea}} is the handful of bots in the last picture, drawn in the picture's own 1600 by 1067 space so they sit on its
+// water and sand at any width: five swim near the shore (half under the waterline), three stand on the beach
 function sea() {
-  let seed = 7;
-  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const shapes = Object.keys(BOTS), colours = ['blue', 'orange', 'purple', 'pink', 'green', 'yellow'];
-  const rows = [[100, 13], [128, 17], [160, 22], [206, 30], [248, 38], [288, 45]], out = [];
-  rows.forEach(([y, size], r) => {
-    const gap = size * 5.6;
-    for (let x = gap * (0.2 + 0.5 * (r % 2)); x < 2400 - size; x += gap * (0.75 + rnd() * 0.5)) {
-      if (r === 5 && x > 960 && x < 1400) continue;
-      const shape = shapes[Math.floor(rnd() * shapes.length)], colour = colours[Math.floor(rnd() * colours.length)], k = size * (0.85 + rnd() * 0.3) / 100;
-      out.push(`<g class="sb c-${colour}" transform="translate(${x.toFixed(0)} ${(y + rnd() * 14 - 7).toFixed(0)}) scale(${k.toFixed(3)})" clip-path="url(#sea-line)"><g class="dip"><use class="body" href="#sb-${shape}"/><use class="eyes" href="#sb-eyes" y="${BOTS[shape][1] - 38}"/></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g>`);
-    }
-  });
-  // the six sample bots stand on the beach in front, in their own shapes and colours
-  [['circle', 'blue'], ['hex', 'orange'], ['clover', 'purple'], ['heart', 'pink'], ['star', 'green'], ['drop', 'yellow']].forEach(([shape, colour], i) => {
-    out.push(`<g class="sb shore c-${colour}" transform="translate(${1011 + i * 66} ${[306, 303, 300, 300, 303, 306][i]}) scale(0.48)"><g class="dip"><use class="body" href="#sb-${shape}"/><use class="eyes" href="#sb-eyes" y="${BOTS[shape][1] - 38}"/></g></g>`);
-  });
-  const defs = Object.entries(BOTS).map(([name, [body]]) => `<g id="sb-${name}">${body}</g>`).join('');
-  return `<svg class="sea-bots" viewBox="0 0 2400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath>${defs}<g id="sb-eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></defs>${out.join('')}</svg>`;
+  const swim = [['circle', 'blue', 236, 872, 50], ['drop', 'yellow', 520, 908, 56], ['hex', 'orange', 748, 876, 46], ['clover', 'purple', 884, 922, 54], ['squircle', 'green', 1322, 892, 50]];
+  const shore = [['star', 'green', 396, 942, 64], ['heart', 'pink', 622, 946, 66], ['capsule', 'orange', 992, 940, 62]];
+  const one = (cls, [shape, colour, x, y, size], rest = '') => `<g class="sb${cls} c-${colour}" transform="translate(${x} ${y}) scale(${size / 100})"${cls ? '' : ' clip-path="url(#sea-line)"'}><g class="dip"><use class="body" href="#sb-${shape}"/><use class="eyes" href="#sb-eyes" y="${BOTS[shape][1] - 38}"/></g>${rest}</g>`;
+  const used = new Set([...swim, ...shore].map((b) => b[0]));
+  const defs = [...used].map((name) => `<g id="sb-${name}">${BOTS[name][0]}</g>`).join('');
+  return `<svg class="sea-bots" viewBox="0 0 1600 1067" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath>${defs}<g id="sb-eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></defs>${swim.map((b) => one('', b, '<rect class="foam" x="-14" y="64" width="128" height="8"/>')).join('')}${shore.map((b) => one(' shore', b)).join('')}</svg>`;
 }
 const withBots = (html) => withChips(withParts(html)).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()))
   .replace(/\{\{i ([\w-]+)\}\}/g, (_, name) => icon(name)).replace(/\{\{sea\}\}/g, sea);

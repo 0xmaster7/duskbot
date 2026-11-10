@@ -31,8 +31,8 @@
 /* bots: a flat body and two cut-out eyes. --dd-hole is whatever is behind the bot */
 .dd-av { display: block; flex: none; width: calc(36*var(--k)); height: calc(36*var(--k)); overflow: visible; fill: var(--dd-ink); transition: transform 0.3s var(--dd-back); }
 .dd-eyes { transition: transform 0.14s ease-out; }
-.dd-eye { fill: none; stroke: var(--dd-hole); stroke-linecap: round; transform-box: fill-box; transform-origin: center; transition: transform 0.08s ease-out, opacity 0.1s; }
-.dd-grin { fill: none; stroke: var(--dd-hole); stroke-width: 5.5; stroke-linecap: round; opacity: 0; transition: opacity 0.1s; }
+.dd-eye { fill: none; stroke: #fff; stroke-linecap: round; transform-box: fill-box; transform-origin: center; transition: transform 0.08s ease-out, opacity 0.1s; }
+.dd-grin { fill: none; stroke: #fff; stroke-width: 5.5; stroke-linecap: round; opacity: 0; transition: opacity 0.1s; }
 .dd-blink .dd-eye { transform: scaleX(0.1); }
 .dd-nap .dd-eye { transform: scaleX(0.1); transition-duration: 0.3s; }
 .dd-happy .dd-eye { opacity: 0; }
