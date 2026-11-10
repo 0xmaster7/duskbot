@@ -20,7 +20,7 @@ export const PLAN_WRITE_MS = 11_000;
 export const PLAN_MIN_MS = 15_000;
 /** A milestone after this long without any message from the bot, while tools keep running. */
 export const MILESTONE_QUIET_MS = 150_000;
-export const MAX_MILESTONES = 6;
+export const MAX_MILESTONES = 3;
 const WRITE_TIMEOUT_MS = 12_000;
 const TICK_MS = 250;
 const UNSTARTED_MS = 60_000;
@@ -37,8 +37,8 @@ export type BeatWriter = (prompt: string, options: { signal: AbortSignal; timeou
 
 export interface TurnBeatsDeps {
   enabled(): boolean;
-  /** The bot's small one-off text call, or null when its engine has none. */
-  writer(botId: string): BeatWriter | null;
+  /** The small one-off text call of the engine running this thread, or null when it has none. */
+  writer(botId: string, threadId: string): BeatWriter | null;
   bot(botId: string): { name: string; soul?: string } | null | undefined;
   /** Whether this turn is still the one the thread runs. */
   live(threadId: string, turnId: string): boolean;
@@ -185,7 +185,7 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
 
 
   const write = (watch: Watch, kind: BeatKind, beat: Beat) => {
-    const writer = deps.writer(watch.botId);
+    const writer = deps.writer(watch.botId, watch.threadId);
     const bot = deps.bot(watch.botId);
     if (!writer || !bot) {
       beat.phase = "dropped";
@@ -243,7 +243,8 @@ export function createTurnBeats(deps: TurnBeatsDeps) {
       if (elapsed > UNSTARTED_MS) end(watch);
       return;
     }
-    if (!deps.live(watch.threadId, watch.turnId)) return;
+    // Its end was never heard (a quarantined event, a retired turn): nothing more to say for it.
+    if (!deps.live(watch.threadId, watch.turnId)) return end(watch);
     if (ack.phase === "ready") {
       if (engineSpoke) ack.phase = "dropped";
       else if (elapsed >= ACK_MIN_MS && (watch.tools > 0 || (elapsed >= ACK_IDLE_MS && !watch.asksFirst))) post(watch, "ack", ack);
