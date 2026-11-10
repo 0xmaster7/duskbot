@@ -12,6 +12,8 @@ import { api, useStore, type InstanceInfo } from "@/state/store";
 import { deviceSignInLink, isDeviceSignInCode } from "../../../shared/device-sign-in";
 
 const POLL_MS = 2_000;
+/** Checks in a row that got no answer before the sign-in says it lost track, instead of waiting forever. */
+const LOST_AFTER = 5;
 // grok's lg pill: 425 weight, .14px tracking
 export const PILL = "ui-button ui-button-pill ui-button-lg ui-button-primary w-[288px] max-w-full font-normal tracking-[0.14px]";
 
@@ -108,9 +110,11 @@ export function useSignInPill(instance: InstanceInfo | undefined) {
   useEffect(() => {
     if (!polling) return;
     const controller = new AbortController();
+    let missed = 0;
     const timer = window.setInterval(() => {
       void api(`${base}/auth/status?flowId=${encodeURIComponent(polling)}`, { signal: controller.signal })
         .then(({ auth }: { auth: DeviceSignInStatus }) => {
+          missed = 0;
           if (auth.phase === "succeeded") void done();
           else if (auth.phase !== "waiting") fail(new Error(auth.message ?? t("engineSetup.device.failed")));
           else if (isDeviceSignInCode(provider, auth.userCode)) {
@@ -119,7 +123,10 @@ export function useSignInPill(instance: InstanceInfo | undefined) {
               ? { ...current, code, link: deviceSignInLink(provider, auth.authorizationUrl, code) } : current);
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          if (controller.signal.aborted || ++missed < LOST_AFTER) return;
+          fail(new Error(t("onboarding.start.ai.lost")));
+        });
     }, POLL_MS);
     return () => {
       window.clearInterval(timer);
@@ -132,7 +139,7 @@ export function useSignInPill(instance: InstanceInfo | undefined) {
 
 type PillState = ReturnType<typeof useSignInPill>;
 
-function CodeSlot({ code }: { code: string }) {
+export function CodeSlot({ code }: { code: string }) {
   const { state, copy } = useCopyFeedback(code);
   return (
     <div data-sign-in="code" className="flex h-9 w-[288px] max-w-full items-center justify-between rounded-[18px] border-[0.5px] border-ink/10 bg-composer pl-4 pr-1">
@@ -145,7 +152,7 @@ function CodeSlot({ code }: { code: string }) {
   );
 }
 
-function PasteSlot({ name, onSubmit }: { name: string; onSubmit: (code: string) => void }) {
+export function PasteSlot({ name, onSubmit }: { name: string; onSubmit: (code: string) => void }) {
   const [code, setCode] = useState("");
   return (
     <form data-sign-in="paste" className="relative w-[288px] max-w-full" onSubmit={(event) => { event.preventDefault(); onSubmit(code); }}>

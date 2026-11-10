@@ -1,14 +1,23 @@
 # Welcome flow
 
-The current first run introduces Dusk, its computer, jobs and the shared
-talking style, then opens the chat. It offers AI sign-in when no engine has
-passed its test. Dusk becomes Chief only when there is no existing Chief;
-there is no separate Chief selection screen. There is no app tour.
+The first run is one screen: "What should Dusk take off your plate?" with a
+real composer and four starter jobs (Summarize my inbox, Watch a price, Plan a
+trip, Research a topic). A job fills the composer with a whole first ask and
+selects the part to change; Start (or Enter) sends it to Dusk and lands in
+Dusk's chat. Under the composer one line names the AI it runs on: a sign-in
+the app found (after one test message), else the free backup model with one
+tap to sign in, else one sign-in pill when nothing can run. A plain line says
+what Dusk asks before doing; the first job saves "ask before sending" on the
+bot unless it already has a sending rule. The cloud desktop (desktop app with a
+cloud account) and the notch tour (Macs with the island) are quiet links at
+the bottom; Skip lands in the chat with nothing sent. There is no talking-style
+step; the default stays. Dusk becomes Chief only when there is no existing
+Chief.
 
 The current offline checks are:
 
 ```sh
-pnpm exec vitest run src/components/onboarding/WelcomeFlow.test.ts src/components/onboarding/WelcomeGate.test.ts src/components/onboarding/ConnectAi.test.ts src/components/HelperIntro.test.ts src/lib/default-bot.test.ts server/routes/helper-followup.test.ts electron/system-name.test.mjs src/components/CardHint.test.ts
+pnpm exec vitest run src/lib/starter-jobs.test.ts src/components/onboarding/WelcomeFlow.test.ts src/components/onboarding/WelcomeGate.test.ts src/components/onboarding/ConnectAi.test.ts src/components/HelperIntro.test.ts src/lib/default-bot.test.ts server/routes/helper-followup.test.ts electron/system-name.test.mjs src/components/CardHint.test.ts
 ```
 
 They cover navigation, AI readiness and sign-in errors, talking-style saves,
@@ -24,9 +33,19 @@ For a manual renderer pass, launch the isolated full-app fixture following
 node --experimental-strip-types scripts/control-omb.ts ui launch
 ```
 
-Use only its printed handle and preview URL. The older standalone onboarding
-browser script still names the retired welcome screens; it is not current
-acceptance evidence. Stop the fixture launcher with Ctrl-C when finished.
+Use only its printed handle and preview URL. Add `?onboarding=1` to the
+`threads` preview URL to play a brand-new install. The older standalone
+onboarding browser script still names the retired welcome screens; it is not
+current acceptance evidence.
+
+Timed walk (Nov 10 2026, w16/onboarding): a fresh fixture with Dusk renamed
+back from the fixture name, the fake engine scripted to answer a price job in
+about 4 s, and a headless Chrome with every non-loopback request aborted. From
+opening the page to the job's result on screen, with 2 s of reading and 1 s
+before pressing Start built in: 12.5 s with a detected sign-in, 17.2 s signed
+out (Sign in, paste a code, then the job). Model time in real use is extra and
+was not measured. The free-backup state is covered by the component tests
+only; the fixture has no OpenCode free model. Stop the fixture launcher with Ctrl-C when finished.
 
 ## Providers connected after first launch
 

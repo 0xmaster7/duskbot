@@ -2,18 +2,17 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKe
 import { setEmailGateDone, track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import { chiefFor, chiefStepFits, createChiefPatch, myDefaultBot, stageIntro, useViewerEmail } from "@/lib/default-bot";
+import { t } from "@/lib/i18n";
 import { BEAT_ORDER, completionPatch, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
+import { randomUuid } from "@/lib/random-uuid";
+import { firstJobOutbound, type StarterJobId } from "@/lib/starter-jobs";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
 import { api, useStore } from "@/state/store";
-import { ComputerStep, JobsStep, TalkStep } from "./GrokSteps";
-import { IslandIntro, useIslandAvailable } from "./IslandIntro";
-import { talkingStyleOf, type TalkingStyle } from "../../../shared/talking-style";
-import { MeetScreen } from "./MeetScreen";
+import { useIslandAvailable } from "./IslandIntro";
+import { openIslandIntro } from "./IslandIntroHost";
+import { StartScreen } from "./StartScreen";
 import { localDesktopPage } from "./WelcomeGate";
 import "../../styles/onboarding.css";
-
-// the leaving step goes when its 100ms fade ends; this only covers a window that runs no animations
-const STEP_OUT_MS = 300;
 
 type Config = ReturnType<typeof useStore>["state"]["config"];
 
@@ -49,8 +48,9 @@ export function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElemen
   }
 }
 
-/** The first run, as Grok Bot's: meeting the app (with an AI to connect when none works), the bot's own computer, a job
- * for each Bot, then how they all talk. Its end is the chat (`onDone`): Dusk's, made the Chief of Staff where no other bot is one. */
+/** The first run: one screen asking what the bot should do first. Picking or writing a job starts it in the bot's chat
+ * at once (`onDone` lands there, the job already sent); Skip lands there empty. Dusk does the job, made the Chief of
+ * Staff where no other bot is one. The notch tour and the cloud desktop are offered on the screen, never in the way. */
 export function WelcomeFlow({
   onDone,
   replay = false,
@@ -65,28 +65,7 @@ export function WelcomeFlow({
   const { state, dispatch } = useStore();
   const maus = myDefaultBot(state.bots, useViewerEmail());
   const keepsDraft = !replay && !embedded;
-  const beats = BEAT_ORDER;
-  const [beat] = useState<BeatId>(() => resumeBeat(beats, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
-  // Grok Bot's three screens are the meet beat's pages: a reload starts them over, the beat itself is what resumes.
-  const [page, setPage] = useState(0);
-  // Grok's step change: the old step stays where it was and fades out over 100ms while the new one fades in
-  const [leavingPage, setLeavingPage] = useState<number | null>(null);
-  const leaveTimer = useRef(0);
-  const goPage = (next: number) => {
-    window.clearTimeout(leaveTimer.current);
-    const reduced = document.documentElement.dataset.reducedMotion === "true" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    setLeavingPage(reduced || page === next ? null : page);
-    setPage(next);
-    leaveTimer.current = window.setTimeout(() => setLeavingPage(null), STEP_OUT_MS);
-  };
-  useEffect(() => () => window.clearTimeout(leaveTimer.current), []);
-  // the last screen's pick is saved as it is made, as Settings saves it; warm until then
-  const [talk, setTalk] = useState<TalkingStyle>(() => talkingStyleOf(state.config?.talkingStyle));
-  const pickTalk = (style: TalkingStyle) => {
-    setTalk(style);
-    void api<NonNullable<Config>>("/api/config", { method: "PUT", body: JSON.stringify({ talkingStyle: style }), signal: AbortSignal.timeout(10_000) })
-      .then((config) => dispatch({ type: "configStatus", config })).catch(() => {});
-  };
+  const [beat] = useState<BeatId>(() => resumeBeat(BEAT_ORDER, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
   const root = useRef<HTMLDivElement>(null);
   const finishing = useRef(false);
   const record = useRef(state.config?.onboarding);
@@ -102,6 +81,9 @@ export function WelcomeFlow({
   useEffect(() => {
     if (!replay && !embedded) void nameFromComputer(state.config, (config) => dispatch({ type: "configStatus", config }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    root.current?.focus({ preventScroll: true });
   }, []);
 
   const finish = useCallback(
@@ -123,47 +105,51 @@ export function WelcomeFlow({
     [beat, dispatch, onDone, replay, embedded, keepsDraft],
   );
 
-  // where it fits, Dusk becomes the Chief of Staff and greets, as grok's default bot does, with no screen to ask
-  const next = useCallback(() => {
+  // where it fits, Dusk becomes the Chief of Staff, as grok's default bot does, with no screen to ask
+  const land = useCallback((job: string | null): string | null => {
+    const chief = Boolean(maus && chiefStepFits(state.bots, maus));
+    const target = chief ? maus! : job ? maus ?? state.bots.find((bot) => !bot.hidden) : undefined;
+    if (!target) return null;
+    const patch = { ...(chief ? createChiefPatch(target, chiefFor(state.bots, target)) : {}), ...(job ? firstJobOutbound(target.outbound) : {}) };
+    if (Object.keys(patch).length) dispatch({ type: "updateBot", botId: target.id, patch });
+    return target.id;
+  }, [maus, state.bots, dispatch]);
+
+  const skip = useCallback(() => {
     if (finishing.current) return;
-    if (!beats.includes("chief") || !maus || !chiefStepFits(state.bots, maus)) return void finish("completed", null);
-    if (!replay) stageIntro(maus.id);
-    dispatch({ type: "updateBot", botId: maus.id, patch: createChiefPatch(maus, chiefFor(state.bots, maus)) });
-    void finish("completed", maus.id);
-  }, [beats, maus, state.bots, replay, dispatch, finish]);
+    const botId = land(null);
+    if (botId && !replay) stageIntro(botId);
+    void finish(botId ? "completed" : "skipped", botId);
+  }, [land, finish, replay]);
 
-  useEffect(() => {
-    root.current?.focus({ preventScroll: true });
-  }, [page]);
+  const start = useCallback((text: string, job: StarterJobId | null) => {
+    if (finishing.current) return;
+    const botId = land(text);
+    if (!botId) return void finish("skipped", null);
+    track("onboarding_first_job", { job: job ?? "own", replay });
+    void finish("completed", botId);
+    dispatch({ type: "send", botId, text, sendId: randomUuid() });
+  }, [land, finish, dispatch, replay]);
 
-  // Escape moves on as Later does; Enter on the screen itself presses Next while it can be pressed.
+  // Escape skips as Skip does, but never past a job being written
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
+      const typing = event.target instanceof HTMLTextAreaElement && event.target.value.trim().length > 0;
+      if (typing || event.defaultPrevented) return;
       event.preventDefault();
-      next();
-      return;
-    }
-    if (event.key === "Enter" && event.target === root.current) {
-      event.preventDefault();
-      root.current.querySelector<HTMLButtonElement>("[data-primary]:not([disabled])")?.click();
+      skip();
       return;
     }
     trapTab(event, root.current);
   };
 
-  // the notch and dock step, where this app has them (the desktop app on a Mac)
   const island = useIslandAvailable() === true;
-  const pages = ["meet", "computer", "jobs", ...(island ? ["island"] : []), "talk"] as const;
-  const renderPage = (index: number) => {
-    const name = pages[index] ?? "talk";
-    const forward = () => goPage(index + 1);
-    const back = () => goPage(index - 1);
-    if (name === "meet") return <MeetScreen onNext={forward} />;
-    if (name === "computer") return <ComputerStep onNext={forward} onBack={back} />;
-    if (name === "jobs") return <JobsStep onNext={forward} onBack={back} />;
-    if (name === "island") return <IslandIntro onDone={forward} />;
-    return <TalkStep value={talk} onChange={pickTalk} onNext={next} onBack={back} />;
-  };
+  const cloud = !embedded && !replay && localDesktopPage() && !window.ogb?.remoteClient?.active && Boolean(window.ogb?.cloudAccount)
+    && !state.config?.cloudHome;
+  const extras = [
+    ...(cloud ? [{ id: "cloud", label: t("onboarding.start.cloud"), onClick: () => dispatch({ type: "openCloudAdd", source: "app_onboarding" }) }] : []),
+    ...(island ? [{ id: "tour", label: t("onboarding.start.tour"), onClick: () => void openIslandIntro() }] : []),
+  ];
 
   return (
     <div
@@ -173,16 +159,10 @@ export function WelcomeFlow({
       aria-labelledby="welcome-title"
       tabIndex={-1}
       onKeyDown={onKeyDown}
-      data-welcome="meet"
+      data-welcome="start"
       className={cn("welcome-screen flex overflow-y-auto bg-app outline-none", embedded ? "relative h-full w-full" : "fixed inset-0 z-50")}
     >
-      {/* keyed by page so the leaving step keeps its own state while it fades */}
-      {[page, leavingPage].filter((index): index is number => index !== null).map((index) => index === page ? (
-        <div key={index} className="contents">{renderPage(index)}</div>
-      ) : (
-        <div key={index} aria-hidden="true" inert className="onboarding-step-out pointer-events-none absolute inset-0 flex"
-          onAnimationEnd={(event) => { if (event.target === event.currentTarget) setLeavingPage(null); }}>{renderPage(index)}</div>
-      ))}
+      <StartScreen bot={maus} onStart={start} onSkip={skip} extras={extras} />
     </div>
   );
 }

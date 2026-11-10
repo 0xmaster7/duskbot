@@ -16,7 +16,7 @@ if (new URLSearchParams(location.search).has("ombVoiceProbe")) {
   (window as typeof window & { __ombVoiceProbe?: unknown[] }).__ombVoiceProbe = [];
 }
 // ?onboarding=1 plays a brand-new install, and a new install opens in Simple mode.
-else setEmailGateDone("skipped");
+else if (!new URLSearchParams(location.search).has("onboarding")) setEmailGateDone("skipped");
 // Every launch is a new browser, so the once-per-browser Simple mode popup shows only with ?simpleModePrompt=1.
 // The same for the once-per-person Move from Grok Bot popup, with ?grokMovePopup=1.
 if (!new URLSearchParams(location.search).has("grokMovePopup")) localStorage.setItem(GROK_MOVE_NOTICE, "1");
