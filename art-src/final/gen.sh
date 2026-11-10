@@ -34,3 +34,11 @@ e "Redraw this scene as a wide 3:2 landscape. The upper two thirds is calm bande
 s "A small squat home server box seen straight from the front, wider than tall, cream-white body with a lilac top edge and two short cream feet. Its front is one plain flat cream panel with a single thin sky-blue horizontal slot line near the bottom and nothing else on it: no lights, no buttons, no screen. Very simple, very few details." s-server &
 s "One single wide flat cloud, cream-white on top with a cotton-candy pink underside along its whole bottom edge, three soft stepped bumps on top with the middle bump lowest so there is a shallow dip in the centre. Wide and low, about twice as wide as tall. Very simple, very few details." s-cloud &
 wait
+
+# the "every screen" scene: four plain devices whose empty sky-blue screens get the same flat bot on top, in the page
+s "A simple modern open laptop seen straight from the front, cream-white body and keyboard deck with a few pastel keys, a large plain flat sky-blue screen with nothing at all on it: no notch, no icons, no pointer. Very simple, very few details." d-laptop &
+s "A simple modern wide flat desktop monitor on a slim cream stand with a flat foot, thin cream-white frame, a large plain flat sky-blue screen with nothing at all on it: no icons, no pointer. No keyboard. Very simple, very few details." d-monitor &
+wait
+s "A simple modern smartphone standing upright, seen straight from the front, tall with rounded corners, a cotton-candy pink frame, a large plain flat sky-blue screen with nothing on it except one small dark pill near the top centre. Very simple, very few details." d-phone-a &
+s "A simple modern smartphone standing upright, seen straight from the front, tall with rounded corners, a lilac frame, a large plain flat sky-blue screen with nothing on it except one small round dark camera dot at the top centre. Very simple, very few details." d-phone-b &
+wait

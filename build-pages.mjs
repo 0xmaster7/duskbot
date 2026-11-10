@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { MARK_FILL, createAnimator, createStateDriver, markAppearance, markFillScale, markShapeFor, markTree } from './mascot-src/app/mascot-motion-engine.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.join(here, 'public', 'landing');
@@ -57,22 +58,31 @@ export function markdown(md) {
   return out.join('\n');
 }
 
-const star = Array.from({ length: 10 }, (_, i) => { const r = i % 2 ? 21 : 41, a = (Math.PI / 5) * i - Math.PI / 2; return `${(50 + r * Math.cos(a)).toFixed(1)} ${(53 + r * Math.sin(a)).toFixed(1)}`; }).join(' ');
-const BOTS = {
-  circle: ['<circle cx="50" cy="50" r="46"/>', 38],
-  hex: ['<path d="M10 50 30 15.4h40L90 50 70 84.6H30z" stroke-width="10" stroke-linejoin="round"/>', 38],
-  clover: ['<circle cx="31" cy="31" r="24"/><circle cx="69" cy="31" r="24"/><circle cx="31" cy="69" r="24"/><circle cx="69" cy="69" r="24"/><rect x="28" y="28" width="44" height="44"/>', 38],
-  heart: ['<path d="M50 90C20 68 5 51 5 32 5 18 16 7 30 7c9 0 16 5 20 12 4-7 11-12 20-12 14 0 25 11 25 25 0 19-15 36-45 58z"/>', 30],
-  star: [`<path d="M${star}z" stroke-width="12" stroke-linejoin="round"/>`, 42],
-  drop: ['<path d="M50 5c18 24 36 42 36 59a36 36 0 0 1-72 0C14 47 32 29 50 5z"/>', 52],
-  squircle: ['<rect x="6" y="6" width="88" height="88" rx="30"/>', 38],
-  capsule: ['<rect x="18" y="4" width="64" height="92" rx="32"/>', 32],
-  gem: ['<rect x="17" y="17" width="66" height="66" rx="13" transform="rotate(45 50 50)"/>', 38],
-};
-// {{bot shape colour extra-classes}} in a page becomes an inline mascot; inline so its eyes can follow the pointer
+// the site's bot shapes, as the app's body ids (shared/grok-bodies.ts in the Dusk Bot repo)
+const BOTS = { circle: 'blob', hex: 'hex', clover: 'clover', heart: 'heart', star: 'star', drop: 'teardrop', squircle: 'squircle', capsule: 'capsule', gem: 'gem' };
+// the app's canvas is wider than the mark (0.92 / 0.6 of it) so a turning, squashing body never clips
+const FIT = markFillScale(MARK_FILL), MK = (box, at = 0) => `x="${(at + box * (1 - FIT) / 2).toFixed(2)}" y="${(at + box * (1 - FIT) / 2).toFixed(2)}" width="${(box * FIT).toFixed(2)}" height="${(box * FIT).toFixed(2)}"`;
+const markup = (n) => `<${n.tag}${Object.entries(n.attrs).map(([k, v]) => ` ${k}="${String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')}"`).join('')}>${n.children.map(markup).join('')}</${n.tag}>`;
+// each body's rest pose, drawn by the app's own engine the way a still mark settles (60 steps of 0.1 s), once per page
+// in <defs>; every bot <use>s it until mascot.js takes over, so without script the bots still show
+const rested = new Set();
+function rest(body, eye) {
+  const id = `rest-${body}${eye ? '-w' : ''}`;
+  let defs = '';
+  if (!rested.has(id)) {
+    rested.add(id);
+    const a = createAnimator({ body: body === 'fruit' ? 'pumpkin' : markShapeFor(body) });
+    createStateDriver(a, 'idle', { seed: 0, isCompact: false, isResting: true });
+    a.pause(); a.seek(0);
+    for (let i = 0; i < 60; i++) a.advance(0.1);
+    defs = markup(markTree(a.frame(), markAppearance('currentColor', eye), 61.33, id, { displaySize: 40, extent: '100%' }));
+  }
+  return [defs, `<svg class="mk" ${MK(100)}><use href="#${id}"/></svg>`];
+}
+// {{bot shape colour extra-classes}} in a page becomes one of the app's mascots; mascot.js brings it to life
 export function bot(shape, colour, extra = '') {
-  const [body, y] = BOTS[shape];
-  return `<svg class="bot c-${colour}${extra ? ' ' + extra : ''}" viewBox="0 0 100 100" aria-hidden="true"><g class="body">${body}</g><g class="eyes"><rect x="36" y="${y}" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="${y}" width="9.5" height="23" rx="4.75"/></g></svg>`;
+  const [defs, canvas] = rest(BOTS[shape]);
+  return `<svg class="bot c-${colour}${extra ? ' ' + extra : ''}" viewBox="0 0 100 100" aria-hidden="true" data-body="${BOTS[shape]}">${defs ? `<defs>${defs}</defs>` : ''}${canvas}</svg>`;
 }
 const CHIP_NAMES = { calendar: 'google calendar', drive: 'google drive', docs: 'google docs', sheets: 'google sheets' };
 const logo = (name, eager) => `<img class="logo" src="/art/logos/${name}.${fs.existsSync(path.join(site, 'art', 'logos', `${name}.svg`)) ? 'svg' : 'png'}" alt="" width="20" height="20"${eager ? '' : ' loading="lazy"'} decoding="async">`;
@@ -103,17 +113,19 @@ function sea() {
     ['clover', 'blue', 1400, 800, 30], ['heart', 'orange', 680, 822, 30], ['star', 'yellow', 210, 830, 32],
     ['circle', 'blue', 236, 884, 44], ['drop', 'yellow', 480, 900, 46], ['hex', 'orange', 748, 880, 40], ['clover', 'purple', 900, 916, 46],
     ['heart', 'pink', 1230, 902, 42], ['squircle', 'green', 1372, 884, 38], ['star', 'green', 1060, 930, 40]];
-  const shore = [];
-  const one = (cls, [shape, colour, x, y, size], rest = '') => `<g class="sb${cls} c-${colour}" transform="translate(${x} ${y}) scale(${size / 100})"${cls ? '' : ' clip-path="url(#sea-line)"'}><g class="dip"><use class="body" href="#sb-${shape}"/><use class="eyes" href="#sb-eyes" y="${BOTS[shape][1] - 38}"/></g>${rest}</g>`;
-  const used = new Set([...swim, ...shore].map((b) => b[0]));
-  const defs = [...used].map((name) => `<g id="sb-${name}">${BOTS[name][0]}</g>`).join('');
-  return `<svg class="sea-bots" viewBox="0 0 1600 1067" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath>${defs}<g id="sb-eyes"><rect x="36" y="38" width="9.5" height="23" rx="4.75"/><rect x="54.5" y="38" width="9.5" height="23" rx="4.75"/></g></defs>${swim.map((b) => one('', b, '<rect class="foam" x="-14" y="64" width="128" height="8"/>')).join('')}${shore.map((b) => one(' shore', b)).join('')}</svg>`;
+  // white eyes here: cut out, they would show the water through
+  const defs = [], bots = swim.map(([shape, colour, x, y, size]) => {
+    const [def, canvas] = rest(BOTS[shape], '#fff');
+    if (def) defs.push(def);
+    return `<g class="sb c-${colour}" transform="translate(${x} ${y}) scale(${size / 100})" clip-path="url(#sea-line)" data-body="${BOTS[shape]}" data-size="${size}"><g class="dip">${canvas}</g><rect class="foam" x="-14" y="64" width="128" height="8"/></g>`;
+  });
+  return `<svg class="sea-bots" viewBox="0 0 1600 1067" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath>${defs.join('')}</defs>${bots.join('')}</svg>`;
 }
 // {{os name}} is a platform mark from public/landing/art/os (simple-icons, cc0), inlined so it takes the text colour
 const os = (name) => fs.readFileSync(path.join(site, 'art', 'os', `${name}.svg`), 'utf8').replace(/<title>.*?<\/title>/, '').replace('<svg ', '<svg class="os" aria-hidden="true" fill="currentColor" ').replace(/ role="img"| xmlns="[^"]*"/g, '').trim();
 const withOs = (html) => html.replace(/\{\{os (\w+)\}\}/g, (_, name) => os(name));
-const withBots = (html) => withOs(withChips(withParts(html))).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()))
-  .replace(/\{\{i ([\w-]+)\}\}/g, (_, name) => icon(name)).replace(/\{\{sea\}\}/g, sea);
+const withBots = (html) => (rested.clear(), withOs(withChips(withParts(html))).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()))
+  .replace(/\{\{i ([\w-]+)\}\}/g, (_, name) => icon(name)).replace(/\{\{sea\}\}/g, sea));
 
 // stamps a file's content hash on its url, so an edit is seen at once despite the cache header
 const stamped = (file) => `/${file}?v=${createHash('sha256').update(fs.readFileSync(path.join(site, file))).digest('hex').slice(0, 8)}`;
@@ -152,7 +164,7 @@ ${foot('legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/license', 'lic
 ${foot('say hi', [['mailto:hello@dusk.bot', 'hello@dusk.bot']])}
 </div>
 <p class="foot-fine"><span data-dusk>made at dusk. the bots did most of it.</span>${home ? ' the bots, chats and numbers shown on this page are samples.' : ''}</p>
-</footer>${home ? `\n<script src="${stamped('motion.min.js')}"></script>\n<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>${has('app-demo.js') ? `\n<script src="${stamped('app-demo.js')}"></script>` : ''}` : ''}
+</footer>${home ? `\n<script src="${stamped('motion.min.js')}"></script>\n${has('mascot.js') ? `<script src="${stamped('mascot.js')}" defer></script>\n` : ''}<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>${has('app-demo.js') ? `\n<script src="${stamped('app-demo.js')}"></script>` : ''}` : ''}
 </body>
 </html>
 `;

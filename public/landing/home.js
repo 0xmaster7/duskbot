@@ -219,3 +219,19 @@ document.addEventListener('visibilitychange', () => { document.title = document.
 const dusk = $('[data-dusk]'), hour = new Date().getHours();
 if (dusk && hour >= 17 && hour < 20) dusk.textContent = "it's dusk where you are. the bots are just getting started.";
 else if (dusk && hour < 5) dusk.textContent = "it's late. the bots are still up, you don't have to be.";
+
+// every screen: the screens light up one after another the first time the scene is seen; poke any copy of the bot and
+// they all jump together
+const ev = document.querySelector('[data-ev]');
+if (ev && !still) {
+  const scene = ev.closest('.ev-scene'), screens = [...ev.querySelectorAll('.ev-scr')], who = [...ev.querySelectorAll('.ev-who')];
+  if (hasIO) {
+    scene.classList.add('ev-arm');
+    once(ev, () => screens.forEach((s, i) => setTimeout(() => s.classList.add('ev-on'), 200 + i * 160)), 0.5);
+  }
+  ev.addEventListener('click', (e) => {
+    if (!e.target.closest('.ev-scr')) return;
+    who.forEach((w, i) => { w.classList.remove('ev-jig'); void w.offsetWidth; w.style.setProperty('--d', `${i * 0.06}s`); w.classList.add('ev-jig'); });
+  });
+  for (const w of who) w.addEventListener('animationend', (e) => { if (e.animationName === 'ev-hop') w.classList.remove('ev-jig'); });
+}

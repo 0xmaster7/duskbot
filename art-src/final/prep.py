@@ -42,3 +42,7 @@ for y in range(rows):
     for x in range(cols):
         if random.random() < p: d.putpixel((x, y), (255, 255, 255, 255))
 d.save(OUT + 'dissolve.png')
+# the "every screen" scene: the meadow behind, and four devices cropped to their pixels
+print('every-meadow', save(rgb('end-meadow'), 'every-meadow', 1536))
+for n in ['d-laptop', 'd-monitor', 'd-phone-a', 'd-phone-b']:
+    im = Image.open(n + '.png').convert('RGBA'); im = im.crop(im.getchannel('A').point(lambda a: 255 if a > 16 else 0).getbbox()); print(n, save(im, n, 640, 90))

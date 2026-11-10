@@ -1,0 +1,5 @@
+{
+  "//": "lets the bundler drop app modules the site imports nothing live from (cursor-face-data)",
+  "type": "module",
+  "sideEffects": false
+}
