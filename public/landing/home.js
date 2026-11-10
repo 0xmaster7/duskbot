@@ -65,7 +65,7 @@ if (fine && !still) for (const el of $$('[data-sticker]')) {
   el.addEventListener('pointerup', drop); el.addEventListener('pointercancel', drop);
 }
 
-// nova's computer: its pointer reads down the fares and holds the cheapest one, once. you can take the mouse
+// nova's computer: the pointer rests where nova left it after holding the cheapest fare; it only moves when you take the mouse
 const view = $('[data-play="browse"]');
 if (view) {
   const ptr = $('.ptr', view), rows = $$('.fares li', view), hold = $('u', rows[0]), take = $('[data-take]');
@@ -78,16 +78,6 @@ if (view) {
   const rest = () => { if (!held) at($('span', rows[1]), 30, 16); };
   ptr.classList.add('on'); rest();
   addEventListener('load', rest); addEventListener('resize', rest);
-  if (!still) once(view, async () => {
-    hot(null); mark(false);
-    ptr.style.transition = 'none'; at($('em', rows[2]), 50, 40); await wait(350);
-    ptr.style.transition = glide;
-    for (const row of [rows[2], rows[1], rows[0]]) { if (held) return; at($('em', row), 0, 4); await wait(400); if (held) return; hot(row); await wait(260); }
-    at(hold, 6, 4); await wait(620);
-    if (held) return;
-    hold.style.scale = '0.9'; await wait(140); hold.style.scale = ''; mark(true);
-    await wait(450); if (!held) rest();
-  }, 0.7);
   take.addEventListener('click', () => {
     held = !held;
     take.setAttribute('aria-pressed', held); take.textContent = held ? 'give it back' : 'take the mouse';
