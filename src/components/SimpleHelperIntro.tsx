@@ -137,14 +137,16 @@ export function SimpleHelperIntro({ botId, threadId, message, answered, followup
   }, [due]);
   const [posted, setPosted] = useState<HelperFollowupFacts | null>(null);
   const [unsaved, setUnsaved] = useState(false);
+  // the person's first line was already a job: no follow-up, and the intro ends without one
+  const [skipped, setSkipped] = useState(false);
   const asked = useRef(false);
   useEffect(() => {
     if (!first || !look.settled || followup || asked.current) return;
     asked.current = true;
-    void api<{ message?: Message }>(`/api/bots/${encodeURIComponent(botId)}/helper-followup`, {
+    void api<{ message?: Message; skipped?: boolean }>(`/api/bots/${encodeURIComponent(botId)}/helper-followup`, {
       method: "POST",
       body: JSON.stringify({ threadId, ai, apps: look.apps ?? [] }),
-    }).then((answer) => (answer.message?.helperFollowup ? setPosted(answer.message.helperFollowup) : setUnsaved(true)), () => setUnsaved(true));
+    }).then((answer) => (answer.skipped ? setSkipped(true) : answer.message?.helperFollowup ? setPosted(answer.message.helperFollowup) : setUnsaved(true)), () => setUnsaved(true));
   }, [first, look.settled, look.apps, followup, botId, threadId, ai]);
 
   // An intro from before follow-ups were written says what it sees, without saving it.
@@ -153,7 +155,7 @@ export function SimpleHelperIntro({ botId, threadId, message, answered, followup
     : null;
   const said = followup?.helperFollowup ?? posted ?? local;
   const facts = said && connects !== undefined ? { connects, ...said } : said;
-  const { shown, staged } = useArrival(first || due, ai !== "none", facts !== null);
+  const { shown, staged } = useArrival(first || due, ai !== "none", facts !== null || skipped);
   if (hidden) return null;
 
   const bubbles = [...lines.slice(0, Math.min(shown, 3)), ...(shown >= 5 && facts ? [followupLine(facts)] : [])];

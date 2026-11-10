@@ -445,6 +445,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       const next = helperFollowup(store.messagesFor(threadId), () => followupFacts(bot, parsed.data, store.bots, routines?.listRoutines() ?? [], connects));
       if (!next) return json(res, 409, { error: "this conversation has no intro to follow up" });
       if ("existing" in next) return json(res, 200, { message: next.existing });
+      if ("skip" in next) return json(res, 200, { skipped: true });
       return json(res, 201, { message: store.appendMessage(threadId, next.append) });
     }
     m = path.match(/^\/api\/bots\/([\w-]+)\/compact$/);
