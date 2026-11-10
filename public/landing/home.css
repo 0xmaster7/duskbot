@@ -110,7 +110,7 @@
 .ev-tag:active { scale: 0.97; }
 @media (hover: hover) and (pointer: fine) { .ev-tag:hover { translate: 0 -3px; } }
 @media (max-width: 1000px) {
-  .ev-scene { aspect-ratio: 16 / 10; }
+  .ev-scene { aspect-ratio: 1.85 / 1; }
   .ev-laptop { --x: 2%; --w: 32%; } .ev-monitor { --x: 36.5%; --w: 39%; } .ev-phone { --x: 80.5%; --w: 16.5%; }
   .ev-tag { font-size: 13px; }
 }
@@ -344,15 +344,15 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .byo { overflow-x: clip; }
 .home .byo h2 { max-width: 9.6em; }
 .home .where { margin-top: calc(var(--gap) * 1.45); }
-.tape { position: relative; z-index: 1; margin: clamp(26px, 3vw, 44px) -4vw clamp(44px, 4.8vw, 72px); padding: 14px 0; background: var(--lilac); rotate: -2deg; }
+.tape { position: relative; z-index: 1; margin: clamp(22px, 2.6vw, 36px) -4vw clamp(36px, 4vw, 56px); padding: 9px 0; background: var(--lilac); rotate: -2deg; }
 .tape-run { list-style: none; margin: 0; padding: 0 6vw; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 0; }
 .tape.mk-on .tape-run { flex-wrap: nowrap; justify-content: flex-start; padding: 0; }
-.tape-run li { display: flex; align-items: center; gap: 0.32em; padding-right: clamp(36px, 4vw, 64px); font-size: clamp(24px, 2.9vw, 42px); line-height: 1; font-weight: 550; letter-spacing: -0.04em; white-space: nowrap; }
+.tape-run li { display: flex; align-items: center; gap: 0.32em; padding-right: clamp(28px, 3vw, 44px); font-size: clamp(18px, 1.9vw, 26px); line-height: 1; font-weight: 550; letter-spacing: -0.04em; white-space: nowrap; }
 .lg { flex: none; display: grid; place-items: center; width: 1.24em; height: 1.24em; border-radius: 0.3em; background: #fff; }
 .lg .logo { width: 58%; height: 58%; }
 .lg.key { width: 3.875em; height: 3.875em; border-radius: 0.94em; font: 500 0.32em/1 var(--mono); letter-spacing: 0; }
 .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 40px; }
-.facts p { margin: 0; max-width: 19em; font-size: 19px; line-height: 1.45; letter-spacing: -0.012em; color: var(--text); }
+.facts p { margin: 0; max-width: 21em; font-size: 16.5px; line-height: 1.45; letter-spacing: -0.012em; color: var(--text); }
 .tape-pause { display: block; min-height: 44px; margin-top: 4px; padding: 0; border: 0; background: none; font: 400 12.5px/1 var(--mono); color: var(--ink-3); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .tape-pause[hidden], html:not(.mk-ready) .tape-pause { display: none; }
 
