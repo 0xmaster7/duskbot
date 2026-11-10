@@ -48,7 +48,7 @@ Cheap (a few arrays on the cloud's record), deterministic, and robust to duplica
 ## Routines (`schedule.ts`)
 
 - A run keeps its exact time unless its routine allows a window (`flexMs`, reported by the home in `upcoming`); a
-  flexible run can share a wake the owner already caused. Today's homes report only `nextDueAt` (exact).
+  flexible run can share a wake the owner already caused. Homes report the next day's runs in `upcoming`: an "around this time" routine with a 30-minute window, everything else exact, and frequent routines made since w19 only inside the person's waking hours, so the night's quiet gap shows. `nextDueAt` stays the earliest run's latest start, for an Admin that reads only that.
 - A sleeping home wakes a lead before its run (the cold wake time plus a margin). An optional per-home spread exists
   (`spreadMs`); the tuned default is 0, because the planner below already spreads a crowded minute.
 - **Wake batching:** one planner per service gives each pre-wake a minute, at most half the minute window's included
