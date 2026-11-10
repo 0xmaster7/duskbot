@@ -68,26 +68,27 @@
 .amb-emoji-glyph { display: block; line-height: 1; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
 
 .amb-panel-body { padding: 4px 10px 10px; }
-/* the open island: every bot's mascot in one row, scrolling sideways when they do not fit, its edges fading */
+/* the open island: every bot's mascot in a grid that wraps onto as many rows as it needs (the last one centred), the
+   same gap down as across; past four rows it scrolls inside */
 .amb-strip-wrap { position: relative; }
 .amb-strip {
-  display: flex; gap: 2px; margin: 0; padding: 4px 8px 6px; list-style: none; overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain;
-  scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
-  mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+  --amb-strip-gap: 4px;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: var(--amb-strip-gap); margin: 0; padding: 4px 4px 6px; list-style: none;
+  max-height: calc(4 * 44px + 3 * var(--amb-strip-gap) + 10px); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: rgb(245 245 245 / 0.18) transparent;
 }
-.amb-strip::-webkit-scrollbar { display: none; }
 .amb-strip-cell { flex-shrink: 0; display: grid; place-items: center; }
 .amb-strip-bot { position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 14px; background: none; }
 .amb-strip-bot:focus-visible { outline-offset: -2px; }
 .amb-strip-bot .amb-bubble { top: 0; left: 0; box-shadow: 0 0 0 2px var(--amb-notch); }
 .amb-strip-bot .amb-state-dot { right: 4px; bottom: 5px; box-shadow: 0 0 0 2px var(--amb-notch); }
 .amb-strip-plus { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--amb-ink-3); transition: color var(--amb-fast) ease, background-color var(--amb-fast) ease, transform var(--amb-fast) var(--amb-ease-out); }
-/* whose mascot is under the pointer, in a small tip just below it */
+/* whose mascot is under the pointer, in a small tip just below it (placed by the page) */
 .amb-tip {
-  position: absolute; top: 54px; z-index: 2; translate: -50% 0; max-width: 160px; padding: 3px 8px; border-radius: 8px; overflow: hidden; text-overflow: ellipsis;
+  position: absolute; top: 0; z-index: 2; translate: -50% 0; max-width: 160px; padding: 3px 8px; border-radius: 8px; overflow: hidden; text-overflow: ellipsis;
   background: #1f1f1f; color: var(--amb-ink); font-size: 11px; line-height: 15px; font-weight: 500; white-space: nowrap; pointer-events: none;
 }
-/* an ask waiting on the person, under the row: whose, what, and its answers */
+/* an ask waiting on the person, under the mascots: whose, what, and its answers */
 .amb-ask { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 4px; border-top: 0.5px solid var(--amb-hair); }
 .amb-ask-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; margin: 0; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); }
 .amb-ask-name { flex-shrink: 0; font-weight: 550; }

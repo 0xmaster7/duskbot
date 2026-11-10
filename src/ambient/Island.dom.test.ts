@@ -13,7 +13,7 @@ const bot = (id: string, fields: Partial<AmbientBot>): AmbientBot => ({
   approval: null, waits: null, question: null, ...fields,
 });
 
-it("puts the asking bots first, answers each ask below the row for that bot only, and says how many more wait", async () => {
+it("puts the asking bots first, answers each ask below the mascots for that bot only, and says how many more wait", async () => {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
   const acts: AmbientAct[] = [];
   const bridge: AmbientBridge = {
@@ -50,7 +50,7 @@ it("puts the asking bots first, answers each ask below the row for that bot only
   await act(async () => root.unmount());
 });
 
-it("opens into one row of mascots, no names or lines, the name in a tip under the pointer, and a click opens that bot", async () => {
+it("opens into a grid of mascots, no names or lines, the name in a tip just under the one pointed at, and a click opens that bot", async () => {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
   const opened: string[] = [];
   const bridge: AmbientBridge = {
@@ -62,7 +62,7 @@ it("opens into one row of mascots, no names or lines, the name in a tip under th
   const team = Array.from({ length: 14 }, (_, index) => bot(`Bot${index}`, { line: `said ${index}`, at: 5, chat: [{ id: "m1", from: "bot", text: "hello", at: 1 }] }));
   await act(async () => feed({ lang: "en", labels: { open: "Open {name}" }, bots: team }));
   const strip = host.querySelector(".amb-strip")!;
-  // every bot in the one row, however many: it scrolls sideways
+  // every bot in the one grid, however many (it wraps onto more rows: ambient-css.test.ts)
   expect(strip.querySelectorAll(".amb-strip-bot")).toHaveLength(14);
   expect(host.querySelectorAll(".amb-strip")).toHaveLength(1);
   // nothing but the mascots: no names, last lines, times or chats
@@ -70,8 +70,13 @@ it("opens into one row of mascots, no names or lines, the name in a tip under th
   expect(host.querySelector(".amb-row, .amb-row-name, .amb-row-time, .amb-chat")).toBeNull();
   const mascot = strip.querySelector<HTMLButtonElement>('[data-row="Bot3"] .amb-strip-bot')!;
   expect(mascot.getAttribute("aria-label")).toBe("Open Bot3");
+  // happy-dom lays nothing out: the mascot on the second row of a grid scrolled down a little
+  Object.defineProperties(mascot, { offsetLeft: { get: () => 150 }, offsetTop: { get: () => 52 }, offsetWidth: { get: () => 44 }, offsetHeight: { get: () => 44 } });
+  Object.defineProperties(strip, { scrollTop: { get: () => 10 }, clientWidth: { get: () => 400 }, offsetLeft: { get: () => 10 } });
   await act(async () => mascot.dispatchEvent(new PointerEvent("pointerover", { bubbles: true })));
-  expect(host.querySelector(".amb-tip")?.textContent).toBe("Bot3");
+  const tip = host.querySelector<HTMLElement>(".amb-tip");
+  expect(tip?.textContent).toBe("Bot3");
+  expect([tip?.style.left, tip?.style.top]).toEqual(["172px", "88px"]);
   await act(async () => mascot.dispatchEvent(new PointerEvent("pointerout", { bubbles: true })));
   expect(host.querySelector(".amb-tip")).toBeNull();
   await act(async () => mascot.click());
