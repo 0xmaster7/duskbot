@@ -165,18 +165,8 @@ phone?.addEventListener('click', () => { phone.classList.remove('ringing'); void
 for (const b of $$('[data-copy]')) b.addEventListener('click', async () => {
   const label = b.dataset.label ||= b.textContent;
   try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'copied'; }
-  catch { const fig = b.closest('figure') || b.parentElement; getSelection().selectAllChildren($('code', fig) || $('.wc-cmd', fig) || fig); b.textContent = 'selected'; }
+  catch { const fig = b.closest('figure') || b.parentElement; getSelection().selectAllChildren($('code', fig) || fig); b.textContent = 'selected'; }
   setTimeout(() => { b.textContent = label; }, 1600);
-});
-
-// small states that rest finished and replay once when seen (the server in the app connecting)
-if (hasIO && !still) for (const el of $$('[data-wake]')) { el.classList.add('pre'); once(el, () => setTimeout(() => el.classList.remove('pre'), 1100), 0.7); }
-
-// the picture inside the big $0 slides a little with the pointer
-const zero = $('.zero');
-if (zero && !still) zero.parentElement.addEventListener('pointermove', (e) => {
-  const r = zero.getBoundingClientRect();
-  zero.style.backgroundPosition = `${(50 + ((e.clientX - r.left) / r.width - 0.5) * 60).toFixed(1)}% ${(50 + ((e.clientY - r.top) / r.height - 0.5) * 60).toFixed(1)}%`;
 });
 
 // monthly or yearly: the white pill is a full-size layer cut down with clip-path, and the prices settle on a spring
