@@ -34,6 +34,8 @@ export interface BoatSettings {
   backupTailMs: number;
   /** a routine's run wakes its home this long before */
   wakeLeadMs: number;
+  /** wakes the public edge may ask for per home per hour (webhooks, the app through our domain) */
+  edgeWakesPerHour: number;
   powerReadMs: number;
   template: string | null;
   /** the template's release signature (CI's release key), checked here at start and by the machine at first boot */
@@ -52,7 +54,7 @@ export interface BoatSettings {
 }
 export const DEFAULT_BOAT_SETTINGS: BoatSettings = {
   idleMinutes: 15, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, refreshAfterMs: 11 * DAY_MS, retentionDays: DEFAULT_RETENTION_DAYS,
-  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 5 * MINUTE, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
+  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 5 * MINUTE, edgeWakesPerHour: 20, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
 /** settings from DUSK_MANAGED_* (index.ts `managedEnv` maps the older names onto these) */
@@ -84,6 +86,7 @@ export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopba
     backupKeep: number("DUSK_MANAGED_BACKUP_KEEP", 2, 30, 3),
     refreshAfterMs: number("DUSK_MANAGED_REFRESH_DAYS", 3, 13, 11) * DAY_MS,
     wakeLeadMs: number("DUSK_MANAGED_WAKE_LEAD_MINUTES", 1, 30, 5) * MINUTE,
+    edgeWakesPerHour: number("DUSK_MANAGED_EDGE_WAKES_PER_HOUR", 1, 60, 20),
     retentionDays: number("DUSK_MANAGED_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
     deleteDelayDays: number("DUSK_MANAGED_DELETE_DELAY_DAYS", DEFAULT_DELETE_DELAY_DAYS, 90, DEFAULT_DELETE_DELAY_DAYS),
     backupTailMs: number("DUSK_MANAGED_BACKUP_TAIL_DAYS", 7, 365, 30) * DAY_MS,
@@ -640,13 +643,37 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
     return bootContent({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
   }
+  function edgeCloud(value: string): StoredCloud | null {
+    if (!/^d[0-9a-f]{20}$/.test(value)) return null;
+    return deps.clouds().find(x => x.backend && x.managed?.label === value && x.status !== "destroyed" && x.status !== "destroying") ?? null;
+  }
+  /** only a paid, unsuspended home that is up or idle-asleep: never one stopped for its plan, an operator or a delete */
+  function edgeWakeable(c: StoredCloud): boolean {
+    return (c.status === "running" || c.status === "sleeping") && !c.ended && c.suspended === null && (c.destroyAt === null || c.destroyAt > now())
+      && deps.entitlement(c).active && !(state(c).deleteRequest?.confirmedAt && state(c).deleteRequest?.cancelledAt === null) && state(c).deletion === null;
+  }
   return {
     redeemClaim,
     /** the edge's lookup: the machine's own hosted URL behind a public label */
-    upstreamFor(value: string): string | null {
-      if (!/^d[0-9a-f]{20}$/.test(value)) return null;
-      const c = deps.clouds().find(x => x.backend && x.managed?.label === value && x.status !== "destroyed" && x.status !== "destroying");
-      return c?.managed?.upstream ?? null;
+    upstreamFor(value: string): string | null { return edgeCloud(value)?.managed?.upstream ?? null; },
+    cloudOfLabel(value: string): string | undefined { return edgeCloud(value)?.id; },
+    /** the same, and whether the home answers now: the edge forwards to an awake home and wakes a sleeping one */
+    edgeRoute(value: string): { upstream: string; awake: boolean; wakeable: boolean } | null {
+      const c = edgeCloud(value), upstream = c?.managed?.upstream;
+      if (!c || !upstream) return null;
+      return { upstream, awake: c.status === "running" && state(c).wakeStartedAt === null, wakeable: edgeWakeable(c) };
+    },
+    /** a request at the edge for a sleeping home (a webhook, the app): woken like the owner's own wake, under its own hourly cap */
+    edgeWake(value: string, reason: "webhook" | "client"): { ok: boolean; status: number } {
+      const c = edgeCloud(value);
+      if (!c || !edgeWakeable(c)) return { ok: false, status: 409 };
+      if (c.status === "running" && state(c).wakeStartedAt === null) return { ok: true, status: 200 };
+      const b = state(c), recent = (b.edgeWakes ?? []).filter(t => t > now() - HOUR);
+      // anyone can reach a public name: each wake is a provider start, so strangers get a small budget, never an open tap
+      if (c.wantPower !== "on" && recent.length >= settings.edgeWakesPerHour) { b.edgeWakes = recent; deps.save(c); return { ok: false, status: 429 }; }
+      if (c.wantPower !== "on") { recent.push(now()); log(c, "wake_asked", "edge", reason); }
+      b.edgeWakes = recent; c.wantPower = "on"; c.wakeRequestedAt = now(); c.nextAttemptAt = 0; deps.save(c);
+      return { ok: true, status: 202 };
     },
     reconcile,
     verdict: (c: StoredCloud) => verdictFor(c),

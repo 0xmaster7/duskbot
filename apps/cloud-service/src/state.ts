@@ -17,6 +17,8 @@ export interface BoatCloudState {
   busy: string[];
   leaseAt: number | null;
   lastStopAt: number | null;
+  /** wakes the public edge asked for in the last hour (a webhook, the app): capped by edgeWakesPerHour */
+  edgeWakes?: number[];
   wakeStartedAt: number | null;
   /** `keep`: from a replaced sandbox's own disk, never pruned; `source`: that sandbox */
   backups: Array<{ file: string; at: number; bytes: number; sha256: string; verifiedAt: number | null; snapshotAt: number; keep?: boolean; source?: string }>;

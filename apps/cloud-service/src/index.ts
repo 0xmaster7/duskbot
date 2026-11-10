@@ -106,10 +106,21 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
           const want = deps.edgeToken ? `Bearer ${deps.edgeToken}` : null;
           // only the edge proxy may ask; to anyone else the route does not exist
           if (req.method !== "GET" || !want || !digest(String(req.headers.authorization ?? "")).equals(digest(want))) { routes.json(res, 404, { error: "not_found" }); return true; }
-          const upstream = lifecycle.upstreamFor(url.searchParams.get("label") ?? "");
-          if (!upstream) { routes.json(res, 404, { error: "not_found" }); return true; }
+          const route = lifecycle.edgeRoute(url.searchParams.get("label") ?? "");
+          if (!route) { routes.json(res, 404, { error: "not_found" }); return true; }
           res.setHeader("cache-control", "no-store");
-          routes.json(res, 200, { upstream });
+          routes.json(res, 200, route);
+          return true;
+        }
+        if (url.pathname === "/v1/managed/edge/wake") {
+          const want = deps.edgeToken ? `Bearer ${deps.edgeToken}` : null;
+          if (req.method !== "POST" || !want || !digest(String(req.headers.authorization ?? "")).equals(digest(want))) { routes.json(res, 404, { error: "not_found" }); return true; }
+          const reason = url.searchParams.get("reason") === "webhook" ? "webhook" : "client";
+          const answer = lifecycle.edgeWake(url.searchParams.get("label") ?? "", reason);
+          if (answer.status === 202) ctx.kick?.(lifecycle.cloudOfLabel(url.searchParams.get("label") ?? ""));
+          res.setHeader("cache-control", "no-store");
+          if (answer.status === 429) res.setHeader("retry-after", "300");
+          routes.json(res, answer.status, { ok: answer.ok, retryAfterMs: answer.ok ? 1_000 : null });
           return true;
         }
         return false;
