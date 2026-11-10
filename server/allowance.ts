@@ -143,14 +143,14 @@ export function createAllowance(deps: AllowanceDeps) {
   }
 
   const limit = () => (state.weeklyUsd === undefined ? null : cents(state.weeklyUsd + state.extraUsd));
-  const spentTotal = () => state.weeklyUsd === undefined ? 0 : deps.since(state.week).reduce((sum, entry) => sum + entry.usd, 0);
+  const spentTotal = () => state.weeklyUsd === undefined ? 0 : cents(deps.since(state.week).reduce((sum, entry) => sum + entry.usd, 0));
   const saverOn = () => state.saverUntil !== undefined && now() < state.saverUntil;
   const monthUsd = () => { const month = monthOf(now()); return cents(state.topUps.filter((one) => monthOf(one.at) === month).reduce((sum, one) => sum + one.usd, 0)); };
 
   function levelOf(spent: number, cap: number | null): AllowanceReport["level"] {
     if (cap === null) return "off";
     if (spent >= cap) return "over";
-    return spent >= cap * NEAR_SHARE ? "near" : "ok";
+    return spent >= cents(cap * NEAR_SHARE) ? "near" : "ok";
   }
 
   function topLine(language: string | undefined): string {
@@ -199,7 +199,7 @@ export function createAllowance(deps: AllowanceDeps) {
         save();
         return overLine(language, entry.botId);
       }
-      if (spent >= cap * NEAR_SHARE && !state.noticedNear) {
+      if (spent >= cents(cap * NEAR_SHARE) && !state.noticedNear) {
         state.noticedNear = true;
         save();
         const words = resetWords(resetOf(state.week), now(), language);
@@ -256,7 +256,7 @@ export function createAllowance(deps: AllowanceDeps) {
       const cap = limit(), spent = spentTotal();
       if (cap === null || spent < cap) { delete state.hitAt; state.overrunUsd = 0; }
       else state.hitAt ??= now();
-      if (cap === null || spent < cap * NEAR_SHARE) delete state.noticedNear;
+      if (cap === null || spent < cents(cap * NEAR_SHARE)) delete state.noticedNear;
       delete state.dismissed;
       save();
     },

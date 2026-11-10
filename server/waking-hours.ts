@@ -41,7 +41,7 @@ export function windowOf(days: Days): RoutineIntervalWindow | null {
   if (values.length < DAYS_NEEDED) return WAKING_FALLBACK;
   const start = Math.max(0, Math.floor((median(values.map((day) => day.first)) - LEAD) / 15) * 15);
   const end = Math.ceil((median(values.map((day) => day.last)) + TAIL) / 15) * 15;
-  if (end >= DAY || DAY - (end - start) < MIN_QUIET) return null;
+  if (end >= DAY || start >= end || DAY - (end - start) < MIN_QUIET) return null;
   return { start: clock(start), end: clock(end) };
 }
 

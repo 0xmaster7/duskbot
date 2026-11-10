@@ -108,6 +108,24 @@ describe("routeTurn", () => {
   });
 });
 
+describe("Saver mode", () => {
+  const base: RouteInput = {
+    conversational: false, followsBotModel: false, automated: false, saver: true,
+    signals: { text: "deploy the app and write the release notes", ...plain },
+    model: "claude-opus-5", effort: "high", variant: "v", catalog: claude, effortLevels: ["low", "medium", "high"],
+  };
+
+  it("runs every turn a person starts on the quick model, whatever the bot or thread chose", () => {
+    expect(routeTurn(base)).toEqual({ tier: "simple", model: "claude-haiku-4-5", quickModel: "Claude Haiku 4.5" });
+  });
+
+  it("lowers the effort where the engine has no quick model, and leaves automated turns alone", () => {
+    expect(routeTurn({ ...base, catalog: { default: "x", options: [{ id: "claude-opus-5", label: "Opus" }] } }))
+      .toEqual({ tier: "simple", model: "claude-opus-5", effort: "low", variant: "v" });
+    expect(routeTurn({ ...base, automated: true })).toEqual({ tier: null, model: "claude-opus-5", effort: "high", variant: "v" });
+  });
+});
+
 describe("long conversations", () => {
   const windowed: ModelCatalog = { default: "claude-opus-5", options: [
     { id: "claude-opus-5", label: "Claude Opus 5", contextWindow: 1_000_000 },

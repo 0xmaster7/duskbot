@@ -37,6 +37,14 @@ function home(probes: Partial<CloudPowerProbes> = {}) {
   return { power, state, sent, dataDir, pass, jump: (ms: number) => { clock += ms; }, now: () => clock };
 }
 
+describe("the home's upcoming runs", () => {
+  it("reports each run of the next day with its window, and nothing when the server has none to say", () => {
+    const runs = [{ at: START + 60_000, flexMs: 0 }, { at: START + 8 * 3_600_000, flexMs: 1_800_000 }];
+    expect(home({ upcoming: () => runs }).power.report().upcoming).toEqual(runs);
+    expect(home().power.report()).not.toHaveProperty("upcoming");
+  });
+});
+
 describe("the home's idle verdict", () => {
   it("is busy just after it wakes, then idle with nothing going on", () => {
     const h = home();
