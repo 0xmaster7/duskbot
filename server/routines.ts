@@ -15,7 +15,7 @@ import { cloneSchedule, limitResetOccurrence, mergeScheduleUpdate, nextOccurrenc
 import { runsOnce } from "../shared/limit-reset.ts";
 import {
   isRoutineProblemRun, type RoutineAccess, type RoutineCheck, type RoutineContextAttachment, type RoutineDelivery, type RoutineIntervalWindow, type RoutineRetryCause,
-  type RoutineHoldCause, type RoutineRunReport, type RoutineRunStatus, type RoutineRunTrigger,
+  type RoutineHoldCause, type RoutinePause, type RoutineRunReport, type RoutineRunStatus, type RoutineRunTrigger,
 } from "../shared/routines.ts";
 import type { PartPair, RoutinePart } from "./package-parts.ts";
 import {
@@ -73,7 +73,7 @@ export interface Routine {
   failureStreak?: number;
   weekRuns?: { ok: number; total: number };
   warning?: string;
-  heldFor?: RoutineHoldCause;
+  heldFor?: RoutineHoldCause; pausedFor?: RoutinePause;
   sourceThreadId?: string;
   resultsThreadId?: string;
   installedPackage?: RoutinePackageStamp;
@@ -103,7 +103,7 @@ export interface RoutineRun {
   runOn: RoutineRunOn;
   scheduledFor: number;
   status: RoutineRunStatus;
-  manual: boolean;
+  manual: boolean; dryRun?: true;
   deferredAt?: number;
   deferredNoticeAt?: number;
   /** A queued run starts no earlier than this. */
@@ -271,7 +271,7 @@ export interface RoutineManagerOptions {
   skipStartupRuns?: boolean;
   checks?: RoutineChecks;
   /** The computer woke and is not back on the network yet (server/wake-gate.ts): due runs wait, then each runs once. */
-  heldAfterWake?: () => boolean;
+  heldAfterWake?: () => boolean; held?: (run: RoutineRun) => string | null; decorate?: (routine: Routine) => Partial<Routine>;
 }
 
 const CATCH_UP_MS = 12 * 60 * 60_000;
@@ -392,7 +392,7 @@ export class RoutineManager {
     const failures = success < 0 ? outcomes.length : success;
     const { installedPackage: _installedPackage, ...visible } = cloneRoutine(routine);
     const warning = routineHostWarning(routine), week = weekRuns(this.runs, routine.id, this.now());
-    return { ...visible, ...(failures ? { failureStreak: failures } : {}), ...(week ? { weekRuns: week } : {}), ...(warning ? { warning } : {}) };
+    return { ...visible, ...(failures ? { failureStreak: failures } : {}), ...(week ? { weekRuns: week } : {}), ...(warning ? { warning } : {}), ...this.options.decorate?.(routine) };
   }
 
   packageStamps(): Array<{ routineId: string; botId: string; enabled: boolean; stamp: RoutinePackageStamp }> {
@@ -710,7 +710,7 @@ export class RoutineManager {
     if (changed) this.saveLater();
   }
 
-  runNow(id: string, request?: RoutineRequestCommitFor<"run_now">): RoutineRun | null {
+  runNow(id: string, request?: RoutineRequestCommitFor<"run_now">, dryRun = false): RoutineRun | null {
     if (this.closing) return null;
     if (request) {
       const receipt = this.matchingRoutineRequestReceipt(request);
@@ -726,7 +726,7 @@ export class RoutineManager {
     const previousDestination = routine.resultsThreadId;
     this.commitMutation(() => {
       run = this.newRun(routine, this.now(), true, allocations, request?.threadId ?? routine.sourceThreadId);
-      if (request) run.sourceThreadId = request.threadId;
+      if (request) run.sourceThreadId = request.threadId; if (dryRun) run.dryRun = true;
       if (request) this.rememberRoutineRequest(request, run.id, this.now());
     }, () => this.discardResultsThreads(allocations));
     if (routine.resultsThreadId !== previousDestination) this.emitRoutine(routine);
@@ -914,10 +914,11 @@ export class RoutineManager {
     return held!.paused.length ? held!.began : [];
   }
 
-  deferNextRun(id: string, until: number): Routine | null {
+  /** Moves the next run to `until`: later only, or with `sooner` earlier only. */
+  deferNextRun(id: string, until: number, sooner = false): Routine | null {
     const routine = this.routines.find((candidate) => candidate.id === id);
     if (!routine) return null;
-    if (!routine.enabled || routine.nextRunAt === null || routine.nextRunAt >= until || routine.schedule.type === "limit_reset") return this.routineWithHealth(routine);
+    if (!routine.enabled || routine.nextRunAt === null || (sooner ? routine.nextRunAt <= until : routine.nextRunAt >= until) || routine.schedule.type === "limit_reset") return this.routineWithHealth(routine);
     this.commitMutation(() => {
       if (routine.schedule.type === "once") routine.schedule = { type: "once", at: until };
       routine.nextRunAt = until;
@@ -1124,6 +1125,7 @@ export class RoutineManager {
           this.failRun(run, this.missingTargetMessage(run.target));
           continue;
         }
+        const held = this.options.held?.(run); if (held) { this.failRun(run, held, "missed", null); continue; }
         const startedAt = this.now();
         const suffix = ` · ${new Date(startedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
         const title = `${run.routineName.slice(0, 80 - suffix.length).trimEnd()}${suffix}`;
@@ -1168,7 +1170,7 @@ export class RoutineManager {
             await this.options.startTurn(
               run.botId,
               task.threadId,
-              composeExecutionPrompt({ id: run.routineId, name: run.routineName, trigger: triggerSource, runOn: run.runOn ?? "maus" }, prompt, run.attachments, continuityCarry(run, this.routines, this.runs), run.retried),
+              composeExecutionPrompt({ id: run.routineId, name: run.routineName, trigger: triggerSource, runOn: run.runOn ?? "maus", dryRun: run.dryRun }, prompt, run.attachments, continuityCarry(run, this.routines, this.runs), run.retried),
               run.runOn ?? "maus",
               triggerSource,
               (message) => this.failThread(task.threadId, message, { cause: "refused" }),
@@ -1283,9 +1285,7 @@ export class RoutineManager {
       if (waitsOnTeammates) this.wait(run, "Waiting for work it handed on to finish");
       else { Object.assign(run, { status: "completed", attention: undefined, finishedAt: this.now() } satisfies Partial<RoutineRun>); this.ownerNotices = this.ownerNotices.filter((notice) => notice.botId !== run.botId); }
       run.error = undefined;
-    } else {
-      return null;
-    }
+    } else return null;
     this.saveLater();
     this.emitRun(run);
     if (event.type === "turn.completed") queueMicrotask(() => this.tickInBackground());

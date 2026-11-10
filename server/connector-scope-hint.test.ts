@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { scopeHint, withScopeHint } from "./connector-scope-hint.ts";
+import { browserFallbackHint, scopeHint, withBrowserFallback, withScopeHint } from "./connector-scope-hint.ts";
 
 const encode = (value: unknown) => new TextEncoder().encode(typeof value === "string" ? value : JSON.stringify(value));
 const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
@@ -104,5 +104,15 @@ describe("connector scope hint only for failed calls (#2467)", () => {
     const failed = toolResult(6, { successful: false, data: { message: "Request had insufficient authentication scopes." }, error: "Forbidden" });
     const out = JSON.parse(decode(withScopeHint(encode(failed), "application/json", ["GMAIL_CREATE_FILTER"])));
     expect(out.result.content[1].text).toContain("gmail.settings.basic");
+  });
+
+  it("points a call the app's API cannot do at the browser, only for a bot that has one", () => {
+    const failed = toolResult(7, { successful: false, data: {}, error: "This operation is not supported by the Gmail API" });
+    const out = JSON.parse(decode(withBrowserFallback(encode(failed), "application/json", ["GMAIL_CREATE_LABEL_RULE"], true)));
+    expect(out.result.content[1].text).toBe(browserFallbackHint(["GMAIL_CREATE_LABEL_RULE"]));
+    expect(out.result.content[1].text).toContain("in your browser instead, on Gmail's website");
+    expect(decode(withBrowserFallback(encode(failed), "application/json", ["GMAIL_X"], false))).toBe(JSON.stringify(failed));
+    const ok = toolResult(8, { successful: true, data: { note: "labels are not supported in this view" }, error: null });
+    expect(decode(withBrowserFallback(encode(ok), "application/json", ["GMAIL_X"], true))).toBe(JSON.stringify(ok));
   });
 });

@@ -177,14 +177,17 @@ function appToolsPrompt(apps: readonly string[]): string {
   return ` ${named.map((app) => app.label).join(" and ")}, when connected, ${one ? "has tools of its" : "have tools of their"} own: call ${named.map((app) => app.tools).join(", and ")} directly (your engine may show them behind its own prefix, with _ for the dot), and use the composio tools for everything else.${named.map((app) => (app.note ? ` ${app.note}` : "")).join("")}`;
 }
 
-export function composioSystemPrompt(grants: Record<string, ConnectorToolGrant> | undefined): string {
-  if (grants === undefined) return COMPOSIO_PROMPT + appToolsPrompt(Object.keys(APP_TOOLS_PROMPT));
+export const BROWSER_FALLBACK_PROMPT = " When a connected app has no tool for what is needed, or its tool cannot do it, do that step in your browser on the app's own website with the same account instead of refusing; if the site asks to sign in, ask the person to sign in there once.";
+
+export function composioSystemPrompt(grants: Record<string, ConnectorToolGrant> | undefined, browser = false): string {
+  const withFallback = (text: string) => (browser ? `${text.trimEnd().replace(/\.?$/, ".")}${BROWSER_FALLBACK_PROMPT}` : text);
+  if (grants === undefined) return withFallback(COMPOSIO_PROMPT + appToolsPrompt(Object.keys(APP_TOOLS_PROMPT)));
   const services = Object.keys(grants);
   if (services.length === 0) {
     return " No connected apps are assigned to this bot. If a task needs one, or an app's sign-in has expired, call COMPOSIO_MANAGE_CONNECTIONS to show the user a card that connects it, and ask them to allow that app for this bot in Dusk Bot.";
   }
   const named = services.map(connectorServiceLabel).join(", ");
-  return ` The user's connected apps assigned to this bot (${named}) are reachable through the composio tools: find the right one with COMPOSIO_SEARCH_TOOLS, read its arguments with COMPOSIO_GET_TOOL_SCHEMAS, then run it with COMPOSIO_MULTI_EXECUTE_TOOL. Only the tools this bot was granted will run; when a needed tool is refused, tell the user and ask them to grant it in Dusk Bot. Reach for the granted services before telling the user you have no access.${appToolsPrompt(services)}`;
+  return withFallback(` The user's connected apps assigned to this bot (${named}) are reachable through the composio tools: find the right one with COMPOSIO_SEARCH_TOOLS, read its arguments with COMPOSIO_GET_TOOL_SCHEMAS, then run it with COMPOSIO_MULTI_EXECUTE_TOOL. Only the tools this bot was granted will run; when a needed tool is refused, tell the user and ask them to grant it in Dusk Bot. Reach for the granted services before telling the user you have no access.${appToolsPrompt(services)}`);
 }
 
 function connectorServiceLabel(slug: string): string {
@@ -232,6 +235,8 @@ export const AUTOMATION_REPLY_PROMPT =
 export const READ_ONLY_ROUTINE_EXECUTION_PROMPT = " Execute this automation now within its read-and-draft limits.";
 export const ROUTINE_EXECUTION_PROMPT =
   " Execute this routine now: use coordinate_bots for required handoffs rather than merely announcing that you will wait; after an accepted hand-off, end this turn for automatic resumption, and report a concrete blocker if no handoff is possible." + AUTOMATION_COMPLETION_PROMPT;
+export const NOT_YET_PROMPT =
+  " If what this run needs has not arrived yet (an email, a file, a reply, a page update), start your reply with \"Not yet:\" and say in one line what is missing. Dusk Bot checks again later by itself, so do not report it as done or failed.";
 export const LEARN_PROMPT =
   " If the user sends /learn or asks you to save a reusable procedure from this work, use skills_list and skill_manage. Create new skills; update an existing learned skill only when the user explicitly asks to revise that exact name. Include source provenance." + APPLIED_RESULT_PROMPT;
 export const WEBHOOK_PROMPT =

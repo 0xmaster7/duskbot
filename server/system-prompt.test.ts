@@ -13,6 +13,7 @@ import {
   resolveComputerPromptKind,
   mentionPrompt,
   COMPOSIO_PROMPT,
+  BROWSER_FALLBACK_PROMPT,
   composioSystemPrompt,
   customMcpPrompt,
   CREDENTIAL_PROMPT,
@@ -347,6 +348,12 @@ describe("composioSystemPrompt", () => {
     expect(composioSystemPrompt({ gmail: { tools: "*" } })).toContain("Gmail, when connected, has tools of its own: call gmail.search_emails, gmail.read_email, gmail.read_email_thread, gmail.create_draft");
     expect(composioSystemPrompt({ github: { tools: "*" } })).not.toContain("gmail.");
     expect(composioSystemPrompt({})).not.toContain("gmail.");
+  });
+
+  it("sends the bot to its browser when a connected app cannot do a step, only when it has one", () => {
+    expect(composioSystemPrompt({ gmail: { tools: "*" } }, true).endsWith(`.${BROWSER_FALLBACK_PROMPT}`)).toBe(true);
+    expect(composioSystemPrompt(undefined, true)).toContain(`send.${BROWSER_FALLBACK_PROMPT}`);
+    expect(composioSystemPrompt({ gmail: { tools: "*" } })).not.toContain(BROWSER_FALLBACK_PROMPT);
   });
 
   it("offers only a connection card when no tools are granted", () => {

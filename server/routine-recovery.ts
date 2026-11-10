@@ -161,6 +161,7 @@ export function recoverRun(run: RoutineRun, failure: string, facts: RoutineFailu
     delete run.error;
     return { queued: true };
   }
+  if (verdict.kind === "retry" && verdict.cause === "failed" && !run.output) return { queued: false, error: `${failure} (not retried: it failed before doing anything)` };
   if (verdict.kind === "retry") return requeueOnce(run, verdict.cause, failure, now) ? { queued: true } : { queued: false, error: again };
   if (verdict.kind === "final") return { queued: false, error: again };
   if (verdict.cause === "usage_limit" && facts.backupReady && requeueOnce(run, "usage_limit", failure, now, now + RETRY_MS)) {

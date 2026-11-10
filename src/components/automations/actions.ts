@@ -36,6 +36,9 @@ export function useAutomationActions() {
     dispatch({ type: "webhookPatched", webhook: response.webhook });
   });
 
+  const test = (automation: Automation) => attempt(`test:${automation.id}`, () =>
+    new Promise<void>((resolve, reject) => dispatch({ type: "runRoutine", routineId: automation.id, test: true, onStarted: () => resolve(), onError: reject })));
+
   const runNow = (automation: Automation) => attempt(`run:${automation.id}`, () => automation.kind === "schedule"
     ? new Promise<void>((resolve, reject) => dispatch({ type: "runRoutine", routineId: automation.id, onStarted: () => resolve(), onError: reject }))
     : api(`/api/webhooks/${automation.id}/test`, { method: "POST", body: JSON.stringify({ event: "openmaus.test", message: "A test run from Automations" }) }));
@@ -82,5 +85,5 @@ export function useAutomationActions() {
     if (bot && run?.threadId) openBotThread(dispatch, bot, run.threadId);
   };
 
-  return { busy, error, errorFor, setError, copied, toggle, runNow, remove, copyAddress, openRun };
+  return { busy, error, errorFor, setError, copied, toggle, runNow, test, remove, copyAddress, openRun };
 }

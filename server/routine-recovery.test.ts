@@ -216,9 +216,20 @@ describe("an unattended run that fails for a passing reason", () => {
     expect(h.failed.map(({ run: failed }) => failed.id)).toEqual([run.id]);
   });
 
+  it("never starts again a run that crashed before doing anything: the same AI would fail it the same way", async () => {
+    const h = harness();
+    const run = await h.start(h.routine().id);
+    h.fail("thread-1", CRASH);
+    expect(h.run(run.id)).toMatchObject({ status: "failed", error: `${CRASH} (not retried: it failed before doing anything)` });
+    expect(h.run(run.id).retried).toBeUndefined();
+    await h.advance(MINUTE);
+    expect(h.started).toHaveLength(1);
+  });
+
   it("retries any other failure once, then fails it and tells of it once: a second failure is never retried", async () => {
     const h = harness();
     const run = await h.start(h.routine().id);
+    h.event("thread-1", { type: "item.completed", itemType: "assistant_text", text: "Read 12 emails so far." });
     h.fail("thread-1", CRASH);
     expect(h.run(run.id)).toMatchObject({ status: "queued", retried: "failed", attention: `Starting again shortly after a failure: ${CRASH}` });
     expect(h.failed).toEqual([]);

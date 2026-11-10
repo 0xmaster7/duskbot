@@ -455,6 +455,8 @@ export const EXCERPT_SUMMARY_HEADER = "Historical excerpts in chronological orde
 export interface MediaSize { w: number; h: number }
 
 /** One transcript line, serialized as stored. */
+/** An outbound action a reply can claim: a send, a booking, a purchase, a saved file or a download. */
+export type ActionKind = "send" | "book" | "buy" | "file" | "download";
 export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLineField, BugReportField {
   roomRequest?: { id: string; phase: "request" | "result" }; handoff?: import("./handoff-line.ts").HandoffLine;
   id: string;
@@ -527,7 +529,7 @@ export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLine
     limitResetsAt?: number;
     /** error rows: the reply came back; only a step the turn ran failed or wasn't allowed. */
     partial?: boolean;
-    reason?: import("./failed-turn.ts").FailedReplyReason; // error rows: what stopped the reply, when the server could tell
+    reason?: import("./failed-turn.ts").FailedReplyReason; blocker?: import("./failed-turn.ts").BrowserBlocker; // error rows: what stopped the reply, when the server could tell
     /** Provider item identity, scoped to the owning turn. */
     itemId?: string;
     /** Whether the harness captured the full redacted result. Private
@@ -573,6 +575,8 @@ export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLine
   /** The last assistant text item from a settled provider turn. */
   turnTerminal?: boolean;
   turnCompletedAt?: number;
+  /** What this reply says it did that its turn has no receipt for. */
+  unconfirmed?: ActionKind[];
   /** screen messages: a frame of the bot's computer (base64 image) */
   png?: string;
   mime?: string;

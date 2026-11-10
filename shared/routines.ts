@@ -78,6 +78,9 @@ export type RoutineDelivery = "brief";
 /** Why Dusk Bot paused a routine by itself, after its owner left: no AI of theirs is signed in here any more, they
  * removed every connected app and server, or the plan was cancelled. It turns back on once that changes. */
 export type RoutineHoldCause = "plan_cancelled" | "no_engine" | "no_connections";
+
+/** `cap`: it, or its bot, reached the weekly cap set on it; `failures`: its last runs failed the same way. */
+export type RoutinePause = { by: "cap"; capUsd: number; at: number } | { by: "failures"; error: string; at: number };
 export const ROUTINE_HOLD_CAUSES: readonly RoutineHoldCause[] = ["plan_cancelled", "no_engine", "no_connections"];
 
 /** What a finished run left in the chat it reports to: nothing, because it
@@ -149,6 +152,8 @@ export interface Routine {
   warning?: string;
   /** Set while Dusk Bot keeps it paused because its owner left; turning it on or off clears it. */
   heldFor?: RoutineHoldCause;
+  /** Why Dusk Bot turned it off by itself; gone once it is turned back on. */
+  pausedFor?: RoutinePause;
   attachments?: RoutineContextAttachment[];
   sourceThreadId?: string;
   resultsThreadId?: string;
@@ -173,6 +178,8 @@ export interface RoutineRun {
   scheduledFor: number;
   status: RoutineRunStatus;
   manual: boolean;
+  /** A test: outbound actions are refused and become drafts in its reply. */
+  dryRun?: true;
   triggerSource?: RoutineRunTrigger;
   /** "app": a connected-app event started it; "wait": a wait's follow-up did. triggerSource is then "webhook" (an outside event). */
   eventSource?: "app" | "wait";

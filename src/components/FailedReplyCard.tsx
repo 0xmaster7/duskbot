@@ -1,7 +1,7 @@
 import { createContext, useMemo, useState } from "react";
 import { t } from "@/lib/i18n";
 import { botEngine, claudeUpdateTarget } from "@/lib/failed-turn";
-import { canOfferSignIn, failedReplyDetail, failedReplyKind, failedReplyTitle, mostActionable, restartAlreadyDid, trailingRows } from "@/lib/failed-reply";
+import { blockerDetail, canOfferSignIn, failedReplyDetail, failedReplyKind, failedReplyTitle, mostActionable, restartAlreadyDid, trailingRows } from "@/lib/failed-reply";
 import { statusActivity } from "@/lib/activity-runs";
 import { openPlaceAction, placeRowViewFor, usePlaceSeat, worksOnSimpleLabel } from "@/lib/place-view";
 import { useStore, type Message } from "@/state/store";
@@ -101,6 +101,12 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
     const id = view.action?.id;
     if (id === "try-again") { if (retry) actions.push({ label: t("failedReply.tryAgain"), onClick: retry }); }
     else if (id && view.action) actions.push({ label: id === "open-computer-panel" ? t("chat.error.openScreen") : view.action.label, onClick: () => { openPlaceAction(id, { botId: leadBotId, threadId }, dispatch); } });
+  } else if (lead.kind === "blocker" && tool.blocker) {
+    const botId = leadBotId;
+    detail = blockerDetail(tool.blocker);
+    if (botId && tool.blocker.kind === "loop") actions.push({ label: t("chat.blocker.takeOver"), onClick: () => { openPlaceAction("turn-on-browser", { botId, threadId }, dispatch); } });
+    if (botId) actions.push({ label: t("chat.blocker.skip"), onClick: () => { close(); dispatch({ type: "send", botId, threadId, text: t("chat.blocker.skipText") }); } });
+    actions.push({ label: t("chat.blocker.stop"), onClick: close });
   } else if (lead.kind === "trial_credit") {
     const credit = trialCreditKind(failedTurnCause(tool.name) ?? "") ?? "used_up";
     detail = t(TRIAL_LINE[credit]);
@@ -136,9 +142,9 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
   return (
     <div className="mb-2 w-full px-5" data-failed-reply="">
       <ChatErrorCard
-        title={failedReplyTitle(items.map((item) => item.bot?.name ?? item.message.from?.name ?? ""), group)}
+        title={lead.kind === "blocker" ? t("chat.blocker.title") : failedReplyTitle(items.map((item) => item.bot?.name ?? item.message.from?.name ?? ""), group)}
         onDismiss={close}
-        actions={actions.length > 0 && actions.slice(0, 2).map((action) => (
+        actions={actions.length > 0 && actions.slice(0, lead.kind === "blocker" ? 3 : 2).map((action) => (
           <button key={action.label} type="button" onClick={action.onClick} className={CARD_ACTION}>{action.label}</button>
         ))}
       >

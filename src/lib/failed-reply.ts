@@ -7,11 +7,11 @@ import { plainErrorKind, plainErrorLine } from "@/lib/plain-error";
 import { isReceipt } from "@/lib/receipts";
 import type { LocaleKey } from "@/locales";
 import type { InstanceInfo, Message } from "@/state/store";
-import { failedTurnCause, type FailedReplyReason } from "../../shared/failed-turn";
+import { failedTurnCause, type BrowserBlocker, type FailedReplyReason } from "../../shared/failed-turn";
 import { trialCreditKind } from "../../shared/trial-credit";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 
-export type FailedReplyKind = FailedReplyReason | "claude_update" | "trial_credit" | "place" | "restart_interrupted" | "no_answer" | "other";
+export type FailedReplyKind = FailedReplyReason | "claude_update" | "trial_credit" | "place" | "restart_interrupted" | "no_answer" | "blocker" | "other";
 
 /** A failed turn's row: a reply that never came, not one that came back with a step that failed. */
 export function isFailedReply(message: Message): boolean {
@@ -66,6 +66,7 @@ const CREDIT_WORDS = /out of credits?|payment required|insufficient (?:funds|bal
 /** What stopped a failed row: the server's own reading when it stored one, its flags and words for an older row. */
 export function failedReplyKind(tool: NonNullable<Message["tool"]>, engine: InstanceInfo | undefined): FailedReplyKind {
   if (tool.rescue) return "no_answer";
+  if (tool.blocker) return "blocker";
   const cause = failedTurnCause(tool.name) ?? tool.name;
   if (tool.place) return "place";
   if (trialCreditKind(cause)) return "trial_credit";
@@ -94,13 +95,13 @@ export function plainFailureWords(cause: string): string | null {
 }
 
 /** Most actionable first: when bots fail for different reasons, the card says the one a person can fix. */
-const PRIORITY: FailedReplyKind[] = ["signed_out", "claude_update", "credits", "trial_credit", "usage_limit", "place", "restart_interrupted", "rate_limit", "overloaded", "timeout", "no_answer", "other"];
+const PRIORITY: FailedReplyKind[] = ["blocker", "signed_out", "claude_update", "credits", "trial_credit", "usage_limit", "place", "restart_interrupted", "rate_limit", "overloaded", "timeout", "no_answer", "other"];
 
 export function mostActionable<T extends { kind: FailedReplyKind }>(items: readonly T[]): T | undefined {
   return [...items].sort((a, b) => PRIORITY.indexOf(a.kind) - PRIORITY.indexOf(b.kind))[0];
 }
 
-const DETAIL: Record<Exclude<FailedReplyKind, "signed_out" | "credits" | "claude_update" | "trial_credit" | "place">, LocaleKey> = {
+const DETAIL: Record<Exclude<FailedReplyKind, "signed_out" | "credits" | "claude_update" | "trial_credit" | "place" | "blocker">, LocaleKey> = {
   usage_limit: "failedReply.usageLimit",
   rate_limit: "failedReply.rateLimited",
   overloaded: "failedReply.overloaded",
@@ -116,9 +117,16 @@ export function failedReplyDetail(kind: FailedReplyKind, engineName: string, onS
   if (kind === "signed_out") return t(onServer ? "failedReply.signedOutServer" : "failedReply.signedOutHere", { engine: engineName });
   if (kind === "credits") return t("failedReply.credits", { engine: engineName });
   if (kind === "claude_update") return t("chat.claudeUpdate.offer");
-  if (kind === "trial_credit" || kind === "place") return t("error.plain.generic");
+  if (kind === "trial_credit" || kind === "place" || kind === "blocker") return t("error.plain.generic");
   if (kind === "other" && cause.trim()) return plainErrorLine(cause) ?? cause.trim();
   return t(DETAIL[kind]);
+}
+
+/** Why Dusk Bot stopped a browser run itself, in one line. */
+export function blockerDetail(blocker: BrowserBlocker): string {
+  const site = blocker.site ?? "";
+  if (blocker.kind === "loop") return site ? t("chat.blocker.loopOn", { site }) : t("chat.blocker.loop");
+  return t(blocker.kind === "credentials" ? "chat.blocker.credentials" : blocker.kind === "credit" ? "chat.blocker.credit" : "chat.blocker.blocked", { site: site || t("chat.blocker.theSite") });
 }
 
 /** "Bot failed to respond" in a direct chat; in a group, who: "Echo couldn't respond", "Echo, Quill and 2 more couldn't respond". */

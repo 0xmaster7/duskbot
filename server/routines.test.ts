@@ -3095,15 +3095,18 @@ describe("RoutineManager", () => {
     h.setNow(routine.nextRunAt!);
     await h.manager.tick();
 
-    const crash = () => h.manager.handleRuntimeEvent({
-      eventId: `failed-${Math.random()}`,
-      provider: "fake",
-      threadId: "thread-1",
-      createdAt: new Date().toISOString(),
-      type: "turn.completed",
-      ok: false,
-      stopReason: "provider crashed",
-    });
+    const crash = () => {
+      h.manager.handleRuntimeEvent({ eventId: `said-${Math.random()}`, provider: "fake", threadId: "thread-1", createdAt: new Date().toISOString(), type: "item.completed", itemType: "assistant_text", text: "Half of the report." });
+      h.manager.handleRuntimeEvent({
+        eventId: `failed-${Math.random()}`,
+        provider: "fake",
+        threadId: "thread-1",
+        createdAt: new Date().toISOString(),
+        type: "turn.completed",
+        ok: false,
+        stopReason: "provider crashed",
+      });
+    };
     crash();
     expect(h.manager.listRuns()[0]).toMatchObject({ threadId: "thread-1", status: "queued", retried: "failed" });
     expect(h.failed).toEqual([]);
@@ -3146,6 +3149,7 @@ describe("RoutineManager", () => {
     await h.manager.tick();
     const base = { provider: "claude", threadId: "thread-1", createdAt: new Date().toISOString() };
     const fail = () => {
+      h.manager.handleRuntimeEvent({ ...base, eventId: `said-${Math.random()}`, type: "item.completed", itemType: "assistant_text", text: "Half of the report." });
       if (error) h.manager.handleRuntimeEvent({ ...base, eventId: `runtime-error-${Math.random()}`, type: "runtime.error", message: error });
       h.manager.handleRuntimeEvent({ ...base, eventId: `turn-completed-${Math.random()}`, type: "turn.completed", ok: false, stopReason });
     };
