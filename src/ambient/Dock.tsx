@@ -9,10 +9,12 @@ import { Plus } from "lucide-react";
 import { dockOrder, isBusy } from "./mood";
 import { HISTORY, MiniChat, type ChatScroll } from "./MiniChat";
 import { useRowMoments } from "./rows";
-import { LOOK_MS, attention, eventKey, isFresh, isSeenEvent, useSeen } from "./seen";
+import { LOOK_MS, attention, dotOf, eventKey, isFresh, isSeenEvent, newsOf, useSeen, type News } from "./seen";
 import { say, type AmbientLabels } from "./say";
 import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, SOFT_EXIT, useAllClear, useSettledSignal, useTraceTransitions, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, AmbientMessage, DockLayout } from "./types";
+
+export { dotOf, newsOf };
 
 /** How near the right edge the pointer has to be, beside the body, to bring the dock in. */
 const EDGE = 14;
@@ -446,16 +448,6 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   );
 }
 
-type News = "ask" | "reply" | "error" | null;
-
-/** What a mascot's bubble says: an ask, an unseen reply, an unseen failure, or nothing at all. */
-export function newsOf(bot: AmbientBot, seen: ReadonlySet<string>): News {
-  if (bot.quiet) return null;
-  if (bot.status === "needs-you") return "ask";
-  if (!isFresh(bot, seen)) return null;
-  return bot.status === "error" ? "error" : "reply";
-}
-
 interface MascotHandlers {
   open: (id: string) => void;
   point: (id: string) => void;
@@ -474,13 +466,6 @@ interface MascotProps {
 /** What a mascot draws from its bot: everything else in a summary (its chat, its line, the reply it streams) leaves it be. */
 const sameMascot = (a: AmbientBot, b: AmbientBot) => a.id === b.id && a.name === b.name && a.color === b.color && a.body === b.body && a.face === b.face
   && a.avatar === b.avatar && a.status === b.status && a.step === b.step && a.asks === b.asks && a.quiet === b.quiet;
-
-/** The small mark on a mascot for how it is doing, as the island says it: blue while it works, green for a reply not
- * yet seen. */
-export function dotOf(bot: AmbientBot, news: News): "working" | "done" | null {
-  if (isBusy(bot.status)) return "working";
-  return news === "reply" ? "done" : null;
-}
 
 const DockMascot = memo(function DockMascot({ index, cheer, bot, labels, tile, cell, live, reduced, showing, news, state, handlers }: MascotProps) {
   const controls = useDragControls();

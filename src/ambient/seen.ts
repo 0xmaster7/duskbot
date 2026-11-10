@@ -3,6 +3,7 @@
 // leaves the island's and the dock's attention and only shows, muted, as recent. Asks never go this way: they stay
 // until answered.
 import { useEffect, useRef, useState } from "react";
+import { isBusy } from "./mood";
 import type { AmbientBot, AmbientBridge } from "./types";
 
 /** An open panel counts as a look at what it showed after this long, so a pointer passing over it is not one. */
@@ -61,4 +62,21 @@ export function useSeen(bridge: AmbientBridge, bots: readonly AmbientBot[], look
     for (const bot of bots) if (isFresh(bot, seen)) look.current.keys.add(eventKey(bot));
   }, [bots, seen, looking]);
   return { seen, mark };
+}
+
+export type News = "ask" | "reply" | "error" | null;
+
+/** What a mascot's bubble says: an ask, an unseen reply, an unseen failure, or nothing at all. */
+export function newsOf(bot: AmbientBot, seen: ReadonlySet<string>): News {
+  if (bot.quiet) return null;
+  if (bot.status === "needs-you") return "ask";
+  if (!isFresh(bot, seen)) return null;
+  return bot.status === "error" ? "error" : "reply";
+}
+
+/** The small mark on a mascot for how it is doing, as the island says it: blue while it works, green for a reply not
+ * yet seen. */
+export function dotOf(bot: AmbientBot, news: News): "working" | "done" | null {
+  if (isBusy(bot.status)) return "working";
+  return news === "reply" ? "done" : null;
 }
