@@ -1,7 +1,7 @@
 import { t } from "./i18n";
 
 export interface FeatureFlagConfig {
-  features?: { skillAuthoring?: boolean; skillReview?: boolean; skillReviewSteps?: number; showToolCalls?: boolean; browser?: boolean; claudeUserMcp?: boolean; claudeUserSkills?: boolean; llmThreadTitles?: boolean; skillsLibrary?: boolean; shareLearnedSkills?: "off" | "ask" | "auto"; roomMemoryCapture?: boolean };
+  features?: { skillAuthoring?: boolean; skillReview?: boolean; skillReviewSteps?: number; showToolCalls?: boolean; browser?: boolean; claudeUserMcp?: boolean; claudeUserSkills?: boolean; llmThreadTitles?: boolean; quickUpdates?: boolean; skillsLibrary?: boolean; shareLearnedSkills?: "off" | "ask" | "auto"; roomMemoryCapture?: boolean };
   browserEngine?: { kind: "engine" | "unavailable"; reason?: string; installable?: boolean; installing?: boolean; installError?: string };
 }
 
@@ -70,6 +70,10 @@ export function claudeUserSkillsEnabled(config: FeatureFlagConfig | null | undef
 
 export function llmThreadTitlesEnabled(config: FeatureFlagConfig | null | undefined): boolean {
   return config?.features?.llmThreadTitles === true;
+}
+
+export function quickUpdatesEnabled(config: FeatureFlagConfig | null | undefined): boolean {
+  return config?.features?.quickUpdates !== false;
 }
 
 export function skillsLibraryEnabled(config: FeatureFlagConfig | null | undefined): boolean {

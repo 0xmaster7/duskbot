@@ -55,7 +55,7 @@ import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
 import { UsageMeterCard } from "./native/UsageMeter";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import {
-  ExperimentalFeaturesRow, FollowUpRow, LanguageRow, SendKeyRow, TalkingStyleRow,
+  ExperimentalFeaturesRow, FollowUpRow, LanguageRow, QuickUpdatesRow, SendKeyRow, TalkingStyleRow,
 } from "./AppSettingsRows";
 
 export type Has = (id: AppSettingsSection) => boolean;
@@ -186,6 +186,7 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
           <AccentRow />
           <LanguageRow simple />
           <TalkingStyleRow />
+          <QuickUpdatesRow />
           <PlaceLookRows />
           <AmbientRows />
         </SettingsRows>
