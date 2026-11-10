@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronRight } from "lucide-react";
+import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { useCloud } from "../data/cloud";
 import type { CheckoutSource, PlanCatalog } from "../data/contracts";
 import { freeTradeoffs, planLine, type FunnelPlan } from "../data/funnel";
@@ -14,8 +14,8 @@ import { planSelection } from "./plan-sheet";
 
 const PAID: FunnelPlan[] = ["starter", "pro"];
 
-/** the start funnel: a cloud desktop up front with its picture and one white button; Free sits under it, quieter,
- * and opens a plain comparison before it lets you through */
+/** the cloud desktop, when someone opens it from the start screen: its picture and one white button; Free sits under it,
+ * quieter, and opens a plain comparison before it lets you through */
 function StartPick({ catalog, onBought, onFree }: { catalog: PlanCatalog; onBought(): void; onFree(): void }) {
   const { checkout } = useCloud();
   const { toast } = useSession();
@@ -97,13 +97,14 @@ function StartPick({ catalog, onBought, onFree }: { catalog: PlanCatalog; onBoug
   );
 }
 
-type Step = "where" | "apps";
-const ORDER: Step[] = ["where", "apps"];
+const JOBS = ["Summarize my inbox", "Watch a price", "Plan a trip", "Research a topic"];
 
+/** the start screen: the app and a first job come first (a result in about two minutes, nothing to decide), and a cloud
+ * desktop is one quiet row under it for anyone who wants their bots on while the Mac sleeps */
 export function Onboarding() {
   const { account, catalog, finishOnboarding } = useCloud();
   const { account: me } = useSession();
-  const [step, setStep] = useState<Step>("where");
+  const [cloudOpen, setCloudOpen] = useState(false);
   const [bought, setBought] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const name = account?.profile.name || me?.name || me?.email.split("@")[0] || "";
@@ -117,43 +118,56 @@ export function Onboarding() {
     <div className="relative min-h-[100dvh] overflow-hidden bg-bg">
       <header className="relative mx-auto flex h-16 max-w-[960px] items-center justify-between px-6 max-sm:px-4">
         <span className="flex items-center gap-2.5"><Mascot color="blue" size={20} still /><span className="text-14 font-medium text-ink">Dusk Bot</span></span>
-        <div className="flex items-center gap-4">
-          <ol className="flex items-center gap-1.5" aria-label={`Step ${ORDER.indexOf(step) + 1} of ${ORDER.length}`}>
-            {ORDER.map((s, i) => <li key={s} aria-hidden className={cx("h-1 rounded-full", i <= ORDER.indexOf(step) ? "bg-ink" : "bg-track", s === step ? "w-6" : "w-3")} />)}
-          </ol>
-          <button type="button" onClick={() => void done()} className="hover-link h-11 rounded-full px-2 text-13 text-ink-3">Skip</button>
-        </div>
+        <button type="button" onClick={() => void done()} className="hover-link h-11 rounded-full px-2 text-13 text-ink-3">Skip</button>
       </header>
 
       <main className="relative mx-auto max-w-[960px] px-6 pb-16 pt-10 max-sm:px-4 max-sm:pt-4">
-        {step === "where" && (
-          <section key="where" className="step-in mx-auto max-w-[640px]" aria-labelledby="where-title">
-            <h1 id="where-title" className="t-title">Welcome, {name}.</h1>
-            <p className="mt-2 text-14 text-ink-3">Pick where your bots live.</p>
-            {catalog ? <StartPick catalog={catalog} onBought={() => { setBought(true); setStep("apps"); }} onFree={() => setStep("apps")} /> : <Skeleton className="mt-8 h-[520px] !rounded-card" />}
-          </section>
-        )}
+        <section className="step-in mx-auto max-w-[640px]" aria-labelledby="start-title">
+          {bought && <p className="mb-6 flex items-center gap-3 text-14 text-ink-3" role="status"><span className="live-dot shrink-0 text-accent" data-live aria-hidden />Your cloud desktop is being set up.</p>}
+          <h1 id="start-title" className="t-title">Welcome, {name}.</h1>
+          <p className="mt-2 text-14 text-ink-3">Your first bot can be doing a real job in about two minutes. Nothing to set up first.</p>
 
-        {step === "apps" && (
-          <section key="apps" className="step-in mx-auto max-w-[640px]" aria-labelledby="apps-title">
-            {bought && <p className="mb-6 flex items-center gap-3 text-14 text-ink-3" role="status"><span className="live-dot shrink-0 text-accent" data-live aria-hidden />Your cloud desktop is being set up.</p>}
-            <h1 id="apps-title" className="t-title">Get the apps</h1>
-            <p className="mt-2 text-14 text-ink-3">Sign in with this account on each device.</p>
-            <ul className="mt-6 divide-y divide-line border-y border-line">
-              <li className="flex flex-wrap items-center justify-between gap-4 py-5">
-                <h2 className="text-14 font-medium text-ink">Download the app for Mac</h2>
-                <ButtonLink to={DOWNLOAD_URL} external variant="primary">Download</ButtonLink>
-              </li>
-              <li className="flex flex-wrap items-center justify-between gap-4 py-5">
-                <h2 className="text-14 font-medium text-ink">Phone</h2>
-                <p className="max-w-[420px] text-13 text-ink-3">{PHONE_WEB_APP}</p>
-              </li>
-            </ul>
-            <div className="mt-8 flex justify-end">
-              <Button variant="outline" className="!h-11 !px-6" onClick={() => void done()} disabled={leaving}>{leaving ? "Opening" : "Go to my dashboard"}</Button>
+          <ol className="mt-8 divide-y divide-line border-y border-line">
+            <li className="flex flex-wrap items-center justify-between gap-4 py-5">
+              <div className="min-w-0">
+                <h2 className="text-14 font-medium text-ink">Get the app for Mac</h2>
+                <p className="mt-1 text-13 text-ink-3">Sign in with this account. It uses the Claude or ChatGPT sign-in already on your Mac when it finds one.</p>
+              </div>
+              <ButtonLink to={DOWNLOAD_URL} external variant="primary">Download</ButtonLink>
+            </li>
+            <li className="py-5">
+              <h2 className="text-14 font-medium text-ink">Pick a first job</h2>
+              <p className="mt-1 text-13 text-ink-3">The app opens on one question. Pick a job or write your own, and your bot starts right away.</p>
+              <ul className="mt-3 flex flex-wrap gap-2" aria-label="Jobs to start with">
+                {JOBS.map((job) => <li key={job} className="rounded-full border border-line-2 px-3 py-1.5 text-13 text-ink-2">{job}</li>)}
+              </ul>
+            </li>
+            <li className="flex flex-wrap items-center justify-between gap-4 py-5">
+              <h2 className="text-14 font-medium text-ink">Phone</h2>
+              <p className="max-w-[420px] text-13 text-ink-3">{PHONE_WEB_APP}</p>
+            </li>
+          </ol>
+
+          {!bought && (
+            <button type="button" aria-expanded={cloudOpen} aria-controls="start-cloud" onClick={() => setCloudOpen((open) => !open)}
+              className="press-soft hover-row mt-6 flex w-full items-center gap-4 rounded-card px-4 py-3.5 text-start max-sm:px-3">
+              <span className="min-w-0 flex-1">
+                <span className="block text-14 text-ink-2">Keep your bots working while your Mac sleeps</span>
+                <span className="block text-13 text-ink-3">Optional. A cloud desktop runs them 24/7. You can add one any time.</span>
+              </span>
+              <ChevronDown size={16} strokeWidth={1.5} className={cx("shrink-0 text-ink-3", cloudOpen && "rotate-180")} aria-hidden />
+            </button>
+          )}
+          {cloudOpen && !bought && (
+            <div id="start-cloud">
+              {catalog ? <StartPick catalog={catalog} onBought={() => { setBought(true); setCloudOpen(false); }} onFree={() => setCloudOpen(false)} /> : <Skeleton className="mt-8 h-[520px] !rounded-card" />}
             </div>
-          </section>
-        )}
+          )}
+
+          <div className="mt-8 flex justify-end">
+            <Button variant="outline" className="!h-11 !px-6" onClick={() => void done()} disabled={leaving}>{leaving ? "Opening" : "Go to my dashboard"}</Button>
+          </div>
+        </section>
       </main>
     </div>
   );
