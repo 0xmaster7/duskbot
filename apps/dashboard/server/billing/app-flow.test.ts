@@ -204,6 +204,15 @@ it("enforces Admin ownership, one-time confirmations, typed bodies, and the desk
   expect(await f.request("moved-to", { origin: cloud.origin }, stranger)).toMatchObject({ data: { state: "unknown" } });
   expect(await f.request("moved-to", { origin: cloud.origin })).toMatchObject({ data: { state: "live", cloudContractVersion: 1 } });
   expect(await f.request("wake", {})).toMatchObject({ data: { state: "awake", cloudContractVersion: 1 } });
+  // only real intent wakes a sleeping desktop: opening the app or viewing chats leaves it asleep
+  await f.billing.clouds.power(cloud.accountId, id, "off");
+  expect(cloud.status).toBe("stopped");
+  expect(await f.request("wake", { intent: "open" })).toMatchObject({ data: { state: "asleep", wakesOn: "intent" } });
+  expect(await f.request("wake", { intent: "view" })).toMatchObject({ data: { state: "asleep" } });
+  expect(cloud.status).toBe("stopped");
+  expect((await f.request("wake", { intent: "send" })).data.state).toMatch(/^(?:awake|waking)$/);
+  await f.reconcile();
+  expect(cloud.status).toBe("running");
   expect(await f.request("resize-now", {})).toMatchObject({ data: { state: "current", cloudContractVersion: 1 } });
   expect(await f.request("license")).toMatchObject({ data: { v: 1, cloudContractVersion: 1, work: "licensed" } });
   const view = f.billing.clouds.view(cloud) as CloudDesktopView; expect(view.machine).toEqual(BILLING_CONFIG.desktops.shared_m.machine);

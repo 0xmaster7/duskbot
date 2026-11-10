@@ -17,6 +17,12 @@ export interface BoatCloudState {
   busy: string[];
   leaseAt: number | null;
   lastStopAt: number | null;
+  /** wakes the public edge asked for in the last hour (a webhook, the app): capped by edgeWakesPerHour */
+  edgeWakes?: number[];
+  /** when an open, focused app began keeping the home up (the sleep policy caps it at 30 minutes) */
+  focusSince?: number | null;
+  /** why the sleep policy last kept an idle home up, for the operator */
+  stayReason?: string | null;
   wakeStartedAt: number | null;
   /** `keep`: from a replaced sandbox's own disk, never pruned; `source`: that sandbox */
   backups: Array<{ file: string; at: number; bytes: number; sha256: string; verifiedAt: number | null; snapshotAt: number; keep?: boolean; source?: string }>;

@@ -10,7 +10,7 @@
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { createHash, randomBytes } from "node:crypto";
 import { appendFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { createServer } from "node:http";
+import http, { createServer } from "node:http";
 import { generateEntitlementSigner } from "../../../shared/entitlement.ts";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -21,6 +21,10 @@ import { createBoatProvider } from "../src/boat.ts";
 import { createCloudSend } from "../../../electron/cloud-send.mjs";
 import { openOwnerSession } from "../../../electron/cloud-send-main.mjs";
 import { launchVerificationServer } from "../../../scripts/control-omb.ts";
+import { pagesRoutesFromEnv } from "../../dashboard/server/pages/routes.ts";
+import { createSealer, parseSealKey } from "../../dashboard/server/clouds/seal.ts";
+import { createPagesClient } from "../../../server/pages/client.ts";
+import edge from "../edge/worker.js";
 
 const args = process.argv.slice(2), fake = args.includes("--fake");
 const option = (name: string) => { const at = args.indexOf(name); return at === -1 ? null : args[at + 1] ?? null; };
@@ -58,6 +62,9 @@ const WIPE = ["/data", CLOUD_HOME.etc, CLOUD_HOME.root, "/opt/duskbot", "/usr/lo
   "/etc/systemd/system/omb-home.service", "/etc/systemd/system/omb-docker-gate.service", "/home/user/.boat", "/home/user/.boatignore", "/home/user/omb-home.tgz"];
 
 // the homes' signed reads go to the real origins; in --fake mode the "homes" answer from here
+const hooksSeen: string[] = [];
+// the edge step swaps the global fetch for the Worker's; everything else keeps the real one
+const realFetch = globalThis.fetch;
 const homeFetch: typeof fetch = async (input, init) => {
   const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
   if (adopt && !adopted && init?.method === "POST" && url.pathname.endsWith("/api/v1/sandboxes")) {
@@ -76,30 +83,45 @@ const homeFetch: typeof fetch = async (input, init) => {
       { status: 202, headers: { "content-type": "application/json" } });
   }
   if (fake && url.hostname.endsWith(".on.boat.dev")) {
+    const up = [...api!.sandboxes.values()].find(x => x.hosted && new URL(x.hosted).hostname === url.hostname);
+    if (up && up.state !== "ready") return new Response("down", { status: 502 });
+    if (url.pathname.startsWith("/hooks/")) { hooksSeen.push(`${init?.method ?? "GET"} ${url.pathname} ${init?.body ? new TextDecoder().decode(init.body as ArrayBuffer) : ""}`); return new Response("ok", { status: 200 }); }
     const body = url.pathname === "/api/cloud/health" ? { v: 1 } : url.pathname === "/api/cloud/power" ? { v: 1, idle: false, busy: ["turn"], nextDueAt: null }
       : url.pathname === "/api/cloud/pairing" ? { code: "ABCD-EFGH-JKLM", expiresAt: Date.now() + 300_000 }
       : url.pathname === "/api/cloud/entitlement" ? { ok: true, expiresAt: Date.now() + 86_400_000 } : { ok: true };
     return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
   }
-  return fetch(input, init);
+  return realFetch(input, init);
 };
 
 // a real home is a release build: it trusts only the pinned entitlement key, so a real run signs with the production one
 const entitlementKey = process.env.DUSK_ENTITLEMENT_SIGNING_KEY ?? (fake ? generateEntitlementSigner("dev-e2e").env : "");
 if (!entitlementKey) { console.error("DUSK_ENTITLEMENT_SIGNING_KEY is required for a real run (the release home refuses anything else)."); process.exit(2); }
+const sealKey = randomBytes(32).toString("base64url"), edgeToken = randomBytes(32).toString("base64url"), PUBLIC_DOMAIN = "desktops.e2e.invalid";
 const store = createStore(dataDir);
 const account = { id: "acct_e2e", email: "e2e@example.test" };
 const billing = createBilling({ dataDir, publicUrl: "https://dashboard.e2e.invalid", dashboard: { state: store.state, changed: () => store.changed() }, fetch: homeFetch,
   accounts: { fromCookie: () => account, fromBearer: () => account },
   mail: (cloud, letter) => note(`notice to owner: ${letter.subject} for ${cloud.id}`),
   alert: entry => note(`ALERT ${entry.action} ${entry.cloudId} (${entry.reason})`),
-  env: { DUSK_BILLING_PROVIDER: "fake", DUSK_CLOUD_SEAL_KEY: randomBytes(32).toString("base64url"), DUSK_MANAGED: "1", BOAT_API_KEY: key, BOAT_BASE_URL: baseUrl, DUSK_MANAGED_SCOPE: scope,
+  env: { DUSK_BILLING_PROVIDER: "fake", DUSK_CLOUD_SEAL_KEY: sealKey, DUSK_MANAGED: "1", DUSK_MANAGED_EDGE_TOKEN: edgeToken, ...(fake ? { DUSK_MANAGED_PUBLIC_DOMAIN: PUBLIC_DOMAIN } : {}), BOAT_API_KEY: key, BOAT_BASE_URL: baseUrl, DUSK_MANAGED_SCOPE: scope,
     DUSK_MANAGED_KINDS: "shared_s", DUSK_MANAGED_HOME_PACKAGE_FILE: packageFile, DUSK_MANAGED_HOME_PACKAGE_SHA256: sha256, DUSK_MANAGED_LEASE_HOURS: "1", DUSK_MANAGED_IDLE_MINUTES: "5", DUSK_MANAGED_LOST_AFTER_MINUTES: "2", DUSK_POOL_DRIVER: "fake",
     // no machine can reach this harness, and nobody uses it: no claim, no public domain, an unsigned test package
     DUSK_MANAGED_TEST_HARNESS: "1", DUSK_ENTITLEMENT_SIGNING_KEY: entitlementKey } });
-const webhooks = createServer((req, res) => void billing.handle(req, res, new URL(req.url ?? "/", "http://127.0.0.1")).then(handled => { if (!handled) { res.writeHead(404); res.end(); } }));
+// published pages: the account service's own routes, with object storage in memory for this run
+let pages: ReturnType<typeof pagesRoutesFromEnv>;
+const webhooks = createServer((req, res) => void (async () => {
+  const url = new URL(req.url ?? "/", "http://127.0.0.1");
+  if (await pages.handle(req, res, url)) return;
+  const managed = billing.clouds.managed;
+  if (managed?.handle && await managed.handle(req, res, url, { publicUrl: hookBase, clientIp: () => "127.0.0.1", readJson: async () => ({}),
+    json: (r, status, data) => { r.writeHead(status, { "content-type": "application/json" }); r.end(JSON.stringify(data)); } })) return;
+  if (await billing.handle(req, res, url)) return;
+  res.writeHead(404); res.end();
+})());
 await new Promise<void>(r => webhooks.listen(0, "127.0.0.1", r));
 const hookBase = `http://127.0.0.1:${(webhooks.address() as { port: number }).port}`;
+pages = pagesRoutesFromEnv({ dataDir, publicUrl: hookBase, clouds: billing.clouds, env: { DUSK_PAGES_STORE: "memory", DUSK_CLOUD_SEAL_KEY: sealKey } });
 
 const created = new Set<string>();
 async function track() { for (const s of await ops.inventory()) if (!created.has(s.id)) { created.add(s.id); note(`created sandbox ${s.id} (${s.type}) for ${s.cloudId}`); } }
@@ -207,6 +229,44 @@ try {
   note(`backup ${backup.file}: ${backup.bytes} bytes, verified`);
   results.backupBytes = backup.bytes;
   mark("backed up and verified");
+
+  // 6b. a page the bot published stays up while its machine sleeps: object storage behind our edge, no wake per view
+  const secret = createSealer(parseSealKey(sealKey)).unseal(cloud().bootstrapSecret);
+  const client = createPagesClient({ access: () => ({ kind: "home", url: `${hookBase}/api/cloud/pages/token`, machineId: cloudId, secret }) });
+  const published = await client.publish({ title: "e2e report", files: [{ path: "index.html", data: Buffer.from("<h1>report</h1>") }] });
+  if (!published.ok) throw new Error(`publish refused: ${published.message}`);
+  const view = await new Promise<{ status: number; body: string; csp: string }>((resolveView) => {
+    const req = (http.request)({ host: "127.0.0.1", port: Number(new URL(hookBase).port), path: "/", headers: { host: new URL(published.url).host } }, res => {
+      let body = ""; res.on("data", d => { body += d; }); res.on("end", () => resolveView({ status: res.statusCode ?? 0, body, csp: String(res.headers["content-security-policy"] ?? "") }));
+    });
+    req.end();
+  });
+  note(`page ${published.url}: ${view.status} ${JSON.stringify(view.body)} while the machine is ${api ? api.sandboxes.get(cloud().serverId!)!.state : "asleep"}; sandboxed ${view.csp.startsWith("sandbox")}`);
+  results.pageServedAsleep = view.status === 200 && cloud().status === "sleeping";
+  mark("page served while asleep");
+
+  // 6c. a webhook through our public edge wakes the sleeping machine and is held until it answers (fake: no real domain)
+  if (fake) {
+    const env = { ROUTE_URL: hookBase, EDGE_TOKEN: edgeToken, PUBLIC_DOMAIN };
+    const edgeFetch: typeof fetch = async (input, init) => {
+      const request = input instanceof Request ? input : new Request(input, init), url = new URL(request.url);
+      if (url.origin === hookBase) return realFetch(request);
+      return homeFetch(url.href, { method: request.method, headers: request.headers, body: request.body ? await request.arrayBuffer() : undefined });
+    };
+    const real = globalThis.fetch;
+    globalThis.fetch = edgeFetch;
+    const asleepAt = Date.now();
+    const looper = setInterval(() => { const c = cloud(); c.nextAttemptAt = 0; }, 100);
+    try {
+      const hook = await edge.fetch(new Request(`${cloud().origin}/hooks/github`, { method: "POST", body: "{\"ref\":\"main\"}" }), env, { waitUntil() {} });
+      note(`webhook through the edge: ${hook.status}; delivered ${JSON.stringify(hooksSeen.at(-1))}; held ${Date.now() - asleepAt} ms`);
+      results.webhookWoke = hook.status === 200 && cloud().status === "running";
+      results.webhookWakeMs = Date.now() - asleepAt;
+    } finally { globalThis.fetch = real; clearInterval(looper); }
+    mark("webhook woke it through the edge");
+    await billing.clouds.power(account.id, cloudId, "off");
+    await reconcileUntil(cloudId, () => cloud().status === "sleeping", 10 * 60_000, "sleep again");
+  }
 
   // 7. resumed for its owner
   await billing.clouds.power(account.id, cloudId, "on");

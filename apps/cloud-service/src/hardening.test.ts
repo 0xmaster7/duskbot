@@ -121,17 +121,17 @@ describe("a disk that may not be refreshed never starves the others", () => {
 });
 
 describe("waking for a routine", () => {
-  it("starts a sleeping home five minutes before its next run", async () => {
+  it("starts a sleeping home ten minutes before its next run", async () => {
     const f = await boatFixture();
     const { c } = await f.paid();
     f.power.idle = true; f.power.busy = []; f.power.nextDueAt = f.now() + 3 * 3_600_000;
     f.advance(3 * MINUTE);
     await f.settle(c, c => c.status === "sleeping");
     expect(c.managed!.nextDueAt).toBe(f.power.nextDueAt);
-    f.advance(3 * 3_600_000 - 3 * MINUTE - 6 * MINUTE);
+    f.advance(3 * 3_600_000 - 3 * MINUTE - 12 * MINUTE);
     c.nextAttemptAt = 0; await f.service.reconcile();
     expect(f.audit.entries(c.id).some(e => e.action === "wake" && e.reason === "routine_due")).toBe(false);
-    f.advance(2 * MINUTE);
+    f.advance(3 * MINUTE);
     c.nextAttemptAt = 0; await f.service.reconcile();
     expect(f.audit.entries(c.id).some(e => e.action === "wake" && e.reason === "routine_due")).toBe(true);
   });

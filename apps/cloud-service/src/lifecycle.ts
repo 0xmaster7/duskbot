@@ -3,6 +3,8 @@
 // boat-retention.ts. One step per reconcile, each safe to repeat after a crash.
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { ROUTINE_GUARD_MS, type SleepPolicy } from "./sleep-policy.ts";
+import type { StartKind, StartLedger } from "./starts.ts";
 import { linkKeys } from "../../dashboard/server/clouds/bootstrap.ts";
 import { BoatError, ProviderLimitError, type BoatProvider } from "./boat.ts";
 import { backupKey, BOAT_HOME_VOLUME, BOAT_PACKAGE_FILE, BOAT_RESTORE_FILE, boatBootFile, bootContent, boatSetupScript, claimBootFile, installCommand, RESTORE_COMMAND, startCommand } from "./home.ts";
@@ -34,6 +36,10 @@ export interface BoatSettings {
   backupTailMs: number;
   /** a routine's run wakes its home this long before */
   wakeLeadMs: number;
+  /** wakes the public edge may ask for per home per hour (webhooks, the app through our domain) */
+  edgeWakesPerHour: number;
+  /** the provider plan's included starts a day (DUSK_MANAGED_DAILY_STARTS): the sleep policy's budget */
+  includedStarts: number;
   powerReadMs: number;
   template: string | null;
   /** the template's release signature (CI's release key), checked here at start and by the machine at first boot */
@@ -52,7 +58,7 @@ export interface BoatSettings {
 }
 export const DEFAULT_BOAT_SETTINGS: BoatSettings = {
   idleMinutes: 15, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, refreshAfterMs: 11 * DAY_MS, retentionDays: DEFAULT_RETENTION_DAYS,
-  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 5 * MINUTE, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
+  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 10 * MINUTE, edgeWakesPerHour: 20, includedStarts: 200, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
 /** settings from DUSK_MANAGED_* (index.ts `managedEnv` maps the older names onto these) */
@@ -83,7 +89,9 @@ export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopba
     backupEveryMs: number("DUSK_MANAGED_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
     backupKeep: number("DUSK_MANAGED_BACKUP_KEEP", 2, 30, 3),
     refreshAfterMs: number("DUSK_MANAGED_REFRESH_DAYS", 3, 13, 11) * DAY_MS,
-    wakeLeadMs: number("DUSK_MANAGED_WAKE_LEAD_MINUTES", 1, 30, 5) * MINUTE,
+    wakeLeadMs: number("DUSK_MANAGED_WAKE_LEAD_MINUTES", 1, 30, 10) * MINUTE,
+    includedStarts: number("DUSK_MANAGED_DAILY_STARTS", 1, 100_000, 200),
+    edgeWakesPerHour: number("DUSK_MANAGED_EDGE_WAKES_PER_HOUR", 1, 60, 20),
     retentionDays: number("DUSK_MANAGED_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
     deleteDelayDays: number("DUSK_MANAGED_DELETE_DELAY_DAYS", DEFAULT_DELETE_DELAY_DAYS, 90, DEFAULT_DELETE_DELAY_DAYS),
     backupTailMs: number("DUSK_MANAGED_BACKUP_TAIL_DAYS", 7, 365, 30) * DAY_MS,
@@ -125,6 +133,10 @@ export interface BoatLifecycleDeps {
   releaseKeys: readonly ReleaseKey[];
   /** keys the opaque public labels (never on a machine) */
   labelKey: Buffer;
+  /** the day's provider starts (starts.ts): counted, alerted, refused past the provider's hard cap */
+  starts?: StartLedger;
+  /** whether an idle home stops now (sleep-policy.ts); without one, the home's own idle word, never with a run due within 10 min */
+  sleepPolicy?: SleepPolicy;
 }
 
 export function createBoatLifecycle(deps: BoatLifecycleDeps) {
@@ -132,6 +144,13 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
   const log = (c: StoredCloud, action: string, actor: AuditActor, reason: string, detail?: Record<string, string | number | boolean | null>) =>
     audit.record({ cloudId: c.id, action, actor, reason, serverId: c.serverId, ...(detail ? { detail } : {}) });
   const state = (c: StoredCloud): BoatCloudState => (c.managed ??= freshBoatState());
+  /** a provider start: refused past the day's hard cap, counted once it was asked for */
+  async function start<T>(cloudId: string, kind: StartKind, run: () => Promise<T>): Promise<T> {
+    deps.starts?.admit();
+    const result = await run();
+    deps.starts?.record(cloudId, kind);
+    return result;
+  }
   const secret = (c: StoredCloud) => deps.unseal(c.bootstrapSecret);
   const keyOf = (c: StoredCloud) => boatBackupKey(deps.backupSecret, c.id);
   const legacyKeyOf = (c: StoredCloud) => { try { return c.bootstrapSecret ? backupKey(secret(c)) : undefined; } catch { return undefined; } };
@@ -282,8 +301,8 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
         b.claim = { hash: createHash("sha256").update(claim).digest("hex"), expiresAt: now() + HOUR, redeemedAt: null };
         boot = claimBootFile({ cloudId: c.id, claim, redeem: `${deps.dashboardUrl}/v1/managed/claims/redeem` });
       }
-      const server = await provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData: boatSetupScript({ releaseKeys: deps.releaseKeys, requireSigned: settings.requireSigned }),
-        ttlSeconds: settings.leaseSeconds, attempt: b.attempt, files: [boot], ...(fromTemplate ? { from: settings.template! } : {}) });
+      const server = await start(c.id, b.attempt > 0 ? "recover" : "create", () => provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData: boatSetupScript({ releaseKeys: deps.releaseKeys, requireSigned: settings.requireSigned }),
+        ttlSeconds: settings.leaseSeconds, attempt: b.attempt, files: [boot], ...(fromTemplate ? { from: settings.template! } : {}) }));
       c.serverId = server.id; b.upstream = server.origin ?? null; c.origin = null; b.installed = fromTemplate ? templatePackage : null; b.leaseAt = now(); b.setupSince = now();
       log(c, "create", "reconciler", b.attempt ? "recovery" : "paid", { attempt: b.attempt, template: fromTemplate });
       c.setupStep = "storage"; deps.save(c); return;
@@ -454,7 +473,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
         continue;
       }
       // its disk is still the only full copy of that state on Boat: keep Boat's 14-day clock from running out
-      if (mayRefresh(c, s.stoppedAt, true)) { await provider.power(old.serverId, "on"); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
+      if (mayRefresh(c, s.stoppedAt, true)) { await start(c.id, "refresh", () => provider.power(old.serverId, "on")); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); }
     }
   }
 
@@ -545,7 +564,7 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
         await retiredStep(c);
         // keep Boat's copy of the disk alive while we promise to keep it: a short resume restarts its 14-day clock
         if (verdict.earliestAt !== null && verdict.earliestAt - now() > DAY_MS && mayRefresh(c, s.stoppedAt)) {
-          await provider.power(c.serverId, "on"); b.wakeStartedAt = now(); log(c, "refresh", "reconciler", "disk_age"); deps.save(c);
+          await start(c.id, "refresh", () => provider.power(c.serverId!, "on")); b.wakeStartedAt = now(); log(c, "refresh", "reconciler", "disk_age"); deps.save(c);
         }
       }
       return;
@@ -559,14 +578,14 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     }
 
     const up = ["ready", "idle", "running"].includes(s.state);
-    if (s.state === "error") { await provider.power(c.serverId, "on").catch(() => {}); b.wakeStartedAt = now(); log(c, "resume", "reconciler", "boat_error"); deps.save(c); return; }
+    if (s.state === "error") { await start(c.id, "recover", () => provider.power(c.serverId!, "on")).catch(() => {}); b.wakeStartedAt = now(); log(c, "resume", "reconciler", "boat_error"); deps.save(c); return; }
     const resizeKey = `${c.desiredSpec.vcpu}-${c.desiredSpec.ramGb}-${c.desiredSpec.diskGb}`;
     const resizeWanted = (c.desiredSpec.vcpu !== c.spec.vcpu || c.desiredSpec.ramGb !== c.spec.ramGb || c.desiredSpec.diskGb !== c.spec.diskGb) && b.resizeBlocked !== resizeKey;
     if (s.state === "archived" && resizeWanted) {
       // a plan change: backed up from the stop first, then resumed onto the new size, then started like any wake
       const covered = b.backups.some(g => g.verifiedAt !== null && !g.keep && g.snapshotAt >= (s.snapshotAt ?? 0));
       if (!covered) { if ((b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now() || (b.lastBackupTryAt ?? 0) < (s.stoppedAt ?? 0)) await backup(c, "resize"); if (!b.backups.some(g => g.verifiedAt !== null && !g.keep && g.snapshotAt >= (s.snapshotAt ?? 0))) return; }
-      try { await provider.resize(c.serverId, c.desiredSpec); }
+      try { await start(c.id, "resize", () => provider.resize(c.serverId!, c.desiredSpec)); }
       catch (error) {
         if (error instanceof BoatError && error.status < 500) { b.resizeBlocked = resizeKey; log(c, "resize_refused", "reconciler", error.code); deps.save(c); return; }
         throw error;
@@ -578,7 +597,8 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
       const due = b.nextDueAt !== null && b.nextDueAt - settings.wakeLeadMs <= now();
       const stale = c.wantPower !== "on" && !due && mayRefresh(c, s.stoppedAt);
       if (c.wantPower === "on" || due || stale) {
-        await provider.power(c.serverId, "on"); b.wakeStartedAt = now(); c.wantPower = "on";
+        const intent = c.wantPower === "on" && c.wakeRequestedAt !== undefined && now() - c.wakeRequestedAt < 5 * MINUTE;
+        await start(c.id, intent ? "wake" : due ? "routine" : stale ? "refresh" : "wake", () => provider.power(c.serverId!, "on")); b.wakeStartedAt = now(); c.wantPower = "on";
         log(c, "wake", c.wakeRequestedAt && now() - c.wakeRequestedAt < 5 * MINUTE ? "owner" : "reconciler", due ? "routine_due" : stale ? "disk_age" : "asked");
         deps.save(c); return;
       }
@@ -610,8 +630,13 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     const power = deps.home.power ? await deps.home.power(homeOrigin(c), secret(c), settings.idleMinutes).catch(() => null) : null;
     if (!power) { deps.save(c); return; }
     b.busy = power.busy; b.nextDueAt = power.nextDueAt;
-    const minAwake = c.powerSince + 2 * MINUTE;
-    if (power.idle && now() >= minAwake && deps.home.sleep) {
+    b.focusSince = power.busy.includes("focus") ? b.focusSince ?? now() : null;
+    // the home says idle for the base window; the policy says whether a stop now is worth it
+    const snapshot = { now: now(), cloudId: c.id, spec: c.spec, homeIdle: power.idle, awakeSince: c.powerSince, lastActivityAt: power.lastActivityAt, busy: power.busy, focusSince: b.focusSince ?? null, nextDueAt: power.nextDueAt };
+    const decision = deps.sleepPolicy?.decide(snapshot) ?? (power.nextDueAt !== null && power.nextDueAt - now() <= ROUTINE_GUARD_MS ? { action: "stay" as const, reason: "routine_due", recheckAt: power.nextDueAt }
+      : { action: power.idle && now() >= c.powerSince + 2 * MINUTE ? "stop" as const : "stay" as const, reason: "home_idle", recheckAt: now() + MINUTE });
+    if (b.stayReason !== (decision.action === "stay" ? decision.reason : null)) b.stayReason = decision.action === "stay" ? decision.reason : null;
+    if (power.idle && decision.action === "stop" && deps.home.sleep) {
       const agreed = await deps.home.sleep(homeOrigin(c), secret(c), settings.idleMinutes);
       if (agreed.ok) { b.nextDueAt = agreed.nextDueAt ?? power.nextDueAt; return sleepNow(c, "idle", "reconciler"); }
     }
@@ -640,13 +665,37 @@ export function createBoatLifecycle(deps: BoatLifecycleDeps) {
     const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
     return bootContent({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
   }
+  function edgeCloud(value: string): StoredCloud | null {
+    if (!/^d[0-9a-f]{20}$/.test(value)) return null;
+    return deps.clouds().find(x => x.backend && x.managed?.label === value && x.status !== "destroyed" && x.status !== "destroying") ?? null;
+  }
+  /** only a paid, unsuspended home that is up or idle-asleep: never one stopped for its plan, an operator or a delete */
+  function edgeWakeable(c: StoredCloud): boolean {
+    return (c.status === "running" || c.status === "sleeping") && !c.ended && c.suspended === null && (c.destroyAt === null || c.destroyAt > now())
+      && deps.entitlement(c).active && !(state(c).deleteRequest?.confirmedAt && state(c).deleteRequest?.cancelledAt === null) && state(c).deletion === null;
+  }
   return {
     redeemClaim,
     /** the edge's lookup: the machine's own hosted URL behind a public label */
-    upstreamFor(value: string): string | null {
-      if (!/^d[0-9a-f]{20}$/.test(value)) return null;
-      const c = deps.clouds().find(x => x.backend && x.managed?.label === value && x.status !== "destroyed" && x.status !== "destroying");
-      return c?.managed?.upstream ?? null;
+    upstreamFor(value: string): string | null { return edgeCloud(value)?.managed?.upstream ?? null; },
+    cloudOfLabel(value: string): string | undefined { return edgeCloud(value)?.id; },
+    /** the same, and whether the home answers now: the edge forwards to an awake home and wakes a sleeping one */
+    edgeRoute(value: string): { upstream: string; awake: boolean; wakeable: boolean } | null {
+      const c = edgeCloud(value), upstream = c?.managed?.upstream;
+      if (!c || !upstream) return null;
+      return { upstream, awake: c.status === "running" && state(c).wakeStartedAt === null, wakeable: edgeWakeable(c) };
+    },
+    /** a request at the edge for a sleeping home (a webhook, the app): woken like the owner's own wake, under its own hourly cap */
+    edgeWake(value: string, reason: "webhook" | "client"): { ok: boolean; status: number } {
+      const c = edgeCloud(value);
+      if (!c || !edgeWakeable(c)) return { ok: false, status: 409 };
+      if (c.status === "running" && state(c).wakeStartedAt === null) return { ok: true, status: 200 };
+      const b = state(c), recent = (b.edgeWakes ?? []).filter(t => t > now() - HOUR);
+      // anyone can reach a public name: each wake is a provider start, so strangers get a small budget, never an open tap
+      if (c.wantPower !== "on" && recent.length >= settings.edgeWakesPerHour) { b.edgeWakes = recent; deps.save(c); return { ok: false, status: 429 }; }
+      if (c.wantPower !== "on") { recent.push(now()); log(c, "wake_asked", "edge", reason); }
+      b.edgeWakes = recent; c.wantPower = "on"; c.wakeRequestedAt = now(); c.nextAttemptAt = 0; deps.save(c);
+      return { ok: true, status: 202 };
     },
     reconcile,
     verdict: (c: StoredCloud) => verdictFor(c),

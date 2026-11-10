@@ -82,6 +82,20 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     c.desiredSpec = { ...plan.spec, diskGb: Math.max(c.spec.diskGb, plan.spec.diskGb) };
   }
   function kick() { void service.reconcile().catch(() => {}); }
+  // a wake is a few provider steps (resume, ready, start, health): followed every second, not every 15 s, until it answers
+  const hurried = new Map<string, number>();
+  function hurry(cloudId: string) {
+    // a wall-clock deadline: the service's own clock may be a test's
+    if (hurried.has(cloudId)) { hurried.set(cloudId, Date.now() + 90_000); return; }
+    hurried.set(cloudId, Date.now() + 90_000);
+    const step = () => {
+      const c = get(cloudId), until = hurried.get(cloudId) ?? 0;
+      if (closed || !c || (c.status === "running" && c.wantPower === "on" && !managed?.resizing(c)) || Date.now() > until) { hurried.delete(cloudId); return; }
+      c.nextAttemptAt = Math.min(c.nextAttemptAt, now());
+      void service.reconcile().catch(() => {}).finally(() => { const t = setTimeout(step, 1_000); t.unref(); });
+    };
+    step();
+  }
   function retry(c: StoredCloud, error: unknown) {
     // the backend's own timing first (a provider limit backs off and never counts against the cloud, even in setup)
     const backendAt = c.backend ? managed?.retryAt(c, error) ?? null : null;
@@ -123,7 +137,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
   try {
     managed = options.managed ? options.managed.create({ dataDir: options.dataDir, home: options.managedHome ?? home, now, save, stored, clouds: () => store.state.clouds, commit: () => store.commit(),
       unseal: value => sealer.unseal(value), seal: value => sealer.seal(value), dashboardUrl: config.dashboardUrl, adminOrigin: config.adminOrigin,
-      removeWorkspace: id => workspaces.remove(id), entitlement: signEntitlement }) : null;
+      removeWorkspace: id => workspaces.remove(id), entitlement: signEntitlement, kick: cloudId => cloudId ? hurry(cloudId) : kick() }) : null;
   } catch (error) { store.close(); unlock(); throw error; }
   /** a hosted home refuses clients without a fresh entitlement: pushed when it comes up, refreshed hourly */
   async function entitle(c: StoredCloud, force = false): Promise<void> {
@@ -315,7 +329,8 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
         if (recent.length >= 60) throw new CloudError(429, "rate_limited");
         powerChanges.set(c.id, [...recent, now()]);
       } if (!["running", "stopped", "sleeping"].includes(c.status) || c.suspended !== null || c.ended || c.destroyAt !== null && c.destroyAt <= now()) throw new CloudError(409, "unavailable"); if (action === "on" && (c.status === "stopped" || c.status === "sleeping")) c.wakeRequestedAt = now();
-      c.wantPower = action; c.nextAttemptAt = 0; save(c); await service.reconcile(); if (c.wantPower === action && c.status !== (action === "on" ? "running" : "stopped") && c.status !== "error") await service.reconcile(); return c; },
+      c.wantPower = action; c.nextAttemptAt = 0; save(c); await service.reconcile(); if (c.wantPower === action && c.status !== (action === "on" ? "running" : "stopped") && c.status !== "error") await service.reconcile();
+      if (c.backend && action === "on" && c.status !== "running") hurry(c.id); return c; },
     async pair(accountId, id) { const c = requireOwned(accountId, id); if (c.status !== "running" || !c.origin || c.suspended !== null || c.ended || c.destroyAt !== null && c.destroyAt <= now()) throw new CloudError(409, "unavailable"); const result = await (c.backend ? options.managedHome ?? home : home).pair(c.origin, sealer.unseal(c.bootstrapSecret), { label: "Dusk Bot app (Cloud)", ttlSeconds: 300 }); return { origin: c.origin, code: result.code, expiresAt: result.expiresAt }; },
     reconcile() {
       if (closed) return Promise.resolve();
@@ -330,7 +345,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       }).finally(() => { reconciling = null; });
       return reconciling;
     },
-    close() { closed = true; clearInterval(timer); store.close(); managed?.close(); unlock(); },
+    close() { closed = true; hurried.clear(); clearInterval(timer); store.close(); managed?.close(); unlock(); },
   };
   const timer = setInterval(kick, 15_000); timer.unref();
   return service;

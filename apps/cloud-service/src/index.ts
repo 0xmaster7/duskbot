@@ -13,12 +13,14 @@ import { parseSealKey } from "../../dashboard/server/clouds/seal.ts";
 import type { DesktopPlan, StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import { createAudit, type Audit, type AuditEntry } from "./audit.ts";
 import { boatBackupKey, createBackupStore, type BackupStore } from "./backups.ts";
-import { boatScope, createBoatProvider, type BoatProvider, type BoatSize } from "./boat.ts";
+import { BOAT_PRICING, boatScope, createBoatProvider, type BoatProvider, type BoatSize } from "./boat.ts";
 import { guardBackupSecret } from "./key-guard.ts";
 import { createBoatLifecycle, freshBoatState, managedSettingsFromEnv, type BoatSettings } from "./lifecycle.ts";
 import { entitlementOf, noticeText, type Entitlement, type NoticeKind } from "./retention.ts";
 import { parseReleaseKeys, PINNED_RELEASE_KEYS, verifyRelease, type ReleaseKey } from "./release-signing.ts";
 import { createBoatSweep } from "./sweep.ts";
+import { createStartLedger } from "./starts.ts";
+import { createSleepPolicy } from "./sleep-policy.ts";
 import "./state.ts";
 
 export interface ManagedCloudDeps {
@@ -40,6 +42,10 @@ export interface ManagedCloudDeps {
   edgeToken?: string | null;
   /** keys the opaque public labels; defaults to one derived from the backup secret */
   labelKey?: Buffer;
+  /** the operator's alert, also used when the day's provider starts approach the included count */
+  alert?(entry: AuditEntry): void;
+  /** the provider's prices for the start ledger and the sleep policy (Boat's by default) */
+  pricing?: import("./sleep-policy.ts").ProviderPricing;
 }
 
 /** a record written before the rename: backend "boat" and its lifecycle record under `boat` */
@@ -73,7 +79,11 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         if (!newest) return null;
         try { backups.read(newest.c.id, boatBackupKey(secret, newest.c.id), newest.g.file); return true; } catch { return false; }
       });
-      const lifecycle = createBoatLifecycle({ ...deps, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
+      // starts, not compute, are the provider's main cost: counted per day, alerted on, and the sleep policy's budget
+      const starts = createStartLedger({ dataDir: ctx.dataDir, included: deps.settings.includedStarts, pricing: deps.pricing ?? BOAT_PRICING, now: ctx.now,
+        alert: text => { console.warn(`managed: ${text}`); deps.alert?.({ at: ctx.now(), cloudId: "fleet", action: "starts_alert", actor: "reconciler", reason: text.slice(0, 120) }); } });
+      const sleepPolicy = createSleepPolicy({ pricing: deps.pricing ?? BOAT_PRICING, includedStarts: deps.settings.includedStarts, starts });
+      const lifecycle = createBoatLifecycle({ ...deps, starts, sleepPolicy, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
         dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace, clouds: ctx.clouds, entitle: ctx.entitlement,
         releaseKeys: deps.releaseKeys ?? PINNED_RELEASE_KEYS, labelKey: deps.labelKey ?? Buffer.from(hkdfSync("sha256", backupSecret, Buffer.alloc(0), Buffer.from("omb-managed-label"), 32))  });
       const sweep = createBoatSweep({ dataDir: ctx.dataDir, provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });
@@ -106,10 +116,21 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
           const want = deps.edgeToken ? `Bearer ${deps.edgeToken}` : null;
           // only the edge proxy may ask; to anyone else the route does not exist
           if (req.method !== "GET" || !want || !digest(String(req.headers.authorization ?? "")).equals(digest(want))) { routes.json(res, 404, { error: "not_found" }); return true; }
-          const upstream = lifecycle.upstreamFor(url.searchParams.get("label") ?? "");
-          if (!upstream) { routes.json(res, 404, { error: "not_found" }); return true; }
+          const route = lifecycle.edgeRoute(url.searchParams.get("label") ?? "");
+          if (!route) { routes.json(res, 404, { error: "not_found" }); return true; }
           res.setHeader("cache-control", "no-store");
-          routes.json(res, 200, { upstream });
+          routes.json(res, 200, route);
+          return true;
+        }
+        if (url.pathname === "/v1/managed/edge/wake") {
+          const want = deps.edgeToken ? `Bearer ${deps.edgeToken}` : null;
+          if (req.method !== "POST" || !want || !digest(String(req.headers.authorization ?? "")).equals(digest(want))) { routes.json(res, 404, { error: "not_found" }); return true; }
+          const reason = url.searchParams.get("reason") === "webhook" ? "webhook" : "client";
+          const answer = lifecycle.edgeWake(url.searchParams.get("label") ?? "", reason);
+          if (answer.status === 202) ctx.kick?.(lifecycle.cloudOfLabel(url.searchParams.get("label") ?? ""));
+          res.setHeader("cache-control", "no-store");
+          if (answer.status === 429) res.setHeader("retry-after", "300");
+          routes.json(res, answer.status, { ok: answer.ok, retryAfterMs: answer.ok ? 1_000 : null });
           return true;
         }
         return false;
@@ -134,7 +155,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         resizing: c => lifecycle.resizing(c),
         setHold: (c, hold) => lifecycle.setHold(c, hold),
         handle,
-        close: () => sweep.close(),
+        close: () => { sweep.close(); starts.close(); },
       };
     },
   };
@@ -204,6 +225,7 @@ export function managedCloudFromEnv(source: NodeJS.ProcessEnv, options: ManagedC
     provider: createBoatProvider({ apiKey, baseUrl: env.BOAT_BASE_URL, scope, fetch: options.fetch, smallest: smallest as BoatSize }),
     backups: createBackupStore({ dir: env.DUSK_MANAGED_BACKUP_DIR || join(options.dataDir, "boat-backups"), now: options.now }),
     audit: createAudit({ dataDir: options.dataDir, now: options.now, alert: options.alert }),
+    alert: options.alert,
     entitlement: cloud => entitlementOf(options.subscriptions(), cloud, options.now()),
     notify: (cloud, kind, at, link) => options.mail?.(cloud, noticeText(kind, { name: cloud.name, at, dashboardUrl: options.publicUrl, link })) });
 }

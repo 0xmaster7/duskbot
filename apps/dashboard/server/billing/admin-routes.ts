@@ -7,6 +7,9 @@ import type { BillingContext } from "./index.ts";
 import { BillingError } from "./service.ts";
 import { body, cloudName, color, invalid, json, optionalText, survey, text } from "./http.ts";
 
+/** what a wake request may name to wake a sleeping desktop; anything else (open, view) leaves it asleep */
+export const WAKE_INTENTS = ["type", "click", "send", "connector", "routine"];
+
 export function createAdminRoutes(ctx: BillingContext) {
   const { service, clouds, config, now } = ctx;
   const confirmations = new Map<string, { accountId: string; plan: string; subscriptionId: string; expiresAt: number }>();
@@ -157,6 +160,10 @@ export function createAdminRoutes(ctx: BillingContext) {
       if (route === "wake" || route === "resize-now") {
         const cloud = requireCloud(account);
         if (route === "wake") {
+          // only real intent wakes (a key press or click in a bot, a send, a connector event, a routine); opening the app or
+          // viewing chats does not, and the app shows its cached chats meanwhile. An app that names no intent is an older one.
+          const intent = optionalText(data.intent);
+          if (intent !== undefined && !WAKE_INTENTS.includes(intent) && cloud.status !== "running") return send({ state: "asleep", wakesOn: "intent" });
           if (["stopped", "sleeping"].includes(cloud.status)) await clouds.power(account.id, cloud.id, "on");
           return send({ state: cloud.status === "running" ? "awake" : "waking" });
         }
