@@ -49,7 +49,8 @@ Cheap (a few arrays on the cloud's record), deterministic, and robust to duplica
 
 - A run keeps its exact time unless its routine allows a window (`flexMs`, reported by the home in `upcoming`); a
   flexible run can share a wake the owner already caused. Today's homes report only `nextDueAt` (exact).
-- A sleeping home wakes a lead before its run (the cold wake time plus a margin), at its own place in a short spread.
+- A sleeping home wakes a lead before its run (the cold wake time plus a margin). An optional per-home spread exists
+  (`spreadMs`); the tuned default is 0, because the planner below already spreads a crowded minute.
 - **Wake batching:** one planner per service gives each pre-wake a minute, at most half the minute window's included
   starts to a minute, moving a crowded one up to 30 minutes earlier. A burst of runs at the same hour never fills the
   minute window.
