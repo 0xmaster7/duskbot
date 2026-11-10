@@ -100,7 +100,7 @@ export function layout({ title, description, body, page }) {
 <meta property="og:image" content="https://dusk.bot/art/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/art/cursor-88.webp" type="image/webp">
-<link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="${stamped('site.css')}">${home ? `\n<link rel="stylesheet" href="${stamped('motion-kit-v2.css')}">\n<link rel="stylesheet" href="${stamped('home.css')}">` : ''}
 </head>
 <body${home ? ' class="is-home"' : ''}>
