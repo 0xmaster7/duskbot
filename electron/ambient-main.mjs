@@ -32,6 +32,7 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
   const appPage = () => { const contents = page(); return contents && !contents.isDestroyed() ? contents : null; };
   const pageOrigin = () => { try { return new URL(appPage()?.getURL() ?? "").origin; } catch { return null; } };
 
+  const views = { island: null, dock: null };
   const onMessage = surface => (channel, payload) => {
     if (channel === "ambient:ready") return tellAll();
     if (channel === "ambient:open") {
@@ -50,7 +51,9 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
       // the chat a surface shows: the app's page puts a long stretch of it in that bot's summary
       const botId = typeof payload?.botId === "string" && /^[\w.:-]{1,128}$/.test(payload.botId) ? payload.botId : null;
       const limit = Number.isFinite(payload?.limit) ? Math.max(1, Math.min(120, Math.floor(payload.limit))) : 40;
-      appPage()?.send("ambient:viewing", botId ? { botId, limit } : null);
+      // each surface's own: the island closing its chat never takes the dock's card's away, and the other way round
+      views[surface] = botId ? { botId, limit } : null;
+      appPage()?.send("ambient:viewing", views[surface] ?? views[surface === "dock" ? "island" : "dock"] ?? null);
       return;
     }
     if (channel === "ambient:seen") {

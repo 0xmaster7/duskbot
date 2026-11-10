@@ -296,6 +296,12 @@ test("a surface showing a bot's chat asks the app's page for a long stretch of i
   dock.webContents.emit("ipc-message", {}, "ambient:viewing", { botId: "../x", limit: 5 });
   dock.webContents.emit("ipc-message", {}, "ambient:viewing", null);
   assert.deepEqual(appPage.sent.filter(([channel]) => channel === "ambient:viewing").map(([, viewing]) => viewing), [{ botId: "nova", limit: 120 }, null, null]);
+  // the island letting go of its chat leaves the dock's card's in place
+  const island = surface(windows, "island");
+  dock.webContents.emit("ipc-message", {}, "ambient:viewing", { botId: "nova", limit: 60 });
+  island.webContents.emit("ipc-message", {}, "ambient:viewing", { botId: "rivet", limit: 40 });
+  island.webContents.emit("ipc-message", {}, "ambient:viewing", null);
+  assert.deepEqual(appPage.sent.filter(([channel]) => channel === "ambient:viewing").slice(-3).map(([, viewing]) => viewing), [{ botId: "nova", limit: 60 }, { botId: "rivet", limit: 40 }, { botId: "nova", limit: 60 }]);
   // both surfaces off: the page may rest again
   handlers.get("ambient:set")({ sender: appPage }, { island: false, dock: false });
   assert.deepEqual(appPage.throttling, [false, true]);
