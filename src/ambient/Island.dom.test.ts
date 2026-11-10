@@ -50,7 +50,7 @@ it("puts the asking bots first, answers each ask below the mascots for that bot 
   await act(async () => root.unmount());
 });
 
-it("opens into a grid of mascots, no names or lines, the name in a tip just under the one pointed at, and a click opens that bot", async () => {
+it("opens into a grid of mascots with their names, the newest line in a tip just under the one pointed at, and a click opens that bot", async () => {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
   const opened: string[] = [];
   const bridge: AmbientBridge = {
@@ -59,23 +59,24 @@ it("opens into a grid of mascots, no names or lines, the name in a tip just unde
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
   await act(async () => root.render(createElement(Island, { bridge, forceOpen: true })));
-  const team = Array.from({ length: 14 }, (_, index) => bot(`Bot${index}`, { line: `said ${index}`, at: 5, chat: [{ id: "m1", from: "bot", text: "hello", at: 1 }] }));
+  const team = Array.from({ length: 14 }, (_, index) => bot(`Bot${index}`, { line: `said ${index}`, at: Date.now() - 3_600_000, chat: [{ id: "m1", from: "bot", text: "hello", at: 1 }] }));
   await act(async () => feed({ lang: "en", labels: { open: "Open {name}" }, bots: team }));
   const strip = host.querySelector(".amb-strip")!;
   // every bot in the one grid, however many (it wraps onto more rows: ambient-css.test.ts)
   expect(strip.querySelectorAll(".amb-strip-bot")).toHaveLength(14);
   expect(host.querySelectorAll(".amb-strip")).toHaveLength(1);
-  // nothing but the mascots: no names, last lines, times or chats
-  expect(host.querySelector(".amb-panel")!.textContent).toBe("");
-  expect(host.querySelector(".amb-row, .amb-row-name, .amb-row-time, .amb-chat")).toBeNull();
+  // each cell: the mascot and its name, the line only on hover, no chat
+  expect(strip.querySelector('[data-row="Bot3"] .amb-strip-name')?.textContent).toBe("Bot3");
+  expect(host.querySelector(".amb-panel")!.textContent).not.toContain("said");
+  expect(host.querySelector(".amb-row, .amb-chat")).toBeNull();
   const mascot = strip.querySelector<HTMLButtonElement>('[data-row="Bot3"] .amb-strip-bot')!;
-  expect(mascot.getAttribute("aria-label")).toBe("Open Bot3");
+  expect(mascot.getAttribute("aria-label")).toBe("Open Bot3. 1h");
   // happy-dom lays nothing out: the mascot on the second row of a grid scrolled down a little
   Object.defineProperties(mascot, { offsetLeft: { get: () => 150 }, offsetTop: { get: () => 52 }, offsetWidth: { get: () => 44 }, offsetHeight: { get: () => 44 } });
   Object.defineProperties(strip, { scrollTop: { get: () => 10 }, clientWidth: { get: () => 400 }, offsetLeft: { get: () => 10 } });
   await act(async () => mascot.dispatchEvent(new PointerEvent("pointerover", { bubbles: true })));
   const tip = host.querySelector<HTMLElement>(".amb-tip");
-  expect(tip?.textContent).toBe("Bot3");
+  expect(tip?.textContent).toBe("said 3");
   expect([tip?.style.left, tip?.style.top]).toEqual(["172px", "88px"]);
   await act(async () => mascot.dispatchEvent(new PointerEvent("pointerout", { bubbles: true })));
   expect(host.querySelector(".amb-tip")).toBeNull();
@@ -128,16 +129,19 @@ it("marks each mascot's state as the dock does: blue working, green unseen reply
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
   await act(async () => root.render(createElement(Island, { bridge, forceOpen: true })));
-  await act(async () => feed({ lang: "en", labels: { working: "Working", "needs-you": "Needs you", open: "Open {name}" }, bots: [
-    bot("Ada", {}),
+  const minutes = (count: number) => Date.now() - count * 60_000;
+  await act(async () => feed({ lang: "en", labels: { working: "Working", "needs-you": "Needs you", done: "Replied", error: "Failed", now: "now", open: "Open {name}" }, bots: [
+    bot("Ada", { at: minutes(120) }),
     bot("Bolt", { status: "working", detail: "Deploying" }),
-    bot("Rivet", { status: "done", unread: true, line: "Fixed." }),
+    bot("Rivet", { status: "done", unread: true, line: "Fixed.", at: minutes(5) }),
     bot("Cinder", { status: "error", unread: true, line: "Build failed." }),
     bot("Atlas", { status: "needs-you", waits: "approval", asks: 2 }),
   ] }));
   const cells = [...host.querySelectorAll(".amb-strip [data-row]")];
   const marks = cells.map((cell) => [cell.getAttribute("data-row"), cell.querySelector(".amb-state-dot")?.getAttribute("data-state") ?? null, cell.querySelector(".amb-bubble")?.textContent ?? null]);
   expect(marks).toEqual([["Atlas", null, "2"], ["Cinder", null, "!"], ["Bolt", "working", null], ["Rivet", "done", null], ["Ada", null, null]]);
+  // under each mascot its name and its state in a quiet word or two; resting, only when it was last active
+  expect(cells.map((cell) => cell.querySelector(".amb-strip-state")?.textContent)).toEqual(["Needs you", "Failed", "Working", "Replied 5m", "2h"]);
   // the state is in each mascot's name for a screen reader, not only its colour
   expect(cells[2]!.querySelector("button")?.getAttribute("aria-label")).toBe("Open Bolt. Working");
   await act(async () => root.unmount());

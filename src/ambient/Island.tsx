@@ -6,11 +6,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion, useTransform } from "motion/react";
 import { Check, Plus } from "lucide-react";
-import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, moodOf, rankBots, waitingCount, type Mood } from "./mood";
+import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, moodOf, rankBots, shortAgo, waitingCount, type Mood } from "./mood";
 import { Reveal, rowLine, trayFor, useRowMoments } from "./rows";
 import { attention, dotOf, eventKey, isFresh, isSeenEvent, newsOf, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, EASE_OUT, FADE, FADE_OUT, HOLD_MS, ISLAND_EXIT, useSettledSignal, useTraceTransitions, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, usePointerRegion, useStill } from "./shared";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, HOLD_MS, ISLAND_EXIT, useSettledSignal, useTraceTransitions, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, IslandLayout } from "./types";
 
 const PANEL_W = 432;
@@ -212,7 +212,7 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
           transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: { duration: 0.2, ease: EASE_OUT }, y: ISLAND_EXIT }}
         >
           <div ref={panel}>
-            <PanelBody bots={bots} seen={seen} mark={mark} cheer={allClear} labels={labels} open={open} bridge={bridge} onPin={setPinned} />
+            <PanelBody bots={bots} seen={seen} mark={mark} cheer={allClear} labels={labels} lang={snapshot?.lang ?? ""} open={open} bridge={bridge} onPin={setPinned} />
           </div>
         </motion.div>
       </motion.section>
@@ -253,15 +253,15 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   );
 }
 
-/** Under the pointer, a mascot says whose it is in a small tip just below it, kept this far inside the panel's edges. */
-const TIP_EDGE = 40;
+/** Under the pointer, a bot shows its newest line in a small tip just below it, kept this far inside the panel's edges. */
+const TIP_EDGE = 112;
 
 /** The open island: every bot as a mascot in a grid that wraps onto as many rows as it needs (past four it scrolls), the
  * most urgent first, each with its state as the dock shows it (blue working, green unseen reply, a numbered bubble for
  * asks, "!" for a failure). A click opens that bot in the app; an ask waiting on the person is answered below the grid,
  * only for that bot. */
-function PanelBody({ bots, seen, mark, cheer, labels, open, bridge, onPin }: {
-  bots: readonly AmbientBot[]; seen: ReadonlySet<string>; mark: (keys: string[]) => void; cheer: number; labels: AmbientLabels; open: boolean;
+function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin }: {
+  bots: readonly AmbientBot[]; seen: ReadonlySet<string>; mark: (keys: string[]) => void; cheer: number; labels: AmbientLabels; lang: string; open: boolean;
   bridge: AmbientBridge; onPin: (pinned: boolean) => void;
 }) {
   const all = rankBots(attention(bots, seen));
@@ -279,14 +279,15 @@ function PanelBody({ bots, seen, mark, cheer, labels, open, bridge, onPin }: {
   const asking = all.map((shown) => byId.get(shown.id) ?? shown).filter((bot) => bot.status === "needs-you");
 
   const strip = useRef<HTMLUListElement>(null);
-  const [tip, setTip] = useState<{ id: string; name: string; x: number; y: number } | null>(null);
+  const now = useNow(open);
+  const [tip, setTip] = useState<{ id: string; text: string; x: number; y: number } | null>(null);
   const showTip = (bot: AmbientBot, target: HTMLElement) => {
     const row = strip.current;
-    if (!row) return;
+    if (!row || !bot.line) return;
     // the button's offsetParent is the wrap too (the grid is not positioned), so only the grid's scroll is taken off
     const x = target.offsetLeft + target.offsetWidth / 2;
     const y = target.offsetTop - row.scrollTop + target.offsetHeight + 2;
-    setTip({ id: bot.id, name: bot.name, x: Math.round(Math.min(Math.max(x, TIP_EDGE), row.offsetLeft + row.clientWidth - TIP_EDGE)), y: Math.round(y) });
+    setTip({ id: bot.id, text: bot.line, x: Math.round(Math.min(Math.max(x, TIP_EDGE), row.offsetLeft + row.clientWidth - TIP_EDGE)), y: Math.round(y) });
   };
   const hideTip = (id: string) => setTip((was) => (was?.id === id ? null : was));
   useEffect(() => { if (!open) setTip(null); }, [open]);
@@ -304,7 +305,7 @@ function PanelBody({ bots, seen, mark, cheer, labels, open, bridge, onPin }: {
           const news = newsOf(bot, seen);
           const dot = dotOf(bot, news);
           const bubble = news === "ask" || news === "error" ? news : null;
-          const state = bot.status === "idle" ? "" : say(labels, bot.status);
+          const state = statusLine(bot, seen, labels, lang, now);
           return (
             <li key={bot.id} className="amb-strip-cell" data-row={bot.id} data-status={shown.status}>
               <button
@@ -317,11 +318,15 @@ function PanelBody({ bots, seen, mark, cheer, labels, open, bridge, onPin }: {
                 onFocus={(event) => showTip(bot, event.currentTarget)}
                 onBlur={() => hideTip(bot.id)}
               >
-                <span className="amb-lift">
-                  <BotMark bot={bot} size={30} state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : isSeenEvent(bot, seen) ? "idle" : undefined} animated={open} awake={open} shown={open} index={index} cheer={cheer} />
+                <span className="amb-strip-mark">
+                  <span className="amb-lift">
+                    <BotMark bot={bot} size={30} state={cheering.has(bot.id) ? "celebrate" : sent.has(bot.id) ? "approving" : isSeenEvent(bot, seen) ? "idle" : undefined} animated={open} awake={open} shown={open} index={index} cheer={cheer} />
+                  </span>
+                  {bubble && <span className="amb-bubble" data-kind={bubble} aria-hidden>{bubble === "ask" ? Math.max(1, bot.asks) : "!"}</span>}
+                  {dot && <span className="amb-state-dot" data-state={dot} aria-hidden />}
                 </span>
-                {bubble && <span className="amb-bubble" data-kind={bubble} aria-hidden>{bubble === "ask" ? Math.max(1, bot.asks) : "!"}</span>}
-                {dot && <span className="amb-state-dot" data-state={dot} aria-hidden />}
+                <span className="amb-strip-name" aria-hidden>{bot.name}</span>
+                <span className="amb-strip-state" data-status={bot.status} aria-hidden>{state}</span>
               </button>
             </li>
           );
@@ -332,7 +337,7 @@ function PanelBody({ bots, seen, mark, cheer, labels, open, bridge, onPin }: {
           </button>
         </li>
       </ul>
-      {tip && <span className="amb-tip" aria-hidden style={{ left: tip.x, top: tip.y }}>{tip.name}</span>}
+      {tip && <span className="amb-tip" aria-hidden dir="auto" style={{ left: tip.x, top: tip.y }}>{tip.text}</span>}
       <AnimatePresence initial={false}>
         {asking.map((bot) => (
           <Reveal key={bot.id} className="amb-tray-wrap">
@@ -342,6 +347,16 @@ function PanelBody({ bots, seen, mark, cheer, labels, open, bridge, onPin }: {
       </AnimatePresence>
     </div>
   );
+}
+
+/** A grid cell's status in a word or two: what it is doing, its fresh reply or failure with when, or (resting, or
+ * news already seen) only when it was last active. */
+export function statusLine(bot: AmbientBot, seen: ReadonlySet<string>, labels: AmbientLabels, lang: string, now: number): string {
+  const ago = shortAgo(bot.at, now, lang, say(labels, "now"));
+  if (isBusy(bot.status) || bot.status === "needs-you") return say(labels, bot.status);
+  if (bot.status === "done" && isFresh(bot, seen)) return [say(labels, "done"), ago].filter(Boolean).join(" ");
+  if (bot.status === "error" && isFresh(bot, seen)) return say(labels, "error");
+  return ago;
 }
 
 /** One bot's ask under the row: whose it is and what it asks, answered in place. */
