@@ -82,6 +82,8 @@ describe("what the person has seen", () => {
     // its mascot stays in the row, with nothing to say
     expect(host.querySelector('[data-row="Echo"] .amb-strip-bot')).not.toBeNull();
     expect(host.querySelector('[data-row="Echo"] :is(.amb-bubble, .amb-state-dot)')).toBeNull();
+    // a failure already seen says only when it happened
+    expect(host.querySelector('[data-row="Echo"] .amb-strip-state')?.textContent).not.toMatch(/fail|error/i);
     // a fresh one does, once it has held for a moment
     await act(async () => feed([{ ...failed, at: 20 }]));
     await act(async () => new Promise((resolve) => setTimeout(resolve, 650)));

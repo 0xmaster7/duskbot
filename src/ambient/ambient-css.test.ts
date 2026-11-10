@@ -23,7 +23,7 @@ it("lays the open island's mascots out in a wrapping grid: no sideways scroll or
   expect(grid).toContain("flex-wrap: wrap");
   expect(grid).toContain("justify-content: center");
   expect(grid).toContain("gap: var(--amb-strip-gap)");
-  expect(grid).toContain("max-height: calc(4 * 44px + 3 * var(--amb-strip-gap)");
+  expect(grid).toContain("max-height: calc(4 * 76px + 3 * var(--amb-strip-gap)");
   expect(grid).toContain("overflow-x: hidden");
   expect(grid).toContain("overflow-y: auto");
   expect(grid).not.toContain("mask-image");
