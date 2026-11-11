@@ -76,7 +76,7 @@ Two runs drive real clients:
 | Permission asks answered once | **unverified here** | the phone renders the shared approval card and the workspace refuses a second answer (server tests). Not driven with two clients: the fake engine's approval recipe was not wired into the run |
 | Group chats, attachments and file cards across two clients | **unverified here** | rooms render and send on the phone (demo and fixture); file upload and download are in the existing run. Not driven with two clients |
 | Routines switched on or off | **unverified here** | the routines sheet reads the same store; not driven |
-| A Dusk Cloud computer that is asleep | **open** | the store stops reconnecting to a sleeping Cloud by design, and the phone's home then says "Reconnecting" though it is not trying. It should say the computer is asleep and wake on a tap. Not changed: needs the Cloud power states the desktop uses (`src/lib/cloud-power.ts`) surfaced in the phone's home |
+| A Dusk Cloud computer that is asleep | **fixed** (wording), **unverified** | the store stops reconnecting to a sleeping Cloud by design, and the phone's home said "Reconnecting" though it was not trying. It now says "Asleep · wakes when you type", then "Waking up", from the same power state the desktop reads (`src/lib/cloud-power.ts`). Not checked against a real Cloud computer |
 
 ### Bugs found and fixed
 
