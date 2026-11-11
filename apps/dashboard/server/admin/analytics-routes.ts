@@ -138,7 +138,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const owner = account ? auth.directory().accounts.find(item => item.id === account) ?? null : null;
     const p = people();
     const visits = visitsOf(mine);
-    const surface = (event: StoredEvent) => event.name.startsWith("site_") ? "site" : event.name.startsWith("app_") ? "app" : event.name === "page_view" || event.name.startsWith("onboarding") || event.name === "plan_chosen" || event.name === "download_click" ? "account" : "server";
+    const surface = (event: StoredEvent) => event.name.startsWith("site_") ? "site" : event.name.startsWith("app_") ? "app" : event.name === "page_view" || event.name.startsWith("onboarding") || event.name === "plan_chosen" ? "account" : "server";
     const timeline = mine.filter(event => event.name !== "site_leave").slice(-400).reverse().map(event => ({ at: event.at, name: event.name, surface: surface(event), props: event.props,
       page: event.ctx?.page ?? null, source: event.ctx?.source ?? null, country: event.ctx?.country ?? null, device: event.ctx?.device ?? null, app: event.ctx?.app ?? null }));
     return {
