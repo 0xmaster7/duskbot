@@ -4,7 +4,7 @@ import type { createBilling } from "../billing/index.ts";
 import type { Analytics } from "../analytics/index.ts";
 import type { StoredEvent } from "../analytics/sink.ts";
 import type { StoredWorkspace } from "../store.ts";
-import { DAY, DIMENSIONS, activeDays, breakdown, funnel, identityOf, kpis, online, retention, series, visitsOf, type Dimension, type Filters, type People, type Visit } from "../analytics/web.ts";
+import { DAY, DIMENSIONS, SURFACES, activeDays, breakdown, funnel, identityOf, kpis, matches, online, retention, series, visitsOf, type Dimension, type Filters, type People, type Visit } from "../analytics/web.ts";
 import { choseCloud, wasPaid, workspaceTurns } from "./metrics.ts";
 import { productReport } from "./product.ts";
 
@@ -29,6 +29,15 @@ export function filtersOf(url: URL): Filters {
   }
   return out;
 }
+const surfaceOf = (url: URL) => {
+  const surface = url.searchParams.get("surface") ?? "site";
+  if (surface !== "all" && !(SURFACES as readonly string[]).includes(surface)) throw bad("Invalid surface.");
+  return surface as (typeof SURFACES)[number] | "all";
+};
+const webFilters = (url: URL) => {
+  const surface = surfaceOf(url), filters = filtersOf(url);
+  return { surface, filters, scoped: surface === "site" || surface === "all" ? filters : { surface, ...filters } };
+};
 
 type Auth = ReturnType<typeof createAuth>;
 type Billing = ReturnType<typeof createBilling>;
@@ -66,16 +75,35 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
   }
 
   async function web(url: URL) {
-    const { from, to } = windowOf(url, now()), span = to - from, filters = filtersOf(url);
-    const { events, identity, people: p, visits } = await load(from - span);
-    const current = kpis(visits, identity, p, from, to, filters), previous = kpis(visits, identity, p, from - span, from, filters);
-    const cards = Object.fromEntries(DIMENSIONS.map(dim => [dim, breakdown(visits, identity, p, dim, from, to, filters)]));
+    const { from, to } = windowOf(url, now()), span = to - from;
+    const { surface, filters, scoped } = webFilters(url);
+    const { events, identity, people: p } = await load(from - span);
+    const all = visitsOf(events, SURFACES), visits = all.filter(visit => surface === "all" || visit.surface === surface);
+    const current = kpis(visits, identity, p, from, to, scoped), previous = kpis(visits, identity, p, from - span, from, scoped);
+    const cards = Object.fromEntries(DIMENSIONS.map(dim => [dim, breakdown(visits, identity, p, dim, from, to, scoped)]));
+    const surfaces = Object.fromEntries(SURFACES.map(value => [value, new Set(all.filter(visit => visit.surface === value && visit.start >= from && visit.start < to).map(visit => visit.visitor)).size]));
+    const allowed = Object.keys(scoped).length ? new Set(visits.filter(visit => visit.start >= from && visit.start < to && matches(visit, scoped)).map(visit => visit.visitor.startsWith("acct_") ? visit.visitor : identity.accountOf.get(visit.visitor))) : null;
+    const accounts = new Map(auth.directory().accounts.map(account => [account.id, account]));
+    const marks = (["signup", "paid"] as const).flatMap(kind => [...(kind === "signup" ? p.signups : p.paid)].filter(([id, at]) => at >= from && at < to && (!allowed || allowed.has(id)))
+      .map(([id, at]) => ({ at, kind, seed: [...(identity.visitorsOf.get(id) ?? [])][0] ?? id, email: accounts.get(id)?.email ?? null, customer: p.paid.has(id) })))
+      .sort((a, b) => b.at - a.at || a.seed.localeCompare(b.seed)).slice(0, 60);
     const live = online(events, now());
     const crawls = await sink.crawls(from, to);
     const count = (values: string[]) => [...values.reduce((map, value) => map.set(value, (map.get(value) ?? 0) + 1), new Map<string, number>())]
       .map(([key, requests]) => ({ key, visitors: requests, signups: 0, paid: 0 })).sort((a, b) => b.visitors - a.visitors).slice(0, 50);
-    return { from, to, now: now(), filters, current, previous, online: live, series: series(visits, p, from, to, filters, identity), cards, notes: await sink.notes(from - span, to),
+    return { from, to, now: now(), filters, current, previous, surfaces, marks, online: live, series: series(visits, p, from, to, scoped, identity), cards, notes: await sink.notes(from - span, to),
       tracked: visits.length > 0, crawlers: { total: crawls.length, bot: count(crawls.map(c => c.bot)), page: count(crawls.map(c => c.path)), kind: count(crawls.map(c => c.kind)) } };
+  }
+
+  async function webDetails(dim: Dimension, url: URL) {
+    const { from, to } = windowOf(url, now()), { surface, filters, scoped } = webFilters(url);
+    const { events, identity, people: p } = await load(from);
+    const visits = visitsOf(events, SURFACES).filter(visit => surface === "all" || visit.surface === surface);
+    const rows = breakdown(visits, identity, p, dim, from, to, scoped, 500).map(row => {
+      const { conversion, bounce, visitMs, pageviews } = kpis(visits, identity, p, from, to, { ...scoped, [dim]: row.key });
+      return { ...row, conversion, bounce, visitMs, pageviews };
+    });
+    return { from, to, dimension: dim, filters, rows };
   }
 
   async function funnelRoute(url: URL) {
@@ -254,5 +282,5 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     return note;
   }
 
-  return { web, funnel: funnelRoute, journeys, profile, realtime, retention: retentionRoute, app, product, saveNote, deleteNote: (id: string) => sink.deleteNote(id), isDimension: (value: string): value is Dimension => (DIMENSIONS as readonly string[]).includes(value) };
+  return { web, webDetails, funnel: funnelRoute, journeys, profile, realtime, retention: retentionRoute, app, product, saveNote, deleteNote: (id: string) => sink.deleteNote(id), isDimension: (value: string): value is Dimension => (DIMENSIONS as readonly string[]).includes(value) };
 }

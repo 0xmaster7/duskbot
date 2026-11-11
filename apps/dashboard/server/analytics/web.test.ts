@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { StoredEvent } from "./sink.ts";
 import type { EventContext } from "./context.ts";
-import { DAY, HOUR, DIMENSIONS, RETURN_WINDOWS, activeDays, breakdown, bucketsOf, due, funnel, identityOf, kpis, online, retention, returned, series, visitsOf, type FunnelInput, type People } from "./web.ts";
+import { DAY, HOUR, DIMENSIONS, SURFACES, RETURN_WINDOWS, activeDays, breakdown, bucketsOf, due, funnel, identityOf, kpis, matches, online, retention, returned, series, valuesOf, visitsOf, type FunnelInput, type People } from "./web.ts";
 
 const FROM = Date.parse("2026-09-01T00:17:00Z");
 const event = (name: string, at: number, props: StoredEvent["props"] = {}, ctx?: EventContext, accountId: string | null = null): StoredEvent =>
@@ -12,6 +12,59 @@ const link = (visitor: string, account: string, install?: string) => event("iden
 const emptyPeople = (): People => ({ signups: new Map(), paid: new Map() });
 
 describe("visitsOf", () => {
+  it("separates surfaces sharing a session and defaults to site visits", () => {
+    const events = [site("v", "same", FROM, "/", { host: "dusk.bot", utm: { term: "AI-Assistant" } }),
+      event("page_view", FROM + 10, { path: "/billing" }, { session: "same", visitor: "v", source: "Google", channel: "search", country: "IN", device: "desktop", os: "mac", browser: "chrome", host: "preview.dusk.bot", utm: { term: "Dusk_Bot" } }, "acct_a"),
+      event("page_view", FROM + 20, { path: "/usage" }, { session: "same", visitor: "v" }, "acct_a"),
+      event("page_view", FROM, { path: "/ignored" }, {}, "acct_a"), event("page_view", FROM, {}, { session: "anonymous" }),
+      event("app_open", FROM + 30, { kind: "desktop" }, { session: "same", install: "mac", app: { platform: "darwin" } }, "acct_a"),
+      event("app_screen", FROM + 40, { screen: "/bots" }, { session: "same", install: "mac" }, "acct_a"),
+      event("app_feature", FROM + 50, { feature: "bot_created" }, { session: "same", install: "mac" }, "acct_a"),
+      event("app_close", FROM + 60, { ms: 5 }, { session: "same", install: "mac" }, "acct_a")];
+    expect(visitsOf(events)).toEqual(visitsOf(events, ["site"]));
+    const visits = visitsOf(events, SURFACES);
+    expect(visits).toHaveLength(3);
+    expect(visits[0]).toMatchObject({ surface: "site", keyword: "ai-assistant" });
+    expect(visits[1]).toMatchObject({ surface: "account", visitor: "v", entry: "/billing", exit: "/usage", engagedMs: 10, bounced: false, source: "Google", channel: "search", country: "IN", device: "desktop", os: "mac", browser: "chrome", host: "preview.dusk.bot", keyword: "dusk_bot" });
+    expect(visits[2]).toMatchObject({ surface: "desktop", visitor: "acct_a", entry: "/bots", engagedMs: 5 });
+    expect(visits[2]!.pages).toHaveLength(1);
+    for (const dim of ["surface", "host", "keyword"] as const) expect(valuesOf(visits[0]!, dim)).toEqual([visits[0]![dim]]);
+    expect(matches(visits[1]!, { surface: "account", host: "preview.dusk.bot", keyword: "dusk_bot" })).toBe(true);
+    expect(valuesOf(visits[2]!, "keyword")).toEqual(["unknown"]);
+  });
+
+  it("groups app sessions by install and day when needed and recognizes phone opens without platform context", () => {
+    const visits = visitsOf([
+      event("app_open", FROM, {}, { install: "i", app: { platform: "ios" } }),
+      event("app_close", FROM + 100, { ms: 0 }, { install: "i" }),
+      event("app_open", FROM + DAY, {}, { install: "i", app: { platform: "android" } }),
+      event("app_screen", FROM + DAY + 10, { screen: "/chat" }, { install: "i" }),
+      event("app_open", FROM, { kind: "mobile" }, { session: "mobile", install: "other" }),
+      event("app_close", FROM + 1000, {}, { session: "mobile", install: "other" }),
+      event("app_open", FROM, {}, { session: "windows", install: "pc", app: { platform: "win32" } }),
+      event("app_open", FROM, {}, { session: "missing-person" }), event("app_open", FROM, {}, {}, "acct_missing_session"),
+      event("app_feature", FROM, { feature: "bot_created" }, { session: "feature-only", install: "i" }),
+    ], ["phone", "desktop"]);
+    expect(visits).toHaveLength(4);
+    expect(visits.filter(visit => visit.surface === "phone")).toHaveLength(3);
+    expect(visits[0]).toMatchObject({ visitor: "install:i", entry: "/", engagedMs: 0 });
+    expect(visits.find(visit => visit.session === "mobile")).toMatchObject({ surface: "phone", engagedMs: 1000 });
+    expect(visits.at(-1)).toMatchObject({ visitor: "install:i", entry: "/chat", engagedMs: 10 });
+    expect(visitsOf([], [])).toEqual([]);
+  });
+
+  it("attributes filtered conversions to account ids and identified installs", () => {
+    const events = [event("page_view", FROM, { path: "/" }, { session: "account" }, "acct_a"),
+      event("app_open", FROM, {}, { session: "app", install: "i" }), link("v", "acct_b", "i")];
+    const visits = visitsOf(events, SURFACES), identity = identityOf(events);
+    const people = { signups: new Map([["acct_a", FROM + 1], ["acct_b", FROM + 2]]), paid: new Map([["acct_b", FROM + 3]]) };
+    expect(kpis(visits, identity, people, FROM, FROM + HOUR, { surface: "account" })).toMatchObject({ visitors: 1, signups: 1, paid: 0 });
+    expect(kpis(visits, identity, people, FROM, FROM + HOUR, { surface: "desktop" })).toMatchObject({ visitors: 1, signups: 1, paid: 1 });
+    expect(breakdown(visits, identity, people, "surface", FROM, FROM + HOUR)).toEqual([{ key: "account", visitors: 1, signups: 1, paid: 0 }, { key: "desktop", visitors: 1, signups: 1, paid: 1 }]);
+    expect(series(visits, people, FROM, FROM + HOUR, { surface: "account" }, identity).signups).toEqual([1]);
+    expect(series(visits, people, FROM, FROM + HOUR, { surface: "desktop" }, identity).paid).toEqual([1]);
+  });
+
   it("groups sessions, keeps first-view attribution, entry/exit, and maximum leave measurements per page", () => {
     const events = [
       site("v1", "s1", FROM, "/", { source: "ChatGPT", channel: "ai", referrer: "chatgpt.com", utm: { campaign: "launch", source: "newsletter" }, ref: "thread", country: "DE", region: "BE", city: "Berlin", lat: 52.5, lon: 13.4, device: "desktop", os: "mac", browser: "safari", host: "dusk.bot", pv: "p1" }),

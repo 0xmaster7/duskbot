@@ -6,10 +6,12 @@ import type { StoredEvent } from "./sink.ts";
 
 export const HOUR = 3_600_000, DAY = 86_400_000;
 export const ONLINE_MS = 5 * 60_000;
+export const SURFACES = ["site", "account", "desktop", "phone"] as const;
+export type Surface = (typeof SURFACES)[number];
 const ACTIVE = new Set(Object.entries(EVENTS).filter(([, spec]) => "active" in spec).map(([name]) => name));
 
 export interface Visit {
-  session: string; visitor: string; start: number; end: number; host: string | null;
+  session: string; visitor: string; surface: Surface; start: number; end: number; host: string | null; keyword: string | null;
   pages: Array<{ path: string; at: number; pv: string | null }>;
   goals: Array<{ goal: string; at: number; to: string | null }>;
   /** the deepest scroll and visible time of each page view */
@@ -20,22 +22,36 @@ export interface Visit {
   device: string | null; os: string | null; browser: string | null;
 }
 const SITE = new Set(["site_view", "site_goal", "site_leave"]);
+const APP = new Set(["app_open", "app_screen", "app_feature", "app_close"]);
 
-/** site events as visits: one per tracker session, attributed by its first page view */
-export function visitsOf(events: readonly StoredEvent[]): Visit[] {
+export function visitsOf(events: readonly StoredEvent[], surfaces: readonly Surface[] = ["site"]): Visit[] {
   const by = new Map<string, Visit>();
+  const opens = new Map<Visit, number>(), closed = new Map<Visit, number>();
   for (const event of [...events].sort((a, b) => a.at - b.at)) {
-    if (!SITE.has(event.name)) continue;
+    const app = APP.has(event.name), account = event.name === "page_view";
+    if (!SITE.has(event.name) && !app && !account) continue;
     const ctx = event.ctx ?? {};
-    if (!ctx.session || !ctx.visitor) continue;
-    let visit = by.get(ctx.session);
+    const session = ctx.session ?? (app && ctx.install ? `${ctx.install}:${Math.floor(event.at / DAY)}` : null);
+    const visitor = app ? event.accountId ?? (ctx.install ? `install:${ctx.install}` : null) : ctx.visitor ?? (account ? event.accountId : null);
+    if (!session || !visitor) continue;
+    const surface = app ? ctx.app?.platform === "ios" || ctx.app?.platform === "android" || (event.name === "app_open" && event.props.kind === "mobile") ? "phone" : "desktop" : account ? "account" : "site";
+    const key = `${app ? "app" : surface}:${session}`;
+    let visit = by.get(key);
     if (!visit) {
-      visit = { session: ctx.session, visitor: ctx.visitor, start: event.at, end: event.at, host: ctx.host ?? null, pages: [], goals: [], leaves: new Map(), entry: "", exit: "", engagedMs: 0, bounced: true,
+      visit = { session, visitor, surface, start: event.at, end: event.at, host: ctx.host ?? null, keyword: null, pages: [], goals: [], leaves: new Map(), entry: "", exit: "", engagedMs: 0, bounced: true,
         source: "direct", channel: "direct", referrer: null, campaign: null, ref: null, country: null, region: null, city: null, lat: null, lon: null, device: null, os: null, browser: null };
-      by.set(ctx.session, visit);
+      by.set(key, visit);
+      if (app) attribute(visit, ctx);
     }
     visit.start = Math.min(visit.start, event.at); visit.end = Math.max(visit.end, event.at);
-    if (event.name === "site_view") {
+    if (app) {
+      if (surface === "phone") visit.surface = surface;
+      if (event.accountId) visit.visitor = event.accountId;
+      fill(visit, ctx);
+      if (event.name === "app_open" && !opens.has(visit)) opens.set(visit, event.at);
+      if (event.name === "app_screen") visit.pages.push({ path: String(event.props.screen ?? "/"), at: event.at, pv: null });
+      if (event.name === "app_close" && typeof event.props.ms === "number") closed.set(visit, Math.max(closed.get(visit) ?? 0, event.props.ms));
+    } else if (event.name === "site_view" || account) {
       const first = visit.pages.length === 0;
       visit.pages.push({ path: String(event.props.path ?? ctx.page ?? "/"), at: event.at, pv: ctx.pv ?? null });
       if (first) attribute(visit, ctx);
@@ -48,11 +64,13 @@ export function visitsOf(events: readonly StoredEvent[]): Visit[] {
   }
   const out: Visit[] = [];
   for (const visit of by.values()) {
+    if (!surfaces.includes(visit.surface)) continue;
+    if (!visit.pages.length && opens.has(visit)) visit.pages.push({ path: "/", at: opens.get(visit)!, pv: null });
     if (!visit.pages.length) continue;
     visit.pages.sort((a, b) => a.at - b.at);
     visit.entry = visit.pages[0]!.path; visit.exit = visit.pages.at(-1)!.path;
     const engaged = [...visit.leaves.values()].reduce((sum, leave) => sum + leave.ms, 0);
-    visit.engagedMs = Math.max(engaged, visit.end - visit.start);
+    visit.engagedMs = closed.get(visit) ?? Math.max(engaged, visit.end - visit.start);
     visit.bounced = visit.pages.length === 1 && visit.goals.length === 0;
     out.push(visit);
   }
@@ -61,6 +79,7 @@ export function visitsOf(events: readonly StoredEvent[]): Visit[] {
 function attribute(visit: Visit, ctx: EventContext) {
   visit.source = ctx.source ?? "direct"; visit.channel = ctx.channel ?? "direct"; visit.referrer = ctx.referrer ?? null;
   visit.campaign = ctx.utm?.campaign ?? null; visit.ref = ctx.ref ?? ctx.utm?.source ?? null;
+  visit.keyword = ctx.utm?.term?.toLowerCase().replace(/[^a-z0-9_.-]/g, "") || null;
   fill(visit, ctx);
 }
 function fill(visit: Visit, ctx: EventContext) {
@@ -82,7 +101,7 @@ export function identityOf(events: readonly StoredEvent[]): Identity {
   return { accountOf, visitorsOf, installsOf };
 }
 
-export const DIMENSIONS = ["channel", "source", "referrer", "campaign", "ref", "page", "entry", "exit", "country", "region", "city", "browser", "os", "device", "goal"] as const;
+export const DIMENSIONS = ["channel", "source", "referrer", "campaign", "ref", "page", "entry", "exit", "country", "region", "city", "browser", "os", "device", "goal", "surface", "host", "keyword"] as const;
 export type Dimension = (typeof DIMENSIONS)[number];
 export type Filters = Partial<Record<Dimension, string>>;
 
@@ -109,6 +128,7 @@ export interface People {
 }
 
 const pct = (part: number, whole: number) => whole > 0 ? part / whole : null;
+const accountOf = (identity: Identity, person: string) => person.startsWith("acct_") ? person : identity.accountOf.get(person);
 const median = (values: number[]) => {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b), mid = sorted.length >> 1;
@@ -121,7 +141,7 @@ export function kpis(visits: readonly Visit[], identity: Identity, people: Peopl
   const inRange = visits.filter(visit => visit.start >= from && visit.start < to && matches(visit, filters));
   const visitors = new Set(inRange.map(visit => visit.visitor));
   const filtered = Object.keys(filters).length > 0;
-  const allowed = filtered ? new Set([...visitors].map(visitor => identity.accountOf.get(visitor)).filter((id): id is string => !!id)) : null;
+  const allowed = filtered ? new Set([...visitors].map(visitor => accountOf(identity, visitor)).filter((id): id is string => !!id)) : null;
   const count = (map: ReadonlyMap<string, number>) => [...map].filter(([id, at]) => at >= from && at < to && (!allowed || allowed.has(id))).length;
   const signups = count(people.signups);
   return {
@@ -147,7 +167,7 @@ export function series(visits: readonly Visit[], people: People, from: number, t
     if (visit.start < from || visit.start >= to || !matches(visit, filters)) continue;
     visitors[index(visit.start)]?.add(visit.visitor);
     if (visit.goals.some(goal => goal.goal === "waitlist_join")) joined[index(visit.start)]?.add(visit.visitor);
-    const account = identity?.accountOf.get(visit.visitor);
+    const account = identity ? accountOf(identity, visit.visitor) : undefined;
     if (allowed && account) allowed.add(account);
   }
   for (const [id, at] of people.signups) if (at >= from && at < to && (!allowed || allowed.has(id))) signups[index(at)]! += 1;
@@ -164,7 +184,7 @@ export function breakdown(visits: readonly Visit[], identity: Identity, people: 
     for (const value of valuesOf(visit, dim)) {
       const row = rows.get(value) ?? rows.set(value, { visitors: new Set(), accounts: new Set() }).get(value)!;
       row.visitors.add(visit.visitor);
-      const account = identity.accountOf.get(visit.visitor);
+      const account = accountOf(identity, visit.visitor);
       if (account) row.accounts.add(account);
     }
   }

@@ -18,6 +18,7 @@ const ADMIN = "owner@example.test", OTHER = "someone@example.test";
 const VID = "AbCdEfGhIjKlMnOpQrStUv", ANON = "ZyXwVuTsRqPoNmLkJiHgFe", INSTALL = "inst_0123456789abcdef";
 type Routes = ReturnType<typeof createAnalyticsRoutes>;
 type Web = Awaited<ReturnType<Routes["web"]>>;
+type Details = Awaited<ReturnType<Routes["webDetails"]>>;
 type Funnel = Awaited<ReturnType<Routes["funnel"]>>;
 type Journeys = Awaited<ReturnType<Routes["journeys"]>>;
 type Profile = Awaited<ReturnType<Routes["profile"]>>;
@@ -108,7 +109,7 @@ describe("admin analytics routes", () => {
   it("authorizes every analytics GET for signed-out, non-admin and admin sessions", async () => {
     const admin = await login(ADMIN), other = await login(OTHER), accountId = app.auth.accountByEmail(OTHER)!.id;
     await beacon();
-    const paths = ["/v1/admin/web", `/v1/admin/web?${range(time - DAY, time + 1)}&f.channel=ai`, "/v1/admin/funnel", "/v1/admin/funnel?mode=signups",
+    const paths = ["/v1/admin/web", "/v1/admin/web/source", `/v1/admin/web?${range(time - DAY, time + 1)}&f.channel=ai`, "/v1/admin/funnel", "/v1/admin/funnel?mode=signups",
       "/v1/admin/journeys", "/v1/admin/journeys?only=customers&q=x", `/v1/admin/journeys/${accountId}`, `/v1/admin/journeys/${ANON}`,
       "/v1/admin/realtime", "/v1/admin/realtime?minutes=60", "/v1/admin/retention", "/v1/admin/app"];
     for (const path of paths) {
@@ -172,8 +173,98 @@ describe("admin analytics routes", () => {
   it("rejects reversed, empty and over-400-day ranges", async () => {
     const admin = await login(ADMIN);
     for (const [from, to] of [[time, time], [time + 1, time], [time - 401 * DAY, time]]) {
-      for (const path of ["web", "funnel", "journeys", "app"]) expect((await call(`/v1/admin/${path}?${range(from!, to!)}`, { cookie: admin })).status, path).toBe(400);
+      for (const path of ["web", "web/source", "funnel", "journeys", "app"]) expect((await call(`/v1/admin/${path}?${range(from!, to!)}`, { cookie: admin })).status, path).toBe(400);
     }
+  });
+
+  it("selects surfaces, counts picker visitors and links signup and payment marks", async () => {
+    const start = time;
+    await login(OTHER);
+    const accountId = app.auth.accountByEmail(OTHER)!.id;
+    await view(VID, "shared", start, "/", { host: "dusk.bot", utm: { term: "Dusk-Bot" } });
+    await identify(accountId, VID, INSTALL);
+    await record("page_view", { accountId, at: start + 100, props: { path: "/billing" }, ctx: { session: "shared", host: "dusk.bot" } });
+    await record("app_open", { at: start + 200, props: { kind: "desktop" }, ctx: { install: INSTALL, session: "shared", app: { platform: "darwin" } } });
+    await record("app_open", { accountId, at: start + 300, props: { kind: "mobile" }, ctx: { install: "phone", session: "phone", app: { platform: "android" } } });
+    pay(accountId, start + 400);
+    time += HOUR;
+    const admin = await login(ADMIN), adminId = app.auth.accountByEmail(ADMIN)!.id;
+    const query = range(start, time + 1);
+    const data = await read<Web>(`/v1/admin/web?${query}`, admin);
+    expect(data.surfaces).toEqual({ site: 1, account: 1, desktop: 1, phone: 1 });
+    expect(data.current).toMatchObject({ visitors: 1, visits: 1, pageviews: 1, signups: 2, paid: 1 });
+    expect(data.cards.host).toEqual([{ key: "dusk.bot", visitors: 1, signups: 1, paid: 1 }]);
+    expect(data.cards.keyword).toEqual([{ key: "dusk-bot", visitors: 1, signups: 1, paid: 1 }]);
+    expect(data.cards.surface).toEqual([{ key: "site", visitors: 1, signups: 1, paid: 1 }]);
+    expect(data.marks).toEqual([
+      { at: time, kind: "signup", seed: adminId, email: ADMIN, customer: false },
+      { at: start + 400, kind: "paid", seed: VID, email: OTHER, customer: true },
+      { at: start, kind: "signup", seed: VID, email: OTHER, customer: true },
+    ]);
+    for (const surface of ["account", "desktop", "phone"]) {
+      const selected = await read<Web>(`/v1/admin/web?${query}&surface=${surface}`, admin);
+      expect(selected.surfaces).toEqual(data.surfaces);
+      expect(selected.current).toMatchObject({ visitors: 1, visits: 1, pageviews: 1, signups: 1, paid: 1 });
+      expect(selected.cards.surface).toEqual([{ key: surface, visitors: 1, signups: 1, paid: 1 }]);
+      expect(selected.marks).toEqual(data.marks.slice(1));
+      expect(selected.series.signups.reduce((sum, n) => sum + n, 0)).toBe(1);
+    }
+    expect((await read<Web>(`/v1/admin/web?${query}&surface=all`, admin)).current).toMatchObject({ visitors: 3, visits: 4, pageviews: 4 });
+    const filtered = await read<Web>(`/v1/admin/web?${query}&surface=all&f.surface=site&f.host=dusk.bot&f.keyword=dusk-bot`, admin);
+    expect(filtered.current).toMatchObject({ visitors: 1, signups: 1, paid: 1 });
+    expect(filtered.marks).toEqual(data.marks.slice(1));
+    expect((await read<Web>(`/v1/admin/web?${query}&surface=desktop&f.surface=phone`, admin)).current.visitors).toBe(0);
+    for (const surface of ["", "app", "SITE", "unknown"]) for (const path of ["web", "web/source"]) expect((await call(`/v1/admin/${path}?surface=${surface}`, { cookie: admin })).status).toBe(400);
+    expect((await call("/v1/admin/web/nope", { cookie: admin })).status).toBe(400);
+    expect((await call("/v1/admin/web/source/extra", { cookie: admin })).status).toBe(400);
+  });
+
+  it("returns row conversion, bounce, median visit time and pageviews with surface and dimension filters", async () => {
+    const start = time;
+    await login(OTHER);
+    const accountId = app.auth.accountByEmail(OTHER)!.id;
+    await identify(accountId);
+    await view(VID, "first", start, "/", { host: "dusk.bot" });
+    await view(VID, "first", start + 1000, "/pricing", { host: "dusk.bot" });
+    await view(ANON, "second", start + 2000, "/", { host: "dusk.bot" });
+    await view(VID, "third", start + 3000, "/", { host: "preview.dusk.bot" });
+    await view("outside", "outside", start - 1, "/outside");
+    await record("page_view", { accountId, at: start + 4000, props: { path: "/billing" }, ctx: { session: "account", host: "dusk.bot" } });
+    pay(accountId, start + 5000);
+    time += HOUR;
+    const admin = await login(ADMIN), query = range(start, time);
+    const data = await read<Details>(`/v1/admin/web/host?${query}`, admin);
+    expect(data).toMatchObject({ from: start, to: time, dimension: "host", filters: {} });
+    expect(data.rows).toEqual([
+      { key: "dusk.bot", visitors: 2, signups: 1, paid: 1, conversion: 0.5, bounce: 0.5, visitMs: 500, pageviews: 3 },
+      { key: "preview.dusk.bot", visitors: 1, signups: 1, paid: 1, conversion: 1, bounce: 1, visitMs: 0, pageviews: 1 },
+    ]);
+    const filtered = await read<Details>(`/v1/admin/web/page?${query}&f.host=dusk.bot&f.channel=ai`, admin);
+    expect(filtered.rows).toEqual([
+      { key: "/", visitors: 2, signups: 1, paid: 1, conversion: 0.5, bounce: 0.5, visitMs: 500, pageviews: 3 },
+      { key: "/pricing", visitors: 1, signups: 1, paid: 1, conversion: 1, bounce: 0, visitMs: 1000, pageviews: 2 },
+    ]);
+    expect((await read<Details>(`/v1/admin/web/page?${query}&surface=account`, admin)).rows).toEqual([
+      { key: "/billing", visitors: 1, signups: 1, paid: 1, conversion: 1, bounce: 1, visitMs: 0, pageviews: 1 },
+    ]);
+    expect((await read<Details>(`/v1/admin/web/source?${query}&f.source=absent`, admin)).rows).toEqual([]);
+    for (const dim of DIMENSIONS) expect((await call(`/v1/admin/web/${dim}?${query}`, { cookie: admin })).status).toBe(200);
+  });
+
+  it("caps detail rows at 500 and chart marks at 60 within the requested window", async () => {
+    const admin = await login(ADMIN), start = time;
+    for (let i = 0; i < 505; i++) await view(`visitor${i}`, `session${i}`, start + i, `/page${i}`);
+    for (let i = 0; i < 70; i++) pay(`acct_${i}`, start + i);
+    pay("acct_before", start - 1); pay("acct_after", start + 1000);
+    time += HOUR;
+    const query = range(start, start + 1000);
+    const data = await read<Details>(`/v1/admin/web/page?${query}`, admin);
+    expect(data.rows).toHaveLength(500);
+    expect((await read<Web>(`/v1/admin/web?${query}`, admin)).cards.page).toHaveLength(50);
+    const { marks } = await read<Web>(`/v1/admin/web?${query}`, admin);
+    expect(marks).toHaveLength(60);
+    expect(marks[0]).toEqual({ at: start + 69, kind: "paid", seed: "acct_69", email: null, customer: true });
+    expect(marks.at(-1)!.at).toBe(start + 10);
   });
 
   it("builds visitor and signup funnels from identity links and account signup records", async () => {

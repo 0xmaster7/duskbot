@@ -300,6 +300,7 @@ export function createAdmin(options: AdminOptions) {
       if (route === "/events") return send(await events(url));
       try {
         if (route === "/web") return send(await deep.web(url));
+        if (route.startsWith("/web/")) { const dim = route.slice(5); if (!deep.isDimension(dim)) throw new AnalyticsRouteError(400, "invalid_request", "Invalid dimension."); return send(await deep.webDetails(dim, url)); }
         if (route === "/funnel") return send(await deep.funnel(url));
         if (route === "/journeys") return send(await deep.journeys(url));
         const person = /^\/journeys\/((?:acct_)?[A-Za-z0-9_-]{8,80})$/.exec(route);
