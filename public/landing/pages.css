@@ -204,7 +204,33 @@ kbd { display: inline-grid; place-items: center; min-width: 26px; height: 26px; 
 .prose > ol > li > .code { margin: 12px 0 4px; }
 
 /* docs */
-.docs { display: grid; grid-template-columns: 232px minmax(0, 1fr) 196px; gap: 56px; align-items: start; padding-top: 28px; }
+/* a doc page uses the width: the bar and the grid go to 1440, the text holds a 45em measure, tables and examples take
+   the whole column */
+body:has(.p-doc) .bar { max-width: 1440px; padding-left: 32px; padding-right: 32px; }
+.docs.wrap { max-width: 1440px; padding-left: 32px; padding-right: 32px; }
+.docs { display: grid; grid-template-columns: 240px minmax(0, 1fr) 200px; gap: 56px; align-items: start; padding-top: 28px; }
+.doc.prose { font-size: 17px; line-height: 1.65; }
+.doc.prose > * { max-width: 45em; }
+.doc.prose > .shot, .doc.prose > .code, .doc.prose > .table, .doc.prose > .doc-next, .doc.prose > .doc-top, .doc.prose > .say, .doc.prose > .chips { max-width: none; }
+.doc.prose > ol > li { max-width: 45em; }
+.doc.prose table { width: 100%; font-size: 15.5px; }
+.doc .shot .mock { max-width: 520px; }
+/* tips: what people usually type, and what works */
+.say { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 22px 0 26px; }
+.say p { margin: 0; padding: 16px 20px 18px; border-radius: var(--r-l); background: var(--wash); font-size: 16px; line-height: 1.55; color: var(--ink-2); }
+.say p + p { background: var(--t-lime); color: var(--ink); }
+.say small { display: block; margin-bottom: 8px; font: 400 12.5px/1 var(--mono); letter-spacing: 0.02em; color: var(--ink-3); }
+.say p + p small { color: #3d6b00; }
+/* the docs home: the three pages to read first */
+.docs-first { margin-bottom: 88px; }
+.inner .docs-first h2 { font-size: clamp(26px, 2.6vw, 34px); margin-bottom: 24px; }
+.docs-first .after li { position: relative; }
+.docs-first .after a { color: var(--ink); text-decoration: none; }
+.docs-first .after a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.docs-first .after a:focus-visible { outline: none; }
+.docs-first .after li:has(a:focus-visible) { outline: 2px solid var(--blue); outline-offset: 3px; }
+.docs-first .after li { transition: scale 0.16s var(--ease-out); }
+.docs-first .after li:active { scale: 0.99; }
 .docs-side { position: sticky; top: 20px; max-height: calc(100dvh - 40px); display: flex; flex-direction: column; gap: 22px; }
 .docs-side .docs-nav { overflow-y: auto; overscroll-behavior: contain; padding: 2px 2px 32px; margin: -2px; -webkit-mask: linear-gradient(#000 calc(100% - 32px), transparent); mask: linear-gradient(#000 calc(100% - 32px), transparent); }
 .docs-nav .nh { font: 400 12.5px/1 var(--mono); letter-spacing: 0.02em; color: var(--ink-3); margin: 0 0 8px 12px; }
@@ -276,7 +302,45 @@ kbd { display: inline-grid; place-items: center; min-width: 26px; height: 26px; 
 .docs-index span { font-size: 14.5px; line-height: 1.4; color: var(--ink-2); }
 .docs-foot { margin-top: 88px; }
 
-/* download */
+/* download: the button for your system on the left, dusk cloud as the other way in on the right */
+.dl-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: 64px; align-items: center; }
+.dl-hero > .dl-cloud { animation-delay: 120ms; }
+.phead .dl-lead h1 { max-width: 9em; }
+.dl-also { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; margin: 18px 0 0; font-size: 15px; color: var(--ink-3); }
+.dl-also a { margin-left: 12px; color: var(--ink-2); }
+.dl-also a:hover { color: var(--ink); }
+.dl-cloud { border-radius: var(--r-xl); background: var(--t-sky); padding: 10px; }
+.dl-cloud-art { position: relative; }
+.dl-cloud-art img { display: block; width: 100%; height: 132px; object-fit: cover; border-radius: var(--r-l); }
+.dl-cloud-bot { position: absolute; left: 26px; bottom: 14px; }
+.dl-cloud-bot .bot { width: 40px; }
+.dl-cloud-body { padding: 20px 18px 10px; }
+.dl-cloud-tag { display: inline-flex; margin: 0 0 12px; padding: 4px 10px; border-radius: 999px; background: #fff; font: 400 12px/1.4 var(--mono); color: #0b5ea8; }
+.inner .dl-cloud h2 { font-size: 26px; line-height: 1.15; letter-spacing: -0.035em; }
+.dl-cloud-body > p:not(.dl-cloud-tag) { margin: 10px 0 0; font-size: 16px; line-height: 1.5; color: var(--text); }
+.dl-cloud ul { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 6px; }
+.dl-cloud li { display: flex; align-items: center; gap: 10px; font-size: 15.5px; color: var(--ink); }
+.dl-cloud li .i { color: #0b5ea8; }
+.dl-cloud-go { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 22px; }
+.dl-cloud-go span { font-size: 15px; color: var(--ink-2); }
+.dl-cloud .go { margin-top: 4px; }
+.dl-phones { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; margin-top: 8px; padding: 26px 28px; border-radius: var(--r-l); background: var(--wash); scroll-margin-top: 24px; }
+.dl-phones h3 { margin: 0; }
+.dl-phones-text p { margin: 6px 0 0; font-size: 15.5px; line-height: 1.5; color: var(--text); max-width: 32em; }
+.dl-phone-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.dl-phone-list li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 8px 8px 8px 8px; border-radius: 16px; background: #fff; scroll-margin-top: 24px; }
+.dl-phone-list .dl-ico { width: 44px; height: 44px; border-radius: 12px; background: var(--wash); }
+.dl-phone-list b { display: flex; align-items: center; gap: 10px; font-weight: 550; color: var(--ink); }
+.inner .dl-phone-list .btn { min-height: 44px; padding: 0 18px; font-size: 15px; }
+.dl-phone-list .soon { background: var(--wash); margin-right: 6px; }
+.dl-small { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: start; }
+.inner .dl-small h2 { font-size: clamp(26px, 2.6vw, 34px); margin-bottom: 18px; }
+.dl-small > div > p { margin: 0 0 8px; font-size: 16px; line-height: 1.55; color: var(--text); }
+.specs.one { grid-template-columns: 1fr; }
+.specs.one div { grid-template-columns: 7.5em minmax(0, 1fr); }
+.dl-small .dl-fine { margin-top: 22px; }
+#verify .code { margin: 14px 0; }
+#verify .code-label { margin-top: 16px; }
 .dl-main { margin-top: 30px; }
 .dl-main .btn { min-height: 56px; padding: 0 30px; font-size: 17.5px; gap: 10px; }
 .dl-main .btn .os { width: 18px; height: 18px; }
@@ -332,9 +396,6 @@ kbd { display: inline-grid; place-items: center; min-width: 26px; height: 26px; 
 .amt { font-size: 56px; line-height: 1; letter-spacing: -0.05em; font-weight: 500; font-variant-numeric: tabular-nums; }
 .per { font-size: 14.5px; color: var(--ink-2); }
 .plan .btn { margin-top: 24px; }
-/* the cloud plan leads: outlined, with the only dark button and a tag inside the plan's own side margins */
-.plan.pick { box-shadow: inset 0 0 0 2px var(--ink); }
-.pick-tag { position: absolute; top: 22px; left: 2px; padding: 6px 11px; border-radius: 999px; background: var(--ink); color: #fff; font: 500 13px/1 var(--sans); }
 .has { list-style: none; margin-top: 28px; margin-bottom: 0; padding: 0; display: grid; gap: 11px; font-size: 15px; line-height: 1.35; }
 .has li { display: flex; gap: 10px; }
 .has .i { margin-top: 1px; }
@@ -485,6 +546,7 @@ kbd { display: inline-grid; place-items: center; min-width: 26px; height: 26px; 
 
 @media (max-width: 1180px) {
   .docs { grid-template-columns: 216px minmax(0, 1fr); gap: 44px; }
+  .docs.wrap, body:has(.p-doc) .bar { padding-left: 24px; padding-right: 24px; }
   .doc-toc { position: static; grid-column: 2; grid-row: 1; padding: 18px 20px; border-radius: var(--r-l); background: var(--wash); }
   .doc-toc[hidden] { display: none; }
   .doc-toc h2 { margin-top: 0; }
@@ -504,6 +566,9 @@ kbd { display: inline-grid; place-items: center; min-width: 26px; height: 26px; 
   .facts, .cols { gap: 36px; }
   .docs-index { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 52px 36px; }
   .specs { grid-template-columns: 1fr; }
+  .dl-hero, .dl-small, .dl-phones { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .dl-hero > .dl-cloud { max-width: 560px; }
+  .dl-phones { gap: 18px; }
   .crew { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
   .swatches { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .art-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -550,6 +615,9 @@ kbd { display: inline-grid; place-items: center; min-width: 26px; height: 26px; 
   .specs div { grid-template-columns: 1fr; gap: 2px; }
   .docs-index { grid-template-columns: 1fr; gap: 44px; }
   .doc-next { grid-template-columns: 1fr; }
+  .say { grid-template-columns: 1fr; gap: 8px; }
+  .docs.wrap, body:has(.p-doc) .bar { padding-left: 18px; padding-right: 18px; }
+  .doc.prose { font-size: 16.5px; }
   .doc-top { align-items: flex-start; gap: 16px; margin-bottom: 28px; }
   .doc-top .obj { height: 56px; max-width: 76px; margin-top: 4px; }
   .doc-next .next { text-align: left; }

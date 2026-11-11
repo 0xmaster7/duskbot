@@ -1,8 +1,5 @@
 [
   { "id": "start", "title": "start here", "art": "s-map", "bot": "circle blue" },
-  { "id": "bots", "title": "your bots", "art": "s-notebook", "bot": "heart pink" },
-  { "id": "doing", "title": "what bots can do", "art": "s-computer", "bot": "hex orange" },
-  { "id": "where", "title": "where bots live", "art": "s-server", "bot": "star green" },
-  { "id": "account", "title": "account and plans", "art": "s-coins", "bot": "clover purple" },
-  { "id": "help", "title": "help", "art": "s-books", "bot": "drop yellow" }
+  { "id": "using", "title": "using bots well", "art": "s-notebook", "bot": "heart pink" },
+  { "id": "help", "title": "account and help", "art": "s-books", "bot": "drop yellow" }
 ]

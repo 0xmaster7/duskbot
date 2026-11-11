@@ -1,20 +1,38 @@
-<header class="phead wrap">
-  <h1>download dusk bot</h1>
-  <p class="lede">a normal app for mac, windows and linux. open it, sign in to the ai you already use, and your first bot is working a couple of minutes later.</p>
-  <div class="dl-main" data-dl-page>
+<header class="phead wrap dl-hero">
+  <div class="dl-lead">
+    <h1>download dusk bot</h1>
+    <p class="lede">open it, sign in to the ai you already use, and your first bot is working a couple of minutes later. free for personal use, no account needed.</p>
+    <div class="dl-main" data-dl-page>
 {{#released}}
-    <a class="btn dark" href="{{dl mac-arm64}}" data-os-link data-windows="{{dl windows}}" data-linux="{{dl linux-deb}}"><span class="dl-os">{{os apple}}</span><span data-os-label>download for mac</span></a>
-    <p class="dl-note" data-os-note>for apple silicon. on an intel mac, <a href="{{dl mac-x64}}">get the intel build</a>.</p>
-    <template data-for="windows">for windows 10 and 11. the installer needs no admin rights.</template>
-    <template data-for="linux">a .deb for ubuntu 24.04. rather have an appimage? <a href="{{dl linux-appimage}}">it's here</a>.</template>
-    <template data-for="phone">the desktop app is where your bots run. the phone app, further down, is how you text them.</template>
-    <p class="dl-ver">{{#version}}version {{version}} · {{/version}}<a href="/changelog">what's new</a></p>
+      <a class="btn dark" href="{{dl mac-arm64}}" data-os-link data-windows="{{dl windows}}" data-linux="{{dl linux-deb}}"><span class="dl-os">{{os apple}}</span><span data-os-label>download for mac</span></a>
+      <p class="dl-note" data-os-note>for apple silicon. on an intel mac, <a href="{{dl mac-x64}}">get the intel build</a>.</p>
+      <template data-for="windows">for windows 10 and 11. the installer needs no admin rights.</template>
+      <template data-for="linux">a .deb for ubuntu 24.04. rather have an appimage? <a href="{{dl linux-appimage}}">it's here</a>.</template>
+      <template data-for="phone">the desktop app is where your bots run. on your phone, you text them with <a href="#phone">the phone app</a>.</template>
+      <p class="dl-also">also for <a href="#mac">mac</a><a href="#windows">windows</a><a href="#linux">linux</a><a href="#phone">iphone and android</a></p>
+      <p class="dl-ver">{{#version}}version {{version}} · {{/version}}<a href="/changelog">what's new</a></p>
 {{/released}}
 {{^released}}
-    <a class="btn dark" href="/waitlist?source=download">join the waitlist</a>
-    <p class="notice">downloads open with the first public release. join the waitlist and we'll let you in early, or write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>.</p>
+      <a class="btn dark" href="/waitlist?source=download">join the waitlist</a>
+      <p class="notice">downloads open with the first public release. join the waitlist and we'll let you in early, or write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>.</p>
 {{/released}}
+    </div>
   </div>
+  <aside class="dl-cloud" aria-labelledby="cloud-alt">
+    <div class="dl-cloud-art"><img src="/art/p-meadow.webp" alt="" width="800" height="354"><span class="dl-cloud-bot">{{bot star green}}</span></div>
+    <div class="dl-cloud-body">
+      <p class="dl-cloud-tag">recommended for always-on bots</p>
+      <h2 id="cloud-alt">or skip the setup: dusk cloud.</h2>
+      <p>your bots live on a computer we host and look after. they keep working with your laptop shut, and your phone always reaches them.</p>
+      <ul>
+        <li>{{i check}}routines run on time, around the clock</li>
+        <li>{{i check}}a real browser for every bot</li>
+        <li>{{i check}}no server to run, daily backups included</li>
+      </ul>
+      <div class="dl-cloud-go"><a class="btn dark" href="/pricing">see cloud plans</a><span>from $20 a month</span></div>
+      <a class="go" href="/docs/dusk-cloud">how dusk cloud works{{i arrow-right}}</a>
+    </div>
+  </aside>
 </header>
 
 {{strip falls | hex orange, heart pink, star green}}
@@ -24,84 +42,52 @@
   <ul class="dl-rows">
     <li id="mac" data-os="mac">
       <span class="dl-ico">{{os apple}}</span>
-      <div><h3>macos<span class="yours" hidden>your system</span></h3><p>macos 12 or later, on apple silicon or intel.</p></div>
+      <div><h3>mac<span class="yours" hidden>your system</span></h3><p>macos 12 or later. signed and notarized.</p></div>
       <div class="dl-acts">{{#released}}<a class="btn" href="{{dl mac-arm64}}">apple silicon</a><a class="btn" href="{{dl mac-x64}}">intel</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}</div>
     </li>
     <li id="windows" data-os="windows">
       <span class="dl-ico">{{os windows}}</span>
-      <div><h3>windows<span class="yours" hidden>your system</span></h3><p>windows 10 or 11, 64-bit.</p></div>
+      <div><h3>windows<span class="yours" hidden>your system</span></h3><p>windows 10 or 11, 64-bit. no admin rights needed.</p></div>
       <div class="dl-acts">{{#released}}<a class="btn" href="{{dl windows}}">installer (.exe)</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}</div>
     </li>
     <li id="linux" data-os="linux">
       <span class="dl-ico">{{os linux}}</span>
-      <div><h3>linux<span class="yours" hidden>your system</span></h3><p>ubuntu 24.04, 64-bit. still in beta.</p></div>
+      <div><h3>linux<span class="yours" hidden>your system</span></h3><p>ubuntu 24.04, 64-bit. in beta.</p></div>
       <div class="dl-acts">{{#released}}<a class="btn" href="{{dl linux-deb}}">.deb</a><a class="btn" href="{{dl linux-appimage}}">appimage</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}</div>
     </li>
-    <li id="iphone" data-os="ios">
-      <span class="dl-ico">{{os apple}}</span>
-      <div><h3>iphone<span class="yours" hidden>your phone</span></h3><p>text your bots from anywhere. it pairs with your computer, your server or your cloud.</p></div>
-      <div class="dl-acts">{{#ios}}<a class="btn" href="{{ios-link}}">app store</a>{{/ios}}{{^ios}}{{#released}}<a class="btn" href="/docs/phone">how to get it</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}{{/ios}}</div>
-    </li>
-    <li id="android" data-os="android">
-      <span class="dl-ico">{{os android}}</span>
-      <div><h3>android<span class="yours" hidden>your phone</span></h3><p>the same phone app, for android.</p></div>
-      <div class="dl-acts">{{#android}}<a class="btn" href="{{android-link}}">get the app</a>{{/android}}{{^android}}{{#released}}<a class="btn" href="/docs/phone">how to get it</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}{{/android}}</div>
-    </li>
   </ul>
-</section>
 
-<section class="wrap sec" id="after">
-  <div class="head"><h2>after it's installed.</h2></div>
-  <ol class="after">
-    <li><span class="n" aria-hidden="true">1</span><h3>open it</h3><p>no account, no card. it starts on your own computer and nothing leaves it.</p></li>
-    <li><span class="n" aria-hidden="true">2</span><h3>sign in to your ai</h3><p>claude, chatgpt, gemini, grok and more. or an api key, or a model you run yourself.</p></li>
-    <li><span class="n" aria-hidden="true">3</span><h3>make a bot</h3><p>name it, pick a shape, tell it its job in plain words. then hand it something real.</p></li>
-  </ol>
-  <a class="go" href="/docs/getting-started">the two minute guide{{i arrow-right}}</a>
-</section>
-
-<section class="wrap sec" id="requirements">
-  <div class="head"><h2>what you need.</h2></div>
-  <dl class="specs">
-    <div><dt>mac</dt><dd>macos 12 or later. apple silicon or intel.</dd></div>
-    <div><dt>windows</dt><dd>windows 10 or 11, 64-bit.</dd></div>
-    <div><dt>linux</dt><dd>ubuntu 24.04, 64-bit, with the gnome desktop. a .deb or an appimage. in beta.</dd></div>
-    <div><dt>an ai</dt><dd>an account with claude, chatgpt, gemini, grok or another ai you use. an api key or a local model works too.</dd></div>
-    <div><dt>phone app</dt><dd>an iphone or an android phone, and a dusk bot running somewhere to pair it with.</dd></div>
-    <div><dt>your own server</dt><dd>optional. ubuntu 22.04 or 24.04 with 2 gb of memory or more.</dd></div>
-  </dl>
-</section>
-
-<section class="wrap sec two" id="verify">
-  <div>
-    <h2>check what you downloaded.</h2>
-    <p>every release comes with a file called <code>SHA256SUMS</code> that lists the fingerprint of each installer. work out the fingerprint of the file you got and compare the two. they should match exactly.</p>
-    <p>the mac app is also signed and notarized, and the app only ever tells you about an update that carries our release signature. you choose when to install it.</p>
-    {{#released}}<a class="go" href="{{sums}}">open SHA256SUMS{{i arrow-right}}</a>{{/released}}
+  <div class="dl-phones" id="phone">
+    <div class="dl-phones-text">
+      <h3>text your bots from your phone</h3>
+      <p>the phone app pairs with your computer or your cloud by scanning a code. answer questions, approve things and get told when a bot is done.</p>
+      <a class="go" href="/docs/phone">how pairing works{{i arrow-right}}</a>
+    </div>
+    <ul class="dl-phone-list">
+      <li id="iphone" data-os="ios"><span class="dl-ico">{{os apple}}</span><b>iphone<span class="yours" hidden>your phone</span></b>{{#ios}}<a class="btn" href="{{ios-link}}">app store</a>{{/ios}}{{^ios}}{{#released}}<a class="btn" href="/docs/phone">use it in the browser</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}{{/ios}}</li>
+      <li id="android" data-os="android"><span class="dl-ico">{{os android}}</span><b>android<span class="yours" hidden>your phone</span></b>{{#android}}<a class="btn" href="{{android-link}}">google play</a>{{/android}}{{^android}}{{#released}}<a class="btn" href="/docs/phone">use it in the browser</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}{{/android}}</li>
+    </ul>
   </div>
+</section>
+
+<section class="wrap sec dl-small" id="requirements">
   <div>
+    <h2>what you need.</h2>
+    <dl class="specs one">
+      <div><dt>a computer</dt><dd>mac (macos 12+), windows 10 or 11, or ubuntu 24.04.</dd></div>
+      <div><dt>an ai</dt><dd>claude, chatgpt, gemini, grok or another ai you use. an api key or a local model works too.</dd></div>
+      <div><dt>a phone</dt><dd>optional. iphone or android.</dd></div>
+    </dl>
+    <p class="dl-fine">first time? <a href="/docs/getting-started">the two minute guide</a>. comfortable with servers? <a href="/docs/your-own-server">run it on your own</a>.</p>
+  </div>
+  <div id="verify">
+    <h2>check a download.</h2>
+    <p>every release lists each installer's sha-256 fingerprint in <code>SHA256SUMS</code>{{#released}} (<a href="{{sums}}">open it</a>){{/released}}. yours should match exactly.</p>
     <p class="code-label">mac</p>
     <div class="code"><pre><code>shasum -a 256 ~/Downloads/{{file mac-arm64}}</code></pre><button class="copy" type="button" data-copy>copy</button></div>
     <p class="code-label">windows (powershell)</p>
     <div class="code"><pre><code>Get-FileHash $HOME\Downloads\{{file windows}} -Algorithm SHA256</code></pre><button class="copy" type="button" data-copy>copy</button></div>
     <p class="code-label">linux</p>
     <div class="code"><pre><code>sha256sum ~/Downloads/{{file linux-deb}}</code></pre><button class="copy" type="button" data-copy>copy</button></div>
-  </div>
-</section>
-
-<section class="wrap sec two" id="server">
-  <div>
-    <h2>or run it on your own server.</h2>
-    <p>keep your bots on a server you rent, so they stay on when your computer is off. in the app, open the menu at the top of the sidebar and add your own server. it shows one line. paste it on the server and it installs everything and links itself to your app, in about ten minutes.</p>
-    <a class="go" href="/docs/your-own-server">how your own server works{{i arrow-right}}</a>
-  </div>
-  <div>
-    <p class="code-label">the line looks like this. the app fills in your one-time code</p>
-    <div class="code plain"><pre><code>curl -fsSL https://dusk.bot/install.sh | sh -s &lt;code&gt;</code></pre></div>
-    <p class="code-label">to read the installer before you run it</p>
-    <div class="code"><pre><code>curl -fsSLo install.sh https://dusk.bot/install.sh
-curl -fsSL https://dusk.bot/install.sh.sha256
-shasum -a 256 install.sh
-less install.sh</code></pre><button class="copy" type="button" data-copy>copy</button></div>
   </div>
 </section>

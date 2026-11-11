@@ -82,12 +82,15 @@ ${toc}
   });
 
   // the docs home: every section, with its pages and what each is about
-  const home = `<header class="phead wrap"><h1>docs</h1><p class="lede">everything dusk bot does, in plain words. start at the top, or search for the thing you are stuck on.</p>${search('q')}</header>
+  // new here: the three pages worth reading first, in order
+  const first = ['getting-started', 'tips', 'dusk-cloud'].map((n) => ordered.find((p) => p.name === n)).filter(Boolean);
+  const home = `<header class="phead wrap"><h1>docs</h1><p class="lede">how to get going, and how to get the most out of your bots. short pages, plain words.</p>${search('q')}</header>
 ${strip('birches', 'circle blue, heart pink, hex orange, star green, drop yellow')}
+<section class="wrap docs-first" aria-labelledby="new-here"><h2 id="new-here">new here? read these three.</h2><ol class="after">${first.map((p, i) => `<li><span class="n" aria-hidden="true">${i + 1}</span><h3><a href="${p.at}">${esc(p.title)}</a></h3><p>${esc(p.description)}</p></li>`).join('')}</ol></section>
 <div class="docs-index wrap" data-index="${indexUrl}">
 ${sections.map((s) => `<section>${art(s.art)}<h2>${esc(s.title)}</h2><ul>${ordered.filter((p) => p.section === s.id).map((p) => `<li><a href="${p.at}"><b>${esc(p.title)}</b><span>${esc(p.description)}</span></a></li>`).join('')}</ul></section>`).join('\n')}
 </div>
 <section class="wrap docs-foot"><div class="note-row">{{bot heart pink}}<p>could not find it? write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>. a person answers, and the docs get better.</p></div></section>`;
-  write('/docs', layout({ title: 'Docs · Dusk Bot', description: 'How Dusk Bot works: install it, connect an AI, make bots, give them routines and a computer, and run them where you want.', page: 'docs', at: '/docs', og: 'docs', kind: 'p-docs', scripts: ['docs.js'], body: home }));
+  write('/docs', layout({ title: 'Docs · Dusk Bot', description: 'How to get going with Dusk Bot, and how to get the most out of your bots: clear jobs, good first messages, routines, group chats, memory and Dusk Cloud.', page: 'docs', at: '/docs', og: 'docs', kind: 'p-docs', scripts: ['docs.js'], body: home }));
   return ordered.length + 1;
 }

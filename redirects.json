@@ -22,7 +22,7 @@
   "/getting-started": "/docs/getting-started",
   "/faq": "/docs/faq",
   "/questions": "/docs/faq",
-  "/shortcuts": "/docs/keyboard-shortcuts",
+  "/shortcuts": "/docs/bots#handy-keys",
   "/server": "/docs/your-own-server",
   "/vps": "/docs/your-own-server",
   "/cloud": "/docs/dusk-cloud",
@@ -47,5 +47,16 @@
   "/home": "/",
   "/index.html": "/",
   "/join": "/waitlist",
-  "/early-access": "/waitlist"
+  "/early-access": "/waitlist",
+  "/tips": "/docs/tips",
+  "/docs/install": "/docs/getting-started#get-the-app",
+  "/docs/connect-an-ai": "/docs/getting-started#sign-in-to-your-ai",
+  "/docs/chat-and-files": "/docs/bots#while-it-works",
+  "/docs/voice": "/docs/bots#voice",
+  "/docs/where-bots-live": "/docs/dusk-cloud#where-bots-can-live",
+  "/docs/permissions": "/docs/computer#asking-first",
+  "/docs/connected-apps": "/docs/files-and-apps#connected-apps",
+  "/docs/keyboard-shortcuts": "/docs/bots#handy-keys",
+  "/docs/account": "/docs/account-and-billing",
+  "/docs/plans-and-billing": "/docs/account-and-billing#plans"
 }

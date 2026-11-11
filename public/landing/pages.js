@@ -44,7 +44,7 @@ const dl = $('[data-dl-page]');
 if (dl) {
   const ua = navigator.userAgent;
   const mine = /android/i.test(ua) ? 'android' : /iphone|ipad/i.test(ua) || (/mac/i.test(ua) && navigator.maxTouchPoints > 1) ? 'ios' : /windows/i.test(ua) ? 'windows' : /linux|cros/i.test(ua) ? 'linux' : 'mac';
-  const row = $(`.dl-rows [data-os="${mine}"]`);
+  const row = $(`#all [data-os="${mine}"]`);
   if (row) { $('.yours', row).hidden = false; }
   const go = $('[data-os-link]', dl), label = $('[data-os-label]', dl), note = $('[data-os-note]', dl), mark = $('.dl-os', dl);
   if (go && mine !== 'mac') {
