@@ -15,7 +15,7 @@ const NOTE: Record<Platform, string> = { macos: "apple silicon and intel", windo
 function Mark({ platform }: { platform: Platform }) {
   const src = LOGO[platform];
   // apple's mark is one colour, so it takes the ink and stays visible in both themes
-  if (src === apple) return <span aria-hidden className="block size-[22px] bg-ink" style={{ mask: `url(${src}) center / contain no-repeat`, WebkitMask: `url(${src}) center / contain no-repeat` }} />;
+  if (src === apple) return <span aria-hidden className="block size-[22px] bg-ink" style={{ maskImage: `url("${src}")`, WebkitMaskImage: `url("${src}")`, maskSize: "contain", WebkitMaskSize: "contain", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat", maskPosition: "center", WebkitMaskPosition: "center" }} />;
   return <img src={src} alt="" width={22} height={22} className="size-[22px] object-contain" draggable={false} />;
 }
 
@@ -29,7 +29,7 @@ export function Downloads() {
       {order.map((p) => {
         const yours = p === detected;
         const href = release === "soon" ? WAITLIST_URL : downloadPage(p);
-        const action = release === "soon" ? "join waitlist" : "download";
+        const action = release === "soon" ? "join waitlist" : p === "android" || p === "ios" ? "get it" : "download";
         return (
           <li key={p}>
             <a

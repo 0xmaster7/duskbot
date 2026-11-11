@@ -20,8 +20,10 @@ export type ReleaseState = "out" | "soon" | "unknown";
 
 let asked: Promise<ReleaseState> | null = null;
 
-// the site marks a release out by publishing releases/latest.json with a version, the same test its own pages use
+// the site marks a release out by publishing releases/latest.json with a version, the same test its own pages use;
+// the page's content security policy only lets it ask its own origin
 function askSite(): Promise<ReleaseState> {
+  if (new URL(SITE_URL).origin !== location.origin) return Promise.resolve("unknown");
   asked ??= fetch(`${SITE_URL}/releases/latest.json`, { cache: "no-store" })
     .then(async (res) => {
       if (res.status === 404) return "soon";

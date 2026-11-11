@@ -77,7 +77,7 @@ function Catalog({ apps, connected, query }: { apps: DashApp[] | null; connected
         <h2 id="catalog-title" className="text-16 font-medium tracking-[-0.02em] text-ink">all apps</h2>
         <p className="num text-13 text-ink-3">{apps ? `${list.length.toLocaleString("en-US")} ${q || category ? "match" : "apps"}` : "loading"}</p>
       </div>
-      <div className="scroll-x -mx-1 flex gap-1.5 px-1 pb-1" role="radiogroup" aria-label="category">
+      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="category">
         {[null, ...categories].map((c) => {
           const on = category === c;
           return (
