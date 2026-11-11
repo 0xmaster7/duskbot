@@ -3,6 +3,7 @@ import { MausAvatar } from "@/components/Avatar";
 import { SignIn } from "@/components/account-gate/SignIn";
 import { problemLine } from "@/components/cloud-buy/SignInScreen";
 import { t } from "@/lib/i18n";
+import { THEME_SKINS } from "@/lib/skins";
 import type { OAuthProvider } from "../../../shared/account-api";
 import { demoOn, enterDemo } from "../demo/demo-mode";
 import { LEGAL_LINKS } from "../legal";
@@ -103,7 +104,7 @@ export function AccountGate({ children }: { children: ReactNode }) {
     enrollGrant: () => client.enrollGrant(),
   }), [account, origin, client]);
   if (wanted && (demo === null || (restoring && required))) return <div className="omb-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
-  return <AccountContext value={context}>{required && !account ? <div data-skin="grok-dark" className="omb-mobile size-full bg-[#121212] text-ink"><SignIn mobile emailStart={email => client.emailStart(email)} emailVerify={code => client.emailVerify(code)} cancelEmail={async () => { client.cancelEmail(); }} browser={provider => { setProblem(undefined); return client.oauthStart(provider); }} onSignedIn={() => { setAccount(client.account()); setProblem(undefined); }} notice={problem}
+  return <AccountContext value={context}>{required && !account ? <div data-skin={THEME_SKINS.dark} className="omb-mobile size-full bg-app text-ink"><SignIn mobile emailStart={email => client.emailStart(email)} emailVerify={code => client.emailVerify(code)} cancelEmail={async () => { client.cancelEmail(); }} browser={provider => { setProblem(undefined); return client.oauthStart(provider); }} onSignedIn={() => { setAccount(client.account()); setProblem(undefined); }} notice={problem}
     options={async () => ({ providers: providersFor(platform.kind, await client.providers()), recovery: false })}>
     <div className="flex flex-col items-center gap-1 border-t border-ink/10 pt-4">
       <button type="button" onClick={() => void enterDemo(platform)} className="flex min-h-11 w-full flex-col items-center justify-center rounded-full border border-ink/15 px-5 py-2 text-[14px] font-medium outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">

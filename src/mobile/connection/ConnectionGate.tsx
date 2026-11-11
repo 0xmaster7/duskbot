@@ -3,6 +3,7 @@ import { AnimatePresence } from "motion/react";
 import { MausAvatar } from "@/components/Avatar";
 import { readSessionState } from "@/lib/session";
 import { resetSessionEnded, useSessionEnded } from "@/lib/session-ended";
+import { THEME_SKINS } from "@/lib/skins";
 import { parseMobilePairingLink, type MobileConnectionRecord } from "../../../shared/mobile-link";
 import { usePlatform } from "../platform";
 import { useMobileAccount } from "../account/AccountGate";
@@ -146,7 +147,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
 
   const success = (
     <AnimatePresence>
-      {celebrate && <Success key={celebrate.sequence} name={celebrate.name} onDone={() => { setCelebrate(null); platform.setStatusBar?.(document.documentElement.dataset.skin === "grok-dark" ? "light" : "dark"); }} />}
+      {celebrate && <Success key={celebrate.sequence} name={celebrate.name} onDone={() => { setCelebrate(null); platform.setStatusBar?.(document.documentElement.dataset.skin === THEME_SKINS.dark ? "light" : "dark"); }} />}
     </AnimatePresence>
   );
   const onboarding = state.kind !== "ready" || (forcePair && !entered);

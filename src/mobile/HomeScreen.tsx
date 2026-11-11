@@ -152,7 +152,9 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
         </RoundButton>
         <div className="flex-1" />
         {demo && (
-          <button type="button" onClick={() => onOpenSheet({ kind: "settings" })} className="mobile-press pointer-events-auto flex h-8 items-center rounded-full bg-composer px-3 text-[13px] text-ink-secondary mobile-float">{t("mobile.demo.banner")}</button>
+          <button type="button" onClick={() => onOpenSheet({ kind: "settings" })} className="mobile-press pointer-events-auto flex h-11 items-center">
+            <span className="flex h-8 items-center rounded-full bg-composer px-3 text-[13px] text-ink-secondary mobile-float">{t("mobile.demo.banner")}</span>
+          </button>
         )}
         {state.hydrated && !state.connected && !resuming && (
           <span role="status" className="pointer-events-auto flex h-8 items-center gap-2 rounded-full bg-composer px-3 text-[13px] text-ink-secondary mobile-float">
