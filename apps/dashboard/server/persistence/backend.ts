@@ -18,6 +18,9 @@ export interface StateBackend {
   /** resolves once everything changed so far is durable; rejects when that does not happen within `timeoutMs` */
   settled(timeoutMs?: number): Promise<void>;
   health(): { ok: boolean; detail: string };
+  /** a row as last written to the database (not as held in memory), or null: what a check before an irreversible step
+   *  re-reads */
+  written(store: string, field: string, key: string): unknown;
 }
 
 let current: StateBackend | null = null;

@@ -11,6 +11,7 @@ import type { createSealer } from "./seal.ts";
 import type { CloudProvider, CloudsService, DesktopPlan, HomeClient, SlotQuota, StoredCloud } from "./types.ts";
 import type { ManagedCloud, ManagedCloudFactory } from "./managed.ts";
 import { lockDataDir } from "../data-dir-lock.ts";
+import { stateBackend } from "../persistence/backend.ts";
 
 export class CloudError extends Error {
   readonly status: number;
@@ -120,7 +121,9 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     save(c);
   }
   function viewOf(c: StoredCloud): CloudDesktopView { return { id: c.id, name: c.name, color: c.color, kind: c.kind, placement: c.placement, status: c.status === "running" && c.paymentProblem ? "payment_problem" : c.status, setupStep: c.setupStep, region: c.region, machine: { ...c.spec }, botComputers: c.botComputers, origin: c.origin, workspaceId: c.workspaceId, lastReportAt: c.workspaceId ? workspaces.lastReportAt(c.workspaceId) : null, destroyAt: c.destroyAt, error: c.error, subscriptionId: c.subscriptionId, createdAt: c.createdAt }; }
+  const backend = stateBackend();
   const stored = (id: string): StoredCloud | null => {
+    if (backend) return backend.written("clouds", "clouds", id) as StoredCloud | null;
     try {
       return (JSON.parse(readFileSync(join(options.dataDir, "clouds.json"), "utf8")) as State).clouds.find(c => c.id === id) ?? null;
     } catch { return null; }

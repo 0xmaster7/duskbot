@@ -153,6 +153,11 @@ export function createDiffBackend(options: { loaded: LoadedData; writer: BatchWr
         schedule(0);
       });
     },
+    written(name, field, key) {
+      const store = stores.get(name), spec = store?.layout[field];
+      const json = spec ? store!.rowJson.get(spec.collection)?.get(key) : undefined;
+      return json === undefined ? null : JSON.parse(json);
+    },
     health: () => ({ ok: failures === 0, detail: lastError ? `last write failed: ${lastError}` : "ok" }),
     flush(timeoutMs = 30_000) { return this.settled(timeoutMs); },
   };

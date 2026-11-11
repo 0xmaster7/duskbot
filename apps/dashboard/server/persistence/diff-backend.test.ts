@@ -95,3 +95,19 @@ describe("diff backend", () => {
     expect(m.db.logs).toEqual([{ at: 1, action: "x" }]);
   });
 });
+
+describe("written", () => {
+  it("answers a row as last written, not as changed in memory since", async () => {
+    const m = memory();
+    const backend = createDiffBackend({ loaded: m.loaded(), writer: m.writer, layouts, log: () => {} });
+    const store = backend.open("shop", initial, valid);
+    store.state.items.push({ id: "a", hold: false });
+    expect(backend.written("shop", "items", "a")).toBeNull();
+    store.commit(); await backend.settled();
+    store.state.items[0]!.hold = true;
+    expect(backend.written("shop", "items", "a")).toEqual({ id: "a", hold: false });
+    store.commit(); await backend.settled();
+    expect(backend.written("shop", "items", "a")).toEqual({ id: "a", hold: true });
+    expect(backend.written("shop", "nothing", "a")).toBeNull();
+  });
+});
