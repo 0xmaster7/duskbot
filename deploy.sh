@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# deploy the dusk.bot placeholder sites with the deploy CLI. safe to rerun; a rerun is also how
-# install.sh gets refreshed.
-#   sites/dusk/deploy.sh            # all three
-#   sites/dusk/deploy.sh landing    # just dusk.bot (+ /install.sh)
-#   sites/dusk/deploy.sh app|dev
+# deploy the dusk.bot site server with the deploy CLI. safe to rerun; a rerun is also how
+# install.sh gets refreshed. dusk.bot itself is the account service (deploy/account/deploy.sh production in the
+# Dusk Bot repo), which proxies every non-account path to this app on 127.0.0.1:3103; app., dev. and www. are its
+# aliases and redirect. before launch the landing folder is the waitlist-only build (node waitlist-only.mjs).
+#   sites/dusk/deploy.sh            # landing (the app dusk-landing, reached through dusk.bot)
 # DUSK_REPO is the Dusk Bot checkout (pages read docs/legal there); INSTALLER overrides where install.sh comes from.
 # LANDING_ENV is the landing app's env file (mongodb + brevo for the waitlist, names in .env.example); it is uploaded
 # when it exists, otherwise the env already on the server stays.
@@ -18,9 +18,7 @@ WHICH="${1:-all}"
 
 # app name, domain, site folder
 SITES=(
-  "dusk-landing dusk.bot landing"
-  "dusk-app app.dusk.bot app"
-  "dusk-dev dev.dusk.bot dev"
+  "dusk-landing dusk-landing.apps.siddz.com landing"
 )
 
 # the pages and the legal drafts (docs/legal in the Dusk Bot repo) become the landing site's html
@@ -56,4 +54,4 @@ for row in "${SITES[@]}"; do
     --cmd "set -a; [ -f ./.env ] && . ./.env; set +a; exec node server.js $site"
   ran=1
 done
-[ "$ran" = 1 ] || { echo "usage: $0 [all|landing|app|dev]" >&2; exit 2; }
+[ "$ran" = 1 ] || { echo "usage: $0 [all|landing]" >&2; exit 2; }

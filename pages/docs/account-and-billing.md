@@ -26,7 +26,7 @@ using dusk bot at or for a business needs a work license. pro includes one; the 
 
 ## your account
 
-go to [app.dusk.bot]({{app}}) and enter your email. we send a code; there's no password. the account shows your plan, invoices, and each place your bots live, with their bots, usage and bot computers. it never sees your messages, prompts, files or keys.
+go to [dusk.bot/dashboard]({{app}}) and enter your email. we send a code; there's no password. the account shows your plan, invoices, and each place your bots live, with their bots, usage and bot computers. it never sees your messages, prompts, files or keys.
 
 payments, tax and invoices are handled by dodo payments, our merchant of record. we never see your card number.
 
@@ -42,4 +42,4 @@ questions about a charge? write to hello@dusk.bot from the email on your account
 
 ## your data and deleting the account
 
-the account page has **Download your data** and **Delete account**. deleting it doesn't touch anything on your own computer or server, and an active plan has to be cancelled first (the page offers to).
+the account page has **Download your data** and **Delete account**. deleting it doesn't touch anything on your own computer or server, and an active plan has to be cancelled first (the page offers to). a cloud computer on the account stops (at once, or when its paid time ends), is kept for 30 days, then deleted.

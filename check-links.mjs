@@ -11,7 +11,7 @@ const redirects = JSON.parse(fs.readFileSync(path.join(root, '_redirects.json'),
 // files that deploy.sh and publish-downloads.sh put on the site, so they are not in the repo
 const AT_DEPLOY = [/^\/install\.sh(\.sha256)?$/, /^\/releases\//];
 // the account app (DUSK_APP_URL, the same default as build-pages.mjs) and its api are served beside the site on the same origin
-const APP_PATH = (process.env.DUSK_APP_URL || '/app').replace(/\/+$/, '');
+const APP_PATH = (process.env.DUSK_APP_URL || '/dashboard').replace(/\/+$/, '');
 const ELSEWHERE = APP_PATH.startsWith('/') ? [APP_PATH, '/v1'] : ['/v1'];
 const servedElsewhere = (p) => ELSEWHERE.some((pre) => p === pre || p.startsWith(`${pre}/`));
 // the app's own interface is built elsewhere and checked there
