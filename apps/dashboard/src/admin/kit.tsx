@@ -189,7 +189,7 @@ export function NoteDialog({ note, onClose, onSave, onDelete }: { note: Note | {
 
 export interface RankRow { key: string; visitors: number; signups: number; paid: number }
 /** a tabbed ranked card: visitors as a light bar, the signups they became as a darker bar on top; a row filters the page */
-export function RankCard({ title, tabs, data, label, onPick, active }: { title: string; tabs: Array<{ id: string; label: string }>; data: Record<string, RankRow[]>; label?(tab: string, key: string): ReactNode; onPick(tab: string, key: string): void; active: Record<string, string | undefined> }) {
+export function RankCard({ title, tabs, data, label, onPick, active, metric }: { title: string; tabs: Array<{ id: string; label: string }>; data: Record<string, RankRow[]>; label?(tab: string, key: string): ReactNode; onPick?(tab: string, key: string): void; active?: Record<string, string | undefined>; /** a single count instead of visitors and signups */ metric?: string }) {
   const [tab, setTab] = useState(tabs[0]!.id);
   const [all, setAll] = useState(false);
   const rows = data[tab] ?? [];
@@ -204,21 +204,21 @@ export function RankCard({ title, tabs, data, label, onPick, active }: { title: 
               className={cx("h-8 shrink-0 rounded-full px-3 text-13", tab === t.id ? "bg-pop font-medium text-ink" : "text-ink-3 hover-link")}>{t.label}</button>
           ))}
         </div>
-        <span className="t-meta hidden shrink-0 sm:inline">visitors · signups</span>
+        <span className="t-meta hidden shrink-0 sm:inline">{metric ?? "visitors · signups"}</span>
       </div>
       <ul className="flex flex-col gap-px rounded-[18px] bg-pop p-1.5" role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
         {shown.map((row) => {
-          const on = active[tab] === row.key;
+          const on = active?.[tab] === row.key;
           const conversion = row.visitors ? Math.round((row.signups / row.visitors) * 1000) / 10 : 0;
           return (
             <li key={row.key}>
-              <button type="button" onClick={() => onPick(tab, row.key)} aria-pressed={on} title={`${n(row.visitors)} visitors, ${n(row.signups)} signups, ${conversion}% signed up${row.paid ? `, ${n(row.paid)} paid` : ""}`}
-                className={cx("relative flex h-9 w-full items-center gap-3 overflow-hidden rounded-[10px] px-2.5 text-start text-13", on ? "ring-2 ring-accent" : "hover-ghost")}>
+              <button type="button" disabled={!onPick} onClick={() => onPick?.(tab, row.key)} aria-pressed={onPick ? on : undefined} title={`${n(row.visitors)} visitors, ${n(row.signups)} signups, ${conversion}% signed up${row.paid ? `, ${n(row.paid)} paid` : ""}`}
+                className={cx("relative flex h-9 w-full items-center gap-3 overflow-hidden rounded-[10px] px-2.5 text-start text-13 disabled:cursor-default", on ? "ring-2 ring-accent" : onPick && "hover-ghost")}>
                 <span className="absolute inset-y-0 left-0 rounded-[10px] bg-accent/10" style={{ width: `${(row.visitors / max) * 100}%` }} aria-hidden />
                 {row.signups > 0 && <span className="absolute inset-y-0 left-0 rounded-[10px] bg-accent/25" style={{ width: `${(Math.min(row.signups, row.visitors) / max) * 100}%` }} aria-hidden />}
                 <span className="relative min-w-0 flex-1 truncate text-ink">{label ? label(tab, row.key) : row.key}</span>
                 <span className="relative w-12 text-end font-mono text-ink num">{n(row.visitors)}</span>
-                <span className={cx("relative w-10 text-end font-mono num", row.signups ? "text-accent-ink" : "text-ink-4")}>{n(row.signups)}</span>
+                {!metric && <span className={cx("relative w-10 text-end font-mono num", row.signups ? "text-accent-ink" : "text-ink-4")}>{n(row.signups)}</span>}
               </button>
             </li>
           );

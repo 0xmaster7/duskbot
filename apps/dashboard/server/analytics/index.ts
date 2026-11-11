@@ -7,6 +7,7 @@ import { DAY_MS, EVENTS, cleanProps, dayOf, isEventName, routeOf, type EventName
 import type { AnalyticsSink } from "./sink.ts";
 import { requestContext, type EventContext } from "./context.ts";
 import { APP_EVENTS_PATH, TRACK_PATH, handleAppEvents, handleTrack } from "./ingest.ts";
+import { isAiCrawler } from "./sources.ts";
 
 export interface AnalyticsOptions {
   sink: AnalyticsSink; dataDir: string; now?: () => number; trustProxy?: boolean;
@@ -84,8 +85,12 @@ export function createAnalytics(options: AnalyticsOptions) {
       stats.failed++; stats.lastFailureAt = now();
     }
   }
+  const listeners: Array<(name: EventName, input: Parameters<typeof record>[1]) => void> = [];
   /** never throws and never delays the request it describes */
-  const track = (name: EventName, input?: Parameters<typeof record>[1]) => { void record(name, input); };
+  const track = (name: EventName, input?: Parameters<typeof record>[1]) => {
+    void record(name, input);
+    for (const listen of listeners) try { listen(name, input ?? {}); } catch { stats.failed++; }
+  };
 
   function visitorOf(req: IncomingMessage) {
     const day = dayOf(now());
@@ -111,6 +116,14 @@ export function createAnalytics(options: AnalyticsOptions) {
     store.state.optOut = [...optOut];
     store.commit();
     if (value) return sink.forget(accountId).catch(() => { stats.failed++; });
+  }
+  /** an AI assistant's crawler asking the site for a page (robots.txt and llms.txt included) */
+  function crawlerVisit(req: IncomingMessage, host: string | null) {
+    const bot = isAiCrawler(String(req.headers["user-agent"] ?? ""));
+    if (!bot || req.method !== "GET") return;
+    const raw = (req.url ?? "/").split("?")[0]!;
+    const path = /^\/(robots\.txt|llms(-full)?\.txt|sitemap\.xml)$/.test(raw) ? raw : routeOf(raw) ?? "/";
+    void sink.crawl({ at: now(), bot: bot.bot, kind: bot.kind, path, host }).catch(() => { stats.failed++; });
   }
   function identify(accountId: string, ctx: { visitor?: string; install?: string }, via: "page" | "app") {
     const id = ctx.visitor ?? ctx.install;
@@ -172,6 +185,6 @@ export function createAnalytics(options: AnalyticsOptions) {
     return false;
   }
 
-  return { sink, track, record, identify, appActive, botReplied, setOptOut, forget, handle, stats, optedOut: (accountId: string) => optOut.has(accountId), close: () => store.close() };
+  return { sink, track, record, identify, crawlerVisit, onTrack: (fn: (name: EventName, input: Parameters<typeof record>[1]) => void) => { listeners.push(fn); }, appActive, botReplied, setOptOut, forget, handle, stats, optedOut: (accountId: string) => optOut.has(accountId), close: () => store.close() };
 }
 export type Analytics = ReturnType<typeof createAnalytics>;

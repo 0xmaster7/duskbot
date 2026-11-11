@@ -13,6 +13,7 @@ import { brevoChecker, csvField } from "../admin/waitlist.ts";
 import { healthTargets } from "../admin/health.ts";
 
 const DAY = 86_400_000;
+const SAFARI_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15";
 const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
 const fakeReq = (headers: Record<string, string>, url = "/", method = "GET") => ({ method, url, headers, socket: { remoteAddress: "203.0.113.9" } }) as unknown as IncomingMessage;
 const settle = () => new Promise(resolve => setTimeout(resolve, 10));
@@ -142,5 +143,20 @@ describe.skipIf(!uri)("analytics in mongodb", () => {
     const ttl = (await db.collection("analytics_events").indexes()).find(index => index.expireAfterSeconds !== undefined);
     expect(ttl?.expireAfterSeconds).toBe(400 * 86_400);
     expect((await sink.health()).ok).toBe(true);
+  });
+});
+
+describe("ai crawlers", () => {
+  it("keeps AI crawler requests apart, capped, with robots.txt and llms.txt by name", async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), "omb-crawl-test-"));
+    const sink = memorySink(() => 1000);
+    const analytics = createAnalytics({ sink, dataDir, now: () => 1000 });
+    analytics.crawlerVisit(fakeReq({ "user-agent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.2; +https://openai.com/gptbot)" }, "/llms.txt"), "dusk.bot");
+    analytics.crawlerVisit(fakeReq({ "user-agent": "Mozilla/5.0 (compatible; ChatGPT-User/1.0)" }, "/pricing?x=1"), "dusk.bot");
+    analytics.crawlerVisit(fakeReq({ "user-agent": SAFARI_UA }, "/"), "dusk.bot");
+    await settle();
+    expect(await sink.crawls(0, 2000)).toEqual([{ at: 1000, bot: "GPTBot", kind: "training", path: "/llms.txt", host: "dusk.bot" }, { at: 1000, bot: "ChatGPT-User", kind: "answers", path: "/pricing", host: "dusk.bot" }]);
+    expect(sink.all).toEqual([]);
+    analytics.close(); rmSync(dataDir, { recursive: true, force: true });
   });
 });

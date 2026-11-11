@@ -36,13 +36,13 @@ If you link a workspace, we store its name and kind. Periodic workspace reports 
 
 ## Product analytics
 
-The account service keeps first-party usage records in its own database, never with a third-party analytics provider. They help us see whether people can sign up, set up Dusk Cloud and get their first bot reply.
+We keep first-party usage records in our own database, never with a third-party analytics provider, to see whether people find the site, sign up, set up Dusk Cloud and get their first bot reply.
 
-- What: page views on the website and account pages (the path only, with ids removed), sign-ups and sign-ins (method and device type), onboarding steps, plan and checkout steps, Dusk Cloud states, which apps are signed in (platform and version) and once a day that an app was used, and the first time any of your bots replied. Bot and message counts are totals only. We never record message content, prompts, files, form input, IP addresses or full referrer addresses.
-- Visitors who are not signed in are counted with a daily identifier made from a key that is kept only in memory and changes every day, so a visit cannot be linked to another day or traced back to an address. We keep the referring site's name, campaign tags, a coarse device type and the country Cloudflare reports.
-- Your browser's Global Privacy Control or Do Not Track signal turns this off. Signed in, you can opt out (`PUT /v1/account/analytics`); opting out deletes your recorded events and stops new ones.
-- Raw events are deleted after 400 days. Daily totals without any account link are kept. Deleting your account deletes your events.
-- Only the operator can see these records, in an admin panel that logs each access to a person's record.
+- **On the website** (dusk.bot and the preview site), a small script of ours records page views (the path only, with ids removed), clicks on sign-up and download links, waitlist sign-ups (never the address), how far a page was scrolled and how long it was visible. It sets two first-party cookies: `dusk_vid`, a random visitor id kept for a year, and `dusk_sid`, a visit id that ends after 30 minutes without activity. We keep the referring site's name (never its full address), campaign tags (`utm_*`, `ref`; values that look like email addresses are dropped), a coarse device, system and browser type, and the country, region and city Cloudflare derives from the connection, with coordinates rounded to about 10 km. We never store IP addresses. When you sign in to the account page on the same domain, your visitor id is linked to your account so we can see which visits led to a sign-up.
+- **In the account page and the apps**: sign-ups and sign-ins (method and device type), onboarding steps, plan and checkout steps, Dusk Cloud states, which screens and features of the desktop and phone apps are used (names like "routine created", never their content), message and reply counts and how long replies took, error and pairing failure codes, app platform and version. The apps use a random install id; once an app signs in, its install is linked to your account. We never record message content, prompts, files, names you give things, form input, emails or keys.
+- **Your choices**: the website script does nothing when your browser sends Global Privacy Control or Do Not Track. Signed in, you can opt out (`PUT /v1/account/analytics`), which deletes your recorded events and stops new ones; the apps have their own off switch (local setting `dusk-usage-analytics`).
+- **Retention**: raw events are deleted after 400 days. Daily totals and chart notes without any personal link are kept. Deleting your account deletes the events linked to it.
+- Only the operator can see these records, in an admin panel that logs each opening of a person's record.
 
 ## Payments and transactional email
 
@@ -128,7 +128,7 @@ We use encryption in transit, sealed relay frames, hashed session and link token
 
 On app.dusk.bot, a session cookie is HttpOnly, lasts 30 days and is renewed while used. A CSRF cookie protects requests. A short-lived OAuth state cookie supports sign-in. Your theme preference is stored in local storage.
 
-There are no advertising or analytics cookies; product analytics work without cookies. No cookie banner is needed because the cookies used are strictly necessary for account and security functions. Theme local storage records your preference. Cookie and local storage use is limited to these purposes. Blocking required cookies may prevent account sign-in or related functions from working.
+There are no advertising cookies. The website's analytics script sets two first-party cookies, `dusk_vid` (a random visitor id, one year) and `dusk_sid` (a visit id, 30 minutes), described under Product analytics; they are never shared with anyone. [Legal review: whether these analytics cookies need consent where the visitor is, and if so a consent prompt or a cookieless mode.] The account cookies are strictly necessary for account and security functions. Theme local storage records your preference. Blocking required cookies may prevent account sign-in or related functions from working.
 
 ## Children, changes and contact
 

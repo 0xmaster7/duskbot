@@ -4,6 +4,10 @@ import type { EventContext } from "./context.ts";
 
 export interface StoredEvent { id: string; name: string; at: number; accountId: string | null; props: Props; ctx?: EventContext }
 export interface AuditEntry { id: string; at: number; actor: string; action: string; target: string | null; detail: Record<string, string | number | boolean | null> }
+/** one request from an AI assistant's crawler to the site: which bot, what for, which page */
+export interface Crawl { at: number; bot: string; kind: "answers" | "indexing" | "training"; path: string; host: string | null }
+/** crawler requests are capped, not kept: the newest this many */
+export const CRAWL_CAP = 200_000;
 /** a chart note: a launch, a post, a release, pinned to a time */
 export interface Note { id: string; at: number; text: string; by: string; createdAt: number }
 /** the most raw events one dashboard read scans; beyond it the read uses the newest ones and says so */
@@ -32,11 +36,13 @@ export interface AnalyticsSink {
   notes(since: number, until: number): Promise<Note[]>;
   saveNote(note: Note): Promise<void>;
   deleteNote(id: string): Promise<boolean>;
+  crawl(entry: Crawl): Promise<void>;
+  crawls(since: number, until: number): Promise<Crawl[]>;
 }
 
 export function memorySink(now: () => number = Date.now): AnalyticsSink & { all: StoredEvent[]; daySums: Map<string, number> } {
   let all: StoredEvent[] = [];
-  const daySums = new Map<string, number>(), marks = new Map<string, number | null>(), audits: AuditEntry[] = [], notes = new Map<string, Note>();
+  const daySums = new Map<string, number>(), marks = new Map<string, number | null>(), audits: AuditEntry[] = [], notes = new Map<string, Note>(), crawlLog: Crawl[] = [];
   const match = (event: StoredEvent, q: Omit<EventQuery, "limit">) => (q.accountId === undefined || event.accountId === q.accountId) && (q.name === undefined || event.name === q.name)
     && (q.since === undefined || event.at >= q.since) && (q.before === undefined || event.at < q.before);
   return {
@@ -73,6 +79,8 @@ export function memorySink(now: () => number = Date.now): AnalyticsSink & { all:
     async notes(since, until) { return [...notes.values()].filter(note => note.at >= since && note.at < until).sort((a, b) => a.at - b.at); },
     async saveNote(note) { notes.set(note.id, note); },
     async deleteNote(id) { return notes.delete(id); },
+    async crawl(entry) { crawlLog.push(entry); if (crawlLog.length > CRAWL_CAP) crawlLog.splice(0, crawlLog.length - CRAWL_CAP); },
+    async crawls(since, until) { return crawlLog.filter(entry => entry.at >= since && entry.at < until); },
   };
 }
 
@@ -84,6 +92,10 @@ export async function mongoSink(db: Db): Promise<AnalyticsSink> {
   const events = db.collection<EventDoc>("analytics_events"), daily = db.collection<{ _id: string; day: string; name: string; count: number }>("analytics_daily");
   const marks = db.collection<{ _id: string; expiresAt: Date | null }>("analytics_marks"), audits = db.collection<AuditDoc>("admin_audit");
   const notes = db.collection<{ _id: string; at: Date; text: string; by: string; createdAt: Date }>("analytics_notes");
+  if (!(await db.listCollections({ name: "analytics_crawls" }, { nameOnly: true }).toArray()).length) {
+    await db.createCollection("analytics_crawls", { capped: true, size: 64 * 1024 * 1024, max: CRAWL_CAP }).catch((error: { code?: number }) => { if (error.code !== 48) throw error; });
+  }
+  const crawlCollection = db.collection<{ at: Date; bot: string; kind: Crawl["kind"]; path: string; host: string | null }>("analytics_crawls");
   await Promise.all([
     events.createIndexes([{ key: { at: 1 }, expireAfterSeconds: RAW_RETENTION_DAYS * 86_400 }, { key: { accountId: 1, at: -1 } }, { key: { name: 1, at: -1 } }, { key: { "ctx.session": 1, at: 1 }, sparse: true }]),
     daily.createIndexes([{ key: { day: 1, name: 1 } }]),
@@ -136,6 +148,10 @@ export async function mongoSink(db: Db): Promise<AnalyticsSink> {
     },
     async saveNote(note) { await notes.replaceOne({ _id: note.id }, { at: new Date(note.at), text: note.text, by: note.by, createdAt: new Date(note.createdAt) }, { upsert: true }); },
     async deleteNote(id) { return (await notes.deleteOne({ _id: id })).deletedCount === 1; },
+    async crawl(entry) { await crawlCollection.insertOne({ ...entry, at: new Date(entry.at) }); },
+    async crawls(since, until) {
+      return (await crawlCollection.find({ at: { $gte: new Date(since), $lt: new Date(until) } }).toArray()).map(({ at, bot, kind, path, host }) => ({ at: at.getTime(), bot, kind, path, host }));
+    },
     async health() {
       const started = performance.now();
       try { await db.command({ ping: 1 }); return { ok: true, detail: "mongodb", latencyMs: Math.round(performance.now() - started) }; } catch { return { ok: false, detail: "mongodb ping failed", latencyMs: null }; }

@@ -30,6 +30,7 @@ import { APP_EVENTS_PATH, TRACK_PATH } from "./analytics/ingest.ts";
 import { memorySink, type AnalyticsSink } from "./analytics/sink.ts";
 import { AdminError, createAdmin, parseAdminEmails } from "./admin/index.ts";
 import { createErrorCounter } from "./admin/health.ts";
+import { createAlerts, parseAlerts } from "./admin/alerts.ts";
 import type { WaitlistSource } from "./admin/waitlist.ts";
 import { workspaceTurns } from "./admin/metrics.ts";
 
@@ -205,10 +206,19 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (!found || found.account.id !== owner.id) throw new AuthError(401, "signed_out");
       return { id: owner.id, signedInAt: found.session.createdAt };
     } });
-  const admin = createAdmin({ emails: options.admin?.emails ?? parseAdminEmails(process.env.DUSK_ADMIN_EMAILS), auth, billing, workspaces: () => state.workspaces, analytics,
+  const adminEmails = options.admin?.emails ?? parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
+  const admin = createAdmin({ emails: adminEmails, auth, billing, workspaces: () => state.workspaces, analytics,
     waitlist: options.analytics?.waitlist ?? null, now, fetch: options.fetch, env: options.admin?.env, errors: errorsSeen, readBody, bodyObject, json,
     service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
+  const alerts = createAlerts({ kinds: parseAlerts((options.admin?.env ?? process.env).DUSK_ADMIN_ALERTS), emails: () => adminEmails, mailer: options.mailer, sink: analytics.sink, now,
+    panelUrl: `${pagesUrl}/admin`, totals: (from, to) => ({ accounts: auth.directory().accounts.length, signups: auth.directory().accounts.filter(account => account.createdAt >= from && account.createdAt < to).length,
+      paid: billing.store.state.invoices.filter(invoice => invoice.status === "paid" && invoice.createdAt >= from && invoice.createdAt < to).length, waitlist: null }) });
+  auth.onAccountCreated(owner => alerts.signup(owner.email, auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email"));
+  analytics.onTrack((name, input = {}) => {
+    if (name === "site_goal" && input.props?.goal === "waitlist_join") alerts.waitlistJoin();
+    if (name === "checkout_paid" && input.accountId) alerts.paid(input.accountId, auth.account(input.accountId)?.email ?? null, Number(input.props?.amountCents) || 0);
+  });
   const limits = new Map<string, { count: number; until: number }>();
   const watching = new Map<string, number>();
   const lastWatching = new Map<string, boolean>();
@@ -348,7 +358,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (await pagesRoutes.handle(req, res, url)) return;
     const path = url.pathname;
     if (site && !ACCOUNT_PREFIXES.some(prefix => path.startsWith(prefix)) && !(path === pageBase || path.startsWith(`${pageBase}/`))
-      && !(method === "GET" && PAGE_ROUTES.some(route => path === route || path.startsWith(`${route}/`)))) return site(req, res);
+      && !(method === "GET" && PAGE_ROUTES.some(route => path === route || path.startsWith(`${route}/`)))) { analytics.crawlerVisit(req, new URL(publicUrl).hostname); return site(req, res); }
     if ((method === "GET" || method === "HEAD") && path === "/v1/health") {
       try { accessSync(options.dataDir, constants.W_OK); } catch { return json(res, 503, { ok: false, error: "data folder is not writable" }); }
       const database = stateBackend()?.health();
@@ -577,6 +587,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       for (const wait of Array.from(waits.values())) wait.cancel();
       auth.close();
       analytics.close();
+      alerts.close();
       store.close();
     },
   };

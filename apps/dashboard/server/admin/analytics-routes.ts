@@ -70,8 +70,11 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const current = kpis(visits, identity, p, from, to, filters), previous = kpis(visits, identity, p, from - span, from, filters);
     const cards = Object.fromEntries(DIMENSIONS.map(dim => [dim, breakdown(visits, identity, p, dim, from, to, filters)]));
     const live = online(events, now());
+    const crawls = await sink.crawls(from, to);
+    const count = (values: string[]) => [...values.reduce((map, value) => map.set(value, (map.get(value) ?? 0) + 1), new Map<string, number>())]
+      .map(([key, requests]) => ({ key, visitors: requests, signups: 0, paid: 0 })).sort((a, b) => b.visitors - a.visitors).slice(0, 50);
     return { from, to, now: now(), filters, current, previous, online: live, series: series(visits, p, from, to, filters, identity), cards, notes: await sink.notes(from - span, to),
-      tracked: visits.length > 0 };
+      tracked: visits.length > 0, crawlers: { total: crawls.length, bot: count(crawls.map(c => c.bot)), page: count(crawls.map(c => c.path)), kind: count(crawls.map(c => c.kind)) } };
   }
 
   async function funnelRoute(url: URL) {

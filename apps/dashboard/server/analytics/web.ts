@@ -24,7 +24,7 @@ const SITE = new Set(["site_view", "site_goal", "site_leave"]);
 /** site events as visits: one per tracker session, attributed by its first page view */
 export function visitsOf(events: readonly StoredEvent[]): Visit[] {
   const by = new Map<string, Visit>();
-  for (const event of events) {
+  for (const event of [...events].sort((a, b) => a.at - b.at)) {
     if (!SITE.has(event.name)) continue;
     const ctx = event.ctx ?? {};
     if (!ctx.session || !ctx.visitor) continue;
@@ -141,18 +141,18 @@ export function bucketsOf(from: number, to: number): { size: number; starts: num
 export function series(visits: readonly Visit[], people: People, from: number, to: number, filters: Filters = {}, identity?: Identity) {
   const { size, starts } = bucketsOf(from, to);
   const index = (at: number) => Math.floor((at - starts[0]!) / size);
-  const visitors = starts.map(() => new Set<string>()), signups = starts.map(() => 0), paid = starts.map(() => 0), waitlist = starts.map(() => 0);
+  const visitors = starts.map(() => new Set<string>()), joined = starts.map(() => new Set<string>()), signups = starts.map(() => 0), paid = starts.map(() => 0);
   const allowed = Object.keys(filters).length && identity ? new Set<string>() : null;
   for (const visit of visits) {
     if (visit.start < from || visit.start >= to || !matches(visit, filters)) continue;
     visitors[index(visit.start)]?.add(visit.visitor);
-    if (visit.goals.some(goal => goal.goal === "waitlist_join")) waitlist[index(visit.start)]! += 1;
+    if (visit.goals.some(goal => goal.goal === "waitlist_join")) joined[index(visit.start)]?.add(visit.visitor);
     const account = identity?.accountOf.get(visit.visitor);
     if (allowed && account) allowed.add(account);
   }
   for (const [id, at] of people.signups) if (at >= from && at < to && (!allowed || allowed.has(id))) signups[index(at)]! += 1;
   for (const [id, at] of people.paid) if (at >= from && at < to && (!allowed || allowed.has(id))) paid[index(at)]! += 1;
-  return { size, starts, visitors: visitors.map(set => set.size), signups, paid, waitlist };
+  return { size, starts, visitors: visitors.map(set => set.size), signups, paid, waitlist: joined.map(set => set.size) };
 }
 
 export interface BreakdownRow { key: string; visitors: number; signups: number; paid: number }
@@ -213,7 +213,7 @@ export function retention(signups: ReadonlyMap<string, number>, days: Map<string
       const eligible = members.filter(([, at]) => due(at, window, now));
       return eligible.length ? { n: eligible.filter(([id, at]) => returned(at, days.get(id), window)).length, of: eligible.length } : null;
     };
-    const weekly = Array.from({ length: weeks - i }, (_, w) => {
+    const weekly = Array.from({ length: i + 1 }, (_, w) => {
       const from = start + w * week;
       if (from > now) return null;
       const active = members.filter(([id]) => [...(days.get(id) ?? [])].some(day => day * DAY >= from && day * DAY < from + week)).length;
@@ -242,7 +242,9 @@ export interface FunnelInput {
 const ONBOARDING = ["name", "plan", "app"] as const;
 
 /**
- * The Dusk funnel per person, in order: site visit, waitlist or signup, the onboarding steps, a cloud chosen, paid,
+ * The Dusk funnel per person: a step counts someone who reached it and every step above it, whenever they did (someone
+ * may pair the app before paying); a step done before the one above it is left out of that step's median time.
+ * The steps, in order: site visit, waitlist or signup, the onboarding steps, a cloud chosen, paid,
  * an app paired, the first bot reply, then coming back on D1, D7 and D30. Each step counts the people who reached it
  * after every step before it; the median time is from the step before.
  */

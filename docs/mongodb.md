@@ -47,6 +47,7 @@ claim a success). Tests and local fixtures keep JSON files in the data folder.
 | `analytics_events` | raw product events (allowlisted props, no content); written directly by `server/analytics/sink.ts`, outside the writer lease | `id` | `at` TTL 400 days, `(accountId, at)`, `(name, at)`, `(ctx.session, at)` |
 | `analytics_daily`, `analytics_marks` | daily counts (kept); once-only marks | `day\|name` / key | `(day, name)`; marks: `expiresAt` TTL |
 | `admin_audit` | the admin panel's actions and record views, kept | `id` | `at` |
+| `analytics_notes` | chart notes the admin adds (a day and a line of text), kept | `id` | `at` |
 | `locks` | the writer lease | | |
 
 Every row carries `_n`, its insertion number, so arrays load back in order. Sessions expire in the service itself

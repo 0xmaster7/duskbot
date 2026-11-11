@@ -9,6 +9,7 @@ interface Kpis { visitors: number; visits: number; pageviews: number; signups: n
 export interface WebAnswer {
   from: number; to: number; now: number; filters: Record<string, string>; current: Kpis; previous: Kpis; online: { site: number; app: number };
   series: SeriesData; cards: Record<string, RankRow[]>; notes: Note[]; tracked: boolean;
+  crawlers: { total: number; bot: RankRow[]; page: RankRow[]; kind: RankRow[] };
 }
 
 const CHANNEL: Record<string, string> = { direct: "direct", search: "search", social: "social", ai: "ai assistants", referral: "referrals", email: "email", paid: "paid", unknown: "unknown" };
@@ -90,6 +91,8 @@ export function SitePage() {
             <RankCard title="pages" tabs={[{ id: "page", label: "page" }, { id: "entry", label: "entry" }, { id: "exit", label: "exit" }, { id: "goal", label: "goals" }]} data={data.cards} label={label} onPick={pick} active={filters} />
             <RankCard title="where they are" tabs={[{ id: "country", label: "country" }, { id: "region", label: "region" }, { id: "city", label: "city" }]} data={data.cards} label={label} onPick={pick} active={filters} />
             <RankCard title="what they use" tabs={[{ id: "browser", label: "browser" }, { id: "os", label: "os" }, { id: "device", label: "device" }]} data={data.cards} label={label} onPick={pick} active={filters} />
+            <RankCard title={`ai crawlers, ${n(data.crawlers.total)} requests`} metric="requests" tabs={[{ id: "bot", label: "ai crawlers" }, { id: "page", label: "pages they read" }, { id: "kind", label: "why" }]}
+              data={{ bot: data.crawlers.bot, page: data.crawlers.page, kind: data.crawlers.kind }} label={(tab, key) => tab === "kind" ? ({ answers: "answering someone now", indexing: "indexing for search", training: "collecting for training" })[key] ?? key : key} />
           </div>
           <p className="mt-4 text-12 text-ink-4">a row filters every number above. signups count people whose site visits are linked to their account; someone who signed up on another device shows as direct.</p>
         </>
