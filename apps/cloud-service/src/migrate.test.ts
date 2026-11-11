@@ -85,6 +85,21 @@ it("rolls back by itself when the new machine's files do not match the backup, b
   expect(f.ibxApi.requests.some(r => r.path.endsWith("/exec") && String((r.body as { cmd: string }).cmd).includes("omb-home start"))).toBe(false);
 });
 
+it("rolls back at once when the target provider refuses to create (an account that cannot), and resumes the paused home", async () => {
+  const f = await hostsFixture({ defaultHost: "instabox", settings: SETTINGS });
+  const c = await f.paid();
+  const ibxId = c.serverId!;
+  f.ibxApi.machines.get(ibxId)!.memory.add("still here");
+  f.boatApi.refuseCreates("subscription_required");
+  f.power.idle = true; f.power.busy = [];
+  f.managed.migrate!(c, "boat");
+  await f.settle(c, x => phase(x) === "rolled_back" && x.status === "running", 40, 15_000);
+  expect(c.managed!.migration!.error).toBe("target_refused:subscription_required");
+  expect(c).toMatchObject({ serverId: ibxId, managed: { host: "instabox" } });
+  expect(f.ibxApi.machines.get(ibxId)!.memory.has("still here")).toBe(true);
+  expect(f.boatApi.sandboxes.size).toBe(0);
+});
+
 it("refuses a move that cannot be made safely, and a quiescing move can be cancelled with nothing changed", async () => {
   const f = await hostsFixture({ defaultHost: "boat", settings: SETTINGS });
   const c = await f.paid();

@@ -205,7 +205,8 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         fresh: () => fallback === "boat" ? freshManagedState() : { ...freshManagedState(), host: fallback },
         async reconcile(c) {
           if (moves.active(c) && await moves.step(c)) return;
-          await runtime(c).lifecycle.reconcile(c);
+          try { await runtime(c).lifecycle.reconcile(c); }
+          catch (error) { if (moves.refused(c, error)) return; throw error; }
           moves.settled(c);
         },
         retryAt: (c, error) => runtimes.get(hostOf(c))?.lifecycle.retryAt(c, error) ?? null,

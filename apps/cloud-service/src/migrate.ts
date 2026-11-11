@@ -12,7 +12,7 @@ import type { Audit } from "./audit.ts";
 import type { BackupStore } from "./backups.ts";
 import { checkLines, volumeManifest } from "./bundle.ts";
 import type { Lifecycle } from "./lifecycle.ts";
-import type { MachineImage, MachineProvider } from "./provider.ts";
+import { ProviderError, type MachineImage, type MachineProvider } from "./provider.ts";
 import type { Entitlement } from "./retention.ts";
 import type { HostName, MigrationState } from "./state.ts";
 
@@ -168,6 +168,16 @@ export function createMigrations(deps: MigrationDeps) {
       if (m.phase === "rolling_back") return rollBack(c, m);
       if (m.phase === "copying" && now() - m.updatedAt > COPY_LIMIT_MS && c.status !== "running") { m.error = "copy_timed_out"; m.phase = "rolling_back"; touch(c, m); return rollBack(c, m); }
       return false;
+    },
+    /** the target provider refused the copy outright (its account cannot create, the size is not offered): rolled back
+     *  at once instead of after the copy's time limit; true when it took the error */
+    refused(c: StoredCloud, error: unknown): boolean {
+      const m = c.managed?.migration;
+      if (!m || m.phase !== "copying" || !(error instanceof ProviderError) || error.status < 400 || error.status >= 500 || [408, 409, 429].includes(error.status)) return false;
+      m.error = `target_refused:${error.code}`; m.phase = "rolling_back";
+      log(c, "migration_target_refused", error.code, { to: m.to });
+      touch(c, m);
+      return true;
     },
     /** after the host's own step: a copy whose home answers is the cut-over */
     settled(c: StoredCloud) {

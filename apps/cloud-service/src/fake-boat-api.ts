@@ -20,7 +20,7 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
   const operations = new Map<string, { id: string; kind: string; targetId: string; status: string }>();
   const requests: Array<{ method: string; path: string; body: unknown }> = [];
   const alphabet = "23456789abcdefghjkmnpqrstuvwxyz";
-  let failNext = 0, limitNext = 0, sequence = 0, startLimit: { nextStartAt: number; window: string } | null = null;
+  let failNext = 0, limitNext = 0, sequence = 0, refuseCreates: string | null = null, startLimit: { nextStartAt: number; window: string } | null = null;
   const named = new Map<string, { name: string; status: string; createdAt: number; polls: number }>();
   const id = () => `bx_${Array.from(randomBytes(8), b => alphabet[b % alphabet.length]).join("")}`;
   const iso = (t: number | null) => t === null ? null : new Date(t).toISOString();
@@ -96,6 +96,7 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
       if (x.status === "saving" && ++x.polls >= 1) x.status = "ready";
       return send(res, 200, { ok: true, snapshot: { name: x.name, status: x.status, createdAt: iso(x.createdAt) } });
     }
+    if (path === "/sandboxes" && method === "POST" && refuseCreates) return error(res, 403, refuseCreates);
     if (path === "/sandboxes" && method === "POST") {
       const idem = String(req.headers["idempotency-key"] ?? "");
       const prior = idem && keys.get(idem);
@@ -178,6 +179,8 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
     limitNextStart(nextStartAt: number, window = "minute") { startLimit = { nextStartAt, window }; },
     /** the next requests answer 429 with Retry-After: 40 */
     limitNext(count: number) { limitNext = count; },
+    /** every create is refused with this code (an account that cannot create: a trial without a subscription) */
+    refuseCreates(code: string | null) { refuseCreates = code; },
     /** stops of this sandbox fail (the pre-stop hook timed out, say): it keeps running with stop.status "failing" */
     refuseStop(sandboxId: string, refuse = true) { const x = sandboxes.get(sandboxId); if (x) { x.refuseStop = refuse; if (!refuse && x.stop?.status === "failing") x.stop = null; } },
     named,
