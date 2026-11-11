@@ -3,6 +3,7 @@ import { cloudForWorkspace, useCloud } from "../data/cloud";
 import { routineUpsell } from "../data/routine-upsell";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
+import { trackUpsell } from "../lib/analytics";
 import { Modal } from "../ui/controls";
 import { Button } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
@@ -39,6 +40,7 @@ export function RoutineUpsell() {
         if (free && result.next) {
           localStorage.setItem(SHOWN, String(now));
           setRoutine(result.next);
+          trackUpsell("shown", "dash_routines");
         }
       } catch {} finally { loading = false; }
     };
@@ -49,9 +51,10 @@ export function RoutineUpsell() {
   }, [ready, local, free]);
 
   const close = () => setRoutine(null);
+  const notNow = () => { trackUpsell("dismiss", "dash_routines"); close(); };
   return (
     <>
-      {routine && free && <Modal open onClose={close} wide title={`routines stop when your ${routine.workspace.kind === "mac" ? "Mac" : "computer"} sleeps`} footer={<><Button onClick={close}>not now</Button><Button variant="primary" onClick={() => { close(); setPlan(true); }}>see dusk cloud</Button></>}>
+      {routine && free && <Modal open onClose={notNow} wide title={`routines stop when your ${routine.workspace.kind === "mac" ? "Mac" : "computer"} sleeps`} footer={<><Button onClick={notNow}>not now</Button><Button variant="primary" onClick={() => { trackUpsell("click", "dash_routines"); close(); setPlan(true); }}>see dusk cloud</Button></>}>
         <p>"{routine.routine.name}" runs on {routine.workspace.name}. dusk cloud keeps it running 24/7.</p>
         <dl className="mt-5 divide-y divide-line border-y border-line text-13">
           <div className="flex items-center gap-3 py-3"><Mascot color="silver" size={24} state="sleeping" /><dt className="min-w-0 flex-1 truncate text-ink-2">{routine.workspace.name}</dt><dd className="shrink-0">stops while asleep</dd></div>

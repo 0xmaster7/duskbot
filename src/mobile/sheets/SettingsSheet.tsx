@@ -1,8 +1,9 @@
-import { useContext, useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
+import { useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
+import { Bell, CalendarClock, Check, Cloud, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
 import { accountDashboardUrl } from "@/lib/account-dashboard";
 import { useGroupYou } from "@/components/GroupAvatar";
+import { trackUpsell } from "@/lib/cloud-upsell";
 import { t } from "@/lib/i18n";
 import { effectiveLanguage, setLanguageChoice, useLanguageChoice, usePageLanguage } from "@/lib/language-preference";
 import { applySkinChoice, readSkinChoice, subscribeSkin, THEME_SKINS } from "@/lib/skins";
@@ -26,6 +27,13 @@ import type { SheetPageProps } from "./registry";
  * guideline 3.1.1, Play payments policy); a signed-in account can always be signed out and deleted from here. */
 export function accountRows(input: { native: boolean; demo: boolean; signedIn: boolean }): { dashboard: boolean; signOut: boolean; deleteAccount: boolean } {
   return { dashboard: !input.native && !input.demo, signOut: input.signedIn, deleteAccount: input.signedIn };
+}
+
+/** one quiet line for dusk cloud, only where the dashboard may be linked and the phone is not already talking to a cloud */
+function CloudRow({ onOpen }: { onOpen: () => void }) {
+  const shown = useRef(false);
+  useEffect(() => { if (shown.current) return; shown.current = true; trackUpsell("shown", "app_mobile"); }, []);
+  return <SettingsRow icon={<Cloud />} label={t("cloudUpsell.mobile")} detail={t("cloudUpsell.mobileDetail")} onClick={() => { trackUpsell("click", "app_mobile"); onOpen(); }} />;
 }
 
 export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet, open, onClose, onOpenSheet }) => {
@@ -125,6 +133,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
             </SettingsSection>
             {(rows.dashboard || rows.signOut) && (
               <SettingsSection title={t("mobile.settings.account")}>
+                {rows.dashboard && !state.config?.cloudHome && <CloudRow onOpen={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />}
                 {rows.dashboard && <SettingsRow icon={<LayoutDashboard />} label={t("mobile.settings.accountDashboard")} onClick={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />}
                 {rows.signOut && <SettingsRow icon={<LogOut />} label={t("accountGate.signOut")} detail={email} onClick={() => void account?.signOut()} />}
                 {rows.deleteAccount && <SettingsRow icon={<Trash2 />} label={t("mobile.settings.deleteAccount")} danger onClick={() => setPage("delete")} />}
