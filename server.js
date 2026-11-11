@@ -226,6 +226,8 @@ const server = http.createServer((req, res) => {
     headers.Vary = 'Accept-Encoding';
     if (/\bgzip\b/.test(String(req.headers['accept-encoding'] || ''))) { body = zipped(file, body); headers['Content-Encoding'] = 'gzip'; }
   }
+  // mail clients fetch the email fonts from another origin
+  if (urlPath.startsWith('/email/')) headers['Access-Control-Allow-Origin'] = '*';
   headers['Content-Length'] = body.length;
   res.writeHead(status, headers);
   res.end(req.method === 'HEAD' ? undefined : body);
