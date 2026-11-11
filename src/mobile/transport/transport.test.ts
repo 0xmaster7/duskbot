@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { RelayGoneError } from "./relay";
-import { BearerEventSource, createSseParser, installTransport, mediaUrl, rewriteApiUrl } from "./transport";
+import { ASLEEP_PROBE_GAP_MS, asleepProbe, BearerEventSource, createSseParser, installTransport, mediaUrl, rewriteApiUrl } from "./transport";
+import { cloudAsleep, resetCloudPowerForTests } from "@/lib/cloud-power";
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
@@ -328,5 +329,35 @@ describe("relay transport", () => {
       expect(fetcher).not.toHaveBeenCalled();
     } finally { restore(); }
     expect(revoke).toHaveBeenCalledWith("blob:relay-image");
+  });
+});
+
+describe("a sleeping Cloud behind the phone's stream", () => {
+  afterEach(() => resetCloudPowerForTests());
+  it("an asleep answer on the stream itself puts the page to sleep without a probe", async () => {
+    const failed = vi.fn();
+    const fetcher = vi.fn(async () => new Response("asleep", { status: 503, headers: { "x-omb-cloud-power": "asleep" } }));
+    const source = new BearerEventSource("/api/events", undefined, { url: "https://workspace.test/api/events", token: "t", fetch: fetcher, failed });
+    await vi.waitFor(() => expect(source.readyState).toBe(source.CLOSED));
+    expect(cloudAsleep()).toBe(true); expect(failed).not.toHaveBeenCalled();
+  });
+  it("a stream the WebView could not read asks once through native http", async () => {
+    const failed = vi.fn();
+    const source = new BearerEventSource("/api/events", undefined, { url: "https://workspace.test/api/events", token: "t", fetch: vi.fn(async () => { throw new TypeError("cors"); }), failed });
+    await vi.waitFor(() => expect(source.readyState).toBe(source.CLOSED));
+    expect(failed).toHaveBeenCalledOnce();
+  });
+  it("the probe is a background read that marks the page asleep, at most once in its gap", async () => {
+    let clock = 0;
+    const send = vi.fn(async () => new Response("", { status: 503, headers: { "x-omb-cloud-power": "asleep" } }));
+    const probe = asleepProbe(send, "https://workspace.test", "secret", () => clock);
+    probe(); probe();
+    await vi.waitFor(() => expect(cloudAsleep()).toBe(true));
+    expect(send).toHaveBeenCalledOnce();
+    const [url, init] = send.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://workspace.test/api/health");
+    expect(init.headers).toMatchObject({ Authorization: "Bearer secret", "x-omb-background": "1" });
+    clock = ASLEEP_PROBE_GAP_MS; probe();
+    expect(send).toHaveBeenCalledTimes(2);
   });
 });

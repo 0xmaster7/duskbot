@@ -1,5 +1,6 @@
 import { RelayGoneError, type RelayChannel } from "./relay";
 import { noteRefusedRequest } from "@/lib/session-ended";
+import { asleepAnswer, BACKGROUND_HEADER, markCloudAsleep } from "@/lib/cloud-power";
 import { setUploadRoute } from "@/lib/upload-request";
 
 export type PhoneTransport =
@@ -84,7 +85,7 @@ export function rewriteApiUrl(input: string, pageOrigin: string, workspaceOrigin
   }
 }
 
-type StreamContext = { fetch: typeof fetch; token: string; url: string };
+type StreamContext = { fetch: typeof fetch; token: string; url: string; failed?: () => void };
 let installed: { transport: PhoneTransport; streamFetch: typeof fetch } | null = null;
 
 export class BearerEventSource extends EventTarget {
@@ -135,6 +136,8 @@ export class BearerEventSource extends EventTarget {
       if (this.controller.signal.aborted) return;
       // a stream refused for its credential is the one request a quiet phone makes: it asks whether the session still stands
       if (response.status === 401) noteRefusedRequest();
+      if (asleepAnswer(response)) markCloudAsleep();
+      else if (!response.ok) context.failed?.();
       if (!response.ok || !response.body) { this.fail(); return; }
       reader = response.body.getReader();
       this.readyState = this.OPEN;
@@ -153,6 +156,7 @@ export class BearerEventSource extends EventTarget {
         parser.push(chunk.value);
       }
     } catch {
+      if (!this.controller.signal.aborted && this.readyState === this.CONNECTING) context.failed?.();
       this.fail();
     } finally {
       await reader?.cancel().catch(() => {});
@@ -258,6 +262,21 @@ function installMedia(): () => void {
   };
 }
 
+export const ASLEEP_PROBE_GAP_MS = 10_000;
+
+/** The live stream goes through the WebView's own fetch, and a sleeping Cloud's edge answer carries no CORS headers, so
+ * a failed stream cannot tell asleep from unreachable; one background read through native http can. */
+export function asleepProbe(send: typeof fetch, origin: string, token: string, now = Date.now): () => void {
+  let last = -Infinity;
+  return () => {
+    if (now() - last < ASLEEP_PROBE_GAP_MS) return;
+    last = now();
+    void send(`${origin}/api/health`, { headers: { Authorization: `Bearer ${token}`, [BACKGROUND_HEADER]: "1" }, credentials: "omit", redirect: "error", signal: AbortSignal.timeout(10_000) })
+      .then((response) => { if (asleepAnswer(response)) markCloudAsleep(); void response.body?.cancel().catch(() => {}); })
+      .catch(() => {});
+  };
+}
+
 /** `onGone`: the relay no longer has this phone's channel, so only pairing again brings the workspace back. */
 export function installTransport(transport: PhoneTransport, onGone?: () => void): () => void {
   if (transport.kind === "same-origin") return () => {};
@@ -274,6 +293,7 @@ export function installTransport(transport: PhoneTransport, onGone?: () => void)
   });
   const fetchWorkspace = transport.kind === "relay" ? overRelay(relayFetch(transport.channel, transport.token)) : transport.kind === "demo" ? transport.workspace.fetch : originalFetch.bind(window);
   const context = { transport, streamFetch: inPage(transport) ? fetchWorkspace : streamFetch.bind(window) };
+  const probeAsleep = transport.kind === "bearer" ? asleepProbe(fetchWorkspace, origin, transport.token ?? "") : undefined;
   installed = context;
   const patchedFetch: typeof fetch = (input, init) => {
     const url = rewriteApiUrl(input instanceof Request ? input.url : String(input), window.location.origin, origin);
@@ -291,7 +311,7 @@ export function installTransport(transport: PhoneTransport, onGone?: () => void)
       const url = rewriteApiUrl(String(args[0]), window.location.origin, origin);
       if (!url || !new URL(url).pathname.startsWith("/api/")) return new Target(...args);
       for (const source of sources) if (source.readyState === source.CLOSED) sources.delete(source);
-      const source = new BearerEventSource(args[0], args[1], { url, token: transport.token ?? "", fetch: context.streamFetch });
+      const source = new BearerEventSource(args[0], args[1], { url, token: transport.token ?? "", fetch: context.streamFetch, failed: probeAsleep });
       sources.add(source);
       source.addEventListener("error", () => sources.delete(source), { once: true });
       return source;
