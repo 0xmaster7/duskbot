@@ -4,7 +4,9 @@
 import type { StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import { BOAT_IMAGE } from "./home.ts";
 import { INSTABOX_IMAGE, PLATFORM_ENTRIES } from "./instabox-home.ts";
+import { INSTABOX_RAILS } from "./instabox.ts";
 import type { ManagedSettings } from "./lifecycle.ts";
+import type { RailSettings } from "./power/rails.ts";
 import type { ProviderCostProfile } from "./power/cost.ts";
 import type { MachineImage, MachineProvider } from "./provider.ts";
 import type { HostName } from "./state.ts";
@@ -23,6 +25,8 @@ export interface ManagedHost {
   files: { starts: string; spend: string; sweep: string };
   /** top-level entries of the volume the host keeps for itself: a restore leaves them, a migration does not check them */
   keep?: readonly string[];
+  /** rails over the policy's (the loop guard's scale where starts are free and fast) */
+  rails?: Partial<RailSettings>;
 }
 
 export const hostOf = (c: StoredCloud): HostName => c.managed?.host ?? "boat";
@@ -32,7 +36,7 @@ export function boatHost(provider: MachineProvider, costProfile: ProviderCostPro
 }
 
 export function instaboxHost(provider: MachineProvider, costProfile: ProviderCostProfile, settings: Partial<ManagedSettings> = {}): ManagedHost {
-  return { name: "instabox", provider, image: INSTABOX_IMAGE, costProfile, keep: PLATFORM_ENTRIES,
+  return { name: "instabox", provider, image: INSTABOX_IMAGE, costProfile, keep: PLATFORM_ENTRIES, rails: INSTABOX_RAILS,
     settings: { refreshAfterMs: Number.POSITIVE_INFINITY, wakeLeadMs: 2 * 60_000, ...settings },
     files: { starts: "instabox-starts.json", spend: "spend-instabox", sweep: "instabox-sweep.json" } };
 }

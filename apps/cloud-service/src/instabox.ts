@@ -49,6 +49,11 @@ export function instaboxCostProfile(options: { plan?: InstaboxPlan; heldProbabil
   };
 }
 
+/** the rails where a resume is free and takes seconds: the loop guard stays, at a scale for that (Boat's protects a scarce
+ *  start pool). Chosen on the simulator (docs/hosts.md): 37% below Boat's rails and 12% below the best fixed idle timer
+ *  on the mixed fleets, no late or missed run. */
+export const INSTABOX_RAILS = { flapMs: 60_000, maxMinIdleMs: 10 * 60_000, maxStartsPerHour: 20, maxStartsPerDay: 96, minUptimeMs: 3 * 60_000 } as const;
+
 const MACHINE_ID = /^m_[a-z0-9]{26}$/;
 const OPERATION_ID = /^op_[a-z0-9]{26}$/;
 const SNAPSHOT_NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;

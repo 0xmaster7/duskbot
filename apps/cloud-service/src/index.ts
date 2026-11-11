@@ -112,7 +112,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
       for (const host of hosts) {
         const settings: ManagedSettings = { ...deps.settings, ...host.settings };
         const profile = host.costProfile;
-        const params: PolicyParams = { ...base, schedule: { ...base.schedule, leadMs: settings.wakeLeadMs }, rails: { ...base.rails, minIdleMs: settings.idleMinutes * 60_000 } };
+        const params: PolicyParams = { ...base, schedule: { ...base.schedule, leadMs: settings.wakeLeadMs }, rails: { ...base.rails, ...host.rails, minIdleMs: settings.idleMinutes * 60_000 } };
         const starts = createStartLedger({ dataDir: ctx.dataDir, file: host.files.starts, profile, now: ctx.now,
           alert: text => { console.warn(`managed: ${text}`); deps.alert?.({ at: ctx.now(), cloudId: "fleet", action: "starts_alert", actor: "reconciler", reason: text.slice(0, 120) }); } });
         const sleepPolicy = createPowerPolicy({ profile, params, pool: () => starts.view() });
