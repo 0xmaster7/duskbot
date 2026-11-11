@@ -28,10 +28,10 @@ export function RangePicker({ value, onChange }: { value: Range; onChange(range:
   const keys: Array<[RangeKey, string]> = [["today", "today"], ["7d", "7 days"], ["30d", "30 days"], ["90d", "90 days"], ["custom", "custom"]];
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div role="radiogroup" aria-label="date range" className="inline-flex rounded-full bg-card-2 p-1">
+      <div role="radiogroup" aria-label="date range" className="scroll-x inline-flex max-w-full rounded-full bg-card-2 p-1">
         {keys.map(([key, label]) => (
           <button key={key} type="button" role="radio" aria-checked={value.key === key} onClick={() => onChange(rangeOf(key, Date.now(), custom))}
-            className={cx("h-8 rounded-full px-3.5 text-13", value.key === key ? "bg-pop text-ink" : "text-ink-3 hover-link")}>{label}</button>
+            className={cx("h-8 shrink-0 whitespace-nowrap rounded-full px-3.5 text-13", value.key === key ? "bg-pop text-ink" : "text-ink-3 hover-link")}>{label}</button>
         ))}
       </div>
       {value.key === "custom" && (

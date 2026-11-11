@@ -65,7 +65,7 @@ export function SitePage() {
                   </div>
                 );
               })}
-              <div className="min-w-0 bg-pop px-4 py-3.5">
+              <div className="min-w-0 bg-pop px-4 py-3.5 max-xl:col-span-2">
                 <div className="flex items-center gap-2 text-13 text-ink-3"><span className="live-dot text-good" data-live={data.online.site > 0} aria-hidden /> online now</div>
                 <div className="mt-1 font-mono text-[26px] font-medium leading-8 tracking-[-0.04em] text-ink num">{n(data.online.site)}</div>
                 <div className="mt-0.5 text-12 text-ink-4">{n(data.online.app)} in the apps</div>
