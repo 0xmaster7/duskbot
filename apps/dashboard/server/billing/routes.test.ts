@@ -429,3 +429,24 @@ it("shows the operator's checkout funnel only with DUSK_OPS_TOKEN, and refuses a
     expect((await read(`Bearer ${token}`, "?days=0")).status).toBe(400);
   }
 });
+
+it("preview billing: checkout says it opens soon, and only the operator's token grants a plan through the same webhook path", async () => {
+  const token = "o".repeat(40);
+  expect(() => createBilling(options({ env: { DUSK_BILLING_PROVIDER: "preview" } }))).toThrow("DUSK_OPS_TOKEN");
+  const billing = createBilling(options({ env: { DUSK_BILLING_PROVIDER: "preview", DUSK_OPS_TOKEN: token }, findAccount: email => email === "a@example.test" ? { id: "a", email } : null }));
+  cleanup.push(() => billing.close());
+  const origin = await listen(createServer(async (req, res) => { if (!await billing.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
+  const post = (path: string, data: unknown, auth?: string) => fetch(`${origin}${path}`, { method: "POST", headers: { "content-type": "application/json", ...(auth ? { authorization: `Bearer ${auth}` } : {}) }, body: JSON.stringify(data) });
+  const refused = await post("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") });
+  expect(refused.status).toBe(503);
+  expect(await read<{ code: string }>(refused)).toMatchObject({ code: "checkout_soon" });
+  expect((await fetch(`${origin}/v1/billing/overview`)).status).toBe(200);
+  expect((await post("/v1/billing/ops/grant", { email: "a@example.test", bundle: "starter" })).status).toBe(404);
+  expect((await post("/v1/billing/ops/grant", { email: "a@example.test", bundle: "starter" }, "x".repeat(40))).status).toBe(404);
+  expect((await post("/v1/billing/ops/grant", { email: "nobody@example.test", bundle: "starter" }, token)).status).toBe(404);
+  const granted = await post("/v1/billing/ops/grant", { email: "a@example.test", bundle: "starter", name: "Test Cloud" }, token);
+  expect(granted.status).toBe(200);
+  const answer = await read<{ subscriptions: Array<{ status: string; cloudId: string | null }> }>(granted);
+  expect(answer.subscriptions).toEqual([expect.objectContaining({ status: "active" })]);
+  expect(billing.clouds.list("a").map(cloud => cloud.name)).toEqual(["Test Cloud"]);
+});

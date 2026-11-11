@@ -1,4 +1,5 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { createJsonStore } from "./billing/json-store.ts";
 import type { WorkspaceDetail, WorkspaceKind } from "../../../shared/dashboard-protocol.ts";
 
 export interface Account { id: string; email: string }
@@ -22,30 +23,7 @@ export interface StoredWorkspace {
 export interface DashboardState { accounts: Account[]; sessions: WebSession[]; workspaces: StoredWorkspace[] }
 
 export function createStore(dataDir: string) {
-  mkdirSync(dataDir, { recursive: true, mode: 0o700 });
-  const path = `${dataDir}/state.json`;
-  let state: DashboardState = { accounts: [], sessions: [], workspaces: [] };
-  try {
-    const loaded = JSON.parse(readFileSync(path, "utf8")) as DashboardState;
-    if (!Array.isArray(loaded.accounts) || !Array.isArray(loaded.sessions) || !Array.isArray(loaded.workspaces)) throw new Error("Invalid dashboard state.");
-    state = loaded;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  function flush() {
-    if (timer) clearTimeout(timer);
-    timer = null;
-    writeFileSync(`${path}.tmp`, JSON.stringify(state), { mode: 0o600 });
-    renameSync(`${path}.tmp`, path);
-  }
-  return {
-    state,
-    changed() {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(flush, 1000);
-      timer.unref();
-    },
-    close() { if (timer) flush(); },
-  };
+  return createJsonStore<DashboardState>(join(dataDir, "state.json"), () => ({ accounts: [], sessions: [], workspaces: [] }),
+    (value): value is DashboardState => !!value && typeof value === "object" && Array.isArray((value as DashboardState).accounts)
+      && Array.isArray((value as DashboardState).sessions) && Array.isArray((value as DashboardState).workspaces));
 }

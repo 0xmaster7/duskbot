@@ -13,7 +13,7 @@ function opsAllowed(header: string | undefined, token: string) {
   const wanted = Buffer.from(token);
   return given.length === wanted.length && timingSafeEqual(given, wanted);
 }
-const messages: Record<string, string> = { signed_out: "Sign in to continue.", invalid_request: "Invalid request.", not_found: "Not found.", unavailable: "Billing is unavailable.", bad_signature: "Invalid webhook signature.", checkout_open: "A checkout is already open.", csrf: "Refresh the page and try again.", cap: "Cloud limit reached.", rate_limited: "Try again later." };
+const messages: Record<string, string> = { signed_out: "Sign in to continue.", invalid_request: "Invalid request.", not_found: "Not found.", unavailable: "Billing is unavailable.", bad_signature: "Invalid webhook signature.", checkout_open: "A checkout is already open.", csrf: "Refresh the page and try again.", cap: "Cloud limit reached.", rate_limited: "Try again later.", checkout_soon: "Paid plans open soon. Checkout is not live yet." };
 export function createBillingRoutes(ctx: BillingContext) {
   const { service, clouds } = ctx;
   return async (req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> => {
@@ -24,7 +24,7 @@ export function createBillingRoutes(ctx: BillingContext) {
     try {
       if (path === "/v1/billing/catalog" && method === "GET") {
         const wake = ctx.wakeStats();
-        json(res, 200, { ...service.catalog(), ...(Object.keys(wake).length ? { wake } : {}) }); return true;
+        json(res, 200, { ...service.catalog(), ...(Object.keys(wake).length ? { wake } : {}), ...(ctx.checkoutOpen ? {} : { checkoutOpen: false }) }); return true;
       }
       if (path === "/v1/billing/quote" && method === "POST") { json(res, 200, service.quote(cartInput((await body(req)).cart))); return true; }
       if (path === "/v1/billing/ops/funnel" && method === "GET") {
@@ -32,6 +32,30 @@ export function createBillingRoutes(ctx: BillingContext) {
         const days = Number(url.searchParams.get("days") ?? "30");
         if (!Number.isInteger(days) || days < 1 || days > 365) invalid();
         json(res, 200, service.funnel(ctx.now() - days * 86_400_000, ctx.now())); return true;
+      }
+      if (path === "/v1/billing/ops/grant" && method === "POST") {
+        if (!ctx.opsToken || !ctx.grants || !opsAllowed(req.headers.authorization, ctx.opsToken)) throw new BillingError(404, "not_found");
+        const data = await body(req), owner = ctx.findAccount(text(data.email).trim().toLowerCase());
+        if (!owner) throw new BillingError(404, "not_found");
+        const bundle = ctx.config.bundles.find(item => item.id === data.bundle && item.id !== "free");
+        if (!bundle) invalid();
+        const interval = data.interval === "year" ? "year" : "month";
+        const checkout = await service.checkout(owner, { kind: "cart", cart: service.quote({ ...bundle.cart, interval }).cart, ...(data.name === undefined ? {} : { name: cloudName(data.name) }) }, { source: "ops_grant" });
+        const stored = ctx.store.state.checkouts.find(item => item.id === checkout.checkoutId);
+        if (!stored?.providerSessionId) throw new BillingError(500, "failed");
+        for (const delivery of ctx.grants.complete(stored.providerSessionId)) service.handleWebhook(delivery.headers, delivery.body);
+        void clouds.reconcile().catch(() => {});
+        json(res, 200, { ok: true, checkoutId: stored.id, subscriptions: service.subscriptions(owner.id).map(sub => ({ id: sub.id, status: sub.status, cloudId: sub.cloudId })) }); return true;
+      }
+      const purge = /^\/v1\/billing\/ops\/clouds\/(c[0-9a-f]{24})\/delete$/.exec(path);
+      if (purge && method === "POST") {
+        const managed = clouds.managed, cloud = clouds.get(purge[1]!);
+        if (!ctx.opsToken || !opsAllowed(req.headers.authorization, ctx.opsToken) || !managed || !cloud?.managed) throw new BillingError(404, "not_found");
+        const reason = text((await body(req)).reason);
+        if (!/^[a-z_]{3,40}$/.test(reason)) invalid();
+        managed.operatorDelete(cloud, reason);
+        void clouds.reconcile().catch(() => {});
+        json(res, 200, { ok: true }); return true;
       }
       if (!ctx.enabled) throw new BillingError(503, "unavailable");
       if (webhook) {
@@ -57,6 +81,7 @@ export function createBillingRoutes(ctx: BillingContext) {
       }
       if (method === "POST") {
         if (path === "/v1/billing/checkout") {
+          if (!ctx.checkoutOpen) throw new BillingError(503, "checkout_soon");
           const data = await body(req); let item: CheckoutItem;
           if (data.kind === "cart") {
             const parsed = service.quote(cartInput(data.cart)).cart;
@@ -67,7 +92,7 @@ export function createBillingRoutes(ctx: BillingContext) {
           else return invalid();
           return send(await service.checkout(account, item, { source: data.source }));
         }
-        if (path === "/v1/billing/portal") { await body(req); return send(await service.portal(account)); }
+        if (path === "/v1/billing/portal") { if (!ctx.checkoutOpen) throw new BillingError(503, "checkout_soon"); await body(req); return send(await service.portal(account)); }
         if (path === "/v1/billing/fake/complete" && ctx.fake) {
           const data = await body(req), id = text(data.checkoutId);
           const checkout = ctx.store.state.checkouts.find(c => c.id === id && c.accountId === account.id);

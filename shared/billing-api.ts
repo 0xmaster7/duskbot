@@ -76,6 +76,8 @@ export interface BundleView {
 
 export interface Catalog {
   v: typeof BILLING_API_VERSION;
+  /** false while paid plans cannot be bought yet (checkout answers checkout_soon); absent means open */
+  checkoutOpen?: boolean;
   currency: "USD";
   bundles: BundleView[];
   licenses: LicenseOption[];
@@ -277,7 +279,7 @@ export interface BillingOverview {
  * errors: { error, code } with codes below.
  */
 export const BILLING_ERROR_CODES = ["billing_active", "signed_out", "invalid_request", "not_found", "forbidden", "rate_limited", "already_subscribed", "checkout_open", "cap",
-  "confirmation_required", "price_changed", "not_subscribed", "already_on_plan", "plan_change_unavailable", "seats_full", "unavailable", "bad_signature", "failed"] as const;
+  "confirmation_required", "price_changed", "not_subscribed", "already_on_plan", "plan_change_unavailable", "seats_full", "unavailable", "checkout_soon", "bad_signature", "failed"] as const;
 export interface DeletionBlocker { kind: "subscription" | "cloud_desktop"; id: string; label: string; status: string }
 export interface DeleteAccountOptions { cancelBilling?: boolean; destroyDesktopsNow?: boolean }
 export type BillingErrorCode = (typeof BILLING_ERROR_CODES)[number];

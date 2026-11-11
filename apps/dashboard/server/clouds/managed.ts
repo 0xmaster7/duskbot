@@ -54,6 +54,9 @@ export interface ManagedCloud {
   requestDelete(cloud: StoredCloud, link: (token: string) => string): void;
   confirmDelete(cloud: StoredCloud, token: string): number;
   cancelDelete(cloud: StoredCloud): void;
+  /** the operator's deletion of a cloud whose plan ended (test accounts, abuse): skips the retention wait and the owner's
+   *  undo window, nothing else; the deletion itself still takes its final backup first */
+  operatorDelete(cloud: StoredCloud, reason: string): void;
   /** apply a pending plan change now instead of at the next idle sleep */
   resizeNow(cloud: StoredCloud): void;
   resizing(cloud: StoredCloud): boolean;

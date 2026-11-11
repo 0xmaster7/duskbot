@@ -4,7 +4,7 @@ import poster from "../art/poster-birches.webp";
 import type { AuthProviders, IdentityProvider } from "../data/contracts";
 import { useSession } from "../data/session";
 import { api, ApiError, FIXTURE, type Account } from "../lib/api";
-import { Link, navigate, useLocation } from "../lib/router";
+import { appPath, Link, navigate, useLocation } from "../lib/router";
 import { planIntent, planQuery, SITE_NAME, SITE_URL, siteUrl } from "../lib/site";
 import { ProviderMark, PROVIDER_NAME } from "../ui/BrandMarks";
 import { SplitFrame } from "../ui/Frame";
@@ -103,7 +103,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const next = query.get("next");
   const intent = planIntent(query);
   // signed out on a page like /cloud/desktop?code= or /claim: come back to it after signing in
-  const here = ["/sign-in", "/signin", "/signup", "/welcome"].includes(window.location.pathname) ? "/" : `${window.location.pathname}${window.location.search}`;
+  const here = ["/sign-in", "/signin", "/signup", "/welcome"].includes(appPath(window.location.pathname)) ? "/" : `${appPath(window.location.pathname)}${window.location.search}`;
   const home = intent ? `/welcome?${planQuery(intent)}` : next && next.startsWith("/") && !next.startsWith("//") ? next : here;
   // the one-time link of a "can't sign in?" email: its code waits behind a click, so a mail scanner opening it signs nobody in
   const [linked] = useState(() => { const hash = new URLSearchParams(window.location.hash.slice(1)), a = hash.get("attempt"), c = hash.get("code"); return a && LINK_ATTEMPT.test(a) && c && /^\d{8}$/.test(c) ? { attempt: a, code: c } : null; });

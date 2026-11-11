@@ -221,7 +221,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   async function renewalFailure(error, signedIn) {
     if (signInEnded(error)) return { outcome: "failed", state: await refresh().catch(() => state()) };
     if (grant === signedIn && !error?.opaque && [404, 405, 501].includes(error?.status) && error.code !== "not_found") {
-      await openBrowser(`${origin}/cloud/personal/billing`);
+      await openBrowser(`${origin}/billing`);
       return { outcome: "browser" };
     }
     return { outcome: "failed", state: [404, 409].includes(error?.status) ? await refresh().catch(() => state()) : state() };
@@ -482,7 +482,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       if (!error?.opaque && error?.status === 429) return { outcome: "rate-limited", state: state() };
       if (signInEnded(error)) return { outcome: "failed", state: await refresh() };
       if (![404, 405, 501].includes(error?.status)) return { outcome: "failed", state: state() };
-      destination = `${origin}/cloud?${new URLSearchParams({ checkout: "start", plan, src: source })}`;
+      destination = `${origin}/billing?${new URLSearchParams({ plan, src: source })}`;
     }
     if (grant !== signedIn) return { outcome: "failed", state: state() };
     await openBrowser(destination);

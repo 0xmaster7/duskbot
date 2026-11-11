@@ -26,6 +26,8 @@ import { createAdminRoutes } from "./admin-routes.ts";
 export interface BillingOptions {
   dataDir: string; publicUrl: string; dashboard: { state: DashboardState; changed(): void; close?(): void }; accounts: AccountResolver;
   accountExists?: (accountId: string) => boolean;
+  /** the account an operator's grant names, by email */
+  findAccount?: (email: string) => AccountRef | null;
   env?: NodeJS.ProcessEnv; now?: () => number; fetch?: typeof fetch;
   /** measured wake times the catalog may show (the slack edge times wakes) */
   wakeStats?: () => NonNullable<Catalog["wake"]>;
@@ -43,9 +45,11 @@ export function createBilling(options: BillingOptions) {
     const value = env[key]; if (value !== undefined && !allowed.includes(value)) throw new Error(`Invalid ${key}.`);
     return value ?? (loopback ? "fake" : "off");
   }
-  const billingProvider = choice("DUSK_BILLING_PROVIDER", ["fake", "dodo"]);
+  // preview: no payment provider yet. Checkout answers "checkout_soon"; the operator grants plans (POST /v1/billing/ops/grant),
+  // which run through the same checkout, webhook and provisioning code with an in-process fake provider that charges nothing
+  const billingProvider = choice("DUSK_BILLING_PROVIDER", ["fake", "dodo", "preview"]);
   const cloudProvider = choice("DUSK_CLOUD_PROVIDER", ["fake", "hetzner"]), poolDriver = choice("DUSK_POOL_DRIVER", ["fake"]);
-  const fake = billingProvider === "fake" ? createFakeBillingProvider({ now }) : null;
+  const fake = billingProvider === "fake" || billingProvider === "preview" ? createFakeBillingProvider({ now }) : null;
   const unavailable = () => { throw new BillingProviderError("unavailable"); };
   let provider: BillingProvider;
   if (billingProvider === "dodo") {
@@ -112,7 +116,9 @@ export function createBilling(options: BillingOptions) {
   if (options.accountExists) service.scrubDeleted(options.accountExists);
   const opsToken = env.DUSK_OPS_TOKEN || null;
   if (opsToken !== null && opsToken.length < 32) throw new Error("DUSK_OPS_TOKEN must be at least 32 characters.");
-  const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})), opsToken };
+  if (billingProvider === "preview" && !opsToken) throw new Error("DUSK_BILLING_PROVIDER=preview needs DUSK_OPS_TOKEN for plan grants.");
+  const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})), opsToken,
+    checkoutOpen: billingProvider !== "preview", grants: billingProvider === "preview" ? fake : null, findAccount: options.findAccount ?? (() => null) };
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
     async handle(req: IncomingMessage, res: ServerResponse, target: URL) { return await routes(req, res, target) || await admin.handle(req, res, target); },
@@ -142,4 +148,9 @@ export type BillingContext = {
   wakeStats(): NonNullable<Catalog["wake"]>;
   /** DUSK_OPS_TOKEN: unset hides the operator's funnel read */
   opsToken: string | null;
+  /** false in preview: people cannot pay yet */
+  checkoutOpen: boolean;
+  /** preview only: the provider that completes an operator's grant */
+  grants: ReturnType<typeof createFakeBillingProvider> | null;
+  findAccount(email: string): AccountRef | null;
 };

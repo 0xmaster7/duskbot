@@ -16,7 +16,7 @@ import { SplitFrame } from "../ui/Frame";
 import { Button, cx, Skeleton } from "../ui/kit";
 import { Mascot, type MascotHandle } from "../ui/Mascot";
 import type { SceneHandle, SceneMood } from "../ui/Scene";
-import { Points } from "./cloud-offer";
+import { CHECKOUT_SOON, Points } from "./cloud-offer";
 import { IntervalToggle, per, planSelection, type PaidPlan } from "./plan-sheet";
 
 const STEPS = ["name", "plan", "app"] as const;
@@ -139,6 +139,7 @@ export function Onboarding() {
   };
   const choose = async (where: Home = home) => {
     if (where === "free" || !catalog) { go("app"); return; }
+    if (catalog.checkoutOpen === false) { setError(CHECKOUT_SOON); return; }
     setBusy(true); setError(null);
     sessionStorage.setItem(SAVED, "app");
     const ok = await checkout({ source: "dash_onboarding", kind: "plan", selection: planSelection(catalog, plan, { interval, work: false }), bundle: null });

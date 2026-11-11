@@ -1,3 +1,4 @@
+import { request } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash, createPublicKey, randomBytes, timingSafeEqual, verify } from "node:crypto";
 import { accessSync, constants, readFileSync, realpathSync, statSync } from "node:fs";
@@ -15,6 +16,7 @@ import { createSlackEdgeHost } from "./slack-edge/index.ts";
 import { createManagedRoutes } from "./clouds/managed-routes.ts";
 import { pagesRoutesFromEnv } from "./pages/routes.ts";
 import { clientIp } from "./client-ip.ts";
+import { stateBackend } from "./persistence/backend.ts";
 import type { ErrorReporter } from "../../../electron/error-report.mjs";
 import type { EdgeSocketFactory } from "./slack-edge/service.ts";
 
@@ -27,6 +29,12 @@ export interface DashboardAppOptions {
   signupOpen?: boolean;
   trustProxy?: boolean;
   staticDir: string | null;
+  /** the page's path on publicUrl: "/app" when the site shares the origin, "" (the default) at the root */
+  pageBase?: string;
+  mailPerHour?: number;
+  /** the site served beside the page on a shared origin (loopback http): every path that is not the page's, an API or
+   *  a well-known address is proxied there */
+  siteUpstream?: string | null;
   now?: () => number;
   fetch?: typeof fetch;
   /** errors worth an operator's look: the service's own failures, and the page's (sent to POST /v1/client-error) */
@@ -52,13 +60,50 @@ export function pagePolicy(html: string): string {
     "font-src 'self' data:", "connect-src 'self'", "frame-src 'none'", "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'"].join("; ");
 }
 
+/** the page's own top-level routes (apps/dashboard/src/main.tsx): on a shared origin a link to one without the page base,
+ *  as the desktop and phone apps build them, is sent to it */
+const PAGE_ROUTES = ["/sign-in", "/signin", "/signup", "/welcome", "/claim", "/cloud", "/clouds", "/billing", "/usage", "/account", "/workspaces", "/bots", "/connectors", "/settings", "/devices", "/connect"];
+
+/** what the service answers itself on a shared origin; everything else outside the page base is the site's */
+const ACCOUNT_PREFIXES = ["/v1/", "/api/cloud/", "/api/public", "/api/bots", DASHBOARD_DISCOVERY_PATH];
+
+function pageBaseOf(value: string | undefined) {
+  const base = (value ?? "").replace(/\/+$/, "");
+  if (base && !/^\/[a-z0-9-]+$/.test(base)) throw new Error("The page base must look like /app.");
+  return base;
+}
+
+/** forwards a request to the site beside the page; the client's address goes on as the proxy's own entry */
+function siteProxy(upstream: string) {
+  const target = new URL(upstream);
+  if (target.protocol !== "http:" || !["127.0.0.1", "localhost"].includes(target.hostname)) throw new Error("The site upstream must be a loopback http address.");
+  return (req: IncomingMessage, res: ServerResponse) => new Promise<void>(resolve => {
+    const headers = { ...req.headers };
+    delete headers.connection; delete headers["keep-alive"]; delete headers.upgrade;
+    const out = request({ host: target.hostname, port: target.port || 80, method: req.method, path: req.url, headers, timeout: 20_000 }, answer => {
+      res.writeHead(answer.statusCode ?? 502, answer.headers);
+      answer.pipe(res);
+      answer.on("end", () => resolve());
+      answer.on("error", () => { res.destroy(); resolve(); });
+    });
+    out.on("timeout", () => out.destroy(new Error("timeout")));
+    out.on("error", () => {
+      if (!res.headersSent) { res.writeHead(502, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" }); res.end("Bad gateway"); } else res.destroy();
+      resolve();
+    });
+    req.pipe(out);
+  });
+}
+
 export function createDashboardApp(options: DashboardAppOptions) {
   const now = options.now ?? Date.now;
   const publicUrl = new URL(options.publicUrl).origin;
+  const pageBase = pageBaseOf(options.pageBase), pagesUrl = `${publicUrl}${pageBase}`;
+  const site = options.siteUpstream ? siteProxy(options.siteUpstream) : null;
   const store = createStore(options.dataDir);
   const state = store.state;
   const dev = options.dev ?? (new URL(publicUrl).protocol === "http:" && ["127.0.0.1", "localhost"].includes(new URL(publicUrl).hostname));
-  const auth = createAuth({ dataDir: options.dataDir, publicUrl, mailer: options.mailer, now, fetch: options.fetch, oauth: options.oauth,
+  const auth = createAuth({ dataDir: options.dataDir, publicUrl, pageBase, mailPerHour: options.mailPerHour, mailer: options.mailer, now, fetch: options.fetch, oauth: options.oauth,
     dev, signupOpen: options.signupOpen ?? true, trustProxy: options.trustProxy ?? false, legacyAccounts: () => state.accounts });
   state.sessions = [];
   store.changed();
@@ -81,6 +126,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     void options.mailer.send({ to, subject, text, html }).catch(() => console.warn("clouds: a notice email failed"));
   };
   const billing = createBilling({ accountExists: id => auth.account(id) !== null,
+    findAccount: email => { const found = auth.accountByEmail(email); return found ? { id: found.id, email: found.email } : null; },
     mail: (cloud, letter) => mail(auth.account(cloud.accountId)?.email, letter.subject, letter.text),
     alert: entry => mail(process.env.DUSK_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
@@ -99,7 +145,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     // the app session must survive a billing failure; it then reads as the free plan
     try { return owner && billing.enabled ? await billing.sessionFields(owner) : {}; } catch { console.warn("billing: session fields failed"); return {}; }
   });
-  const managedRoutes = createManagedRoutes({ clouds: billing.clouds, publicUrl, now, json, readJson: async req => bodyObject(await readBody(req)),
+  const managedRoutes = createManagedRoutes({ clouds: billing.clouds, publicUrl: pagesUrl, now, json, readJson: async req => bodyObject(await readBody(req)),
     owner: req => {
       const owner = auth.requireWeb(req, { mutation: true }), found = auth.webSession(req);
       if (!found || found.account.id !== owner.id) throw new AuthError(401, "signed_out");
@@ -216,6 +262,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (!options.staticDir) fail(404, "not_found", "Page not found.");
     let path: string;
     try { path = decodeURIComponent((req.url ?? "/").split("?")[0]!); } catch { fail(400, "invalid_path", "Invalid path."); }
+    if (pageBase) path = path === pageBase ? "/" : path.slice(pageBase.length);
     if (!path.startsWith("/") || path.includes("\\") || path.includes("\0") || path.split("/").some(part => part.startsWith("."))) fail(404, "not_found", "Page not found.");
     try {
       const root = realpathSync(options.staticDir).replace(/\/$/, "");
@@ -242,8 +289,12 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const url = new URL(req.url ?? "/", publicUrl);
     if (await pagesRoutes.handle(req, res, url)) return;
     const path = url.pathname;
+    if (site && !ACCOUNT_PREFIXES.some(prefix => path.startsWith(prefix)) && !(path === pageBase || path.startsWith(`${pageBase}/`))
+      && !(method === "GET" && PAGE_ROUTES.some(route => path === route || path.startsWith(`${route}/`)))) return site(req, res);
     if ((method === "GET" || method === "HEAD") && path === "/v1/health") {
       try { accessSync(options.dataDir, constants.W_OK); } catch { return json(res, 503, { ok: false, error: "data folder is not writable" }); }
+      const database = stateBackend()?.health();
+      if (database && !database.ok) return json(res, 503, { ok: false, error: "database writes are failing" });
       return json(res, 200, { ok: true, version: options.version ?? null });
     }
     const mutation = ["POST", "PATCH", "DELETE"].includes(method);
@@ -260,8 +311,12 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (billing.clouds.managed?.handle && await billing.clouds.managed.handle(req, res, url, { publicUrl, json, readJson: async request => bodyObject(await readBody(request)),
       clientIp: request => clientIp(request, options.trustProxy ?? false) })) return;
     if (await billing.handle(req, res, url)) return;
-    if (!path.startsWith("/v1/") && !path.startsWith("/.well-known/")) {
-      if (method === "GET") return staticPage(req, res);
+    if (!path.startsWith("/v1/") && !path.startsWith("/.well-known/") && !path.startsWith("/api/")) {
+      const page = !pageBase || path === pageBase || path.startsWith(`${pageBase}/`);
+      if (page && method === "GET") return staticPage(req, res);
+      if (!page && method === "GET" && PAGE_ROUTES.some(route => path === route || path.startsWith(`${route}/`))) {
+        res.writeHead(302, { location: `${pageBase}${req.url}`, "cache-control": "no-store" }); res.end(); return;
+      }
       fail(404, "not_found", "Route not found.");
     }
     if (method === "POST" && path === "/v1/enroll") {
@@ -286,7 +341,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
         if (!ownerAccountId) fail(403, "invalid_grant", "Enrollment grant is invalid.");
       }
       let ws = state.workspaces.find(item => item.publicKey === publicKey);
-      if (ws?.ownerAccountId && !ownerAccountId) return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${publicUrl}/?workspace=${ws.id}`, claimExpiresAt: 0, dashboardUrl: publicUrl });
+      if (ws?.ownerAccountId && !ownerAccountId) return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${pagesUrl}/?workspace=${ws.id}`, claimExpiresAt: 0, dashboardUrl: publicUrl });
       // a public key is not a secret: only its holder may replace an existing workspace's claim link
       if (ws && !proven) fail(401, "bad_signature", "Signature is required.");
       const token = random(24);
@@ -302,12 +357,12 @@ export function createDashboardApp(options: DashboardAppOptions) {
         ws.claimHash = null;
         ws.claimExpiresAt = 0;
         store.changed();
-        return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${publicUrl}/?workspace=${ws.id}`, claimExpiresAt: 0, dashboardUrl: publicUrl });
+        return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${pagesUrl}/?workspace=${ws.id}`, claimExpiresAt: 0, dashboardUrl: publicUrl });
       }
       ws.claimHash = hash(token);
       ws.claimExpiresAt = now() + CLAIM_TTL_MS;
       store.changed();
-      return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${publicUrl}/claim#${token}`, claimExpiresAt: ws.claimExpiresAt, dashboardUrl: publicUrl });
+      return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${pagesUrl}/claim#${token}`, claimExpiresAt: ws.claimExpiresAt, dashboardUrl: publicUrl });
     }
     if ((method === "POST" && path === "/v1/report") || (method === "GET" && path === "/v1/wait")) {
       const body = await readBody(req);

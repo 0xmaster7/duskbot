@@ -1,11 +1,14 @@
 import "../../../electron/legacy-names.mjs";
 import { createServer } from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { existsSync, readFileSync } from "node:fs";
 import { createErrorReporter, reportProcessErrors } from "../../../electron/error-report.mjs";
 import { fileSpool } from "../../../electron/error-report-spool.mjs";
 import { createDashboardApp } from "./app.ts";
 import { providersFromEnv } from "./auth/providers.ts";
 import { mailerFromEnv } from "./auth/mail.ts";
+import { persisted, useStateBackend } from "./persistence/backend.ts";
+import { openMongoBackend } from "./persistence/mongo.ts";
 
 const port = Number(process.env.DUSK_DASHBOARD_PORT ?? 7480);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid dashboard port.");
@@ -23,12 +26,38 @@ const environment = process.env.DUSK_ENVIRONMENT ?? (dev ? "development" : "prod
 const service = createErrorReporter({ dsn: process.env.DUSK_ERROR_DSN, component: "dashboard", release: version, environment, spool: fileSpool(`${dataDir}/error-spool`) });
 reportProcessErrors(service).flush();
 const page = createErrorReporter({ dsn: process.env.DUSK_ERROR_DSN, component: "dashboard-web", release: version, environment });
+
+if (!process.env.MONGODB_URI && !dev) throw new Error("MONGODB_URI is required outside local development (docs/mongodb.md).");
+const database = process.env.MONGODB_URI
+  ? await openMongoBackend({ uri: process.env.MONGODB_URI, db: process.env.MONGODB_DB || "dusk",
+    onLeaseLost: error => { console.error(error.message); process.exit(1); } })
+  : null;
+if (database) { useStateBackend(database.backend); console.log("state: mongodb"); } else console.log("state: json files (development)");
+
 const app = createDashboardApp({ errors: { service, page }, version, dataDir, publicUrl, mailer: mailerFromEnv(process.env, { dev }), oauth: providersFromEnv(process.env), dev,
-  signupOpen: process.env.DUSK_AUTH_SIGNUP_OPEN !== "0", trustProxy: process.env.DUSK_TRUST_PROXY === "1", staticDir: staticDir || null });
-const server = createServer(app.handle);
+  signupOpen: process.env.DUSK_AUTH_SIGNUP_OPEN !== "0", trustProxy: process.env.DUSK_TRUST_PROXY === "1", staticDir: staticDir || null,
+  pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE || "", mailPerHour: process.env.DUSK_AUTH_MAIL_PER_HOUR ? Number(process.env.DUSK_AUTH_MAIL_PER_HOUR) : undefined, siteUpstream: process.env.DUSK_SITE_UPSTREAM || null });
+
+/** a client hears an answer only once what the request changed is written; when that fails it gets a dropped
+ *  connection, never a success that was not kept */
+function durable(req: IncomingMessage, res: ServerResponse) {
+  if (database && req.url?.split("?")[0] !== "/v1/health") {
+    const end = res.end.bind(res) as (...args: unknown[]) => ServerResponse;
+    res.end = ((...args: unknown[]) => {
+      persisted().then(() => end(...args), () => { console.error("persistence: a response was dropped because its changes were not written"); res.destroy(); });
+      return res;
+    }) as ServerResponse["end"];
+  }
+  return app.handle(req, res);
+}
+const server = createServer(durable);
 server.listen(port, host, () => console.log(`dashboard service listening on http://${host}:${port}`));
+let stopping = false;
 for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, () => {
+  if (stopping) return;
+  stopping = true;
   app.close();
   server.close();
   server.closeIdleConnections();
+  void (database?.close() ?? Promise.resolve()).finally(() => process.exit(0));
 });

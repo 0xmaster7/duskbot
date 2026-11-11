@@ -20,7 +20,7 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
     { id: "personal", name: "personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "personal and non-commercial use" },
     ...catalog.licenses.map((license) => ({ id: licenseIds[license.kind], name: license.label.replace(/ license$/i, "").toLowerCase(), monthly: license.monthlyCents / 100, includedMembers: license.includedMembers, perExtraMember: (license.extraMemberCents ?? 0) / 100, maxMembers: license.maxMembers, work: true, blurb: "" })),
   ];
-  return {
+  return { ...(catalog.checkoutOpen === false ? { checkoutOpen: false } : {}),
     licenses,
     ...(catalog.wake ? { wake: Object.fromEntries(Object.entries(catalog.wake).map(([kind, stat]) => [desktopIds[kind as keyof typeof catalog.wake], stat])) } : {}),
     desktops: catalog.desktops.map((desktop) => {

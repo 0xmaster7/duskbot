@@ -11,6 +11,10 @@ import { clientIp } from "../client-ip.ts";
 
 export interface AuthOptions {
   dataDir: string; publicUrl: string; mailer: Mailer; now?: () => number; fetch?: typeof fetch;
+  /** where the page is served on publicUrl ("/app" when it shares the origin with the site, "" at the root) */
+  pageBase?: string;
+  /** sign-in emails the service sends an hour across everyone (DUSK_AUTH_MAIL_PER_HOUR, default 300) */
+  mailPerHour?: number;
   oauth?: ProviderConfigs;
   dev: boolean; signupOpen: boolean; trustProxy: boolean; legacyAccounts?: () => Array<{ id: string; email: string }>;
 }
@@ -52,7 +56,7 @@ interface BodyHelpers { readBody(req: IncomingMessage): Promise<Buffer>; bodyObj
 
 export function createAuth(options: AuthOptions) {
   const now = options.now ?? Date.now;
-  const publicUrl = new URL(options.publicUrl).origin;
+  const publicUrl = new URL(options.publicUrl).origin, pageBase = options.pageBase ?? "", pages = `${publicUrl}${pageBase}`;
   const store = createAuthStore(options.dataDir), state = store.state;
   const providers = createProviderRegistry(options.oauth, { fetch: options.fetch, now });
   const oauthStates = new Map<string, OAuthState>();
@@ -167,6 +171,8 @@ export function createAuth(options: AuthOptions) {
     const device = app ? deviceInfo(data, true) : null;
     rate(`start:${ip(req)}`, 20);
     rate(`email:${email}`, 6);
+    // every address and caller together: one botnet spread over many addresses cannot burn the mail quota or our sender reputation
+    rate("mail:all", options.mailPerHour ?? 300);
     if (sentAt.has(email)) fail(429, "rate_limited");
     sentAt.set(email, now());
     const attempt = random(), code = randomInt(0, 100_000_000).toString().padStart(8, "0");
@@ -176,7 +182,7 @@ export function createAuth(options: AuthOptions) {
       // can't sign in: the code, a one-time link for the website, and the ways this address signs in; for no account, only
       // that. answered before delivery, the same either way, so the answer never tells whether the address has an account
       const owner = state.accounts.find(item => item.email === email);
-      const link = owner && !app ? `${publicUrl}/sign-in#${new URLSearchParams({ attempt, code })}` : null;
+      const link = owner && !app ? `${pages}/sign-in#${new URLSearchParams({ attempt, code })}` : null;
       void options.mailer.send(recoveryMessage(email, { code, link, ways: owner ? view(owner).providers : null })).catch(() => console.error("Email delivery failed."));
     } else if (options.signupOpen) {
       try { await options.mailer.send(codeMessage(email, code)); } catch { attempts.delete(hash(attempt)); fail(502, "failed"); }
@@ -259,7 +265,7 @@ export function createAuth(options: AuthOptions) {
     if (flowId) appFlows.delete(flowId);
     const query = new URLSearchParams({ error: code, ...(flow ? { state: flow.state } : { next }) });
     oauthCookie(res);
-    redirect(res, `${flow ? APP_AUTH_REDIRECT : "/sign-in"}?${query}`);
+    redirect(res, `${flow ? APP_AUTH_REDIRECT : `${pageBase}/sign-in`}?${query}`);
   }
   function activeFlow(id: string) { const flow = appFlows.get(id); return flow && flow.expiresAt > now() ? flow : null; }
   function appRedirect(id: string, owner: Account) {
@@ -317,7 +323,7 @@ export function createAuth(options: AuthOptions) {
         const pending = random();
         pendingIdentities.set(pending, { provider: item.provider, profile, next: item.next, appFlow: item.appFlow, bindingHash: item.bindingHash, expiresAt: now() + 600_000 });
         oauthCookie(res, cookie);
-        return redirect(res, `/sign-in?${new URLSearchParams({ pending, next: item.next })}`);
+        return redirect(res, `${pageBase}/sign-in?${new URLSearchParams({ pending, next: item.next })}`);
       }
       if (!owner) {
         if (!options.signupOpen) return oauthError(res, "signup_closed", item.next, item.appFlow);
@@ -330,7 +336,7 @@ export function createAuth(options: AuthOptions) {
       if (item.appFlow) { const location = appRedirect(item.appFlow, owner); oauthCookie(res); return redirect(res, location); }
       const { token, session } = makeSession(owner, null);
       cookies(res, token, csrfFor(session)); oauthCookie(res);
-      redirect(res, item.next);
+      redirect(res, `${pageBase}${item.next}`);
     } catch { oauthError(res, "oauth_failed", item?.next, item?.appFlow); }
   }
   function removeSessions(accountId: string) {
@@ -446,7 +452,7 @@ export function createAuth(options: AuthOptions) {
         while ([...devices.values()].some(item => item.userCode === userCode));
         const deviceCode = random();
         devices.set(hash(deviceCode), { userCode, device, expiresAt: now() + 900_000, interval: 5, lastPollAt: null, accountId: null, denied: false });
-        json({ cloudContractVersion: 1, deviceCode, userCode, verificationUri: `${publicUrl}/cloud/desktop`, verificationUriComplete: `${publicUrl}/cloud/desktop?code=${userCode}`, expiresIn: 900, interval: 5 });
+        json({ cloudContractVersion: 1, deviceCode, userCode, verificationUri: `${pages}/cloud/desktop`, verificationUriComplete: `${pages}/cloud/desktop?code=${userCode}`, expiresIn: 900, interval: 5 });
       } else if (method === "POST" && path === R.desktopToken) {
         const key = opaque(data.deviceCode) ? hash(data.deviceCode) : "", device = devices.get(key);
         if (!device) return fail(400, expiredDevices.has(key) ? "expired_token" : "invalid_grant");
@@ -489,6 +495,7 @@ export function createAuth(options: AuthOptions) {
   }
   return {
     handle, webSession, requireWeb, appSession, account,
+    accountByEmail: (email: string) => state.accounts.find(item => item.email === email) ?? null,
     /** what the account holds, for its owner's export: no token, hash or code */
     exportAccount(owner: Account) {
       const { account: profile, identities, sessions } = accountAnswer(owner, undefined);
