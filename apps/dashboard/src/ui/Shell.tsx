@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, Blocks, Bot, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, Layers, LogOut, Menu, Plus, X } from "@/icons";
+import { ArrowUpRight, Bot, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, LayoutGrid, LogOut, Menu, Monitor, Plus, X } from "@/icons";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";
@@ -22,9 +22,9 @@ const NAV: Array<{ label?: string; items: NavItem[] }> = [
   { items: [
     { to: "/", label: "home", icon: <House {...ICON} /> },
     { to: "/cloud", label: "dusk cloud", icon: <Cloud {...ICON} /> },
-    { to: "/workspaces", label: "workspaces", icon: <Layers {...ICON} /> },
+    { to: "/workspaces", label: "workspaces", icon: <Monitor {...ICON} /> },
     { to: "/bots", label: "bots", icon: <Bot {...ICON} /> },
-    { to: "/connectors", label: "apps", icon: <Blocks {...ICON} /> },
+    { to: "/connectors", label: "apps", icon: <LayoutGrid {...ICON} /> },
   ] },
   { label: "you", items: [
     { to: "/billing", label: "plans and billing", icon: <CreditCard {...ICON} /> },
@@ -129,7 +129,7 @@ function CloudBadge() {
   const { clouds } = useCloud();
   const c = clouds?.[0];
   if (!clouds) return null;
-  if (!c) return <span className="t-meta ms-auto !text-ink-4">24/7</span>;
+  if (!c) return null;
   const tone = c.status === "running" ? "text-good" : c.status === "provisioning" ? "text-accent" : c.status === "error" ? "text-bad" : "text-ink-4";
   return <span className={cx("live-dot ms-auto", tone)} data-live={c.status === "running"} aria-label={c.status === "running" ? "running" : c.status} role="img" />;
 }

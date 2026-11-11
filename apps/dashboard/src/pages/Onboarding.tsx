@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Laptop, LoaderCircle } from "@/icons";
+import { ArrowLeft, LoaderCircle, Monitor } from "@/icons";
 import meadow from "../art/p-meadow.webp";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, PlanCatalog } from "../data/contracts";
@@ -76,7 +76,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
       </div>
       <label htmlFor="home-free" className={cx("mt-2 flex cursor-pointer items-center gap-3.5 rounded-[18px] px-4 py-3.5", home === "free" ? "bg-card shadow-[inset_0_0_0_2px_var(--ink)]" : "hover-card bg-card", ring)}>
         <input id="home-free" type="radio" name="home" value="free" checked={home === "free"} onChange={() => setHome("free")} className="sr-only" />
-        <Laptop size={20} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
+        <Monitor size={20} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block text-15 font-medium text-ink">this computer</span>
           <span className="block text-13 leading-[1.4] text-ink-3">bots work while it's awake. add dusk cloud anytime.</span>
