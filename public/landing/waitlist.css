@@ -1,120 +1,68 @@
-/* the waitlist: one screen of the logo's world. the sky and meadow are drawn by waitlist.js on a canvas sized to the
-   section (the bands below are the picture without script); kit stands on its hill, the form sits in the sky. the
-   only real motion is the moment you join: kit and friends hop and kit's bubble changes */
-.p-waitlist { --sky0: #06bafd; --sky1: #3cd0fd; --sky3: #87e2fc; --sky4: #90e4fc; --sky5: #c2ecfc; --lilac: #d0cefb; --lime: #c9f63f;
-  --u-lemon: #fff3a0; --u-pink: #ffc4dd; --u-sky: #c2ecfc; --u-lilac: #d0cefb; --ground: clamp(150px, 21vh, 210px);
-  /* the pixel corner the cards and bubbles share, one block cut from each corner */
+/* the waitlist: one centred column of white words on the logo's sky. waitlist.js draws the sky, the meadow and what
+   moves in them on a canvas sized to the section; behind the words the sky is one calm band, so the white reads.
+   the bands below are the picture without script */
+.p-waitlist { --sky0: #06bafd; --sky1: #3cd0fd; --sky3: #87e2fc; --sky5: #c2ecfc; --lilac: #d0cefb; --lime: #c9f63f;
+  --ground: clamp(110px, 17vh, 170px); --shade: 0 2px 0 rgba(0, 88, 160, 0.32);
   --step: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px), 0 6px, 6px 6px); }
-.wl { position: relative; display: flex; flex-direction: column; min-height: max(660px, calc(100dvh - 72px)); overflow: clip; color: var(--ink);
-  background: linear-gradient(var(--sky0) 0 16%, var(--sky1) 16% 44%, var(--sky3) 44% 56%, var(--sky4) 56% 66%, var(--sky5) 66%); }
+.wl { position: relative; display: flex; flex-direction: column; min-height: max(600px, calc(100dvh - 72px)); overflow: clip; color: #fff;
+  background: linear-gradient(var(--sky0) 0 62%, var(--sky1) 62% 72%, var(--sky3) 72% 80%, var(--sky5) 80%); }
 .wl-sky { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; }
-.wl-ground { position: relative; flex: none; height: var(--ground); background: var(--lime); box-shadow: 0 -10px 0 var(--lilac); }
-.wl-in { position: relative; z-index: 2; flex: 1; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr); gap: 32px; width: 100%; max-width: 1208px; margin: 0 auto; padding: clamp(40px, 7vh, 88px) 24px 0; }
-.p-waitlist :focus-visible { outline-color: var(--ink); }
+.wl-ground { flex: none; height: var(--ground); background: var(--lime); box-shadow: 0 -10px 0 var(--lilac); }
+.p-waitlist :focus-visible { outline-color: #fff; }
 
-/* the words */
-.wl-copy { align-self: center; padding-bottom: clamp(32px, 6vh, 72px); }
-.wl-copy > * { animation: rise var(--dur-spring) var(--ease-spring) backwards; }
-.wl-copy > :nth-child(2) { animation-delay: 60ms; } .wl-copy > :nth-child(3) { animation-delay: 120ms; } .wl-copy > :nth-child(n + 4) { animation-delay: 180ms; }
-.wl h1 { font-size: clamp(46px, 6.4vw, 92px); line-height: 0.98; letter-spacing: -0.055em; font-weight: 500; margin: 0; max-width: 9.5em; text-wrap: balance; }
+/* the column */
+.wl-col { position: relative; z-index: 3; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 640px; margin: 0 auto; padding: 40px 24px 56px; text-align: center; }
+.wl-col > * { animation: rise var(--dur-spring) var(--ease-spring) backwards; }
+.wl-col > :nth-child(2) { animation-delay: 50ms; } .wl-col > :nth-child(3) { animation-delay: 100ms; } .wl-col > :nth-child(n + 4) { animation-delay: 150ms; }
+.wl-kit { width: clamp(64px, 6vw, 84px); margin-bottom: 22px; }
+.wl-kit .bot, .wl-w .bot { width: 100%; height: auto; }
+.wl h1 { margin: 0; font-size: clamp(44px, 6.2vw, 84px); line-height: 1; letter-spacing: -0.05em; font-weight: 550; text-wrap: balance; text-shadow: 0 3px 0 rgba(0, 88, 160, 0.32); }
 .wl h1:focus { outline: none; }
-.wl-lede { max-width: 30em; margin: 22px 0 0; font-size: clamp(17px, 1.45vw, 20px); line-height: 1.5; letter-spacing: -0.012em; color: #24242a; text-wrap: pretty; }
-.wl-lede b { font-weight: 550; overflow-wrap: anywhere; }
+.wl-lede { max-width: 26em; margin: 18px 0 0; font-size: clamp(17px, 1.4vw, 19px); line-height: 1.5; font-weight: 500; letter-spacing: -0.01em; text-wrap: balance; text-shadow: var(--shade); }
+.wl-lede b { font-weight: 600; overflow-wrap: anywhere; }
 
-/* works with: the banner's cards, white with a tinted underside and pixel corners */
-.wl-works { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 26px; }
-.wl-works > span { font: 500 13px/1 var(--mono); letter-spacing: 0.01em; color: #24242a; }
-.wl-works ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.wl-works li { display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 13px 4px 10px; background: #fdfdfd; clip-path: var(--step); box-shadow: inset 0 -5px 0 var(--u); font-size: 15.5px; font-weight: 550; letter-spacing: -0.01em; }
-.wl-works .logo { width: 18px; height: 18px; }
-.u-lemon { --u: var(--u-lemon); } .u-pink { --u: var(--u-pink); } .u-sky { --u: var(--u-sky); } .u-lilac { --u: var(--u-lilac); }
-
-/* the form: a white pill field and the site's dark pill button */
-.wl-form { margin-top: 34px; max-width: 540px; }
-.wl-form label { display: block; margin: 0 0 8px 4px; font: 500 13px/1 var(--mono); letter-spacing: 0.01em; color: #24242a; }
-.wl-row { display: flex; gap: 8px; padding: 6px; border-radius: 999px; background: #fdfdfd; box-shadow: 0 6px 0 rgba(19, 19, 22, 0.08); transition: box-shadow 0.2s ease; }
-.wl-row:focus-within { box-shadow: 0 6px 0 rgba(19, 19, 22, 0.08), 0 0 0 2px var(--ink); }
+/* the field: one white pill with the dark button inside it */
+.wl-form { width: 100%; max-width: 480px; margin-top: 34px; }
+.wl-row { display: flex; gap: 6px; padding: 6px; border-radius: 999px; background: #fdfdfd; box-shadow: 0 6px 0 rgba(0, 88, 160, 0.22); transition: box-shadow 0.2s ease; }
+.wl-row:focus-within { box-shadow: 0 6px 0 rgba(0, 88, 160, 0.22), 0 0 0 3px rgba(255, 255, 255, 0.7); }
 .wl-row input { flex: 1; min-width: 0; height: 50px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; font: 450 17px/1 var(--sans); color: var(--ink); appearance: none; outline: none; }
-.wl-row input::placeholder { color: #8a8a93; }
-.wl-row .btn { flex: none; min-height: 50px; padding: 0 24px; font-size: 16px; }
+.wl-row input::placeholder { color: #85858e; }
+.wl-row .btn { flex: none; min-height: 50px; padding: 0 22px; font-size: 16px; }
+.wl-row .btn:focus-visible { outline-color: var(--ink); }
 .wl-row .btn:disabled { cursor: progress; background: #3a3a41; }
-.wl-form[data-bad] .wl-row { box-shadow: 0 6px 0 rgba(19, 19, 22, 0.08), 0 0 0 2px var(--red); }
+.wl-form[data-bad] .wl-row { box-shadow: 0 6px 0 rgba(0, 88, 160, 0.22), 0 0 0 3px var(--red); }
 .wl-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-.wl-msg { display: flex; align-items: flex-start; gap: 9px; width: fit-content; max-width: 100%; margin: 14px 0 0; padding: 10px 14px 10px 12px; border-radius: 14px; background: #fdfdfd; font-size: 15.5px; line-height: 1.4; color: var(--ink); animation: msg-in 0.22s var(--ease-out); }
+.wl-msg { display: flex; align-items: flex-start; gap: 9px; width: fit-content; max-width: 100%; margin: 14px auto 0; padding: 10px 14px 10px 12px; border-radius: 14px; background: #fdfdfd; color: var(--ink); font-size: 15px; line-height: 1.4; text-align: left; animation: msg-in 0.22s var(--ease-out); }
 .wl-msg[hidden] { display: none; }
 .wl-msg .i { margin-top: 2px; color: var(--red); }
 @keyframes msg-in { from { opacity: 0; translate: 0 -4px; } }
-.wl-fine { margin: 14px 0 0 4px; font-size: 14px; line-height: 1.45; color: #2e2e35; }
-.wl-fine [data-wl-count]::before { content: " · "; }
+.wl-count { margin: 16px 0 0; font: 500 13px/1.4 var(--mono); letter-spacing: 0.01em; text-shadow: var(--shade); }
+.wl-count a { color: #fff; text-decoration-color: rgba(255, 255, 255, 0.6); }
 
 /* joined: a pixel ticket with the number on it */
-.wl-done { margin-top: 34px; }
-.wl-ticket { display: inline-flex; flex-direction: column; gap: 6px; margin: 0; padding: 18px 26px 24px; background: #fdfdfd; clip-path: var(--step); box-shadow: inset 0 -6px 0 var(--u-lemon); }
-.wl-ticket span { font: 500 13px/1 var(--mono); color: #4b4b55; }
-.wl-ticket b { font: 600 clamp(48px, 5vw, 64px)/1 var(--pixel); letter-spacing: 0; }
-.wl-acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
-.wl-done:not([hidden]) > * { animation: rise var(--dur-spring) var(--ease-spring) backwards; }
-.wl-done:not([hidden]) > :nth-child(2) { animation-delay: 80ms; }
+.wl-done { display: flex; flex-direction: column; align-items: center; margin-top: 30px; }
+.wl-done[hidden] { display: none; }
+.wl-ticket { display: inline-flex; flex-direction: column; align-items: center; gap: 8px; margin: 0; padding: 18px 34px 24px; background: #fdfdfd; color: var(--ink); clip-path: var(--step); box-shadow: inset 0 -6px 0 #fff3a0; animation: rise var(--dur-spring) var(--ease-spring) backwards; }
+.wl-ticket span { font: 500 12.5px/1 var(--mono); color: #55555e; }
+.wl-ticket b { font: 600 clamp(48px, 5vw, 64px)/1 var(--pixel); }
+.wl-link { margin-top: 20px; padding: 10px 4px; color: #fff; font-size: 15.5px; font-weight: 500; text-shadow: var(--shade); text-decoration-color: rgba(255, 255, 255, 0.55); }
+.wl-link:hover { text-decoration-color: #fff; }
 
-/* the scene: kit on its hill, a speech bubble, and friends in the meadow. the hill box is what waitlist.js draws under */
-.wl-scene { position: relative; min-height: 340px; }
-.wl-hill { position: absolute; left: 50%; bottom: 0; width: min(440px, 100%); height: 60px; translate: -50% 0; }
-.wl-kit { position: absolute; left: 50%; bottom: 100%; width: clamp(150px, 15vw, 210px); translate: -50% 9%; }
-.wl-kit .bot, .wl-f .bot { width: 100%; height: auto; }
-.wl-f { position: absolute; }
-.wl-f.f1 { left: 2%; bottom: -54px; width: 62px; }
-.wl-f.f2 { right: 4%; bottom: -24px; width: 56px; }
-.wl-f.f3 { right: 22%; bottom: -118px; width: 76px; }
-.wl-f.f4 { right: 2%; top: 4%; width: 54px; }
-.wl-say { position: absolute; left: 50%; bottom: calc(60px + clamp(150px, 15vw, 210px) + 18px); translate: -86% 0; margin: 0; padding: 14px 20px 19px; background: #fdfdfd; clip-path: var(--step); box-shadow: inset 0 -6px 0 var(--u-pink);
-  font-size: 18px; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap; transform-origin: 80% 100%; }
-.wl-say b { font: 600 1.05em/1 var(--pixel); }
-/* the bubble's tail, three stepped blocks down toward kit */
-.wl-scene::after { content: ""; position: absolute; left: calc(50% - 30px); bottom: calc(60px + clamp(150px, 15vw, 210px) + 2px); width: 18px; height: 18px; background: #fdfdfd;
-  clip-path: polygon(0 0, 100% 0, 100% 33%, 67% 33%, 67% 67%, 33% 67%, 33% 100%, 0 100%); scale: -1 1; }
-.wl-say.pop { animation: say-pop 0.45s var(--pop); }
-@keyframes say-pop { from { opacity: 0.4; scale: 0.92; } }
+/* the bots out walking in the meadow, moved by waitlist.js */
+.wl-walk { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; height: var(--ground); pointer-events: none; }
+.wl-w { position: absolute; left: 0; width: 34px; pointer-events: auto; will-change: transform; }
+.wl-w:nth-child(1) { top: 14%; width: 44px; } .wl-w:nth-child(2) { top: 36%; width: 40px; } .wl-w:nth-child(3) { top: 54%; width: 52px; } .wl-w:nth-child(4) { top: 22%; width: 38px; }
+.wl-w:not(.on) { visibility: hidden; }
+.wl-w.left .bot { scale: -1 1; }
 
-/* below the fold: three small cards in the contact page's style */
-.wl-more { --gap: 96px; }
-
-@media (max-width: 900px) {
-  .wl-in { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 36px; }
-  .wl-copy { padding-bottom: 8px; }
-  .p-waitlist { --ground: 120px; }
-  .wl-scene { min-height: 300px; }
-  .wl-hill { width: min(320px, 92%); height: 44px; }
-  .wl-kit { width: 132px; }
-  .wl-say { bottom: calc(44px + 132px + 18px); font-size: 16px; padding: 12px 16px 17px; translate: -80% 0; }
-  .wl-scene::after { bottom: calc(44px + 132px + 2px); }
-  .wl-f.f1 { left: 4%; bottom: -40px; width: 48px; }
-  .wl-f.f2 { right: 6%; bottom: -18px; width: 44px; }
-  .wl-f.f3 { right: 28%; bottom: -84px; width: 56px; }
-  .wl-f.f4 { right: 4%; top: 12%; width: 42px; }
-}
 @media (max-width: 520px) {
-  .wl-in { padding-top: 26px; }
+  .wl-col { padding-top: 28px; }
   .wl h1 { font-size: 42px; }
-  .wl-lede { margin-top: 14px; font-size: 16.5px; }
-  .wl-works { gap: 8px; margin-top: 18px; }
-  .wl-works ul { gap: 6px; }
-  .wl-works li { height: 34px; padding: 0 10px 4px 8px; font-size: 14.5px; gap: 6px; }
-  .wl-works .logo { width: 16px; height: 16px; }
-  .wl-form, .wl-done { margin-top: 24px; }
-  .wl-scene { min-height: 236px; }
-  .wl-hill { height: 36px; }
-  .wl-kit { width: 112px; }
-  .wl-say { bottom: calc(36px + 112px + 16px); }
-  .wl-scene::after { bottom: calc(36px + 112px); }
-  .p-waitlist { --ground: 104px; }
   .wl-row { flex-direction: column; border-radius: 26px; }
-  .wl-row input { height: 52px; }
+  .wl-row input { height: 52px; text-align: center; }
   .wl-row .btn { width: 100%; }
-  .wl-works > span { flex-basis: 100%; }
+  .wl-w:nth-child(n) { width: 32px; } .wl-w:nth-child(3) { width: 38px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .wl-copy > *, .wl-done:not([hidden]) > * { animation: none; }
-  .wl-msg { animation: none; }
-  .wl-say.pop { animation: say-fade 0.3s ease; }
-  @keyframes say-fade { from { opacity: 0.4; } }
+  .wl-col > *, .wl-ticket, .wl-msg { animation: none; }
 }
