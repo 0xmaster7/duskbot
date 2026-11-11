@@ -331,6 +331,7 @@ export class PixelCore {
   private lastKey = ""; private taps: number[] = []; private lastPoke = "";
   private man: { x: number; y: number; u: number } | null = null; private gl: { x: number; y: number; u: number } | null = null;
   private dir: { x: number; y: number } | null = null;
+  private once = false;
   private eye: [number, number, number, number, number] = [0, 0, 0, 0, 0];
   private ev: Record<string, Array<(a: unknown) => void>> = {};
   /** the expression drawn last, for tests */
@@ -373,6 +374,7 @@ export class PixelCore {
   }
   react(n: PixelReaction, o: { dir?: number; social?: boolean } = {}): this {
     if (n == "poke") return this.poke();
+    if (reduce || this.calm) return this;
     const r = RX[n];
     this.rx = { n, t: 0, d: r.d, pose: r.pose, dir: o.dir ?? 0 };
     r.start?.(this, this.rx);
@@ -396,10 +398,10 @@ export class PixelCore {
     this.fire("tap", n);
     return this.react(n, { dir, social: true });
   }
-  blink() { this.bk = this.T; }
+  blink() { if (!reduce && !this.calm) { this.bk = this.T; this.once = true; } }
   /** seconds until a settled bot next moves on its own: a blink or a settle */
   dueIn() {
-    if (!this.life) return Infinity;
+    if (!this.life || reduce) return Infinity;
     const nap = this.state == "idle" && !this.calm && !reduce ? this.nap - this.T : Infinity;
     return Math.max(0, Math.min(this.bk - 0.1 - this.T, nap));
   }
@@ -421,7 +423,7 @@ export class PixelCore {
   tick(dt: number): boolean {
     const T = (this.T += dt), P = this.P, def = this.def, N = def.N, rnd = this.rng;
     const moves = !reduce && !this.calm;
-    Object.assign(P, { sq: 0, lean: 0, gx: 0, gy: 0, dx: 0, yaw: 0, snap: null, lift: 0, eyes: "open", eyesR: null, blink: this.life ? 1 : 0, look: 1, m: moves });
+    Object.assign(P, { sq: 0, lean: 0, gx: 0, gy: 0, dx: 0, yaw: 0, snap: null, lift: 0, eyes: "open", eyesR: null, blink: this.life && !reduce ? 1 : 0, look: 1, m: moves });
     STATES[this.state].pose?.(this, T - this.sT, P);
     if (this.state == "idle" && P.m && this.life && T > this.nap) { this.nap = T + 10 + rnd() * 10; this.kick(1.3); }
     const r = this.rx;
@@ -444,13 +446,13 @@ export class PixelCore {
       }
     }
     let eL = P.eyes, eR = P.eyesR || P.eyes, blinking = false;
-    if (P.blink && OPEN[eL]) {
+    if ((P.blink || this.once) && OPEN[eL]) {
       const bt = T - this.bk;
       if (bt >= -0.1) blinking = true;
       if (bt >= 0) {
         const ph: Eye | null = bt < 0.05 ? "blink" : bt < 0.12 ? "closed" : bt < 0.17 ? "blink" : null;
         if (ph) eL = eR = ph;
-        else this.bk = T + 4 + rnd() * 4;
+        else { this.bk = T + 4 + rnd() * 4; this.once = false; }
       }
     }
     // physics in fixed sub steps so springs stay stable

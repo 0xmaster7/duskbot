@@ -10,9 +10,8 @@ import {
   type MausAvatarProps,
 } from "./Avatar";
 
-// the body outline: the first path of the mark
-const outline = (markup: string) => markup.match(/class="bb"><path fill="currentColor" d="([^"]+)"/)?.[1] ?? "";
-const bodyOf = (markup: string) => markup.match(/data-body="([a-z]+)"/)?.[1];
+const attr = (markup: string, name: string) => markup.match(new RegExp(`data-${name}="([^"]+)"`))?.[1];
+const bodyOf = (markup: string) => attr(markup, "body");
 
 const render = (props: Partial<MausAvatarProps>) =>
   renderToStaticMarkup(createElement(MausAvatar, { color: "green", animated: false, ...props }));
@@ -23,68 +22,51 @@ const renderBot = (bot: Partial<BotAvatarProps["bot"]>) =>
   );
 
 describe("MausAvatar body", () => {
-  it("wears the squircle when no body is given", () => {
-    expect(bodyOf(render({}))).toBe("squircle");
-    expect(outline(render({}))).toBe(outline(render({ bodyId: "squircle" })));
-    expect(outline(render({}))).not.toBe("");
+  it("wears kit when no body is given", () => {
+    expect(bodyOf(render({}))).toBe("kit");
   });
 
   it("wears the body it is given, drawing an older body as the one it moved to", () => {
-    expect(outline(render({ bodyId: "star" }))).not.toBe(outline(render({ bodyId: "squircle" })));
-    expect(bodyOf(render({ bodyId: "cursor" }))).toBe("squircle");
-    expect(bodyOf(render({ bodyId: "flower" }))).toBe("cloud");
-    expect(bodyOf(render({ bodyId: "teardrop" }))).toBe("drop");
-    expect(outline(render({ bodyId: "fruit" }))).toBe(outline(render({ bodyId: "circle" })));
+    expect(bodyOf(render({ bodyId: "starry" }))).toBe("starry");
+    expect(bodyOf(render({ bodyId: "cursor" }))).toBe("kit");
+    expect(bodyOf(render({ bodyId: "flower" }))).toBe("sprout");
+    expect(bodyOf(render({ bodyId: "teardrop" }))).toBe("drip");
+    expect(bodyOf(render({ bodyId: "squircle" }))).toBe("loaf");
   });
 
-  it("falls back to the squircle for an unknown body", () => {
+  it("falls back to kit for an unknown body", () => {
     // SAFETY: "hexagram" is deliberately not a body id, to exercise the runtime fallback for persisted or streamed data.
-    expect(bodyOf(render({ bodyId: "hexagram" as MausAvatarProps["bodyId"] }))).toBe("squircle");
+    expect(bodyOf(render({ bodyId: "hexagram" as MausAvatarProps["bodyId"] }))).toBe("kit");
   });
 
-  it("paints the body with the bot's colour, never a flat black fill", () => {
-    const markup = render({ bodyId: "circle", color: "blue" });
-    expect(markup).not.toContain('fill="#000000"');
-    expect(markup).toContain("color:#377FE6");
+  it("paints the body with the bot's electric colour", () => {
+    expect(attr(render({ bodyId: "pip", color: "blue" }), "colour")).toBe("#286ef9");
   });
 
   it("draws the face of the state it rests in", () => {
-    expect(render({ state: "happy" })).not.toBe(render({ state: "idle" }));
     expect(render({ state: "sleeping" })).toContain('data-state="sleeping"');
+    expect(render({ state: "streaming" })).toContain('data-state="working"');
+    expect(render({ state: "failed" })).toContain('data-state="error"');
   });
 });
 
 describe("mascot facial feature colors", () => {
-  it.each(["white", "black"] as const)("uses %s for the eyes on every body type, and draws no mouth", (mascotFaceColor) => {
+  it.each(["white", "black"] as const)("uses %s for the eyes on every pixel body", (mascotFaceColor) => {
     const ink = mascotFaceColor === "white" ? "#ffffff" : "#000000";
-    for (const mascotBody of ["cursor", "star", "pumpkin", "vampire"] as const) {
-      for (const color of ["green", "chrome"] as const) {
-        const markup = renderBot({ color, mascotBody, mascotFaceColor });
-        expect(markup).toContain(`fill="${ink}"`);
-        expect(markup).not.toContain('visibility="hidden"');
-        expect(markup).not.toContain(`stroke="${ink}"`);
-      }
+    for (const mascotBody of ["cursor", "starry"] as const) {
+      for (const color of ["green", "chrome"] as const) expect(attr(renderBot({ color, mascotBody, mascotFaceColor }), "eyes")).toBe(ink);
     }
   });
 
   it("draws the eyes white when no face ink is chosen", () => {
-    for (const bot of [{ color: "chrome" as const, mascotFaceColor: null }, {}]) {
-      const markup = renderBot(bot);
-      expect(markup).toContain('<path fill="#fff" d="M-1 0');
-    }
+    for (const bot of [{ color: "chrome" as const, mascotFaceColor: null }, {}]) expect(attr(renderBot(bot), "eyes")).toBe("#fff");
     expect(renderBot({ mascotBody: "pumpkin" })).toContain('fill="#0d0a10"');
-  });
-
-  it("paints a body with one flat colour", () => {
-    const markup = renderBot({ color: "blue" });
-    expect(markup.match(/fill="currentColor"/g)?.length).toBe(1);
-    expect(markup).not.toContain("Gradient");
   });
 
   it("does not paint features over an uploaded image", () => {
     const markup = renderBot({ mascotFaceColor: "black", avatarUrl: "/api/attachments/photo.png", avatarCrop: "circle" });
     expect(markup).toContain("<img");
-    expect(markup).not.toContain("<svg");
+    expect(markup).not.toContain("data-dusk-mark");
   });
 });
 
@@ -119,13 +101,13 @@ describe("BotAvatar's two avatar outcomes", () => {
   it("renders the gradient mascot when the crop is mascot, image or not", () => {
     const markup = renderBot({ avatarUrl: "/api/attachments/cat.webp", avatarCrop: "mascot" });
     expect(markup).not.toContain("<img");
-    expect(markup).toContain("<svg");
+    expect(markup).toContain("data-dusk-mark");
   });
 
   it("falls back to the gradient mascot when a flat crop has no valid image", () => {
     const markup = renderBot({ avatarUrl: undefined, avatarCrop: "circle" });
     expect(markup).not.toContain("<img");
-    expect(markup).toContain("<svg");
+    expect(markup).toContain("data-dusk-mark");
   });
 });
 

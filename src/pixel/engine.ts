@@ -76,7 +76,7 @@ function listen() {
   addEventListener("resize", () => epoch++, { passive: true });
   document.addEventListener("visibilitychange", () => { last = 0; wake(); });
   const mq = typeof matchMedia == "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
-  if (mq) { setReduced(mq.matches); mq.addEventListener("change", (e) => { setReduced(e.matches); for (const h of hosts) { h.core.tick(0); h.paint(); } wake(); }); }
+  if (mq) { setReduced(mq.matches); mq.addEventListener("change", () => { setReduced(mq.matches); for (const h of hosts) { h.core.tick(0); h.paint(); } wake(); }); }
   if (typeof IntersectionObserver == "function") {
     io = new IntersectionObserver((es) => {
       for (const e of es) for (const h of hosts) if (h.el === e.target) { h.vis = e.isIntersecting; epoch++; }
@@ -136,7 +136,7 @@ export function createPixel(el: HTMLElement, o: PixelOptions): PixelBot {
   let body = packed(o.colour || "#286ef9", el), eyes = packed(o.eyes || "#fff", el);
   let rect: { x: number; y: number } | null = null, rectEpoch = 0;
   const host: Host = {
-    core, el, vis: !io, paused: false, animated, follow: animated && o.follow === true, timers: new Set(),
+    core, el, vis: true, paused: false, animated, follow: animated && o.follow === true, timers: new Set(),
     paint() {
       if (!core.dirty) return;
       core.dirty = false;
