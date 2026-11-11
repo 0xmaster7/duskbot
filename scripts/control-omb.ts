@@ -121,6 +121,10 @@ export async function runControlOmb(
   });
 }
 
+export function verificationHome(parentEnv: NodeJS.ProcessEnv, dataDir: string): string {
+  return parentEnv.DUSK_VERIFY_HOME_OUTSIDE === "1" ? `${dataDir}-home` : dataDir;
+}
+
 export interface VerificationServer {
   info: { url: string; pid: number; dataDir: string; logPath: string };
   fixtureDumpPath: string;
@@ -128,8 +132,9 @@ export interface VerificationServer {
   close(): Promise<void>;
 }
 
-/** A temporary home in `dataDir`, the fake engine's knobs from `parentEnv`, node
- * on PATH, and nothing else from the parent shell or this machine's CLIs. */
+/** A temporary home in `dataDir` (beside it, as on a person's computer, with DUSK_VERIFY_HOME_OUTSIDE=1: a workspace
+ * backup refuses a home inside the folder it backs up), the fake engine's knobs from `parentEnv`, node on PATH, and
+ * nothing else from the parent shell or this machine's CLIs. */
 export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, dataDir: string, port: number): NodeJS.ProcessEnv {
   const childEnv: NodeJS.ProcessEnv = {};
   const platformKeys = new Set(["SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "LANG", "LC_ALL", "TZ"]);
@@ -138,18 +143,19 @@ export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, data
     if (value && platformKeys.has(normalized)) childEnv[normalized] = value;
   }
   const fixtureTemp = join(dataDir, "tmp");
+  const home = verificationHome(parentEnv, dataDir);
   Object.assign(childEnv, {
-    HOME: dataDir,
-    USERPROFILE: dataDir,
-    APPDATA: join(dataDir, "AppData", "Roaming"),
-    LOCALAPPDATA: join(dataDir, "AppData", "Local"),
-    XDG_CONFIG_HOME: join(dataDir, ".config"),
-    XDG_CACHE_HOME: join(dataDir, ".cache"),
-    XDG_DATA_HOME: join(dataDir, ".local", "share"),
+    HOME: home,
+    USERPROFILE: home,
+    APPDATA: join(home, "AppData", "Roaming"),
+    LOCALAPPDATA: join(home, "AppData", "Local"),
+    XDG_CONFIG_HOME: join(home, ".config"),
+    XDG_CACHE_HOME: join(home, ".cache"),
+    XDG_DATA_HOME: join(home, ".local", "share"),
     TEMP: fixtureTemp,
     TMP: fixtureTemp,
     TMPDIR: fixtureTemp,
-    HERMES_HOME: join(dataDir, ".hermes"),
+    HERMES_HOME: join(home, ".hermes"),
     DUSK_DATA_DIR: dataDir,
     DUSK_PORT: String(port),
     DUSK_WEBHOOK_PORT: String(port + 1),
@@ -297,6 +303,8 @@ export async function launchVerificationServer(
   const fixtureTemp = join(dataDir, "tmp");
   const fixtureDumpPath = join(dataDir, "fake-claude-dump.json");
   mkdirSync(fixtureTemp, { recursive: true });
+  const home = verificationHome(parentEnv, dataDir);
+  mkdirSync(home, { recursive: true });
   const evidenceDir = join(tmpdir(), "duskbot-verification-evidence");
   mkdirSync(evidenceDir, { recursive: true });
   const logPath = join(evidenceDir, `server-${Date.now()}-${process.pid}.log`);
@@ -386,6 +394,7 @@ export async function launchVerificationServer(
   } catch (error) {
     await waitForExit(child, { signal: "SIGTERM" });
     await removeTempDir(dataDir);
+    if (home !== dataDir) await removeTempDir(home);
     throw error;
   }
 
@@ -413,6 +422,7 @@ export async function launchVerificationServer(
   } catch (error) {
     await waitForExit(child, { signal: "SIGTERM" });
     await removeTempDir(dataDir);
+    if (home !== dataDir) await removeTempDir(home);
     throw error;
   }
 
@@ -426,6 +436,7 @@ export async function launchVerificationServer(
       closed = true;
       await waitForExit(child, { signal: "SIGTERM" });
       await removeTempDir(dataDir);
+      if (home !== dataDir) await removeTempDir(home);
     },
   };
 }
