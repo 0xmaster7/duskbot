@@ -1,5 +1,5 @@
-import { useMemo, type ReactNode } from "react";
-import { ChevronRight, Download } from "@/icons";
+import { useMemo, useState, type ReactNode } from "react";
+import { ArrowUpRight, Blocks, ChevronRight, Cloud, Download, Smartphone } from "@/icons";
 import type { WorkspaceDetail } from "../../../../shared/dashboard-protocol";
 import cloudLemon from "../art/cloud-lemon.png";
 import cloudPink from "../art/cloud-pink.png";
@@ -10,14 +10,17 @@ import type { CloudDesktop } from "../data/contracts";
 import { MOOD_LABEL, type BotMood } from "../data/mood";
 import { useSession } from "../data/session";
 import { useAccountUsage, type BotRow } from "../data/usage";
-import { percent, plural } from "../lib/format";
+import { ago, percent, plural } from "../lib/format";
+import { useNow } from "../lib/now";
 import { Link } from "../lib/router";
 import { DOWNLOAD_URL } from "../lib/usage";
 import { Card, cx, Skeleton } from "../ui/kit";
 import { BotMascot, Mascot } from "../ui/Mascot";
 import { CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
+import { Activity } from "./activity";
 import { CloudHero } from "./cloud-offer";
 import { LoadError } from "./common";
+import { PlanSheet } from "./plan-sheet";
 import { Figure } from "../ui/Figure";
 
 const ORDER: Record<BotMood, number> = { working: 0, waking: 1, idle: 2, drowsy: 3, sleeping: 4 };
@@ -56,40 +59,19 @@ function Crew({ rows, plain = false }: { rows: BotRow[]; plain?: boolean }) {
   );
 }
 
-const STEPS = ["download dusk bot", "sign in with this account", "make a bot. it shows up here"];
-
-/** no bots and no cloud yet: the free way to a first bot, quieter than the cloud offer above it, so home has one main button */
-function GetTheApp() {
-  return (
-    <section className="surface enter flex items-center gap-8 rounded-card bg-card p-6 max-sm:flex-col max-sm:items-start max-sm:gap-5 max-sm:p-5" style={{ ["--i" as string]: 1 }} aria-labelledby="app-title">
-      <div className="min-w-0 flex-1">
-        <h2 id="app-title" className="text-20 font-medium tracking-[-0.03em] text-ink">or start free on your own computer.</h2>
-        <ol className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-14 text-ink-2">
-          {STEPS.map((s, i) => <li key={s} className="flex items-center gap-2"><span className="num grid size-5 place-items-center rounded-full bg-pop font-pixel text-12 text-ink">{i + 1}</span>{s}</li>)}
-        </ol>
-      </div>
-      <a href={DOWNLOAD_URL} target="_blank" rel="noreferrer" className="press hover-outline inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-btn px-5 text-14 font-medium text-ink"><Download size={16} strokeWidth={1.75} aria-hidden />download free</a>
-    </section>
-  );
-}
-
-/** nobody here yet, with the cloud already on: the picture with one bot asleep in it, and the way to get the first one */
+/** nobody here yet: a few bots asleep on the wash, and the way to get the first one */
 function CrewEmpty() {
   return (
-    <section className="enter relative isolate overflow-hidden rounded-card bg-[#3fbdfb]" style={{ ["--i" as string]: 1 }} aria-labelledby="crew-empty-title">
-      <img src={poster} alt="" className="absolute inset-0 -z-10 size-full object-cover object-[center_76%]" draggable={false} />
-      <img src={cloudPink} alt="" width={240} height={80} className="pixel-art cloud-drift absolute right-[30%] top-6 -z-10 w-[104px] max-sm:hidden" style={{ ["--drift" as string]: "90px", ["--dur" as string]: "44s" }} draggable={false} />
-      <div className="flex items-end justify-between gap-6 p-5 max-sm:flex-col max-sm:items-start">
-        <div className="pop max-w-[380px] rounded-[20px] bg-white p-5 text-[#131316]">
-          <h2 id="crew-empty-title" className="text-20 font-medium tracking-[-0.03em]">your bots will hang out here.</h2>
-          <p className="mt-1 text-14 text-[#4b4b55]">make one in the app and it shows up in a few seconds, with what it's doing.</p>
-          <a href={DOWNLOAD_URL} target="_blank" rel="noreferrer" className="press mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-[#131316] px-5 text-14 font-medium text-white"><Download size={16} strokeWidth={1.75} aria-hidden />get the app</a>
-        </div>
-        <div className="flex shrink-0 items-end gap-5 pe-6 max-sm:self-center max-sm:pe-0" aria-hidden>
-          <span className="peek relative" style={{ ["--i" as string]: 0 }}><Mascot body="wisp" color="purple" size={64} state="sleeping" /><span className="absolute -right-1 -top-2"><i className="zz not-italic !text-white">z</i><i className="zz not-italic !text-white">z</i><i className="zz not-italic !text-white">z</i></span></span>
-          <span className="peek" style={{ ["--i" as string]: 1 }}><Mascot body="kit" color="blue" size={92} state="curious" track={900} tappable /></span>
-          <span className="peek" style={{ ["--i" as string]: 2 }}><Mascot body="hearty" color="pink" size={70} state="idle" track={900} tappable /></span>
-        </div>
+    <section className="surface enter flex items-end justify-between gap-6 overflow-hidden rounded-card bg-card p-6 max-sm:flex-col max-sm:items-start max-sm:p-5" style={{ ["--i" as string]: 1 }} aria-labelledby="crew-empty-title">
+      <div className="min-w-0 max-w-[400px]">
+        <h2 id="crew-empty-title" className="text-20 font-medium tracking-[-0.03em] text-ink">your bots will hang out here.</h2>
+        <p className="mt-1 text-14 text-ink-3">make one in the app. it shows up here in a few seconds, with what it's doing.</p>
+        <a href={DOWNLOAD_URL} target="_blank" rel="noreferrer" className="press hover-outline mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-btn px-5 text-14 font-medium text-ink"><Download size={16} strokeWidth={1.75} aria-hidden />get the app</a>
+      </div>
+      <div className="flex shrink-0 items-end gap-5 pe-4 max-sm:self-center max-sm:pe-0" aria-hidden>
+        <span className="peek relative" style={{ ["--i" as string]: 0 }}><Mascot body="wisp" color="purple" size={56} state="sleeping" /><span className="absolute -right-1 -top-2"><i className="zz not-italic">z</i><i className="zz not-italic">z</i><i className="zz not-italic">z</i></span></span>
+        <span className="peek" style={{ ["--i" as string]: 1 }}><Mascot body="kit" color="blue" size={80} state="curious" track={900} tappable /></span>
+        <span className="peek" style={{ ["--i" as string]: 2 }}><Mascot body="hearty" color="pink" size={62} state="idle" track={900} tappable /></span>
       </div>
     </section>
   );
@@ -144,20 +126,85 @@ function CloudLive({ cloud, detail }: { cloud: CloudDesktop; detail: WorkspaceDe
   );
 }
 
+const TINT = { sky: "bg-sky", lime: "bg-lime", rose: "bg-rose", lemon: "bg-lemon" } as const;
+const ICON = { size: 20, strokeWidth: 1.75 } as const;
+
+function Tile({ icon, tint, title, body, to, external, onClick }: { icon: ReactNode; tint: keyof typeof TINT; title: string; body: string; to?: string; external?: boolean; onClick?(): void }) {
+  const inner = (
+    <>
+      <div className="flex items-start justify-between">
+        <span className={cx("grid size-11 place-items-center rounded-[14px] text-ink", TINT[tint])}>{icon}</span>
+        <ArrowUpRight size={17} strokeWidth={1.75} className="tile-arrow text-ink-4" aria-hidden />
+      </div>
+      <div className="mt-5 text-16 font-medium tracking-[-0.02em] text-ink">{title}</div>
+      <div className="mt-1 text-13 leading-[1.45] text-ink-3">{body}</div>
+    </>
+  );
+  const cls = "surface hover-tile block rounded-card bg-card p-5 text-start";
+  if (onClick || !to) return <button type="button" className={cls} onClick={onClick}>{inner}</button>;
+  return external ? <a href={to} className={cls} target="_blank" rel="noreferrer">{inner}</a> : <Link to={to} className={cls}>{inner}</Link>;
+}
+
+/** the bots that ran last, across every workspace */
+function Recent({ rows: all }: { rows: BotRow[] }) {
+  const now = useNow();
+  const rows = useMemo(() => all.filter((r) => r.bot.lastActiveAt).sort((a, b) => Number(b.bot.busy) - Number(a.bot.busy) || (b.bot.lastActiveAt ?? 0) - (a.bot.lastActiveAt ?? 0)).slice(0, 5), [all]);
+  return (
+    <Card className="enter !p-3" style={{ ["--i" as string]: 4 }} aria-labelledby="recent-title">
+      <h2 id="recent-title" className="px-3 pb-1 pt-2 text-16 font-medium tracking-[-0.02em] text-ink">who ran last</h2>
+      {rows.length ? (
+        <ul className="divide-y divide-line px-3">
+          {rows.map(({ bot, where, mood }) => (
+            <li key={`${where}-${bot.id}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3 md:grid-cols-[minmax(0,1fr)_200px_130px]">
+              <span className="flex min-w-0 items-center gap-3">
+                <BotMascot bot={bot} mood={mood} size={30} />
+                <span className="min-w-0">
+                  <span className="block truncate text-14 text-ink">{bot.name}<span className="text-ink-3"> on {where}</span></span>
+                  {bot.model && <span className="block truncate text-13 text-ink-4 md:hidden">{bot.model}</span>}
+                </span>
+              </span>
+              <span className="t-id truncate text-ink-3 max-md:hidden">{bot.model ?? ""}</span>
+              <span className="num text-end text-13 text-ink-3">{bot.busy ? <span className="text-good">working now</span> : ago(bot.lastActiveAt, now)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="flex items-center gap-3 px-3 pb-3 pt-2">
+          <Mascot body="tofu" color="pink" size={30} state="sleeping" still />
+          <p className="text-14 text-ink-3">nobody yet. the last few bots to do something show up here.</p>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function HomePage() {
-  const { account } = useSession();
+  const { account, detail } = useSession();
   const { account: profile, clouds, error, refresh } = useCloud();
   const { bots, loading } = useAccountUsage();
+  const now = useNow(60_000);
+  const [plan, setPlan] = useState(false);
   const name = profile?.profile.name || account?.name || account?.email.split("@")[0] || "";
   const cloud = clouds?.[0] ?? null;
   const cloudDetail = useWorkspaceDetail(cloud?.workspaceId ?? null);
-  const crew = bots.length ? <Crew rows={bots} plain={!cloud} /> : loading ? <Skeleton className="h-[200px] !rounded-card" /> : cloud ? <CrewEmpty /> : <GetTheApp />;
+  const crew = bots.length ? <Crew rows={bots} plain={!cloud} /> : loading ? <Skeleton className="h-[200px] !rounded-card" /> : <CrewEmpty />;
   return (
     <div>
+      {plan && <PlanSheet source="dash_home" start="starter" onClose={() => setPlan(false)} />}
       <h1 className="t-title enter mb-8 max-sm:mb-6">hi {name}.</h1>
       <div className="flex flex-col gap-4">
         {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[360px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudHero />}
-        {clouds !== null && crew}
+        {clouds !== null && <>
+          {crew}
+          <div className="enter grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:gap-3" style={{ ["--i" as string]: 2 }}>
+            <Tile tint="sky" icon={<Download {...ICON} />} title="get the app" body="where you make bots and chat with them." to={DOWNLOAD_URL} external />
+            <Tile tint="lime" icon={<Cloud {...ICON} />} title="dusk cloud" body={cloud ? `open ${cloud.name}, on 24/7.` : "keep your bots on 24/7."} {...(cloud ? { to: "/cloud" } : { onClick: () => setPlan(true) })} />
+            <Tile tint="rose" icon={<Smartphone {...ICON} />} title="link your phone" body="text your bots from anywhere." to="/account#devices" />
+            <Tile tint="lemon" icon={<Blocks {...ICON} />} title="apps" body="gmail, slack, github and hundreds more." to="/connectors" />
+          </div>
+          <Activity detail={detail?.report?.activity ? detail : null} now={now} className="enter" style={{ ["--i" as string]: 3 }} />
+          <Recent rows={bots} />
+        </>}
       </div>
     </div>
   );
