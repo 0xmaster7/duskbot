@@ -138,7 +138,8 @@ const SITES: Array<{ id: string; kind: string; url: string; expect?: string }> =
 const BROWSE = String.raw`
 import json, os, re, shutil, subprocess, sys, time, urllib.request
 sites = json.loads(sys.argv[1]); out = []
-chrome = shutil.which("chromium") or shutil.which("chromium-browser") or shutil.which("google-chrome")
+# the binary itself: the image's chromium wrapper adds the remote-debugging port the bot's own browser holds
+chrome = "/usr/lib/chromium/chromium" if os.path.exists("/usr/lib/chromium/chromium") else shutil.which("chromium")
 walls = re.compile(r"(unusual traffic|are you a robot|not a robot|verify you are human|captcha|access denied|request blocked|sign in to confirm you.re not a bot|pardon our interruption|enable javascript and cookies|attention required)", re.I)
 consent = re.compile(r"(accept all|accept cookies|cookie settings|we use cookies|manage cookies|consent)", re.I)
 for s in sites:
@@ -163,8 +164,8 @@ except Exception as e:
 print(json.dumps(out))
 `;
 const PROFILE = String.raw`
-import json, re, shutil, subprocess, sys
-chrome = shutil.which("chromium") or shutil.which("chromium-browser") or shutil.which("google-chrome")
+import json, os, re, shutil, subprocess, sys
+chrome = "/usr/lib/chromium/chromium" if os.path.exists("/usr/lib/chromium/chromium") else shutil.which("chromium")
 url = sys.argv[1]
 p = subprocess.run([chrome, "--headless=new", "--no-sandbox", "--disable-gpu", "--user-data-dir=" + sys.argv[2], "--virtual-time-budget=5000", "--dump-dom", url], capture_output=True, timeout=60)
 print(json.dumps({"kept": "omb_profile" in p.stdout.decode("utf-8", "replace"), "exit": p.returncode}))
@@ -278,6 +279,8 @@ try {
   await step("desktop: the stream opens through the home's origin", async () => {
     const shot = await api.call("POST", `/api/bots/${first.id}/computer/screenshot`, {});
     results.screenshotBytes = JSON.stringify(shot.body ?? {}).length;
+    const take = await api.call("POST", `/api/bots/${first.id}/computer/control`, { action: "take" });
+    results.takeControl = take.status;
     const join = await api.call("POST", `/api/bots/${first.id}/computer/join?viewer=proxy`, {});
     const joinUrl = String(join.body?.joinUrl ?? "");
     if (!joinUrl) throw new Error(`join ${join.status} ${JSON.stringify(join.body).slice(0, 200)}`);
@@ -293,8 +296,13 @@ try {
     const id = await container();
     if (!id) throw new Error("no bot desktop container");
     await ibx.upload(cloud().serverId!, "/data/home/omb-browse.py", Buffer.from(BROWSE));
-    const run = await onMachine(cloudId, `sudo docker cp /data/home/omb-browse.py ${id}:/tmp/omb-browse.py && sudo docker exec -u 1000 ${id} python3 /tmp/omb-browse.py '${JSON.stringify(SITES).replace(/'/g, "")}'`, 600);
-    const parsed = JSON.parse(run.stdout.trim().split("\n").at(-1) ?? "[]");
+    // minutes of real browsing: detached on the machine (a long exec is dropped by the provider's API), then read back
+    await onMachine(cloudId, `rm -f /data/home/omb-browse.out; setsid nohup bash -c "sudo docker exec -i -u 1000 ${id} python3 - '${JSON.stringify(SITES).replace(/'/g, "").replace(/"/g, '\\"')}' < /data/home/omb-browse.py > /data/home/omb-browse.out 2>&1; echo omb-done >> /data/home/omb-browse.out" > /dev/null 2>&1 < /dev/null & echo started`, 60);
+    let out = "";
+    for (let n = 0; n < 80 && !out.includes("omb-done"); n++) { await sleep(15_000); out = (await onMachine(cloudId, "tail -c 20000 /data/home/omb-browse.out 2>/dev/null", 60)).stdout; }
+    const lastLine = out.trim().split("\n").filter(l => l.startsWith("[")).at(-1) ?? "";
+    if (!lastLine) throw new Error(`browse: ${out.slice(-400)}`);
+    const parsed = JSON.parse(lastLine);
     results.browse = parsed;
     for (const r of parsed) note(`${r.id.padEnd(14)} ${String(r.ms).padStart(6)} ms ${r.error ? `ERROR ${r.error}` : `${r.bytes} bytes${r.wall ? " WALL" : ""}${r.consent ? " consent" : ""}${r.expected ? "" : " unexpected"} ${r.title ?? ""}${r.mbit ? ` ${r.mbit} Mbit/s` : ""}`}`);
   });
@@ -318,9 +326,9 @@ try {
   await step("browser profile: a site's cookie kept in the bot's profile", async () => {
     const id = await container();
     await ibx.upload(cloud().serverId!, "/data/home/omb-profile.py", Buffer.from(PROFILE));
-    await onMachine(cloudId, `sudo docker cp /data/home/omb-profile.py ${id}:/tmp/omb-profile.py`);
-    await onMachine(cloudId, `sudo docker exec -u 1000 ${id} python3 /tmp/omb-profile.py 'https://httpbin.org/cookies/set?omb_profile=kept' /home/cua/.omb-profile 2>/dev/null || sudo docker exec -u 1000 ${id} python3 /tmp/omb-profile.py 'https://httpbin.org/cookies/set?omb_profile=kept' /tmp/omb-profile`, 120);
-    const check = await onMachine(cloudId, `sudo docker exec -u 1000 ${id} sh -c 'd=/home/cua/.omb-profile; [ -d $d ] || d=/tmp/omb-profile; python3 /tmp/omb-profile.py https://httpbin.org/cookies $d'`, 120);
+    const set = await onMachine(cloudId, `sudo docker exec -i -u 1000 ${id} python3 - 'https://httpbin.org/cookies/set?omb_profile=kept' /home/cua/.omb-profile < /data/home/omb-profile.py 2>&1`, 120);
+    results.profileSet = set.stdout.trim().slice(-200);
+    const check = await onMachine(cloudId, `sudo docker exec -i -u 1000 ${id} python3 - https://httpbin.org/cookies /home/cua/.omb-profile < /data/home/omb-profile.py 2>&1`, 120);
     results.profileBefore = check.stdout.trim();
   });
 
@@ -356,7 +364,7 @@ try {
       if (((rows.body?.messages ?? []) as Array<{ role?: string; kind?: string }>).filter(m => m.role === "bot" && m.kind === "text").length >= 2) { results.replyAfterResumeMs = Date.now() - sentAt; break; }
     }
     const id = await container();
-    const check = await onMachine(cloudId, `sudo docker exec -u 1000 ${id} sh -c 'd=/home/cua/.omb-profile; [ -d $d ] || d=/tmp/omb-profile; python3 /tmp/omb-profile.py https://httpbin.org/cookies $d'`, 120);
+    const check = await onMachine(cloudId, `sudo docker exec -i -u 1000 ${id} python3 - https://httpbin.org/cookies /home/cua/.omb-profile < /data/home/omb-profile.py 2>&1`, 120);
     results.profileAfterResume = check.stdout.trim();
   });
 
