@@ -67,7 +67,7 @@ export function createBilling(options: BillingOptions) {
     if (mode !== "test" && mode !== "live") throw new Error("Invalid DUSK_DODO_MODE.");
     required("DUSK_DODO_PRODUCTS");
     provider = createDodoProvider({ apiKey, webhookSecret, mode, now, fetch: options.fetch });
-  } else provider = fake ?? { name: "dodo", createCheckout: unavailable, portal: unavailable, verifyWebhook: unavailable, cancelAtPeriodEnd: unavailable, changePlan: unavailable, invoiceUrl: unavailable, invoicePdf: unavailable };
+  } else provider = fake ?? { name: "dodo", createCheckout: unavailable, portal: unavailable, verifyWebhook: unavailable, cancelAtPeriodEnd: unavailable, cancelNow: unavailable, refundPayment: unavailable, changePlan: unavailable, invoiceUrl: unavailable, invoicePdf: unavailable };
   let products: Record<string, string>;
   try { products = dodoProducts(env); } catch { throw new Error("Invalid DUSK_DODO_PRODUCTS."); }
   const config = { ...BILLING_CONFIG, products };

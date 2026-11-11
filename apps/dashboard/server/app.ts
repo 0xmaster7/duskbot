@@ -425,8 +425,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
         state.workspaces.push(ws);
       }
       if (ownerAccountId) {
-        // a new owner never inherits the previous owner's queued commands or open waits
-        if (ws.ownerAccountId && ws.ownerAccountId !== ownerAccountId) forget(ws);
+        // security invariant: a grant claims only an unclaimed workspace or one its own account already owns
+        if (ws.ownerAccountId && ws.ownerAccountId !== ownerAccountId) fail(409, "owned_elsewhere", "This workspace belongs to another Dusk account. Remove it from that account's dashboard first.");
         ws.ownerAccountId = ownerAccountId;
         ws.claimHash = null;
         ws.claimExpiresAt = 0;

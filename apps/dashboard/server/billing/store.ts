@@ -8,6 +8,8 @@ export type CloudAction =
   | { kind: "order"; cloudId: string; input: OrderInput }
   | { kind: "change"; cloudId: string; plan: DesktopPlan }
   | { kind: "activate"; cloudId: string; subscriptionId: string; plan: DesktopPlan }
+  /** a new subscription brings back an ended cloud with its data; a fresh cloud when it no longer can */
+  | { kind: "revive"; cloudId: string; subscriptionId: string; plan: DesktopPlan }
   | { kind: "payment"; cloudId: string; problem: boolean }
   | { kind: "schedule"; cloudId: string; at: number }
   /** `from`: the desktop runs until then (the paid period's end), and `at` deletes it */
@@ -16,6 +18,8 @@ export type CloudAction =
 export interface StoredCheckout {
   id: string; accountId: string; email: string; kind: "cart" | "credits"; cart: Cart | null; packId: string | null; cloudId: string | null;
   providerSubscriptionId?: string;
+  /** paying it brings back `cloudId`, an ended cloud of this account, instead of a new one */
+  revive?: boolean;
   providerSessionId: string | null; url: string | null; status: "open" | "completed" | "expired"; source: string | null;
   createdAt: number; openUntil: number; subscriptionId: string | null; amountCents: number; creditCents: number | null; lines: CartLine[];
 }
@@ -38,6 +42,9 @@ export interface AccountClosure {
 export interface BillingState {
   closures?: AccountClosure[];
   providerCancels?: Array<{ id: string; completedAt: number | null }>;
+  /** a second subscription for a plan the account already has (a stale checkout page paid late, say): ended at the
+   *  provider at once and every payment on it refunded */
+  duplicates?: Array<{ id: string; accountId: string; checkoutId: string; cancelledAt: number | null; payments: Array<{ id: string; refundedAt: number | null }> }>;
   cloudActions?: CloudAction[];
   refunds?: Array<{ id: string; paymentId: string; amountCents: number; currency: string }>;
   customers: Array<{ accountId: string; email: string; providerCustomerId: string | null }>;
@@ -64,17 +71,18 @@ const plan = shape({ kind: one("shared_s", "shared_m", "dedicated"), placement: 
 const valid = shape({
   closures: optional(array(shape({ id: str, accountId: str, anonId: str, startedAt: int, completedAt: nullable(int), destroyDesktopsNow: bool, steps: array(str) }))),
   providerCancels: optional(array(shape({ id: str, completedAt: nullable(int) }))),
+  duplicates: optional(array(shape({ id: str, accountId: str, checkoutId: str, cancelledAt: nullable(int), payments: array(shape({ id: str, refundedAt: nullable(int) })) }))),
   cloudActions: optional(array(value => {
     if (!value || typeof value !== "object") return false;
     const action = value as CloudAction;
     return str(action.cloudId) && (action.kind === "order" && shape({ accountId: str, name: str, region: str })(action.input) && plan(action.input)
       || action.kind === "change" && plan(action.plan) || action.kind === "keep" || action.kind === "payment" && bool(action.problem)
       || (action.kind === "schedule" || action.kind === "end") && int(action.at)
-      || action.kind === "activate" && str(action.subscriptionId) && plan(action.plan));
+      || (action.kind === "activate" || action.kind === "revive") && str(action.subscriptionId) && plan(action.plan));
   })),
   refunds: optional(array(shape({ id: str, paymentId: str, amountCents: int, currency: str }))),
   customers: array(shape({ accountId: str, email: str, providerCustomerId: nullable(str) })),
-  checkouts: array(shape({ id: str, accountId: str, email: str, kind: one("cart", "credits"), cart: nullable(cart), packId: nullable(str), cloudId: nullable(str), providerSubscriptionId: optional(str), providerSessionId: nullable(str), url: nullable(str), status: one("open", "completed", "expired"), source: nullable(str), createdAt: int, openUntil: int, subscriptionId: nullable(str), amountCents: int, creditCents: nullable(int), lines: array(line) })),
+  checkouts: array(shape({ id: str, accountId: str, email: str, kind: one("cart", "credits"), cart: nullable(cart), packId: nullable(str), cloudId: nullable(str), providerSubscriptionId: optional(str), revive: optional(bool), providerSessionId: nullable(str), url: nullable(str), status: one("open", "completed", "expired"), source: nullable(str), createdAt: int, openUntil: int, subscriptionId: nullable(str), amountCents: int, creditCents: nullable(int), lines: array(line) })),
   subscriptions: array(shape({ id: str, accountId: str, providerSubscriptionId: nullable(str), checkoutId: str, cart, totalCents: int, lines: array(line), status: one("pending", "active", "payment_problem", "cancelled", "ended"), lastEventAt: optional(int), source: optional(nullable(str)), pendingChange: optional(shape({ cart, totalCents: int, lines: array(line), products: shape({ productId: str, addons: array(shape({ addonId: str, quantity: int })) }), cloudId: nullable(str) })), licenseId: nullable(str), cloudId: nullable(str), currentPeriodStart: nullable(int), currentPeriodEnd: nullable(int), cancelAtPeriodEnd: bool, createdAt: int, updatedAt: int, version: int })),
   licenses: array(shape({ id: str, ownerAccountId: str, kind: one("solo", "team"), seats: int, members: array(shape({ email: str, accountId: nullable(str), role: one("owner", "member"), addedAt: int })), priority: bool, subscriptionId: nullable(str), status: one("active", "grace", "expired"), validUntil: nullable(int) })),
   invoices: array(shape({ id: str, accountId: str, providerPaymentId: str, subscriptionId: nullable(str), checkoutId: nullable(str), amountCents: int, currency: str, status: one("paid", "failed", "refunded"), description: str, createdAt: int })),

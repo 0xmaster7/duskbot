@@ -271,3 +271,19 @@ it("keeps a suspended cloud suspended after a status failure with a future delet
   f.dedicated.failNextStatus = true; await f.service.reconcile(); expect(c.status).toBe("suspended");
   f.advance(30_000); await f.service.reconcile(); expect((await f.dedicated.status(c.serverId!)).state).toBe("off");
 });
+it("revives an ended cloud with its machine and data for a new subscription, and only while it is kept", async () => {
+  const f = fixture(), c = f.order();
+  f.service.activate(c.id, "sub1", dedicatedPlan); await f.ready(c);
+  const serverId = c.serverId, workspaceId = c.workspaceId;
+  f.service.end(c.id, f.now() + 5000); await f.service.reconcile(); expect(c).toMatchObject({ status: "stopped", ended: true });
+  expect(f.service.revivable(c.id, poolPlan)).toBe(false);
+  expect(f.service.revivable(c.id, dedicatedPlan)).toBe(true);
+  expect(f.service.revive(c.id, "sub2", dedicatedPlan)).toBe(true);
+  expect(c).toMatchObject({ subscriptionId: "sub2", destroyAt: null, wantPower: "on", revivedAt: f.now(), serverId, workspaceId });
+  expect(c.ended).toBeUndefined();
+  await f.service.reconcile(); expect(c.status).toBe("running");
+  expect(f.service.view(c).revivedAt).toBe(f.now());
+  f.service.end(c.id, f.now() + 5000); f.advance(6000); await f.service.reconcile();
+  expect(c.status).toBe("destroyed");
+  expect(f.service.revivable(c.id, dedicatedPlan)).toBe(false); expect(f.service.revive(c.id, "sub3", dedicatedPlan)).toBe(false);
+});

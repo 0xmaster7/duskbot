@@ -22,7 +22,7 @@ import type { HomeClient, StoredCloud } from "../../dashboard/server/clouds/type
 import type { HomeLifecycleState } from "./state.ts";
 import type { HomeUpdates } from "./home-update.ts";
 
-const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, SETUP_TRIES = 3, SETUP_PATIENCE_MS = 6 * HOUR, SETUP_ERROR_RETRY_MS = 6 * HOUR;
+const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, SETUP_TRIES = 3, RESTORE_TRIES = 3, SETUP_PATIENCE_MS = 6 * HOUR, SETUP_ERROR_RETRY_MS = 6 * HOUR;
 
 export interface ManagedSettings {
   /** the shortest idle before any stop, in minutes (DUSK_MANAGED_IDLE_MINUTES); the power policy decides past it */
@@ -365,12 +365,9 @@ export function createLifecycle(deps: LifecycleDeps) {
         b.installed = pkg.sha256; deps.save(c);
       }
       if (b.restoreFrom) {
-        const tar = deps.backups.read(c.id, keyOf(c), b.restoreFrom);
-        await provider.upload(c.serverId, image.restorePath, tar);
-        const done = await provider.run(c.serverId, image.restoreCommand, 600);
-        if (!done.ok || !done.stdout.includes("restored")) throw new RetryableCloudError("Cloud restore failed.");
+        if (!(await restored(c, b.restoreFrom))) return restoreFailed(c);
         const from = b.backups.find(g => g.file === b.restoreFrom);
-        b.restoredFrom = { file: b.restoreFrom, at: from?.snapshotAt ?? now() }; b.restoreFrom = null;
+        b.restoredFrom = { file: b.restoreFrom, at: from?.snapshotAt ?? now() }; b.restoreFrom = null; b.restoreTries = 0;
         log(c, "restore", "reconciler", "recovery", { file: b.restoredFrom.file });
       }
       c.setupStep = "starting"; deps.save(c); return;
@@ -392,6 +389,35 @@ export function createLifecycle(deps: LifecycleDeps) {
     log(c, "running", "reconciler", b.restoredFrom ? "recovered" : "provisioned");
     if (b.restoredFrom && b.attempt > 0) notice(c, "recovered", b.restoredFrom.file ? b.restoredFrom.at : null);
     deps.save(c);
+  }
+
+  async function restored(c: StoredCloud, file: string): Promise<boolean> {
+    let tar: Buffer;
+    try { tar = deps.backups.read(c.id, keyOf(c), file); } catch { return false; }
+    await provider.upload(c.serverId!, image.restorePath, tar);
+    const done = await provider.run(c.serverId!, image.restoreCommand, 600);
+    return done.ok && done.stdout.includes("restored");
+  }
+
+  /** a restore that keeps failing falls back to the next older verified generation, RESTORE_TRIES tries each; with none
+   *  left the recovery stops in the error state for the operator (setupErrored retries it, slowly) */
+  function restoreFailed(c: StoredCloud): never {
+    const b = state(c), file = b.restoreFrom!;
+    b.restoreTries = (b.restoreTries ?? 0) + 1;
+    log(c, "restore_failed", "reconciler", "recovery", { file, tries: b.restoreTries });
+    if (b.restoreTries < RESTORE_TRIES) { deps.save(c); throw new RetryableCloudError("Cloud restore failed."); }
+    b.badRestores = [...new Set([...(b.badRestores ?? []), file])];
+    b.restoreTries = 0;
+    const failedAt = b.backups.find(g => g.file === file)?.snapshotAt ?? Infinity;
+    const older = [...b.backups].reverse().find(g => g.verifiedAt !== null && g.snapshotAt < failedAt && !b.badRestores!.includes(g.file));
+    if (older) {
+      b.restoreFrom = older.file;
+      log(c, "restore_fallback", "reconciler", "recovery", { from: file, to: older.file });
+      deps.save(c); throw new RetryableCloudError("Cloud restore failed; an older backup is tried next.");
+    }
+    console.warn(`managed: ALERT cloud ${c.id}: no backup of it restores; its recovery waits for the operator`);
+    c.status = "error"; c.error = "Restoring your data failed. We are on it.";
+    deps.save(c); throw new Error("Cloud restore failed.");
   }
 
   /** a first setup that failed on its machine (a mirror down, say): a fresh machine, at most SETUP_TRIES in all; the failed
@@ -808,6 +834,12 @@ export function createLifecycle(deps: LifecycleDeps) {
     },
     reconcile,
     verdict: (c: StoredCloud) => verdictFor(c),
+    /** its data is still kept: within retention, with no deletion under way */
+    revivable(c: StoredCloud) {
+      if (c.status === "destroyed" || c.status === "destroying" || state(c).deletion) return false;
+      const verdict = verdictFor(c);
+      return !verdict.delete && (verdict.earliestAt === null || now() < verdict.earliestAt);
+    },
     backup: (c: StoredCloud) => backup(c, "manual"),
     requestDelete(c: StoredCloud, link: (token: string) => string) {
       const b = state(c);

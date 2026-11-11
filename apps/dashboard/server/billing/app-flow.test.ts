@@ -185,7 +185,8 @@ it("enforces Admin ownership, one-time confirmations, typed bodies, and the desk
   for (const plan of ["personal", "max"]) await refused("upgrade/preview", { plan }, 409, "plan_change_unavailable");
   for (const data of [{ plan: "free" }, { plan: 1 }, { plan: "starter", source: 2 }]) await refused("checkout", data, 400, "invalid_request");
   const checkout = await f.request("checkout", { plan: "starter", source: "app_card", ignored: true, color: 12 }); expect(checkout.status).toBe(200);
-  const open = await refused("checkout", { plan: "starter", source: "app_card" }, 409, "checkout_open"); expect(open.data.checkoutUrl).toBe(checkout.data.url);
+  expect(await f.request("checkout", { plan: "starter", source: "app_card" })).toMatchObject({ status: 200, data: { url: checkout.data.url } });
+  const open = await refused("checkout", { plan: "pro", source: "app_card" }, 409, "checkout_open"); expect(open.data.checkoutUrl).toBe(checkout.data.url);
   expect(await refused("clouds", { tier: "pro", interval: "month", name: "Other" }, 409, "checkout_open")).toMatchObject({ data: { addBlocked: "checkout_open" } });
   const purchase = await f.complete(), id = purchase.cloudId!;
   await refused("checkout", { plan: "pro", source: "app_card" }, 409, "already_subscribed");

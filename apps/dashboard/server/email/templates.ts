@@ -141,6 +141,8 @@ export interface ReceiptInput {
   periodStart: number | null; periodEnd: number | null; renews: boolean; first: boolean;
   /** a dusk cloud plan: the button opens the cloud, otherwise the app */
   cloud: boolean;
+  /** the first payment of a plan that brought back a paused cloud with its data */
+  revived?: boolean;
 }
 /** a payment that went through: a new plan, a renewal or credits */
 export function receiptEmail(cfg: EmailConfig, input: ReceiptInput): Rendered {
@@ -152,8 +154,9 @@ export function receiptEmail(cfg: EmailConfig, input: ReceiptInput): Rendered {
   return render(cfg, {
     subject: `receipt for ${amount}: ${input.description}`, preheader: `thanks! ${amount} for ${input.description}.`, tag: "receipt", hero: HERO.receipt,
     blocks: [
-      { t: "h1", text: input.first ? "thanks, you're all set" : "thanks, payment received" },
-      { t: "p", text: input.first ? `your plan is active. here's your receipt for **${input.description}**.` : `here's your receipt for **${input.description}**. nothing else to do.` },
+      { t: "h1", text: input.revived ? "welcome back" : input.first ? "thanks, you're all set" : "thanks, payment received" },
+      { t: "p", text: input.revived ? `your plan is active again, and your cloud and bots are restored where they stopped. here's your receipt for **${input.description}**.`
+        : input.first ? `your plan is active. here's your receipt for **${input.description}**.` : `here's your receipt for **${input.description}**. nothing else to do.` },
       { t: "facts", rows },
       input.cloud ? { t: "button", label: "open dusk cloud", href: `${cfg.app}/cloud` } : { t: "button", label: "open the app", href: `${cfg.site}/download` },
       { t: "p", small: true, text: "invoices and plan details live on your plan page, linked below." },
@@ -298,6 +301,5 @@ export function cloudDeletionEmail(cfg: EmailConfig, { kind, name, at, link, day
     blocks: [{ t: "h1", text: `${days} left for ${name}` }, { t: "p", text: `**${name}** has been napping since its plan ended.` },
       { t: "note", tone: daysLeft === 1 ? "alert" : "warn", text: `${date ? `on **${date}**` : "soon"}, ${name} and everything on it will be deleted for good.` },
       { t: "p", text: "start a plan for it again and it wakes up right where it stopped." },
-      { t: "button", label: "keep my cloud", href: cloud },
-      { t: "p", small: true, text: "started a new plan after this one ended? reply to this email and we bring this data over to it." }] });
+      { t: "button", label: "keep my cloud", href: cloud }] });
 }

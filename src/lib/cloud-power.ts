@@ -13,7 +13,7 @@ export type PageWakeIntent = "type" | "click";
 
 type Listener = (asleep: boolean) => void;
 const listeners = new Set<Listener>();
-let asleep = false, waking = false;
+let asleep = false, waking = false, sendsHeld = 0;
 let detach: (() => void) | null = null;
 const wakingListeners = new Set<Listener>();
 
@@ -26,9 +26,31 @@ export function onCloudPower(listener: Listener): () => void {
   return () => { listeners.delete(listener); };
 }
 
-/** The person acted and the home hasn't answered yet: the page says it is waking. */
+/** The person acted and the home hasn't answered yet, or a send waits for it to wake: the page says it is waking. */
 export function cloudWaking(): boolean {
-  return waking;
+  return waking || sendsHeld > 0;
+}
+
+/** A send is waiting for the Cloud to wake. */
+export function cloudSendWaiting(): boolean {
+  return sendsHeld > 0;
+}
+
+/** Keeps the page saying the Cloud is waking while a send waits for it; the returned function ends this hold. */
+export function holdCloudWaking(): () => void {
+  sendsHeld++;
+  notifyWaking();
+  let ended = false;
+  return () => {
+    if (ended) return;
+    ended = true;
+    sendsHeld--;
+    notifyWaking();
+  };
+}
+
+function notifyWaking() {
+  for (const listener of wakingListeners) listener(cloudWaking());
 }
 
 export function onCloudWaking(listener: Listener): () => void {
@@ -39,7 +61,7 @@ export function onCloudWaking(listener: Listener): () => void {
 function setWaking(next: boolean) {
   if (waking === next) return;
   waking = next;
-  for (const listener of wakingListeners) listener(next);
+  notifyWaking();
 }
 
 function set(next: boolean) {
@@ -90,6 +112,11 @@ export function pageShown(signal?: AbortSignal): Promise<void> {
   });
 }
 
+/** The Cloud's edge answers this way while it starts a stopped machine: the request never reached the home. */
+export function wakingAnswer(response: Pick<Response, "status" | "headers">): boolean {
+  return response.status === 503 && (response.headers.get(CLOUD_POWER_HEADER) === "waking" || response.headers.has("retry-after"));
+}
+
 /** An "asleep" answer from the home (held polls and refused background requests carry it). */
 export function asleepAnswer(response: Pick<Response, "status" | "headers">): boolean {
   return response.status === 503 && response.headers.get(CLOUD_POWER_HEADER) === "asleep";
@@ -106,6 +133,7 @@ export function resetCloudPowerForTests(): void {
   detach = null;
   asleep = false;
   waking = false;
+  sendsHeld = 0;
   listeners.clear();
   wakingListeners.clear();
 }

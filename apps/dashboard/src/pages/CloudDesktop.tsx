@@ -191,6 +191,12 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
   return (
     <div className="flex flex-col gap-4">
       <DeletionBanner cloud={cloud} />
+      {cloud.revivedAt && now - cloud.revivedAt < 3 * 86_400_000 && (
+        <Card className="!py-4" aria-live="polite">
+          <p className="text-15 font-medium text-ink">welcome back</p>
+          <p className="mt-1 text-14 text-ink-3">your cloud and bots are restored, right where they stopped.</p>
+        </Card>
+      )}
       {cloud.status === "error" && (
         <Card className="!py-4" aria-live="polite">
           <p className="text-14 text-bad">{cloud.error ?? "it stopped answering."}</p>

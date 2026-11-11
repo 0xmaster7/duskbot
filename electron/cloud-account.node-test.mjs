@@ -17,9 +17,13 @@ async function fixture(t, options = {}) {
     offer: undefined, checkout: { status: 404, body: "<!doctype html>not here" }, interest: { status: 200, body: { ok: true } },
     upgradePreview: { status: 404, body: { error: "not_found" } }, upgrade: { status: 404, body: { error: "not_found" } }, teams: undefined, teamPairing: { status: 404, body: { error: "not_found" } }, moved: { status: 404, body: { error: "not_found" } }, moveStatus: { status: 404, body: { error: "not_found" } },
     // An Admin before the app's Cancel and Keep: neither route, and the session's `clouds` absent.
-    clouds: undefined, feedback: { status: 404, body: { error: "Not found." } }, renewal: () => ({ status: 404, body: { error: "Not found." } }) };
-  const identity = () => ({ cloudContractVersion: 1, expiresAt: f.now + 86400_000, device: { id: "fixture-device" }, account: { id: "fixture-account", email: "person@example.test" } });
+    clouds: undefined, feedback: { status: 404, body: { error: "Not found." } }, renewal: () => ({ status: 404, body: { error: "Not found." } }),
+    // how far this computer's clock runs ahead of the Admin's
+    macAhead: 0 };
+  const serverTime = () => f.now - f.macAhead;
+  const identity = () => ({ cloudContractVersion: 1, expiresAt: serverTime() + 86400_000, device: { id: "fixture-device" }, account: { id: "fixture-account", email: "person@example.test" } });
   const server = createServer(async (req, res) => {
+    res.setHeader("date", new Date(serverTime()).toUTCString());
     let body = ""; for await (const chunk of req) body += chunk;
     f.requests.push({ route: req.url, method: req.method, token: req.headers.authorization, version: req.headers["x-dusk-version"], body });
     const send = (status, data) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(data)); };
@@ -95,6 +99,22 @@ test("fresh startup stays local with no enrollment, browser, or network; explici
   assert.equal(f.client.state().entitlement.plan, "free");
   assert.ok(!JSON.stringify(f.states).includes(accessToken)); assert.ok(!JSON.stringify(f.states).includes("A".repeat(43)));
   assert.equal(f.requests.find(row => row.route.endsWith("/session")).token, `Bearer ${accessToken}`);
+});
+
+test("a computer clock days ahead of the Admin's still signs in, stays signed in after a restart, and expires on the Admin's clock", async t => {
+  const f = await fixture(t);
+  f.macAhead = 3 * 86400_000;
+  await f.connect();
+  assert.equal(f.saved.token, accessToken);
+  assert.equal((await f.client.refresh()).status, "connected");
+  assert.ok(f.client.state().verifiedUntil > f.now - f.macAhead);
+  f.now += 86400_000 + 5_000;
+  assert.deepEqual([f.client.state().status, f.client.state().message], ["reauth-required", "expired"]);
+
+  const restarted = await fixture(t);
+  restarted.macAhead = 3 * 86400_000;
+  restarted.saved = { origin: restarted.origin, token: accessToken, expiresAt: restarted.now - restarted.macAhead + 86400_000, device: { id: "fixture-device" }, account: { id: "fixture-account", email: "person@example.test" } };
+  assert.equal((await restarted.client.start()).status, "connected");
 });
 
 test("checkout/browser return cannot activate Pro; only refreshed server state can, and revocation removes it", async t => {

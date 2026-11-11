@@ -109,6 +109,17 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   let grant = null, issued = null, cleanup = null, pending = null, cleanupNeeded = false;
   let value = { status: "signed-out", message: "restoring" }, generation = 0, timer = null, closed = false, clearing = null, refreshing = null;
   let verifiedUntil = 0, restoring = false, controller = new AbortController(), failures = 0;
+  // expiries the account service issues are in its own time: read against its clock (its Date header), so a computer
+  // whose clock is far ahead or behind does not see a fresh sign-in as expired
+  let skew = 0, skewKnown = false;
+  const serverNow = () => now() + skew;
+  function noteServerDate(response) {
+    const at = Date.parse(response.headers?.get?.("date") ?? "");
+    skewKnown = true;
+    if (!Number.isFinite(at)) return;
+    const offset = at - now();
+    skew = Math.abs(offset) < 5_000 ? 0 : offset;
+  }
   let plan = null, savedHint = null;
   /** The plan's own Cloud that Cancel and Keep act on, as the last verified session names it. */
   let renewalCloud = null;
@@ -136,8 +147,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   };
   const state = () => {
     if (value.status === "connected") {
-      if (grant && grant.expiresAt <= now()) return structuredClone(withCheckout(view("reauth-required", "expired")));
-      if (now() >= verifiedUntil) return structuredClone(withCheckout(view("unavailable", "verification-expired")));
+      if (grant && grant.expiresAt <= serverNow()) return structuredClone(withCheckout(view("reauth-required", "expired")));
+      if (serverNow() >= verifiedUntil) return structuredClone(withCheckout(view("unavailable", "verification-expired")));
       if (failures >= CHECKING_AFTER) return structuredClone(withCheckout({ ...value, checking: true }));
     }
     return structuredClone(withCheckout(value));
@@ -163,6 +174,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       headers: { accept: "application/json", ...(body === undefined ? {} : { "content-type": "application/json" }), ...(token ? { authorization: `Bearer ${token}`, ...versionHeader } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]),
     });
+    noteServerDate(response);
     const reader = response.body?.getReader(), chunks = []; let size = 0;
     try {
       if (reader) while (true) {
@@ -196,7 +208,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     if (!input || !(newer || ["free", "pro"].includes(input.plan)) || !["active", "inactive"].includes(input.status) ||
       !(input.expiresAt === null || timestamp(input.expiresAt)) || !Number.isSafeInteger(input.version) || input.version < 0) throw new Error("Invalid Cloud entitlement.");
     const plan = input.plan === "free" ? "free" : "pro";
-    if (input.status === "active" && (plan !== "pro" || input.expiresAt === null || input.expiresAt <= now())) throw new Error("Invalid active Cloud entitlement.");
+    if (input.status === "active" && (plan !== "pro" || input.expiresAt === null || input.expiresAt <= serverNow())) throw new Error("Invalid active Cloud entitlement.");
     if (newer && !newerPlans.has(input.plan)) { newerPlans.add(input.plan); warn(`[cloud] Dusk Cloud sent plan "${input.plan}", newer than this app; treating it as paid.`); }
     const tier = typeof input.tier === "string" && TIER.test(input.tier) ? input.tier : newer ? input.plan : undefined;
     return { plan, ...(tier ? { tier } : {}), status: input.status,
@@ -257,12 +269,13 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   const signOut = () => forget();
   async function synchronize(stamp) {
     if (!grant || !current(stamp)) return state();
-    if (grant.expiresAt <= now()) { stopTimer(); return publish(view("reauth-required", "expired")); }
+    // before the service's clock is known (a restart), the session read itself decides: the service refuses an expired token
+    if (skewKnown && grant.expiresAt <= serverNow()) { stopTimer(); return publish(view("reauth-required", "expired")); }
     try {
       const previous = grant, result = await request("session", { token: previous.token });
       if (!current(stamp) || grant !== previous) return state();
       const next = identity(result);
-      if (next.device.id !== previous.device.id || next.account.id !== previous.account.id || next.account.email !== previous.account.email || next.expiresAt <= now()) {
+      if (next.device.id !== previous.device.id || next.account.id !== previous.account.id || next.account.email !== previous.account.email || next.expiresAt <= serverNow()) {
         throw Object.assign(new Error("Cloud identity changed."), { status: 401, code: "invalid_token" });
       }
       const access = entitlement(result.entitlement);
@@ -288,7 +301,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       failures = 0;
       // A checkout the Admin still holds open, with none kept here (this app restarted mid-checkout): watched as this
       // app's own from first sight, so payment, setup and "ready" are followed as closely as before the restart.
-      if (!opened && offer?.checkout && offer.checkout.openUntil > now() && access.status !== "active") {
+      if (!opened && offer?.checkout && offer.checkout.openUntil > serverNow() && access.status !== "active") {
         opened = { plan: offer.checkout.plan, source: null, startedAt: now() };
       }
       // Another Cloud at checkout with none kept here (this app restarted mid-checkout, or it was bought elsewhere): watched
@@ -297,7 +310,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       if (!adding && waitingCloud) adding = { cloudId: waitingCloud.id, name: waitingCloud.name, color: waitingCloud.color, tier: waitingCloud.tier, startedAt: now(), url: null };
       // A checkout kept from the Admin's "one is still open" answer, before the session listed its Cloud: that Cloud now.
       else if (adding && adding.cloudId === null && waitingCloud) adding = { ...adding, cloudId: waitingCloud.id, name: waitingCloud.name, color: waitingCloud.color, tier: waitingCloud.tier ?? adding.tier };
-      verifiedUntil = Math.min(grant.expiresAt, now() + STEADY_MS,
+      verifiedUntil = Math.min(grant.expiresAt, serverNow() + STEADY_MS,
         access.status === "active" && access.expiresAt !== null ? access.expiresAt : Infinity);
       publish({ ...view("connected"), entitlement: access, ...(machine ? { machine } : {}), ...(teams.length ? { teams } : {}), ...(purchase ? { purchase } : {}),
         ...(trial ? { trial } : {}), ...(credit ? { credit } : {}), ...(offer ? { offer } : {}), ...(usage ? { usage } : {}), ...(room ? { room } : {}), ...(renewingCloud ? { renewal } : {}),
@@ -307,14 +320,14 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       const added = adding ? clouds?.find(cloud => cloud.id === adding.cloudId) ?? null : null;
       const paying = watchingAdd() && Boolean(adding.url) && (!added || added.status === "checkout");
       const delay = (watching() && planCloud?.status !== "ready") || paying ? WATCH_REFRESH_MS : settingUp ? SETUP_REFRESH_MS : awaitingWake() ? ASLEEP_REFRESH_MS : REFRESH_MS;
-      schedule(refresh, Math.min(delay, verifiedUntil - now()));
+      schedule(refresh, Math.min(delay, verifiedUntil - serverNow()));
     } catch (error) {
       if (!current(stamp)) return state();
       if (signInEnded(error)) { verifiedUntil = 0; failures = 0; stopTimer(); return publish(view("reauth-required", "access-ended")); }
       failures++;
       if (value.status === "connected") publish(value);
       else publish(view("unavailable", "unreachable"));
-      schedule(refresh, Math.min(retryDelay(failures), grant.expiresAt - now()));
+      schedule(refresh, Math.min(retryDelay(failures), grant.expiresAt - serverNow()));
     }
     return state();
   }
@@ -330,7 +343,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   async function adopt(result, stamp, wanted = () => true) {
     const next = validateGrant({ origin, token: result?.accessToken, ...identity(result) });
     if (!current(stamp) || !wanted()) { await revoke(next).catch(() => {}); return false; }
-    if (next.expiresAt <= now()) throw new Error("Expired Cloud credential.");
+    if (next.expiresAt <= serverNow()) throw new Error("Expired Cloud credential.");
     issued = next;
     await store.write(next);
     if (!current(stamp)) return false;
@@ -540,7 +553,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       if (!signedIn || state().status !== "connected") return null;
       try {
         const result = await request("", { path: "/v1/app/enroll-grant", method: "POST", body: {}, token: signedIn.token });
-        if (grant !== signedIn || result?.v !== 1 || typeof result.enrollToken !== "string" || result.enrollToken.length !== 43 || !PRIVATE_CODE.test(result.enrollToken) || !Number.isSafeInteger(result.expiresAt) || result.expiresAt <= now() || typeof result.dashboardUrl !== "string" || new URL(result.dashboardUrl).origin !== origin) return null;
+        if (grant !== signedIn || result?.v !== 1 || typeof result.enrollToken !== "string" || result.enrollToken.length !== 43 || !PRIVATE_CODE.test(result.enrollToken) || !Number.isSafeInteger(result.expiresAt) || result.expiresAt <= serverNow() || typeof result.dashboardUrl !== "string" || new URL(result.dashboardUrl).origin !== origin) return null;
         return { enrollToken: result.enrollToken, dashboardUrl: result.dashboardUrl };
       } catch (error) { if (signInEnded(error)) await refresh().catch(() => {}); return null; }
     },
@@ -580,7 +593,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       const cents = value => Number.isSafeInteger(value) && value >= 0 && value <= 10_000_000;
       if (result.tier !== plan || !cents(result.price) || result.price < 1 || !cents(result.chargeNow) || !cents(result.tax ?? 0) || result.currency !== "USD"
         || typeof result.trial !== "boolean" || !CONFIRMATION.test(result.confirmation ?? "") || !timestamp(result.expiresAt)) return { outcome: "failed" };
-      confirmations.set(plan, { token: result.confirmation, expiresAt: Math.min(result.expiresAt, now() + 10 * 60_000), account: signedIn.account.id });
+      confirmations.set(plan, { token: result.confirmation, expiresAt: Math.min(result.expiresAt, serverNow() + 10 * 60_000), account: signedIn.account.id });
       return { outcome: "preview", preview: { plan, ...(TIER.test(result.from ?? "") ? { from: result.from } : {}), trial: result.trial, price: result.price,
         chargeNow: result.chargeNow, tax: result.tax ?? 0, ...(timestamp(result.nextBillingAt) ? { nextBillingAt: result.nextBillingAt } : {}), expiresAt: result.expiresAt } };
     },
@@ -589,7 +602,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       const signedIn = grant, agreed = confirmations.get(plan);
       confirmations.delete(plan);
       if (!signedIn || state().status !== "connected") return { outcome: "failed" };
-      if (!agreed || agreed.account !== signedIn.account.id || agreed.expiresAt <= now()) return { outcome: "refused", code: "confirmation_required" };
+      if (!agreed || agreed.account !== signedIn.account.id || agreed.expiresAt <= serverNow()) return { outcome: "refused", code: "confirmation_required" };
       let result;
       try { result = await request("upgrade", { method: "POST", body: { plan, confirmation: agreed.token, source }, token: signedIn.token, timeoutMs: 120_000 }); }
       catch (error) { const failure = await upgradeFailure(error, signedIn, false); await refresh().catch(() => {}); return failure; }
@@ -724,7 +737,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
           if (error?.status === 409) throw new Error(`${cloud.name} isn't running right now.`);
           throw error;
         }
-        const pairing = parsePairingGrant(result, cloud.origin, now());
+        const pairing = parsePairingGrant(result, cloud.origin, serverNow());
         if (!pairing) throw new Error("Invalid Cloud pairing response.");
         return pairing;
       }
@@ -735,7 +748,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
         const why = cloudUnreachableText(await refresh().catch(() => state()), target.origin);
         throw why ? new Error(why) : error;
       }
-      const pairing = parsePairingGrant(result, target.origin, now());
+      const pairing = parsePairingGrant(result, target.origin, serverNow());
       if (!pairing) throw new Error("Invalid Cloud pairing response.");
       return pairing;
     },
@@ -877,7 +890,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
         if (error?.status === 409) throw new Error(`${team.name} isn't running right now.`);
         throw error;
       }
-      const pairing = parsePairingGrant(result, origin, now());
+      const pairing = parsePairingGrant(result, origin, serverNow());
       if (!pairing) throw new Error("Invalid Cloud pairing response.");
       return pairing;
     },
@@ -894,7 +907,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
         throw error;
       }
       if (result?.cloudContractVersion === 1 && result.state === "starting") return { starting: true };
-      const pairing = typeof result?.origin === "string" && result.origin.startsWith("https://") ? parsePairingGrant(result, result.origin, now()) : null;
+      const pairing = typeof result?.origin === "string" && result.origin.startsWith("https://") ? parsePairingGrant(result, result.origin, serverNow()) : null;
       if (!pairing) throw new Error("Invalid Cloud export response.");
       return { grant: pairing };
     },
