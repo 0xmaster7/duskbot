@@ -48,12 +48,12 @@ test("the emailed link: token kept out of the URL, sign in again, confirm shows 
   expect(location.pathname + location.search).toBe("/clouds/fx-cloud/delete?fixture=managed");
   expect(sessionStorage.getItem("omb-dash-delete-token:fx-cloud")).toBe(token);
   expect([...persisted.values()].some((value) => value.includes(token))).toBe(false);
-  expect(first.host.querySelector("h1")?.textContent).toBe("Delete the data on Sid's Cloud?");
+  expect(first.host.querySelector("h1")?.textContent).toBe("delete the data on Sid's Cloud?");
 
   // the fixture session signed in an hour ago, so the service asks for a fresh sign-in
-  await act(async () => button(first.host, "Delete in 7 days")!.click());
-  await until(() => first.host.querySelector("h1")?.textContent === "Sign in again to go on");
-  await act(async () => button(first.host, "Sign in again")!.click());
+  await act(async () => button(first.host, "delete in 7 days")!.click());
+  await until(() => first.host.querySelector("h1")?.textContent === "sign in again to go on");
+  await act(async () => button(first.host, "sign in again")!.click());
   await until(() => setAccount.mock.calls.length > 0);
   expect(setAccount).toHaveBeenCalledWith(null);
   await first.unmount();
@@ -63,14 +63,14 @@ test("the emailed link: token kept out of the URL, sign in again, confirm shows 
   await api.verify(attempt.attempt, "12345678");
   const confirm = vi.spyOn(api, "confirmDeleteData");
   const second = await render(createElement(DeleteDataPage, { id: "fx-cloud" }));
-  await until(() => second.host.querySelector("h1")?.textContent?.startsWith("Deleting on ") ?? false);
+  await until(() => second.host.querySelector("h1")?.textContent?.startsWith("deleting on ") ?? false);
   expect(confirm).toHaveBeenCalledWith("fx-cloud", token);
   const scheduledAt = await confirm.mock.results[0]!.value.then((answer: { deleteScheduledAt: number }) => answer.deleteScheduledAt);
-  expect(second.host.querySelector("h1")?.textContent).toBe(`Deleting on ${longDate(scheduledAt)}`);
+  expect(second.host.querySelector("h1")?.textContent).toBe(`deleting on ${longDate(scheduledAt)}`);
   expect(sessionStorage.getItem("omb-dash-delete-token:fx-cloud")).toBeNull();
 
   const cancel = vi.spyOn(api, "cancelDeleteData");
-  await act(async () => button(second.host, "Cancel deletion")!.click());
+  await act(async () => button(second.host, "cancel deletion")!.click());
   await until(() => location.pathname === "/cloud");
   expect(cancel).toHaveBeenCalledWith("fx-cloud");
 });
@@ -82,7 +82,7 @@ test("the cloud page banner shows a scheduled deletion and cancels it", async ()
   const at = new Date(2026, 10, 16, 12).getTime();
   const cloud = { id: "fx-cloud", name: "Sid's Cloud", provider: "managed", deleteScheduledAt: at } as CloudDesktop;
   const { host } = await render(createElement(DeletionBanner, { cloud }));
-  expect(host.querySelector("h2")?.textContent).toBe("Deleting on 16 Nov 2026");
-  await act(async () => button(host, "Cancel deletion")!.click());
+  expect(host.querySelector("h2")?.textContent).toBe("deleting on 16 Nov 2026");
+  await act(async () => button(host, "cancel deletion")!.click());
   expect(cancel).toHaveBeenCalledWith("fx-cloud");
 });

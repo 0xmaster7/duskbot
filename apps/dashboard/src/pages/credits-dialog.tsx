@@ -13,16 +13,16 @@ export function BuyCredits({ open, source, onClose }: { source: CheckoutSource; 
   const [error, setError] = useState<string | null>(null);
   const buy = async (pack: string, amount: number) => {
     setBusy(pack); setError(null);
-    try { if (await checkout({ source, kind: "credits", pack })) { toast(`Added ${dollars(amount)} of AI credits`); onClose(); } }
+    try { if (await checkout({ source, kind: "credits", pack })) { toast(`added ${dollars(amount)} of ai credits`); onClose(); } }
     catch (e) { setError((e as Error).message); } finally { setBusy(null); }
   };
   return (
-    <Modal open={open} onClose={onClose} title="Add AI credits">
-      <p>For bots that use our AI instead of your own accounts. Credits never expire.</p>
+    <Modal open={open} onClose={onClose} title="add ai credits">
+      <p>for bots that use our ai instead of your own accounts. credits never expire.</p>
       <div className="mt-5 grid grid-cols-3 gap-2">
         {(catalog?.creditPacks ?? []).map((p) => (
           <button key={p.id} type="button" disabled={busy !== null} onClick={() => void buy(p.id, p.usd)} className="press-soft hover-outline num h-14 rounded-[12px] bg-card-2 text-17 font-medium text-ink disabled:opacity-45">
-            {busy === p.id ? <span className="text-13 font-normal text-ink-3">Opening</span> : dollars(p.usd)}
+            {busy === p.id ? <span className="text-13 font-normal text-ink-3">opening</span> : dollars(p.usd)}
           </button>
         ))}
       </div>

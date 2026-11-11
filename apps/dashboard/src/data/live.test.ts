@@ -28,8 +28,8 @@ const catalog: Catalog = {
 
 test("catalog maps ids, prices, bundles, custom pricing and the default region", () => {
   const result = catalogFromWire(catalog);
-  assert.deepEqual(result.licenses[0], { id: "personal", name: "Personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "Personal and non-commercial use" });
-  assert.deepEqual(result.licenses.slice(1).map((license) => [license.id, license.name, license.monthly, license.perExtraMember, license.work, license.blurb]), [["starter", "Solo", 12, 0, true, ""], ["team", "Team", 30, 15, true, ""]]);
+  assert.deepEqual(result.licenses[0], { id: "personal", name: "personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "personal and non-commercial use" });
+  assert.deepEqual(result.licenses.slice(1).map((license) => [license.id, license.name, license.monthly, license.perExtraMember, license.work, license.blurb]), [["starter", "solo", 12, 0, true, ""], ["team", "team", 30, 15, true, ""]]);
   assert.deepEqual(result.desktops.map((desktop) => [desktop.id, desktop.placement, desktop.monthly, desktop.sizable]), [["shared-s", "shared", 10, false], ["shared-m", "shared", 40, false], ["dedicated", "dedicated", 57.32, true]]);
   assert.equal(result.custom.includedDiskGb, 100);
   assert.equal(result.custom.base, 6);
@@ -38,10 +38,10 @@ test("catalog maps ids, prices, bundles, custom pricing and the default region",
   assert.equal(result.custom.per10GbDisk, 0.51);
   assert.deepEqual(result.custom.diskGb, catalog.dedicated.diskGb);
   assert.deepEqual(result.bundles.map((bundle) => [bundle.license, bundle.members, bundle.desktop, bundle.monthly, bundle.recommended]), [["personal", 1, "none", 0, false], ["starter", 1, "shared-s", 20, false], ["starter", 1, "shared-m", 50, true], ["team", 3, "dedicated", 100, false]]);
-  assert.equal(result.bundles[0]!.blurb, "For personal use on your Mac or your own VPS");
-  assert.equal(result.bundles[1]!.blurb, "Work license and a cloud desktop, on 24/7");
-  assert.equal(result.bundles[2]!.blurb, "More room and priority for serious bots");
-  assert.equal(result.bundles[3]!.blurb, "A dedicated machine for the whole team");
+  assert.equal(result.bundles[0]!.blurb, "for personal use on your mac or your own vps");
+  assert.equal(result.bundles[1]!.blurb, "work license and a cloud desktop, on 24/7");
+  assert.equal(result.bundles[2]!.blurb, "more room and priority for serious bots");
+  assert.equal(result.bundles[3]!.blurb, "a dedicated machine for the whole team");
   assert.deepEqual(result.bundles[2]!.features, ["Priority"]);
   assert.deepEqual(result.regions, [{ id: "eu", name: "Germany", city: "Falkenstein" }, { id: "us", name: "United States", city: "Ashburn" }, { id: "ap", name: "Singapore", city: "Singapore" }]);
   assert.equal(result.yearlyDiscount, 0.2);
@@ -82,8 +82,8 @@ test("yearly team quote merges extra members and uses service totals without bun
   };
   assert.deepEqual(cartFromQuote(quote, plans), {
     lines: [
-      { key: "license", label: "Team license", detail: "5 members, 2 extra", monthly: 70 },
-      { key: "desktop", label: "Cloud desktop, Shared M", detail: "4 vCPU · 8 GB RAM · 80 GB", monthly: 40 },
+      { key: "license", label: "team license", detail: "5 members, 2 extra", monthly: 70 },
+      { key: "desktop", label: "cloud desktop, shared m", detail: "4 vcpu · 8 gb ram · 80 gb", monthly: 40 },
     ],
     subtotal: 110, bundle: null, bundleSaving: 0, discount: 22, perMonth: 88, dueNow: 1056, free: false,
   });
@@ -106,7 +106,7 @@ test("small dedicated quote keeps its service price below the default desktop pr
     totalCents: 2400, monthlyEquivalentCents: 2400, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: null, members: 0,
   };
   assert.deepEqual(cartFromQuote(quote, plans), {
-    lines: [{ key: "desktop", label: "Cloud desktop, Dedicated", detail: "2 vCPU · 4 GB RAM · 40 GB", monthly: 24 }],
+    lines: [{ key: "desktop", label: "cloud desktop, dedicated", detail: "2 vcpu · 4 gb ram · 40 gb", monthly: 24 }],
     subtotal: 24, bundle: null, bundleSaving: 0, discount: 0, perMonth: 24, dueNow: 24, free: false,
   });
   const free = cartFromQuote({ ...quote, cart: { interval: "year", license: { kind: "none" }, desktop: { kind: "none" } }, bundle: "free", lines: [{ kind: "discount", label: "Yearly discount", amountCents: 0 }], totalCents: 0, monthlyEquivalentCents: 0, machine: null }, plans);
@@ -126,11 +126,11 @@ test("cloud statuses, progress, errors and destroyed desktops map to the view", 
     assert.equal(result?.status ?? null, expected[index]);
     if (result && result.status !== "provisioning") assert.equal(result.progress, null);
   });
-  const labels = ["Reserving your machine", "Preparing its disk", "Installing Dusk Bot", "Waking your bots"];
+  const labels = ["reserving your machine", "preparing its disk", "installing dusk bot", "waking your bots"];
   SETUP_STEPS.forEach((setupStep, index) => assert.deepEqual(cloudFromWire({ ...cloud, setupStep })!.progress, { step: labels[index], value: (index + 0.5) / 4 }));
   assert.equal(cloudFromWire({ ...cloud, setupStep: null })!.progress, null);
-  assert.equal(cloudFromWire({ ...cloud, status: "payment_problem" })!.error, "The last payment did not go through. Update your card to wake it.");
-  assert.equal(cloudFromWire({ ...cloud, status: "suspended" })!.error, "It is paused. Write to us to sort it out.");
+  assert.equal(cloudFromWire({ ...cloud, status: "payment_problem" })!.error, "the last payment did not go through. update your card to wake it.");
+  assert.equal(cloudFromWire({ ...cloud, status: "suspended" })!.error, "it is paused. write to us to sort it out.");
   assert.equal(cloudFromWire({ ...cloud, status: "error", error: "Setup failed" })!.error, "Setup failed");
   assert.deepEqual(cloudFromWire({ ...cloud, status: "running" }), { id: "cloud", name: "My Cloud", status: "running", tier: "shared-m", placement: "shared", region: "eu", vcpu: 4, ramGb: 8, diskGb: 80, workspaceId: "workspace", createdAt: 123, progress: null, error: null, botComputers: { used: 0, limit: 5 }, uptimeSec: null });
   assert.equal(cloudFromWire({ ...cloud, kind: "dedicated", placement: "dedicated", botComputers: null })!.tier, "dedicated");

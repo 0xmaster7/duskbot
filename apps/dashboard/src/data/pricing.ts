@@ -52,7 +52,7 @@ export function priceCart(sel: Selection, c: PlanCatalog): Cart {
   const desk = sel.desktop === "none" ? null : desktopOf(c, sel.desktop);
   if (desk) {
     const spec = desk.sizable && sel.size ? sel.size : desk;
-    lines.push({ key: "desktop", label: `Cloud desktop, ${desk.name}`, detail: specLine(spec), monthly: desktopMonthly(desk, sel.size, c.custom) });
+    lines.push({ key: "desktop", label: `cloud desktop, ${desk.name}`, detail: specLine(spec), monthly: desktopMonthly(desk, sel.size, c.custom) });
   }
   const subtotal = lines.reduce((n, l) => n + l.monthly, 0);
   const bundle = matchBundle(sel, c);
@@ -73,9 +73,9 @@ export function dollars(n: number, cents = false): string {
   return `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: fixed, maximumFractionDigits: fixed })}`;
 }
 
-export const gb = (n: number) => (n >= 1000 ? `${+(n / 1000).toFixed(1)} TB` : `${n} GB`);
-export const specLine = (s: MachineSpec) => `${s.vcpu} vCPU · ${gb(s.ramGb)} RAM · ${gb(s.diskGb)}`;
-export const botsLine = (n: number | null) => (n === null ? "Unlimited bot computers" : `${n} bot ${n === 1 ? "computer" : "computers"}`);
+export const gb = (n: number) => (n >= 1000 ? `${+(n / 1000).toFixed(1)} tb` : `${n} gb`);
+export const specLine = (s: MachineSpec) => `${s.vcpu} vcpu · ${gb(s.ramGb)} ram · ${gb(s.diskGb)}`;
+export const botsLine = (n: number | null) => (n === null ? "unlimited bot computers" : `${n} bot ${n === 1 ? "computer" : "computers"}`);
 
 /** how the yearly saving reads: "2 months free" when it is exactly that, else a percent */
 export const yearlyPerk = (c: Pick<PlanCatalog, "yearlyDiscount">) => (Math.abs(c.yearlyDiscount * 12 - 2) < 0.05 ? "2 months free" : `-${Math.round(c.yearlyDiscount * 100)}%`);

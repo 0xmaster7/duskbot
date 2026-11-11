@@ -8,17 +8,17 @@ const licenseKinds = { personal: "none", starter: "solo", team: "team" } as cons
 const desktopIds = { none: "none", shared_s: "shared-s", shared_m: "shared-m", dedicated: "dedicated" } as const;
 const desktopKinds = { none: "none", "shared-s": "shared_s", "shared-m": "shared_m", dedicated: "dedicated" } as const;
 const bundleBlurbs = {
-  free: "For personal use on your Mac or your own VPS",
-  starter: "Work license and a cloud desktop, on 24/7",
-  pro: "More room and priority for serious bots",
-  team: "A dedicated machine for the whole team",
+  free: "for personal use on your mac or your own vps",
+  starter: "work license and a cloud desktop, on 24/7",
+  pro: "more room and priority for serious bots",
+  team: "a dedicated machine for the whole team",
 };
 
 export function catalogFromWire(catalog: Catalog): PlanCatalog {
   const pricing = catalog.dedicated;
   const licenses: PlanCatalog["licenses"] = [
-    { id: "personal", name: "Personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "Personal and non-commercial use" },
-    ...catalog.licenses.map((license) => ({ id: licenseIds[license.kind], name: license.label.replace(/ license$/i, ""), monthly: license.monthlyCents / 100, includedMembers: license.includedMembers, perExtraMember: (license.extraMemberCents ?? 0) / 100, maxMembers: license.maxMembers, work: true, blurb: "" })),
+    { id: "personal", name: "personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "personal and non-commercial use" },
+    ...catalog.licenses.map((license) => ({ id: licenseIds[license.kind], name: license.label.replace(/ license$/i, "").toLowerCase(), monthly: license.monthlyCents / 100, includedMembers: license.includedMembers, perExtraMember: (license.extraMemberCents ?? 0) / 100, maxMembers: license.maxMembers, work: true, blurb: "" })),
   ];
   return {
     licenses,
@@ -26,12 +26,12 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
     desktops: catalog.desktops.map((desktop) => {
       const machine = desktop.machine;
       const cents = desktop.monthlyCents ?? pricing.baseCents + machine.vcpu * pricing.perVcpuCents + machine.ramGb * pricing.perGbRamCents + Math.max(0, machine.diskGb - pricing.includedDiskGb) / 10 * pricing.per10GbDiskCents;
-      return { id: desktopIds[desktop.kind], name: desktop.label, monthly: Math.round(cents) / 100, ...machine, placement: desktop.placement === "pool" ? "shared" : "dedicated", botComputers: desktop.botComputers, priority: desktop.priority, sizable: desktop.kind === "dedicated", blurb: "" };
+      return { id: desktopIds[desktop.kind], name: desktop.label.toLowerCase(), monthly: Math.round(cents) / 100, ...machine, placement: desktop.placement === "pool" ? "shared" : "dedicated", botComputers: desktop.botComputers, priority: desktop.priority, sizable: desktop.kind === "dedicated", blurb: "" };
     }),
     custom: { base: pricing.baseCents / 100, perVcpu: pricing.perVcpuCents / 100, perGbRam: pricing.perGbRamCents / 100, per10GbDisk: pricing.per10GbDiskCents / 100, includedDiskGb: pricing.includedDiskGb, vcpu: pricing.vcpu, ramGb: pricing.ramGb, diskGb: pricing.diskGb },
     bundles: catalog.bundles.map((bundle) => {
       const license = licenseIds[bundle.cart.license.kind];
-      return { id: bundle.id, name: bundle.label, monthly: bundle.monthlyCents / 100, license, members: bundle.cart.license.members ?? licenses.find((item) => item.id === license)!.includedMembers, desktop: desktopIds[bundle.cart.desktop.kind], blurb: bundleBlurbs[bundle.id], features: bundle.highlights, recommended: bundle.id === "pro" };
+      return { id: bundle.id, name: bundle.label.toLowerCase(), monthly: bundle.monthlyCents / 100, license, members: bundle.cart.license.members ?? licenses.find((item) => item.id === license)!.includedMembers, desktop: desktopIds[bundle.cart.desktop.kind], blurb: bundleBlurbs[bundle.id], features: bundle.highlights, recommended: bundle.id === "pro" };
     }),
     regions: [...catalog.regions.filter((region) => region.id === catalog.defaultRegion), ...catalog.regions.filter((region) => region.id !== catalog.defaultRegion)].map((region) => ({ id: region.id, name: region.country, city: region.label })),
     ...(catalog.poolRegions ? { poolRegions: catalog.poolRegions } : {}),
@@ -66,7 +66,7 @@ export function cartFromQuote(quote: Quote, catalog: PlanCatalog): PricedCart {
       const extra = Math.max(0, quote.members - (license?.includedMembers ?? quote.members));
       lines.push({ key: "license", label: license ? `${license.name} license` : line.label, detail: `${quote.members} ${quote.members === 1 ? "member" : "members"}${extra ? `, ${extra} extra` : ""}`, monthly: line.amountCents / divisor });
     } else {
-      lines.push({ key: "desktop", label: desktop ? `Cloud desktop, ${desktop.name}` : line.label, detail: quote.machine ? specLine(quote.machine) : "", monthly: line.amountCents / divisor });
+      lines.push({ key: "desktop", label: desktop ? `cloud desktop, ${desktop.name}` : line.label, detail: quote.machine ? specLine(quote.machine) : "", monthly: line.amountCents / divisor });
     }
   }
   return { lines, subtotal: subtotalCents / divisor, bundle: catalog.bundles.find((item) => item.id === quote.bundle) ?? null, bundleSaving: 0, discount: discountCents / divisor, perMonth: quote.monthlyEquivalentCents / 100, dueNow: quote.totalCents / 100, free: quote.totalCents === 0 && lines.length === 0 };
@@ -103,7 +103,7 @@ export function billingFromWire(overview: WireBillingOverview, catalog: PlanCata
   };
 }
 
-export const SETUP_LABELS = { reserving: "Reserving your machine", storage: "Preparing its disk", starting: "Installing Dusk Bot", checking: "Waking your bots" } as const;
+export const SETUP_LABELS = { reserving: "reserving your machine", storage: "preparing its disk", starting: "installing dusk bot", checking: "waking your bots" } as const;
 
 export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
   if (cloud.status === "destroying" || cloud.status === "destroyed") return null;
@@ -113,8 +113,9 @@ export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
     id: cloud.id, name: cloud.name, status, tier: desktopIds[cloud.kind], placement: cloud.placement === "pool" ? "shared" : "dedicated", region: cloud.region,
     ...cloud.machine, workspaceId: cloud.workspaceId, createdAt: cloud.createdAt,
     progress: status === "provisioning" && cloud.setupStep !== null ? { step: SETUP_LABELS[cloud.setupStep], value: (SETUP_STEPS.indexOf(cloud.setupStep) + 0.5) / 4 } : null,
-    error: cloud.status === "payment_problem" ? "The last payment did not go through. Update your card to wake it." : cloud.status === "suspended" ? "It is paused. Write to us to sort it out." : cloud.error,
+    error: cloud.status === "payment_problem" ? "the last payment did not go through. update your card to wake it." : cloud.status === "suspended" ? "it is paused. write to us to sort it out." : cloud.error,
     botComputers: { used: 0, limit: cloud.botComputers }, uptimeSec: null,
+    ...(cloud.status === "checkout" ? { awaitingPayment: true } : {}),
     ...(cloud.provider === "managed" ? { provider: "managed" as const, lastBackupAt: cloud.lastBackupAt ?? null, deleteScheduledAt: cloud.deleteScheduledAt ?? null, deleteAskedAt: cloud.deleteAskedAt ?? null } : {}),
   };
 }

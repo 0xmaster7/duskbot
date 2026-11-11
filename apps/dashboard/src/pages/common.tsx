@@ -6,7 +6,7 @@ import { SkyEmpty } from "../ui/Sky";
 
 export function LoadingPage() {
   return (
-    <div aria-busy="true" aria-label="Loading">
+    <div aria-busy="true" aria-label="loading">
       <Skeleton className="h-9 w-72" />
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <Skeleton className="h-[200px] !rounded-card" />
@@ -18,16 +18,16 @@ export function LoadingPage() {
 }
 
 export function LoadError({ error, retry }: { error: string; retry(): void }) {
-  return <section><p role="alert" className="text-13 text-bad">{error}</p><Button className="mt-4" size="sm" onClick={retry}>Retry</Button></section>;
+  return <section><p role="alert" className="text-13 text-bad">{error}</p><Button className="mt-4" size="sm" onClick={retry}>retry</Button></section>;
 }
 
 export function NoWorkspace() {
   return (
     <SkyEmpty
-      title="Connect your first workspace"
-      action={<ButtonLink to="/connect" variant="primary">How to connect</ButtonLink>}
+      title="connect your first workspace"
+      action={<ButtonLink to="/connect" variant="primary">how to connect</ButtonLink>}
     >
-      Your bots live on your own Mac or VPS. Open Dusk Bot there, then choose Account dashboard in the account menu. It shows up here a few seconds later.
+      your bots live on your own mac or vps. open dusk bot there, then choose account dashboard in the account menu. it shows up here a few seconds later.
     </SkyEmpty>
   );
 }
@@ -45,8 +45,8 @@ export function WorkspaceGate({ children }: { children: (detail: WorkspaceDetail
   }
   if (!detail.report) {
     return (
-      <SkyEmpty title={`Waiting for ${workspace.name}`}>
-        It is connected but has not reported yet. Keep Dusk Bot running there; the first report usually lands within a few seconds.
+      <SkyEmpty title={`waiting for ${workspace.name}`}>
+        it is connected but has not reported yet. keep dusk bot running there; the first report usually lands within a few seconds.
       </SkyEmpty>
     );
   }
@@ -65,7 +65,7 @@ export function CommandButton({ kind, target, label, doing, variant = "outline",
       variant={variant}
       disabled={busy || disabled || offline}
       aria-busy={busy}
-      title={offline ? `${workspace?.name ?? "This workspace"} is offline` : undefined}
+      title={offline ? `${workspace?.name ?? "this workspace"} is offline` : undefined}
       onClick={() => { if (!confirm || window.confirm(confirm)) void command(kind, target, label); }}
     >
       {busy ? doing : label}

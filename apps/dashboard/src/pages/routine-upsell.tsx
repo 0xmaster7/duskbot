@@ -51,11 +51,11 @@ export function RoutineUpsell() {
   const close = () => setRoutine(null);
   return (
     <>
-      {routine && free && <Modal open onClose={close} wide title={`Routines stop when your ${routine.workspace.kind === "mac" ? "Mac" : "computer"} sleeps`} footer={<><Button onClick={close}>Not now</Button><Button variant="primary" onClick={() => { close(); setPlan(true); }}>See cloud desktops</Button></>}>
-        <p>"{routine.routine.name}" runs on {routine.workspace.name}. A cloud desktop keeps it running 24/7.</p>
+      {routine && free && <Modal open onClose={close} wide title={`routines stop when your ${routine.workspace.kind === "mac" ? "Mac" : "computer"} sleeps`} footer={<><Button onClick={close}>not now</Button><Button variant="primary" onClick={() => { close(); setPlan(true); }}>see cloud desktops</Button></>}>
+        <p>"{routine.routine.name}" runs on {routine.workspace.name}. a cloud desktop keeps it running 24/7.</p>
         <dl className="mt-5 divide-y divide-line border-y border-line text-13">
-          <div className="flex items-center gap-3 py-3"><Mascot color="silver" size={24} state="sleeping" /><dt className="min-w-0 flex-1 truncate text-ink-2">{routine.workspace.name}</dt><dd className="shrink-0">Stops while asleep</dd></div>
-          <div className="flex items-center gap-3 py-3"><span className="size-6 shrink-0" aria-hidden /><dt className="min-w-0 flex-1 truncate text-ink-2">Cloud desktop</dt><dd className="shrink-0">On 24/7</dd></div>
+          <div className="flex items-center gap-3 py-3"><Mascot color="silver" size={24} state="sleeping" /><dt className="min-w-0 flex-1 truncate text-ink-2">{routine.workspace.name}</dt><dd className="shrink-0">stops while asleep</dd></div>
+          <div className="flex items-center gap-3 py-3"><span className="size-6 shrink-0" aria-hidden /><dt className="min-w-0 flex-1 truncate text-ink-2">cloud desktop</dt><dd className="shrink-0">on 24/7</dd></div>
         </dl>
       </Modal>}
       {plan && <PlanSheet start="starter" source="dash_routines" onClose={() => setPlan(false)} />}

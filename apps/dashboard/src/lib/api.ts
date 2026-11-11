@@ -72,10 +72,10 @@ async function call<T>(path: string, init?: { method?: string; body?: unknown; s
     });
   } catch (error) {
     if ((error as Error).name === "AbortError") throw error;
-    throw new ApiError("The dashboard could not be reached. Check your connection.", 0, "offline");
+    throw new ApiError("can't reach dusk bot. check your connection.", 0, "offline");
   }
   const data = (await res.json().catch(() => null)) as (T & { error?: string; code?: string; blockers?: DeletionBlocker[] }) | null;
-  if (!res.ok) throw new ApiError(data?.error ?? "Something went wrong on our side. Try again.", res.status, data?.code ?? null, data?.blockers);
+  if (!res.ok) throw new ApiError(data?.error ?? "something went wrong on our side. try again.", res.status, data?.code ?? null, data?.blockers);
   return data as T;
 }
 
@@ -100,7 +100,7 @@ async function overview(): Promise<{ billing: BillingOverview; clouds: CloudDesk
 }
 
 function subscriptionPath(): string {
-  if (!subscriptionId) throw new ApiError("There is no subscription to change.", 409, "not_subscribed");
+  if (!subscriptionId) throw new ApiError("there is no plan to change.", 409, "not_subscribed");
   return `/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}`;
 }
 
@@ -183,7 +183,7 @@ export const api = {
     if (FIXTURE) return send("/v1/billing/change", "POST", { selection });
     const path = subscriptionPath();
     const preview = await send<ChangePreview>(`${path}/preview`, "POST", { cart: cartFromSelection(selection, await catalog()) });
-    if (preview.chargeNowCents > Math.round(approvedUsd * 100)) throw new ApiError("The price changed. Check it and confirm again.", 409, "price_changed");
+    if (preview.chargeNowCents > Math.round(approvedUsd * 100)) throw new ApiError("the price changed. check it and confirm again.", 409, "price_changed");
     return send(`${path}/change`, "POST", { confirmation: preview.confirmation });
   },
   cancel: (answer: CancelAnswer | "") => send(FIXTURE ? "/v1/billing/cancel" : `${subscriptionPath()}/cancel`, "POST", answer === "" ? {} : { survey: { answer } }),

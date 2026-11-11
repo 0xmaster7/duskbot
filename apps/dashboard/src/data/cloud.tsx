@@ -130,10 +130,17 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
 
   const checkout = useCallback(async (req: CheckoutRequest) => {
     try {
+      let leaving = false;
       await mutate(async () => {
         const answer = await api.checkout(req);
-        if (!FIXTURE) window.location.assign(answer.url);
+        if (FIXTURE) return;
+        leaving = true;
+        // back from the payment page without paying: the browser may show this page as it was left, mid-click
+        window.addEventListener("pageshow", (event) => { if (event.persisted) window.location.reload(); }, { once: true });
+        window.location.assign(answer.url);
       });
+      // on its way to the payment page: nothing is paid yet, so whoever asked keeps waiting instead of saying so
+      if (leaving) await new Promise<never>(() => {});
       return true;
     } catch { return false; }
   }, [mutate]);

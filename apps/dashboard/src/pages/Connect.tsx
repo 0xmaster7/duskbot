@@ -22,7 +22,7 @@ export function ClaimPage() {
   const [token] = useState(() => sessionStorage.getItem(CLAIM_KEY));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => { if (!token) setError("This link has no workspace in it. Open Account dashboard from the app again."); }, [token]);
+  useEffect(() => { if (!token) setError("this link has no workspace in it. open account dashboard from the app again."); }, [token]);
   if (!account) return null;
   const claim = async () => {
     if (!token) return;
@@ -38,17 +38,17 @@ export function ClaimPage() {
       setError((e as Error).message);
     } finally { setBusy(false); }
   };
-  if (error && !token) return <SkyEmpty title="Nothing to connect" action={<ButtonLink to="/workspaces#add">How to connect</ButtonLink>}>{error}</SkyEmpty>;
+  if (error && !token) return <SkyEmpty title="nothing to connect" action={<ButtonLink to="/workspaces#add">how to connect</ButtonLink>}>{error}</SkyEmpty>;
   return (
     <div className="mx-auto max-w-[460px] pt-10">
       <div className="flex justify-center"><span className="peek inline-flex"><Mascot color="blue" size={64} state="happy" track /></span></div>
       <Card className="enter relative -mt-4">
-        <h1 className="text-20 font-medium text-ink">Connect this workspace?</h1>
-        <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">It will report machine stats, bots, devices and usage totals to <span className="text-ink-2">{account.email}</span>. Chats and files stay on it.</p>
+        <h1 className="text-20 font-medium text-ink">connect this workspace?</h1>
+        <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">it will report machine stats, bots, devices and usage totals to <span className="text-ink-2">{account.email}</span>. chats and files stay on it.</p>
         {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
         <div className="mt-6 flex gap-2">
-          <Button variant="primary" onClick={() => void claim()} disabled={busy}>{busy ? "Connecting" : "Connect"}</Button>
-          <Button onClick={() => { sessionStorage.removeItem(CLAIM_KEY); navigate("/", { replace: true }); }}>Not now</Button>
+          <Button variant="primary" onClick={() => void claim()} disabled={busy}>{busy ? "connecting" : "connect"}</Button>
+          <Button onClick={() => { sessionStorage.removeItem(CLAIM_KEY); navigate("/", { replace: true }); }}>not now</Button>
         </div>
       </Card>
     </div>

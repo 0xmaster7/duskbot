@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { MAUS_COLORS } from "@/lib/mascot";
+import { BOT_COLOURS } from "./Mascot";
 import type { UsageSeries } from "../data/usage-math";
 import { compact, parseDay, shortDate } from "../lib/format";
 
 // series take the mascots' own colours, in an order that keeps neighbours apart
-export const SERIES_COLORS = [MAUS_COLORS.blue, MAUS_COLORS.orange, MAUS_COLORS.green, MAUS_COLORS.purple, MAUS_COLORS.cyan, MAUS_COLORS.pink, "#8b8b89"];
+export const SERIES_COLORS = [BOT_COLOURS.blue, BOT_COLOURS.orange, BOT_COLOURS.green, BOT_COLOURS.purple, BOT_COLOURS.cyan, BOT_COLOURS.pink, "#91919b"];
 
 const H = 260;
 const PAD = { top: 12, right: 12, bottom: 30, left: 52 };
@@ -54,7 +54,7 @@ export function UsageChart({ days, series }: { days: string[]; series: UsageSeri
       className="relative outline-none focus-visible:rounded-[12px] focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--ink)_40%,transparent)]"
       tabIndex={0}
       role="group"
-      aria-label={`Tokens per day, ${compact(total)} this month across ${series.length} ${series.length === 1 ? "group" : "groups"}. Use the left and right arrow keys to read a day.`}
+      aria-label={`tokens per day, ${compact(total)} this month across ${series.length} ${series.length === 1 ? "group" : "groups"}. use the left and right arrow keys to read a day.`}
       onPointerMove={pick}
       onPointerLeave={() => setAt(null)}
       onKeyDown={key}
@@ -109,7 +109,7 @@ export function UsageChart({ days, series }: { days: string[]; series: UsageSeri
 
 export function Legend({ series }: { series: UsageSeries[] }) {
   return (
-    <ul className="flex flex-wrap gap-x-5 gap-y-2" aria-label="Legend">
+    <ul className="flex flex-wrap gap-x-5 gap-y-2" aria-label="legend">
       {series.map((s, i) => (
         <li key={s.key} className="flex items-center gap-2 text-14 text-ink-2">
           <span className="size-2 shrink-0 rounded-full" style={{ background: SERIES_COLORS[i % SERIES_COLORS.length] }} aria-hidden />
