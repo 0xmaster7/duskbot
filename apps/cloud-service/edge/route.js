@@ -15,7 +15,7 @@ export async function lookupRoute(label, env) {
 
 /** asks the service to wake a home: 200 awake, 202 waking, 429 over its hourly cap, 409 not wakeable, 503 unreachable */
 export async function askWake(label, reason, env) {
-  const asked = await fetch(`${env.ROUTE_URL}/v1/managed/edge/wake?label=${label}&reason=${reason}`, { method: "POST", headers: { authorization: `Bearer ${env.EDGE_TOKEN}` } }).catch(() => null);
+  const asked = await fetch(`${env.ROUTE_URL}/v1/managed/edge/wake?label=${label}&reason=${reason}`, { method: "POST", headers: { authorization: `Bearer ${env.EDGE_TOKEN}`, "content-type": "application/json" }, body: "{}" }).catch(() => null);
   await asked?.body?.cancel().catch(() => {});
   if (!asked) return 503;
   if (asked.status === 429 || asked.status === 409) return asked.status;
