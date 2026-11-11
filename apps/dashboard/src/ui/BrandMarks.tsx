@@ -1,4 +1,4 @@
-import { Apple, Mail } from "lucide-react";
+import { Apple, Mail } from "@/icons";
 import xLogo from "@/assets/app-logos/x.tile.svg";
 import type { IdentityProvider } from "../data/contracts";
 

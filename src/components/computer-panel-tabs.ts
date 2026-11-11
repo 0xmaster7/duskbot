@@ -1,9 +1,9 @@
 import type { KeyboardEvent, WheelEvent } from "react";
-import { CalendarClock, FolderOpen, Globe, Monitor, type LucideIcon } from "lucide-react";
+import { CalendarClock, FolderOpen, Globe, Monitor, type GlyphIcon } from "../icons";
 import type { ComputerPanelView } from "@/lib/computer-panel-view";
 import type { LocaleKey } from "@/locales";
 
-export const PANEL_TABS: Record<ComputerPanelView, { Icon: LucideIcon; label: LocaleKey; tour?: string }> = {
+export const PANEL_TABS: Record<ComputerPanelView, { Icon: GlyphIcon; label: LocaleKey; tour?: string }> = {
   computer: { Icon: Monitor, label: "computer.tab.computer" },
   routines: { Icon: CalendarClock, label: "computer.tab.routines" },
   browser: { Icon: Globe, label: "computer.tab.browser", tour: "computer-browser" },

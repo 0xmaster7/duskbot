@@ -1,4 +1,4 @@
-import { AtSign, Check, ChevronDown } from "lucide-react";
+import { AtSign, Check, ChevronDown } from "../../icons";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

@@ -1,6 +1,6 @@
 // sign in to Claude and ChatGPT here, one click each, and the sign-in goes to the server privately
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, LoaderCircle } from "lucide-react";
+import { Check, LoaderCircle } from "../../icons";
 import { ClaudeMark, CodexMark } from "@/components/ProviderIcons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

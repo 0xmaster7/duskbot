@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Check, ChevronDown, Download } from "lucide-react";
+import { Check, ChevronDown, Download } from "@/icons";
 import { useCloud } from "../data/cloud";
 import { LoadError } from "./common";
 import type { BillingInterval, LicenseId, PlanCatalog } from "../data/contracts";

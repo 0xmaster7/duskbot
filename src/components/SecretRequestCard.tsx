@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
-import { ExternalLink, Loader2, LockKeyhole, RefreshCw } from "lucide-react";
+import { ExternalLink, Loader2, LockKeyhole, RefreshCw } from "../icons";
 
 import { CUSTOM_SECRET_TARGET, credentialResumeOutcome, credentialSaveRequest, desktopCredentialSlot, isConfigCredentialTarget, isCredentialTargetId } from "../../shared/credential-request";
 import { credentialProvider } from "@/lib/analytics-allowlist";

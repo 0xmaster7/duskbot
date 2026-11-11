@@ -1,4 +1,4 @@
-import { LockKeyhole } from "lucide-react";
+import { LockKeyhole } from "../../icons";
 import type { FormEvent } from "react";
 
 import { t } from "@/lib/i18n";

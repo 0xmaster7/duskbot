@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus } from "../icons";
 import type { loadingLine } from "@/lib/app-loading";
 import { t } from "@/lib/i18n";
 import type { AppState } from "@/state/store";

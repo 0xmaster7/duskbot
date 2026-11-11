@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, Laptop, Smartphone } from "lucide-react";
+import { ArrowLeft, Laptop, Smartphone } from "@/icons";
 import type { WorkspaceDetail, WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";

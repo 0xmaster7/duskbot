@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronRight, RotateCw } from "lucide-react";
+import { ChevronRight, RotateCw } from "../../icons";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { t } from "@/lib/i18n";
 import type { MobileConnectionRecord } from "../../../shared/mobile-link";

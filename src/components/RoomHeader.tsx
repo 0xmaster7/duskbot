@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { Pause, Plus, Search } from "lucide-react";
+import { Pause, Plus, Search } from "../icons";
 
 import { cn } from "@/lib/cn";
 import { roomContextWarnings } from "@/lib/context-warning";

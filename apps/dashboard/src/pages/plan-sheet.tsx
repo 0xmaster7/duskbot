@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "@/icons";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, BundleId, CheckoutSource, LicenseId, PlanCatalog, Selection } from "../data/contracts";
 import { botsLine, bundleOf, desktopOf, dollars, licenseMonthly, licenseOf, perMonthOn, yearlyPerk } from "../data/pricing";

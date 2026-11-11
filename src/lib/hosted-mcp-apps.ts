@@ -1,4 +1,4 @@
-import { CreditCard, type LucideIcon } from "lucide-react";
+import { CreditCard, type GlyphIcon } from "../icons";
 
 import whopLogo from "@/assets/whop/logo.png";
 import type { LocaleKey } from "@/locales";
@@ -10,8 +10,8 @@ export interface HostedMcpApp {
   readonly label: string;
   /** Its official hosted MCP endpoint, which signs in with browser OAuth instead of a pasted key. A server is this app only at exactly this address, over streamable HTTP. */
   readonly url: string;
-  /** Its licensed logo, or a neutral lucide glyph when the service publishes none we may ship. */
-  readonly icon: { readonly image: string } | { readonly glyph: LucideIcon };
+  /** Its licensed logo, or a neutral glyph from our icon set when the service publishes none we may ship. */
+  readonly icon: { readonly image: string } | { readonly glyph: GlyphIcon };
   readonly description: LocaleKey;
   /** What signing in grants, and who owns the service's own approvals. Shown on the card and on the server's row. */
   readonly notice: LocaleKey;

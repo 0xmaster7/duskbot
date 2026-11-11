@@ -6,11 +6,4 @@
     vertical-align: middle;
     user-select: none;
   }
-  .ui-icon[data-icon-fill="knockout"] > circle,
-  .ui-icon[data-icon-fill="body"] > rect {
-    fill: currentColor;
-  }
-  .ui-icon[data-icon-fill="knockout"] > :not(circle) {
-    stroke: var(--icon-knockout, var(--color-menu, #fcfcfc));
-  }
 }

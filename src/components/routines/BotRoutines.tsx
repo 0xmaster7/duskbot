@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy } from "../../icons";
 
 import { automationSentence, automationsFrom, automationStatus, AUTOMATION_FIX_LABEL, nextWhen, plainWhen, runLine, type Automation, type AutomationFix } from "@/lib/automations";
 import { appWhen } from "@/lib/app-automations";

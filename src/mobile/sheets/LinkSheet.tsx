@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { QrCode } from "lucide-react";
+import { QrCode } from "../../icons";
 import { t } from "@/lib/i18n";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { mobileLinkUrl } from "../../../shared/mobile-link";

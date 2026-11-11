@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Minus } from "lucide-react";
+import { Minus } from "@/icons";
 import { useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";
 import { canDeleteData, DELETE_WINDOW_DAYS, deleteDataError, deleteToken, deletion, forgetDeleteToken, needsSignIn, signInAgain, stashDeleteToken, takeRetry } from "../data/delete-data";

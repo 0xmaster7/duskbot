@@ -2,7 +2,7 @@ import { OrganizationIdentity } from "./OrganizationIdentity";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type Dispatch } from "react";
 import { motion, type MotionStyle } from "motion/react";
 import { createPortal } from "react-dom";
-import { Bot as BotIcon, Check, ClipboardCopy, Crown, FolderPlus, Library, Loader2, MoreHorizontal, Pencil, Phone, Pin, Plus, TextQuote, Trash2, Users, X } from "lucide-react";
+import { Bot as BotIcon, Check, ClipboardCopy, Crown, FolderPlus, Library, Loader2, MoreHorizontal, Pencil, Phone, Pin, Plus, TextQuote, Trash2, Users, X } from "../icons";
 import { api, useStore, formatTime, visibleMessages, botOpensTo, openBot, openThread, type Action, type AppState, type Bot, type Group, type InstanceInfo, type Message } from "@/state/store";
 import { SidebarWorkingStep, useWorkingLabel } from "./SidebarWorkingStep";
 import { openBotRow } from "@/state/thread-navigation";

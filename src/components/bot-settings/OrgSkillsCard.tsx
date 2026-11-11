@@ -1,4 +1,4 @@
-import { Building2, Check } from "lucide-react";
+import { Building2, Check } from "../../icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Bot } from "@/state/store";

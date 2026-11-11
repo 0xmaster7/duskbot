@@ -1,4 +1,4 @@
-import { AudioLines, Blocks, Fingerprint, Image, LockKeyhole, Phone, Search, Server, Zap, type LucideIcon } from "lucide-react";
+import { AudioLines, Blocks, Fingerprint, Image, LockKeyhole, Phone, Search, Server, Zap, type GlyphIcon } from "../../icons";
 import type { AppSettingsSection, ConfigStatus } from "@/state/store";
 import type { SavedKey } from "@/state/config-status";
 import type { KeyProvider } from "@/lib/analytics-allowlist";
@@ -43,7 +43,7 @@ export type KeyId =
   | "lmStudio" | "openaiCompat" | "liveCalls" | "liveKey" | "elevenlabs" | "fishAudio" | "geminiTts" | "vps" | "onePassword" | "composio" | "treg"
   | "jev" | "openrouterHelper" | "gatewayHelper" | "workersAi" | "imageOpenai" | "imageCustom";
 
-export type KeyMark = { driverKind: string; preset?: ProviderIconPreset } | { icon: LucideIcon };
+export type KeyMark = { driverKind: string; preset?: ProviderIconPreset } | { icon: GlyphIcon };
 
 export interface KeyEntry {
   id: KeyId;

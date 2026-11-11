@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Moon } from "lucide-react";
+import { Moon } from "../icons";
 import { cloudAsleep, cloudWaking, markCloudAwake, onCloudPower, onCloudWaking } from "@/lib/cloud-power";
 import { t } from "@/lib/i18n";
 

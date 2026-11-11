@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ChevronLeft, ClipboardPaste, RotateCw, ScanLine, X } from "lucide-react";
+import { ChevronLeft, ClipboardPaste, RotateCw, ScanLine, X } from "../../icons";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { productName } from "@/lib/brand";
 import { t } from "@/lib/i18n";

@@ -1,7 +1,7 @@
 // small shared pieces of Add your VPS, laid out where Grok Bot's first run puts them: the heading 264px above the middle,
 // the picture under it, one idea in the middle and the pills 200px below it
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, Copy, X } from "lucide-react";
+import { Check, Copy, X } from "../../icons";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

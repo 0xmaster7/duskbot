@@ -103,13 +103,12 @@ import {
   Zap,
   ZoomIn,
   ZoomOut,
-  type LucideIcon,
-} from "lucide-react";
+  type GlyphIcon,
+} from "../icons";
 import { cn } from "../lib/cn";
-import { MENU_STROKE } from "./menu-recipe";
 import "../styles/icon.css";
 
-/** The app's named icons, drawn with lucide (ISC). Names stay stable so callers and stored ids never change. */
+/** The app's named icons. Names stay stable so callers and stored ids never change. */
 export const ICONS = {
   "alarm-clock": AlarmClock,
   archive: Archive,
@@ -218,25 +217,11 @@ export const ICONS = {
   "window-pointer-arrow": MousePointerClick,
   "zoom-in": ZoomIn,
   "zoom-out": ZoomOut,
-} satisfies Record<string, LucideIcon>;
+} satisfies Record<string, GlyphIcon>;
 
 export type IconName = keyof typeof ICONS;
 
 export const ICON_SIZE = { xs: 10, sm: 12, base: 14, lg: 16, xl: 20, "2xl": 24 } as const;
-
-/** How the filled variant paints: a solid shape, a filled disc with its mark cut out, or a heavier outline. */
-type Fill = "solid" | "knockout" | "body";
-const FILLS: Partial<Record<IconName, Fill>> = {
-  play: "solid",
-  pause: "solid",
-  star: "solid",
-  heart: "solid",
-  sparkle: "solid",
-  info: "knockout",
-  "check-circle": "knockout",
-  "exclamation-circle": "knockout",
-  mic: "body",
-};
 
 type Props = {
   name: IconName;
@@ -251,15 +236,15 @@ type Props = {
 export function Icon({ name, size = 16, variant = "outline", className, style, title, "aria-label": label }: Props) {
   const Glyph = ICONS[name];
   const px = typeof size === "number" ? size : ICON_SIZE[size];
-  const fill = variant === "filled" ? (FILLS[name] ?? "bold") : undefined;
+  const fill = variant !== "filled" ? undefined : Glyph.hasSolid ? "solid" : "bold";
   return (
     <Glyph
       className={cn("ui-icon", className)}
       data-icon-name={name}
       data-icon-fill={fill}
       size={px}
-      strokeWidth={fill === "bold" ? 2.25 : MENU_STROKE}
-      fill={fill === "solid" ? "currentColor" : "none"}
+      strokeWidth={fill === "bold" ? 2.25 : undefined}
+      fill={fill === "solid" ? "currentColor" : undefined}
       style={style}
       role={label ? "img" : undefined}
       aria-label={label}

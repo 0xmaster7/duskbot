@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Folder, MoreHorizontal } from "lucide-react";
+import { Folder, MoreHorizontal } from "../icons";
 import type { CloudFilesBridge, CloudFilesDisk, CloudFilesState, FolderCheck, SharedFolder } from "../../electron/cloud-sync.mjs";
 import { cn } from "@/lib/cn";
 import { cloudFilesBridge, useCloudFiles } from "@/lib/cloud-files";

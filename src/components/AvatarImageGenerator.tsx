@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "../icons";
 
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { normalizeImageGenerationUrl, type AvatarImageProvider } from "../../shared/image-generation";

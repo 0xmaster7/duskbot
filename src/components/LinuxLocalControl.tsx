@@ -7,7 +7,7 @@ import {
   MonitorCog,
   Power,
   RotateCcw,
-} from "lucide-react";
+} from "../icons";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

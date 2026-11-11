@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Check, Smartphone } from "lucide-react";
+import { Check, Smartphone } from "../icons";
 import { QRCodeSVG } from "qrcode.react";
 
 import type { MobileDevice, MobilePairingRequest, MobilePairingResponse } from "../../shared/mobile-link";

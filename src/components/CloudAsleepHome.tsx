@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Moon } from "lucide-react";
+import { ArrowUp, Moon } from "../icons";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { randomUuid } from "@/lib/random-uuid";

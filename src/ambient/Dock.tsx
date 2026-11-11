@@ -5,7 +5,7 @@
 // the pointer has left both. A mascot carries a bubble only for news: an ask, an unseen reply, an unseen failure.
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { AnimatePresence, Reorder, motion, useDragControls, useReducedMotion, useTransform } from "motion/react";
-import { Plus } from "lucide-react";
+import { Plus } from "../icons";
 import { dockOrder, isBusy } from "./mood";
 import { HISTORY, MiniChat, type ChatScroll } from "./MiniChat";
 import { useRowMoments } from "./rows";

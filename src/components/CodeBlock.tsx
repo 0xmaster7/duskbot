@@ -1,7 +1,7 @@
 // Security: Shiki's output is generator-escaped; nothing else reaches the DOM as HTML.
 import { useEffect, useMemo, useState } from "react";
 import type { HighlighterCore } from "shiki/core";
-import { Check, X } from "lucide-react";
+import { Check, X } from "../icons";
 
 import { GROK_LIGHT_THEME } from "./code-theme-grok";
 import { Icon } from "./Icon";

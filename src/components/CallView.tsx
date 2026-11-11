@@ -3,7 +3,7 @@
 // silence; the helper ends the stream.
 import { Icon } from "./Icon";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { AudioLines, Check, ChevronDown, Loader2, Phone, PhoneOff, X } from "lucide-react";
+import { AudioLines, Check, ChevronDown, Loader2, Phone, PhoneOff, X } from "../icons";
 
 import { openBot, useStore, visibleMessages, type Bot } from "@/state/store";
 import { cn } from "@/lib/cn";

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Check, Minus } from "lucide-react";
+import { Check, Minus } from "@/icons";
 import type { PlanCatalog } from "../data/contracts";
 import { freeTradeoffs, type FunnelPlan } from "../data/funnel";
 import { bundleOf, dollars } from "../data/pricing";

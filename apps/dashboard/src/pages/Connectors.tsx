@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ListFilter, Search, Sparkles } from "lucide-react";
+import { ListFilter, Search, Sparkles } from "@/icons";
 import { popularity } from "@/components/connect-apps/catalog";
 import { connectedIn, searchApps, useConnectorRows, useDashApps, type ConnectorRow, type DashApp } from "../data/connectors";
 import { useCloud } from "../data/cloud";

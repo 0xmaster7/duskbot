@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Check, ExternalLink } from "lucide-react";
+import { Check, ExternalLink } from "../../icons";
 import type { InboxRow, InboxView } from "../../../shared/inbox";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

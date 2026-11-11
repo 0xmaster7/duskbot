@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowUp, Check, LoaderCircle, X } from "lucide-react";
+import { ArrowUp, Check, LoaderCircle, X } from "../../icons";
 import { formatQuestionAnswers, MAX_CUSTOM_ANSWER, type AskQuestion } from "../../../shared/ask-question";
 import type { InboxRow } from "../../../shared/inbox";
 import { cn } from "@/lib/cn";

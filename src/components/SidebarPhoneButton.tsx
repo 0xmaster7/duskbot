@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, TabletSmartphone } from "lucide-react";
+import { Plus, TabletSmartphone } from "../icons";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

@@ -1,6 +1,6 @@
 // The template preview body: what a team, package or backup brings and what stays behind. Shared by Templates and
 // the organization shelf.
-import { BookOpen, CalendarClock, Check, Crown, MessageSquare, NotebookPen, Plug, Users } from "lucide-react";
+import { BookOpen, CalendarClock, Check, Crown, MessageSquare, NotebookPen, Plug, Users } from "../icons";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

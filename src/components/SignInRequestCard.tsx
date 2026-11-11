@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Check, Hand, Loader2, RefreshCw } from "lucide-react";
+import { Check, Hand, Loader2, RefreshCw } from "../icons";
 
 import type { ComputerHelpRef } from "../../shared/wire";
 import { signInOutcome } from "../../shared/sign-in-request";

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavRow } from "./ListRows";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Trash2, X } from "../icons";
 import { api, BotEditorStore, useStore } from "@/state/store";
 import { BotCreationDraft, EMPTY_BOT_DEFAULTS } from "@/lib/bot-creation-draft";
 import { preparedBotTemplate } from "@/lib/create-configured-bot";

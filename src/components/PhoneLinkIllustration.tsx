@@ -1,4 +1,4 @@
-import { QrCode } from "lucide-react";
+import { QrCode } from "../icons";
 import { MausAvatar, roomAvatarGradient } from "./Avatar";
 
 export function PhoneLinkIllustration({ scanning = false }: { scanning?: boolean }) {

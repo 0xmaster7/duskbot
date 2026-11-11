@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
-import { Pencil } from "lucide-react";
+import { Pencil } from "../icons";
 
 import { nextRename } from "@/lib/rename";
 import { cn } from "@/lib/cn";

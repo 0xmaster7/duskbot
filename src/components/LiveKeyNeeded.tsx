@@ -1,5 +1,5 @@
 import { useEffect, useId } from "react";
-import { KeyRound } from "lucide-react";
+import { KeyRound } from "../icons";
 
 import { liveDisclosure } from "@/lib/call-mode";
 import { dismissLiveNotice } from "@/lib/live-call-media";

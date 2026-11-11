@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { EyeOff } from "lucide-react";
+import { EyeOff } from "../icons";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

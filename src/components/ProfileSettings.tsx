@@ -9,7 +9,7 @@ import type { LocaleKey } from "@/locales";
 import { botAvatarUrlFromStoredPath } from "../../shared/bot-avatar";
 import { AboutMeSettings } from "./AboutMeSettings";
 import { profileInitials } from "./SidebarProfileMenu";
-import { User } from "lucide-react";
+import { User } from "../icons";
 
 const PHOTO_MIN_SIDE = 64;
 const PHOTO_MAX_SIDE = 8192;

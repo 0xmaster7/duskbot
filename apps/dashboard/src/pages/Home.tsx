@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { ArrowUpRight, Blocks, ChevronRight, Cloud, Download, Smartphone } from "lucide-react";
+import { ArrowUpRight, Blocks, ChevronRight, Cloud, Download, Smartphone } from "@/icons";
 import type { WorkspaceDetail } from "../../../../shared/dashboard-protocol";
 import cloudLemon from "../art/cloud-lemon.png";
 import cloudPink from "../art/cloud-pink.png";

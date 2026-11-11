@@ -1,5 +1,5 @@
 import type { KeyboardEvent, ReactNode } from "react";
-import { Check, ChevronRight, Trash2, type LucideIcon } from "lucide-react";
+import { Check, ChevronRight, Trash2, type GlyphIcon } from "../../icons";
 
 import { cn } from "@/lib/cn";
 import type { MausColor } from "@/lib/mascot";
@@ -47,7 +47,7 @@ export function ColRow({ children, ...rest }: { children: ReactNode; "data-panel
 export function LinkRow({ children, onClick, icon: Icon = ChevronRight, ...rest }: {
   children: ReactNode;
   onClick: () => void;
-  icon?: LucideIcon;
+  icon?: GlyphIcon;
   "data-panel-link"?: string;
 }) {
   return (

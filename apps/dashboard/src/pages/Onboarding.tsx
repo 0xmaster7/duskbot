@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Download, LoaderCircle } from "lucide-react";
+import { ArrowLeft, Download, LoaderCircle } from "@/icons";
 import meadow from "../art/p-meadow.webp";
 import peaks from "../art/p-peaks.webp";
 import sky from "../art/p-sky.webp";

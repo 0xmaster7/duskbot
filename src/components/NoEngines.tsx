@@ -1,4 +1,4 @@
-import { ArrowUpRight, KeyRound, Loader2, RefreshCw } from "lucide-react";
+import { ArrowUpRight, KeyRound, Loader2, RefreshCw } from "../icons";
 import { useState } from "react";
 import { useStore } from "@/state/store";
 import { EngineGroupLabel } from "@/components/EngineGroupLabel";

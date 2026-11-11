@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Mail, RotateCw } from "lucide-react";
+import { Mail, RotateCw } from "../../icons";
 import { MausAvatar } from "@/components/Avatar";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { t } from "@/lib/i18n";

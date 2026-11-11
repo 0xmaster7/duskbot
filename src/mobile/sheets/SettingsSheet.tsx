@@ -1,6 +1,6 @@
 import { useContext, useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "lucide-react";
+import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
 import { accountDashboardUrl } from "@/lib/account-dashboard";
 import { useGroupYou } from "@/components/GroupAvatar";
 import { t } from "@/lib/i18n";

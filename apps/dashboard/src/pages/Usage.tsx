@@ -1,5 +1,5 @@
 import { useId, useMemo, useState, type ReactNode } from "react";
-import { Download } from "lucide-react";
+import { Download } from "@/icons";
 import { useCloud } from "../data/cloud";
 import { LoadError } from "./common";
 import { useCreditControls } from "../data/credits";

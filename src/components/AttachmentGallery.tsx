@@ -2,7 +2,7 @@
 // authorization.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fromMarkdown } from "mdast-util-from-markdown";
-import { Download, Film, LoaderCircle, Music, Play, X } from "lucide-react";
+import { Download, Film, LoaderCircle, Music, Play, X } from "../icons";
 import { attachmentBasename, FILE_MAX_BYTES, type TranscriptFileAttachment, type TranscriptImageAttachment } from "@/lib/composer-attachments";
 import { cn } from "@/lib/cn";
 import type { MediaSize } from "@/lib/image-cache";

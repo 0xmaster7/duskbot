@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useMotionValue, type AnimationPlaybackControls } from "motion/react";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "../../icons";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { useDrag } from "../gesture";

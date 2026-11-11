@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { Hand, Loader2, Minimize2, RefreshCw, Send } from "lucide-react";
+import { Hand, Loader2, Minimize2, RefreshCw, Send } from "../icons";
 import type RFB from "@novnc/novnc";
 import { cn } from "@/lib/cn";
 import { copyText } from "@/lib/copy-text";

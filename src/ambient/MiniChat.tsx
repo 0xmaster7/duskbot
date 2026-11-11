@@ -3,7 +3,7 @@
 // the real chat. The dock's card and an opened row of the island both show it.
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Check, CircleAlert, Square, X } from "lucide-react";
+import { Check, CircleAlert, Square, X } from "../icons";
 import { isBusy, shortAgo } from "./mood";
 import { Reveal, TextField, rowLine, trayFor } from "./rows";
 import { say, type AmbientLabels } from "./say";

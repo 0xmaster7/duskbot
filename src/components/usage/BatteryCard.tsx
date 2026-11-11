@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Repeat } from "lucide-react";
+import { Repeat } from "../../icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { fetchBattery, sharePercent, useLoaded, type BatteryRow } from "@/lib/spend";

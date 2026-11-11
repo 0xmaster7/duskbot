@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { ArrowUp, ChevronUp, Clock, CornerDownRight, RotateCcw } from "lucide-react";
+import { ArrowUp, ChevronUp, Clock, CornerDownRight, RotateCcw } from "../icons";
 
 import type { FollowUp } from "../../shared/follow-up";
 import { cn } from "@/lib/cn";

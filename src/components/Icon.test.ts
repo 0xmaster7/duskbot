@@ -22,9 +22,14 @@ describe("Icon", () => {
     expect(html).not.toContain("aria-hidden");
   });
 
-  it("fills solid shapes and cuts the mark out of filled discs", () => {
-    expect(renderToStaticMarkup(createElement(Icon, { name: "play", variant: "filled" }))).toContain('fill="currentColor"');
-    expect(renderToStaticMarkup(createElement(Icon, { name: "info", variant: "filled" }))).toContain('data-icon-fill="knockout"');
-    expect(renderToStaticMarkup(createElement(Icon, { name: "arrow-up", variant: "filled" }))).toContain('stroke-width="2.25"');
+  it("draws the solid twin when filled, and a heavier outline where there is none", () => {
+    const outline = renderToStaticMarkup(createElement(Icon, { name: "play" }));
+    const solid = renderToStaticMarkup(createElement(Icon, { name: "play", variant: "filled" }));
+    expect(solid).toContain('data-icon-fill="solid"');
+    expect(solid.match(/ d="([^"]+)"/)?.[1]).not.toBe(outline.match(/ d="([^"]+)"/)?.[1]);
+    expect(renderToStaticMarkup(createElement(Icon, { name: "info", variant: "filled" }))).toContain('data-icon-fill="solid"');
+    const heavy = renderToStaticMarkup(createElement(Icon, { name: "arrow-up", variant: "filled" }));
+    expect(heavy).toContain('data-icon-fill="bold"');
+    expect(heavy).toContain('viewBox="0 0 16 16"');
   });
 });

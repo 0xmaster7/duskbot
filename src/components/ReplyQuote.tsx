@@ -1,4 +1,4 @@
-import { Reply, X } from "lucide-react";
+import { Reply, X } from "../icons";
 
 import { cn } from "@/lib/cn";
 import { peerLine } from "@/lib/peer-message";

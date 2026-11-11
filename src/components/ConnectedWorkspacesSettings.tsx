@@ -1,6 +1,6 @@
 import { t } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2 } from "../icons";
 import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow, SwitchRow, pillCls } from "./ListRows";
 import { CloudTile } from "./cloud-buy/parts";
 import { cloudColor } from "@/lib/cloud-look";

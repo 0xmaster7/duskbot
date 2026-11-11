@@ -6,7 +6,7 @@
 // main says this computer's bots may move to (one tap: main starts the move). With several accounts signed in here, the tiles
 // are grouped by account with a thin divider, and a click on another account's tile switches to it first (main does that).
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
-import { House, Laptop, Loader2, MoreHorizontal, Plus, Search, Server, UserRound } from "lucide-react";
+import { House, Laptop, Loader2, MoreHorizontal, Plus, Search, Server, UserRound } from "../icons";
 import type { CloudSwatch } from "../../electron/cloud-list.mjs";
 import type { PlaceColorOutcome } from "../../electron/place-look.mjs";
 import { track } from "@/lib/analytics";

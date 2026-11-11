@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { AudioLines, Camera, Check, GraduationCap, Images, ListChecks, Paperclip, Phone, Plus, Target, X } from "lucide-react";
+import { AudioLines, Camera, Check, GraduationCap, Images, ListChecks, Paperclip, Phone, Plus, Target, X } from "../icons";
 import { approvalModeFor } from "../../shared/approval-mode";
 import {
   approvalModeOptions,

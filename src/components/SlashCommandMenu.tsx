@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { BookOpen, Sparkles, Target, Wand2 } from "lucide-react";
+import { BookOpen, Sparkles, Target, Wand2 } from "../icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { ComposerSlashCommand } from "@/lib/composer-commands";

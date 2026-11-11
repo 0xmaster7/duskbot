@@ -1,4 +1,4 @@
-import { LayoutGrid, Puzzle, Search, X } from "lucide-react";
+import { LayoutGrid, Puzzle, Search, X } from "../icons";
 
 import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";

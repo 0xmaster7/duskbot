@@ -150,7 +150,7 @@ try {
   };
   const openSettings = async () => {
     await page.until(`(() => { const trigger = document.querySelector("[data-sidebar-account]") ?? [...document.querySelectorAll('button')].find((entry) => entry.textContent.includes("ada@acme.test") || /^(Ada|ada@acme)/.test(entry.getAttribute("aria-label") ?? ""));
-      (trigger ?? document.querySelector('.lucide-chevron-left')?.closest('button'))?.click(); return Boolean(trigger); })()`, "the account menu");
+      (trigger ?? document.querySelector('.gi-chevron-left')?.closest('button'))?.click(); return Boolean(trigger); })()`, "the account menu");
     await page.until(`(() => { const item = [...document.querySelectorAll('[role=menuitem]')].find((entry) => entry.textContent.trim() === "Settings"); item?.click(); return Boolean(item); })()`, "Settings in the menu");
     await page.until(`(() => { const entry = document.querySelector("[data-settings-page='botAccess'], [data-settings-section='botAccess']"); entry?.click(); if (entry) return true;
       const picker = document.querySelector('select[aria-label="Settings"]'); if (!picker) return false;

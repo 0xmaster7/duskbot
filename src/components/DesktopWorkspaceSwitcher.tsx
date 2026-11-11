@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Cloud, Laptop } from "lucide-react";
+import { ChevronDown, Cloud, Laptop } from "../icons";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import type { Action } from "@/state/store";

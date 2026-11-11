@@ -1,4 +1,4 @@
-import { Check, Copy, FileUp, Loader2, X } from "lucide-react";
+import { Check, Copy, FileUp, Loader2, X } from "../icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { track } from "@/lib/analytics";

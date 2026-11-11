@@ -2,7 +2,7 @@ import { directMessageSent, roomMessageSent } from "@/lib/product-events";
 import { cueMascot } from "./mascot-events";
 import { useComposerDictation } from "@/lib/use-composer-dictation";
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
-import { Mic, Square } from "lucide-react";
+import { Mic, Square } from "../icons";
 import { useStore, visibleMessages, currentTaskBot, type Bot, type Group, type InstanceInfo, type Message } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";

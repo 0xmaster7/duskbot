@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Laptop } from "lucide-react";
+import { Laptop } from "@/icons";
 import { useSession } from "../data/session";
 import { api, ApiError } from "../lib/api";
 import { navigate, useLocation } from "../lib/router";

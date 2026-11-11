@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
 import { waitForLocalVmReady } from "@/lib/local-vm-readiness";
 import type { LocaleKey } from "@/locales";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "../icons";
 import { SettingRow } from "./SettingsPrimitives";
 import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow, useSubPage } from "./ListRows";
 import { textFieldCls } from "./ui/GrokDialog";

@@ -17,7 +17,7 @@ import {
   Settings as SettingsIcon,
   Smartphone,
   UserRound,
-} from "lucide-react";
+} from "../icons";
 
 import { accountMenuItems, AccountsSheet, cloudRowLabel, useAccounts, type AccountsAccess } from "./AccountMenu";
 import { Icon, type IconName } from "./Icon";

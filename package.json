@@ -115,7 +115,6 @@
     "jmespath": "0.16.0",
     "jose": "6.2.10",
     "katex": "^0.16.47",
-    "lucide-react": "^0.539.0",
     "mailparser": "3.14.1",
     "mdast-util-from-markdown": "^2.0.3",
     "mermaid": "^12.1.0",
@@ -146,6 +145,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@gravity-ui/icons": "^2.23.1",
     "@modelcontextprotocol/ext-apps": "2.0.3",
     "@tailwindcss/vite": "^4.1.11",
     "@types/jmespath": "0.15.2",
@@ -161,6 +161,7 @@
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2",
     "happy-dom": "^21.0.4",
+    "lucide-react": "^0.539.0",
     "oxlint": "1.80.0",
     "ssh2": "1.17.0",
     "tailwindcss": "^4.1.11",

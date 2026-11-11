@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "../icons";
 
 import type { LoginBots, LoginSummary, OnePasswordStatus, OnePasswordVault } from "../../shared/logins";
 import { t } from "@/lib/i18n";

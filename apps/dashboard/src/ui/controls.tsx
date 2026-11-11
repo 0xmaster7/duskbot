@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode, type SelectHTMLAttributes } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, X } from "@/icons";
 import { cx } from "./kit";
 
 export function Switch({ checked, onChange, label, disabled, id }: { checked: boolean; onChange(v: boolean): void; label: string; disabled?: boolean; id?: string }) {

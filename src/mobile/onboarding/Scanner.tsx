@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Flashlight, FlashlightOff, KeyRound, Link2, X } from "lucide-react";
+import { Flashlight, FlashlightOff, KeyRound, Link2, X } from "../../icons";
 import { MausAvatar } from "@/components/Avatar";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { t } from "@/lib/i18n";

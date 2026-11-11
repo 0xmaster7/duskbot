@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowUpRight, X } from "lucide-react";
+import { ArrowUpRight, X } from "../icons";
 import { CLOUD_PLAN_URL } from "@/lib/app-links";
 import { botRoom, closeBotLimit, useBotLimitOpen } from "@/lib/bot-limit";
 import { cloudPlanLabel } from "@/lib/cloud-plan";
