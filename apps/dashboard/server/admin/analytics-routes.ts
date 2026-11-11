@@ -7,6 +7,7 @@ import type { StoredWorkspace } from "../store.ts";
 import { DAY, DIMENSIONS, SURFACES, activeDays, breakdown, funnel, identityOf, kpis, matches, online, retention, series, visitsOf, type Dimension, type Filters, type People, type Visit } from "../analytics/web.ts";
 import { choseCloud, wasPaid, workspaceTurns } from "./metrics.ts";
 import { productReport } from "./product.ts";
+import { paymentsOf, revenueReport } from "../analytics/revenue.ts";
 
 export class AnalyticsRouteError extends Error {
   status: number; code: string;
@@ -77,7 +78,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
   async function web(url: URL) {
     const { from, to } = windowOf(url, now()), span = to - from;
     const { surface, filters, scoped } = webFilters(url);
-    const { events, identity, people: p } = await load(from - span);
+    const { events, identity, people: p } = await load(Math.min(from - span, from - 60 * DAY));
     const all = visitsOf(events, SURFACES), visits = all.filter(visit => surface === "all" || visit.surface === surface);
     const current = kpis(visits, identity, p, from, to, scoped), previous = kpis(visits, identity, p, from - span, from, scoped);
     const cards = Object.fromEntries(DIMENSIONS.map(dim => [dim, breakdown(visits, identity, p, dim, from, to, scoped)]));
@@ -88,10 +89,12 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
       .map(([id, at]) => ({ at, kind, seed: [...(identity.visitorsOf.get(id) ?? [])][0] ?? id, email: accounts.get(id)?.email ?? null, customer: p.paid.has(id) })))
       .sort((a, b) => b.at - a.at || a.seed.localeCompare(b.seed)).slice(0, 60);
     const live = online(events, now());
+    const revenue = revenueReport({ payments: paymentsOf(billing.store.state), subscriptions: billing.store.state.subscriptions, visits, identity, from, to, now: now(), filters: scoped,
+      accounts: new Map([...accounts].map(([id, account]) => [id, { email: account.email, createdAt: account.createdAt }])) });
     const crawls = await sink.crawls(from, to);
     const count = (values: string[]) => [...values.reduce((map, value) => map.set(value, (map.get(value) ?? 0) + 1), new Map<string, number>())]
       .map(([key, requests]) => ({ key, visitors: requests, signups: 0, paid: 0 })).sort((a, b) => b.visitors - a.visitors).slice(0, 50);
-    return { from, to, now: now(), filters, current, previous, surfaces, marks, online: live, series: series(visits, p, from, to, scoped, identity), cards, notes: await sink.notes(from - span, to),
+    return { from, to, now: now(), filters, current, previous, surfaces, marks, online: live, series: series(visits, p, from, to, scoped, identity), cards, revenue, notes: await sink.notes(from - span, to),
       tracked: visits.length > 0, crawlers: { total: crawls.length, bot: count(crawls.map(c => c.bot)), page: count(crawls.map(c => c.path)), kind: count(crawls.map(c => c.kind)) } };
   }
 

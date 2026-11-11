@@ -19,7 +19,7 @@ export interface SeededAccount { id: string; email: string; name: string; create
 /** writes auth.json before the service starts, so the seeded accounts have real sign-up dates */
 export function seedAdminAuth(dataDir: string, now: number): SeededAccount[] {
   const accounts = PEOPLE.map((handle, i) => ({ id: id("acct_"), email: `${handle}@example.test`, name: handle.split(".").map(part => part[0]!.toUpperCase() + part.slice(1)).join(" "),
-    createdAt: now - Math.round((i * 1.7 + rand() * 2) * DAY) - Math.round(rand() * 20) * 3_600_000 }));
+    createdAt: now - Math.round((i < 3 ? 36 + i * 8 : i * 1.7 + rand() * 2) * DAY) - Math.round(rand() * 20) * 3_600_000 }));
   const identities = accounts.filter((_, i) => i % 3 === 0).map(account => ({ accountId: account.id, provider: "google", subject: id("g_"), email: account.email, label: account.email, addedAt: account.createdAt }));
   const sessions = accounts.flatMap((account, i) => {
     const list = [{ kind: "web", name: "Browser", platform: null, appVersion: null }];
@@ -42,13 +42,15 @@ export function seedWaitlist(now: number) {
 /** clouds through the real (fake-provider) checkout path, then a month of events */
 export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, accounts: SeededAccount[], now: number) {
   const { analytics, billing } = app;
-  for (const [i, account] of accounts.slice(0, 6).entries()) {
+  for (const i of [0, 1, 2, 3, 4, 5, 6, 7, 9, 12]) {
+    const account = accounts[i]!;
     const bundle = BILLING_CONFIG.bundles.find(item => item.id === (i % 3 === 2 ? "pro" : "starter"))!;
     const answer = await billing.service.checkout({ id: account.id, email: account.email }, { kind: "cart", cart: billing.service.quote({ ...bundle.cart, interval: "month" }).cart, name: `${account.name.split(" ")[0]}'s cloud` }, { source: pick(["dash_onboarding", "app_card", "dash_home"] as const) });
     if (i === 5) continue;
     const stored = billing.store.state.checkouts.find(item => item.id === answer.checkoutId)!;
     for (const delivery of billing.fake!.complete(stored.providerSessionId!)) billing.service.handleWebhook(delivery.headers, delivery.body);
   }
+  seedPaymentHistory(app, accounts, now);
   for (let n = 0; n < 8; n++) await billing.clouds.reconcile();
   const paused = billing.clouds.list(accounts[1]!.id)[0];
   if (paused) await billing.clouds.power(paused.accountId, paused.id, "off").catch(() => {});
@@ -71,6 +73,36 @@ export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, 
       if (i % 2 === 0 && rand() < 0.7) await analytics.record("app_active", { accountId: account.id, at: t + 3_600_000, props: { platform: i % 4 === 0 ? "darwin" : "win32", appVersion: "0.2.15" } });
     }
   }
+}
+
+/** the fake provider pays everything at once; spread the payments over when each person would have paid, then add
+ * renewals for the older ones, a credits top-up and one refund */
+function seedPaymentHistory(app: ReturnType<typeof createDashboardApp>, accounts: SeededAccount[], now: number) {
+  const state = app.billing.store.state;
+  const delays = [26, 3, 70, 5, 0.6, 0, 40, 9, 0, 2, 0, 0, 150];
+  for (const [i, account] of accounts.entries()) {
+    const at = Math.min(now - 600_000, account.createdAt + Math.round((delays[i] ?? 12) * 3_600_000));
+    for (const sub of state.subscriptions.filter(item => item.accountId === account.id && item.currentPeriodStart !== null)) {
+      Object.assign(sub, { createdAt: at, currentPeriodStart: at, currentPeriodEnd: at + 30 * DAY });
+      for (const invoice of state.invoices.filter(item => item.subscriptionId === sub.id)) invoice.createdAt = at;
+      for (let renewal = at + 30 * DAY; renewal < now; renewal += 30 * DAY) {
+        const payment = `pay_fixture_${sub.id}_${renewal}`;
+        state.invoices.push({ id: `inv_${payment}`, accountId: account.id, providerPaymentId: payment, subscriptionId: sub.id, checkoutId: sub.checkoutId, amountCents: sub.totalCents,
+          currency: "USD", status: "paid", description: "renewal", createdAt: renewal });
+        Object.assign(sub, { currentPeriodStart: renewal, currentPeriodEnd: renewal + 30 * DAY });
+      }
+    }
+  }
+  const topUp = accounts[3]!;
+  state.invoices.push({ id: "inv_fixture_credits", accountId: topUp.id, providerPaymentId: "pay_fixture_credits", subscriptionId: null, checkoutId: null, amountCents: 1000,
+    currency: "USD", status: "paid", description: "credits", createdAt: now - 2 * DAY - 5 * 3_600_000 });
+  const refunded = state.invoices.find(invoice => invoice.accountId === accounts[7]!.id && invoice.status === "paid");
+  if (refunded) {
+    (state.refunds ??= []).push({ id: "ref_fixture_1", paymentId: refunded.providerPaymentId, amountCents: refunded.amountCents, currency: refunded.currency });
+    state.webhookEvents.push({ id: "wh_fixture_refund", at: Math.min(now - 3_600_000, refunded.createdAt + 2 * DAY), type: "refund.succeeded" });
+    refunded.status = "refunded";
+  }
+  app.billing.store.commit();
 }
 
 const CITIES: Array<[string, string, string, number, number]> = [

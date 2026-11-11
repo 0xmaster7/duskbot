@@ -1,0 +1,135 @@
+// Revenue for the owner's overview: every payment and refund from the billing records, tied back to the visit that
+// brought the payer (the last non-direct touch before paying, else their first visit). Pure functions.
+import { DIMENSIONS, bucketsOf, matches, valuesOf, type Dimension, type Filters, type Identity, type Visit } from "./web.ts";
+
+export interface InvoiceLike { id: string; accountId: string; providerPaymentId: string; subscriptionId: string | null; amountCents: number; currency: string; status: "paid" | "failed" | "refunded"; createdAt: number }
+export interface SubscriptionLike { accountId: string; status: string; totalCents: number; createdAt: number; currentPeriodStart: number | null; cart: { interval: string } }
+export interface BillingLike {
+  invoices: readonly InvoiceLike[];
+  subscriptions: readonly SubscriptionLike[];
+  refunds?: ReadonlyArray<{ id: string; paymentId: string; amountCents: number; currency: string }>;
+  webhookEvents?: ReadonlyArray<{ at: number; type: string }>;
+}
+
+export type PaymentKind = "new" | "renewal" | "one_time" | "refund";
+export interface Payment { id: string; accountId: string; at: number; amountCents: number; currency: string; kind: PaymentKind }
+
+/** paid invoices as positive payments (a refunded one was still paid first) and each refund as a negative one */
+export function paymentsOf(state: BillingLike): Payment[] {
+  const out: Payment[] = [];
+  const firstOf = new Map<string, number>();
+  for (const invoice of state.invoices) {
+    if (invoice.status === "failed" || !invoice.subscriptionId) continue;
+    if (!firstOf.has(invoice.subscriptionId) || firstOf.get(invoice.subscriptionId)! > invoice.createdAt) firstOf.set(invoice.subscriptionId, invoice.createdAt);
+  }
+  const byPayment = new Map<string, InvoiceLike>();
+  for (const invoice of state.invoices) {
+    byPayment.set(invoice.providerPaymentId, invoice);
+    if (invoice.status === "failed" || invoice.amountCents <= 0) continue;
+    const kind: PaymentKind = !invoice.subscriptionId ? "one_time" : firstOf.get(invoice.subscriptionId) === invoice.createdAt ? "new" : "renewal";
+    out.push({ id: invoice.id, accountId: invoice.accountId, at: invoice.createdAt, amountCents: invoice.amountCents, currency: invoice.currency, kind });
+  }
+  // a refund record carries no time; the webhook log keeps one per refund in the same order, else it lands on the payment's day
+  const refundTimes = (state.webhookEvents ?? []).filter(event => event.type === "refund.succeeded").map(event => event.at);
+  for (const [i, refund] of (state.refunds ?? []).entries()) {
+    const invoice = byPayment.get(refund.paymentId);
+    if (!invoice || refund.amountCents <= 0) continue;
+    out.push({ id: refund.id, accountId: invoice.accountId, at: Math.max(invoice.createdAt, refundTimes[i] ?? invoice.createdAt), amountCents: -refund.amountCents, currency: refund.currency, kind: "refund" });
+  }
+  return out.sort((a, b) => a.at - b.at);
+}
+
+const monthly = (sub: SubscriptionLike) => sub.cart.interval === "year" ? Math.round(sub.totalCents / 12) : sub.totalCents;
+const PAYING = new Set(["active", "payment_problem", "cancelled"]);
+/** monthly recurring revenue: today it is every paying subscription; at an earlier moment, those already paid by then
+ * that are still paying or ended later (an approximation: the records keep no status history) */
+export function mrrAt(subs: readonly SubscriptionLike[], at: number, now: number) {
+  return subs.filter(sub => sub.currentPeriodStart !== null || PAYING.has(sub.status)).filter(sub => sub.createdAt < at && (at >= now ? PAYING.has(sub.status) : PAYING.has(sub.status) || sub.status === "ended"))
+    .reduce((sum, sub) => sum + monthly(sub), 0);
+}
+
+export interface Touch { first: Visit | null; last: Visit | null }
+/** the visits that brought an account: its first, and the last one before `at` that came from somewhere (not direct) */
+export function touchOf(visits: readonly Visit[], at: number): Touch {
+  const before = visits.filter(visit => visit.start <= at);
+  const first = before[0] ?? visits[0] ?? null;
+  const last = [...before].reverse().find(visit => visit.channel !== "direct" && visit.channel !== "unknown") ?? null;
+  return { first, last };
+}
+
+export interface RevenueKpis { net: number; gross: number; refunds: number; payments: number; customers: number; newCustomers: number; renewals: number; mrr: number }
+export interface RecentPayment {
+  id: string; at: number; amountCents: number; currency: string; kind: PaymentKind; accountId: string; seed: string; email: string | null;
+  source: string; channel: string; firstSource: string | null; campaign: string | null; country: string | null; city: string | null; device: string | null;
+  firstSeen: number | null; signedUpAt: number | null;
+}
+
+export interface RevenueInput {
+  payments: readonly Payment[];
+  subscriptions: readonly SubscriptionLike[];
+  /** visits on the surfaces being looked at, oldest first */
+  visits: readonly Visit[];
+  identity: Identity;
+  accounts: ReadonlyMap<string, { email: string; createdAt: number }>;
+  from: number; to: number; now: number;
+  filters: Filters;
+}
+
+/** the window's revenue: totals for this and the previous window, a series in the chart's buckets, money per card row,
+ * and the newest payments with where each payer came from */
+export function revenueReport(input: RevenueInput) {
+  const { payments, identity, from, to, filters } = input, span = to - from;
+  const visitsOf = new Map<string, Visit[]>();
+  for (const visit of input.visits) {
+    const account = visit.visitor.startsWith("acct_") ? visit.visitor : identity.accountOf.get(visit.visitor);
+    if (account) (visitsOf.get(account) ?? visitsOf.set(account, []).get(account)!).push(visit);
+  }
+  const touches = new Map<string, Touch>();
+  const touch = (payment: Payment) => {
+    const key = `${payment.accountId}:${payment.at}`;
+    if (!touches.has(key)) touches.set(key, touchOf(visitsOf.get(payment.accountId) ?? [], payment.at));
+    return touches.get(key)!;
+  };
+  const credited = (payment: Payment) => { const t = touch(payment); return t.last ?? t.first; };
+  const filtered = Object.keys(filters).length > 0;
+  const counts = (payment: Payment) => !filtered || (() => { const visit = credited(payment); return !!visit && matches(visit, filters); })();
+  const within = (a: number, b: number) => payments.filter(payment => payment.at >= a && payment.at < b && counts(payment));
+  const firstPaid = new Map<string, number>();
+  for (const payment of payments) if (payment.amountCents > 0 && !firstPaid.has(payment.accountId)) firstPaid.set(payment.accountId, payment.at);
+  const kpis = (a: number, b: number, mrrTime: number): RevenueKpis => {
+    const list = within(a, b), positive = list.filter(payment => payment.amountCents > 0);
+    const customers = new Set(positive.map(payment => payment.accountId));
+    return {
+      net: list.reduce((sum, payment) => sum + payment.amountCents, 0), gross: positive.reduce((sum, payment) => sum + payment.amountCents, 0),
+      refunds: -list.filter(payment => payment.kind === "refund").reduce((sum, payment) => sum + payment.amountCents, 0),
+      payments: positive.length, customers: customers.size, newCustomers: [...customers].filter(id => { const at = firstPaid.get(id)!; return at >= a && at < b; }).length,
+      renewals: positive.filter(payment => payment.kind === "renewal").length, mrr: filtered ? 0 : mrrAt(input.subscriptions, mrrTime, input.now),
+    };
+  };
+
+  const { size, starts } = bucketsOf(from, to);
+  const series = { new: starts.map(() => 0), renewal: starts.map(() => 0), refund: starts.map(() => 0) };
+  for (const payment of within(from, to)) {
+    const i = Math.floor((payment.at - from) / size);
+    if (i < 0 || i >= starts.length) continue;
+    if (payment.kind === "refund") series.refund[i]! += payment.amountCents;
+    else if (payment.kind === "renewal") series.renewal[i]! += payment.amountCents;
+    else series.new[i]! += payment.amountCents;
+  }
+
+  const cards = Object.fromEntries(DIMENSIONS.map(dim => [dim, {} as Record<string, number>])) as Record<Dimension, Record<string, number>>;
+  for (const payment of within(from, to)) {
+    const visit = credited(payment);
+    for (const dim of DIMENSIONS) for (const value of visit ? valuesOf(visit, dim) : ["unknown"]) cards[dim][value] = (cards[dim][value] ?? 0) + payment.amountCents;
+  }
+
+  const recent: RecentPayment[] = within(from, to).reverse().slice(0, 20).map(payment => {
+    const t = touch(payment), visit = t.last ?? t.first, account = input.accounts.get(payment.accountId);
+    return { id: payment.id, at: payment.at, amountCents: payment.amountCents, currency: payment.currency, kind: payment.kind, accountId: payment.accountId,
+      seed: [...(identity.visitorsOf.get(payment.accountId) ?? [])][0] ?? payment.accountId, email: account?.email ?? null,
+      source: visit?.source ?? "unknown", channel: visit?.channel ?? "unknown", firstSource: t.first && t.first !== visit ? t.first.source : null, campaign: visit?.campaign ?? null,
+      country: visit?.country ?? null, city: visit?.city ?? null, device: visit?.device ?? null, firstSeen: t.first?.start ?? null, signedUpAt: account?.createdAt ?? null };
+  });
+
+  return { current: kpis(from, to, Math.min(to, input.now)), previous: kpis(from - span, from, from), series, cards, recent, live: payments.length > 0, first: payments.find(payment => payment.amountCents > 0)?.at ?? null };
+}
