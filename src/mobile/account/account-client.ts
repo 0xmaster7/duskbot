@@ -1,5 +1,5 @@
 import { cleanCode, cleanEmail, parseSignInStart, SIGN_IN_TRIES, startFailure, verifyFailure } from "../../../electron/cloud-signin.mjs";
-import { ACCOUNT_ROUTES, APP_AUTH_REDIRECT, type OAuthErrorCode, type OAuthProvider } from "../../../shared/account-api";
+import { ACCOUNT_ROUTES, APP_AUTH_REDIRECT, OAUTH_PROVIDERS, type OAuthErrorCode, type OAuthProvider } from "../../../shared/account-api";
 import type { CloudSignInStart } from "../../../electron/cloud-account.mjs";
 import type { SignInVerify } from "@/components/account-gate/bridge";
 import type { MobilePlatform } from "../platform";
@@ -117,6 +117,15 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
       }
     },
     cancelEmail() { attempt = null; },
+    /** The sign-in providers the service has switched on; none when it cannot be asked, so no button leads nowhere. */
+    async providers(): Promise<OAuthProvider[]> {
+      try {
+        const answer = await request(ACCOUNT_ROUTES.providers);
+        if (!object(answer) || answer.v !== 1 || !Array.isArray(answer.providers)) return [];
+        const on = new Set(answer.providers.filter((one): one is { id: string } => object(one) && one.enabled === true && typeof one.id === "string").map((one) => one.id));
+        return OAUTH_PROVIDERS.filter((provider) => on.has(provider));
+      } catch { return []; }
+    },
     async oauthStart(provider: OAuthProvider): Promise<void> {
       const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
       const state = base64url(crypto.getRandomValues(new Uint8Array(24)));

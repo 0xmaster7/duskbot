@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion, useTransform, type MotionValue } from "motion/react";
 import { BellDot, Check, MonitorSmartphone, Pin, PinOff, Plus, Search, Star, UserRound } from "lucide-react";
 import { api, useStore, type Bot, type Group } from "@/state/store";
@@ -19,6 +19,8 @@ import { PullToRefresh } from "./PullToRefresh";
 import { refreshSnapshot } from "./refresh";
 import { usePlatform } from "./platform";
 import { useQuietResume } from "./connection/quiet-resume";
+import { ActiveConnection } from "./connection/active";
+import { DEMO_CONNECTION } from "./demo/demo-mode";
 import { listTime } from "./time";
 import type { OpenSheet } from "./sheets";
 
@@ -48,6 +50,7 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
   const { state, dispatch } = useStore();
   const platform = usePlatform();
   const resuming = useQuietResume(platform);
+  const demo = useContext(ActiveConnection) === DEMO_CONNECTION;
   const you = useGroupYou();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -148,6 +151,9 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
           {unreadNotes > 0 && <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ink px-1 text-[11px] font-semibold tabular-nums text-app ring-2 ring-app">{unreadNotes > 9 ? "9+" : unreadNotes}</span>}
         </RoundButton>
         <div className="flex-1" />
+        {demo && (
+          <button type="button" onClick={() => onOpenSheet({ kind: "settings" })} className="mobile-press pointer-events-auto flex h-8 items-center rounded-full bg-composer px-3 text-[13px] text-ink-secondary mobile-float">{t("mobile.demo.banner")}</button>
+        )}
         {state.hydrated && !state.connected && !resuming && (
           <span role="status" className="pointer-events-auto flex h-8 items-center gap-2 rounded-full bg-composer px-3 text-[13px] text-ink-secondary mobile-float">
             <WorkingDots size={3} />{t("mobile.home.reconnecting")}

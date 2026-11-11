@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { MausAvatar } from "@/components/Avatar";
 import { CodeBoxes, codeDigits } from "@/components/cloud-buy/CodeBoxes";
 import { problemLine } from "@/components/cloud-buy/SignInScreen";
@@ -14,7 +14,7 @@ const LINK = "min-h-11 self-center rounded-full px-3 text-[13px] text-ink-second
 export const SUPPORT_ADDRESS = "hello@dusk.bot";
 export type SignInOptions = { providers: OAuthProvider[]; recovery: boolean };
 
-export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSignedIn, notice, mobile = false, options }: {
+export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSignedIn, notice, mobile = false, options, children }: {
   emailStart(email: string, options?: { recover: true }): Promise<CloudSignInStart>;
   emailVerify(code: string): Promise<SignInVerify>;
   browser(provider: OAuthProvider): Promise<unknown>;
@@ -24,6 +24,8 @@ export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSigned
   mobile?: boolean;
   /** The providers the account service says sign in, and "Can't sign in?". Without it (the phone's sheet) every provider shows. */
   options?(): Promise<SignInOptions>;
+  /** Shown under the form while no code is out: the phone's demo entry and legal links. */
+  children?: ReactNode;
 }) {
   const id = useId();
   const host = useRef<HTMLDivElement>(null);
@@ -92,12 +94,13 @@ export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSigned
         {sent && <button type="button" className="min-h-11 text-[13px] underline underline-offset-2 disabled:opacity-40" disabled={busy || (problem !== "expired" && now < sent.resendAt)} onClick={() => void send()}>{t("cloudBuy.signIn.resend")}</button>}
         {problem && <p id={`${id}-problem`} role="alert" className="text-[13px] text-ink">{problemLine(problem, triesLeft)}</p>}
       </form>
-      {options && !sent && !recover && <button type="button" className={LINK} disabled={busy} onClick={() => { setRecover(true); setProblem(null); }}>{t("accountGate.cantSignIn")}</button>}
+      {options && !mobile && !sent && !recover && <button type="button" className={LINK} disabled={busy} onClick={() => { setRecover(true); setProblem(null); }}>{t("accountGate.cantSignIn")}</button>}
       {recover && !sent && <section aria-labelledby={`${id}-lost`} className="flex flex-col gap-1 border-t border-ink/10 pt-4">
         <h2 id={`${id}-lost`} className="text-[14px] font-medium">{t("accountGate.lostTitle")}</h2>
         <p className="text-[13px] leading-5 text-ink-secondary">{t("accountGate.lostBody", { address: SUPPORT_ADDRESS })}</p>
         <button type="button" className={`${LINK} mt-2`} disabled={busy} onClick={() => { setRecover(false); setProblem(null); }}>{t("accountGate.back")}</button>
       </section>}
+      {!sent && !recover && children}
     </div>
   </main>;
 }

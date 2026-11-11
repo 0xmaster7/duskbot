@@ -4,9 +4,13 @@ import { setUploadRoute } from "@/lib/upload-request";
 
 export type PhoneTransport =
   | { kind: "same-origin" | "bearer"; origin: string; token?: string }
-  | { kind: "relay"; channel: RelayChannel; token: string };
+  | { kind: "relay"; channel: RelayChannel; token: string }
+  /** the built-in demo workspace: every request is answered inside the page */
+  | { kind: "demo"; workspace: { fetch: typeof fetch; close(): void }; token?: undefined };
 
-const originOf = (transport: PhoneTransport) => transport.kind === "relay" ? "https://mobile-relay.invalid" : transport.origin;
+const originOf = (transport: PhoneTransport) => transport.kind === "relay" ? "https://mobile-relay.invalid" : transport.kind === "demo" ? "https://demo-workspace.invalid" : transport.origin;
+/** routes that never leave the page: a relay tunnel or the demo workspace */
+const inPage = (transport: PhoneTransport) => transport.kind === "relay" || transport.kind === "demo";
 
 export function relayFetch(channel: RelayChannel, token: string, onBodyProgress?: (sent: number, total: number) => void): typeof fetch {
   return async (input, init) => {
@@ -268,8 +272,8 @@ export function installTransport(transport: PhoneTransport, onGone?: () => void)
     if (error instanceof RelayGoneError) onGone?.();
     throw error;
   });
-  const fetchWorkspace = transport.kind === "relay" ? overRelay(relayFetch(transport.channel, transport.token)) : originalFetch.bind(window);
-  const context = { transport, streamFetch: transport.kind === "relay" ? fetchWorkspace : streamFetch.bind(window) };
+  const fetchWorkspace = transport.kind === "relay" ? overRelay(relayFetch(transport.channel, transport.token)) : transport.kind === "demo" ? transport.workspace.fetch : originalFetch.bind(window);
+  const context = { transport, streamFetch: inPage(transport) ? fetchWorkspace : streamFetch.bind(window) };
   installed = context;
   const patchedFetch: typeof fetch = (input, init) => {
     const url = rewriteApiUrl(input instanceof Request ? input.url : String(input), window.location.origin, origin);
@@ -300,7 +304,7 @@ export function installTransport(transport: PhoneTransport, onGone?: () => void)
       let target: URL | null = null;
       try {
         const url = new URL(input, window.location.href);
-        if (transport.kind !== "relay" && url.host === window.location.host && ["ws:", "wss:", window.location.protocol].includes(url.protocol) && url.pathname.startsWith("/api/") && !url.username && !url.password) {
+        if (!inPage(transport) && url.host === window.location.host && ["ws:", "wss:", window.location.protocol].includes(url.protocol) && url.pathname.startsWith("/api/") && !url.username && !url.password) {
           target = new URL(`${url.pathname}${url.search}`, workspace);
           target.protocol = workspace.protocol === "https:" ? "wss:" : "ws:";
           // the sync branch's server must accept access_token on authenticated viewer upgrades.
@@ -329,6 +333,7 @@ export function installTransport(transport: PhoneTransport, onGone?: () => void)
     stopUploads();
     stopMedia();
     if (transport.kind === "relay") transport.channel.close();
+    if (transport.kind === "demo") transport.workspace.close();
     for (const source of sources) source.close();
     for (const socket of sockets) socket.close();
     if (window.fetch === patchedFetch) window.fetch = originalFetch;
@@ -339,5 +344,5 @@ export function installTransport(transport: PhoneTransport, onGone?: () => void)
 }
 
 export function mediaUrl(path: string): string {
-  return installed && installed.transport.kind !== "relay" ? rewriteApiUrl(path, window.location.origin, originOf(installed.transport)) ?? path : path;
+  return installed && !inPage(installed.transport) ? rewriteApiUrl(path, window.location.origin, originOf(installed.transport)) ?? path : path;
 }

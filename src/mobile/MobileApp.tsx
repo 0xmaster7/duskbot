@@ -15,7 +15,8 @@ import { NavStack } from "./NavStack";
 import { ChatScreen } from "./ChatScreen";
 import { HomeScreen, releasePressed } from "./HomeScreen";
 import { SheetHost } from "./SheetHost";
-import { closeTopSheet } from "./Sheet";
+import { closeTopSheet, Sheet } from "./Sheet";
+import { t } from "@/lib/i18n";
 import { useKeyboardSync } from "./keyboard";
 import { useChatHaptics } from "./use-chat-haptics";
 import { useOutbox } from "./outbox";
@@ -52,6 +53,15 @@ function Shell() {
     setSheetOpen(true);
   }, []);
   const closeSheet = useCallback(() => setSheetOpen(false), []);
+
+  // a shared card that opens the computer app's settings (connect an AI, add a key) has nothing to open on a phone: it
+  // says where that lives instead of doing nothing
+  const [desktopOnly, setDesktopOnly] = useState(false);
+  useEffect(() => {
+    if (!state.appSettingsOpen) return;
+    dispatch({ type: "toggleAppSettings", open: false });
+    setDesktopOnly(true);
+  }, [state.appSettingsOpen, dispatch]);
 
   const openTarget = useCallback((target: MobileOpenTarget) => {
     const id = target.botId ?? target.groupId;
@@ -122,6 +132,12 @@ function Shell() {
       />
       <SheetHost sheet={sheet} open={sheetOpen} onClose={closeSheet} onOpenSheet={openSheet} onOpenChat={(id) => { closeSheet(); openChat(id); }} />
       <ConnectAppsHost />
+      <Sheet open={desktopOnly} onClose={() => setDesktopOnly(false)} title={t("mobile.desktopOnly.title")}>
+        <div className="px-5 pb-[calc(var(--m-safe-bottom)+16px)]">
+          <p className="text-[15px] leading-6 text-ink-secondary">{t("mobile.desktopOnly.body")}</p>
+          <button type="button" onClick={() => setDesktopOnly(false)} className="mobile-press mt-5 flex min-h-12 w-full items-center justify-center rounded-full bg-ink text-[16px] font-semibold text-app">{t("mobile.desktopOnly.done")}</button>
+        </div>
+      </Sheet>
     </div>
   );
 }

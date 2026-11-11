@@ -92,3 +92,13 @@ it("a refused request on a session that still answers changes nothing", async ()
   expect(host.textContent).toBe("home");
   expect(prefs.get("omb.mobile.active.v1")).toBe("mac");
 });
+
+it("the demo workspace opens with no server at all, and linking a real one ends it", async () => {
+  prefs.set("omb.mobile.demo", "1");
+  await mount(); await settle();
+  expect(host.textContent).toBe("home");
+  expect(fetcher).not.toHaveBeenCalled();
+  const bots = await (await fetch("/api/bots?messages=0")).json();
+  expect(bots.bots.length).toBeGreaterThan(3);
+  expect(fetcher).not.toHaveBeenCalled();
+});
