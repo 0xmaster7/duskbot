@@ -81,7 +81,7 @@ const WAIT_MSG = {
   not_json: 'this address only takes json.',
   server: "we couldn't save that just now. try again in a minute.",
 };
-// five tries a minute per address; nginx puts the visitor's address in X-Real-IP, and this server only listens on loopback
+// five tries a minute per address; behind cloudflare the visitor is in CF-Connecting-IP, else nginx's X-Real-IP (this server only listens on loopback)
 const tries = new Map();
 function tooMany(ip) {
   const now = Date.now(), recent = (tries.get(ip) || []).filter((t) => now - t < 60_000);
@@ -120,7 +120,7 @@ function waitlist(req, res, urlPath) {
     return store.count().then((count) => sendJson(res, 200, { count }, { 'Cache-Control': 'public, max-age=60' }), (err) => { console.error('waitlist: count failed:', err?.codeName || err?.message); return fail(res, 500, 'server'); });
   }
   if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'method' }, { Allow: 'POST' });
-  const ip = String(req.headers['x-real-ip'] || req.socket.remoteAddress || '');
+  const ip = String(req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.socket.remoteAddress || '');
   if (tooMany(ip)) return fail(res, 429, 'too_many');
   if (!/^application\/json\b/i.test(String(req.headers['content-type'] || ''))) { req.resume(); return fail(res, 415, 'not_json'); }
   if (Number(req.headers['content-length']) > 2048) { res.setHeader('Connection', 'close'); req.resume(); return fail(res, 413, 'too_large'); }
