@@ -1,28 +1,45 @@
-# every size of the brand mark the site uses, from one file. to change the logo: replace mark.png beside this script
-# (a square png with a clear background, 512 px or more is best), run `python3 art-src/brand/icons.py`, then the build.
+# every size of the logo the site uses, from the final logo files beside this script (logo-2048.png, and logo-32.png and
+# logo-16.png drawn for the favicon; copies of omb-ref/brand/final/dusk-logo-*.png). to change the logo: replace them,
+# run `python3 art-src/brand/icons.py`, then the build.
 import os
-from PIL import Image
+from PIL import Image, ImageDraw
 here = os.path.dirname(os.path.abspath(__file__))
 site = os.path.join(here, '..', '..', 'public', 'landing')
-mark = Image.open(os.path.join(here, 'mark.png')).convert('RGBA')
-mark = mark.crop(mark.getbbox())
-side = max(mark.size)
-sq = Image.new('RGBA', (side, side), (0, 0, 0, 0)); sq.alpha_composite(mark, ((side - mark.width) // 2, (side - mark.height) // 2))
+big = Image.open(os.path.join(here, 'logo-2048.png')).convert('RGBA')
+native = {s: Image.open(os.path.join(here, f'logo-{s}.png')).convert('RGBA') for s in (16, 32)}
 
-def fit(size, scale=1.0, bg=None):
-    im = Image.new('RGBA', (size, size), bg or (0, 0, 0, 0))
-    m = sq.resize((round(size * scale),) * 2, Image.LANCZOS)
-    im.alpha_composite(m, ((size - m.width) // 2, (size - m.height) // 2))
-    return im
+def sized(size):
+    return native[size].copy() if size in native else big.resize((size, size), Image.BOX)
 
-white = (255, 255, 255, 255)
+# app icon corners: a rounded square cut with a smooth (4x supersampled) mask
+def rounded(im, radius):
+    s = im.width
+    m = Image.new('L', (s * 4, s * 4), 0)
+    ImageDraw.Draw(m).rounded_rectangle((0, 0, s * 4 - 1, s * 4 - 1), radius=radius * s * 4, fill=255)
+    out = im.copy(); out.putalpha(m.resize((s, s), Image.LANCZOS))
+    return out
+
+# maskable: the scene is shrunk to 80% and its edge rows and columns carried out to the border, so the bands and the
+# grass run on and kit sits well inside the safe circle
+def maskable(size):
+    inner = round(size * 0.8); pad = (size - inner) // 2
+    small = big.resize((inner, inner), Image.BOX)
+    out = Image.new('RGBA', (size, size))
+    out.paste(small, (pad, pad))
+    for x in range(pad): out.paste(small.crop((0, 0, 1, inner)), (x, pad)); out.paste(small.crop((inner - 1, 0, inner, inner)), (size - 1 - x, pad))
+    for y in range(pad): out.paste(out.crop((0, pad, size, pad + 1)), (0, y)); out.paste(out.crop((0, pad + inner - 1, size, pad + inner)), (0, size - 1 - y))
+    return out
+
+art = lambda name: os.path.join(site, 'art', name)
 os.makedirs(os.path.join(site, 'brand'), exist_ok=True)
-fit(88).save(os.path.join(site, 'art', 'cursor-88.webp'), quality=92, method=6)                 # the header, the footer, the home page
-fit(48, 0.92).save(os.path.join(site, 'favicon.ico'), sizes=[(16, 16), (32, 32), (48, 48)])
-fit(180, 0.66, white).convert('RGB').save(os.path.join(site, 'art', 'apple-touch-icon.png'), optimize=True)
-fit(192, 0.7, white).convert('RGB').save(os.path.join(site, 'art', 'icon-192.png'), optimize=True)
-fit(512, 0.7, white).convert('RGB').save(os.path.join(site, 'art', 'icon-512.png'), optimize=True)
-fit(512, 0.52, white).convert('RGB').save(os.path.join(site, 'art', 'icon-maskable-512.png'), optimize=True)
-fit(1024, 0.94).save(os.path.join(site, 'brand', 'dusk-bot-mark.png'), optimize=True)             # the brand page's download
-fit(320, 0.94).save(os.path.join(site, 'art', 'mark-320.webp'), quality=92, method=6)            # the brand page's tiles
-print('wrote the mark at every size')
+rounded(sized(96), 0.22).save(art('logo-96.webp'), lossless=True, method=6)                       # the header and the footer
+ico = [rounded(sized(s), 0.14) for s in (16, 32, 48)]
+ico[2].save(os.path.join(site, 'favicon.ico'), sizes=[(16, 16), (32, 32), (48, 48)], append_images=ico[:2])
+sized(180).convert('RGB').save(art('apple-touch-icon.png'), optimize=True)                         # ios rounds it itself
+rounded(sized(192), 0.22).save(art('icon-192.png'), optimize=True)
+rounded(sized(512), 0.22).save(art('icon-512.png'), optimize=True)
+maskable(512).convert('RGB').save(art('icon-maskable-512.png'), optimize=True)
+rounded(sized(320), 0.22).save(art('mark-320.webp'), lossless=True, method=6)                      # the brand page's tiles
+rounded(sized(1024), 0.22).save(os.path.join(site, 'brand', 'dusk-bot-logo.png'), optimize=True)  # the brand page's downloads
+sized(1024).convert('RGB').save(os.path.join(site, 'brand', 'dusk-bot-logo-square.png'), optimize=True)
+print('wrote the logo at every size')
