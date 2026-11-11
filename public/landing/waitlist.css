@@ -27,7 +27,7 @@
 /* works with: the banner's row, white cards with a tinted underside and pixel corners */
 .wl-works { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 16px; margin-top: 26px; }
 .wl-works > span { font-size: 19px; font-weight: 650; letter-spacing: -0.005em; }
-.wl-works ul { display: flex; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.wl-works ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 100%; margin: 0; padding: 0; list-style: none; }
 .wl-works li { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 4px 11px; background: var(--paper); clip-path: var(--step); box-shadow: inset 0 -5px 0 var(--u); color: #212121; font-size: 17px; font-weight: 550; letter-spacing: -0.01em; }
 .wl-works .logo { width: 20px; height: 20px; }
 .u-lemon { --u: var(--u-lemon); } .u-pink { --u: var(--u-pink); } .u-sky { --u: var(--u-sky); } .u-lilac { --u: var(--u-lilac); }
@@ -88,6 +88,11 @@
   .wl-row button { width: 100%; }
   .wl-hill { right: 4%; width: 150px; height: 24px; }
   .wl-pip { width: 56px; }
+  .wl-works { gap: 10px; }
+  .wl-works > span { flex-basis: 100%; text-align: center; font-size: 17px; }
+  .wl-works ul { display: grid; grid-template-columns: repeat(2, max-content); justify-content: center; gap: 8px; }
+  .wl-works li { height: 36px; padding: 0 12px 4px 10px; font-size: 15px; gap: 7px; }
+  .wl-works .logo { width: 18px; height: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .wl-col > *, .wl-ticket, .wl-msg { animation: none; }
