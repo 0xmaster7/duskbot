@@ -53,7 +53,7 @@ export function quote(cart: Cart, config: BillingConfig = BILLING_CONFIG): Quote
   if (cart.desktop.kind !== "none") {
     const desktop = config.desktops[cart.desktop.kind];
     machine = { ...(cart.desktop.spec ?? desktop.machine) }; botComputers = desktop.botComputers;
-    lines.push({ kind: "desktop", label: cart.desktop.kind === "dedicated" ? `Dedicated ${machine.vcpu} vCPU, ${machine.ramGb} GB, ${machine.diskGb} GB` : `${desktop.label} cloud desktop`,
+    lines.push({ kind: "desktop", label: cart.desktop.kind === "dedicated" ? `Dedicated ${machine.vcpu} vCPU, ${machine.ramGb} GB, ${machine.diskGb} GB` : `Dusk Cloud ${desktop.label}`,
       amountCents: (cart.desktop.kind === "dedicated" ? dedicatedMonthlyCents(machine, config) : desktop.monthlyCents!) * multiplier });
   }
   const sum = lines.reduce((sum, line) => sum + line.amountCents, 0);

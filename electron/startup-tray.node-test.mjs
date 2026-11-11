@@ -3,7 +3,7 @@ import { EventEmitter } from "node:events";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { createStartupScreen } from "./startup-screen.mjs";
-import { createSystemTray } from "./system-tray.mjs";
+import { createSystemTray, trayIcon } from "./system-tray.mjs";
 
 const iconPath = fileURLToPath(new URL("./resources/app-icon.png", import.meta.url));
 class Window extends EventEmitter {
@@ -38,7 +38,7 @@ function fixture(options = {}) {
   }
   let active;
   const tray = createSystemTray({ Tray, Menu: { buildFromTemplate: value => value },
-    nativeImage: { createFromPath: () => ({ resize: () => ({}) }) }, iconPath,
+    nativeImage: { createFromPath: () => ({ resize: () => ({}) }) }, resourcesDir: "resources", platform: "win32",
     getWindow: () => active, onQuit: () => calls.push("quit") });
   const splash = createStartupScreen({ BrowserWindow: Window, iconPath, platform: "win32",
     isQuitting: () => false, onQuit: () => calls.push("quit"), onHide: win => tray.hide(win),
@@ -210,4 +210,13 @@ test("the ring closes before the workspace fades in over the splash", async () =
   assert.ok(ran.indexOf("window.ring?.done()") > ran.indexOf("window.ring?.to(0.8)"));
   assert.equal(win.visible, true); assert.equal(win.opacity, 1); assert.equal(splash.window.opacity, 0);
   assert.deepEqual(calls, ["finished"]);
+});
+
+test("the macOS tray icon is a template image, elsewhere the logo", () => {
+  const loaded = [];
+  const nativeImage = { createFromPath: (file) => { const image = { file, setTemplateImage: (on) => { image.template = on; }, resize: () => image }; loaded.push(image); return image; } };
+  const mac = trayIcon(nativeImage, "res", "darwin");
+  assert.equal(mac.file, "res/trayTemplate.png");
+  assert.equal(mac.template, true);
+  assert.equal(trayIcon(nativeImage, "res", "win32").file, "res/tray-icon.png");
 });

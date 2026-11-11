@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { BODY_NAMES } from "../electron/mascot-geometry.mjs";
+import { PIXEL_BODIES } from "./pixel-bodies.ts";
 import { BODY_MIGRATION, DEFAULT_BOT_BODY, DUSK_BODY_IDS, DUSK_BODY_NAMES, LEGACY_BODY_IDS, duskBody, migrateBodyId } from "./body-migration.ts";
 
 // every body id the app stored or shipped before our own bodies, as its settings schema listed them, and the names the
@@ -10,11 +10,14 @@ const SAVED_BEFORE = [
   "flower", "sparkle", "wedge", "heart", "fruit", "clover", "square", "teardrop", "pebble", "bean", "egg", "cylinder",
   "hex", "gem", "crystal", "dome", "arch", "leaf", "house",
 ];
-const SITE_NAMES = { clover: "cloud", capsule: "pill", gem: "hex", blob: "circle", teardrop: "drop", square: "squircle", crescent: "moon" };
+// the smooth bodies, and the website's renames of them, each onto the pixel body that took its place
+const SITE_NAMES = { clover: "puff", capsule: "mochi", gem: "boxo", blob: "pip", teardrop: "drip", square: "loaf", crescent: "wisp" };
+const SMOOTH = { circle: "pip", squircle: "loaf", pill: "mochi", hex: "boxo", star: "starry", heart: "hearty", drop: "drip", moon: "wisp", cloud: "puff", pixel: "tofu" };
 
 describe("body migration", () => {
   it("names exactly the bodies the engine draws", () => {
-    expect([...DUSK_BODY_IDS].sort()).toEqual([...BODY_NAMES].sort());
+    expect([...DUSK_BODY_IDS].sort()).toEqual(Object.keys(PIXEL_BODIES).sort());
+    expect(DUSK_BODY_IDS).toHaveLength(20);
     expect(Object.keys(DUSK_BODY_NAMES).sort()).toEqual([...DUSK_BODY_IDS].sort());
   });
 
@@ -22,8 +25,8 @@ describe("body migration", () => {
     for (const id of SAVED_BEFORE) expect(DUSK_BODY_IDS, id).toContain(migrateBodyId(id));
   });
 
-  it("keeps the website's renames", () => {
-    for (const [from, to] of Object.entries(SITE_NAMES)) expect(migrateBodyId(from), from).toBe(to);
+  it("moves the smooth bodies and the website's renames onto their pixel bodies", () => {
+    for (const [from, to] of Object.entries({ ...SMOOTH, ...SITE_NAMES })) expect(migrateBodyId(from), from).toBe(to);
   });
 
   it("keeps our own ids as they are", () => {

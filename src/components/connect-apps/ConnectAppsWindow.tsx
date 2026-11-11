@@ -666,7 +666,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                           )}
                         </div>
                         <button type="button" className="ca-templates" data-bot-templates-link="" onClick={onTemplates}>
-                          <DuskMark body="circle" colour="var(--ca-mark)" size={18} animated={false} />
+                          <DuskMark body="kit" colour="var(--ca-mark)" size={18} animated={false} />
                           {t("connectApps.templates")}
                           <span data-arrow="" aria-hidden="true"><Icon name="arrow-right-up" size={12} /></span>
                         </button>

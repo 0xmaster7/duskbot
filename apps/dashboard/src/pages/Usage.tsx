@@ -15,6 +15,7 @@ import { Legend, UsageChart } from "../ui/UsageChart";
 import { BuyCredits } from "./credits-dialog";
 import { useNow } from "../lib/now";
 import { Figure } from "../ui/Figure";
+import { Activity } from "./activity";
 
 const GROUPS: Array<{ value: UsageGroup; label: string }> = [{ value: "bot", label: "bot" }, { value: "model", label: "model" }, { value: "workspace", label: "workspace" }];
 const PAGE = 12;
@@ -134,6 +135,7 @@ export function UsagePage() {
   const cloud = useCloud();
   const { billing } = cloud;
   const { month, plans, loading, error, refresh } = useAccountUsage();
+  const { detail } = useSession();
   const [buying, setBuying] = useState(false);
   const [group, setGroup] = useState<UsageGroup>("bot");
   const [limit, setLimit] = useState(PAGE);
@@ -186,6 +188,7 @@ export function UsagePage() {
             </div>
           )}
         </Card>
+        {detail?.report?.activity && <Activity detail={detail} now={now} />}
       </div>
 
       <section className="mt-12" aria-labelledby="events-title">

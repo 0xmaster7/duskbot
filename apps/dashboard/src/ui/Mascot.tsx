@@ -1,41 +1,42 @@
-import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import type { BotReport } from "../../../../shared/dashboard-protocol";
 import { botMood, type BotMood } from "../data/mood";
-import { botSvg, create, pointerGaze, type BodyName, type Bot, type BotReaction, type BotState } from "../mascot/index.js";
+import { createPixel, type PixelBot } from "@/pixel/engine";
+import { pixelReaction, pixelState, pointerGaze, type MarkReaction, type MarkState } from "@/components/mascot-engine";
+import { MASCOT_INK } from "@/lib/mascot";
 import { cx } from "./kit";
 import { duskBody } from "../../../../shared/body-migration";
-
-export type { BotReaction, BotState } from "../mascot/index.js";
+import type { PixelBodyId } from "../../../../shared/pixel-bodies";
 
 const query = typeof window !== "undefined" ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
 export const useReducedMotion = () =>
   useSyncExternalStore((fn) => { query?.addEventListener("change", fn); return () => query?.removeEventListener("change", fn); }, () => query?.matches ?? false, () => false);
 
-/** the brand's bot colours (the site's palette); every colour a bot was ever saved with has one */
-export const BOT_COLOURS = {
-  blue: "#2f7bf2", orange: "#ff7d1f", purple: "#8d5cf0", pink: "#ff5c9d", green: "#1fb866", yellow: "#f8c623",
-  red: "#ef4a41", teal: "#17b3a6", cyan: "#22b4e8", coral: "#ff7a5c", brown: "#a0683a", silver: "#9a9aa3", chrome: "#9a9aa3",
-} as const;
+/** the bot colours, painted as the app paints its mascots; every colour a bot was ever saved with has one */
+export const BOT_COLOURS = MASCOT_INK;
 export type BotColour = keyof typeof BOT_COLOURS;
 export const colorOf = (c: string | null | undefined): BotColour => (c && Object.hasOwn(BOT_COLOURS, c) ? (c as BotColour) : "blue");
 
-// a saved body id draws through the app's one migration map; halloween costumes have no dusk body, so each takes its nearest
-const COSTUME_BODY: Record<string, BodyName> = {
-  pumpkin: "circle", ghost: "cloud", witch: "drop", bat: "moon", cat: "squircle", skull: "pill", monster: "pixel", mummy: "pill", vampire: "moon", spider: "hex",
+export type BotState = MarkState | BotMood;
+export type BotReaction = MarkReaction | "bounce" | "perk" | "shake" | "squish" | "dizzy" | "celebrate" | "blink";
+
+// a saved body id draws through the app's one migration map; halloween costumes have no pixel body, so each takes its nearest
+const COSTUME_BODY: Record<string, PixelBodyId> = {
+  pumpkin: "pip", ghost: "boo", witch: "drip", bat: "wisp", cat: "kit", skull: "egg", monster: "ribbit", mummy: "tofu", vampire: "hoot", spider: "bruin",
 };
-export const bodyOf = (b: string | null | undefined): BodyName =>
+export const bodyOf = (b: string | null | undefined): PixelBodyId =>
   (b && Object.hasOwn(COSTUME_BODY, b) ? COSTUME_BODY[b]! : duskBody(b));
 
 export interface MascotHandle { react(kind: BotReaction): void; lookAt(x: number | null, y?: number): void }
 
 interface MascotProps {
   color?: BotColour | string;
-  /** a dusk body, or any body id a bot was saved with */
+  /** a pixel body, or any body id a bot was saved with */
   body?: string | null;
   size?: number;
   state?: BotState;
   label?: string;
-  /** hold the rest pose: no breathing, no blinking */
+  /** hold the rest pose: no motion, no blinking */
   still?: boolean;
   /** watch the pointer from up to this many px away (true is 260) */
   track?: boolean | number;
@@ -47,20 +48,17 @@ interface MascotProps {
 }
 
 // one pointer listener for every watching bot on the page
-const watchers = new Map<Element, { bot: Bot; reach: number }>();
+const watchers = new Map<Element, { bot: PixelBot; reach: number }>();
 let pointerOn = false, moveFrame = 0, px = 0, py = 0;
 function onPointer(e: PointerEvent) {
   px = e.clientX; py = e.clientY;
   if (moveFrame) return;
   moveFrame = requestAnimationFrame(() => {
     moveFrame = 0;
-    for (const [el, w] of watchers) {
-      const gaze = pointerGaze(el.getBoundingClientRect(), px, py, w.reach);
-      w.bot.lookAt(gaze ? gaze.x : null, gaze?.y);
-    }
+    for (const [el, w] of watchers) w.bot.look(pointerGaze(el.getBoundingClientRect(), px, py, w.reach));
   });
 }
-function watch(el: Element, bot: Bot, reach: number) {
+function watch(el: Element, bot: PixelBot, reach: number) {
   watchers.set(el, { bot, reach });
   if (!pointerOn) { pointerOn = true; window.addEventListener("pointermove", onPointer, { passive: true }); }
   return () => {
@@ -69,44 +67,46 @@ function watch(el: Element, bot: Bot, reach: number) {
   };
 }
 
-/** a dusk bot (src/mascot): it breathes, blinks and looks about on one shared frame loop, stops off screen and rests under
- * reduced motion */
+/** a pixel dusk bot: still at rest with blinks, lively while busy; it stops off screen and rests under reduced motion */
 export const Mascot = forwardRef<MascotHandle, MascotProps>(function Mascot({ color = "blue", body, size = 28, state = "idle", label, still = false, track = false, gaze = null, tappable = false, className }, ref) {
-  const reduced = useReducedMotion();
-  const svg = useRef<SVGSVGElement>(null);
-  const bot = useRef<Bot | null>(null);
+  const el = useRef<HTMLSpanElement>(null);
+  const bot = useRef<PixelBot | null>(null);
   const name = bodyOf(body);
   const fill = Object.hasOwn(BOT_COLOURS, color) ? BOT_COLOURS[color as BotColour] : color;
-  const rest = useMemo(() => ({ __html: botSvg(name) }), [name]);
-  const frozen = still || reduced;
+  const latest = useRef({ fill, state });
+  latest.current = { fill, state };
   useLayoutEffect(() => {
-    if (!svg.current) return;
-    const made = create(svg.current, { body: name, size, reducedMotion: frozen ? true : undefined });
+    if (!el.current) return;
+    const made = createPixel(el.current, { body: name, size, colour: latest.current.fill, state: pixelState(latest.current.state), animated: !still });
     bot.current = made;
     return () => { made.destroy(); bot.current = null; };
-  }, [name, frozen, size]);
-  useLayoutEffect(() => { bot.current?.setState(state); }, [state, name, frozen, size]);
+  }, [name, still, size]);
+  useLayoutEffect(() => { bot.current?.setState(pixelState(state)); }, [state, name, still, size]);
+  useLayoutEffect(() => { bot.current?.setColour(fill); }, [fill]);
   const gx = gaze?.x, gy = gaze?.y;
   useEffect(() => {
     const made = bot.current;
-    if (frozen || !svg.current || !made) return;
-    if (gx !== undefined) { made.lookAt(gx, gy); return () => made.lookAt(null); }
-    if (track) return watch(svg.current, made, track === true ? 260 : track);
-  }, [track, frozen, name, size, gx, gy]);
-  useImperativeHandle(ref, () => ({ react: (kind) => bot.current?.react(kind), lookAt: (x, y) => bot.current?.lookAt(x, y) }), []);
+    if (still || !el.current || !made) return;
+    if (gx !== undefined && gy !== undefined) { made.look({ x: gx, y: gy }); return () => made.look(null); }
+    if (track) return watch(el.current, made, track === true ? 260 : track);
+  }, [track, still, name, size, gx, gy]);
+  useImperativeHandle(ref, () => ({
+    react: (kind) => {
+      if (kind === "blink") return bot.current?.blink();
+      const r = pixelReaction(kind);
+      if (r === "poke") bot.current?.poke(); else if (r) bot.current?.react(r);
+    },
+    lookAt: (x, y) => bot.current?.look(x == null ? null : { x, y: y ?? 0 }),
+  }), []);
   return (
-    <svg
-      ref={svg}
-      viewBox="0 0 100 100"
-      width={size}
-      height={size}
-      className={cx("mascot shrink-0 overflow-visible", className)}
-      style={{ color: fill }}
+    <span
+      ref={el}
+      className={cx("mascot relative inline-block shrink-0", className)}
+      style={{ width: size, height: size }}
       role={label ? "img" : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
-      onPointerDown={tappable ? () => bot.current?.react("tap") : undefined}
-      dangerouslySetInnerHTML={rest}
+      onPointerDown={tappable ? (e) => bot.current?.poke(e.clientX) : undefined}
     />
   );
 });

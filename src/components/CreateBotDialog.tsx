@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type FocusEvent as ReactFocusEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { DUSK_BODY_IDS, type DuskBodyId } from "../../shared/body-migration";
-import { MAUS_COLOR_LABEL, MAUS_COLOR_NAMES, colorSwatch, type MausColor } from "@/lib/mascot";
+import { MAUS_COLOR_LABEL, PICKER_COLORS, colorSwatch, rowsOfFive, type MausColor } from "@/lib/mascot";
 import { useStore } from "@/state/store";
 import { stoppedAtBotLimit } from "@/lib/bot-limit";
 import { CREATE_BOT_EVENT, openCreateBot, takeCreateBotSection } from "@/lib/create-bot-request";
@@ -13,7 +13,7 @@ import { hoverGaze } from "./mascot-engine";
 import { BodyRing } from "./mascot-view";
 
 /** Our bodies, in two rows of five. */
-const SHAPES: DuskBodyId[][] = [DUSK_BODY_IDS.slice(0, 5), DUSK_BODY_IDS.slice(5)];
+const SHAPES: DuskBodyId[][] = rowsOfFive(DUSK_BODY_IDS);
 
 
 export { openCreateBot };
@@ -42,7 +42,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
   const [name, setName] = useState("");
   // the dialog opens on a shape and colour of its own choosing, a new one each time
   const [body, setBody] = useState<DuskBodyId>(() => pick(DUSK_BODY_IDS));
-  const [color, setColor] = useState<MausColor>(() => pick(MAUS_COLOR_NAMES));
+  const [color, setColor] = useState<MausColor>(() => pick(PICKER_COLORS));
   const dialog = useRef<HTMLDivElement>(null);
   const mascot = useRef<MausAvatarHandle>(null);
   const preview = useRef<HTMLSpanElement>(null);
@@ -160,7 +160,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
                 ))}
               </div>
               <div role="group" aria-label={t("botPanel.avatar.colors")} className="flex max-w-[232px] flex-wrap items-center justify-center gap-2 self-center py-2" onPointerLeave={rest} onBlur={rest}>
-                {MAUS_COLOR_NAMES.map((swatch) => (
+                {PICKER_COLORS.map((swatch) => (
                   <button
                     key={swatch}
                     type="button"

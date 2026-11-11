@@ -1,3 +1,4 @@
+import { DUSK_BODY_IDS } from "../../shared/body-migration";
 import { Children, createElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -504,36 +505,33 @@ describe("the hero", () => {
 describe("the avatar editor", () => {
   const editor = (bot: Bot) => capture(() => AvatarEditorCard({ bot, activeState: "idle", onPatch: patch, onClose }));
 
-  it("shows our ten shapes and every bot colour by its name", () => {
+  it("shows the twenty pixel bodies and the electric colours by name", () => {
     const bot = makeBot();
     const rendered = editor(bot);
     expect([...rendered.html.matchAll(/aria-label="(\w+) character shape"/g)].map((match) => match[1]))
-      .toEqual(["circle", "squircle", "pill", "hex", "star", "heart", "drop", "moon", "cloud", "pixel"]);
+      .toEqual([...DUSK_BODY_IDS]);
     expect([...rendered.html.matchAll(/aria-label="(\w+) character color"/g)].map((match) => match[1]))
-      .toEqual(["Green", "Blue", "Red", "Orange", "Purple", "Cyan", "Pink", "Yellow", "Teal", "Coral", "Brown", "Silver", "Chrome"]);
+      .toEqual(["Blue", "Cyan", "Teal", "Green", "Yellow", "Orange", "Coral", "Red", "Pink", "Purple"]);
     expect(rendered.html).not.toContain("More looks");
-    expect(find(rendered, "aria-label", "squircle character shape").props["aria-pressed"]).toBe(true);
-    expect(find(editor(makeBot({ mascotBody: "teardrop" as Bot["mascotBody"] })), "aria-label", "drop character shape").props["aria-pressed"]).toBe(true);
-    click(find(rendered, "aria-label", "circle character shape"));
-    expect(patch).toHaveBeenLastCalledWith({ mascotBody: "circle" });
+    expect(find(rendered, "aria-label", "kit character shape").props["aria-pressed"]).toBe(true);
+    expect(find(editor(makeBot({ mascotBody: "teardrop" as Bot["mascotBody"] })), "aria-label", "drip character shape").props["aria-pressed"]).toBe(true);
+    click(find(rendered, "aria-label", "pip character shape"));
+    expect(patch).toHaveBeenLastCalledWith({ mascotBody: "pip" });
     click(find(rendered, "aria-label", "Blue character color"));
     expect(patch).toHaveBeenLastCalledWith({ color: "blue" });
-    click(find(rendered, "aria-label", "Silver character color"));
-    expect(patch).toHaveBeenLastCalledWith({ color: "silver" });
-    click(find(rendered, "aria-label", "Chrome character color"));
-    expect(patch).toHaveBeenLastCalledWith({ color: "chrome" });
+    expect(rendered.html).not.toContain("Silver character color");
   });
 
   it("switches back to the mascot when a body is picked over a picture", () => {
     const bot = makeBot({ avatarUrl: "/api/attachments/cat.webp", avatarCrop: "circle" });
     click(find(editor(bot), "data-avatar-tab", "bot"));
-    click(find(editor(bot), "aria-label", "star character shape"));
-    expect(patch).toHaveBeenLastCalledWith({ mascotBody: "star", avatarCrop: "mascot" });
+    click(find(editor(bot), "aria-label", "starry character shape"));
+    expect(patch).toHaveBeenLastCalledWith({ mascotBody: "starry", avatarCrop: "mascot" });
   });
 
   it("resets the mascot as the Advanced card does", () => {
     click(find(editor(makeBot()), "data-avatar-reset"));
-    expect(patch).toHaveBeenLastCalledWith({ avatarCrop: "mascot", color: "green", mascotExpression: null, mascotBody: "squircle", mascotFaceColor: null });
+    expect(patch).toHaveBeenLastCalledWith({ avatarCrop: "mascot", color: "green", mascotExpression: null, mascotBody: "kit", mascotFaceColor: null });
   });
 
   it("generates with the shared generator, and uploads with shape and framing", () => {

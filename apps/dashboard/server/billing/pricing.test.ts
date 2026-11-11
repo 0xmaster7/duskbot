@@ -28,7 +28,7 @@ describe("billing pricing", () => {
     expect(result.lines).toEqual([
       { kind: "license", label: `${license.label}, ${license.includedMembers} members`, amountCents: license.monthlyCents * 12 },
       { kind: "members", label: `${extraMembers} extra members`, amountCents: extraMembers * license.extraMemberCents! * 12 },
-      { kind: "desktop", label: `${desktop.label} cloud desktop`, amountCents: desktop.monthlyCents! * 12 },
+      { kind: "desktop", label: `Dusk Cloud ${desktop.label}`, amountCents: desktop.monthlyCents! * 12 },
       { kind: "discount", label: "Yearly, 2 months free", amountCents: -discount },
     ]);
     expect(result).toMatchObject({ totalCents: subtotal - discount, monthlyEquivalentCents: Math.round((subtotal - discount) / 12), members: 5, bundle: null, botComputers: 5, machine: { vcpu: 4, ramGb: 8, diskGb: 80 } });

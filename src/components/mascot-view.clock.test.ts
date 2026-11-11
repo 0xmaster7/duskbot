@@ -82,7 +82,7 @@ describe("marks on the shared loop", () => {
     render([{ state: "sleeping", animated: false, size: 24 }]);
     run(100);
     expect(markOf().getAttribute("data-state")).toBe("sleeping");
-    expect(host.querySelector("svg path")).not.toBeNull();
+    expect(host.querySelector("[data-dusk-mark] canvas")).not.toBeNull();
     expect(framesOver(2000)).toBe(0);
   });
 

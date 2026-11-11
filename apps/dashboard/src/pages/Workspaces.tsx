@@ -47,7 +47,7 @@ function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop |
   };
   const menu: MenuItem[] = [
     { label: "rename", onSelect: () => { setName(w.name); setError(null); setEditing(true); } },
-    cloud ? { label: "manage cloud desktop", onSelect: () => navigate("/cloud") } : { label: "remove", danger: true, disabled: clouds === null, onSelect: () => { setError(null); setRemoving(true); } },
+    cloud ? { label: "manage dusk cloud", onSelect: () => navigate("/cloud") } : { label: "remove", danger: true, disabled: clouds === null, onSelect: () => { setError(null); setRemoving(true); } },
   ];
   const to = `/workspaces/${encodeURIComponent(w.id)}`;
   return (
@@ -159,7 +159,7 @@ export function WorkspacePage({ id }: { id: string }) {
     {workspacesError && workspaces === null ? <LoadError error={workspacesError} retry={refresh} /> : workspaces === null ? <Skeleton className="h-60 !rounded-card" /> : !w ? <SkyEmpty title="that workspace is not on your account">it may have been removed. choose a workspace from the list.</SkyEmpty> : <>
       <header className="mb-8 flex items-center gap-4"><span className="grid size-14 shrink-0 place-items-center rounded-[12px] bg-card-2 text-ink-2" aria-hidden>{workspaceIcon(w, cloud, 24)}</span><div className="min-w-0 flex-1"><h1 className="t-title truncate">{w.name}</h1><div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-ink-3"><span>{KIND_LABEL(w.kind, cloud)}</span><FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} /></div></div></header>
       <div className="flex flex-col gap-4">
-        {cloud && <div className="surface flex flex-wrap items-center justify-between gap-3 rounded-card bg-card px-6 py-4"><div className="min-w-0"><p className="text-14 text-ink">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</p><CloudStatus cloud={cloud} className="mt-1" /></div><ButtonLink to="/cloud" size="sm">open cloud desktop</ButtonLink></div>}
+        {cloud && <div className="surface flex flex-wrap items-center justify-between gap-3 rounded-card bg-card px-6 py-4"><div className="min-w-0"><p className="text-14 text-ink">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</p><CloudStatus cloud={cloud} className="mt-1" /></div><ButtonLink to="/cloud" size="sm">open dusk cloud</ButtonLink></div>}
         {!detail || selected?.id !== id ? selected?.id === id && detailError ? <Card><LoadError error={detailError} retry={refresh} /></Card> : <Skeleton className="h-60 !rounded-card" /> : !detail.report ? <SkyEmpty title="waiting for its first report">keep dusk bot running there. its first report usually arrives in a few seconds.</SkyEmpty> : <><MachineView detail={detail} now={now} /><WorkspaceDevices detail={detail} now={now} ready={selected?.id === id} /></>}
       </div>
     </>}

@@ -87,23 +87,11 @@ function CodeBoxes({ input, boxes, length, value, onChange, invalid, disabled, o
 }
 
 function SceneCard() {
-  const rows: Array<[string, "blue" | "pink" | "orange", string, string]> = [
-    ["circle", "blue", "see them work", "every workspace side by side, live."],
-    ["heart", "pink", "keep them on", "a cloud desktop runs routines while you sleep."],
-    ["hex", "orange", "text them anywhere", "the same bots, from your phone."],
-  ];
   return (
-    <>
-      <p className="text-[30px] font-medium leading-[1.05] tracking-[-0.045em] text-ink">your bots, all in one place.</p>
-      <ul className="mt-7 flex flex-col gap-5">
-        {rows.map(([body, colour, title, line]) => (
-          <li key={title} className="flex items-start gap-3.5">
-            <Mascot body={body} color={colour} size={34} still />
-            <span className="min-w-0"><b className="block text-15 font-[550] tracking-[-0.01em] text-ink">{title}</b><span className="block text-14 text-ink-2">{line}</span></span>
-          </li>
-        ))}
-      </ul>
-    </>
+    <p className="flex items-center gap-4">
+      <Mascot body="kit" color="blue" size={44} still />
+      <span className="text-20 font-medium leading-[1.2] tracking-[-0.03em] text-ink">bots that work for you,<br />even while you sleep.</span>
+    </p>
   );
 }
 
@@ -245,6 +233,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
       mood={mood}
       scene={scene}
       card={<SceneCard />}
+      snug
       aside={<a href={SITE_URL} className="hover-link -me-2 inline-flex h-11 items-center gap-1.5 rounded-full px-2 text-14 text-ink-3"><ArrowLeft size={15} strokeWidth={1.75} aria-hidden />back to {SITE_NAME === "dusk.bot" ? SITE_NAME : "the site"}</a>}
       foot={signup ? <>by continuing you agree to the <a href={siteUrl("/terms")} className={LINK}>terms</a> and <a href={siteUrl("/privacy")} className={LINK}>privacy policy</a>.</> : "your chats and files stay on your own computers."}
     >
@@ -257,7 +246,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
         <div key="start" className="step-in">
           {intent && <p className="mb-4 flex items-center gap-2"><span className="tag !bg-lime !text-ink">{intent.plan === "starter" ? "plus" : "pro"} plan{intent.interval ? `, ${intent.interval}ly` : ""}</span><a href={siteUrl("/#pricing")} className={cx(LINK, "text-13")}>change</a></p>}
           <h1 className="t-title">{signup ? "make your account." : "welcome back."}</h1>
-          <p className="mt-3 text-16 text-ink-2">{intent ? "an account first, then we set up your cloud desktop." : signup ? "one account for the app, your phone and your cloud desktop." : "sign in to see your bots, wherever they live."}</p>
+          <p className="mt-3 text-16 text-ink-2">{intent ? "an account first, then checkout. your dusk cloud is ready in about a minute." : signup ? "free on your own computer. one account for the app, your phone and dusk cloud." : "sign in to see your bots, wherever they live."}</p>
           {note && <div className="mt-4 rounded-[16px] bg-lemon px-4 py-3 text-14 leading-[1.5] text-ink">{note}</div>}
           {pending && <div className="mt-4 rounded-[16px] bg-lemon px-4 py-3 text-14 leading-[1.5] text-ink">one more step: your provider didn't share an email, so enter the one you want to sign in with.</div>}
           <div className="mt-7 flex flex-col gap-2">

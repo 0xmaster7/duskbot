@@ -1,5 +1,5 @@
 import type { ReactNode, Ref } from "react";
-import mark from "../art/cursor-88.webp";
+import mark from "../../favicon.svg";
 import { SITE_URL } from "../lib/site";
 import { cx } from "./kit";
 import { Scene, useMedia, type SceneHandle, type SceneMood } from "./Scene";

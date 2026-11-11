@@ -1,24 +1,17 @@
-// Draws the phone app's icon and launch images from the brand vector (build/icon.svg), so the store builds never carry
-// the template art a new Capacitor project starts with. Run after the brand vector changes: node apps/mobile/scripts/make-icons.mjs
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+// node apps/mobile/scripts/make-icons.mjs: the phone app's icons and launch images from the logo (build/logo.mjs), so
+// the store builds never carry the template art a new Capacitor project starts with
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { crc32, deflateSync } from "node:zlib";
 import { Resvg } from "@resvg/resvg-js";
 
-const root = fileURLToPath(new URL("../../../", import.meta.url));
-const brand = readFileSync(join(root, "build/icon.svg"), "utf8");
-const gradient = /<linearGradient id="mascot-grey"[\s\S]*?<\/linearGradient>/.exec(brand)?.[0];
-const body = /<path fill="url\(#mascot-grey\)"[\s\S]*?\/>/.exec(brand)?.[0];
-if (!gradient || !body) throw new Error("build/icon.svg no longer has the mascot gradient and path this script reads");
+import { KIT_ONLY, LOGO_SIZE, SCENE, logoTile, svg } from "../../../build/logo.mjs";
 
-const TILE = "#000000";
+const root = fileURLToPath(new URL("../../../", import.meta.url));
+
 const LIGHT = "#fcfcfc";
 const DARK = "#121212";
-
-/** the mascot on its tile, drawn to the edges of a 1024 box; `radius` rounds the tile where nothing else will mask it */
-const tile = (radius = 0) => `<defs>${gradient}<clipPath id="tile"><rect width="1024" height="1024" rx="${radius}"/></clipPath></defs>
-  <g clip-path="url(#tile)"><rect width="1024" height="1024" fill="${TILE}"/>${body}</g>`;
 
 function chunk(type, data) {
   const head = Buffer.alloc(4);
@@ -60,13 +53,12 @@ function write(path, bytes) {
   console.log(path.slice(root.length));
 }
 
-/** ios masks the icon itself and refuses transparency, so the tile runs to every edge on an opaque ground */
-const iosIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="${TILE}"/>${tile()}</svg>`;
+/** ios masks the icon itself and refuses transparency, so the logo runs to every edge */
+const iosIcon = svg(1024, 1024, logoTile());
 
-/** the launch image is a square the storyboard fills the screen with, so the mark sits small in the middle of the app's
+/** the launch image is a square the storyboard fills the screen with, so the logo sits small in the middle of the app's
  * own first-paint colour and survives the crop on every screen shape */
-const splash = (ground) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732"><rect width="2732" height="2732" fill="${ground}"/>
-  <g transform="translate(1206 1206) scale(0.3125)">${tile(230.4)}</g></svg>`;
+const splash = (ground) => svg(2732, 2732, `<rect width="2732" height="2732" fill="${ground}"/>${logoTile({ size: 320, x: 1206, y: 1206, radius: 72 })}`);
 
 const ios = join(root, "apps/mobile/ios/App/App/Assets.xcassets");
 write(join(ios, "AppIcon.appiconset/AppIcon-512@2x.png"), png(iosIcon, 1024));
@@ -80,23 +72,25 @@ writeFileSync(join(ios, "Splash.imageset/Contents.json"), `${JSON.stringify({
   info: { version: 1, author: "xcode" },
 }, null, 2)}\n`);
 
-/** android: the legacy square and round icons, and the adaptive foreground (the mascot tile inside the 66% safe zone) */
+/** android: the legacy square and round icons, and the adaptive layers: kit in front, inside the 66% safe zone, and
+ * the sunrise behind */
 const android = join(root, "apps/mobile/android/app/src/main/res");
-const legacy = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">${tile(180)}</svg>`;
-const round = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">${tile(512)}</svg>`;
-const foreground = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="${TILE}"/>
-  <g transform="translate(174 174) scale(0.66)">${tile()}</g></svg>`;
-/** android's launch images come in each screen shape; the mark is a fifth of the short side */
+const legacy = svg(1024, 1024, logoTile({ radius: 180 }));
+const round = svg(1024, 1024, logoTile({ radius: 512 }));
+const kitCell = (1024 * 0.46) / 21;
+const foreground = svg(1024, 1024, logoTile({ size: kitCell * LOGO_SIZE, x: 512 - kitCell * 16, y: 512 - kitCell * 16.5, grid: KIT_ONLY }));
+const background = svg(1024, 1024, logoTile({ grid: SCENE }));
+/** android's launch images come in each screen shape; the logo is a fifth of the short side */
 const launch = (width, height) => {
   const side = Math.min(width, height) / 5;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}"><rect width="${width}" height="${height}" fill="${LIGHT}"/>
-  <g transform="translate(${(width - side) / 2} ${(height - side) / 2}) scale(${side / 1024})">${tile(230.4)}</g></svg>`;
+  return svg(width, height, `<rect width="${width}" height="${height}" fill="${LIGHT}"/>${logoTile({ size: side, x: (width - side) / 2, y: (height - side) / 2, radius: side * 0.225 })}`);
 };
 write(join(android, "drawable/splash.png"), png(launch(480, 320), 480));
 for (const [density, size, short, long] of [["mdpi", 48, 320, 480], ["hdpi", 72, 480, 800], ["xhdpi", 96, 720, 1280], ["xxhdpi", 144, 960, 1600], ["xxxhdpi", 192, 1280, 1920]]) {
   write(join(android, `mipmap-${density}/ic_launcher.png`), png(legacy, size, true));
   write(join(android, `mipmap-${density}/ic_launcher_round.png`), png(round, size, true));
-  write(join(android, `mipmap-${density}/ic_launcher_foreground.png`), png(foreground, Math.round(size * 2.25)));
+  write(join(android, `mipmap-${density}/ic_launcher_foreground.png`), png(foreground, Math.round(size * 2.25), true));
+  write(join(android, `mipmap-${density}/ic_launcher_background.png`), png(background, Math.round(size * 2.25)));
   write(join(android, `drawable-port-${density}/splash.png`), png(launch(short, long), short));
   write(join(android, `drawable-land-${density}/splash.png`), png(launch(long, short), long));
 }

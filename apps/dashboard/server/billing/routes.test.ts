@@ -271,7 +271,7 @@ it("keeps billing off outside loopback, checks startup configuration, and never 
   const noClouds = createBilling(options({ env: { DUSK_BILLING_PROVIDER: "fake" } })); cleanup.push(() => noClouds.close());
   const checkout = await noClouds.service.checkout({ id: "a", email: "a@example.test" }, { kind: "cart", cart: { ...BILLING_CONFIG.bundles[1].cart, interval: "month" } });
   for (const delivery of noClouds.fake!.complete([...noClouds.fake!.sessions.keys()][0])) noClouds.service.handleWebhook(delivery.headers, delivery.body);
-  await noClouds.clouds.reconcile(); expect(noClouds.clouds.get(checkout.cloudId!)!).toMatchObject({ status: "provisioning", error: "Cloud desktops are not configured." });
+  await noClouds.clouds.reconcile(); expect(noClouds.clouds.get(checkout.cloudId!)!).toMatchObject({ status: "provisioning", error: "Dusk Cloud is not configured." });
 });
 
 it("never mounts fake completion at a public origin even when fake mode is explicitly configured", async () => {
@@ -287,7 +287,7 @@ it("refuses deletion with both billing blockers before changing the account or b
   const before = f.saved(), clouds = readFileSync(join(f.dir, "clouds.json"), "utf8");
   const response = await f.page("/v1/account/delete", { email: owner.account.email }, owner.cookie);
   expect(response.status).toBe(409);
-  expect(await response.json()).toEqual({ error: "Cancel your plan and cloud desktops before deleting your account.", code: "billing_active", blockers: [
+  expect(await response.json()).toEqual({ error: "Cancel your plan and Dusk Cloud before deleting your account.", code: "billing_active", blockers: [
     { kind: "subscription", id: before.subscriptions[0].id, label: BILLING_CONFIG.bundles.find(b => b.id === "starter")!.label, status: "active" },
     { kind: "cloud_desktop", id: checkout.cloudId, label: "My desktop", status: "running" },
   ] });

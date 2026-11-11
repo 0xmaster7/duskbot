@@ -3,6 +3,7 @@ import type { MarkState } from "@/components/mascot-engine";
 import { botShowsUnread } from "./bot-unread";
 import { lastNonReceipt } from "./receipts";
 import type { MausColor } from "../../shared/wire";
+import { ELECTRIC } from "../../shared/pixel-bodies";
 import type { LocaleKey } from "@/locales";
 
 export { MAUS_COLOR_NAMES, type MausColor } from "../../shared/wire";
@@ -43,8 +44,32 @@ export const MAUS_COLOR_LABEL: Record<MausColor, LocaleKey> = {
   chrome: "mascotColor.chrome",
 };
 
-/** The paint of a mascot's body in each bot colour. */
-export const MASCOT_INK: Record<MausColor, string> = MAUS_COLORS;
+/** The paint of a mascot's body in each bot colour: the electric palette, so a pixel bot reads at 16 px. */
+export const MASCOT_INK: Record<MausColor, string> = {
+  green: ELECTRIC.emerald,
+  blue: ELECTRIC.blue,
+  red: "#ef3a3f",
+  orange: ELECTRIC.tangerine,
+  purple: ELECTRIC.violet,
+  cyan: ELECTRIC.sky,
+  pink: ELECTRIC.pink,
+  yellow: ELECTRIC.sun,
+  teal: ELECTRIC.mint,
+  coral: ELECTRIC.coral,
+  brown: "#a8672f",
+  silver: "#a3aab3",
+  chrome: "#b3bac4",
+};
+
+/** The bot colours a picker offers: the ones the electric palette paints. Older greys and brown still draw. */
+export const PICKER_COLORS: MausColor[] = ["blue", "cyan", "teal", "green", "yellow", "orange", "coral", "red", "pink", "purple"];
+
+/** Bodies in picker rows of five. */
+export function rowsOfFive<T>(items: readonly T[]): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += 5) rows.push(items.slice(i, i + 5));
+  return rows;
+}
 
 /** Polished steel, light to dark, for the chrome swatch. */
 export const CHROME_GRADIENT: [string, string, string] = ["#EAEEF2", "#B3BAC4", "#69727D"];
