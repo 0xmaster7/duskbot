@@ -282,6 +282,18 @@ describe("workspace reconnect", () => {
     expect(fetcher).toHaveBeenCalledOnce();
   });
 
+  it("a relay that no longer has this phone's channel means removed, and a relay it cannot reach means offline", async () => {
+    const { record, token, platform } = await saved();
+    record.relay!.agentPub = (await createRelaySecrets()).pub;
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
+    const channel = { request: vi.fn().mockRejectedValue(new relay.RelayGoneError()), close: vi.fn() };
+    vi.spyOn(relay, "open").mockReturnValue(channel);
+    await expect(connectToWorkspace(record, token, platform, new AbortController().signal)).rejects.toMatchObject({ code: "refused" });
+    expect(channel.close).toHaveBeenCalledOnce();
+    channel.request.mockRejectedValue(new Error("relay request timed out"));
+    await expect(connectToWorkspace(record, token, platform, new AbortController().signal)).rejects.toMatchObject({ code: "unreachable" });
+  });
+
   it("falls back after a server failure and stops after a successful companion check", async () => {
     const { record, token, platform } = await saved();
     record.via = [{ kind: "https", url: "https://workspace.test" }, { kind: "companion", url: "http://mac.test:8810", net: "lan", priority: 1 }];

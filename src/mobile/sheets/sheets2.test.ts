@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { AppEntry } from "@/components/connect-apps/catalog";
 import { appIsAdded } from "./ConnectorsSheet";
 import { routineResultsThread } from "./RoutinesSheet";
+import { accountRows } from "./SettingsSheet";
+import { LEGAL_LINKS } from "../legal";
 import { swipeOffset, swipeRestingPosition } from "./SwipeRow";
 
 describe("swipe row release", () => {
@@ -46,5 +48,21 @@ describe("routine results navigation", () => {
 
   it("falls back to the current conversation when there is no main thread", () => {
     expect(routineResultsThread({}, { threadId: "current-task" })).toBe("current-task");
+  });
+});
+
+describe("settings account rows", () => {
+  it("the store apps never link to the dashboard that sells plans", () => {
+    expect(accountRows({ native: true, demo: false, signedIn: true }).dashboard).toBe(false);
+    expect(accountRows({ native: true, demo: false, signedIn: false }).dashboard).toBe(false);
+    expect(accountRows({ native: false, demo: false, signedIn: false }).dashboard).toBe(true);
+    expect(accountRows({ native: false, demo: true, signedIn: false }).dashboard).toBe(false);
+  });
+
+  it("an account made in the app can be deleted from the app", () => {
+    expect(accountRows({ native: true, demo: false, signedIn: true })).toMatchObject({ signOut: true, deleteAccount: true });
+    expect(accountRows({ native: true, demo: true, signedIn: false })).toMatchObject({ signOut: false, deleteAccount: false });
+    expect(LEGAL_LINKS.deleteAccountPath).toBe("/account#delete");
+    expect(LEGAL_LINKS.privacy).toBe("https://dusk.bot/privacy");
   });
 });

@@ -2,7 +2,8 @@ import { createManagedDesktopStore, retryDelay, unreadableRecord } from "./manag
 import { CLOUD_MACHINE_CONNECTABLE, cloudUnreachableText, parseCloudCredit, parseCloudOffer, parseCloudPurchase, parseCloudSummary, parseCloudTeams, parseCloudRoom, parseCloudTrial, parseCloudUsage, parsePairingGrant, parsePublicOffer, withoutTrial } from "./cloud-home.mjs";
 import { CLOUD_ID, CLOUD_SWATCHES, cleanCloudListName, ORGANIZATION_BLOCKS, otherOwnClouds, ownCloud, parseCloudList, parseCloudRenewal, parseOrganizations, releaseVersion } from "./cloud-list.mjs";
 import { planTeam, teamPlan } from "./cloud-team-plan.mjs";
-import { APP_PROVIDERS, APP_TOKEN, cleanCode, cleanEmail, LINK_MS, LINK_PROVIDERS, linkFailure, linkSignIn, parseAppLink, parseProviders, parseSignInStart, SIGN_IN_START, SIGN_IN_TRIES, SIGN_IN_VERIFY, signInIdentity, startFailure, verifyFailure } from "./cloud-signin.mjs";
+import { linkSignIn } from "./cloud-signin-link.mjs";
+import { APP_PROVIDERS, APP_TOKEN, cleanCode, cleanEmail, LINK_MS, LINK_PROVIDERS, linkFailure, parseAppLink, parseProviders, parseSignInStart, SIGN_IN_START, SIGN_IN_TRIES, SIGN_IN_VERIFY, signInIdentity, startFailure, verifyFailure } from "./cloud-signin.mjs";
 
 export const CLOUD_ORIGIN = "https://app.dusk.bot";
 /** The staging Admin (Dodo test mode, real test Clouds): a fixed address, on only with DUSK_CLOUD_STAGING=1. */

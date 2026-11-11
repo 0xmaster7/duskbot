@@ -1,4 +1,4 @@
-import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
+import { Capacitor, registerPlugin, type PluginListenerHandle } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
@@ -18,8 +18,115 @@ const keystore = SecureStorage as unknown as {
 };
 const SECRET_PREFIX = "omb.";
 import { BarcodeScanner, BarcodeFormat, GoogleBarcodeScannerModuleInstallState } from "@capacitor-mlkit/barcode-scanning";
-import type { CameraPermission, MobilePlatform } from "@/mobile/platform";
-import type { MobileOpenTarget } from "../../../shared/mobile-link";
+import type { CameraPermission, CameraScanner, MobilePlatform } from "@/mobile/platform";
+import { appLinkFromUniversal, type MobileOpenTarget } from "../../../shared/mobile-link";
+
+/** The app's own scanner on ios (ios/App/App/QrScannerPlugin.swift): the ML Kit plugin ships for CocoaPods only, and this
+ * project links its plugins as Swift packages. */
+interface QrScannerPlugin {
+  checkPermissions(): Promise<{ camera: string }>;
+  requestPermissions(): Promise<{ camera: string }>;
+  openSettings(): Promise<void>;
+  startScan(): Promise<void>;
+  stopScan(): Promise<void>;
+  isTorchAvailable(): Promise<{ available: boolean }>;
+  setTorch(options: { on: boolean }): Promise<void>;
+  addListener(event: "codeScanned", listener: (event: { text?: string }) => void): Promise<PluginListenerHandle>;
+}
+const QrScanner = registerPlugin<QrScannerPlugin>("QrScanner");
+
+/** What a live scan needs of whichever scanner the platform has. */
+export interface ScanDriver {
+  permission(): Promise<string>;
+  request(): Promise<string>;
+  openSettings(): Promise<void>;
+  listen(onCode: (text: string | undefined) => void, onError: (message: string) => void): Promise<PluginListenerHandle[]>;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  torchAvailable(): Promise<boolean>;
+  torch(on: boolean): Promise<void>;
+}
+
+const iosScanner: ScanDriver = {
+  permission: async () => (await QrScanner.checkPermissions()).camera,
+  request: async () => (await QrScanner.requestPermissions()).camera,
+  openSettings: () => QrScanner.openSettings(),
+  listen: async (onCode) => [await QrScanner.addListener("codeScanned", ({ text }) => onCode(text))],
+  start: () => QrScanner.startScan(),
+  stop: () => QrScanner.stopScan(),
+  torchAvailable: async () => (await QrScanner.isTorchAvailable()).available,
+  torch: (on) => QrScanner.setTorch({ on }),
+};
+
+const androidScanner: ScanDriver = {
+  permission: async () => (await BarcodeScanner.checkPermissions()).camera,
+  request: async () => (await BarcodeScanner.requestPermissions()).camera,
+  openSettings: () => BarcodeScanner.openSettings(),
+  listen: async (onCode, onError) => [
+    await BarcodeScanner.addListener("barcodesScanned", ({ barcodes }) => onCode(barcodes[0]?.rawValue)),
+    await BarcodeScanner.addListener("scanError", ({ message }) => onError(message)),
+  ],
+  start: () => BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode] }),
+  stop: () => BarcodeScanner.stopScan(),
+  torchAvailable: async () => (await BarcodeScanner.isTorchAvailable()).available,
+  torch: (on) => (on ? BarcodeScanner.enableTorch() : BarcodeScanner.disableTorch()),
+};
+
+/** One live scan under the page's own viewfinder: the camera draws behind the web view while `mobile-scanning` is on. */
+export function scannerCamera(driver: ScanDriver, scanning: (on: boolean) => void = setScanning): CameraScanner {
+  return {
+    permission: async () => cameraPermission(await driver.permission()),
+    request: async () => cameraPermission(await driver.request()),
+    openSettings: () => driver.openSettings(),
+    async start({ onCode, onError }) {
+      let handles: PluginListenerHandle[] = [];
+      const deliver = distinctCodes(onCode);
+      let stopped = false;
+      let stopping: Promise<void> | undefined;
+      let torchOn = false;
+      let torchPending = Promise.resolve();
+      const stop = () => {
+        if (stopping) return stopping;
+        stopped = true;
+        scanning(false);
+        stopping = (async () => {
+          try {
+            await Promise.allSettled(handles.map((handle) => handle.remove()));
+            await torchPending.catch(() => {});
+            if (torchOn) await driver.torch(false).catch(() => {});
+            await driver.stop();
+          } finally {
+            scanning(false);
+          }
+        })();
+        return stopping;
+      };
+      try {
+        scanning(true);
+        handles = await driver.listen((text) => { if (!stopped) deliver(text); }, (message) => { if (!stopped) onError?.(message); });
+        await driver.start();
+        const available = await driver.torchAvailable();
+        return {
+          stop,
+          torch: available ? {
+            set(on) {
+              if (stopped) return Promise.resolve();
+              torchPending = torchPending.catch(() => {}).then(async () => {
+                if (stopped) return;
+                await driver.torch(on);
+                torchOn = on;
+              });
+              return torchPending;
+            },
+          } : undefined,
+        };
+      } catch (error) {
+        await stop().catch(() => {});
+        throw error;
+      }
+    },
+  };
+}
 
 type PendingHandle = Promise<PluginListenerHandle>;
 let overlayReady: Promise<void> | undefined;
@@ -151,8 +258,9 @@ export async function nativePlatform(): Promise<MobilePlatform> {
       })]);
     },
     onAppUrl(listener) {
-      const stop = unsubscribe([App.addListener("appUrlOpen", ({ url }) => listener(url))]);
-      if (pendingLaunchUrl && listener(pendingLaunchUrl)) pendingLaunchUrl = undefined;
+      // a universal link (https://dusk.bot/m/...) arrives as the app link it stands for
+      const stop = unsubscribe([App.addListener("appUrlOpen", ({ url }) => listener(appLinkFromUniversal(url) ?? url))]);
+      if (pendingLaunchUrl && listener(appLinkFromUniversal(pendingLaunchUrl) ?? pendingLaunchUrl)) pendingLaunchUrl = undefined;
       return stop;
     },
     onResume(listener) {
@@ -174,77 +282,20 @@ export async function nativePlatform(): Promise<MobilePlatform> {
       set: (key, value) => keystore.internalSetItem({ prefixedKey: SECRET_PREFIX + key, data: value, sync: false }),
       remove: async (key) => { await keystore.internalRemoveItem({ prefixedKey: SECRET_PREFIX + key, sync: false }); },
     },
-    async scanQr() {
+    scanQr: kind === "android" ? async () => {
       try {
         let permission = await BarcodeScanner.checkPermissions();
         if (permission.camera !== "granted" && permission.camera !== "limited") permission = await BarcodeScanner.requestPermissions();
         if (permission.camera !== "granted" && permission.camera !== "limited") return null;
-        if (kind === "android" && !await ensureBarcodeModule()) return null;
+        if (!await ensureBarcodeModule()) return null;
         const { barcodes } = await BarcodeScanner.scan({ formats: [BarcodeFormat.QrCode] });
         const text = barcodes[0]?.rawValue;
         return typeof text === "string" ? { text } : null;
       } catch {
         return null;
       }
-    },
-    camera: kind === "ios" && !Capacitor.isPluginAvailable("BarcodeScanner") ? undefined : {
-      permission: async () => cameraPermission((await BarcodeScanner.checkPermissions()).camera),
-      request: async () => cameraPermission((await BarcodeScanner.requestPermissions()).camera),
-      openSettings: () => BarcodeScanner.openSettings(),
-      async start({ onCode, onError }) {
-        const handles: PluginListenerHandle[] = [];
-        const deliver = distinctCodes(onCode);
-        let stopped = false;
-        let stopping: Promise<void> | undefined;
-        let torchOn = false;
-        let torchPending = Promise.resolve();
-        const stop = () => {
-          if (stopping) return stopping;
-          stopped = true;
-          setScanning(false);
-          stopping = (async () => {
-            try {
-              await Promise.allSettled(handles.map((handle) => handle.remove()));
-              await torchPending.catch(() => {});
-              if (torchOn) await BarcodeScanner.disableTorch().catch(() => {});
-              await BarcodeScanner.stopScan();
-            } finally {
-              setScanning(false);
-            }
-          })();
-          return stopping;
-        };
-        try {
-          setScanning(true);
-          handles.push(await BarcodeScanner.addListener("barcodesScanned", ({ barcodes }) => {
-            if (!stopped) deliver(barcodes[0]?.rawValue);
-          }));
-          handles.push(await BarcodeScanner.addListener("scanError", ({ message }) => {
-            if (!stopped) onError?.(message);
-          }));
-          await BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode] });
-          const { available } = await BarcodeScanner.isTorchAvailable();
-          return {
-            stop,
-            torch: available ? {
-              set(on) {
-                if (stopped) return Promise.resolve();
-                torchPending = torchPending.catch(() => {}).then(async () => {
-                  if (stopped) return;
-                  if (on) await BarcodeScanner.enableTorch();
-                  else await BarcodeScanner.disableTorch();
-                  torchOn = on;
-                });
-                return torchPending;
-              },
-            } : undefined,
-          };
-        } catch (error) {
-          await stop().catch(() => {});
-          throw error;
-        }
-      },
-    },
+    } : undefined,
+    camera: kind === "ios" ? (Capacitor.isPluginAvailable("QrScanner") ? scannerCamera(iosScanner) : undefined) : scannerCamera(androidScanner),
     async readClipboard() {
       try { return await navigator.clipboard?.readText() ?? null; } catch { return null; }
     },

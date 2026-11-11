@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { MotionConfig } from "motion/react";
 import { openBot, openBotThread, openRoomThread, StoreProvider, useStore } from "@/state/store";
 import { useTeamChats } from "@/state/team-chats";
@@ -11,11 +11,14 @@ import { openChatLink } from "@/components/ThreadRefs";
 import { parseBotRefUrl, parseThreadRefUrl } from "@/lib/thread-refs"; import { completeSlackOAuth } from "@/lib/slack-oauth-link"; import { parseSlackOAuthLink } from "../../shared/slack";
 import { effectiveLanguage, useLanguageChoice, usePageLanguage } from "@/lib/language-preference";
 import { parseMobileOpenLink, type MobileOpenTarget } from "../../shared/mobile-link";
+import { setChatCovered } from "@/lib/chat-in-front";
+import { readSkinChoice, subscribeSkin, THEME_SKINS } from "@/lib/skins";
 import { NavStack } from "./NavStack";
 import { ChatScreen } from "./ChatScreen";
 import { HomeScreen, releasePressed } from "./HomeScreen";
 import { SheetHost } from "./SheetHost";
-import { closeTopSheet } from "./Sheet";
+import { closeTopSheet, Sheet } from "./Sheet";
+import { t } from "@/lib/i18n";
 import { useKeyboardSync } from "./keyboard";
 import { useChatHaptics } from "./use-chat-haptics";
 import { useOutbox } from "./outbox";
@@ -39,6 +42,20 @@ function Shell() {
   const latest = useRef(state);
   latest.current = state;
 
+  // the status bar's clock and battery follow the look, when it is changed in Settings and when the system's changes
+  const skin = useSyncExternalStore(subscribeSkin, readSkinChoice, () => "system");
+  useEffect(() => {
+    const apply = () => platform.setStatusBar?.(document.documentElement.dataset.skin === THEME_SKINS.dark ? "light" : "dark");
+    apply();
+    const system = window.matchMedia?.("(prefers-color-scheme: dark)");
+    const later = () => setTimeout(apply, 0);
+    system?.addEventListener("change", later);
+    return () => system?.removeEventListener("change", later);
+  }, [platform, skin]);
+
+  // with the list in front, the chat last opened is not being read: its replies stay unread and still notify
+  useEffect(() => { setChatCovered(chatId === null); return () => setChatCovered(false); }, [chatId]);
+
   const openChat = useCallback((id: string) => {
     const current = latest.current;
     const bot = current.bots.find((b) => b.id === id);
@@ -52,6 +69,15 @@ function Shell() {
     setSheetOpen(true);
   }, []);
   const closeSheet = useCallback(() => setSheetOpen(false), []);
+
+  // a shared card that opens the computer app's settings (connect an AI, add a key) has nothing to open on a phone: it
+  // says where that lives instead of doing nothing
+  const [desktopOnly, setDesktopOnly] = useState(false);
+  useEffect(() => {
+    if (!state.appSettingsOpen) return;
+    dispatch({ type: "toggleAppSettings", open: false });
+    setDesktopOnly(true);
+  }, [state.appSettingsOpen, dispatch]);
 
   const openTarget = useCallback((target: MobileOpenTarget) => {
     const id = target.botId ?? target.groupId;
@@ -122,6 +148,12 @@ function Shell() {
       />
       <SheetHost sheet={sheet} open={sheetOpen} onClose={closeSheet} onOpenSheet={openSheet} onOpenChat={(id) => { closeSheet(); openChat(id); }} />
       <ConnectAppsHost />
+      <Sheet open={desktopOnly} onClose={() => setDesktopOnly(false)} title={t("mobile.desktopOnly.title")}>
+        <div className="px-5 pb-[calc(var(--m-safe-bottom)+16px)]">
+          <p className="text-[15px] leading-6 text-ink-secondary">{t("mobile.desktopOnly.body")}</p>
+          <button type="button" onClick={() => setDesktopOnly(false)} className="mobile-press mt-5 flex min-h-12 w-full items-center justify-center rounded-full bg-ink text-[16px] font-semibold text-app">{t("mobile.desktopOnly.done")}</button>
+        </div>
+      </Sheet>
     </div>
   );
 }

@@ -16,7 +16,6 @@ export declare const APP_LINK: string;
 export type CloudLinkProvider = "google" | "apple" | "x";
 export declare const LINK_PROVIDERS: readonly CloudLinkProvider[];
 export declare const LINK_MS: number;
-export declare function linkSignIn(origin: string, provider: unknown, random?: (size: number) => Buffer): { url: string; verifier: string; state: string } | null;
 export declare function isAppLink(value: unknown): boolean;
 export declare function parseAppLink(value: unknown): { state: string; code: string } | { state: string; error: string } | null;
 export type CloudLinkFailure = "signin-cancelled" | "enrollment-expired" | "signup-closed" | "identity-taken" | "signin-failed";

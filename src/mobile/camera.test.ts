@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cameraPermission, distinctCodes } from "../../apps/mobile/src/native-platform";
+import { cameraPermission, distinctCodes, scannerCamera, type ScanDriver } from "../../apps/mobile/src/native-platform";
 import { webPlatform } from "./platform";
 
 afterEach(() => {
@@ -193,5 +193,54 @@ describe("web camera", () => {
     expect(await platform.readClipboard!()).toBeNull();
     vi.stubGlobal("navigator", {});
     expect(await platform.readClipboard!()).toBeNull();
+  });
+});
+
+describe("native scanner session", () => {
+  function driver(overrides: Partial<ScanDriver> = {}) {
+    let code: (text: string | undefined) => void = () => {};
+    const remove = vi.fn().mockResolvedValue(undefined);
+    const fake: ScanDriver = {
+      permission: vi.fn().mockResolvedValue("granted"),
+      request: vi.fn().mockResolvedValue("denied"),
+      openSettings: vi.fn().mockResolvedValue(undefined),
+      listen: vi.fn(async (onCode) => { code = onCode; return [{ remove }]; }),
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn().mockResolvedValue(undefined),
+      torchAvailable: vi.fn().mockResolvedValue(true),
+      torch: vi.fn().mockResolvedValue(undefined),
+      ...overrides,
+    };
+    return { fake, remove, read: (text: string) => code(text) };
+  }
+
+  it("hands each code over once, and stopping turns the torch off and the page opaque again", async () => {
+    const { fake, remove, read } = driver();
+    const scanning = vi.fn();
+    const onCode = vi.fn();
+    const camera = scannerCamera(fake, scanning);
+    expect(await camera.permission()).toBe("granted");
+    expect(await camera.request()).toBe("denied");
+    const session = await camera.start({ onCode });
+    expect(scanning).toHaveBeenLastCalledWith(true);
+    read("duskbot://pair?m=1"); read("duskbot://pair?m=1");
+    expect(onCode).toHaveBeenCalledOnce();
+    await session.torch!.set(true);
+    await session.stop();
+    await session.stop();
+    expect(fake.torch).toHaveBeenLastCalledWith(false);
+    expect(fake.stop).toHaveBeenCalledOnce();
+    expect(remove).toHaveBeenCalledOnce();
+    expect(scanning).toHaveBeenLastCalledWith(false);
+    read("late");
+    expect(onCode).toHaveBeenCalledOnce();
+  });
+
+  it("a camera that will not start leaves nothing running", async () => {
+    const { fake } = driver({ start: vi.fn().mockRejectedValue(new Error("this device has no camera to scan with")) });
+    const scanning = vi.fn();
+    await expect(scannerCamera(fake, scanning).start({ onCode: vi.fn() })).rejects.toThrow("no camera");
+    expect(fake.stop).toHaveBeenCalledOnce();
+    expect(scanning).toHaveBeenLastCalledWith(false);
   });
 });

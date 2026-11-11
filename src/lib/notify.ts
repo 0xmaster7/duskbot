@@ -1,4 +1,5 @@
 import type { Notification } from "../../shared/notification";
+import { chatInFront } from "./chat-in-front";
 import { finishedNotificationsEnabled } from "./notification-preferences";
 import { play } from "./ui-sounds";
 
@@ -43,7 +44,7 @@ export function showNotification(
   if (typeof Notification === "undefined") return;
   if (frame.kind === "done" && !finishedNotificationsEnabled()) return;
   const spend = frame.kind === "spend";
-  if (!spend && document.hasFocus() && visibleThreadId === frame.threadId) return;
+  if (!spend && chatInFront() && visibleThreadId === frame.threadId) return;
   if (Notification.permission !== "granted") return;
 
   const title = placeName ? `${placeName} · ${frame.title}` : frame.title;

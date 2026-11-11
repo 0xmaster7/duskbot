@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useContext, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { motion, useTransform, type MotionValue } from "motion/react";
 import { BellDot, Check, MonitorSmartphone, Pin, PinOff, Plus, Search, Star, UserRound } from "lucide-react";
 import { api, useStore, type Bot, type Group } from "@/state/store";
@@ -10,6 +10,7 @@ import { partitionSidebarBots, withPrimaryTile } from "@/lib/sidebar-layout";
 import { botShowsUnread } from "@/lib/bot-unread";
 import { botUnreadThreadIds, markBotRead } from "@/lib/folder-read";
 import { stateForBot } from "@/lib/mascot";
+import { cloudAsleep, cloudWaking, onCloudPower, onCloudWaking } from "@/lib/cloud-power";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { threadRefUrl } from "@/lib/thread-refs";
@@ -19,6 +20,8 @@ import { PullToRefresh } from "./PullToRefresh";
 import { refreshSnapshot } from "./refresh";
 import { usePlatform } from "./platform";
 import { useQuietResume } from "./connection/quiet-resume";
+import { ActiveConnection } from "./connection/active";
+import { DEMO_CONNECTION } from "./demo/demo-mode";
 import { listTime } from "./time";
 import type { OpenSheet } from "./sheets";
 
@@ -48,6 +51,10 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
   const { state, dispatch } = useStore();
   const platform = usePlatform();
   const resuming = useQuietResume(platform);
+  const demo = useContext(ActiveConnection) === DEMO_CONNECTION;
+  // a Cloud computer that went to sleep is not being reconnected to: it wakes on the person's next action
+  const asleep = useSyncExternalStore(onCloudPower, cloudAsleep, () => false);
+  const waking = useSyncExternalStore(onCloudWaking, cloudWaking, () => false);
   const you = useGroupYou();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -148,9 +155,14 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
           {unreadNotes > 0 && <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ink px-1 text-[11px] font-semibold tabular-nums text-app ring-2 ring-app">{unreadNotes > 9 ? "9+" : unreadNotes}</span>}
         </RoundButton>
         <div className="flex-1" />
+        {demo && (
+          <button type="button" onClick={() => onOpenSheet({ kind: "settings" })} className="mobile-press pointer-events-auto flex h-11 items-center">
+            <span className="flex h-8 items-center rounded-full bg-composer px-3 text-[13px] text-ink-secondary mobile-float">{t("mobile.demo.banner")}</span>
+          </button>
+        )}
         {state.hydrated && !state.connected && !resuming && (
           <span role="status" className="pointer-events-auto flex h-8 items-center gap-2 rounded-full bg-composer px-3 text-[13px] text-ink-secondary mobile-float">
-            <WorkingDots size={3} />{t("mobile.home.reconnecting")}
+            {asleep && !waking ? t("cloudAsleep.line") : <><WorkingDots size={3} />{t(waking ? "cloudAsleep.waking" : "mobile.home.reconnecting")}</>}
           </span>
         )}
         <RoundButton floating label={t("mobile.home.search")} onClick={() => onOpenSheet({ kind: "search" })} className="pointer-events-auto"><Search size={19} strokeWidth={1.9} /></RoundButton>

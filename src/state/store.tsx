@@ -1,4 +1,5 @@
 import { cloudAsleep, onCloudPower } from "../lib/cloud-power";
+import { chatInFront } from "@/lib/chat-in-front";
 import { answerOf, api, ApiError, snapshotArrays } from "./api";
 import { sendOutbox } from "./send-outbox";
 import { chatSnapshotPath, MESSAGE_PAGE_SIZE, takeBootRead } from "./boot-reads";
@@ -3113,7 +3114,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const selected = stateRef.current.bots.find((candidate) => candidate.id === bot.id);
           const shown = selected?.switchingTo ?? selected?.threadId;
           const selectedTask = bot.tasks?.find((task) => task.threadId === shown);
-          if (bot.id === stateRef.current.selectedId && stateRef.current.activeView === "chat" && document.hasFocus() &&
+          if (bot.id === stateRef.current.selectedId && stateRef.current.activeView === "chat" && chatInFront() &&
               (selectedTask?.unread || (!bot.tasks && bot.unread))) {
             if (selectedTask) selectedTask.unread = false;
             bot.unread = botShowsUnread(bot);
@@ -3127,7 +3128,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         case "group": {
           const group = frame.group as Partial<Group> & { id: string };
-          if (group.unread && group.id === stateRef.current.selectedId && document.hasFocus()) {
+          if (group.unread && group.id === stateRef.current.selectedId && chatInFront()) {
             group.unread = false;
             fetch(`/api/groups/${group.id}/read`, { method: "POST" }).catch(() => {});
           }

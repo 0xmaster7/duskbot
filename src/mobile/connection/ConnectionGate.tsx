@@ -2,6 +2,8 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type React
 import { AnimatePresence } from "motion/react";
 import { MausAvatar } from "@/components/Avatar";
 import { readSessionState } from "@/lib/session";
+import { resetSessionEnded, useSessionEnded } from "@/lib/session-ended";
+import { THEME_SKINS } from "@/lib/skins";
 import { parseMobilePairingLink, type MobileConnectionRecord } from "../../../shared/mobile-link";
 import { usePlatform } from "../platform";
 import { useMobileAccount } from "../account/AccountGate";
@@ -15,6 +17,9 @@ import { ActiveConnection } from "./active";
 import { reportPresence } from "./presence";
 import { registerPushForConnection } from "./push";
 import { Unreachable } from "./Unreachable";
+import { createDemoWorkspace } from "../demo/demo-workspace";
+import { DEMO_CONNECTION, demoOn, forgetDemo } from "../demo/demo-mode";
+import { t } from "@/lib/i18n";
 
 type GateState = { kind: "loading" } | { kind: "pair"; reason?: "revoked" } | { kind: "ready"; id: string }
   | { kind: "offline"; record: MobileConnectionRecord; others: MobileConnectionRecord[]; attempts: number; trying: boolean };
@@ -45,13 +50,19 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     setState((s) => s.kind === "offline" ? { ...s, trying: true } : { kind: "loading" });
     const decide = async () => {
       if (forcePair) { setState({ kind: "pair" }); return; }
+      if (await demoOn(platform)) {
+        if (stopped) return;
+        uninstall.current = installTransport({ kind: "demo", workspace: createDemoWorkspace({ readOnly: t("mobile.demo.readOnly") }) });
+        setState({ kind: "ready", id: DEMO_CONNECTION });
+        return;
+      }
       const active = await store.active();
       if (stopped) return;
       if (active) {
         try {
           const transport = await connectToWorkspace(active.record, active.token, platform, controller.signal);
           if (stopped) { if (transport.kind === "relay") transport.channel.close(); return; }
-          uninstall.current = installTransport(transport);
+          uninstall.current = installTransport(transport, retry);
           setState({ kind: "ready", id: active.record.id });
           void store.touch(active.record.id).catch(() => {});
         } catch (error) {
@@ -78,16 +89,25 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     };
     void decide().catch(() => { if (!stopped) setState({ kind: "pair" }); });
     return () => { stopped = true; controller.abort(); uninstall.current?.(); uninstall.current = null; };
-  }, [forcePair, platform, store, attempt]);
+  }, [forcePair, platform, store, attempt, retry]);
+
+  // the workspace stopped taking this phone's session (it was removed there): connecting again finds out which it is,
+  // and a refused token leaves for pairing with the reason
+  const ended = useSessionEnded();
+  useEffect(() => {
+    if (!ended || state.kind !== "ready" || state.id === "same-origin" || state.id === DEMO_CONNECTION) return;
+    resetSessionEnded();
+    retry();
+  }, [ended, state, retry]);
 
   useEffect(() => {
-    if (state.kind === "ready" && platform.native) void registerPushForConnection(platform);
+    if (state.kind === "ready" && state.id !== DEMO_CONNECTION && platform.native) void registerPushForConnection(platform);
   }, [state, platform]);
 
-  useEffect(() => (state.kind === "ready" && platform.native ? reportPresence(platform) : undefined), [state, platform]);
+  useEffect(() => (state.kind === "ready" && state.id !== DEMO_CONNECTION && platform.native ? reportPresence(platform) : undefined), [state, platform]);
 
   useEffect(() => {
-    if (state.kind === "ready" && account?.account) void enrollWorkspace(platform, state.id, account.account.id, account.enrollGrant);
+    if (state.kind === "ready" && state.id !== DEMO_CONNECTION && account?.account) void enrollWorkspace(platform, state.id, account.account.id, account.enrollGrant);
   }, [state, platform, account]);
 
   useEffect(() => {
@@ -111,21 +131,23 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
    * time the moment hands over. No reload. */
   const linked = useCallback(async (record: MobileConnectionRecord, token: string, name: string) => {
     await store.save(record, token);
+    await forgetDemo(platform);
     const transport = await connectToWorkspace(record, token, platform, new AbortController().signal);
     uninstall.current?.();
-    uninstall.current = installTransport(transport);
+    uninstall.current = installTransport(transport, retry);
+    resetSessionEnded();
     setIncoming(null);
     setAdding(0);
     setEntered(true);
     setCelebrate({ name, sequence: ++sequence.current });
     setState({ kind: "ready", id: record.id });
-  }, [platform, store]);
+  }, [platform, store, retry]);
   const cancel = () => { ++sequence.current; setIncoming(null); };
   const switchTo = useCallback((id: string) => { void store.setActive(id).then(retry, retry); }, [store, retry]);
 
   const success = (
     <AnimatePresence>
-      {celebrate && <Success key={celebrate.sequence} name={celebrate.name} onDone={() => { setCelebrate(null); platform.setStatusBar?.(document.documentElement.dataset.skin === "grok-dark" ? "light" : "dark"); }} />}
+      {celebrate && <Success key={celebrate.sequence} name={celebrate.name} onDone={() => { setCelebrate(null); platform.setStatusBar?.(document.documentElement.dataset.skin === THEME_SKINS.dark ? "light" : "dark"); }} />}
     </AnimatePresence>
   );
   const onboarding = state.kind !== "ready" || (forcePair && !entered);

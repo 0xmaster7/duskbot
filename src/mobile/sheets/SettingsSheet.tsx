@@ -1,6 +1,6 @@
-import { useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
+import { useContext, useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, CalendarClock, Check, Globe, KeyRound, LayoutDashboard, LogOut, MoreHorizontal, Palette, Plug, Plus, Settings, UserRound } from "lucide-react";
+import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import { accountDashboardUrl } from "@/lib/account-dashboard";
 import { useGroupYou } from "@/components/GroupAvatar";
 import { t } from "@/lib/i18n";
@@ -14,14 +14,24 @@ import { useConnections } from "../connection/connections";
 import { haptic, setHapticsEnabled, useHapticsEnabled } from "../haptics";
 import { dur, ease, spring } from "../motion";
 import { useMobileAccount } from "../account/AccountGate";
+import { DEMO_CONNECTION, leaveDemo } from "../demo/demo-mode";
+import { ActiveConnection } from "../connection/active";
+import { LEGAL_LINKS } from "../legal";
 import { usePlatform } from "../platform";
 import { Sheet } from "../Sheet";
 import { SettingsRow, SettingsSection, SettingsSwitch } from "./SettingsRow";
 import type { SheetPageProps } from "./registry";
 
+/** The account rows Settings shows. The account dashboard sells plans, so the store apps never link to it (App Store
+ * guideline 3.1.1, Play payments policy); a signed-in account can always be signed out and deleted from here. */
+export function accountRows(input: { native: boolean; demo: boolean; signedIn: boolean }): { dashboard: boolean; signOut: boolean; deleteAccount: boolean } {
+  return { dashboard: !input.native && !input.demo, signOut: input.signedIn, deleteAccount: input.signedIn };
+}
+
 export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet, open, onClose, onOpenSheet }) => {
-  const { state, dispatch } = useStore();
+  const { state } = useStore();
   const { connections, activeId, switchTo, remove } = useConnections();
+  const demo = useContext(ActiveConnection) === DEMO_CONNECTION;
   const you = useGroupYou();
   const platform = usePlatform();
   const account = useMobileAccount();
@@ -29,13 +39,15 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
   const skin = useSyncExternalStore(subscribeSkin, readSkinChoice, () => "system");
   const language = effectiveLanguage(useLanguageChoice(), state.config?.language);
   usePageLanguage(language);
-  const [page, setPage] = useState(sheet.page === "language" ? "language" : "main");
+  const [page, setPage] = useState<"main" | "language" | "delete">(sheet.page === "language" ? "language" : "main");
   const [unlinkId, setUnlinkId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const appearanceId = useId();
   const active = connections.find((connection) => connection.id === activeId);
-  const workspace = active?.label ?? globalThis.location?.host ?? "";
+  const workspace = demo ? t("mobile.settings.demoName") : active?.label ?? globalThis.location?.host ?? "";
+  const email = account?.account?.email;
+  const rows = accountRows({ native: platform.native, demo, signedIn: Boolean(email) });
 
   const changeWorkspace = async (id: string, unlink = false) => {
     if (busy) return;
@@ -54,7 +66,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title={t(page === "language" ? "mobile.settings.language" : "mobile.settings.title")} full back={page === "language" ? () => setPage("main") : undefined}>
+    <Sheet open={open} onClose={onClose} title={t(page === "language" ? "mobile.settings.language" : page === "delete" ? "mobile.settings.deleteAccount" : "mobile.settings.title")} full back={page !== "main" ? () => setPage("main") : undefined}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={page} initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -4, opacity: 0 }} transition={{ duration: dur.base, ease: ease.out }} className="px-2 pb-6">
           {page === "language" ? (
@@ -66,6 +78,15 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
                 </button>
               ))}
             </SettingsSection>
+          ) : page === "delete" ? (
+            <div className="px-4 pt-2">
+              <h2 className="text-[20px] font-semibold text-ink">{t("mobile.settings.deleteTitle")}</h2>
+              <p className="mt-2 text-[15px] leading-6 text-ink-secondary">{t("mobile.settings.deleteBody", { email: email ?? "" })}</p>
+              <div className="mt-6 flex flex-col gap-2">
+                <button type="button" onClick={() => { void platform.openExternal(`${account?.origin ?? ""}${LEGAL_LINKS.deleteAccountPath}`); }} className="mobile-press flex min-h-12 items-center justify-center rounded-full bg-danger px-5 text-[16px] font-semibold text-[var(--color-danger-ink)]">{t("mobile.settings.deleteContinue")}</button>
+                <button type="button" onClick={() => setPage("main")} className="mobile-press flex min-h-12 items-center justify-center rounded-full bg-ink/[0.05] px-5 text-[16px] font-semibold text-ink">{t("mobile.settings.cancel")}</button>
+              </div>
+            </div>
           ) : <>
             <div className="flex items-center gap-3.5 px-4 py-5">
               <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink/[0.05] text-[20px] font-semibold text-ink">
@@ -81,12 +102,13 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
                 <WorkspaceRow key={connection.id} connection={connection} active={connection.id === activeId} confirming={unlinkId === connection.id} busy={busy} onSelect={() => { void changeWorkspace(connection.id); }} onConfirm={() => { setError(false); setUnlinkId(connection.id); }} onCancel={() => { setUnlinkId(null); setError(false); }} onUnlink={() => { void changeWorkspace(connection.id, true); }} />
               ))}
               {error && <p role="alert" className="px-4 py-2 text-[14px] text-danger">{t("mobile.settings.workspaceError")}</p>}
+              {demo && <SettingsRow icon={<LogOut />} label={t("mobile.settings.leaveDemo")} detail={t("mobile.settings.leaveDemoDetail")} onClick={() => { void leaveDemo(platform); }} />}
               <SettingsRow icon={<Plus />} label={t("mobile.settings.link")} onClick={() => { onClose(); window.dispatchEvent(new Event("omb:link-another")); }} />
             </SettingsSection>
             <SettingsSection title={t("mobile.settings.bots")}>
               <SettingsRow icon={<CalendarClock />} label={t("mobile.settings.routines")} onClick={() => onOpenSheet({ kind: "routines" })} />
-              <SettingsRow icon={<Plug />} label={t("mobile.settings.connectors")} onClick={() => onOpenSheet({ kind: "connectors" })} />
-              <SettingsRow icon={<KeyRound />} label={t("mobile.settings.vault")} onClick={() => onOpenSheet({ kind: "vault" })} />
+              {!demo && <SettingsRow icon={<Plug />} label={t("mobile.settings.connectors")} onClick={() => onOpenSheet({ kind: "connectors" })} />}
+              {!demo && <SettingsRow icon={<KeyRound />} label={t("mobile.settings.vault")} onClick={() => onOpenSheet({ kind: "vault" })} />}
             </SettingsSection>
             <SettingsSection title={t("mobile.settings.phone")}>
               <SettingsSwitch label={t("mobile.settings.haptics")} checked={hapticsEnabled} onChange={(enabled) => { if (!enabled) haptic("selection"); setHapticsEnabled(enabled); if (enabled) haptic("selection"); }} />
@@ -101,10 +123,17 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
               </div>
               <SettingsRow icon={<Globe />} label={t("mobile.settings.language")} value={localeChoices.find((choice) => choice.code === language)?.label ?? t("mobile.settings.system")} onClick={() => setPage("language")} />
             </SettingsSection>
-            <SettingsSection title={t("mobile.settings.else")}>
-              <SettingsRow icon={<LayoutDashboard />} label={t("mobile.settings.accountDashboard")} onClick={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />
-              {account?.account && <SettingsRow icon={<LogOut />} label={t("accountGate.signOut")} detail={account.account.email} onClick={() => void account.signOut()} />}
-              <SettingsRow icon={<Settings />} label={t("mobile.settings.all")} onClick={() => { dispatch({ type: "toggleAppSettings", open: true }); onClose(); }} />
+            {(rows.dashboard || rows.signOut) && (
+              <SettingsSection title={t("mobile.settings.account")}>
+                {rows.dashboard && <SettingsRow icon={<LayoutDashboard />} label={t("mobile.settings.accountDashboard")} onClick={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />}
+                {rows.signOut && <SettingsRow icon={<LogOut />} label={t("accountGate.signOut")} detail={email} onClick={() => void account?.signOut()} />}
+                {rows.deleteAccount && <SettingsRow icon={<Trash2 />} label={t("mobile.settings.deleteAccount")} danger onClick={() => setPage("delete")} />}
+              </SettingsSection>
+            )}
+            <SettingsSection title={t("mobile.settings.about")}>
+              <SettingsRow icon={<ShieldCheck />} label={t("mobile.settings.privacy")} onClick={() => void platform.openExternal(LEGAL_LINKS.privacy)} />
+              <SettingsRow icon={<FileText />} label={t("mobile.settings.terms")} onClick={() => void platform.openExternal(LEGAL_LINKS.terms)} />
+              <SettingsRow icon={<LifeBuoy />} label={t("mobile.settings.help")} onClick={() => void platform.openExternal(LEGAL_LINKS.help)} />
             </SettingsSection>
             <p className="mt-8 text-center text-[13px] text-ink-tertiary">{t("mobile.settings.version", { version: platform.appVersion })}</p>
           </>}

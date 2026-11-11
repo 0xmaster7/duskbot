@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MOBILE_LINK_VERSION, mobileLinkUrl, mobileOpenLink, parseMobileOpenLink, parseMobilePairingLink, type MobileLinkPayload } from "./mobile-link.ts";
+import { appLinkFromUniversal, MOBILE_LINK_VERSION, mobileLinkUrl, mobileOpenLink, parseMobileOpenLink, parseMobilePairingLink, type MobileLinkPayload } from "./mobile-link.ts";
 import { phonePairingLink } from "./pairing-link.ts";
 
 const token = `omb_pair_${"a".repeat(43)}`;
@@ -36,6 +36,25 @@ describe("mobile pairing link adapter", () => {
     expect(parseMobilePairingLink("duskbot://pair?token=short&address=https://a.b")).toBeNull();
     expect(parseMobilePairingLink(`duskbot://pair?token=${token}`)).toBeNull();
     expect(parseMobilePairingLink("duskbot://pair?m=notjson")).toBeNull();
+  });
+
+  it("reads a universal link as the app link it stands for", () => {
+    const open = mobileOpenLink({ botId: "nova", threadId: "t-1" });
+    expect(appLinkFromUniversal(`https://dusk.bot/m/open?${open.split("?")[1]}`)).toBe(open);
+    expect(appLinkFromUniversal(`https://app.dusk.bot/m/open#${open.split("?")[1]}`)).toBe(open);
+    const pair = mobileLinkUrl(payload);
+    expect(parseMobilePairingLink(appLinkFromUniversal(`https://dusk.bot/m/pair#${pair.split("?")[1]}`)!)).toMatchObject({ v: 2, credential: "s3cret" });
+  });
+
+  it("a pairing secret is only taken from the part of a universal link no web server sees", () => {
+    const pair = mobileLinkUrl(payload);
+    expect(appLinkFromUniversal(`https://dusk.bot/m/pair?${pair.split("?")[1]}`)).toBeNull();
+  });
+
+  it("leaves every other address alone", () => {
+    for (const link of ["https://dusk.bot/", "https://dusk.bot/pricing", "https://dusk.bot/m/buy?x=1", "https://evil.example/m/open?bot=a", "http://dusk.bot/m/open?bot=a", "https://user@dusk.bot/m/open?bot=a", "duskbot://open?bot=a", "not a link"]) {
+      expect(appLinkFromUniversal(link)).toBeNull();
+    }
   });
 
   it("round-trips an open link", () => {

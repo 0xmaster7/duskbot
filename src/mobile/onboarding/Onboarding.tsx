@@ -13,6 +13,7 @@ import { IntroPager } from "./IntroPager";
 import { Scanner } from "./Scanner";
 import { AccountStep } from "./AccountStep";
 import { accountService, signedInAccount } from "./account";
+import { enterDemo } from "../demo/demo-mode";
 import { MascotTrio, ONBOARDING_BG, SkyScene } from "./SkyScene";
 
 type Step = "intro" | "account" | "link" | "permission" | "denied" | "scan" | "code" | "paste";
@@ -184,6 +185,7 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
                 actions={<>
                   <button type="button" disabled={busy} className={PRIMARY} onClick={() => void openScanner()}><ScanLine size={20} />{t("mobile.onboarding.scan")}</button>
                   <button type="button" disabled={busy} className={QUIET} onClick={() => go("code")}>{t("mobile.onboarding.codeInstead")}</button>
+                  {!startAtLink && <button type="button" disabled={busy} className={QUIET} onClick={() => void enterDemo(platform)}>{t("mobile.demo.try")}</button>}
                 </>}>
                 {reason === "revoked" && <p role="status" className="mb-3 text-[14px] text-white/60">{t("mobile.pair.revoked")}</p>}
                 <h1 className={HEADLINE}>{t("mobile.onboarding.linkTitle")}</h1>
