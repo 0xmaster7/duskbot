@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { MAUS_COLORS } from "@/lib/mascot";
+import { BOT_COLOURS } from "./Mascot";
 import type { UsageSeries } from "../data/usage-math";
 import { compact, parseDay, shortDate } from "../lib/format";
 
 // series take the mascots' own colours, in an order that keeps neighbours apart
-export const SERIES_COLORS = [MAUS_COLORS.blue, MAUS_COLORS.orange, MAUS_COLORS.green, MAUS_COLORS.purple, MAUS_COLORS.cyan, MAUS_COLORS.pink, "#8b8b89"];
+export const SERIES_COLORS = [BOT_COLOURS.blue, BOT_COLOURS.orange, BOT_COLOURS.green, BOT_COLOURS.purple, BOT_COLOURS.cyan, BOT_COLOURS.pink, "#91919b"];
 
 const H = 260;
 const PAD = { top: 12, right: 12, bottom: 30, left: 52 };

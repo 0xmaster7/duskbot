@@ -140,9 +140,9 @@ export function CloudPitch({ source = "dash_cloud", title = "Keep your bots on w
         )}
       </div>
       <div className="flex shrink-0 items-end gap-1 pe-2" aria-hidden>
-        <Mascot color="orange" size={36} />
-        <span className="mb-3 inline-flex"><Mascot color="blue" size={48} /></span>
-        <Mascot color="green" size={36} />
+        <Mascot color="orange" body="hex" size={52} state="sleeping" />
+        <span className="mb-3 inline-flex"><Mascot color="blue" body="circle" size={72} state="working" /></span>
+        <Mascot color="pink" body="heart" size={52} state="sleeping" />
       </div>
       {action === undefined && <PlanDialog source={source} open={open} onClose={() => setOpen(false)} />}
     </section>

@@ -4,23 +4,7 @@ import type { PlanCatalog } from "../data/contracts";
 import { freeTradeoffs, type FunnelPlan } from "../data/funnel";
 import { bundleOf, dollars } from "../data/pricing";
 import { Modal } from "../ui/controls";
-import { Button, cx } from "../ui/kit";
-import { Mascot } from "../ui/Mascot";
-
-/** three bots at work on their cloud desktop, the paid plans' picture */
-export function CrewStage({ className }: { className?: string }) {
-  return (
-    <div className={cx("relative flex h-[156px] items-end justify-center overflow-hidden rounded-[10px] bg-bg max-sm:h-[128px]", className)} aria-hidden>
-      <span className="absolute left-4 top-3.5 inline-flex items-center gap-2 text-12 text-ink-3"><span className="live-dot text-good" data-live />On 24/7</span>
-      <span className="absolute inset-x-8 bottom-6 h-px bg-line-2" />
-      <div className="relative flex items-end gap-3 pb-6">
-        <Mascot color="orange" size={56} state="coding" />
-        <span className="mb-4 inline-flex"><Mascot color="blue" size={76} state="working" /></span>
-        <Mascot color="green" size={56} state="reading" />
-      </div>
-    </div>
-  );
-}
+import { Button } from "../ui/kit";
 
 /** the honest comparison shown when someone picks Free: what changes, with Free one click away */
 export function FreeSheet({ open, catalog, plan, onClose, onFree, primary, freeLabel = "Continue with Free", error }: { open: boolean; catalog: PlanCatalog; plan: FunnelPlan; onClose(): void; onFree(): void; primary: ReactNode; freeLabel?: string; error?: string | null }) {

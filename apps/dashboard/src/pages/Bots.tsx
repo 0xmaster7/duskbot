@@ -3,6 +3,7 @@ import type { BotReport, ComputerReport, WorkspaceDetail } from "../../../../sha
 import { ago, bytes, compact, until, usd } from "../lib/format";
 import { Link } from "../lib/router";
 import { Button, Card, cx, KV, PageHeader, SectionTitle, Stat } from "../ui/kit";
+import { botMood } from "../data/mood";
 import { BotMascot } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
 import { Nil, Table, Td, Th } from "../ui/table";
@@ -36,7 +37,7 @@ function BotRow({ bot, detail, now }: { bot: BotReport; detail: WorkspaceDetail;
     <tr className="hover-row relative">
       <Td>
         <div className="flex min-w-0 items-center gap-3">
-          <BotMascot bot={bot} size={32} />
+          <BotMascot bot={bot} mood={botMood(bot, { computer: computer?.state, freshness: detail.workspace.freshness })} size={36} />
           <div className="min-w-0">
             <Link to={`/bots/${encodeURIComponent(bot.id)}`} className="block truncate font-medium text-ink after:absolute after:inset-0 after:content-['']">{bot.name}</Link>
             <div className="truncate text-13 text-ink-3 md:hidden">{bot.busy ? <span className="text-good">Working now</span> : bot.model ?? "No model set"}</div>
@@ -87,7 +88,7 @@ export function BotPage({ id }: { id: string }) {
           return (
             <div className="flex flex-col gap-4">
               <header className="mb-4 flex flex-wrap items-center gap-5">
-                <BotMascot bot={bot} size={72} still={false} track />
+                <BotMascot bot={bot} mood={botMood(bot, { computer: computer?.state, freshness: detail.workspace.freshness })} size={88} track={900} tappable />
                 <div className="min-w-0 flex-1">
                   <h1 className="t-title truncate">{bot.name}</h1>
                   <p className="mt-1 text-14 text-ink-3">{bot.busy ? <span className="text-good">Working now</span> : `Last active ${ago(bot.lastActiveAt, now)}`}</p>

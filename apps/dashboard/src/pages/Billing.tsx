@@ -35,7 +35,7 @@ function points(id: PaidPlan, catalog: PlanCatalog): string[] {
   const seconds = wake ? wakeSeconds(wake.medianMs) : null;
   return id === "pro" ? [machine, bots, seconds ? `Priority wake, in ${seconds} s` : "Priority wake", "Work license included"] : [machine, bots, seconds ? `On 24/7, wakes in ${seconds} s` : "On 24/7, wakes for Slack messages", "Set up in one click"];
 }
-const MASCOT = { starter: { color: "blue", state: "working" }, pro: { color: "green", state: "coding" } } as const;
+const MASCOT = { starter: { color: "blue", body: "circle", state: "happy" }, pro: { color: "green", body: "star", state: "excited" } } as const;
 
 function PlanCard({ id, catalog, interval, current, lead, onChoose, action, disabled }: { id: PaidPlan; catalog: PlanCatalog; interval: BillingInterval; current: boolean; lead: boolean; onChoose(): void; action: string; disabled: boolean }) {
   const b = bundleOf(catalog, id);
@@ -49,7 +49,7 @@ function PlanCard({ id, catalog, interval, current, lead, onChoose, action, disa
           <h2 id={`plan-${id}`} className="text-17 font-medium text-ink">{b.name}</h2>
           {current && <Badge>Current</Badge>}
         </div>
-        <span className="-mt-1 shrink-0" aria-hidden><Mascot color={MASCOT[id].color} state={MASCOT[id].state} size={48} /></span>
+        <span className="-mt-1 shrink-0" aria-hidden><Mascot color={MASCOT[id].color} body={MASCOT[id].body} state={MASCOT[id].state} size={52} /></span>
       </div>
       <p className="num mt-2 text-[40px] font-semibold leading-none tracking-[-0.03em] text-ink">${perMonth}</p>
       <p className="num mt-2 text-13 text-ink-3">{sub}</p>
@@ -67,7 +67,7 @@ function FreeRow({ catalog, current, action }: { catalog: PlanCatalog; current: 
   const b = bundleOf(catalog, "free");
   return (
     <section className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card border border-line px-6 py-4 max-sm:px-5" aria-labelledby="plan-free">
-      <Mascot color="silver" size={28} state="sleeping" still />
+      <Mascot color="purple" body="moon" size={34} state="sleeping" />
       <div className="min-w-0 flex-1">
         <h2 id="plan-free" className="flex items-center gap-2.5 text-14 text-ink-2">{b?.name ?? "Free"} <span className="num text-ink-3">$0</span>{current && <Badge>Current</Badge>}</h2>
         <p className="mt-0.5 text-13 text-ink-3">Your bots on your Mac or your own server, for personal use. They stop when it sleeps.</p>

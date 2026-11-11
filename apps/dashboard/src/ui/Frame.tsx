@@ -1,0 +1,33 @@
+import type { ReactNode, Ref } from "react";
+import mark from "../art/cursor-88.webp";
+import { SITE_URL } from "../lib/site";
+import { Scene, useMedia, type SceneHandle, type SceneMood } from "./Scene";
+
+const TOWARD_FORM: SceneMood[] = ["typing", "thinking", "waiting", "oops"];
+
+/** the screens before the dashboard: a tall poster with the crew on the left, one calm column on the right. on a phone
+ * the poster is a short band on top */
+export function SplitFrame({ poster, mood, scene, card, aside, children, foot }: { poster: string; mood: SceneMood; scene?: Ref<SceneHandle>; card?: ReactNode; aside?: ReactNode; children: ReactNode; foot?: ReactNode }) {
+  const wide = useMedia("(min-width: 1024px)");
+  const look = TOWARD_FORM.includes(mood) ? (wide ? { x: 0.95, y: -0.1 } : { x: 0, y: 0.9 }) : null;
+  return (
+    <div className="min-h-[100dvh] bg-bg lg:grid lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1fr)] lg:gap-3 lg:p-3">
+      <Scene ref={scene} poster={poster} mood={mood} look={look} compact={!wide} className="h-[168px] lg:sticky lg:top-3 lg:h-[calc(100dvh-24px)] lg:min-h-[620px] lg:rounded-[28px]">
+        {card && <div className="pop enter absolute inset-x-[9%] top-[11%] rounded-[24px] bg-pop p-8 max-lg:hidden xl:inset-x-[13%]">{card}</div>}
+      </Scene>
+      <div className="flex min-h-[calc(100dvh-168px)] flex-col px-5 lg:min-h-[calc(100dvh-24px)] lg:px-10">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-4">
+          <a href={SITE_URL} className="-ms-2 flex items-center gap-2 rounded-full px-2 py-1" aria-label="dusk bot, back to the site">
+            <img src={mark} alt="" width={28} height={28} className="size-7" />
+            <span className="text-[17px] font-[550] tracking-[-0.02em] text-ink">dusk bot</span>
+          </a>
+          {aside}
+        </header>
+        <main className="grid flex-1 place-items-center py-8 max-lg:place-items-start max-lg:pt-6">
+          <div className="w-full max-w-[400px] max-lg:mx-auto">{children}</div>
+        </main>
+        {foot && <footer className="t-meta shrink-0 pb-6 text-center">{foot}</footer>}
+      </div>
+    </div>
+  );
+}

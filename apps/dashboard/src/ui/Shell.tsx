@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Blocks, Bot, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, Layers, LogOut, Menu, Plus, X } from "lucide-react";
+import { ArrowUpRight, Blocks, Bot, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, Layers, LogOut, Menu, Plus, X } from "lucide-react";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";
@@ -10,28 +10,30 @@ import { RoutineUpsell } from "../pages/routine-upsell";
 import { PlanSheet } from "../pages/plan-sheet";
 import { Button, cx, FreshnessTag } from "./kit";
 import { Mascot } from "./Mascot";
+import { SITE_NAME, SITE_URL } from "../lib/site";
+import mark from "../art/cursor-88.webp";
 import { useNow } from "../lib/now";
 import { useToasts } from "../lib/toast";
 
-const ICON = { size: 18, strokeWidth: 1.5 } as const;
+const ICON = { size: 18, strokeWidth: 1.75 } as const;
 
 type NavItem = { to: string; label: string; icon: ReactNode };
 const NAV: Array<{ label?: string; items: NavItem[] }> = [
   { items: [
-    { to: "/", label: "Home", icon: <House {...ICON} /> },
-    { to: "/cloud", label: "Cloud desktop", icon: <Cloud {...ICON} /> },
-    { to: "/workspaces", label: "Workspaces", icon: <Layers {...ICON} /> },
-    { to: "/bots", label: "Bots", icon: <Bot {...ICON} /> },
-    { to: "/connectors", label: "Connectors", icon: <Blocks {...ICON} /> },
+    { to: "/", label: "home", icon: <House {...ICON} /> },
+    { to: "/cloud", label: "cloud desktop", icon: <Cloud {...ICON} /> },
+    { to: "/workspaces", label: "workspaces", icon: <Layers {...ICON} /> },
+    { to: "/bots", label: "bots", icon: <Bot {...ICON} /> },
+    { to: "/connectors", label: "connectors", icon: <Blocks {...ICON} /> },
   ] },
-  { label: "Account", items: [
-    { to: "/billing", label: "Plans & billing", icon: <CreditCard {...ICON} /> },
-    { to: "/usage", label: "Usage", icon: <ChartNoAxesColumn {...ICON} /> },
-    { to: "/account", label: "Account", icon: <CircleUser {...ICON} /> },
+  { label: "you", items: [
+    { to: "/billing", label: "plans and billing", icon: <CreditCard {...ICON} /> },
+    { to: "/usage", label: "usage", icon: <ChartNoAxesColumn {...ICON} /> },
+    { to: "/account", label: "account", icon: <CircleUser {...ICON} /> },
   ] },
 ];
 
-export const KIND_LABEL = (kind: string, cloud: CloudDesktop | null) => (cloud ? "Cloud desktop" : kind === "vps" ? "Self-hosted VPS" : kind === "mac" ? "Mac" : kind === "linux" ? "Linux" : "Windows");
+export const KIND_LABEL = (kind: string, cloud: CloudDesktop | null) => (cloud ? "cloud desktop" : kind === "vps" ? "your server" : kind === "mac" ? "mac" : kind === "linux" ? "linux" : "windows");
 
 const active = (path: string, to: string) => (to === "/" ? path === "/" : path === to || path.startsWith(`${to}/`));
 
@@ -59,20 +61,20 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
       <button
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Workspace: ${workspace?.name ?? "none yet"}. Switch workspace`}
+        aria-label={`workspace: ${workspace?.name ?? "none yet"}. switch workspace`}
         onClick={() => setOpen((o) => !o)}
-        className="press-soft hover-side flex w-full items-center gap-2.5 rounded-row px-2.5 py-2 text-start"
+        className="press-soft hover-outline flex w-full items-center gap-2.5 rounded-[18px] bg-btn px-3.5 py-2.5 text-start"
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-14 font-medium text-ink">{workspace?.name ?? "No workspace yet"}</span>
-          {workspace ? <FreshnessTag freshness={workspace.freshness} at={workspace.lastReportAt} now={now} className="!text-12" /> : <span className="text-12 text-ink-3">Connect one from the app</span>}
+          <span className="block truncate text-14 font-medium text-ink">{workspace?.name ?? "no workspace yet"}</span>
+          {workspace ? <FreshnessTag freshness={workspace.freshness} at={workspace.lastReportAt} now={now} className="!text-12" /> : <span className="text-12 text-ink-3">connect one from the app</span>}
         </span>
         <ChevronsUpDown size={16} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
       </button>
       {open && (
-        <div role="menu" className="menu-in absolute inset-x-0 top-full z-30 mt-1 origin-top rounded-[14px] bg-card p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
+        <div role="menu" className="pop menu-in absolute inset-x-0 top-full z-30 mt-1.5 origin-top rounded-[18px] bg-pop p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
           {workspaces?.map((w) => (
-            <button key={w.id} role="menuitemradio" aria-checked={w.id === workspace?.id} onClick={() => choose(w)} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-start">
+            <button key={w.id} role="menuitemradio" aria-checked={w.id === workspace?.id} onClick={() => choose(w)} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start">
               <span className={cx("live-dot", w.freshness === "live" ? "text-good" : w.freshness === "recent" ? "text-warn" : "text-ink-4")} aria-hidden />
               <span className="min-w-0 flex-1 truncate text-14 text-ink">{w.name}</span>
               <span className="text-12 text-ink-3">{KIND_LABEL(w.kind, cloudForWorkspace(clouds, w.id))}</span>
@@ -80,8 +82,8 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
             </button>
           ))}
           <div className="my-1 h-px bg-line" />
-          <button role="menuitem" onClick={() => { setOpen(false); navigate("/workspaces#add"); onNavigate?.(); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-start text-14 text-ink-2">
-            <Plus size={16} strokeWidth={1.5} aria-hidden /> Add a workspace
+          <button role="menuitem" onClick={() => { setOpen(false); navigate("/workspaces#add"); onNavigate?.(); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start text-14 text-ink-2">
+            <Plus size={16} strokeWidth={1.75} aria-hidden /> add a workspace
           </button>
         </div>
       )}
@@ -100,18 +102,19 @@ function UserRow() {
   const sel = billing?.subscription?.selection;
   const license = sel && sel.license !== "personal" ? catalog?.licenses.find((l) => l.id === sel.license)?.name : null;
   const plan = sel && sel.desktop !== "none" ? catalog?.bundles.find((b) => b.desktop === sel.desktop && b.id !== "team")?.name ?? "Cloud desktop" : null;
-  const label = plan ? (license && plan !== "Pro" ? `${plan} + work license` : plan) : license ? `${license} license` : "Free";
+  const label = (plan ? (license && plan !== "pro" ? `${plan} + work license` : plan) : license ? `${license} license` : "Free").toLowerCase();
   return (
     <div ref={ref} className="relative">
       {open && (
-        <div role="menu" className="menu-in absolute inset-x-0 bottom-full z-30 mb-1 origin-bottom rounded-[14px] bg-card p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
+        <div role="menu" className="pop menu-in absolute inset-x-0 bottom-full z-30 mb-1.5 origin-bottom rounded-[18px] bg-pop p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
           <div className="truncate px-2.5 py-2 text-13 text-ink-3">{account.email}</div>
-          <button role="menuitem" onClick={() => { setOpen(false); navigate("/account"); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-14 text-ink-2"><CircleUser size={16} strokeWidth={1.5} aria-hidden /> Account</button>
-          <button role="menuitem" onClick={() => void api.signOut().finally(() => setAccount(null))} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-14 text-ink-2"><LogOut size={16} strokeWidth={1.5} aria-hidden /> Sign out</button>
+          <button role="menuitem" onClick={() => { setOpen(false); navigate("/account"); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><CircleUser size={16} strokeWidth={1.75} aria-hidden /> account</button>
+          <a role="menuitem" href={SITE_URL} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><ArrowUpRight size={16} strokeWidth={1.75} aria-hidden /> {SITE_NAME}</a>
+          <button role="menuitem" onClick={() => void api.signOut().finally(() => setAccount(null))} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><LogOut size={16} strokeWidth={1.75} aria-hidden /> sign out</button>
         </div>
       )}
-      <button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="press-soft hover-side flex w-full items-center gap-3 rounded-row px-2.5 py-2 text-start">
-        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-card-2 text-13 font-medium uppercase text-ink-2" aria-hidden>{name.slice(0, 1)}</span>
+      <button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="press-soft hover-side flex w-full items-center gap-3 rounded-[18px] px-2.5 py-2 text-start">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink text-14 font-medium lowercase text-bg" aria-hidden>{name.slice(0, 1)}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-14 text-ink">{name}</span>
           <span className="block truncate text-12 text-ink-3">{label}</span>
@@ -126,9 +129,9 @@ function CloudBadge() {
   const { clouds } = useCloud();
   const c = clouds?.[0];
   if (!clouds) return null;
-  if (!c) return <span className="t-pixel ms-auto rounded-full border border-line-2 px-2 py-px text-ink-3">24/7</span>;
+  if (!c) return <span className="t-pixel ms-auto text-ink-4">24/7</span>;
   const tone = c.status === "running" ? "text-good" : c.status === "provisioning" ? "text-accent" : c.status === "error" ? "text-bad" : "text-ink-4";
-  return <span className={cx("live-dot ms-auto", tone)} data-live={c.status === "running"} aria-label={c.status === "running" ? "Running" : c.status} role="img" />;
+  return <span className={cx("live-dot ms-auto", tone)} data-live={c.status === "running"} aria-label={c.status === "running" ? "running" : c.status} role="img" />;
 }
 
 const HIDE_KEY = "omb-dash-upsell-hidden-until";
@@ -143,13 +146,13 @@ function SideUpsell() {
   if (!clouds || clouds.length || path === "/billing" || hiddenUntil > Date.now()) return open ? <PlanSheet source="dash_home" start="starter" onClose={() => setOpen(false)} /> : null;
   const hide = () => { const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
   return (
-    <div className="relative rounded-[14px] bg-card p-3.5">
-      <button type="button" onClick={hide} aria-label="Hide for a week" className="hover-ghost absolute right-1 top-1 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.5} /></button>
-      <div className="flex items-start gap-3 pe-5">
-        <Mascot color="silver" size={28} state="sleeping" />
-        <p className="min-w-0 text-13 leading-[1.45] text-ink-2">Your bots stop when your Mac sleeps.</p>
+    <div className="pop relative rounded-[20px] bg-pop p-4">
+      <button type="button" onClick={hide} aria-label="hide for a week" className="hover-ghost absolute right-1.5 top-1.5 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.75} /></button>
+      <div className="flex items-center gap-3 pe-6">
+        <span className="relative shrink-0"><Mascot color="purple" body="moon" size={34} state="sleeping" /><span className="absolute -right-1 -top-1" aria-hidden><i className="zz not-italic">z</i><i className="zz not-italic">z</i></span></span>
+        <p className="min-w-0 text-13 leading-[1.4] text-ink-2">your bots nap when your mac does.</p>
       </div>
-      <Button size="sm" variant="primary" className="mt-3 w-full" onClick={() => setOpen(true)}>Keep them on 24/7</Button>
+      <Button size="sm" variant="primary" className="mt-3.5 w-full" onClick={() => setOpen(true)}>keep them on 24/7</Button>
       {open && <PlanSheet source="dash_home" start="starter" onClose={() => setOpen(false)} />}
     </div>
   );
@@ -158,10 +161,10 @@ function SideUpsell() {
 function Nav({ onNavigate }: { onNavigate?: () => void }) {
   const { path } = useLocation();
   return (
-    <nav aria-label="Dashboard" className="flex flex-col gap-5">
+    <nav aria-label="dashboard" className="flex flex-col gap-5">
       {NAV.map((group, i) => (
         <div key={i} className="flex flex-col gap-0.5">
-          {group.label && <div className="px-3 pb-1.5 text-12 text-ink-4">{group.label}</div>}
+          {group.label && <div className="t-meta px-3.5 pb-1.5">{group.label}</div>}
           {group.items.map((item) => {
             const on = active(path, item.to);
             return (
@@ -170,7 +173,7 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
                 to={item.to}
                 onClick={onNavigate}
                 aria-current={on ? "page" : undefined}
-                className={cx("press-soft flex h-10 items-center gap-3 rounded-row px-3 text-14", on ? "bg-card-2 text-ink" : "hover-side text-ink-2")}
+                className={cx("press-soft flex h-10 items-center gap-3 rounded-full px-3.5 text-14", on ? "bg-pop font-medium text-ink" : "hover-side text-ink-2")}
               >
                 <span className={on ? "text-ink" : "text-ink-3"}>{item.icon}</span>
                 {item.label}
@@ -186,9 +189,9 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
 
 function Brand() {
   return (
-    <Link to="/" className="flex items-center gap-2.5 rounded-row px-2.5 py-1" aria-label="Dusk Bot, home">
-      <Mascot color="blue" size={24} still />
-      <span className="text-14 font-medium tracking-[-0.01em] text-ink">Dusk Bot</span>
+    <Link to="/" className="flex items-center gap-2 rounded-full px-2.5 py-1" aria-label="dusk bot, home">
+      <img src={mark} alt="" width={26} height={26} className="size-[26px]" />
+      <span className="text-[17px] font-[550] tracking-[-0.02em] text-ink">dusk bot</span>
     </Link>
   );
 }
@@ -198,7 +201,7 @@ function Toasts() {
   return (
     <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex flex-col items-center gap-2 px-4">
       {toasts.map((t) => (
-        <div key={t.id} className={cx("toast-in max-w-[440px] rounded-full bg-card px-4 py-2.5 text-13", t.tone === "bad" ? "text-bad" : "text-ink")} style={{ boxShadow: "var(--pop-shadow)" }}>{t.text}</div>
+        <div key={t.id} className="toast-in flex max-w-[440px] items-center gap-2.5 rounded-[22px] bg-primary px-4.5 py-3 text-14 text-primary-ink" style={{ boxShadow: "var(--pop-shadow)" }}>{t.tone === "bad" && <span className="size-2 shrink-0 rounded-[2px] bg-[#ff6f66]" aria-hidden />}{t.text}</div>
       ))}
     </div>
   );
@@ -215,10 +218,10 @@ export function Shell({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("keydown", key);
   }, [drawer]);
   const side = (close?: () => void) => (
-    <div className="flex h-full flex-col gap-6 px-3 pb-3 pt-4">
+    <div className="flex h-full flex-col gap-5 overflow-y-auto px-3 pb-3 pt-4">
       <div className="flex items-center justify-between">
         <Brand />
-        {close && <button onClick={close} aria-label="Close menu" className="press hover-ghost grid size-11 place-items-center rounded-full text-ink-2"><X size={18} strokeWidth={1.5} /></button>}
+        {close && <button onClick={close} aria-label="close menu" className="press hover-ghost grid size-11 place-items-center rounded-full text-ink-2"><X size={18} strokeWidth={1.75} /></button>}
       </div>
       <WorkspaceSwitcher onNavigate={close} />
       <Nav onNavigate={close} />
@@ -227,21 +230,21 @@ export function Shell({ children }: { children: ReactNode }) {
   );
   return (
     <div className="min-h-[100dvh] bg-bg">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-card focus:px-4 focus:py-2">Skip to content</a>
-      <aside className="fixed inset-y-0 left-0 z-20 w-[260px] bg-side max-lg:hidden">{side()}</aside>
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-ink">skip to content</a>
+      <aside className="surface fixed inset-y-0 left-0 z-20 w-[276px] p-3 max-lg:hidden"><div className="h-full rounded-[28px] bg-side">{side()}</div></aside>
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between bg-bg/90 px-3 backdrop-blur lg:hidden">
-        <button onClick={() => setDrawer(true)} aria-label="Open menu" aria-expanded={drawer} className="press hover-ghost grid size-11 place-items-center rounded-full text-ink-2"><Menu size={20} strokeWidth={1.5} /></button>
+        <button onClick={() => setDrawer(true)} aria-label="open menu" aria-expanded={drawer} className="press hover-ghost grid size-11 place-items-center rounded-full text-ink-2"><Menu size={20} strokeWidth={1.75} /></button>
         <Brand />
         <span className="size-11" aria-hidden />
       </header>
       {drawer && (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="menu">
           <div className="fade-in absolute inset-0" style={{ background: "var(--scrim)" }} onClick={() => setDrawer(false)} aria-hidden />
-          <div className="drawer-in absolute inset-y-0 left-0 w-[min(300px,86vw)] bg-side">{side(() => setDrawer(false))}</div>
+          <div className="surface drawer-in absolute inset-y-0 left-0 w-[min(304px,86vw)] rounded-e-[28px] bg-side">{side(() => setDrawer(false))}</div>
         </div>
       )}
-      <main id="main" className="lg:ps-[260px]">
-        <div className="mx-auto w-full max-w-[1120px] px-12 pb-20 pt-12 max-lg:px-6 max-lg:pt-6 max-sm:px-4">{children}</div>
+      <main id="main" className="lg:ps-[276px]">
+        <div key={path} className="page-in mx-auto w-full max-w-[1120px] px-10 pb-24 pt-12 max-lg:px-6 max-lg:pt-6 max-sm:px-4">{children}</div>
       </main>
       <RoutineUpsell />
       <Toasts />

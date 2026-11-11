@@ -1,64 +1,149 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { ArrowLeft, LoaderCircle } from "lucide-react";
+import poster from "../art/poster-birches.webp";
 import type { AuthProviders, IdentityProvider } from "../data/contracts";
 import { useSession } from "../data/session";
-import { api, ApiError, FIXTURE } from "../lib/api";
+import { api, ApiError, FIXTURE, type Account } from "../lib/api";
 import { Link, navigate, useLocation } from "../lib/router";
+import { planIntent, planQuery, SITE_NAME, SITE_URL, siteUrl } from "../lib/site";
 import { ProviderMark, PROVIDER_NAME } from "../ui/BrandMarks";
+import { SplitFrame } from "../ui/Frame";
 import { Button, cx } from "../ui/kit";
-import { Mascot } from "../ui/Mascot";
+import { Mascot, useReducedMotion } from "../ui/Mascot";
+import type { SceneHandle, SceneMood } from "../ui/Scene";
 
 const REASON: Record<string, string> = {
-  wrong_code: "That code does not match. Check the newest email and try again.",
-  expired: "That code expired. Send a new one.",
-  invalid_email: "That does not look like an email address.",
-  sso: "Your organization signs in through its own provider. Sign in from the app instead.",
-  two_factor: "This account uses two-step sign-in. Sign in from the app instead.",
-  signup_closed: "There is no account for this email yet. Create one instead.",
-  device_limit: "This account has reached its device limit. Sign out somewhere else and try again.",
-  rate_limited: "Too many tries. Wait a minute, then try again.",
-  offline: "We could not be reached. Check your connection.",
+  wrong_code: "that code doesn't match. check the newest email and try again.",
+  expired: "that code expired. send a new one.",
+  invalid_email: "that doesn't look like an email address.",
+  sso: "your organization signs in through its own provider. sign in from the app instead.",
+  two_factor: "this account uses two-step sign-in. sign in from the app instead.",
+  signup_closed: "there's no account for this email, and new accounts aren't open yet.",
+  device_limit: "this account is signed in on too many devices. sign out somewhere else and try again.",
+  rate_limited: "too many tries. wait a minute, then try again.",
+  offline: "can't reach dusk bot. check your connection and try again.",
 };
 
 const OAUTH: IdentityProvider[] = ["google", "apple", "x"];
 const SUPPORT = "hello@dusk.bot";
 const LINK_ATTEMPT = /^[A-Za-z0-9_-]{43}$/;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SLOW_MS = 5000;
+const PARTY_MS = 1100;
 
 // ?error= after a provider sign-in that did not finish
 const OAUTH_ERROR: Record<string, string> = {
-  oauth_denied: "Sign-in was cancelled at the provider. Try again, or use your email.",
-  oauth_failed: "The provider did not finish signing you in. Try again, or use your email.",
-  oauth_expired: "That sign-in took too long. Start again.",
-  provider_unavailable: "That sign-in option is not available right now. Use your email instead.",
-  signup_closed: "New accounts are not open yet.",
-  identity_taken: "That account is already linked to another Dusk Bot account. Sign in with it instead.",
+  oauth_denied: "sign-in was cancelled at the provider. try again, or use your email.",
+  oauth_failed: "the provider didn't finish signing you in. try again, or use your email.",
+  oauth_expired: "that sign-in took too long. start again.",
+  provider_unavailable: "that sign-in option isn't available right now. use your email instead.",
+  signup_closed: "new accounts aren't open yet.",
+  identity_taken: "that account is already linked to another dusk bot account. sign in with it instead.",
 };
 
 type Mode = "signin" | "signup";
+type Step = "start" | "code" | "recover" | "done";
+
+const LINK = "hover-link text-ink-2 underline decoration-line-2 underline-offset-4";
+const QUIET = "hover-link h-11 rounded-full px-2 text-14 text-ink-3 disabled:opacity-50";
+
+function Busy({ children }: { children: ReactNode }) {
+  return <><LoaderCircle size={17} strokeWidth={2} className="spin" aria-hidden />{children}</>;
+}
+
+/** the code as one box per digit over a single real input, so typing moves on by itself and a pasted or autofilled
+ * code lands whole */
+function CodeBoxes({ input, boxes, length, value, onChange, invalid, disabled, onFocus }: { input: RefObject<HTMLInputElement | null>; boxes: RefObject<HTMLDivElement | null>; length: number; value: string; onChange(v: string): void; invalid: boolean; disabled: boolean; onFocus(on: boolean): void }) {
+  const [focused, setFocused] = useState(false);
+  const at = Math.min(value.length, length - 1);
+  const half = length >= 6 && length % 2 === 0 ? length / 2 : -1;
+  return (
+    <div className="relative">
+      <div ref={boxes} className="flex gap-1.5" aria-hidden>
+        {Array.from({ length }, (_, i) => (
+          <span key={i} className={cx("num grid h-14 min-w-0 flex-1 place-items-center rounded-[14px] text-[22px] font-medium text-ink transition-[box-shadow,background-color] duration-150", i === half && "ms-2.5",
+            invalid ? "bg-btn shadow-[inset_0_0_0_2px_var(--bad)]" : focused && i === at ? "bg-pop shadow-[inset_0_0_0_2px_var(--accent)]" : "bg-btn", disabled && "opacity-60")}>
+            {value[i] ?? (focused && i === at ? <i className="h-6 w-0.5 rounded-full bg-ink [animation:caret_1.1s_steps(1)_infinite]" /> : null)}
+          </span>
+        ))}
+      </div>
+      <input
+        ref={input}
+        id="code"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        required
+        readOnly={disabled}
+        value={value}
+        onChange={(e) => { if (!disabled) onChange(e.target.value.replace(/\D/g, "").slice(0, length)); }}
+        onFocus={() => { setFocused(true); onFocus(true); }}
+        onBlur={() => { setFocused(false); onFocus(false); }}
+        className="absolute inset-0 size-full cursor-text opacity-0"
+        aria-invalid={invalid}
+        aria-describedby={invalid ? "auth-error" : undefined}
+      />
+    </div>
+  );
+}
+
+function SceneCard() {
+  const rows: Array<[string, "blue" | "pink" | "orange", string, string]> = [
+    ["circle", "blue", "see them work", "every workspace side by side, live."],
+    ["heart", "pink", "keep them on", "a cloud desktop runs routines while you sleep."],
+    ["hex", "orange", "text them anywhere", "the same bots, from your phone."],
+  ];
+  return (
+    <>
+      <p className="text-[30px] font-medium leading-[1.05] tracking-[-0.045em] text-ink">your bots, all in one place.</p>
+      <ul className="mt-7 flex flex-col gap-5">
+        {rows.map(([body, colour, title, line]) => (
+          <li key={title} className="flex items-start gap-3.5">
+            <Mascot body={body} color={colour} size={34} still />
+            <span className="min-w-0"><b className="block text-15 font-[550] tracking-[-0.01em] text-ink">{title}</b><span className="block text-14 text-ink-2">{line}</span></span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
 
 export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const { setAccount } = useSession();
   const { query } = useLocation();
+  const reduced = useReducedMotion();
   const pending = query.get("pending");
   const next = query.get("next");
+  const intent = planIntent(query);
   // signed out on a page like /cloud/desktop?code= or /claim: come back to it after signing in
-  const here = ["/sign-in", "/signup", "/welcome"].includes(window.location.pathname) ? "/" : `${window.location.pathname}${window.location.search}`;
-  const home = next && next.startsWith("/") && !next.startsWith("//") ? next : here;
-  // the one-time link of a "Can't sign in?" email: its code waits behind a click, so a mail scanner opening it signs nobody in
+  const here = ["/sign-in", "/signin", "/signup", "/welcome"].includes(window.location.pathname) ? "/" : `${window.location.pathname}${window.location.search}`;
+  const home = intent ? `/welcome?${planQuery(intent)}` : next && next.startsWith("/") && !next.startsWith("//") ? next : here;
+  // the one-time link of a "can't sign in?" email: its code waits behind a click, so a mail scanner opening it signs nobody in
   const [linked] = useState(() => { const hash = new URLSearchParams(window.location.hash.slice(1)), a = hash.get("attempt"), c = hash.get("code"); return a && LINK_ATTEMPT.test(a) && c && /^\d{8}$/.test(c) ? { attempt: a, code: c } : null; });
-  const [step, setStep] = useState<"start" | "code" | "recover">(linked ? "code" : "start");
+  const [step, setStep] = useState<Step>(linked ? "code" : "start");
   const [recovering, setRecovering] = useState(false);
   const [email, setEmail] = useState("");
+  const [sentTo, setSentTo] = useState("");
   const [code, setCode] = useState(linked?.code ?? "");
   const [length, setLength] = useState(linked ? linked.code.length : 6);
   const [attempt, setAttempt] = useState<string | null>(linked?.attempt ?? null);
   const [resendAt, setResendAt] = useState(0);
   const [busy, setBusy] = useState<IdentityProvider | null>(null);
+  const [slow, setSlow] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [oops, setOops] = useState(0);
   const [error, setError] = useState<string | null>(() => OAUTH_ERROR[query.get("error") ?? ""] ?? null);
   const [providers, setProviders] = useState<AuthProviders["providers"] | null>(null);
   const [, force] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
+  const boxes = useRef<HTMLDivElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const scene = useRef<SceneHandle>(null);
+  const alive = useRef(true);
+  const live = useRef({ step, attempt, recovering });
+  live.current = { step, attempt, recovering };
   const signup = mode === "signup";
 
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   useEffect(() => { api.authProviders().then((r) => setProviders(r.providers), () => setProviders([])); }, []);
   useEffect(() => { if (linked) window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}`); }, [linked]);
   useEffect(() => { if (step === "code") codeRef.current?.focus(); }, [step]);
@@ -67,17 +152,55 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
     const id = setInterval(() => force((n) => n + 1), 1000);
     return () => clearInterval(id);
   }, [step, resendAt]);
+  useEffect(() => {
+    if (busy === null) { setSlow(false); return; }
+    const id = setTimeout(() => setSlow(true), SLOW_MS);
+    return () => clearTimeout(id);
+  }, [busy]);
+  useEffect(() => {
+    if (!oops) return;
+    scene.current?.react("shake");
+    if (!reduced) boxes.current?.animate?.([{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(5px)" }, { transform: "translateX(-3px)" }, { transform: "translateX(0)" }], { duration: 360, easing: "ease-in-out" });
+    const id = setTimeout(() => setOops(0), 1800);
+    return () => clearTimeout(id);
+  }, [oops, reduced]);
+  // the browser's back button on the code step returns to the email, and forward goes back to the code
+  useEffect(() => {
+    const pop = () => {
+      const marked = (window.history.state as { duskAuth?: string } | null)?.duskAuth === "code";
+      const now = live.current;
+      if (marked && now.attempt && now.step !== "done") setStep("code");
+      else if (!marked && now.step === "code") { setStep(now.recovering ? "recover" : "start"); setError(null); }
+    };
+    window.addEventListener("popstate", pop);
+    return () => window.removeEventListener("popstate", pop);
+  }, []);
 
-  const reason = (e: unknown) => (e instanceof ApiError && e.code && REASON[e.code]) || (e as Error).message || "Sign-in did not work. Try again.";
+  const reason = (e: unknown) => (e instanceof ApiError && e.code && REASON[e.code]) || (e as Error).message || "sign-in didn't work. try again.";
+  const fail = (e: unknown) => { setError(reason(e)); setOops((n) => n + 1); };
   const enabled = (p: IdentityProvider) => providers === null ? true : providers.some((x) => x.id === p && x.enabled);
   const hidden = (p: IdentityProvider) => providers !== null && !providers.some((x) => x.id === p && (x.enabled || x.comingSoon));
+  const toCode = () => {
+    if ((window.history.state as { duskAuth?: string } | null)?.duskAuth !== "code") window.history.pushState({ ...(window.history.state as object | null), duskAuth: "code" }, "");
+    setStep("code");
+  };
+  const leaveCode = () => {
+    setStep(recovering ? "recover" : "start"); setError(null);
+    if ((window.history.state as { duskAuth?: string } | null)?.duskAuth === "code") window.history.back();
+  };
 
-  const send = async (recover = recovering) => {
+  const send = async (recover = recovering, again = false) => {
+    const address = email.trim();
+    if (!EMAIL.test(address)) { fail(new ApiError("", 400, "invalid_email")); (recover ? document.getElementById("recover-email") : emailRef.current)?.focus(); return; }
+    // the same address again before a new code may go out: the one already sent still works
+    if (!again && attempt && address === sentTo && Date.now() < resendAt && recover === recovering) { setError(null); toCode(); return; }
     setBusy("email"); setError(null);
     try {
-      const r = await api.start(email.trim(), mode, recover ? undefined : pending ?? undefined, recover);
-      setAttempt(r.attempt); setLength(r.codeLength || 6); setResendAt(Date.now() + r.resendAfter * 1000); setStep("code"); setCode("");
-    } catch (e) { setError(reason(e)); } finally { setBusy(null); }
+      const r = await api.start(address, mode, recover ? undefined : pending ?? undefined, recover);
+      if (!alive.current) return;
+      setAttempt(r.attempt); setSentTo(address); setLength(r.codeLength || 6); setResendAt(Date.now() + r.resendAfter * 1000); setCode(""); toCode();
+      if (again) codeRef.current?.focus();
+    } catch (e) { fail(e); } finally { setBusy(null); }
   };
   const verify = async (value = code) => {
     if (!attempt) return;
@@ -86,107 +209,113 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
       const r = await api.verify(attempt, value.replace(/\D/g, ""));
       // a phone sign-in that needed an email goes back to the app with its one-time code
       if (r.redirect?.startsWith("duskbot://auth?")) { window.location.assign(r.redirect); return; }
-      navigate(home, { replace: true }); setAccount(r.account);
+      enter(r.account, home);
     }
-    catch (e) { setError(reason(e)); setCode(""); codeRef.current?.focus(); if (e instanceof ApiError && e.code === "expired") setAttempt(null); }
+    catch (e) { fail(e); setCode(""); codeRef.current?.focus(); if (e instanceof ApiError && e.code === "expired") setAttempt(null); }
     finally { setBusy(null); }
+  };
+  // a beat for the crew to celebrate, then in
+  const enter = (account: Account, to: string) => {
+    setStep("done");
+    setTimeout(() => { if (!alive.current) return; navigate(to, { replace: true }); setAccount(account); }, reduced ? 200 : PARTY_MS);
   };
   const oauth = async (p: IdentityProvider) => {
     setError(null);
     if (!FIXTURE) { window.location.assign(api.oauthUrl(p, mode, { next: home })); return; }
     // fixtures have no provider page to bounce through: sign the demo account in
     setBusy(p);
-    try { const s = await api.start("sid@duskbot.test", mode); const r = await api.verify(s.attempt, "123456"); navigate("/", { replace: true }); setAccount(r.account); }
-    catch (e) { setError(reason(e)); } finally { setBusy(null); }
+    try { const s = await api.start("sid@duskbot.test", mode); const r = await api.verify(s.attempt, "123456"); enter(r.account, intent ? home : "/"); }
+    catch (e) { fail(e); } finally { setBusy(null); }
   };
   const wait = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
+  const mood: SceneMood = step === "done" ? "party" : oops ? "oops" : busy !== null ? "thinking" : step === "code" ? "waiting" : focused || (step === "recover" && email !== "") ? "typing" : "idle";
+  const typed = (v: string) => { setEmail(v); setError(null); };
+  const emailField = (id: string) => (
+    <>
+      <label htmlFor={id} className="mb-2 block text-14 text-ink-2">email</label>
+      <input ref={id === "email" ? emailRef : undefined} id={id} type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} required placeholder="you@example.com" value={email} onChange={(e) => typed(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} className="field !h-12" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} />
+      {error && <p id="auth-error" role="alert" className="mt-2.5 text-14 text-bad">{error}</p>}
+    </>
+  );
 
   return (
-    <div className="relative grid min-h-[100dvh] place-items-center overflow-hidden bg-bg px-4 py-14">
-      <div className="w-full max-w-[360px]">
-        <div className="mb-6"><Mascot color="blue" size={40} still label="Dusk Bot" /></div>
-        <div>
-          {step === "start" ? (
-            <div key="start" className="step-in">
-              <h1 className="t-title">{signup ? "Create your account" : "Sign in to Dusk Bot"}</h1>
-              <p className="mt-1.5 text-14 leading-[1.5] text-ink-3">One account for the app, your phone and your cloud desktop.</p>
-              {note && <div className="mt-3 text-13 leading-[1.5] text-ink-2">{note}</div>}
-              {pending && <div className="mt-3 text-13 leading-[1.5] text-ink-2">One more step: your provider did not share an email, so enter the one you want to sign in with.</div>}
-              <div className="mt-6 flex flex-col gap-2">
-                {!pending && OAUTH.filter((p) => !hidden(p)).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => void oauth(p)}
-                    disabled={busy !== null || !enabled(p)}
-                    className="press hover-outline relative flex h-11 w-full items-center justify-center gap-2.5 rounded-full bg-card-2 text-14 font-medium text-ink disabled:opacity-45"
-                  >
-                    <span className="absolute start-4 grid size-5 place-items-center text-ink"><ProviderMark provider={p} size={18} /></span>
-                    {busy === p ? "Signing in" : enabled(p) ? `Continue with ${PROVIDER_NAME[p]}` : `${PROVIDER_NAME[p]}, coming soon`}
-                  </button>
-                ))}
-              </div>
-              <div className={cx("my-5 flex items-center gap-3 text-13 text-ink-3", pending && "hidden")} aria-hidden><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
-              <form onSubmit={(e) => { e.preventDefault(); setRecovering(false); void send(false); }} noValidate>
-                <label htmlFor="email" className="mb-1.5 block text-13 text-ink-3">Email</label>
-                <input id="email" type="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }} className="field" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} />
-                {error && <p id="auth-error" role="alert" className="mt-2 text-13 text-bad">{error}</p>}
-                <Button type="submit" variant="primary" className="mt-4 w-full !h-11" disabled={busy !== null || !email.trim()}>{busy === "email" ? "Sending code" : "Continue"}</Button>
-              </form>
-              {!signup && !pending && <button type="button" className="hover-link -ms-2 mt-2 h-11 rounded-full px-2 text-13 text-ink-3" onClick={() => { setStep("recover"); setError(null); }}>Can't sign in?</button>}
-            </div>
-          ) : step === "recover" ? (
-            <form key="recover" className="step-in" onSubmit={(e) => { e.preventDefault(); setRecovering(true); void send(true); }} noValidate>
-              <h1 className="t-title">Can't sign in?</h1>
-              <p className="mt-1.5 text-14 leading-[1.5] text-ink-3">Enter the address you used. We email a sign-in link and a code, and say how that account signs in, even if you first used Google or Apple.</p>
-              <label htmlFor="recover-email" className="mb-1.5 mt-6 block text-13 text-ink-3">Email</label>
-              <input id="recover-email" type="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }} className="field" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} />
-              {error && <p id="auth-error" role="alert" className="mt-2 text-13 text-bad">{error}</p>}
-              <Button type="submit" variant="primary" className="mt-4 w-full !h-11" disabled={busy !== null || !email.trim()}>{busy === "email" ? "Sending" : "Email me a sign-in link"}</Button>
-              <h2 className="mt-6 text-14 font-medium text-ink">Lost access to that email?</h2>
-              <p className="mt-1 text-13 leading-[1.5] text-ink-3">If you linked Google or Apple, go back and continue with it. If not, write to <a href={`mailto:${SUPPORT}`} className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">{SUPPORT}</a> from any address with your receipt, and we move your account to a new one.</p>
-              <button type="button" className="hover-link -ms-2 mt-3 h-11 rounded-full px-2 text-13 text-ink-3" onClick={() => { setStep("start"); setError(null); }}>Back to sign in</button>
-            </form>
-          ) : (
-            <form key="code" className="step-in" onSubmit={(e) => { e.preventDefault(); void verify(); }}>
-              <h1 className="t-title">{linked && !email ? "Sign in to Dusk Bot" : "Check your email"}</h1>
-              <p className="mt-1.5 text-14 leading-[1.5] text-ink-3">{linked && !email ? "Your sign-in link is ready. It works once, for 10 minutes."
-                : recovering ? <>If an account uses <span className="break-all text-ink-2">{email.trim()}</span>, we sent a link and a {length}-digit code. It works for 10 minutes.</>
-                : <>We sent a {length}-digit code to <span className="break-all text-ink-2">{email.trim()}</span>. It works for 10 minutes.</>}</p>
-              <label htmlFor="code" className="mb-1.5 mt-6 block text-13 text-ink-3">Code</label>
-              <input
-                ref={codeRef}
-                id="code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                required
-                value={code}
-                maxLength={length}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/\D/g, "").slice(0, length);
-                  setCode(v); setError(null);
-                  if (v.length === length && busy === null) void verify(v);
-                }}
-                className={cx("field num !h-14 text-center !text-[22px] tracking-[0.5em]")}
-                aria-invalid={Boolean(error)}
-                aria-describedby={error ? "auth-error" : undefined}
-              />
-              {error && <p id="auth-error" role="alert" className="mt-2 text-13 text-bad">{error}</p>}
-              <Button type="submit" variant="primary" className="mt-4 w-full !h-11" disabled={busy !== null || code.length !== length || !attempt}>{busy ? "Checking" : signup ? "Create account" : "Sign in"}</Button>
-              <div className="mt-4 flex items-center justify-between gap-2 text-13">
-                <button type="button" className="hover-link -ms-2 h-11 rounded-full px-2 text-ink-3" onClick={() => { setStep(recovering ? "recover" : "start"); setError(null); }}>Use another email</button>
-                <button type="button" className="hover-link -me-2 h-11 rounded-full px-2 text-ink-3 disabled:opacity-50" disabled={wait > 0 || busy !== null || !email.trim()} onClick={() => void send()}><span className="num">{wait > 0 ? `Send again in ${wait} s` : "Send a new code"}</span></button>
-              </div>
-            </form>
-          )}
+    <SplitFrame
+      poster={poster}
+      mood={mood}
+      scene={scene}
+      card={<SceneCard />}
+      aside={<a href={SITE_URL} className="hover-link -me-2 inline-flex h-11 items-center gap-1.5 rounded-full px-2 text-14 text-ink-3"><ArrowLeft size={15} strokeWidth={1.75} aria-hidden />back to {SITE_NAME}</a>}
+      foot={signup ? <>by continuing you agree to the <a href={siteUrl("/terms")} className={LINK}>terms</a> and <a href={siteUrl("/privacy")} className={LINK}>privacy policy</a>.</> : "your chats and files stay on your own computers."}
+    >
+      {step === "done" ? (
+        <div key="done" className="step-in" role="status">
+          <h1 className="t-title">you're in.</h1>
+          <p className="mt-3 text-16 text-ink-2">taking you to your bots.</p>
         </div>
-        <p className="mt-6 text-center text-13 text-ink-3">
-          {signup ? <>Have an account? <Link to="/signin" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">Sign in</Link></> : <>New to Dusk Bot? <Link to="/signup" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">Create an account</Link></>}
-        </p>
-        <p className="mt-3 text-center text-13 leading-[1.5] text-ink-3">
-          {signup ? <>By continuing you agree to the <a href="https://dusk.bot/terms" className="hover-link underline decoration-line-2 underline-offset-4">Terms</a> and <a href="https://dusk.bot/privacy" className="hover-link underline decoration-line-2 underline-offset-4">Privacy Policy</a>.</> : "Your chats and files stay on your own computers."}
-        </p>
-      </div>
-    </div>
+      ) : step === "start" ? (
+        <div key="start" className="step-in">
+          {intent && <p className="mb-4 flex items-center gap-2"><span className="tag !bg-lime !text-ink">{intent.plan === "starter" ? "plus" : "pro"} plan{intent.interval ? `, ${intent.interval}ly` : ""}</span><a href={siteUrl("/#pricing")} className={cx(LINK, "text-13")}>change</a></p>}
+          <h1 className="t-title">{signup ? "make your account." : "welcome back."}</h1>
+          <p className="mt-3 text-16 text-ink-2">{intent ? "an account first, then we set up your cloud desktop." : signup ? "one account for the app, your phone and your cloud desktop." : "sign in to see your bots, wherever they live."}</p>
+          {note && <div className="mt-4 rounded-[16px] bg-lemon px-4 py-3 text-14 leading-[1.5] text-ink">{note}</div>}
+          {pending && <div className="mt-4 rounded-[16px] bg-lemon px-4 py-3 text-14 leading-[1.5] text-ink">one more step: your provider didn't share an email, so enter the one you want to sign in with.</div>}
+          <div className="mt-7 flex flex-col gap-2">
+            {!pending && OAUTH.filter((p) => !hidden(p)).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => void oauth(p)}
+                disabled={busy !== null || !enabled(p)}
+                className="press hover-outline relative flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-btn text-15 font-medium text-ink disabled:opacity-45"
+              >
+                <span className="grid size-5 place-items-center text-ink"><ProviderMark provider={p} size={18} /></span>
+                {busy === p ? "signing in" : enabled(p) ? `continue with ${PROVIDER_NAME[p].toLowerCase()}` : `${PROVIDER_NAME[p].toLowerCase()}, coming soon`}
+              </button>
+            ))}
+          </div>
+          <div className={cx("t-meta my-5 flex items-center gap-3", pending && "hidden")} aria-hidden><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
+          <form onSubmit={(e) => { e.preventDefault(); setRecovering(false); void send(false); }} noValidate>
+            {emailField("email")}
+            <Button type="submit" variant="primary" className="mt-3 w-full !h-12 !text-15" disabled={busy !== null || !email.trim()}>{busy === "email" ? <Busy>sending the code</Busy> : "continue"}</Button>
+          </form>
+          {slow && <p role="status" className="mt-3 text-13 text-ink-3">still working. this connection is slow.</p>}
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 text-14 text-ink-3">
+            <span>{signup ? <>have an account? <Link to="/signin" className={LINK}>sign in</Link></> : <>new here? <Link to="/signup" className={LINK}>make an account</Link></>}</span>
+            {!signup && !pending && <button type="button" className={cx(QUIET, "-me-2")} onClick={() => { setStep("recover"); setError(null); }}>can't sign in?</button>}
+          </div>
+        </div>
+      ) : step === "recover" ? (
+        <form key="recover" className="step-in" onSubmit={(e) => { e.preventDefault(); setRecovering(true); void send(true); }} noValidate>
+          <h1 className="t-title">can't sign in?</h1>
+          <p className="mb-7 mt-3 text-16 text-ink-2">enter the address you used. we'll email a sign-in link and a code, and say how that account signs in.</p>
+          {emailField("recover-email")}
+          <Button type="submit" variant="primary" className="mt-3 w-full !h-12 !text-15" disabled={busy !== null || !email.trim()}>{busy === "email" ? <Busy>sending</Busy> : "email me a sign-in link"}</Button>
+          <h2 className="mt-7 text-15 font-medium text-ink">lost access to that email?</h2>
+          <p className="mt-1 text-14 leading-[1.55] text-ink-3">if you linked google or apple, go back and continue with it. if not, write to <a href={`mailto:${SUPPORT}`} className={LINK}>{SUPPORT}</a> from any address with your receipt, and we'll move your account to a new one.</p>
+          <button type="button" className={cx(QUIET, "-ms-2 mt-3")} onClick={() => { setStep("start"); setError(null); }}>back to sign in</button>
+        </form>
+      ) : (
+        <form key="code" className="step-in" onSubmit={(e) => { e.preventDefault(); if (attempt) void verify(); else void send(recovering, true); }}>
+          <h1 className="t-title">{linked && !sentTo ? "your link is ready." : "check your email."}</h1>
+          <p className="mt-3 text-16 text-ink-2">{linked && !sentTo ? "it signs you in once, and works for 10 minutes."
+            : recovering ? <>if an account uses <span className="break-all text-ink">{sentTo}</span>, we sent a link and a {length}-digit code. it works for 10 minutes.</>
+            : <>we sent a {length}-digit code to <span className="break-all text-ink">{sentTo}</span>. it works for 10 minutes.</>}</p>
+          <label htmlFor="code" className="mb-2 mt-7 block text-14 text-ink-2">code</label>
+          <CodeBoxes input={codeRef} boxes={boxes} length={length} value={code} invalid={Boolean(error)} disabled={busy !== null} onFocus={setFocused}
+            onChange={(v) => {
+              if (v.length > code.length) scene.current?.react("bounce", v.length - 1);
+              setCode(v); setError(null);
+              if (v.length === length && busy === null && attempt) void verify(v);
+            }} />
+          {error && <p id="auth-error" role="alert" className="mt-2.5 text-14 text-bad">{error}</p>}
+          <Button type="submit" variant="primary" className="mt-3 w-full !h-12 !text-15" disabled={busy !== null || (attempt ? code.length !== length : !sentTo)}>{busy ? <Busy>{attempt ? "checking" : "sending"}</Busy> : !attempt ? "send a new code" : signup ? "make my account" : "sign in"}</Button>
+          {slow && <p role="status" className="mt-3 text-13 text-ink-3">still working. this connection is slow.</p>}
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <button type="button" className={cx(QUIET, "-ms-2")} onClick={leaveCode}>use another email</button>
+            <button type="button" className={cx(QUIET, "-me-2")} disabled={wait > 0 || busy !== null || !sentTo} onClick={() => void send(recovering, true)}><span className="num">{wait > 0 ? `send again in ${wait} s` : "send a new code"}</span></button>
+          </div>
+        </form>
+      )}
+    </SplitFrame>
   );
 }

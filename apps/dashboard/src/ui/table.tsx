@@ -12,11 +12,11 @@ export function Table({ children, label, className }: { children: ReactNode; lab
 }
 
 export function Th({ className, children, ...rest }: ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th scope="col" className={cx("h-10 whitespace-nowrap border-b border-line px-4 text-start text-13 font-normal text-ink-3 first:ps-0", className)} {...rest}>{children}</th>;
+  return <th scope="col" className={cx("t-meta h-10 whitespace-nowrap border-b border-line px-4 text-start font-normal lowercase first:ps-0", className)} {...rest}>{children}</th>;
 }
 
 export function Td({ className, children, ...rest }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cx("h-12 border-b border-line px-4 py-2 align-middle text-ink first:ps-0", className)} {...rest}>{children}</td>;
+  return <td className={cx("h-14 border-b border-line px-4 py-2 align-middle text-ink first:ps-0", className)} {...rest}>{children}</td>;
 }
 
 /** a dash for a value we do not know */
@@ -25,7 +25,7 @@ export const Nil = () => <span className="text-ink-4" aria-label="None">-</span>
 export function SectionHead({ id, children, action, className }: { id?: string; children: ReactNode; action?: ReactNode; className?: string }) {
   return (
     <div className={cx("mb-3 flex min-h-10 flex-wrap items-center justify-between gap-3", className)}>
-      <h2 id={id} className="text-15 font-medium tracking-[-0.01em] text-ink">{children}</h2>
+      <h2 id={id} className="text-16 font-medium tracking-[-0.02em] text-ink">{children}</h2>
       {action}
     </div>
   );
@@ -60,9 +60,9 @@ export function RowMenu({ label, items, align = "end", icon, active }: { label: 
         {icon ?? <MoreHorizontal size={18} strokeWidth={1.5} aria-hidden />}
       </button>
       {open && (
-        <div role="menu" className={cx("menu-in absolute top-full z-30 mt-1 min-w-[200px] rounded-[12px] bg-card p-1", align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left")} style={{ boxShadow: "var(--pop-shadow)" }}>
+        <div role="menu" className={cx("pop menu-in absolute top-full z-30 mt-1 min-w-[200px] rounded-[16px] bg-pop p-1.5", align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left")} style={{ boxShadow: "var(--pop-shadow)" }}>
           {items.map((item) => (
-            <button key={item.label} type="button" role={item.checked === undefined ? "menuitem" : "menuitemradio"} aria-checked={item.checked} disabled={item.disabled} onClick={() => { setOpen(false); item.onSelect(); }} className={cx("hover-ghost flex h-9 w-full items-center justify-between gap-3 rounded-[8px] px-2.5 text-start text-13 outline-none focus-visible:bg-card-2 disabled:opacity-45", item.danger ? "text-bad" : "text-ink-2")}>
+            <button key={item.label} type="button" role={item.checked === undefined ? "menuitem" : "menuitemradio"} aria-checked={item.checked} disabled={item.disabled} onClick={() => { setOpen(false); item.onSelect(); }} className={cx("hover-ghost flex h-9 w-full items-center justify-between gap-3 rounded-[10px] px-2.5 text-start text-13 outline-none focus-visible:bg-card-2 disabled:opacity-45", item.danger ? "text-bad" : "text-ink-2")}>
               <span className="truncate">{item.label}</span>
               {item.checked && <Check size={15} strokeWidth={1.75} className="shrink-0 text-ink-2" aria-hidden />}
             </button>
@@ -75,5 +75,5 @@ export function RowMenu({ label, items, align = "end", icon, active }: { label: 
 
 /** a small status dot after a name; the words go to screen readers and, when it needs attention, on screen too */
 export function NameDot({ tone, label }: { tone: "good" | "warn" | "quiet"; label: string }) {
-  return <span className={cx("inline-block size-[7px] shrink-0 rounded-full", tone === "good" ? "bg-good" : tone === "warn" ? "bg-warn" : "bg-ink-4")} role="img" aria-label={label} title={label} />;
+  return <span className={cx("inline-block size-[7px] shrink-0 rounded-[2px]", tone === "good" ? "bg-good" : tone === "warn" ? "bg-warn" : "bg-ink-4")} role="img" aria-label={label} title={label} />;
 }

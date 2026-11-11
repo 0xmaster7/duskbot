@@ -9,13 +9,13 @@ const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 // the dashboard service (apps/dashboard/server/main.ts); `pnpm dashboard:fixture` starts one with a fake account server
 const service = process.env.DUSK_DASHBOARD_SERVICE || "http://127.0.0.1:7480";
 
-// the hosted account dashboard page, sharing the app's mascots through the @ alias
+// the hosted account dashboard page; the @ alias reaches the app's connector catalogue
 export default defineConfig({
   root: here("."),
   publicDir: false,
   plugins: [react(), tailwindcss(), licenseFiles(here("../.."))],
   resolve: { alias: { "@": here("../../src") } },
-  define: { __APP_VERSION__: JSON.stringify("dashboard") },
+  define: { __APP_VERSION__: JSON.stringify("dashboard"), __DUSK_SITE_URL__: JSON.stringify(process.env.DUSK_SITE_URL || "https://dusk.bot") },
   build: { outDir: here("./dist"), emptyOutDir: true },
   server: {
     host: "127.0.0.1",

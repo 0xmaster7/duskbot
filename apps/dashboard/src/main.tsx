@@ -4,6 +4,7 @@ import { CloudDataProvider, useCloud } from "./data/cloud";
 import { SessionProvider, useSession } from "./data/session";
 import { navigate, useLocation } from "./lib/router";
 import { initTheme } from "./lib/theme";
+import { planIntent, planQuery } from "./lib/site";
 import { reportPageErrors } from "./lib/page-errors";
 import { Button, ButtonLink } from "./ui/kit";
 import { Shell } from "./ui/Shell";
@@ -58,10 +59,12 @@ stashClaim();
 stashDeleteToken();
 
 const TITLES: Record<string, string> = {
-  "/": "Home", "/cloud": "Cloud desktop", "/workspaces": "Workspaces", "/bots": "Bots", "/connectors": "Connectors",
-  "/billing": "Plans & billing", "/usage": "Usage", "/account": "Account", "/claim": "Connect a workspace", "/welcome": "Welcome",
-  "/signin": "Sign in", "/sign-in": "Sign in", "/signup": "Create your account", "/cloud/desktop": "Approve sign-in",
+  "/": "home", "/cloud": "cloud desktop", "/workspaces": "workspaces", "/bots": "bots", "/connectors": "connectors",
+  "/billing": "plans and billing", "/usage": "usage", "/account": "account", "/claim": "connect a workspace", "/welcome": "welcome",
+  "/signin": "sign in", "/sign-in": "sign in", "/signup": "make your account", "/cloud/desktop": "approve sign-in",
 };
+
+const SIGN_IN_PATHS = ["/signin", "/sign-in", "/signup"];
 
 // older links keep working
 const MOVED: Record<string, string> = { "/settings": "/account", "/devices": "/account#devices", "/connect": "/workspaces#add", "/signin": "/", "/sign-in": "/", "/signup": "/" };
@@ -83,29 +86,36 @@ function route(path: string): ReactNode {
   if (path === "/cloud/desktop") return <DeviceApprovalPage />;
   const deleting = deletePageId(path);
   if (deleting !== null) return <DeleteDataPage id={deleting} />;
-  return <SkyEmpty title="Nothing lives here" action={<ButtonLink to="/" variant="primary">Go home</ButtonLink>}>There is no page at {path}. The sidebar has every page.</SkyEmpty>;
+  return <SkyEmpty art="cat" title="nothing lives here." action={<ButtonLink to="/" variant="primary">go home</ButtonLink>}>there's no page at {path}. just gary.</SkyEmpty>;
 }
 
 function SignedIn() {
   const { path, query } = useLocation();
   useEffect(prefetchPages, []);
-  const { account } = useCloud();
+  const { account, error } = useCloud();
   const next = query.get("next");
-  const moved = MOVED[path] && (path === "/sign-in" && next?.startsWith("/") && !next.startsWith("//") ? next : MOVED[path]);
+  const intent = planIntent(query);
+  const welcome = path === "/welcome";
+  // a plan picked on the site: someone signed in already goes to the plan step, or straight to plans once onboarded
+  const moved = MOVED[path]
+    ? (intent && SIGN_IN_PATHS.includes(path) ? `/welcome?${planQuery(intent)}` : path === "/sign-in" && next?.startsWith("/") && !next.startsWith("//") ? next : MOVED[path])
+    : welcome && intent && account?.profile.onboarded ? `/billing?${planQuery(intent)}` : null;
   useEffect(() => { if (moved) navigate(moved, { replace: true }); }, [moved]);
   if (moved) return null;
-  const onboard = path === "/welcome" || (account !== null && !account.profile.onboarded && path !== "/claim" && path !== "/cloud/desktop" && deletePageId(path) === null);
-  if (onboard) return <Suspense fallback={<div className="min-h-[100dvh] bg-bg" aria-busy="true" />}><Onboarding /></Suspense>;
+  const blank = <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
+  if (welcome && intent && account === null && !error) return blank;
+  const onboard = welcome || (account !== null && !account.profile.onboarded && path !== "/claim" && path !== "/cloud/desktop" && deletePageId(path) === null);
+  if (onboard) return <Suspense fallback={blank}><Onboarding /></Suspense>;
   return <Shell><Suspense fallback={<LoadingPage />}>{route(path)}</Suspense></Shell>;
 }
 
 function App() {
   const { path } = useLocation();
   const { account, accountError, retryAccount } = useSession();
-  useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "Bot" : path.startsWith("/workspaces/") ? "Workspace" : deletePageId(path) !== null ? "Delete cloud data" : "Dusk Bot")} · Dusk Bot`; }, [path]);
-  if (accountError) return <main className="flex min-h-[100dvh] items-center justify-center bg-bg px-6"><SkyEmpty title="Can't reach your Dusk Bot account right now." action={<Button variant="primary" onClick={retryAccount}>Retry</Button>} className="w-full max-w-[520px]" /></main>;
+  useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "bot" : path.startsWith("/workspaces/") ? "workspace" : deletePageId(path) !== null ? "delete cloud data" : "account")} · dusk bot`; }, [path]);
+  if (accountError) return <main className="flex min-h-[100dvh] items-center justify-center bg-bg px-6"><SkyEmpty art="cat" title="can't reach your account right now." action={<Button variant="primary" onClick={retryAccount}>try again</Button>} className="w-full max-w-[520px]">check your connection. your bots are fine, they live on your own computers.</SkyEmpty></main>;
   if (account === undefined) return <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
-  if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} note={path === "/claim" ? "Sign in to connect the workspace you opened this from." : path === "/cloud/desktop" ? "Sign in to finish signing in the desktop app." : deleteSignInNote(path)} />;
+  if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} note={path === "/claim" ? "sign in to connect the workspace you opened this from." : path === "/cloud/desktop" ? "sign in to finish signing in the desktop app." : deleteSignInNote(path)} />;
   return <SignedIn />;
 }
 

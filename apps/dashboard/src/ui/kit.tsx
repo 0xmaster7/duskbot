@@ -6,15 +6,15 @@ import { Link } from "../lib/router";
 export const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 
 export function Card({ children, className, as: Tag = "section", style, ...rest }: { children: ReactNode; className?: string; as?: "section" | "div" | "article"; style?: CSSProperties; "aria-label"?: string; "aria-labelledby"?: string }) {
-  return <Tag className={cx("rounded-card bg-card p-6 max-sm:p-5", className)} style={style} {...rest}>{children}</Tag>;
+  return <Tag className={cx("surface rounded-card bg-card p-6 max-sm:p-5", className)} style={style} {...rest}>{children}</Tag>;
 }
 
 type Variant = "primary" | "outline" | "ghost" | "danger";
 const VARIANT: Record<Variant, string> = {
   primary: "bg-primary text-primary-ink hover-primary",
-  outline: "bg-card-2 text-ink hover-outline",
+  outline: "bg-btn text-ink hover-outline",
   ghost: "text-ink-2 hover-ghost",
-  danger: "bg-card-2 text-bad hover-outline",
+  danger: "bg-btn text-bad hover-outline",
 };
 
 export function Button({ variant = "outline", size = "md", className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" }) {
@@ -23,7 +23,7 @@ export function Button({ variant = "outline", size = "md", className, children, 
       type="button"
       className={cx(
         "press inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-medium disabled:opacity-45",
-        size === "sm" ? "h-8 px-3.5 text-13" : "h-9 px-4 text-14 max-sm:h-11",
+        size === "sm" ? "h-9 px-4 text-13" : "h-11 px-5 text-14",
         VARIANT[variant],
         className,
       )}
@@ -37,7 +37,7 @@ export function Button({ variant = "outline", size = "md", className, children, 
 export function ButtonLink({ to, variant = "outline", size = "md", className, children, external }: { to: string; variant?: Variant; size?: "sm" | "md"; className?: string; children: ReactNode; external?: boolean }) {
   const cls = cx(
     "press inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-medium",
-    size === "sm" ? "h-8 px-3.5 text-13" : "h-9 px-4 text-14 max-sm:h-11",
+    size === "sm" ? "h-9 px-4 text-13" : "h-11 px-5 text-14",
     VARIANT[variant],
     className,
   );
@@ -49,7 +49,7 @@ export function Bar({ value, tone = "ink", className, label }: { value: number; 
   const v = Math.max(0, Math.min(100, value));
   const color = { ink: "bg-ink", accent: "bg-accent", warn: "bg-warn", bad: "bg-bad" }[tone];
   return (
-    <div className={cx("h-1 overflow-hidden rounded-full bg-track", className)} role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(v)} aria-label={label}>
+    <div className={cx("h-1.5 overflow-hidden rounded-full bg-track", className)} role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(v)} aria-label={label}>
       <div className={cx("bar-fill h-full w-full rounded-full", color)} style={{ transform: `scaleX(${v / 100})` }} />
     </div>
   );
@@ -58,14 +58,14 @@ export function Bar({ value, tone = "ink", className, label }: { value: number; 
 /** the one badge the dashboard shows: "Current" */
 export function Badge({ children, tone = "plain", className }: { children: ReactNode; tone?: "plain" | "good" | "warn" | "bad" | "accent"; className?: string }) {
   const color = { plain: "text-ink-2", good: "text-good", warn: "text-warn", bad: "text-bad", accent: "text-accent-ink" }[tone];
-  return <span className={cx("inline-flex h-[22px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-card-2 px-2.5 text-12", color, className)}>{children}</span>;
+  return <span className={cx("tag shrink-0", color, className)}>{children}</span>;
 }
 
 const FRESH: Record<Freshness, { tone: string; label: (t: number | null, now: number) => string }> = {
-  live: { tone: "text-good", label: () => "Live" },
-  recent: { tone: "text-warn", label: (t, now) => `Updated ${ago(t, now)}` },
-  offline: { tone: "text-ink-4", label: (t, now) => `Offline since ${ago(t, now)}` },
-  waiting: { tone: "text-ink-4", label: () => "Waiting for its first report" },
+  live: { tone: "text-good", label: () => "live" },
+  recent: { tone: "text-warn", label: (t, now) => `updated ${ago(t, now)}` },
+  offline: { tone: "text-ink-4", label: (t, now) => `offline since ${ago(t, now)}` },
+  waiting: { tone: "text-ink-4", label: () => "waiting for its first report" },
 };
 
 export function FreshnessTag({ freshness, at, now, className }: { freshness: Freshness; at: number | null; now: number; className?: string }) {
@@ -81,7 +81,7 @@ export function FreshnessTag({ freshness, at, now, className }: { freshness: Fre
 export function SectionTitle({ children, action, id }: { children: ReactNode; action?: ReactNode; id?: string }) {
   return (
     <div className="mb-4 flex min-h-8 items-center justify-between gap-3">
-      <h2 id={id} className="text-15 font-medium tracking-[-0.01em] text-ink">{children}</h2>
+      <h2 id={id} className="text-16 font-medium tracking-[-0.02em] text-ink">{children}</h2>
       {action}
     </div>
   );
@@ -126,7 +126,7 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cx("press-soft h-7 rounded-full px-3 text-13", value === o.value ? "bg-track text-ink" : "text-ink-3 hover-ghost")}
+          className={cx("press-soft h-8 rounded-full px-3.5 text-13", value === o.value ? "bg-pop text-ink" : "text-ink-3 hover-link")}
         >
           {o.label}
         </button>

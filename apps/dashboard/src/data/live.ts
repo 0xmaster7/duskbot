@@ -17,8 +17,8 @@ const bundleBlurbs = {
 export function catalogFromWire(catalog: Catalog): PlanCatalog {
   const pricing = catalog.dedicated;
   const licenses: PlanCatalog["licenses"] = [
-    { id: "personal", name: "Personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "Personal and non-commercial use" },
-    ...catalog.licenses.map((license) => ({ id: licenseIds[license.kind], name: license.label.replace(/ license$/i, ""), monthly: license.monthlyCents / 100, includedMembers: license.includedMembers, perExtraMember: (license.extraMemberCents ?? 0) / 100, maxMembers: license.maxMembers, work: true, blurb: "" })),
+    { id: "personal", name: "personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "Personal and non-commercial use" },
+    ...catalog.licenses.map((license) => ({ id: licenseIds[license.kind], name: license.label.replace(/ license$/i, "").toLowerCase(), monthly: license.monthlyCents / 100, includedMembers: license.includedMembers, perExtraMember: (license.extraMemberCents ?? 0) / 100, maxMembers: license.maxMembers, work: true, blurb: "" })),
   ];
   return {
     licenses,
@@ -26,12 +26,12 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
     desktops: catalog.desktops.map((desktop) => {
       const machine = desktop.machine;
       const cents = desktop.monthlyCents ?? pricing.baseCents + machine.vcpu * pricing.perVcpuCents + machine.ramGb * pricing.perGbRamCents + Math.max(0, machine.diskGb - pricing.includedDiskGb) / 10 * pricing.per10GbDiskCents;
-      return { id: desktopIds[desktop.kind], name: desktop.label, monthly: Math.round(cents) / 100, ...machine, placement: desktop.placement === "pool" ? "shared" : "dedicated", botComputers: desktop.botComputers, priority: desktop.priority, sizable: desktop.kind === "dedicated", blurb: "" };
+      return { id: desktopIds[desktop.kind], name: desktop.label.toLowerCase(), monthly: Math.round(cents) / 100, ...machine, placement: desktop.placement === "pool" ? "shared" : "dedicated", botComputers: desktop.botComputers, priority: desktop.priority, sizable: desktop.kind === "dedicated", blurb: "" };
     }),
     custom: { base: pricing.baseCents / 100, perVcpu: pricing.perVcpuCents / 100, perGbRam: pricing.perGbRamCents / 100, per10GbDisk: pricing.per10GbDiskCents / 100, includedDiskGb: pricing.includedDiskGb, vcpu: pricing.vcpu, ramGb: pricing.ramGb, diskGb: pricing.diskGb },
     bundles: catalog.bundles.map((bundle) => {
       const license = licenseIds[bundle.cart.license.kind];
-      return { id: bundle.id, name: bundle.label, monthly: bundle.monthlyCents / 100, license, members: bundle.cart.license.members ?? licenses.find((item) => item.id === license)!.includedMembers, desktop: desktopIds[bundle.cart.desktop.kind], blurb: bundleBlurbs[bundle.id], features: bundle.highlights, recommended: bundle.id === "pro" };
+      return { id: bundle.id, name: bundle.label.toLowerCase(), monthly: bundle.monthlyCents / 100, license, members: bundle.cart.license.members ?? licenses.find((item) => item.id === license)!.includedMembers, desktop: desktopIds[bundle.cart.desktop.kind], blurb: bundleBlurbs[bundle.id], features: bundle.highlights, recommended: bundle.id === "pro" };
     }),
     regions: [...catalog.regions.filter((region) => region.id === catalog.defaultRegion), ...catalog.regions.filter((region) => region.id !== catalog.defaultRegion)].map((region) => ({ id: region.id, name: region.country, city: region.label })),
     ...(catalog.poolRegions ? { poolRegions: catalog.poolRegions } : {}),
