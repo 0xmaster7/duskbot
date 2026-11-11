@@ -26,7 +26,9 @@ const origin = (option("--origin") ?? "https://preview.dusk.bot").replace(/\/$/,
 const out = resolve(option("--out") ?? "preview-live.json"), shots = resolve(option("--shots") ?? "preview-live-shots");
 const apiKey = process.env.INSTABOX_API_KEY, opsToken = process.env.DUSK_OPS_TOKEN;
 if (!apiKey || !opsToken) { console.error("INSTABOX_API_KEY and DUSK_OPS_TOKEN are required."); process.exit(2); }
-const { chromium } = await import(process.env.PLAYWRIGHT_CORE ?? "playwright-core") as typeof import("playwright-core");
+interface Cookie { name: string; value: string; httpOnly: boolean; secure: boolean; sameSite: string }
+// playwright-core is not a dependency of this repo: PLAYWRIGHT_CORE names an install of it
+const { chromium } = await import(process.env.PLAYWRIGHT_CORE ?? "playwright-core") as { chromium: { launch(options: object): Promise<any> } };
 const scope = process.env.DUSK_MANAGED_SCOPE ?? createHash("sha256").update(new URL(origin).origin).digest("hex").slice(0, 16);
 const ibx = createInstaboxProvider({ apiKey, scope });
 mkdirSync(shots, { recursive: true });
@@ -94,8 +96,7 @@ const browser = await chromium.launch({ headless: true, args: ["--use-mock-keych
 const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
 const page = await context.newPage();
 const shot = (name: string) => page.screenshot({ path: join(shots, `${name}.png`) });
-const bodyText = async () => (await page.locator("body").innerText()).replace(/\s+/g, " ");
-const csrf = async () => (await context.cookies(origin)).find(c => c.name === "omb_csrf")?.value ?? "";
+const csrf = async () => ((await context.cookies(origin)) as Cookie[]).find(c => c.name === "omb_csrf")?.value ?? "";
 async function web(method: string, path: string, body?: unknown) {
   const r = await context.request.fetch(`${origin}${path}`, { method, headers: { origin, "x-omb-csrf": await csrf(), ...(body === undefined ? {} : { "content-type": "application/json" }) }, ...(body === undefined ? {} : { data: JSON.stringify(body) }) });
   const text = await r.text(); let data: any = text; try { data = JSON.parse(text); } catch {}
@@ -128,7 +129,7 @@ try {
     results.codeMailMs = got.ms;
     await page.locator("input:visible").first().fill(got.code);
     await page.waitForURL(/\/app\/welcome/, { timeout: 20_000 });
-    const cookies = await context.cookies(origin), session = cookies.find(c => c.name === "omb_dash");
+    const cookies = await context.cookies(origin) as Cookie[], session = cookies.find(c => c.name === "omb_dash");
     if (!session?.httpOnly || !session.secure || session.sameSite !== "Lax") throw new Error("session cookie flags");
     await shot("03-welcome");
   }, true);
@@ -242,10 +243,15 @@ try {
     const r = await context.request.get(`${origin}/v1/account`);
     if (r.status() !== 401) throw new Error(`after delete /v1/account ${r.status()}`);
   });
-  await step("teardown: the provider holds no machine of this deployment", async () => {
+  // a deleted account's cloud keeps its data 45 days after its plan ended; the operator ends that early for a test account
+  await step("teardown: the operator deletes the test cloud now, and the provider holds no machine of this deployment", async () => {
+    if (cloudId) {
+      const r = await fetch(`${origin}/v1/billing/ops/clouds/${cloudId}/delete`, { method: "POST", headers: { authorization: `Bearer ${opsToken}`, "content-type": "application/json" }, body: JSON.stringify({ reason: "test_account" }) });
+      if (!r.ok) throw new Error(`operator delete ${r.status}`);
+    }
     const started = Date.now();
     while (Date.now() - started < 15 * 60_000) {
-      const left = (await ibx.inventory()).filter(m => m.state !== "deleted");
+      const left = await ibx.inventory();
       if (!left.length) { results.teardownMs = Date.now() - started; return; }
       await sleep(10_000);
     }

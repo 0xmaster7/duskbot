@@ -772,6 +772,14 @@ export function createLifecycle(deps: LifecycleDeps) {
       notice(c, "delete_scheduled", request.executeAfter);
       return request.executeAfter;
     },
+    operatorDelete(c: StoredCloud, reason: string) {
+      const b = state(c);
+      if (c.status === "destroyed" || c.status === "destroying") throw new ManagedCloudError(409, "unavailable");
+      if (deps.entitlement(c).active) throw new ManagedCloudError(409, "billing_active");
+      b.deleteRequest = { requestedAt: now(), tokenHash: null, tokenExpiresAt: null, confirmedAt: now(), executeAfter: now(), cancelledAt: null };
+      log(c, "delete_confirmed", "operator", reason);
+      c.nextAttemptAt = 0; deps.save(c);
+    },
     cancelDelete(c: StoredCloud) {
       const b = state(c);
       if (!b.deleteRequest || b.deleteRequest.cancelledAt !== null || b.deletion || c.status === "destroying" || c.status === "destroyed") throw new ManagedCloudError(409, "unavailable");
