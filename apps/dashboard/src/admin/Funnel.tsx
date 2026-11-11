@@ -56,7 +56,7 @@ export function FunnelPage() {
                     <span className="font-mono text-[26px] font-medium leading-8 tracking-[-0.045em] text-ink num">{n(counts[i] ?? 0)}</span>
                     <span className="mt-0.5 line-clamp-2 min-h-8 text-12 leading-4 text-ink-3">{step.label}</span>
                     <span className="mt-3 flex h-24 items-end overflow-hidden rounded-[10px] bg-track" aria-hidden>
-                      <span className="block w-full rounded-[10px] bg-accent" style={{ height: `${Math.max(2, share * 100)}%`, opacity: 0.35 + 0.65 * share }} />
+                      <span className="block w-full rounded-[10px] bg-accent" style={{ height: `${Math.max(3, Math.sqrt(share) * 100)}%`, opacity: 0.4 + 0.6 * Math.sqrt(share) }} />
                     </span>
                     <span className="mt-2 font-mono text-[11.5px] text-ink-4 num">{percent(share)} of start</span>
                   </div>

@@ -94,6 +94,7 @@ function Band({ data, range }: { data: WebAnswer | null; range: Range }) {
   const mood = moodOf(data);
   return (
     <div className="relative mb-5 overflow-hidden rounded-[24px] bg-sky" style={{ backgroundImage: `url(${skyBand})`, backgroundSize: "cover", imageRendering: "pixelated" }}>
+      <div className="absolute inset-0 bg-gradient-to-r from-white/55 via-white/25 to-transparent" aria-hidden />
       <div className="absolute inset-x-0 bottom-0 h-5" style={{ backgroundImage: `url(${meadowBand})`, backgroundSize: "auto 100%", backgroundRepeat: "repeat-x", imageRendering: "pixelated" }} aria-hidden />
       <div className="relative flex min-h-[104px] items-center justify-between gap-4 px-6 pb-7 pt-5 max-sm:px-4">
         <div className="min-w-0 text-[#14243a]">
@@ -118,7 +119,7 @@ function Kpi({ label, value, now, before, invert, toggle, live, icon }: { label:
         </label>
       ) : <div className="flex items-center gap-2 text-13 text-ink-3">{label}{live !== undefined && <span className="live-dot text-good" data-live={live} aria-hidden />}<span className="ms-auto text-ink-4" aria-hidden>{icon}</span></div>}
       <div className="mt-1 truncate font-mono text-[28px] font-medium leading-9 tracking-[-0.045em] text-ink num">{value}</div>
-      <div className="h-4 truncate">{now !== undefined && <Delta now={now ?? null} before={before ?? null} invert={invert} />}</div>
+      <div className="mt-0.5 h-5 truncate leading-5">{now !== undefined && <Delta now={now ?? null} before={before ?? null} invert={invert} />}</div>
     </div>
   );
 }
@@ -277,7 +278,7 @@ export function OverviewPage() {
   return (
     <>
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
           <h1 className="sr-only">overview</h1>
           <SitePicker value={surface} onChange={(v) => setSel((s) => ({ ...s, surface: v }))} counts={data?.surfaces} />
           <RangePicker value={range} onChange={(r) => setSel((s) => ({ ...s, range: r }))} />

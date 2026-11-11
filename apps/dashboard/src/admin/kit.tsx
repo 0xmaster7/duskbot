@@ -54,7 +54,8 @@ export function Delta({ now, before, invert = false }: { now: number | null; bef
   if (before === 0) return <span className="text-12 text-ink-4">{now === 0 ? "same as before" : "new"}</span>;
   const change = (now - before) / before, up = change > 0, good = invert ? !up : up;
   if (Math.abs(change) < 0.005) return <span className="text-12 text-ink-4">same as before</span>;
-  return <span className={cx("text-12 num", good ? "text-good" : "text-bad")}>{up ? "up" : "down"} {Math.round(Math.abs(change) * 100)}%</span>;
+  const size = Math.round(Math.abs(change) * 100);
+  return <span className={cx("font-mono text-12 num", good ? "text-good" : "text-bad")} aria-label={`${up ? "up" : "down"} ${size}% on the window before`}>{size > 999 ? "999+" : size}% {up ? "↑" : "↓"}</span>;
 }
 
 export const percent = (value: number | null) => value === null ? "-" : `${Math.round(value * 1000) / 10}%`;
@@ -87,8 +88,19 @@ export const where = (country: string | null | undefined, city?: string | null) 
 export interface Note { id: string; at: number; text: string; by: string; createdAt: number }
 export interface SeriesData { size: number; starts: number[]; visitors: number[]; signups: number[]; paid: number[]; waitlist: number[] }
 
-const H = 240, PAD = { top: 16, right: 44, bottom: 28, left: 40 };
-function niceMax(value: number) { if (value <= 4) return 4; const p = 10 ** Math.floor(Math.log10(value)); const m = value / p; return (m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }
+const H = 300, PAD = { top: 16, right: 44, bottom: 28, left: 40 };
+function niceMax(value: number) { if (value <= 4) return 4; const p = 10 ** Math.floor(Math.log10(value)); const m = value / p; return ([1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((step) => m <= step) ?? 10) * p; }
+/** a smooth line through the points (Catmull-Rom as cubic Béziers), clamped so it never dips below the axis */
+function smooth(points: Array<[number, number]>, floor: number) {
+  if (points.length < 3) return points.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)},${py.toFixed(1)}`).join("");
+  let d = `M${points[0]![0].toFixed(1)},${points[0]![1].toFixed(1)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] ?? points[i]!, p1 = points[i]!, p2 = points[i + 1]!, p3 = points[i + 2] ?? p2;
+    const c1y = Math.min(floor, p1[1] + (p2[1] - p0[1]) / 6), c2y = Math.min(floor, p2[1] - (p3[1] - p1[1]) / 6);
+    d += `C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)},${c1y.toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
 
 /** visitors as a line on the left axis, signups and payments as bars on the right, notes pinned along the bottom */
 export interface Mark { at: number; kind: "signup" | "paid"; seed: string; email: string | null; customer?: boolean }
@@ -111,7 +123,7 @@ export function DualChart({ data, notes, show, onNote, marks = [] }: { data: Ser
   const x = (i: number) => PAD.left + step * (i + 0.5);
   const yV = (v: number) => PAD.top + (H - PAD.top - PAD.bottom) * (1 - v / vMax);
   const yB = (v: number) => (H - PAD.top - PAD.bottom) * (v / bMax);
-  const line = data.visitors.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${yV(v).toFixed(1)}`).join("");
+  const line = smooth(data.visitors.map((v, i) => [x(i), yV(v)]), H - PAD.bottom);
   const area = `${line}L${x(count - 1).toFixed(1)},${H - PAD.bottom}L${x(0).toFixed(1)},${H - PAD.bottom}Z`;
   const hourly = data.size < DAY;
   const label = (t: number) => hourly ? new Date(t).toLocaleTimeString("en-US", { hour: "numeric" }).toLowerCase().replace(" ", "") : new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toLowerCase();
@@ -140,7 +152,7 @@ export function DualChart({ data, notes, show, onNote, marks = [] }: { data: Ser
         {at !== null && show.visitors && <circle cx={x(at)} cy={yV(data.visitors[at]!)} r={4} fill="var(--bg)" stroke="var(--accent)" strokeWidth={2} />}
         {ticks.map((i) => <text key={i} x={x(i)} y={H - 8} textAnchor="middle" className="fill-ink-4 font-mono text-[11px]">{label(data.starts[i]!)}</text>)}
       </svg>
-      {(show.signups || show.paid) && <MarkAvatars marks={marks.filter((mark) => mark.kind === "paid" ? show.paid : show.signups)} index={noteIndex} x={x} top={(i) => H - PAD.bottom - yB((show.signups ? data.signups[i]! : 0) + (show.paid ? data.paid[i]! : 0))} count={count} />}
+      {(show.signups || show.paid) && <MarkAvatars marks={marks.filter((mark) => mark.kind === "paid" ? show.paid : show.signups)} index={noteIndex} x={x} top={(i) => Math.max(PAD.top + 52, H - PAD.bottom - yB((show.signups ? data.signups[i]! : 0) + (show.paid ? data.paid[i]! : 0)))} count={count} />}
       <div className="absolute inset-x-0" style={{ top: H - PAD.bottom + 4 }} aria-label="chart notes">
         {visibleNotes.map((note) => (
           <button key={note.id} type="button" onClick={() => onNote(note)} title={note.text} aria-label={`note: ${note.text}. edit`}
