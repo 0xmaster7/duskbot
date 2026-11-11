@@ -1,6 +1,6 @@
-/* the waitlist: the x banner come alive. waitlist.js draws its sky (the logo's bands with the middle scatter left out,
-   so the words sit on clean blue), the lime meadow with pip's hill, flecks and flowers; clouds drift, a few stars
-   twinkle and bots stroll the meadow. the words are one centred column. the bands below are the picture without script */
+/* the waitlist: the x banner's world. waitlist.js draws its sky (the logo's bands with the middle scatter left out, so
+   the words sit on clean blue), the lime meadow with pip's hill, flecks and flowers. the words are one centred column.
+   the bands below are the picture without script */
 .p-waitlist { --sky0: #06bafd; --sky1: #3cd0fd; --sky4: #90e4fc; --sky5: #c2ecfc; --lilac: #d0cefb; --lime: #c9f63f;
   --u-lemon: #fff3a0; --u-pink: #ffc4dd; --u-sky: #c2ecfc; --u-lilac: #d0cefb; --paper: #fdfdfd;
   --ground: clamp(110px, 16vh, 160px);
@@ -61,53 +61,33 @@
 .wl-link { margin-top: 18px; padding: 10px 4px; color: #fff; font-size: 16px; font-weight: 550; text-decoration-color: rgba(255, 255, 255, 0.6); }
 .wl-link:hover { text-decoration-color: #fff; }
 
-/* the banner's cast: three friends up top, the two chat bubbles, pip on its hill. the hill box is what the canvas
-   draws the hill under */
+/* pip on its hill and the banner's two chat bubbles (wide screens only); the hill box is what the canvas draws the
+   hill under */
 .wl-art { position: absolute; z-index: 3; inset: 0 0 var(--ground); pointer-events: none; }
-.wl-art .bot, .wl-w .bot { width: 100%; height: auto; pointer-events: auto; }
-.wl-top { position: absolute; width: 52px; }
-.wl-top.t1 { right: calc(13% + 104px); top: 13%; } .wl-top.t2 { right: calc(13% + 30px); top: 9%; } .wl-top.t3 { right: 7%; top: 14%; }
 .wl-hill { position: absolute; right: 8%; bottom: 0; width: 280px; height: 40px; }
 .wl-pip { position: absolute; left: 50%; bottom: 100%; width: 92px; translate: -50% 10%; }
+.wl-pip .bot { width: 100%; height: auto; pointer-events: auto; }
 .wl-bub { position: absolute; margin: 0; padding: 14px 24px 22px; background: var(--paper); clip-path: var(--step); box-shadow: inset 0 -10px 0 var(--u); color: #212121; font-size: 17px; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap; text-align: left; }
 .wl-bub span { display: block; margin-bottom: 4px; font: 500 12.5px/1 var(--mono); color: rgba(33, 33, 33, 0.55); }
 .wl-bub.b-you { --u: var(--u-lemon); left: max(36px, calc(50% - 680px)); top: 34%; }
 .wl-bub.b-pip { --u: var(--u-pink); right: max(40px, calc(50% - 620px)); bottom: calc(40px + 92px + 44px); }
 /* each bubble's stepped tail is drawn on the canvas, under its bottom edge */
 
-/* the bots out walking in the meadow, moved by waitlist.js */
-.wl-walk { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; height: var(--ground); pointer-events: none; }
-.wl-w { position: absolute; left: 0; width: 44px; will-change: transform; }
-.wl-w:nth-child(1) { top: 22%; } .wl-w:nth-child(2) { top: 44%; width: 40px; } .wl-w:nth-child(3) { top: 30%; width: 38px; }
-.wl-w:not(.on) { visibility: hidden; }
-.wl-w.left .bot { scale: -1 1; }
-
-/* the bubbles need room on both sides of the column */
 @media (min-width: 1360px) { .wl-hill { right: max(0px, calc(50% - 760px)); } }
 @media (max-width: 1359px) { .wl-bub { display: none; } }
 @media (max-width: 900px) {
-  .wl-top { width: 40px; }
-  .wl-top.t1 { right: calc(8% + 84px); top: 5%; } .wl-top.t2 { right: calc(8% + 30px); top: 3%; } .wl-top.t3 { right: 4%; top: 6%; }
   .wl-hill { right: 6%; width: 200px; height: 30px; }
   .wl-pip { width: 70px; }
 }
 @media (max-width: 560px) {
   .p-waitlist { --ground: 120px; }
   .wl-col { padding-top: 64px; }
-  .wl-top { width: 32px; }
-  .wl-top.t1 { right: auto; left: 7%; top: 3%; } .wl-top.t2 { right: 20%; top: 2%; } .wl-top.t3 { right: 6%; top: 4%; }
-  .wl-works { gap: 10px; margin-top: 20px; }
-  .wl-works > span { flex-basis: 100%; font-size: 16px; }
-  .wl-works ul { gap: 6px; }
-  .wl-works li { height: 34px; padding: 0 9px 4px 8px; gap: 6px; font-size: 14px; }
-  .wl-works .logo { width: 16px; height: 16px; }
   .wl-form { margin-top: 26px; }
   .wl-row { flex-direction: column; }
   .wl-row input { height: 50px; text-align: center; }
   .wl-row button { width: 100%; }
   .wl-hill { right: 4%; width: 150px; height: 24px; }
   .wl-pip { width: 56px; }
-  .wl-w { width: 34px; } .wl-w:nth-child(2) { width: 30px; } .wl-w:nth-child(3) { width: 30px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .wl-col > *, .wl-ticket, .wl-msg { animation: none; }
