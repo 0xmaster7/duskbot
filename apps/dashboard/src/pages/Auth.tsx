@@ -142,6 +142,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const live = useRef({ step, attempt, recovering });
   live.current = { step, attempt, recovering };
   const signup = mode === "signup";
+  const carry = intent ? `?${planQuery(intent)}` : "";
 
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   useEffect(() => { api.authProviders().then((r) => setProviders(r.providers), () => setProviders([])); }, []);
@@ -280,7 +281,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
           </form>
           {slow && <p role="status" className="mt-3 text-13 text-ink-3">still working. this connection is slow.</p>}
           <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 text-14 text-ink-3">
-            <span>{signup ? <>have an account? <Link to="/signin" className={LINK}>sign in</Link></> : <>new here? <Link to="/signup" className={LINK}>make an account</Link></>}</span>
+            <span>{signup ? <>have an account? <Link to={`/signin${carry}`} className={LINK}>sign in</Link></> : <>new here? <Link to={`/signup${carry}`} className={LINK}>make an account</Link></>}</span>
             {!signup && !pending && <button type="button" className={cx(QUIET, "-me-2")} onClick={() => { setStep("recover"); setError(null); }}>can't sign in?</button>}
           </div>
         </div>
