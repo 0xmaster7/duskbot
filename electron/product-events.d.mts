@@ -1,4 +1,4 @@
-export interface AppEvent { name: string; at: number; props: Record<string, string | number> }
+export interface AppEvent { name: string; at: number; props: Record<string, string | number | boolean> }
 /** What the desktop renderer hands main: its install id, its session and up to a few hundred usage events. */
 export interface ProductEventsBatch { install: string; session?: string; events: AppEvent[] }
 /** This computer's page and My Cloud's home page only; main adds the account token and posts. */

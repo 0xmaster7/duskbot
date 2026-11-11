@@ -52,6 +52,32 @@ test("never sends content: unknown events, unknown props and free text are dropp
   assert.equal(events.size(), 1);
 });
 
+test("actions require a word name and keep at most eight valid word, count or boolean extras", () => {
+  const props = { name: "reply_reaction", "bad-key": "yes", text: "private words", url: "https://private.example", upper: "UPPER",
+    emoji: "yes", on: true, off: false, count: 0, limit: 1e12 - 1, code: "word_123", kind: "reply", ms: 12, ninth: "dropped" };
+  assert.deepEqual(cleanAppEvent(event("app_action", props), NOW)?.props,
+    { name: "reply_reaction", emoji: "yes", on: true, off: false, count: 0, limit: 1e12 - 1, code: "word_123", kind: "reply", ms: 12 });
+  assert.deepEqual(cleanAppEvent(event("app_action", { name: "counts", negative: -1, decimal: 1.5, infinite: Infinity, nan: NaN,
+    unsafe: Number.MAX_SAFE_INTEGER + 1, huge: 1e12 + 1, nested: {}, list: [], nil: null, "key1": "bad", ["k".repeat(21)]: "bad",
+    ["k".repeat(20)]: "a".repeat(40), long: "a".repeat(41) }), NOW)?.props, { name: "counts", ["k".repeat(20)]: "a".repeat(40) });
+  for (const name of [undefined, true, 3, "", "UPPER", "private words", "https://private.example", "a".repeat(41)]) {
+    assert.equal(cleanAppEvent(event("app_action", { name }), NOW), null);
+  }
+  assert.equal(cleanAppEvent(event("app_close", { ms: true }), NOW), null);
+});
+
+test("feedback requires an integer score from one to five and a word moment", () => {
+  for (const score of [1, 2, 3, 4, 5]) {
+    assert.deepEqual(cleanAppEvent(event("app_feedback", { score, moment: "after_reply" }), NOW)?.props, { score, moment: "after_reply" });
+  }
+  for (const score of [undefined, "5", true, 0, 6, -1, 2.5, NaN, Infinity]) {
+    assert.equal(cleanAppEvent(event("app_feedback", { score, moment: "after_reply" }), NOW), null);
+  }
+  for (const moment of [undefined, true, "", "UPPER", "private words", "https://private.example", "a".repeat(41)]) {
+    assert.equal(cleanAppEvent(event("app_feedback", { score: 3, moment }), NOW), null);
+  }
+});
+
 test("retries network failures and server errors with growing backoff, drops what the service rejects", async () => {
   const { events, calls, timers } = harness({ statuses: ["offline", 503, 400, 204] });
   events.send({ install: INSTALL, events: [event()] });

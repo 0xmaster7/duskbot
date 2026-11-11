@@ -8,6 +8,8 @@ export const APP_EVENT_PROPS = Object.freeze({
   app_messages: ["sent", "replies", "latencyMs"],
   app_error: ["kind", "code"],
   app_pair_failed: ["reason"],
+  app_action: ["name"],
+  app_feedback: ["score", "moment"],
 });
 export const MAX_QUEUE = 500;
 export const BATCH = 50;
@@ -16,17 +18,34 @@ export const MAX_BACKOFF_MS = 30 * 60_000;
 const REQUEST_MS = 15_000;
 const ID = /^[A-Za-z0-9_-]{16,40}$/;
 const VALUE = /^[A-Za-z0-9_.:/+-]{1,120}$/;
+const WORD = /^[a-z0-9_]{1,40}$/;
+const EXTRA_KEY = /^[a-z][a-z_]{0,19}$/;
 const VERSION = /^[0-9A-Za-z][0-9A-Za-z.+-]{0,39}$/;
 
 export function cleanAppEvent(input, at = Date.now()) {
   if (!input || typeof input !== "object" || !Object.hasOwn(APP_EVENT_PROPS, input.name)) return null;
   const allowed = APP_EVENT_PROPS[input.name], props = input.props && typeof input.props === "object" ? input.props : {};
   const clean = {};
-  for (const [key, value] of Object.entries(props)) {
-    if (!allowed.includes(key)) return null;
-    if (typeof value === "string" && VALUE.test(value)) clean[key] = value;
-    else if (Number.isSafeInteger(value) && value >= 0 && value < 1e12) clean[key] = value;
-    else return null;
+  if (input.name === "app_action") {
+    if (typeof props.name !== "string" || !WORD.test(props.name)) return null;
+    clean.name = props.name;
+    let extras = 0;
+    for (const [key, value] of Object.entries(props)) {
+      if (extras >= 8) break;
+      if (key === "name" || !EXTRA_KEY.test(key)) continue;
+      if ((typeof value === "string" && WORD.test(value)) || (Number.isSafeInteger(value) && value >= 0 && value < 1e12) || typeof value === "boolean") {
+        clean[key] = value;
+        ++extras;
+      }
+    }
+  } else {
+    if (input.name === "app_feedback" && (!Number.isInteger(props.score) || props.score < 1 || props.score > 5 || typeof props.moment !== "string" || !WORD.test(props.moment))) return null;
+    for (const [key, value] of Object.entries(props)) {
+      if (!allowed.includes(key)) return null;
+      if (typeof value === "string" && VALUE.test(value)) clean[key] = value;
+      else if (Number.isSafeInteger(value) && value >= 0 && value < 1e12) clean[key] = value;
+      else return null;
+    }
   }
   const when = Number.isSafeInteger(input.at) && input.at > at - 7 * 86_400_000 && input.at < at + 300_000 ? input.at : at;
   return { name: input.name, at: when, props: clean };
