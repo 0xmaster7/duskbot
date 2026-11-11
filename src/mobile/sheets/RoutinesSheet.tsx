@@ -1,3 +1,4 @@
+import { noteRoutineRun } from "@/lib/product-analytics";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronRight } from "../../icons";
 import { BotAvatar } from "@/components/Avatar";
@@ -62,6 +63,7 @@ export function RoutinesSheet({ sheet, open, onClose, onOpenChat }: SheetPagePro
         dispatch({ type: "routinePatched", routine: updated });
       } else if (action === "run") {
         const { run } = await api<{ run: RoutineRun }>(`${path}/run`, { method: "POST" });
+        noteRoutineRun(run.id, run.status);
         dispatch({ type: "routineRunPatched", run });
         setNotice(true);
       } else {

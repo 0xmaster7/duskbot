@@ -26,9 +26,11 @@ import { stateBackend } from "./persistence/backend.ts";
 import type { ErrorReporter } from "../../../electron/error-report.mjs";
 import type { EdgeSocketFactory } from "./slack-edge/service.ts";
 import { createAnalytics } from "./analytics/index.ts";
+import { APP_EVENTS_PATH, TRACK_PATH } from "./analytics/ingest.ts";
 import { memorySink, type AnalyticsSink } from "./analytics/sink.ts";
 import { AdminError, createAdmin, parseAdminEmails } from "./admin/index.ts";
 import { createErrorCounter } from "./admin/health.ts";
+import { createAlerts, parseAlerts } from "./admin/alerts.ts";
 import type { WaitlistSource } from "./admin/waitlist.ts";
 import { workspaceTurns } from "./admin/metrics.ts";
 
@@ -55,7 +57,7 @@ export interface DashboardAppOptions {
   /** the slack wake edge: DUSK_SLACK_EDGE and DUSK_CLOUD_SEAL_KEY from env; tests pass a fake socket */
   slackEdge?: { env?: NodeJS.ProcessEnv; socket?: EdgeSocketFactory };
   /** product analytics: MongoDB in production (main.ts), memory otherwise; the waitlist is dusk.waitlist when connected */
-  analytics?: { sink?: AnalyticsSink; waitlist?: WaitlistSource | null };
+  analytics?: { sink?: AnalyticsSink; waitlist?: WaitlistSource | null; trackOrigins?: string[] };
   /** the owner's panel at /admin: DUSK_ADMIN_EMAILS by default */
   admin?: { emails?: string[]; backupDir?: string | null; environment?: string; env?: NodeJS.ProcessEnv };
 }
@@ -119,7 +121,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const store = createStore(options.dataDir);
   const state = store.state;
   const startedAt = now();
-  const analytics = createAnalytics({ sink: options.analytics?.sink ?? memorySink(now), dataDir: options.dataDir, now, trustProxy: options.trustProxy });
+  const analytics = createAnalytics({ sink: options.analytics?.sink ?? memorySink(now), dataDir: options.dataDir, now, trustProxy: options.trustProxy,
+    trackOrigins: [new URL(options.publicUrl).origin, ...(options.analytics?.trackOrigins ?? [])] });
   const errorsSeen = createErrorCounter(now);
   const dev = options.dev ?? (new URL(publicUrl).protocol === "http:" && ["127.0.0.1", "localhost"].includes(new URL(publicUrl).hostname));
   const auth = createAuth({ dataDir: options.dataDir, publicUrl, pageBase, mailPerHour: options.mailPerHour, mailer: options.mailer, now, fetch: options.fetch, oauth: options.oauth,
@@ -203,10 +206,19 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (!found || found.account.id !== owner.id) throw new AuthError(401, "signed_out");
       return { id: owner.id, signedInAt: found.session.createdAt };
     } });
-  const admin = createAdmin({ emails: options.admin?.emails ?? parseAdminEmails(process.env.DUSK_ADMIN_EMAILS), auth, billing, workspaces: () => state.workspaces, analytics,
+  const adminEmails = options.admin?.emails ?? parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
+  const admin = createAdmin({ emails: adminEmails, auth, billing, workspaces: () => state.workspaces, analytics,
     waitlist: options.analytics?.waitlist ?? null, now, fetch: options.fetch, env: options.admin?.env, errors: errorsSeen, readBody, bodyObject, json,
     service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
+  const alerts = createAlerts({ kinds: parseAlerts((options.admin?.env ?? process.env).DUSK_ADMIN_ALERTS), emails: () => adminEmails, mailer: options.mailer, sink: analytics.sink, now,
+    panelUrl: `${pagesUrl}/admin`, totals: (from, to) => ({ accounts: auth.directory().accounts.length, signups: auth.directory().accounts.filter(account => account.createdAt >= from && account.createdAt < to).length,
+      paid: billing.store.state.invoices.filter(invoice => invoice.status === "paid" && invoice.createdAt >= from && invoice.createdAt < to).length, waitlist: null }) });
+  auth.onAccountCreated(owner => alerts.signup(owner.email, auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email"));
+  analytics.onTrack((name, input = {}) => {
+    if (name === "site_goal" && input.props?.goal === "waitlist_join") alerts.waitlistJoin();
+    if (name === "checkout_paid" && input.accountId) alerts.paid(input.accountId, auth.account(input.accountId)?.email ?? null, Number(input.props?.amountCents) || 0);
+  });
   const limits = new Map<string, { count: number; until: number }>();
   const watching = new Map<string, number>();
   const lastWatching = new Map<string, boolean>();
@@ -346,7 +358,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (await pagesRoutes.handle(req, res, url)) return;
     const path = url.pathname;
     if (site && !ACCOUNT_PREFIXES.some(prefix => path.startsWith(prefix)) && !(path === pageBase || path.startsWith(`${pageBase}/`))
-      && !(method === "GET" && PAGE_ROUTES.some(route => path === route || path.startsWith(`${route}/`)))) { analytics.siteView(req, publicUrl); return site(req, res); }
+      && !(method === "GET" && PAGE_ROUTES.some(route => path === route || path.startsWith(`${route}/`)))) { analytics.crawlerVisit(req, new URL(publicUrl).hostname); return site(req, res); }
     if ((method === "GET" || method === "HEAD") && path === "/v1/health") {
       try { accessSync(options.dataDir, constants.W_OK); } catch { return json(res, 503, { ok: false, error: "data folder is not writable" }); }
       const database = stateBackend()?.health();
@@ -355,12 +367,13 @@ export function createDashboardApp(options: DashboardAppOptions) {
     }
     const mutation = ["POST", "PATCH", "DELETE"].includes(method);
     const appleCallback = method === "POST" && path === "/v1/auth/oauth/apple/callback" && req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() === "application/x-www-form-urlencoded";
-    if (mutation && !isAppCorsRoute(path) && !appleCallback) {
+    if (mutation && !isAppCorsRoute(path) && !appleCallback && path !== TRACK_PATH && path !== APP_EVENTS_PATH) {
       if (req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() !== "application/json") fail(403, "forbidden", "JSON is required.");
       if (req.headers.origin !== undefined && req.headers.origin !== publicUrl) fail(403, "forbidden", "Origin is not allowed.");
     }
     if (await auth.handle(req, res, url, { readBody, bodyObject })) return;
-    if (await analytics.handle(req, res, url, { readBody, bodyObject, json, rate, account: (request, strict) => {
+    if (await analytics.handle(req, res, url, { readBody, bodyObject, json, rate, appAccount: request => auth.appSession(request)?.account.id ?? null,
+      isOwner: request => { const found = auth.webSession(request); return !!found && admin.isAdmin(found.account.email); }, account: (request, strict) => {
       try { return auth.requireWeb(request, { mutation: strict }); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; }
     } })) return;
     if (await admin.handle(req, res, url)) return;
@@ -574,6 +587,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       for (const wait of Array.from(waits.values())) wait.cancel();
       auth.close();
       analytics.close();
+      alerts.close();
       store.close();
     },
   };

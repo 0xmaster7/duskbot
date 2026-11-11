@@ -19,9 +19,16 @@ const version = pattern(/^[0-9A-Za-z][0-9A-Za-z.+-]{0,39}$/, 40);
 /** an app route with ids replaced by :id; never a query string */
 const route = pattern(/^\/[a-z0-9/:_-]{0,119}$/, 120);
 const cloudStatus = pattern(/^[a-z_]{2,24}$/, 24);
+const word = pattern(/^[a-z0-9_]{1,40}$/, 40);
+const host = pattern(/^[a-z0-9.-]{1,80}$/, 80);
+const percent: Check = (value): value is number => Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 100;
+
+/** what the apps may report as used: names of features, never what was in them */
+export const APP_FEATURES = ["bot_created", "bot_edited", "routine_created", "routine_ran", "room_created", "computer_used", "voice_used", "file_uploaded",
+  "app_connected", "cloud_opened", "chat_opened", "memory_edited", "skill_added", "webhook_created", "phone_paired", "search_used", "settings_opened"] as const;
 
 /** who may send an event: the service itself, the signed-in page, or the site proxy (anonymous) */
-export type EventSource = "server" | "page" | "site";
+export type EventSource = "server" | "page" | "site" | "app";
 export interface EventSpec { source: EventSource; props: Record<string, Check>; /** counts toward a person's daily activity */ active?: boolean }
 
 export const EVENTS = {
@@ -40,6 +47,20 @@ export const EVENTS = {
   onboarding_done: { source: "page", props: {}, active: true },
   plan_chosen: { source: "page", props: { plan: pattern(/^[a-z_]{2,20}$/, 20), period: oneOf("month", "year") }, active: true },
   site_view: { source: "site", props: { path: route } },
+  site_goal: { source: "site", props: { goal: word, to: route, from: route, host } },
+  /** a page view's end: deepest scroll and visible time */
+  site_leave: { source: "site", props: { path: route, scroll: percent, ms: count } },
+  /** a site visitor or an app install became this account */
+  identify: { source: "server", props: { via: oneOf("page", "app") } },
+  app_open: { source: "app", props: { kind: oneOf("desktop", "mobile"), platform, appVersion: version }, active: true },
+  app_close: { source: "app", props: { ms: count } },
+  /** a screen as a virtual path, like /bots/:id */
+  app_screen: { source: "app", props: { screen: route }, active: true },
+  app_feature: { source: "app", props: { feature: oneOf(...APP_FEATURES) }, active: true },
+  /** counts since the last send; latency is the median reply time in ms */
+  app_messages: { source: "app", props: { sent: count, replies: count, latencyMs: count }, active: true },
+  app_error: { source: "app", props: { kind: word, code: word } },
+  app_pair_failed: { source: "app", props: { reason: word } },
 } satisfies Record<string, EventSpec>;
 export type EventName = keyof typeof EVENTS;
 export const EVENT_NAMES = Object.keys(EVENTS) as EventName[];

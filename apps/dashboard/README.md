@@ -92,7 +92,17 @@ users (search, plan, clouds, devices, timeline), clouds (pause, resume, delete w
   {optOut}` opts an account out and deletes its events; deleting the account deletes them too.
 - **Storage.** `analytics_events` (TTL 400 days), `analytics_daily` (kept), `analytics_marks` (once-only marks),
   `admin_audit` (kept). Without MongoDB (tests, fixture) they live in memory.
-- The fixture's `--demo` makes its account the admin and fills the panel with made-up people, clouds and events.
+- **Site and app analytics.** `tracker/dusk.js` (about 3 KB gzip, no dependencies, ideas from Minilytics, MIT) is copied to the
+  site as `/a.js` by the site's `build-pages.mjs`. It sends page views, goals (`cta_click`, `download_click`, `waitlist_join`,
+  `outbound`, any `data-dusk-goal`), and each page view's end (scroll depth, visible time) to `POST /v1/t` as text/plain
+  beacons; `?dusk_ignore=1` once turns it off in a browser, and an admin's own visits are never counted. Origins other than
+  the service's own must be in `DUSK_TRACK_ORIGINS`. The apps send screens, features, message counts, reply times,
+  error and pairing codes to `POST /v1/app/events` (`src/lib/product-analytics.ts`), anonymous by install id until the
+  app signs in. Channels and named sources (AI assistants apart from search) come from `analytics/sources.ts` (ported from
+  Minilytics). Everything else is computed from the event log per read (`analytics/web.ts`): visits, KPIs against the
+  previous period, ranked cards with the signups each row became, the funnel with drop-off and median times, journeys,
+  realtime, retention (D1, D7 = days 7 to 13, D30 = days 30 to 59). A read scans at most 400,000 raw events.
+- - The fixture's `--demo` makes its account the admin and fills the panel with made-up people, clouds and events.
 
 ## Running it
 

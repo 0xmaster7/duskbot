@@ -1,3 +1,4 @@
+import { feature } from "@/lib/product-analytics";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MobileConnectionRecord, MobileTransport } from "../../../shared/mobile-link";
 import { usePlatform, type MobilePlatform } from "../platform";
@@ -112,6 +113,7 @@ export function createConnectionStore(platform: MobilePlatform): ConnectionStore
         await platform.secrets.set(saved.sessionRef, token);
         await write([...records.filter((entry) => !replaced.includes(entry)), saved]);
         await platform.prefs.set(ACTIVE_KEY, saved.id);
+        feature("phone_paired");
         for (const old of replaced) if (old.sessionRef !== saved.sessionRef) {
           await platform.secrets.remove(old.sessionRef);
           await platform.secrets.remove(`relay.${old.id}`);

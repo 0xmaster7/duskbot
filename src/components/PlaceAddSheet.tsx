@@ -1,3 +1,4 @@
+import { pairFailed } from "@/lib/product-analytics";
 // ＋ at the end of the rail: one sheet of choices. A new organization on the Team plan the person pays for (when they run
 // one), buy a Cloud (the buying sheet: another Cloud right here, or the first one on this computer's own sheet), or add a
 // server of the person's own by pasting its pairing link.
@@ -28,6 +29,7 @@ export function OwnServerLink({ onBack, onConnected, connect = null }: { onBack:
     try {
       if (await window.ogb?.workspaces?.add?.("link", pasted) !== false) onConnected();
     } catch {
+      pairFailed("unknown");
       setFailed(true);
     } finally {
       setBusy(false);

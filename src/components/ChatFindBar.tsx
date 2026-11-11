@@ -1,3 +1,4 @@
+import { feature } from "@/lib/product-analytics";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Search, X } from "../icons";
 
@@ -35,6 +36,7 @@ export function ChatFindBar({ threadId, onClose }: { threadId: string; onClose: 
       void api(`/api/search?q=${encodeURIComponent(trimmed)}&limit=100&threadId=${encodeURIComponent(threadId)}`)
         .then((body) => {
           if (request !== requestRef.current) return;
+          feature("search_used");
           setHits(Array.isArray(body?.hits) ? body.hits : []);
           setIndex(0);
         })

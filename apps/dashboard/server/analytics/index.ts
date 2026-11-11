@@ -6,8 +6,14 @@ import { clientIp } from "../client-ip.ts";
 import { DAY_MS, EVENTS, cleanProps, dayOf, isEventName, routeOf, type EventName, type Props } from "./events.ts";
 import type { AnalyticsSink } from "./sink.ts";
 import { requestContext, type EventContext } from "./context.ts";
+import { APP_EVENTS_PATH, TRACK_PATH, handleAppEvents, handleTrack } from "./ingest.ts";
+import { isAiCrawler } from "./sources.ts";
 
-export interface AnalyticsOptions { sink: AnalyticsSink; dataDir: string; now?: () => number; trustProxy?: boolean }
+export interface AnalyticsOptions {
+  sink: AnalyticsSink; dataDir: string; now?: () => number; trustProxy?: boolean;
+  /** origins whose pages send site events to /v1/t: the service's own and DUSK_TRACK_ORIGINS */
+  trackOrigins?: string[];
+}
 interface RouteHelpers {
   readBody(req: IncomingMessage): Promise<Buffer>;
   bodyObject(body: Buffer): Record<string, unknown>;
@@ -15,18 +21,39 @@ interface RouteHelpers {
   rate(req: IncomingMessage, kind: string, max: number): void;
   /** the signed-in account of a web request, or null; `strict` also checks the CSRF header */
   account(req: IncomingMessage, strict: boolean): { id: string } | null;
+  /** the account of an app's bearer session, or null */
+  appAccount(req: IncomingMessage): string | null;
+  /** a signed-in admin's browser */
+  isOwner(req: IncomingMessage): boolean;
 }
 interface OptOutState { v: 1; optOut: string[] }
 
 export const MAX_BATCH = 20;
 function safeUrl(value: string, origin: string) { try { const url = new URL(value.slice(0, 1000), origin); return url.origin === origin ? url : undefined; } catch { return undefined; } }
-const AUTOMATED = /bot|crawl|spider|slurp|preview|monitor|curl|wget|python|httpclient|headless|lighthouse|facebookexternalhit|embedly/i;
+const VISITOR = /^[A-Za-z0-9_-]{22}$/;
+/** the site tracker's visitor cookie, readable here when the account page shares the site's domain */
+export const visitorCookie = (req: IncomingMessage) => {
+  const value = req.headers.cookie?.split(";").map(item => item.trim()).find(item => item.startsWith("dusk_vid="))?.slice(9);
+  return value && VISITOR.test(value) ? value : null;
+};
+async function readLimited(req: IncomingMessage, max: number) {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += buffer.length;
+    if (size > max) { req.resume(); throw Object.assign(new Error("Request is too large."), { status: 413, code: "too_large" }); }
+    chunks.push(buffer);
+  }
+  return Buffer.concat(chunks);
+}
 
 /** a browser that asked not to be tracked (Global Privacy Control or Do Not Track) */
 export const declined = (req: IncomingMessage) => req.headers["sec-gpc"] === "1" || req.headers.dnt === "1";
 
 export function createAnalytics(options: AnalyticsOptions) {
   const { sink } = options, now = options.now ?? Date.now;
+  const trackOrigins = new Set((options.trackOrigins ?? []).map(origin => { try { return new URL(origin).origin; } catch { return ""; } }).filter(Boolean));
   const store = createJsonStore<OptOutState>(join(options.dataDir, "analytics.json"), () => ({ v: 1, optOut: [] }),
     (value): value is OptOutState => !!value && typeof value === "object" && Array.isArray((value as OptOutState).optOut));
   const optOut = new Set(store.state.optOut);
@@ -58,23 +85,17 @@ export function createAnalytics(options: AnalyticsOptions) {
       stats.failed++; stats.lastFailureAt = now();
     }
   }
+  const listeners: Array<(name: EventName, input: Parameters<typeof record>[1]) => void> = [];
   /** never throws and never delays the request it describes */
-  const track = (name: EventName, input?: Parameters<typeof record>[1]) => { void record(name, input); };
+  const track = (name: EventName, input?: Parameters<typeof record>[1]) => {
+    void record(name, input);
+    for (const listen of listeners) try { listen(name, input ?? {}); } catch { stats.failed++; }
+  };
 
   function visitorOf(req: IncomingMessage) {
     const day = dayOf(now());
     if (salt.day !== day) salt = { day, key: randomBytes(32) };
     return createHmac("sha256", salt.key).update(`${clientIp(req, options.trustProxy ?? false)}|${req.headers["user-agent"] ?? ""}`).digest("base64url").slice(0, 22);
-  }
-  function siteView(req: IncomingMessage, publicOrigin: string) {
-    if (!req.url) return;
-    if (req.method !== "GET" || declined(req) || AUTOMATED.test(req.headers["user-agent"] ?? "") || !req.headers["user-agent"]) return;
-    if (!(req.headers.accept ?? "").includes("text/html") || (req.headers["sec-fetch-dest"] && req.headers["sec-fetch-dest"] !== "document")) return;
-    const url = new URL(req.url ?? "/", publicOrigin);
-    if (/\.[a-z0-9]{1,6}$/i.test(url.pathname)) return;
-    const path = routeOf(url.pathname);
-    if (!path) return;
-    track("site_view", { props: { path }, visitor: visitorOf(req), ctx: { ...requestContext(req, { publicOrigin, trustProxy: options.trustProxy ?? false, url }), page: path } });
   }
   function appActive(session: { id: string; accountId: string; platform: string | null; appVersion: string | null }) {
     if (!seenOnce(`app|${session.id}`)) return;
@@ -96,6 +117,19 @@ export function createAnalytics(options: AnalyticsOptions) {
     store.commit();
     if (value) return sink.forget(accountId).catch(() => { stats.failed++; });
   }
+  /** an AI assistant's crawler asking the site for a page (robots.txt and llms.txt included) */
+  function crawlerVisit(req: IncomingMessage, host: string | null) {
+    const bot = isAiCrawler(String(req.headers["user-agent"] ?? ""));
+    if (!bot || req.method !== "GET") return;
+    const raw = (req.url ?? "/").split("?")[0]!;
+    const path = /^\/(robots\.txt|llms(-full)?\.txt|sitemap\.xml)$/.test(raw) ? raw : routeOf(raw) ?? "/";
+    void sink.crawl({ at: now(), bot: bot.bot, kind: bot.kind, path, host }).catch(() => { stats.failed++; });
+  }
+  function identify(accountId: string, ctx: { visitor?: string; install?: string }, via: "page" | "app") {
+    const id = ctx.visitor ?? ctx.install;
+    if (!id || optOut.has(accountId) || !seenOnce(`identify|${id}|${accountId}`)) return;
+    void sink.once(`identify|${id}|${accountId}`, null).then(fresh => { if (fresh) track("identify", { accountId, props: { via }, ctx }); }, () => { stats.failed++; });
+  }
   async function forget(accountId: string) {
     replied.delete(accountId);
     if (optOut.delete(accountId)) { store.state.optOut = [...optOut]; store.commit(); }
@@ -104,6 +138,12 @@ export function createAnalytics(options: AnalyticsOptions) {
 
   async function handle(req: IncomingMessage, res: ServerResponse, url: URL, helpers: RouteHelpers): Promise<boolean> {
     const path = url.pathname, method = req.method ?? "GET";
+    if (path === TRACK_PATH || path === APP_EVENTS_PATH) {
+      const deps = { track, now, trustProxy: options.trustProxy ?? false, origins: trackOrigins, readBody: readLimited, rate: helpers.rate, isOwner: helpers.isOwner,
+        appAccount: helpers.appAccount, identify, declined };
+      await (path === TRACK_PATH ? handleTrack(req, res, deps) : handleAppEvents(req, res, deps));
+      return true;
+    }
     if (path === "/v1/events" && method === "POST") {
       const publicOrigin = `${url.protocol}//${url.host}`;
       helpers.rate(req, "events", 1200);
@@ -116,6 +156,8 @@ export function createAnalytics(options: AnalyticsOptions) {
       if (owner) helpers.rate(req, `events:${owner.id}`, 600);
       const session = typeof input.session === "string" && /^[A-Za-z0-9_-]{8,40}$/.test(input.session) ? input.session : undefined;
       const referrer = typeof input.referrer === "string" ? input.referrer.slice(0, 500) : undefined;
+      const visitor = visitorCookie(req) ?? (typeof input.visitor === "string" && VISITOR.test(input.visitor) ? input.visitor : null);
+      if (owner && visitor) identify(owner.id, { visitor }, "page");
       const base = requestContext(req, { publicOrigin, trustProxy: options.trustProxy ?? false, referrer, url: typeof input.landing === "string" ? safeUrl(input.landing, publicOrigin) : undefined });
       for (const item of list as unknown[]) {
         const event = item && typeof item === "object" ? item as Record<string, unknown> : {};
@@ -123,8 +165,8 @@ export function createAnalytics(options: AnalyticsOptions) {
         if (!owner && event.name !== "page_view") continue;
         const props = event.name === "page_view" && event.props && typeof event.props === "object"
           ? { path: routeOf(String((event.props as Record<string, unknown>).path ?? "")) ?? "" } : event.props;
-        const ctx: EventContext = { ...base, ...(session ? { session } : {}), ...(event.name === "page_view" && typeof (props as Props).path === "string" ? { page: (props as Props).path as string } : {}) };
-        track(event.name, { accountId: owner?.id ?? null, props: props as Props, ctx, visitor: owner ? null : visitorOf(req) });
+        const ctx: EventContext = { ...base, ...(session ? { session } : {}), ...(visitor && owner ? { visitor } : {}), ...(event.name === "page_view" && typeof (props as Props).path === "string" ? { page: (props as Props).path as string } : {}) };
+        track(event.name, { accountId: owner?.id ?? null, props: props as Props, ctx, visitor: owner ? null : visitor ?? visitorOf(req) });
       }
       res.writeHead(204, { "cache-control": "no-store" }); res.end();
       return true;
@@ -143,6 +185,6 @@ export function createAnalytics(options: AnalyticsOptions) {
     return false;
   }
 
-  return { sink, track, record, siteView, appActive, botReplied, setOptOut, forget, handle, stats, optedOut: (accountId: string) => optOut.has(accountId), close: () => store.close() };
+  return { sink, track, record, identify, crawlerVisit, onTrack: (fn: (name: EventName, input: Parameters<typeof record>[1]) => void) => { listeners.push(fn); }, appActive, botReplied, setOptOut, forget, handle, stats, optedOut: (accountId: string) => optOut.has(accountId), close: () => store.close() };
 }
 export type Analytics = ReturnType<typeof createAnalytics>;

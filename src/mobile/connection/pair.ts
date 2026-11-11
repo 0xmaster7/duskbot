@@ -1,3 +1,4 @@
+import { observePairing } from "@/lib/product-analytics";
 import { DEFAULT_MOBILE_RELAY, MOBILE_LOOKUP_SALT, pairingFromPayload, parseMobilePayload, parseMobilePairingLink, type MobileRedeemRequest, type MobileRedeemResponse, type MobileCapabilities, type MobileConnectionRecord, type MobilePairingPayload } from "../../../shared/mobile-link";
 import { randomUuid } from "@/lib/random-uuid";
 import type { MobilePlatform } from "../platform";
@@ -129,7 +130,7 @@ export function pairError(error: unknown): PairError {
   return error instanceof PairError ? error : new PairError(error instanceof UnsupportedCryptoError ? "unsupported" : "unreachable");
 }
 
-export async function resolveTypedCode(code: string, relayBase = DEFAULT_MOBILE_RELAY): Promise<MobilePairingPayload> {
+async function resolveTypedCodeResult(code: string, relayBase = DEFAULT_MOBILE_RELAY): Promise<MobilePairingPayload> {
   const normalized = code.replace(/[-\s]/g, "").toUpperCase();
   if (!/^[A-Z0-9]{12}$/.test(normalized)) throw new PairError("invalid");
   try {
@@ -167,7 +168,7 @@ async function relaySecrets(platform: MobilePlatform, id: string): Promise<Relay
   return request;
 }
 
-export async function redeemPairing(payload: MobilePairingPayload, platform: MobilePlatform): Promise<{ record: MobileConnectionRecord; token: string }> {
+async function redeemPairingResult(payload: MobilePairingPayload, platform: MobilePlatform): Promise<{ record: MobileConnectionRecord; token: string }> {
   if (!payload.via) return redeemLegacyPairing(payload, platform);
   if (!payload.grantId || !payload.credential || !payload.via.length) throw new PairError("invalid");
   if (payload.expiresAt && payload.expiresAt <= Date.now()) throw new PairError("expired");
@@ -225,3 +226,6 @@ export async function redeemPairing(payload: MobilePairingPayload, platform: Mob
     throw lastError;
   } catch (error) { throw pairError(error); }
 }
+
+export const resolveTypedCode = (code: string, relayBase = DEFAULT_MOBILE_RELAY) => observePairing(() => resolveTypedCodeResult(code, relayBase));
+export const redeemPairing = (payload: MobilePairingPayload, platform: MobilePlatform) => observePairing(() => redeemPairingResult(payload, platform));

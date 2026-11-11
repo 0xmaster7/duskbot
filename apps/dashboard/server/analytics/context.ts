@@ -1,41 +1,38 @@
 import type { IncomingMessage } from "node:http";
+import { fromCloudflare } from "../client-ip.ts";
+import { classify, type Channel } from "./sources.ts";
 
 /** where an event came from, shared by every event kind; each field is optional and coarse on purpose */
 export interface EventContext {
-  /** an anonymous visitor id; today a daily hash, so it never links days or leads back to an address */
+  /** the site's anonymous visitor id (the dusk_vid cookie), or a daily hash where no cookie exists */
   visitor?: string;
-  /** one visit in the page (random, per tab), or one app session */
+  /** one site visit (dusk_sid, 30 minutes idle), one tab of the account page, or one app session */
   session?: string;
+  /** one page view, so its end (site_leave) can be matched to it */
+  pv?: string;
+  /** an app install's anonymous id, kept until and after sign-in */
+  install?: string;
+  host?: string;
   page?: string;
+  /** the referring host, never its path or query */
   referrer?: string;
+  /** the named source ("ChatGPT", "Hacker News", a ?ref tag) and its channel */
+  source?: string;
   channel?: Channel;
-  utm?: { source?: string; medium?: string; campaign?: string };
-  /** ISO 3166 alpha-2 from Cloudflare's CF-IPCountry, only behind a trusted proxy */
+  utm?: { source?: string; medium?: string; campaign?: string; content?: string; term?: string };
+  ref?: string;
+  /** from Cloudflare's visitor location headers, only when the request came through Cloudflare; coordinates rounded to
+   *  about 10 km */
   country?: string;
+  region?: string;
+  city?: string;
+  lat?: number;
+  lon?: number;
   device?: "desktop" | "mobile" | "tablet";
   os?: "mac" | "windows" | "linux" | "ios" | "android" | "other";
   browser?: "chrome" | "safari" | "firefox" | "edge" | "other";
+  width?: number;
   app?: { platform?: string; version?: string };
-}
-export type Channel = "direct" | "search" | "social" | "ai" | "email" | "referral" | "campaign";
-
-const SEARCH = /(^|\.)(google|bing|duckduckgo|yahoo|yandex|baidu|ecosia|brave|kagi|startpage)\./;
-const SOCIAL = /(^|\.)(x\.com|t\.co|twitter\.com|facebook\.com|instagram\.com|linkedin\.com|lnkd\.in|reddit\.com|youtube\.com|tiktok\.com|threads\.net|bsky\.app|news\.ycombinator\.com|producthunt\.com|discord\.com)$/;
-const AI = /(^|\.)(chatgpt\.com|chat\.openai\.com|perplexity\.ai|claude\.ai|gemini\.google\.com|copilot\.microsoft\.com|you\.com|phind\.com|poe\.com|grok\.com|meta\.ai|deepseek\.com)$/;
-const MAIL = /(^|\.)(mail\.google\.com|outlook\.live\.com|mail\.yahoo\.com)$|^(mail|webmail)\./;
-
-/** a referrer host and campaign as one channel; AI assistants count apart from search */
-export function channelOf(referrer: string | undefined, utm: EventContext["utm"]): Channel {
-  const medium = utm?.medium?.toLowerCase();
-  if (medium === "email" || medium === "newsletter") return "email";
-  if (utm?.source && /chatgpt|perplexity|claude|gemini|copilot/.test(utm.source)) return "ai";
-  if (utm?.campaign || medium) return "campaign";
-  if (!referrer) return utm?.source ? "campaign" : "direct";
-  if (AI.test(referrer)) return "ai";
-  if (SEARCH.test(referrer)) return "search";
-  if (SOCIAL.test(referrer)) return "social";
-  if (MAIL.test(referrer)) return "email";
-  return "referral";
 }
 
 export function deviceOf(ua: string): Pick<EventContext, "device" | "os" | "browser"> {
@@ -45,22 +42,63 @@ export function deviceOf(ua: string): Pick<EventContext, "device" | "os" | "brow
   return { device, os, browser };
 }
 
-const short = (value: string | null | undefined, max = 60) => value ? value.toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, max) || undefined : undefined;
+const short = (value: unknown, max = 60) => typeof value === "string" && !value.includes("@") ? value.toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, max) || undefined : undefined;
+const label = (value: unknown, max = 60) => {
+  if (typeof value !== "string") return undefined;
+  let text = value;
+  try { text = decodeURIComponent(value); } catch {}
+  text = text.replace(/[\u0000-\u001f<>"]/g, "").trim().slice(0, max);
+  return text || undefined;
+};
 
-/** what a browser request says about where it came from: device, country (trusted proxy only), referrer, utm */
-export function requestContext(req: IncomingMessage, options: { publicOrigin: string; trustProxy: boolean; url?: URL; referrer?: string }): EventContext {
-  const ctx: EventContext = { ...deviceOf(String(req.headers["user-agent"] ?? "")) };
+/** true when nginx says its peer was Cloudflare's edge, so the CF-* visitor headers were set by Cloudflare */
+export function viaCloudflare(req: IncomingMessage, trustProxy: boolean): boolean {
+  const forwarded = req.headers["x-forwarded-for"];
+  return trustProxy && typeof forwarded === "string" && fromCloudflare(forwarded.split(",").pop()!.trim());
+}
+
+export function geoOf(req: IncomingMessage, trustProxy: boolean): Pick<EventContext, "country" | "region" | "city" | "lat" | "lon"> {
+  if (!viaCloudflare(req, trustProxy)) return {};
+  const out: Pick<EventContext, "country" | "region" | "city" | "lat" | "lon"> = {};
   const country = req.headers["cf-ipcountry"];
-  if (options.trustProxy && typeof country === "string" && /^[A-Z]{2}$/.test(country) && country !== "XX" && country !== "T1") ctx.country = country;
-  try {
-    const host = new URL(options.referrer ?? String(req.headers.referer ?? "")).hostname.toLowerCase();
-    if (host && host !== new URL(options.publicOrigin).hostname) ctx.referrer = host.slice(0, 80);
-  } catch {}
-  if (options.url) {
-    const utm = { source: short(options.url.searchParams.get("utm_source")), medium: short(options.url.searchParams.get("utm_medium")), campaign: short(options.url.searchParams.get("utm_campaign"), 80) };
-    if (!utm.source && options.url.searchParams.get("ref")) utm.source = short(options.url.searchParams.get("ref"));
-    if (utm.source || utm.medium || utm.campaign) ctx.utm = Object.fromEntries(Object.entries(utm).filter(([, v]) => v)) as EventContext["utm"];
+  if (typeof country === "string" && /^[A-Z]{2}$/.test(country) && country !== "XX" && country !== "T1") out.country = country;
+  const region = label(req.headers["cf-region"]), city = label(req.headers["cf-ipcity"]);
+  if (region) out.region = region;
+  if (city) out.city = city;
+  const lat = Number(req.headers["cf-iplatitude"]), lon = Number(req.headers["cf-iplongitude"]);
+  if (req.headers["cf-iplatitude"] !== undefined && Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+    out.lat = Math.round(lat * 10) / 10; out.lon = Math.round(lon * 10) / 10;
   }
-  ctx.channel = channelOf(ctx.referrer, ctx.utm);
-  return ctx;
+  return out;
+}
+
+/** a referrer (a full address or a bare host) as its host, unless it is this host */
+export function referrerHost(value: unknown, own: string | null): string | undefined {
+  if (typeof value !== "string" || !value) return undefined;
+  let host: string;
+  try { host = (value.includes("/") ? new URL(value).hostname : value).toLowerCase(); } catch { return undefined; }
+  if (!/^[a-z0-9.-]{1,253}$/.test(host) || host === own) return undefined;
+  return host.slice(0, 80);
+}
+
+export interface Touch { referrer?: string; utmSource?: unknown; utmMedium?: unknown; utmCampaign?: unknown; utmContent?: unknown; utmTerm?: unknown; ref?: unknown }
+/** a visit's attribution: utm and ref tags win over the referrer */
+export function touchContext(touch: Touch): Pick<EventContext, "referrer" | "utm" | "ref" | "source" | "channel"> {
+  const utm = { source: short(touch.utmSource), medium: short(touch.utmMedium), campaign: short(touch.utmCampaign, 80), content: short(touch.utmContent, 80), term: short(touch.utmTerm, 80) };
+  const ref = short(touch.ref);
+  const kept = Object.fromEntries(Object.entries(utm).filter(([, v]) => v)) as EventContext["utm"];
+  const { source, channel } = classify({ referrer: touch.referrer ?? null, utmSource: utm.source ?? null, utmMedium: utm.medium ?? null, ref: ref ?? null });
+  return { ...(touch.referrer ? { referrer: touch.referrer } : {}), ...(kept && Object.keys(kept).length ? { utm: kept } : {}), ...(ref ? { ref } : {}), source, channel };
+}
+
+/** what a browser request says about where it came from: device, Cloudflare geo, referrer and tags */
+export function requestContext(req: IncomingMessage, options: { publicOrigin: string; trustProxy: boolean; url?: URL; referrer?: string }): EventContext {
+  const own = (() => { try { return new URL(options.publicOrigin).hostname; } catch { return null; } })();
+  const params = options.url?.searchParams;
+  return {
+    ...deviceOf(String(req.headers["user-agent"] ?? "")),
+    ...geoOf(req, options.trustProxy),
+    ...touchContext({ referrer: referrerHost(options.referrer ?? req.headers.referer, own), utmSource: params?.get("utm_source"), utmMedium: params?.get("utm_medium"),
+      utmCampaign: params?.get("utm_campaign"), utmContent: params?.get("utm_content"), utmTerm: params?.get("utm_term"), ref: params?.get("ref") ?? params?.get("via") }),
+  };
 }

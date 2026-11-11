@@ -1,3 +1,4 @@
+import { feature } from "./product-analytics";
 import {
   discardUnsentUpload,
   fileAttachmentFromFile,
@@ -47,7 +48,7 @@ export async function sendPlacedUpload(draftId: string, placed: Placed, file: Fi
   if (!replaceDraftAttachment(draftId, id, completed)) {
     if (completed.kind === "image") releaseAttachmentImagePreview(completed);
     discardUnsentUpload(completed);
-  }
+  } else feature("file_uploaded");
 }
 
 /** Sends a failed tile's file again; a tile with no file left to send is taken off instead. */
