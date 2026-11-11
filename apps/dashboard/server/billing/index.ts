@@ -40,6 +40,8 @@ export interface BillingOptions {
   notify?: (notice: BillingNotice) => void;
   /** a cloud's first time up, and a cloud the generic lifecycle took down */
   cloudEvent?: (kind: CloudEventKind, cloud: StoredCloud) => void;
+  /** every cloud status change */
+  cloudStatus?: (cloud: StoredCloud, from: StoredCloud["status"] | null) => void;
   /** the operator's alert for every deletion action of a managed cloud */
   alert?: (entry: { at: number; cloudId: string; action: string; actor: string; reason: string }) => void;
 }
@@ -103,7 +105,7 @@ export function createBilling(options: BillingOptions) {
   };
   // every hosted home refuses clients without a signed entitlement, so a service that runs homes must be able to sign one
   const entitlements = entitlementSignerFromEnv(env, { dataDir: options.dataDir, loopback, now, required: !loopback && (cloudProvider !== "off" || poolDriver !== "off" || managed !== null) });
-  const clouds = createCloudsService({ entitlements, onEvent: options.cloudEvent, dataDir: options.dataDir, now, providers: { pool, dedicated }, home, sealer: createSealer(sealKey), managed, managedHome: realHome,
+  const clouds = createCloudsService({ entitlements, onEvent: options.cloudEvent, onStatus: options.cloudStatus, dataDir: options.dataDir, now, providers: { pool, dedicated }, home, sealer: createSealer(sealKey), managed, managedHome: realHome,
     workspaces: {
       register({ accountId, name, publicKey }) {
         const id = `ws_${randomBytes(16).toString("base64url")}`;
@@ -145,7 +147,7 @@ export function createBilling(options: BillingOptions) {
         cloudDesktops: clouds.list(accountId, true).map(({ id, name, kind, region, spec, status, createdAt, updatedAt, destroyAt }) => ({ id, name, kind, region, spec, status, createdAt, updatedAt, destroyAt })),
       };
     },
-    enabled: context.enabled, sessionFields: admin.sessionFields, licenseCheck: service.licenseCheck, service, clouds, fake, fakePool,
+    enabled: context.enabled, sessionFields: admin.sessionFields, licenseCheck: service.licenseCheck, service, clouds, store, fake, fakePool,
     close() { clouds.close(); service.close(); },
   };
 }

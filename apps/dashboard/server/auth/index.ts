@@ -3,7 +3,7 @@ import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 
 import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
 import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, AppSessionIdentity, OAuthErrorCode, OAuthProvider } from "../../../../shared/account-api.ts";
 import { createAuthStore } from "./store.ts";
-import type { Account, Session } from "./store.ts";
+import type { Account, Identity, Session } from "./store.ts";
 import { codeMessage, recoveryMessage } from "./mail.ts";
 import type { Mailer } from "./mail.ts";
 import { emailConfig } from "../email/templates.ts";
@@ -77,6 +77,8 @@ export function createAuth(options: AuthOptions) {
   const deletedHooks: Array<(accountId: string, email: string | null) => void | Promise<void>> = [];
   const createdHooks: Array<(account: Account) => void> = [];
   const signedInHooks: Array<(account: Account) => void> = [];
+  const sessionHooks: Array<(session: Session) => void> = [];
+  const appSeenHooks: Array<(session: Session) => void> = [];
   const hmac = (value: string) => createHmac("sha256", store.secret).update(value).digest("base64url");
   const csrfFor = (session: Session) => hmac(session.tokenHash);
   const fail = (status: number, code: AccountErrorCode, fields?: Record<string, unknown>): never => { throw new AuthError(status, code, fields); };
@@ -132,6 +134,7 @@ export function createAuth(options: AuthOptions) {
     if (now() - found.session.lastSeenAt >= 60_000) { found.session.lastSeenAt = now(); changed = true; }
     if (found.session.expiresAt - now() < 30 * day) { found.session.expiresAt = now() + 90 * day; changed = true; }
     if (changed) store.changed();
+    for (const hook of appSeenHooks) hook(found.session);
     return found;
   }
   function view(owner: Account): AccountView {
@@ -153,6 +156,7 @@ export function createAuth(options: AuthOptions) {
       platform: device?.platform ?? null, appVersion: device?.appVersion ?? null, createdAt: now(), lastSeenAt: now(), expiresAt: now() + (device ? 90 : 30) * day };
     state.sessions.push(session);
     store.changed();
+    for (const hook of sessionHooks) hook(session);
     return { token, session };
   }
   function identity(owner: Account, session: Session): AppSessionIdentity {
@@ -514,6 +518,12 @@ export function createAuth(options: AuthOptions) {
     /** a new account, after its first sign-in */
     onAccountCreated(fn: (account: Account) => void) { createdHooks.push(fn); },
     onSignedIn(fn: (account: Account) => void) { signedInHooks.push(fn); },
+    /** every new session, web or app, after it is stored */
+    onSessionCreated(fn: (session: Session) => void) { sessionHooks.push(fn); },
+    /** an app's bearer session was used (its periodic session refresh is the heartbeat) */
+    onAppSeen(fn: (session: Session) => void) { appSeenHooks.push(fn); },
+    /** the operator's read of every account, identity and session; callers never change them */
+    directory: (): { readonly accounts: readonly Account[]; readonly identities: readonly Identity[]; readonly sessions: readonly Session[] } => state,
     consumeEnrollGrant(token: string) {
       sweep();
       const key = hash(token), grant = grants.get(key);
