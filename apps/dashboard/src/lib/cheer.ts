@@ -11,6 +11,8 @@ const emit = () => listeners.forEach((fn) => fn());
 
 /** a small pixel bot pops up in the corner and cheers, with the words as a toast for screen readers too */
 export function cheer(text: string, { confetti = false } = {}) {
+  // a big moment keeps the stage: a smaller cheer right after it only says its words
+  if (current?.confetti && !confetti) { toast(text); return; }
   current = { id: next++, text, ...(confetti ? { confetti } : {}) };
   toast(text);
   emit();
