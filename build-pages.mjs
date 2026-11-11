@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { botSvg, bodyName, restSvg } from './mascot-src/engine/geometry.js';
+import { DuskPixel, CROWD, COLOURS, bodyName, colourName } from './mascot-src/pixel/crowd.js';
 import { buildDocs } from './build-docs.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -96,12 +96,21 @@ export function markdown(md) {
   return out.join('\n');
 }
 
-// {{bot shape colour extra-classes}} in a page becomes one of the dusk bots (mascot-src/engine) in its rest pose, so
-// without script every bot still shows; mascot.js brings it to life. shapes: circle squircle pill hex star heart drop
-// moon cloud pixel, and the older names clover capsule gem
+// {{bot name colour extra-classes}} in a page becomes one of the pixel bots (mascot-src/pixel) in its rest frame, so
+// without script every bot still shows; mascot.js brings it to life. name is a pixel bot (pip, kit, boxo ...) or one of
+// the older shapes (circle hex heart ...), colour an electric colour (blue, violet, tangerine ...) or an older name.
+// the bot's 16 or 20 pixel grid fills the middle 80 of a 100 box, feet on 90
+const rested = new Map();
+export function pixelBot(name) {
+  if (!rested.has(name)) {
+    const r = DuskPixel.rest(name);
+    rested.set(name, `<g class="px" transform="translate(10 10) scale(${80 / r.G})"><path class="px-b" fill="currentColor" d="${r.body}"/><path class="px-e" fill="#fff" d="${r.eyes}"/></g>`);
+  }
+  return rested.get(name);
+}
 export function bot(shape, colour, extra = '') {
   const body = bodyName(shape);
-  return `<svg class="bot c-${colour}${extra ? ' ' + extra : ''}" viewBox="0 0 100 100" aria-hidden="true" data-body="${body}">${botSvg(body)}</svg>`;
+  return `<svg class="bot c-${colourName(colour)}${extra ? ' ' + extra : ''}" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="${body}">${pixelBot(body)}</svg>`;
 }
 const CHIP_NAMES = { calendar: 'google calendar', drive: 'google drive', docs: 'google docs', sheets: 'google sheets' };
 const logo = (name, eager) => `<img class="logo" src="/art/logos/${name}.${fs.existsSync(path.join(site, 'art', 'logos', `${name}.svg`)) ? 'svg' : 'png'}" alt="" width="20" height="20"${eager ? '' : ' loading="lazy"'} decoding="async">`;
@@ -134,15 +143,16 @@ const icon = (name, cls = '') => { if (!ICONS[name]) throw new Error(`no icon na
 // width, each half under the waterline
 function sea() {
   // far ones are small and sit higher on the water, near ones are bigger and lower; none on the sand or on a boat
+  // the whole pixel crowd is out swimming, kit nearest the middle
   const swim = [
-    ['circle', 'pink', 300, 770, 26], ['drop', 'green', 560, 752, 24], ['hex', 'purple', 820, 782, 28], ['squircle', 'yellow', 1290, 762, 26],
-    ['clover', 'blue', 1400, 800, 30], ['heart', 'orange', 680, 822, 30], ['star', 'yellow', 210, 830, 32],
-    ['circle', 'blue', 236, 884, 44], ['drop', 'yellow', 480, 900, 46], ['hex', 'orange', 748, 880, 40], ['clover', 'purple', 900, 916, 46],
-    ['heart', 'pink', 1230, 902, 42], ['squircle', 'green', 1372, 884, 38], ['star', 'green', 1060, 930, 40],
-    ['pill', 'pink', 360, 800, 28], ['hex', 'blue', 620, 870, 32],
-    ['pixel', 'pink', 100, 930, 40], ['squircle', 'blue', 800, 940, 44], ['drop', 'green', 1300, 940, 40], ['hex', 'yellow', 1500, 925, 38]];
-  const bots = swim.map(([shape, colour, x, y, size]) => `<g class="sb c-${colour}" transform="translate(${x} ${y}) scale(${size / 100})" clip-path="url(#sea-line)" data-body="${bodyName(shape)}" data-size="${size}"><g class="dip"><g transform="translate(0 -6)">${botSvg(shape)}</g></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g>`);
-  return `<svg class="sea-bots" viewBox="0 0 1600 1067" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath></defs>${bots.join('')}</svg>`;
+    ['pip', 'pink', 300, 770, 26], ['drip', 'emerald', 560, 752, 24], ['boxo', 'violet', 820, 782, 28], ['loaf', 'sun', 1290, 762, 26],
+    ['puff', 'blue', 1400, 800, 30], ['hearty', 'tangerine', 680, 822, 30], ['starry', 'sun', 210, 830, 32],
+    ['bruin', 'blue', 236, 884, 44], ['cheep', 'sun', 480, 900, 46], ['hoot', 'tangerine', 748, 880, 40], ['kit', 'violet', 900, 916, 46],
+    ['hearty', 'pink', 1230, 902, 42], ['ribbit', 'lime', 1372, 884, 38], ['sprout', 'emerald', 1060, 930, 40],
+    ['mochi', 'pink', 360, 800, 28], ['egg', 'mint', 620, 870, 32],
+    ['tofu', 'pink', 100, 930, 40], ['goo', 'cyan', 800, 940, 44], ['wisp', 'coral', 1300, 940, 40], ['hop', 'sky', 1500, 925, 38]];
+  const bots = swim.map(([shape, colour, x, y, size]) => `<g class="sb c-${colourName(colour)}" transform="translate(${x} ${y}) scale(${size / 100})" clip-path="url(#sea-line)" data-px="${bodyName(shape)}" data-size="${size}"><g class="dip"><g transform="translate(0 -6)">${pixelBot(bodyName(shape))}</g></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g>`);
+  return `<svg class="sea-bots" viewBox="0 0 1600 1067" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath></defs>${bots.join('')}</svg>`;
 }
 // {{os name}} is a platform mark from public/landing/art/os (simple-icons, cc0), inlined so it takes the text colour
 const os = (name) => fs.readFileSync(path.join(site, 'art', 'os', `${name}.svg`), 'utf8').replace(/<title>.*?<\/title>/, '').replace('<svg ', '<svg class="os" aria-hidden="true" fill="currentColor" ').replace(/ role="img"| xmlns="[^"]*"/g, '').trim();
@@ -184,9 +194,9 @@ const withRelease = (html) => {
     .replace(/\{\{file ([\w-]+)\}\}/g, (_, key) => rel.files[key]).replace(/\{\{(ios|android)-link\}\}/g, (_, key) => rel[key])
     .replace(/\{\{version\}\}/g, release.version).replace(/\{\{released-on\}\}/g, release.date).replace(/\{\{sums\}\}/g, release.sums);
 };
-const CREW = [['circle', 'blue', '#2f7bf2'], ['squircle', 'green', '#1fb866'], ['pill', 'purple', '#8d5cf0'], ['hex', 'orange', '#ff7d1f'], ['star', 'yellow', '#f8c623'], ['heart', 'pink', '#ff5c9d'], ['drop', 'blue', '#2f7bf2'], ['moon', 'purple', '#8d5cf0'], ['cloud', 'pink', '#ff5c9d'], ['pixel', 'orange', '#ff7d1f']];
-// {{crew}} on the brand page is the ten bots, each with its shape's name and a link to its svg
-function crewList() { return `<ul class="crew">${CREW.map(([shape, colour]) => `<li>{{bot ${shape} ${colour}}}<span>${shape}</span><a class="get" href="/brand/bots/${shape}.svg" download>{{i download}}svg<span class="vh"> of the ${shape} bot</span></a></li>`).join('')}</ul>`; }
+// {{crew}} on the brand page is the twenty pixel bots, kit first, each in its own colour with its name and a link to its svg
+const CREW = [...CROWD.filter(([name]) => name === 'kit'), ...CROWD.filter(([name]) => name !== 'kit')].map(([name, colour]) => [name, colour]);
+function crewList() { return `<ul class="crew">${CREW.map(([name, colour]) => `<li>{{bot ${name} ${colour}}}<span>${name}</span><a class="get" href="/brand/bots/${name}.svg" download>{{i download}}svg<span class="vh"> of ${name}</span></a></li>`).join('')}</ul>`; }
 export const macros = (html) => withBots(withLinks(withRelease(html.replace(/\{\{crew\}\}/g, () => crewList()))));
 
 // the nav, and every page in the footer
@@ -210,7 +220,7 @@ export function layout({ title, description, body, page, at, section = page, og 
   const here_ = (href) => (href === address ? ' aria-current="page"' : href === `/${section}` ? ' class="is-here"' : '');
   const links = (list) => list.map(([href, label]) => `<a href="${href}"${here_(href)}>${label}</a>`).join('');
   const foot = ([head, list]) => `<div><h2>${head}</h2>${list.map(([href, label]) => `<a href="${href}"${href === address ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div>`;
-  const brand = '<a class="brand" href="/"><img src="/art/cursor-88.webp" alt="" width="28" height="28">dusk bot</a>';
+  const brand = '<a class="brand" href="/"><img src="/art/logo-96.webp" alt="" width="28" height="28">dusk bot</a>';
   const css = home ? ['site.css', 'motion-kit-v2.css', 'home.css', ...(has('app-demo.css') ? ['app-demo.css'] : [])] : ['site.css', 'pages.css'];
   const tail = home
     ? `<script src="${stamped('motion.min.js')}"></script>\n${has('mascot.js') ? `<script src="${stamped('mascot.js')}" defer></script>\n` : ''}<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>${has('app-demo.js') ? `\n<script src="${stamped('app-demo.js')}"></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
@@ -324,9 +334,13 @@ ${strip('layers', 'circle blue, hex orange', 'short')}
 </div>` }));
 }
 
-// the brand page's downloads: each bot as a plain svg file
-fs.mkdirSync(path.join(site, 'brand', 'bots'), { recursive: true });
-for (const [shape, , hex] of CREW) fs.writeFileSync(path.join(site, 'brand', 'bots', `${shape}.svg`), restSvg(shape, { colour: hex, className: 'dusk-bot', attrs: 'xmlns="http://www.w3.org/2000/svg" width="400" height="400"' }).replace(' aria-hidden="true"', '').replace(/ data-body="\w+"/, '').replace(/currentColor/g, hex) + '\n');
+// the brand page's downloads: each bot as a plain svg file in its own colour; the smooth bots' files go
+const bots_ = path.join(site, 'brand', 'bots');
+fs.rmSync(bots_, { recursive: true, force: true });
+fs.mkdirSync(bots_, { recursive: true });
+for (const [name, colour] of CREW) fs.writeFileSync(path.join(bots_, `${name}.svg`), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="400" height="400" shape-rendering="crispEdges">${pixelBot(name).replace('currentColor', COLOURS[colour])}</svg>\n`);
+// kit as it stands in for the logo: white, with the logo's dark eyes
+fs.writeFileSync(path.join(bots_, 'kit-white.svg'), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="400" height="400" shape-rendering="crispEdges">${pixelBot('kit').replace('fill="#fff" d', 'fill="#212121" d').replace('currentColor', '#fff')}</svg>\n`);
 
 const docs = buildDocs({ here, site, markdown, layout, macros, strip, slug, text, write, esc, icon });
 

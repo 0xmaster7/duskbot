@@ -1,6 +1,6 @@
-// the home page's bots: engine/ draws and moves them; this file finds them, points them at the pointer, and tells them
-// what is going on around them on the page
-import { create, pointerGaze } from './engine/index.js';
+// the site's bots: pixel/ draws and moves them; this file finds them in the page and tells them what is going on
+// around them. the build already drew each one at rest, so this only takes over
+import { DuskPixel } from './pixel/crowd.js';
 
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -8,54 +8,25 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const later = (ms, fn) => setTimeout(fn, ms);
 const between = (min, max) => min + Math.random() * (max - min);
-// pointer look-about lasts this long after the pointer stops moving
-const HOLD_MS = 2600;
+
+// the names the pages use, on what the pixel engine knows
+const MOODS = { finished: 'done', curious: 'listening', celebrate: 'excited', busy: 'working', asleep: 'sleeping' };
+const MOVES = { tap: 'poke', greet: 'boing', open: 'nod', wiggle: 'wobble', perk: 'hop', celebrate: 'boing', bounce: 'boing' };
 
 const bots = new Map();
-for (const el of $$('svg.bot[data-body]')) bots.set(el, { el, bot: create(el) });
-$$('.sea-bots .sb[data-body]').forEach((el) => bots.set(el, { el, sea: true, bot: create(el, { size: 30 }) }));
+$$('svg.bot[data-px], .sea-bots .sb[data-px]').forEach((el, i) => {
+  bots.set(el, { el, sea: el.classList.contains('sb'), bot: DuskPixel.create(el, { body: el.dataset.px, seed: i * 7 + 3, tap: false }) });
+});
 
 const botOf = (el) => bots.get(el) || (el?.closest && bots.get(el.closest('svg.bot, .sb'))) || null;
 const botsIn = (el) => (el ? [...bots.values()].filter((rec) => el.contains(rec.el)) : []);
-const react = (rec, kind) => rec?.bot.react(kind);
-const setState = (rec, state) => rec?.bot.setState(state);
+const react = (rec, kind) => rec?.bot.react(MOVES[kind] || kind);
+const setState = (rec, state) => rec?.bot.setState(MOODS[state] || state);
 
-// the pointer: bots within reach turn their eyes and lean toward it, and look about again once it rests
-const hero = botOf($('.h-mark'));
-let seaWatch = null;
-if (!still && fine) {
-  let point = null, pending = false, rest = 0;
-  const rects = new Map();
-  const aim = () => {
-    pending = false;
-    for (const rec of bots.values()) {
-      if (rec.sea) continue;
-      if (!point) { rec.bot.lookAt(null); continue; }
-      let r = rects.get(rec);
-      if (!r) rects.set(rec, (r = rec.el.getBoundingClientRect()));
-      if (r.bottom < 0 || r.top > innerHeight) continue;
-      const g = pointerGaze(r, point.x, point.y, Math.max(180, r.width * 4.5));
-      rec.bot.lookAt(g ? g.x : null, g?.y);
-    }
-    seaWatch?.(point);
-  };
-  const ask = () => { if (!pending) { pending = true; requestAnimationFrame(aim); } };
-  addEventListener('pointermove', (e) => {
-    point = { x: e.clientX, y: e.clientY };
-    clearTimeout(rest);
-    rest = later(HOLD_MS, () => { point = null; ask(); });
-    ask();
-  }, { passive: true });
-  document.documentElement.addEventListener('pointerleave', () => { point = null; ask(); });
-  const forget = () => rects.clear();
-  addEventListener('scroll', forget, { passive: true });
-  addEventListener('resize', forget, { passive: true });
-}
-
-// a click on a bot is a tap: a small answer, and quick repeats spin, then escalate to a hop, a squish and dizzy
+// a click on a bot is a poke: a bouncy answer, and five quick ones make it dizzy
 document.addEventListener('click', (e) => {
   const rec = botOf(e.target) || botOf(e.target.closest?.('[data-own]')?.querySelector('svg.bot'));
-  if (rec) react(rec, 'tap');
+  if (rec) rec.bot.poke(e);
 });
 
 // for the rest of the page: duskBots.react(el, 'hop'), duskBots.state(el, 'working'); el is a bot or anything around bots
@@ -71,7 +42,8 @@ function watch(el, fn, threshold = 0) {
 }
 const hover = (el, fn) => fine && el?.addEventListener('pointerenter', fn);
 
-// the bot in the headline: says hi once it is seen, and wiggles when the pointer comes onto the headline
+// kit in the headline: says hi once it is seen, and wobbles when the pointer comes onto the headline
+const hero = botOf($('.h-mark'));
 if (hero) {
   let greeted = false, wiggled = 0;
   watch(hero.el, (on) => { if (on && !greeted) { greeted = true; later(900, () => react(hero, 'greet')); } }, 0.6);
@@ -109,8 +81,8 @@ for (const toggle of $$('.rows .toggle')) {
     clearTimeout(back);
     if (toggle.getAttribute('aria-checked') === 'false') return setState(rec, 'sleeping');
     if (first) return;
-    setState(rec, 'happy');
-    react(rec, 'hop');
+    rec.bot.o.after = 'happy';
+    setState(rec, 'waking');
     back = later(3700, () => setState(rec, 'idle'));
   };
   sync(true);
@@ -138,15 +110,15 @@ if (room) {
   watch(room, (on) => {
     if (!on || read) return;
     read = true;
-    later(300, () => all('orange', 'nod'));
-    later(1100, () => all('yellow', 'hop'));
+    later(300, () => all('tangerine', 'nod'));
+    later(1100, () => all('sun', 'hop'));
     later(2100, () => all('pink', 'greet'));
   }, 0.6);
-  for (const at of $$('.at.yellow, .at.pink', room)) hover(at, () => all(at.classList.contains('yellow') ? 'yellow' : 'pink', 'hop'));
+  for (const at of $$('.at.yellow, .at.pink', room)) hover(at, () => all(at.classList.contains('yellow') ? 'sun' : 'pink', 'hop'));
 }
 
-// the terraces: each bot works on its task, finishes it (happy, a hop), rests a little, then takes the next one, on
-// its own clock. only while the strip is on screen
+// the terraces: each bot works on its task, finishes it (a hop, happy eyes), rests a little, then takes the next one,
+// on its own clock. only while the strip is on screen
 const terraces = $$('.terr .tb svg.bot').map(botOf).filter(Boolean);
 if (terraces.length && !still) {
   let on = false;
@@ -182,7 +154,7 @@ for (const li of $$('.steps > li')) hover(li, () => {
   botsIn($('.shapes', li)).forEach((rec, i) => later(i * 70, () => react(rec, 'hop')));
 });
 
-// the bot beside the questions: it listens with its head on one side when one opens, then nods
+// the bot beside the questions: it listens when one opens, then nods
 const listener = botOf($('.listener svg.bot'));
 if (listener) {
   let nod = 0;
@@ -194,21 +166,17 @@ if (listener) {
   });
 }
 
-// the sea in the last picture: the bots come up one by one the first time it is seen, watch the pointer from across the
-// water, and when it gets close they duck under, coming back up a moment later
+// the sea in the last picture: the swimmers come up one by one the first time it is seen, and when the pointer gets
+// close one ducks under, coming back up a moment later. their eyes follow a near pointer on their own
 const end = $('.end'), water = $('.sea-bots');
 if (end && water && 'IntersectionObserver' in window && !still) {
   const box = water.viewBox.baseVal;
-  const crew = $$('.sb', water).map((el) => {
-    const m = el.transform.baseVal.consolidate().matrix;
-    return { el, bot: bots.get(el).bot, x: m.e + 50 * m.a, y: m.f + 45 * m.a, size: 100 * m.a, under: false, timer: 0 };
+  const crew = [...bots.values()].filter((rec) => rec.sea).map((rec) => {
+    const m = rec.el.transform.baseVal.consolidate().matrix;
+    return { el: rec.el, bot: rec.bot, x: m.e + 50 * m.a, y: m.f + 45 * m.a, size: 100 * m.a, under: false, timer: 0 };
   });
-  let live = false, shown = false, bobbing = 0;
-  const up = (b) => {
-    b.under = false;
-    b.el.classList.remove('dive');
-    b.bot.blink();
-  };
+  let live = false, shown = false, bobbing = 0, pending = false, point = null;
+  const up = (b) => { b.under = false; b.el.classList.remove('dive'); };
   const dive = (b, ms) => {
     b.under = true;
     b.el.classList.add('dive');
@@ -219,7 +187,7 @@ if (end && water && 'IntersectionObserver' in window && !still) {
     shown = true;
     [...crew].sort(() => Math.random() - 0.5).forEach((b, i) => later(250 + i * 140, () => {
       b.el.classList.add('up');
-      if (Math.random() < 0.5) b.bot.react('perk');
+      if (Math.random() < 0.5) b.bot.react('hop');
     }));
   };
   end.classList.add('arm');
@@ -234,17 +202,17 @@ if (end && water && 'IntersectionObserver' in window && !still) {
       if (free.length) dive(free[Math.floor(Math.random() * free.length)], 520);
     }, 2600);
   });
-  seaWatch = (point) => {
-    if (!live) return;
-    if (!point) return crew.forEach((b) => b.bot.lookAt(null));
+  const near = () => {
+    pending = false;
+    if (!live || !point) return;
     const r = water.getBoundingClientRect(), k = r.width / box.width;
     for (const b of crew) {
-      const dx = point.x - (r.left + b.x * k), dy = point.y - (r.top + b.y * k), d = Math.hypot(dx, dy) || 1;
-      // from far away: a gentle look, spread over the whole picture
-      const reach = Math.max(320, r.width * 0.3), t = Math.tanh(d / reach) / (d / reach);
-      b.bot.lookAt((dx / reach) * t, (dy / reach) * t * 0.8);
-      if (d > 22 + b.size * k || b.under) continue;
+      if (b.under || Math.hypot(point.x - (r.left + b.x * k), point.y - (r.top + b.y * k)) > 22 + b.size * k) continue;
       dive(b, between(900, 1700));
     }
   };
+  if (fine) addEventListener('pointermove', (e) => {
+    point = { x: e.clientX, y: e.clientY };
+    if (!pending) { pending = true; requestAnimationFrame(near); }
+  }, { passive: true });
 }

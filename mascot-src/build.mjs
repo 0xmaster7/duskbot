@@ -1,7 +1,7 @@
 // bundles the home page's bots into public/landing/mascot.js (one minified file, no runtime deps).
 //   node mascot-src/build.mjs
-// engine/ is the bots themselves (geometry, faces, moods, springs), free of any framework so the app can use it too;
-// site.js is the page glue. build-pages.mjs imports engine/geometry.js to draw each bot's rest pose into the html.
+// pixel/ is the bots themselves (the engine and the twenty drawings), free of any framework;
+// site.js is the page glue. build-pages.mjs imports pixel/crowd.js to draw each bot's rest frame into the html.
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';

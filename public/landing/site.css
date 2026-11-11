@@ -27,7 +27,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 .brand, .bar nav a.cta { position: relative; }
 .brand::before, .bar nav a.cta::before { content: ""; position: absolute; inset: -8px 0; }
 .brand img { width: 28px; height: 28px; transition: rotate 0.4s cubic-bezier(0.3, 1.6, 0.5, 1); }
-.brand:hover img { rotate: -18deg; }
+.brand:hover img { rotate: -8deg; }
 .bar nav { display: flex; align-items: center; gap: 4px; }
 .bar nav a { color: var(--ink-2); text-decoration: none; font-size: 15px; padding: 8px 12px; border-radius: 999px; }
 .bar nav a:hover, .bar nav a[aria-current="page"], .bar nav a.is-here { color: var(--ink); background: var(--wash); }
