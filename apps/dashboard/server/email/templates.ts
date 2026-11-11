@@ -27,7 +27,7 @@ export function formatMoney(cents: number, currency = "USD") {
 const joinOr = (items: string[]) => items.length > 1 ? `${items.slice(0, -1).join(", ")} or ${items.at(-1)}` : items[0] ?? "";
 
 /** every image the emails use, relative to the asset base; the site build must ship each one */
-export const EMAIL_ASSETS = ["kit-64.png", "cloud-night.png", "tip-jobs.png", "tip-routines.png", "tip-rooms.png",
+export const EMAIL_ASSETS = ["kit-64.png", "cloud-day.png", "tip-jobs.png", "tip-routines.png", "tip-rooms.png",
   ...["code", "welcome", "cloud-ready", "receipt", "payment", "napping", "heads-up", "cloud-gone", "bye", "promo"].map(scene => `scene-${scene}.png`)];
 
 const scene = (name: string, alt: string) => ({ image: `scene-${name}.png`, alt, height: 200 });
@@ -97,7 +97,7 @@ export function welcomeEmail(cfg: EmailConfig, { cloudFromCents }: { cloudFromCe
         text: "your laptop sleeps. your bots don't have to. dusk cloud gives them their own always-on computer, so routines run on time and replies land while your lid is shut.",
         points: ["runs when your computer is off", "your desktop and phone reach it from anywhere", "set up and looked after for you, with backups"],
         price: `from ${formatMoney(cloudFromCents).replace(/\.00$/, "")}/mo`, fine: "cancel any time", cta: { label: "get dusk cloud", href: `${cfg.app}/cloud` },
-        image: "cloud-night.png", alt: "pixel bots wide awake on a cloud under a starry night sky." },
+        image: "cloud-day.png", alt: "three pixel bots wide awake on a cloud in a blue sky." },
       { t: "h2", text: "3 pro tips to start" },
       { t: "tips", items: [
         { image: "tip-jobs.png", alt: "two pixel bots, each with its own badge.", title: "give each bot a job", text: "one for your inbox, one for research, one for code. a clear job makes a sharper bot." },

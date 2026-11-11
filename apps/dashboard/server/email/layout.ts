@@ -46,7 +46,7 @@ export interface Rendered { subject: string; html: string; text: string }
 
 const C = {
   canvas: "#eaf6fd", card: "#fdfdfd", edge: "#d6eaf6", under: "#d0cefb", ink: "#1b1b1f", body: "#4a4a54", muted: "#83838e", line: "#ebebef",
-  box: "#f2f8fc", lemon: "#fff3a0", pink: "#ffc4dd", sky: "#c2ecfc", lime: "#c9f63f", night: "#0f1a44", nightText: "#c9d2f2", green: "#10a760", amber: "#c27c00", red: "#d6336c",
+  box: "#f2f8fc", lemon: "#fff3a0", pink: "#ffc4dd", sky: "#c2ecfc", lime: "#c9f63f", green: "#10a760", amber: "#c27c00", red: "#d6336c",
 };
 const SANS = "'General Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
 const MONO = "'Geist Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace";
@@ -86,8 +86,7 @@ function blockHtml(cfg: EmailConfig, block: Block): string {
     case "button": return `<div style="margin:6px 0 26px">${button(block.label, block.href)}</div>`;
     case "link": return p(`${block.before ? `${esc(block.before)} ` : ""}<a class="ink" href="${esc(block.href)}" target="_blank" style="color:${C.ink};font-weight:600;text-decoration:underline;text-underline-offset:3px">${esc(block.label)}</a>`, "font-size:15px;line-height:24px");
     // one string, so copy, paste and one-tap code fill see the whole code; the gap after the fourth digit is padding, not a character
-    case "code": return stepped(`<div class="muted" style="font-family:${MONO};font-size:12.5px;line-height:16px;letter-spacing:0.02em;color:${C.muted}">your code</div>
-<div class="ink" style="padding-top:10px;font-family:${MONO};font-size:40px;line-height:48px;font-weight:600;letter-spacing:0.14em;color:${C.ink};-webkit-user-select:all;user-select:all">${
+    case "code": return stepped(`<div class="ink" style="font-family:${MONO};font-size:40px;line-height:48px;font-weight:600;letter-spacing:0.14em;color:${C.ink};-webkit-user-select:all;user-select:all">${
       block.code.length === 8 ? `<span style="padding-right:12px">${esc(block.code.slice(0, 4))}</span>${esc(block.code.slice(4))}` : esc(block.code)}</div>`,
       { fill: C.box, fillCls: "box", under: C.lemon, underCls: "", pad: "18px 12px 18px", align: "center", margin: "4px 0 22px" });
     case "facts": return stepped(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -112,20 +111,20 @@ ${block.items.map(item => `<tr><td valign="top" width="88" style="padding:0 0 20
       return stepped(`<span class="ink" style="font-family:${SANS};font-size:14.5px;line-height:22px;color:${C.ink}">${prose(block.text)}</span>`,
         { fill: tone.bg, fillCls: tone.cls, under: tone.edge, underCls: "", pad: "13px 18px", margin: "0 0 22px" });
     }
-    case "cloud": return stepped(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.night}" style="background:${C.night}">
+    case "cloud": return stepped(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.box}" style="background:${C.box}" class="box">
 <tr><td style="padding:0"><img src="${esc(img(cfg, block.image))}" width="520" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:520px;height:auto;border:0"></td></tr>
 <tr><td class="cloud-pad" style="padding:22px 26px 26px">
-<div style="font-family:${MONO};font-size:12.5px;line-height:18px;letter-spacing:0.04em;color:${C.lime}">${esc(block.eyebrow)}</div>
-<div style="padding-top:8px;font-family:${SANS};font-size:24px;line-height:30px;font-weight:600;letter-spacing:-0.02em;color:#fdfdfd">${esc(block.title)}</div>
-<div style="padding-top:10px;font-family:${SANS};font-size:15.5px;line-height:24px;color:${C.nightText}">${prose(block.text).replace(/color:#1b1b1f/g, "color:#fdfdfd")}</div>
+<div style="font-family:${MONO};font-size:12.5px;line-height:18px;letter-spacing:0.04em;color:${C.muted}" class="muted">${esc(block.eyebrow)}</div>
+<div style="padding-top:8px;font-family:${SANS};font-size:24px;line-height:30px;font-weight:600;letter-spacing:-0.02em;color:${C.ink}" class="ink">${esc(block.title)}</div>
+<div style="padding-top:10px;font-family:${SANS};font-size:15.5px;line-height:24px;color:${C.body}" class="soft">${prose(block.text)}</div>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 0">
-${block.points.map(point => `<tr><td valign="top" width="20" style="padding:8px 0 0"><div style="width:7px;height:7px;background:${C.lime}"></div></td><td style="font-family:${SANS};font-size:15px;line-height:24px;color:#fdfdfd;padding:0 0 4px">${esc(point)}</td></tr>`).join("\n")}
+${block.points.map(point => `<tr><td valign="top" width="20" style="padding:8px 0 0"><div class="dot" style="width:7px;height:7px;background:${C.ink}"></div></td><td class="ink" style="font-family:${SANS};font-size:15px;line-height:24px;color:${C.ink};padding:0 0 4px">${esc(point)}</td></tr>`).join("\n")}
 </table>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 0"><tr>
 <td bgcolor="${C.lime}" style="background:${C.lime}"><a href="${esc(block.cta.href)}" target="_blank" style="display:inline-block;padding:13px 24px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:600;letter-spacing:-0.01em;color:${C.ink};text-decoration:none">${esc(block.cta.label)}</a></td>
-<td style="padding-left:16px;font-family:${SANS};font-size:15px;line-height:20px;color:#fdfdfd"><b style="font-weight:600">${esc(block.price)}</b><br><span style="font-size:13px;color:${C.nightText}">${esc(block.fine)}</span></td>
+<td class="ink" style="padding-left:16px;font-family:${SANS};font-size:15px;line-height:20px;color:${C.ink}"><b style="font-weight:600">${esc(block.price)}</b><br><span class="muted" style="font-size:13px;color:${C.muted}">${esc(block.fine)}</span></td>
 </tr></table>
-</td></tr></table>`, { fill: C.night, fillCls: "", under: C.lime, underCls: "", pad: "0", margin: "8px 0 30px" });
+</td></tr></table>`, { fill: C.box, fillCls: "box", under: C.lime, underCls: "", pad: "0", margin: "8px 0 30px" });
     case "feature": return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px">
 ${block.image ? `<tr><td style="padding:0 0 14px"><img src="${esc(img(cfg, block.image))}" width="520" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:520px;height:auto;border:0"></td></tr>` : ""}
 <tr><td><div class="ink" style="font-family:${SANS};font-size:18px;line-height:25px;font-weight:600;letter-spacing:-0.015em;color:${C.ink}">${esc(block.title)}</div>
