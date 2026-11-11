@@ -203,7 +203,7 @@ export const macros = (html) => withBots(withLinks(withRelease(html.replace(/\{\
 const NAV = [['/download', 'download'], ['/docs', 'docs'], ['/pricing', 'pricing']];
 const MENU = [...NAV, ['/changelog', "what's new"], ['/about', 'about'], ['/contact', 'contact']];
 const FOOT = [
-  ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], [APP_URL, 'sign in']]],
+  ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], ['/waitlist', 'join the waitlist'], [APP_URL, 'sign in']]],
   ['learn', [['/docs', 'docs'], ['/docs/getting-started', 'get started'], ['/docs/your-own-server', 'your own server'], ['/docs/faq', 'questions']]],
   ['dusk bot', [['/about', 'about'], ['/contact', 'contact'], ['/brand', 'brand'], ['/security', 'security']]],
   ['legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/license', 'license']]],
@@ -213,15 +213,15 @@ const ogImage = (name) => `${SITE_URL}/art/${OG[name] || (has(`art/og-${name}.jp
 const ld = (data) => `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
 
 // page: its name (home, download, docs ...); at: its address on the site; section: the nav item it sits under;
-// kind: extra classes on <main>; scripts: more files after the shared ones; jsonld: structured data for search engines
-export function layout({ title, description, body, page, at, section = page, og = section, kind = '', scripts = [], jsonld = [], noindex = false }) {
+// kind: extra classes on <main>; scripts, styles: more files after the shared ones; jsonld: structured data for search engines
+export function layout({ title, description, body, page, at, section = page, og = section, kind = '', scripts = [], styles = [], jsonld = [], noindex = false }) {
   const home = page === 'home';
   const address = at ?? (home ? '/' : `/${page}`);
   const here_ = (href) => (href === address ? ' aria-current="page"' : href === `/${section}` ? ' class="is-here"' : '');
   const links = (list) => list.map(([href, label]) => `<a href="${href}"${here_(href)}>${label}</a>`).join('');
   const foot = ([head, list]) => `<div><h2>${head}</h2>${list.map(([href, label]) => `<a href="${href}"${href === address ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div>`;
   const brand = '<a class="brand" href="/"><img src="/art/logo-96.webp" alt="" width="28" height="28">dusk bot</a>';
-  const css = home ? ['site.css', 'motion-kit-v2.css', 'home.css', ...(has('app-demo.css') ? ['app-demo.css'] : [])] : ['site.css', 'pages.css'];
+  const css = home ? ['site.css', 'motion-kit-v2.css', 'home.css', ...(has('app-demo.css') ? ['app-demo.css'] : [])] : ['site.css', 'pages.css', ...styles.filter(has)];
   const tail = home
     ? `<script src="${stamped('motion.min.js')}"></script>\n${has('mascot.js') ? `<script src="${stamped('mascot.js')}" defer></script>\n` : ''}<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>${has('app-demo.js') ? `\n<script src="${stamped('app-demo.js')}"></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
     : ['mascot.js', 'site.js', 'pages.js', ...scripts].filter(has).map((file) => `<script src="${stamped(file)}" defer></script>`).join('\n');
