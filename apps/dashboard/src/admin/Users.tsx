@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ArrowLeft } from "@/icons";
 import { Segmented } from "../ui/kit";
 import { Nil, Table, Td, Th } from "../ui/table";
@@ -18,7 +18,7 @@ function useDebounced(value: string, ms = 220) {
   return out;
 }
 
-export function UsersPage() {
+export function UsersPage({ tabs }: { tabs?: ReactNode }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [offset, setOffset] = useState(0);
@@ -28,7 +28,7 @@ export function UsersPage() {
   const now = useNow(60_000);
   return (
     <>
-      <AdminHeader title="users" sub={data ? `${n(data.total)} ${filter === "all" && !search ? "accounts" : "match"}` : "everyone with an account"} />
+      <AdminHeader title="people" sub={data ? `${n(data.total)} ${filter === "all" && !search ? "accounts" : "match"}` : "everyone with an account"} tabs={tabs} />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <SearchBox value={q} onChange={setQ} label="search users" placeholder="email, name or account id" />
         <Segmented<Filter> label="show" value={filter} options={[...FILTERS]} onChange={setFilter} />
@@ -82,7 +82,7 @@ export function UserPage({ id }: { id: string }) {
   const now = useNow(60_000);
   return (
     <>
-      <Link to="/admin/users" className="hover-link mb-4 inline-flex items-center gap-1.5 text-13 text-ink-3"><ArrowLeft size={14} strokeWidth={1.75} aria-hidden /> users</Link>
+      <Link to="/admin/people" className="hover-link mb-4 inline-flex items-center gap-1.5 text-13 text-ink-3"><ArrowLeft size={14} strokeWidth={1.75} aria-hidden /> people</Link>
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading rows={10} />}
       {data && (

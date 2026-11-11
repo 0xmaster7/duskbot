@@ -64,6 +64,55 @@
     vid = vid || random(16);
     sid = sid || random(16);
     var pv, path, pagePath, depth = 0, engaged = 0, since = null;
+    var sections = [], observer, forms = [], errors = 0, rage;
+    function slug(value) {
+      return (value || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40).replace(/_+$/, "");
+    }
+    function sectionName(el) {
+      var classes = (el.getAttribute("class") || "").split(/\s+/).filter(function (name) { return name && name !== "wrap"; });
+      return slug(el.getAttribute("data-dusk-section") || el.id || classes[0]);
+    }
+    function sectionOf(el) {
+      var section = el.closest("[data-dusk-section], section");
+      return section ? sectionName(section) : "";
+    }
+    function labelOf(el) {
+      if (el.closest('[contenteditable]:not([contenteditable="false"])')) return "";
+      var label = el.getAttribute("data-dusk-label") || el.getAttribute("aria-label") ||
+        (!el.querySelector("input,textarea,select,[contenteditable]") && el.textContent) || "";
+      return /@|\d{4}/.test(label) ? "" : slug(label.trim().split(/\s+/).slice(0, 4).join(" "));
+    }
+    function scanSections() {
+      if (observer) observer.disconnect();
+      sections = [];
+      if (!w.IntersectionObserver) return;
+      var targets = [], view = pv;
+      observer = new w.IntersectionObserver(safe(function (entries) {
+        if (pv !== view) return;
+        time();
+        entries.forEach(function (entry) {
+          targets.forEach(function (target) {
+            if (target.el !== entry.target) return;
+            var visible = entry.isIntersecting && entry.intersectionRatio >= 0.5;
+            if (visible !== target.visible) target.section.visibleCount += visible ? 1 : -1;
+            target.visible = visible;
+          });
+        });
+      }), { threshold: 0.5 });
+      Array.prototype.forEach.call(d.querySelectorAll("section, [data-dusk-section]"), function (el) {
+        var name = sectionName(el), parent = el.parentElement;
+        if (!name) return;
+        while (parent) {
+          if (parent.matches("section, [data-dusk-section]") && sectionName(parent) === name) return;
+          parent = parent.parentElement;
+        }
+        var section;
+        sections.some(function (item) { if (item.name === name) section = item; return !!section; });
+        if (!section) { section = { name: name, ms: 0, visibleCount: 0 }; sections.push(section); }
+        targets.push({ el: el, section: section, visible: false });
+        observer.observe(el);
+      });
+    }
     function cleanPath(value) {
       return value.split("/").map(function (segment) { return /@|%40/i.test(segment) ? ":id" : segment; }).join("/").slice(0, 200);
     }
@@ -89,13 +138,26 @@
     }
     function time() {
       var now = Date.now();
-      if (since !== null) engaged += Math.max(0, now - since);
+      if (since !== null) {
+        var elapsed = Math.max(0, now - since);
+        engaged += elapsed;
+        sections.forEach(function (section) { if (section.visibleCount) section.ms += elapsed; });
+      }
       since = d.visibilityState === "visible" ? now : null;
     }
     function leave(force) {
       if (!pv) return;
       measure();
       time();
+      var batch = [];
+      sections.forEach(function (section) {
+        if (section.ms >= 300 && batch.length < 30) batch.push([section.name, Math.round(section.ms)]);
+        section.ms = 0;
+      });
+      if (batch.length) send("sections", { l: batch });
+      forms.forEach(function (form) {
+        if (!form.submitted && !form.abandoned) { goal("form_abandon", form.meta); form.abandoned = true; }
+      });
       if (force === true || engaged > 0 || depth > 0) send("leave", { s: depth, t: Math.round(engaged) });
     }
     function pageview() {
@@ -105,7 +167,11 @@
       path = cleanPath(pagePath);
       pv = random(6);
       depth = engaged = 0;
+      forms = [];
+      errors = 0;
+      rage = null;
       since = d.visibilityState === "visible" ? Date.now() : null;
+      scanSections();
       measure();
       var extra = { w: w.innerWidth }, utm = {}, params = new URLSearchParams(loc.search);
       "utm_source utm_medium utm_campaign utm_content utm_term ref via source".split(" ").forEach(function (key) {
@@ -126,7 +192,6 @@
         Object.keys(meta).some(function (key) {
           var value = meta[key];
           if (typeof value === "string") clean[key] = value.slice(0, 100);
-          else if (typeof value === "number" && isFinite(value)) clean[key] = value;
           return Object.keys(clean).length === 5;
         });
       }
@@ -134,10 +199,10 @@
       send("goal", extra);
     });
     function attributes(el) {
-      var meta = Object.create(null);
+      var meta = { section: sectionOf(el), label: labelOf(el) };
       for (var k = 0; k < el.attributes.length; k++) {
         var attr = el.attributes[k];
-        if (attr.name.indexOf("data-dusk-") === 0 && attr.name !== "data-dusk-goal") meta[attr.name.slice(10)] = attr.value;
+        if (/^data-dusk-/.test(attr.name) && !/^data-dusk-(goal|section|label)$/.test(attr.name)) meta[attr.name.slice(10)] = attr.value;
       }
       return meta;
     }
@@ -160,24 +225,67 @@
       w.history[method] = safe(function () { var result = original.apply(this, arguments); pageview(); return result; });
     });
     w.addEventListener("popstate", safe(pageview));
+    ["error", "unhandledrejection"].forEach(function (event) {
+      w.addEventListener(event, safe(function () {
+        if (pv && errors < 5) { errors++; goal("js_error", { label: event === "error" ? "error" : "rejection" }); }
+      }));
+    });
     d.addEventListener("click", safe(function (event) {
       var el = event.target;
       if (el && !el.closest) el = el.parentElement;
-      if (!el || !el.closest) return;
+      if (!el || !el.closest || el.closest("input, textarea, select, [data-dusk-ignore]")) return;
+      var now = Date.now(), x = event.clientX, y = event.clientY;
+      if (!rage || now - rage.at > 700 || Math.pow(x - rage.x, 2) + Math.pow(y - rage.y, 2) > 900) {
+        rage = { at: now, x: x, y: y, count: 0 };
+      }
+      var target = el.closest('a[href], button, [role="button"]') || el;
+      var meta = { section: sectionOf(target), label: labelOf(target) };
+      if (++rage.count === 3) goal("rage_click", meta);
       var tagged = el.closest("[data-dusk-goal]");
       if (tagged) { goal(tagged.getAttribute("data-dusk-goal"), attributes(tagged)); return; }
-      var link = el.closest("a[href]");
-      if (!link) return;
-      var url = new URL(link.href, loc.href), host = url.hostname;
-      if (!/^https?:$/.test(url.protocol)) return;
-      var internal = host === loc.hostname || host.slice(-(loc.hostname.length + 1)) === "." + loc.hostname;
-      if (internal && /^\/(app|signup)/.test(url.pathname)) goal("cta_click", { to: url.pathname, from: loc.pathname });
-      else if (/\/download|\.(dmg|exe|msi|appimage|deb|rpm)$/i.test(url.pathname)) goal("download_click", { to: url.pathname });
-      else if (!internal) goal("outbound", { host: host });
+      var link = el.closest("a[href]"), name = "click";
+      if (link) {
+        var url = new URL(link.href, loc.href), host = url.hostname;
+        if (!/^https?:$/.test(url.protocol)) return;
+        var internal = host === loc.hostname || host.slice(-(loc.hostname.length + 1)) === "." + loc.hostname;
+        if (internal && /^\/(app|signup)/.test(url.pathname)) {
+          name = "cta_click";
+          meta.from = loc.pathname;
+        } else if (/\/download|\.(dmg|exe|msi|appimage|deb|rpm)$|apps\.apple|play\.google/i.test(host + url.pathname)) name = "download_click";
+        else if (!internal) { name = "outbound"; meta.host = host; }
+        if (name !== "outbound") meta.to = url.pathname;
+      }
+      if (name === "download_click") {
+        var destination = (url.hostname + url.pathname).toLowerCase();
+        var platform = slug(link.getAttribute("data-dusk-platform"));
+        if (!platform) {
+          if (/\.dmg|mac/.test(destination)) platform = "mac";
+          else if (/\.exe|\.msi|win/.test(destination)) platform = "windows";
+          else if (/\.appimage|\.deb|\.rpm|linux/.test(destination)) platform = "linux";
+          else if (/apps\.apple|ios/.test(destination)) platform = "ios";
+          else if (/play\.google|android/.test(destination)) platform = "android";
+          else platform = (meta.label.match(/(?:^|_)(mac|windows|linux)(?:_|$)/) || [])[1];
+        }
+        if (platform) meta.value = platform;
+      } else {
+        var value = slug(target.getAttribute("data-dusk-value") || target.getAttribute("data-period") || target.getAttribute("data-platform"));
+        if (value) meta.value = value;
+      }
+      if (name !== "click" || (target.matches('a[href], button, [role="button"]') && meta.label)) goal(name, meta);
+    }), true);
+    d.addEventListener("focusin", safe(function (event) {
+      var el = event.target;
+      if (!el || !el.matches("input, textarea, select") || el.closest("[data-dusk-ignore]")) return;
+      var form = el.closest("form");
+      if (!form || !form.querySelector('input[type="email"]') || forms.some(function (item) { return item.el === form; })) return;
+      var meta = { label: slug(form.getAttribute("data-dusk-goal") || form.id || "form"), section: sectionOf(form) };
+      forms.push({ el: form, meta: meta, submitted: false });
+      goal("form_start", meta);
     }), true);
     d.addEventListener("submit", safe(function (event) {
       var form = event.target;
       if (!form || form.tagName !== "FORM") return;
+      forms.forEach(function (item) { if (item.el === form) item.submitted = true; });
       if (form.hasAttribute("data-dusk-goal")) { goal(form.getAttribute("data-dusk-goal"), attributes(form)); return; }
       var email = form.querySelector('input[type="email"]');
       if (/waitlist|\bwl-form\b/i.test([form.id, form.className, form.getAttribute("action"), form.getAttribute("name")].join(" ")) &&

@@ -1,7 +1,9 @@
-export const APP_FEATURES = ["bot_created", "bot_edited", "routine_created", "routine_ran", "room_created", "computer_used", "voice_used", "file_uploaded", "app_connected", "cloud_opened", "chat_opened", "memory_edited", "skill_added", "webhook_created", "phone_paired", "search_used", "settings_opened"] as const;
+export const APP_FEATURES = ["bot_created", "bot_edited", "bot_deleted", "routine_created", "routine_edited", "routine_deleted", "routine_ran", "room_created", "computer_used",
+  "voice_used", "call_started", "file_uploaded", "app_connected", "cloud_opened", "chat_opened", "memory_edited", "skill_added", "webhook_created", "phone_paired",
+  "search_used", "settings_opened", "settings_changed", "reaction_added", "team_imported"] as const;
 type Feature = typeof APP_FEATURES[number];
 type Platform = "darwin" | "win32" | "linux" | "ios" | "android";
-type Props = Record<string, string | number>;
+type Props = Record<string, string | number | boolean>;
 type Event = { name: string; at: number; props: Props };
 /** a transport that posts for this page (the desktop's main process), in place of `origin` and `token` */
 type Relay = { send(batch: { install: string; session: string; events: Event[] }): Promise<unknown>; clear(): Promise<unknown> };
@@ -9,6 +11,7 @@ type Options = { origin: string | null; token: string | null; platform: Platform
 type Pending = { event: Event; retried: boolean };
 const ID = /^[A-Za-z0-9_-]{16,40}$/;
 const WORD = /^[a-z0-9_]{1,40}$/;
+const EXTRA_KEY = /^[a-z][a-z_]{0,19}$/;
 const VERSION = /^[0-9A-Za-z][0-9A-Za-z.+-]{0,39}$/;
 const PLATFORMS: readonly string[] = ["darwin", "win32", "linux", "ios", "android"];
 const started = Date.now();
@@ -100,6 +103,22 @@ function cleanProps(name: string, props: Record<string, unknown>): Props | null 
     case "app_messages": return count(props.sent) && count(props.replies) && count(props.latencyMs) ? { sent: props.sent, replies: props.replies, latencyMs: props.latencyMs } : null;
     case "app_error": return word(props.kind) && word(props.code) ? { kind: props.kind, code: props.code } : null;
     case "app_pair_failed": return word(props.reason) ? { reason: props.reason } : null;
+    case "app_action": {
+      if (!word(props.name)) return null;
+      const clean: Props = { name: props.name };
+      let extras = 0;
+      for (const [key, value] of Object.entries(props)) {
+        if (extras >= 8) break;
+        if (key === "name" || !EXTRA_KEY.test(key)) continue;
+        if (word(value) || (Number.isSafeInteger(value) && (value as number) >= 0 && (value as number) < 1e12) || typeof value === "boolean") {
+          clean[key] = value as string | number | boolean;
+          ++extras;
+        }
+      }
+      return clean;
+    }
+    case "app_feedback": return Number.isInteger(props.score) && (props.score as number) >= 1 && (props.score as number) <= 5 && word(props.moment)
+      ? { score: props.score as number, moment: props.moment } : null;
     default: return null;
   }
 }
@@ -125,6 +144,8 @@ export function screen(path: string): void {
 }
 
 export function feature(name: Feature): void { track("app_feature", { feature: name }); }
+export function action(name: string, props?: Record<string, unknown>): void { track("app_action", { ...props, name }); }
+export function feedback(score: number, moment: string): void { track("app_feedback", { score, moment }); }
 export function error(kind: string, code: string): void { track("app_error", { kind, code }); }
 export function pairFailed(reason: string): void { track("app_pair_failed", { reason }); }
 export function messageSent(): void { if (usageAnalyticsEnabled()) { ++sent; schedule(); } }

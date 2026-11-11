@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ago } from "../lib/format";
 import { Link } from "../lib/router";
 import { Nil, Table, Td, Th } from "../ui/table";
@@ -18,11 +19,11 @@ const weekOf = (at: number) => new Date(at).toLocaleDateString("en-US", { month:
 const rateText = (rate: Rate | null) => rate ? `${percent(rate.n / rate.of)} (${n(rate.n)} of ${n(rate.of)})` : "-";
 const heat = (value: number | null) => value === null ? "transparent" : value === 0 ? "var(--cell)" : `var(--heat-${value <= 0.25 ? 1 : value <= 0.5 ? 2 : value <= 0.75 ? 3 : 4})`;
 
-export function RetentionPage() {
+export function RetentionPage({ tabs }: { tabs?: ReactNode }) {
   const { data, error, loading, reload } = useAdmin<RetentionAnswer>("/retention");
   return (
     <>
-      <AdminHeader title="retention" sub="who comes back after signing up" />
+      <AdminHeader title="product" sub="who comes back after signing up" tabs={tabs} />
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading />}
       {data && (

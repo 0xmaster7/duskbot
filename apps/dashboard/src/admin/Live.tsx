@@ -13,18 +13,18 @@ import { Avatar } from "./kit";
 
 const Globe = lazy(() => import("./globe/Globe"));
 
-interface Item { id: string; at: number; name: string; seed: string; email: string | null; customer: boolean; page: string | null; goal: string | null; source: string | null; country: string | null; city: string | null; lat: number | null; lon: number | null }
-interface Answer { now: number; minutes: number; online: { site: number; app: number }; here: Item[]; feed: Item[] }
+export interface LiveItem { id: string; at: number; name: string; seed: string; email: string | null; customer: boolean; page: string | null; goal: string | null; source: string | null; country: string | null; city: string | null; lat: number | null; lon: number | null }
+export interface LiveAnswer { now: number; minutes: number; online: { site: number; app: number }; here: LiveItem[]; feed: LiveItem[] }
 
-const SAYS: Record<string, (item: Item) => string> = {
+export const SAYS: Record<string, (item: LiveItem) => string> = {
   site_view: (i) => `visited ${i.page ?? "/"}`, site_goal: (i) => i.goal === "waitlist_join" ? "joined the waitlist" : i.goal === "cta_click" ? "clicked sign up" : i.goal === "download_click" ? "clicked download" : (i.goal ?? "goal").replace(/_/g, " "),
   signup: () => "signed up", app_paired: () => "paired an app", first_bot_reply: () => "got a first bot reply", checkout_paid: () => "paid", app_open: () => "opened the app",
 };
 const BIG = new Set(["signup", "app_paired", "first_bot_reply", "checkout_paid"]);
-const place = (item: Item) => item.country ? `${item.city ? `${item.city}, ` : ""}${countryName(item.country)}` : null;
+const place = (item: LiveItem) => item.country ? `${item.city ? `${item.city}, ` : ""}${countryName(item.country)}` : null;
 
 /** where a person is: Cloudflare's coordinates when present, else their country's middle, spread a little so markers do not sit on each other */
-function spot(item: Item): [number, number] | null {
+export function spot(item: LiveItem): [number, number] | null {
   if (item.lat !== null && item.lon !== null) return [item.lat, item.lon];
   const c = centroid(item.country);
   if (!c) return null;
@@ -32,8 +32,18 @@ function spot(item: Item): [number, number] | null {
   return [c[1] + ((h % 100) / 100 - 0.5) * 3, c[0] + (((h >>> 8) % 100) / 100 - 0.5) * 3];
 }
 
+/** the people seen in the five minutes before `at`, one marker each, where they are */
+export function pointsAt(feed: LiveItem[], at: number) {
+  const latest = new Map<string, LiveItem>();
+  for (const item of feed) if (item.at <= at && item.at > at - 5 * 60_000 && !latest.has(item.seed)) latest.set(item.seed, item);
+  return [...latest.values()].flatMap((item) => {
+    const s = spot(item);
+    return s ? [{ id: item.seed, lat: s[0], lon: s[1], label: item.email ?? friendlyName(item.seed), detail: (SAYS[item.name] ?? (() => item.name))(item), avatar: (({ body, ink }) => ({ body, colour: ink }))(avatarOf(item.seed)), customer: item.customer, fresh: at - item.at < 60_000 }] : [];
+  });
+}
+
 export function LivePage() {
-  const { data, error, loading, reload } = useAdmin<Answer>("/realtime?minutes=30", 10_000);
+  const { data, error, loading, reload } = useAdmin<LiveAnswer>("/realtime?minutes=30", 10_000);
   const [mode, setMode] = useState<"3d" | "2d">("3d");
   const [selected, setSelected] = useState<string | null>(null);
   const [replay, setReplay] = useState<number | null>(null);
@@ -46,17 +56,7 @@ export function LivePage() {
     const timer = setInterval(() => setReplay((at) => { const next = (at ?? (data?.now ?? Date.now()) - span) + 60_000; if (next >= (data?.now ?? Date.now())) { setPlaying(false); return null; } return next; }), reduced ? 900 : 450);
     return () => clearInterval(timer);
   }, [playing, data?.now, span, reduced]);
-  const points = useMemo(() => {
-    if (!data) return [];
-    const at = replay ?? data.now;
-    const window = data.feed.filter((item) => item.at <= at && item.at > at - 5 * 60_000);
-    const latest = new Map<string, Item>();
-    for (const item of window) if (!latest.has(item.seed)) latest.set(item.seed, item);
-    return [...latest.values()].flatMap((item) => {
-      const s = spot(item);
-      return s ? [{ id: item.seed, lat: s[0], lon: s[1], label: item.email ?? friendlyName(item.seed), detail: (SAYS[item.name] ?? (() => item.name))(item), avatar: (({ body, ink }) => ({ body, colour: ink }))(avatarOf(item.seed)), customer: item.customer, fresh: at - item.at < 60_000 }] : [];
-    });
-  }, [data, replay]);
+  const points = useMemo(() => data ? pointsAt(data.feed, replay ?? data.now) : [], [data, replay]);
   const feed = data ? (replay === null ? data.feed : data.feed.filter((item) => item.at <= replay)) : [];
   const located = points.length, here = data?.here.length ?? 0;
   return (
@@ -94,7 +94,7 @@ export function LivePage() {
               <ol className="flex max-h-[720px] flex-col gap-0.5 overflow-y-auto">
                 {feed.slice(0, 80).map((item) => (
                   <li key={item.id}>
-                    <Link to={`/admin/people?person=${encodeURIComponent(item.seed)}`} className={cx("hover-row flex items-center gap-3 rounded-[14px] px-2 py-2", selected === item.seed && "bg-card-2", BIG.has(item.name) && "bg-lime")}>
+                    <Link to={`/admin/people/visitors?person=${encodeURIComponent(item.seed)}`} className={cx("hover-row flex items-center gap-3 rounded-[14px] px-2 py-2", selected === item.seed && "bg-card-2", BIG.has(item.name) && "bg-lime")}>
                       <Avatar seed={item.seed} size={24} customer={item.customer} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-13 text-ink"><span className="font-medium">{item.email ?? friendlyName(item.seed)}</span> {(SAYS[item.name] ?? (() => item.name))(item)}</span>

@@ -1,4 +1,9 @@
-export function track(_event: string, _props?: Record<string, unknown>): void {}
+import { action, feature } from "./product-analytics";
+
+export function track(event: string, props?: Record<string, unknown>): void {
+  action(event, props);
+  if (event === "team_imported") feature("team_imported");
+}
 
 const GATE_KEY = "omb-email-gate";
 export function emailGateDone(): boolean {

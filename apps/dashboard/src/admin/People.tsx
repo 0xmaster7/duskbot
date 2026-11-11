@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Segmented, cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
 import { ago } from "../lib/format";
@@ -22,7 +22,7 @@ interface Profile {
 const FILTERS = [{ value: "all", label: "everyone" }, { value: "signups", label: "signed up" }, { value: "customers", label: "customers" }] as const;
 type Only = (typeof FILTERS)[number]["value"];
 
-export function PeoplePage() {
+export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
   const { query } = useLocation();
   const [range, setRange] = useState<Range>(() => rangeOf("30d"));
   const [only, setOnly] = useState<Only>("all");
@@ -34,7 +34,7 @@ export function PeoplePage() {
   const open = query.get("person");
   return (
     <>
-      <AdminHeader title="people" sub={data ? `${n(data.total)} in this window` : "visitors and accounts, from first visit to first bot reply"} action={<RangePicker value={range} onChange={setRange} />} />
+      <AdminHeader title="people" sub={data ? `${n(data.total)} in this window` : "visitors and accounts, from first visit to first bot reply"} action={<RangePicker value={range} onChange={setRange} />} tabs={tabs} />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <SearchBox value={q} onChange={setQ} label="search people" placeholder="email, name, source or id" />
         <Segmented<Only> label="show" value={only} options={[...FILTERS]} onChange={setOnly} />
@@ -45,7 +45,7 @@ export function PeoplePage() {
         <ul className={cx("divide-y divide-line", loading && "opacity-70")}>
           {data.people.map((person) => (
             <li key={person.id}>
-              <Link to={`/admin/people?person=${encodeURIComponent(person.id)}`} className="hover-row -mx-3 grid grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_110px] items-center gap-4 rounded-[16px] px-3 py-3 max-md:grid-cols-[minmax(0,1fr)_auto]">
+              <Link to={`/admin/people/visitors?person=${encodeURIComponent(person.id)}`} className="hover-row -mx-3 grid grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_110px] items-center gap-4 rounded-[16px] px-3 py-3 max-md:grid-cols-[minmax(0,1fr)_auto]">
                 <span className="flex min-w-0 items-center gap-3">
                   <Avatar seed={person.seed} customer={person.customer} />
                   <span className="min-w-0">
@@ -69,7 +69,7 @@ export function PeoplePage() {
           ))}
         </ul>
       ) : <p className="rounded-[18px] bg-card px-4 py-6 text-center text-14 text-ink-3">{search ? `no one matches "${search}".` : "no one in this window yet."}</p>)}
-      {open && <ProfileDialog id={open} onClose={() => navigate("/admin/people", { replace: true })} />}
+      {open && <ProfileDialog id={open} onClose={() => navigate("/admin/people/visitors", { replace: true })} />}
     </>
   );
 }

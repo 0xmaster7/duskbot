@@ -6,6 +6,7 @@ import type { StoredEvent } from "../analytics/sink.ts";
 import type { StoredWorkspace } from "../store.ts";
 import { DAY, DIMENSIONS, activeDays, breakdown, funnel, identityOf, kpis, online, retention, series, visitsOf, type Dimension, type Filters, type People, type Visit } from "../analytics/web.ts";
 import { choseCloud, wasPaid, workspaceTurns } from "./metrics.ts";
+import { productReport } from "./product.ts";
 
 export class AnalyticsRouteError extends Error {
   status: number; code: string;
@@ -235,6 +236,13 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     };
   }
 
+  async function product(url: URL) {
+    const { from, to } = windowOf(url, now());
+    const { events, identity, people: p, visits } = await load(from);
+    const flow = funnel({ from, to, now: now(), mode: "visitors", visits, identity, events, people: p, cloudChosen: p.cloudChosen, paired: p.paired, replied: p.replied });
+    return productReport({ from, to, events, funnel: flow.steps });
+  }
+
   async function saveNote(actor: string, input: Record<string, unknown>, id?: string) {
     const text = typeof input.text === "string" ? input.text.replace(/[\u0000-\u001f]/g, " ").trim() : "";
     const at = Number(input.at);
@@ -246,5 +254,5 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     return note;
   }
 
-  return { web, funnel: funnelRoute, journeys, profile, realtime, retention: retentionRoute, app, saveNote, deleteNote: (id: string) => sink.deleteNote(id), isDimension: (value: string): value is Dimension => (DIMENSIONS as readonly string[]).includes(value) };
+  return { web, funnel: funnelRoute, journeys, profile, realtime, retention: retentionRoute, app, product, saveNote, deleteNote: (id: string) => sink.deleteNote(id), isDimension: (value: string): value is Dimension => (DIMENSIONS as readonly string[]).includes(value) };
 }

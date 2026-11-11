@@ -85,7 +85,15 @@ export async function handleTrack(req: IncomingMessage, res: ServerResponse, dep
     const goal = text(body.g, 40);
     if (!goal || !/^[a-z0-9_]{1,40}$/.test(goal)) return done(res, 400);
     const to = typeof meta.to === "string" ? routeOf(meta.to) : null, from = typeof meta.from === "string" ? routeOf(meta.from) : null;
-    deps.track("site_goal", { props: { goal, ...(to ? { to } : {}), ...(from ? { from } : {}), ...(typeof meta.host === "string" ? { host: meta.host.toLowerCase() } : {}) }, visitor: ids.visitor, ctx: base });
+    const props: Props = { goal, ...(to ? { to } : {}), ...(from ? { from } : {}), ...(typeof meta.host === "string" ? { host: meta.host.toLowerCase() } : {}) };
+    for (const key of ["section", "label", "value"]) if (typeof meta[key] === "string") props[key] = meta[key].toLowerCase();
+    deps.track("site_goal", { props, visitor: ids.visitor, ctx: base });
+  } else if (body.e === "sections") {
+    if (!Array.isArray(body.l) || body.l.length > 30) return done(res, 400);
+    for (const entry of body.l) {
+      if (!Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== "string" || !/^[a-z0-9_]{1,40}$/.test(entry[0]) || typeof entry[1] !== "number" || !Number.isFinite(entry[1])) continue;
+      deps.track("site_section", { props: { path, section: entry[0], ms: Math.max(0, Math.min(86_400_000, Math.round(entry[1]))) }, visitor: ids.visitor, ctx: base });
+    }
   } else if (body.e === "leave") {
     deps.track("site_leave", { props: { path, scroll: Math.max(0, Math.min(100, Math.round(Number(body.s) || 0))), ms: Math.max(0, Math.min(86_400_000, Math.round(Number(body.t) || 0))) }, visitor: ids.visitor, ctx: base });
   } else return done(res, 400);
