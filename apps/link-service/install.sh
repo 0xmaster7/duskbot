@@ -1348,9 +1348,15 @@ do_service() {
   x systemctl restart duskbot-engines.path
   gate_up
   if box_works >/dev/null 2>&1; then echo "bot box: bubblewrap works for $SVC_USER"; else echo "bot box: bubblewrap cannot make a user namespace here; bots' turns are refused until it can"; fi
-  if [ "$reload" = 0 ]; then x systemctl restart duskbot.service; else x systemctl start duskbot.service; fi
+  # `start` leaves a running server on the build it started with: a new build needs a restart even when no unit changed
+  if [ "$reload" = 0 ] || [ "$(state_get running-package)" != "$(state_get package)" ]; then x systemctl restart duskbot.service; else x systemctl start duskbot.service; fi
   show curl "http://127.0.0.1:$PORT/api/health"
-  if wait_health "http://127.0.0.1:$PORT/api/health" 120; then echo "server answers on 127.0.0.1:$PORT"; update_settle 1 && return 0; return 1; fi
+  if wait_health "http://127.0.0.1:$PORT/api/health" 120; then
+    echo "server answers on 127.0.0.1:$PORT"
+    update_settle 1 || return 1
+    state_set running-package "$(state_get package)"
+    return 0
+  fi
   echo "the server did not answer on 127.0.0.1:$PORT within two minutes"
   journalctl -u duskbot.service -n 30 --no-pager 2>/dev/null || true
   port_owner

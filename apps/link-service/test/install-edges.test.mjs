@@ -225,6 +225,18 @@ echo "pending=$(state_get update-pending) package=$(state_get package) failed=$(
     expect(s.out).toContain(`pending= package=sha256:${oldSha} failed=1.1.0`);
   });
 
+  it("restarts a running server onto a newly installed build even when no unit changed, and only then", async () => {
+    const s = await sh(`
+get_gate() { :; }; handoff_script() { :; }; server_unit() { return 1; }; helper_units() { return 1; }; ssh_guard() { return 1; }
+gate_up() { :; }; box_works() { :; }; wait_health() { return 0; }; systemctl() { :; }
+state_set package sha256:new; state_set running-package sha256:old
+do_service; echo "running=$(state_get running-package)"
+do_service`);
+    const starts = s.log.split("\n").filter((line) => / duskbot\.service$/.test(line));
+    expect(starts).toEqual(["x systemctl restart duskbot.service", "x systemctl start duskbot.service"]);
+    expect(s.out).toContain("running=sha256:new");
+  });
+
   it("finishes a dpkg run that was interrupted before installing anything", async () => {
     const s = await sh(`
 cat > "$TMP/bin/dpkg" <<'STUB'
