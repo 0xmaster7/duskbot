@@ -383,6 +383,9 @@ case "\${1:-}" in
     rm -rf "$dbs"; chown user:user "$part"; chmod 0600 "$part"; mv "$part" "$out"
     echo "snapshot $(stat -c %s "$out")" ;;
   snapshot-done) rm -f ${INSTABOX_SNAPSHOT_FILE}; echo removed ;;
+  desktop-status)
+    s="$(cat ${DESKTOP_IMAGE_STATUS} 2>/dev/null || echo none)"
+    if [ "$s" != ready ] && systemctl is-active --quiet omb-desktop-image.service; then echo building; else echo "$s"; fi ;;
   desktop-image)
     # the bot computers' image: the registry's copy when it gives one to anyone, else built here from the signed
     # package's own kit, so a fresh home needs nobody's step and no registry credential
@@ -397,7 +400,7 @@ case "\${1:-}" in
       imaged ready; echo ready; exit 0
     fi
     imaged failed; echo "build failed"; exit 3 ;;
-  *) echo "usage: omb-home install|rollback|restore|start|stop|status|tree|snapshot|snapshot-done|desktop-image"; exit 2 ;;
+  *) echo "usage: omb-home install|rollback|restore|start|stop|status|tree|snapshot|snapshot-done|desktop-image|desktop-status"; exit 2 ;;
 esac
 `;
 }
@@ -424,9 +427,10 @@ export const RESTORE_COMMAND = `sudo -n ${HOME_CONTROL} restore ${INSTABOX_RESTO
 export const ROLLBACK_COMMAND = `sudo -n ${HOME_CONTROL} rollback`;
 export const SNAPSHOT_COMMAND = `sudo -n ${HOME_CONTROL} snapshot`;
 export const SNAPSHOT_DONE_COMMAND = `sudo -n ${HOME_CONTROL} snapshot-done`;
+export const DESKTOP_STATUS_COMMAND = `sudo -n ${HOME_CONTROL} desktop-status`;
 
 export const HOME_IMAGE: MachineImage = {
   homeVolume: INSTABOX_HOME_VOLUME, packagePath: INSTABOX_PACKAGE_FILE, restorePath: INSTABOX_RESTORE_FILE,
   bootFile, claimBootFile, bootContent, setupScript: homeSetupScript,
-  installCommand, startCommand, restoreCommand: RESTORE_COMMAND, rollbackCommand: ROLLBACK_COMMAND,
+  installCommand, startCommand, restoreCommand: RESTORE_COMMAND, rollbackCommand: ROLLBACK_COMMAND, desktopStatusCommand: DESKTOP_STATUS_COMMAND,
 };

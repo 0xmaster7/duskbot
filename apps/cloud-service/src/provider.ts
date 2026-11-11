@@ -78,4 +78,6 @@ export interface MachineImage {
   restoreCommand: string;
   /** back to the app the last install replaced (prints "rolled back") */
   rollbackCommand: string;
+  /** prints the bot computers' image state: ready, building, failed or none */
+  desktopStatusCommand: string;
 }

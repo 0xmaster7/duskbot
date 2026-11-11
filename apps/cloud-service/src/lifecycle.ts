@@ -378,6 +378,8 @@ export function createLifecycle(deps: LifecycleDeps) {
       c.setupStep = "checking"; deps.save(c); return;
     }
     if (!c.origin || !(await deps.home.healthy(homeOrigin(c), secret(c)))) return wait(c, 5_000);
+    // a new home is ready once its bot computers can start at once: their image builds on the machine in a minute or two
+    if (now() - (b.setupSince ?? now()) < 15 * MINUTE && (await provider.run(c.serverId, image.desktopStatusCommand, 30)).stdout.trim() === "building") return wait(c, 5_000);
     await entitle(c, true);
     if (b.claim) b.claim = null;
     c.status = "running"; c.setupStep = null; c.lastCheckedAt = now(); c.powerSince = now(); c.wantPower = "on";

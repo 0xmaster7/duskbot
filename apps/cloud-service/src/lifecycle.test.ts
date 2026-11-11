@@ -31,6 +31,22 @@ it("provisions a paid cloud: a labelled machine, secrets only in its boot file, 
   expect(f.service.view(c)).toMatchObject({ provider: "managed", status: "running" });
 });
 
+it("calls a new home ready only once its bot computers can start, and never waits more than 15 minutes for their image", async () => {
+  for (const finished of [true, false]) {
+    const f = await homeFixture();
+    let building = true;
+    f.api.onExec(({ cmd }) => cmd.includes("omb-home desktop-status") ? { exitCode: 0, stdout: building ? "building\n" : "ready\n" } : null);
+    const c = f.service.order({ ...plan, accountId: "acct_1", name: "My Cloud", color: null, region: "eu" });
+    f.subscriptions.push({ id: "sub_img", accountId: "acct_1", cloudId: c.id, status: "active", currentPeriodEnd: f.now() + 30 * DAY_MS, updatedAt: f.now() } as unknown as StoredSubscription);
+    f.service.activate(c.id, "sub_img", plan);
+    for (let n = 0; n < 20; n++) { c.nextAttemptAt = 0; await f.service.reconcile(); }
+    expect(c).toMatchObject({ status: "provisioning", setupStep: "checking", attempts: 0, error: null });
+    if (finished) building = false; else f.advance(16 * 60_000);
+    await f.settle(c, x => x.status === "running");
+    expect(c.error).toBeNull();
+  }
+});
+
 it("waits out a slow setup script without counting it as a failure", async () => {
   const f = await homeFixture({ setupPolls: 30 });
   const c = f.service.order({ ...plan, accountId: "acct_1", name: "My Cloud", color: null, region: "eu" });
