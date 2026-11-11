@@ -1,0 +1,40 @@
+import { describe, expect, it } from "vitest";
+import { DAY, identityOf, visitsOf } from "./web.ts";
+import type { StoredEvent } from "./sink.ts";
+import { paymentsOf, revenueReport, type InvoiceLike } from "./revenue.ts";
+
+const T = Date.parse("2026-11-01T00:00:00Z");
+const view = (visitor: string, session: string, at: number, source: string, channel: string, country = "DE"): StoredEvent =>
+  ({ id: `${session}:${at}`, name: "site_view", at, accountId: null, props: { path: "/" }, ctx: { visitor, session, page: "/", source, channel: channel as never, country } }) as StoredEvent;
+const identify = (accountId: string, visitor: string): StoredEvent => ({ id: `id:${visitor}`, name: "identify", at: T, accountId, props: { via: "page" }, ctx: { visitor } }) as StoredEvent;
+const invoice = (id: string, accountId: string, subscriptionId: string | null, amountCents: number, at: number, status: InvoiceLike["status"] = "paid"): InvoiceLike =>
+  ({ id, accountId, providerPaymentId: `pay_${id}`, subscriptionId, amountCents, currency: "USD", status, createdAt: at });
+
+describe("revenue", () => {
+  it("splits new, renewal, one-time and refunds, with the refund on its webhook's day", () => {
+    const payments = paymentsOf({
+      invoices: [invoice("a", "acct_a", "sub_a", 2900, T), invoice("b", "acct_a", "sub_a", 2900, T + 30 * DAY), invoice("c", "acct_b", null, 1000, T + DAY), invoice("d", "acct_c", "sub_c", 900, T, "failed")],
+      subscriptions: [], refunds: [{ id: "ref_1", paymentId: "pay_c", amountCents: 1000, currency: "USD" }], webhookEvents: [{ at: T + 3 * DAY, type: "refund.succeeded" }],
+    });
+    expect(payments.map(p => [p.id, p.kind, p.amountCents, p.at])).toEqual([
+      ["a", "new", 2900, T], ["c", "one_time", 1000, T + DAY], ["ref_1", "refund", -1000, T + 3 * DAY], ["b", "renewal", 2900, T + 30 * DAY],
+    ]);
+  });
+
+  it("credits the last non-direct touch before paying, falls back to the first visit, and honours filters", () => {
+    const events = [view("v1", "s1", T, "X", "social", "US"), view("v1", "s2", T + DAY, "direct", "direct"), view("v2", "s3", T, "direct", "direct", "IN"), identify("acct_a", "v1"), identify("acct_b", "v2")];
+    const identity = identityOf(events), visits = visitsOf(events);
+    const payments = paymentsOf({ invoices: [invoice("a", "acct_a", "sub_a", 2900, T + 2 * DAY), invoice("b", "acct_b", null, 1000, T + 2 * DAY)], subscriptions: [] });
+    const accounts = new Map([["acct_a", { email: "a@example.test", createdAt: T + 1000 }]]);
+    const base = { payments, subscriptions: [], visits, identity, accounts, from: T, to: T + 7 * DAY, now: T + 7 * DAY };
+    const report = revenueReport({ ...base, filters: {} });
+    expect(report.current).toMatchObject({ net: 3900, gross: 3900, payments: 2, customers: 2, newCustomers: 2 });
+    expect(report.cards.channel).toEqual({ social: 2900, direct: 1000 });
+    expect(report.cards.country).toEqual({ US: 2900, IN: 1000 });
+    expect(report.series.new[2]).toBe(3900);
+    expect(report.recent.find(row => row.accountId === "acct_b")).toMatchObject({ source: "direct", country: "IN", email: null });
+    expect(report.recent.find(row => row.accountId === "acct_a")).toMatchObject({ source: "X", channel: "social", email: "a@example.test", firstSeen: T });
+    expect(revenueReport({ ...base, filters: { channel: "social" } }).current.net).toBe(2900);
+    expect(revenueReport({ ...base, from: T + 7 * DAY, to: T + 14 * DAY, now: T + 14 * DAY, filters: {} }).previous.net).toBe(3900);
+  });
+});

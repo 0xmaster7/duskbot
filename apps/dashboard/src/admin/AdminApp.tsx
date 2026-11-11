@@ -28,23 +28,23 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
   { label: "analytics", items: [
     { to: "/admin", key: "o", label: "overview", icon: <LayoutDashboard {...ICON} />, also: ["/admin/analytics"] },
     { to: "/admin/live", key: "l", label: "live", icon: <GlobeIcon {...ICON} /> },
-    { to: "/admin/funnel", key: "f", label: "funnel", icon: <ListFilter {...ICON} /> },
     { to: "/admin/people", key: "p", label: "people", icon: <Users {...ICON} />, also: ["/admin/users"] },
+    { to: "/admin/funnel", key: "f", label: "funnel", icon: <ListFilter {...ICON} /> },
   ] },
   { label: "product", items: [
     { to: "/admin/product", key: "i", label: "product", icon: <ChartNoAxesCombined {...ICON} /> },
-    { to: "/admin/retention", key: "r", label: "retention", icon: <Repeat {...ICON} /> },
-  ] },
-  { label: "ops", items: [
     { to: "/admin/clouds", key: "c", label: "clouds", icon: <Cloud {...ICON} /> },
-    { to: "/admin/waitlist", key: "w", label: "waitlist", icon: <Inbox {...ICON} /> },
   ] },
 ];
 const NAV = GROUPS.flatMap((group) => group.items);
+const SMALL = { size: 15, strokeWidth: 1.75 } as const;
+/** on the overview as a tile each; their full pages stay one click away */
 const MORE: NavItem[] = [
-  { to: "/admin/events", key: "e", label: "events", icon: <ChartNoAxesColumn size={15} strokeWidth={1.75} /> },
-  { to: "/admin/health", key: "h", label: "health", icon: <Gauge size={15} strokeWidth={1.75} /> },
-  { to: "/admin/audit", key: "a", label: "audit log", icon: <History size={15} strokeWidth={1.75} /> },
+  { to: "/admin/retention", key: "r", label: "retention", icon: <Repeat {...SMALL} /> },
+  { to: "/admin/waitlist", key: "w", label: "waitlist", icon: <Inbox {...SMALL} /> },
+  { to: "/admin/events", key: "e", label: "events", icon: <ChartNoAxesColumn {...SMALL} /> },
+  { to: "/admin/health", key: "h", label: "health", icon: <Gauge {...SMALL} /> },
+  { to: "/admin/audit", key: "a", label: "audit log", icon: <History {...SMALL} /> },
 ];
 const ALL = [...NAV, ...MORE];
 const PEOPLE_TABS = [{ to: "/admin/people", label: "accounts" }, { to: "/admin/people/visitors", label: "visitors and journeys" }];
