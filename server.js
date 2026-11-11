@@ -115,7 +115,7 @@ const fail = (res, status, error) => sendJson(res, status, { ok: false, error, m
 function waitlist(req, res, urlPath) {
   if (urlPath === '/api/waitlist/count') {
     if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { ok: false, error: 'method' }, { Allow: 'GET, HEAD' });
-    return store.count().then((count) => sendJson(res, 200, { count }, { 'Cache-Control': 'public, max-age=60' }), () => fail(res, 500, 'server'));
+    return store.count().then((count) => sendJson(res, 200, { count }, { 'Cache-Control': 'public, max-age=60' }), (err) => { console.error('waitlist: count failed:', err?.codeName || err?.message); return fail(res, 500, 'server'); });
   }
   if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'method' }, { Allow: 'POST' });
   const ip = String(req.headers['x-real-ip'] || req.socket.remoteAddress || '');

@@ -42,7 +42,7 @@ export function openMongoStore(uri, dbName = 'dusk') {
     },
     async count() {
       const { list } = await connect();
-      return list.estimatedDocumentCount();
+      return list.countDocuments({});
     },
   };
 }
