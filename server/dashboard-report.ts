@@ -1,4 +1,4 @@
-import type { ActivityReport, BotReport, DevicesReport, MachineReport, PlansReport, WorkspaceReport } from "../shared/dashboard-protocol.ts";
+import type { ActivityReport, AppsReport, BotReport, DevicesReport, MachineReport, PlansReport, WorkspaceReport } from "../shared/dashboard-protocol.ts";
 import { cronScheduleLabel } from "../shared/cron-label.ts";
 import type { Routine } from "../shared/routines.ts";
 import type { PlanUsageReport } from "./plan-usage.ts";
@@ -50,6 +50,7 @@ export interface DashboardCollectorDeps {
   engine(instanceId: string): { displayName?: string; driverKind: string } | undefined;
   routines(): Array<Pick<Routine, "id" | "botId" | "name" | "schedule" | "enabled" | "nextRunAt"> & { scheduleLabel?: string; lastRunAt: number | null }>;
   planUsage(): Promise<PlanUsageReport>;
+  apps?(): Promise<AppsReport | null>;
   workspaceKind?: WorkspaceReport["workspace"]["kind"];
   machine?: typeof sampleMachine;
   usage?: { flush: typeof flushUsageLedger; read: typeof readUsage };
@@ -221,7 +222,8 @@ export function createDashboardCollector(deps: DashboardCollectorDeps) {
   function workspace(): WorkspaceReport["workspace"] {
     return { name: deps.deviceLabel() || hostname(), kind: deps.workspaceKind ?? (process.platform === "darwin" ? "mac" : process.platform === "win32" ? "windows" : "linux"), version: serverVersion(), platform: process.platform };
   }
-  return { machine, computers, devices, activity: collectActivity, bots, plans, workspace };
+  const apps = () => deps.apps ? bounded(() => deps.apps!(), 20_000, null) : Promise.resolve(null);
+  return { machine, computers, devices, activity: collectActivity, bots, plans, workspace, apps };
 }
 
 function resetTime(value: string | null): number | null {

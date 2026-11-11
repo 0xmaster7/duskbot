@@ -1,4 +1,5 @@
 import type { DeleteAccountOptions } from "../../../../shared/billing-api";
+import type { ConnectorsAnswer } from "../../../../shared/dashboard-protocol";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, ApiError, FIXTURE, type AccountData } from "../lib/api";
 import type { BillingOverview, CheckoutRequest, CloudDesktop, DesktopId, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection } from "./contracts";
@@ -11,6 +12,10 @@ export interface CloudData {
   clouds: CloudDesktop[] | null;
   account: AccountData | null;
   connections: Record<string, string[]> | null;
+  /** per workspace, apps whose sign-in was started and not finished */
+  pendingApps: Record<string, string[]>;
+  /** reads the connected apps again; resolves with the new answer, or null when it failed */
+  reloadConnections(): Promise<ConnectorsAnswer | null>;
   error: string | null;
   refresh(): void;
   checkout(req: CheckoutRequest): Promise<boolean>;
@@ -40,6 +45,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
   const [clouds, setClouds] = useState<CloudDesktop[] | null>(null);
   const [account, setAccount] = useState<AccountData | null>(null);
   const [connections, setConnections] = useState<Record<string, string[]> | null>(null);
+  const [pendingApps, setPendingApps] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [pending, setPending] = useState<Record<string, { on: boolean; until: number }>>({});
@@ -51,7 +57,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
   if (previousSignedIn.current !== signedIn) { active.current = signedIn; previousSignedIn.current = signedIn; }
 
   const clearAccount = useCallback(() => {
-    setBilling(null); setClouds(null); setAccount(null); setConnections(null); setPending({});
+    setBilling(null); setClouds(null); setAccount(null); setConnections(null); setPendingApps({}); setPending({});
   }, []);
   const refresh = useCallback(() => setTick((value) => value + 1), []);
 
@@ -79,7 +85,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
         errors.push(apiError(overview.reason).message);
       }
       if (profile.status === "fulfilled") setAccount(profile.value); else { setAccount(null); errors.push(apiError(profile.reason).message); }
-      if (apps.status === "fulfilled") setConnections(apps.value.byWorkspace); else { setConnections(null); errors.push(apiError(apps.reason).message); }
+      if (apps.status === "fulfilled") { setConnections(apps.value.byWorkspace); setPendingApps(apps.value.pending ?? {}); } else { setConnections(null); errors.push(apiError(apps.reason).message); }
       setError([...new Set(errors)].join(" ") || null);
     });
     return () => { alive = false; };
@@ -162,8 +168,18 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
     active.current = false; generation.current++; clearAccount();
   }, [mutate, clearAccount]);
 
+  const reloadConnections = useCallback(async () => {
+    const version = generation.current;
+    try {
+      const answer = await api.connections();
+      if (!active.current || version !== generation.current) return null;
+      setConnections(answer.byWorkspace); setPendingApps(answer.pending ?? {});
+      return answer;
+    } catch { return null; }
+  }, []);
+
   const value = useMemo<CloudData>(() => ({
-    catalog, billing, clouds, account, connections, error, refresh, checkout, power,
+    catalog, billing, clouds, account, connections, pendingApps, reloadConnections, error, refresh, checkout, power,
     resize: (id, req) => mutate(() => api.resize(id, req)),
     changeCharge: (selection) => api.changeCharge(selection),
     changePlan: (selection, approvedUsd) => mutate(() => api.changePlan(selection, approvedUsd)),
@@ -178,7 +194,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
       setAccount((a) => (a ? { ...a, profile: { ...a.profile, onboarded: true } } : a));
     }),
     signOutEverywhere, deleteAccount,
-  }), [catalog, billing, clouds, account, connections, error, refresh, checkout, power, mutate, signOutEverywhere, deleteAccount]);
+  }), [catalog, billing, clouds, account, connections, pendingApps, reloadConnections, error, refresh, checkout, power, mutate, signOutEverywhere, deleteAccount]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

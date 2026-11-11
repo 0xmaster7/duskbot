@@ -2,9 +2,9 @@ import { request } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash, createPublicKey, randomBytes, timingSafeEqual, verify } from "node:crypto";
 import { accessSync, constants, readFileSync, realpathSync, statSync } from "node:fs";
-import { CLAIM_TTL_MS, COMMAND_KINDS, COMMAND_TTL_MS, DASHBOARD_DISCOVERY_PATH, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATURE_SKEW_MS, SLOW_REPORT_MS,
+import { APP_COMMAND_ONLINE_MS, CLAIM_TTL_MS, COMMAND_KINDS, appSlug, COMMAND_TTL_MS, DASHBOARD_DISCOVERY_PATH, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATURE_SKEW_MS, SLOW_REPORT_MS,
   freshnessOf, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../../shared/dashboard-protocol.ts";
-import type { CommandKind, CommandView, MachineSample, ReportAnswer, WorkspaceDetail, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
+import type { CommandKind, CommandView, ConnectorsAnswer, MachineSample, ReportAnswer, WorkspaceDetail, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
 import { AuthError, createAuth, isAppCorsRoute } from "./auth/index.ts";
 import type { ProviderConfigs } from "./auth/providers.ts";
 import type { Mailer } from "./auth/mail.ts";
@@ -69,7 +69,7 @@ class RequestError extends Error {
 const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 const random = (bytes: number) => randomBytes(bytes).toString("base64url");
 const hourMs = 60 * 60_000;
-const sections = ["machine", "computers", "bots", "activity", "devices", "plans"] as const;
+const sections = ["machine", "computers", "bots", "activity", "devices", "plans", "apps"] as const;
 
 /** the page's content security policy: its own scripts plus the hashes of its inline ones (the theme bootstrap) */
 export function pagePolicy(html: string): string {
@@ -224,6 +224,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const lastWatching = new Map<string, boolean>();
   const replays = new Map<string, number>();
   const commands = new Map<string, CommandView[]>();
+  const seen = new Map<string, number>();
   const history = new Map<string, MachineSample[]>();
   const waits = new Map<string, { finish: () => void; cancel: () => void }>();
   let closed = false;
@@ -279,6 +280,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   function forget(ws: StoredWorkspace) {
     waits.get(ws.id)?.cancel();
     commands.delete(ws.id);
+    seen.delete(ws.id);
     history.delete(ws.id);
     lastWatching.delete(ws.id);
   }
@@ -324,6 +326,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const ws = typeof id === "string" ? state.workspaces.find(item => item.id === id) : undefined;
     if (!ws) fail(401, "unknown_workspace", "Workspace is unknown.");
     verifySignature(req, body, ws.publicKey);
+    seen.set(ws.id, now());
     return ws;
   }
   function staticPage(req: IncomingMessage, res: ServerResponse) {
@@ -466,7 +469,10 @@ export function createDashboardApp(options: DashboardAppOptions) {
         }
         for (const result of report.results ?? []) {
           const command = commands.get(ws.id)?.find(item => item.id === result.id && (item.status === "queued" || item.status === "sent"));
-          if (command) { command.status = result.ok ? "done" : "failed"; command.message = result.message; command.doneAt = result.at; }
+          if (command) {
+            command.status = result.ok ? "done" : "failed"; command.message = result.message; command.doneAt = result.at;
+            if (command.kind === "app.connect" && result.ok && result.url) command.url = result.url;
+          }
         }
         if (ws.ownerAccountId && workspaceTurns(ws) > 0) analytics.botReplied(ws.ownerAccountId);
         store.changed();
@@ -514,6 +520,19 @@ export function createDashboardApp(options: DashboardAppOptions) {
       watch(owner);
       return json(res, 200, { workspaces: state.workspaces.filter(ws => ws.ownerAccountId === owner.id).map(summary) });
     }
+    if (method === "GET" && path === "/v1/connectors") {
+      const owner = account(req);
+      watch(owner);
+      const answer: ConnectorsAnswer = { byWorkspace: {}, pending: {}, available: {}, at: {} };
+      for (const ws of state.workspaces) if (ws.ownerAccountId === owner.id) {
+        const apps = ws.report?.apps;
+        answer.byWorkspace[ws.id] = apps?.services.filter(service => service.connected).map(service => service.slug) ?? [];
+        answer.pending[ws.id] = apps?.services.filter(service => !service.connected && service.pending).map(service => service.slug) ?? [];
+        answer.available[ws.id] = apps?.available ?? false;
+        answer.at[ws.id] = ws.sectionAt.apps ?? null;
+      }
+      return json(res, 200, answer);
+    }
     if (method === "POST" && path === "/v1/claim") {
       const owner = account(req);
       const data = bodyObject(await readBody(req));
@@ -540,9 +559,19 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (match[2] && method === "POST") {
         const data = bodyObject(await readBody(req));
         if (!COMMAND_KINDS.includes(data.kind as CommandKind) || typeof data.target !== "string" || !data.target.length || data.target.length > 200) fail(400, "invalid_command", "Command is invalid.");
+        const kind = data.kind as CommandKind, app = kind === "app.connect" || kind === "app.disconnect";
+        const target = app ? appSlug(data.target) : data.target;
+        if (target === null) fail(400, "invalid_command", "Command is invalid.");
         const queue = commands.get(ws.id) ?? [];
         if (queue.filter(item => item.status === "queued" || item.status === "sent").length >= 200) fail(429, "rate_limited", "Too many pending commands.");
-        const command: CommandView = { id: `cmd_${random(16)}`, kind: data.kind as CommandKind, target: data.target, issuedAt: now(), expiresAt: now() + COMMAND_TTL_MS, status: "queued", message: null, doneAt: null };
+        if (app) {
+          rate(req, "app-command", 60);
+          if (queue.filter(item => item.kind.startsWith("app.") && (item.status === "queued" || item.status === "sent")).length >= 5) fail(429, "rate_limited", "Too many app sign-ins at once. Try again in a minute.");
+          if (now() - (seen.get(ws.id) ?? -Infinity) > APP_COMMAND_ONLINE_MS) fail(409, "workspace_offline", ws.kind === "vps"
+            ? "This cloud is asleep or not answering. Wake it from clouds, then try again."
+            : "Your computer is asleep. Connect from the Dusk Bot app on it, or use Dusk Cloud.");
+        }
+        const command: CommandView = { id: `cmd_${random(16)}`, kind, target, issuedAt: now(), expiresAt: now() + COMMAND_TTL_MS, status: "queued", message: null, doneAt: null };
         queue.push(command);
         commands.set(ws.id, queue.filter(item => item.status === "queued" || item.status === "sent" || queue.indexOf(item) >= queue.length - 100));
         const view = { ...command };

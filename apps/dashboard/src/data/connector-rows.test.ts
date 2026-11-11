@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { DashApp } from "./connectors.ts";
-import { connectorRows, FIXTURE_EXTRAS, SKILLS, skillRows } from "./connector-rows.ts";
+import { connectorRows, FIXTURE_EXTRAS, SKILLS, skillRows, withPending } from "./connector-rows.ts";
 
 const workspaces = [{ id: "mac", name: "My Mac" }, { id: "vps", name: "My VPS" }];
 const app = (id: string, fields: Partial<DashApp> = {}): DashApp => ({ id, label: id, kind: "composio", description: "An app", categories: ["productivity"], icon: {}, ...fields });
@@ -48,4 +48,10 @@ test("skillRows includes the four bundled skills on every workspace", () => {
     assert.ok(!/[\r\n\u2014]/.test(SKILLS[index]!.description));
   }
   assert.ok(skillRows([]).every((row) => row.workspaces.length === 0));
+});
+
+test("a started sign-in shows as needing sign-in until the app connects there", () => {
+  const shown = withPending({ mac: ["gmail"], vps: [] }, { mac: ["Gmail", "linear"], vps: ["linear"] }, { linear: { status: "ready", tools: 3 }, gmail: { status: "needs-auth" } });
+  assert.deepEqual(shown.connections, { mac: ["gmail", "linear"], vps: ["linear"] });
+  assert.deepEqual(shown.extras, { linear: { tools: 3, status: "needs-auth" }, gmail: {} });
 });

@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { IncomingMessage } from "node:http";
+import { appSlug, commandUrl } from "../shared/dashboard-protocol.ts";
 import type { CommandResult, DashboardCommand } from "../shared/dashboard-protocol.ts";
 import type { createDashboardCollector } from "./dashboard-report.ts";
 import type { RequestAuth } from "./request-auth.ts";
@@ -43,6 +44,12 @@ export function createDashboardCommands(deps: { port: number; collect: ReturnTyp
       if (!routine) return result(false, "This routine could not be found.");
       const enabled = command.kind === "routine.resume";
       path = `/api/routines/${target}`; method = "PATCH"; body = { enabled }; message = `${enabled ? "Resumed" : "Paused"} ${routine.name}.`;
+    } else if (command.kind === "app.connect" || command.kind === "app.disconnect") {
+      const slug = appSlug(command.target);
+      if (!slug) return result(false, "This app could not be found.");
+      const connect = command.kind === "app.connect";
+      path = `/api/connectors/${encodeURIComponent(slug)}${connect ? "/authorize" : ""}`;
+      method = connect ? "POST" : "DELETE"; message = connect ? "Sign-in is ready." : "Disconnected.";
     } else return result(false, "This dashboard command is not supported.");
     const nonce = randomBytes(32).toString("base64url");
     pending.set(nonce, { path, method });
@@ -51,9 +58,12 @@ export function createDashboardCommands(deps: { port: number; collect: ReturnTyp
         headers: { "content-type": "application/json", "x-omb-dashboard-command": nonce }, ...(method === "DELETE" ? {} : { body: JSON.stringify(body) }) });
       if (!response.ok) {
         const answer = await response.json().catch(() => ({})) as { error?: unknown };
-        return result(false, typeof answer.error === "string" ? answer.error : "The workspace could not complete this action.");
+        const shown = typeof answer.error === "string" && !(command.kind.startsWith("app.") && response.status >= 500);
+        return result(false, shown ? answer.error as string : "The workspace could not complete this action.");
       }
-      return result(true, message);
+      if (command.kind !== "app.connect") return result(true, message);
+      const url = commandUrl((await response.json().catch(() => ({})) as { url?: unknown }).url);
+      return url ? { ...result(true, message), url } : result(false, "This app did not return a sign-in page.");
     } catch { return result(false, "The workspace could not complete this action."); }
     finally { pending.delete(nonce); }
   }
