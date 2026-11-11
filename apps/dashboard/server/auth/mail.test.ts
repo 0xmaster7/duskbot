@@ -8,16 +8,16 @@ describe("account mail", () => {
     const mailer = memoryMailer(), message = codeMessage("fixture@example.test", "01234567");
     await mailer.send(message);
     expect(mailer.outbox).toEqual([message]);
-    expect(message.subject).toBe("Your Dusk Bot code");
+    expect(message.subject).toBe("01234567 is your dusk bot code");
     expect(message.text).toContain("01234567"); expect(message.html).toContain("01234567");
-    expect(message.text).toContain("It expires in 10 minutes."); expect(message.html).toContain("It expires in 10 minutes.");
+    expect(message.text).toContain("it works for 10 minutes."); expect(message.html).toContain("it works for 10 minutes.");
   });
   it("writes recovery mail with the ways in, an escaped link, and no code for an address without an account", () => {
     const message = recoveryMessage("fixture@example.test", { code: "01234567", link: "https://dash.example.test/sign-in?attempt=a&code=01234567", ways: ["email", "google", "apple"] });
-    expect(message.text).toContain("Your Dusk Bot code is 01234567.");
-    expect(message.text).toContain("This account signs in with an emailed code, Google or Apple.");
-    expect(message.html).toContain('href="https://dash.example.test/sign-in?attempt=a&#38;code=01234567"');
-    expect(recoveryMessage("fixture@example.test", { code: "01234567", ways: ["email"] }).text).not.toContain("link");
+    expect(message.text).toContain("    01234567");
+    expect(message.text).toContain("this account signs in with an emailed code, google or apple.");
+    expect(message.html).toContain('href="https://dash.example.test/sign-in?attempt=a&amp;code=01234567"');
+    expect(recoveryMessage("fixture@example.test", { code: "01234567", ways: ["email"] }).text).not.toContain("sign-in?");
     const none = recoveryMessage("fixture@example.test", { code: "01234567", ways: null });
     expect(none.text).not.toContain("01234567"); expect(none.html).not.toContain("01234567");
     expect(`${none.text}${message.text}`).not.toContain("\u2014");
