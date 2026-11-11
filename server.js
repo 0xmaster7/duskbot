@@ -13,6 +13,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const site = process.argv[2] || 'landing';
 if (!/^[a-z0-9-]+$/.test(site)) throw new Error(`bad site name ${site}`);
 const root = path.join(here, 'public', site);
+// a one-page site (the waitlist on dusk.bot before launch): every page address that is not there goes home
+const HOME_ONLY = process.env.DUSK_HOME_ONLY === '1';
 if (!fs.statSync(root, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`no such site: ${root}`);
 const port = Number(process.env.PORT) || 3000;
 
@@ -193,6 +195,10 @@ const server = http.createServer((req, res) => {
   // a page has one address, without the slash at its end (the demo keeps its own: its files sit beside it)
   if (file && urlPath.length > 1 && urlPath.endsWith('/') && !demo && file.endsWith('index.html')) {
     res.writeHead(308, { Location: urlPath.replace(/\/+$/, '') + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''), 'Cache-Control': 'public, max-age=300' });
+    return res.end();
+  }
+  if (!file && HOME_ONLY && !/\.[a-z0-9]{1,5}$/i.test(urlPath)) {
+    res.writeHead(302, { Location: '/', 'Cache-Control': 'no-store' });
     return res.end();
   }
   if (!file) {
