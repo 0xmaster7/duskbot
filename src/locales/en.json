@@ -7895,7 +7895,7 @@
   "mobile.settings.privacy": "Privacy policy",
   "mobile.settings.terms": "Terms of use",
   "mobile.settings.help": "Help and support",
-  "mobile.settings.demoName": "Demo workspace",
+  "mobile.settings.demoName": "Demo",
   "mobile.settings.leaveDemo": "Leave the demo",
   "mobile.settings.leaveDemoDetail": "Nothing here is saved, and these bots only pretend to work.",
   "mobile.settings.onComputer": "On your computer",
@@ -7904,7 +7904,7 @@
   "mobile.desktopOnly.done": "Got it",
   "mobile.demo.try": "Try the demo",
   "mobile.demo.tryDetail": "No account or computer needed",
-  "mobile.demo.banner": "Demo workspace",
-  "mobile.demo.readOnly": "The demo workspace cannot do this. Link your own computer to use it.",
+  "mobile.demo.banner": "Demo",
+  "mobile.demo.readOnly": "The demo cannot do this. Link your own computer to use it.",
   "mobile.account.legal": "By continuing you agree to the Terms of use and the Privacy policy."
 }

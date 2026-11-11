@@ -24,7 +24,7 @@ Apple's; the count beside each field is the draft's length.
 ## Promotional text (170)
 
 Your AI bots keep working on your computer while you are out. Text them from your phone, answer when they ask, and get a
-ping when the work is done. (147)
+ping when the work is done. (148)
 
 ## Description (4000)
 
@@ -65,7 +65,7 @@ Dusk Bot for your computer is at dusk.bot.
 
 ## Keywords (100)
 
-ai,bots,agents,assistant,chat,automation,productivity,team,remote,tasks,routines,companion (88)
+ai,bots,agents,assistant,chat,automation,productivity,team,remote,tasks,routines,companion (90)
 
 ## What's New (4000)
 

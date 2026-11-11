@@ -46,7 +46,7 @@ const ROOM = { name: "Launch room", members: ["Nova", "Quill", "Rivet"], ago: 12
 
 /** what a bot says back here: in character for a line, then plain about being a demo */
 const REPLIES = [
-  "On it. This is the demo workspace, so I can only pretend: with Dusk Bot on your own computer I would start now and message you when it is done.",
+  "On it. This is the demo, so I can only pretend: with Dusk Bot on your own computer I would start now and message you when it is done.",
   "Here is how that goes for real: I plan the steps, do the work on your computer, and send you the result. The demo has no computer behind it.",
   "Noted. Link your own computer from Settings and ask me again, and I will pick it up for real.",
 ];
@@ -60,7 +60,7 @@ export interface DemoWorkspace {
 export function createDemoWorkspace(options: { now?: () => number; replyDelayMs?: number; readOnly?: string } = {}): DemoWorkspace {
   const now = options.now ?? Date.now;
   const replyDelay = options.replyDelayMs ?? 1400;
-  const readOnly = options.readOnly ?? "The demo workspace cannot do this.";
+  const readOnly = options.readOnly ?? "The demo cannot do this.";
   let ids = 0;
   const id = (kind: string) => `demo-${kind}-${++ids}`;
   let seq = 0;
