@@ -967,7 +967,8 @@ if (version) {
   if ((held.blocked || []).includes(version)) out("refuse blocked " + version);
   if (held.floor && cmp(version, held.floor) < 0) out("refuse below_floor " + version);
   if ((e.FAILED || "").split(",").includes(version)) out("refuse failed_here " + version);
-  if (e.INSTALLED && cmp(version, e.INSTALLED) < 0) out("refuse older " + version);
+  // an installed build that never got going here is no floor: the one before it may come back
+  if (e.INSTALLED && cmp(version, e.INSTALLED) < 0 && !(e.FAILED || "").split(",").includes(e.INSTALLED)) out("refuse older " + version);
 }
 out("ok " + (version || "unknown") + " " + (e.SIG ? "signed" : "unsigned"));
 DUSK_CHECK
@@ -998,16 +999,21 @@ update_settle() {
   prev=$(state_get package-prev)
   file="$SVC_HOME/.cache/duskbot-link/duskbot-${prev#sha256:}.tgz"
   case "$prev" in sha256:*) [ -f "$file" ] || prev="" ;; *) prev="" ;; esac
+  note_failed "$pending"
   if [ -z "$prev" ]; then state_set update-pending ""; echo "the update to $pending did not pass its self-test and there is no build here to go back to"; return 1; fi
   echo "the update to $pending did not pass its self-test: going back to the build before"
-  failed=$(state_get update-failed)
-  case ",$failed," in *",$pending,"*) ;; *) state_set update-failed "$(printf '%s\n' ${failed:+$(printf '%s' "$failed" | tr ',' ' ')} "$pending" | tail -n 20 | paste -sd, -)" ;; esac
   # update-pending stays until the build before is back, so a stop here rolls back again on the next run
   install_build "$prev" "$file" || return 1
   state_set package-prev ""; state_set update-pending ""
   x systemctl restart duskbot.service
   if wait_health "http://127.0.0.1:$PORT/api/health" 120; then echo "Update rolled back, nothing lost"; return 0; fi
   return 1
+}
+
+note_failed() { # version
+  case "$1" in ''|unknown) return 0 ;; esac
+  failed=$(state_get update-failed)
+  case ",$failed," in *",$1,"*) ;; *) state_set update-failed "$(printf '%s\n' ${failed:+$(printf '%s' "$failed" | tr ',' ' ')} "$1" | tail -n 20 | paste -sd, -)" ;; esac
 }
 
 get_package() { # file
@@ -1335,6 +1341,7 @@ port_owner() {
   [ -n "$owner" ] || return 0
   [ "$(ps -o user= -p "${owner#* }" 2>/dev/null | tr -d ' ')" = "$SVC_USER" ] && return 0
   echo "port $PORT here is taken by ${owner% *} (pid ${owner#* }), not Dusk Bot: stop it, then paste the line again"
+  return 1
 }
 do_service() {
   reload=1
@@ -1359,8 +1366,10 @@ do_service() {
   fi
   echo "the server did not answer on 127.0.0.1:$PORT within two minutes"
   journalctl -u duskbot.service -n 30 --no-pager 2>/dev/null || true
-  port_owner
+  taken=0; port_owner || taken=1
   update_settle 0 && return 0
+  # a first build that never answered here (and not for want of its port): the next line may bring an older one
+  [ "$taken" = 1 ] || [ "$(state_get running-package)" = "$(state_get package)" ] || note_failed "$(installed_version)"
   return 1
 }
 

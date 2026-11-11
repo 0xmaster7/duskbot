@@ -237,6 +237,23 @@ do_service`);
     expect(s.out).toContain("running=sha256:new");
   });
 
+  it("a first build that never started here does not stop the build before it from coming back", async () => {
+    const broken = sha("v=1.1.0"), good = sha("v=1.0.0");
+    const s = await sh(`
+printf '{\n  "version": "1.1.0"\n}\n' > "$SVC_HOME/.local/lib/node_modules/duskbot/package.json"
+printf '#!/bin/sh\n' > "$SVC_HOME/.local/bin/duskbot"; chmod +x "$SVC_HOME/.local/bin/duskbot"
+state_set package sha256:${broken}
+get_gate() { :; }; handoff_script() { :; }; server_unit() { return 1; }; helper_units() { return 1; }; ssh_guard() { return 1; }
+gate_up() { :; }; box_works() { :; }; wait_health() { return 1; }; systemctl() { :; }; journalctl() { :; }; ss() { :; }
+do_service || echo "service failed, failed=$(state_get update-failed)"
+PKG_SHA=${good} PKG_VERSION=1.0.0 OFFLINE=0
+get_package() { printf 'v=1.0.0' > "$1"; }
+as_user() { printf '{\n  "version": "1.0.0"\n}\n' > "$SVC_HOME/.local/lib/node_modules/duskbot/package.json"; }
+do_app && echo "package=$(state_get package)"`);
+    expect(s.out).toContain("service failed, failed=1.1.0");
+    expect(s.out).toContain(`package=sha256:${good}`);
+  });
+
   it("finishes a dpkg run that was interrupted before installing anything", async () => {
     const s = await sh(`
 cat > "$TMP/bin/dpkg" <<'STUB'
