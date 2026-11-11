@@ -144,7 +144,7 @@ export function Onboarding() {
     const ok = await checkout({ source: "dash_onboarding", kind: "plan", selection: planSelection(catalog, plan, { interval, work: false }), bundle: null });
     if (!ok) { sessionStorage.setItem(SAVED, "plan"); setError("checkout didn't open. try again."); setBusy(false); return; }
     // the live page is on its way to the payment page; fixtures pay at once
-    if (FIXTURE) { toast("paid. your cloud computer is being set up."); setBusy(false); go("app"); }
+    if (FIXTURE) { toast("paid. your dusk cloud is being set up."); setBusy(false); go("app"); }
   };
   // a plan picked on the site goes from the name straight to checkout
   const direct = Boolean(intent) && !bought;
@@ -178,7 +178,7 @@ export function Onboarding() {
       {step === "name" ? (
         <form key="name" className="step-in" onSubmit={(e) => { e.preventDefault(); void saveName(); }} noValidate>
           <h1 className="t-title">hi. what should we call you?</h1>
-          <p className="mt-3 text-16 text-ink-2">{direct ? "then checkout, and your cloud computer starts setting up." : "your account is ready. two quick things and you're in."}</p>
+          <p className="mt-3 text-16 text-ink-2">{direct ? "then checkout, and your dusk cloud starts setting up." : "your account is ready. two quick things and you're in."}</p>
           <label htmlFor="onb-name" className="mb-2 mt-7 block text-14 text-ink-2">your name</label>
           <input id="onb-name" autoComplete="given-name" maxLength={60} value={shownName} onChange={(e) => { setName(e.target.value); setError(null); }} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} className="field !h-12" aria-invalid={Boolean(error)} aria-describedby={error ? "onb-error" : undefined} />
           {direct && (
@@ -205,7 +205,7 @@ export function Onboarding() {
         </div>
       ) : (
         <div key="app" className="step-in">
-          {bought && <p className="tag mb-4 !bg-lime !text-ink" role="status"><span className="live-dot text-good" data-live />your cloud computer is being set up</p>}
+          {bought && <p className="tag mb-4 !bg-lime !text-ink" role="status"><span className="live-dot text-good" data-live />your dusk cloud is being set up</p>}
           <h1 className="t-title">{shownName.trim() ? `last thing, ${shownName.trim()}: get the app.` : "last thing: get the app."}</h1>
           <p className="mt-3 text-16 text-ink-2">sign in with this account, make a bot, and hand it something real.</p>
           <ul className="mt-6 flex flex-wrap gap-1.5" aria-label="first jobs people try">

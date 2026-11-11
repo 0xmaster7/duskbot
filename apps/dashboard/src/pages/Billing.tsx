@@ -73,8 +73,8 @@ function PlanCard({ id, catalog, interval, current, lead, onChoose, action, disa
 }
 
 const FAQ = [
-  { q: "what's a cloud desktop?", a: "a computer of your own in the cloud, made for your bots. it stays on day and night, so they keep answering, running routines and using their computers while your mac is closed." },
-  { q: "do i need it if i have a mac?", a: "no. free runs everything on your mac; your bots just pause while it sleeps. add a cloud desktop when you want them working around the clock." },
+  { q: "what's dusk cloud?", a: "a computer of your own in the cloud, made for your bots. it stays on day and night, so they keep answering, running routines and using their computers while your mac is closed." },
+  { q: "do i need it if i have a mac?", a: "no. free runs everything on your mac; your bots just pause while it sleeps. add dusk cloud when you want them working around the clock." },
   { q: "what counts as work use?", a: "anything you do for a company, for a client or to earn money. personal projects, learning and hobbies are personal use, which is free forever." },
 ];
 
@@ -170,20 +170,20 @@ function CancelDialog({ open, onClose }: { open: boolean; onClose(): void }) {
   const [error, setError] = useState<string | null>(null);
   const sub = billing?.subscription;
   if (!sub) return null;
-  // with a work license on the plan, cancelling the cloud desktop keeps the license
+  // with a work license on the plan, cancelling the dusk cloud keeps the license
   const keepsLicense = sub.selection.license !== "personal" && sub.selection.desktop !== "none";
   const stop = async () => {
     setBusy(true); setError(null);
     try {
-      if (keepsLicense) { await changePlan({ ...sub.selection, desktop: "none", size: null }); toast("your cloud desktop ends with this period"); }
+      if (keepsLicense) { await changePlan({ ...sub.selection, desktop: "none", size: null }); toast("your dusk cloud ends with this period"); }
       else await cancel(reason);
       onClose();
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const desk = sub.selection.desktop !== "none";
   return (
-    <Modal open={open} onClose={onClose} title={keepsLicense ? "cancel your cloud desktop?" : "cancel your plan?"} footer={<><Button onClick={onClose}>keep it</Button><Button variant="danger" onClick={() => void stop()} disabled={busy}>{busy ? "cancelling" : "cancel"}</Button></>}>
-      <p>it runs until {longDate(sub.currentPeriodEnd)}.{desk ? " your cloud desktop is then kept for 7 days and deleted, and your bots only run while your mac is awake." : " after that, work use is no longer covered. personal use stays free."}{keepsLicense ? " your work license stays." : ""}</p>
+    <Modal open={open} onClose={onClose} title={keepsLicense ? "cancel your dusk cloud?" : "cancel your plan?"} footer={<><Button onClick={onClose}>keep it</Button><Button variant="danger" onClick={() => void stop()} disabled={busy}>{busy ? "cancelling" : "cancel"}</Button></>}>
+      <p>it runs until {longDate(sub.currentPeriodEnd)}.{desk ? " your dusk cloud is then kept for 7 days and deleted, and your bots only run while your mac is awake." : " after that, work use is no longer covered. personal use stays free."}{keepsLicense ? " your work license stays." : ""}</p>
       {!keepsLicense && (
         <div className="mt-4">
           <Field label="what made you cancel? (optional)" htmlFor="cancel-reason" error={error}>

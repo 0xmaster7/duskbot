@@ -92,7 +92,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
   const sel = catalog ? planSelection(catalog, plan, { interval, region, work: withLicense, keep: owned }) : null;
   const { cart, ready, error: quoteError } = useCart(sel, catalog);
   const { charge, apply } = useChangeCharge(sel);
-  if (!catalog || !sel) return <Sheet open onClose={onClose} title="get a cloud desktop"><Skeleton className="mt-4 h-40" /></Sheet>;
+  if (!catalog || !sel) return <Sheet open onClose={onClose} title="get dusk cloud"><Skeleton className="mt-4 h-40" /></Sheet>;
   const b = bundleOf(catalog, plan);
   const ownsLicense = Boolean(owned && owned.license !== "personal");
   const work1 = licenseOf(catalog, "starter");
@@ -101,7 +101,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
     setBusy(true); setError(null);
     try {
       if (owned) { if (await apply(sel)) { toast(`you are on ${b?.name}`); onClose(); } }
-      else if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("paid. your cloud desktop is being set up."); onClose(); navigate("/cloud"); }
+      else if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("paid. your dusk cloud is being set up."); onClose(); navigate("/cloud"); }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const line = (id: PaidPlan): ReactNode => {

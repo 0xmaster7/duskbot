@@ -74,7 +74,7 @@ export function Provisioning({ cloud }: { cloud: CloudDesktop }) {
         <span className="text-ink-2" aria-live="polite">{cloud.awaitingPayment ? "finish checkout and it starts setting up" : cloud.progress?.step ?? "getting ready"}</span>
         <span className="num text-ink-3">{v}%</span>
       </div>
-      <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={v} aria-label="setting up your cloud desktop">
+      <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={v} aria-label="setting up your dusk cloud">
         <div className="bar-fill h-full w-full rounded-full bg-accent" style={{ transform: `scaleX(${Math.max(0.03, v / 100)})` }} />
         <div className="sweep absolute inset-y-0 left-0 w-1/3 bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--bg)_45%,transparent),transparent)]" aria-hidden />
       </div>
@@ -94,7 +94,7 @@ export function QuickPick({ catalog, source, className, onDone, secondary }: { s
     setBusy(true); setError(null);
     try {
       if (await checkout({ source, kind: "plan", selection: planSelection(catalog, pick, { interval: "month", work: false }), bundle: null })) {
-        toast("paid. your cloud desktop is being set up.");
+        toast("paid. your dusk cloud is being set up.");
         if (onDone) await onDone(); else navigate("/cloud");
       }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
@@ -127,7 +127,7 @@ export function PlanDialog({ open, source, onClose }: { source: CheckoutSource; 
 }
 
 /** the one cloud pitch: a line, a sentence, one button and the three mascots; home, the empty cloud page and billing share it */
-export function CloudPitch({ source = "dash_cloud", title = "keep your bots on while your mac sleeps", body = "a cloud desktop runs them all day and all night. set up in one click.", action, link = { to: "/billing", label: "see plans" }, className, id = "pitch-title" }: { source?: CheckoutSource; title?: string; body?: ReactNode; action?: ReactNode | false; link?: { to: string; label: string } | null; className?: string; id?: string }) {
+export function CloudPitch({ source = "dash_cloud", title = "keep your bots on while your mac sleeps", body = "dusk cloud runs them all day and all night. set up in one click.", action, link = { to: "/billing", label: "see plans" }, className, id = "pitch-title" }: { source?: CheckoutSource; title?: string; body?: ReactNode; action?: ReactNode | false; link?: { to: string; label: string } | null; className?: string; id?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <section className={cx("surface enter flex items-center gap-8 rounded-card bg-card px-8 py-7 max-sm:flex-col-reverse max-sm:items-start max-sm:gap-5 max-sm:p-5", className)} aria-labelledby={id}>
@@ -136,7 +136,7 @@ export function CloudPitch({ source = "dash_cloud", title = "keep your bots on w
         <p className="mt-1.5 max-w-[52ch] text-14 leading-[1.55] text-ink-3">{body}</p>
         {(action !== false || link) && (
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
-            {action === false ? null : action ?? <Button variant="primary" onClick={() => setOpen(true)}>get a cloud desktop</Button>}
+            {action === false ? null : action ?? <Button variant="primary" onClick={() => setOpen(true)}>get dusk cloud</Button>}
             {link && <Link to={link.to} className="hover-link inline-flex h-9 items-center text-14 text-ink-3 max-sm:h-11">{link.label}</Link>}
           </div>
         )}

@@ -246,7 +246,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
         <div key="start" className="step-in">
           {intent && <p className="mb-4 flex items-center gap-2"><span className="tag !bg-lime !text-ink">{intent.plan === "starter" ? "plus" : "pro"} plan{intent.interval ? `, ${intent.interval}ly` : ""}</span><a href={siteUrl("/#pricing")} className={cx(LINK, "text-13")}>change</a></p>}
           <h1 className="t-title">{signup ? "make your account." : "welcome back."}</h1>
-          <p className="mt-3 text-16 text-ink-2">{intent ? "an account first, then checkout. your cloud computer is ready in about a minute." : signup ? "free on your own computer. one account for the app, your phone and dusk cloud." : "sign in to see your bots, wherever they live."}</p>
+          <p className="mt-3 text-16 text-ink-2">{intent ? "an account first, then checkout. your dusk cloud is ready in about a minute." : signup ? "free on your own computer. one account for the app, your phone and dusk cloud." : "sign in to see your bots, wherever they live."}</p>
           {note && <div className="mt-4 rounded-[16px] bg-lemon px-4 py-3 text-14 leading-[1.5] text-ink">{note}</div>}
           {pending && <div className="mt-4 rounded-[16px] bg-lemon px-4 py-3 text-14 leading-[1.5] text-ink">one more step: your provider didn't share an email, so enter the one you want to sign in with.</div>}
           <div className="mt-7 flex flex-col gap-2">

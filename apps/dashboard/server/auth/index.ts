@@ -23,7 +23,7 @@ export class AuthError extends Error {
   }
 }
 const messages: Partial<Record<AccountErrorCode, string>> = {
-  billing_active: "Cancel your plan and cloud desktops before deleting your account.",
+  billing_active: "Cancel your plan and Dusk Cloud before deleting your account.",
   invalid_request: "Invalid request.", invalid_email: "Enter a valid email address.", wrong_code: "Code is incorrect.", invalid_code: "Code is incorrect.",
   expired: "Sign-in has expired.", rate_limited: "Try again later.", signup_closed: "New accounts are not available.", signed_out: "Sign in to continue.",
   csrf: "Refresh the page and try again.", not_found: "Not found.", invalid_token: "Session is invalid.", invalid_grant: "Grant is invalid.",

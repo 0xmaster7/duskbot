@@ -42,7 +42,7 @@ export function useQuickCheckout(source: CheckoutSource) {
     if (!catalog) return;
     setBusy(true); setError(null);
     const ok = await checkout({ source, kind: "plan", selection: planSelection(catalog, plan, { interval: "month", work: false }), bundle: null });
-    if (ok) toast("paid. your cloud computer is being set up.");
+    if (ok) toast("paid. your dusk cloud is being set up.");
     else setError("checkout didn't open. try again.");
     setBusy(false);
   };

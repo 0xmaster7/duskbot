@@ -105,7 +105,7 @@ function Big({ label, value, sub }: { label: string; value: ReactNode; sub?: Rea
   );
 }
 
-/** a cloud desktop that exists: its state and four live numbers */
+/** a dusk cloud that exists: its state and four live numbers */
 function CloudLive({ cloud, detail }: { cloud: CloudDesktop; detail: WorkspaceDetail | null }) {
   const { catalog } = useCloud();
   const m = detail?.report?.machine;
@@ -118,7 +118,7 @@ function CloudLive({ cloud, detail }: { cloud: CloudDesktop; detail: WorkspaceDe
     <Card className="enter" aria-labelledby="cloud-live-title">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="t-meta">cloud desktop</div>
+          <div className="t-meta">dusk cloud</div>
           <h2 id="cloud-live-title" className="mt-1 truncate text-24 font-medium tracking-[-0.035em] text-ink">{cloud.name}</h2>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
             <CloudStatus cloud={cloud} />

@@ -16,8 +16,8 @@ export const fixtureCatalog: PlanCatalog = {
   ],
   bundles: [
     { id: "free", name: "free", monthly: 0, license: "personal", members: 1, desktop: "none", blurb: "Your bots, on your Mac", features: ["Your bots, on your Mac", "Personal use", "No subscription"] },
-    { id: "starter", name: "plus", monthly: 20, license: "personal", members: 1, desktop: "shared-s", blurb: "Your bots work 24/7", features: ["Your bots work 24/7", "A cloud desktop, on 24/7", "2 bot computers"] },
-    { id: "pro", name: "pro", monthly: 50, license: "starter", members: 1, desktop: "shared-m", recommended: true, blurb: "For real work", features: ["A bigger always-on cloud desktop", "5 bot computers, priority wake", "Work license for one person"] },
+    { id: "starter", name: "plus", monthly: 20, license: "personal", members: 1, desktop: "shared-s", blurb: "Your bots work 24/7", features: ["Your bots work 24/7", "Dusk Cloud, on 24/7", "2 bot computers"] },
+    { id: "pro", name: "pro", monthly: 50, license: "starter", members: 1, desktop: "shared-m", recommended: true, blurb: "For real work", features: ["A bigger Dusk Cloud, always on", "5 bot computers, priority wake", "Work license for one person"] },
     { id: "team", name: "team", monthly: 100, license: "team", members: 2, desktop: "dedicated", blurb: "A dedicated machine for the whole team", features: ["Team license, 2 members", "Dedicated machine, unlimited bot computers"] },
   ],
   poolRegions: ["eu-central"],

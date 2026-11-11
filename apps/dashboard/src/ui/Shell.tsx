@@ -21,7 +21,7 @@ type NavItem = { to: string; label: string; icon: ReactNode };
 const NAV: Array<{ label?: string; items: NavItem[] }> = [
   { items: [
     { to: "/", label: "home", icon: <House {...ICON} /> },
-    { to: "/cloud", label: "cloud desktop", icon: <Cloud {...ICON} /> },
+    { to: "/cloud", label: "dusk cloud", icon: <Cloud {...ICON} /> },
     { to: "/workspaces", label: "workspaces", icon: <Layers {...ICON} /> },
     { to: "/bots", label: "bots", icon: <Bot {...ICON} /> },
     { to: "/connectors", label: "connectors", icon: <Blocks {...ICON} /> },
@@ -33,7 +33,7 @@ const NAV: Array<{ label?: string; items: NavItem[] }> = [
   ] },
 ];
 
-export const KIND_LABEL = (kind: string, cloud: CloudDesktop | null) => (cloud ? "cloud desktop" : kind === "vps" ? "your server" : kind === "mac" ? "mac" : kind === "linux" ? "linux" : "windows");
+export const KIND_LABEL = (kind: string, cloud: CloudDesktop | null) => (cloud ? "dusk cloud" : kind === "vps" ? "your server" : kind === "mac" ? "mac" : kind === "linux" ? "linux" : "windows");
 
 const active = (path: string, to: string) => (to === "/" ? path === "/" : path === to || path.startsWith(`${to}/`));
 
@@ -101,7 +101,7 @@ function UserRow() {
   const name = account.name || (account.email.split("@")[0] ?? account.email);
   const sel = billing?.subscription?.selection;
   const license = sel && sel.license !== "personal" ? catalog?.licenses.find((l) => l.id === sel.license)?.name : null;
-  const plan = sel && sel.desktop !== "none" ? catalog?.bundles.find((b) => b.desktop === sel.desktop && b.id !== "team")?.name ?? "cloud desktop" : null;
+  const plan = sel && sel.desktop !== "none" ? catalog?.bundles.find((b) => b.desktop === sel.desktop && b.id !== "team")?.name ?? "dusk cloud" : null;
   const label = (plan ? (license && plan !== "pro" ? `${plan} + work license` : plan) : license ? `${license} license` : "free").toLowerCase();
   return (
     <div ref={ref} className="relative">
@@ -137,7 +137,7 @@ function CloudBadge() {
 const HIDE_KEY = "omb-dash-upsell-hidden-until";
 const WEEK = 7 * 86_400_000;
 
-/** the one nudge toward 24/7, for anyone without a cloud desktop; hides for a week when closed */
+/** the one nudge toward 24/7, for anyone without dusk cloud; hides for a week when closed */
 function SideUpsell() {
   const { clouds } = useCloud();
   const { path } = useLocation();

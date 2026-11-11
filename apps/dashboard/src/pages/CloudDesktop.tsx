@@ -21,12 +21,12 @@ import { MachineView } from "./Machine";
 import { money, useChangeCharge } from "./plan-sheet";
 import { useNow } from "../lib/now";
 
-/** no cloud desktop yet: the one pitch, then the sizes it comes in */
+/** no dusk cloud yet: the one pitch, then the sizes it comes in */
 function Empty() {
   const { catalog } = useCloud();
   return (
     <div className="flex flex-col gap-4">
-      <CloudPitch title="keep your bots on 24/7" body="a cloud desktop of your own runs your bots all day and all night, even while your mac sleeps." link={{ to: "/workspaces#add", label: "use my own server instead" }} />
+      <CloudPitch title="keep your bots on 24/7" body="dusk cloud runs your bots all day and all night, even while your mac sleeps." link={{ to: "/workspaces#add", label: "use my own server instead" }} />
       <Card className="enter" style={{ ["--i" as string]: 1 }} aria-labelledby="sizes-title">
         <SectionTitle id="sizes-title" action={<Link to="/billing" className="hover-link inline-flex h-8 items-center text-13 text-ink-3">plans and billing</Link>}>sizes</SectionTitle>
         {catalog ? (
@@ -233,7 +233,7 @@ export function CloudDesktopPage() {
   if (!cloud) {
     return (
       <div>
-        <PageHeader title="cloud desktop" sub="your own always-on computer in the cloud, made for your bots." />
+        <PageHeader title="dusk cloud" sub="your own always-on computer in the cloud, made for your bots." />
         <Empty />
       </div>
     );
