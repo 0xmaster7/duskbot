@@ -1,7 +1,7 @@
 import { createPrivateKey, randomBytes } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRelaySecrets, deviceChannelKey, unbase64 } from "./link-crypto";
-import { frameGuard, open, openFrame, readFrameBatches, sealFrame, type RelayFrame } from "./relay";
+import { frameGuard, open, openFrame, readFrameBatches, RelayGoneError, sealFrame, type RelayFrame } from "./relay";
 
 const protocolPath = "../../../electron/vps-link-protocol.mjs";
 const protocol = await import(protocolPath);
@@ -99,7 +99,7 @@ function relayFixture() {
   });
   vi.stubGlobal("fetch", fetcher);
   vi.stubGlobal("window", { fetch: fetcher, CapacitorWebFetch: streamFetch });
-  return { fetcher, streamFetch, controls, posts, streams, emit };
+  return { fetcher, streamFetch, controls, posts, streams, emit, dropPoll: () => incoming.error(new TypeError("network changed")) };
 }
 
 describe("relay channel", () => {
@@ -148,6 +148,42 @@ describe("relay channel", () => {
     client.close();
     expect(fixture.streamFetch.mock.calls[0][1]?.signal?.aborted).toBe(true);
     await expect(client.request("GET", "/api/bots")).rejects.toThrow("relay closed");
+  });
+
+  it("a lost poll fails what was waiting, and the next request starts a fresh link", async () => {
+    const fixture = relayFixture();
+    const client = open("https://relay.test", channel, "channel-secret", key);
+    try {
+      expect((await client.request("GET", "/api/bots")).status).toBe(200);
+      const first = fixture.posts[0].epoch;
+      const stream = await client.request("GET", "/api/events");
+      fixture.dropPoll();
+      await expect(stream.text()).rejects.toThrow();
+      const again = await client.request("GET", "/api/bots");
+      expect(again.status).toBe(200);
+      const fresh = fixture.posts.at(-1)!;
+      expect(fresh.epoch).not.toBe(first);
+      expect(fresh.seq).toBe(0);
+      expect(fixture.streamFetch).toHaveBeenCalledTimes(2);
+    } finally { client.close(); }
+  });
+
+  it("a post the relay never took drops the link, and the next request posts on a new one", async () => {
+    const fixture = relayFixture();
+    const client = open("https://relay.test", channel, "channel-secret", key);
+    try {
+      fixture.fetcher.mockRejectedValueOnce(new TypeError("offline"));
+      await expect(client.request("GET", "/api/bots")).rejects.toThrow();
+      expect((await client.request("GET", "/api/bots")).status).toBe(200);
+    } finally { client.close(); }
+  });
+
+  it("a channel the relay no longer has is gone for good, not a lost connection", async () => {
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockImplementation(async () => new Response(JSON.stringify({ error: "not found", code: "not_found" }), { status: 404 })));
+    const client = open("https://relay.test", channel, "channel-secret", key);
+    await expect(client.request("GET", "/api/bots")).rejects.toBeInstanceOf(RelayGoneError);
+    await expect(client.request("GET", "/api/bots")).rejects.toBeInstanceOf(RelayGoneError);
+    client.close();
   });
 
   it("fails requests when the relay refuses a poll", async () => {

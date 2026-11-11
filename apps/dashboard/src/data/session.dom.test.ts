@@ -63,7 +63,7 @@ test("the workspace gate shows list failures and Retry loads the list again", as
   await act(async () => host.querySelector("button")!.click());
   expect(api.workspaces).toHaveBeenCalledTimes(2);
   expect(session.workspacesError).toBeNull();
-  expect(host.textContent).toContain("Connect your first workspace");
+  expect(host.textContent).toContain("connect your first workspace");
 });
 
 test("an unauthorized workspace list signs out", async () => {

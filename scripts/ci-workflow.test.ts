@@ -253,12 +253,13 @@ describe("CI concurrency", () => {
       vitest_matrix: "${{ steps.scope.outputs.vitest_matrix }}",
       packaged_server_os: "${{ steps.scope.outputs.packaged_server_os }}",
     });
-    // Only these three static steps depend on the scope's build flag.
+    // Only these four static steps depend on the scope's build flag.
     const built = (workflow.jobs.static.steps as { if?: string; run?: string }[]).filter((step) => step.if?.includes("outputs.build"));
     expect(built.map((step) => [step.if, step.run])).toEqual([
       ["steps.scope.outputs.build == 'true'", "pnpm typecheck"],
       ["steps.scope.outputs.build == 'true'", "pnpm check:electron"],
       ["steps.scope.outputs.build == 'true'", "pnpm exec vite build"],
+      ["steps.scope.outputs.build == 'true'", "pnpm mobile:build"],
     ]);
     expect(workflow.jobs.static.steps.some((step: { run?: string }) =>
       step.run === "pnpm exec vitest run scripts/ci-scope.test.ts scripts/ci-linux-lanes.test.ts scripts/ci-workflow.test.ts scripts/testing/verification-docs.test.ts",

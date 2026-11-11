@@ -3,10 +3,15 @@ import { MausAvatar } from "@/components/Avatar";
 import { SignIn } from "@/components/account-gate/SignIn";
 import { problemLine } from "@/components/cloud-buy/SignInScreen";
 import { t } from "@/lib/i18n";
-import { usePlatform } from "../platform";
+import { THEME_SKINS } from "@/lib/skins";
+import type { OAuthProvider } from "../../../shared/account-api";
+import { demoOn, enterDemo } from "../demo/demo-mode";
+import { LEGAL_LINKS } from "../legal";
+import { MARKS } from "../onboarding/AccountStep";
+import { usePlatform, type MobilePlatform } from "../platform";
 import { createMobileAccount, isAccountAuthUrl, type AuthResult, type MobileAccount } from "./account-client";
 
-type AccountContextValue = { account: MobileAccount | null; signOut(): Promise<void>; enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null> };
+type AccountContextValue = { account: MobileAccount | null; origin: string; signOut(): Promise<void>; enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null> };
 const AccountContext = createContext<AccountContextValue | null>(null);
 export const useMobileAccount = () => useContext(AccountContext);
 
@@ -23,6 +28,14 @@ export function mobileAccountOrigin(native: boolean, params: URLSearchParams): s
   return "https://app.dusk.bot";
 }
 
+/** The sign-in buttons a phone shows, of those the account service says work. App Store guideline 4.8: an iPhone app
+ * that offers another company's sign-in offers Sign in with Apple too, so without Apple the iPhone app offers none of
+ * them (the email code stays). Apple leads where it is offered. */
+export function providersFor(kind: MobilePlatform["kind"], enabled: readonly OAuthProvider[]): OAuthProvider[] {
+  if (kind !== "ios") return [...enabled];
+  return enabled.includes("apple") ? ["apple", ...enabled.filter((provider) => provider !== "apple")] : [];
+}
+
 function authProblem(result: AuthResult): string | undefined {
   if (!result || result.outcome === "signed-in") return;
   switch (result.outcome) {
@@ -36,16 +49,34 @@ function authProblem(result: AuthResult): string | undefined {
   }
 }
 
+/** Apple's button rules: its mark beside the words, on a plain white or black fill. The others carry their mark only. */
+const PROVIDER_MARKS = {
+  apple: { icon: MARKS.apple, className: "border-transparent bg-[#f3f4f8] text-[#121212]" },
+  google: { icon: MARKS.google },
+  x: { icon: MARKS.x },
+};
+
+const QUIET_LINK = "min-h-11 rounded-full px-3 text-[13px] text-ink-secondary underline underline-offset-2 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+
 export function AccountGate({ children }: { children: ReactNode }) {
   const platform = usePlatform();
   const params = new URLSearchParams(location.search);
-  const required = platform.native ? import.meta.env.VITE_DUSK_ALLOW_SIGNED_OUT !== "1" : params.get("account") === "1";
+  const wanted = platform.native ? import.meta.env.VITE_DUSK_ALLOW_SIGNED_OUT !== "1" : params.get("account") === "1";
   const origin = mobileAccountOrigin(platform.native, params);
   const client = useMemo(() => createMobileAccount({ platform, origin }), [platform, origin]);
   const [account, setAccount] = useState<MobileAccount | null>(null);
-  const [restoring, setRestoring] = useState(required);
+  const [demo, setDemo] = useState<boolean | null>(wanted ? null : false);
+  const [restoring, setRestoring] = useState(wanted);
   const [problem, setProblem] = useState<string>();
   const pendingAuth = useRef<Promise<AuthResult> | null>(null);
+  // the demo workspace needs no account: it is how someone looks around before they have one
+  const required = wanted && demo === false;
+  useEffect(() => {
+    if (!wanted) return;
+    let active = true;
+    void demoOn(platform).then((on) => { if (active) setDemo(on); });
+    return () => { active = false; };
+  }, [platform, wanted]);
   useEffect(() => {
     let active = true;
     let revision = 0;
@@ -66,14 +97,32 @@ export function AccountGate({ children }: { children: ReactNode }) {
       follow(task);
       return true;
     });
-    if (required && !pendingAuth.current) void client.restore().then(value => { if (active && stamp === revision) setAccount(value); }).catch(() => {}).finally(() => { if (active) setRestoring(false); });
+    if (wanted && !pendingAuth.current) void client.restore().then(value => { if (active && stamp === revision) setAccount(value); }).catch(() => {}).finally(() => { if (active) setRestoring(false); });
     else if (!pendingAuth.current) setRestoring(false);
-    return () => { active = false; stop?.(); };
-  }, [client, platform, required]);
-  const context = useMemo<AccountContextValue>(() => ({ account,
+    // signed out or deleted somewhere else (the website, another device): the app finds out when it comes back
+    const stopResume = wanted ? platform.onResume?.(() => {
+      if (pendingAuth.current || !client.account()) return;
+      const resumed = revision;
+      void client.restore().then(value => { if (active && resumed === revision) setAccount(value); }).catch(() => {});
+    }) : undefined;
+    return () => { active = false; stop?.(); stopResume?.(); };
+  }, [client, platform, wanted]);
+  const context = useMemo<AccountContextValue>(() => ({ account, origin,
     signOut: async () => { setAccount(null); setProblem(undefined); await client.signOut(); },
     enrollGrant: () => client.enrollGrant(),
-  }), [account, client]);
-  if (restoring && required) return <div className="omb-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
-  return <AccountContext value={context}>{required && !account ? <div data-skin="grok-dark" className="omb-mobile size-full bg-[#121212] text-ink"><SignIn mobile emailStart={email => client.emailStart(email)} emailVerify={code => client.emailVerify(code)} cancelEmail={async () => { client.cancelEmail(); }} browser={provider => { setProblem(undefined); return client.oauthStart(provider); }} onSignedIn={() => { setAccount(client.account()); setProblem(undefined); }} notice={problem} /></div> : children}</AccountContext>;
+  }), [account, origin, client]);
+  if (wanted && (demo === null || (restoring && required))) return <div className="omb-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
+  return <AccountContext value={context}>{required && !account ? <div data-skin={THEME_SKINS.dark} className="omb-mobile size-full bg-app text-ink"><SignIn mobile emailStart={email => client.emailStart(email)} emailVerify={code => client.emailVerify(code)} cancelEmail={async () => { client.cancelEmail(); }} browser={provider => { setProblem(undefined); return client.oauthStart(provider); }} onSignedIn={() => { setAccount(client.account()); setProblem(undefined); }} notice={problem}
+    options={async () => ({ providers: providersFor(platform.kind, await client.providers()), recovery: false })} marks={PROVIDER_MARKS}>
+    <div className="flex flex-col items-center gap-1 border-t border-ink/10 pt-4">
+      <button type="button" onClick={() => void enterDemo(platform)} className="flex min-h-11 w-full flex-col items-center justify-center rounded-full border border-ink/15 px-5 py-2 text-[14px] font-medium outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+        {t("mobile.demo.try")}<span className="text-[12px] font-normal text-ink-secondary">{t("mobile.demo.tryDetail")}</span>
+      </button>
+      <p className="mt-2 text-center text-[12px] leading-5 text-ink-tertiary">{t("mobile.account.legal")}</p>
+      <div className="flex gap-1">
+        <button type="button" className={QUIET_LINK} onClick={() => void platform.openExternal(LEGAL_LINKS.terms)}>{t("mobile.settings.terms")}</button>
+        <button type="button" className={QUIET_LINK} onClick={() => void platform.openExternal(LEGAL_LINKS.privacy)}>{t("mobile.settings.privacy")}</button>
+      </div>
+    </div>
+  </SignIn></div> : children}</AccountContext>;
 }

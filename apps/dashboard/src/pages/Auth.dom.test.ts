@@ -36,20 +36,20 @@ async function type(input: HTMLInputElement, value: string) {
   });
 }
 
-test("Can't sign in? asks for the address, sends a recovery start and says what was sent without telling whether an account exists", async () => {
+test("can't sign in? asks for the address, sends a recovery start and says what was sent without telling whether an account exists", async () => {
   history.replaceState(null, "", "/sign-in");
   const start = vi.spyOn(state.api, "start");
   const host = await render();
-  await act(async () => button(host, "Can't sign in?")!.click());
-  expect(host.querySelector("h1")?.textContent).toBe("Can't sign in?");
-  expect(host.textContent).toContain("Lost access to that email?");
+  await act(async () => button(host, "can't sign in?")!.click());
+  expect(host.querySelector("h1")?.textContent).toBe("can't sign in?");
+  expect(host.textContent).toContain("lost access to that email?");
   expect(host.querySelector<HTMLAnchorElement>('a[href^="mailto:"]')?.href).toBe("mailto:hello@dusk.bot");
   await type(host.querySelector<HTMLInputElement>("#recover-email")!, "sid@duskbot.test");
-  await act(async () => button(host, "Email me a sign-in link")!.click());
+  await act(async () => button(host, "email me a sign-in link")!.click());
   expect(start).toHaveBeenCalledWith("sid@duskbot.test", "signin", undefined, true);
-  expect(host.textContent).toContain("If an account uses sid@duskbot.test, we sent a link and a 8-digit code.");
-  await act(async () => button(host, "Use another email")!.click());
-  expect(host.querySelector("h1")?.textContent).toBe("Can't sign in?");
+  expect(host.textContent).toContain("if an account uses sid@duskbot.test, we sent a link and a 8-digit code.");
+  await act(async () => button(host, "use another email")!.click());
+  expect(host.querySelector("h1")?.textContent).toBe("can't sign in?");
 });
 
 test("the emailed link waits for a click, signs in once, and leaves the address bar", async () => {
@@ -60,14 +60,14 @@ test("the emailed link waits for a click, signs in once, and leaves the address 
   expect(location.hash).toBe("");
   expect(location.pathname + location.search).toBe("/sign-in?next=/account");
   expect(verify).not.toHaveBeenCalled();
-  expect(host.querySelector("h1")?.textContent).toBe("Sign in to Dusk Bot");
-  await act(async () => button(host, "Sign in")!.click());
+  expect(host.querySelector("h1")?.textContent).toBe("your link is ready.");
+  await act(async () => button(host, "sign in")!.click());
   expect(verify).toHaveBeenCalledWith(attempt, "12345678");
 });
 
 test("a malformed link is ignored and the page starts at sign-in", async () => {
   history.replaceState(null, "", "/sign-in#attempt=short&code=12");
   const host = await render();
-  expect(host.querySelector("h1")?.textContent).toBe("Sign in to Dusk Bot");
-  expect(button(host, "Continue")).not.toBeNull();
+  expect(host.querySelector("h1")?.textContent).toBe("welcome back.");
+  expect(button(host, "continue")).not.toBeNull();
 });

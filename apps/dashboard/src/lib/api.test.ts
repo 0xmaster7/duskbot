@@ -95,13 +95,13 @@ test("reauth_required and the other delete-data codes come back as their own cod
   const error = await api.askDeleteData("c").catch((e: unknown) => e);
   expect(needsSignIn(error)).toBe(true);
   const { ApiError } = await import("./api");
-  expect(deleteDataError(new ApiError("billing_active", 409, "billing_active"))).toMatch(/Cancel it in Plans & billing first/);
+  expect(deleteDataError(new ApiError("billing_active", 409, "billing_active"))).toMatch(/cancel it in plans and billing first/);
   expect(deleteDataError(new ApiError("confirmation_required", 409, "confirmation_required"))).toMatch(/expired or was already used/);
-  expect(deleteDataError(new ApiError("weird", 500, "weird"))).toBe("That did not work. Try again.");
+  expect(deleteDataError(new ApiError("weird", 500, "weird"))).toBe("that did not work. try again.");
 });
 
 test("an empty server failure uses a calm fallback", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 500 })));
   const { api } = await import("./api");
-  await expect(api.me()).rejects.toMatchObject({ status: 500, message: "Something went wrong on our side. Try again." });
+  await expect(api.me()).rejects.toMatchObject({ status: 500, message: "something went wrong on our side. try again." });
 });

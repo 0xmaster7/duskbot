@@ -10,7 +10,7 @@ import { navigate } from "../lib/router";
 import { Button, ButtonLink, Card, Skeleton } from "../ui/kit";
 import { SkyEmpty } from "../ui/Sky";
 
-const GOES = ["Your bots and their chats", "Files, and the sign-ins saved on it", "Every backup of it"];
+const GOES = ["your bots and their chats", "files, and the sign-ins saved on it", "every backup of it"];
 
 function Sheet({ title, children, actions, error }: { title: string; children: ReactNode; actions: ReactNode; error: string | null }) {
   return (
@@ -64,58 +64,58 @@ export function DeleteDataPage({ id }: { id: string }) {
     setBusy("cancel"); setError(null);
     try {
       await api.cancelDeleteData(id);
-      toast(`Deletion cancelled. ${cloud?.name ?? "Your cloud"} keeps its data.`);
+      toast(`deletion cancelled. ${cloud?.name ?? "your cloud"} keeps its data.`);
       refresh(); navigate("/cloud");
     } catch (e) { setError(deleteDataError(e)); } finally { setBusy(null); }
   };
   const keep = () => { forgetDeleteToken(id); navigate("/cloud"); };
   const again = async () => { setBusy("signin"); await signInAgain("confirm", id, setAccount); };
-  const keepButton = <Button variant="ghost" onClick={keep} disabled={busy !== null}>Keep my cloud</Button>;
+  const keepButton = <Button variant="ghost" onClick={keep} disabled={busy !== null}>keep my cloud</Button>;
 
   if (at !== null) {
     return (
       <Sheet
-        title={`Deleting on ${longDate(at)}`}
+        title={`deleting on ${longDate(at)}`}
         error={error}
-        actions={<><Button onClick={() => void cancel()} disabled={busy !== null}>{busy === "cancel" ? "Cancelling" : "Cancel deletion"}</Button><ButtonLink to="/cloud" variant="ghost">Back to Cloud desktop</ButtonLink></>}
+        actions={<><Button onClick={() => void cancel()} disabled={busy !== null}>{busy === "cancel" ? "cancelling" : "cancel deletion"}</Button><ButtonLink to="/cloud" variant="ghost">back to cloud desktop</ButtonLink></>}
       >
-        <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">The bots, chats, files, sign-ins and backups on {name} go then, and it cannot be undone after that. Until then you can cancel and keep everything.</p>
+        <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">the bots, chats, files, sign-ins and backups on {name} go then, and it cannot be undone after that. until then you can cancel and keep everything.</p>
       </Sheet>
     );
   }
-  if (clouds === null) return <div className="mx-auto max-w-[480px] pt-10" aria-busy="true" aria-label="Loading"><Skeleton className="h-[300px] !rounded-card" /></div>;
+  if (clouds === null) return <div className="mx-auto max-w-[480px] pt-10" aria-busy="true" aria-label="loading"><Skeleton className="h-[300px] !rounded-card" /></div>;
   if (!cloud) {
     return (
-      <SkyEmpty title="This cloud is not on your account" action={<ButtonLink to="/cloud" variant="primary">Go to Cloud desktop</ButtonLink>}>
-        You are signed in as {account?.email ?? "another account"}. Sign in as the cloud's owner, then open the link from the email again.
+      <SkyEmpty title="this cloud is not on your account" action={<ButtonLink to="/cloud" variant="primary">go to cloud desktop</ButtonLink>}>
+        you are signed in as {account?.email ?? "another account"}. sign in as the cloud's owner, then open the link from the email again.
       </SkyEmpty>
     );
   }
   if (!token) {
     return (
-      <SkyEmpty title="This link has nothing to confirm" action={<ButtonLink to="/cloud" variant="primary">Go to Cloud desktop</ButtonLink>}>
-        Open the newest link from the email in this browser. If it has expired, ask again from your Cloud desktop page.
+      <SkyEmpty title="this link has nothing to confirm" action={<ButtonLink to="/cloud" variant="primary">go to cloud desktop</ButtonLink>}>
+        open the newest link from the email in this browser. if it has expired, ask again from your cloud desktop page.
       </SkyEmpty>
     );
   }
   if (signIn) {
     return (
-      <Sheet title="Sign in again to go on" error={error} actions={<><Button variant="primary" onClick={() => void again()} disabled={busy !== null}>{busy === "signin" ? "Signing out" : "Sign in again"}</Button>{keepButton}</>}>
-        <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">Deleting data needs a sign-in from the last 10 minutes, so we know it is you. This tab keeps your link while you sign in, then deletes the data on {name} in {DELETE_WINDOW_DAYS} days.</p>
+      <Sheet title="sign in again to go on" error={error} actions={<><Button variant="primary" onClick={() => void again()} disabled={busy !== null}>{busy === "signin" ? "signing out" : "sign in again"}</Button>{keepButton}</>}>
+        <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">deleting data needs a sign-in from the last 10 minutes, so we know it is you. this tab keeps your link while you sign in, then deletes the data on {name} in {DELETE_WINDOW_DAYS} days.</p>
       </Sheet>
     );
   }
   return (
     <Sheet
-      title={`Delete the data on ${name}?`}
+      title={`delete the data on ${name}?`}
       error={error}
-      actions={<><Button variant="danger" onClick={() => void confirm()} disabled={busy !== null}>{busy === "confirm" ? "Scheduling" : `Delete in ${DELETE_WINDOW_DAYS} days`}</Button>{keepButton}</>}
+      actions={<><Button variant="danger" onClick={() => void confirm()} disabled={busy !== null}>{busy === "confirm" ? "scheduling" : `delete in ${DELETE_WINDOW_DAYS} days`}</Button>{keepButton}</>}
     >
-      <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">Everything on it goes, along with its backups:</p>
+      <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">everything on it goes, along with its backups:</p>
       <ul className="mt-3 flex flex-col gap-2">
         {GOES.map((line) => <li key={line} className="flex gap-2.5 text-14 text-ink-2"><Minus size={15} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-4" aria-hidden />{line}</li>)}
       </ul>
-      <p className="mt-4 text-14 leading-[1.55] text-ink-3">Nothing happens for {DELETE_WINDOW_DAYS} days, and you can cancel any time before then. After that it cannot be undone.</p>
+      <p className="mt-4 text-14 leading-[1.55] text-ink-3">nothing happens for {DELETE_WINDOW_DAYS} days, and you can cancel any time before then. after that it cannot be undone.</p>
     </Sheet>
   );
 }
@@ -129,17 +129,17 @@ export function DeletionBanner({ cloud }: { cloud: CloudDesktop }) {
   if (!cloud.deleteScheduledAt) return null;
   const cancel = async () => {
     setBusy(true); setError(null);
-    try { await api.cancelDeleteData(cloud.id); toast(`Deletion cancelled. ${cloud.name} keeps its data.`); refresh(); }
+    try { await api.cancelDeleteData(cloud.id); toast(`deletion cancelled. ${cloud.name} keeps its data.`); refresh(); }
     catch (e) { setError(deleteDataError(e)); } finally { setBusy(false); }
   };
   return (
     <Card className="flex flex-wrap items-center gap-x-5 gap-y-3 !py-4" aria-labelledby="deleting-title">
       <div className="min-w-0 flex-1">
-        <h2 id="deleting-title" className="text-15 font-medium text-bad">Deleting on {longDate(cloud.deleteScheduledAt)}</h2>
-        <p className="mt-0.5 text-14 text-ink-3">Its bots, chats, files, sign-ins and backups go then. Cancel to keep everything.</p>
+        <h2 id="deleting-title" className="text-15 font-medium text-bad">deleting on {longDate(cloud.deleteScheduledAt)}</h2>
+        <p className="mt-0.5 text-14 text-ink-3">its bots, chats, files, sign-ins and backups go then. cancel to keep everything.</p>
         {error && <p role="alert" className="mt-1 text-13 text-bad">{error}</p>}
       </div>
-      <Button onClick={() => void cancel()} disabled={busy}>{busy ? "Cancelling" : "Cancel deletion"}</Button>
+      <Button onClick={() => void cancel()} disabled={busy}>{busy ? "cancelling" : "cancel deletion"}</Button>
     </Card>
   );
 }
@@ -168,17 +168,17 @@ export function DeleteDataAction({ cloud }: { cloud: CloudDesktop }) {
   const quiet = "hover-link mt-1 inline-flex h-8 items-center text-13 font-medium text-ink-2 disabled:opacity-45 max-sm:h-11";
   return (
     <div className="mt-4" aria-live="polite">
-      {state === "sent" ? <p className="text-13 text-ink-2">Check your email to confirm. The link works for an hour.</p>
-        : asked && state !== "signin" ? <p className="text-13 text-ink-2">Waiting for you to confirm from the email. The link works for an hour after you asked.</p>
+      {state === "sent" ? <p className="text-13 text-ink-2">check your email to confirm. the link works for an hour.</p>
+        : asked && state !== "signin" ? <p className="text-13 text-ink-2">waiting for you to confirm from the email. the link works for an hour after you asked.</p>
         : state === "signin" ? (
           <>
-            <p className="text-13 text-ink-3">Deleting data needs a sign-in from the last 10 minutes, so we know it is you.</p>
-            <button type="button" className={quiet} onClick={() => void signInAgain("ask", cloud.id, setAccount)}>Sign in again</button>
+            <p className="text-13 text-ink-3">deleting data needs a sign-in from the last 10 minutes, so we know it is you.</p>
+            <button type="button" className={quiet} onClick={() => void signInAgain("ask", cloud.id, setAccount)}>sign in again</button>
           </>
         ) : (
           <>
-            <p className="text-13 text-ink-3">Its plan has ended, so its data is kept for a while and then deleted. To delete it sooner, we email you a link to confirm.</p>
-            <button type="button" className={quiet} disabled={state === "busy"} onClick={() => void ask()}>{state === "busy" ? "Sending" : "Delete data now"}</button>
+            <p className="text-13 text-ink-3">its plan has ended, so its data is kept for a while and then deleted. to delete it sooner, we email you a link to confirm.</p>
+            <button type="button" className={quiet} disabled={state === "busy"} onClick={() => void ask()}>{state === "busy" ? "sending" : "delete data now"}</button>
           </>
         )}
       {error && <p role="alert" className="mt-1 text-13 text-bad">{error}</p>}

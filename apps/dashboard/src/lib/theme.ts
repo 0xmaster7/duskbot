@@ -7,13 +7,13 @@ const light = typeof window !== "undefined" ? window.matchMedia("(prefers-color-
 
 const read = (): ThemePref => {
   const v = localStorage.getItem(KEY);
-  return v === "light" || v === "system" ? v : "dark";
+  return v === "dark" || v === "system" ? v : "light";
 };
 
 function apply(pref: ThemePref) {
   const resolved = pref === "system" ? (light?.matches ? "light" : "dark") : pref;
   document.documentElement.dataset.theme = resolved;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", resolved === "light" ? "#f6f6f4" : "#1d1d1d");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", resolved === "light" ? "#ffffff" : "#131316");
 }
 
 light?.addEventListener("change", () => { if (read() === "system") apply("system"); });
@@ -30,4 +30,4 @@ export function initTheme() {
   else apply(read());
 }
 
-export const useTheme = () => useSyncExternalStore((fn) => { listeners.add(fn); return () => listeners.delete(fn); }, read, () => "dark" as ThemePref);
+export const useTheme = () => useSyncExternalStore((fn) => { listeners.add(fn); return () => listeners.delete(fn); }, read, () => "light" as ThemePref);

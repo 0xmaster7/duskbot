@@ -14,7 +14,7 @@ function GoogleMark({ size }: { size: number }) {
   );
 }
 
-export const PROVIDER_NAME: Record<IdentityProvider, string> = { google: "Google", x: "X", apple: "Apple", email: "Email" };
+export const PROVIDER_NAME: Record<IdentityProvider, string> = { google: "google", x: "X", apple: "apple", email: "email" };
 
 export function ProviderMark({ provider, size = 18 }: { provider: IdentityProvider; size?: number }) {
   if (provider === "google") return <GoogleMark size={size} />;

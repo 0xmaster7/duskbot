@@ -72,6 +72,35 @@ export interface HomeLifecycleState {
   resizeBlocked?: string | null;
   /** the home's updates: the version it runs, the one before, the trial of a new one, the signed policy held (home-update.ts) */
   update?: HomeUpdateState;
+  /** the host its machine runs on (hosts.ts); absent: boat, the only host before there were two */
+  host?: HostName;
+  /** an operator's move to another host, with the machine it left for a rollback (migrate.ts) */
+  migration?: MigrationState | null;
+}
+
+export type HostName = "boat" | "instabox";
+export type MigrationPhase = "quiescing" | "copying" | "done" | "rolling_back" | "rolled_back" | "finished";
+export interface MigrationState {
+  id: string;
+  to: HostName;
+  /** the machine the home left, kept asleep until the operator finishes the move */
+  from: { host: HostName; serverId: string; upstream: string | null; origin: string | null; installed: string | null };
+  phase: MigrationPhase;
+  startedAt: number;
+  updatedAt: number;
+  /** the backup the new machine was restored from, and what its check found */
+  backup: string | null;
+  checked?: { files: number; mismatched: number; skipped: number; at: number } | null;
+  /** the busy codes that held the quiet moment back, last seen */
+  waitingFor?: string[] | null;
+  error?: string | null;
+  /** a rolled-back move's new machine, kept asleep until the operator finishes */
+  target?: { host: HostName; serverId: string } | null;
+  /** the home ran on the new machine before the rollback: its state there is backed up (`keep`) first */
+  ranOnTarget?: boolean;
+  targetBackup?: string | null;
+  /** what the operator's finish deleted, with the provider's receipt */
+  deleted?: { host: HostName; serverId: string; operationId: string | null; at: number } | null;
 }
 
 declare module "../../dashboard/server/clouds/types.ts" {

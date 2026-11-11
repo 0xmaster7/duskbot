@@ -62,7 +62,7 @@ export async function signInAgain(step: DeleteStep, id: string, setAccount: (acc
 
 /** the sign-in screen's note while a delete is waiting on it */
 export function deleteSignInNote(path: string): string | undefined {
-  return deletePageId(path) || pendingRetry() ? "Sign in to go on with deleting your cloud's data." : undefined;
+  return deletePageId(path) || pendingRetry() ? "sign in to go on with deleting your cloud's data." : undefined;
 }
 
 export const needsSignIn = (error: unknown) => error instanceof ApiError && error.code === "reauth_required";
@@ -83,12 +83,12 @@ export function deletion(cloud: CloudDesktop, now = Date.now()): "scheduled" | "
 }
 
 const MESSAGES: Record<string, string> = {
-  billing_active: "Its plan is still active. Cancel it in Plans & billing first; you can delete the data once the plan has ended.",
-  confirmation_required: "This link has expired or was already used. Ask for a new one from your Cloud desktop page.",
-  rate_limited: "Too many tries. Wait a while, then try again.",
-  unavailable: "Deleting has already started, so it can no longer be cancelled.",
-  not_found: "This cloud is not on your account.",
-  invalid_request: "This link is not complete. Open it again from the email.",
+  billing_active: "its plan is still active. cancel it in plans and billing first; you can delete the data once the plan has ended.",
+  confirmation_required: "this link has expired or was already used. ask for a new one from your cloud desktop page.",
+  rate_limited: "too many tries. wait a while, then try again.",
+  unavailable: "deleting has already started, so it can no longer be cancelled.",
+  not_found: "this cloud is not on your account.",
+  invalid_request: "this link is not complete. open it again from the email.",
 };
 
 export function deleteDataError(error: unknown): string {
@@ -97,5 +97,5 @@ export function deleteDataError(error: unknown): string {
     // the delete routes answer with the bare code as their error
     if (error.message && error.message !== error.code) return error.message;
   }
-  return "That did not work. Try again.";
+  return "that did not work. try again.";
 }

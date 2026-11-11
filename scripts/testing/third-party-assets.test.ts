@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const SELF = ["scripts/testing/third-party-assets.test.ts", "scripts/testing/third-party-asset-hashes.txt"];
+const DETECTORS = ["apps/mobile/scripts/flagged-assets.txt", "apps/mobile/scripts/release-gate.mjs", "docs/mobile-readiness.md", "scripts/testing/mobile-release-gate.test.ts"];
 
 const REMOVED = [
   "src/assets/fonts/xvf.woff2",
@@ -68,7 +69,7 @@ describe("third-party assets stay out", () => {
 
   it("names none of the removed fonts, icon map or engine", () => {
     const hits: string[] = [];
-    for (const file of all.filter((name) => TEXT.test(name) && !PENDING[name])) {
+    for (const file of all.filter((name) => TEXT.test(name) && !PENDING[name] && !DETECTORS.includes(name))) {
       const text = read(file).toString("utf8");
       for (const [marker, what] of MARKERS) if (marker.test(text)) hits.push(`${file}: ${what}`);
       // a name -> private-use codepoint table is an icon font's glyph map, whatever it is called

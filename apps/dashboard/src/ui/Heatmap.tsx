@@ -111,7 +111,7 @@ export function Heatmap({ days, metric, now, compactCells = false }: { days: Act
             className="grid grid-flow-col gap-[3px]"
             style={{ gridTemplateRows: "repeat(7, auto)", gridTemplateColumns: cell ? `repeat(${WEEKS}, ${cell}px)` : `repeat(${WEEKS}, minmax(0, 1fr))` }}
             role="grid"
-            aria-label={`Activity over the last year, ${metric}`}
+            aria-label={`activity over the last year, ${metric}`}
             onClick={pick}
             onPointerOver={(e) => { if (e.pointerType === "mouse") pick(e); }}
           >
@@ -121,11 +121,11 @@ export function Heatmap({ days, metric, now, compactCells = false }: { days: Act
       </div>
       {picked && <style>{`[data-day="${picked.key}"]{outline:1px solid var(--ink-2);outline-offset:0}`}</style>}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p className="num min-h-4 text-13 text-ink-2" aria-live="polite">{picked ? `${say(picked.v, metric)} on ${longDate(parseDay(picked.key))}` : <span className="text-ink-4">Pick a day to see it</span>}</p>
+        <p className="num min-h-4 text-13 text-ink-2" aria-live="polite">{picked ? `${say(picked.v, metric)} on ${longDate(parseDay(picked.key))}` : <span className="text-ink-4">pick a day to see it</span>}</p>
         <div className="t-pixel flex items-center gap-1.5 text-ink-3" aria-hidden>
-          <span className="me-1">Less</span>
+          <span className="me-1">less</span>
           {levels.map((l) => <span key={l} className="size-[10px] rounded-[2px]" style={{ background: l ? `var(--heat-${l})` : "var(--cell)" }} />)}
-          <span className="ms-1">More</span>
+          <span className="ms-1">more</span>
         </div>
       </div>
     </div>
@@ -136,10 +136,10 @@ export function HeatStats({ days, metric, now }: { days: ActivityReport["days"];
   const s = useMemo(() => activityStats(days, metric, now), [days, metric, now]);
   return (
     <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2 max-md:gap-y-5">
-      <Stat label="Most active month" value={s.bestMonth ?? "None yet"} />
-      <Stat label="Most active day" value={s.bestDay ?? "None yet"} />
-      <Stat label="Longest streak" value={plural(s.longest, "day")} />
-      <Stat label="Current streak" value={plural(s.current, "day")} />
+      <Stat label="most active month" value={s.bestMonth ?? "None yet"} />
+      <Stat label="most active day" value={s.bestDay ?? "None yet"} />
+      <Stat label="longest streak" value={plural(s.longest, "day")} />
+      <Stat label="current streak" value={plural(s.current, "day")} />
     </div>
   );
 }

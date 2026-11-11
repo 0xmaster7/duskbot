@@ -116,6 +116,14 @@ export function prepareCloudHomeData(home: string, dataDir: string, machineId: s
   return { volume, cleared: clearRecordsFromOtherMachines(dataDir) };
 }
 
+/** the host a public edge forwards to, when it differs from the public one (a managed machine's own hosted name). The
+ *  edge's host matcher names both, and Caddy 2.10 refuses one that names a host twice: with no other name, the second
+ *  is one no request carries (.invalid never resolves). */
+export function upstreamHost(publicHost: string, given: string | undefined): string {
+  const upstream = /^[a-z0-9.-]{1,253}$/.test(given ?? "") ? given! : publicHost;
+  return upstream === publicHost ? "upstream.invalid" : upstream;
+}
+
 export function cloudHomeChildEnvironments(config: CloudHomeConfig, env: NodeJS.ProcessEnv, home: string) {
   const offered = withoutCloudSecrets(env);
   const allowed = Object.fromEntries(Object.entries(offered).filter(([name, value]) => value !== undefined && serverEnvironmentAllowed(name)));
@@ -133,8 +141,7 @@ export function cloudHomeChildEnvironments(config: CloudHomeConfig, env: NodeJS.
     PATH: env.PATH ?? "/usr/local/bin:/usr/bin:/bin", HOME: "/tmp/omb-edge",
     XDG_DATA_HOME: "/tmp/omb-edge/data", XDG_CONFIG_HOME: "/tmp/omb-edge/config",
     DUSK_CLOUD_PUBLIC_HOST: cloudHomeHost(config),
-    // the host a public edge forwards to, when it differs from the public one (a managed machine's own hosted name)
-    DUSK_CLOUD_UPSTREAM_HOST: /^[a-z0-9.-]{1,253}$/.test(env.DUSK_CLOUD_UPSTREAM_HOST ?? "") ? env.DUSK_CLOUD_UPSTREAM_HOST! : cloudHomeHost(config),
+    DUSK_CLOUD_UPSTREAM_HOST: upstreamHost(cloudHomeHost(config), env.DUSK_CLOUD_UPSTREAM_HOST),
     // A plan whose home sleeps: requests wait this long for the server while it starts (deploy/fly/Caddyfile). Unset: 0s.
     DUSK_CLOUD_EDGE_HOLD: edgeHold(env.DUSK_CLOUD_EDGE_HOLD),
     ...edgeClientAddress(env),

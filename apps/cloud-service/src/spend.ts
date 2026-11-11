@@ -14,8 +14,8 @@ export interface SpendStore {
   lines(months: readonly string[]): string[];
   append(month: string, line: string): void;
 }
-export function fileSpendStore(dataDir: string): SpendStore {
-  const dir = join(dataDir, "spend");
+export function fileSpendStore(dataDir: string, name = "spend"): SpendStore {
+  const dir = join(dataDir, name);
   return {
     months: () => existsSync(dir) ? readdirSync(dir).filter(f => /^\d{4}-\d{2}\.jsonl$/.test(f)).map(f => f.slice(0, 7)) : [],
     lines: months => months.flatMap(m => { const file = join(dir, `${m}.jsonl`); return existsSync(file) ? readFileSync(file, "utf8").split("\n") : []; }),

@@ -101,6 +101,10 @@ jobs:
       - name: production UI build
         if: steps.scope.outputs.build == 'true'
         run: pnpm exec vite build
+      # The phone bundle is its own build: a node-only import reached from src/mobile passes the typecheck and breaks this.
+      - name: phone app production build
+        if: steps.scope.outputs.build == 'true'
+        run: pnpm mobile:build
 
   vitest:
     # Admit the expensive runner fan-out only after the quick checks pass.

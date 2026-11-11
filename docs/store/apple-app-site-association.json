@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID.bot.dusk.mobile"],
+        "components": [
+          { "/": "/m/open", "comment": "opens a chat or a view in the app" },
+          { "/": "/m/pair", "comment": "pairs this phone; the pairing secret rides after the #, which no server sees" }
+        ]
+      }
+    ]
+  }
+}

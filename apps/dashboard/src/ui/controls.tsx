@@ -13,9 +13,9 @@ export function Switch({ checked, onChange, label, disabled, id }: { checked: bo
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={cx("switch-track relative inline-flex h-[22px] w-[38px] shrink-0 items-center rounded-full p-[3px] disabled:opacity-45", checked ? "bg-ink" : "bg-track")}
+      className={cx("switch-track relative inline-flex h-[26px] w-[44px] shrink-0 items-center rounded-full p-[3px] disabled:opacity-45", checked ? "bg-accent" : "bg-track")}
     >
-      <span className={cx("switch-thumb size-4 rounded-full", checked ? "translate-x-4 bg-bg" : "translate-x-0 bg-ink-3")} aria-hidden />
+      <span className={cx("switch-thumb size-5 rounded-full bg-white", checked ? "translate-x-[18px]" : "translate-x-0")} aria-hidden />
     </button>
   );
 }
@@ -52,7 +52,7 @@ export function Toggle<T extends string>({ value, options, onChange, label, clas
   const at = Math.max(0, options.findIndex((o) => o.value === value));
   return (
     <div role="radiogroup" aria-label={label} className={cx("relative inline-grid shrink-0 rounded-full bg-card-2 p-1", className)} style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
-      <span aria-hidden className="seg-thumb absolute inset-y-1 left-1 rounded-full bg-track" style={{ width: `calc((100% - 8px) / ${options.length})`, transform: `translateX(${at * 100}%)` }} />
+      <span aria-hidden className="seg-thumb absolute inset-y-1 left-1 rounded-full bg-pop" style={{ width: `calc((100% - 8px) / ${options.length})`, transform: `translateX(${at * 100}%)` }} />
       {options.map((o) => (
         <button
           key={o.value}
@@ -111,11 +111,11 @@ export function Modal({ open, onClose, title, children, footer, wide }: { open: 
   // a portal, so a dialog opened from a table row or an animated card is never trapped under the shell
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
-      <div className="fade-in absolute inset-0 backdrop-blur-[4px]" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx("modal-in relative my-auto w-full min-w-0 rounded-card bg-card p-6 outline-none max-sm:p-5", wide ? "max-w-[520px]" : "max-w-[420px]")} style={{ boxShadow: "var(--pop-shadow)" }}>
+      <div className="fade-in absolute inset-0" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx("pop modal-in relative my-auto w-full min-w-0 rounded-[28px] bg-pop p-7 outline-none max-sm:p-5", wide ? "max-w-[540px]" : "max-w-[440px]")} style={{ boxShadow: "var(--pop-shadow)" }}>
         <div className="flex items-start justify-between gap-4">
-          <h2 id={titleId} className="text-16 font-semibold tracking-[-0.01em] text-ink">{title}</h2>
-          <button data-close type="button" onClick={onClose} aria-label="Close" className="press hover-ghost -me-2 -mt-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3"><X size={18} strokeWidth={1.5} /></button>
+          <h2 id={titleId} className="text-20 font-medium tracking-[-0.03em] text-ink">{title}</h2>
+          <button data-close type="button" onClick={onClose} aria-label="close" className="press hover-ghost -me-2 -mt-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3"><X size={18} strokeWidth={1.5} /></button>
         </div>
         <div className="mt-2 text-14 leading-[1.55] text-ink-3">{children}</div>
         {footer && <div className="mt-6 flex flex-wrap justify-end gap-2">{footer}</div>}
@@ -139,7 +139,7 @@ export function StatusDot({ tone, live, children, className }: { tone: "good" | 
 export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <span className={cx("relative block", className)}>
-      <select {...rest} className="field cursor-pointer appearance-none bg-card pe-10">{children}</select>
+      <select {...rest} className="field cursor-pointer appearance-none pe-10">{children}</select>
       <ChevronDown size={16} strokeWidth={1.5} className="pointer-events-none absolute end-3.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
     </span>
   );
@@ -154,10 +154,10 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
   return createPortal(
     <div className="fixed inset-0 z-50">
       <div className="fade-in absolute inset-0" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="sheet-in absolute inset-y-0 right-0 flex w-[min(440px,100vw)] flex-col bg-card outline-none" style={{ boxShadow: "var(--pop-shadow)" }}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="pop sheet-in absolute inset-y-0 right-0 flex w-[min(460px,100vw)] flex-col bg-pop outline-none sm:inset-y-3 sm:right-3 sm:rounded-[28px]" style={{ boxShadow: "var(--pop-shadow)" }}>
         <div className="flex items-center justify-between gap-4 px-6 pb-2 pt-5 max-sm:px-5">
-          <h2 id={titleId} className="text-16 font-semibold tracking-[-0.01em] text-ink">{title}</h2>
-          <button data-close type="button" onClick={onClose} aria-label="Close" className="hover-ghost -me-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3 max-sm:size-11"><X size={18} strokeWidth={1.5} /></button>
+          <h2 id={titleId} className="text-20 font-medium tracking-[-0.03em] text-ink">{title}</h2>
+          <button data-close type="button" onClick={onClose} aria-label="close" className="hover-ghost -me-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3 max-sm:size-11"><X size={18} strokeWidth={1.5} /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 max-sm:px-5">{children}</div>
         {footer && <div className="border-t border-line px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 max-sm:px-5">{footer}</div>}
@@ -171,7 +171,7 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
 export function Choice({ name, value, checked, onChange, title, detail, aside }: { name: string; value: string; checked: boolean; onChange(): void; title: ReactNode; detail?: ReactNode; aside?: ReactNode }) {
   const id = `${name}-${value}`;
   return (
-    <label htmlFor={id} className={cx("pick flex min-h-14 cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5", checked ? "bg-card-2" : "hover-row")}>
+    <label htmlFor={id} className={cx("pick flex min-h-14 cursor-pointer items-center gap-3 rounded-[16px] px-3.5 py-2.5", checked ? "bg-btn" : "hover-row")}>
       <input id={id} type="radio" name={name} value={value} checked={checked} onChange={onChange} className="peer sr-only" />
       <span aria-hidden className={cx("size-4 shrink-0 rounded-full border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink-3", checked ? "border-[5px] border-ink" : "border-ink-4")} />
       <span className="min-w-0 flex-1">

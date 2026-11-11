@@ -91,28 +91,76 @@ a memory mailer, a signed-in session and a demo workspace (made-up numbers, fixt
 its terminal. Then `pnpm dev:dashboard` serves the page on `127.0.0.1:5288` with `/v1` proxied to it
 (`DUSK_DASHBOARD_SERVICE` to point elsewhere).
 
-The page keeps its own English strings: it is a separate web app outside `src/` and its locales.
+The page keeps its own English strings: it is a separate web app outside `src/` and its locales. They are lowercase and
+plain, like dusk.bot.
+
+### The site and the app point at each other
+
+The page links back to the marketing site (the logo and "back to" on sign-in and onboarding, terms, privacy, every
+download button). `DUSK_SITE_URL` at build sets where that is; it defaults to `https://dusk.bot`:
+
+```sh
+DUSK_SITE_URL=https://dusk-preview.example pnpm build:dashboard
+```
+
+The site links in with these addresses (`src/lib/site.ts` reads them):
+
+| address | what it does |
+|---|---|
+| `/` | sign-in when signed out, the dashboard home when signed in |
+| `/signup` | the create-account screen |
+| `/signup?plan=plus` or `?plan=pro`, optional `&period=month` or `year` | sign-up with a plan: after sign-in a new account opens onboarding on its plan step with that plan and period chosen and goes to checkout; an account that finished onboarding lands on `/billing` with the plan sheet open |
+| `/billing?plan=pro&period=year` (or the older `?bundle=pro`) | plans, with the sheet open on that plan |
+
+Signed out on any other address (`/usage`, `/claim`, `/cloud/desktop?code=`), sign-in comes first and then that address
+opens. Onboarding keeps its step in the address (`?step=name|plan|app|done`), so back, forward and a refresh hold.
 
 ### Sign-in providers
 
 Google uses `DUSK_AUTH_GOOGLE_CLIENT_ID` and `DUSK_AUTH_GOOGLE_CLIENT_SECRET`. Apple uses `DUSK_AUTH_APPLE_CLIENT_ID` (Services ID), `DUSK_AUTH_APPLE_TEAM_ID`, `DUSK_AUTH_APPLE_KEY_ID`, and the .p8 key in `DUSK_AUTH_APPLE_PRIVATE_KEY` (PEM, literal `\n` accepted) or `DUSK_AUTH_APPLE_PRIVATE_KEY_FILE`. X uses `DUSK_AUTH_X_CLIENT_ID`, optional `DUSK_AUTH_X_CLIENT_SECRET`, and optional `DUSK_AUTH_X_SCOPES` (default `users.read tweet.read`). Register `<public url>/v1/auth/oauth/google/callback`, `<public url>/v1/auth/oauth/apple/callback` (Apple's Return URL), and `<public url>/v1/auth/oauth/x/callback`. Partial provider configuration fails startup; endpoint overrides are available only through code options for isolated fixtures. The dashboard fixture runs local fake Google, Apple and X providers without external accounts.
 
-## Type
+## Look
 
-Geist Sans everywhere, Geist Mono for ids. No serif and no pixel face anywhere in the dashboard.
+The dashboard wears dusk.bot's identity: a white page, soft wash cards with big radii, flat pill buttons, one ink, and
+the site's pixel posters (`src/art`, exported from the site's raw art the way its `art-src/final/prep.py` does). Light is
+the default theme; dark stays in Account, Appearance. Icons are lucide.
 
 | role | family | size / line | where |
 |---|---|---|---|
-| page title (`.t-title`) | Geist Sans 600, -0.022em | 28/34, 24/30 under 640px | the `h1` of every page, the sign-in and welcome steps |
-| plan price | Geist Sans 600 | 34 on cards, 24 in sheets | Plans & billing cards and plan sheet totals |
-| figure (`.t-figure`, `ui/Figure.tsx`) | Geist Sans 600, tabular | 26/32 | big numbers on stat cards and the activity total |
-| id (`.t-id`) | Geist Mono | 13 | ids and versions; table counts stay in sans, tabular |
-| heading | Geist Sans 500 | 15/22 | section titles |
-| body | Geist Sans 400 | 14/20, 13/18 secondary | everything else; never under 12px |
+| page title (`.t-title`) | General Sans 500, -0.045em | 40, 32 under 640px | the `h1` of every page, sign-in and onboarding |
+| figure (`.t-figure`, `ui/Figure.tsx`) | General Sans 500, tabular | 32/36 | big numbers on stat cards and the activity total |
+| meta (`.t-meta`), id (`.t-id`) | Geist Mono | 12.5, 13 | table headers, small captions, ids and versions |
+| tag (`.tag`), step numerals | Pixelify Sans | 12, 72 | short word tags and the onboarding step number; never numbers at small sizes |
+| body | General Sans 400 | 15/22, 13.5/19 secondary | everything else |
+
+Fonts are the site's own three files in `src/fonts`. The `text-12` to `text-56` steps keep their old names and each draws
+about a pixel larger, because General Sans runs small.
+
+## Bots
+
+Bots are drawn with the dusk bot engine in `src/mascot` (a copy of the site's `mascot-src/engine`; `ui/Mascot.tsx` wraps
+it). A bot's saved colour and body are kept as they are and mapped when drawn: `bodyOf` in `ui/Mascot.tsx` turns every
+body id a bot may have been saved with into the nearest of the ten dusk bodies, and an unset body draws as the squircle.
+
+What a bot is doing decides its mood (`data/mood.ts`, tested):
+
+| real status | mood | words beside it |
+|---|---|---|
+| its workspace is offline or has not reported | sleeping | asleep |
+| it is running a turn | working | working |
+| its computer is starting | waking | waking up |
+| its computer is asleep | sleeping | asleep |
+| nothing for more than a day | drowsy | resting |
+| otherwise | idle, watching the pointer | waiting |
+
+The sign-in and onboarding crew (`ui/Scene.tsx`) acts out the form: idle and watching the pointer, turned to the form
+while you type, thinking while a request runs, a bounce per digit, confused on an error, celebrating on the way in. It is
+decoration: `aria-hidden`, and nothing depends on it.
 
 ## Motion
 
-Hovers are instant colour changes. Movement is kept for page and section entrances (`.enter`), menus, sheets,
-dialogs, toasts, figures that change, content switches (`.swap-in`, a soft blur, never a slide) and a chart's first
-draw. Tokens live in `app.css` (Bencho: 160/220/420/600 ms, `--ease-out`). Mascots draw at 30 fps, stop off screen
-and rest under reduced motion.
+One language, declared in `app.css`: `--ease-out` for things arriving, `--ease-pop` for things pressed or landing, and
+160 / 240 / 420 / 600 ms. Hovers change colour at once. What moves: page and card entrances (`.page-in`, `.enter`),
+presses, menus, sheets, dialogs, toasts, numbers that count to their new value (`ui/Figure.tsx`), a chart's first draw,
+the onboarding rail, drifting clouds, and the bots. Bots share one frame loop, stop off screen and hold their pose under
+reduced motion; every other animation falls back to a short fade or to nothing.

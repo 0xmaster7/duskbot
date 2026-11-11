@@ -20,6 +20,16 @@
 :8080 {
 	encode zstd gzip
 
+	# InstaBox's port proxy reaches this edge from the machine's own loopback with Host 127.0.0.1:<port> and the name it
+	# served in X-Forwarded-Host: when that is one of this machine's own names, it is the Host the rest of this file sees.
+	@proxied {
+		remote_ip 127.0.0.1/32 ::1/128
+		host 127.0.0.1 localhost
+		header X-Forwarded-Host {$DUSK_CLOUD_PUBLIC_HOST}
+		header X-Forwarded-Host {$DUSK_CLOUD_UPSTREAM_HOST}
+	}
+	request_header @proxied Host {http.request.header.X-Forwarded-Host}
+
 	handle /api/health {
 		reverse_proxy 127.0.0.1:8799 {
 			lb_try_duration {$DUSK_CLOUD_EDGE_HOLD:0s}

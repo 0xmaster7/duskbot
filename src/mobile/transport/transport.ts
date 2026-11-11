@@ -1,11 +1,16 @@
-import type { RelayChannel } from "./relay";
+import { RelayGoneError, type RelayChannel } from "./relay";
+import { noteRefusedRequest } from "@/lib/session-ended";
 import { setUploadRoute } from "@/lib/upload-request";
 
 export type PhoneTransport =
   | { kind: "same-origin" | "bearer"; origin: string; token?: string }
-  | { kind: "relay"; channel: RelayChannel; token: string };
+  | { kind: "relay"; channel: RelayChannel; token: string }
+  /** the built-in demo workspace: every request is answered inside the page */
+  | { kind: "demo"; workspace: { fetch: typeof fetch; close(): void }; token?: undefined };
 
-const originOf = (transport: PhoneTransport) => transport.kind === "relay" ? "https://mobile-relay.invalid" : transport.origin;
+const originOf = (transport: PhoneTransport) => transport.kind === "relay" ? "https://mobile-relay.invalid" : transport.kind === "demo" ? "https://demo-workspace.invalid" : transport.origin;
+/** routes that never leave the page: a relay tunnel or the demo workspace */
+const inPage = (transport: PhoneTransport) => transport.kind === "relay" || transport.kind === "demo";
 
 export function relayFetch(channel: RelayChannel, token: string, onBodyProgress?: (sent: number, total: number) => void): typeof fetch {
   return async (input, init) => {
@@ -128,6 +133,8 @@ export class BearerEventSource extends EventTarget {
         credentials: "omit", mode: "cors", redirect: "error", signal: this.controller.signal,
       });
       if (this.controller.signal.aborted) return;
+      // a stream refused for its credential is the one request a quiet phone makes: it asks whether the session still stands
+      if (response.status === 401) noteRefusedRequest();
       if (!response.ok || !response.body) { this.fail(); return; }
       reader = response.body.getReader();
       this.readyState = this.OPEN;
@@ -251,7 +258,8 @@ function installMedia(): () => void {
   };
 }
 
-export function installTransport(transport: PhoneTransport): () => void {
+/** `onGone`: the relay no longer has this phone's channel, so only pairing again brings the workspace back. */
+export function installTransport(transport: PhoneTransport, onGone?: () => void): () => void {
   if (transport.kind === "same-origin") return () => {};
   const origin = originOf(transport);
   const workspace = workspaceUrl(origin);
@@ -260,8 +268,12 @@ export function installTransport(transport: PhoneTransport): () => void {
   const OriginalWebSocket = window.WebSocket;
   const previous = installed;
   const streamFetch = (window as Window & { CapacitorWebFetch?: typeof fetch }).CapacitorWebFetch ?? originalFetch;
-  const fetchWorkspace = transport.kind === "relay" ? relayFetch(transport.channel, transport.token) : originalFetch.bind(window);
-  const context = { transport, streamFetch: transport.kind === "relay" ? fetchWorkspace : streamFetch.bind(window) };
+  const overRelay = (send: typeof fetch): typeof fetch => (input, init) => send(input, init).catch((error: unknown) => {
+    if (error instanceof RelayGoneError) onGone?.();
+    throw error;
+  });
+  const fetchWorkspace = transport.kind === "relay" ? overRelay(relayFetch(transport.channel, transport.token)) : transport.kind === "demo" ? transport.workspace.fetch : originalFetch.bind(window);
+  const context = { transport, streamFetch: inPage(transport) ? fetchWorkspace : streamFetch.bind(window) };
   installed = context;
   const patchedFetch: typeof fetch = (input, init) => {
     const url = rewriteApiUrl(input instanceof Request ? input.url : String(input), window.location.origin, origin);
@@ -292,7 +304,7 @@ export function installTransport(transport: PhoneTransport): () => void {
       let target: URL | null = null;
       try {
         const url = new URL(input, window.location.href);
-        if (transport.kind !== "relay" && url.host === window.location.host && ["ws:", "wss:", window.location.protocol].includes(url.protocol) && url.pathname.startsWith("/api/") && !url.username && !url.password) {
+        if (!inPage(transport) && url.host === window.location.host && ["ws:", "wss:", window.location.protocol].includes(url.protocol) && url.pathname.startsWith("/api/") && !url.username && !url.password) {
           target = new URL(`${url.pathname}${url.search}`, workspace);
           target.protocol = workspace.protocol === "https:" ? "wss:" : "ws:";
           // the sync branch's server must accept access_token on authenticated viewer upgrades.
@@ -311,7 +323,7 @@ export function installTransport(transport: PhoneTransport): () => void {
   const stopUploads = transport.kind === "relay" ? setUploadRoute((input, init, onProgress) => {
     const url = rewriteApiUrl(input, window.location.origin, origin);
     if (!url) return null;
-    return relayFetch(transport.channel, transport.token, onProgress)(url, { method: init.method, headers: init.headers, body: init.body as BodyInit, signal: init.signal, credentials: "omit", redirect: "error" });
+    return overRelay(relayFetch(transport.channel, transport.token, onProgress))(url, { method: init.method, headers: init.headers, body: init.body as BodyInit, signal: init.signal, credentials: "omit", redirect: "error" });
   }) : () => {};
   const stopMedia = installMedia();
   let stopped = false;
@@ -321,6 +333,7 @@ export function installTransport(transport: PhoneTransport): () => void {
     stopUploads();
     stopMedia();
     if (transport.kind === "relay") transport.channel.close();
+    if (transport.kind === "demo") transport.workspace.close();
     for (const source of sources) source.close();
     for (const socket of sockets) socket.close();
     if (window.fetch === patchedFetch) window.fetch = originalFetch;
@@ -331,5 +344,5 @@ export function installTransport(transport: PhoneTransport): () => void {
 }
 
 export function mediaUrl(path: string): string {
-  return installed && installed.transport.kind !== "relay" ? rewriteApiUrl(path, window.location.origin, originOf(installed.transport)) ?? path : path;
+  return installed && !inPage(installed.transport) ? rewriteApiUrl(path, window.location.origin, originOf(installed.transport)) ?? path : path;
 }

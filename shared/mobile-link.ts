@@ -342,6 +342,24 @@ export function mobileOpenLink(target: MobileOpenTarget): string {
   return `duskbot://open${query ? `?${query}` : ""}`;
 }
 
+/** The hosts whose `/m/` pages the phone app opens itself (the app's associated domains). */
+export const UNIVERSAL_LINK_HOSTS: readonly string[] = ["dusk.bot", "app.dusk.bot"];
+
+/** `https://dusk.bot/m/open?...` and `https://dusk.bot/m/pair#...` as the `duskbot://` link each stands for, or null for
+ * any other address. A pairing link carries its secret after the `#`, which a browser never sends to the site. */
+export function appLinkFromUniversal(link: string): string | null {
+  let url: URL;
+  try { url = new URL(link.trim()); } catch { return null; }
+  if (url.protocol !== "https:" || !UNIVERSAL_LINK_HOSTS.includes(url.hostname) || url.port || url.username || url.password) return null;
+  const fragment = url.hash.slice(1);
+  if (url.pathname === "/m/open") {
+    const query = url.search.slice(1) || fragment;
+    return `duskbot://open${query ? `?${query}` : ""}`;
+  }
+  if (url.pathname === "/m/pair" && fragment && !url.search) return `duskbot://pair?${fragment}`;
+  return null;
+}
+
 export function parseMobileOpenLink(link: string): MobileOpenTarget | null {
   let url: URL;
   try { url = new URL(link.trim()); } catch { return null; }

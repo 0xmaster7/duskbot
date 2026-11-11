@@ -19,7 +19,7 @@ const openConnect = (app: { label: string }) => openApp(appLink.app, `Opening Du
 function Tile({ row }: { row: ConnectorRow }) {
   if (row.app) return <AppLogo app={row.app} size={32} />;
   return (
-    <span className="grid size-8 shrink-0 place-items-center rounded-[9px] border border-line bg-card-2 text-13 text-ink-2" aria-hidden>
+    <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-card-2 text-13 text-ink-2" aria-hidden>
       {row.type === "Skill" ? <Sparkles size={15} strokeWidth={1.5} /> : row.label.slice(0, 1).toUpperCase()}
     </span>
   );
@@ -40,21 +40,21 @@ function Row({ row, onAuth, menu }: { row: ConnectorRow; onAuth(): void; menu: M
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="truncate font-medium">{row.label}</span>
-              <NameDot tone={needs ? "warn" : "good"} label={needs ? "Needs sign-in" : "Ready"} />
+              <NameDot tone={needs ? "warn" : "good"} label={needs ? "needs sign-in" : "ready"} />
             </div>
             {needs
-              ? <div className="truncate text-13 text-ink-3" aria-hidden>Needs sign-in</div>
-              : <div className="truncate text-13 text-ink-3 md:hidden">{row.type} · {row.workspaces.length === 1 ? row.workspaces[0]!.name : `${row.workspaces.length} workspaces`}</div>}
+              ? <div className="truncate text-13 text-ink-3" aria-hidden>needs sign-in</div>
+              : <div className="truncate text-13 text-ink-3 md:hidden"><span className="lowercase">{row.type}</span> · {row.workspaces.length === 1 ? row.workspaces[0]!.name : `${row.workspaces.length} workspaces`}</div>}
           </div>
         </div>
       </Td>
-      <Td className="text-ink-2 max-md:hidden">{row.type}</Td>
-      <Td className="text-ink-2 max-lg:hidden">{row.category}</Td>
+      <Td className="lowercase text-ink-2 max-md:hidden">{row.type}</Td>
+      <Td className="lowercase text-ink-2 max-lg:hidden">{row.category}</Td>
       <Td className="num text-ink-2 max-lg:hidden">{row.tools ?? <Nil />}</Td>
-      <Td className="text-ink-2 max-xl:hidden">{row.permissions ?? <Nil />}</Td>
+      <Td className="lowercase text-ink-2 max-xl:hidden">{row.permissions ?? <Nil />}</Td>
       <Td className="max-md:hidden"><WorkspacesCell list={row.workspaces} /></Td>
-      <Td className="w-0 !px-1 text-end">{needs && <Button variant="outline" size="sm" onClick={onAuth}>Sign in</Button>}</Td>
-      <Td className="w-0 !pe-1 !ps-0"><RowMenu label={`More for ${row.label}`} items={menu} /></Td>
+      <Td className="w-0 !px-1 text-end">{needs && <Button variant="outline" size="sm" onClick={onAuth}>sign in</Button>}</Td>
+      <Td className="w-0 !pe-1 !ps-0"><RowMenu label={`more for ${row.label}`} items={menu} /></Td>
     </tr>
   );
 }
@@ -67,19 +67,19 @@ function AddDialog({ open, onClose, apps, connections }: { open: boolean; onClos
   const connected = connections[where] ?? [];
   const results = apps ? (query.trim() ? searchApps(apps, query, 40) : apps.filter((a) => Number.isFinite(popularity(a))).slice(0, 12)) : [];
   return (
-    <Modal open={open} onClose={onClose} title="Add a connector" wide>
-      <p>Pick an app. Dusk Bot opens on that workspace to sign in, then your bots can use it.</p>
+    <Modal open={open} onClose={onClose} title="add a connector" wide>
+      <p>pick an app. dusk bot opens on that workspace to sign in, then your bots can use it.</p>
       <div className="mt-5 flex flex-col gap-3">
         {workspaces && workspaces.length > 1 && (
           <div>
-            <label htmlFor="add-workspace" className="mb-1.5 block text-13 text-ink-2">Workspace</label>
+            <label htmlFor="add-workspace" className="mb-1.5 block text-13 text-ink-2">workspace</label>
             <Select id="add-workspace" value={where} onChange={(e) => setTarget(e.target.value)}>{workspaces.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</Select>
           </div>
         )}
         <div className="relative">
-          <label className="sr-only" htmlFor="add-search">Search apps</label>
+          <label className="sr-only" htmlFor="add-search">search apps</label>
           <Search size={16} strokeWidth={1.5} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
-          <input id="add-search" type="search" className="field !pl-10" placeholder={apps ? `Search ${apps.length.toLocaleString("en-US")} apps` : "Search apps"} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input id="add-search" type="search" className="field !pl-10" placeholder={apps ? `search ${apps.length.toLocaleString("en-US")} apps` : "search apps"} value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
       </div>
       <ul className="-mx-2 mt-3 max-h-[44vh] overflow-y-auto">
@@ -87,9 +87,9 @@ function AddDialog({ open, onClose, apps, connections }: { open: boolean; onClos
           <li key={app.id} className="flex items-center gap-3 border-b border-line px-2 py-3">
             <AppLogo app={app} size={32} />
             <div className="min-w-0 flex-1"><div className="truncate text-14 text-ink">{app.label}</div><div className="truncate text-13 text-ink-3">{app.description}</div></div>
-            {connectedIn(app, connected) ? <span className="px-2 text-13 text-ink-3">Added</span> : <Button size="sm" disabled={!where} onClick={() => openConnect(app)} aria-label={`Add ${app.label}`}>Add</Button>}
+            {connectedIn(app, connected) ? <span className="px-2 text-13 text-ink-3">added</span> : <Button size="sm" disabled={!where} onClick={() => openConnect(app)} aria-label={`add ${app.label}`}>add</Button>}
           </li>
-        )) : <li className="px-2 py-4 text-14 text-ink-3">No apps match "{query.trim()}". Try another name.</li>}
+        )) : <li className="px-2 py-4 text-14 text-ink-3">no apps match "{query.trim()}". try another name.</li>}
       </ul>
     </Modal>
   );
@@ -119,75 +119,75 @@ export function ConnectorsPage() {
   const filtered = Boolean(category) || needsOnly;
 
   const menuFor = (row: ConnectorRow): MenuItem[] => {
-    const items: MenuItem[] = [{ label: "Manage in the app", onSelect: () => openApp(appLink.app) }];
-    if (row.type !== "Skill") for (const w of workspaces ?? []) if (!row.workspaces.some((x) => x.id === w.id)) items.push({ label: `Add to ${w.name}`, onSelect: () => openConnect(row) });
+    const items: MenuItem[] = [{ label: "manage in the app", onSelect: () => openApp(appLink.app) }];
+    if (row.type !== "Skill") for (const w of workspaces ?? []) if (!row.workspaces.some((x) => x.id === w.id)) items.push({ label: `add to ${w.name}`, onSelect: () => openConnect(row) });
     return items;
   };
   const switchTab = (v: Tab) => { setTab(v); setLimit(PAGE); setCategory(null); setNeedsOnly(false); };
 
   return (
     <div className="min-w-0">
-      <PageHeader title="Connectors" sub={<>Apps your bots can use. Each workspace keeps its own sign-ins; <a href={appLink.app} onClick={(e) => { e.preventDefault(); openApp(appLink.app); }} className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">manage them in the app</a>.</>} />
+      <PageHeader title="connectors" sub={<>apps your bots can use. each workspace keeps its own sign-ins; <a href={appLink.app} onClick={(e) => { e.preventDefault(); openApp(appLink.app); }} className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">manage them in the app</a>.</>} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Toggle<Tab> label="Show" value={tab} onChange={switchTab} options={[{ value: "connectors", label: "Connectors" }, { value: "skills", label: "Skills" }]} />
+        <Toggle<Tab> label="show" value={tab} onChange={switchTab} options={[{ value: "connectors", label: "connectors" }, { value: "skills", label: "skills" }]} />
         <div className="flex min-w-0 items-center gap-2 max-sm:w-full">
           <div className="relative min-w-0 flex-1 sm:w-[280px]">
-            <label className="sr-only" htmlFor="connector-search">Search {tab}</label>
+            <label className="sr-only" htmlFor="connector-search">search {tab}</label>
             <Search size={16} strokeWidth={1.5} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
-            <input id="connector-search" type="search" className="field !h-10 !rounded-full !pl-10" placeholder={tab === "skills" ? "Search skills" : "Search connectors"} value={query} onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }} />
+            <input id="connector-search" type="search" className="field !h-10 !rounded-full !pl-10" placeholder={tab === "skills" ? "search skills" : "search connectors"} value={query} onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }} />
           </div>
           <RowMenu
-            label={filtered ? "Filter, on" : "Filter"}
+            label={filtered ? "filter, on" : "filter"}
             active={filtered}
             icon={<ListFilter size={17} strokeWidth={1.5} aria-hidden />}
             items={[
-              { label: "Every category", checked: !category, onSelect: () => { setCategory(null); setLimit(PAGE); } },
+              { label: "every category", checked: !category, onSelect: () => { setCategory(null); setLimit(PAGE); } },
               ...categories.map((c) => ({ label: c, checked: category === c, onSelect: () => { setCategory(c); setLimit(PAGE); } })),
-              ...(tab === "connectors" ? [{ label: needsOnly ? "Show every status" : "Needs sign-in only", onSelect: () => { setNeedsOnly((v) => !v); setLimit(PAGE); } }] : []),
+              ...(tab === "connectors" ? [{ label: needsOnly ? "show every status" : "needs sign-in only", onSelect: () => { setNeedsOnly((v) => !v); setLimit(PAGE); } }] : []),
             ]}
           />
-          <Button variant="primary" onClick={() => (tab === "skills" ? openApp(appLink.app, "Opening Dusk Bot. Add skills from a bot's Skills there.") : setAdding(true))}>Add</Button>
+          <Button variant="primary" onClick={() => (tab === "skills" ? openApp(appLink.app, "Opening Dusk Bot. Add skills from a bot's Skills there.") : setAdding(true))}>add</Button>
         </div>
       </div>
 
       <section className="enter mt-10" aria-labelledby="installed-title">
-        <SectionHead id="installed-title">{tab === "skills" ? "Skills" : "Connectors and MCPs"}</SectionHead>
+        <SectionHead id="installed-title">{tab === "skills" ? "skills" : "connectors and mcps"}</SectionHead>
         {error ? (
-          <div className="flex flex-wrap items-center gap-3 border-y border-line py-5"><p role="alert" className="text-14 text-bad">{error}</p><Button size="sm" onClick={() => location.reload()}>Retry</Button></div>
+          <div className="flex flex-wrap items-center gap-3 border-y border-line py-5"><p role="alert" className="text-14 text-bad">{error}</p><Button size="sm" onClick={() => location.reload()}>retry</Button></div>
         ) : loading ? (
           <div className="flex flex-col gap-2" aria-busy="true">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14" />)}</div>
         ) : shown.length ? (
           <>
-            <Table label={tab === "skills" ? "Skills" : "Connectors and MCPs"} className="max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
+            <Table label={tab === "skills" ? "skills" : "connectors and mcps"} className="max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
               <thead>
                 <tr>
-                  <Th>Name</Th>
-                  <Th className="max-md:hidden">Type</Th>
-                  <Th className="max-lg:hidden">Category</Th>
-                  <Th className="max-lg:hidden">Tools enabled</Th>
-                  <Th className="max-xl:hidden">Permissions</Th>
-                  <Th className="max-md:hidden">Workspaces</Th>
-                  <Th className="w-0 max-sm:w-[88px]"><span className="sr-only">Sign in</span></Th>
-                  <Th className="w-0 max-sm:w-12"><span className="sr-only">More</span></Th>
+                  <Th>name</Th>
+                  <Th className="max-md:hidden">type</Th>
+                  <Th className="max-lg:hidden">category</Th>
+                  <Th className="max-lg:hidden">tools enabled</Th>
+                  <Th className="max-xl:hidden">permissions</Th>
+                  <Th className="max-md:hidden">workspaces</Th>
+                  <Th className="w-0 max-sm:w-[88px]"><span className="sr-only">sign in</span></Th>
+                  <Th className="w-0 max-sm:w-12"><span className="sr-only">more</span></Th>
                 </tr>
               </thead>
               <tbody>{shown.slice(0, limit).map((row) => <Row key={row.id} row={row} menu={menuFor(row)} onAuth={() => openConnect(row)} />)}</tbody>
             </Table>
-            {shown.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="press-soft hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">Show more</button>}
+            {shown.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="press-soft hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">show more</button>}
           </>
         ) : (
           <div className="border-y border-line py-8">
-            <p className="text-14 text-ink-2">{q || filtered ? `Nothing here matches${q ? ` "${query.trim()}"` : " that filter"}.` : tab === "skills" ? "No skills yet." : "Nothing connected yet."}</p>
-            <p className="mt-1 text-14 text-ink-3">{q || filtered ? "Clear the search or the filter to see everything." : tab === "skills" ? "Ask a bot in a chat to learn a skill, or add one in the app." : "Add an app and your bots can use it right away."}</p>
+            <p className="text-14 text-ink-2">{q || filtered ? `nothing here matches${q ? ` "${query.trim()}"` : " that filter"}.` : tab === "skills" ? "no skills yet." : "nothing connected yet."}</p>
+            <p className="mt-1 text-14 text-ink-3">{q || filtered ? "clear the search or the filter to see everything." : tab === "skills" ? "ask a bot in a chat to learn a skill, or add one in the app." : "add an app and your bots can use it right away."}</p>
           </div>
         )}
-        {tab === "skills" && !loading && <p className="mt-4 text-14 text-ink-4">Skills ship with the app and work on every workspace. Bots can also write their own in a chat.</p>}
+        {tab === "skills" && !loading && <p className="mt-4 text-14 text-ink-4">skills ship with the app and work on every workspace. bots can also write their own in a chat.</p>}
       </section>
 
       {tab === "connectors" && (
         <section className="enter mt-14" style={{ ["--i" as string]: 1 }} aria-labelledby="suggested-title">
-          <SectionHead id="suggested-title">Suggested</SectionHead>
+          <SectionHead id="suggested-title">suggested</SectionHead>
           {apps === null ? (
             <div className="grid gap-x-10 gap-y-2 md:grid-cols-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-16" />)}</div>
           ) : picks.length ? (
@@ -200,13 +200,13 @@ export function ConnectorsPage() {
                       <div className="truncate text-14 font-medium text-ink">{app.label}</div>
                       <div className="truncate text-14 text-ink-3">{app.description}</div>
                     </div>
-                    <Button variant="outline" size="sm" disabled={!home} onClick={() => openConnect(app)} aria-label={`Add ${app.label}`}>Add</Button>
+                    <Button variant="outline" size="sm" disabled={!home} onClick={() => openConnect(app)} aria-label={`add ${app.label}`}>add</Button>
                   </li>
                 ))}
               </ul>
-              {picks.length > suggested && <button type="button" onClick={() => setSuggested((n) => n + 8)} className="press-soft hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">Show more</button>}
+              {picks.length > suggested && <button type="button" onClick={() => setSuggested((n) => n + 8)} className="press-soft hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">show more</button>}
             </>
-          ) : <p className="text-14 text-ink-3">{q ? "No suggestions match. Use Add to search every app." : "You have connected every popular app."}</p>}
+          ) : <p className="text-14 text-ink-3">{q ? "no suggestions match. use add to search every app." : "you have connected every popular app."}</p>}
         </section>
       )}
 
