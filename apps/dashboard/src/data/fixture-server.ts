@@ -350,7 +350,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
       if (!COMMAND_KINDS.includes(b.kind as CommandKind) || typeof b.target !== "string") fail("Choose a command and target.");
       if ((b.kind as string).startsWith("app.")) {
         if (!appSlug(b.target)) fail("Command is invalid.", 400, "invalid_command");
-        if (workspaceDetail(detail, now).workspace.freshness === "offline") fail(detail.workspace.kind === "vps" ? "This cloud is not answering right now. Try again in a minute." : "Your computer is asleep. Connect from the Dusk Bot app on it, or use Dusk Cloud.", 409, "workspace_offline");
+        if (workspaceDetail(detail, now).workspace.freshness === "offline") fail(detail.workspace.kind === "vps" ? "This cloud is asleep or not answering. Wake it from clouds, then try again." : "Your computer is asleep. Connect from the Dusk Bot app on it, or use Dusk Cloud.", 409, "workspace_offline");
       }
       const command: CommandView = { id: `fx-command-${s.nextId++}`, kind: b.kind as CommandKind, target: b.target as string, issuedAt: now, expiresAt: now + 600_000, status: "sent", message: null, doneAt: null };
       detail.commands.push(command); return { command };

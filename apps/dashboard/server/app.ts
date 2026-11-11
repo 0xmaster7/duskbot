@@ -568,7 +568,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
           rate(req, "app-command", 60);
           if (queue.filter(item => item.kind.startsWith("app.") && (item.status === "queued" || item.status === "sent")).length >= 5) fail(429, "rate_limited", "Too many app sign-ins at once. Try again in a minute.");
           if (now() - (seen.get(ws.id) ?? -Infinity) > APP_COMMAND_ONLINE_MS) fail(409, "workspace_offline", ws.kind === "vps"
-            ? "This cloud is not answering right now. Try again in a minute."
+            ? "This cloud is asleep or not answering. Wake it from clouds, then try again."
             : "Your computer is asleep. Connect from the Dusk Bot app on it, or use Dusk Cloud.");
         }
         const command: CommandView = { id: `cmd_${random(16)}`, kind, target, issuedAt: now(), expiresAt: now() + COMMAND_TTL_MS, status: "queued", message: null, doneAt: null };
