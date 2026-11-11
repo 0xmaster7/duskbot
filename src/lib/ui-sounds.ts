@@ -1,5 +1,3 @@
-// grok bot's notification pings (third-party audio: private fork only, not for redistribution).
-// grok keeps one shared <audio>, cuts the previous ping, plays at full volume.
 import openBlip from "../assets/sounds/open-blip.wav";
 import tick from "../assets/sounds/tick.wav";
 import doubleTick from "../assets/sounds/double-tick.wav";
