@@ -6,6 +6,11 @@ export function startDesktopAnalytics(): void {
   if (!bridge) return;
   const platform = bridge.platform;
   if (platform !== "darwin" && platform !== "win32" && platform !== "linux") return;
+  const relay = bridge.productEvents;
+  if (relay) {
+    configure({ origin: null, token: null, relay, platform, version: bridge.app?.version || __APP_VERSION__, kind: "desktop" });
+    return;
+  }
   const apply = (staging = false) => configure({
     origin: import.meta.env.VITE_DUSK_ACCOUNT_ORIGIN || (staging ? "https://dev.dusk.bot" : "https://app.dusk.bot"),
     token: null, platform, version: bridge.app?.version || __APP_VERSION__, kind: "desktop",

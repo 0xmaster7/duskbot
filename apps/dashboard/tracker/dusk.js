@@ -31,23 +31,29 @@
       } catch (e) { return ""; }
     }
     var vid = read("dusk_vid"), sid = read("dusk_sid"), first = !sid;
-    var domain = "", parts = loc.hostname.split(".");
+    // nothing is stored until the service answers a page view with {persist: true}; where consent would be needed it
+    // answers false and ids live only in this page
+    var keep = null, asking = false, domain = "", parts = loc.hostname.split("."), domains = [];
     var suffix = "; path=/; SameSite=Lax" + (loc.protocol === "https:" ? "; Secure" : "");
-    if (parts.length > 1 && !/^\d+$/.test(parts[parts.length - 1])) {
-      for (var i = parts.length - 2; i >= 0; i--) {
-        try {
-          var candidate = parts.slice(i).join(".");
-          d.cookie = "dusk_test=1" + suffix + "; domain=" + candidate;
-          if (read("dusk_test")) {
-            d.cookie = "dusk_test=" + suffix + "; domain=" + candidate + "; max-age=0";
-            domain = candidate;
-            break;
-          }
-        } catch (e) {}
-      }
+    if (parts.length > 1 && !/^\d+$/.test(parts[parts.length - 1])) for (var i = parts.length - 2; i >= 0; i--) domains.push(parts.slice(i).join("."));
+    function cookie(name, value, age, at) {
+      try { d.cookie = name + "=" + value + suffix + "; max-age=" + age + (at ? "; domain=" + at : ""); } catch (e) {}
     }
-    function cookie(name, value, age) {
-      try { d.cookie = name + "=" + value + suffix + "; max-age=" + age + (domain ? "; domain=" + domain : ""); } catch (e) {}
+    function remember(persist) {
+      keep = persist;
+      if (!persist) {
+        ["dusk_vid", "dusk_sid"].forEach(function (name) {
+          if (read(name)) [""].concat(domains).forEach(function (at) { cookie(name, "", 0, at); });
+        });
+        return;
+      }
+      if (!domain) domains.some(function (candidate) {
+        cookie("dusk_test", 1, 60, candidate);
+        if (read("dusk_test")) { cookie("dusk_test", "", 0, candidate); domain = candidate; }
+        return domain;
+      });
+      cookie("dusk_vid", vid, 31536000, domain);
+      cookie("dusk_sid", sid, 1800, domain);
     }
     function random(bytes) {
       var data = new Uint8Array(bytes), binary = "";
@@ -57,16 +63,23 @@
     }
     vid = vid || random(16);
     sid = sid || random(16);
-    cookie("dusk_vid", vid, 31536000);
     var pv, path, pagePath, depth = 0, engaged = 0, since = null;
     function cleanPath(value) {
       return value.split("/").map(function (segment) { return /@|%40/i.test(segment) ? ":id" : segment; }).join("/").slice(0, 200);
     }
     function send(event, extra) {
-      cookie("dusk_sid", sid, 1800);
+      if (keep) cookie("dusk_sid", sid, 1800, domain);
       var payload = { v: 1, e: event, vid: vid, sid: sid, pv: pv, h: loc.hostname, p: path };
       Object.keys(extra).forEach(function (key) { payload[key] = extra[key]; });
       var json = JSON.stringify(payload);
+      if (keep === null && !asking && event === "pageview") {
+        asking = true;
+        try {
+          return w.fetch(endpoint, { method: "POST", body: json, keepalive: true, credentials: "include", headers: { "content-type": "text/plain" } })
+            .then(function (res) { return res.json(); })
+            .then(function (answer) { remember(!!answer && answer.persist === true); }, function () { asking = false; });
+        } catch (e) { asking = false; }
+      }
       try { if (n.sendBeacon && n.sendBeacon(endpoint, new Blob([json], { type: "text/plain" }))) return; } catch (e) {}
       try { w.fetch(endpoint, { method: "POST", body: json, keepalive: true, headers: { "content-type": "text/plain" } }).catch(noop); } catch (e) {}
     }

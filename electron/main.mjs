@@ -92,6 +92,7 @@ import { buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots }
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
+import { createProductEvents } from "./product-events.mjs";
 import { CHECKOUT_SOURCES, cloudMenuSublabel, cloudTarget, createCloudAccountClient, createCloudAccountStore } from "./cloud-account.mjs"; import { isAppLink } from "./cloud-signin.mjs";
 import { installCloudPlanIpc } from "./cloud-plan-ipc.mjs";
 import { cloudLinkOpensSheet, colorDotIcons, createCloudLook, createCloudReadyNotice, installCloudBuy, lookFile } from "./cloud-buy.mjs";
@@ -543,6 +544,9 @@ import { CREDENTIAL_PATCH, credentialSaveError } from "./credential-patch.mjs";
 const { isLocalSender: senderIsLocal, localOnly, localOnlySync, setLocalOrigin } = localOriginModule;
 /** This computer's page, or My Cloud's own page once it is home (home-window.mjs). */
 const localOrHome = (channel, handler) => (event, ...args) => (homeWindow.homePage(event) ? handler : localOnly(channel, handler))(event, ...args);
+const productEvents = createProductEvents({ origin: cloudTarget(process.env).origin, token: () => cloudAccount?.eventToken?.() ?? null, platform: process.platform, version: app.getVersion() });
+ipcMain.handle("product-events:send", localOrHome("product-events:send", (_event, batch) => productEvents.send(batch)));
+ipcMain.handle("product-events:clear", localOrHome("product-events:clear", () => productEvents.clear()));
 
 let companionPowerBlocker = null;
 
@@ -3250,6 +3254,7 @@ app.on("before-quit", (e) => {
   companyBackupSchedule?.close();
   orgLibrary?.close();
   managedDesktop?.close();
+  void productEvents.close();
   accountEnroll.close(); accountRing.close(); cloudAccount?.close(); oneHome.close(); ownHome?.close(); void vpsLink.close(); twoPlaces?.close(); homeWindow.close();
   companyBackupController?.abort();
   cloudSync.close();

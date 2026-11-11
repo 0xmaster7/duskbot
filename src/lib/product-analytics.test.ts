@@ -51,6 +51,29 @@ describe("product analytics", () => {
     expect(bodies()[1].session).not.toBe(first.session);
   });
 
+  it("hands batches to the desktop's main process instead of posting, and clears it on opt-out", async () => {
+    const relay = { send: vi.fn(async () => true), clear: vi.fn(async () => undefined) };
+    client.configure({ ...config, origin: null, relay });
+    client.feature("bot_created");
+    await client.flush();
+    expect(fetcher).not.toHaveBeenCalled();
+    const [batch] = relay.send.mock.calls[0] as unknown as [Payload];
+    expect(batch.install).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    expect(batch.events.map(event => event.name)).toEqual(["app_open", "app_feature"]);
+    expect(batch).not.toHaveProperty("token");
+    client.setUsageAnalytics(false);
+    expect(relay.clear).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a batch the main process refused for one more try", async () => {
+    const relay = { send: vi.fn().mockRejectedValueOnce(new Error("not local")).mockResolvedValue(true), clear: vi.fn(async () => undefined) };
+    client.configure({ ...config, origin: null, relay });
+    await client.flush();
+    await client.flush();
+    expect(relay.send).toHaveBeenCalledTimes(2);
+    expect((relay.send.mock.calls[1] as unknown as [Payload])[0].events.map(event => event.name)).toEqual(["app_open"]);
+  });
+
   it("replaces a malformed persisted install id", async () => {
     localStorage.setItem("dusk-install-id", "person@example.com");
     client.configure(config);
