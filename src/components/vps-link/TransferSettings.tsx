@@ -2,6 +2,7 @@
 // the backups a move keeps
 import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
+import { useStore } from "@/state/store";
 import { formatBytes, openAddVps, useVpsLink, type VpsBackup, type VpsWhere } from "@/lib/vps-link";
 import { Card, CopyRow, ItemRow, NavRow, NoteRow } from "../ListRows";
 import { smallButtonCls } from "../ui/GrokDialog";
@@ -30,6 +31,9 @@ export function TransferSettings() {
   const alive = useRef(true);
   const loadSequence = useRef(0);
   const device = deviceWord();
+  const { state, dispatch } = useStore();
+  // Dusk Cloud is the way offered here; a server of one's own stays on the Connect from elsewhere page
+  const cloud = Boolean(window.ogb?.cloudAccount) && window.ogb?.remoteClient?.active !== true && !state.config?.cloudHome;
 
   const load = useCallback(() => {
     if (!bridge) return;
@@ -79,7 +83,10 @@ export function TransferSettings() {
               <NavRow title={t("vpsLink.transfer.forget", { name: server.name })} hint={t("vpsLink.transfer.forgetHint")} danger drill={false} disabled={busy}
                 onClick={() => void perform(t("vpsLink.transfer.forgetConfirm", { name: server.name }), () => bridge.forget())} />
             </>
-          : <NavRow title={t("vpsLink.add")} hint={t("vpsLink.addHint")} onClick={openAddVps} />)}
+          : cloud
+            ? <NavRow data-settings-open="cloud-add" title={t("vpsLink.transfer.toCloud")} hint={t("vpsLink.transfer.toCloudHint", { device })}
+                onClick={() => dispatch({ type: "openCloudAdd", source: "app_settings" })} />
+            : <NavRow title={t("vpsLink.add")} hint={t("vpsLink.addHint")} onClick={openAddVps} />)}
       </Card>
       <Card label={t("vpsLink.transfer.backupsTitle")} footnote={t("vpsLink.transfer.backupsNote", { device })}>
         {backups === null
