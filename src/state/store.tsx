@@ -1,3 +1,4 @@
+import { feature as productFeature, noteMessageSent, noteAcceptedMessage, noteReplyTurn, noteRoutineRun } from "@/lib/product-analytics";
 import { cloudAsleep, onCloudPower } from "../lib/cloud-power";
 import { chatInFront } from "@/lib/chat-in-front";
 import { answerOf, api, ApiError, snapshotArrays } from "./api";
@@ -2328,7 +2329,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (action.notice) setTimeout(() => rawDispatch({ type: "notice", notice: null }), action.notice.kind === "note" ? 20_000 : 6000);
           break;
         case "createRoutine":
-          api("/api/routines", { method: "POST", body: JSON.stringify(action.input) }).catch(showError);
+          api("/api/routines", { method: "POST", body: JSON.stringify(action.input) }).then(() => productFeature("routine_created")).catch(showError);
           break;
         case "updateRoutine":
           api(`/api/routines/${action.routineId}`, { method: "PATCH", body: JSON.stringify(action.patch) })
@@ -2340,7 +2341,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         case "runRoutine":
           void waitForExecutionSettings(executionBotsBeforeAction)
             .then(() => api(`/api/routines/${action.routineId}/run${action.test ? "?test=1" : ""}`, { method: "POST" }))
-            .then(({ run }) => action.onStarted?.(run))
+            .then(({ run }) => { noteRoutineRun(run.id, run.status); action.onStarted?.(run); })
             .catch((error) => {
               if (action.onError) action.onError(error);
               else showError(error);
@@ -2425,6 +2426,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const threadId =
             action.threadId ?? stateRef.current.bots.find((bot) => bot.id === action.botId)?.threadId;
           const sendId = action.sendId ?? randomUuid();
+          noteMessageSent(sendId);
           const arrived = () => sendArrived(stateRef.current.bots.find((bot) => bot.id === action.botId && bot.threadId === threadId)?.messages, sendId);
           const outbox = threadId && !action.dataContext && !action.pointed?.length && !action.followUp ? sendOutbox() : null;
           if (threadId) outbox?.hold({ kind: "bot", ownerId: action.botId, threadId, sendId, text: action.text, at: Date.now(), ...(action.replyToId ? { replyToId: action.replyToId } : {}), ...(action.mode ? { mode: action.mode } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) });
@@ -2643,6 +2645,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }),
           })
             .then(({ group }) => {
+              productFeature("room_created");
               rawDispatch({ type: "groupPatched", group });
               rawDispatch({ type: "select", id: group.id });
             })
@@ -2652,6 +2655,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const threadId =
             action.threadId ?? stateRef.current.groups.find((group) => group.id === action.groupId)?.threadId;
           const sendId = action.sendId ?? randomUuid();
+          noteMessageSent(sendId);
           const arrived = () => sendArrived(stateRef.current.groups.find((group) => group.id === action.groupId && group.threadId === threadId)?.messages, sendId);
           const outbox = threadId ? sendOutbox() : null;
           if (threadId) outbox?.hold({ kind: "group", ownerId: action.groupId, threadId, sendId, text: action.text, at: Date.now(), ...(action.replyToId ? { replyToId: action.replyToId } : {}), ...(action.mode ? { mode: action.mode } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) });
@@ -3089,6 +3093,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           rawDispatch({ type: "botQueues", queues: frame.queues });
           break;
         case "message": {
+          if (frame.message?.role === "user") noteAcceptedMessage(frame.message.sendId, frame.message.id);
+          if (frame.message?.role === "bot" && frame.message.kind === "text") noteReplyTurn(frame.message.turnId, frame.message.requestMessageId);
           rawDispatch({ type: "messageAdded", threadId: frame.threadId, message: frame.message as Message });
           if (frame.message?.role === "user" && typeof frame.message.queueId === "string") {
             rawDispatch({
@@ -3159,6 +3165,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           rawDispatch({ type: "routineDeleted", routineId: frame.routineId });
           break;
         case "routine.run":
+          noteRoutineRun(frame.run.id, frame.run.status);
           rawDispatch({ type: "routineRunPatched", run: frame.run });
           break;
         case "webhook":
@@ -3171,6 +3178,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           rawDispatch({ type: "webhookDeleted", webhookId: frame.webhookId });
           break;
         case "runtime": {
+          if (frame.event.type === "content.delta" && frame.event.streamKind === "assistant_text" && frame.event.delta && !frame.event.synthetic) noteReplyTurn(frame.event.turnId);
           spokenReplyStream.onRuntimeEvent(frame.event, speechOwner(stateRef.current, frame.event.threadId));
           const action = runtimeFrameAction(frame.event);
           if (action) rawDispatch(action);

@@ -1,3 +1,4 @@
+import { feature } from "./product-analytics";
 // Its data channel may only send session.close; everything else about the call runs on the harness.
 import { useSyncExternalStore } from "react";
 import type { LiveCallState, LiveEndReason } from "../../shared/wire";
@@ -370,6 +371,7 @@ function applyServerCall(call: LiveCallState | null) {
 function goLiveWhenReady() {
   if (state.phase !== "starting" || !serverAttached || channel?.readyState !== "open") return;
   set({ phase: "live", startedAt: Date.now() });
+  feature("voice_used");
 }
 
 function endQuietly() {

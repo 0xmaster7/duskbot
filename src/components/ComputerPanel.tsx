@@ -1,3 +1,4 @@
+import { useComputerAnalytics } from "@/lib/product-analytics-app";
 import { computerCapableEngine, cloudEngineOf } from "@/lib/remote-desktop";
 import { canWorkOnCloud } from "../../shared/cloud-computer";
 import { viewerTargetId } from "../../shared/desktop-viewer";
@@ -137,6 +138,7 @@ export function ComputerPanel({
   /** Grok's full view of the screen over the whole window, opened from the bot panel; `wake` wakes a sleeping desktop. */
   fullscreen?: { wake: boolean; onExit: () => void };
 }) {
+  useComputerAnalytics(profileBot.id, visible);
   const { dragProps } = useCaptionChrome();
   const { panelWidth, separatorRef, separatorWidth, onSeparatorKeyDown, onResizeStart, onResizeMove, onResizeEnd } = useComputerPanelResize();
   const { state, dispatch, flushBotPatches } = useStore();

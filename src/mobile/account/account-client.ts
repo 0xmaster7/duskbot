@@ -1,3 +1,4 @@
+import { configure as configureAnalytics } from "@/lib/product-analytics";
 import { cleanCode, cleanEmail, parseSignInStart, SIGN_IN_TRIES, startFailure, verifyFailure } from "../../../electron/cloud-signin.mjs";
 import { ACCOUNT_ROUTES, APP_AUTH_REDIRECT, OAUTH_PROVIDERS, type OAuthErrorCode, type OAuthProvider } from "../../../shared/account-api";
 import type { CloudSignInStart } from "../../../electron/cloud-account.mjs";
@@ -32,6 +33,8 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
   let grant: StoredGrant | null = null;
   let attempt: { id: string; email: string; expiresAt: number; wrong: number } | null = null;
   let generation = 0;
+  const analytics = () => configureAnalytics({ origin, token: grant?.token ?? null, platform: platform.kind === "web" ? "linux" : platform.kind, version: platform.appVersion, kind: "mobile" });
+  analytics();
   const device = () => ({ deviceName: platform.deviceName().trim().slice(0, 100), platform: platform.kind === "web" ? "linux" : platform.kind,
     appVersion: /^[0-9A-Za-z][0-9A-Za-z.+-]{0,39}$/.test(platform.appVersion) ? platform.appVersion : "0.0.0" });
   const request = async (path: string, method = "GET", body?: unknown, token?: string): Promise<unknown> => {
@@ -65,14 +68,14 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
     const next = { origin, token: value.accessToken, expiresAt: value.expiresAt, account: { id: value.account.id, email: value.account.email }, deviceId: value.device.id };
     await platform.secrets.set(SECRET, JSON.stringify(next));
     if (stamp !== generation) { await platform.secrets.remove(SECRET); return false; }
-    grant = next; attempt = null;
+    grant = next; attempt = null; analytics();
     return true;
   };
   return {
     account: () => grant?.account ?? null,
     async restore(): Promise<MobileAccount | null> {
       const stamp = generation;
-      grant = null;
+      grant = null; analytics();
       const value = parse(await platform.secrets.get(SECRET));
       if (!object(value) || value.origin !== origin) return null;
       if (typeof value.token !== "string" || !TOKEN.test(value.token) || !expiry(value.expiresAt) || !identity(value.account) || typeof value.deviceId !== "string" || !value.deviceId) {
@@ -87,6 +90,7 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
         if (error instanceof AccountRequestError && error.status === 401 && error.code === "invalid_token") await platform.secrets.remove(SECRET);
         else if (!(error instanceof AccountRequestError) && saved.expiresAt > Date.now()) grant = saved;
       }
+      analytics();
       return grant?.account ?? null;
     },
     async emailStart(email: string): Promise<CloudSignInStart> {
@@ -155,7 +159,7 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
     async signOut(): Promise<void> {
       ++generation;
       const token = grant?.token;
-      grant = null; attempt = null;
+      grant = null; attempt = null; analytics();
       await Promise.all([platform.secrets.remove(SECRET), platform.secrets.remove(PENDING)]);
       if (token) { try { await request(ACCOUNT_ROUTES.appSession, "DELETE", {}, token); } catch {} }
     },

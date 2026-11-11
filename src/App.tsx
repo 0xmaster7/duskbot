@@ -1,3 +1,4 @@
+import { useProductScreen } from "@/lib/product-analytics-app";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Menu } from "./icons";
 import { AnimatePresence } from "motion/react";
@@ -149,6 +150,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const loading = loadingLine({ connected: state.connected, hydrated: state.hydrated === true, developer: import.meta.env.DEV });
   const group = state.groups.find((g) => g.id === state.selectedId);
   const bot = group ? undefined : (state.bots.find((b) => b.id === state.selectedId) ?? state.bots[0]);
+  useProductScreen(state.appSettingsOpen ? "/settings" : state.pluginsOpen ? "/apps" : group ? "/rooms/:id" : bot ? (state.activeView === "files" ? "/bots/:id/files" : "/bots/:id") : "/", group?.id ?? bot?.id);
   useComputerPanelActivity({ bot, active: state.activeView === "chat", settingsOpen: state.settingsOpen, targetKey: `${bot?.vpsAlias}:${bot?.section}:${state.config?.vps?.sshAlias}:${state.config?.vps?.mode}:${state.config?.vps?.independentScreens}`, dispatch });
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !remoteClient });
   // The sidebar only folds when the person folds it: a side panel opening beside it never collapses it, as in Grok Bot.

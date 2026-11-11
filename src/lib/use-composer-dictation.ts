@@ -1,3 +1,4 @@
+import { feature } from "./product-analytics";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useDesktopCapabilities } from "@/components/DesktopCapabilities";
 import { withOpenSettings } from "@/components/OpenSystemSettings";
@@ -69,7 +70,7 @@ export function useComposerDictation({ draftId, text, onText }: {
           : t(reason === "dictation-disabled" ? "composer.dictation.disabled" : "composer.dictation.failed")));
       }
     });
-    void bridge.speechStart().catch(() => {
+    void bridge.speechStart().then(() => { if (active) feature("voice_used"); }).catch(() => {
       if (!active) return;
       cancelSession();
       setSpeechError(t("composer.dictation.failed"));
