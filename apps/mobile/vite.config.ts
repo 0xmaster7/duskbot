@@ -29,10 +29,8 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      input: {
-        index: fileURLToPath(new URL("./index.html", import.meta.url)),
-        phone: fileURLToPath(new URL("./phone.html", import.meta.url)),
-      },
+      // phone.html is the development preview frame: the dev server serves it, a build never carries it
+      input: { index: fileURLToPath(new URL("./index.html", import.meta.url)) },
     },
   },
 });

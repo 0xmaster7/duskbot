@@ -29,6 +29,8 @@
     "dev": "vite",
     "mobile:preview": "node apps/mobile/scripts/phone-preview.mjs",
     "mobile:build": "pnpm --filter @duskbot/mobile build",
+    "mobile:gate": "node apps/mobile/scripts/release-gate.mjs",
+    "mobile:release": "pnpm --filter @duskbot/mobile build && node apps/mobile/scripts/release-gate.mjs && pnpm --filter @duskbot/mobile exec cap sync",
     "companion": "node --experimental-strip-types apps/companion/src/index.ts",
     "omb": "node --experimental-strip-types server/duskbot.ts",
     "pair": "node --experimental-strip-types server/duskbot.ts pair",
