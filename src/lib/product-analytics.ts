@@ -1,9 +1,11 @@
 export const APP_FEATURES = ["bot_created", "bot_edited", "routine_created", "routine_ran", "room_created", "computer_used", "voice_used", "file_uploaded", "app_connected", "cloud_opened", "chat_opened", "memory_edited", "skill_added", "webhook_created", "phone_paired", "search_used", "settings_opened"] as const;
 type Feature = typeof APP_FEATURES[number];
 type Platform = "darwin" | "win32" | "linux" | "ios" | "android";
-type Options = { origin: string | null; token: string | null; platform: Platform; version: string; kind: "desktop" | "mobile"; force?: boolean };
 type Props = Record<string, string | number>;
 type Event = { name: string; at: number; props: Props };
+/** a transport that posts for this page (the desktop's main process), in place of `origin` and `token` */
+type Relay = { send(batch: { install: string; session: string; events: Event[] }): Promise<unknown>; clear(): Promise<unknown> };
+type Options = { origin: string | null; token: string | null; platform: Platform; version: string; kind: "desktop" | "mobile"; force?: boolean; relay?: Relay };
 type Pending = { event: Event; retried: boolean };
 const ID = /^[A-Za-z0-9_-]{16,40}$/;
 const WORD = /^[a-z0-9_]{1,40}$/;
@@ -52,7 +54,7 @@ export function usageAnalyticsEnabled(): boolean {
 export function setUsageAnalytics(enabled: boolean): void {
   optedOut = !enabled;
   try { localStorage.setItem("dusk-usage-analytics", enabled ? "on" : "off"); } catch {}
-  if (!enabled) clear();
+  if (!enabled) { clear(); options?.relay?.clear().catch(() => {}); }
 }
 
 function randomId(): string {
@@ -137,7 +139,7 @@ export async function flush(): Promise<void> {
   try {
     clearTimeout(timer);
     timer = undefined;
-    if (!usageAnalyticsEnabled() || !options?.origin) { schedule(); return; }
+    if (!usageAnalyticsEnabled() || !(options?.origin || options?.relay)) { schedule(); return; }
     identity();
     if (sent || replies) {
       latencies.sort((a, b) => a - b);
@@ -153,6 +155,7 @@ export async function flush(): Promise<void> {
     const failed = await Promise.all(Array.from({ length: Math.ceil(pending.length / 50) }, async (_, index): Promise<Pending[]> => {
       const batch = pending.slice(index * 50, (index + 1) * 50);
       try {
+        if (current.relay) { await current.relay.send({ install, session, events: batch.map(item => item.event) }); return []; }
         await fetch(`${current.origin}/v1/app/events`, {
           method: "POST", keepalive: true, credentials: "omit", redirect: "error", referrerPolicy: "no-referrer",
           headers: { "content-type": "application/json", ...(current.token ? { Authorization: `Bearer ${current.token}` } : {}) },
@@ -193,7 +196,7 @@ export function configure(next: Options): void {
     options = { ...next, origin, version: VERSION.test(next.version) ? next.version : "0.0.0" };
     if (!usageAnalyticsEnabled()) return;
     listen();
-    if (origin && !opened) {
+    if ((origin || next.relay) && !opened) {
       opened = true;
       track("app_open", { kind: next.kind, platform: next.platform, appVersion: options.version });
     }

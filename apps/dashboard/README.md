@@ -104,7 +104,10 @@ users (search, plan, clouds, devices, timeline), clouds (pause, resume, delete w
   did not come through Cloudflare keeps cookies. Origins other than
   the service's own must be in `DUSK_TRACK_ORIGINS`. The apps send screens, features, message counts, reply times,
   error and pairing codes to `POST /v1/app/events` (`src/lib/product-analytics.ts`), anonymous by install id until the
-  app signs in. Channels and named sources (AI assistants apart from search) come from `analytics/sources.ts` (ported from
+  app signs in. The desktop app's own page hands its batches to Electron main over the preload bridge (`productEvents`);
+  main (`electron/product-events.mjs`) drops anything outside its event and prop allowlist, adds the account token when
+  signed in, and posts to the account client's origin (`cloudTarget()`, so `DUSK_CLOUD_ORIGIN` builds use their own),
+  retrying with backoff and holding at most 500 events offline. Channels and named sources (AI assistants apart from search) come from `analytics/sources.ts` (ported from
   Minilytics). Everything else is computed from the event log per read (`analytics/web.ts`): visits, KPIs against the
   previous period, ranked cards with the signups each row became, the funnel with drop-off and median times, journeys,
   realtime, retention (D1, D7 = days 7 to 13, D30 = days 30 to 59). A read scans at most 400,000 raw events.
