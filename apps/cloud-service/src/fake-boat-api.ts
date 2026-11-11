@@ -1,7 +1,7 @@
 // A loopback stand-in for boat.dev's API v1, for tests: sandboxes with labels, idempotent create, stop and resume with a
 // snapshot per stop, hosted ports, commands, upload URLs, snapshot folder reads as tar, deletions with receipts. Each
 // sandbox's /data volume is a map of tar paths; the scripted command handler plays the machine.
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { makeTar, tarEntries } from "./backups.ts";
@@ -30,7 +30,7 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
       stop: s.stop };
   }
   const capture = (s: FakeSandbox) => { const at = now(); s.snapshots.push({ id: `snap${String(++sequence).padStart(8, "0")}`, at, volume: new Map(s.volume) }); s.snapshotCompletedAt = at; };
-  let command: (input: FakeCommand) => { exitCode: number; stdout: string } = ({ sandbox, command }) => {
+  const baseCommand: (input: FakeCommand) => { exitCode: number; stdout: string } = ({ sandbox, command }) => {
     if (command.includes("omb-home install")) return { exitCode: 0, stdout: "installed\n" };
     if (command.includes("omb-home start")) return { exitCode: 0, stdout: "started\n" };
     if (command.includes("omb-home restore")) {
@@ -39,8 +39,17 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
       sandbox.volume = new Map(tarEntries(tar).filter(e => e.type === "0").map(e => [e.name.startsWith("__system__/") ? e.name : `__system__/${e.name}`, e.data]));
       return { exitCode: 0, stdout: "restored\n" };
     }
+    if (command.includes("sha256sum -c")) {
+      const manifest = [...sandbox.files].find(([path]) => path.endsWith(".sha256"))?.[1]?.toString("utf8") ?? "";
+      const bad = manifest.split("\n").filter(Boolean).filter(line => {
+        const data = sandbox.volume.get(`__system__${line.slice(66)}`);
+        return !data || createHash("sha256").update(data).digest("hex") !== line.slice(0, 64);
+      });
+      return { exitCode: 0, stdout: `${bad.map(line => `${line.slice(66)}: FAILED`).join("\n")}\nmismatched ${bad.length}\n` };
+    }
     return { exitCode: 0, stdout: "" };
   };
+  let command = baseCommand;
   function send(res: ServerResponse, status: number, body: unknown) { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(body)); }
   const error = (res: ServerResponse, status: number, code: string) => send(res, status, { ok: false, code, error: { code, status } });
   async function read(req: IncomingMessage) { const chunks: Buffer[] = []; for await (const c of req) chunks.push(c as Buffer); return Buffer.concat(chunks); }
@@ -173,6 +182,8 @@ export async function startFakeBoatApi(options: { now?: () => number; key?: stri
     refuseStop(sandboxId: string, refuse = true) { const x = sandboxes.get(sandboxId); if (x) { x.refuseStop = refuse; if (!refuse && x.stop?.status === "failing") x.stop = null; } },
     named,
     onCommand(fn: typeof command) { command = fn; },
+    /** the machine's own answers, for a handler that adds to them */
+    baseCommand,
     /** the machine is lost without anyone deleting it through the API */
     lose(sandboxId: string) { sandboxes.delete(sandboxId); },
     expire(sandboxId: string) { const s = sandboxes.get(sandboxId); if (s) s.dataExpiredAt = now(); },

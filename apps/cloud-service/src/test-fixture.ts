@@ -5,7 +5,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, vi } from "vitest";
 import type { StoredSubscription } from "../../dashboard/server/billing/store.ts";
-import { createBoatProvider } from "./boat.ts";
+import { boatCostProfile, createBoatProvider } from "./boat.ts";
+import { startFakeInstaboxApi } from "./fake-instabox-api.ts";
+import { boatHost, instaboxHost, type HostName, type ManagedHost } from "./hosts.ts";
+import { createInstaboxProvider, instaboxCostProfile } from "./instabox.ts";
 import { createAudit } from "./audit.ts";
 import { createBackupStore } from "./backups.ts";
 import { DEFAULT_MANAGED_SETTINGS, type ManagedSettings } from "./lifecycle.ts";
@@ -96,5 +99,70 @@ export async function boatFixture(options: { retentionDays?: number; setupPolls?
   }
   return { api, provider, service, home, power, update, subscriptions, notices, alerts, audit, backups, dataDir, paid, settle, asleep, workspaces,
     advance(ms: number) { at += ms; }, now };
+}
+
+/** one service driving both hosts over their fakes; a home's first start writes its marker and a bot to its volume */
+export async function hostsFixture(options: { defaultHost?: HostName; settings?: Partial<ManagedSettings>; hosts?: HostName[] } = {}) {
+  const dataDir = mkdtempSync(join(tmpdir(), "omb-hosts-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
+  let at = Date.UTC(2026, 10, 9, 12);
+  const now = () => at;
+  const boatApi = await startFakeBoatApi({ now }); cleanup.push(() => boatApi.close());
+  const ibxApi = await startFakeInstaboxApi({ now }); cleanup.push(() => ibxApi.close());
+  const seed = (cloudId: string) => [
+    ["data/.omb-cloud-home.json", JSON.stringify({ version: 1, machine: cloudId })],
+    [`data/${CLOUD_HOME.dataName}/bots.json`, JSON.stringify([{ id: "bot-1", name: "Test bot" }])],
+    [`data/${CLOUD_HOME.dataName}/agent-browser-profiles/bot-1/Cookies`, "signed-in"],
+    [`data/${CLOUD_HOME.dataName}/dashboard-link.json`, "{\"link\":\"this machine's own\"}"],
+  ] as const;
+  boatApi.onCommand(input => {
+    if (input.command.includes("omb-home start") && !input.sandbox.volume.size) for (const [name, data] of seed(input.sandbox.labels["omb.cloud"]!)) input.sandbox.volume.set(`__system__/${name}`, Buffer.from(data));
+    return boatApi.baseCommand(input);
+  });
+  ibxApi.onExec(({ machine, cmd }) => {
+    if (cmd.includes("omb-home start") && !machine.volume.size) for (const [name, data] of seed(machine.metadata["omb.cloud"]!)) machine.volume.set(name, Buffer.from(data));
+    return null;
+  });
+  const scope = "0123456789abcdef";
+  const all: ManagedHost[] = [
+    boatHost(createBoatProvider({ apiKey: boatApi.key, baseUrl: boatApi.baseUrl, scope }), boatCostProfile()),
+    instaboxHost(createInstaboxProvider({ apiKey: ibxApi.key, baseUrl: ibxApi.baseUrl, scope, pollMs: 1, settleMs: 5_000 }), instaboxCostProfile()),
+  ];
+  const hosts = all.filter(h => (options.hosts ?? ["boat", "instabox"]).includes(h.name));
+  const power: HomePower = { idle: false, busy: ["recent-activity"], lastActivityAt: null, nextDueAt: null, wokeAt: at };
+  const home = { update: vi.fn(async () => ({ version: null, selfTest: null, runs: [] })), healthy: vi.fn(async () => true), pair: vi.fn(async () => ({ code: "ABCD-EFGH-JKLM", expiresAt: at + 300_000 })),
+    power: vi.fn(async () => ({ ...power })), entitle: vi.fn(async () => ({ expiresAt: at + DAY_MS })), sleep: vi.fn(async () => ({ ok: power.idle, nextDueAt: power.nextDueAt })), plan: vi.fn(async () => {}) };
+  const subscriptions: StoredSubscription[] = [];
+  const notices: Array<{ cloudId: string; kind: string }> = [];
+  const audit = createAudit({ dataDir, now });
+  const backups = createBackupStore({ dir: join(dataDir, "boat-backups"), now });
+  const factory = createManagedCloud({ provider: hosts[0]!.provider, hosts, defaultHost: options.defaultHost, backups, audit, kinds: ["shared_s", "shared_m", "dedicated"], backupSecret: BACKUP_SECRET,
+    settings: { ...DEFAULT_MANAGED_SETTINGS, package: { sha256: SHA, url: "https://packages.example.test/home.tgz" }, ...options.settings },
+    entitlement: cloud => entitlementOf(subscriptions, cloud, at), notify: (cloud, kind) => notices.push({ cloudId: cloud.id, kind }) });
+  const service = createCloudsService({ dataDir, now, home, sealer: createSealer(Buffer.alloc(32, 7)), workspaces: { register: vi.fn(() => "workspace-1"), lastReportAt: vi.fn(() => null), remove: vi.fn() },
+    providers: { dedicated: createFakeCloudProvider(), pool: { ...createFakeCloudProvider(), suspend: async () => {}, resume: async () => {} } },
+    config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", image: "ghcr.io/example/home:1", poolQuota: (_k, spec, botComputers) => ({ ...spec, netMbps: 1, pids: 1, botComputers }) },
+    managed: factory });
+  cleanup.push(() => service.close());
+  async function paid(accountId = "acct_1") {
+    const c = service.order({ ...plan, accountId, name: "My Cloud", color: null, region: "eu" });
+    const sub = { id: `sub_${c.id}`, accountId, cloudId: c.id, status: "active", currentPeriodEnd: at + 30 * DAY_MS, currentPeriodStart: at, updatedAt: at, lastEventAt: at } as unknown as StoredSubscription;
+    subscriptions.push(sub);
+    service.activate(c.id, sub.id, plan);
+    for (let n = 0; n < 20 && c.status === "provisioning"; n++) { await service.reconcile(); c.nextAttemptAt = 0; }
+    return c;
+  }
+  async function settle(c: StoredCloud, until: (c: StoredCloud) => boolean, max = 40, stepMs = 0) {
+    for (let n = 0; n < max && !until(c); n++) { c.nextAttemptAt = 0; await service.reconcile(); if (!until(c)) at += stepMs; }
+    expect(until(c)).toBe(true);
+  }
+  /** the cloud's volume on whichever host runs it now, as "data/..." paths */
+  function volume(c: StoredCloud): Map<string, string> {
+    const out = new Map<string, string>();
+    const boat = boatApi.sandboxes.get(c.serverId ?? ""), ibx = ibxApi.machines.get(c.serverId ?? "");
+    for (const [name, data] of boat?.volume ?? []) out.set(name.replace(/^__system__\//, ""), data.toString());
+    for (const [name, data] of ibx?.volume ?? []) out.set(name, data.toString());
+    return out;
+  }
+  return { boatApi, ibxApi, managed: service.managed!, service, home, power, subscriptions, notices, audit, backups, dataDir, paid, settle, volume, advance(ms: number) { at += ms; }, now };
 }
 

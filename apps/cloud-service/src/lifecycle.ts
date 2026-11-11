@@ -151,6 +151,8 @@ export interface LifecycleDeps {
   spend?: SpendLedger;
   /** staged updates of a running home, with their self-test and rollback (home-update.ts) */
   updates?: HomeUpdates;
+  /** after a backup was restored into a new machine and before its home starts: a migration checks the files there */
+  afterRestore?(cloud: StoredCloud, serverId: string, file: string): Promise<void>;
 }
 
 /** a start the rails held back (a failing home's backoff, the provider's hard cap or not-before time, a busy minute):
@@ -425,9 +427,10 @@ export function createLifecycle(deps: LifecycleDeps) {
         await provider.upload(c.serverId, image.restorePath, tar);
         const done = await provider.run(c.serverId, image.restoreCommand, 600);
         if (!done.ok || !done.stdout.includes("restored")) throw new RetryableCloudError("Cloud restore failed.");
+        await deps.afterRestore?.(c, c.serverId, b.restoreFrom);
         const from = b.backups.find(g => g.file === b.restoreFrom);
         b.restoredFrom = { file: b.restoreFrom, at: from?.snapshotAt ?? now() }; b.restoreFrom = null;
-        log(c, "restore", "reconciler", "recovery", { file: b.restoredFrom.file });
+        log(c, "restore", "reconciler", b.migration ? "migration" : "recovery", { file: b.restoredFrom.file });
       }
       c.setupStep = "starting"; deps.save(c); return;
     }
@@ -443,8 +446,9 @@ export function createLifecycle(deps: LifecycleDeps) {
     c.status = "running"; c.setupStep = null; c.lastCheckedAt = now(); c.powerSince = now(); c.wantPower = "on";
     b.wakeStartedAt = null; b.lastPowerAt = now(); b.sleptAt = null; b.sleepReason = null;
     c.attempts = 0; c.nextAttemptAt = 0; c.error = null;
-    log(c, "running", "reconciler", b.restoredFrom ? "recovered" : "provisioned");
-    if (b.restoredFrom && b.attempt > 0) notice(c, "recovered", b.restoredFrom.file ? b.restoredFrom.at : null);
+    log(c, "running", "reconciler", b.migration ? "migrated" : b.restoredFrom ? "recovered" : "provisioned");
+    // a move the operator made is not a recovery the owner hears about
+    if (b.restoredFrom && b.attempt > 0 && !b.migration) notice(c, "recovered", b.restoredFrom.file ? b.restoredFrom.at : null);
     deps.save(c);
   }
 
@@ -776,6 +780,9 @@ export function createLifecycle(deps: LifecycleDeps) {
     const reason = decision.action === "stay" ? decision.reason : held?.reason ?? null;
     if (b.stayReason !== reason) b.stayReason = reason;
     if (power.idle && decision.action === "stop" && !held && deps.home.sleep) {
+      // a host whose backups are read from a running machine takes the due one now, while the home is idle
+      const last = b.backups.at(-1);
+      if (provider.capabilities?.liveBackup && (!last || now() - last.at >= settings.backupEveryMs) && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "before_sleep").catch(() => false);
       const agreed = await deps.home.sleep(homeOrigin(c), secret(c), decision.idleMinutes);
       if (agreed.ok) {
         b.nextDueAt = agreed.nextDueAt ?? power.nextDueAt;
@@ -843,6 +850,10 @@ export function createLifecycle(deps: LifecycleDeps) {
     reconcile,
     verdict: (c: StoredCloud) => verdictFor(c),
     backup: (c: StoredCloud) => backup(c, "manual"),
+    /** a backup for a step of the operator's (a migration): from `serverId`'s newest snapshot, kept apart when `keep` */
+    backupFor: (c: StoredCloud, reason: string, serverId: string | null = c.serverId, keep = false) => backup(c, reason, serverId, keep),
+    /** where this service reaches the home now, and its admin secret */
+    homeAccess: (c: StoredCloud) => ({ origin: homeOrigin(c), secret: secret(c) }),
     requestDelete(c: StoredCloud, link: (token: string) => string) {
       const b = state(c);
       if (c.status === "destroyed" || c.status === "destroying") throw new ManagedCloudError(409, "unavailable");

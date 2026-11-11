@@ -77,12 +77,8 @@ sudo install -d -o maus -g maus -m 0700 ${CLOUD_HOME.data}`,
     rm -rf "$dbs"; chown user:user "$part"; chmod 0600 "$part"; mv "$part" "$out"
     echo "snapshot $(stat -c %s "$out")" ;;
   snapshot-done) rm -f ${INSTABOX_SNAPSHOT_FILE}; echo removed ;;
-  verify)
-    # a migration's manifest (sha256sum lines, absolute paths): the files that differ, then the count
-    bad="$(cd / && sha256sum -c --quiet "$2" 2>/dev/null | head -n 50 || true)"
-    printf '%s\\n' "$bad"; echo "mismatched $(printf '%s' "$bad" | grep -c . || true)" ;;
 `,
-  usage: "install|rollback|restore|start|stop|status|verify-template|tree|resume-if-cancelled|snapshot|snapshot-done|verify",
+  usage: "install|rollback|restore|start|stop|status|verify-template|tree|resume-if-cancelled|snapshot|snapshot-done",
 };
 
 function shellQuoted(value: string): string { return `'${value.replace(/'/g, "'\\''")}'`; }

@@ -54,13 +54,14 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
       machine.files.delete(INSTABOX_RESTORE_FILE);
       return { exitCode: 0, stdout: "restored\n" };
     }
-    if (cmd.includes("omb-home verify")) {
+    if (cmd.includes("sha256sum -c")) {
       const manifest = [...machine.files].find(([path]) => path.endsWith(".sha256"))?.[1]?.toString("utf8") ?? "";
       const bad = manifest.split("\n").filter(Boolean).filter(line => {
         const [hash, path] = [line.slice(0, 64), line.slice(66)];
         const data = machine.volume.get(path.replace(/^\//, ""));
         return !data || sha256(data) !== hash;
       }).map(line => `${line.slice(66)}: FAILED`);
+      for (const [path] of [...machine.files].filter(([path]) => path.endsWith(".sha256"))) machine.files.delete(path);
       return { exitCode: 0, stdout: `${bad.join("\n")}\nmismatched ${bad.length}\n` };
     }
     return { exitCode: 0, stdout: "" };
@@ -193,7 +194,7 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
     lose(machineId: string) { machines.delete(machineId); },
     /** the machine paused itself (idle, or our lease lapsed) */
     autoPause(machineId: string) { const x = machines.get(machineId); if (x && x.state === "running") { settle(x); x.state = "suspended"; x.ready = false; } },
-    deletes: () => requests.filter(r => r.method === "DELETE" && /^\/v1\/machines\//.test(r.path)),
+    deletes: () => requests.filter(r => r.method === "DELETE" && r.path.startsWith("/v1/machines/")),
     close: () => new Promise<void>(resolve => server.close(() => resolve())),
   };
 }

@@ -8,21 +8,23 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { DESKTOP_KINDS, type CloudDesktopView } from "../../../shared/billing-api.ts";
 import type { StoredSubscription } from "../../dashboard/server/billing/store.ts";
-import type { ManagedCloud, ManagedCloudContext, ManagedCloudFactory, ManagedCloudRoutesContext } from "../../dashboard/server/clouds/managed.ts";
+import { ManagedCloudError, type ManagedCloud, type ManagedCloudContext, type ManagedCloudFactory, type ManagedCloudRoutesContext } from "../../dashboard/server/clouds/managed.ts";
 import { parseSealKey } from "../../dashboard/server/clouds/seal.ts";
 import type { DesktopPlan, StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import { createAudit, type Audit, type AuditEntry } from "./audit.ts";
-import { boatBackupKey, createBackupStore, type BackupStore } from "./backups.ts";
+import { boatBackupKey, createBackupStore, homeBackupKey, type BackupStore } from "./backups.ts";
 import { BOAT_PLANS, boatCostProfile, boatScope, createBoatProvider, type BoatPlan, type BoatSize } from "./boat.ts";
 import type { MachineProvider } from "./provider.ts";
-import { BOAT_IMAGE } from "./home.ts";
+import { boatHost, hostOf, hostsFromEnv, instaboxHost, type HostName, type ManagedHost } from "./hosts.ts";
+import { createInstaboxProvider, instaboxCostProfile, INSTABOX_STARTS_PER_MINUTE, type InstaboxPlan } from "./instabox.ts";
 import { guardBackupSecret } from "./key-guard.ts";
-import { createLifecycle, freshManagedState, managedSettingsFromEnv, type ManagedSettings } from "./lifecycle.ts";
+import { createLifecycle, freshManagedState, managedSettingsFromEnv, type Lifecycle, type ManagedSettings } from "./lifecycle.ts";
+import { createMigrations, type MigrationHost, type Migrations } from "./migrate.ts";
 import { entitlementOf, noticeText, type Entitlement, type NoticeKind } from "./retention.ts";
 import { parseReleaseKeys, PINNED_RELEASE_KEYS, verifyRelease, type ReleaseKey } from "./release-signing.ts";
 import { createSweep } from "./sweep.ts";
 import { createStartLedger } from "./starts.ts";
-import { createSpendLedger } from "./spend.ts";
+import { createSpendLedger, fileSpendStore } from "./spend.ts";
 import { createPowerPolicy, DEFAULT_POLICY, type PolicyParams } from "./power/policy.ts";
 import type { ProviderCostProfile } from "./power/cost.ts";
 import "./state.ts";
@@ -30,7 +32,12 @@ import { createHomeUpdates, createReleaseFile, type HomeRelease } from "./home-u
 import { createPolicySource, UPDATE_POLICY_PATH, type PolicySource } from "./update-policy.ts";
 
 export interface ManagedCloudDeps {
+  /** the Boat host's adapter when `hosts` is not given */
   provider: MachineProvider;
+  /** the hosts this service drives (docs/hosts.md); absent: Boat over `provider` alone */
+  hosts?: readonly ManagedHost[];
+  /** where a new cloud goes (the first host when absent) */
+  defaultHost?: HostName;
   backups: BackupStore;
   audit: Audit;
   settings: ManagedSettings;
@@ -93,27 +100,50 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         if (!newest) return null;
         try { backups.read(newest.c.id, boatBackupKey(secret, newest.c.id), newest.g.file); return true; } catch { return false; }
       });
-      // starts, not compute, are the provider's scarce resource: counted in its rolling windows, priced by the policy, capped by the rails
-      const profile = deps.costProfile ?? boatCostProfile({ plan: "20", scale: deps.settings.includedStarts / BOAT_PLANS["20"].day });
       const base = deps.policy ?? DEFAULT_POLICY;
-      const params: PolicyParams = { ...base, schedule: { ...base.schedule, leadMs: deps.settings.wakeLeadMs }, rails: { ...base.rails, minIdleMs: deps.settings.idleMinutes * 60_000 } };
-      const starts = createStartLedger({ dataDir: ctx.dataDir, profile, now: ctx.now,
-        alert: text => { console.warn(`managed: ${text}`); deps.alert?.({ at: ctx.now(), cloudId: "fleet", action: "starts_alert", actor: "reconciler", reason: text.slice(0, 120) }); } });
-      const sleepPolicy = createPowerPolicy({ profile, params, pool: () => starts.view() });
-      // each home's monthly cost book: nothing is charged to a home past its ceiling (power/ceiling.ts, docs/power.md)
-      const spend = createSpendLedger({ dataDir: ctx.dataDir, profile, reserveStarts: params.rails.costReserveStarts, now: ctx.now, mono: deps.mono,
-        alert: (cloudId, text, key) => {
-          console.warn(`managed: ALERT ${text}`);
-          deps.audit.record({ cloudId, action: "cost_ceiling_alert", actor: "reconciler", reason: key });
-          deps.alert?.({ at: ctx.now(), cloudId, action: "cost_ceiling", actor: "reconciler", reason: text.slice(0, 120) });
-        } });
       const releaseKeys = deps.releaseKeys ?? PINNED_RELEASE_KEYS;
-      const updates = createHomeUpdates({ provider: deps.provider, image: BOAT_IMAGE, home: ctx.home, audit: deps.audit, releaseKeys, requireSigned: deps.settings.requireSigned, now: ctx.now, save: ctx.save,
-        releases: () => [deps.release?.() ?? null, deps.settings.package], policy: () => deps.updatePolicy?.policy() ?? null });
-      const lifecycle = createLifecycle({ ...deps, updates, image: BOAT_IMAGE, starts, spend, sleepPolicy, costProfile: profile, rails: params.rails, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
-        dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace, clouds: ctx.clouds, entitle: ctx.entitlement,
-        releaseKeys: deps.releaseKeys ?? PINNED_RELEASE_KEYS, labelKey: deps.labelKey ?? Buffer.from(hkdfSync("sha256", backupSecret, Buffer.alloc(0), Buffer.from("omb-managed-label"), 32))  });
-      const sweep = createSweep({ dataDir: ctx.dataDir, file: "boat-sweep.json", provider: deps.provider, audit: deps.audit, retentionDays: deps.settings.retentionDays, now: ctx.now });
+      const labelKey = deps.labelKey ?? Buffer.from(hkdfSync("sha256", backupSecret, Buffer.alloc(0), Buffer.from("omb-managed-label"), 32));
+      // starts, not compute, are Boat's scarce resource: counted in its rolling windows, priced by the policy, capped by the rails
+      const hosts = deps.hosts ?? [boatHost(deps.provider, deps.costProfile ?? boatCostProfile({ plan: "20", scale: deps.settings.includedStarts / BOAT_PLANS["20"].day }))];
+      const runtimes = new Map<HostName, { host: ManagedHost; lifecycle: Lifecycle; sweep: ReturnType<typeof createSweep>; starts: ReturnType<typeof createStartLedger> }>();
+      // made once every host's lifecycle exists; a lifecycle reaches it only while it runs
+      let migrations: Migrations | null = null;
+      const migrationHosts = new Map<HostName, MigrationHost>();
+      for (const host of hosts) {
+        const settings: ManagedSettings = { ...deps.settings, ...host.settings };
+        const profile = host.costProfile;
+        const params: PolicyParams = { ...base, schedule: { ...base.schedule, leadMs: settings.wakeLeadMs }, rails: { ...base.rails, minIdleMs: settings.idleMinutes * 60_000 } };
+        const starts = createStartLedger({ dataDir: ctx.dataDir, file: host.files.starts, profile, now: ctx.now,
+          alert: text => { console.warn(`managed: ${text}`); deps.alert?.({ at: ctx.now(), cloudId: "fleet", action: "starts_alert", actor: "reconciler", reason: text.slice(0, 120) }); } });
+        const sleepPolicy = createPowerPolicy({ profile, params, pool: () => starts.view() });
+        // each home's monthly cost book: nothing is charged to a home past its ceiling (power/ceiling.ts, docs/power.md)
+        const spend = createSpendLedger({ store: fileSpendStore(ctx.dataDir, host.files.spend), profile, reserveStarts: params.rails.costReserveStarts, now: ctx.now, mono: deps.mono,
+          alert: (cloudId, text, key) => {
+            console.warn(`managed: ALERT ${text}`);
+            deps.audit.record({ cloudId, action: "cost_ceiling_alert", actor: "reconciler", reason: key });
+            deps.alert?.({ at: ctx.now(), cloudId, action: "cost_ceiling", actor: "reconciler", reason: text.slice(0, 120) });
+          } });
+        const updates = createHomeUpdates({ provider: host.provider, image: host.image, home: ctx.home, audit: deps.audit, releaseKeys, requireSigned: settings.requireSigned, now: ctx.now, save: ctx.save,
+          releases: () => [deps.release?.() ?? null, settings.package], policy: () => deps.updatePolicy?.policy() ?? null });
+        const lifecycle = createLifecycle({ ...deps, provider: host.provider, settings, updates, image: host.image, starts, spend, sleepPolicy, costProfile: profile, rails: params.rails, home: ctx.home, now: ctx.now, save: ctx.save, stored: ctx.stored, unseal: ctx.unseal, seal: ctx.seal,
+          dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace, clouds: ctx.clouds, entitle: ctx.entitlement, releaseKeys, labelKey,
+          afterRestore: (c, serverId, file) => migrations!.afterRestore(c, serverId, file) });
+        const sweep = createSweep({ dataDir: ctx.dataDir, file: host.files.sweep, provider: host.provider, audit: deps.audit, retentionDays: settings.retentionDays, now: ctx.now });
+        runtimes.set(host.name, { host, lifecycle, sweep, starts });
+        migrationHosts.set(host.name, { name: host.name, provider: host.provider, image: host.image, lifecycle, keep: host.keep });
+      }
+      migrations = createMigrations({ hosts: migrationHosts, backups, backupKey: c => homeBackupKey(backupSecret, c.id), home: ctx.home, audit: deps.audit,
+        entitlement: deps.entitlement, now: ctx.now, save: ctx.save });
+      const moves = migrations;
+      const fallback = deps.defaultHost ?? hosts[0]!.name;
+      if (!runtimes.has(fallback)) throw new Error("The default host is not one of the hosts.");
+      // the claim, the edge's lookup and wake read and write the record only: any host's lifecycle answers them
+      const lifecycle = runtimes.get(fallback)!.lifecycle;
+      const runtime = (c: StoredCloud) => {
+        const found = runtimes.get(hostOf(c));
+        if (!found) throw new ManagedCloudError(409, "host_unavailable");
+        return found;
+      };
       const claimLimits = new Map<string, { count: number; until: number }>();
       /** failed redemptions per address: 30 per 15 minutes; a machine's own successful boot never counts */
       function limited(key: string): boolean {
@@ -172,25 +202,37 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
       }
       return {
         kinds: deps.kinds,
-        fresh: () => freshManagedState(),
-        reconcile: c => lifecycle.reconcile(c),
-        retryAt: (c, error) => lifecycle.retryAt(c, error),
+        fresh: () => fallback === "boat" ? freshManagedState() : { ...freshManagedState(), host: fallback },
+        async reconcile(c) {
+          if (moves.active(c) && await moves.step(c)) return;
+          await runtime(c).lifecycle.reconcile(c);
+          moves.settled(c);
+        },
+        retryAt: (c, error) => runtimes.get(hostOf(c))?.lifecycle.retryAt(c, error) ?? null,
         view(c): Partial<CloudDesktopView> {
-          const m = c.managed, retained = lifecycle.verdict(c);
+          const m = c.managed, retained = (runtimes.get(hostOf(c))?.lifecycle ?? lifecycle).verdict(c);
           return { provider: "managed", lastBackupAt: m?.backups.at(-1)?.at ?? null,
             deleteScheduledAt: m?.deleteRequest?.confirmedAt && m.deleteRequest.cancelledAt === null ? m.deleteRequest.executeAfter : null,
             deleteAskedAt: m?.deleteRequest && !m.deleteRequest.confirmedAt && m.deleteRequest.cancelledAt === null && (m.deleteRequest.tokenExpiresAt ?? 0) > ctx.now() ? m.deleteRequest.requestedAt : null,
             ...(c.status !== "destroyed" ? { destroyAt: retained.earliestAt } : {}) };
         },
-        afterPass: clouds => sweep.sweep(clouds),
-        requestDelete: (c, link) => lifecycle.requestDelete(c, link),
-        confirmDelete: (c, token) => lifecycle.confirmDelete(c, token),
-        cancelDelete: c => lifecycle.cancelDelete(c),
-        resizeNow: c => lifecycle.resizeNow(c),
-        resizing: c => lifecycle.resizing(c),
-        setHold: (c, hold) => lifecycle.setHold(c, hold),
+        async afterPass(clouds) { for (const r of runtimes.values()) await r.sweep.sweep(clouds); },
+        requestDelete: (c, link) => runtime(c).lifecycle.requestDelete(c, link),
+        confirmDelete: (c, token) => runtime(c).lifecycle.confirmDelete(c, token),
+        cancelDelete: c => runtime(c).lifecycle.cancelDelete(c),
+        resizeNow: c => runtime(c).lifecycle.resizeNow(c),
+        resizing: c => runtime(c).lifecycle.resizing(c),
+        setHold: (c, hold) => runtime(c).lifecycle.setHold(c, hold),
+        hosts: () => [...runtimes.keys()],
+        migrate: (c, to) => { moves.start(c, to as HostName); },
+        rollbackMigration: c => moves.rollback(c),
+        finishMigration: c => moves.finish(c),
+        usage: async c => {
+          const r = runtimes.get(hostOf(c));
+          return r && c.serverId && r.host.provider.usage ? r.host.provider.usage(c.serverId).catch(() => null) : null;
+        },
         handle,
-        close: () => { sweep.close(); starts.close(); },
+        close: () => { for (const r of runtimes.values()) { r.sweep.close(); r.starts.close(); } },
       };
     },
   };
@@ -230,9 +272,11 @@ export function managedCloudFromEnv(source: NodeJS.ProcessEnv, options: ManagedC
   if (env.DUSK_MANAGED !== undefined && env.DUSK_MANAGED !== "0" && env.DUSK_MANAGED !== "1") throw new Error("Invalid DUSK_MANAGED.");
   if (env.DUSK_MANAGED !== "1") return null;
   const required = (key: string) => { const value = env[key]; if (!value) throw new Error(`${key} is required.`); return value; };
+  const { enabled, fallback } = hostsFromEnv(env);
   // the runtime key: sandbox lifecycle, commands and files on its own machines, snapshot reads for backups; never the template key
-  const apiKey = required("BOAT_API_KEY");
-  if (env.BOAT_TEMPLATE_API_KEY && env.BOAT_TEMPLATE_API_KEY === apiKey) throw new Error("BOAT_TEMPLATE_API_KEY must be a different key from BOAT_API_KEY.");
+  const apiKey = enabled.includes("boat") ? required("BOAT_API_KEY") : null;
+  if (apiKey && env.BOAT_TEMPLATE_API_KEY && env.BOAT_TEMPLATE_API_KEY === apiKey) throw new Error("BOAT_TEMPLATE_API_KEY must be a different key from BOAT_API_KEY.");
+  const instaboxKey = enabled.includes("instabox") ? required("INSTABOX_API_KEY") : null;
   // the e2e harness's service is on a name no machine resolves and nobody uses (.invalid or .test): it may relax these
   const harness = env.DUSK_MANAGED_TEST_HARNESS === "1" && /\.(?:invalid|test)$/.test(new URL(options.publicUrl).hostname);
   const lenient = options.loopback || harness;
@@ -260,10 +304,20 @@ export function managedCloudFromEnv(source: NodeJS.ProcessEnv, options: ManagedC
   else if (settings.requireSigned && settings.package) throw new Error("DUSK_MANAGED_HOME_PACKAGE_SIGNATURE is required: a home package must be signed by a release key.");
   if (settings.templateSignature) verifyRelease(settings.templateSignature, { kind: "template", name: settings.template ?? "" }, releaseKeys);
   else if (settings.requireSigned && settings.template) throw new Error("DUSK_MANAGED_TEMPLATE_SIGNATURE is required: a template must be signed by a release key.");
+  const hosts: ManagedHost[] = [];
+  if (apiKey) hosts.push(boatHost(createBoatProvider({ apiKey, baseUrl: env.BOAT_BASE_URL, scope, fetch: options.fetch, smallest: smallest as BoatSize }), costProfile));
+  if (instaboxKey) {
+    const instaboxPlan = env.DUSK_MANAGED_INSTABOX_PLAN ?? "pro";
+    if (!Object.hasOwn(INSTABOX_STARTS_PER_MINUTE, instaboxPlan)) throw new Error("Invalid DUSK_MANAGED_INSTABOX_PLAN.");
+    const idle = Number(env.DUSK_MANAGED_INSTABOX_IDLE_PAUSE_MINUTES ?? 30), lead = Number(env.DUSK_MANAGED_INSTABOX_WAKE_LEAD_MINUTES ?? 2);
+    if (!Number.isInteger(lead) || lead < 1 || lead > 30) throw new Error("Invalid DUSK_MANAGED_INSTABOX_WAKE_LEAD_MINUTES.");
+    hosts.push(instaboxHost(createInstaboxProvider({ apiKey: instaboxKey, baseUrl: env.INSTABOX_BASE_URL, scope, fetch: options.fetch, template: env.DUSK_MANAGED_INSTABOX_TEMPLATE, idlePauseMinutes: idle }),
+      instaboxCostProfile({ plan: instaboxPlan as InstaboxPlan }), { wakeLeadMs: lead * 60_000 }));
+  }
   return createManagedCloud({ kinds: kinds as Array<DesktopPlan["kind"]>, settings: { ...settings, includedStarts: daily }, costProfile, backupSecret, releaseKeys, edgeToken,
     updatePolicy: createPolicySource(env.DUSK_UPDATE_POLICY_FILE, releaseKeys), release: createReleaseFile(env.DUSK_MANAGED_HOME_RELEASE_FILE),
     previousBackupSecret: env.DUSK_MANAGED_BACKUP_KEY_PREVIOUS ? parseSealKey(env.DUSK_MANAGED_BACKUP_KEY_PREVIOUS) : null,
-    provider: createBoatProvider({ apiKey, baseUrl: env.BOAT_BASE_URL, scope, fetch: options.fetch, smallest: smallest as BoatSize }),
+    hosts, defaultHost: fallback, provider: hosts.find(h => h.name === fallback)!.provider,
     backups: createBackupStore({ dir: env.DUSK_MANAGED_BACKUP_DIR || join(options.dataDir, "boat-backups"), now: options.now }),
     audit: createAudit({ dataDir: options.dataDir, now: options.now, alert: options.alert }),
     alert: options.alert,

@@ -22,9 +22,9 @@ export class StartCapError extends Error {
   constructor(retryAt: number) { super("The provider's starts are used up for now."); this.name = "StartCapError"; this.retryAt = retryAt; }
 }
 
-export function createStartLedger(options: { dataDir: string; profile: ProviderCostProfile; now?: () => number; alert?: (text: string) => void }) {
+export function createStartLedger(options: { dataDir: string; profile: ProviderCostProfile; now?: () => number; alert?: (text: string) => void; file?: string }) {
   const now = options.now ?? Date.now, { profile } = options;
-  const store = createJsonStore<State>(join(options.dataDir, "provider-starts.json"), () => ({ v: 2, times: [], blockedUntil: null, days: [], alerted: {} }),
+  const store = createJsonStore<State>(join(options.dataDir, options.file ?? "provider-starts.json"), () => ({ v: 2, times: [], blockedUntil: null, days: [], alerted: {} }),
     (v): v is State => !!v && typeof v === "object" && ((v as State).v === 2 && Array.isArray((v as State).times) || (v as { v?: unknown }).v === 1) && Array.isArray((v as State).days));
   // a v1 file kept per-UTC-day counts only: its days stay as history, the rolling windows start empty
   if ((store.state as { v: number }).v === 1) Object.assign(store.state, { v: 2, times: [], blockedUntil: null, alerted: {} }, { wakes: undefined });
