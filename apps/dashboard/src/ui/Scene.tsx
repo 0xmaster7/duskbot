@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState, useSyncEx
 import cloudLemon from "../art/cloud-lemon.png";
 import cloudPink from "../art/cloud-pink.png";
 import band from "../art/wide-layers.webp";
+import plainBand from "../art/wide-layers-plain.webp";
 import { cx } from "./kit";
 import { BOT_COLOURS, Mascot, useReducedMotion, type BotColour, type BotReaction, type BotState, type MascotHandle } from "./Mascot";
 
@@ -37,8 +38,8 @@ export interface SceneHandle { react(kind: BotReaction, which?: number): void }
 
 /** a poster with a few bots living in it (a short band keeps the whole landscape by using the wide picture): they watch the pointer, turn to `look` when something is happening elsewhere,
  * and act out `mood`. the art is decoration; nothing here is needed to use the page */
-export const Scene = forwardRef<SceneHandle, { poster: string; mood?: SceneMood; look?: { x: number; y: number } | null; compact?: boolean; className?: string; children?: ReactNode }>(
-  function Scene({ poster, mood = "idle", look = null, compact = false, className, children }, ref) {
+export const Scene = forwardRef<SceneHandle, { poster: string; mood?: SceneMood; look?: { x: number; y: number } | null; compact?: boolean; plain?: boolean; className?: string; children?: ReactNode }>(
+  function Scene({ poster, mood = "idle", look = null, compact = false, plain = false, className, children }, ref) {
     const reduced = useReducedMotion();
     const bots = useRef<Array<MascotHandle | null>>([]);
     const crew = compact ? SMALL_CREW : CREW;
@@ -60,9 +61,9 @@ export const Scene = forwardRef<SceneHandle, { poster: string; mood?: SceneMood;
     const scale = compact ? 0.56 : 1;
     return (
       <div className={cx("relative isolate overflow-hidden bg-[#3fbdfb]", className)} aria-hidden>
-        <img src={compact ? band : poster} alt="" className="absolute inset-0 size-full object-cover object-bottom" draggable={false} />
-        <img src={cloudPink} alt="" width={240} height={80} className="pixel-art cloud-drift absolute left-[6%] top-[7%] w-[19%] max-w-[150px]" style={{ ["--drift" as string]: "90px", ["--dur" as string]: "38s" }} draggable={false} />
-        <img src={cloudLemon} alt="" width={240} height={80} className="pixel-art cloud-drift absolute right-[10%] top-[19%] w-[13%] max-w-[104px] max-lg:top-[30%]" style={{ ["--drift" as string]: "-70px", ["--dur" as string]: "52s" }} draggable={false} />
+        <img src={compact ? (plain ? plainBand : band) : poster} alt="" className="absolute inset-0 size-full object-cover object-bottom" draggable={false} />
+        {!plain && <><img src={cloudPink} alt="" width={240} height={80} className="pixel-art cloud-drift absolute left-[6%] top-[7%] w-[19%] max-w-[150px]" style={{ ["--drift" as string]: "90px", ["--dur" as string]: "38s" }} draggable={false} />
+        <img src={cloudLemon} alt="" width={240} height={80} className="pixel-art cloud-drift absolute right-[10%] top-[19%] w-[13%] max-w-[104px] max-lg:top-[30%]" style={{ ["--drift" as string]: "-70px", ["--dur" as string]: "52s" }} draggable={false} /></>}
         {children}
         {crew.map((m, i) => {
           const asleep = m.sleepy && mood === "idle";
