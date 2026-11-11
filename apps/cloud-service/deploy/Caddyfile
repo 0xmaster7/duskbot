@@ -30,6 +30,11 @@
 		header X-Forwarded-Host {$DUSK_CLOUD_UPSTREAM_HOST}
 	}
 	request_header @proxied Host {http.request.header.X-Forwarded-Host}
+	# InstaBox's port proxy puts its own hosted name in X-Forwarded-Host, replacing the public edge's (seen live
+	# 2026-11-12), while browsers send the public name as Origin: the server must see the public name, or it refuses every
+	# change a signed-in page makes as cross-origin (server/request-auth.ts isSameOrigin).
+	@upstream host {$DUSK_CLOUD_UPSTREAM_HOST}
+	request_header @upstream Host {$DUSK_CLOUD_PUBLIC_HOST}
 
 	handle /api/health {
 		reverse_proxy 127.0.0.1:8799 {
