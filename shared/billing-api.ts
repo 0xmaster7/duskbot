@@ -76,6 +76,8 @@ export interface BundleView {
 
 export interface Catalog {
   v: typeof BILLING_API_VERSION;
+  /** false while paid plans cannot be bought yet (checkout answers checkout_soon); absent means open */
+  checkoutOpen?: boolean;
   currency: "USD";
   bundles: BundleView[];
   licenses: LicenseOption[];

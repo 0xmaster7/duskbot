@@ -117,6 +117,8 @@ export interface CustomPricing {
 export interface CreditPack { id: string; usd: number }
 
 export interface PlanCatalog {
+  /** false while paid plans cannot be bought yet */
+  checkoutOpen?: boolean;
   bundles: Bundle[];
   licenses: LicenseTier[];
   desktops: DesktopTier[];

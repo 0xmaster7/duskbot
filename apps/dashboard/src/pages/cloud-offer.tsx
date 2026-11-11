@@ -32,6 +32,8 @@ export function Points({ className }: { className?: string }) {
   );
 }
 
+export const CHECKOUT_SOON = "paid plans open soon. your account is ready, and we'll email you when checkout opens.";
+
 /** checkout for a plan in one click: monthly, the first region, personal use; the plans page has every option */
 export function useQuickCheckout(source: CheckoutSource) {
   const { catalog, checkout } = useCloud();
@@ -40,6 +42,7 @@ export function useQuickCheckout(source: CheckoutSource) {
   const [error, setError] = useState<string | null>(null);
   const buy = async (plan: PaidPlan = "starter") => {
     if (!catalog) return;
+    if (catalog.checkoutOpen === false) { setError(CHECKOUT_SOON); return; }
     setBusy(true); setError(null);
     const ok = await checkout({ source, kind: "plan", selection: planSelection(catalog, plan, { interval: "month", work: false }), bundle: null });
     if (ok) toast("paid. your dusk cloud is being set up.");
