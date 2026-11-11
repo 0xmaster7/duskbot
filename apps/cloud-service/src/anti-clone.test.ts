@@ -11,9 +11,9 @@ import { generateEntitlementSigner, signEntitlement, verifyEntitlement } from ".
 import { createSealer } from "../../dashboard/server/clouds/seal.ts";
 import type { StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import { Script } from "node:vm";
-import { boatControlScript, boatSetupScript, installCommand, REDEEM_SCRIPT } from "./home.ts";
+import { homeControlScript, homeSetupScript, INSTABOX_BOOT_FILE, installCommand, REDEEM_SCRIPT } from "./home.ts";
 import { managedCloudFromEnv } from "./index.ts";
-import { boatFixture } from "./test-fixture.ts";
+import { homeFixture } from "./test-fixture.ts";
 import { machineVerifyScript, signRelease, verifyRelease, type ReleaseKey } from "./release-signing.ts";
 
 const dirs: string[] = [];
@@ -34,20 +34,22 @@ async function call(handle: NonNullable<ReturnType<typeof managedOf>["handle"]>,
     readJson: async () => body as Record<string, unknown>, clientIp: () => "198.51.100.7" });
   return { answered, status, body: text ? JSON.parse(text) : null };
 }
-const managedOf = (f: Awaited<ReturnType<typeof boatFixture>>) => f.service.managed!;
+const managedOf = (f: Awaited<ReturnType<typeof homeFixture>>) => f.service.managed!;
 
 describe("the machine never receives its secrets through the provider", () => {
   it("gets a one-time claim, redeems it once (again only within 5 minutes, alerted), and the provider's request carries no secret", async () => {
-    const f = await boatFixture({ settings: { claims: true } });
+    const f = await homeFixture({ settings: { claims: true } });
     const plan = { kind: "shared_s" as const, placement: "pool" as const, spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2 };
     const c = f.service.order({ ...plan, accountId: "acct_1", name: "Mine", color: null, region: "eu" });
     f.subscriptions.push({ id: "sub_x", accountId: "acct_1", cloudId: c.id, status: "active", currentPeriodEnd: f.now() + 30 * 86_400_000, currentPeriodStart: f.now(), updatedAt: f.now(), lastEventAt: f.now() } as never);
     f.service.activate(c.id, "sub_x", plan);
     await f.service.reconcile();
-    const create = f.api.requests.find(r => r.method === "POST" && r.path === "/sandboxes")!.body as { files: Array<{ content: string }> };
+    const create = f.api.requests.find(r => r.method === "POST" && r.path === "/v1/machines")!.body;
     const secret = createSealer(Buffer.alloc(32, 7)).unseal(c.bootstrapSecret);
-    const boot = JSON.parse(create.files[0]!.content);
+    const machine = f.api.machines.get(c.serverId!)!, uploaded = [...machine.files.values()].map(b => b.toString()).join("\n");
+    const boot = JSON.parse(machine.files.get(INSTABOX_BOOT_FILE)!.toString());
     expect(JSON.stringify(create)).not.toContain(secret);
+    expect(uploaded).not.toContain(secret);
     expect(boot).toMatchObject({ v: 2, machine: c.id, redeem: "https://dash.example.test/v1/managed/claims/redeem" });
     expect(c.managed!.claim!.hash).toBe(createHash("sha256").update(boot.claim).digest("hex"));
     const handle = managedOf(f).handle!;
@@ -64,7 +66,7 @@ describe("the machine never receives its secrets through the provider", () => {
   });
 
   it("a retried create gets the first machine back with the same claim, so its boot still redeems", async () => {
-    const f = await boatFixture({ settings: { claims: true } });
+    const f = await homeFixture({ settings: { claims: true } });
     const plan = { kind: "shared_s" as const, placement: "pool" as const, spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2 };
     const c = f.service.order({ ...plan, accountId: "acct_1", name: "Mine", color: null, region: "eu" });
     f.subscriptions.push({ id: "sub_y", accountId: "acct_1", cloudId: c.id, status: "active", currentPeriodEnd: f.now() + 30 * 86_400_000, currentPeriodStart: f.now(), updatedAt: f.now(), lastEventAt: f.now() } as never);
@@ -75,14 +77,15 @@ describe("the machine never receives its secrets through the provider", () => {
     c.setupStep = "reserving"; c.serverId = null; c.nextAttemptAt = 0;
     await f.service.reconcile();
     expect(c.serverId).toBe(first);
-    const boots = f.api.requests.filter(r => r.method === "POST" && r.path === "/sandboxes").map(r => JSON.parse((r.body as { files: Array<{ content: string }> }).files[0]!.content).claim);
-    expect(boots).toHaveLength(2);
-    expect(boots[1]).toBe(boots[0]);
-    expect((await call(managedOf(f).handle!, "POST", "/v1/managed/claims/redeem", { cloud: c.id, claim: boots[0] })).status).toBe(200);
+    expect(f.api.machines.size).toBe(1);
+    // the boot file the first machine got still names the claim the record now holds
+    const claim = JSON.parse(f.api.machines.get(first!)!.files.get(INSTABOX_BOOT_FILE)!.toString()).claim;
+    expect(createHash("sha256").update(claim).digest("hex")).toBe(c.managed!.claim!.hash);
+    expect((await call(managedOf(f).handle!, "POST", "/v1/managed/claims/redeem", { cloud: c.id, claim })).status).toBe(200);
   });
 
   it("limits wrong guesses per address, never a machine's own boot", async () => {
-    const f = await boatFixture({ settings: { claims: true } });
+    const f = await homeFixture({ settings: { claims: true } });
     const handle = managedOf(f).handle!;
     const codes = [];
     for (let n = 0; n < 31; n++) codes.push((await call(handle, "POST", "/v1/managed/claims/redeem", { cloud: `c${"a".repeat(24)}`, claim: "y".repeat(43) })).status);
@@ -95,7 +98,7 @@ describe("the scripts a machine runs", () => {
   it("are valid bash and valid JavaScript, and the claim redeemer refuses a boot file that points anywhere else", () => {
     const { key } = releaseKey();
     const dir = mkdtempSync(join(tmpdir(), "omb-scripts-")); dirs.push(dir);
-    for (const [name, text] of [["setup.sh", boatSetupScript({ releaseKeys: [key], requireSigned: true })], ["control.sh", boatControlScript({ releaseKeys: [key], requireSigned: true })]] as const) {
+    for (const [name, text] of [["setup.sh", homeSetupScript({ releaseKeys: [key], requireSigned: true })], ["control.sh", homeControlScript({ releaseKeys: [key], requireSigned: true })]] as const) {
       writeFileSync(join(dir, name), text);
       execFileSync("bash", ["-n", join(dir, name)]);
     }
@@ -109,13 +112,13 @@ describe("the scripts a machine runs", () => {
 describe("people see our own domain, never the provider's", () => {
   it("publishes an opaque label on the public domain, starts the home with both names, and answers the edge's lookup only for its token", async () => {
     const token = "t".repeat(40);
-    const f = await boatFixture({ settings: { publicDomain: "desktops.example.com" }, edgeToken: token });
+    const f = await homeFixture({ settings: { publicDomain: "desktops.example.com" }, edgeToken: token });
     const { c } = await f.paid();
     expect(c.origin).toMatch(/^https:\/\/d[0-9a-f]{20}\.desktops\.example\.com$/);
     expect(c.origin).not.toContain(c.id);
     const upstream = c.managed!.upstream!;
-    expect(upstream).toMatch(/\.on\.boat\.dev$/);
-    const start = f.api.requests.filter(r => r.path.endsWith("/commands")).map(r => (r.body as { command: string }).command).find(cmd => cmd.includes("omb-home start"))!;
+    expect(upstream).toMatch(/^https:\/\/8080-[a-z0-9]+\.instabox\.tech$/);
+    const start = f.api.requests.filter(r => r.path.endsWith("/exec")).map(r => (r.body as { cmd: string }).cmd).find(cmd => cmd.includes("omb-home start"))!;
     expect(start).toBe(`sudo -n ${CLOUD_HOME.root}/bin/omb-home start '${c.origin}' '${upstream}'`);
     expect(f.home.healthy).toHaveBeenCalledWith(upstream, expect.any(String));
     const label = new URL(c.origin!).hostname.split(".")[0]!;
@@ -130,7 +133,7 @@ describe("signed entitlements", () => {
   it("pushes one to the home before it counts as running, and the app's list carries one for the cloud", async () => {
     const dev = generateEntitlementSigner("dev-svc");
     const entitlements = { sign: (cloud: StoredCloud) => signEntitlement({ aud: ["home", "app"], cloud: cloud.id, acct: "a", tier: cloud.kind, features: ["cloud", "managed"], iat: Date.UTC(2026, 10, 9, 12), exp: Date.UTC(2026, 10, 10, 12) }, dev.signer) };
-    const f = await boatFixture({ entitlements });
+    const f = await homeFixture({ entitlements });
     const { c } = await f.paid();
     expect(c.status).toBe("running");
     expect(f.home.entitle).toHaveBeenCalledTimes(1);
@@ -148,7 +151,7 @@ describe("signed releases", () => {
     const signature = signRelease({ kind: "home-package", name: "omb-home", version: "0.1.150", sha256, signedAt: 1 }, signing);
     expect(verifyRelease(signature, { kind: "home-package", sha256 }, [key]).version).toBe("0.1.150");
     expect(() => verifyRelease(signature, { kind: "home-package", sha256: "d".repeat(64) }, [key])).toThrow("another artifact");
-    expect(() => verifyRelease(signature, { kind: "template" }, [key])).toThrow("another artifact");
+    expect(() => verifyRelease(signature, { kind: "desktop" }, [key])).toThrow("another artifact");
     expect(() => verifyRelease(signature, { kind: "home-package", sha256 }, [other.key])).toThrow("unknown key");
   });
 
@@ -163,34 +166,33 @@ describe("signed releases", () => {
     const good = signRelease({ kind: "home-package", name: "omb-home", version: "1", sha256, signedAt: 1 }, signing);
     expect(check(good, sha256, "home-package")).toBe(true);
     expect(check(good, "f".repeat(64), "home-package")).toBe(false);
-    expect(check(good, sha256, "template")).toBe(false);
+    expect(check(good, sha256, "desktop")).toBe(false);
     expect(check(signRelease({ kind: "home-package", name: "omb-home", version: "1", sha256, signedAt: 1 }, other.signing), sha256, "home-package")).toBe(false);
   });
 
   it("the install command carries the signature, and a machine that requires one refuses an unsigned package", () => {
     const { signing, key } = releaseKey();
     const signature = signRelease({ kind: "home-package", name: "omb-home", version: "1", sha256: "a".repeat(64), signedAt: 1 }, signing);
-    expect(installCommand("a".repeat(64), undefined, signature)).toBe(`sudo -n ${CLOUD_HOME.root}/bin/omb-home install /home/user/omb-home.tgz ${"a".repeat(64)} ${signature}`);
+    expect(installCommand("a".repeat(64), undefined, signature)).toBe(`sudo -n ${CLOUD_HOME.root}/bin/omb-home install /data/home/omb-home.tgz ${"a".repeat(64)} ${signature}`);
     expect(() => installCommand("a".repeat(64), undefined, "r1.x.y.z; rm -rf /")).toThrow();
-    const control = boatControlScript({ releaseKeys: [key], requireSigned: true });
+    const control = homeControlScript({ releaseKeys: [key], requireSigned: true });
     expect(control).toContain("signed=1");
     expect(control).toContain('echo "unsigned package"');
     expect(control).toContain(key.x);
-    expect(boatSetupScript({ releaseKeys: [key], requireSigned: true })).toContain("omb-home verify-template");
   });
 });
 
 describe("a service people use refuses an unsafe setup", () => {
-  const base = { BOAT_API_KEY: "boat_key_0123456789abcdef", DUSK_MANAGED: "1", DUSK_CLOUD_SEAL_KEY: Buffer.alloc(32, 3).toString("base64url"),
+  const base = { INSTABOX_API_KEY: `ibk_${"k".repeat(52)}`, DUSK_MANAGED: "1", DUSK_CLOUD_SEAL_KEY: Buffer.alloc(32, 3).toString("base64url"),
     DUSK_MANAGED_HOME_PACKAGE_URL: "https://packages.example.test/home.tgz", DUSK_MANAGED_HOME_PACKAGE_SHA256: "a".repeat(64) };
   const make = (env: Record<string, string>) => () => managedCloudFromEnv(env, { dataDir: mkdtempSync(join(tmpdir(), "omb-env-")), publicUrl: "https://dash.example.com", loopback: false,
     sealKey: Buffer.alloc(32, 3), now: Date.now, subscriptions: () => [] });
-  it("needs our public domain, the edge token and a signed package, and never the template key as the runtime key", () => {
+  it("needs the provider key, our public domain, the edge token and a signed package", () => {
+    expect(make({ ...base, INSTABOX_API_KEY: "" })).toThrow("INSTABOX_API_KEY");
     expect(make(base)).toThrow("DUSK_MANAGED_PUBLIC_DOMAIN");
     const named = { ...base, DUSK_MANAGED_PUBLIC_DOMAIN: "desktops.example.com", DUSK_MANAGED_EDGE_TOKEN: "e".repeat(40) };
     expect(make(named)).toThrow("DUSK_MANAGED_HOME_PACKAGE_SIGNATURE");
     expect(make({ ...named, DUSK_MANAGED_HOME_PACKAGE_SIGNATURE: "r1.rel-x.e30.AA" })).toThrow("unknown key");
-    expect(make({ ...named, BOAT_TEMPLATE_API_KEY: base.BOAT_API_KEY })).toThrow("different key");
     const { signing, key } = releaseKey("rel-staging");
     const signature = signRelease({ kind: "home-package", name: "omb-home", version: "1", sha256: "a".repeat(64), signedAt: 1 }, signing);
     expect(make({ ...named, DUSK_MANAGED_HOME_PACKAGE_SIGNATURE: signature, DUSK_RELEASE_PUBLIC_KEYS: `${key.kid}:${key.x}` })()).not.toBeNull();

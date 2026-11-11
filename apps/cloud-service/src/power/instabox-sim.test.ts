@@ -21,10 +21,10 @@ function fleet(rand: () => number, n: number, persona?: Persona): SimUser[] {
 }
 
 describe("InstaBox: the policy on free starts and memory-keeping pauses", () => {
-  it("costs less than always-on, every fixed idle timer and Boat's own rails for a mixed fleet, never misses a routine and never flaps", () => {
+  it("costs less than always-on, every fixed idle timer and the rails for a scarce start pool for a mixed fleet, never misses a routine and never flaps", () => {
     const users = fleet(mulberry32(41), 40);
     const run = (decider: ReturnType<typeof adaptiveDecider>) => simulate({ users, days: 21, warmupDays: 7, start: START, profile, seed: 41, decider, caps: { hour: RAILS.maxStartsPerHour, day: RAILS.maxStartsPerDay } });
-    const adaptive = run(adaptiveDecider(PARAMS)), boatRails = run(adaptiveDecider()), always = run(alwaysOnDecider()), idle5 = run(fixedIdleDecider(5 * MINUTE)), idle30 = run(fixedIdleDecider(30 * MINUTE));
+    const adaptive = run(adaptiveDecider(PARAMS)), pooledRails = run(adaptiveDecider()), always = run(alwaysOnDecider()), idle5 = run(fixedIdleDecider(5 * MINUTE)), idle30 = run(fixedIdleDecider(30 * MINUTE));
     const total = (r: typeof adaptive) => r.users.reduce((a, u) => a + u.computeCents + u.startCents + u.waitCents, 0);
     expect(adaptive.violations).toEqual([]);
     expect(adaptive.users.reduce((a, u) => a + u.runsMissed + u.runsLate, 0)).toBe(0);
@@ -32,7 +32,7 @@ describe("InstaBox: the policy on free starts and memory-keeping pauses", () => 
     expect(total(adaptive)).toBeLessThan(total(always) * 0.6);
     expect(total(adaptive)).toBeLessThanOrEqual(total(idle30));
     expect(total(adaptive)).toBeLessThan(total(idle5));
-    expect(total(adaptive)).toBeLessThan(total(boatRails) * 0.8);
+    expect(total(adaptive)).toBeLessThan(total(pooledRails) * 0.8);
     for (const u of adaptive.users) {
       expect(u.minStopGapMs).toBeGreaterThanOrEqual(RAILS.minUptimeMs);
       expect(u.maxStartsHour).toBeLessThanOrEqual(RAILS.maxStartsPerHour);

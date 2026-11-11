@@ -60,8 +60,6 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     const state = v as State;
     return state.v === 1 && Array.isArray(state.clouds) && state.clouds.every(c => c && /^c[0-9a-f]{24}$/.test(c.id) && CLOUD_STATUSES.includes(c.status) && typeof c.accountId === "string");
   });
-  // older records name the backend by its provider: the backend moves them to the current names
-  if (options.managed && store.state.clouds.map(c => options.managed!.upgrade(c)).some(Boolean)) store.commit();
   for (const cloud of store.state.clouds) for (const field of ["bootstrapSecret", "sealedLinkPrivateKey"] as const) {
     const value = cloud[field];
     if (value?.startsWith("plain.")) {
@@ -124,9 +122,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
   function viewOf(c: StoredCloud): CloudDesktopView { return { id: c.id, name: c.name, color: c.color, kind: c.kind, placement: c.placement, status: c.status === "running" && c.paymentProblem ? "payment_problem" : c.status, setupStep: c.setupStep, region: c.region, machine: { ...c.spec }, botComputers: c.botComputers, origin: c.origin, workspaceId: c.workspaceId, lastReportAt: c.workspaceId ? workspaces.lastReportAt(c.workspaceId) : null, destroyAt: c.destroyAt, error: c.error, subscriptionId: c.subscriptionId, createdAt: c.createdAt }; }
   const stored = (id: string): StoredCloud | null => {
     try {
-      const found = (JSON.parse(readFileSync(join(options.dataDir, "clouds.json"), "utf8")) as State).clouds.find(c => c.id === id) ?? null;
-      if (found) options.managed?.upgrade(found);
-      return found;
+      return (JSON.parse(readFileSync(join(options.dataDir, "clouds.json"), "utf8")) as State).clouds.find(c => c.id === id) ?? null;
     } catch { return null; }
   };
   const signEntitlement = (c: StoredCloud): string | null => {

@@ -1,21 +1,19 @@
-// Backups of each Boat home's volume, kept outside Boat in storage only this service writes: a home never holds a credential
+// Backups of each home's volume, kept off the provider in storage only this service writes: a home never holds a credential
 // that reaches it. Each generation is one file, written once (O_EXCL) and never changed: AES-256-GCM over the volume's tar,
-// keyed per cloud from a secret only this service holds (boatBackupKey): nothing on the home can open one. Version 1 files,
-// keyed from the home's own bootstrap secret, are still read so the reconciler can seal them again as version 2.
-// Only the retention reconciler removes one (boat-retention.ts).
+// keyed per cloud from a secret only this service holds (homeBackupKey): nothing on the home can open one. Only the
+// retention reconciler removes one (lifecycle.ts).
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
 import { chmodSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readdirSync, readSync, rmSync, statSync, writeSync } from "node:fs";
 import { join } from "node:path";
 
-const MAGIC = Buffer.from("OMBB2\n"), LEGACY_MAGIC = Buffer.from("OMBB1\n");
+const MAGIC = Buffer.from("OMBB2\n");
 
 /** a cloud's backup key: HKDF over this service's backup secret, bound to the cloud id */
 export function homeBackupKey(secret: Buffer, cloudId: string): Buffer {
-  if (secret.length < 32) throw new Error("Invalid Boat backup secret.");
-  return Buffer.from(hkdfSync("sha256", secret, Buffer.from(cloudId), Buffer.from("omb-boat-backup-v2"), 32));
+  if (secret.length < 32) throw new Error("Invalid backup secret.");
+  return Buffer.from(hkdfSync("sha256", secret, Buffer.from(cloudId), Buffer.from("omb-home-backup-v2"), 32));
 }
-export const boatBackupKey = homeBackupKey;
 const IV_BYTES = 12, TAG_BYTES = 16;
 const CLOUD_ID = /^c[0-9a-f]{24}$/;
 const FILE = /^(\d{13})-([a-f0-9]{8})\.ombb$/;
@@ -48,7 +46,7 @@ export function tarEntries(tar: Buffer): Array<{ name: string; size: number; typ
   return entries;
 }
 
-/** a ustar archive of plain files (tests and the fake Boat) */
+/** a ustar archive of plain files (tests and the fake provider) */
 export function makeTar(files: Array<{ name: string; data: Buffer | string; mode?: number }>): Buffer {
   const parts: Buffer[] = [];
   for (const file of files) {
@@ -98,22 +96,12 @@ export function createBackupStore(options: { dir: string; now?: () => number }) 
       chmodSync(path, 0o400);
       return { file, at, bytes: sealed.length, sha256: createHash("sha256").update(sealed).digest("hex"), verifiedAt: null };
     },
-    /** 1 for a file keyed from the home's own secret (to be sealed again), 2 for the current format */
-    version(cloudId: string, file: string): 1 | 2 | null {
-      const path = pathOf(cloudId, file);
-      if (!existsSync(path)) return null;
-      const fd = openSync(path, "r"), head = Buffer.alloc(MAGIC.length);
-      try { readSync(fd, head, 0, head.length, 0); } finally { closeSync(fd); }
-      return head.equals(MAGIC) ? 2 : head.equals(LEGACY_MAGIC) ? 1 : null;
-    },
-    /** opens one generation: authenticated, and bound to its cloud; `legacyKey` opens a version 1 file */
-    read(cloudId: string, key: Buffer, file: string, legacyKey?: Buffer): Buffer {
+    /** opens one generation: authenticated, and bound to its cloud */
+    read(cloudId: string, key: Buffer, file: string): Buffer {
       const path = pathOf(cloudId, file), fd = openSync(path, "r");
       let sealed: Buffer;
       try { const size = fstatSync(fd).size; sealed = Buffer.alloc(size); let read = 0; while (read < size) read += readSync(fd, sealed, read, size - read, read); } finally { closeSync(fd); }
-      const legacy = sealed.subarray(0, LEGACY_MAGIC.length).equals(LEGACY_MAGIC);
-      if (sealed.length < MAGIC.length + IV_BYTES + TAG_BYTES || !(legacy || sealed.subarray(0, MAGIC.length).equals(MAGIC))) throw new Error("Invalid backup.");
-      if (legacy) { if (!legacyKey) throw new Error("Backup failed its integrity check."); key = legacyKey; }
+      if (sealed.length < MAGIC.length + IV_BYTES + TAG_BYTES || !sealed.subarray(0, MAGIC.length).equals(MAGIC)) throw new Error("Invalid backup.");
       const iv = sealed.subarray(MAGIC.length, MAGIC.length + IV_BYTES), tag = sealed.subarray(sealed.length - TAG_BYTES);
       const decipher = createDecipheriv("aes-256-gcm", key, iv);
       decipher.setAAD(Buffer.from(cloudId)); decipher.setAuthTag(tag);

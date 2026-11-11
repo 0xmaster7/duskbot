@@ -8,7 +8,7 @@ import type { SpendView } from "./ceiling.ts";
 import { DAY, HOUR, MINUTE, POOL_WINDOWS, WINDOW_MS, type PoolCounts, type ProviderCostProfile } from "./cost.ts";
 import { freshStats, type ActivityStats } from "./predictor.ts";
 
-export type StartKind = "create" | "wake" | "routine" | "refresh" | "resize" | "recover";
+export type StartKind = "create" | "wake" | "routine" | "resize" | "recover";
 /** a start somebody is waiting for; the others can wait for the rails */
 export const INTENT_KINDS: ReadonlySet<StartKind> = new Set(["wake", "create", "recover", "resize"]);
 
@@ -183,7 +183,6 @@ export function startRefusal(c: StartContext, rails: RailSettings = DEFAULT_RAIL
     const spacing = Math.max(2 * MINUTE, breakerBackoff(b.trips, rails) / 4);
     if (b.probeAt !== null && now - b.probeAt < spacing) return no("starts_failing", b.probeAt + spacing);
   }
-  if (c.kind === "refresh" && countSince(memory.starts, now - DAY) >= rails.maxStartsPerDay) return no("day_budget_spent", now + HOUR);
   if (c.latest !== null && now < c.latest) {
     // the planner gives pre-wakes poolSoftShare of each minute; this holds one that would make the minute window paid (a few
     // minutes of waiting cannot help the hour or day windows, so they are left to the price)

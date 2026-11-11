@@ -6,7 +6,7 @@
 // true spend must stay at or under its ceiling, and a person's wake is refused only once the provider caused the
 // reserve's worth of starts this month (or the month opened with less than the reserve, which storage alone can do).
 import { describe, expect, it } from "vitest";
-import { boatCostProfile, boatHourlyCents, BOAT_SIZES } from "../boat.ts";
+import { pooledCostProfile, pooledHourlyCents, POOLED_SIZES } from "./pooled-profile.ts";
 import { createSpendLedger, memorySpendStore, type SpendInit } from "../spend.ts";
 import { ceilingFactor, monthOf } from "./ceiling.ts";
 import { DAY, HOUR, MINUTE } from "./cost.ts";
@@ -14,8 +14,8 @@ import { costChargeRefusal, costStartRefusal, costStopRefusal, type StartKind } 
 import { MIX, PERSONAS } from "./personas.ts";
 import { adaptiveDecider, mulberry32, simulate, type Faults, type SimUser } from "./sim.ts";
 
-const profile = boatCostProfile({ plan: "20" }), N = 5, W = 7, STORAGE = 1.5;
-const RATES = BOAT_SIZES.map(z => boatHourlyCents(z));
+const profile = pooledCostProfile({ plan: "20" }), N = 5, W = 7, STORAGE = 1.5;
+const RATES = POOLED_SIZES.map(z => pooledHourlyCents(z));
 
 interface MonthTruth { key: string; hours: number; spend: number; ceiling: number; complete: boolean; rate: number }
 export interface StreamResult { months: MonthTruth[]; violations: string[]; refusals: number; personWakes: number; starts: number; worstShare: number }
@@ -133,11 +133,11 @@ export function stream(seed: number, heavy = 1): StreamResult {
         ledger.record(cloud, init, { e: "bytes", bytes });
       }
     }
-    // a retired disk's keep-alive: a second machine for up to the lease
+    // a replaced machine found running: a second machine for up to the lease
     if (!extraUntil && chance(0.002)) {
       const extra = rate * 2;
-      if (!costStartRefusal(view(), "refresh", T, extra)) {
-        ledger.record(cloud, init, { e: "extra", cents: W + extra, why: "retired_refresh" });
+      if (!costStartRefusal(view(), "recover", T, extra)) {
+        ledger.record(cloud, init, { e: "extra", cents: W + extra, why: "retired_running" });
         pay(pick([0, 3, 7])); extraRate = rate; extraUntil = T + rand() * 2 * HOUR;
       }
     }
@@ -177,11 +177,11 @@ describe("the monthly cost ceiling, through the simulator with the production po
       const users: SimUser[] = Array.from({ length: 8 }, (_, i) => {
         let key = "grok", x = rand();
         for (const [k, w] of MIX) { if ((x -= w) < 0) { key = k; break; } }
-        return { id: `u${i}`, persona: PERSONAS[key]!, tzHours: Math.floor(rand() * 24) - 11, spec: BOAT_SIZES[Math.floor(rand() * BOAT_SIZES.length)]! };
+        return { id: `u${i}`, persona: PERSONAS[key]!, tzHours: Math.floor(rand() * 24) - 11, spec: POOLED_SIZES[Math.floor(rand() * POOLED_SIZES.length)]! };
       });
       // a Monday in January of a leap year or not, so the run covers the whole of February and March
       const start = seed % 2 ? Date.UTC(2028, 0, 3) : Date.UTC(2027, 0, 4);
-      const result = simulate({ users, days: 62, start, profile: boatCostProfile({ plan: "2000", scale: 0.008 }), seed, decider: adaptiveDecider(), faults, backupBytes: Math.floor(rand() * 8e9) });
+      const result = simulate({ users, days: 62, start, profile: pooledCostProfile({ plan: "2000", scale: 0.008 }), seed, decider: adaptiveDecider(), faults, backupBytes: Math.floor(rand() * 8e9) });
       for (const u of result.users) for (const m of u.months) {
         if (!m.complete) continue;
         months++; worst = Math.max(worst, m.spendCents / m.ceilingCents);

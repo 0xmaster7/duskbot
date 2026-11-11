@@ -1,6 +1,6 @@
 // the power policy's parts: the cost model, the activity predictor, the schedule, the rails and the decision itself
 import { describe, expect, it } from "vitest";
-import { boatCostProfile } from "../boat.ts";
+import { pooledCostProfile } from "./pooled-profile.ts";
 import { breakEvenMs, DAY, HOUR, MINUTE, startValueCents, type PoolCounts } from "./cost.ts";
 import { createRollingPool } from "./pool.ts";
 import { createPowerPolicy, DEFAULT_POLICY, type PowerSnapshot } from "./policy.ts";
@@ -9,7 +9,7 @@ import { DEFAULT_RAILS, flaps, freshMemory, noteFailure, noteHealthy, noteStart,
 import { plannedRuns, prewake, spreadOf } from "./schedule.ts";
 
 const T0 = Date.UTC(2026, 10, 9, 12), SMALL = { vcpu: 2, ramGb: 4, diskGb: 40 };
-const profile = boatCostProfile({ plan: "20" });
+const profile = pooledCostProfile({ plan: "20" });
 const used = (day: number, hour = 0, minute = 0): PoolCounts => ({ minute, hour, day });
 const idlePool = { used: used(10, 2, 0), blockedUntil: null };
 

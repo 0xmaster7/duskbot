@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { makeTar } from "./backups.ts";
 import { bundleMismatches, checkLines, layerOf, openBundle, sealBundle, volumeManifest } from "./bundle.ts";
-import { PLATFORM_ENTRIES } from "./instabox-home.ts";
+import { PLATFORM_ENTRIES } from "./home.ts";
 
 const CLOUD = `c${"a".repeat(24)}`;
 const volume = (prefix: string, extra: Array<{ name: string; data: string }> = []) => makeTar([
@@ -19,8 +19,8 @@ const volume = (prefix: string, extra: Array<{ name: string; data: string }> = [
 ]);
 
 it("sorts a volume into the layers of home-data.md and hashes every file", () => {
-  for (const prefix of ["data/", "__system__/data/"]) {
-    const m = volumeManifest(volume(prefix), CLOUD, { kind: "managed", host: "boat" }, 1);
+  for (const prefix of ["data/"]) {
+    const m = volumeManifest(volume(prefix), CLOUD, { kind: "managed", host: "instabox" }, 1);
     expect(m.files.map(f => [f.path, f.layer])).toEqual(expect.arrayContaining([
       [".omb-cloud-home.json", "marker"], [".openmausbot/bots.json", "identity"], [".openmausbot/messages.db", "chats"], [".openmausbot/workspaces/b1/MEMORY.md", "memory"],
       [".openmausbot/routines.json", "routines"], [".openmausbot/mcp-oauth.json", "credentials"], [".openmausbot/agent-browser-profiles/b1/Default/Cookies", "browser"],

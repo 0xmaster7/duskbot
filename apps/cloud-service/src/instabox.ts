@@ -9,9 +9,9 @@ import { randomUUID } from "node:crypto";
 import type { MachineSpec } from "../../../shared/billing-api.ts";
 import { boundedJson, RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
 import type { ProviderServer } from "../../dashboard/server/clouds/types.ts";
-import { INSTABOX_HOME_VOLUME, INSTABOX_SETUP_FILE, INSTABOX_SETUP_LOG, INSTABOX_SETUP_STATUS, INSTABOX_SNAPSHOT_COMMAND, INSTABOX_SNAPSHOT_DONE_COMMAND, INSTABOX_SNAPSHOT_FILE, INSTABOX_USER_HOME } from "./instabox-home.ts";
+import { INSTABOX_HOME_VOLUME, INSTABOX_SETUP_FILE, INSTABOX_SETUP_LOG, INSTABOX_SETUP_STATUS, INSTABOX_SNAPSHOT_FILE, INSTABOX_USER_HOME, SNAPSHOT_COMMAND, SNAPSHOT_DONE_COMMAND } from "./home.ts";
 import type { ProviderCostProfile } from "./power/cost.ts";
-import { ProviderBusyError, ProviderError, ProviderLimitError, type MachineCreateInput, type MachineProvider, type MachineRecord, type MachineState, type NamedSnapshot } from "./provider.ts";
+import { ProviderBusyError, ProviderError, ProviderLimitError, type MachineCreateInput, type MachineProvider, type MachineRecord, type MachineState } from "./provider.ts";
 
 export const INSTABOX_SIZES = [
   { vcpu: 2, memMiB: 4096 }, { vcpu: 4, memMiB: 8192 }, { vcpu: 8, memMiB: 16384 }, { vcpu: 16, memMiB: 32768 }, { vcpu: 32, memMiB: 65536 },
@@ -49,14 +49,13 @@ export function instaboxCostProfile(options: { plan?: InstaboxPlan; heldProbabil
   };
 }
 
-/** the rails where a resume is free and takes seconds: the loop guard stays, at a scale for that (Boat's protects a scarce
- *  start pool). Chosen on the simulator (docs/hosts.md): 37% below Boat's rails and 12% below the best fixed idle timer
+/** the rails where a resume is free and takes seconds: the loop guard stays, at a scale for that. Chosen on the
+ *  simulator (docs/power.md): 37% below the rails for a scarce daily start pool and 12% below the best fixed idle timer
  *  on the mixed fleets, no late or missed run. */
 export const INSTABOX_RAILS = { flapMs: 60_000, maxMinIdleMs: 10 * 60_000, maxStartsPerHour: 20, maxStartsPerDay: 96, minUptimeMs: 3 * 60_000 } as const;
 
 const MACHINE_ID = /^m_[a-z0-9]{26}$/;
 const OPERATION_ID = /^op_[a-z0-9]{26}$/;
-const SNAPSHOT_NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const CLOUD_ID = /^c[0-9a-f]{24}$/;
 const LIVE_SNAPSHOT = /^live-([a-z0-9]{26})-(\d{13})$/;
 const time = (value: unknown) => typeof value === "string" && Number.isFinite(Date.parse(value)) ? Date.parse(value) : null;
@@ -87,7 +86,7 @@ function recordOf(m: RawMachine, setup: MachineRecord["setup"]): MachineRecord {
   const state = m.state === "running" && !m.ready ? "starting" : LIFECYCLE[m.state] ?? "starting";
   const cloud = m.metadata["omb.cloud"];
   return { id: m.id, state, cloudId: cloud && CLOUD_ID.test(cloud) ? cloud : null, scope: m.metadata["omb.scope"] ?? null, type: `${m.vcpus}x${m.memMiB}`,
-    stoppedAt: asleep ? m.updatedAt : null, dataExpired: false, setup, stopFailing: false, snapshotAt: null, createdAt: m.createdAt };
+    stoppedAt: asleep ? m.updatedAt : null, setup, createdAt: m.createdAt };
 }
 function serverOf(m: RawMachine): ProviderServer {
   const states: Record<string, ProviderServer["state"]> = { creating: "creating", starting: "starting", resuming: "starting", running: "running", stopping: "stopping",
@@ -111,11 +110,12 @@ export interface InstaboxProviderOptions {
   /** how long a create, a resize or a setup step waits for the machine to settle */
   settleMs?: number;
   pollMs?: number;
+  /** the service's clock, for a refusal's not-before time (the lifecycle compares it with its own) */
+  now?: () => number;
 }
 
-export type InstaboxProvider = MachineProvider & { readonly host: "instabox" };
 
-export function createInstaboxProvider(options: InstaboxProviderOptions): InstaboxProvider {
+export function createInstaboxProvider(options: InstaboxProviderOptions): MachineProvider {
   const fetcher = options.fetch ?? fetch, key = options.apiKey;
   if (!key || /[\r\n\s]/.test(key)) throw new Error("Invalid INSTABOX_API_KEY.");
   if (!/^[a-f0-9]{16}$/.test(options.scope)) throw new Error("Invalid InstaBox scope.");
@@ -150,7 +150,7 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Instab
     const after = Number(response.headers.get("retry-after")), seconds = typeof error.retryAfterSeconds === "number" ? error.retryAfterSeconds : Number.isFinite(after) && after > 0 ? after : null;
     const retryMs = seconds !== null && seconds > 0 ? Math.min(seconds, 3600) * 1000 : null;
     if (response.status === 429 || code === "machine_cooldown" || code === "no_capacity")
-      throw new ProviderLimitError(retryMs, { nextStartAt: retryMs === null ? null : Date.now() + retryMs, window: code === "rate_limited" ? "minute" : null, cause: code, startLimit: code === "rate_limited" });
+      throw new ProviderLimitError(retryMs, { nextStartAt: retryMs === null ? null : (options.now ?? Date.now)() + retryMs, window: code === "rate_limited" ? "minute" : null, cause: code, startLimit: code === "rate_limited" });
     if (response.status === 409 && ["operation_conflict", "idempotency_conflict"].includes(code)) throw new ProviderBusyError(code);
     if (response.status >= 500) throw new RetryableCloudError();
     throw new InstaboxError(response.status, code);
@@ -246,11 +246,9 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Instab
     await call("PATCH", `/v1/machines/${m.id}`, { body: { metadata: { ...m.metadata, "omb.setup": "running" } }, idempotent: true });
   }
 
-  const provider: InstaboxProvider = {
+  const provider: MachineProvider = {
     name: "managed",
-    host: "instabox",
     scope: options.scope,
-    capabilities: { memoryPause: true, liveBackup: true },
     async find(cloudId) {
       if (!CLOUD_ID.test(cloudId)) throw new Error("Invalid cloud id.");
       const listed = (await list([scoped, `omb.cloud:${cloudId}`])).filter(m => mine(m) && m.metadata["omb.cloud"] === cloudId);
@@ -259,7 +257,6 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Instab
     },
     async create(input) {
       if (!CLOUD_ID.test(input.cloudId)) throw new Error("Invalid cloud id.");
-      if (input.from !== undefined && !SNAPSHOT_NAME.test(input.from)) throw new Error("Invalid InstaBox snapshot name.");
       const attempt = input.attempt ?? 0;
       const name = `omb-${input.cloudId}-${attempt}-${options.scope.slice(0, 8)}`;
       let m = await byName(name);
@@ -272,7 +269,7 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Instab
       if (!m) {
         const size = instaboxSize(input.spec, sizes);
         const metadata = { "omb.cloud": input.cloudId, "omb.scope": options.scope, "omb.attempt": String(attempt), "omb.setup": "pending" };
-        const body = { name, ...(input.from ? { snapshotId: input.from } : { templateId: template }), vcpus: size.vcpu, memMiB: size.memMiB,
+        const body = { name, templateId: template, vcpus: size.vcpu, memMiB: size.memMiB,
           autoSuspendAfterSeconds: idlePause * 60, vault: false, secrets: [], metadata };
         try { await call("POST", "/v1/machines", { body, idempotent: true, timeoutMs: 90_000 }); }
         catch (error) {
@@ -345,7 +342,7 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Instab
     async latestSnapshot(serverId) {
       const m = await get(serverId);
       if (!m || !awake(m)) return null;
-      const made = await exec(serverId, INSTABOX_SNAPSHOT_COMMAND, 600);
+      const made = await exec(serverId, SNAPSHOT_COMMAND, 600);
       if (made.exitCode !== 0 || !/^snapshot \d+/m.test(made.stdout)) throw new RetryableCloudError("InstaBox live snapshot failed.");
       const at = Date.now();
       return { id: `live-${serverId.slice(2)}-${at}`, at };
@@ -358,7 +355,7 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Instab
       if (response.status === 429 || response.status >= 500) { await response.body?.cancel(); throw new RetryableCloudError(); }
       if (!response.ok || !response.body) { await response.body?.cancel(); throw new InstaboxError(response.status, "snapshot_read_failed"); }
       // the tar holds the home's secrets in clear: removed from the machine once read
-      return response.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({ flush() { void exec(serverId, INSTABOX_SNAPSHOT_DONE_COMMAND, 60).catch(() => {}); } }));
+      return response.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({ flush() { void exec(serverId, SNAPSHOT_DONE_COMMAND, 60).catch(() => {}); } }));
     },
     upload,
     async deletion(operationId) {
@@ -374,27 +371,6 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Instab
       if (!op) return { operationId: null, gone: true };
       origins.delete(serverId); setupKnown.delete(serverId);
       return { operationId: typeof op.id === "string" && OPERATION_ID.test(op.id) ? op.id : null, gone: false };
-    },
-    async namedSnapshots() {
-      const data = await call("GET", "/v1/snapshots");
-      return (Array.isArray(data?.snapshots) ? data.snapshots : []).flatMap((x: Record<string, unknown>): NamedSnapshot[] => typeof x?.name === "string" && SNAPSHOT_NAME.test(x.name)
-        ? [{ name: x.name, status: x.status === "pending" ? "saving" : String(x.status ?? ""), createdAt: time(x.createdAt) }] : []);
-    },
-    async namedSnapshot(name) {
-      if (!SNAPSHOT_NAME.test(name)) throw new Error("Invalid InstaBox snapshot name.");
-      return (await provider.namedSnapshots()).find(x => x.name === name) ?? null;
-    },
-    async saveNamedSnapshot(serverId, name) {
-      checkId(serverId);
-      if (!SNAPSHOT_NAME.test(name)) throw new Error("Invalid InstaBox snapshot name.");
-      await call("POST", `/v1/machines/${serverId}/snapshots`, { body: { name }, idempotent: `omb-snapshot-${name}`, timeoutMs: 120_000 });
-    },
-    async deleteNamedSnapshot(name) {
-      if (!SNAPSHOT_NAME.test(name)) throw new Error("Invalid InstaBox snapshot name.");
-      const data = await call("GET", "/v1/snapshots");
-      const found = (data?.snapshots ?? []).find((x: Record<string, unknown>) => x?.name === name && typeof x.id === "string");
-      if (!found) return;
-      await call("DELETE", `/v1/snapshots/${found.id}`, { headers: { "x-confirm-delete": found.id }, idempotent: true, missingOk: true });
     },
     async limits() { return { nextStartCents: 0 }; },
     async usage(serverId, from) {

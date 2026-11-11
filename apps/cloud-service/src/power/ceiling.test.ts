@@ -3,20 +3,20 @@ import { mkdtempSync, readFileSync, writeFileSync, appendFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { boatCostProfile, boatHourlyCents, BOAT_SIZES } from "../boat.ts";
+import { pooledCostProfile, pooledHourlyCents, POOLED_SIZES } from "./pooled-profile.ts";
 import { createSpendLedger, memorySpendStore } from "../spend.ts";
 import { advanceBook, applySpend, CEILING_FACTOR, ceilingFactor, monthlyCeilingCents, monthOf, openBook, slackCents, spentCents, worstStartCents } from "./ceiling.ts";
 import { HOUR, MINUTE } from "./cost.ts";
 import { costChargeRefusal, costStartRefusal, costStopRefusal } from "./rails.ts";
 
-const profile = boatCostProfile({ plan: "20" }), W = 7, N = 5;
+const profile = pooledCostProfile({ plan: "20" }), W = 7, N = 5;
 const NOV = Date.UTC(2026, 10, 1), DEC = Date.UTC(2026, 11, 1);
 const open = (rate = 1.8, extra: Partial<{ up: boolean; bytes: number; prepaid: boolean; before: boolean }> = {}) =>
   ({ e: "open" as const, rate, floor: 1.8, up: true, bytes: 0, prepaid: false, before: false, ...extra });
 
 describe("the ceiling's numbers", () => {
   it("is $14.00 on small and scales with every size", () => {
-    const cents = BOAT_SIZES.map(z => Math.round(monthlyCeilingCents(boatHourlyCents(z))));
+    const cents = POOLED_SIZES.map(z => Math.round(monthlyCeilingCents(pooledHourlyCents(z))));
     expect(cents).toEqual([1400, 2800, 5600, 15556]);
     expect(CEILING_FACTOR).toBeCloseTo(1.0654, 4);
   });
@@ -29,7 +29,7 @@ describe("the ceiling's numbers", () => {
   });
   it("charges a start at the top extra tier: $0.07", () => {
     expect(worstStartCents(profile)).toBe(7);
-    expect(worstStartCents(boatCostProfile({ plan: "2000", scale: 0.01 }))).toBe(7);
+    expect(worstStartCents(pooledCostProfile({ plan: "2000", scale: 0.01 }))).toBe(7);
   });
 });
 
@@ -93,9 +93,9 @@ describe("the rails' cost rule", () => {
     expect(costStartRefusal(view(7), "wake", 0)).toBeNull();
     expect(costStartRefusal(view(6.9), "recover", 0)?.reason).toBe("cost_ceiling");
     expect(costStartRefusal(view(41.9), "routine", 0)?.reason).toBe("cost_ceiling");
-    expect(costStartRefusal(view(42), "refresh", 0)).toBeNull();
-    expect(costStartRefusal(view(49), "refresh", 0, 3.6)?.reason).toBe("cost_ceiling");
-    expect(costStartRefusal(view(52.6), "refresh", 0, 3.6)).toBeNull();
+    expect(costStartRefusal(view(42), "recover", 0)).toBeNull();
+    expect(costStartRefusal(view(49), "recover", 0, 3.6)?.reason).toBe("cost_ceiling");
+    expect(costStartRefusal(view(52.6), "recover", 0, 3.6)).toBeNull();
     expect(costChargeRefusal(view(45), 3, 0)).toBeNull();
     expect(costChargeRefusal(view(44.9), 3, 0)?.reason).toBe("cost_ceiling");
   });

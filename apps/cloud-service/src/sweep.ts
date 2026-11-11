@@ -1,7 +1,7 @@
 // this deployment's machines that no live cloud runs on: a create whose answer was lost past the provider's 24-hour
-// idempotency, a cloud record lost in a restore of this service, a sandbox left by a deleted cloud. Each is stopped at
+// idempotency, a cloud record lost in a restore of this service, a machine left by a deleted cloud. Each is stopped at
 // once (it costs while it runs). One whose cloud was deleted through the verdict is deleted. One a live cloud owns is
-// retired there only when it is older than that cloud's sandbox and the cloud has a verified backup newer than its last
+// retired there only when it is older than that cloud's machine and the cloud has a verified backup newer than its last
 // snapshot; otherwise it stays stopped. One no record knows is never deleted here: it may be a paying person's machine
 // whose record was lost, so after the retention period the operator is alerted and decides.
 import { join } from "node:path";
@@ -27,10 +27,7 @@ export function createSweep(options: { dataDir: string; file: string; provider: 
     if (now() - store.state.lastSweepAt < (options.everyMs ?? 30 * 60_000)) return;
     store.state.lastSweepAt = now(); store.commit();
     const byId = new Map(clouds.map(c => [c.id, c]));
-    // a migration's machines (the one it left, a rolled-back one) are kept for the operator, on whichever host
-    const open = (c: StoredCloud) => c.managed?.migration && c.managed.migration.phase !== "finished" ? c.managed.migration : null;
-    const known = new Set(clouds.flatMap(c => [c.serverId, ...(c.managed?.retired ?? []).map(r => r.serverId), c.managed?.deletion?.serverId,
-      open(c)?.from.serverId, open(c)?.target?.serverId].filter((id): id is string => !!id)));
+    const known = new Set(clouds.flatMap(c => [c.serverId, ...(c.managed?.retired ?? []).map(r => r.serverId), c.managed?.deletion?.serverId].filter((id): id is string => !!id)));
     for (const s of await provider.inventory()) {
       if (known.has(s.id)) continue;
       const cloud = s.cloudId ? byId.get(s.cloudId) : undefined;
@@ -40,9 +37,9 @@ export function createSweep(options: { dataDir: string; file: string; provider: 
       if (cloud && cloud.status !== "destroyed" && cloud.managed) {
         const current = cloud.serverId ? await provider.machine(cloud.serverId) : null;
         const newest = [...cloud.managed.backups].reverse().find(g => g.verifiedAt !== null);
-        const superseded = current !== null && (s.createdAt ?? 0) < (current.createdAt ?? 0) && newest !== undefined && newest.snapshotAt > (s.snapshotAt ?? s.createdAt ?? 0);
+        const superseded = current !== null && (s.createdAt ?? 0) < (current.createdAt ?? 0) && newest !== undefined && newest.snapshotAt > (s.stoppedAt ?? s.createdAt ?? 0);
         if (superseded) { cloud.managed.retired.push({ serverId: s.id, at: now(), deletion: null }); record(cloud.id, "orphan_retired", "superseded", s.id); }
-        else if (!alerted.has(s.id)) { alerted.add(s.id); record(cloud.id, "orphan_kept", "may_hold_newer_data", s.id); console.warn(`managed: ALERT a second sandbox ${s.id} for cloud ${cloud.id} was stopped and kept for an operator`); }
+        else if (!alerted.has(s.id)) { alerted.add(s.id); record(cloud.id, "orphan_kept", "may_hold_newer_data", s.id); console.warn(`managed: ALERT a second machine ${s.id} for cloud ${cloud.id} was stopped and kept for an operator`); }
         continue;
       }
       let orphan = store.state.orphans.find(o => o.serverId === s.id);
@@ -55,7 +52,7 @@ export function createSweep(options: { dataDir: string; file: string; provider: 
       } else if (now() - orphan.firstSeenAt >= options.retentionDays * DAY_MS && !alerted.has(s.id)) {
         alerted.add(s.id);
         record(s.cloudId, "orphan_unclaimed", "operator_decides", s.id);
-        console.warn(`managed: ALERT sandbox ${s.id} has had no cloud record for the whole retention period; it is stopped, not deleted`);
+        console.warn(`managed: ALERT machine ${s.id} has had no cloud record for the whole retention period; it is stopped, not deleted`);
       }
     }
   }

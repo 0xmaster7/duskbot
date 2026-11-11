@@ -1,13 +1,14 @@
-// One end-to-end run of a Boat-backed My Cloud: paid (fake billing), provisioned on Boat, paired, a bot made and messaged
+// One end-to-end run of a managed My Cloud: paid (fake billing), provisioned on InstaBox, paired, a bot made and messaged
 // with a synthetic engine, a bot moved there from a local fixture with the app's own send, slept, backed up, woken, its
-// machine deleted and rebuilt from the backup, then everything this run made on Boat deleted and proven gone. With --fake
-// it also rolls a signed update out to the running home and rolls a second one back after its self-test fails.
+// machine deleted and rebuilt from the backup, then everything this run made deleted and proven gone. With --fake it
+// also wakes the home through the public edge, rolls a signed update out to the running home and rolls a second one back
+// after its self-test fails.
 //
-//   node --experimental-strip-types apps/cloud-service/scripts/e2e.ts --fake                     # loopback fake Boat, no VM
-//   BOAT_API_KEY=... BOAT_BASE_URL=... node --experimental-strip-types apps/cloud-service/scripts/e2e.ts --package release/home/omb-home.tgz --engine <fake-claude.mjs> --ledger <file>
+//   node --experimental-strip-types apps/cloud-service/scripts/e2e.ts --fake                     # loopback fake InstaBox, no VM
+//   INSTABOX_API_KEY=... node --experimental-strip-types apps/cloud-service/scripts/e2e.ts --package release/home/omb-home.tgz --engine <fake-claude.mjs> --ledger <file>
 //
-// Real runs create at most two `small` sandboxes (the cloud, and its rebuild) under a scope label of their own, and the
-// teardown deletes every sandbox with that label whatever happened. Prints timings and ids, never a key or a token.
+// Real runs create at most two 2 vCPU machines (the cloud, and its rebuild) under a scope label of their own, and the
+// teardown deletes every machine with that label whatever happened. Prints timings and ids, never a key or a token.
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { createHash, createPublicKey, generateKeyPairSync, randomBytes } from "node:crypto";
 import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -17,8 +18,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createBilling } from "../../dashboard/server/billing/index.ts";
 import { createStore } from "../../dashboard/server/store.ts";
-import { startFakeBoatApi } from "../src/fake-boat-api.ts";
-import { createBoatProvider } from "../src/boat.ts";
+import { startFakeInstaboxApi } from "../src/fake-instabox-api.ts";
+import { createInstaboxProvider } from "../src/instabox.ts";
 import { createCloudSend } from "../../../electron/cloud-send.mjs";
 import { openOwnerSession } from "../../../electron/cloud-send-main.mjs";
 import { launchVerificationServer } from "../../../scripts/control-omb.ts";
@@ -31,10 +32,7 @@ import { fakeHookQueues } from "../src/fake-hook-queue.ts";
 
 const args = process.argv.slice(2), fake = args.includes("--fake");
 const option = (name: string) => { const at = args.indexOf(name); return at === -1 ? null : args[at + 1] ?? null; };
-// --adopt <sandbox>: reuse a sandbox an earlier run created, wiped back to a fresh one, as this run's first sandbox, so a
-// rerun stays within its sandbox budget; the run then takes that sandbox's scope
-const adopt = option("--adopt");
-let scope = randomBytes(8).toString("hex");
+const scope = randomBytes(8).toString("hex");
 const ledger = option("--ledger");
 const t0 = Date.now(), marks: Array<{ step: string; ms: number; at: string }> = [];
 let last = t0;
@@ -42,8 +40,8 @@ function mark(step: string) { const now = Date.now(); marks.push({ step, ms: now
 function note(line: string) { console.log(`  ${line}`); if (ledger) appendFileSync(ledger, `${new Date().toISOString()} ${line}\n`); }
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-const dataDir = mkdtempSync(join(tmpdir(), "omb-boat-e2e-"));
-const api = fake ? await startFakeBoatApi() : null;
+const dataDir = mkdtempSync(join(tmpdir(), "omb-managed-e2e-"));
+const api = fake ? await startFakeInstaboxApi() : null;
 // --fake: a release key of this run's own signs every home package, so the update path runs signed end to end; each fake
 // machine keeps the version it runs and the one before, and a version listed here fails its self-test
 const releaseKey = fake ? generateKeyPairSync("ed25519").privateKey : null;
@@ -56,30 +54,24 @@ const signedPackage = (version: string, file: string) => {
   versions.set(sum, version);
   return { sha256: sum, file, signature: signRelease({ kind: "home-package", name: "omb-home", version, sha256: sum, signedAt: Date.now() }, releaseSigning!) };
 };
-if (api) api.onCommand(({ sandbox, command }) => {
-  if (command.includes("omb-home start") && !sandbox.volume.size) {
-    sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
-    sandbox.volume.set(`__system__${CLOUD_HOME.data}/config.json`, Buffer.from("{}"));
+if (api) api.onExec(({ machine, cmd }) => {
+  if (cmd.includes("omb-home start") && !machine.volume.size) {
+    machine.volume.set("data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: machine.metadata["omb.cloud"] })));
+    machine.volume.set(`data/${CLOUD_HOME.dataName}/config.json`, Buffer.from("{}"));
   }
-  const app = apps.get(sandbox.id) ?? { now: null, before: null };
-  apps.set(sandbox.id, app);
-  if (command.includes("omb-home install")) { const sum = /omb-home install \S+ ([a-f0-9]{64})/.exec(command)?.[1] ?? ""; app.before = app.now; app.now = versions.get(sum) ?? null; }
-  if (command.includes("omb-home rollback")) { if (!app.before) return { exitCode: 2, stdout: "nothing to roll back to\n" }; app.now = app.before; app.before = null; }
-  return { exitCode: 0, stdout: command.includes("omb-home install") ? "installed\n" : command.includes("omb-home rollback") ? "rolled back\n" : command.includes("omb-home start") ? "started\n" : command.includes("restore") ? "restored\n" : "" };
+  const app = apps.get(machine.id) ?? { now: null, before: null };
+  apps.set(machine.id, app);
+  if (cmd.includes("omb-home install")) { const sum = /omb-home install \S+ ([a-f0-9]{64})/.exec(cmd)?.[1] ?? ""; app.before = app.now; app.now = versions.get(sum) ?? null; return { exitCode: 0, stdout: "installed\n" }; }
+  if (cmd.includes("omb-home rollback")) { if (!app.before) return { exitCode: 2, stdout: "nothing to roll back to\n" }; app.now = app.before; app.before = null; return { exitCode: 0, stdout: "rolled back\n" }; }
+  return null;
 });
-const key = api?.key ?? process.env.BOAT_API_KEY, baseUrl = api?.baseUrl ?? process.env.BOAT_BASE_URL;
-if (!key || !baseUrl) { console.error("BOAT_API_KEY and BOAT_BASE_URL are required (or --fake)."); process.exit(2); }
+const key = api?.key ?? process.env.INSTABOX_API_KEY, baseUrl = api?.baseUrl ?? process.env.INSTABOX_BASE_URL;
+if (!key) { console.error("INSTABOX_API_KEY is required (or --fake)."); process.exit(2); }
 const packageFile = fake ? join(dataDir, "pkg.tgz") : resolve(option("--package") ?? "release/home/omb-home.tgz");
 const firstRelease = fake ? signedPackage("1.0.0", packageFile) : null;
 const sha256 = createHash("sha256").update(readFileSync(packageFile)).digest("hex");
 const releaseFile = join(dataDir, "home-release.json");
-const apiBase = `${baseUrl.replace(/\/$/, "")}${baseUrl.includes("/api/v1") ? "" : "/api/v1"}`;
-const rawSandbox = async (id: string) => (await (await fetch(`${apiBase}/sandboxes/${id}`, { headers: { authorization: `Bearer ${key}` } })).json() as { sandbox?: { labels?: Record<string, string> } }).sandbox;
-if (adopt) scope = (await rawSandbox(adopt))?.labels?.["omb.scope"] ?? scope;
-const ops = createBoatProvider({ apiKey: key, baseUrl, scope });
-let adopted = false;
-const WIPE = ["/data", CLOUD_HOME.etc, CLOUD_HOME.root, "/opt/duskbot", "/usr/local/sbin/omb-home", "/usr/local/bin/node", "/usr/local/bin/caddy",
-  "/etc/systemd/system/omb-home.service", "/etc/systemd/system/omb-docker-gate.service", "/home/user/.boat", "/home/user/.boatignore", "/home/user/omb-home.tgz"];
+const ops = createInstaboxProvider({ apiKey: key, baseUrl, scope, ...(fake ? { pollMs: 1 } : {}) });
 
 // the homes' signed reads go to the real origins; in --fake mode the "homes" answer from here
 const hooksSeen: string[] = [];
@@ -91,24 +83,9 @@ const fakeRuns: Array<{ id: string; ok: boolean; at: number }> = [];
 const realFetch = globalThis.fetch;
 const homeFetch: typeof fetch = async (input, init) => {
   const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
-  if (adopt && !adopted && init?.method === "POST" && url.pathname.endsWith("/api/v1/sandboxes")) {
-    adopted = true;
-    const body = JSON.parse(String(init.body)) as { setupScript: string; files: Array<{ path: string; content: string }> };
-    if ((await ops.machine(adopt))?.state === "stopped") await ops.power(adopt, "on");
-    for (let n = 0; n < 60 && (await ops.machine(adopt))?.state !== "running"; n++) await sleep(3000);
-    const wipe = await ops.run(adopt, `sudo systemctl stop omb-home omb-docker-gate >/dev/null 2>&1; sudo rm -r -f ${WIPE.join(" ")}; sudo systemctl daemon-reload; echo wiped`, 120);
-    note(`adopted ${adopt}: wiped ${wipe.ok}`);
-    await ops.upload(adopt, body.files[0]!.path, Buffer.from(body.files[0]!.content));
-    await ops.upload(adopt, "/home/user/omb-setup.sh", Buffer.from(body.setupScript));
-    const setup = await ops.run(adopt, "bash /home/user/omb-setup.sh > /home/user/omb-setup.log 2>&1; code=$?; rm -f /home/user/omb-setup.sh; echo setup-exit-$code", 600);
-    note(`adopted setup: ${setup.stdout.trim()}`);
-    const hosted = await ops.origin(adopt);
-    return new Response(JSON.stringify({ ok: true, type: "sandbox.created", status: "ready", sandbox: await rawSandbox(adopt), hostedPorts: [{ port: 8080, url: hosted }] }),
-      { status: 202, headers: { "content-type": "application/json" } });
-  }
-  if (fake && url.hostname.endsWith(".on.boat.dev")) {
-    const up = [...api!.sandboxes.values()].find(x => x.hosted && new URL(x.hosted).hostname === url.hostname);
-    if (up && up.state !== "ready") return new Response("down", { status: 502 });
+  if (fake && url.hostname.endsWith(".instabox.tech")) {
+    const up = [...api!.machines.values()].find(x => [...x.ports.values()].some(u => new URL(u).hostname === url.hostname));
+    if (up && up.state !== "running") return new Response("down", { status: 503 });
     if (url.pathname.startsWith("/hooks/")) { hooksSeen.push(`${init?.method ?? "GET"} ${url.pathname} ${init?.body ? new TextDecoder().decode(init.body as ArrayBuffer) : ""}`); return new Response("ok", { status: 200 }); }
     const running = up ? apps.get(up.id)?.now ?? null : null;
     const body = url.pathname === "/api/cloud/health" ? { v: 1 } : url.pathname === "/api/cloud/power" ? { v: 1, ...fakePower }
@@ -130,7 +107,7 @@ const billing = createBilling({ dataDir, publicUrl: "https://dashboard.e2e.inval
   accounts: { fromCookie: () => account, fromBearer: () => account },
   mail: (cloud, letter) => note(`notice to owner: ${letter.subject} for ${cloud.id}`),
   alert: entry => note(`ALERT ${entry.action} ${entry.cloudId} (${entry.reason})`),
-  env: { DUSK_BILLING_PROVIDER: "fake", DUSK_CLOUD_SEAL_KEY: sealKey, DUSK_MANAGED: "1", DUSK_MANAGED_EDGE_TOKEN: edgeToken, ...(fake ? { DUSK_MANAGED_PUBLIC_DOMAIN: PUBLIC_DOMAIN } : {}), BOAT_API_KEY: key, BOAT_BASE_URL: baseUrl, DUSK_MANAGED_SCOPE: scope,
+  env: { DUSK_BILLING_PROVIDER: "fake", DUSK_CLOUD_SEAL_KEY: sealKey, DUSK_MANAGED: "1", DUSK_MANAGED_EDGE_TOKEN: edgeToken, ...(fake ? { DUSK_MANAGED_PUBLIC_DOMAIN: PUBLIC_DOMAIN } : {}), INSTABOX_API_KEY: key, ...(baseUrl ? { INSTABOX_BASE_URL: baseUrl } : {}), DUSK_MANAGED_SCOPE: scope,
     DUSK_MANAGED_KINDS: "shared_s", DUSK_MANAGED_HOME_PACKAGE_FILE: packageFile, DUSK_MANAGED_HOME_PACKAGE_SHA256: sha256,
     ...(firstRelease ? { DUSK_MANAGED_HOME_PACKAGE_SIGNATURE: firstRelease.signature, DUSK_RELEASE_PUBLIC_KEYS: releasePublic!, DUSK_MANAGED_HOME_RELEASE_FILE: releaseFile } : {}), DUSK_MANAGED_LEASE_HOURS: "1", DUSK_MANAGED_IDLE_MINUTES: "5", DUSK_MANAGED_LOST_AFTER_MINUTES: "2", DUSK_POOL_DRIVER: "fake",
     // no machine can reach this harness, and nobody uses it: no claim, no public domain, an unsigned test package
@@ -151,7 +128,7 @@ const hookBase = `http://127.0.0.1:${(webhooks.address() as { port: number }).po
 pages = pagesRoutesFromEnv({ dataDir, publicUrl: hookBase, clouds: billing.clouds, env: { DUSK_PAGES_STORE: "memory", DUSK_CLOUD_SEAL_KEY: sealKey } });
 
 const created = new Set<string>();
-async function track() { for (const s of await ops.inventory()) if (!created.has(s.id)) { created.add(s.id); note(`created sandbox ${s.id} (${s.type}) for ${s.cloudId}`); } }
+async function track() { for (const s of await ops.inventory()) if (!created.has(s.id)) { created.add(s.id); note(`created machine ${s.id} (${s.type}) for ${s.cloudId}`); } }
 let local: Awaited<ReturnType<typeof launchVerificationServer>> | null = null;
 const results: Record<string, unknown> = { scope };
 
@@ -180,18 +157,18 @@ try {
   note(`cloud ${cloudId} backend=${cloud().backend} status=${cloud().status}`);
   mark("paid and activated");
 
-  // 2. provisioned on Boat
+  // 2. provisioned on InstaBox
   await reconcileUntil(cloudId, () => cloud().status === "running", 25 * 60_000, "provision");
-  note(`origin ${cloud().origin} sandbox ${cloud().serverId}`);
+  note(`origin ${cloud().origin} machine ${cloud().serverId}`);
   results.provisionMs = Date.now() - last; mark("provisioned and healthy");
 
   // a synthetic engine on the home, so a bot can answer (test tooling only, never part of the product install)
   if (!fake) {
     const engine = readFileSync(resolve(option("--engine")!));
     const wrapper = `#!/bin/sh\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"email":"person@example.test"}'; exit 0; fi\nexport FAKE_CLAUDE_VERSION=2.1.284\nexec ${CLOUD_HOME.root}/node/bin/node /opt/omb-test/fake-claude.mjs "$@"\n`;
-    await ops.upload(cloud().serverId!, "/home/user/fake-claude.mjs", engine);
-    await ops.upload(cloud().serverId!, "/home/user/claude-wrapper.sh", Buffer.from(wrapper));
-    const done = await ops.run(cloud().serverId!, "sudo install -d -m 0755 /opt/omb-test && sudo install -m 0755 /home/user/fake-claude.mjs /opt/omb-test/fake-claude.mjs && sudo install -m 0755 /home/user/claude-wrapper.sh /usr/local/bin/claude && sudo systemctl restart omb-home && sleep 10 && echo ok", 120);
+    await ops.upload(cloud().serverId!, "/data/home/fake-claude.mjs", engine);
+    await ops.upload(cloud().serverId!, "/data/home/claude-wrapper.sh", Buffer.from(wrapper));
+    const done = await ops.run(cloud().serverId!, "sudo install -d -m 0755 /opt/omb-test && sudo install -m 0755 /data/home/fake-claude.mjs /opt/omb-test/fake-claude.mjs && sudo install -m 0755 /data/home/claude-wrapper.sh /usr/local/bin/claude && sudo systemctl restart omb-home && sleep 10 && echo ok", 120);
     note(`synthetic engine installed: ${done.ok}`);
   }
 
@@ -199,15 +176,15 @@ try {
   const target = { origin: cloud().origin!, grant: () => billing.clouds.pair(account.id, cloudId) };
   let session: Awaited<ReturnType<typeof openOwnerSession>> | null = null;
   if (!fake) {
-    session = await openOwnerSession(target, fetch, { label: "Boat e2e", background: false });
+    session = await openOwnerSession(target, fetch, { label: "Cloud e2e", background: false });
     const health = await session.call("GET", "/api/health");
     note(`paired; /api/health ${health.status}`);
     mark("paired");
     // 4. a bot made there, and messaged
-    const made = await session.call("POST", "/api/bots", { name: "Boat e2e bot" });
+    const made = await session.call("POST", "/api/bots", { name: "Cloud e2e bot" });
     const botId = made.body?.bot?.id as string, threadId = made.body?.bot?.threadId as string;
     note(`bot on the cloud: ${made.status} ${botId}`);
-    const sent = await session.call("POST", `/api/bots/${botId}/messages`, { text: "hello from the Boat e2e run", threadId });
+    const sent = await session.call("POST", `/api/bots/${botId}/messages`, { text: "hello from the cloud e2e run", threadId });
     let reply: string | null = null;
     for (let n = 0; n < 60 && !reply; n++) {
       await sleep(2000);
@@ -222,24 +199,24 @@ try {
     // 5. a bot moved there from this computer, with the app's own send (cloud-send.mjs)
     local = await launchVerificationServer({ ...process.env, FAKE_CLAUDE_VERSION: "2.1.284" });
     const localApi = (route: string, init?: RequestInit) => fetch(`${local!.info.url}${route}`, init);
-    const mine = await json(await localApi("/api/bots", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Moved to Boat" }) }));
+    const mine = await json(await localApi("/api/bots", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Moved to the cloud" }) }));
     const movedId = mine.bot.id as string;
     const localSent = await localApi(`/api/bots/${movedId}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: "a chat that should move with me", threadId: mine.bot.threadId }) });
     await sleep(8000);
     note(`local bot ${movedId}: message ${localSent.status}`);
-    const reader = await openOwnerSession(target, fetch, { label: "Boat e2e read", background: true });
+    const reader = await openOwnerSession(target, fetch, { label: "Cloud e2e read", background: true });
     let kept: unknown = null;
     const send = createCloudSend({
       local: (route: string, init?: RequestInit) => localApi(route, init),
       cloud: { origin: () => target.origin, asleep: () => false, read: (route: string) => reader.fetch!(route),
-        open: () => openOwnerSession(target, fetch, { label: "Boat e2e move", background: false }) },
+        open: () => openOwnerSession(target, fetch, { label: "Cloud e2e move", background: false }) },
       handoff: async () => { throw new Error("no sign-ins in this run"); },
       store: { read: () => kept, write: (value: unknown) => { kept = value; } },
     });
     let outcome: unknown;
     try { outcome = await send.send({ reason: "button" }); } catch (error) { note(`send failed: ${error instanceof Error ? error.message : String(error)}`); }
     const there = await session.call("GET", "/api/bots?messages=0");
-    const movedThere = (there.body?.bots ?? []).find((b: { name?: string }) => b.name === "Moved to Boat");
+    const movedThere = (there.body?.bots ?? []).find((b: { name?: string }) => b.name === "Moved to the cloud");
     const arrived = Boolean(movedThere);
     if (movedThere?.threadId) { const rows = await session.call("GET", `/api/threads/${movedThere.threadId}/messages?limit=20`); note(`moved chat rows on the cloud: ${(rows.body?.messages ?? []).length}`); results.movedRows = (rows.body?.messages ?? []).length; }
     note(`moved bot arrived on the cloud: ${arrived}; sent ${JSON.stringify((outcome as { result?: { bots?: unknown[] } } | undefined)?.result?.bots?.length ?? null)} bots`);
@@ -247,10 +224,11 @@ try {
     mark("bot moved there");
   }
 
-  // 6. paused: the owner sleeps it (the idle handshake is the same stop), and its volume is backed up off Boat
+  // 6. paused: the owner sleeps it (the idle handshake is the same stop), and its volume, read from the running home first,
+  // is backed up off the provider
   await billing.clouds.power(account.id, cloudId, "off");
   await reconcileUntil(cloudId, () => cloud().status === "sleeping", 10 * 60_000, "sleep");
-  mark("asleep (Boat stopped)");
+  mark("asleep (machine paused)");
   await reconcileUntil(cloudId, () => (cloud().managed?.backups.at(-1)?.verifiedAt ?? null) !== null, 15 * 60_000, "backup");
   const backup = cloud().managed!.backups.at(-1)!;
   note(`backup ${backup.file}: ${backup.bytes} bytes, verified`);
@@ -268,7 +246,7 @@ try {
     });
     req.end();
   });
-  note(`page ${published.url}: ${view.status} ${JSON.stringify(view.body)} while the machine is ${api ? api.sandboxes.get(cloud().serverId!)!.state : "asleep"}; sandboxed ${view.csp.startsWith("sandbox")}`);
+  note(`page ${published.url}: ${view.status} ${JSON.stringify(view.body)} while the machine is ${api ? api.machines.get(cloud().serverId!)!.state : "asleep"}; sandboxed ${view.csp.startsWith("sandbox")}`);
   results.pageServedAsleep = view.status === 200 && cloud().status === "sleeping";
   mark("page served while asleep");
 
@@ -357,7 +335,7 @@ try {
   if (fake) {
     const pass = async () => { cloud().nextAttemptAt = 0; cloud().managed!.lastPowerAt = 0; await billing.clouds.reconcile(); };
     const running = () => apps.get(cloud().serverId!)?.now ?? null;
-    const actions = () => (JSON.parse(`[${readFileSync(join(dataDir, "boat-audit.jsonl"), "utf8").trim().split("\n").join(",")}]`) as Array<{ cloudId: string; action: string; reason: string; detail?: Record<string, unknown> }>)
+    const actions = () => (JSON.parse(`[${readFileSync(join(dataDir, "managed-audit.jsonl"), "utf8").trim().split("\n").join(",")}]`) as Array<{ cloudId: string; action: string; reason: string; detail?: Record<string, unknown> }>)
       .filter(e => e.cloudId === cloudId && e.action.startsWith("update_") && e.action !== "update_policy");
     Object.assign(fakePower, { idle: false, busy: ["turn"], nextDueAt: null });
     writeFileSync(releaseFile, JSON.stringify(signedPackage("1.1.0", join(dataDir, "pkg-1.1.0.tgz"))));
@@ -388,16 +366,16 @@ try {
     note(`after wake the session still works: ${bots.status}, bots ${JSON.stringify((bots.body?.bots ?? bots.body ?? []).map((b: { name?: string }) => b.name))}`);
   }
 
-  // 8. the machine is deleted out from under it: rebuilt from the backup into a fresh sandbox
+  // 8. the machine is deleted out from under it: rebuilt from the backup into a fresh one
   const lost = cloud().serverId!;
   if (api) api.lose(lost); else await ops.requestDelete(lost);
-  note(`deleted sandbox ${lost} (as if the machine were lost)`);
+  note(`deleted machine ${lost} (as if it were lost)`);
   for (let n = 0; n < 40 && (await ops.machine(lost)) !== null; n++) await sleep(fake ? 0 : 3000);
   await reconcileUntil(cloudId, () => cloud().status === "running" && cloud().serverId !== lost, 30 * 60_000, "recovery");
   note(`recovered into ${cloud().serverId} at ${cloud().origin}`);
   results.recoveryMs = Date.now() - last; mark("recovered from backup");
   if (!fake) {
-    const again = await openOwnerSession({ origin: cloud().origin!, grant: () => billing.clouds.pair(account.id, cloudId) }, fetch, { label: "Boat e2e after recovery", background: true });
+    const again = await openOwnerSession({ origin: cloud().origin!, grant: () => billing.clouds.pair(account.id, cloudId) }, fetch, { label: "Cloud e2e after recovery", background: true });
     const bots = await again.call("GET", "/api/bots?messages=0");
     const names = (bots.body?.bots ?? bots.body ?? []).map((b: { name?: string }) => b.name);
     note(`after recovery: bots ${JSON.stringify(names)}`);
@@ -407,7 +385,7 @@ try {
   console.error(`FAILED: ${error instanceof Error ? error.message : String(error)}`);
   results.failed = error instanceof Error ? error.message : String(error);
 } finally {
-  // teardown: every sandbox under this run's scope, deleted and proven gone with a direct read
+  // teardown: every machine under this run's scope, deleted and proven gone with a direct read
   await track().catch(() => {});
   for (const id of created) {
     const answer = await ops.requestDelete(id).catch(error => ({ error: String(error) }));
@@ -421,8 +399,8 @@ try {
   const remaining = (await Promise.all([...created].map(async id => (await ops.machine(id).catch(() => ({ id }))) ? id : null))).filter(Boolean);
   const listed = await ops.inventory().catch(() => [{ id: "unknown" }]);
   note(`after teardown: direct reads find ${remaining.length}, scope list finds ${listed.length}`);
-  results.leftOnBoat = remaining.length + listed.length;
-  results.sandboxes = [...created];
+  results.leftOnProvider = remaining.length + listed.length;
+  results.machines = [...created];
   results.marks = marks;
   billing.close(); store.close?.(); webhooks.close(); await api?.close(); await local?.close().catch(() => {});
   rmSync(dataDir, { recursive: true, force: true });

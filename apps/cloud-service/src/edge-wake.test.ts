@@ -4,14 +4,15 @@ import { PassThrough } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import worker, { deliveryId, wakeReason, QUEUE_LIMITS, type EdgeEnv } from "../edge/worker.js";
-import { boatFixture } from "./test-fixture.ts";
+import { INSTABOX_RAILS } from "./instabox.ts";
+import { homeFixture } from "./test-fixture.ts";
 import { fakeHookQueues } from "./fake-hook-queue.ts";
 
 const TOKEN = "e".repeat(40), DOMAIN = "desktops.example.com", ROUTE_URL = "https://dash.example.test";
 afterEach(() => vi.unstubAllGlobals());
 
 async function edged(edgeWakesPerHour = 3, { queue = false } = {}) {
-  const f = await boatFixture({ settings: { publicDomain: DOMAIN, edgeWakesPerHour }, edgeToken: TOKEN });
+  const f = await homeFixture({ settings: { publicDomain: DOMAIN, edgeWakesPerHour }, edgeToken: TOKEN });
   const { c } = await f.paid();
   const handle = f.service.managed!.handle!;
   const hooks: Array<{ path: string; body: string }> = [];
@@ -29,7 +30,7 @@ async function edged(edgeWakesPerHour = 3, { queue = false } = {}) {
       return new Response(text, { status });
     }
     if (url.origin === c.managed!.upstream) {
-      if (f.api.sandboxes.get(c.serverId!)!.state !== "ready") return new Response("down", { status: 502 });
+      if (f.api.machines.get(c.serverId!)!.state !== "running") return new Response("down", { status: 502 });
       const bytes = new Uint8Array(await request.arrayBuffer());
       raw.push({ bytes, headers: request.headers });
       hooks.push({ path: url.pathname, body: new TextDecoder().decode(bytes) });
@@ -45,7 +46,7 @@ async function edged(edgeWakesPerHour = 3, { queue = false } = {}) {
   async function asleep() {
     await f.asleep(c);
     await f.service.reconcile();
-    expect(f.api.sandboxes.get(c.serverId!)!.state).toBe("archived");
+    expect(f.api.machines.get(c.serverId!)!.state).toBe("suspended");
     f.power.idle = false; f.power.busy = ["recent-activity"];
   }
   const label = c.managed!.label!;
@@ -80,15 +81,16 @@ describe("the public edge and a sleeping home", () => {
     expect(anonymous.status).toBe(503);
     expect(anonymous.headers.get("retry-after")).toBe("5");
     await f.service.reconcile();
-    expect(f.api.sandboxes.get(c.serverId!)!.state).toBe("archived");
-    // a stranger's webhook every few minutes: each wake is a start, so the home's start budget keeps it up instead
+    expect(f.api.machines.get(c.serverId!)!.state).toBe("suspended");
+    // a stranger's webhook every few minutes: each wake is a start, held to the rails' hourly budget and spacing
     for (let n = 0; n < 12; n++) {
       expect((await send("/hooks/x", { method: "POST", body: "1" })).status).toBe(200);
       f.power.idle = true; f.power.busy = [];
       for (let k = 0; k < 2 && c.status !== "sleeping"; k++) { f.advance(4 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
     }
     const starts = f.audit.entries(c.id).filter(e => e.action === "wake" || e.action === "create").map(e => e.at);
-    for (const t of starts) expect(starts.filter(x => x > t - 3_600_000 && x <= t).length).toBeLessThanOrEqual(4);
+    for (const t of starts) expect(starts.filter(x => x > t - 3_600_000 && x <= t).length).toBeLessThanOrEqual(INSTABOX_RAILS.maxStartsPerHour);
+    for (let i = 1; i < starts.length; i++) expect(starts[i]! - starts[i - 1]!).toBeGreaterThanOrEqual(INSTABOX_RAILS.flapMs);
     expect(starts.length).toBeLessThan(12);
   }, 90_000);
 
@@ -99,7 +101,7 @@ describe("the public edge and a sleeping home", () => {
     await asleep();
     const capped = await send("/hooks/x", { method: "POST", body: "1" });
     expect(capped.status).toBe(429);
-    expect(f.api.sandboxes.get(c.serverId!)!.state).toBe("archived");
+    expect(f.api.machines.get(c.serverId!)!.state).toBe("suspended");
   }, 90_000);
 
   it("never wakes a home whose plan ended or that an operator suspended", async () => {

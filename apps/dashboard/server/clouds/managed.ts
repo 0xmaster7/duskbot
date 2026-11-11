@@ -11,7 +11,7 @@ export interface ManagedCloudContext {
   home: HomeClient;
   now(): number;
   save(cloud: StoredCloud): void;
-  /** every cloud in the store, for decisions that compare clouds (which disk to keep alive first) */
+  /** every cloud in the store, for decisions that compare clouds (the edge's route lookup, the claim) */
   clouds(): StoredCloud[];
   /** writes the store as it is now */
   commit(): void;
@@ -59,14 +59,7 @@ export interface ManagedCloud {
   resizing(cloud: StoredCloud): boolean;
   /** an operator hold: nothing is deleted while it is set */
   setHold(cloud: StoredCloud, hold: boolean): void;
-  /** the hosts the backend drives, by opaque name (operator tooling only; never shown to a person) */
-  hosts?(): string[];
-  /** an operator's move of one cloud to another host: quiesced, backed up, restored, checked, cut over; undone by
-   *  `rollbackMigration` until `finishMigration` deletes the machine it left */
-  migrate?(cloud: StoredCloud, host: string): void;
-  rollbackMigration?(cloud: StoredCloud): void;
-  finishMigration?(cloud: StoredCloud): Promise<void>;
-  /** what the host measured for the cloud's machine this month, when it reports usage */
+  /** what the provider measured for the cloud's machine this month */
   usage?(cloud: StoredCloud): Promise<{ runningSeconds: number; vcpuSeconds: number; memGiBSeconds: number; diskGiBSeconds: number; egressBytes: number } | null>;
   /** the backend's own routes (machine claims, the edge's route lookup); true when answered */
   handle?(req: IncomingMessage, res: ServerResponse, url: URL, context: ManagedCloudRoutesContext): Promise<boolean>;
@@ -76,8 +69,6 @@ export interface ManagedCloud {
 /** How a backend is attached: built once the clouds service can lend it a context. */
 export interface ManagedCloudFactory {
   readonly kinds: ReadonlyArray<DesktopPlan["kind"]>;
-  /** moves an older record's backend fields to the current names; true when it changed the record */
-  upgrade(cloud: StoredCloud): boolean;
   create(context: ManagedCloudContext): ManagedCloud;
 }
 

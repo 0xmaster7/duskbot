@@ -3,7 +3,7 @@ import { RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
 import { makeTar, tarEntries } from "./backups.ts";
 import { startFakeInstaboxApi, type FakeInstaboxApi } from "./fake-instabox-api.ts";
 import { createInstaboxProvider, instaboxCostProfile, instaboxHourlyCents, instaboxSize, instaboxUsageCents, InstaboxError } from "./instabox.ts";
-import { INSTABOX_BOOT_FILE, INSTABOX_IMAGE, INSTABOX_LAYOUT, INSTABOX_SETUP_FILE } from "./instabox-home.ts";
+import { HOME_IMAGE as INSTABOX_IMAGE, homeControlScript, INSTABOX_BOOT_FILE, INSTABOX_SETUP_FILE } from "./home.ts";
 import { ProviderBusyError, ProviderLimitError } from "./provider.ts";
 
 const apis: FakeInstaboxApi[] = [];
@@ -110,7 +110,7 @@ it("reads a live backup of the volume and removes it from the machine once read;
 it("restores a backup made on another host into the volume", async () => {
   const { api, provider } = await fixture();
   const server = await provider.create(input);
-  const tar = makeTar([{ name: "__system__/data/.omb-cloud-home.json", data: Buffer.from(JSON.stringify({ version: 1, machine: CLOUD })) }, { name: "__system__/data/.openmausbot/bots.json", data: Buffer.from("[1]") }]);
+  const tar = makeTar([{ name: "data/.omb-cloud-home.json", data: Buffer.from(JSON.stringify({ version: 1, machine: CLOUD })) }, { name: "data/.openmausbot/bots.json", data: Buffer.from("[1]") }]);
   await provider.upload(server.id, INSTABOX_IMAGE.restorePath, tar);
   expect((await provider.run(server.id, INSTABOX_IMAGE.restoreCommand)).stdout).toContain("restored");
   expect(api.machines.get(server.id)!.volume.get("data/.openmausbot/bots.json")?.toString()).toBe("[1]");
@@ -160,13 +160,15 @@ it("sees only its own deployment's machines, and its leases and usage", async ()
 });
 
 it("the image restores in place and keeps the platform's entries, and a resumed home is not restarted", () => {
-  expect(INSTABOX_LAYOUT.restore).toContain("mktemp -d /data/.omb-restore.");
-  expect(INSTABOX_LAYOUT.restore).not.toContain("mv /data /data.old");
-  for (const kept of ["home", "tmp", "workspace", "swapfile", "lost+found"]) expect(INSTABOX_LAYOUT.restore).toContain(kept);
-  expect(INSTABOX_LAYOUT.startKeep).toContain("systemctl is-active --quiet omb-home.service");
+  const control = homeControlScript(), restore = control.slice(control.indexOf("  restore)"), control.indexOf("echo restored ;;"));
+  expect(restore).toContain("mktemp -d /data/.omb-restore.");
+  expect(restore).not.toContain("mv /data /data.old");
+  for (const kept of ["home", "tmp", "workspace", "swapfile", "lost+found"]) expect(restore).toContain(kept);
+  const start = control.slice(control.indexOf("  start)"));
+  expect(start.indexOf("systemctl is-active --quiet omb-home.service")).toBeLessThan(start.indexOf("systemctl restart omb-home.service"));
   const setup = INSTABOX_IMAGE.setupScript({ releaseKeys: [], requireSigned: false });
   expect(setup).toContain("-m 0711 /data");
-  expect(setup).not.toContain(".boat");
+  expect(setup).not.toContain("pre-stop");
   expect(setup).toContain(INSTABOX_BOOT_FILE);
   expect(INSTABOX_IMAGE.installCommand("a".repeat(64))).toContain("/data/home/omb-home.tgz");
 });
