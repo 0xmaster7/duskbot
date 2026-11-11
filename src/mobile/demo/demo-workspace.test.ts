@@ -87,6 +87,29 @@ describe("demo workspace", () => {
   });
 });
 
+describe("demo workspace screens", () => {
+  it("search finds words in any chat, newest first", async () => {
+    const demo = createDemoWorkspace();
+    const { hits } = await (await demo.fetch("/api/search?q=friday&limit=40")).json();
+    expect(hits.length).toBeGreaterThanOrEqual(3);
+    expect(hits[0]).toMatchObject({ name: "Launch room", role: "bot", kind: "text", onActivePath: true });
+    expect(hits[0].snippet.slice(hits[0].matchStart, hits[0].matchStart + hits[0].matchLength).toLowerCase()).toBe("friday");
+    expect(hits.every((hit: { at: number }, index: number) => index === 0 || hits[index - 1].at >= hit.at)).toBe(true);
+    expect((await (await demo.fetch("/api/search?q=")).json()).hits).toEqual([]);
+    demo.close();
+  });
+
+  it("a new bot is made the way the app asks: defaults, create, then its look", async () => {
+    const demo = createDemoWorkspace();
+    const defaults = await (await demo.fetch("/api/bot-defaults")).json();
+    expect(defaults).toMatchObject({ defaults: { skills: [], routines: [] }, modelSelection: { instanceId: "claude" } });
+    const { bot } = await (await demo.fetch("/api/bots", { method: "POST", body: JSON.stringify({ name: "Pip", greeting: false, useDefaults: false }) })).json();
+    const patched = await (await demo.fetch(`/api/bots/${bot.id}`, { method: "PATCH", body: JSON.stringify({ name: "Pip", color: "green", mascotBody: "cloud" }) })).json();
+    expect(patched.bot).toMatchObject({ id: bot.id, name: "Pip", color: "green", mascotBody: "cloud" });
+    demo.close();
+  });
+});
+
 describe("demo mode", () => {
   it("is remembered until it is left, and each change restarts the app", async () => {
     const values = new Map<string, string>();

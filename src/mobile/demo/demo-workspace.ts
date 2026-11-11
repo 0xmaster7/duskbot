@@ -155,7 +155,27 @@ export function createDemoWorkspace(options: { now?: () => number; replyDelayMs?
     return new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } });
   }
 
-  async function route(method: string, path: string, body: Json, signal?: AbortSignal | null): Promise<Response> {
+  /** the words typed, found in any chat's text: the same hits a workspace's search answers with */
+  function search(text: string, limit: number): Json[] {
+    const wanted = text.trim().toLowerCase();
+    if (!wanted) return [];
+    const hits: Json[] = [];
+    for (const owner of [...bots, ...groups]) {
+      for (const message of owner.messages) {
+        const at = message.text.toLowerCase().indexOf(wanted);
+        if (at < 0) continue;
+        const start = at <= 30 ? 0 : message.text.indexOf(" ", at - 30) + 1;
+        hits.push({
+          threadId: owner.threadId, messageId: message.id, at: message.at, role: message.role, kind: message.kind, name: owner.name, task: owner.tasks[0]!.title, onActivePath: true,
+          snippet: message.text.slice(start, start + 96), matchStart: at - start, matchLength: wanted.length,
+          ...("memberIds" in owner ? { groupId: owner.id } : { botId: owner.id }), ...(message.from ? { from: message.from.name } : {}),
+        });
+      }
+    }
+    return hits.sort((a, b) => Number(b.at) - Number(a.at)).slice(0, limit);
+  }
+
+  async function route(method: string, path: string, query: URLSearchParams, body: Json, signal?: AbortSignal | null): Promise<Response> {
     if (method === "GET") {
       if (path === "/api/events") return events(signal);
       if (path === "/api/auth/session") return json(200, { kind: "session", id: "demo", label: "Demo", scopes: ["admin", "client"], expiresAt: now() + 365 * 24 * 60 * MINUTE });
@@ -166,6 +186,8 @@ export function createDemoWorkspace(options: { now?: () => number; replyDelayMs?
       if (path === "/api/routines") return json(200, { routines: [], runs: [] });
       if (path === "/api/webhooks") return json(200, { webhooks: [], attempts: [], ingress: { available: false } });
       if (/^\/api\/threads\/[^/]+\/messages$/.test(path)) return json(200, { messages: [], hasMore: false });
+      if (path === "/api/bot-defaults") return json(200, { defaults: { profile: {}, memory: {}, skills: [], routines: [] }, modelSelection: (shapes.bot as Json).modelSelection, suggestedName: "Pip" });
+      if (path === "/api/search") return json(200, { hits: search(query.get("q") ?? "", Number(query.get("limit")) || 40) });
       return json(404, { error: "not found" });
     }
     const [, kind, ownerId, action] = /^\/api\/(bots|groups)\/([^/]+)(?:\/([a-z-]+))?$/.exec(path) ?? [];
@@ -221,7 +243,7 @@ export function createDemoWorkspace(options: { now?: () => number; replyDelayMs?
         const raw = request ? await request.clone().text().catch(() => "") : typeof init?.body === "string" ? init.body : "";
         try { const parsed: unknown = JSON.parse(raw || "{}"); if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) body = parsed as Json; } catch {}
       }
-      return route(method, url.pathname, body, init?.signal ?? request?.signal);
+      return route(method, url.pathname, url.searchParams, body, init?.signal ?? request?.signal);
     },
     close() { for (const timer of timers) clearTimeout(timer); timers.clear(); streams.clear(); },
   };
