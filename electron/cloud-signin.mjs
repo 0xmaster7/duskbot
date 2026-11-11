@@ -1,5 +1,3 @@
-import { createHash, randomBytes } from "node:crypto";
-
 // The email-code sign-in the phone apps use (openmaus-cloud server/cloud-app-signin.ts), typed into the app: it ends in
 // the same omc_ device token as the browser approval. The attempt and the token stay in main; the page sees outcomes only.
 export const SIGN_IN_START = "/api/cloud/app/sign-in/start";
@@ -77,15 +75,6 @@ export const APP_LINK = "duskbot://auth";
 export const LINK_PROVIDERS = Object.freeze(["google", "apple", "x"]);
 /** How long the browser has to come back: the service keeps an app flow 10 minutes. */
 export const LINK_MS = 600_000;
-
-/** The address to open, and what stays in main: the verifier and the state the link must bring back. */
-export function linkSignIn(origin, provider, random = randomBytes) {
-  if (!LINK_PROVIDERS.includes(provider)) return null;
-  const verifier = random(32).toString("base64url"), state = random(32).toString("base64url");
-  const challenge = createHash("sha256").update(verifier).digest("base64url");
-  const query = new URLSearchParams({ provider, code_challenge: challenge, code_challenge_method: "S256", state, redirect_uri: APP_LINK });
-  return { url: `${origin}${APP_START}?${query}`, verifier, state };
-}
 
 /** duskbot://auth?code=...&state=... or ?error=...&state=...; anything else is no sign-in link. */
 export function isAppLink(value) {

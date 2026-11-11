@@ -3,7 +3,8 @@ import test from "node:test";
 import { createServer } from "node:http";
 import { createCloudAccountClient } from "./cloud-account.mjs";
 import { createHash } from "node:crypto";
-import { APP_LINK, cleanCode, cleanEmail, isAppLink, linkFailure, linkSignIn, parseAppLink, parseProviders, parseSignInStart, SIGN_IN_TRIES, signInIdentity, startFailure, verifyFailure } from "./cloud-signin.mjs";
+import { linkSignIn } from "./cloud-signin-link.mjs";
+import { APP_LINK, cleanCode, cleanEmail, isAppLink, linkFailure, parseAppLink, parseProviders, parseSignInStart, SIGN_IN_TRIES, signInIdentity, startFailure, verifyFailure } from "./cloud-signin.mjs";
 
 const accessToken = `omc_${"E".repeat(43)}`, ATTEMPT = "a".repeat(43), CODE = "48201937";
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
