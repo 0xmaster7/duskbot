@@ -67,9 +67,9 @@ function CrewEmpty() {
           <a href={DOWNLOAD_URL} target="_blank" rel="noreferrer" className="press mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-[#131316] px-4.5 text-14 font-medium text-white"><Download size={16} strokeWidth={1.75} aria-hidden />get the app</a>
         </div>
         <div className="flex shrink-0 items-end gap-5 pe-6 max-sm:self-center max-sm:pe-0" aria-hidden>
-          <span className="peek relative" style={{ ["--i" as string]: 0 }}><Mascot body="moon" color="purple" size={64} state="sleeping" /><span className="absolute -right-1 -top-2"><i className="zz not-italic !text-white">z</i><i className="zz not-italic !text-white">z</i><i className="zz not-italic !text-white">z</i></span></span>
-          <span className="peek" style={{ ["--i" as string]: 1 }}><Mascot body="circle" color="blue" size={92} state="curious" track={900} tappable /></span>
-          <span className="peek" style={{ ["--i" as string]: 2 }}><Mascot body="heart" color="pink" size={70} state="idle" track={900} tappable /></span>
+          <span className="peek relative" style={{ ["--i" as string]: 0 }}><Mascot body="wisp" color="purple" size={64} state="sleeping" /><span className="absolute -right-1 -top-2"><i className="zz not-italic !text-white">z</i><i className="zz not-italic !text-white">z</i><i className="zz not-italic !text-white">z</i></span></span>
+          <span className="peek" style={{ ["--i" as string]: 1 }}><Mascot body="kit" color="blue" size={92} state="curious" track={900} tappable /></span>
+          <span className="peek" style={{ ["--i" as string]: 2 }}><Mascot body="hearty" color="pink" size={70} state="idle" track={900} tappable /></span>
         </div>
       </div>
     </section>

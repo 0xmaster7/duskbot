@@ -88,9 +88,9 @@ function CodeBoxes({ input, boxes, length, value, onChange, invalid, disabled, o
 
 function SceneCard() {
   const rows: Array<[string, "blue" | "pink" | "orange", string, string]> = [
-    ["circle", "blue", "see them work", "every workspace side by side, live."],
-    ["heart", "pink", "keep them on", "a cloud desktop runs routines while you sleep."],
-    ["hex", "orange", "text them anywhere", "the same bots, from your phone."],
+    ["kit", "blue", "see them work", "every workspace side by side, live."],
+    ["hearty", "pink", "keep them on", "a cloud desktop runs routines while you sleep."],
+    ["boxo", "orange", "text them anywhere", "the same bots, from your phone."],
   ];
   return (
     <>

@@ -68,7 +68,7 @@ export function Success({ name, onDone }: { name: string; onDone: () => void }) 
                 transition={{ ...spring.lively, stiffness: 260, damping: 22, delay: reduced ? 0 : 0.06 * i, opacity: { duration: dur.fast } }}>
                 <span className="omb-float relative block" style={{ animationDuration: `${5 + (i % 3)}s` }}>
                   <span aria-hidden className="absolute -inset-3 rounded-full" style={{ background: "radial-gradient(closest-side, rgb(255 255 255 / 0.16), transparent)" }} />
-                  {bot ? <BotAvatar bot={bot} size={72} state="happy" label="" /> : <MausAvatar color="blue" bodyId="circle" size={72} state="happy" label="" />}
+                  {bot ? <BotAvatar bot={bot} size={72} state="happy" label="" /> : <MausAvatar color="blue" bodyId="kit" size={72} state="happy" label="" />}
                 </span>
               </motion.div>
             );

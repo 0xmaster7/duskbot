@@ -89,7 +89,7 @@ export function Scanner({ platform, busy, onCode, onClose, onEnterCode, onPaste 
           </div>
         )}
         <div aria-hidden className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-[62%]">
-          <MausAvatar color="blue" bodyId="circle" size={64} state={busy ? "working" : seen ? "happy" : "curious"} gaze={{ x: 0, y: 1 }} label="" />
+          <MausAvatar color="blue" bodyId="kit" size={64} state={busy ? "working" : seen ? "happy" : "curious"} gaze={{ x: 0, y: 1 }} label="" />
         </div>
         {unavailable && (
           <div className="absolute inset-0 flex items-center justify-center px-8 text-center text-[15px] leading-6 text-white/75">{t("mobile.onboarding.noCamera")}</div>

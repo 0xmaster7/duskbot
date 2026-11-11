@@ -70,7 +70,7 @@ function FreeRow({ catalog, current, action }: { catalog: PlanCatalog; current: 
   const b = bundleOf(catalog, "free");
   return (
     <section className="surface mt-3 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card bg-card px-6 py-4 max-sm:px-5" aria-labelledby="plan-free">
-      <Mascot color="purple" body="moon" size={34} state="sleeping" />
+      <Mascot color="purple" body="wisp" size={34} state="sleeping" />
       <div className="min-w-0 flex-1">
         <h2 id="plan-free" className="flex items-center gap-2.5 text-14 text-ink-2">{b?.name ?? "free"} <span className="num text-ink-3">$0</span>{current && <Badge>current</Badge>}</h2>
         <p className="mt-0.5 text-13 text-ink-3">your bots on your mac or your own server, for personal use. they stop when it sleeps.</p>

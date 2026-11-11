@@ -42,7 +42,7 @@ function Rail({ at }: { at: number }) {
     <div className="relative mb-10 h-2 rounded-full bg-track [overflow-x:clip]" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuenow={at + 1} aria-label={`step ${at + 1} of ${STEPS.length}`}>
       <div className="h-full origin-left rounded-full bg-ink transition-transform duration-500 ease-[var(--ease-out)] motion-reduce:transition-none" style={{ transform: `scaleX(${part})` }} />
       <div className="pointer-events-none absolute inset-0 transition-transform duration-500 ease-[var(--ease-pop)] motion-reduce:transition-none" style={{ transform: `translateX(${part * 100}%)` }} aria-hidden>
-        <span className="absolute -top-[30px] left-0 -translate-x-full"><Mascot ref={rider} body="pixel" color="pink" size={34} state={last ? "celebrate" : "happy"} /></span>
+        <span className="absolute -top-[30px] left-0 -translate-x-full"><Mascot ref={rider} body="tofu" color="pink" size={34} state={last ? "celebrate" : "happy"} /></span>
       </div>
     </div>
   );

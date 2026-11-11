@@ -4,16 +4,16 @@ import { MausAvatar } from "@/components/Avatar";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
-import { MAUS_COLORS, colorSwatch, type MausColor } from "@/lib/mascot";
+import { PICKER_COLORS, colorSwatch, type MausColor } from "@/lib/mascot";
 import { useStore } from "@/state/store";
-import type { DuskBodyId } from "../../../shared/body-migration";
+import { DEFAULT_BOT_BODY, DUSK_BODY_IDS, DUSK_BODY_NAMES, type DuskBodyId } from "../../../shared/body-migration";
 import { Sheet } from "../Sheet";
 import { haptic } from "../haptics";
 import { spring } from "../motion";
 import type { SheetPageProps } from "./registry";
 
-const BODIES = ["circle", "cloud", "squircle", "star", "pill", "heart", "moon", "drop"] as const satisfies readonly DuskBodyId[];
-const COLORS = Object.keys(MAUS_COLORS) as MausColor[];
+const BODIES = DUSK_BODY_IDS;
+const COLORS = PICKER_COLORS;
 
 function moveRadio(event: KeyboardEvent<HTMLDivElement>) {
   const step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 0;
@@ -30,7 +30,7 @@ function moveRadio(event: KeyboardEvent<HTMLDivElement>) {
 export function CreateBotSheet({ open, onClose, onOpenChat }: SheetPageProps<"create">) {
   const { state, dispatch } = useStore();
   const [name, setName] = useState("");
-  const [body, setBody] = useState<DuskBodyId>("circle");
+  const [body, setBody] = useState<DuskBodyId>(DEFAULT_BOT_BODY);
   const [color, setColor] = useState<MausColor>("blue");
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState(false);
@@ -57,14 +57,14 @@ export function CreateBotSheet({ open, onClose, onOpenChat }: SheetPageProps<"cr
         </motion.div>
         <label htmlFor={nameId} className="sr-only">{t("mobile.create.name")}</label>
         <input id={nameId} name="botName" value={name} maxLength={80} autoComplete="off" onChange={(event) => setName(event.target.value)} placeholder={t("mobile.create.placeholder")} className="h-12 w-full rounded-full border-0 bg-ink/[0.05] px-4 text-center text-[17px] font-semibold text-ink placeholder:text-ink-tertiary" />
-        <div role="radiogroup" aria-label={t("mobile.create.body")} onKeyDown={moveRadio} className="grid grid-cols-4 justify-items-center gap-y-3">
+        <div role="radiogroup" aria-label={t("mobile.create.body")} onKeyDown={moveRadio} className="grid grid-cols-5 justify-items-center gap-y-3">
           {BODIES.map((id) => (
-            <button key={id} type="button" role="radio" aria-checked={id === body} aria-label={t(`mobile.create.body.${id}`)} tabIndex={id === body ? 0 : -1} onClick={() => { if (id !== body) { setBody(id); setRevision((value) => value + 1); haptic("selection"); } }} className="mobile-press flex size-12 items-center justify-center rounded-full">
+            <button key={id} type="button" role="radio" aria-checked={id === body} aria-label={DUSK_BODY_NAMES[id]} tabIndex={id === body ? 0 : -1} onClick={() => { if (id !== body) { setBody(id); setRevision((value) => value + 1); haptic("selection"); } }} className="mobile-press flex size-12 items-center justify-center rounded-full">
               <span className={cn("flex size-10 items-center justify-center rounded-full", id === body && "ring-2 ring-ink ring-offset-[3px] ring-offset-app")}><MausAvatar bodyId={id} color={color} size={40} animated={false} label="" /></span>
             </button>
           ))}
         </div>
-        <div role="radiogroup" aria-label={t("mobile.create.colour")} onKeyDown={moveRadio} className="grid grid-cols-7 justify-items-center self-center">
+        <div role="radiogroup" aria-label={t("mobile.create.colour")} onKeyDown={moveRadio} className="grid grid-cols-5 justify-items-center self-center">
           {COLORS.map((value) => (
             <button key={value} type="button" role="radio" aria-label={t(`mobile.create.colour.${value}`)} aria-checked={value === color} tabIndex={value === color ? 0 : -1} onClick={() => { if (value !== color) { setColor(value); setRevision((count) => count + 1); haptic("selection"); } }} className="mobile-press flex size-11 items-center justify-center rounded-full">
               <span className={cn("size-[30px] rounded-full", value === color && "ring-2 ring-ink ring-offset-[3px] ring-offset-app")} style={{ background: colorSwatch(value) }} />
