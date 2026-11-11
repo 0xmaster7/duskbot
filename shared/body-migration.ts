@@ -1,48 +1,60 @@
 /** The bodies a bot can wear, and the one each body id saved by an older version now draws as. */
 
-export const DUSK_BODY_IDS = ["circle", "squircle", "pill", "hex", "star", "heart", "drop", "moon", "cloud", "pixel"] as const;
+import { PIXEL_BODY_IDS, type PixelBodyId } from "./pixel-bodies.ts";
 
-export type DuskBodyId = (typeof DUSK_BODY_IDS)[number];
+export const DUSK_BODY_IDS = PIXEL_BODY_IDS;
+
+export type DuskBodyId = PixelBodyId;
 
 /** What a body is called in a picker and its accessible name. */
 export const DUSK_BODY_NAMES: Record<DuskBodyId, string> = {
-  circle: "Circle", squircle: "Squircle", pill: "Pill", hex: "Hex", star: "Star",
-  heart: "Heart", drop: "Drop", moon: "Moon", cloud: "Cloud", pixel: "Pixel",
+  kit: "Kit", pip: "Pip", hop: "Hop", bruin: "Bruin", boo: "Boo", mochi: "Mochi", loaf: "Loaf", cheep: "Cheep",
+  ribbit: "Ribbit", goo: "Goo", puff: "Puff", sprout: "Sprout", drip: "Drip", hearty: "Hearty", starry: "Starry",
+  hoot: "Hoot", boxo: "Boxo", egg: "Egg", wisp: "Wisp", tofu: "Tofu",
 };
 
 /** The body a new bot wears, and what an unknown or missing id draws as. */
-export const DEFAULT_BOT_BODY: DuskBodyId = "squircle";
+export const DEFAULT_BOT_BODY: DuskBodyId = "kit";
 
 /**
  * Every body id an older version saved, in stored bots, synced bots, backups, team files and server data, and the body
  * it draws as now. Never remove an entry: a bot saved with it would lose its look.
  */
 export const BODY_MIGRATION = {
-  cursor: "squircle",
-  blob: "circle",
-  capsule: "pill",
-  shield: "hex",
-  hexagon: "hex",
-  diamond: "hex",
-  tablet: "squircle",
-  flower: "cloud",
-  sparkle: "star",
-  wedge: "moon",
-  fruit: "circle",
-  clover: "cloud",
-  square: "squircle",
-  teardrop: "drop",
-  pebble: "circle",
-  bean: "pill",
-  egg: "drop",
-  cylinder: "pill",
-  gem: "hex",
-  crystal: "hex",
-  dome: "circle",
-  arch: "pill",
-  leaf: "drop",
-  house: "pixel",
-  crescent: "moon",
+  circle: "pip",
+  squircle: "loaf",
+  pill: "mochi",
+  hex: "boxo",
+  star: "starry",
+  heart: "hearty",
+  drop: "drip",
+  moon: "wisp",
+  cloud: "puff",
+  pixel: "tofu",
+  cursor: "kit",
+  blob: "pip",
+  capsule: "mochi",
+  shield: "boxo",
+  hexagon: "boxo",
+  diamond: "starry",
+  tablet: "tofu",
+  flower: "sprout",
+  sparkle: "starry",
+  wedge: "wisp",
+  fruit: "cheep",
+  clover: "puff",
+  square: "loaf",
+  teardrop: "drip",
+  pebble: "egg",
+  bean: "mochi",
+  cylinder: "tofu",
+  gem: "boxo",
+  crystal: "starry",
+  dome: "bruin",
+  arch: "boo",
+  leaf: "sprout",
+  house: "boxo",
+  crescent: "wisp",
 } as const satisfies Record<string, DuskBodyId>;
 
 export type LegacyBodyId = keyof typeof BODY_MIGRATION;
