@@ -122,7 +122,7 @@ describe("billing service isolated fixture", () => {
     const { sub } = await buy();
     expect(await service.cancel(owner, sub.id, { answer: "price", expected: "  cheaper  ", improve: "  flexibility " })).toMatchObject({ cancelAtPeriodEnd: true });
     expect(store.state.feedback[0]).toMatchObject({ accountId: owner.id, subscriptionId: sub.id, cloudId: sub.cloudId, answer: "price", expected: "cheaper", improve: "flexibility" });
-    expect(clouds.scheduleDestroy).toHaveBeenLastCalledWith(sub.cloudId, sub.currentPeriodEnd! + 7 * day);
+    expect(clouds.scheduleDestroy).toHaveBeenLastCalledWith(sub.cloudId, sub.currentPeriodEnd! + 30 * day);
     expect(provider.cancelCalls[0]).toEqual({ subscriptionId: sub.providerSubscriptionId, cancel: true });
     await service.keep(owner, sub.id); expect(sub.cancelAtPeriodEnd).toBe(false); expect(clouds.cancelDestroy).toHaveBeenLastCalledWith(sub.cloudId);
     expect(provider.cancelCalls.at(-1)?.cancel).toBe(false);
@@ -174,7 +174,7 @@ describe("billing service isolated fixture", () => {
     deliver(provider.renew(sub.providerSubscriptionId!)); expect(sub.currentPeriodStart).toBe(until); expect(sub.currentPeriodEnd).toBeGreaterThan(until);
     expect(clouds.cancelDestroy).toHaveBeenCalledTimes(cancelCalls); expect(clouds.setPaymentProblem).toHaveBeenLastCalledWith(sub.cloudId, false);
     deliver(provider.expire(sub.providerSubscriptionId!)); expect(sub.status).toBe("ended"); expect(service.licenses(owner.id)[0].status).toBe("expired");
-    expect(clouds.end).toHaveBeenLastCalledWith(sub.cloudId, time + 7 * day); expect(service.appState(owner).primary).toBeNull();
+    expect(clouds.end).toHaveBeenLastCalledWith(sub.cloudId, time + 30 * day); expect(service.appState(owner).primary).toBeNull();
   });
   it("enforces open checkout, license exclusivity, desktop cap, and account rate limits", async () => {
     await service.checkout(owner, { kind: "cart", cart: licensedDesktop() });
@@ -218,9 +218,9 @@ describe("billing service isolated fixture", () => {
     await service.change(owner, sub.id, service.previewChange(owner, sub.id, team).confirmation);
     expect(clouds.changePlan).not.toHaveBeenCalled(); expect(service.licenses(owner.id)[0]).toMatchObject({ kind: "team", seats: 5 });
     await service.change(owner, sub.id, service.previewChange(owner, sub.id, { ...team, desktop: { kind: "none" } }).confirmation);
-    // paid to the period's end: it runs until then, and the 7 days start there
+    // paid to the period's end: it runs until then, and the 30 days start there
     const periodEnd = sub.currentPeriodEnd!; expect(periodEnd).toBeGreaterThan(time);
-    expect(clouds.end).toHaveBeenLastCalledWith(cloudId, periodEnd + 7 * day, periodEnd); expect(sub.cloudId).toBeNull();
+    expect(clouds.end).toHaveBeenLastCalledWith(cloudId, periodEnd + 30 * day, periodEnd); expect(sub.cloudId).toBeNull();
   });
   it("records failed invoices once and upgrades the same payment on success", async () => {
     await service.checkout(owner, { kind: "credits", pack: "c10" });

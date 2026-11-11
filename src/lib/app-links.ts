@@ -6,7 +6,7 @@ export const APPROVAL_LEVELS_URL = `${APP_REPOSITORY}/blob/custom/docs/approval-
 export const PASSKEY_HELP_URL = "https://dusk.bot/docs/troubleshooting";
 export const FEEDBACK_URL = "https://discord.gg/9Wb8MEpXRs";
 export const RELEASES_URL = `${APP_REPOSITORY}/releases`;
-export const CLOUD_PLAN_URL = "https://app.dusk.bot/cloud";
+export const CLOUD_PLAN_URL = "https://dusk.bot/dashboard/cloud";
 export const LICENSE_URL = `${APP_REPOSITORY}/blob/custom/LICENSE`;
 
 export function appVersion(): string {

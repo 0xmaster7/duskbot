@@ -232,7 +232,7 @@ export function accountDeletedEmail(cfg: EmailConfig, { email }: { email: string
     blocks: [
       { t: "h1", text: "your account is deleted" },
       { t: "p", text: `thanks for trying dusk bot. the account for **${email}** is gone, and here's what went with it:` },
-      { t: "list", items: ["your account, sign-ins and sessions", "your plans, so no more charges", "your clouds and everything on them"] },
+      { t: "list", items: ["your account, sign-ins and sessions", "your plans, so no more charges", "your clouds: each one stops (at once, or when its paid time ends), is kept 30 days, then deleted with everything on it"] },
       { t: "note", tone: "info", text: "**what stays:** the dusk bot app and your bots on your own computer are yours. uninstall the app to remove them. payment records we have to keep by law stay, without your details." },
       { t: "p", text: "if you ever want back in, signing up again takes a minute." },
       { t: "p", small: true, text: "didn't delete your account? reply to this email right away." },

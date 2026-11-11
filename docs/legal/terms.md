@@ -4,7 +4,7 @@
 
 Effective date: [Effective date].
 
-These terms govern your use of Dusk Bot, dusk.bot, the account dashboard at app.dusk.bot, and the link service at link.dusk.bot. Your agreement is with [Legal entity name], at [Registered address]. In these terms, “we” and “us” mean that entity. Contact hello@dusk.bot with questions before you use the services.
+These terms govern your use of Dusk Bot, dusk.bot, the account dashboard at dusk.bot/dashboard, and the link service at link.dusk.bot. Your agreement is with [Legal entity name], at [Registered address]. In these terms, “we” and “us” mean that entity. Contact hello@dusk.bot with questions before you use the services.
 
 Your use of the software is also subject to its license. Read the [license summary](license.md) and the full license before you use Dusk Bot. These service terms do not expand your software license or grant commercial rights.
 
@@ -22,7 +22,7 @@ You choose the AI engines your bots use. You sign in to those providers yourself
 
 ## Accounts and credentials
 
-The account service at app.dusk.bot is optional. If you use it, give accurate information and keep it current. Keep access to your email, sign-in providers, devices and sessions secure. Tell us promptly if you believe someone has gained unauthorised access to your account.
+The account service at dusk.bot/dashboard is optional. If you use it, give accurate information and keep it current. Keep access to your email, sign-in providers, devices and sessions secure. Tell us promptly if you believe someone has gained unauthorised access to your account.
 
 You are responsible for activity you authorise through your account. Do not use someone else's account without permission. Do not give bots access to accounts, systems or information you are not entitled to use.
 
@@ -68,7 +68,7 @@ You may send feedback to hello@dusk.bot. Do not include confidential material or
 
 We may suspend or end access to our services if you materially breach these terms, create a security risk or use them unlawfully. Where practical and lawful, we will tell you the reason and give you a chance to address it. Urgent risks may require action first.
 
-You may stop using the services. Account deletion is self-serve on the Account page. You must first cancel active plans and cloud desktops. The page offers to cancel them. Deletion removes your account, sessions, identities and linked workspaces. Cloud desktop retention and separate provider records follow their own applicable rules.
+You may stop using the services. Account deletion is self-serve on the Account page. You must first cancel active plans and cloud desktops. The page offers to cancel them. Deletion removes your account, sessions, identities and linked workspaces. A cloud desktop of a deleted account stops (at once, or when its paid time ends), is kept for 30 days, and is then deleted. Separate provider records follow their own applicable rules.
 
 ## Disclaimers and your review
 

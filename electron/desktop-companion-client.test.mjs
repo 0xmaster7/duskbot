@@ -92,7 +92,7 @@ describe("desktop companion endpoint", () => {
       `https://${LABEL}.evilcloud.dusk.bot`,
       "https://dusk.bot",
       "https://app.cloud.dusk.bot",
-      "https://app.dusk.bot",
+      "https://dusk.bot",
       "https://c-opaque.cloud.dusk.bot",
       "https://c-opaque.cloud.dusk.bot",
       `https://${LABEL.slice(0, -1)}.cloud.dusk.bot`,

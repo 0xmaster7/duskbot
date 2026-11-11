@@ -103,6 +103,8 @@ export async function openMongoBackend(options: { uri: string; db: string; layou
   return {
     backend,
     db,
+    /** another database on the same connection, read only by this service (the site's waitlist) */
+    sibling: (name: string) => client.db(name),
     /** writes what is pending, gives the lease back and disconnects */
     async close() {
       clearInterval(renew);

@@ -80,7 +80,7 @@ describe("the fixture's X research relay", () => {
   it("passes a loopback relay stub and its token through, the token only with the stub", () => {
     expect(childEnv({ DUSK_CLOUD_X_URL: " http://127.0.0.1:4200/api/cloud/services/x ", DUSK_CLOUD_X_TOKEN: "omb_x_fixture" }))
       .toMatchObject({ DUSK_CLOUD_X_URL: "http://127.0.0.1:4200/api/cloud/services/x", DUSK_CLOUD_X_TOKEN: "omb_x_fixture" });
-    for (const url of ["https://app.dusk.bot/api/cloud/services/x", "http://localhost:4200/api/cloud/services/x", "http://192.0.2.1:4200", "http://127.0.0.1:4200/../x?y", ""]) {
+    for (const url of ["https://dusk.bot/api/cloud/services/x", "http://localhost:4200/api/cloud/services/x", "http://192.0.2.1:4200", "http://127.0.0.1:4200/../x?y", ""]) {
       const env = childEnv({ DUSK_CLOUD_X_URL: url, DUSK_CLOUD_X_TOKEN: "omb_x_real" });
       expect(env, url).not.toHaveProperty("DUSK_CLOUD_X_URL");
       expect(env, url).not.toHaveProperty("DUSK_CLOUD_X_TOKEN");
@@ -94,7 +94,7 @@ describe("the fixture's @devs reports", () => {
   it("go to a loopback fake endpoint, else to a closed port: never to the Dusk team", () => {
     const closed = "http://127.0.0.1:9/api/bug-reports";
     expect(childEnv({ DUSK_BUG_REPORT_URL: " http://127.0.0.1:4400/api/bug-reports " }).DUSK_BUG_REPORT_URL).toBe("http://127.0.0.1:4400/api/bug-reports");
-    for (const url of ["https://app.dusk.bot/api/bug-reports", "http://localhost:4400/api/bug-reports", "http://192.0.2.1:4400/x", "http://127.0.0.1:4400/../x?y", ""]) {
+    for (const url of ["https://dusk.bot/api/bug-reports", "http://localhost:4400/api/bug-reports", "http://192.0.2.1:4400/x", "http://127.0.0.1:4400/../x?y", ""]) {
       expect(childEnv({ DUSK_BUG_REPORT_URL: url }).DUSK_BUG_REPORT_URL, url).toBe(closed);
     }
     expect(childEnv({}).DUSK_BUG_REPORT_URL).toBe(closed);

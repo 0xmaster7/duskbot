@@ -113,7 +113,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
       function limited(key: string): boolean {
         const now = ctx.now();
         for (const [k, item] of claimLimits) if (item.until <= now) claimLimits.delete(k);
-        return (claimLimits.get(key)?.count ?? 0) >= 30;
+        return (claimLimits.get(key)?.count ?? 0) >= 60;
       }
       function failed(key: string) {
         const now = ctx.now(), item = claimLimits.get(key);
@@ -123,7 +123,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
       async function handle(req: IncomingMessage, res: ServerResponse, url: URL, routes: ManagedCloudRoutesContext): Promise<boolean> {
         if (url.pathname === "/v1/managed/claims/redeem") {
           if (req.method !== "POST") { routes.json(res, 405, { error: "method_not_allowed" }); return true; }
-          // the claim is the credential; a guesser gets 30 wrong tries per address per 15 minutes
+          // the claim is the credential (43 random characters); a guesser gets 60 wrong tries per address per 15 minutes
           const address = `claim:${routes.clientIp(req)}`;
           if (limited(address)) { res.setHeader("retry-after", "60"); routes.json(res, 429, { error: "rate_limited" }); return true; }
           const body = await routes.readJson(req).catch(() => ({} as Record<string, unknown>));

@@ -7,12 +7,12 @@ const accessToken = `omc_${"S".repeat(43)}`;
 
 test("DUSK_CLOUD_STAGING=1, and only that, points the app at the fixed staging Admin with its own token file", () => {
   assert.deepEqual(cloudTarget({}), { origin: CLOUD_ORIGIN, staging: false, custom: false, file: "cloud-account.bin", saved: "cloud-accounts.bin", places: "account-places.json", environments: "environments.json", sync: "cloud-sync", look: "cloud-home-look.json" });
-  assert.deepEqual(cloudTarget({ DUSK_CLOUD_STAGING: "1" }), { origin: "https://dev.dusk.bot", staging: true, custom: false, file: "cloud-account-staging.bin", saved: "cloud-accounts-staging.bin", places: "account-places-staging.json",
+  assert.deepEqual(cloudTarget({ DUSK_CLOUD_STAGING: "1" }), { origin: "https://preview.dusk.bot", staging: true, custom: false, file: "cloud-account-staging.bin", saved: "cloud-accounts-staging.bin", places: "account-places-staging.json",
     environments: "environments-staging.json", sync: "cloud-sync-staging", look: "cloud-home-look-staging.json" });
   const production = Object.values(cloudTarget({})), staging = Object.values(cloudTarget({ DUSK_CLOUD_STAGING: "1" }));
   assert.ok(staging.filter(value => typeof value === "string").every(name => !production.includes(name)), "no file or address shared with production");
-  assert.equal(STAGING_CLOUD_ORIGIN, "https://dev.dusk.bot");
-  for (const value of ["0", "true", "yes", " 1", "1 ", "01", "2", "", "https://evil.example.test", "https://dev.dusk.bot"]) {
+  assert.equal(STAGING_CLOUD_ORIGIN, "https://preview.dusk.bot");
+  for (const value of ["0", "true", "yes", " 1", "1 ", "01", "2", "", "https://evil.example.test", "https://preview.dusk.bot"]) {
     assert.deepEqual(cloudTarget({ DUSK_CLOUD_STAGING: value }), cloudTarget({}), JSON.stringify(value));
   }
   assert.deepEqual(cloudTarget({ DUSK_CLOUD_STAGING_URL: "https://evil.example.test" }), cloudTarget({}), "no staging address is read from the environment");
@@ -25,7 +25,7 @@ test("DUSK_CLOUD_STAGING=1, and only that, points the app at the fixed staging A
 
 test("the staging address is the one exact https origin; staging checkouts are only Dodo's test page", () => {
   assert.equal(cloudOrigin(STAGING_CLOUD_ORIGIN), STAGING_CLOUD_ORIGIN);
-  for (const value of ["http://dev.dusk.bot", `${STAGING_CLOUD_ORIGIN}/`, `${STAGING_CLOUD_ORIGIN}:8443`, "https://dev.dusk.bot.evil.test", "https://evil.fly.dev"]) {
+  for (const value of ["http://preview.dusk.bot", `${STAGING_CLOUD_ORIGIN}/`, `${STAGING_CLOUD_ORIGIN}:8443`, "https://preview.dusk.bot.evil.test", "https://evil.fly.dev"]) {
     assert.throws(() => cloudOrigin(value), /Invalid Dusk Cloud address/, value);
   }
   const test = "https://test.checkout.dodopayments.com/session/cks_1", live = "https://checkout.dodopayments.com/session/cks_1";

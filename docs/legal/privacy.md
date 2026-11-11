@@ -4,7 +4,7 @@
 
 Effective date: [Effective date].
 
-[Legal entity name], at [Registered address], is the controller for personal data processed through the Dusk Bot services described here. You can contact privacy@dusk.bot about your information or this policy. Our website is dusk.bot. Our optional account dashboard is app.dusk.bot. Our link service is link.dusk.bot.
+[Legal entity name], at [Registered address], is the controller for personal data processed through the Dusk Bot services described here. You can contact privacy@dusk.bot about your information or this policy. Our website is dusk.bot. Our optional account dashboard is dusk.bot/dashboard. Our link service is link.dusk.bot.
 
 Your computer, VPS, our account services and a Dusk Cloud desktop have different roles. Choosing a hosted desktop stores your bot content on that machine. That content is not part of account dashboard workspace reports.
 
@@ -28,7 +28,7 @@ Scrubbing removes secrets, email addresses, web addresses, quoted text and perso
 
 ## Optional account service
 
-If you use app.dusk.bot, we store your email address and optional display name. For linked Google, Apple or X sign-in, we store the provider name, its account identifier and email address. Sign-in codes are emailed and kept in memory only.
+If you use the account dashboard at dusk.bot/dashboard, we store your email address and optional display name. For linked Google, Apple or X sign-in, we store the provider name, its account identifier and email address. Sign-in codes are emailed and kept in memory only.
 
 Sign-in session records contain your device name, platform, app version, creation time and last-seen time. We store only a hash of the session token. The hash lets the service check a session without storing the original token in its session records.
 
@@ -54,7 +54,7 @@ We use Resend for transactional email, including sign-in codes and account and b
 
 Dusk Cloud provides a hosted, always-on computer per customer on InstaBox infrastructure, which runs on Amazon Web Services. InstaBox is a sub-processor. Your bots, chats and files live on that machine. This is the exception to the statement that your message content is not stored on our services. The cloud desktop connects directly to the AI providers you sign in to, using your accounts with them.
 
-Cloud desktop backups are encrypted with a key held by the account service. That key arrangement is different from the link relay, where only your app and your VPS hold the keys. After your plan ends, the desktop is kept for 30 days and then deleted; we email you 7 days before. If you ask to delete it yourself, it is deleted 7 days after you confirm. Backup retention is [cloud backup retention and deletion schedule].
+Cloud desktop backups are encrypted with a key held by the account service. That key arrangement is different from the link relay, where only your app and your VPS hold the keys. After your plan ends, the desktop is kept for 30 days and then deleted; we email you 7 days before. If you ask to delete it yourself, it is deleted 7 days after you confirm. While the desktop exists we keep its newest three verified backups. When it is deleted after those 30 days, its encrypted backups are kept 30 more days as a safety copy and then deleted; when you ask for the deletion yourself, the backups are deleted with it.
 
 If you enable Wake for Slack, the account service holds your bot's Slack app-level token while the desktop sleeps. The token is sealed at rest. It also holds Slack events addressed to your bot, sealed to the desktop's key, for at most 24 hours. It never reads or logs event text. You choose whether to enable this feature.
 
@@ -112,7 +112,7 @@ Your information may be processed outside your country through these providers. 
 
 Account record retention is [account and workspace report retention]. Session record retention is [session retention]. Billing record retention is [billing retention and legal requirements]. The service-specific periods above apply to logs, error reports, link records and cloud data. We do not assign a fixed period here where it has not been confirmed.
 
-You can use Delete account on the Account page. It removes the account, sessions, identities and linked workspaces. Active plans and cloud desktops must be cancelled first. The page offers to cancel them. Cloud desktop and backup deletion follow the stated retention policies. Deleting your Dusk Bot account does not itself delete local files or records held independently by your AI providers.
+You can use Delete account on the Account page. It removes the account, sessions, identities and linked workspaces. Active plans and cloud desktops must be cancelled first. The page offers to cancel them. A cloud desktop of a deleted account stops (at once, or when its paid time ends), is kept for 30 days, and is then deleted; its backups follow the backup rule above. Deleting your Dusk Bot account does not itself delete local files or records held independently by your AI providers.
 
 ## Your rights and choices
 
@@ -126,7 +126,7 @@ We use encryption in transit, sealed relay frames, hashed session and link token
 
 ## Cookies and local storage
 
-On app.dusk.bot, a session cookie is HttpOnly, lasts 30 days and is renewed while used. A CSRF cookie protects requests. A short-lived OAuth state cookie supports sign-in. Your theme preference is stored in local storage.
+On dusk.bot (the dashboard, the admin and the API), a session cookie is HttpOnly, lasts 30 days and is renewed while used. A CSRF cookie protects requests. A short-lived OAuth state cookie supports sign-in. Your theme preference is stored in local storage.
 
 There are no advertising cookies. Outside the EU, the EEA, the UK and Switzerland, the website's analytics script sets two first-party cookies, `dusk_vid` (a random visitor id, one year) and `dusk_sid` (a visit id, 30 minutes), described under Product analytics; they are never shared with anyone. Where Cloudflare places you in those countries, or cannot place you, the script sets no cookies and uses no local storage, and our server counts visits with a daily-changing id instead, as described under Product analytics. The account cookies are strictly necessary for account and security functions. Theme local storage records your preference. Blocking required cookies may prevent account sign-in or related functions from working.
 

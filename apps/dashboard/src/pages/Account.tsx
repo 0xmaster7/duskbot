@@ -145,9 +145,9 @@ export function AccountPage() {
         <p role="alert">cancel your plan and dusk cloud before deleting your account.</p>
         <ul className="list-disc pl-5">{blockers.map(blocker => <li key={`${blocker.kind}-${blocker.id}`}>{blocker.label} ({blocker.status.replaceAll("_", " ")})</li>)}</ul>
         <ButtonLink to="/billing" size="sm">plans and billing</ButtonLink>
-        <p>cancelling turns off renewal. dusk cloud is kept until the paid period ends plus the grace period, unless you delete them now.</p>
+        <p>cancelling turns off renewal. dusk cloud runs until the paid period ends, then its data is kept 30 days before it's deleted.</p>
         <label className="flex items-start gap-2"><input type="checkbox" checked={destroyDesktopsNow} disabled={busy !== null} onChange={e => { setDestroyDesktopsNow(e.target.checked); setConfirmDestroy(false); }} />delete my dusk cloud now</label>
-        {destroyDesktopsNow && <label className="flex items-start gap-2 text-bad"><input type="checkbox" checked={confirmDestroy} disabled={busy !== null} onChange={e => setConfirmDestroy(e.target.checked)} />your dusk cloud and everything on it is deleted at once. this cannot be undone.</label>}
+        {destroyDesktopsNow && <label className="flex items-start gap-2 text-bad"><input type="checkbox" checked={confirmDestroy} disabled={busy !== null} onChange={e => setConfirmDestroy(e.target.checked)} />your dusk cloud stops at once. its data is kept 30 days, then deleted for good.</label>}
       </div>}
       {confirmError && <p role="alert" className="mt-3 text-13 text-bad">{confirmError}</p>}
     </Modal>

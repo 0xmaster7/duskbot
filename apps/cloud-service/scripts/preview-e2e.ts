@@ -162,7 +162,7 @@ async function setup() {
   }, true);
   await step("site: the pricing page's plus plan opens sign-up with the plan", async () => {
     await page.goto(`${origin}/pricing`);
-    await page.locator('a[href="/app/signup?plan=plus"]').first().click();
+    await page.locator('a[href="/dashboard/signup?plan=plus"]').first().click();
     await page.waitForURL(/\/app\/signup\?plan=plus/);
     await page.locator("input[type=email]").waitFor();
     await shot(page, "02-signup");

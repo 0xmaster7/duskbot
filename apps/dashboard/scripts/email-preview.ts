@@ -9,7 +9,7 @@ import { samples } from "../server/email/samples.ts";
 import { emailConfig } from "../server/email/templates.ts";
 
 const out = resolve(process.argv[2] ?? "email-previews"), local = process.argv[3] ? resolve(process.argv[3]) : null;
-const cfg = emailConfig(process.env, { publicUrl: process.env.DUSK_DASHBOARD_PUBLIC_URL ?? "https://preview.dusk.bot", pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE ?? "/app" });
+const cfg = emailConfig(process.env, { publicUrl: process.env.DUSK_DASHBOARD_PUBLIC_URL ?? "https://preview.dusk.bot", pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE ?? "/dashboard" });
 const { chromium } = createRequire(join(resolve(process.env.PLAYWRIGHT_FROM ?? "."), "package.json"))("playwright");
 mkdirSync(out, { recursive: true });
 

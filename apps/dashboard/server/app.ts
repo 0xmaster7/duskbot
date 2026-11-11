@@ -43,7 +43,7 @@ export interface DashboardAppOptions {
   signupOpen?: boolean;
   trustProxy?: boolean;
   staticDir: string | null;
-  /** the page's path on publicUrl: "/app" when the site shares the origin, "" (the default) at the root */
+  /** the page's path on publicUrl: "/dashboard" when the site shares the origin, "" (the default) at the root */
   pageBase?: string;
   mailPerHour?: number;
   /** the site served beside the page on a shared origin (loopback http): every path that is not the page's, an API or
@@ -84,10 +84,16 @@ const PAGE_ROUTES = ["/sign-in", "/signin", "/signup", "/welcome", "/claim", "/c
 
 /** what the service answers itself on a shared origin; everything else outside the page base is the site's */
 const ACCOUNT_PREFIXES = ["/v1/", "/api/cloud/", "/api/public", "/api/bots", DASHBOARD_DISCOVERY_PATH];
+/** the owner's panel: the same page bundle at its own top-level path, served only to an admin's session */
+export const ADMIN_PATH = "/admin";
+/** where the page lived before /dashboard; old links (and /app/admin) are sent on */
+const LEGACY_PAGE_BASES = ["/app"];
+const under = (path: string, base: string) => path === base || path.startsWith(`${base}/`);
 
 function pageBaseOf(value: string | undefined) {
   const base = (value ?? "").replace(/\/+$/, "");
-  if (base && !/^\/[a-z0-9-]+$/.test(base)) throw new Error("The page base must look like /app.");
+  if (base && !/^\/[a-z0-9-]+$/.test(base)) throw new Error("The page base must look like /dashboard.");
+  if (base === ADMIN_PATH) throw new Error("The page base cannot be the admin path.");
   return base;
 }
 
@@ -212,7 +218,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
   const alerts = createAlerts({ kinds: parseAlerts((options.admin?.env ?? process.env).DUSK_ADMIN_ALERTS), emails: () => adminEmails, mailer: options.mailer, sink: analytics.sink, now,
-    panelUrl: `${pagesUrl}/admin`, totals: (from, to) => ({ accounts: auth.directory().accounts.length, signups: auth.directory().accounts.filter(account => account.createdAt >= from && account.createdAt < to).length,
+    panelUrl: `${publicUrl}${ADMIN_PATH}`, totals: (from, to) => ({ accounts: auth.directory().accounts.length, signups: auth.directory().accounts.filter(account => account.createdAt >= from && account.createdAt < to).length,
       paid: billing.store.state.invoices.filter(invoice => invoice.status === "paid" && invoice.createdAt >= from && invoice.createdAt < to).length, waitlist: null }) });
   auth.onAccountCreated(owner => alerts.signup(owner.email, auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email"));
   analytics.onTrack((name, input = {}) => {
@@ -255,6 +261,26 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const current = limits.get(key) ?? { count: 0, until: now() + hourMs };
     if (++current.count > max) fail(429, "rate_limited", "Try again later.");
     limits.set(key, current);
+  }
+  function isAdminRequest(req: IncomingMessage) {
+    const found = auth.webSession(req);
+    return !!found && admin.isAdmin(found.account.email);
+  }
+  /** one public origin: www sends to it, app (where the page used to live) to the page, dev home; the API still answers on
+   *  app so an old build's calls keep working */
+  function hostRedirect(req: IncomingMessage, url: URL) {
+    const own = new URL(publicUrl).hostname, host = (req.headers.host ?? "").toLowerCase().replace(/:\d+$/, "");
+    if (!host.endsWith(`.${own}`)) return null;
+    const sub = host.slice(0, -own.length - 1), method = req.method ?? "GET";
+    if (method !== "GET" && method !== "HEAD") return null;
+    if (sub === "www") return `${publicUrl}${url.pathname}${url.search}`;
+    if (sub === "dev") return `${publicUrl}/`;
+    if (sub === "app" && !ACCOUNT_PREFIXES.some(prefix => url.pathname.startsWith(prefix)) && !url.pathname.startsWith("/.well-known/"))
+      return `${publicUrl}${under(url.pathname, ADMIN_PATH) ? "" : pageBase}${url.pathname === "/" && pageBase ? "" : url.pathname}${url.search}`;
+    return null;
+  }
+  function moved(res: ServerResponse, status: 301 | 302, location: string) {
+    res.writeHead(status, { location, "cache-control": status === 301 ? "public, max-age=3600" : "no-store" }); res.end();
   }
   function account(req: IncomingMessage): Account {
     return auth.requireWeb(req, { mutation: ["POST", "PATCH", "DELETE"].includes(req.method ?? "GET") });
@@ -329,11 +355,15 @@ export function createDashboardApp(options: DashboardAppOptions) {
     seen.set(ws.id, now());
     return ws;
   }
-  function staticPage(req: IncomingMessage, res: ServerResponse) {
+  /** the page's files; `shell` serves its index.html whatever the path (the admin panel at /admin) */
+  function staticPage(req: IncomingMessage, res: ServerResponse, shell = false) {
     if (!options.staticDir) fail(404, "not_found", "Page not found.");
     let path: string;
     try { path = decodeURIComponent((req.url ?? "/").split("?")[0]!); } catch { fail(400, "invalid_path", "Invalid path."); }
-    if (pageBase) path = path === pageBase ? "/" : path.slice(pageBase.length);
+    if (shell) path = "/index.html";
+    else if (pageBase) path = path === pageBase ? "/" : path.slice(pageBase.length);
+    // the admin panel's own chunks (vite.config.ts puts them in assets/admin) load only for an admin
+    if (under(path, "/assets/admin") && !isAdminRequest(req)) fail(404, "not_found", "Page not found.");
     if (!path.startsWith("/") || path.includes("\\") || path.includes("\0") || path.split("/").some(part => part.startsWith("."))) fail(404, "not_found", "Page not found.");
     try {
       const root = realpathSync(options.staticDir).replace(/\/$/, "");
@@ -360,6 +390,23 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const url = new URL(req.url ?? "/", publicUrl);
     if (await pagesRoutes.handle(req, res, url)) return;
     const path = url.pathname;
+    const elsewhere = hostRedirect(req, url);
+    if (elsewhere) return moved(res, 301, elsewhere);
+    if (method === "GET" || method === "HEAD") {
+      const legacy = pageBase ? LEGACY_PAGE_BASES.find(base => base !== pageBase && under(path, base)) : undefined;
+      if (legacy) {
+        const rest = path.slice(legacy.length);
+        return moved(res, 301, `${under(rest, ADMIN_PATH) ? rest : `${pageBase}${rest}`}${url.search}`);
+      }
+      if (pageBase && under(path, `${pageBase}${ADMIN_PATH}`)) return moved(res, 302, `${path.slice(pageBase.length)}${url.search}`);
+      if (under(path, ADMIN_PATH)) {
+        // only an admin's session sees the panel; signed out goes to sign-in, anyone else gets what any unknown path gets
+        if (isAdminRequest(req)) return staticPage(req, res, true);
+        if (!auth.webSession(req)) return moved(res, 302, `${pageBase}/sign-in?${new URLSearchParams({ next: `${path}${url.search}` })}`);
+        if (site) return site(req, res);
+        fail(404, "not_found", "Route not found.");
+      }
+    }
     if (site && !ACCOUNT_PREFIXES.some(prefix => path.startsWith(prefix)) && !(path === pageBase || path.startsWith(`${pageBase}/`))
       && !(method === "GET" && PAGE_ROUTES.some(route => path === route || path.startsWith(`${route}/`)))) { analytics.crawlerVisit(req, new URL(publicUrl).hostname); return site(req, res); }
     if ((method === "GET" || method === "HEAD") && path === "/v1/health") {
@@ -376,7 +423,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     }
     if (await auth.handle(req, res, url, { readBody, bodyObject })) return;
     if (await analytics.handle(req, res, url, { readBody, bodyObject, json, rate, appAccount: request => auth.appSession(request)?.account.id ?? null,
-      isOwner: request => { const found = auth.webSession(request); return !!found && admin.isAdmin(found.account.email); }, account: (request, strict) => {
+      isOwner: isAdminRequest, account: (request, strict) => {
       try { return auth.requireWeb(request, { mutation: strict }); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; }
     } })) return;
     if (await admin.handle(req, res, url)) return;

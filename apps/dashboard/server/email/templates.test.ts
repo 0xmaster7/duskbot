@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { samples } from "./samples.ts";
 import { EMAIL_ASSETS, cloudNoticeEmail, emailConfig, promoEmail } from "./templates.ts";
 
-const cfg = emailConfig({}, { publicUrl: "https://preview.dusk.bot", pageBase: "/app" });
+const cfg = emailConfig({}, { publicUrl: "https://preview.dusk.bot", pageBase: "/dashboard" });
 const all = samples(cfg);
 const hrefs = (html: string) => [...html.matchAll(/href="([^"]*)"/g)].map(match => match[1]!.replace(/&amp;/g, "&"));
 const BILLING = new Set(["04-receipt", "05-payment-failed"]);
@@ -33,7 +33,7 @@ describe("account emails", () => {
     for (const { id, email } of all) {
       const buttons = [...email.html.matchAll(/class="btn-a" href="([^"]*)"/g)].map(match => match[1]!);
       for (const href of buttons) expect(href).not.toMatch(/\/billing/);
-      const plan = hrefs(email.html).filter(href => href.endsWith("/app/billing"));
+      const plan = hrefs(email.html).filter(href => href.endsWith("/dashboard/billing"));
       expect(plan).toHaveLength(BILLING.has(id) ? 1 : 0);
       if (BILLING.has(id)) expect(email.html).toMatch(/>your plan<\/a>/);
       expect(email.html).not.toMatch(/>(manage billing|cancel[^<]*)<\/a>/i);
@@ -55,9 +55,10 @@ describe("account emails", () => {
     expect(all.find(sample => sample.id === "01b-recovery")!.email.subject).toBe("48213097 is your dusk bot code");
     const welcome = all.find(sample => sample.id === "02-welcome")!.email;
     expect(welcome.text).toContain("from $20/mo");
-    expect(welcome.html).toContain("https://preview.dusk.bot/app/cloud");
+    expect(welcome.html).toContain("https://preview.dusk.bot/dashboard/cloud");
     const deleted = samples(cfg).find(sample => sample.id === "09-account-deleted")!;
     expect(deleted.email.html).not.toContain("<script");
+    expect(deleted.email.text).toContain("kept 30 days, then deleted");
   });
 
   it("refuses a promo without an unsubscribe link", () => {
@@ -67,13 +68,13 @@ describe("account emails", () => {
   it("folds the cloud notices into the emails that matter, and keeps quiet for the rest", () => {
     for (const kind of ["ended", "delete_cancelled", "resumed"] as const) expect(cloudNoticeEmail(cfg, { kind, name: "night shift", at: 0 })).toBeNull();
     expect(cloudNoticeEmail(cfg, { kind: "left_7", name: "night shift", at: Date.UTC(2026, 0, 8) })!.subject).toBe("night shift will be deleted in 7 days");
-    expect(cloudNoticeEmail(cfg, { kind: "delete_requested", name: "night shift", at: null, link: "https://preview.dusk.bot/app/clouds/c/delete#t" })!.html).toContain('href="https://preview.dusk.bot/app/clouds/c/delete#t"');
+    expect(cloudNoticeEmail(cfg, { kind: "delete_requested", name: "night shift", at: null, link: "https://preview.dusk.bot/dashboard/clouds/c/delete#t" })!.html).toContain('href="https://preview.dusk.bot/dashboard/clouds/c/delete#t"');
     expect(cloudNoticeEmail(cfg, { kind: "deleted", name: "night shift", at: 0 })!.subject).toBe("night shift was deleted");
     expect(cloudNoticeEmail(cfg, { kind: "recovered", name: "night shift", at: null })!.subject).toBe("night shift is back");
   });
 
   it("reads its asset base and site from the environment", () => {
     expect(emailConfig({ DUSK_EMAIL_ASSET_BASE: "https://cdn.example.test/e/" }, { publicUrl: "https://app.example.test" })).toMatchObject({ assets: "https://cdn.example.test/e", site: "https://dusk.bot", app: "https://app.example.test" });
-    expect(emailConfig({}, { publicUrl: "https://preview.dusk.bot/x", pageBase: "/app" })).toMatchObject({ assets: "https://dusk.bot/email", site: "https://preview.dusk.bot", app: "https://preview.dusk.bot/app" });
+    expect(emailConfig({}, { publicUrl: "https://preview.dusk.bot/x", pageBase: "/dashboard" })).toMatchObject({ assets: "https://dusk.bot/email", site: "https://preview.dusk.bot", app: "https://preview.dusk.bot/dashboard" });
   });
 });

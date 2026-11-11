@@ -264,7 +264,7 @@ describe("marketing tracker", () => {
 
   it("captures an ancestor's explicit goal and data attributes once", async () => {
     await load();
-    click('<a href="/app" data-dusk-goal="hero_click" data-dusk-placement="hero" data-dusk-plan="pro"><span>start</span></a>', "span");
+    click('<a href="/dashboard" data-dusk-goal="hero_click" data-dusk-placement="hero" data-dusk-plan="pro"><span>start</span></a>', "span");
     await events();
     expect(payloads).toHaveLength(2);
     expect(payloads[1]).toMatchObject({ g: "hero_click", m: { placement: "hero", plan: "pro" } });
@@ -275,7 +275,7 @@ describe("marketing tracker", () => {
     ['<button data-period="Year Plan" aria-label="Choose yearly">ignored</button>', "click", { label: "choose_yearly", value: "year_plan" }],
     ['<div role="button" data-dusk-label="Pick a platform" data-platform="Mac OS"><span>pick</span></div>', "click", { label: "pick_a_platform", value: "mac_os" }],
     ['<button data-dusk-goal="hero_click" data-dusk-label="Start now">start</button>', "hero_click", { label: "start_now" }],
-    ['<a href="/app">Start now</a>', "cta_click", { label: "start_now", to: "/app", from: "/pricing" }],
+    ['<a href="/dashboard">Start now</a>', "cta_click", { label: "start_now", to: "/dashboard", from: "/pricing" }],
     ['<a href="https://elsewhere.example/">More info</a>', "outbound", { label: "more_info", host: "elsewhere.example" }],
   ])("adds click context for %s", async (html, goal, meta) => {
     await load();
@@ -464,7 +464,7 @@ describe("marketing tracker", () => {
     expect(payloads.at(-1)).toMatchObject({ e: "leave", p: "/next" });
   });
 
-  it.each(["/app", "/signup/new", "https://app.preview.dusk.bot/app"])("tracks CTA %s", async href => {
+  it.each(["/dashboard", "/dashboard/signup", "/app", "/signup/new", "https://preview.dusk.bot/dashboard/billing"])("tracks CTA %s", async href => {
     await load();
     click(`<a href="${href}"><span>start</span></a>`, "span");
     await events();

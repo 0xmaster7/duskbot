@@ -105,7 +105,7 @@ export function createBillingService(options: BillingServiceOptions) {
         for (const cloud of clouds.list(account.id, true)) if (cloud.status !== "destroyed") {
           if (cloud.status === "checkout") { clouds.abandon(cloud.id); continue; }
           const sub = state.subscriptions.find(sub => sub.id === cloud.subscriptionId);
-          if (closure.destroyDesktopsNow) clouds.end(cloud.id, closure.startedAt);
+          if (closure.destroyDesktopsNow) clouds.end(cloud.id, closure.startedAt + config.graceDays * day);
           else clouds.scheduleDestroy(cloud.id, (sub?.currentPeriodEnd ?? closure.startedAt) + config.graceDays * day);
         }
       });

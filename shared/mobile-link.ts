@@ -343,7 +343,7 @@ export function mobileOpenLink(target: MobileOpenTarget): string {
 }
 
 /** The hosts whose `/m/` pages the phone app opens itself (the app's associated domains). */
-export const UNIVERSAL_LINK_HOSTS: readonly string[] = ["dusk.bot", "app.dusk.bot"];
+export const UNIVERSAL_LINK_HOSTS: readonly string[] = ["dusk.bot"];
 
 /** `https://dusk.bot/m/open?...` and `https://dusk.bot/m/pair#...` as the `duskbot://` link each stands for, or null for
  * any other address. A pairing link carries its secret after the `#`, which a browser never sends to the site. */

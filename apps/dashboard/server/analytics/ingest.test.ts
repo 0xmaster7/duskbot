@@ -89,7 +89,7 @@ describe("site tracker and app ingest", () => {
   });
 
   it("stores goals and page ends, and refuses what it should not count", async () => {
-    await beacon({ v: 1, e: "goal", vid: VID, sid: SID, pv: "pv000001", h: "dusk.bot", p: "/", g: "cta_click", m: { to: "/app/signup", from: "/" } });
+    await beacon({ v: 1, e: "goal", vid: VID, sid: SID, pv: "pv000001", h: "dusk.bot", p: "/", g: "cta_click", m: { to: "/dashboard/signup", from: "/" } });
     await beacon({ v: 1, e: "leave", vid: VID, sid: SID, pv: "pv000001", h: "dusk.bot", p: "/", s: 140, t: 5200.4 });
     expect((await beacon({ ...view(), e: "goal", g: "Bad Goal" })).status).toBe(400);
     expect((await beacon(view(), { origin: "https://evil.example" })).status).toBe(403);
@@ -100,7 +100,7 @@ describe("site tracker and app ingest", () => {
     expect((await beacon(view(), { "user-agent": "Googlebot/2.1" })).status).toBe(204);
     expect((await beacon(view(), { "sec-gpc": "1" })).status).toBe(204);
     await settle();
-    expect(sink.all.map(event => [event.name, event.props])).toEqual([["site_goal", { goal: "cta_click", to: "/app/signup", from: "/" }], ["site_leave", { path: "/", scroll: 100, ms: 5200 }]]);
+    expect(sink.all.map(event => [event.name, event.props])).toEqual([["site_goal", { goal: "cta_click", to: "/dashboard/signup", from: "/" }], ["site_leave", { path: "/", scroll: 100, ms: 5200 }]]);
   });
 
   it("lowercases goal context and drops metadata outside the catalogue", async () => {

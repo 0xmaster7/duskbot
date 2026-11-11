@@ -17,7 +17,7 @@ is built into the app; the app never loads its interface from a server.
 
 ```text
  phone app (WKWebView, bundled UI)
-   AccountGate ........ the hosted account (app.dusk.bot), optional by build flag
+   AccountGate ........ the hosted account (dusk.bot), optional by build flag
    ConnectionGate ..... picks the saved workspace, installs its transport, or shows pairing / unreachable / demo
    MobileApp .......... the shared store (same reducer as the desktop) under the phone's own screens
         |
@@ -195,7 +195,7 @@ a long-lived typed code, and put that code in the notes. I created no accounts a
 | Prices, upgrade buttons | pass | every plan, price and upgrade card in the shared code renders only with the desktop bridge (`window.ogb.cloudAccount`), which the phone does not have. Checked by walking the phone's import graph for the components that carry plan or price strings |
 | External purchase links | **fixed** | the dashboard link is off in the store apps (`accountRows` in `SettingsSheet.tsx`, tested) |
 | Wording | pass | the phone says "Bot API comes with a higher plan" and similar status lines with no link or price. Acceptable as status text; reword if a reviewer objects |
-| Account deletion page | **needs owner** | "Delete account" opens `app.dusk.bot/account#delete` in the in-app Safari view. That page's sidebar links to "Plans & billing". Ask the dashboard branch for a page with the delete section alone, or a delete call the app's own token may make (today `POST /v1/account/delete` needs a website session) |
+| Account deletion page | **needs owner** | "Delete account" opens `dusk.bot/account#delete` in the in-app Safari view. That page's sidebar links to "Plans & billing". Ask the dashboard branch for a page with the delete section alone, or a delete call the app's own token may make (today `POST /v1/account/delete` needs a website session) |
 
 ### 4.8 Sign in with Apple, 5.1.1 accounts
 
@@ -236,18 +236,18 @@ a long-lived typed code, and put that code in the notes. I created no accounts a
 | `ITSAppUsesNonExemptEncryption` | `false` | **fixed**; reasoning in docs/store/ios-listing.md, owner confirms |
 | Background modes | none | pass: alert pushes need none, and the app does no background work |
 | Push entitlement | `aps-environment` | **fixed**; Xcode switches it to production when it exports for the store |
-| Associated domains | `applinks:dusk.bot`, `applinks:app.dusk.bot` | **fixed** in the app, **needs owner** on the site |
+| Associated domains | `applinks:dusk.bot`, `applinks:dusk.bot` | **fixed** in the app, **needs owner** on the site |
 | App icon | 1024, no alpha, our own art | **fixed** |
 | Launch screen | light and dark, our own art | **fixed** |
 | Private APIs | none | pass: the app's own Swift is `QrScannerPlugin.swift` (AVFoundation) and the two delegates |
 | Web bundle logging | off | pass: `loggingBehavior: "none"` keeps tokens out of device logs |
 
 **Universal links.** The app reads `https://dusk.bot/m/open?bot=...&thread=...` and `https://dusk.bot/m/pair#...` (also
-on `app.dusk.bot`) as the `duskbot://` link each stands for (`appLinkFromUniversal`, tested). A pairing secret is only
+on `dusk.bot`) as the `duskbot://` link each stands for (`appLinkFromUniversal`, tested). A pairing secret is only
 taken from after the `#`, which a browser never sends to the site. The site needs:
 
 1. `docs/store/apple-app-site-association.json` served as `https://dusk.bot/.well-known/apple-app-site-association` and
-   the same on `app.dusk.bot`: content type `application/json`, no redirect, no file extension, with `TEAMID` replaced
+   the same on `dusk.bot`: content type `application/json`, no redirect, no file extension, with `TEAMID` replaced
    by your Apple team id.
 2. Pages at `/m/open` and `/m/pair` for someone without the app ("Get Dusk Bot for iPhone"). The `/m/pair` page must
    never read, log or send the part after the `#`.
@@ -365,7 +365,7 @@ Taps cannot be sent with `simctl`; walk the flows by deep link and by building w
 ## 7. What blocks submission today, in order
 
 1. **Copied material.** The release gate fails until `chore/own-assets` and the mascot engine replacement merge.
-2. **The account service is not deployed** (app.dusk.bot is a placeholder), so the sign-in screen cannot sign anyone in.
+2. **The account service is not deployed** (dusk.bot is a placeholder), so the sign-in screen cannot sign anyone in.
    Deploy it, or ship the phone app without the sign-in screen (decision 1 below).
 3. **Nothing ran on iOS.** Install a simulator runtime and do the pass above, then a real iPhone pass: camera scan, the
    local network prompt, the keyboard in chat, Larger Text, haptics, a push opening its chat, a universal link.

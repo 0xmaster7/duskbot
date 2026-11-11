@@ -43,7 +43,7 @@ export function createManagedRoutes(options: ManagedRoutesOptions) {
         options.json(res, 202, { ok: true, emailed: true });
         return true;
       }
-      limit(`act:${owner.id}`, 20, 3_600_000);
+      limit(`act:${owner.id}`, 60, 3_600_000);
       if (match[2] === "confirm") {
         if (now() - owner.signedInAt > FRESH_SIGN_IN_MS) throw new ManagedCloudError(403, "reauth_required");
         if (typeof data.token !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(data.token)) throw new ManagedCloudError(400, "invalid_request");

@@ -12,7 +12,7 @@ export function startDesktopAnalytics(): void {
     return;
   }
   const apply = (staging = false) => configure({
-    origin: import.meta.env.VITE_DUSK_ACCOUNT_ORIGIN || (staging ? "https://dev.dusk.bot" : "https://app.dusk.bot"),
+    origin: import.meta.env.VITE_DUSK_ACCOUNT_ORIGIN || (staging ? "https://preview.dusk.bot" : "https://dusk.bot"),
     token: null, platform, version: bridge.app?.version || __APP_VERSION__, kind: "desktop",
   });
   if (bridge.cloudAccount) void bridge.cloudAccount.state().then(state => apply(state.staging === true), () => apply());

@@ -74,7 +74,7 @@ more were measured; the plan cards print a wake time only from it.
 
 ## Admin panel and product analytics
 
-`/admin` (on preview: `https://preview.dusk.bot/app/admin`) is the owner's panel: overview (signups, active accounts,
+`/admin` (`https://dusk.bot/admin`, staging `https://preview.dusk.bot/admin`; only `DUSK_ADMIN_EMAILS` sessions get the page or its chunks) is the owner's panel: overview (signups, active accounts,
 waitlist, the funnel site to signup to onboarding to cloud to paid to app paired to first bot reply, clouds by state),
 users (search, plan, clouds, devices, timeline), clouds (pause, resume, delete with a typed confirmation), waitlist
 (dusk.waitlist, CSV export, Brevo list check), events, health and the audit log. Keys: `g` then o, u, c, w, e, h or a;

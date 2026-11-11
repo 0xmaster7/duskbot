@@ -12,7 +12,7 @@ vi.mock("@/components/Avatar", () => ({ MausAvatar: () => createElement("span") 
 let host: HTMLDivElement, root: Root | null;
 let platform: MobilePlatform, secrets: Map<string, string>, prefs: Map<string, string>, listener: ((url: string) => boolean) | undefined, resume: (() => void) | undefined;
 let fetcher: ReturnType<typeof vi.fn<typeof fetch>>;
-const origin = "https://app.dusk.bot";
+const origin = "https://dusk.bot";
 const account = { id: "person", email: "person@example.com" };
 const token = `omc_${"t".repeat(43)}`;
 const response = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });

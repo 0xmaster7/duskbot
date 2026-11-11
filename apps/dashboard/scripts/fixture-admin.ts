@@ -169,7 +169,7 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
   }
   for (const account of accounts) {
     const visitor = vid(), first = account.createdAt - Math.round(rand() * 3 * DAY) - 600_000;
-    await visit(visitor, first, { pages: ["/", "/pricing"], goals: [["cta_click", { to: "/app/signup", from: "/pricing" }]] });
+    await visit(visitor, first, { pages: ["/", "/pricing"], goals: [["cta_click", { to: "/dashboard/signup", from: "/pricing" }]] });
     if (rand() < 0.5) await visit(visitor, account.createdAt - 300_000, { pages: ["/pricing"] });
     await analytics.record("identify", { accountId: account.id, at: account.createdAt + 2000, props: { via: "page" }, ctx: { visitor } });
   }

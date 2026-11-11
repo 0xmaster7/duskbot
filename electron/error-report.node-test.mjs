@@ -31,7 +31,7 @@ test("scrubbing drops secrets, addresses, quoted words and personal paths", () =
 });
 
 test("stack frames keep the app-relative file, never the home folder", () => {
-  const frames = stackFrames("Error: x\n    at boot (/Users/jane/Applications/Dusk Bot.app/Contents/Resources/app.asar/electron/main.mjs:10:5)\n    at /home/bob/srv/server/index.js:3:1\n    at fn@https://app.dusk.bot/assets/index-abc.js:1:200");
+  const frames = stackFrames("Error: x\n    at boot (/Users/jane/Applications/Dusk Bot.app/Contents/Resources/app.asar/electron/main.mjs:10:5)\n    at /home/bob/srv/server/index.js:3:1\n    at fn@https://dusk.bot/assets/index-abc.js:1:200");
   assert.deepEqual(frames.map(frame => frame.filename), ["assets/index-abc.js", "server/index.js", "electron/main.mjs"]);
   assert.equal(frames.at(-1).function, "boot");
   assert.ok(!JSON.stringify(frames).includes("jane") && !JSON.stringify(frames).includes("bob"));

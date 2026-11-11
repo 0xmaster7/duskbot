@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { Cart } from "../../../../shared/billing-api.ts";
 import { BILLING_CONFIG as config, catalogView, dodoProducts } from "./plans.ts";
+import { DEFAULT_RETENTION_DAYS } from "../../../cloud-service/src/retention.ts";
 import { changeCharge, dedicatedMonthlyCents, dodoCart, dodoCreditsCart, parseCart, quote } from "./pricing.ts";
 
 const preset = (index: number, interval: Cart["interval"] = "month"): Cart => ({ ...structuredClone(config.bundles[index].cart), interval });
 const products = Object.fromEntries(["month", "year"].flatMap(interval => ["license_solo", "license_team", "desktop_shared_s", "desktop_shared_m", "desktop_dedicated", "addon_member", "addon_shared_s", "addon_shared_m", "addon_dedicated", "addon_vcpu", "addon_ram_gb", "addon_disk_10gb"].map(key => [`${key}:${interval}`, `${key}_${interval}`])));
 
 describe("billing pricing", () => {
+  it("keeps an ended cloud desktop as long as a managed one: 30 days", () => {
+    expect(config.graceDays).toBe(30);
+    expect(config.graceDays).toBe(DEFAULT_RETENTION_DAYS);
+    expect(catalogView(Date.now(), config).graceDays).toBe(30);
+  });
+
   it("quotes every preset monthly and yearly from one catalog", () => {
     const monthly = [0, config.desktops.shared_s.monthlyCents!, config.licenses.solo.monthlyCents + config.desktops.shared_m.monthlyCents!, config.licenses.team.monthlyCents + dedicatedMonthlyCents(preset(3).desktop.spec!, config)];
     const yearlyMonthly = monthly.map(cents => Math.round((cents * 12 - Math.round(cents * 12 * config.yearlyDiscountPercent / 100)) / 12));

@@ -26,7 +26,7 @@ export function mobileAccountOrigin(native: boolean, params: URLSearchParams): s
       if (url.origin === value && !url.username && !url.password && (url.protocol === "https:" || (url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))) return value;
     } catch {}
   }
-  return "https://app.dusk.bot";
+  return "https://dusk.bot";
 }
 
 /** The sign-in buttons a phone shows, of those the account service says work. App Store guideline 4.8: an iPhone app
