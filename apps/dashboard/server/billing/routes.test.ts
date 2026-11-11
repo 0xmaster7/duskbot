@@ -50,7 +50,7 @@ async function fixture() {
   }
   async function login(email = "owner@example.test") {
     const start = await answer<{ attempt: string }>("/v1/auth/start", { email });
-    const res = await page("/v1/auth/verify", { attempt: start.attempt, code: mailer.outbox.findLast(item => item.to === email)?.text.match(/\b\d{8}\b/)?.[0] }); expect(res.status).toBe(200);
+    const res = await page("/v1/auth/verify", { attempt: start.attempt, code: mailer.outbox.findLast(item => item.to === email && /\b\d{8}\b/.test(item.text))?.text.match(/\b\d{8}\b/)?.[0] }); expect(res.status).toBe(200);
     const { account, csrfToken } = await read<{ account: { id: string; email: string }; csrfToken: string }>(res);
     const cookie = res.headers.getSetCookie().find(value => value.startsWith("omb_dash="))!.split(";")[0];
     csrf.set(cookie, csrfToken);

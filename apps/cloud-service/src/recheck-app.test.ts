@@ -62,7 +62,7 @@ async function fixture() {
   }
   async function login(email: string) {
     const { attempt } = await (await page("/v1/auth/start", { email })).json() as { attempt: string };
-    const code = mailer.outbox.findLast(m => m.to === email)!.text.match(/\b\d{8}\b/)![0];
+    const code = mailer.outbox.findLast(m => m.to === email && /\b\d{8}\b/.test(m.text))!.text.match(/\b\d{8}\b/)![0];
     const verify = await page("/v1/auth/verify", { attempt, code });
     const cookie = verify.headers.get("set-cookie")!.split(";")[0]!;
     csrf.set(cookie, (await verify.json() as { csrfToken: string }).csrfToken);
@@ -149,8 +149,8 @@ it("the deletion routes: confirm needs a fresh sign-in, Cancel works during the 
   const { cloud, subscriptionId } = await f.buy(owner);
   await deliver(f, f.billing.fake!.expire(subscriptionId)); await f.settle(8);
   expect((await f.page(`/v1/clouds/${cloud.id}/delete-data`, {}, owner)).status).toBe(202);
-  const token = f.mailer.outbox.findLast(m => /Confirm deleting/.test(m.subject))!.text.match(/#([A-Za-z0-9_-]{43})/)![1]!;
-  expect(f.mailer.outbox.findLast(m => /Confirm deleting/.test(m.subject))!.text).toContain(`/clouds/${cloud.id}/delete#`);
+  const token = f.mailer.outbox.findLast(m => /confirm deleting/i.test(m.subject))!.text.match(/#([A-Za-z0-9_-]{43})/)![1]!;
+  expect(f.mailer.outbox.findLast(m => /confirm deleting/i.test(m.subject))!.text).toContain(`/clouds/${cloud.id}/delete#`);
   f.advance(11 * 60_000);
   const stale = await f.page(`/v1/clouds/${cloud.id}/delete-data/confirm`, { token }, owner);
   expect(stale.status).toBe(403); expect(((await stale.json()) as { code?: string }).code).toBe("reauth_required");

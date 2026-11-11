@@ -62,7 +62,7 @@ async function fixture() {
   }
   async function login(email: string) {
     const { attempt } = await (await page("/v1/auth/start", { email })).json() as { attempt: string };
-    const code = mailer.outbox.findLast(m => m.to === email)!.text.match(/\b\d{8}\b/)![0];
+    const code = mailer.outbox.findLast(m => m.to === email && /\b\d{8}\b/.test(m.text))!.text.match(/\b\d{8}\b/)![0];
     const verify = await page("/v1/auth/verify", { attempt, code });
     const cookie = verify.headers.get("set-cookie")!.split(";")[0]!;
     csrf.set(cookie, (await verify.json() as { csrfToken: string }).csrfToken);

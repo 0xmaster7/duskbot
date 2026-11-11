@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { DashboardState } from "../store.ts";
 import { createCloudsService } from "../clouds/service.ts";
+import type { CloudEventKind } from "../clouds/service.ts";
 import { createFakeCloudProvider } from "../clouds/fake-provider.ts";
 import { createFakePoolDriver } from "../clouds/fake-pool-driver.ts";
 import { createPoolProvider } from "../clouds/pool.ts";
@@ -11,10 +12,12 @@ import { createSealer, parseSealKey } from "../clouds/seal.ts";
 import type { CloudProvider, HomeClient } from "../clouds/types.ts";
 import type { StoredCloud } from "../clouds/types.ts";
 import { managedCloudFromEnv } from "../../../cloud-service/src/index.ts";
+import type { CloudLetter } from "../../../cloud-service/src/index.ts";
 import { entitlementSignerFromEnv } from "../entitlements.ts";
 import type { Catalog } from "../../../../shared/billing-api.ts";
 import { createBillingStore } from "./store.ts";
 import { BillingError, createBillingService } from "./service.ts";
+import type { BillingNotice } from "./service.ts";
 import { BILLING_CONFIG, dodoProducts } from "./plans.ts";
 import { createFakeBillingProvider } from "./fake-provider.ts";
 import { createDodoProvider } from "./dodo-provider.ts";
@@ -32,7 +35,11 @@ export interface BillingOptions {
   /** measured wake times the catalog may show (the slack edge times wakes) */
   wakeStats?: () => NonNullable<Catalog["wake"]>;
   /** a managed cloud's letter to its owner (retention, recovery, deletion requests); delivery failures are logged, never thrown */
-  mail?: (cloud: StoredCloud, letter: { subject: string; text: string }) => void;
+  mail?: (cloud: StoredCloud, letter: CloudLetter) => void;
+  /** billing events worth an email: receipts, failed payments, cancellations */
+  notify?: (notice: BillingNotice) => void;
+  /** a cloud's first time up, and a cloud the generic lifecycle took down */
+  cloudEvent?: (kind: CloudEventKind, cloud: StoredCloud) => void;
   /** the operator's alert for every deletion action of a managed cloud */
   alert?: (entry: { at: number; cloudId: string; action: string; actor: string; reason: string }) => void;
 }
@@ -96,7 +103,7 @@ export function createBilling(options: BillingOptions) {
   };
   // every hosted home refuses clients without a signed entitlement, so a service that runs homes must be able to sign one
   const entitlements = entitlementSignerFromEnv(env, { dataDir: options.dataDir, loopback, now, required: !loopback && (cloudProvider !== "off" || poolDriver !== "off" || managed !== null) });
-  const clouds = createCloudsService({ entitlements, dataDir: options.dataDir, now, providers: { pool, dedicated }, home, sealer: createSealer(sealKey), managed, managedHome: realHome,
+  const clouds = createCloudsService({ entitlements, onEvent: options.cloudEvent, dataDir: options.dataDir, now, providers: { pool, dedicated }, home, sealer: createSealer(sealKey), managed, managedHome: realHome,
     workspaces: {
       register({ accountId, name, publicKey }) {
         const id = `ws_${randomBytes(16).toString("base64url")}`;
@@ -112,7 +119,7 @@ export function createBilling(options: BillingOptions) {
   });
   const store = createBillingStore(options.dataDir);
   billingStore = store;
-  const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now });
+  const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now, notify: options.notify });
   if (options.accountExists) service.scrubDeleted(options.accountExists);
   const opsToken = env.DUSK_OPS_TOKEN || null;
   if (opsToken !== null && opsToken.length < 32) throw new Error("DUSK_OPS_TOKEN must be at least 32 characters.");

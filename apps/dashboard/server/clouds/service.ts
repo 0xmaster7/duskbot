@@ -48,7 +48,10 @@ export interface CloudsServiceOptions {
   managedHome?: HomeClient;
   /** signs a cloud's entitlement for its home and the app (shared/entitlement.ts); absent: none are signed */
   entitlements?: { sign(cloud: StoredCloud): string } | null;
+  /** told once per cloud: its first time running, and its deletion by the generic lifecycle (a managed backend sends its own) */
+  onEvent?: (kind: CloudEventKind, cloud: StoredCloud) => void;
 }
+export type CloudEventKind = "ready" | "deleted";
 interface State { v: 1; clouds: StoredCloud[] }
 const sameSpec = (a: MachineSpec, b: MachineSpec) => a.vcpu === b.vcpu && a.ramGb === b.ramGb && a.diskGb === b.diskGb;
 const sameQuota = (a: SlotQuota | undefined, b: SlotQuota) => a && (Object.keys(b) as Array<keyof SlotQuota>).every(k => a[k] === b[k]);
@@ -68,10 +71,20 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       if (sealed !== value) { cloud[field] = sealed; store.commit(); }
     }
   }
+  for (const cloud of store.state.clouds) if (!cloud.mailed && cloud.status !== "checkout" && cloud.status !== "provisioning") {
+    cloud.mailed = { ready: cloud.createdAt, ...(cloud.status === "destroyed" ? { deleted: cloud.updatedAt } : {}) }; store.commit();
+  }
   const powerChanges = new Map<string, number[]>();
   let pending = Promise.resolve(), reconciling: Promise<void> | null = null, closed = false;
   function exclusive<T>(fn: () => Promise<T>): Promise<T> { const result = pending.then(fn); pending = result.then(() => {}, () => {}); return result; }
-  function save(c: StoredCloud) { c.updatedAt = now(); store.commit(); }
+  function save(c: StoredCloud) {
+    c.updatedAt = now();
+    const events: CloudEventKind[] = [];
+    if (c.status === "running" && !c.mailed?.ready) { (c.mailed ??= {}).ready = now(); events.push("ready"); }
+    if (c.status === "destroyed" && c.provisionedAt !== undefined && c.backend !== "managed" && !c.mailed?.deleted) { (c.mailed ??= {}).deleted = now(); events.push("deleted"); }
+    store.commit();
+    for (const kind of events) try { options.onEvent?.(kind, c); } catch { console.warn(`clouds: the ${kind} notice failed`); }
+  }
   function get(id: string) { return store.state.clouds.find(c => c.id === id) ?? null; }
   function requireCloud(id: string) { const cloud = get(id); if (!cloud) throw new CloudError(404, "not_found"); return cloud; }
   function requireOwned(accountId: string, id: string) { const cloud = get(id); if (!cloud || cloud.accountId !== accountId) throw new CloudError(404, "not_found"); return cloud; }

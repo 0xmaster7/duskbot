@@ -69,7 +69,7 @@ describe("OAuth over isolated HTTP", () => {
   async function emailLogin(email = "sid@duskbot.test", pending?: string) {
     const start = await call("/v1/auth/start", { email, ...(pending ? { pending } : {}) }); expect(start.status).toBe(200);
     const { attempt } = await start.json() as { attempt: string };
-    const code = mailer.outbox.findLast(message => message.to === email)!.text.match(/\b\d{8}\b/)![0];
+    const code = mailer.outbox.findLast(message => message.to === email && /\b\d{8}\b/.test(message.text))!.text.match(/\b\d{8}\b/)![0];
     return call("/v1/auth/verify", { attempt, code });
   }
   async function appAuthorization(provider = "google", changes: Record<string, string> = {}, verifier = random()) {

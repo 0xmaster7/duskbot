@@ -57,7 +57,7 @@ async function fixture() {
   async function signIn(email = "owner@example.test") {
     const device = email === "owner@example.test" ? main : desktop();
     expect((await device.client.emailStart(email)).outcome).toBe("sent");
-    const code = mailer.outbox.findLast(item => item.to === email)?.text.match(/\b\d{8}\b/)?.[0];
+    const code = mailer.outbox.findLast(item => item.to === email && /\b\d{8}\b/.test(item.text))?.text.match(/\b\d{8}\b/)?.[0];
     expect(code).toMatch(/^\d{8}$/);
     expect((await device.client.emailVerify(code!)).outcome).toBe("signed-in");
     return device.credential();
@@ -76,7 +76,7 @@ async function fixture() {
     return checkout;
   }
   async function reconcile() { for (let n = 0; n < 8; n++) await billing.clouds.reconcile(); }
-  return { dir, dashboard, billing, client, origin, browsers, signIn, session, request, complete, reconcile, snapshot, now, setTime: (at: number) => { time = at; }, owner: () => main.credential().account, token: () => main.credential().token };
+  return { dir, mailer, dashboard, billing, client, origin, browsers, signIn, session, request, complete, reconcile, snapshot, now, setTime: (at: number) => { time = at; }, owner: () => main.credential().account, token: () => main.credential().token };
 }
 
 it("keeps the app identity available without exposing failed or disabled billing", async () => {
@@ -162,6 +162,11 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   expect(f.snapshot().feedback[0]).toMatchObject({ cloudId: checkout.cloudId, answer: "price", improve: "cheaper" });
   expect(await f.client.keepPlan()).toMatchObject({ outcome: "kept" });
   expect(f.snapshot().subscriptions[0].cancelAtPeriodEnd).toBe(false);
+  const subjects = f.mailer.outbox.filter(mail => mail.to === "owner@example.test" && !/code/.test(mail.subject)).map(mail => mail.subject);
+  expect(subjects.slice(0, 3)).toEqual(["welcome to dusk bot", expect.stringMatching(/^receipt for \$\d+\.\d\d: /), "your dusk cloud is ready"]);
+  expect(subjects.filter(subject => subject === "your dusk cloud is ready")).toHaveLength(1);
+  expect(subjects.filter(subject => subject.endsWith("plan is cancelled"))).toHaveLength(1);
+  for (const mail of f.mailer.outbox) expect(mail.html).toContain("https://dusk.bot/email/kit-64.png");
   const token = f.token();
   expect(await f.request("session", {}, token, "DELETE")).toEqual({ status: 200, data: { ok: true } });
   for (const [path, data] of [["license", undefined], ["checkout", { plan: "starter", source: "app_card" }]] as const) {

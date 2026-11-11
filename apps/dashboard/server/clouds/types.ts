@@ -142,6 +142,8 @@ export interface StoredCloud {
   wakeRequestedAt?: number;
   /** set at activation when a managed backend runs this cloud: its lifecycle is the backend's, never the generic one */
   backend?: "managed";
+  /** when the owner was emailed that the cloud is ready, and that it was deleted */
+  mailed?: { ready?: number; deleted?: number };
   managed?: ManagedCloudState;
   /** when this service last pushed a signed entitlement to the cloud's home */
   entitledAt?: number;

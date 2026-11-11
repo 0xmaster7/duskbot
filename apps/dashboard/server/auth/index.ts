@@ -6,11 +6,13 @@ import { createAuthStore } from "./store.ts";
 import type { Account, Session } from "./store.ts";
 import { codeMessage, recoveryMessage } from "./mail.ts";
 import type { Mailer } from "./mail.ts";
+import { emailConfig } from "../email/templates.ts";
+import type { EmailConfig } from "../email/templates.ts";
 import { createProviderRegistry, type ProviderConfigs, type ProviderProfile } from "./providers.ts";
 import { clientIp } from "../client-ip.ts";
 
 export interface AuthOptions {
-  dataDir: string; publicUrl: string; mailer: Mailer; now?: () => number; fetch?: typeof fetch;
+  dataDir: string; publicUrl: string; mailer: Mailer; email?: EmailConfig; now?: () => number; fetch?: typeof fetch;
   /** where the page is served on publicUrl ("/app" when it shares the origin with the site, "" at the root) */
   pageBase?: string;
   /** sign-in emails the service sends an hour across everyone (DUSK_AUTH_MAIL_PER_HOUR, default 300) */
@@ -57,6 +59,7 @@ interface BodyHelpers { readBody(req: IncomingMessage): Promise<Buffer>; bodyObj
 export function createAuth(options: AuthOptions) {
   const now = options.now ?? Date.now;
   const publicUrl = new URL(options.publicUrl).origin, pageBase = options.pageBase ?? "", pages = `${publicUrl}${pageBase}`;
+  const emailCfg = options.email ?? emailConfig(process.env, { publicUrl, pageBase });
   const store = createAuthStore(options.dataDir), state = store.state;
   const providers = createProviderRegistry(options.oauth, { fetch: options.fetch, now });
   const oauthStates = new Map<string, OAuthState>();
@@ -71,7 +74,8 @@ export function createAuth(options: AuthOptions) {
   const sentAt = new Map<string, number>();
   const extensions: Array<(accountId: string) => Promise<Record<string, unknown>> | Record<string, unknown>> = [];
   const beforeDeleteHooks: Array<(owner: Account, body: Record<string, unknown>) => void | Promise<void>> = [];
-  const deletedHooks: Array<(accountId: string) => void | Promise<void>> = [];
+  const deletedHooks: Array<(accountId: string, email: string | null) => void | Promise<void>> = [];
+  const createdHooks: Array<(account: Account) => void> = [];
   const signedInHooks: Array<(account: Account) => void> = [];
   const hmac = (value: string) => createHmac("sha256", store.secret).update(value).digest("base64url");
   const csrfFor = (session: Session) => hmac(session.tokenHash);
@@ -183,12 +187,12 @@ export function createAuth(options: AuthOptions) {
       // that. answered before delivery, the same either way, so the answer never tells whether the address has an account
       const owner = state.accounts.find(item => item.email === email);
       const link = owner && !app ? `${pages}/sign-in#${new URLSearchParams({ attempt, code })}` : null;
-      void options.mailer.send(recoveryMessage(email, { code, link, ways: owner ? view(owner).providers : null })).catch(() => console.error("Email delivery failed."));
+      void options.mailer.send(recoveryMessage(email, { code, link, ways: owner ? view(owner).providers : null }, emailCfg)).catch(() => console.error("Email delivery failed."));
     } else if (options.signupOpen) {
-      try { await options.mailer.send(codeMessage(email, code)); } catch { attempts.delete(hash(attempt)); fail(502, "failed"); }
+      try { await options.mailer.send(codeMessage(email, code, emailCfg)); } catch { attempts.delete(hash(attempt)); fail(502, "failed"); }
     } else if (state.accounts.some(item => item.email === email)) {
       // signups closed: answer before delivery so timing and mail failures never tell whether the address has an account
-      void options.mailer.send(codeMessage(email, code)).catch(() => console.error("Email delivery failed."));
+      void options.mailer.send(codeMessage(email, code, emailCfg)).catch(() => console.error("Email delivery failed."));
     }
     return { ...(app ? { cloudContractVersion: 1 } : {}), attempt, expiresIn: EMAIL_CODE_TTL_SECONDS, resendAfter: EMAIL_RESEND_SECONDS, signupOpen: options.signupOpen };
   }
@@ -228,6 +232,7 @@ export function createAuth(options: AuthOptions) {
       redirect = pending.appFlow ? appRedirect(pending.appFlow, owner) : pending.next;
     }
     for (const hook of signedInHooks) hook(owner);
+    if (created) for (const hook of createdHooks) hook(owner);
     if (attempt.device) return appGrant(owner, attempt.device);
     const { token, session } = makeSession(owner, null), csrfToken = csrfFor(session);
     cookies(res, token, csrfToken);
@@ -312,7 +317,7 @@ export function createAuth(options: AuthOptions) {
       const profile = await provider.profile({ code, nonce: item.nonce, verifier: item.verifier, redirectUri: `${publicUrl}${R.oauthCallback(item.provider)}`, user: params.get("user") ?? undefined });
       if (item.expiresAt <= now() || (item.appFlow && !activeFlow(item.appFlow))) return oauthError(res, "oauth_expired", item.next, item.appFlow);
       const existing = linkedIdentity(item.provider, profile.subject);
-      let owner: Account | null | undefined;
+      let owner: Account | null | undefined, created = false;
       if (item.linkAccount) {
         owner = account(item.linkAccount);
         if (!owner || !state.sessions.some(session => session.id === item!.linkSession && session.accountId === owner!.id && session.expiresAt > now())) throw new Error();
@@ -330,9 +335,11 @@ export function createAuth(options: AuthOptions) {
         const legacy = options.legacyAccounts?.().find(owner => cleanEmail(owner.email) === profile.email);
         owner = { id: legacy?.id ?? `acct_${randomBytes(16).toString("base64url")}`, email: profile.email!, name: null, createdAt: now() };
         state.accounts.push(owner);
+        created = true;
       }
       attach(owner, item.provider, profile);
       for (const hook of signedInHooks) hook(owner);
+      if (created) for (const hook of createdHooks) hook(owner);
       if (item.appFlow) { const location = appRedirect(item.appFlow, owner); oauthCookie(res); return redirect(res, location); }
       const { token, session } = makeSession(owner, null);
       cookies(res, token, csrfFor(session)); oauthCookie(res);
@@ -428,7 +435,7 @@ export function createAuth(options: AuthOptions) {
           for (const [key, grant] of grants) if (grant.accountId === owner.id) grants.delete(key);
           for (const [key, attempt] of attempts) if (attempt.email === owner.email) attempts.delete(key);
           store.close();
-          for (const hook of deletedHooks) { try { await hook(owner.id); } catch { console.error("Account deletion cleanup failed."); } }
+          for (const hook of deletedHooks) { try { await hook(owner.id, owner.email); } catch { console.error("Account deletion cleanup failed."); } }
         }
         cookies(res); json({ ok: true });
       } else if (path === R.deviceLookup && method === "GET") {
@@ -503,7 +510,9 @@ export function createAuth(options: AuthOptions) {
     },
     extendSession(fn: (accountId: string) => Promise<Record<string, unknown>> | Record<string, unknown>) { extensions.push(fn); },
     beforeAccountDelete(fn: (owner: Account, body: Record<string, unknown>) => void | Promise<void>) { beforeDeleteHooks.push(fn); },
-    onAccountDeleted(fn: (accountId: string) => void | Promise<void>) { deletedHooks.push(fn); },
+    onAccountDeleted(fn: (accountId: string, email: string | null) => void | Promise<void>) { deletedHooks.push(fn); },
+    /** a new account, after its first sign-in */
+    onAccountCreated(fn: (account: Account) => void) { createdHooks.push(fn); },
     onSignedIn(fn: (account: Account) => void) { signedInHooks.push(fn); },
     consumeEnrollGrant(token: string) {
       sweep();

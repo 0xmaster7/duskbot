@@ -11,6 +11,12 @@ import type { Mailer } from "./auth/mail.ts";
 import { createStore } from "./store.ts";
 import type { Account, StoredWorkspace } from "./store.ts";
 import { createBilling } from "./billing/index.ts";
+import type { BillingNotice } from "./billing/service.ts";
+import { BILLING_CONFIG } from "./billing/plans.ts";
+import type { StoredCloud } from "./clouds/types.ts";
+import { DEFAULT_RETENTION_DAYS } from "../../cloud-service/src/retention.ts";
+import { accountDeletedEmail, cancelledEmail, cloudDeletedEmail, cloudNoticeEmail, cloudReadyEmail, emailConfig, paymentFailedEmail, receiptEmail, welcomeEmail } from "./email/templates.ts";
+import type { Rendered } from "./email/templates.ts";
 import { BillingError } from "./billing/service.ts";
 import { createSlackEdgeHost } from "./slack-edge/index.ts";
 import { createManagedRoutes } from "./clouds/managed-routes.ts";
@@ -125,9 +131,30 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const html = `<p>${text.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" })[ch]!)}</p>`;
     void options.mailer.send({ to, subject, text, html }).catch(() => console.warn("clouds: a notice email failed"));
   };
+  const emailCfg = emailConfig(process.env, { publicUrl, pageBase });
+  const send = (to: string | null | undefined, message: Rendered) => {
+    if (to) void options.mailer.send({ to, ...message }).catch(() => console.warn("account: an email failed"));
+  };
+  const emailOf = (accountId: string) => auth.account(accountId)?.email;
+  const retentionDays = Number(process.env.DUSK_MANAGED_RETENTION_DAYS) || DEFAULT_RETENTION_DAYS;
+  const cloudFacts = (cloud: StoredCloud) => ({ name: cloud.name, plan: (BILLING_CONFIG.desktops[cloud.kind]?.label ?? cloud.kind).toLowerCase(),
+    machine: `${cloud.spec.vcpu} vcpu, ${cloud.spec.ramGb} gb memory, ${cloud.spec.diskGb} gb disk`, region: BILLING_CONFIG.regions.find(region => region.id === cloud.region)?.label.toLowerCase() ?? cloud.region });
+  const cloudFromCents = Math.min(...Object.values(BILLING_CONFIG.desktops).flatMap(desktop => desktop.monthlyCents === null ? [] : [desktop.monthlyCents]));
+  auth.onAccountCreated(owner => send(owner.email, welcomeEmail(emailCfg, { cloudFromCents })));
+  auth.onAccountDeleted((_id, email) => send(email, accountDeletedEmail(emailCfg, { email: email ?? "" })));
+  function billingNotice(notice: BillingNotice) {
+    const cloud = notice.kind !== "receipt" && notice.cloudId ? billing.clouds.get(notice.cloudId) : null;
+    if (notice.kind === "receipt") send(emailOf(notice.accountId), receiptEmail(emailCfg, { ...notice, receiptId: notice.invoiceId, cloud: notice.cloudId !== null }));
+    else if (notice.kind === "payment_failed") send(emailOf(notice.accountId), paymentFailedEmail(emailCfg, { ...notice, cloudName: cloud?.name ?? null }));
+    else send(emailOf(notice.accountId), cancelledEmail(emailCfg, { description: notice.description, cloudName: cloud?.name ?? null, endsAt: notice.endsAt,
+      keptPaused: cloud?.backend === "managed", keepDays: cloud?.backend === "managed" ? retentionDays : notice.graceDays }));
+  }
   const billing = createBilling({ accountExists: id => auth.account(id) !== null,
     findAccount: email => { const found = auth.accountByEmail(email); return found ? { id: found.id, email: found.email } : null; },
-    mail: (cloud, letter) => mail(auth.account(cloud.accountId)?.email, letter.subject, letter.text),
+    mail: (cloud, letter) => letter.notice ? send(emailOf(cloud.accountId), cloudNoticeEmail(emailCfg, { kind: letter.notice.kind, name: cloud.name, at: letter.notice.at, link: letter.notice.link }))
+      : mail(emailOf(cloud.accountId), letter.subject, letter.text),
+    notify: notice => billingNotice(notice),
+    cloudEvent: (kind, cloud) => send(emailOf(cloud.accountId), kind === "ready" ? cloudReadyEmail(emailCfg, cloudFacts(cloud)) : cloudDeletedEmail(emailCfg, { name: cloud.name, at: now() })),
     alert: entry => mail(process.env.DUSK_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
     fromBearer: req => auth.appSession(req)?.account ?? null } });

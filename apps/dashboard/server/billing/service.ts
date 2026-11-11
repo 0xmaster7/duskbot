@@ -16,7 +16,14 @@ export class BillingError extends Error {
 }
 export interface BillingServiceOptions {
   store: BillingStore; provider: BillingProvider; clouds: CloudsService; config?: BillingConfig; publicUrl: string; now?: () => number; random?: (bytes: number) => string;
+  /** told after a change is stored: an email goes out for each; never throws into billing */
+  notify?: (notice: BillingNotice) => void;
 }
+export type BillingNotice =
+  | { kind: "receipt"; accountId: string; invoiceId: string; amountCents: number; currency: string; description: string; paidAt: number;
+      periodStart: number | null; periodEnd: number | null; renews: boolean; first: boolean; cloudId: string | null }
+  | { kind: "payment_failed"; accountId: string; amountCents: number; currency: string; description: string; cloudId: string | null; fixBy: number | null }
+  | { kind: "cancelled"; accountId: string; description: string; cloudId: string | null; endsAt: number | null; graceDays: number };
 const day = 86_400_000;
 const emailOf = (email: string) => email.trim().toLowerCase();
 function fail(status: number, code: BillingErrorCode): never { throw new BillingError(status, code); }
@@ -45,6 +52,14 @@ export function createBillingService(options: BillingServiceOptions) {
   const queues = new Map<string, Promise<unknown>>();
   const id = (prefix: string) => `${prefix}_${random(16)}`;
   const copy = <T>(value: T): T => structuredClone(value);
+  let notices: BillingNotice[] = [];
+  function sendNotices() {
+    const due = notices; notices = [];
+    for (const notice of due) try { options.notify?.(notice); } catch { console.warn("billing: a notice failed"); }
+  }
+  const planLabel = (sub: StoredSubscription) => config.bundles.find(bundle => bundle.id === quote(sub.cart, config).bundle)?.label ?? "Custom plan";
+  const cancelledNotice = (sub: StoredSubscription): BillingNotice =>
+    ({ kind: "cancelled", accountId: sub.accountId, description: planLabel(sub), cloudId: sub.cloudId, endsAt: sub.currentPeriodEnd, graceDays: config.graceDays });
   // retain webhook ownership binding without retaining the deleted account id.
   const closureId = (accountId: string) => `closure_${createHash("sha256").update(accountId).digest("hex")}`;
   function closureFor(accountId: string) {
@@ -313,6 +328,8 @@ export function createBillingService(options: BillingServiceOptions) {
         else if (sub.currentPeriodEnd !== null) cloudAction({ kind: "schedule", cloudId: sub.cloudId, at: sub.currentPeriodEnd + config.graceDays * day });
       }
     } else if (event.type === "on_hold" || event.type === "failed") {
+      if (sub.status !== "payment_problem") notices.push({ kind: "payment_failed", accountId: sub.accountId, amountCents: sub.totalCents, currency: config.currency, description: planLabel(sub),
+        cloudId: sub.cloudId, fixBy: (sub.currentPeriodEnd ?? now()) + config.graceDays * day });
       sub.status = "payment_problem"; refreshLicense(sub, checkout.email);
       if (sub.cloudId) {
         cloudAction({ kind: "payment", cloudId: sub.cloudId, problem: true });
@@ -322,6 +339,7 @@ export function createBillingService(options: BillingServiceOptions) {
       sub.status = "ended"; refreshLicense(sub, checkout.email);
       if (sub.cloudId) cloudAction({ kind: "end", cloudId: sub.cloudId, at: now() + config.graceDays * day });
     } else {
+      if (event.cancelAtPeriodEnd && !sub.cancelAtPeriodEnd && sub.status === "active") notices.push(cancelledNotice({ ...sub, cancelAtPeriodEnd: true }));
       sub.cancelAtPeriodEnd = event.cancelAtPeriodEnd;
       const license = state.licenses.find(license => license.id === sub!.licenseId); if (license) license.validUntil = sub.currentPeriodEnd;
       if (sub.cloudId) {
@@ -349,11 +367,17 @@ export function createBillingService(options: BillingServiceOptions) {
         amountCents: event.amountCents, currency: event.currency, status: event.type === "succeeded" ? "paid" : "failed",
         description: checkout.cart ? (sub?.lines ?? checkout.lines).filter(line => line.kind !== "discount").map(line => line.label).join(", ") : config.creditPacks.find(pack => pack.id === checkout.packId)?.label ?? "Credits", createdAt: now() };
       state.invoices.push(invoice);
-    } else if (event.type === "succeeded" && invoice.status === "failed") Object.assign(invoice, { status: "paid", amountCents: event.amountCents, currency: event.currency });
+      if (invoice.status === "paid") receipt(invoice, sub ?? null);
+    } else if (event.type === "succeeded" && invoice.status === "failed") { Object.assign(invoice, { status: "paid", amountCents: event.amountCents, currency: event.currency }); receipt(invoice, sub ?? null); }
     if (event.type === "succeeded" && checkout.kind === "credits") {
       ledger(checkout.accountId, checkout.creditCents!, "top_up", event.paymentId); checkout.status = "completed";
     }
     settleRefunds(event.paymentId);
+  }
+  function receipt(invoice: (typeof state.invoices)[number], sub: StoredSubscription | null) {
+    const paidBefore = state.invoices.some(other => other !== invoice && other.status !== "failed" && other.checkoutId === invoice.checkoutId);
+    notices.push({ kind: "receipt", accountId: invoice.accountId, invoiceId: invoice.id, amountCents: invoice.amountCents, currency: invoice.currency, description: invoice.description, paidAt: now(),
+      periodStart: sub?.currentPeriodStart ?? null, periodEnd: sub?.currentPeriodEnd ?? null, renews: sub ? !sub.cancelAtPeriodEnd : false, first: !paidBefore, cloudId: sub?.cloudId ?? null });
   }
   function applyRefund(event: Extract<BillingEvent, { kind: "refund" }>) {
     const refunds = state.refunds ??= [];
@@ -390,7 +414,8 @@ export function createBillingService(options: BillingServiceOptions) {
       state.webhookEvents.push({ id: verified.id, at: now(), type: event.kind === "refund" ? "refund.succeeded" : event.kind === "ignored" ? event.type : `${event.kind}.${event.type}` });
       state.webhookEvents = state.webhookEvents.filter(event => event.at >= now() - 30 * day).sort((a, b) => a.at - b.at);
       store.commit();
-    } catch (error) { Object.assign(state, before); throw error; }
+    } catch (error) { Object.assign(state, before); notices = []; throw error; }
+    sendNotices();
     flushCloudActions();
     kickProviderCancels();
     return { duplicate: false };
@@ -484,6 +509,7 @@ export function createBillingService(options: BillingServiceOptions) {
       sub = owned(account.id, subscriptionId);
       if (sub.status === "ended" || !cancel && (sub.status !== "active" || sub.currentPeriodEnd === null || sub.currentPeriodEnd <= now())) fail(409, "not_subscribed");
       const before = copy(state);
+      const wasCancelled = sub.cancelAtPeriodEnd;
       try {
         sub.cancelAtPeriodEnd = cancel; sub.updatedAt = now(); sub.version++;
         if (sub.cloudId) {
@@ -492,6 +518,7 @@ export function createBillingService(options: BillingServiceOptions) {
         }
         store.commit();
       } catch (error) { Object.assign(state, before); throw error; }
+      if (cancel && !wasCancelled && sub.status === "active") { notices.push(cancelledNotice(sub)); sendNotices(); }
       flushCloudActions(); return view(sub);
     });
   }

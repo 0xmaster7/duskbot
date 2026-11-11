@@ -63,7 +63,7 @@ async function fixture() {
   }
   async function login(email: string) {
     const { attempt } = await (await page("/v1/auth/start", { email })).json() as { attempt: string };
-    const code = mailer.outbox.findLast(m => m.to === email)!.text.match(/\b\d{8}\b/)![0];
+    const code = mailer.outbox.findLast(m => m.to === email && /\b\d{8}\b/.test(m.text))!.text.match(/\b\d{8}\b/)![0];
     const verify = await page("/v1/auth/verify", { attempt, code });
     const cookie = verify.headers.get("set-cookie")!.split(";")[0]!;
     csrf.set(cookie, (await verify.json() as { csrfToken: string }).csrfToken);
@@ -140,7 +140,7 @@ it("an owner's delete waits for a fresh sign-in, the emailed link and seven days
   expect(await (await f.page(`/v1/clouds/${cloud.id}/delete-data`, {}, owner)).json()).toMatchObject({ code: "reauth_required" });
   const fresh = await f.login("owner@example.test");
   expect((await f.page(`/v1/clouds/${cloud.id}/delete-data`, {}, fresh)).status).toBe(202);
-  const link = f.mailer.outbox.findLast(m => /Confirm deleting/.test(m.subject))!.text.match(/#([A-Za-z0-9_-]{43})/)![1]!;
+  const link = f.mailer.outbox.findLast(m => /confirm deleting/i.test(m.subject))!.text.match(/#([A-Za-z0-9_-]{43})/)![1]!;
   expect((await f.page(`/v1/clouds/${cloud.id}/delete-data/confirm`, { token: link.replace(/.$/, link.endsWith("A") ? "B" : "A") }, fresh)).status).toBe(409);
   expect((await f.page(`/v1/clouds/${cloud.id}/delete-data/confirm`, { token: link }, fresh)).status).toBe(200);
   expect((await f.page(`/v1/clouds/${cloud.id}/delete-data/confirm`, { token: link }, fresh)).status).toBe(409);
@@ -152,7 +152,7 @@ it("an owner's delete waits for a fresh sign-in, the emailed link and seven days
   // asked and confirmed again: deleted after the undo window, backups with it
   const again = await f.login("owner@example.test");
   expect((await f.page(`/v1/clouds/${cloud.id}/delete-data`, {}, again)).status).toBe(202);
-  const second = f.mailer.outbox.findLast(m => /Confirm deleting/.test(m.subject))!.text.match(/#([A-Za-z0-9_-]{43})/)![1]!;
+  const second = f.mailer.outbox.findLast(m => /confirm deleting/i.test(m.subject))!.text.match(/#([A-Za-z0-9_-]{43})/)![1]!;
   expect((await f.page(`/v1/clouds/${cloud.id}/delete-data/confirm`, { token: second }, again)).status).toBe(200);
   f.advance(7 * DAY_MS + 60_000); await f.settle(6);
   expect(f.api.deletes()).toHaveLength(1);
