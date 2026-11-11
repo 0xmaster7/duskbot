@@ -59,7 +59,7 @@ async function step<T>(name: string, fn: () => Promise<T>, critical = false): Pr
 // a throwaway inbox the run controls (mail.tm), so no real person gets mail
 const mailtm = "https://api.mail.tm";
 async function mt(path: string, init: RequestInit = {}, tries = 0): Promise<any> {
-  const r = await fetch(mailtm + path, { ...init, headers: { "content-type": "application/json", ...(init.headers ?? {}) } });
+  const r = await fetch(mailtm + path, { ...init, headers: { "content-type": "application/json", ...init.headers } });
   if (r.status === 429 && tries < 8) { await sleep(1500 * (tries + 1)); return mt(path, init, tries + 1); }
   const text = await r.text(); if (!r.ok) throw new Error(`mail.tm ${path} ${r.status}`);
   return text ? JSON.parse(text) : {};
