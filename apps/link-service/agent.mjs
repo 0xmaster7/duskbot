@@ -925,12 +925,37 @@ async function link() {
     tunnel: { id, key: tunnel.key, token: tunnel.app },
   };
   const sealed = seal(sealKeyOf(mine.priv, mine.pub, appPub, id), id, Buffer.from(JSON.stringify(payload)));
-  writePrivate(tunnelFile(), JSON.stringify({ v: 1, base, id, key: tunnel.key, token: tunnel.vps, mode, origin }));
+  // tunnels this server held before stay listed until the new one is confirmed, so an interrupted link still retires them
+  const before = [saved, ...(Array.isArray(saved?.before) ? saved.before : [])]
+    .filter((one) => one?.id && one.id !== id && typeof one.token === "string").map(({ id: oldId, base: oldBase, token: oldToken }) => ({ id: oldId, base: oldBase, token: oldToken })).slice(0, 4);
+  const record = { v: 1, base, id, key: tunnel.key, token: tunnel.vps, mode, origin };
+  writePrivate(tunnelFile(), JSON.stringify(before.length ? { ...record, before } : record));
   const result = await relay(base, `/v1/sessions/${id}/result`, token, {
     method: "POST", body: JSON.stringify({ sealed, vpsPub: mine.pub, tunnel: { vps: sha256hex(tunnel.vps), app: sha256hex(tunnel.app) } }),
   });
   if (result.status !== 200) throw new Error(result.body?.error ?? `the link service answered ${result.status}`);
+  if (before.length) {
+    for (const one of before) await retireTunnel(one);
+    writePrivate(tunnelFile(), JSON.stringify(record));
+  }
   return 0;
+}
+
+/**
+ * a server linked again (a new app, a second mac, a reinstalled app) has one tunnel: the one it replaced is ended at the
+ * service, so the app that held it reads "unlinked" instead of waiting on a tunnel nobody serves, and that app's direct
+ * key stops opening this agent
+ */
+export async function retireTunnel(saved, { removeKey = setDirectKey } = {}) {
+  if (typeof saved?.token === "string" && /^[a-z2-7]{10}$/.test(saved.id ?? "") && typeof saved.base === "string") {
+    try {
+      const answer = await relay(saved.base, `/v1/tunnels/${saved.id}`, saved.token, { method: "DELETE" });
+      if (answer.status !== 200 && answer.status !== 404) console.error(`the tunnel this server had before was not ended (${answer.status})`);
+    } catch (error) {
+      console.error(`the tunnel this server had before was not ended (${error?.message ?? error})`);
+    }
+  }
+  try { removeKey(saved.id, null); } catch (error) { console.error(`the direct key of the tunnel before was not removed (${error?.message ?? error})`); }
 }
 
 // ---- tunnel ----
