@@ -10,6 +10,10 @@ const root = path.join(here, 'public', 'landing');
 const redirects = JSON.parse(fs.readFileSync(path.join(root, '_redirects.json'), 'utf8'));
 // files that deploy.sh and publish-downloads.sh put on the site, so they are not in the repo
 const AT_DEPLOY = [/^\/install\.sh(\.sha256)?$/, /^\/releases\//];
+// the account app (DUSK_APP_URL, the same default as build-pages.mjs) and its api are served beside the site on the same origin
+const APP_PATH = (process.env.DUSK_APP_URL || '/app').replace(/\/+$/, '');
+const ELSEWHERE = APP_PATH.startsWith('/') ? [APP_PATH, '/v1'] : ['/v1'];
+const servedElsewhere = (p) => ELSEWHERE.some((pre) => p === pre || p.startsWith(`${pre}/`));
 // the app's own interface is built elsewhere and checked there
 const SKIP_DIRS = new Set(['demo']);
 
@@ -47,7 +51,7 @@ for (const file of pages) {
     let target = urlPath === '' ? file : null, to = urlPath;
     if (urlPath !== '') {
       if (!urlPath.startsWith('/')) { problems.push(`${from}: "${ref}" is not an absolute path`); continue; }
-      if (AT_DEPLOY.some((re) => re.test(urlPath))) continue;
+      if (AT_DEPLOY.some((re) => re.test(urlPath)) || servedElsewhere(urlPath)) continue;
       target = fileFor(urlPath);
       if (!target && redirects[urlPath.replace(/\/+$/, '')]) { to = redirects[urlPath.replace(/\/+$/, '')].split('#')[0]; target = fileFor(to); }
       if (!target) { problems.push(`${from}: ${ref} leads nowhere`); continue; }

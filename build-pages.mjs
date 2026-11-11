@@ -12,8 +12,9 @@ import { buildDocs } from './build-docs.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.join(here, 'public', 'landing');
 const repo = process.argv[2] || path.join(process.env.HOME, 'Desktop/code/OpenMausBot');
-// every link to the account web app goes through APP_URL, and every absolute address of this site through SITE_URL
-export const APP_URL = (process.env.APP_URL || 'https://app.dusk.bot').replace(/\/+$/, '');
+// every link to the account web app goes through APP_URL, and every absolute address of this site through SITE_URL.
+// DUSK_APP_URL is a path on this origin (default /app, where preview.dusk.bot serves the app) or a full address
+export const APP_URL = (process.env.DUSK_APP_URL || '/app').replace(/\/+$/, '');
 export const SITE_URL = (process.env.SITE_URL || 'https://dusk.bot').replace(/\/+$/, '');
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -169,7 +170,7 @@ const stamped = (file) => {
 };
 
 // {{app}} and {{app /billing}} are addresses in the account web app; {{site /docs}} is an absolute address of this site
-const withLinks = (html) => html.replace(/\{\{app( \/[\w\/?=&-]*)?\}\}/g, (_, rest) => APP_URL + (rest ? rest.trim() : '')).replace(/\{\{site( \/[\w\/.-]*)?\}\}/g, (_, rest) => SITE_URL + (rest ? rest.trim() : ''));
+const withLinks = (html) => html.replace(/\{\{app( \/[\w\/?=&-]*)?\}\}/g, (_, rest) => APP_URL + (rest ? rest.trim() : '/')).replace(/\{\{site( \/[\w\/.-]*)?\}\}/g, (_, rest) => SITE_URL + (rest ? rest.trim() : ''));
 
 // what can be downloaded today. releases.json names the files; a release is out once publish-downloads.sh has put
 // releases/latest.json on the site (or releases.json says "released": true). DUSK_RELEASED=1 or 0 forces either state,
@@ -203,7 +204,7 @@ export const macros = (html) => withBots(withLinks(withRelease(html.replace(/\{\
 const NAV = [['/download', 'download'], ['/docs', 'docs'], ['/pricing', 'pricing']];
 const MENU = [...NAV, ['/changelog', "what's new"], ['/about', 'about'], ['/contact', 'contact']];
 const FOOT = [
-  ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], ['/waitlist', 'join the waitlist'], [APP_URL, 'sign in']]],
+  ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], ['/waitlist', 'join the waitlist'], [`${APP_URL}/`, 'sign in']]],
   ['learn', [['/docs', 'docs'], ['/docs/getting-started', 'get started'], ['/docs/your-own-server', 'your own server'], ['/docs/faq', 'questions']]],
   ['dusk bot', [['/about', 'about'], ['/contact', 'contact'], ['/brand', 'brand'], ['/security', 'security']]],
   ['legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/license', 'license']]],
@@ -254,7 +255,7 @@ ${css.map((file) => `<link rel="stylesheet" href="${stamped(file)}">`).join('\n'
 </head>
 <body${home ? ' class="is-home"' : ''}>
 <a class="skip" href="#main">skip to the page</a>
-<header class="bar">${brand}<nav aria-label="main">${links(NAV)}<a class="cta" href="${APP_URL}">sign in</a></nav><details class="menu"><summary><span class="vh">menu</span>${icon('menu')}${icon('x')}</summary><nav aria-label="every page">${links(MENU)}<a class="cta" href="${APP_URL}">sign in</a></nav></details></header>
+<header class="bar">${brand}<nav aria-label="main">${links(NAV)}<a class="cta" href="${APP_URL}/">sign in</a></nav><details class="menu"><summary><span class="vh">menu</span>${icon('menu')}${icon('x')}</summary><nav aria-label="every page">${links(MENU)}<a class="cta" href="${APP_URL}/">sign in</a></nav></details></header>
 <main id="main" class="${home ? 'home' : `inner${kind ? ' ' + kind : ''}`}">
 ${macros(body).replace(/(src=")\/(art\/[\w./-]+)"/g, (_, lead, file) => `${lead}${stamped(file)}"`)}
 </main>
