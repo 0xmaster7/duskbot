@@ -243,7 +243,7 @@ try {
     const r = await context.request.get(`${origin}/v1/account`);
     if (r.status() !== 401) throw new Error(`after delete /v1/account ${r.status()}`);
   });
-  // a deleted account's cloud keeps its data 45 days after its plan ended; the operator ends that early for a test account
+  // a deleted account's cloud keeps its data 30 days after its plan ended; the operator ends that early for a test account
   await step("teardown: the operator deletes the test cloud now, and the provider holds no machine of this deployment", async () => {
     if (cloudId) {
       const r = await fetch(`${origin}/v1/billing/ops/clouds/${cloudId}/delete`, { method: "POST", headers: { authorization: `Bearer ${opsToken}`, "content-type": "application/json" }, body: JSON.stringify({ reason: "test_account" }) });

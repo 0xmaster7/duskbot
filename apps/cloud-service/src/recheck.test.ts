@@ -155,7 +155,7 @@ it("confirmed lost (404 and unlisted past 30 minutes) but the disk comes back: r
   expect(audit.entries(c.id).map(e => e.action)).not.toContain("delete_requested");
 });
 
-it("an ended plan's cloud that is confirmed lost keeps its notices and is not deleted before 45 days", async () => {
+it("an ended plan's cloud that is confirmed lost keeps its notices and is not deleted before 30 days", async () => {
   const f = await fixture(); const { service: s, provider } = f.instance();
   const { c, sub, original } = await withUnbackedData(f, s);
   sub.status = "ended"; sub.currentPeriodEnd = f.now(); sub.lastEventAt = f.now();
@@ -164,9 +164,9 @@ it("an ended plan's cloud that is confirmed lost keeps its notices and is not de
   const endedAt = f.now();
   blackout(provider, original, true);
   for (let n = 0; n < 8; n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await s.reconcile(); }
-  while (f.now() < endedAt + 45 * DAY_MS - DAY_MS) { f.advance(DAY_MS); c.nextAttemptAt = 0; await s.reconcile(); }
+  while (f.now() < endedAt + 30 * DAY_MS - DAY_MS) { f.advance(DAY_MS); c.nextAttemptAt = 0; await s.reconcile(); }
   expect(f.api.deletes()).toHaveLength(0);
-  expect(f.notices.filter(n => n.cloudId === c.id).map(n => n.kind)).toEqual(expect.arrayContaining(["ended", "left_30", "left_7", "left_1"]));
+  expect(f.notices.filter(n => n.cloudId === c.id).map(n => n.kind)).toEqual(expect.arrayContaining(["ended", "left_7"]));
 });
 
 it("the data-dir lock: another process is refused, a dead process's lock is taken over", () => {

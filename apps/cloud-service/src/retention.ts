@@ -5,11 +5,11 @@ import type { StoredSubscription } from "../../dashboard/server/billing/store.ts
 
 export const DAY_MS = 86_400_000;
 /** days a home and its data are kept after the plan that paid for it ended (DUSK_MANAGED_RETENTION_DAYS) */
-export const DEFAULT_RETENTION_DAYS = 45;
+export const DEFAULT_RETENTION_DAYS = 30;
 /** days a confirmed owner request to delete waits, so it can be undone (DUSK_MANAGED_DELETE_DELAY_DAYS) */
 export const DEFAULT_DELETE_DELAY_DAYS = 7;
 /** notices before deletion: days left */
-export const NOTICE_DAYS = [30, 7, 1] as const;
+export const NOTICE_DAYS = [7] as const;
 
 export type NoticeKind = "ended" | "left_30" | "left_7" | "left_1" | "deleted" | "recovered" | "delete_requested" | "delete_scheduled" | "delete_cancelled" | "resumed";
 

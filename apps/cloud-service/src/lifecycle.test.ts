@@ -118,7 +118,7 @@ it("recovers a lost machine from its newest backup into a fresh one and tells th
   expect(f.api.deletes()).toHaveLength(0);
 });
 
-it("keeps an ended plan's home asleep for 45 days with notices, then deletes it only after the final backup it took before sleeping", async () => {
+it("keeps an ended plan's home asleep for 30 days with notices, then deletes it only after the final backup it took before sleeping", async () => {
   const f = await homeFixture();
   const { c, sub } = await f.paid();
   sub.status = "ended"; sub.currentPeriodEnd = f.now(); sub.lastEventAt = f.now();
@@ -130,8 +130,8 @@ it("keeps an ended plan's home asleep for 45 days with notices, then deletes it 
   expect(f.audit.entries(c.id).filter(e => e.action === "backup").map(e => e.reason)).toEqual(["plan_ended"]);
   expect(f.api.machines.get(c.serverId!)!.state).toBe("suspended");
   expect(f.notices.map(n => n.kind)).toEqual(["ended"]);
-  for (const day of [15, 38, 44, 44.9]) { f.advance((day - (f.now() - sub.currentPeriodEnd!) / DAY_MS) * DAY_MS); c.nextAttemptAt = 0; await f.service.reconcile(); await f.service.reconcile(); }
-  expect(f.notices.map(n => n.kind)).toEqual(["ended", "left_30", "left_7", "left_1"]);
+  for (const day of [15, 23, 29, 29.9]) { f.advance((day - (f.now() - sub.currentPeriodEnd!) / DAY_MS) * DAY_MS); c.nextAttemptAt = 0; await f.service.reconcile(); await f.service.reconcile(); }
+  expect(f.notices.map(n => n.kind)).toEqual(["ended", "left_7"]);
   expect(f.api.deletes()).toHaveLength(0);
   expect(c.status).toBe("stopped");
   // no wake was needed for it: the home stayed asleep the whole retention period

@@ -66,8 +66,8 @@ The code is `apps/cloud-service/src/lifecycle.ts`, the adapter `src/instabox.ts`
   restored into it in place (only our entries of `/data` are swapped; the platform's stay). A cold-booted machine is not
   lost: its home is started again.
 - **Retain.** When a plan ends, the final backup is taken from the running home and it sleeps; a home that paused itself
-  with no final backup as new as its data is woken once to take one. The cloud is kept for 45 days and the owner is
-  notified at the end, then 30, 7 and 1 days before deletion. It is deleted only through `deletionVerdict`
+  with no final backup as new as its data is woken once to take one. The cloud is kept for 30 days and the owner is
+  notified at the end and 7 days before deletion. It is deleted only through `deletionVerdict`
   (`src/retention.ts`), which reads the billing store, never a request.
 - **Machines a recovery replaced** are kept asleep (their disk costs nothing up to the plan's storage), paused if found
   running, and deleted only with their cloud.
@@ -89,7 +89,7 @@ Every action is one line in `managed-audit.jsonl`. A deletion also alerts `DUSK_
   `_IDLE_MINUTES`, `_LEASE_HOURS`, `_WAKE_LEAD_MINUTES` (1 to 30, default 2), `_EDGE_WAKES_PER_HOUR`, `_BACKUP_DIR`,
   `_BACKUP_HOURS`, `_BACKUP_KEEP`, `_BACKUP_TAIL_DAYS`, `_BACKUP_MAX_MB`, `_RETENTION_DAYS`, `_DELETE_DELAY_DAYS`,
   `_LOST_AFTER_MINUTES`, `_HOME_RELEASE_FILE`, `DUSK_UPDATE_POLICY_FILE`, `DUSK_RELEASE_PUBLIC_KEYS` (staging keys).
-- **Minimums:** `DUSK_MANAGED_RETENTION_DAYS` is at least 45 and `DUSK_MANAGED_DELETE_DELAY_DAYS` at least 7; shorter
+- **Minimums:** `DUSK_MANAGED_RETENTION_DAYS` is at least 30 and `DUSK_MANAGED_DELETE_DELAY_DAYS` at least 7; shorter
   values stop the service at startup.
 - **Sizing:** the 30 starts a minute per Pro workspace bind first. Up to about 300 homes per workspace the policy beats
   every fixed idle timer; from about 600 it loses, and at 1,000 or more synchronized routines run late. Use a bigger plan

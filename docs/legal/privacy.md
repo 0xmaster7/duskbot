@@ -44,7 +44,7 @@ We use Resend for transactional email, including sign-in codes and account and b
 
 Dusk Cloud provides a hosted, always-on computer per customer on InstaBox infrastructure, which runs on Amazon Web Services. InstaBox is a sub-processor. Your bots, chats and files live on that machine. This is the exception to the statement that your message content is not stored on our services. The cloud desktop connects directly to the AI providers you sign in to, using your accounts with them.
 
-Cloud desktop backups are encrypted with a key held by the account service. That key arrangement is different from the link relay, where only your app and your VPS hold the keys. After your plan ends, the desktop is kept and then deleted under [retention period, for example 7 days after deletion request; 30 days after a plan ends]. Backup retention is [cloud backup retention and deletion schedule].
+Cloud desktop backups are encrypted with a key held by the account service. That key arrangement is different from the link relay, where only your app and your VPS hold the keys. After your plan ends, the desktop is kept for 30 days and then deleted; we email you 7 days before. If you ask to delete it yourself, it is deleted 7 days after you confirm. Backup retention is [cloud backup retention and deletion schedule].
 
 If you enable Wake for Slack, the account service holds your bot's Slack app-level token while the desktop sleeps. The token is sealed at rest. It also holds Slack events addressed to your bot, sealed to the desktop's key, for at most 24 hours. It never reads or logs event text. You choose whether to enable this feature.
 

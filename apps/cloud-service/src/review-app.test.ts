@@ -94,12 +94,12 @@ async function deliver(f: Awaited<ReturnType<typeof fixture>>, deliveries: Array
   return codes;
 }
 
-it("deleting the account with a paid plan pauses the managed cloud at the period end and deletes it 45 days later", async () => {
+it("deleting the account with a paid plan pauses the managed cloud at the period end and deletes it 30 days later", async () => {
   const f = await fixture();
   const owner = await f.login("owner@example.test");
   const { cloud, subscriptionId } = await f.buy(owner);
   const periodEnd = f.billing.service.subscriptions(cloud.accountId)[0]!.currentPeriodEnd!;
-  const res = await f.page("/v1/account/delete", { email: "owner@example.test", cancelBilling: true, destroyDesktopsNow: true }, owner);
+  const res = await f.page("/v1/account/delete", { email: "owner@example.test", cancelBilling: true, destroyDesktopsNow: false }, owner);
   expect(res.status).toBe(200);
   await f.settle(4);
   // Dodo ends the cancelled subscription at the period end
@@ -108,8 +108,8 @@ it("deleting the account with a paid plan pauses the managed cloud at the period
   await f.settle(6);
   console.info(`[review] after period end: cloud=${cloud.status} destroyAt=${f.billing.clouds.view(cloud).destroyAt}`);
   expect.soft(cloud.status, "the deleted account's cloud is still running after its paid period").toBe("stopped");
-  f.advance(46 * DAY_MS); await f.settle(6);
-  console.info(`[review] 46 days later: cloud=${cloud.status} deletes=${f.api.deletes().length}`);
+  f.advance(31 * DAY_MS); await f.settle(6);
+  console.info(`[review] 31 days later: cloud=${cloud.status} deletes=${f.api.deletes().length}`);
   expect(cloud.status, "the deleted account's cloud and data are never removed").toBe("destroyed");
 });
 
