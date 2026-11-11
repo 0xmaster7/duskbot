@@ -43,8 +43,9 @@ None of this is in the repo: keys and Firebase files are secrets or tied to your
 1. In the Apple Developer account that signs the app (bundle id `bot.dusk.mobile`), open Certificates, IDs &
    Profiles, Keys, and create a key with **Apple Push Notifications service (APNs)** enabled. Download the `.p8` file
    (only once) and note its Key ID and your Team ID.
-2. In Xcode, open `apps/mobile/ios/App/App.xcworkspace`, select the App target, Signing & Capabilities, and add
-   **Push Notifications**. Xcode writes the `aps-environment` entitlement; commit that change.
+2. The `aps-environment` entitlement is already in the project (`apps/mobile/ios/App/App/App.entitlements`). In the
+   developer account, turn on **Push Notifications** for the app id, and select your team for the App target in
+   `apps/mobile/ios/App/App.xcodeproj` so Xcode makes a profile that carries it.
 3. Put the key where the pushes leave from (the link service host for the relay, or the workspace itself) and set:
    - `DUSK_APNS_KEY_FILE`: path to the `.p8` file (readable only by the service user, `chmod 600`)
    - `DUSK_APNS_KEY_ID`: the key's ID
