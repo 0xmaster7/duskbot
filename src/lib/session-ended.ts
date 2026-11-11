@@ -43,3 +43,11 @@ export function endedBeforeReload(): boolean {
 export function forgetEndedSession(): void {
   try { sessionStorage.removeItem(ENDED_KEY); } catch { }
 }
+
+/** The phone app leaves an ended session for pairing without a reload, so the next session starts unmarked. */
+export function resetSessionEnded(): void {
+  if (!ended) return;
+  ended = false;
+  forgetEndedSession();
+  for (const listener of listeners) listener();
+}

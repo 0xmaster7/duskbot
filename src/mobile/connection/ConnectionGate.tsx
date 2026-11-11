@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type React
 import { AnimatePresence } from "motion/react";
 import { MausAvatar } from "@/components/Avatar";
 import { readSessionState } from "@/lib/session";
+import { resetSessionEnded, useSessionEnded } from "@/lib/session-ended";
 import { parseMobilePairingLink, type MobileConnectionRecord } from "../../../shared/mobile-link";
 import { usePlatform } from "../platform";
 import { useMobileAccount } from "../account/AccountGate";
@@ -51,7 +52,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
         try {
           const transport = await connectToWorkspace(active.record, active.token, platform, controller.signal);
           if (stopped) { if (transport.kind === "relay") transport.channel.close(); return; }
-          uninstall.current = installTransport(transport);
+          uninstall.current = installTransport(transport, retry);
           setState({ kind: "ready", id: active.record.id });
           void store.touch(active.record.id).catch(() => {});
         } catch (error) {
@@ -78,7 +79,16 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     };
     void decide().catch(() => { if (!stopped) setState({ kind: "pair" }); });
     return () => { stopped = true; controller.abort(); uninstall.current?.(); uninstall.current = null; };
-  }, [forcePair, platform, store, attempt]);
+  }, [forcePair, platform, store, attempt, retry]);
+
+  // the workspace stopped taking this phone's session (it was removed there): connecting again finds out which it is,
+  // and a refused token leaves for pairing with the reason
+  const ended = useSessionEnded();
+  useEffect(() => {
+    if (!ended || state.kind !== "ready" || state.id === "same-origin") return;
+    resetSessionEnded();
+    retry();
+  }, [ended, state, retry]);
 
   useEffect(() => {
     if (state.kind === "ready" && platform.native) void registerPushForConnection(platform);
@@ -113,13 +123,14 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     await store.save(record, token);
     const transport = await connectToWorkspace(record, token, platform, new AbortController().signal);
     uninstall.current?.();
-    uninstall.current = installTransport(transport);
+    uninstall.current = installTransport(transport, retry);
+    resetSessionEnded();
     setIncoming(null);
     setAdding(0);
     setEntered(true);
     setCelebrate({ name, sequence: ++sequence.current });
     setState({ kind: "ready", id: record.id });
-  }, [platform, store]);
+  }, [platform, store, retry]);
   const cancel = () => { ++sequence.current; setIncoming(null); };
   const switchTo = useCallback((id: string) => { void store.setActive(id).then(retry, retry); }, [store, retry]);
 

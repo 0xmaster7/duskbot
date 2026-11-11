@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MobileConnectionRecord, MobileTransport } from "../../../shared/mobile-link";
 import { usePlatform, type MobilePlatform } from "../platform";
 import { deviceChannelKey, type RelaySecrets } from "../transport/link-crypto";
-import { open as openRelay } from "../transport/relay";
+import { open as openRelay, RelayGoneError } from "../transport/relay";
 import type { PhoneTransport } from "../transport/transport";
 import { PairError } from "./pair";
 
@@ -10,6 +10,7 @@ export async function connectToWorkspace(record: MobileConnectionRecord, token: 
   const routes: MobileTransport[] = record.via ?? (record.origin ? [record.transport === "companion"
     ? { kind: "companion", url: record.origin, net: "lan", priority: 0 }
     : { kind: "https", url: record.origin }] : []);
+  let gone = false;
   for (const route of routes) {
     signal.throwIfAborted();
     let transport: PhoneTransport | undefined;
@@ -33,8 +34,9 @@ export async function connectToWorkspace(record: MobileConnectionRecord, token: 
         response = await fetch(`${route.url}/api/auth/session`, { headers, credentials: "omit", redirect: "error", signal: timed });
       }
       await response.body?.cancel().catch(() => {});
-    } catch {
+    } catch (error) {
       if (transport?.kind === "relay") transport.channel.close();
+      if (error instanceof RelayGoneError) gone = true;
       continue;
     }
     if (signal.aborted || !response.ok) {
@@ -46,7 +48,8 @@ export async function connectToWorkspace(record: MobileConnectionRecord, token: 
     return transport;
   }
   signal.throwIfAborted();
-  throw new PairError("unreachable");
+  // the relay dropping this phone's channel is the removal reaching a phone that has no other way to hear of it
+  throw new PairError(gone ? "refused" : "unreachable");
 }
 
 const CONNECTIONS_KEY = "omb.mobile.connections.v1";

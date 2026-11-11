@@ -3,6 +3,8 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
+import { sessionCheck, sessionEnded } from "@/lib/session-ended";
+import { api } from "@/state/api";
 import type { MobileConnectionRecord } from "../../../shared/mobile-link";
 import { PlatformContext, webPlatform, type MobilePlatform } from "../platform";
 import { ConnectionGate } from "./ConnectionGate";
@@ -64,4 +66,29 @@ it("a refused token still goes to pairing", async () => {
   await mount(); await settle();
   expect(host.querySelector("h1")?.textContent).not.toContain("Can't reach");
   expect(prefs.get("omb.mobile.active.v1")).toBeUndefined();
+});
+
+it("a phone removed on the computer while the app is open leaves for pairing at once, with the reason", async () => {
+  fetcher.mockResolvedValue(new Response("{}"));
+  await mount(); await settle();
+  expect(host.textContent).toBe("home");
+
+  fetcher.mockImplementation(async () => new Response('{"error":"unauthorized"}', { status: 401 }));
+  await act(async () => { await api("/api/bots").catch(() => {}); await sessionCheck(); });
+  await settle();
+  expect(host.textContent).not.toBe("home");
+  expect(host.textContent).toContain("This phone was unlinked");
+  expect(prefs.get("omb.mobile.active.v1")).toBeUndefined();
+  expect(prefs.get("omb.mobile.connections.v1")).not.toContain("Studio Mac");
+  expect(sessionEnded()).toBe(false);
+});
+
+it("a refused request on a session that still answers changes nothing", async () => {
+  fetcher.mockResolvedValue(new Response("{}"));
+  await mount(); await settle();
+  fetcher.mockImplementation(async (input) => String(input instanceof Request ? input.url : input).endsWith("/api/auth/session") ? new Response("{}") : new Response("{}", { status: 401 }));
+  await act(async () => { await api("/api/bots").catch(() => {}); await sessionCheck(); });
+  await settle();
+  expect(host.textContent).toBe("home");
+  expect(prefs.get("omb.mobile.active.v1")).toBe("mac");
 });

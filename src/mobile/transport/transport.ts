@@ -1,4 +1,5 @@
-import type { RelayChannel } from "./relay";
+import { RelayGoneError, type RelayChannel } from "./relay";
+import { noteRefusedRequest } from "@/lib/session-ended";
 import { setUploadRoute } from "@/lib/upload-request";
 
 export type PhoneTransport =
@@ -128,6 +129,8 @@ export class BearerEventSource extends EventTarget {
         credentials: "omit", mode: "cors", redirect: "error", signal: this.controller.signal,
       });
       if (this.controller.signal.aborted) return;
+      // a stream refused for its credential is the one request a quiet phone makes: it asks whether the session still stands
+      if (response.status === 401) noteRefusedRequest();
       if (!response.ok || !response.body) { this.fail(); return; }
       reader = response.body.getReader();
       this.readyState = this.OPEN;
@@ -251,7 +254,8 @@ function installMedia(): () => void {
   };
 }
 
-export function installTransport(transport: PhoneTransport): () => void {
+/** `onGone`: the relay no longer has this phone's channel, so only pairing again brings the workspace back. */
+export function installTransport(transport: PhoneTransport, onGone?: () => void): () => void {
   if (transport.kind === "same-origin") return () => {};
   const origin = originOf(transport);
   const workspace = workspaceUrl(origin);
@@ -260,7 +264,11 @@ export function installTransport(transport: PhoneTransport): () => void {
   const OriginalWebSocket = window.WebSocket;
   const previous = installed;
   const streamFetch = (window as Window & { CapacitorWebFetch?: typeof fetch }).CapacitorWebFetch ?? originalFetch;
-  const fetchWorkspace = transport.kind === "relay" ? relayFetch(transport.channel, transport.token) : originalFetch.bind(window);
+  const overRelay = (send: typeof fetch): typeof fetch => (input, init) => send(input, init).catch((error: unknown) => {
+    if (error instanceof RelayGoneError) onGone?.();
+    throw error;
+  });
+  const fetchWorkspace = transport.kind === "relay" ? overRelay(relayFetch(transport.channel, transport.token)) : originalFetch.bind(window);
   const context = { transport, streamFetch: transport.kind === "relay" ? fetchWorkspace : streamFetch.bind(window) };
   installed = context;
   const patchedFetch: typeof fetch = (input, init) => {
@@ -311,7 +319,7 @@ export function installTransport(transport: PhoneTransport): () => void {
   const stopUploads = transport.kind === "relay" ? setUploadRoute((input, init, onProgress) => {
     const url = rewriteApiUrl(input, window.location.origin, origin);
     if (!url) return null;
-    return relayFetch(transport.channel, transport.token, onProgress)(url, { method: init.method, headers: init.headers, body: init.body as BodyInit, signal: init.signal, credentials: "omit", redirect: "error" });
+    return overRelay(relayFetch(transport.channel, transport.token, onProgress))(url, { method: init.method, headers: init.headers, body: init.body as BodyInit, signal: init.signal, credentials: "omit", redirect: "error" });
   }) : () => {};
   const stopMedia = installMedia();
   let stopped = false;

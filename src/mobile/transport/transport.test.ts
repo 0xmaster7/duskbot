@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { RelayGoneError } from "./relay";
 import { BearerEventSource, createSseParser, installTransport, mediaUrl, rewriteApiUrl } from "./transport";
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
@@ -296,6 +297,20 @@ describe("relay transport", () => {
     } finally { restore(); }
     expect(channel.close).toHaveBeenCalledOnce();
     expect(browser.fetch).toBe(fetcher);
+  });
+
+  it("says so once the relay no longer has the channel, and stays quiet for a lost connection", async () => {
+    const { browser } = transportFixture();
+    const channel = { request: vi.fn().mockRejectedValue(new Error("relay closed")), close: vi.fn() };
+    const gone = vi.fn();
+    const restore = installTransport({ kind: "relay", channel, token: "workspace-secret" }, gone);
+    try {
+      await expect(browser.fetch("/api/bots")).rejects.toThrow("relay closed");
+      expect(gone).not.toHaveBeenCalled();
+      channel.request.mockRejectedValue(new RelayGoneError());
+      await expect(browser.fetch("/api/bots")).rejects.toBeInstanceOf(RelayGoneError);
+      expect(gone).toHaveBeenCalledOnce();
+    } finally { restore(); }
   });
 
   it("loads media through the relay and revokes its blob on uninstall", async () => {
