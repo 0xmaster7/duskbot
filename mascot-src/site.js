@@ -52,7 +52,7 @@ if (!still && fine) {
   addEventListener('resize', forget, { passive: true });
 }
 
-// a click on a bot is a tap: a small answer, and quick repeats escalate to a hop, a twirl, then dizzy
+// a click on a bot is a tap: a small answer, and quick repeats spin, then escalate to a hop, a squish and dizzy
 document.addEventListener('click', (e) => {
   const rec = botOf(e.target) || botOf(e.target.closest?.('[data-own]')?.querySelector('svg.bot'));
   if (rec) react(rec, 'tap');

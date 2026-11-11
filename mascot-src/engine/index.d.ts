@@ -6,12 +6,14 @@ export type BodyAlias = 'clover' | 'capsule' | 'gem' | 'blob' | 'teardrop' | 'sq
 export type BotState =
   | 'idle' | 'sleeping' | 'waking' | 'drowsy' | 'listening' | 'thinking' | 'searching' | 'working' | 'excited'
   | 'surprised' | 'suspicious' | 'angry' | 'happy' | 'curious' | 'confused' | 'bored' | 'proud' | 'shy' | 'sad'
-  | 'laughing' | 'scared' | 'playful' | 'celebrate' | 'finished'
-  | 'asleep' | 'sleep' | 'done' | 'listen' | 'think' | 'search' | 'busy' | 'startled' | 'excite' | 'laugh' | 'joy';
+  | 'laughing' | 'scared' | 'playful' | 'celebrate' | 'finished' | 'waiting' | 'writing'
+  | 'asleep' | 'sleep' | 'done' | 'listen' | 'think' | 'search' | 'busy' | 'startled' | 'excite' | 'laugh' | 'joy'
+  | 'typing' | 'wait';
 
 export type BotReaction =
   | 'hop' | 'bounce' | 'nod' | 'nudge' | 'greet' | 'wiggle' | 'startle' | 'surprise' | 'squish' | 'twirl' | 'dizzy'
-  | 'open' | 'perk' | 'stretch' | 'huff' | 'shake' | 'sigh' | 'peek' | 'laugh' | 'celebrate' | 'tap' | 'blink';
+  | 'open' | 'perk' | 'stretch' | 'huff' | 'shake' | 'sigh' | 'peek' | 'laugh' | 'celebrate' | 'tap' | 'blink'
+  | 'spin' | 'swell' | 'dip';
 
 export type FaceName = keyof typeof FACES;
 
@@ -22,18 +24,22 @@ export interface Body {
   foot: number;
   /** face centre x, y, half the eye gap, eye radius, optional turn in degrees */
   face: [number, number, number, number, number?];
+  /** turns like a ball and keeps its outline */
+  round?: boolean;
 }
 
 export const BODIES: Record<BodyName, Body>;
 export const ALIAS: Record<BodyAlias, BodyName>;
-export const FACES: Record<string, { l: number[]; r?: number[]; m: number[]; k: number }>;
+/** eyes only: each eye [size, top, bottom, droop]; r is the right eye when it differs */
+export const FACES: Record<string, { l: number[]; r?: number[] }>;
 export const INK: string;
 export const STATES: BotState[];
 export const REACTIONS: BotReaction[];
 
 export function bodyName(name: string): BodyName;
 export function eyeD(top: number, bottom: number): string;
-export function mouthD(halfWidth: number, smile: number, open: number): string;
+/** the inside of one eye in unit size; restyle eyes here */
+export function eyeSvg(ink: string, top?: number, bottom?: number): string;
 /** the inside of a bot's svg (viewBox 0 0 100 100) */
 export function botSvg(body: BodyName | BodyAlias | string, face?: string, ink?: string): string;
 /** a whole bot as an svg string, for server or build-time rendering */
@@ -45,7 +51,7 @@ export interface CreateOptions {
   body?: BodyName | BodyAlias | string;
   /** css colour for the body; otherwise it takes currentColor */
   colour?: string;
-  /** eye and mouth colour, INK by default */
+  /** eye colour, INK by default */
   eyes?: string;
   state?: BotState;
   /** drawn size in px; measured when left out. under 28 px the bot skips breathing */
