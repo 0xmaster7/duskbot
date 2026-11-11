@@ -65,6 +65,29 @@ it("still gives the draft back when the server refuses the send", async () => {
   expect(onError).toHaveBeenCalledOnce();
 });
 
+it("asks again with the same sendId when an edit's answer timed out at the gateway", async () => {
+  const EDIT = "/api/bots/bot/messages/m0/edit";
+  const bodies: string[] = [];
+  const requests = vi.fn<typeof fetch>(async (path, init) => {
+    if (path !== EDIT) return response({});
+    bodies.push(String(init?.body));
+    if (bodies.length === 1) return response({ error: "The server took too long to answer." }, 504);
+    return response({ ok: true, message: { id: "m2", role: "user", kind: "text", text: "again", at: 1, sendId: "edit-0123456789abcdef" } }, 202);
+  });
+  vi.useFakeTimers();
+  vi.stubGlobal("fetch", requests);
+  vi.stubGlobal("window", {});
+  let dispatch!: Dispatch<Action>;
+  function Capture() { dispatch = useStore().dispatch; return null; }
+  renderToStaticMarkup(createElement(StoreProvider, null, createElement(Capture)));
+  dispatch({ type: "editMessage", botId: "bot", threadId: "thread", messageId: "m0", text: "again", sendId: "edit-0123456789abcdef" });
+  await flush();
+  await vi.advanceTimersByTimeAsync(5_000);
+  await flush();
+  expect(bodies).toHaveLength(2);
+  expect(JSON.parse(bodies[1]!).sendId).toBe("edit-0123456789abcdef");
+});
+
 it.each([502, 503, 504])("asks again with the same sendId when a gateway answers %i, since the server may have it or be about to", async (status) => {
   const bodies: string[] = [];
   const requests = vi.fn<typeof fetch>(async (path, init) => {

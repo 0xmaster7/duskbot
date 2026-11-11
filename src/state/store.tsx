@@ -2451,12 +2451,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const threadId =
             action.threadId ?? stateRef.current.bots.find((bot) => bot.id === action.botId)?.threadId;
           const sendId = action.sendId ?? randomUuid();
+          const edited = () => sendArrived(stateRef.current.bots.find((bot) => bot.id === action.botId && bot.threadId === threadId)?.messages, sendId);
           void waitForExecutionSettings(executionBotsBeforeAction, threadId)
-            .then(() => api(`/api/bots/${action.botId}/messages/${action.messageId}/edit`, {
-              method: "POST",
+            .then(() => sendReconciled((signal) => api(`/api/bots/${action.botId}/messages/${action.messageId}/edit`, {
+              method: "POST", signal,
               body: JSON.stringify({ text: action.text.trim(), threadId, sendId }),
-            }))
-            .then((body) => {
+            }), edited))
+            .then((sent) => {
+              const body = "body" in sent ? sent.body : null;
               if (body?.message && threadId) {
                 rawDispatch({ type: "messageAdded", threadId, message: body.message });
               }
