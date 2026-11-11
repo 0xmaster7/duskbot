@@ -34,6 +34,8 @@ for (const f of want) {
   fs.mkdirSync(path.dirname(path.join(out, f)), { recursive: true });
   fs.copyFileSync(from, path.join(out, f));
 }
+// the email art and fonts that mail clients load from dusk.bot/email
+fs.cpSync(path.join(src, 'email'), path.join(out, 'email'), { recursive: true });
 fs.writeFileSync(path.join(out, 'robots.txt'), 'User-agent: *\nAllow: /\n\nSitemap: https://dusk.bot/sitemap.xml\n');
 fs.writeFileSync(path.join(out, 'sitemap.xml'), '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://dusk.bot/</loc></url>\n</urlset>\n');
 console.log(`waitlist-only site: ${want.size + 3} files in ${out}`);
