@@ -67,10 +67,10 @@ describe("mascot facial feature colors", () => {
     }
   });
 
-  it("draws the eyes in the dark ink when no face ink is chosen", () => {
+  it("draws the eyes white when no face ink is chosen", () => {
     for (const bot of [{ color: "chrome" as const, mascotFaceColor: null }, {}]) {
       const markup = renderBot(bot);
-      expect(markup).toContain('fill="#1d1b26"');
+      expect(markup).toContain('<path fill="#fff" d="M-1 0');
     }
     expect(renderBot({ mascotBody: "pumpkin" })).toContain('stroke="#0d0a10"');
   });
