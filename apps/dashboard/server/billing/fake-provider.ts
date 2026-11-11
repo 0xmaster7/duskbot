@@ -11,6 +11,7 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
   const payments = new Map<string, { amount: number; currency: string }>();
   const completed = new Map<string, ReturnType<typeof signWebhook>[]>();
   const cancelCalls: Array<{ subscriptionId: string; cancel: boolean }> = [], changeCalls: ChangePlanInput[] = [];
+  const cancelNowCalls: string[] = [], refundCalls: Array<{ paymentId: string; reason: string }> = [];
   function sign(eventId: string, body: Buffer | string | object) { return signWebhook(secret, eventId, Buffer.isBuffer(body) || typeof body === "string" ? body : JSON.stringify(body), now()); }
   function delivery(type: string, data: object) { return sign(id("evt_"), { business_id: "fake_business", type, timestamp: new Date(now()).toISOString(), data }); }
   function next(time: number, interval: "month" | "year") {
@@ -30,11 +31,13 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
     return delivery("payment.succeeded", { payment_id: paymentId, subscription_id: subscriptionId, customer: { customer_id: customerId }, metadata: { checkoutId: input.checkoutId, accountId: input.accountId }, total_amount: amount, currency });
   }
   const provider = {
-    name: "fake" as const, secret, sessions, subscriptions, payments, cancelCalls, changeCalls, failChangePlan: false,
+    name: "fake" as const, secret, sessions, subscriptions, payments, cancelCalls, changeCalls, cancelNowCalls, refundCalls, failChangePlan: false,
     async createCheckout(input: CreateCheckoutInput) { const sessionId = id("fake_"); sessions.set(sessionId, structuredClone(input)); return { sessionId, url: `https://test.checkout.dodopayments.com/session/${sessionId}` }; },
     async portal(customerId: string, _returnUrl: string) { return { url: `https://test.customer.dodopayments.com/fake_${encodeURIComponent(customerId)}` }; },
     verifyWebhook: (headers, body) => verifyWebhook(secret, headers, body, now()),
     async cancelAtPeriodEnd(subscriptionId: string, cancel: boolean) { cancelCalls.push({ subscriptionId, cancel }); const sub = subscriptions.get(subscriptionId); if (sub) sub.cancel = cancel; },
+    async cancelNow(subscriptionId: string) { cancelNowCalls.push(subscriptionId); subscriptions.delete(subscriptionId); },
+    async refundPayment(paymentId: string, reason: string) { if (!payments.has(paymentId)) throw new BillingProviderError("refused"); refundCalls.push({ paymentId, reason }); },
     async changePlan(input: ChangePlanInput) {
       changeCalls.push(structuredClone(input)); if (provider.failChangePlan) throw new BillingProviderError("unavailable");
       const sub = subscriptions.get(input.subscriptionId);

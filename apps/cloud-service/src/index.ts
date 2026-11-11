@@ -178,6 +178,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
             ...(c.status !== "destroyed" ? { destroyAt: retained.earliestAt } : {}) };
         },
         afterPass: clouds => sweep.sweep(clouds),
+        revivable: c => lifecycle.revivable(c),
         requestDelete: (c, link) => lifecycle.requestDelete(c, link),
         confirmDelete: (c, token) => lifecycle.confirmDelete(c, token),
         cancelDelete: c => lifecycle.cancelDelete(c),

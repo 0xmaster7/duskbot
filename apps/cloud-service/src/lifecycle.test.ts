@@ -177,6 +177,33 @@ it("renewing before the end of retention brings the home back without losing any
   expect(f.api.deletes()).toHaveLength(0);
 });
 
+it("a new subscription within retention revives the paused home with its data; once retention is over it cannot", async () => {
+  const f = await homeFixture();
+  const { c, sub } = await f.paid();
+  const serverId = c.serverId!;
+  sub.status = "ended"; sub.currentPeriodEnd = f.now(); sub.lastEventAt = f.now();
+  f.service.end(c.id, f.now() + 7 * DAY_MS);
+  await f.settle(c, c => c.status === "stopped");
+  f.advance(20 * DAY_MS); c.nextAttemptAt = 0; await f.service.reconcile();
+  expect(f.service.revivable(c.id, plan)).toBe(true);
+  const next: StoredSubscription = { ...sub, id: "sub_again", status: "active", currentPeriodStart: f.now(), currentPeriodEnd: f.now() + 30 * DAY_MS };
+  f.subscriptions.push(next);
+  expect(f.service.revive(c.id, next.id, plan)).toBe(true);
+  await f.settle(c, c => c.status === "running", 20, 1_000);
+  expect(c.serverId).toBe(serverId);
+  expect(f.api.machines.get(serverId)!.volume.get(`data/${CLOUD_HOME.dataName}/bots.json`)!.toString()).toContain("Test bot");
+  expect(f.notices.map(n => n.kind)).toContain("resumed");
+  expect(f.api.deletes()).toHaveLength(0);
+
+  const other = await f.paid("acct_2");
+  other.sub.status = "ended"; other.sub.currentPeriodEnd = f.now(); other.sub.lastEventAt = f.now();
+  f.service.end(other.c.id, f.now() + 7 * DAY_MS);
+  await f.settle(other.c, c => c.status === "stopped");
+  f.advance(31 * DAY_MS);
+  expect(f.service.revivable(other.c.id, plan)).toBe(false);
+  expect(f.service.revive(other.c.id, "sub_late", plan)).toBe(false);
+});
+
 it("a provider outage while running never marks the cloud failed", async () => {
   const f = await homeFixture();
   const { c } = await f.paid();

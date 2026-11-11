@@ -808,6 +808,12 @@ export function createLifecycle(deps: LifecycleDeps) {
     },
     reconcile,
     verdict: (c: StoredCloud) => verdictFor(c),
+    /** its data is still kept: within retention, with no deletion under way */
+    revivable(c: StoredCloud) {
+      if (c.status === "destroyed" || c.status === "destroying" || state(c).deletion) return false;
+      const verdict = verdictFor(c);
+      return !verdict.delete && (verdict.earliestAt === null || now() < verdict.earliestAt);
+    },
     backup: (c: StoredCloud) => backup(c, "manual"),
     requestDelete(c: StoredCloud, link: (token: string) => string) {
       const b = state(c);

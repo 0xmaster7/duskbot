@@ -37,6 +37,10 @@ export interface BillingProvider {
   /** throws BillingProviderError("bad_signature") unless the raw body is signed and fresh */
   verifyWebhook(headers: Record<string, string | string[] | undefined>, rawBody: Buffer): VerifiedWebhook;
   cancelAtPeriodEnd(subscriptionId: string, cancel: boolean): Promise<void>;
+  /** ends a subscription now rather than at its period's end */
+  cancelNow(subscriptionId: string): Promise<void>;
+  /** refunds a payment in full */
+  refundPayment(paymentId: string, reason: string): Promise<void>;
   changePlan(input: ChangePlanInput): Promise<void>;
   /** a url the owner's browser may open for this payment's invoice */
   invoiceUrl(paymentId: string): Promise<string | null>;

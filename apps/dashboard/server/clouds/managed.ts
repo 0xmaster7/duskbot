@@ -50,6 +50,8 @@ export interface ManagedCloud {
   view(cloud: StoredCloud): Partial<CloudDesktopView>;
   /** after each pass over every cloud (a stray machine sweep, say) */
   afterPass(clouds: StoredCloud[]): Promise<void>;
+  /** an ended cloud still within retention, with no deletion under way: a new plan brings it back with its data */
+  revivable(cloud: StoredCloud): boolean;
   /** the owner's own deletion of a managed cloud's data: never at once, after an emailed confirmation and an undo window */
   requestDelete(cloud: StoredCloud, link: (token: string) => string): void;
   confirmDelete(cloud: StoredCloud, token: string): number;
