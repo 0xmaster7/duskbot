@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
+import { createHash } from 'node:crypto';
+import { openStore } from './waitlist-store.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = process.argv[2] || 'landing';
@@ -55,6 +57,88 @@ function redirectFor(urlPath) {
   return Object.hasOwn(redirects.map, key) ? redirects.map[key] : null;
 }
 
+// the waitlist (landing only): POST /api/waitlist takes {email, source?, ref?, website?}, GET /api/waitlist/count.
+// signups go through waitlist-store.js; DUSK_WAITLIST_FILE says where its file is (default data/waitlist.jsonl here)
+const waitlistFile = path.resolve(here, process.env.DUSK_WAITLIST_FILE || 'data/waitlist.jsonl');
+if (waitlistFile.startsWith(path.join(here, 'public') + path.sep)) throw new Error('DUSK_WAITLIST_FILE must not be inside public/');
+const store = site === 'landing' ? openStore(waitlistFile) : null;
+const EMAIL = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
+const JUNK = new Set(['mailinator.com', 'guerrillamail.com', 'guerrillamail.net', 'sharklasers.com', 'grr.la', '10minutemail.com', 'temp-mail.org',
+  'tempmail.com', 'tempmail.dev', 'yopmail.com', 'trashmail.com', 'getnada.com', 'dispostable.com', 'throwawaymail.com', 'maildrop.cc',
+  'fakeinbox.com', 'mailnesia.com', 'mintemail.com', 'example.com', 'example.org', 'example.net', 'test.com']);
+const WAIT_MSG = {
+  bad_email: "that doesn't look like an email address. check it for a typo and try again.",
+  junk_email: "throwaway inboxes can't join. use one you'll still check when we write.",
+  too_many: 'too many tries from here. wait a minute and try again.',
+  too_large: 'that request was too big. reload the page and try again.',
+  bad_request: 'something was off with that request. reload the page and try again.',
+  not_json: 'this address only takes json.',
+  server: "we couldn't save that just now. try again in a minute.",
+};
+// five tries a minute per address; nginx puts the visitor's address in X-Real-IP, and this server only listens on loopback
+const tries = new Map();
+function tooMany(ip) {
+  const now = Date.now(), recent = (tries.get(ip) || []).filter((t) => now - t < 60_000);
+  recent.push(now); tries.set(ip, recent);
+  if (tries.size > 5000) for (const [k, v] of tries) if (now - v[v.length - 1] > 60_000) tries.delete(k);
+  return recent.length > 5;
+}
+// a new signup also goes on the brevo list when BREVO_API_KEY and BREVO_WAITLIST_LIST_ID are set; a failure there only logs
+function addToBrevo(email, meta) {
+  const key = process.env.BREVO_API_KEY, list = Number(process.env.BREVO_WAITLIST_LIST_ID);
+  if (!key || !list) return;
+  fetch('https://api.brevo.com/v3/contacts', {
+    method: 'POST', signal: AbortSignal.timeout(8000),
+    headers: { 'api-key': key, 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({ email, listIds: [list], updateEnabled: true, attributes: meta.source ? { SOURCE: meta.source } : undefined }),
+  }).then((r) => { if (!r.ok && r.status !== 204) console.warn(`waitlist: brevo answered ${r.status}`); }, (err) => console.warn(`waitlist: brevo failed (${err.name})`));
+}
+const clean = (v, max = 64) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max).replace(/[^\w .:/@-]/g, '') || null : null);
+const sendJson = (res, status, data, extra = {}) => { const body = JSON.stringify(data); res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Length': Buffer.byteLength(body), ...extra }); res.end(body); };
+const fail = (res, status, error) => sendJson(res, status, { ok: false, error, message: WAIT_MSG[error] });
+
+function waitlist(req, res, urlPath) {
+  if (urlPath === '/api/waitlist/count') {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { ok: false, error: 'method' }, { Allow: 'GET, HEAD' });
+    return store.count().then((count) => sendJson(res, 200, { count }, { 'Cache-Control': 'public, max-age=60' }), () => fail(res, 500, 'server'));
+  }
+  if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'method' }, { Allow: 'POST' });
+  const ip = String(req.headers['x-real-ip'] || req.socket.remoteAddress || '');
+  if (tooMany(ip)) return fail(res, 429, 'too_many');
+  if (!/^application\/json\b/i.test(String(req.headers['content-type'] || ''))) { req.resume(); return fail(res, 415, 'not_json'); }
+  if (Number(req.headers['content-length']) > 2048) { res.setHeader('Connection', 'close'); req.resume(); return fail(res, 413, 'too_large'); }
+  const chunks = []; let size = 0, done = false;
+  req.on('data', (c) => {
+    if (done) return;
+    size += c.length;
+    if (size > 2048) { done = true; res.setHeader('Connection', 'close'); fail(res, 413, 'too_large'); req.resume(); return; }
+    chunks.push(c);
+  });
+  req.on('end', async () => {
+    if (done) return;
+    done = true;
+    let body;
+    try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return fail(res, 400, 'bad_request'); }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return fail(res, 400, 'bad_request');
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    if (email.length > 254 || !EMAIL.test(email) || email.split('@')[0].length > 64) return fail(res, 400, 'bad_email');
+    if (JUNK.has(email.split('@')[1])) return fail(res, 400, 'junk_email');
+    // a filled honeypot is a form-filling robot: it hears yes and nothing is kept
+    if (typeof body.website === 'string' && body.website.trim()) return sendJson(res, 200, { ok: true, position: (await store.count()) + 1 });
+    const ua = req.headers['user-agent'] ? createHash('sha256').update(String(req.headers['user-agent'])).digest('hex').slice(0, 12) : null;
+    const meta = { source: clean(body.source), ref: clean(body.ref), ua };
+    try {
+      const { position, existing } = await store.add(email, meta);
+      if (!existing) { console.log(`waitlist: #${position} joined${meta.source ? ` from ${meta.source}` : ''}`); addToBrevo(email, meta); }
+      sendJson(res, existing ? 200 : 201, { ok: true, position, already: existing });
+    } catch (err) {
+      console.error(`waitlist: could not save (${err.code || err.name})`);
+      fail(res, 500, 'server');
+    }
+  });
+  req.on('error', () => { done = true; });
+}
+
 // text is gzipped once per file version and kept in memory
 const zips = new Map();
 function zipped(file, body) {
@@ -80,6 +164,7 @@ const server = http.createServer((req, res) => {
       ? "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
       : "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'");
   res.setHeader('X-Frame-Options', demo ? 'SAMEORIGIN' : 'DENY');
+  if (store && /^\/api\/waitlist(\/count)?$/.test((req.url || '/').split('?')[0])) return waitlist(req, res, (req.url || '/').split('?')[0]);
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { Allow: 'GET, HEAD', 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end('method not allowed\n');
@@ -97,7 +182,9 @@ const server = http.createServer((req, res) => {
   }
   if (!file) {
     const to = redirectFor(urlPath);
-    if (to) { res.writeHead(308, { Location: to, 'Cache-Control': 'public, max-age=300' }); return res.end(); }
+    // the query rides along, so /join?ref=x still says who sent you
+    const q = (req.url || '').includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    if (to) { res.writeHead(308, { Location: q && !to.includes('?') ? to.replace(/(#.*)?$/, `${q}$1`) : to, 'Cache-Control': 'public, max-age=300' }); return res.end(); }
     // a page that is not there gets the site's own not-found page; a missing file gets a plain answer
     file = /\.[a-z0-9]{1,5}$/i.test(urlPath) ? null : resolveFile('/404.html');
     status = 404;

@@ -39,7 +39,7 @@ for row in "${SITES[@]}"; do
   [ "$WHICH" = all ] || [ "$WHICH" = "$site" ] || continue
   dir="$stage/$name"
   mkdir -p "$dir/public"
-  cp "$HERE/server.js" "$HERE/package.json" "$dir/"
+  cp "$HERE/server.js" "$HERE/waitlist-store.js" "$HERE/package.json" "$dir/"
   cp -R "$HERE/public/$site" "$dir/public/$site"
   if [ "$site" = landing ]; then
     [ -f "$INSTALLER" ] || { echo "error: installer not found at $INSTALLER" >&2; exit 1; }

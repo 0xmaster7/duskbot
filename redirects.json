@@ -45,5 +45,7 @@
   "/licensing": "/license",
   "/security.txt": "/.well-known/security.txt",
   "/home": "/",
-  "/index.html": "/"
+  "/index.html": "/",
+  "/join": "/waitlist",
+  "/early-access": "/waitlist"
 }
