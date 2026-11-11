@@ -40,18 +40,15 @@ function points(id: PaidPlan, catalog: PlanCatalog): string[] {
 const ART = { free: sky, starter: meadow, pro: peaks } as const;
 const FREE_POINTS = ["your bots on this computer", "they work while it's awake", "every bot, chat and connector, for personal use"];
 
-function PlanCard({ id, catalog, interval, current, lead, onChoose, action, disabled, i }: { id: Tier; catalog: PlanCatalog; interval: BillingInterval; current: boolean; lead: boolean; onChoose: (() => void) | null; action: string; disabled: boolean; i: number }) {
+function PlanCard({ id, catalog, interval, current, onChoose, action, disabled, i }: { id: Tier; catalog: PlanCatalog; interval: BillingInterval; current: boolean; onChoose: (() => void) | null; action: string; disabled: boolean; i: number }) {
   const b = bundleOf(catalog, id);
   const paid = id !== "free";
   const monthly = b?.monthly ?? 0;
   const perMonth = interval === "year" ? Math.round(perMonthOn(monthly, interval, catalog)) : monthly;
   const sub = !paid ? "on your own computer" : interval === "year" ? `per month · ${priceText(monthly, interval, catalog).replace("/yr", "")} billed yearly` : "per month, cancel anytime";
   return (
-    <article className={cx("surface enter flex min-w-0 flex-col rounded-card bg-card p-2.5 pb-7", lead && "shadow-[inset_0_0_0_2px_var(--ink)]", !paid && "max-lg:order-last")} style={{ ["--i" as string]: i }} aria-labelledby={`plan-card-${id}`}>
-      <div className="relative">
-        <img src={ART[id]} alt="" width={800} height={354} className="aspect-[800/300] w-full rounded-[16px] object-cover object-bottom" draggable={false} />
-        {lead && <span className="tag absolute left-3 top-3 !bg-pop !text-ink">recommended</span>}
-      </div>
+    <article className={cx("surface enter flex min-w-0 flex-col rounded-card bg-card p-2.5 pb-7", !paid && "max-lg:order-last")} style={{ ["--i" as string]: i }} aria-labelledby={`plan-card-${id}`}>
+      <img src={ART[id]} alt="" width={800} height={354} className="aspect-[800/300] w-full rounded-[16px] object-cover object-bottom" draggable={false} />
       <div className="flex flex-1 flex-col px-4 pt-5 max-sm:px-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <h2 id={`plan-card-${id}`} className="text-24 font-medium tracking-[-0.035em] text-ink">{b?.name ?? id}</h2>
@@ -61,7 +58,7 @@ function PlanCard({ id, catalog, interval, current, lead, onChoose, action, disa
         <p className="num mt-4 text-[48px] font-medium leading-none tracking-[-0.05em] text-ink">${perMonth}</p>
         <p className="num mt-2 text-13 text-ink-3">{sub}</p>
         {onChoose ? (
-          <button type="button" onClick={onChoose} disabled={disabled} className={cx("press mt-6 h-12 w-full rounded-full text-15 font-medium disabled:cursor-default disabled:opacity-50", lead && !current ? "hover-primary bg-primary text-primary-ink" : "hover-outline bg-btn text-ink")}>{action}</button>
+          <button type="button" onClick={onChoose} disabled={disabled} className="press hover-outline mt-6 h-12 w-full rounded-full bg-btn text-15 font-medium text-ink disabled:cursor-default disabled:opacity-50">{action}</button>
         ) : <p className="mt-6 grid h-12 place-items-center rounded-full text-14 text-ink-3">{action}</p>}
         <h3 className="sr-only">what you get</h3>
         <ul className="mt-6 flex flex-col gap-3">
@@ -245,10 +242,9 @@ export function BillingPage() {
   const work = licenseOf(catalog, "starter");
   const free = catalog.workFreeUntil && catalog.workFreeUntil > Date.now() ? catalog.workFreeUntil : null;
   const openLicense = (license: LicenseId = owned && owned.license !== "personal" ? owned.license : "starter", n = owned?.members ?? 1) => setLicenseSheet({ license, members: n });
-  const lead: PaidPlan = catalog.bundles.find((b) => b.recommended && (b.id === "starter" || b.id === "pro"))?.id as PaidPlan | undefined ?? "starter";
   const card = (id: PaidPlan, i: number) => {
     const label = current(id) ? "your plan" : `${owned && ownDesk !== "none" ? "switch to" : "get"} ${bundleOf(catalog, id)?.name}`;
-    return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={current(id)} lead={id === lead} action={label} onChoose={() => setPlanSheet(id)} disabled={current(id)} />;
+    return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={current(id)} action={label} onChoose={() => setPlanSheet(id)} disabled={current(id)} />;
   };
   const ownPlan: PaidPlan = current("pro") ? "pro" : "starter";
 
@@ -256,7 +252,7 @@ export function BillingPage() {
     <div>
       <PageHeader title="plans and billing" sub="dusk cloud keeps your bots working 24/7, even with your laptop shut." action={<IntervalToggle value={interval} onChange={setIv} catalog={catalog} />} />
       <div className="grid gap-3 lg:grid-cols-3">
-        <PlanCard id="free" i={0} catalog={catalog} interval={interval} current={current("free")} lead={false} action={current("free") ? "your plan" : "switch to free"} onChoose={current("free") ? null : () => setToFree(true)} disabled={false} />
+        <PlanCard id="free" i={0} catalog={catalog} interval={interval} current={current("free")} action={current("free") ? "your plan" : "switch to free"} onChoose={current("free") ? null : () => setToFree(true)} disabled={false} />
         {card("starter", 1)}
         {card("pro", 2)}
       </div>
