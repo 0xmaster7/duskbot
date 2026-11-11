@@ -224,8 +224,18 @@ Audit actions: `update_applied`, `update_settled`, `update_rolled_back`, `update
 `_RETENTION_DAYS`, `_DELETE_DELAY_DAYS`, `_LOST_AFTER_MINUTES`, `_WAKE_LEAD_MINUTES`, `DUSK_RELEASE_PUBLIC_KEYS` (staging keys),
 `DUSK_OPS_ALERT_EMAIL`, `DUSK_UPDATE_POLICY_FILE`, `DUSK_MANAGED_HOME_RELEASE_FILE`. Every older `DUSK_BOAT_*` name still works; the neutral one wins.
 
+Hosts (`docs/hosts.md`): `DUSK_MANAGED_HOSTS` (default `boat`) lists the providers this service drives and
+`DUSK_MANAGED_HOST` (default `boat`) is where new clouds go; a cloud's record keeps its own host, so existing clouds never
+move by configuration. With `instabox` listed: `INSTABOX_API_KEY` (runtime key, this service only), optional
+`INSTABOX_BASE_URL`, `DUSK_MANAGED_INSTABOX_TEMPLATE` (default `universal`), `DUSK_MANAGED_INSTABOX_IDLE_PAUSE_MINUTES`
+(5 to 30, default 30: the machine's own dead-man pause), `DUSK_MANAGED_INSTABOX_WAKE_LEAD_MINUTES` (default 2),
+`DUSK_MANAGED_INSTABOX_PLAN` (`pro`, `builder`, `team`: its starts a minute). Operator moves between hosts:
+`ManagedCloud.migrate`, `rollbackMigration`, `finishMigration` (in-process, like `setHold`; no route).
+
 ## Tests
 
-`pnpm exec vitest run apps/cloud-service` (fake provider API, no network). `node apps/cloud-service/scripts/e2e.ts --fake`
+`pnpm exec vitest run apps/cloud-service` (fake provider APIs, no network). The real InstaBox run, as a person uses a
+home (provision, bots, computers, desktop stream, websites, pause and resume, a routine across a pause, crashes, a move in
+from a local fixture, a move to Boat and a rollback), deleting everything it made: `scripts/instabox-live.ts`. `node apps/cloud-service/scripts/e2e.ts --fake`
 runs the whole life against the fake. A real run needs `BOAT_API_KEY`, `BOAT_BASE_URL` and the production
 `DUSK_ENTITLEMENT_SIGNING_KEY` in the environment (the release home trusts only the pinned key); see `docs/provider.md`.
