@@ -2,6 +2,11 @@
   "name": "dusk-sites",
   "private": true,
   "type": "module",
-  "description": "placeholder sites for dusk.bot, app.dusk.bot and dev.dusk.bot (deployed with deploy.sh)",
-  "engines": { "node": ">=22" }
+  "description": "dusk.bot, app.dusk.bot and dev.dusk.bot sites (deployed with deploy.sh). mongodb is only used by the landing waitlist when MONGODB_URI is set",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "mongodb": "^7.8.0"
+  }
 }

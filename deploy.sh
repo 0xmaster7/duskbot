@@ -5,11 +5,14 @@
 #   sites/dusk/deploy.sh landing    # just dusk.bot (+ /install.sh)
 #   sites/dusk/deploy.sh app|dev
 # DUSK_REPO is the Dusk Bot checkout (pages read docs/legal there); INSTALLER overrides where install.sh comes from.
+# LANDING_ENV is the landing app's env file (mongodb + brevo for the waitlist, names in .env.example); it is uploaded
+# when it exists, otherwise the env already on the server stays.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DUSK_REPO="${DUSK_REPO:-$HOME/Desktop/code/OpenMausBot}"
 INSTALLER="${INSTALLER:-$DUSK_REPO/apps/link-service/install.sh}"
+LANDING_ENV="${LANDING_ENV:-$HOME/.config/duskbot/site-landing.env}"
 DEPLOY="${DEPLOY:-deploy}"
 WHICH="${1:-all}"
 
@@ -39,7 +42,7 @@ for row in "${SITES[@]}"; do
   [ "$WHICH" = all ] || [ "$WHICH" = "$site" ] || continue
   dir="$stage/$name"
   mkdir -p "$dir/public"
-  cp "$HERE/server.js" "$HERE/waitlist-store.js" "$HERE/package.json" "$dir/"
+  cp "$HERE/server.js" "$HERE/waitlist-store.js" "$HERE/waitlist-mongo.js" "$HERE/package.json" "$HERE/package-lock.json" "$dir/"
   cp -R "$HERE/public/$site" "$dir/public/$site"
   if [ "$site" = landing ]; then
     [ -f "$INSTALLER" ] || { echo "error: installer not found at $INSTALLER" >&2; exit 1; }
@@ -47,7 +50,9 @@ for row in "${SITES[@]}"; do
     (cd "$dir/public/landing" && shasum -a 256 install.sh > install.sh.sha256)
     echo "install.sh from $INSTALLER ($(shasum -a 256 "$INSTALLER" | cut -c1-12))"
   fi
-  "$DEPLOY" "$dir" --name "$name" --domain "$domain" --install true \
+  envargs=()
+  [ "$site" = landing ] && [ -f "$LANDING_ENV" ] && envargs=(--env-file "$LANDING_ENV")
+  "$DEPLOY" "$dir" --name "$name" --domain "$domain" --install "npm install --omit=dev --no-audit --no-fund" ${envargs[@]+"${envargs[@]}"} \
     --cmd "set -a; [ -f ./.env ] && . ./.env; set +a; exec node server.js $site"
   ran=1
 done

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { openStore } from './waitlist-store.js';
+import { openMongoStore } from './waitlist-mongo.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = process.argv[2] || 'landing';
@@ -58,10 +59,13 @@ function redirectFor(urlPath) {
 }
 
 // the waitlist (landing only): POST /api/waitlist takes {email, source?, ref?, website?}, GET /api/waitlist/count.
-// signups go through waitlist-store.js; DUSK_WAITLIST_FILE says where its file is (default data/waitlist.jsonl here)
+// signups go to mongodb (waitlist-mongo.js) when MONGODB_URI is set (database MONGODB_DB, default dusk); otherwise to
+// waitlist-store.js, a jsonl file at DUSK_WAITLIST_FILE (default data/waitlist.jsonl here)
 const waitlistFile = path.resolve(here, process.env.DUSK_WAITLIST_FILE || 'data/waitlist.jsonl');
 if (waitlistFile.startsWith(path.join(here, 'public') + path.sep)) throw new Error('DUSK_WAITLIST_FILE must not be inside public/');
-const store = site === 'landing' ? openStore(waitlistFile) : null;
+const store = site !== 'landing' ? null
+  : process.env.MONGODB_URI ? openMongoStore(process.env.MONGODB_URI, process.env.MONGODB_DB || 'dusk') : openStore(waitlistFile);
+if (store) console.log(`waitlist: stored in ${process.env.MONGODB_URI ? 'mongodb' : 'a jsonl file'}`);
 const EMAIL = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
 const JUNK = new Set(['mailinator.com', 'guerrillamail.com', 'guerrillamail.net', 'sharklasers.com', 'grr.la', '10minutemail.com', 'temp-mail.org',
   'tempmail.com', 'tempmail.dev', 'yopmail.com', 'trashmail.com', 'getnada.com', 'dispostable.com', 'throwawaymail.com', 'maildrop.cc',
@@ -83,15 +87,26 @@ function tooMany(ip) {
   if (tries.size > 5000) for (const [k, v] of tries) if (now - v[v.length - 1] > 60_000) tries.delete(k);
   return recent.length > 5;
 }
-// a new signup also goes on the brevo list when BREVO_API_KEY and BREVO_WAITLIST_LIST_ID are set; a failure there only logs
-function addToBrevo(email, meta) {
+// a new signup also goes on the brevo list when BREVO_API_KEY and BREVO_WAITLIST_LIST_ID are set. fire and forget:
+// network errors, 429 and 5xx are retried twice, other answers are final; failures only log, never the email
+function addToBrevo(email, meta, attempt = 0) {
   const key = process.env.BREVO_API_KEY, list = Number(process.env.BREVO_WAITLIST_LIST_ID);
   if (!key || !list) return;
+  const attributes = { POSITION: meta.position, SIGNED_UP_AT: new Date().toISOString().slice(0, 10) };
+  if (meta.source) attributes.SOURCE = meta.source;
+  const retry = (why) => {
+    if (attempt < 2) return void setTimeout(() => addToBrevo(email, meta, attempt + 1), 1000 * 3 ** attempt).unref();
+    console.warn(`waitlist: brevo gave up on #${meta.position} (${why})`);
+  };
   fetch('https://api.brevo.com/v3/contacts', {
     method: 'POST', signal: AbortSignal.timeout(8000),
     headers: { 'api-key': key, 'content-type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ email, listIds: [list], updateEnabled: true, attributes: meta.source ? { SOURCE: meta.source } : undefined }),
-  }).then((r) => { if (!r.ok && r.status !== 204) console.warn(`waitlist: brevo answered ${r.status}`); }, (err) => console.warn(`waitlist: brevo failed (${err.name})`));
+    body: JSON.stringify({ email, listIds: [list], updateEnabled: true, attributes }),
+  }).then((r) => {
+    if (r.ok) return;
+    if (r.status === 429 || r.status >= 500) return retry(r.status);
+    console.warn(`waitlist: brevo answered ${r.status} for #${meta.position}`);
+  }, (err) => retry(err.name));
 }
 const clean = (v, max = 64) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max).replace(/[^\w .:/@-]/g, '') || null : null);
 const sendJson = (res, status, data, extra = {}) => { const body = JSON.stringify(data); res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Length': Buffer.byteLength(body), ...extra }); res.end(body); };
@@ -129,7 +144,7 @@ function waitlist(req, res, urlPath) {
     const meta = { source: clean(body.source), ref: clean(body.ref), ua };
     try {
       const { position, existing } = await store.add(email, meta);
-      if (!existing) { console.log(`waitlist: #${position} joined${meta.source ? ` from ${meta.source}` : ''}`); addToBrevo(email, meta); }
+      if (!existing) { console.log(`waitlist: #${position} joined${meta.source ? ` from ${meta.source}` : ''}`); addToBrevo(email, { ...meta, position }); }
       sendJson(res, existing ? 200 : 201, { ok: true, position, already: existing });
     } catch (err) {
       console.error(`waitlist: could not save (${err.code || err.name})`);
