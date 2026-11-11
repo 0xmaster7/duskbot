@@ -20,22 +20,22 @@ export type MarkGaze = { x: number; y: number };
 
 const P = ["x", "y", "r", "sx", "sy", "gx", "gy", "ls", "lt", "lb", "lr", "rs", "rt", "rb", "rr", "es", "dm"] as const;
 type Param = (typeof P)[number];
-// [stiffness, damping]: the body loose and bouncy, the look critically damped (about 350 ms to settle), the eye shapes
+// [stiffness, damping]: the body loose and bouncy, the look critically damped (about 300 ms to settle), the eye shapes
 // quick; es scales the eyes, dm melts the body into three dots
-const SPRING = P.map((_, i) => (i < 5 ? [420, 21] : i < 7 ? [130, 23] : i < 15 ? [1000, 52] : i < 16 ? [600, 40] : [1000, 63]));
+const SPRING = P.map((_, i) => (i < 5 ? [420, 21] : i < 7 ? [180, 27] : i < 15 ? [1000, 52] : i < 16 ? [600, 40] : [400, 40]));
 const I = Object.fromEntries(P.map((p, i) => [p, i])) as Record<Param, number>;
 
 // the head is a ball under the body: a look turns it, so the eyes slide round it and narrow toward the edge
-const RAD = Math.PI / 180, YAW = 50, PITCH = 45, FACE_R = 30, FACE_RY = 24, SPIN_MS = 460;
+const RAD = Math.PI / 180, YAW = 50, PITCH = 45, FACE_R = 30, FACE_RY = 24, SPIN_MS = 1300, DOT_MS = 460;
 
-type StepValues = { [K in Param]?: number | null } & { e?: string | null; b?: 1; spin?: 1 };
+type StepValues = { [K in Param]?: number | null } & { e?: string | null; b?: 1; spin?: 1; swell?: 1 };
 type Step = [number, StepValues?];
 
 // reactions: steps of [ms from the start, spring targets to hold]. e holds a face, null hands a value back to the mood,
-// b blinks, spin turns the head all the way round; the last step ends it
+// b blinks, spin turns the head twice round, swell takes a slow breath; the last step ends it
 const HOP: Step[] = [[0, { sy: 0.84, sx: 1.12, y: 1 }], [90, { sy: 1.14, sx: 0.9, y: -15, e: "happy" }], [260, { y: 0, sy: 1, sx: 1 }], [360, { sy: 0.88, sx: 1.1 }], [470, { sy: 1, sx: 1 }], [760, { e: null }], [800]];
 const STARTLE: Step[] = [[0, { sy: 0.94, sx: 1.05, y: 2, es: 1.45, e: "surprised" }], [110, { sy: 1.16, sx: 0.9, y: -7 }], [300, { y: 0, sy: 1.04, sx: 0.97 }], [900, { sy: 1, sx: 1, es: null, e: null }], [960]];
-const SPIN: Step[] = [[0, { spin: 1, sy: 1.04 }], [300, { sy: 1 }], [SPIN_MS + 60]];
+const SPIN: Step[] = [[0, { spin: 1 }], [SPIN_MS]];
 const ACTS: Record<string, Step[]> = {
   hop: HOP,
   bounce: [[0, { sy: 0.9, sx: 1.06 }], [90, { y: -6, sy: 1.06, sx: 0.96 }], [220, { y: 0, sy: 1, sx: 1 }], [320]],
@@ -48,7 +48,7 @@ const ACTS: Record<string, Step[]> = {
   squish: [[0, { sy: 0.8, sx: 1.16 }], [120, { sy: 1, sx: 1, e: "happy" }], [620, { e: null }], [660]],
   spin: SPIN,
   twirl: SPIN,
-  dizzy: [[0, { e: "confused", spin: 1 }], [460, { r: -10 }], [640, { r: 9 }], [820, { r: -7 }], [1000, { r: 5 }], [1180, { r: 0 }], [1600, { e: null, b: 1 }], [1640]],
+  dizzy: [[0, { e: "confused", spin: 1 }], [1000, { r: -10 }], [1180, { r: 9 }], [1360, { r: -7 }], [1540, { r: 5 }], [1720, { r: 0 }], [2100, { e: null, b: 1 }], [2140]],
   open: [[0, { sy: 0.94, sx: 1.05, gy: -0.25, b: 1 }], [110, { sy: 1, sx: 1 }], [420, { gy: null }], [460]],
   perk: [[0, { sy: 1.1, sx: 0.93, y: -4, es: 1.3, e: "surprised" }], [160, { y: 0, sy: 1, sx: 1 }], [520, { es: null, e: null, b: 1 }], [560]],
   stretch: [[0, { sy: 1.14, sx: 0.9, y: -2, e: "sleeping" }], [520, { sy: 0.94, sx: 1.06, y: 0, e: "drowsy" }], [720, { sy: 1, sx: 1 }], [900, { e: null, b: 1 }], [940]],
@@ -57,10 +57,10 @@ const ACTS: Record<string, Step[]> = {
   sigh: [[0, { sy: 1.04, gy: -0.3 }], [500, { sy: 0.93, sx: 1.04, gy: 0.3 }], [1200, { sy: 1, sx: 1, gy: null }], [1300]],
   peek: [[0, { gx: 0.4, gy: 0, b: 1 }], [700, { gx: null, gy: null }], [760]],
   laugh: [[0, { r: -5, y: -3, e: "laughing" }], [110, { r: 4, y: 0 }], [220, { r: -4, y: -3 }], [330, { r: 3, y: 0 }], [440, { r: 0 }], [900, { e: null }], [940]],
-  // a slow breath in with a glance each way, about 1.1 s
-  swell: [[0, { sx: 1.06, sy: 1.06, gx: -0.3, gy: 0.05 }], [330, { gx: 0.25 }], [650, { sx: 1, sy: 1, gx: null, gy: null }], [1100]],
-  // a short dip and squash, about 250 ms
-  dip: [[0, { y: 3, sy: 0.95, sx: 1.05 }], [250, { y: 0, sy: 1, sx: 1 }], [420]],
+  // a slow breath: 7% bigger over 800 ms, held 800 ms, let go over 900 ms
+  swell: [[0, { swell: 1 }], [2500]],
+  // a dip and squash, down in about 220 ms and back up over about 480 ms
+  dip: [[0, { y: 3.5, sy: 0.95, sx: 1.05 }], [220, { y: 0, sy: 1, sx: 1 }], [700]],
   celebrate: [...HOP.slice(0, -2), ...HOP.slice(0, -1).map(([t, v]): Step => [t + 480, v]), [1300]],
 };
 const REACTION_ACT: Record<MarkReaction | MarkPoke, string> = {
@@ -141,7 +141,7 @@ const between = (a: number, b: number) => a + Math.random() * (b - a);
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 const f2 = (v: number) => Math.round(v * 100) / 100;
 const smooth = (p: number) => p * p * (3 - 2 * p);
-const inOut = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const inOut = (p: number) => (p < 0.5 ? 16 * Math.pow(p, 5) : 1 - Math.pow(-2 * p + 2, 5) / 2);
 
 // the extra parts a moving mark needs: three dots to melt into and three z's to sleep under
 const DOTS = '<g class="bd" opacity="0" fill="currentColor"><circle r="7"/><circle r="7"/><circle r="7"/></g>';
@@ -300,7 +300,7 @@ export function createMark(target: SVGSVGElement, options: MarkOptions = {}): Ma
   let mood: Mood = MOODS.idle!, moodName = "", moodAt = 0, act: { steps: Step[]; i: number; t0: number } | null = null;
   let over: StepValues = {}, look: MarkGaze | null = null, glance: [number, number] | null = null, held: string | null = null;
   let nextBlink = 0, blinkAt = -1, blinkTwice = false, nextGlance = 0, nextEvery = 0, nextFidget = 0, taps = 0, tapAt = 0, pokes = 0;
-  let spinAt = -1, spinDir = 1, paused = false, pendingEnter: string | null = null, life = options.life ?? true, forced = options.still;
+  let spinAt = -1, spinDir = 1, swellAt = -1, paused = false, pendingEnter: string | null = null, life = options.life ?? true, forced = options.still;
   let still = forced ?? reducedPage();
 
   const runner: Runner = {
@@ -329,7 +329,7 @@ export function createMark(target: SVGSVGElement, options: MarkOptions = {}): Ma
     for (let i = 0; i < P.length; i++) tgt[i] = over[P[i]!] ?? base[P[i]!];
   }
   function settle() {
-    act = null; over = {}; pendingEnter = null; blinkAt = -1; spinAt = -1;
+    act = null; over = {}; pendingEnter = null; blinkAt = -1; spinAt = -1; swellAt = -1;
     targets();
     v.set(tgt); vel.fill(0);
     draw(0, 1);
@@ -357,6 +357,7 @@ export function createMark(target: SVGSVGElement, options: MarkOptions = {}): Ma
         const value = step[k];
         if (k === "b") blinkAt = now;
         else if (k === "spin") { spinAt = now; spinDir = v[I.gx]! < -0.05 ? -1 : 1; }
+        else if (k === "swell") swellAt = now;
         else if (value === null) delete over[k];
         else (over as Record<string, unknown>)[k] = value;
       }
@@ -364,7 +365,7 @@ export function createMark(target: SVGSVGElement, options: MarkOptions = {}): Ma
   }
 
   // a new look often ends in a blink once the eyes land, about 300 ms on
-  function glanceTo(g: [number, number] | null, now: number, hold: number, blinkChance = 0.35) {
+  function glanceTo(g: [number, number] | null, now: number, hold: number, blinkChance = 0.25) {
     glance = g;
     nextGlance = now + hold;
     if (g && life && blinkAt < 0 && Math.random() < blinkChance) blinkAt = now + between(260, 360);
@@ -376,7 +377,7 @@ export function createMark(target: SVGSVGElement, options: MarkOptions = {}): Ma
     const s = mood, rate = life ? s.blink ?? 1 : 0;
     if (rate && now >= nextBlink) {
       if (nextBlink && blinkAt < 0) { blinkAt = now; blinkTwice = Math.random() < 0.15; }
-      nextBlink = now + between(1600, 3600) / rate;
+      nextBlink = now + between(2500, 5500) / rate;
     }
     if (s.next && now - moodAt > s.next[1]) return setMood(s.next[0], now);
     if (s.every && now >= nextEvery) { if (!act) play(s.every[1], now); nextEvery = now + s.every[0] * between(0.85, 1.25); }
@@ -388,12 +389,12 @@ export function createMark(target: SVGSVGElement, options: MarkOptions = {}): Ma
       const mode = glances() ? s.look : "still";
       if (mode === "read") glanceTo([glance && glance[0] < 0 ? 0.35 : -0.35, 0.5], now, between(700, 1200), 0.2);
       else if (mode === "scan") glanceTo([glance && glance[0] < 0 ? between(0.5, 0.85) : -between(0.5, 0.85), between(-0.3, 0.1)], now, between(520, 900), 0.2);
-      else if (mode === "work") glanceTo([between(-0.9, 0.9), between(-0.9, 0.5)], now, between(400, 700), 0.3);
-      else if (mode === "type") glanceTo(Math.random() < 0.75 ? [between(-0.7, -0.3), between(0.4, 0.7)] : [between(-0.2, 0.4), between(-0.9, -0.5)], now, between(500, 1100), 0.3);
+      else if (mode === "work") glanceTo([between(-0.9, 0.9), between(-0.9, 0.5)], now, between(600, 1200), 0.3);
+      else if (mode === "type") glanceTo(Math.random() < 0.75 ? [between(-0.7, -0.3), between(0.4, 0.7)] : [between(-0.2, 0.4), between(-0.9, -0.5)], now, between(700, 1400), 0.3);
       else if (mode === "away") glanceTo(glance ? null : [0.55, 0.1], now, glance ? between(1800, 3600) : between(350, 600), 0);
       else if (mode === "still") { glance = null; nextGlance = Infinity; }
-      else if (glance && Math.random() < 0.35) glanceTo(null, now, between(1200, 3500));
-      else glanceTo([f2(between(-0.9, 0.9)), f2(between(-0.6, 0.6))], now, between(500, 1300));
+      else if (glance && Math.random() < 0.35) glanceTo(null, now, between(1500, 4000));
+      else glanceTo([f2(between(-0.9, 0.9)), f2(between(-0.6, 0.6))], now, between(800, 2000));
     }
   }
   function nextEvent(): number {
@@ -426,30 +427,38 @@ export function createMark(target: SVGSVGElement, options: MarkOptions = {}): Ma
     if (resting) { v.set(tgt); vel.fill(0); }
     const blink = blinkOf(now);
     draw(now, blink);
-    const active = Boolean(act) || (blinkAt >= 0 && blinkAt <= now) || spinAt >= 0 || !resting || continuous();
+    const active = Boolean(act) || (blinkAt >= 0 && blinkAt <= now) || spinAt >= 0 || swellAt >= 0 || !resting || continuous();
     if (!active) runner.wakeAt = nextEvent();
     return active;
   }
-  // a blink shuts in 40 ms, holds as a dash for 30 ms and opens over 70 ms
+  // a blink shuts in 80 ms, holds as a dash for 30 ms and opens over 110 ms
   function blinkOf(now: number) {
     if (blinkAt < 0 || now < blinkAt) return 1;
     const t = now - blinkAt;
-    if (t >= 140) {
-      if (blinkTwice) { blinkTwice = false; blinkAt = now + 50; } else blinkAt = -1;
+    if (t >= 220) {
+      if (blinkTwice) { blinkTwice = false; blinkAt = now + 60; } else blinkAt = -1;
       return 1;
     }
-    return t < 40 ? 1 - 0.82 * smooth(t / 40) : t < 70 ? 0.18 : 0.18 + 0.82 * smooth((t - 70) / 70);
+    return t < 80 ? 1 - 0.82 * smooth(t / 80) : t < 110 ? 0.18 : 0.18 + 0.82 * smooth((t - 110) / 110);
   }
+  // two whole turns, slow to start and slow to settle
   function spinOf(now: number) {
     if (spinAt < 0) return 0;
     const p = (now - spinAt) / SPIN_MS;
     if (p >= 1) { spinAt = -1; return 0; }
-    return 360 * spinDir * inOut(p);
+    return 720 * spinDir * inOut(p);
+  }
+  function swellOf(now: number) {
+    if (swellAt < 0) return 0;
+    const t = now - swellAt;
+    if (t >= 2500) { swellAt = -1; return 0; }
+    return 0.07 * (t < 800 ? smooth(t / 800) : t < 1600 ? 1 : 1 - smooth((t - 1600) / 900));
   }
 
   function draw(now: number, blink: number) {
     const s = mood, t = now / 1000, lean = s.lean ?? 0.4;
-    let x = v[I.x]!, y = v[I.y]!, r = v[I.r]!, sx = v[I.sx]!, sy = v[I.sy]!, fade = 1;
+    const grow = swellOf(now);
+    let x = v[I.x]!, y = v[I.y]!, r = v[I.r]!, sx = v[I.sx]! + grow, sy = v[I.sy]! + grow, fade = 1;
     if (!still) {
       if (s.br && big()) {
         const w = Math.sin((t * Math.PI * 2) / s.br[1]);
@@ -462,7 +471,7 @@ export function createMark(target: SVGSVGElement, options: MarkOptions = {}): Ma
     }
     const gx = v[I.gx]!, gy = v[I.gy]!, yaw = (gx * YAW + spinOf(now)) * RAD, pitch = gy * PITCH * RAD;
     // the body follows the look: it slides and leans toward it, and a flat body narrows as it turns
-    x += Math.sin(gx * YAW * RAD) * (1.5 + 4 * lean);
+    x += Math.sin(gx * YAW * RAD) * (1.5 + 6 * lean);
     r += gx * 10 * lean;
     if (!geo.round) sx *= 0.3 + 0.7 * Math.sqrt(Math.abs(Math.cos(yaw)));
     const dm = clamp(v[I.dm]!, 0, 1), ball = 1 - 0.75 * dm;
@@ -471,10 +480,13 @@ export function createMark(target: SVGSVGElement, options: MarkOptions = {}): Ma
     put(bb, "opacity", String(f2(fade * clamp(1 - (dm - 0.35) / 0.4, 0, 1))));
     put(bg, "transform", `translate(0 ${f2(Math.sin(pitch) * FACE_RY)})`);
     const tall = Math.pow(Math.max(0.05, Math.cos(pitch)), 1.3), es = v[I.es]!;
+    // the eyes shut before the body melts into dots
+    blink = Math.min(blink, 1 - 0.82 * clamp(dm * 2.5, 0, 1));
     for (const [g, path, hl, side] of eyesEl) {
       const o = side < 0 ? 0 : 4, size = v[I.ls + o]!, et = v[I.lt + o]!, eb = v[I.lb + o]!, droop = v[I.lr + o]!;
-      // each eye sits on the ball: round the side as the head turns, narrower as it nears the edge, gone behind it
-      const a = yaw + side * alpha, c = Math.cos(a), wide = Math.pow(clamp(c / cosA, 0, 1.2), 0.35), slant = -Math.sin(a) * Math.sin(pitch) * 40;
+      // each eye sits on the ball: round the side as the head turns, narrower as it nears the edge, gone behind a round
+      // body; a flat one shows its eyes on both faces
+      const a = yaw + side * alpha, c = geo.round ? Math.cos(a) : Math.abs(Math.cos(a)), wide = Math.pow(clamp(c / cosA, 0, 1.2), 0.35), slant = -Math.sin(a) * Math.sin(pitch) * 40;
       put(g, "opacity", String(f2(clamp((c - 0.04) / 0.12, 0, 1))));
       put(g, "transform", `translate(${f2(FACE_R * Math.sin(a))} 0) rotate(${f2(droop * side + slant)}) scale(${f2(Math.max(0.01, size * er * es * wide))} ${f2(size * er * es * tall)})`);
       // a blink only closes an open eye; arches and sleeping curves keep their shape
@@ -482,12 +494,12 @@ export function createMark(target: SVGSVGElement, options: MarkOptions = {}): Ma
       put(path, "d", open ? eyeD(f2(Math.max(0.08, et * shut)), f2(Math.max(0.08, eb * shut))) : eyeD(f2(et), f2(eb)));
       put(hl, "opacity", String(f2(clamp((Math.min(et, eb) * shut - 0.6) / 0.3, 0, 1))));
     }
-    // three dots, a bright swell running left to right, 110 ms a dot
+    // three dots, a bright swell running left to right, 460 ms a dot
     put(bd, "opacity", String(f2(clamp((dm - 0.3) / 0.5, 0, 1))));
     if (dm > 0.3) dots.forEach((d, i) => {
-      const p = still ? (i === 1 ? 1 : 0) : Math.pow(0.5 + 0.5 * Math.cos(2 * Math.PI * (t / 0.33 - i / 3)), 2);
-      put(d, "transform", `translate(${f2(50 + (i - 1) * 22 * dm)} 53) scale(${f2(1 + 0.25 * p)})`);
-      put(d, "opacity", String(f2(0.45 + 0.55 * p)));
+      const p = still ? (i === 1 ? 1 : 0) : Math.pow(0.5 + 0.5 * Math.cos(2 * Math.PI * ((now / DOT_MS - i) / 3)), 1.5);
+      put(d, "transform", `translate(${f2(50 + (i - 1) * 22 * dm)} 53) scale(${f2(1 + 0.27 * p)})`);
+      put(d, "opacity", String(f2(0.5 + 0.5 * p)));
     });
     // z's rise and fade every 2.4 s, 800 ms apart
     const zz = Boolean(s.zz) && !still && big();
