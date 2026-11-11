@@ -338,7 +338,7 @@ describe("local account service", () => {
       teams: [grant.account.id], cloud: { id: "cloud_fixture" }, entitlement: { plan: "pro", status: "active", expiresAt: time + day, version: 1 } });
   });
 
-  it("enrolls with a signed grant, reassigns ownership and refuses bad, stale, replayed and reused grants", async () => {
+  it("enrolls with a signed grant and refuses bad, stale, replayed and reused grants", async () => {
     const grant = await appLogin();
     expect((await call("/v1/app/enroll-grant", {})).status).toBe(401);
     const enrollGrant = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(grant)));
@@ -357,13 +357,6 @@ describe("local account service", () => {
     const owner = await login();
     expect(await body(call("/v1/workspaces", undefined, browserHeaders(owner)))).toMatchObject({ workspaces: [{ id: enrolled.workspaceId }] });
     const next = await appLogin("other@example.test");
-    const nextGrant = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(next)));
-    const move = enrollment(nextGrant.enrollToken, { keys: request.keys });
-    expect((await body<EnrollAnswer>(call("/v1/enroll", move.input, move.headers))).workspaceId).toBe(enrolled.workspaceId);
-    expect(await body(call("/v1/workspaces", undefined, browserHeaders(owner)))).toEqual({ workspaces: [] });
-    time += 30_000;
-    const nextOwner = await login("other@example.test");
-    expect(await body(call("/v1/workspaces", undefined, browserHeaders(nextOwner)))).toMatchObject({ workspaces: [{ id: enrolled.workspaceId }] });
     const expires = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(next)));
     time += 600_000;
     expect(app.auth.consumeEnrollGrant(expires.enrollToken)).toBeNull();
@@ -373,7 +366,35 @@ describe("local account service", () => {
     expect(saved.workspaces[0].claimHash).toBeNull();
   });
 
-  it("ends grants with their app session and drops the previous owner's queued commands on a move", async () => {
+  it("claims an unclaimed workspace and re-enrolls one the same account owns, but never one another account owns", async () => {
+    const owner = await appLogin();
+    const firstGrant = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(owner)));
+    const unsigned = enrollment();
+    const pending = await body<EnrollAnswer>(call("/v1/enroll", unsigned.input, unsigned.headers));
+    expect(pending.claimExpiresAt).toBeGreaterThan(0);
+    const claim = enrollment(firstGrant.enrollToken, { keys: unsigned.keys, at: ++time });
+    expect(await body<EnrollAnswer>(call("/v1/enroll", claim.input, claim.headers))).toMatchObject({ workspaceId: pending.workspaceId, claimExpiresAt: 0 });
+    const againGrant = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(owner)));
+    const again = enrollment(againGrant.enrollToken, { keys: unsigned.keys, at: ++time });
+    expect(await body<EnrollAnswer>(call("/v1/enroll", again.input, again.headers))).toMatchObject({ workspaceId: pending.workspaceId, claimExpiresAt: 0 });
+    time += 30_000;
+    const web = await login();
+    expect((await call(`/v1/workspaces/${pending.workspaceId}/commands`, { kind: "routine.resume", target: "r1" }, browserHeaders(web))).status).toBe(200);
+    time += 30_000;
+    const attacker = await appLogin("other@example.test");
+    const attackGrant = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(attacker)));
+    const attack = enrollment(attackGrant.enrollToken, { keys: unsigned.keys, at: ++time });
+    const refused = await call("/v1/enroll", attack.input, attack.headers);
+    expect(refused.status).toBe(409);
+    expect(await body(refused)).toMatchObject({ code: "owned_elsewhere" });
+    expect(await body<WorkspaceDetail>(call(`/v1/workspaces/${pending.workspaceId}`, undefined, browserHeaders(web)))).toMatchObject({
+      workspace: { id: pending.workspaceId }, commands: [{ kind: "routine.resume", target: "r1" }] });
+    time += 30_000;
+    const other = await login("other@example.test");
+    expect(await body(call("/v1/workspaces", undefined, browserHeaders(other)))).toEqual({ workspaces: [] });
+  });
+
+  it("ends grants with their app session and lets another account enroll a workspace only after its owner removes it", async () => {
     const first = await appLogin();
     const firstGrant = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(first)));
     const request = enrollment(firstGrant.enrollToken);
@@ -393,11 +414,15 @@ describe("local account service", () => {
     expect((await call("/v1/enroll", stale.input, stale.headers)).status).toBe(403);
     expect(app.auth.consumeEnrollGrant(kept.enrollToken)).toBeNull();
     const fresh = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(later)));
-    const move = enrollment(fresh.enrollToken, { keys: request.keys, at: ++time });
-    expect((await call("/v1/enroll", move.input, move.headers)).status).toBe(200);
+    const refused = enrollment(fresh.enrollToken, { keys: request.keys, at: ++time });
+    expect((await call("/v1/enroll", refused.input, refused.headers)).status).toBe(409);
+    expect((await call(`/v1/workspaces/${enrolled.workspaceId}`, {}, browserHeaders(owner), "DELETE")).status).toBe(200);
+    const retry = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(later)));
+    const move = enrollment(retry.enrollToken, { keys: request.keys, at: ++time });
+    const moved = await body<EnrollAnswer>(call("/v1/enroll", move.input, move.headers));
     time += 30_000;
     const nextOwner = await login("other@example.test");
-    expect(await body<WorkspaceDetail>(call(`/v1/workspaces/${enrolled.workspaceId}`, undefined, browserHeaders(nextOwner)))).toMatchObject({ commands: [] });
+    expect(await body<WorkspaceDetail>(call(`/v1/workspaces/${moved.workspaceId}`, undefined, browserHeaders(nextOwner)))).toMatchObject({ commands: [] });
   });
 
   it("answers closed-signup starts before mail goes out, so timing never shows an account exists", async () => {
