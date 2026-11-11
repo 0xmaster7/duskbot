@@ -18,15 +18,32 @@ a { color: var(--ink); text-decoration: underline; text-decoration-color: #cfcfd
 a:hover { text-decoration-color: var(--ink); }
 a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 8px; }
 
-.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1240px; width: 100%; margin: 0 auto; padding: 18px 24px; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.skip { position: absolute; left: 16px; top: -64px; z-index: 60; padding: 10px 16px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 15px; text-decoration: none; }
+.skip:focus { top: 12px; }
+.bar { position: relative; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1240px; width: 100%; margin: 0 auto; padding: 18px 24px; }
 .brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 550; font-size: 17px; letter-spacing: -0.02em; text-decoration: none; }
+/* the brand and the sign in pill are a little short for a thumb, so their tap area reaches past them */
+.brand, .bar nav a.cta { position: relative; }
+.brand::before, .bar nav a.cta::before { content: ""; position: absolute; inset: -8px 0; }
 .brand img { width: 28px; height: 28px; transition: rotate 0.4s cubic-bezier(0.3, 1.6, 0.5, 1); }
 .brand:hover img { rotate: -18deg; }
 .bar nav { display: flex; align-items: center; gap: 4px; }
 .bar nav a { color: var(--ink-2); text-decoration: none; font-size: 15px; padding: 8px 12px; border-radius: 999px; }
-.bar nav a:hover, .bar nav a[aria-current="page"] { color: var(--ink); background: var(--wash); }
+.bar nav a:hover, .bar nav a[aria-current="page"], .bar nav a.is-here { color: var(--ink); background: var(--wash); }
 .bar nav a.cta { color: #fff; background: var(--ink); margin-left: 8px; padding: 8px 16px; }
 .bar nav a.cta:hover { background: #2a2a30; color: #fff; }
+/* phones get one menu with every page in it; it is a details element, so it opens without script */
+.menu { display: none; }
+.menu summary { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--wash); cursor: pointer; list-style: none; }
+.menu summary::-webkit-details-marker { display: none; }
+.menu summary svg { grid-area: 1 / 1; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; transition: opacity 0.16s ease, rotate 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.menu summary svg + svg, .menu[open] summary svg:first-of-type { opacity: 0; rotate: -45deg; }
+.menu[open] summary svg + svg { opacity: 1; rotate: 0deg; }
+.menu > nav { position: absolute; left: 12px; right: 12px; top: calc(100% - 4px); display: grid; gap: 2px; padding: 8px; border-radius: 22px; background: #fff; box-shadow: 0 0 0 1px var(--line), 0 18px 40px -16px rgba(0, 0, 0, 0.25); transform-origin: 100% 0; animation: menu-in 0.18s cubic-bezier(0.23, 1, 0.32, 1); }
+.menu > nav a { display: flex; align-items: center; min-height: 48px; padding: 0 16px; border-radius: 14px; font-size: 17px; color: var(--ink); }
+.menu > nav a.cta { justify-content: center; margin: 6px 0 0; padding: 0 16px; }
+@keyframes menu-in { from { opacity: 0; scale: 0.97; translate: 0 -6px; } }
 
 main { flex: 1; width: 100%; }
 main.page { max-width: 760px; margin: 0 auto; padding: 24px; }
@@ -58,11 +75,16 @@ th { color: var(--ink); font-weight: 550; }
 
 .foot { margin-top: 72px; }
 .is-home .foot { margin-top: 0; }
-.foot-in { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; max-width: 1240px; margin: 0 auto; padding: 40px 24px 28px; }
+.foot-in { display: grid; grid-template-columns: 1.7fr 1fr 1fr 1fr 1fr; gap: 32px; max-width: 1240px; margin: 0 auto; padding: 40px 24px 28px; }
 .foot-brand p { color: var(--ink-3); font-size: 14px; max-width: 26ch; margin: 12px 0 0; }
 .foot h2 { font: 400 12.5px/1 var(--mono); color: var(--ink-3); margin: 6px 0 14px; letter-spacing: 0.02em; }
 .foot-in > div:not(.foot-brand) a { display: block; color: var(--ink-2); text-decoration: none; font-size: 15px; padding: 4px 0; }
 .foot-in > div:not(.foot-brand) a:hover { color: var(--ink); }
+.foot-in > div:not(.foot-brand) a[aria-current="page"] { color: var(--ink); }
+.foot-mail { display: inline-block; margin-top: 14px; padding: 4px 0; font-size: 15px; color: var(--ink-2); text-decoration: none; }
+.foot-mail:hover { color: var(--ink); }
 .foot-fine { max-width: 1240px; margin: 0 auto; padding: 0 24px 28px; font: 400 12.5px/1.4 var(--mono); color: var(--ink-3); }
-@media (max-width: 760px) { .downloads { grid-template-columns: 1fr; } .foot-in { grid-template-columns: 1fr 1fr; } .foot-brand { grid-column: 1 / -1; } .bar { padding: 14px 16px; } .bar nav a { padding: 8px 9px; } .bar nav a.cta { margin-left: 2px; padding: 8px 13px; } }
-@media (max-width: 420px) { .bar nav a[href="/docs"] { display: none; } }
+@media (max-width: 960px) { .foot-in { grid-template-columns: 1fr 1fr 1fr 1fr; } .foot-brand { grid-column: 1 / -1; } }
+@media (max-width: 760px) { .downloads { grid-template-columns: 1fr; } .foot-in { grid-template-columns: 1fr 1fr; } .bar { padding: 14px 16px; } .bar nav a { padding: 8px 9px; } .bar nav a.cta { margin-left: 2px; padding: 8px 13px; } }
+@media (max-width: 640px) { .bar > nav a:not(.cta) { display: none; } .bar > nav { margin-left: auto; } .menu { display: block; } }
+@media (prefers-reduced-motion: reduce) { .menu > nav { animation: none; } .menu summary svg, .brand img { transition: none; } }

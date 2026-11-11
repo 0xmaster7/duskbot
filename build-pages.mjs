@@ -1,40 +1,70 @@
-// builds the dusk.bot pages: wraps each page body in the shared layout, and turns the legal drafts
-// (Markdown in the Dusk Bot repo's docs/legal) into terms/, privacy/, license/ and security/. zero deps.
+// builds the dusk.bot pages: wraps each page body in the shared layout, turns the legal drafts (Markdown in the Dusk Bot
+// repo's docs/legal) into terms/, privacy/, license/ and security/, the docs (pages/docs/*.md, see build-docs.mjs) into
+// docs/, pages/changelog.md into changelog/, and writes the sitemap, robots.txt, the manifest and the redirects. zero deps.
 //   node sites/dusk/build-pages.mjs [path to the Dusk Bot checkout]
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { botSvg, bodyName } from './mascot-src/engine/geometry.js';
+import { botSvg, bodyName, restSvg } from './mascot-src/engine/geometry.js';
+import { buildDocs } from './build-docs.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.join(here, 'public', 'landing');
 const repo = process.argv[2] || path.join(process.env.HOME, 'Desktop/code/OpenMausBot');
+// every link to the account web app goes through APP_URL, and every absolute address of this site through SITE_URL
+export const APP_URL = (process.env.APP_URL || 'https://app.dusk.bot').replace(/\/+$/, '');
+export const SITE_URL = (process.env.SITE_URL || 'https://dusk.bot').replace(/\/+$/, '');
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 function inline(text) {
   let s = esc(text);
   s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
-  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*|mailto:[^)\s]+)\)/g, '<a href="$2">$1</a>');
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*|#[^)\s]+|mailto:[^)\s]+|\{\{(?:app|site)[^}]*\}\})\)/g, '<a href="$2">$1</a>');
+  // one legal draft pointing at another by file name is a page here
+  s = s.replace(/\[([^\]]+)\]\((terms|privacy|license|security)\.md\)/g, '<a href="/$2">$1</a>');
+  // a link into the app's own repository has nowhere to go on the site, so only its words stay
+  s = s.replace(/\[([^\]]+)\]\(\.\.?\/[^)\s]*\)/g, '$1');
   s = s.replace(/(^|[\s(])((?:hello|privacy|security)@dusk\.bot)/g, '$1<a href="mailto:$2">$2</a>');
+  // [[⌘ K]] is a key combination, one cap per word
+  s = s.replace(/\[\[((?:[^\]]|\](?=\]\]))+)\]\]/g, (_, keys) => `<span class="keys">${keys.trim().split(/\s+/).map((k) => `<kbd>${k}</kbd>`).join('')}</span>`);
   return s;
 }
 
+export const slug = (text) => text.toLowerCase().replace(/<[^>]+>|&\w+;|`/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+// markdown for the legal drafts, the docs and the changelog. besides the usual: a fenced block becomes a copyable command,
+// a line that starts with < or {{ passes through as html (so a page can drop in a piece of the app or a macro), and
+// "> note:" / "> careful:" quotes become callouts
 export function markdown(md) {
-  const out = [], lines = md.replace(/\r\n/g, '\n').split('\n');
+  const out = [], lines = md.replace(/\r\n/g, '\n').split('\n'), seen = new Map();
   for (let i = 0; i < lines.length;) {
     const line = lines[i];
     if (!line.trim()) { i++; continue; }
     let m;
     if ((m = /^(#{1,4})\s+(.*)$/.exec(line))) {
-      const level = Math.min(m[1].length + (m[1].length === 1 ? 0 : 0), 4);
-      const id = m[2].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const level = m[1].length;
+      let id = slug(m[2]);
+      const n = seen.get(id) || 0; seen.set(id, n + 1); if (n) id += `-${n + 1}`;
       out.push(`<h${level} id="${id}">${inline(m[2])}</h${level}>`); i++; continue;
     }
+    if ((m = /^```(\w*)\s*$/.exec(line))) {
+      const body = []; i++;
+      while (i < lines.length && !/^```\s*$/.test(lines[i])) body.push(lines[i++]);
+      i++;
+      const plain = m[1] === 'text';
+      out.push(`<div class="code${plain ? ' plain' : ''}"><pre><code>${esc(body.join('\n'))}</code></pre>${plain ? '' : '<button class="copy" type="button" data-copy>copy</button>'}</div>`); continue;
+    }
+    if (/^(<|\{\{)/.test(line)) {
+      const body = []; while (i < lines.length && lines[i].trim()) body.push(lines[i++]);
+      out.push(body.join('\n')); continue;
+    }
+    if (/^---+\s*$/.test(line)) { out.push('<hr>'); i++; continue; }
     if (line.startsWith('>')) {
       const body = []; while (i < lines.length && lines[i].startsWith('>')) body.push(lines[i++].replace(/^>\s?/, ''));
-      out.push(`<blockquote>${inline(body.join(' '))}</blockquote>`); continue;
+      const text = body.join(' '), kind = /^(note|tip|careful):\s*/i.exec(text);
+      out.push(kind ? `<p class="callout ${kind[1].toLowerCase()}">${inline(text.slice(kind[0].length))}</p>` : `<blockquote>${inline(text)}</blockquote>`); continue;
     }
     if (line.startsWith('|')) {
       const rows = []; while (i < lines.length && lines[i].startsWith('|')) rows.push(lines[i++]);
@@ -46,13 +76,21 @@ export function markdown(md) {
     if (/^\s*([-*]|\d+\.)\s+/.test(line)) {
       const ordered = /^\s*\d+\./.test(line), items = [];
       while (i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i])) {
-        let item = lines[i++].replace(/^\s*([-*]|\d+\.)\s+/, '');
-        while (i < lines.length && /^\s{2,}\S/.test(lines[i]) && !/^\s*([-*]|\d+\.)\s+/.test(lines[i])) item += ' ' + lines[i++].trim();
-        items.push(`<li>${inline(item)}</li>`);
+        let item = lines[i++].replace(/^\s*([-*]|\d+\.)\s+/, ''), blocks = '';
+        // an indented line carries on the item; an indented fenced block is a command inside the step
+        while (i < lines.length && /^\s{2,}\S/.test(lines[i]) && !/^\s*([-*]|\d+\.)\s+/.test(lines[i])) {
+          if (/^\s+```/.test(lines[i])) {
+            const body = []; i++;
+            while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) body.push(lines[i++].replace(/^\s{2,4}/, ''));
+            i++;
+            blocks += `<div class="code"><pre><code>${esc(body.join('\n'))}</code></pre><button class="copy" type="button" data-copy>copy</button></div>`;
+          } else item += ' ' + lines[i++].trim();
+        }
+        items.push(`<li>${inline(item)}${blocks}</li>`);
       }
       out.push(ordered ? `<ol>${items.join('')}</ol>` : `<ul>${items.join('')}</ul>`); continue;
     }
-    const para = []; while (i < lines.length && lines[i].trim() && !/^(#|>|\||\s*([-*]|\d+\.)\s)/.test(lines[i])) para.push(lines[i++].trim());
+    const para = []; while (i < lines.length && lines[i].trim() && !/^(#|>|\||```|\s*([-*]|\d+\.)\s)/.test(lines[i])) para.push(lines[i++].trim());
     out.push(`<p>${inline(para.join(' '))}</p>`);
   }
   return out.join('\n');
@@ -85,7 +123,9 @@ const ICONS = {
   folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
   cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
 };
-const icon = (name) => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
+// the rest of the set lives in icons.json (same source, lucide 0.539)
+Object.assign(ICONS, JSON.parse(fs.readFileSync(path.join(here, 'icons.json'), 'utf8')));
+const icon = (name) => { if (!ICONS[name]) throw new Error(`no icon named ${name}`); return `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`; };
 // {{sea}} is the bots in the last picture, drawn in the picture's own 1600 by 1067 space so they sit on its water at any
 // width, each half under the waterline
 function sea() {
@@ -114,11 +154,63 @@ const stamped = (file) => {
   return `/${file}?v=${createHash('sha256').update(fs.readFileSync(full)).digest('hex').slice(0, 8)}`;
 };
 
-export function layout({ title, description, body, page }) {
+// {{app}} and {{app /billing}} are addresses in the account web app; {{site /docs}} is an absolute address of this site
+const withLinks = (html) => html.replace(/\{\{app( \/[\w\/?=&-]*)?\}\}/g, (_, rest) => APP_URL + (rest ? rest.trim() : '')).replace(/\{\{site( \/[\w\/.-]*)?\}\}/g, (_, rest) => SITE_URL + (rest ? rest.trim() : ''));
+
+// what can be downloaded today. releases.json names the files; a release is out once publish-downloads.sh has put
+// releases/latest.json on the site (or releases.json says "released": true). DUSK_RELEASED=1 or 0 forces either state,
+// to look at the page both ways. {{#released}}…{{/released}} and {{^released}}…{{/released}} keep one of two pieces,
+// {{dl key}} is a file's address, {{version}} and {{released-on}} describe the release
+const rel = JSON.parse(fs.readFileSync(path.join(here, 'releases.json'), 'utf8'));
+const latestFile = path.join(site, 'releases', 'latest.json');
+let latest = {};
+try { latest = JSON.parse(fs.readFileSync(latestFile, 'utf8')); } catch {}
+const forced = process.env.DUSK_RELEASED;
+export const release = {
+  ...rel,
+  released: forced === '1' ? true : forced === '0' ? false : rel.released === true || typeof latest.version === 'string',
+  version: latest.version || rel.version || '',
+  date: rel.date || '',
+};
+release.sums = release.version && fs.existsSync(path.join(site, 'releases', release.version, 'SHA256SUMS')) ? `/releases/${release.version}/SHA256SUMS` : `${rel.base}${rel.checksums}`;
+const withRelease = (html) => {
+  // pieces can sit inside each other, so this runs until nothing is left to decide
+  for (let before; before !== html;) { before = html; html = html.replace(/\{\{([#^])([\w]+)\}\}((?:(?!\{\{[#^])[\s\S])*?)\{\{\/\2\}\}/g, (_, mark, key, inner) => (Boolean(release[key]) === (mark === '#') ? inner : '')); }
+  return html.replace(/\{\{dl ([\w-]+)\}\}/g, (_, key) => { if (!rel.files[key]) throw new Error(`releases.json has no file ${key}`); return rel.base + rel.files[key]; })
+    .replace(/\{\{file ([\w-]+)\}\}/g, (_, key) => rel.files[key]).replace(/\{\{(ios|android)-link\}\}/g, (_, key) => rel[key])
+    .replace(/\{\{version\}\}/g, release.version).replace(/\{\{released-on\}\}/g, release.date).replace(/\{\{sums\}\}/g, release.sums);
+};
+const CREW = [['circle', 'blue', '#2f7bf2'], ['squircle', 'green', '#1fb866'], ['pill', 'purple', '#8d5cf0'], ['hex', 'orange', '#ff7d1f'], ['star', 'yellow', '#f8c623'], ['heart', 'pink', '#ff5c9d'], ['drop', 'blue', '#2f7bf2'], ['moon', 'purple', '#8d5cf0'], ['cloud', 'pink', '#ff5c9d'], ['pixel', 'orange', '#ff7d1f']];
+// {{crew}} on the brand page is the ten bots, each with its shape's name and a link to its svg
+function crewList() { return `<ul class="crew">${CREW.map(([shape, colour]) => `<li>{{bot ${shape} ${colour}}}<span>${shape}</span><a class="get" href="/brand/bots/${shape}.svg" download>{{i download}}svg<span class="vh"> of the ${shape} bot</span></a></li>`).join('')}</ul>`; }
+export const macros = (html) => withBots(withLinks(withRelease(html.replace(/\{\{crew\}\}/g, () => crewList()))));
+
+// the nav, and every page in the footer
+const NAV = [['/download', 'download'], ['/docs', 'docs'], ['/pricing', 'pricing']];
+const MENU = [...NAV, ['/changelog', "what's new"], ['/about', 'about'], ['/contact', 'contact']];
+const FOOT = [
+  ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], [APP_URL, 'sign in']]],
+  ['learn', [['/docs', 'docs'], ['/docs/getting-started', 'get started'], ['/docs/your-own-server', 'your own server'], ['/docs/faq', 'questions']]],
+  ['dusk bot', [['/about', 'about'], ['/contact', 'contact'], ['/brand', 'brand'], ['/security', 'security']]],
+  ['legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/license', 'license']]],
+];
+const OG = { home: 'og-home.jpg' };
+const ogImage = (name) => `${SITE_URL}/art/${OG[name] || (has(`art/og-${name}.jpg`) ? `og-${name}.jpg` : 'og.jpg')}`;
+const ld = (data) => `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
+
+// page: its name (home, download, docs ...); at: its address on the site; section: the nav item it sits under;
+// kind: extra classes on <main>; scripts: more files after the shared ones; jsonld: structured data for search engines
+export function layout({ title, description, body, page, at, section = page, og = section, kind = '', scripts = [], jsonld = [], noindex = false }) {
   const home = page === 'home';
-  const nav = [['download', 'download'], ['docs', 'docs'], ['pricing', 'pricing']]
-    .map(([href, label]) => `<a href="/${href}"${page === href ? ' aria-current="page"' : ''}>${label}</a>`).join('');
-  const foot = (head, links) => `<div><h2>${head}</h2>${links.map(([href, label]) => `<a href="${href}">${label}</a>`).join('')}</div>`;
+  const address = at ?? (home ? '/' : `/${page}`);
+  const here_ = (href) => (href === address ? ' aria-current="page"' : href === `/${section}` ? ' class="is-here"' : '');
+  const links = (list) => list.map(([href, label]) => `<a href="${href}"${here_(href)}>${label}</a>`).join('');
+  const foot = ([head, list]) => `<div><h2>${head}</h2>${list.map(([href, label]) => `<a href="${href}"${href === address ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div>`;
+  const brand = '<a class="brand" href="/"><img src="/art/cursor-88.webp" alt="" width="28" height="28">dusk bot</a>';
+  const css = home ? ['site.css', 'motion-kit-v2.css', 'home.css', ...(has('app-demo.css') ? ['app-demo.css'] : [])] : ['site.css', 'pages.css'];
+  const tail = home
+    ? `<script src="${stamped('motion.min.js')}"></script>\n${has('mascot.js') ? `<script src="${stamped('mascot.js')}" defer></script>\n` : ''}<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>${has('app-demo.js') ? `\n<script src="${stamped('app-demo.js')}"></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
+    : ['mascot.js', 'site.js', 'pages.js', ...scripts].filter(has).map((file) => `<script src="${stamped(file)}" defer></script>`).join('\n');
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -126,46 +218,126 @@ export function layout({ title, description, body, page }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#ffffff">${noindex ? '\n<meta name="robots" content="noindex">' : `\n<link rel="canonical" href="${SITE_URL}${address === '/' ? '/' : address}">`}
+<meta property="og:site_name" content="Dusk Bot">
+<meta property="og:type" content="website">
+<meta property="og:url" content="${SITE_URL}${address}">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
-<meta property="og:image" content="https://dusk.bot/art/og.jpg">
+<meta property="og:image" content="${ogImage(og)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="/art/cursor-88.webp" type="image/webp">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(description)}">
+<meta name="twitter:image" content="${ogImage(og)}">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="${stamped('art/icon-192.png')}" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="${stamped('art/apple-touch-icon.png')}">
+<link rel="manifest" href="/site.webmanifest">
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="${stamped('site.css')}">${home ? `\n<link rel="stylesheet" href="${stamped('motion-kit-v2.css')}">\n<link rel="stylesheet" href="${stamped('home.css')}">${has('app-demo.css') ? `\n<link rel="stylesheet" href="${stamped('app-demo.css')}">` : ''}` : ''}
+${css.map((file) => `<link rel="stylesheet" href="${stamped(file)}">`).join('\n')}${jsonld.map((data) => `\n${ld(data)}`).join('')}
 </head>
 <body${home ? ' class="is-home"' : ''}>
-<header class="bar"><a class="brand" href="/"><img src="/art/cursor-88.webp" alt="" width="28" height="28">dusk bot</a><nav>${nav}<a class="cta" href="https://app.dusk.bot">sign in</a></nav></header>
-<main class="${home ? 'home' : 'page'}">
-${withBots(body).replace(/(src=")\/(art\/[\w.-]+)"/g, (_, lead, file) => `${lead}${stamped(file)}"`)}
+<a class="skip" href="#main">skip to the page</a>
+<header class="bar">${brand}<nav aria-label="main">${links(NAV)}<a class="cta" href="${APP_URL}">sign in</a></nav><details class="menu"><summary><span class="vh">menu</span>${icon('menu')}${icon('x')}</summary><nav aria-label="every page">${links(MENU)}<a class="cta" href="${APP_URL}">sign in</a></nav></details></header>
+<main id="main" class="${home ? 'home' : `inner${kind ? ' ' + kind : ''}`}">
+${macros(body).replace(/(src=")\/(art\/[\w./-]+)"/g, (_, lead, file) => `${lead}${stamped(file)}"`)}
 </main>
 <footer class="foot">
 <div class="foot-in">
-<div class="foot-brand"><a class="brand" href="/"><img src="/art/cursor-88.webp" alt="" width="28" height="28">dusk bot</a><p>a team of ai bots that runs where you want it to.</p></div>
-${foot('product', [['/download', 'download'], ['/pricing', 'pricing'], ['/docs', 'docs'], ['https://app.dusk.bot', 'sign in']])}
-${foot('legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/license', 'license'], ['/security', 'security']])}
-${foot('say hi', [['mailto:hello@dusk.bot', 'hello@dusk.bot']])}
+<div class="foot-brand">${brand}<p>a team of ai bots that runs where you want it to.</p><a class="foot-mail" href="mailto:hello@dusk.bot">hello@dusk.bot</a></div>
+${FOOT.map(foot).join('\n')}
 </div>
 <p class="foot-fine"><span data-dusk>made at dusk. the bots did most of it.</span>${home ? ' the bots, chats and numbers shown on this page are samples.' : ''}</p>
-</footer>${home ? `\n<script src="${stamped('motion.min.js')}"></script>\n${has('mascot.js') ? `<script src="${stamped('mascot.js')}" defer></script>\n` : ''}<script src="${stamped('motion-kit-v2.js')}"></script>\n<script src="${stamped('home.js')}"></script>${has('app-demo.js') ? `\n<script src="${stamped('app-demo.js')}"></script>` : ''}` : ''}
+</footer>
+${tail}
 </body>
 </html>
 `;
 }
 
+// every page that is written, for the sitemap and the log
+const built = [];
+function write(address, html, { index = true } = {}) {
+  const file = address === '/' ? path.join(site, 'index.html') : address.endsWith('.html') ? path.join(site, address) : path.join(site, address, 'index.html');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, html);
+  built.push({ address, index });
+}
+const text = (html) => html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+// the questions on a page, as schema.org wants them: from <details><summary>q</summary>…a…</details>
+const faqLd = (html) => {
+  const qs = [...html.matchAll(/<details[^>]*><summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/g)].map((m) => ({ '@type': 'Question', name: text(m[1]), acceptedAnswer: { '@type': 'Answer', text: text(m[2]) } }));
+  return qs.length ? [{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: qs }] : [];
+};
+const appLd = {
+  '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'Dusk Bot', url: `${SITE_URL}/`, image: `${SITE_URL}/art/og.jpg`,
+  applicationCategory: 'ProductivityApplication', operatingSystem: 'macOS, Windows, Linux',
+  description: 'A desktop app where you run a team of AI bots and message them like teammates. It runs on your computer, your own server or a Dusk cloud computer, on the AI accounts you already have.',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+};
+
+// {{strip name | shape colour, shape colour ...}} is a band of one of the pixel pictures (art/strip-name.webp), torn at both
+// edges, with a few bots standing in it. where each stands is in pages.css (.ph-name .b1 ...), in the picture's own space
+export const strip = (name, crew = '', more = '') => `<div class="strip ph-${name}${more ? ' ' + more : ''}"><div class="ph-art"><img src="/art/strip-${name}.webp" alt="" width="1536" height="640" fetchpriority="high">${crew.split(',').map((b) => b.trim()).filter(Boolean).map((b, i) => `<span class="pb b${i + 1}">{{bot ${b}}}</span>`).join('')}</div><i class="cl c1"></i><i class="cl c2"></i></div>`;
+const withStrips = (html) => html.replace(/\{\{strip ([\w-]+)(?: \| ([^}]+))?\}\}/g, (_, name, crew) => strip(name, crew));
+
 const pages = JSON.parse(fs.readFileSync(path.join(here, 'pages.json'), 'utf8'));
 for (const page of pages) {
-  const body = fs.readFileSync(path.join(here, 'pages', `${page.name}.html`), 'utf8');
-  const file = page.name === 'home' ? path.join(site, 'index.html') : path.join(site, page.name, 'index.html');
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, layout({ ...page, page: page.name, body }));
+  const body = withStrips(fs.readFileSync(path.join(here, 'pages', `${page.name}.html`), 'utf8'));
+  const at = page.name === 'home' ? '/' : page.name === '404' ? '/404.html' : `/${page.name}`;
+  const jsonld = page.name === 'home' ? [appLd, ...faqLd(macros(body))] : faqLd(macros(body));
+  write(at, layout({ ...page, page: page.name, at, kind: page.kind || `p-${page.name}`, body, jsonld, noindex: page.name === '404' }), { index: page.name !== '404' });
 }
-const legal = [['terms', 'Terms of Service'], ['privacy', 'Privacy Policy'], ['license', 'License'], ['security', 'Security']];
-for (const [name, title] of legal) {
-  const md = fs.readFileSync(path.join(repo, 'docs', 'legal', `${name}.md`), 'utf8');
-  fs.mkdirSync(path.join(site, name), { recursive: true });
-  fs.writeFileSync(path.join(site, name, 'index.html'), layout({ title: `${title} · Dusk Bot`, description: `Dusk Bot ${title.toLowerCase()}.`, page: name,
-    body: `<article class="legal"><h1>${title}</h1>\n${markdown(md)}\n</article>` }));
+
+// the changelog is one markdown file: a "## version · date" heading per release, newest first, then a list
+{
+  const md = fs.readFileSync(path.join(here, 'pages', 'changelog.md'), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+  const entries = md.split(/^## /m).slice(1).map((chunk) => {
+    const [head, ...rest] = chunk.split('\n');
+    const [version, date = ''] = head.split('·').map((s) => s.trim());
+    return `<article class="rel" id="v${slug(version)}"><header><h2>${esc(version)}</h2>${date ? `<time datetime="${esc(date)}">${esc(new Date(`${date}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).toLowerCase())}</time>` : ''}</header><div class="prose">${markdown(rest.join('\n').replace(/^### /gm, '#### '))}</div></article>`;
+  });
+  const shell = withStrips(fs.readFileSync(path.join(here, 'pages', 'partials', 'changelog-shell.html'), 'utf8'));
+  const body = shell.replace('{{entries}}', entries.join('\n')).replace(/\{\{([#^])entries\}\}([\s\S]*?)\{\{\/entries\}\}/g, (_, mark, inner) => ((entries.length > 0) === (mark === '#') ? inner : ''));
+  write('/changelog', layout({ title: "What's new · Dusk Bot", description: 'Every Dusk Bot release, newest first: what changed and what got fixed.', page: 'changelog', kind: 'p-changelog', body }));
 }
-console.log(`built ${pages.length + legal.length} pages into ${site}`);
+
+// the legal drafts, each with a list of its sections beside it
+const legal = [['terms', 'Terms of Service', 'terms'], ['privacy', 'Privacy Policy', 'privacy'], ['license', 'License', 'license'], ['security', 'Security', 'security']];
+for (const [name, title, short] of legal) {
+  // the drafts name a person as copyright holder; the site shows a placeholder until the company name is set
+  const html = markdown(fs.readFileSync(path.join(repo, 'docs', 'legal', `${name}.md`), 'utf8').replace(/Copyright (\d{4}) [^.\n]+\./g, 'Copyright $1 [copyright holder].'));
+  const toc = [...html.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)].map((m) => `<li><a href="#${m[1]}">${m[2]}</a></li>`).join('');
+  const others = legal.map(([n, , s]) => `<a href="/${n}"${n === name ? ' aria-current="page"' : ''}>${s}</a>`).join('');
+  write(`/${name}`, layout({ title: `${title} · Dusk Bot`, description: `Dusk Bot ${title.toLowerCase()}.`, page: name, section: 'legal', og: 'legal', kind: 'p-legal',
+    body: `<header class="phead wrap"><h1>${title.toLowerCase()}</h1></header>
+${strip('layers', 'circle blue, hex orange', 'short')}
+<div class="legal-wrap wrap">
+<aside class="legal-side"><nav class="legal-tabs" aria-label="legal pages">${others}</nav><nav class="toc" aria-label="on this page"><h2>on this page</h2><ol>${toc}</ol></nav></aside>
+<article class="legal prose">\n${html}\n</article>
+</div>` }));
+}
+
+// the brand page's downloads: each bot as a plain svg file
+fs.mkdirSync(path.join(site, 'brand', 'bots'), { recursive: true });
+for (const [shape, , hex] of CREW) fs.writeFileSync(path.join(site, 'brand', 'bots', `${shape}.svg`), restSvg(shape, { colour: hex, className: 'dusk-bot', attrs: 'xmlns="http://www.w3.org/2000/svg" width="400" height="400"' }).replace(' aria-hidden="true"', '').replace(/ data-body="\w+"/, '').replace(/currentColor/g, hex) + '\n');
+
+const docs = buildDocs({ here, site, markdown, layout, macros, strip, slug, text, write, esc, icon });
+
+// the rest of what a site answers: where robots may go, every page, the installable-app manifest, and the short addresses
+fs.writeFileSync(path.join(site, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /demo/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
+fs.writeFileSync(path.join(site, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${built.filter((p) => p.index).map((p) => `  <url><loc>${SITE_URL}${p.address}</loc></url>`).join('\n')}\n</urlset>\n`);
+fs.writeFileSync(path.join(site, 'site.webmanifest'), JSON.stringify({
+  name: 'Dusk Bot', short_name: 'Dusk Bot', description: 'Your own team of AI bots, in a chat app.', start_url: '/', display: 'browser', background_color: '#ffffff', theme_color: '#ffffff',
+  icons: [{ src: '/art/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/art/icon-512.png', sizes: '512x512', type: 'image/png' }, { src: '/art/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }],
+}, null, 2) + '\n');
+// server.js reads this: short and old addresses, each sent on to the page that answers it
+const redirects = JSON.parse(fs.readFileSync(path.join(here, 'redirects.json'), 'utf8'));
+for (const [from, to] of Object.entries(redirects)) {
+  const target = to.split('#')[0];
+  if (target.startsWith('/') && !built.some((p) => p.address === target) && !fs.existsSync(path.join(site, target))) throw new Error(`redirects.json: ${from} goes to ${to}, which is not a page`);
+}
+fs.writeFileSync(path.join(site, '_redirects.json'), JSON.stringify(redirects));
+console.log(`built ${built.length} pages into ${site} (${docs} of them docs; downloads ${release.released ? `open, version ${release.version || 'unknown'}` : 'not open yet'})`);

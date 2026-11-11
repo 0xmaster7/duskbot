@@ -42,3 +42,30 @@ wait
 s "A simple modern smartphone standing upright, seen straight from the front, tall with rounded corners, a cotton-candy pink frame, a large plain flat sky-blue screen with nothing on it except one small dark pill near the top centre. Very simple, very few details." d-phone-a &
 s "A simple modern smartphone standing upright, seen straight from the front, tall with rounded corners, a lilac frame, a large plain flat sky-blue screen with nothing on it except one small round dark camera dot at the top centre. Very simple, very few details." d-phone-b &
 wait
+
+# the rest of the site (docs, download, pricing, about, contact, brand, 404): wide strips for the page headers, each from a
+# portrait poster that the home page does not use, and a few small objects. run just this part with: sh gen-site.sh
+site() {
+e "Redraw this scene as a wide 3:2 landscape. The upper half is open banded sky with one small flat white cloud with a pink underside near the right edge, and no sun. In the lower half: the pale lilac hills, the emerald forest with the tall thin cream birch trunks spread evenly across the whole width, and the pale lime field along the bottom." wide-birches r03-birches 1536x1024 &
+e "Redraw this scene as a wide 3:2 landscape. The upper half is open banded sky with one long flat white cloud with a lemon underside at the upper right, and no sun. In the lower half: the white chalk cliffs with green tops stepping down from the left edge toward the middle, and the calm banded pale sea across the right side and along the bottom." wide-cliffs r05-white-cliffs 1536x1024 &
+wait
+e "Redraw this scene as a wide 3:2 landscape. The upper half is open banded sky with two thin flat white clouds with lemon undersides near the left and right edges, and no sun. In the lower half: a thin band of pale sea on the horizon, then soft cream sand dunes rolling across the whole width with three small tufts of green grass spread wide apart." wide-dunes r09-dunes 1536x1024 &
+e "Redraw this scene as a wide 3:2 landscape of a calm pond. The upper half is open banded sky with one small flat white cloud with a pink underside at the far left, and no sun. In the lower half: a thin band of emerald trees on the horizon, then calm banded pale blue water with six round flat green lily pads spread wide apart, three of them carrying one small pink or white pixel flower, and a few cream reeds at the far left and far right edges." wide-pond r17-islands 1536x1024 &
+wait
+e "Redraw this scene as a wide 3:2 landscape. The upper half is open banded sky with one small flat white cloud with a pink underside at the far right, and no sun. In the lower half: the white chalk cliffs with green tops across the left two thirds, and in the middle of the cliffs one wide pale sky-blue waterfall falling straight down in stepped pixel bands into the calm banded pale sea along the bottom, with white pixel foam where it lands." wide-falls r05-white-cliffs 1536x1024 &
+s "A parcel box in cream white tied with a sky-blue ribbon and a bow on top, with a small lemon-yellow tag hanging from the bow. Very simple, very few details." s-parcel &
+wait
+s "A cotton-candy pink mailbox on a short cream post, its little lemon-yellow flag raised, with one cream envelope sticking out of its slot. Very simple, very few details." s-mailbox &
+s "A cream wooden signpost with two blank arrow boards pointing in opposite directions, the upper one sky blue and the lower one cotton-candy pink, and a small tuft of green grass at its foot. Very simple, very few details." s-signpost &
+wait
+s "A big lemon-yellow old-fashioned key with a round bow, lying at a slight angle, with a small lilac paper tag tied to it by a pink string. Very simple, very few details." s-key &
+s "A cream painter's palette with six round blobs of paint in sky blue, orange, purple, pink, green and yellow, and one paintbrush with a cream handle lying across it. Very simple, very few details." s-palette &
+wait
+s "Two closed books stacked flat, seen from the front at a slight angle: a thick sky-blue book with a pink ribbon bookmark sticking out, and a thinner lemon-yellow book on top. Very simple, very few details." s-books &
+s "A folded paper map opened flat, cream with pale green and sky-blue patches, one dotted pink path across it and a small pink round-headed pin at the end of the path. Very simple, very few details." s-map &
+wait
+e "Redraw this scene as a wide 3:2 landscape of an almost empty sea. The upper half is open banded sky with one small flat white cloud with a lemon underside at the far left, and no sun. In the lower half: calm banded pale blue sea across the whole width with scattered white pixel sparkles, completely empty except for one single very small round green island with a cream sand edge, a little right of the centre." wide-lost r17-islands 1536x1024 &
+s "A cream-white power plug with two prongs and a curly sky-blue cable, next to a small lilac wall socket plate. Very simple, very few details." s-plug &
+s "A small stack of three round flat coins in lemon yellow beside a cotton-candy pink coin purse with a cream clasp. Very simple, very few details." s-coins &
+wait
+}
