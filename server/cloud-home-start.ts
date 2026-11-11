@@ -41,6 +41,8 @@ const SERVER_ENV_NAMES = new Set([
   "DUSK_BOT_BOX",
   // a home on its own machine (a managed cloud vm) runs bot computers on that machine's docker, only through the gate's socket.
   "DUSK_VPS_DOCKER", "DOCKER_HOST",
+  // where that machine's own build of the bot computer image says how it goes
+  "DUSK_BOT_DESKTOP_HOST_BUILD",
   // An ended Cloud started only for its owner's export: the server runs frozen (server/move-freeze.ts).
   "DUSK_CLOUD_EXPORT_ONLY",
 ]);

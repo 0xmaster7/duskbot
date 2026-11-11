@@ -17,6 +17,7 @@ import {
   botDesktopVolume,
   containerBotDesktopMode,
   containerDesktopKind,
+  hostBuildTiming,
   hostIsolation,
   parseHostAddresses,
   preferredVpsDesktop,
@@ -276,6 +277,55 @@ describe("bot desktop provisioning", () => {
     await expect(provisionBotDesktop(broken.run, input)).rejects.toMatchObject({ status: 409,
       message: expect.stringContaining("building it on the VPS failed: ERROR: failed to solve") });
     expect(broken.calls.map(args => args[0])).toEqual(["pull", "build"]);
+  });
+
+  describe("on a managed cloud home, whose own machine builds the image", () => {
+    const status = () => join(mkdtempSync(join(tmpdir(), "omb-host-build-")), "desktop-image");
+    /** the registry refuses; `image inspect` answers once the machine's build has finished `afterChecks` checks later */
+    function building(afterChecks: number) {
+      let checks = 0;
+      const calls: string[][] = [];
+      const base = host({ pull: false, network: true });
+      const run = async (args: string[]) => {
+        if (args[0] === "image" && args[1] === "inspect" && args[2] === BOT_DESKTOP_IMAGE && checks++ < afterChecks) { calls.push(args); throw new Error(`Error: No such image: ${BOT_DESKTOP_IMAGE}`); }
+        calls.push(args);
+        return base.run(args);
+      };
+      return { calls, run };
+    }
+    beforeEach(() => { Object.assign(hostBuildTiming, { pollMs: 1, limitMs: 2_000 }); });
+
+    it("waits for the machine's build instead of building through the gate, and reports it as building", async () => {
+      const file = status();
+      writeFileSync(file, "building\n");
+      vi.stubEnv("DUSK_BOT_DESKTOP_HOST_BUILD", file);
+      try {
+        const fake = building(3), progress: string[] = [];
+        expect(await provisionBotDesktop(fake.run, { ...input, onProgress: step => progress.push(step) })).toBe("strict");
+        expect(progress).toEqual(["pulling", "building"]);
+        expect(fake.calls.some(args => args[0] === "build")).toBe(false);
+        expect(fake.calls.filter(args => args[0] === "image" && args[2] === BOT_DESKTOP_IMAGE)).toHaveLength(5);
+      } finally { vi.unstubAllEnvs(); }
+    });
+
+    it("refuses at once with a clear reason when the machine's build failed, creating nothing", async () => {
+      const file = status();
+      writeFileSync(file, "failed\n");
+      vi.stubEnv("DUSK_BOT_DESKTOP_HOST_BUILD", file);
+      try {
+        const fake = building(Number.POSITIVE_INFINITY);
+        await expect(provisionBotDesktop(fake.run, input)).rejects.toMatchObject({ status: 409, code: "bot_desktop_unavailable", message: expect.stringContaining("could not build") });
+        expect(fake.calls.some(args => args[0] === "run" || args[0] === "build")).toBe(false);
+      } finally { vi.unstubAllEnvs(); }
+    });
+
+    it("gives up after its limit with a try-again message while the build still runs", async () => {
+      vi.stubEnv("DUSK_BOT_DESKTOP_HOST_BUILD", status());
+      Object.assign(hostBuildTiming, { pollMs: 5, limitMs: 30 });
+      try {
+        await expect(provisionBotDesktop(building(Number.POSITIVE_INFINITY).run, input)).rejects.toMatchObject({ code: "bot_desktop_unavailable", message: expect.stringContaining("still building") });
+      } finally { vi.unstubAllEnvs(); }
+    });
   });
 
   it("only offers a kit that builds exactly this app's desktop version, outside any asar archive", () => {
