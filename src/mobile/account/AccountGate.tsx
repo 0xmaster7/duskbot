@@ -9,9 +9,10 @@ import { demoOn, enterDemo } from "../demo/demo-mode";
 import { LEGAL_LINKS } from "../legal";
 import { MARKS } from "../onboarding/AccountStep";
 import { usePlatform, type MobilePlatform } from "../platform";
-import { createMobileAccount, isAccountAuthUrl, type AuthResult, type MobileAccount } from "./account-client";
+import { createMobileAccount, isAccountAuthUrl, type AuthResult, type CloudPairResult, type MobileAccount, type MobileCloud } from "./account-client";
 
-type AccountContextValue = { account: MobileAccount | null; origin: string; signOut(): Promise<void>; enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null> };
+type AccountContextValue = { account: MobileAccount | null; origin: string; signOut(): Promise<void>; enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null>;
+  clouds(): Promise<MobileCloud[] | null>; pairCloud(cloud: MobileCloud): Promise<CloudPairResult>; wakeCloud(): Promise<boolean> };
 const AccountContext = createContext<AccountContextValue | null>(null);
 export const useMobileAccount = () => useContext(AccountContext);
 
@@ -110,6 +111,7 @@ export function AccountGate({ children }: { children: ReactNode }) {
   const context = useMemo<AccountContextValue>(() => ({ account, origin,
     signOut: async () => { setAccount(null); setProblem(undefined); await client.signOut(); },
     enrollGrant: () => client.enrollGrant(),
+    clouds: () => client.clouds(), pairCloud: cloud => client.pairCloud(cloud), wakeCloud: () => client.wakeCloud(),
   }), [account, origin, client]);
   if (wanted && (demo === null || (restoring && required))) return <div className="omb-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
   return <AccountContext value={context}>{required && !account ? <div data-skin={THEME_SKINS.dark} className="omb-mobile size-full bg-app text-ink"><SignIn mobile emailStart={email => client.emailStart(email)} emailVerify={code => client.emailVerify(code)} cancelEmail={async () => { client.cancelEmail(); }} browser={provider => { setProblem(undefined); return client.oauthStart(provider); }} onSignedIn={() => { setAccount(client.account()); setProblem(undefined); }} notice={problem}
