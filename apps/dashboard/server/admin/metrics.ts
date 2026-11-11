@@ -51,11 +51,11 @@ export function funnel(input: FunnelInput): FunnelStep[] {
   const replied = within([...input.workspaces.filter(ws => workspaceTurns(ws) > 0).map(ws => ws.ownerAccountId), ...input.marked.replied]);
   const onboarded = within([...input.marked.onboarded, ...chose, ...paid, ...paired]);
   const and = (a: Set<string>, b: Set<string>) => new Set([...a].filter(id => b.has(id)));
-  const steps: Array<[string, string, Set<string>]> = [["onboarded", "finished onboarding", onboarded]];
-  steps.push(["cloud", "chose dusk cloud", and(chose, steps.at(-1)![2])]);
-  steps.push(["paid", "paid or granted", and(paid, steps.at(-1)![2])]);
-  steps.push(["paired", "paired an app", and(paired, steps.at(-1)![2])]);
-  steps.push(["replied", "first bot reply", and(replied, steps.at(-1)![2])]);
+  const steps: Array<[string, string, Set<string>]> = [["onboarded", "onboarded", onboarded]];
+  steps.push(["cloud", "chose a cloud", and(chose, steps.at(-1)![2])]);
+  steps.push(["paid", "paid", and(paid, steps.at(-1)![2])]);
+  steps.push(["paired", "paired app", and(paired, steps.at(-1)![2])]);
+  steps.push(["replied", "bot replied", and(replied, steps.at(-1)![2])]);
   const totals: Record<string, number> = { onboarded: onboarded.size, cloud: chose.size, paid: paid.size, paired: paired.size, replied: replied.size };
   return [{ id: "site", label: "site visitors", count: input.siteVisitors, total: input.siteVisitors }, { id: "signup", label: "signed up", count: cohort.size, total: cohort.size },
     ...steps.map(([id, label, set]) => ({ id, label, count: set.size, total: totals[id]! }))];

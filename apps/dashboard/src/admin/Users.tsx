@@ -38,7 +38,7 @@ export function UsersPage() {
       {data && (data.users.length ? (
         <>
           <Table label="users">
-            <thead><tr><Th>account</Th><Th>plan</Th><Th className="text-end">clouds</Th><Th>app</Th><Th>signed up</Th><Th>last seen</Th></tr></thead>
+            <thead><tr><Th>account</Th><Th>plan</Th><Th className="!text-end">clouds</Th><Th>app</Th><Th>signed up</Th><Th>last seen</Th></tr></thead>
             <tbody>
               {data.users.map((user) => (
                 <tr key={user.id} className="hover-row">
@@ -98,7 +98,7 @@ export function UserPage({ id }: { id: string }) {
           <Section title="clouds" className="mt-10">{data.clouds.length ? <CloudTable clouds={data.clouds} onChanged={reload} owner={false} /> : <p className="text-14 text-ink-3">no clouds.</p>}</Section>
 
           <div className="mt-10 grid grid-cols-2 gap-10 max-lg:grid-cols-1">
-            <Section title="devices and sessions">
+            <Section className="!mt-0" title="devices and sessions">
               {data.devices.length ? (
                 <ul className="divide-y divide-line">
                   {data.devices.map((device) => (
@@ -110,7 +110,7 @@ export function UserPage({ id }: { id: string }) {
                 </ul>
               ) : <p className="text-14 text-ink-3">signed in nowhere right now.</p>}
             </Section>
-            <Section title="workspaces">
+            <Section className="!mt-0" title="workspaces">
               {data.workspaces.length ? (
                 <ul className="divide-y divide-line">
                   {data.workspaces.map((ws) => (
@@ -127,7 +127,7 @@ export function UserPage({ id }: { id: string }) {
           {(data.subscriptions.length > 0 || data.payments.length > 0) && (
             <Section title="plans and payments">
               <Table label="plans and payments">
-                <thead><tr><Th>what</Th><Th>status</Th><Th className="text-end">amount</Th><Th>when</Th></tr></thead>
+                <thead><tr><Th>what</Th><Th>status</Th><Th className="!text-end">amount</Th><Th>when</Th></tr></thead>
                 <tbody>
                   {data.subscriptions.map((sub) => <tr key={sub.id}><Td>{sub.plan ?? "custom"} plan{sub.cancelAtPeriodEnd ? ", cancels at period end" : ""}</Td><Td><Status value={sub.status} /></Td><Td className="text-end font-mono num">{money(sub.totalCents)}</Td><Td className="t-id text-ink-2">{stamp(sub.createdAt)}</Td></tr>)}
                   {data.payments.map((pay) => <tr key={pay.id}><Td>payment</Td><Td><Status value={pay.status} /></Td><Td className="text-end font-mono num">{money(pay.amountCents)}</Td><Td className="t-id text-ink-2">{stamp(pay.createdAt)}</Td></tr>)}

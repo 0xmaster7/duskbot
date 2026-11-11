@@ -44,6 +44,7 @@ claim a success). Tests and local fixtures keep JSON files in the data folder.
 | `pages`, `slack_edge_regs`, `slack_edge_events` | published pages, Slack wake edge | `id` / `cloudId` | |
 | `stores` | each module's small fields (queues, counters, provider start ledger, sweep) | module name | |
 | `managed_audit` | append-only lifecycle audit, ids and codes only | | `(cloudId, at)`, `at` |
+`analytics_events` (raw product events, TTL index on `at`: 400 days; `accountId`, `name` and `ctx.session` indexes), `analytics_daily` (daily counts, kept), `analytics_marks` (once-only marks, TTL on `expiresAt`) and `admin_audit` (the admin panel's actions, kept) are written directly by `server/analytics/sink.ts`, outside the writer lease: inserts and upserts only.
 | `locks` | the writer lease | | |
 
 Every row carries `_n`, its insertion number, so arrays load back in order. Sessions expire in the service itself

@@ -34,7 +34,7 @@ export function WaitlistPage() {
           {data.entries.length ? (
             <>
               <Table label="waitlist">
-                <thead><tr><Th className="text-end">#</Th><Th>email</Th><Th>source</Th><Th>ref</Th><Th>joined</Th></tr></thead>
+                <thead><tr><Th className="!text-end">#</Th><Th>email</Th><Th>source</Th><Th>ref</Th><Th>joined</Th></tr></thead>
                 <tbody>
                   {data.entries.map((entry) => (
                     <tr key={entry.position} className="hover-row">

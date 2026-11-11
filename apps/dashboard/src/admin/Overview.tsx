@@ -40,7 +40,7 @@ export function OverviewPage() {
           </Section>
 
           <div className="mt-10 grid grid-cols-2 gap-10 max-md:grid-cols-1">
-            <Section title="clouds by state" action={<Link to="/admin/clouds" className="hover-link text-13 text-ink-3 underline-offset-4 hover:underline">all clouds</Link>}>
+            <Section className="!mt-0" title="clouds by state" action={<Link to="/admin/clouds" className="hover-link text-13 text-ink-3 underline-offset-4 hover:underline">all clouds</Link>}>
               {data.clouds.length ? (
                 <ul className="divide-y divide-line">
                   {data.clouds.map((row) => (
@@ -50,7 +50,7 @@ export function OverviewPage() {
               ) : <p className="text-14 text-ink-3">no clouds yet.</p>}
               <p className="mt-4 text-13 text-ink-3">instabox spend: not shown yet. {data.spend.note}.</p>
             </Section>
-            <Section title="bots, across connected workspaces">
+            <Section className="!mt-0" title="bots, across connected workspaces">
               <ul className="divide-y divide-line">
                 <li className="flex h-11 items-center justify-between"><span className="text-14 text-ink-2">workspaces with an owner</span><span className="font-mono text-14 num">{n(data.bots.workspaces)}</span></li>
                 <li className="flex h-11 items-center justify-between"><span className="text-14 text-ink-2">bots</span><span className="font-mono text-14 num">{n(data.bots.bots)}</span></li>

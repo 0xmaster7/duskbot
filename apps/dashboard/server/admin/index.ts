@@ -51,7 +51,7 @@ export function createAdmin(options: AdminOptions) {
   const { auth, billing, analytics, now } = options;
   const allowed = new Set(options.emails.map(email => email.toLowerCase()));
   const env = options.env ?? process.env;
-  const brevo = brevoChecker({ apiKey: env.DUSK_BREVO_API_KEY, listId: env.DUSK_BREVO_WAITLIST_LIST_ID ?? env.BREVO_WAITLIST_LIST_ID, fetch: options.fetch, now });
+  const brevo = brevoChecker({ apiKey: env.DUSK_BREVO_API_KEY, listId: env.DUSK_BREVO_WAITLIST_LIST_ID, fetch: options.fetch, now });
   const targets = healthTargets(env.DUSK_ADMIN_HEALTH_URLS);
 
   /** every admin route: a signed-in web session (401), an allowed email (403), and the CSRF header on changes */

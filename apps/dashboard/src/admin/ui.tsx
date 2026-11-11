@@ -30,7 +30,7 @@ export function Tile({ label, value, note, tone }: { label: string; value: React
   return (
     <div className="min-w-0 rounded-[18px] bg-card px-4 py-3.5">
       <div className="truncate text-13 text-ink-3">{label}</div>
-      <div className={cx("mt-1 truncate font-mono text-[24px] font-medium leading-8 tracking-[-0.03em] num", tone === "bad" ? "text-bad" : tone === "warn" ? "text-warn" : "text-ink")}>{value}</div>
+      <div className={cx("mt-1 truncate text-[24px] font-medium leading-8 num", typeof value === "string" && /^[\d,.%$+-]+$/.test(value) ? "font-mono tracking-[-0.03em]" : "tracking-[-0.035em]", tone === "bad" ? "text-bad" : tone === "warn" ? "text-warn" : "text-ink")}>{value}</div>
       {note && <div className="mt-0.5 truncate text-12 text-ink-3">{note}</div>}
     </div>
   );
@@ -53,7 +53,7 @@ export function DayBars({ title, days, values, tone = "accent", height = 96 }: {
           return (
             <g key={days[i]} onMouseEnter={() => setHover(i)}>
               <rect x={i * 10} y={0} width={10} height={height} fill="transparent" />
-              <rect x={i * 10 + 1.5} y={height - h} width={7} height={h} rx={1.5} fill={v === 0 ? "var(--track)" : tone === "accent" ? "var(--accent)" : "var(--ink)"} opacity={hover === null || hover === i ? 1 : 0.45} />
+              <rect x={i * 10 + 1.5} y={height - h} width={7} height={h} rx={1.5} fill={v === 0 ? "var(--track)" : tone === "accent" ? "var(--accent)" : "var(--heat-2)"} opacity={hover === null || hover === i ? 1 : 0.45} />
             </g>
           );
         })}
@@ -73,7 +73,7 @@ export function FunnelStrip({ steps }: { steps: FunnelStep[] }) {
         const prev = steps[i - 1];
         const base = step.id === "site" ? Math.max(step.count, 1) : Math.max(signups, 1);
         return (
-          <li key={step.id} className="flex min-w-0 flex-col bg-card px-4 pb-4 pt-3.5">
+          <li key={step.id} className="flex min-w-0 flex-col bg-card px-4 pb-4 pt-3.5 max-xl:last:col-span-2 max-sm:last:col-span-2">
             <span className="t-meta truncate">{i + 1}. {step.label}</span>
             <span className="mt-2 font-mono text-[26px] font-medium leading-8 tracking-[-0.04em] text-ink num">{n(step.count)}</span>
             <span className="mt-0.5 text-12 text-ink-3 num">{prev ? <>{pct(step.count, prev.count)} <span className="text-ink-4">of {prev.label}</span></> : "in the window"}</span>

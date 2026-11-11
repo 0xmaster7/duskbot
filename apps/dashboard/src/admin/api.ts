@@ -6,9 +6,15 @@ export class AdminApiError extends Error {
   constructor(message: string, status: number, code: string | null) { super(message); this.status = status; this.code = code; }
 }
 
-function csrf() {
+let fetchedCsrf: string | null = null;
+/** the CSRF cookie, or the token the account read hands out when the cookie is missing */
+async function csrf() {
   const raw = document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${CSRF_COOKIE}=`))?.slice(CSRF_COOKIE.length + 1) ?? "";
-  try { return decodeURIComponent(raw); } catch { return raw; }
+  try { if (raw) return decodeURIComponent(raw); } catch { return raw; }
+  if (fetchedCsrf) return fetchedCsrf;
+  const me = await fetch("/v1/me", { credentials: "same-origin" }).then((res) => res.json() as Promise<{ csrfToken?: string }>).catch(() => null);
+  fetchedCsrf = me?.csrfToken ?? null;
+  return fetchedCsrf ?? "";
 }
 
 export async function adminCall<T>(path: string, init: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
@@ -16,7 +22,7 @@ export async function adminCall<T>(path: string, init: { method?: string; body?:
   let res: Response;
   try {
     res = await fetch(`/v1/admin${path}`, { method, credentials: "same-origin", signal: init.signal,
-      headers: { accept: "application/json", ...(init.body === undefined ? {} : { "content-type": "application/json" }), ...(method === "GET" ? {} : { [CSRF_HEADER]: csrf() }) },
+      headers: { accept: "application/json", ...(init.body === undefined ? {} : { "content-type": "application/json" }), ...(method === "GET" ? {} : { [CSRF_HEADER]: await csrf() }) },
       ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }) });
   } catch (error) {
     if ((error as Error).name === "AbortError") throw error;

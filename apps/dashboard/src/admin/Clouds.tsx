@@ -22,7 +22,7 @@ export function CloudTable({ clouds, onChanged, owner = true }: { clouds: CloudR
   return (
     <>
       <Table label="clouds">
-        <thead><tr><Th>cloud</Th>{owner && <Th>owner</Th>}<Th>state</Th><Th>plan</Th><Th>region</Th><Th>up for</Th><Th>created</Th><Th><span className="sr-only">actions</span></Th></tr></thead>
+        <thead><tr><Th>cloud</Th>{owner && <Th>owner</Th>}<Th>state</Th><Th>plan</Th><Th>region</Th><Th>up for</Th><Th>created</Th><Th aria-label="actions" /></tr></thead>
         <tbody>
           {clouds.map((c) => (
             <tr key={c.id} className="hover-row">
