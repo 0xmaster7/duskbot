@@ -79,6 +79,21 @@ export interface TranscriptShelf {
 const DB = "omb-transcripts";
 const STORE = "threads";
 
+/** One shelf per workspace connection on a device that holds several (the phone app); `null` is the page's own
+ * workspace. */
+export function transcriptShelfName(scope: string | null): string {
+  return scope === null ? DB : `${DB}.${scope}`;
+}
+
+/** Drops a workspace's saved transcripts from this device, once it is unlinked or replaced. */
+export function forgetTranscriptShelf(scope: string | null, factory: IDBFactory | undefined = globalThis.indexedDB): Promise<void> {
+  if (!factory) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    const req = factory.deleteDatabase(transcriptShelfName(scope));
+    req.onsuccess = req.onerror = req.onblocked = () => resolve();
+  });
+}
+
 function request<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     req.onsuccess = () => resolve(req.result);
@@ -86,11 +101,11 @@ function request<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
-export function indexedDbShelf(factory: IDBFactory | undefined = globalThis.indexedDB): TranscriptShelf | null {
+export function indexedDbShelf(factory: IDBFactory | undefined = globalThis.indexedDB, scope: string | null = null): TranscriptShelf | null {
   if (!factory) return null;
   let opened: Promise<IDBDatabase> | null = null;
   const open = () => opened ??= new Promise<IDBDatabase>((resolve, reject) => {
-    const req = factory.open(DB, 1);
+    const req = factory.open(transcriptShelfName(scope), 1);
     req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE, { keyPath: "threadId" }); };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);

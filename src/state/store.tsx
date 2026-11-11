@@ -22,6 +22,7 @@ import { foldSnapshotOntoStreamed, patchedGroups, roomAnswers, snapshotPatch } f
 import { savedStateAction, type SavedOwner, type SavedSnapshot } from "./saved-state";
 import { heldTranscript, keepBotNavigation, keepGroupNavigation, navigatedSince, visibleMessages } from "./snapshot-navigation";
 import { createTranscriptCache, indexedDbShelf, reconcileTranscript, type CachedTranscript } from "./transcript-cache";
+import { TranscriptShelfScope } from "./transcript-scope";
 export { shownTranscript, visibleMessages } from "./snapshot-navigation";
 export { awayFromMainThread, botOpensTo, markedThread, openBot, openBotRow, openBotThread, openRoomThread, openThread, visibleNotificationThread, type ThreadTarget } from "./thread-navigation";
 import type { TurnDigest } from "../../shared/digest";
@@ -2084,7 +2085,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, initialState, restoreBotSettingsSection);
   const stateRef = useRef(state), selectionRevision = useRef(0);
   stateRef.current = state;
-  const [transcriptCache] = useState(() => createTranscriptCache(indexedDbShelf()));
+  const shelfScope = useContext(TranscriptShelfScope);
+  const [transcriptCache] = useState(() => createTranscriptCache(indexedDbShelf(globalThis.indexedDB, shelfScope)));
   const invalidateTranscripts = useSelectedTranscript(state, rawDispatch, MESSAGE_PAGE_SIZE, transcriptCache);
   useTranscriptCache(state, rawDispatch, transcriptCache);
   const clearChatError = useCallback(() => {

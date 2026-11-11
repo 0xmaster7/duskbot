@@ -14,6 +14,8 @@ import { Success } from "../onboarding/Success";
 import { connectToWorkspace, createConnectionStore } from "./connections";
 import { PairError, parseTypedPairing, type TypedPairing } from "./pair";
 import { ActiveConnection } from "./active";
+import { TranscriptShelfScope } from "@/state/transcript-scope";
+import { forgetTranscriptShelf } from "@/state/transcript-cache";
 import { reportPresence } from "./presence";
 import { registerPushForConnection } from "./push";
 import { Unreachable } from "./Unreachable";
@@ -38,6 +40,8 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     window.addEventListener("omb:link-another", open);
     return () => window.removeEventListener("omb:link-another", open);
   }, []);
+  // the app never reads the shelf shared by every workspace again; it may still hold an unlinked one's chats
+  useEffect(() => { if (platform.native) void forgetTranscriptShelf(null); }, [platform]);
   const sequence = useRef(0);
   const uninstall = useRef<(() => void) | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -161,7 +165,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
   }
   return (
     <>
-      <ActiveConnection value={state.id}><Fragment key={state.id}>{children}</Fragment></ActiveConnection>
+      <ActiveConnection value={state.id}><TranscriptShelfScope value={state.id === "same-origin" ? null : state.id}><Fragment key={state.id}>{children}</Fragment></TranscriptShelfScope></ActiveConnection>
       {(incoming || adding > 0) && (
         <div className="fixed inset-0 z-50">
           <Onboarding key={incoming ? `in-${incoming.sequence}` : `add-${adding}`} initial={incoming?.payload} startAtLink
