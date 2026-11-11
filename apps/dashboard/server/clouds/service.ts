@@ -138,7 +138,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     }
     save(c);
   }
-  function viewOf(c: StoredCloud): CloudDesktopView { return { id: c.id, name: c.name, color: c.color, kind: c.kind, placement: c.placement, status: c.status === "running" && c.paymentProblem ? "payment_problem" : c.status, setupStep: c.setupStep, region: c.region, machine: { ...c.spec }, botComputers: c.botComputers, origin: c.origin, workspaceId: c.workspaceId, lastReportAt: c.workspaceId ? workspaces.lastReportAt(c.workspaceId) : null, destroyAt: c.destroyAt, error: c.error, subscriptionId: c.subscriptionId, createdAt: c.createdAt }; }
+  function viewOf(c: StoredCloud): CloudDesktopView { return { id: c.id, name: c.name, color: c.color, kind: c.kind, placement: c.placement, status: c.status === "running" && c.paymentProblem ? "payment_problem" : c.status, setupStep: c.setupStep, region: c.region, machine: { ...c.spec }, botComputers: c.botComputers, origin: c.origin, workspaceId: c.workspaceId, lastReportAt: c.workspaceId ? workspaces.lastReportAt(c.workspaceId) : null, destroyAt: c.destroyAt, error: c.error, subscriptionId: c.subscriptionId, createdAt: c.createdAt, revivedAt: c.revivedAt ?? null }; }
   const backend = stateBackend();
   const stored = (id: string): StoredCloud | null => {
     if (backend) return backend.written("clouds", "clouds", id) as StoredCloud | null;
@@ -304,6 +304,24 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       if (from !== undefined && from > now() && !c.ended) { c.endsAt = c.endsAt === undefined ? from : Math.min(c.endsAt, from); c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); save(c); return; }
       delete c.endsAt; if (!c.ended) c.endedAt = now(); c.ended = true; c.wantPower = "off"; c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); c.nextAttemptAt = 0; save(c); kick(); },
     abandon(id) { const c = requireCloud(id); if (c.status === "checkout") { c.status = "destroyed"; save(c); } },
+    revivable(id, plan) {
+      const c = get(id);
+      if (!c?.ended || c.status === "destroyed" || c.status === "destroying" || c.suspended !== null || c.placement !== plan.placement) return false;
+      if (c.backend) return !!managed && managed.kinds.includes(plan.kind) && managed.revivable(c);
+      return !managed?.kinds.includes(plan.kind) && (c.destroyAt === null || c.destroyAt > now());
+    },
+    revive(id, subscriptionId, plan) {
+      const c = get(id);
+      if (!c || !service.revivable(id, plan)) return false;
+      applyPlan(c, plan);
+      c.subscriptionId = subscriptionId; delete c.ended; delete c.endedAt; delete c.endsAt;
+      c.destroyAt = null; c.wantPower = "on"; c.paymentProblem = false; c.hidden = false; c.revivedAt = now();
+      c.attempts = 0; c.nextAttemptAt = 0; c.error = null;
+      if (!c.backend && c.setupStep !== null && c.status === "stopped") c.status = "provisioning";
+      save(c);
+      if (c.backend) hurry(c.id); else kick();
+      return true;
+    },
     get,
     scrubAccount(accountId, anonId) {
       for (const cloud of store.state.clouds) if (cloud.accountId === accountId) { cloud.accountId = anonId; cloud.name = "Deleted"; cloud.suspended = cloud.suspended === null ? null : "Account deleted"; }

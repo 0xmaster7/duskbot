@@ -57,14 +57,16 @@ describe("site tracker and app ingest", () => {
 
   it("stores a page view with its visit, attribution, device and Cloudflare geo", async () => {
     const res = await beacon(view({ r: "chatgpt.com", u: { utm_campaign: "Launch", ref: "x-thread", email: "a@b.c" } }),
-      { "x-forwarded-for": "203.0.113.4, 172.70.1.1", "cf-ipcountry": "DE", "cf-ipcity": "Berlin", "cf-iplatitude": "52.52", "cf-iplongitude": "13.405" });
-    expect(res.status).toBe(204);
+      { "x-forwarded-for": "203.0.113.4, 172.70.1.1", "cf-ipcountry": "US", "cf-ipcity": "Boston", "cf-iplatitude": "42.36", "cf-iplongitude": "-71.06" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ persist: true });
     expect(res.headers.get("access-control-allow-origin")).toBe(SITE);
+    expect(res.headers.get("access-control-allow-credentials")).toBe("true");
     await settle();
     expect(sink.all).toHaveLength(1);
     expect(sink.all[0]).toMatchObject({ name: "site_view", accountId: null, props: { path: "/pricing" },
       ctx: { visitor: VID, session: SID, pv: "pv000001", host: "dusk.bot", page: "/pricing", referrer: "chatgpt.com", ref: "x-thread", utm: { campaign: "launch" }, channel: "referral",
-        device: "desktop", os: "mac", browser: "safari", country: "DE", city: "Berlin", lat: 52.5, lon: 13.4, width: 1440 } });
+        device: "desktop", os: "mac", browser: "safari", country: "US", city: "Boston", lat: 42.4, lon: -71.1, width: 1440 } });
     expect(JSON.stringify(sink.all)).not.toContain("a@b.c");
     expect(JSON.stringify(sink.all)).not.toContain("203.0.113.4");
   });
@@ -82,6 +84,56 @@ describe("site tracker and app ingest", () => {
     expect((await beacon(view(), { "sec-gpc": "1" })).status).toBe(204);
     await settle();
     expect(sink.all.map(event => [event.name, event.props])).toEqual([["site_goal", { goal: "cta_click", to: "/app/signup", from: "/" }], ["site_leave", { path: "/", scroll: 100, ms: 5200 }]]);
+  });
+
+  describe("cookieless where consent would be needed", () => {
+    const EU = { "x-forwarded-for": "203.0.113.4, 172.70.1.1", "cf-ipcountry": "FR" };
+    it("derives a daily visitor and its visit on the server and tells the tracker to keep nothing", async () => {
+      const first = await beacon(view(), EU);
+      expect(first.status).toBe(200);
+      expect(await first.json()).toEqual({ persist: false });
+      await beacon(view({ vid: "AAAAAAAAAAAAAAAAAAAAAA", sid: "BBBBBBBBBBBBBBBBBBBBBB", pv: "pv000002", p: "/docs" }), EU);
+      await beacon({ v: 1, e: "leave", vid: VID, sid: SID, pv: "pv000002", h: "dusk.bot", p: "/docs", s: 50, t: 1000 }, EU);
+      await settle();
+      const [a, b, c] = sink.all.map(event => event.ctx!);
+      expect(a!.visitor).toMatch(/^[A-Za-z0-9_-]{22}$/);
+      expect([a!.visitor, a!.session]).not.toContain(VID);
+      expect([a!.visitor, a!.session]).not.toContain(SID);
+      expect(b).toMatchObject({ visitor: a!.visitor, session: a!.session, country: "FR" });
+      expect(c).toMatchObject({ visitor: a!.visitor, session: a!.session, pv: "pv000002" });
+      expect(JSON.stringify(sink.all)).not.toContain("203.0.113.4");
+    });
+    it("starts a new visit after 30 idle minutes and a new visitor id the next day", async () => {
+      await beacon(view(), EU);
+      time += 31 * 60_000;
+      await beacon(view(), EU);
+      time += 24 * 3_600_000;
+      await beacon(view(), EU);
+      await settle();
+      const [a, b, c] = sink.all.map(event => event.ctx!);
+      expect(b!.visitor).toBe(a!.visitor);
+      expect(b!.session).not.toBe(a!.session);
+      expect(c!.visitor).not.toBe(a!.visitor);
+    });
+    it("treats the UK, Switzerland, the EEA and an unknown Cloudflare location as cookieless, and the US or a direct request as not", async () => {
+      const persist = async (headers: Record<string, string>) => (await (await beacon(view(), headers)).json() as { persist: boolean }).persist;
+      for (const country of ["GB", "CH", "NO", "DE", "XX", "T1"]) expect(await persist({ ...EU, "cf-ipcountry": country })).toBe(false);
+      expect(await persist({ "x-forwarded-for": "203.0.113.4, 172.70.1.1" })).toBe(false);
+      expect(await persist({ ...EU, "cf-ipcountry": "US" })).toBe(true);
+      expect(await persist({ "x-forwarded-for": "203.0.113.4, 198.51.100.7", "cf-ipcountry": "FR" })).toBe(true);
+    });
+    it("still links the day's visitor to the account that signs in", async () => {
+      await beacon(view(), EU);
+      const cookie = await login(OTHER);
+      await fetch(`${url}/v1/events`, { method: "POST", headers: { "content-type": "application/json", origin: ORIGIN, "user-agent": SAFARI, ...EU, cookie: `${cookie}; dusk_vid=${VID}`, [CSRF_HEADER]: csrf.get(cookie)! },
+        body: JSON.stringify({ visitor: VID, events: [{ name: "page_view", props: { path: "/" } }] }) });
+      await settle();
+      const visitor = sink.all.find(event => event.name === "site_view")!.ctx!.visitor;
+      const links = sink.all.filter(event => event.name === "identify");
+      expect(links).toHaveLength(1);
+      expect(links[0]).toMatchObject({ accountId: app.auth.accountByEmail(OTHER)!.id, ctx: { visitor } });
+      expect(visitor).not.toBe(VID);
+    });
   });
 
   it("never counts the owner's own visits", async () => {

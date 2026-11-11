@@ -7,7 +7,8 @@ import { buyOfferAllowed, cloudNoticeKind, cloudPlanView, cloudTrialNotice, clou
 import { jobRoutine, useCloudIntent } from "@/lib/cloud-intent";
 import { CLOUD_INTENT_GIVEN, cloudSetupStage } from "@/lib/cloud-setup";
 import { cornerPopupWaits, firstChatQuiet } from "@/lib/corner-popup";
-import { CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, introShown, introStage, launchNotice, markLaunchNotice, nextNotice, noticeSeen, TWO_PLACES_NOTICE, usedBefore, WHATS_NEW_NOTICE } from "@/lib/notices";
+import { CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, introShown, introStage, LATE_ROUTINE_NOTICE, launchNotice, markLaunchNotice, nextNotice, noticeSeen, TWO_PLACES_NOTICE, usedBefore, WHATS_NEW_NOTICE } from "@/lib/notices";
+import { lateRoutineRun } from "@/lib/late-routine";
 import { useAllowanceNotice } from "@/lib/allowance-notice";
 import { useTwoPlaces } from "@/lib/two-places";
 import { useUpdateDigest } from "@/lib/update-digest";
@@ -16,6 +17,7 @@ import { t } from "@/lib/i18n";
 import { engineReady } from "./EngineLibrary";
 import { CLOUD_NOTICE_CARD, cloudNoticeStep, CloudNoticeCard } from "./CloudNotice";
 import { CloudTrialIntroCard } from "./CloudTrialIntro";
+import { LateRoutineCard } from "./LateRoutineCard";
 import { useMoveQuiet } from "./CloudSendStrip";
 import { CloudTrialNoticeCard, useCloudPlanSnapshot } from "./CloudTrialNotice";
 import { NoticeToast } from "./NoticeCard";
@@ -100,6 +102,13 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     if (offerTrialDays(offer) === null) return false;
     return introOpen || stage === "due" ? true : null;
   };
+  // a routine here that ran late or not at all while this computer slept: the plainest case for Dusk Cloud, said once
+  const late = bridge && !noticeSeen(record, LATE_ROUTINE_NOTICE) ? lateRoutineRun(state.routines ?? [], state.routineRuns ?? [], now()) : null;
+  const lateDue = (): boolean | null => {
+    if (!late || !view) return false;
+    if (view.kind === "unknown" || view.kind === "connecting" || organization === null) return null;
+    return organization === false && buyOfferAllowed(view) && !state.config?.cloudHome && !state.config?.managedPolicy;
+  };
   const cards = Boolean(bridge || planBridge);
   const launch = launchNotice();
   const notice = waits || closed ? null
@@ -108,6 +117,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     [GROK_MOVE_NOTICE]: false,
     [WHATS_NEW_NOTICE]: false,
     [TWO_PLACES_NOTICE]: twoFact,
+    [LATE_ROUTINE_NOTICE]: moving ? false : moving === null ? null : lateDue(),
     [CLOUD_INTRO]: moving ? false : moving === null ? null : introDue(),
     [CLOUD_TRIAL_NOTICE]: planBridge && plan === null ? null : Boolean(key && (trialDue || trialOpen === key)),
     [CLOUD_NOTICE]: !view ? false : view.kind === "unknown" ? null
@@ -152,6 +162,12 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
       onSignIn={view?.kind === "signed-out" ? () => { track("cloud_card_action", { action: "signin" }); close(); dispatch({ type: "openCloudAdd", source: "app_card", signIn: true }); } : undefined}
       onNotNow={() => { done("not_now"); setToast(t("cloudIntro.later")); }}
       onDismiss={() => { done("close"); setToast(t("cloudIntro.later")); }} />;
+  }
+  if (notice === LATE_ROUTINE_NOTICE && late) {
+    const done = (action: string) => { track("late_routine_card", { action, missed: late.ranAt === null }); close(); save(LATE_ROUTINE_NOTICE); };
+    return <LateRoutineCard late={late} now={now()}
+      onStart={() => { done("start"); dispatch({ type: "openCloudAdd", source: "app_routines", ...(view?.kind === "signed-out" ? { signIn: true as const } : {}) }); }}
+      onNotNow={() => done("not_now")} />;
   }
   if (notice === CLOUD_TRIAL_NOTICE && trial) {
     const shown = cloudTrialView(trial, plan?.credit);

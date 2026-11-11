@@ -86,12 +86,25 @@ function CodeBoxes({ input, boxes, length, value, onChange, invalid, disabled, o
   );
 }
 
+const CARD_ROWS: Array<[string, "blue" | "pink" | "orange", string, string]> = [
+  ["kit", "blue", "see them work", "every bot, live, wherever it runs."],
+  ["hearty", "pink", "keep them on", "dusk cloud runs your routines while you sleep."],
+  ["boxo", "orange", "text them anywhere", "the same bots, from your phone."],
+];
+
 function SceneCard() {
   return (
-    <p className="flex items-center gap-4">
-      <Mascot body="kit" color="blue" size={44} still />
-      <span className="text-20 font-medium leading-[1.2] tracking-[-0.03em] text-ink">bots that work for you,<br />even while you sleep.</span>
-    </p>
+    <>
+      <p className="text-[30px] font-medium leading-[1.1] tracking-[-0.045em] text-ink">your bots, all in one place.</p>
+      <ul className="mt-7 flex flex-col gap-5">
+        {CARD_ROWS.map(([body, colour, title, line]) => (
+          <li key={title} className="flex items-start gap-3.5">
+            <Mascot body={body} color={colour} size={34} still />
+            <span className="min-w-0"><b className="block text-15 font-[550] tracking-[-0.01em] text-ink">{title}</b><span className="block text-14 text-ink-2">{line}</span></span>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
@@ -121,6 +134,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const [oops, setOops] = useState(0);
   const [error, setError] = useState<string | null>(() => OAUTH_ERROR[query.get("error") ?? ""] ?? null);
   const [providers, setProviders] = useState<AuthProviders["providers"] | null>(null);
+  const [soon, setSoon] = useState<IdentityProvider | null>(null);
   const [, force] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
   const boxes = useRef<HTMLDivElement>(null);
@@ -168,7 +182,6 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const reason = (e: unknown) => (e instanceof ApiError && e.code && REASON[e.code]) || (e as Error).message || "sign-in didn't work. try again.";
   const fail = (e: unknown) => { setError(reason(e)); setOops((n) => n + 1); };
   const enabled = (p: IdentityProvider) => providers === null ? true : providers.some((x) => x.id === p && x.enabled);
-  const hidden = (p: IdentityProvider) => providers !== null && !providers.some((x) => x.id === p && (x.enabled || x.comingSoon));
   const toCode = () => {
     if ((window.history.state as { duskAuth?: string } | null)?.duskAuth !== "code") window.history.pushState({ ...(window.history.state as object | null), duskAuth: "code" }, "");
     setStep("code");
@@ -210,6 +223,9 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   };
   const oauth = async (p: IdentityProvider) => {
     setError(null);
+    // a provider without keys yet keeps its button and says so, instead of vanishing
+    if (!enabled(p)) { setSoon(p); return; }
+    setSoon(null);
     if (!FIXTURE) { window.location.assign(api.oauthUrl(p, mode, { next: home })); return; }
     // fixtures have no provider page to bounce through: sign the demo account in
     setBusy(p);
@@ -222,7 +238,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const emailField = (id: string) => (
     <>
       <label htmlFor={id} className="mb-2 block text-14 text-ink-2">email</label>
-      <input ref={id === "email" ? emailRef : undefined} id={id} type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} required placeholder="you@example.com" value={email} onChange={(e) => typed(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} className="field !h-12" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} />
+      <input ref={id === "email" ? emailRef : undefined} id={id} type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} required placeholder="you@example.com" value={email} onChange={(e) => typed(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} className="field field-quiet !h-12" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} />
       {error && <p id="auth-error" role="alert" className="mt-2.5 text-14 text-bad">{error}</p>}
     </>
   );
@@ -233,7 +249,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
       mood={mood}
       scene={scene}
       card={<SceneCard />}
-      snug
+      plain
       aside={<a href={SITE_URL} className="hover-link -me-2 inline-flex h-11 items-center gap-1.5 rounded-full px-2 text-14 text-ink-3"><ArrowLeft size={15} strokeWidth={1.75} aria-hidden />back to {SITE_NAME === "dusk.bot" ? SITE_NAME : "the site"}</a>}
       foot={signup ? <>by continuing you agree to the <a href={siteUrl("/terms")} className={LINK}>terms</a> and <a href={siteUrl("/privacy")} className={LINK}>privacy policy</a>.</> : "your chats and files stay on your own computers."}
     >
@@ -250,18 +266,20 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
           {note && <div className="mt-4 rounded-[16px] bg-lemon px-4 py-3 text-14 leading-[1.5] text-ink">{note}</div>}
           {pending && <div className="mt-4 rounded-[16px] bg-lemon px-4 py-3 text-14 leading-[1.5] text-ink">one more step: your provider didn't share an email, so enter the one you want to sign in with.</div>}
           <div className="mt-7 flex flex-col gap-2">
-            {!pending && OAUTH.filter((p) => !hidden(p)).map((p) => (
+            {!pending && OAUTH.map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => void oauth(p)}
-                disabled={busy !== null || !enabled(p)}
+                disabled={busy !== null}
+                aria-describedby={soon === p ? "auth-soon" : undefined}
                 className="press hover-outline relative flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-btn text-15 font-medium text-ink disabled:opacity-45"
               >
                 <span className="grid size-5 place-items-center text-ink"><ProviderMark provider={p} size={18} /></span>
-                {busy === p ? "signing in" : enabled(p) ? `continue with ${PROVIDER_NAME[p].toLowerCase()}` : `${PROVIDER_NAME[p].toLowerCase()}, coming soon`}
+                {busy === p ? "signing in" : `continue with ${PROVIDER_NAME[p].toLowerCase()}`}
               </button>
             ))}
+            {soon && !pending && <p id="auth-soon" role="status" className="px-1 pt-1 text-14 text-ink-2">{PROVIDER_NAME[soon].toLowerCase()} sign-in is coming soon. use email{soon !== "google" && enabled("google") ? " or google" : ""} for now.</p>}
           </div>
           <div className={cx("t-meta my-5 flex items-center gap-3", pending && "hidden")} aria-hidden><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
           <form onSubmit={(e) => { e.preventDefault(); setRecovering(false); void send(false); }} noValidate>
@@ -270,7 +288,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
           </form>
           {slow && <p role="status" className="mt-3 text-13 text-ink-3">still working. this connection is slow.</p>}
           <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 text-14 text-ink-3">
-            <span>{signup ? <>have an account? <Link to={`/signin${carry}`} className={LINK}>sign in</Link></> : <>new here? <Link to={`/signup${carry}`} className={LINK}>make an account</Link></>}</span>
+            <span>{signup ? <>already have an account? <Link to={`/signin${carry}`} className={LINK}>sign in</Link></> : <>new here? <Link to={`/signup${carry}`} className={LINK}>make an account</Link></>}</span>
             {!signup && !pending && <button type="button" className={cx(QUIET, "-me-2")} onClick={() => { setStep("recover"); setError(null); }}>can't sign in?</button>}
           </div>
         </div>

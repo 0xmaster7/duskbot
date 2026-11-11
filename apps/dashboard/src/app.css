@@ -303,9 +303,9 @@
     content: ""; position: absolute; inset: 0; border-radius: inherit; background: currentColor;
     animation: pulse-dot 1.8s var(--ease-out) infinite;
   }
-  /* hovers change colour at once; the press is the part that moves, and it lets go with a little bounce */
-  .press { transition: transform 260ms var(--ease-pop); }
-  .press:active:not(:disabled) { transform: scale(0.96); transition-duration: 90ms; }
+  /* hovers change colour at once; a press only gives a little, and lets go without a bounce */
+  .press { transition: transform 160ms var(--ease-out); }
+  .press:active:not(:disabled) { transform: scale(0.98); transition-duration: 80ms; }
   .press-soft { transition: transform 260ms var(--ease-pop); }
   .press-soft:active { transform: scale(0.985); transition-duration: 90ms; }
   .bar-fill { transition: transform var(--dur-slow) var(--ease-out); transform-origin: left; }
@@ -345,6 +345,10 @@
   .field::placeholder { color: var(--ink-4); }
   .field:focus-visible { background: var(--pop); box-shadow: inset 0 0 0 2px var(--accent); outline: none; }
   .field[aria-invalid="true"] { box-shadow: inset 0 0 0 2px var(--bad); }
+  /* the sign-in email looks the same focused as at rest; only someone moving by keyboard gets a faint ring outside it */
+  .field-quiet:focus-visible { background: var(--btn); box-shadow: none; }
+  html[data-keys] .field-quiet:focus-visible { outline: 2px solid color-mix(in oklab, var(--ink) 22%, transparent); outline-offset: 3px; }
+  .field-quiet[aria-invalid="true"] { box-shadow: inset 0 0 0 2px var(--bad); }
   .scroll-x { overflow-x: auto; scrollbar-width: none; }
   .scroll-x::-webkit-scrollbar { display: none; }
 }

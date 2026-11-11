@@ -15,6 +15,7 @@ async function fixture(t, options = {}) {
     start: null, verify: null, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 0 } };
   const identity = () => ({ cloudContractVersion: 1, expiresAt: f.now + 30 * 86400_000, device: { id: "email-device" }, account: { id: "email-account", email: "person@example.test" } });
   const server = createServer(async (req, res) => {
+    res.setHeader("date", new Date(f.now).toUTCString());
     let body = ""; for await (const chunk of req) body += chunk;
     f.requests.push({ route: req.url, method: req.method, token: req.headers.authorization, origin: req.headers.origin, type: req.headers["content-type"], body });
     const send = (status, data) => { res.writeHead(status, { "content-type": typeof data === "string" ? "text/html" : "application/json" }); res.end(typeof data === "string" ? data : JSON.stringify(data)); };

@@ -24,7 +24,7 @@ const NAV: Array<{ label?: string; items: NavItem[] }> = [
     { to: "/cloud", label: "dusk cloud", icon: <Cloud {...ICON} /> },
     { to: "/workspaces", label: "workspaces", icon: <Layers {...ICON} /> },
     { to: "/bots", label: "bots", icon: <Bot {...ICON} /> },
-    { to: "/connectors", label: "connectors", icon: <Blocks {...ICON} /> },
+    { to: "/connectors", label: "apps", icon: <Blocks {...ICON} /> },
   ] },
   { label: "you", items: [
     { to: "/billing", label: "plans and billing", icon: <CreditCard {...ICON} /> },

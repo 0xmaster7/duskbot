@@ -196,6 +196,8 @@ export interface CloudDesktop extends MachineSpec {
   error: string | null;
   botComputers: { used: number; limit: number | null };
   uptimeSec: number | null;
+  /** when a new plan brought it back with its data after its previous plan ended */
+  revivedAt?: number | null;
   /** a managed cloud: the owner can delete its data once the plan has ended */
   provider?: "managed";
   lastBackupAt?: number | null;

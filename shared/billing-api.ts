@@ -133,7 +133,9 @@ export interface FunnelView { v: typeof BILLING_API_VERSION; from: number; to: n
 export type CheckoutItem =
   | { kind: "cart"; cart: Cart; name?: string; color?: CloudSwatch }
   | { kind: "credits"; pack: string };
-export interface CheckoutAnswer { v: typeof BILLING_API_VERSION; checkoutId: string; checkoutUrl: string; cloudId: string | null }
+/** `revives`: paying brings back this account's paused cloud (`cloudId`) with its data instead of a new one. The same
+ * cart while its checkout is still open answers that checkout again. */
+export interface CheckoutAnswer { v: typeof BILLING_API_VERSION; checkoutId: string; checkoutUrl: string; cloudId: string | null; revives: boolean }
 
 export const SUBSCRIPTION_STATUSES = ["pending", "active", "payment_problem", "cancelled", "ended"] as const;
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
@@ -229,6 +231,8 @@ export interface CloudDesktopView {
   error: string | null;
   subscriptionId: string | null;
   createdAt: number;
+  /** when a new plan brought this desktop back with its data after its previous plan ended */
+  revivedAt?: number | null;
   /** a managed cloud desktop: it sleeps when idle and keeps backups */
   provider?: "managed";
   /** managed only: the newest backup of its data */

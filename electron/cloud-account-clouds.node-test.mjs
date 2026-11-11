@@ -22,6 +22,7 @@ async function admin(t) {
     pairing: () => [200, grant(HOME)], add: () => [404, { error: "not_found" }], patch: () => [404, { error: "not_found" }], organization: () => [404, { error: "not_found" }],
     hide: () => [404, { error: "Not found." }], movedTo: () => [404, { error: "not_found" }] };
   const server = createServer(async (req, res) => {
+    res.setHeader("date", new Date(NOW).toUTCString());
     let body = ""; for await (const chunk of req) body += chunk;
     const parsed = body ? JSON.parse(body) : undefined;
     f.requests.push({ route: req.url, method: req.method, body: parsed });

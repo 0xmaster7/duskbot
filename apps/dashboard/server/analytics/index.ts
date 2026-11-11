@@ -5,7 +5,7 @@ import { createJsonStore } from "../billing/json-store.ts";
 import { clientIp } from "../client-ip.ts";
 import { DAY_MS, EVENTS, cleanProps, dayOf, isEventName, routeOf, type EventName, type Props } from "./events.ts";
 import type { AnalyticsSink } from "./sink.ts";
-import { requestContext, type EventContext } from "./context.ts";
+import { cookieless, requestContext, type EventContext } from "./context.ts";
 import { APP_EVENTS_PATH, TRACK_PATH, handleAppEvents, handleTrack } from "./ingest.ts";
 import { isAiCrawler } from "./sources.ts";
 
@@ -29,6 +29,8 @@ interface RouteHelpers {
 interface OptOutState { v: 1; optOut: string[] }
 
 export const MAX_BATCH = 20;
+export const VISIT_IDLE_MS = 30 * 60_000;
+const MAX_DAILY_VISITS = 200_000;
 function safeUrl(value: string, origin: string) { try { const url = new URL(value.slice(0, 1000), origin); return url.origin === origin ? url : undefined; } catch { return undefined; } }
 const VISITOR = /^[A-Za-z0-9_-]{22}$/;
 /** the site tracker's visitor cookie, readable here when the account page shares the site's domain */
@@ -97,6 +99,18 @@ export function createAnalytics(options: AnalyticsOptions) {
     if (salt.day !== day) salt = { day, key: randomBytes(32) };
     return createHmac("sha256", salt.key).update(`${clientIp(req, options.trustProxy ?? false)}|${req.headers["user-agent"] ?? ""}`).digest("base64url").slice(0, 22);
   }
+  // a cookieless visitor's visits, by daily id: memory only, emptied with the salt
+  let visitsDay = "";
+  const visits = new Map<string, { session: string; last: number }>();
+  function dailyVisit(req: IncomingMessage) {
+    const visitor = visitorOf(req), at = now();
+    if (visitsDay !== salt.day || visits.size >= MAX_DAILY_VISITS) { visitsDay = salt.day; visits.clear(); }
+    let visit = visits.get(visitor);
+    if (!visit || at - visit.last > VISIT_IDLE_MS) { visit = { session: randomBytes(16).toString("base64url"), last: at }; visits.set(visitor, visit); }
+    visit.last = at;
+    return { visitor, session: visit.session };
+  }
+  const anonymous = (req: IncomingMessage) => cookieless(req, options.trustProxy ?? false);
   function appActive(session: { id: string; accountId: string; platform: string | null; appVersion: string | null }) {
     if (!seenOnce(`app|${session.id}`)) return;
     const day = dayOf(now());
@@ -140,7 +154,7 @@ export function createAnalytics(options: AnalyticsOptions) {
     const path = url.pathname, method = req.method ?? "GET";
     if (path === TRACK_PATH || path === APP_EVENTS_PATH) {
       const deps = { track, now, trustProxy: options.trustProxy ?? false, origins: trackOrigins, readBody: readLimited, rate: helpers.rate, isOwner: helpers.isOwner,
-        appAccount: helpers.appAccount, identify, declined };
+        appAccount: helpers.appAccount, identify, declined, cookieless: anonymous, dailyVisit };
       await (path === TRACK_PATH ? handleTrack(req, res, deps) : handleAppEvents(req, res, deps));
       return true;
     }
@@ -156,7 +170,7 @@ export function createAnalytics(options: AnalyticsOptions) {
       if (owner) helpers.rate(req, `events:${owner.id}`, 600);
       const session = typeof input.session === "string" && /^[A-Za-z0-9_-]{8,40}$/.test(input.session) ? input.session : undefined;
       const referrer = typeof input.referrer === "string" ? input.referrer.slice(0, 500) : undefined;
-      const visitor = visitorCookie(req) ?? (typeof input.visitor === "string" && VISITOR.test(input.visitor) ? input.visitor : null);
+      const visitor = anonymous(req) ? visitorOf(req) : visitorCookie(req) ?? (typeof input.visitor === "string" && VISITOR.test(input.visitor) ? input.visitor : null);
       if (owner && visitor) identify(owner.id, { visitor }, "page");
       const base = requestContext(req, { publicOrigin, trustProxy: options.trustProxy ?? false, referrer, url: typeof input.landing === "string" ? safeUrl(input.landing, publicOrigin) : undefined });
       for (const item of list as unknown[]) {

@@ -26,6 +26,10 @@ export interface IngestDeps {
   /** records `identify` the first time this pair is seen */
   identify(accountId: string, ctx: { visitor?: string; install?: string }, via: "page" | "app"): void;
   declined(req: IncomingMessage): boolean;
+  /** a visitor whose browser must keep no ids (see `cookieless` in context.ts) */
+  cookieless(req: IncomingMessage): boolean;
+  /** a cookieless visitor's ids: a daily-rotating salted hash and its current visit, both derived here */
+  dailyVisit(req: IncomingMessage): { visitor: string; session: string };
 }
 
 const text = (value: unknown, max: number) => typeof value === "string" ? value.slice(0, max) : undefined;
@@ -37,9 +41,18 @@ function cors(req: IncomingMessage, res: ServerResponse, allowed: Set<string> | 
 }
 function done(res: ServerResponse, status = 204) { if (!res.writableEnded) { res.writeHead(status, { "cache-control": "no-store" }); res.end(); } }
 
+/** the tracker's answer to a recorded event: whether it may keep dusk_vid and dusk_sid; anything else means it may not */
+export interface TrackAnswer { persist: boolean }
+function answer(res: ServerResponse, value: TrackAnswer) {
+  if (res.writableEnded) return;
+  res.writeHead(200, { "cache-control": "no-store", "content-type": "application/json" });
+  res.end(JSON.stringify(value));
+}
+
 /** the site tracker's beacon: text/plain JSON (no preflight), one event per request */
 export async function handleTrack(req: IncomingMessage, res: ServerResponse, deps: IngestDeps) {
   cors(req, res, deps.origins);
+  if (res.hasHeader("access-control-allow-origin")) res.setHeader("access-control-allow-credentials", "true");
   if (req.method === "OPTIONS") { res.setHeader("access-control-allow-methods", "POST"); res.setHeader("access-control-allow-headers", "content-type"); return done(res); }
   if (req.method !== "POST") return done(res, 405);
   const origin = req.headers.origin;
@@ -56,11 +69,13 @@ export async function handleTrack(req: IncomingMessage, res: ServerResponse, dep
   if (!host || !hosts.has(host)) return done(res, 400);
   const path = routeOf(text(body.p, 300) ?? "/") ?? "/";
   const pv = typeof body.pv === "string" && PV.test(body.pv) ? body.pv : undefined;
-  const base: EventContext = { session: body.sid, ...(pv ? { pv } : {}), host, page: path };
+  const persist = !deps.cookieless(req);
+  const ids = persist ? { visitor: body.vid, session: body.sid } : deps.dailyVisit(req);
+  const base: EventContext = { session: ids.session, ...(pv ? { pv } : {}), host, page: path };
   if (body.e === "pageview") {
     const tags = body.u && typeof body.u === "object" ? body.u as Record<string, unknown> : {};
     const width = Number(body.w);
-    deps.track("site_view", { props: { path }, visitor: body.vid, ctx: {
+    deps.track("site_view", { props: { path }, visitor: ids.visitor, ctx: {
       ...base, ...deviceOf(String(req.headers["user-agent"] ?? "")), ...geoOf(req, deps.trustProxy), ...(Number.isInteger(width) && width > 0 && width < 20_000 ? { width } : {}),
       ...touchContext({ referrer: referrerHost(body.r, host), utmSource: tags.utm_source ?? tags.source, utmMedium: tags.utm_medium, utmCampaign: tags.utm_campaign,
         utmContent: tags.utm_content, utmTerm: tags.utm_term, ref: tags.ref ?? tags.via }),
@@ -70,11 +85,11 @@ export async function handleTrack(req: IncomingMessage, res: ServerResponse, dep
     const goal = text(body.g, 40);
     if (!goal || !/^[a-z0-9_]{1,40}$/.test(goal)) return done(res, 400);
     const to = typeof meta.to === "string" ? routeOf(meta.to) : null, from = typeof meta.from === "string" ? routeOf(meta.from) : null;
-    deps.track("site_goal", { props: { goal, ...(to ? { to } : {}), ...(from ? { from } : {}), ...(typeof meta.host === "string" ? { host: meta.host.toLowerCase() } : {}) }, visitor: body.vid, ctx: base });
+    deps.track("site_goal", { props: { goal, ...(to ? { to } : {}), ...(from ? { from } : {}), ...(typeof meta.host === "string" ? { host: meta.host.toLowerCase() } : {}) }, visitor: ids.visitor, ctx: base });
   } else if (body.e === "leave") {
-    deps.track("site_leave", { props: { path, scroll: Math.max(0, Math.min(100, Math.round(Number(body.s) || 0))), ms: Math.max(0, Math.min(86_400_000, Math.round(Number(body.t) || 0))) }, visitor: body.vid, ctx: base });
+    deps.track("site_leave", { props: { path, scroll: Math.max(0, Math.min(100, Math.round(Number(body.s) || 0))), ms: Math.max(0, Math.min(86_400_000, Math.round(Number(body.t) || 0))) }, visitor: ids.visitor, ctx: base });
   } else return done(res, 400);
-  return done(res);
+  return answer(res, { persist });
 }
 
 /** the desktop and phone apps' usage: counts, screens and features, never content; anonymous until signed in */

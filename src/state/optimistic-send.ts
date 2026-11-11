@@ -2,6 +2,8 @@
 import { ApiError } from "./api";
 import type { Message } from "./store";
 import { listenLiveFrames } from "../lib/live-events";
+import { holdCloudWaking } from "../lib/cloud-power";
+import { t } from "../lib/i18n";
 
 export const optimisticMessageId = (sendId: string): string => `optimistic-${sendId}`;
 
@@ -38,6 +40,20 @@ export const LOST_SEND_RETRY_MS = [1_000, 2_000, 4_000, 8_000, 15_000, 20_000] a
 export function sendAnswerLost(error: unknown): boolean {
   if (error instanceof ApiError) return error.status === 502 || error.status === 503 || error.status === 504;
   return (error as { name?: unknown } | null)?.name !== "AbortError";
+}
+
+/** How long a send waits for a Cloud to wake before it gives up, and how often it asks meanwhile. */
+export const CLOUD_WAKE_SEND_MS = 3 * 60_000;
+export const CLOUD_WAKE_RETRY_MS = 5_000;
+
+/** The Cloud's edge is starting its stopped machine: the send never reached the server yet. */
+export function cloudWakingAnswer(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 503 && error.body?.error === "waking";
+}
+
+/** A Cloud that did not wake within CLOUD_WAKE_SEND_MS: the send was not delivered. */
+export class CloudWakeTimeoutError extends Error {
+  constructor() { super(t("send.cloudWakeTimeout")); this.name = "CloudWakeTimeoutError"; }
 }
 
 export interface SendDelivery {
@@ -84,8 +100,9 @@ export async function sendReconciled<T>(
     if (owned.signal.aborted) finish();
     else owned.signal.addEventListener("abort", finish, { once: true });
   });
+  const wake: { since: number | null; endHold: (() => void) | null } = { since: null, endHold: null };
   const attempts = async (): Promise<{ body: T } | { arrived: true }> => {
-    for (let attempt = 0; ; attempt++) {
+    for (let lost = 0; ;) {
       if (confirmed) return { arrived: true };
       try {
         const body = await post(owned.signal);
@@ -94,7 +111,13 @@ export async function sendReconciled<T>(
       } catch (error) {
         if (!sendAnswerLost(error)) throw error;
         if (arrived()) return { arrived: true };
-        const delay = LOST_SEND_RETRY_MS[attempt];
+        let delay: number | undefined;
+        if (cloudWakingAnswer(error)) {
+          wake.since ??= Date.now();
+          wake.endHold ??= holdCloudWaking();
+          if (Date.now() - wake.since >= CLOUD_WAKE_SEND_MS) throw new CloudWakeTimeoutError();
+          delay = Math.min(CLOUD_WAKE_RETRY_MS, wake.since + CLOUD_WAKE_SEND_MS - Date.now());
+        } else delay = LOST_SEND_RETRY_MS[lost++];
         if (delay === undefined) throw error;
         await beforeRetry(delay);
         if (arrived()) return { arrived: true };
@@ -104,6 +127,7 @@ export async function sendReconciled<T>(
   try {
     return await Promise.race([attempts(), delivered]);
   } finally {
+    wake.endHold?.();
     stop();
     owned.abort();
   }

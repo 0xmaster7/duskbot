@@ -93,7 +93,7 @@ if (typeof window !== "undefined") {
 }
 const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect", "onSlackOAuth", "ambient", "desktopBots"]);
 /** My Cloud's own page once it is the person's home (main checks the sender again): it is this app's page then. */
-const HOME_PAGE = ["home", "onChatLink", "onPackageInstall", "exportDiagnostics", "openLogsFolder", "openAtLogin", "callActive"];
+const HOME_PAGE = ["home", "onChatLink", "onPackageInstall", "exportDiagnostics", "openLogsFolder", "openAtLogin", "callActive", "productEvents"];
 function homePage() {
   try { return ipcRenderer.sendSync("home:page") === true; } catch { return false; }
 }
@@ -766,6 +766,11 @@ const bridge = {
       }
       return () => notificationOpenListeners.delete(cb);
     },
+  },
+  // Usage counts only: main drops any event or prop outside its allowlist, adds the account token and posts.
+  productEvents: {
+    send: batch => ipcRenderer.invoke("product-events:send", batch),
+    clear: () => ipcRenderer.invoke("product-events:clear"),
   },
   desktopAnalytics: {
     enabled: () => {

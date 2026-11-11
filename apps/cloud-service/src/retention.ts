@@ -94,7 +94,7 @@ export function dueNotice(input: { now: number; earliestAt: number; sent: readon
 
 export function noticeText(kind: NoticeKind, input: { name: string; at: number | null; dashboardUrl: string; link?: string }): { subject: string; text: string } {
   const date = input.at === null ? "" : new Date(input.at).toUTCString().replace(/:\d\d GMT$/, " UTC");
-  const where = `Open ${input.dashboardUrl} to start your plan again, or to delete your data sooner from your cloud's page. If you start a new plan after this one ended, reply to this email and we bring this data to it.`;
+  const where = `Open ${input.dashboardUrl} to start a plan again, or to delete your data sooner from your cloud's page. A plan you start before then brings this cloud back with all of it.`;
   switch (kind) {
     case "ended": return { subject: `${input.name} is paused and kept for you`, text: `Your plan for ${input.name} ended, so it is paused. Your bots, chats, files and sign-ins are kept until ${date}. ${where}` };
     case "left_30": case "left_7": case "left_1": {
@@ -108,6 +108,6 @@ export function noticeText(kind: NoticeKind, input: { name: string; at: number |
     case "delete_requested": return { subject: `Confirm deleting ${input.name}`, text: `Someone signed in to your account asked to delete ${input.name} and all of its data. Nothing happens unless you open this link within an hour and confirm (you may be asked to sign in again): ${input.link ?? ""} After you confirm, it is deleted 7 days later, and you can cancel any time before then. If this was not you, ignore this email and sign out your other sessions.` };
     case "delete_scheduled": return { subject: `${input.name} will be deleted on ${date}`, text: `You confirmed deleting ${input.name}. It and its data, backups included, will be deleted on ${date}. Until then, Cancel deletion on your cloud's page at ${input.dashboardUrl} keeps everything.` };
     case "delete_cancelled": return { subject: `${input.name} will not be deleted`, text: `The request to delete ${input.name} was cancelled. Nothing was deleted.` };
-    case "resumed": return { subject: `${input.name} is back`, text: `Your plan for ${input.name} is active again and it carries on where it stopped.` };
+    case "resumed": return { subject: `${input.name} is back`, text: `Welcome back. Your plan for ${input.name} is active again, and your cloud and bots are restored where they stopped.` };
   }
 }

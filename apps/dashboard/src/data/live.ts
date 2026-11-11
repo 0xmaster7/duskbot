@@ -116,6 +116,7 @@ export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
     error: cloud.status === "payment_problem" ? "the last payment did not go through. update your card to wake it." : cloud.status === "suspended" ? "it is paused. write to us to sort it out." : cloud.error,
     botComputers: { used: 0, limit: cloud.botComputers }, uptimeSec: null,
     ...(cloud.status === "checkout" ? { awaitingPayment: true } : {}),
+    ...(cloud.revivedAt ? { revivedAt: cloud.revivedAt } : {}),
     ...(cloud.provider === "managed" ? { provider: "managed" as const, lastBackupAt: cloud.lastBackupAt ?? null, deleteScheduledAt: cloud.deleteScheduledAt ?? null, deleteAskedAt: cloud.deleteAskedAt ?? null } : {}),
   };
 }

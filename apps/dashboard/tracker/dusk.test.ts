@@ -24,6 +24,7 @@ describe("marketing tracker", () => {
   let beacon: ReturnType<typeof vi.fn>;
   let fetch: ReturnType<typeof vi.fn>;
   let now: number;
+  let answer: unknown;
 
   function property(target: object, key: string, value: unknown) {
     Object.defineProperty(target, key, { configurable: true, value });
@@ -34,7 +35,24 @@ describe("marketing tracker", () => {
   }
   async function events() {
     await Promise.all(pending);
+    await new Promise(resolve => setTimeout(resolve, 0));
     return payloads;
+  }
+  function cookieWrites() {
+    const writes: string[] = [];
+    let prototype: object | null = win.document;
+    let descriptor: PropertyDescriptor | undefined;
+    while (prototype && !descriptor) {
+      descriptor = Object.getOwnPropertyDescriptor(prototype, "cookie");
+      prototype = Object.getPrototypeOf(prototype);
+    }
+    expect(descriptor?.set).toBeTypeOf("function");
+    Object.defineProperty(win.document, "cookie", {
+      configurable: true,
+      get() { return descriptor!.get!.call(this); },
+      set(value: string) { writes.push(value); descriptor!.set!.call(this, value); },
+    });
+    return writes;
   }
   async function load() {
     new Function("window", "document", "navigator", "URL", "URLSearchParams", "Blob", source)(
@@ -76,7 +94,11 @@ describe("marketing tracker", () => {
       pending.push(body.text().then(text => { payloads.push(JSON.parse(text)); }));
       return true;
     });
-    fetch = vi.fn(() => Promise.resolve({ ok: true }));
+    answer = { persist: true };
+    fetch = vi.fn((_endpoint: string, init: { body: string }) => {
+      payloads.push(JSON.parse(init.body));
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(answer) });
+    });
     property(win.navigator, "sendBeacon", beacon);
     property(win, "fetch", fetch);
     now = 1000;
@@ -87,20 +109,8 @@ describe("marketing tracker", () => {
     await win.happyDOM.close();
   });
 
-  it("sends only permitted pageview fields and sets shared secure cookies", async () => {
-    const writes: string[] = [];
-    let prototype: object | null = win.document;
-    let descriptor: PropertyDescriptor | undefined;
-    while (prototype && !descriptor) {
-      descriptor = Object.getOwnPropertyDescriptor(prototype, "cookie");
-      prototype = Object.getPrototypeOf(prototype);
-    }
-    expect(descriptor?.set).toBeTypeOf("function");
-    Object.defineProperty(win.document, "cookie", {
-      configurable: true,
-      get() { return descriptor!.get!.call(this); },
-      set(value: string) { writes.push(value); descriptor!.set!.call(this, value); },
-    });
+  it("sends only permitted pageview fields and sets shared secure cookies once the service allows them", async () => {
+    const writes = cookieWrites();
     const [page] = await load();
     now++;
     expect(page).toEqual({
@@ -108,8 +118,9 @@ describe("marketing tracker", () => {
       sid: expect.stringMatching(/^[A-Za-z0-9_-]{22}$/), pv: expect.stringMatching(/^[A-Za-z0-9_-]{8}$/),
       h: "preview.dusk.bot", p: "/pricing", u: { utm_source: "x", ref: "launch" }, r: "search.example", w: 1280,
     });
-    expect(beacon.mock.calls[0]![0]).toBe("https://t.example/v1/t");
-    expect(beacon.mock.calls[0]![1].type).toBe("text/plain");
+    expect(fetch.mock.calls[0]).toEqual(["https://t.example/v1/t", {
+      method: "POST", body: expect.any(String), keepalive: true, credentials: "include", headers: { "content-type": "text/plain" },
+    }]);
     expect(win.document.cookie).toContain(`dusk_vid=${page!.vid}`);
     expect(win.document.cookie).toContain(`dusk_sid=${page!.sid}`);
     expect(win.document.cookie).not.toContain("dusk_test");
@@ -117,6 +128,51 @@ describe("marketing tracker", () => {
     expect(writes).toContain(`dusk_sid=${page!.sid}; path=/; SameSite=Lax; Secure; max-age=1800; domain=dusk.bot`);
     win.happyDOM.setURL("https://dusk.bot/");
     expect(win.document.cookie).toContain(`dusk_vid=${page!.vid}`);
+  });
+
+  it("stores nothing where the service answers persist false, and clears ids kept before", async () => {
+    win.document.cookie = "dusk_vid=existing_visitor; path=/";
+    win.document.cookie = "dusk_sid=existing_session; path=/; domain=dusk.bot";
+    answer = { persist: false };
+    const writes = cookieWrites();
+    await load();
+    click('<a href="https://elsewhere.example">elsewhere</a>');
+    win.history.pushState(null, "", "/next");
+    await events();
+    expect(payloads.map(p => p.e)).toEqual(["pageview", "goal", "leave", "pageview"]);
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(win.document.cookie).toBe("");
+    expect(writes.every(write => write.includes("max-age=0"))).toBe(true);
+  });
+
+  it.each([null, {}, { persist: "yes" }])("treats the answer %j as persist false", async value => {
+    const writes = cookieWrites();
+    answer = value;
+    await load();
+    win.history.pushState(null, "", "/next");
+    await events();
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(writes).toEqual([]);
+  });
+
+  it("stores nothing after a failed request and asks again on the next page view", async () => {
+    const writes = cookieWrites();
+    fetch.mockImplementationOnce((_e: string, init: { body: string }) => { payloads.push(JSON.parse(init.body)); return Promise.reject(new Error("offline")); });
+    await load();
+    expect(writes).toEqual([]);
+    answer = { persist: true };
+    win.history.pushState(null, "", "/next");
+    await events();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(win.document.cookie).toContain("dusk_vid=");
+  });
+
+  it("writes no cookie before the service answers", async () => {
+    const writes = cookieWrites();
+    fetch.mockImplementationOnce((_e: string, init: { body: string }) => { payloads.push(JSON.parse(init.body)); return new Promise(() => {}); });
+    await load();
+    expect(payloads).toHaveLength(1);
+    expect(writes).toEqual([]);
   });
 
   it("reuses existing IDs and omits referrer in an existing session", async () => {
@@ -180,7 +236,7 @@ describe("marketing tracker", () => {
     script.setAttribute("data-allow-local", "");
     script.removeAttribute("data-api");
     expect(await load()).toHaveLength(1);
-    expect(beacon.mock.calls[0]![0]).toBe("/v1/t");
+    expect(fetch.mock.calls[0]![0]).toBe("/v1/t");
   });
 
   it("replays queued calls and sanitizes direct goal metadata", async () => {
@@ -336,11 +392,12 @@ describe("marketing tracker", () => {
     if (mode === "missing") property(win.navigator, "sendBeacon", undefined);
     if (mode === "throws") beacon.mockImplementation(() => { throw new Error("unavailable"); });
     await load();
-    expect(fetch).toHaveBeenCalledOnce();
-    expect(fetch.mock.calls[0]).toEqual(["https://t.example/v1/t", {
+    win.dusk!("later");
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls[1]).toEqual(["https://t.example/v1/t", {
       method: "POST", body: expect.any(String), keepalive: true, headers: { "content-type": "text/plain" },
     }]);
-    expect(JSON.parse(fetch.mock.calls[0]![1].body)).toMatchObject({ e: "pageview", p: "/pricing" });
+    expect(JSON.parse(fetch.mock.calls[1]![1].body)).toMatchObject({ e: "goal", g: "later" });
   });
 
   it("swallows storage, transport and public API errors", async () => {

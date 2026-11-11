@@ -94,7 +94,7 @@ describe("admin analytics routes", () => {
   async function beacon(visitor = ANON, path = "/anonymous") {
     const response = await send("/v1/t", { method: "POST", headers: { "content-type": "text/plain;charset=UTF-8", origin: SITE, "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 Version/17.5 Safari/605.1.15" },
       body: JSON.stringify({ v: 1, e: "pageview", vid: visitor, sid: visitor, pv: "pv000001", h: "dusk.bot", p: path, w: 1440 }) });
-    expect(response.status).toBe(204);
+    expect(response.status).toBe(200);
     await expect.poll(() => sink.all.some(event => event.name === "site_view" && event.ctx?.visitor === visitor)).toBe(true);
   }
   function pay(accountId: string, at: number) {

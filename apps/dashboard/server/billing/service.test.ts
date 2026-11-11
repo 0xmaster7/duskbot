@@ -25,8 +25,13 @@ function fakeClouds() {
     setPaymentProblem: vi.fn((id: string, problem: boolean) => { get(id)!.paymentProblem = problem; }),
     scheduleDestroy: vi.fn((id: string, at: number) => { get(id)!.destroyAt = at; }),
     cancelDestroy: vi.fn((id: string) => { get(id)!.destroyAt = null; }),
-    end: vi.fn((id: string, destroyAt: number) => { Object.assign(get(id)!, { status: "stopped", destroyAt }); }),
-    abandon: vi.fn((id: string) => { get(id)!.status = "destroyed"; }),
+    end: vi.fn((id: string, destroyAt: number) => { Object.assign(get(id)!, { status: "stopped", destroyAt, ended: true, endedAt: time }); }),
+    abandon: vi.fn((id: string) => { const cloud = get(id)!; if (cloud.status === "checkout") cloud.status = "destroyed"; }),
+    revivable: vi.fn((id: string) => { const cloud = get(id); return !!cloud?.ended && cloud.status !== "destroyed" && (cloud.destroyAt === null || cloud.destroyAt > time); }),
+    revive: vi.fn((id: string, subscriptionId: string, plan: DesktopPlan) => {
+      const cloud = get(id); if (!cloud?.ended || cloud.status === "destroyed") return false;
+      Object.assign(cloud, plan, { subscriptionId, ended: undefined, endedAt: undefined, destroyAt: null, status: "running", revivedAt: time }); return true;
+    }),
     scrubAccount: (accountId, anonId) => { for (const cloud of rows) if (cloud.accountId === accountId) { cloud.accountId = anonId; cloud.name = "Deleted"; } },
     get, owned: (accountId, id) => rows.find(cloud => cloud.id === id && cloud.accountId === accountId) ?? null, byWorkspace: workspaceId => rows.find(cloud => cloud.workspaceId === workspaceId) ?? null,
     list: (accountId, includeHidden = false) => rows.filter(cloud => cloud.accountId === accountId && (includeHidden || !cloud.hidden)),
@@ -177,7 +182,8 @@ describe("billing service isolated fixture", () => {
     deliver(provider.complete(store.state.checkouts[0].providerSessionId!));
     await expect(service.checkout(owner, { kind: "cart", cart: preset(2) })).rejects.toMatchObject({ code: "already_subscribed" });
     await buy(desktopOnly()); config.maxCloudsPerAccount = 2;
-    await expect(service.checkout(owner, { kind: "cart", cart: desktopOnly() })).rejects.toMatchObject({ code: "cap" });
+    await expect(service.checkout(owner, { kind: "cart", cart: desktopOnly() })).rejects.toMatchObject({ code: "already_subscribed" });
+    await expect(service.checkout(owner, { kind: "cart", cart: { ...desktopOnly(), interval: "year" } })).rejects.toMatchObject({ code: "cap" });
     config.checkoutsPerHour = 2; await expect(service.checkout(owner, { kind: "credits", pack: "c10" })).rejects.toMatchObject({ code: "rate_limited" });
     await expect(service.checkout(stranger, { kind: "cart", cart: preset(0) })).rejects.toMatchObject({ code: "invalid_request" });
   });
@@ -241,14 +247,14 @@ describe("billing service isolated fixture", () => {
     expect(await service.invoiceDownload(owner.id, store.state.invoices[0].id)).toMatchObject({ pdf: { contentType: "application/pdf", body: expect.any(Buffer) } });
   });
   it("serializes license additions across subscriptions of the same account", async () => {
-    const first = await buy(desktopOnly()), second = await buy(desktopOnly());
-    const a = service.previewChange(owner, first.sub.id, licensedDesktop()), b = service.previewChange(owner, second.sub.id, licensedDesktop());
+    const first = await buy(desktopOnly()), second = await buy({ ...desktopOnly(), interval: "year" });
+    const a = service.previewChange(owner, first.sub.id, licensedDesktop()), b = service.previewChange(owner, second.sub.id, { ...licensedDesktop(), interval: "year" });
     const results = await Promise.allSettled([service.change(owner, first.sub.id, a.confirmation), service.change(owner, second.sub.id, b.confirmation)]);
     expect(results[0].status).toBe("fulfilled"); expect(results[1]).toMatchObject({ status: "rejected", reason: { code: "already_subscribed" } });
     expect(provider.changeCalls).toHaveLength(1);
   });
   it("refuses missing product ids in real-provider mode and binds confirmations to subscriptions", async () => {
-    const a = await buy(desktopOnly()), b = await buy(desktopOnly());
+    const a = await buy(desktopOnly()), b = await buy({ ...desktopOnly(), interval: "year" });
     const preview = service.previewChange(owner, a.sub.id, { ...desktopOnly(), desktop: { kind: "shared_m", region: "fsn1" } });
     await expect(service.change(owner, b.sub.id, preview.confirmation)).rejects.toMatchObject({ code: "confirmation_required" });
     service = createBillingService({ store, provider: { ...provider, name: "dodo" }, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
@@ -440,4 +446,88 @@ it("discards a stale resize intent after the desktop has been destroyed", async 
   store.commit(); service.close();
   service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
   expect(clouds.changePlan).not.toHaveBeenCalled(); expect(store.state.cloudActions).toEqual([]);
+});
+
+describe("paying again after a plan ended", () => {
+  function withNotices() {
+    const notices: unknown[] = []; service.close();
+    service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time, notify: notice => notices.push(notice) });
+    return notices;
+  }
+  async function ended() {
+    const first = await buy(desktopOnly());
+    deliver(provider.expire(first.sub.providerSubscriptionId!));
+    expect(clouds.get(first.sub.cloudId!)).toMatchObject({ ended: true }); time += 3 * day;
+    return first;
+  }
+  it("brings the paused cloud back with its data within retention instead of ordering a new one", async () => {
+    const first = await ended(), notices = withNotices();
+    const answer = await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    expect(answer).toMatchObject({ cloudId: first.sub.cloudId, revives: true }); expect(clouds.order).toHaveBeenCalledTimes(1);
+    const checkout = store.state.checkouts.find(row => row.id === answer.checkoutId)!;
+    deliver(provider.complete(checkout.providerSessionId!));
+    const sub = store.state.subscriptions.find(row => row.checkoutId === checkout.id)!;
+    expect(sub).toMatchObject({ status: "active", cloudId: first.sub.cloudId });
+    expect(clouds.revive).toHaveBeenCalledExactlyOnceWith(first.sub.cloudId, sub.id, expect.objectContaining({ kind: "shared_s" }));
+    expect(clouds.activate).toHaveBeenCalledTimes(1);
+    expect(clouds.get(first.sub.cloudId!)).toMatchObject({ subscriptionId: sub.id, ended: undefined, destroyAt: null });
+    expect(notices).toContainEqual(expect.objectContaining({ kind: "receipt", revived: true, first: true }));
+  });
+  it("orders a new cloud once the ended one's data is gone", async () => {
+    const first = await ended(); time += 31 * day; clouds.get(first.sub.cloudId!)!.status = "destroyed";
+    const answer = await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    expect(answer.revives).toBe(false); expect(answer.cloudId).not.toBe(first.sub.cloudId);
+    deliver(provider.complete(store.state.checkouts.at(-1)!.providerSessionId!));
+    expect(clouds.revive).not.toHaveBeenCalled(); expect(clouds.activate).toHaveBeenCalledTimes(2);
+  });
+  it("orders a new cloud when the paused one was deleted between checkout and payment", async () => {
+    const first = await ended();
+    const answer = await service.checkout(owner, { kind: "cart", cart: desktopOnly() }); expect(answer.revives).toBe(true);
+    clouds.get(first.sub.cloudId!)!.status = "destroyed";
+    deliver(provider.complete(store.state.checkouts.at(-1)!.providerSessionId!));
+    const sub = store.state.subscriptions.at(-1)!;
+    expect(sub.cloudId).not.toBe(first.sub.cloudId); expect(clouds.get(sub.cloudId!)).toMatchObject({ status: "provisioning", subscriptionId: sub.id });
+    expect(clouds.revive).not.toHaveBeenCalled();
+  });
+});
+
+describe("one subscription per plan", () => {
+  it("answers the same open checkout again for the same plan", async () => {
+    const first = await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    expect(await service.checkout(owner, { kind: "cart", cart: desktopOnly() })).toEqual(first);
+    expect(store.state.checkouts).toHaveLength(1); expect(clouds.order).toHaveBeenCalledTimes(1);
+    deliver(provider.complete(store.state.checkouts[0].providerSessionId!));
+    await expect(service.checkout(owner, { kind: "cart", cart: desktopOnly() })).rejects.toMatchObject({ code: "already_subscribed" });
+  });
+  it("cancels at once and refunds a second subscription paid on a stale checkout page", async () => {
+    await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    const stale = store.state.checkouts[0]; time += 31 * 60_000;
+    await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    deliver(provider.complete(store.state.checkouts[1].providerSessionId!));
+    const kept = store.state.subscriptions[0];
+    const late = provider.complete(stale.providerSessionId!);
+    deliver([late[1]]); deliver([late[0]]);
+    const duplicateId = JSON.parse(late[1].body.toString()).data.subscription_id as string;
+    const paymentId = JSON.parse(late[0].body.toString()).data.payment_id as string;
+    expect(store.state.subscriptions).toEqual([kept]); expect(clouds.activate).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(provider.refundCalls).toEqual([{ paymentId, reason: "duplicate_subscription" }]));
+    expect(provider.cancelNowCalls).toEqual([duplicateId]);
+    expect(store.state.duplicates).toEqual([{ id: duplicateId, accountId: owner.id, checkoutId: stale.id, cancelledAt: time, payments: [{ id: paymentId, refundedAt: time }] }]);
+    deliver([signed("subscription.renewed", { ...JSON.parse(late[1].body.toString()).data, next_billing_date: new Date(time + 40 * day).toISOString() })]);
+    expect(store.state.subscriptions).toEqual([kept]);
+    expect(store.state.invoices.map(row => row.providerPaymentId)).not.toContain(paymentId);
+  });
+  it("refunds a duplicate whose activation arrives before its payment, and keeps retrying a provider failure", async () => {
+    await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    const stale = store.state.checkouts[0]; time += 31 * 60_000;
+    await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    deliver(provider.complete(store.state.checkouts[1].providerSessionId!));
+    const failing = vi.spyOn(provider, "refundPayment").mockRejectedValueOnce(new Error("provider down"));
+    const late = provider.complete(stale.providerSessionId!);
+    deliver([late[1]]); deliver([late[0]]);
+    await vi.waitFor(() => expect(failing).toHaveBeenCalledTimes(1));
+    expect(store.state.duplicates![0].payments[0].refundedAt).toBeNull();
+    deliver([signed("ping", {})]);
+    await vi.waitFor(() => expect(store.state.duplicates![0].payments[0].refundedAt).toBe(time));
+  });
 });

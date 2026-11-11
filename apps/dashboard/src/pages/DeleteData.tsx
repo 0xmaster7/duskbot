@@ -177,7 +177,7 @@ export function DeleteDataAction({ cloud }: { cloud: CloudDesktop }) {
           </>
         ) : (
           <>
-            <p className="text-13 text-ink-3">its plan has ended, so its data is kept for a while and then deleted. to delete it sooner, we email you a link to confirm.</p>
+            <p className="text-13 text-ink-3">its plan has ended, so its data is kept for 30 days and then deleted. start a plan again before then and it comes back with everything. to delete it sooner, we email you a link to confirm.</p>
             <button type="button" className={quiet} disabled={state === "busy"} onClick={() => void ask()}>{state === "busy" ? "sending" : "delete data now"}</button>
           </>
         )}

@@ -127,15 +127,15 @@ export function ConnectorsPage() {
 
   return (
     <div className="min-w-0">
-      <PageHeader title="connectors" sub={<>apps your bots can use. each workspace keeps its own sign-ins; <a href={appLink.app} onClick={(e) => { e.preventDefault(); openApp(appLink.app); }} className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">manage them in the app</a>.</>} />
+      <PageHeader title="apps" sub={<>apps your bots can use. each workspace keeps its own sign-ins; <a href={appLink.app} onClick={(e) => { e.preventDefault(); openApp(appLink.app); }} className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">manage them in the app</a>.</>} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Toggle<Tab> label="show" value={tab} onChange={switchTab} options={[{ value: "connectors", label: "connectors" }, { value: "skills", label: "skills" }]} />
+        <Toggle<Tab> label="show" value={tab} onChange={switchTab} options={[{ value: "connectors", label: "apps" }, { value: "skills", label: "skills" }]} />
         <div className="flex min-w-0 items-center gap-2 max-sm:w-full">
           <div className="relative min-w-0 flex-1 sm:w-[280px]">
             <label className="sr-only" htmlFor="connector-search">search {tab}</label>
             <Search size={16} strokeWidth={1.5} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
-            <input id="connector-search" type="search" className="field !h-10 !rounded-full !pl-10" placeholder={tab === "skills" ? "search skills" : "search connectors"} value={query} onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }} />
+            <input id="connector-search" type="search" className="field !h-10 !rounded-full !pl-10" placeholder={tab === "skills" ? "search skills" : "search apps"} value={query} onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }} />
           </div>
           <RowMenu
             label={filtered ? "filter, on" : "filter"}
@@ -152,14 +152,14 @@ export function ConnectorsPage() {
       </div>
 
       <section className="enter mt-10" aria-labelledby="installed-title">
-        <SectionHead id="installed-title">{tab === "skills" ? "skills" : "connectors and mcps"}</SectionHead>
+        <SectionHead id="installed-title">{tab === "skills" ? "skills" : "apps"}</SectionHead>
         {error ? (
           <div className="flex flex-wrap items-center gap-3 border-y border-line py-5"><p role="alert" className="text-14 text-bad">{error}</p><Button size="sm" onClick={() => location.reload()}>retry</Button></div>
         ) : loading ? (
           <div className="flex flex-col gap-2" aria-busy="true">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14" />)}</div>
         ) : shown.length ? (
           <>
-            <Table label={tab === "skills" ? "skills" : "connectors and mcps"} className="max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
+            <Table label={tab === "skills" ? "skills" : "apps"} className="max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
               <thead>
                 <tr>
                   <Th>name</Th>

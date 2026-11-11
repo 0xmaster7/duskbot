@@ -58,17 +58,17 @@ function Crew({ rows, plain = false }: { rows: BotRow[]; plain?: boolean }) {
 
 const STEPS = ["download dusk bot", "sign in with this account", "make a bot. it shows up here"];
 
-/** no bots yet: the short way to the first one */
+/** no bots and no cloud yet: the free way to a first bot, quieter than the cloud offer above it, so home has one main button */
 function GetTheApp() {
   return (
     <section className="surface enter flex items-center gap-8 rounded-card bg-card p-6 max-sm:flex-col max-sm:items-start max-sm:gap-5 max-sm:p-5" style={{ ["--i" as string]: 1 }} aria-labelledby="app-title">
       <div className="min-w-0 flex-1">
-        <h2 id="app-title" className="text-20 font-medium tracking-[-0.03em] text-ink">get the app to make your first bot.</h2>
+        <h2 id="app-title" className="text-20 font-medium tracking-[-0.03em] text-ink">or start free on your own computer.</h2>
         <ol className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-14 text-ink-2">
           {STEPS.map((s, i) => <li key={s} className="flex items-center gap-2"><span className="num grid size-5 place-items-center rounded-full bg-pop font-pixel text-12 text-ink">{i + 1}</span>{s}</li>)}
         </ol>
       </div>
-      <a href={DOWNLOAD_URL} target="_blank" rel="noreferrer" className="press hover-primary inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-primary px-5 text-14 font-medium text-primary-ink"><Download size={16} strokeWidth={1.75} aria-hidden />download dusk bot</a>
+      <a href={DOWNLOAD_URL} target="_blank" rel="noreferrer" className="press hover-outline inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-btn px-5 text-14 font-medium text-ink"><Download size={16} strokeWidth={1.75} aria-hidden />download free</a>
     </section>
   );
 }

@@ -119,6 +119,8 @@ export interface StoredCloud {
   ended?: boolean;
   /** when `ended` was set: the retention clock of a managed cloud starts here */
   endedAt?: number;
+  /** when a new plan last brought this cloud back after its plan had ended */
+  revivedAt?: number;
   /** dropped from a plan that is paid to this time: runs until then, then ends */
   endsAt?: number;
   /** suspended for abuse: stays stopped until an operator resumes it */
@@ -178,6 +180,10 @@ export interface CloudsService {
   end(cloudId: string, destroyAt: number, from?: number): void;
   /** a checkout that never completed */
   abandon(cloudId: string): void;
+  /** an ended cloud whose data is still kept, so a new plan of this placement (and backend) brings it back */
+  revivable(cloudId: string, plan: DesktopPlan): boolean;
+  /** a new subscription brings an ended cloud back with its data; false when it no longer can (deleted meanwhile) */
+  revive(cloudId: string, subscriptionId: string, plan: DesktopPlan): boolean;
   scrubAccount(accountId: string, anonId: string): void;
   get(cloudId: string): StoredCloud | null;
   owned(accountId: string, cloudId: string): StoredCloud | null;

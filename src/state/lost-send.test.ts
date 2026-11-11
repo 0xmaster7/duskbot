@@ -105,3 +105,49 @@ it.each([502, 503, 504])("asks again with the same sendId when a gateway answers
   expect(JSON.parse(bodies[1]!).sendId).toBe(JSON.parse(bodies[0]!).sendId);
   expect(onError).not.toHaveBeenCalled();
 });
+
+it("holds a send to a waking Cloud past the lost-answer window, says the Cloud is waking, then delivers it once", async () => {
+  const { cloudSendWaiting, resetCloudPowerForTests } = await import("../lib/cloud-power");
+  resetCloudPowerForTests();
+  const waking = () => new Response("This Dusk Bot is waking up. Try again in a few seconds.", { status: 503, headers: { "retry-after": "5", "x-omb-cloud-power": "waking" } });
+  let up = false;
+  const bodies: string[] = [];
+  const requests = vi.fn<typeof fetch>(async (path, init) => {
+    if (path !== SEND) return response({});
+    bodies.push(String(init?.body));
+    if (!up) return waking();
+    return response({ ok: true, threadId: "thread", message: { id: "m1", role: "user", kind: "text", text: "say ok6", at: 1, sendId: "send-0123456789abcdef" } }, 202);
+  });
+  const onError = vi.fn();
+  mount(requests)(onError);
+  await flush();
+  await vi.advanceTimersByTimeAsync(90_000);
+  expect(cloudSendWaiting()).toBe(true);
+  expect(onError).not.toHaveBeenCalled();
+  up = true;
+  await vi.advanceTimersByTimeAsync(6_000);
+  await flush();
+  expect(cloudSendWaiting()).toBe(false);
+  expect(onError).not.toHaveBeenCalled();
+  expect(new Set(bodies.map(body => JSON.parse(body).sendId))).toEqual(new Set(["send-0123456789abcdef"]));
+  expect(bodies.length).toBeGreaterThan(10);
+});
+
+it("gives a send up after three minutes of a Cloud that does not wake, with a message saying to try again", async () => {
+  const { cloudSendWaiting, resetCloudPowerForTests } = await import("../lib/cloud-power");
+  resetCloudPowerForTests();
+  const requests = vi.fn<typeof fetch>(async (path) => path !== SEND ? response({})
+    : new Response("waking", { status: 503, headers: { "retry-after": "5", "x-omb-cloud-power": "waking" } }));
+  const onError = vi.fn();
+  mount(requests)(onError);
+  await flush();
+  await vi.advanceTimersByTimeAsync(170_000);
+  expect(onError).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(15_000);
+  await flush();
+  expect(onError).toHaveBeenCalledOnce();
+  expect(cloudSendWaiting()).toBe(false);
+  const calls = requests.mock.calls.filter(([path]) => path === SEND).length;
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(requests.mock.calls.filter(([path]) => path === SEND).length).toBe(calls);
+});

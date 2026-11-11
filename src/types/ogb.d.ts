@@ -151,6 +151,7 @@ const __APP_VERSION__: string;
       /** This computer's own page only: the account's full name, for a first run's profile (system-name.mjs), and its login. */
       desktopProfile?: { systemName(): Promise<string | null>; loginName?(): Promise<string | null> };
       desktopAnalytics?: import("../../electron/desktop-prefs.mjs").DesktopAnalyticsBridge;
+      productEvents?: import("../../electron/product-events.mjs").ProductEventsBridge;
       desktopLanguage?: import("../../electron/desktop-prefs.mjs").DesktopLanguageBridge;
       companyBackups?: {
         state(): Promise<CompanyBackupState>;

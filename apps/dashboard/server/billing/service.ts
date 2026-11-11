@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { CANCEL_ANSWERS, CLOUD_SWATCHES, checkoutSource } from "../../../../shared/billing-api.ts";
 import type { FunnelRow, FunnelView, DeletionBlocker, BillingErrorCode, BillingOverview, CancelSurvey, Cart, ChangePreview, CheckoutAnswer, CheckoutItem, CreditsView, InvoicePage, LicenseCheck, LicenseView, SubscriptionView } from "../../../../shared/billing-api.ts";
-import type { CloudsService, DesktopPlan } from "../clouds/types.ts";
+import type { CloudsService, DesktopPlan, StoredCloud } from "../clouds/types.ts";
 import { BILLING_CONFIG, catalogView } from "./plans.ts";
 import type { BillingConfig } from "./plans.ts";
 import { changeCharge, dodoCart, dodoCreditsCart, parseCart, quote, sameCart } from "./pricing.ts";
@@ -21,7 +21,7 @@ export interface BillingServiceOptions {
 }
 export type BillingNotice =
   | { kind: "receipt"; accountId: string; invoiceId: string; amountCents: number; currency: string; description: string; paidAt: number;
-      periodStart: number | null; periodEnd: number | null; renews: boolean; first: boolean; cloudId: string | null }
+      periodStart: number | null; periodEnd: number | null; renews: boolean; first: boolean; cloudId: string | null; revived: boolean }
   | { kind: "payment_failed"; accountId: string; amountCents: number; currency: string; description: string; cloudId: string | null; fixBy: number | null }
   | { kind: "cancelled"; accountId: string; description: string; cloudId: string | null; endsAt: number | null; graceDays: number };
 const day = 86_400_000;
@@ -47,7 +47,7 @@ export function createBillingService(options: BillingServiceOptions) {
   const { store, provider, clouds } = options, state = store.state, config = options.config ?? BILLING_CONFIG;
   const now = options.now ?? Date.now, random = options.random ?? (bytes => randomBytes(bytes).toString("base64url"));
   const publicUrl = guarded(() => new URL(options.publicUrl).origin)();
-  state.cloudActions ??= []; state.refunds ??= []; state.closures ??= []; state.providerCancels ??= [];
+  state.cloudActions ??= []; state.refunds ??= []; state.closures ??= []; state.providerCancels ??= []; state.duplicates ??= [];
   const confirmations = new Map<string, { accountId: string; subscriptionId: string; cart: Cart; total: number; expiresAt: number; version: number }>();
   const queues = new Map<string, Promise<unknown>>();
   const id = (prefix: string) => `${prefix}_${random(16)}`;
@@ -134,6 +134,7 @@ export function createBillingService(options: BillingServiceOptions) {
       if (license.ownerAccountId === original) { license.ownerAccountId = anonId; license.status = "expired"; license.validUntil = closure.startedAt; }
       for (const member of license.members) if (member.accountId === original || emails.has(emailOf(member.email))) { member.accountId = anonId; member.email = ""; }
     }
+    for (const row of state.duplicates ?? []) if (row.accountId === original) row.accountId = anonId;
     for (const action of state.cloudActions ?? []) if (action.kind === "order" && action.input.accountId === original) { action.input.accountId = anonId; action.input.name = "Deleted"; }
     closure.accountId = anonId; closure.completedAt ??= now(); closure.steps.push("scrubbed"); store.commit();
   }
@@ -143,6 +144,14 @@ export function createBillingService(options: BillingServiceOptions) {
   function queueProviderCancel(subscriptionId: string) {
     if (!state.providerCancels!.some(entry => entry.id === subscriptionId)) state.providerCancels!.push({ id: subscriptionId, completedAt: null });
   }
+  /** a refusal (already cancelled or refunded, say) never blocks the queue: the operator is told instead */
+  async function settledAtProvider(call: () => Promise<void>, what: string) {
+    try { await call(); }
+    catch (error) {
+      if (!(error instanceof BillingProviderError) || error.code !== "refused") throw error;
+      console.warn(`billing: ALERT the provider refused a duplicate subscription's ${what}; check it by hand`);
+    }
+  }
   let draining: Promise<void> | null = null;
   function drainProviderCancels(): Promise<void> {
     if (draining) return draining;
@@ -150,6 +159,13 @@ export function createBillingService(options: BillingServiceOptions) {
       for (const entry of state.providerCancels!) if (entry.completedAt === null) {
         await provider.cancelAtPeriodEnd(entry.id, true);
         entry.completedAt = now(); store.commit();
+      }
+      for (const entry of state.duplicates!) {
+        if (entry.cancelledAt === null) { await settledAtProvider(() => provider.cancelNow(entry.id), "cancel"); entry.cancelledAt = now(); store.commit(); }
+        for (const payment of entry.payments) if (payment.refundedAt === null) {
+          await settledAtProvider(() => provider.refundPayment(payment.id, "duplicate_subscription"), "refund");
+          payment.refundedAt = now(); store.commit();
+        }
       }
     }).finally(() => { draining = null; });
     return draining;
@@ -208,6 +224,40 @@ export function createBillingService(options: BillingServiceOptions) {
       licenseId: sub.licenseId, cloudId: sub.cloudId, currentPeriodEnd: sub.currentPeriodEnd, cancelAtPeriodEnd: sub.cancelAtPeriodEnd, createdAt: sub.createdAt });
   }
   function cap(accountId: string) { if (clouds.list(accountId, true).filter(cloud => cloud.status !== "destroyed").length >= config.maxCloudsPerAccount) fail(409, "cap"); }
+  /** a live subscription this cart would duplicate: the same plan, or a second work license */
+  function duplicateOf(accountId: string, cart: Cart, exceptProviderId: string | null = null) {
+    return state.subscriptions.find(sub => sub.accountId === accountId && ["pending", "active", "payment_problem"].includes(sub.status)
+      && (exceptProviderId === null || sub.providerSubscriptionId !== exceptProviderId)
+      && (sameCart(sub.cart, cart) || cart.license.kind !== "none" && sub.cart.license.kind !== "none")) ?? null;
+  }
+  /** the newest of this account's ended clouds whose data is still kept, which a new plan of this cart brings back */
+  function revivableCloud(accountId: string, cart: Cart) {
+    if (cart.desktop.kind === "none") return null;
+    const plan = desktopPlan(cart);
+    return clouds.list(accountId, true).filter(cloud => cloud.ended && clouds.revivable(cloud.id, plan)
+      && !state.subscriptions.some(sub => sub.cloudId === cloud.id && sub.status !== "ended"))
+      .sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0))[0] ?? null;
+  }
+  /** a signed event for a cart checkout of ours whose account already has this plan under another provider subscription */
+  function duplicateEvent(event: Extract<BillingEvent, { kind: "subscription" | "payment" }>, checkout: StoredCheckout): event is typeof event & { subscriptionId: string } {
+    if (checkout.kind !== "cart" || !checkout.cart || !event.subscriptionId || event.checkoutId !== checkout.id || event.accountId !== checkout.accountId) return false;
+    if (state.subscriptions.some(sub => sub.providerSubscriptionId === event.subscriptionId)) return false;
+    return state.duplicates!.some(row => row.id === event.subscriptionId) || duplicateOf(checkout.accountId, checkout.cart, event.subscriptionId) !== null;
+  }
+  function settleDuplicate(checkout: StoredCheckout, providerId: string, input: { paymentId?: string; ended?: boolean } = {}) {
+    let entry = state.duplicates!.find(row => row.id === providerId);
+    if (!entry) {
+      entry = { id: providerId, accountId: checkout.accountId, checkoutId: checkout.id, cancelledAt: input.ended ? now() : null, payments: [] };
+      state.duplicates!.push(entry);
+      console.warn("billing: ALERT a duplicate subscription is cancelled and refunded");
+    }
+    for (const invoice of state.invoices) if (invoice.checkoutId === checkout.id && invoice.status === "paid" && !entry.payments.some(row => row.id === invoice.providerPaymentId)) {
+      entry.payments.push({ id: invoice.providerPaymentId, refundedAt: null });
+    }
+    if (input.paymentId && !entry.payments.some(row => row.id === input.paymentId)) entry.payments.push({ id: input.paymentId, refundedAt: null });
+    if (checkout.status === "open") checkout.status = "completed";
+    if (checkout.cloudId && !checkout.revive && !checkout.subscriptionId) clouds.abandon(checkout.cloudId);
+  }
   function licenseAvailable(accountId: string, cart: Cart, except?: string) {
     if (cart.license.kind !== "none" && state.subscriptions.some(sub => sub.accountId === accountId && sub.id !== except && sub.status !== "ended" && sub.cart.license.kind !== "none")) fail(409, "already_subscribed");
   }
@@ -247,6 +297,7 @@ export function createBillingService(options: BillingServiceOptions) {
         if (!cloud?.ended && cloud?.status !== "destroyed" && cloud?.status !== "destroying") clouds.changePlan(action.cloudId, action.plan);
       }
       else if (action.kind === "activate") clouds.activate(action.cloudId, action.subscriptionId, action.plan);
+      else if (action.kind === "revive") revive(action);
       else if (action.kind === "payment") clouds.setPaymentProblem(action.cloudId, action.problem);
       else if (action.kind === "schedule") clouds.scheduleDestroy(action.cloudId, action.at);
       else if (action.kind === "end") { if (action.from === undefined) clouds.end(action.cloudId, action.at); else clouds.end(action.cloudId, action.at, action.from); }
@@ -254,6 +305,14 @@ export function createBillingService(options: BillingServiceOptions) {
       state.cloudActions.shift();
       try { store.commit(); } catch (error) { state.cloudActions.unshift(action); throw error; }
     }
+  }
+  function revive(action: Extract<CloudAction, { kind: "revive" }>) {
+    if (clouds.revive(action.cloudId, action.subscriptionId, action.plan)) return;
+    const sub = state.subscriptions.find(row => row.id === action.subscriptionId), previous = clouds.get(action.cloudId);
+    if (!sub || sub.cloudId !== action.cloudId || sub.status === "ended" || sub.cart.desktop.kind === "none") return;
+    const fresh = clouds.order({ ...action.plan, accountId: sub.accountId, name: previous?.name ?? "My Cloud", color: previous?.color ?? null, region: sub.cart.desktop.region! });
+    sub.cloudId = fresh.id;
+    clouds.activate(fresh.id, sub.id, action.plan);
   }
   function applyChange(sub: StoredSubscription, change: PendingChange, email: string) {
     const previous = sub.cart, cart = change.cart;
@@ -289,7 +348,11 @@ export function createBillingService(options: BillingServiceOptions) {
   function applySubscription(event: Extract<BillingEvent, { kind: "subscription" }>, at: number) {
     let sub = state.subscriptions.find(sub => sub.providerSubscriptionId === event.subscriptionId);
     const checkout = sub ? state.checkouts.find(checkout => checkout.id === sub!.checkoutId) : state.checkouts.find(checkout => checkout.id === event.checkoutId);
-    if (!checkout || checkout.kind !== "cart" || !bound(event, checkout)) return;
+    if (!checkout || checkout.kind !== "cart") return;
+    if (!sub && !closureFor(checkout.accountId) && duplicateEvent(event, checkout)) {
+      settleDuplicate(checkout, event.subscriptionId, { ended: event.type === "cancelled" || event.type === "expired" }); return;
+    }
+    if (!bound(event, checkout)) return;
     if (checkout.providerSubscriptionId && checkout.providerSubscriptionId !== event.subscriptionId) return;
     if (!sub) {
       const expected = checkout.cart && dodoCart(checkout.cart, products(), config)?.[0];
@@ -302,7 +365,9 @@ export function createBillingService(options: BillingServiceOptions) {
     if ((event.type === "active" || event.type === "renewed") && (event.nextBillingAt === null || event.nextBillingAt <= now())) return;
     if (!sub && checkout?.cart && checkout.kind === "cart" && !checkout.subscriptionId) {
       const previousCloud = checkout.cloudId ? clouds.get(checkout.cloudId) : null;
-      if (event.type === "active" && previousCloud?.status === "destroyed" && checkout.cart.desktop.kind !== "none") {
+      const lost = checkout.revive ? !clouds.revivable(checkout.cloudId!, desktopPlan(checkout.cart)) : previousCloud?.status === "destroyed";
+      if (event.type === "active" && lost && previousCloud && checkout.cart.desktop.kind !== "none") {
+        delete checkout.revive;
         checkout.cloudId = `c${randomBytes(12).toString("hex")}`;
         cloudAction({ kind: "order", cloudId: checkout.cloudId, input: { ...desktopPlan(checkout.cart), accountId: checkout.accountId, name: previousCloud.name, color: previousCloud.color, region: checkout.cart.desktop.region! } });
       }
@@ -322,7 +387,7 @@ export function createBillingService(options: BillingServiceOptions) {
       sub.status = "active"; period(sub, event.nextBillingAt); if (event.type === "active") sub.cancelAtPeriodEnd = event.cancelAtPeriodEnd; checkout.status = "completed";
       refreshLicense(sub, checkout.email);
       if (sub.cloudId && sub.cart.desktop.kind !== "none") {
-        if (first) cloudAction({ kind: "activate", cloudId: sub.cloudId, subscriptionId: sub.id, plan: desktopPlan(sub.cart) });
+        if (first) cloudAction({ kind: checkout.revive && sub.cloudId === checkout.cloudId ? "revive" : "activate", cloudId: sub.cloudId, subscriptionId: sub.id, plan: desktopPlan(sub.cart) });
         cloudAction({ kind: "payment", cloudId: sub.cloudId, problem: false });
         if (!sub.cancelAtPeriodEnd) cloudAction({ kind: "keep", cloudId: sub.cloudId });
         else if (sub.currentPeriodEnd !== null) cloudAction({ kind: "schedule", cloudId: sub.cloudId, at: sub.currentPeriodEnd + config.graceDays * day });
@@ -352,6 +417,10 @@ export function createBillingService(options: BillingServiceOptions) {
   function applyPayment(event: Extract<BillingEvent, { kind: "payment" }>) {
     let sub = state.subscriptions.find(sub => sub.providerSubscriptionId === event.subscriptionId);
     const checkout = state.checkouts.find(checkout => checkout.id === (sub?.checkoutId ?? event.checkoutId));
+    if (checkout && !sub && !closureFor(checkout.accountId) && duplicateEvent(event, checkout)) {
+      if (event.type === "succeeded") settleDuplicate(checkout, event.subscriptionId, { paymentId: event.paymentId });
+      return;
+    }
     if (!checkout || !bound(event, checkout) || event.currency !== config.currency
       || checkout.kind === "credits" && (event.subscriptionId !== null || event.amountCents < checkout.amountCents)
       || checkout.kind === "cart" && event.subscriptionId === null) return;
@@ -377,7 +446,8 @@ export function createBillingService(options: BillingServiceOptions) {
   function receipt(invoice: (typeof state.invoices)[number], sub: StoredSubscription | null) {
     const paidBefore = state.invoices.some(other => other !== invoice && other.status !== "failed" && other.checkoutId === invoice.checkoutId);
     notices.push({ kind: "receipt", accountId: invoice.accountId, invoiceId: invoice.id, amountCents: invoice.amountCents, currency: invoice.currency, description: invoice.description, paidAt: now(),
-      periodStart: sub?.currentPeriodStart ?? null, periodEnd: sub?.currentPeriodEnd ?? null, renews: sub ? !sub.cancelAtPeriodEnd : false, first: !paidBefore, cloudId: sub?.cloudId ?? null });
+      periodStart: sub?.currentPeriodStart ?? null, periodEnd: sub?.currentPeriodEnd ?? null, renews: sub ? !sub.cancelAtPeriodEnd : false, first: !paidBefore, cloudId: sub?.cloudId ?? null,
+      revived: !paidBefore && state.checkouts.some(checkout => checkout.id === invoice.checkoutId && checkout.revive === true) });
   }
   function applyRefund(event: Extract<BillingEvent, { kind: "refund" }>) {
     const refunds = state.refunds ??= [];
@@ -434,24 +504,28 @@ export function createBillingService(options: BillingServiceOptions) {
     if (!item || typeof item !== "object" || (item.kind !== "cart" && item.kind !== "credits")) fail(400, "invalid_request");
     const url = returnUrl(input.returnPath);
     const source = checkoutSource(input.source);
-    if (state.checkouts.filter(checkout => checkout.accountId === account.id && checkout.createdAt > now() - 3_600_000).length >= config.checkoutsPerHour) fail(429, "rate_limited");
-    if (queues.has(account.id) || state.subscriptions.some(sub => sub.accountId === account.id && sub.pendingChange)) fail(409, "plan_change_unavailable");
     expireCheckouts(account.id);
     const cart = item.kind === "cart" ? parsed(item.cart) : null;
+    const open = state.checkouts.find(checkout => checkout.accountId === account.id && checkout.kind === "cart" && checkout.status === "open" && checkout.openUntil > now());
+    if (cart && open?.cart && open.url && sameCart(open.cart, cart)) return { v: 1, checkoutId: open.id, checkoutUrl: open.url, cloudId: open.cloudId, revives: open.revive === true };
+    if (state.checkouts.filter(checkout => checkout.accountId === account.id && checkout.createdAt > now() - 3_600_000).length >= config.checkoutsPerHour) fail(429, "rate_limited");
+    if (queues.has(account.id) || state.subscriptions.some(sub => sub.accountId === account.id && sub.pendingChange)) fail(409, "plan_change_unavailable");
     const pack = item.kind === "credits" ? config.creditPacks.find(pack => pack.id === item.pack) : null;
     if (item.kind === "credits" && !pack) fail(400, "invalid_request");
+    let revive: StoredCloud | null = null;
     if (cart) {
       purchasable(cart); licenseAvailable(account.id, cart);
-      const open = state.checkouts.find(checkout => checkout.accountId === account.id && checkout.kind === "cart" && checkout.status === "open" && checkout.openUntil > now());
       if (open) throw new BillingError(409, "checkout_open", open.url);
-      if (cart.desktop.kind !== "none") cap(account.id);
+      if (duplicateOf(account.id, cart)) fail(409, "already_subscribed");
+      revive = revivableCloud(account.id, cart);
+      if (cart.desktop.kind !== "none" && !revive) cap(account.id);
     }
     if (item.kind === "cart" && ((item.name !== undefined && (typeof item.name !== "string" || !item.name.trim() || item.name.trim().length > 100)) || (item.color !== undefined && !CLOUD_SWATCHES.includes(item.color)))) fail(400, "invalid_request");
     const lines = cart ? dodoCart(cart, products(), config) : dodoCreditsCart(pack!.id, products());
     if (!lines) fail(503, "unavailable");
-    const cloud = cart && cart.desktop.kind !== "none" && item.kind === "cart" ? clouds.order({ ...desktopPlan(cart), accountId: account.id, name: item.name?.trim() ?? "My Cloud", color: item.color ?? null, region: cart.desktop.region! }) : null;
+    const cloud = revive ?? (cart && cart.desktop.kind !== "none" && item.kind === "cart" ? clouds.order({ ...desktopPlan(cart), accountId: account.id, name: item.name?.trim() ?? "My Cloud", color: item.color ?? null, region: cart.desktop.region! }) : null);
     const entry: StoredCheckout = { id: id("chk"), accountId: account.id, email: emailOf(account.email), kind: item.kind, cart, packId: pack?.id ?? null,
-      cloudId: cloud?.id ?? null, providerSessionId: null, url: null, status: "open", source, createdAt: now(), openUntil: now() + config.checkoutOpenMinutes * 60_000,
+      cloudId: cloud?.id ?? null, ...(revive ? { revive: true } : {}), providerSessionId: null, url: null, status: "open", source, createdAt: now(), openUntil: now() + config.checkoutOpenMinutes * 60_000,
       subscriptionId: null, amountCents: cart ? quote(cart, config).totalCents : pack!.priceCents, creditCents: pack?.creditCents ?? null, lines: cart ? quote(cart, config).lines : [] };
     state.checkouts.push(entry); const owner = customer(account.id, account.email); store.commit();
     try {
@@ -460,9 +534,9 @@ export function createBillingService(options: BillingServiceOptions) {
       entry.providerSessionId = session.sessionId;
       if (closureFor(account.id)) { entry.status = "expired"; entry.url = null; store.commit(); fail(409, "billing_active"); }
       entry.url = session.url; store.commit();
-      return { v: 1, checkoutId: entry.id, checkoutUrl: session.url, cloudId: entry.cloudId };
+      return { v: 1, checkoutId: entry.id, checkoutUrl: session.url, cloudId: entry.cloudId, revives: entry.revive === true };
     } catch {
-      entry.status = "expired"; store.commit(); if (entry.cloudId) clouds.abandon(entry.cloudId); fail(503, "unavailable");
+      entry.status = "expired"; store.commit(); if (entry.cloudId && !entry.revive) clouds.abandon(entry.cloudId); fail(503, "unavailable");
     }
   }
   function licenseCheck(account: AccountRef): LicenseCheck {

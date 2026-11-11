@@ -340,7 +340,7 @@ it("destroys desktops on reconcile when immediate destruction was requested", as
 it("keeps the account on provider failure and resumes without cancelling completed subscriptions twice", async () => {
   const f = await fixture(), owner = await f.login();
   for (let n = 0; n < 2; n++) {
-    const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: { ...bundle("starter"), license: { kind: "none" } } }, owner.cookie);
+    const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: { ...bundle("starter"), license: { kind: "none" }, interval: n ? "year" : "month" } }, owner.cookie);
     await f.complete(checkout.checkoutId);
   }
   const original = f.billing.fake!.cancelAtPeriodEnd.bind(f.billing.fake);

@@ -1,0 +1,29 @@
+import { AlarmClock } from "../icons";
+import { activeLocale, t } from "@/lib/i18n";
+import type { LateRoutineRun } from "@/lib/late-routine";
+import { routineDateTime } from "@/lib/routine-display";
+import { NoticeCard, NotNowButton, PRIMARY_BUTTON } from "./NoticeCard";
+import { deviceWord } from "./vps-link/parts";
+
+const sameDay = (a: number, b: number) => new Date(a).toDateString() === new Date(b).toDateString();
+/** A time alone when `day` already says the day (today, or the day it was due), else the date with it. */
+const clock = (at: number, day: number) => sameDay(at, day)
+  ? new Date(at).toLocaleTimeString(activeLocale(), { hour: "numeric", minute: "2-digit" }) : routineDateTime(at);
+
+/** A routine on this computer ran late, or not at all, while the computer slept: the one moment Dusk Cloud answers on
+ * its own. Shown once, in the corner, never over a chat. */
+export function LateRoutineCard({ late, now, onStart, onNotNow }: { late: LateRoutineRun; now: number; onStart: () => void; onNotNow: () => void }) {
+  const device = deviceWord();
+  const missed = late.ranAt === null;
+  return <NoticeCard titleId="late-routine-title" notice="late-routine" icon={AlarmClock}
+    title={t(missed ? "routines.late.titleMissed" : "routines.late.title", { name: late.name })} onDismiss={onNotNow}>
+    <p className="mt-2 text-[13px] leading-relaxed text-ink-secondary">
+      {missed ? t("routines.late.bodyMissed", { due: clock(late.dueAt, now), device })
+        : t("routines.late.body", { due: clock(late.dueAt, now), ran: clock(late.ranAt!, late.dueAt), device })}
+    </p>
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+      <button type="button" data-late-routine-start="" className={PRIMARY_BUTTON} onClick={onStart}>{t("routines.late.start")}</button>
+      <NotNowButton onClick={onNotNow} />
+    </div>
+  </NoticeCard>;
+}
