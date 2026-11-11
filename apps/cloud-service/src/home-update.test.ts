@@ -1,7 +1,7 @@
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, createPublicKey, generateKeyPairSync } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -236,6 +236,8 @@ describe("omb-home on the machine", () => {
     expect(m.asked()).toContain("enable omb-desktop-image.service");
     // the unit's own run: the pull is refused, the kit builds the image under the name the app looks for
     expect(m.run("desktop-image")).toBe("ready");
+    // the home's server, not root, reads it: under the script's umask it would be root's alone
+    expect(statSync(join(m.dir, "run", DESKTOP_IMAGE_STATUS.split("/").at(-1)!)).mode & 0o777).toBe(0o644);
     expect(readFileSync(join(m.dir, "built"), "utf8").trim()).toBe("ghcr.io/sidddevz/omb-bot-desktop:v3");
     expect(readFileSync(join(m.dir, "docker.log"), "utf8")).toContain("pull -q ghcr.io/sidddevz/omb-bot-desktop:v3");
     expect(m.status()).toBe("ready");

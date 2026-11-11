@@ -285,6 +285,8 @@ app=${APP}
 verify=${shellQuote(machineVerifyScript(options.releaseKeys))}
 signed=${options.requireSigned ? 1 : 0}
 tree() { (cd "$1" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1); }
+# the image's state, readable by the home's server (this script's umask would make it root's alone)
+imaged() { printf '%s\\n' "$1" > ${DESKTOP_IMAGE_STATUS}; chmod 0644 ${DESKTOP_IMAGE_STATUS}; }
 # the bot computers' image is made ready in the background whenever a package or a boot may have left it missing
 desktop() { if [ -S /var/run/docker.sock ] && [ -f "$app/deploy/bot-desktop/Dockerfile" ] && [ "$(cat ${DESKTOP_IMAGE_STATUS} 2>/dev/null)" != ready ]; then systemctl enable omb-desktop-image.service >/dev/null 2>&1 || true; systemctl start --no-block omb-desktop-image.service >/dev/null 2>&1 || true; fi; }
 case "\${1:-}" in
@@ -388,13 +390,13 @@ case "\${1:-}" in
     install -d -o root -g root -m 0755 ${CLOUD_HOME.run}
     [ -f "$kit/Dockerfile" ] || { echo "no kit"; exit 0; }
     image="$(sed -n 's/^export const BOT_DESKTOP_IMAGE = "\\(.*\\)";.*/\\1/p' "$app/shared/bot-desktop.ts" | head -n 1)"
-    [[ "$image" =~ ^[a-z0-9./-]+:v[0-9]+$ ]] || { echo failed > ${DESKTOP_IMAGE_STATUS}; echo "bad image name"; exit 2; }
-    if docker image inspect "$image" >/dev/null 2>&1; then echo ready > ${DESKTOP_IMAGE_STATUS}; echo ready; exit 0; fi
-    echo building > ${DESKTOP_IMAGE_STATUS}
+    [[ "$image" =~ ^[a-z0-9./-]+:v[0-9]+$ ]] || { imaged failed; echo "bad image name"; exit 2; }
+    if docker image inspect "$image" >/dev/null 2>&1; then imaged ready; echo ready; exit 0; fi
+    imaged building
     if docker pull -q "$image" >/dev/null 2>&1 || IMAGE="$image" sh "$kit/build.sh" > /var/log/omb-desktop-image.log 2>&1; then
-      echo ready > ${DESKTOP_IMAGE_STATUS}; echo ready; exit 0
+      imaged ready; echo ready; exit 0
     fi
-    echo failed > ${DESKTOP_IMAGE_STATUS}; echo "build failed"; exit 3 ;;
+    imaged failed; echo "build failed"; exit 3 ;;
   *) echo "usage: omb-home install|rollback|restore|start|stop|status|tree|snapshot|snapshot-done|desktop-image"; exit 2 ;;
 esac
 `;
