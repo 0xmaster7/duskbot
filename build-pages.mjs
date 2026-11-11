@@ -162,8 +162,17 @@ function sea() {
   const bots = swim.map(([shape, colour, x, y, size]) => `<g class="sb c-${colourName(colour)}" transform="translate(${x} ${y}) scale(${size / 100})" clip-path="url(#sea-line)" data-px="${bodyName(shape)}" data-size="${size}"><g class="dip"><g transform="translate(0 -6)">${pixelBot(bodyName(shape))}</g></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g>`);
   return `<svg class="sea-bots" viewBox="0 0 1600 1067" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath></defs>${bots.join('')}</svg>`;
 }
-// {{os name}} is a platform mark from public/landing/art/os (simple-icons, cc0), inlined so it takes the text colour
-const os = (name) => fs.readFileSync(path.join(site, 'art', 'os', `${name}.svg`), 'utf8').replace(/<title>.*?<\/title>/, '').replace('<svg ', '<svg class="os" aria-hidden="true" fill="currentColor" ').replace(/ role="img"| xmlns="[^"]*"/g, '').trim();
+// {{os name}} is a platform mark from public/landing/art/os, inlined. apple is simple-icons (cc0) and takes the text colour,
+// as its official mark is single colour; windows, linux and android are gilbarbara/logos (cc0) and keep their own fills.
+// ids get a per-use suffix so two copies of tux on one page do not share gradients
+const monoOs = new Set(['apple']);
+let osUses = 0;
+const os = (name) => {
+  const n = ++osUses;
+  const svg = fs.readFileSync(path.join(site, 'art', 'os', `${name}.svg`), 'utf8').replace(/<title>.*?<\/title>/, '')
+    .replace(/ role="img"| xmlns(:xlink)?="[^"]*"/g, '').replace(/(id="|url\(#|href="#)([\w-]+)/g, `$1$2-o${n}`).trim();
+  return svg.replace(/<svg ?/, `<svg class="os" aria-hidden="true" focusable="false"${monoOs.has(name) ? ' fill="currentColor"' : ''} `);
+};
 const withOs = (html) => html.replace(/\{\{os (\w+)\}\}/g, (_, name) => os(name));
 const withBots = (html) => (withOs(withChips(withParts(html))).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()))
   .replace(/\{\{i ([\w-]+)(?: ([\w-]+))?\}\}/g, (_, name, cls) => icon(name, cls)).replace(/\{\{sea\}\}/g, sea));
