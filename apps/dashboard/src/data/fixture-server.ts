@@ -1,7 +1,8 @@
-import type { CommandKind, CommandView, WorkspaceDetail } from "../../../../shared/dashboard-protocol";
+import { appSlug, COMMAND_KINDS } from "../../../../shared/dashboard-protocol";
+import type { CommandKind, CommandView, ConnectorsAnswer, WorkspaceDetail } from "../../../../shared/dashboard-protocol";
 import { ApiError, FIXTURE } from "../lib/api";
 import type { BundleId, CheckoutRequest, CloudDesktop, DesktopId, MachineSpec, NotificationPrefs, Selection, Subscription } from "./contracts";
-import { fixtureAccount, fixtureBilling, fixtureCatalog, fixtureClouds, fixtureConnections, fixtureWorkspace, fixtureWorkspaces } from "./fixtures";
+import { fixtureAccount, fixtureBilling, fixtureCatalog, fixtureClouds, fixtureConnections, fixturePendingApps, fixtureWorkspace, fixtureWorkspaces } from "./fixtures";
 import { desktopOf, licenseOf, priceCart } from "./pricing";
 import { CANCEL_ANSWERS } from "./wire";
 
@@ -19,6 +20,9 @@ function createState() {
     account: fixtureAccount(scenario, now), billing: fixtureBilling(scenario, now), clouds,
     workspaces: new Map(fixtureWorkspaces(scenario, now).map((detail) => [detail.workspace.id, detail])),
     connections: fixtureConnections(),
+    pendingApps: fixturePendingApps(),
+    /** a fixture sign-in finishes this long after its link is handed out */
+    signIns: new Map<string, { workspaceId: string; slug: string; at: number }>(),
     slackWake: new Map<string, boolean>(),
     // managed: signed in an hour ago, so deleting data asks for a fresh sign-in first; its link was already "emailed"
     signedInAt: scenario === "managed" ? now - 3_600_000 : now,
@@ -94,8 +98,22 @@ function syncCloud(selection: Selection, id: string, now: number) {
   s.clouds.push({ id, name: "Sid's Cloud", status: "provisioning", ...chosen, region: selection.region, workspaceId: null, createdAt: now, progress: { step: steps[0]!, value: 0 }, error: null, botComputers: { used: 0, limit }, uptimeSec: null });
 }
 
+export const FIXTURE_SIGN_IN_MS = 4000;
+
 function completeCommand(detail: WorkspaceDetail, command: CommandView, now: number) {
   command.status = "done"; command.doneAt = command.issuedAt + 1200; command.message = "Done.";
+  const s = current(), id = detail.workspace.id;
+  if (command.kind === "app.connect") {
+    command.message = "Sign-in is ready.";
+    command.url = `https://connect.composio.dev/link/fixture-${command.target}`;
+    s.pendingApps[id] = [...new Set([...(s.pendingApps[id] ?? []), command.target])];
+    s.signIns.set(command.id, { workspaceId: id, slug: command.target, at: now + FIXTURE_SIGN_IN_MS });
+  }
+  if (command.kind === "app.disconnect") {
+    command.message = "Disconnected.";
+    s.connections[id] = (s.connections[id] ?? []).filter((slug) => slug !== command.target);
+    s.pendingApps[id] = (s.pendingApps[id] ?? []).filter((slug) => slug !== command.target);
+  }
   const report = detail.report;
   if (!report) return;
   if (command.kind === "computer.wake" || command.kind === "computer.sleep") {
@@ -130,6 +148,11 @@ function advance(now: number) {
     cloud.uptimeSec = cloud.status === "running" ? Math.max(0, Math.floor((now - (s.runningSince.get(cloud.id) ?? now)) / 1000)) : null;
   }
   for (const detail of s.workspaces.values()) for (const command of detail.commands) if (command.status === "sent" && now - command.issuedAt >= 1200) completeCommand(detail, command, now);
+  for (const [id, signIn] of s.signIns) if (now >= signIn.at) {
+    s.signIns.delete(id);
+    s.connections[signIn.workspaceId] = [...new Set([...(s.connections[signIn.workspaceId] ?? []), signIn.slug])];
+    s.pendingApps[signIn.workspaceId] = (s.pendingApps[signIn.workspaceId] ?? []).filter((slug) => slug !== signIn.slug);
+  }
 }
 
 function workspaceDetail(detail: WorkspaceDetail, now: number): WorkspaceDetail {
@@ -309,7 +332,10 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
     }
     return cloud;
   }
-  if (method === "GET" && path === "/v1/connectors") return { byWorkspace: Object.fromEntries([...s.workspaces.keys()].map((id) => [id, s.connections[id] ?? []])) };
+  if (method === "GET" && path === "/v1/connectors") {
+    const ids = [...s.workspaces.keys()], each = <T,>(value: (id: string) => T) => Object.fromEntries(ids.map((id) => [id, value(id)]));
+    return { byWorkspace: each((id) => s.connections[id] ?? []), pending: each((id) => s.pendingApps[id] ?? []), available: each(() => true), at: each(() => now) } satisfies ConnectorsAnswer;
+  }
   if (method === "GET" && path === "/v1/workspaces") return { workspaces: [...s.workspaces.values()].map((detail) => workspaceDetail(detail, now).workspace) };
   if (method === "POST" && path === "/v1/claim") {
     if (typeof b.token !== "string" || !b.token) fail("Enter a claim token.");
@@ -321,8 +347,11 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
     const id = decodeURIComponent(workspace[1]!), detail = s.workspaces.get(id);
     if (!detail) return fail("Workspace not found.", 404, "not_found");
     if (workspace[2] && method === "POST") {
-      const kinds: CommandKind[] = ["computer.wake", "computer.sleep", "phone.revoke", "session.revoke", "routine.pause", "routine.resume"];
-      if (!kinds.includes(b.kind as CommandKind) || typeof b.target !== "string") fail("Choose a command and target.");
+      if (!COMMAND_KINDS.includes(b.kind as CommandKind) || typeof b.target !== "string") fail("Choose a command and target.");
+      if ((b.kind as string).startsWith("app.")) {
+        if (!appSlug(b.target)) fail("Command is invalid.", 400, "invalid_command");
+        if (workspaceDetail(detail, now).workspace.freshness === "offline") fail(detail.workspace.kind === "vps" ? "This cloud is not answering right now. Try again in a minute." : "Your computer is asleep. Connect from the Dusk Bot app on it, or use Dusk Cloud.", 409, "workspace_offline");
+      }
       const command: CommandView = { id: `fx-command-${s.nextId++}`, kind: b.kind as CommandKind, target: b.target as string, issuedAt: now, expiresAt: now + 600_000, status: "sent", message: null, doneAt: null };
       detail.commands.push(command); return { command };
     }
@@ -335,7 +364,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
         const cloud = s.clouds.find((c) => c.workspaceId === id); if (cloud) cloud.name = detail.workspace.name;
         return {};
       }
-      if (method === "DELETE") { s.workspaces.delete(id); delete s.connections[id]; return {}; }
+      if (method === "DELETE") { s.workspaces.delete(id); delete s.connections[id]; delete s.pendingApps[id]; return {}; }
     }
   }
   return fail("Fixture endpoint not found.", 404, "not_found");

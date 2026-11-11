@@ -37,6 +37,19 @@ export const FIXTURE_EXTRAS: ConnectorExtras = {
   figma: { status: "needs-auth" },
 };
 
+/** shows an app whose sign-in was started and not finished as needing sign-in, next to the connected ones */
+export function withPending(connections: Record<string, string[]>, pending: Record<string, string[]>, base: ConnectorExtras = {}): { connections: Record<string, string[]>; extras: ConnectorExtras } {
+  const extras: ConnectorExtras = Object.fromEntries(Object.entries(base).map(([id, { status: _, ...rest }]) => [id, rest]));
+  const merged: Record<string, string[]> = { ...connections };
+  for (const [workspace, slugs] of Object.entries(pending)) for (const slug of slugs) {
+    const connected = (connections[workspace] ?? []).some((id) => id.toLowerCase() === slug.toLowerCase());
+    if (connected) continue;
+    merged[workspace] = [...(merged[workspace] ?? []), slug];
+    extras[slug.toLowerCase()] = { ...extras[slug.toLowerCase()], status: "needs-auth" };
+  }
+  return { connections: merged, extras };
+}
+
 export function connectorRows(apps: DashApp[], connections: Record<string, string[]>, workspaces: Array<{ id: string; name: string }>, extra: ConnectorExtras = {}): ConnectorRow[] {
   const connected = workspaces.map((workspace) => ({ workspace, ids: new Set((connections[workspace.id] ?? []).map((id) => id.toLowerCase())) }));
   const known = new Set(apps.flatMap(idsOf));

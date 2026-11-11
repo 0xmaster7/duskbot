@@ -88,7 +88,7 @@ test("cloud Retry requests the catalog again after a network failure", async () 
   vi.spyOn(api, "catalog").mockRejectedValueOnce(new ApiError("Offline", 0, "offline")).mockResolvedValue(fixtureCatalog);
   vi.spyOn(api, "overview").mockResolvedValue({ billing: fixtureBilling("mac"), clouds: [] });
   vi.spyOn(api, "account").mockResolvedValue(fixtureAccount("mac"));
-  vi.spyOn(api, "connections").mockResolvedValue({ byWorkspace: {} });
+  vi.spyOn(api, "connections").mockResolvedValue({ byWorkspace: {}, pending: {}, available: {}, at: {} });
   await render(createElement(CloudDataProvider, { signedIn: true, children: createElement(CloudProbe) }));
   expect(cloud.error).toBe("Offline");
   await act(async () => cloud.refresh());

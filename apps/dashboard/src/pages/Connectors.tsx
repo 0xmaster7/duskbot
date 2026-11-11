@@ -1,9 +1,12 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { Check, ListFilter, Search, Sparkles } from "@/icons";
-import { CATEGORY_NAMES, connectedIn, inCategory, presentCategories, searchApps, useConnectorRows, useDashApps, type Category, type ConnectorRow, type DashApp } from "../data/connectors";
+import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
+import { flowKey, useAppCommands, type AppFlow } from "../data/app-connect";
+import { CATEGORY_NAMES, composioSlug, connectedIn, inCategory, presentCategories, searchApps, useConnectorRows, useDashApps, type Category, type ConnectorRow, type DashApp } from "../data/connectors";
 import { useCloud } from "../data/cloud";
 import { useSession } from "../data/session";
 import { appLink, openApp } from "../lib/app-link";
+import { toast } from "../lib/toast";
 import { AppLogo } from "../ui/AppLogo";
 import { Toggle } from "../ui/controls";
 import { Button, cx, PageHeader, Skeleton } from "../ui/kit";
@@ -13,8 +16,16 @@ type Tab = "connectors" | "skills";
 const PAGE = 8;
 const CATALOG_PAGE = 30;
 
-// sign-ins live on each workspace and the desktop app has no link that starts one, so the app opens and the toast says where to go
+// the desktop app has no link that starts a sign-in, so the app opens and the toast says where to go
 const openConnect = (app: { label: string }) => openApp(appLink.app, `opening dusk bot. connect ${app.label} from apps there.`);
+const asleep = (ws: WorkspaceSummary | null) => ws !== null && (ws.freshness === "offline" || ws.freshness === "waiting");
+const asleepLine = (ws: WorkspaceSummary) => ws.kind === "vps" ? `${ws.name} is not answering right now. try again in a minute.` : `${ws.name} is asleep. connect from the dusk bot app on it, or use dusk cloud.`;
+
+function ConnectAction({ app, flow, onConnect }: { app: DashApp; flow: AppFlow | undefined; onConnect(): void }) {
+  if (flow?.phase === "waiting") return <Button size="sm" disabled aria-label={`connecting ${app.label}`}>connecting</Button>;
+  if (flow?.phase === "sign-in" && flow.url) return <a className="shrink-0 px-2 text-13 text-ink underline underline-offset-2" href={flow.url} target="_blank" rel="noopener noreferrer">finish sign-in</a>;
+  return <Button size="sm" onClick={onConnect} aria-label={`connect ${app.label}`}>connect</Button>;
+}
 
 function Tile({ row }: { row: ConnectorRow }) {
   if (row.app) return <AppLogo app={row.app} size={32} />;
@@ -59,8 +70,8 @@ function Row({ row, onAuth, menu }: { row: ConnectorRow; onAuth(): void; menu: M
   );
 }
 
-/** every app dusk bot can connect, searchable and by category; connecting happens in the app */
-function Catalog({ apps, connected, query }: { apps: DashApp[] | null; connected: string[]; query: string }) {
+/** every app dusk bot can connect, searchable and by category */
+function Catalog({ apps, connected, query, flowFor, onConnect }: { apps: DashApp[] | null; connected: string[]; query: string; onConnect(app: DashApp): void; flowFor(app: DashApp): AppFlow | undefined }) {
   const [category, setCategory] = useState<Category | null>(null);
   const [limit, setLimit] = useState(CATALOG_PAGE);
   const q = useDeferredValue(query.trim());
@@ -103,7 +114,7 @@ function Catalog({ apps, connected, query }: { apps: DashApp[] | null; connected
                   </div>
                   {added
                     ? <span className="inline-flex shrink-0 items-center gap-1 px-2 text-13 text-ink-3"><Check size={14} strokeWidth={2} className="text-good" aria-hidden />added</span>
-                    : <Button size="sm" onClick={() => openConnect(app)} aria-label={`connect ${app.label} in the app`}>connect</Button>}
+                    : <ConnectAction app={app} flow={flowFor(app)} onConnect={() => onConnect(app)} />}
                 </li>
               );
             })}
@@ -116,8 +127,9 @@ function Catalog({ apps, connected, query }: { apps: DashApp[] | null; connected
 }
 
 export function ConnectorsPage() {
-  const { workspaces } = useSession();
+  const { workspaces, workspace } = useSession();
   const { connections } = useCloud();
+  const { flows, connect, disconnect } = useAppCommands();
   const { apps } = useDashApps();
   const { rows, loading, error } = useConnectorRows();
   const [tab, setTab] = useState<Tab>("connectors");
@@ -126,7 +138,14 @@ export function ConnectorsPage() {
   const [needsOnly, setNeedsOnly] = useState(false);
   const [limit, setLimit] = useState(PAGE);
 
-  const all = useMemo(() => [...new Set(Object.values(connections ?? {}).flat())], [connections]);
+  const here = useMemo(() => (workspace ? connections?.[workspace.id] ?? [] : []), [connections, workspace]);
+  const byId = useMemo(() => new Map((workspaces ?? []).map((w) => [w.id, w])), [workspaces]);
+  const start = (ws: WorkspaceSummary | null | undefined, app: { label: string }, slug: string | null) => {
+    if (!ws || !slug) return openConnect(app);
+    if (asleep(ws)) return toast(asleepLine(ws), "bad");
+    connect(ws, slug, app.label);
+  };
+  const rowSlug = (row: ConnectorRow) => (row.app ? composioSlug(row.app) : row.type === "Connector" ? row.id.toLowerCase() : null);
   const tabRows = rows.filter((r) => (tab === "skills" ? r.type === "Skill" : r.type !== "Skill"));
   const q = query.trim().toLowerCase();
   const shown = tabRows.filter((r) => (!q || r.label.toLowerCase().includes(q) || r.category.toLowerCase().includes(q)) && (!category || r.category === category) && (!needsOnly || r.status === "needs-auth"));
@@ -135,7 +154,13 @@ export function ConnectorsPage() {
 
   const menuFor = (row: ConnectorRow): MenuItem[] => {
     const items: MenuItem[] = [{ label: "manage in the app", onSelect: () => openApp(appLink.app) }];
-    if (row.type !== "Skill") for (const w of workspaces ?? []) if (!row.workspaces.some((x) => x.id === w.id)) items.push({ label: `add to ${w.name}`, onSelect: () => openConnect(row) });
+    if (row.type === "Skill") return items;
+    const slug = rowSlug(row);
+    for (const w of workspaces ?? []) if (!row.workspaces.some((x) => x.id === w.id)) items.push({ label: `add to ${w.name}`, onSelect: () => start(w, row, slug) });
+    if (slug) for (const listed of row.workspaces) {
+      const w = byId.get(listed.id);
+      if (w) items.push({ label: `disconnect from ${w.name}`, danger: true, disabled: flows[flowKey(w.id, slug)]?.phase === "waiting", onSelect: () => asleep(w) ? toast(asleepLine(w), "bad") : disconnect(w, slug, row.label) });
+    }
     return items;
   };
   const switchTab = (v: Tab) => { setTab(v); setLimit(PAGE); setCategory(null); setNeedsOnly(false); };
@@ -143,7 +168,8 @@ export function ConnectorsPage() {
 
   return (
     <div className="min-w-0">
-      <PageHeader title="apps" sub="gmail, slack, github and more for your bots. you connect them in the dusk bot app." />
+      <PageHeader title="apps" sub={workspace ? `gmail, slack, github and more for your bots. connect adds an app to ${workspace.name}.` : "gmail, slack, github and more for your bots. you connect them in the dusk bot app."} />
+      {asleep(workspace) && <p role="status" className="-mt-4 mb-6 text-14 text-ink-3">{asleepLine(workspace!)}</p>}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Toggle<Tab> label="show" value={tab} onChange={switchTab} options={[{ value: "connectors", label: "apps" }, { value: "skills", label: "skills" }]} />
@@ -189,17 +215,18 @@ export function ConnectorsPage() {
                   <Th className="w-0 max-sm:w-12"><span className="sr-only">more</span></Th>
                 </tr>
               </thead>
-              <tbody>{shown.slice(0, limit).map((row) => <Row key={row.id} row={row} menu={menuFor(row)} onAuth={() => openConnect(row)} />)}</tbody>
+              <tbody>{shown.slice(0, limit).map((row) => <Row key={row.id} row={row} menu={menuFor(row)} onAuth={() => start(byId.get(row.workspaces[0]?.id ?? "") ?? workspace, row, rowSlug(row))} />)}</tbody>
             </Table>
             {shown.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">show more</button>}
           </>
         ) : (
-          <p className="border-y border-line py-6 text-14 text-ink-3">{q || filtered ? `nothing connected matches${q ? ` "${query.trim()}"` : " that filter"}.` : apps_ ? "nothing connected yet. pick an app below and connect it in the dusk bot app." : "no skills yet. ask a bot in a chat to learn one."}</p>
+          <p className="border-y border-line py-6 text-14 text-ink-3">{q || filtered ? `nothing connected matches${q ? ` "${query.trim()}"` : " that filter"}.` : apps_ ? "nothing connected yet. pick an app below to connect it." : "no skills yet. ask a bot in a chat to learn one."}</p>
         )}
         {!apps_ && !loading && <p className="mt-4 text-14 text-ink-4">skills ship with the app and work on every workspace.</p>}
       </section>
 
-      {apps_ && <Catalog apps={apps} connected={all} query={query} />}
+      {apps_ && <Catalog apps={apps} connected={here} query={query} onConnect={(app) => start(workspace, app, composioSlug(app))}
+        flowFor={(app) => { const slug = composioSlug(app); return workspace && slug ? flows[flowKey(workspace.id, slug)] : undefined; }} />}
     </div>
   );
 }
