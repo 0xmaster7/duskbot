@@ -239,7 +239,7 @@ export function CloudDesktopPage() {
   if (!cloud) {
     return (
       <div>
-        <PageHeader title="dusk cloud" sub="your own always-on computer in the cloud, made for your bots." />
+        <PageHeader title="dusk cloud" sub="an always-on computer for your bots." />
         <Empty />
       </div>
     );

@@ -150,10 +150,10 @@ export function UsagePage() {
   };
   const credit = billing?.credits.usedThisMonthUsd;
   const loadError = error ?? cloud.error;
-  if (loadError && !month) return <div><PageHeader title="usage" sub="this month, across every workspace." /><LoadError error={loadError} retry={() => { refresh(); cloud.refresh(); }} /></div>;
+  if (loadError && !month) return <div><PageHeader title="usage" sub="this month, every workspace." /><LoadError error={loadError} retry={() => { refresh(); cloud.refresh(); }} /></div>;
   return (
     <div className="min-w-0">
-      <PageHeader title="usage" sub="this month, across every workspace." />
+      <PageHeader title="usage" sub="this month, every workspace." />
       <div className="grid gap-4 lg:grid-cols-2">
         <Included plans={plans} now={now} />
         <Credits now={now} onAdd={() => setBuying(true)} />

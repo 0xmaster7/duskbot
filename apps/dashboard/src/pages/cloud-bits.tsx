@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Cloud, Laptop, Power, Server } from "@/icons";
+import { Cloud, Monitor, Power, Server } from "@/icons";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { useCloud } from "../data/cloud";
 import type { CheckoutSource, CloudDesktop, PlanCatalog } from "../data/contracts";
@@ -38,7 +38,7 @@ export function tierName(catalog: PlanCatalog | null, cloud: CloudDesktop) {
 
 export function workspaceIcon(w: Pick<WorkspaceSummary, "kind">, cloud: CloudDesktop | null, size = 18) {
   const p = { size, strokeWidth: 1.5, "aria-hidden": true } as const;
-  return cloud ? <Cloud {...p} /> : w.kind === "mac" ? <Laptop {...p} /> : <Server {...p} />;
+  return cloud ? <Cloud {...p} /> : w.kind === "mac" ? <Monitor {...p} /> : <Server {...p} />;
 }
 
 /** power: asleep or off wakes at once; turning off asks first, since bots stop answering */

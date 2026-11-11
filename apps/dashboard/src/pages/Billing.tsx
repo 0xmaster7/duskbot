@@ -45,7 +45,7 @@ function PlanCard({ id, catalog, interval, current, onChoose, action, disabled, 
   const paid = id !== "free";
   const monthly = b?.monthly ?? 0;
   const perMonth = interval === "year" ? Math.round(perMonthOn(monthly, interval, catalog)) : monthly;
-  const sub = !paid ? "on your own computer" : interval === "year" ? `per month · ${priceText(monthly, interval, catalog).replace("/yr", "")} billed yearly` : "per month, cancel anytime";
+  const sub = !paid ? "on your own computer" : interval === "year" ? `per month · ${priceText(monthly, interval, catalog).replace("/yr", "")} billed yearly` : "per month";
   return (
     <article className={cx("surface enter flex min-w-0 flex-col rounded-card bg-card p-2.5 pb-7", !paid && "max-lg:order-last")} style={{ ["--i" as string]: i }} aria-labelledby={`plan-card-${id}`}>
       <img src={ART[id]} alt="" width={800} height={354} className="aspect-[800/300] w-full rounded-[16px] object-cover object-bottom" draggable={false} />
@@ -70,7 +70,6 @@ function PlanCard({ id, catalog, interval, current, onChoose, action, disabled, 
 }
 
 const FAQ = [
-  { q: "what's dusk cloud?", a: "a computer of your own in the cloud, made for your bots. it stays on day and night, so they keep answering, running routines and using their computers while your mac is closed." },
   { q: "do i need it if i have a mac?", a: "no. free runs everything on your mac; your bots just pause while it sleeps. add dusk cloud when you want them working around the clock." },
   { q: "what counts as work use?", a: "anything you do for a company, for a client or to earn money. personal projects, learning and hobbies are personal use, which is free forever." },
 ];
@@ -250,25 +249,24 @@ export function BillingPage() {
 
   return (
     <div>
-      <PageHeader title="plans and billing" sub="dusk cloud keeps your bots working 24/7, even with your laptop shut." action={<IntervalToggle value={interval} onChange={setIv} catalog={catalog} />} />
+      <PageHeader title="plans and billing" sub="keep your bots working 24/7, laptop open or shut." action={<IntervalToggle value={interval} onChange={setIv} catalog={catalog} />} />
       <div className="grid gap-3 lg:grid-cols-3">
         <PlanCard id="free" i={0} catalog={catalog} interval={interval} current={current("free")} action={current("free") ? "your plan" : "switch to free"} onChoose={current("free") ? null : () => setToFree(true)} disabled={false} />
         {card("starter", 1)}
         {card("pro", 2)}
       </div>
-      <p className="mt-3 text-13 text-ink-4">{interval === "year" ? "billed yearly, two months free." : "billed monthly, cancel anytime."} personal use is free forever.{free ? ` work use is free until ${longDate(free)}.` : ""}</p>
+      <p className="mt-3 text-13 text-ink-4">{interval === "year" ? "billed yearly, two months free." : "billed monthly, cancel anytime."} personal use is free.{free ? ` work use is free until ${longDate(free)}.` : ""} need a dedicated machine? <a href={CONTACT} className="hover-link text-ink-3 underline decoration-line-2 underline-offset-4">talk to us</a>.</p>
 
       {work && (
         <div className="surface mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card bg-card px-6 py-4">
           <div className="min-w-0">
             <p className="text-14 text-ink">{ownsLicense ? "you have a work license" : "using it for work?"}</p>
-            <p className="num mt-0.5 text-13 text-ink-3">{ownsLicense ? "covers work use on every plan." : `a work license is ${priceText(work.monthly, "month", catalog).replace("/mo", "")} a month per person. pro includes one.`}</p>
+            <p className="num mt-0.5 text-13 text-ink-3">{ownsLicense ? "covers work use on every plan." : `${priceText(work.monthly, "month", catalog).replace("/mo", "")} a month per person. pro includes one.`}</p>
           </div>
-          <button type="button" className="press hover-outline h-10 shrink-0 rounded-full bg-btn px-4.5 text-14 font-medium text-ink" onClick={() => openLicense()}>{ownsLicense ? "manage" : "add a work license"}</button>
+          <button type="button" className="press hover-outline h-10 shrink-0 rounded-full bg-btn px-4.5 text-14 font-medium text-ink" onClick={() => openLicense()}>{ownsLicense ? "manage" : "add a license"}</button>
         </div>
       )}
 
-      <p className="mt-5 text-center text-13 text-ink-3">cancel anytime <span aria-hidden className="text-ink-4">·</span> set up in about a minute <span aria-hidden className="text-ink-4">·</span> need a dedicated machine? <a href={CONTACT} className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">talk to us</a></p>
 
       <Faq />
       <YourBilling catalog={catalog} onLicense={() => openLicense()} onCancelPlan={() => setCancelling(true)} />

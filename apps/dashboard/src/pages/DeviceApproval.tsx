@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Laptop } from "@/icons";
+import { Monitor } from "@/icons";
 import { useSession } from "../data/session";
 import { api, ApiError } from "../lib/api";
 import { navigate, useLocation } from "../lib/router";
@@ -57,7 +57,7 @@ export function DeviceApprovalPage() {
           <>
             <h1 className="text-20 font-medium text-ink">sign in the app on this device?</h1>
             <div className="mt-4 flex items-center gap-3 rounded-[16px] bg-btn px-4 py-3">
-              <Laptop size={18} strokeWidth={1.5} className="shrink-0 text-ink-2" aria-hidden />
+              <Monitor size={18} strokeWidth={1.5} className="shrink-0 text-ink-2" aria-hidden />
               <div className="min-w-0">
                 <div className="truncate text-14 text-ink">{found.device.name}</div>
                 <div className="truncate text-13 text-ink-3">{found.device.platform} · code <span className="num">{found.userCode}</span></div>

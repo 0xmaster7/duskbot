@@ -169,7 +169,7 @@ export function ConnectorsPage() {
 
   return (
     <div className="min-w-0">
-      <PageHeader title="apps" sub={workspace ? `gmail, slack, github and more for your bots. connect adds an app to ${workspace.name}.` : "gmail, slack, github and more for your bots. you connect them in the dusk bot app."} />
+      <PageHeader title="apps" sub={workspace ? `connect an app and your bots on ${workspace.name} can use it.` : "connect an app in the dusk bot app and your bots can use it."} />
       {asleep(workspace) && <p role="status" className="-mt-4 mb-6 text-14 text-ink-3">{sleepy(workspace!)}</p>}
 
       <div className="flex flex-wrap items-center justify-between gap-3">

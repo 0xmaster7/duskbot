@@ -57,7 +57,7 @@ export function BotsPage() {
   const now = useNow();
   return (
     <div>
-      <PageHeader title="bots" sub="everyone on this workspace, what they run on and when they last worked." />
+      <PageHeader title="bots" sub="the bots on this workspace." />
       <WorkspaceGate>
         {(detail) => {
           const bots = [...(detail.report?.bots ?? [])].sort((a, b) => Number(b.busy) - Number(a.busy) || (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0));
