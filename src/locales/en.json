@@ -7825,6 +7825,8 @@
   "routines.late.start": "Get Dusk Cloud",
   "routines.cloudUpsell.alwaysOn": "On 24/7",
   "routines.cloudUpsell.getCloud": "Get Dusk Cloud",
+  "routines.cloudUpsell.titleEvent": "This runs only while your {device} is awake",
+  "routines.cloudUpsell.bodyEvent": "{name} starts when another app sends something, so it only runs while this {device} is awake. Dusk Cloud keeps it running 24/7, even when this {device} is off.",
   "cloudUpsell.sidebar": "Bots nap when your {device} does. Keep them up 24/7.",
   "cloudUpsell.snooze": "Hide for a few days",
   "cloudUpsell.alwaysOn": "This runs only while your {device} is awake.",

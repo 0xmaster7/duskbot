@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newRoutineSinceBaseline } from "./routine-cloud-upsell";
+import { madeSince, newRoutineSinceBaseline } from "./routine-cloud-upsell";
 
 describe("new routines since the first non-empty baseline", () => {
   const routine = (id: string, enabled = true) => ({ id, enabled });
@@ -26,5 +26,13 @@ describe("new routines since the first non-empty baseline", () => {
     const next = newRoutineSinceBaseline(baseline, [routine("disabled", false), { ...routine("held"), heldFor: "no_engine" as const }]);
     expect(next.created).toBeNull();
     expect(newRoutineSinceBaseline(next.seen, [routine("disabled"), routine("held")]).created).toBeNull();
+  });
+});
+
+describe("what was made since the window opened", () => {
+  it("keeps only what was created from then on, so the first routine ever counts and late lists never do", () => {
+    const old = { id: "old", createdAt: 100 }, fresh = { id: "fresh", createdAt: 200 };
+    expect(madeSince([old, fresh], 150)).toEqual([fresh]);
+    expect(newRoutineSinceBaseline(new Set(), madeSince([{ ...fresh, enabled: true }], 150).map(entry => entry)).created?.id).toBe("fresh");
   });
 });
