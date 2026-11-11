@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, Search } from "lucide-react";
+import { ChevronLeft, Search } from "../../icons";
 
 import { sharedLevel, type BotAccess } from "../../../shared/bot-access";
 import { botOwner } from "../../../shared/bot-owner";

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "../../icons";
 import { BotAvatar } from "@/components/Avatar";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { t } from "@/lib/i18n";

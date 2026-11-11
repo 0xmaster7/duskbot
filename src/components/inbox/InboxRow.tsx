@@ -1,4 +1,4 @@
-import { Check, CornerUpLeft, ExternalLink, Split, X, type LucideIcon } from "lucide-react";
+import { Check, CornerUpLeft, ExternalLink, Split, X, type GlyphIcon } from "../../icons";
 import type { InboxRow } from "../../../shared/inbox";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -8,7 +8,7 @@ import { threadUpdatedLabel } from "../SidebarThreadRow";
 import { choicesLine, headlineOf, snippetOf } from "./inbox-answer";
 import { placeOf, quickActions, senderLabel, subjectOf, textOf, type QuickAction } from "./inbox-view";
 
-const ACTION_LOOK: Record<QuickAction, { Icon: LucideIcon; label: LocaleKey }> = {
+const ACTION_LOOK: Record<QuickAction, { Icon: GlyphIcon; label: LocaleKey }> = {
   allow: { Icon: Check, label: "approval.action.allowOnce" },
   deny: { Icon: X, label: "approval.action.deny" },
   reply: { Icon: CornerUpLeft, label: "chat.reply" },

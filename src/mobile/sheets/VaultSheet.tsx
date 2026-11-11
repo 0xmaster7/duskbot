@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronRight, KeyRound, Plus } from "lucide-react";
+import { ChevronRight, KeyRound, Plus } from "../../icons";
 import { t } from "@/lib/i18n";
 import { deleteLogin, listLogins } from "@/lib/logins";
 import { api, useStore } from "@/state/store";

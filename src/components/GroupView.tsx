@@ -3,7 +3,7 @@ import { splitReplyBlocks } from "@/lib/formatted-reply";
 import { activeLocale, t } from "@/lib/i18n";
 import { useReactor } from "@/lib/cloud-guest";
 import { otherSpeaker } from "@/lib/own-profile";
-import { Check, ChevronDown, FolderOpen, Loader2, Pin, X } from "lucide-react";
+import { Check, ChevronDown, FolderOpen, Loader2, Pin, X } from "../icons";
 import {
   api,
   useStore,

@@ -35,7 +35,7 @@ describe("a turn whose reply came back but a step failed", () => {
     const html = show(failedTurnTool(cause, { terminal: true, partial: true }));
     expect(html).toContain("Partly done. The reply came back, but a step didn&#x27;t work");
     expect(html).toContain("warning");
-    expect(html).not.toMatch(/danger|lucide-triangle-alert|lucide-alert-triangle/);
+    expect(html).not.toMatch(/danger|gi-triangle-alert|gi-alert-triangle/);
     expect(html).toMatch(/<details[\s\S]*Details[\s\S]*Stopped because the tool call/);
     expect(html).toContain("Retry");
   });

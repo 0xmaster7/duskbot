@@ -1,4 +1,4 @@
-import { KeyRound, X } from "lucide-react";
+import { KeyRound, X } from "../../icons";
 import type { PasskeyWall } from "../../../shared/passkey-wall";
 import { PASSKEY_HELP_URL, openExternalLink } from "@/lib/app-links";
 import { t } from "@/lib/i18n";

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Cloud, Laptop, Power, Server } from "lucide-react";
+import { Cloud, Laptop, Power, Server } from "@/icons";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { useCloud } from "../data/cloud";
 import type { CheckoutSource, CloudDesktop, PlanCatalog } from "../data/contracts";

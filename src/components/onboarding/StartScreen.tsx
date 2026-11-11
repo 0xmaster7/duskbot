@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { ArrowUp, Check, Inbox, LoaderCircle, Plane, Search, ShieldCheck, Tag, type LucideIcon } from "lucide-react";
+import { ArrowUp, Check, Inbox, LoaderCircle, Plane, Search, ShieldCheck, Tag, type GlyphIcon } from "../../icons";
 import { BotAvatar, MausAvatar } from "@/components/Avatar";
 import { engineReady } from "@/components/EngineLibrary";
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
@@ -14,7 +14,7 @@ import { ConnectAiDialog } from "./ConnectAi";
 import { CodeSlot, PasteSlot, pillWay, SignInPill, useSignInPill } from "./SignInPill";
 import { useWelcomeAi } from "./welcome-ai";
 
-const ICONS: Record<StarterJobId, LucideIcon> = { inbox: Inbox, price: Tag, trip: Plane, research: Search };
+const ICONS: Record<StarterJobId, GlyphIcon> = { inbox: Inbox, price: Tag, trip: Plane, research: Search };
 const LINK = "rounded text-ink-secondary hover:text-ink";
 
 /** The first run's only screen: what the bot should do first, written in a real composer that a job fills in. Under it,

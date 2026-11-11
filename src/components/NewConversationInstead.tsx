@@ -1,4 +1,4 @@
-import { Eye } from "lucide-react";
+import { Eye } from "../icons";
 
 import { t } from "@/lib/i18n";
 import type { Bot } from "@/state/store";

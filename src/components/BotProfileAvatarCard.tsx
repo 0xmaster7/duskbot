@@ -1,4 +1,4 @@
-import { ImagePlus, Loader2, Trash2 } from "lucide-react";
+import { ImagePlus, Loader2, Trash2 } from "../icons";
 
 import type { Bot } from "@/state/store";
 import { cn } from "@/lib/cn";

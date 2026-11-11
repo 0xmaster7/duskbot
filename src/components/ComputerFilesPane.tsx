@@ -1,4 +1,4 @@
-import { FileText, FolderOpen } from "lucide-react";
+import { FileText, FolderOpen } from "../icons";
 import { useMemo } from "react";
 import { useStore, visibleMessages, type Bot } from "@/state/store";
 import { useDesktopCapabilities } from "./DesktopCapabilities";

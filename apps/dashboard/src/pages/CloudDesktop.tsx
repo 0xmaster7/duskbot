@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppWindow, Check } from "lucide-react";
+import { AppWindow, Check } from "@/icons";
 import { useCloud } from "../data/cloud";
 import type { CloudDesktop, DesktopTier, PlanCatalog, SlackWake } from "../data/contracts";
 import { botsLine, desktopMonthly, desktopOf, dollars, specLine } from "../data/pricing";

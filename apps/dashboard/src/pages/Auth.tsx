@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { ArrowLeft, LoaderCircle } from "lucide-react";
+import { ArrowLeft, LoaderCircle } from "@/icons";
 import poster from "../art/poster-birches.webp";
 import type { AuthProviders, IdentityProvider } from "../data/contracts";
 import { useSession } from "../data/session";

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
-import { Cloud, Laptop, Monitor, Server, type LucideIcon } from "lucide-react";
+import { Cloud, Laptop, Monitor, Server, type GlyphIcon } from "../../icons";
 
 import { cloudMoveStage, openCloudMove, runsOnHost, runsOnStatus, type CloudMoveStage, type RunsOnHost, type RunsOnKind, type RunsOnStatus } from "@/lib/cloud-move";
 import { cn } from "@/lib/cn";
@@ -187,7 +187,7 @@ const CHOICE_ICON: Record<PlaceChoice, IconName> = {
 /** a quiet secondary move: plain 12px words that darken on hover, under the one primary action */
 const quietCls = "inline-flex h-7 cursor-pointer items-center rounded-full px-2.5 text-[12px] leading-4 text-ink/[0.56] hover:bg-ink/[0.04] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
 
-const HOST_ICON: Record<RunsOnKind, LucideIcon> = { mac: Laptop, pc: Monitor, vps: Server, cloud: Cloud };
+const HOST_ICON: Record<RunsOnKind, GlyphIcon> = { mac: Laptop, pc: Monitor, vps: Server, cloud: Cloud };
 const STATUS_DOT: Record<RunsOnStatus, string> = { awake: "bg-success", asleep: "bg-ink/30", offline: "bg-warning" };
 
 /** The card at the top of the tab: where this bot runs and whether it is up, which screen it uses, and the move. */

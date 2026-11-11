@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@/icons";
 import type { BotReport, ComputerReport, WorkspaceDetail } from "../../../../shared/dashboard-protocol";
 import { ago, bytes, compact, until, usd } from "../lib/format";
 import { Link } from "../lib/router";

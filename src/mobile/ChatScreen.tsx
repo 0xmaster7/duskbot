@@ -1,4 +1,4 @@
-import { ChevronLeft, Monitor } from "lucide-react";
+import { ChevronLeft, Monitor } from "../icons";
 import { useStore, type Bot, type Group } from "@/state/store";
 import { ChatView } from "@/components/ChatView";
 import { GroupView } from "@/components/GroupView";

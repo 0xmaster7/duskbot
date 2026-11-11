@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, MoreHorizontal, UserRound, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, MoreHorizontal, UserRound, X } from "../../icons";
 import type { InboxRow, InboxView } from "../../../shared/inbox";
 import { t } from "@/lib/i18n";
 import { readInboxLine } from "@/state/inbox";

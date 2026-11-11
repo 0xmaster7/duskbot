@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode, type TdHTMLAttributes, type ThHTMLAttributes } from "react";
-import { Check, MoreHorizontal } from "lucide-react";
+import { Check, MoreHorizontal } from "@/icons";
 import { cx } from "./kit";
 
 /** a calm table: no card, quiet grey headers, 14px rows at least 48px tall, hairlines between */

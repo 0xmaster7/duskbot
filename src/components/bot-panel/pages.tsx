@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { FolderOpen, Plus } from "lucide-react";
+import { FolderOpen, Plus } from "../../icons";
 
 import { appSwitchPatch } from "@/lib/bot-app-access";
 import { t } from "@/lib/i18n";

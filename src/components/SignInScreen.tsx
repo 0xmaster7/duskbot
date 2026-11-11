@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "../icons";
 
 import { api } from "@/state/api";
 import { t } from "@/lib/i18n";

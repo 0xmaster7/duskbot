@@ -2,7 +2,7 @@
 // (recorded as app_computer_move), and after payment the bots move by themselves; kept here before: one tap moves them.
 // While they move the sheet says how far it got, and Stop or Move back is the way back. Opened from any bot's Computer tab.
 import { useEffect, useRef, useState } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "../../icons";
 
 import { cloudPlanView, moneyBackLine, offerTrialDays, usd } from "@/lib/cloud-plan";
 import { MOVE_IN_PROGRESS, cloudMoveStage, moveFollowUp, moveIntended, readMoveIntent, writeMoveIntent, type CloudMoveStage, type CloudMoveTarget } from "@/lib/cloud-move";

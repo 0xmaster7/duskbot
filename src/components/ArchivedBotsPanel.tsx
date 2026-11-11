@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Loader2, Trash2, X } from "lucide-react";
+import { Loader2, Trash2, X } from "../icons";
 
 import { t } from "@/lib/i18n";
 import { api, openBot, useStore, type Bot } from "@/state/store";

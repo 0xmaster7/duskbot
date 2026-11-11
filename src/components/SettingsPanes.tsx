@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "../icons";
 import { useStore, type AppSettingsSection } from "@/state/store";
 import { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
 import { t } from "@/lib/i18n";

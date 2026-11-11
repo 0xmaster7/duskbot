@@ -1,6 +1,6 @@
 // Screen 2: sign in inside the sheet with an emailed code; single sign-on and two-step accounts continue in the browser.
 import type { FormEvent } from "react";
-import { Check, ExternalLink, Loader2 } from "lucide-react";
+import { Check, ExternalLink, Loader2 } from "../../icons";
 import { CodeBoxes } from "./CodeBoxes";
 import type { CloudSignInPhase, CloudSignInProblem } from "@/lib/cloud-plan";
 import { t } from "@/lib/i18n";

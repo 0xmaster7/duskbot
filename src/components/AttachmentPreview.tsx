@@ -15,7 +15,7 @@ import {
   ImageOff,
   LoaderCircle,
   RotateCcw,
-} from "lucide-react";
+} from "../icons";
 
 import {
   attachmentBasename,

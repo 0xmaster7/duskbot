@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "../icons";
 import { cn } from "@/lib/cn";
 import { activeLocale, documentLanguage, t } from "@/lib/i18n";
 import { listenLiveFrames } from "@/lib/live-events";

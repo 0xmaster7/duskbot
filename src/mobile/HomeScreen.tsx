@@ -1,6 +1,6 @@
 import { memo, useCallback, useContext, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { motion, useTransform, type MotionValue } from "motion/react";
-import { BellDot, Check, MonitorSmartphone, Pin, PinOff, Plus, Search, Star, UserRound } from "lucide-react";
+import { BellDot, Check, MonitorSmartphone, Pin, PinOff, Plus, Search, Star, UserRound } from "../icons";
 import { api, useStore, type Bot, type Group } from "@/state/store";
 import { BotAvatar, MausAvatar } from "@/components/Avatar";
 import { GroupAvatar, useGroupYou } from "@/components/GroupAvatar";

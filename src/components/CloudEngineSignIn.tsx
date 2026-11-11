@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, Check, Info, KeyRound, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Check, Info, KeyRound, RefreshCw } from "../icons";
 import { MausAvatar } from "@/components/Avatar";
 import { startCloudSetup } from "@/components/CloudIntent";
 import { engineReady } from "@/components/EngineLibrary";

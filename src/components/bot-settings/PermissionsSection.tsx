@@ -1,7 +1,7 @@
 // LocalComputerAutoWarning remembers its bot, so a bot switch while it is up never applies the choice to the new bot.
 import { useTeamPeople } from "@/state/team-people";
 import { useEffect, useState } from "react";
-import { Crown } from "lucide-react";
+import { Crown } from "../../icons";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

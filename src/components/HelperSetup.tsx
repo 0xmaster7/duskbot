@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Cloud, Download, Mail, Smartphone, Sparkles, type LucideIcon } from "lucide-react";
+import { Cloud, Download, Mail, Smartphone, Sparkles, type GlyphIcon } from "../icons";
 
 import { track } from "@/lib/analytics";
 import { INTRO_CHIPS, type IntroChip } from "@/lib/default-bot";
@@ -10,7 +10,7 @@ import { useStore, type Action } from "@/state/store";
 import { ConnectAiDialog } from "./onboarding/ConnectAi";
 import { useWelcomeAi } from "./onboarding/welcome-ai";
 
-const CHIPS: Record<IntroChip, { label: LocaleKey; icon: LucideIcon }> = {
+const CHIPS: Record<IntroChip, { label: LocaleKey; icon: GlyphIcon }> = {
   ai: { label: "helperIntro.chip.ai", icon: Sparkles },
   apps: { label: "helperIntro.chip.mail", icon: Mail },
   import: { label: "helperIntro.chip.skills", icon: Download },

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { t } from "@/lib/i18n";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "../icons";
 import {
   PhoneSetupFlowView,
   companionAccountActionError,

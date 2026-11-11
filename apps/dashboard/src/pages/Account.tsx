@@ -1,6 +1,6 @@
 import type { DeletionBlocker } from "../../../../shared/billing-api";
 import { useEffect, useState } from "react";
-import { Globe, Monitor, Smartphone } from "lucide-react";
+import { Globe, Monitor, Smartphone } from "@/icons";
 import { ProviderMark } from "../ui/BrandMarks";
 import { useCloud } from "../data/cloud";
 import type { IdentityProvider, NotificationPrefs } from "../data/contracts";

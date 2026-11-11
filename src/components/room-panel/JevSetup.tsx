@@ -1,7 +1,7 @@
 // Jev, the small model that picks who answers in a group chat: set up right where "Let Dusk choose" is picked.
 // Security: keys are write-only; the server reports configured-or-not and the model, never a key.
 import { useEffect, useState } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "../../icons";
 
 import { openExternalLink } from "@/lib/app-links";
 import { cn } from "@/lib/cn";

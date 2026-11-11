@@ -1,4 +1,4 @@
-import { Check, KeyRound, Plus, Search } from "lucide-react";
+import { Check, KeyRound, Plus, Search } from "../icons";
 import type { InstanceInfo } from "@/state/store";
 import { isClaudeAccount, SIGN_IN_FAMILY_LABEL, signInFamily, splitEngineRail, type SignInFamily } from "@/lib/engine-rail";
 import { cn } from "@/lib/cn";

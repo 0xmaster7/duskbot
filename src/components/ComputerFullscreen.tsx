@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "../icons";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

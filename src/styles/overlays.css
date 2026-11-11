@@ -219,14 +219,14 @@
   box-shadow: none;
 }
 [role="alert"]:is([class*="bg-danger/"], [class*="border-danger"]):not(.ui-notice)::before {
-  /* lucide's circle-alert (ISC) as a luminance mask: the disc filled, its mark cut out */
+  /* gravity ui's circle-exclamation-fill (MIT) as the mask */
   content: "";
   display: inline-block;
   width: 14px;
   height: 14px;
   margin-inline-end: 8px;
   background-color: var(--color-danger);
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='white'/%3E%3Cpath d='M12 8v4M12 16h.01' stroke='black' stroke-width='2.25' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat luminance;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0m-6 2.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0M8.75 5a.75.75 0 0 0-1.5 0v2.5a.75.75 0 0 0 1.5 0z'/%3E%3C/svg%3E") center / contain no-repeat;
   vertical-align: -2px;
 }
 [role="alert"]:is([class*="bg-danger/"], [class*="border-danger"]):not(.ui-notice) .text-danger {

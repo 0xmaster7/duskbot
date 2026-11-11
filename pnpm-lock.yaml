@@ -30,6 +30,9 @@ importers:
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
+      '@gravity-ui/icons':
+        specifier: ^2.23.1
+        version: 2.23.1(react@19.2.8)
       '@hpke/core':
         specifier: 1.9.0
         version: 1.9.0
@@ -72,9 +75,6 @@ importers:
       katex:
         specifier: ^0.16.47
         version: 0.16.47
-      lucide-react:
-        specifier: ^0.539.0
-        version: 0.539.0(react@19.2.8)
       mailparser:
         specifier: 3.14.1
         version: 3.14.1
@@ -205,6 +205,9 @@ importers:
       happy-dom:
         specifier: ^21.0.4
         version: 21.0.4
+      lucide-react:
+        specifier: ^0.539.0
+        version: 0.539.0(react@19.2.8)
       oxlint:
         specifier: 1.80.0
         version: 1.80.0
@@ -946,6 +949,14 @@ packages:
 
   '@fontsource-variable/inter@5.3.0':
     resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
+
+  '@gravity-ui/icons@2.23.1':
+    resolution: {integrity: sha512-sinT5jSWuP0KCYPJVsl4PiTnZUNQ3h4BgPazdcVf/nTNlZhsbDivfuLFSqCt5dC/Tn3NzhrTWJXqhlBQtF710Q==}
+    peerDependencies:
+      react: '*'
+    peerDependenciesMeta:
+      react:
+        optional: true
 
   '@hpke/common@1.10.1':
     resolution: {integrity: sha512-moJwhmtLtuxiUzzNp1jpfBfx8yefKoO9D/RCR9dmwrnc7qjJqId1rEtQz+lSlU5cabX8daToMSx/7HayXOiaFw==}
@@ -5379,6 +5390,12 @@ snapshots:
   '@fontsource-variable/geist@5.3.0': {}
 
   '@fontsource-variable/inter@5.3.0': {}
+
+  '@gravity-ui/icons@2.23.1(react@19.2.8)':
+    dependencies:
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.2.8
 
   '@hpke/common@1.10.1': {}
 

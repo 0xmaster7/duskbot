@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Code2, Download, ExternalLink, Eye, LoaderCircle, RotateCcw } from "lucide-react";
+import { Check, Code2, Download, ExternalLink, Eye, LoaderCircle, RotateCcw } from "../icons";
 import { requestMessageFile, useLocalFileSave, type MessageAttachmentContext } from "./AttachmentPreview";
 import { TableDialog } from "./RichTable";
 import { readTableResponse } from "./TableFilePreview";

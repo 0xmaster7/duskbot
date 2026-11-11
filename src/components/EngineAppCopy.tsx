@@ -1,6 +1,6 @@
 // An engine whose CLI runs the copy Dusk Bot installed: the person's terminal does not reach it, so it is
 // finished here, never with a terminal step.
-import { Check, KeyRound, X } from "lucide-react";
+import { Check, KeyRound, X } from "../icons";
 import { useStore, type InstanceInfo } from "@/state/store";
 import { dismissAppCopySwitch, useAppCopySwitch } from "@/state/engine-install";
 import { cn } from "@/lib/cn";

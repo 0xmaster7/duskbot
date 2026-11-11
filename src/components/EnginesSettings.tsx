@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "../icons";
 
 import { api, useStore, type InstanceInfo } from "@/state/store";
 import { EngineCard, EngineSections, RefreshEngines, engineReady } from "./EngineLibrary";

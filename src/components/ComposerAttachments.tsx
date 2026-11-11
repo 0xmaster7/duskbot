@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ClipboardPaste, MessageSquareText, RotateCcw, X } from "lucide-react";
+import { ClipboardPaste, MessageSquareText, RotateCcw, X } from "../icons";
 import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
 import {

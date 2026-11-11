@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Check, ChevronDown, Cloud, Minus } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Cloud, Minus } from "../icons";
 import { MausAvatar } from "@/components/Avatar";
 import { engineReady } from "@/components/EngineLibrary";
 import { staggerIndex } from "@/components/onboarding/beats/shared";

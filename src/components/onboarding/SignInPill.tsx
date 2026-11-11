@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, Copy, LoaderCircle } from "lucide-react";
+import { ArrowUp, Check, Copy, LoaderCircle } from "../../icons";
 import { claudeSignInLink } from "@/components/ClaudeSignIn";
 import { chatgptPlanLink, deviceSignInProvider, type DeviceSignInStatus } from "@/components/DeviceSignIn";
 import { needsSignIn } from "@/components/EngineSetup";

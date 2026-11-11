@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode, type Ref } from "react";
-import { Check, ChevronRight, Copy, type LucideIcon } from "lucide-react";
+import { Check, ChevronRight, Copy, type GlyphIcon } from "../icons";
 
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
@@ -103,7 +103,7 @@ export function RowText({ title, hint, tone, titleId, hintId }: { title: ReactNo
   );
 }
 
-export function RowIcon({ icon: Icon }: { icon: LucideIcon }) {
+export function RowIcon({ icon: Icon }: { icon: GlyphIcon }) {
   return (
     <span className="flex size-6 shrink-0 items-center justify-center rounded-md text-ink-secondary" aria-hidden="true">
       <Icon size={15} />
@@ -121,7 +121,7 @@ export function NavRow({ title, hint, value, icon, onClick, drill = true, extern
   title: ReactNode;
   hint?: ReactNode;
   value?: ReactNode;
-  icon?: LucideIcon;
+  icon?: GlyphIcon;
   onClick: () => void;
   drill?: boolean;
   external?: boolean;
@@ -167,7 +167,7 @@ export function ItemRow({ title, hint, value, icon, tone, children, ...rest }: {
   title: ReactNode;
   hint?: ReactNode;
   value?: ReactNode;
-  icon?: LucideIcon;
+  icon?: GlyphIcon;
   tone?: "danger" | "warn";
   children?: ReactNode;
   "data-panel-row"?: string;

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "../icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { isTickable, summarizeDelete } from "@/lib/bulk-select";

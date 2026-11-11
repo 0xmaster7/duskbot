@@ -2,7 +2,7 @@
 // on, answered right there. An idle bot says nothing. The mascot carries the state; the words only add what it can't.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowUp, Check, CircleAlert, CircleHelp, CornerUpLeft, FileCheck2, KeyRound, Plug, ShieldCheck, Square, X } from "lucide-react";
+import { ArrowUp, Check, CircleAlert, CircleHelp, CornerUpLeft, FileCheck2, KeyRound, Plug, ShieldCheck, Square, X } from "../icons";
 import { finishedSince, isBusy, shortAgo } from "./mood";
 import { say, type AmbientLabels } from "./say";
 import { FADE, FADE_OUT, SETTLE } from "./shared";

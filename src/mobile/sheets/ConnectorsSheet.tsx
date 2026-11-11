@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Check, Search } from "lucide-react";
+import { Check, Search } from "../../icons";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { api } from "@/state/store";

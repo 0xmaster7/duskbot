@@ -1,9 +1,9 @@
-import { Box, Cloud, Globe, Monitor, Power, Sparkles, type LucideProps } from "lucide-react";
+import { Box, Cloud, Globe, Monitor, Power, Sparkles, type GlyphProps } from "../icons";
 import type { EffectivePlace } from "@/lib/place";
 
 const ICONS = { cloud: Cloud, vm: Box, local: Monitor, browser: Globe, auto: Sparkles, off: Power } as const;
 
-export function PlaceIcon({ place, ...props }: { place: EffectivePlace } & LucideProps) {
+export function PlaceIcon({ place, ...props }: { place: EffectivePlace } & GlyphProps) {
   const Icon = ICONS[place];
   return <Icon {...props} />;
 }

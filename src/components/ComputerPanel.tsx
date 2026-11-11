@@ -5,7 +5,7 @@ import { Switch } from "./SettingsPrimitives";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { waitForLocalVmReady } from "@/lib/local-vm-readiness";
-import { Globe, Hand, Loader2, Maximize2, Monitor, Moon, Power, X } from "lucide-react";
+import { Globe, Hand, Loader2, Maximize2, Monitor, Moon, Power, X } from "../icons";
 import { api, ApiError, currentTaskBot, useStore, type Bot, type ConfigStatus } from "@/state/store";
 import { ComputerFullscreen, ComputerFullscreenNote, fullscreenActionCls, type ScreenControl } from "./ComputerFullscreen";
 import { MausAvatar } from "./Avatar";

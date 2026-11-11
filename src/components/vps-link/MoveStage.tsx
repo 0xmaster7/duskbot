@@ -1,5 +1,5 @@
 // the move: what goes, the bots travelling to the server one by one, then a free Mac with its backup kept
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "../../icons";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";

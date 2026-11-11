@@ -11,7 +11,7 @@ import {
 } from "react";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
-import { AlertTriangle, Check, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, Loader2 } from "../icons";
 import { QRCodeSVG } from "qrcode.react";
 import { phonePairingLink } from "../../shared/pairing-link";
 import {

@@ -2,7 +2,7 @@
 // this viewer. The full-screen viewer is an idea from Threebot (MIT).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
-import { Download, RotateCcw, Scan } from "lucide-react";
+import { Download, RotateCcw, Scan } from "../icons";
 
 import { activeLocale, t } from "@/lib/i18n";
 import { Icon } from "./Icon";

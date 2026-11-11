@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
 import { AnimatePresence, motion, useSpring, useTransform } from "motion/react";
-import { Plus } from "lucide-react";
+import { Plus } from "../../icons";
 import { MausAvatar, type MausAvatarHandle } from "@/components/Avatar";
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
 import { MOOD_EMOJI } from "@/ambient/mood";

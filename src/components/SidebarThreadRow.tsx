@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState, type Dispatch } from "react";
 import { createPortal } from "react-dom";
-import { Archive, ArchiveRestore, BellOff, Check, Clock, Clock3, FolderInput, Link2, Link2Off, Loader2, MoreHorizontal, Pencil, Pin, PinOff, RefreshCw, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, BellOff, Check, Clock, Clock3, FolderInput, Link2, Link2Off, Loader2, MoreHorizontal, Pencil, Pin, PinOff, RefreshCw, Trash2 } from "../icons";
 import type { Action, BotProject, Task } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { MENU_SHEET } from "./menu-recipe";

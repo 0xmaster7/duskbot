@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, Download, Share } from "lucide-react";
+import { Check, Copy, Download, Share } from "../icons";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

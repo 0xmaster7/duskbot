@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { Inbox, Maximize2, Minimize2, Search, X } from "lucide-react";
+import { Inbox, Maximize2, Minimize2, Search, X } from "../../icons";
 import type { InboxRow } from "../../../shared/inbox";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

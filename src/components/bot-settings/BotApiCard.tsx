@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Copy } from "lucide-react";
+import { Copy } from "../../icons";
 
 import { cn } from "@/lib/cn";
 import { copyText } from "@/lib/copy-text";

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X } from "../../icons";
 import { BotAvatar, MausAvatar } from "@/components/Avatar";
 import { GroupAvatar, useGroupYou } from "@/components/GroupAvatar";
 import { lastPreviewable, sidebarPreviewMessages } from "@/components/sidebar-preview";

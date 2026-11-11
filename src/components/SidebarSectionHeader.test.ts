@@ -22,7 +22,7 @@ describe("SidebarSectionHeader", () => {
     expect(html).toContain('aria-hidden="true"');
     expect(html).not.toContain('role="button"');
     expect(html).not.toContain("Delete Work department");
-    expect(html.indexOf(">Work</span>")).toBeLessThan(html.indexOf("lucide-chevron-down"));
+    expect(html.indexOf(">Work</span>")).toBeLessThan(html.indexOf("gi-chevron-down"));
     expect(html).not.toContain("uppercase");
   });
 
@@ -106,8 +106,8 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     expect(html).toMatch(/aria-label="Actions for Work"[^>]*class="absolute [^"]*\bpointer-events-none\b[^"]*\bopacity-0\b[^"]*\bgroup-has-\[:focus-visible\]\/section:opacity-100\b[^"]*\btouch:opacity-100\b/);
     expect(html).not.toMatch(/aria-label="Actions for Work"[^>]*class="[^"]*\bgroup-hover\//);
     expect(html).not.toContain("Delete Work department");
-    expect(html).not.toContain("lucide-grip-vertical");
-    expect(html).not.toContain("lucide-trash");
+    expect(html).not.toContain("gi-grip-vertical");
+    expect(html).not.toContain("gi-trash");
     expect(html).toMatch(/<span class="absolute flex h-4 w-3 items-center justify-center text-ink-secondary opacity-0 transition-opacity duration-\[120ms\] ease-out group-hover\/section:opacity-100 group-focus-within\/section:opacity-100 touch:opacity-100 -right-px rotate-90"><svg [^>]*class="[^"]*\bui-icon\b[^"]*" data-icon-name="chevron-right"/);
     expect(html.indexOf(">Work</span>")).toBeLessThan(html.indexOf("Actions for Work"));
     const button = { id: "dots" };

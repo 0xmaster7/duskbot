@@ -1,4 +1,4 @@
-import { CircleDashed } from "lucide-react";
+import { CircleDashed } from "../icons";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import type { ActionKind } from "../../shared/wire";

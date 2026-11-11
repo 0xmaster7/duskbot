@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRightLeft, Loader2 } from "lucide-react";
+import { ArrowRightLeft, Loader2 } from "../../icons";
 import { ipcErrorText, teamMoveLine } from "@/lib/cloud-send";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

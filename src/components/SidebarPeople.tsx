@@ -2,7 +2,7 @@
 // everything sent to you arrives, with the inbox's list beside it, and counts the asks waiting on you there. Anyone
 // else's puts @their name in the composer, which reaches their inbox once sent. For the team's admins, one more row opens
 // the team's People page, where invitations are sent, so someone alone on a new team still has a way to bring people in.
-import { UserPlus } from "lucide-react";
+import { UserPlus } from "../icons";
 import { botOwner } from "../../shared/bot-owner";
 import { openAsksOf } from "@/lib/bot-unread";
 import { cn } from "@/lib/cn";

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useMotionValue, useTransform, type AnimationPlaybackControls } from "motion/react";
-import { ChevronLeft, X } from "lucide-react";
+import { ChevronLeft, X } from "../icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { canScroll, ownsDrag, useDrag } from "./gesture";

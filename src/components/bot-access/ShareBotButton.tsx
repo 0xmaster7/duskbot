@@ -1,5 +1,5 @@
 import { useCallback, useState, type ReactNode } from "react";
-import { Share } from "lucide-react";
+import { Share } from "../../icons";
 
 import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, LoaderCircle, RefreshCw, X } from "lucide-react";
+import { Check, ChevronDown, LoaderCircle, RefreshCw, X } from "../../icons";
 import { EngineSetup } from "@/components/EngineSetup";
 import { engineReady } from "@/components/EngineLibrary";
 import { InstanceProviderMark } from "@/components/ProviderIcons";

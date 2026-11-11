@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "../../icons";
 import { cn } from "@/lib/cn";
 import { dur, spring } from "../motion";
 

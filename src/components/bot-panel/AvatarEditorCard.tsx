@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "../../icons";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

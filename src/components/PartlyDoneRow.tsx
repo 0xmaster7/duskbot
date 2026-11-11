@@ -1,4 +1,4 @@
-import { RefreshCw } from "lucide-react";
+import { RefreshCw } from "../icons";
 import { t } from "@/lib/i18n";
 import { NOTE_ACTION, TranscriptNote } from "./TranscriptNote";
 

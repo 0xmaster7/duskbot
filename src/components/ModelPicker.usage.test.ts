@@ -79,7 +79,7 @@ describe("the model button's usage bars", () => {
     it(`sit just after the model name and before the chevron, and name the usage for a screen reader (${advanced ? "Advanced" : "Simple"})`, () => {
       fixture.advanced = advanced;
       render();
-      const parts = [...chip().querySelectorAll("[data-usage-bars], svg.lucide-chevron-down")];
+      const parts = [...chip().querySelectorAll("[data-usage-bars], svg.gi-chevron-down")];
       expect(parts.map((part) => part.hasAttribute("data-usage-bars") ? "bars" : "chevron")).toEqual(["bars", "chevron"]);
       expect(chip().textContent).toContain("Claude Sonnet 5");
       // the reset time reads in the machine's own clock, so match it the way the app formats it

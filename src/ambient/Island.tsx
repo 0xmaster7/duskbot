@@ -5,7 +5,7 @@
 // bot's mascot in a wrapping grid with its state, and below it any ask waiting on the person, answered in place.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion, useTransform } from "motion/react";
-import { Check, Plus } from "lucide-react";
+import { Check, Plus } from "../icons";
 import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, moodOf, rankBots, shortAgo, waitingCount, type Mood } from "./mood";
 import { Reveal, rowLine, trayFor, useRowMoments } from "./rows";
 import { attention, dotOf, eventKey, isFresh, isSeenEvent, newsOf, useSeen } from "./seen";

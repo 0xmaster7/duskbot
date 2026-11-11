@@ -1,5 +1,5 @@
 import { useMemo, useState, type JSX } from "react";
-import { Copy, Cpu, Download, Gauge, Monitor, MoreHorizontal, Search, Share, UserRound } from "lucide-react";
+import { Copy, Cpu, Download, Gauge, Monitor, MoreHorizontal, Search, Share, UserRound } from "../icons";
 import { currentTaskBot, useStore, visibleMessages, type Bot } from "@/state/store";
 import { requestChatFind, useChatFindOpen } from "@/lib/chat-find";
 import { usageSummary } from "@/lib/chat-usage-summary";

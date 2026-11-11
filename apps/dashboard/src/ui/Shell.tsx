@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, Blocks, Bot, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, Layers, LogOut, Menu, Plus, X } from "lucide-react";
+import { ArrowUpRight, Blocks, Bot, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, Layers, LogOut, Menu, Plus, X } from "@/icons";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";

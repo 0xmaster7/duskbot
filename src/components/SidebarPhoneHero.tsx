@@ -1,4 +1,4 @@
-import { Crown, MoreHorizontal } from "lucide-react";
+import { Crown, MoreHorizontal } from "../icons";
 import { t } from "@/lib/i18n";
 import { stateForBot } from "@/lib/mascot";
 import type { Bot } from "@/state/store";

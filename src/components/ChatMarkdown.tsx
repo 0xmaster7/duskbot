@@ -4,7 +4,7 @@ import Markdown, { defaultUrlTransform, type Components, type ExtraProps, type O
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { fromMarkdown, type Options as MarkdownParseOptions } from "mdast-util-from-markdown";
-import { Check, Download, Eye, LoaderCircle, RotateCcw, WrapText } from "lucide-react";
+import { Check, Download, Eye, LoaderCircle, RotateCcw, WrapText } from "../icons";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
 import { remarkMentions, sameMentionPerson, type MentionPeer, type MentionPerson } from "@/lib/mentions";

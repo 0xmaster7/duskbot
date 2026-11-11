@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users } from "lucide-react";
+import { Users } from "../icons";
 
 import { cn } from "@/lib/cn";
 import { profileForSession, readSessionState, type SessionState } from "@/lib/session";

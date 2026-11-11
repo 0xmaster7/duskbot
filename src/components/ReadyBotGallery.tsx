@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "../icons";
 import { stoppedAtBotLimit } from "@/lib/bot-limit";
 import { BotCreationDraft } from "@/lib/bot-creation-draft";
 import { createConfiguredBot } from "@/lib/create-configured-bot";

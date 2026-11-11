@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Cloud, Users } from "lucide-react";
+import { Cloud, Users } from "../icons";
 import { freeFallback } from "../../shared/ai-ranking";
 import { engineReady } from "@/components/EngineLibrary";
 import { ConnectAiDialog } from "@/components/onboarding/ConnectAi";

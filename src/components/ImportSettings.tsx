@@ -1,6 +1,6 @@
 // Settings → Import: everything that brings work in from elsewhere, in one place. "From your AI apps" brings the skills
 // and MCP servers another AI tool keeps on this computer.
-import { BookOpen, Plug } from "lucide-react";
+import { BookOpen, Plug } from "../icons";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { track } from "@/lib/analytics";

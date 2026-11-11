@@ -1,5 +1,5 @@
 import { localizedTaskTitle } from "@/lib/task-title";
-import { Lock, UserRound, Users } from "lucide-react";
+import { Lock, UserRound, Users } from "../icons";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
 
 import { t } from "@/lib/i18n";

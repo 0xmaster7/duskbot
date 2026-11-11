@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Loader2, TriangleAlert } from "lucide-react";
+import { Loader2, TriangleAlert } from "../../icons";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";

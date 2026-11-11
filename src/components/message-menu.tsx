@@ -1,4 +1,4 @@
-import { Pencil, Pin, PinOff, RefreshCw, Square, Volume2 } from "lucide-react";
+import { Pencil, Pin, PinOff, RefreshCw, Square, Volume2 } from "../icons";
 import { t } from "@/lib/i18n";
 import type { ConfigStatus, Group, Message, useStore } from "@/state/store";
 import { ACTION_ICON, type MessageMenuItem } from "@/components/MessageActions";

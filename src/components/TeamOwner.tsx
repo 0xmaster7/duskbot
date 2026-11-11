@@ -1,6 +1,6 @@
 // A teammate's face, and this person's Needs you.
 import { useEffect, useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell } from "../icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { api, useStore, openThread } from "@/state/store";

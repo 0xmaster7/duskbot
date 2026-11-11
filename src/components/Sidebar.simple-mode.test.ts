@@ -244,7 +244,7 @@ describe("bot-first sidebar", () => {
     expect(markup).toMatch(/data-testid="main-bot-star" class="absolute bottom-0 right-0 flex size-\[9\.6px\] [^"]*bg-\[#f59312\][^"]*ring-\[var\(--row\)\]"><svg[^>]*data-icon-name="star"[^>]*aria-label="Main Bot"/);
     expect(markup).toContain('<span class="sr-only">Main Bot</span>');
     expect(markup).not.toContain('data-testid="chief-crown"');
-    expect(markup).not.toContain("lucide-pin");
+    expect(markup).not.toContain("gi-pin");
     expect(markup).not.toMatch(/tabular-nums text-ink-secondary transition-opacity group-hover:opacity-0/);
     const row = findElement(tree, "data-sidebar-bot-row", bot.id)!;
     expect(row.props.title).toBeUndefined();
