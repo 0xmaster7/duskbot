@@ -16,7 +16,7 @@ import { bumpThreadUpdatedAt, mergeTaskStamps, rewindThreadUpdatedAt } from "./t
 import { botOpensTo, openBot, openThread, visibleNotificationThread } from "./thread-navigation";
 import { patchGroupTask } from "./thread-edits";
 import type { EngineInstall } from "./engine-install";
-import { optimisticMessageId, optimisticUserMessage, sendArrived, sendReconciled } from "./optimistic-send";
+import { optimisticMessageId, optimisticUserMessage, sendAnswerLost, sendArrived, sendReconciled } from "./optimistic-send";
 import { applySendReceipt } from "./send-receipt";
 import { foldSnapshotOntoStreamed, patchedGroups, roomAnswers, snapshotPatch } from "./room-frames";
 import { savedStateAction, type SavedOwner, type SavedSnapshot } from "./saved-state";
@@ -2435,7 +2435,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
             .then((sent) => { outbox?.release(sendId); applySendReceipt(sent, sendId, action.text, rawDispatch); })
             .catch((error) => {
-              if (outbox && !(error instanceof ApiError) && outbox.keep(sendId)) return;
+              if (outbox && (!(error instanceof ApiError) || sendAnswerLost(error)) && outbox.keep(sendId)) return;
               outbox?.release(sendId);
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });
@@ -2668,7 +2668,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
             .then((sent) => { outbox?.release(sendId); applySendReceipt(sent, sendId, action.text, rawDispatch); })
             .catch((error) => {
-              if (outbox && !(error instanceof ApiError) && outbox.keep(sendId)) return;
+              if (outbox && (!(error instanceof ApiError) || sendAnswerLost(error)) && outbox.keep(sendId)) return;
               outbox?.release(sendId);
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });
