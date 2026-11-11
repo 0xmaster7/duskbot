@@ -13,6 +13,8 @@ export interface AuthOptions {
   dataDir: string; publicUrl: string; mailer: Mailer; now?: () => number; fetch?: typeof fetch;
   /** where the page is served on publicUrl ("/app" when it shares the origin with the site, "" at the root) */
   pageBase?: string;
+  /** sign-in emails the service sends an hour across everyone (DUSK_AUTH_MAIL_PER_HOUR, default 300) */
+  mailPerHour?: number;
   oauth?: ProviderConfigs;
   dev: boolean; signupOpen: boolean; trustProxy: boolean; legacyAccounts?: () => Array<{ id: string; email: string }>;
 }
@@ -169,6 +171,8 @@ export function createAuth(options: AuthOptions) {
     const device = app ? deviceInfo(data, true) : null;
     rate(`start:${ip(req)}`, 20);
     rate(`email:${email}`, 6);
+    // every address and caller together: one botnet spread over many addresses cannot burn the mail quota or our sender reputation
+    rate("mail:all", options.mailPerHour ?? 300);
     if (sentAt.has(email)) fail(429, "rate_limited");
     sentAt.set(email, now());
     const attempt = random(), code = randomInt(0, 100_000_000).toString().padStart(8, "0");
@@ -491,6 +495,7 @@ export function createAuth(options: AuthOptions) {
   }
   return {
     handle, webSession, requireWeb, appSession, account,
+    accountByEmail: (email: string) => state.accounts.find(item => item.email === email) ?? null,
     /** what the account holds, for its owner's export: no token, hash or code */
     exportAccount(owner: Account) {
       const { account: profile, identities, sessions } = accountAnswer(owner, undefined);

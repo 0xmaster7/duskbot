@@ -31,6 +31,7 @@ export interface DashboardAppOptions {
   staticDir: string | null;
   /** the page's path on publicUrl: "/app" when the site shares the origin, "" (the default) at the root */
   pageBase?: string;
+  mailPerHour?: number;
   /** the site served beside the page on a shared origin (loopback http): every path that is not the page's, an API or
    *  a well-known address is proxied there */
   siteUpstream?: string | null;
@@ -102,7 +103,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const store = createStore(options.dataDir);
   const state = store.state;
   const dev = options.dev ?? (new URL(publicUrl).protocol === "http:" && ["127.0.0.1", "localhost"].includes(new URL(publicUrl).hostname));
-  const auth = createAuth({ dataDir: options.dataDir, publicUrl, pageBase, mailer: options.mailer, now, fetch: options.fetch, oauth: options.oauth,
+  const auth = createAuth({ dataDir: options.dataDir, publicUrl, pageBase, mailPerHour: options.mailPerHour, mailer: options.mailer, now, fetch: options.fetch, oauth: options.oauth,
     dev, signupOpen: options.signupOpen ?? true, trustProxy: options.trustProxy ?? false, legacyAccounts: () => state.accounts });
   state.sessions = [];
   store.changed();
@@ -125,6 +126,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     void options.mailer.send({ to, subject, text, html }).catch(() => console.warn("clouds: a notice email failed"));
   };
   const billing = createBilling({ accountExists: id => auth.account(id) !== null,
+    findAccount: email => { const found = auth.accountByEmail(email); return found ? { id: found.id, email: found.email } : null; },
     mail: (cloud, letter) => mail(auth.account(cloud.accountId)?.email, letter.subject, letter.text),
     alert: entry => mail(process.env.DUSK_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },

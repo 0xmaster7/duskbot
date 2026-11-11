@@ -36,7 +36,7 @@ if (database) { useStateBackend(database.backend); console.log("state: mongodb")
 
 const app = createDashboardApp({ errors: { service, page }, version, dataDir, publicUrl, mailer: mailerFromEnv(process.env, { dev }), oauth: providersFromEnv(process.env), dev,
   signupOpen: process.env.DUSK_AUTH_SIGNUP_OPEN !== "0", trustProxy: process.env.DUSK_TRUST_PROXY === "1", staticDir: staticDir || null,
-  pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE || "", siteUpstream: process.env.DUSK_SITE_UPSTREAM || null });
+  pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE || "", mailPerHour: process.env.DUSK_AUTH_MAIL_PER_HOUR ? Number(process.env.DUSK_AUTH_MAIL_PER_HOUR) : undefined, siteUpstream: process.env.DUSK_SITE_UPSTREAM || null });
 
 /** a client hears an answer only once what the request changed is written; when that fails it gets a dropped
  *  connection, never a success that was not kept */
