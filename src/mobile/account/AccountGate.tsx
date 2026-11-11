@@ -7,6 +7,7 @@ import { THEME_SKINS } from "@/lib/skins";
 import type { OAuthProvider } from "../../../shared/account-api";
 import { demoOn, enterDemo } from "../demo/demo-mode";
 import { LEGAL_LINKS } from "../legal";
+import { MARKS } from "../onboarding/AccountStep";
 import { usePlatform, type MobilePlatform } from "../platform";
 import { createMobileAccount, isAccountAuthUrl, type AuthResult, type MobileAccount } from "./account-client";
 
@@ -47,6 +48,13 @@ function authProblem(result: AuthResult): string | undefined {
     default: return problemLine(result.outcome, result.outcome === "wrong-code" ? result.triesLeft : null);
   }
 }
+
+/** Apple's button rules: its mark beside the words, on a plain white or black fill. The others carry their mark only. */
+const PROVIDER_MARKS = {
+  apple: { icon: MARKS.apple, className: "border-transparent bg-[#f3f4f8] text-[#121212]" },
+  google: { icon: MARKS.google },
+  x: { icon: MARKS.x },
+};
 
 const QUIET_LINK = "min-h-11 rounded-full px-3 text-[13px] text-ink-secondary underline underline-offset-2 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 
@@ -105,7 +113,7 @@ export function AccountGate({ children }: { children: ReactNode }) {
   }), [account, origin, client]);
   if (wanted && (demo === null || (restoring && required))) return <div className="omb-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
   return <AccountContext value={context}>{required && !account ? <div data-skin={THEME_SKINS.dark} className="omb-mobile size-full bg-app text-ink"><SignIn mobile emailStart={email => client.emailStart(email)} emailVerify={code => client.emailVerify(code)} cancelEmail={async () => { client.cancelEmail(); }} browser={provider => { setProblem(undefined); return client.oauthStart(provider); }} onSignedIn={() => { setAccount(client.account()); setProblem(undefined); }} notice={problem}
-    options={async () => ({ providers: providersFor(platform.kind, await client.providers()), recovery: false })}>
+    options={async () => ({ providers: providersFor(platform.kind, await client.providers()), recovery: false })} marks={PROVIDER_MARKS}>
     <div className="flex flex-col items-center gap-1 border-t border-ink/10 pt-4">
       <button type="button" onClick={() => void enterDemo(platform)} className="flex min-h-11 w-full flex-col items-center justify-center rounded-full border border-ink/15 px-5 py-2 text-[14px] font-medium outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
         {t("mobile.demo.try")}<span className="text-[12px] font-normal text-ink-secondary">{t("mobile.demo.tryDetail")}</span>

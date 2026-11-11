@@ -14,7 +14,7 @@ const LINK = "min-h-11 self-center rounded-full px-3 text-[13px] text-ink-second
 export const SUPPORT_ADDRESS = "hello@dusk.bot";
 export type SignInOptions = { providers: OAuthProvider[]; recovery: boolean };
 
-export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSignedIn, notice, mobile = false, options, children }: {
+export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSignedIn, notice, mobile = false, options, children, marks }: {
   emailStart(email: string, options?: { recover: true }): Promise<CloudSignInStart>;
   emailVerify(code: string): Promise<SignInVerify>;
   browser(provider: OAuthProvider): Promise<unknown>;
@@ -26,6 +26,8 @@ export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSigned
   options?(): Promise<SignInOptions>;
   /** Shown under the form while no code is out: the phone's demo entry and legal links. */
   children?: ReactNode;
+  /** Each provider's own mark before its name, and a fill where the provider's button rules ask for one. */
+  marks?: Partial<Record<OAuthProvider, { icon: ReactNode; className?: string }>>;
 }) {
   const id = useId();
   const host = useRef<HTMLDivElement>(null);
@@ -80,7 +82,7 @@ export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSigned
       <div className="flex justify-center" aria-hidden="true"><MausAvatar color="green" size={80} state="idle" animated={false} personality={false} /></div>
       <div className="text-center"><h1 className="text-[24px] font-semibold tracking-tight">{t(recover ? "accountGate.cantSignIn" : "accountGate.title")}</h1><p className="mt-2 text-[14px] leading-5 text-ink-secondary">{t(recover ? "accountGate.recoverSub" : "accountGate.sub")}</p></div>
       {notice && !recover && <p role="status" className="text-[13px] text-ink-secondary">{notice}</p>}
-      {!recover && providers && providers.length > 0 && <><div className="flex flex-col gap-2">{providers.map(provider => <button key={provider} type="button" className={`${PILL} hover:bg-ink/[0.05]`} disabled={busy} onClick={() => void run(async () => { await browser(provider); })}>{t(provider === "google" ? "accountGate.google" : provider === "apple" ? "accountGate.apple" : "accountGate.x")}</button>)}</div>
+      {!recover && providers && providers.length > 0 && <><div className="flex flex-col gap-2">{providers.map(provider => <button key={provider} type="button" className={`${PILL} gap-2 ${marks?.[provider]?.className ?? "hover:bg-ink/[0.05]"}`} disabled={busy} onClick={() => void run(async () => { await browser(provider); })}>{marks?.[provider]?.icon}{t(provider === "google" ? "accountGate.google" : provider === "apple" ? "accountGate.apple" : "accountGate.x")}</button>)}</div>
       <div className="flex items-center gap-3 text-[13px] text-ink-tertiary"><span className="h-px flex-1 bg-ink/10" />{t("accountGate.or")}<span className="h-px flex-1 bg-ink/10" /></div></>}
       <form onSubmit={submit} className="flex flex-col gap-3" noValidate>
         {!sent ? <><label htmlFor={`${id}-email`} className="text-[14px] text-ink-secondary">{t("cloudBuy.signIn.email")}</label>
