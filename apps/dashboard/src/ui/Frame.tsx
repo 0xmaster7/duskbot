@@ -6,10 +6,9 @@ import { Scene, useMedia, type SceneHandle, type SceneMood } from "./Scene";
 
 const TOWARD_FORM: SceneMood[] = ["typing", "thinking", "waiting", "oops"];
 
-/** the screens before the dashboard: a tall poster with the crew on the left, one calm column on the right. on a phone
- * the poster is a short band on top */
-/** `plain`: only the banded sky, hills and trees, with no drifting clouds over them */
-export function SplitFrame({ poster, mood, scene, card, snug = false, plain = false, aside, children, foot }: { poster: string; mood: SceneMood; scene?: Ref<SceneHandle>; card?: ReactNode; snug?: boolean; plain?: boolean; aside?: ReactNode; children: ReactNode; foot?: ReactNode }) {
+/** the screens before the dashboard: a tall pixel scene on the left, one calm column on the right. on a phone the scene is a
+ * short band on top. `step` changes what kit says in the scene */
+export function SplitFrame({ mood, step, scene, card, snug = false, aside, children, foot }: { mood: SceneMood; step?: number; scene?: Ref<SceneHandle>; card?: ReactNode; snug?: boolean; aside?: ReactNode; children: ReactNode; foot?: ReactNode }) {
   const wide = useMedia("(min-width: 1024px)");
   // inputs count as focus-visible however they were focused, so the page itself tells keyboard use from pointer use
   useEffect(() => {
@@ -23,8 +22,12 @@ export function SplitFrame({ poster, mood, scene, card, snug = false, plain = fa
   const look = TOWARD_FORM.includes(mood) ? (wide ? { x: 0.95, y: -0.1 } : { x: 0, y: 0.9 }) : null;
   return (
     <div className="min-h-[100dvh] bg-bg lg:grid lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1fr)] lg:gap-3 lg:p-3">
-      <Scene ref={scene} poster={poster} mood={mood} look={look} compact={!wide} plain={plain} className="h-[168px] lg:sticky lg:top-3 lg:h-[calc(100dvh-24px)] lg:min-h-[620px] lg:rounded-[28px]">
-        {card && <div className={cx("pop enter absolute top-[11%] rounded-[24px] bg-pop max-lg:hidden", snug ? "left-[9%] px-6 py-5 xl:left-[13%]" : "inset-x-[9%] p-8 xl:inset-x-[13%]")}>{card}</div>}
+      <Scene ref={scene} mood={mood} step={step} look={look} compact={!wide} friends={card && !snug ? "low" : "top"} className="h-[168px] lg:sticky lg:top-3 lg:h-[calc(100dvh-24px)] lg:min-h-[620px] lg:rounded-[28px]">
+        {card && (
+          <div className={cx("px-lift enter absolute top-[9%] max-lg:hidden", snug ? "left-[9%] xl:left-[11%]" : "inset-x-[9%] xl:inset-x-[12%]")}>
+            <div className={cx("px-steps bg-pop", snug ? "px-6 pb-5 pt-6" : "p-8")}>{card}</div>
+          </div>
+        )}
       </Scene>
       <div className="flex min-h-[calc(100dvh-168px)] flex-col px-5 lg:min-h-[calc(100dvh-24px)] lg:px-10">
         <header className="flex h-16 shrink-0 items-center justify-between gap-4">

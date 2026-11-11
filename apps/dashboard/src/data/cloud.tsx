@@ -173,7 +173,10 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
     updateProfile: (name) => mutate(() => api.updateProfile({ name })),
     unlinkIdentity: (p) => mutate(() => api.unlinkIdentity(p)),
     revokeDevice: (id) => mutate(() => api.revokeDevice(id)),
-    finishOnboarding: () => mutate(() => api.finishOnboarding()),
+    finishOnboarding: () => mutate(async () => {
+      await api.finishOnboarding();
+      setAccount((a) => (a ? { ...a, profile: { ...a.profile, onboarded: true } } : a));
+    }),
     signOutEverywhere, deleteAccount,
   }), [catalog, billing, clouds, account, connections, error, refresh, checkout, power, mutate, signOutEverywhere, deleteAccount]);
 

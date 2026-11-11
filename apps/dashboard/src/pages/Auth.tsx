@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { ArrowLeft, LoaderCircle } from "@/icons";
-import poster from "../art/poster-birches.webp";
 import type { AuthProviders, IdentityProvider } from "../data/contracts";
 import { useSession } from "../data/session";
 import { api, ApiError, FIXTURE, type Account } from "../lib/api";
@@ -245,11 +244,9 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
 
   return (
     <SplitFrame
-      poster={poster}
       mood={mood}
       scene={scene}
       card={<SceneCard />}
-      plain
       aside={<a href={SITE_URL} className="hover-link -me-2 inline-flex h-11 items-center gap-1.5 rounded-full px-2 text-14 text-ink-3"><ArrowLeft size={15} strokeWidth={1.75} aria-hidden />back to {SITE_NAME === "dusk.bot" ? SITE_NAME : "the site"}</a>}
       foot={signup ? <>by continuing you agree to the <a href={siteUrl("/terms")} className={LINK}>terms</a> and <a href={siteUrl("/privacy")} className={LINK}>privacy policy</a>.</> : "your chats and files stay on your own computers."}
     >

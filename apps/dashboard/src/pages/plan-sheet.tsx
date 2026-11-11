@@ -26,7 +26,7 @@ function sharedRegions(catalog: PlanCatalog) {
 }
 
 export function useInterval(): [BillingInterval, (v: BillingInterval) => void] {
-  const [v, set] = useState<BillingInterval>(() => (sessionStorage.getItem(INTERVAL_KEY) === "month" ? "month" : "year"));
+  const [v, set] = useState<BillingInterval>(() => (sessionStorage.getItem(INTERVAL_KEY) === "year" ? "year" : "month"));
   return [v, (next) => { sessionStorage.setItem(INTERVAL_KEY, next); set(next); }];
 }
 
@@ -82,7 +82,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
   const { catalog, billing, checkout } = useCloud();
   const { toast } = useSession();
   const owned = billing?.subscription?.selection ?? null;
-  const [interval, setInterval] = useState<BillingInterval>(owned?.interval ?? (sessionStorage.getItem(INTERVAL_KEY) === "month" ? "month" : "year"));
+  const [interval, setInterval] = useState<BillingInterval>(owned?.interval ?? (sessionStorage.getItem(INTERVAL_KEY) === "year" ? "year" : "month"));
   const [plan, setPlan] = useState<PaidPlan>(start);
   const [withLicense, setWithLicense] = useState(work);
   const regions = catalog ? sharedRegions(catalog) : [];
@@ -179,7 +179,7 @@ export function LicenseSheet({ start, source, onClose, onNothingLeft }: { source
   const { catalog, billing, checkout } = useCloud();
   const { toast } = useSession();
   const owned = billing?.subscription?.selection ?? null;
-  const [sel, setSel] = useState<Selection>(() => ({ ...(owned ?? { desktop: "none", size: null, region: catalog?.regions[0]?.id ?? "" }), license: start.license, members: start.members, interval: owned?.interval ?? "year" }));
+  const [sel, setSel] = useState<Selection>(() => ({ ...(owned ?? { desktop: "none", size: null, region: catalog?.regions[0]?.id ?? "" }), license: start.license, members: start.members, interval: owned?.interval ?? "month" }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { cart, ready, error: quoteError } = useCart(sel, catalog);

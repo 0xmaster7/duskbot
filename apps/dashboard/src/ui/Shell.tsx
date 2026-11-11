@@ -63,7 +63,7 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
         aria-expanded={open}
         aria-label={`workspace: ${workspace?.name ?? "none yet"}. switch workspace`}
         onClick={() => setOpen((o) => !o)}
-        className="press-soft hover-outline flex w-full items-center gap-2.5 rounded-[18px] bg-btn px-3.5 py-2.5 text-start"
+        className="hover-outline flex w-full items-center gap-2.5 rounded-[18px] bg-btn px-3.5 py-2.5 text-start"
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-14 font-medium text-ink">{workspace?.name ?? "no workspace yet"}</span>
@@ -113,7 +113,7 @@ function UserRow() {
           <button role="menuitem" onClick={() => void api.signOut().finally(() => setAccount(null))} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><LogOut size={16} strokeWidth={1.75} aria-hidden /> sign out</button>
         </div>
       )}
-      <button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="press-soft hover-side flex w-full items-center gap-3 rounded-[18px] px-2.5 py-2 text-start">
+      <button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="hover-side flex w-full items-center gap-3 rounded-[18px] px-2.5 py-2 text-start">
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink text-14 font-medium lowercase text-bg" aria-hidden>{name.slice(0, 1)}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-14 text-ink">{name}</span>
@@ -140,10 +140,9 @@ const WEEK = 7 * 86_400_000;
 /** the one nudge toward 24/7, for anyone without dusk cloud; hides for a week when closed */
 function SideUpsell() {
   const { clouds } = useCloud();
-  const { path } = useLocation();
   const [hiddenUntil, setHiddenUntil] = useState(() => Number(localStorage.getItem(HIDE_KEY) ?? 0));
   const [open, setOpen] = useState(false);
-  if (!clouds || clouds.length || path === "/billing" || path === "/" || hiddenUntil > Date.now()) return open ? <PlanSheet source="dash_home" start="starter" onClose={() => setOpen(false)} /> : null;
+  if (!clouds || clouds.length || hiddenUntil > Date.now()) return open ? <PlanSheet source="dash_home" start="starter" onClose={() => setOpen(false)} /> : null;
   const hide = () => { const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
   return (
     <div className="pop relative rounded-[20px] bg-pop p-4">
@@ -173,7 +172,7 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
                 to={item.to}
                 onClick={onNavigate}
                 aria-current={on ? "page" : undefined}
-                className={cx("press-soft flex h-10 items-center gap-3 rounded-full px-3.5 text-14", on ? "bg-pop font-medium text-ink" : "hover-side text-ink-2")}
+                className={cx("flex h-10 items-center gap-3 rounded-full px-3.5 text-14", on ? "bg-pop font-medium text-ink" : "hover-side text-ink-2")}
               >
                 <span className={on ? "text-ink" : "text-ink-3"}>{item.icon}</span>
                 {item.label}
