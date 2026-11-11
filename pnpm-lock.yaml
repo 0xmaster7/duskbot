@@ -30,9 +30,6 @@ importers:
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
-      '@gravity-ui/icons':
-        specifier: ^2.23.1
-        version: 2.23.1(react@19.2.8)
       '@hpke/core':
         specifier: 1.9.0
         version: 1.9.0
@@ -160,6 +157,9 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
     devDependencies:
+      '@gravity-ui/icons':
+        specifier: ^2.23.1
+        version: 2.23.1(react@19.2.8)
       '@modelcontextprotocol/ext-apps':
         specifier: 2.0.3
         version: 2.0.3(@modelcontextprotocol/client@2.3.1)(@modelcontextprotocol/core@2.3.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.6.7)

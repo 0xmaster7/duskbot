@@ -123,7 +123,7 @@ Google uses `DUSK_AUTH_GOOGLE_CLIENT_ID` and `DUSK_AUTH_GOOGLE_CLIENT_SECRET`. A
 
 The dashboard wears dusk.bot's identity: a white page, soft wash cards with big radii, flat pill buttons, one ink, and
 the site's pixel posters (`src/art`, exported from the site's raw art the way its `art-src/final/prep.py` does). Light is
-the default theme; dark stays in Account, Appearance. Icons are lucide.
+the default theme; dark stays in Account, Appearance. Icons are Gravity UI (src/icons).
 
 | role | family | size / line | where |
 |---|---|---|---|
