@@ -6,14 +6,13 @@ import { join } from "node:path";
 import { MongoClient } from "mongodb";
 import { createAnalytics } from "./index.ts";
 import { memorySink, mongoSink } from "./sink.ts";
-import { channelOf, deviceOf, requestContext } from "./context.ts";
+import { deviceOf, requestContext, touchContext } from "./context.ts";
 import { cleanProps, routeOf } from "./events.ts";
 import { funnel, dayRange, perDay } from "../admin/metrics.ts";
 import { brevoChecker, csvField } from "../admin/waitlist.ts";
 import { healthTargets } from "../admin/health.ts";
 
 const DAY = 86_400_000;
-const SAFARI = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15";
 const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
 const fakeReq = (headers: Record<string, string>, url = "/", method = "GET") => ({ method, url, headers, socket: { remoteAddress: "203.0.113.9" } }) as unknown as IncomingMessage;
 const settle = () => new Promise(resolve => setTimeout(resolve, 10));
@@ -30,44 +29,21 @@ describe("analytics", () => {
   });
   afterEach(() => { analytics.close(); rmSync(dataDir, { recursive: true, force: true }); });
 
-  it("counts site page views, unique visitors per day, and skips bots, assets, prefetches and declined tracking", async () => {
-    const page = { accept: "text/html", "user-agent": SAFARI, "cf-ipcountry": "DE", referer: "https://www.google.com/search?q=dusk" };
-    analytics.siteView(fakeReq(page, "/pricing?utm_source=Newsletter&utm_medium=email"), "https://dusk.bot");
-    analytics.siteView(fakeReq(page, "/"), "https://dusk.bot");
-    analytics.siteView(fakeReq({ ...page, "user-agent": "Googlebot/2.1" }, "/"), "https://dusk.bot");
-    analytics.siteView(fakeReq(page, "/logo.png"), "https://dusk.bot");
-    analytics.siteView(fakeReq({ ...page, "sec-fetch-dest": "image" }, "/"), "https://dusk.bot");
-    analytics.siteView(fakeReq({ ...page, "sec-gpc": "1" }, "/"), "https://dusk.bot");
-    analytics.siteView(fakeReq({ ...page, accept: "application/json" }, "/"), "https://dusk.bot");
-    analytics.siteView(fakeReq(page, "/", "POST"), "https://dusk.bot");
-    await settle();
-    expect(sink.all.map(event => event.props.path)).toEqual(["/pricing", "/"]);
-    expect(sink.all[0]!.ctx).toMatchObject({ country: "DE", device: "desktop", os: "mac", browser: "safari", referrer: "www.google.com", channel: "email", utm: { source: "newsletter", medium: "email" }, page: "/pricing" });
-    expect(sink.all[0]!.ctx!.visitor).toBe(sink.all[1]!.ctx!.visitor);
-    expect(JSON.stringify(sink.all)).not.toContain("203.0.113.9");
-    const day = new Date(time).toISOString().slice(0, 10);
-    expect(sink.daySums.get(`${day}|site_view`)).toBe(2);
-    expect(sink.daySums.get(`${day}|site_visitors`)).toBe(1);
-    time += DAY;
-    analytics.siteView(fakeReq(page, "/"), "https://dusk.bot");
-    await settle();
-    expect(sink.all.at(-1)!.ctx!.visitor).not.toBe(sink.all[0]!.ctx!.visitor);
+  it("reads Cloudflare's visitor headers only when Cloudflare's edge is the proxy's peer", () => {
+    const headers = { "user-agent": IPHONE, "cf-ipcountry": "IN", "cf-ipcity": "Pune", "cf-region": "Maharashtra", "cf-iplatitude": "18.52043", "cf-iplongitude": "73.85674" };
+    expect(requestContext(fakeReq(headers), { publicOrigin: "https://dusk.bot", trustProxy: true })).toEqual({ device: "mobile", os: "ios", browser: "safari", source: "direct", channel: "direct" });
+    const edge = fakeReq({ ...headers, "x-forwarded-for": "198.51.100.7, 172.70.1.1" });
+    expect(requestContext(edge, { publicOrigin: "https://dusk.bot", trustProxy: false }).country).toBeUndefined();
+    expect(requestContext(edge, { publicOrigin: "https://dusk.bot", trustProxy: true })).toMatchObject({ country: "IN", city: "Pune", region: "Maharashtra", lat: 18.5, lon: 73.9 });
   });
 
-  it("reads the country only behind a trusted proxy", () => {
-    const req = fakeReq({ "user-agent": IPHONE, "cf-ipcountry": "IN" });
-    expect(requestContext(req, { publicOrigin: "https://dusk.bot", trustProxy: false })).toEqual({ device: "mobile", os: "ios", browser: "safari", channel: "direct" });
-    expect(requestContext(req, { publicOrigin: "https://dusk.bot", trustProxy: true }).country).toBe("IN");
-  });
-
-  it("names channels, with AI assistants apart from search", () => {
-    expect(channelOf("chatgpt.com", undefined)).toBe("ai");
-    expect(channelOf("www.perplexity.ai", undefined)).toBe("ai");
-    expect(channelOf("www.google.com", undefined)).toBe("search");
-    expect(channelOf("x.com", undefined)).toBe("social");
-    expect(channelOf("someblog.dev", undefined)).toBe("referral");
-    expect(channelOf(undefined, undefined)).toBe("direct");
-    expect(channelOf(undefined, { source: "launch", campaign: "nov" })).toBe("campaign");
+  it("names channels from tags first, then the referrer, with AI assistants apart from search", () => {
+    expect(touchContext({ referrer: "chatgpt.com" })).toMatchObject({ source: "ChatGPT", channel: "ai" });
+    expect(touchContext({ referrer: "www.google.com" })).toMatchObject({ channel: "search" });
+    expect(touchContext({ referrer: "news.ycombinator.com", utmSource: "newsletter", utmMedium: "email" })).toMatchObject({ channel: "email", utm: { source: "newsletter", medium: "email" } });
+    expect(touchContext({ ref: "launch-thread" })).toMatchObject({ source: "launch-thread", channel: "referral", ref: "launch-thread" });
+    expect(touchContext({ utmSource: "a@b.c" }).utm).toBeUndefined();
+    expect(touchContext({})).toEqual({ source: "direct", channel: "direct" });
     expect(deviceOf("Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/131 Mobile")).toEqual({ device: "mobile", os: "android", browser: "chrome" });
   });
 

@@ -1,0 +1,109 @@
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { EVENTS, isEventName, routeOf, type EventName, type Props } from "./events.ts";
+import { deviceOf, geoOf, referrerHost, touchContext, type EventContext } from "./context.ts";
+
+export const TRACK_PATH = "/v1/t";
+export const APP_EVENTS_PATH = "/v1/app/events";
+export const MAX_TRACK_BYTES = 4096;
+export const MAX_APP_BYTES = 32_768;
+export const MAX_APP_BATCH = 50;
+const ID = /^[A-Za-z0-9_-]{22}$/, PV = /^[A-Za-z0-9_-]{8}$/, INSTALL = /^[A-Za-z0-9_-]{16,40}$/;
+export const AUTOMATED = /bot|crawl|spider|slurp|preview|monitor|curl|wget|python|httpclient|headless|lighthouse|facebookexternalhit|embedly/i;
+
+type Record_ = (name: EventName, input: { accountId?: string | null; props?: Props; at?: number; visitor?: string | null; ctx?: EventContext }) => void;
+export interface IngestDeps {
+  track: Record_;
+  now(): number;
+  trustProxy: boolean;
+  /** origins whose pages may send site events (the site and the account page) */
+  origins: Set<string>;
+  readBody(req: IncomingMessage, max: number): Promise<Buffer>;
+  rate(req: IncomingMessage, kind: string, max: number): void;
+  /** a request from a signed-in admin's browser: the owner's own visits are never counted */
+  isOwner(req: IncomingMessage): boolean;
+  /** the account of an app's bearer session, or null */
+  appAccount(req: IncomingMessage): string | null;
+  /** records `identify` the first time this pair is seen */
+  identify(accountId: string, ctx: { visitor?: string; install?: string }, via: "page" | "app"): void;
+  declined(req: IncomingMessage): boolean;
+}
+
+const text = (value: unknown, max: number) => typeof value === "string" ? value.slice(0, max) : undefined;
+
+function cors(req: IncomingMessage, res: ServerResponse, allowed: Set<string> | "*") {
+  const origin = req.headers.origin;
+  if (allowed === "*") res.setHeader("access-control-allow-origin", "*");
+  else if (typeof origin === "string" && allowed.has(origin)) { res.setHeader("access-control-allow-origin", origin); res.setHeader("vary", "origin"); }
+}
+function done(res: ServerResponse, status = 204) { if (!res.writableEnded) { res.writeHead(status, { "cache-control": "no-store" }); res.end(); } }
+
+/** the site tracker's beacon: text/plain JSON (no preflight), one event per request */
+export async function handleTrack(req: IncomingMessage, res: ServerResponse, deps: IngestDeps) {
+  cors(req, res, deps.origins);
+  if (req.method === "OPTIONS") { res.setHeader("access-control-allow-methods", "POST"); res.setHeader("access-control-allow-headers", "content-type"); return done(res); }
+  if (req.method !== "POST") return done(res, 405);
+  const origin = req.headers.origin;
+  if (typeof origin === "string" && !deps.origins.has(origin)) return done(res, 403);
+  deps.rate(req, "track", 1200);
+  let raw: Buffer;
+  try { raw = await deps.readBody(req, MAX_TRACK_BYTES); } catch { return done(res, 413); }
+  if (deps.declined(req) || AUTOMATED.test(String(req.headers["user-agent"] ?? "")) || !req.headers["user-agent"] || deps.isOwner(req)) return done(res);
+  let body: Record<string, unknown>;
+  try { body = JSON.parse(raw.toString("utf8")) as Record<string, unknown>; } catch { return done(res, 400); }
+  if (!body || typeof body !== "object" || body.v !== 1 || typeof body.vid !== "string" || !ID.test(body.vid) || typeof body.sid !== "string" || !ID.test(body.sid)) return done(res, 400);
+  const host = text(body.h, 253)?.toLowerCase();
+  const hosts = new Set([...deps.origins].map(item => { try { return new URL(item).hostname; } catch { return ""; } }));
+  if (!host || !hosts.has(host)) return done(res, 400);
+  const path = routeOf(text(body.p, 300) ?? "/") ?? "/";
+  const pv = typeof body.pv === "string" && PV.test(body.pv) ? body.pv : undefined;
+  const base: EventContext = { session: body.sid, ...(pv ? { pv } : {}), host, page: path };
+  if (body.e === "pageview") {
+    const tags = body.u && typeof body.u === "object" ? body.u as Record<string, unknown> : {};
+    const width = Number(body.w);
+    deps.track("site_view", { props: { path }, visitor: body.vid, ctx: {
+      ...base, ...deviceOf(String(req.headers["user-agent"] ?? "")), ...geoOf(req, deps.trustProxy), ...(Number.isInteger(width) && width > 0 && width < 20_000 ? { width } : {}),
+      ...touchContext({ referrer: referrerHost(body.r, host), utmSource: tags.utm_source ?? tags.source, utmMedium: tags.utm_medium, utmCampaign: tags.utm_campaign,
+        utmContent: tags.utm_content, utmTerm: tags.utm_term, ref: tags.ref ?? tags.via }),
+    } });
+  } else if (body.e === "goal") {
+    const meta = body.m && typeof body.m === "object" ? body.m as Record<string, unknown> : {};
+    const goal = text(body.g, 40);
+    if (!goal || !/^[a-z0-9_]{1,40}$/.test(goal)) return done(res, 400);
+    const to = typeof meta.to === "string" ? routeOf(meta.to) : null, from = typeof meta.from === "string" ? routeOf(meta.from) : null;
+    deps.track("site_goal", { props: { goal, ...(to ? { to } : {}), ...(from ? { from } : {}), ...(typeof meta.host === "string" ? { host: meta.host.toLowerCase() } : {}) }, visitor: body.vid, ctx: base });
+  } else if (body.e === "leave") {
+    deps.track("site_leave", { props: { path, scroll: Math.max(0, Math.min(100, Math.round(Number(body.s) || 0))), ms: Math.max(0, Math.min(86_400_000, Math.round(Number(body.t) || 0))) }, visitor: body.vid, ctx: base });
+  } else return done(res, 400);
+  return done(res);
+}
+
+/** the desktop and phone apps' usage: counts, screens and features, never content; anonymous until signed in */
+export async function handleAppEvents(req: IncomingMessage, res: ServerResponse, deps: IngestDeps) {
+  cors(req, res, "*");
+  if (req.method === "OPTIONS") { res.setHeader("access-control-allow-methods", "POST"); res.setHeader("access-control-allow-headers", "content-type, authorization"); return done(res); }
+  if (req.method !== "POST") return done(res, 405);
+  deps.rate(req, "app-events", 600);
+  let raw: Buffer;
+  try { raw = await deps.readBody(req, MAX_APP_BYTES); } catch { return done(res, 413); }
+  let body: Record<string, unknown>;
+  try { body = JSON.parse(raw.toString("utf8")) as Record<string, unknown>; } catch { return done(res, 400); }
+  const install = typeof body?.install === "string" && INSTALL.test(body.install) ? body.install : null;
+  const events = Array.isArray(body?.events) ? body.events : null;
+  if (!install || !events || events.length < 1 || events.length > MAX_APP_BATCH) return done(res, 400);
+  deps.rate(req, `app-install:${install}`, 600);
+  const accountId = deps.appAccount(req);
+  const session = typeof body.session === "string" && INSTALL.test(body.session) ? body.session : undefined;
+  const platform = text(body.platform, 20), version = text(body.version, 40);
+  const ctx: EventContext = { install, ...(session ? { session } : {}), app: { ...(platform && /^[a-z0-9]{2,20}$/.test(platform) ? { platform } : {}), ...(version && /^[0-9A-Za-z.+-]{1,40}$/.test(version) ? { version } : {}) } };
+  if (accountId) deps.identify(accountId, { install }, "app");
+  const time = deps.now();
+  for (const item of events as unknown[]) {
+    const event = item && typeof item === "object" ? item as Record<string, unknown> : {};
+    if (!isEventName(event.name) || EVENTS[event.name].source !== "app") continue;
+    const at = typeof event.at === "number" && event.at > time - 7 * 86_400_000 && event.at < time + 300_000 ? Math.round(event.at) : time;
+    const props = event.name === "app_screen" && event.props && typeof event.props === "object"
+      ? { screen: routeOf(String((event.props as Record<string, unknown>).screen ?? "")) ?? "" } : event.props;
+    deps.track(event.name, { accountId, props: props as Props, at, ctx: { ...ctx, ...(event.name === "app_screen" && typeof (props as Props).screen === "string" ? { page: (props as Props).screen as string } : {}) } });
+  }
+  return done(res);
+}

@@ -11,6 +11,7 @@ import { EVENTS, EVENT_NAMES, isEventName } from "../analytics/events.ts";
 import type { StoredEvent } from "../analytics/sink.ts";
 import { brevoChecker, waitlistCsv, type WaitlistSource } from "./waitlist.ts";
 import { healthTargets, newestBackup, probe, spoolCount, type ErrorCounter } from "./health.ts";
+import { AnalyticsRouteError, createAnalyticsRoutes } from "./analytics-routes.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
 export class AdminError extends Error {
@@ -37,6 +38,10 @@ export interface AdminOptions {
   json(res: ServerResponse, status: number, data: unknown): void;
 }
 
+const rethrow = (error: unknown): never => {
+  if (error instanceof AnalyticsRouteError) throw new AdminError(error.status, error.code, error.message);
+  throw error;
+};
 export const parseAdminEmails = (value: string | undefined) => [...new Set((value ?? "").split(",").map(item => item.trim().toLowerCase()).filter(item => /^[^\s@]+@[^\s@]+$/.test(item)))];
 const ACTIVE_NAMES = EVENT_NAMES.filter(name => "active" in EVENTS[name]);
 const bundleLabel = (id: string | null | undefined) => BILLING_CONFIG.bundles.find(bundle => bundle.id === id)?.label.toLowerCase() ?? (id ? "custom" : null);
@@ -53,6 +58,7 @@ export function createAdmin(options: AdminOptions) {
   const env = options.env ?? process.env;
   const brevo = brevoChecker({ apiKey: env.DUSK_BREVO_API_KEY, listId: env.DUSK_BREVO_WAITLIST_LIST_ID, fetch: options.fetch, now });
   const targets = healthTargets(env.DUSK_ADMIN_HEALTH_URLS);
+  const deep = createAnalyticsRoutes({ auth, billing, analytics, workspaces: options.workspaces, now, actor: id => auth.directory().accounts.find(account => account.id === id)?.email ?? null });
 
   /** every admin route: a signed-in web session (401), an allowed email (403), and the CSRF header on changes */
   function gate(req: IncomingMessage, mutation: boolean) {
@@ -292,12 +298,45 @@ export function createAdmin(options: AdminOptions) {
         return true;
       }
       if (route === "/events") return send(await events(url));
+      try {
+        if (route === "/web") return send(await deep.web(url));
+        if (route === "/funnel") return send(await deep.funnel(url));
+        if (route === "/journeys") return send(await deep.journeys(url));
+        const person = /^\/journeys\/((?:acct_)?[A-Za-z0-9_-]{8,80})$/.exec(route);
+        if (person) {
+          const answer = await deep.profile(person[1]!);
+          await audit(owner.id, "person.view", person[1]!);
+          return send(answer);
+        }
+        if (route === "/realtime") return send(await deep.realtime(url));
+        if (route === "/retention") return send(await deep.retention());
+        if (route === "/app") return send(await deep.app(url));
+      } catch (error) {
+        if (error instanceof AnalyticsRouteError) throw new AdminError(error.status, error.code, error.message);
+        throw error;
+      }
       if (route === "/health") return send(await health());
       if (route === "/audit") {
         const before = url.searchParams.has("before") ? int(url.searchParams.get("before"), 0, 0, Number.MAX_SAFE_INTEGER) : undefined;
         const emails = emailMap();
         return send({ entries: (await analytics.sink.auditLog(100, before)).map(entry => ({ ...entry, actorEmail: emails.get(entry.actor) ?? null })) });
       }
+    }
+    if (route === "/notes" && method === "POST") {
+      const note = await deep.saveNote(owner.id, options.bodyObject(await options.readBody(req))).catch(rethrow);
+      await audit(owner.id, "note.add", note.id);
+      return send({ note });
+    }
+    const noteRoute = /^\/notes\/(note_[A-Za-z0-9_-]{6,20})$/.exec(route);
+    if (noteRoute && method === "PATCH") {
+      const note = await deep.saveNote(owner.id, options.bodyObject(await options.readBody(req)), noteRoute[1]!).catch(rethrow);
+      await audit(owner.id, "note.edit", note.id);
+      return send({ note });
+    }
+    if (noteRoute && method === "DELETE") {
+      if (!await deep.deleteNote(noteRoute[1]!)) throw new AdminError(404, "not_found", "Not found.");
+      await audit(owner.id, "note.delete", noteRoute[1]!);
+      return send({ ok: true });
     }
     if (method === "POST") {
       const action = /^\/clouds\/(c[0-9a-f]{24})\/(pause|resume|delete)$/.exec(route);
