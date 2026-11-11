@@ -183,6 +183,8 @@ export interface CloudsService {
   /** the desktop a signed workspace belongs to */
   byWorkspace(workspaceId: string): StoredCloud | null;
   list(accountId: string, includeHidden?: boolean): StoredCloud[];
+  /** every cloud of every account, for the operator */
+  all?(): StoredCloud[];
   view(cloud: StoredCloud): CloudDesktopView;
   rename(accountId: string, cloudId: string, patch: { name?: string; color?: CloudSwatch | null }): StoredCloud;
   /** operator action against abuse (pool and dedicated alike) */

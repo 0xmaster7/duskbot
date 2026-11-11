@@ -72,6 +72,28 @@ What the service can see, and why:
 Wake timings (wake request to the desktop's first sync) feed the catalog's `wake` stat per desktop kind once 10 or
 more were measured; the plan cards print a wake time only from it.
 
+## Admin panel and product analytics
+
+`/admin` (on preview: `https://preview.dusk.bot/app/admin`) is the owner's panel: overview (signups, active accounts,
+waitlist, the funnel site to signup to onboarding to cloud to paid to app paired to first bot reply, clouds by state),
+users (search, plan, clouds, devices, timeline), clouds (pause, resume, delete with a typed confirmation), waitlist
+(dusk.waitlist, CSV export, Brevo list check), events, health and the audit log. Keys: `g` then o, u, c, w, e, h or a;
+`/` searches; `?` lists them.
+
+- **Who gets in.** `DUSK_ADMIN_EMAILS` (comma-separated account emails). Every `/v1/admin/*` route checks the web
+  session (401), the email (403) and, on changes, the CSRF header. Cloud actions, CSV exports and every opened user
+  record go to `admin_audit`.
+- **Events** (`server/analytics`): the service records sign-ups, sign-ins, app pairing, a daily app heartbeat (the
+  app's own session refresh), cloud state changes, payments and the first bot reply; the page sends page views and
+  onboarding steps to `POST /v1/events` (20 per batch, rate limited); the site proxy counts site page views with a
+  daily visitor hash. Each event carries a context (`analytics/context.ts`: visitor, session, page, referrer, channel,
+  utm, Cloudflare country behind a trusted proxy, device, app platform and version). Props are an allowlist per event
+  (`analytics/events.ts`); no content, emails or addresses. GPC or DNT turns it off; `PUT /v1/account/analytics
+  {optOut}` opts an account out and deletes its events; deleting the account deletes them too.
+- **Storage.** `analytics_events` (TTL 400 days), `analytics_daily` (kept), `analytics_marks` (once-only marks),
+  `admin_audit` (kept). Without MongoDB (tests, fixture) they live in memory.
+- The fixture's `--demo` makes its account the admin and fills the panel with made-up people, clouds and events.
+
 ## Running it
 
 ```sh

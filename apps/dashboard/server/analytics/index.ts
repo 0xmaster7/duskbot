@@ -1,0 +1,148 @@
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { createHmac, randomBytes } from "node:crypto";
+import { join } from "node:path";
+import { createJsonStore } from "../billing/json-store.ts";
+import { clientIp } from "../client-ip.ts";
+import { DAY_MS, EVENTS, cleanProps, dayOf, isEventName, routeOf, type EventName, type Props } from "./events.ts";
+import type { AnalyticsSink } from "./sink.ts";
+import { requestContext, type EventContext } from "./context.ts";
+
+export interface AnalyticsOptions { sink: AnalyticsSink; dataDir: string; now?: () => number; trustProxy?: boolean }
+interface RouteHelpers {
+  readBody(req: IncomingMessage): Promise<Buffer>;
+  bodyObject(body: Buffer): Record<string, unknown>;
+  json(res: ServerResponse, status: number, data: unknown): void;
+  rate(req: IncomingMessage, kind: string, max: number): void;
+  /** the signed-in account of a web request, or null; `strict` also checks the CSRF header */
+  account(req: IncomingMessage, strict: boolean): { id: string } | null;
+}
+interface OptOutState { v: 1; optOut: string[] }
+
+export const MAX_BATCH = 20;
+function safeUrl(value: string, origin: string) { try { const url = new URL(value.slice(0, 1000), origin); return url.origin === origin ? url : undefined; } catch { return undefined; } }
+const AUTOMATED = /bot|crawl|spider|slurp|preview|monitor|curl|wget|python|httpclient|headless|lighthouse|facebookexternalhit|embedly/i;
+
+/** a browser that asked not to be tracked (Global Privacy Control or Do Not Track) */
+export const declined = (req: IncomingMessage) => req.headers["sec-gpc"] === "1" || req.headers.dnt === "1";
+
+export function createAnalytics(options: AnalyticsOptions) {
+  const { sink } = options, now = options.now ?? Date.now;
+  const store = createJsonStore<OptOutState>(join(options.dataDir, "analytics.json"), () => ({ v: 1, optOut: [] }),
+    (value): value is OptOutState => !!value && typeof value === "object" && Array.isArray((value as OptOutState).optOut));
+  const optOut = new Set(store.state.optOut);
+  const stats = { written: 0, failed: 0, dropped: 0, lastFailureAt: null as number | null };
+  // a visitor's daily id is an HMAC under a key that lives only in memory and changes every day: it counts unique
+  // visitors per day and cannot link a visitor across days or back to an address
+  let salt = { day: "", key: randomBytes(32) };
+  let today = "";
+  const seen = new Set<string>();
+  const replied = new Set<string>();
+  function seenOnce(key: string) {
+    const day = dayOf(now());
+    if (day !== today) { today = day; seen.clear(); }
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  }
+  const markUntil = (at: number) => Math.max(at, now()) + 3 * DAY_MS;
+
+  async function record(name: EventName, input: { accountId?: string | null; props?: Props; at?: number; visitor?: string | null; ctx?: EventContext } = {}) {
+    const accountId = input.accountId ?? null, at = input.at ?? now(), day = dayOf(at);
+    if (accountId && optOut.has(accountId)) { stats.dropped++; return; }
+    try {
+      await sink.insert({ id: `ev_${randomBytes(12).toString("base64url")}`, name, at, accountId, props: cleanProps(name, input.props), ...(input.ctx || input.visitor ? { ctx: { ...input.ctx, ...(input.visitor ? { visitor: input.visitor } : {}) } } : {}) });
+      await sink.bump(day, name);
+      if (accountId && "active" in EVENTS[name] && await sink.once(`${day}|active|${accountId}`, markUntil(at))) await sink.bump(day, "active_accounts");
+      if (input.visitor && await sink.once(`${day}|visitor|${input.visitor}`, markUntil(at))) await sink.bump(day, "site_visitors");
+      stats.written++;
+    } catch {
+      stats.failed++; stats.lastFailureAt = now();
+    }
+  }
+  /** never throws and never delays the request it describes */
+  const track = (name: EventName, input?: Parameters<typeof record>[1]) => { void record(name, input); };
+
+  function visitorOf(req: IncomingMessage) {
+    const day = dayOf(now());
+    if (salt.day !== day) salt = { day, key: randomBytes(32) };
+    return createHmac("sha256", salt.key).update(`${clientIp(req, options.trustProxy ?? false)}|${req.headers["user-agent"] ?? ""}`).digest("base64url").slice(0, 22);
+  }
+  function siteView(req: IncomingMessage, publicOrigin: string) {
+    if (!req.url) return;
+    if (req.method !== "GET" || declined(req) || AUTOMATED.test(req.headers["user-agent"] ?? "") || !req.headers["user-agent"]) return;
+    if (!(req.headers.accept ?? "").includes("text/html") || (req.headers["sec-fetch-dest"] && req.headers["sec-fetch-dest"] !== "document")) return;
+    const url = new URL(req.url ?? "/", publicOrigin);
+    if (/\.[a-z0-9]{1,6}$/i.test(url.pathname)) return;
+    const path = routeOf(url.pathname);
+    if (!path) return;
+    track("site_view", { props: { path }, visitor: visitorOf(req), ctx: { ...requestContext(req, { publicOrigin, trustProxy: options.trustProxy ?? false, url }), page: path } });
+  }
+  function appActive(session: { id: string; accountId: string; platform: string | null; appVersion: string | null }) {
+    if (!seenOnce(`app|${session.id}`)) return;
+    const day = dayOf(now());
+    void sink.once(`${day}|app|${session.id}`, markUntil(now())).then(fresh => {
+      if (!fresh) return;
+      const app = { ...(session.platform ? { platform: session.platform } : {}), ...(session.appVersion ? { version: session.appVersion } : {}) };
+      track("app_active", { accountId: session.accountId, props: { ...(app.platform ? { platform: app.platform } : {}), ...(app.version ? { appVersion: app.version } : {}) }, ctx: { session: session.id, app } });
+    }, () => { stats.failed++; });
+  }
+  function botReplied(accountId: string) {
+    if (replied.has(accountId)) return;
+    replied.add(accountId);
+    void sink.once(`first_bot_reply|${accountId}`, null).then(fresh => { if (fresh) track("first_bot_reply", { accountId }); }, () => { replied.delete(accountId); stats.failed++; });
+  }
+  function setOptOut(accountId: string, value: boolean) {
+    if (value) optOut.add(accountId); else optOut.delete(accountId);
+    store.state.optOut = [...optOut];
+    store.commit();
+    if (value) return sink.forget(accountId).catch(() => { stats.failed++; });
+  }
+  async function forget(accountId: string) {
+    replied.delete(accountId);
+    if (optOut.delete(accountId)) { store.state.optOut = [...optOut]; store.commit(); }
+    await sink.forget(accountId).catch(() => { stats.failed++; });
+  }
+
+  async function handle(req: IncomingMessage, res: ServerResponse, url: URL, helpers: RouteHelpers): Promise<boolean> {
+    const path = url.pathname, method = req.method ?? "GET";
+    if (path === "/v1/events" && method === "POST") {
+      const publicOrigin = `${url.protocol}//${url.host}`;
+      helpers.rate(req, "events", 1200);
+      const input = helpers.bodyObject(await helpers.readBody(req));
+      const list = Array.isArray(input.events) ? input.events : null;
+      if (!list || list.length < 1 || list.length > MAX_BATCH) { helpers.json(res, 400, { error: "Invalid request.", code: "invalid_request" }); return true; }
+      if (declined(req)) { res.writeHead(204, { "cache-control": "no-store" }); res.end(); return true; }
+      let owner: { id: string } | null = null;
+      try { owner = helpers.account(req, true); } catch { owner = null; }
+      if (owner) helpers.rate(req, `events:${owner.id}`, 600);
+      const session = typeof input.session === "string" && /^[A-Za-z0-9_-]{8,40}$/.test(input.session) ? input.session : undefined;
+      const referrer = typeof input.referrer === "string" ? input.referrer.slice(0, 500) : undefined;
+      const base = requestContext(req, { publicOrigin, trustProxy: options.trustProxy ?? false, referrer, url: typeof input.landing === "string" ? safeUrl(input.landing, publicOrigin) : undefined });
+      for (const item of list as unknown[]) {
+        const event = item && typeof item === "object" ? item as Record<string, unknown> : {};
+        if (!isEventName(event.name) || EVENTS[event.name].source !== "page") continue;
+        if (!owner && event.name !== "page_view") continue;
+        const props = event.name === "page_view" && event.props && typeof event.props === "object"
+          ? { path: routeOf(String((event.props as Record<string, unknown>).path ?? "")) ?? "" } : event.props;
+        const ctx: EventContext = { ...base, ...(session ? { session } : {}), ...(event.name === "page_view" && typeof (props as Props).path === "string" ? { page: (props as Props).path as string } : {}) };
+        track(event.name, { accountId: owner?.id ?? null, props: props as Props, ctx, visitor: owner ? null : visitorOf(req) });
+      }
+      res.writeHead(204, { "cache-control": "no-store" }); res.end();
+      return true;
+    }
+    if (path === "/v1/account/analytics" && (method === "GET" || method === "PUT")) {
+      const owner = helpers.account(req, method === "PUT");
+      if (!owner) { helpers.json(res, 401, { error: "Sign in to continue.", code: "signed_out" }); return true; }
+      if (method === "PUT") {
+        const input = helpers.bodyObject(await helpers.readBody(req));
+        if (typeof input.optOut !== "boolean") { helpers.json(res, 400, { error: "Invalid request.", code: "invalid_request" }); return true; }
+        await setOptOut(owner.id, input.optOut);
+      }
+      helpers.json(res, 200, { optOut: optOut.has(owner.id) });
+      return true;
+    }
+    return false;
+  }
+
+  return { sink, track, record, siteView, appActive, botReplied, setOptOut, forget, handle, stats, optedOut: (accountId: string) => optOut.has(accountId), close: () => store.close() };
+}
+export type Analytics = ReturnType<typeof createAnalytics>;

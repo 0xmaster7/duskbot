@@ -10,7 +10,7 @@ Your computer, VPS, our account services and a Dusk Cloud desktop have different
 
 ## Desktop app and AI providers
 
-Dusk Bot is local-first. On macOS, Windows and Linux, your bots, chats, files, memory and settings live on your computer or your own server. The app does not include product analytics. Our account and link services do not receive your message content, prompts, files or AI keys as workspace reporting data.
+Dusk Bot is local-first. On macOS, Windows and Linux, your bots, chats, files, memory and settings live on your computer or your own server. The app itself sends no analytics; our account service keeps first-party usage counts, described under Product analytics. Our account and link services do not receive your message content, prompts, files or AI keys as workspace reporting data.
 
 You sign in to AI engines yourself or add your own API keys. Examples include Anthropic Claude, OpenAI Codex/ChatGPT, Google Gemini and xAI Grok. Prompts and replies go directly from the machine running your bots to the provider under your account. Dusk Bot does not receive them through the account service. The provider's own terms and privacy policy apply. Read those policies before you send personal or confidential information.
 
@@ -33,6 +33,16 @@ If you use app.dusk.bot, we store your email address and optional display name. 
 Sign-in session records contain your device name, platform, app version, creation time and last-seen time. We store only a hash of the session token. The hash lets the service check a session without storing the original token in its session records.
 
 If you link a workspace, we store its name and kind. Periodic workspace reports contain counts and states only. They can include CPU, memory and disk statistics; bot names, colours and models; bot computer states; phone and device names; and daily usage totals. These reports never contain messages, prompts, files or secrets. Names and identifiers may still be personal data even when message content is absent.
+
+## Product analytics
+
+The account service keeps first-party usage records in its own database, never with a third-party analytics provider. They help us see whether people can sign up, set up Dusk Cloud and get their first bot reply.
+
+- What: page views on the website and account pages (the path only, with ids removed), sign-ups and sign-ins (method and device type), onboarding steps, plan and checkout steps, Dusk Cloud states, which apps are signed in (platform and version) and once a day that an app was used, and the first time any of your bots replied. Bot and message counts are totals only. We never record message content, prompts, files, form input, IP addresses or full referrer addresses.
+- Visitors who are not signed in are counted with a daily identifier made from a key that is kept only in memory and changes every day, so a visit cannot be linked to another day or traced back to an address. We keep the referring site's name, campaign tags, a coarse device type and the country Cloudflare reports.
+- Your browser's Global Privacy Control or Do Not Track signal turns this off. Signed in, you can opt out (`PUT /v1/account/analytics`); opting out deletes your recorded events and stops new ones.
+- Raw events are deleted after 400 days. Daily totals without any account link are kept. Deleting your account deletes your events.
+- Only the operator can see these records, in an admin panel that logs each access to a person's record.
 
 ## Payments and transactional email
 
@@ -64,7 +74,7 @@ Tool traffic can include information needed to carry out your requested action i
 
 The website, account service and link service run on a server rented from Contabo GmbH, Germany, [confirm data center region]. Cloudflare runs the connected-apps broker and the cloud desktops' public edge. Spaceship provides DNS. Let's Encrypt provides TLS certificates.
 
-Server access logs include IP addresses. We keep them for [log retention, for example 14 days] for security and abuse prevention. We do not use advertising or product analytics. Visiting the website does not give us access to content held on your computer or VPS.
+Server access logs include IP addresses. We keep them for [log retention, for example 14 days] for security and abuse prevention. We do not use advertising or third-party analytics. Visiting the website does not give us access to content held on your computer or VPS.
 
 ## Purposes and legal bases
 
@@ -72,7 +82,7 @@ Where GDPR applies, we rely on the following legal bases. Contract covers proces
 
 Legitimate interests cover keeping services secure, preventing abuse and diagnosing errors. We consider your rights when relying on these interests. You can object to processing based on legitimate interests. Consent applies where required for optional processing, including [processing that requires consent and withdrawal method]. You can withdraw consent without affecting earlier lawful processing.
 
-Where legal obligations require payment or other records to be retained, the applicable obligations and records are [legal recordkeeping requirements]. We do not use your data for ads or product analytics. We do not collect your message content on our account or link services. Your own Dusk Cloud desktop and the optional tool traffic described above have separate processing roles.
+Where legal obligations require payment or other records to be retained, the applicable obligations and records are [legal recordkeeping requirements]. We do not use your data for ads, and our product analytics stay first-party, as described below. We do not collect your message content on our account or link services. Your own Dusk Cloud desktop and the optional tool traffic described above have separate processing roles.
 
 ## Sub-processors and service providers
 
@@ -118,7 +128,7 @@ We use encryption in transit, sealed relay frames, hashed session and link token
 
 On app.dusk.bot, a session cookie is HttpOnly, lasts 30 days and is renewed while used. A CSRF cookie protects requests. A short-lived OAuth state cookie supports sign-in. Your theme preference is stored in local storage.
 
-There are no advertising or analytics cookies. No cookie banner is needed because the cookies used are strictly necessary for account and security functions. Theme local storage records your preference. Cookie and local storage use is limited to these purposes. Blocking required cookies may prevent account sign-in or related functions from working.
+There are no advertising or analytics cookies; product analytics work without cookies. No cookie banner is needed because the cookies used are strictly necessary for account and security functions. Theme local storage records your preference. Cookie and local storage use is limited to these purposes. Blocking required cookies may prevent account sign-in or related functions from working.
 
 ## Children, changes and contact
 
