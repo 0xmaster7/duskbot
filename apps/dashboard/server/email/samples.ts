@@ -4,7 +4,7 @@ import type { CloudNoticeKind, EmailConfig, Rendered } from "./templates.ts";
 
 const at = Date.UTC(2026, 10, 11, 14, 30);
 const DAY = 86_400_000;
-const cloud = { name: "night shift", plan: "shared s", machine: "2 vcpu, 4 gb memory, 8 gb disk", region: "falkenstein" };
+const cloud = { name: "night shift", plan: "shared s", machine: "2 vcpu, 4 gb memory, 40 gb disk", region: "falkenstein" };
 
 /** one filled-in copy of every email, for the tests and the previews */
 export function samples(cfg: EmailConfig): Array<{ id: string; trigger: string; email: Rendered }> {

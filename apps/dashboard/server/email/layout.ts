@@ -57,8 +57,8 @@ const prose = (value: string) => esc(value).replace(/\*\*(.+?)\*\*/g, "<b style=
 const plain = (value: string) => value.replace(/\*\*(.+?)\*\*/g, "$1");
 const img = (cfg: EmailConfig, name: string) => /^https?:\/\//.test(name) ? name : `${cfg.assets}/${name}`;
 
-function button(label: string, href: string, align: "left" | "center" = "left") {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="${align}" style="margin:0"><tr>
+function button(label: string, href: string) {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0"><tr>
 <td class="btn" bgcolor="${C.ink}" style="border-radius:999px;background:${C.ink}"><a class="btn-a" href="${esc(href)}" target="_blank" style="display:inline-block;padding:14px 26px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:600;letter-spacing:-0.01em;color:#fdfdfd;text-decoration:none;border-radius:999px">${esc(label)}</a></td>
 </tr></table>`;
 }
