@@ -3,7 +3,6 @@ import { ArrowLeft, LoaderCircle, Monitor } from "@/icons";
 import meadow from "../art/p-meadow.webp";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, PlanCatalog } from "../data/contracts";
-import { planLine } from "../data/funnel";
 import { bundleOf, dollars } from "../data/pricing";
 import { useSession } from "../data/session";
 import { FIXTURE } from "../lib/api";
@@ -70,7 +69,6 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
         {cloud && (
           <div className="step-in flex flex-col gap-2 px-1 pb-1 pt-2">
             <Toggle<PaidPlan> label="plan" className="w-full" value={plan} onChange={setPlan} options={plans.map(({ id, b }) => ({ value: id, label: <>{b.name.toLowerCase()} <span className="num text-ink-4">{per(b.monthly, "month", catalog).amount}/mo</span></> }))} />
-            <p className="px-2 text-13 text-ink-3">{planLine(catalog, plan).toLowerCase()}.</p>
           </div>
         )}
       </div>
@@ -176,7 +174,7 @@ export function Onboarding() {
       {step === "name" ? (
         <form key="name" className="step-in" onSubmit={(e) => { e.preventDefault(); void saveName(); }} noValidate>
           <h1 className="t-title">hi. what should we call you?</h1>
-          <p className="mt-3 text-16 text-ink-2">{direct ? "then checkout, and your dusk cloud starts setting up." : "your account is ready. two quick things and you're in."}</p>
+          <p className="mt-3 text-16 text-ink-2">{direct ? "then checkout, and your dusk cloud starts setting up." : "two quick things and you're in."}</p>
           <label htmlFor="onb-name" className="mb-2 mt-7 block text-14 text-ink-2">your name</label>
           <input id="onb-name" autoComplete="given-name" maxLength={60} value={shownName} onChange={(e) => { setName(e.target.value); setError(null); }} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} className="field !h-12" aria-invalid={Boolean(error)} aria-describedby={error ? "onb-error" : undefined} />
           {direct && (
