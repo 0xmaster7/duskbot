@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createServer } from "node:http";
-import type { Server } from "node:http";
+import { IncomingMessage, ServerResponse } from "node:http";
+import { Socket } from "node:net";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,23 +17,40 @@ const settle = () => new Promise(resolve => setTimeout(resolve, 20));
 
 describe("site tracker and app ingest", () => {
   let app: ReturnType<typeof createDashboardApp>, sink: ReturnType<typeof memorySink>, mailer: ReturnType<typeof memoryMailer>;
-  let server: Server, url: string, dataDir: string, time: number;
+  const url = ORIGIN;
+  let dataDir: string, time: number;
   const csrf = new Map<string, string>();
-  beforeEach(async () => {
+  beforeEach(() => {
     dataDir = mkdtempSync(join(tmpdir(), "omb-ingest-test-"));
     time = Date.parse("2026-11-12T12:00:00Z");
     sink = memorySink(() => time);
     mailer = memoryMailer();
     app = createDashboardApp({ dataDir, publicUrl: ORIGIN, mailer, staticDir: null, now: () => time, trustProxy: true, analytics: { sink, trackOrigins: [SITE] }, admin: { emails: [ADMIN], env: {} } });
-    server = createServer(app.handle);
-    await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
-    url = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   });
-  afterEach(async () => {
+  afterEach(() => {
     app.close();
-    await new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });
     rmSync(dataDir, { recursive: true, force: true });
   });
+  async function fetch(input: string, init: RequestInit) {
+    const request = new Request(input, init), req = new IncomingMessage(new Socket());
+    req.method = request.method;
+    req.url = new URL(input).pathname;
+    req.headers = Object.fromEntries(request.headers);
+    Object.defineProperty(req.socket, "remoteAddress", { value: "127.0.0.1" });
+    req.push(Buffer.from(await request.arrayBuffer()));
+    req.push(null);
+    const res = new ServerResponse(req), end = res.end.bind(res);
+    let body: string | null = null;
+    res.end = ((value?: string) => { body = value ?? null; return end(value); }) as typeof res.end;
+    try {
+      await app.handle(req, res);
+      const headers = new Headers();
+      for (const [key, value] of Object.entries(res.getHeaders())) {
+        for (const item of Array.isArray(value) ? value : [value]) if (item !== undefined) headers.append(key, String(item));
+      }
+      return new Response(res.statusCode === 204 ? null : body, { status: res.statusCode, headers });
+    } finally { req.destroy(); res.destroy(); }
+  }
   const beacon = (body: unknown, headers: Record<string, string> = {}) => fetch(`${url}/v1/t`, { method: "POST", body: typeof body === "string" ? body : JSON.stringify(body),
     headers: { "content-type": "text/plain;charset=UTF-8", origin: SITE, "user-agent": SAFARI, ...headers } });
   const view = (extra: Record<string, unknown> = {}) => ({ v: 1, e: "pageview", vid: VID, sid: SID, pv: "pv000001", h: "dusk.bot", p: "/pricing", w: 1440, ...extra });
@@ -84,6 +101,46 @@ describe("site tracker and app ingest", () => {
     expect((await beacon(view(), { "sec-gpc": "1" })).status).toBe(204);
     await settle();
     expect(sink.all.map(event => [event.name, event.props])).toEqual([["site_goal", { goal: "cta_click", to: "/app/signup", from: "/" }], ["site_leave", { path: "/", scroll: 100, ms: 5200 }]]);
+  });
+
+  it("lowercases goal context and drops metadata outside the catalogue", async () => {
+    expect((await beacon(view({ e: "goal", g: "click", m: { section: "Hero_Intro", label: "Get_Dusk", value: "MAC", to: "/Download?email=private@example.com", email: "private@example.com" } }))).status).toBe(200);
+    await beacon(view({ e: "goal", g: "click", m: { section: "bad section", label: "private@example.com", value: "a".repeat(41) } }));
+    await beacon(view({ e: "goal", g: "click", m: { section: 42, label: ["array"], value: { nested: "never" } } }));
+    await settle();
+    expect(sink.all.map(event => event.props)).toEqual([
+      { goal: "click", to: "/download", section: "hero_intro", label: "get_dusk", value: "mac" }, { goal: "click" }, { goal: "click" },
+    ]);
+    expect(JSON.stringify(sink.all)).not.toContain("private@example.com");
+  });
+
+  it("accepts section batches, clamps durations and skips malformed entries", async () => {
+    const res = await beacon(view({ e: "sections", l: [["hero", 300.6], ["pricing", -10], ["footer", 90_000_000], ["bad name", 500], ["UPPER", 500], ["", 500], ["a".repeat(41), 500], ["string", "500"], ["null", null], ["extra", 500, 1], [42, 500], null, {}] }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ persist: true });
+    expect((await beacon(view({ e: "sections", l: [] }))).status).toBe(200);
+    for (const l of [undefined, null, "list", {}, Array.from({ length: 31 }, () => ["hero", 300])]) expect((await beacon(view({ e: "sections", l }))).status).toBe(400);
+    expect((await beacon(view({ e: "unknown" }))).status).toBe(400);
+    await settle();
+    expect(sink.all.map(event => [event.name, event.props])).toEqual([
+      ["site_section", { path: "/pricing", section: "hero", ms: 301 }], ["site_section", { path: "/pricing", section: "pricing", ms: 0 }], ["site_section", { path: "/pricing", section: "footer", ms: 86_400_000 }],
+    ]);
+    for (const event of sink.all) expect(event.ctx).toMatchObject({ visitor: VID, session: SID, pv: "pv000001", host: "dusk.bot", page: "/pricing" });
+    expect((await beacon(JSON.stringify(view({ e: "sections", l: [["infinite", 1]] })).replace('["infinite",1]', '["infinite",1e999]'))).status).toBe(200);
+    await settle();
+    expect(sink.all).toHaveLength(3);
+  });
+
+  it("keeps sections and new goals cookieless when consent would be needed", async () => {
+    const headers = { "x-forwarded-for": "203.0.113.4, 172.70.1.1", "cf-ipcountry": "FR" };
+    const res = await beacon(view({ e: "sections", l: [["hero", 800]] }), headers);
+    expect(await res.json()).toEqual({ persist: false });
+    await beacon(view({ e: "goal", g: "form_start", m: { section: "hero", label: "waitlist" } }), headers);
+    await settle();
+    expect(sink.all).toHaveLength(2);
+    expect(sink.all[0]!.ctx!.visitor).not.toBe(VID);
+    expect(sink.all[0]!.ctx!.session).not.toBe(SID);
+    expect(sink.all[1]!.ctx).toMatchObject({ visitor: sink.all[0]!.ctx!.visitor, session: sink.all[0]!.ctx!.session });
   });
 
   describe("cookieless where consent would be needed", () => {
