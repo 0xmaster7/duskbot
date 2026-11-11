@@ -33,6 +33,7 @@ import { createHomeAgain } from "../../../electron/one-home-again.mjs";
 import { launchVerificationServer } from "../../../scripts/control-omb.ts";
 import { readFrame } from "../../../server/routes/rfb-handshake.ts";
 import { vncAuthResponse } from "../../../server/routes/vnc-des.ts";
+import { applyPendingWorkspaceRestore } from "../../../server/workspace-backup.ts";
 import { createDashboardApp } from "../../dashboard/server/app.ts";
 import { memoryMailer } from "../../dashboard/server/auth/mail.ts";
 import type { CloudDesktopView } from "../../../shared/billing-api.ts";
@@ -241,7 +242,7 @@ if mode == "set":
     dump("file://" + os.path.join(pages, "set.html"))
 cookies = dump("https://httpbin.org/cookies")
 title = re.search(r"<title>(.*?)</title>", dump("file://" + os.path.join(pages, "get.html")))
-print(json.dumps({"cookie": "omb_persist" in cookies, "localStorage": bool(title) and title.group(1) == "ls:kept"}))
+print(json.dumps({"cookie": "omb_persist" in cookies, "localStorage": bool(title) and title.group(1) == "ls:kept", "title": title.group(1) if title else None}))
 `;
 
 let failed: string | null = null;
@@ -578,15 +579,13 @@ try {
       let brought: Record<string, unknown> = {};
       for (let n = 0; n < 30; n++) { brought = await again.bring() as Record<string, unknown>; if ("restored" in brought || "deleted" in brought) break; await sleep(Number(brought.later ?? 5000)); }
       if (!("restored" in brought)) throw new Error(`move back: ${JSON.stringify(brought)}`);
-      // the fixture restarts into the restore when its app opens again; its own restore status says it is done
-      let names: string[] = [];
-      for (let n = 0; n < 60 && !names.includes("Ada"); n++) {
-        await sleep(2000);
-        const list = await localApi("/api/bots?messages=0").then(r => r.json()).catch(() => null) as { bots?: Array<{ name?: string }> } | null;
-        names = (list?.bots ?? []).map(b => b.name ?? "");
-      }
-      results.moveBack = { restored: true, botsOnMac: names, ms: Date.now() - started };
-      if (!names.includes("Ada")) throw new Error(`the home's bots did not arrive on the Mac: ${names.join(", ")}`);
+      // the restore applies when the app starts its server again: the fixture's server stops, its next boot's restore runs
+      localServer.child.kill("SIGTERM");
+      await new Promise(done => { if (localServer.child.exitCode !== null) done(null); else { localServer.child.once("exit", done); setTimeout(done, 15_000); } });
+      const applied = applyPendingWorkspaceRestore(localServer.info.dataDir);
+      const bots = (JSON.parse(readFileSync(join(localServer.info.dataDir, "bots.json"), "utf8")) as Array<{ name?: string }>).map(b => b.name ?? "");
+      results.moveBack = { restored: applied.restored, botsOnMac: bots, ms: Date.now() - started };
+      if (!applied.restored || !["Ada", "Bo", "Cy", "Moved from the Mac"].every(name => bots.includes(name))) throw new Error(`the home's bots did not arrive on the Mac: ${bots.join(", ")}`);
     });
   } finally { await localServer.close().catch(() => {}); }
 
@@ -604,8 +603,8 @@ try {
     const again = await webSignIn(origin, email); cookies = { cookie: again.cookie, "x-omb-csrf": again.csrf, origin };
     await until(v => v.status === "stopped", 10 * 60_000, "plan ended", 3000);
     await service.deleteData(cloudId);
-    const link = mailer.outbox.map(m => m.text).reverse().find(t => /token=/.test(t)) ?? "";
-    const token = /token=([A-Za-z0-9_-]{20,})/.exec(link)?.[1];
+    const link = mailer.outbox.map(m => m.text).reverse().find(t => /\/delete#/.test(t)) ?? "";
+    const token = /\/delete#([A-Za-z0-9_-]{20,})/.exec(link)?.[1];
     if (!token) throw new Error("no confirmation email");
     await service.confirmDelete(cloudId, token);
     offset += 8 * 86_400_000;
@@ -631,6 +630,8 @@ try {
   await sleep(10_000);
   results.left = (await ibx.inventory().catch(() => [{ id: "unknown" }])).map(m => m.id);
   results.marks = marks;
+  // the lifecycle's own account of the run, for what took how long and why
+  try { results.audit = readFileSync(join(dataDir, "managed-audit.jsonl"), "utf8").trim().split("\n").map(l => JSON.parse(l) as { at: number; action: string; reason: string; detail?: unknown }).map(e => `${((e.at - t0) / 1000).toFixed(0)}s ${e.action}:${e.reason}${e.detail ? ` ${JSON.stringify(e.detail).slice(0, 120)}` : ""}`); } catch {}
   save();
   try { service?.close(); } catch {}
   server?.close();
