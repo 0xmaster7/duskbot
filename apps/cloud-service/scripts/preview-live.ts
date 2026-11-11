@@ -186,7 +186,8 @@ try {
   }, true);
   const api = (await step("pair: the app pairs with the home at its public name", async () => {
     const started = Date.now();
-    const grant = await client.pairHome(cloudId) as { origin: string; code: string; expiresAt: number };
+    // the account's first cloud is its home, paired without an id (an id names one of its other clouds)
+    const grant = await client.pairHome() as { origin: string; code: string; expiresAt: number };
     homeOrigin = grant.origin;
     if (!/^https:\/\/d[0-9a-f]{20}\.dusk\.bot$/.test(homeOrigin)) throw new Error(`home origin ${homeOrigin}`);
     const session = await openOwnerSession({ origin: homeOrigin, grant: async () => grant }, globalThis.fetch, { label: "Live app", background: false });

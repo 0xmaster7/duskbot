@@ -335,7 +335,7 @@ test("signed in, a checkout is the Admin's for this account, opened in the brows
   assert.deepEqual(f.browsers, []);
   f.checkout = { status: 404, body: "<!doctype html>not here" };
   assert.equal((await f.client.checkout("max", "app_card")).outcome, "opened");
-  assert.deepEqual(f.browsers, [`${f.origin}/cloud?checkout=start&plan=max&src=app_card`]);
+  assert.deepEqual(f.browsers, [`${f.origin}/billing?plan=max&src=app_card`]);
   f.now += 24 * 3600_000; assert.equal(f.client.state().checkout, undefined); assert.equal(f.client.checkoutLink(), null);
 });
 
@@ -406,7 +406,7 @@ test("signed out, a checkout is a sign-in first: the verified link only gains th
   const old = await fixture(t);
   await old.client.checkout("max", "app_menu");
   old.approved = true; old.tick(); await until(() => old.browsers.length === 2);
-  assert.deepEqual(old.browsers, [`${old.origin}/cloud/desktop?code=ABCDE-FGHJK&next=checkout&plan=max&src=app_menu`, `${old.origin}/cloud?checkout=start&plan=max&src=app_menu`]);
+  assert.deepEqual(old.browsers, [`${old.origin}/cloud/desktop?code=ABCDE-FGHJK&next=checkout&plan=max&src=app_menu`, `${old.origin}/billing?plan=max&src=app_menu`]);
   const payer = await fixture(t);
   payer.entitlement = { plan: "pro", tier: "pro", status: "active", expiresAt: payer.now + 30 * 86400_000, version: 1 };
   await payer.client.checkout("pro", "app_card");
@@ -984,7 +984,7 @@ test("an Admin without the app's Cancel and Keep opens the Cloud page's billing;
     assert.deepEqual(await f.client.cancelPlan({ answer: "later" }), { outcome: "browser" });
     assert.deepEqual(await f.client.keepPlan(), { outcome: "browser" });
   }
-  assert.deepEqual(f.browsers, Array(6).fill(`${f.origin}/cloud/personal/billing`));
+  assert.deepEqual(f.browsers, Array(6).fill(`${f.origin}/billing`));
   // The route is there, but refuses: the Cloud isn't this account's (anymore), or there's no plan to change, or Dodo can't be reached.
   for (const [status, error] of [[404, "not_found"], [403, "forbidden"], [409, "not_renewable"], [502, "provider_error"], [429, "rate_limited"]]) {
     f.renewal = () => ({ status, body: { error, errorDescription: "Refused." } });
