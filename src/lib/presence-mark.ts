@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { MarkState } from "@/components/mascot-motion-mark";
+import type { MarkState } from "@/components/mascot-engine";
 import type { LiveStatus } from "@/state/turn-status";
 import type { Message } from "@/state/store";
 

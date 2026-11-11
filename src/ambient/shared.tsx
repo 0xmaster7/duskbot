@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { animate, motion, useMotionValue, useReducedMotion, type MotionValue } from "motion/react";
 import { MausAvatar, type MausAvatarHandle } from "@/components/Avatar";
-import type { MarkState } from "@/components/mascot-motion-mark";
-import type { MarkReaction } from "@/components/mascot-personality";
+import type { MarkReaction, MarkState } from "@/components/mascot-engine";
 import type { BotBodyId } from "../../shared/bot-body";
 import { isBusy } from "./mood";
 import type { AmbientBot, AmbientBridge, AmbientSnapshot, AmbientStatus, AmbientStep, DockLayout, IslandLayout } from "./types";

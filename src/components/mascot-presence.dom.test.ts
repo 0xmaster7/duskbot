@@ -4,8 +4,8 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { turnMarkState, useBotMarkState, type MarkBot } from "./mascot-presence";
-import { SETTLED_HOLD_MS, type MarkState } from "./mascot-motion-mark";
+import { SETTLED_HOLD_MS, turnMarkState, useBotMarkState, type MarkBot } from "./mascot-presence";
+import type { MarkState } from "./mascot-engine";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

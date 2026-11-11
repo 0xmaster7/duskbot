@@ -51,7 +51,7 @@ export function AccountStep({ platform, service, onDone }: { platform: MobilePla
         {waiting || finishing ? (
           <motion.div key="waiting" role="status" className="mt-8 flex flex-col items-center gap-4 text-center"
             initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4, transition: { duration: dur.fast } }} transition={{ duration: dur.base, ease: ease.out }}>
-            <MausAvatar color="blue" bodyId="blob" size={56} state="working" label="" />
+            <MausAvatar color="blue" bodyId="circle" size={56} state="working" label="" />
             <p className="text-[16px] font-medium text-white">{t(finishing ? "mobile.account.finishing" : "mobile.account.inBrowser")}</p>
             {!finishing && <button type="button" onClick={() => setWaiting(null)} className="mobile-press h-11 rounded-full px-5 text-[15px] font-medium text-white/70">{t("mobile.pair.cancel")}</button>}
             {finishing && <WorkingDots />}
@@ -61,7 +61,7 @@ export function AccountStep({ platform, service, onDone }: { platform: MobilePla
             initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4, transition: { duration: dur.fast } }} transition={{ duration: dur.base, ease: ease.out }}>
             {error && (
               <div role="alert" className="mb-1 flex items-start gap-3 rounded-[20px] bg-white/[0.07] p-4 ring-1 ring-white/10">
-                <MausAvatar color="coral" bodyId="pebble" size={32} state="sad" label="" />
+                <MausAvatar color="coral" bodyId="circle" size={32} state="sad" label="" />
                 <div className="min-w-0 flex-1">
                   <p className="text-[15px] font-semibold text-white">{t(`mobile.account.err.${error}` as Parameters<typeof t>[0])}</p>
                   <button type="button" onClick={() => setError(null)} className="mt-1 flex items-center gap-1.5 text-[14px] text-white/65"><RotateCw size={14} />{t("mobile.onboarding.retry")}</button>

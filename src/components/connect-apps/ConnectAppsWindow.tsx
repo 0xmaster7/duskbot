@@ -11,7 +11,7 @@ import { managedConnectorUnavailableReason } from "../../../shared/connector-ava
 import { hasActiveConnection } from "@/lib/connector-status";
 import type { SkillsLibrarySkillWire } from "../../../shared/wire";
 import { Icon } from "../Icon";
-import { GrokMark } from "../mascot-motion-view";
+import { DuskMark } from "../mascot-view";
 import { AppsSection } from "../AppsSection";
 import { McpServersPanel } from "../McpServersPanel";
 import { XCard } from "../XCard";
@@ -666,7 +666,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                           )}
                         </div>
                         <button type="button" className="ca-templates" data-bot-templates-link="" onClick={onTemplates}>
-                          <GrokMark body="blob" ink="var(--ca-mark)" size={18} animated={false} />
+                          <DuskMark body="circle" colour="var(--ca-mark)" size={18} animated={false} />
                           {t("connectApps.templates")}
                           <span data-arrow="" aria-hidden="true"><Icon name="arrow-right-up" size={12} /></span>
                         </button>

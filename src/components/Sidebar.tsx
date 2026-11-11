@@ -9,7 +9,7 @@ import { openBotRow } from "@/state/thread-navigation";
 import { llmThreadTitlesEnabled } from "@/lib/feature-flags";
 
 import { BotAvatar } from "./Avatar";
-import { hoverGaze } from "./mascot-motion-mark";
+import { hoverGaze } from "./mascot-engine";
 import { usePhoneDrawer } from "./SidebarDrawer";
 import { botTooltip } from "./BotModelBadge"; import { SidebarBotRole } from "./BotRole";
 import { useBotMarkState } from "./mascot-presence";

@@ -5,7 +5,7 @@ import { peerLine } from "@/lib/peer-message";
 import { activeLocale, t } from "@/lib/i18n";
 import type { Bot, Group, Message } from "@/state/store";
 import { BotFaces } from "./BotFaces";
-import type { MarkState } from "./mascot-motion-mark";
+import type { MarkState } from "./mascot-engine";
 import { TurnPresence } from "./TurnPresence";
 import { useReplyLife } from "@/hooks/use-reply-life";
 import { lifeMarkState } from "@/lib/reply-life";

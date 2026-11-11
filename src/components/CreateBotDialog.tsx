@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type FocusEvent as ReactFocusEvent, type PointerEvent as ReactPointerEvent } from "react";
-import { GROK_BODIES, type GrokBodyId } from "../../shared/grok-bodies";
-import { isMausColor, type MausColor } from "../../shared/wire";
+import { DUSK_BODY_IDS, type DuskBodyId } from "../../shared/body-migration";
+import { MAUS_COLOR_LABEL, MAUS_COLOR_NAMES, colorSwatch, type MausColor } from "@/lib/mascot";
 import { useStore } from "@/state/store";
 import { stoppedAtBotLimit } from "@/lib/bot-limit";
 import { CREATE_BOT_EVENT, openCreateBot, takeCreateBotSection } from "@/lib/create-bot-request";
@@ -9,33 +9,12 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { MausAvatar, type MausAvatarHandle } from "./Avatar";
 import { Icon } from "./Icon";
-import { VIEW_SPAN } from "./mascot-motion";
-import { hoverGaze } from "./mascot-motion-mark";
+import { hoverGaze } from "./mascot-engine";
+import { BodyRing } from "./mascot-view";
 
-/** Grok Bot's Create New Bot shapes, in its rows of five, five and three. */
-const SHAPES: GrokBodyId[][] = [
-  ["blob", "cloud", "square", "sparkle", "clover"],
-  ["heart", "flower", "teardrop", "tablet", "wedge"],
-  ["house", "star", "hex"],
-];
+/** Our bodies, in two rows of five. */
+const SHAPES: DuskBodyId[][] = [DUSK_BODY_IDS.slice(0, 5), DUSK_BODY_IDS.slice(5)];
 
-/** Grok Bot's eleven colours, each painted as its swatch shows it, and the bot colour it makes. Brown has no bot colour
- * here yet, so its dot waits until one exists. */
-const COLORS: { label: string; dot: string; color: string }[] = [
-  // grok's black follows the skin's ink, white in dark, as the chrome body it makes does
-  { label: "Black", dot: "var(--color-ink)", color: "chrome" },
-  { label: "Brown", dot: "#a06b39", color: "brown" },
-  { label: "Red", dot: "#fb2b3e", color: "red" },
-  { label: "Orange", dot: "#fd690f", color: "orange" },
-  { label: "Yellow", dot: "#f59312", color: "yellow" },
-  { label: "Green", dot: "#14c16f", color: "green" },
-  { label: "Cyan", dot: "#13b7a2", color: "teal" },
-  { label: "Blue", dot: "#1e86fc", color: "blue" },
-  { label: "Violet", dot: "#8f59f9", color: "purple" },
-  { label: "Magenta", dot: "#f93498", color: "pink" },
-  { label: "Gray", dot: "#959595", color: "silver" },
-];
-const SWATCHES = COLORS.filter((swatch): swatch is { label: string; dot: string; color: MausColor } => isMausColor(swatch.color));
 
 export { openCreateBot };
 
@@ -61,9 +40,9 @@ export function CreateBotDialog() {
 function CreateBotForm({ section, onClose }: { section?: string; onClose: () => void }) {
   const { state, dispatch } = useStore();
   const [name, setName] = useState("");
-  // Grok Bot opens on a shape and colour of its own choosing, a new one each time.
-  const [body, setBody] = useState<GrokBodyId>(() => pick(SHAPES.flat()));
-  const [color, setColor] = useState<MausColor>(() => pick(SWATCHES).color);
+  // the dialog opens on a shape and colour of its own choosing, a new one each time
+  const [body, setBody] = useState<DuskBodyId>(() => pick(DUSK_BODY_IDS));
+  const [color, setColor] = useState<MausColor>(() => pick(MAUS_COLOR_NAMES));
   const dialog = useRef<HTMLDivElement>(null);
   const mascot = useRef<MausAvatarHandle>(null);
   const preview = useRef<HTMLSpanElement>(null);
@@ -93,7 +72,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
     onFocus: (event: ReactFocusEvent<HTMLElement>) => { if (event.currentTarget.matches(":focus-visible")) lookAt(event.currentTarget); },
   };
   const rest = () => setLook(FACING);
-  const pickBody = (id: GrokBodyId) => { if (id !== body) { setBody(id); mascot.current?.react?.("hop"); } };
+  const pickBody = (id: DuskBodyId) => { if (id !== body) { setBody(id); mascot.current?.react?.("hop"); } };
   const pickColor = (next: MausColor) => { if (next !== color) { setColor(next); mascot.current?.react?.("wiggle"); } };
   const rename = (next: string) => {
     if (!name.trim() && next.trim()) mascot.current?.react?.("greet");
@@ -181,19 +160,19 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
                 ))}
               </div>
               <div role="group" aria-label={t("botPanel.avatar.colors")} className="flex max-w-[232px] flex-wrap items-center justify-center gap-2 self-center py-2" onPointerLeave={rest} onBlur={rest}>
-                {SWATCHES.map((swatch) => (
+                {MAUS_COLOR_NAMES.map((swatch) => (
                   <button
-                    key={swatch.label}
+                    key={swatch}
                     type="button"
-                    aria-label={`${swatch.label} character color`}
-                    aria-pressed={swatch.color === color}
-                    onClick={() => pickColor(swatch.color)}
+                    aria-label={`${t(MAUS_COLOR_LABEL[swatch])} character color`}
+                    aria-pressed={swatch === color}
+                    onClick={() => pickColor(swatch)}
                     {...watch}
                     className="flex size-8 cursor-pointer items-center justify-center rounded-[50%] border border-transparent p-0 text-black outline-none hover:border-ink/12 focus-visible:shadow-[0_0_0_2px_var(--color-focus)] focus-visible:outline-none!"
                   >
                     <span
                       className="block size-6 rounded-[50%]"
-                      style={{ backgroundColor: swatch.dot, boxShadow: swatch.color === color ? "0 0 0 3px var(--color-menu), 0 0 0 4px color-mix(in srgb, var(--color-ink) 24%, transparent)" : undefined }}
+                      style={{ background: colorSwatch(swatch), boxShadow: swatch === color ? "0 0 0 3px var(--color-menu), 0 0 0 4px color-mix(in srgb, var(--color-ink) 24%, transparent)" : undefined }}
                     />
                   </button>
                 ))}
@@ -227,26 +206,20 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
   );
 }
 
-/** Grok Bot's kit button: a 32px pill, 14px words at regular weight, a hairline drawn in its own ink. */
+/** A 32px pill, 14px words at regular weight, a hairline drawn in its own ink. */
 const KIT_BUTTON = "inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9999px] px-3 py-1.5 text-[14px] font-normal leading-5 tracking-[0.01em] shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,currentColor_15%,transparent)] outline-none transition-[background-color,color] duration-[120ms] ease-[ease-out] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default";
 
 const MARK = 36;
-const VIEW_BOX = `-15 -15 ${VIEW_SPAN} ${VIEW_SPAN}`;
 
-/** Grok's editor preview faces the viewer at rest, turning only toward a pointer on it, and morphs between shapes. */
+/** The preview faces the viewer at rest, turning only toward the shape or colour the pointer or focus is on. */
 const FACING = { x: 0, y: 0 } as const;
 
-/** A shape to pick, in the chosen colour. Hovered, focused or chosen, a 1px ring follows its outline 3px out, as Grok's
- * tiles do: faint on hover, darker once chosen. */
+/** A shape to pick, in the chosen colour. Hovered, focused or chosen, a 1px ring follows its outline 3px out: faint on
+ * hover, darker once chosen. */
 function ShapeTile({ id, color, selected, onPick, onPointerEnter, onFocus }: {
-  id: GrokBodyId; color: MausColor; selected: boolean; onPick: () => void;
+  id: DuskBodyId; color: MausColor; selected: boolean; onPick: () => void;
   onPointerEnter: (event: ReactPointerEvent<HTMLElement>) => void; onFocus: (event: ReactFocusEvent<HTMLElement>) => void;
 }) {
-  const ring = useId().replace(/:/g, "");
-  const shape = GROK_BODIES[id];
-  const d = /\sd="([^"]+)"/.exec(shape.clip)?.[1] ?? "";
-  // Ring widths are in screen px; the outline is drawn under the viewBox's scale and the body's own fit.
-  const unit = VIEW_SPAN / MARK / Number(/scale\(([\d.]+)\)/.exec(shape.fit)?.[1] ?? 1);
   return (
     <button
       type="button"
@@ -258,25 +231,14 @@ function ShapeTile({ id, color, selected, onPick, onPointerEnter, onFocus }: {
       className="group/shape relative inline-flex size-12 cursor-pointer appearance-none items-center justify-center border-0 bg-transparent p-0 text-black outline-none focus-visible:outline-none!"
     >
       <MausAvatar bodyId={id} color={color} size={MARK} animated={false} trackPointer={false} />
-      <svg
-        aria-hidden
-        width={MARK}
-        height={MARK}
-        viewBox={VIEW_BOX}
-        overflow="visible"
+      <BodyRing
+        body={id}
+        size={MARK}
         className={cn(
           "pointer-events-none absolute text-ink opacity-0",
           selected ? "opacity-24" : "group-hover/shape:opacity-12 group-focus-visible/shape:opacity-24",
         )}
-      >
-        <mask id={ring} maskUnits="userSpaceOnUse" x={-VIEW_SPAN} y={-VIEW_SPAN} width={VIEW_SPAN * 3} height={VIEW_SPAN * 3}>
-          <g transform={shape.fit}>
-            <path d={d} fill="#fff" stroke="#fff" strokeWidth={8 * unit} strokeLinejoin="round" />
-            <path d={d} fill="#000" stroke="#000" strokeWidth={6 * unit} strokeLinejoin="round" />
-          </g>
-        </mask>
-        <rect x={-VIEW_SPAN} y={-VIEW_SPAN} width={VIEW_SPAN * 3} height={VIEW_SPAN * 3} fill="currentColor" mask={`url(#${ring})`} />
-      </svg>
+      />
     </button>
   );
 }

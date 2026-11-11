@@ -1,7 +1,7 @@
 /** Made with Blob Studio. */
 import React, { useEffect, useId, useMemo, useRef } from 'react'
 
-import { GROK_BODIES } from "../../shared/grok-bodies"
+import { MASCOT_BODIES } from "../../shared/mascot-bodies"
 import {
   EXPRESSIONS,
   EXPRESSION_COUNT,
@@ -40,14 +40,14 @@ export interface CursorSilhouette {
   body: string
   clip: string
   anchor: { x: number; y: number; scale: number }
-  /** A Grok-style face: these two eyes for every expression, cut out of the body, with no mouth. */
+  /** A fixed face: these two eyes for every expression, cut out of the body, with no mouth. */
   face?: { eyes: Ring[] }
 }
 
-const { id: _defaultBodyId, ...defaultSilhouette } = GROK_BODIES.tablet;
+const { id: _defaultBodyId, ...defaultSilhouette } = MASCOT_BODIES.cursor;
 export const DEFAULT_SILHOUETTE: CursorSilhouette = defaultSilhouette;
 
-// a grok face holds still at rest, the way grok's paused idle mark does
+// a fixed face holds still at rest
 const STILL: BodyMotion = {}
 const motionFor = (state: CursorState, face: boolean): BodyMotion => (face && state === 'idle' ? STILL : MOTION[state] ?? STILL)
 
@@ -1199,7 +1199,7 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
     const dimension = typeof size === 'number' ? `${size}px` : size
     const label = title === undefined ? `${silhouette.name} mascot` : title
     const body = silhouette.body.replace(/\{\{GRADIENT\}\}/g, `url(#${uid}-grad)`)
-    // a grok face with no chosen ink is cut out of the body, so the eyes show whatever sits behind the mascot
+    // a fixed face with no chosen ink is cut out of the body, so the eyes show whatever sits behind the mascot
     const cutout = Boolean(face) && eyeColor === undefined
     const eyeFill = eyeColor ?? '#ffffff'
     const mouthShown = showMouth && !face

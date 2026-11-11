@@ -6,7 +6,7 @@ import { usePrefersReducedMotion } from "./mascot-clock";
 import type { Bot } from "@/state/store";
 import { BotAvatar } from "./Avatar";
 import { MarkCrossfade } from "./MarkCrossfade";
-import type { MarkState } from "./mascot-motion-mark";
+import type { MarkState } from "./mascot-engine";
 
 /** A room's members as a small overlapping stack of faces, at most `max` and then "+N". A member at work comes first and
  * plays its working state; the rest hold still in `rest`. `ground` paints a disc behind each face in the surface's own

@@ -17,6 +17,15 @@ const REMOVED = [
   "src/components/GrokIcon.tsx",
   "src/styles/grok-icon.css",
   "src/assets/sounds/gallery-loop.mp3",
+  "src/components/mascot-motion-engine.js",
+  "src/components/mascot-motion-engine.d.ts",
+  "shared/grok-bodies.ts",
+  "src/components/mascot-motion-mark.ts",
+  "src/components/mascot-motion-view.tsx",
+  "src/components/mascot-clips.ts",
+  "src/components/mascot-click.ts",
+  "src/components/mascot-personality.ts",
+  "src/components/mascot-optics.ts",
 ];
 
 const MARKERS: Array<[RegExp, string]> = [
@@ -30,9 +39,6 @@ const MARKERS: Array<[RegExp, string]> = [
 
 // files the mascot and look-and-feel rewrites are replacing; each entry goes once its file no longer matches
 const PENDING: Record<string, string> = {
-  "src/components/mascot-motion-engine.js": "the mascot engine rewrite",
-  "shared/grok-bodies.ts": "the mascot engine rewrite",
-  "src/lib/mascot.ts": "the mascot engine rewrite",
   "src/lib/motion-presets.ts": "the look and feel rewrite",
   "src/lib/user-bubble-tone.ts": "the look and feel rewrite",
 };

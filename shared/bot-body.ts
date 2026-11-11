@@ -1,57 +1,45 @@
-/** Every body a bot can wear: the gradient catalog, the Grok-style catalog and the Halloween bodies. */
+/** Every body a bot can wear: our ten bodies and the Halloween costumes. Ids saved by older versions still read. */
 
 import { z } from "zod";
 
-import { DEFAULT_MASCOT_BODY, MASCOT_BODY_IDS, type MascotBodyId } from "./mascot-bodies.ts";
-import { GROK_BODIES, GROK_BODY_IDS, type GrokBodyId } from "./grok-bodies.ts";
+import { DEFAULT_BOT_BODY, DUSK_BODY_IDS, LEGACY_BODY_IDS, duskBody, migrateBodyId, type DuskBodyId, type LegacyBodyId } from "./body-migration.ts";
 import { HALLOWEEN_BODY_IDS, type HalloweenBodyId } from "./halloween-bodies.ts";
 import type { MausColor } from "./wire.ts";
 
-const LEGACY_IDS: readonly string[] = MASCOT_BODY_IDS;
+export { DEFAULT_BOT_BODY };
 
-/** Grok-style ids that the older catalog does not already name. */
-export const GROK_ONLY_BODY_IDS = GROK_BODY_IDS.filter((id) => !LEGACY_IDS.includes(id)) as Exclude<GrokBodyId, MascotBodyId>[];
+export type BotBodyId = DuskBodyId | HalloweenBodyId;
 
-export type BotBodyId = MascotBodyId | GrokBodyId | HalloweenBodyId;
+/** A body id as stored or synced: one this version saves, or an older one still to be read through the migration. */
+export type StoredBodyId = BotBodyId | LegacyBodyId;
 
-export const BOT_BODY_IDS = [...MASCOT_BODY_IDS, ...GROK_ONLY_BODY_IDS, ...HALLOWEEN_BODY_IDS] as [BotBodyId, ...BotBodyId[]];
-
-export const botBodySchema = z.enum(BOT_BODY_IDS);
-
-/** Runtime-safe read of an untrusted persisted or streamed body id. */
-export function botBodyId(value: unknown): BotBodyId {
-  return botBodySchema.safeParse(value).data ?? DEFAULT_MASCOT_BODY;
-}
+/** The bodies a picker offers and a new bot saves. */
+export const BOT_BODY_IDS = [...DUSK_BODY_IDS, ...HALLOWEEN_BODY_IDS] as [BotBodyId, ...BotBodyId[]];
 
 export function isHalloweenBody(value: unknown): value is HalloweenBodyId {
   return (HALLOWEEN_BODY_IDS as readonly unknown[]).includes(value);
 }
 
-/** The Grok-style body every older body now draws as, so existing bots change look without a migration. */
-export const GROK_LOOK_FOR_LEGACY: Record<MascotBodyId, GrokBodyId> = {
-  cursor: "tablet",
-  blob: "blob",
-  circle: "blob",
-  squircle: "squircle",
-  capsule: "capsule",
-  drop: "teardrop",
-  shield: "shield",
-  hexagon: "hex",
-  diamond: "gem",
-  star: "star",
-};
-
-/** The Grok-style body a stored id draws as. Unknown and missing ids wear the default. */
-export function grokBodyFor(value: unknown): GrokBodyId {
-  if (typeof value === "string" && Object.hasOwn(GROK_BODIES, value)) return value as GrokBodyId;
-  if (typeof value === "string" && LEGACY_IDS.includes(value)) return GROK_LOOK_FOR_LEGACY[value as MascotBodyId];
-  return GROK_LOOK_FOR_LEGACY[DEFAULT_MASCOT_BODY];
+/** An id this version saves, or an older one moved onto the body it draws as now. */
+function readBody(value: unknown): BotBodyId | null {
+  return isHalloweenBody(value) ? value : migrateBodyId(value);
 }
 
-/** Whether a bot wearing `current` draws as `id`, so a picker can mark "cursor" as the tablet it now looks like. */
+/** Accepts every id ever saved and gives back the one to save now. */
+export const botBodySchema = z.enum([...BOT_BODY_IDS, ...LEGACY_BODY_IDS] as [string, ...string[]]).transform((id) => readBody(id)!);
+
+/** Runtime-safe read of an untrusted persisted or streamed body id. */
+export function botBodyId(value: unknown): BotBodyId {
+  return readBody(value) ?? DEFAULT_BOT_BODY;
+}
+
+/** The one of our bodies a stored id draws as; Halloween costumes are drawn on their own. */
+export const bodyShapeFor = duskBody;
+
+/** Whether a bot wearing `current` draws as `id`, so a picker marks an older id as the body it now looks like. */
 export function wearsBody(current: unknown, id: BotBodyId): boolean {
   if (isHalloweenBody(id) || isHalloweenBody(current)) return current === id;
-  return grokBodyFor(current) === grokBodyFor(id);
+  return duskBody(current) === duskBody(id);
 }
 
 /** The costume each bot colour wears (ten costumes, so brown keeps its own body) when "Dress my bots up" is on with the Halloween skin. */

@@ -5,9 +5,9 @@ import { BotAvatar, MausAvatar, type MausAvatarHandle } from "@/components/Avata
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
 import { cn } from "@/lib/cn";
 import type { MausState } from "@/lib/mascot";
-import type { MarkReaction } from "@/components/mascot-personality";
+import type { MarkReaction } from "@/components/mascot-engine";
 import { useStore } from "@/state/store";
-import { GROK_BODY_IDS, type GrokBodyId } from "../../../shared/grok-bodies";
+import { DUSK_BODY_IDS, type DuskBodyId } from "../../../shared/body-migration";
 import { isMausColor, type MausColor } from "../../../shared/wire";
 import "../../styles/vps-flow.css";
 
@@ -16,8 +16,8 @@ export interface SceneBot { id: string; name: string }
 export interface SceneHandle { react(kind: MarkReaction): void }
 
 const PALETTE = (["green", "blue", "pink", "orange", "purple", "teal", "red", "yellow", "chrome", "coral", "cyan"] as const).filter(isMausColor);
-// a body step coprime with the 26 bodies visits every one before repeating, and neighbours never look alike
-const BODY_STEP = 7;
+// a body step coprime with the ten bodies visits every one before repeating, and neighbours never look alike
+const BODY_STEP = 3;
 const SHIFT_MS = 1900;
 const DOTS = 13;
 const LINE_FROM = 152;
@@ -41,7 +41,7 @@ const ShapeShifter = forwardRef<SceneHandle, { state: MausState; size: number }>
     }, SHIFT_MS);
     return () => clearInterval(timer);
   }, [reduced]);
-  const body: GrokBodyId = GROK_BODY_IDS[(turn * BODY_STEP) % GROK_BODY_IDS.length]!;
+  const body: DuskBodyId = DUSK_BODY_IDS[(turn * BODY_STEP) % DUSK_BODY_IDS.length]!;
   const color: MausColor = PALETTE[turn % PALETTE.length]!;
   return <MausAvatar ref={mark} bodyId={body} color={color} state={state} size={size} trackPointer={false} />;
 });
@@ -54,7 +54,7 @@ export function BotFace({ bot, index, size = FACE }: { bot: SceneBot; index: num
   const known = state.bots?.find((entry) => entry.id === bot.id);
   return known
     ? <BotAvatar bot={known} size={size} animated={false} trackPointer={false} />
-    : <MausAvatar color={FALLBACK[index % FALLBACK.length]!} bodyId={GROK_BODY_IDS[(index * 5 + 3) % GROK_BODY_IDS.length]} size={size} animated={false} trackPointer={false} />;
+    : <MausAvatar color={FALLBACK[index % FALLBACK.length]!} bodyId={DUSK_BODY_IDS[(index * 3 + 1) % DUSK_BODY_IDS.length]} size={size} animated={false} trackPointer={false} />;
 }
 
 function Faces({ bots, offset, total }: { bots: SceneBot[]; offset: number; total: number }) {
