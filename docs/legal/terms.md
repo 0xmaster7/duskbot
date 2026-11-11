@@ -46,7 +46,7 @@ Refunds are governed by [refund policy], subject to your mandatory legal rights.
 
 ## Dusk Cloud desktops
 
-Dusk Cloud is a paid hosted, always-on computer for each customer. It runs on infrastructure from Boat. Your bots, chats and files live on that computer. Availability is best effort. There is no service level agreement unless we agree one with you separately. Interruptions may affect bot activity, access and connected tools.
+Dusk Cloud is a paid hosted, always-on computer for each customer. It runs on infrastructure from InstaBox. Your bots, chats and files live on that computer. Availability is best effort. There is no service level agreement unless we agree one with you separately. Interruptions may affect bot activity, access and connected tools.
 
 Cloud desktop backups are encrypted with a key held by the account service. After your plan ends, your desktop is retained and then deleted under [retention period, for example 7 days after deletion request; 30 days after a plan ends]. Keep copies of information you need before that period expires. Do not rely on continued access after deletion.
 

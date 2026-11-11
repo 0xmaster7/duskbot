@@ -42,7 +42,7 @@ We use Resend for transactional email, including sign-in codes and account and b
 
 ## Dusk Cloud desktops
 
-Dusk Cloud provides a hosted, always-on computer per customer on Boat infrastructure. Boat is a sub-processor. Your bots, chats and files live on that machine. This is the exception to the statement that your message content is not stored on our services. The cloud desktop connects directly to the AI providers you sign in to, using your accounts with them.
+Dusk Cloud provides a hosted, always-on computer per customer on InstaBox infrastructure, which runs on Amazon Web Services. InstaBox is a sub-processor. Your bots, chats and files live on that machine. This is the exception to the statement that your message content is not stored on our services. The cloud desktop connects directly to the AI providers you sign in to, using your accounts with them.
 
 Cloud desktop backups are encrypted with a key held by the account service. That key arrangement is different from the link relay, where only your app and your VPS hold the keys. After your plan ends, the desktop is kept and then deleted under [retention period, for example 7 days after deletion request; 30 days after a plan ends]. Backup retention is [cloud backup retention and deletion schedule].
 
@@ -82,7 +82,7 @@ Provider legal roles, including any independent controller role for payments, ar
 | --- | --- | --- | --- |
 | Contabo GmbH | Website, account and link hosting | Account records, service records and access logs; sealed relay traffic | Germany, [confirm data center region] |
 | Cloudflare | Connected-apps broker and cloud desktop public edge | Tool traffic, broker token hashes and cloud edge traffic | [Cloudflare processing locations] |
-| Boat | Cloud desktop infrastructure, sub-processor | Your hosted bots, chats, files and desktop data | [Boat processing locations] |
+| InstaBox | Cloud desktop infrastructure, sub-processor | Your hosted bots, chats, files and desktop data | [InstaBox processing locations: AWS us-west-2, United States] |
 | Dodo Payments | Merchant of record, payments, tax and invoices | Billing details, card data and transaction records; Dusk Bot receives no card numbers | [Dodo Payments processing locations] |
 | Resend | Transactional email delivery | Email address, sign-in codes and account or billing notice content | [Resend processing locations] |
 | Composio | Connected-app tools and OAuth connections | OAuth connections and tool request and response data | [Composio processing locations] |

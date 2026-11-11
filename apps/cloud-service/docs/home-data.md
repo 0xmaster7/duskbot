@@ -6,10 +6,11 @@ names in `electron/legacy-names.mjs` (`CLOUD_HOME`), which keep the pre-rename s
 
 | Layer | Path | What | How it moves |
 | --- | --- | --- | --- |
-| The person's data | `/data` (the home volume) | everything below | the encrypted backup (`backups.ts`), or the provider's own disk snapshot |
-| Code | `CLOUD_HOME.root` (`node`, the app, `bin/omb-home`), Caddy, the systemd units | the signed home package or template | installed again from the same signed release (`scripts/build-home-package.mjs`, `scripts/build-template.ts`) |
+| The person's data | `/data` (the home volume) | everything below | the encrypted backup (`backups.ts`), read from the running home |
+| Code | `CLOUD_HOME.root` (`node`, the app, `bin/omb-home`), Caddy, the systemd units | the signed home package | installed again from the same signed release (`scripts/build-home-package.mjs`) |
 | Machine identity | `CLOUD_HOME.etc` (`boot.json`, `home.env`, `machine`) | the admin secret, the dashboard link keys, the cloud id | issued again by the one-time claim at first boot (`home.ts`, `REDEEM_SCRIPT`); never copied between machines |
-| Run state | `CLOUD_HOME.run` (`pre-stop`) | flags for the current boot | none |
+| Run state | `CLOUD_HOME.run` (`desktop-image`) | the bot computer image's build status for the current boot | none |
+| Bot computers | Docker's images and volumes on the root disk | the image (built on the machine), each desktop's own home and browser | none: a new machine starts them fresh |
 
 ## Inside `/data`
 
