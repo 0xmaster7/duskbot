@@ -15,7 +15,7 @@ import { useNow } from "../lib/now";
 import { Link } from "../lib/router";
 import { DOWNLOAD_URL } from "../lib/usage";
 import { Card, cx, Skeleton } from "../ui/kit";
-import { BotMascot, Mascot } from "../ui/Mascot";
+import { BotMascot } from "../ui/Mascot";
 import { CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 import { Activity } from "./activity";
 import { CloudHero } from "./cloud-offer";
@@ -62,17 +62,12 @@ function Crew({ rows, plain = false }: { rows: BotRow[]; plain?: boolean }) {
 /** nobody here yet: a few bots asleep on the wash, and the way to get the first one */
 function CrewEmpty() {
   return (
-    <section className="surface enter flex items-end justify-between gap-6 overflow-hidden rounded-card bg-card p-6 max-sm:flex-col max-sm:items-start max-sm:p-5" style={{ ["--i" as string]: 1 }} aria-labelledby="crew-empty-title">
-      <div className="min-w-0 max-w-[400px]">
-        <h2 id="crew-empty-title" className="text-20 font-medium tracking-[-0.03em] text-ink">your bots will hang out here.</h2>
-        <p className="mt-1 text-14 text-ink-3">make one in the app. it shows up here in a few seconds, with what it's doing.</p>
-        <a href={DOWNLOAD_URL} target="_blank" rel="noreferrer" className="press hover-outline mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-btn px-5 text-14 font-medium text-ink"><Download size={16} strokeWidth={1.75} aria-hidden />get the app</a>
+    <section className="surface enter flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-card bg-card p-6 max-sm:p-5" style={{ ["--i" as string]: 1 }} aria-labelledby="crew-empty-title">
+      <div className="min-w-0">
+        <h2 id="crew-empty-title" className="text-17 font-medium tracking-[-0.02em] text-ink">no bots yet</h2>
+        <p className="mt-0.5 text-14 text-ink-2">make one in the app and it shows up here, with what it's doing.</p>
       </div>
-      <div className="flex shrink-0 items-end gap-5 pe-4 max-sm:self-center max-sm:pe-0" aria-hidden>
-        <span className="peek relative" style={{ ["--i" as string]: 0 }}><Mascot body="wisp" color="purple" size={56} state="sleeping" /><span className="absolute -right-1 -top-2"><i className="zz not-italic">z</i><i className="zz not-italic">z</i><i className="zz not-italic">z</i></span></span>
-        <span className="peek" style={{ ["--i" as string]: 1 }}><Mascot body="kit" color="blue" size={80} state="curious" track={900} tappable /></span>
-        <span className="peek" style={{ ["--i" as string]: 2 }}><Mascot body="hearty" color="pink" size={62} state="idle" track={900} tappable /></span>
-      </div>
+      <a href={DOWNLOAD_URL} target="_blank" rel="noreferrer" className="press hover-outline inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-btn px-5 text-14 font-medium text-ink"><Download size={16} strokeWidth={1.75} aria-hidden />get the app</a>
     </section>
   );
 }
@@ -140,7 +135,8 @@ function Tile({ icon, tint, title, body, to, external, onClick }: { icon: ReactN
       <div className="mt-1 text-13 leading-[1.45] text-ink-3">{body}</div>
     </>
   );
-  const cls = "surface hover-tile block rounded-card bg-card p-5 text-start";
+  // a button centres its content vertically by default; flex keeps every tile top-aligned
+  const cls = "surface hover-tile flex h-full flex-col items-stretch justify-start rounded-card bg-card p-5 text-start";
   if (onClick || !to) return <button type="button" className={cls} onClick={onClick}>{inner}</button>;
   return external ? <a href={to} className={cls} target="_blank" rel="noreferrer">{inner}</a> : <Link to={to} className={cls}>{inner}</Link>;
 }
@@ -169,10 +165,7 @@ function Recent({ rows: all }: { rows: BotRow[] }) {
           ))}
         </ul>
       ) : (
-        <div className="flex items-center gap-3 px-3 pb-3 pt-2">
-          <Mascot body="tofu" color="pink" size={30} state="sleeping" still />
-          <p className="text-14 text-ink-3">nobody yet. the last few bots to do something show up here.</p>
-        </div>
+        <p className="px-3 pb-3 pt-1 text-14 text-ink-2">nobody yet. the last few bots to do something show up here.</p>
       )}
     </Card>
   );
@@ -193,7 +186,7 @@ export function HomePage() {
       {plan && <PlanSheet source="dash_home" start="starter" onClose={() => setPlan(false)} />}
       <h1 className="t-title enter mb-8 max-sm:mb-6">hi {name}.</h1>
       <div className="flex flex-col gap-4">
-        {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[360px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudHero />}
+        {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[360px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudHero minimal={bots.length > 0} />}
         {clouds !== null && <>
           {crew}
           <div className="enter grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:gap-3" style={{ ["--i" as string]: 2 }}>

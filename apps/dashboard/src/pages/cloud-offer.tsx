@@ -58,7 +58,7 @@ export const monthlyOf = (catalog: PlanCatalog | null, plan: PaidPlan) => {
 };
 
 /** the one cloud offer on home for anyone without it: the sky poster, a white panel with the case and one button */
-export function CloudHero({ source = "dash_home" }: { source?: CheckoutSource }) {
+export function CloudHero({ source = "dash_home", minimal = false }: { source?: CheckoutSource; minimal?: boolean }) {
   const { catalog } = useCloud();
   const { busy, error, buy } = useQuickCheckout(source);
   return (
@@ -80,8 +80,10 @@ export function CloudHero({ source = "dash_home" }: { source?: CheckoutSource })
         </div>
         <div className="relative flex min-h-[220px] origin-bottom items-end justify-center gap-3 pb-3 max-md:-mb-8 max-md:min-h-[150px] max-md:scale-[0.7]" aria-hidden>
           <img src={computer} alt="" width={520} height={599} className="w-[150px] drop-shadow-[0_10px_0_rgb(19_19_22/0.08)]" draggable={false} />
-          <span className="peek mb-1" style={{ ["--i" as string]: 0 }}><Mascot body="kit" color="blue" size={92} state="working" track={900} tappable /></span>
-          <span className="peek mb-1" style={{ ["--i" as string]: 1 }}><Mascot body="hearty" color="pink" size={68} state="happy" track={900} tappable /></span>
+          {!minimal && <>
+            <span className="peek mb-1" style={{ ["--i" as string]: 0 }}><Mascot body="kit" color="blue" size={92} state="working" track={900} tappable /></span>
+            <span className="peek mb-1" style={{ ["--i" as string]: 1 }}><Mascot body="hearty" color="pink" size={68} state="happy" track={900} tappable /></span>
+          </>}
         </div>
       </div>
     </section>
