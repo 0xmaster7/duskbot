@@ -46,6 +46,8 @@ export const EVENTS = {
   onboarding_step: { source: "page", props: { step: oneOf("name", "plan", "app") }, active: true },
   onboarding_done: { source: "page", props: {}, active: true },
   plan_chosen: { source: "page", props: { plan: pattern(/^[a-z_]{2,20}$/, 20), period: oneOf("month", "year") }, active: true },
+  /** a download picked on onboarding's last step, and the system the page guessed the visitor is on */
+  download_click: { source: "page", props: { platform: oneOf("macos", "windows", "linux", "android", "ios"), detected_os: oneOf("macos", "windows", "linux", "android", "ios", "unknown") }, active: true },
   site_view: { source: "site", props: { path: route } },
   site_goal: { source: "site", props: { goal: word, to: route, from: route, host } },
   /** a page view's end: deepest scroll and visible time */

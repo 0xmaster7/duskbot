@@ -1,6 +1,6 @@
 import { CSRF_COOKIE, CSRF_HEADER } from "../../../../shared/account-api";
 
-type PageEvent = { name: "page_view"; props: { path: string } } | { name: "onboarding_step"; props: { step: string } } | { name: "onboarding_done" } | { name: "plan_chosen"; props: { plan: string; period: "month" | "year" } };
+type PageEvent = { name: "page_view"; props: { path: string } } | { name: "onboarding_step"; props: { step: string } } | { name: "onboarding_done" } | { name: "plan_chosen"; props: { plan: string; period: "month" | "year" } } | { name: "download_click"; props: { platform: string; detected_os: string } };
 
 const declined = () => typeof navigator !== "undefined" && ((navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true || navigator.doNotTrack === "1");
 const live = () => typeof window !== "undefined" && !(import.meta.env.DEV && new URLSearchParams(location.search).has("fixture")) && import.meta.env.MODE !== "test";
