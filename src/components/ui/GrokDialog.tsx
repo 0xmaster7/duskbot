@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { GrokIcon, type GrokIconName } from "../GrokIcon";
+import { Icon, type IconName } from "../Icon";
 import { ScrimMotion, SheetMotion } from "./SheetMotion";
 
 const buttonBase = "omb-press inline-flex shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9999px] font-normal outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default";
@@ -153,7 +153,7 @@ function SheetView({ title, description, width = 440, onClose, footer, children,
         <header className={formHeaderCls}>
           <h2 id={titleId} className={formTitleCls}>{title}</h2>
           <button type="button" aria-label={t("common.close")} onClick={() => close.current()} className={formCloseCls}>
-            <GrokIcon name="close" size={16} />
+            <Icon name="close" size={16} />
           </button>
         </header>
         <div className={cn(formBodyCls, "flex flex-col", !footer && "pb-4")}>
@@ -169,7 +169,7 @@ function SheetView({ title, description, width = 440, onClose, footer, children,
 
 /** A small action on a row, shown on hover, on touch and whenever the row holds focus. */
 export function RowIconButton({ icon, label, onClick, disabled, reveal = false, ...rest }: {
-  icon: GrokIconName;
+  icon: IconName;
   label: string;
   onClick: () => void;
   disabled?: boolean;
@@ -189,7 +189,7 @@ export function RowIconButton({ icon, label, onClick, disabled, reveal = false, 
         reveal && "opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 touch:opacity-100",
       )}
     >
-      <GrokIcon name={icon} size={14} />
+      <Icon name={icon} size={14} />
     </button>
   );
 }

@@ -4,7 +4,7 @@ import { Check, ChevronRight, Copy, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, rowButtonCls } from "./ui/GrokDialog";
 import { SelectPill, type SelectPillOption } from "./ui/SelectPill";
 import { Toggle } from "./ui/Toggle";
@@ -156,7 +156,7 @@ export function NavRow({ title, hint, value, icon, onClick, drill = true, extern
       <RowText title={title} hint={hint} tone={danger ? "danger" : undefined} titleId={`${id}-title`} hintId={`${id}-hint`} />
       <RowValue value={value} id={`${id}-value`} />
       {external
-        ? <GrokIcon name="link-external" size={12} className="shrink-0 text-ink-tertiary" />
+        ? <Icon name="link-external" size={12} className="shrink-0 text-ink-tertiary" />
         : drill && <ChevronRight size={14} className="-mr-0.5 shrink-0 text-ink-tertiary rtl:-scale-x-100" aria-hidden="true" />}
     </button>
   );
@@ -285,7 +285,7 @@ export function CheckRow({ title, hint, leading, checked, onClick, disabled, rol
     >
       {leading}
       <RowText title={title} hint={hint} />
-      <span className="flex w-3 shrink-0 justify-end text-ink">{checked && <GrokIcon name="check" size={12} />}</span>
+      <span className="flex w-3 shrink-0 justify-end text-ink">{checked && <Icon name="check" size={12} />}</span>
     </button>
   );
 }
@@ -401,8 +401,8 @@ export function BackButton({ onBack, label = t("common.back") }: { onBack: () =>
         "outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
       )}
     >
-      <GrokIcon name="chevron-left" size={14} className="rtl:-scale-x-100 max-sm:in-[.settings-pane-header]:hidden" />
-      <GrokIcon name="arrow-left" size={22} className="hidden rtl:-scale-x-100 max-sm:in-[.settings-pane-header]:inline-flex" />
+      <Icon name="chevron-left" size={14} className="rtl:-scale-x-100 max-sm:in-[.settings-pane-header]:hidden" />
+      <Icon name="arrow-left" size={22} className="hidden rtl:-scale-x-100 max-sm:in-[.settings-pane-header]:inline-flex" />
     </button>
   );
 }

@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { reportsUsage, usageRows, useEngineLimits, windowLabel, type EngineLimit } from "@/lib/limit-resets";
 import { NEAR_LIMIT_PERCENT } from "../../../shared/limit-reset";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -131,7 +131,7 @@ export function UsageBanner({ engine, onSeeUsage }: { engine: string | undefined
   return (
     <div role="status" data-usage-banner={out ? "danger" : "warning"}
       className="flex items-start gap-2.5 rounded-[14px] bg-menu py-2.5 pe-2 ps-3.5 outline-[0.5px] outline-offset-[-0.5px] outline-edge [outline-style:solid]">
-      <GrokIcon name="chart-bars" size={14} className={cn("mt-0.5 shrink-0", out ? "text-danger" : "text-warning")} />
+      <Icon name="chart-bars" size={14} className={cn("mt-0.5 shrink-0", out ? "text-danger" : "text-warning")} />
       <div className="min-w-0 flex-1">
         <div className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink">
           {out ? t("nativeUsage.banner.out", { engine: limit.name }) : t("nativeUsage.banner.near", { engine: limit.name, percent: used })}
@@ -145,7 +145,7 @@ export function UsageBanner({ engine, onSeeUsage }: { engine: string | undefined
       <button type="button" aria-label={t("nativeUsage.banner.dismiss")} title={t("nativeUsage.banner.dismiss")}
         onClick={() => { dismissed.add(dismissKey(limit)); setHidden((count) => count + 1); }}
         className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink/[0.56] transition-colors duration-[120ms] ease-out hover:bg-ink/[0.06] hover:text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
-        <GrokIcon name="close" size={12} />
+        <Icon name="close" size={12} />
       </button>
     </div>
   );

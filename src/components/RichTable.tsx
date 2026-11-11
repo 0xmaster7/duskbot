@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { SidebarPopoverMenu } from "./SidebarPopoverMenu";
 import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -99,12 +99,12 @@ export function RichTable({ columns, rows, name = t("table.title"), expanded = f
   const card = () => (
     <div data-table-card className={TABLE_CARD} dir="ltr">
       <div className="table-plate absolute end-1.5 top-1.5 z-20 flex items-center opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/table:opacity-100 has-[[aria-expanded=true]]:opacity-100 touch:end-1 touch:top-1 touch:opacity-100">
-        <button type="button" className={cn(TABLE_PLATE_BUTTON, "w-6 rounded-s-[6px]")} aria-label={t("table.copyPlain")} onClick={() => void copy()}>{copyState === "copied" ? <Check size={14} /> : <GrokIcon name="copy" size={14} />}</button>
+        <button type="button" className={cn(TABLE_PLATE_BUTTON, "w-6 rounded-s-[6px]")} aria-label={t("table.copyPlain")} onClick={() => void copy()}>{copyState === "copied" ? <Check size={14} /> : <Icon name="copy" size={14} />}</button>
         <SidebarPopoverMenu grok items={[
           { key: "download", label: t("table.download"), icon: <Download size={14} aria-hidden="true" />, onSelect: download },
           { key: "expand", label: t("table.expand"), icon: <Maximize2 size={14} aria-hidden="true" />, onSelect: () => { trigger.current = document.activeElement as HTMLButtonElement | null; setOpen(true); } },
         ]} ariaLabel={t("table.copyOptions")} placement="below" align="end" triggerClassName={cn(TABLE_PLATE_BUTTON, "-ms-px w-4 rounded-e-[6px]")} triggerLabel={t("table.copyOptions")}
-          renderTrigger={() => <GrokIcon name="chevron-down" size={12} />} />
+          renderTrigger={() => <Icon name="chevron-down" size={12} />} />
       </div>
       {rows.length > SMALL_TABLE_ROWS && (
         <div className="flex items-center gap-2 px-4 pb-1.5 text-ink-tertiary">

@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Download, RotateCcw, Scan } from "lucide-react";
 
 import { activeLocale, t } from "@/lib/i18n";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { MotionDiv } from "./ui/SheetMotion";
 
 export interface DiagramView { scale: number; x: number; y: number }
@@ -250,11 +250,11 @@ export function MermaidViewer({ svg, onClose }: { svg: string; onClose: () => vo
       <div className="absolute end-3 top-3 z-[1] flex items-center gap-2">
         <div className={GROUP}>
           <button type="button" className={BUTTON} onClick={() => zoomBy(1 / STEP)} disabled={view.scale <= MIN_SCALE} aria-label={t("mermaid.zoomOut")} title={t("mermaid.zoomOut")}>
-            <GrokIcon name="zoom-out" size={16} />
+            <Icon name="zoom-out" size={16} />
           </button>
           <span className="min-w-10 text-center text-[12px] leading-4 tabular-nums text-ink-secondary" aria-live="polite">{percent}</span>
           <button type="button" className={BUTTON} onClick={() => zoomBy(STEP)} disabled={view.scale >= MAX_SCALE} aria-label={t("mermaid.zoomIn")} title={t("mermaid.zoomIn")}>
-            <GrokIcon name="zoom-in" size={16} />
+            <Icon name="zoom-in" size={16} />
           </button>
           <button type="button" className={BUTTON} onClick={() => setView({ scale: 1, x: 0, y: 0 })} aria-label={t("mermaid.reset")} title={t("mermaid.reset")}>
             <RotateCcw size={15} strokeWidth={1.75} aria-hidden="true" />
@@ -268,7 +268,7 @@ export function MermaidViewer({ svg, onClose }: { svg: string; onClose: () => vo
             <Download size={15} strokeWidth={1.75} aria-hidden="true" />
           </button>
           <button type="button" className={BUTTON} onClick={onClose} aria-label={t("mermaid.close")} title={t("mermaid.close")}>
-            <GrokIcon name="close" size={16} />
+            <Icon name="close" size={16} />
           </button>
         </div>
       </div>

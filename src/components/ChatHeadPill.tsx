@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { awayFromMainThread } from "@/state/thread-navigation";
 import { BotAvatar } from "./Avatar";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { BOT_PANEL_ID } from "./bot-panel/side-panel";
 import { sharedChatAudience } from "./TeamPrivateChatsLine";
 
@@ -76,7 +76,7 @@ export function ChatHeadPill({ bot, avatar, privacy = null, room, onToggle }: Ch
       <span dir="auto" className="min-w-0 truncate text-[14px] font-medium leading-5">{room ? room.name : bot?.name}</span>
       {conversation && (
         <>
-          <GrokIcon name="chevron-right" size={12} className="shrink-0 text-ink/[0.56]" />
+          <Icon name="chevron-right" size={12} className="shrink-0 text-ink/[0.56]" />
           <span data-chathead-conversation dir="auto" className="min-w-0 max-w-[180px] truncate text-[14px] font-medium leading-5 text-ink-secondary">{conversation}</span>
         </>
       )}

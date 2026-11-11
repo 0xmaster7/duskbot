@@ -11,7 +11,7 @@ import { computerCapableEngine } from "@/lib/remote-desktop";
 import type { RoutineRunOn } from "@/lib/routines";
 import { WEBHOOK_DEFAULT_MAX_PENDING_RUNS, WEBHOOK_MAX_PENDING_RUNS_LIMIT, webhookActivationDefaults, webhookMaxPendingRunsInput, type WebhookCredential, type WebhookTrigger, type WebhookTriggerInput } from "@/lib/webhooks";
 import { api, useStore, type Bot } from "@/state/store";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { fieldLabelCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
 
 /** A name when the person gives none: the instructions' first words, or the bot's. */
@@ -66,7 +66,7 @@ export function WebhookEditor({ webhook, bots, initialBotId, onClose, onCredenti
           <div className="min-w-0 flex-1">
             <h2 className={formTitleCls}>{webhook ? t("automations.editor.app.editTitle") : t("automations.editor.app.title")}</h2>
             </div>
-          <button type="button" onClick={onClose} aria-label={t("automations.newBox.cancel")} className={formCloseCls}><GrokIcon name="close" size={16} /></button>
+          <button type="button" onClick={onClose} aria-label={t("automations.newBox.cancel")} className={formCloseCls}><Icon name="close" size={16} /></button>
         </div>
         <div className={cn(formBodyCls, "space-y-4")}>
           <div>

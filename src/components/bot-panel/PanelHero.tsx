@@ -6,7 +6,7 @@ import type { MausState } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
 import { BOT_PROFILE_LIMITS } from "../../../shared/bot-profile";
 import { BotAvatar } from "../Avatar";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import type { BotPatch } from "../bot-settings/useBotSettingsDerived";
 
 /** Grok's inline fields: no frame of their own, a 10% ink wash on hover, a 1px focus border while focused or editing. */
@@ -90,7 +90,7 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 flex items-center justify-center text-[#f5f5f5] opacity-0 transition-opacity duration-[140ms] ease-[ease] group-hover:opacity-100 group-focus-visible:opacity-100 group-focus-within:opacity-100 group-aria-expanded:opacity-100 touch:opacity-100 motion-reduce:transition-none"
         >
-          <GrokIcon name="pencil" size={14} />
+          <Icon name="pencil" size={14} />
         </span>
       </button>
 

@@ -5,7 +5,6 @@ import { loadPageLanguage } from "@/lib/language-preference";
 import { applySkinChoice, readSkinChoice, type SkinChoice } from "@/lib/skins";
 import { applyFont, readFont } from "@/lib/fonts";
 import { PageBoundary } from "@/components/PageBoundary";
-import "@/font-faces";
 import "./styles.css";
 import "@/styles/overlays.css";
 import "@/styles/motion.css";

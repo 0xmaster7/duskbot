@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import { isLiveCallRunning, useLiveMedia } from "@/lib/live-call-media";
 import { speaker } from "@/lib/tts";
 import { cn } from "@/lib/cn";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 
 export interface VoiceNoteAttachment {
   kind: "audio";
@@ -139,7 +139,7 @@ export function VoiceNoteBubble({
             aria-label={playLabel}
             className="ms-1.5 me-1 flex size-6 shrink-0 items-center justify-center rounded-full text-ink-secondary transition-colors hover:text-ink disabled:opacity-40"
           >
-            <GrokIcon name={playing ? "pause" : "play"} variant="filled" size={14} />
+            <Icon name={playing ? "pause" : "play"} variant="filled" size={14} />
           </button>
           <span aria-hidden="true" className="h-8 w-[0.5px] bg-ink/[0.06]" />
           <button type="button" onClick={cycleSpeed} aria-label={t("chat.voiceNote.speed", { speed: String(speed) })}
@@ -177,7 +177,7 @@ export function VoiceNoteBubble({
             aria-label={t("chat.voiceNote.transcript")}
             className="flex size-8 shrink-0 items-center justify-center rounded-full text-ink/[0.66] transition-colors hover:bg-ink/[0.06] hover:text-ink"
           >
-            <GrokIcon name="chevrons-up-down" size={14} />
+            <Icon name="chevrons-up-down" size={14} />
           </button>
         ) : <span aria-hidden="true" className="w-1" />}
       </div>

@@ -13,7 +13,6 @@ import { BotMark } from "./shared";
 import { ambientLabels } from "./labels";
 import type { AmbientBot, AmbientBridge, AmbientMessage, AmbientSnapshot, AmbientStatus, DockLayout, IslandLayout } from "./types";
 import "@fontsource-variable/geist";
-import "../font-faces";
 
 const params = new URLSearchParams(location.search);
 const external = params.get("display") === "external";

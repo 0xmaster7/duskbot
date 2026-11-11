@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 
 export function JumpToLatestButton({ onClick, className, style }: { onClick: () => void; className?: string; style?: CSSProperties }) {
   return (
@@ -12,7 +12,7 @@ export function JumpToLatestButton({ onClick, className, style }: { onClick: () 
       className={cn("chat-jump absolute left-1/2 z-10 flex size-8 -translate-x-1/2 items-center justify-center rounded-full bg-composer text-ink shadow-[0_1px_3px_rgb(28_28_28/0.12)] transition-colors duration-[120ms] ease-out hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", className)}
       style={style}
     >
-      <GrokIcon name="arrow-down" size={16} />
+      <Icon name="arrow-down" size={16} />
     </button>
   );
 }

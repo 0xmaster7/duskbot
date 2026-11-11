@@ -9,7 +9,7 @@ import { hasActiveConnection } from "@/lib/connector-status";
 import { listLogins } from "@/lib/logins";
 import { HOSTED_MCP_APPS, hostedConnections } from "@/lib/hosted-mcp-apps";
 import { ServiceTile } from "@/components/ServiceIcon";
-import { GrokIcon } from "@/components/GrokIcon";
+import { Icon } from "@/components/Icon";
 import { type McpServerListing, isRemoteMcpListing } from "@/components/mcp-draft";
 import { grokCategories, searchApps, type AppEntry } from "@/components/connect-apps/catalog";
 import { mergeEntries, idsOf } from "@/components/connect-apps/merge";
@@ -116,7 +116,7 @@ export function ConnectorsSheet({ open, onClose }: SheetPageProps<"connectors">)
           const added = appIsAdded(entry, snapshot!.added);
           const { glyph, glyphPaint: _glyphPaint, ...art } = entry.icon;
           return <li key={entry.id}><button type="button" onClick={() => connect(entry)} className="mobile-row flex min-h-[86px] w-full items-center gap-3 rounded-2xl px-3 py-3 text-left">
-            <span aria-hidden className="flex size-[42px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-ink/[0.05] text-ink-secondary">{glyph ? <GrokIcon name={glyph} size={23} /> : <ServiceTile card={{ label: entry.label, ...art }} size={42} />}</span>
+            <span aria-hidden className="flex size-[42px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-ink/[0.05] text-ink-secondary">{glyph ? <Icon name={glyph} size={23} /> : <ServiceTile card={{ label: entry.label, ...art }} size={42} />}</span>
             <span className="min-w-0 flex-1"><span className="block truncate text-[16px] font-semibold text-ink">{entry.label}</span><span className="mt-0.5 line-clamp-2 text-[13px] leading-[18px] text-ink-secondary">{entry.description}</span></span>
             <span className={cn("flex min-h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[13px] font-semibold", added ? "bg-success/10 text-success" : "bg-ink/[0.06] text-ink")}>
               {added && <Check aria-hidden size={14} />}{t(added ? "mobile.connectors.added" : "mobile.connectors.add")}

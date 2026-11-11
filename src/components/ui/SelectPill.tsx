@@ -2,7 +2,7 @@ import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type Rea
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
-import { GrokIcon, type GrokIconName } from "../GrokIcon";
+import { Icon, type IconName } from "../Icon";
 import { useMenuMotion } from "../MenuMotion";
 
 export interface SelectPillOption<V extends string> {
@@ -12,7 +12,7 @@ export interface SelectPillOption<V extends string> {
   /** a native tooltip on the row, such as why it cannot be chosen */
   title?: string;
   /** a leading glyph in the menu row, as Grok's menus have; the pill shows the label alone */
-  icon?: GrokIconName;
+  icon?: IconName;
   /** a hairline above the row, setting an action apart from the choices */
   separated?: boolean;
 }
@@ -128,7 +128,7 @@ export function SelectPill<V extends string>({ value, options, onChange, disable
         )}
       >
         <span className="min-w-0 flex-1 truncate text-start">{selected?.label ?? value}</span>
-        <GrokIcon name="chevron-down" size={10} className="shrink-0 text-ink-secondary" />
+        <Icon name="chevron-down" size={10} className="shrink-0 text-ink-secondary" />
       </button>
       {typeof document !== "undefined" && createPortal(
           motion.shown && place && (
@@ -171,9 +171,9 @@ export function SelectPill<V extends string>({ value, options, onChange, disable
                     "aria-disabled:cursor-default aria-disabled:opacity-50",
                   )}
                 >
-                  {option.icon && <GrokIcon name={option.icon} size={16} className="relative shrink-0" />}
+                  {option.icon && <Icon name={option.icon} size={16} className="relative shrink-0" />}
                   <span className="relative min-w-0 flex-1 truncate">{option.label}</span>
-                  {option.value === value && <GrokIcon name="check" size={12} className="relative shrink-0" />}
+                  {option.value === value && <Icon name="check" size={12} className="relative shrink-0" />}
                 </div>
                 </Fragment>
               ))}

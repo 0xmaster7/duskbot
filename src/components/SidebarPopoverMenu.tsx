@@ -6,7 +6,7 @@ import { useMenuMotion } from "./MenuMotion";
 import { popoverClosesOnKey, usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { submenuIntent, type Point, type SubmenuIntent } from "@/lib/submenu-intent";
 import { GROK_LABEL, GROK_ROW_FILL, MENU_HEADING, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 
 export interface SidebarMenuItem {
   key: string;
@@ -171,7 +171,7 @@ function MenuRows({
               />
             )}
             {(item.submenu || item.chevron) && (grok
-              ? <GrokIcon name="chevron-right" size={14} className="ms-2 shrink-0 text-ink/[0.52] rtl:-scale-x-100" />
+              ? <Icon name="chevron-right" size={14} className="ms-2 shrink-0 text-ink/[0.52] rtl:-scale-x-100" />
               : <ChevronRight size={14} aria-hidden className="-me-0.5 shrink-0 text-ink-secondary rtl:-scale-x-100" />)}
           </button>
         </div>

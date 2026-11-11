@@ -2,7 +2,7 @@ import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal } from "lucide-
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 
 import { cn } from "@/lib/cn";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { GROK_FOCUS } from "./SidebarSimpleTop";
 import { t } from "@/lib/i18n";
 import {
@@ -82,7 +82,7 @@ export function SidebarSectionHeader({
       <span aria-hidden="true" className="relative flex size-4 shrink-0 items-center justify-end">
         {count !== undefined && collapsed && <span className={cn("text-[12px] tabular-nums leading-4 tracking-[0.015em] text-ink-secondary transition-opacity duration-[120ms] ease-out", onToggle && "group-hover/section:opacity-0 group-focus-within/section:opacity-0 touch:opacity-0")}>{count}</span>}
         {onToggle && <span className={cn("absolute flex h-4 w-3 items-center justify-center text-ink-secondary opacity-0 transition-opacity duration-[120ms] ease-out group-hover/section:opacity-100 group-focus-within/section:opacity-100 touch:opacity-100", collapsed ? "-right-[3px]" : "-right-px rotate-90")}>
-          <GrokIcon name="chevron-right" size={12} />
+          <Icon name="chevron-right" size={12} />
         </span>}
       </span>
     );

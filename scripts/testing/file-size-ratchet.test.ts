@@ -44,7 +44,6 @@ const LINES: Record<string, number> = {
   "src/components/PhoneSetupFlow.tsx": 1146,
   "src/components/AttachmentPreview.tsx": 1107,
   "src/components/Composer.tsx": 1038,
-  "src/components/grok-icon-glyphs.ts": 1234,
 };
 
 function sourceFiles(): string[] {

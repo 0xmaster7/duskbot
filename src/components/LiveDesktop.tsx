@@ -8,7 +8,7 @@ import { t } from "@/lib/i18n";
 import { isMacPlatform } from "@/lib/keyboard-shortcuts";
 import { BotPointer } from "./BotPointer";
 import { ComputerFullscreen } from "./ComputerFullscreen";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities";
 
 type Connection = "connecting" | "connected" | "disconnected";
@@ -210,7 +210,7 @@ export function LiveDesktop({ target, threadId, botId, name, poster, expanded, o
             onClick={originalViewer ? onOpenPreview : onTakeControl} disabled={!originalViewer && connection !== "connected"}
             className="group/screen absolute inset-0 flex cursor-pointer items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-wait">
             {originalViewer && <span data-panel-open-pill="" aria-hidden="true" className="pointer-events-none relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-[rgb(0_0_0/0.9)] px-2.5 py-2 text-[13px] font-medium leading-4 tracking-[0.01em] text-white opacity-0 transition-opacity duration-[120ms] ease-out group-hover/screen:opacity-100 group-focus-within/screen:opacity-100 touch:opacity-100">
-              <GrokIcon name="arrows-expand-simple" size={12} />{t("computer.open")}
+              <Icon name="arrows-expand-simple" size={12} />{t("computer.open")}
             </span>}
           </button>
         )}

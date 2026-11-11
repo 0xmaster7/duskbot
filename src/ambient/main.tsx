@@ -6,7 +6,6 @@ import { MotionConfig } from "motion/react";
 import { Dock } from "./Dock";
 import { Island } from "./Island";
 import "@fontsource-variable/geist";
-import "../font-faces";
 import "./ambient-page.css";
 import "./ambient.css";
 

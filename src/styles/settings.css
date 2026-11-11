@@ -530,11 +530,11 @@
   transition: opacity 0.15s ease, scale 0.26s cubic-bezier(0.3, 1.12, 0.4, 1);
 }
 .settings-close { isolation: isolate; }
-.settings-close > .grok-icon { transition: scale 0.26s cubic-bezier(0.3, 1.12, 0.4, 1); }
+.settings-close > .ui-icon { transition: scale 0.26s cubic-bezier(0.3, 1.12, 0.4, 1); }
 .settings-close:hover { background: transparent; }
 .settings-close:hover::before, .settings-close:focus-visible::before { opacity: 1; scale: 1; }
-.settings-close:hover > .grok-icon { scale: 1.04; }
-.settings-close:active > .grok-icon { scale: 0.96; transition-duration: 90ms; }
+.settings-close:hover > .ui-icon { scale: 1.04; }
+.settings-close:active > .ui-icon { scale: 0.96; transition-duration: 90ms; }
 
 
 /* The phone: a full-screen grey page. The list of panes and each pane are one screen each, under a 56px header (a back or
@@ -618,7 +618,7 @@
   .settings-nav-item:last-child { border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
   .settings-nav-item:hover { background: var(--color-menu); }
   .settings-nav-item:active { background: color-mix(in srgb, var(--color-ink) 4%, var(--color-menu)); }
-  .settings-nav-item > .grok-icon:not(.settings-nav-chevron) { color: color-mix(in srgb, var(--color-ink) 68%, transparent); }
+  .settings-nav-item > .ui-icon:not(.settings-nav-chevron) { color: color-mix(in srgb, var(--color-ink) 68%, transparent); }
   .settings-nav-chevron { display: block; flex-shrink: 0; margin-inline-start: auto; color: color-mix(in srgb, var(--color-ink) 40%, transparent); }
   .settings-close { display: none; }
   .settings-panel { height: 100%; }

@@ -13,12 +13,12 @@ import { withoutCitationTraces } from "@/lib/citations";
 import { BotAvatar } from "./Avatar";
 import { GroupAvatar, useGroupYou } from "./GroupAvatar";
 import { openCreateBot } from "./CreateBotDialog";
-import { GrokIcon, type GrokIconName } from "./GrokIcon";
+import { Icon, type IconName } from "./Icon";
 import { botPreview, groupPreview } from "./sidebar-preview";
 import { openBotSettingsPage } from "./bot-panel/panel-link";
 
 /** What a row does once picked: what it opens, or what it changes. */
-type Command = { id: string; name: string; detail?: string; icon: GrokIconName; run: () => void };
+type Command = { id: string; name: string; detail?: string; icon: IconName; run: () => void };
 
 type PaletteEntry =
   | { kind: "bot"; bot: Bot }
@@ -246,8 +246,8 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
       <span className="sr-only">{kind}</span>
     </button>
   );
-  const tile = (icon: GrokIconName) => (
-    <span className="flex size-6 items-center justify-center overflow-hidden rounded-[8px] bg-ink/6 text-ink-secondary"><GrokIcon name={icon} size={12} /></span>
+  const tile = (icon: IconName) => (
+    <span className="flex size-6 items-center justify-center overflow-hidden rounded-[8px] bg-ink/6 text-ink-secondary"><Icon name={icon} size={12} /></span>
   );
 
   return (
@@ -263,7 +263,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
         className="pointer-events-auto relative flex h-[455px] max-h-[calc(100vh-32px)] w-[min(560px,calc(100vw-32px))] flex-col overflow-hidden rounded-[18px] border border-ink/12 bg-menu text-[13px] text-ink"
       >
         <div className="flex shrink-0 items-center gap-2.5 border-b-[0.5px] border-ink/8 py-3.5 pl-4 pr-2.5">
-          <span className="flex h-5 w-6 shrink-0 items-center justify-center text-ink/52"><GrokIcon name="search" size={16} /></span>
+          <span className="flex h-5 w-6 shrink-0 items-center justify-center text-ink/52"><Icon name="search" size={16} /></span>
           <input
             ref={inputRef}
             autoFocus

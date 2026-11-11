@@ -25,7 +25,7 @@ import { MarkdownImagePreview, MessageFolderFiles, OutsideWorkspaceFile, saveFai
 import { ThreadLink, ThreadRefsContext, threadLinkFromProps, type ThreadRefsValue } from "./ThreadRefs";
 import { MarkdownTable } from "./MarkdownTable";
 import { CodeBlock, CodePlate, codeHash } from "./CodeBlock";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { appLogo } from "./connect-apps/logos";
 import { linkBrand, PLATED_LOGOS } from "@/lib/link-brand"; import { siteIconUrl } from "@/lib/site-icon";
 export { CodeBlock, HIGHLIGHT_CACHE_MAX, HIGHLIGHT_CACHE_MAX_CHARS, HIGHLIGHT_MAX_CHARS, type CodeBlockProps } from "./CodeBlock";
@@ -621,7 +621,7 @@ function LinkWithFavicon({ href, children: given }: { href: string; children?: R
           ? <img src={logo.src} alt="" width={18} height={18} draggable={false} />
           : icon && !failed
           ? <img src={icon} alt="" width={14} height={14} loading="lazy" draggable={false} onError={() => setFailed(true)} />
-          : <GrokIcon name="globe" size={16} />}
+          : <Icon name="globe" size={16} />}
       </span>
       <span className="chat-link-text">{children}</span>
     </span>

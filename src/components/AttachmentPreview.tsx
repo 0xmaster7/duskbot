@@ -28,7 +28,7 @@ import { t } from "@/lib/i18n";
 import { FilePreviewButton } from "./FilePreviewButton";
 import { chipNameAction, SaveIconButton, useHtmlPreview } from "./HtmlFilePreview";
 import { ImageLoading } from "./ImageLoading";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { imageReady, knownImageSize, noteImageLoaded, reservedAspect, type MediaSize } from "@/lib/image-cache";
 import { canonicalDownloadFilename } from "@/lib/download-filename";
 
@@ -489,7 +489,7 @@ export function AttachmentPreviewDialog({
           </a>
         )}
         <button type="button" onClick={onClose} className={VIEWER_BUTTON} aria-label={t("attach.close")}>
-          <GrokIcon name="close" size={18} />
+          <Icon name="close" size={18} />
         </button>
       </div>
       <SheetMotion

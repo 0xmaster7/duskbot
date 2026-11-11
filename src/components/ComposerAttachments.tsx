@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ClipboardPaste, MessageSquareText, RotateCcw, X } from "lucide-react";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
 import {
   attachmentImageUrl,
@@ -124,7 +124,7 @@ export function ComposerAttachments({
           className={cn("composer-drop pointer-events-none fixed z-[60] flex flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-ink/25 bg-[color-mix(in_srgb,var(--color-app)_88%,transparent)] backdrop-blur-md", !pane && "inset-2")}
         >
           <span className="relative flex rounded-xl bg-composer p-2.5 text-ink shadow-[inset_0_0_0_0.5px_rgb(28_28_28/0.08)]" aria-hidden="true">
-            <span className="flex size-[22px] items-center justify-center"><GrokIcon name="camera" size={18} /></span>
+            <span className="flex size-[22px] items-center justify-center"><Icon name="camera" size={18} /></span>
           </span>
           <span className="relative text-[14px] leading-5 font-semibold text-ink">{t("composer.dropToAttach")}</span>
         </div>,
@@ -204,7 +204,7 @@ export function ComposerAttachmentStrip({ items, onRemove, onRetry, onDisplayInC
               )}
               <button type="button" onClick={() => remove(a.id)} aria-label={t("attach.removeNamed", { name: a.name })}
                 className={cn("absolute end-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-ink text-app hover:bg-[color-mix(in_srgb,var(--color-ink),white_12%)]", !a.failed && TILE_REMOVE)}>
-                <GrokIcon name="close" size={12} />
+                <Icon name="close" size={12} />
               </button>
             </div>
           ) : (

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, useStore, type Bot } from "@/state/store";
 import { cn } from "@/lib/cn";
-import { GrokIcon, type GrokIconName } from "./GrokIcon";
+import { Icon, type IconName } from "./Icon";
 import { useHeldMenuMotion } from "./MenuMotion";
 import { t } from "@/lib/i18n";
 import { copyText } from "@/lib/copy-text";
@@ -27,10 +27,10 @@ export const GROK_MENU_ITEM = cn(MENU_ITEM.replace("focus-visible:bg-menu-hover 
 
 
 
-export function GrokMenuIcon({ name, danger = false }: { name: GrokIconName; danger?: boolean }) {
+export function GrokMenuIcon({ name, danger = false }: { name: IconName; danger?: boolean }) {
   return (
     <span aria-hidden="true" className={cn("flex size-[18px] shrink-0 items-center justify-center", danger ? GROK_DANGER_ICON : "text-ink/[0.66]")}>
-      <GrokIcon name={name} size={14} />
+      <Icon name={name} size={14} />
     </span>
   );
 }
@@ -163,7 +163,7 @@ export function BotContextMenu({
     more.openNow(key);
     if (focus) requestAnimationFrame(() => flyoutRef.current?.querySelector<HTMLButtonElement>("button:not([disabled])")?.focus());
   };
-  const grokItem = (icon: GrokIconName, label: string, onClick?: () => void, opts?: { danger?: boolean; disabled?: boolean; hint?: string; keepOpen?: boolean; checked?: boolean }) => (
+  const grokItem = (icon: IconName, label: string, onClick?: () => void, opts?: { danger?: boolean; disabled?: boolean; hint?: string; keepOpen?: boolean; checked?: boolean }) => (
     <button
       key={label}
       type="button"
@@ -190,7 +190,7 @@ export function BotContextMenu({
     grokItem(current === "" ? "check" : "folder", t("sidebar.grok.unassigned"), () => moveBotsToSection(dispatch, [bot.id], ""), { checked: current === "" }),
     ...(onNewSection ? [divider("move-new"), grokItem("folder-plus", t("sidebar.grok.createSection"), () => onNewSection(bot.id))] : []),
   ];
-  const flyoutButton = (key: Flyout, ref: React.RefObject<HTMLButtonElement | null>, icon: GrokIconName, label: string) => (
+  const flyoutButton = (key: Flyout, ref: React.RefObject<HTMLButtonElement | null>, icon: IconName, label: string) => (
     <button
       key={key}
       ref={ref}
@@ -211,7 +211,7 @@ export function BotContextMenu({
     >
       <GrokMenuIcon name={icon} />
       <span className={cn("flex-1", GROK_LABEL)}>{label}</span>
-      <GrokIcon name="chevron-right" size={14} className="ms-2 text-ink/[0.52] rtl:-scale-x-100" />
+      <Icon name="chevron-right" size={14} className="ms-2 text-ink/[0.52] rtl:-scale-x-100" />
     </button>
   );
   const moveTo = !mayMove ? null : departments.length || current

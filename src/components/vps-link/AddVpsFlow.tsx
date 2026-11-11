@@ -3,7 +3,7 @@
 // opens raw; only the change from one screen to the next eases.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { GrokIcon } from "@/components/GrokIcon";
+import { Icon } from "@/components/Icon";
 import { t } from "@/lib/i18n";
 import type { MausState } from "@/lib/mascot";
 import { EASE, REDUCED } from "@/lib/motion-presets";
@@ -164,7 +164,7 @@ export function AddVpsFlow({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-[60] overflow-y-auto bg-app text-ink outline-none">
       <button type="button" onClick={onClose} aria-label={t("common.close")}
         className="omb-press fixed end-4 top-4 z-10 flex size-8 items-center justify-center rounded-full text-ink-secondary outline-none hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus [-webkit-app-region:no-drag]">
-        <GrokIcon name="close" size={14} />
+        <Icon name="close" size={14} />
       </button>
       <div className="relative h-full min-h-[700px] w-full">
         <Scene ref={mascot} mode={scene.mode} mascot={scene.mascot} bots={bots}

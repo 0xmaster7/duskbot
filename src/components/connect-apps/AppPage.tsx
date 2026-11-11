@@ -5,7 +5,7 @@ import type { LocaleKey } from "@/locales";
 import { needsReconnect } from "@/lib/connector-status";
 import { connectorSetupNotice } from "./connector-helpers";
 import type { ToolkitCard } from "../ServiceIcon";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import { AppTile, CancelLink, ConnectedMark, RowPill, type RowAction } from "./AppRow";
 import type { AppEntry, Connection } from "./catalog";
 import type { ConnectorPhase, Connectors } from "./use-connectors";
@@ -215,7 +215,7 @@ function AccountRow({ account, service, busy, onReconnect, onDisconnect }: {
   return (
     <>
       <div className="ca-card-row" data-account={account.id}>
-        <span data-glyph="" aria-hidden="true"><GrokIcon name="person" size={16} /></span>
+        <span data-glyph="" aria-hidden="true"><Icon name="person" size={16} /></span>
         <span title={account.alias ? undefined : account.id}>
           {title}
           {stale && <span className="ca-account-tag">{t("connectApps.account.needsReconnect")}</span>}

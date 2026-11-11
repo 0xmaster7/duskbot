@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import { shortModelLabel } from "@/lib/model-friendly";
 import { modelName, providerName } from "@/lib/simple-model-menu";
 import { useStore, type Bot } from "@/state/store";
-import { GrokIcon } from "../../GrokIcon";
+import { Icon } from "../../Icon";
 import { InstanceProviderMark } from "../../ProviderIcons";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
 import { Card, NoteRow, rowCls, SheetPane } from "../../ListRows";
@@ -85,7 +85,7 @@ export function BackupsModal({ bot, derived }: {
                     {instance
                       ? <span className={cn(textCls, "min-w-0 max-w-[45%] shrink-0 truncate text-ink-secondary")}>{instance.displayName}</span>
                       : <span className="shrink-0 text-[12px] text-warning">{t("model.simple.unavailable")}</span>}
-                    <span aria-hidden="true" className="flex shrink-0 text-ink-tertiary"><GrokIcon name="chevron-down-small" size={14} /></span>
+                    <span aria-hidden="true" className="flex shrink-0 text-ink-tertiary"><Icon name="chevron-down-small" size={14} /></span>
                   </BackupChooser>
                   {editable && (
                     <span className="flex shrink-0 items-center pr-0.5">
@@ -124,7 +124,7 @@ export function BackupsModal({ bot, derived }: {
             className={cn(chooserRowCls, "flex-none hover:bg-ink/[0.035] aria-expanded:bg-ink/[0.035]")}
           >
             <span className={cn(textCls, "min-w-0 flex-1 text-ink")}>{t("model.fallback.add")}</span>
-            <span aria-hidden="true" className="flex shrink-0 text-ink-tertiary"><GrokIcon name="chevron-down-small" size={14} /></span>
+            <span aria-hidden="true" className="flex shrink-0 text-ink-tertiary"><Icon name="chevron-down-small" size={14} /></span>
           </BackupChooser>
         )}
       </Card>

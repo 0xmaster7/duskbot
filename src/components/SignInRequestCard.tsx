@@ -9,7 +9,7 @@ import { cardSaveTarget, saveLoginFromCard } from "@/lib/logins";
 import { answerSignIn, signInHostIsHere } from "@/lib/sign-in";
 import { useStore, type Bot, type Message } from "@/state/store";
 import { ASK_QUIET_BUTTON, AskCard, CardSettledRow, cardPrimary, cardSecondary, cardTertiary, returnFocusToComposer } from "./AskCard";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { SignInScreen, signInScreenPath } from "./SignInScreen";
 import { LoginForm } from "./LoginForm";
 
@@ -81,7 +81,7 @@ export function SignInRequestCard({
   };
 
   const stopped = card.stopped === true;
-  const source = { icon: <GrokIcon name={card.place === "browser" ? "browser" : "laptop"} size={12} />, label: t(SOURCE[card.place === "local" && !here ? "host" : card.place]) };
+  const source = { icon: <Icon name={card.place === "browser" ? "browser" : "laptop"} size={12} />, label: t(SOURCE[card.place === "local" && !here ? "host" : card.place]) };
   const instruction = t("signIn.instruction", { site: card.site });
   const settled = (status: string, more: { tone?: "done" | "closed" | "stopped" | "failed"; detail?: ReactNode; action?: ReactNode } = {}) => (
     <CardSettledRow ariaLabel={t("signIn.cardLabel", { name: botName, site: card.site })} icon={source.icon} label={source.label}

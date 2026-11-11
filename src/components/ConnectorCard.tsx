@@ -12,7 +12,7 @@ import { CardHint } from "./CardHint";
 import { ServiceTile } from "./ServiceIcon";
 import { appLogo } from "./connect-apps/logos";
 import { openConnectApps } from "./connect-apps/open";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 
 const STATUS_CHECK_MS = 4_000;
 /** Composio marks an unfinished account EXPIRED shortly after its link lapses; the card keeps asking until it can say so. */
@@ -202,7 +202,7 @@ export function ConnectorCard({ botId, threadId, message }: { botId: string; col
               : t(isMcp ? "connectors.card.signIn" : "connectors.action.connect")}
         </button>
         <button type="button" onClick={dismiss} aria-label={t("connectors.card.notNow")} title={t("connectors.card.notNow")} className={CONNECTOR_DISMISS}>
-          <GrokIcon name="close" size={14} />
+          <Icon name="close" size={14} />
         </button>
       </>}
     >

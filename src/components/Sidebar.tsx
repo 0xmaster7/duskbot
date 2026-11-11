@@ -49,7 +49,7 @@ import { DesktopWorkspaceSwitcher, endCloudHowTo } from "./DesktopWorkspaceSwitc
 import { useCloudOwner } from "./CloudOwner";
 import { SidebarSectionHeader } from "./SidebarSectionHeader";
 import { SectionRows } from "./SidebarSectionRows";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { NeedsYouButton } from "./TeamOwner"; import { SidebarPeople } from "./SidebarPeople";
 import { MENU_ITEM, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
 import { SidebarResizeHandle, useSidebarWidth } from "./SidebarResizeHandle";
@@ -572,7 +572,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
           className={cn("absolute -right-0.5 -bottom-0.5 rounded-full border-2 border-panel bg-ink-secondary", iconOnly ? "size-3" : "size-2.5")} />}
         {main && simpleRow && !rowActivity && (
           <span data-testid="main-bot-star" className="absolute bottom-0 right-0 flex size-[9.6px] items-center justify-center rounded-full bg-[#f59312] text-white shadow-[inset_0_0_0_0.5px_rgba(28,28,28,0.06)] ring-[1.6px] ring-[var(--row)]">
-            <GrokIcon name="star" variant="filled" size={4.8} aria-label={t("sidebar.grok.mainBot")} />
+            <Icon name="star" variant="filled" size={4.8} aria-label={t("sidebar.grok.mainBot")} />
           </span>
         )}
         {bot.chiefOfStaff && iconOnly && (
@@ -978,7 +978,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       title={t("sidebar.grok.newBot")}
       className={SIMPLE_TOP_BUTTON}
     >
-      <GrokIcon name="plus" size={16} />
+      <Icon name="plus" size={16} />
     </button> : <button
       ref={importReturnRef}
       onClick={() => setPlusOpen((o) => !o)}
@@ -986,7 +986,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       className={phone ? PHONE_TOP_BUTTON : corner ? SIMPLE_CORNER_BUTTON : SIMPLE_TOP_BUTTON}
       title={remoteClient ? t("sidebar.new") : t("sidebar.newOrShare")}
     >
-      {!phone && !corner ? <GrokIcon name="plus" size={16} /> : <Plus size={corner ? 18 : 20} strokeWidth={phone ? 2 : 1.5} />}
+      {!phone && !corner ? <Icon name="plus" size={16} /> : <Plus size={corner ? 18 : 20} strokeWidth={phone ? 2 : 1.5} />}
     </button>}
     {plusMotion.shown && (
       <>
@@ -1077,7 +1077,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
         ) : null}{!phone && !framed && <ChromeRailToggle style={windowNoDragStyle} />}
         {rail && <div data-sidebar-rail-top className="flex flex-col items-center gap-2 pt-1" style={windowNoDragStyle}>
           <button type="button" onClick={railSearch} aria-label={t("sidebar.searchAria")} title={t("sidebar.searchAria")} className={SIMPLE_TOP_BUTTON}>
-            <GrokIcon name="search" size={16} />
+            <Icon name="search" size={16} />
           </button>
           <div className="relative flex">{plusControl}</div>
         </div>}

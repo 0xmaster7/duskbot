@@ -6,7 +6,6 @@ import { applyFont, readFont } from "./lib/fonts";
 import { watchFocusNav } from "./lib/focus-nav";
 import { loadPageLanguage } from "./lib/language-preference";
 import { applySkinChoice, readSkinChoice } from "./lib/skins";
-import "./font-faces";
 import "./styles.css";
 
 watchFocusNav();

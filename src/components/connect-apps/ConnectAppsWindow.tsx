@@ -10,7 +10,7 @@ import { HOSTED_MCP_APPS, type HostedConnections, type HostedMcpAppId } from "@/
 import { managedConnectorUnavailableReason } from "../../../shared/connector-availability";
 import { hasActiveConnection } from "@/lib/connector-status";
 import type { SkillsLibrarySkillWire } from "../../../shared/wire";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import { GrokMark } from "../mascot-motion-view";
 import { AppsSection } from "../AppsSection";
 import { McpServersPanel } from "../McpServersPanel";
@@ -575,17 +575,17 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       <div ref={dialog} data-tour="apps-panel" role="dialog" aria-modal="true" aria-label={t("connectApps.title")} tabIndex={-1} className="ca-dialog" onKeyDown={onDialogKey}>
         <div className="ca-layout">
           <button type="button" data-tour="apps-close" className="ca-icon-button ca-close" aria-label={t("connectApps.close")} onClick={onClose}>
-            <GrokIcon name="close" size={16} />
+            <Icon name="close" size={16} />
           </button>
           <div className="ca-bar" data-sub={sub ? "" : undefined}>
             {page.kind === "detail" && (
               <button type="button" className="ca-icon-button" aria-label={t("connectApps.back")} onClick={back}>
-                <GrokIcon name="chevron-left" size={16} />
+                <Icon name="chevron-left" size={16} />
               </button>
             )}
             {page.kind === "yours" && (
               <button type="button" className="ca-back-text" onClick={back}>
-                <span aria-hidden="true"><GrokIcon name="chevron-left" size={16} /></span>
+                <span aria-hidden="true"><Icon name="chevron-left" size={16} /></span>
                 <span>{t("connectApps.title")}</span>
               </button>
             )}
@@ -609,14 +609,14 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                           </span>
                         )}
                         <span>{t("apps.connectedCount", { count: connected.length })}</span>
-                        <span data-chevron="" aria-hidden="true" className="inline-flex"><GrokIcon name="chevron-right" size={12} /></span>
+                        <span data-chevron="" aria-hidden="true" className="inline-flex"><Icon name="chevron-right" size={12} /></span>
                       </button>
                     </div>
                     <div className="ca-controls">
                       <div className="ca-search-row">
                         <div className="ca-search">
                           <div className="ca-field" data-filled={query ? "" : undefined}>
-                            <GrokIcon name="search" size={14} />
+                            <Icon name="search" size={14} />
                             <input
                               ref={input}
                               type="text"
@@ -652,7 +652,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                                 <ResultGroup label={t("connectApps.results.skills")} show={skillHits.length > 0}>
                                   {skillHits.map((skill, offset) => {
                                     const index = appHits.length + offset;
-                                    return <Option key={skill.name} index={index} active={active} onHover={setActive} onPick={options[index]!.pick} icon={<span className="ca-option-glyph"><GrokIcon name="file-list" size={12} /></span>} label={skill.name} />;
+                                    return <Option key={skill.name} index={index} active={active} onHover={setActive} onPick={options[index]!.pick} icon={<span className="ca-option-glyph"><Icon name="file-list" size={12} /></span>} label={skill.name} />;
                                   })}
                                 </ResultGroup>
                                 <ResultGroup label={t("connectApps.results.categories")} show={categoryHits.length > 0}>
@@ -668,7 +668,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                         <button type="button" className="ca-templates" data-bot-templates-link="" onClick={onTemplates}>
                           <GrokMark body="blob" ink="var(--ca-mark)" size={18} animated={false} />
                           {t("connectApps.templates")}
-                          <span data-arrow="" aria-hidden="true"><GrokIcon name="arrow-right-up" size={12} /></span>
+                          <span data-arrow="" aria-hidden="true"><Icon name="arrow-right-up" size={12} /></span>
                         </button>
                       </div>
                       {layout.current && <div className="ca-chips" role="group" aria-label={t("connectApps.categoriesAria")} data-marketplace-chips="">
@@ -713,9 +713,9 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
           </div>
           {toast && (
             <div className="ca-toast" role="status" aria-live="polite" data-kind={toast.kind}>
-              <GrokIcon name={toast.kind === "success" ? "check" : "exclamation-circle"} size={13} />
+              <Icon name={toast.kind === "success" ? "check" : "exclamation-circle"} size={13} />
               <span>{toast.text}</span>
-              <button type="button" aria-label={t("connectApps.dismiss")} onClick={() => setToast(null)}><GrokIcon name="close" size={12} /></button>
+              <button type="button" aria-label={t("connectApps.dismiss")} onClick={() => setToast(null)}><Icon name="close" size={12} /></button>
             </div>
           )}
         </div>
@@ -756,7 +756,7 @@ function Option({ index, active, onHover, onPick, icon, label }: {
       onMouseMove={() => { if (index !== active) onHover(index); }} onClick={onPick}>
       {icon}
       <span>{label}</span>
-      <GrokIcon name="chevron-right" size={12} />
+      <Icon name="chevron-right" size={12} />
     </button>
   );
 }

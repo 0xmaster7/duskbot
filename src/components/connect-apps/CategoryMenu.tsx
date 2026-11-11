@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
 import { usePopoverDismiss } from "@/hooks/use-popover-dismiss";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import { GROK_LABEL, GROK_ROW_FILL, MENU_SHEET } from "../menu-recipe";
 
 export interface CategoryChoice { key: string; label: string }
@@ -68,7 +68,7 @@ export function CategoryMenu({ label, ariaLabel, choices, selected, onPick, onOp
         onClick={() => show(!open)}
       >
         {label}
-        <span data-chevron="" aria-hidden="true"><GrokIcon name="chevron-down" size={12} /></span>
+        <span data-chevron="" aria-hidden="true"><Icon name="chevron-down" size={12} /></span>
       </button>
       {open && createPortal(
         <div

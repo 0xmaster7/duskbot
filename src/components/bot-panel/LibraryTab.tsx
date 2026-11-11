@@ -7,7 +7,7 @@ import { SIDEBAR_INLINE, useMediaQuery } from "@/lib/use-media-query";
 import { useStore, visibleMessages, type Bot, type Message } from "@/state/store";
 import { useLocalFileSave } from "../AttachmentPreview";
 import { recentChangedFiles, sharedFileReferences } from "../ComputerFilesPane";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import { chipNameAction, useHtmlPreview } from "../HtmlFilePreview";
 import { FileKindIcon } from "./FileKindIcon";
 import type { SimplePageId } from "./page-registry";
@@ -190,12 +190,12 @@ function useLibraryEntries(bot: Bot): Entry[] {
     ...items.pages.map((page): Entry => ({
       key: `page:${page.url}`,
       at: atOf(page.messageId),
-      render: (age) => <ActionRow data-panel-row="page" name={page.title} lead={<GrokIcon name="globe" size={16} />} age={age} onClick={() => openPage(page.url)} />,
+      render: (age) => <ActionRow data-panel-row="page" name={page.title} lead={<Icon name="globe" size={16} />} age={age} onClick={() => openPage(page.url)} />,
     })),
     ...items.apps.map((app): Entry => ({
       key: `app:${app.messageId}`,
       at: atOf(app.messageId),
-      render: (age) => <ActionRow data-panel-row="app" name={app.title} lead={<GrokIcon name="sparkle" size={16} />} age={age} onClick={() => showInChat(app.messageId)} />,
+      render: (age) => <ActionRow data-panel-row="app" name={app.title} lead={<Icon name="sparkle" size={16} />} age={age} onClick={() => showInChat(app.messageId)} />,
     })),
     ...items.shared.map((reference): Entry => ({
       key: `file:${reference.message.messageId}:${reference.file.path}`,

@@ -11,7 +11,7 @@ import { useStore, type Bot, type Group } from "@/state/store";
 import { BotFaces } from "../BotFaces";
 import { roomWorkingIds } from "../RoomWorkingLines";
 import { useCaptionChrome } from "../DesktopCapabilities";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import { ManageMembersPanel } from "../ManageMembersPanel";
 import { PANEL_TABS, TAB_LABEL, type PanelTab } from "../bot-panel/page-registry";
 import { pageSurfaceCls } from "../bot-panel/pages";
@@ -206,7 +206,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
                 onClick={back}
                 className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink/[0.66] transition-[background-color,color] duration-[120ms] ease-[ease-out] hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               >
-                <GrokIcon name="chevron-left" size={14} />
+                <Icon name="chevron-left" size={14} />
               </button>
               <span data-panel-page-title className="pointer-events-none absolute left-1/2 top-1/2 max-w-[60%] -translate-x-1/2 -translate-y-1/2 truncate text-[13px] font-medium leading-[18px]">
                 {t(PAGES[page].title)}
@@ -215,7 +215,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
             </>
           )}
           <button type="button" onClick={close} aria-label={t("botPanel.close")} className={roundButtonCls}>
-            <GrokIcon name="close" size={16} />
+            <Icon name="close" size={16} />
           </button>
         </div>
 

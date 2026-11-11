@@ -5,7 +5,7 @@ import { SWAP, WIPE } from "@/lib/motion-presets";
 import { MotionDiv } from "../ui/SheetMotion";
 import { t } from "@/lib/i18n";
 import type { Bot, BotSettingsSection } from "@/state/store";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import { useCaptionChrome } from "../DesktopCapabilities";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { ComputerTab } from "./ComputerTab";
@@ -224,7 +224,7 @@ export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onC
               onClick={back}
               className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink/[0.66] transition-[background-color,color] duration-[120ms] ease-[ease-out] hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             >
-              <GrokIcon name="chevron-left" size={14} />
+              <Icon name="chevron-left" size={14} />
             </button>
             <span data-panel-page-title className="pointer-events-none absolute left-1/2 top-1/2 max-w-[60%] -translate-x-1/2 -translate-y-1/2 truncate text-[13px] font-medium leading-[18px]">
               {t(PAGES[page].title, { name: bot.name })}
@@ -233,7 +233,7 @@ export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onC
           </>
         )}
         <button type="button" onClick={onClose} aria-label={t("botPanel.close")} className={roundButtonCls}>
-          <GrokIcon name="close" size={16} />
+          <Icon name="close" size={16} />
         </button>
       </div>
 

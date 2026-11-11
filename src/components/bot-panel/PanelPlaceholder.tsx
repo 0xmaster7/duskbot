@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 import { t } from "@/lib/i18n";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import { Card, roundButtonCls } from "./rows";
 import { PanelAdvancedTab, PanelDetailsTab } from "./PanelShell";
 import { PANEL_TABS } from "./page-registry";
@@ -23,7 +23,7 @@ export function PanelPlaceholder({ onClose }: { onClose: () => void }) {
         <div className="relative flex h-[60px] shrink-0 items-center gap-2 p-3">
           <span className="ms-auto" />
           <button type="button" onClick={onClose} aria-label={t("botPanel.close")} className={roundButtonCls}>
-            <GrokIcon name="close" size={16} />
+            <Icon name="close" size={16} />
           </button>
         </div>
         <div aria-hidden="true" className="flex min-h-0 flex-1 flex-col overflow-hidden px-4">

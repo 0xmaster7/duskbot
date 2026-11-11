@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { BotAvatar } from "../Avatar";
 import { useChatMoreItems } from "../ChatMoreMenu";
-import { GrokIcon, type GrokIconName } from "../GrokIcon";
+import { Icon, type IconName } from "../Icon";
 import { useMenuMotion } from "../MenuMotion";
 import { saveAccess } from "../bot-access/access";
 import { UndoToast, useTeamName } from "../bot-access/ShareBotButton";
@@ -26,14 +26,14 @@ interface Entry {
 }
 
 const SHARE_KEYS = ["copy", "download"];
-const MORE_ICON: Record<string, GrokIconName> = { usage: "gauge", activity: "list-checks" };
+const MORE_ICON: Record<string, IconName> = { usage: "gauge", activity: "list-checks" };
 
 /** Grok's icon tile: a 36px elevated circle in a 40px slot. */
-function IconTile({ name }: { name: GrokIconName }) {
+function IconTile({ name }: { name: IconName }) {
   return (
     <span aria-hidden="true" className="relative flex size-10 shrink-0 items-center justify-center">
       <span className="flex size-9 items-center justify-center rounded-full border-[0.5px] border-edge bg-composer text-ink">
-        <GrokIcon name={name} size={16} />
+        <Icon name={name} size={16} />
       </span>
     </span>
   );
@@ -182,7 +182,7 @@ function ShareMenu({ bot }: { bot: Bot }) {
         }}
         className={roundButtonCls}
       >
-        <GrokIcon name="arrow-bracket-from-up" size={16} />
+        <Icon name="arrow-bracket-from-up" size={16} />
       </button>
       {typeof document !== "undefined" && createPortal(
         motion.shown && place && (

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { t } from "@/lib/i18n";
-import { GrokIcon, type GrokIconName } from "../GrokIcon";
+import { Icon, type IconName } from "../Icon";
 import { ServiceTile } from "../ServiceIcon";
 import type { AppEntry } from "./catalog";
 
@@ -12,11 +12,11 @@ export function AppTile({ entry, size = 40 }: { entry: Pick<AppEntry, "label" | 
 }
 
 /** A glyph in a tile: white on the app's paint, as Grok draws its own apps, or quiet ink on the plain tile. */
-export function GlyphTile({ name, size, paint }: { name: GrokIconName; size: number; paint?: string }) {
+export function GlyphTile({ name, size, paint }: { name: IconName; size: number; paint?: string }) {
   return (
     <span aria-hidden="true" className="ca-glyph-tile" data-painted={paint ? "" : undefined}
       style={{ width: size, height: size, borderRadius: Math.round(size * 0.28), background: paint }}>
-      <GrokIcon name={name} size={Math.round(size * (paint ? 0.55 : 0.45))} />
+      <Icon name={name} size={Math.round(size * (paint ? 0.55 : 0.45))} />
     </span>
   );
 }
@@ -31,7 +31,7 @@ export type RowAction =
 export function ConnectedMark() {
   return (
     <span className="ca-added">
-      <GrokIcon name="check" size={12} />
+      <Icon name="check" size={12} />
       {t("apps.connected")}
     </span>
   );

@@ -2,7 +2,7 @@ import { Search, X } from "lucide-react";
 import type { Ref } from "react";
 
 import { t } from "@/lib/i18n";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 
 /** Keyboard focus: the neutral 2px focus ring, 1px off a control's edge, drawn inside a row's. The mouse leaves none. */
 // the offsets are important: the global :focus-visible rule in styles.css is unlayered and outranks plain utilities
@@ -41,7 +41,7 @@ export function SidebarSearchToggle({ open, onToggle, corner = false, ref }: { o
       title={t("sidebar.grok.search")}
       className={corner ? SIMPLE_CORNER_BUTTON : SIMPLE_TOP_BUTTON}
     >
-      {corner ? <Search size={17} strokeWidth={1.5} aria-hidden="true" /> : <GrokIcon name="search" size={16} />}
+      {corner ? <Search size={17} strokeWidth={1.5} aria-hidden="true" /> : <Icon name="search" size={16} />}
     </button>
   );
 }

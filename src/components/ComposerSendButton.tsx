@@ -3,7 +3,7 @@ import { ArrowUp, ChevronUp, Clock, CornerDownRight, RotateCcw } from "lucide-re
 
 import type { FollowUp } from "../../shared/follow-up";
 import { cn } from "@/lib/cn";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { t } from "@/lib/i18n";
 import { SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 
@@ -48,7 +48,7 @@ export function ComposerSendButton({ compact, waits, label, title, look, disable
     >
       {waits
         ? <Clock size={compact ? 14 : 15} className={compact ? "composer-glyph" : undefined} />
-        : compact ? <GrokIcon name="arrow-up" variant="filled" size={16} className="composer-glyph" /> : <ArrowUp size={16} strokeWidth={1.75} absoluteStrokeWidth />}
+        : compact ? <Icon name="arrow-up" variant="filled" size={16} className="composer-glyph" /> : <ArrowUp size={16} strokeWidth={1.75} absoluteStrokeWidth />}
     </button>
   );
   if (!menu) return button;

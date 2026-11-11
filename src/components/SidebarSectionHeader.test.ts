@@ -108,7 +108,7 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     expect(html).not.toContain("Delete Work department");
     expect(html).not.toContain("lucide-grip-vertical");
     expect(html).not.toContain("lucide-trash");
-    expect(html).toMatch(/<span class="absolute flex h-4 w-3 items-center justify-center text-ink-secondary opacity-0 transition-opacity duration-\[120ms\] ease-out group-hover\/section:opacity-100 group-focus-within\/section:opacity-100 touch:opacity-100 -right-px rotate-90"><i class="grok-icon" data-icon-name="chevron-right"/);
+    expect(html).toMatch(/<span class="absolute flex h-4 w-3 items-center justify-center text-ink-secondary opacity-0 transition-opacity duration-\[120ms\] ease-out group-hover\/section:opacity-100 group-focus-within\/section:opacity-100 touch:opacity-100 -right-px rotate-90"><svg [^>]*class="[^"]*\bui-icon\b[^"]*" data-icon-name="chevron-right"/);
     expect(html.indexOf(">Work</span>")).toBeLessThan(html.indexOf("Actions for Work"));
     const button = { id: "dots" };
     const dots = nodes(element.props.children).find((node) => node.props["aria-label"] === "Actions for Work")!;
@@ -159,7 +159,7 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
   it("shows a collapsed line's chevron and attention badges", () => {
     const html = renderToStaticMarkup(line({ collapsed: true, attention: { waiting: 1, unread: 2, working: 1 } }));
     expect(html).toContain('aria-expanded="false"');
-    expect(html).toMatch(/-right-\[3px\]"><i class="grok-icon" data-icon-name="chevron-right"/);
+    expect(html).toMatch(/-right-\[3px\]"><svg [^>]*class="[^"]*\bui-icon\b[^"]*" data-icon-name="chevron-right"/);
     expect(html).toContain("1 waiting for you");
     expect(html).toContain("2 unread");
     expect(html).toContain("1 working");

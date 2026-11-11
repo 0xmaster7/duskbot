@@ -24,7 +24,7 @@ import { nextMenuIndex, SidebarPopoverMenu, type SidebarMenuItem } from "./Sideb
 import type { ApprovalChoice } from "./thread-approval";
 import type { AttachChoices } from "./ComposerFilePickers";
 import { SIMPLE_CONTROL } from "./composer-simple";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 
 /** Finish together: the room (or, `solo`, the one bot) keeps working until the goal is done. A quiet neutral pill, like
  * the approval chip beside it. `compact` is Simple mode's chip, shown only while the mode is on: its name and a × that
@@ -190,7 +190,7 @@ export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approva
       { key: "attach:photos", label: t("composer.attach.photos"), icon: <Images size={16} />, onSelect: attachChoices.photos },
       { key: "attach:camera", label: t("composer.attach.camera"), icon: <Camera size={16} />, onSelect: attachChoices.camera },
     ] satisfies SidebarMenuItem[] : []),
-    { key: "attach", label: t(attachChoices ? "composer.attach.files" : "composer.attachFiles"), icon: circle || attachChoices ? <Paperclip size={16} /> : <GrokIcon name="paperclip" size={14} />, onSelect: onAttach },
+    { key: "attach", label: t(attachChoices ? "composer.attach.files" : "composer.attachFiles"), icon: circle || attachChoices ? <Paperclip size={16} /> : <Icon name="paperclip" size={14} />, onSelect: onAttach },
     // grok's + holds Attach files and Teach a task alone: a bot's Work until done lives in its panel's Details
     ...(goal && (circle || !goal.solo) ? [{
       key: "goal",
@@ -230,7 +230,7 @@ export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approva
       <Plus size={22} aria-hidden="true" />
     </span>
   ) : (
-    <GrokIcon name="plus" variant="filled" size={16} />
+    <Icon name="plus" variant="filled" size={16} />
   );
   // grok's + is the round control itself, not a button around one
   const plusClass = (open: boolean) => cn("flex shrink-0 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", SIMPLE_CONTROL, open && "bg-ink/10 text-ink");

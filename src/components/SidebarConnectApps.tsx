@@ -8,7 +8,7 @@ import { loadAppCards } from "./bot-settings/useBotApps";
 import { preloadConnectedApps } from "@/lib/connected-apps";
 import { ServiceTile, type TileArt, type ToolkitCard } from "./ServiceIcon";
 import { appLogo } from "./connect-apps/logos";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { GROK_FOCUS, GROK_HOVER_TINT, SIMPLE_TOP_BUTTON } from "./SidebarSimpleTop";
 import { ConnectAppsHost, openConnectApps, preloadConnectApps, useConnectApps } from "./connect-apps";
 
@@ -115,7 +115,7 @@ export function ConnectAppsButton({ circle, apps: { faces }, engaged = false, on
       {circle ? <>
         {/* grok's widened pill trades the grid glyph for the label and the app logos */}
         <span aria-hidden="true" data-connect-apps-icon="" className={cn("flex h-5 shrink-0 items-center justify-center overflow-hidden transition-[max-width,opacity] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
-          engaged && logos.length ? "max-w-0 opacity-0" : "w-5 max-w-5 opacity-100")}><GrokIcon name="grid-plus" size={16} /></span>
+          engaged && logos.length ? "max-w-0 opacity-0" : "w-5 max-w-5 opacity-100")}><Icon name="grid-plus" size={16} /></span>
         <span aria-hidden="true" data-connect-apps-label="" className={cn("min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
           engaged ? cn(!logos.length && "ms-1.5", "max-w-[200px] opacity-100 [transition-duration:300ms,150ms,300ms] [transition-delay:0ms,120ms,0ms]") : "ms-0 max-w-0 opacity-0")}>{t("sidebar.connectApps")}</span>
         {/* grok's strip beside the widened label: 36px of the logos, painting 5px past its edge */}

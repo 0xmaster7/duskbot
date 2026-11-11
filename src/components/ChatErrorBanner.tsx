@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { t } from "@/lib/i18n";
 import { plainErrorLine } from "@/lib/plain-error";
 import type { AppState } from "@/state/store";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { NoticeGlyph } from "./ui/Notice";
 
 // grok's prompt notices: one 12/16 line above the message box, no box, 2px in from its edge
@@ -58,7 +58,7 @@ export function ChatErrorCard({ tone = "danger", title, details, detailsLabel, c
           title={t("chat.error.dismiss")}
           className="-my-0.5 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink/68 hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus pointer-coarse:size-11 pointer-coarse:-my-2.5"
         >
-          <GrokIcon name="close" size={14} />
+          <Icon name="close" size={14} />
         </button>
       )}
     </div>

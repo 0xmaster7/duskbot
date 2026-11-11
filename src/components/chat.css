@@ -41,7 +41,7 @@
   vertical-align: -4px;
   vertical-align: round(0.5cap - 9px, 1px);
 }
-.chat-link-favicon > .grok-icon {
+.chat-link-favicon > .ui-icon {
   margin: 1px;
   color: color-mix(in srgb, var(--color-ink) var(--chat-ts), transparent);
 }

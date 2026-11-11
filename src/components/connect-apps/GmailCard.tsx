@@ -1,5 +1,5 @@
 import { t } from "@/lib/i18n";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import { CancelLink, ConnectedMark } from "./AppRow";
 import { PrimaryButton, type Primary } from "./PrimaryButton";
 import { viaLine } from "./ComposioKeyStep";
@@ -72,7 +72,7 @@ export function GmailCard({ model }: { model: GmailCardModel }) {
       </div>
       {line && (
         <p role={line.tone === "alert" ? "alert" : "status"} className="ca-card-row ca-key-line" data-tone={line.tone} data-gmail-line="">
-          <GrokIcon name={line.tone === "alert" ? "exclamation-circle" : line.tone === "done" ? "check" : "clock"} size={13} />
+          <Icon name={line.tone === "alert" ? "exclamation-circle" : line.tone === "done" ? "check" : "clock"} size={13} />
           <span>{line.text}</span>
         </p>
       )}

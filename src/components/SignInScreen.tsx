@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 
 import { api } from "@/state/api";
 import { t } from "@/lib/i18n";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 
 /** How often the card's picture refreshes while it is on screen: a glance at the page, not a live view. */
 export const SIGN_IN_SCREEN_MS = 4000;
@@ -86,7 +86,7 @@ export function SignInScreen({ path, name, onOpen, disabled }: { path: string; n
       {frame
         ? <img src={frame} alt={t("computer.screenOf", { name })} draggable={false} className="absolute inset-0 size-full object-cover" />
         : tried
-          ? <GrokIcon name="device-desktop" size={12} />
+          ? <Icon name="device-desktop" size={12} />
           : <span className="flex items-center gap-1.5"><Loader2 size={16} aria-hidden="true" className="motion-safe:animate-spin" />{t("computer.preview.connecting")}</span>}
       {frame && <span aria-hidden="true" className="absolute inset-0 bg-[rgb(0_0_0/0.2)]" />}
       <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">

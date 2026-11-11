@@ -11,7 +11,7 @@ import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { Select } from "../Select";
 import { suggestedName } from "../WebhookTrigger";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import { fieldLabelCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowButtonCls, textAreaCls, textFieldCls } from "../ui/GrokDialog";
 
 const FIELD = textFieldCls;
@@ -93,7 +93,7 @@ export function AppEventEditor({ trigger, bots, initialBotId, onClose, onSaved }
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} style={{ maxWidth: "min(460px, calc(100vw - 32px))" }} className={formSheetCls}>
         <div className={formHeaderCls}>
           <h2 className={formTitleCls}>{title}</h2>
-          <button type="button" onClick={onClose} aria-label={t("automations.newBox.cancel")} className={formCloseCls}><GrokIcon name="close" size={16} /></button>
+          <button type="button" onClick={onClose} aria-label={t("automations.newBox.cancel")} className={formCloseCls}><Icon name="close" size={16} /></button>
         </div>
         <div className={cn(formBodyCls, "space-y-4")}>
           {!trigger && (

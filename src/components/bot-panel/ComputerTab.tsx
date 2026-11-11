@@ -14,7 +14,7 @@ import { useStore, type Bot } from "@/state/store";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { LocalComputerAutoWarning } from "../LocalComputerAutoWarning";
 import { usePlaceViews } from "../PlaceChip";
-import type { GrokIconName } from "../GrokIcon";
+import type { IconName } from "../Icon";
 import { SelectPill } from "../ui/SelectPill";
 import type { BotPatch, useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import type { SimplePageId } from "./page-registry";
@@ -175,7 +175,7 @@ export function AsleepScreen({ bot, off }: { bot: Bot; off: boolean }) {
   );
 }
 
-const CHOICE_ICON: Record<PlaceChoice, GrokIconName> = {
+const CHOICE_ICON: Record<PlaceChoice, IconName> = {
   auto: "sparkle",
   local: "laptop",
   browser: "browser",

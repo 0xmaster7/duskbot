@@ -3,11 +3,11 @@
 import { useSyncExternalStore } from "react";
 import type { LocaleKey } from "@/locales";
 import type { Action, AppSettingsSection } from "@/state/store";
-import type { GrokIconName } from "@/components/GrokIcon";
+import type { IconName } from "@/components/Icon";
 
 export type AdvancedPage = "apps" | "team" | "data" | "builder";
 
-export const ADVANCED_PAGES: ReadonlyArray<{ id: AdvancedPage; icon: GrokIconName; sections: AppSettingsSection[] }> = [
+export const ADVANCED_PAGES: ReadonlyArray<{ id: AdvancedPage; icon: IconName; sections: AppSettingsSection[] }> = [
   { id: "apps", icon: "plug", sections: ["apps", "skills"] },
   { id: "team", icon: "building", sections: ["organization", "people"] },
   { id: "data", icon: "database", sections: ["data", "backups"] },
@@ -18,7 +18,7 @@ export type SettingsPane = "general" | "texting" | "computer" | "permissions" | 
 
 /** Grok's panes, with Phone, Models and Advanced features for what Grok has no pane for. Bots is not on the rail: a bot
  * is set up in its own panel, and Bots only hosts the page one of the panel's rows opens. */
-export const SETTINGS_PANES: ReadonlyArray<{ id: SettingsPane; labelKey: LocaleKey; icon: GrokIconName; sections: readonly AppSettingsSection[]; rail?: false }> = [
+export const SETTINGS_PANES: ReadonlyArray<{ id: SettingsPane; labelKey: LocaleKey; icon: IconName; sections: readonly AppSettingsSection[]; rail?: false }> = [
   { id: "general", labelKey: "settings.section.general", icon: "settings-gear", sections: ["general", "appearance", "looks", "import"] },
   { id: "texting", labelKey: "settings.grok.group.phone", icon: "chat-bubbles", sections: ["texting", "companion"] },
   { id: "computer", labelKey: "settings.simple.page.computer", icon: "display", sections: ["computer", "desktopWorkspaces", "remote", "transfer"] },

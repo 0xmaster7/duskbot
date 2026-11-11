@@ -13,7 +13,7 @@ import type { EmailServerFields } from "../../shared/email";
 import { productName } from "@/lib/brand";
 import { sealCardSecret, SealTrustError } from "@/lib/card-seal";
 import type { CardSealKey } from "../../shared/saved-secrets";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 
 // Security: the value goes straight to the host's settings, never into the chat. A custom secret leaves this app only
 // sealed for the server that keeps it, so a relay between them (the VPS tunnel, a Cloud's proxy) never reads it.
@@ -28,7 +28,7 @@ export function SecretSettledRow({ label, status, tone = "done", title, action, 
   detail?: ReactNode;
 }) {
   return (
-    <CardSettledRow ariaLabel={label} icon={<GrokIcon name="key" size={12} />} label={t("secretCard.title")} summary={status}
+    <CardSettledRow ariaLabel={label} icon={<Icon name="key" size={12} />} label={t("secretCard.title")} summary={status}
       tone={tone === "off" ? "closed" : tone} title={title || detail ? label : undefined} detail={title || detail ? <>{title}{detail}</> : undefined} action={action} />
   );
 }
@@ -218,7 +218,7 @@ export function SecretRequestCard({
   return (
     <AskCard
       ariaLabel={secret.label}
-      source={{ icon: <GrokIcon name="key" size={12} />, label: t("secretCard.title") }}
+      source={{ icon: <Icon name="key" size={12} />, label: t("secretCard.title") }}
       title={secret.label}
       explanation={description}
       onDismiss={dismiss}

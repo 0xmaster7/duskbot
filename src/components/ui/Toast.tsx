@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import { smallButtonCls } from "./GrokDialog";
 
 /** Grok's bot-action toast timing: a plain line passes in 5s, one carrying Undo stays 12s. */
@@ -48,12 +48,12 @@ export function Toast({ text, tone = "done", action, onDone, timeoutMs, classNam
     <div {...rest} role={error ? "alert" : "status"} aria-live={error ? "assertive" : "polite"} data-kind={tone} className={cn("ui-toast", className)}
       onPointerEnter={() => setHeld(true)} onPointerLeave={() => setHeld(false)} onFocus={() => setHeld(true)} onBlur={release}>
       <span aria-hidden="true" className={cn("inline-flex shrink-0", error ? "text-danger" : "text-ink-secondary")}>
-        <GrokIcon name={error ? "exclamation-circle" : "check"} size={13} />
+        <Icon name={error ? "exclamation-circle" : "check"} size={13} />
       </span>
       <span data-toast-text="" className="min-w-0 flex-1 break-words">{text}</span>
       {action && <button type="button" disabled={action.disabled} onClick={action.onClick} className={smallButtonCls}>{action.label}</button>}
       <button type="button" aria-label={t("chat.error.dismiss")} onClick={onDone} className="ui-toast-close">
-        <GrokIcon name="close" size={12} />
+        <Icon name="close" size={12} />
       </button>
     </div>
   );

@@ -4,7 +4,7 @@ import { useStore } from "@/state/store";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { reserveConnectionPage } from "@/lib/connector-oauth";
-import { GrokIcon } from "../GrokIcon";
+import { Icon } from "../Icon";
 import { cleanKey, saveCredential } from "../keys/key-save";
 import type { Connectors } from "./use-connectors";
 import type { ViaFailure, ViaFlow } from "./via-flow";
@@ -88,7 +88,7 @@ export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name
             {steps.map((step, index) => (
               <li key={step.key} className="ca-card-row" data-via-step={step.key} data-state={step.done ? "done" : step.current ? "current" : "next"}
                 aria-current={step.current ? "step" : undefined}>
-                <span data-step="" aria-hidden="true">{step.done ? <GrokIcon name="check" size={11} /> : index + 1}</span>
+                <span data-step="" aria-hidden="true">{step.done ? <Icon name="check" size={11} /> : index + 1}</span>
                 <span>
                   {step.title}
                   {step.sub && !step.done && <span className="ca-key-sub">{step.sub}</span>}
@@ -99,7 +99,7 @@ export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name
         )}
         {line && (
           <p role={line.tone === "alert" ? "alert" : "status"} className="ca-card-row ca-key-line" data-tone={line.tone} data-via-line="">
-            <GrokIcon name={line.tone === "alert" ? "exclamation-circle" : line.tone === "done" ? "check" : "clock"} size={13} />
+            <Icon name={line.tone === "alert" ? "exclamation-circle" : line.tone === "done" ? "check" : "clock"} size={13} />
             <span>{line.text}</span>
           </p>
         )}
@@ -145,7 +145,7 @@ export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name
         )}
         {problem && (
           <p id="ca-key-problem" role="alert" className="ca-card-row ca-key-problem">
-            <GrokIcon name="exclamation-circle" size={13} />
+            <Icon name="exclamation-circle" size={13} />
             <span>{t(problem)}</span>
           </p>
         )}

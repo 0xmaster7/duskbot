@@ -5,7 +5,6 @@ import { createRoot } from "react-dom/client";
 import { IslandIntro } from "@/components/onboarding/IslandIntro";
 import { setLocale } from "@/lib/i18n";
 import type { AmbientAppBridge, AmbientPrefs } from "@/ambient/types";
-import "./font-faces";
 import "./styles.css";
 
 /** ?skin=daylight&reduced=1&fail=1&lang=de&w=1338&h=870 */

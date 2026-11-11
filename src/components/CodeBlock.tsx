@@ -4,7 +4,7 @@ import type { HighlighterCore } from "shiki/core";
 import { Check, X } from "lucide-react";
 
 import { GROK_LIGHT_THEME } from "./code-theme-grok";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
@@ -189,18 +189,18 @@ export function CodePlate({ copied, onCopy, copyLabel, items, small = false, exp
   return (
     <div data-code-plate className="absolute end-1.5 top-1.5 z-[1] flex gap-1 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/code:opacity-100 touch:opacity-100 has-[[aria-expanded=true]]:opacity-100">
       {expand && <button type="button" data-plate-expand onClick={expand.onClick} className={button} title={expand.label} aria-label={expand.label}>
-        <GrokIcon name="arrows-expand" size={icon} />
+        <Icon name="arrows-expand" size={icon} />
       </button>}
       <button type="button" onClick={onCopy} className={button}
         title={copied === "copied" ? t("code.copiedTitle") : copied === "failed" ? t("common.copyFailed") : copyLabel}
         aria-label={copied === "copied" ? t("code.copiedTitle") : copied === "failed" ? t("common.copyFailed") : copyLabel}>
         {copied === "failed" ? <X size={icon} className="text-danger" aria-hidden="true" />
           : copied === "copied" ? <Check size={icon} className="text-success" aria-hidden="true" />
-            : <GrokIcon name="copy" size={icon} />}
+            : <Icon name="copy" size={icon} />}
       </button>
       {copied !== "idle" && <span role="status" className="sr-only">{copied === "failed" ? t("common.copyFailed") : t("code.copiedTitle")}</span>}
       {items.length > 0 && <SidebarPopoverMenu items={items} ariaLabel={t("chat.more")} placement="below" triggerClassName="rounded-[6px]" triggerTitle={t("chat.more")}
-        renderTrigger={() => <span className={button}><GrokIcon name="dots-3-horizontal" size={icon} /></span>} />}
+        renderTrigger={() => <span className={button}><Icon name="dots-3-horizontal" size={icon} /></span>} />}
     </div>
   );
 }

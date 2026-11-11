@@ -22,7 +22,7 @@ import { ConnectedWorkspacesSettings } from "./ConnectedWorkspacesSettings";
 import { CloudAccountSettings } from "./CloudAccountSettings";
 import { TransferSettings } from "./vps-link/TransferSettings";
 import { vpsLinkAvailable } from "@/lib/vps-link";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { SIMPLE_BUTTONS } from "./SettingsPrimitives";
 import { PaneHeader, PanelSections, SubPageContext, WipeStack, type SubPage } from "./ListRows";
 import {
@@ -303,7 +303,7 @@ export function SettingsModal() {
       <div className="settings-phone-head">
         <h2 className="settings-phone-title">{t("settings.title")}</h2>
         <button type="button" onClick={close} aria-label={t("settings.grok.close")} className="settings-phone-close">
-          <GrokIcon name="close" size={18} />
+          <Icon name="close" size={18} />
         </button>
       </div>
       <div className="settings-nav-list">
@@ -319,9 +319,9 @@ export function SettingsModal() {
               onClick={() => go(entry.sections.find(has)!)}
               className="settings-nav-item"
             >
-              <GrokIcon name={entry.icon} size={phone ? 20 : 15} />
+              <Icon name={entry.icon} size={phone ? 20 : 15} />
               <span>{t(entry.labelKey)}</span>
-              <GrokIcon name="chevron-right" size={14} className="settings-nav-chevron" />
+              <Icon name="chevron-right" size={14} className="settings-nav-chevron" />
             </button>
           );
         })}
@@ -331,7 +331,7 @@ export function SettingsModal() {
   const panel = (
     <section id={`settings-panel-${pane}`} aria-labelledby={headingId} className="settings-panel">
       <button type="button" onClick={close} aria-label={t("settings.grok.close")} className="settings-close">
-        <GrokIcon name="close" size={14} />
+        <Icon name="close" size={14} />
       </button>
       {/* a pane switch is one short fade and rise of the new pane; the rail's highlight and the sheet stay raw */}
       <div key={pane} className={cn("flex min-h-0 flex-1 flex-col", paneSwapped && !phone && "settings-pane-swap")}>

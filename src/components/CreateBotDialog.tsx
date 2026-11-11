@@ -8,7 +8,7 @@ import { openNewGroup } from "@/lib/new-group-request";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { MausAvatar, type MausAvatarHandle } from "./Avatar";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { VIEW_SPAN } from "./mascot-motion";
 import { hoverGaze } from "./mascot-motion-mark";
 
@@ -149,7 +149,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
           onClick={onClose}
           className="absolute right-2.5 top-2.5 z-[1] flex size-8 items-center justify-center rounded-[9999px] text-ink-secondary hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
         >
-          <GrokIcon name="close" size={14} />
+          <Icon name="close" size={14} />
         </button>
         <div className="flex shrink-0 flex-col items-start gap-1 border-b border-ink/12 p-4">
           <h2 id={titleId} className="m-0 text-[14px] font-semibold leading-[22px] tracking-[-0.15px]">Create New Bot</h2>

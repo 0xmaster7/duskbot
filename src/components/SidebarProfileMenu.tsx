@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import { accountMenuItems, AccountsSheet, cloudRowLabel, useAccounts, type AccountsAccess } from "./AccountMenu";
-import { GrokIcon, type GrokIconName } from "./GrokIcon";
+import { Icon, type IconName } from "./Icon";
 import { GROK_FOCUS } from "./SidebarSimpleTop";
 import { AccountMoveStatus, useAccountMove, type AccountMoveKind } from "./AccountMove";
 import { InitialsAvatar } from "./Avatar";
@@ -440,7 +440,7 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
   onSettings: () => void;
   accounts: Pick<AccountsAccess, "view" | "openSheet" | "signOut" | "add">;
 }): SidebarMenuItem[] {
-  const icon = (name: GrokIconName) => <GrokIcon name={name} size={14} />;
+  const icon = (name: IconName) => <Icon name={name} size={14} />;
   const active = accounts.view?.active;
   const account: SidebarMenuItem[] = active
     ? [

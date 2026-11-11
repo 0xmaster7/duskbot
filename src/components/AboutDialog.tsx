@@ -16,7 +16,7 @@ import { t } from "@/lib/i18n";
 import { useOtherServerName } from "@/lib/other-server";
 import { copyText } from "@/lib/copy-text";
 import { formCloseCls, formSheetCls, mdSecondaryCls, rowHintCls, useDialogKeys } from "./ui/GrokDialog";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
 
 /** The app's own version first; `server` (useOtherServerName: set only when the app's window shows another server) adds a
@@ -58,7 +58,7 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
         className={cn(formSheetCls, "max-w-[320px] items-center px-6 pb-6 pt-8 text-center")}
       >
         <button type="button" aria-label={t("common.close")} onClick={() => close.current()} className={cn(formCloseCls, "absolute right-3 top-3")}>
-          <GrokIcon name="close" size={16} />
+          <Icon name="close" size={16} />
         </button>
         <img src="/app-icon.svg" alt="" width={64} height={64} className="size-16" />
         <h2 id="about-dialog-title" className="m-0 mt-2 text-[20px] font-semibold leading-7 text-ink">{productName()}</h2>

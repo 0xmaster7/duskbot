@@ -1,6 +1,6 @@
 import { createContext, use, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Check, Copy, X } from "lucide-react";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { popoverClosesOnKey, usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
@@ -194,7 +194,7 @@ export function MessageActions({
           aria-controls={menuOpen ? menuId : undefined}
           className={cn(messageActionClass, menuOpen && "bg-ink/[0.06]")}
         >
-          <GrokIcon name="dots-3-horizontal" size={14} />
+          <Icon name="dots-3-horizontal" size={14} />
         </button>
       )}
       {menuOpen && (
@@ -237,7 +237,7 @@ export function MessageActions({
 export function ReplyAction({ onReply, own = false }: { onReply: () => void; own?: boolean }) {
   return (
     <button type="button" onClick={onReply} aria-label={t("chat.replyToMessage")} className={messageActionClass}>
-      <GrokIcon name={own ? "arrow-u-up-right" : "arrow-u-up-left"} size={14} />
+      <Icon name={own ? "arrow-u-up-right" : "arrow-u-up-left"} size={14} />
     </button>
   );
 }

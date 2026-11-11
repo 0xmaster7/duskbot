@@ -14,7 +14,7 @@ import { ItemRow, NavRow, NoteRow, SwitchRow } from "./ListRows";
 import { Card, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, textFieldCls } from "./ui/GrokDialog";
 import { cn } from "@/lib/cn";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { siteIconUrl } from "@/lib/site-icon";
 
 // Security: a row never shows the password, which no route returns.
@@ -53,12 +53,12 @@ export function VaultNewItem() {
     <div ref={root} className="relative" data-vault-new="">
       <button type="button" aria-label={t("settings.vault.newItem")} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}
         className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-full bg-ink px-3 text-[13px] leading-[18px] text-app hover:bg-ink/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-        {t("settings.vault.newItem")}<GrokIcon name="chevron-down" size={12} />
+        {t("settings.vault.newItem")}<Icon name="chevron-down" size={12} />
       </button>
       {open && (
         <div role="menu" aria-label={t("settings.vault.newItem")} className="absolute end-0 top-[calc(100%+4px)] z-10 flex min-w-[200px] flex-col gap-0.5 rounded-2xl bg-menu py-1.5 shadow-(--shadow-popover)">
-          <button type="button" role="menuitem" aria-label={t("settings.logins.add")} className={item} onClick={() => pick("login")}><GrokIcon name="key" size={16} className="relative" /><span className="relative">{t("settings.logins.add")}</span></button>
-          <button type="button" role="menuitem" aria-label={t("settings.logins.onePassword.title")} className={item} onClick={() => pick("onepassword")}><GrokIcon name="vault" size={16} className="relative" /><span className="relative">{t("settings.logins.onePassword.title")}</span></button>
+          <button type="button" role="menuitem" aria-label={t("settings.logins.add")} className={item} onClick={() => pick("login")}><Icon name="key" size={16} className="relative" /><span className="relative">{t("settings.logins.add")}</span></button>
+          <button type="button" role="menuitem" aria-label={t("settings.logins.onePassword.title")} className={item} onClick={() => pick("onepassword")}><Icon name="vault" size={16} className="relative" /><span className="relative">{t("settings.logins.onePassword.title")}</span></button>
         </div>
       )}
     </div>
@@ -78,7 +78,7 @@ function VaultRow({ tile, title, hint, detail, onClick, disabled, label }: {
         <span className="truncate text-[13px] font-medium leading-[18px] text-ink">{title}</span>
         <span className="truncate text-[12px] leading-4 text-ink-secondary">{hint}</span>
       </span>
-      {onClick && <GrokIcon name="chevron-right" size={12} className="shrink-0 text-ink/[0.56]" />}
+      {onClick && <Icon name="chevron-right" size={12} className="shrink-0 text-ink/[0.56]" />}
     </>
   );
   const cls = "flex min-h-[50px] w-full items-center gap-3 rounded-md p-2 text-start";
@@ -88,7 +88,7 @@ function VaultRow({ tile, title, hint, detail, onClick, disabled, label }: {
 }
 
 function KeyTile() {
-  return <span className="flex size-6 items-center justify-center rounded-md border border-ink/[0.12] bg-app text-ink/[0.68]"><GrokIcon name="key" size={14} /></span>;
+  return <span className="flex size-6 items-center justify-center rounded-md border border-ink/[0.12] bg-app text-ink/[0.68]"><Icon name="key" size={14} /></span>;
 }
 
 /** A login's site as Grok's rounded tile: the site's own icon once it loads, its first letter on a faint fill until
@@ -211,7 +211,7 @@ export function LoginsSettings() {
             ))}
           </div>
           <label className="flex h-8 w-[160px] max-w-full items-center gap-2 rounded-full border border-ink/[0.12] bg-ink/[0.04] ps-[7px] pe-2 text-ink-secondary">
-            <GrokIcon name="search" size={14} />
+            <Icon name="search" size={14} />
             <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t("settings.vault.search")} placeholder={t("settings.vault.search")}
               className="h-full min-w-0 flex-1 border-0! bg-transparent p-0 text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink-secondary [&::-webkit-search-cancel-button]:hidden" />
           </label>

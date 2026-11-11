@@ -18,7 +18,7 @@ import { yourComputerAsk } from "@/lib/your-computer";
 import { TriggerCard } from "./TriggerCard";
 import { ASK_CARD_LIFT, ASK_CARD_RING } from "./AskCard";
 import { EventChip, EventLabel, EventLine } from "./EventLine";
-import { GrokIcon, type GrokIconName } from "./GrokIcon";
+import { Icon, type IconName } from "./Icon";
 import { BotAvatar } from "./Avatar";
 import { openBotSettings } from "./bot-panel/panel-link";
 import { CardHint } from "./CardHint";
@@ -221,7 +221,7 @@ const WAIT_EVENT = {
 
 interface AppliedEvent {
   label: string;
-  chip?: { icon: GrokIconName; name: string; title?: string; routinesOf?: string | null };
+  chip?: { icon: IconName; name: string; title?: string; routinesOf?: string | null };
   forBot?: { name: string; botId?: string };
 }
 
@@ -340,7 +340,7 @@ function AppliedChangeLine({
         <EventLabel>{event?.label ?? summary.line}</EventLabel>
         {chip && (
           <EventChip
-            leading={<GrokIcon name={chip.icon} size={12} />}
+            leading={<Icon name={chip.icon} size={12} />}
             title={chip.title ?? chip.name}
             {...(chip.routinesOf !== undefined && chip.routinesOf !== null && store
               ? {

@@ -64,7 +64,7 @@ import {
 import { retryPlacedUpload, sendPlacedUpload } from "@/lib/placed-upload";
 import { cancelUpload } from "@/lib/upload-progress";
 import { goalCoordinatorForComposer, openTaskWorking, roomRouteForComposer } from "@/lib/group-routing";
-import { composerPlaceholder, pendingQuestion, sendLabels, SIMPLE_COMPOSER, SIMPLE_CONTROL, slotColors } from "./composer-simple"; import { ComposerSendButton } from "./ComposerSendButton"; import { GrokIcon } from "./GrokIcon";
+import { composerPlaceholder, pendingQuestion, sendLabels, SIMPLE_COMPOSER, SIMPLE_CONTROL, slotColors } from "./composer-simple"; import { ComposerSendButton } from "./ComposerSendButton"; import { Icon } from "./Icon";
 import { PendingApprovalActions, PendingApprovalPanel, pendingApprovals } from "./PendingApproval";
 import { CallButton } from "./CallView";
 import { ApprovalChip, ComposerPlusMenu, GoalToggle } from "./ComposerPlusMenu";
@@ -107,7 +107,7 @@ type SlotGlyph = "waveform" | "arrow-up" | "stop";
 function SlotGlyphGhost({ glyph, ink }: { glyph: SlotGlyph; ink: string }) {
   return (
     <span aria-hidden="true" data-composer-glyph-ghost className="pointer-events-none absolute bottom-0 right-0 z-[1] flex size-7 items-center justify-center" style={{ color: ink }}>
-      {glyph === "stop" ? <Square size={10} className="composer-glyph-out fill-current" /> : <GrokIcon name={glyph} variant="filled" size={16} className="composer-glyph-out" />}
+      {glyph === "stop" ? <Square size={10} className="composer-glyph-out fill-current" /> : <Icon name={glyph} variant="filled" size={16} className="composer-glyph-out" />}
     </span>
   );
 }
@@ -957,7 +957,7 @@ export function Composer({
               singleRow ? "text-ink-secondary hover:bg-raised hover:text-ink" : SIMPLE_CONTROL,
             )}
           >
-            <GrokIcon name="close" size={14} />
+            <Icon name="close" size={14} />
           </button>
         )}
         {!locked && micReady && (
@@ -973,7 +973,7 @@ export function Composer({
             )}
             title={recording ? t("composer.dictation.stopHint") : t("composer.dictation.hint")}
           >
-            {simpleDock ? <GrokIcon name="mic" variant="filled" size={16} /> : <Mic size={16} strokeWidth={1.75} absoluteStrokeWidth className="[&_rect]:fill-current" />}
+            {simpleDock ? <Icon name="mic" variant="filled" size={16} /> : <Mic size={16} strokeWidth={1.75} absoluteStrokeWidth className="[&_rect]:fill-current" />}
           </button>
         )}
         {callShown && bot && !group && <CallButton bot={bot} placement="composer" fill={singleRow ? undefined : slot.fill} ink={slot.ink} inverse={singleRow} />}

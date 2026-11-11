@@ -1,5 +1,5 @@
 import type { LocaleKey } from "@/locales";
-import type { GrokIconName } from "../GrokIcon";
+import type { IconName } from "../Icon";
 
 /** Grok's marketplace categories, in its order, then AI for Composio's many AI tools. The first five are chips; the
  * rest wait under More. */
@@ -72,7 +72,7 @@ export interface AppIcon {
   padded?: boolean;
   background?: string;
   scale?: number;
-  glyph?: GrokIconName;
+  glyph?: IconName;
   /** A glyph tile's paint, with the glyph in white on it. */
   glyphPaint?: string;
 }

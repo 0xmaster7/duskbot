@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { useDialogKeys } from "./ui/GrokDialog";
 import "./computer-fullscreen.css";
 
@@ -87,7 +87,7 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert,
           data-computer-exit=""
           className="flex size-6 cursor-pointer items-center justify-center rounded-[6px] text-white/85 transition-[background-color,color] duration-[120ms] ease-[ease] hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white/70"
         >
-          <GrokIcon name="arrows-contract-simple" size={14} />
+          <Icon name="arrows-contract-simple" size={14} />
         </button>
       </div>}
       <div className={cn("flex min-h-0 flex-1 flex-col", !inline && "p-2")}>
@@ -128,7 +128,7 @@ function ControlPill({ control, hint }: { control: ScreenControl; hint: { count:
   return (
     <div data-computer-control={control.held ? "held" : "watching"} className={cn("flex h-9 items-center gap-2.5 rounded-full bg-menu pl-3", action ? "pr-1" : "pr-3")}>
       <span aria-live="polite" className={cn("flex items-center gap-1.5 text-[13px] font-medium leading-[18px]", control.held ? "text-ink" : "text-ink/68")}>
-        <GrokIcon name={control.held ? "window-pointer-arrow" : "eye"} size={16} />
+        <Icon name={control.held ? "window-pointer-arrow" : "eye"} size={16} />
         {control.held ? t("computer.inControl") : t("computer.watching")}
         {hint.shown && <span className="sr-only">{t("computer.takeControlHint")}</span>}
       </span>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 
 type Edge = "top" | "bottom";
 
@@ -45,7 +45,7 @@ export function SidebarMoreUnreads({ edge }: { edge: Edge }) {
           className="pointer-events-auto flex h-7 shrink-0 animate-pop-in items-center gap-0.5 rounded-full bg-[#0b6dd3] py-1 pl-1 pr-2 text-[13px] leading-[18px] tracking-[0.015em] text-white shadow-[inset_0_0_0_1px_rgba(28,28,28,0.06),0_1px_3px_0_rgba(28,28,28,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           <span aria-hidden="true" className="flex size-5 items-center justify-center">
-            <GrokIcon name={edge === "top" ? "arrow-up" : "arrow-down"} size={12} />
+            <Icon name={edge === "top" ? "arrow-up" : "arrow-down"} size={12} />
           </span>
           <span className="pe-0.5">{t("sidebar.grok.moreUnreads")}</span>
         </button>

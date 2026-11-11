@@ -1,7 +1,7 @@
 import { Children, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { useMenuMotion } from "./MenuMotion";
 
 export type SettingsSelectOption = { value: string; label: ReactNode; disabled?: boolean };
@@ -137,7 +137,7 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
         )}
       >
         <span className="min-w-0 flex-1 truncate text-start">{selected?.label ?? value}</span>
-        <GrokIcon name="chevron-down" size={10} className="shrink-0 text-ink/[0.66] group-active:text-ink group-aria-expanded:text-ink" />
+        <Icon name="chevron-down" size={10} className="shrink-0 text-ink/[0.66] group-active:text-ink group-aria-expanded:text-ink" />
       </button>
       {motion.shown && place && createPortal(
         <div
@@ -178,7 +178,7 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
               )}
             >
               <span className="relative min-w-0 flex-1 truncate">{option.label}</span>
-              {option.value === value && <GrokIcon name="check" size={12} className="relative shrink-0" />}
+              {option.value === value && <Icon name="check" size={12} className="relative shrink-0" />}
             </div>
           ))}
         </div>,

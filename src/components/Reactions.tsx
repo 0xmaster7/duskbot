@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { REACTIONS, type Reaction } from "../../shared/reactions";
 import { messageActionClass } from "@/components/MessageActions";
-import { GrokIcon } from "./GrokIcon";
+import { Icon } from "./Icon";
 import { usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { useCanWriteIn, useReactor } from "@/lib/cloud-guest";
 import { cn } from "@/lib/cn";
@@ -120,7 +120,7 @@ export function ReactAction({ threadId, message }: { threadId: string; message: 
         aria-controls={open ? id : undefined}
         className={cn(messageActionClass, open && "bg-ink/[0.06]")}
       >
-        <GrokIcon name="smiley-happy" size={14} />
+        <Icon name="smiley-happy" size={14} />
       </button>
       {open && (
         <div
