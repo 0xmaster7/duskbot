@@ -52,6 +52,10 @@ export interface HomeLifecycleState {
   hold: boolean;
   /** first setups that failed on their machine */
   setupFailures?: number;
+  /** failed restores of the generation in `restoreFrom` */
+  restoreTries?: number;
+  /** generations whose restore kept failing: never tried again */
+  badRestores?: string[];
   /** retryable failures in a row during a first setup */
   setupRetries?: number;
   /** when a first setup was first seen in its error state */

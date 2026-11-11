@@ -1,7 +1,7 @@
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
-import { readdirSync, readFileSync } from "node:fs";
+import { chmodSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import type { StoredSubscription } from "../../dashboard/server/billing/store.ts";
 import { homeBackupKey } from "./backups.ts";
 import { INSTABOX_BOOT_FILE, INSTABOX_PACKAGE_FILE, INSTABOX_SETUP_FILE } from "./home.ts";
@@ -116,6 +116,47 @@ it("recovers a lost machine from its newest backup into a fresh one and tells th
   expect(fresh.volume.get(`data/${CLOUD_HOME.dataName}/bots.json`)!.toString()).toContain("Test bot");
   expect(f.notices.map(n => n.kind)).toContain("recovered");
   expect(f.api.deletes()).toHaveLength(0);
+});
+
+async function twoBackupsThenLost(corrupt: "newest" | "all") {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  for (let day = 0; day < 2; day++) {
+    f.advance(DAY_MS); f.power.idle = true; f.power.busy = [];
+    await f.settle(c, c => c.status === "sleeping", 60, 5 * 60_000);
+    if (day === 0) { await f.service.power(c.accountId, c.id, "on"); await f.settle(c, c => c.status === "running"); }
+  }
+  const generations = c.managed!.backups.filter(g => g.verifiedAt !== null);
+  expect(generations).toHaveLength(2);
+  for (const g of corrupt === "all" ? generations : generations.slice(-1)) {
+    const path = join(f.dataDir, "managed-backups", c.id, g.file);
+    chmodSync(path, 0o600); writeFileSync(path, "damaged");
+  }
+  const lost = c.serverId!;
+  f.api.lose(lost);
+  for (let n = 0; n < 80 && !(c.serverId !== lost && (c.status === "running" || c.status === "error")); n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  return { f, c, generations };
+}
+
+it("a restore that keeps failing falls back to the next older verified backup, a bounded number of tries each", async () => {
+  const { f, c, generations } = await twoBackupsThenLost("newest");
+  expect(c.status).toBe("running");
+  expect(c.managed!.restoredFrom).toMatchObject({ file: generations[0]!.file, at: generations[0]!.snapshotAt });
+  expect(c.managed!.badRestores).toEqual([generations[1]!.file]);
+  const actions = f.audit.entries(c.id).map(e => e.action);
+  expect(actions.filter(a => a === "restore_failed")).toHaveLength(3);
+  expect(actions).toContain("restore_fallback");
+  expect(f.notices.findLast(n => n.kind === "recovered")).toMatchObject({ at: generations[0]!.snapshotAt });
+});
+
+it("a recovery with no backup that restores stops in the error state for the operator instead of retrying forever", async () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const { f, c } = await twoBackupsThenLost("all");
+  expect(c.status).toBe("error");
+  expect(f.audit.entries(c.id).filter(e => e.action === "restore_failed")).toHaveLength(6);
+  expect(warn).toHaveBeenCalledWith(expect.stringContaining("no backup of it restores"));
+  expect(f.api.deletes()).toHaveLength(0);
+  warn.mockRestore();
 });
 
 it("keeps an ended plan's home asleep for 30 days with notices, then deletes it only after the final backup it took before sleeping", async () => {
