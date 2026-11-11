@@ -170,7 +170,7 @@
   to { opacity: 1; transform: none; }
 }
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
 @keyframes fade {
@@ -290,7 +290,7 @@
   .tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; background: var(--btn); font: 500 12px/1 var(--font-pixel); letter-spacing: 0.02em; color: var(--ink-2); white-space: nowrap; }
 
   .enter { animation: enter var(--dur-slow) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 50ms); }
-  .page-in { animation: page-in var(--dur-base) var(--ease-out) both; }
+  .page-in { animation: page-in 200ms var(--ease-out) both; }
   .fade-in { animation: fade var(--dur-base) var(--ease-out) both; }
   .peek { animation: peek var(--dur-long) var(--ease-pop) both; animation-delay: calc(240ms + var(--i, 0) * 90ms); }
   .menu-in { animation: menu-in 140ms var(--ease-menu) both; }
@@ -353,20 +353,22 @@
   .scroll-x::-webkit-scrollbar { display: none; }
 }
 
+/* hovers lay a faint ink tint over whatever the control already is, so nothing turns dark grey */
+:root { --tint: color-mix(in oklab, var(--ink) 3.5%, transparent); }
 @media (hover: hover) and (pointer: fine) {
-  .hover-row:hover { background: var(--card-2); }
-  .hover-side:hover { background: color-mix(in oklab, var(--ink) 6%, transparent); color: var(--ink); }
-  .hover-ghost:hover { background: color-mix(in oklab, var(--ink) 7%, transparent); }
-  .hover-outline:hover { background: var(--btn-hover); }
+  .hover-row:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
+  .hover-side:hover { background: var(--tint); color: var(--ink); }
+  .hover-ghost:hover { background: var(--tint); }
+  .hover-outline:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-primary:hover { background: var(--primary-hover); }
   .hover-accent:hover { background-color: var(--accent-fill-hover); }
-  .hover-lift:hover { background-color: var(--btn-hover); }
+  .hover-lift:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-tile { transition: transform 300ms var(--ease-pop); }
-  .hover-tile:hover { transform: translateY(-3px); }
+  .hover-tile:hover { transform: translateY(-2px); background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-tile:hover .tile-arrow { color: var(--ink); transform: translate(2px, -2px); }
   .tile-arrow { transition: transform 300ms var(--ease-pop); }
   .hover-cell:hover { outline: 1px solid var(--ink-3); outline-offset: 0; }
-  .hover-pick:hover { background: var(--btn-hover); }
+  .hover-pick:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-link:hover { color: var(--ink); }
 }
 
