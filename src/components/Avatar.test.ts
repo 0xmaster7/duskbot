@@ -45,8 +45,8 @@ describe("MausAvatar body", () => {
 
   it("draws the face of the state it rests in", () => {
     expect(render({ state: "sleeping" })).toContain('data-state="sleeping"');
-    expect(render({ state: "streaming" })).toContain('data-state="working"');
-    expect(render({ state: "failed" })).toContain('data-state="error"');
+    expect(render({ state: "streaming" })).toContain('data-pixel-state="working"');
+    expect(render({ state: "failed" })).toContain('data-pixel-state="error"');
   });
 });
 

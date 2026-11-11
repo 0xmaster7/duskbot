@@ -99,15 +99,15 @@ describe("parseBotProfilePatch (both modes)", () => {
 
 describe("mascotBody", () => {
   it("accepts a known body", () => {
-    expect(parseBotProfilePatch({ mascotBody: "pill" }, true)).toEqual({
+    expect(parseBotProfilePatch({ mascotBody: "mochi" }, true)).toEqual({
       ok: true,
-      patch: { mascotBody: "pill" },
+      patch: { mascotBody: "mochi" },
     });
   });
 
   it("saves a body id from an older version as the body it draws as now", () => {
-    expect(parseBotProfilePatch({ mascotBody: "blob" } as never, true)).toEqual({ ok: true, patch: { mascotBody: "circle" } });
-    expect(parseBotProfilePatch({ mascotBody: "cursor" } as never, true)).toEqual({ ok: true, patch: { mascotBody: "squircle" } });
+    expect(parseBotProfilePatch({ mascotBody: "blob" } as never, true)).toEqual({ ok: true, patch: { mascotBody: "pip" } });
+    expect(parseBotProfilePatch({ mascotBody: "cursor" } as never, true)).toEqual({ ok: true, patch: { mascotBody: "kit" } });
   });
 
   it("accepts a Halloween body", () => {
@@ -118,14 +118,14 @@ describe("mascotBody", () => {
   });
 
   it("accepts the bodies the picker offers", () => {
-    expect(parseBotProfilePatch({ mascotBody: "cloud" }, true)).toEqual({ ok: true, patch: { mascotBody: "cloud" } });
+    expect(parseBotProfilePatch({ mascotBody: "puff" }, true)).toEqual({ ok: true, patch: { mascotBody: "puff" } });
   });
 
   it("maps an unknown body to a readable message", () => {
     expect(parseBotProfilePatch({ mascotBody: "hexagram" } as never, true)).toEqual({
       ok: false,
       error:
-        "mascotBody must be circle, squircle, pill, hex, star, heart, drop, moon, cloud, pixel, " +
+        "mascotBody must be kit, pip, hop, bruin, boo, mochi, loaf, cheep, ribbit, goo, puff, sprout, drip, hearty, starry, hoot, boxo, egg, wisp, tofu, " +
         "pumpkin, ghost, witch, bat, cat, skull, monster, mummy, vampire, or spider",
     });
   });

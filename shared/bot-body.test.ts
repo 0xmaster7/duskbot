@@ -15,27 +15,28 @@ describe("bot bodies", () => {
 
   it("accepts every id an older version saved and saves the body it draws as now", () => {
     for (const id of [...LEGACY_BODY_IDS, ...MASCOT_BODY_IDS]) expect(DUSK_BODY_IDS).toContain(botBodySchema.parse(id));
-    expect(botBodySchema.parse("cursor")).toBe("squircle");
-    expect(botBodySchema.parse("clover")).toBe("cloud");
+    expect(botBodySchema.parse("cursor")).toBe("kit");
+    expect(botBodySchema.parse("clover")).toBe("puff");
     expect(botBodySchema.safeParse("hexagram").success).toBe(false);
   });
 
   it("reads an older id as its body now, and anything unknown as the default", () => {
     expect(botBodyId("pumpkin")).toBe("pumpkin");
-    expect(botBodyId("star")).toBe("star");
-    expect(botBodyId("teardrop")).toBe("drop");
+    expect(botBodyId("starry")).toBe("starry");
+    expect(botBodyId("star")).toBe("starry");
+    expect(botBodyId("teardrop")).toBe("drip");
     expect(botBodyId("hexagram")).toBe(DEFAULT_BOT_BODY);
     expect(botBodyId("constructor")).toBe(DEFAULT_BOT_BODY);
     expect(botBodyId(undefined)).toBe(DEFAULT_BOT_BODY);
-    expect(bodyShapeFor("gem")).toBe("hex");
+    expect(bodyShapeFor("gem")).toBe("boxo");
   });
 
   it("marks a picker option worn when the stored body draws as it", () => {
-    expect(wearsBody("cursor", "squircle")).toBe(true);
-    expect(wearsBody("cursor", "circle")).toBe(false);
+    expect(wearsBody("cursor", "kit")).toBe(true);
+    expect(wearsBody("cursor", "pip")).toBe(false);
     expect(wearsBody(undefined, DEFAULT_BOT_BODY)).toBe(true);
     expect(wearsBody("pumpkin", "pumpkin")).toBe(true);
-    expect(wearsBody("pumpkin", "squircle")).toBe(false);
+    expect(wearsBody("pumpkin", "kit")).toBe(false);
     expect(wearsBody("cursor", "pumpkin")).toBe(false);
   });
 
