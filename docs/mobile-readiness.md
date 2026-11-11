@@ -327,8 +327,11 @@ Grok's, and the Grok Bot logo in the import dialog. The skin ids are visible in 
 | Release build stops at the gate | same with `-configuration Release` | BUILD FAILED at "Release gate", 53 findings (intended) |
 | Typecheck | `pnpm typecheck`, `pnpm --filter @duskbot/mobile typecheck` | pass |
 | Lint | `pnpm lint` | 0 warnings in files this branch touched; the command still exits 1 on 6 warnings that are on `main` in files this branch did not touch (`src/components/chat-bubble.ts`, `server/first-message-job.ts`, `apps/dashboard/server/pages/*`, `apps/cloud-service/scripts/lifecycle-sim.ts`) |
-| Phone unit tests | `pnpm exec vitest run src/mobile shared/mobile-link.test.ts src/lib/chat-in-front.test.ts scripts/testing/mobile-release-gate.test.ts` | see the branch's final message for the count |
-| Whole test suite | `pnpm exec vitest run` | see the branch's final message |
+| Tests for everything this branch changed | `pnpm exec vitest run src/mobile shared/mobile-link.test.ts src/lib/chat-in-front.test.ts src/lib/random-uuid.test.ts scripts/testing/mobile-release-gate.test.ts scripts/ci-workflow.test.ts src/components/account-gate` | 22 files, 295 tests, all pass |
+| Renderer, shared, Electron, companion and link service tests | `pnpm exec vitest run src shared electron apps/companion apps/link-service` | 937 of 952 files pass (9676 tests pass, 24 fail). The same 24 tests in the same 15 files fail on the base commit `b40320d40` (run there from an export of it), so none is new; the `random-uuid` guard that was red on the base is green here |
+| Electron node tests | `pnpm test:electron`, `pnpm check:electron` | 1662 tests, 0 fail; 396 modules syntax-checked |
+| Whole `pnpm test` | `pnpm exec vitest run && pnpm broker:test && pnpm test:electron && pnpm test:packaged-server` | **not completed.** The full vitest run (2398 files, with the slow `server/*.e2e` files) was stopped after about an hour on a busy machine. This branch changes nothing under `server/`. Of the server files that did run: `server/drivers/agents-proxy.test.ts` fails 3 of 160 (also on the base), `server/index.test.ts` fails 3 of 307 when run alone (165 under load). `broker:test` and `test:packaged-server` were not run |
+| Android debug build | `cd apps/mobile/android && ./gradlew assembleDebug` | BUILD SUCCESSFUL |
 | Two real clients | `node --experimental-strip-types scripts/mobile-two-client-e2e.ts` | 33/33 |
 | Relay and companion routes | `node --experimental-strip-types scripts/mobile-sync-e2e.ts` | 34/34 |
 | Screens at phone size | headless Chrome, 390 x 844 and the store sizes | demo home, chat, room, create, search, notifications, settings, sign-in, pairing; light, dark, 135 percent text |
