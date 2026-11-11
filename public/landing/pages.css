@@ -126,7 +126,7 @@
 .m-steps span { display: flex; align-items: center; gap: 9px; min-height: 26px; color: var(--m-2); }
 .m-steps span::before { content: ""; width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(28, 28, 28, 0.2); }
 .m-steps .done { color: #1c1c1c; }
-.m-steps .done::before { background: #007a44 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M4 7.2 6.2 9.400 10 5' fill='none' stroke='%23fff' stroke-width='1.600' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain; box-shadow: none; }
+.m-steps .done::before { background: #007a44 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 24 24'%3E%3Cpath fill='%23fff' fill-rule='evenodd' d='M13.488 3.43a.75.75 0 0 1 .081 1.058l-6 7a.75.75 0 0 1-1.1.042l-3.5-3.5A.75.75 0 0 1 4.03 6.97l2.928 2.927 5.473-6.385a.75.75 0 0 1 1.057-.081'/%3E%3C/svg%3E") center / contain; box-shadow: none; }
 .m-steps .now::before { box-shadow: inset 0 0 0 1.5px #126fd4; animation: pulse 1.6s ease-in-out infinite; }
 .m-code { display: flex; justify-content: center; gap: 6px; padding: 6px 0 2px; }
 .m-code i { display: grid; place-items: center; width: 38px; height: 46px; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--m-line); font: 500 20px/1 var(--mono); font-style: normal; }

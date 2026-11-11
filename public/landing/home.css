@@ -333,7 +333,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .wa-panel .wa-card { flex: none; display: flex; align-items: center; gap: 8px; min-height: 60px; padding: 10px 12px; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px var(--wa-line); }
 .wa-card > span { flex: 1; min-width: 0; }
 .wa-card small { display: block; font-size: inherit; color: var(--wa-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wa-i { display: block; flex: none; width: 15px; height: 15px; margin: 0 4.5px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; color: var(--wa-2); }
+.wa-i { display: block; flex: none; width: 15px; height: 15px; margin: 0 4.5px; color: var(--wa-2); }
 .wa-awake { flex: none; display: flex; align-items: center; gap: 6px; padding-right: 4px; font-style: normal; font-size: 12px; color: var(--wa-2); }
 .wa-awake::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
 /* only the cloud looks wide awake: the mac has dozed off and the server is still being set up */

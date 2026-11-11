@@ -37,7 +37,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 .menu { display: none; }
 .menu summary { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--wash); cursor: pointer; list-style: none; }
 .menu summary::-webkit-details-marker { display: none; }
-.menu summary svg { grid-area: 1 / 1; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; transition: opacity 0.16s ease, rotate 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.menu summary svg { grid-area: 1 / 1; width: 20px; height: 20px; transition: opacity 0.16s ease, rotate 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
 .menu summary svg + svg, .menu[open] summary svg:first-of-type { opacity: 0; rotate: -45deg; }
 .menu[open] summary svg + svg { opacity: 1; rotate: 0deg; }
 .menu > nav { position: absolute; left: 12px; right: 12px; top: calc(100% - 4px); display: grid; gap: 2px; padding: 8px; border-radius: 22px; background: #fff; box-shadow: 0 0 0 1px var(--line), 0 18px 40px -16px rgba(0, 0, 0, 0.25); transform-origin: 100% 0; animation: menu-in 0.18s cubic-bezier(0.23, 1, 0.32, 1); }
@@ -57,7 +57,7 @@ h3 { font-size: 1rem; font-weight: 550; margin: 24px 0 8px; }
 .button:hover, .btn:hover { background: #e4e4e1; }
 .button.primary, .btn.dark { background: var(--ink); color: #fff; }
 .button.primary:hover, .btn.dark:hover { background: #2a2a30; }
-.btn.next::after, .btn.down::after { content: ""; width: 16px; height: 16px; margin-left: 10px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.500 8h11M9 3.500 13.500 8 9 12.500' fill='none' stroke='%23000' stroke-width='1.500' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.500 8h11M9 3.500 13.500 8 9 12.500' fill='none' stroke='%23000' stroke-width='1.500' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+.btn.next::after, .btn.down::after { content: ""; width: 16px; height: 16px; margin-left: 10px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.25 8A.75.75 0 0 1 2 7.25h10.19L9.47 4.53a.75.75 0 0 1 1.06-1.06l4 4a.75.75 0 0 1 0 1.06l-4 4a.75.75 0 1 1-1.06-1.06l2.72-2.72H2A.75.75 0 0 1 1.25 8'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.25 8A.75.75 0 0 1 2 7.25h10.19L9.47 4.53a.75.75 0 0 1 1.06-1.06l4 4a.75.75 0 0 1 0 1.06l-4 4a.75.75 0 1 1-1.06-1.06l2.72-2.72H2A.75.75 0 0 1 1.25 8'/%3E%3C/svg%3E") center / contain no-repeat; }
 .btn.down::after { rotate: 90deg; }
 .downloads { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
 .downloads > div { background: var(--wash); border-radius: 20px; padding: 20px; }

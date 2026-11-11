@@ -111,21 +111,25 @@ const withChips = (html) => html.replace(/\{\{logo (\w+)( eager)?\}\}/g, (_, nam
 // {{include name}} drops in pages/partials/name.html, so a big piece of a page can live in its own file
 const withParts = (html) => html.replace(/\{\{include ([\w-]+)\}\}/g, (_, name) => { const file = path.join(here, 'pages', 'partials', `${name}.html`); return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''; });
 const has = (file) => fs.existsSync(path.join(site, file));
-// {{i name}} is a lucide icon (paths copied from lucide-static, one stroke width for all)
-const ICONS = {
-  check: '<path d="M20 6 9 17l-5-5"/>',
-  minus: '<path d="M5 12h14"/>',
-  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
-  'arrow-right': '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
-  'chevron-down': '<path d="m6 9 6 6 6-6"/>',
-  pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
-  'hard-drive': '<path d="M10 16h.01"/><path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M21.946 12.013H2.054"/><path d="M6 16h.01"/>',
-  folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
-  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
+// {{i name}} is a Gravity UI icon (MIT, icons/gravity, LICENSE beside them) or one of ours drawn in its style
+// (icons/drawn); {{i name cls}} adds a class. Site names stay as they were, each pointing at its drawing.
+const ICON_FILES = {
+  check: 'gravity/check', minus: 'gravity/minus', plus: 'gravity/plus', 'arrow-right': 'gravity/arrow-right', 'arrow-left': 'gravity/arrow-left',
+  'chevron-down': 'gravity/chevron-down', 'chevron-right': 'gravity/chevron-right', pencil: 'gravity/pencil', 'hard-drive': 'gravity/hard-drive',
+  folder: 'gravity/folder', cloud: 'gravity/cloud', 'book-open': 'gravity/book-open', 'circle-question-mark': 'gravity/circle-question',
+  clock: 'gravity/clock', copy: 'gravity/copy', 'corner-down-left': 'drawn/corner-down-left', 'credit-card': 'gravity/credit-card',
+  download: 'gravity/arrow-down-to-line', 'external-link': 'gravity/arrow-up-right-from-square', 'file-text': 'gravity/file-text',
+  globe: 'gravity/globe', hand: 'gravity/hand', house: 'gravity/house', info: 'gravity/circle-info', 'key-round': 'gravity/key',
+  keyboard: 'gravity/keyboard', 'life-buoy': 'gravity/life-ring', lock: 'gravity/lock', mail: 'gravity/envelope', map: 'drawn/map',
+  menu: 'gravity/bars', 'message-circle': 'gravity/comment', monitor: 'gravity/display', 'mouse-pointer-2': 'drawn/mouse-pointer',
+  palette: 'gravity/palette', plug: 'gravity/plug-connection', rocket: 'gravity/rocket', search: 'gravity/magnifier', server: 'gravity/server',
+  shield: 'gravity/shield', smartphone: 'gravity/smartphone', 'triangle-alert': 'gravity/triangle-exclamation', users: 'gravity/persons',
+  wrench: 'gravity/wrench', x: 'gravity/xmark',
 };
-// the rest of the set lives in icons.json (same source, lucide 0.539)
-Object.assign(ICONS, JSON.parse(fs.readFileSync(path.join(here, 'icons.json'), 'utf8')));
-const icon = (name) => { if (!ICONS[name]) throw new Error(`no icon named ${name}`); return `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`; };
+// a few gravity files clip to their own 16 box through id="a"; the clip changes nothing and the id repeats on a page
+const ICONS = Object.fromEntries(Object.entries(ICON_FILES).map(([name, file]) => [name, fs.readFileSync(path.join(here, 'icons', `${file}.svg`), 'utf8')
+  .replace(/^[^]*?<svg[^>]*>|<\/svg>\s*$/g, '').replace(/<defs>[^]*?<\/defs>/g, '').replace(/<g clip-path="url\(#a\)">([^]*?)<\/g>/g, '$1')]));
+const icon = (name, cls = '') => { if (!ICONS[name]) throw new Error(`no icon named ${name}`); return `<svg class="i${cls ? ' ' + cls : ''}" viewBox="-0.5 -0.5 17 17" fill="none" aria-hidden="true">${ICONS[name]}</svg>`; };
 // {{sea}} is the bots in the last picture, drawn in the picture's own 1600 by 1067 space so they sit on its water at any
 // width, each half under the waterline
 function sea() {
@@ -144,7 +148,7 @@ function sea() {
 const os = (name) => fs.readFileSync(path.join(site, 'art', 'os', `${name}.svg`), 'utf8').replace(/<title>.*?<\/title>/, '').replace('<svg ', '<svg class="os" aria-hidden="true" fill="currentColor" ').replace(/ role="img"| xmlns="[^"]*"/g, '').trim();
 const withOs = (html) => html.replace(/\{\{os (\w+)\}\}/g, (_, name) => os(name));
 const withBots = (html) => (withOs(withChips(withParts(html))).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()))
-  .replace(/\{\{i ([\w-]+)\}\}/g, (_, name) => icon(name)).replace(/\{\{sea\}\}/g, sea));
+  .replace(/\{\{i ([\w-]+)(?: ([\w-]+))?\}\}/g, (_, name, cls) => icon(name, cls)).replace(/\{\{sea\}\}/g, sea));
 
 // stamps a file's content hash on its url, so an edit is seen at once despite the cache header
 // a file that is not there yet is left unstamped (and named in the log) rather than failing the whole build
