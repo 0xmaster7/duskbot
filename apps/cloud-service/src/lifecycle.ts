@@ -1,5 +1,5 @@
 // a managed My Cloud from paid to deleted: provision, sleep when idle, wake for a person, a routine or Slack, back up,
-// come back from a lost machine, keep a plan's data 45 days after it ended, and delete only through the verdict in
+// come back from a lost machine, keep a plan's data 30 days after it ended, and delete only through the verdict in
 // retention.ts. One step per reconcile, each safe to repeat after a crash.
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";

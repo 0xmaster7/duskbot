@@ -57,10 +57,19 @@ const prose = (value: string) => esc(value).replace(/\*\*(.+?)\*\*/g, "<b style=
 const plain = (value: string) => value.replace(/\*\*(.+?)\*\*/g, "$1");
 const img = (cfg: EmailConfig, name: string) => /^https?:\/\//.test(name) ? name : `${cfg.assets}/${name}`;
 
+const cut = (cls: string, colour: string, width?: number) =>
+  `<td${width ? ` width="${width}"` : ""} class="${cls}" bgcolor="${colour}" height="5" style="height:5px;${width ? `width:${width}px;` : ""}background:${colour};font-size:0;line-height:0;mso-line-height-rule:exactly">&nbsp;</td>`;
+/** the waitlist's pixel corner: a 5px block cut from each corner, with a tinted underside along the bottom */
+function stepped(inner: string, o: { fill: string; fillCls: string; under: string; underCls?: string; pad: string; align?: "center" | "left"; margin?: string; width?: "100%" | "auto" }) {
+  return `<table role="presentation" ${o.width === "auto" ? "" : 'width="100%" '}cellpadding="0" cellspacing="0" border="0" style="margin:${o.margin ?? "0"}">
+<tr>${cut("card", C.card, 5)}${cut(o.fillCls, o.fill)}${cut("card", C.card, 5)}</tr>
+<tr><td colspan="3" class="${o.fillCls}" bgcolor="${o.fill}" align="${o.align ?? "left"}" style="background:${o.fill};padding:${o.pad}">${inner}</td></tr>
+<tr>${cut("card", C.card, 5)}${cut(o.underCls ?? o.fillCls, o.under)}${cut("card", C.card, 5)}</tr>
+</table>`;
+}
 function button(label: string, href: string) {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0"><tr>
-<td class="btn" bgcolor="${C.ink}" style="border-radius:999px;background:${C.ink}"><a class="btn-a" href="${esc(href)}" target="_blank" style="display:inline-block;padding:14px 26px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:600;letter-spacing:-0.01em;color:#fdfdfd;text-decoration:none;border-radius:999px">${esc(label)}</a></td>
-</tr></table>`;
+  return stepped(`<a class="btn-a" href="${esc(href)}" target="_blank" style="display:block;padding:9px 26px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:600;letter-spacing:-0.01em;color:#fdfdfd;text-decoration:none;text-align:center">${esc(label)}</a>`,
+    { fill: C.ink, fillCls: "btn", under: C.ink, underCls: "btn", pad: "0", width: "auto" });
 }
 
 const tones: Record<Tone, { bg: string; edge: string; cls: string }> = {
@@ -76,14 +85,15 @@ function blockHtml(cfg: EmailConfig, block: Block): string {
     case "p": return block.small ? p(prose(block.text), `font-size:14px;line-height:22px;color:${C.muted}`) : p(prose(block.text));
     case "button": return `<div style="margin:6px 0 26px">${button(block.label, block.href)}</div>`;
     case "link": return p(`${block.before ? `${esc(block.before)} ` : ""}<a class="ink" href="${esc(block.href)}" target="_blank" style="color:${C.ink};font-weight:600;text-decoration:underline;text-underline-offset:3px">${esc(block.label)}</a>`, "font-size:15px;line-height:24px");
-    case "code": return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 22px"><tr>
-<td class="box" align="center" bgcolor="${C.box}" style="background:${C.box};border-bottom:5px solid ${C.lemon};padding:22px 12px 20px">
-<div class="ink" style="font-family:${MONO};font-size:38px;line-height:44px;font-weight:600;letter-spacing:0.14em;color:${C.ink}">${esc(block.code)}</div>
-</td></tr></table>`;
-    case "facts": return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="box" bgcolor="${C.box}" style="margin:4px 0 24px;background:${C.box};border-bottom:5px solid ${C.sky}">
-${block.rows.map(([label, value, mark], i) => `<tr><td class="line" style="padding:13px 18px;${i ? `border-top:1px solid ${C.line};` : ""}font-family:${MONO};font-size:12.5px;line-height:18px;color:${C.muted};white-space:nowrap" width="34%">${esc(label)}</td>
-<td class="ink line" style="padding:13px 18px 13px 0;${i ? `border-top:1px solid ${C.line};` : ""}font-family:${SANS};font-size:15px;line-height:21px;font-weight:500;color:${C.ink}">${mark ? `<span style="color:${markColor[mark]};font-size:13px">&#9679;</span>&nbsp;` : ""}${esc(value)}</td></tr>`).join("\n")}
-</table>`;
+    // one string, so copy, paste and one-tap code fill see the whole code; the gap after the fourth digit is padding, not a character
+    case "code": return stepped(`<div class="muted" style="font-family:${MONO};font-size:12.5px;line-height:16px;letter-spacing:0.02em;color:${C.muted}">your code</div>
+<div class="ink" style="padding-top:10px;font-family:${MONO};font-size:40px;line-height:48px;font-weight:600;letter-spacing:0.14em;color:${C.ink};-webkit-user-select:all;user-select:all">${
+      block.code.length === 8 ? `<span style="padding-right:12px">${esc(block.code.slice(0, 4))}</span>${esc(block.code.slice(4))}` : esc(block.code)}</div>`,
+      { fill: C.box, fillCls: "box", under: C.lemon, underCls: "", pad: "18px 12px 18px", align: "center", margin: "4px 0 22px" });
+    case "facts": return stepped(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+${block.rows.map(([label, value, mark], i) => `<tr><td class="line" style="padding:11px 0;${i ? `border-top:1px dashed ${C.line};` : ""}font-family:${MONO};font-size:12.5px;line-height:18px;color:${C.muted};white-space:nowrap">${esc(label)}</td>
+<td align="right" class="ink line" style="padding:11px 0 11px 12px;${i ? `border-top:1px dashed ${C.line};` : ""}font-family:${SANS};font-size:15px;line-height:21px;font-weight:500;color:${C.ink}">${mark ? `<span style="color:${markColor[mark]};font-size:13px">&#9679;</span>&nbsp;` : ""}${esc(value)}</td></tr>`).join("\n")}
+</table>`, { fill: C.box, fillCls: "box", under: C.sky, underCls: "", pad: "6px 18px", margin: "4px 0 24px" });
     case "steps": return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 14px">
 ${block.items.map((item, i) => `<tr><td valign="top" width="40" style="padding:0 0 16px"><div class="step" style="width:28px;height:28px;line-height:28px;text-align:center;background:${C.lime};font-family:${MONO};font-size:13px;font-weight:600;color:${C.ink}">${i + 1}</div></td>
 <td valign="top" style="padding:3px 0 16px"><div class="ink" style="font-family:${SANS};font-size:16px;line-height:22px;font-weight:600;color:${C.ink}">${esc(item.title)}</div>
@@ -99,11 +109,10 @@ ${block.items.map(item => `<tr><td valign="top" width="88" style="padding:0 0 20
 </table>`;
     case "note": {
       const tone = tones[block.tone ?? "info"];
-      return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px"><tr>
-<td class="${tone.cls}" bgcolor="${tone.bg}" style="background:${tone.bg};border-bottom:4px solid ${tone.edge};padding:14px 18px;font-family:${SANS};font-size:14.5px;line-height:22px;color:${C.ink}"><span class="ink">${prose(block.text)}</span></td>
-</tr></table>`;
+      return stepped(`<span class="ink" style="font-family:${SANS};font-size:14.5px;line-height:22px;color:${C.ink}">${prose(block.text)}</span>`,
+        { fill: tone.bg, fillCls: tone.cls, under: tone.edge, underCls: "", pad: "13px 18px", margin: "0 0 22px" });
     }
-    case "cloud": return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.night}" style="margin:8px 0 30px;background:${C.night};border-bottom:5px solid ${C.lime}">
+    case "cloud": return stepped(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.night}" style="background:${C.night}">
 <tr><td style="padding:0"><img src="${esc(img(cfg, block.image))}" width="520" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:520px;height:auto;border:0"></td></tr>
 <tr><td class="cloud-pad" style="padding:22px 26px 26px">
 <div style="font-family:${MONO};font-size:12.5px;line-height:18px;letter-spacing:0.04em;color:${C.lime}">${esc(block.eyebrow)}</div>
@@ -113,10 +122,10 @@ ${block.items.map(item => `<tr><td valign="top" width="88" style="padding:0 0 20
 ${block.points.map(point => `<tr><td valign="top" width="20" style="padding:8px 0 0"><div style="width:7px;height:7px;background:${C.lime}"></div></td><td style="font-family:${SANS};font-size:15px;line-height:24px;color:#fdfdfd;padding:0 0 4px">${esc(point)}</td></tr>`).join("\n")}
 </table>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 0"><tr>
-<td bgcolor="${C.lime}" style="border-radius:999px;background:${C.lime}"><a href="${esc(block.cta.href)}" target="_blank" style="display:inline-block;padding:13px 24px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:600;letter-spacing:-0.01em;color:${C.ink};text-decoration:none;border-radius:999px">${esc(block.cta.label)}</a></td>
+<td bgcolor="${C.lime}" style="background:${C.lime}"><a href="${esc(block.cta.href)}" target="_blank" style="display:inline-block;padding:13px 24px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:600;letter-spacing:-0.01em;color:${C.ink};text-decoration:none">${esc(block.cta.label)}</a></td>
 <td style="padding-left:16px;font-family:${SANS};font-size:15px;line-height:20px;color:#fdfdfd"><b style="font-weight:600">${esc(block.price)}</b><br><span style="font-size:13px;color:${C.nightText}">${esc(block.fine)}</span></td>
 </tr></table>
-</td></tr></table>`;
+</td></tr></table>`, { fill: C.night, fillCls: "", under: C.lime, underCls: "", pad: "0", margin: "8px 0 30px" });
     case "feature": return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px">
 ${block.image ? `<tr><td style="padding:0 0 14px"><img src="${esc(img(cfg, block.image))}" width="520" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:520px;height:auto;border:0"></td></tr>` : ""}
 <tr><td><div class="ink" style="font-family:${SANS};font-size:18px;line-height:25px;font-weight:600;letter-spacing:-0.015em;color:${C.ink}">${esc(block.title)}</div>
@@ -153,6 +162,7 @@ const darkCss = `
   .box { background: #1c1f27 !important; }
   .line { border-color: #2a2d38 !important; }
   .btn { background: #f2f3f6 !important; }
+  td.card { background: #15171d !important; }
   .btn-a { color: #15171d !important; }
   .dot { background: #f2f3f6 !important; }
   .note-info { background: #1a2430 !important; }

@@ -48,7 +48,7 @@ Refunds are governed by [refund policy], subject to your mandatory legal rights.
 
 Dusk Cloud is a paid hosted, always-on computer for each customer. It runs on infrastructure from InstaBox. Your bots, chats and files live on that computer. Availability is best effort. There is no service level agreement unless we agree one with you separately. Interruptions may affect bot activity, access and connected tools.
 
-Cloud desktop backups are encrypted with a key held by the account service. After your plan ends, your desktop is retained and then deleted under [retention period, for example 7 days after deletion request; 30 days after a plan ends]. Keep copies of information you need before that period expires. Do not rely on continued access after deletion.
+Cloud desktop backups are encrypted with a key held by the account service. After your plan ends, your desktop is retained for 30 days and then deleted; we email you 7 days before. If you ask to delete it yourself, it is deleted 7 days after you confirm. Keep copies of information you need before that period expires. Do not rely on continued access after deletion.
 
 If you enable Wake for Slack, the account service holds your bot's Slack app-level token, sealed at rest, while the desktop sleeps. It also holds Slack events addressed to your bot, sealed to the desktop's key, for at most 24 hours. It never reads or logs event text. See the [privacy policy](privacy.md) for details.
 

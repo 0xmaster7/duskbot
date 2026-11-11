@@ -1,4 +1,4 @@
-// Every way in that could delete a managed cloud, tried: none deletes anything before 45 days of no plan and a verified
+// Every way in that could delete a managed cloud, tried: none deletes anything before 30 days of no plan and a verified
 // final backup, and the owner's own request deletes only after an emailed link and a 7-day undo window.
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -88,7 +88,7 @@ async function fixture() {
   return { api, billing, mailer, page, login, buy: async (cookie: string) => { const bought = await buy(cookie); clouds.push(bought.cloud); return bought; }, settle, origin, csrf, setIdle: (v: boolean) => { idle = v; }, advance: (ms: number) => { time += ms; }, now };
 }
 
-it("no route, webhook, forged request or account action deletes a managed cloud inside 45 days", async () => {
+it("no route, webhook, forged request or account action deletes a managed cloud inside 30 days", async () => {
   const f = await fixture();
   const owner = await f.login("owner@example.test"), other = await f.login("other@example.test");
   const { cloud, subscriptionId } = await f.buy(owner);
@@ -115,14 +115,14 @@ it("no route, webhook, forged request or account action deletes a managed cloud 
   f.billing.clouds.end(id, f.now()); f.billing.clouds.scheduleDestroy(id, f.now());
   await f.settle(10);
   expect(cloud.status).toBe("stopped");
-  // retention runs from the latest the plan was paid to, never shorter than 45 days from its end
+  // retention runs from the latest the plan was paid to, never shorter than 30 days from its end
   const endedAt = f.now(), deleteAt = f.billing.clouds.view(cloud).destroyAt!;
-  expect(deleteAt - endedAt).toBeGreaterThanOrEqual(45 * DAY_MS);
+  expect(deleteAt - endedAt).toBeGreaterThanOrEqual(30 * DAY_MS);
   while (f.now() + DAY_MS < deleteAt) { f.advance(DAY_MS); await f.settle(2); }
   expect(f.api.deletes()).toHaveLength(0);
   expect(cloud.status).toBe("stopped");
   const kinds = f.mailer.outbox.filter(m => m.to === "owner@example.test" && !/code/i.test(m.subject)).map(m => m.subject);
-  expect(kinds.join("|")).toMatch(/paused and kept.*30 days.*7 days.*1 day/);
+  expect(kinds.filter(subject => / will be deleted in /.test(subject))).toEqual([expect.stringMatching(/ will be deleted in 7 days$/)]);
   // past it, with a verified final backup: only now
   f.advance(deleteAt - f.now() + 60_000); await f.settle(6);
   expect(f.api.deletes()).toHaveLength(1);
@@ -161,10 +161,10 @@ it("an owner's delete waits for a fresh sign-in, the emailed link and seven days
 });
 
 it("the verdict refuses a short retention, a paid plan, an unknown plan, a hold and a missing final backup", () => {
-  const base = { now: 100 * DAY_MS, retentionDays: 45, entitlement: { active: false, until: 10 * DAY_MS }, finalBackup: { at: 9 * DAY_MS, verifiedAt: 9 * DAY_MS }, lastStopAt: 9 * DAY_MS, ownerRequest: null, hold: false };
-  expect(deletionVerdict(base)).toMatchObject({ delete: true, reason: "retention_over", earliestAt: 55 * DAY_MS });
-  expect(() => deletionVerdict({ ...base, retentionDays: 44 })).toThrow("minimum");
-  expect(deletionVerdict({ ...base, now: 55 * DAY_MS - 1 })).toMatchObject({ delete: false, reason: "retention" });
+  const base = { now: 100 * DAY_MS, retentionDays: 30, entitlement: { active: false, until: 10 * DAY_MS }, finalBackup: { at: 9 * DAY_MS, verifiedAt: 9 * DAY_MS }, lastStopAt: 9 * DAY_MS, ownerRequest: null, hold: false };
+  expect(deletionVerdict(base)).toMatchObject({ delete: true, reason: "retention_over", earliestAt: 40 * DAY_MS });
+  expect(() => deletionVerdict({ ...base, retentionDays: 29 })).toThrow("minimum");
+  expect(deletionVerdict({ ...base, now: 40 * DAY_MS - 1 })).toMatchObject({ delete: false, reason: "retention" });
   expect(deletionVerdict({ ...base, entitlement: { active: true, until: null } })).toMatchObject({ delete: false, reason: "subscribed" });
   expect(deletionVerdict({ ...base, entitlement: { active: false, until: null } })).toMatchObject({ delete: false, reason: "no_billing_record" });
   expect(deletionVerdict({ ...base, hold: true })).toMatchObject({ delete: false, reason: "hold" });

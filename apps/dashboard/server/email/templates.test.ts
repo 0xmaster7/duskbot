@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { samples } from "./samples.ts";
-import { EMAIL_ASSETS, emailConfig, promoEmail } from "./templates.ts";
+import { EMAIL_ASSETS, cloudNoticeEmail, emailConfig, promoEmail } from "./templates.ts";
 
 const cfg = emailConfig({}, { publicUrl: "https://preview.dusk.bot", pageBase: "/app" });
 const all = samples(cfg);
@@ -45,19 +45,31 @@ describe("account emails", () => {
     for (const fact of ["$20.00", "Shared S", "next charge", "december 11, 2026", "inv_7Qm2xK9"]) { expect(receipt.text).toContain(fact); expect(receipt.html).toContain(fact); }
   });
 
-  it("puts the code in the subject, body and text, and escapes data", () => {
+  it("keeps the code one copyable string, and in the subject and preheader for notifications", () => {
     const code = all.find(sample => sample.id === "01-code")!.email;
     expect(code.subject).toBe("48213097 is your dusk bot code");
     expect(code.text).toContain("    48213097");
+    const shown = /user-select:all">([\s\S]*?)<\/div>/.exec(code.html)![1]!;
+    expect(shown.replace(/<[^>]+>/g, "")).toBe("48213097");
+    expect(code.html).toContain("your dusk bot code is 48213097.");
+    expect(all.find(sample => sample.id === "01b-recovery")!.email.subject).toBe("48213097 is your dusk bot code");
     const welcome = all.find(sample => sample.id === "02-welcome")!.email;
     expect(welcome.text).toContain("from $20/mo");
     expect(welcome.html).toContain("https://preview.dusk.bot/app/cloud");
-    const deleted = samples(cfg).find(sample => sample.id === "08-account-deleted")!;
+    const deleted = samples(cfg).find(sample => sample.id === "09-account-deleted")!;
     expect(deleted.email.html).not.toContain("<script");
   });
 
   it("refuses a promo without an unsubscribe link", () => {
     expect(() => promoEmail(cfg, { subject: "x", preheader: "x", eyebrow: "new", title: "x", intro: "x", features: [], cta: { label: "x", href: "https://dusk.bot/" }, unsubscribe: "" })).toThrow();
+  });
+
+  it("folds the cloud notices into the emails that matter, and keeps quiet for the rest", () => {
+    for (const kind of ["ended", "delete_cancelled", "resumed"] as const) expect(cloudNoticeEmail(cfg, { kind, name: "night shift", at: 0 })).toBeNull();
+    expect(cloudNoticeEmail(cfg, { kind: "left_7", name: "night shift", at: Date.UTC(2026, 0, 8) })!.subject).toBe("night shift will be deleted in 7 days");
+    expect(cloudNoticeEmail(cfg, { kind: "delete_requested", name: "night shift", at: null, link: "https://preview.dusk.bot/app/clouds/c/delete#t" })!.html).toContain('href="https://preview.dusk.bot/app/clouds/c/delete#t"');
+    expect(cloudNoticeEmail(cfg, { kind: "deleted", name: "night shift", at: 0 })!.subject).toBe("night shift was deleted");
+    expect(cloudNoticeEmail(cfg, { kind: "recovered", name: "night shift", at: null })!.subject).toBe("night shift is back");
   });
 
   it("reads its asset base and site from the environment", () => {

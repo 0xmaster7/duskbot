@@ -126,7 +126,7 @@ Same: the machine gets only a short-lived claim, never a secret; hosted mode is 
 a wake ahead of each routine; backoff on provider limits. Different: our releases are signed and checked by the machine
 (theirs are pinned by checksum only); the user-facing name is ours (they need none because clients reach machines
 through their relay); the app and the home verify entitlements offline with pinned keys and an explicit clock
-tolerance; machine labels carry no email; backups live off the provider with 45-day retention; a pause keeps the home's
+tolerance; machine labels carry no email; backups live off the provider with 30-day retention; a pause keeps the home's
 memory, so a wake takes seconds.
 
 ## Lifecycle hardening

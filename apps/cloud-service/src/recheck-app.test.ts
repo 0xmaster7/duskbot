@@ -97,7 +97,7 @@ type Fx = Awaited<ReturnType<typeof fixture>>;
 async function noDeleteUntil(f: Fx, until: number) { while (f.now() + DAY_MS < until) { f.advance(DAY_MS); await f.settle(1); expect(f.api.deletes()).toHaveLength(0); } }
 
 for (const destroyNow of [false, true]) {
-  it(`account closed with a paid plan (destroyDesktopsNow=${destroyNow}): stopped, 45 days kept from the right date, then deleted`, async () => {
+  it(`account closed with a paid plan (destroyDesktopsNow=${destroyNow}): stopped, 30 days kept from the right date, then deleted`, async () => {
     const f = await fixture();
     const owner = await f.login("owner@example.test");
     const { cloud, subscriptionId } = await f.buy(owner);
@@ -106,7 +106,7 @@ for (const destroyNow of [false, true]) {
     expect((await f.page("/v1/account/delete", { email: "owner@example.test", cancelBilling: true, destroyDesktopsNow: destroyNow }, owner)).status).toBe(200);
     await f.settle(4);
     if (destroyNow) expect(cloud.status).toBe("stopped");
-    const expected = (destroyNow ? closedAt : periodEnd) + 45 * DAY_MS;
+    const expected = (destroyNow ? closedAt : periodEnd) + 30 * DAY_MS;
     if (!destroyNow) { f.advance(periodEnd - f.now() + 60_000); await f.settle(6); expect(cloud.status).toBe("stopped"); }
     // Dodo's late expiry for a closed account changes nothing
     await deliver(f, f.billing.fake!.expire(subscriptionId)); await f.settle(4);
@@ -132,7 +132,7 @@ it("cancel at period end with Dodo silent afterwards: stopped at the period end,
   const first = f.billing.clouds.view(cloud).destroyAt!;
   const st = f.billing.service.subscriptions(cloud.accountId)[0]!;
   console.info(`[debug] periodEnd=${periodEnd} subNow=${JSON.stringify({ status: st.status, cpe: st.currentPeriodEnd, cancel: st.cancelAtPeriodEnd })} cloud=${JSON.stringify({ ended: cloud.ended, endedAt: cloud.endedAt, endsAt: cloud.endsAt, destroyAt: cloud.destroyAt, bEnded: cloud.managed!.endedAt })} destroyAt=${f.billing.clouds.view(cloud).destroyAt} first-periodEnd(d)=${(first - periodEnd) / DAY_MS}`);
-  expect(first).toBe(periodEnd + 45 * DAY_MS);
+  expect(first).toBe(periodEnd + 30 * DAY_MS);
   // replays and a late expiry days later
   f.advance(3 * DAY_MS);
   await deliver(f, renewal); await deliver(f, f.billing.fake!.expire(subscriptionId)); await deliver(f, f.billing.fake!.expire(subscriptionId));

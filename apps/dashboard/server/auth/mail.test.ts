@@ -10,7 +10,7 @@ describe("account mail", () => {
     expect(mailer.outbox).toEqual([message]);
     expect(message.subject).toBe("01234567 is your dusk bot code");
     expect(message.text).toContain("01234567"); expect(message.html).toContain("01234567");
-    expect(message.text).toContain("it works for 10 minutes."); expect(message.html).toContain("it works for 10 minutes.");
+    expect(message.text).toContain("works for 10 minutes."); expect(message.html).toContain("works for 10 minutes.");
   });
   it("writes recovery mail with the ways in, an escaped link, and no code for an address without an account", () => {
     const message = recoveryMessage("fixture@example.test", { code: "01234567", link: "https://dash.example.test/sign-in?attempt=a&code=01234567", ways: ["email", "google", "apple"] });
