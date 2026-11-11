@@ -7,6 +7,7 @@ import { PairError, parseTypedPairing, redeemPairing, resolveTypedCode } from ".
 import * as relay from "../transport/relay";
 import { createRelaySecrets } from "../transport/link-crypto";
 import { registerPushForConnection } from "./push";
+import { outboxKey } from "./active";
 
 const credential = `omb_pair_${"a".repeat(43)}`;
 const payload: MobilePairingPayload = { v: 1, transport: "https", origin: "https://workspace.test", credential };
@@ -307,6 +308,41 @@ describe("workspace reconnect", () => {
     await store.save(record, token);
     await store.remove(record.id);
     expect(secrets.has(`relay.${record.id}`)).toBe(false);
+  });
+
+  function deletedShelves() {
+    const deleted: string[] = [];
+    vi.stubGlobal("indexedDB", { deleteDatabase(name: string) {
+      deleted.push(name);
+      const req = {} as IDBOpenDBRequest;
+      queueMicrotask(() => req.onsuccess?.(new Event("success")));
+      return req;
+    } });
+    return deleted;
+  }
+
+  it("leaves no unsent messages or saved chats of a removed workspace on the phone", async () => {
+    const { record, token, platform, preferences } = await saved();
+    const deleted = deletedShelves();
+    const store = createConnectionStore(platform);
+    await store.save(record, token);
+    preferences.set(outboxKey(record.id), "[]");
+    await store.remove(record.id);
+    expect(preferences.has(outboxKey(record.id))).toBe(false);
+    expect(deleted).toEqual([`omb-transcripts.${record.id}`]);
+  });
+
+  it("keeps what was written offline when the same installation is linked again, and drops the old link's chats", async () => {
+    const { record, token, platform, preferences } = await saved();
+    const deleted = deletedShelves();
+    const store = createConnectionStore(platform);
+    await store.save(record, token);
+    preferences.set(outboxKey(record.id), "[\"held\"]");
+    const again = { ...record, id: `${record.id}-again`, sessionRef: `token.${record.id}-again` };
+    await store.save(again, "token-2");
+    expect(preferences.has(outboxKey(record.id))).toBe(false);
+    expect(preferences.get(outboxKey(again.id))).toBe("[\"held\"]");
+    expect(deleted).toEqual([`omb-transcripts.${record.id}`]);
   });
 });
 

@@ -15,6 +15,20 @@ import { clampMss } from "./tcp-clamp.mjs";
 
 const B32 = "abcdefghijklmnopqrstuvwxyz234567";
 const FRAME_SKEW_MS = 5 * 60_000;
+/**
+ * frames are stamped and checked in the link service's time (its Date header), so an app and a server whose own clocks
+ * disagree by more than FRAME_SKEW_MS still take each other's frames; a peer on its own clock still matches when that
+ * clock is right. differences under RELAY_CLOCK_SLACK_MS are the header's one-second grain and the trip, not drift.
+ */
+const RELAY_CLOCK_SLACK_MS = 3000;
+let relayOffsetMs = 0;
+export function noteRelayDate(value, now = Date.now()) {
+  const at = Date.parse(value ?? "");
+  if (!Number.isFinite(at)) return;
+  const offset = at + 500 - now;
+  relayOffsetMs = Math.abs(offset) < RELAY_CLOCK_SLACK_MS ? 0 : offset;
+}
+export const relayNow = () => Date.now() + relayOffsetMs;
 const CHUNK = 128 * 1024;
 /** one post stays well under a proxy's usual 1 MB body limit (nginx's default) */
 const BATCH_BYTES = 700 * 1024;
@@ -190,7 +204,7 @@ export function open(key, aad, sealed) {
   return Buffer.concat([decipher.update(raw.subarray(12, raw.length - 16)), decipher.final()]);
 }
 /** frames carry their time and are refused twice or when stale, so a relay cannot replay an old request */
-export function frameGuard(now = Date.now) {
+export function frameGuard(now = relayNow) {
   const seen = new Map();
   return (iv, ts) => {
     const t = now();
@@ -203,14 +217,14 @@ export function frameGuard(now = Date.now) {
   };
 }
 export function sealFrame(key, id, dir, frame, raw = false) {
-  return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.from(JSON.stringify({ ...frame, ts: Date.now() })));
+  return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.from(JSON.stringify({ ...frame, ts: relayNow() })));
 }
 /** a websocket's bytes travel raw, not as base64 in json: 0x01, the 12-letter stream id, the time, then the bytes */
 export function sealBytes(key, id, dir, r, bytes, raw = false) {
   const head = Buffer.alloc(21);
   head[0] = 1;
   head.write(r, 1, 12, "latin1");
-  head.writeDoubleBE(Date.now(), 13);
+  head.writeDoubleBE(relayNow(), 13);
   return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
 }
 /**
@@ -263,6 +277,7 @@ export function keepAliveFetch({ maxSockets = 8, tls = {} } = {}) {
       res.once("close", () => signal?.removeEventListener("abort", stop));
       const headers = new Headers();
       for (const [name, value] of Object.entries(res.headers)) for (const one of Array.isArray(value) ? value : [value]) headers.append(name, one);
+      noteRelayDate(headers.get("date"));
       const empty = res.statusCode === 204 || res.statusCode === 205 || res.statusCode === 304 || init.method === "HEAD";
       if (empty) res.resume();
       resolve(new Response(empty ? null : Readable.toWeb(res), { status: res.statusCode, headers }));
@@ -386,6 +401,7 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
       const status = head[":status"];
       const out = new Headers();
       for (const [name, value] of Object.entries(head)) if (!name.startsWith(":")) for (const each of Array.isArray(value) ? value : [value]) out.append(name, String(each));
+      noteRelayDate(out.get("date"));
       const empty = status === 204 || status === 205 || status === 304 || init.method === "HEAD";
       if (empty) stream.resume();
       resolve(new Response(empty ? null : Readable.toWeb(stream), { status, headers: out }));

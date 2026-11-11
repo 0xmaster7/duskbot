@@ -118,7 +118,7 @@ function controller({ local, ownHome, store, onChange = () => {} }) {
     protect: async (text) => `p:${text}`,
     unprotect: async (text) => text.slice(2),
     label: () => "Sid's MacBook",
-    saveServer: ({ origin, name }) => { saved.push({ origin, name }); return "env-1"; },
+    saveServer: ({ origin, name }) => { saved.push({ origin, name }); return `env-${saved.filter((entry) => entry.origin).length}`; },
     forgetServer: (id) => saved.push({ forgot: id }),
     switchTo: () => {},
     ownHome,
@@ -242,6 +242,31 @@ describe("Add your VPS", () => {
 
     await link.forget();
     expect(saved.at(-1)).toEqual({ forgot: "env-1" });
+    await link.close();
+  }, 30_000);
+
+  it("the same server linked again replaces its record, and its old tunnel is ended", async () => {
+    const ownHome = { start: async () => {}, view: () => null, away: () => false, home: () => null, chosen: () => null };
+    const store = memoryStore();
+    const { link, saved } = controller({ local: localServer(), ownHome, store });
+    const linkOnce = async () => {
+      const token = /\/i\/([a-z2-7]{10}-[a-z2-7]{26}) \| sh$/.exec((await link.start()).command)[1];
+      const [id, secret] = token.split("-");
+      await post(`/v1/sessions/${id}/claim`, vpsTokenOf(secret), {});
+      await run(process.execPath, [agentPath, "link"], { env: { ...process.env, HOME: home, LINK_BASE: base, LINK_ID: id, LINK_TOKEN: vpsTokenOf(secret), LINK_MODE: "relay", LINK_NAME: "oracle-arm", LINK_SERVER_PORT: String(vpsPort) } });
+      tunnelChild?.kill();
+      tunnelChild = spawn(process.execPath, [agentPath, "tunnel"], { env: { ...process.env, HOME: home, LINK_SERVER_PORT: String(vpsPort) }, stdio: "ignore" });
+      await until(() => store.read()?.links?.some((entry) => entry.id === id));
+      return id;
+    };
+    const first = await linkOnce();
+    const second = await linkOnce();
+    expect(store.read().links.map((entry) => entry.id)).toEqual([second]);
+    expect(store.read().current).toBe(second);
+    expect(saved).toContainEqual({ forgot: "env-1" });
+    expect(service.store.tunnels.has(first)).toBe(false);
+    expect(service.store.tunnels.has(second)).toBe(true);
+    await link.forget();
     await link.close();
   }, 30_000);
 

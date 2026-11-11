@@ -54,6 +54,18 @@ test("What's new and the Grok Bot move are the notices a page can record; seen a
   }
 });
 
+test("a write reaches the disk before the new file takes the old one's name", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "desktop-prefs-"));
+  try {
+    const file = path.join(dir, "desktop-prefs.json"), order = [];
+    const watched = { ...fs, fsyncSync: fd => { order.push("fsync"); fs.fsyncSync(fd); }, renameSync: (from, to) => { order.push("rename"); fs.renameSync(from, to); } };
+    jsonFile(file, watched).write({ seen: [] });
+    assert.deepEqual(order, ["fsync", "rename"]);
+    assert.deepEqual(JSON.parse(readFileSync(file, "utf8")), { seen: [] });
+    assert.deepEqual(readdirSync(dir), ["desktop-prefs.json"]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("a write that fails leaves the last whole record on disk, analytics opt-out included", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "desktop-prefs-"));
   try {

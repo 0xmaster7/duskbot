@@ -1,3 +1,5 @@
+import { forgetTranscriptShelf } from "@/state/transcript-cache";
+import { outboxKey } from "../connection/active";
 import type { MobilePlatform } from "../platform";
 
 /** The connection id the app runs under while it shows the built-in demo workspace. */
@@ -13,7 +15,8 @@ export async function demoOn(platform: Prefs): Promise<boolean> {
 /** Linking a real installation ends the demo without a restart. */
 export async function forgetDemo(platform: Prefs): Promise<void> {
   await platform.prefs.remove(DEMO_KEY);
-  await platform.prefs.remove(`omb.mobile.outbox.${DEMO_CONNECTION}`);
+  await platform.prefs.remove(outboxKey(DEMO_CONNECTION));
+  await forgetTranscriptShelf(DEMO_CONNECTION);
 }
 
 export async function enterDemo(platform: Prefs, reload: () => void = () => window.location.reload()): Promise<void> {

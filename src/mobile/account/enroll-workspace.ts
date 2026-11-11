@@ -11,7 +11,9 @@ export async function enrollWorkspace(platform: MobilePlatform, connectionId: st
   if (running.has(key)) return;
   running.add(key);
   try {
-    if (await platform.prefs.get(key) === accountId) return;
+    // Security invariant: enrolling with a grant makes its account the workspace's owner, so a phone signed in to
+    // another account never moves a workspace it already enrolled; its owner does that from their own account.
+    if (await platform.prefs.get(key)) return;
     const grant = await enrollGrant();
     if (!grant) throw new Error("Enrollment unavailable");
     await api("/api/dashboard/link", { method: "POST", body: JSON.stringify({ url: grant.dashboardUrl, enrollToken: grant.enrollToken }) });

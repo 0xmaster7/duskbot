@@ -85,7 +85,15 @@ export function createVpsLink(deps) {
   let setupGeneration = 0, setupAbort = null;
 
   function read() {
-    const value = (() => { try { return store.read(); } catch { return null; } })();
+    const value = (() => {
+      try { return store.read(); } catch (error) {
+        if (error instanceof SyntaxError && store.setAside) {
+          try { log(`vps link: the saved links could not be read; kept them as ${store.setAside()}`); }
+          catch (asideError) { log(`vps link: could not keep the unreadable saved links (${asideError?.message ?? asideError})`); }
+        }
+        return null;
+      }
+    })();
     return {
       v: 1,
       pending: record(value?.pending) ? value.pending : null,
@@ -567,7 +575,16 @@ export function createVpsLink(deps) {
       const environmentId = paired?.environment?.environmentId;
       if (link.environmentId && environmentId && environmentId !== link.environmentId) throw new Error("A different server answered at that address, so this app did not link to it.");
       link.envId = deps.saveServer({ origin: link.origin, name: link.name });
-      state.links = [...state.links.filter((entry) => entry.id !== link.id), link];
+      // the same server linked again (its setup line run once more): its agent ended the tunnel before, so that record goes
+      const replaced = link.environmentId ? state.links.filter((entry) => entry.id !== link.id && entry.environmentId === link.environmentId) : [];
+      for (const old of replaced) {
+        await proxies.get(old.id)?.close();
+        proxies.delete(old.id);
+        peers.delete(old.id);
+        if (old.envId && old.envId !== link.envId) deps.forgetServer(old.envId);
+        if (state.move?.linkId === old.id) state.move.linkId = link.id;
+      }
+      state.links = [...state.links.filter((entry) => entry.id !== link.id && !replaced.includes(entry)), link];
       state.pending = null;
       state.current = link.id;
       lastError = null;

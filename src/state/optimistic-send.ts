@@ -33,6 +33,13 @@ export function sendArrived(messages: readonly Message[] | undefined, sendId: st
 /** Long enough to ride out a linked server's tunnel stalling for most of a minute (seen live: 39 s over the relay). */
 export const LOST_SEND_RETRY_MS = [1_000, 2_000, 4_000, 8_000, 15_000, 20_000] as const;
 
+/** A proxy in front of the server answered (the link to a VPS is down or timed out, a Cloud edge is waking it): the
+ * send may have reached the server or may reach it soon, and the server never delivers one sendId twice. */
+export function sendAnswerLost(error: unknown): boolean {
+  if (error instanceof ApiError) return error.status === 502 || error.status === 503 || error.status === 504;
+  return (error as { name?: unknown } | null)?.name !== "AbortError";
+}
+
 export interface SendDelivery {
   threadId: string;
   sendId: string;
@@ -85,8 +92,7 @@ export async function sendReconciled<T>(
         if (delivery && !confirmsSend(body, delivery.threadId)) throw new Error("The server did not confirm this message.");
         return { body };
       } catch (error) {
-        const lost = !(error instanceof ApiError) && (error as { name?: unknown } | null)?.name !== "AbortError";
-        if (!lost) throw error;
+        if (!sendAnswerLost(error)) throw error;
         if (arrived()) return { arrived: true };
         const delay = LOST_SEND_RETRY_MS[attempt];
         if (delay === undefined) throw error;

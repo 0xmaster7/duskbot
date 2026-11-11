@@ -97,7 +97,7 @@ import { installCloudPlanIpc } from "./cloud-plan-ipc.mjs";
 import { cloudLinkOpensSheet, colorDotIcons, createCloudLook, createCloudReadyNotice, installCloudBuy, lookFile } from "./cloud-buy.mjs";
 import { createAccountEnroll } from "./account-enroll.mjs"; import { accountGateRequired, installAccountGate } from "./account-gate.mjs";
 import { createTrialNotices } from "./cloud-trial-notice.mjs";
-import { createDesktopPrefs, DESKTOP_PORTS, jsonFile, registerDesktopPrefs } from "./desktop-prefs.mjs";
+import { createDesktopPrefs, DESKTOP_PORTS, jsonFile, registerDesktopPrefs, writeFileDurably } from "./desktop-prefs.mjs";
 import { createDesktopIncludedX } from "./included-x.mjs"; import { createDesktopIncludedPages } from "./included-pages.mjs";
 import { createLastSeenStore } from "./cloud-last-seen.mjs";
 import { createCloudFocus } from "./cloud-focus.mjs";
@@ -416,7 +416,23 @@ async function loadSecureCredentials() {
     readFile: () => fs.readFileSync(CREDENTIALS_FILE),
     decrypt: (buffer) => safeStorage.decryptStringAsync(buffer),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    roundTrips: async () => {
+      const probe = randomUUID();
+      const opened = await safeStorage.decryptStringAsync(await safeStorage.encryptStringAsync(probe));
+      return (typeof opened === "string" ? opened : opened?.result) === probe;
+    },
   });
+  if (result.status === "unreadable") {
+    const aside = `${CREDENTIALS_FILE}.unreadable-${Date.now()}`;
+    try {
+      fs.renameSync(CREDENTIALS_FILE, aside);
+      slog(`credential store file does not open with this keychain (${result.error}); kept it as ${path.basename(aside)} and started an empty one`);
+    } catch (error) {
+      slog(`credential store file could not be set aside (${error?.message ?? error}); saved keys are not loaded this launch`);
+      credentialStoreUnavailable = true;
+      return {};
+    }
+  }
   credentialStoreUnavailable = result.status === "unavailable";
   if (credentialStoreUnavailable) {
     slog(`credential store unreadable after retries (${result.error}); saved keys are not loaded this launch`);
@@ -434,9 +450,7 @@ async function saveSecureCredentials(credentials) {
   }
   fs.mkdirSync(path.dirname(CREDENTIALS_FILE), { recursive: true });
   const encrypted = await safeStorage.encryptStringAsync(JSON.stringify(credentials));
-  const temporary = `${CREDENTIALS_FILE}.${process.pid}.tmp`;
-  fs.writeFileSync(temporary, encrypted, { mode: 0o600 });
-  fs.renameSync(temporary, CREDENTIALS_FILE);
+  writeFileDurably(CREDENTIALS_FILE, encrypted);
 }
 
 async function secureComposioConfig() {

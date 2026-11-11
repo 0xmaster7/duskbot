@@ -2,7 +2,8 @@
 // session at My Cloud and one move-in sign-in at the team (through the Admin's team pairing, as the window signs in
 // there), the send kept to that one bot (cloud-send.mjs), and the move's channels for My Cloud's own page. The teams come
 // only from the Admin's verified session, never from a page.
-import { readFileSync, renameSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, mkdirSync } from "node:fs";
+import { writeFileDurably } from "./desktop-prefs.mjs";
 import { dirname } from "node:path";
 
 import { createCloudSend } from "./cloud-send.mjs";
@@ -19,8 +20,7 @@ function jsonFile(file) {
     write: (value) => {
       const target = file();
       mkdirSync(dirname(target), { recursive: true });
-      writeFileSync(`${target}.tmp`, JSON.stringify(value ?? null), { mode: 0o600 });
-      renameSync(`${target}.tmp`, target);
+      writeFileDurably(target, JSON.stringify(value ?? null));
     },
   };
 }

@@ -16,12 +16,13 @@ import { bumpThreadUpdatedAt, mergeTaskStamps, rewindThreadUpdatedAt } from "./t
 import { botOpensTo, openBot, openThread, visibleNotificationThread } from "./thread-navigation";
 import { patchGroupTask } from "./thread-edits";
 import type { EngineInstall } from "./engine-install";
-import { optimisticMessageId, optimisticUserMessage, sendArrived, sendReconciled } from "./optimistic-send";
+import { optimisticMessageId, optimisticUserMessage, sendAnswerLost, sendArrived, sendReconciled } from "./optimistic-send";
 import { applySendReceipt } from "./send-receipt";
 import { foldSnapshotOntoStreamed, patchedGroups, roomAnswers, snapshotPatch } from "./room-frames";
 import { savedStateAction, type SavedOwner, type SavedSnapshot } from "./saved-state";
 import { heldTranscript, keepBotNavigation, keepGroupNavigation, navigatedSince, visibleMessages } from "./snapshot-navigation";
 import { createTranscriptCache, indexedDbShelf, reconcileTranscript, type CachedTranscript } from "./transcript-cache";
+import { TranscriptShelfScope } from "./transcript-scope";
 export { shownTranscript, visibleMessages } from "./snapshot-navigation";
 export { awayFromMainThread, botOpensTo, markedThread, openBot, openBotRow, openBotThread, openRoomThread, openThread, visibleNotificationThread, type ThreadTarget } from "./thread-navigation";
 import type { TurnDigest } from "../../shared/digest";
@@ -2084,7 +2085,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, initialState, restoreBotSettingsSection);
   const stateRef = useRef(state), selectionRevision = useRef(0);
   stateRef.current = state;
-  const [transcriptCache] = useState(() => createTranscriptCache(indexedDbShelf()));
+  const shelfScope = useContext(TranscriptShelfScope);
+  const [transcriptCache] = useState(() => createTranscriptCache(indexedDbShelf(globalThis.indexedDB, shelfScope)));
   const invalidateTranscripts = useSelectedTranscript(state, rawDispatch, MESSAGE_PAGE_SIZE, transcriptCache);
   useTranscriptCache(state, rawDispatch, transcriptCache);
   const clearChatError = useCallback(() => {
@@ -2435,7 +2437,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
             .then((sent) => { outbox?.release(sendId); applySendReceipt(sent, sendId, action.text, rawDispatch); })
             .catch((error) => {
-              if (outbox && !(error instanceof ApiError) && outbox.keep(sendId)) return;
+              if (outbox && (!(error instanceof ApiError) || sendAnswerLost(error)) && outbox.keep(sendId)) return;
               outbox?.release(sendId);
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });
@@ -2449,12 +2451,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const threadId =
             action.threadId ?? stateRef.current.bots.find((bot) => bot.id === action.botId)?.threadId;
           const sendId = action.sendId ?? randomUuid();
+          const edited = () => sendArrived(stateRef.current.bots.find((bot) => bot.id === action.botId && bot.threadId === threadId)?.messages, sendId);
           void waitForExecutionSettings(executionBotsBeforeAction, threadId)
-            .then(() => api(`/api/bots/${action.botId}/messages/${action.messageId}/edit`, {
-              method: "POST",
+            .then(() => sendReconciled((signal) => api(`/api/bots/${action.botId}/messages/${action.messageId}/edit`, {
+              method: "POST", signal,
               body: JSON.stringify({ text: action.text.trim(), threadId, sendId }),
-            }))
-            .then((body) => {
+            }), edited))
+            .then((sent) => {
+              const body = "body" in sent ? sent.body : null;
               if (body?.message && threadId) {
                 rawDispatch({ type: "messageAdded", threadId, message: body.message });
               }
@@ -2668,7 +2672,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
             .then((sent) => { outbox?.release(sendId); applySendReceipt(sent, sendId, action.text, rawDispatch); })
             .catch((error) => {
-              if (outbox && !(error instanceof ApiError) && outbox.keep(sendId)) return;
+              if (outbox && (!(error instanceof ApiError) || sendAnswerLost(error)) && outbox.keep(sendId)) return;
               outbox?.release(sendId);
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });

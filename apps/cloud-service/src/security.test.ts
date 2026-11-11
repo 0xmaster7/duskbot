@@ -169,6 +169,9 @@ it("the verdict refuses a short retention, a paid plan, an unknown plan, a hold 
   expect(deletionVerdict({ ...base, entitlement: { active: false, until: null } })).toMatchObject({ delete: false, reason: "no_billing_record" });
   expect(deletionVerdict({ ...base, hold: true })).toMatchObject({ delete: false, reason: "hold" });
   expect(deletionVerdict({ ...base, finalBackup: null })).toMatchObject({ delete: false, reason: "no_final_backup" });
+  expect(deletionVerdict({ ...base, finalBackup: null, neverSetUp: true })).toMatchObject({ delete: true, reason: "retention_over" });
+  expect(deletionVerdict({ ...base, finalBackup: null, neverSetUp: true, now: 40 * DAY_MS - 1 })).toMatchObject({ delete: false, reason: "retention" });
+  expect(deletionVerdict({ ...base, finalBackup: null, neverSetUp: true, hold: true })).toMatchObject({ delete: false, reason: "hold" });
   expect(deletionVerdict({ ...base, finalBackup: { at: 9 * DAY_MS, verifiedAt: null } })).toMatchObject({ delete: false, reason: "no_final_backup" });
   expect(deletionVerdict({ ...base, finalBackup: { at: 8 * DAY_MS, verifiedAt: 8 * DAY_MS } })).toMatchObject({ delete: false, reason: "no_final_backup" });
   expect(deletionVerdict({ ...base, ownerRequest: { requestedAt: 0, confirmedAt: null, executeAfter: null, cancelledAt: null }, now: 20 * DAY_MS })).toMatchObject({ delete: false, reason: "retention" });

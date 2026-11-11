@@ -50,6 +50,14 @@ export interface HomeLifecycleState {
   retired: Array<{ serverId: string; at: number; deletion: { operationId: string | null; at: number } | null; backedUp?: number }>;
   recoveries: number;
   hold: boolean;
+  /** first setups that failed on their machine */
+  setupFailures?: number;
+  /** retryable failures in a row during a first setup */
+  setupRetries?: number;
+  /** when a first setup was first seen in its error state */
+  setupErrorAt?: number | null;
+  /** wakes for a final backup since the plan ended that brought none */
+  finalWakes?: number;
   /** when the current machine's setup began */
   setupSince?: number;
   /** the provider answered 404 for the current machine since this time, this many times; reset by any answer */

@@ -10,7 +10,7 @@ beforeEach(() => {
   vi.clearAllMocks(); prefs = new Map();
   platform = { ...webPlatform(), prefs: { get: async key => prefs.get(key) ?? null, set: async (key, value) => { prefs.set(key, value); }, remove: async key => { prefs.delete(key); } } };
 });
-it("enrolls once per account and connection through the workspace api", async () => {
+it("enrolls each connection once, and never moves it to the next account signed in on the phone", async () => {
   const getGrant = vi.fn(async () => grant);
   await Promise.all([enrollWorkspace(platform, "workspace", "person", getGrant), enrollWorkspace(platform, "workspace", "person", getGrant)]);
   await enrollWorkspace(platform, "workspace", "person", getGrant);
@@ -18,7 +18,8 @@ it("enrolls once per account and connection through the workspace api", async ()
   expect(api).toHaveBeenCalledWith("/api/dashboard/link", { method: "POST", body: JSON.stringify({ url: grant.dashboardUrl, enrollToken: grant.enrollToken }) });
   expect(prefs.get("omb.account.enrolled.workspace")).toBe("person");
   await enrollWorkspace(platform, "other", "person", getGrant); await enrollWorkspace(platform, "workspace", "other-person", getGrant);
-  expect(getGrant).toHaveBeenCalledTimes(3);
+  expect(getGrant).toHaveBeenCalledTimes(2);
+  expect(prefs.get("omb.account.enrolled.workspace")).toBe("person");
 });
 it("warns once without exposing secrets and leaves failed enrollment retryable", async () => {
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
