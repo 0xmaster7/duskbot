@@ -11,6 +11,7 @@ import { openChatLink } from "@/components/ThreadRefs";
 import { parseBotRefUrl, parseThreadRefUrl } from "@/lib/thread-refs"; import { completeSlackOAuth } from "@/lib/slack-oauth-link"; import { parseSlackOAuthLink } from "../../shared/slack";
 import { effectiveLanguage, useLanguageChoice, usePageLanguage } from "@/lib/language-preference";
 import { parseMobileOpenLink, type MobileOpenTarget } from "../../shared/mobile-link";
+import { setChatCovered } from "@/lib/chat-in-front";
 import { NavStack } from "./NavStack";
 import { ChatScreen } from "./ChatScreen";
 import { HomeScreen, releasePressed } from "./HomeScreen";
@@ -39,6 +40,9 @@ function Shell() {
 
   const latest = useRef(state);
   latest.current = state;
+
+  // with the list in front, the chat last opened is not being read: its replies stay unread and still notify
+  useEffect(() => { setChatCovered(chatId === null); return () => setChatCovered(false); }, [chatId]);
 
   const openChat = useCallback((id: string) => {
     const current = latest.current;

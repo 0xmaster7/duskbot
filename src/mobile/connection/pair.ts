@@ -1,4 +1,5 @@
 import { DEFAULT_MOBILE_RELAY, MOBILE_LOOKUP_SALT, pairingFromPayload, parseMobilePayload, parseMobilePairingLink, type MobileRedeemRequest, type MobileRedeemResponse, type MobileCapabilities, type MobileConnectionRecord, type MobilePairingPayload } from "../../../shared/mobile-link";
+import { randomUuid } from "@/lib/random-uuid";
 import type { MobilePlatform } from "../platform";
 import { createRelaySecrets, hex, hkdf, sha256hex, subtle, unbase64, unseal, UnsupportedCryptoError, utf8, type RelaySecrets } from "../transport/link-crypto";
 import { open as openRelay } from "../transport/relay";
@@ -43,7 +44,7 @@ async function attemptId(payload: TypedPairing, platform: MobilePlatform, origin
   const request = (async () => {
     const saved = await platform.prefs.get(key);
     if (saved) return saved;
-    const id = crypto.randomUUID();
+    const id = randomUuid();
     await platform.prefs.set(key, id);
     return id;
   })().finally(() => attempts.delete(key));
@@ -104,7 +105,7 @@ async function redeemLegacyPairing(payload: MobilePairingPayload, platform: Mobi
     const advertised = { ...paired.device?.capabilities, ...paired.capabilities, ...identity.capabilities };
     const direct = payload.transport === "https";
     const capability = (key: keyof MobileCapabilities) => typeof advertised[key] === "boolean" ? advertised[key] : direct;
-    const id = crypto.randomUUID();
+    const id = randomUuid();
     const now = Date.now();
     const record: MobileConnectionRecord = {
       id, environmentId: typeof identity.environmentId === "string" ? identity.environmentId : origin.origin,
