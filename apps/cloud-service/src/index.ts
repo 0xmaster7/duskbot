@@ -30,6 +30,8 @@ import "./state.ts";
 import { createHomeUpdates, createReleaseFile, type HomeRelease } from "./home-update.ts";
 import { createPolicySource, UPDATE_POLICY_PATH, type PolicySource } from "./update-policy.ts";
 
+/** a retention notice: the plain letter, and what it is about for a richer rendering */
+export interface CloudLetter { subject: string; text: string; notice?: { kind: NoticeKind; at: number | null; link?: string } }
 export interface ManagedCloudDeps {
   provider: MachineProvider;
   backups: BackupStore;
@@ -207,7 +209,7 @@ export interface ManagedCloudEnvOptions {
   /** the billing store's subscriptions, read at the moment of each decision */
   subscriptions(): readonly StoredSubscription[];
   /** an owner's letter (retention, recovery, deletion); delivery failures are logged, never thrown */
-  mail?(cloud: StoredCloud, letter: { subject: string; text: string }): void;
+  mail?(cloud: StoredCloud, letter: CloudLetter): void;
   /** the operator's alert for every deletion action */
   alert?(entry: AuditEntry): void;
 }
@@ -249,5 +251,5 @@ export function managedCloudFromEnv(env: NodeJS.ProcessEnv, options: ManagedClou
     alert: options.alert,
     mono: options.now === Date.now ? () => performance.now() : undefined,
     entitlement: cloud => entitlementOf(options.subscriptions(), cloud, options.now()),
-    notify: (cloud, kind, at, link) => options.mail?.(cloud, noticeText(kind, { name: cloud.name, at, dashboardUrl: options.publicUrl, link })) });
+    notify: (cloud, kind, at, link) => options.mail?.(cloud, { ...noticeText(kind, { name: cloud.name, at, dashboardUrl: options.publicUrl, link }), notice: { kind, at, link } }) });
 }

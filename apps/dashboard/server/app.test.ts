@@ -25,7 +25,7 @@ const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 describe("hosted dashboard service", () => {
   let mailer: ReturnType<typeof memoryMailer>;
   const csrf = new Map<string, string>();
-  const code = (email: string) => mailer.outbox.findLast(item => item.to === email)?.text.match(/\b\d{8}\b/)?.[0];
+  const code = (email: string) => mailer.outbox.findLast(item => item.to === email && /\b\d{8}\b/.test(item.text))?.text.match(/\b\d{8}\b/)?.[0];
   let app: ReturnType<typeof createDashboardApp>;
   let server: Server;
   let dataDir: string;

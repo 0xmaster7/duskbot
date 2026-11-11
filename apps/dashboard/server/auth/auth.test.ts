@@ -46,7 +46,7 @@ describe("local account service", () => {
   function call(path: string, data?: unknown, headers: Record<string, string> = {}, method = data === undefined ? "GET" : "POST") {
     return fetch(url + path, { method, headers: { ...(data === undefined ? {} : { "content-type": "application/json" }), ...headers }, ...(data === undefined ? {} : { body: JSON.stringify(data) }) });
   }
-  const code = (address = email) => mailer.outbox.findLast(item => item.to === address)!.text.match(/\b\d{8}\b/)![0];
+  const code = (address = email) => mailer.outbox.findLast(item => item.to === address && /\b\d{8}\b/.test(item.text))!.text.match(/\b\d{8}\b/)![0];
   const browserHeaders = (browser: Browser) => ({ cookie: browser.cookie, [CSRF_HEADER]: browser.csrfToken });
   const bearer = (grant: AppGrant) => ({ authorization: `Bearer ${grant.accessToken}` });
   async function start(address = email, appSignIn = false, headers = {}) {
@@ -80,8 +80,8 @@ describe("local account service", () => {
     const started = await start(" OWNER@EXAMPLE.TEST ");
     expect(started).toMatchObject({ expiresIn: 600, resendAfter: 30, signupOpen: true });
     expect(started.attempt).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect(mailer.outbox[0]).toMatchObject({ to: email, subject: "Your Dusk Bot code" });
-    expect(mailer.outbox[0].text).toContain("It expires in 10 minutes.");
+    expect(mailer.outbox[0]).toMatchObject({ to: email, subject: `${code()} is your dusk bot code` });
+    expect(mailer.outbox[0].text).toContain("it works for 10 minutes.");
     expect(mailer.outbox[0].html).toContain(code());
     const first = await body<WebSignInAnswer>(call("/v1/auth/verify", { attempt: started.attempt, code: code() }));
     expect(first.created).toBe(true);
@@ -416,9 +416,9 @@ describe("local account service", () => {
     const first = await login(); time += 30_000;
     const recovered = await body<EmailStartAnswer>(call("/v1/auth/start", { email, recover: true }));
     const mail = mailer.outbox.at(-1)!;
-    expect(mail).toMatchObject({ to: email, subject: "Sign in to Dusk Bot" });
-    expect(mail.text).toContain("This account signs in with an emailed code.");
-    const link = new URL(/Or open this link to sign in: (\S+)/.exec(mail.text)![1]!), secret = new URLSearchParams(link.hash.slice(1));
+    expect(mail).toMatchObject({ to: email, subject: "sign in to dusk bot" });
+    expect(mail.text).toContain("this account signs in with an emailed code.");
+    const link = new URL(/^sign in: (\S+)$/m.exec(mail.text)![1]!), secret = new URLSearchParams(link.hash.slice(1));
     // in the fragment: never sent to a server, so never in a log
     expect(`${link.origin}${link.pathname}${link.search}`).toBe("http://127.0.0.1:7480/sign-in");
     expect(secret.get("attempt")).toBe(recovered.attempt);
@@ -428,7 +428,7 @@ describe("local account service", () => {
     // the app gets the code alone: a link would sign in the browser, not this computer
     time += 30_000;
     const app = await body<EmailStartAnswer>(call("/api/cloud/app/sign-in/start", { email, ...device, recover: true }));
-    expect(mailer.outbox.at(-1)!.text).not.toContain("http");
+    expect(mailer.outbox.at(-1)!.text).not.toContain("/sign-in#");
     const grant = await call("/api/cloud/app/sign-in/verify", { attempt: app.attempt, code: code() });
     expect((await body<AppGrant>(grant)).account.id).toBe(first.account.id);
     // no account: the same answer, a mail that says so, and no code that could create one
@@ -436,7 +436,7 @@ describe("local account service", () => {
     const nobody = await call("/v1/auth/start", { email: "nobody@example.test", recover: true });
     expect(nobody.status).toBe(200); expect(Object.keys(await nobody.json() as object).sort()).toEqual(Object.keys(recovered as object).sort());
     expect(mailer.outbox).toHaveLength(sent + 1);
-    expect(mailer.outbox.at(-1)!.text).toContain("no Dusk Bot account uses it"); expect(mailer.outbox.at(-1)!.text).not.toMatch(/\b\d{8}\b/);
+    expect(mailer.outbox.at(-1)!.text).toContain("no account uses it"); expect(mailer.outbox.at(-1)!.text).not.toMatch(/\b\d{8}\b/);
     for (const bad of [{ email, recover: "yes" }, { email, recover: false }]) expect((await call("/v1/auth/start", bad)).status).toBe(400);
   });
 
@@ -499,7 +499,7 @@ describe("local account service", () => {
     const authorization = await authorize();
     app.close();
     const saved = readFileSync(`${dataDir}/auth.json`, "utf8");
-    for (const value of [grant.accessToken, browser.cookie.split("=")[1]!, browser.csrfToken, enroll.enrollToken, authorization.deviceCode, ...mailer.outbox.map(item => item.text.match(/\b\d{8}\b/)![0])]) expect(saved).not.toContain(value);
+    for (const value of [grant.accessToken, browser.cookie.split("=")[1]!, browser.csrfToken, enroll.enrollToken, authorization.deviceCode, ...mailer.outbox.flatMap(item => item.text.match(/\b\d{8}\b/) ?? [])]) expect(saved).not.toContain(value);
     expect(JSON.parse(saved).sessions.every((item: { tokenHash: string }) => /^[a-f0-9]{64}$/.test(item.tokenHash))).toBe(true);
     expect(statSync(`${dataDir}/auth.json`).mode & 0o777).toBe(0o600);
     expect(statSync(`${dataDir}/auth-secret`).mode & 0o777).toBe(0o600);
