@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { MARK_FILL, createAnimator, createStateDriver, markAppearance, markFillScale, markShapeFor, markTree } from './mascot-src/app/mascot-motion-engine.js';
+import { botSvg, bodyName } from './mascot-src/engine/geometry.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.join(here, 'public', 'landing');
@@ -58,32 +58,12 @@ export function markdown(md) {
   return out.join('\n');
 }
 
-// the site's bot shapes, as the app's body ids (shared/grok-bodies.ts in the Dusk Bot repo)
-const BOTS = { circle: 'blob', hex: 'hex', clover: 'clover', heart: 'heart', star: 'star', drop: 'teardrop', squircle: 'squircle', capsule: 'capsule', gem: 'gem' };
-// the app's canvas is wider than the mark (0.92 / 0.6 of it) so a turning, squashing body never clips
-const FIT = markFillScale(MARK_FILL), MK = (box, at = 0) => `x="${(at + box * (1 - FIT) / 2).toFixed(2)}" y="${(at + box * (1 - FIT) / 2).toFixed(2)}" width="${(box * FIT).toFixed(2)}" height="${(box * FIT).toFixed(2)}"`;
-const markup = (n) => `<${n.tag}${Object.entries(n.attrs).map(([k, v]) => ` ${k}="${String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')}"`).join('')}>${n.children.map(markup).join('')}</${n.tag}>`;
-// each body's rest pose, drawn by the app's own engine the way a still mark settles (60 steps of 0.1 s), once per page
-// in <defs>; every bot <use>s it until mascot.js takes over, so without script the bots still show
-const rested = new Set();
-function rest(body, eye) {
-  const id = `rest-${body}${eye ? '-w' : ''}`;
-  let defs = '';
-  if (!rested.has(id)) {
-    rested.add(id);
-    const a = createAnimator({ body: body === 'fruit' ? 'pumpkin' : markShapeFor(body) });
-    createStateDriver(a, 'idle', { seed: 0, isCompact: false, isResting: true });
-    a.pause(); a.seek(0);
-    for (let i = 0; i < 60; i++) a.advance(0.1);
-    defs = markup(markTree(a.frame(), markAppearance('currentColor', eye), 61.33, id, { displaySize: 40, extent: '100%' }));
-  }
-  return [defs, `<svg class="mk" ${MK(100)}><use href="#${id}"/></svg>`];
-}
-// {{bot shape colour extra-classes}} in a page becomes one of the app's mascots, in its white face (cut-out eyes would
-// show a picture behind through them); mascot.js brings it to life
+// {{bot shape colour extra-classes}} in a page becomes one of the dusk bots (mascot-src/engine) in its rest pose, so
+// without script every bot still shows; mascot.js brings it to life. shapes: circle squircle pill hex star heart drop
+// moon cloud pixel, and the older names clover capsule gem
 export function bot(shape, colour, extra = '') {
-  const [defs, canvas] = rest(BOTS[shape], '#fff');
-  return `<svg class="bot c-${colour}${extra ? ' ' + extra : ''}" viewBox="0 0 100 100" aria-hidden="true" data-body="${BOTS[shape]}">${defs ? `<defs>${defs}</defs>` : ''}${canvas}</svg>`;
+  const body = bodyName(shape);
+  return `<svg class="bot c-${colour}${extra ? ' ' + extra : ''}" viewBox="0 0 100 100" aria-hidden="true" data-body="${body}">${botSvg(body)}</svg>`;
 }
 const CHIP_NAMES = { calendar: 'google calendar', drive: 'google drive', docs: 'google docs', sheets: 'google sheets' };
 const logo = (name, eager) => `<img class="logo" src="/art/logos/${name}.${fs.existsSync(path.join(site, 'art', 'logos', `${name}.svg`)) ? 'svg' : 'png'}" alt="" width="20" height="20"${eager ? '' : ' loading="lazy"'} decoding="async">`;
@@ -115,19 +95,15 @@ function sea() {
     ['clover', 'blue', 1400, 800, 30], ['heart', 'orange', 680, 822, 30], ['star', 'yellow', 210, 830, 32],
     ['circle', 'blue', 236, 884, 44], ['drop', 'yellow', 480, 900, 46], ['hex', 'orange', 748, 880, 40], ['clover', 'purple', 900, 916, 46],
     ['heart', 'pink', 1230, 902, 42], ['squircle', 'green', 1372, 884, 38], ['star', 'green', 1060, 930, 40],
-    ['squircle', 'pink', 360, 800, 28], ['hex', 'blue', 620, 870, 32],
-    ['clover', 'pink', 100, 930, 40], ['squircle', 'blue', 800, 940, 44], ['drop', 'green', 1300, 940, 40], ['hex', 'yellow', 1500, 925, 38]];
-  const defs = [], bots = swim.map(([shape, colour, x, y, size]) => {
-    const [def, canvas] = rest(BOTS[shape], '#fff');
-    if (def) defs.push(def);
-    return `<g class="sb c-${colour}" transform="translate(${x} ${y}) scale(${size / 100})" clip-path="url(#sea-line)" data-body="${BOTS[shape]}" data-size="${size}"><g class="dip">${canvas}</g><rect class="foam" x="-14" y="64" width="128" height="8"/></g>`;
-  });
-  return `<svg class="sea-bots" viewBox="0 0 1600 1067" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath>${defs.join('')}</defs>${bots.join('')}</svg>`;
+    ['pill', 'pink', 360, 800, 28], ['hex', 'blue', 620, 870, 32],
+    ['pixel', 'pink', 100, 930, 40], ['squircle', 'blue', 800, 940, 44], ['drop', 'green', 1300, 940, 40], ['hex', 'yellow', 1500, 925, 38]];
+  const bots = swim.map(([shape, colour, x, y, size]) => `<g class="sb c-${colour}" transform="translate(${x} ${y}) scale(${size / 100})" clip-path="url(#sea-line)" data-body="${bodyName(shape)}" data-size="${size}"><g class="dip"><g transform="translate(0 -6)">${botSvg(shape)}</g></g><rect class="foam" x="-14" y="64" width="128" height="8"/></g>`);
+  return `<svg class="sea-bots" viewBox="0 0 1600 1067" aria-hidden="true" focusable="false"><defs><clipPath id="sea-line"><rect x="-30" y="-120" width="160" height="192"/></clipPath></defs>${bots.join('')}</svg>`;
 }
 // {{os name}} is a platform mark from public/landing/art/os (simple-icons, cc0), inlined so it takes the text colour
 const os = (name) => fs.readFileSync(path.join(site, 'art', 'os', `${name}.svg`), 'utf8').replace(/<title>.*?<\/title>/, '').replace('<svg ', '<svg class="os" aria-hidden="true" fill="currentColor" ').replace(/ role="img"| xmlns="[^"]*"/g, '').trim();
 const withOs = (html) => html.replace(/\{\{os (\w+)\}\}/g, (_, name) => os(name));
-const withBots = (html) => (rested.clear(), withOs(withChips(withParts(html))).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()))
+const withBots = (html) => (withOs(withChips(withParts(html))).replace(/\{\{bot (\w+) (\w+)((?: [\w-]+)*)\}\}/g, (_, shape, colour, extra) => bot(shape, colour, extra.trim()))
   .replace(/\{\{i ([\w-]+)\}\}/g, (_, name) => icon(name)).replace(/\{\{sea\}\}/g, sea));
 
 // stamps a file's content hash on its url, so an edit is seen at once despite the cache header
