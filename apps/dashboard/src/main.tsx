@@ -106,8 +106,11 @@ function SignedIn() {
   if (moved) return null;
   const blank = <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
   if (path === "/admin" || path.startsWith("/admin/")) return <Suspense fallback={blank}><AdminApp /></Suspense>;
+  const exempt = path === "/claim" || path === "/cloud/desktop" || deletePageId(path) !== null;
+  // home or onboarding is decided once the profile is in, so a new account never sees home first
+  if (!welcome && !exempt && account === null && !error) return blank;
   if (welcome && intent && account === null && !error) return blank;
-  const onboard = welcome || (account !== null && !account.profile.onboarded && path !== "/claim" && path !== "/cloud/desktop" && deletePageId(path) === null);
+  const onboard = welcome || (account !== null && !account.profile.onboarded && !exempt);
   if (onboard) return <Suspense fallback={blank}><Onboarding /></Suspense>;
   return <Shell><Suspense fallback={<LoadingPage />}>{route(path)}</Suspense></Shell>;
 }
