@@ -88,6 +88,7 @@ if (bill) {
       n.run = requestAnimationFrame(tick);
     }
     for (const n of $$('.per[data-m]')) n.textContent = n.dataset[k];
+    for (const a of $$('a[href*="/signup?plan="]')) { const u = new URL(a.href); u.searchParams.set('period', k); a.href = u.href; }
     bots()?.react($('.ph-islands'), 'hop');
   });
 }

@@ -130,6 +130,7 @@ if (bill) {
       else n.textContent = to;
     }
     for (const n of $$('.per[data-m]', root)) n.textContent = n.dataset[k];
+    for (const a of $$('a[href*="/signup?plan="]', root)) { const u = new URL(a.href); u.searchParams.set('period', k); a.href = u.href; }
   });
 }
 
