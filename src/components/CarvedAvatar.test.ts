@@ -11,14 +11,14 @@ const render = (body: (typeof HALLOWEEN_BODY_IDS)[number], color: "orange" | "pu
   renderToStaticMarkup(createElement(CarvedAvatar, { body, color, animated: false, label: body }));
 
 describe("CarvedAvatar", () => {
-  it("draws every part, two eyes, and a smile unless the drawing has its own mouth", () => {
+  it("draws every part and two eyes, and no mouth of its own", () => {
     for (const id of HALLOWEEN_BODY_IDS) {
       const markup = render(id);
       const body = HALLOWEEN_BODIES[id];
       expect(markup).toContain(`data-carved-body="${id}"`);
       expect(markup.match(/<rect /g)?.length, id).toBe(2);
-      expect(markup.match(/<path /g)?.length, id).toBe(body.parts.length + 1 + (body.eyes.mouth ? 1 : 0));
-      expect(markup.includes("<ellipse"), id).toBe(body.eyes.mouth);
+      expect(markup.match(/<path /g)?.length, id).toBe(body.parts.length + 1);
+      expect(markup.includes("<ellipse"), id).toBe(false);
     }
   });
 
