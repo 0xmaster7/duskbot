@@ -47,7 +47,7 @@ function PlanCard({ id, catalog, interval, current, lead, onChoose, action, disa
   const perMonth = interval === "year" ? Math.round(perMonthOn(monthly, interval, catalog)) : monthly;
   const sub = !paid ? "on your own computer" : interval === "year" ? `per month · ${priceText(monthly, interval, catalog).replace("/yr", "")} billed yearly` : "per month, cancel anytime";
   return (
-    <article className={cx("surface enter flex min-w-0 flex-col rounded-card bg-card p-2.5 pb-7", lead && "shadow-[inset_0_0_0_2px_var(--ink)]")} style={{ ["--i" as string]: i }} aria-labelledby={`plan-card-${id}`}>
+    <article className={cx("surface enter flex min-w-0 flex-col rounded-card bg-card p-2.5 pb-7", lead && "shadow-[inset_0_0_0_2px_var(--ink)]", !paid && "max-lg:order-last")} style={{ ["--i" as string]: i }} aria-labelledby={`plan-card-${id}`}>
       <div className="relative">
         <img src={ART[id]} alt="" width={800} height={354} className="aspect-[800/300] w-full rounded-[16px] object-cover object-bottom" draggable={false} />
         {lead && <span className="tag absolute left-3 top-3 !bg-pop !text-ink">recommended</span>}

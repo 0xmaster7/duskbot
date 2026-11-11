@@ -146,9 +146,9 @@ function CloudLive({ cloud, detail }: { cloud: CloudDesktop; detail: WorkspaceDe
 
 export function HomePage() {
   const { account } = useSession();
-  const { clouds, error, refresh } = useCloud();
+  const { account: profile, clouds, error, refresh } = useCloud();
   const { bots, loading } = useAccountUsage();
-  const name = account?.name || account?.email.split("@")[0] || "";
+  const name = profile?.profile.name || account?.name || account?.email.split("@")[0] || "";
   const cloud = clouds?.[0] ?? null;
   const cloudDetail = useWorkspaceDetail(cloud?.workspaceId ?? null);
   const crew = bots.length ? <Crew rows={bots} plain={!cloud} /> : loading ? <Skeleton className="h-[200px] !rounded-card" /> : cloud ? <CrewEmpty /> : <GetTheApp />;
