@@ -264,6 +264,38 @@ describe("hosted dashboard service", () => {
     expect(detail.commands[1].status).toBe("expired");
   });
 
+  it("starts app sign-ins only for the owner of a workspace that is awake, and shows its apps", async () => {
+    const cookie = await login();
+    const id = await claim(cookie);
+    const connect = (body: object, who = cookie) => page(`/v1/workspaces/${id}/commands`, body, who);
+    const asleep = await connect({ kind: "app.connect", target: "gmail" });
+    expect(asleep.status).toBe(409);
+    expect(await readJson(asleep)).toMatchObject({ code: "workspace_offline", error: expect.stringContaining("not answering") });
+    await signed("/v1/report", id, { ...report(), apps: { available: true, complete: true, services: [{ slug: "github", connected: true, pending: false }, { slug: "linear", connected: false, pending: true }] } }).send();
+    expect(await readJson(page("/v1/connectors", undefined, cookie))).toEqual({ byWorkspace: { [id]: ["github"] }, pending: { [id]: ["linear"] }, available: { [id]: true }, at: { [id]: time } });
+    expect((await connect({ kind: "app.connect", target: "../admin" })).status).toBe(400);
+    const stranger = await login("stranger@example.com");
+    expect((await connect({ kind: "app.connect", target: "gmail" }, stranger)).status).toBe(404);
+    expect(await readJson(page("/v1/connectors", undefined, stranger))).toEqual({ byWorkspace: {}, pending: {}, available: {}, at: {} });
+    const forged = await fetch(`${url}/v1/workspaces/${id}/commands`, { method: "POST", headers: { "content-type": "application/json", cookie, origin }, body: JSON.stringify({ kind: "app.connect", target: "gmail" }) });
+    expect(forged.status).toBe(403);
+    const queued = await readJson<{ command: CommandView }>(connect({ kind: "app.connect", target: "Gmail" }));
+    expect(queued.command).toMatchObject({ kind: "app.connect", target: "gmail", status: "queued" });
+    const delivered = await readJson<ReportAnswer>(signed("/v1/report", id, report(2)).send());
+    expect(delivered.commands.map(command => command.target)).toEqual(["gmail"]);
+    const link = "https://connect.composio.dev/link/fixture";
+    await signed("/v1/report", id, { ...report(3), results: [{ id: queued.command.id, ok: true, message: "Sign-in is ready.", at: time, url: link }],
+      apps: { available: true, complete: true, services: [{ slug: "gmail", connected: true, pending: false }] } }).send();
+    const detail = await readJson<WorkspaceDetail>(page(`/v1/workspaces/${id}`, undefined, cookie));
+    expect(detail.commands.find(command => command.id === queued.command.id)).toMatchObject({ status: "done", url: link });
+    expect((await readJson<{ byWorkspace: Record<string, string[]> }>(page("/v1/connectors", undefined, cookie))).byWorkspace[id]).toEqual(["gmail"]);
+    const unsafe = await readJson<{ command: CommandView }>(connect({ kind: "app.connect", target: "slack" }));
+    await signed("/v1/report", id, { ...report(4), results: [{ id: unsafe.command.id, ok: true, message: "Sign-in is ready.", at: time, url: "javascript:alert(1)" }] }).send();
+    expect((await readJson<WorkspaceDetail>(page(`/v1/workspaces/${id}`, undefined, cookie))).commands.find(command => command.id === unsafe.command.id)?.url).toBeUndefined();
+    time += 46_000;
+    expect((await connect({ kind: "app.disconnect", target: "gmail" })).status).toBe(409);
+  });
+
   it("wakes a pending signed wait immediately for a command and for watching", async () => {
     const cookie = await login();
     const id = await claim(cookie);
