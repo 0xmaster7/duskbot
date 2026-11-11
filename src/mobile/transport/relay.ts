@@ -99,7 +99,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
   const drop = (broken: Link, error: unknown = new Error("relay closed")) => {
     if (link === broken) link = null;
     broken.abort.abort();
-    for (const request of [...pending.values()]) if (request.link === broken) request.fail(error);
+    for (const request of pending.values()) if (request.link === broken) request.fail(error);
   };
   const close = () => {
     closed = true;
