@@ -1,6 +1,7 @@
 // Main's side of the send that carries the one-time move to My Cloud (cloud-send.mjs): the Cloud sessions it uses, where
 // its state lives, and the move's line on either page (the notice).
-import { readFileSync, renameSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { writeFileDurably } from "./desktop-prefs.mjs";
 import { BACKGROUND_HEADERS } from "./cloud-power.mjs";
 import { createLoginHandoffClient } from "./cloud-logins.mjs";
 import { MOVE_LINE, TEAM_MOVE_LINE, resultKey } from "./cloud-send-parts.mjs";
@@ -116,7 +117,7 @@ export function installCloudSend({ ipcMain, cloudPage, server, local, home, cook
     handoff: (what) => handoff.request(server(), what),
     store: {
       read: () => { try { return JSON.parse(readFileSync(file(), "utf8")); } catch { return null; } },
-      write: (value) => { const target = file(); writeFileSync(`${target}.tmp`, JSON.stringify(value), { mode: 0o600 }); renameSync(`${target}.tmp`, target); },
+      write: (value) => writeFileDurably(file(), JSON.stringify(value)),
     },
     onChange: deliver,
     engineWaitMs,
