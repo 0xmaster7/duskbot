@@ -14,7 +14,9 @@ html = html
   .replace(/<footer class="foot">[\s\S]*?<\/footer>\s*/, '')
   .replace(/\s*<a class="wl-link" href="\/">[\s\S]*?<\/a>/, '')
   .replace('https://dusk.bot/waitlist', 'https://dusk.bot/')
-  .replace('<body>', '<body class="solo">');
+  .replace('<body>', '<body class="solo">')
+  // dusk.bot has no account service of its own: its tracker beacons go to the one that serves the app
+  .replace(/data-api="\/v1\/t"/, `data-api="${process.env.DUSK_WAITLIST_TRACK_API || 'https://preview.dusk.bot/v1/t'}"`);
 const stray = [...html.matchAll(/href="(\/[^"#]*)"/g)].map((m) => m[1]).filter((h) => !/\.[a-z0-9]{2,12}(\?|$)/i.test(h));
 if (stray.length) { console.error('links to other pages remain:', [...new Set(stray)].join(' ')); process.exit(1); }
 

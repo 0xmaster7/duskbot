@@ -121,6 +121,13 @@ const withChips = (html) => html.replace(/\{\{logo (\w+)( eager)?\}\}/g, (_, nam
 // {{include name}} drops in pages/partials/name.html, so a big piece of a page can live in its own file
 const withParts = (html) => html.replace(/\{\{include ([\w-]+)\}\}/g, (_, name) => { const file = path.join(here, 'pages', 'partials', `${name}.html`); return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''; });
 const has = (file) => fs.existsSync(path.join(site, file));
+// the first-party analytics tracker (apps/dashboard/tracker/dusk.js in the Dusk Bot repo), served as /a.js; its beacons go to
+// DUSK_TRACK_API (default /v1/t, the account service on this origin). Visits of signed-in admins are never counted.
+export const TRACK_API = process.env.DUSK_TRACK_API || '/v1/t';
+const tracker = path.join(repo, 'apps', 'dashboard', 'tracker', 'dusk.js');
+if (fs.existsSync(tracker)) fs.copyFileSync(tracker, path.join(site, 'a.js'));
+else console.warn('no tracker in the Dusk Bot checkout; pages are built without analytics');
+const trackerTag = () => has('a.js') ? `<script src="${stamped('a.js')}" data-api="${TRACK_API}" defer></script>\n` : '';
 // {{i name}} is a Gravity UI icon (MIT, icons/gravity, LICENSE beside them) or one of ours drawn in its style
 // (icons/drawn); {{i name cls}} adds a class. Site names stay as they were, each pointing at its drawing.
 const ICON_FILES = {
@@ -267,7 +274,7 @@ ${FOOT.map(foot).join('\n')}
 </div>
 <p class="foot-fine"><span data-dusk>made at dusk. the bots did most of it.</span>${home ? ' the bots, chats and numbers shown on this page are samples.' : ''}</p>
 </footer>
-${tail}
+${trackerTag()}${tail}
 </body>
 </html>
 `;
