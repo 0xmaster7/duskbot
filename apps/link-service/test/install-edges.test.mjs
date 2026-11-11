@@ -42,7 +42,7 @@ afterAll(async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-const post = (route, token, body, method = "POST") => fetch(`${base}${route}`, { method, headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: body === undefined ? undefined : JSON.stringify(body) });
+const post = (route, token, body) => fetch(`${base}${route}`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
 async function claimed() {
   const keys = newLinkKeys();
   const made = await createRelayClient({ base }).create({ verifier: keys.verifier, appPub: keys.pub });
@@ -232,7 +232,7 @@ gate_up() { :; }; box_works() { :; }; wait_health() { return 0; }; systemctl() {
 state_set package sha256:new; state_set running-package sha256:old
 do_service; echo "running=$(state_get running-package)"
 do_service`);
-    const starts = s.log.split("\n").filter((line) => / duskbot\.service$/.test(line));
+    const starts = s.log.split("\n").filter((line) => line.endsWith(" duskbot.service"));
     expect(starts).toEqual(["x systemctl restart duskbot.service", "x systemctl start duskbot.service"]);
     expect(s.out).toContain("running=sha256:new");
   });
