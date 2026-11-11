@@ -47,7 +47,7 @@ export function funnel(input: FunnelInput): FunnelStep[] {
   const within = (ids: Iterable<string | null>) => new Set([...ids].filter((id): id is string => id !== null && cohort.has(id)));
   const chose = within([...input.checkouts.filter(choseCloud).map(c => c.accountId), ...input.marked.chosen]);
   const paid = within(input.subscriptions.filter(wasPaid).map(s => s.accountId));
-  const paired = within([...input.sessions.filter(s => s.kind !== "web").map(s => s.accountId), ...input.workspaces.map(ws => ws.ownerAccountId), ...input.marked.paired]);
+  const paired = within([...input.sessions.filter(s => s.kind !== "web").map(s => s.accountId), ...input.marked.paired]);
   const replied = within([...input.workspaces.filter(ws => workspaceTurns(ws) > 0).map(ws => ws.ownerAccountId), ...input.marked.replied]);
   const onboarded = within([...input.marked.onboarded, ...chose, ...paid, ...paired]);
   const and = (a: Set<string>, b: Set<string>) => new Set([...a].filter(id => b.has(id)));

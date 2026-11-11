@@ -1,7 +1,8 @@
 import type { Db } from "mongodb";
 import { DAY_MS, RAW_RETENTION_DAYS, type Props } from "./events.ts";
+import type { EventContext } from "./context.ts";
 
-export interface StoredEvent { id: string; name: string; at: number; accountId: string | null; props: Props }
+export interface StoredEvent { id: string; name: string; at: number; accountId: string | null; props: Props; ctx?: EventContext }
 export interface AuditEntry { id: string; at: number; actor: string; action: string; target: string | null; detail: Record<string, string | number | boolean | null> }
 export interface EventQuery { accountId?: string; name?: string; since?: number; before?: number; limit: number }
 
@@ -60,7 +61,7 @@ export function memorySink(now: () => number = Date.now): AnalyticsSink & { all:
   };
 }
 
-type EventDoc = { _id: string; name: string; at: Date; accountId: string | null; props: Props };
+type EventDoc = { _id: string; name: string; at: Date; accountId: string | null; props: Props; ctx?: EventContext };
 type AuditDoc = Omit<AuditEntry, "id" | "at"> & { _id: string; at: Date };
 
 /** analytics_events (TTL on `at`), analytics_daily (kept), analytics_marks (TTL on `expiresAt`), admin_audit (kept) */
@@ -68,14 +69,14 @@ export async function mongoSink(db: Db): Promise<AnalyticsSink> {
   const events = db.collection<EventDoc>("analytics_events"), daily = db.collection<{ _id: string; day: string; name: string; count: number }>("analytics_daily");
   const marks = db.collection<{ _id: string; expiresAt: Date | null }>("analytics_marks"), audits = db.collection<AuditDoc>("admin_audit");
   await Promise.all([
-    events.createIndexes([{ key: { at: 1 }, expireAfterSeconds: RAW_RETENTION_DAYS * 86_400 }, { key: { accountId: 1, at: -1 } }, { key: { name: 1, at: -1 } }]),
+    events.createIndexes([{ key: { at: 1 }, expireAfterSeconds: RAW_RETENTION_DAYS * 86_400 }, { key: { accountId: 1, at: -1 } }, { key: { name: 1, at: -1 } }, { key: { "ctx.session": 1, at: 1 }, sparse: true }]),
     daily.createIndexes([{ key: { day: 1, name: 1 } }]),
     marks.createIndexes([{ key: { expiresAt: 1 }, expireAfterSeconds: 0, partialFilterExpression: { expiresAt: { $type: "date" } } }]),
     audits.createIndexes([{ key: { at: -1 } }]),
   ]);
-  const toEvent = (doc: EventDoc): StoredEvent => ({ id: doc._id, name: doc.name, at: doc.at.getTime(), accountId: doc.accountId, props: doc.props ?? {} });
+  const toEvent = (doc: EventDoc): StoredEvent => ({ id: doc._id, name: doc.name, at: doc.at.getTime(), accountId: doc.accountId, props: doc.props ?? {}, ...(doc.ctx ? { ctx: doc.ctx } : {}) });
   return {
-    async insert(event) { await events.insertOne({ _id: event.id, name: event.name, at: new Date(event.at), accountId: event.accountId, props: event.props }); },
+    async insert(event) { await events.insertOne({ _id: event.id, name: event.name, at: new Date(event.at), accountId: event.accountId, props: event.props, ...(event.ctx ? { ctx: event.ctx } : {}) }); },
     async bump(day, name, by = 1) { await daily.updateOne({ _id: `${day}|${name}` }, { $setOnInsert: { day, name }, $inc: { count: by } }, { upsert: true }); },
     async once(key, expiresAt) {
       const until = expiresAt === null ? null : new Date(expiresAt);

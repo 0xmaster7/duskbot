@@ -39,7 +39,7 @@ export const EVENTS = {
   onboarding_step: { source: "page", props: { step: oneOf("name", "plan", "app") }, active: true },
   onboarding_done: { source: "page", props: {}, active: true },
   plan_chosen: { source: "page", props: { plan: pattern(/^[a-z_]{2,20}$/, 20), period: oneOf("month", "year") }, active: true },
-  site_view: { source: "site", props: { path: route, ref: pattern(/^[a-z0-9.-]{1,80}$/, 80), utm: pattern(/^[a-z0-9_.-]{1,40}$/, 40) } },
+  site_view: { source: "site", props: { path: route } },
 } satisfies Record<string, EventSpec>;
 export type EventName = keyof typeof EVENTS;
 export const EVENT_NAMES = Object.keys(EVENTS) as EventName[];

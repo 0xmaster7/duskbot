@@ -5,6 +5,7 @@ import { createJsonStore } from "../billing/json-store.ts";
 import { clientIp } from "../client-ip.ts";
 import { DAY_MS, EVENTS, cleanProps, dayOf, isEventName, routeOf, type EventName, type Props } from "./events.ts";
 import type { AnalyticsSink } from "./sink.ts";
+import { requestContext, type EventContext } from "./context.ts";
 
 export interface AnalyticsOptions { sink: AnalyticsSink; dataDir: string; now?: () => number; trustProxy?: boolean }
 interface RouteHelpers {
@@ -18,6 +19,7 @@ interface RouteHelpers {
 interface OptOutState { v: 1; optOut: string[] }
 
 export const MAX_BATCH = 20;
+function safeUrl(value: string, origin: string) { try { const url = new URL(value.slice(0, 1000), origin); return url.origin === origin ? url : undefined; } catch { return undefined; } }
 const AUTOMATED = /bot|crawl|spider|slurp|preview|monitor|curl|wget|python|httpclient|headless|lighthouse|facebookexternalhit|embedly/i;
 
 /** a browser that asked not to be tracked (Global Privacy Control or Do Not Track) */
@@ -43,11 +45,11 @@ export function createAnalytics(options: AnalyticsOptions) {
   }
   const markUntil = (at: number) => Math.max(at, now()) + 3 * DAY_MS;
 
-  async function record(name: EventName, input: { accountId?: string | null; props?: Props; at?: number; visitor?: string | null } = {}) {
+  async function record(name: EventName, input: { accountId?: string | null; props?: Props; at?: number; visitor?: string | null; ctx?: EventContext } = {}) {
     const accountId = input.accountId ?? null, at = input.at ?? now(), day = dayOf(at);
     if (accountId && optOut.has(accountId)) { stats.dropped++; return; }
     try {
-      await sink.insert({ id: `ev_${randomBytes(12).toString("base64url")}`, name, at, accountId, props: cleanProps(name, input.props) });
+      await sink.insert({ id: `ev_${randomBytes(12).toString("base64url")}`, name, at, accountId, props: cleanProps(name, input.props), ...(input.ctx || input.visitor ? { ctx: { ...input.ctx, ...(input.visitor ? { visitor: input.visitor } : {}) } } : {}) });
       await sink.bump(day, name);
       if (accountId && "active" in EVENTS[name] && await sink.once(`${day}|active|${accountId}`, markUntil(at))) await sink.bump(day, "active_accounts");
       if (input.visitor && await sink.once(`${day}|visitor|${input.visitor}`, markUntil(at))) await sink.bump(day, "site_visitors");
@@ -65,26 +67,22 @@ export function createAnalytics(options: AnalyticsOptions) {
     return createHmac("sha256", salt.key).update(`${clientIp(req, options.trustProxy ?? false)}|${req.headers["user-agent"] ?? ""}`).digest("base64url").slice(0, 22);
   }
   function siteView(req: IncomingMessage, publicOrigin: string) {
+    if (!req.url) return;
     if (req.method !== "GET" || declined(req) || AUTOMATED.test(req.headers["user-agent"] ?? "") || !req.headers["user-agent"]) return;
     if (!(req.headers.accept ?? "").includes("text/html") || (req.headers["sec-fetch-dest"] && req.headers["sec-fetch-dest"] !== "document")) return;
     const url = new URL(req.url ?? "/", publicOrigin);
     if (/\.[a-z0-9]{1,6}$/i.test(url.pathname)) return;
     const path = routeOf(url.pathname);
     if (!path) return;
-    const props: Props = { path };
-    try {
-      const ref = new URL(String(req.headers.referer ?? "")).hostname.toLowerCase();
-      if (ref && ref !== new URL(publicOrigin).hostname) props.ref = ref.slice(0, 80);
-    } catch {}
-    const utm = url.searchParams.get("utm_source")?.toLowerCase();
-    if (utm) props.utm = utm.slice(0, 40);
-    track("site_view", { props, visitor: visitorOf(req) });
+    track("site_view", { props: { path }, visitor: visitorOf(req), ctx: { ...requestContext(req, { publicOrigin, trustProxy: options.trustProxy ?? false, url }), page: path } });
   }
   function appActive(session: { id: string; accountId: string; platform: string | null; appVersion: string | null }) {
     if (!seenOnce(`app|${session.id}`)) return;
     const day = dayOf(now());
     void sink.once(`${day}|app|${session.id}`, markUntil(now())).then(fresh => {
-      if (fresh) track("app_active", { accountId: session.accountId, props: { ...(session.platform ? { platform: session.platform } : {}), ...(session.appVersion ? { appVersion: session.appVersion } : {}) } });
+      if (!fresh) return;
+      const app = { ...(session.platform ? { platform: session.platform } : {}), ...(session.appVersion ? { version: session.appVersion } : {}) };
+      track("app_active", { accountId: session.accountId, props: { ...(app.platform ? { platform: app.platform } : {}), ...(app.version ? { appVersion: app.version } : {}) }, ctx: { session: session.id, app } });
     }, () => { stats.failed++; });
   }
   function botReplied(accountId: string) {
@@ -107,6 +105,7 @@ export function createAnalytics(options: AnalyticsOptions) {
   async function handle(req: IncomingMessage, res: ServerResponse, url: URL, helpers: RouteHelpers): Promise<boolean> {
     const path = url.pathname, method = req.method ?? "GET";
     if (path === "/v1/events" && method === "POST") {
+      const publicOrigin = `${url.protocol}//${url.host}`;
       helpers.rate(req, "events", 1200);
       const input = helpers.bodyObject(await helpers.readBody(req));
       const list = Array.isArray(input.events) ? input.events : null;
@@ -115,13 +114,17 @@ export function createAnalytics(options: AnalyticsOptions) {
       let owner: { id: string } | null = null;
       try { owner = helpers.account(req, true); } catch { owner = null; }
       if (owner) helpers.rate(req, `events:${owner.id}`, 600);
+      const session = typeof input.session === "string" && /^[A-Za-z0-9_-]{8,40}$/.test(input.session) ? input.session : undefined;
+      const referrer = typeof input.referrer === "string" ? input.referrer.slice(0, 500) : undefined;
+      const base = requestContext(req, { publicOrigin, trustProxy: options.trustProxy ?? false, referrer, url: typeof input.landing === "string" ? safeUrl(input.landing, publicOrigin) : undefined });
       for (const item of list as unknown[]) {
         const event = item && typeof item === "object" ? item as Record<string, unknown> : {};
         if (!isEventName(event.name) || EVENTS[event.name].source !== "page") continue;
         if (!owner && event.name !== "page_view") continue;
         const props = event.name === "page_view" && event.props && typeof event.props === "object"
           ? { path: routeOf(String((event.props as Record<string, unknown>).path ?? "")) ?? "" } : event.props;
-        track(event.name, { accountId: owner?.id ?? null, props: props as Props });
+        const ctx: EventContext = { ...base, ...(session ? { session } : {}), ...(event.name === "page_view" && typeof (props as Props).path === "string" ? { page: (props as Props).path as string } : {}) };
+        track(event.name, { accountId: owner?.id ?? null, props: props as Props, ctx, visitor: owner ? null : visitorOf(req) });
       }
       res.writeHead(204, { "cache-control": "no-store" }); res.end();
       return true;
