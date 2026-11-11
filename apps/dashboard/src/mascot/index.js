@@ -315,7 +315,8 @@ export function create(target, { body, colour, eyes, state = 'idle', size, obser
     put(bb, 'transform', moved ? `translate(${f2(50 + x)} ${f2(foot + y - (foot - 53) * (1 - ball))}) rotate(${f2(r)}) scale(${f2(sx * ball * 1000) / 1000} ${f2(sy * ball * 1000) / 1000}) translate(-50 ${-foot})` : 'translate(0 0)');
     put(bb, 'opacity', String(f2(fade * clamp(1 - (dm - 0.35) / 0.4, 0, 1))));
     put(bg, 'transform', `translate(0 ${f2(Math.sin(pitch) * FACE_RY)})`);
-    const tall = Math.pow(Math.max(0.05, Math.cos(pitch)), 1.3), es = v[I.es];
+    // looking up flattens the eyes toward dashes, looking down barely does
+    const tall = Math.pow(Math.max(0.05, Math.cos(pitch)), gy < 0 ? 2.5 : 0.6), es = v[I.es];
     // the eyes shut before the body melts into dots
     blink = Math.min(blink, 1 - 0.82 * clamp(dm * 2.5, 0, 1));
     for (const [g, path, hl, side] of eyesEl) {
