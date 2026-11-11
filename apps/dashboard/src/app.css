@@ -46,6 +46,10 @@
   --lime: #eef8c6;
   --rose: #ffe7ef;
   --lemon: #fff5bf;
+  /* conversions on the analytics pages: signups and payments as coral bars beside the blue visitors line */
+  --coral: #e9846c;
+  --coral-deep: #c9583f;
+  --coral-soft: rgb(233 132 108 / 0.22);
 }
 
 [data-theme="dark"] {
@@ -85,6 +89,9 @@
   --lime: #232b12;
   --rose: #33202a;
   --lemon: #322d12;
+  --coral: #f08f77;
+  --coral-deep: #ffb29f;
+  --coral-soft: rgb(240 143 119 / 0.24);
 }
 
 .surface { --btn: #ffffff; --btn-hover: #ebebe8; }
@@ -147,6 +154,9 @@
   --color-primary-ink: var(--primary-ink);
   --color-primary-hover: var(--primary-hover);
   --color-sky: var(--sky);
+  --color-coral: var(--coral);
+  --color-coral-deep: var(--coral-deep);
+  --color-coral-soft: var(--coral-soft);
   --color-lime: var(--lime);
   --color-rose: var(--rose);
   --color-lemon: var(--lemon);

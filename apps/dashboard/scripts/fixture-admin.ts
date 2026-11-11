@@ -1,5 +1,5 @@
 // made-up people, clouds, events and waitlist entries for the admin panel in the local fixture; nothing here is real
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { createDashboardApp } from "../server/app.ts";
@@ -9,9 +9,7 @@ import { BILLING_CONFIG } from "../server/billing/plans.ts";
 const DAY = 86_400_000;
 const PEOPLE = ["mira.okafor", "tomas.lindqvist", "priya.raman", "jules.moreau", "kenji.watanabe", "ana.ferreira", "leo.brandt", "sofia.marin", "ravi.kulkarni", "noor.haddad",
   "elena.petrova", "sam.oduya", "hana.kim", "diego.alvarez", "freya.holm", "omar.siddiqui", "lucia.rossi", "ben.carter"];
-const COUNTRIES = ["US", "IN", "DE", "GB", "FR", "BR", "JP", "CA", "NL", "SE"];
-const REFERRERS: Array<string | undefined> = [undefined, undefined, "www.google.com", "x.com", "news.ycombinator.com", "chatgpt.com", "www.reddit.com", "perplexity.ai", "someblog.dev"];
-const id = (prefix: string) => `${prefix}${randomBytes(16).toString("base64url")}`;
+const id = (prefix: string) => `${prefix}${Buffer.from(Array.from({ length: 16 }, () => Math.floor(rand() * 256))).toString("base64url")}`;
 let seed = 7;
 const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const pick = <T,>(list: readonly T[]) => list[Math.floor(rand() * list.length)]!;
@@ -66,7 +64,10 @@ export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, 
     if (i % 2 === 0) await analytics.record("app_paired", { accountId: account.id, at: account.createdAt + 3_600_000, props: { via: "app", platform: i % 4 === 0 ? "darwin" : "win32" } });
     if (i % 3 !== 2 && i < 12) await analytics.record("first_bot_reply", { accountId: account.id, at: account.createdAt + 2 * 3_600_000 });
     for (let t = account.createdAt + DAY; t < now; t += DAY) {
-      if (rand() < 0.55) await analytics.record("page_view", { accountId: account.id, at: t, props: { path: pick(["/", "/bots", "/usage", "/cloud", "/billing"]) } });
+      if (rand() < (new Date(t).getUTCDay() % 6 === 0 ? 0.35 : 0.65)) {
+        const ctx = { session: vid(), host: "dusk.bot", country: pick(CITIES)[0], device: "desktop" as const, os: i % 4 === 0 ? "mac" as const : "windows" as const, browser: "chrome" as const };
+        for (const [k, path] of ["/", pick(["/bots", "/usage", "/cloud", "/billing"])].entries()) await analytics.record("page_view", { accountId: account.id, at: t + k * 90_000, props: { path }, ctx });
+      }
       if (i % 2 === 0 && rand() < 0.7) await analytics.record("app_active", { accountId: account.id, at: t + 3_600_000, props: { platform: i % 4 === 0 ? "darwin" : "win32", appVersion: "0.2.15" } });
     }
   }
@@ -78,14 +79,20 @@ const CITIES: Array<[string, string, string, number, number]> = [
   ["BR", "Sao Paulo", "Sao Paulo", -23.6, -46.6], ["JP", "Tokyo", "Tokyo", 35.7, 139.7], ["CA", "Ontario", "Toronto", 43.7, -79.4], ["NL", "North Holland", "Amsterdam", 52.4, 4.9],
   ["SE", "Stockholm", "Stockholm", 59.3, 18.1], ["AU", "New South Wales", "Sydney", -33.9, 151.2], ["SG", "Singapore", "Singapore", 1.3, 103.8], ["NG", "Lagos", "Lagos", 6.5, 3.4],
 ];
-const TOUCHES: Array<{ referrer?: string; source: string; channel: string; campaign?: string; ref?: string }> = [
-  { source: "direct", channel: "direct" }, { source: "direct", channel: "direct" }, { referrer: "www.google.com", source: "Google", channel: "search" },
-  { referrer: "x.com", source: "X", channel: "social", ref: "launch-thread" }, { referrer: "news.ycombinator.com", source: "Hacker News", channel: "social" },
-  { referrer: "chatgpt.com", source: "ChatGPT", channel: "ai" }, { referrer: "www.perplexity.ai", source: "Perplexity", channel: "ai" }, { referrer: "claude.ai", source: "Claude", channel: "ai" },
-  { referrer: "www.reddit.com", source: "Reddit", channel: "social" }, { source: "newsletter", channel: "email", campaign: "november" }, { referrer: "someblog.dev", source: "someblog.dev", channel: "referral" },
+const TOUCHES: Array<{ weight: number; referrer?: string; source: string; channel: string; campaign?: string; ref?: string }> = [
+  { weight: 20, source: "direct", channel: "direct" }, { weight: 23, referrer: "x.com", source: "X", channel: "social" },
+  { weight: 18, referrer: "www.google.com", source: "Google", channel: "search" }, { weight: 10, referrer: "chatgpt.com", source: "ChatGPT", channel: "ai" },
+  { weight: 5, referrer: "www.perplexity.ai", source: "Perplexity", channel: "ai" }, { weight: 7, referrer: "news.ycombinator.com", source: "Hacker News", channel: "social" },
+  { weight: 5, referrer: "www.reddit.com", source: "Reddit", channel: "social" }, { weight: 4, referrer: "www.producthunt.com", source: "Product Hunt", channel: "social" },
+  { weight: 5, source: "newsletter", channel: "email", campaign: "november-launch" }, { weight: 3, source: "friend", channel: "referral", ref: "friend" },
 ];
+const weightedTouch = () => {
+  let weight = rand() * TOUCHES.reduce((sum, touch) => sum + touch.weight, 0);
+  return TOUCHES.find(touch => (weight -= touch.weight) < 0) ?? TOUCHES[0]!;
+};
+const placeOf = () => pick([CITIES[0]!, CITIES[0]!, CITIES[1]!, CITIES[3]!, CITIES[3]!, CITIES[6]!, ...CITIES]);
 const PATHS = ["/", "/pricing", "/download", "/docs", "/about", "/changelog"];
-const vid = () => randomBytes(16).toString("base64url");
+const vid = () => id("");
 const LANDING = ["hero", "say", "team", "many", "where", "models", "free", "pricing", "how", "everywhere", "faq", "end"];
 const CLICKS = [{ label: "monthly", section: "pricing", value: "m" }, { label: "yearly", section: "pricing", value: "y" }, { label: "see_how_it_works", section: "hero" }, { label: "how_do_i_pay", section: "faq" }];
 
@@ -93,14 +100,15 @@ const CLICKS = [{ label: "monthly", section: "pricing", value: "m" }, { label: "
 async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: SeededAccount[], now: number) {
   const { analytics } = app;
   const visit = async (visitor: string, start: number, opts: { pages?: string[]; goals?: Array<[string, Record<string, string>?]>; touch?: (typeof TOUCHES)[number]; place?: (typeof CITIES)[number] } = {}) => {
-    const touch = opts.touch ?? pick(TOUCHES), place = opts.place ?? pick(CITIES), mobile = rand() < 0.32;
+    const touch = opts.touch ?? weightedTouch(), place = opts.place ?? placeOf(), mobile = rand() < 0.32;
+    const term = touch.channel === "search" && rand() < 0.6 ? pick(["ai-assistant", "dusk-bot", "personal-ai-agent", "local-ai-assistant", "ai-for-work"]) : undefined;
     const session = vid(), pages = opts.pages ?? ["/", ...(rand() < 0.55 ? [pick(PATHS.slice(1))] : []), ...(rand() < 0.25 ? [pick(PATHS.slice(1))] : [])];
-    const base = { session, host: "preview.dusk.bot", country: place[0], region: place[1], city: place[2], lat: place[3], lon: place[4], device: mobile ? "mobile" as const : "desktop" as const,
+    const base = { session, host: rand() < 0.92 ? "dusk.bot" : "preview.dusk.bot", country: place[0], region: place[1], city: place[2], lat: place[3], lon: place[4], device: mobile ? "mobile" as const : "desktop" as const,
       os: mobile ? (rand() < 0.6 ? "ios" as const : "android" as const) : pick(["mac", "windows", "linux"] as const), browser: pick(["chrome", "safari", "firefox", "edge"] as const) };
     let at = start;
     for (const [k, path] of pages.entries()) {
       const pv = vid().slice(0, 8);
-      await analytics.record("site_view", { at, visitor, props: { path }, ctx: { ...base, pv, page: path, ...(k === 0 ? { source: touch.source, channel: touch.channel as never, referrer: touch.referrer, ref: touch.ref, utm: touch.campaign ? { campaign: touch.campaign, medium: "email", source: "newsletter" } : undefined } : {}) } });
+      await analytics.record("site_view", { at, visitor, props: { path }, ctx: { ...base, pv, page: path, ...(k === 0 ? { source: touch.source, channel: touch.channel as never, referrer: touch.referrer, ref: touch.ref, utm: touch.campaign ? { campaign: touch.campaign, medium: "email", source: "newsletter" } : term ? { term } : undefined } : {}) } });
       const ms = Math.round(4000 + rand() * 90_000);
       await analytics.record("site_leave", { at: at + ms, visitor, props: { path, scroll: Math.round(20 + rand() * 80), ms }, ctx: { ...base, pv, page: path } });
       at += ms + 2000;
@@ -117,12 +125,14 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
     return at;
   };
   for (let d = 29; d >= 0; d--) {
-    const count = 10 + Math.round(rand() * 14 + (29 - d) * 0.6);
+    const day = Math.floor(now / DAY) * DAY - d * DAY, weekday = new Date(day).getUTCDay();
+    const spike = d === 12 ? 210 : d === 4 ? 110 : d === 11 || d === 13 ? 45 : d === 3 || d === 5 ? 20 : 0;
+    const count = Math.round((22 + (29 - d) * 0.8 + rand() * 12) * (weekday === 0 || weekday === 6 ? 0.6 : 1) + spike);
     for (let v = 0; v < count; v++) {
       const goals: Array<[string, Record<string, string>?]> = [];
       if (rand() < 0.08) goals.push(["waitlist_join"]);
       if (rand() < 0.12) goals.push(["download_click", { to: "/download", value: pick(["mac", "mac", "windows", "linux"]) }]);
-      await visit(vid(), now - d * DAY - Math.round(rand() * 20 * 3_600_000) - 3_600_000, { goals });
+      await visit(vid(), day + Math.round(rand() * Math.min(DAY - 600_000, Math.max(0, now - day - 600_000))), { goals, ...(d === 12 && rand() < 0.7 ? { touch: TOUCHES[1] } : {}) });
     }
   }
   for (const account of accounts) {
@@ -132,12 +142,12 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
     await analytics.record("identify", { accountId: account.id, at: account.createdAt + 2000, props: { via: "page" }, ctx: { visitor } });
   }
   for (const [i, account] of accounts.entries()) {
-    if (i % 2) continue;
-    const install = randomBytes(12).toString("base64url"), platform = i % 4 === 0 ? "darwin" : "win32";
+    if (i % 2 && i % 5 !== 1) continue;
+    const mobile = i % 2 !== 0, install = vid(), platform = mobile ? i % 4 === 1 ? "ios" : "android" : i % 4 === 0 ? "darwin" : "win32";
     await analytics.record("identify", { accountId: account.id, at: account.createdAt + 3_600_000, props: { via: "app" }, ctx: { install } });
     for (let t = account.createdAt + 3_600_000; t < now; t += DAY * (0.6 + rand())) {
-      const ctx = { install, session: randomBytes(12).toString("base64url"), app: { platform, version: "0.2.15" } };
-      await analytics.record("app_open", { accountId: account.id, at: t, props: { kind: "desktop", platform, appVersion: "0.2.15" }, ctx });
+      const ctx = { install, session: vid(), app: { platform, version: "0.2.15" } };
+      await analytics.record("app_open", { accountId: account.id, at: t, props: { kind: mobile ? "mobile" : "desktop", platform, appVersion: "0.2.15" }, ctx });
       for (const screen of ["/chat/:id", pick(["/bots", "/routines", "/rooms", "/computers", "/settings"])]) await analytics.record("app_screen", { accountId: account.id, at: t + 60_000, props: { screen }, ctx: { ...ctx, page: screen } });
       if (rand() < 0.6) await analytics.record("app_feature", { accountId: account.id, at: t + 120_000, props: { feature: pick(["bot_created", "routine_created", "routine_ran", "file_uploaded", "voice_used", "app_connected", "computer_used"]) }, ctx });
       const sent = 1 + Math.round(rand() * 14);

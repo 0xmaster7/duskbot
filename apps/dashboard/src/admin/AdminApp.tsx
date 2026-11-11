@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, ChartNoAxesCombined, ChevronDown, Cloud, LayoutDashboard, Users } from "@/icons";
+import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, ListFilter, Moon, Repeat, Sun, Users } from "@/icons";
+import { setTheme, useTheme } from "../lib/theme";
 import { ButtonLink, cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
 import { SkyEmpty } from "../ui/Sky";
@@ -8,7 +9,8 @@ import { useToasts } from "../lib/toast";
 import mark from "../../favicon.svg";
 import { useAdmin } from "./api";
 import { OverviewPage } from "./Overview";
-import { SitePage } from "./Site";
+import { DetailsPage } from "./Details";
+import { RetentionPage } from "./Retention";
 import { FunnelPage } from "./Funnel";
 import { PeoplePage } from "./People";
 import { LivePage } from "./Live";
@@ -21,38 +23,46 @@ import { AuditPage, HealthPage } from "./Health";
 import { Loading, Tabs } from "./ui";
 
 const ICON = { size: 17, strokeWidth: 1.75 } as const;
-const NAV = [
-  { to: "/admin", key: "o", label: "overview", icon: <LayoutDashboard {...ICON} /> },
-  { to: "/admin/people", key: "p", label: "people", icon: <Users {...ICON} />, also: ["/admin/users"] },
-  { to: "/admin/product", key: "i", label: "product", icon: <ChartNoAxesCombined {...ICON} /> },
-  { to: "/admin/clouds", key: "c", label: "clouds", icon: <Cloud {...ICON} /> },
+interface NavItem { to: string; key: string; label: string; icon?: ReactNode; also?: string[] }
+const GROUPS: Array<{ label: string; items: NavItem[] }> = [
+  { label: "analytics", items: [
+    { to: "/admin", key: "o", label: "overview", icon: <LayoutDashboard {...ICON} />, also: ["/admin/analytics"] },
+    { to: "/admin/live", key: "l", label: "live", icon: <GlobeIcon {...ICON} /> },
+    { to: "/admin/funnel", key: "f", label: "funnel", icon: <ListFilter {...ICON} /> },
+    { to: "/admin/people", key: "p", label: "people", icon: <Users {...ICON} />, also: ["/admin/users"] },
+  ] },
+  { label: "product", items: [
+    { to: "/admin/product", key: "i", label: "product", icon: <ChartNoAxesCombined {...ICON} /> },
+    { to: "/admin/retention", key: "r", label: "retention", icon: <Repeat {...ICON} /> },
+  ] },
+  { label: "ops", items: [
+    { to: "/admin/clouds", key: "c", label: "clouds", icon: <Cloud {...ICON} /> },
+    { to: "/admin/waitlist", key: "w", label: "waitlist", icon: <Inbox {...ICON} /> },
+  ] },
 ];
-const MORE = [
-  { to: "/admin/analytics", key: "s", label: "site traffic" },
-  { to: "/admin/live", key: "l", label: "live" },
-  { to: "/admin/funnel", key: "f", label: "funnel" },
-  { to: "/admin/events", key: "e", label: "events" },
-  { to: "/admin/health", key: "h", label: "health" },
-  { to: "/admin/audit", key: "a", label: "audit log" },
+const NAV = GROUPS.flatMap((group) => group.items);
+const MORE: NavItem[] = [
+  { to: "/admin/events", key: "e", label: "events", icon: <ChartNoAxesColumn size={15} strokeWidth={1.75} /> },
+  { to: "/admin/health", key: "h", label: "health", icon: <Gauge size={15} strokeWidth={1.75} /> },
+  { to: "/admin/audit", key: "a", label: "audit log", icon: <History size={15} strokeWidth={1.75} /> },
 ];
 const ALL = [...NAV, ...MORE];
-const PEOPLE_TABS = [{ to: "/admin/people", label: "accounts" }, { to: "/admin/people/visitors", label: "visitors" }, { to: "/admin/people/waitlist", label: "waitlist" }];
-const MOVED: Record<string, string> = { "/admin/users": "/admin/people", "/admin/waitlist": "/admin/people/waitlist", "/admin/app": "/admin/product/apps", "/admin/retention": "/admin/product/retention" };
+const PEOPLE_TABS = [{ to: "/admin/people", label: "accounts" }, { to: "/admin/people/visitors", label: "visitors and journeys" }];
+const MOVED: Record<string, string> = { "/admin/users": "/admin/people", "/admin/people/waitlist": "/admin/waitlist", "/admin/app": "/admin/product/apps", "/admin/product/retention": "/admin/retention" };
 const on = (path: string, item: { to: string; also?: string[] }) => [item.to, ...(item.also ?? [])].some((to) => to === "/admin" ? path === "/admin" : path === to || path.startsWith(`${to}/`));
 
 function page(path: string): ReactNode {
   if (path === "/admin") return <OverviewPage />;
-  if (path.startsWith("/admin/people")) {
-    const tabs = <Tabs label="people views" items={PEOPLE_TABS} />;
-    if (path === "/admin/people/visitors") return <PeoplePage tabs={tabs} />;
-    if (path === "/admin/people/waitlist") return <WaitlistPage tabs={tabs} />;
-    if (path === "/admin/people") return <UsersPage tabs={tabs} />;
-  }
+  const details = /^\/admin\/analytics\/([a-z]+)$/.exec(path);
+  if (details) return <DetailsPage dimension={details[1]!} />;
+  if (path === "/admin/people/visitors") return <PeoplePage tabs={<Tabs label="people views" items={PEOPLE_TABS} />} />;
+  if (path === "/admin/people") return <UsersPage tabs={<Tabs label="people views" items={PEOPLE_TABS} />} />;
   const user = /^\/admin\/users\/([^/]+)$/.exec(path);
   if (user) return <UserPage id={decodeURIComponent(user[1]!)} />;
   if (path === "/admin/product" || path.startsWith("/admin/product/")) return <ProductPage path={path} />;
+  if (path === "/admin/retention") return <RetentionPage />;
+  if (path === "/admin/waitlist") return <WaitlistPage />;
   if (path === "/admin/clouds") return <CloudsPage />;
-  if (path === "/admin/analytics") return <SitePage />;
   if (path === "/admin/funnel") return <FunnelPage />;
   if (path === "/admin/live") return <LivePage />;
   if (path === "/admin/events") return <EventsPage />;
@@ -97,6 +107,8 @@ export function AdminApp() {
   const [help, setHelp] = useState(false);
   useShortcuts(() => setHelp(true));
   const inMore = MORE.some((item) => on(path, item));
+  const theme = useTheme();
+  const dark = theme === "dark" || (theme === "system" && typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches);
   const [moreOpen, setMoreOpen] = useState(inMore);
   useEffect(() => { document.title = `${ALL.find((item) => on(path, item))?.label ?? "admin"} · dusk bot admin`; }, [path]);
   useEffect(() => { const to = MOVED[path]; if (to) navigate(to, { replace: true }); }, [path]);
@@ -118,40 +130,48 @@ export function AdminApp() {
           <span className="text-[16px] font-[550] tracking-[-0.02em] text-ink">dusk bot</span>
           <span className="tag !h-[22px] !px-2">admin</span>
         </Link>
-        <nav aria-label="admin" className="flex flex-col gap-0.5">
-          {NAV.map((item) => {
-            const active = on(path, item);
-            return (
-              <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cx("flex h-9 items-center gap-3 rounded-full px-3 text-14", active ? "bg-card font-medium text-ink" : "hover-side text-ink-2")}>
-                <span className={active ? "text-ink" : "text-ink-3"} aria-hidden>{item.icon}</span>
-                <span className="flex-1">{item.label}</span>
-                <kbd className="t-meta !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
-              </Link>
-            );
-          })}
-          <button type="button" aria-expanded={moreOpen || inMore} aria-controls="admin-more" onClick={() => setMoreOpen((v) => !v)}
-            className="hover-side mt-3 flex h-8 items-center gap-2 rounded-full px-3 text-13 text-ink-3">
-            more <ChevronDown size={14} strokeWidth={1.75} aria-hidden className={cx("transition-transform duration-150", (moreOpen || inMore) && "rotate-180")} />
-          </button>
-          {(moreOpen || inMore) && (
-            <ul id="admin-more" className="flex flex-col gap-0.5">
-              {MORE.map((item) => {
+        <nav aria-label="admin" className="flex flex-col gap-4 overflow-y-auto">
+          {GROUPS.map((group) => (
+            <div key={group.label} className="flex flex-col gap-0.5">
+              <span className="t-meta px-3 pb-1 !text-[11.5px]">{group.label}</span>
+              {group.items.map((item) => {
                 const active = on(path, item);
                 return (
-                  <li key={item.to}>
-                    <Link to={item.to} aria-current={active ? "page" : undefined} className={cx("flex h-8 items-center rounded-full px-3 text-13", active ? "bg-card font-medium text-ink" : "hover-side text-ink-3")}>
-                      <span className="flex-1">{item.label}</span><kbd className="t-meta !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
-                    </Link>
-                  </li>
+                  <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cx("flex h-9 items-center gap-3 rounded-full px-3 text-14", active ? "bg-card font-medium text-ink" : "hover-side text-ink-2")}>
+                    <span className={active ? "text-ink" : "text-ink-3"} aria-hidden>{item.icon}</span>
+                    <span className="flex-1">{item.label}</span>
+                    <kbd className="t-meta !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
+                  </Link>
                 );
               })}
-            </ul>
-          )}
+            </div>
+          ))}
+          <div className="flex flex-col gap-0.5">
+            <button type="button" aria-expanded={moreOpen || inMore} aria-controls="admin-more" onClick={() => setMoreOpen((v) => !v)}
+              className="hover-side flex h-8 items-center gap-2 rounded-full px-3 text-13 text-ink-3">
+              more <ChevronDown size={14} strokeWidth={1.75} aria-hidden className={cx("transition-transform duration-150", (moreOpen || inMore) && "rotate-180")} />
+            </button>
+            {(moreOpen || inMore) && (
+              <ul id="admin-more" className="flex flex-col gap-0.5">
+                {MORE.map((item) => {
+                  const active = on(path, item);
+                  return (
+                    <li key={item.to}>
+                      <Link to={item.to} aria-current={active ? "page" : undefined} className={cx("flex h-8 items-center gap-3 rounded-full px-3 text-13", active ? "bg-card font-medium text-ink" : "hover-side text-ink-3")}>
+                        <span aria-hidden className="text-ink-4">{item.icon}</span><span className="flex-1">{item.label}</span><kbd className="t-meta !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         </nav>
         <div className="mt-auto flex flex-col gap-1 px-1">
           {me.data && <span className="truncate px-2 text-12 text-ink-3" title={me.data.email}>{me.data.email}</span>}
           {me.data && <span className="t-meta px-2 !text-[11.5px]">{me.data.environment} · {me.data.version ?? "dev"}</span>}
-          <button type="button" onClick={() => setHelp(true)} className="hover-ghost mt-2 flex h-9 items-center rounded-full px-2 text-13 text-ink-3">keyboard shortcuts <kbd className="t-meta ms-auto !text-[11px]">?</kbd></button>
+          <button type="button" onClick={() => setTheme(dark ? "light" : "dark")} className="hover-ghost mt-2 flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3">{dark ? <Sun size={15} strokeWidth={1.75} aria-hidden /> : <Moon size={15} strokeWidth={1.75} aria-hidden />}{dark ? "light mode" : "dark mode"}</button>
+          <button type="button" onClick={() => setHelp(true)} className="hover-ghost flex h-9 items-center rounded-full px-2 text-13 text-ink-3">keyboard shortcuts <kbd className="t-meta ms-auto !text-[11px]">?</kbd></button>
           <Link to="/" className="hover-ghost flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3"><ArrowUpRight size={15} strokeWidth={1.75} aria-hidden /> your account</Link>
         </div>
       </aside>
@@ -168,7 +188,7 @@ export function AdminApp() {
         </nav>
       </header>
       <main id="admin-main" className="lg:ps-[232px]">
-        <div key={path} className="page-in mx-auto w-full max-w-[1280px] px-10 pb-24 pt-10 max-lg:px-5 max-lg:pt-6 max-sm:px-4">
+        <div key={path} className="page-in mx-auto w-full max-w-[1320px] px-10 pb-24 pt-10 max-lg:px-5 max-lg:pt-6 max-sm:px-4">
           {me.data ? page(path) : <Loading rows={8} />}
         </div>
       </main>
