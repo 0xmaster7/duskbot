@@ -62,6 +62,7 @@ LOGS_SHOWN=$LOGS
 # what this script added that was not here before (packages, apt sources, config it replaced), one line each, so
 # uninstall.sh puts back exactly that. kept apart from $STATE: a plain uninstall leaves it for a later --all.
 MANIFEST=/var/lib/duskbot/install-manifest
+INSTALL_LOCK=/run/duskbot-install.lock
 AGENT=/opt/duskbot-link/agent.mjs
 PORT=8799
 UNITS=/etc/systemd/system
@@ -347,8 +348,15 @@ apt_get_install() { # args...
   return "$_rc"
 }
 
+# a run stopped inside apt (Ctrl-C, a dropped ssh) leaves dpkg half done, and apt refuses everything until it is finished
+dpkg_heal() {
+  [ -z "$(ls -A /var/lib/dpkg/updates 2>/dev/null)" ] && [ -z "$(dpkg --audit 2>/dev/null)" ] && return 0
+  echo "finishing a package install that was interrupted"
+  x dpkg --force-confdef --force-confold --configure -a || true
+}
 apt_update() {
   [ -f "$TMP/apt-updated" ] && return 0
+  dpkg_heal
   retry apt-get -q -o DPkg::Lock::Timeout=300 update && : > "$TMP/apt-updated"
 }
 apt_install() {
@@ -476,7 +484,7 @@ report() { # step status [logfile]
 # plain words for a failed step, printed once in the terminal
 failure_words() {
   case "$1" in
-    check) say "This server can't run Dusk Bot: it needs Ubuntu or Debian on a 64-bit processor with systemd." ;;
+    check) say "This server can't run Dusk Bot as it is: the lines above say why. It needs Ubuntu 20.04+ or Debian 11+ on a 64-bit processor with systemd, 1 GB of memory, 3 GB of free disk and a correct clock." ;;
     basics) say "Couldn't install the basic tools. Check this server's internet connection and paste the line again." ;;
     user) say "Couldn't create the account your bots run under." ;;
     node) say "Couldn't install Node. Check this server's internet connection and paste the line again." ;;
@@ -566,7 +574,7 @@ step() { # id function
   rm -f "$TMP/rc"
   # the step runs in the background and leaves its exit code in $TMP/rc; the spinner draws until it appears
   if [ -n "$DEMO" ]; then run=demo_work; else run=$2; fi
-  ( ( set -e; "$run" "$1" ) </dev/null >>"$LOG" 2>&1; echo $? > "$TMP/rc" ) &
+  ( trap '' HUP; ( set -e; "$run" "$1" ) </dev/null >>"$LOG" 2>&1; echo $? > "$TMP/rc" ) &
   STEP_PID=$!
   if [ "$UI" = tty ]; then watch_step; else
     while [ ! -f "$TMP/rc" ]; do [ ! -f "$TMP/cancelled" ] || on_stop; sleep 0.5; stream_lines; done
@@ -632,12 +640,46 @@ do_check() {
   # shellcheck disable=SC1091
   . /etc/os-release
   case "${ID:-}" in ubuntu|debian) ;; *) echo "unsupported system: ${ID:-unknown}"; return 1 ;; esac
+  major=${VERSION_ID%%.*}
+  case "$ID" in
+    ubuntu) [ "${major:-0}" -ge 20 ] 2>/dev/null || { echo "Ubuntu ${VERSION_ID:-unknown} is too old: Dusk Bot needs Ubuntu 20.04 or newer"; return 1; } ;;
+    debian) [ "${major:-0}" -ge 11 ] 2>/dev/null || { echo "Debian ${VERSION_ID:-unknown} is too old: Dusk Bot needs Debian 11 or newer"; return 1; } ;;
+  esac
   [ -d /run/systemd/system ] || { echo "systemd is not running"; return 1; }
   echo "memory: $(awk '/MemTotal/ { printf "%d MB", $2 / 1024 }' /proc/meminfo)"
+  # npm installing the server and the engines is what needs the most; below this the kernel ends it part way
+  mem_mb=$(awk '/^(MemTotal|SwapTotal):/ { kb += $2 } END { printf "%d", kb / 1024 }' /proc/meminfo)
+  if [ "${mem_mb:-0}" -lt "${DUSK_MIN_MEMORY_MB:-900}" ]; then echo "needs at least 1 GB of memory (memory and swap together: ${mem_mb} MB)"; return 1; fi
+  clock_check
   free_kb=$(df -Pk / | awk 'NR == 2 { print $4 }')
   echo "free disk: $((free_kb / 1024)) MB"
   if [ "$free_kb" -lt 3000000 ]; then echo "needs at least 3 GB of free disk"; return 1; fi
   echo "system: ${PRETTY_NAME:-$ID} ($arch)"
+}
+
+# the app refuses tunnel frames more than 5 minutes off its own clock (FRAME_SKEW_MS in agent.mjs), so a server whose
+# clock drifted would link and then never answer
+clock_skew() { # -> seconds this clock is ahead of the link service's (negative: behind), nothing when unknown
+  _date=$(curl -sS --proto "$PROTO" --proto-redir "$PROTO" -m 10 -o /dev/null -D - "$LINK_BASE/v1/ip" 2>/dev/null | tr -d '\r' | sed -n 's/^[Dd]ate: *//p' | head -n 1)
+  [ -n "$_date" ] || return 0
+  _theirs=$(date -u -d "$_date" +%s 2>/dev/null) || return 0
+  echo $(($(date -u +%s) - _theirs))
+}
+clock_check() {
+  skew=$(clock_skew)
+  [ -n "$skew" ] || return 0
+  [ "${skew#-}" -gt 30 ] || return 0
+  echo "this server's clock is ${skew#-} seconds $( [ "$skew" -gt 0 ] && echo ahead || echo behind ); turning on time sync"
+  x timedatectl set-ntp true 2>&1 || true
+  _i=0
+  while [ "$_i" -lt 30 ]; do
+    sleep 3; _i=$((_i + 3))
+    skew=$(clock_skew)
+    [ -n "$skew" ] && [ "${skew#-}" -le 30 ] && { echo "clock synced"; return 0; }
+  done
+  [ -z "$skew" ] || [ "${skew#-}" -le 240 ] && return 0
+  echo "this server's clock is still ${skew#-} seconds off, and the app refuses messages that far out; set the time (timedatectl set-ntp true, or your provider's time settings) and paste the line again"
+  return 1
 }
 
 do_basics() {
@@ -952,17 +994,17 @@ update_settle() {
     done
     [ "$result" = passed ] || ok=0
   fi
-  state_set update-pending ""
-  if [ "$ok" = 1 ]; then echo "Updated to $pending"; return 0; fi
+  if [ "$ok" = 1 ]; then state_set update-pending ""; echo "Updated to $pending"; return 0; fi
   prev=$(state_get package-prev)
   file="$SVC_HOME/.cache/duskbot-link/duskbot-${prev#sha256:}.tgz"
   case "$prev" in sha256:*) [ -f "$file" ] || prev="" ;; *) prev="" ;; esac
-  if [ -z "$prev" ]; then echo "the update to $pending did not pass its self-test and there is no build here to go back to"; return 1; fi
+  if [ -z "$prev" ]; then state_set update-pending ""; echo "the update to $pending did not pass its self-test and there is no build here to go back to"; return 1; fi
   echo "the update to $pending did not pass its self-test: going back to the build before"
   failed=$(state_get update-failed)
-  state_set update-failed "$(printf '%s\n' ${failed:+$(printf '%s' "$failed" | tr ',' ' ')} "$pending" | tail -n 20 | paste -sd, -)"
-  retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" "$file" || return 1
-  state_set package "$prev"; state_set package-prev ""
+  case ",$failed," in *",$pending,"*) ;; *) state_set update-failed "$(printf '%s\n' ${failed:+$(printf '%s' "$failed" | tr ',' ' ')} "$pending" | tail -n 20 | paste -sd, -)" ;; esac
+  # update-pending stays until the build before is back, so a stop here rolls back again on the next run
+  install_build "$prev" "$file" || return 1
+  state_set package-prev ""; state_set update-pending ""
   x systemctl restart duskbot.service
   if wait_health "http://127.0.0.1:$PORT/api/health" 120; then echo "Update rolled back, nothing lost"; return 0; fi
   return 1
@@ -981,12 +1023,16 @@ do_app() {
     state_set package "npm:$DUSK_PACKAGE"
     return 0
   fi
+  half=$(state_get app-installing)
+  if [ -n "$half" ] && [ "$half" != "sha256:$PKG_SHA" ]; then
+    if finish_interrupted; then :; else [ $? -eq 2 ] && [ -n "$PKG_SHA" ] || return 1; fi
+  fi
   if [ -z "$PKG_SHA" ]; then
     if [ -x "$bin" ] && [ "$OFFLINE" = 1 ]; then echo "keeping the installed build ($(state_get package))"; return 0; fi
     echo "the link service has no Dusk Bot build to hand out yet"
     return 1
   fi
-  if [ -x "$bin" ] && [ "$(state_get package)" = "sha256:$PKG_SHA" ]; then echo "already installed: build ${PKG_SHA%"${PKG_SHA#????????????}"}"; return 0; fi
+  if [ -x "$bin" ] && [ "$(state_get package)" = "sha256:$PKG_SHA" ] && [ -z "$(state_get app-installing)" ]; then echo "already installed: build ${PKG_SHA%"${PKG_SHA#????????????}"}"; return 0; fi
   cache="$SVC_HOME/.cache/duskbot-link"
   install -d -o "$SVC_USER" -g "$SVC_USER" -m 0700 "$cache"
   file="$cache/duskbot-$PKG_SHA.tgz"
@@ -1003,13 +1049,34 @@ do_app() {
   prev=$(state_get package)
   # the build before stays cached: it is what a failed update goes back to
   find "$cache" -name 'duskbot-*.tgz*' ! -name "duskbot-$PKG_SHA.tgz" ! -name "duskbot-$PKG_SHA.tgz.part" ! -name "duskbot-${prev#sha256:}.tgz" -exec rm -f {} + 2>/dev/null || true
-  retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" "$file"
-  [ -x "$bin" ] || { echo "duskbot is missing after install"; return 1; }
-  state_set package "sha256:$PKG_SHA"
-  case "$verdict" in *" signed") state_set signed 1 ;; esac
+  # noted before npm touches anything: a run stopped part way still settles or rolls back this update next time
   if [ -n "$prev" ] && [ "$prev" != "sha256:$PKG_SHA" ]; then
     state_set package-prev "$prev"; state_set update-pending "$(printf '%s' "$verdict" | cut -d' ' -f2)"
   fi
+  case "$verdict" in *" signed") state_set signed 1 ;; esac
+  install_build "sha256:$PKG_SHA" "$file"
+}
+
+# npm replaces the installed files in place, so a stop part way leaves a mix: app-installing says which build was going
+# in, and the next run (a repair without a line too) finishes it from the verified download
+install_build() { # sha256:<hex> file
+  state_set app-installing "$1"
+  retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" "$2" || return 1
+  [ -x "$SVC_HOME/.local/bin/duskbot" ] || { echo "duskbot is missing after install"; return 1; }
+  state_set package "$1"
+  state_set app-installing ""
+}
+finish_interrupted() {
+  half=$(state_get app-installing)
+  [ -n "$half" ] || return 1
+  file="$SVC_HOME/.cache/duskbot-link/duskbot-${half#sha256:}.tgz"
+  if [ -f "$file" ] && [ "sha256:$(sha256sum "$file" | cut -d' ' -f1)" = "$half" ]; then
+    echo "finishing the install of build ${half#sha256:} that stopped part way"
+    install_build "$half" "$file"
+    return
+  fi
+  echo "the install of build ${half#sha256:} stopped part way and its download is gone; make a new line in the app and paste it here"
+  return 2
 }
 
 do_engines() {
@@ -1262,6 +1329,13 @@ ssh_guard() {
   return "$changed"
 }
 
+# something other than our server listening on its port: the server cannot start, and the log alone does not say so
+port_owner() {
+  owner=$(ss -Hltnp "sport = :$PORT" 2>/dev/null | sed -n 's/.*users:(("\([^"]*\)",pid=\([0-9]*\).*/\1 \2/p' | head -n 1)
+  [ -n "$owner" ] || return 0
+  [ "$(ps -o user= -p "${owner#* }" 2>/dev/null | tr -d ' ')" = "$SVC_USER" ] && return 0
+  echo "port $PORT here is taken by ${owner% *} (pid ${owner#* }), not Dusk Bot: stop it, then paste the line again"
+}
 do_service() {
   reload=1
   get_gate || true
@@ -1278,6 +1352,7 @@ do_service() {
   show curl "http://127.0.0.1:$PORT/api/health"
   if wait_health "http://127.0.0.1:$PORT/api/health" 120; then echo "server answers on 127.0.0.1:$PORT"; update_settle 1 && return 0; return 1; fi
   echo "the server did not answer on 127.0.0.1:$PORT within two minutes"
+  port_owner
   journalctl -u duskbot.service -n 30 --no-pager 2>/dev/null || true
   update_settle 0 && return 0
   return 1
@@ -1285,7 +1360,7 @@ do_service() {
 
 get_agent() {
   install -d -o root -g root -m 0755 /opt/duskbot-link
-  if fetch "$LINK_BASE/agent.mjs" "$TMP/agent.mjs"; then
+  if fetch "$LINK_BASE/agent.mjs" "$TMP/agent.mjs" && /usr/bin/node --check "$TMP/agent.mjs"; then
     install -o root -g root -m 0644 "$TMP/agent.mjs" "$AGENT"
   elif [ ! -f "$AGENT" ]; then
     echo "could not download the link agent"; return 1
@@ -1707,16 +1782,20 @@ finale() {
 claim() {
   arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
   # shellcheck disable=SC1091
-  os=$(. /etc/os-release 2>/dev/null && echo "${ID:-unknown}-${VERSION_ID:-}")
+  os=$([ -r /etc/os-release ] && . /etc/os-release && echo "${ID:-unknown}-${VERSION_ID:-}") || os=unknown
   n=0
   while :; do
     status=$(curl -sS --proto "$PROTO" --proto-redir "$PROTO" -m 20 -o "$TMP/claim" -w '%{http_code}' -X POST -H "authorization: Bearer $VPS_TOKEN" \
       -H "content-type: application/json" --data "{\"host\":{\"arch\":\"$arch\",\"os\":\"$os\"}}" \
-      "$LINK_BASE/v1/sessions/$LINK_ID/claim" 2>/dev/null) || status=000
+      "$LINK_BASE/v1/sessions/$LINK_ID/claim" 2>/dev/null) && rc=0 || { rc=$?; status=000; }
     case "$status" in 000|5*) ;; *) break ;; esac
     n=$((n + 1))
     if [ "$n" -ge 3 ]; then
-      fail_line "Can't reach the link service. Check this server's internet connection and paste the line again."
+      # curl 35 and 60: the certificate check failed, which a clock far off the real time does to every https site
+      case "$rc" in
+        35|60) fail_line "Can't check the link service's certificate. This server's clock says $(date -u '+%Y-%m-%d %H:%M UTC'); if that is wrong, run: timedatectl set-ntp true, then paste the line again." ;;
+        *) fail_line "Can't reach the link service. Check this server's internet connection and paste the line again." ;;
+      esac
       exit 1
     fi
     sleep $((n * 5))
@@ -1737,6 +1816,10 @@ claim() {
       image=$(sed -n 's/.*"desktop":{[^}]*"image":"\([A-Za-z0-9._/:-]\{1,200\}\)".*/\1/p' "$TMP/claim" | head -n 1)
       [ -n "$BOT_DESKTOP_IMAGE" ] || BOT_DESKTOP_IMAGE=$image ;;
     410|404)
+      # linked at the service, but this run stopped before it noted that (or the result's answer was lost)
+      if [ -z "$(state_get linked)" ] && [ "$status" = 410 ] && grep -q '"code":"used"' "$TMP/claim" && [ "$(state_get id)" = "$LINK_ID" ] && [ "$(tunnel_id)" = "$LINK_ID" ]; then
+        state_set linked "$LINK_ID"
+      fi
       if [ -n "$(state_get linked)" ]; then
         OFFLINE=1
         [ -n "$BOT_DESKTOP_IMAGE" ] || BOT_DESKTOP_IMAGE=$(state_get desktop-image)
@@ -1750,9 +1833,28 @@ claim() {
   esac
 }
 
+tunnel_id() { sed -n 's/^{"v":1,"base":"[^"]*","id":"\([a-z2-7]\{10\}\)".*/\1/p' "$LINK_HOME/.config/duskbot-link/tunnel.json" 2>/dev/null | head -n 1; }
+
 on_exit() {
   [ "$UI" = tty ] && printf '%s[?25h' "$ESC"
   rm -rf "$TMP"
+}
+# the ssh connection dropped: the install goes on to the end, reporting to the app as before, and what it would have
+# printed goes to its log
+on_hangup() {
+  trap '' HUP
+  exec >>"$LOGS/install.log" 2>&1 </dev/null
+  UI=plain LIST=0 R="" BOLD="" DIM="" OK="" ACC="" WARN="" ERR="" SHADOW="" FAINT="" EL=""
+}
+# one install, repair or uninstall at a time (uninstall.sh takes the same lock); the steps' processes inherit it, so a
+# step still running after its terminal went away keeps it too
+take_lock() {
+  [ -z "${LOCKED:-}" ] || return 0
+  command -v flock >/dev/null 2>&1 && ( : >>"$INSTALL_LOCK" ) 2>/dev/null || return 0
+  exec 9>>"$INSTALL_LOCK"
+  flock -n 9 && LOCKED=1 && return 0
+  fail_line "Dusk Bot is already being installed or removed on this server (another terminal, or one whose connection dropped). Wait for it to finish, then paste the line again. The log: $LOGS/install.log"
+  exit 1
 }
 on_stop() {
   trap '' INT TERM
@@ -1778,7 +1880,7 @@ on_stop() {
 intro() {
   if [ -n "$DEMO" ]; then SYS="Ubuntu 24.04.3 LTS" ARCH=arm64; else
     # shellcheck disable=SC1091
-    SYS=$(. /etc/os-release 2>/dev/null && printf '%s' "${PRETTY_NAME:-${ID:-linux}}")
+    SYS=$([ -r /etc/os-release ] && . /etc/os-release && printf '%s' "${PRETTY_NAME:-${ID:-linux}}") || SYS=linux
     ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m)
   fi
   who="session ${LINK_ID}"
@@ -1795,7 +1897,7 @@ main() {
     TOKEN="demodemoab-$(printf '%026d' 0 | tr 0 a)"
   fi
   # a server set up before the rename moves to the new names before anything here reads them
-  if [ -z "$DEMO" ] && [ "$(id -u)" -eq 0 ]; then MIGRATED=$(migrate_legacy 2>&1) || true; fi
+  if [ -z "$DEMO" ] && [ "$(id -u)" -eq 0 ]; then take_lock; MIGRATED=$(migrate_legacy 2>&1) || true; fi
   # `sh install.sh --repair` as root: an install that is already linked, checked and brought up to date without a line
   if [ "$TOKEN" = "--repair" ]; then
     [ "$(id -u)" -eq 0 ] || become_root
@@ -1813,6 +1915,7 @@ main() {
     fail_line "This line is missing its code. Copy the whole line from the app."; exit 1
   fi
   [ -n "$DEMO" ] || become_root
+  [ -n "$DEMO" ] || take_lock
   umask 022
   TMP=$(mktemp -d)
   PROGRESS="$TMP/progress"
@@ -1823,6 +1926,7 @@ main() {
   ui_init
   trap on_exit EXIT
   trap on_stop INT TERM
+  trap on_hangup HUP
   [ "$UI" = tty ] && printf '%s[?25l' "$ESC"
   if [ -z "$DEMO" ]; then
     command -v curl >/dev/null 2>&1 || apt_install curl ca-certificates </dev/null >/dev/null

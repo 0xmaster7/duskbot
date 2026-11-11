@@ -869,8 +869,19 @@ on_stop() {
   exit 130
 }
 
+# the lock install.sh holds while it runs: never remove what an install is still writing
+INSTALL_LOCK=/run/duskbot-install.lock
+take_lock() {
+  command -v flock >/dev/null 2>&1 && ( : >>"$INSTALL_LOCK" ) 2>/dev/null || return 0
+  exec 9>>"$INSTALL_LOCK"
+  flock -n 9 && return 0
+  printf '\nDusk Bot is being installed on this server right now (another terminal, or one whose connection dropped). Wait for it to finish, then run this again.\n\n' >&2
+  exit 1
+}
+
 main() {
   become_root
+  [ "$DRY" = 1 ] || take_lock
   umask 077
   TMP=$(mktemp -d)
   mkdir -p "$TMP/logs"
