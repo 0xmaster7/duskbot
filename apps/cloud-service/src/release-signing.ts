@@ -1,4 +1,4 @@
-// Release artifacts (the home package, the template snapshot) are signed in CI with an Ed25519 release key. The service
+// Release artifacts (the home package, the desktop kit) are signed in CI with an Ed25519 release key. The service
 // checks the signature before it hands a package to a machine, and the machine checks it again before it installs, with
 // the same pinned public keys. A signature binds the artifact's sha256, its kind and version, so a valid signature for
 // one artifact never vouches for another.
@@ -6,7 +6,7 @@ import { createPrivateKey, createPublicKey, sign, verify } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 export interface ReleaseKey { kid: string; x: string }
-export type ReleaseKind = "home-package" | "template" | "desktop" | "vps-package" | "update-policy";
+export type ReleaseKind = "home-package" | "desktop" | "vps-package" | "update-policy";
 export interface ReleaseManifest { v: 1; kind: ReleaseKind; name: string; version: string; sha256: string; signedAt: number }
 
 /** CI's release keys, newest first; ship the next one here before CI signs with it */

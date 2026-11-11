@@ -5,7 +5,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { makeTar, tarEntries } from "./backups.ts";
-import { INSTABOX_RESTORE_FILE, INSTABOX_SETUP_STATUS, INSTABOX_SNAPSHOT_FILE } from "./instabox-home.ts";
+import { INSTABOX_RESTORE_FILE, INSTABOX_SETUP_STATUS, INSTABOX_SNAPSHOT_FILE } from "./home.ts";
 
 export interface FakeMachine {
   id: string; name: string; state: string; ready: boolean; metadata: Record<string, string>; vcpus: number; memMiB: number; template: string | null; snapshotId: string | null;
@@ -19,7 +19,7 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
   const machines = new Map<string, FakeMachine>(), operations = new Map<string, Record<string, unknown>>(), snapshots = new Map<string, { id: string; name: string; status: string; createdAt: number; source: string }>();
   const requests: Array<{ method: string; path: string; body: unknown; headers: Record<string, string | string[] | undefined> }> = [];
   const idem = new Map<string, unknown>();
-  let failNext = 0, limitNext = 0, coldResume = false, refuseResume: string | null = null;
+  let failNext = 0, limitNext = 0, busyNext = 0, startsBlockedUntil = 0, coldResume = false, refuseResume: string | null = null;
   const alphabet = "abcdefghijklmnopqrstuvwxyz234567";
   const ident = (prefix: string) => `${prefix}_${Array.from(randomBytes(26), b => alphabet[b % alphabet.length]).join("")}`;
   const iso = (t: number) => new Date(t).toISOString();
@@ -50,7 +50,7 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
       if (!tar) return { exitCode: 2, stdout: "not a home backup\n" };
       const entries = tarEntries(tar).filter(e => e.type === "0");
       if (!entries.some(e => e.name.endsWith(".omb-cloud-home.json"))) return { exitCode: 2, stdout: "not a home backup\n" };
-      machine.volume = new Map(entries.map(e => [e.name.replace(/^(?:__system__\/)?/, "").replace(/^(?:\.\/)?/, ""), e.data]));
+      machine.volume = new Map(entries.map(e => [e.name.replace(/^(?:\.\/)?/, ""), e.data]));
       machine.files.delete(INSTABOX_RESTORE_FILE);
       return { exitCode: 0, stdout: "restored\n" };
     }
@@ -81,6 +81,12 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
     requests.push({ method, path: `${path}${url.search}`, body: isFile ? `<${raw.length} bytes>` : body, headers: req.headers });
     if (failNext > 0) { failNext--; return error(res, 503, "host_unavailable"); }
     if (limitNext > 0) { limitNext--; res.writeHead(429, { "content-type": "application/json", "retry-after": "40" }); res.end(JSON.stringify({ error: { code: "rate_limited", retryable: true, retryAfterSeconds: 40 } })); return; }
+    // the workspace's start limit: every start (create, start, resume) is refused until then, with the seconds left
+    if (method === "POST" && startsBlockedUntil > now() && (path === "/v1/machines" || /\/(start|resume)$/.test(path))) {
+      const seconds = Math.ceil((startsBlockedUntil - now()) / 1000);
+      res.writeHead(429, { "content-type": "application/json", "retry-after": String(seconds) }); res.end(JSON.stringify({ error: { code: "rate_limited", retryable: true, retryAfterSeconds: seconds } })); return;
+    }
+    if (busyNext > 0 && method === "POST" && /\/(start|resume|suspend|stop)$/.test(path)) { busyNext--; return error(res, 409, "operation_conflict"); }
     const needsKey = method !== "GET" && /\/(machines|suspend|resume|start|stop|snapshots)$/.test(path) || (method === "DELETE" && /^\/v1\/(machines|snapshots)\/[^/]+$/.test(path)) || (method === "PATCH");
     const idemKey = req.headers["idempotency-key"];
     if (needsKey && !idemKey) return error(res, 400, "bad_request", { message: "Idempotency-Key required" });
@@ -185,6 +191,10 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
     baseUrl: `http://127.0.0.1:${port}`, key, machines, requests, snapshots,
     failNext(count: number) { failNext = count; },
     limitNext(count: number) { limitNext = count; },
+    /** every start is refused for the workspace's start limit until this time */
+    limitStartsUntil(at: number) { startsBlockedUntil = at; },
+    /** the next power changes find another operation running on the machine */
+    busyNext(count: number) { busyNext = count; },
     /** resumes cannot restore memory: the machine boots fresh (`processesPreserved: false`) */
     coldResume(on = true) { coldResume = on; },
     /** this machine's resumes are refused with a cooldown */

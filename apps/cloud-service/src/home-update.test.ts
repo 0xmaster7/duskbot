@@ -1,15 +1,16 @@
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, createPublicKey, generateKeyPairSync } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { boatControlScript } from "./home.ts";
+import { DESKTOP_IMAGE_STATUS, homeControlScript, homeSetupScript, HOME_CONTROL } from "./home.ts";
 import type { HomeRelease } from "./home-update.ts";
 import { signRelease, type ReleaseKey } from "./release-signing.ts";
 import { createPolicySource, signPolicy, verifyPolicy } from "./update-policy.ts";
-import { boatFixture, cleanup } from "./test-fixture.ts";
+import { homeFixture, cleanup } from "./test-fixture.ts";
 import type { StoredCloud } from "../../dashboard/server/clouds/types.ts";
 
 const { privateKey } = generateKeyPairSync("ed25519");
@@ -24,9 +25,9 @@ async function updating(options: { policy?: { serial: number; floor: string | nu
   const dir = mkdtempSync(join(tmpdir(), "dusk-policy-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
   const policyFile = join(dir, "policy.json");
   if (options.policy) writeFileSync(policyFile, JSON.stringify(signPolicy(options.policy, signing)));
-  const f = await boatFixture({ releaseKeys: keys, settings: { package: release("1.0.0") }, release: () => offered, updatePolicy: createPolicySource(policyFile, keys, () => {}) });
+  const f = await homeFixture({ releaseKeys: keys, settings: { package: release("1.0.0") }, release: () => offered, updatePolicy: createPolicySource(policyFile, keys, () => {}) });
   const { c } = await f.paid();
-  const commands = () => f.api.requests.filter(r => r.path.endsWith("/commands")).map(r => (r.body as { command: string }).command);
+  const commands = () => f.api.requests.filter(r => r.path.endsWith("/exec")).map(r => (r.body as { cmd: string }).cmd);
   const actions = () => f.audit.entries(c.id).filter(e => e.action.startsWith("update_") && e.action !== "update_policy").map(e => `${e.action}:${e.reason}`);
   /** one reconcile with the home's power read due */
   const pass = async () => { f.advance(61_000); c.nextAttemptAt = 0; await f.service.reconcile(); };
@@ -168,16 +169,27 @@ describe("omb-home on the machine", () => {
   function machine() {
     const dir = mkdtempSync(join(tmpdir(), "dusk-machine-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
     const bin = join(dir, "stub"); mkdirSync(bin);
-    for (const name of ["systemctl", "chown"]) { writeFileSync(join(bin, name), "#!/bin/sh\nexit 0\n"); chmodSync(join(bin, name), 0o755); }
+    writeFileSync(join(bin, "chown"), "#!/bin/sh\nexit 0\n"); chmodSync(join(bin, "chown"), 0o755);
+    // systemctl records what it was asked; docker has the image once `have-image` exists, and its registry refuses a pull
+    writeFileSync(join(bin, "systemctl"), `#!/bin/sh\necho "$*" >> ${join(dir, "systemctl.log")}\nexit 0\n`); chmodSync(join(bin, "systemctl"), 0o755);
+    writeFileSync(join(bin, "docker"), `#!/bin/sh\necho "$*" >> ${join(dir, "docker.log")}\ncase "$1 $2" in "image inspect") [ -f ${join(dir, "have-image")} ]; exit $? ;; esac\n[ "$1" = pull ] && exit 1\nexit 0\n`); chmodSync(join(bin, "docker"), 0o755);
     writeFileSync(join(bin, "install"), "#!/bin/sh\nwhile [ $# -gt 1 ]; do case \"$1\" in -d) ;; -o|-g|-m) shift ;; *) mkdir -p \"$1\" ;; esac; shift; done\n[ -z \"$1\" ] || mkdir -p \"$1\"\n");
     chmodSync(join(bin, "install"), 0o755);
     // macOS has no gnu sha256sum
     if (process.platform === "darwin") { writeFileSync(join(bin, "sha256sum"), "#!/bin/sh\nexec shasum -a 256 \"$@\"\n"); chmodSync(join(bin, "sha256sum"), 0o755); }
-    const script = boatControlScript({ releaseKeys: keys, requireSigned: true }).replaceAll(CLOUD_HOME.root, join(dir, "root")).replaceAll(`${join(dir, "root")}/node/bin/node`, process.execPath);
+    const script = homeControlScript({ releaseKeys: keys, requireSigned: true }).replaceAll("/var/run/docker.sock", join(dir, "docker.sock")).replaceAll("/var/log/omb-desktop-image.log", join(dir, "desktop.log"))
+      .replaceAll(CLOUD_HOME.run, join(dir, "run")).replaceAll(CLOUD_HOME.root, join(dir, "root")).replaceAll(`${join(dir, "root")}/node/bin/node`, process.execPath);
     writeFileSync(join(dir, "omb-home"), script); mkdirSync(join(dir, "root"), { recursive: true });
-    const pkg = (v: string) => {
+    const pkg = (v: string, kit = false) => {
       const stage = join(dir, `stage-${v}`); mkdirSync(join(stage, "dist-server"), { recursive: true });
       writeFileSync(join(stage, "dist-server", "cloud-home-start.js"), `// ${v}\n`);
+      if (kit) {
+        // the bot computer kit as the package carries it: its build script stands in for `docker build`
+        mkdirSync(join(stage, "deploy", "bot-desktop"), { recursive: true }); mkdirSync(join(stage, "shared"));
+        writeFileSync(join(stage, "deploy", "bot-desktop", "Dockerfile"), "ARG BOT_DESKTOP_VERSION=3\n");
+        writeFileSync(join(stage, "deploy", "bot-desktop", "build.sh"), `[ -f ${join(dir, "fail-build")} ] && exit 1\necho "$IMAGE" > ${join(dir, "built")}\n`);
+        writeFileSync(join(stage, "shared", "bot-desktop.ts"), 'export const BOT_DESKTOP_VERSION = "3";\nexport const BOT_DESKTOP_IMAGE = "ghcr.io/sidddevz/omb-bot-desktop:v3";\n');
+      }
       const file = join(dir, `pkg-${v}.tgz`); execFileSync("tar", ["-czf", file, "-C", stage, "."], { env: { ...process.env, COPYFILE_DISABLE: "1" } });
       const sum = createHash("sha256").update(readFileSync(file)).digest("hex");
       return { file, sum, sig: signRelease({ kind: "home-package", name: "omb-home", version: v, sha256: sum, signedAt: 1 }, signing) };
@@ -187,7 +199,11 @@ describe("omb-home on the machine", () => {
       catch (error) { return String((error as { stdout?: string }).stdout ?? "").trim().split("\n").at(-1)!; }
     };
     const running = () => readFileSync(join(dir, "root", "app", "dist-server", "cloud-home-start.js"), "utf8").trim();
-    return { dir, pkg, run, running };
+    const status = () => { try { return readFileSync(join(dir, "run", DESKTOP_IMAGE_STATUS.split("/").at(-1)!), "utf8").trim(); } catch { return null; } };
+    const asked = () => { try { return readFileSync(join(dir, "systemctl.log"), "utf8"); } catch { return ""; } };
+    /** a docker daemon socket, so the script sees a machine with docker */
+    const docker = () => new Promise<void>(resolve => { const server = createServer().listen(join(dir, "docker.sock"), () => resolve()); cleanup.push(() => new Promise<void>(r => server.close(() => r()))); });
+    return { dir, pkg, run, running, status, asked, docker };
   }
 
   it("installs a newer signed package, refuses an older one or one below the floor, and rolls back to the one before", () => {
@@ -209,5 +225,63 @@ describe("omb-home on the machine", () => {
     expect(readFileSync(join(m.dir, "root", "installed"), "utf8").trim()).toBe(v1.sum);
     expect(m.run("rollback")).toBe("nothing to roll back to");
     expect(existsSync(join(m.dir, "root", "app.prev"))).toBe(false);
+  });
+
+  it("makes the bot computers' image ready without anyone's step: install starts its unit without waiting, and the unit builds from the package's kit when the registry refuses", async () => {
+    const m = machine();
+    await m.docker();
+    const v1 = m.pkg("1.0.0", true);
+    expect(m.run("install", v1.file, v1.sum, v1.sig)).toBe("installed");
+    expect(m.asked()).toContain("start --no-block omb-desktop-image.service");
+    expect(m.asked()).toContain("enable omb-desktop-image.service");
+    // the unit's own run: the pull is refused, the kit builds the image under the name the app looks for
+    expect(m.run("desktop-image")).toBe("ready");
+    // the home's server, not root, reads it: under the script's umask it would be root's alone
+    expect(statSync(join(m.dir, "run", DESKTOP_IMAGE_STATUS.split("/").at(-1)!)).mode & 0o777).toBe(0o644);
+    expect(readFileSync(join(m.dir, "built"), "utf8").trim()).toBe("ghcr.io/sidddevz/omb-bot-desktop:v3");
+    expect(readFileSync(join(m.dir, "docker.log"), "utf8")).toContain("pull -q ghcr.io/sidddevz/omb-bot-desktop:v3");
+    expect(m.status()).toBe("ready");
+    // once there, nothing is pulled or built again, and a start does not start the unit
+    rmSync(join(m.dir, "built")); writeFileSync(join(m.dir, "have-image"), "");
+    expect(m.run("desktop-image")).toBe("ready");
+    expect(existsSync(join(m.dir, "built"))).toBe(false);
+    rmSync(join(m.dir, "systemctl.log"));
+    m.run("start", "https://a.example.test", "https://b.example.test");
+    expect(m.asked()).not.toContain("omb-desktop-image");
+  });
+
+  it("a failed image build says so to the home, and a later start tries it again in the background", async () => {
+    const m = machine();
+    await m.docker();
+    const v1 = m.pkg("1.0.0", true);
+    expect(m.run("install", v1.file, v1.sum, v1.sig)).toBe("installed");
+    writeFileSync(join(m.dir, "fail-build"), "");
+    expect(m.run("desktop-image")).toBe("build failed");
+    expect(m.status()).toBe("failed");
+    rmSync(join(m.dir, "systemctl.log"));
+    m.run("start", "https://a.example.test", "https://b.example.test");
+    expect(m.asked()).toContain("start --no-block omb-desktop-image.service");
+  });
+
+  it("a machine without docker never starts the image unit", () => {
+    const m = machine();
+    const v1 = m.pkg("1.0.0", true);
+    expect(m.run("install", v1.file, v1.sum, v1.sig)).toBe("installed");
+    expect(m.asked()).not.toContain("omb-desktop-image");
+  });
+});
+
+describe("the machine's setup", () => {
+  it("installs the bot computer image unit beside the gate and tells the home where its status is", () => {
+    const setup = homeSetupScript();
+    expect(setup).toContain("/etc/systemd/system/omb-desktop-image.service");
+    const unit = setup.slice(setup.indexOf("<<'DUSK_DESKTOP'"), setup.indexOf("DUSK_DESKTOP\n", setup.indexOf("<<'DUSK_DESKTOP'") + 20));
+    expect(unit).toContain(`ExecStart=${HOME_CONTROL} desktop-image`);
+    expect(unit).toContain("Restart=on-failure");
+    expect(unit).toContain("Type=oneshot");
+    expect(unit).toMatch(/Nice=\d+/);
+    expect(setup).toContain(`DUSK_BOT_DESKTOP_HOST_BUILD: "${DESKTOP_IMAGE_STATUS}"`);
+    // the gate never builds: only root's unit does, from the signed package's kit
+    expect(homeControlScript()).toContain('sh "$kit/build.sh"');
   });
 });

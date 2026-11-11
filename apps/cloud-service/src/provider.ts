@@ -11,27 +11,15 @@ export interface MachineRecord {
   scope: string | null;
   type: string | null;
   stoppedAt: number | null;
-  dataExpired: boolean;
   setup: "pending" | "running" | "done" | "failed" | null;
-  stopFailing: boolean;
-  snapshotAt: number | null;
   createdAt: number | null;
 }
 export interface MachineCommandResult { ok: boolean; exitCode: number | null; stdout: string }
 export interface MachineDeletion { id: string; status: "pending" | "processing" | "blocked" | "completed" }
 export interface MachineCreateInput extends CreateServerInput {
   files?: Array<{ path: string; content: string }>;
-  from?: string;
   ttlSeconds: number | null;
   attempt?: number;
-}
-export interface NamedSnapshot { name: string; status: "saving" | "ready" | "failed" | string; createdAt: number | null }
-/** what a provider can do beyond the Boat model; absent means no */
-export interface ProviderCapabilities {
-  /** "off" keeps memory and processes, "on" continues where it left off */
-  memoryPause?: boolean;
-  /** `latestSnapshot` and `snapshotTar` read a consistent volume from a running machine (never from a sleeping one) */
-  liveBackup?: boolean;
 }
 /** what the provider measured for one machine over a window */
 export interface MachineUsage { from: number; to: number; runningSeconds: number; vcpuSeconds: number; memGiBSeconds: number; diskGiBSeconds: number; egressBytes: number }
@@ -51,13 +39,8 @@ export interface MachineProvider extends CloudProvider {
   upload(serverId: string, path: string, body: Uint8Array): Promise<void>;
   deletion(operationId: string): Promise<MachineDeletion | null>;
   requestDelete(serverId: string): Promise<{ operationId: string | null; gone: boolean }>;
-  namedSnapshots(): Promise<NamedSnapshot[]>;
-  namedSnapshot(name: string): Promise<NamedSnapshot | null>;
-  saveNamedSnapshot(serverId: string, name: string): Promise<void>;
-  deleteNamedSnapshot(name: string): Promise<void>;
-  limits?(): Promise<{ nextStartCents: number | null } | null>;
-  readonly capabilities?: ProviderCapabilities;
-  usage?(serverId: string, from?: number): Promise<MachineUsage | null>;
+  limits(): Promise<{ nextStartCents: number | null } | null>;
+  usage(serverId: string, from?: number): Promise<MachineUsage | null>;
 }
 
 export class ProviderError extends Error {
@@ -95,5 +78,6 @@ export interface MachineImage {
   restoreCommand: string;
   /** back to the app the last install replaced (prints "rolled back") */
   rollbackCommand: string;
-  legacyBackupKey(secret: string): Buffer;
+  /** prints the bot computers' image state: ready, building, failed or none */
+  desktopStatusCommand: string;
 }

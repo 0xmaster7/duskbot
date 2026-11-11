@@ -1,18 +1,17 @@
-// Independent review tests (w13/boat-test): paths the merged suite does not try.
+// an independent review of paths the lifecycle tests do not try
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import type { StoredSubscription } from "../../dashboard/server/billing/store.ts";
-import { createBoatProvider } from "./boat.ts";
+import { createInstaboxProvider } from "./instabox.ts";
 import { createAudit } from "./audit.ts";
-import { boatBackupKey, createBackupStore, tarEntries } from "./backups.ts";
-import { backupKey } from "./home.ts";
+import { createBackupStore, homeBackupKey } from "./backups.ts";
 import { DEFAULT_MANAGED_SETTINGS } from "./lifecycle.ts";
 import { DAY_MS, entitlementOf } from "./retention.ts";
 import { createFakeCloudProvider } from "../../dashboard/server/clouds/fake-provider.ts";
-import { startFakeBoatApi } from "./fake-boat-api.ts";
+import { startFakeInstaboxApi } from "./fake-instabox-api.ts";
 import { createSealer } from "../../dashboard/server/clouds/seal.ts";
 import { createManagedCloud } from "./index.ts";
 import { createCloudsService } from "../../dashboard/server/clouds/service.ts";
@@ -24,38 +23,27 @@ const plan: DesktopPlan = { kind: "shared_s", placement: "pool", spec: { vcpu: 2
 const SEAL = Buffer.alloc(32, 7), BACKUP_SECRET = Buffer.alloc(32, 9);
 
 async function fixture() {
-  const dataDir = mkdtempSync(join(tmpdir(), "omb-boat-review-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
+  const dataDir = mkdtempSync(join(tmpdir(), "omb-review-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
   let at = Date.UTC(2026, 10, 9, 12);
   const now = () => at;
-  const api = await startFakeBoatApi({ now }); cleanup.push(() => api.close());
-  api.onCommand(({ sandbox, command }) => {
-    if (command.includes("omb-home install")) return { exitCode: 0, stdout: "installed\n" };
-    if (command.includes("omb-home start")) {
-      if (!sandbox.volume.size) {
-        sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
-        sandbox.volume.set(`__system__${CLOUD_HOME.data}/bots.json`, Buffer.from(JSON.stringify([{ id: "bot-1", name: "Test bot" }])));
-      }
-      return { exitCode: 0, stdout: "started\n" };
+  const api = await startFakeInstaboxApi({ now }); cleanup.push(() => api.close());
+  api.onExec(({ machine, cmd }) => {
+    if (cmd.includes("omb-home start") && !machine.volume.size) {
+      machine.volume.set("data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: machine.metadata["omb.cloud"] })));
+      machine.volume.set(`data/${CLOUD_HOME.dataName}/bots.json`, Buffer.from(JSON.stringify([{ id: "bot-1", name: "Test bot" }])));
     }
-    if (command.includes("omb-home restore")) {
-      // a faithful restore: the volume becomes exactly the tar's files
-      const tar = sandbox.files.get("/home/user/omb-restore.tar");
-      if (!tar) return { exitCode: 2, stdout: "not a home backup\n" };
-      sandbox.volume = new Map(tarEntries(tar).filter(e => e.type === "0").map(e => [e.name, Buffer.from(e.data)]));
-      return { exitCode: 0, stdout: "restored\n" };
-    }
-    return { exitCode: 0, stdout: "" };
+    return null;
   });
   const power: HomePower = { idle: false, busy: ["recent-activity"], lastActivityAt: null, nextDueAt: null, wokeAt: at };
   const subscriptions: StoredSubscription[] = [];
   const notices: Array<{ cloudId: string; kind: string; at: number | null; link?: string }> = [];
   /** one dashboard process over the shared data dir */
   function instance() {
-    const provider = createBoatProvider({ apiKey: api.key, baseUrl: api.baseUrl, scope: "0123456789abcdef" });
+    const provider = createInstaboxProvider({ apiKey: api.key, baseUrl: api.baseUrl, scope: "0123456789abcdef", pollMs: 1, settleMs: 5_000, now });
     const home = { healthy: vi.fn(async () => true), pair: vi.fn(async () => ({ code: "ABCD-EFGH-JKLM", expiresAt: at + 300_000 })),
       power: vi.fn(async () => ({ ...power })), sleep: vi.fn(async () => ({ ok: power.idle, nextDueAt: power.nextDueAt })), plan: vi.fn(async () => {}) };
     const audit = createAudit({ dataDir, now });
-    const backups = createBackupStore({ dir: join(dataDir, "boat-backups"), now });
+    const backups = createBackupStore({ dir: join(dataDir, "managed-backups"), now });
     const workspaces = { register: vi.fn(() => "workspace-1"), lastReportAt: vi.fn(() => null), remove: vi.fn() };
     const service = createCloudsService({ dataDir, now, home, sealer: createSealer(SEAL), workspaces,
       providers: { dedicated: createFakeCloudProvider(), pool: { ...createFakeCloudProvider(), suspend: async () => {}, resume: async () => {} } },
@@ -98,16 +86,16 @@ async function wake(f: F, s: ReturnType<typeof createCloudsService>, c: StoredCl
   f.advance(5 * 60_000);
 }
 
-it("a backup restores byte for byte into a fresh sandbox after the machine is lost", async () => {
+it("a backup restores byte for byte into a fresh machine after the machine is lost", async () => {
   const f = await fixture(); const { service: s } = f.instance();
   const { c } = await f.paid(s);
   f.advance(DAY_MS); await sleepCycle(f, s, c);
   expect(c.managed!.backups).toHaveLength(1);
-  const before = new Map(f.api.sandboxes.get(c.serverId!)!.volume);
+  const before = new Map(f.api.machines.get(c.serverId!)!.volume);
   const lost = c.serverId!;
   f.api.lose(lost);
   await f.waitLost(s, c, c => c.status === "running" && c.serverId !== lost);
-  const after = f.api.sandboxes.get(c.serverId!)!.volume;
+  const after = f.api.machines.get(c.serverId!)!.volume;
   expect([...after.keys()].sort()).toEqual([...before.keys()].sort());
   for (const [k, v] of before) expect(after.get(k)!.equals(v)).toBe(true);
 });
@@ -116,14 +104,14 @@ it("a backup is bound to its cloud: another cloud's key or id cannot open it", a
   const f = await fixture(); const { service: s, backups } = f.instance();
   const { c } = await f.paid(s);
   f.advance(DAY_MS); await sleepCycle(f, s, c);
-  const file = c.managed!.backups[0]!.file, key = boatBackupKey(BACKUP_SECRET, c.id);
+  const file = c.managed!.backups[0]!.file, key = homeBackupKey(BACKUP_SECRET, c.id);
   expect(backups.read(c.id, key, file).length).toBeGreaterThan(0);
-  expect(() => backups.read(c.id, boatBackupKey(BACKUP_SECRET, `c${"f".repeat(24)}`), file)).toThrow("integrity");
+  expect(() => backups.read(c.id, homeBackupKey(BACKUP_SECRET, `c${"f".repeat(24)}`), file)).toThrow("integrity");
   // the home holds its bootstrap secret; a key derived from it opens nothing
-  expect(() => backups.read(c.id, backupKey(createSealer(SEAL).unseal(c.bootstrapSecret)), file)).toThrow("integrity");
+  expect(() => backups.read(c.id, homeBackupKey(Buffer.from(createSealer(SEAL).unseal(c.bootstrapSecret).padEnd(32, "x")), c.id), file)).toThrow("integrity");
 });
 
-it("no Boat API key or seal key travels to the sandbox, and nothing secret is logged across a whole life", async () => {
+it("no provider API key or seal key travels to the machine, and nothing secret is logged across a whole life", async () => {
   const logs: string[] = [];
   for (const m of ["log", "warn", "error", "info"] as const) vi.spyOn(console, m).mockImplementation((...a: unknown[]) => { logs.push(a.map(String).join(" ")); });
   const f = await fixture(); const { service: s } = f.instance();
@@ -135,12 +123,12 @@ it("no Boat API key or seal key travels to the sandbox, and nothing secret is lo
   const secret = createSealer(SEAL).unseal(c.bootstrapSecret);
   const sent = JSON.stringify(f.api.requests.map(r => r.body));
   for (const leak of [f.api.key, SEAL.toString("hex"), SEAL.toString("base64"), SEAL.toString("base64url")]) expect(sent).not.toContain(leak);
-  const commands = f.api.requests.filter(r => r.path.endsWith("/commands")).map(r => JSON.stringify(r.body)).join("\n");
+  const commands = f.api.requests.filter(r => r.path.endsWith("/exec")).map(r => JSON.stringify(r.body)).join("\n");
   expect(commands).not.toContain(secret);
   for (const leak of [f.api.key, secret]) expect(logs.join("\n")).not.toContain(leak);
 });
 
-it("one transient 404 from Boat must not rebuild a paid cloud and later delete the disk holding data newer than any backup", async () => {
+it("one transient 404 from the provider must not rebuild a paid cloud and later delete the disk holding data newer than any backup", async () => {
   const f = await fixture(); const { service: s, provider, audit } = f.instance();
   const { c } = await f.paid(s);
   f.advance(DAY_MS); await sleepCycle(f, s, c);
@@ -148,23 +136,23 @@ it("one transient 404 from Boat must not rebuild a paid cloud and later delete t
   // woken, something that matters is written, asleep again within the backup interval (so no new backup yet)
   await wake(f, s, c);
   const original = c.serverId!;
-  f.api.sandboxes.get(original)!.volume.set(`__system__${CLOUD_HOME.data}/precious.json`, Buffer.from("written after the last backup"));
+  f.api.machines.get(original)!.volume.set(`data/${CLOUD_HOME.dataName}/precious.json`, Buffer.from("written after the last backup"));
   await sleepCycle(f, s, c);
   expect(c.managed!.backups).toHaveLength(1);
-  // one GET answers 404 (a Boat incident, a proxy, a rotated key for one deploy); the sandbox is in fact still there
+  // one GET answers 404 (a provider incident, a proxy, a rotated key for one deploy); the machine is in fact still there
   const real = provider.machine; let blip = true;
   provider.machine = async id => { if (blip && id === original) { blip = false; return null; } return real(id); };
   c.nextAttemptAt = 0; await s.reconcile();
   expect.soft(c.serverId, "a single 404 rebuilt the cloud").toBe(original);
   if (c.serverId !== original) await f.settle(s, c, c => c.status === "running" && c.serverId !== null);
-  const restoredHasIt = f.api.sandboxes.get(c.serverId!)!.volume.has(`__system__${CLOUD_HOME.data}/precious.json`);
-  console.info(`[review] rebuilt onto ${c.serverId === original ? "ORIGINAL" : "a new sandbox"}; restored volume has the newer data: ${restoredHasIt}`);
+  const restoredHasIt = f.api.machines.get(c.serverId!)!.volume.has(`data/${CLOUD_HOME.dataName}/precious.json`);
+  console.info(`[review] rebuilt onto ${c.serverId === original ? "ORIGINAL" : "a new machine"}; restored volume has the newer data: ${restoredHasIt}`);
   // a normal week of use afterwards
   for (let day = 0; day < 9; day++) { f.advance(DAY_MS); if (c.status === "sleeping") await wake(f, s, c); await sleepCycle(f, s, c); }
   const deletedPaths = f.api.deletes().map(d => d.path);
   console.info(`[review] after one 404: attempt=${c.managed!.attempt} retired=${JSON.stringify(c.managed!.retired.map(r => ({ id: r.serverId === original ? "ORIGINAL" : r.serverId, deletion: r.deletion ? "sent" : null })))} deletes=${JSON.stringify(deletedPaths.map(p => p.includes(original) ? "ORIGINAL" : p))} actions=${audit.entries(c.id).map(e => e.action).filter(a => /recover|retired|delete/.test(a)).join(",")}`);
-  const survives = [...f.api.sandboxes.values()].some(x => x.volume.has(`__system__${CLOUD_HOME.data}/precious.json`) || x.snapshots.some(sn => sn.volume.has(`__system__${CLOUD_HOME.data}/precious.json`)));
-  expect(deletedPaths, "the original sandbox, still holding unbacked data, was deleted").not.toContain(`/sandboxes/${original}`);
+  const survives = [...f.api.machines.values()].some(x => x.volume.has(`data/${CLOUD_HOME.dataName}/precious.json`));
+  expect(deletedPaths, "the original machine, still holding unbacked data, was deleted").not.toContain(`/v1/machines/${original}`);
   expect(survives, "the data written after the last backup is gone").toBe(true);
 });
 

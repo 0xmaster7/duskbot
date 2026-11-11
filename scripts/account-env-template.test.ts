@@ -29,7 +29,7 @@ describe("the account service's production config template", () => {
 
   it("holds no values for secrets", () => {
     const filled = readFileSync(join(ROOT, "deploy/account/production.env.example"), "utf8").split("\n")
-      .filter((line) => /^[A-Z][A-Z0-9_]+=\S/.test(line) && !/^(DUSK_DASHBOARD_HOST=127\.0\.0\.1|DUSK_TRUST_PROXY=1|DUSK_MAIL_PROVIDER=resend)$/.test(line));
+      .filter((line) => /^[A-Z][A-Z0-9_]+=\S/.test(line) && !/^(DUSK_DASHBOARD_HOST=127\.0\.0\.1|DUSK_TRUST_PROXY=1|DUSK_MAIL_PROVIDER=(?:brevo|resend))$/.test(line));
     expect(filled).toEqual([]);
   });
 });

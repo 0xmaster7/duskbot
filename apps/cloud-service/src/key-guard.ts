@@ -1,16 +1,16 @@
-// The Boat backup secret may not change under existing backups: they would no longer open, and retention would then delete
+// The backup secret may not change under existing backups: they would no longer open, and retention would then delete
 // a sandbox whose only copy is a backup nobody can read. Its fingerprint lives beside the data; a different secret refuses
 // to start unless the previous one is given, and then every backup is sealed again with the new one first.
 import { createHmac } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const FILE = "boat-backup-key.fingerprint";
-export const backupFingerprint = (secret: Buffer) => createHmac("sha256", secret).update("omb-boat-backup-fingerprint").digest("hex");
+const FILE = "backup-key.fingerprint";
+export const backupFingerprint = (secret: Buffer) => createHmac("sha256", secret).update("omb-home-backup-fingerprint").digest("hex");
 
 export class BackupSecretChangedError extends Error {
   constructor() {
-    super("The Boat backup secret changed (DUSK_BOAT_BACKUP_KEY or DUSK_CLOUD_SEAL_KEY), so existing backups would no longer open. Set the old one as DUSK_BOAT_BACKUP_KEY_PREVIOUS to seal them again with the new one, or put the old one back.");
+    super("The backup secret changed (DUSK_MANAGED_BACKUP_KEY or DUSK_CLOUD_SEAL_KEY), so existing backups would no longer open. Set the old one as DUSK_MANAGED_BACKUP_KEY_PREVIOUS to seal them again with the new one, or put the old one back.");
     this.name = "BackupSecretChangedError";
   }
 }

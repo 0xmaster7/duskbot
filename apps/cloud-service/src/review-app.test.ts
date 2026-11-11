@@ -1,4 +1,4 @@
-// Independent review (w13/boat-test): billing and account paths through the whole dashboard app.
+// an independent review of billing and account paths through the whole dashboard app
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
@@ -10,7 +10,7 @@ import { createBilling } from "../../dashboard/server/billing/index.ts";
 import { createDashboardApp } from "../../dashboard/server/app.ts";
 import { memoryMailer } from "../../dashboard/server/auth/mail.ts";
 import type { BillingState } from "../../dashboard/server/billing/store.ts";
-import { startFakeBoatApi } from "./fake-boat-api.ts";
+import { startFakeInstaboxApi } from "./fake-instabox-api.ts";
 import { DAY_MS } from "./retention.ts";
 
 vi.mock("../../dashboard/server/billing/index.ts", async importOriginal => {
@@ -21,25 +21,25 @@ const cleanup: Array<() => unknown> = [];
 afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 
 async function fixture() {
-  const dir = mkdtempSync(join(tmpdir(), "omb-boat-security-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
+  const dir = mkdtempSync(join(tmpdir(), "omb-app-security-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
   let time = Date.UTC(2026, 10, 9, 12);
   const now = () => time, mailer = memoryMailer();
-  const api = await startFakeBoatApi({ now }); cleanup.push(() => api.close());
-  api.onCommand(({ sandbox, command }) => {
-    if (command.includes("omb-home start") && !sandbox.volume.size) {
-      sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
-      sandbox.volume.set(`__system__${CLOUD_HOME.data}/config.json`, Buffer.from("{}"));
+  const api = await startFakeInstaboxApi({ now }); cleanup.push(() => api.close());
+  api.onExec(({ machine, cmd }) => {
+    if (cmd.includes("omb-home start") && !machine.volume.size) {
+      machine.volume.set("data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: machine.metadata["omb.cloud"] })));
+      machine.volume.set(`data/${CLOUD_HOME.dataName}/config.json`, Buffer.from("{}"));
     }
-    return { exitCode: 0, stdout: command.includes("install") ? "installed\n" : command.includes("start") ? "started\n" : "" };
+    return null;
   });
-  for (const key of ["DUSK_BILLING_PROVIDER", "DUSK_CLOUD_PROVIDER", "DUSK_POOL_DRIVER", "DUSK_CLOUD_SEAL_KEY", "DUSK_DODO_PRODUCTS", "DUSK_BOAT_TEMPLATE"]) vi.stubEnv(key, undefined);
-  vi.stubEnv("DUSK_BOAT", "1"); vi.stubEnv("BOAT_API_KEY", api.key); vi.stubEnv("BOAT_BASE_URL", api.baseUrl);
-  vi.stubEnv("DUSK_BOAT_HOME_PACKAGE_URL", "https://packages.example.test/home.tgz"); vi.stubEnv("DUSK_BOAT_HOME_PACKAGE_SHA256", "b".repeat(64));
+  for (const key of ["DUSK_BILLING_PROVIDER", "DUSK_CLOUD_PROVIDER", "DUSK_POOL_DRIVER", "DUSK_CLOUD_SEAL_KEY", "DUSK_DODO_PRODUCTS"]) vi.stubEnv(key, undefined);
+  vi.stubEnv("DUSK_MANAGED", "1"); vi.stubEnv("INSTABOX_API_KEY", api.key); vi.stubEnv("INSTABOX_BASE_URL", api.baseUrl);
+  vi.stubEnv("DUSK_MANAGED_HOME_PACKAGE_URL", "https://packages.example.test/home.tgz"); vi.stubEnv("DUSK_MANAGED_HOME_PACKAGE_SHA256", "b".repeat(64));
   // the homes answer their signed reads; nothing else leaves the machine
   let idle = false;
   const fetcher: typeof fetch = async (input, init) => {
     const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
-    if (url.hostname.endsWith(".on.boat.dev")) {
+    if (url.hostname.endsWith(".instabox.tech")) {
       const body = url.pathname === "/api/cloud/health" ? { v: 1 } : url.pathname === "/api/cloud/power" ? { v: 1, idle, busy: idle ? [] : ["turn"], nextDueAt: null }
         : url.pathname === "/api/cloud/power/sleep" ? { ok: idle } : url.pathname === "/api/cloud/entitlement" ? { ok: true, expiresAt: now() + 86_400_000 } : { ok: true };
       return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
@@ -94,7 +94,7 @@ async function deliver(f: Awaited<ReturnType<typeof fixture>>, deliveries: Array
   return codes;
 }
 
-it("deleting the account with a paid plan pauses the Boat cloud at the period end and deletes it 45 days later", async () => {
+it("deleting the account with a paid plan pauses the managed cloud at the period end and deletes it 45 days later", async () => {
   const f = await fixture();
   const owner = await f.login("owner@example.test");
   const { cloud, subscriptionId } = await f.buy(owner);
@@ -107,10 +107,10 @@ it("deleting the account with a paid plan pauses the Boat cloud at the period en
   console.info(`[review] expiry webhook after account deletion answered ${JSON.stringify(await deliver(f, f.billing.fake!.expire(subscriptionId)))}`);
   await f.settle(6);
   console.info(`[review] after period end: cloud=${cloud.status} destroyAt=${f.billing.clouds.view(cloud).destroyAt}`);
-  expect.soft(cloud.status, "the deleted account's Boat cloud is still running after its paid period").toBe("stopped");
+  expect.soft(cloud.status, "the deleted account's cloud is still running after its paid period").toBe("stopped");
   f.advance(46 * DAY_MS); await f.settle(6);
   console.info(`[review] 46 days later: cloud=${cloud.status} deletes=${f.api.deletes().length}`);
-  expect(cloud.status, "the deleted account's Boat cloud and data are never removed").toBe("destroyed");
+  expect(cloud.status, "the deleted account's cloud and data are never removed").toBe("destroyed");
 });
 
 it("signed but late, replayed or out-of-order billing events never bring retention forward", async () => {

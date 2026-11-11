@@ -1,7 +1,10 @@
 # The power policy: when a home stops and starts
 
 The code is `src/power/`. Nothing in it names a provider: a provider describes itself as a `ProviderCostProfile`
-(`cost.ts`), built by its adapter (`boatCostProfile` in `src/boat.ts`).
+(`cost.ts`), built by its adapter (`instaboxCostProfile` in `src/instabox.ts`). On InstaBox starts cost nothing and are
+limited per minute, and a resume keeps memory, so the price terms below that concern paid starts are zero there; the
+synthetic `pooledCostProfile` (`src/power/pooled-profile.ts`), whose starts come from a scarce priced pool, keeps those
+paths exercised in the tests and the simulator.
 
 ## The cost model (`cost.ts`)
 
@@ -62,9 +65,11 @@ stop, whatever the policy said.
 
 - **Never stop work:** a turn, a run, a call, a computer, maintenance (uploads, backups, installs), work that just
   ended, a wake just asked for (its delivery), a run about to start, an unknown busy code. A stop happens only after the
-  home agreed in the sleep handshake and its pre-stop hook ran.
+  home agreed in the sleep handshake.
 - **Minimum uptime** after a start, and a **minimum idle** after a person's last action.
-- **No flapping:** each stop that a start followed within 10 minutes doubles the minimum idle (up to 2 hours) for a day.
+- **No flapping:** each stop that a start followed within the flap window doubles the minimum idle for a day. The
+  defaults (10 minutes, up to 2 hours, 4 starts an hour and 16 a day, 6 minutes of uptime) protect a scarce start
+  pool; InstaBox homes run with `INSTABOX_RAILS` (1 minute, up to 10 minutes, 20 an hour and 96 a day, 3 minutes).
 - **Per-home start budgets** per rolling hour and day. They are kept by refusing stops, never by refusing a person: a
   home that spent its budget stays up until a start ages out.
 - **Restart-loop breaker:** three failed starts in 30 minutes open it; automatic starts wait (5 minutes, doubling to 2
@@ -106,8 +111,8 @@ Everything the home costs, each priced at the worst it could have been:
   not confirm reuse. A start the provider refused outright (a 429, busy, a 4xx) is voided; anything else (a 5xx, a
   timeout) stays charged at W.
 - **Backup storage:** the bytes kept, per GB-month (R2's $0.015), for the rest of the month as soon as they are written.
-- **A second machine:** a retired disk's keep-alive is charged W plus its compute for the whole lease (2 h) up front; one
-  found running that we did not start is charged an hour of compute and alerted.
+- **A second machine:** a machine a recovery replaced that is found running is charged its compute for the whole lease
+  (2 h), paused and alerted.
 
 ### The book and its slack
 
@@ -139,7 +144,7 @@ stop of ours paid for, and `reserve = W * max(0, N - k)`:
 - **A stop** (the policy's) needs `k < N` and `slack >= reserve + W`: the start that ends the sleep is paid for and the
   reserve is whole. Past N such starts in a month the home is not stopped again that month (`cost_reserve_used`).
   An owner's stop needs `slack >= W`. A plan's end, a suspension or a hold stop without asking: a stop never costs.
-- **A start we choose** (a routine's pre-wake, a disk keep-alive) needs `slack - W >= reserve`.
+- **A start we choose** (a routine's pre-wake) needs `slack - W >= reserve`.
 - **A start somebody waits for** (a wake, a create, a rebuild, a resize) needs only `slack >= W`.
 - **Any other charge X** (a backup's storage, a second machine's compute) needs `slack - X >= reserve + W`; a backup that
   would not fit is skipped (`backup_skipped`, `cost_ceiling` in the audit) and the operator alerted.
@@ -174,8 +179,7 @@ home with no book yet opens one; if it already existed, what it spent before thi
 **Clocks.** The ledger's time never goes back, and while the process runs it follows a monotonic clock whenever the wall
 clock disagrees by more than 2 seconds, so a jump either way is not taken as time passing. At boot it trusts the wall
 clock (never behind the last line). Assumptions: the wall clock is right at boot; the provider bills only machines it
-reports running; one deployment per provider account (the pool ledger's price proof); a machine resumed for a keep-alive
-stops within its lease.
+reports running; one deployment per provider workspace (the pool ledger's price proof).
 
 ## The ledger (`src/starts.ts`)
 
@@ -185,14 +189,15 @@ operator's alerts as the rolling day passes 70%, 100%, 150%, 200% and 500% of th
 
 ## Configuration
 
-- `DUSK_MANAGED_PROVIDER_PLAN` (`trial`, `20`, `100`, `500`, `2000`; default `20`): the start pool the policy prices.
-  `DUSK_MANAGED_DAILY_STARTS` scales it (seats, a custom plan).
+- `DUSK_MANAGED_PROVIDER_PLAN` (`pro`, `builder`, `team`; default `pro`): the starts a minute the policy plans for
+  (30, 50, 100).
 - `DUSK_MANAGED_IDLE_MINUTES` (default 3): the rails' minimum idle.
-- `DUSK_MANAGED_WAKE_LEAD_MINUTES` (default 4): how long before a run its home wakes.
+- `DUSK_MANAGED_WAKE_LEAD_MINUTES` (default 2): how long before a run its home wakes.
 
 ## The cost study
 
-`scripts/lifecycle-sim.ts` simulates fleets on the provider's real prices (personas, mixed fleets by plan tier, faults),
+`scripts/lifecycle-sim.ts` simulates fleets on InstaBox's prices (personas, mixed fleets by size, faults; `--host pooled`
+runs the same study on the synthetic pooled provider for comparison),
 tunes the policy's settings by coordinate descent and writes the report. It drives this exact `decide()`/`wake()` and
 rails. The fuzz tests (`src/power/fuzz.test.ts`) use the same simulator. Each simulated home keeps its monthly book (6 GB of
 backups charged to it) and the report shows each policy's worst calendar month as a share of the ceiling; with the

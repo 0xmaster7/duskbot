@@ -174,7 +174,7 @@ Nothing here was deployed with real keys. app.dusk.bot and dev.dusk.bot still se
 
 - Drafts in `docs/legal/{terms,privacy,license,security}.md`, each opening with "Draft for legal review", published as
   https://dusk.bot/terms, /privacy, /license and /security (built from the Markdown by
-  `deployd/sites/dusk/build-pages.mjs`). The privacy policy lists the sub-processors: Contabo, Cloudflare, Boat, Dodo
+  `deployd/sites/dusk/build-pages.mjs`). The privacy policy lists the sub-processors: Contabo, Cloudflare, InstaBox (cloud desktops, on AWS us-west-2), Dodo
   Payments, Resend, Composio, Apple APNs, Google FCM, Spaceship, Let's Encrypt and the error tracker; AI model
   providers are the user's own relationship.
 - https://dusk.bot/.well-known/security.txt (expires 2027-11-10).
@@ -189,8 +189,9 @@ Nothing here was deployed with real keys. app.dusk.bot and dev.dusk.bot still se
 1. Lawyer review of all four documents; fill every `[placeholder]`: legal entity and address, governing law and
    courts, effective date, refund policy, retention periods (cloud desktop after a plan ends, access logs), minimum
    age, data center region, each provider's processing locations and transfer mechanism, error tracker choice.
-2. Sign the processors' DPAs (Contabo, Cloudflare, Resend, Dodo, Composio, Boat, the error tracker).
-3. Decide whether naming Boat publicly on /privacy is fine now (apps/cloud-service/README.md planned it for "once
+2. Sign the processors' DPAs (Contabo, Cloudflare, Resend, Dodo, Composio, InstaBox, the error tracker). InstaBox
+   replaced the earlier cloud desktop provider: its DPA is new and still unsigned.
+3. Decide whether naming InstaBox publicly on /privacy is fine now (apps/cloud-service/README.md planned it for "once
    there are EU customers"; the privacy page names it today).
 4. After review: replace the drafts in `docs/legal`, run `sites/dusk/deploy.sh landing`, and bump security.txt's
    Expires yearly.

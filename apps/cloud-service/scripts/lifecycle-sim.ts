@@ -4,13 +4,13 @@
 //
 //   node --experimental-strip-types apps/cloud-service/scripts/lifecycle-sim.ts --report <file.md> [--tune] [--quick]
 //   node --experimental-strip-types apps/cloud-service/scripts/lifecycle-sim.ts --tune
-//   node --experimental-strip-types apps/cloud-service/scripts/lifecycle-sim.ts --report <file.md> --host instabox [--quick]
+//   node --experimental-strip-types apps/cloud-service/scripts/lifecycle-sim.ts --report <file.md> --host pooled [--quick]
 import { fork } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { boatCostProfile, type BoatPlan } from "../src/boat.ts";
+import { pooledCostProfile, type PoolPlan } from "../src/power/pooled-profile.ts";
 import { INSTABOX_RAILS, instaboxCostProfile } from "../src/instabox.ts";
 import { monthlyCeilingCents } from "../src/power/ceiling.ts";
 import { DAY, HOUR, MINUTE } from "../src/power/cost.ts";
@@ -18,7 +18,7 @@ import { MIX, PERSONAS } from "../src/power/personas.ts";
 import { DEFAULT_POLICY, type PolicyParams } from "../src/power/policy.ts";
 import { adaptiveDecider, alwaysOnDecider, fixedIdleDecider, hindsightBound, mulberry32, openBotDecider, seedOf, simulate, type SimUser } from "../src/power/sim.ts";
 
-interface Job { label: string; group: string; users: { persona?: string; mix?: boolean; n: number }; days: number; warmup: number; plan: BoatPlan; scale: number; decider: string; seed: number; params?: PolicyParams; waitPrices?: { user: number; connector: number }; host?: "boat" | "instabox" }
+interface Job { label: string; group: string; users: { persona?: string; mix?: boolean; n: number }; days: number; warmup: number; plan: PoolPlan; scale: number; decider: string; seed: number; params?: PolicyParams; waitPrices?: { user: number; connector: number }; host?: "pooled" | "instabox" }
 interface Summary {
   label: string; group: string; decider: string; users: number; days: number;
   /** per user and 30 days, in dollars */
@@ -59,7 +59,7 @@ const quantile = (xs: number[], q: number) => { if (!xs.length) return 0; const 
 
 export function runJob(job: Job): Summary {
   const t0 = performance.now();
-  const profile = job.host === "instabox" ? instaboxCostProfile() : boatCostProfile({ plan: job.plan, scale: job.scale });
+  const profile = job.host === "instabox" ? instaboxCostProfile() : pooledCostProfile({ plan: job.plan, scale: job.scale });
   if (job.decider === "oracle") {
     const bound = hindsightBound({ users: usersOf(job), days: job.days, warmupDays: job.warmup, start: START, profile, seed: job.seed });
     const n = bound.users.length, month = 30 / bound.days / 100, mean = (f: (x: (typeof bound.users)[number]) => number) => bound.users.reduce((a, x) => a + f(x), 0) / n;
@@ -89,7 +89,7 @@ export function runJob(job: Job): Summary {
 }
 
 /** jobs in parallel child processes, results in job order */
-let HOST: "boat" | "instabox" = "boat";
+let HOST: "pooled" | "instabox" = "instabox";
 async function runAll(all: Job[]): Promise<Summary[]> {
   const jobs = all.map(j => ({ ...j, host: HOST, ...(HOST === "instabox" && j.group === "fleet" ? { label: `${j.users.n} users` } : {}) }));
   const out: Summary[] = new Array(jobs.length);
@@ -115,9 +115,9 @@ const DECIDERS = ["adaptive", "always-on", "idle-5m", "idle-15m", "idle-30m", "i
 const BASELINES = DECIDERS.filter(d => d !== "adaptive" && d !== "oracle");
 /** each persona as a fleet of its own at the $2000 plan's planning density: 1,000 users per plan, so 2.4 included starts a user a day */
 function personaJobs(decider: string, params: PolicyParams, size: { n: number; days: number; warmup: number }, seed = 1): Job[] {
-  return Object.keys(PERSONAS).map(key => ({ label: PERSONAS[key]!.name, group: "persona", users: { persona: key, n: size.n }, days: size.days, warmup: size.warmup, plan: "2000" as BoatPlan, scale: size.n / 1000, decider, seed, params }));
+  return Object.keys(PERSONAS).map(key => ({ label: PERSONAS[key]!.name, group: "persona", users: { persona: key, n: size.n }, days: size.days, warmup: size.warmup, plan: "2000" as PoolPlan, scale: size.n / 1000, decider, seed, params }));
 }
-const FLEETS: Array<{ label: string; plan: BoatPlan; n: number }> = [
+const FLEETS: Array<{ label: string; plan: PoolPlan; n: number }> = [
   { label: "$20 plan, 60 users", plan: "20", n: 60 },
   { label: "$100 plan, 300 users", plan: "100", n: 300 },
   { label: "$500 plan, 600 users", plan: "500", n: 600 },
@@ -148,7 +148,7 @@ const KNOBS: Knob[] = [
 /** the tuning set: every persona as its own fleet, and two mixed fleets (the realistic case), all on seed 7 */
 function tuneJobs(decider: string, params: PolicyParams, size: { n: number; days: number; warmup: number }): Job[] {
   return [...personaJobs(decider, params, size, 7),
-    ...[{ label: "tune fleet $100/300", plan: "100" as BoatPlan, n: 300 }, { label: "tune fleet $2000/1000", plan: "2000" as BoatPlan, n: 1000 }].map(f =>
+    ...[{ label: "tune fleet $100/300", plan: "100" as PoolPlan, n: 300 }, { label: "tune fleet $2000/1000", plan: "2000" as PoolPlan, n: 1000 }].map(f =>
       ({ label: f.label, group: "fleet", users: { mix: true, n: f.n }, days: size.days - 14, warmup: size.warmup, plan: f.plan, scale: 1, decider, seed: 7, params }))];
 }
 async function tune(start: PolicyParams, size: { n: number; days: number; warmup: number }, rounds: number, log: string[]): Promise<PolicyParams> {
@@ -185,9 +185,10 @@ async function main() {
   const evalSize = quick ? { n: 40, days: 35, warmup: 7 } : { n: 120, days: 74, warmup: 14 };
   const fleetDays = quick ? { days: 21, warmup: 7 } : { days: 44, warmup: 14 };
   const log: string[] = [];
-  // --host instabox: its prices for every job, and its rails and wake lead for the adaptive policy
-  const host = args.includes("--host") ? args[args.indexOf("--host") + 1] : "boat";
-  if (host !== "boat" && host !== "instabox") { console.error("--host boat|instabox"); process.exit(2); }
+  // InstaBox's prices for every job, and its rails and wake lead for the adaptive policy; --host pooled: a synthetic
+  // provider whose starts are scarce and priced (power/pooled-profile.ts), for comparison
+  const host = args.includes("--host") ? args[args.indexOf("--host") + 1] : "instabox";
+  if (host !== "pooled" && host !== "instabox") { console.error("--host instabox|pooled"); process.exit(2); }
   HOST = host;
   let params = host === "instabox" ? { ...DEFAULT_POLICY, schedule: { ...DEFAULT_POLICY.schedule, leadMs: 2 * MINUTE }, rails: { ...DEFAULT_POLICY.rails, ...INSTABOX_RAILS } } : DEFAULT_POLICY;
   if (args.includes("--tune")) {
@@ -200,7 +201,7 @@ async function main() {
   const fleetRows = await runAll(DECIDERS.flatMap(d => fleetJobs(d, params, fleetDays.days, fleetDays.warmup, 13)));
   // robustness: the same tuned policy on fresh seeds, and under other wait prices
   const seeds = await runAll([21, 22, 23].flatMap(seed => ["adaptive", ...BASELINES].flatMap(d => personaJobs(d, params, { n: 60, days: 42, warmup: 14 }, seed))));
-  const sensitivity = await runAll([0.5, 5].flatMap(w => ["adaptive", ...BASELINES, "oracle"].map(d => ({ label: `wait price ${w}`, group: "sensitivity", users: { persona: "grok", n: 100 }, days: 56, warmup: 14, plan: "2000" as BoatPlan, scale: 0.1, decider: d, seed: 31,
+  const sensitivity = await runAll([0.5, 5].flatMap(w => ["adaptive", ...BASELINES, "oracle"].map(d => ({ label: `wait price ${w}`, group: "sensitivity", users: { persona: "grok", n: 100 }, days: 56, warmup: 14, plan: "2000" as PoolPlan, scale: 0.1, decider: d, seed: 31,
     params: d === "adaptive" ? { ...params, prices: { ...params.prices, userWaitCents: w, connectorWaitCents: w / 2 } } : params, waitPrices: { user: w, connector: w / 2 } }))));
   writeFileSync(out, report({ params, personaRows, fleetRows, seeds, sensitivity, log, evalSize, fleetDays, tuneSize }));
   console.error(`wrote ${out}`);
@@ -224,7 +225,7 @@ function report(r: { params: PolicyParams; personaRows: Summary[]; fleetRows: Su
     "Generated by `apps/cloud-service/scripts/lifecycle-sim.ts` (deterministic, seeded). Prices: the provider profile in",
     ...(HOST === "instabox" ? ["`apps/cloud-service/src/instabox.ts` (2 vCPU / 4 GiB at $0.017/h; starts free, 30 a minute; a resume keeps memory on 95% of",
       "wakes with no time limit; a held wake 6 s, a cold one 45 s) with InstaBox's rails (`INSTABOX_RAILS`). Plan tiers do not apply: fleets are labelled by size."]
-      : ["`apps/cloud-service/src/boat.ts` (`small` at $0.018/h; extra starts $0.03 / $0.05 / $0.07 by tier, the highest of the",
+      : ["`apps/cloud-service/src/power/pooled-profile.ts` (2 vCPU at $0.018/h; extra starts $0.03 / $0.05 / $0.07 by tier, the highest of the",
       "minute, hour and day windows; the kept machine reused on 70% of resumes within 10 minutes; a cold wake 60 s, a held one 15 s)."]),
     "**Total** = compute + paid starts + the wait people saw, priced at $0.02 per cold wake a person waited through and $0.01 per",
     "one a connector event waited through (pro rata by wait length). A late or missed routine run costs $1 in the tuning objective.",

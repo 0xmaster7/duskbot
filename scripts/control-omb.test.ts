@@ -9,6 +9,14 @@ import { verificationServerArgs, verificationServerEnvironment } from "./control
 
 const childEnv = (parentEnv: NodeJS.ProcessEnv) => verificationServerEnvironment(parentEnv, join(tmpdir(), "omb-fixture-env"), 9100);
 
+it("keeps the home and every login folder beside the data folder only for its explicit switch, so a workspace backup can run", () => {
+  const dir = join(tmpdir(), "omb-fixture-env");
+  const outside = childEnv({ DUSK_VERIFY_HOME_OUTSIDE: "1" });
+  for (const key of ["HOME", "USERPROFILE", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "APPDATA", "LOCALAPPDATA", "HERMES_HOME"]) expect(outside[key]!.startsWith(`${dir}-home`), key).toBe(true);
+  expect(outside.DUSK_DATA_DIR).toBe(dir);
+  expect(childEnv({}).HOME).toBe(dir);
+});
+
 it("loads the isolated VPS idle clock only for its explicit fixture switch", () => {
   const enabled = childEnv({ DUSK_TEST_VPS_IDLE_CLOCK: "1" });
   expect(enabled.DUSK_TEST_VPS_IDLE_CLOCK).toBe("1");

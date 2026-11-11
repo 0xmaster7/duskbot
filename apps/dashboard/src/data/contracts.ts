@@ -175,7 +175,7 @@ export interface BillingOverview {
   credits: Credits;
 }
 
-export type CloudStatus = "provisioning" | "running" | "sleeping" | "stopped" | "error";
+export type CloudStatus = "provisioning" | "running" | "waking" | "sleeping" | "stopped" | "error";
 
 export interface CloudDesktop extends MachineSpec {
   id: string;

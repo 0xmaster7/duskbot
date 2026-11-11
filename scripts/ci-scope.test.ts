@@ -242,7 +242,7 @@ describe("CI outputs", () => {
   });
 });
 
-describe("the Linux work in the static job, on a Boat VM", () => {
+describe("the Linux work in the static job, on a self-hosted VM", () => {
   const linuxShards = vitestMatrix(LINUX).include;
 
   it("runs a server change's Linux shards, behavior evals and packaged server there, and no Linux job", () => {
@@ -271,7 +271,7 @@ describe("the Linux work in the static job, on a Boat VM", () => {
     });
   });
 
-  it("does it only when the static job is told it runs on Boat", () => {
+  it("does it only when the static job is told it runs on a self-hosted VM", () => {
     const { directory, git, base } = fixture("src/App.tsx");
     writeFileSync(join(directory, "src/App.tsx"), "changed\n");
     git("commit", "--quiet", "-am", "renderer");
@@ -311,7 +311,7 @@ describe("Windows on a pull request", () => {
 
   it.each([
     "server/index.ts", "src/components/WindowFrame.tsx", "server/darwin.ts", "server/twin.ts", "scripts/verify-sidebar.ts",
-    "scripts/testing/rail-preview.tsx", "scripts/control-omb.ts", ".github/workflows/boat.yml", "tsconfig.json", "server/delta-context.e2e.test.ts",
+    "scripts/testing/rail-preview.tsx", "scripts/control-omb.ts", ".github/workflows/self-hosted.yml", "tsconfig.json", "server/delta-context.e2e.test.ts",
   ])("waits for main for %s alone", (file) => {
     expect(reason([file])).toBeNull();
   });

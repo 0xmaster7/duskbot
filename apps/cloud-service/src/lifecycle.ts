@@ -12,7 +12,7 @@ import { StartCapError, type StartKind, type StartLedger } from "./starts.ts";
 import type { SpendInit, SpendLedger } from "./spend.ts";
 import { linkKeys } from "../../dashboard/server/clouds/bootstrap.ts";
 import { ProviderBusyError, ProviderError, ProviderLimitError, type MachineProvider, type MachineImage } from "./provider.ts";
-import { verifyRelease, type ReleaseKey } from "./release-signing.ts";
+import type { ReleaseKey } from "./release-signing.ts";
 import { homeBackupKey, homeVolumeProblem, type BackupStore } from "./backups.ts";
 import { DAY_MS, DEFAULT_DELETE_DELAY_DAYS, DEFAULT_RETENTION_DAYS, deletionVerdict, dueNotice, type Entitlement, type NoticeKind, type Verdict } from "./retention.ts";
 import type { Audit, AuditActor } from "./audit.ts";
@@ -22,7 +22,7 @@ import type { HomeClient, StoredCloud } from "../../dashboard/server/clouds/type
 import type { HomeLifecycleState } from "./state.ts";
 import type { HomeUpdates } from "./home-update.ts";
 
-const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, REFRESH_SPACING_MS = 10 * MINUTE;
+const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE;
 
 export interface ManagedSettings {
   /** the shortest idle before any stop, in minutes (DUSK_MANAGED_IDLE_MINUTES); the power policy decides past it */
@@ -33,8 +33,6 @@ export interface ManagedSettings {
   backupEveryMs: number;
   /** generations kept per cloud (DUSK_MANAGED_BACKUP_KEEP), at least 2 */
   backupKeep: number;
-  /** wake a stopped home this long before the provider may purge its disk (DUSK_MANAGED_REFRESH_DAYS) */
-  refreshAfterMs: number;
   retentionDays: number;
   deleteDelayDays: number;
   /** after a retention deletion the backups stay this long more (DUSK_MANAGED_BACKUP_TAIL_DAYS) */
@@ -43,30 +41,25 @@ export interface ManagedSettings {
   wakeLeadMs: number;
   /** wakes the public edge may ask for per home per hour (webhooks, the app through our domain) */
   edgeWakesPerHour: number;
-  /** the provider plan's included starts a day (DUSK_MANAGED_DAILY_STARTS): the sleep policy's budget */
-  includedStarts: number;
   powerReadMs: number;
-  template: string | null;
-  /** the template's release signature (CI's release key), checked here at start and by the machine at first boot */
-  templateSignature: string | null;
-  /** the home's app package: a URL the sandbox downloads, or a file this service uploads; its release signature travels with it */
+  /** the home's app package: a URL the machine downloads, or a file this service uploads; its release signature travels with it */
   package: { sha256: string; url?: string; file?: string; signature?: string } | null;
-  /** machines refuse an unsigned package or template (every service that is not loopback) */
+  /** machines refuse an unsigned package (every service that is not loopback) */
   requireSigned: boolean;
   /** user-facing origins are https://<label>.<publicDomain>, proxied to the machine (edge/worker.js); null: the provider's own */
   publicDomain: string | null;
   /** the machine redeems a one-time claim for its secrets, so the provider's API never carries them; off where no machine can reach this service */
   claims: boolean;
   maxBackupBytes: number;
-  /** a sandbox the provider stops finding is lost only after this long of direct 404s and absence from the account's list */
+  /** a machine the provider stops finding is lost only after this long of direct 404s and absence from the account's list */
   lostAfterMs: number;
 }
 export const DEFAULT_MANAGED_SETTINGS: ManagedSettings = {
-  idleMinutes: 3, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, refreshAfterMs: 11 * DAY_MS, retentionDays: DEFAULT_RETENTION_DAYS,
-  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 4 * MINUTE, edgeWakesPerHour: 20, includedStarts: 200, powerReadMs: MINUTE, template: null, templateSignature: null, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
+  idleMinutes: 3, leaseSeconds: 2 * 3600, backupEveryMs: 24 * HOUR, backupKeep: 3, retentionDays: DEFAULT_RETENTION_DAYS,
+  deleteDelayDays: DEFAULT_DELETE_DELAY_DAYS, backupTailMs: 30 * DAY_MS, wakeLeadMs: 2 * MINUTE, edgeWakesPerHour: 20, powerReadMs: MINUTE, package: null, requireSigned: false, publicDomain: null, claims: false, maxBackupBytes: 4 * 1024 ** 3, lostAfterMs: 30 * MINUTE,
 };
 
-/** settings from DUSK_MANAGED_* (index.ts `managedEnv` maps the older names onto these) */
+/** settings from DUSK_MANAGED_* */
 export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopback?: boolean } = {}): ManagedSettings {
   const number = (name: string, min: number, max: number, fallback: number) => {
     const raw = env[name];
@@ -84,18 +77,14 @@ export function managedSettingsFromEnv(env: NodeJS.ProcessEnv, options: { loopba
   if (signature && pkg) Object.assign(pkg, { signature });
   const publicDomain = env.DUSK_MANAGED_PUBLIC_DOMAIN || null;
   if (publicDomain !== null && !/^(?=.{4,200}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(publicDomain)) throw new Error("Invalid DUSK_MANAGED_PUBLIC_DOMAIN.");
-  const template = env.DUSK_MANAGED_TEMPLATE || null;
-  if (template !== null && !/^[a-z0-9][a-z0-9-]{0,62}$/.test(template)) throw new Error("Invalid DUSK_MANAGED_TEMPLATE.");
-  if (!pkg && !template) throw new Error("A managed cloud needs DUSK_MANAGED_HOME_PACKAGE_URL (or _FILE) with DUSK_MANAGED_HOME_PACKAGE_SHA256, or DUSK_MANAGED_TEMPLATE.");
-  return { ...DEFAULT_MANAGED_SETTINGS, template, package: pkg, templateSignature: env.DUSK_MANAGED_TEMPLATE_SIGNATURE || null, publicDomain,
+  if (!pkg) throw new Error("A managed cloud needs DUSK_MANAGED_HOME_PACKAGE_URL (or _FILE) with DUSK_MANAGED_HOME_PACKAGE_SHA256.");
+  return { ...DEFAULT_MANAGED_SETTINGS, package: pkg, publicDomain,
     requireSigned: !options.loopback, claims: !options.loopback,
     idleMinutes: number("DUSK_MANAGED_IDLE_MINUTES", 1, 24 * 60, 3),
     leaseSeconds: number("DUSK_MANAGED_LEASE_HOURS", 1, 720, 2) * 3600,
     backupEveryMs: number("DUSK_MANAGED_BACKUP_HOURS", 1, 24 * 7, 24) * HOUR,
     backupKeep: number("DUSK_MANAGED_BACKUP_KEEP", 2, 30, 3),
-    refreshAfterMs: number("DUSK_MANAGED_REFRESH_DAYS", 3, 13, 11) * DAY_MS,
-    wakeLeadMs: number("DUSK_MANAGED_WAKE_LEAD_MINUTES", 2, 30, 4) * MINUTE,
-    includedStarts: number("DUSK_MANAGED_DAILY_STARTS", 1, 100_000, 200),
+    wakeLeadMs: number("DUSK_MANAGED_WAKE_LEAD_MINUTES", 1, 30, 2) * MINUTE,
     edgeWakesPerHour: number("DUSK_MANAGED_EDGE_WAKES_PER_HOUR", 1, 60, 20),
     retentionDays: number("DUSK_MANAGED_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 3650, DEFAULT_RETENTION_DAYS),
     deleteDelayDays: number("DUSK_MANAGED_DELETE_DELAY_DAYS", DEFAULT_DELETE_DELAY_DAYS, 90, DEFAULT_DELETE_DELAY_DAYS),
@@ -135,7 +124,7 @@ export interface LifecycleDeps {
   clouds(): StoredCloud[];
   /** a fresh signed entitlement for the cloud's home, or null when none is signed */
   entitle(cloud: StoredCloud): string | null;
-  /** the release keys a package or template must be signed with */
+  /** the release keys a package must be signed with */
   releaseKeys: readonly ReleaseKey[];
   /** keys the opaque public labels (never on a machine) */
   labelKey: Buffer;
@@ -151,8 +140,6 @@ export interface LifecycleDeps {
   spend?: SpendLedger;
   /** staged updates of a running home, with their self-test and rollback (home-update.ts) */
   updates?: HomeUpdates;
-  /** after a backup was restored into a new machine and before its home starts: a migration checks the files there */
-  afterRestore?(cloud: StoredCloud, serverId: string, file: string): Promise<void>;
 }
 
 /** a start the rails held back (a failing home's backoff, the provider's hard cap or not-before time, a busy minute):
@@ -247,7 +234,6 @@ export function createLifecycle(deps: LifecycleDeps) {
   }
   const secret = (c: StoredCloud) => deps.unseal(c.bootstrapSecret);
   const keyOf = (c: StoredCloud) => homeBackupKey(deps.backupSecret, c.id);
-  const legacyKeyOf = (c: StoredCloud) => { try { return c.bootstrapSecret ? image.legacyBackupKey(secret(c)) : undefined; } catch { return undefined; } };
   /** where this service reaches the home: the machine's own hosted URL, never through the public proxy */
   const homeOrigin = (c: StoredCloud) => state(c).upstream ?? c.origin!;
   const label = (c: StoredCloud) => (state(c).label ??= `d${createHmac("sha256", deps.labelKey).update(`omb-managed-label:${c.id}`).digest("hex").slice(0, 20)}`);
@@ -256,53 +242,6 @@ export function createLifecycle(deps: LifecycleDeps) {
     const b = state(c);
     b.upstream = upstream;
     c.origin = settings.publicDomain ? `https://${label(c)}.${settings.publicDomain}` : upstream;
-  }
-  const templatePackage = (() => {
-    if (!settings.template || !settings.templateSignature) return null;
-    try { return verifyRelease(settings.templateSignature, { kind: "template", name: settings.template }, deps.releaseKeys).version; } catch { return null; }
-  })();
-  // the provider purges a disk 14 days after its stop, and starts are budgeted per day: one keep-alive start per 10
-  // minutes across the deployment, the oldest stopped disk first (144 a day at most). A disk whose refresh keeps not
-  // happening holds the head for 30 minutes at most, so one stuck cloud never starves the others.
-  let lastRefreshAt = 0;
-  const heads = new Map<string, number>();
-  /** whether this cloud's own disk would be refreshed now, by the same rules its reconcile applies */
-  function refreshEligible(x: StoredCloud): boolean {
-    const m = x.managed;
-    if (!x.backend || !x.serverId || !m || m.lastStopAt == null || m.hold || x.suspended !== null || x.wantPower === "on" || m.deletion
-      || !["sleeping", "stopped"].includes(x.status) || now() - m.lastStopAt < settings.refreshAfterMs) return false;
-    if (deps.entitlement(x).active) return true;
-    const verdict = verdictFor(x);
-    return verdict.earliestAt !== null && verdict.earliestAt - now() > DAY_MS;
-  }
-  function mayRefresh(c: StoredCloud, stoppedAt: number | null, retired = false): boolean {
-    if (stoppedAt === null || now() - stoppedAt < settings.refreshAfterMs || now() - lastRefreshAt < REFRESH_SPACING_MS) return false;
-    if (!retired) {
-      const mine = state(c).lastStopAt ?? stoppedAt;
-      const older = deps.clouds().filter(x => x.id !== c.id && refreshEligible(x) && (x.managed!.lastStopAt ?? Infinity) < mine)
-        .sort((x, y) => (x.managed!.lastStopAt ?? 0) - (y.managed!.lastStopAt ?? 0))[0];
-      if (older) {
-        const since = heads.get(older.id) ?? now();
-        heads.set(older.id, since);
-        if (now() - since < 30 * MINUTE) return false;
-      }
-    }
-    heads.delete(c.id);
-    lastRefreshAt = now();
-    return true;
-  }
-  /** a stop the provider could not finish (its pre-stop hook timed out, say) leaves the machine up with the stop failing:
-   *  it is stopping, never awake, never started again by us and never deleted; past 15 minutes the operator hears */
-  function stopFailing(c: StoredCloud, failing: boolean): boolean {
-    const b = state(c);
-    if (!failing) { if (b.stopFailingSince) { log(c, "stop_recovered", "reconciler", "provider"); b.stopFailingSince = null; b.stopFailingAlerted = false; deps.save(c); } return false; }
-    if (!b.stopFailingSince) { b.stopFailingSince = now(); log(c, "stop_failing", "reconciler", "provider"); }
-    else if (now() - b.stopFailingSince >= 15 * MINUTE && !b.stopFailingAlerted) {
-      b.stopFailingAlerted = true; log(c, "stop_failing_long", "reconciler", "operator_decides");
-      console.warn(`managed: ALERT cloud ${c.id}: its machine has failed to stop for 15 minutes; it is left as it is`);
-    }
-    c.nextAttemptAt = now() + 30_000; deps.save(c);
-    return true;
   }
   /** a hosted home serves no client without a fresh entitlement: pushed when it comes up, refreshed hourly */
   async function entitle(c: StoredCloud, force: boolean) {
@@ -330,14 +269,14 @@ export function createLifecycle(deps: LifecycleDeps) {
       lastStopAt: b.lastStopAt, ownerRequest: b.deleteRequest, hold: b.hold || c.suspended !== null && c.suspended !== "Account deleted" });
   }
 
-  /** a backup of the volume from the newest snapshot of a stopped (or, past twice the interval, running) sandbox */
-  async function backup(c: StoredCloud, reason: string, serverId: string | null = c.serverId, keep = false): Promise<boolean> {
-    const b = state(c);
+  /** a backup of the volume, read from the running home */
+  async function backup(c: StoredCloud, reason: string): Promise<boolean> {
+    const b = state(c), serverId = c.serverId;
     if (!serverId) return false;
     b.lastBackupTryAt = now(); deps.save(c);
-    const snapshot = await provider.latestSnapshot(serverId);
+    // the volume is read from the running home as of now: what it held before this moment is in it
+    const takenAt = now(), snapshot = await provider.latestSnapshot(serverId);
     if (!snapshot) { b.backupProblem = "no_snapshot"; deps.save(c); return false; }
-    if (b.backups.some(g => g.snapshotAt >= snapshot.at && g.verifiedAt !== null && (g.source ?? c.serverId) === serverId)) return true;
     let stream: ReadableStream<Uint8Array>;
     try { stream = await provider.snapshotTar(snapshot.id, image.homeVolume); }
     catch (error) { b.backupProblem = "snapshot_read"; deps.save(c); log(c, "backup_failed", "reconciler", "snapshot_read"); throw error; }
@@ -366,12 +305,12 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (deps.spend) spendNote(c, { e: "bytes", bytes: b.backups.reduce((n, g) => n + g.bytes, 0) + record.bytes });
     // restorable means: it opens with this cloud's key and is still this cloud's volume
     const verified = homeVolumeProblem(deps.backups.read(c.id, key, record.file), c.id) === null && deps.backups.sha256(c.id, record.file) === record.sha256;
-    b.backups.push({ ...record, verifiedAt: verified ? now() : null, snapshotAt: snapshot.at, ...(keep ? { keep: true, source: serverId } : {}) });
+    b.backups.push({ ...record, verifiedAt: verified ? now() : null, snapshotAt: takenAt });
     b.backupProblem = verified ? null : "unverified";
     log(c, "backup", "reconciler", reason, { file: record.file, bytes: record.bytes, verified });
     // keep the newest `backupKeep` verified generations, and the newest one at least a week older than the newest, so a home
     // that wiped its own data cannot push every good copy out within a few days
-    const verifiedOnes = b.backups.filter(g => g.verifiedAt !== null && !g.keep), newest = verifiedOnes.at(-1);
+    const verifiedOnes = b.backups.filter(g => g.verifiedAt !== null), newest = verifiedOnes.at(-1);
     const pinned = newest ? [...verifiedOnes].reverse().find(g => newest.snapshotAt - g.snapshotAt >= 7 * DAY_MS) : undefined;
     for (const old of verifiedOnes.slice(0, Math.max(0, verifiedOnes.length - settings.backupKeep))) {
       if (old === pinned) continue;
@@ -395,7 +334,6 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (c.setupStep === "reserving") {
       if (!c.workspaceId || !c.linkPublicKey || !c.sealedLinkPrivateKey) throw new Error("Missing cloud bootstrap.");
       const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
-      const fromTemplate = settings.template !== null && b.restoreFrom === null && b.attempt === 0;
       // the machine gets a one-time claim, never its secrets: the provider's API and its logs never carry them
       let boot = image.bootFile({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
       if (settings.claims) {
@@ -405,9 +343,9 @@ export function createLifecycle(deps: LifecycleDeps) {
         boot = image.claimBootFile({ cloudId: c.id, claim, redeem: `${deps.dashboardUrl}/v1/managed/claims/redeem` });
       }
       const server = await start(c, b.attempt > 0 ? "recover" : "create", () => provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData: image.setupScript({ releaseKeys: deps.releaseKeys, requireSigned: settings.requireSigned }),
-        ttlSeconds: settings.leaseSeconds, attempt: b.attempt, files: [boot], ...(fromTemplate ? { from: settings.template! } : {}) }));
-      c.serverId = server.id; b.upstream = server.origin ?? null; c.origin = null; b.installed = fromTemplate ? templatePackage : null; b.leaseAt = now(); b.setupSince = now();
-      log(c, "create", "reconciler", b.attempt ? "recovery" : "paid", { attempt: b.attempt, template: fromTemplate });
+        ttlSeconds: settings.leaseSeconds, attempt: b.attempt, files: [boot] }));
+      c.serverId = server.id; b.upstream = server.origin ?? null; c.origin = null; b.installed = null; b.leaseAt = now(); b.setupSince = now();
+      log(c, "create", "reconciler", b.attempt ? "recovery" : "paid", { attempt: b.attempt });
       c.setupStep = "storage"; deps.save(c); return;
     }
     if (!c.serverId) throw new Error("Missing cloud server.");
@@ -423,14 +361,13 @@ export function createLifecycle(deps: LifecycleDeps) {
         b.installed = pkg.sha256; deps.save(c);
       }
       if (b.restoreFrom) {
-        const tar = deps.backups.read(c.id, keyOf(c), b.restoreFrom, legacyKeyOf(c));
+        const tar = deps.backups.read(c.id, keyOf(c), b.restoreFrom);
         await provider.upload(c.serverId, image.restorePath, tar);
         const done = await provider.run(c.serverId, image.restoreCommand, 600);
         if (!done.ok || !done.stdout.includes("restored")) throw new RetryableCloudError("Cloud restore failed.");
-        await deps.afterRestore?.(c, c.serverId, b.restoreFrom);
         const from = b.backups.find(g => g.file === b.restoreFrom);
         b.restoredFrom = { file: b.restoreFrom, at: from?.snapshotAt ?? now() }; b.restoreFrom = null;
-        log(c, "restore", "reconciler", b.migration ? "migration" : "recovery", { file: b.restoredFrom.file });
+        log(c, "restore", "reconciler", "recovery", { file: b.restoredFrom.file });
       }
       c.setupStep = "starting"; deps.save(c); return;
     }
@@ -441,18 +378,19 @@ export function createLifecycle(deps: LifecycleDeps) {
       c.setupStep = "checking"; deps.save(c); return;
     }
     if (!c.origin || !(await deps.home.healthy(homeOrigin(c), secret(c)))) return wait(c, 5_000);
+    // a new home is ready once its bot computers can start at once: their image builds on the machine in a minute or two
+    if (now() - (b.setupSince ?? now()) < 15 * MINUTE && (await provider.run(c.serverId, image.desktopStatusCommand, 30)).stdout.trim() === "building") return wait(c, 5_000);
     await entitle(c, true);
     if (b.claim) b.claim = null;
     c.status = "running"; c.setupStep = null; c.lastCheckedAt = now(); c.powerSince = now(); c.wantPower = "on";
     b.wakeStartedAt = null; b.lastPowerAt = now(); b.sleptAt = null; b.sleepReason = null;
     c.attempts = 0; c.nextAttemptAt = 0; c.error = null;
-    log(c, "running", "reconciler", b.migration ? "migrated" : b.restoredFrom ? "recovered" : "provisioned");
-    // a move the operator made is not a recovery the owner hears about
-    if (b.restoredFrom && b.attempt > 0 && !b.migration) notice(c, "recovered", b.restoredFrom.file ? b.restoredFrom.at : null);
+    log(c, "running", "reconciler", b.restoredFrom ? "recovered" : "provisioned");
+    if (b.restoredFrom && b.attempt > 0) notice(c, "recovered", b.restoredFrom.file ? b.restoredFrom.at : null);
     deps.save(c);
   }
 
-  /** a lost machine: a fresh sandbox, from the newest verified backup when there is one; the old one is retired, never deleted here */
+  /** a lost machine: a fresh machine, from the newest verified backup when there is one; the old one is retired, never deleted here */
   function recover(c: StoredCloud, why: string) {
     const b = state(c), from = latestVerified(b);
     if (c.serverId && !b.retired.some(r => r.serverId === c.serverId)) b.retired.push({ serverId: c.serverId, at: now(), deletion: null });
@@ -463,10 +401,12 @@ export function createLifecycle(deps: LifecycleDeps) {
     deps.save(c);
   }
 
-  async function sleepNow(c: StoredCloud, reason: HomeLifecycleState["sleepReason"], actor: AuditActor) {
+  /** `quietSince`: when the home's data last changed, for the final backup retention relies on (now by default) */
+  async function sleepNow(c: StoredCloud, reason: HomeLifecycleState["sleepReason"], actor: AuditActor, quietSince = now()) {
     const b = state(c);
     if (!c.serverId) return;
     await provider.power(c.serverId, "off");
+    b.lastStopAt = quietSince;
     // a stop the rails' cost rule allowed: the start that ends this sleep is already paid for
     if (reason === "idle" || reason === "owner") spendNote(c, { e: "stop" });
     b.sleptAt = now(); b.sleepReason = reason; c.status = reason === "plan" ? "stopped" : "sleeping"; c.powerSince = now(); c.wantPower = "off";
@@ -490,7 +430,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     const final = latestVerified(state(c));
     let problem: string | null = "no_final_backup";
     if (final) {
-      try { problem = homeVolumeProblem(deps.backups.read(c.id, keyOf(c), final.file, legacyKeyOf(c)), c.id); } catch { problem = "unreadable"; }
+      try { problem = homeVolumeProblem(deps.backups.read(c.id, keyOf(c), final.file), c.id); } catch { problem = "unreadable"; }
     }
     if (problem === null) return true;
     log(c, "delete_refused", "reconciler", `backup_${problem}`);
@@ -500,9 +440,8 @@ export function createLifecycle(deps: LifecycleDeps) {
 
   async function deleteStep(c: StoredCloud, verdict: Extract<Verdict, { delete: true }>) {
     const b = state(c);
-    if (c.serverId && !b.deletion && (await provider.machine(c.serverId))?.stopFailing) { log(c, "delete_waiting", "reconciler", "stop_failing"); return; }
     if (b.deletion && b.deletion.sent === false && (await provider.machine(b.deletion.serverId)) !== null) {
-      // a DELETE whose answer never came, and the sandbox is still there: asked again only if the verdict still says so
+      // a DELETE whose answer never came, and the machine is still there: asked again only if the verdict still says so
       if (!rereadStored(c)) return;
       const again = verdictFor(c);
       if (!again.delete) { log(c, "delete_aborted", "reconciler", again.reason); b.deletion = null; c.status = "stopped"; deps.save(c); return; }
@@ -545,7 +484,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     deps.save(c);
   }
 
-  /** backups outlive the sandbox for a while, then go through the same record check */
+  /** backups outlive the machine for a while, then go through the same record check */
   function dropBackupsWhenDue(c: StoredCloud) {
     const b = state(c);
     if (b.deletedAt === null || b.backupsDeleteAfter === null || b.backupsDeleteAfter > now() || !b.backups.length || b.hold) return;
@@ -557,42 +496,21 @@ export function createLifecycle(deps: LifecycleDeps) {
     deps.save(c);
   }
 
-  /** a sandbox a recovery replaced, or a second one the sweep found: stopped, its disk kept alive and backed up from its
-   *  own latest state, and never deleted here. If it holds data newer than what the cloud came back from, the operator
-   *  is alerted to bring it over; both copies stay. */
+  /** a machine a recovery replaced, or a second one the sweep found: kept asleep (its disk costs nothing up to the plan's
+   *  storage) and never deleted here, only with its cloud. Its data cannot be read while it sleeps, so the operator decides. */
   async function retiredStep(c: StoredCloud) {
     const b = state(c);
     for (const old of b.retired) {
       if (old.deletion) continue;
       const s = await provider.machine(old.serverId);
-      if (!s) continue;
-      if (s.state === "running") {
-        // not our keep-alive: a machine the provider called gone came back, billed for as long as nobody saw it
-        if (!old.refreshAt || now() - old.refreshAt > settings.leaseSeconds * 1000) {
-          if (deps.spend) spendNote(c, { e: "extra", cents: extraMachineCents(c), why: "retired_running" });
-          console.warn(`managed: ALERT cloud ${c.id}: replaced sandbox ${old.serverId} was found running; it is stopped and charged to the home`);
-        }
-        await provider.power(old.serverId, "off"); log(c, "retired_stopped", "reconciler", "kept", { old: old.serverId }); continue;
-      }
-      if (s.state !== "stopped") continue;
-      if (!old.backedUp && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) {
-        if (await backup(c, "retired", old.serverId, true)) {
-          old.backedUp = now();
-          const restored = b.restoredFrom?.at ?? 0;
-          if ((s.snapshotAt ?? 0) > restored) {
-            log(c, "retired_has_newer_data", "reconciler", "operator_decides", { old: old.serverId });
-            console.warn(`managed: ALERT cloud ${c.id}: replaced sandbox ${old.serverId} holds data newer than the backup the cloud came back from; both are kept`);
-          }
-          deps.save(c);
-        }
-        continue;
-      }
-      // its disk is still the only full copy of that state on the provider: keep the provider's 14-day clock from running out
-      if (mayRefresh(c, s.stoppedAt, true)) { await start(c, "refresh", () => provider.power(old.serverId, "on"), null, true); old.refreshAt = now(); log(c, "refresh", "reconciler", "retired_disk_age", { old: old.serverId }); deps.save(c); }
+      if (s?.state !== "running") continue;
+      if (deps.spend) spendNote(c, { e: "extra", cents: extraMachineCents(c), why: "retired_running" });
+      console.warn(`managed: ALERT cloud ${c.id}: replaced machine ${old.serverId} was found running; it is paused and charged to the home`);
+      await provider.power(old.serverId, "off"); log(c, "retired_stopped", "reconciler", "kept", { old: old.serverId });
     }
   }
 
-  /** a sandbox is lost only after repeated direct 404s spread over `lostAfterMs` and its absence from the account's list */
+  /** a machine is lost only after repeated direct 404s spread over `lostAfterMs` and its absence from the account's list */
   async function confirmLost(c: StoredCloud): Promise<boolean> {
     const b = state(c);
     if (!b.missingSince) { b.missingSince = now(); b.missingChecks = 0; log(c, "missing_seen", "reconciler", "first_404"); }
@@ -616,25 +534,6 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (verdict.earliestAt !== null) { const kind = dueNotice({ now: now(), earliestAt: verdict.earliestAt, sent: b.notices.map(n => n.kind as NoticeKind) }); if (kind) notice(c, kind, verdict.earliestAt); }
   }
 
-  /** backups sealed with a key the home itself could derive are sealed again with this service's key, one per pass */
-  function rekeyBackups(c: StoredCloud) {
-    const b = state(c);
-    for (const g of b.backups) {
-      if (deps.backups.version(c.id, g.file) !== 1) continue;
-      const legacy = legacyKeyOf(c);
-      if (!legacy) { log(c, "backup_rekey_failed", "reconciler", "no_legacy_key", { file: g.file }); return; }
-      const tar = deps.backups.read(c.id, keyOf(c), g.file, legacy);
-      const record = deps.backups.write(c.id, keyOf(c), tar);
-      if (homeVolumeProblem(deps.backups.read(c.id, keyOf(c), record.file), c.id) !== null) { deps.backups.remove(c.id, record.file); log(c, "backup_rekey_failed", "reconciler", "unverified", { file: g.file }); return; }
-      const old = g.file;
-      Object.assign(g, { file: record.file, bytes: record.bytes, sha256: record.sha256, verifiedAt: now() });
-      deps.save(c);
-      deps.backups.remove(c.id, old);
-      log(c, "backup_rekeyed", "reconciler", "server_key", { from: old, to: record.file });
-      return;
-    }
-  }
-
   /** one step; a step that ran through ends a streak of provider limits */
   async function reconcile(c: StoredCloud): Promise<void> {
     await reconcileStep(c);
@@ -644,7 +543,6 @@ export function createLifecycle(deps: LifecycleDeps) {
 
   async function reconcileStep(c: StoredCloud): Promise<void> {
     const b = state(c);
-    if (b.backups.length) rekeyBackups(c);
     if (c.status === "checkout") return;
     if (c.status === "destroyed") { dropBackupsWhenDue(c); return; }
     const entitlement = deps.entitlement(c);
@@ -666,22 +564,24 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (!s) { if (await confirmLost(c)) { spendMark(c, false); return recover(c, "missing"); } return; }
     spendMark(c, s.state !== "stopped");
     if (b.missingSince) { log(c, "missing_cleared", "reconciler", "answered"); b.missingSince = null; b.missingChecks = 0; deps.save(c); }
-    if (s.dataExpired) return recover(c, "data_expired");
-    if (stopFailing(c, s.stopFailing)) return;
-    // the snapshot a stop saved: a final backup must be at least this new
-    const stopSnapshot = s.state === "stopped" ? s.snapshotAt ?? s.stoppedAt : null;
-    if (stopSnapshot !== null && stopSnapshot !== b.lastStopAt) { b.lastStopAt = stopSnapshot; deps.save(c); }
+    // a machine that paused itself (our lease lapsed): its data may have changed up to then
+    if (s.state === "stopped" && b.sleptAt === null && s.stoppedAt !== null && s.stoppedAt > (b.lastStopAt ?? 0)) { b.lastStopAt = s.stoppedAt; deps.save(c); }
 
     if (!entitlement.active) {
       await planEnded(c, entitlement, verdict, s.state === "running");
-      if (s.state === "running") return sleepNow(c, "plan", "billing");
+      const final = latestVerified(b), covered = final !== null && (b.lastStopAt === null || final.snapshotAt >= b.lastStopAt);
+      if (s.state === "running") {
+        // the copy retention relies on is read from the running home, right before it sleeps for good
+        const quiet = now();
+        if (!covered && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "plan_ended").catch(() => false);
+        return sleepNow(c, "plan", "billing", quiet);
+      }
       if (s.state === "stopped") {
         c.status = "stopped";
-        if (!latestVerified(b) || latestVerified(b)!.snapshotAt < (s.snapshotAt ?? 0)) { if ((b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "plan_ended"); }
         await retiredStep(c);
-        // keep the provider's copy of the disk alive while we promise to keep it: a short resume restarts its 14-day clock
-        if (verdict.earliestAt !== null && verdict.earliestAt - now() > DAY_MS && mayRefresh(c, s.stoppedAt)) {
-          await start(c, "refresh", () => provider.power(c.serverId!, "on")); b.wakeStartedAt = now(); log(c, "refresh", "reconciler", "disk_age"); deps.save(c);
+        // asleep with no final backup as new as its data: woken once to take it (a start costs nothing, only seconds)
+        if (!covered && verdict.earliestAt !== null && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) {
+          await start(c, "wake", () => provider.power(c.serverId!, "on")); b.wakeStartedAt = now(); log(c, "wake", "reconciler", "final_backup"); deps.save(c);
         }
       }
       return;
@@ -699,9 +599,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     const resizeKey = `${c.desiredSpec.vcpu}-${c.desiredSpec.ramGb}-${c.desiredSpec.diskGb}`;
     const resizeWanted = (c.desiredSpec.vcpu !== c.spec.vcpu || c.desiredSpec.ramGb !== c.spec.ramGb || c.desiredSpec.diskGb !== c.spec.diskGb) && b.resizeBlocked !== resizeKey;
     if (s.state === "stopped" && resizeWanted) {
-      // a plan change: backed up from the stop first, then resumed onto the new size, then started like any wake
-      const covered = b.backups.some(g => g.verifiedAt !== null && !g.keep && g.snapshotAt >= (s.snapshotAt ?? 0));
-      if (!covered) { if ((b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now() || (b.lastBackupTryAt ?? 0) < (s.stoppedAt ?? 0)) await backup(c, "resize"); if (!b.backups.some(g => g.verifiedAt !== null && !g.keep && g.snapshotAt >= (s.snapshotAt ?? 0))) return; }
+      // a plan change: the disk stays, the machine boots on the new size, then it is started like any wake
       try { await start(c, "resize", () => provider.resize(c.serverId!, c.desiredSpec)); }
       catch (error) {
         if (error instanceof ProviderError && error.status < 500) { b.resizeBlocked = resizeKey; log(c, "resize_refused", "reconciler", error.code); deps.save(c); return; }
@@ -715,25 +613,22 @@ export function createLifecycle(deps: LifecycleDeps) {
       // a routine's pre-wake comes from the policy (its spread, the rails); a person's wake is never held for one
       const plan = wanted ? null : deps.sleepPolicy.wake({ now: now(), cloudId: c.id, nextDueAt: b.nextDueAt, upcoming: b.upcoming ?? null, memory: m, spend: spendView(c) });
       const due = plan?.start === true;
-      const stale = !wanted && !due && mayRefresh(c, s.stoppedAt);
       if (plan && !plan.start && b.stayReason !== plan.reason && !["not_yet", "nothing_due"].includes(plan.reason)) { b.stayReason = plan.reason; deps.save(c); }
-      if (wanted || due || stale) {
+      if (wanted || due) {
         const intent = wanted && c.wakeRequestedAt !== undefined && now() - c.wakeRequestedAt < 5 * MINUTE;
         if (intent) { deps.sleepPolicy.observe(m, c.wakeRequestedAt!, b.wakeBy === "webhook" ? "connector" : "user"); b.wakeBy = null; }
-        await start(c, intent ? "wake" : due ? "routine" : stale ? "refresh" : "wake", () => provider.power(c.serverId!, "on"), due ? plan!.latest : null); b.wakeStartedAt = now(); b.wakeFailureNoted = false; c.wantPower = "on";
-        log(c, "wake", intent ? "owner" : "reconciler", due ? "routine_due" : stale ? "disk_age" : "asked");
+        await start(c, intent ? "wake" : due ? "routine" : "wake", () => provider.power(c.serverId!, "on"), due ? plan!.latest : null); b.wakeStartedAt = now(); b.wakeFailureNoted = false; c.wantPower = "on";
+        log(c, "wake", intent ? "owner" : "reconciler", due ? "routine_due" : "asked");
         deps.save(c); return;
       }
       if (c.status !== "sleeping" && c.status !== "stopped") { c.status = "sleeping"; deps.save(c); }
-      const last = b.backups.at(-1);
-      if ((!last || now() - last.at >= settings.backupEveryMs) && (s.snapshotAt ?? 0) > (last?.snapshotAt ?? 0) && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "scheduled");
       await retiredStep(c);
       return;
     }
     if (!up) return;
     if (!c.origin || !b.upstream) publish(c, b.upstream ?? c.origin ?? await provider.origin(c.serverId));
     if (b.wakeStartedAt !== null || c.status !== "running") {
-      // a resume onto a held machine keeps the service the pre-stop hook stopped: start it again every time
+      // a resume that kept memory finds the home running (the start command says so); a cold boot starts it
       const started = await provider.run(c.serverId, image.startCommand(c.origin!, homeOrigin(c)), 120);
       if (!started.ok || !(await deps.home.healthy(homeOrigin(c), secret(c)))) {
         // a start that has not brought the home up in 5 minutes is a failed one, once: enough of them open the breaker
@@ -752,11 +647,16 @@ export function createLifecycle(deps: LifecycleDeps) {
       await provider.lease(c.serverId, settings.leaseSeconds);
       deps.save(c); return;
     }
-    // the owner asked for a stop, or to apply a plan change now (stopped through the same pre-stop hook, resized while
-    // stopped): only once the start back is paid for under the monthly ceiling, else the home stays up
+    // the owner asked for a stop, or to apply a plan change now (resized while stopped): only once the start back is paid
+    // for under the monthly ceiling, else the home stays up
     if (c.wantPower === "off" || resizeWanted && b.resizeAskedAt) {
       const held = costStopRefusal(spendView(c), now(), true);
-      if (!held) return sleepNow(c, "owner", "owner");
+      if (!held) {
+        // the due backup is read from the home before it sleeps, as before an idle sleep
+        const last = b.backups.at(-1), quiet = now();
+        if ((!last || now() - last.at >= settings.backupEveryMs) && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "before_sleep").catch(() => false);
+        return sleepNow(c, "owner", "owner", quiet);
+      }
       costHeld(c, held.reason, "owner_stop");
     }
     if (b.leaseAt === null || now() - b.leaseAt >= Math.min(30 * MINUTE, settings.leaseSeconds * 500)) { await provider.lease(c.serverId, settings.leaseSeconds); b.leaseAt = now(); deps.save(c); }
@@ -780,17 +680,17 @@ export function createLifecycle(deps: LifecycleDeps) {
     const reason = decision.action === "stay" ? decision.reason : held?.reason ?? null;
     if (b.stayReason !== reason) b.stayReason = reason;
     if (power.idle && decision.action === "stop" && !held && deps.home.sleep) {
-      // a host whose backups are read from a running machine takes the due one now, while the home is idle
-      const last = b.backups.at(-1);
-      if (provider.capabilities?.liveBackup && (!last || now() - last.at >= settings.backupEveryMs) && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "before_sleep").catch(() => false);
+      // backups are read from the running home: the due one is taken now, while it is idle
+      const last = b.backups.at(-1), quiet = now();
+      if ((!last || now() - last.at >= settings.backupEveryMs) && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "before_sleep").catch(() => false);
       const agreed = await deps.home.sleep(homeOrigin(c), secret(c), decision.idleMinutes);
       if (agreed.ok) {
         b.nextDueAt = agreed.nextDueAt ?? power.nextDueAt;
-        await sleepNow(c, "idle", "reconciler");
+        await sleepNow(c, "idle", "reconciler", quiet);
         noteStop(memory(c), now()); deps.save(c); return;
       }
     }
-    // a home that never sleeps still gets a backup, from the provider's background snapshot
+    // a home that never sleeps still gets a backup
     const last = b.backups.at(-1);
     if (now() - (last?.at ?? c.provisionedAt ?? c.createdAt) >= 2 * settings.backupEveryMs && (b.lastBackupTryAt ?? 0) + 6 * HOUR <= now()) await backup(c, "awake_overdue").catch(() => false);
     deps.save(c);
@@ -850,10 +750,6 @@ export function createLifecycle(deps: LifecycleDeps) {
     reconcile,
     verdict: (c: StoredCloud) => verdictFor(c),
     backup: (c: StoredCloud) => backup(c, "manual"),
-    /** a backup for a step of the operator's (a migration): from `serverId`'s newest snapshot, kept apart when `keep` */
-    backupFor: (c: StoredCloud, reason: string, serverId: string | null = c.serverId, keep = false) => backup(c, reason, serverId, keep),
-    /** where this service reaches the home now, and its admin secret */
-    homeAccess: (c: StoredCloud) => ({ origin: homeOrigin(c), secret: secret(c) }),
     requestDelete(c: StoredCloud, link: (token: string) => string) {
       const b = state(c);
       if (c.status === "destroyed" || c.status === "destroying") throw new ManagedCloudError(409, "unavailable");

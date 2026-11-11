@@ -1,7 +1,6 @@
-// Independent re-check (w13/boat-test) of the w13/boat-fix merge.
+// an independent re-check of recovery, retention and the backup secret, over one shared data dir
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync, readdirSync } from "node:fs";
-import { createCipheriv, randomBytes } from "node:crypto";
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { spawnSync } from "node:child_process";
 import { lockDataDir } from "../../dashboard/server/data-dir-lock.ts";
@@ -9,14 +8,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import type { StoredSubscription } from "../../dashboard/server/billing/store.ts";
-import { createBoatProvider } from "./boat.ts";
+import { createInstaboxProvider } from "./instabox.ts";
 import { createAudit } from "./audit.ts";
-import { boatBackupKey, createBackupStore, tarEntries } from "./backups.ts";
-import { backupKey } from "./home.ts";
+import { createBackupStore, homeBackupKey } from "./backups.ts";
 import { DEFAULT_MANAGED_SETTINGS } from "./lifecycle.ts";
 import { DAY_MS, entitlementOf } from "./retention.ts";
 import { createFakeCloudProvider } from "../../dashboard/server/clouds/fake-provider.ts";
-import { startFakeBoatApi } from "./fake-boat-api.ts";
+import { startFakeInstaboxApi } from "./fake-instabox-api.ts";
 import { createSealer } from "../../dashboard/server/clouds/seal.ts";
 import { createManagedCloud } from "./index.ts";
 import { createCloudsService } from "../../dashboard/server/clouds/service.ts";
@@ -28,38 +26,27 @@ const plan: DesktopPlan = { kind: "shared_s", placement: "pool", spec: { vcpu: 2
 const SEAL = Buffer.alloc(32, 7), BACKUP_SECRET = Buffer.alloc(32, 9);
 
 async function fixture() {
-  const dataDir = mkdtempSync(join(tmpdir(), "omb-boat-review-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
+  const dataDir = mkdtempSync(join(tmpdir(), "omb-recheck-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
   let at = Date.UTC(2026, 10, 9, 12);
   const now = () => at;
-  const api = await startFakeBoatApi({ now }); cleanup.push(() => api.close());
-  api.onCommand(({ sandbox, command }) => {
-    if (command.includes("omb-home install")) return { exitCode: 0, stdout: "installed\n" };
-    if (command.includes("omb-home start")) {
-      if (!sandbox.volume.size) {
-        sandbox.volume.set("__system__/data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: sandbox.labels["omb.cloud"] })));
-        sandbox.volume.set(`__system__${CLOUD_HOME.data}/bots.json`, Buffer.from(JSON.stringify([{ id: "bot-1", name: "Test bot" }])));
-      }
-      return { exitCode: 0, stdout: "started\n" };
+  const api = await startFakeInstaboxApi({ now }); cleanup.push(() => api.close());
+  api.onExec(({ machine, cmd }) => {
+    if (cmd.includes("omb-home start") && !machine.volume.size) {
+      machine.volume.set("data/.omb-cloud-home.json", Buffer.from(JSON.stringify({ version: 1, machine: machine.metadata["omb.cloud"] })));
+      machine.volume.set(`data/${CLOUD_HOME.dataName}/bots.json`, Buffer.from(JSON.stringify([{ id: "bot-1", name: "Test bot" }])));
     }
-    if (command.includes("omb-home restore")) {
-      // a faithful restore: the volume becomes exactly the tar's files
-      const tar = sandbox.files.get("/home/user/omb-restore.tar");
-      if (!tar) return { exitCode: 2, stdout: "not a home backup\n" };
-      sandbox.volume = new Map(tarEntries(tar).filter(e => e.type === "0").map(e => [e.name, Buffer.from(e.data)]));
-      return { exitCode: 0, stdout: "restored\n" };
-    }
-    return { exitCode: 0, stdout: "" };
+    return null;
   });
   const power: HomePower = { idle: false, busy: ["recent-activity"], lastActivityAt: null, nextDueAt: null, wokeAt: at };
   const subscriptions: StoredSubscription[] = [];
   const notices: Array<{ cloudId: string; kind: string; at: number | null; link?: string }> = [];
   /** one dashboard process over the shared data dir */
   function instance(secret: Buffer = BACKUP_SECRET, previous: Buffer | null = null) {
-    const provider = createBoatProvider({ apiKey: api.key, baseUrl: api.baseUrl, scope: "0123456789abcdef" });
+    const provider = createInstaboxProvider({ apiKey: api.key, baseUrl: api.baseUrl, scope: "0123456789abcdef", pollMs: 1, settleMs: 5_000, now });
     const home = { healthy: vi.fn(async () => true), pair: vi.fn(async () => ({ code: "ABCD-EFGH-JKLM", expiresAt: at + 300_000 })),
       power: vi.fn(async () => ({ ...power })), sleep: vi.fn(async () => ({ ok: power.idle, nextDueAt: power.nextDueAt })), plan: vi.fn(async () => {}) };
     const audit = createAudit({ dataDir, now });
-    const backups = createBackupStore({ dir: join(dataDir, "boat-backups"), now });
+    const backups = createBackupStore({ dir: join(dataDir, "managed-backups"), now });
     const workspaces = { register: vi.fn(() => "workspace-1"), lastReportAt: vi.fn(() => null), remove: vi.fn() };
     const service = createCloudsService({ dataDir, now, home, sealer: createSealer(SEAL), workspaces,
       providers: { dedicated: createFakeCloudProvider(), pool: { ...createFakeCloudProvider(), suspend: async () => {}, resume: async () => {} } },
@@ -109,19 +96,19 @@ async function withUnbackedData(f: F, s: S) {
   const { c, sub } = await f.paid(s);
   f.advance(DAY_MS); await sleepCycle(f, s, c);
   await wake(f, s, c);
-  f.api.sandboxes.get(c.serverId!)!.volume.set(`__system__${CLOUD_HOME.data}/precious.json`, Buffer.from("newer"));
+  f.api.machines.get(c.serverId!)!.volume.set(`data/${CLOUD_HOME.dataName}/precious.json`, Buffer.from("newer"));
   await sleepCycle(f, s, c);
   expect(c.managed!.backups).toHaveLength(1);
   return { c, sub, original: c.serverId! };
 }
-/** Boat answers 404 for `id` (and, when `unlisted`, leaves it out of the account list) until restored */
+/** the provider answers 404 for `id` (and, when `unlisted`, leaves it out of the account list) until restored */
 function blackout(provider: ReturnType<F["instance"]>["provider"], id: string, unlisted: boolean) {
-  const sandbox = provider.machine, listed = provider.listed;
-  provider.machine = async x => x === id ? null : sandbox(x);
+  const machine = provider.machine, listed = provider.listed;
+  provider.machine = async x => x === id ? null : machine(x);
   if (unlisted) provider.listed = async x => x === id ? false : listed(x);
-  return () => { provider.machine = sandbox; provider.listed = listed; };
+  return () => { provider.machine = machine; provider.listed = listed; };
 }
-const holds = (f: F) => [...f.api.sandboxes.values()].some(x => x.volume.has(`__system__${CLOUD_HOME.data}/precious.json`) || x.snapshots.some(sn => sn.volume.has(`__system__${CLOUD_HOME.data}/precious.json`)));
+const holds = (f: F) => [...f.api.machines.values()].some(x => x.volume.has(`data/${CLOUD_HOME.dataName}/precious.json`));
 
 for (const count of [1, 2, 3]) {
   it(`${count} 404s inside 30 minutes, then an answer: no rebuild`, async () => {
@@ -134,7 +121,7 @@ for (const count of [1, 2, 3]) {
   });
 }
 
-it("404s for over 30 minutes while Boat's list still shows the sandbox: no rebuild", async () => {
+it("404s for over 30 minutes while the provider's list still shows the machine: no rebuild", async () => {
   const f = await fixture(); const { service: s, provider } = f.instance();
   const { c, original } = await withUnbackedData(f, s);
   const restore = blackout(provider, original, false);
@@ -151,7 +138,7 @@ it("3 404s spread just under 30 minutes and unlisted: still no rebuild", async (
   expect(c.managed!.attempt).toBe(0);
 });
 
-it("confirmed lost (404 and unlisted past 30 minutes) but the disk comes back: rebuilt, original kept, backed up from its own state, never deleted while paid", async () => {
+it("confirmed lost (404 and unlisted past 30 minutes) but the disk comes back: rebuilt, original kept asleep, never deleted while paid", async () => {
   const f = await fixture(); const { service: s, provider, audit } = f.instance();
   const { c, original } = await withUnbackedData(f, s);
   const restore = blackout(provider, original, true);
@@ -161,13 +148,11 @@ it("confirmed lost (404 and unlisted past 30 minutes) but the disk comes back: r
   restore();
   // the reconciler keeps running while the home sleeps: time passes between passes
   for (let day = 0; day < 60; day++) { f.advance(DAY_MS); if (c.status === "sleeping") await wake(f, s, c); await sleepCycle(f, s, c); for (let n = 0; n < 3; n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await s.reconcile(); } }
-  expect(f.api.deletes().map(d => d.path)).not.toContain(`/sandboxes/${original}`);
+  expect(f.api.deletes()).toHaveLength(0);
   expect(holds(f)).toBe(true);
-  const kept = c.managed!.backups.filter(g => g.keep && g.source === original);
-  expect(kept.length).toBeGreaterThan(0);
-  expect(audit.entries(c.id).map(e => e.action)).toContain("retired_has_newer_data");
-  // the original disk was kept alive past Boat's 14-day purge
-  expect(f.api.sandboxes.get(original)!.dataExpiredAt).toBeNull();
+  expect(c.managed!.retired.map(r => r.serverId)).toContain(original);
+  expect(f.api.machines.get(original)!.state).toBe("suspended");
+  expect(audit.entries(c.id).map(e => e.action)).not.toContain("delete_requested");
 });
 
 it("an ended plan's cloud that is confirmed lost keeps its notices and is not deleted before 45 days", async () => {
@@ -222,30 +207,6 @@ it("a cancel written to the record by another writer stops a due owner deletion"
   expect(f.api.deletes()).toHaveLength(0);
 });
 
-it("an old version 1 backup (key the home could derive) is sealed again with the server key and still restores", async () => {
-  const f = await fixture(); const { service: s, backups } = f.instance();
-  const { c } = await f.paid(s);
-  f.advance(DAY_MS); await sleepCycle(f, s, c);
-  const g = c.managed!.backups[0]!, v2 = boatBackupKey(BACKUP_SECRET, c.id);
-  const tar = backups.read(c.id, v2, g.file);
-  // rewrite it as a version 1 file, as the first merge wrote them
-  const legacy = backupKey(createSealer(SEAL).unseal(c.bootstrapSecret)), iv = randomBytes(12), cipher = createCipheriv("aes-256-gcm", legacy, iv);
-  cipher.setAAD(Buffer.from(c.id));
-  const body = Buffer.concat([cipher.update(tar), cipher.final()]);
-  const v1name = `${String(f.now() - 1000).padStart(13, "0")}-0000beef.ombb`;
-  writeFileSync(join(f.dataDir, "boat-backups", c.id, v1name), Buffer.concat([Buffer.from("OMBB1\n"), iv, body, cipher.getAuthTag()]), { mode: 0o400 });
-  backups.remove(c.id, g.file); g.file = v1name;
-  expect(backups.version(c.id, v1name)).toBe(1);
-  await s.power(c.accountId, c.id, "on"); await f.settle(s, c, c => c.status === "running");
-  for (let n = 0; n < 2; n++) { c.nextAttemptAt = 0; await s.reconcile(); }
-  const now = c.managed!.backups[0]!;
-  expect(now.file).not.toBe(v1name);
-  expect(backups.version(c.id, now.file)).toBe(2);
-  expect(readdirSync(join(f.dataDir, "boat-backups", c.id))).not.toContain(v1name);
-  expect(() => backups.read(c.id, legacy, now.file)).toThrow();
-  expect(backups.read(c.id, v2, now.file).equals(tar)).toBe(true);
-});
-
 it("a changed backup secret refuses to start unless the previous one is given, and then every backup opens with the new one", async () => {
   const f = await fixture(); const A = f.instance();
   const { c, sub } = await f.paid(A.service);
@@ -253,25 +214,25 @@ it("a changed backup secret refuses to start unless the previous one is given, a
   await f.settle(A.service, c, c => c.status === "stopped");
   await f.settle(A.service, c, c => (c.managed!.backups.at(-1)?.verifiedAt ?? null) !== null);
   A.service.close();
-  // the operator sets DUSK_BOAT_BACKUP_KEY (or rotates the seal key) after backups were written
+  // the operator sets DUSK_MANAGED_BACKUP_KEY (or rotates the seal key) after backups were written
   expect(() => f.instance(Buffer.alloc(32, 1))).toThrow("backup secret changed");
   // given the old one, every backup is sealed again first
   const B = f.instance(Buffer.alloc(32, 1), BACKUP_SECRET); const cB = B.service.get(c.id)!;
   const file = cB.managed!.backups.at(-1)!.file;
-  expect(B.backups.read(c.id, boatBackupKey(Buffer.alloc(32, 1), c.id), file).length).toBeGreaterThan(0);
-  expect(() => B.backups.read(c.id, boatBackupKey(BACKUP_SECRET, c.id), file)).toThrow("integrity");
+  expect(B.backups.read(c.id, homeBackupKey(Buffer.alloc(32, 1), c.id), file).length).toBeGreaterThan(0);
+  expect(() => B.backups.read(c.id, homeBackupKey(BACKUP_SECRET, c.id), file)).toThrow("integrity");
   f.advance(46 * DAY_MS);
   for (let n = 0; n < 6; n++) { cB.nextAttemptAt = 0; await B.service.reconcile(); }
   expect(cB.status).toBe("destroyed");
 });
 
-it("retention never deletes a sandbox whose final backup no longer opens, and says so", async () => {
+it("retention never deletes a machine whose final backup no longer opens, and says so", async () => {
   const f = await fixture(); const A = f.instance();
   const { c, sub } = await f.paid(A.service);
   sub.status = "ended"; sub.currentPeriodEnd = f.now(); sub.lastEventAt = f.now();
   await f.settle(A.service, c, c => c.status === "stopped");
   await f.settle(A.service, c, c => (c.managed!.backups.at(-1)?.verifiedAt ?? null) !== null);
-  const path = join(f.dataDir, "boat-backups", c.id, c.managed!.backups.at(-1)!.file);
+  const path = join(f.dataDir, "managed-backups", c.id, c.managed!.backups.at(-1)!.file);
   chmodSync(path, 0o600); const bytes = readFileSync(path); bytes[bytes.length - 20]! ^= 0xff; writeFileSync(path, bytes);
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   f.advance(46 * DAY_MS);
@@ -281,17 +242,19 @@ it("retention never deletes a sandbox whose final backup no longer opens, and sa
   expect(warn.mock.calls.flat().join(" ")).toContain("ALERT");
 });
 
-it("a plan upgrade resizes the sandbox at its next sleep, backed up first, and it comes back on the new size", async () => {
+it("a plan upgrade resizes the machine at its next sleep, its disk kept, and it comes back on the new size", async () => {
   const f = await fixture(); const { service: s } = f.instance();
   const { c } = await f.paid(s);
   s.changePlan(c.id, { kind: "shared_m", placement: "pool", spec: { vcpu: 4, ramGb: 8, diskGb: 40 }, botComputers: 2 });
   f.advance(DAY_MS); f.power.idle = true; f.power.busy = [];
   await f.settle(s, c, c => c.status === "running" && c.spec.vcpu === 4, 40);
-  expect(f.api.sandboxes.get(c.serverId!)!.type).toBe("default");
-  expect(c.managed!.backups.some(g => g.verifiedAt !== null)).toBe(true);
+  const machine = f.api.machines.get(c.serverId!)!;
+  expect([machine.vcpus, machine.memMiB]).toEqual([4, 8192]);
+  expect(machine.volume.has(`data/${CLOUD_HOME.dataName}/bots.json`)).toBe(true);
+  expect(c.managed!.attempt).toBe(0);
 });
 
-it("every resume (wake, disk refresh, resize) asks Boat for no-env again", async () => {
+it("no create, wake or resize hands the provider a secret, an env or a vault", async () => {
   const f = await fixture(); const { service: s } = f.instance();
   const { c } = await f.paid(s);
   f.power.idle = true; f.power.busy = []; f.advance(5 * 60_000);
@@ -303,8 +266,10 @@ it("every resume (wake, disk refresh, resize) asks Boat for no-env again", async
   f.power.idle = true; f.power.busy = []; f.advance(5 * 60_000);
   await f.settle(s, c, c => c.status === "sleeping", 60, 5 * 60_000);
   for (let n = 0; n < 3; n++) { c.nextAttemptAt = 0; await s.reconcile(); }
-  f.advance(12 * DAY_MS); await f.settle(s, c, c => c.status === "running", 20);
-  const resumes = f.api.requests.filter(r => r.method === "POST" && r.path.endsWith("/resume"));
-  expect(resumes.length).toBeGreaterThanOrEqual(3);
-  for (const r of resumes) expect(r.body).toMatchObject({ noEnv: true });
+  await s.power(c.accountId, c.id, "on"); await f.settle(s, c, c => c.status === "running", 20);
+  const resumes = f.api.requests.filter(r => r.method === "POST" && /\/(resume|start)$/.test(r.path));
+  expect(resumes.length).toBeGreaterThanOrEqual(2);
+  const secret = createSealer(SEAL).unseal(c.bootstrapSecret);
+  for (const r of f.api.requests) expect(JSON.stringify(r.body ?? "")).not.toContain(secret);
+  expect(f.api.requests.find(r => r.method === "POST" && r.path === "/v1/machines")!.body).toMatchObject({ vault: false, secrets: [] });
 });

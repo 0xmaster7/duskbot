@@ -15,6 +15,7 @@ import { Mascot } from "../ui/Mascot";
 export const STATUS: Record<CloudDesktop["status"], { label: string; tone: "good" | "warn" | "bad" | "quiet" | "accent" }> = {
   provisioning: { label: "setting up", tone: "accent" },
   running: { label: "running", tone: "good" },
+  waking: { label: "waking up", tone: "warn" },
   sleeping: { label: "asleep", tone: "quiet" },
   stopped: { label: "off", tone: "quiet" },
   error: { label: "needs attention", tone: "bad" },
@@ -23,7 +24,7 @@ export const STATUS: Record<CloudDesktop["status"], { label: string; tone: "good
 export function CloudStatus({ cloud, className }: { cloud: CloudDesktop; className?: string }) {
   const s = cloud.awaitingPayment ? { label: "waiting for payment", tone: "quiet" as const } : STATUS[cloud.status];
   const up = cloud.status === "running" && cloud.uptimeSec ? ` · up ${duration(cloud.uptimeSec)}` : "";
-  return <StatusDot tone={s.tone} live={cloud.status === "running" || (cloud.status === "provisioning" && !cloud.awaitingPayment)} className={className}>{s.label}{up}</StatusDot>;
+  return <StatusDot tone={s.tone} live={cloud.status === "running" || cloud.status === "waking" || (cloud.status === "provisioning" && !cloud.awaitingPayment)} className={className}>{s.label}{up}</StatusDot>;
 }
 
 export function regionName(catalog: PlanCatalog | null, id: string) {
@@ -47,6 +48,7 @@ export function PowerButton({ cloud, size = "sm" }: { cloud: CloudDesktop; size?
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(false);
   if (cloud.status === "provisioning") return null;
+  if (cloud.status === "waking") return <Button size={size} variant="outline" disabled><Power size={15} strokeWidth={1.75} aria-hidden />waking</Button>;
   const on = cloud.status === "running" || cloud.status === "error";
   const go = async (next: boolean) => {
     setBusy(true); setAsking(false);

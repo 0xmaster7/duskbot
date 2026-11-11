@@ -100,7 +100,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
         setPending((previous) => {
           const entries = Object.entries(previous).filter(([id, power]) => {
             const cloud = result.clouds.find((c) => c.id === id);
-            return cloud && Date.now() < power.until && !(power.on ? cloud.status === "running" : cloud.status === "sleeping" || cloud.status === "stopped");
+            return cloud && Date.now() < power.until && !(power.on ? cloud.status === "running" || cloud.status === "waking" : cloud.status === "sleeping" || cloud.status === "stopped");
           });
           return entries.length === Object.keys(previous).length ? previous : Object.fromEntries(entries);
         });

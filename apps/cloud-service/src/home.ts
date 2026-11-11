@@ -1,52 +1,66 @@
-// What runs on a Boat sandbox to make it a My Cloud home: the same launcher, edge and server as every Cloud home
-// (server/cloud-home-start.ts, apps/cloud-service/deploy/Caddyfile), installed natively under systemd so it comes back after every resume.
-// Boat runs the setup script once, as `user` with passwordless sudo; every later step is one command the reconciler sends.
+// What runs on an InstaBox machine to make it a My Cloud home: the same launcher, edge and server as every Cloud home
+// (server/cloud-home-start.ts, apps/cloud-service/deploy/Caddyfile), installed natively under systemd so it comes back
+// after every cold boot. The setup script runs once, as the machine user with passwordless sudo; every later step is one
+// command the reconciler sends. InstaBox facts this relies on (docs read and live machines checked 2026-11-11): /data is
+// the machine's persistent ext4 disk and also holds the machine user's home (/data/home), TMPDIR (/data/tmp), the
+// platform's own folders and swap; the root disk (Docker's images and volumes) persists across a stop and a reboot; exec
+// and file uploads run as that user; a pause keeps memory and processes, so nothing has to stop before it.
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
-import { createHmac } from "node:crypto";
 import { CLOUD_HOME_MARKER_FILE, homeEnv, shellQuote, type DashboardLink } from "../../dashboard/server/clouds/bootstrap.ts";
 import type { MachineImage, HomeBootInput } from "./provider.ts";
 import { machineVerifyScript, type ReleaseKey } from "./release-signing.ts";
 
 /** pinned runtime downloads, verified before use */
-export const BOAT_NODE = { version: "24.22.2", sha256: "48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75" } as const;
-export const BOAT_CADDY = { version: "2.10.2", sha512: "747df7ee74de188485157a383633a1a963fd9233b71fbb4a69ddcbcc589ce4e2cc82dacf5dbbe136cb51d17e14c59daeb5d9bc92487610b0f3b93680b2646546" } as const;
-/** where the boot secrets land before the setup script moves them out of the user's reach (Boat writes `files` only under /home/user or /tmp) */
-export const BOAT_BOOT_FILE = "/home/user/.omb-boot.json";
-export const BOAT_PACKAGE_FILE = "/home/user/omb-home.tgz";
-export const BOAT_RESTORE_FILE = "/home/user/omb-restore.tar";
-/** the home's volume as Boat's snapshot reads name it: everything outside /home/user is under __system__ (seen 2026-11-09) */
-export const BOAT_HOME_VOLUME = "__system__/data";
-// /usr/local and /opt belong to the sandbox user on Boat; the launcher runs only root's code (codeTrustProblem)
-// the whole Node distribution, npm with it: the server installs engine CLIs with npm into its own data folder (engine-install.ts)
+export const HOME_NODE = { version: "24.22.2", sha256: "48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75" } as const;
+export const HOME_CADDY = { version: "2.10.2", sha512: "747df7ee74de188485157a383633a1a963fd9233b71fbb4a69ddcbcc589ce4e2cc82dacf5dbbe136cb51d17e14c59daeb5d9bc92487610b0f3b93680b2646546" } as const;
+export const INSTABOX_USER_HOME = "/data/home";
+export const INSTABOX_BOOT_FILE = `${INSTABOX_USER_HOME}/.omb-boot.json`;
+export const INSTABOX_PACKAGE_FILE = `${INSTABOX_USER_HOME}/omb-home.tgz`;
+export const INSTABOX_RESTORE_FILE = `${INSTABOX_USER_HOME}/omb-restore.tar`;
+export const INSTABOX_SNAPSHOT_FILE = `${INSTABOX_USER_HOME}/.omb-snapshot.tar`;
+export const INSTABOX_SETUP_FILE = `${INSTABOX_USER_HOME}/.omb-setup.sh`;
+export const INSTABOX_SETUP_LOG = `${INSTABOX_USER_HOME}/.omb-setup.log`;
+export const INSTABOX_SETUP_STATUS = `${INSTABOX_USER_HOME}/.omb-setup.status`;
+/** the volume's name inside a backup tar (`data/...`) */
+export const INSTABOX_HOME_VOLUME = "data";
+/** entries of /data that are the platform's (the machine user's home, TMPDIR, its own state, swap) or a step's scratch:
+ *  never in a backup, never replaced by a restore */
+export const PLATFORM_ENTRIES = ["home", "tmp", "workspace", "config", "state", "swapfile", "lost+found", ".instabox*", ".omb-restore.*", ".omb-old.*"] as const;
+// the launcher runs only root's code (codeTrustProblem); the whole Node distribution, npm with it: the server installs
+// engine CLIs with npm into its own data folder (engine-install.ts)
 const ROOT = CLOUD_HOME.root, APP = `${ROOT}/app`, BIN = `${ROOT}/bin`, NODE_DIR = `${ROOT}/node`;
-export const BOAT_NODE_BIN = `${NODE_DIR}/bin/node`;
-export const BOAT_CONTROL = `${BIN}/omb-home`;
-/** set by the pre-stop hook while the provider saves the disk; the home's unit will not start while it exists */
-export const PRE_STOP_FLAG = `${CLOUD_HOME.run}/pre-stop`;
+export const HOME_NODE_BIN = `${NODE_DIR}/bin/node`;
+export const HOME_CONTROL = `${BIN}/omb-home`;
+/** what the bot computers' image is doing on this machine (building, ready, failed); the home's server reads it */
+export const DESKTOP_IMAGE_STATUS = `${CLOUD_HOME.run}/desktop-image`;
 /** merges cgroup-parent into docker's daemon.json; exits 0 only when it changed the file */
 const DOCKER_SLICE = `const fs = require("node:fs"), p = "/etc/docker/daemon.json";
 let c = {}; try { c = JSON.parse(fs.readFileSync(p, "utf8")); } catch {}
 if (c["cgroup-parent"] === "omb-bots.slice") process.exit(1);
 c["cgroup-parent"] = "omb-bots.slice";
 fs.writeFileSync(p, JSON.stringify(c, null, 2) + "\\n");`;
-
-export type BoatBootInput = HomeBootInput;
+/** an online SQLite backup (consistent while the home writes); a file that is not a database is copied as it is */
+const DB_COPY = `const { DatabaseSync, backup } = require("node:sqlite");
+const db = new DatabaseSync(process.argv[1], { readOnly: true });
+backup(db, process.argv[2]).then(() => { db.close(); }, () => { db.close(); process.exit(1); });`;
+const platformCase = PLATFORM_ENTRIES.join("|");
+const excludes = PLATFORM_ENTRIES.map(e => `--exclude='data/${e}'`).join(" ");
 
 /** what a machine needs to become this cloud's home: its env (the bootstrap secret among it), its dashboard link, its id */
-export function bootContent(input: BoatBootInput): { v: 1; env: Record<string, string>; link: DashboardLink; machine: string } {
+export function bootContent(input: HomeBootInput): { v: 1; env: Record<string, string>; link: DashboardLink; machine: string } {
   const env = { ...homeEnv({ ...input, origin: "https://pending.invalid" }), DUSK_CLOUD_EDGE_HOLD: "30s" };
   return { v: 1, env, link: input.link, machine: input.cloudId };
 }
 
 /** the per-cloud secrets as one boot file (a loopback service only: no machine can reach it to redeem a claim) */
-export function boatBootFile(input: BoatBootInput): { path: string; content: string } {
-  return { path: BOAT_BOOT_FILE, content: JSON.stringify(bootContent(input)) };
+export function bootFile(input: HomeBootInput): { path: string; content: string } {
+  return { path: INSTABOX_BOOT_FILE, content: JSON.stringify(bootContent(input)) };
 }
 
 /** the one-time claim the machine redeems at first boot for its boot content: the provider's API never carries a secret */
 export function claimBootFile(input: { cloudId: string; claim: string; redeem: string }): { path: string; content: string } {
   if (!/^c[0-9a-f]{24}$/.test(input.cloudId) || !/^[A-Za-z0-9_-]{43}$/.test(input.claim) || !input.redeem.startsWith("https://")) throw new Error("Invalid machine claim.");
-  return { path: BOAT_BOOT_FILE, content: JSON.stringify({ v: 2, machine: input.cloudId, claim: input.claim, redeem: input.redeem }) };
+  return { path: INSTABOX_BOOT_FILE, content: JSON.stringify({ v: 2, machine: input.cloudId, claim: input.claim, redeem: input.redeem }) };
 }
 
 /** redeems a v2 boot file's claim at the account service, writing the v1 boot content root keeps; retried, never on a 403 */
@@ -70,90 +84,25 @@ if (b.v !== 2 || !/^c[0-9a-f]{24}$/.test(b.machine) || typeof b.claim !== "strin
   process.exit(1);
 })();`;
 
-/** the sha256 a home package must have, from DUSK_BOAT_HOME_PACKAGE_SHA256 or the uploaded file */
 const SHA256 = /^[a-f0-9]{64}$/;
-
-/** what differs between the machines of two hosts: where files land, who owns the volume's mount, what runs before a
- *  stop, and the control commands whose steps depend on them */
-export interface HostLayout {
-  bootFile: string;
-  packageFile: string;
-  restoreFile: string;
-  /** the setup's line that makes the volume and the data folder */
-  volumeDirs: string;
-  /** setup lines of the host's own (Boat's pre-stop hook) */
-  hostSetup: string;
-  /** `omb-home restore <tar>` */
-  restore: string;
-  /** `omb-home start` lines after the origin checks, before the env is rewritten */
-  startKeep: string;
-  /** more `omb-home` subcommands, and the usage line naming them all */
-  extraCommands: string;
-  usage: string;
-}
-
-// Boat runs ~/.boat/pre-stop before every stop it saves (60 s at most): the home closes its databases first. The flag
-// keeps systemd from starting it again during the save; if the provider then cancels the stop, or resumes the machine
-// held in memory with nobody to start it, the timer brings the home back after 15 minutes of uptime.
-const BOAT_PRE_STOP = `#!/bin/bash
-sudo -n install -d -o root -g root -m 0755 ${CLOUD_HOME.run}
-sudo -n touch ${PRE_STOP_FLAG}
-sudo -n systemd-run --quiet --unit=omb-stop-cancelled --on-active=15min --timer-property=AccuracySec=30s ${BOAT_CONTROL} resume-if-cancelled >/dev/null 2>&1 || true
-sudo -n timeout 40 systemctl stop omb-home.service >/dev/null 2>&1 || sudo -n systemctl kill -s KILL omb-home.service >/dev/null 2>&1 || true
-`;
-export const BOAT_LAYOUT: HostLayout = {
-  bootFile: BOAT_BOOT_FILE, packageFile: BOAT_PACKAGE_FILE, restoreFile: BOAT_RESTORE_FILE,
-  volumeDirs: `sudo install -d -o maus -g maus -m 0700 /data ${CLOUD_HOME.data}`,
-  hostSetup: `install -d -m 0700 /home/user/.boat
-install -m 0700 /dev/stdin /home/user/.boat/pre-stop <<'DUSK_PRESTOP'
-${BOAT_PRE_STOP}DUSK_PRESTOP
-printf '%s\\n' /tmp /var/tmp /var/cache/apt > /home/user/.boatignore
-`,
-  restore: `  restore)
-    file="$2"
-    systemctl stop omb-home.service >/dev/null 2>&1 || true
-    machine="$(cat ${CLOUD_HOME.etc}/machine)"
-    stage="$(mktemp -d /var/tmp/omb-restore.XXXXXX)"
-    tar -xf "$file" -C "$stage" --numeric-owner --no-same-permissions --delay-directory-restore
-    marker="$(find "$stage" -maxdepth 3 -name .omb-cloud-home.json -type f | head -n 1)"
-    [ -n "$marker" ] || { rm -rf "$stage"; echo "not a home backup"; exit 2; }
-    grep -q "\\"$machine\\"" "$marker" || { rm -rf "$stage"; echo "another cloud's backup"; exit 2; }
-    root="$(dirname "$marker")"
-    link="$(mktemp)"; cp ${CLOUD_HOME.data}/dashboard-link.json "$link"
-    rm -rf /data.old; mv /data /data.old; mv "$root" /data
-    install -d -o maus -g maus -m 0700 ${CLOUD_HOME.data}
-    install -o maus -g maus -m 0600 "$link" ${CLOUD_HOME.data}/dashboard-link.json
-    chown -R maus:maus /data; chmod 0700 /data; rm -rf "$stage" "$link" "$file" /data.old
-    echo restored ;;
-`,
-  startKeep: "",
-  extraCommands: "",
-  usage: "install|rollback|restore|start|stop|status|verify-template|tree|resume-if-cancelled",
-};
 
 /**
  * Runs once on the first start. Installs Node and Caddy (pinned, checksummed), the `maus` user, the volume at /data, the
  * systemd units and the helper commands, and moves the boot secrets into root's files. It never starts the home: the
- * reconciler installs the app package and starts it once it knows the sandbox's public origin.
+ * reconciler installs the app package and starts it once it knows the machine's public origin.
  */
-export function boatSetupScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean } = { releaseKeys: [], requireSigned: false }): string {
-  return homeSetupScript(options, BOAT_LAYOUT);
-}
-
-export function homeSetupScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean }, layout: HostLayout): string {
-  const node = `node-v${BOAT_NODE.version}-linux-x64`;
-  const caddy = `caddy_${BOAT_CADDY.version}_linux_amd64.tar.gz`;
+export function homeSetupScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean } = { releaseKeys: [], requireSigned: false }): string {
+  const node = `node-v${HOME_NODE.version}-linux-x64`;
+  const caddy = `caddy_${HOME_CADDY.version}_linux_amd64.tar.gz`;
   const unit = `[Unit]
 Description=Dusk Bot My Cloud home
 After=network-online.target omb-docker-gate.service
 Wants=network-online.target
 ConditionPathExists=${APP}/dist-server/cloud-home-start.js
-# while the provider saves the disk nothing may reopen the databases (omb-home start clears it)
-ConditionPathExists=!${PRE_STOP_FLAG}
 
 [Service]
 EnvironmentFile=${CLOUD_HOME.etc}/home.env
-ExecStart=${BOAT_NODE_BIN} ${APP}/dist-server/cloud-home-start.js
+ExecStart=${HOME_NODE_BIN} ${APP}/dist-server/cloud-home-start.js
 Restart=always
 RestartSec=3
 KillMode=mixed
@@ -180,7 +129,7 @@ Group=maus
 SupplementaryGroups=docker
 RuntimeDirectory=${CLOUD_HOME.gate}
 RuntimeDirectoryMode=0750
-ExecStart=${BOAT_NODE_BIN} ${APP}/link/docker-gate.mjs --listen /run/${CLOUD_HOME.gate}/docker.sock --upstream /var/run/docker.sock
+ExecStart=${HOME_NODE_BIN} ${APP}/link/docker-gate.mjs --listen /run/${CLOUD_HOME.gate}/docker.sock --upstream /var/run/docker.sock
 Restart=always
 RestartSec=2
 UMask=0007
@@ -190,6 +139,28 @@ ProtectHome=yes
 PrivateTmp=yes
 RestrictAddressFamilies=AF_UNIX
 IPAddressDeny=any
+
+[Install]
+WantedBy=multi-user.target
+`;
+  // the bot computers' image, made ready by root beside the gate (which never builds): a failed try is tried again a
+  // minute later, at low priority so the home answers while it builds
+  const desktopImage = `[Unit]
+Description=Dusk Bot bot computer image
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+ConditionPathExists=${APP}/deploy/bot-desktop/Dockerfile
+
+[Service]
+Type=oneshot
+ExecStart=${HOME_CONTROL} desktop-image
+Restart=on-failure
+RestartSec=60
+TimeoutStartSec=45min
+Nice=10
+CPUWeight=50
+IOWeight=50
 
 [Install]
 WantedBy=multi-user.target
@@ -226,7 +197,7 @@ const boot = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
 if (boot.v !== 1 || !boot.env || !boot.link || !/^c[0-9a-f]{24}$/.test(boot.machine)) process.exit(1);
 const env = { ...boot.env, HOME: "/data", DUSK_DATA_DIR: "${CLOUD_HOME.data}", NODE_ENV: "production", DUSK_STATIC_DIR: "${APP}/dist",
   DUSK_CLOUD_EDGE_BIN: "${BIN}/caddy", DUSK_CLOUD_EDGE_CONFIG: "${APP}/cloud/Caddyfile", PATH: "${NODE_DIR}/bin:${BIN}:/usr/local/bin:/usr/bin:/bin",
-  DUSK_VPS_DOCKER: "local", DOCKER_HOST: "unix:///run/${CLOUD_HOME.gate}/docker.sock" };
+  DUSK_VPS_DOCKER: "local", DOCKER_HOST: "unix:///run/${CLOUD_HOME.gate}/docker.sock", DUSK_BOT_DESKTOP_HOST_BUILD: "${DESKTOP_IMAGE_STATUS}" };
 if (Object.entries(env).some(([k, v]) => !/^[A-Z][A-Z0-9_]*$/.test(k) || typeof v !== "string" || /[\\r\\n\\0]/.test(v))) process.exit(1);
 fs.writeFileSync("${CLOUD_HOME.etc}/home.env", Object.entries(env).map(([k, v]) => k + "=" + v).join("\\n") + "\\n", { mode: 0o600 });
 fs.writeFileSync("${CLOUD_HOME.data}/dashboard-link.json", JSON.stringify(boot.link), { mode: 0o600 });
@@ -240,21 +211,21 @@ export DEBIAN_FRONTEND=noninteractive
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 sudo install -d -o root -g root -m 0755 ${ROOT} ${BIN}
-if [ ! -x ${BOAT_NODE_BIN} ] || [ "$(${BOAT_NODE_BIN} --version)" != "v${BOAT_NODE.version}" ]; then
-  curl -fsSL --retry 3 -o "$work/node.tar.xz" "https://nodejs.org/dist/v${BOAT_NODE.version}/${node}.tar.xz"
-  echo "${BOAT_NODE.sha256}  $work/node.tar.xz" | sha256sum -c --quiet
+if [ ! -x ${HOME_NODE_BIN} ] || [ "$(${HOME_NODE_BIN} --version)" != "v${HOME_NODE.version}" ]; then
+  curl -fsSL --retry 3 -o "$work/node.tar.xz" "https://nodejs.org/dist/v${HOME_NODE.version}/${node}.tar.xz"
+  echo "${HOME_NODE.sha256}  $work/node.tar.xz" | sha256sum -c --quiet
   tar -xJf "$work/node.tar.xz" -C "$work"
   sudo chown -R root:root "$work/${node}" && sudo chmod -R a+rX,go-w "$work/${node}"
   sudo rm -r -f ${NODE_DIR}.old; [ ! -d ${NODE_DIR} ] || sudo mv ${NODE_DIR} ${NODE_DIR}.old
   sudo mv "$work/${node}" ${NODE_DIR}; sudo rm -r -f ${NODE_DIR}.old
 fi
 if [ ! -x ${BIN}/caddy ]; then
-  curl -fsSL --retry 3 -o "$work/caddy.tar.gz" "https://github.com/caddyserver/caddy/releases/download/v${BOAT_CADDY.version}/${caddy}"
-  echo "${BOAT_CADDY.sha512}  $work/caddy.tar.gz" | sha512sum -c --quiet
+  curl -fsSL --retry 3 -o "$work/caddy.tar.gz" "https://github.com/caddyserver/caddy/releases/download/v${HOME_CADDY.version}/${caddy}"
+  echo "${HOME_CADDY.sha512}  $work/caddy.tar.gz" | sha512sum -c --quiet
   tar -xzf "$work/caddy.tar.gz" -C "$work" caddy
   sudo install -o root -g root -m 0755 "$work/caddy" ${BIN}/caddy
 fi
-# a template already has them: skip the network then
+# the machine's template may have them already: skip the network then
 if ! command -v bwrap >/dev/null || ! command -v socat >/dev/null || ! command -v python3 >/dev/null || ! command -v pdftotext >/dev/null || ! command -v unzip >/dev/null; then
   sudo apt-get update -qq >/dev/null 2>&1 || true
   sudo apt-get install -y -qq bubblewrap socat python3 poppler-utils unzip util-linux >/dev/null 2>&1 || true
@@ -263,27 +234,29 @@ id maus >/dev/null 2>&1 || sudo useradd --system --home-dir /data --shell /bin/b
 id omb-docker >/dev/null 2>&1 || sudo useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin --gid maus omb-docker
 getent group docker >/dev/null 2>&1 && sudo usermod -aG docker omb-docker
 sudo install -d -o root -g root -m 0700 ${CLOUD_HOME.etc}
-${layout.volumeDirs}
-if [ -f ${layout.bootFile} ]; then
-  boot=${layout.bootFile}
-  if grep -q '"v":2' ${layout.bootFile}; then
-    sudo ${BOAT_NODE_BIN} -e ${shellQuote(REDEEM_SCRIPT)} ${layout.bootFile} ${CLOUD_HOME.etc}/boot.json
+# the mount point stays traversable for the machine user, whose home is inside it
+sudo install -d -o maus -g maus -m 0711 /data
+sudo install -d -o maus -g maus -m 0700 ${CLOUD_HOME.data}
+if [ -f ${INSTABOX_BOOT_FILE} ]; then
+  boot=${INSTABOX_BOOT_FILE}
+  if grep -q '"v":2' ${INSTABOX_BOOT_FILE}; then
+    sudo ${HOME_NODE_BIN} -e ${shellQuote(REDEEM_SCRIPT)} ${INSTABOX_BOOT_FILE} ${CLOUD_HOME.etc}/boot.json
     boot=${CLOUD_HOME.etc}/boot.json
   fi
-  sudo ${BOAT_NODE_BIN} -e ${shellQuote(moveBoot)} "$boot"
+  sudo ${HOME_NODE_BIN} -e ${shellQuote(moveBoot)} "$boot"
   sudo chown maus:maus ${CLOUD_HOME.data}/dashboard-link.json /data/${CLOUD_HOME_MARKER_FILE}
   sudo shred -u ${CLOUD_HOME.etc}/boot.json 2>/dev/null || sudo rm -f ${CLOUD_HOME.etc}/boot.json
-  shred -u ${layout.bootFile} 2>/dev/null || rm -f ${layout.bootFile}
+  shred -u ${INSTABOX_BOOT_FILE} 2>/dev/null || rm -f ${INSTABOX_BOOT_FILE}
 fi
 sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-home.service <<'DUSK_UNIT'
 ${unit}DUSK_UNIT
 sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-docker-gate.service <<'DUSK_GATE'
 ${gate}DUSK_GATE
-sudo install -o root -g root -m 0755 /dev/stdin ${BOAT_CONTROL} <<'DUSK_CTL'
-${homeControlScript(options, layout)}DUSK_CTL
-# a machine started from a template runs only the app the template's signature names (a wrong template, not a hostile one)
-if [ -d ${APP} ]; then sudo -n ${BOAT_CONTROL} verify-template; fi
-${layout.hostSetup}sudo install -o root -g root -m 0755 /dev/stdin ${BIN}/omb-zram <<'DUSK_ZRAM'
+sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-desktop-image.service <<'DUSK_DESKTOP'
+${desktopImage}DUSK_DESKTOP
+sudo install -o root -g root -m 0755 /dev/stdin ${HOME_CONTROL} <<'DUSK_CTL'
+${homeControlScript(options)}DUSK_CTL
+sudo install -o root -g root -m 0755 /dev/stdin ${BIN}/omb-zram <<'DUSK_ZRAM'
 ${zram}DUSK_ZRAM
 sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-zram.service <<'DUSK_ZRAMUNIT'
 ${zramUnit}DUSK_ZRAMUNIT
@@ -294,20 +267,16 @@ sudo systemctl enable --now omb-zram.service >/dev/null 2>&1 || true
 # bot computers' containers go under omb-bots.slice (merged into any daemon.json there; docker restarts once)
 if [ -d /etc/docker ] || command -v dockerd >/dev/null; then
   sudo install -d -m 0755 /etc/docker
-  if sudo ${BOAT_NODE_BIN} -e ${shellQuote(DOCKER_SLICE)}; then sudo systemctl restart docker >/dev/null 2>&1 || true; fi
+  if sudo ${HOME_NODE_BIN} -e ${shellQuote(DOCKER_SLICE)}; then sudo systemctl restart docker >/dev/null 2>&1 || true; fi
 fi
 `;
 }
 
 /**
- * <root>/bin/omb-home, root's: `install <file> <sha256> [signature] [floor]`, `rollback`, `restore <tar>`, `start <origin>`, `stop`, `status`. Each
- * prints only fixed words. Running it again is safe.
+ * <root>/bin/omb-home, root's: `install <file> <sha256> [signature] [floor]`, `rollback`, `restore <tar>`, `start <origin>`,
+ * `stop`, `status`, `snapshot`, `snapshot-done`, `desktop-image`. Each prints only fixed words. Running it again is safe.
  */
-export function boatControlScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean } = { releaseKeys: [], requireSigned: false }): string {
-  return homeControlScript(options, BOAT_LAYOUT);
-}
-
-export function homeControlScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean }, layout: HostLayout): string {
+export function homeControlScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean } = { releaseKeys: [], requireSigned: false }): string {
   return `#!/bin/bash
 set +x
 set -euo pipefail
@@ -316,6 +285,10 @@ app=${APP}
 verify=${shellQuote(machineVerifyScript(options.releaseKeys))}
 signed=${options.requireSigned ? 1 : 0}
 tree() { (cd "$1" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1); }
+# the image's state, readable by the home's server (this script's umask would make it root's alone)
+imaged() { printf '%s\\n' "$1" > ${DESKTOP_IMAGE_STATUS}; chmod 0644 ${DESKTOP_IMAGE_STATUS}; }
+# the bot computers' image is made ready in the background whenever a package or a boot may have left it missing
+desktop() { if [ -S /var/run/docker.sock ] && [ -f "$app/deploy/bot-desktop/Dockerfile" ] && [ "$(cat ${DESKTOP_IMAGE_STATUS} 2>/dev/null)" != ready ]; then systemctl enable omb-desktop-image.service >/dev/null 2>&1 || true; systemctl start --no-block omb-desktop-image.service >/dev/null 2>&1 || true; fi; }
 case "\${1:-}" in
   install)
     file="$2"; sum="$3"; sig="\${4:-}"; floor="\${5:-}"; ver=""
@@ -324,11 +297,11 @@ case "\${1:-}" in
     if [ -n "$sig" ] || [ "$signed" = 1 ]; then
       [[ "$sig" =~ ^r1\\.[a-z0-9-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$ ]] || { echo "unsigned package"; exit 2; }
       sigfile="$(mktemp)"; printf '%s' "$sig" > "$sigfile"
-      ver="$(${BOAT_NODE_BIN} -e "$verify" "$sigfile" "$sum" home-package print)" || { rm -f "$sigfile"; echo "bad signature"; exit 2; }
+      ver="$(${HOME_NODE_BIN} -e "$verify" "$sigfile" "$sum" home-package print)" || { rm -f "$sigfile"; echo "bad signature"; exit 2; }
       rm -f "$sigfile"
     fi
     # the same package again (a lost answer): nothing to swap, and the version before stays the one to roll back to
-    if [ -d "$app" ] && [ "$(cat ${ROOT}/installed 2>/dev/null)" = "$sum" ]; then rm -f "$file"; echo installed; exit 0; fi
+    if [ -d "$app" ] && [ "$(cat ${ROOT}/installed 2>/dev/null)" = "$sum" ]; then rm -f "$file"; desktop; echo installed; exit 0; fi
     # never older than what runs (a rollback is its own command), never below the signed floor
     if [ -n "$ver" ]; then
       cur="$(cat ${ROOT}/installed-version 2>/dev/null || true)"
@@ -343,6 +316,7 @@ case "\${1:-}" in
     rm -rf "$app.prev"; [ ! -d "$app" ] || mv "$app" "$app.prev"; mv "$next" "$app"
     for f in installed installed-version; do if [ -f ${ROOT}/$f ]; then mv ${ROOT}/$f ${ROOT}/$f.prev; else rm -f ${ROOT}/$f.prev; fi; done
     echo "$sum" > ${ROOT}/installed; [ -z "$ver" ] || echo "$ver" > ${ROOT}/installed-version; rm -f "$file"
+    rm -f ${DESKTOP_IMAGE_STATUS}; desktop
     echo installed ;;
   rollback)
     # back to the app the last install replaced; the reconciler starts it again
@@ -352,25 +326,39 @@ case "\${1:-}" in
     mv ${ROOT}/installed.prev ${ROOT}/installed
     if [ -f ${ROOT}/installed-version.prev ]; then mv ${ROOT}/installed-version.prev ${ROOT}/installed-version; else rm -f ${ROOT}/installed-version; fi
     echo "rolled back" ;;
-${layout.restore}  verify-template)
-    # the template's signature names the tree hash of the app it carries; anything else never starts
-    [ -f ${ROOT}/template.sig ] || { [ "$signed" = 1 ] && { echo "unsigned template"; exit 2; }; echo "no template signature"; exit 0; }
-    ${BOAT_NODE_BIN} -e "$verify" ${ROOT}/template.sig "$(tree "$app")" template || { echo "bad template"; exit 2; }
-    echo verified ;;
+  restore)
+    file="$2"
+    systemctl stop omb-home.service >/dev/null 2>&1 || true
+    machine="$(cat ${CLOUD_HOME.etc}/machine)"
+    platform() { case "$1" in ${platformCase}) return 0 ;; esac; return 1; }
+    stage="$(mktemp -d /data/.omb-restore.XXXXXX)"
+    tar -xf "$file" -C "$stage" --numeric-owner --no-same-permissions --delay-directory-restore
+    marker="$(find "$stage" -maxdepth 3 -name .omb-cloud-home.json -type f | head -n 1)"
+    [ -n "$marker" ] || { rm -rf "$stage"; echo "not a home backup"; exit 2; }
+    grep -q "\\"$machine\\"" "$marker" || { rm -rf "$stage"; echo "another cloud's backup"; exit 2; }
+    root="$(dirname "$marker")"
+    link="$(mktemp)"; cp ${CLOUD_HOME.data}/dashboard-link.json "$link"
+    old="$(mktemp -d /data/.omb-old.XXXXXX)"
+    shopt -s dotglob nullglob
+    for entry in /data/*; do platform "\${entry##*/}" || mv "$entry" "$old/"; done
+    for entry in "$root"/*; do platform "\${entry##*/}" || mv "$entry" /data/; done
+    install -d -o maus -g maus -m 0700 ${CLOUD_HOME.data}
+    install -o maus -g maus -m 0600 "$link" ${CLOUD_HOME.data}/dashboard-link.json
+    for entry in /data/*; do platform "\${entry##*/}" || chown -R maus:maus "$entry"; done
+    chown maus:maus /data; chmod 0711 /data; rm -rf "$stage" "$old" "$link" "$file"
+    echo restored ;;
   tree) tree "$app" ;;
-  resume-if-cancelled)
-    # the stop this flag guarded never came (cancelled, or a resume that kept the machine in memory): start again
-    if [ -f ${PRE_STOP_FLAG} ] && [ $(( $(date +%s) - $(stat -c %Y ${PRE_STOP_FLAG}) )) -ge 300 ]; then
-      rm -f ${PRE_STOP_FLAG}; systemctl start omb-home.service; echo resumed
-    else echo kept; fi ;;
   start)
     origin="$2"; upstream="\${3:-$2}"
     [[ "$origin" =~ ^https://[a-z0-9.-]+$ ]] || { echo "bad origin"; exit 2; }
     [[ "$upstream" =~ ^https://[a-z0-9.-]+$ ]] || { echo "bad origin"; exit 2; }
-${layout.startKeep}    sed -i "/^DUSK_PUBLIC_URL=/d; /^DUSK_CLOUD_UPSTREAM_HOST=/d" ${CLOUD_HOME.etc}/home.env
+    desktop
+    # a resume that kept memory left the home running with this origin: nothing to restart
+    if systemctl is-active --quiet omb-home.service && grep -qxF "DUSK_PUBLIC_URL=$origin" ${CLOUD_HOME.etc}/home.env && grep -qxF "DUSK_CLOUD_UPSTREAM_HOST=\${upstream#https://}" ${CLOUD_HOME.etc}/home.env \\
+      && curl -fsS -m 2 http://127.0.0.1:8799/api/health >/dev/null 2>&1; then echo started; exit 0; fi
+    sed -i "/^DUSK_PUBLIC_URL=/d; /^DUSK_CLOUD_UPSTREAM_HOST=/d" ${CLOUD_HOME.etc}/home.env
     echo "DUSK_PUBLIC_URL=$origin" >> ${CLOUD_HOME.etc}/home.env
     echo "DUSK_CLOUD_UPSTREAM_HOST=\${upstream#https://}" >> ${CLOUD_HOME.etc}/home.env
-    rm -f ${PRE_STOP_FLAG}; systemctl stop omb-stop-cancelled.timer >/dev/null 2>&1 || true
     systemctl enable omb-home.service >/dev/null 2>&1
     if [ -S /var/run/docker.sock ] && [ -f "$app/link/docker-gate.mjs" ]; then systemctl enable --now omb-docker-gate.service >/dev/null 2>&1 || true; fi
     systemctl restart omb-home.service
@@ -378,24 +366,54 @@ ${layout.startKeep}    sed -i "/^DUSK_PUBLIC_URL=/d; /^DUSK_CLOUD_UPSTREAM_HOST=
     echo "not answering"; exit 3 ;;
   stop) systemctl stop omb-home.service; echo stopped ;;
   status) systemctl is-active omb-home.service || true; [ -f ${ROOT}/installed ] && cat ${ROOT}/installed || echo none ;;
-${layout.extraCommands}  *) echo "usage: omb-home ${layout.usage}"; exit 2 ;;
+  snapshot)
+    # the volume as a backup reads it, from the running home: each SQLite database through an online backup, the rest as it is
+    out=${INSTABOX_SNAPSHOT_FILE}; part="$out.part"; rm -f "$out" "$part"
+    dbs="$(mktemp -d ${INSTABOX_USER_HOME}/.omb-dbs.XXXXXX)"
+    sync
+    while IFS= read -r -d '' db; do
+      install -d "$dbs/$(dirname "$db")"
+      ${HOME_NODE_BIN} -e ${shellQuote(DB_COPY)} "/$db" "$dbs/$db" 2>/dev/null || cp -p "/$db" "$dbs/$db"
+      chown --reference="/$db" "$dbs/$db"
+    done < <(cd / && find data ${PLATFORM_ENTRIES.map(e => `-path 'data/${e}' -prune -o`).join(" ")} -type f -name '*.db' -print0)
+    code=0; tar -C / --numeric-owner -cf "$part" ${excludes} --exclude='*.db' --exclude='*.db-wal' --exclude='*.db-shm' --exclude='*.db-journal' data || code=$?
+    # 1: a file changed while it was read (the home runs); anything more is a failure
+    [ "$code" -le 1 ] || { rm -rf "$dbs" "$part"; echo "snapshot failed"; exit 3; }
+    if [ -d "$dbs/data" ]; then tar -C "$dbs" --numeric-owner -rf "$part" data; fi
+    rm -rf "$dbs"; chown user:user "$part"; chmod 0600 "$part"; mv "$part" "$out"
+    echo "snapshot $(stat -c %s "$out")" ;;
+  snapshot-done) rm -f ${INSTABOX_SNAPSHOT_FILE}; echo removed ;;
+  desktop-status)
+    s="$(cat ${DESKTOP_IMAGE_STATUS} 2>/dev/null || echo none)"
+    if [ "$s" != ready ] && systemctl is-active --quiet omb-desktop-image.service; then echo building; else echo "$s"; fi ;;
+  desktop-image)
+    # the bot computers' image: the registry's copy when it gives one to anyone, else built here from the signed
+    # package's own kit, so a fresh home needs nobody's step and no registry credential
+    kit="$app/deploy/bot-desktop"
+    install -d -o root -g root -m 0755 ${CLOUD_HOME.run}
+    [ -f "$kit/Dockerfile" ] || { echo "no kit"; exit 0; }
+    image="$(sed -n 's/^export const BOT_DESKTOP_IMAGE = "\\(.*\\)";.*/\\1/p' "$app/shared/bot-desktop.ts" | head -n 1)"
+    [[ "$image" =~ ^[a-z0-9./-]+:v[0-9]+$ ]] || { imaged failed; echo "bad image name"; exit 2; }
+    if docker image inspect "$image" >/dev/null 2>&1; then imaged ready; echo ready; exit 0; fi
+    imaged building
+    if docker pull -q "$image" >/dev/null 2>&1 || IMAGE="$image" sh "$kit/build.sh" > /var/log/omb-desktop-image.log 2>&1; then
+      imaged ready; echo ready; exit 0
+    fi
+    imaged failed; echo "build failed"; exit 3 ;;
+  *) echo "usage: omb-home install|rollback|restore|start|stop|status|tree|snapshot|snapshot-done|desktop-image|desktop-status"; exit 2 ;;
 esac
 `;
 }
 
 export function installCommand(sha256: string, url?: string, signature?: string, floor?: string | null): string {
-  return packageInstallCommand(BOAT_PACKAGE_FILE, sha256, url, signature, floor);
-}
-
-export function packageInstallCommand(packageFile: string, sha256: string, url?: string, signature?: string, floor?: string | null): string {
   if (!SHA256.test(sha256)) throw new Error("Invalid home package checksum.");
   if (signature !== undefined && !/^r1\.[a-z0-9-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(signature)) throw new Error("Invalid home package signature.");
   if (floor && (!signature || !/^\d+\.\d+\.\d+$/.test(floor))) throw new Error("Invalid home package floor.");
-  const install = `sudo -n ${BOAT_CONTROL} install ${packageFile} ${sha256}${signature ? ` ${signature}` : ""}${floor ? ` ${floor}` : ""}`;
+  const install = `sudo -n ${HOME_CONTROL} install ${INSTABOX_PACKAGE_FILE} ${sha256}${signature ? ` ${signature}` : ""}${floor ? ` ${floor}` : ""}`;
   if (url === undefined) return install;
   const parsed = new URL(url);
   if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error("Invalid home package URL.");
-  return `curl -fsSL --retry 3 -o ${packageFile} ${shellQuote(parsed.href)} && ${install}`;
+  return `curl -fsSL --retry 3 -o ${INSTABOX_PACKAGE_FILE} ${shellQuote(parsed.href)} && ${install}`;
 }
 /** `origin`: what people use (ours, through the edge); `upstream`: the machine's own hosted URL, which the edge forwards to */
 export function startCommand(origin: string, upstream: string = origin): string {
@@ -403,17 +421,16 @@ export function startCommand(origin: string, upstream: string = origin): string 
     const url = new URL(value);
     if (url.origin !== value || url.protocol !== "https:") throw new Error("Invalid cloud origin.");
   }
-  return `sudo -n ${BOAT_CONTROL} start ${shellQuote(origin)} ${shellQuote(upstream)}`;
+  return `sudo -n ${HOME_CONTROL} start ${shellQuote(origin)} ${shellQuote(upstream)}`;
 }
-export const RESTORE_COMMAND = `sudo -n ${BOAT_CONTROL} restore ${BOAT_RESTORE_FILE}`;
-export const ROLLBACK_COMMAND = `sudo -n ${BOAT_CONTROL} rollback`;
-export const STATUS_COMMAND = "sudo -n ${BOAT_CONTROL} status";
+export const RESTORE_COMMAND = `sudo -n ${HOME_CONTROL} restore ${INSTABOX_RESTORE_FILE}`;
+export const ROLLBACK_COMMAND = `sudo -n ${HOME_CONTROL} rollback`;
+export const SNAPSHOT_COMMAND = `sudo -n ${HOME_CONTROL} snapshot`;
+export const SNAPSHOT_DONE_COMMAND = `sudo -n ${HOME_CONTROL} snapshot-done`;
+export const DESKTOP_STATUS_COMMAND = `sudo -n ${HOME_CONTROL} desktop-status`;
 
-/** the key a cloud's backups are sealed with, derived from its bootstrap secret, so nothing else needs storing */
-export function backupKey(secret: string): Buffer { return createHmac("sha256", secret).update("omb-boat-backup-v1").digest(); }
-
-export const BOAT_IMAGE: MachineImage = {
-  homeVolume: BOAT_HOME_VOLUME, packagePath: BOAT_PACKAGE_FILE, restorePath: BOAT_RESTORE_FILE,
-  bootFile: boatBootFile, claimBootFile, bootContent, setupScript: boatSetupScript,
-  installCommand, startCommand, restoreCommand: RESTORE_COMMAND, rollbackCommand: ROLLBACK_COMMAND, legacyBackupKey: backupKey,
+export const HOME_IMAGE: MachineImage = {
+  homeVolume: INSTABOX_HOME_VOLUME, packagePath: INSTABOX_PACKAGE_FILE, restorePath: INSTABOX_RESTORE_FILE,
+  bootFile, claimBootFile, bootContent, setupScript: homeSetupScript,
+  installCommand, startCommand, restoreCommand: RESTORE_COMMAND, rollbackCommand: ROLLBACK_COMMAND, desktopStatusCommand: DESKTOP_STATUS_COMMAND,
 };

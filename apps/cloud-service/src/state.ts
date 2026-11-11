@@ -6,12 +6,12 @@ import type { HomeUpdateState } from "./home-update.ts";
 
 /** one managed home's lifecycle record (lifecycle.ts) */
 export interface HomeLifecycleState {
-  /** bumped for each deliberate new sandbox (a recovery); part of the provider's idempotency key */
+  /** bumped for each deliberate new machine (a recovery); part of the provider's idempotency key */
   attempt: number;
   installed: string | null;
-  /** a backup generation to restore into the next fresh sandbox */
+  /** a backup generation to restore into the next fresh machine */
   restoreFrom: string | null;
-  /** the generation the running sandbox came back from, for the notice */
+  /** the generation the running machine came back from, for the notice */
   restoredFrom?: { file: string; at: number } | null;
   sleptAt: number | null;
   sleepReason: "idle" | "plan" | "owner" | "operator" | null;
@@ -35,8 +35,7 @@ export interface HomeLifecycleState {
   /** why the power policy or the rails last kept a home up (or a sleeping one asleep), for the operator */
   stayReason?: string | null;
   wakeStartedAt: number | null;
-  /** `keep`: from a replaced sandbox's own disk, never pruned; `source`: that sandbox */
-  backups: Array<{ file: string; at: number; bytes: number; sha256: string; verifiedAt: number | null; snapshotAt: number; keep?: boolean; source?: string }>;
+  backups: Array<{ file: string; at: number; bytes: number; sha256: string; verifiedAt: number | null; snapshotAt: number }>;
   lastBackupTryAt: number | null;
   backupProblem: string | null;
   /** the billing record's end of the plan, as first seen: the retention clock */
@@ -47,13 +46,13 @@ export interface HomeLifecycleState {
   deletion: { serverId: string; operationId: string | null; at: number; reason: string; sent?: boolean } | null;
   deletedAt: number | null;
   backupsDeleteAfter: number | null;
-  /** sandboxes this cloud had before a recovery, stopped, deleted once the new one has its own verified backup */
-  retired: Array<{ serverId: string; at: number; deletion: { operationId: string | null; at: number } | null; backedUp?: number; /** our last keep-alive start of it */ refreshAt?: number }>;
+  /** machinees this cloud had before a recovery, stopped, deleted once the new one has its own verified backup */
+  retired: Array<{ serverId: string; at: number; deletion: { operationId: string | null; at: number } | null; backedUp?: number }>;
   recoveries: number;
   hold: boolean;
-  /** when the current sandbox's setup began */
+  /** when the current machine's setup began */
   setupSince?: number;
-  /** the provider answered 404 for the current sandbox since this time, this many times; reset by any answer */
+  /** the provider answered 404 for the current machine since this time, this many times; reset by any answer */
   missingSince?: number | null;
   missingChecks?: number;
   /** the owner asked to apply a plan change now (resize-now) */
@@ -65,42 +64,10 @@ export interface HomeLifecycleState {
   upstream?: string | null;
   /** the provider has answered "too many requests" this many times in a row */
   limitStreak?: number;
-  /** the machine's stop has been failing since this time (it stays up, stopping); alerted once past 15 minutes */
-  stopFailingSince?: number | null;
-  stopFailingAlerted?: boolean;
   /** a size the provider refused (shrinking below the data, say), not tried again */
   resizeBlocked?: string | null;
   /** the home's updates: the version it runs, the one before, the trial of a new one, the signed policy held (home-update.ts) */
   update?: HomeUpdateState;
-  /** the host its machine runs on (hosts.ts); absent: boat, the only host before there were two */
-  host?: HostName;
-  /** an operator's move to another host, with the machine it left for a rollback (migrate.ts) */
-  migration?: MigrationState | null;
-}
-
-export type HostName = "boat" | "instabox";
-export type MigrationPhase = "quiescing" | "copying" | "done" | "rolling_back" | "rolled_back" | "finished";
-export interface MigrationState {
-  id: string;
-  to: HostName;
-  /** the machine the home left, kept asleep until the operator finishes the move */
-  from: { host: HostName; serverId: string; upstream: string | null; origin: string | null; installed: string | null };
-  phase: MigrationPhase;
-  startedAt: number;
-  updatedAt: number;
-  /** the backup the new machine was restored from, and what its check found */
-  backup: string | null;
-  checked?: { files: number; mismatched: number; skipped: number; at: number } | null;
-  /** the busy codes that held the quiet moment back, last seen */
-  waitingFor?: string[] | null;
-  error?: string | null;
-  /** a rolled-back move's new machine, kept asleep until the operator finishes */
-  target?: { host: HostName; serverId: string } | null;
-  /** the home ran on the new machine before the rollback: its state there is backed up (`keep`) first */
-  ranOnTarget?: boolean;
-  targetBackup?: string | null;
-  /** what the operator's finish deleted, with the provider's receipt */
-  deleted?: { host: HostName; serverId: string; operationId: string | null; at: number } | null;
 }
 
 declare module "../../dashboard/server/clouds/types.ts" {

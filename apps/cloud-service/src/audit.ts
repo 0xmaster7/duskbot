@@ -1,4 +1,4 @@
-// Every lifecycle action on a Boat home, one JSON line each, appended and never rewritten: who asked, why, when. A deletion
+// Every lifecycle action on a managed home, one JSON line each, appended and never rewritten: who asked, why, when. A deletion
 // also raises an alert to the operator. Lines carry ids and fixed codes only, never a secret, a token or an email address.
 import { appendFileSync, closeSync, existsSync, openSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -9,7 +9,7 @@ export interface AuditEntry { at: number; cloudId: string; action: string; actor
 const SAFE = /^[A-Za-z0-9_.:-]{0,120}$/;
 
 export function createAudit(options: { dataDir: string; now?: () => number; alert?: (entry: AuditEntry) => void }) {
-  const path = join(options.dataDir, "boat-audit.jsonl"), now = options.now ?? Date.now;
+  const path = join(options.dataDir, "managed-audit.jsonl"), now = options.now ?? Date.now;
   if (!existsSync(path)) closeSync(openSync(path, "a", 0o600));
   return {
     record(entry: Omit<AuditEntry, "at">): AuditEntry {
@@ -19,8 +19,8 @@ export function createAudit(options: { dataDir: string; now?: () => number; aler
       const line: AuditEntry = { at: now(), ...entry, action: clean(entry.action), reason: clean(entry.reason), serverId: entry.serverId == null ? entry.serverId : clean(entry.serverId), ...(detail ? { detail } : {}) };
       appendFileSync(path, `${JSON.stringify(line)}\n`, { mode: 0o600 });
       if (/^delete|deleted$/.test(entry.action)) {
-        console.warn(`boat: ALERT ${entry.action} cloud ${entry.cloudId} by ${entry.actor} (${entry.reason})`);
-        try { options.alert?.(line); } catch { console.warn("boat: deletion alert failed"); }
+        console.warn(`managed: ALERT ${entry.action} cloud ${entry.cloudId} by ${entry.actor} (${entry.reason})`);
+        try { options.alert?.(line); } catch { console.warn("managed: deletion alert failed"); }
       }
       return line;
     },

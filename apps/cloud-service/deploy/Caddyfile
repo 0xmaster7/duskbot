@@ -1,5 +1,6 @@
-# Edge for one My Cloud home on a Boat sandbox (apps/cloud-service/docs/provider.md). Boat's hosted-port proxy terminates TLS for
-# <subdomain>-8080.on.boat.dev and reaches this machine on :8080; people reach it as https://<label>.<public domain>. The Dusk Bot server listens only on 127.0.0.1, and
+# Edge for one My Cloud home on an InstaBox machine (apps/cloud-service/docs/provider.md). InstaBox's public port proxy
+# terminates TLS for its hosted name and reaches this machine on :8080; people reach it as https://<label>.<public domain>.
+# The Dusk Bot server listens only on 127.0.0.1, and
 # every request forwarded to it carries X-Forwarded-*, so it is never the loopback owner (server/request-auth.ts): a
 # remote client needs a paired session.
 #

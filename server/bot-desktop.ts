@@ -261,11 +261,35 @@ function lastLine(error: unknown): string {
   return text.length > 300 ? `${text.slice(0, 297)}...` : text;
 }
 
+/** how a home whose own machine builds the image (a managed cloud) waits for it; tests shorten it */
+export const hostBuildTiming = { pollMs: 5_000, limitMs: 45 * 60_000 };
+
+/**
+ * A managed cloud home's machine builds the image itself, as root beside the docker gate (which never builds), and
+ * says how it goes in the file DUSK_BOT_DESKTOP_HOST_BUILD names: building, ready or failed. Waits for it.
+ */
+async function waitForHostBuild(run: DockerRun, statusFile: string): Promise<void> {
+  const until = Date.now() + hostBuildTiming.limitMs;
+  for (;;) {
+    if (await run(["image", "inspect", BOT_DESKTOP_IMAGE], 20_000).then(() => true, () => false)) return;
+    let status = "";
+    try { status = readFileSync(statusFile, "utf8").trim(); } catch { status = ""; }
+    if (status === "failed") throw unavailable(`This cloud computer could not build the bot computer image ${BOT_DESKTOP_IMAGE}; it tries again by itself within a minute. Nothing was created.`);
+    if (Date.now() > until) throw unavailable(`This cloud computer is still building the bot computer image ${BOT_DESKTOP_IMAGE}. Try again in a few minutes. Nothing was created.`);
+    await new Promise((done) => setTimeout(done, hostBuildTiming.pollMs));
+  }
+}
+
 /** Pulls BOT_DESKTOP_IMAGE, else builds it on the docker host from the kit this server ships; refuses clearly when neither works. */
 async function obtainBotDesktopImage(run: DockerRun, onProgress?: (step: BotDesktopProgress) => void): Promise<void> {
   onProgress?.("pulling");
   const pullError = await run(["pull", BOT_DESKTOP_IMAGE], 15 * 60_000).then(() => null, (error: unknown) => error);
   if (!pullError) return;
+  const hostBuild = process.env.DUSK_BOT_DESKTOP_HOST_BUILD?.trim();
+  if (hostBuild) {
+    onProgress?.("building");
+    return waitForHostBuild(run, hostBuild);
+  }
   const kit = botDesktopKit();
   if (!kit) {
     throw unavailable(`The bot computer image ${BOT_DESKTOP_IMAGE} is not on the VPS and could not be downloaded (${lastLine(pullError)}), and this app has no copy of its build kit. Build it on the VPS with deploy/bot-desktop/build.sh, or update the server from the link service. Nothing was created.`);

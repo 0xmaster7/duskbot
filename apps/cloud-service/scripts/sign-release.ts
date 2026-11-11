@@ -9,8 +9,8 @@ import { parseReleaseKeys, PINNED_RELEASE_KEYS, signRelease, verifyRelease, type
 const { values, positionals } = parseArgs({ allowPositionals: true, options: { kind: { type: "string" }, name: { type: "string" }, version: { type: "string" }, sha256: { type: "string" } } });
 const key = process.env.DUSK_RELEASE_SIGNING_KEY;
 const kind = values.kind as ReleaseKind | undefined;
-if (!key || !kind || !["home-package", "template", "desktop", "vps-package"].includes(kind) || !values.name || !values.version || (!positionals[0] && !values.sha256)) {
-  console.error("usage: DUSK_RELEASE_SIGNING_KEY=... sign-release.ts <file> | --sha256 <hex> --kind home-package|template|desktop|vps-package --name <name> --version <v>");
+if (!key || !kind || !["home-package", "desktop", "vps-package"].includes(kind) || !values.name || !values.version || (!positionals[0] && !values.sha256)) {
+  console.error("usage: DUSK_RELEASE_SIGNING_KEY=... sign-release.ts <file> | --sha256 <hex> --kind home-package|desktop|vps-package --name <name> --version <v>");
   process.exit(2);
 }
 const sha256 = values.sha256 ?? createHash("sha256").update(readFileSync(positionals[0]!)).digest("hex");

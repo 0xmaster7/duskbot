@@ -333,8 +333,8 @@ describe("standard CI runners", () => {
 
   it("starts no paid desktop-provider VM from any workflow", () => {
     const directory = new URL("../.github/workflows/", import.meta.url);
-    const onBoat = readdirSync(directory).filter((file) => /\.ya?ml$/.test(file))
-      .filter((file) => /runs-on:[^\n]*boat|'boat(?:-\w+)?'/.test(readFileSync(new URL(file, directory), "utf8")));
-    expect(onBoat).toEqual([]);
+    const onProvider = readdirSync(directory).filter((file) => /\.ya?ml$/.test(file))
+      .filter((file) => /runs-on:[^\n]*instabox|'instabox(?:-\w+)?'/i.test(readFileSync(new URL(file, directory), "utf8")));
+    expect(onProvider).toEqual([]);
   });
 });

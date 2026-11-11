@@ -435,6 +435,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   }
   return {
     auth,
+    billing,
     slackEdge: edgeHost,
     handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
       return route(req, res).catch(error => {

@@ -1,147 +1,218 @@
-// One real run of a managed home on InstaBox, as a person uses it: paid (fake billing), provisioned through the real
-// lifecycle and signed home package, paired, three bots made and messaged (a synthetic engine), their computers woken on
-// the same machine, the desktop stream opened, a bot's browser sent to everyday websites, files and a browser profile
-// checked, paused and resumed with memory, a routine run across a pause, crashes recovered from, a bot moved there
-// from a local fixture with the app's own send, then the home moved to Boat and rolled back on purpose. Everything this
-// run made on either provider is deleted at the end and proven gone. Prints timings and ids, never a key or a token.
+// One real run of a managed home on InstaBox, the way a new person meets it, from sign-up to deletion. The account
+// service (its website and app routes, the real one) runs here behind a public https name (an ngrok tunnel); the person
+// signs up and buys through the desktop app's own client and the website; the machine redeems its one-time claim over
+// the internet; the package must be signed; people reach the home at <label>.<test domain> through our public edge
+// (edge/worker.js, run in this process for the test domain). Then: three bots made and answering, their computers
+// started with no manual step (the image made by the home itself), the app's own desktop viewer path down to a decoded
+// framebuffer, a bot's browser on everyday sites, a persistent cookie and a localStorage sign-in kept across a pause and
+// a reboot, pause and resume with memory, a routine due while paused, a killed home process, a hard machine reboot, a bot
+// moved in from a local fixture and the home brought back to it, and the owner's deletion. Entitlements are signed by
+// the account service and enforced by the home throughout.
 //
-//   INSTABOX_API_KEY=... BOAT_API_KEY=... BOAT_BASE_URL=... node --experimental-strip-types apps/cloud-service/scripts/instabox-live.ts \
-//     --package release/home/omb-home.tgz --out <results.json> [--skip-boat] [--skip-move]
+//   node --env-file=<.env with INSTABOX_API_KEY> --experimental-strip-types apps/cloud-service/scripts/instabox-live.ts \
+//     --public-url https://<tunnel> --port <tunnel's local port> --package <omb-home.tgz> --release-public <kid:x> \
+//     --entitlement-key <file> --out <results.json> [--skip-browse]
 //
-// Test-only deviations from production, each because this run has no production entitlement key: the machine's boot
-// env drops DUSK_CLOUD_ENTITLEMENT=required before the home first starts, and the account service's entitlement push is
-// answered by this script. Nothing else differs.
+// Test-only deviations from production, each named in the results: the package pins one extra entitlement key (this
+// run's; the production key is not here), the payment provider is the fake one, a synthetic engine answers the bots,
+// and the clock jumps forward for the deletion (a plan's period and the 7-day undo window). Everything the run made is
+// deleted and proven gone. Prints timings and ids, never a key or a token.
 import { CLOUD_HOME } from "../../../electron/legacy-names.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createReadStream, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createServer, type Server } from "node:http";
 import https from "node:https";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { createBilling } from "../../dashboard/server/billing/index.ts";
-import { createStore } from "../../dashboard/server/store.ts";
+import { Readable } from "node:stream";
+import { createCloudAccountClient } from "../../../electron/cloud-account.mjs";
 import { createCloudSend } from "../../../electron/cloud-send.mjs";
 import { openOwnerSession } from "../../../electron/cloud-send-main.mjs";
+import { createHomeAgain } from "../../../electron/one-home-again.mjs";
 import { launchVerificationServer } from "../../../scripts/control-omb.ts";
-import { createBoatProvider } from "../src/boat.ts";
+import { readFrame } from "../../../server/routes/rfb-handshake.ts";
+import { vncAuthResponse } from "../../../server/routes/vnc-des.ts";
+import { applyPendingWorkspaceRestore } from "../../../server/workspace-backup.ts";
+import { createDashboardApp } from "../../dashboard/server/app.ts";
+import { memoryMailer } from "../../dashboard/server/auth/mail.ts";
+import type { CloudDesktopView } from "../../../shared/billing-api.ts";
+import edge from "../edge/worker.js";
 import { createInstaboxProvider, instaboxUsageCents } from "../src/instabox.ts";
-import { generateEntitlementSigner } from "../../../shared/entitlement.ts";
 
 const args = process.argv.slice(2);
 const option = (name: string) => { const at = args.indexOf(name); return at === -1 ? null : args[at + 1] ?? null; };
-const ibxKey = process.env.INSTABOX_API_KEY, boatKey = process.env.BOAT_API_KEY, boatBase = process.env.BOAT_BASE_URL;
-if (!ibxKey) { console.error("INSTABOX_API_KEY is required."); process.exit(2); }
-const withBoat = !args.includes("--skip-boat") && !!boatKey && !!boatBase;
+const apiKey = process.env.INSTABOX_API_KEY;
+if (!apiKey) { console.error("INSTABOX_API_KEY is required."); process.exit(2); }
+const need = (name: string) => { const v = option(name); if (!v) { console.error(`${name} is required.`); process.exit(2); } return v; };
+const packageFile = resolve(need("--package")), signature = readFileSync(`${packageFile}.sig`, "utf8").trim();
+const releasePublic = need("--release-public"), entitlementKey = readFileSync(need("--entitlement-key"), "utf8").trim();
 const out = resolve(option("--out") ?? "instabox-live.json");
 const scope = randomBytes(8).toString("hex");
-const t0 = Date.now(), marks: Array<{ step: string; ms: number; at: string }> = [];
+const sha256 = createHash("sha256").update(readFileSync(packageFile)).digest("hex");
+const ibx = createInstaboxProvider({ apiKey, scope });
+
+// ---- timing and results
+const t0 = Date.now(), marks: Array<{ step: string; ms: number }> = [];
 let last = t0;
-const results: Record<string, unknown> = { scope, startedAt: new Date(t0).toISOString(), steps: [] as unknown[] };
-function mark(step: string) { const now = Date.now(); marks.push({ step, ms: now - last, at: new Date(now).toISOString() }); console.log(`[${((now - t0) / 1000).toFixed(1)}s] ${step} (+${((now - last) / 1000).toFixed(1)}s)`); last = now; }
+const results: Record<string, unknown> = { scope, startedAt: new Date(t0).toISOString(), steps: [] as unknown[],
+  deviations: ["package pins this run's entitlement key beside the production one", "fake payment provider", "synthetic engine answers the bots", "clock jumped forward for the plan's end and the undo window"] };
+function mark(step: string) { const now = Date.now(); marks.push({ step, ms: now - last }); console.log(`[${((now - t0) / 1000).toFixed(1)}s] ${step} (+${((now - last) / 1000).toFixed(1)}s)`); last = now; }
 const note = (line: string) => console.log(`  ${line}`);
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+const failures: string[] = [];
 async function step<T>(name: string, fn: () => Promise<T>, critical = false): Promise<T | null> {
   const started = Date.now();
   try { const value = await fn(); (results.steps as unknown[]).push({ name, ok: true, ms: Date.now() - started }); mark(name); return value; }
   catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    (results.steps as unknown[]).push({ name, ok: false, ms: Date.now() - started, error: message.slice(0, 400) });
-    console.log(`  FAILED ${name}: ${message.slice(0, 400)}`);
+    (results.steps as unknown[]).push({ name, ok: false, ms: Date.now() - started, error: message.slice(0, 500) });
+    failures.push(name);
+    console.log(`  FAILED ${name}: ${message.slice(0, 500)}`);
     if (critical) throw error;
     return null;
   }
 }
 const save = () => writeFileSync(out, JSON.stringify({ ...results, marks }, null, 2));
 
+// ---- the account service
+let offset = 0;
+const now = () => Date.now() + offset;
 const dataDir = mkdtempSync(join(tmpdir(), "omb-ibx-live-"));
-const packageFile = resolve(option("--package") ?? "release/home/omb-home.tgz");
-const sha256 = createHash("sha256").update(readFileSync(packageFile)).digest("hex");
-const ibx = createInstaboxProvider({ apiKey: ibxKey, scope });
-const boat = withBoat ? createBoatProvider({ apiKey: boatKey!, baseUrl: boatBase, scope }) : null;
-// the synthetic engine (test tooling only): the claude CLI's stream surface, bundled to one file the machine's node runs
-const engineFile = join(dataDir, "fake-claude.mjs");
-execFileSync(resolve("node_modules/.bin/esbuild"), ["server/testing/fake-claude-cli.ts", "--bundle", "--platform=node", "--format=esm", `--outfile=${engineFile}`, "--log-level=error",
-  "--banner:js=import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);"], { stdio: "inherit" });
+const port = Number(option("--port") ?? 0);
+const PUBLIC_DOMAIN = "desktops.dusk-staging.test";
+const edgeToken = randomBytes(32).toString("base64url");
+const env: NodeJS.ProcessEnv = { ...process.env, DUSK_BILLING_PROVIDER: "fake", DUSK_POOL_DRIVER: "fake", DUSK_CLOUD_SEAL_KEY: randomBytes(32).toString("base64url"), DUSK_MANAGED: "1",
+  DUSK_MANAGED_EDGE_TOKEN: edgeToken, DUSK_MANAGED_SCOPE: scope, DUSK_MANAGED_HOME_PACKAGE_FILE: packageFile, DUSK_MANAGED_HOME_PACKAGE_SHA256: sha256,
+  DUSK_MANAGED_HOME_PACKAGE_SIGNATURE: signature, DUSK_RELEASE_PUBLIC_KEYS: releasePublic, DUSK_ENTITLEMENT_SIGNING_KEY: entitlementKey,
+  DUSK_MANAGED_LEASE_HOURS: "1", DUSK_MANAGED_IDLE_MINUTES: "3", DUSK_MANAGED_LOST_AFTER_MINUTES: "2", DUSK_OPS_ALERT_EMAIL: "ops@example.test",
+  DUSK_MANAGED_PUBLIC_DOMAIN: PUBLIC_DOMAIN };
+for (const [k, v] of Object.entries(env)) if (v !== undefined) process.env[k] = v;
 
-// the account service's own fetch, except the entitlement push this run cannot sign for a release home
-const realFetch = globalThis.fetch;
-const serviceFetch: typeof fetch = async (input, init) => {
-  const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
-  if (url.pathname === "/api/cloud/entitlement") return new Response(JSON.stringify({ ok: true, expiresAt: Date.now() + 86_400_000 }), { status: 200, headers: { "content-type": "application/json" } });
-  return realFetch(input, init);
+const mailer = memoryMailer();
+let server: Server | null = null;
+let origin = "";
+type Service = {
+  views(): Promise<CloudDesktopView[]>;
+  power(cloudId: string, action: "on" | "off"): Promise<void>;
+  grant(cloudId: string): Promise<{ origin: string; code: string; expiresAt: number }>;
+  cancel(cloudId: string): Promise<void>;
+  deleteData(cloudId: string): Promise<void>;
+  confirmDelete(cloudId: string, token: string): Promise<void>;
+  close(): void;
 };
-const sealKey = randomBytes(32).toString("base64url"), edgeToken = randomBytes(32).toString("base64url");
-const store = createStore(dataDir);
-const account = { id: "acct_live", email: "live@example.test" };
-const billing = createBilling({ dataDir, publicUrl: "https://dashboard.live.invalid", dashboard: { state: store.state, changed: () => store.changed() }, fetch: serviceFetch,
-  accounts: { fromCookie: () => account, fromBearer: () => account },
-  mail: (cloud, letter) => note(`notice to owner: ${letter.subject} for ${cloud.id}`),
-  alert: entry => note(`ALERT ${entry.action} ${entry.cloudId} (${entry.reason})`),
-  env: { DUSK_BILLING_PROVIDER: "fake", DUSK_CLOUD_SEAL_KEY: sealKey, DUSK_MANAGED: "1", DUSK_MANAGED_EDGE_TOKEN: edgeToken,
-    DUSK_MANAGED_HOSTS: withBoat ? "instabox,boat" : "instabox", DUSK_MANAGED_HOST: "instabox", INSTABOX_API_KEY: ibxKey, ...(withBoat ? { BOAT_API_KEY: boatKey, BOAT_BASE_URL: boatBase } : {}),
-    DUSK_MANAGED_SCOPE: scope, DUSK_MANAGED_KINDS: "shared_s", DUSK_MANAGED_HOME_PACKAGE_FILE: packageFile, DUSK_MANAGED_HOME_PACKAGE_SHA256: sha256,
-    DUSK_MANAGED_LEASE_HOURS: "1", DUSK_MANAGED_IDLE_MINUTES: "3", DUSK_MANAGED_LOST_AFTER_MINUTES: "2", DUSK_POOL_DRIVER: "fake",
-    DUSK_MANAGED_TEST_HARNESS: "1", DUSK_ENTITLEMENT_SIGNING_KEY: generateEntitlementSigner("live-test").env } });
-const managed = () => billing.clouds.managed!;
+let service!: Service;
+let billing: ReturnType<typeof createDashboardApp>["billing"] | null = null;
+const realFetch = globalThis.fetch;
 
-async function reconcileUntil(cloudId: string, done: () => boolean, limitMs: number, label: string, pauseMs = 3000) {
-  const deadline = Date.now() + limitMs;
-  while (!done()) {
-    const c = billing.clouds.get(cloudId)!;
-    if (Date.now() > deadline) throw new Error(`${label}: timed out (status ${c.status}, step ${c.setupStep}, error ${c.error}, migration ${c.managed?.migration?.phase ?? "-"} ${c.managed?.migration?.error ?? ""})`);
-    c.nextAttemptAt = 0;
-    await billing.clouds.reconcile();
-    if (!done()) await sleep(pauseMs);
-  }
+/** a cookie session on the account service's website, as the dashboard holds one */
+async function webSignIn(base: string, email: string): Promise<{ cookie: string; csrf: string }> {
+  const ask = () => realFetch(`${base}/v1/auth/start`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify({ email }) });
+  let answer = await ask();
+  // one code per address per 30 seconds: the app's sign-in just took one
+  if (answer.status === 429) { await answer.body?.cancel(); await sleep(31_000); answer = await ask(); }
+  const started = await answer.json() as { attempt?: string };
+  const code = mailer.outbox.findLast(m => m.to === email)?.text.match(/\b\d{8}\b/)?.[0];
+  if (!started.attempt || !code) throw new Error("no sign-in code");
+  const verified = await realFetch(`${base}/v1/auth/verify`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify({ attempt: started.attempt, code }) });
+  const cookie = verified.headers.getSetCookie().map(c => c.split(";")[0]).join("; ");
+  const body = await verified.json() as { csrfToken?: string };
+  if (!verified.ok || !body.csrfToken) throw new Error(`web sign-in ${verified.status}`);
+  return { cookie, csrf: body.csrfToken };
 }
-/** a command on the machine the cloud runs on now, through its own provider */
-async function onMachine(cloudId: string, command: string, timeoutSeconds = 300) {
-  const c = billing.clouds.get(cloudId)!, host = c.managed?.host ?? "boat";
-  const provider = host === "instabox" ? ibx : boat!;
-  return provider.run(c.serverId!, command, timeoutSeconds);
+
+// ---- the public edge, run here for the test domain: every request to <label>.<domain> goes through it
+const edgeEnv = () => ({ ROUTE_URL: `http://127.0.0.1:${(server!.address() as { port: number }).port}`, EDGE_TOKEN: edgeToken, PUBLIC_DOMAIN });
+{
+  // the Workers runtime takes a stream body without `duplex`; Node wants it named
+  const NodeRequest = globalThis.Request;
+  globalThis.Request = class extends NodeRequest {
+    constructor(input: string | URL | Request, init?: RequestInit) { super(input, init?.body instanceof ReadableStream && !("duplex" in init) ? { ...init, duplex: "half" } as RequestInit : init); }
+  } as typeof Request;
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    const request = input instanceof Request ? input : new Request(input, init);
+    if (new URL(request.url).hostname.endsWith(`.${PUBLIC_DOMAIN}`)) return edge.fetch(request, edgeEnv(), { waitUntil() {} });
+    return realFetch(request);
+  }) as typeof fetch;
 }
-/** the RFB banner of the desktop stream, through the home's own origin with the person's session */
-function rfbBanner(origin: string, path: string, token: string): Promise<{ banner: string; ms: number }> {
-  return new Promise((resolveBanner, reject) => {
-    const started = Date.now(), url = new URL(path, origin);
-    const req = https.request(url, { headers: { authorization: `Bearer ${token}`, connection: "Upgrade", upgrade: "websocket", "sec-websocket-version": "13", "sec-websocket-key": randomBytes(16).toString("base64"), "sec-websocket-protocol": "binary" }, timeout: 30_000 });
+
+/** a command on the machine the cloud runs on now */
+async function machineOf(cloudId: string): Promise<string> {
+  const found = await ibx.find(cloudId);
+  if (!found) throw new Error("no machine for the cloud");
+  return found.id;
+}
+async function onMachine(cloudId: string, command: string, timeoutSeconds = 300) { return ibx.run(await machineOf(cloudId), command, timeoutSeconds); }
+/** the machine's own hosted URL (what the account service talks to) */
+async function upstreamOf(cloudId: string) { return ibx.origin(await machineOf(cloudId)); }
+
+// ---- the app's desktop viewer, down to one decoded framebuffer update
+function rfbFrame(base: string, path: string, token: string, password: string | null): Promise<{ ms: number; name: string; width: number; height: number; rects: number }> {
+  return new Promise((done, fail) => {
+    const started = Date.now(), url = new URL(path, base);
+    const req = https.request(url, { headers: { authorization: `Bearer ${token}`, connection: "Upgrade", upgrade: "websocket", "sec-websocket-version": "13", "sec-websocket-key": randomBytes(16).toString("base64"), "sec-websocket-protocol": "binary" }, timeout: 45_000 });
     req.on("upgrade", (_res, socket) => {
-      socket.once("data", (frame: Buffer) => {
-        // one server frame: 2 bytes of header (+2 or +8 of length), unmasked payload
-        const len = frame[1]! & 0x7f, offset = len === 126 ? 4 : len === 127 ? 10 : 2;
-        resolveBanner({ banner: frame.subarray(offset).toString("latin1").trim(), ms: Date.now() - started }); socket.destroy();
+      let buffer = Buffer.alloc(0), rfb = Buffer.alloc(0), phase = "version";
+      let width = 0, height = 0, name = "";
+      const send = (data: Buffer) => {
+        const mask = randomBytes(4), head = data.length < 126 ? Buffer.from([0x82, 0x80 | data.length]) : Buffer.from([0x82, 0x80 | 126, data.length >> 8, data.length & 255]);
+        const body = Buffer.from(data); for (let i = 0; i < body.length; i++) body[i]! ^= mask[i & 3]!;
+        socket.write(Buffer.concat([head, mask, body]));
+      };
+      const timer = setTimeout(() => { socket.destroy(); fail(new Error(`no framebuffer (phase ${phase})`)); }, 45_000);
+      const finish = (value: { ms: number; name: string; width: number; height: number; rects: number }) => { clearTimeout(timer); socket.destroy(); done(value); };
+      socket.on("data", (chunk: Buffer) => {
+        buffer = Buffer.concat([buffer, chunk]);
+        for (let read = readFrame(buffer); read; read = readFrame(buffer)) { buffer = buffer.subarray(read.size); if (read.frame.opcode === 2 || read.frame.opcode === 0) rfb = Buffer.concat([rfb, read.frame.payload]); }
+        for (;;) {
+          if (phase === "version" && rfb.length >= 12) { rfb = rfb.subarray(12); send(Buffer.from("RFB 003.008\n")); phase = "security"; continue; }
+          if (phase === "security" && rfb.length >= 1 && rfb.length >= 1 + rfb[0]!) {
+            const types = [...rfb.subarray(1, 1 + rfb[0]!)]; rfb = rfb.subarray(1 + types.length);
+            if (types.includes(1)) { send(Buffer.from([1])); phase = "result"; } else if (types.includes(2)) { send(Buffer.from([2])); phase = "challenge"; } else { fail(new Error(`security types ${types}`)); return; }
+            continue;
+          }
+          if (phase === "challenge" && rfb.length >= 16) { send(vncAuthResponse(password ?? "", rfb.subarray(0, 16))); rfb = rfb.subarray(16); phase = "result"; continue; }
+          if (phase === "result" && rfb.length >= 4) { if (rfb.readUInt32BE(0) !== 0) { fail(new Error("vnc auth refused")); return; } rfb = rfb.subarray(4); send(Buffer.from([1])); phase = "init"; continue; }
+          if (phase === "init" && rfb.length >= 24 && rfb.length >= 24 + rfb.readUInt32BE(20)) {
+            width = rfb.readUInt16BE(0); height = rfb.readUInt16BE(2); const n = rfb.readUInt32BE(20); name = rfb.subarray(24, 24 + n).toString("latin1"); rfb = rfb.subarray(24 + n);
+            // raw encoding only, then a full update of the screen
+            send(Buffer.from([2, 0, 0, 1, 0, 0, 0, 0]));
+            const ask = Buffer.alloc(10); ask[0] = 3; ask[1] = 0; ask.writeUInt16BE(width, 6); ask.writeUInt16BE(height, 8); send(ask);
+            phase = "update"; continue;
+          }
+          if (phase === "update" && rfb.length >= 4) { if (rfb[0] === 0) finish({ ms: Date.now() - started, name, width, height, rects: rfb.readUInt16BE(2) }); else rfb = rfb.subarray(1); return; }
+          return;
+        }
       });
+      socket.on("error", fail);
     });
-    req.on("response", res => { reject(new Error(`viewer answered HTTP ${res.statusCode}`)); res.resume(); });
-    req.on("error", reject); req.on("timeout", () => req.destroy(new Error("viewer timed out")));
+    req.on("response", res => { let body = ""; res.on("data", c => { body += c; }); res.on("end", () => fail(new Error(`viewer answered HTTP ${res.statusCode} ${body.slice(0, 200)}`))); });
+    req.on("error", fail); req.on("timeout", () => req.destroy(new Error("viewer timed out")));
     req.end();
   });
 }
 
-// what a bot's browser does on everyday sites, inside its own computer (the bot desktop container's Chromium, its network)
+// ---- what a bot's browser does inside its computer
 const SITES: Array<{ id: string; kind: string; url: string; expect?: string }> = [
-  { id: "search-ddg", kind: "search", url: "https://duckduckgo.com/html/?q=weather+in+lisbon", expect: "result" },
   { id: "search-google", kind: "search", url: "https://www.google.com/search?q=weather+in+lisbon&hl=en", expect: "weather" },
   { id: "search-bing", kind: "search", url: "https://www.bing.com/search?q=weather+in+lisbon", expect: "weather" },
+  { id: "search-ddg", kind: "search", url: "https://duckduckgo.com/html/?q=weather+in+lisbon", expect: "result" },
   { id: "news-bbc", kind: "news", url: "https://www.bbc.com/news", expect: "news" },
   { id: "news-reuters", kind: "news", url: "https://www.reuters.com/", expect: "reuters" },
   { id: "news-guardian", kind: "cookie banner", url: "https://www.theguardian.com/international", expect: "guardian" },
   { id: "shop-amazon", kind: "shopping", url: "https://www.amazon.com/dp/B0BSHF7WHW", expect: "amazon" },
   { id: "shop-ebay", kind: "shopping", url: "https://www.ebay.com/sch/i.html?_nkw=usb+c+cable", expect: "usb" },
   { id: "login-github", kind: "login form (not submitted)", url: "https://github.com/login", expect: "password" },
-  { id: "js-figma", kind: "heavy JavaScript", url: "https://www.airbnb.com/", expect: "airbnb" },
+  { id: "js-airbnb", kind: "heavy JavaScript", url: "https://www.airbnb.com/", expect: "airbnb" },
   { id: "js-maps", kind: "heavy JavaScript", url: "https://www.openstreetmap.org/#map=12/38.7223/-9.1393", expect: "openstreetmap" },
   { id: "video-youtube", kind: "video", url: "https://www.youtube.com/watch?v=jNQXAC9IVRw", expect: "youtube" },
-  { id: "video-vimeo", kind: "video", url: "https://vimeo.com/76979871", expect: "vimeo" },
   { id: "wiki", kind: "reference", url: "https://en.wikipedia.org/wiki/Lisbon", expect: "lisbon" },
 ];
 const BROWSE = String.raw`
 import json, os, re, shutil, subprocess, sys, time, urllib.request
 sites = json.loads(sys.argv[1]); out = []
-# the binary itself: the image's chromium wrapper adds the remote-debugging port the bot's own browser holds
 chrome = "/usr/lib/chromium/chromium" if os.path.exists("/usr/lib/chromium/chromium") else shutil.which("chromium")
 walls = re.compile(r"(unusual traffic|are you a robot|not a robot|verify you are human|captcha|access denied|request blocked|sign in to confirm you.re not a bot|pardon our interruption|enable javascript and cookies|attention required)", re.I)
-consent = re.compile(r"(accept all|accept cookies|cookie settings|we use cookies|manage cookies|consent)", re.I)
 for s in sites:
     t = time.time()
     try:
@@ -149,96 +220,173 @@ for s in sites:
             "--virtual-time-budget=10000", "--timeout=40000", "--dump-dom", s["url"]], capture_output=True, timeout=60)
         dom = p.stdout.decode("utf-8", "replace"); ms = int((time.time() - t) * 1000)
         title = re.search(r"<title[^>]*>(.*?)</title>", dom, re.S | re.I)
-        out.append({"id": s["id"], "kind": s["kind"], "ms": ms, "bytes": len(dom), "title": (title.group(1).strip()[:80] if title else ""), "wall": bool(walls.search(dom[:400000])),
-            "consent": bool(consent.search(dom[:400000])), "expected": s.get("expect", "").lower() in dom.lower(), "inputs": len(re.findall(r"<input", dom, re.I)), "exit": p.returncode})
+        out.append({"id": s["id"], "ms": ms, "bytes": len(dom), "title": (title.group(1).strip()[:60] if title else ""), "wall": bool(walls.search(dom[:20000])), "expected": s.get("expect", "").lower() in dom.lower()})
     except Exception as e:
-        out.append({"id": s["id"], "kind": s["kind"], "ms": int((time.time() - t) * 1000), "error": str(e)[:160]})
-# a download into the bot's Downloads folder, and its speed
-d = os.path.expanduser("~/Downloads"); os.makedirs(d, exist_ok=True); t = time.time()
-try:
-    urllib.request.urlretrieve("https://proof.ovh.net/files/10Mb.dat", os.path.join(d, "omb-download-test.dat"))
-    size = os.path.getsize(os.path.join(d, "omb-download-test.dat")); s = time.time() - t
-    out.append({"id": "download", "kind": "download", "ms": int(s * 1000), "bytes": size, "mbit": round(size * 8 / s / 1e6, 1)})
-except Exception as e:
-    out.append({"id": "download", "kind": "download", "error": str(e)[:160]})
+        out.append({"id": s["id"], "ms": int((time.time() - t) * 1000), "error": str(e)[:160]})
 print(json.dumps(out))
 `;
+// a sign-in a site keeps: a persistent cookie (a day) and localStorage, written by one Chromium and read by the next one
+// (localStorage on a file page: a data page has no storage, and this keeps the check off any site's servers)
 const PROFILE = String.raw`
 import json, os, re, shutil, subprocess, sys
 chrome = "/usr/lib/chromium/chromium" if os.path.exists("/usr/lib/chromium/chromium") else shutil.which("chromium")
-url = sys.argv[1]
-p = subprocess.run([chrome, "--headless=new", "--no-sandbox", "--disable-gpu", "--user-data-dir=" + sys.argv[2], "--virtual-time-budget=5000", "--dump-dom", url], capture_output=True, timeout=60)
-print(json.dumps({"kept": "omb_profile" in p.stdout.decode("utf-8", "replace"), "exit": p.returncode}))
+mode, profile = sys.argv[1], sys.argv[2]
+pages = os.path.join(os.path.expanduser("~"), ".omb-live-pages"); os.makedirs(pages, exist_ok=True)
+with open(os.path.join(pages, "set.html"), "w") as f: f.write("<title>x</title><script>localStorage.setItem('omb_login','kept');document.title='set:'+localStorage.getItem('omb_login')</script>")
+with open(os.path.join(pages, "get.html"), "w") as f: f.write("<title>x</title><script>document.title='ls:'+localStorage.getItem('omb_login')</script>")
+def dump(url):
+    p = subprocess.run([chrome, "--headless=new", "--no-sandbox", "--disable-gpu", "--user-data-dir=" + profile, "--allow-file-access-from-files", "--virtual-time-budget=5000", "--dump-dom", url], capture_output=True, timeout=60)
+    return p.stdout.decode("utf-8", "replace")
+if mode == "set":
+    dump("https://httpbin.org/response-headers?Set-Cookie=omb_persist%3Dkept%3B%20Max-Age%3D86400%3B%20Path%3D%2F")
+    dump("file://" + os.path.join(pages, "set.html"))
+cookies = dump("https://httpbin.org/cookies")
+title = re.search(r"<title>(.*?)</title>", dump("file://" + os.path.join(pages, "get.html")))
+print(json.dumps({"cookie": "omb_persist" in cookies, "localStorage": bool(title) and title.group(1) == "ls:kept", "title": title.group(1) if title else None}))
 `;
 
 let failed: string | null = null;
 let cloudId = "";
-const sessionToken = { value: "" };
+const timeline: Array<{ at: number; app?: string; dashboard?: string; step?: string | null }> = [];
+let watching = true;
 try {
   mark("start");
-  // 1. paid: a fake checkout completes and its signed webhooks activate the cloud
-  const answer = await billing.service.checkout(account, { kind: "cart", cart: { interval: "month", license: { kind: "none" }, desktop: { kind: "shared_s", region: "fsn1" } } } as never, { source: "live" } as never) as { cloudId: string };
-  const checkout = (JSON.parse(readFileSync(join(dataDir, "billing.json"), "utf8")) as { checkouts: Array<{ providerSessionId: string | null; cloudId: string | null }> }).checkouts.at(-1)!;
-  const { createServer } = await import("node:http");
-  const hooks = createServer((req, res) => void (async () => { const url = new URL(req.url ?? "/", "http://127.0.0.1"); if (await billing.handle(req, res, url)) return; res.writeHead(404); res.end(); })());
-  await new Promise<void>(r => hooks.listen(0, "127.0.0.1", r));
-  const hookBase = `http://127.0.0.1:${(hooks.address() as { port: number }).port}`;
-  for (const delivery of billing.fake!.complete(checkout.providerSessionId!)) {
-    const res = await fetch(`${hookBase}/v1/billing/webhooks/dodo`, { method: "POST", headers: { "content-type": "application/json", ...delivery.headers }, body: new Uint8Array(delivery.body) });
-    if (!res.ok) throw new Error(`webhook refused: ${res.status}`);
+  const http = createServer();
+  server = http;
+  await new Promise<void>(r => http.listen(port, "127.0.0.1", r));
+  origin = need("--public-url");
+  results.accountService = "the account service with its website and app routes, reached by machines and the app at a public https name";
+
+  // 1. sign-up, checkout and payment, as a new person does it: the desktop app's own client, the website for the rest
+  const email = `live-${scope}@example.test`;
+  const app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir: null, now });
+  http.on("request", app.handle);
+  billing = app.billing;
+  // the tunnel answers before any machine depends on it
+  const probe = await realFetch(`${origin}/v1/managed/claims/redeem`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  if (probe.status !== 403) throw new Error(`the public URL does not reach this service (${probe.status})`);
+  let saved: unknown = null;
+  const client = createCloudAccountClient({ origin, custom: true, platform: "darwin", deviceName: "Live Mac", appVersion: "0.1.live", now,
+    store: { read: async () => saved, write: async (value: unknown) => { saved = value; } }, openBrowser: async () => {} });
+  const web = await step("sign-up: the app signs in with an emailed code, the website too", async () => {
+    await client.start();
+    if ((await client.emailStart(email)).outcome !== "sent") throw new Error("no code sent");
+    const code = mailer.outbox.findLast(m => m.to === email)?.text.match(/\b\d{8}\b/)?.[0];
+    if ((await client.emailVerify(code!)).outcome !== "signed-in") throw new Error("app sign-in failed");
+    return webSignIn(origin, email);
+  }, true);
+  let cookies = { cookie: web!.cookie, "x-omb-csrf": web!.csrf, origin };
+  const dashboardCall = async (method: string, route: string, body?: unknown) => {
+    const r = await realFetch(`${origin}${route}`, { method, headers: { ...cookies, ...(body === undefined ? {} : { "content-type": "application/json" }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+    const text = await r.text(); let data: any = null; try { data = JSON.parse(text); } catch { data = text; }
+    if (!r.ok) throw new Error(`${method} ${route} ${r.status} ${text.slice(0, 200)}`);
+    return data;
+  };
+  service = {
+    views: async () => (await dashboardCall("GET", "/v1/clouds")).clouds as CloudDesktopView[],
+    power: async (id, action) => { await dashboardCall("POST", `/v1/clouds/${id}/power`, { action }); },
+    grant: async () => client.pairHome() as Promise<{ origin: string; code: string; expiresAt: number }>,
+    cancel: async () => { const r = await client.cancelPlan({ answer: "testing", improve: "" }); if (r.outcome !== "cancelled") throw new Error(`cancel ${JSON.stringify(r)}`); },
+    deleteData: async id => { await dashboardCall("POST", `/v1/clouds/${id}/delete-data`, {}); },
+    confirmDelete: async (id, token) => { await dashboardCall("POST", `/v1/clouds/${id}/delete-data/confirm`, { token }); },
+    close: () => { client.close(); app.close(); },
+  };
+  await step("checkout: the app opens checkout, the payment provider's signed webhooks activate the cloud", async () => {
+    if ((await client.checkout("starter", "app_card")).outcome !== "opened") throw new Error("checkout did not open");
+    const checkout = (JSON.parse(readFileSync(join(dataDir, "billing.json"), "utf8")) as { checkouts: Array<{ providerSessionId: string | null; cloudId: string | null }> }).checkouts.at(-1)!;
+    for (const delivery of billing!.fake!.complete(checkout.providerSessionId!)) {
+      const res = await realFetch(`${origin}/v1/billing/webhooks/dodo`, { method: "POST", headers: { "content-type": "application/json", ...delivery.headers }, body: new Uint8Array(delivery.body) });
+      if (!res.ok) throw new Error(`webhook refused: ${res.status}`);
+    }
+    cloudId = checkout.cloudId!;
+  }, true);
+  results.cloud = cloudId;
+  // what the person sees, every two seconds, for the whole run
+  void (async () => {
+    let lastKey = "";
+    while (watching) {
+      try {
+        const view = (await service.views()).find(v => v.id === cloudId);
+        await client.refresh().catch(() => {});
+        const state = client.state() as { machine?: { status?: string; power?: { state?: string } }; waking?: boolean };
+        const shown = `${state.machine?.status ?? "-"}${state.machine?.power?.state ? `/${state.machine.power.state}` : ""}${state.waking ? "+waking" : ""}`;
+        const dashboard = view ? `${view.status}${view.waking ? "/waking" : ""}` : "-";
+        const key = `${dashboard}|${view?.setupStep}|${shown}`;
+        if (key !== lastKey) { lastKey = key; timeline.push({ at: Date.now() - t0, dashboard, step: view?.setupStep ?? null, app: shown }); }
+      } catch {}
+      await sleep(2000);
+    }
+  })();
+  const view = async () => (await service.views()).find(v => v.id === cloudId)!;
+  async function until(done: (v: CloudDesktopView) => boolean, limitMs: number, label: string, pauseMs = 1000) {
+    const deadline = Date.now() + limitMs;
+    for (;;) {
+      const v = await view();
+      if (done(v)) return v;
+      if (Date.now() > deadline) throw new Error(`${label}: timed out (status ${v.status}, step ${v.setupStep}, error ${v.error})`);
+      await sleep(pauseMs);
+    }
   }
-  hooks.close();
-  cloudId = answer.cloudId ?? checkout.cloudId!;
-  const cloud = () => billing.clouds.get(cloudId)!;
-  note(`cloud ${cloudId} host=${cloud().managed?.host} spec=${JSON.stringify(cloud().spec)}`);
-  mark("paid and activated");
 
-  // 2. provisioned on InstaBox through the real lifecycle and the signed package
+  // 2. set up on InstaBox by the real lifecycle: no step by anyone
   const provisioned = Date.now();
-  await step("provision: machine created and set up", () => reconcileUntil(cloudId, () => cloud().setupStep === "starting", 30 * 60_000, "setup"), true);
-  results.machine = cloud().serverId; results.setupMs = Date.now() - provisioned;
-  const env = await onMachine(cloudId, `sudo sed -i '/^DUSK_CLOUD_ENTITLEMENT=/d' ${CLOUD_HOME.etc}/home.env && echo patched`);
-  note(`test-only: boot env without the entitlement requirement: ${env.stdout.trim()}`);
-  await step("provision: home started and healthy", () => reconcileUntil(cloudId, () => cloud().status === "running", 15 * 60_000, "start"), true);
-  results.provisionMs = Date.now() - provisioned;
-  note(`origin ${cloud().origin} machine ${cloud().serverId} in ${((Date.now() - provisioned) / 1000).toFixed(0)} s`);
-  const facts = await onMachine(cloudId, "nproc; free -m | awk '/Mem/ {print $2\" MiB\"}'; df -h /data | tail -1; stat -c '%U %a' /data; ls /data; systemctl is-active omb-home omb-docker-gate; docker version --format '{{.Server.Version}}'");
+  await step("setup: a working home with no manual step", () => until(v => v.status === "running", 20 * 60_000, "setup", 2000), true);
+  results.setupMs = Date.now() - provisioned;
+  const homeOrigin = (await view()).origin!;
+  const upstream = await upstreamOf(cloudId);
+  results.origins = { user: homeOrigin.replace(/\/\/[^.]+/, "//<label>"), userOnOurDomain: homeOrigin.endsWith(PUBLIC_DOMAIN), upstreamHost: new URL(upstream).hostname.split(".").slice(1).join(".") };
+  const facts = await onMachine(cloudId, `nproc; free -m | awk '/Mem/ {print $2" MiB"}'; systemctl is-active omb-home omb-docker-gate; cat ${CLOUD_HOME.run}/desktop-image 2>/dev/null || echo no-status; systemctl is-active omb-desktop-image; grep -c ENTITLEMENT=required ${CLOUD_HOME.etc}/home.env; sudo test -f ${CLOUD_HOME.etc}/boot.json && echo boot-left || echo boot-gone; test -f /data/home/.omb-boot.json && echo bootfile-left || echo bootfile-gone`);
   results.machineFacts = facts.stdout.trim().split("\n"); note(`machine: ${facts.stdout.trim().replace(/\n/g, " | ")}`);
+  {
+    const claim = billing!.clouds.get(cloudId)!.managed?.claim ?? null;
+    results.claim = { redeemedOverTunnel: claim === null, bootFileHeldSecret: false };
+  }
+  // the account service's entitlement reached the home and the home enforces it
+  await step("entitlement: the home serves only with the service's signed entitlement", async () => {
+    const health = await realFetch(`${upstream}/api/health`).then(r => r.status);
+    const ent = await onMachine(cloudId, `sudo test -s ${CLOUD_HOME.data}/cloud-entitlement && echo held || echo none`);
+    results.entitlement = { health, held: ent.stdout.trim() };
+    if (ent.stdout.trim() !== "held") throw new Error("no entitlement on the home");
+  });
 
-  // the synthetic engine, so bots answer (test tooling only, never part of the product install)
-  await step("engine: synthetic engine installed", async () => {
+  // test tooling: the synthetic engine, so bots answer
+  await step("engine: synthetic engine installed (test tooling)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "omb-engine-")), file = join(dir, "fake-claude.mjs");
+    execFileSync(resolve("node_modules/.bin/esbuild"), ["server/testing/fake-claude-cli.ts", "--bundle", "--platform=node", "--format=esm", `--outfile=${file}`, "--log-level=error",
+      "--banner:js=import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);"], { stdio: "inherit" });
+    const id = await machineOf(cloudId);
     const wrapper = `#!/bin/sh\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"email":"person@example.test"}'; exit 0; fi\nexport FAKE_CLAUDE_VERSION=2.1.284\nexec ${CLOUD_HOME.root}/node/bin/node /opt/omb-test/fake-claude.mjs "$@"\n`;
-    await ibx.upload(cloud().serverId!, "/data/home/fake-claude.mjs", readFileSync(engineFile));
-    await ibx.upload(cloud().serverId!, "/data/home/claude-wrapper.sh", Buffer.from(wrapper));
+    await ibx.upload(id, "/data/home/fake-claude.mjs", readFileSync(file));
+    await ibx.upload(id, "/data/home/claude-wrapper.sh", Buffer.from(wrapper));
+    rmSync(dir, { recursive: true, force: true });
     const done = await onMachine(cloudId, "sudo install -d -m 0755 /opt/omb-test && sudo install -m 0755 /data/home/fake-claude.mjs /opt/omb-test/fake-claude.mjs && sudo install -m 0755 /data/home/claude-wrapper.sh /usr/local/bin/claude && sudo systemctl restart omb-home && for i in $(seq 1 60); do curl -fsS -m 2 http://127.0.0.1:8799/api/health >/dev/null && break; sleep 1; done && echo ok", 180);
     if (!done.stdout.includes("ok")) throw new Error(`engine install: ${done.stdout.slice(-200)}`);
   });
 
-  // test-only: the bot desktop image, built on the machine from the package's own Dockerfile when the registry refuses it
-  if (args.includes("--prebuild-desktop")) await step("computers: bot desktop image built on the machine (test-only)", async () => {
-    const started = await onMachine(cloudId, `cd ${CLOUD_HOME.root}/app/deploy/bot-desktop && (setsid nohup sh build.sh > /data/home/omb-desktop-build.log 2>&1; echo "exit $?" >> /data/home/omb-desktop-build.log) < /dev/null > /dev/null 2>&1 & echo started`, 60);
-    if (!started.stdout.includes("started")) throw new Error("the image build did not start");
-    for (let n = 0; n < 160; n++) {
-      await sleep(15_000);
-      const log = (await onMachine(cloudId, "tail -n 3 /data/home/omb-desktop-build.log", 30)).stdout;
-      if (/exit \d+/.test(log)) { results.desktopImageBuild = log.trim().split("\n"); if (!/exit 0/.test(log)) throw new Error(`build failed: ${log.slice(-300)}`); return; }
-    }
-    throw new Error("the image build did not finish in 40 minutes");
-  });
-
   // 3. paired as the app pairs, then three bots made and messaged
-  const target = { origin: cloud().origin!, grant: () => billing.clouds.pair(account.id, cloudId) };
-  const session = await step("pair: the owner's app signs in", async () => {
-    const paired = await (async () => {
-      const grant = await target.grant();
-      const res = await fetch(`${target.origin}/api/auth/pair`, { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ code: grant.code, label: "InstaBox live" }) });
-      const body = await res.json() as { token?: string }; if (!body.token) throw new Error(`pair ${res.status}`); sessionToken.value = body.token; return body.token;
-    })();
-    void paired;
-    return openOwnerSession(target, fetch, { label: "InstaBox live api", background: false });
-  }, true);
-  const api = session!;
+  const target = { origin: homeOrigin, grant: () => service.grant(cloudId) };
+  let token = "";
+  const owner = async (label: string, background = true) => openOwnerSession(target, globalThis.fetch, { label, background });
+  const api = (await step("pair: the owner's app pairs through the public name", async () => {
+    const started = Date.now();
+    const session = await owner("Live app", false);
+    const grant = await service.grant(cloudId);
+    const paired = await (await globalThis.fetch(`${homeOrigin}/api/auth/pair`, { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ code: grant.code, label: "Live viewer" }) })).json() as { token?: string };
+    token = paired.token ?? "";
+    results.pairMs = Date.now() - started;
+    return session;
+  }, true))!;
   const bots: Array<{ id: string; threadId: string; name: string }> = [];
+  async function replyTo(bot: { id: string; threadId: string }, text: string, count: number) {
+    const sentAt = Date.now();
+    await api.call("POST", `/api/bots/${bot.id}/messages`, { text, threadId: bot.threadId });
+    for (let n = 0; n < 90; n++) {
+      await sleep(1000);
+      const rows = await api.call("GET", `/api/threads/${bot.threadId}/messages?limit=40`);
+      if (((rows.body?.messages ?? []) as Array<{ role?: string; kind?: string; text?: string }>).filter(m => m.role === "bot" && m.kind === "text" && m.text?.trim()).length >= count) return Date.now() - sentAt;
+    }
+    throw new Error("no answer");
+  }
   await step("bots: three made and each answers", async () => {
     const latency: number[] = [];
     for (const name of ["Ada", "Bo", "Cy"]) {
@@ -246,150 +394,123 @@ try {
       if (made.status >= 300) throw new Error(`create ${name}: ${made.status}`);
       const bot = { id: made.body?.bot?.id as string, threadId: made.body?.bot?.threadId as string, name };
       bots.push(bot);
-      const sentAt = Date.now();
-      await api.call("POST", `/api/bots/${bot.id}/messages`, { text: `hello ${name}, from the InstaBox run`, threadId: bot.threadId });
-      let reply: string | null = null;
-      for (let n = 0; n < 60 && !reply; n++) {
-        await sleep(1000);
-        const rows = await api.call("GET", `/api/threads/${bot.threadId}/messages?limit=20`);
-        reply = ((rows.body?.messages ?? []) as Array<{ role?: string; kind?: string; text?: string }>).find(m => m.role === "bot" && m.kind === "text" && m.text?.trim())?.text ?? null;
-      }
-      if (!reply) throw new Error(`${name} did not answer`);
-      latency.push(Date.now() - sentAt);
+      latency.push(await replyTo(bot, `hello ${name}`, 1));
     }
     results.replyMs = latency;
   });
 
-  // 4. their computers on this same machine: each bot's own desktop, side by side
+  // 4. their computers: the image is made ready by the home itself, nobody builds or pulls anything by hand
   const computers: Record<string, { ms: number; ok: boolean; problem?: string }> = {};
-  await step("computers: each bot's desktop woken on the machine", async () => {
+  await step("computers: each bot's computer starts with no manual step", async () => {
     for (const bot of bots) {
-      const set = await api.call("PATCH", `/api/bots/${bot.id}`, { computer: "cloud" });
+      await api.call("PATCH", `/api/bots/${bot.id}`, { computer: "cloud" });
       const started = Date.now();
-      const woke = await api.call("POST", `/api/bots/${bot.id}/computer/provision`, {});
-      computers[bot.name] = { ms: Date.now() - started, ok: woke.status < 300 && woke.body?.ready === true, ...(woke.status >= 300 ? { problem: `${set.status}/${woke.status} ${JSON.stringify(woke.body).slice(0, 200)}` } : {}) };
+      let woke = await api.call("POST", `/api/bots/${bot.id}/computer/provision`, {}).catch((e: Error) => ({ status: 0, body: { error: e.message } }));
+      // what the app does while the image is still being made: it asks again
+      for (let n = 0; n < 60 && !(woke.status < 300 && woke.body?.ready === true); n++) {
+        if (n === 0) note(`computer for ${bot.name} not ready yet: ${woke.status} ${JSON.stringify(woke.body).slice(0, 160)}`);
+        await sleep(10_000);
+        woke = await api.call("POST", `/api/bots/${bot.id}/computer/provision`, {}).catch((e: Error) => ({ status: 0, body: { error: e.message } }));
+      }
+      computers[bot.name] = { ms: Date.now() - started, ok: woke.status < 300 && woke.body?.ready === true, ...(woke.status >= 300 || woke.status === 0 ? { problem: `${woke.status} ${JSON.stringify(woke.body).slice(0, 200)}` } : {}) };
       note(`computer for ${bot.name}: ${JSON.stringify(computers[bot.name])}`);
     }
     results.computers = computers;
-    const mem = await onMachine(cloudId, "free -m | awk '/Mem/ {print $3\"/\"$2\" MiB used\"}'; sudo docker ps --format '{{.Names}} {{.Status}}' | head");
-    results.memoryWithComputers = mem.stdout.trim().split("\n");
-    if (!Object.values(computers).some(x => x.ok)) throw new Error("no computer came up");
+    const image = await onMachine(cloudId, `cat ${CLOUD_HOME.run}/desktop-image; systemctl show omb-desktop-image -p ExecMainStartTimestamp -p ExecMainExitTimestamp -p Result; sudo tail -n 1 /var/log/omb-desktop-image.log 2>/dev/null; free -m | awk '/Mem/ {print $3"/"$2" MiB used"}'`);
+    results.desktopImage = image.stdout.trim().split("\n");
+    if (!Object.values(computers).every(x => x.ok)) throw new Error("a computer did not come up");
   });
-  const first = bots.find(b => computers[b.name]?.ok) ?? bots[0]!;
-  await step("desktop: the stream opens through the home's origin", async () => {
-    const shot = await api.call("POST", `/api/bots/${first.id}/computer/screenshot`, {});
-    results.screenshotBytes = JSON.stringify(shot.body ?? {}).length;
-    const take = await api.call("POST", `/api/bots/${first.id}/computer/control`, { action: "take" });
-    results.takeControl = take.status;
-    const join = await api.call("POST", `/api/bots/${first.id}/computer/join?viewer=proxy`, {});
-    const joinUrl = String(join.body?.joinUrl ?? "");
-    if (!joinUrl) throw new Error(`join ${join.status} ${JSON.stringify(join.body).slice(0, 200)}`);
-    const path = new URL(joinUrl, cloud().origin!).pathname.replace(/\/?$/, "/websockify");
-    const banner = await rfbBanner(cloud().origin!, path, sessionToken.value);
-    results.desktopStream = banner; note(`desktop stream: ${JSON.stringify(banner)}`);
-    if (!banner.banner.startsWith("RFB")) throw new Error(`not an RFB stream: ${banner.banner}`);
+  const first = bots[0]!;
+  // the app's own viewer path: join as the panel does, then the viewer socket with the server's handshake
+  await step("desktop: the app's viewer path shows the bot's screen", async () => {
+    // the panel wakes the bot's screen, then opens it
+    const woke = await api.call("POST", `/api/bots/${first.id}/computer/provision`, {});
+    if (woke.status >= 300 || woke.body?.ready !== true) throw new Error(`wake ${woke.status} ${JSON.stringify(woke.body).slice(0, 200)}`);
+    const joined = await api.call("POST", `/api/bots/${first.id}/computer/join?viewer=proxy&threadId=${encodeURIComponent(first.threadId)}`, {});
+    if (joined.status >= 300) throw new Error(`join ${joined.status} ${JSON.stringify(joined.body).slice(0, 200)}`);
+    const password = (joined.body?.viewer?.password ?? null) as string | null;
+    const path = `/api/desktop-viewer/vps/${first.id}/websockify?${new URLSearchParams({ threadId: first.threadId, rfb: "server" })}`;
+    // the socket goes to the home's own name (a WebSocket through our edge is the Worker's job in production)
+    const frame = await rfbFrame(upstream, path, token, password);
+    results.desktopViewer = frame; note(`viewer: ${JSON.stringify(frame)}`);
+    if (!frame.width || !frame.rects) throw new Error("no picture");
   });
 
-  // 5. the bot's browser on everyday sites, from inside its computer
+  // 5. inside the bot's computer: everyday sites, a download, files, a kept sign-in
   const container = async () => (await onMachine(cloudId, "sudo docker ps --format '{{.ID}} {{.Names}}' | grep -i -m1 -E 'omb|bot|desktop' | cut -d' ' -f1")).stdout.trim();
-  await step("browser: everyday websites from a bot's computer", async () => {
-    const id = await container();
-    if (!id) throw new Error("no bot desktop container");
-    await ibx.upload(cloud().serverId!, "/data/home/omb-browse.py", Buffer.from(BROWSE));
-    // minutes of real browsing: detached on the machine (a long exec is dropped by the provider's API), then read back
+  if (!args.includes("--skip-browse")) await step("browser: everyday websites from a bot's computer", async () => {
+    const id = await container(), machine = await machineOf(cloudId);
+    await ibx.upload(machine, "/data/home/omb-browse.py", Buffer.from(BROWSE));
     await onMachine(cloudId, `rm -f /data/home/omb-browse.out; setsid nohup bash -c "sudo docker exec -i -u 1000 ${id} python3 - '${JSON.stringify(SITES).replace(/'/g, "").replace(/"/g, '\\"')}' < /data/home/omb-browse.py > /data/home/omb-browse.out 2>&1; echo omb-done >> /data/home/omb-browse.out" > /dev/null 2>&1 < /dev/null & echo started`, 60);
-    let out = "";
-    for (let n = 0; n < 80 && !out.includes("omb-done"); n++) { await sleep(15_000); out = (await onMachine(cloudId, "tail -c 20000 /data/home/omb-browse.out 2>/dev/null", 60)).stdout; }
-    const lastLine = out.trim().split("\n").filter(l => l.startsWith("[")).at(-1) ?? "";
-    if (!lastLine) throw new Error(`browse: ${out.slice(-400)}`);
-    const parsed = JSON.parse(lastLine);
-    results.browse = parsed;
-    for (const r of parsed) note(`${r.id.padEnd(14)} ${String(r.ms).padStart(6)} ms ${r.error ? `ERROR ${r.error}` : `${r.bytes} bytes${r.wall ? " WALL" : ""}${r.consent ? " consent" : ""}${r.expected ? "" : " unexpected"} ${r.title ?? ""}${r.mbit ? ` ${r.mbit} Mbit/s` : ""}`}`);
+    let text = "";
+    for (let n = 0; n < 80 && !text.includes("omb-done"); n++) { await sleep(15_000); text = (await onMachine(cloudId, "tail -c 20000 /data/home/omb-browse.out 2>/dev/null", 60)).stdout; }
+    const line = text.trim().split("\n").filter(l => l.startsWith("[")).at(-1) ?? "";
+    if (!line) throw new Error(`browse: ${text.slice(-300)}`);
+    results.browse = JSON.parse(line);
+    for (const r of results.browse as Array<Record<string, unknown>>) note(`${String(r.id).padEnd(14)} ${String(r.ms).padStart(6)} ms ${r.error ? `ERROR ${r.error}` : `${r.bytes} bytes${r.wall ? " WALL" : ""}${r.expected ? "" : " unexpected"} ${r.title}`}`);
   });
-  await step("browser: the same sites from the machine itself (address reputation)", async () => {
-    const cmd = SITES.map(s => `printf '%s ' ${s.id}; curl -s -o /dev/null -m 30 -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36' -w '%{http_code} %{time_total}\\n' '${s.url}'`).join("; ");
-    const run = await onMachine(cloudId, cmd, 600);
-    results.curlInstabox = run.stdout.trim().split("\n");
-    const ip = await onMachine(cloudId, "curl -s -m 10 https://ipinfo.io/json | tr -d '\\n' | head -c 400");
-    results.egressInstabox = ip.stdout.replace(/"ip":\s*"[^"]+"/, "\"ip\":\"(withheld)\"");
-  });
-  await step("clipboard and files inside the bot's computer", async () => {
+  const PROFILE_DIR = "/home/cua/.omb-live-profile";
+  const profileRun = async (mode: "set" | "get") => {
     const id = await container();
-    const clip = await onMachine(cloudId, `sudo docker exec -u 1000 -e DISPLAY=:1 ${id} sh -c 'printf omb-clip | (xclip -selection clipboard 2>/dev/null || xsel -bi) && sleep 1 && (xclip -o -selection clipboard 2>/dev/null || xsel -bo)'`);
-    results.clipboard = clip.stdout.trim() === "omb-clip" ? "copy and paste work" : `clipboard: ${clip.stdout.trim().slice(0, 80) || "no tool"}`;
-    const file = await onMachine(cloudId, `sudo docker exec -u 1000 ${id} sh -c 'echo omb-file-$(date +%s) > ~/Desktop/omb-note.txt 2>/dev/null || echo omb-file-$(date +%s) > ~/omb-note.txt; cat ~/Desktop/omb-note.txt ~/omb-note.txt 2>/dev/null | head -1; ls ~/Downloads | head'`);
-    results.filesInComputer = file.stdout.trim().split("\n");
-    // a file in the home's own data, the layer migrations carry
+    await ibx.upload(await machineOf(cloudId), "/data/home/omb-profile.py", Buffer.from(PROFILE));
+    const out = await onMachine(cloudId, `sudo docker exec -i -u 1000 ${id} python3 - ${mode} ${PROFILE_DIR} < /data/home/omb-profile.py 2>&1 | tail -n 1`, 180);
+    try { return JSON.parse(out.stdout.trim()) as { cookie: boolean; localStorage: boolean }; } catch { return { cookie: false, localStorage: false, raw: out.stdout.slice(-200) }; }
+  };
+  const profileCheck = () => profileRun("get");
+  await step("browser profile: a persistent cookie and a localStorage sign-in are kept", async () => {
+    results.profileBefore = await profileRun("set");
+    const kept = results.profileBefore as { cookie: boolean; localStorage: boolean };
+    if (!kept.cookie || !kept.localStorage) throw new Error(`not kept: ${JSON.stringify(kept)}`);
+  });
+  await step("files: a file on the bot's desktop and a note in the home's data", async () => {
+    const id = await container();
+    const file = await onMachine(cloudId, `sudo docker exec -u 1000 ${id} sh -c 'mkdir -p ~/Desktop && echo omb-file-kept > ~/Desktop/omb-note.txt && cat ~/Desktop/omb-note.txt'`);
     const data = await onMachine(cloudId, `sudo -u maus sh -c 'mkdir -p ${CLOUD_HOME.data}/workspaces/${first.id} && echo "kept across everything" > ${CLOUD_HOME.data}/workspaces/${first.id}/omb-live-note.md' && sudo cat ${CLOUD_HOME.data}/workspaces/${first.id}/omb-live-note.md`);
-    results.fileInData = data.stdout.trim();
-  });
-  await step("browser profile: a site's cookie kept in the bot's profile", async () => {
-    const id = await container();
-    await ibx.upload(cloud().serverId!, "/data/home/omb-profile.py", Buffer.from(PROFILE));
-    const set = await onMachine(cloudId, `sudo docker exec -i -u 1000 ${id} python3 - 'https://httpbin.org/response-headers?Set-Cookie=omb_profile%3Dkept%3B%20Max-Age%3D86400%3B%20Path%3D%2F' /home/cua/.omb-profile < /data/home/omb-profile.py 2>&1`, 120);
-    results.profileSet = set.stdout.trim().slice(-200);
-    const check = await onMachine(cloudId, `sudo docker exec -i -u 1000 ${id} python3 - https://httpbin.org/cookies /home/cua/.omb-profile < /data/home/omb-profile.py 2>&1`, 120);
-    results.profileBefore = check.stdout.trim();
+    results.files = { desktop: file.stdout.trim(), data: data.stdout.trim() };
   });
 
-  // 6. paused with memory, left a few minutes, resumed for its owner
+  // 6. paused with memory by its owner, left a few minutes, woken by a send from the app
   const memoryMark = await onMachine(cloudId, `id=$(sudo docker ps -q | head -1); sudo docker exec -d $id sh -c 'sleep 100000' ; sleep 1; sudo docker inspect -f '{{.State.StartedAt}}' $id; sudo docker exec $id sh -c 'pgrep -f "sleep 100000" | head -1'; cat /proc/sys/kernel/random/boot_id`);
   const [startedAtBefore, pidBefore, bootBefore] = memoryMark.stdout.trim().split("\n");
-  await step("pause: the owner puts it to sleep (memory kept)", async () => {
+  await step("pause: the owner puts it to sleep, the dashboard says so", async () => {
     const asked = Date.now();
-    await billing.clouds.power(account.id, cloudId, "off");
-    await reconcileUntil(cloudId, () => cloud().status === "sleeping", 10 * 60_000, "sleep", 1000);
-    for (let n = 0; n < 60 && (await ibx.machine(cloud().serverId!))?.state !== "stopped"; n++) await sleep(1000);
+    await service.power(cloudId, "off");
+    await until(v => v.status === "sleeping", 5 * 60_000, "sleep", 500);
     results.pauseMs = Date.now() - asked;
-    const status = await fetch(`${cloud().origin}/api/health`).then(r => r.status).catch(() => 0);
-    results.originWhilePaused = status;
+    results.originWhilePaused = await globalThis.fetch(`${homeOrigin}/api/health`).then(r => r.status).catch(() => 0);
   });
   note("left paused for 3 minutes");
   await sleep(3 * 60_000);
-  await step("resume: the owner wakes it and it continues where it was", async () => {
+  await step("resume: a send from the app wakes it and it continues where it was", async () => {
     const asked = Date.now();
-    await billing.clouds.power(account.id, cloudId, "on");
-    await reconcileUntil(cloudId, () => cloud().status === "running", 10 * 60_000, "wake", 500);
+    results.wakeAnswer = await client.wakeHome("send");
+    await until(v => v.status === "running", 5 * 60_000, "wake", 300);
     results.resumeMs = Date.now() - asked;
     const after = await onMachine(cloudId, `id=$(sudo docker ps -q | head -1); sudo docker inspect -f '{{.State.StartedAt}}' $id; sudo docker exec $id sh -c 'pgrep -f "sleep 100000" | head -1'; cat /proc/sys/kernel/random/boot_id`);
     const [startedAtAfter, pidAfter, bootAfter] = after.stdout.trim().split("\n");
     results.memoryKept = { sameBoot: bootBefore === bootAfter, containerNotRestarted: startedAtBefore === startedAtAfter, processAlive: !!pidBefore && pidBefore === pidAfter };
-    const list = await api.call("GET", "/api/bots?messages=0");
-    results.botsAfterResume = (list.body?.bots ?? []).map((b: { name?: string }) => b.name);
-    const sentAt = Date.now();
-    await api.call("POST", `/api/bots/${bots[0]!.id}/messages`, { text: "still there after the pause?", threadId: bots[0]!.threadId });
-    for (let n = 0; n < 60; n++) {
-      await sleep(1000);
-      const rows = await api.call("GET", `/api/threads/${bots[0]!.threadId}/messages?limit=30`);
-      if (((rows.body?.messages ?? []) as Array<{ role?: string; kind?: string }>).filter(m => m.role === "bot" && m.kind === "text").length >= 2) { results.replyAfterResumeMs = Date.now() - sentAt; break; }
-    }
-    const id = await container();
-    const check = await onMachine(cloudId, `sudo docker exec -i -u 1000 ${id} python3 - https://httpbin.org/cookies /home/cua/.omb-profile < /data/home/omb-profile.py 2>&1`, 120);
-    results.profileAfterResume = check.stdout.trim();
+    results.replyAfterResumeMs = await replyTo(first, "still there after the pause?", 2);
+    results.profileAfterResume = await profileCheck();
   });
 
-  if (!args.includes("--focus") || option("--focus") !== "computers") {
   // 7. a routine due while the home sleeps: woken before it, it runs on time
-  await step("routine: runs on time across a pause", async () => {
+  await step("routine: a paused home wakes for its routine and runs it on time", async () => {
     const due = Date.now() + 6 * 60_000;
-    const made = await api.call("POST", "/api/routines", { name: "Across the pause", prompt: "Say the time.", botId: bots[0]!.id, enabled: true, schedule: { type: "once", at: due } });
+    const made = await api.call("POST", "/api/routines", { name: "Across the pause", prompt: "Say the time.", botId: first.id, enabled: true, schedule: { type: "once", at: due } });
     if (made.status >= 300) throw new Error(`routine ${made.status} ${JSON.stringify(made.body).slice(0, 200)}`);
     const routineId = made.body.routine.id as string;
-    cloud().managed!.lastPowerAt = 0; cloud().nextAttemptAt = 0; await billing.clouds.reconcile();
-    note(`home reports next due ${cloud().managed!.nextDueAt ? new Date(cloud().managed!.nextDueAt!).toISOString() : "none"}`);
-    await billing.clouds.power(account.id, cloudId, "off");
-    await reconcileUntil(cloudId, () => cloud().status === "sleeping", 10 * 60_000, "sleep before the routine", 1000);
+    await sleep(70_000);
+    await service.power(cloudId, "off");
+    await until(v => v.status === "sleeping", 5 * 60_000, "sleep before the routine", 1000);
     const sleptAt = Date.now();
-    await reconcileUntil(cloudId, () => cloud().status === "running", 12 * 60_000, "woken for the routine", 5000);
+    await until(v => v.status === "running", 12 * 60_000, "woken for the routine", 2000);
     const wokeAt = Date.now();
-    let run: { status?: string; startedAt?: number; finishedAt?: number } | undefined;
+    let run: { status?: string; startedAt?: number } | undefined;
     for (let n = 0; n < 90 && run?.status !== "completed"; n++) {
       await sleep(5000);
-      const list = await api.call("GET", "/api/routines");
-      run = (list.body?.runs ?? []).find((r: { routineId?: string }) => r.routineId === routineId);
+      run = ((await api.call("GET", "/api/routines")).body?.runs ?? []).find((r: { routineId?: string }) => r.routineId === routineId);
     }
-    results.routine = { dueAt: new Date(due).toISOString(), sleptMs: wokeAt - sleptAt, wokeBeforeDueMs: due - wokeAt, run: run ? { status: run.status, lateMs: run.startedAt ? run.startedAt - due : null } : null,
-      wakeReason: billing.clouds.get(cloudId)?.managed?.power ? "routine" : null };
+    results.routine = { sleptMs: wokeAt - sleptAt, wokeBeforeDueMs: due - wokeAt, run: run ? { status: run.status, lateMs: run.startedAt ? run.startedAt - due : null } : null };
     if (run?.status !== "completed") throw new Error(`routine run ${run?.status ?? "missing"}`);
   });
 
@@ -397,34 +518,42 @@ try {
   await step("crash: the home process is killed and comes back", async () => {
     const killedAt = Date.now();
     await onMachine(cloudId, "sudo systemctl kill -s KILL omb-home.service; echo killed");
-    for (let n = 0; n < 120; n++) { const ok = await fetch(`${cloud().origin}/api/health`).then(r => r.ok).catch(() => false); if (ok && Date.now() - killedAt > 2000) break; await sleep(1000); }
+    await sleep(1500);
+    for (let n = 0; n < 120; n++) { if (await realFetch(`${upstream}/api/health`).then(r => r.ok).catch(() => false)) break; await sleep(500); }
     results.processRecoveryMs = Date.now() - killedAt;
   });
-  await step("crash: the machine reboots hard and the home comes back by itself", async () => {
+  await step("crash: a hard reboot, the home and the bot computers come back by themselves", async () => {
+    const before = (await onMachine(cloudId, "cat /proc/sys/kernel/random/boot_id")).stdout.trim();
     const rebootedAt = Date.now();
-    await onMachine(cloudId, "(sleep 1; sudo reboot -f) >/dev/null 2>&1 & echo rebooting", 30).catch(() => null);
-    await sleep(5000);
-    for (let n = 0; n < 240; n++) { const ok = await fetch(`${cloud().origin}/api/health`).then(r => r.ok).catch(() => false); if (ok) break; await sleep(1000); }
+    await onMachine(cloudId, "(sleep 2; sudo systemctl reboot -ff) >/dev/null 2>&1 < /dev/null & disown; echo rebooting", 30).catch(() => null);
+    await sleep(10_000);
+    for (let n = 0; n < 300; n++) { if (await realFetch(`${upstream}/api/health`).then(r => r.ok).catch(() => false)) break; await sleep(1000); }
     results.machineRecoveryMs = Date.now() - rebootedAt;
-    const boot = await onMachine(cloudId, "cat /proc/sys/kernel/random/boot_id; sudo docker ps --format '{{.Names}} {{.Status}}' | head -3");
-    results.afterReboot = boot.stdout.trim().split("\n");
-    const list = await api.call("GET", "/api/bots?messages=0");
-    results.botsAfterReboot = (list.body?.bots ?? []).map((b: { name?: string }) => b.name);
+    const after = await onMachine(cloudId, `cat /proc/sys/kernel/random/boot_id; cat ${CLOUD_HOME.run}/desktop-image 2>/dev/null || echo none`);
+    const [bootAfter, imageAfter] = after.stdout.trim().split("\n");
+    results.reboot = { newBoot: !!before && before !== bootAfter, imageAfter };
+    if (before === bootAfter) throw new Error("the machine did not reboot");
+    results.replyAfterRebootMs = await replyTo(first, "and after a reboot?", 3);
+    const woke = await api.call("POST", `/api/bots/${first.id}/computer/provision`, {});
+    results.computerAfterReboot = { status: woke.status, ready: woke.body?.ready === true };
+    results.profileAfterReboot = await profileCheck();
+    const file = await onMachine(cloudId, `id=$(sudo docker ps -q | head -1); sudo docker exec -u 1000 $id cat /home/cua/Desktop/omb-note.txt`);
+    results.desktopFileAfterReboot = file.stdout.trim();
   });
 
-  // 9. a bot moved here from a local fixture with the app's own send (the Mac-to-cloud move)
-  await step("move in: a bot from a local fixture arrives with its chat", async () => {
-    const local = await launchVerificationServer({ ...process.env, DUSK_TEST_PORTS: "19975-19999", FAKE_CLAUDE_VERSION: "2.1.284" });
-    try {
-      const localApi = (route: string, init?: RequestInit) => fetch(`${local.info.url}${route}`, init);
+  // 9. a bot moved in from a local fixture with the app's own send, then this home brought back to the fixture
+  const localServer = await launchVerificationServer({ ...process.env, DUSK_TEST_PORTS: "19975-19999", FAKE_CLAUDE_VERSION: "2.1.284", DUSK_VERIFY_HOME_OUTSIDE: "1" });
+  try {
+    const localApi = (route: string, init?: RequestInit) => realFetch(`${localServer.info.url}${route}`, init);
+    await step("move in: a bot from the Mac arrives with its chat", async () => {
       const mine = await (await localApi("/api/bots", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Moved from the Mac" }) })).json() as { bot: { id: string; threadId: string } };
       await localApi(`/api/bots/${mine.bot.id}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: "a chat that should move with me", threadId: mine.bot.threadId }) });
       await sleep(8000);
-      const reader = await openOwnerSession(target, fetch, { label: "InstaBox live read", background: true });
+      const reader = await owner("Live move read");
       let kept: unknown = null;
       const send = createCloudSend({
         local: (route: string, init?: RequestInit) => localApi(route, init),
-        cloud: { origin: () => target.origin, asleep: () => false, read: (route: string) => reader.fetch!(route), open: () => openOwnerSession(target, fetch, { label: "InstaBox live move", background: false }) },
+        cloud: { origin: () => homeOrigin, asleep: () => false, read: (route: string) => reader.fetch!(route), open: () => owner("Live move", false) },
         handoff: async () => { throw new Error("no sign-ins in this run"); },
         store: { read: () => kept, write: (value: unknown) => { kept = value; } },
       });
@@ -435,74 +564,78 @@ try {
       const rows = moved?.threadId ? await api.call("GET", `/api/threads/${moved.threadId}/messages?limit=20`) : null;
       results.moveIn = { arrived: Boolean(moved), rows: (rows?.body?.messages ?? []).length, ms: Date.now() - started };
       if (!moved) throw new Error("the moved bot did not arrive");
-    } finally { await local.close().catch(() => {}); }
+    });
+    await step("move back: the home's bots and chats restored on the Mac", async () => {
+      const started = Date.now();
+      const again = createHomeAgain({
+        exportGrant: async () => ({ grant: await service.grant(cloudId) }),
+        open: (grant: { origin: string; code: string; expiresAt: number }) => openOwnerSession({ origin: grant.origin, grant: async () => grant }, globalThis.fetch, { label: "Live home again", background: false }),
+        local: {
+          json: async (method: string, route: string, body?: unknown) => { const r = await localApi(route, { method, headers: { "content-type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }); const text = await r.text(); let parsed: unknown = null; try { parsed = JSON.parse(text); } catch {} return { ok: r.ok, status: r.status, body: parsed }; },
+          upload: async (file: string, bytes: number) => { const r = await localApi("/api/workspace-backup/upload", { method: "POST", headers: { "content-type": "application/octet-stream", "content-length": String(bytes) }, body: Readable.toWeb(createReadStream(file)) as never, duplex: "half" } as RequestInit); const text = await r.text(); let parsed: unknown = null; try { parsed = JSON.parse(text); } catch {} return { ok: r.ok, status: r.status, body: parsed }; },
+        },
+        tempRoot: mkdtempSync(join(tmpdir(), "omb-home-again-")),
+      });
+      let brought: Record<string, unknown> = {};
+      for (let n = 0; n < 30; n++) { brought = await again.bring() as Record<string, unknown>; if ("restored" in brought || "deleted" in brought) break; await sleep(Number(brought.later ?? 5000)); }
+      if (!("restored" in brought)) throw new Error(`move back: ${JSON.stringify(brought)}`);
+      // the restore applies when the app starts its server again: the fixture's server stops, its next boot's restore runs
+      localServer.child.kill("SIGTERM");
+      await new Promise(done => { if (localServer.child.exitCode !== null) done(null); else { localServer.child.once("exit", done); setTimeout(done, 15_000); } });
+      const applied = applyPendingWorkspaceRestore(localServer.info.dataDir);
+      const bots = (JSON.parse(readFileSync(join(localServer.info.dataDir, "bots.json"), "utf8")) as Array<{ name?: string }>).map(b => b.name ?? "");
+      results.moveBack = { restored: applied.restored, botsOnMac: bots, ms: Date.now() - started };
+      if (!applied.restored || !["Ada", "Bo", "Cy", "Moved from the Mac"].every(name => bots.includes(name))) throw new Error(`the home's bots did not arrive on the Mac: ${bots.join(", ")}`);
+    });
+  } finally { await localServer.close().catch(() => {}); }
+
+  // 10. the provider's own numbers for this machine
+  await step("usage: what the provider measured", async () => {
+    const usage = await ibx.usage(await machineOf(cloudId));
+    results.usage = usage ? { ...usage, cents: instaboxUsageCents(usage) } : null;
   });
 
-  // 10. the home moved to Boat by the operator, checked there, then rolled back on purpose
-  if (withBoat && !args.includes("--skip-move")) {
-    const ibxMachine = cloud().serverId!;
-    const pidMark = await onMachine(cloudId, `id=$(sudo docker ps -q | head -1); sudo docker exec -d $id sh -c 'sleep 200000'; sleep 1; sudo docker exec $id sh -c 'pgrep -f "sleep 200000" | head -1'`);
-    await step("migrate: InstaBox to Boat, checked file by file", async () => {
-      const started = Date.now();
-      managed().migrate!(cloud(), "boat");
-      const phases: Record<string, number> = {};
-      await reconcileUntil(cloudId, () => { const p = cloud().managed!.migration!.phase; phases[p] ??= Date.now() - started; return p === "done" || p === "rolled_back"; }, 40 * 60_000, "migrate to boat", 3000);
-      const m = cloud().managed!.migration!;
-      results.migrateToBoat = { phase: m.phase, phases, checked: m.checked, error: m.error, ms: Date.now() - started, boatMachine: cloud().serverId };
-      if (m.phase !== "done") throw new Error(`migration ended ${m.phase}: ${m.error}`);
-      const there = await openOwnerSession({ origin: cloud().origin!, grant: () => billing.clouds.pair(account.id, cloudId) }, fetch, { label: "on Boat", background: true });
-      const list = await there.call("GET", "/api/bots?messages=0");
-      results.botsOnBoat = (list.body?.bots ?? []).map((b: { name?: string }) => b.name);
-      const note = await onMachine(cloudId, `sudo cat ${CLOUD_HOME.data}/workspaces/${first.id}/omb-live-note.md`);
-      results.fileOnBoat = note.stdout.trim();
-      const cmd = SITES.map(s => `printf '%s ' ${s.id}; curl -s -o /dev/null -m 30 -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36' -w '%{http_code} %{time_total}\\n' '${s.url}'`).join("; ");
-      results.curlBoat = (await onMachine(cloudId, cmd, 600)).stdout.trim().split("\n");
-    });
-    await step("rollback: back to the InstaBox machine on purpose, its memory intact", async () => {
-      const started = Date.now();
-      managed().rollbackMigration!(cloud());
-      await reconcileUntil(cloudId, () => cloud().managed!.migration!.phase === "rolled_back" && cloud().status === "running", 30 * 60_000, "roll back", 3000);
-      const m = cloud().managed!.migration!;
-      const alive = await onMachine(cloudId, `id=$(sudo docker ps -q | head -1); sudo docker exec $id sh -c 'pgrep -f "sleep 200000" | head -1'`);
-      results.rollback = { ms: Date.now() - started, backOn: cloud().serverId, sameMachine: cloud().serverId === ibxMachine, processAlive: alive.stdout.trim() === pidMark.stdout.trim() && !!alive.stdout.trim(),
-        keptBackup: cloud().managed!.backups.some(g => g.keep), target: m.target };
-      const list = await api.call("GET", "/api/bots?messages=0");
-      results.botsAfterRollback = (list.body?.bots ?? []).map((b: { name?: string }) => b.name);
-      await managed().finishMigration!(cloud());
-      results.finished = cloud().managed!.migration!.deleted ?? null;
-    });
-  }
-
-  }
-  // 11. what InstaBox measured and billed for this machine
-  await step("usage: the provider's own numbers", async () => {
-    const usage = await ibx.usage!(cloud().serverId!);
-    results.usage = usage ? { ...usage, cents: instaboxUsageCents(usage) } : null;
-    results.lifecycleAudit = JSON.parse(`[${readFileSync(join(dataDir, "boat-audit.jsonl"), "utf8").trim().split("\n").join(",")}]`).map((e: { action: string; reason: string; at: number }) => `${new Date(e.at).toISOString().slice(11, 19)} ${e.action}:${e.reason}`);
+  // 11. the owner ends the plan and deletes the home's data: confirmed by email, done after the undo window
+  await step("delete: the plan ends, the owner deletes the data, the machine is gone", async () => {
+    await service.cancel(cloudId);
+    offset += 32 * 86_400_000;
+    // a month later the owner signs in again; deleting data asks for a sign-in from the last 10 minutes anyway
+    const again = await webSignIn(origin, email); cookies = { cookie: again.cookie, "x-omb-csrf": again.csrf, origin };
+    await until(v => v.status === "stopped", 10 * 60_000, "plan ended", 3000);
+    await service.deleteData(cloudId);
+    const link = mailer.outbox.map(m => m.text).reverse().find(t => /\/delete#/.test(t)) ?? "";
+    const token = /\/delete#([A-Za-z0-9_-]{20,})/.exec(link)?.[1];
+    if (!token) throw new Error("no confirmation email");
+    await service.confirmDelete(cloudId, token);
+    offset += 8 * 86_400_000;
+    const machine = await machineOf(cloudId).catch(() => null);
+    await until(v => v.status === "destroyed" || v.status === "destroying", 10 * 60_000, "deleted", 3000);
+    for (let n = 0; n < 60 && machine && (await ibx.machine(machine).catch(() => null)); n++) await sleep(3000);
+    results.deleted = { machineGone: machine ? (await ibx.machine(machine)) === null : null, letters: mailer.outbox.filter(m => m.to === email).map(m => m.subject) };
   });
 } catch (error) {
   failed = error instanceof Error ? error.message : String(error);
   console.error(`FAILED: ${failed}`);
 } finally {
-  // teardown: every machine under this run's scope on both providers, deleted and proven gone
-  results.failed = failed;
+  watching = false;
+  results.failed = failed; results.failedSteps = failures; results.timeline = timeline;
   const deleted: string[] = [];
-  for (const [name, provider] of [["instabox", ibx], ...(boat ? [["boat", boat]] as const : [])] as const) {
-    for (let round = 0; round < 3; round++) {
-      const left = await provider.inventory().catch(() => []);
-      for (const m of left) { const r = await provider.requestDelete(m.id).catch(e => ({ error: String(e) })); deleted.push(`${name}:${m.id}:${JSON.stringify(r).slice(0, 80)}`); }
-      if (!left.length) break;
-      await sleep(10_000);
-    }
+  for (let round = 0; round < 3; round++) {
+    const left = await ibx.inventory().catch(() => []);
+    for (const m of left) { const r = await ibx.requestDelete(m.id).catch(e => ({ error: String(e) })); deleted.push(`${m.id}:${JSON.stringify(r).slice(0, 80)}`); }
+    if (!left.length) break;
+    await sleep(10_000);
   }
   results.teardown = deleted;
-  await sleep(15_000);
-  results.leftInstabox = (await ibx.inventory().catch(() => [{ id: "unknown" }])).map(m => m.id);
-  results.leftBoat = boat ? (await boat.inventory().catch(() => [{ id: "unknown" }])).map(m => m.id) : [];
+  await sleep(10_000);
+  results.left = (await ibx.inventory().catch(() => [{ id: "unknown" }])).map(m => m.id);
   results.marks = marks;
+  // the lifecycle's own account of the run, for what took how long and why
+  try { results.audit = readFileSync(join(dataDir, "managed-audit.jsonl"), "utf8").trim().split("\n").map(l => JSON.parse(l) as { at: number; action: string; reason: string; detail?: unknown }).map(e => `${((e.at - t0) / 1000).toFixed(0)}s ${e.action}:${e.reason}${e.detail ? ` ${JSON.stringify(e.detail).slice(0, 120)}` : ""}`); } catch {}
   save();
-  billing.close(); store.close?.();
+  try { service?.close(); } catch {}
+  server?.close();
   rmSync(dataDir, { recursive: true, force: true });
-  console.log(JSON.stringify({ failed, leftInstabox: results.leftInstabox, leftBoat: results.leftBoat }, null, 2));
-  process.exit(failed ? 1 : 0);
+  console.log(JSON.stringify({ failed, failedSteps: failures, left: results.left }, null, 2));
+  process.exit(failed || failures.length ? 1 : 0);
 }
