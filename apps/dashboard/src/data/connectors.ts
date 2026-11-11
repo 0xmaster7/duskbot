@@ -52,6 +52,8 @@ function loadApps(): Promise<AppsState> {
   return request;
 }
 
+export const preloadApps = () => { void loadApps(); };
+
 export function useDashApps(): { apps: DashApp[] | null; error: string | null } {
   const [state, setState] = useState<AppsState>(() => cached);
   useEffect(() => {

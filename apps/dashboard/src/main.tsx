@@ -46,11 +46,12 @@ const Onboarding = page(() => import("./pages/Onboarding"), (m) => m.Onboarding)
 const AdminApp = page(() => import("./admin/AdminApp"), (m) => m.AdminApp);
 
 // after the first page has painted, fetch the others in idle time so moving between them never waits;
-// connectors carries the 450 kB app catalogue and loads when opened
+// the app catalogue comes last, so the apps page opens with every app already there
 function prefetchPages() {
   const idle = window.requestIdleCallback ?? ((fn: () => void) => setTimeout(fn, 1));
   const timer = setTimeout(() => idle(() => {
-    for (const p of [CloudDesktopPage, WorkspacesPage, WorkspacePage, BotsPage, BotPage, UsagePage, BillingPage, AccountPage, DeviceApprovalPage, Onboarding]) void p.preload().catch(() => {});
+    for (const p of [CloudDesktopPage, WorkspacesPage, WorkspacePage, BotsPage, BotPage, ConnectorsPage, UsagePage, BillingPage, AccountPage, DeviceApprovalPage, Onboarding]) void p.preload().catch(() => {});
+    void import("./data/connectors").then((m) => m.preloadApps());
   }), 1500);
   return () => clearTimeout(timer);
 }
