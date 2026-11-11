@@ -1,20 +1,23 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Bot, Clock, CreditCard, File, Globe as GlobeIcon, Link2, MapPin, Monitor, MousePointerClick, RotateCcw, Search, Sparkles, Tag, Target, UserPlus, Users } from "@/icons";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Bot, CreditCard, File, Repeat, Star, Globe as GlobeIcon, Link2, MapPin, Monitor, MousePointerClick, RotateCcw, Search, Sparkles, Tag, Target, UserPlus, Users } from "@/icons";
 import skyBand from "../art/scene-sky-band.webp";
 import meadowBand from "../art/scene-meadow-band.webp";
 import { Button, cx } from "../ui/kit";
-import { Mascot } from "../ui/Mascot";
+import { Mascot, type MascotHandle } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
 import { ago } from "../lib/format";
 import { Link } from "../lib/router";
 import { useNow } from "../lib/now";
-import { adminCall, useAdmin } from "./api";
+import { adminCall, useAdmin, type Overview } from "./api";
 import { avatarOf } from "./names";
 import { centroid, countryName } from "./geo";
-import { Avatar, Chip, Delta, DualChart, FilterChips, NoteDialog, RangePicker, RankCard, duration, percent, personName, rangeOf, type Mark, type Note, type Range, type RankRow, type SeriesData } from "./kit";
+import { Avatar, Chip, Delta, FilterChips, NoteDialog, RangePicker, RankCard, TrafficChart, duration, percent, personName, rangeOf, usd, type Mark, type Note, type Range, type RankRow, type SeriesData } from "./kit";
+import { Badges, CheerBubble, PaymentsCard, milestones, useCheer, type RevenueAnswer } from "./Revenue";
+import { PulseGrid } from "./Pulse";
 import { Failed, Loading, n } from "./ui";
 
 const Globe = lazy(() => import("./globe/Globe"));
+const DAY = 86_400_000;
 
 interface Kpis { visitors: number; visits: number; pageviews: number; signups: number; paid: number; waitlist: number; conversion: number | null; bounce: number | null; visitMs: number | null }
 export type Surface = "all" | "site" | "account" | "desktop" | "phone";
@@ -23,6 +26,7 @@ export interface WebAnswer {
   series: SeriesData; cards: Record<string, RankRow[]>; notes: Note[]; tracked: boolean; marks?: Mark[];
   surfaces?: { site: number; account: number; desktop: number; phone: number };
   crawlers: { total: number; bot: RankRow[]; page: RankRow[]; kind: RankRow[] };
+  revenue?: RevenueAnswer;
 }
 interface Person {
   id: string; seed: string; account: { id: string; email: string; name: string | null } | null; customer: boolean; signedUpAt: number | null; paidAt: number | null;
@@ -88,37 +92,61 @@ export function moodOf(data: WebAnswer | null): { state: "sleeping" | "excited" 
   return { state: "idle", line: `${n(online)} here right now.` };
 }
 
-/** a slim pixel sky with kit on the meadow, and the window in one sentence */
-function Band({ data, range }: { data: WebAnswer | null; range: Range }) {
+/** the one line worth reading first: money today, a record, or where people came from */
+export function highlightOf(data: WebAnswer | null, now = Date.now()): string | null {
+  if (!data) return null;
+  const today = new Date(now); today.setHours(0, 0, 0, 0);
+  const paid = data.revenue?.recent.find((p) => p.amountCents > 0 && p.at >= today.getTime());
+  if (paid) return `${personName(paid.seed, paid.email)} paid ${usd(paid.amountCents)} today${paid.source !== "unknown" ? ` via ${paid.source}` : ""}${paid.firstSeen && paid.kind === "new" ? `, ${duration(paid.at - paid.firstSeen)} after their first visit` : ""}.`;
+  const money = Object.entries(data.revenue?.cards.channel ?? {}).sort((a, b) => b[1] - a[1])[0];
+  if (money && money[1] > 0) return `${CHANNEL[money[0]] ?? money[0]} brought in ${usd(money[1])} this window, more than any other channel.`;
+  const top = (data.cards.source ?? []).find((row) => row.key !== "direct" && row.key !== "unknown");
+  if (top) return `most visitors who found you came from ${top.key} (${n(top.visitors)}).`;
+  return null;
+}
+
+/** a slim pixel sky with kit on the meadow: the window in one sentence, the line to read, milestones, and a cheer when someone signs up or pays */
+function Band({ data, range, accounts, paying }: { data: WebAnswer | null; range: Range; accounts: number | null; paying: number | null }) {
   const span = range.key === "today" ? "today" : range.key === "7d" ? "in the last 7 days" : range.key === "90d" ? "in the last 90 days" : range.key === "custom" ? "in this window" : "in the last 30 days";
   const mood = moodOf(data);
+  const kit = useRef<MascotHandle>(null);
+  const [cheer, dismiss] = useCheer(data?.marks, data?.revenue?.recent);
+  const close = useCallback(() => dismiss(), [dismiss]);
+  useEffect(() => { if (cheer) kit.current?.react("celebrate"); }, [cheer]);
+  const highlight = highlightOf(data);
+  const r = data?.revenue;
+  const badges = data ? milestones({ visitorsBest: data.series.size < DAY ? 0 : Math.max(0, ...data.series.visitors), signups: data.current.signups, accounts, firstPaid: r?.first ?? null, customers: paying ?? r?.current.customers ?? 0, mrr: r?.current.mrr ?? 0 }) : [];
   return (
-    <div className="relative mb-5 overflow-hidden rounded-[24px] bg-sky" style={{ backgroundImage: `url(${skyBand})`, backgroundSize: "cover", imageRendering: "pixelated" }}>
-      <div className="absolute inset-0 bg-gradient-to-r from-white/55 via-white/25 to-transparent" aria-hidden />
+    <div className="relative mb-5 overflow-hidden rounded-[24px] bg-wash-sky" style={{ backgroundImage: `url(${skyBand})`, backgroundSize: "cover", imageRendering: "pixelated" }}>
+      <div className="absolute inset-0 bg-gradient-to-r from-white/70 via-white/40 to-white/5" aria-hidden />
       <div className="absolute inset-x-0 bottom-0 h-5" style={{ backgroundImage: `url(${meadowBand})`, backgroundSize: "auto 100%", backgroundRepeat: "repeat-x", imageRendering: "pixelated" }} aria-hidden />
-      <div className="relative flex min-h-[104px] items-center justify-between gap-4 px-6 pb-7 pt-5 max-sm:px-4">
-        <div className="min-w-0 text-[#14243a]">
+      <div className="relative flex min-h-[132px] items-start justify-between gap-4 px-6 pb-8 pt-5 max-sm:px-4">
+        <div className="min-w-0 text-[#14243a] max-sm:pe-14">
           <p className="text-[22px] leading-[1.3] tracking-[-0.03em] max-sm:text-[17px]">
-            {data ? <>you got <b className="font-mono font-medium">{n(data.current.visitors)}</b> visitors and <b className="font-mono font-medium">{n(data.current.signups)}</b> signups {span}.</> : "counting visitors."}
+            {data ? <>you got <b className="font-mono font-medium">{n(data.current.visitors)}</b> visitors, <b className="font-mono font-medium">{n(data.current.signups)}</b> signups{r?.live ? <> and <b className="font-mono font-medium text-[#2f5a05]">{usd(r.current.net)}</b></> : null} {span}.</> : "counting visitors."}
           </p>
-          {mood.line && <p className="mt-0.5 text-13 text-[#14243a]/70">{mood.line}</p>}
+          {(highlight ?? mood.line) && <p className="mt-1 flex items-center gap-1.5 text-14 text-[#14243a]/80"><Sparkles size={14} strokeWidth={1.75} aria-hidden className="shrink-0 text-[#14243a]/60" /><span className="sr-only">today's highlight: </span>{highlight ?? mood.line}</p>}
+          {badges.length > 0 && <div className="mt-3"><Badges badges={badges} /></div>}
         </div>
-        <span className="me-4 shrink-0 max-sm:me-0" aria-hidden><Mascot body="kit" color="blue" size={52} state={mood.state} /></span>
+        <div className="flex shrink-0 flex-col items-end gap-2 max-sm:absolute max-sm:right-4 max-sm:top-4">
+          <span className="me-4 max-sm:me-0" aria-hidden><Mascot ref={kit} body="kit" color="blue" size={56} state={cheer ? "excited" : mood.state} /></span>
+        </div>
       </div>
+      {cheer && <div className="absolute bottom-7 right-5 z-10 max-w-[calc(100%-2.5rem)] max-sm:bottom-6 max-sm:left-4 max-sm:right-4"><CheerBubble cheer={cheer} onClose={close} /></div>}
     </div>
   );
 }
 
 const I = { size: 14, strokeWidth: 1.75 } as const;
-function Kpi({ label, value, now, before, invert, toggle, live, icon }: { label: string; value: string; now?: number | null; before?: number | null; invert?: boolean; toggle?: { on: boolean; flip(): void; colour: string }; live?: boolean; icon?: ReactNode }) {
+function Kpi({ label, value, now, before, invert, toggle, live, icon, money, wash }: { label: string; value: string; now?: number | null; before?: number | null; invert?: boolean; toggle?: { on: boolean; flip(): void; colour: string }; live?: boolean; icon?: ReactNode; money?: boolean; wash?: string }) {
   return (
-    <div className="min-w-0 bg-pop px-4 py-3.5">
+    <div className={cx("min-w-0 px-4 py-3.5", wash ?? "bg-pop")}>
       {toggle ? (
         <label className="flex cursor-pointer items-center gap-2 text-13 text-ink-3">
           <input type="checkbox" checked={toggle.on} onChange={toggle.flip} className="size-3.5" style={{ accentColor: toggle.colour }} />{label}<span className="ms-auto text-ink-4" aria-hidden>{icon}</span>
         </label>
       ) : <div className="flex items-center gap-2 text-13 text-ink-3">{label}{live !== undefined && <span className="live-dot text-good" data-live={live} aria-hidden />}<span className="ms-auto text-ink-4" aria-hidden>{icon}</span></div>}
-      <div className="mt-1 truncate font-mono text-[28px] font-medium leading-9 tracking-[-0.045em] text-ink num">{value}</div>
+      <div className={cx("mt-1 truncate font-mono text-[26px] font-medium leading-9 tracking-[-0.045em] num", money ? "text-money" : "text-ink")}>{value}</div>
       <div className="mt-0.5 h-5 truncate leading-5">{now !== undefined && <Delta now={now ?? null} before={before ?? null} invert={invert} />}</div>
     </div>
   );
@@ -268,13 +296,17 @@ function AiCard({ crawlers }: { crawlers: WebAnswer["crawlers"] }) {
 export function OverviewPage() {
   const [sel, setSel] = useSelection();
   const { range, surface, filters } = sel;
-  const [show, setShow] = useState({ visitors: true, signups: true, paid: true });
+  const [show, setShow] = useState({ visitors: true, signups: true, revenue: true });
   const [note, setNote] = useState<Note | { at: number } | null>(null);
   const { data, error, loading, reload } = useAdmin<WebAnswer>(`/web?${webQuery(range, surface, filters)}`, 60_000);
+  const overview = useAdmin<Overview>("/overview?days=30", 120_000);
   const pick = (dim: string, key: string) => setSel((s) => ({ ...s, filters: { ...s.filters, [dim]: s.filters[dim] === key ? undefined : key } }));
-  const c = data?.current, p = data?.previous;
+  const c = data?.current, p = data?.previous, r = data?.revenue;
   const online = data ? data.online.site + data.online.app : 0;
   const detail = (tab: string) => `/admin/analytics/${tab}?${webQuery(range, surface, filters).replace(/from=\d+&to=\d+&?/, `range=${range.key}&`).replace(/surface=/, "site=")}`;
+  const series = useMemo(() => data ? { ...data.series, revenue: data.revenue?.series } : null, [data]);
+  const perVisitor = (net: number, visitors: number) => visitors ? net / visitors : null;
+  const filtered = Object.values(filters).some((v) => v !== undefined);
   return (
     <>
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -285,48 +317,58 @@ export function OverviewPage() {
         </div>
         <Link to="/admin/live" className="hover-ghost inline-flex h-9 items-center gap-2 rounded-full px-3 text-13 text-ink-2"><span className="live-dot text-good" data-live={online > 0} aria-hidden /><span className="font-mono num">{n(online)}</span> online</Link>
       </header>
-      <Band data={data} range={range} />
+      <Band data={data} range={range} accounts={overview.data?.totals.accounts ?? null} paying={overview.data?.totals.paying ?? null} />
       <FilterChips filters={filters} onRemove={(dim) => setSel((s) => ({ ...s, filters: { ...s.filters, [dim]: undefined } }))} label={dimLabel} />
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading rows={8} />}
-      {data && c && p && (
+      {data && c && p && series && (
         <div className={cx(loading && "opacity-80")}>
           <section className="rounded-[28px] bg-card p-2" aria-label="key numbers and chart">
-            <div className="grid grid-cols-7 gap-px overflow-hidden rounded-[22px] bg-line max-xl:grid-cols-4 max-sm:grid-cols-2">
-              <Kpi label="visitors" icon={<Users {...I} />} value={n(c.visitors)} now={c.visitors} before={p.visitors} toggle={{ on: show.visitors, flip: () => setShow((s) => ({ ...s, visitors: !s.visitors })), colour: "var(--accent)" }} />
+            <div className="grid grid-cols-8 gap-px overflow-hidden rounded-[22px] bg-line max-xl:grid-cols-4 max-sm:grid-cols-2">
+              <Kpi label="visitors" icon={<Users {...I} />} value={n(c.visitors)} now={c.visitors} before={p.visitors} toggle={{ on: show.visitors, flip: () => setShow((s) => ({ ...s, visitors: !s.visitors })), colour: "var(--viz-visitors)" }} />
               <Kpi label="signups" icon={<UserPlus {...I} />} value={n(c.signups)} now={c.signups} before={p.signups} toggle={{ on: show.signups, flip: () => setShow((s) => ({ ...s, signups: !s.signups })), colour: "var(--coral)" }} />
-              <Kpi label="conversion" icon={<Target {...I} />} value={percent(c.conversion)} now={c.conversion} before={p.conversion} />
-              <Kpi label="paid" icon={<CreditCard {...I} />} value={n(c.paid)} now={c.paid} before={p.paid} toggle={{ on: show.paid, flip: () => setShow((s) => ({ ...s, paid: !s.paid })), colour: "var(--coral-deep)" }} />
+              <Kpi label="revenue" icon={<CreditCard {...I} />} value={r ? usd(r.current.net, true) : "-"} now={r?.current.net} before={r?.previous.net} money wash="bg-wash-lime" toggle={{ on: show.revenue, flip: () => setShow((s) => ({ ...s, revenue: !s.revenue })), colour: "var(--viz-new)" }} />
+              <Kpi label="mrr" icon={<Repeat {...I} />} value={r && !filtered ? usd(r.current.mrr, true) : "-"} now={r && !filtered ? r.current.mrr : undefined} before={r?.previous.mrr} />
+              <Kpi label="customers" icon={<Star {...I} />} value={r ? n(r.current.customers) : "-"} now={r?.current.customers} before={r?.previous.customers} />
+              <Kpi label="per visitor" icon={<Target {...I} />} value={r ? (() => { const v = perVisitor(r.current.net, c.visitors); return v === null ? "-" : usd(Math.round(v)); })() : "-"} now={r ? perVisitor(r.current.net, c.visitors) : undefined} before={r ? perVisitor(r.previous.net, p.visitors) : undefined} />
+              <Kpi label="conversion" icon={<Sparkles {...I} />} value={percent(c.conversion)} now={c.conversion} before={p.conversion} />
               <Kpi label="bounce rate" icon={<RotateCcw {...I} />} value={percent(c.bounce)} now={c.bounce} before={p.bounce} invert />
-              <Kpi label="session time" icon={<Clock {...I} />} value={duration(c.visitMs)} now={c.visitMs} before={p.visitMs} />
-              <Kpi label="online" value={n(online)} live={online > 0} />
             </div>
             <div className="px-3 pb-2 pt-6 max-sm:px-1">
-              {!data.tracked && <p className="mb-3 rounded-[14px] bg-lemon px-4 py-2.5 text-13 text-ink">no visits recorded for this view yet.</p>}
-              <DualChart data={data.series} notes={data.notes} show={show} onNote={setNote} marks={data.marks} />
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 px-1">
-                <div className="flex flex-wrap gap-4 text-12 text-ink-3" aria-hidden>
-                  <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4 rounded-full bg-accent" /> visitors</span>
-                  <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-coral" /> signups</span>
-                  <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-coral-deep" /> paid</span>
-                  <span className="inline-flex items-center gap-1.5"><span className="size-2 rotate-45 rounded-[2px] bg-warn" /> notes</span>
-                </div>
+              {!data.tracked && <p className="mb-3 rounded-[14px] bg-wash-lemon px-4 py-2.5 text-13 text-ink">no visits recorded for this view yet.</p>}
+              <TrafficChart data={series} notes={data.notes} show={show} onNote={setNote} marks={data.marks} />
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1">
+                <ul className="flex flex-wrap gap-x-4 gap-y-1 text-12 text-ink-3" aria-label="legend">
+                  <li className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4 rounded-full bg-viz-visitors" aria-hidden /> visitors</li>
+                  <li className="inline-flex items-center gap-1.5"><span className="size-3 rounded-full bg-coral-soft ring-1 ring-coral" aria-hidden /> who signed up or paid</li>
+                  {show.revenue && <>
+                    <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-new" aria-hidden /> new revenue</li>
+                    <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-renewal" aria-hidden /> renewals</li>
+                    <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-refund" aria-hidden /> refunds</li>
+                  </>}
+                  <li className="inline-flex items-center gap-1.5"><span className="size-2 rotate-45 rounded-[2px] bg-warn" aria-hidden /> notes</li>
+                </ul>
                 <Button size="sm" onClick={() => setNote({ at: Date.now() })}>add a note</Button>
               </div>
             </div>
           </section>
 
+          <div className="mt-4 grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-4 max-lg:grid-cols-1">
+            {r ? <PaymentsCard revenue={r} /> : <div />}
+            <PulseGrid overview={overview} />
+          </div>
+
           <div className="mt-4 grid grid-cols-2 gap-4 max-lg:grid-cols-1">
             <RankCard title="where they came from" tabs={[{ id: "channel", label: "channel", icon: <Link2 {...I} /> }, { id: "referrer", label: "referrer" }, { id: "campaign", label: "campaign", icon: <Tag {...I} /> }, { id: "keyword", label: "keyword", icon: <Search {...I} /> }, { id: "ref", label: "ref" }]}
-              data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} />
+              data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} money={r?.cards} />
             <RankCard title="where they are" tabs={[{ id: "map", label: "map", icon: <GlobeIcon {...I} /> }, { id: "country", label: "country", icon: <MapPin {...I} /> }, { id: "region", label: "region" }, { id: "city", label: "city" }]}
-              data={data.cards} label={dimLabel} onPick={pick} active={filters} details={(tab) => tab === "map" ? null : detail(tab)} panels={{ map: <MapPanel rows={data.cards.country ?? []} /> }} />
-            <RankCard title="pages" tabs={[{ id: "page", label: "page", icon: <File {...I} /> }, { id: "entry", label: "entry" }, { id: "exit", label: "exit" }, { id: "host", label: "hostname" }]} data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} />
-            <RankCard title="what they use" tabs={[{ id: "browser", label: "browser", icon: <Monitor {...I} /> }, { id: "os", label: "os" }, { id: "device", label: "device" }, { id: "surface", label: "surface" }]} data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} />
+              data={data.cards} label={dimLabel} onPick={pick} active={filters} details={(tab) => tab === "map" ? null : detail(tab)} panels={{ map: <MapPanel rows={data.cards.country ?? []} /> }} money={r?.cards} />
+            <RankCard title="pages" tabs={[{ id: "page", label: "page", icon: <File {...I} /> }, { id: "entry", label: "entry" }, { id: "exit", label: "exit" }, { id: "host", label: "hostname" }]} data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} money={r?.cards} />
+            <RankCard title="what they use" tabs={[{ id: "browser", label: "browser", icon: <Monitor {...I} /> }, { id: "os", label: "os" }, { id: "device", label: "device" }, { id: "surface", label: "surface" }]} data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} money={r?.cards} />
           </div>
           <div className="mt-4"><PeopleCard range={range} data={data} filters={filters} /></div>
           <div className="mt-4"><AiCard crawlers={data.crawlers} /></div>
-          <p className="mt-4 text-center text-12 text-ink-4">tap a row to filter every number. blue is visitors, coral is the signups they became.</p>
+          <p className="mt-4 text-center text-12 text-ink-4">tap a row to filter every number. revenue goes to the last place a payer came from before paying, or their first visit.</p>
         </div>
       )}
       <NoteDialog key={note ? ("id" in note ? note.id : "new") : "closed"} note={note} onClose={() => setNote(null)}

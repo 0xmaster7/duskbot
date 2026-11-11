@@ -411,3 +411,31 @@
 @media (prefers-reduced-motion: reduce) {
   .say, .say[data-on] { transform: none; transition: opacity var(--dur-fast) linear; }
 }
+
+/* admin charts: soft brand pastels for washes, mid-tone steps of the same hues for marks (checked against each surface) */
+:root,
+[data-theme="light"] {
+  --viz-visitors: #2f7bf2; --viz-visitors-wash: #eaf6fd;
+  --viz-new: #7cc41e; --viz-renewal: #8b84ee; --viz-refund: #f2789f;
+  --wash-sky: #eaf6fd; --wash-lime: #f1fbd3; --wash-lemon: #fff8c9; --wash-pink: #ffe8f1; --wash-lilac: #eeedfd;
+  --money-ink: #3d6b06;
+}
+[data-theme="dark"] {
+  --viz-visitors: #4b8ff0; --viz-visitors-wash: #17293a;
+  --viz-new: #66a318; --viz-renewal: #857ee6; --viz-refund: #d9628a;
+  --wash-sky: #17293a; --wash-lime: #222a12; --wash-lemon: #2e2a12; --wash-pink: #341d27; --wash-lilac: #24223d;
+  --money-ink: #a6dc5c;
+}
+@theme inline {
+  --color-viz-visitors: var(--viz-visitors); --color-viz-new: var(--viz-new); --color-viz-renewal: var(--viz-renewal); --color-viz-refund: var(--viz-refund);
+  --color-wash-sky: var(--wash-sky); --color-wash-lime: var(--wash-lime); --color-wash-lemon: var(--wash-lemon); --color-wash-pink: var(--wash-pink); --color-wash-lilac: var(--wash-lilac);
+  --color-money: var(--money-ink);
+}
+@keyframes confetti { 0% { transform: translate3d(0, 0, 0) rotate(0); opacity: 1; } 100% { transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--r)); opacity: 0; } }
+.confetti { position: absolute; width: 6px; height: 6px; animation: confetti 1100ms var(--ease-out) both; animation-delay: var(--d, 0ms); }
+@keyframes cheer-in { from { opacity: 0; transform: translateY(6px) scale(0.96); } to { opacity: 1; transform: none; } }
+.cheer-in { animation: cheer-in var(--dur-base) var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .confetti { display: none; }
+  .cheer-in { animation: fade var(--dur-fast) linear both; }
+}

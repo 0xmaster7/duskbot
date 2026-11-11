@@ -86,9 +86,16 @@ export function Chip({ children }: { children: ReactNode }) {
 export const where = (country: string | null | undefined, city?: string | null) => country ? `${city ? `${city}, ` : ""}${countryName(country)}` : "unknown place";
 
 export interface Note { id: string; at: number; text: string; by: string; createdAt: number }
-export interface SeriesData { size: number; starts: number[]; visitors: number[]; signups: number[]; paid: number[]; waitlist: number[] }
+export interface SeriesData { size: number; starts: number[]; visitors: number[]; signups: number[]; paid: number[]; waitlist: number[]; /** cents per bucket */ revenue?: { new: number[]; renewal: number[]; refund: number[] } }
 
-const H = 300, PAD = { top: 16, right: 44, bottom: 28, left: 40 };
+/** dollars from cents: whole dollars when even, one decimal in thousands past $10k */
+export function usd(cents: number, compact = false) {
+  const sign = cents < 0 ? "-" : "", v = Math.abs(cents) / 100;
+  if (compact && v >= 10_000) return `${sign}$${(v / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })}k`;
+  return `${sign}$${v.toLocaleString("en-US", { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
+}
+
+const TOP = 230, GAP = 30, LOW = 104, PAD = { top: 14, right: 14, bottom: 28, left: 52 };
 function niceMax(value: number) { if (value <= 4) return 4; const p = 10 ** Math.floor(Math.log10(value)); const m = value / p; return ([1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((step) => m <= step) ?? 10) * p; }
 /** a smooth line through the points (Catmull-Rom as cubic Béziers), clamped so it never dips below the axis */
 function smooth(points: Array<[number, number]>, floor: number) {
@@ -101,13 +108,23 @@ function smooth(points: Array<[number, number]>, floor: number) {
   }
   return d;
 }
+/** a bar with its data end rounded and its baseline end square */
+function bar(x: number, y0: number, y1: number, w: number) {
+  const top = Math.min(y0, y1), h = Math.abs(y1 - y0), r = Math.min(3, h, w / 2), up = y1 < y0;
+  if (h < 0.5) return "";
+  return up ? `M${x},${y0}V${top + r}Q${x},${top} ${x + r},${top}H${x + w - r}Q${x + w},${top} ${x + w},${top + r}V${y0}Z`
+    : `M${x},${y0}V${y1 - r}Q${x},${y1} ${x + r},${y1}H${x + w - r}Q${x + w},${y1} ${x + w},${y1 - r}V${y0}Z`;
+}
 
-/** visitors as a line on the left axis, signups and payments as bars on the right, notes pinned along the bottom */
 export interface Mark { at: number; kind: "signup" | "paid"; seed: string; email: string | null; customer?: boolean }
-export function DualChart({ data, notes, show, onNote, marks = [] }: { data: SeriesData; notes: Note[]; show: { visitors: boolean; signups: boolean; paid: boolean }; onNote(note: Note | { at: number }): void; /** people who signed up or paid, shown as avatars over their bar */ marks?: Mark[] }) {
+export interface ChartShow { visitors: boolean; signups: boolean; revenue: boolean }
+/** two panels on one time axis, each with its own single scale: visitors as a line on top, money as bars below
+ * (new and renewals stacked up, refunds down); signups and payments ride the line as the people who made them */
+export function TrafficChart({ data, notes, show, onNote, marks = [] }: { data: SeriesData; notes: Note[]; show: ChartShow; onNote(note: Note | { at: number }): void; marks?: Mark[] }) {
   const [width, setWidth] = useState(900);
   const [hover, setHover] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
+  const gradient = useId().replace(/:/g, "");
   useEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -118,62 +135,95 @@ export function DualChart({ data, notes, show, onNote, marks = [] }: { data: Ser
     return () => observer.disconnect();
   }, []);
   const count = data.starts.length;
+  const money = data.revenue ?? { new: data.starts.map(() => 0), renewal: data.starts.map(() => 0), refund: data.starts.map(() => 0) };
+  const withMoney = show.revenue;
+  const H = PAD.top + TOP + (withMoney ? GAP + LOW : 0) + PAD.bottom;
   const inner = width - PAD.left - PAD.right, step = inner / Math.max(1, count);
-  const vMax = niceMax(Math.max(1, ...data.visitors)), bMax = niceMax(Math.max(1, ...data.signups.map((s, i) => s + data.paid[i]!)));
+  const base = PAD.top + TOP;
+  const vMax = niceMax(Math.max(1, ...data.visitors));
   const x = (i: number) => PAD.left + step * (i + 0.5);
-  const yV = (v: number) => PAD.top + (H - PAD.top - PAD.bottom) * (1 - v / vMax);
-  const yB = (v: number) => (H - PAD.top - PAD.bottom) * (v / bMax);
-  const line = smooth(data.visitors.map((v, i) => [x(i), yV(v)]), H - PAD.bottom);
-  const area = `${line}L${x(count - 1).toFixed(1)},${H - PAD.bottom}L${x(0).toFixed(1)},${H - PAD.bottom}Z`;
+  const yV = (v: number) => PAD.top + TOP * (1 - v / vMax);
+  const up = money.new.map((v, i) => v + money.renewal[i]!), down = money.refund.map((v) => -v);
+  const rUp = niceMax(Math.max(1, ...up) / 100) * 100, rDown = Math.max(...down) > 0 ? niceMax(Math.max(...down) / 100) * 100 : 0;
+  const lowTop = base + GAP, zero = lowTop + LOW * (rUp / (rUp + rDown));
+  const yR = (cents: number) => zero - (cents / (rUp + rDown)) * LOW;
+  const line = smooth(data.visitors.map((v, i) => [x(i), yV(v)]), base);
+  const area = `${line}L${x(count - 1).toFixed(1)},${base}L${x(0).toFixed(1)},${base}Z`;
   const hourly = data.size < DAY;
   const label = (t: number) => hourly ? new Date(t).toLocaleTimeString("en-US", { hour: "numeric" }).toLowerCase().replace(" ", "") : new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toLowerCase();
+  const long = (t: number) => hourly ? label(t) : new Date(t).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }).toLowerCase();
   const ticks = useMemo(() => { const every = Math.max(1, Math.ceil(count / Math.max(2, Math.floor(inner / 90)))); return data.starts.map((_, i) => i % every === 0 ? i : -1).filter(i => i >= 0); }, [count, inner, data.starts]);
   const noteIndex = (at: number) => Math.min(count - 1, Math.max(0, Math.floor((at - data.starts[0]!) / data.size)));
   const visibleNotes = notes.filter(note => count && note.at >= data.starts[0]! && note.at < data.starts[count - 1]! + data.size);
+  const totals = { visitors: data.visitors.reduce((a, b) => a + b, 0), signups: data.signups.reduce((a, b) => a + b, 0), revenue: up.reduce((a, b) => a + b, 0) + money.refund.reduce((a, b) => a + b, 0) };
+  const bw = Math.max(2, Math.min(18, step * 0.56));
   const at = hover;
+  const net = (i: number) => up[i]! + money.refund[i]!;
   return (
     <div className="relative" ref={box}>
-      <svg width="100%" height={H + 18} viewBox={`0 0 ${width} ${H + 18}`} role="img" aria-label={`chart: ${n(data.visitors.reduce((a, b) => a + b, 0))} visitors, ${n(data.signups.reduce((a, b) => a + b, 0))} signups`}
+      <svg width="100%" height={H} viewBox={`0 0 ${width} ${H}`} role="img" aria-label={`chart: ${n(totals.visitors)} visitors, ${n(totals.signups)} signups${withMoney ? `, ${usd(totals.revenue)} revenue` : ""}`}
         onMouseMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); const i = Math.floor((e.clientX - r.left - PAD.left) / step); setHover(i >= 0 && i < count ? i : null); }} onMouseLeave={() => setHover(null)}>
+        <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--viz-visitors)" stopOpacity={0.2} /><stop offset="100%" stopColor="var(--viz-visitors-wash)" stopOpacity={0.5} /></linearGradient></defs>
         {[0, 0.5, 1].map((f) => <g key={f}>
           <line x1={PAD.left} x2={width - PAD.right} y1={yV(vMax * f)} y2={yV(vMax * f)} stroke="var(--line)" strokeDasharray={f ? "3 4" : undefined} />
           <text x={PAD.left - 8} y={yV(vMax * f) + 4} textAnchor="end" className="fill-ink-4 font-mono text-[11px]">{n(Math.round(vMax * f))}</text>
-          {(show.signups || show.paid) && <text x={width - PAD.right + 8} y={yV(vMax * f) + 4} className="fill-ink-4 font-mono text-[11px]">{n(Math.round(bMax * f))}</text>}
         </g>)}
-        {data.starts.map((_, i) => {
-          const s = show.signups ? data.signups[i]! : 0, p = show.paid ? data.paid[i]! : 0, bw = Math.max(2, Math.min(22, step * 0.5));
-          return <g key={i}>
-            {s > 0 && <rect x={x(i) - bw / 2} y={H - PAD.bottom - yB(s)} width={bw} height={yB(s)} rx={2} fill="var(--coral)" opacity={hover === null || hover === i ? 1 : 0.45} />}
-            {p > 0 && <rect x={x(i) - bw / 2} y={H - PAD.bottom - yB(s) - yB(p)} width={bw} height={yB(p)} rx={2} fill="var(--coral-deep)" opacity={hover === null || hover === i ? 1 : 0.45} />}
-          </g>;
-        })}
-        {show.visitors && <><defs><linearGradient id="visitors-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity={0.16} /><stop offset="100%" stopColor="var(--accent)" stopOpacity={0.01} /></linearGradient></defs><path d={area} fill="url(#visitors-fill)" /><path d={line} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" className="draw-in" /></>}
-        {at !== null && <line x1={x(at)} x2={x(at)} y1={PAD.top} y2={H - PAD.bottom} stroke="var(--line-2)" />}
-        {at !== null && show.visitors && <circle cx={x(at)} cy={yV(data.visitors[at]!)} r={4} fill="var(--bg)" stroke="var(--accent)" strokeWidth={2} />}
+        {withMoney && <g>
+          <rect x={PAD.left} y={lowTop - 8} width={inner} height={LOW + 16} rx={10} fill="var(--wash-lime)" opacity={0.55} />
+          <line x1={PAD.left} x2={width - PAD.right} y1={zero} y2={zero} stroke="var(--line-2)" />
+          <text x={PAD.left - 8} y={yR(rUp) + 4} textAnchor="end" className="fill-ink-4 font-mono text-[11px]">{usd(rUp, true)}</text>
+          <text x={PAD.left - 8} y={zero + 4} textAnchor="end" className="fill-ink-4 font-mono text-[11px]">$0</text>
+          {rDown > 0 && <text x={PAD.left - 8} y={yR(-rDown) + 4} textAnchor="end" className="fill-ink-4 font-mono text-[11px]">{usd(-rDown, true)}</text>}
+          {data.starts.map((_, i) => {
+            const fade = hover === null || hover === i ? 1 : 0.4, left = x(i) - bw / 2, mid = yR(money.new[i]!);
+            return <g key={i} opacity={fade}>
+              {money.new[i]! > 0 && <path d={bar(left, zero, mid, bw)} fill="var(--viz-new)" />}
+              {money.renewal[i]! > 0 && <path d={bar(left, money.new[i]! > 0 ? mid - 2 : zero, yR(up[i]!) - (money.new[i]! > 0 ? 2 : 0), bw)} fill="var(--viz-renewal)" />}
+              {money.refund[i]! < 0 && <path d={bar(left, zero + 1, yR(money.refund[i]!), bw)} fill="var(--viz-refund)" />}
+            </g>;
+          })}
+        </g>}
+        {show.visitors && <><path d={area} fill={`url(#${gradient})`} /><path d={line} fill="none" stroke="var(--viz-visitors)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" className="draw-in" /></>}
+        {at !== null && <line x1={x(at)} x2={x(at)} y1={PAD.top} y2={withMoney ? lowTop + LOW : base} stroke="var(--line-2)" />}
+        {at !== null && show.visitors && <circle cx={x(at)} cy={yV(data.visitors[at]!)} r={4.5} fill="var(--bg)" stroke="var(--viz-visitors)" strokeWidth={2} />}
         {ticks.map((i) => <text key={i} x={x(i)} y={H - 8} textAnchor="middle" className="fill-ink-4 font-mono text-[11px]">{label(data.starts[i]!)}</text>)}
       </svg>
-      {(show.signups || show.paid) && <MarkAvatars marks={marks.filter((mark) => mark.kind === "paid" ? show.paid : show.signups)} index={noteIndex} x={x} top={(i) => Math.max(PAD.top + 52, H - PAD.bottom - yB((show.signups ? data.signups[i]! : 0) + (show.paid ? data.paid[i]! : 0)))} count={count} />}
-      <div className="absolute inset-x-0" style={{ top: H - PAD.bottom + 4 }} aria-label="chart notes">
+      {show.signups && <MarkAvatars marks={marks} index={noteIndex} x={x} top={(i) => Math.max(PAD.top + 40, yV(show.visitors ? data.visitors[i]! : 0) - 8)} count={count} />}
+      <div className="absolute inset-x-0" style={{ top: base - 5 }} aria-label="chart notes">
         {visibleNotes.map((note) => (
           <button key={note.id} type="button" onClick={() => onNote(note)} title={note.text} aria-label={`note: ${note.text}. edit`}
-            className="group absolute -translate-x-1/2" style={{ left: x(noteIndex(note.at)) }}>
+            className="group absolute grid size-6 -translate-x-1/2 place-items-center" style={{ left: x(noteIndex(note.at)) }}>
             <span className="block size-[9px] rotate-45 rounded-[2px] bg-warn ring-2 ring-bg" aria-hidden />
-            <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-2.5 py-1 text-12 text-primary-ink group-hover:block group-focus-visible:block">{note.text}</span>
+            <span className="pointer-events-none absolute bottom-full left-1/2 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-pop px-2.5 py-1 text-12 text-ink group-hover:block group-focus-visible:block" style={{ boxShadow: "var(--pop-shadow)" }}>{note.text}</span>
           </button>
         ))}
       </div>
       {at !== null && (
-        <div className="pointer-events-none absolute z-10 min-w-[150px] rounded-[14px] bg-primary px-3.5 py-2.5 text-13 text-primary-ink" style={{ left: Math.min(x(at) + 12, width - 170), top: 8, boxShadow: "var(--pop-shadow)" }}>
-          <div className="font-mono text-12 opacity-70">{hourly ? `${label(data.starts[at]!)}` : new Date(data.starts[at]!).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }).toLowerCase()}</div>
-          {show.visitors && <div className="mt-1 flex justify-between gap-4"><span>visitors</span><span className="font-mono">{n(data.visitors[at]!)}</span></div>}
-          {show.signups && <div className="flex justify-between gap-4"><span>signups</span><span className="font-mono">{n(data.signups[at]!)}</span></div>}
-          {show.paid && <div className="flex justify-between gap-4"><span>paid</span><span className="font-mono">{n(data.paid[at]!)}</span></div>}
-          {data.waitlist[at]! > 0 && <div className="flex justify-between gap-4"><span>waitlist</span><span className="font-mono">{n(data.waitlist[at]!)}</span></div>}
-          {visibleNotes.filter((note) => noteIndex(note.at) === at).map((note) => <div key={note.id} className="mt-1.5 border-t border-white/15 pt-1.5 text-12">{note.text}</div>)}
+        <div className="pointer-events-none absolute z-10 min-w-[176px] rounded-[16px] bg-pop px-3.5 py-2.5 text-13 text-ink" style={{ left: Math.min(x(at) + 14, width - 196), top: 8, boxShadow: "var(--pop-shadow)" }}>
+          <div className="font-mono text-12 text-ink-3">{long(data.starts[at]!)}</div>
+          {show.visitors && <Row dot="var(--viz-visitors)" label="visitors" value={n(data.visitors[at]!)} />}
+          {show.signups && <Row dot="var(--coral)" label="signups" value={n(data.signups[at]!)} />}
+          {data.paid[at]! > 0 && <Row label="first payments" value={n(data.paid[at]!)} />}
+          {data.waitlist[at]! > 0 && <Row label="waitlist" value={n(data.waitlist[at]!)} />}
+          {withMoney && <>
+            <div className="mt-1.5 border-t border-line pt-1.5"><Row label="revenue" value={usd(net(at))} strong /></div>
+            {money.new[at]! > 0 && <Row dot="var(--viz-new)" label="new" value={usd(money.new[at]!)} />}
+            {money.renewal[at]! > 0 && <Row dot="var(--viz-renewal)" label="renewals" value={usd(money.renewal[at]!)} />}
+            {money.refund[at]! < 0 && <Row dot="var(--viz-refund)" label="refunds" value={usd(money.refund[at]!)} />}
+          </>}
+          {visibleNotes.filter((note) => noteIndex(note.at) === at).map((note) => <div key={note.id} className="mt-1.5 border-t border-line pt-1.5 text-12 text-ink-2">{note.text}</div>)}
         </div>
       )}
+      <table className="sr-only">
+        <caption>visitors{withMoney ? " and revenue" : ""} per {hourly ? "hour" : "day"}</caption>
+        <thead><tr><th scope="col">{hourly ? "hour" : "day"}</th><th scope="col">visitors</th><th scope="col">signups</th>{withMoney && <th scope="col">revenue</th>}</tr></thead>
+        <tbody>{data.starts.map((t, i) => <tr key={t}><th scope="row">{long(t)}</th><td>{data.visitors[i]}</td><td>{data.signups[i]}</td>{withMoney && <td>{usd(net(i))}</td>}</tr>)}</tbody>
+      </table>
     </div>
   );
+}
+function Row({ label, value, dot, strong }: { label: string; value: string; dot?: string; strong?: boolean }) {
+  return <div className="mt-0.5 flex items-center justify-between gap-4"><span className="inline-flex items-center gap-1.5 text-ink-2">{dot && <span className="size-2 rounded-[2px]" style={{ background: dot }} aria-hidden />}{label}</span><span className={cx("font-mono num", strong && "font-medium")}>{value}</span></div>;
 }
 
 function MarkAvatars({ marks, index, x, top, count }: { marks: Mark[]; index(at: number): number; x(i: number): number; top(i: number): number; count: number }) {
@@ -219,39 +269,55 @@ export function NoteDialog({ note, onClose, onSave, onDelete }: { note: Note | {
 
 export interface RankRow { key: string; visitors: number; signups: number; paid: number }
 /** a tabbed ranked card: visitors as a light bar, the signups they became as a darker bar on top; a row filters the page */
-export function RankCard({ title, tabs, data, label, onPick, active, metric, details, panels, rows: limit = 8 }: { title: string; tabs: Array<{ id: string; label: string; icon?: ReactNode }>; data: Record<string, RankRow[]>; label?(tab: string, key: string): ReactNode; onPick?(tab: string, key: string): void; active?: Record<string, string | undefined>; /** a single count instead of visitors and signups */ metric?: string;
-  /** the full-page view of a tab, when it has one */ details?(tab: string): string | null; /** a tab drawn its own way, like a map */ panels?: Record<string, ReactNode>; rows?: number }) {
+export function RankCard({ title, tabs, data, label, onPick, active, metric, details, panels, rows: limit = 8, money }: { title: string; tabs: Array<{ id: string; label: string; icon?: ReactNode }>; data: Record<string, RankRow[]>; label?(tab: string, key: string): ReactNode; onPick?(tab: string, key: string): void; active?: Record<string, string | undefined>; /** a single count instead of visitors and signups */ metric?: string;
+  /** the full-page view of a tab, when it has one */ details?(tab: string): string | null; /** a tab drawn its own way, like a map */ panels?: Record<string, ReactNode>; rows?: number;
+  /** revenue in cents per tab and row key, credited to where each payer came from */ money?: Record<string, Record<string, number>> }) {
   const [tab, setTab] = useState(tabs[0]!.id);
   const [all, setAll] = useState(false);
-  const rows = data[tab] ?? [];
+  const [byMoney, setByMoney] = useState(false);
+  const cents = money?.[tab] ?? {};
+  const earned = Object.values(cents).some((v) => v !== 0);
+  const listed = data[tab] ?? [];
+  const extra = Object.keys(cents).filter((key) => !listed.some((row) => row.key === key)).map((key) => ({ key, visitors: 0, signups: 0, paid: 0 }));
+  const rows = byMoney && earned ? [...listed, ...extra].sort((a, b) => (cents[b.key] ?? 0) - (cents[a.key] ?? 0) || b.visitors - a.visitors) : [...listed, ...extra];
   const max = Math.max(1, ...rows.map((row) => row.visitors));
+  const moneyMax = Math.max(1, ...Object.values(cents));
   const shown = all ? rows : rows.slice(0, limit);
   const more = details?.(tab);
   return (
     <section className="flex min-w-0 flex-col rounded-[24px] bg-card p-2" aria-label={title}>
-      <div className="flex items-center justify-between gap-2 px-2 pb-1.5 pt-1">
-        <div role="tablist" aria-label={title} className="scroll-x flex gap-0.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-2 pb-1.5 pt-1">
+        <div role="tablist" aria-label={title} className="scroll-x flex max-w-full gap-0.5">
           {tabs.map((t) => (
             <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => { setTab(t.id); setAll(false); }}
               className={cx("inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-13", tab === t.id ? "bg-pop font-medium text-ink" : "text-ink-3 hover-link")}>{t.icon && <span aria-hidden className="opacity-70">{t.icon}</span>}{t.label}</button>
           ))}
         </div>
-        <span className="t-meta hidden shrink-0 sm:inline">{metric ?? "visitors · signups"}</span>
+        {money ? (
+          <div role="radiogroup" aria-label="sort rows by" className="inline-flex shrink-0 rounded-full bg-card-2 p-0.5">
+            {([[false, "visitors"], [true, "revenue"]] as const).map(([value, text]) => (
+              <button key={text} type="button" role="radio" aria-checked={byMoney === value} onClick={() => setByMoney(value)}
+                className={cx("h-7 rounded-full px-2.5 text-12", byMoney === value ? "bg-pop font-medium text-ink" : "text-ink-3 hover-link")}>{text}</button>
+            ))}
+          </div>
+        ) : <span className="t-meta hidden shrink-0 sm:inline">{metric ?? "visitors · signups"}</span>}
       </div>
       {panels?.[tab] ? <div role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label} className="flex-1 rounded-[18px] bg-pop p-1.5">{panels[tab]}</div> : <ul className="flex flex-1 flex-col gap-px rounded-[18px] bg-pop p-1.5" role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
         {shown.map((row) => {
           const on = active?.[tab] === row.key;
           const conversion = row.visitors ? Math.round((row.signups / row.visitors) * 1000) / 10 : 0;
-          const bar = (row.visitors / max) * 100, coral = row.signups ? Math.max(bar * 0.06, Math.min(bar, bar * (row.signups / Math.max(1, row.visitors)) * 6)) : 0;
+          const got = cents[row.key] ?? 0;
+          const bar = byMoney && earned ? (Math.max(0, got) / moneyMax) * 100 : (row.visitors / max) * 100, coral = !byMoney && row.signups ? Math.max(bar * 0.06, Math.min(bar, bar * (row.signups / Math.max(1, row.visitors)) * 6)) : 0;
           return (
             <li key={row.key}>
-              <button type="button" disabled={!onPick} onClick={() => onPick?.(tab, row.key)} aria-pressed={onPick ? on : undefined} title={`${n(row.visitors)} visitors, ${n(row.signups)} signups, ${conversion}% signed up${row.paid ? `, ${n(row.paid)} paid` : ""}`}
+              <button type="button" disabled={!onPick} onClick={() => onPick?.(tab, row.key)} aria-pressed={onPick ? on : undefined} title={`${n(row.visitors)} visitors, ${n(row.signups)} signups, ${conversion}% signed up${row.paid ? `, ${n(row.paid)} paid` : ""}${got ? `, ${usd(got)} revenue` : ""}`}
                 className={cx("relative flex h-9 w-full items-center gap-3 overflow-hidden rounded-[10px] px-2.5 text-start text-13 disabled:cursor-default", on ? "ring-2 ring-accent" : onPick && "hover-ghost")}>
-                <span className="absolute inset-y-0 left-0 rounded-[10px] bg-accent/12" style={{ width: `${bar}%` }} aria-hidden />
-                {row.signups > 0 && <span className="absolute inset-y-0 rounded-e-[10px] bg-coral-soft" style={{ left: `${bar - coral}%`, width: `${coral}%` }} aria-hidden />}
+                <span className={cx("absolute inset-y-0 left-0 rounded-[10px]", byMoney && earned ? "bg-wash-lime" : "bg-wash-sky")} style={{ width: `${bar}%` }} aria-hidden />
+                {row.signups > 0 && <span className="absolute inset-y-0 rounded-e-[10px] bg-wash-pink" style={{ left: `${bar - coral}%`, width: `${coral}%` }} aria-hidden />}
                 <span className="relative min-w-0 flex-1 truncate text-ink">{label ? label(tab, row.key) : row.key}</span>
                 <span className="relative w-12 text-end font-mono text-ink num">{n(row.visitors)}</span>
                 {!metric && <span className={cx("relative w-10 text-end font-mono num", row.signups ? "text-coral-deep" : "text-ink-4")}>{n(row.signups)}</span>}
+                {money && <span className={cx("relative w-16 text-end font-mono num", got > 0 ? "font-medium text-money" : got < 0 ? "text-bad" : "text-ink-4")}>{got ? usd(got, true) : "-"}</span>}
               </button>
             </li>
           );
