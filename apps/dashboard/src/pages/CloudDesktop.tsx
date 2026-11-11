@@ -26,9 +26,9 @@ function Empty() {
   const { catalog } = useCloud();
   return (
     <div className="flex flex-col gap-4">
-      <CloudPitch title="Keep your bots on 24/7" body="A cloud desktop of your own runs your bots all day and all night, even while your Mac sleeps." link={{ to: "/workspaces#add", label: "Use my own server instead" }} />
+      <CloudPitch title="keep your bots on 24/7" body="a cloud desktop of your own runs your bots all day and all night, even while your mac sleeps." link={{ to: "/workspaces#add", label: "use my own server instead" }} />
       <Card className="enter" style={{ ["--i" as string]: 1 }} aria-labelledby="sizes-title">
-        <SectionTitle id="sizes-title" action={<Link to="/billing" className="hover-link inline-flex h-8 items-center text-13 text-ink-3">Plans & billing</Link>}>Sizes</SectionTitle>
+        <SectionTitle id="sizes-title" action={<Link to="/billing" className="hover-link inline-flex h-8 items-center text-13 text-ink-3">plans and billing</Link>}>sizes</SectionTitle>
         {catalog ? (
           <ul className="divide-y divide-line">
             {catalog.desktops.map((d) => (
@@ -41,7 +41,7 @@ function Empty() {
             ))}
           </ul>
         ) : <Skeleton className="h-32" />}
-        {catalog && <p className="mt-4 text-13 text-ink-3">Regions: {catalog.regions.map((r) => r.city).join(", ")}. Every size has its own sandbox, network and disk.</p>}
+        {catalog && <p className="mt-4 text-13 text-ink-3">regions: {catalog.regions.map((r) => r.city).join(", ")}. every size has its own sandbox, network and disk.</p>}
       </Card>
     </div>
   );
@@ -55,8 +55,8 @@ function SettingUp({ cloud }: { cloud: CloudDesktop }) {
     <Card className="!p-8 max-sm:!p-5" aria-labelledby="setup-title">
       <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_200px] md:items-center">
         <div className="min-w-0">
-          <h2 id="setup-title" className="text-20 font-semibold tracking-[-0.015em] text-ink">Setting up {cloud.name}</h2>
-          <p className="mt-1 text-14 text-ink-3">About a minute. Your bots move in by themselves.</p>
+          <h2 id="setup-title" className="text-24 font-medium tracking-[-0.035em] text-ink">setting up {cloud.name}</h2>
+          <p className="mt-1 text-14 text-ink-3">about a minute. your bots move in by themselves.</p>
           <div className="mt-6"><Provisioning cloud={cloud} /></div>
           <ol className="mt-6 flex flex-col gap-2.5">
             {STEPS.map((s, i) => (
@@ -95,41 +95,41 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
   const go = async () => {
     if (!sub) return;
     setBusy(true); setError(null);
-    try { if (await apply({ ...sub.selection, desktop: to, size: null })) { toast(`Resizing ${cloud.name}. It restarts once, in under a minute.`); setOpen(false); } }
+    try { if (await apply({ ...sub.selection, desktop: to, size: null })) { toast(`resizing ${cloud.name}. it restarts once, in under a minute.`); setOpen(false); } }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const includes = [
     specLine(cloud),
     botsLine(cloud.botComputers.limit),
-    cloud.placement === "shared" ? "Its own sandbox on a shared host" : "A whole machine of its own",
-    current?.priority ? "On 24/7, priority wake" : "On 24/7",
+    cloud.placement === "shared" ? "its own sandbox on a shared host" : "a whole machine of its own",
+    current?.priority ? "on 24/7, priority wake" : "on 24/7",
   ];
   return (
     <Card aria-labelledby="size-title" className="flex flex-col">
-      <SectionTitle id="size-title" action={<Button size="sm" onClick={() => { setTo(cloud.tier); setOpen(true); }} disabled={!sub}>Resize</Button>}>Size</SectionTitle>
-      <p className="flex items-baseline gap-2"><span className="text-24 font-semibold tracking-[-0.02em] text-ink">{current?.name ?? tierName(catalog, cloud)}</span>{current && <span className="num text-14 text-ink-3">{dollars(desktopMonthly(current, null, catalog.custom))}/mo</span>}</p>
+      <SectionTitle id="size-title" action={<Button size="sm" onClick={() => { setTo(cloud.tier); setOpen(true); }} disabled={!sub}>resize</Button>}>size</SectionTitle>
+      <p className="flex items-baseline gap-2"><span className="text-24 font-medium tracking-[-0.035em] text-ink">{current?.name ?? tierName(catalog, cloud)}</span>{current && <span className="num text-14 text-ink-3">{dollars(desktopMonthly(current, null, catalog.custom))}/mo</span>}</p>
       <ul className="mt-4 flex flex-col gap-2">
         {includes.map((line) => <li key={line} className="flex gap-2.5 text-14 text-ink-2"><Check size={15} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-4" aria-hidden />{line}</li>)}
       </ul>
       {next && (
         <div className="mt-auto pt-6">
-          <div className="rounded-[12px] border border-line px-4 py-3.5">
-            <p className="text-13 leading-[1.5] text-ink-3"><span className="text-ink-2">Need more room?</span> {next.name} gives you {botsLine(next.botComputers).toLowerCase()}{next.priority && !current?.priority ? " and priority wake" : ""}.</p>
-            <button type="button" onClick={() => { setTo(next.id); setOpen(true); }} disabled={!sub} className="hover-link mt-2 inline-flex h-8 items-center text-13 font-medium text-ink-2 disabled:opacity-45">Upgrade to {next.name}</button>
+          <div className="rounded-[16px] bg-btn px-4 py-3.5">
+            <p className="text-13 leading-[1.5] text-ink-3"><span className="text-ink-2">need more room?</span> {next.name} gives you {botsLine(next.botComputers).toLowerCase()}{next.priority && !current?.priority ? " and priority wake" : ""}.</p>
+            <button type="button" onClick={() => { setTo(next.id); setOpen(true); }} disabled={!sub} className="hover-link mt-2 inline-flex h-8 items-center text-13 font-medium text-ink-2 disabled:opacity-45">upgrade to {next.name}</button>
           </div>
         </div>
       )}
-      <Modal open={open} onClose={() => setOpen(false)} title={`Resize ${cloud.name}`} wide footer={<><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" onClick={() => void go()} disabled={busy || to === cloud.tier}>{busy ? "Resizing" : charge !== null ? `Pay ${money(charge)} and resize` : "Resize"}</Button></>}>
-        <p>It restarts once, usually in under a minute. Bots, files and logins come along. A bigger size charges the difference now; you see the amount before you confirm.</p>
+      <Modal open={open} onClose={() => setOpen(false)} title={`resize ${cloud.name}`} wide footer={<><Button onClick={() => setOpen(false)}>cancel</Button><Button variant="primary" onClick={() => void go()} disabled={busy || to === cloud.tier}>{busy ? "resizing" : charge !== null ? `pay ${money(charge)} and resize` : "resize"}</Button></>}>
+        <p>it restarts once, usually in under a minute. bots, files and logins come along. a bigger size charges the difference now; you see the amount before you confirm.</p>
         <fieldset className="mt-4 min-w-0">
-          <legend className="sr-only">Size</legend>
+          <legend className="sr-only">size</legend>
           <div className="flex flex-col gap-1">
             {catalog.desktops.map((d) => (
-              <Choice key={d.id} name="resize" value={d.id} checked={to === d.id} onChange={() => setTo(d.id)} title={<>{d.name}{d.id === cloud.tier && <span className="ms-2 text-13 text-ink-3">Current</span>}</>} detail={`${specLine(d)} · ${botsLine(d.botComputers)}`} aside={<>{dollars(desktopMonthly(d, null, catalog.custom))}<span className="text-ink-3">/mo</span></>} />
+              <Choice key={d.id} name="resize" value={d.id} checked={to === d.id} onChange={() => setTo(d.id)} title={<>{d.name}{d.id === cloud.tier && <span className="ms-2 text-13 text-ink-3">current</span>}</>} detail={`${specLine(d)} · ${botsLine(d.botComputers)}`} aside={<>{dollars(desktopMonthly(d, null, catalog.custom))}<span className="text-ink-3">/mo</span></>} />
             ))}
           </div>
         </fieldset>
-        {charge !== null && <p role="status" className="num mt-3 text-13 text-ink-2">You pay {money(charge)} now, then the new size's price from {longDate(billing?.subscription?.currentPeriodEnd ?? 0)}.</p>}
+        {charge !== null && <p role="status" className="num mt-3 text-13 text-ink-2">you pay {money(charge)} now, then the new size's price from {longDate(billing?.subscription?.currentPeriodEnd ?? 0)}.</p>}
         {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
       </Modal>
     </Card>
@@ -172,9 +172,9 @@ function SlackWakeSetting({ cloud }: { cloud: CloudDesktop }) {
   const waiting = (wake.state === "holding" || wake.state === "waking") && wake.buffered > 0;
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 py-3">
-      <dt className="text-14 text-ink-3">Wake for Slack</dt>
-      <dd><Switch label="Wake for Slack" checked={wake.enabled} disabled={busy} onChange={(enabled) => void change(enabled)} /></dd>
-      <dd className="col-span-2 text-13 text-ink-3" aria-live="polite">{waiting ? `${wake.buffered} Slack ${wake.buffered === 1 ? "message" : "messages"} waiting, waking ${cloud.name}` : "While it sleeps we keep its Slack connection, seal each message to this desktop and wake it. Only the desktop can read them."}</dd>
+      <dt className="text-14 text-ink-3">wake for slack</dt>
+      <dd><Switch label="wake for slack" checked={wake.enabled} disabled={busy} onChange={(enabled) => void change(enabled)} /></dd>
+      <dd className="col-span-2 text-13 text-ink-3" aria-live="polite">{waiting ? `${wake.buffered} slack ${wake.buffered === 1 ? "message" : "messages"} waiting, waking ${cloud.name}` : "while it sleeps we keep its slack connection, seal each message to this desktop and wake it. only the desktop can read them."}</dd>
     </div>
   );
 }
@@ -193,8 +193,8 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
       <DeletionBanner cloud={cloud} />
       {cloud.status === "error" && (
         <Card className="!py-4" aria-live="polite">
-          <p className="text-14 text-bad">{cloud.error ?? "It stopped answering."}</p>
-          <p className="mt-1 text-13 text-ink-3">Waking it usually fixes this. If it does not, write to us and we look at it right away.</p>
+          <p className="text-14 text-bad">{cloud.error ?? "it stopped answering."}</p>
+          <p className="mt-1 text-13 text-ink-3">waking it usually fixes this. if it does not, write to us and we look at it right away.</p>
         </Card>
       )}
       {asleep && (
@@ -202,7 +202,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
           <Mascot color="silver" size={40} state="sleeping" />
           <div className="min-w-0 flex-1">
             <h2 className="text-15 font-medium text-ink">{cloud.name} is asleep</h2>
-            <p className="mt-0.5 text-14 text-ink-3">Your bots and their routines wait until you wake it. Nothing on it is lost.</p>
+            <p className="mt-0.5 text-14 text-ink-3">your bots and their routines wait until you wake it. nothing on it is lost.</p>
           </div>
           <PowerButton cloud={cloud} size="md" />
         </Card>
@@ -210,15 +210,15 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
       {detail ? <MachineView detail={detail} now={now} limit={cloud.botComputers.limit} region={regionName(catalog, cloud.region)} /> : cloud.status === "running" ? <Skeleton className="h-[170px] !rounded-card" /> : null}
       <div className="grid gap-4 md:grid-cols-2">
         <Card aria-labelledby="about-title">
-          <SectionTitle id="about-title">About</SectionTitle>
+          <SectionTitle id="about-title">about</SectionTitle>
           <dl className="divide-y divide-line">
-            <KV k="Runs on" v={cloud.placement === "shared" ? "Shared, own sandbox" : "Its own machine"} />
-            <KV k="Bot computers" v={`${detail?.report?.computers?.computers.length ?? cloud.botComputers.used} of ${cloud.botComputers.limit === null ? "unlimited" : cloud.botComputers.limit}`} />
+            <KV k="runs on" v={cloud.placement === "shared" ? "shared, own sandbox" : "its own machine"} />
+            <KV k="bot computers" v={`${detail?.report?.computers?.computers.length ?? cloud.botComputers.used} of ${cloud.botComputers.limit === null ? "unlimited" : cloud.botComputers.limit}`} />
             {(cloud.status === "running" || cloud.status === "sleeping") && <SlackWakeSetting key={cloud.id} cloud={cloud} />}
-            <KV k="Created" v={longDate(cloud.createdAt)} />
-            {sub && <KV k={sub.cancelAt ? "Ends" : "Renews"} v={longDate(sub.cancelAt ?? sub.currentPeriodEnd)} />}
+            <KV k="created" v={longDate(cloud.createdAt)} />
+            {sub && <KV k={sub.cancelAt ? "ends" : "renews"} v={longDate(sub.cancelAt ?? sub.currentPeriodEnd)} />}
           </dl>
-          {deleting ? <DeleteDataAction cloud={cloud} /> : <p className="mt-4 text-13 text-ink-3">To remove it, cancel it in <Link to="/billing" className="hover-link underline decoration-line-2 underline-offset-4">Plans & billing</Link>.</p>}
+          {deleting ? <DeleteDataAction cloud={cloud} /> : <p className="mt-4 text-13 text-ink-3">to remove it, cancel it in <Link to="/billing" className="hover-link underline decoration-line-2 underline-offset-4">plans and billing</Link>.</p>}
         </Card>
         {catalog ? <Size cloud={cloud} catalog={catalog} /> : <Skeleton className="h-[220px] !rounded-card" />}
       </div>
@@ -229,11 +229,11 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
 export function CloudDesktopPage() {
   const { clouds, catalog } = useCloud();
   const cloud = clouds?.[0] ?? null;
-  if (clouds === null) return <div aria-busy="true" aria-label="Loading"><Skeleton className="h-9 w-64" /><Skeleton className="mt-8 h-[420px] !rounded-card" /></div>;
+  if (clouds === null) return <div aria-busy="true" aria-label="loading"><Skeleton className="h-9 w-64" /><Skeleton className="mt-8 h-[420px] !rounded-card" /></div>;
   if (!cloud) {
     return (
       <div>
-        <PageHeader title="Cloud desktop" sub="Your own always-on computer in the cloud, made for your bots." />
+        <PageHeader title="cloud desktop" sub="your own always-on computer in the cloud, made for your bots." />
         <Empty />
       </div>
     );
@@ -244,7 +244,7 @@ export function CloudDesktopPage() {
       <PageHeader
         title={cloud.name}
         sub={<span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"><CloudStatus cloud={cloud} /><span className="text-13 text-ink-4">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</span></span>}
-        action={cloud.status === "provisioning" ? undefined : <div className="flex gap-2"><PowerButton cloud={cloud} size="md" /><Button variant={running ? "primary" : "outline"} onClick={() => openApp(appLink.cloud)}><AppWindow size={16} strokeWidth={1.5} aria-hidden />Open in the app</Button></div>}
+        action={cloud.status === "provisioning" ? undefined : <div className="flex gap-2"><PowerButton cloud={cloud} size="md" /><Button variant={running ? "primary" : "outline"} onClick={() => openApp(appLink.cloud)}><AppWindow size={16} strokeWidth={1.5} aria-hidden />open in the app</Button></div>}
       />
       {cloud.status === "provisioning" ? <SettingUp cloud={cloud} /> : <Live cloud={cloud} />}
     </div>

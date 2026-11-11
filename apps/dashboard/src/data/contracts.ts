@@ -189,6 +189,8 @@ export interface CloudDesktop extends MachineSpec {
   createdAt: number;
   /** while provisioning: 0..1 and what it is doing */
   progress: { step: string; value: number } | null;
+  /** reserved by a checkout that has not been paid yet; it reads as provisioning but nothing is being set up */
+  awaitingPayment?: boolean;
   error: string | null;
   botComputers: { used: number; limit: number | null };
   uptimeSec: number | null;

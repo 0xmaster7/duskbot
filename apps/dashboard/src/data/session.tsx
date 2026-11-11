@@ -134,10 +134,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     for (const c of detail?.commands ?? []) {
       if (!local.current.has(c.id) || announced.current.has(c.id)) continue;
-      if (c.status === "done") { announced.current.add(c.id); toast(c.message || "Done"); }
+      if (c.status === "done") { announced.current.add(c.id); toast(c.message || "done"); }
       if (c.status === "failed" || c.status === "expired") {
         announced.current.add(c.id);
-        toast(c.status === "expired" ? `${workspace?.name ?? "The workspace"} did not pick that up in time. Is it online?` : c.message || "That did not work.", "bad");
+        toast(c.status === "expired" ? `${workspace?.name ?? "the workspace"} did not pick that up in time. is it online?` : c.message || "that did not work.", "bad");
       }
     }
   }, [detail, workspace?.name]);

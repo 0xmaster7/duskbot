@@ -13,17 +13,17 @@ import { Button, cx } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 
 export const STATUS: Record<CloudDesktop["status"], { label: string; tone: "good" | "warn" | "bad" | "quiet" | "accent" }> = {
-  provisioning: { label: "Setting up", tone: "accent" },
-  running: { label: "Running", tone: "good" },
-  sleeping: { label: "Asleep", tone: "quiet" },
-  stopped: { label: "Off", tone: "quiet" },
-  error: { label: "Needs attention", tone: "bad" },
+  provisioning: { label: "setting up", tone: "accent" },
+  running: { label: "running", tone: "good" },
+  sleeping: { label: "asleep", tone: "quiet" },
+  stopped: { label: "off", tone: "quiet" },
+  error: { label: "needs attention", tone: "bad" },
 };
 
 export function CloudStatus({ cloud, className }: { cloud: CloudDesktop; className?: string }) {
-  const s = STATUS[cloud.status];
+  const s = cloud.awaitingPayment ? { label: "waiting for payment", tone: "quiet" as const } : STATUS[cloud.status];
   const up = cloud.status === "running" && cloud.uptimeSec ? ` · up ${duration(cloud.uptimeSec)}` : "";
-  return <StatusDot tone={s.tone} live={cloud.status === "running" || cloud.status === "provisioning"} className={className}>{s.label}{up}</StatusDot>;
+  return <StatusDot tone={s.tone} live={cloud.status === "running" || (cloud.status === "provisioning" && !cloud.awaitingPayment)} className={className}>{s.label}{up}</StatusDot>;
 }
 
 export function regionName(catalog: PlanCatalog | null, id: string) {
@@ -32,7 +32,7 @@ export function regionName(catalog: PlanCatalog | null, id: string) {
 }
 
 export function tierName(catalog: PlanCatalog | null, cloud: CloudDesktop) {
-  return (catalog && desktopOf(catalog, cloud.tier)?.name) ?? (cloud.placement === "shared" ? "Shared" : "Dedicated");
+  return (catalog && desktopOf(catalog, cloud.tier)?.name) ?? (cloud.placement === "shared" ? "shared" : "dedicated");
 }
 
 export function workspaceIcon(w: Pick<WorkspaceSummary, "kind">, cloud: CloudDesktop | null, size = 18) {
@@ -50,15 +50,15 @@ export function PowerButton({ cloud, size = "sm" }: { cloud: CloudDesktop; size?
   const on = cloud.status === "running" || cloud.status === "error";
   const go = async (next: boolean) => {
     setBusy(true); setAsking(false);
-    try { await power(cloud.id, next); toast(next ? `Waking ${cloud.name}` : `${cloud.name} is going to sleep`); } catch (e) { toast((e as Error).message, "bad"); } finally { setBusy(false); }
+    try { await power(cloud.id, next); toast(next ? `waking ${cloud.name}` : `${cloud.name} is going to sleep`); } catch (e) { toast((e as Error).message, "bad"); } finally { setBusy(false); }
   };
   return (
     <>
       <Button size={size} variant={on ? "outline" : "primary"} disabled={busy} onClick={() => (on ? setAsking(true) : void go(true))}>
-        <Power size={15} strokeWidth={1.75} aria-hidden />{busy ? (on ? "Sleeping" : "Waking") : on ? "Sleep" : "Wake"}
+        <Power size={15} strokeWidth={1.75} aria-hidden />{busy ? (on ? "sleeping" : "waking") : on ? "sleep" : "wake"}
       </Button>
-      <Modal open={asking} onClose={() => setAsking(false)} title={`Put ${cloud.name} to sleep?`} footer={<><Button onClick={() => setAsking(false)}>Keep it on</Button><Button variant="primary" onClick={() => void go(false)}>Sleep</Button></>}>
-        Your bots stop answering and their routines wait until you wake it again. Nothing on it is lost.
+      <Modal open={asking} onClose={() => setAsking(false)} title={`put ${cloud.name} to sleep?`} footer={<><Button onClick={() => setAsking(false)}>keep it on</Button><Button variant="primary" onClick={() => void go(false)}>sleep</Button></>}>
+        your bots stop answering and their routines wait until you wake it again. nothing on it is lost.
       </Modal>
     </>
   );
@@ -69,11 +69,11 @@ export function Provisioning({ cloud }: { cloud: CloudDesktop }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3 text-14">
-        <span className="text-ink-2" aria-live="polite">{cloud.progress?.step ?? "Getting ready"}</span>
+        <span className="text-ink-2" aria-live="polite">{cloud.awaitingPayment ? "finish checkout and it starts setting up" : cloud.progress?.step ?? "getting ready"}</span>
         <span className="num text-ink-3">{v}%</span>
       </div>
-      <div className="relative mt-3 h-1 overflow-hidden rounded-full bg-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={v} aria-label="Setting up your cloud desktop">
-        <div className="bar-fill h-full w-full rounded-full bg-ink" style={{ transform: `scaleX(${Math.max(0.03, v / 100)})` }} />
+      <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={v} aria-label="setting up your cloud desktop">
+        <div className="bar-fill h-full w-full rounded-full bg-accent" style={{ transform: `scaleX(${Math.max(0.03, v / 100)})` }} />
         <div className="sweep absolute inset-y-0 left-0 w-1/3 bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--bg)_45%,transparent),transparent)]" aria-hidden />
       </div>
     </div>
@@ -92,7 +92,7 @@ export function QuickPick({ catalog, source, className, onDone, secondary }: { s
     setBusy(true); setError(null);
     try {
       if (await checkout({ source, kind: "plan", selection: planSelection(catalog, pick, { interval: "month", work: false }), bundle: null })) {
-        toast("Paid. Your cloud desktop is being set up.");
+        toast("paid. your cloud desktop is being set up.");
         if (onDone) await onDone(); else navigate("/cloud");
       }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
@@ -100,7 +100,7 @@ export function QuickPick({ catalog, source, className, onDone, secondary }: { s
   return (
     <div className={className}>
       <fieldset className="min-w-0">
-        <legend className="sr-only">Plan</legend>
+        <legend className="sr-only">plan</legend>
         <div className="flex flex-col gap-1">
           {(["starter", "pro"] as const).map((id) => {
             const b = bundleOf(catalog, id);
@@ -109,11 +109,11 @@ export function QuickPick({ catalog, source, className, onDone, secondary }: { s
           })}
         </div>
       </fieldset>
-      <p className="mt-4 text-13 text-ink-3">On 24/7, cancel anytime.</p>
+      <p className="mt-4 text-13 text-ink-3">on 24/7, cancel anytime.</p>
       {error && <p role="alert" className="mt-2 text-13 text-bad">{error}</p>}
       <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
         {secondary}
-        <Button variant="primary" onClick={() => void go()} disabled={busy || !chosen}>{busy ? "Opening checkout" : `Continue, ${dollars(chosen?.monthly ?? 0)}/mo`}</Button>
+        <Button variant="primary" onClick={() => void go()} disabled={busy || !chosen}>{busy ? "opening checkout" : `continue, ${dollars(chosen?.monthly ?? 0)}/mo`}</Button>
       </div>
     </div>
   );
@@ -125,16 +125,16 @@ export function PlanDialog({ open, source, onClose }: { source: CheckoutSource; 
 }
 
 /** the one cloud pitch: a line, a sentence, one button and the three mascots; home, the empty cloud page and billing share it */
-export function CloudPitch({ source = "dash_cloud", title = "Keep your bots on while your Mac sleeps", body = "A cloud desktop runs them all day and all night. Set up in one click.", action, link = { to: "/billing", label: "See plans" }, className, id = "pitch-title" }: { source?: CheckoutSource; title?: string; body?: ReactNode; action?: ReactNode | false; link?: { to: string; label: string } | null; className?: string; id?: string }) {
+export function CloudPitch({ source = "dash_cloud", title = "keep your bots on while your mac sleeps", body = "a cloud desktop runs them all day and all night. set up in one click.", action, link = { to: "/billing", label: "see plans" }, className, id = "pitch-title" }: { source?: CheckoutSource; title?: string; body?: ReactNode; action?: ReactNode | false; link?: { to: string; label: string } | null; className?: string; id?: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <section className={cx("enter flex items-center gap-8 rounded-card bg-card px-8 py-7 max-sm:flex-col-reverse max-sm:items-start max-sm:gap-5 max-sm:p-5", className)} aria-labelledby={id}>
+    <section className={cx("surface enter flex items-center gap-8 rounded-card bg-card px-8 py-7 max-sm:flex-col-reverse max-sm:items-start max-sm:gap-5 max-sm:p-5", className)} aria-labelledby={id}>
       <div className="min-w-0 flex-1">
-        <h2 id={id} className="text-20 font-semibold tracking-[-0.015em] text-ink">{title}</h2>
+        <h2 id={id} className="text-24 font-medium tracking-[-0.035em] text-ink">{title}</h2>
         <p className="mt-1.5 max-w-[52ch] text-14 leading-[1.55] text-ink-3">{body}</p>
         {(action !== false || link) && (
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
-            {action === false ? null : action ?? <Button variant="primary" onClick={() => setOpen(true)}>Get a cloud desktop</Button>}
+            {action === false ? null : action ?? <Button variant="primary" onClick={() => setOpen(true)}>get a cloud desktop</Button>}
             {link && <Link to={link.to} className="hover-link inline-flex h-9 items-center text-14 text-ink-3 max-sm:h-11">{link.label}</Link>}
           </div>
         )}

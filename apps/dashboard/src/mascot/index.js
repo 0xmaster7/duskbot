@@ -159,7 +159,7 @@ export function create(target, { body, colour, eyes, state = 'idle', size, obser
   el.__duskBot = bot;
 
   function faceOf() { return FACES[over.e || mood.f || 'idle'] || FACES.idle; }
-  function targets(now) {
+  function targets() {
     const s = mood, fc = faceOf(), lE = fc.l, rE = fc.r || fc.l;
     // where the eyes go: a reaction, then the pointer, then a glance, then where the mood rests them
     let gx = s.g ? s.g[0] : 0, gy = s.g ? s.g[1] : 0;

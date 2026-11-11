@@ -10,9 +10,10 @@ export type PlanIntent = { plan: "starter" | "pro"; interval: "month" | "year" |
 const PLANS: Record<string, PlanIntent["plan"]> = { plus: "starter", starter: "starter", pro: "pro" };
 const PERIODS: Record<string, "month" | "year"> = { m: "month", month: "month", monthly: "month", y: "year", year: "year", yearly: "year" };
 
-/** the plan a site link asked for (?plan=plus|pro, optional &period=month|year); anything else is no plan at all */
+/** the plan a site link asked for (?plan=plus|pro, or the older ?bundle=, optional &period=month|year); anything else is
+ * no plan at all */
 export function planIntent(query: URLSearchParams): PlanIntent | null {
-  const plan = PLANS[(query.get("plan") ?? "").toLowerCase()];
+  const plan = PLANS[(query.get("plan") ?? query.get("bundle") ?? "").toLowerCase()];
   return plan ? { plan, interval: PERIODS[(query.get("period") ?? "").toLowerCase()] ?? null } : null;
 }
 

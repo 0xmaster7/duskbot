@@ -20,7 +20,7 @@ export function Td({ className, children, ...rest }: TdHTMLAttributes<HTMLTableC
 }
 
 /** a dash for a value we do not know */
-export const Nil = () => <span className="text-ink-4" aria-label="None">-</span>;
+export const Nil = () => <span className="text-ink-4" aria-label="none">-</span>;
 
 export function SectionHead({ id, children, action, className }: { id?: string; children: ReactNode; action?: ReactNode; className?: string }) {
   return (

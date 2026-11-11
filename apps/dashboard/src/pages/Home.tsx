@@ -15,7 +15,7 @@ import { Link } from "../lib/router";
 import { DOWNLOAD_URL } from "../lib/usage";
 import { Heatmap, HeatStats, type HeatMetric } from "../ui/Heatmap";
 import { Card, cx, Segmented, Skeleton } from "../ui/kit";
-import { BotMascot } from "../ui/Mascot";
+import { BotMascot, Mascot } from "../ui/Mascot";
 import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 import { PlanSheet } from "./plan-sheet";
 import { useNow } from "../lib/now";
@@ -31,11 +31,11 @@ function Crew({ rows }: { rows: BotRow[] }) {
   const working = rows.filter((r) => r.mood === "working").length;
   return (
     <section className="enter relative isolate overflow-hidden rounded-card bg-[#3fbdfb]" aria-labelledby="crew-title">
-      <img src={poster} alt="" className="absolute inset-0 -z-10 size-full object-cover object-[center_86%]" draggable={false} />
+      <img src={poster} alt="" className="absolute inset-0 -z-10 size-full object-cover object-[center_76%]" draggable={false} />
       <img src={cloudPink} alt="" width={240} height={80} className="pixel-art cloud-drift absolute left-[8%] top-5 -z-10 w-[104px]" style={{ ["--drift" as string]: "120px", ["--dur" as string]: "44s" }} draggable={false} />
       <img src={cloudLemon} alt="" width={240} height={80} className="pixel-art cloud-drift absolute right-[14%] top-10 -z-10 w-[76px] max-sm:hidden" style={{ ["--drift" as string]: "-90px", ["--dur" as string]: "58s" }} draggable={false} />
       <div className="flex items-center justify-between gap-3 px-5 pt-5">
-        <h2 id="crew-title" className="tag !h-7 !bg-white !text-[#131316]"><span className={cx("live-dot", working ? "text-[#12894a]" : "text-[#91919b]")} data-live={working > 0} />{working ? `${working} of ${plural(rows.length, "bot")} working` : `${plural(rows.length, "bot")}, all quiet`}</h2>
+        <h2 id="crew-title" className="flex h-7 items-center gap-2 rounded-full bg-white px-3 text-13 font-medium text-[#131316]"><span className={cx("live-dot", working ? "text-[#12894a]" : "text-[#91919b]")} data-live={working > 0} />{working ? `${working} of ${plural(rows.length, "bot")} working` : `${plural(rows.length, "bot")}, all quiet`}</h2>
         <Link to="/bots" className="press inline-flex h-7 items-center gap-0.5 rounded-full bg-white ps-3 pe-2 text-13 font-medium text-[#131316]">all bots<ChevronRight size={14} strokeWidth={2} aria-hidden /></Link>
       </div>
       <ul className="scroll-x flex items-end gap-x-7 px-6 pb-5 pt-9 sm:justify-center max-sm:gap-x-4">
@@ -50,6 +50,28 @@ function Crew({ rows }: { rows: BotRow[] }) {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+/** nobody here yet: the same picture with one bot asleep in it, and the way to get the first one */
+function CrewEmpty() {
+  return (
+    <section className="enter relative isolate overflow-hidden rounded-card bg-[#3fbdfb]" aria-labelledby="crew-empty-title">
+      <img src={poster} alt="" className="absolute inset-0 -z-10 size-full object-cover object-[center_76%]" draggable={false} />
+      <img src={cloudPink} alt="" width={240} height={80} className="pixel-art cloud-drift absolute right-[30%] top-6 -z-10 w-[104px] max-sm:hidden" style={{ ["--drift" as string]: "90px", ["--dur" as string]: "44s" }} draggable={false} />
+      <div className="flex items-end justify-between gap-6 p-5 max-sm:flex-col max-sm:items-start">
+        <div className="pop max-w-[380px] rounded-[20px] bg-white p-5 text-[#131316]">
+          <h2 id="crew-empty-title" className="text-20 font-medium tracking-[-0.03em]">your bots will hang out here.</h2>
+          <p className="mt-1 text-14 text-[#4b4b55]">make one in the app and it shows up in a few seconds, with what it's doing.</p>
+          <a href={DOWNLOAD_URL} target="_blank" rel="noreferrer" className="press mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-[#131316] px-4.5 text-14 font-medium text-white"><Download size={16} strokeWidth={1.75} aria-hidden />get the app</a>
+        </div>
+        <div className="flex shrink-0 items-end gap-5 pe-6 max-sm:self-center max-sm:pe-0" aria-hidden>
+          <span className="peek relative" style={{ ["--i" as string]: 0 }}><Mascot body="moon" color="purple" size={64} state="sleeping" /><span className="absolute -right-1 -top-2"><i className="zz not-italic !text-white">z</i><i className="zz not-italic !text-white">z</i><i className="zz not-italic !text-white">z</i></span></span>
+          <span className="peek" style={{ ["--i" as string]: 1 }}><Mascot body="circle" color="blue" size={92} state="curious" track={900} tappable /></span>
+          <span className="peek" style={{ ["--i" as string]: 2 }}><Mascot body="heart" color="pink" size={70} state="idle" track={900} tappable /></span>
+        </div>
+      </div>
     </section>
   );
 }
@@ -186,7 +208,7 @@ export function HomePage() {
       {plan && <PlanSheet source="dash_home" start="starter" onClose={() => setPlan(false)} />}
       <h1 className="t-title enter mb-8 max-sm:mb-6">hi {name}.</h1>
       <div className="flex flex-col gap-4">
-        {bots.length ? <Crew rows={bots} /> : loading ? <Skeleton className="h-[226px] !rounded-card" /> : null}
+        {bots.length ? <Crew rows={bots} /> : loading ? <Skeleton className="h-[226px] !rounded-card" /> : <CrewEmpty />}
         {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[200px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudPitch source="dash_home" />}
         <div className="enter grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:gap-3" style={{ ["--i" as string]: 2 }}>
           <Tile tint="sky" icon={<Download {...ICON} />} title="get the app" body="your bots, chats and their computers." to={DOWNLOAD_URL} external />

@@ -244,7 +244,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
       mood={mood}
       scene={scene}
       card={<SceneCard />}
-      aside={<a href={SITE_URL} className="hover-link -me-2 inline-flex h-11 items-center gap-1.5 rounded-full px-2 text-14 text-ink-3"><ArrowLeft size={15} strokeWidth={1.75} aria-hidden />back to {SITE_NAME}</a>}
+      aside={<a href={SITE_URL} className="hover-link -me-2 inline-flex h-11 items-center gap-1.5 rounded-full px-2 text-14 text-ink-3"><ArrowLeft size={15} strokeWidth={1.75} aria-hidden />back to {SITE_NAME === "dusk.bot" ? SITE_NAME : "the site"}</a>}
       foot={signup ? <>by continuing you agree to the <a href={siteUrl("/terms")} className={LINK}>terms</a> and <a href={siteUrl("/privacy")} className={LINK}>privacy policy</a>.</> : "your chats and files stay on your own computers."}
     >
       {step === "done" ? (
@@ -295,11 +295,11 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
           <button type="button" className={cx(QUIET, "-ms-2 mt-3")} onClick={() => { setStep("start"); setError(null); }}>back to sign in</button>
         </form>
       ) : (
-        <form key="code" className="step-in" onSubmit={(e) => { e.preventDefault(); if (attempt) void verify(); else void send(recovering, true); }}>
+        <form key="code" className="step-in" noValidate onSubmit={(e) => { e.preventDefault(); if (attempt) void verify(); else void send(recovering, true); }}>
           <h1 className="t-title">{linked && !sentTo ? "your link is ready." : "check your email."}</h1>
           <p className="mt-3 text-16 text-ink-2">{linked && !sentTo ? "it signs you in once, and works for 10 minutes."
-            : recovering ? <>if an account uses <span className="break-all text-ink">{sentTo}</span>, we sent a link and a {length}-digit code. it works for 10 minutes.</>
-            : <>we sent a {length}-digit code to <span className="break-all text-ink">{sentTo}</span>. it works for 10 minutes.</>}</p>
+            : recovering ? <>if an account uses <span className="text-ink [overflow-wrap:anywhere]">{sentTo}</span>, we sent a link and a {length}-digit code. it works for 10 minutes.</>
+            : <>we sent a {length}-digit code to <span className="text-ink [overflow-wrap:anywhere]">{sentTo}</span>. it works for 10 minutes.</>}</p>
           <label htmlFor="code" className="mb-2 mt-7 block text-14 text-ink-2">code</label>
           <CodeBoxes input={codeRef} boxes={boxes} length={length} value={code} invalid={Boolean(error)} disabled={busy !== null} onFocus={setFocused}
             onChange={(v) => {
@@ -308,11 +308,11 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
               if (v.length === length && busy === null && attempt) void verify(v);
             }} />
           {error && <p id="auth-error" role="alert" className="mt-2.5 text-14 text-bad">{error}</p>}
-          <Button type="submit" variant="primary" className="mt-3 w-full !h-12 !text-15" disabled={busy !== null || (attempt ? code.length !== length : !sentTo)}>{busy ? <Busy>{attempt ? "checking" : "sending"}</Busy> : !attempt ? "send a new code" : signup ? "make my account" : "sign in"}</Button>
+          <Button type="submit" variant="primary" className="mt-3 w-full !h-12 !text-15" disabled={busy !== null || (attempt ? code.length !== length : !sentTo || wait > 0)}>{busy ? <Busy>{attempt ? "checking" : "sending"}</Busy> : !attempt ? <span className="num">{wait > 0 ? `send a new code in ${wait} s` : "send a new code"}</span> : signup ? "make my account" : "sign in"}</Button>
           {slow && <p role="status" className="mt-3 text-13 text-ink-3">still working. this connection is slow.</p>}
           <div className="mt-3 flex items-center justify-between gap-2">
             <button type="button" className={cx(QUIET, "-ms-2")} onClick={leaveCode}>use another email</button>
-            <button type="button" className={cx(QUIET, "-me-2")} disabled={wait > 0 || busy !== null || !sentTo} onClick={() => void send(recovering, true)}><span className="num">{wait > 0 ? `send again in ${wait} s` : "send a new code"}</span></button>
+            {attempt && <button type="button" className={cx(QUIET, "-me-2")} disabled={wait > 0 || busy !== null || !sentTo} onClick={() => void send(recovering, true)}><span className="num">{wait > 0 ? `send again in ${wait} s` : "send a new code"}</span></button>}
           </div>
         </form>
       )}

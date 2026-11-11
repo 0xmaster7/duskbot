@@ -39,10 +39,10 @@ function Rail({ at }: { at: number }) {
   const part = (at + 1) / STEPS.length;
   useEffect(() => { rider.current?.react("hop"); }, [at]);
   return (
-    <div className="relative mb-10 h-2 rounded-full bg-track" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuenow={at + 1} aria-label={`step ${at + 1} of ${STEPS.length}`}>
+    <div className="relative mb-10 h-2 rounded-full bg-track [overflow-x:clip]" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuenow={at + 1} aria-label={`step ${at + 1} of ${STEPS.length}`}>
       <div className="h-full origin-left rounded-full bg-ink transition-transform duration-500 ease-[var(--ease-out)] motion-reduce:transition-none" style={{ transform: `scaleX(${part})` }} />
       <div className="pointer-events-none absolute inset-0 transition-transform duration-500 ease-[var(--ease-pop)] motion-reduce:transition-none" style={{ transform: `translateX(${part * 100}%)` }} aria-hidden>
-        <span className="absolute -top-[30px] left-0 -translate-x-[70%]"><Mascot ref={rider} body="pixel" color="pink" size={34} state={last ? "celebrate" : "happy"} /></span>
+        <span className="absolute -top-[30px] left-0 -translate-x-full"><Mascot ref={rider} body="pixel" color="pink" size={34} state={last ? "celebrate" : "happy"} /></span>
       </div>
     </div>
   );
@@ -79,7 +79,7 @@ function PlanStep({ catalog, pick, setPick, interval, setInterval }: { catalog: 
           })}
         </div>
       </fieldset>
-      {pick !== "free" && <div className="step-in mt-4 flex items-center justify-between gap-3"><IntervalToggle value={interval} onChange={setInterval} catalog={catalog} /><span className="t-meta">cancel anytime</span></div>}
+      {pick !== "free" && <div className="step-in mt-4"><IntervalToggle value={interval} onChange={setInterval} catalog={catalog} /></div>}
     </>
   );
 }
@@ -91,7 +91,8 @@ export function Onboarding() {
   const { account: me, toast } = useSession();
   const { path, query } = useLocation();
   const intent = planIntent(query);
-  const bought = Boolean(clouds?.length || billing?.subscription);
+  // an open checkout already has a machine reserved: only a paid one counts
+  const bought = billing?.subscription?.status === "active" || billing?.subscription?.status === "past_due" || Boolean(clouds?.some((cloud) => !cloud.awaitingPayment));
   const asked = query.get("step");
   const saved = sessionStorage.getItem(SAVED);
   const wanted: Step = isStep(asked) ? asked : isStep(saved) ? saved : "name";
@@ -105,20 +106,27 @@ export function Onboarding() {
   const [error, setError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
   const scene = useRef<SceneHandle>(null);
+  const leaving = useRef(false);
   const shownName = name ?? guess;
 
+  const search = query.toString();
+  const address = (to: Step) => {
+    const params = new URLSearchParams(search);
+    params.set("step", to);
+    return `${path}?${params}`;
+  };
+  const here = address(step);
   useEffect(() => { sessionStorage.setItem(SAVED, step); }, [step]);
   useEffect(() => { setError(null); scene.current?.react("perk"); }, [step]);
+  // each history entry names its step, so back and forward move between steps and a refresh stays put
+  useEffect(() => { if (asked !== step && !leaving.current) navigate(here, { replace: true }); }, [asked, step, here]);
 
-  const go = (to: Step) => {
-    const params = new URLSearchParams(query);
-    params.set("step", to);
-    navigate(`${path}?${params}`);
-  };
+  const go = (to: Step) => navigate(address(to));
   const finish = async () => {
     setBusy(true);
     try { await finishOnboarding(); } catch { /* the dashboard asks again next time; never trap anyone here */ }
     sessionStorage.removeItem(SAVED);
+    leaving.current = true;
     navigate(bought ? "/cloud" : path === "/welcome" ? "/" : path, { replace: true });
   };
   const saveName = async () => {
@@ -148,7 +156,8 @@ export function Onboarding() {
       poster={poster}
       mood={mood}
       scene={scene}
-      card={<p key={step} className="swap-in flex items-baseline gap-3"><span className="font-pixel text-[88px] font-medium leading-[0.8] text-ink">{at + 1}</span><span className="text-20 font-medium tracking-[-0.03em] text-ink-2">{["say hi", "pick a home", "get the app", "that's it"][at]}</span></p>}
+      snug
+      card={<p key={step} className="swap-in flex items-end gap-3.5"><span className="font-pixel text-[72px] font-medium leading-[0.72] text-ink">{at + 1}</span><span className="pb-0.5 text-20 font-medium tracking-[-0.03em] text-ink">{["say hi", "pick a home", "get the app", "that's it"][at]}</span></p>}
       aside={step !== "done" && <button type="button" onClick={() => void finish()} disabled={busy} className="hover-link -me-2 h-11 rounded-full px-2 text-14 text-ink-3">skip</button>}
     >
       <Rail at={at} />
@@ -168,7 +177,7 @@ export function Onboarding() {
           {catalog ? <PlanStep catalog={catalog} pick={pick} setPick={(p) => { setPick(p); setError(null); }} interval={interval} setInterval={setInterval} /> : <div className="flex flex-col gap-2" aria-busy="true"><Skeleton className="h-[76px] !rounded-[20px]" /><Skeleton className="h-[76px] !rounded-[20px]" /><Skeleton className="h-[76px] !rounded-[20px]" /></div>}
           {error && <p role="alert" className="mt-3 text-14 text-bad">{error}</p>}
           <Button variant="primary" className="mt-5 w-full !h-12 !text-15" onClick={() => void choose()} disabled={busy || !catalog}>{busy ? <Busy>opening checkout</Busy> : price && chosen ? `checkout, ${chosen.name.toLowerCase()} ${price.amount}${price.unit}` : "continue with free"}</Button>
-          <div className="mt-2">{back("name")}</div>
+          <div className="mt-2 flex items-center justify-between gap-3">{back("name")}{pick !== "free" && <span className="t-meta">cancel anytime</span>}</div>
         </div>
       ) : step === "app" ? (
         <div key="app" className="step-in">

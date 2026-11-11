@@ -10,12 +10,12 @@ export function freeTradeoffs(catalog: PlanCatalog, plan: FunnelPlan): Tradeoff[
   const b = bundleOf(catalog, plan);
   const d = b ? desktopOf(catalog, b.desktop) : null;
   const rows: Tradeoff[] = [
-    { topic: "Staying on", free: "Only while your Mac is awake, or on a server you keep running", paid: "On 24/7, with nothing to keep awake" },
-    { topic: "Routines", free: "Pause while your Mac sleeps", paid: "Run on time, day and night" },
-    { topic: "Bot computers", free: "Share your Mac's CPU and memory", paid: d ? `${botsLine(d.botComputers)} on ${d.vcpu} vCPU and ${gb(d.ramGb)} RAM of their own` : "A machine of their own" },
-    { topic: "Setup", free: "You install and look after it", paid: "Set up in one click" },
+    { topic: "staying on", free: "only while your mac is awake, or on a server you keep running", paid: "on 24/7, with nothing to keep awake" },
+    { topic: "routines", free: "pause while your mac sleeps", paid: "run on time, day and night" },
+    { topic: "bot computers", free: "share your mac's cpu and memory", paid: d ? `${botsLine(d.botComputers)} on ${d.vcpu} vcpu and ${gb(d.ramGb)} ram of their own` : "a machine of their own" },
+    { topic: "setup", free: "you install and look after it", paid: "set up in one click" },
   ];
-  if (b && b.license !== "personal") rows.push({ topic: "Work use", free: "Personal use only", paid: "Work license included" });
+  if (b && b.license !== "personal") rows.push({ topic: "work use", free: "personal use only", paid: "work license included" });
   return rows;
 }
 

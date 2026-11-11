@@ -101,8 +101,8 @@ function UserRow() {
   const name = account.name || (account.email.split("@")[0] ?? account.email);
   const sel = billing?.subscription?.selection;
   const license = sel && sel.license !== "personal" ? catalog?.licenses.find((l) => l.id === sel.license)?.name : null;
-  const plan = sel && sel.desktop !== "none" ? catalog?.bundles.find((b) => b.desktop === sel.desktop && b.id !== "team")?.name ?? "Cloud desktop" : null;
-  const label = (plan ? (license && plan !== "pro" ? `${plan} + work license` : plan) : license ? `${license} license` : "Free").toLowerCase();
+  const plan = sel && sel.desktop !== "none" ? catalog?.bundles.find((b) => b.desktop === sel.desktop && b.id !== "team")?.name ?? "cloud desktop" : null;
+  const label = (plan ? (license && plan !== "pro" ? `${plan} + work license` : plan) : license ? `${license} license` : "free").toLowerCase();
   return (
     <div ref={ref} className="relative">
       {open && (
@@ -129,7 +129,7 @@ function CloudBadge() {
   const { clouds } = useCloud();
   const c = clouds?.[0];
   if (!clouds) return null;
-  if (!c) return <span className="t-pixel ms-auto text-ink-4">24/7</span>;
+  if (!c) return <span className="t-meta ms-auto !text-ink-4">24/7</span>;
   const tone = c.status === "running" ? "text-good" : c.status === "provisioning" ? "text-accent" : c.status === "error" ? "text-bad" : "text-ink-4";
   return <span className={cx("live-dot ms-auto", tone)} data-live={c.status === "running"} aria-label={c.status === "running" ? "running" : c.status} role="img" />;
 }
@@ -149,7 +149,7 @@ function SideUpsell() {
     <div className="pop relative rounded-[20px] bg-pop p-4">
       <button type="button" onClick={hide} aria-label="hide for a week" className="hover-ghost absolute right-1.5 top-1.5 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.75} /></button>
       <div className="flex items-center gap-3 pe-6">
-        <span className="relative shrink-0"><Mascot color="purple" body="moon" size={34} state="sleeping" /><span className="absolute -right-1 -top-1" aria-hidden><i className="zz not-italic">z</i><i className="zz not-italic">z</i></span></span>
+        <span className="relative shrink-0"><Mascot color="purple" body="moon" size={34} state="sleeping" /><span className="absolute -top-3 left-0" aria-hidden><i className="zz not-italic">z</i><i className="zz not-italic">z</i></span></span>
         <p className="min-w-0 text-13 leading-[1.4] text-ink-2">your bots nap when your mac does.</p>
       </div>
       <Button size="sm" variant="primary" className="mt-3.5 w-full" onClick={() => setOpen(true)}>keep them on 24/7</Button>

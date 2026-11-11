@@ -54,7 +54,7 @@ export function UsageChart({ days, series }: { days: string[]; series: UsageSeri
       className="relative outline-none focus-visible:rounded-[12px] focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--ink)_40%,transparent)]"
       tabIndex={0}
       role="group"
-      aria-label={`Tokens per day, ${compact(total)} this month across ${series.length} ${series.length === 1 ? "group" : "groups"}. Use the left and right arrow keys to read a day.`}
+      aria-label={`tokens per day, ${compact(total)} this month across ${series.length} ${series.length === 1 ? "group" : "groups"}. use the left and right arrow keys to read a day.`}
       onPointerMove={pick}
       onPointerLeave={() => setAt(null)}
       onKeyDown={key}
@@ -109,7 +109,7 @@ export function UsageChart({ days, series }: { days: string[]; series: UsageSeri
 
 export function Legend({ series }: { series: UsageSeries[] }) {
   return (
-    <ul className="flex flex-wrap gap-x-5 gap-y-2" aria-label="Legend">
+    <ul className="flex flex-wrap gap-x-5 gap-y-2" aria-label="legend">
       {series.map((s, i) => (
         <li key={s.key} className="flex items-center gap-2 text-14 text-ink-2">
           <span className="size-2 shrink-0 rounded-full" style={{ background: SERIES_COLORS[i % SERIES_COLORS.length] }} aria-hidden />

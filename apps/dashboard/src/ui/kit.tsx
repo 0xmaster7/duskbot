@@ -73,7 +73,7 @@ export function FreshnessTag({ freshness, at, now, className }: { freshness: Fre
   return (
     <span className={cx("inline-flex items-center gap-2 text-13 text-ink-3", className)}>
       <span className={cx("live-dot", f.tone)} data-live={freshness === "live"} aria-hidden />
-      <span className="num" title={at ? `Last report ${ago(at, now)}` : undefined}>{f.label(at, now)}</span>
+      <span className="num" title={at ? `last report ${ago(at, now)}` : undefined}>{f.label(at, now)}</span>
     </span>
   );
 }
