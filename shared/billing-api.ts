@@ -235,6 +235,8 @@ export interface CloudDesktopView {
   deleteScheduledAt?: number | null;
   /** managed only: when the owner asked to delete its data; the emailed link stays valid for an hour after */
   deleteAskedAt?: number | null;
+  /** managed only: asleep, and a wake (the owner's, the app's, a routine's) is under way */
+  waking?: boolean;
 }
 
 export type PowerAction = "on" | "off";

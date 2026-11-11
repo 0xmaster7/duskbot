@@ -136,6 +136,12 @@ test("cloud statuses, progress, errors and destroyed desktops map to the view", 
   assert.equal(cloudFromWire({ ...cloud, kind: "dedicated", placement: "dedicated", botComputers: null })!.tier, "dedicated");
 });
 
+test("a sleeping managed cloud whose wake is under way reads as waking, never while it runs", () => {
+  assert.equal(cloudFromWire({ ...cloud, status: "sleeping", provider: "managed", waking: true })!.status, "waking");
+  assert.equal(cloudFromWire({ ...cloud, status: "sleeping", provider: "managed", waking: false })!.status, "sleeping");
+  assert.equal(cloudFromWire({ ...cloud, status: "running", provider: "managed", waking: true })!.status, "running");
+});
+
 const account: AccountAnswer = {
   account: { id: "account", email: "me@example.test", name: null, providers: ["google", "email", "x", "apple"], createdAt: 1000 },
   identities: [
