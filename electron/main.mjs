@@ -92,12 +92,13 @@ import { buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots }
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
+import { createProductEvents } from "./product-events.mjs";
 import { CHECKOUT_SOURCES, cloudMenuSublabel, cloudTarget, createCloudAccountClient, createCloudAccountStore } from "./cloud-account.mjs"; import { isAppLink } from "./cloud-signin.mjs";
 import { installCloudPlanIpc } from "./cloud-plan-ipc.mjs";
 import { cloudLinkOpensSheet, colorDotIcons, createCloudLook, createCloudReadyNotice, installCloudBuy, lookFile } from "./cloud-buy.mjs";
 import { createAccountEnroll } from "./account-enroll.mjs"; import { accountGateRequired, installAccountGate } from "./account-gate.mjs";
 import { createTrialNotices } from "./cloud-trial-notice.mjs";
-import { createDesktopPrefs, DESKTOP_PORTS, jsonFile, registerDesktopPrefs } from "./desktop-prefs.mjs";
+import { createDesktopPrefs, DESKTOP_PORTS, jsonFile, registerDesktopPrefs, writeFileDurably } from "./desktop-prefs.mjs";
 import { createDesktopIncludedX } from "./included-x.mjs"; import { createDesktopIncludedPages } from "./included-pages.mjs";
 import { createLastSeenStore } from "./cloud-last-seen.mjs";
 import { createCloudFocus } from "./cloud-focus.mjs";
@@ -416,7 +417,23 @@ async function loadSecureCredentials() {
     readFile: () => fs.readFileSync(CREDENTIALS_FILE),
     decrypt: (buffer) => safeStorage.decryptStringAsync(buffer),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    roundTrips: async () => {
+      const probe = randomUUID();
+      const opened = await safeStorage.decryptStringAsync(await safeStorage.encryptStringAsync(probe));
+      return (typeof opened === "string" ? opened : opened?.result) === probe;
+    },
   });
+  if (result.status === "unreadable") {
+    const aside = `${CREDENTIALS_FILE}.unreadable-${Date.now()}`;
+    try {
+      fs.renameSync(CREDENTIALS_FILE, aside);
+      slog(`credential store file does not open with this keychain (${result.error}); kept it as ${path.basename(aside)} and started an empty one`);
+    } catch (error) {
+      slog(`credential store file could not be set aside (${error?.message ?? error}); saved keys are not loaded this launch`);
+      credentialStoreUnavailable = true;
+      return {};
+    }
+  }
   credentialStoreUnavailable = result.status === "unavailable";
   if (credentialStoreUnavailable) {
     slog(`credential store unreadable after retries (${result.error}); saved keys are not loaded this launch`);
@@ -434,9 +451,7 @@ async function saveSecureCredentials(credentials) {
   }
   fs.mkdirSync(path.dirname(CREDENTIALS_FILE), { recursive: true });
   const encrypted = await safeStorage.encryptStringAsync(JSON.stringify(credentials));
-  const temporary = `${CREDENTIALS_FILE}.${process.pid}.tmp`;
-  fs.writeFileSync(temporary, encrypted, { mode: 0o600 });
-  fs.renameSync(temporary, CREDENTIALS_FILE);
+  writeFileDurably(CREDENTIALS_FILE, encrypted);
 }
 
 async function secureComposioConfig() {
@@ -529,6 +544,9 @@ import { CREDENTIAL_PATCH, credentialSaveError } from "./credential-patch.mjs";
 const { isLocalSender: senderIsLocal, localOnly, localOnlySync, setLocalOrigin } = localOriginModule;
 /** This computer's page, or My Cloud's own page once it is home (home-window.mjs). */
 const localOrHome = (channel, handler) => (event, ...args) => (homeWindow.homePage(event) ? handler : localOnly(channel, handler))(event, ...args);
+const productEvents = createProductEvents({ origin: cloudTarget(process.env).origin, token: () => cloudAccount?.eventToken?.() ?? null, platform: process.platform, version: app.getVersion() });
+ipcMain.handle("product-events:send", localOrHome("product-events:send", (_event, batch) => productEvents.send(batch)));
+ipcMain.handle("product-events:clear", localOrHome("product-events:clear", () => productEvents.clear()));
 
 let companionPowerBlocker = null;
 
@@ -3236,6 +3254,7 @@ app.on("before-quit", (e) => {
   companyBackupSchedule?.close();
   orgLibrary?.close();
   managedDesktop?.close();
+  void productEvents.close();
   accountEnroll.close(); accountRing.close(); cloudAccount?.close(); oneHome.close(); ownHome?.close(); void vpsLink.close(); twoPlaces?.close(); homeWindow.close();
   companyBackupController?.abort();
   cloudSync.close();

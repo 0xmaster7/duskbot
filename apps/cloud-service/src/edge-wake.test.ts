@@ -80,6 +80,9 @@ describe("the public edge and a sleeping home", () => {
     const anonymous = await send("/");
     expect(anonymous.status).toBe(503);
     expect(anonymous.headers.get("retry-after")).toBe("5");
+    // a page's read while it sleeps learns that it sleeps, so it wakes it on the person's next action instead of polling
+    expect(anonymous.headers.get("x-omb-cloud-power")).toBe("asleep");
+    expect((await send("/api/events", { headers: { cookie: "s=1" } })).headers.get("x-omb-cloud-power")).toBe("asleep");
     await f.service.reconcile();
     expect(f.api.machines.get(c.serverId!)!.state).toBe("suspended");
     // a stranger's webhook every few minutes: each wake is a start, held to the rails' hourly budget and spacing
@@ -109,7 +112,9 @@ describe("the public edge and a sleeping home", () => {
     await asleep();
     f.subscriptions[0]!.status = "canceled" as never;
     (f.subscriptions[0] as unknown as { currentPeriodEnd: number }).currentPeriodEnd = f.now() - 1;
-    expect((await send("/hooks/x", { method: "POST", body: "1", headers: { authorization: "Bearer x" } })).status).toBe(503);
+    const ended = await send("/hooks/x", { method: "POST", body: "1", headers: { authorization: "Bearer x" } });
+    expect(ended.status).toBe(503);
+    expect(ended.headers.get("x-omb-cloud-power")).toBeNull();
     expect(c.wantPower).toBe("off");
   });
 

@@ -72,6 +72,47 @@ What the service can see, and why:
 Wake timings (wake request to the desktop's first sync) feed the catalog's `wake` stat per desktop kind once 10 or
 more were measured; the plan cards print a wake time only from it.
 
+## Admin panel and product analytics
+
+`/admin` (on preview: `https://preview.dusk.bot/app/admin`) is the owner's panel: overview (signups, active accounts,
+waitlist, the funnel site to signup to onboarding to cloud to paid to app paired to first bot reply, clouds by state),
+users (search, plan, clouds, devices, timeline), clouds (pause, resume, delete with a typed confirmation), waitlist
+(dusk.waitlist, CSV export, Brevo list check), events, health and the audit log. Keys: `g` then o, u, c, w, e, h or a;
+`/` searches; `?` lists them.
+
+- **Who gets in.** `DUSK_ADMIN_EMAILS` (comma-separated account emails). Every `/v1/admin/*` route checks the web
+  session (401), the email (403) and, on changes, the CSRF header. Cloud actions, CSV exports and every opened user
+  record go to `admin_audit`.
+- **Events** (`server/analytics`): the service records sign-ups, sign-ins, app pairing, a daily app heartbeat (the
+  app's own session refresh), cloud state changes, payments and the first bot reply; the page sends page views and
+  onboarding steps to `POST /v1/events` (20 per batch, rate limited); the site proxy counts site page views with a
+  daily visitor hash. Each event carries a context (`analytics/context.ts`: visitor, session, page, referrer, channel,
+  utm, Cloudflare country behind a trusted proxy, device, app platform and version). Props are an allowlist per event
+  (`analytics/events.ts`); no content, emails or addresses. GPC or DNT turns it off; `PUT /v1/account/analytics
+  {optOut}` opts an account out and deletes its events; deleting the account deletes them too.
+- **Storage.** `analytics_events` (TTL 400 days), `analytics_daily` (kept), `analytics_marks` (once-only marks),
+  `admin_audit` (kept). Without MongoDB (tests, fixture) they live in memory.
+- **Site and app analytics.** `tracker/dusk.js` (about 3 KB gzip, no dependencies, ideas from Minilytics, MIT) is copied to the
+  site as `/a.js` by the site's `build-pages.mjs`. It sends page views, goals (`cta_click`, `download_click`, `waitlist_join`,
+  `outbound`, any `data-dusk-goal`), and each page view's end (scroll depth, visible time) to `POST /v1/t` as text/plain
+  beacons; `?dusk_ignore=1` once turns it off in a browser, and an admin's own visits are never counted. The first page
+  view of each page load goes as a `fetch` instead, and `/v1/t` answers `{"persist": true|false}`: the tracker writes
+  `dusk_vid` and `dusk_sid` only after `true`. The answer is `false` when Cloudflare (trusted only as the proxy's peer) puts
+  the visitor in the EU, EEA, UK or Switzerland (`COOKIELESS_COUNTRIES` in `analytics/context.ts`) or cannot place them;
+  there the service ignores the browser's ids and uses a daily visitor hash (HMAC of address and user agent under a salt
+  that lives in memory and changes every day) and its own 30-minute visits, so attribution is per visit. A request that
+  did not come through Cloudflare keeps cookies. Origins other than
+  the service's own must be in `DUSK_TRACK_ORIGINS`. The apps send screens, features, message counts, reply times,
+  error and pairing codes to `POST /v1/app/events` (`src/lib/product-analytics.ts`), anonymous by install id until the
+  app signs in. The desktop app's own page hands its batches to Electron main over the preload bridge (`productEvents`);
+  main (`electron/product-events.mjs`) drops anything outside its event and prop allowlist, adds the account token when
+  signed in, and posts to the account client's origin (`cloudTarget()`, so `DUSK_CLOUD_ORIGIN` builds use their own),
+  retrying with backoff and holding at most 500 events offline. Channels and named sources (AI assistants apart from search) come from `analytics/sources.ts` (ported from
+  Minilytics). Everything else is computed from the event log per read (`analytics/web.ts`): visits, KPIs against the
+  previous period, ranked cards with the signups each row became, the funnel with drop-off and median times, journeys,
+  realtime, retention (D1, D7 = days 7 to 13, D30 = days 30 to 59). A read scans at most 400,000 raw events.
+- - The fixture's `--demo` makes its account the admin and fills the panel with made-up people, clouds and events.
+
 ## Running it
 
 ```sh

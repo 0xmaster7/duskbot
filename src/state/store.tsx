@@ -1,3 +1,4 @@
+import { feature as productFeature, noteMessageSent, noteAcceptedMessage, noteReplyTurn, noteRoutineRun } from "@/lib/product-analytics";
 import { cloudAsleep, onCloudPower } from "../lib/cloud-power";
 import { chatInFront } from "@/lib/chat-in-front";
 import { answerOf, api, ApiError, snapshotArrays } from "./api";
@@ -16,12 +17,13 @@ import { bumpThreadUpdatedAt, mergeTaskStamps, rewindThreadUpdatedAt } from "./t
 import { botOpensTo, openBot, openThread, visibleNotificationThread } from "./thread-navigation";
 import { patchGroupTask } from "./thread-edits";
 import type { EngineInstall } from "./engine-install";
-import { optimisticMessageId, optimisticUserMessage, sendArrived, sendReconciled } from "./optimistic-send";
+import { optimisticMessageId, optimisticUserMessage, sendAnswerLost, sendArrived, sendReconciled } from "./optimistic-send";
 import { applySendReceipt } from "./send-receipt";
 import { foldSnapshotOntoStreamed, patchedGroups, roomAnswers, snapshotPatch } from "./room-frames";
 import { savedStateAction, type SavedOwner, type SavedSnapshot } from "./saved-state";
 import { heldTranscript, keepBotNavigation, keepGroupNavigation, navigatedSince, visibleMessages } from "./snapshot-navigation";
 import { createTranscriptCache, indexedDbShelf, reconcileTranscript, type CachedTranscript } from "./transcript-cache";
+import { TranscriptShelfScope } from "./transcript-scope";
 export { shownTranscript, visibleMessages } from "./snapshot-navigation";
 export { awayFromMainThread, botOpensTo, markedThread, openBot, openBotRow, openBotThread, openRoomThread, openThread, visibleNotificationThread, type ThreadTarget } from "./thread-navigation";
 import type { TurnDigest } from "../../shared/digest";
@@ -2084,7 +2086,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, initialState, restoreBotSettingsSection);
   const stateRef = useRef(state), selectionRevision = useRef(0);
   stateRef.current = state;
-  const [transcriptCache] = useState(() => createTranscriptCache(indexedDbShelf()));
+  const shelfScope = useContext(TranscriptShelfScope);
+  const [transcriptCache] = useState(() => createTranscriptCache(indexedDbShelf(globalThis.indexedDB, shelfScope)));
   const invalidateTranscripts = useSelectedTranscript(state, rawDispatch, MESSAGE_PAGE_SIZE, transcriptCache);
   useTranscriptCache(state, rawDispatch, transcriptCache);
   const clearChatError = useCallback(() => {
@@ -2328,7 +2331,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (action.notice) setTimeout(() => rawDispatch({ type: "notice", notice: null }), action.notice.kind === "note" ? 20_000 : 6000);
           break;
         case "createRoutine":
-          api("/api/routines", { method: "POST", body: JSON.stringify(action.input) }).catch(showError);
+          api("/api/routines", { method: "POST", body: JSON.stringify(action.input) }).then(() => productFeature("routine_created")).catch(showError);
           break;
         case "updateRoutine":
           api(`/api/routines/${action.routineId}`, { method: "PATCH", body: JSON.stringify(action.patch) })
@@ -2340,7 +2343,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         case "runRoutine":
           void waitForExecutionSettings(executionBotsBeforeAction)
             .then(() => api(`/api/routines/${action.routineId}/run${action.test ? "?test=1" : ""}`, { method: "POST" }))
-            .then(({ run }) => action.onStarted?.(run))
+            .then(({ run }) => { noteRoutineRun(run.id, run.status); action.onStarted?.(run); })
             .catch((error) => {
               if (action.onError) action.onError(error);
               else showError(error);
@@ -2425,6 +2428,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const threadId =
             action.threadId ?? stateRef.current.bots.find((bot) => bot.id === action.botId)?.threadId;
           const sendId = action.sendId ?? randomUuid();
+          noteMessageSent(sendId);
           const arrived = () => sendArrived(stateRef.current.bots.find((bot) => bot.id === action.botId && bot.threadId === threadId)?.messages, sendId);
           const outbox = threadId && !action.dataContext && !action.pointed?.length && !action.followUp ? sendOutbox() : null;
           if (threadId) outbox?.hold({ kind: "bot", ownerId: action.botId, threadId, sendId, text: action.text, at: Date.now(), ...(action.replyToId ? { replyToId: action.replyToId } : {}), ...(action.mode ? { mode: action.mode } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) });
@@ -2435,7 +2439,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
             .then((sent) => { outbox?.release(sendId); applySendReceipt(sent, sendId, action.text, rawDispatch); })
             .catch((error) => {
-              if (outbox && !(error instanceof ApiError) && outbox.keep(sendId)) return;
+              if (outbox && (!(error instanceof ApiError) || sendAnswerLost(error)) && outbox.keep(sendId)) return;
               outbox?.release(sendId);
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });
@@ -2449,12 +2453,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const threadId =
             action.threadId ?? stateRef.current.bots.find((bot) => bot.id === action.botId)?.threadId;
           const sendId = action.sendId ?? randomUuid();
+          const edited = () => sendArrived(stateRef.current.bots.find((bot) => bot.id === action.botId && bot.threadId === threadId)?.messages, sendId);
           void waitForExecutionSettings(executionBotsBeforeAction, threadId)
-            .then(() => api(`/api/bots/${action.botId}/messages/${action.messageId}/edit`, {
-              method: "POST",
+            .then(() => sendReconciled((signal) => api(`/api/bots/${action.botId}/messages/${action.messageId}/edit`, {
+              method: "POST", signal,
               body: JSON.stringify({ text: action.text.trim(), threadId, sendId }),
-            }))
-            .then((body) => {
+            }), edited))
+            .then((sent) => {
+              const body = "body" in sent ? sent.body : null;
               if (body?.message && threadId) {
                 rawDispatch({ type: "messageAdded", threadId, message: body.message });
               }
@@ -2643,6 +2649,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }),
           })
             .then(({ group }) => {
+              productFeature("room_created");
               rawDispatch({ type: "groupPatched", group });
               rawDispatch({ type: "select", id: group.id });
             })
@@ -2652,6 +2659,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const threadId =
             action.threadId ?? stateRef.current.groups.find((group) => group.id === action.groupId)?.threadId;
           const sendId = action.sendId ?? randomUuid();
+          noteMessageSent(sendId);
           const arrived = () => sendArrived(stateRef.current.groups.find((group) => group.id === action.groupId && group.threadId === threadId)?.messages, sendId);
           const outbox = threadId ? sendOutbox() : null;
           if (threadId) outbox?.hold({ kind: "group", ownerId: action.groupId, threadId, sendId, text: action.text, at: Date.now(), ...(action.replyToId ? { replyToId: action.replyToId } : {}), ...(action.mode ? { mode: action.mode } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) });
@@ -2668,7 +2676,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
             .then((sent) => { outbox?.release(sendId); applySendReceipt(sent, sendId, action.text, rawDispatch); })
             .catch((error) => {
-              if (outbox && !(error instanceof ApiError) && outbox.keep(sendId)) return;
+              if (outbox && (!(error instanceof ApiError) || sendAnswerLost(error)) && outbox.keep(sendId)) return;
               outbox?.release(sendId);
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });
@@ -3089,6 +3097,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           rawDispatch({ type: "botQueues", queues: frame.queues });
           break;
         case "message": {
+          if (frame.message?.role === "user") noteAcceptedMessage(frame.message.sendId, frame.message.id);
+          if (frame.message?.role === "bot" && frame.message.kind === "text") noteReplyTurn(frame.message.turnId, frame.message.requestMessageId);
           rawDispatch({ type: "messageAdded", threadId: frame.threadId, message: frame.message as Message });
           if (frame.message?.role === "user" && typeof frame.message.queueId === "string") {
             rawDispatch({
@@ -3159,6 +3169,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           rawDispatch({ type: "routineDeleted", routineId: frame.routineId });
           break;
         case "routine.run":
+          noteRoutineRun(frame.run.id, frame.run.status);
           rawDispatch({ type: "routineRunPatched", run: frame.run });
           break;
         case "webhook":
@@ -3171,6 +3182,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           rawDispatch({ type: "webhookDeleted", webhookId: frame.webhookId });
           break;
         case "runtime": {
+          if (frame.event.type === "content.delta" && frame.event.streamKind === "assistant_text" && frame.event.delta && !frame.event.synthetic) noteReplyTurn(frame.event.turnId);
           spokenReplyStream.onRuntimeEvent(frame.event, speechOwner(stateRef.current, frame.event.threadId));
           const action = runtimeFrameAction(frame.event);
           if (action) rawDispatch(action);

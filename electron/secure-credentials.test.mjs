@@ -65,4 +65,22 @@ describe("readSecureCredentials", () => {
     expect(result.status).toBe("unavailable");
     expect(decrypt).toHaveBeenCalledTimes(1);
   });
+
+  it("says UNREADABLE when the store works but this file never opens with it, so it can be set aside", async () => {
+    const roundTrips = vi.fn().mockResolvedValue(true);
+    const wrongKey = await readSecureCredentials(deps({ decrypt: vi.fn().mockRejectedValue(new Error("Error while decrypting the ciphertext")), roundTrips }));
+    expect(wrongKey.status).toBe("unreadable");
+    expect((await readSecureCredentials(deps({ decrypt: vi.fn().mockResolvedValue("not json"), roundTrips }))).status).toBe("unreadable");
+    const decrypt = vi.fn();
+    const empty = await readSecureCredentials(deps({ readFile: () => Buffer.alloc(0), decrypt, roundTrips }));
+    expect(empty.status).toBe("unreadable");
+    expect(decrypt).not.toHaveBeenCalled();
+  });
+
+  it("stays UNAVAILABLE when a fresh value does not round-trip either: a denied or locked keychain", async () => {
+    const result = await readSecureCredentials(deps({ decrypt: vi.fn().mockRejectedValue(transient()), roundTrips: async () => false }));
+    expect(result.status).toBe("unavailable");
+    const throws = await readSecureCredentials(deps({ decrypt: vi.fn().mockRejectedValue(transient()), roundTrips: async () => { throw transient(); } }));
+    expect(throws.status).toBe("unavailable");
+  });
 });

@@ -364,6 +364,25 @@ once. To publish from elsewhere, copy those three files into the service's `pack
 tgz files keep serving installs already under way; delete them when no install from the last 2 hours needs them.
 `LINK_PACKAGES_DIR` moves the folder.
 
+## Stops, reruns and odd servers
+
+- One install, repair or uninstall runs at a time (`flock` on `/run/duskbot-install.lock`; step processes keep it).
+- A dropped ssh connection does not stop the install: it finishes, reports to the app, and writes what it would have
+  shown to `/var/log/duskbot-link/install.log`. Ctrl-C stops it; the same line picks up where it stopped.
+- A dpkg run that was cut off is finished (`dpkg --configure -a`) before apt runs again.
+- A server build is installed with `app-installing` noted first, so one cut off inside npm is finished from the verified
+  download on the next run, `--repair` included; an update's rollback is noted before npm runs and stays pending until
+  the build before is back. A new build always restarts the server. A first build that never answered here is noted
+  as failed, so a line offering the build before it may install that.
+- A line this server already linked with, run again before it noted the link, repairs instead of saying "already used";
+  the service answers a repeated result (same sealed blob and tunnel verifiers) as done.
+- Linking a linked server again ends its old tunnel at the service and removes that app's direct key, so the app that
+  held it reads "unlinked"; the app replaces a record with the same `environmentId`.
+- `check` refuses Ubuntu before 20.04, Debian before 11, less than 900 MB of memory and swap
+  (`DUSK_MIN_MEMORY_MB`) and a clock more than 4 minutes off the link service's after turning time sync on. Frames are
+  stamped and checked in the link service's time (its `Date` header) on the agent, the app and the phone, so a clock
+  that drifts later does not silence the link.
+
 ## The terminal
 
 install.sh opens with the wordmark decoding out of noise and one light sweep (about a second, one awk process), then

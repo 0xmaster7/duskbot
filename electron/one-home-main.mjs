@@ -6,7 +6,8 @@
 // choice to keep this computer's bots here (Settings → Dusk Cloud, Advanced) is kept beside the journal.
 import { SEAL_LABELS } from "./legacy-names.mjs";
 import { createHash } from "node:crypto";
-import { createReadStream, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { createReadStream, mkdirSync, readFileSync } from "node:fs";
+import { writeFileDurably } from "./desktop-prefs.mjs";
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 
@@ -87,8 +88,7 @@ function jsonFile(file) {
     write: (value) => {
       const target = file();
       mkdirSync(dirname(target), { recursive: true });
-      writeFileSync(`${target}.tmp`, JSON.stringify(value ?? null), { mode: 0o600 });
-      renameSync(`${target}.tmp`, target);
+      writeFileDurably(target, JSON.stringify(value ?? null));
     },
   };
 }

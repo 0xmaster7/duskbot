@@ -9,6 +9,9 @@ import { providersFromEnv } from "./auth/providers.ts";
 import { mailerFromEnv } from "./auth/mail.ts";
 import { persisted, useStateBackend } from "./persistence/backend.ts";
 import { openMongoBackend } from "./persistence/mongo.ts";
+import { mongoSink } from "./analytics/sink.ts";
+import { mongoWaitlist } from "./admin/waitlist.ts";
+import { parseAdminEmails } from "./admin/index.ts";
 
 const port = Number(process.env.DUSK_DASHBOARD_PORT ?? 7480);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid dashboard port.");
@@ -33,10 +36,15 @@ const database = process.env.MONGODB_URI
     onLeaseLost: error => { console.error(error.message); process.exit(1); } })
   : null;
 if (database) { useStateBackend(database.backend); console.log("state: mongodb"); } else console.log("state: json files (development)");
+const trackOrigins = (process.env.DUSK_TRACK_ORIGINS ?? "").split(",").map(item => item.trim()).filter(Boolean);
+const analytics = { ...(database ? { sink: await mongoSink(database.db), waitlist: mongoWaitlist(database.db) } : {}), trackOrigins };
+const adminEmails = parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
+console.log(`admin: ${adminEmails.length} allowed account${adminEmails.length === 1 ? "" : "s"}`);
 
 const app = createDashboardApp({ errors: { service, page }, version, dataDir, publicUrl, mailer: mailerFromEnv(process.env, { dev }), oauth: providersFromEnv(process.env), dev,
   signupOpen: process.env.DUSK_AUTH_SIGNUP_OPEN !== "0", trustProxy: process.env.DUSK_TRUST_PROXY === "1", staticDir: staticDir || null,
-  pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE || "", mailPerHour: process.env.DUSK_AUTH_MAIL_PER_HOUR ? Number(process.env.DUSK_AUTH_MAIL_PER_HOUR) : undefined, siteUpstream: process.env.DUSK_SITE_UPSTREAM || null });
+  pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE || "", mailPerHour: process.env.DUSK_AUTH_MAIL_PER_HOUR ? Number(process.env.DUSK_AUTH_MAIL_PER_HOUR) : undefined, siteUpstream: process.env.DUSK_SITE_UPSTREAM || null,
+  analytics, admin: { emails: adminEmails, environment, backupDir: process.env.DUSK_BACKUP_DIR || (database ? "/root/backups/mongo-dusk" : null) } });
 
 /** a client hears an answer only once what the request changed is written; when that fails it gets a dropped
  *  connection, never a success that was not kept */

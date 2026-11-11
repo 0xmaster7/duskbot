@@ -1,3 +1,4 @@
+import { feature } from "@/lib/product-analytics";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { Search, X } from "../../icons";
 import { BotAvatar, MausAvatar } from "@/components/Avatar";
@@ -84,7 +85,7 @@ export const SearchSheet: ComponentType<SheetPageProps<"search">> = ({ open, onC
     setResults({ query: q, status: "loading", hits: [] });
     const timer = setTimeout(() => {
       void api<{ hits: SearchHit[] }>(`/api/search?q=${encodeURIComponent(q)}&limit=40`, { signal: controller.signal }).then(({ hits: found }) => {
-        if (!controller.signal.aborted) setResults({ query: q, status: "ready", hits: found });
+        if (!controller.signal.aborted) { feature("search_used"); setResults({ query: q, status: "ready", hits: found }); }
       }).catch(() => {
         if (!controller.signal.aborted) { setResults({ query: q, status: "error", hits: [] }); haptic("error"); }
       });

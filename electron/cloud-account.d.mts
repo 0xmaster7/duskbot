@@ -327,6 +327,8 @@ export interface CloudAccountClient {
    * grant for that Cloud's own address only. Rejects with `gone: true` once that Cloud is no longer theirs. */
   pairHome(cloudId?: string | null): Promise<import("./cloud-home.mjs").CloudHomeGrant>;
   /** `origin` is a Cloud the person owns (My Cloud or another of theirs), by the verified session only. */
+  /** Main only: the account token while signed in, for its usage reports to the same origin. */
+  eventToken(): string | null;
   isOwnCloud(origin: string | null | undefined): boolean;
   /** Buys another Cloud (POST /api/cloud/desktop/clouds): its checkout opens in the browser. */
   /** `source`: where the checkout started (CHECKOUT_SOURCES), for the Admin's funnel. */

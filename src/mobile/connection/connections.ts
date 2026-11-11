@@ -1,9 +1,12 @@
+import { feature } from "@/lib/product-analytics";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MobileConnectionRecord, MobileTransport } from "../../../shared/mobile-link";
 import { usePlatform, type MobilePlatform } from "../platform";
 import { deviceChannelKey, type RelaySecrets } from "../transport/link-crypto";
 import { open as openRelay, RelayGoneError } from "../transport/relay";
 import type { PhoneTransport } from "../transport/transport";
+import { forgetTranscriptShelf } from "@/state/transcript-cache";
+import { outboxKey } from "./active";
 import { PairError } from "./pair";
 
 export async function connectToWorkspace(record: MobileConnectionRecord, token: string, platform: MobilePlatform, signal: AbortSignal): Promise<PhoneTransport> {
@@ -50,6 +53,15 @@ export async function connectToWorkspace(record: MobileConnectionRecord, token: 
   signal.throwIfAborted();
   // the relay dropping this phone's channel is the removal reaching a phone that has no other way to hear of it
   throw new PairError(gone ? "refused" : "unreachable");
+}
+
+/** Linking the same installation again keeps what was written while it was unreachable: those sends carry ids the
+ * installation has never delivered twice. */
+async function moveOutbox(platform: MobilePlatform, from: string, to: string): Promise<void> {
+  const held = await platform.prefs.get(outboxKey(from));
+  await platform.prefs.remove(outboxKey(from));
+  if (!held || await platform.prefs.get(outboxKey(to))) return;
+  await platform.prefs.set(outboxKey(to), held);
 }
 
 const CONNECTIONS_KEY = "omb.mobile.connections.v1";
@@ -101,10 +113,13 @@ export function createConnectionStore(platform: MobilePlatform): ConnectionStore
         await platform.secrets.set(saved.sessionRef, token);
         await write([...records.filter((entry) => !replaced.includes(entry)), saved]);
         await platform.prefs.set(ACTIVE_KEY, saved.id);
+        feature("phone_paired");
         for (const old of replaced) if (old.sessionRef !== saved.sessionRef) {
           await platform.secrets.remove(old.sessionRef);
           await platform.secrets.remove(`relay.${old.id}`);
           await platform.prefs.remove(`omb.mobile.push.${old.id}`);
+          await moveOutbox(platform, old.id, saved.id);
+          await forgetTranscriptShelf(old.id);
         }
       });
     },
@@ -124,6 +139,8 @@ export function createConnectionStore(platform: MobilePlatform): ConnectionStore
         await platform.secrets.remove(`token.${id}`);
         await platform.secrets.remove(`relay.${id}`);
         await platform.prefs.remove(`omb.mobile.push.${id}`);
+        await platform.prefs.remove(outboxKey(id));
+        await forgetTranscriptShelf(id);
         await write(records.filter((entry) => entry.id !== id));
       });
     },

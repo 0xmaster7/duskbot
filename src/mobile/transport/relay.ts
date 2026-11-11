@@ -17,8 +17,19 @@ export type RelayFrame = {
 type FrameGuard = (iv: string, ts: unknown) => boolean;
 const randomId = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (byte) => "abcdefghijklmnopqrstuvwxyz234567"[byte & 31]).join("");
 const SKEW_MS = 5 * 60_000;
+/** frames are stamped and checked in the link service's time (its Date header), the same way the app and the server
+ * do, so a phone whose clock is minutes off still talks; under RELAY_CLOCK_SLACK_MS the phone keeps its own clock */
+const RELAY_CLOCK_SLACK_MS = 3000;
+let relayOffsetMs = 0;
+export function noteRelayDate(value: string | null, now = Date.now()): void {
+  const at = Date.parse(value ?? "");
+  if (!Number.isFinite(at)) return;
+  const offset = at + 500 - now;
+  relayOffsetMs = Math.abs(offset) < RELAY_CLOCK_SLACK_MS ? 0 : offset;
+}
+export const relayNow = (): number => Date.now() + relayOffsetMs;
 
-export function frameGuard(now = Date.now): FrameGuard {
+export function frameGuard(now = relayNow): FrameGuard {
   const seen = new Map<string, number>();
   return (iv, ts) => {
     const time = now();
@@ -30,7 +41,7 @@ export function frameGuard(now = Date.now): FrameGuard {
 }
 
 export function sealFrame(key: Uint8Array, channel: string, direction: "to-vps" | "to-app", frame: RelayFrame): Promise<string> {
-  return seal(key, `${channel}|${direction}`, utf8(JSON.stringify({ ...frame, ts: Date.now() })));
+  return seal(key, `${channel}|${direction}`, utf8(JSON.stringify({ ...frame, ts: relayNow() })));
 }
 
 export async function openFrame(key: Uint8Array, channel: string, direction: "to-vps" | "to-app", sealed: string, guard: FrameGuard): Promise<RelayFrame | null> {
@@ -121,6 +132,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
         signal: AbortSignal.any([on.abort.signal, AbortSignal.timeout(15_000)]),
       });
       await response.text();
+      noteRelayDate(response.headers.get("date"));
       if (!response.ok) throw refused(response.status);
     });
     on.posts = next.catch((error) => { drop(on, error instanceof RelayGoneError ? error : undefined); });
@@ -136,6 +148,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
           signal: AbortSignal.any([on.abort.signal, AbortSignal.timeout(40_000)]),
         });
         if (!response.ok) { await response.body?.cancel(); throw refused(response.status); }
+        noteRelayDate(response.headers.get("date"));
         await readFrameBatches(response, async (frames) => {
           for (const sealed of frames) {
             let frame: RelayFrame | null;

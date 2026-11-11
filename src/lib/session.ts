@@ -1,3 +1,4 @@
+import { pairFailed } from "./product-analytics";
 import { SESSION_PATH, takeBootRead } from "@/state/boot-reads";
 
 export interface EnvironmentDescriptor {
@@ -142,10 +143,12 @@ export async function pairWithCode(
       body: JSON.stringify({ code: input.code, label: input.label, cookie: true, attemptId: input.attemptId ?? newAttemptId(), ...(input.browser ? { browser: true } : {}) }),
     });
   } catch (error) {
+    pairFailed("network");
     return { ok: false, error: `could not reach the server (${error instanceof Error ? error.message : String(error)})` };
   }
   const body: unknown = await res.json().catch(() => ({}));
   if (res.ok) return { ok: true };
+  pairFailed(res.status === 410 ? "expired_code" : res.status === 401 || res.status === 403 ? "refused" : "unknown");
   const error = Reflect.get(Object(body), "error");
   return { ok: false, error: typeof error === "string" ? error : `${res.status} ${res.statusText}` };
 }

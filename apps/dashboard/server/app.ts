@@ -25,6 +25,14 @@ import { clientIp } from "./client-ip.ts";
 import { stateBackend } from "./persistence/backend.ts";
 import type { ErrorReporter } from "../../../electron/error-report.mjs";
 import type { EdgeSocketFactory } from "./slack-edge/service.ts";
+import { createAnalytics } from "./analytics/index.ts";
+import { APP_EVENTS_PATH, TRACK_PATH } from "./analytics/ingest.ts";
+import { memorySink, type AnalyticsSink } from "./analytics/sink.ts";
+import { AdminError, createAdmin, parseAdminEmails } from "./admin/index.ts";
+import { createErrorCounter } from "./admin/health.ts";
+import { createAlerts, parseAlerts } from "./admin/alerts.ts";
+import type { WaitlistSource } from "./admin/waitlist.ts";
+import { workspaceTurns } from "./admin/metrics.ts";
 
 export interface DashboardAppOptions {
   dataDir: string;
@@ -48,6 +56,10 @@ export interface DashboardAppOptions {
   version?: string;
   /** the slack wake edge: DUSK_SLACK_EDGE and DUSK_CLOUD_SEAL_KEY from env; tests pass a fake socket */
   slackEdge?: { env?: NodeJS.ProcessEnv; socket?: EdgeSocketFactory };
+  /** product analytics: MongoDB in production (main.ts), memory otherwise; the waitlist is dusk.waitlist when connected */
+  analytics?: { sink?: AnalyticsSink; waitlist?: WaitlistSource | null; trackOrigins?: string[] };
+  /** the owner's panel at /admin: DUSK_ADMIN_EMAILS by default */
+  admin?: { emails?: string[]; backupDir?: string | null; environment?: string; env?: NodeJS.ProcessEnv };
 }
 class RequestError extends Error {
   status: number;
@@ -108,6 +120,10 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const site = options.siteUpstream ? siteProxy(options.siteUpstream) : null;
   const store = createStore(options.dataDir);
   const state = store.state;
+  const startedAt = now();
+  const analytics = createAnalytics({ sink: options.analytics?.sink ?? memorySink(now), dataDir: options.dataDir, now, trustProxy: options.trustProxy,
+    trackOrigins: [new URL(options.publicUrl).origin, ...(options.analytics?.trackOrigins ?? [])] });
+  const errorsSeen = createErrorCounter(now);
   const dev = options.dev ?? (new URL(publicUrl).protocol === "http:" && ["127.0.0.1", "localhost"].includes(new URL(publicUrl).hostname));
   const auth = createAuth({ dataDir: options.dataDir, publicUrl, pageBase, mailPerHour: options.mailPerHour, mailer: options.mailer, now, fetch: options.fetch, oauth: options.oauth,
     dev, signupOpen: options.signupOpen ?? true, trustProxy: options.trustProxy ?? false, legacyAccounts: () => state.accounts });
@@ -141,9 +157,17 @@ export function createDashboardApp(options: DashboardAppOptions) {
     machine: `${cloud.spec.vcpu} vcpu, ${cloud.spec.ramGb} gb memory, ${cloud.spec.diskGb} gb disk`, region: BILLING_CONFIG.regions.find(region => region.id === cloud.region)?.label.toLowerCase() ?? cloud.region });
   const cloudFromCents = Math.min(...Object.values(BILLING_CONFIG.desktops).flatMap(desktop => desktop.monthlyCents === null ? [] : [desktop.monthlyCents]));
   auth.onAccountCreated(owner => send(owner.email, welcomeEmail(emailCfg, { cloudFromCents })));
+  auth.onAccountCreated(owner => analytics.track("signup", { accountId: owner.id, props: { method: auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email" } }));
+  auth.onSessionCreated(session => {
+    analytics.track("sign_in", { accountId: session.accountId, props: { kind: session.kind, ...(session.platform ? { platform: session.platform } : {}), ...(session.appVersion ? { appVersion: session.appVersion } : {}) } });
+    if (session.kind !== "web") analytics.track("app_paired", { accountId: session.accountId, props: { via: "app", ...(session.platform ? { platform: session.platform } : {}) } });
+  });
+  auth.onAppSeen(session => analytics.appActive(session));
+  auth.onAccountDeleted(id => analytics.forget(id));
   auth.onAccountDeleted((_id, email) => send(email, accountDeletedEmail(emailCfg, { email: email ?? "" })));
   function billingNotice(notice: BillingNotice) {
     const cloud = notice.kind !== "receipt" && notice.cloudId ? billing.clouds.get(notice.cloudId) : null;
+    if (notice.kind === "receipt") analytics.track("checkout_paid", { accountId: notice.accountId, props: { amountCents: notice.amountCents } });
     if (notice.kind === "receipt") send(emailOf(notice.accountId), receiptEmail(emailCfg, { ...notice, receiptId: notice.invoiceId, cloud: notice.cloudId !== null }));
     else if (notice.kind === "payment_failed") send(emailOf(notice.accountId), paymentFailedEmail(emailCfg, { ...notice, cloudName: cloud?.name ?? null }));
     else send(emailOf(notice.accountId), cancelledEmail(emailCfg, { description: notice.description, cloudName: cloud?.name ?? null, endsAt: notice.endsAt,
@@ -157,6 +181,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (email) send(emailOf(cloud.accountId), email);
     },
     notify: notice => billingNotice(notice),
+    cloudStatus: (cloud, from) => analytics.track("cloud_state", { accountId: cloud.accountId, props: { cloudId: cloud.id, kind: cloud.kind, region: cloud.region, from: from ?? "new", to: cloud.status } }),
     cloudEvent: (kind, cloud) => send(emailOf(cloud.accountId), kind === "ready" ? cloudReadyEmail(emailCfg, cloudFacts(cloud)) : cloudDeletedEmail(emailCfg, { name: cloud.name, at: now() })),
     alert: entry => mail(process.env.DUSK_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
@@ -181,6 +206,19 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (!found || found.account.id !== owner.id) throw new AuthError(401, "signed_out");
       return { id: owner.id, signedInAt: found.session.createdAt };
     } });
+  const adminEmails = options.admin?.emails ?? parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
+  const admin = createAdmin({ emails: adminEmails, auth, billing, workspaces: () => state.workspaces, analytics,
+    waitlist: options.analytics?.waitlist ?? null, now, fetch: options.fetch, env: options.admin?.env, errors: errorsSeen, readBody, bodyObject, json,
+    service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
+      backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
+  const alerts = createAlerts({ kinds: parseAlerts((options.admin?.env ?? process.env).DUSK_ADMIN_ALERTS), emails: () => adminEmails, mailer: options.mailer, sink: analytics.sink, now,
+    panelUrl: `${pagesUrl}/admin`, totals: (from, to) => ({ accounts: auth.directory().accounts.length, signups: auth.directory().accounts.filter(account => account.createdAt >= from && account.createdAt < to).length,
+      paid: billing.store.state.invoices.filter(invoice => invoice.status === "paid" && invoice.createdAt >= from && invoice.createdAt < to).length, waitlist: null }) });
+  auth.onAccountCreated(owner => alerts.signup(owner.email, auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email"));
+  analytics.onTrack((name, input = {}) => {
+    if (name === "site_goal" && input.props?.goal === "waitlist_join") alerts.waitlistJoin();
+    if (name === "checkout_paid" && input.accountId) alerts.paid(input.accountId, auth.account(input.accountId)?.email ?? null, Number(input.props?.amountCents) || 0);
+  });
   const limits = new Map<string, { count: number; until: number }>();
   const watching = new Map<string, number>();
   const lastWatching = new Map<string, boolean>();
@@ -320,7 +358,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (await pagesRoutes.handle(req, res, url)) return;
     const path = url.pathname;
     if (site && !ACCOUNT_PREFIXES.some(prefix => path.startsWith(prefix)) && !(path === pageBase || path.startsWith(`${pageBase}/`))
-      && !(method === "GET" && PAGE_ROUTES.some(route => path === route || path.startsWith(`${route}/`)))) return site(req, res);
+      && !(method === "GET" && PAGE_ROUTES.some(route => path === route || path.startsWith(`${route}/`)))) { analytics.crawlerVisit(req, new URL(publicUrl).hostname); return site(req, res); }
     if ((method === "GET" || method === "HEAD") && path === "/v1/health") {
       try { accessSync(options.dataDir, constants.W_OK); } catch { return json(res, 503, { ok: false, error: "data folder is not writable" }); }
       const database = stateBackend()?.health();
@@ -329,11 +367,16 @@ export function createDashboardApp(options: DashboardAppOptions) {
     }
     const mutation = ["POST", "PATCH", "DELETE"].includes(method);
     const appleCallback = method === "POST" && path === "/v1/auth/oauth/apple/callback" && req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() === "application/x-www-form-urlencoded";
-    if (mutation && !isAppCorsRoute(path) && !appleCallback) {
+    if (mutation && !isAppCorsRoute(path) && !appleCallback && path !== TRACK_PATH && path !== APP_EVENTS_PATH) {
       if (req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() !== "application/json") fail(403, "forbidden", "JSON is required.");
       if (req.headers.origin !== undefined && req.headers.origin !== publicUrl) fail(403, "forbidden", "Origin is not allowed.");
     }
     if (await auth.handle(req, res, url, { readBody, bodyObject })) return;
+    if (await analytics.handle(req, res, url, { readBody, bodyObject, json, rate, appAccount: request => auth.appSession(request)?.account.id ?? null,
+      isOwner: request => { const found = auth.webSession(request); return !!found && admin.isAdmin(found.account.email); }, account: (request, strict) => {
+      try { return auth.requireWeb(request, { mutation: strict }); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; }
+    } })) return;
+    if (await admin.handle(req, res, url)) return;
     if (method === "GET" && path === DASHBOARD_DISCOVERY_PATH) return json(res, 200, { v: 1, url: publicUrl });
     if (await edgeHost.handle(req, res, url, { readBody, bodyObject, json, signed: (request, body) => signed(request, body),
       account: (request, mutation) => auth.requireWeb(request, { mutation }) })) return;
@@ -369,6 +412,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (typeof input.enrollToken === "string") {
         ownerAccountId = auth.consumeEnrollGrant(input.enrollToken);
         if (!ownerAccountId) fail(403, "invalid_grant", "Enrollment grant is invalid.");
+        analytics.track("app_paired", { accountId: ownerAccountId, props: { via: "workspace", kind: data.kind } });
       }
       let ws = state.workspaces.find(item => item.publicKey === publicKey);
       if (ws?.ownerAccountId && !ownerAccountId) return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${pagesUrl}/?workspace=${ws.id}`, claimExpiresAt: 0, dashboardUrl: publicUrl });
@@ -424,6 +468,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
           const command = commands.get(ws.id)?.find(item => item.id === result.id && (item.status === "queued" || item.status === "sent"));
           if (command) { command.status = result.ok ? "done" : "failed"; command.message = result.message; command.doneAt = result.at; }
         }
+        if (ws.ownerAccountId && workspaceTurns(ws) > 0) analytics.botReplied(ws.ownerAccountId);
         store.changed();
         return json(res, 200, answer(ws));
       }
@@ -458,6 +503,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       const error = new Error(text(input.message, 500));
       error.name = /^[A-Za-z_$][\w$]{0,60}$/.test(text(input.type, 61)) ? text(input.type, 61) : "Error";
       error.stack = `${error.name}: ${error.message}\n${text(input.stack, 8000)}`;
+      errorsSeen.note("page");
       options.errors?.page.capture(error, { tags: { page: text(input.page, 64).replace(/[^\w/-]/g, "") || "unknown" } });
       res.writeHead(204, { "cache-control": "no-store" });
       res.end();
@@ -479,6 +525,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       ws.claimHash = null;
       ws.claimExpiresAt = 0;
       store.changed();
+      analytics.track("app_paired", { accountId: owner.id, props: { via: "workspace", kind: ws.kind } });
       return json(res, 200, { workspace: summary(ws) });
     }
     const match = /^\/v1\/workspaces\/([^/]+)(\/commands)?$/.exec(path);
@@ -522,10 +569,12 @@ export function createDashboardApp(options: DashboardAppOptions) {
     auth,
     billing,
     slackEdge: edgeHost,
+    analytics,
     handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
       return route(req, res).catch(error => {
-        if (error instanceof RequestError || error instanceof AuthError) json(res, error.status, req.url?.startsWith("/api/cloud/") ? { error: error.code } : { error: error.message, code: error.code });
+        if (error instanceof RequestError || error instanceof AuthError || error instanceof AdminError) json(res, error.status, req.url?.startsWith("/api/cloud/") ? { error: error.code } : { error: error.message, code: error.code });
         else {
+          errorsSeen.note("service");
           options.errors?.service.capture(error, { tags: { route: (req.url ?? "/").split("?")[0]!.split("/").slice(0, 3).join("/") } });
           json(res, 500, req.url?.startsWith("/api/cloud/") ? { error: "failed" } : { error: "Request failed.", code: "failed" });
         }
@@ -537,6 +586,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
       closed = true;
       for (const wait of Array.from(waits.values())) wait.cancel();
       auth.close();
+      analytics.close();
+      alerts.close();
       store.close();
     },
   };

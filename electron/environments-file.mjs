@@ -1,6 +1,7 @@
 // The saved servers' file (environments.json): read back with each local environment's folder checked, written whole
 // through a temporary file so a crash never leaves half a list.
 import environmentsModule from "./environments.cjs";
+import { writeFileDurably } from "./desktop-prefs.mjs";
 
 const { LOCAL_ID, parseEnvironments, serializeEnvironments } = environmentsModule;
 
@@ -48,13 +49,10 @@ export function createEnvironmentsFile({ file, fs, path, log = () => {}, now = D
     },
     write(state) {
       const target = file();
-      const temporary = `${target}.${process.pid}.tmp`;
       try {
         fs.mkdirSync(path.dirname(target), { recursive: true });
-        fs.writeFileSync(temporary, serializeEnvironments(state), { mode: 0o600 });
-        fs.renameSync(temporary, target);
+        writeFileDurably(target, serializeEnvironments(state), fs);
       } catch (error) {
-        try { fs.rmSync(temporary, { force: true }); } catch {}
         log(`environments save failed: ${error?.message ?? error}`);
         throw new Error("Could not save server connections on this computer. Please try again.");
       }

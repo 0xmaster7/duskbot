@@ -14,6 +14,8 @@ import { createDashboardApp } from "../server/app.ts";
 import { startFakeProviders } from "../server/auth/fake-providers.ts";
 import { memoryMailer } from "../server/auth/mail.ts";
 import { CSRF_HEADER } from "../../../shared/account-api.ts";
+import { memorySink } from "../server/analytics/sink.ts";
+import { seedAdminAuth, seedAdminData, seedWaitlist } from "./fixture-admin.ts";
 
 const { values } = parseArgs({ options: { port: { type: "string", default: "7480" }, email: { type: "string", default: "sid@duskbot.test" }, demo: { type: "boolean", default: false }, "session-file": { type: "string" } } });
 const port = Number(values.port);
@@ -27,7 +29,10 @@ mailer.send = async message => {
   console.log(`code for ${message.to}: ${message.text.match(/\b\d{8}\b/)?.[0] ?? ""}`);
 };
 let csrfToken = "";
-const app = createDashboardApp({ dataDir, publicUrl: url, mailer, oauth: providers.config, staticDir: decodeURIComponent(new URL("../dist", import.meta.url).pathname) });
+// --demo also makes the fixture's account the admin and fills the admin panel with made-up people, clouds and events
+const seeded = values.demo ? seedAdminAuth(dataDir, Date.now()) : [];
+const app = createDashboardApp({ dataDir, publicUrl: url, mailer, oauth: providers.config, staticDir: decodeURIComponent(new URL("../dist", import.meta.url).pathname),
+  analytics: { sink: memorySink(), waitlist: values.demo ? seedWaitlist(Date.now()) : null }, admin: { emails: values.demo ? [values.email] : [], env: {} } });
 const server = createServer(app.handle);
 await new Promise<void>((resolve) => server.listen(port, "127.0.0.1", resolve));
 
@@ -46,7 +51,7 @@ console.log(JSON.stringify({ url, dataDir, signedIn: verify.res.ok, sessionFile:
 
 console.log("Google, Apple and X sign in instantly as local fake users (X asks for an email code first).");
 
-if (values.demo) void demo(cookie);
+if (values.demo) { await seedAdminData(app, seeded, Date.now()); console.log("admin panel: /admin"); void demo(cookie); }
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, async () => {
   await providers.close();

@@ -1,3 +1,4 @@
+import { feature } from "./product-analytics";
 import { track } from "@/lib/analytics";
 import {
   allow, APP, BOT_SOURCE, BOT_TEMPLATE, CALL_MODE, CONNECTOR_RESULT, engineSlug, KEY_PROVIDER, KEY_RESULT, KEY_VIA, ROOM_MODE,
@@ -41,12 +42,14 @@ export function engineSignedIn(engine: string, method: SignInMethod): void {
 }
 
 export function botCreated(source: BotSource, template?: string): void {
+  feature("bot_created");
   track("bot_created", source === "template"
     ? { source, template: allow(template, BOT_TEMPLATE) }
     : { source: allow(source, BOT_SOURCE) });
 }
 
 export function connectorConnect(app: string, result: ConnectorResult): void {
+  if (result === "connected") feature("app_connected");
   track("connector_connect", { app: allow(app, APP), result: allow(result, CONNECTOR_RESULT) });
 }
 

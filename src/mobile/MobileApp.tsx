@@ -1,3 +1,4 @@
+import { useProductScreen } from "@/lib/product-analytics-app";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { MotionConfig } from "motion/react";
 import { openBot, openBotThread, openRoomThread, StoreProvider, useStore } from "@/state/store";
@@ -32,6 +33,7 @@ function Shell() {
   const [chatId, setChatId] = useState<string | null>(null);
   const [sheet, setSheet] = useState<MobileSheet | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  useProductScreen(sheetOpen && sheet ? `/${sheet.kind}` : chatId ? "/chats/:id" : "/", chatId);
   useTeamChats(state.config);
   useWarmChatImages(state.bots);
   usePageLanguage(effectiveLanguage(useLanguageChoice(), state.config?.language));

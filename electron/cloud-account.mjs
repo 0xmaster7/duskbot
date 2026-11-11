@@ -739,6 +739,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       if (!pairing) throw new Error("Invalid Cloud pairing response.");
       return pairing;
     },
+    /** The signed-in account's token for main's usage reports to this same origin (product-events.mjs); never leaves main. */
+    eventToken: () => (!closed && !quiet && grant && grant.expiresAt > now() ? grant.token : null),
     /** `origin` is the address of a Cloud the person owns (My Cloud or another of theirs), by the verified session only. */
     isOwnCloud(origin) {
       const current = state();

@@ -6,6 +6,7 @@ import { navigate, useLocation } from "./lib/router";
 import { initTheme } from "./lib/theme";
 import { planIntent, planQuery } from "./lib/site";
 import { reportPageErrors } from "./lib/page-errors";
+import { trackPage } from "./lib/analytics";
 import { Button, ButtonLink } from "./ui/kit";
 import { Shell } from "./ui/Shell";
 import { SkyEmpty } from "./ui/Sky";
@@ -42,6 +43,7 @@ const AccountPage = page(() => import("./pages/Account"), (m) => m.AccountPage);
 const DeviceApprovalPage = page(() => import("./pages/DeviceApproval"), (m) => m.DeviceApprovalPage);
 const DeleteDataPage = page(() => import("./pages/DeleteData"), (m) => m.DeleteDataPage);
 const Onboarding = page(() => import("./pages/Onboarding"), (m) => m.Onboarding);
+const AdminApp = page(() => import("./admin/AdminApp"), (m) => m.AdminApp);
 
 // after the first page has painted, fetch the others in idle time so moving between them never waits;
 // connectors carries the 450 kB app catalogue and loads when opened
@@ -103,6 +105,7 @@ function SignedIn() {
   useEffect(() => { if (moved) navigate(moved, { replace: true }); }, [moved]);
   if (moved) return null;
   const blank = <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
+  if (path === "/admin" || path.startsWith("/admin/")) return <Suspense fallback={blank}><AdminApp /></Suspense>;
   if (welcome && intent && account === null && !error) return blank;
   const onboard = welcome || (account !== null && !account.profile.onboarded && path !== "/claim" && path !== "/cloud/desktop" && deletePageId(path) === null);
   if (onboard) return <Suspense fallback={blank}><Onboarding /></Suspense>;
@@ -110,7 +113,9 @@ function SignedIn() {
 }
 
 function App() {
-  const { path } = useLocation();
+  const { path, query } = useLocation();
+  const search = query.toString();
+  useEffect(() => trackPage(path, new URLSearchParams(search)), [path, search]);
   const { account, accountError, retryAccount } = useSession();
   useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "bot" : path.startsWith("/workspaces/") ? "workspace" : deletePageId(path) !== null ? "delete cloud data" : "account")} · dusk bot`; }, [path]);
   if (accountError) return <main className="flex min-h-[100dvh] items-center justify-center bg-bg px-6"><SkyEmpty art="cat" title="can't reach your account right now." action={<Button variant="primary" onClick={retryAccount}>try again</Button>} className="w-full max-w-[520px]">check your connection. your bots are fine, they live on your own computers.</SkyEmpty></main>;

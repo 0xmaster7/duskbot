@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CLOUD_STATUSES, CLOUD_SWATCHES } from "../../../../shared/billing-api.ts";
-import type { CloudDesktopView, MachineSpec } from "../../../../shared/billing-api.ts";
+import type { CloudDesktopView, CloudStatus, MachineSpec } from "../../../../shared/billing-api.ts";
 import { createJsonStore } from "../billing/json-store.ts";
 import { dedicatedUserData, linkKeys, originFor, poolBootstrap } from "./bootstrap.ts";
 import { PoolFullError } from "./pool.ts";
@@ -50,6 +50,8 @@ export interface CloudsServiceOptions {
   entitlements?: { sign(cloud: StoredCloud): string } | null;
   /** told once per cloud: its first time running, and its deletion by the generic lifecycle (a managed backend sends its own) */
   onEvent?: (kind: CloudEventKind, cloud: StoredCloud) => void;
+  /** every status change, after it is stored */
+  onStatus?: (cloud: StoredCloud, from: CloudStatus | null) => void;
 }
 export type CloudEventKind = "ready" | "deleted";
 interface State { v: 1; clouds: StoredCloud[] }
@@ -75,6 +77,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     cloud.mailed = { ready: cloud.createdAt, ...(cloud.status === "destroyed" ? { deleted: cloud.updatedAt } : {}) }; store.commit();
   }
   const powerChanges = new Map<string, number[]>();
+  const statusOf = new Map(store.state.clouds.map(c => [c.id, c.status]));
   let pending = Promise.resolve(), reconciling: Promise<void> | null = null, closed = false;
   function exclusive<T>(fn: () => Promise<T>): Promise<T> { const result = pending.then(fn); pending = result.then(() => {}, () => {}); return result; }
   function save(c: StoredCloud) {
@@ -84,6 +87,8 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     if (c.status === "destroyed" && c.provisionedAt !== undefined && c.backend !== "managed" && !c.mailed?.deleted) { (c.mailed ??= {}).deleted = now(); events.push("deleted"); }
     store.commit();
     for (const kind of events) try { options.onEvent?.(kind, c); } catch { console.warn(`clouds: the ${kind} notice failed`); }
+    const from = statusOf.get(c.id) ?? null;
+    if (from !== c.status) { statusOf.set(c.id, c.status); try { options.onStatus?.(c, from); } catch { console.warn("clouds: the status notice failed"); } }
   }
   function get(id: string) { return store.state.clouds.find(c => c.id === id) ?? null; }
   function requireCloud(id: string) { const cloud = get(id); if (!cloud) throw new CloudError(404, "not_found"); return cloud; }
@@ -306,6 +311,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     },
     owned(accountId, id) { const c = get(id); return c?.accountId === accountId ? c : null; },
     byWorkspace(workspaceId) { return store.state.clouds.find(c => c.workspaceId === workspaceId && c.status !== "destroyed") ?? null; },
+    all() { return [...store.state.clouds]; },
     list(accountId, includeHidden = false) { return store.state.clouds.filter(c => c.accountId === accountId && (includeHidden || !c.hidden)).reverse().sort((a, b) => b.createdAt - a.createdAt); },
     view(c) {
       return { ...viewOf(c), ...(c.backend && managed ? managed.view(c) : {}) };

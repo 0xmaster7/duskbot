@@ -1,7 +1,7 @@
 import { createPrivateKey, randomBytes } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRelaySecrets, deviceChannelKey, unbase64 } from "./link-crypto";
-import { frameGuard, open, openFrame, readFrameBatches, RelayGoneError, sealFrame, type RelayFrame } from "./relay";
+import { frameGuard, noteRelayDate, open, openFrame, readFrameBatches, RelayGoneError, sealFrame, type RelayFrame } from "./relay";
 
 const protocolPath = "../../../electron/vps-link-protocol.mjs";
 const protocol = await import(protocolPath);
@@ -41,6 +41,23 @@ describe("relay crypto compatibility", () => {
     expect(await openFrame(key, channel, "to-app", sealed, frameGuard(() => Date.now() + 310_000))).toBeNull();
     expect(await openFrame(key, channel, "to-app", sealed, frameGuard(() => Date.now() - 310_000))).toBeNull();
     expect(frameGuard()("iv", Number.NaN)).toBe(false);
+  });
+
+  it("a phone clock ten minutes slow still takes the server's frames once it has heard the relay's time", async () => {
+    const sealed = protocol.sealFrame(key, channel, "to-app", { t: "end", r: "abcdefghijkl" });
+    const truth = Date.now();
+    try {
+      vi.spyOn(Date, "now").mockReturnValue(truth - 10 * 60_000);
+      expect(await openFrame(key, channel, "to-app", sealed, frameGuard())).toBeNull();
+      noteRelayDate(new Date(truth).toUTCString());
+      expect(await openFrame(key, channel, "to-app", sealed, frameGuard())).not.toBeNull();
+      const back = await sealFrame(key, channel, "to-vps", { t: "end", r: "abcdefghijkl" });
+      vi.restoreAllMocks();
+      expect(protocol.openFrame(key, channel, "to-vps", back, protocol.frameGuard())).not.toBeNull();
+    } finally {
+      vi.restoreAllMocks();
+      noteRelayDate(new Date().toUTCString());
+    }
   });
 });
 

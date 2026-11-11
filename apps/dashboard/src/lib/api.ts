@@ -1,6 +1,7 @@
 import type { DeletionBlocker, DeleteAccountOptions } from "../../../../shared/billing-api";
 import type { CommandKind, CommandView, WorkspaceDetail, WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import type { AccountDevice, AccountProfile, AuthProviders, BillingOverview, CheckoutAnswer, CheckoutRequest, CloudDesktop, DesktopId, EmailCodeStart, Identity, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection, SlackWake } from "../data/contracts";
+import { track } from "./analytics";
 import { accountFromWire, billingFromWire, cartFromQuote, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire } from "../data/live";
 import { CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, type AccountAnswer, type AccountView, type BillingOverview as WireBillingOverview, type CancelAnswer, type Catalog, type ChangePreview, type CheckoutAnswer as WireCheckoutAnswer, type CloudDesktopView, type DeviceLookupAnswer, type EmailStartAnswer, type MeAnswer, type ProvidersAnswer, type Quote, type WebSignInAnswer } from "../data/wire";
 
@@ -140,6 +141,7 @@ export const api = {
     if (FIXTURE) return send("/v1/account/onboarded", "POST");
     if (!accountId) await api.me();
     localStorage.setItem(`omb-dash-onboarded:${accountId}`, "1");
+    track({ name: "onboarding_done" });
   },
   setNotifications: async (prefs: NotificationPrefs) => {
     if (FIXTURE) return send("/v1/account/notifications", "PUT", prefs);

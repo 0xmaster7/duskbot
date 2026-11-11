@@ -422,6 +422,21 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (state === "expired") { fail(res, 404, "This command expired. Make a new one in the app.", "expired"); return null; }
     return session;
   }
+  /**
+   * the vps sending its result again because the first answer was lost: only the sender of the first result knows its
+   * sealed blob and tunnel verifier, so the same pair is answered as before and anything else stays "already used"
+   */
+  async function sameResultAgain(req, res, id) {
+    const session = store.sessions.get(id);
+    if (!session || session.state !== "linked" || !sameHash(bearer(req), session.vpsVerifier)) return false;
+    const body = await readJson(req);
+    const tunnel = session.tunnel ? store.tunnels.get(session.tunnel) : null;
+    const same = typeof body?.sealed === "string" && body.sealed === session.sealed
+      && (tunnel ? body?.tunnel?.vps === tunnel.vpsVerifier && body?.tunnel?.app === tunnel.appVerifier : body?.tunnel === undefined);
+    if (same) send(res, 200, { ok: true, repeated: true });
+    else fail(res, 410, "This command was already used. Make a new one in the app.", "used");
+    return true;
+  }
   function appSession(req, res, id) {
     const session = store.sessions.get(id);
     if (!session || !sameHash(bearer(req), session.watchVerifier)) { fail(res, 404, "not found", "not_found"); return null; }
@@ -619,6 +634,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         return send(res, 200, { ip, reachable });
       }
       if (action === "result" && method === "POST") {
+        if (await sameResultAgain(req, res, id)) return;
         const session = vpsSession(req, res, id);
         if (!session) return;
         if (session.state === "waiting") return fail(res, 409, "claim first", "not_claimed");

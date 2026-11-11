@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo } from "react";
 import { useStore, type Action } from "@/state/store";
 import { installSendOutbox, type OutboxSend, type SendOutbox } from "@/state/send-outbox";
-import { ActiveConnection } from "./connection/active";
+import { ActiveConnection, outboxKey } from "./connection/active";
 import { usePlatform, type MobilePlatform } from "./platform";
 
 /** a send older than this is given up on rather than delivered into a conversation that has moved on */
@@ -107,7 +107,7 @@ export function useOutbox() {
   const platform = usePlatform();
   const connection = useContext(ActiveConnection);
   const { state, dispatch } = useStore();
-  const outbox = useMemo(() => (connection ? createOutbox(platform.prefs, `omb.mobile.outbox.${connection}`) : null), [platform, connection]);
+  const outbox = useMemo(() => (connection ? createOutbox(platform.prefs, outboxKey(connection)) : null), [platform, connection]);
   useEffect(() => (outbox ? installSendOutbox(outbox) : undefined), [outbox]);
   const ready = Boolean(outbox && state.hydrated && state.connected);
   useEffect(() => { if (ready) void outbox!.flush(dispatch); }, [ready, outbox, dispatch]);

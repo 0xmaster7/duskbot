@@ -35,6 +35,8 @@ function railPage(): Plugin {
 
 const include = [
   "apps/dashboard/server/**/*.test.ts",
+  "apps/dashboard/tracker/**/*.test.ts",
+  "apps/dashboard/src/admin/**/*.test.ts",
   "apps/cloud-service/**/*.test.ts",
   "server/**/*.test.ts",
   "electron/**/*.test.mjs",

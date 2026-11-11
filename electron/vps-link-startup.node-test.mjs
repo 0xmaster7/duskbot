@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 
+import { jsonFile } from "./desktop-prefs.mjs";
 import { createVpsLink } from "./vps-link.mjs";
 import { seal, sealKeyOf, x25519Pair } from "./vps-link-protocol.mjs";
 
@@ -251,4 +255,20 @@ test("startup waits only for its selected saved server and refuses an unknown en
   assert.deepEqual(await waiting, { id: "aaaaaaaaaa", origin: "http://vps-aaaaaaaaaa.localhost:26" });
   assert.deepEqual(calls, [], "listener readiness must not probe engines or wait for a model CLI");
   await link.close();
+});
+
+test("a damaged saved-links file is kept aside before the first save can write over it", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "omb-vps-link-"));
+  try {
+    const file = path.join(dir, "vps-link.json");
+    const damaged = '{"v":1,"current":"aaaaaaaaaa","links":[{"id":"aaaaaaaaaa","keyP":"p:k';
+    writeFileSync(file, damaged);
+    const store = jsonFile(file);
+    const logged = [];
+    const { link } = controller([], { store: { ...store, setAside: () => store.setAside(7) }, log: (line) => logged.push(line) });
+    assert.deepEqual(readdirSync(dir), ["vps-link.json.unreadable-7"]);
+    assert.equal(readFileSync(path.join(dir, "vps-link.json.unreadable-7"), "utf8"), damaged);
+    assert.match(logged.join("\n"), /kept them as .*unreadable-7/);
+    await link.close();
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

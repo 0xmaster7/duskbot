@@ -1,4 +1,6 @@
 import "../electron/legacy-names.mjs";
+import { startDesktopAnalytics } from "./lib/product-analytics-app";
+import { screen as productScreen } from "./lib/product-analytics";
 import { AccountGate } from "./components/account-gate/AccountGate";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -23,6 +25,7 @@ import "./styles/overlays.css";
 import "./styles/motion.css";
 
 // Before first paint.
+startDesktopAnalytics();
 applySkinChoice(readSkinChoice());
 applyFont(readFont());
 applyChatWidth(readChatWidth());
@@ -36,6 +39,7 @@ const loadApp = () => import("./App").catch((error: unknown) => ({ default: (): 
 const appPage = PAGES_WITHOUT_THE_APP.has(location.pathname) ? null : loadApp();
 
 async function chooseRoot(): Promise<React.ReactNode> {
+  productScreen(PAGES_WITHOUT_THE_APP.has(location.pathname) ? location.pathname : "/");
   const home = window.ogb?.home;
   if (location.pathname === "/home" && home) return <HomeScreen bridge={home} manage={window.ogb?.cloudPlan?.manage} />;
   const reconnect = window.ogb?.reconnect;
@@ -49,7 +53,7 @@ async function chooseRoot(): Promise<React.ReactNode> {
     return <PairPage initialCode={takePairingCodeFromLocation()} initialEmail={takeInvitedEmailFromLocation()} />;
   }
   const accountGate = window.ogb?.accountGate;
-  if (!PAGES_WITHOUT_THE_APP.has(location.pathname) && accountGate && (await accountGate.state()).blocked) return <AccountGate bridge={accountGate} />;
+  if (!PAGES_WITHOUT_THE_APP.has(location.pathname) && accountGate && (await accountGate.state()).blocked) { productScreen("/sign-in"); return <AccountGate bridge={accountGate} />; }
   const session = await readSessionState();
   if (session.kind === "unauthenticated") {
     const pair = <PairPage initialCode={null} reason={endedBeforeReload() ? SESSION_ENDED_REASON : session.error} />;

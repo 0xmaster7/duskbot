@@ -56,6 +56,20 @@ export const AGENT_CAPS = Object.freeze(["direct-ssh", "direct-wss", "egress", "
 /** what this agent says about itself, in its direct hello and its answer to the app's `hello` */
 export const agentHello = () => ({ protocol: LINK_PROTOCOL, minApp: LINK_MIN_APP, minServer: LINK_MIN_SERVER, agent: AGENT_VERSION, caps: [...AGENT_CAPS] });
 const FRAME_SKEW_MS = 5 * 60_000;
+/**
+ * frames are stamped and checked in the link service's time (its Date header), so an app and a server whose own clocks
+ * disagree by more than FRAME_SKEW_MS still take each other's frames; a peer on its own clock still matches when that
+ * clock is right. differences under RELAY_CLOCK_SLACK_MS are the header's one-second grain and the trip, not drift.
+ */
+const RELAY_CLOCK_SLACK_MS = 3000;
+let relayOffsetMs = 0;
+export function noteRelayDate(value, now = Date.now()) {
+  const at = Date.parse(value ?? "");
+  if (!Number.isFinite(at)) return;
+  const offset = at + 500 - now;
+  relayOffsetMs = Math.abs(offset) < RELAY_CLOCK_SLACK_MS ? 0 : offset;
+}
+export const relayNow = () => Date.now() + relayOffsetMs;
 const CHUNK = 128 * 1024;
 /** one post stays well under a proxy's usual 1 MB body limit (nginx's default) */
 const BATCH_BYTES = 700 * 1024;
@@ -224,7 +238,7 @@ export function open(key, aad, sealed) {
   return Buffer.concat([decipher.update(raw.subarray(12, raw.length - 16)), decipher.final()]);
 }
 /** frames carry their time and are refused twice or when stale, so a relay cannot replay an old request */
-export function frameGuard(now = Date.now) {
+export function frameGuard(now = relayNow) {
   const seen = new Map();
   return (iv, ts) => {
     const t = now();
@@ -237,14 +251,14 @@ export function frameGuard(now = Date.now) {
   };
 }
 export function sealFrame(key, id, dir, frame, raw = false) {
-  return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.from(JSON.stringify({ ...frame, ts: Date.now() })));
+  return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.from(JSON.stringify({ ...frame, ts: relayNow() })));
 }
 /** a websocket's bytes travel raw, not as base64 in json: 0x01, the 12-letter stream id, the time, then the bytes */
 export function sealBytes(key, id, dir, r, bytes, raw = false) {
   const head = Buffer.alloc(21);
   head[0] = 1;
   head.write(r, 1, 12, "latin1");
-  head.writeDoubleBE(Date.now(), 13);
+  head.writeDoubleBE(relayNow(), 13);
   return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
 }
 /**
@@ -297,6 +311,7 @@ export function keepAliveFetch({ maxSockets = 8, tls = {} } = {}) {
       res.once("close", () => signal?.removeEventListener("abort", stop));
       const headers = new Headers();
       for (const [name, value] of Object.entries(res.headers)) for (const one of Array.isArray(value) ? value : [value]) headers.append(name, one);
+      noteRelayDate(headers.get("date"));
       const empty = res.statusCode === 204 || res.statusCode === 205 || res.statusCode === 304 || init.method === "HEAD";
       if (empty) res.resume();
       resolve(new Response(empty ? null : Readable.toWeb(res), { status: res.statusCode, headers }));
@@ -420,6 +435,7 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
       const status = head[":status"];
       const out = new Headers();
       for (const [name, value] of Object.entries(head)) if (!name.startsWith(":")) for (const each of Array.isArray(value) ? value : [value]) out.append(name, String(each));
+      noteRelayDate(out.get("date"));
       const empty = status === 204 || status === 205 || status === 304 || init.method === "HEAD";
       if (empty) stream.resume();
       resolve(new Response(empty ? null : Readable.toWeb(stream), { status, headers: out }));
@@ -925,12 +941,37 @@ async function link() {
     tunnel: { id, key: tunnel.key, token: tunnel.app },
   };
   const sealed = seal(sealKeyOf(mine.priv, mine.pub, appPub, id), id, Buffer.from(JSON.stringify(payload)));
-  writePrivate(tunnelFile(), JSON.stringify({ v: 1, base, id, key: tunnel.key, token: tunnel.vps, mode, origin }));
+  // tunnels this server held before stay listed until the new one is confirmed, so an interrupted link still retires them
+  const before = [saved, ...(Array.isArray(saved?.before) ? saved.before : [])]
+    .filter((one) => one?.id && one.id !== id && typeof one.token === "string").map(({ id: oldId, base: oldBase, token: oldToken }) => ({ id: oldId, base: oldBase, token: oldToken })).slice(0, 4);
+  const record = { v: 1, base, id, key: tunnel.key, token: tunnel.vps, mode, origin };
+  writePrivate(tunnelFile(), JSON.stringify(before.length ? { ...record, before } : record));
   const result = await relay(base, `/v1/sessions/${id}/result`, token, {
     method: "POST", body: JSON.stringify({ sealed, vpsPub: mine.pub, tunnel: { vps: sha256hex(tunnel.vps), app: sha256hex(tunnel.app) } }),
   });
   if (result.status !== 200) throw new Error(result.body?.error ?? `the link service answered ${result.status}`);
+  if (before.length) {
+    for (const one of before) await retireTunnel(one);
+    writePrivate(tunnelFile(), JSON.stringify(record));
+  }
   return 0;
+}
+
+/**
+ * a server linked again (a new app, a second mac, a reinstalled app) has one tunnel: the one it replaced is ended at the
+ * service, so the app that held it reads "unlinked" instead of waiting on a tunnel nobody serves, and that app's direct
+ * key stops opening this agent
+ */
+export async function retireTunnel(saved, { removeKey = setDirectKey } = {}) {
+  if (typeof saved?.token === "string" && /^[a-z2-7]{10}$/.test(saved.id ?? "") && typeof saved.base === "string") {
+    try {
+      const answer = await relay(saved.base, `/v1/tunnels/${saved.id}`, saved.token, { method: "DELETE" });
+      if (answer.status !== 200 && answer.status !== 404) console.error(`the tunnel this server had before was not ended (${answer.status})`);
+    } catch (error) {
+      console.error(`the tunnel this server had before was not ended (${error?.message ?? error})`);
+    }
+  }
+  try { removeKey(saved.id, null); } catch (error) { console.error(`the direct key of the tunnel before was not removed (${error?.message ?? error})`); }
 }
 
 // ---- tunnel ----

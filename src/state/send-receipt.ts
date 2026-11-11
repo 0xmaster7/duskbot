@@ -1,3 +1,4 @@
+import { noteAcceptedMessage } from "@/lib/product-analytics";
 import type { Action, Message } from "./store";
 
 export function applySendReceipt(
@@ -9,6 +10,7 @@ export function applySendReceipt(
   if (!("body" in sent) || !sent.body || typeof sent.body !== "object") return;
   const body = sent.body as { threadId?: unknown; message?: Message; queued?: boolean; queueId?: unknown; reason?: unknown };
   if (typeof body.threadId !== "string") return;
+  if (body.message) noteAcceptedMessage(sendId, body.message.id);
   if (body.message) dispatch({ type: "messageAdded", threadId: body.threadId, message: body.message });
   if (!body.queued || typeof body.queueId !== "string") return;
   dispatch({ type: "optimisticMessageRemoved", threadId: body.threadId, sendId });

@@ -1,3 +1,4 @@
+import { feature } from "@/lib/product-analytics";
 import { useEffect, useState } from "react";
 import { GitBranch, Wrench } from "../icons";
 import { api, useStore, formatTime } from "@/state/store";
@@ -28,7 +29,7 @@ export function SearchResults({ query, onLanded }: { query: string; onLanded: ()
     let alive = true;
     const timer = setTimeout(() => {
       api(`/api/search?q=${encodeURIComponent(q)}&limit=40`)
-        .then((r: { hits: SearchHit[] }) => alive && (setHits(r.hits), setError(null)))
+        .then((r: { hits: SearchHit[] }) => alive && (feature("search_used"), setHits(r.hits), setError(null)))
         .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)));
     }, DEBOUNCE_MS);
     return () => {
