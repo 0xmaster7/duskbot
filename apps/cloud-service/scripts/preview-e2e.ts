@@ -579,7 +579,9 @@ async function run() {
     if (!desk || !ph) throw new Error(`asleep shown ${JSON.stringify(results.pausedShown)}`);
   });
   await step("resume: a message sent from the desktop wakes it; both recover", async () => {
-    await pressText(dpage, "Adalyn"); await sleep(1000);
+    const onAdalyn = () => dpage.evaluate(() => [...document.querySelectorAll("textarea")].some((el: any) => el.offsetParent !== null && el.placeholder === "Message Adalyn"));
+    for (let n = 0; n < 5 && !(await onAdalyn()); n++) { await pressText(dpage, "Adalyn"); await sleep(1000); }
+    if (!(await onAdalyn())) throw new Error("the desktop did not open Adalyn's chat while asleep");
     const before = (await botReplies(ada).catch(() => [])).length, text = `after the pause ${randomUUID().slice(0, 6)}`;
     const asked = Date.now();
     if (!(await typeAndSend(dpage, text))) throw new Error("no composer while asleep");
