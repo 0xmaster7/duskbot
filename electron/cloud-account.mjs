@@ -5,9 +5,9 @@ import { planTeam, teamPlan } from "./cloud-team-plan.mjs";
 import { linkSignIn } from "./cloud-signin-link.mjs";
 import { APP_PROVIDERS, APP_TOKEN, cleanCode, cleanEmail, LINK_MS, LINK_PROVIDERS, linkFailure, parseAppLink, parseProviders, parseSignInStart, SIGN_IN_START, SIGN_IN_TRIES, SIGN_IN_VERIFY, signInIdentity, startFailure, verifyFailure } from "./cloud-signin.mjs";
 
-export const CLOUD_ORIGIN = "https://app.dusk.bot";
+export const CLOUD_ORIGIN = "https://dusk.bot";
 /** The staging Admin (Dodo test mode, real test Clouds): a fixed address, on only with DUSK_CLOUD_STAGING=1. */
-export const STAGING_CLOUD_ORIGIN = "https://dev.dusk.bot";
+export const STAGING_CLOUD_ORIGIN = "https://preview.dusk.bot";
 /** Which Admin this app signs in to, and the files that depend on it (the sign-in, saved servers with the Cloud's
  * entry, Files' state, the Cloud's chosen name): staging never reads or writes production's. */
 export function cloudTarget(env = process.env) {

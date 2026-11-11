@@ -66,7 +66,7 @@ written to be done in order. **Done** means committed and checked; **Owner** mea
    Google Play developer account (one-time USD 25), screenshots, the privacy nutrition label (use
    https://dusk.bot/privacy and `docs/ios-privacy.md`), and push credentials (APNs key, FCM service account).
 
-## 2. Hosted services (app.dusk.bot, dev.dusk.bot)
+## 2. Hosted services (dusk.bot, preview.dusk.bot)
 
 ### Done
 
@@ -83,34 +83,24 @@ written to be done in order. **Done** means committed and checked; **Owner** mea
 
 ### Owner: deploy the account service
 
-Nothing here was deployed with real keys. app.dusk.bot and dev.dusk.bot still serve the placeholder pages.
+One public origin, `https://dusk.bot`: the site at `/` (the waitlist page before launch), the dashboard at
+`/dashboard`, the owner's admin at `/admin`, the API at `/v1` and `/api`. `preview.dusk.bot` is the staging copy with
+the same paths and the full marketing site. `app.dusk.bot`, `dev.dusk.bot` and `www.dusk.bot` point at the same service
+and redirect (app to `/dashboard`, dev home, www to the apex); old `/app/...` and `/app/admin/...` links redirect too.
 
-1. On the VPS check `node --version` is 24 or later for the account service (it runs TypeScript directly) and that
-   `pnpm` is installed for root (`corepack enable`).
-2. Fill a copy of `deploy/account/production.env.example` outside the repo (`chmod 600`), at least:
-   `DUSK_DASHBOARD_PUBLIC_URL=https://app.dusk.bot`, `DUSK_DASHBOARD_DATA=/var/lib/dusk-account`,
-   `DUSK_TRUST_PROXY=1`, `DUSK_ENVIRONMENT=production`, `DUSK_MAIL_PROVIDER=brevo`, `DUSK_BREVO_API_KEY`,
-   `DUSK_MAIL_FROM`, `DUSK_OPS_ALERT_EMAIL`, `DUSK_ERROR_DSN`, and for billing `DUSK_BILLING_PROVIDER=dodo`,
-   `DUSK_DODO_MODE=live`, `DUSK_DODO_API_KEY`, `DUSK_DODO_WEBHOOK_SECRET`, `DUSK_DODO_PRODUCTS`,
-   `DUSK_ENTITLEMENT_SIGNING_KEY`. Add the cloud desktop names only when Dusk Cloud opens.
-3. Deploy from GitHub with deployd (it auto-pulls new commits; `--force` is needed because `dusk-app` holds the
-   domain, which only you should approve):
-   ```sh
-   deploy --repo git@github.com:goatedgrokbotalternative/duskbot.git --name dusk-account --domain app.dusk.bot \
-     --env-file ~/secure/dusk-account.env \
-     --install "pnpm install --frozen-lockfile --ignore-scripts && pnpm build:dashboard" \
-     --cmd 'set -a; . ./.env; set +a; mkdir -p "$DUSK_DASHBOARD_DATA"; DUSK_DASHBOARD_PORT=$PORT exec node apps/dashboard/server/main.ts'
-   deploy rm dusk-app      # the placeholder, once app.dusk.bot answers from dusk-account
-   curl -4 -fsS https://app.dusk.bot/v1/health
-   ```
+1. On the VPS the service runs on `/opt/node24` (it runs TypeScript directly).
+2. Fill `~/.config/duskbot/account-production.env` (0600) from `deploy/account/production.env.example`: production uses
+   `MONGODB_DB=dusk_prod` (its own writer lease) with the `dusk_prod` user, `DUSK_WAITLIST_DB=dusk` for the admin's
+   waitlist view, `DUSK_DASHBOARD_PAGE_BASE=/dashboard`, `DUSK_SITE_UPSTREAM=http://127.0.0.1:3103` (dusk-landing).
+3. `deploy/account/deploy.sh production` (or `preview`), then `curl -fsS https://dusk.bot/v1/health`.
    The deploy key must be able to read the private repo (a read-only deploy key on the repo).
 4. **Brevo**: add and authenticate the domain dusk.bot (its Brevo code, DKIM and a DMARC record
    `v=DMARC1; p=quarantine; rua=mailto:hello@dusk.bot`) in DNS, create an API key.
 5. **Dodo Payments**: live mode products for each plan id in `shared/billing-api.ts`; webhook
-   `https://app.dusk.bot/v1/billing/webhooks/dodo` with its secret; business verification and payout details
+   `https://dusk.bot/v1/billing/webhooks/dodo` with its secret; business verification and payout details
    (payment details are yours to enter).
 6. **Sign in with Google / Apple / X** (optional): register the callbacks
-   `https://app.dusk.bot/v1/auth/oauth/{google,apple,x}/callback` and set the client names in the env file.
+   `https://dusk.bot/v1/auth/oauth/{google,apple,x}/callback` (and the preview.dusk.bot ones) and set the client names in the env file.
 7. **Mailboxes**: hello@, privacy@ and security@dusk.bot must receive mail (Spaceship email forwarding or a mail host;
    MX records).
 8. **Backups**: `apt install age rclone`; create an age key pair on your Mac (`age-keygen -o ~/secure/dusk-backup.key`;
@@ -125,8 +115,11 @@ Nothing here was deployed with real keys. app.dusk.bot and dev.dusk.bot still se
    Test a restore once: `rclone copy remote:bucket/account/<file> . && age -d -i ~/secure/dusk-backup.key <file> | tar -tz`.
 9. **Log rotation**: `cp deploy/account/logrotate.conf /etc/logrotate.d/dusk && logrotate -d /etc/logrotate.d/dusk`.
 10. **Rate limits at the edge** (optional, defence in depth): a `limit_req` zone on `/v1/auth/` in deployd's nginx
-    template; the service already limits sign-in starts (20 an hour per IP, 6 per email), code checks (60/h),
-    enrolls (30/h) and page error reports (60/h).
+    template; the service already limits, an hour, sign-in starts (60 per IP, 15 per email, one per address every
+    30 s), code checks (150 per IP; each code dies after 5 wrong tries), OAuth starts (150 per IP), desktop sign-in
+    requests (90 per IP), sign-in mail overall (600, `DUSK_AUTH_MAIL_PER_HOUR`), enrolls (30) and page error reports
+    (60). The numbers live in `AUTH_LIMITS` (apps/dashboard/server/auth/index.ts) and are set so a real person never
+    meets them; the per-code tries and the resend wait are the abuse guard.
 11. **Staging on dev.dusk.bot**: the same deploy as `dusk-account-dev` with `--domain dev.dusk.bot`,
     `DUSK_DASHBOARD_PUBLIC_URL=https://dev.dusk.bot`, `DUSK_DASHBOARD_DATA=/var/lib/dusk-account-dev`,
     `DUSK_ENVIRONMENT=staging`, `DUSK_DODO_MODE=test` with test keys, `DUSK_AUTH_SIGNUP_OPEN=0` and your own account,
@@ -147,7 +140,7 @@ Nothing here was deployed with real keys. app.dusk.bot and dev.dusk.bot still se
   process crashes), the bundled server (inherits the DSN only while the person keeps reports on), the phone app
   (`DUSK_ERROR_DSN` at build time). Without a DSN every one of them sends nothing.
 - `deploy/monitor/uptime-check.sh` + `dusk-uptime.{service,timer}`: every minute checks https://dusk.bot/,
-  /install.sh, https://app.dusk.bot/v1/health and https://link.dusk.bot/healthz; mails the operator through Resend
+  /install.sh, https://dusk.bot/v1/health and https://link.dusk.bot/healthz; mails the operator through Resend
   after three misses and again on recovery.
 
 ### Owner
@@ -181,7 +174,7 @@ Nothing here was deployed with real keys. app.dusk.bot and dev.dusk.bot still se
 - Data export: **Download your data** on the dashboard's Account page (`GET /v1/account/export`: account, sign-ins,
   sessions, workspaces with their latest report, plans, payments, cloud desktops; no tokens, hashes or keys). Deletion
   already existed (Account > Delete account; cloud desktop data on its own page with a 7-day hold).
-- Cookie notice: not needed. app.dusk.bot sets only strictly necessary cookies (session, CSRF, OAuth state) and a theme
+- Cookie notice: not needed. dusk.bot sets only strictly necessary cookies (session, CSRF, OAuth state) and a theme
   value in local storage; dusk.bot sets none.
 
 ### Owner

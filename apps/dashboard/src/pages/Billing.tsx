@@ -179,7 +179,7 @@ function CancelDialog({ open, onClose }: { open: boolean; onClose(): void }) {
   const desk = sub.selection.desktop !== "none";
   return (
     <Modal open={open} onClose={onClose} title={keepsLicense ? "cancel your dusk cloud?" : "cancel your plan?"} footer={<><Button onClick={onClose}>keep it</Button><Button variant="danger" onClick={() => void stop()} disabled={busy}>{busy ? "cancelling" : "cancel"}</Button></>}>
-      <p>it runs until {longDate(sub.currentPeriodEnd)}.{desk ? " your dusk cloud is then kept for 7 days and deleted, and your bots only run while your mac is awake." : " after that, work use is no longer covered. personal use stays free."}{keepsLicense ? " your work license stays." : ""}</p>
+      <p>it runs until {longDate(sub.currentPeriodEnd)}.{desk ? " your dusk cloud then sleeps and is kept for 30 days before it's deleted, and your bots only run while your mac is awake." : " after that, work use is no longer covered. personal use stays free."}{keepsLicense ? " your work license stays." : ""}</p>
       {!keepsLicense && (
         <div className="mt-4">
           <Field label="what made you cancel? (optional)" htmlFor="cancel-reason" error={error}>

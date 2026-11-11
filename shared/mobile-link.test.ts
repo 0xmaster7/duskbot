@@ -41,7 +41,7 @@ describe("mobile pairing link adapter", () => {
   it("reads a universal link as the app link it stands for", () => {
     const open = mobileOpenLink({ botId: "nova", threadId: "t-1" });
     expect(appLinkFromUniversal(`https://dusk.bot/m/open?${open.split("?")[1]}`)).toBe(open);
-    expect(appLinkFromUniversal(`https://app.dusk.bot/m/open#${open.split("?")[1]}`)).toBe(open);
+    expect(appLinkFromUniversal(`https://dusk.bot/m/open#${open.split("?")[1]}`)).toBe(open);
     const pair = mobileLinkUrl(payload);
     expect(parseMobilePairingLink(appLinkFromUniversal(`https://dusk.bot/m/pair#${pair.split("?")[1]}`)!)).toMatchObject({ v: 2, credential: "s3cret" });
   });

@@ -68,7 +68,8 @@ The code is `apps/cloud-service/src/lifecycle.ts`, the adapter `src/instabox.ts`
 - **Retain.** When a plan ends, the final backup is taken from the running home and it sleeps; a home that paused itself
   with no final backup as new as its data is woken once to take one. The cloud is kept for 30 days and the owner is
   notified at the end and 7 days before deletion. It is deleted only through `deletionVerdict`
-  (`src/retention.ts`), which reads the billing store, never a request.
+  (`src/retention.ts`), which reads the billing store, never a request. A deleted account ends its plans the same way
+  (at once with "delete my dusk cloud now", else at the period end), so its clouds get the same 30 days.
 - **Machines a recovery replaced** are kept asleep (their disk costs nothing up to the plan's storage), paused if found
   running, and deleted only with their cloud.
 

@@ -37,7 +37,7 @@ const database = process.env.MONGODB_URI
   : null;
 if (database) { useStateBackend(database.backend); console.log("state: mongodb"); } else console.log("state: json files (development)");
 const trackOrigins = (process.env.DUSK_TRACK_ORIGINS ?? "").split(",").map(item => item.trim()).filter(Boolean);
-const analytics = { ...(database ? { sink: await mongoSink(database.db), waitlist: mongoWaitlist(database.db) } : {}), trackOrigins };
+const analytics = { ...(database ? { sink: await mongoSink(database.db), waitlist: mongoWaitlist(process.env.DUSK_WAITLIST_DB ? database.sibling(process.env.DUSK_WAITLIST_DB) : database.db) } : {}), trackOrigins };
 const adminEmails = parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
 console.log(`admin: ${adminEmails.length} allowed account${adminEmails.length === 1 ? "" : "s"}`);
 

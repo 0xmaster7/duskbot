@@ -209,18 +209,18 @@ test("a token that cannot be stored is revoked and nothing is signed in; cancell
 });
 
 test("the app's sign-in link: PKCE start address, strict link reading, the service's providers", () => {
-  const link = linkSignIn("https://app.dusk.bot", "google");
+  const link = linkSignIn("https://dusk.bot", "google");
   const url = new URL(link.url);
-  assert.equal(`${url.origin}${url.pathname}`, "https://app.dusk.bot/v1/auth/app/start");
+  assert.equal(`${url.origin}${url.pathname}`, "https://dusk.bot/v1/auth/app/start");
   assert.deepEqual(Object.fromEntries(url.searchParams), { provider: "google", code_challenge: createHash("sha256").update(link.verifier).digest("base64url"),
     code_challenge_method: "S256", state: link.state, redirect_uri: APP_LINK });
   assert.equal(link.url.includes(link.verifier), false, "the verifier never leaves main");
-  assert.equal(linkSignIn("https://app.dusk.bot", "email"), null);
+  assert.equal(linkSignIn("https://dusk.bot", "email"), null);
   const state = "s".repeat(43), code = "c".repeat(43);
   assert.deepEqual(parseAppLink(`duskbot://auth?code=${code}&state=${state}`), { state, code });
   assert.deepEqual(parseAppLink(`duskbot://auth?error=oauth_denied&state=${state}`), { state, error: "oauth_denied" });
   for (const bad of [`duskbot://auth?code=${code}`, `duskbot://auth?code=${code}&state=${state}&state=${state}`, `duskbot://auth?code=short&state=${state}`,
-    `duskbot://auth?code=${code}&error=x&state=${state}`, `duskbot://authx?code=${code}&state=${state}`, `https://app.dusk.bot/?code=${code}&state=${state}`, `duskbot://thread/x`, 42, null]) {
+    `duskbot://auth?code=${code}&error=x&state=${state}`, `duskbot://authx?code=${code}&state=${state}`, `https://dusk.bot/?code=${code}&state=${state}`, `duskbot://thread/x`, 42, null]) {
     assert.equal(parseAppLink(bad), null, String(bad));
   }
   assert.equal(isAppLink("duskbot://auth?x=1"), true); assert.equal(isAppLink("duskbot://authorize"), false);

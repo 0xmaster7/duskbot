@@ -12,13 +12,15 @@ const service = process.env.DUSK_DASHBOARD_SERVICE || "http://127.0.0.1:7480";
 // the hosted account dashboard page; the @ alias reaches the app's connector catalogue
 export default defineConfig({
   root: here("."),
-  // DUSK_DASHBOARD_BASE=/app/ serves the page under /app on an origin it shares with the site
+  // DUSK_DASHBOARD_BASE=/dashboard/ serves the page under /dashboard on an origin it shares with the site
   base: process.env.DUSK_DASHBOARD_BASE || "/",
   publicDir: false,
   plugins: [react(), tailwindcss(), licenseFiles(here("../.."))],
   resolve: { alias: { "@": here("../../src") } },
   define: { __APP_VERSION__: JSON.stringify("dashboard"), __DUSK_SITE_URL__: JSON.stringify(process.env.DUSK_SITE_URL || "https://dusk.bot") },
-  build: { outDir: here("./dist"), emptyOutDir: true },
+  build: { outDir: here("./dist"), emptyOutDir: true,
+    // the admin panel's own chunks sit in assets/admin, which the service hands only to an admin (server/app.ts)
+    rollupOptions: { output: { chunkFileNames: (chunk) => chunk.moduleIds.length > 0 && chunk.moduleIds.every((id) => id.includes("/src/admin/")) ? "assets/admin/[name]-[hash].js" : "assets/[name]-[hash].js" } } },
   server: {
     host: "127.0.0.1",
     port: Number(process.env.DUSK_DASHBOARD_DEV_PORT) || 5288,

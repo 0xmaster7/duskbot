@@ -588,7 +588,7 @@ in `config.json` under `signIn.admins` and `signIn.members` and can be changed
 through the settings API without a restart; the environment variables win
 when set, which is how a container or a service unit is bootstrapped.
 
-The code itself comes from `app.dusk.bot`, the Dusk Bot
+The code itself comes from `dusk.bot`, the Dusk Bot
 account service, so your server needs no email credentials. Your server asks
 it to send the code, checks the answer, and then issues its own session
 cookie: the browser only ever talks to your server, and who is welcome is

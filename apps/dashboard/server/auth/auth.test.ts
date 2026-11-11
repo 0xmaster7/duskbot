@@ -5,6 +5,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDashboardApp, type DashboardAppOptions } from "../app.ts";
+import { AUTH_LIMITS } from "./index.ts";
 import { memoryMailer } from "./mail.ts";
 import { createCloudAccountClient } from "../../../../electron/cloud-account.mjs";
 import { CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE, type AccountAnswer, type AppGrant, type EmailStartAnswer, type EnrollGrantAnswer, type WebSignInAnswer } from "../../../../shared/account-api.ts";
@@ -121,10 +122,10 @@ describe("local account service", () => {
     await start();
     expect((await call("/api/cloud/app/sign-in/start", { email, ...device })).status).toBe(429);
     time += 30_000;
-    for (let i = 0; i < 4; i++) { await start(email, true); time += 30_000; }
+    for (let i = 0; i < AUTH_LIMITS.startsPerEmail - 2; i++) { await start(email, true); time += 30_000; }
     expect(await body(call("/v1/auth/start", { email }))).toMatchObject({ code: "rate_limited" });
     time += 3_600_000;
-    for (let i = 0; i < 20; i++) await start(`ip${i}@example.test`, i % 2 === 0);
+    for (let i = 0; i < AUTH_LIMITS.startsPerIp; i++) await start(`ip${i}@example.test`, i % 2 === 0);
     const response = await call("/api/cloud/app/sign-in/start", { email: "over@example.test", ...device });
     expect(response.status).toBe(429); expect(await response.json()).toEqual({ error: "rate_limited" });
     time += 3_600_000;
@@ -132,11 +133,11 @@ describe("local account service", () => {
   });
 
   it("limits verifies per IP and trusts forwarded IPs only when configured", async () => {
-    for (let i = 0; i < 60; i++) expect((await call("/v1/auth/verify", { attempt: "missing", code: "12345678" })).status).toBe(410);
+    for (let i = 0; i < AUTH_LIMITS.verifiesPerIp; i++) expect((await call("/v1/auth/verify", { attempt: "missing", code: "12345678" })).status).toBe(410);
     expect((await call("/api/cloud/app/sign-in/verify", { attempt: "missing", code: "12345678" }, { "x-forwarded-for": "192.0.2.2" })).status).toBe(429);
     restart({ trustProxy: true });
     // the proxy appends the address it saw; whatever the client put first must not pick a fresh bucket
-    for (let i = 0; i < 20; i++) await start(`proxy${i}@example.test`, false, { "x-forwarded-for": `198.51.100.${i}, 192.0.2.2` });
+    for (let i = 0; i < AUTH_LIMITS.startsPerIp; i++) await start(`proxy${i}@example.test`, false, { "x-forwarded-for": `198.51.100.${i % 250}, 192.0.2.2` });
     expect((await call("/v1/auth/start", { email: "full@example.test" }, { "x-forwarded-for": "198.51.100.99, 192.0.2.2" })).status).toBe(429);
     expect((await call("/v1/auth/start", { email: "fresh@example.test" }, { "x-forwarded-for": "192.0.2.2, 192.0.2.1" })).status).toBe(200);
   });
@@ -294,7 +295,7 @@ describe("local account service", () => {
     expect(await body(poll(expired))).toEqual({ error: "expired_token" });
     expect((await call(`/v1/auth/device?code=${expired.userCode}`, undefined, browserHeaders(browser))).status).toBe(404);
     expect(await body(call("/api/cloud/desktop/authorize", { deviceName: "bad", platform: "other" }))).toEqual({ error: "invalid_request" });
-    for (let i = 0; i < 28; i++) expect((await call("/api/cloud/desktop/authorize", { deviceName: "Valid", platform: "linux" })).status).toBe(200);
+    for (let i = 0; i < AUTH_LIMITS.deviceAuthorizePerIp - 2; i++) expect((await call("/api/cloud/desktop/authorize", { deviceName: "Valid", platform: "linux" })).status).toBe(200);
     expect((await call("/api/cloud/desktop/authorize", device)).status).toBe(429);
   });
 

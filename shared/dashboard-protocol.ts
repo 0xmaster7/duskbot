@@ -5,7 +5,7 @@
 export const DASHBOARD_PROTOCOL = 1;
 
 // the default hosted instance, overridable by workspace configuration.
-export const DEFAULT_DASHBOARD_URL = "https://app.dusk.bot";
+export const DEFAULT_DASHBOARD_URL = "https://dusk.bot";
 
 /** where a relay or a dashboard service says which dashboard it belongs to: `{ v: 1, url }` */
 export const DASHBOARD_DISCOVERY_PATH = "/.well-known/duskbot/dashboard";

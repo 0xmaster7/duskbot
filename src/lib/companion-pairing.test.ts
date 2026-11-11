@@ -19,7 +19,7 @@ describe("companionPairingRoute", () => {
 
   it("makes the automatic QR hosted-only even when Tailscale and LAN are advertised", () => {
     const endpoints = [
-      { url: "https://app.dusk.bot", kind: "hosted" as const, priority: 0 },
+      { url: "https://dusk.bot", kind: "hosted" as const, priority: 0 },
       { url: "http://mac.tail1234.ts.net:8810", kind: "tailnet" as const, priority: 100 },
       { url: "http://192.168.1.42:8810", kind: "lan" as const, priority: 200 },
     ];
@@ -32,15 +32,15 @@ describe("companionPairingRoute", () => {
     }, "automatic");
 
     expect(route).toEqual({
-      address: "app.dusk.bot",
+      address: "dusk.bot",
       port: 443,
-      hosts: ["app.dusk.bot"],
+      hosts: ["dusk.bot"],
       endpoints: [endpoints[0]],
     });
     const link = phonePairingLink({ ...route!, code: "004209", token });
     const url = new URL(link!);
-    expect(url.searchParams.get("address")).toBe("app.dusk.bot:443");
-    expect(url.searchParams.get("hosts")).toBe("app.dusk.bot");
+    expect(url.searchParams.get("address")).toBe("dusk.bot:443");
+    expect(url.searchParams.get("hosts")).toBe("dusk.bot");
     expect(url.searchParams.get("hosts")).not.toContain("192.168.1.42");
     expect(url.searchParams.get("hosts")).not.toContain("tail1234.ts.net");
     expect(decodedEndpoints(link!)).toEqual([endpoints[0]]);
@@ -75,20 +75,20 @@ describe("companionPairingRoute", () => {
       lan: "192.168.1.42",
       hosts: ["192.168.1.42"],
       endpoints: [
-        { url: "https://app.dusk.bot", kind: "hosted" as const, priority: 0 },
+        { url: "https://dusk.bot", kind: "hosted" as const, priority: 0 },
         { url: "http://192.168.1.42:8810", kind: "lan" as const, priority: 200 },
       ],
     };
     const pin = companionPairingRoutePin(opened, "automatic");
     expect(pin?.protectedEndpoint).toEqual({
-      url: "https://app.dusk.bot",
+      url: "https://dusk.bot",
       kind: "hosted",
       priority: 0,
     });
     expect(pin?.route).toMatchObject({
-      address: "app.dusk.bot",
+      address: "dusk.bot",
       port: 443,
-      hosts: ["app.dusk.bot"],
+      hosts: ["dusk.bot"],
     });
 
     const withdrawn = {
@@ -105,7 +105,7 @@ describe("companionPairingRoute", () => {
       port: 8810,
       tailnetName: "mac.tail1234.ts.net",
       endpoints: [
-        { url: "https://app.dusk.bot", kind: "hosted" as const, priority: 0 },
+        { url: "https://dusk.bot", kind: "hosted" as const, priority: 0 },
         { url: "http://mac.tail1234.ts.net:8810", kind: "tailnet" as const, priority: 100 },
       ],
     };
@@ -122,14 +122,14 @@ describe("companionPairingRoute", () => {
       lan: "192.168.1.42",
       endpoints: [
         { url: "http://192.168.1.42:8810", kind: "lan", priority: 0 },
-        { url: "https://app.dusk.bot", kind: "hosted", priority: 100 },
+        { url: "https://dusk.bot", kind: "hosted", priority: 100 },
       ],
     }, "automatic")?.route).toEqual({
-      address: "app.dusk.bot",
+      address: "dusk.bot",
       port: 443,
-      hosts: ["app.dusk.bot"],
+      hosts: ["dusk.bot"],
       endpoints: [
-        { url: "https://app.dusk.bot", kind: "hosted", priority: 100 },
+        { url: "https://dusk.bot", kind: "hosted", priority: 100 },
       ],
     });
   });
@@ -141,7 +141,7 @@ describe("companionPairingRoute", () => {
       lan: "192.168.1.42",
       hosts: ["mac.tail1234.ts.net", "192.168.1.42", "duskbot-aa.local"],
       endpoints: [
-        { url: "https://app.dusk.bot", kind: "hosted", priority: 0 },
+        { url: "https://dusk.bot", kind: "hosted", priority: 0 },
         { url: "http://mac.tail1234.ts.net:8810", kind: "tailnet", priority: 100 },
         { url: "http://192.168.1.42:8810", kind: "lan", priority: 200 },
         { url: "http://duskbot-aa.local:8810", kind: "bonjour", priority: 300 },
@@ -158,7 +158,7 @@ describe("companionPairingRoute", () => {
     expect(new URL(link!).searchParams.get("address")).toBe("192.168.1.42:8810");
     expect(decodedEndpoints(link!)).toEqual([
       { url: "http://192.168.1.42:8810", kind: "lan", priority: 0 },
-      { url: "https://app.dusk.bot", kind: "hosted", priority: 100 },
+      { url: "https://dusk.bot", kind: "hosted", priority: 100 },
       { url: "http://duskbot-aa.local:8810", kind: "bonjour", priority: 200 },
     ]);
   });
@@ -170,7 +170,7 @@ describe("companionPairingRoute", () => {
       lan: "192.168.1.42",
       hosts: ["mac.tail1234.ts.net", "192.168.1.42", "duskbot-aa.local"],
       endpoints: [
-        { url: "https://app.dusk.bot", kind: "hosted", priority: 0 },
+        { url: "https://dusk.bot", kind: "hosted", priority: 0 },
         { url: "http://mac.tail1234.ts.net:8810", kind: "tailnet", priority: 100 },
         { url: "http://192.168.1.42:8810", kind: "lan", priority: 200 },
         { url: "http://duskbot-aa.local:8810", kind: "bonjour", priority: 300 },
@@ -185,7 +185,7 @@ describe("companionPairingRoute", () => {
     const link = phonePairingLink({ ...route!, code: "004209", token });
     expect(decodedEndpoints(link!)).toEqual([
       { url: "http://mac.tail1234.ts.net:8810", kind: "tailnet", priority: 0 },
-      { url: "https://app.dusk.bot", kind: "hosted", priority: 100 },
+      { url: "https://dusk.bot", kind: "hosted", priority: 100 },
     ]);
     expect(new URL(link!).searchParams.get("hosts")).toBe("mac.tail1234.ts.net");
   });
@@ -206,7 +206,7 @@ describe("companionPairingRoute", () => {
       tailnetName: "mac.tail1234.ts.net",
       hosts: ["mac.tail1234.ts.net"],
       endpoints: [
-        { url: "https://app.dusk.bot", kind: "hosted", priority: 0 },
+        { url: "https://dusk.bot", kind: "hosted", priority: 0 },
         { url: "http://mac.tail1234.ts.net:8810", kind: "tailnet", priority: 100 },
       ],
     }, "local")).toBeNull();
@@ -218,7 +218,7 @@ describe("companionPairingRoute", () => {
       hosts: ["mac.tail1234.ts.net", "duskbot-aa.local"],
       discovery: { advertising: true, name: "duskbot-aa.local" },
       endpoints: [
-        { url: "https://app.dusk.bot", kind: "hosted", priority: 0 },
+        { url: "https://dusk.bot", kind: "hosted", priority: 0 },
         { url: "http://duskbot-aa.local:8810", kind: "bonjour", priority: 300 },
       ],
     }, "local");
@@ -234,7 +234,7 @@ describe("companionPairingRoute", () => {
       hosts: ["mac.tail1234.ts.net", "duskbot-aa.local"],
       discovery: { advertising: false, name: "duskbot-aa.local" },
       endpoints: [
-        { url: "https://app.dusk.bot", kind: "hosted", priority: 0 },
+        { url: "https://dusk.bot", kind: "hosted", priority: 0 },
         { url: "http://duskbot-aa.local:8810", kind: "bonjour", priority: 300 },
       ],
     }, "local")).toBeNull();
@@ -243,10 +243,10 @@ describe("companionPairingRoute", () => {
 
 describe("companionPairingAddressText", () => {
   it("writes a hosted route with its scheme, so a phone does not send the code as HTTP to port 443", () => {
-    const hosted = { url: "https://app.dusk.bot", kind: "hosted" as const, priority: 0 };
+    const hosted = { url: "https://dusk.bot", kind: "hosted" as const, priority: 0 };
     const route = companionPairingRoute({ port: 8810, endpoints: [hosted] }, "automatic");
 
-    expect(companionPairingAddressText(route!)).toBe("https://app.dusk.bot");
+    expect(companionPairingAddressText(route!)).toBe("https://dusk.bot");
   });
 
   it("keeps a hosted route's non-default port", () => {

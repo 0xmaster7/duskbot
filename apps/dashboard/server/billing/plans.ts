@@ -36,7 +36,7 @@ function freeWorkUntil(value: string | undefined) {
 
 export const BILLING_CONFIG: BillingConfig = {
   // yearly is two months free: 12 months for the price of 10
-  currency: "USD", yearlyDiscountPercent: 100 / 6, graceDays: 7, maxCloudsPerAccount: 5, checkoutOpenMinutes: 30, checkoutsPerHour: 10,
+  currency: "USD", yearlyDiscountPercent: 100 / 6, graceDays: 30, maxCloudsPerAccount: 5, checkoutOpenMinutes: 30, checkoutsPerHour: 10,
   freeWorkUntil: freeWorkUntil(process.env.DUSK_FREE_WORK_UNTIL),
   licenses: {
     solo: { kind: "solo", label: "Work license", monthlyCents: 1200, includedMembers: 1, extraMemberCents: null, maxMembers: 1, priority: false },

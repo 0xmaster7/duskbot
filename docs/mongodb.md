@@ -32,6 +32,10 @@ claim a success). Tests and local fixtures keep JSON files in the data folder.
 - One writer: the process holds the `locks` document `account-service` (30 s lease, renewed every 10 s, checked inside
   every transaction). A second process waits up to 75 s for it, then refuses to start; a process that loses it exits.
 - `/v1/health` answers 503 while writes fail.
+- Two services, two databases: production (`dusk.bot`, deployd app `dusk-account-prod`) writes `dusk_prod` as the user
+  `dusk_prod` (`readWrite` on `dusk_prod`, `read` on `dusk` for the waitlist through `DUSK_WAITLIST_DB=dusk`); the
+  staging copy (`preview.dusk.bot`, `dusk-account`) keeps `dusk`. Each holds its own database's lease, so they never
+  block each other, and preview's test accounts and clouds never reach production. The daily dump covers both.
 
 | Collection | What | Key | Indexes |
 | --- | --- | --- | --- |

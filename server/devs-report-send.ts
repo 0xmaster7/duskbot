@@ -8,8 +8,8 @@ import { z } from "zod";
 import { DEVS_REPORT_LIMITS, withoutContact, type DevsReportPayload } from "./devs-report.ts";
 
 export const BUG_REPORT_PATH = "/api/bug-reports";
-export const PRODUCTION_CLOUD_ORIGIN = "https://app.dusk.bot";
-export const STAGING_CLOUD_ORIGIN = "https://dev.dusk.bot";
+export const PRODUCTION_CLOUD_ORIGIN = "https://dusk.bot";
+export const STAGING_CLOUD_ORIGIN = "https://preview.dusk.bot";
 const SEND_TIMEOUT_MS = 20_000;
 const ANSWER_MAX_BYTES = 16 * 1024;
 

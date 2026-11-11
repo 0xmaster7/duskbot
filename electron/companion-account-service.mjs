@@ -12,7 +12,7 @@ import {
   withoutManagedCompanionTunnelAccess,
 } from "./managed-companion-tunnel.mjs";
 
-export const DEFAULT_COMPANION_CONTROL_PLANE_URL = "https://app.dusk.bot";
+export const DEFAULT_COMPANION_CONTROL_PLANE_URL = "https://dusk.bot";
 
 export const COMPANION_CLIENT_INSTANCE_FIELD = "companionClientInstanceId";
 export const COMPANION_ACCOUNT_TOKEN_FIELD = "companionAccountToken";

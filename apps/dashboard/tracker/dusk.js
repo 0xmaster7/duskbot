@@ -248,7 +248,7 @@
         var url = new URL(link.href, loc.href), host = url.hostname;
         if (!/^https?:$/.test(url.protocol)) return;
         var internal = host === loc.hostname || host.slice(-(loc.hostname.length + 1)) === "." + loc.hostname;
-        if (internal && /^\/(app|signup)/.test(url.pathname)) {
+        if (internal && /^\/(dashboard|app|signup)(\/|$)/.test(url.pathname)) {
           name = "cta_click";
           meta.from = loc.pathname;
         } else if (/\/download|\.(dmg|exe|msi|appimage|deb|rpm)$|apps\.apple|play\.google/i.test(host + url.pathname)) name = "download_click";

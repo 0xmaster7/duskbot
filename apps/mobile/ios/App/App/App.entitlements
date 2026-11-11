@@ -7,7 +7,6 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:dusk.bot</string>
-		<string>applinks:app.dusk.bot</string>
 	</array>
 </dict>
 </plist>

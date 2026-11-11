@@ -8,6 +8,7 @@ import { CLAIM_TTL_MS, COMMAND_TTL_MS, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATU
 import type { CommandView, EnrollAnswer, MachineReport, ReportAnswer, WorkspaceDetail, WorkspaceReport, WorkspaceSummary } from "../../../shared/dashboard-protocol.ts";
 import { createDashboardApp, pagePolicy } from "./app.ts";
 import { memoryMailer } from "./auth/mail.ts";
+import { AUTH_LIMITS } from "./auth/index.ts";
 import { CSRF_HEADER } from "../../../shared/account-api.ts";
 import type { Account } from "./store.ts";
 
@@ -127,7 +128,7 @@ describe("hosted dashboard service", () => {
     expect((await readJson<{ code: string }>(response)).code).toBe("wrong_code");
     expect((await fetch(`${url}/v1/auth/start`, { method: "POST", body: "{}" })).status).toBe(403);
     expect((await fetch(`${url}/v1/auth/start`, { method: "POST", headers: { "content-type": "application/json", origin: "https://elsewhere.test" }, body: "{}" })).status).toBe(403);
-    for (let i = 0; i < 19; i++) expect((await page("/v1/auth/start", { email: `owner${i}@example.com` })).status).toBe(200);
+    for (let i = 0; i < AUTH_LIMITS.startsPerIp - 1; i++) expect((await page("/v1/auth/start", { email: `owner${i}@example.com` })).status).toBe(200);
     expect((await page("/v1/auth/start", { email: "owner@example.com" })).status).toBe(429);
   });
 
@@ -373,7 +374,7 @@ describe("hosted dashboard service", () => {
     app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir, now: () => time, errors: { service: reporter, page: reporter } });
     server.removeAllListeners("request");
     server.on("request", app.handle);
-    const sent = await page("/v1/client-error", { type: "TypeError", message: "x is undefined", stack: "at a (https://app.dusk.bot/assets/i.js:1:2)", page: "/billing" });
+    const sent = await page("/v1/client-error", { type: "TypeError", message: "x is undefined", stack: "at a (https://dusk.bot/assets/i.js:1:2)", page: "/billing" });
     expect(sent.status).toBe(204);
     expect(captured).toHaveLength(1);
     expect(captured[0]!.name).toBe("TypeError");

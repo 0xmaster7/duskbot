@@ -32,7 +32,7 @@ const TOKEN = "account.token";
 export function accountService(search: string = typeof location === "undefined" ? "" : location.search): string | null {
   const env = import.meta.env as Record<string, string | undefined>;
   const on = env.VITE_DUSK_MOBILE_ACCOUNTS === "1" || new URLSearchParams(search).has("accounts");
-  return on ? (env.VITE_DUSK_ACCOUNT_ORIGIN || "https://app.dusk.bot") : null;
+  return on ? (env.VITE_DUSK_ACCOUNT_ORIGIN || "https://dusk.bot") : null;
 }
 
 function base64url(bytes: Uint8Array): string {

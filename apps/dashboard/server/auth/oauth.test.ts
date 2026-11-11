@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDashboardApp, type DashboardAppOptions } from "../app.ts";
 import { startFakeProviders } from "./fake-providers.ts";
+import { AUTH_LIMITS } from "./index.ts";
 import { memoryMailer } from "./mail.ts";
 import { providersFromEnv } from "./providers.ts";
 import { createCloudAccountClient } from "../../../../electron/cloud-account.mjs";
@@ -237,7 +238,7 @@ describe("OAuth over isolated HTTP", () => {
     restart({ dev: false }); expect(await (await call("/v1/auth/providers")).json()).toMatchObject({ providers: ["google", "apple", "x"].map(id => ({ id, enabled: false, comingSoon: false })) });
   });
   it("limits OAuth starts per IP across app and web routes", async () => {
-    for (let i = 0; i < 60; i++) expect((await call("/v1/auth/oauth/google/start")).status).toBe(302);
+    for (let i = 0; i < AUTH_LIMITS.oauthPerIp; i++) expect((await call("/v1/auth/oauth/google/start")).status).toBe(302);
     expect((await call("/v1/auth/oauth/x/start")).status).toBe(429);
     expect((await call("/v1/auth/app/start")).status).toBe(429);
   });

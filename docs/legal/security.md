@@ -8,7 +8,7 @@ If you find a security issue in Dusk Bot, email security@dusk.bot. This policy i
 
 ## Scope
 
-You may report vulnerabilities affecting dusk.bot, app.dusk.bot, link.dusk.bot, the Dusk Bot desktop and phone apps, and the VPS installer.
+You may report vulnerabilities affecting dusk.bot (including /dashboard, /admin and the API), link.dusk.bot, the Dusk Bot desktop and phone apps, and the VPS installer.
 
 Denial of service, social engineering and third-party providers are out of scope. Report issues in an AI provider, payment service or other third-party system through that provider's own process. This policy does not authorise testing their systems.
 

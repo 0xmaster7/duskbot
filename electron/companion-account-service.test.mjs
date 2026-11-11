@@ -111,7 +111,7 @@ function signedCredentials(overrides = {}) {
 describe("Companion account service", () => {
   it("uses the packaged hosted default and only explicit safe development origins", () => {
     expect(resolveCompanionControlPlaneURL({ isPackaged: true, environment: {} })).toBe(
-      "https://app.dusk.bot",
+      "https://dusk.bot",
     );
     expect(resolveCompanionControlPlaneURL({
       isPackaged: false,
@@ -119,11 +119,11 @@ describe("Companion account service", () => {
     })).toBe("http://127.0.0.1:8787");
     expect(resolveCompanionControlPlaneURL({
       isPackaged: true,
-      environment: { DUSK_CONTROL_PLANE_URL: "http://app.dusk.bot" },
+      environment: { DUSK_CONTROL_PLANE_URL: "http://dusk.bot" },
     })).toBe("");
     expect(resolveCompanionControlPlaneURL({
       isPackaged: true,
-      environment: { DUSK_CONTROL_PLANE_URL: new String("https://app.dusk.bot") },
+      environment: { DUSK_CONTROL_PLANE_URL: new String("https://dusk.bot") },
     })).toBe("");
     expect(resolveCompanionControlPlaneURL({ isPackaged: false, environment: {} })).toBe("");
   });

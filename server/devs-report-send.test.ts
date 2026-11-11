@@ -60,11 +60,11 @@ describe("sending a @devs report", () => {
 describe("where reports go", () => {
   it("is a fixture's loopback or https address, else a Cloud home's own origin, else the staging or production Cloud", () => {
     expect(bugReportEndpoint({ DUSK_BUG_REPORT_URL: "http://127.0.0.1:4400/api/bug-reports" })).toBe("http://127.0.0.1:4400/api/bug-reports");
-    expect(bugReportEndpoint({ DUSK_BUG_REPORT_URL: "http://192.0.2.1/api/bug-reports" })).toBe("https://app.dusk.bot/api/bug-reports");
-    expect(bugReportEndpoint({ DUSK_BUG_REPORT_URL: "https://user:pw@evil.example/x" })).toBe("https://app.dusk.bot/api/bug-reports");
-    expect(bugReportEndpoint({}, "https://app.dusk.bot")).toBe("https://app.dusk.bot/api/bug-reports");
-    expect(bugReportEndpoint({ DUSK_CLOUD_STAGING: "1" })).toBe("https://dev.dusk.bot/api/bug-reports");
-    expect(bugReportEndpoint({})).toBe("https://app.dusk.bot/api/bug-reports");
+    expect(bugReportEndpoint({ DUSK_BUG_REPORT_URL: "http://192.0.2.1/api/bug-reports" })).toBe("https://dusk.bot/api/bug-reports");
+    expect(bugReportEndpoint({ DUSK_BUG_REPORT_URL: "https://user:pw@evil.example/x" })).toBe("https://dusk.bot/api/bug-reports");
+    expect(bugReportEndpoint({}, "https://dusk.bot")).toBe("https://dusk.bot/api/bug-reports");
+    expect(bugReportEndpoint({ DUSK_CLOUD_STAGING: "1" })).toBe("https://preview.dusk.bot/api/bug-reports");
+    expect(bugReportEndpoint({})).toBe("https://dusk.bot/api/bug-reports");
   });
 });
 
@@ -73,7 +73,7 @@ describe("asking what became of the reports this app sent", () => {
   const ANSWER = { reports: [{ id: QUESTION.ids[0], status: "fixed", fixedIn: "0.1.135" }], notify: true };
 
   it("asks the report endpoint's origin, unsigned from the desktop and signed by a Cloud home with the secret it shares with the Admin", async () => {
-    expect(bugReportStatusEndpoint("https://app.dusk.bot/api/bug-reports")).toBe("https://app.dusk.bot/api/bug-reports/status");
+    expect(bugReportStatusEndpoint("https://dusk.bot/api/bug-reports")).toBe("https://dusk.bot/api/bug-reports/status");
     expect(bugReportStatusEndpoint("http://127.0.0.1:4400/api/bug-reports")).toBe("http://127.0.0.1:4400/api/bug-reports/status");
     const desktop = endpoint(answer(200, ANSWER));
     expect(await devsStatusAsker("https://cloud.example/api/bug-reports", null, desktop.fetcher)(QUESTION)).toEqual(ANSWER);

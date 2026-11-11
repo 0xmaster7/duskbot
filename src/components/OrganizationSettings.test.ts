@@ -112,7 +112,7 @@ describe("optional desktop Organisation settings", () => {
   it("uses the default portal from one sign-in action and keeps custom setup advanced", async () => {
     await ready();
     let view = render();
-    expect(view.html).toContain("https://app.dusk.bot");
+    expect(view.html).toContain("https://dusk.bot");
     expect(view.html).toContain("Sign in with your organization");
     // a custom portal is its own row, its address only in that row's dialog
     expect(view.html).toContain('data-settings-open="organization-custom"');
@@ -123,7 +123,7 @@ describe("optional desktop Organisation settings", () => {
     expect(bridge.begin).not.toHaveBeenCalled();
     const signIn = () => view.nodes.find(node => node.type === "button" && node.props.children === "Sign in with your organization")!.props.onClick!();
     signIn(); signIn(); await flush();
-    expect(bridge.begin).toHaveBeenCalledExactlyOnceWith({ portalOrigin: "https://app.dusk.bot" });
+    expect(bridge.begin).toHaveBeenCalledExactlyOnceWith({ portalOrigin: "https://dusk.bot" });
     expect(fetch).not.toHaveBeenCalled();
     const progress = render().html;
     expect(progress).toContain("Finish signing in through your browser");

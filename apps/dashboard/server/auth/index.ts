@@ -11,11 +11,15 @@ import type { EmailConfig } from "../email/templates.ts";
 import { createProviderRegistry, type ProviderConfigs, type ProviderProfile } from "./providers.ts";
 import { clientIp } from "../client-ip.ts";
 
+/** sign-in limits an hour, set so a real person never meets them; the per-code tries (EMAIL_CODE_TRIES), the resend
+ *  wait and the overall mail cap are what stop abuse */
+export const AUTH_LIMITS = { startsPerIp: 60, startsPerEmail: 15, verifiesPerIp: 150, oauthPerIp: 150, deviceAuthorizePerIp: 90, mailPerHour: 600 };
+
 export interface AuthOptions {
   dataDir: string; publicUrl: string; mailer: Mailer; email?: EmailConfig; now?: () => number; fetch?: typeof fetch;
-  /** where the page is served on publicUrl ("/app" when it shares the origin with the site, "" at the root) */
+  /** where the page is served on publicUrl ("/dashboard" when it shares the origin with the site, "" at the root) */
   pageBase?: string;
-  /** sign-in emails the service sends an hour across everyone (DUSK_AUTH_MAIL_PER_HOUR, default 300) */
+  /** sign-in emails the service sends an hour across everyone (DUSK_AUTH_MAIL_PER_HOUR, default AUTH_LIMITS.mailPerHour) */
   mailPerHour?: number;
   oauth?: ProviderConfigs;
   dev: boolean; signupOpen: boolean; trustProxy: boolean; legacyAccounts?: () => Array<{ id: string; email: string }>;
@@ -177,10 +181,10 @@ export function createAuth(options: AuthOptions) {
     if (data.pending !== undefined && (app || !opaque(data.pending) || !pendingFor(req, data.pending))) fail(400, "invalid_request");
     if (data.recover !== undefined && (data.recover !== true || data.pending !== undefined)) fail(400, "invalid_request");
     const device = app ? deviceInfo(data, true) : null;
-    rate(`start:${ip(req)}`, 20);
-    rate(`email:${email}`, 6);
+    rate(`start:${ip(req)}`, AUTH_LIMITS.startsPerIp);
+    rate(`email:${email}`, AUTH_LIMITS.startsPerEmail);
     // every address and caller together: one botnet spread over many addresses cannot burn the mail quota or our sender reputation
-    rate("mail:all", options.mailPerHour ?? 300);
+    rate("mail:all", options.mailPerHour ?? AUTH_LIMITS.mailPerHour);
     if (sentAt.has(email)) fail(429, "rate_limited");
     sentAt.set(email, now());
     const attempt = random(), code = randomInt(0, 100_000_000).toString().padStart(8, "0");
@@ -201,7 +205,7 @@ export function createAuth(options: AuthOptions) {
     return { ...(app ? { cloudContractVersion: 1 } : {}), attempt, expiresIn: EMAIL_CODE_TTL_SECONDS, resendAfter: EMAIL_RESEND_SECONDS, signupOpen: options.signupOpen };
   }
   function verifyEmail(req: IncomingMessage, res: ServerResponse, data: Record<string, unknown>, app: boolean) {
-    rate(`verify:${ip(req)}`, 60);
+    rate(`verify:${ip(req)}`, AUTH_LIMITS.verifiesPerIp);
     const key = opaque(data.attempt) ? hash(data.attempt) : "";
     const attempt = attempts.get(key);
     if (!attempt || attempt.expiresAt <= now()) return fail(410, "expired");
@@ -375,10 +379,10 @@ export function createAuth(options: AuthOptions) {
       const oauth = /^\/v1\/auth\/oauth\/([^/]+)\/(start|callback)$/.exec(path);
       if (oauth?.[2] === "callback") { await oauthCallback(req, res, url, oauth[1]!, helpers); return true; }
       if (method === "GET" && oauth?.[2] === "start") {
-        rate(`oauth:${ip(req)}`, 60); oauthStart(req, res, url, oauth[1]!); return true;
+        rate(`oauth:${ip(req)}`, AUTH_LIMITS.oauthPerIp); oauthStart(req, res, url, oauth[1]!); return true;
       }
       if (method === "GET" && path === R.appStart) {
-        rate(`oauth:${ip(req)}`, 60);
+        rate(`oauth:${ip(req)}`, AUTH_LIMITS.oauthPerIp);
         const provider = url.searchParams.get("provider"), challenge = url.searchParams.get("code_challenge"), appState = url.searchParams.get("state");
         if (!provider || !providers.has(provider as OAuthProvider) || !challenge || !/^[A-Za-z0-9_-]{43,128}$/.test(challenge)
           || url.searchParams.get("code_challenge_method") !== "S256" || !appState || !/^[A-Za-z0-9_-]{16,256}$/.test(appState)
@@ -456,7 +460,7 @@ export function createAuth(options: AuthOptions) {
         json({ ok: true });
       } else if (method === "POST" && path === R.desktopAuthorize) {
         const device = deviceInfo(data, false);
-        rate(`authorize:${ip(req)}`, 30);
+        rate(`authorize:${ip(req)}`, AUTH_LIMITS.deviceAuthorizePerIp);
         const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         let userCode: string;
         do { const chars = Array.from({ length: 10 }, () => alphabet[randomInt(alphabet.length)]).join(""); userCode = `${chars.slice(0, 5)}-${chars.slice(5)}`; }

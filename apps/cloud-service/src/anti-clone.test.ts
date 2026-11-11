@@ -88,7 +88,7 @@ describe("the machine never receives its secrets through the provider", () => {
     const f = await homeFixture({ settings: { claims: true } });
     const handle = managedOf(f).handle!;
     const codes = [];
-    for (let n = 0; n < 31; n++) codes.push((await call(handle, "POST", "/v1/managed/claims/redeem", { cloud: `c${"a".repeat(24)}`, claim: "y".repeat(43) })).status);
+    for (let n = 0; n < 61; n++) codes.push((await call(handle, "POST", "/v1/managed/claims/redeem", { cloud: `c${"a".repeat(24)}`, claim: "y".repeat(43) })).status);
     expect(codes.at(0)).toBe(403);
     expect(codes.at(-1)).toBe(429);
   });

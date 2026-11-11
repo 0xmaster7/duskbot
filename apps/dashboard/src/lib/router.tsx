@@ -5,14 +5,16 @@ const notify = () => listeners.forEach((fn) => fn());
 if (typeof window !== "undefined") window.addEventListener("popstate", notify);
 
 const subscribe = (fn: () => void) => { listeners.add(fn); return () => void listeners.delete(fn); };
-/** the path the page is served under ("/app" on a shared origin, "" at an origin's root), from Vite's `base` */
+/** the path the page is served under ("/dashboard" on a shared origin, "" at an origin's root), from Vite's `base` */
 export const BASE = (import.meta.env?.BASE_URL ?? "/").replace(/\/+$/, "");
+/** the admin panel keeps its own top-level path beside the page base */
+const OWN_PATH = /^\/admin(?:[/?#]|$)/;
 /** a browser path without BASE: what the app's routes and its `next` values use */
 export function appPath(pathname: string) {
   return BASE && (pathname === BASE || pathname.startsWith(`${BASE}/`)) ? pathname.slice(BASE.length) || "/" : pathname;
 }
 /** an app path as the browser sees it */
-export const withBase = (to: string) => to.startsWith("/") && !to.startsWith("//") ? `${BASE}${to}` : to;
+export const withBase = (to: string) => to.startsWith("/") && !to.startsWith("//") && !OWN_PATH.test(to) ? `${BASE}${to}` : to;
 const snapshot = () => appPath(window.location.pathname) + window.location.search;
 
 export function useLocation() {

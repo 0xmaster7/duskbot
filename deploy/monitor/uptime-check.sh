@@ -8,7 +8,7 @@
 set -eu
 
 STATE="${DUSK_UPTIME_STATE:-/var/lib/dusk-uptime}"
-TARGETS="${DUSK_UPTIME_TARGETS:-site=https://dusk.bot/ installer=https://dusk.bot/install.sh account=https://app.dusk.bot/v1/health link=https://link.dusk.bot/healthz}"
+TARGETS="${DUSK_UPTIME_TARGETS:-site=https://dusk.bot/ installer=https://dusk.bot/install.sh account=https://dusk.bot/v1/health link=https://link.dusk.bot/healthz}"
 mkdir -p "$STATE"
 
 mail() { # subject text
