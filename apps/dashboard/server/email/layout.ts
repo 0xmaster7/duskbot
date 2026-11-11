@@ -111,9 +111,9 @@ ${block.items.map(item => `<tr><td valign="top" width="88" style="padding:0 0 20
       return stepped(`<span class="ink" style="font-family:${SANS};font-size:14.5px;line-height:22px;color:${C.ink}">${prose(block.text)}</span>`,
         { fill: tone.bg, fillCls: tone.cls, under: tone.edge, underCls: "", pad: "13px 18px", margin: "0 0 22px" });
     }
-    case "cloud": return stepped(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.box}" style="background:${C.box}" class="box">
+    case "cloud": return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 30px">
 <tr><td style="padding:0"><img src="${esc(img(cfg, block.image))}" width="520" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:520px;height:auto;border:0"></td></tr>
-<tr><td class="cloud-pad" style="padding:22px 26px 26px">
+<tr><td style="padding:20px 0 0">
 <div style="font-family:${MONO};font-size:12.5px;line-height:18px;letter-spacing:0.04em;color:${C.muted}" class="muted">${esc(block.eyebrow)}</div>
 <div style="padding-top:8px;font-family:${SANS};font-size:24px;line-height:30px;font-weight:600;letter-spacing:-0.02em;color:${C.ink}" class="ink">${esc(block.title)}</div>
 <div style="padding-top:10px;font-family:${SANS};font-size:15.5px;line-height:24px;color:${C.body}" class="soft">${prose(block.text)}</div>
@@ -124,7 +124,7 @@ ${block.points.map(point => `<tr><td valign="top" width="20" style="padding:8px 
 <td bgcolor="${C.lime}" style="background:${C.lime}"><a href="${esc(block.cta.href)}" target="_blank" style="display:inline-block;padding:13px 24px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:600;letter-spacing:-0.01em;color:${C.ink};text-decoration:none">${esc(block.cta.label)}</a></td>
 <td class="ink" style="padding-left:16px;font-family:${SANS};font-size:15px;line-height:20px;color:${C.ink}"><b style="font-weight:600">${esc(block.price)}</b><br><span class="muted" style="font-size:13px;color:${C.muted}">${esc(block.fine)}</span></td>
 </tr></table>
-</td></tr></table>`, { fill: C.box, fillCls: "box", under: C.lime, underCls: "", pad: "0", margin: "8px 0 30px" });
+</td></tr></table>`;
     case "feature": return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px">
 ${block.image ? `<tr><td style="padding:0 0 14px"><img src="${esc(img(cfg, block.image))}" width="520" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:520px;height:auto;border:0"></td></tr>` : ""}
 <tr><td><div class="ink" style="font-family:${SANS};font-size:18px;line-height:25px;font-weight:600;letter-spacing:-0.015em;color:${C.ink}">${esc(block.title)}</div>
@@ -177,7 +177,6 @@ const darkCss = `
 [data-ogsc] .btn-a { color: #15171d !important; }
 @media (max-width: 620px) {
   .px { padding-left: 22px !important; padding-right: 22px !important; }
-  .cloud-pad { padding-left: 20px !important; padding-right: 20px !important; }
   h1 { font-size: 25px !important; line-height: 31px !important; }
 }`;
 
