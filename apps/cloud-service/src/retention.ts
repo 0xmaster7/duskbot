@@ -56,6 +56,8 @@ export interface VerdictInput {
   /** the snapshot the sandbox's last stop saved, or null if it never stopped */
   lastStopAt: number | null;
   ownerRequest: DeleteRequest | null;
+  /** the home never finished its first setup: it never held anyone's data, so no final backup is owed */
+  neverSetUp?: boolean;
   /** an operator hold (abuse investigation, legal): nothing is deleted while it is set */
   hold: boolean;
 }
@@ -74,6 +76,7 @@ export function deletionVerdict(input: VerdictInput): Verdict {
   const earliestAt = input.entitlement.until + input.retentionDays * DAY_MS;
   if (input.now < earliestAt) return { delete: false, reason: "retention", earliestAt };
   const backup = input.finalBackup;
+  if (input.neverSetUp) return { delete: true, reason: "retention_over", earliestAt };
   if (!backup?.verifiedAt || (input.lastStopAt !== null && backup.at < input.lastStopAt)) return { delete: false, reason: "no_final_backup", earliestAt };
   return { delete: true, reason: "retention_over", earliestAt };
 }

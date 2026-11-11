@@ -22,7 +22,7 @@ import type { HomeClient, StoredCloud } from "../../dashboard/server/clouds/type
 import type { HomeLifecycleState } from "./state.ts";
 import type { HomeUpdates } from "./home-update.ts";
 
-const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE;
+const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, SETUP_TRIES = 3;
 
 export interface ManagedSettings {
   /** the shortest idle before any stop, in minutes (DUSK_MANAGED_IDLE_MINUTES); the power policy decides past it */
@@ -261,12 +261,15 @@ export function createLifecycle(deps: LifecycleDeps) {
     try { deps.notify(c, kind, at, link); } catch { console.warn(`managed: notice ${kind} for ${c.id} was not delivered`); }
   }
 
+  /** cut off before its first setup finished (cancelled while provisioning, say): no one ever used it, so it holds no data */
+  const neverSetUp = (c: StoredCloud) => c.setupStep !== null && state(c).recoveries === 0 && state(c).backups.length === 0;
+
   function verdictFor(c: StoredCloud, given = deps.entitlement(c)): Verdict {
     const b = state(c), final = latestVerified(b);
     // a plan that ended with no period end on record: the clock runs from when this service first saw it end
     const entitlement = !given.active && given.until === null && given.known && b.endedAt !== null ? { ...given, until: b.endedAt } : given;
     return deletionVerdict({ now: now(), retentionDays: settings.retentionDays, entitlement, finalBackup: final ? { at: final.snapshotAt, verifiedAt: final.verifiedAt } : null,
-      lastStopAt: b.lastStopAt, ownerRequest: b.deleteRequest, hold: b.hold || c.suspended !== null && c.suspended !== "Account deleted" });
+      lastStopAt: b.lastStopAt, ownerRequest: b.deleteRequest, neverSetUp: neverSetUp(c), hold: b.hold || c.suspended !== null && c.suspended !== "Account deleted" });
   }
 
   /** a backup of the volume, read from the running home */
@@ -330,7 +333,8 @@ export function createLifecycle(deps: LifecycleDeps) {
 
   async function provisionStep(c: StoredCloud, entitled: boolean) {
     const b = state(c);
-    if (!entitled) { log(c, "provision_held", "reconciler", "not_entitled"); c.status = "stopped"; c.setupStep = null; deps.save(c); return; }
+    // the setup step stays: a plan that starts again carries on from it (resumeSetup)
+    if (!entitled) { log(c, "provision_held", "reconciler", "not_entitled"); c.status = "stopped"; deps.save(c); return; }
     if (c.setupStep === "reserving") {
       if (!c.workspaceId || !c.linkPublicKey || !c.sealedLinkPrivateKey) throw new Error("Missing cloud bootstrap.");
       const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
@@ -352,7 +356,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (c.setupStep === "storage") {
       const s = await provider.machine(c.serverId);
       if (!s || s.state !== "running" || (s.setup !== "done" && s.setup !== null && s.setup !== "failed")) return wait(c, 5_000);
-      if (s.setup === "failed") throw new Error("Cloud setup failed.");
+      if (s.setup === "failed") return setupFailed(c);
       const pkg = settings.package;
       if (pkg && b.installed !== pkg.sha256) {
         if (pkg.file) await provider.upload(c.serverId, image.packagePath, readFileSync(pkg.file));
@@ -387,6 +391,35 @@ export function createLifecycle(deps: LifecycleDeps) {
     c.attempts = 0; c.nextAttemptAt = 0; c.error = null;
     log(c, "running", "reconciler", b.restoredFrom ? "recovered" : "provisioned");
     if (b.restoredFrom && b.attempt > 0) notice(c, "recovered", b.restoredFrom.file ? b.restoredFrom.at : null);
+    deps.save(c);
+  }
+
+  /** a first setup that failed on its machine (a mirror down, say): a fresh machine, at most SETUP_TRIES in all; the failed
+   *  one held no data and is retired, so it is deleted with its cloud */
+  function setupFailed(c: StoredCloud) {
+    const b = state(c);
+    b.setupFailures = (b.setupFailures ?? 0) + 1;
+    log(c, "setup_failed", "reconciler", "setup_script", { tries: b.setupFailures });
+    if (b.setupFailures >= SETUP_TRIES) { console.warn(`managed: ALERT cloud ${c.id}: its setup failed ${SETUP_TRIES} times`); deps.save(c); throw new Error("Cloud setup failed."); }
+    if (c.serverId && !b.retired.some(r => r.serverId === c.serverId)) b.retired.push({ serverId: c.serverId, at: now(), deletion: null });
+    b.attempt++; b.installed = null; b.claim = null; b.upstream = null; b.setupSince = now();
+    c.serverId = null; c.origin = null; c.setupStep = "reserving"; c.nextAttemptAt = 0;
+    deps.save(c);
+  }
+
+  /** a first setup a plan's end cut off, carried on once a plan pays for it again */
+  async function resumeSetup(c: StoredCloud) {
+    const b = state(c);
+    renewed(c);
+    if (c.serverId) {
+      const s = await provider.machine(c.serverId);
+      if (!s) { c.serverId = null; c.origin = null; b.upstream = null; b.installed = null; b.attempt++; c.setupStep = "reserving"; }
+      else if (s.state === "stopped") await start(c, "wake", () => provider.power(c.serverId!, "on"));
+    }
+    // a cold boot lost the started home: started again
+    if (c.setupStep === "checking") c.setupStep = "starting";
+    b.setupSince = now(); c.status = "provisioning"; c.wantPower = "on"; c.nextAttemptAt = 0;
+    log(c, "setup_resumed", "billing", "plan_renewed", { step: c.setupStep });
     deps.save(c);
   }
 
@@ -454,7 +487,7 @@ export function createLifecycle(deps: LifecycleDeps) {
       if (!rereadStored(c)) return;
       const again = verdictFor(c);
       if (!again.delete) { log(c, "delete_refused", "reconciler", again.reason); return; }
-      if (again.reason === "retention_over" && !finalBackupOpens(c)) return;
+      if (again.reason === "retention_over" && !neverSetUp(c) && !finalBackupOpens(c)) return;
       // recorded before the call, so a lost answer is never read as a lost machine (and rebuilt)
       c.status = "destroying"; b.deletion = { serverId: c.serverId, operationId: null, at: now(), reason: verdict.reason, sent: false }; deps.save(c);
       log(c, "delete_requested", "reconciler", verdict.reason);
@@ -522,6 +555,16 @@ export function createLifecycle(deps: LifecycleDeps) {
     return true;
   }
 
+  /** a plan that ended is paid again: the retention clock, its notices and a pending delete request end */
+  function renewed(c: StoredCloud) {
+    const b = state(c);
+    b.finalWakes = 0;
+    if (b.endedAt === null) return;
+    b.endedAt = null; b.notices = b.notices.filter(n => !["ended", "left_30", "left_7", "left_1"].includes(n.kind));
+    log(c, "plan_renewed", "billing", "record"); notice(c, "resumed", null);
+    if (b.deleteRequest && b.deleteRequest.cancelledAt === null) { b.deleteRequest.cancelledAt = now(); b.deleteRequest.tokenHash = null; log(c, "delete_cancelled", "billing", "plan_renewed"); }
+  }
+
   /** retention bookkeeping for a plan that ended: the clock, the notices */
   async function planEnded(c: StoredCloud, entitlement: Entitlement, verdict: Verdict, up: boolean) {
     const b = state(c);
@@ -549,6 +592,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     const verdict = verdictFor(c, entitlement);
     if (verdict.delete || b.deletion) return deleteStep(c, verdict.delete ? verdict : { delete: true, reason: (b.deletion?.reason ?? "retention_over") as "retention_over", earliestAt: now() });
     if (c.status === "provisioning") return provisionStep(c, entitlement.active);
+    if (c.setupStep !== null && entitlement.active && c.suspended === null && c.status !== "error") return resumeSetup(c);
     if (!c.serverId) {
       // an ended plan with no machine (a rebuild held for want of a plan) still gets its notices and keeps its old disks
       if (!entitlement.active) { if (c.status !== "stopped") { c.status = "stopped"; deps.save(c); } await planEnded(c, entitlement, verdict, false); await retiredStep(c); }
@@ -569,7 +613,7 @@ export function createLifecycle(deps: LifecycleDeps) {
 
     if (!entitlement.active) {
       await planEnded(c, entitlement, verdict, s.state === "running");
-      const final = latestVerified(b), covered = final !== null && (b.lastStopAt === null || final.snapshotAt >= b.lastStopAt);
+      const final = latestVerified(b), covered = neverSetUp(c) || final !== null && (b.lastStopAt === null || final.snapshotAt >= b.lastStopAt);
       if (s.state === "running") {
         // the copy retention relies on is read from the running home, right before it sleeps for good
         const quiet = now();
@@ -580,16 +624,18 @@ export function createLifecycle(deps: LifecycleDeps) {
         c.status = "stopped";
         await retiredStep(c);
         // asleep with no final backup as new as its data: woken once to take it (a start costs nothing, only seconds)
-        if (!covered && verdict.earliestAt !== null && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) {
-          await start(c, "wake", () => provider.power(c.serverId!, "on")); b.wakeStartedAt = now(); log(c, "wake", "reconciler", "final_backup"); deps.save(c);
+        // each such wake that brought no backup doubles the wait to the next, up to a day: a home whose backup cannot succeed
+        // (too large, refused) is not woken every few minutes until the operator looks
+        const finalWakes = b.finalWakes ?? 0;
+        if (!covered && verdict.earliestAt !== null && (b.lastBackupTryAt ?? 0) + Math.min(BACKUP_RETRY_MS * 2 ** finalWakes, DAY_MS) <= now()) {
+          if (finalWakes === 3) console.warn(`managed: ALERT cloud ${c.id}: its plan ended and its final backup keeps failing (${b.backupProblem ?? "unknown"})`);
+          await start(c, "wake", () => provider.power(c.serverId!, "on")); b.finalWakes = finalWakes + 1; b.wakeStartedAt = now(); log(c, "wake", "reconciler", "final_backup"); deps.save(c);
         }
       }
       return;
     }
     if (b.endedAt !== null) {
-      b.endedAt = null; b.notices = b.notices.filter(n => !["ended", "left_30", "left_7", "left_1"].includes(n.kind));
-      log(c, "plan_renewed", "billing", "record"); notice(c, "resumed", null);
-      if (b.deleteRequest && b.deleteRequest.cancelledAt === null) { b.deleteRequest.cancelledAt = now(); b.deleteRequest.tokenHash = null; log(c, "delete_cancelled", "billing", "plan_renewed"); }
+      renewed(c);
       if (c.status === "stopped") { c.status = "sleeping"; c.wantPower = "on"; }
       if (c.origin) await deps.home.plan?.(homeOrigin(c), secret(c), { cancelled: false }).catch(() => {});
     }
