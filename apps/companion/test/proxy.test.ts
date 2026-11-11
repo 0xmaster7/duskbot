@@ -282,7 +282,7 @@ describe("the sidecar in front of an unmodified harness", () => {
   it("saves a paired device's bot appearance and returns it to other clients", async () => {
     const { body } = await device("GET", "/api/bots");
     const bot = body.bots[0];
-    const appearance = { color: "teal", mascotBody: "star", mascotExpression: "happy" };
+    const appearance = { color: "teal", mascotBody: "starry", mascotExpression: "happy" };
     const saved = await device("PATCH", `/api/bots/${bot.id}`, { body: appearance });
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
     expect(saved.body.bot).toMatchObject(appearance);
@@ -343,10 +343,10 @@ describe("the sidecar in front of an unmodified harness", () => {
     expect(await ids()).toEqual(before);
 
     const made = await device("POST", "/api/bots", {
-      body: { name: "From the phone", settings: { soul: "Plans trips.", color: "teal", mascotBody: "star" } },
+      body: { name: "From the phone", settings: { soul: "Plans trips.", color: "teal", mascotBody: "starry" } },
     });
     expect(made.status, JSON.stringify(made.body)).toBe(201);
-    expect(made.body.bot).toMatchObject({ name: "From the phone", color: "teal", mascotBody: "star" });
+    expect(made.body.bot).toMatchObject({ name: "From the phone", color: "teal", mascotBody: "starry" });
   });
 
   it("saves the avatar panel's reset and shape choices from a paired device", async () => {
