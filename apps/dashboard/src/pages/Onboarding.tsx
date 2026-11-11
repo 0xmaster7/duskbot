@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Laptop, LoaderCircle } from "@/icons";
 import meadow from "../art/p-meadow.webp";
-import poster from "../art/poster-layers.webp";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, PlanCatalog } from "../data/contracts";
 import { planLine } from "../data/funnel";
@@ -166,8 +165,8 @@ export function Onboarding() {
 
   return (
     <SplitFrame
-      poster={poster}
       mood={mood}
+      step={at}
       scene={scene}
       snug
       card={<p key={step} className="swap-in flex items-end gap-3.5"><span className="font-pixel text-[72px] font-medium leading-[0.72] text-ink">{at + 1}</span><span className="pb-0.5 text-20 font-medium tracking-[-0.03em] text-ink">{LABELS[at]}</span></p>}
