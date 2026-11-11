@@ -26,7 +26,7 @@ import {
 import { CUA_DRIVER_VERSION, DRIVER_LABEL } from "./container-computer.ts";
 import type { AppConfig } from "./config.ts";
 import { vpsBoxChrome, vpsComputerAction, vpsComputerStatus, vpsContainerName, type VpsCommandRunner } from "./vps-computer.ts";
-import { independentScreenTarget } from "./shared-desktop-screens.ts";
+import { INDEPENDENT_DISPLAYS, independentScreenTarget, isManagedScreenViewerPort } from "./shared-desktop-screens.ts";
 import { SCREEN_BROWSER_LOW_MEMORY } from "./vps-browser-ready.ts";
 import * as vpsLocal from "./vps-local.ts";
 import { boxChromes, closeVpsScreenConnections, evictVpsBoxChrome, screenKey } from "./vps-connections.ts";
@@ -117,6 +117,15 @@ describe("bot desktop run flags", () => {
 
   it("names the bridge the host fence keys on", () => {
     expect(botDesktopNetworkCreateArgs()).toEqual(expect.arrayContaining(["com.docker.network.bridge.name=omb-desk0", "com.docker.network.bridge.enable_icc=false"]));
+  });
+});
+
+describe("a strict box's own firewall", () => {
+  it("lets only the docker host reach every screen's viewer, the independent screens' included", () => {
+    const script = readFileSync(resolve(import.meta.dirname, "..", "deploy", "bot-desktop", "rootfs", "usr", "local", "bin", "omb-firewall"), "utf8");
+    const accepts = [...script.matchAll(/-A INPUT -s \$\{gateway\}\/32 -p tcp --dport (\d+)(?::(\d+))? -j ACCEPT/g)].map(m => [Number(m[1]), Number(m[2] ?? m[1])]);
+    expect(accepts).toEqual([[6901, 6900 + Math.max(...INDEPENDENT_DISPLAYS)]]);
+    for (let port = 6900; port <= 6923; port++) expect(accepts.some(([a, b]) => port >= a! && port <= b!), String(port)).toBe(isManagedScreenViewerPort(port));
   });
 });
 

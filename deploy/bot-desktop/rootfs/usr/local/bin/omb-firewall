@@ -28,7 +28,8 @@ rules() {
   echo "-A OUTPUT -o lo -j ACCEPT"
   echo "-A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"
   if [ "$family" = 4 ]; then
-    echo "-A INPUT -s ${gateway}/32 -p tcp --dport 6901 -j ACCEPT"
+    # every screen's viewer: 6901 for the first, 6902 to 6921 for the independent screens bots get on a shared box
+    echo "-A INPUT -s ${gateway}/32 -p tcp --dport 6901:6921 -j ACCEPT"
     for net in $blocked4; do echo "-A OUTPUT -d $net -j $reject"; done
   else
     for net in $blocked6; do echo "-A OUTPUT -d $net -j $reject"; done
