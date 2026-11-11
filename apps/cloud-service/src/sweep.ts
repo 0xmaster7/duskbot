@@ -27,7 +27,10 @@ export function createSweep(options: { dataDir: string; file: string; provider: 
     if (now() - store.state.lastSweepAt < (options.everyMs ?? 30 * 60_000)) return;
     store.state.lastSweepAt = now(); store.commit();
     const byId = new Map(clouds.map(c => [c.id, c]));
-    const known = new Set(clouds.flatMap(c => [c.serverId, ...(c.managed?.retired ?? []).map(r => r.serverId), c.managed?.deletion?.serverId].filter((id): id is string => !!id)));
+    // a migration's machines (the one it left, a rolled-back one) are kept for the operator, on whichever host
+    const open = (c: StoredCloud) => c.managed?.migration && c.managed.migration.phase !== "finished" ? c.managed.migration : null;
+    const known = new Set(clouds.flatMap(c => [c.serverId, ...(c.managed?.retired ?? []).map(r => r.serverId), c.managed?.deletion?.serverId,
+      open(c)?.from.serverId, open(c)?.target?.serverId].filter((id): id is string => !!id)));
     for (const s of await provider.inventory()) {
       if (known.has(s.id)) continue;
       const cloud = s.cloudId ? byId.get(s.cloudId) : undefined;

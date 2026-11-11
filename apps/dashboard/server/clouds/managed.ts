@@ -59,6 +59,15 @@ export interface ManagedCloud {
   resizing(cloud: StoredCloud): boolean;
   /** an operator hold: nothing is deleted while it is set */
   setHold(cloud: StoredCloud, hold: boolean): void;
+  /** the hosts the backend drives, by opaque name (operator tooling only; never shown to a person) */
+  hosts?(): string[];
+  /** an operator's move of one cloud to another host: quiesced, backed up, restored, checked, cut over; undone by
+   *  `rollbackMigration` until `finishMigration` deletes the machine it left */
+  migrate?(cloud: StoredCloud, host: string): void;
+  rollbackMigration?(cloud: StoredCloud): void;
+  finishMigration?(cloud: StoredCloud): Promise<void>;
+  /** what the host measured for the cloud's machine this month, when it reports usage */
+  usage?(cloud: StoredCloud): Promise<{ runningSeconds: number; vcpuSeconds: number; memGiBSeconds: number; diskGiBSeconds: number; egressBytes: number } | null>;
   /** the backend's own routes (machine claims, the edge's route lookup); true when answered */
   handle?(req: IncomingMessage, res: ServerResponse, url: URL, context: ManagedCloudRoutesContext): Promise<boolean>;
   close(): void;

@@ -10,7 +10,7 @@ import {
   CLOUD_BROWSER_SIGN_IN_MAX_TTL_S, CLOUD_HOME_MARKER, CLOUD_PAIRING_MAX_TTL_S, CLOUD_PAIRING_NONCE_MS, CLOUD_PAIRING_SKEW_S, cloudHomeConfiguration, cloudHomeConfigured,
   cloudHomeHost, cloudHomeOffersPlace, cloudHomePlaceRefusal, cloudPairingSignature, cloudRequestSignature, createCloudPairing, firstCloudTurnPatch, prepareCloudHomeVolume,
 } from "./cloud-home.ts";
-import { cloudHomeChildEnvironments, cloudHomeDataDir, codeTrustProblem, edgeClientAddress, edgeHold, hardenHost, holdVolume, passwdIds, prepareCloudHomeData, spawnWithSecrets } from "./cloud-home-start.ts";
+import { cloudHomeChildEnvironments, cloudHomeDataDir, codeTrustProblem, edgeClientAddress, edgeHold, hardenHost, holdVolume, passwdIds, prepareCloudHomeData, spawnWithSecrets, upstreamHost } from "./cloud-home-start.ts";
 import { RESTART_EXIT_CODE, restartPolicy } from "./restart.ts";
 import { resolveRequestAuth } from "./request-auth.ts";
 import { SessionRegistry } from "./sessions.ts";
@@ -332,6 +332,13 @@ it("lets only the tunnel name the client on an own server, and only Fly's proxy 
     expect(edge.DUSK_CLOUD_EDGE_TRUSTED_PROXIES).toMatch(/^(?:private_ranges|127\.0\.0\.1\/32 ::1\/128)$/);
   }
   expect(cloudHomeChildEnvironments(config, { ...contract(), PATH: "/usr/bin", FLY_APP_NAME: "omb-u-1a2b3c4d5e6f" }, "/data").server).not.toHaveProperty("DUSK_CLOUD_EDGE_CLIENT_IP_HEADER");
+});
+
+it("never names the public host twice in the edge's host matcher, which Caddy refuses", () => {
+  expect(upstreamHost("home.example.test", undefined)).toBe("upstream.invalid");
+  expect(upstreamHost("home.example.test", "home.example.test")).toBe("upstream.invalid");
+  expect(upstreamHost("d0123.desktops.example.test", "8080-abc.machines.example.test")).toBe("8080-abc.machines.example.test");
+  expect(upstreamHost("home.example.test", "Not A Host!")).toBe("upstream.invalid");
 });
 
 it("gives the edge only its routing name and the server the contract, never a secret", () => {

@@ -73,12 +73,74 @@ if (b.v !== 2 || !/^c[0-9a-f]{24}$/.test(b.machine) || typeof b.claim !== "strin
 /** the sha256 a home package must have, from DUSK_BOAT_HOME_PACKAGE_SHA256 or the uploaded file */
 const SHA256 = /^[a-f0-9]{64}$/;
 
+/** what differs between the machines of two hosts: where files land, who owns the volume's mount, what runs before a
+ *  stop, and the control commands whose steps depend on them */
+export interface HostLayout {
+  bootFile: string;
+  packageFile: string;
+  restoreFile: string;
+  /** the setup's line that makes the volume and the data folder */
+  volumeDirs: string;
+  /** setup lines of the host's own (Boat's pre-stop hook) */
+  hostSetup: string;
+  /** `omb-home restore <tar>` */
+  restore: string;
+  /** `omb-home start` lines after the origin checks, before the env is rewritten */
+  startKeep: string;
+  /** more `omb-home` subcommands, and the usage line naming them all */
+  extraCommands: string;
+  usage: string;
+}
+
+// Boat runs ~/.boat/pre-stop before every stop it saves (60 s at most): the home closes its databases first. The flag
+// keeps systemd from starting it again during the save; if the provider then cancels the stop, or resumes the machine
+// held in memory with nobody to start it, the timer brings the home back after 15 minutes of uptime.
+const BOAT_PRE_STOP = `#!/bin/bash
+sudo -n install -d -o root -g root -m 0755 ${CLOUD_HOME.run}
+sudo -n touch ${PRE_STOP_FLAG}
+sudo -n systemd-run --quiet --unit=omb-stop-cancelled --on-active=15min --timer-property=AccuracySec=30s ${BOAT_CONTROL} resume-if-cancelled >/dev/null 2>&1 || true
+sudo -n timeout 40 systemctl stop omb-home.service >/dev/null 2>&1 || sudo -n systemctl kill -s KILL omb-home.service >/dev/null 2>&1 || true
+`;
+export const BOAT_LAYOUT: HostLayout = {
+  bootFile: BOAT_BOOT_FILE, packageFile: BOAT_PACKAGE_FILE, restoreFile: BOAT_RESTORE_FILE,
+  volumeDirs: `sudo install -d -o maus -g maus -m 0700 /data ${CLOUD_HOME.data}`,
+  hostSetup: `install -d -m 0700 /home/user/.boat
+install -m 0700 /dev/stdin /home/user/.boat/pre-stop <<'DUSK_PRESTOP'
+${BOAT_PRE_STOP}DUSK_PRESTOP
+printf '%s\\n' /tmp /var/tmp /var/cache/apt > /home/user/.boatignore
+`,
+  restore: `  restore)
+    file="$2"
+    systemctl stop omb-home.service >/dev/null 2>&1 || true
+    machine="$(cat ${CLOUD_HOME.etc}/machine)"
+    stage="$(mktemp -d /var/tmp/omb-restore.XXXXXX)"
+    tar -xf "$file" -C "$stage" --numeric-owner --no-same-permissions --delay-directory-restore
+    marker="$(find "$stage" -maxdepth 3 -name .omb-cloud-home.json -type f | head -n 1)"
+    [ -n "$marker" ] || { rm -rf "$stage"; echo "not a home backup"; exit 2; }
+    grep -q "\\"$machine\\"" "$marker" || { rm -rf "$stage"; echo "another cloud's backup"; exit 2; }
+    root="$(dirname "$marker")"
+    link="$(mktemp)"; cp ${CLOUD_HOME.data}/dashboard-link.json "$link"
+    rm -rf /data.old; mv /data /data.old; mv "$root" /data
+    install -d -o maus -g maus -m 0700 ${CLOUD_HOME.data}
+    install -o maus -g maus -m 0600 "$link" ${CLOUD_HOME.data}/dashboard-link.json
+    chown -R maus:maus /data; chmod 0700 /data; rm -rf "$stage" "$link" "$file" /data.old
+    echo restored ;;
+`,
+  startKeep: "",
+  extraCommands: "",
+  usage: "install|rollback|restore|start|stop|status|verify-template|tree|resume-if-cancelled",
+};
+
 /**
  * Runs once on the first start. Installs Node and Caddy (pinned, checksummed), the `maus` user, the volume at /data, the
  * systemd units and the helper commands, and moves the boot secrets into root's files. It never starts the home: the
  * reconciler installs the app package and starts it once it knows the sandbox's public origin.
  */
 export function boatSetupScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean } = { releaseKeys: [], requireSigned: false }): string {
+  return homeSetupScript(options, BOAT_LAYOUT);
+}
+
+export function homeSetupScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean }, layout: HostLayout): string {
   const node = `node-v${BOAT_NODE.version}-linux-x64`;
   const caddy = `caddy_${BOAT_CADDY.version}_linux_amd64.tar.gz`;
   const unit = `[Unit]
@@ -131,15 +193,6 @@ IPAddressDeny=any
 
 [Install]
 WantedBy=multi-user.target
-`;
-  // Boat runs ~/.boat/pre-stop before every stop it saves (60 s at most): the home closes its databases first. The flag
-  // keeps systemd from starting it again during the save; if the provider then cancels the stop, or resumes the machine
-  // held in memory with nobody to start it, the timer brings the home back after 15 minutes of uptime.
-  const preStop = `#!/bin/bash
-sudo -n install -d -o root -g root -m 0755 ${CLOUD_HOME.run}
-sudo -n touch ${PRE_STOP_FLAG}
-sudo -n systemd-run --quiet --unit=omb-stop-cancelled --on-active=15min --timer-property=AccuracySec=30s ${BOAT_CONTROL} resume-if-cancelled >/dev/null 2>&1 || true
-sudo -n timeout 40 systemctl stop omb-home.service >/dev/null 2>&1 || sudo -n systemctl kill -s KILL omb-home.service >/dev/null 2>&1 || true
 `;
   // compressed swap at half the memory, so a burst does not kill anything; best effort (some kernels have no zram)
   const zram = `#!/bin/sh
@@ -210,31 +263,27 @@ id maus >/dev/null 2>&1 || sudo useradd --system --home-dir /data --shell /bin/b
 id omb-docker >/dev/null 2>&1 || sudo useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin --gid maus omb-docker
 getent group docker >/dev/null 2>&1 && sudo usermod -aG docker omb-docker
 sudo install -d -o root -g root -m 0700 ${CLOUD_HOME.etc}
-sudo install -d -o maus -g maus -m 0700 /data ${CLOUD_HOME.data}
-if [ -f ${BOAT_BOOT_FILE} ]; then
-  boot=${BOAT_BOOT_FILE}
-  if grep -q '"v":2' ${BOAT_BOOT_FILE}; then
-    sudo ${BOAT_NODE_BIN} -e ${shellQuote(REDEEM_SCRIPT)} ${BOAT_BOOT_FILE} ${CLOUD_HOME.etc}/boot.json
+${layout.volumeDirs}
+if [ -f ${layout.bootFile} ]; then
+  boot=${layout.bootFile}
+  if grep -q '"v":2' ${layout.bootFile}; then
+    sudo ${BOAT_NODE_BIN} -e ${shellQuote(REDEEM_SCRIPT)} ${layout.bootFile} ${CLOUD_HOME.etc}/boot.json
     boot=${CLOUD_HOME.etc}/boot.json
   fi
   sudo ${BOAT_NODE_BIN} -e ${shellQuote(moveBoot)} "$boot"
   sudo chown maus:maus ${CLOUD_HOME.data}/dashboard-link.json /data/${CLOUD_HOME_MARKER_FILE}
   sudo shred -u ${CLOUD_HOME.etc}/boot.json 2>/dev/null || sudo rm -f ${CLOUD_HOME.etc}/boot.json
-  shred -u ${BOAT_BOOT_FILE} 2>/dev/null || rm -f ${BOAT_BOOT_FILE}
+  shred -u ${layout.bootFile} 2>/dev/null || rm -f ${layout.bootFile}
 fi
 sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-home.service <<'DUSK_UNIT'
 ${unit}DUSK_UNIT
 sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-docker-gate.service <<'DUSK_GATE'
 ${gate}DUSK_GATE
 sudo install -o root -g root -m 0755 /dev/stdin ${BOAT_CONTROL} <<'DUSK_CTL'
-${boatControlScript(options)}DUSK_CTL
+${homeControlScript(options, layout)}DUSK_CTL
 # a machine started from a template runs only the app the template's signature names (a wrong template, not a hostile one)
 if [ -d ${APP} ]; then sudo -n ${BOAT_CONTROL} verify-template; fi
-install -d -m 0700 /home/user/.boat
-install -m 0700 /dev/stdin /home/user/.boat/pre-stop <<'DUSK_PRESTOP'
-${preStop}DUSK_PRESTOP
-printf '%s\\n' /tmp /var/tmp /var/cache/apt > /home/user/.boatignore
-sudo install -o root -g root -m 0755 /dev/stdin ${BIN}/omb-zram <<'DUSK_ZRAM'
+${layout.hostSetup}sudo install -o root -g root -m 0755 /dev/stdin ${BIN}/omb-zram <<'DUSK_ZRAM'
 ${zram}DUSK_ZRAM
 sudo install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/omb-zram.service <<'DUSK_ZRAMUNIT'
 ${zramUnit}DUSK_ZRAMUNIT
@@ -255,6 +304,10 @@ fi
  * prints only fixed words. Running it again is safe.
  */
 export function boatControlScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean } = { releaseKeys: [], requireSigned: false }): string {
+  return homeControlScript(options, BOAT_LAYOUT);
+}
+
+export function homeControlScript(options: { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean }, layout: HostLayout): string {
   return `#!/bin/bash
 set +x
 set -euo pipefail
@@ -299,23 +352,7 @@ case "\${1:-}" in
     mv ${ROOT}/installed.prev ${ROOT}/installed
     if [ -f ${ROOT}/installed-version.prev ]; then mv ${ROOT}/installed-version.prev ${ROOT}/installed-version; else rm -f ${ROOT}/installed-version; fi
     echo "rolled back" ;;
-  restore)
-    file="$2"
-    systemctl stop omb-home.service >/dev/null 2>&1 || true
-    machine="$(cat ${CLOUD_HOME.etc}/machine)"
-    stage="$(mktemp -d /var/tmp/omb-restore.XXXXXX)"
-    tar -xf "$file" -C "$stage" --numeric-owner --no-same-permissions --delay-directory-restore
-    marker="$(find "$stage" -maxdepth 3 -name .omb-cloud-home.json -type f | head -n 1)"
-    [ -n "$marker" ] || { rm -rf "$stage"; echo "not a home backup"; exit 2; }
-    grep -q "\\"$machine\\"" "$marker" || { rm -rf "$stage"; echo "another cloud's backup"; exit 2; }
-    root="$(dirname "$marker")"
-    link="$(mktemp)"; cp ${CLOUD_HOME.data}/dashboard-link.json "$link"
-    rm -rf /data.old; mv /data /data.old; mv "$root" /data
-    install -d -o maus -g maus -m 0700 ${CLOUD_HOME.data}
-    install -o maus -g maus -m 0600 "$link" ${CLOUD_HOME.data}/dashboard-link.json
-    chown -R maus:maus /data; chmod 0700 /data; rm -rf "$stage" "$link" "$file" /data.old
-    echo restored ;;
-  verify-template)
+${layout.restore}  verify-template)
     # the template's signature names the tree hash of the app it carries; anything else never starts
     [ -f ${ROOT}/template.sig ] || { [ "$signed" = 1 ] && { echo "unsigned template"; exit 2; }; echo "no template signature"; exit 0; }
     ${BOAT_NODE_BIN} -e "$verify" ${ROOT}/template.sig "$(tree "$app")" template || { echo "bad template"; exit 2; }
@@ -330,7 +367,7 @@ case "\${1:-}" in
     origin="$2"; upstream="\${3:-$2}"
     [[ "$origin" =~ ^https://[a-z0-9.-]+$ ]] || { echo "bad origin"; exit 2; }
     [[ "$upstream" =~ ^https://[a-z0-9.-]+$ ]] || { echo "bad origin"; exit 2; }
-    sed -i "/^DUSK_PUBLIC_URL=/d; /^DUSK_CLOUD_UPSTREAM_HOST=/d" ${CLOUD_HOME.etc}/home.env
+${layout.startKeep}    sed -i "/^DUSK_PUBLIC_URL=/d; /^DUSK_CLOUD_UPSTREAM_HOST=/d" ${CLOUD_HOME.etc}/home.env
     echo "DUSK_PUBLIC_URL=$origin" >> ${CLOUD_HOME.etc}/home.env
     echo "DUSK_CLOUD_UPSTREAM_HOST=\${upstream#https://}" >> ${CLOUD_HOME.etc}/home.env
     rm -f ${PRE_STOP_FLAG}; systemctl stop omb-stop-cancelled.timer >/dev/null 2>&1 || true
@@ -341,20 +378,24 @@ case "\${1:-}" in
     echo "not answering"; exit 3 ;;
   stop) systemctl stop omb-home.service; echo stopped ;;
   status) systemctl is-active omb-home.service || true; [ -f ${ROOT}/installed ] && cat ${ROOT}/installed || echo none ;;
-  *) echo "usage: omb-home install|rollback|restore|start|stop|status|verify-template|tree|resume-if-cancelled"; exit 2 ;;
+${layout.extraCommands}  *) echo "usage: omb-home ${layout.usage}"; exit 2 ;;
 esac
 `;
 }
 
 export function installCommand(sha256: string, url?: string, signature?: string, floor?: string | null): string {
+  return packageInstallCommand(BOAT_PACKAGE_FILE, sha256, url, signature, floor);
+}
+
+export function packageInstallCommand(packageFile: string, sha256: string, url?: string, signature?: string, floor?: string | null): string {
   if (!SHA256.test(sha256)) throw new Error("Invalid home package checksum.");
   if (signature !== undefined && !/^r1\.[a-z0-9-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(signature)) throw new Error("Invalid home package signature.");
   if (floor && (!signature || !/^\d+\.\d+\.\d+$/.test(floor))) throw new Error("Invalid home package floor.");
-  const install = `sudo -n ${BOAT_CONTROL} install ${BOAT_PACKAGE_FILE} ${sha256}${signature ? ` ${signature}` : ""}${floor ? ` ${floor}` : ""}`;
+  const install = `sudo -n ${BOAT_CONTROL} install ${packageFile} ${sha256}${signature ? ` ${signature}` : ""}${floor ? ` ${floor}` : ""}`;
   if (url === undefined) return install;
   const parsed = new URL(url);
   if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error("Invalid home package URL.");
-  return `curl -fsSL --retry 3 -o ${BOAT_PACKAGE_FILE} ${shellQuote(parsed.href)} && ${install}`;
+  return `curl -fsSL --retry 3 -o ${packageFile} ${shellQuote(parsed.href)} && ${install}`;
 }
 /** `origin`: what people use (ours, through the edge); `upstream`: the machine's own hosted URL, which the edge forwards to */
 export function startCommand(origin: string, upstream: string = origin): string {

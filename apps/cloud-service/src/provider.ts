@@ -26,6 +26,15 @@ export interface MachineCreateInput extends CreateServerInput {
   attempt?: number;
 }
 export interface NamedSnapshot { name: string; status: "saving" | "ready" | "failed" | string; createdAt: number | null }
+/** what a provider can do beyond the Boat model; absent means no */
+export interface ProviderCapabilities {
+  /** "off" keeps memory and processes, "on" continues where it left off */
+  memoryPause?: boolean;
+  /** `latestSnapshot` and `snapshotTar` read a consistent volume from a running machine (never from a sleeping one) */
+  liveBackup?: boolean;
+}
+/** what the provider measured for one machine over a window */
+export interface MachineUsage { from: number; to: number; runningSeconds: number; vcpuSeconds: number; memGiBSeconds: number; diskGiBSeconds: number; egressBytes: number }
 
 export interface MachineProvider extends CloudProvider {
   readonly name: "managed";
@@ -47,6 +56,8 @@ export interface MachineProvider extends CloudProvider {
   saveNamedSnapshot(serverId: string, name: string): Promise<void>;
   deleteNamedSnapshot(name: string): Promise<void>;
   limits?(): Promise<{ nextStartCents: number | null } | null>;
+  readonly capabilities?: ProviderCapabilities;
+  usage?(serverId: string, from?: number): Promise<MachineUsage | null>;
 }
 
 export class ProviderError extends Error {

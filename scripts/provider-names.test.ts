@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { PROVIDER_NAME, PROVIDER_WORD, SHIPPED_PATHS } from "./provider-names.ts";
+import { PROVIDER_NAME, PROVIDER_WORDS, SHIPPED_PATHS } from "./provider-names.ts";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const BINARY = /\.(?:png|jpe?g|gif|webp|ico|icns|woff2?|ttf|otf|mp3|mp4|wav|zip|gz|tgz|wasm|node|dylib|so|exe|pdf)$/i;
@@ -29,6 +29,6 @@ describe("the managed cloud's provider is not named in what ships", () => {
   });
 
   it("catches the name in any case", () => {
-    for (const text of [PROVIDER_WORD, PROVIDER_WORD.toLowerCase(), `${PROVIDER_WORD.toLowerCase()}.dev`, `place.${PROVIDER_WORD.toLowerCase()}.title`]) expect(PROVIDER_NAME.test(text), text).toBe(true);
+    for (const word of PROVIDER_WORDS) for (const text of [word, word.toLowerCase(), `${word.toLowerCase()}.dev`, `place.${word.toLowerCase()}.title`]) expect(PROVIDER_NAME.test(text), text).toBe(true);
   });
 });
