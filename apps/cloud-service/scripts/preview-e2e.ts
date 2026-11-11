@@ -1,3 +1,4 @@
+// @ts-nocheck: this live harness runs page.evaluate callbacks in the browser, and the server tsconfig has no DOM types
 // A person's whole Dusk Cloud journey on the deployed service, with both of their apps on screen: sign-up on the site,
 // onboarding, a Dusk Cloud plan, the cloud machine on InstaBox, the desktop app signing in and opening its cloud (the
 // page its window loads, in headless Chromium), two bots, messages, a bot using its own computer's browser, a routine on
@@ -147,7 +148,7 @@ async function signInWeb() {
     const sent = Date.now(); await page.click("button[type=submit]");
     const got = await mail.code(sent);
     await page.locator("input:visible").first().fill(got.code);
-    await page.waitForURL(u => !/signin/.test(String(u)), { timeout: 20_000 });
+    await page.waitForURL((u: URL) => !/signin/.test(String(u)), { timeout: 20_000 });
     state.web = await web.storageState(); keep();
   }, true);
 }
