@@ -326,7 +326,7 @@ try {
   await step("browser profile: a site's cookie kept in the bot's profile", async () => {
     const id = await container();
     await ibx.upload(cloud().serverId!, "/data/home/omb-profile.py", Buffer.from(PROFILE));
-    const set = await onMachine(cloudId, `sudo docker exec -i -u 1000 ${id} python3 - 'https://httpbin.org/cookies/set?omb_profile=kept' /home/cua/.omb-profile < /data/home/omb-profile.py 2>&1`, 120);
+    const set = await onMachine(cloudId, `sudo docker exec -i -u 1000 ${id} python3 - 'https://httpbin.org/response-headers?Set-Cookie=omb_profile%3Dkept%3B%20Max-Age%3D86400%3B%20Path%3D%2F' /home/cua/.omb-profile < /data/home/omb-profile.py 2>&1`, 120);
     results.profileSet = set.stdout.trim().slice(-200);
     const check = await onMachine(cloudId, `sudo docker exec -i -u 1000 ${id} python3 - https://httpbin.org/cookies /home/cua/.omb-profile < /data/home/omb-profile.py 2>&1`, 120);
     results.profileBefore = check.stdout.trim();
