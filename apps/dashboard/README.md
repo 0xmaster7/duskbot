@@ -109,11 +109,11 @@ The site links in with these addresses (`src/lib/site.ts` reads them):
 |---|---|
 | `/` | sign-in when signed out, the dashboard home when signed in |
 | `/signup` | the create-account screen |
-| `/signup?plan=plus` or `?plan=pro`, optional `&period=month` or `year` | sign-up with a plan: after sign-in a new account opens onboarding on its plan step with that plan and period chosen and goes to checkout; an account that finished onboarding lands on `/billing` with the plan sheet open |
+| `/signup?plan=plus` or `?plan=pro`, optional `&period=month` or `year` | sign-up with a plan: after sign-in a new account opens onboarding, where the first screen (its name) carries that plan and period and its button goes straight to checkout; an account that finished onboarding lands on `/billing` with the plan sheet open |
 | `/billing?plan=pro&period=year` (or the older `?bundle=pro`) | plans, with the sheet open on that plan |
 
 Signed out on any other address (`/usage`, `/claim`, `/cloud/desktop?code=`), sign-in comes first and then that address
-opens. Onboarding keeps its step in the address (`?step=name|plan|app|done`), so back, forward and a refresh hold.
+opens. Onboarding keeps its step in the address (`?step=name|plan|app`; the older `done` opens `app`), so back, forward and a refresh hold.
 
 ### Sign-in providers
 
