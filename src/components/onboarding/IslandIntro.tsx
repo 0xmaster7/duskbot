@@ -271,7 +271,7 @@ export function IslandIntro({ onDone, titleId = "welcome-title" }: { onDone: (ch
                   {BOTS.map((bot, index) => (
                     <motion.li key={bot.id} variants={{ hidden: { opacity: 0, y: reduced ? 0 : 6 }, shown: { opacity: 1, y: 0 } }}
                       className="flex h-11 items-center gap-2.5 rounded-[14px] px-2">
-                      <MausAvatar color={bot.color} bodyId="circle" size={26} state={faceOf(statusOf(index))} animated={!reduced} trackPointer={false} personality={false} />
+                      <MausAvatar color={bot.color} bodyId="kit" size={26} state={faceOf(statusOf(index))} animated={!reduced} trackPointer={false} personality={false} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] font-[550] leading-[18px]">{bot.name()}</span>
                         <span className="block truncate text-[11px] leading-4 text-[rgb(245_245_245/0.5)]">{t(bot.line)}</span>
@@ -285,7 +285,7 @@ export function IslandIntro({ onDone, titleId = "welcome-title" }: { onDone: (ch
           </motion.div>
           {live && (
             <motion.span aria-hidden className="pointer-events-none absolute left-0 flex" style={{ x: tileX, top: (BAR_H - TILE) / 2, width: TILE, height: TILE }}>
-              <MausAvatar key={focus.id} color={focus.color} bodyId="circle" size={TILE} state={faceOf(focusStatus)} animated={!reduced} trackPointer={false} personality={false} />
+              <MausAvatar key={focus.id} color={focus.color} bodyId="kit" size={TILE} state={faceOf(focusStatus)} animated={!reduced} trackPointer={false} personality={false} />
             </motion.span>
           )}
           {phase !== "dark" && phase !== "notch" && (
@@ -313,7 +313,7 @@ export function IslandIntro({ onDone, titleId = "welcome-title" }: { onDone: (ch
               transition={heroStage === "out" ? { x: LIVELY, y: { type: "spring", stiffness: 420, damping: 19 }, scale: LIVELY, opacity: FADE }
                 : { x: SETTLE, y: SETTLE, scale: SETTLE, opacity: FADE }}
               onAnimationComplete={() => { if (heroStage === "out") marks.current[BOTS.length]?.react?.("greet"); }}>
-              <MausAvatar ref={(node) => { marks.current[BOTS.length] = node; }} color="chrome" bodyId="circle" size={HERO}
+              <MausAvatar ref={(node) => { marks.current[BOTS.length] = node; }} color="chrome" bodyId="kit" size={HERO}
                 state={heroStage === "out" ? "excited" : "idle"} animated trackPointer={false} personality={false} />
             </motion.span>
           )}
@@ -440,7 +440,7 @@ function Dock({ shown, reduced, statusOf, focusIndex, absorbed, marks, onPoint, 
                 if (dragged.current) { dragged.current = false; return; }
                 onCheer(index);
               }}>
-              <MausAvatar ref={(node) => { marks.current[index] = node; }} color={bot.color} bodyId="circle" size={DOCK_TILE}
+              <MausAvatar ref={(node) => { marks.current[index] = node; }} color={bot.color} bodyId="kit" size={DOCK_TILE}
                 state={faceOf(statusOf(index))} animated={!reduced} trackPointer={false} personality={false} />
               {bot.status === "needs-you" && (
                 <span aria-hidden className="absolute left-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#116dd2] px-1 text-[10px] font-semibold leading-none text-white shadow-[0_0_0_2px_#0c0c0c]">1</span>

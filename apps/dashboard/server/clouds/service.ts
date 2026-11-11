@@ -171,7 +171,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       c.status = "stopped"; succeeded(c); return;
     }
     if (config.configured?.[c.placement] === false) {
-      c.error = "Cloud desktops are not configured."; save(c); return;
+      c.error = "Dusk Cloud is not configured."; save(c); return;
     }
     if (c.suspended !== null) {
       if (!c.suspensionApplied || c.serverId && (await provider.status(c.serverId)).state !== "off") {

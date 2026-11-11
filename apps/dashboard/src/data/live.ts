@@ -9,7 +9,7 @@ const desktopIds = { none: "none", shared_s: "shared-s", shared_m: "shared-m", d
 const desktopKinds = { none: "none", "shared-s": "shared_s", "shared-m": "shared_m", dedicated: "dedicated" } as const;
 const bundleBlurbs = {
   free: "for personal use on your mac or your own vps",
-  starter: "work license and a cloud desktop, on 24/7",
+  starter: "work license and dusk cloud, on 24/7",
   pro: "more room and priority for serious bots",
   team: "a dedicated machine for the whole team",
 };
@@ -66,7 +66,7 @@ export function cartFromQuote(quote: Quote, catalog: PlanCatalog): PricedCart {
       const extra = Math.max(0, quote.members - (license?.includedMembers ?? quote.members));
       lines.push({ key: "license", label: license ? `${license.name} license` : line.label, detail: `${quote.members} ${quote.members === 1 ? "member" : "members"}${extra ? `, ${extra} extra` : ""}`, monthly: line.amountCents / divisor });
     } else {
-      lines.push({ key: "desktop", label: desktop ? `cloud desktop, ${desktop.name}` : line.label, detail: quote.machine ? specLine(quote.machine) : "", monthly: line.amountCents / divisor });
+      lines.push({ key: "desktop", label: desktop ? `dusk cloud, ${desktop.name}` : line.label, detail: quote.machine ? specLine(quote.machine) : "", monthly: line.amountCents / divisor });
     }
   }
   return { lines, subtotal: subtotalCents / divisor, bundle: catalog.bundles.find((item) => item.id === quote.bundle) ?? null, bundleSaving: 0, discount: discountCents / divisor, perMonth: quote.monthlyEquivalentCents / 100, dueNow: quote.totalCents / 100, free: quote.totalCents === 0 && lines.length === 0 };

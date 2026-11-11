@@ -36,21 +36,21 @@ function type(value: string) {
   flushSync(() => { setter.call(input, value); input.dispatchEvent(new Event("input", { bubbles: true })); });
 }
 
-it("is Create New Bot: a name, our ten shapes, the colours, and Create only once named", () => {
+it("is Create New Bot: a name, the twenty pixel bodies, the colours, and Create only once named", () => {
   flushSync(() => openCreateBot("GOATS"));
   expect(dialog()!.querySelector("h2")!.textContent).toBe("Create New Bot");
   expect(dialog()!.querySelector("input")!.placeholder).toBe("Name your Bot");
-  expect(dialog()!.querySelectorAll('[aria-label$="character shape"]')).toHaveLength(10);
+  expect(dialog()!.querySelectorAll('[aria-label$="character shape"]')).toHaveLength(20);
   expect(dialog()!.querySelectorAll('[aria-label$="character shape"][aria-pressed="true"]')).toHaveLength(1);
   expect(dialog()!.querySelectorAll('[aria-label$="character color"][aria-pressed="true"]')).toHaveLength(1);
   expect(button("Create").disabled).toBe(true);
   type("   ");
   expect(button("Create").disabled, "a blank name is no name").toBe(true);
   type("Rex");
-  flushSync(() => button("heart character shape").click());
+  flushSync(() => button("hearty character shape").click());
   flushSync(() => button("Blue character color").click());
   flushSync(() => button("Create").click());
-  expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "newBot", section: "GOATS", look: { name: "Rex", color: "blue", mascotBody: "heart" } }));
+  expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "newBot", section: "GOATS", look: { name: "Rex", color: "blue", mascotBody: "hearty" } }));
   expect(dialog(), "it stays until the bot exists").not.toBeNull();
   expect(button("Creating…").disabled).toBe(true);
   flushSync(() => fixture.dispatch.mock.calls[0]![0].onCreated({ id: "rex" }));
@@ -60,13 +60,13 @@ it("is Create New Bot: a name, our ten shapes, the colours, and Create only once
 it("keeps the name, shape and colour and says why when the bot could not be made", () => {
   flushSync(() => openCreateBot());
   type("Rex");
-  flushSync(() => button("heart character shape").click());
+  flushSync(() => button("hearty character shape").click());
   flushSync(() => button("Create").click());
   flushSync(() => fixture.dispatch.mock.calls[0]![0].onError("Couldn't make a new bot: offline"));
   expect(dialog()).not.toBeNull();
   expect(dialog()!.querySelector("[data-create-bot-error]")!.textContent).toBe("Couldn't make a new bot: offline");
   expect(dialog()!.querySelector("input")!.value).toBe("Rex");
-  expect(button("heart character shape").getAttribute("aria-pressed")).toBe("true");
+  expect(button("hearty character shape").getAttribute("aria-pressed")).toBe("true");
   expect(button("Create").disabled, "it can be tried again").toBe(false);
 });
 

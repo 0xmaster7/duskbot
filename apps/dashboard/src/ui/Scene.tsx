@@ -20,12 +20,12 @@ interface Member { body: string; colour: BotColour; size: number; x: number; y: 
 
 // placed in percent of the scene, standing on the poster's meadow; the back row is smaller and higher
 const CREW: Member[] = [
-  { body: "cloud", colour: "orange", size: 76, x: 12, y: 9.5, wide: true },
-  { body: "circle", colour: "blue", size: 104, x: 28, y: 3.5 },
-  { body: "star", colour: "yellow", size: 72, x: 46, y: 10 },
-  { body: "heart", colour: "pink", size: 92, x: 62, y: 3 },
-  { body: "hex", colour: "red", size: 76, x: 78, y: 9.5, wide: true },
-  { body: "moon", colour: "purple", size: 64, x: 91, y: 2.5, sleepy: true, wide: true },
+  { body: "puff", colour: "orange", size: 76, x: 12, y: 9.5, wide: true },
+  { body: "kit", colour: "blue", size: 104, x: 28, y: 3.5 },
+  { body: "starry", colour: "yellow", size: 72, x: 46, y: 10 },
+  { body: "hearty", colour: "pink", size: 92, x: 62, y: 3 },
+  { body: "boxo", colour: "red", size: 76, x: 78, y: 9.5, wide: true },
+  { body: "wisp", colour: "purple", size: 64, x: 91, y: 2.5, sleepy: true, wide: true },
 ];
 
 const SMALL_CREW = CREW.filter((m) => !m.wide);

@@ -83,7 +83,7 @@ afterEach(async () => {
 });
 
 /** What Create New Bot sends once the person has named the bot; a plain New Bot only opens that dialog. */
-const CREATE: Action = { type: "newBot", look: { name: "New", color: "blue", mascotBody: "circle" } };
+const CREATE: Action = { type: "newBot", look: { name: "New", color: "blue", mascotBody: "pip" } };
 
 describe("a create button with no room", () => {
   it.each<[string, Action]>([["New bot", { type: "newBot" }], ["Duplicate", { type: "duplicateBot", botId: "b0" }]])("%s opens the popup and asks the server nothing", async (_name, action) => {

@@ -4,7 +4,7 @@ import { Loader2, Trash2 } from "../../icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
-import { MAUS_COLOR_LABEL, MAUS_COLOR_NAMES, colorSwatch, type MausState } from "@/lib/mascot";
+import { MAUS_COLOR_LABEL, PICKER_COLORS, colorSwatch, rowsOfFive, type MausState } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
 import { DEFAULT_BOT_BODY, wearsBody, type BotBodyId } from "../../../shared/bot-body";
 import { DUSK_BODY_IDS } from "../../../shared/body-migration";
@@ -30,7 +30,7 @@ const CROP_KEY: Record<(typeof IMAGE_CROPS)[number], LocaleKey> = {
 };
 
 /** Our bodies, in two rows of five. */
-const SHAPE_ROWS = [DUSK_BODY_IDS.slice(0, 5), DUSK_BODY_IDS.slice(5)];
+const SHAPE_ROWS = rowsOfFive(DUSK_BODY_IDS);
 
 export function AvatarEditorCard({ bot, onPatch, onClose }: {
   bot: Bot;
@@ -123,7 +123,7 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
               ))}
             </div>
             <div aria-label={t("botPanel.avatar.colors")} className="mx-auto flex w-[232px] flex-wrap justify-center gap-2 py-2">
-              {MAUS_COLOR_NAMES.map((color) => (
+              {PICKER_COLORS.map((color) => (
                 <button
                   key={color}
                   type="button"

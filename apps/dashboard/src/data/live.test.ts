@@ -39,7 +39,7 @@ test("catalog maps ids, prices, bundles, custom pricing and the default region",
   assert.deepEqual(result.custom.diskGb, catalog.dedicated.diskGb);
   assert.deepEqual(result.bundles.map((bundle) => [bundle.license, bundle.members, bundle.desktop, bundle.monthly, bundle.recommended]), [["personal", 1, "none", 0, false], ["starter", 1, "shared-s", 20, false], ["starter", 1, "shared-m", 50, true], ["team", 3, "dedicated", 100, false]]);
   assert.equal(result.bundles[0]!.blurb, "for personal use on your mac or your own vps");
-  assert.equal(result.bundles[1]!.blurb, "work license and a cloud desktop, on 24/7");
+  assert.equal(result.bundles[1]!.blurb, "work license and dusk cloud, on 24/7");
   assert.equal(result.bundles[2]!.blurb, "more room and priority for serious bots");
   assert.equal(result.bundles[3]!.blurb, "a dedicated machine for the whole team");
   assert.deepEqual(result.bundles[2]!.features, ["Priority"]);
@@ -75,7 +75,7 @@ test("yearly team quote merges extra members and uses service totals without bun
     lines: [
       { kind: "license", label: "Team license, 3 members", amountCents: 48000 },
       { kind: "members", label: "2 extra members", amountCents: 36000 },
-      { kind: "desktop", label: "Shared M cloud desktop", amountCents: 48000 },
+      { kind: "desktop", label: "Dusk Cloud Shared M", amountCents: 48000 },
       { kind: "discount", label: "Yearly discount (20%)", amountCents: -26400 },
     ],
     totalCents: 105600, monthlyEquivalentCents: 8800, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, members: 5,
@@ -83,7 +83,7 @@ test("yearly team quote merges extra members and uses service totals without bun
   assert.deepEqual(cartFromQuote(quote, plans), {
     lines: [
       { key: "license", label: "team license", detail: "5 members, 2 extra", monthly: 70 },
-      { key: "desktop", label: "cloud desktop, shared m", detail: "4 vcpu · 8 gb ram · 80 gb", monthly: 40 },
+      { key: "desktop", label: "dusk cloud, shared m", detail: "4 vcpu · 8 gb ram · 80 gb", monthly: 40 },
     ],
     subtotal: 110, bundle: null, bundleSaving: 0, discount: 22, perMonth: 88, dueNow: 1056, free: false,
   });
@@ -106,7 +106,7 @@ test("small dedicated quote keeps its service price below the default desktop pr
     totalCents: 2400, monthlyEquivalentCents: 2400, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: null, members: 0,
   };
   assert.deepEqual(cartFromQuote(quote, plans), {
-    lines: [{ key: "desktop", label: "cloud desktop, dedicated", detail: "2 vcpu · 4 gb ram · 40 gb", monthly: 24 }],
+    lines: [{ key: "desktop", label: "dusk cloud, dedicated", detail: "2 vcpu · 4 gb ram · 40 gb", monthly: 24 }],
     subtotal: 24, bundle: null, bundleSaving: 0, discount: 0, perMonth: 24, dueNow: 24, free: false,
   });
   const free = cartFromQuote({ ...quote, cart: { interval: "year", license: { kind: "none" }, desktop: { kind: "none" } }, bundle: "free", lines: [{ kind: "discount", label: "Yearly discount", amountCents: 0 }], totalCents: 0, monthlyEquivalentCents: 0, machine: null }, plans);

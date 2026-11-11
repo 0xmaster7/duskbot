@@ -44,7 +44,7 @@ function sizeFrom(input: unknown): MachineSpec {
 
 function desktopSelection(tier: Exclude<DesktopId, "none">, size: MachineSpec | null) {
   const desktop = desktopOf(fixtureCatalog, tier);
-  if (!desktop) return fail("Choose a cloud desktop.");
+  if (!desktop) return fail("Choose a Dusk Cloud size.");
   if (size !== null && !desktop.sizable) fail("Choose a dedicated desktop to set its size.");
   const spec = size === null ? desktop : sizeFrom(size);
   return { tier: desktop.id, placement: desktop.placement, vcpu: spec.vcpu, ramGb: spec.ramGb, diskGb: spec.diskGb, limit: desktop.botComputers };
@@ -204,7 +204,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
           ...(s.billing.subscription ? [{ kind: "subscription" as const, id: s.billing.subscription.id, label: "Pro", status: s.billing.subscription.status }] : []),
           ...s.clouds.map(cloud => ({ kind: "cloud_desktop" as const, id: cloud.id, label: cloud.name, status: cloud.status })),
         ];
-        throw new ApiError("Cancel your plan and cloud desktops before deleting your account.", 409, "billing_active", blockers);
+        throw new ApiError("Cancel your plan and Dusk Cloud before deleting your account.", 409, "billing_active", blockers);
       }
       s.signedIn = false; s.firstSignIn = true; return {};
     }

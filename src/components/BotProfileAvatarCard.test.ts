@@ -58,18 +58,18 @@ describe("BotProfileAvatarCard body picker", () => {
     expect(markup).toContain(`aria-pressed="true" aria-label="Use the ${HALLOWEEN_BODIES.witch.name} body"`);
   });
 
-  it("marks the current body pressed and the rest unpressed, defaulting to the squircle", () => {
+  it("marks the current body pressed and the rest unpressed, defaulting to kit", () => {
     const markup = renderCard(makeBot());
 
-    expect(markup).toContain(`aria-pressed="true" aria-label="Use the ${DUSK_BODY_NAMES.squircle} body"`);
-    expect(markup).toContain(`aria-pressed="false" aria-label="Use the ${DUSK_BODY_NAMES.star} body"`);
+    expect(markup).toContain(`aria-pressed="true" aria-label="Use the ${DUSK_BODY_NAMES.kit} body"`);
+    expect(markup).toContain(`aria-pressed="false" aria-label="Use the ${DUSK_BODY_NAMES.starry} body"`);
   });
 
   it("reflects an explicitly chosen body", () => {
-    const markup = renderCard(makeBot({ mascotBody: "star" }));
+    const markup = renderCard(makeBot({ mascotBody: "starry" }));
 
-    expect(markup).toContain(`aria-pressed="true" aria-label="Use the ${DUSK_BODY_NAMES.star} body"`);
-    expect(markup).toContain(`aria-pressed="false" aria-label="Use the ${DUSK_BODY_NAMES.squircle} body"`);
+    expect(markup).toContain(`aria-pressed="true" aria-label="Use the ${DUSK_BODY_NAMES.starry} body"`);
+    expect(markup).toContain(`aria-pressed="false" aria-label="Use the ${DUSK_BODY_NAMES.loaf} body"`);
   });
 
   it("offers zoom and drag framing for a custom image", () => {
@@ -93,7 +93,7 @@ describe("BotProfileAvatarCard body picker", () => {
     const markup = renderCard(makeBot({ avatarCrop: "circle" }));
 
     expect(markup).not.toContain(">Body<");
-    expect(markup).not.toContain(`aria-label="Use the ${DUSK_BODY_NAMES.squircle} body"`);
+    expect(markup).not.toContain(`aria-label="Use the ${DUSK_BODY_NAMES.loaf} body"`);
   });
 
   it("hides the body picker for every flat crop, not just circle", () => {

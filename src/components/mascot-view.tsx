@@ -1,19 +1,19 @@
-import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-import { BODIES, INK, bodyName, botSvg } from "../../electron/mascot-geometry.mjs";
-import { EXPRESSION_FACES, createMark, markFace, type Mark, type MarkGaze, type MarkPoke, type MarkReaction } from "./mascot-engine";
+import { createPixel, stillSvgPaths, type PixelBot, type PixelState } from "@/pixel/engine";
+import { duskBody } from "../../shared/body-migration";
+import { EXPRESSION_STATES, pixelReaction, pixelState, type MarkGaze, type MarkPoke, type MarkReaction } from "./mascot-engine";
 import { onMascotCue } from "./mascot-events";
-import { ATTENTION, attentionGaze, watchPointer } from "./mascot-attention";
+import { ATTENTION } from "./mascot-attention";
 
 const useClientLayoutEffect = typeof document === "undefined" ? useEffect : useLayoutEffect;
 
 /** How long a mark keeps looking at the composer after the last keystroke. */
 const WATCH_MS = 1400;
 const COMPOSER_GAZE = { x: 0.15, y: 0.75 };
-const EMPHASIS_GAZE = { x: 0, y: -0.6 };
 
 export interface DuskMarkProps {
-  /** One of our bodies; anything else draws the circle. */
+  /** Any body id a bot was saved with; unknown ids wear the default. */
   body: string;
   /** CSS paint for the body. */
   colour: string;
@@ -21,16 +21,16 @@ export interface DuskMarkProps {
   eyes?: string;
   state?: string;
   size?: number;
-  /** False draws the state's resting pose once and never moves. */
+  /** False draws the state's eyes once and never moves. */
   animated?: boolean;
   /** A resting mark looks up, surprised, while the pointer is on it. */
   emphasized?: boolean;
   /** Where the mark looks, -1..1 on each axis with y down; null looks about on its own. */
   gaze?: MarkGaze | null;
-  /** Face index from the older expression list, held until it changes. */
+  /** Index into the older expression list, held until it changes. */
   expression?: number;
   label?: string | null;
-  /** False: no blinks, idle glances or noticing the pointer between turns. */
+  /** False: no blinks or settling of its own between turns. */
   life?: boolean;
   /** The bot whose app moments (a message typed, a chat opened) this mark answers. */
   cueKey?: string;
@@ -42,134 +42,116 @@ export interface DuskMarkHandle {
   blink: () => void;
   spin: (durationMs?: number) => void;
   setExpression: (index: number) => void;
-  /** No kind cycles spin, bounce and nod. */
+  /** No kind plays a random tap reaction. */
   poke: (kind?: MarkPoke) => void;
   react: (kind: MarkReaction) => void;
 }
 
-const expressionFace = (index: number) => EXPRESSION_FACES[((index % EXPRESSION_FACES.length) + EXPRESSION_FACES.length) % EXPRESSION_FACES.length]!;
+const expressionState = (index: number) => EXPRESSION_STATES[((index % EXPRESSION_STATES.length) + EXPRESSION_STATES.length) % EXPRESSION_STATES.length]!;
 
-export const DuskMark = forwardRef<DuskMarkHandle, DuskMarkProps>(function DuskMark(props, ref) {
-  const shape = bodyName(props.body);
-  return <MarkSvg key={shape} ref={ref} {...props} body={shape} />;
-});
-
-const MarkSvg = forwardRef<DuskMarkHandle, DuskMarkProps>(function MarkSvg(
+export const DuskMark = forwardRef<DuskMarkHandle, DuskMarkProps>(function DuskMark(
   { body, colour, eyes, state = "idle", size = 44, animated = true, emphasized = false, gaze = null, expression, label, life = true, cueKey, className, style },
   ref,
 ) {
-  const svg = useRef<SVGSVGElement>(null);
-  const mark = useRef<Mark | null>(null);
-  const [held, setHeld] = useState<string | null>(null);
-  const emphasisFace = emphasized && state === "idle" ? "surprised" : null;
-  const face = held ?? (expression === undefined ? emphasisFace : expressionFace(expression));
-  // the markup is written once per body; the engine moves it from there
-  const [html] = useState(() => botSvg(body, face ?? markFace(state), eyes || INK));
-  const latest = useRef({ colour, eyes, state, size, animated, life, face });
-  latest.current = { colour, eyes, state, size, animated, life, face };
-
-  const look = useRef<{ gaze: MarkGaze | null; attention: MarkGaze | null; watching: boolean; emphasized: boolean }>({ gaze, attention: null, watching: false, emphasized });
-  const applyLook = () => {
-    const s = look.current;
-    const at = s.watching ? COMPOSER_GAZE : s.gaze ?? s.attention ?? (s.emphasized ? EMPHASIS_GAZE : null);
-    mark.current?.lookAt(at ? at.x : null, at?.y);
-  };
+  const shape = duskBody(body);
+  const el = useRef<HTMLSpanElement>(null);
+  const bot = useRef<PixelBot | null>(null);
+  const [held, setHeld] = useState<PixelState | null>(null);
+  const shown: PixelState = held ?? (expression !== undefined ? expressionState(expression) : emphasized && pixelState(state) === "idle" ? "surprised" : pixelState(state));
+  const latest = useRef({ colour, eyes, shown, life, gaze });
+  latest.current = { colour, eyes, shown, life, gaze };
+  const watching = useRef(false);
+  const applyLook = () => bot.current?.look(watching.current ? COMPOSER_GAZE : latest.current.gaze);
 
   useClientLayoutEffect(() => {
     const p = latest.current;
-    const made = createMark(svg.current!, { body, colour: p.colour, eyes: p.eyes, state: p.state, size: p.size, still: p.animated ? undefined : true, life: p.life });
-    if (p.face) made.hold(p.face);
-    mark.current = made;
+    const made = createPixel(el.current!, {
+      body: shape, size, colour: p.colour, eyes: p.eyes, state: p.shown, animated, life: p.life,
+      follow: animated && p.life && size >= ATTENTION.minPx,
+    });
+    bot.current = made;
     applyLook();
-    return () => { made.destroy(); mark.current = null; };
-  }, []);
+    return () => { made.destroy(); bot.current = null; };
+  }, [shape, size, animated]);
 
-  useEffect(() => { mark.current?.setState(state); }, [state]);
-  useEffect(() => { mark.current?.setColour(colour); }, [colour]);
-  useEffect(() => { mark.current?.setEyes(eyes); }, [eyes]);
-  useEffect(() => { mark.current?.setStill(animated ? undefined : true); }, [animated]);
-  useEffect(() => { mark.current?.setLife(life); }, [life]);
-  useEffect(() => { mark.current?.setSize(size); }, [size]);
-  useEffect(() => { mark.current?.hold(face); }, [face]);
-  useEffect(() => {
-    look.current.gaze = gaze;
-    look.current.emphasized = emphasized;
-    applyLook();
-  }, [gaze?.x, gaze?.y, gaze === null, emphasized]);
+  useEffect(() => { bot.current?.setState(shown); }, [shown]);
+  useEffect(() => { bot.current?.setColour(colour); }, [colour]);
+  useEffect(() => { bot.current?.setEyes(eyes); }, [eyes]);
+  useEffect(() => { bot.current?.setLife(life); }, [life]);
+  useEffect(() => { applyLook(); }, [gaze?.x, gaze?.y, gaze === null]);
 
   useEffect(() => {
     if (!cueKey) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const off = onMascotCue(cueKey, (cue) => {
-      if (cue !== "watch") return mark.current?.react(cue);
+      if (cue !== "watch") {
+        const kind = pixelReaction(cue);
+        if (kind) bot.current?.react(kind);
+        return;
+      }
       clearTimeout(timer);
-      look.current.watching = true;
+      watching.current = true;
       applyLook();
-      timer = setTimeout(() => { look.current.watching = false; applyLook(); }, WATCH_MS);
+      timer = setTimeout(() => { watching.current = false; applyLook(); }, WATCH_MS);
     });
-    return () => { off(); clearTimeout(timer); look.current.watching = false; };
+    return () => { off(); clearTimeout(timer); watching.current = false; };
   }, [cueKey]);
 
-  // a big mark notices a mouse moving near it, then loses interest once the pointer rests
-  const attentive = animated && life && size >= ATTENTION.minPx;
-  useEffect(() => {
-    if (!attentive) return;
-    let rect: DOMRect | null = null, rectAt = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const set = (next: MarkGaze | null) => { look.current.attention = next; applyLook(); };
-    const stop = watchPointer((point) => {
-      clearTimeout(timer);
-      if (!point) return set(null);
-      const now = performance.now();
-      if (!rect || now - rectAt > ATTENTION.rectMs) { rect = svg.current?.getBoundingClientRect() ?? null; rectAt = now; }
-      const next = rect ? attentionGaze(rect, point) : null;
-      set(next);
-      if (next) timer = setTimeout(() => set(null), ATTENTION.holdMs);
-    });
-    return () => { stop(); clearTimeout(timer); look.current.attention = null; };
-  }, [attentive]);
-
   useImperativeHandle(ref, () => ({
-    blink: () => mark.current?.blink(),
-    spin: () => mark.current?.react("spin"),
-    setExpression: (index: number) => setHeld(expressionFace(index)),
-    poke: (kind?: MarkPoke) => mark.current?.poke(kind),
-    react: (kind: MarkReaction) => mark.current?.react(kind),
+    blink: () => bot.current?.blink(),
+    spin: () => bot.current?.react("spin"),
+    setExpression: (index: number) => setHeld(expressionState(index)),
+    poke: (kind?: MarkPoke) => {
+      const r = kind ? pixelReaction(kind) : null;
+      if (r) bot.current?.react(r); else bot.current?.poke();
+    },
+    react: (kind: MarkReaction) => {
+      const r = pixelReaction(kind);
+      if (r === "poke") bot.current?.poke(); else if (r) bot.current?.react(r);
+    },
   }), []);
 
   return (
-    <svg
-      ref={svg}
-      viewBox="0 0 100 100"
-      width={size}
-      height={size}
-      overflow="visible"
+    <span
+      ref={el}
       data-dusk-mark=""
-      data-body={body}
-      data-state={state}
+      data-body={shape}
+      data-state={shown}
+      data-colour={colour}
+      data-eyes={eyes || "#fff"}
       role={label ? "img" : undefined}
       aria-label={label || undefined}
       aria-hidden={label ? undefined : true}
       className={className}
-      style={{ width: size, height: size, color: colour, flexShrink: 0, ...style }}
-      onDoubleClick={animated ? () => mark.current?.react("tap") : undefined}
-      dangerouslySetInnerHTML={{ __html: html }}
+      style={{ display: "inline-block", position: "relative", width: size, height: size, flexShrink: 0, ...style }}
+      onDoubleClick={animated ? (event) => bot.current?.poke(event.clientX) : undefined}
     />
   );
 });
 
-/** A 1px ring that follows a body's outline 3px out, for a picker's hovered or chosen shape. */
+/** A 1px pixel ring one grid step outside a body's silhouette, for a picker's hovered or chosen shape. */
 export function BodyRing({ body, size, className }: { body: string; size: number; className?: string }) {
-  const id = `ring-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
-  const d = BODIES[bodyName(body)].d;
-  const unit = 100 / size;
+  const d = useMemo(() => ringPath(duskBody(body), size), [body, size]);
   return (
-    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 100 100" overflow="visible" className={className}>
-      <mask id={id} maskUnits="userSpaceOnUse" x={-100} y={-100} width={300} height={300}>
-        <path d={d} fill="#fff" stroke="#fff" strokeWidth={8 * unit} strokeLinejoin="round" />
-        <path d={d} fill="#000" stroke="#000" strokeWidth={6 * unit} strokeLinejoin="round" />
-      </mask>
-      <rect x={-100} y={-100} width={300} height={300} fill="currentColor" mask={`url(#${id})`} />
+    <svg aria-hidden="true" width={size} height={size} viewBox={`0 0 ${d.G} ${d.G}`} overflow="visible" shapeRendering="crispEdges" className={className}>
+      <path d={d.path} fill="currentColor" />
     </svg>
   );
+}
+
+function ringPath(body: string, size: number) {
+  const { G, body: silhouette } = stillSvgPaths(body, { size });
+  const on = new Set<string>();
+  for (const m of silhouette.matchAll(/M(-?\d+) (-?\d+)h(\d+)/g)) for (let i = 0; i < Number(m[3]); i++) on.add(`${Number(m[1]) + i},${m[2]}`);
+  const ring = new Set<string>();
+  for (const key of on) {
+    const [x, y] = key.split(",").map(Number) as [number, number];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const k = `${x + dx},${y + dy}`;
+      if (!on.has(k)) ring.add(k);
+    }
+  }
+  let path = "";
+  for (const key of ring) { const [x, y] = key.split(","); path += `M${x} ${y}h1v1h-1z`; }
+  return { G, path };
 }

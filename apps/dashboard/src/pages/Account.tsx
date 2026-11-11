@@ -15,7 +15,7 @@ import { useNow } from "../lib/now";
 
 const PROVIDERS: Array<{ id: IdentityProvider; label: string }> = [{ id: "google", label: "google" }, { id: "apple", label: "apple" }, { id: "x", label: "X" }, { id: "email", label: "email" }];
 const NOTIFICATIONS: Array<{ id: keyof NotificationPrefs; label: string; hint: string }> = [
-  { id: "cloudStatus", label: "cloud desktop status", hint: "when it is ready, goes to sleep or needs attention." },
+  { id: "cloudStatus", label: "dusk cloud status", hint: "when it is ready, goes to sleep or needs attention." },
   { id: "billing", label: "billing", hint: "receipts and payment problems." },
   { id: "botDigest", label: "weekly bot digest", hint: "what your bots did this week." },
   { id: "product", label: "product news", hint: "new features, a few times a year." },
@@ -134,20 +134,20 @@ export function AccountPage() {
       <p className="text-14 text-ink-3">drive your bots from your own scripts with the bot api. <a href={API_DOCS} target="_blank" rel="noreferrer" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">read the api docs</a></p>
     </section>
     <section className="mt-10" aria-labelledby="download-title">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line py-3"><div className="min-w-0 flex-1"><SectionTitle id="download-title">download your data</SectionTitle><p className="text-13 text-ink-3">a copy of your account, sign-ins, devices, workspaces, cloud desktops and plans as a json file.</p></div><Button onClick={() => window.location.assign("/v1/account/export")}>download</Button></div>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line py-3"><div className="min-w-0 flex-1"><SectionTitle id="download-title">download your data</SectionTitle><p className="text-13 text-ink-3">a copy of your account, sign-ins, devices, workspaces, dusk cloud and plans as a json file.</p></div><Button onClick={() => window.location.assign("/v1/account/export")}>download</Button></div>
     </section>
     <section className="mt-10" aria-labelledby="delete-title">
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line py-3"><div className="min-w-0 flex-1"><SectionTitle id="delete-title">delete account</SectionTitle><p className="text-13 text-ink-3">close your account and remove its workspaces from the dashboard.</p></div><Button variant="danger" disabled={busy !== null} onClick={() => { setConfirmError(null); setConfirmEmail(""); setConfirm("delete"); }}>delete account</Button></div>
     </section>
     <Modal open={confirm !== null} onClose={close} title={confirm === "delete" ? "delete your account?" : "sign out everywhere?"} footer={<><Button disabled={busy !== null} onClick={close}>cancel</Button><Button variant={confirm === "delete" ? "danger" : "primary"} disabled={busy !== null || confirm === "delete" && (confirmEmail !== profile.email || destroyDesktopsNow && !confirmDestroy)} onClick={() => void finish()}>{busy === "delete" ? "deleting" : busy === "signout" ? "signing out" : confirm === "delete" ? blockers !== null ? "cancel everything and delete" : "delete account" : "sign out everywhere"}</Button></>}>
-      {confirm === "delete" ? <><p>this permanently deletes your account, signs out every device and removes your workspaces from the dashboard. active plans and cloud desktops must be cancelled before deletion can finish.</p><div className="mt-4"><Field label="type your email to confirm" htmlFor="delete-email"><input id="delete-email" type="email" className="field" value={confirmEmail} disabled={busy !== null} autoComplete="off" onChange={(e) => setConfirmEmail(e.target.value)} /></Field></div></> : <p>every app and browser signs out, this one too.</p>}
+      {confirm === "delete" ? <><p>this permanently deletes your account, signs out every device and removes your workspaces from the dashboard. active plans and dusk cloud must be cancelled before deletion can finish.</p><div className="mt-4"><Field label="type your email to confirm" htmlFor="delete-email"><input id="delete-email" type="email" className="field" value={confirmEmail} disabled={busy !== null} autoComplete="off" onChange={(e) => setConfirmEmail(e.target.value)} /></Field></div></> : <p>every app and browser signs out, this one too.</p>}
       {confirm === "delete" && blockers !== null && <div className="mt-4 space-y-3 text-13">
-        <p role="alert">cancel your plan and cloud desktops before deleting your account.</p>
+        <p role="alert">cancel your plan and dusk cloud before deleting your account.</p>
         <ul className="list-disc pl-5">{blockers.map(blocker => <li key={`${blocker.kind}-${blocker.id}`}>{blocker.label} ({blocker.status.replaceAll("_", " ")})</li>)}</ul>
         <ButtonLink to="/billing" size="sm">plans and billing</ButtonLink>
-        <p>cancelling turns off renewal. cloud desktops are kept until the paid period ends plus the grace period, unless you delete them now.</p>
-        <label className="flex items-start gap-2"><input type="checkbox" checked={destroyDesktopsNow} disabled={busy !== null} onChange={e => { setDestroyDesktopsNow(e.target.checked); setConfirmDestroy(false); }} />delete my cloud desktops now</label>
-        {destroyDesktopsNow && <label className="flex items-start gap-2 text-bad"><input type="checkbox" checked={confirmDestroy} disabled={busy !== null} onChange={e => setConfirmDestroy(e.target.checked)} />your cloud desktops and everything on them are deleted at once. this cannot be undone.</label>}
+        <p>cancelling turns off renewal. dusk cloud is kept until the paid period ends plus the grace period, unless you delete them now.</p>
+        <label className="flex items-start gap-2"><input type="checkbox" checked={destroyDesktopsNow} disabled={busy !== null} onChange={e => { setDestroyDesktopsNow(e.target.checked); setConfirmDestroy(false); }} />delete my dusk cloud now</label>
+        {destroyDesktopsNow && <label className="flex items-start gap-2 text-bad"><input type="checkbox" checked={confirmDestroy} disabled={busy !== null} onChange={e => setConfirmDestroy(e.target.checked)} />your dusk cloud and everything on it is deleted at once. this cannot be undone.</label>}
       </div>}
       {confirmError && <p role="alert" className="mt-3 text-13 text-bad">{confirmError}</p>}
     </Modal>
