@@ -75,4 +75,4 @@ your cloud computer is backed up every day. you can also export a [backup](/docs
 
 ## if you stop
 
-you can cancel from the billing page of your [account](/docs/account). bots on your own computer are not affected. the cloud computer is kept for a limited time after the plan ends and is then deleted, so move your bots back or export a backup first. the [terms](/terms) say how long.
+you can cancel from the billing page of your [account](/docs/account). bots on your own computer are not affected. the cloud computer is kept for 30 days after the plan ends and is then deleted (we email you a week before), so move your bots back or export a backup first.

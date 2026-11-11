@@ -53,7 +53,7 @@ two things people assume that are not so:
 
 ## when a plan ends
 
-your bots on your own computer or server carry on as before. your cloud computer is kept for a limited time and is then deleted, so move your bots back or export a [backup](/docs/privacy-and-data#backups) first. the [terms](/terms) say how long.
+your bots on your own computer or server carry on as before. your cloud computer is kept for 30 days and is then deleted (we email you a week before), so move your bots back or export a [backup](/docs/privacy-and-data#backups) first.
 
 ## questions about a charge
 
