@@ -151,8 +151,11 @@ export function createDashboardApp(options: DashboardAppOptions) {
   }
   const billing = createBilling({ accountExists: id => auth.account(id) !== null,
     findAccount: email => { const found = auth.accountByEmail(email); return found ? { id: found.id, email: found.email } : null; },
-    mail: (cloud, letter) => letter.notice ? send(emailOf(cloud.accountId), cloudNoticeEmail(emailCfg, { kind: letter.notice.kind, name: cloud.name, at: letter.notice.at, link: letter.notice.link }))
-      : mail(emailOf(cloud.accountId), letter.subject, letter.text),
+    mail: (cloud, letter) => {
+      if (!letter.notice) return mail(emailOf(cloud.accountId), letter.subject, letter.text);
+      const email = cloudNoticeEmail(emailCfg, { ...letter.notice, name: cloud.name });
+      if (email) send(emailOf(cloud.accountId), email);
+    },
     notify: notice => billingNotice(notice),
     cloudEvent: (kind, cloud) => send(emailOf(cloud.accountId), kind === "ready" ? cloudReadyEmail(emailCfg, cloudFacts(cloud)) : cloudDeletedEmail(emailCfg, { name: cloud.name, at: now() })),
     alert: entry => mail(process.env.DUSK_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {

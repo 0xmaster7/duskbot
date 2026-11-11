@@ -27,30 +27,30 @@ export function formatMoney(cents: number, currency = "USD") {
 const joinOr = (items: string[]) => items.length > 1 ? `${items.slice(0, -1).join(", ")} or ${items.at(-1)}` : items[0] ?? "";
 
 /** every image the emails use, relative to the asset base; the site build must ship each one */
-export const EMAIL_ASSETS = ["kit-64.png", "hero-code.png", "hero-welcome.png", "hero-cloud-ready.png", "hero-receipt.png", "hero-payment.png", "hero-cancelled.png",
-  "hero-cloud-deleted.png", "hero-account-deleted.png", "hero-device.png", "hero-heads-up.png", "hero-promo.png", "cloud-night.png", "tip-jobs.png", "tip-routines.png", "tip-rooms.png"];
+export const EMAIL_ASSETS = ["kit-64.png", "cloud-night.png", "tip-jobs.png", "tip-routines.png", "tip-rooms.png",
+  ...["code", "welcome", "cloud-ready", "receipt", "payment", "napping", "heads-up", "cloud-gone", "bye", "promo"].map(scene => `scene-${scene}.png`)];
 
+const scene = (name: string, alt: string) => ({ image: `scene-${name}.png`, alt, height: 200 });
 const HERO = {
-  code: { image: "hero-code.png", alt: "kit the pixel cat on a hill, saying: psst, your code.", height: 120 },
-  welcome: { image: "hero-welcome.png", alt: "a crowd of pixel bots on a sunny meadow. kit says: hi! meet your new team.", height: 180 },
-  ready: { image: "hero-cloud-ready.png", alt: "pip sits on a pixel cloud and says: your cloud is up.", height: 180 },
-  receipt: { image: "hero-receipt.png", alt: "a pixel ticket stamped paid, with loaf beside it.", height: 180 },
-  payment: { image: "hero-payment.png", alt: "a small rain cloud over pip. pip says: card trouble.", height: 180 },
-  cancelled: { image: "hero-cancelled.png", alt: "a sunset meadow. mochi waves and says: see you soon.", height: 180 },
-  cloudGone: { image: "hero-cloud-deleted.png", alt: "a night sky with an empty dotted cloud. wisp says: all cleared.", height: 180 },
-  bye: { image: "hero-account-deleted.png", alt: "the sun sets behind a hill as kit walks away. kit says: bye for now.", height: 180 },
-  device: { image: "hero-device.png", alt: "hoot the pixel owl on a hill, asking: was this you?", height: 180 },
-  headsUp: { image: "hero-heads-up.png", alt: "a dusk sky. cheep holds a small lemon flag: heads up.", height: 180 },
-  promo: { image: "hero-promo.png", alt: "pixel bots on clouds over a lime meadow.", height: 180 },
+  code: scene("code", "a day sky. kit holds up a little golden key and says: psst, it's a secret code."),
+  welcome: scene("welcome", "a sunny meadow. kit waves from its hill and says: hi! welcome!"),
+  ready: scene("cloud-ready", "pip carries a little cloud over its head and says: special delivery!"),
+  receipt: scene("receipt", "a golden afternoon. loaf holds up a paper receipt and says: paid. thank you!"),
+  payment: scene("payment", "a rainy sky. pip looks at a pink bank card and says: uh oh, card trouble."),
+  napping: scene("napping", "a sunset meadow. mochi curls up for a nap. z z z."),
+  headsUp: scene("heads-up", "a sunset sky. cheep holds up a little hourglass and says: heads up!"),
+  cloudGone: scene("cloud-gone", "a starry night. wisp waves to a little cloud drifting away: bye, little cloud!"),
+  bye: scene("bye", "the last light of the day. kit heads off over the hill with a suitcase: bye for now!"),
+  promo: scene("promo", "kit with a sparkle overhead says: something new!"),
 };
 
 /** the sign-in or sign-up code */
 export function codeEmail(cfg: EmailConfig, { code }: { code: string }): Rendered {
   return render(cfg, {
-    subject: `${code} is your dusk bot code`, preheader: "it works for 10 minutes.", tag: "sign in", hero: HERO.code,
+    subject: `${code} is your dusk bot code`, preheader: `your dusk bot code is ${code}. it works for 10 minutes.`, tag: "sign in", hero: HERO.code,
     blocks: [
       { t: "h1", text: "here's your code" },
-      { t: "p", text: "type it where you signed in. it works for 10 minutes." },
+      { t: "p", text: "pop it in where you signed in. it works for 10 minutes." },
       { t: "code", code },
       { t: "p", small: true, text: "didn't ask for this? you can ignore it. nobody gets in without the code." },
     ],
@@ -73,7 +73,7 @@ export function recoveryEmail(cfg: EmailConfig, { code, link = null, ways }: { c
   });
   const list = joinOr(ways.map(way => WAYS[way] ?? way)) || WAYS.email;
   return render(cfg, {
-    subject: "sign in to dusk bot", preheader: `your code, and the ways this account signs in.`, tag: "sign in", hero: HERO.code,
+    subject: `${code} is your dusk bot code`, preheader: `your dusk bot code is ${code}. here's how you get back in.`, tag: "sign in", hero: HERO.code,
     blocks: [
       { t: "h1", text: "here's how you get back in" },
       { t: "p", text: "use this code where you asked. it works for 10 minutes." },
@@ -189,11 +189,11 @@ export function cancelledEmail(cfg: EmailConfig, input: CancelledInput): Rendere
   const keepUntil = input.endsAt === null ? null : formatDate(input.endsAt + input.keepDays * DAY);
   const what = input.cloudName ? `**${input.cloudName}**` : "your plan";
   return render(cfg, {
-    subject: `your ${input.description} plan is cancelled`, preheader: ends ? `everything keeps working until ${ends}.` : "no more charges.", tag: "billing", hero: HERO.cancelled,
+    subject: `your ${input.description} plan is cancelled`, preheader: ends ? `everything keeps working until ${ends}.` : "no more charges.", tag: "billing", hero: HERO.napping,
     blocks: [
       { t: "h1", text: ends ? `you keep everything until ${ends}` : "your plan is cancelled" },
       { t: "p", text: ends ? `your plan is cancelled, but nothing changes today. ${what} keeps working until **${ends}**, the end of what you paid for, and there are no more charges after that.` : "no more charges. thanks for giving it a go." },
-      ...(input.cloudName && input.keptPaused ? [{ t: "p", text: `after that, ${input.cloudName} is paused, not deleted. your bots, chats, files and sign-ins stay put, and we email you before anything is removed.` } as Block] : []),
+      ...(input.cloudName && input.keptPaused ? [{ t: "p", text: `after that, ${input.cloudName} takes a nap, it isn't deleted. its bots, chats, files and sign-ins stay put for ${input.keepDays} days, and we email you a week before anything goes.` } as Block] : []),
       { t: "facts", rows: [
         ...(ends ? [["works until", ends, "ok"] as [string, string, "ok"]] : []),
         ...(input.cloudName ? [["data kept", keepUntil ? `${input.keptPaused ? "at least " : ""}until ${keepUntil}` : `${input.keptPaused ? "at least " : ""}${input.keepDays} days`, "warn"] as [string, string, "warn"]] : []),
@@ -238,22 +238,6 @@ export function accountDeletedEmail(cfg: EmailConfig, { email }: { email: string
   });
 }
 
-export interface DeviceInput { device: string; platform: string; at: number; where: string | null }
-/** template only: the service does not notice new places yet. the hook would be the app grant in auth/index.ts */
-export function newDeviceEmail(cfg: EmailConfig, input: DeviceInput): Rendered {
-  return render(cfg, {
-    subject: "new sign-in to dusk bot", preheader: `${input.device} just signed in to your account.`, tag: "security", hero: HERO.device,
-    blocks: [
-      { t: "h1", text: "was this you?" },
-      { t: "p", text: "your account just signed in on a device we haven't seen before." },
-      { t: "facts", rows: [["device", input.device], ["system", input.platform], ["when", `${formatDate(input.at)}, ${new Date(input.at).toISOString().slice(11, 16)} utc`], ...(input.where ? [["where", input.where] as [string, string]] : [])] },
-      { t: "p", text: "if it was you, there's nothing to do. if not, sign that device out and check how your account signs in." },
-      { t: "button", label: "review your devices", href: `${cfg.app}/devices` },
-    ],
-    reason: ACCOUNT_REASON,
-  });
-}
-
 export interface PromoInput {
   subject: string; preheader: string; eyebrow: string; title: string; intro: string;
   hero?: { image: string; alt: string; height: number };
@@ -276,42 +260,44 @@ export function promoEmail(cfg: EmailConfig, input: PromoInput): Rendered {
 }
 
 export type CloudNoticeKind = "ended" | "left_30" | "left_7" | "left_1" | "deleted" | "recovered" | "delete_requested" | "delete_scheduled" | "delete_cancelled" | "resumed";
-/** the managed cloud backend's letters (apps/cloud-service retention notices) in the same dress */
-export function cloudNoticeEmail(cfg: EmailConfig, { kind, name, at, link }: { kind: CloudNoticeKind; name: string; at: number | null; link?: string }): Rendered {
-  const date = at === null ? null : formatDate(at), cloud = `${cfg.app}/cloud`;
-  const base = { tag: "dusk cloud", reason: ACCOUNT_REASON };
-  const comeBack: Block = { t: "p", small: true, text: "started a new plan after this one ended? reply to this email and we bring this data over to it." };
+/** the managed cloud backend's notices, folded into the emails that matter; null: not worth an email (the owner just did
+ *  it, or another email already said it) */
+export function cloudNoticeEmail(cfg: EmailConfig, { kind, name, at, link }: { kind: CloudNoticeKind; name: string; at: number | null; link?: string }): Rendered | null {
   switch (kind) {
-    case "ended": return render(cfg, { ...base, subject: `${name} is paused and kept for you`, preheader: date ? `your data is kept until ${date}.` : "your data is kept for now.", hero: HERO.cancelled,
-      blocks: [{ t: "h1", text: `${name} is paused` }, { t: "p", text: `the plan for **${name}** ended, so it's paused. nothing is deleted yet.` },
-        { t: "facts", rows: [["status", "paused", "off"], ...(date ? [["kept until", date, "warn"] as [string, string, "warn"]] : [])] },
-        { t: "p", text: "your bots, chats, files and sign-ins are all still there. start the plan again and it carries on where it stopped." },
-        { t: "button", label: "come back to dusk cloud", href: cloud }, comeBack] });
-    case "left_30": case "left_7": case "left_1": {
-      const days = Number(kind.slice(5));
-      return render(cfg, { ...base, subject: `${name} will be deleted in ${days} day${days === 1 ? "" : "s"}`, preheader: date ? `on ${date}, unless the plan starts again.` : "unless the plan starts again.", hero: HERO.headsUp,
-        blocks: [{ t: "h1", text: `${days} day${days === 1 ? "" : "s"} left for ${name}` }, { t: "p", text: `**${name}** has been paused since its plan ended.` },
-          { t: "note", tone: days === 1 ? "alert" : "warn", text: `${date ? `on **${date}**` : "soon"}, ${name} and everything on it will be deleted for good.` },
-          { t: "p", text: "start a plan for it again and it carries on where it stopped." },
-          { t: "button", label: "keep my cloud", href: cloud }, comeBack] });
-    }
+    case "left_30": case "left_7": case "left_1": return cloudDeletionEmail(cfg, { kind: "warning", name, at, daysLeft: Number(kind.slice(5)) });
+    case "delete_requested": return cloudDeletionEmail(cfg, { kind: "confirm", name, at, link });
+    case "delete_scheduled": return cloudDeletionEmail(cfg, { kind: "scheduled", name, at });
     case "deleted": return cloudDeletedEmail(cfg, { name, at: at ?? Date.now() });
-    case "recovered": return render(cfg, { ...base, subject: at === null ? `${name} was set up again` : `${name} was restored from a backup`, preheader: "your app reconnects by itself.", hero: HERO.ready,
-      blocks: [{ t: "h1", text: at === null ? `${name} was set up again` : `${name} is back from a backup` },
-        { t: "p", text: at === null ? `${name}'s computer stopped working before its first backup, so we set it up again, empty. bots you moved there can be moved again from your computer.`
-          : `${name}'s computer stopped working, so we set it up again from its latest backup, taken ${date}. anything after that backup may be missing.` },
-        { t: "p", text: "your app reconnects by itself." }, { t: "button", label: "open your cloud", href: cloud }] });
-    case "delete_requested": return render(cfg, { ...base, tag: "security", subject: `confirm deleting ${name}`, preheader: "nothing happens unless you confirm within an hour.", hero: HERO.headsUp,
-      blocks: [{ t: "h1", text: `delete ${name}?` }, { t: "p", text: `someone signed in to your account asked to delete **${name}** and all of its data. nothing happens unless you confirm within an hour. you may be asked to sign in again.` },
-        { t: "button", label: "confirm deletion", href: link ?? cloud },
-        { t: "note", tone: "info", text: "after you confirm, it's deleted 7 days later, and you can cancel any time before then." },
-        { t: "p", small: true, text: "wasn't you? ignore this email and sign out your other sessions." }] });
-    case "delete_scheduled": return render(cfg, { ...base, subject: `${name} will be deleted on ${date ?? "schedule"}`, preheader: "you can still cancel until then.", hero: HERO.headsUp,
-      blocks: [{ t: "h1", text: `${name} is set to be deleted` }, { t: "p", text: `you confirmed deleting **${name}**. it and its data, backups included, will be deleted${date ? ` on **${date}**` : ""}.` },
-        { t: "note", tone: "warn", text: "changed your mind? until then, your cloud's page can stop the deletion and keep everything." }, { t: "button", label: "open your cloud", href: cloud }] });
-    case "delete_cancelled": return render(cfg, { ...base, subject: `${name} will not be deleted`, preheader: "nothing was deleted.", hero: HERO.ready,
-      blocks: [{ t: "h1", text: `${name} stays` }, { t: "p", text: `the request to delete **${name}** was cancelled. nothing was deleted.` }, { t: "button", label: "open your cloud", href: cloud }] });
-    case "resumed": return render(cfg, { ...base, subject: `${name} is back`, preheader: "it carries on where it stopped.", hero: HERO.ready,
-      blocks: [{ t: "h1", text: `${name} is back` }, { t: "p", text: `the plan for **${name}** is active again, and it carries on where it stopped.` }, { t: "button", label: "open your cloud", href: cloud }] });
+    case "recovered": return cloudBackEmail(cfg, { name, at });
+    case "ended": case "delete_cancelled": case "resumed": return null;
   }
+}
+
+/** a cloud's machine stopped and was set up again, from its latest backup (`at`) or empty (null) */
+export function cloudBackEmail(cfg: EmailConfig, { name, at }: { name: string; at: number | null }): Rendered {
+  return render(cfg, { tag: "dusk cloud", reason: ACCOUNT_REASON, subject: `${name} is back`, preheader: "its computer stopped, so we set it up again. your app reconnects by itself.", hero: HERO.ready,
+    blocks: [{ t: "h1", text: `${name} is back` },
+      { t: "p", text: at === null ? `${name}'s computer stopped before its first backup, so we set it up again, empty. bots you moved there can be moved again from your computer.`
+        : `${name}'s computer stopped, so we set it up again from its latest backup, taken **${formatDate(at)}**. anything after that backup may be missing.` },
+      { t: "p", text: "your app reconnects by itself." }, { t: "button", label: "open your cloud", href: `${cfg.app}/cloud` }] });
+}
+
+/** a heads-up before a cloud's data goes: the retention warning, and the owner's own deletion (confirm, then scheduled) */
+export function cloudDeletionEmail(cfg: EmailConfig, { kind, name, at, link, daysLeft = 7 }: { kind: "warning" | "confirm" | "scheduled"; name: string; at: number | null; link?: string; daysLeft?: number }): Rendered {
+  const date = at === null ? null : formatDate(at), cloud = `${cfg.app}/cloud`, days = `${daysLeft} day${daysLeft === 1 ? "" : "s"}`;
+  const base = { tag: "dusk cloud", reason: ACCOUNT_REASON, hero: HERO.headsUp };
+  if (kind === "confirm") return render(cfg, { ...base, tag: "security", subject: `confirm deleting ${name}`, preheader: "nothing happens unless you confirm within an hour.",
+    blocks: [{ t: "h1", text: `delete ${name}?` }, { t: "p", text: `someone signed in to your account asked to delete **${name}** and all of its data. nothing happens unless you confirm within an hour. you may be asked to sign in again.` },
+      { t: "button", label: "confirm deletion", href: link ?? cloud },
+      { t: "note", tone: "info", text: "after you confirm, it's deleted 7 days later, and its page can stop it any time before then." },
+      { t: "p", small: true, text: "wasn't you? ignore this email and sign out your other sessions." }] });
+  if (kind === "scheduled") return render(cfg, { ...base, subject: `${name} will be deleted on ${date ?? "schedule"}`, preheader: "changed your mind? its page can stop it until then.",
+    blocks: [{ t: "h1", text: `${name} is set to be deleted` }, { t: "p", text: `you confirmed deleting **${name}**. it and its data, backups included, will be deleted${date ? ` on **${date}**` : ""}.` },
+      { t: "note", tone: "warn", text: "changed your mind? until then, your cloud's page can stop the deletion and keep everything." }, { t: "button", label: "open your cloud", href: cloud }] });
+  return render(cfg, { ...base, subject: `${name} will be deleted in ${days}`, preheader: date ? `on ${date}, unless its plan starts again.` : "unless its plan starts again.",
+    blocks: [{ t: "h1", text: `${days} left for ${name}` }, { t: "p", text: `**${name}** has been napping since its plan ended.` },
+      { t: "note", tone: daysLeft === 1 ? "alert" : "warn", text: `${date ? `on **${date}**` : "soon"}, ${name} and everything on it will be deleted for good.` },
+      { t: "p", text: "start a plan for it again and it wakes up right where it stopped." },
+      { t: "button", label: "keep my cloud", href: cloud },
+      { t: "p", small: true, text: "started a new plan after this one ended? reply to this email and we bring this data over to it." }] });
 }
