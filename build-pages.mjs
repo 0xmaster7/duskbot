@@ -198,7 +198,8 @@ const withRelease = (html) => {
 // {{crew}} on the brand page is the twenty pixel bots, kit first, each in its own colour with its name and a link to its svg
 const CREW = [...CROWD.filter(([name]) => name === 'kit'), ...CROWD.filter(([name]) => name !== 'kit')].map(([name, colour]) => [name, colour]);
 function crewList() { return `<ul class="crew">${CREW.map(([name, colour]) => `<li>{{bot ${name} ${colour}}}<span>${name}</span><a class="get" href="/brand/bots/${name}.svg" download>{{i download}}svg<span class="vh"> of ${name}</span></a></li>`).join('')}</ul>`; }
-export const macros = (html) => withBots(withLinks(withRelease(html.replace(/\{\{crew\}\}/g, () => crewList()))));
+// partials first, so a partial may use {{app}} and the other link macros too
+export const macros = (html) => withBots(withLinks(withRelease(withParts(html).replace(/\{\{crew\}\}/g, () => crewList()))));
 
 // the nav, and every page in the footer
 const NAV = [['/download', 'download'], ['/docs', 'docs'], ['/pricing', 'pricing']];

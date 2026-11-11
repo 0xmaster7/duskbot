@@ -137,6 +137,8 @@
 }
 .hero .lede { font-size: clamp(16px, 1.4vw, 20px); line-height: 1.5; color: var(--ink-2); max-width: min(100%, 820px); margin: 26px auto 0; text-wrap: pretty; }
 .hero .actions { margin-top: 30px; }
+.cloud-cta { gap: 8px; background: var(--wash); }
+.home .cloud-cta:hover { background: #e9e9e6; }
 .hero .lede b { font-weight: 550; color: var(--ink); white-space: nowrap; }
 .hero .lede .logo { display: inline-block; width: 0.95em; height: 0.95em; margin: 0 0.22em 0 0.05em; vertical-align: -0.13em; }
 /* the download button is split: the main half follows your system, the arrow opens every other platform */
@@ -315,8 +317,19 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 
 /* where it runs: three cards on a picture. each panel is the same slice of the real app, in the hero demo's own sizes and
    colours: a few bot rows, then one status card. only the picture sits behind the panel */
-.ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gut); }
-.way-art { position: relative; aspect-ratio: 10 / 9.9; border-radius: var(--r-xl); overflow: hidden; }
+/* two ways, dusk cloud first: the one people should pick carries the only dark button. an own server is one line under them */
+.ways { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gut); }
+.way-art { position: relative; aspect-ratio: 4 / 3; border-radius: var(--r-xl); overflow: hidden; }
+.way.pick .way-art { box-shadow: 0 0 0 2px var(--ink); }
+.way > .way-tag { display: flex; align-items: center; gap: 10px; margin: 22px 0 0; font: 400 12.5px/1 var(--mono); color: var(--ink-3); }
+.way-tag span { padding: 5px 10px; border-radius: 999px; background: var(--wash); font: 500 13px/1 var(--sans); color: var(--ink); }
+.way.pick .way-tag span { background: var(--ink); color: #fff; }
+.way > .way-go { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin: 18px 0 0; }
+.way-go .go { margin-top: 0; }
+.way-more { margin: 36px 0 0; color: var(--ink-2); font-size: 16px; }
+.way-more { line-height: 1.6; }
+.way-more a { font-weight: 500; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.way-more .i { width: 16px; height: 16px; margin-left: 5px; vertical-align: -3px; transition: translate 0.25s var(--pop); }
 /* the picture is cut away under the panel's far corner, so no colour bleeds round the card's rounded edge */
 .way-art > img:not(.perch) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; clip-path: polygon(0 0, 100% 0, 100% 60%, 60% 60%, 60% 100%, 0 100%); }
 .wa-panel { position: absolute; left: 12%; right: 0; top: 24%; bottom: 0; display: flex; flex-direction: column; margin: 0; padding: 10px 8px 8px; border-radius: var(--r-l) 0 0 0; overflow: hidden; container-type: inline-size; background: #f5f5f5; color: #1c1c1c; font: 425 14px/20px var(--sans); letter-spacing: 0.01em; --wa-2: rgba(28, 28, 28, 0.68); --wa-line: rgba(28, 28, 28, 0.08); }
@@ -348,7 +361,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .way-art > .perch.lemon { right: auto; left: 30%; width: 24%; top: 8%; animation-delay: -4s; }
 @keyframes perch { to { translate: -14% 0; } }
 
-.home .way h3 { margin: 22px 0 6px; }
+.home .way h3 { margin: 12px 0 6px; }
 .way > p { margin: 0; max-width: 25em; color: var(--text); font-size: 16.5px; line-height: 1.5; }
 .go { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; padding: 10px 0; font-weight: 500; text-decoration: none; }
 .go .i { width: 16px; height: 16px; transition: translate 0.25s var(--pop); }
@@ -398,6 +411,9 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .amt { font-size: 56px; line-height: 1; letter-spacing: -0.05em; font-weight: 500; font-variant-numeric: tabular-nums; }
 .per { font-size: 14.5px; color: var(--ink-2); }
 .plan .btn { margin-top: 24px; }
+.plan.pick { box-shadow: inset 0 0 0 2px var(--ink); }
+/* inside the plan's own side margins, so it sits 22px in from the card's edge */
+.pick-tag { position: absolute; top: 22px; left: 2px; padding: 6px 11px; border-radius: 999px; background: var(--ink); color: #fff; font: 500 13px/1 var(--sans); }
 .has { list-style: none; margin-top: 28px; margin-bottom: 0; padding: 0; display: grid; gap: 11px; font-size: 15px; line-height: 1.35; }
 .has li { display: flex; gap: 10px; }
 .has .i { margin-top: 1px; }
@@ -501,7 +517,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 
 @media (hover: hover) and (pointer: fine) {
   .stk[data-sticker] { cursor: grab; }
-  .go:hover .i { translate: 3px 0; }
+  .go:hover .i, .way-more a:hover .i { translate: 3px 0; }
   .steps > li:hover .step-n { animation: ring 0.4s ease-in-out; }
   .phone:hover { animation: ring 0.28s ease-in-out 2; }
   .cat:hover img { transform: scale(1.06) rotate(-2deg); }
@@ -519,7 +535,8 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
   .ways { grid-template-columns: 1fr; gap: 40px; }
   .way { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 1fr auto auto auto 1fr; column-gap: 32px; }
   .way-art { grid-row: 1 / -1; }
-  .way h3 { grid-row: 2; } .way > p { grid-row: 3; } .way .go { grid-row: 4; justify-self: start; }
+  .way { grid-template-rows: 1fr auto auto auto auto 1fr; }
+  .way .way-tag { grid-row: 2; } .way h3 { grid-row: 3; } .way > p:not(.way-tag):not(.way-go) { grid-row: 4; } .way > .go, .way-go { grid-row: 5; justify-self: start; }
   .pricing .head { margin-bottom: 40px; }
   .plans { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; }
   .plan.has-cat { margin-top: 64px; }

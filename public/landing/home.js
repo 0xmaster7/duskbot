@@ -142,7 +142,7 @@ if (dl) {
   if (mine !== 'mac') {
     const item = $(`[data-os="${mine}"]`, menu);
     $('.dl-os', dl).replaceChildren($('.os', item).cloneNode(true));
-    $('.dl-label', dl).textContent = mine === 'ios' || mine === 'android' ? `get it for ${$('b', item).textContent}` : `download for ${mine}`;
+    $('.dl-label', dl).textContent = mine === 'ios' || mine === 'android' ? `get it for ${$('b', item).textContent}` : 'download free';
   }
   const open = (on) => { menu.hidden = !on; more.setAttribute('aria-expanded', on); };
   more.addEventListener('click', () => open(menu.hidden));
