@@ -21,17 +21,28 @@ const CHAT_ID = /^[\w-]{1,128}$/;
 export function jsonFile(file, files = fs) {
   return {
     read: () => JSON.parse(files.readFileSync(file, "utf8").replace(/^\uFEFF/, "")),
-    write: value => {
-      const temporary = `${file}.${process.pid}.tmp`;
-      try {
-        files.writeFileSync(temporary, JSON.stringify(value), { mode: 0o600 });
-        files.renameSync(temporary, file);
-      } catch (error) {
-        try { files.rmSync(temporary, { force: true }); } catch {}
-        throw error;
-      }
+    write: value => writeFileDurably(file, JSON.stringify(value), files),
+    /** Keeps an unreadable file beside itself so the next write cannot destroy what it held. */
+    setAside: (now = Date.now()) => {
+      const aside = `${file}.unreadable-${now}`;
+      files.renameSync(file, aside);
+      return aside;
     },
   };
+}
+
+/** A power loss right after the rename must not leave an empty file: the new bytes reach the disk before the name moves. */
+export function writeFileDurably(file, data, files = fs) {
+  const temporary = `${file}.${process.pid}.tmp`;
+  try {
+    files.writeFileSync(temporary, data, { mode: 0o600 });
+    const descriptor = files.openSync(temporary, "r+");
+    try { files.fsyncSync(descriptor); } finally { files.closeSync(descriptor); }
+    files.renameSync(temporary, file);
+  } catch (error) {
+    try { files.rmSync(temporary, { force: true }); } catch {}
+    throw error;
+  }
 }
 
 const parseChat = value => value && typeof value === "object" && typeof value.botId === "string" && typeof value.threadId === "string"

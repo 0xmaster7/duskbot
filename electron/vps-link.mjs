@@ -85,7 +85,15 @@ export function createVpsLink(deps) {
   let setupGeneration = 0, setupAbort = null;
 
   function read() {
-    const value = (() => { try { return store.read(); } catch { return null; } })();
+    const value = (() => {
+      try { return store.read(); } catch (error) {
+        if (error instanceof SyntaxError && store.setAside) {
+          try { log(`vps link: the saved links could not be read; kept them as ${store.setAside()}`); }
+          catch (asideError) { log(`vps link: could not keep the unreadable saved links (${asideError?.message ?? asideError})`); }
+        }
+        return null;
+      }
+    })();
     return {
       v: 1,
       pending: record(value?.pending) ? value.pending : null,
