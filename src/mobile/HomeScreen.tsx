@@ -160,7 +160,7 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
             <span className="flex h-8 items-center rounded-full bg-composer px-3 text-[13px] text-ink-secondary mobile-float">{t("mobile.demo.banner")}</span>
           </button>
         )}
-        {state.hydrated && !state.connected && !resuming && (
+        {state.hydrated && (!state.connected || asleep) && !resuming && (
           <span role="status" data-testid="mobile-connection-status" className="pointer-events-auto flex min-h-8 min-w-0 items-center gap-2 rounded-[16px] bg-composer px-3 py-1 text-[13px] leading-4 text-ink-secondary mobile-float">
             {asleep && !waking ? t("mobile.home.asleep") : <><WorkingDots size={3} />{t(waking ? "cloudAsleep.waking" : "mobile.home.reconnecting")}</>}
           </span>

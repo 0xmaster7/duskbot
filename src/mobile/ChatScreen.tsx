@@ -54,7 +54,7 @@ export function ChatScreen({ bot, group, members, onBack, onProfile, onComputer 
           </RoundButton>
         )}
       </nav>
-      {(asleep || waking) && !state.connected && (
+      {(asleep || waking) && (
         <div className="pointer-events-none absolute inset-x-0 top-[calc(var(--m-safe-top)+58px)] z-30 flex justify-center px-3">
           <span role="status" data-testid="mobile-chat-cloud-status" className="flex min-h-8 items-center rounded-[16px] bg-composer px-3 py-1 text-[13px] leading-4 text-ink-secondary mobile-float">
             {waking ? t("cloudAsleep.waking") : t("mobile.home.asleep")}
