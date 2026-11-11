@@ -353,20 +353,25 @@
   .scroll-x::-webkit-scrollbar { display: none; }
 }
 
-/* hovers lay a faint ink tint over whatever the control already is, so nothing turns dark grey */
-:root { --tint: color-mix(in oklab, var(--ink) 3.5%, transparent); }
+/* hovers stay light: cards and rows take a faint ink tint, chips a little more, and a button keeps its own colour and
+   gains a hairline and a soft shadow, so it never melts into the card under it */
+:root {
+  --tint: color-mix(in oklab, var(--ink) 3.5%, transparent);
+  --tint-2: color-mix(in oklab, var(--ink) 7%, transparent);
+  --btn-ring: inset 0 0 0 1px var(--line-2), 0 1px 3px rgb(19 19 22 / 0.07);
+}
 @media (hover: hover) and (pointer: fine) {
   .hover-row:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-side:hover { background: var(--tint); color: var(--ink); }
-  .hover-ghost:hover { background: var(--tint); }
-  .hover-outline:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
+  .hover-ghost:hover { background: var(--tint-2); }
+  .hover-outline:hover:not(:disabled) { box-shadow: var(--btn-ring); }
+  .hover-card:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
+  .hover-chip:hover { background-image: linear-gradient(var(--tint-2), var(--tint-2)); color: var(--ink); }
   .hover-primary:hover { background: var(--primary-hover); }
   .hover-accent:hover { background-color: var(--accent-fill-hover); }
   .hover-lift:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
-  .hover-tile { transition: transform 300ms var(--ease-pop); }
-  .hover-tile:hover { transform: translateY(-2px); background-image: linear-gradient(var(--tint), var(--tint)); }
-  .hover-tile:hover .tile-arrow { color: var(--ink); transform: translate(2px, -2px); }
-  .tile-arrow { transition: transform 300ms var(--ease-pop); }
+  .hover-tile:hover { background-image: linear-gradient(color-mix(in oklab, var(--ink) 2.5%, transparent), color-mix(in oklab, var(--ink) 2.5%, transparent)); }
+  .hover-tile:hover .tile-arrow { color: var(--ink); }
   .hover-cell:hover { outline: 1px solid var(--ink-3); outline-offset: 0; }
   .hover-pick:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-link:hover { color: var(--ink); }
@@ -376,9 +381,9 @@
   .enter, .page-in, .peek { animation: fade var(--dur-fast) linear both; }
   .skeleton, .live-dot[data-live="true"]::after, .cloud-drift, .zz, .spark, .nope, .draw-in, .sweep { animation: none; }
   .menu-in, .drawer-in, .sheet-in, .toast-in, .step-in, .modal-in, .swap-in { animation: fade var(--dur-fast) linear both; }
-  .seg-thumb, .switch-thumb, .bar-fill, .hover-tile, .tile-arrow { transition: none; }
+  .seg-thumb, .switch-thumb, .bar-fill { transition: none; }
   .range:active::-webkit-slider-thumb { transform: none; }
-  .press:active:not(:disabled), .press-soft:active, .hover-tile:hover { transform: none; }
+  .press:active:not(:disabled), .press-soft:active { transform: none; }
 }
 
 /* the sign-in and onboarding scene: pixel shapes with stepped corners, lifted by a tinted copy of themselves underneath */

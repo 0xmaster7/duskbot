@@ -60,7 +60,7 @@ export function Toggle<T extends string>({ value, options, onChange, label, clas
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cx("relative z-10 inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-13", value === o.value ? "text-ink" : "text-ink-3 hover-link")}
+          className={cx("relative z-10 inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-13 font-medium", value === o.value ? "text-ink" : "text-ink-3 hover-link")}
         >
           {o.label}
         </button>

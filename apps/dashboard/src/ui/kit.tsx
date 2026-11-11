@@ -92,7 +92,7 @@ export function PageHeader({ title, sub, action }: { title: string; sub?: ReactN
     <header className="mb-10 flex flex-wrap items-end justify-between gap-4 max-sm:mb-7">
       <div className="min-w-0">
         <h1 className="t-title">{title}</h1>
-        {sub && <div className="mt-1.5 text-14 text-ink-3">{sub}</div>}
+        {sub && <div className="mt-2 text-15 text-ink-2">{sub}</div>}
       </div>
       {action}
     </header>
@@ -126,7 +126,7 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cx("press-soft h-8 rounded-full px-3.5 text-13", value === o.value ? "bg-pop text-ink" : "text-ink-3 hover-link")}
+          className={cx("h-8 rounded-full px-3.5 text-13 font-medium", value === o.value ? "bg-pop text-ink" : "text-ink-3 hover-link")}
         >
           {o.label}
         </button>

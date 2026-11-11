@@ -92,7 +92,7 @@ function Catalog({ apps, connected, query, flowFor, onConnect }: { apps: DashApp
         {[null, ...categories].map((c) => {
           const on = category === c;
           return (
-            <button key={c ?? "all"} type="button" role="radio" aria-checked={on} onClick={() => pick(c)} className={cx("h-9 shrink-0 whitespace-nowrap rounded-full px-3.5 text-13", on ? "bg-primary text-primary-ink" : "hover-outline bg-card text-ink-2")}>
+            <button key={c ?? "all"} type="button" role="radio" aria-checked={on} onClick={() => pick(c)} className={cx("h-9 shrink-0 whitespace-nowrap rounded-full px-3.5 text-13 font-medium", on ? "bg-primary text-primary-ink" : "hover-chip bg-card text-ink-2")}>
               {c ? CATEGORY_NAMES[c].toLowerCase() : "all"}
             </button>
           );
@@ -221,7 +221,7 @@ export function ConnectorsPage() {
             {shown.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">show more</button>}
           </>
         ) : (
-          <p className="border-y border-line py-6 text-14 text-ink-3">{q || filtered ? `nothing connected matches${q ? ` "${query.trim()}"` : " that filter"}.` : apps_ ? "nothing connected yet. pick an app below to connect it." : "no skills yet. ask a bot in a chat to learn one."}</p>
+          <p className="border-y border-line py-6 text-15 text-ink-2">{q || filtered ? `nothing connected matches${q ? ` "${query.trim()}"` : " that filter"}.` : apps_ ? "nothing connected yet. pick an app below to connect it." : "no skills yet. ask a bot in a chat to learn one."}</p>
         )}
         {!apps_ && !loading && <p className="mt-4 text-14 text-ink-4">skills ship with the app and work on every workspace.</p>}
       </section>

@@ -54,7 +54,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
   return (
     <fieldset className="min-w-0">
       <legend className="sr-only">where your bots live</legend>
-      <div className={cx("rounded-[22px] p-2 transition-[box-shadow,background-color] duration-150", cloud ? "bg-card shadow-[inset_0_0_0_2px_var(--ink)]" : "hover-outline bg-card")}>
+      <div className={cx("rounded-[22px] p-2 transition-[box-shadow,background-color] duration-150", cloud ? "bg-card shadow-[inset_0_0_0_2px_var(--ink)]" : "hover-card bg-card")}>
         <label htmlFor="home-cloud" className={cx("block cursor-pointer rounded-[16px]", ring)}>
           <input id="home-cloud" type="radio" name="home" value="cloud" checked={cloud} onChange={() => setHome("cloud")} className="sr-only" />
           <span className="relative block overflow-hidden rounded-[16px]">
@@ -74,7 +74,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
           </div>
         )}
       </div>
-      <label htmlFor="home-free" className={cx("press-soft mt-2 flex cursor-pointer items-center gap-3.5 rounded-[18px] px-4 py-3.5", home === "free" ? "bg-card shadow-[inset_0_0_0_2px_var(--ink)]" : "hover-outline bg-card", ring)}>
+      <label htmlFor="home-free" className={cx("mt-2 flex cursor-pointer items-center gap-3.5 rounded-[18px] px-4 py-3.5", home === "free" ? "bg-card shadow-[inset_0_0_0_2px_var(--ink)]" : "hover-card bg-card", ring)}>
         <input id="home-free" type="radio" name="home" value="free" checked={home === "free"} onChange={() => setHome("free")} className="sr-only" />
         <Laptop size={20} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
         <span className="min-w-0 flex-1">
