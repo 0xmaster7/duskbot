@@ -12,8 +12,9 @@ import { buildDocs } from './build-docs.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.join(here, 'public', 'landing');
 const repo = process.argv[2] || path.join(process.env.HOME, 'Desktop/code/OpenMausBot');
-// every link to the account web app goes through APP_URL, and every absolute address of this site through SITE_URL
-export const APP_URL = (process.env.APP_URL || 'https://app.dusk.bot').replace(/\/+$/, '');
+// every link to the account web app goes through APP_URL, and every absolute address of this site through SITE_URL.
+// DUSK_APP_URL is a path on this origin (default /app, where preview.dusk.bot serves the app) or a full address
+export const APP_URL = (process.env.DUSK_APP_URL || '/app').replace(/\/+$/, '');
 export const SITE_URL = (process.env.SITE_URL || 'https://dusk.bot').replace(/\/+$/, '');
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
