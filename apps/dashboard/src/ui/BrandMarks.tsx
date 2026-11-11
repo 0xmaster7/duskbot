@@ -1,5 +1,5 @@
 import { Apple, Mail } from "lucide-react";
-import xLogo from "@/assets/app-logos/x.png";
+import xLogo from "@/assets/app-logos/x.tile.svg";
 import type { IdentityProvider } from "../data/contracts";
 
 // google's published four-colour "G", as its sign-in branding guidelines ask for
