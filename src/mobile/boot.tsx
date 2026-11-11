@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { productName } from "@/lib/brand";
+import { setCloudWakeGestures } from "@/lib/cloud-power";
 import { loadPageLanguage } from "@/lib/language-preference";
 import { applySkinChoice, readSkinChoice, THEME_SKINS, type SkinChoice } from "@/lib/skins";
 import { applyFont, readFont } from "@/lib/fonts";
@@ -32,6 +33,7 @@ export function mountMobile(platform: MobilePlatform): void {
   const params = new URLSearchParams(platform.native ? "" : location.search);
   if (params.has("frame")) document.documentElement.dataset.phoneFrame = "";
   followSystemTextSize(platform);
+  setCloudWakeGestures("type");
   document.documentElement.dataset.mobileApp = platform.kind;
   applySkinChoice(phoneSkin(params));
   applyFont(readFont());

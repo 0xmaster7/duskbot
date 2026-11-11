@@ -1,6 +1,6 @@
 // EventSource hides SSE comment keepalives, so liveness comes from the server's visible `ping` frame.
 import type { ServerFrame } from "../../shared/wire";
-import { cloudAsleep, markCloudAsleep, onCloudPower, sleepingFrame } from "./cloud-power";
+import { asleepAnswer, BACKGROUND_HEADER, cloudAsleep, markCloudAsleep, noteCloudAwake, onCloudPower, sleepingFrame } from "./cloud-power";
 import { recordBotTextMessage, recordRuntimeEvent } from "./voice-latency-probe";
 import { noteTurnEvent } from "@/state/turn-status";
 import { noteReplyEvent, noteReplyLanded } from "@/state/live-reply";
@@ -41,7 +41,12 @@ export interface LiveEventsPlatform {
   isVisible: () => boolean;
   isOnline: () => boolean;
   now: () => number;
+  /** A background read that never wakes a sleeping Cloud: true when it answers, so it was woken elsewhere. */
+  cloudAnswers?: () => Promise<boolean>;
 }
+
+/** How often a page that saw its Cloud go to sleep checks, while shown, whether something else woke it. */
+export const CLOUD_AWAKE_CHECK_MS = 30_000;
 
 export interface LiveEventsHandlers {
   onFrame: (frame: LiveFrame) => void;
@@ -191,6 +196,8 @@ function browserPlatform(overrides: Partial<LiveEventsPlatform>): LiveEventsPlat
       overrides.isVisible ?? (() => !browserDocument || browserDocument.visibilityState === "visible"),
     isOnline: overrides.isOnline ?? (() => globalThis.navigator?.onLine !== false),
     now: overrides.now ?? Date.now,
+    cloudAnswers: overrides.cloudAnswers ?? (() => fetch("/api/health", { cache: "no-store", headers: { [BACKGROUND_HEADER]: "1" } })
+      .then((response) => { void response.body?.cancel().catch(() => {}); return response.ok && !asleepAnswer(response); }, () => false)),
   };
 }
 
@@ -391,6 +398,12 @@ export function openLiveEvents(
   const staleTimer = setInterval(recover, staleCheckMs);
   // The person is back after the Cloud slept: reconnect at once, which wakes it.
   const stopPower = onCloudPower((asleep) => { if (!asleep) reconnectNow(false); });
+  let checking = false;
+  const awakeCheck = setInterval(() => {
+    if (stopped || checking || !cloudAsleep() || !platform.isVisible() || !platform.isOnline() || !platform.cloudAnswers) return;
+    checking = true;
+    void platform.cloudAnswers().then((up) => { if (up && !stopped) noteCloudAwake(); }, () => {}).finally(() => { checking = false; });
+  }, CLOUD_AWAKE_CHECK_MS);
   platform.windowTarget?.addEventListener("online", onOnline);
   platform.windowTarget?.addEventListener("focus", onFocus);
   platform.documentTarget?.addEventListener("visibilitychange", onVisibilityChange);
@@ -401,6 +414,7 @@ export function openLiveEvents(
     screenWishListeners.delete(onScreenWish);
     stopPower();
     clearInterval(staleTimer);
+    clearInterval(awakeCheck);
     clearRetry();
     closeSource();
     platform.windowTarget?.removeEventListener("online", onOnline);

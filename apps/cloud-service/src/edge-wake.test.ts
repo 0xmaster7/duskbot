@@ -22,6 +22,8 @@ async function edged(edgeWakesPerHour = 3, { queue = false } = {}) {
     const request = input instanceof Request ? input : new Request(input, init);
     const url = new URL(request.url);
     if (url.origin === ROUTE_URL) {
+      // the account service refuses any mutation that is not JSON (apps/dashboard/server/app.ts) before its routes run
+      if (request.method !== "GET" && request.headers.get("content-type")?.split(";")[0] !== "application/json") return new Response(JSON.stringify({ error: "JSON is required." }), { status: 403 });
       const req = Object.assign(new PassThrough(), { method: request.method, url: url.pathname + url.search, headers: Object.fromEntries(request.headers), socket: { remoteAddress: "198.51.100.1" } }) as unknown as IncomingMessage;
       (req as unknown as PassThrough).end("");
       let status = 0, text = "";

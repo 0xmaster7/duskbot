@@ -6,6 +6,9 @@ import type { SignInVerify } from "@/components/account-gate/bridge";
 import type { MobilePlatform } from "../platform";
 
 export type MobileAccount = { id: string; email: string };
+export type MobileCloud = { id: string; name: string; status: string; origin: string | null; primary: boolean; asleep: boolean };
+export type CloudPairGrant = { origin: string; code: string; expiresAt: number };
+export type CloudPairResult = { outcome: "paired"; grant: CloudPairGrant } | { outcome: "asleep" | "unavailable" | "signed-out" | "failed" };
 type StoredGrant = { origin: string; token: string; expiresAt: number; account: MobileAccount; deviceId: string };
 export type AuthResult = false | SignInVerify | { outcome: OAuthErrorCode | "invalid-state" };
 const TOKEN = /^omc_[A-Za-z0-9_-]{43}$/;
@@ -17,6 +20,39 @@ const object = (value: unknown): value is Record<string, unknown> => Boolean(val
 const identity = (value: unknown): value is MobileAccount => object(value) && typeof value.id === "string" && Boolean(value.id) && typeof value.email === "string" && Boolean(cleanEmail(value.email));
 const expiry = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value > 0;
 const parse = (value: string | null): unknown => { try { return value ? JSON.parse(value) : null; } catch { return null; } };
+const CLOUD_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+const GRANT_CODE = /^[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/;
+const MAX_GRANT_MS = 10 * 60_000;
+const MAX_CLOUDS = 20;
+const CLOUD_PAIRING = "/api/cloud/desktop/pairing";
+const CLOUD_WAKE = "/api/cloud/desktop/wake";
+
+function httpsOrigin(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try { const url = new URL(value); return url.protocol === "https:" && url.origin === value && !url.username && !url.password ? value : null; } catch { return null; }
+}
+
+export function parseOwnClouds(input: unknown): MobileCloud[] {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const clouds: MobileCloud[] = [];
+  for (const entry of input.slice(0, MAX_CLOUDS)) {
+    if (!object(entry) || typeof entry.id !== "string" || !CLOUD_ID.test(entry.id) || seen.has(entry.id)) continue;
+    if (entry.role !== "owner" || (entry.teamId !== null && entry.teamId !== undefined) || entry.managed === false || typeof entry.status !== "string") continue;
+    seen.add(entry.id);
+    const name = typeof entry.name === "string" && entry.name.trim() ? entry.name.trim().slice(0, 40) : "My Cloud";
+    const asleep = entry.status === "ready" && object(entry.power) && (entry.power.state === "asleep" || entry.power.state === "waking");
+    clouds.push({ id: entry.id, name, status: entry.status, origin: httpsOrigin(entry.origin), primary: entry.primary === true, asleep });
+  }
+  return clouds.sort((a, b) => Number(b.primary) - Number(a.primary));
+}
+
+export function parsePairGrant(input: unknown, origin: string | null, now = Date.now()): CloudPairGrant | null {
+  if (!object(input) || input.cloudContractVersion !== 1 || !httpsOrigin(input.origin) || (origin !== null && input.origin !== origin)) return null;
+  if (typeof input.code !== "string" || !GRANT_CODE.test(input.code)) return null;
+  if (!expiry(input.expiresAt) || input.expiresAt <= now || input.expiresAt > now + MAX_GRANT_MS) return null;
+  return { origin: input.origin as string, code: input.code, expiresAt: input.expiresAt };
+}
 const base64url = (value: Uint8Array) => btoa(String.fromCharCode(...value)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
 export function isAccountAuthUrl(value: string): boolean {
@@ -162,6 +198,32 @@ export function createMobileAccount({ platform, origin, fetch: requestFetch = gl
       grant = null; attempt = null; analytics();
       await Promise.all([platform.secrets.remove(SECRET), platform.secrets.remove(PENDING)]);
       if (token) { try { await request(ACCOUNT_ROUTES.appSession, "DELETE", {}, token); } catch {} }
+    },
+    async clouds(): Promise<MobileCloud[] | null> {
+      if (!grant) return null;
+      try {
+        const value = await request(ACCOUNT_ROUTES.appSession, "GET", undefined, grant.token);
+        return object(value) ? parseOwnClouds(value.clouds) : [];
+      } catch { return null; }
+    },
+    async pairCloud(cloud: Pick<MobileCloud, "id" | "origin">): Promise<CloudPairResult> {
+      if (!grant) return { outcome: "signed-out" };
+      try {
+        const value = await request(CLOUD_PAIRING, "POST", { cloudId: cloud.id }, grant.token);
+        const paired = parsePairGrant(value, cloud.origin);
+        return paired ? { outcome: "paired", grant: paired } : { outcome: "failed" };
+      } catch (error) {
+        if (!(error instanceof AccountRequestError) || error.opaque) return { outcome: "failed" };
+        if (error.status === 401) return { outcome: "signed-out" };
+        if (error.status === 409 && error.code === "not_running") return { outcome: "asleep" };
+        if (error.status === 409 || error.status === 404) return { outcome: "unavailable" };
+        return { outcome: "failed" };
+      }
+    },
+    /** Wakes the account's primary Cloud, the one the wake route answers for. */
+    async wakeCloud(): Promise<boolean> {
+      if (!grant) return false;
+      try { await request(CLOUD_WAKE, "POST", { intent: "click" }, grant.token); return true; } catch { return false; }
     },
     async enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null> {
       if (!grant) return null;

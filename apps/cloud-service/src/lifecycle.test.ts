@@ -5,6 +5,7 @@ import { expect, it, vi } from "vitest";
 import type { StoredSubscription } from "../../dashboard/server/billing/store.ts";
 import { homeBackupKey } from "./backups.ts";
 import { INSTABOX_BOOT_FILE, INSTABOX_PACKAGE_FILE, INSTABOX_SETUP_FILE } from "./home.ts";
+import { OWNER_SLEEP_GRACE_MS } from "./lifecycle.ts";
 import { pooledCostProfile } from "./power/pooled-profile.ts";
 import { DAY_MS, entitlementOf } from "./retention.ts";
 import { createSealer } from "../../dashboard/server/clouds/seal.ts";
@@ -394,4 +395,27 @@ it("the operator deletes an ended plan's cloud at once, through the same final b
   expect(f.api.deletes()).toHaveLength(1);
   expect(c.managed!.backups.at(-1)?.verifiedAt ?? null).not.toBeNull();
   expect(() => f.service.managed!.operatorDelete(c, "test_account")).toThrow("unavailable");
+});
+
+it("tells a busy home's open apps it is going to sleep on the owner's pause, then stops it after the grace", async () => {
+  const f = await homeFixture();
+  const { c } = await f.paid();
+  f.power.idle = false; f.power.busy = ["turn"];
+  await f.service.power(c.accountId, c.id, "off");
+  const asked = f.home.sleep.mock.calls.at(-1)! as unknown as [string, string, number, { force?: boolean }];
+  expect(asked[0]).toBe(c.origin);
+  expect(asked[3]).toEqual({ force: true });
+  expect(c.status).toBe("running");
+  expect(f.api.machines.get(c.serverId!)!.state).toBe("running");
+  c.nextAttemptAt = 0; await f.service.reconcile();
+  expect(c.status).toBe("running");
+  expect(f.home.sleep).toHaveBeenCalledTimes(1);
+  f.advance(OWNER_SLEEP_GRACE_MS); c.nextAttemptAt = 0; await f.service.reconcile();
+  expect(c.status).toBe("sleeping");
+  expect(f.api.machines.get(c.serverId!)!.state).not.toBe("running");
+  expect(f.audit.entries(c.id).map(e => e.action)).toEqual(expect.arrayContaining(["sleep_notice", "sleep"]));
+  // a later pause notices again
+  await f.service.power(c.accountId, c.id, "on"); await f.settle(c, c => c.status === "running");
+  await f.service.power(c.accountId, c.id, "off");
+  expect(f.home.sleep).toHaveBeenCalledTimes(2);
 });

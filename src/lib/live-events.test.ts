@@ -7,6 +7,7 @@ import {
   liveEventsUrl,
   openLiveEvents,
   shouldReconnectLiveEvents,
+  CLOUD_AWAKE_CHECK_MS,
   type LiveEventSourceLike,
   type LiveEventsPlatform,
 } from "./live-events";
@@ -439,6 +440,31 @@ describe("a Cloud home that goes to sleep", () => {
     markCloudAwake();
     expect(loading.sources[1].url).toBe("/api/events?screens=off");
     stopLoading();
+  });
+
+  it("reconnects without a wake once a background read finds the Cloud awake, woken from elsewhere", async () => {
+    const test = harness();
+    let up = false;
+    const answers = vi.fn(async () => up);
+    const posted = vi.fn(async () => new Response("{}"));
+    vi.stubGlobal("fetch", posted);
+    const stop = openLiveEvents({ onFrame: vi.fn(), onSnapshotRequired: async () => true }, { ...test.platform, cloudAnswers: answers });
+    test.sources[0].message({ kind: "power", state: "sleeping" } as { kind: string });
+    await vi.advanceTimersByTimeAsync(CLOUD_AWAKE_CHECK_MS);
+    expect(answers).toHaveBeenCalledOnce();
+    expect(cloudAsleep()).toBe(true);
+    expect(test.sources).toHaveLength(1);
+    test.setVisible(false);
+    await vi.advanceTimersByTimeAsync(CLOUD_AWAKE_CHECK_MS);
+    expect(answers).toHaveBeenCalledOnce();
+    test.setVisible(true);
+    up = true;
+    await vi.advanceTimersByTimeAsync(CLOUD_AWAKE_CHECK_MS);
+    expect(cloudAsleep()).toBe(false);
+    expect(test.sources).toHaveLength(2);
+    expect(posted).not.toHaveBeenCalled();
+    stop();
+    vi.unstubAllGlobals();
   });
 
   it("ignores any other power frame", () => {

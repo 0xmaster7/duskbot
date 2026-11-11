@@ -14,6 +14,12 @@ export type PageWakeIntent = "type" | "click";
 type Listener = (asleep: boolean) => void;
 const listeners = new Set<Listener>();
 let asleep = false, waking = false, sendsHeld = 0;
+/** Which gestures wake a sleeping Cloud: on a phone a touch is scrolling, not intent, so only typing (and sending) does. */
+export type CloudWakeGestures = "type" | "type-or-click";
+let gestures: CloudWakeGestures = "type-or-click";
+export function setCloudWakeGestures(next: CloudWakeGestures): void {
+  gestures = next;
+}
 let detach: (() => void) | null = null;
 const wakingListeners = new Set<Listener>();
 
@@ -83,13 +89,21 @@ export function markCloudAwake(intent: PageWakeIntent = "click"): void {
   set(false);
 }
 
+/** The Cloud answered a background read, so something else woke it: back to normal without counting as use. */
+export function noteCloudAwake(): void {
+  if (!asleep) return;
+  detach?.();
+  detach = null;
+  set(false);
+}
+
 /** The home agreed to sleep: stay quiet until the person does something. */
 export function markCloudAsleep(target: Pick<Window, "addEventListener" | "removeEventListener"> | undefined = globalThis.window): void {
   if (asleep) return;
   set(true);
   if (!target) return;
   const typed = () => markCloudAwake("type"), clicked = () => markCloudAwake("click");
-  const events = [["keydown", typed], ["pointerdown", clicked], ["touchstart", clicked]] as const;
+  const events = gestures === "type" ? [["keydown", typed]] as const : [["keydown", typed], ["pointerdown", clicked], ["touchstart", clicked]] as const;
   for (const [name, wake] of events) target.addEventListener(name, wake, { capture: true });
   detach = () => { for (const [name, wake] of events) target.removeEventListener(name, wake, { capture: true }); };
 }
@@ -133,6 +147,7 @@ export function resetCloudPowerForTests(): void {
   detach = null;
   asleep = false;
   waking = false;
+  gestures = "type-or-click";
   sendsHeld = 0;
   listeners.clear();
   wakingListeners.clear();

@@ -15,6 +15,8 @@ export interface HomeLifecycleState {
   restoredFrom?: { file: string; at: number } | null;
   sleptAt: number | null;
   sleepReason: "idle" | "plan" | "owner" | "operator" | null;
+  /** when the home was told of the owner's pause (its open apps show it asleep); the machine stops a grace later */
+  sleepNoticeAt?: number | null;
   nextDueAt: number | null;
   lastPowerAt: number | null;
   busy: string[];

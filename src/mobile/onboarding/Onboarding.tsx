@@ -12,6 +12,7 @@ import { PairError, parseTypedPairing, redeemPairing, resolveTypedCode, type Typ
 import { IntroPager } from "./IntroPager";
 import { Scanner } from "./Scanner";
 import { AccountStep } from "./AccountStep";
+import { CloudPicker } from "../account/CloudPicker";
 import { accountService, signedInAccount } from "./account";
 import { enterDemo } from "../demo/demo-mode";
 import { MascotTrio, ONBOARDING_BG, SkyScene } from "./SkyScene";
@@ -190,6 +191,7 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
                 {reason === "revoked" && <p role="status" className="mb-3 text-[14px] text-white/60">{t("mobile.pair.revoked")}</p>}
                 <h1 className={HEADLINE}>{t("mobile.onboarding.linkTitle")}</h1>
                 <p className={LINE}>{t("mobile.onboarding.linkShort", { app: productName() })}</p>
+                <CloudPicker busy={busy} onPairing={(payload) => redeem(payload, "link")} />
                 {failure && <FailurePanel failure={failure} onRetry={() => (lastTry.current ? lastTry.current() : void openScanner())} />}
               </Screen>
             </StepPane>

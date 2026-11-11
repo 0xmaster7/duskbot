@@ -227,10 +227,11 @@ export function createCloudPower(options: {
       return { v: 1, at: now(), bootedAt, wokeAt, idle: busy.length === 0, busy, lastActivityAt, lastWorkAt, nextDueAt: options.probes.nextDueAt(), ...upcoming(), sleeping: sleeping(), wokeBy };
     },
     /** The Admin is about to suspend or stop this machine: yes only when idle now. From here until a resume, someone's
-     * use or CLOUD_SLEEP_PENDING_MS, held polls answer "asleep" and new ones are refused (`sleeping`). */
-    prepareSleep(activityMs = CLOUD_IDLE_ACTIVITY_MS): { ok: true; nextDueAt: number | null } | { ok: false; busy: CloudPowerBusy[] } {
+     * use or CLOUD_SLEEP_PENDING_MS, held polls answer "asleep" and new ones are refused (`sleeping`). `force`: the owner
+     * paused it, so it stops whatever runs: the notice goes out even while busy, and the answer is always yes. */
+    prepareSleep(activityMs = CLOUD_IDLE_ACTIVITY_MS, { force = false }: { force?: boolean } = {}): { ok: true; nextDueAt: number | null } | { ok: false; busy: CloudPowerBusy[] } {
       const busy = options.team ? ["team" as const, ...busyNow(activityMs)] : busyNow(activityMs);
-      if (busy.length) return { ok: false, busy };
+      if (busy.length && !force) return { ok: false, busy };
       sleepingSince = now();
       try { writeFileAtomic(join(options.dataDir, MARKER), JSON.stringify({ at: sleepingSince })); }
       catch (error) { options.log?.(`cloud power: could not write the sleep marker: ${error instanceof Error ? error.message : String(error)}`); }

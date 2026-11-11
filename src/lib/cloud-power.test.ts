@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { asleepAnswer, cloudAsleep, markCloudAsleep, markCloudAwake, onCloudPower, resetCloudPowerForTests, sleepingFrame } from "./cloud-power";
+import { asleepAnswer, cloudAsleep, markCloudAsleep, markCloudAwake, onCloudPower, resetCloudPowerForTests, setCloudWakeGestures, sleepingFrame } from "./cloud-power";
 
 afterEach(() => { vi.unstubAllGlobals(); resetCloudPowerForTests(); });
 
@@ -49,5 +49,18 @@ describe("a page of a Cloud home that sleeps", () => {
     expect(sleepingFrame({ kind: "power", state: "sleeping" })).toBe(true);
     expect(sleepingFrame({ kind: "power", state: "awake" })).toBe(false);
     expect(sleepingFrame({ kind: "message" })).toBe(false);
+  });
+});
+
+describe("wake gestures", () => {
+  it("on a phone only typing wakes it: a touch is scrolling", () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}")));
+    setCloudWakeGestures("type");
+    const target = new Target();
+    markCloudAsleep(target as unknown as Window);
+    target.emit("pointerdown"); target.emit("touchstart");
+    expect(cloudAsleep()).toBe(true);
+    target.emit("keydown");
+    expect(cloudAsleep()).toBe(false);
   });
 });

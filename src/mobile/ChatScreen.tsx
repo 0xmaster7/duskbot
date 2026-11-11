@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import { ChevronLeft, Monitor } from "../icons";
 import { useStore, type Bot, type Group } from "@/state/store";
 import { ChatView } from "@/components/ChatView";
@@ -5,6 +6,7 @@ import { GroupView } from "@/components/GroupView";
 import { BotAvatar } from "@/components/Avatar";
 import { GroupAvatar } from "@/components/GroupAvatar";
 import { t } from "@/lib/i18n";
+import { cloudAsleep, cloudWaking, onCloudPower, onCloudWaking } from "@/lib/cloud-power";
 import { RoundButton } from "./RoundButton";
 
 /** The shared chat, with Grok's floating nav in place of its header row: back, the bot's pill (its profile), and the
@@ -20,6 +22,8 @@ export function ChatScreen({ bot, group, members, onBack, onProfile, onComputer 
   const { state } = useStore();
   const name = group?.name ?? bot?.name ?? "";
   const live = Boolean(bot && (bot.busy || state.computerControl[bot.id]?.held));
+  const asleep = useSyncExternalStore(onCloudPower, cloudAsleep, () => false);
+  const waking = useSyncExternalStore(onCloudWaking, cloudWaking, () => false);
   return (
     <div data-mobile-chat className="relative flex h-full flex-col">
       {group ? <GroupView key={group.id} group={group} /> : bot ? <ChatView bot={bot} /> : null}
@@ -50,6 +54,13 @@ export function ChatScreen({ bot, group, members, onBack, onProfile, onComputer 
           </RoundButton>
         )}
       </nav>
+      {(asleep || waking) && (
+        <div className="pointer-events-none absolute inset-x-0 top-[calc(var(--m-safe-top)+58px)] z-30 flex justify-center px-3">
+          <span role="status" data-testid="mobile-chat-cloud-status" className="flex min-h-8 items-center rounded-[16px] bg-composer px-3 py-1 text-[13px] leading-4 text-ink-secondary mobile-float">
+            {waking ? t("cloudAsleep.waking") : t("mobile.home.asleep")}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

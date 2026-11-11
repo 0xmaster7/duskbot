@@ -22,6 +22,8 @@ import type { HomeClient, StoredCloud } from "../../dashboard/server/clouds/type
 import type { HomeLifecycleState } from "./state.ts";
 import type { HomeUpdates } from "./home-update.ts";
 
+/** how long open apps have between the owner's pause notice and the machine stopping (the reconciler's next pass or so) */
+export const OWNER_SLEEP_GRACE_MS = 10_000;
 const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, SETUP_TRIES = 3, RESTORE_TRIES = 3, SETUP_PATIENCE_MS = 6 * HOUR, SETUP_ERROR_RETRY_MS = 6 * HOUR;
 
 export interface ManagedSettings {
@@ -473,6 +475,20 @@ export function createLifecycle(deps: LifecycleDeps) {
     deps.save(c);
   }
 
+  /** The owner's pause: the home tells its open apps it is going to sleep, busy or not, and the machine stops
+   * OWNER_SLEEP_GRACE_MS later on a following pass. True while that grace runs. */
+  async function ownerSleepNotice(c: StoredCloud): Promise<boolean> {
+    const b = state(c);
+    if (!b.sleepNoticeAt) {
+      b.sleepNoticeAt = now();
+      await deps.home.sleep!(homeOrigin(c), secret(c), Math.max(1, Math.round(rails.minIdleMs / MINUTE)), { force: true }).catch(() => null);
+      log(c, "sleep_notice", "owner", "owner");
+      deps.save(c);
+      return true;
+    }
+    return now() - b.sleepNoticeAt < OWNER_SLEEP_GRACE_MS;
+  }
+
   /** `quietSince`: when the home's data last changed, for the final backup retention relies on (now by default) */
   async function sleepNow(c: StoredCloud, reason: HomeLifecycleState["sleepReason"], actor: AuditActor, quietSince = now()) {
     const b = state(c);
@@ -481,7 +497,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     b.lastStopAt = quietSince;
     // a stop the rails' cost rule allowed: the start that ends this sleep is already paid for
     if (reason === "idle" || reason === "owner") spendNote(c, { e: "stop" });
-    b.sleptAt = now(); b.sleepReason = reason; c.status = reason === "plan" ? "stopped" : "sleeping"; c.powerSince = now(); c.wantPower = "off";
+    b.sleptAt = now(); b.sleepReason = reason; b.sleepNoticeAt = null; c.status = reason === "plan" ? "stopped" : "sleeping"; c.powerSince = now(); c.wantPower = "off";
     log(c, "sleep", actor, reason ?? "idle", { nextDueAt: b.nextDueAt });
     deps.save(c);
   }
@@ -734,9 +750,11 @@ export function createLifecycle(deps: LifecycleDeps) {
     }
     // the owner asked for a stop, or to apply a plan change now (resized while stopped): only once the start back is paid
     // for under the monthly ceiling, else the home stays up
+    if (c.wantPower !== "off" && b.sleepNoticeAt) b.sleepNoticeAt = null;
     if (c.wantPower === "off" || resizeWanted && b.resizeAskedAt) {
       const held = costStopRefusal(spendView(c), now(), true);
       if (!held) {
+        if (c.wantPower === "off" && deps.home.sleep && await ownerSleepNotice(c)) return;
         // the due backup is read from the home before it sleeps, as before an idle sleep
         const last = b.backups.at(-1), quiet = now();
         if ((!last || now() - last.at >= settings.backupEveryMs) && (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS <= now()) await backup(c, "before_sleep").catch(() => false);

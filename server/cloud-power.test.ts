@@ -114,6 +114,16 @@ describe("the sleep handshake", () => {
     expect(h.power.report().sleeping).toBe(true);
   });
 
+  it("forced (the owner's pause), says yes while busy and still tells clients", () => {
+    const h = home();
+    h.state.turn = true;
+    const held = h.power.sleepSignal();
+    expect(h.power.prepareSleep(undefined, { force: true })).toEqual({ ok: true, nextDueAt: null });
+    expect(held.aborted).toBe(true);
+    expect(h.sent).toEqual([{ kind: "power", state: "sleeping" }]);
+    expect(h.power.sleeping()).toBe(true);
+  });
+
   it("ends when someone uses the home, keeping the next sleep's signal fresh", () => {
     const h = home();
     h.pass(CLOUD_IDLE_AWAKE_MS);
@@ -267,6 +277,19 @@ describe("the Admin's signed power routes", () => {
     const bad = JSON.stringify({ v: 1, idleMinutes: 0 });
     expect((await send("POST", CLOUD_POWER_SLEEP_PATH, json(sign(CLOUD_POWER_SLEEP_PATH, "POST", bad)), bad)).body).toEqual({ error: "invalid_idle_minutes" });
     expect((await send("POST", CLOUD_POWER_SLEEP_PATH, json(sign(CLOUD_POWER_SLEEP_PATH, "POST", "{}")), body)).status).toBe(401);
+  });
+
+  it("takes the owner's forced sleep while busy: tells clients and agrees, and refuses a force that is not a boolean", async () => {
+    const h = home();
+    const { sign, send } = routes(h);
+    h.state.turn = true;
+    const json = (extra: Record<string, string>) => ({ ...extra, "content-type": "application/json" });
+    const bad = JSON.stringify({ v: 1, force: "yes" });
+    expect((await send("POST", CLOUD_POWER_SLEEP_PATH, json(sign(CLOUD_POWER_SLEEP_PATH, "POST", bad)), bad)).body).toEqual({ error: "invalid_force" });
+    const body = JSON.stringify({ v: 1, idleMinutes: 10, force: true });
+    expect(await send("POST", CLOUD_POWER_SLEEP_PATH, json(sign(CLOUD_POWER_SLEEP_PATH, "POST", body)), body)).toEqual({ status: 200, body: { ok: true, nextDueAt: null } });
+    expect(h.sent).toEqual([{ kind: "power", state: "sleeping" }]);
+    expect(h.power.sleeping()).toBe(true);
   });
 
   it("is not a route on a server without power (every route but these answers as before)", async () => {

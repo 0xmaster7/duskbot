@@ -427,6 +427,38 @@ async function run() {
     await pressText(dpage, "Borealis"); await sleep(2500); await shot(dpage, "09-desktop-bo-browser-turn");
   });
 
+  await step("apps: the website starts an app connect on the cloud and gets its sign-in link back (not completed)", async () => {
+    const list = (await account("GET", "/v1/workspaces")).workspaces as Array<{ id: string; kind?: string }>;
+    if (!list.length) throw new Error("the website lists no workspace for this account");
+    const ws = list.find(w => w.kind === "vps") ?? list[0]!, asked = Date.now();
+    const queued = (await account("POST", `/v1/workspaces/${ws.id}/commands`, { kind: "app.connect", target: "gmail" })).command as { id: string };
+    let command: { status?: string; url?: string; message?: string | null } | undefined;
+    await until(async () => {
+      command = ((await account("GET", `/v1/workspaces/${ws.id}`)).commands as Array<{ id: string }>).find(c => c.id === queued.id) as typeof command;
+      return command?.status === "done" || command?.status === "failed";
+    }, 90_000, 1000);
+    results.appConnect = { status: command?.status ?? null, ms: Date.now() - asked, host: command?.url ? new URL(command.url).host : null, message: command?.message ?? null };
+    await page.goto(`${origin}/app/connectors`).catch(() => {}); await sleep(2500); await shot(page, "09b-website-apps");
+    if (command?.status !== "done" || !command.url?.startsWith("https://")) throw new Error(`app connect: ${JSON.stringify(results.appConnect)}`);
+  });
+
+  await step("data: Borealis runs a DuckDB query with the data tools during a turn", async () => {
+    const loaded = await onMachine(`cd ${CLOUD_HOME.root}/app && sudo -u maus ${CLOUD_HOME.root}/node/bin/node -e 'require("module").createRequire(process.cwd() + "/dist-server/index.js")("@duckdb/node-api"); console.log("duckdb ok")' 2>&1 | tail -2; uname -m`);
+    results.duckdbOnBox = loaded.stdout.trim().slice(0, 200);
+    if (!loaded.stdout.includes("duckdb ok")) throw new Error(`DuckDB does not load on the box: ${loaded.stdout.slice(-200)}`);
+    const marker = Math.floor(1000 + Math.random() * 8000);
+    await setTools([{ server: "data", name: "data_sql", input: { sql: `SELECT ${marker} * 2 AS doubled, 'duck' AS word` } }]);
+    const before = (await botReplies(bo)).length, sent = Date.now();
+    await api("POST", `/api/bots/${bo.id}/messages`, { text: "use the data tools to double a number", threadId: bo.threadId, sendId: randomUUID() });
+    const ok = await until(async () => (await botReplies(bo)).length > before, 180_000, 1500);
+    await setTools(null);
+    if (!ok) throw new Error("no reply in 3 minutes");
+    results.dataTurnMs = Date.now() - sent;
+    const toolText = JSON.stringify((await threadRows(bo)).filter(m => ((m as { at?: number }).at ?? 0) >= sent - 2000));
+    results.dataTool = toolText.slice(0, 2000);
+    if (!toolText.includes(String(marker * 2))) throw new Error(`the data tool did not answer: ${toolText.slice(0, 400)}`);
+  });
+
   // a routine on a schedule: due in about two minutes, runs on time, its result in Adalyn's chat on the desktop
   await step("routine: a routine runs on schedule and its result reaches the desktop", async () => {
     const due = Date.now() + 2 * 60_000;
@@ -471,33 +503,45 @@ async function run() {
   });
   const phone = await phoneCtx.newPage();
   phone.on("pageerror", (e: Error) => consoleErrors.push(`phone pageerror ${e.message.slice(0, 200)}`));
-  await step("phone: the app links to the cloud and lists the same chats", async () => {
-    await phone.goto("http://localhost/");
+  // CapacitorHttp sends the account requests natively: no page CORS and no Origin header
+  await phoneCtx.route((url: URL) => url.origin === origin, async (route: any) => {
+    const req = route.request(), cors = { "access-control-allow-origin": "http://localhost", "access-control-allow-headers": "*", "access-control-allow-methods": "*", "access-control-expose-headers": "*" };
+    if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    const { origin: _origin, referer: _referer, ...headers } = req.headers();
+    try { const r = await route.fetch({ headers, timeout: 60_000 }); await route.fulfill({ response: r, headers: { ...r.headers(), ...cors } }); }
+    catch { await route.abort("failed").catch(() => {}); }
+  });
+  await step("phone: signs in with the Dusk account, picks the cloud, and lists the same chats", async () => {
+    await phone.goto(`http://localhost/?account=1&accountOrigin=${encodeURIComponent(origin)}`);
     await sleep(3000); await shot(phone, "11-phone-first");
-    if (await shows(phone, "Skip", 8000)) await clickButton(phone, "Skip");
-    await sleep(2000);
-    // the desktop's Settings > Phone: a grant made by the desktop's own session (a cloud home refuses it by design)
-    const link = await dpage.evaluate(async () => {
-      const r = await fetch("/api/mobile/pairing", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
-      return { status: r.status, body: await r.json().catch(() => null) };
-    });
-    results.phoneGrant = { status: link.status, error: link.body?.error ?? null };
-    let typed = link.body?.link as string | undefined;
-    if (link.status >= 300 || !typed) {
-      note(`the desktop's phone grant on a cloud: ${link.status} ${link.body?.error ?? ""}; the phone app has no other way in, so a test-only bridge types the account's own pairing grant (what the desktop's pairHome gets) into the phone's code entry`);
-      const grant = await again(() => client.pairHome()) as { origin: string; code: string };
-      typed = `${grant.origin} ${grant.code.replace(/-/g, "")}`;
-      results.phoneBridge = "account pairing grant typed as origin + code (test only)";
+    const email = phone.locator('input[type="email"]');
+    if (!(await until(() => email.isVisible().catch(() => false), 20_000))) throw new Error(`no account sign-in on the phone: ${(await phone.evaluate(() => document.body.innerText)).slice(0, 300)}`);
+    let sent = Date.now();
+    await email.fill(mail.address); await email.press("Enter");
+    const boxes = phone.locator("input[inputmode=numeric], input[autocomplete=one-time-code]");
+    if (!(await until(async () => (await boxes.count()) > 0, 15_000))) {
+      if (!(await shows(phone, "Try again", 1000)) && !/wait|seconds|rate/i.test(await phone.evaluate(() => document.body.innerText))) throw new Error(`no code entry: ${(await phone.evaluate(() => document.body.innerText)).slice(0, 300)}`);
+      note("phone sign-in hit the resend gap; waiting it out");
+      await sleep(35_000); sent = Date.now(); await email.press("Enter");
+      if (!(await until(async () => (await boxes.count()) > 0, 15_000))) throw new Error("no code entry after the resend gap");
     }
-    await clickButton(phone, "Enter the code instead"); await sleep(1200);
-    await clickButton(phone, "Paste a link instead"); await sleep(1200);
-    const sent = Date.now();
-    await phone.locator('input[placeholder^="duskbot://"]').fill(typed);
-    await phone.locator('input[placeholder^="duskbot://"]').press("Enter");
-    await sleep(2500);
+    const got = await mail.code(sent);
+    await boxes.first().click(); await phone.keyboard.type(got.code);
+    await sleep(800);
+    if (await boxes.first().isVisible().catch(() => false)) await phone.keyboard.press("Enter").catch(() => {});
+    const picker = phone.locator('[data-testid="mobile-cloud-connect"]');
+    if (!(await until(async () => (await picker.count()) > 0, 30_000))) {
+      if (await shows(phone, "Skip", 2000)) { await clickButton(phone, "Skip"); }
+      if (!(await until(async () => (await picker.count()) > 0, 30_000))) throw new Error(`no cloud picker: ${(await phone.evaluate(() => document.body.innerText)).slice(0, 300)}`);
+    }
+    await shot(phone, "12-phone-clouds");
+    const mine = phone.locator(`[data-testid="mobile-cloud-connect"][data-cloud-id="${state.cloudId}"]`);
+    if (!(await mine.count())) throw new Error(`this cloud is not in the phone's list (${await picker.count()} listed)`);
+    const linked = Date.now();
+    await mine.first().click();
     if (await shows(phone, "Link this phone", 3000)) await clickButton(phone, "Link");
-    if (!(await shows(phone, "Adalyn", 60_000)) || !(await shows(phone, "Borealis", 10_000))) throw new Error(`phone does not list the bots: ${(await phone.evaluate(() => document.body.innerText)).slice(0, 300)}`);
-    results.phoneLinkMs = Date.now() - sent;
+    if (!(await shows(phone, "Adalyn", 90_000)) || !(await shows(phone, "Borealis", 10_000))) throw new Error(`phone does not list the bots: ${(await phone.evaluate(() => document.body.innerText)).slice(0, 300)}`);
+    results.phoneLinkMs = Date.now() - linked;
     await sleep(3000);
     results.phoneReconnecting = await phone.evaluate(() => document.body.innerText.includes("Reconnecting"));
     await shot(phone, "13-phone-home");
@@ -543,24 +587,27 @@ async function run() {
     await account("POST", `/v1/clouds/${state.cloudId}/power`, { action: "off" });
     if (!(await until(async () => (await cloudView())?.status === "sleeping", 6 * 60_000, 2000))) throw new Error(`not asleep: ${(await cloudView())?.status}`);
     results.pauseMs = Date.now() - asked;
-    const desk = await shows(dpage, "wakes when you type", 90_000), ph = await shows(phone, "wakes when you type", 30_000);
+    const desk = await shows(dpage, "wakes when you type", 90_000), ph = await shows(phone, "Your cloud is asleep. Send a message to wake it.", 60_000);
     results.pausedText = { desktop: (await dpage.evaluate(() => document.body.innerText)).slice(0, 160), phone: (await phone.evaluate(() => document.body.innerText)).slice(0, 160) };
     results.pausedShown = { desktop: desk, phone: ph, homeHealth: await fetch(`${homeOrigin}/api/health`).then(r => r.status).catch(() => 0) };
     await shot(dpage, "18-desktop-asleep"); await shot(phone, "19-phone-asleep");
     if (!desk || !ph) throw new Error(`asleep shown ${JSON.stringify(results.pausedShown)}`);
   });
   await step("resume: a message sent from the desktop wakes it; both recover", async () => {
-    await pressText(dpage, "Adalyn"); await sleep(1000);
+    const onAdalyn = () => dpage.evaluate(() => [...document.querySelectorAll("textarea")].some((el: any) => el.offsetParent !== null && el.placeholder === "Message Adalyn"));
+    for (let n = 0; n < 5 && !(await onAdalyn()); n++) { await pressText(dpage, "Adalyn"); await sleep(1000); }
+    if (!(await onAdalyn())) throw new Error("the desktop did not open Adalyn's chat while asleep");
     const before = (await botReplies(ada).catch(() => [])).length, text = `after the pause ${randomUUID().slice(0, 6)}`;
     const asked = Date.now();
     if (!(await typeAndSend(dpage, text))) throw new Error("no composer while asleep");
     if (!(await until(async () => (await cloudView())?.status === "running", 3 * 60_000, 1500))) {
       results.sendWokeIt = false;
-      note("a message sent from the paused desktop page did not wake the cloud in 3 minutes; resuming from the website instead");
       await shot(dpage, "19b-desktop-send-while-asleep");
       await account("POST", `/v1/clouds/${state.cloudId}/power`, { action: "on" });
-      if (!(await until(async () => (await cloudView())?.status === "running", 6 * 60_000, 1500))) throw new Error(`not awake: ${(await cloudView())?.status}`);
-    } else results.sendWokeIt = true;
+      await until(async () => (await cloudView())?.status === "running", 6 * 60_000, 1500);
+      throw new Error("a message sent from the paused desktop page did not wake the cloud in 3 minutes (resumed from the website so later steps can run)");
+    }
+    results.sendWokeIt = true;
     results.resumeMs = Date.now() - asked;
     const delivered = await until(async () => (await threadRows(ada)).some(m => m.role === "user" && m.text === text), 120_000, 2000);
     results.sendWhileAsleepDelivered = delivered;

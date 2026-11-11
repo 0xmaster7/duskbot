@@ -1,15 +1,17 @@
 // Builds the app package a managed My Cloud home installs (apps/cloud-service/src/home.ts, `omb-home install`): the
 // bundled server with its launcher, the built UI, skills, the home's edge config, the docker gate and the bot computer
-// kit. Private like the VPS package: serve it only to the account service (DUSK_MANAGED_HOME_PACKAGE_FILE, or an https URL
+// kit, and the data tools' native modules for the linux-x64 machines. Private like the VPS package: serve it only to the account service (DUSK_MANAGED_HOME_PACKAGE_FILE, or an https URL
 // the operator controls as DUSK_MANAGED_HOME_PACKAGE_URL) with its sha256 as DUSK_MANAGED_HOME_PACKAGE_SHA256.
 //
 //   node apps/cloud-service/scripts/build-home-package.mjs                # build, pack into release/home/omb-home.tgz
 //   node apps/cloud-service/scripts/build-home-package.mjs --skip-build   # pack what dist-server/ and dist/ already hold
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stageDuckdb } from "../../../scripts/prepare-duckdb.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const run = (cmd, argv) => execFileSync(cmd, argv, { cwd: root, stdio: "inherit" });
@@ -31,6 +33,12 @@ cpSync(join(root, "deploy", "bot-desktop"), join(stage, "deploy", "bot-desktop")
 cpSync(join(root, "shared", "bot-desktop.ts"), join(stage, "shared", "bot-desktop.ts"));
 cpSync(join(root, "apps", "cloud-service", "deploy", "Caddyfile"), join(stage, "cloud", "Caddyfile"));
 cpSync(join(root, "apps", "link-service", "docker-gate.mjs"), join(stage, "link", "docker-gate.mjs"));
+// the data tools' native modules: the bundled server resolves them from <app>/node_modules
+const natives = mkdtempSync(join(tmpdir(), "omb-home-native-"));
+try {
+  const [tree] = await stageDuckdb({ root, stage: natives, targets: [{ platform: "linux", arch: "x64" }] });
+  cpSync(join(tree, "node_modules"), join(stage, "node_modules"), { recursive: true });
+} finally { rmSync(natives, { recursive: true, force: true }); }
 const file = join(out, "omb-home.tgz");
 // no owners and no macOS metadata: the sandbox extracts as root and makes every file root's
 const gnu = execFileSync("tar", ["--version"], { encoding: "utf8" }).includes("GNU");

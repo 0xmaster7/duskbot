@@ -72,8 +72,9 @@ export interface HomeClient {
   healthy(origin: string, secret: string): Promise<boolean>;
   /** the home's idle read (server/cloud-power.ts); only managed homes are asked */
   power?(origin: string, secret: string, idleMinutes: number): Promise<HomePower>;
-  /** the sleep handshake: ok once the home agreed and closed for the stop */
-  sleep?(origin: string, secret: string, idleMinutes: number): Promise<{ ok: boolean; nextDueAt: number | null }>;
+  /** the sleep handshake: ok once the home agreed and closed for the stop. `force`: the owner's pause, so the home tells its
+   * open apps it is going to sleep even while busy, and always agrees. */
+  sleep?(origin: string, secret: string, idleMinutes: number, options?: { force?: boolean }): Promise<{ ok: boolean; nextDueAt: number | null }>;
   /** a hosted home's signed entitlement (shared/entitlement.ts): it refuses clients without a valid one */
   entitle?(origin: string, secret: string, token: string): Promise<{ expiresAt: number }>;
   /** tells the home its plan was cancelled or renewed, so it holds its routines (docs/cloud-pro.md) */

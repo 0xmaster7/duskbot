@@ -159,3 +159,54 @@ describe("signed-in actions", () => {
     expect(await client.enrollGrant()).toBeNull();
   });
 });
+
+describe("own clouds", () => {
+  const signIn = async () => { secrets.set("omb.account", JSON.stringify(stored())); fetcher.mockResolvedValueOnce(response({})); await client.restore(); fetcher.mockClear(); };
+  const listed = (extra = {}) => ({ id: "c0123456789abcdef01234567", name: "Studio", role: "owner", teamId: null, managed: true, status: "ready", origin: "https://d0123456789abcdef0123.dusk.bot", primary: true, ...extra });
+  it("lists the account's own clouds from the session, primary first, team and signed-in servers left out", async () => {
+    await signIn();
+    fetcher.mockResolvedValueOnce(response({ clouds: [listed({ id: "second", primary: false, power: { state: "asleep" } }), listed(), listed({ id: "team", teamId: "t1" }), listed({ id: "server", managed: false }), listed({ id: "member", role: "member" })] }));
+    const clouds = await client.clouds();
+    expect(clouds?.map((cloud) => [cloud.id, cloud.asleep])).toEqual([["c0123456789abcdef01234567", false], ["second", true]]);
+    expect(fetcher.mock.calls[0][0]).toBe(`${origin}/api/cloud/desktop/session`);
+  });
+  it("drops an origin that is not plain https", async () => {
+    await signIn();
+    fetcher.mockResolvedValueOnce(response({ clouds: [listed({ origin: "http://d1.dusk.bot" })] }));
+    expect((await client.clouds())?.[0]?.origin).toBeNull();
+  });
+  it("answers null when signed out or the session cannot be read", async () => {
+    expect(await client.clouds()).toBeNull();
+    await signIn(); fetcher.mockRejectedValueOnce(new TypeError("offline"));
+    expect(await client.clouds()).toBeNull();
+  });
+  it("pairs with a bearer request for that cloud and checks the grant", async () => {
+    await signIn();
+    const cloud = { id: "c1", origin: "https://d1.dusk.bot" };
+    fetcher.mockResolvedValueOnce(response({ cloudContractVersion: 1, origin: cloud.origin, code: "ABCD-EFGH-JKLM", expiresAt: Date.now() + 300_000 }));
+    expect(await client.pairCloud(cloud)).toMatchObject({ outcome: "paired", grant: { origin: cloud.origin, code: "ABCD-EFGH-JKLM" } });
+    const [url, init] = fetcher.mock.calls[0];
+    expect(url).toBe(`${origin}/api/cloud/desktop/pairing`);
+    expect(init).toMatchObject({ method: "POST", body: JSON.stringify({ cloudId: "c1" }), headers: { authorization: `Bearer ${token}` } });
+  });
+  it.each([
+    [{ cloudContractVersion: 1, origin: "https://elsewhere.dusk.bot", code: "ABCD-EFGH-JKLM", expiresAt: Date.now() + 300_000 }],
+    [{ cloudContractVersion: 1, origin: "https://d1.dusk.bot", code: "ABCDEFGHJKLM", expiresAt: Date.now() + 300_000 }],
+    [{ cloudContractVersion: 1, origin: "https://d1.dusk.bot", code: "ABCD-EFGH-JKLM", expiresAt: Date.now() + 3_600_000 }],
+  ])("refuses a grant that does not match: %j", async (answer) => {
+    await signIn(); fetcher.mockResolvedValueOnce(response(answer));
+    expect(await client.pairCloud({ id: "c1", origin: "https://d1.dusk.bot" })).toEqual({ outcome: "failed" });
+  });
+  it.each([
+    [409, "not_running", "asleep"], [409, "unavailable", "unavailable"], [404, "not_found", "unavailable"], [401, "invalid_token", "signed-out"], [500, "failed", "failed"],
+  ])("maps %i %s to %s", async (status, error, outcome) => {
+    await signIn(); fetcher.mockResolvedValueOnce(response({ error }, status));
+    expect(await client.pairCloud({ id: "c1", origin: "https://d1.dusk.bot" })).toEqual({ outcome });
+  });
+  it("wakes the primary cloud with a click intent", async () => {
+    expect(await client.wakeCloud()).toBe(false);
+    await signIn(); fetcher.mockResolvedValueOnce(response({ state: "waking" }));
+    expect(await client.wakeCloud()).toBe(true);
+    expect(fetcher.mock.calls[0]).toEqual([`${origin}/api/cloud/desktop/wake`, expect.objectContaining({ method: "POST", body: JSON.stringify({ intent: "click" }) })]);
+  });
+});
