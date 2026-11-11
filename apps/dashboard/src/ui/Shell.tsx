@@ -143,7 +143,7 @@ function SideUpsell() {
   const { path } = useLocation();
   const [hiddenUntil, setHiddenUntil] = useState(() => Number(localStorage.getItem(HIDE_KEY) ?? 0));
   const [open, setOpen] = useState(false);
-  if (!clouds || clouds.length || path === "/billing" || hiddenUntil > Date.now()) return open ? <PlanSheet source="dash_home" start="starter" onClose={() => setOpen(false)} /> : null;
+  if (!clouds || clouds.length || path === "/billing" || path === "/" || hiddenUntil > Date.now()) return open ? <PlanSheet source="dash_home" start="starter" onClose={() => setOpen(false)} /> : null;
   const hide = () => { const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
   return (
     <div className="pop relative rounded-[20px] bg-pop p-4">
