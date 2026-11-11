@@ -60,9 +60,12 @@ async function wakeAndWait(label, reason, env, ctx, now = () => Date.now()) {
   return { status: 503 };
 }
 
-function waking(status) {
+/** `asleep`: the home sleeps and a person's action would wake it, so the page's x-omb-cloud-power answer (src/lib/cloud-power.ts)
+ *  tells it to stop polling and wake it on the next key press or click, instead of reconnecting forever */
+function waking(status, { asleep = false } = {}) {
   const text = status === 429 ? "This Dusk Bot was woken too often this hour. Try again later." : "This Dusk Bot is waking up. Try again in a few seconds.";
-  return new Response(text, { status: status === 429 ? 429 : 503, headers: { "content-type": "text/plain; charset=utf-8", "retry-after": status === 429 ? "300" : "5", "cache-control": "no-store" } });
+  return new Response(text, { status: status === 429 ? 429 : 503, headers: { "content-type": "text/plain; charset=utf-8", "retry-after": status === 429 ? "300" : "5", "cache-control": "no-store",
+    ...(asleep && status !== 429 ? { "x-omb-cloud-power": "asleep" } : {}) } });
 }
 
 async function forward(request, url, upstream, body) {
@@ -134,7 +137,7 @@ export default {
       route = await routeFor(label, env, ctx, { fresh: true }).catch(() => null);
       if (!route || route.awake) return response ?? waking(503);
     }
-    if (!reason || !route.wakeable) return waking(503);
+    if (!reason || !route.wakeable) return waking(503, { asleep: !reason && route.wakeable && !route.awake });
     if (request.body && body === undefined) {
       const buffer = await request.arrayBuffer();
       if (buffer.byteLength > MAX_HELD_BODY) return new Response("Too large", { status: 413 });
