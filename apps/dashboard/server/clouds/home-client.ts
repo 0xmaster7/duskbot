@@ -36,9 +36,9 @@ export function createHomeClient(options: { fetch?: typeof fetch; now?: () => nu
       return { idle: value.idle, busy: value.busy.filter((b): b is string => typeof b === "string" && /^[a-z-]{1,32}$/.test(b)), lastActivityAt: moment(value.lastActivityAt), nextDueAt: moment(value.nextDueAt), wokeAt: moment(value.wokeAt),
         ...(upcoming ? { upcoming } : {}) };
     },
-    async sleep(origin, secret, idleMinutes) {
+    async sleep(origin, secret, idleMinutes, options) {
       try {
-        const value = await request(origin, secret, "POST", "/api/cloud/power/sleep", JSON.stringify({ v: 1, idleMinutes: Math.round(idleMinutes) })) as Record<string, unknown> | null;
+        const value = await request(origin, secret, "POST", "/api/cloud/power/sleep", JSON.stringify({ v: 1, idleMinutes: Math.round(idleMinutes), ...(options?.force ? { force: true } : {}) })) as Record<string, unknown> | null;
         return { ok: value?.ok === true, nextDueAt: Number.isSafeInteger(value?.nextDueAt) ? value!.nextDueAt as number : null };
       } catch { return { ok: false, nextDueAt: null }; }
     },

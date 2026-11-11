@@ -94,9 +94,10 @@ export function createCloudSignedRoutes(deps: {
       if (!verdict.ok) { console.warn(`cloud sleep request refused from ${source}: ${verdict.error}`); json(res, verdict.status, { error: verdict.error }); return true; }
       let parsed: unknown;
       try { parsed = body.length ? JSON.parse(body.toString("utf8")) : {}; } catch { json(res, 400, { error: "invalid_body" }); return true; }
-      const minutes = (parsed as { idleMinutes?: unknown } | null)?.idleMinutes;
+      const minutes = (parsed as { idleMinutes?: unknown } | null)?.idleMinutes, force = (parsed as { force?: unknown } | null)?.force;
       if (minutes !== undefined && !(Number.isInteger(minutes) && (minutes as number) >= 1 && (minutes as number) <= 24 * 60)) { json(res, 400, { error: "invalid_idle_minutes" }); return true; }
-      const answer = power.prepareSleep(minutes === undefined ? CLOUD_IDLE_ACTIVITY_MS : (minutes as number) * 60_000);
+      if (force !== undefined && typeof force !== "boolean") { json(res, 400, { error: "invalid_force" }); return true; }
+      const answer = power.prepareSleep(minutes === undefined ? CLOUD_IDLE_ACTIVITY_MS : (minutes as number) * 60_000, { force: force === true });
       json(res, answer.ok ? 200 : 409, answer);
       return true;
     }
