@@ -167,7 +167,7 @@
       if (!form || form.tagName !== "FORM") return;
       if (form.hasAttribute("data-dusk-goal")) { goal(form.getAttribute("data-dusk-goal"), attributes(form)); return; }
       var email = form.querySelector('input[type="email"]');
-      if (/waitlist/i.test([form.id, form.className, form.getAttribute("action"), form.getAttribute("name")].join(" ")) &&
+      if (/waitlist|\bwl-form\b/i.test([form.id, form.className, form.getAttribute("action"), form.getAttribute("name")].join(" ")) &&
           email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) goal("waitlist_join");
     }), true);
     start();

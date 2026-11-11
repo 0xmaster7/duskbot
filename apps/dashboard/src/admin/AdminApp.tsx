@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, ChartNoAxesColumn, Cloud, Gauge, History, Inbox, LayoutDashboard, Users } from "@/icons";
+import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, Cloud, ListFilter, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, Monitor, Repeat, UserRound, Users } from "@/icons";
 import { ButtonLink, cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
 import { SkyEmpty } from "../ui/Sky";
@@ -8,6 +8,12 @@ import { useToasts } from "../lib/toast";
 import mark from "../../favicon.svg";
 import { useAdmin } from "./api";
 import { OverviewPage } from "./Overview";
+import { SitePage } from "./Site";
+import { FunnelPage } from "./Funnel";
+import { PeoplePage } from "./People";
+import { LivePage } from "./Live";
+import { AppUsagePage } from "./AppUsage";
+import { RetentionPage } from "./Retention";
 import { UserPage, UsersPage } from "./Users";
 import { CloudsPage } from "./Clouds";
 import { WaitlistPage } from "./Waitlist";
@@ -18,6 +24,12 @@ import { Loading } from "./ui";
 const ICON = { size: 17, strokeWidth: 1.75 } as const;
 const NAV = [
   { to: "/admin", key: "o", label: "overview", icon: <LayoutDashboard {...ICON} /> },
+  { to: "/admin/analytics", key: "s", label: "analytics", icon: <ChartNoAxesCombined {...ICON} /> },
+  { to: "/admin/funnel", key: "f", label: "funnel", icon: <ListFilter {...ICON} /> },
+  { to: "/admin/people", key: "p", label: "people", icon: <UserRound {...ICON} /> },
+  { to: "/admin/live", key: "l", label: "live", icon: <GlobeIcon {...ICON} /> },
+  { to: "/admin/app", key: "i", label: "in the apps", icon: <Monitor {...ICON} /> },
+  { to: "/admin/retention", key: "r", label: "retention", icon: <Repeat {...ICON} /> },
   { to: "/admin/users", key: "u", label: "users", icon: <Users {...ICON} /> },
   { to: "/admin/clouds", key: "c", label: "clouds", icon: <Cloud {...ICON} /> },
   { to: "/admin/waitlist", key: "w", label: "waitlist", icon: <Inbox {...ICON} /> },
@@ -29,6 +41,12 @@ const on = (path: string, to: string) => to === "/admin" ? path === "/admin" : p
 
 function page(path: string): ReactNode {
   if (path === "/admin") return <OverviewPage />;
+  if (path === "/admin/analytics") return <SitePage />;
+  if (path === "/admin/funnel") return <FunnelPage />;
+  if (path === "/admin/people") return <PeoplePage />;
+  if (path === "/admin/live") return <LivePage />;
+  if (path === "/admin/app") return <AppUsagePage />;
+  if (path === "/admin/retention") return <RetentionPage />;
   if (path === "/admin/users") return <UsersPage />;
   const user = /^\/admin\/users\/([^/]+)$/.exec(path);
   if (user) return <UserPage id={decodeURIComponent(user[1]!)} />;

@@ -55,20 +55,7 @@ export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, 
   const paused = billing.clouds.list(accounts[1]!.id)[0];
   if (paused) await billing.clouds.power(paused.accountId, paused.id, "off").catch(() => {});
 
-  const days = 30;
-  for (let d = days - 1; d >= 0; d--) {
-    const dayStart = now - d * DAY;
-    const visitors = 18 + Math.round(rand() * 30 + (days - d) * 0.8);
-    for (let v = 0; v < visitors; v++) {
-      const visitor = id("v");
-      const referrer = pick(REFERRERS);
-      const channel = !referrer ? "direct" : /chatgpt|perplexity/.test(referrer) ? "ai" : /google/.test(referrer) ? "search" : /x\.com|reddit|ycombinator/.test(referrer) ? "social" : "referral";
-      for (const path of ["/", ...(rand() < 0.5 ? ["/pricing"] : []), ...(rand() < 0.2 ? ["/docs"] : [])]) {
-        await analytics.record("site_view", { at: dayStart - Math.round(rand() * 20 * 3_600_000), visitor, props: { path },
-          ctx: { page: path, referrer, channel, country: pick(COUNTRIES), device: rand() < 0.3 ? "mobile" : "desktop" } });
-      }
-    }
-  }
+  await seedWeb(app, accounts, now);
   for (const [i, account] of accounts.entries()) {
     await analytics.record("signup", { accountId: account.id, at: account.createdAt, props: { method: i % 3 === 0 ? "google" : "email" } });
     await analytics.record("sign_in", { accountId: account.id, at: account.createdAt + 1000, props: { kind: "web" } });
@@ -81,4 +68,73 @@ export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, 
       if (i % 2 === 0 && rand() < 0.7) await analytics.record("app_active", { accountId: account.id, at: t + 3_600_000, props: { platform: i % 4 === 0 ? "darwin" : "win32", appVersion: "0.2.15" } });
     }
   }
+}
+
+const CITIES: Array<[string, string, string, number, number]> = [
+  ["US", "California", "San Francisco", 37.8, -122.4], ["US", "New York", "New York", 40.7, -74.0], ["US", "Texas", "Austin", 30.3, -97.7], ["IN", "Karnataka", "Bengaluru", 13.0, 77.6],
+  ["IN", "Maharashtra", "Pune", 18.5, 73.9], ["DE", "Berlin", "Berlin", 52.5, 13.4], ["GB", "England", "London", 51.5, -0.1], ["FR", "Ile-de-France", "Paris", 48.9, 2.4],
+  ["BR", "Sao Paulo", "Sao Paulo", -23.6, -46.6], ["JP", "Tokyo", "Tokyo", 35.7, 139.7], ["CA", "Ontario", "Toronto", 43.7, -79.4], ["NL", "North Holland", "Amsterdam", 52.4, 4.9],
+  ["SE", "Stockholm", "Stockholm", 59.3, 18.1], ["AU", "New South Wales", "Sydney", -33.9, 151.2], ["SG", "Singapore", "Singapore", 1.3, 103.8], ["NG", "Lagos", "Lagos", 6.5, 3.4],
+];
+const TOUCHES: Array<{ referrer?: string; source: string; channel: string; campaign?: string; ref?: string }> = [
+  { source: "direct", channel: "direct" }, { source: "direct", channel: "direct" }, { referrer: "www.google.com", source: "Google", channel: "search" },
+  { referrer: "x.com", source: "X", channel: "social", ref: "launch-thread" }, { referrer: "news.ycombinator.com", source: "Hacker News", channel: "social" },
+  { referrer: "chatgpt.com", source: "ChatGPT", channel: "ai" }, { referrer: "www.perplexity.ai", source: "Perplexity", channel: "ai" }, { referrer: "claude.ai", source: "Claude", channel: "ai" },
+  { referrer: "www.reddit.com", source: "Reddit", channel: "social" }, { source: "newsletter", channel: "email", campaign: "november" }, { referrer: "someblog.dev", source: "someblog.dev", channel: "referral" },
+];
+const PATHS = ["/", "/pricing", "/download", "/docs", "/about", "/changelog"];
+const vid = () => randomBytes(16).toString("base64url");
+
+/** site visits through the tracker's own event shapes, accounts linked to the visitor they came from, app use and two chart notes */
+async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: SeededAccount[], now: number) {
+  const { analytics } = app;
+  const visit = async (visitor: string, start: number, opts: { pages?: string[]; goals?: Array<[string, Record<string, string>?]>; touch?: (typeof TOUCHES)[number]; place?: (typeof CITIES)[number] } = {}) => {
+    const touch = opts.touch ?? pick(TOUCHES), place = opts.place ?? pick(CITIES), mobile = rand() < 0.32;
+    const session = vid(), pages = opts.pages ?? ["/", ...(rand() < 0.55 ? [pick(PATHS.slice(1))] : []), ...(rand() < 0.25 ? [pick(PATHS.slice(1))] : [])];
+    const base = { session, host: "preview.dusk.bot", country: place[0], region: place[1], city: place[2], lat: place[3], lon: place[4], device: mobile ? "mobile" as const : "desktop" as const,
+      os: mobile ? (rand() < 0.6 ? "ios" as const : "android" as const) : pick(["mac", "windows", "linux"] as const), browser: pick(["chrome", "safari", "firefox", "edge"] as const) };
+    let at = start;
+    for (const [k, path] of pages.entries()) {
+      const pv = vid().slice(0, 8);
+      await analytics.record("site_view", { at, visitor, props: { path }, ctx: { ...base, pv, page: path, ...(k === 0 ? { source: touch.source, channel: touch.channel as never, referrer: touch.referrer, ref: touch.ref, utm: touch.campaign ? { campaign: touch.campaign, medium: "email", source: "newsletter" } : undefined } : {}) } });
+      const ms = Math.round(4000 + rand() * 90_000);
+      await analytics.record("site_leave", { at: at + ms, visitor, props: { path, scroll: Math.round(20 + rand() * 80), ms }, ctx: { ...base, pv, page: path } });
+      at += ms + 2000;
+    }
+    for (const [goal, meta] of opts.goals ?? []) await analytics.record("site_goal", { at, visitor, props: { goal, ...meta }, ctx: { ...base, page: pages.at(-1) } });
+    return at;
+  };
+  for (let d = 29; d >= 0; d--) {
+    const count = 10 + Math.round(rand() * 14 + (29 - d) * 0.6);
+    for (let v = 0; v < count; v++) {
+      const goals: Array<[string, Record<string, string>?]> = [];
+      if (rand() < 0.08) goals.push(["waitlist_join"]);
+      if (rand() < 0.12) goals.push(["download_click", { to: "/download/dusk-bot.dmg" }]);
+      await visit(vid(), now - d * DAY - Math.round(rand() * 20 * 3_600_000) - 3_600_000, { goals });
+    }
+  }
+  for (const account of accounts) {
+    const visitor = vid(), first = account.createdAt - Math.round(rand() * 3 * DAY) - 600_000;
+    await visit(visitor, first, { pages: ["/", "/pricing"], goals: [["cta_click", { to: "/app/signup", from: "/pricing" }]] });
+    if (rand() < 0.5) await visit(visitor, account.createdAt - 300_000, { pages: ["/pricing"] });
+    await analytics.record("identify", { accountId: account.id, at: account.createdAt + 2000, props: { via: "page" }, ctx: { visitor } });
+  }
+  for (const [i, account] of accounts.entries()) {
+    if (i % 2) continue;
+    const install = randomBytes(12).toString("base64url"), platform = i % 4 === 0 ? "darwin" : "win32";
+    await analytics.record("identify", { accountId: account.id, at: account.createdAt + 3_600_000, props: { via: "app" }, ctx: { install } });
+    for (let t = account.createdAt + 3_600_000; t < now; t += DAY * (0.6 + rand())) {
+      const ctx = { install, session: randomBytes(12).toString("base64url"), app: { platform, version: "0.2.15" } };
+      await analytics.record("app_open", { accountId: account.id, at: t, props: { kind: "desktop", platform, appVersion: "0.2.15" }, ctx });
+      for (const screen of ["/chat/:id", pick(["/bots", "/routines", "/rooms", "/computers", "/settings"])]) await analytics.record("app_screen", { accountId: account.id, at: t + 60_000, props: { screen }, ctx: { ...ctx, page: screen } });
+      if (rand() < 0.6) await analytics.record("app_feature", { accountId: account.id, at: t + 120_000, props: { feature: pick(["bot_created", "routine_created", "routine_ran", "file_uploaded", "voice_used", "app_connected", "computer_used"]) }, ctx });
+      const sent = 1 + Math.round(rand() * 14);
+      await analytics.record("app_messages", { accountId: account.id, at: t + 900_000, props: { sent, replies: sent, latencyMs: Math.round(900 + rand() * 4000) }, ctx });
+      if (rand() < 0.08) await analytics.record("app_error", { accountId: account.id, at: t + 1000_000, props: { kind: "window", code: "error" }, ctx });
+      if (rand() < 0.05) await analytics.record("app_pair_failed", { accountId: account.id, at: t + 1100_000, props: { reason: pick(["expired_code", "network"]) }, ctx });
+    }
+  }
+  for (let v = 0; v < 9; v++) await visit(vid(), now - Math.round(rand() * 25 * 60_000), { pages: rand() < 0.5 ? ["/", "/pricing"] : ["/"], goals: rand() < 0.3 ? [["waitlist_join"]] : [] });
+  await analytics.sink.saveNote({ id: "note_launchx1", at: now - 12 * DAY, text: "launch thread on x", by: accounts[0]!.id, createdAt: now });
+  await analytics.sink.saveNote({ id: "note_pricing2", at: now - 4 * DAY, text: "new pricing page", by: accounts[0]!.id, createdAt: now });
 }

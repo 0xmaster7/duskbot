@@ -30,7 +30,9 @@ export function friendlyName(id: string): string {
   return `${COLOURS[hash % COLOURS.length]} ${ANIMALS[(hash >>> 16) % ANIMALS.length]}`;
 }
 
-export function avatarOf(id: string): { body: PixelBodyId; colour: ElectricColour } {
+/** a stable pixel bot for an id: its body, its palette colour, and that colour's ink (what the mascot paints with) */
+export function avatarOf(id: string): { body: PixelBodyId; colour: ElectricColour; ink: string } {
   const hash = hashOf(id);
-  return { body: BODIES[(hash & 0xffff) % BODIES.length], colour: COLOURS_ELECTRIC[(hash >>> 16) % COLOURS_ELECTRIC.length] };
+  const colour = COLOURS_ELECTRIC[(hash >>> 16) % COLOURS_ELECTRIC.length]!;
+  return { body: BODIES[(hash & 0xffff) % BODIES.length]!, colour, ink: ELECTRIC[colour] };
 }

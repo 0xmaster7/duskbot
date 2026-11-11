@@ -244,6 +244,13 @@ describe("marketing tracker", () => {
     expect(JSON.stringify(payloads)).not.toContain("person@example.com");
   });
 
+  it("tracks the dusk.bot waitlist form by its wl-form class", async () => {
+    await load();
+    submit('<form class="wl-form" data-wl-form novalidate><input type="email" value="person@example.com"></form>');
+    await events();
+    expect(payloads[1]).toMatchObject({ e: "goal", g: "waitlist_join" });
+  });
+
   it("ignores invalid waitlist forms and honors explicit form goals", async () => {
     await load();
     submit('<form id="waitlist"><input type="email" value="invalid"></form>');

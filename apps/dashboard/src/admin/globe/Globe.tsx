@@ -179,7 +179,6 @@ export default function Globe(props: GlobeProps) {
       interact();
       suppressClick.current = false;
       drag = { id: event.pointerId, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, time: performance.now() };
-      host?.focus({ preventScroll: true });
       host?.setPointerCapture(event.pointerId);
       invalidate();
     }
