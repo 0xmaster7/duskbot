@@ -2,6 +2,7 @@ import { useId, useState, type ReactNode } from "react";
 import { Search } from "@/icons";
 import { Button, cx, Skeleton } from "../ui/kit";
 import { Modal } from "../ui/controls";
+import { Link, useLocation } from "../lib/router";
 import type { FunnelStep } from "./api";
 
 export const n = (value: number | null | undefined) => value === null || value === undefined ? "-" : value.toLocaleString("en-US");
@@ -13,15 +14,34 @@ export function stamp(t: number | null | undefined) {
   return `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 16)}`;
 }
 
-export function AdminHeader({ title, sub, action }: { title: string; sub?: ReactNode; action?: ReactNode }) {
+export function AdminHeader({ title, sub, action, tabs }: { title: string; sub?: ReactNode; action?: ReactNode; tabs?: ReactNode }) {
   return (
-    <header className="mb-8 flex flex-wrap items-end justify-between gap-4 max-sm:mb-6">
-      <div className="min-w-0">
-        <h1 className="text-[32px] font-medium leading-[1.1] tracking-[-0.04em] text-ink max-sm:text-[26px]">{title}</h1>
-        {sub && <div className="mt-1.5 text-14 text-ink-3">{sub}</div>}
-      </div>
-      {action}
-    </header>
+    <>
+      <header className={cx("flex flex-wrap items-end justify-between gap-4", tabs ? "mb-5" : "mb-8 max-sm:mb-6")}>
+        <div className="min-w-0">
+          <h1 className="text-[32px] font-medium leading-[1.1] tracking-[-0.04em] text-ink max-sm:text-[26px]">{title}</h1>
+          {sub && <div className="mt-1.5 text-14 text-ink-3">{sub}</div>}
+        </div>
+        {action}
+      </header>
+      {tabs}
+    </>
+  );
+}
+
+/** the views inside one admin page, as links so each has its own address */
+export function Tabs({ label, items }: { label: string; items: Array<{ to: string; label: string }> }) {
+  const { path } = useLocation();
+  return (
+    <nav aria-label={label} className="scroll-x mb-8 flex gap-1 border-b border-line max-sm:mb-6">
+      {items.map((item) => {
+        const active = path === item.to;
+        return (
+          <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined}
+            className={cx("-mb-px inline-flex h-10 shrink-0 items-center border-b-2 px-3 text-14", active ? "border-ink font-medium text-ink" : "border-transparent text-ink-3 hover-link")}>{item.label}</Link>
+        );
+      })}
+    </nav>
   );
 }
 

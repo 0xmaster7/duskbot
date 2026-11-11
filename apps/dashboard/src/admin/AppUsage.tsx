@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { dayKey } from "../lib/format";
 import { useAdmin } from "./api";
 import { RangePicker, duration, rangeOf, type Range } from "./kit";
@@ -30,7 +30,7 @@ function RankedList({ title, rows, features = false }: { title: string; rows: Co
   );
 }
 
-export function AppUsagePage() {
+export function AppUsagePage({ tabs }: { tabs?: ReactNode }) {
   const [range, setRange] = useState<Range>(() => rangeOf("30d"));
   const { data, error, loading, reload } = useAdmin<AppAnswer>(`/app?from=${range.from}&to=${range.to}`);
   const screens = data?.screens.reduce((sum, row) => sum + row.count, 0) ?? 0;
@@ -38,7 +38,7 @@ export function AppUsagePage() {
   const days = data?.days.map(dayKey) ?? [];
   return (
     <>
-      <AdminHeader title="in the apps" sub="the desktop and phone apps: what gets used, never what is said" action={<RangePicker value={range} onChange={setRange} />} />
+      <AdminHeader title="product" sub="the desktop and phone apps: what gets used, never what is said" action={<RangePicker value={range} onChange={setRange} />} tabs={tabs} />
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading />}
       {data && (
