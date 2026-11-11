@@ -66,7 +66,14 @@ The lifecycle is the same code for both hosts. What changes is priced, not branc
   and are limited to 30 a minute per workspace; a resume is "held" (memory kept, a few seconds) with probability 0.95 and
   no time window, else a cold boot. With the tuned shadow prices a stop is worth it after about 10 to 15 idle minutes.
 - **Never pause mid-task, never wake on app open, loop guard, budgets, breaker, wake batching, the monthly ceiling**:
-  the existing rails, unchanged (`power.md`). The wake lead before a routine is 2 minutes on InstaBox (4 on Boat).
+  the existing rails (`power.md`), with the loop guard at InstaBox's scale (`INSTABOX_RAILS`): a resume within a minute
+  of a pause doubles the minimum idle up to 10 minutes, 20 starts an hour and 96 a day per home, 3 minutes of minimum
+  uptime. Boat's (10 minutes, 2 hours, 4 and 16) protect a scarce start pool and kept InstaBox homes up for hours: on the
+  simulator's mixed fleets InstaBox's set costs 37% less and 12% less than the best fixed idle timer, with no late run.
+  The wake lead before a routine is 2 minutes on InstaBox (4 on Boat).
+- **Sizing**: 30 starts a minute per Pro workspace is the binding limit. Up to about 300 homes per workspace the policy
+  beats every fixed timer; from about 600 it loses, and at 1,000 or more routines run late. Shard homes over workspaces
+  (or Builder/Team plans) before that.
 - **Backups**: before an idle sleep, when one is due (`DUSK_MANAGED_BACKUP_HOURS`), the lifecycle takes a live backup
   first, then sleeps the home; a home that never sleeps still gets the awake-overdue backup. Same encrypted store, same
   generations, same verification.
@@ -134,7 +141,21 @@ to the source host and machine and wakes it. Downtime of a migration is the slee
   the same machine.
 - **IP-bound sessions**: a site that ties a sign-in to an address may ask again from the new provider's addresses.
 
-## 7. Testing
+## 7. What the live runs found (2026-11-11)
+
+- InstaBox's port proxy reaches the machine from its own loopback with `Host: 127.0.0.1:<port>` and the public name in
+  `X-Forwarded-Host`; the edge (`deploy/Caddyfile`, `@proxied`) takes that name as the Host only from a loopback peer and
+  only when it is one of the machine's own names.
+- A home with no public name of its own named its host twice in the edge's matcher, which Caddy 2.10 refuses
+  (`server/cloud-home-start.ts`, `upstreamHost`).
+- Egress is datacenter addresses (AWS us-west-2): Google Search, Amazon, eBay and Reuters answer a bot's browser with
+  a block or a captcha; Bing, BBC, the Guardian, GitHub, Airbnb, OpenStreetMap, YouTube, Vimeo and Wikipedia load.
+- A minutes-long `exec` is dropped by the API: long work runs detached and is polled.
+- The bot desktop image (`ghcr.io/sidddevz/omb-bot-desktop`) is not pullable anonymously and the home's fallback build
+  needs BuildKit, which the docker gate refuses: true on every host. Ship it public, pre-pull it in a template, or let
+  the gate allow the build.
+
+## 8. Testing
 
 - `src/instabox.test.ts` (fake API), `src/hosts.test.ts` (routing, Boat untouched), `src/migrate.test.ts` (both
   directions, validation failure, rollback), `src/bundle.test.ts`, `src/home.test.ts` (the Boat scripts byte for byte).
