@@ -89,6 +89,14 @@ export function markCloudAwake(intent: PageWakeIntent = "click"): void {
   set(false);
 }
 
+/** The Cloud answered a background read, so something else woke it: back to normal without counting as use. */
+export function noteCloudAwake(): void {
+  if (!asleep) return;
+  detach?.();
+  detach = null;
+  set(false);
+}
+
 /** The home agreed to sleep: stay quiet until the person does something. */
 export function markCloudAsleep(target: Pick<Window, "addEventListener" | "removeEventListener"> | undefined = globalThis.window): void {
   if (asleep) return;
