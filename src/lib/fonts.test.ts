@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,26 +36,23 @@ describe("fonts", () => {
     for (const id of blocks) expect(FONT_IDS).toContain(id as (typeof FONT_IDS)[number]);
   });
 
-  it("leads every skin with the bundled Geist face, except the paper skins, Pop and Grok", () => {
+  it("leads every skin with the bundled Geist face, except the paper skins and Pop", () => {
     const skins = [...css.matchAll(/\[data-skin="([a-z-]+)"\]\s*\{[^}]*?--font-sans:\s*([^;]+);/g)];
     expect(skins.length).toBeGreaterThan(8);
     for (const [, skin, stack] of skins) {
       const first = stack.split(",")[0].trim();
       if (["atelier", "lagoon", "linen"].includes(skin)) expect(first, skin).toBe("system-ui");
       else if (skin === "pop") expect(first, skin).toBe('"Plus Jakarta Sans"');
-      else if (skin === "grok" || skin === "grok-dark") expect(first, skin).toBe('"XVF"');
       else expect(first, skin).toBe('"Geist Variable"');
     }
     expect(css).toMatch(/@import "@fontsource-variable\/geist";/);
     expect(css).toMatch(/--font-mono:\s*"Geist Mono Variable"/);
   });
 
-  it("registers the Grok faces from script, never as @font-face a stylesheet rebuild would reload", () => {
-    const here = dirname(fileURLToPath(import.meta.url));
-    const sheets = ["../styles.css", ...readdirSync(join(here, "../styles")).map((name) => `../styles/${name}`)];
-    for (const sheet of sheets) expect(readFileSync(join(here, sheet), "utf8"), sheet).not.toMatch(/font-family:\s*"(XVF|XVF Mono|Grok Icons)";\s*(font-weight|font-display|src)/);
-    const faces = readFileSync(join(here, "../font-faces.ts"), "utf8");
-    for (const family of ["XVF", "XVF Mono", "Grok Icons"]) expect(faces).toContain(`["${family}",`);
+  it("sets Geist Mono as the code face of every skin that names one", () => {
+    const monos = [...css.matchAll(/\[data-skin="([a-z-]+)"\]\s*\{[^}]*?--font-mono:\s*([^;]+);/g)];
+    expect(monos.length).toBeGreaterThan(1);
+    for (const [, skin, stack] of monos) expect(stack.split(",")[0].trim(), skin).toBe('"Geist Mono Variable"');
   });
 
   it("spells BlinkMacSystemFont exactly, since Chromium skips any other casing", () => {

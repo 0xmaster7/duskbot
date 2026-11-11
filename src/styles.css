@@ -815,7 +815,7 @@
 /* ── Grok ──────────────────────────────────────────────────────────────────
    The default. Read from the live Grok Bot app's --sand-* tokens and computed
    styles (theme cursor-light): Daylight's palette, which was sampled from the
-   same app, in Grok's own XVF faces at its 425 regular weight. Grok's quiet
+   same app, in Geist and Geist Mono at the regular weight. Grok's quiet
    ink (#1c1c1c8f) and 8% scrollbar miss 4.5:1 and 1.5:1 here, so those two
    keep the nearest tone that clears them; the filled accent is Grok's
    pressed blue (#126fd4), since white on #1680f3 is 3.9:1.
@@ -860,11 +860,10 @@
   --color-scrollbar: #cccccc;
   --color-maus-line: #5f5f5f;
 
-  --font-sans: "XVF", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    system-ui, sans-serif;
-  --font-mono: "XVF Mono", "SF Mono", SFMono-Regular, ui-monospace, Menlo,
+  --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", "SF Mono", SFMono-Regular, ui-monospace, Menlo,
     Consolas, "Liberation Mono", monospace;
-  --font-weight-normal: 425;
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -891,7 +890,7 @@
 
 /* ── Grok dark ─────────────────────────────────────────────────────────────
    Grok Bot's dark theme, read from its --sand-* tokens and computed styles
-   (theme dark) in the XVF faces: Midnight's ground and ink, Grok's dark
+   (theme dark) in Geist: Midnight's ground and ink, Grok's dark
    accent, status inks and translucent edges. Danger and success carry dark
    ink, as the other dark skins do. It sets color-scheme too, so native
    controls and every light-dark() (file glyphs, grok's per-colour fills)
@@ -933,11 +932,10 @@
 
   --color-edge: #f5f5f50f;
 
-  --font-sans: "XVF", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    system-ui, sans-serif;
-  --font-mono: "XVF Mono", "SF Mono", SFMono-Regular, ui-monospace, Menlo,
+  --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", "SF Mono", SFMono-Regular, ui-monospace, Menlo,
     Consolas, "Liberation Mono", monospace;
-  --font-weight-normal: 425;
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-md: 6px;

@@ -24,8 +24,8 @@ export type Skin = {
 };
 
 export const SKINS: readonly Skin[] = [
-  { id: "grok", name: "Grok", tagline: "Grok Bot's own look. Near-white, XVF type, ink-black bubbles." },
-  { id: "grok-dark", name: "Grok Dark", tagline: "Grok Bot after dark, in the same XVF type." },
+  { id: "grok", name: "Grok", tagline: "Near-white and quiet, Geist type, ink-black bubbles." },
+  { id: "grok-dark", name: "Grok Dark", tagline: "The same quiet look after dark, in Geist." },
   { id: "midnight", name: "Midnight", tagline: "The original. Cool and dark." },
   { id: "atelier", name: "Atelier", tagline: "Daylight on paper, warm and quiet." },
   { id: "foundry", name: "Foundry", tagline: "Night shift. Dark, warm, lit in brass." },
