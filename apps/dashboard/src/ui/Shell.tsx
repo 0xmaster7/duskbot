@@ -5,6 +5,7 @@ import { cloudForWorkspace, useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
+import { trackUpsell } from "../lib/analytics";
 import { Link, navigate, useLocation } from "../lib/router";
 import { RoutineUpsell } from "../pages/routine-upsell";
 import { PlanSheet } from "../pages/plan-sheet";
@@ -143,17 +144,21 @@ function SideUpsell() {
   const { clouds } = useCloud();
   const [hiddenUntil, setHiddenUntil] = useState(() => Number(localStorage.getItem(HIDE_KEY) ?? 0));
   const [open, setOpen] = useState(false);
-  if (!clouds || clouds.length || hiddenUntil > Date.now()) return open ? <PlanSheet source="dash_home" start="starter" onClose={() => setOpen(false)} /> : null;
-  const hide = () => { const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
+  const visible = Boolean(clouds && !clouds.length && hiddenUntil <= Date.now());
+  const shown = useRef(false);
+  useEffect(() => { if (visible && !shown.current) { shown.current = true; trackUpsell("shown", "dash_sidebar"); } }, [visible]);
+  const sheet = open && <PlanSheet source="dash_sidebar" start="starter" onClose={() => setOpen(false)} />;
+  if (!visible) return sheet || null;
+  const hide = () => { trackUpsell("dismiss", "dash_sidebar"); const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
   return (
     <div className="pop relative rounded-[20px] bg-pop p-4">
       <button type="button" onClick={hide} aria-label="hide for a week" className="hover-ghost absolute right-1.5 top-1.5 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.75} /></button>
       <div className="flex items-center gap-3 pe-6">
-        <Mascot color="purple" body="wisp" size={34} state="sleeping" />
+        <Mascot color="purple" body="wisp" size={34} state="sleeping" tappable />
         <p className="min-w-0 text-13 leading-[1.4] text-ink-2">your bots nap when your mac does.</p>
       </div>
-      <Button size="sm" variant="primary" className="mt-3.5 w-full" onClick={() => setOpen(true)}>keep them on 24/7</Button>
-      {open && <PlanSheet source="dash_home" start="starter" onClose={() => setOpen(false)} />}
+      <Button size="sm" variant="primary" className="mt-3.5 w-full" onClick={() => { trackUpsell("click", "dash_sidebar"); setOpen(true); }}>keep them on 24/7</Button>
+      {sheet}
     </div>
   );
 }

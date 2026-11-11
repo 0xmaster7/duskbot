@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
-import { ArrowUpRight, Bot, ChevronRight, Download, LayoutGrid, Smartphone } from "@/icons";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ArrowUpRight, ChevronRight, Download, LayoutGrid, Smartphone, X } from "@/icons";
 import type { WorkspaceDetail } from "../../../../shared/dashboard-protocol";
 import cloudLemon from "../art/cloud-lemon.png";
 import cloudPink from "../art/cloud-pink.png";
@@ -17,6 +17,11 @@ import { DOWNLOAD_URL } from "../lib/usage";
 import { Card, cx, Skeleton } from "../ui/kit";
 import { BotMascot, Mascot, type BotState, type MascotHandle } from "../ui/Mascot";
 import { cheerOnce } from "../lib/cheer";
+import { trackUpsell } from "../lib/analytics";
+import { dailyLine, investedLine, investedNoteDue, markInvestedNote } from "../lib/fun";
+import type { InvestedFacts } from "../../../../shared/cloud-upsell";
+import { Button } from "../ui/kit";
+import { PlanSheet } from "./plan-sheet";
 import { CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 import { Activity } from "./activity";
 import { CloudHero } from "./cloud-offer";
@@ -62,14 +67,50 @@ function Crew({ rows, plain = false }: { rows: BotRow[]; plain?: boolean }) {
 /** nobody here yet: a few bots asleep on the wash, and the way to get the first one */
 function CrewEmpty() {
   return (
-    <section className="surface enter flex items-center gap-4 rounded-card bg-card p-5" style={{ ["--i" as string]: 1 }} aria-labelledby="crew-empty-title">
-      <span className="grid size-11 shrink-0 place-items-center rounded-[14px] bg-pop text-ink-2"><Bot {...ICON} /></span>
+    <section className="surface enter flex items-center gap-5 rounded-card bg-card p-5 max-sm:flex-col max-sm:items-start max-sm:gap-3" style={{ ["--i" as string]: 1 }} aria-labelledby="crew-empty-title">
+      <span className="flex shrink-0 items-end gap-1" aria-hidden>
+        <Mascot body="kit" color="blue" size={34} state="sleeping" tappable />
+        <Mascot body="wisp" color="purple" size={42} state="sleeping" tappable />
+        <Mascot body="pip" color="green" size={30} state="sleeping" tappable />
+      </span>
       <div className="min-w-0">
         <h2 id="crew-empty-title" className="text-16 font-medium tracking-[-0.02em] text-ink">no bots yet</h2>
-        <p className="text-14 text-ink-2">make one in the app and it shows up here.</p>
+        <p className="text-14 text-ink-2">make one in the app and it shows up here. this lot is keeping the spot warm.</p>
       </div>
     </section>
   );
+}
+
+/** someone clearly invested and still without a cloud: said once per account, in their own numbers */
+function InvestedNote({ facts, onDone }: { facts: InvestedFacts; onDone: () => void }) {
+  const [plan, setPlan] = useState(false);
+  return (
+    <section className="pop enter relative flex items-center gap-4 rounded-card bg-pop p-4 pe-12 max-sm:flex-col max-sm:items-start max-sm:gap-3" aria-labelledby="invested-title">
+      <span className="shrink-0" aria-hidden><Mascot body="kit" color="blue" size={44} state="celebrate" tappable /></span>
+      <div className="min-w-0 flex-1">
+        <h2 id="invested-title" className="text-16 font-medium tracking-[-0.02em] text-ink">your bots are on a roll.</h2>
+        <p className="text-14 text-ink-2">{investedLine(facts)} dusk cloud keeps them up 24/7.</p>
+      </div>
+      <Button size="sm" variant="primary" className="shrink-0" onClick={() => { trackUpsell("click", "dash_invested"); setPlan(true); }}>get dusk cloud</Button>
+      <button type="button" onClick={() => { trackUpsell("dismiss", "dash_invested"); onDone(); }} aria-label="not now" className="hover-ghost absolute right-2 top-2 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.75} /></button>
+      {plan && <PlanSheet source="dash_invested" start="starter" onClose={() => setPlan(false)} />}
+    </section>
+  );
+}
+
+/** the invested note's facts, once the bots and the cloud are known; null when it is not due */
+function useInvestedNote(accountId: string | undefined, rows: BotRow[], loading: boolean, turns: number, hasCloud: boolean | null) {
+  const [shown, setShown] = useState<InvestedFacts | null>(null);
+  const [done, setDone] = useState(false);
+  const facts = useMemo(() => ({ bots: rows.length, messages: turns, routines: rows.reduce((sum, r) => sum + (r.bot.routines?.length ?? 0), 0) }), [rows, turns]);
+  const due = !done && !shown && !loading && hasCloud === false && investedNoteDue(accountId, facts, hasCloud);
+  useEffect(() => {
+    if (!due || !accountId) return;
+    markInvestedNote(accountId);
+    trackUpsell("shown", "dash_invested");
+    setShown(facts);
+  }, [due]);
+  return { facts: done ? null : shown, close: () => setDone(true) };
 }
 
 function Big({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
@@ -185,15 +226,20 @@ export function HomePage() {
   const greeter = useRef<MascotHandle>(null);
   useEffect(() => { const t = setTimeout(() => greeter.current?.react("greet"), 450); return () => clearTimeout(t); }, []);
   useEffect(() => { if (bots.length) cheerOnce(account?.id, "first-bot", "your first bot is here. say hi in the app."); }, [bots.length > 0, account?.id]);
-  useEffect(() => { if (cloud?.status === "running") cheerOnce(account?.id, "first-cloud", `${cloud.name} is up. your bots never sleep now.`); }, [cloud?.status, account?.id]);
+  useEffect(() => { if (cloud?.status === "running") cheerOnce(account?.id, "first-cloud", `${cloud.name} is up. your bots never sleep now.`, { confetti: true }); }, [cloud?.status, account?.id]);
+  const invested = useInvestedNote(account?.id, bots, loading, detail?.report?.activity?.totals.turns ?? 0, clouds === null ? null : Boolean(cloud));
   const crew = bots.length ? <Crew rows={bots} plain={!cloud} /> : loading ? <Skeleton className="h-[200px] !rounded-card" /> : <CrewEmpty />;
   return (
     <div>
-      <div className="enter mb-8 flex items-end gap-3 max-sm:mb-6">
-        <h1 className="t-title">hi {name}.</h1>
-        {!cloud && <span className="mb-1 shrink-0" aria-hidden><Mascot ref={greeter} body="kit" color="blue" size={40} state="happy" tappable /></span>}
+      <div className="enter mb-8 max-sm:mb-6">
+        <div className="flex items-end gap-3">
+          <h1 className="t-title">hi {name}.</h1>
+          {!cloud && <span className="mb-1 shrink-0" aria-hidden><Mascot ref={greeter} body="kit" color="blue" size={40} state="happy" tappable /></span>}
+        </div>
+        <p className="mt-2 text-15 text-ink-3">{dailyLine(now)}</p>
       </div>
       <div className="flex flex-col gap-4">
+        {invested.facts && <InvestedNote facts={invested.facts} onDone={invested.close} />}
         {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[360px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudHero />}
         {clouds !== null && <>
           {crew}

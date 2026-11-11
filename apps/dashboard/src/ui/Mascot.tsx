@@ -71,6 +71,7 @@ function watch(el: Element, bot: PixelBot, reach: number) {
 export const Mascot = forwardRef<MascotHandle, MascotProps>(function Mascot({ color = "blue", body, size = 28, state = "idle", label, still = false, track = false, gaze = null, tappable = false, className }, ref) {
   const el = useRef<HTMLSpanElement>(null);
   const bot = useRef<PixelBot | null>(null);
+  const hovered = useRef(-Infinity);
   const name = bodyOf(body);
   const fill = Object.hasOwn(BOT_COLOURS, color) ? BOT_COLOURS[color as BotColour] : color;
   const latest = useRef({ fill, state });
@@ -107,6 +108,13 @@ export const Mascot = forwardRef<MascotHandle, MascotProps>(function Mascot({ co
       aria-label={label}
       aria-hidden={label ? undefined : true}
       onPointerDown={tappable ? (e) => bot.current?.poke(e.clientX) : undefined}
+      onPointerEnter={tappable && !still ? (e) => {
+        // a mouse passing over says hello; at most every couple of seconds, and never under reduced motion
+        if (e.pointerType !== "mouse" || query?.matches || e.timeStamp - hovered.current < 2000) return;
+        hovered.current = e.timeStamp;
+        const r = pixelReaction("perk");
+        if (r && r !== "poke") bot.current?.react(r);
+      } : undefined}
     />
   );
 });

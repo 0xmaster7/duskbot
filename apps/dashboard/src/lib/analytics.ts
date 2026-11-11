@@ -1,4 +1,5 @@
 import { CSRF_COOKIE, CSRF_HEADER } from "../../../../shared/account-api";
+import { UPSELL_EVENTS, type UpsellStep } from "../../../../shared/cloud-upsell";
 
 type PageEvent = { name: "page_view"; props: { path: string } } | { name: "onboarding_step"; props: { step: string; ms?: number } } | { name: "onboarding_done" }
   | { name: "plan_chosen"; props: { plan: string; period: "month" | "year" } } | { name: "page_action"; props: { action: string; path: string; label?: string; value?: string } }
@@ -99,4 +100,9 @@ export function trackPage(path: string, query: URLSearchParams) {
     track({ name: "onboarding_step", props: { step, ...(stepAt !== null ? { ms: now - stepAt } : {}) } });
     stepAt = now;
   }
+}
+
+/** a dusk cloud upsell seen, opened or put away; label is its checkout source, so the funnel can line them up */
+export function trackUpsell(step: UpsellStep, source: "dash_sidebar" | "dash_invested" | "dash_routines") {
+  track({ name: "page_action", props: { action: UPSELL_EVENTS[step], path: currentPath, label: source } });
 }
