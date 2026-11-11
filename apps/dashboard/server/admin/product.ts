@@ -11,7 +11,7 @@ export interface Improvement { area: "funnel" | "errors" | "rating" | "features"
 /** below this many people a rate is noise, so it is not ranked */
 export const MIN_PEOPLE = 3;
 const POSITIVE = new Set(["yes", "love", "laugh", "celebrate"]);
-const SUBKEYS = ["action", "result", "step", "view", "reason", "variant"] as const;
+const SUBKEYS = ["action", "result", "step", "view", "reason", "emoji", "variant", "source", "plan", "kind"] as const;
 
 const whoOf = (event: StoredEvent) => event.accountId ?? event.ctx?.install ?? event.ctx?.visitor ?? null;
 const dayIndex = (at: number) => Math.floor(at / DAY);
