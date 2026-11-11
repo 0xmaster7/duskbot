@@ -11,8 +11,8 @@ import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createLinkService } from "../src/app.mjs";
-import { retireTunnel } from "../agent.mjs";
-import { createRelayClient, newLinkKeys, seal, sha256hex, vpsTokenOf } from "../../../electron/vps-link-protocol.mjs";
+import { frameGuard as agentGuard, noteRelayDate as agentNoteDate, openFrame as agentOpenFrame, retireTunnel } from "../agent.mjs";
+import { createRelayClient, newLinkKeys, noteRelayDate as appNoteDate, seal, sealBytes, sealFrame, sha256hex, vpsTokenOf } from "../../../electron/vps-link-protocol.mjs";
 
 const run = promisify(execFile);
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -111,6 +111,32 @@ describe("the link service and agent when a link is repeated", () => {
     const removed = [];
     await retireTunnel({ id: "abcdefghij", base, token: "t".repeat(43) }, { removeKey: (id, line) => removed.push([id, line]) });
     expect(removed).toEqual([["abcdefghij", null]]);
+  });
+});
+
+describe("frames between two clocks that disagree", () => {
+  const realNow = Date.now;
+  afterAll(() => { Date.now = realNow; agentNoteDate(new Date(realNow()).toUTCString()); appNoteDate(new Date(realNow()).toUTCString()); });
+
+  it("a server whose clock runs ten minutes slow still takes the app's frames, through the relay's time", () => {
+    const key = Buffer.alloc(32, 7), truth = realNow(), relayDate = new Date(truth).toUTCString();
+    Date.now = () => truth;
+    appNoteDate(relayDate);
+    const frame = sealFrame(key, "abcdefghij", "to-vps", { t: "req", r: "r1" });
+    const bytes = sealBytes(key, "abcdefghij", "to-vps", "aaaaaaaaaaaa", Buffer.from("hi"));
+    Date.now = () => truth - 10 * 60_000;
+    agentNoteDate(new Date(truth - 10 * 60_000).toUTCString());
+    expect(agentOpenFrame(key, "abcdefghij", "to-vps", frame, agentGuard())).toBeNull();
+    agentNoteDate(relayDate);
+    expect(agentOpenFrame(key, "abcdefghij", "to-vps", frame, agentGuard())).toMatchObject({ t: "req", r: "r1" });
+    expect(agentOpenFrame(key, "abcdefghij", "to-vps", bytes, agentGuard())?.b.toString()).toBe("hi");
+    // still refused twice, and still refused when really stale
+    const guard = agentGuard();
+    expect(agentOpenFrame(key, "abcdefghij", "to-vps", frame, guard)).not.toBeNull();
+    expect(agentOpenFrame(key, "abcdefghij", "to-vps", frame, guard)).toBeNull();
+    Date.now = () => truth + 6 * 60_000;
+    agentNoteDate(new Date(truth + 16 * 60_000).toUTCString());
+    expect(agentOpenFrame(key, "abcdefghij", "to-vps", frame, agentGuard())).toBeNull();
   });
 });
 
