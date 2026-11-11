@@ -1253,6 +1253,8 @@
   "cloudPower.wake": "Wake it now",
   "cloudAsleep.line": "Asleep · wakes when you type",
   "cloudAsleep.waking": "Waking up…",
+  "cloudAsleep.wakingSend": "Waking the Cloud… your message goes out as soon as it's up",
+  "send.cloudWakeTimeout": "The Cloud is taking longer than usual to wake up, so this message wasn't sent. Try again in a minute.",
   "cloudAsleep.held": "Sends when it's awake",
   "cloudAsleep.empty": "No chats seen on this computer yet. Wake it to see them.",
   "cloudAsleep.bots": "Bots",

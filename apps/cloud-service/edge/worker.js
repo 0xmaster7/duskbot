@@ -62,7 +62,7 @@ async function wakeAndWait(label, reason, env, ctx, now = () => Date.now()) {
 
 function waking(status) {
   const text = status === 429 ? "This Dusk Bot was woken too often this hour. Try again later." : "This Dusk Bot is waking up. Try again in a few seconds.";
-  return new Response(text, { status: status === 429 ? 429 : 503, headers: { "content-type": "text/plain; charset=utf-8", "retry-after": status === 429 ? "300" : "5", "cache-control": "no-store" } });
+  return new Response(text, { status: status === 429 ? 429 : 503, headers: { "content-type": "text/plain; charset=utf-8", "retry-after": status === 429 ? "300" : "5", "cache-control": "no-store", ...(status === 429 ? {} : { "x-omb-cloud-power": "waking" }) } });
 }
 
 async function forward(request, url, upstream, body) {
