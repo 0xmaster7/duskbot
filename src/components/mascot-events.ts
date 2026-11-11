@@ -1,5 +1,5 @@
 // App moments that every on-screen mark of a bot answers: the sidebar row, the chat header and the status line.
-import type { MarkReaction } from "./mascot-personality";
+import type { MarkReaction } from "./mascot-engine";
 
 /** `watch`: the person is typing to the bot, so it looks down at the composer for a moment. */
 export type MascotCue = MarkReaction | "watch";

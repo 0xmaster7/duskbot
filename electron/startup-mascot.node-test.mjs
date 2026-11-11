@@ -6,7 +6,7 @@ import { startupScreenHtml } from "./startup-screen.mjs";
 test("the splash waits with the mascot, not a spinner", () => {
   const html = startupScreenHtml();
   assert.match(html, /<svg class="boot-mascot"[^>]*aria-hidden="true"/);
-  assert.match(html, /mask="url\(#splash-mascot-eyes\)"/);
+  assert.match(html, /<svg class="boot-mascot"[^>]*data-body="squircle"/);
   assert.doesNotMatch(html, /spinner/);
   assert.match(html, /prefers-reduced-motion:reduce\)\{\.boot-mascot\{animation:none/);
   assert.match(html, /role="status">Opening your workspace/);

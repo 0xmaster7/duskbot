@@ -1,8 +1,9 @@
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { BotReport } from "../../../../shared/dashboard-protocol";
 import { botMood, type BotMood } from "../data/mood";
-import { botSvg, bodyName, create, pointerGaze, type BodyName, type Bot, type BotReaction, type BotState } from "../mascot/index.js";
+import { botSvg, create, pointerGaze, type BodyName, type Bot, type BotReaction, type BotState } from "../mascot/index.js";
 import { cx } from "./kit";
+import { duskBody } from "../../../../shared/body-migration";
 
 export type { BotReaction, BotState } from "../mascot/index.js";
 
@@ -18,17 +19,12 @@ export const BOT_COLOURS = {
 export type BotColour = keyof typeof BOT_COLOURS;
 export const colorOf = (c: string | null | undefined): BotColour => (c && Object.hasOwn(BOT_COLOURS, c) ? (c as BotColour) : "blue");
 
-// every body id a bot may have been saved with, drawn as the nearest of the ten dusk bodies; stored data is untouched
-const SAVED_BODY: Record<string, BodyName> = {
-  cursor: "squircle", tablet: "squircle", blob: "circle", circle: "circle", fruit: "circle", egg: "circle", pebble: "circle",
-  squircle: "squircle", square: "pixel", house: "pixel", shield: "squircle", dome: "squircle",
-  capsule: "pill", cylinder: "pill", bean: "pill", arch: "pill",
-  drop: "drop", teardrop: "drop", leaf: "drop", wedge: "drop",
-  hexagon: "hex", hex: "hex", diamond: "hex", gem: "hex", crystal: "hex",
-  star: "star", sparkle: "star", heart: "heart", cloud: "cloud", clover: "cloud", flower: "cloud",
+// a saved body id draws through the app's one migration map; halloween costumes have no dusk body, so each takes its nearest
+const COSTUME_BODY: Record<string, BodyName> = {
   pumpkin: "circle", ghost: "cloud", witch: "drop", bat: "moon", cat: "squircle", skull: "pill", monster: "pixel", mummy: "pill", vampire: "moon", spider: "hex",
 };
-export const bodyOf = (b: string | null | undefined): BodyName => (b ? SAVED_BODY[b] ?? bodyName(b) : "squircle");
+export const bodyOf = (b: string | null | undefined): BodyName =>
+  (b && Object.hasOwn(COSTUME_BODY, b) ? COSTUME_BODY[b]! : duskBody(b));
 
 export interface MascotHandle { react(kind: BotReaction): void; lookAt(x: number | null, y?: number): void }
 

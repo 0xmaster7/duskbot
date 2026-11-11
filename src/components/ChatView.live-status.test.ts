@@ -122,7 +122,7 @@ describe("the working line", () => {
 
   it("comes 0.55 to 1.2 s after the send, as the mascot, condenses into the dots once, then the words come", () => {
     vi.setSystemTime(started);
-    const markState = () => host.querySelector(".turn-presence [data-grok-state]")?.getAttribute("data-grok-state");
+    const markState = () => host.querySelector(".turn-presence [data-state]")?.getAttribute("data-state");
     engine({ type: "turn.started" });
     render(busyBot([ask]));
     expect(mascot(), "nothing at first").toBeNull();
@@ -141,7 +141,7 @@ describe("the working line", () => {
   });
 
   it("types as the bot itself, never the dots", () => {
-    const markState = () => host.querySelector(".turn-presence [data-grok-state]")?.getAttribute("data-grok-state");
+    const markState = () => host.querySelector(".turn-presence [data-state]")?.getAttribute("data-state");
     engine({ type: "turn.started" });
     render(busyBot([ask]));
     engine({ type: "content.delta", streamKind: "assistant_text", delta: "Hi" } as Partial<RuntimeEvent>);

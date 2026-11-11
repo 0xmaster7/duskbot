@@ -11,11 +11,10 @@ import {
 import { cn } from "@/lib/cn";
 import { MASCOT_INK, MAUS_STATES, type MausColor, type MausMotion, type MausState } from "@/lib/mascot";
 import type { CursorAvatarHandle, CursorState } from "./CursorAvatar";
-import { GrokMark, type GrokMarkHandle } from "./mascot-motion-view";
-import { hoverGaze, type MarkState } from "./mascot-motion-mark";
-import type { MarkReaction } from "./mascot-personality";
+import { DuskMark, type DuskMarkHandle } from "./mascot-view";
+import { hoverGaze, type MarkReaction, type MarkState } from "./mascot-engine";
 import { avatarCropRadius, botAvatarProfile, clampAvatarFocus, clampAvatarZoom, mascotFaceInk, type BotAvatarCrop, type MascotFaceColor } from "../../shared/bot-avatar";
-import { grokBodyFor, isHalloweenBody, type BotBodyId } from "../../shared/bot-body";
+import { bodyShapeFor, isHalloweenBody, type StoredBodyId } from "../../shared/bot-body";
 import { useHalloweenDressed, wornBody } from "@/lib/halloween-dress";
 import { CarvedAvatar } from "./CarvedAvatar";
 
@@ -44,7 +43,7 @@ const MOTION_FACE: MotionFaces = {
 
 const MOTION_FACE_MS = 1400;
 
-// grok marks are one flat ink, no shading; a readable gradient paints with its middle stop
+// a mark is one flat paint, no shading; a readable gradient paints with its middle stop
 const inkFor = (color: MausColor, gradient?: [string, string, string]): string => gradient?.[1] ?? MASCOT_INK[color] ?? MASCOT_INK.green;
 
 export function roomAvatarGradient(color: MausColor): [string, string, string] {
@@ -56,15 +55,15 @@ export function roomAvatarGradient(color: MausColor): [string, string, string] {
   ];
 }
 
-export type MausAvatarHandle = CursorAvatarHandle & Partial<Pick<GrokMarkHandle, "poke" | "react">>;
+export type MausAvatarHandle = CursorAvatarHandle & Partial<Pick<DuskMarkHandle, "poke" | "react">>;
 
 export type MausAvatarProps = {
   color: MausColor;
-  /** Any of Grok's mark states: idle rests still, working and the other busy states play Grok's clips. */
+  /** Any mark state: idle rests, working and the other busy states move. */
   state?: MausState;
-  /** Grok's isEmphasized: a resting face looks up, surprised, while the pointer is on the status line. */
+  /** A resting face looks up, surprised, while the pointer is on the status line. */
   emphasized?: boolean;
-  /** CSS paint for the eyes, over the bot's face colour: Grok's status line paints them var(--sand-bg-chrome). */
+  /** CSS paint for the eyes, over the bot's face colour. */
   eyeInk?: string;
   expression?: number;
   size?: number;
@@ -81,12 +80,12 @@ export type MausAvatarProps = {
   lookAround?: number;
   trackPointer?: boolean;
   animated?: boolean;
-  bodyId?: BotBodyId;
+  bodyId?: StoredBodyId;
   gradient?: [string, string, string];
   faceColor?: MascotFaceColor | null;
   /** The bot whose app moments this mark answers (see mascot-events). */
   cueKey?: string;
-  /** False keeps Grok's still idle between turns. */
+  /** False keeps the mark still between turns: no blinks or glances of its own. */
   personality?: boolean;
 };
 
@@ -144,7 +143,7 @@ function GradientAvatarComponent(
   ref: React.Ref<MausAvatarHandle>,
 ) {
   const faceInk = mascotFaceInk(faceColor);
-  const inner = useRef<GrokMarkHandle>(null);
+  const inner = useRef<DuskMarkHandle>(null);
   useImperativeHandle(ref, () => ({
     blink: () => inner.current?.blink(),
     spin: (durationMs?: number) => inner.current?.spin(durationMs),
@@ -167,7 +166,7 @@ function GradientAvatarComponent(
     return () => clearTimeout(timer);
   }, [motion, motionKey, animated]);
 
-  // grok's attachMarkHoverGaze: the body turns toward a pointer on it, full turn half a mark from its centre
+  // the mark turns toward a pointer on it
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const tracking = trackPointer && animated;
   const onPointerMove = (event: ReactPointerEvent<HTMLSpanElement>) => {
@@ -183,21 +182,20 @@ function GradientAvatarComponent(
       onPointerMove={tracking ? onPointerMove : undefined}
       onPointerLeave={tracking ? onPointerLeave : undefined}
     >
-      <GrokMark
+      <DuskMark
         ref={inner}
-        body={grokBodyFor(bodyId)}
-        ink={inkFor(color, gradient)}
-        eye={eyeInk ?? faceInk ?? undefined}
+        body={bodyShapeFor(bodyId)}
+        colour={inkFor(color, gradient)}
+        eyes={eyeInk ?? faceInk ?? undefined}
         state={motionState ?? state}
         emphasized={emphasized}
         expression={expression}
         size={size}
         animated={animated}
         gaze={look}
-        seed={label ?? undefined}
         label={label ?? null}
         cueKey={cueKey}
-        personality={personality}
+        life={personality}
       />
     </span>
   );
@@ -218,7 +216,7 @@ export type BotAvatarProps = Omit<MausAvatarProps, "color" | "gradient"> & {
     avatarZoom?: number;
     avatarFocusX?: number;
     avatarFocusY?: number;
-    mascotBody?: BotBodyId | null;
+    mascotBody?: StoredBodyId | null;
     mascotFaceColor?: MascotFaceColor | null;
   };
 };

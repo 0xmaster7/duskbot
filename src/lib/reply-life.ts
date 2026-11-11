@@ -1,4 +1,4 @@
-import type { MarkState } from "@/components/mascot-motion-mark";
+import type { MarkState } from "@/components/mascot-engine";
 
 /** The start of a turn as the status line's mark lives it, as Grok Bot's does: the mark mounts as the bot itself, condenses
  * into the thinking dots once, and morphs back to the bot as the first words come. Every turn draws its spans from its

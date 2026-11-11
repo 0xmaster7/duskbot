@@ -11,9 +11,9 @@ import {
   type MausState,
 } from "@/lib/mascot";
 import { BOT_AVATAR_CROPS } from "../../shared/bot-avatar";
-import { GROK_BODIES, GROK_BODY_IDS } from "../../shared/grok-bodies";
+import { DUSK_BODY_IDS, DUSK_BODY_NAMES } from "../../shared/body-migration";
 import { HALLOWEEN_BODIES, HALLOWEEN_BODY_IDS } from "../../shared/halloween-bodies";
-import { wearsBody, type BotBodyId } from "../../shared/bot-body";
+import { DEFAULT_BOT_BODY, wearsBody, type BotBodyId } from "../../shared/bot-body";
 import { BotAvatar, MausAvatar } from "./Avatar";
 import { AvatarImageGenerator } from "./AvatarImageGenerator";
 import { AvatarFraming, OrganizationAvatarIcons, RESET_MASCOT_PATCH, useAvatarImage, type AvatarPatch } from "./avatar-editing";
@@ -175,8 +175,8 @@ export function BotProfileAvatarCard({
               {t("botIdentity.body")}
             </div>
             <div className="grid grid-cols-5 gap-1">
-              {GROK_BODY_IDS.map((id) => (
-                <BodyButton key={id} id={id} name={GROK_BODIES[id].name} bot={bot} busy={busy} onPatch={onPatch} />
+              {DUSK_BODY_IDS.map((id) => (
+                <BodyButton key={id} id={id} name={DUSK_BODY_NAMES[id]} bot={bot} busy={busy} onPatch={onPatch} />
               ))}
             </div>
             <div className={LABEL}>
@@ -212,7 +212,7 @@ function BodyButton({ id, name, bot, busy, onPatch }: {
   busy: boolean;
   onPatch: (patch: AvatarPatch) => void;
 }) {
-  const selected = wearsBody(bot.mascotBody ?? "cursor", id);
+  const selected = wearsBody(bot.mascotBody ?? DEFAULT_BOT_BODY, id);
   return (
     <button
       type="button"

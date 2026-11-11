@@ -4,10 +4,12 @@ import { Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
-import { MASCOT_INK, type MausColor, type MausState } from "@/lib/mascot";
+import { MAUS_COLOR_LABEL, MAUS_COLOR_NAMES, colorSwatch, type MausState } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
-import { wearsBody, type BotBodyId } from "../../../shared/bot-body";
+import { DEFAULT_BOT_BODY, wearsBody, type BotBodyId } from "../../../shared/bot-body";
+import { DUSK_BODY_IDS } from "../../../shared/body-migration";
 import { MausAvatar } from "../Avatar";
+import { BodyRing } from "../mascot-view";
 import { AvatarImageGenerator } from "../AvatarImageGenerator";
 import { AvatarFraming, OrganizationAvatarIcons, RESET_MASCOT_PATCH, useAvatarImage, type AvatarPatch } from "../avatar-editing";
 import { Segmented } from "./rows";
@@ -27,19 +29,8 @@ const CROP_KEY: Record<(typeof IMAGE_CROPS)[number], LocaleKey> = {
   square: "botPanel.avatar.square",
 };
 
-/** Grok's thirteen shapes, in its order: rows of five, five and three. */
-const SHAPES = ["blob", "cloud", "square", "sparkle", "clover", "heart", "flower", "teardrop", "tablet", "wedge", "house", "star", "hex"] as const satisfies readonly BotBodyId[];
-const SHAPE_ROWS = [SHAPES.slice(0, 5), SHAPES.slice(5, 10), SHAPES.slice(10)];
-
-/** Grok's eleven colours, in its order and by its names, each as the mascot colour that paints the same ink. */
-const COLORS: ReadonlyArray<readonly [MausColor, string, string]> = [
-  ["chrome", "Black", "#000000"], ["brown" as MausColor, "Brown", "#a06b39"], ["red", "Red", MASCOT_INK.red], ["orange", "Orange", MASCOT_INK.orange],
-  ["yellow", "Yellow", MASCOT_INK.yellow], ["green", "Green", MASCOT_INK.green], ["teal", "Cyan", MASCOT_INK.teal], ["blue", "Blue", MASCOT_INK.blue],
-  ["purple", "Violet", MASCOT_INK.purple], ["pink", "Magenta", MASCOT_INK.pink], ["silver", "Gray", MASCOT_INK.silver],
-];
-
-const RING = "rgba(28, 28, 28, 0.24)";
-const HOVER_RING = "rgba(28, 28, 28, 0.12)";
+/** Our bodies, in two rows of five. */
+const SHAPE_ROWS = [DUSK_BODY_IDS.slice(0, 5), DUSK_BODY_IDS.slice(5)];
 
 export function AvatarEditorCard({ bot, onPatch, onClose }: {
   bot: Bot;
@@ -57,7 +48,7 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
     tabsRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus();
   }, []);
   const pickMascot = (patch: AvatarPatch) => onPatch(crop === "mascot" ? patch : { ...patch, avatarCrop: "mascot" });
-  const body = bot.mascotBody ?? "cursor";
+  const body = bot.mascotBody ?? DEFAULT_BOT_BODY;
   const shapeButton = (id: BotBodyId) => {
     const chosen = !showsImage && wearsBody(body, id);
     return (
@@ -71,17 +62,9 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
         onClick={() => pickMascot({ mascotBody: id })}
         className="group/shape relative flex size-12 cursor-pointer items-center justify-center disabled:opacity-50"
       >
-        {/* grok rings the chosen shape along its own outline: a grey silhouette, a white one inside it, then the mark */}
-        <span aria-hidden="true" className={cn("absolute inset-0 flex items-center justify-center", chosen ? "opacity-100" : "opacity-0 group-hover/shape:opacity-100")}>
-          <MausAvatar color={bot.color} bodyId={id} size={chosen ? 50 : 44} gradient={chosen ? [RING, RING, RING] : [HOVER_RING, HOVER_RING, HOVER_RING]} animated={false} trackPointer={false} />
-        </span>
-        {chosen && (
-          <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
-            <MausAvatar color={bot.color} bodyId={id} size={47} gradient={["#ffffff", "#ffffff", "#ffffff"]} animated={false} trackPointer={false} />
-          </span>
-        )}
         <span className="relative flex">
           <MausAvatar color={bot.color} faceColor={bot.mascotFaceColor} bodyId={id} size={36} animated={false} trackPointer={false} />
+          <BodyRing body={id} size={36} className={cn("pointer-events-none absolute inset-0 text-ink", chosen ? "opacity-24" : "opacity-0 group-hover/shape:opacity-12")} />
         </span>
       </button>
     );
@@ -140,20 +123,20 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
               ))}
             </div>
             <div aria-label={t("botPanel.avatar.colors")} className="mx-auto flex w-[232px] flex-wrap justify-center gap-2 py-2">
-              {COLORS.map(([color, name, ink]) => (
+              {MAUS_COLOR_NAMES.map((color) => (
                 <button
                   key={color}
                   type="button"
                   disabled={busy}
                   aria-pressed={bot.color === color}
-                  aria-label={`${name} character color`}
-                  title={name}
+                  aria-label={`${t(MAUS_COLOR_LABEL[color])} character color`}
+                  title={t(MAUS_COLOR_LABEL[color])}
                   onClick={() => pickMascot({ color })}
                   className="flex size-8 cursor-pointer items-center justify-center rounded-full border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50"
                 >
                   <span
                     className={cn("size-6 rounded-full", bot.color === color && "shadow-[0_0_0_3px_var(--color-menu),0_0_0_4px_rgb(28_28_28/0.24)]")}
-                    style={{ background: ink }}
+                    style={{ background: colorSwatch(color) }}
                   />
                 </button>
               ))}

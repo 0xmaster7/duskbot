@@ -1,7 +1,7 @@
 // the dusk bots: ten flat bodies and one face, drawn from plain shapes in a 100 by 100 box. build-pages.mjs uses this
 // to write each bot's rest pose into the html, engine.js uses it to move the same parts
 const n = (v) => String(Math.round(v * 100) / 100);
-export const INK = '#1d1b26';
+export const INK = '#fff';
 
 const circle = (cx, cy, r) => `M${n(cx - r)} ${n(cy)}a${n(r)} ${n(r)} 0 1 0 ${n(2 * r)} 0a${n(r)} ${n(r)} 0 1 0 ${n(-2 * r)} 0Z`;
 

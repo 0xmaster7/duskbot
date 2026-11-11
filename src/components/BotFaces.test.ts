@@ -23,7 +23,7 @@ describe("a room's faces", () => {
   it("puts the members at work first, playing their working state", () => {
     const markup = renderToStaticMarkup(createElement(BotFaces, { members: bots, size: 24, working: new Set(["rivet"]) }));
     expect(names(markup)).toEqual(["Rivet", "Quill", "Echo"]);
-    expect(markup).toMatch(/data-grok-state="working"[^>]*aria-label="Rivet"/);
+    expect(markup).toMatch(/data-state="working"[^>]*aria-label="Rivet"/);
   });
 
   it("draws no count while every member has a face", () => {

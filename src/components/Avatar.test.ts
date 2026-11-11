@@ -10,8 +10,9 @@ import {
   type MausAvatarProps,
 } from "./Avatar";
 
-// the engine's body outline: the first path of the mark, with the per-mount id stripped
-const outline = (markup: string) => markup.match(/-body"><path d="([^"]+)"/)?.[1] ?? "";
+// the body outline: the first path of the mark
+const outline = (markup: string) => markup.match(/class="bb"><path fill="currentColor" d="([^"]+)"/)?.[1] ?? "";
+const bodyOf = (markup: string) => markup.match(/data-body="([a-z]+)"/)?.[1];
 
 const render = (props: Partial<MausAvatarProps>) =>
   renderToStaticMarkup(createElement(MausAvatar, { color: "green", animated: false, ...props }));
@@ -22,29 +23,34 @@ const renderBot = (bot: Partial<BotAvatarProps["bot"]>) =>
   );
 
 describe("MausAvatar body", () => {
-  it("wears the Grok-style tablet when no body is given", () => {
-    expect(outline(render({}))).toBe(outline(render({ bodyId: "tablet" })));
+  it("wears the squircle when no body is given", () => {
+    expect(bodyOf(render({}))).toBe("squircle");
+    expect(outline(render({}))).toBe(outline(render({ bodyId: "squircle" })));
     expect(outline(render({}))).not.toBe("");
   });
 
-  it("wears the body it is given, drawing an older body as its Grok-style look", () => {
-    const tablet = outline(render({ bodyId: "tablet" }));
-    expect(outline(render({ bodyId: "star" }))).not.toBe(tablet);
-    expect(outline(render({ bodyId: "flower" }))).not.toBe(outline(render({ bodyId: "star" })));
-    expect(outline(render({ bodyId: "cursor" }))).toBe(tablet);
-    expect(outline(render({ bodyId: "fruit" }))).not.toBe("");
+  it("wears the body it is given, drawing an older body as the one it moved to", () => {
+    expect(outline(render({ bodyId: "star" }))).not.toBe(outline(render({ bodyId: "squircle" })));
+    expect(bodyOf(render({ bodyId: "cursor" }))).toBe("squircle");
+    expect(bodyOf(render({ bodyId: "flower" }))).toBe("cloud");
+    expect(bodyOf(render({ bodyId: "teardrop" }))).toBe("drop");
+    expect(outline(render({ bodyId: "fruit" }))).toBe(outline(render({ bodyId: "circle" })));
   });
 
-  it("falls back to the tablet for an unknown body", () => {
-    // SAFETY: "hexagram" is deliberately not a MascotBodyId, to exercise the runtime fallback for persisted or streamed
-    // data.
-    expect(outline(render({ bodyId: "hexagram" as MausAvatarProps["bodyId"] }))).toBe(outline(render({ bodyId: "tablet" })));
+  it("falls back to the squircle for an unknown body", () => {
+    // SAFETY: "hexagram" is deliberately not a body id, to exercise the runtime fallback for persisted or streamed data.
+    expect(bodyOf(render({ bodyId: "hexagram" as MausAvatarProps["bodyId"] }))).toBe("squircle");
   });
 
-  it("paints the body with the bot's flat ink, never a flat black fill", () => {
+  it("paints the body with the bot's colour, never a flat black fill", () => {
     const markup = render({ bodyId: "circle", color: "blue" });
     expect(markup).not.toContain('fill="#000000"');
-    expect(markup).toContain('fill="#1e86fc"');
+    expect(markup).toContain("color:#377FE6");
+  });
+
+  it("draws the face of the state it rests in", () => {
+    expect(render({ state: "happy" })).not.toBe(render({ state: "idle" }));
+    expect(render({ state: "sleeping" })).toContain('data-state="sleeping"');
   });
 });
 
@@ -57,24 +63,21 @@ describe("mascot facial feature colors", () => {
         expect(markup).toContain(`fill="${ink}"`);
         expect(markup).not.toContain('visibility="hidden"');
         if (mascotBody === "pumpkin" || mascotBody === "vampire") expect(markup).toContain(`stroke="${ink}"`);
-        else expect(markup).not.toContain("-holes");
       }
     }
   });
 
-  it("cuts the eyes out of a Grok-style body when no face ink is chosen, with no mouth", () => {
+  it("draws the eyes white when no face ink is chosen", () => {
     for (const bot of [{ color: "chrome" as const, mascotFaceColor: null }, {}]) {
       const markup = renderBot(bot);
-      expect(markup).toContain("-holes");
-      expect(markup).toContain('mask="url(#');
-      expect(markup).not.toContain("stroke=");
+      expect(markup).toContain('<path fill="#fff" d="M-1 0');
     }
     expect(renderBot({ mascotBody: "pumpkin" })).toContain('stroke="#0d0a10"');
   });
 
-  it("paints a Grok-style body with one flat ink", () => {
+  it("paints a body with one flat colour", () => {
     const markup = renderBot({ color: "blue" });
-    expect(markup.match(/fill="#1e86fc"/g)?.length).toBe(1);
+    expect(markup.match(/fill="currentColor"/g)?.length).toBe(1);
     expect(markup).not.toContain("Gradient");
   });
 

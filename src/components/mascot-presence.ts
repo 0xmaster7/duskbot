@@ -5,8 +5,11 @@ import { useTurnLive, type LiveStatus } from "@/state/turn-status";
 import { useLiveReplyActive } from "@/state/live-reply";
 import { useStoppedAt } from "@/lib/stop-turn";
 import { lastNonReceipt } from "@/lib/receipts";
-import { SETTLED_HOLD_MS, type MarkState } from "./mascot-motion-mark";
+import type { MarkState } from "./mascot-engine";
 import { presenceKind, TYPING_MARK, useHeldPresence, workingMark } from "@/lib/presence-mark";
+
+/** A turn's finished or failed state shows this long after it settles. */
+export const SETTLED_HOLD_MS = 8000;
 
 export type TurnOutcome = "success" | "error" | "cancelled";
 

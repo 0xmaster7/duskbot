@@ -1,41 +1,41 @@
 import { describe, expect, it } from "vitest";
 
-import { BOT_BODY_IDS, COSTUME_FOR_COLOR, GROK_ONLY_BODY_IDS, botBodyId, botBodySchema, grokBodyFor, isHalloweenBody, wearsBody } from "./bot-body.ts";
-import { GROK_BODY_IDS } from "./grok-bodies.ts";
+import { BOT_BODY_IDS, COSTUME_FOR_COLOR, DEFAULT_BOT_BODY, bodyShapeFor, botBodyId, botBodySchema, isHalloweenBody, wearsBody } from "./bot-body.ts";
+import { DUSK_BODY_IDS, LEGACY_BODY_IDS } from "./body-migration.ts";
 import { HALLOWEEN_BODY_IDS } from "./halloween-bodies.ts";
 import { MASCOT_BODY_IDS } from "./mascot-bodies.ts";
 import { MAUS_COLOR_NAMES } from "./wire.ts";
 
 describe("bot bodies", () => {
-  it("accepts every gradient body, every Grok-style body and every Halloween body", () => {
-    expect(BOT_BODY_IDS).toEqual([...MASCOT_BODY_IDS, ...GROK_ONLY_BODY_IDS, ...HALLOWEEN_BODY_IDS]);
-    for (const id of GROK_BODY_IDS) expect(botBodySchema.safeParse(id).success).toBe(true);
+  it("offers our bodies and the Halloween ones", () => {
+    expect(BOT_BODY_IDS).toEqual([...DUSK_BODY_IDS, ...HALLOWEEN_BODY_IDS]);
     expect(new Set(BOT_BODY_IDS).size).toBe(BOT_BODY_IDS.length);
-    for (const id of BOT_BODY_IDS) expect(botBodySchema.safeParse(id).success).toBe(true);
+    for (const id of BOT_BODY_IDS) expect(botBodySchema.parse(id)).toBe(id);
   });
 
-  it("falls back to the cursor for anything it does not know", () => {
+  it("accepts every id an older version saved and saves the body it draws as now", () => {
+    for (const id of [...LEGACY_BODY_IDS, ...MASCOT_BODY_IDS]) expect(DUSK_BODY_IDS).toContain(botBodySchema.parse(id));
+    expect(botBodySchema.parse("cursor")).toBe("squircle");
+    expect(botBodySchema.parse("clover")).toBe("cloud");
+    expect(botBodySchema.safeParse("hexagram").success).toBe(false);
+  });
+
+  it("reads an older id as its body now, and anything unknown as the default", () => {
     expect(botBodyId("pumpkin")).toBe("pumpkin");
     expect(botBodyId("star")).toBe("star");
-    expect(botBodyId("hexagram")).toBe("cursor");
-    expect(botBodyId(undefined)).toBe("cursor");
-  });
-
-  it("draws every older body, and anything unknown, as a Grok-style body", () => {
-    expect(grokBodyFor("cursor")).toBe("tablet");
-    expect(grokBodyFor(undefined)).toBe("tablet");
-    expect(grokBodyFor("hexagram")).toBe("tablet");
-    expect(grokBodyFor("constructor")).toBe("tablet");
-    expect(grokBodyFor("drop")).toBe("teardrop");
-    expect(grokBodyFor("flower")).toBe("flower");
-    for (const id of MASCOT_BODY_IDS) expect(GROK_BODY_IDS).toContain(grokBodyFor(id));
+    expect(botBodyId("teardrop")).toBe("drop");
+    expect(botBodyId("hexagram")).toBe(DEFAULT_BOT_BODY);
+    expect(botBodyId("constructor")).toBe(DEFAULT_BOT_BODY);
+    expect(botBodyId(undefined)).toBe(DEFAULT_BOT_BODY);
+    expect(bodyShapeFor("gem")).toBe("hex");
   });
 
   it("marks a picker option worn when the stored body draws as it", () => {
-    expect(wearsBody("cursor", "tablet")).toBe(true);
-    expect(wearsBody("cursor", "blob")).toBe(false);
+    expect(wearsBody("cursor", "squircle")).toBe(true);
+    expect(wearsBody("cursor", "circle")).toBe(false);
+    expect(wearsBody(undefined, DEFAULT_BOT_BODY)).toBe(true);
     expect(wearsBody("pumpkin", "pumpkin")).toBe(true);
-    expect(wearsBody("pumpkin", "tablet")).toBe(false);
+    expect(wearsBody("pumpkin", "squircle")).toBe(false);
     expect(wearsBody("cursor", "pumpkin")).toBe(false);
   });
 

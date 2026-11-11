@@ -32,7 +32,7 @@ import type { BotAvatarCrop } from "../../shared/bot-avatar";
 import { approvalModeFor, type ApprovalMode } from "../../shared/approval-mode";
 import { askResetBridge, desktopCapabilitiesNow } from "@/lib/desktop"; import { isBotLimitRefusal, stoppedAtBotLimit } from "@/lib/bot-limit";
 import { sameModelSelection } from "../../shared/thread-model";
-import type { BotBodyId } from "../../shared/bot-body";
+import type { BotBodyId, StoredBodyId } from "../../shared/bot-body";
 import { openCreateBot } from "@/lib/create-bot-request";
 import { publishBotPointer } from "@/lib/bot-pointer";
 import { StoreRefContext } from "./store-ref-context";
@@ -290,7 +290,7 @@ export interface Bot extends DefaultBotFields, Pick<WireBot, "mascotFaceColor" |
   notifications: boolean;
   color: MausColor;
   mascotExpression?: string | null;
-  mascotBody?: BotBodyId | null;
+  mascotBody?: StoredBodyId | null;
   avatarUrl?: string | null;
   avatarCrop?: BotAvatarCrop;
   avatarZoom?: number;

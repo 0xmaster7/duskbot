@@ -6,13 +6,13 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { MAUS_COLORS, colorSwatch, type MausColor } from "@/lib/mascot";
 import { useStore } from "@/state/store";
-import type { GrokBodyId } from "../../../shared/grok-bodies";
+import type { DuskBodyId } from "../../../shared/body-migration";
 import { Sheet } from "../Sheet";
 import { haptic } from "../haptics";
 import { spring } from "../motion";
 import type { SheetPageProps } from "./registry";
 
-const BODIES = ["blob", "cloud", "square", "sparkle", "clover", "heart", "flower", "teardrop"] as const satisfies readonly GrokBodyId[];
+const BODIES = ["circle", "cloud", "squircle", "star", "pill", "heart", "moon", "drop"] as const satisfies readonly DuskBodyId[];
 const COLORS = Object.keys(MAUS_COLORS) as MausColor[];
 
 function moveRadio(event: KeyboardEvent<HTMLDivElement>) {
@@ -30,7 +30,7 @@ function moveRadio(event: KeyboardEvent<HTMLDivElement>) {
 export function CreateBotSheet({ open, onClose, onOpenChat }: SheetPageProps<"create">) {
   const { state, dispatch } = useStore();
   const [name, setName] = useState("");
-  const [body, setBody] = useState<GrokBodyId>("blob");
+  const [body, setBody] = useState<DuskBodyId>("circle");
   const [color, setColor] = useState<MausColor>("blue");
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState(false);

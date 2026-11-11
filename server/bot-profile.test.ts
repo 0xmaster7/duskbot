@@ -99,10 +99,15 @@ describe("parseBotProfilePatch (both modes)", () => {
 
 describe("mascotBody", () => {
   it("accepts a known body", () => {
-    expect(parseBotProfilePatch({ mascotBody: "blob" } as never, true)).toEqual({
+    expect(parseBotProfilePatch({ mascotBody: "pill" }, true)).toEqual({
       ok: true,
-      patch: { mascotBody: "blob" },
+      patch: { mascotBody: "pill" },
     });
+  });
+
+  it("saves a body id from an older version as the body it draws as now", () => {
+    expect(parseBotProfilePatch({ mascotBody: "blob" } as never, true)).toEqual({ ok: true, patch: { mascotBody: "circle" } });
+    expect(parseBotProfilePatch({ mascotBody: "cursor" } as never, true)).toEqual({ ok: true, patch: { mascotBody: "squircle" } });
   });
 
   it("accepts a Halloween body", () => {
@@ -112,7 +117,7 @@ describe("mascotBody", () => {
     });
   });
 
-  it("accepts the Grok-style bodies the picker offers", () => {
+  it("accepts the bodies the picker offers", () => {
     expect(parseBotProfilePatch({ mascotBody: "cloud" }, true)).toEqual({ ok: true, patch: { mascotBody: "cloud" } });
   });
 
@@ -120,9 +125,8 @@ describe("mascotBody", () => {
     expect(parseBotProfilePatch({ mascotBody: "hexagram" } as never, true)).toEqual({
       ok: false,
       error:
-        "mascotBody must be cursor, blob, circle, squircle, capsule, drop, shield, hexagon, diamond, star, " +
-        "tablet, cloud, flower, sparkle, wedge, heart, fruit, clover, square, teardrop, pebble, bean, egg, cylinder, " +
-        "hex, gem, crystal, dome, arch, leaf, house, pumpkin, ghost, witch, bat, cat, skull, monster, mummy, vampire, or spider",
+        "mascotBody must be circle, squircle, pill, hex, star, heart, drop, moon, cloud, pixel, " +
+        "pumpkin, ghost, witch, bat, cat, skull, monster, mummy, vampire, or spider",
     });
   });
 });

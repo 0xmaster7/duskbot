@@ -1,5 +1,5 @@
 import { CURSOR_STATES, type CursorState } from "@/components/CursorAvatar";
-import type { MarkState } from "@/components/mascot-motion-mark";
+import type { MarkState } from "@/components/mascot-engine";
 import { botShowsUnread } from "./bot-unread";
 import { lastNonReceipt } from "./receipts";
 import type { MausColor } from "../../shared/wire";
@@ -7,50 +7,11 @@ import type { LocaleKey } from "@/locales";
 
 export { MAUS_COLOR_NAMES, type MausColor } from "../../shared/wire";
 
-/** Every state a mark can show: our older names and Grok's (working, streaming, blocked, finished, failed and more). */
 export type MausState = CursorState | MarkState;
 export const MAUS_STATES = CURSOR_STATES;
 
-/** The mascot states grouped for the preview page. */
-export const STATE_GROUPS = {
-  Lifecycle: ["sleeping", "waking", "idle", "listening", "thinking", "searching", "working"],
-  Reactions: [
-    "excited",
-    "surprised",
-    "suspicious",
-    "angry",
-    "drowsy",
-    "happy",
-    "curious",
-    "confused",
-    "bored",
-    "proud",
-    "shy",
-    "sad",
-    "laughing",
-    "scared",
-    "playful",
-    "celebrate",
-  ],
-  "Agent morphs": ["orbit", "radar", "progress"],
-  "Product cycle": [
-    "spawning",
-    "humming",
-    "loading",
-    "dictating",
-    "writing",
-    "sending",
-    "receiving",
-    "uploading",
-    "notifying",
-    "alerting",
-    "dragging",
-    "bouncing",
-    "powering-down",
-  ],
-} satisfies Record<string, MausState[]>;
-
-export const MAUS_COLORS = {
+/** Each bot colour as names, mentions and chat tones paint it; the skins' --identity-* tokens are tuned from these. */
+export const MAUS_COLORS: Record<MausColor, string> = {
   green: "#009957",
   blue: "#377FE6",
   red: "#D94B52",
@@ -64,39 +25,34 @@ export const MAUS_COLORS = {
   brown: "#a06b39",
   silver: "#A8ADB4",
   chrome: "#B3BAC4",
-} satisfies Record<MausColor, string>;
+};
 
-export const MAUS_COLOR_LABEL = {
-  green: "mascotColor.green", blue: "mascotColor.blue", red: "mascotColor.red", orange: "mascotColor.orange",
-  purple: "mascotColor.purple", cyan: "mascotColor.cyan", pink: "mascotColor.pink", yellow: "mascotColor.yellow",
-  teal: "mascotColor.teal", coral: "mascotColor.coral", brown: "mascotColor.brown", silver: "mascotColor.silver",
+export const MAUS_COLOR_LABEL: Record<MausColor, LocaleKey> = {
+  green: "mascotColor.green",
+  blue: "mascotColor.blue",
+  red: "mascotColor.red",
+  orange: "mascotColor.orange",
+  purple: "mascotColor.purple",
+  cyan: "mascotColor.cyan",
+  pink: "mascotColor.pink",
+  yellow: "mascotColor.yellow",
+  teal: "mascotColor.teal",
+  coral: "mascotColor.coral",
+  brown: "mascotColor.brown",
+  silver: "mascotColor.silver",
   chrome: "mascotColor.chrome",
-} as const satisfies Record<MausColor, LocaleKey>;
+};
 
-/** The flat body ink each colour paints a Grok-style mascot with: Grok Bot's own `bg/<hue>-bright` values where it has
- * the hue, the identity colour where it does not. Chrome follows the skin's ink, as Grok's black mark does. */
-export const MASCOT_INK = {
-  green: "#14c16f",
-  blue: "#1e86fc",
-  red: "#fb2b3e",
-  orange: "#fd690f",
-  purple: "#8f59f9",
-  cyan: MAUS_COLORS.cyan,
-  pink: "#f93498",
-  yellow: "#f59312",
-  teal: "#13b7a2",
-  coral: MAUS_COLORS.coral,
-  brown: "#a06b39",
-  silver: "#959595",
-  chrome: "var(--color-ink)",
-} satisfies Record<MausColor, string>;
+/** The paint of a mascot's body in each bot colour. */
+export const MASCOT_INK: Record<MausColor, string> = MAUS_COLORS;
 
-export const CHROME_GRADIENT: [string, string, string] = ["#F1F4F7", "#AEB8C3", "#66717E"];
+/** Polished steel, light to dark, for the chrome swatch. */
+export const CHROME_GRADIENT: [string, string, string] = ["#EAEEF2", "#B3BAC4", "#69727D"];
 
 export function colorSwatch(color: MausColor): string {
   if (color !== "chrome") return MASCOT_INK[color];
-  const [light, mid, edge] = CHROME_GRADIENT;
-  return `radial-gradient(circle at 34% 26%, #ffffff 0%, ${light} 20%, ${mid} 55%, ${edge} 100%)`;
+  const [light, mid, dark] = CHROME_GRADIENT;
+  return `radial-gradient(circle at 34% 28%, ${light} 0%, ${mid} 52%, ${dark} 100%)`;
 }
 
 export const MAUS_MOTIONS = [
@@ -116,31 +72,13 @@ export const MAUS_MOTIONS = [
 
 export type MausMotion = "none" | (typeof MAUS_MOTIONS)[number];
 
-interface LegacyStates {
-  [state: string]: MausState;
-}
-
-const LEGACY_STATES: LegacyStates = {
-  deadpan: "idle",
-  friendly: "happy",
-  focused: "working",
-  thinking: "thinking",
-  excited: "excited",
-  sleepy: "drowsy",
-  surprised: "surprised",
-  skeptical: "suspicious",
-  worried: "scared",
-  mischievous: "playful",
-};
-
 const KNOWN_STATES = new Set<string>(MAUS_STATES);
 
 export function normalizeState(value: string | null | undefined): MausState | null {
-  if (!value) return null;
-  if (KNOWN_STATES.has(value)) return value as MausState;
-  return LEGACY_STATES[value] ?? null;
+  return value && KNOWN_STATES.has(value) ? (value as MausState) : null;
 }
 
+/** The faces a person can pin a bot to, in the picker's order. */
 export const PICKABLE_STATES: MausState[] = [
   "idle",
   "happy",
@@ -153,6 +91,12 @@ export const PICKABLE_STATES: MausState[] = [
   "suspicious",
   "proud",
 ];
+
+/** Pinned faces older versions saved under other names. */
+const PINNED_ALIASES: Record<string, MausState> = { focused: "working", sleepy: "drowsy", worried: "scared" };
+
+/** Cards that wait on the person until they answer. */
+const AWAITING_KINDS = new Set(["options"]);
 
 type MascotMessage = {
   kind: string;
@@ -170,14 +114,15 @@ export type MascotBotProfile = {
   messages?: MascotMessage[];
 };
 
-/** The mark state a bot's avatar shows, Grok's way: busy while a turn runs, blocked while a question waits on the
- * person, failed after a failed step, and otherwise idle (still), unless the person pinned a resting face. */
+/** The state a bot's avatar shows: at work while a turn runs, failed after a failed step, a notice while a reply waits
+ * unread, blocked while a card waits on the person, and otherwise the face the person pinned, or idle. */
 export function stateForBot(bot: MascotBotProfile): MarkState {
-  const last = lastNonReceipt(bot.messages);
-
   if (bot.busy) return "working";
+  const last = lastNonReceipt(bot.messages);
   if (last?.kind === "activity" && last.tool?.ok === false) return "failed";
   if (botShowsUnread(bot)) return "notifying";
-  if (last?.kind === "options") return "blocked";
-  return normalizeState(bot.mascotExpression) ?? "idle";
+  if (last && AWAITING_KINDS.has(last.kind)) return "blocked";
+  const pinned = bot.mascotExpression;
+  if (!pinned) return "idle";
+  return (Object.hasOwn(PINNED_ALIASES, pinned) ? PINNED_ALIASES[pinned] : normalizeState(pinned)) ?? "idle";
 }

@@ -1,6 +1,6 @@
 import { useEffect, type RefObject } from "react";
 
-import type { MarkReaction } from "@/components/mascot-personality";
+import type { MarkReaction } from "@/components/mascot-engine";
 
 export type ThinkingBeat = { at: number; react: MarkReaction };
 

@@ -3,7 +3,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MarkReaction } from "@/components/mascot-personality";
+import type { MarkReaction } from "@/components/mascot-engine";
 import { STATUS_QUIET_MS } from "@/components/TurnPresence";
 import { LAST_BEAT_MS, THINKING_MOMENTS, pickThinkingMoment, useThinkingMoment } from "./use-thinking-moment";
 

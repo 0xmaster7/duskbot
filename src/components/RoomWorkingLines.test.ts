@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 
 import { LIFE_MASCOT_MS, LIFE_MASCOT_STATE } from "@/lib/reply-life";
-import type { MarkState } from "./mascot-motion-mark";
+import type { MarkState } from "./mascot-engine";
 
 import { loadLocale } from "@/lib/i18n";
 import type { Bot, Message } from "@/state/store";
@@ -88,13 +88,13 @@ describe("the room's working line", () => {
   it("gives each answering face its own quiet wait: the mascot, then the dots; a typing one is the bot itself", () => {
     vi.useFakeTimers({ now: 1_700_000_000_000 });
     const { host, done } = draw(["echo", "nova"], true, "thinking", "friendly:thinking");
-    const states = () => [...host.querySelectorAll("[data-bot-faces] [data-grok-state]")].map((face) => face.getAttribute("data-grok-state"));
+    const states = () => [...host.querySelectorAll("[data-bot-faces] [data-state]")].map((face) => face.getAttribute("data-state"));
     expect(states()).toEqual([LIFE_MASCOT_STATE, LIFE_MASCOT_STATE]);
     act(() => void vi.advanceTimersByTime(LIFE_MASCOT_MS.max + 20));
     expect(states()).toEqual(["thinking", "thinking"]);
     done();
     const typing = draw(["echo"]);
-    expect([...typing.host.querySelectorAll("[data-bot-faces] [data-grok-state]")].map((face) => face.getAttribute("data-grok-state"))).toEqual(["streaming"]);
+    expect([...typing.host.querySelectorAll("[data-bot-faces] [data-state]")].map((face) => face.getAttribute("data-state"))).toEqual(["streaming"]);
     typing.done();
     vi.useRealTimers();
   });

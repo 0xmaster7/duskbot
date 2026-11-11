@@ -36,11 +36,11 @@ function type(value: string) {
   flushSync(() => { setter.call(input, value); input.dispatchEvent(new Event("input", { bubbles: true })); });
 }
 
-it("is Grok Bot's Create New Bot: a name, thirteen shapes, the colours, and Create only once named", () => {
+it("is Create New Bot: a name, our ten shapes, the colours, and Create only once named", () => {
   flushSync(() => openCreateBot("GOATS"));
   expect(dialog()!.querySelector("h2")!.textContent).toBe("Create New Bot");
   expect(dialog()!.querySelector("input")!.placeholder).toBe("Name your Bot");
-  expect(dialog()!.querySelectorAll('[aria-label$="character shape"]')).toHaveLength(13);
+  expect(dialog()!.querySelectorAll('[aria-label$="character shape"]')).toHaveLength(10);
   expect(dialog()!.querySelectorAll('[aria-label$="character shape"][aria-pressed="true"]')).toHaveLength(1);
   expect(dialog()!.querySelectorAll('[aria-label$="character color"][aria-pressed="true"]')).toHaveLength(1);
   expect(button("Create").disabled).toBe(true);
