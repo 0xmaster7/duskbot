@@ -7,6 +7,8 @@ export const CLOUD_TRIAL_NOTICE = "cloud-trial-notice";
 export const CLOUD_NOTICE = "cloud-notice";
 /** Bots on this computer and on another place of the person's (two-places.ts): dismissed per place, by main. */
 export const TWO_PLACES_NOTICE = "two-places";
+/** A routine on this computer ran late or not at all while it slept: Dusk Cloud offered once, at that moment. */
+export const LATE_ROUTINE_NOTICE = "late-routine-v1";
 /** The Move from Grok Bot popup: each person sees it once, first of all, after their welcome. */
 export const GROK_MOVE_NOTICE = "grok-move-2026-11";
 
@@ -17,6 +19,7 @@ export const NOTICES = [
   GROK_MOVE_NOTICE,
   WHATS_NEW_NOTICE,
   TWO_PLACES_NOTICE,
+  LATE_ROUTINE_NOTICE,
   CLOUD_INTRO,
   CLOUD_TRIAL_NOTICE,
   CLOUD_NOTICE,

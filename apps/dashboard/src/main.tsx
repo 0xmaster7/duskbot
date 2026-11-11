@@ -61,7 +61,7 @@ stashClaim();
 stashDeleteToken();
 
 const TITLES: Record<string, string> = {
-  "/": "home", "/cloud": "dusk cloud", "/workspaces": "workspaces", "/bots": "bots", "/connectors": "connectors",
+  "/": "home", "/cloud": "dusk cloud", "/workspaces": "workspaces", "/bots": "bots", "/connectors": "apps",
   "/billing": "plans and billing", "/usage": "usage", "/account": "account", "/claim": "connect a workspace", "/welcome": "welcome",
   "/signin": "sign in", "/sign-in": "sign in", "/signup": "make your account", "/cloud/desktop": "approve sign-in",
 };

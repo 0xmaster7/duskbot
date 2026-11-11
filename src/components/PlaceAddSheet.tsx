@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { AddCloudFlow } from "./cloud-buy/AddCloudFlow";
 import { NewOrganization } from "./cloud-buy/NewOrganization";
-import { BackLink, Heading } from "./cloud-buy/parts";
+import { BackLink, Heading, Tag } from "./cloud-buy/parts";
 
 /** A server's pairing link, pasted here: main checks it and asks "Connect to <host>?" itself, then opens it. The sheet
  * stays open when the person cancels, and says so when the link isn't one. `connect`: a server of theirs that signed in
@@ -50,10 +50,14 @@ export function OwnServerLink({ onBack, onConnected, connect = null }: { onBack:
   </form>;
 }
 
-function Choice({ icon, title, sub, onClick, kind }: { icon: ReactNode; title: string; sub: string; onClick: () => void; kind: string }) {
+function Choice({ icon, title, sub, onClick, kind, tag }: { icon: ReactNode; title: string; sub: string; onClick: () => void; kind: string; tag?: string }) {
   return <button type="button" data-place-add-choice={kind} onClick={onClick}
-    className="flex min-w-0 flex-1 flex-col items-start gap-2 rounded-2xl border border-hairline bg-card p-5 text-start transition-colors hover:border-accent/60 hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-    <span aria-hidden="true" className="grid size-9 place-items-center rounded-[10px] bg-accent/12 text-accent-text">{icon}</span>
+    className={cn("flex min-w-0 flex-1 flex-col items-start gap-2 rounded-2xl border bg-card p-5 text-start transition-colors hover:border-accent/60 hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+      tag ? "border-ink/25" : "border-hairline")}>
+    <span className="flex w-full items-center justify-between gap-2">
+      <span aria-hidden="true" className="grid size-9 place-items-center rounded-[10px] bg-accent/12 text-accent-text">{icon}</span>
+      {tag && <Tag data-place-add-tag="">{tag}</Tag>}
+    </span>
     <span className="text-[15px] font-semibold text-ink">{title}</span>
     <span className="text-[13px] leading-snug text-ink-secondary">{sub}</span>
   </button>;
@@ -107,10 +111,15 @@ export function PlaceAddSheet({ choices, connect = null, onClose, onAccount }: {
       <Heading title={t("rail.add")} />
       <div className="flex flex-col gap-3 sm:flex-row">
         {organization && <Choice kind="organization" icon={<Building2 size={19} />} title={t("rail.org")} sub={t("rail.orgSub")} onClick={() => setView("organization")} />}
-        {choices.cloud && <Choice kind="cloud" icon={<Cloud size={19} />} title={t("rail.buy")} sub={t("rail.buySub")} onClick={() => setView("cloud")} />}
-        {server && <Choice kind="server" icon={<Server size={19} />} title={t("rail.own")} sub={t("rail.ownSub")} onClick={() => setView("server")} />}
+        {choices.cloud && <Choice kind="cloud" icon={<Cloud size={19} />} title={t("rail.buy")} sub={t("rail.buySub")} tag={organization ? undefined : t("rail.recommended")} onClick={() => setView("cloud")} />}
+        {server && !choices.cloud && <Choice kind="server" icon={<Server size={19} />} title={t("rail.own")} sub={t("rail.ownSub")} onClick={() => setView("server")} />}
         {account && <Choice kind="account" icon={<UserRound size={19} />} title={t("accounts.add")} sub={t("rail.accountSub")} onClick={() => onAccount!()} />}
       </div>
+      {/* a server of one's own is for people who run one: offered, never weighed against Dusk Cloud */}
+      {server && choices.cloud && <button type="button" data-place-add-choice="server" onClick={() => setView("server")}
+        className="-ms-1 inline-flex min-h-8 items-center gap-1.5 self-start rounded-full px-1 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
+        <Server size={15} strokeWidth={1.5} aria-hidden="true" />{t("rail.ownAdvanced")}
+      </button>}
     </div>}
     {view === "server" && <OwnServerLink onBack={several && !connect ? () => setView("choose") : null} onConnected={onClose} connect={connect} />}
     {view === "cloud" && <AddCloudFlow onClose={onClose} onFirstCloud={firstCloud} onWide={setWide} onBack={several ? () => setView("choose") : null} />}

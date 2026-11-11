@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from "react";
+import { useEffect, type ReactNode, type Ref } from "react";
 import mark from "../../favicon.svg";
 import { SITE_URL } from "../lib/site";
 import { cx } from "./kit";
@@ -8,12 +8,22 @@ const TOWARD_FORM: SceneMood[] = ["typing", "thinking", "waiting", "oops"];
 
 /** the screens before the dashboard: a tall poster with the crew on the left, one calm column on the right. on a phone
  * the poster is a short band on top */
-export function SplitFrame({ poster, mood, scene, card, snug = false, aside, children, foot }: { poster: string; mood: SceneMood; scene?: Ref<SceneHandle>; card?: ReactNode; snug?: boolean; aside?: ReactNode; children: ReactNode; foot?: ReactNode }) {
+/** `plain`: only the banded sky, hills and trees, with no drifting clouds over them */
+export function SplitFrame({ poster, mood, scene, card, snug = false, plain = false, aside, children, foot }: { poster: string; mood: SceneMood; scene?: Ref<SceneHandle>; card?: ReactNode; snug?: boolean; plain?: boolean; aside?: ReactNode; children: ReactNode; foot?: ReactNode }) {
   const wide = useMedia("(min-width: 1024px)");
+  // inputs count as focus-visible however they were focused, so the page itself tells keyboard use from pointer use
+  useEffect(() => {
+    const root = document.documentElement;
+    const keys = (e: KeyboardEvent) => { if (e.key === "Tab") root.dataset.keys = ""; };
+    const pointer = () => { delete root.dataset.keys; };
+    document.addEventListener("keydown", keys, true);
+    document.addEventListener("pointerdown", pointer, true);
+    return () => { document.removeEventListener("keydown", keys, true); document.removeEventListener("pointerdown", pointer, true); delete root.dataset.keys; };
+  }, []);
   const look = TOWARD_FORM.includes(mood) ? (wide ? { x: 0.95, y: -0.1 } : { x: 0, y: 0.9 }) : null;
   return (
     <div className="min-h-[100dvh] bg-bg lg:grid lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1fr)] lg:gap-3 lg:p-3">
-      <Scene ref={scene} poster={poster} mood={mood} look={look} compact={!wide} className="h-[168px] lg:sticky lg:top-3 lg:h-[calc(100dvh-24px)] lg:min-h-[620px] lg:rounded-[28px]">
+      <Scene ref={scene} poster={poster} mood={mood} look={look} compact={!wide} plain={plain} className="h-[168px] lg:sticky lg:top-3 lg:h-[calc(100dvh-24px)] lg:min-h-[620px] lg:rounded-[28px]">
         {card && <div className={cx("pop enter absolute top-[11%] rounded-[24px] bg-pop max-lg:hidden", snug ? "left-[9%] px-6 py-5 xl:left-[13%]" : "inset-x-[9%] p-8 xl:inset-x-[13%]")}>{card}</div>}
       </Scene>
       <div className="flex min-h-[calc(100dvh-168px)] flex-col px-5 lg:min-h-[calc(100dvh-24px)] lg:px-10">
