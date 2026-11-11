@@ -55,14 +55,14 @@ describe("MausAvatar body", () => {
 });
 
 describe("mascot facial feature colors", () => {
-  it.each(["white", "black"] as const)("uses %s for the eyes on every body type, and the mouth where there is one", (mascotFaceColor) => {
+  it.each(["white", "black"] as const)("uses %s for the eyes on every body type, and draws no mouth", (mascotFaceColor) => {
     const ink = mascotFaceColor === "white" ? "#ffffff" : "#000000";
     for (const mascotBody of ["cursor", "star", "pumpkin", "vampire"] as const) {
       for (const color of ["green", "chrome"] as const) {
         const markup = renderBot({ color, mascotBody, mascotFaceColor });
         expect(markup).toContain(`fill="${ink}"`);
         expect(markup).not.toContain('visibility="hidden"');
-        if (mascotBody === "pumpkin" || mascotBody === "vampire") expect(markup).toContain(`stroke="${ink}"`);
+        expect(markup).not.toContain(`stroke="${ink}"`);
       }
     }
   });
@@ -72,7 +72,7 @@ describe("mascot facial feature colors", () => {
       const markup = renderBot(bot);
       expect(markup).toContain('<path fill="#fff" d="M-1 0');
     }
-    expect(renderBot({ mascotBody: "pumpkin" })).toContain('stroke="#0d0a10"');
+    expect(renderBot({ mascotBody: "pumpkin" })).toContain('fill="#0d0a10"');
   });
 
   it("paints a body with one flat colour", () => {

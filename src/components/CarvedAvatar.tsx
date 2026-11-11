@@ -167,8 +167,6 @@ function CarvedAvatarComponent(
   const live = animated && !reduced;
   const group = useRef<SVGGElement>(null);
   const eyes = [useRef<SVGRectElement>(null), useRef<SVGRectElement>(null)] as const;
-  const smile = useRef<SVGPathElement>(null);
-  const open = useRef<SVGEllipseElement>(null);
   const pose = useRef<CarvedPose>(moodPose(state));
   const cue = useRef({ blinkAt: -1, startleUntil: 0, pointer: null as null | { x: number; y: number } });
   const props = useRef({ state, gaze });
@@ -199,12 +197,6 @@ function CarvedAvatarComponent(
       if (!el) return;
       for (const [k, v] of Object.entries(rect)) el.setAttribute(k, String(v));
     });
-    if (smile.current) {
-      smile.current.setAttribute("d", g.smile.d);
-      smile.current.setAttribute("transform", g.smile.transform);
-      smile.current.setAttribute("opacity", String(g.smile.opacity));
-    }
-    if (open.current) for (const [k, v] of Object.entries(g.open)) open.current.setAttribute(k, String(v));
   };
 
   useEffect(() => {
@@ -292,13 +284,6 @@ function CarvedAvatarComponent(
           <g clipPath={`url(#carved-${uid})`}>
             {initial.eyes.map((rect, i) => <rect key={i} ref={eyes[i]} {...rect} fill={faceInk ?? body.eyes.ink} />)}
           </g>
-          {body.eyes.mouth && (
-            <g>
-              <path ref={smile} d={initial.smile.d} transform={initial.smile.transform} opacity={initial.smile.opacity}
-                fill="none" stroke={faceInk ?? body.eyes.mouthInk} strokeWidth={body.eyes.w * 0.36} strokeLinecap="round" />
-              <ellipse ref={open} {...initial.open} fill={faceInk ?? body.eyes.mouthInk} />
-            </g>
-          )}
         </g>
       </svg>
     </span>

@@ -17,7 +17,7 @@ export interface DuskMarkProps {
   body: string;
   /** CSS paint for the body. */
   colour: string;
-  /** CSS paint for the eyes and mouth. */
+  /** CSS paint for the eyes. */
   eyes?: string;
   state?: string;
   size?: number;
