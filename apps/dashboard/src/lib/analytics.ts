@@ -1,6 +1,8 @@
 import { CSRF_COOKIE, CSRF_HEADER } from "../../../../shared/account-api";
 
-type PageEvent = { name: "page_view"; props: { path: string } } | { name: "onboarding_step"; props: { step: string } } | { name: "onboarding_done" } | { name: "plan_chosen"; props: { plan: string; period: "month" | "year" } };
+type PageEvent = { name: "page_view"; props: { path: string } } | { name: "onboarding_step"; props: { step: string; ms?: number } } | { name: "onboarding_done" }
+  | { name: "plan_chosen"; props: { plan: string; period: "month" | "year" } } | { name: "page_action"; props: { action: string; path: string; label?: string; value?: string } }
+  | { name: "download_click"; props: { platform: string; detected_os: string } };
 
 const declined = () => typeof navigator !== "undefined" && ((navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true || navigator.doNotTrack === "1");
 const live = () => typeof window !== "undefined" && !(import.meta.env.DEV && new URLSearchParams(location.search).has("fixture")) && import.meta.env.MODE !== "test";
@@ -37,10 +39,64 @@ export function track(event: PageEvent) {
   timer ??= setTimeout(flush, 800);
 }
 
-/** one page view per route change; the onboarding step rides along as its own event */
+const ID_LIKE = /@|\d{4,}|^(?:ws|acct|bot|ses|cmd|c)_/i;
+/** a static name as an analytics word: lowercase, underscores, at most four words; null for anything that looks typed or like an id */
+export function slug(raw: string | null | undefined): string | null {
+  if (!raw || ID_LIKE.test(raw)) return null;
+  const out = raw.trim().toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).slice(0, 4).join("_").slice(0, 40);
+  return out || null;
+}
+
+/** what a click or a choice was, from the element alone; text inside list rows and tables is people's own data, so only a declared name counts there */
+export function actionOf(el: Element, kind: "click" | "change"): { action: string; label?: string; value?: string } | null {
+  if (el.closest("[data-private], [data-track-ignore]")) return null;
+  if (kind === "change") {
+    if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement)) return null;
+    const type = el instanceof HTMLInputElement ? el.type : "select";
+    if (!["radio", "checkbox", "select"].includes(type)) return null;
+    const label = slug(el.getAttribute("data-track") ?? el.name ?? el.id);
+    if (!label) return null;
+    const value = type === "checkbox" ? ((el as HTMLInputElement).checked ? "on" : "off") : slug(el.value);
+    return { action: "choose", label, ...(value ? { value } : {}) };
+  }
+  const target = el.closest("a[href], button, [role=button], [role=tab], [role=menuitem]");
+  if (!target) return null;
+  const inRow = !!target.closest("li, tr");
+  const label = slug(target.getAttribute("data-track") ?? target.getAttribute("aria-label") ?? (inRow ? null : target.textContent));
+  const href = target instanceof HTMLAnchorElement ? target.href : "";
+  if (/\/download\b/.test(href)) {
+    const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+    const value = /iphone|ipad/i.test(ua) ? "ios" : /android/i.test(ua) ? "android" : /mac/i.test(ua) ? "mac" : /win/i.test(ua) ? "windows" : /linux/i.test(ua) ? "linux" : null;
+    return { action: "download", ...(label ? { label } : {}), ...(value ? { value } : {}) };
+  }
+  return { action: inRow && !label ? "row_click" : "click", ...(label ? { label } : {}) };
+}
+
+let listening = false;
+let currentPath = "/";
+let stepAt: number | null = null;
+function listen() {
+  if (listening || typeof document === "undefined") return;
+  listening = true;
+  const send = (found: ReturnType<typeof actionOf>) => { if (found) track({ name: "page_action", props: { ...found, path: currentPath } }); };
+  document.addEventListener("click", (e) => { if (e.target instanceof Element && !(e.target instanceof HTMLInputElement)) send(actionOf(e.target, "click")); }, true);
+  document.addEventListener("change", (e) => {
+    const box = e.target;
+    if (box instanceof HTMLInputElement && box.type === "search") { if (box.value.trim()) send({ action: "search", label: slug(box.id || box.name) ?? "search" }); return; }
+    if (box instanceof Element) send(actionOf(box, "change"));
+  }, true);
+}
+
+/** one page view per route change; the onboarding step rides along with how long the step before it took */
 export function trackPage(path: string, query: URLSearchParams) {
   if (path === "/admin" || path.startsWith("/admin/")) return;
+  currentPath = path;
+  if (live() && !declined()) listen();
   track({ name: "page_view", props: { path } });
   const step = query.get("step");
-  if (path === "/welcome" && step) track({ name: "onboarding_step", props: { step } });
+  if (path === "/welcome" && step) {
+    const now = Date.now();
+    track({ name: "onboarding_step", props: { step, ...(stepAt !== null ? { ms: now - stepAt } : {}) } });
+    stepAt = now;
+  }
 }

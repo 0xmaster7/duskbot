@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_FEATURES as SERVER_FEATURES, cleanProps } from "../../apps/dashboard/server/analytics/events";
 
 type Client = typeof import("./product-analytics");
-type Payload = { install: string; session: string; platform: string; version: string; events: { name: string; at: number; props: Record<string, string | number> }[] };
+type Payload = { install: string; session: string; platform: string; version: string; events: { name: string; at: number; props: Record<string, string | number | boolean> }[] };
 let client: Client;
 const fetcher = vi.fn<typeof fetch>();
 const config = { origin: "https://accounts.example", token: null, platform: "darwin", version: "1.2.3", kind: "desktop", force: true } as const;
@@ -36,6 +36,88 @@ afterEach(() => {
 });
 
 describe("product analytics", () => {
+  it("keeps only valid action extras, counts eight valid extras and requires a word name", async () => {
+    client.configure(config);
+    client.action("reply_reaction", {
+      name: "overridden", "bad-key": "yes", bad_value: "private words", url: "https://private.example", upper: "UPPER",
+      emoji: "love", on: true, off: false, count: 0, limit: 1e12 - 1, code: "word_123", kind: "reply", ms: 12,
+      ninth: "dropped", nested: { private: true },
+    });
+    client.action("counts", { negative: -1, decimal: 1.5, infinite: Infinity, nan: NaN, unsafe: Number.MAX_SAFE_INTEGER + 1,
+      huge: 1e12 + 1, nil: null, absent: undefined, list: [], "key1": "bad", ["k".repeat(21)]: "bad", ["k".repeat(20)]: "a".repeat(40), long: "a".repeat(41) });
+    for (const name of ["", "UPPER", "private words", "https://private.example", "a".repeat(41)]) client.action(name, { on: true });
+    client.track("app_action", { on: true });
+    await client.flush();
+    expect(events().filter(event => event.name === "app_action").map(event => event.props)).toEqual([
+      { name: "reply_reaction", emoji: "love", on: true, off: false, count: 0, limit: 1e12 - 1, code: "word_123", kind: "reply", ms: 12 },
+      { name: "counts", ["k".repeat(20)]: "a".repeat(40) },
+    ]);
+  });
+
+  it("accepts only integer feedback scores from one to five and a word moment", async () => {
+    client.configure(config);
+    for (const score of [1, 2, 3, 4, 5]) client.feedback(score, "after_reply");
+    for (const score of [0, 6, -1, 2.5, NaN, Infinity]) client.feedback(score, "after_reply");
+    for (const moment of ["", "UPPER", "private words", "https://private.example", "a".repeat(41)]) client.feedback(3, moment);
+    client.track("app_feedback", { score: "5", moment: "after_reply" });
+    client.track("app_feedback", { score: true, moment: "after_reply" });
+    client.track("app_feedback", { score: 4, moment: "settings", text: "private words" });
+    await client.flush();
+    expect(events().filter(event => event.name === "app_feedback").map(event => event.props)).toEqual([
+      ...[1, 2, 3, 4, 5].map(score => ({ score, moment: "after_reply" })), { score: 4, moment: "settings" },
+    ]);
+  });
+
+  it("forwards legacy tracking through action cleaning and counts team imports", async () => {
+    const analytics = await import("./analytics");
+    client.configure(config);
+    analytics.track("cloud_card_action", { action: "signin", queued: false, text: "private words" });
+    analytics.track("team_imported", { members: 3, source: "organization" });
+    analytics.track("cloud_setup_started");
+    await client.flush();
+    expect(events().slice(1).map(({ name, props }) => ({ name, props }))).toEqual([
+      { name: "app_action", props: { name: "cloud_card_action", action: "signin", queued: false } },
+      { name: "app_action", props: { name: "team_imported", members: 3, source: "organization" } },
+      { name: "app_feature", props: { feature: "team_imported" } },
+      { name: "app_action", props: { name: "cloud_setup_started" } },
+    ]);
+    analytics.setEmailGateDone("skipped");
+    expect(analytics.emailGateDone()).toBe(true);
+    client.setUsageAnalytics(false);
+    analytics.track("team_imported", { members: 5 });
+    client.feedback(5, "settings");
+    await client.flush();
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
+  it("counts a started call while keeping its instance id local", async () => {
+    const { callStarted } = await import("./product-events");
+    client.configure(config);
+    callStarted([{ instanceId: "private_instance_id", driverKind: "codex" }], "private_instance_id", "live");
+    await client.flush();
+    expect(events().slice(1).map(({ name, props }) => ({ name, props }))).toEqual([
+      { name: "app_feature", props: { feature: "call_started" } },
+      { name: "app_action", props: { name: "call_started", driver: "codex", mode: "live" } },
+    ]);
+  });
+
+  it("counts config saves once after success without sending their contents", async () => {
+    const { api } = await import("@/state/api");
+    client.configure(config);
+    await api("/api/config");
+    await api("/api/config", { method: "PUT", body: JSON.stringify({ computerName: "private name" }) });
+    await api("/api/config", { method: "PATCH", body: JSON.stringify({ profile: { aboutMe: "private text" } }) });
+    fetcher.mockResolvedValueOnce(new Response("{}", { status: 400 }));
+    await expect(api("/api/config", { method: "PUT", body: "{}" })).rejects.toThrow();
+    await api("/api/bots/example", { method: "PATCH", body: "{}" });
+    fetcher.mockClear();
+    await client.flush();
+    expect(events().filter(event => event.name === "app_feature").map(event => event.props)).toEqual([
+      { feature: "settings_changed" }, { feature: "settings_changed" },
+    ]);
+    expect(JSON.stringify(bodies())).not.toContain("private");
+  });
+
   it("persists a random install id and makes a fresh session for each launch", async () => {
     client.configure(config);
     await client.flush();
@@ -291,6 +373,8 @@ describe("product analytics", () => {
     client.feature("bot_created");
     client.error("window", "error");
     client.pairFailed("expired_code");
+    client.action("reply_reaction", { emoji: "yes", on: true, count: 1e12 - 1 });
+    client.feedback(5, "after_reply");
     client.messageSent();
     client.replyReceived(123);
     await client.flush();

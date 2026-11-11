@@ -9,6 +9,7 @@ import { DEFAULT_DASHBOARD_URL, parseWorkspaceReport } from "../../shared/dashbo
 import { createDashboardCollector } from "../dashboard-report.ts";
 import type { DashboardCollectorDeps } from "../dashboard-report.ts";
 import { createDashboardCommands } from "../dashboard-commands.ts";
+import { dashboardApps } from "../dashboard-apps.ts";
 import { macMemoryUsed } from "../dashboard-machine.ts";
 import { json, readBody } from "../harness/http.ts";
 import type { RequestAuth } from "../request-auth.ts";
@@ -139,6 +140,47 @@ describe("dashboard command routes", () => {
     expect((await commands.execute({ id: "session", kind: "session.revoke", target: "s1", issuedAt: 0, expiresAt: Date.now() + 1000 })).message).toBe("This session is already gone.");
     expect((await commands.execute({ id: "missing", kind: "computer.wake", target: "missing", issuedAt: 0, expiresAt: Date.now() + 1000 })).ok).toBe(false);
     expect(nonce).not.toBe("");
+  });
+});
+
+describe("dashboard app commands", () => {
+  async function workspace(answer: (req: { url: string; method: string }) => [number, object]) {
+    const seen: Array<{ path: string; method: string }> = [];
+    const server = createServer(async (req, res) => {
+      const auth = commands.authenticate(req); expect(auth && commands.owns(auth)).toBe(true);
+      seen.push({ path: req.url!, method: req.method! });
+      const [status, body] = answer({ url: req.url!, method: req.method! });
+      json(res, status, body);
+    });
+    const base = await listen(server), commands = createDashboardCommands({ port: Number(new URL(base).port), collect: createDashboardCollector(dependencies()) });
+    const run = (kind: "app.connect" | "app.disconnect", target: string) => commands.execute({ id: kind, kind, target, issuedAt: 0, expiresAt: Date.now() + 1000 });
+    return { seen, run };
+  }
+  it("starts a sign-in through the workspace's own connector route and hands back only an https link", async () => {
+    let url = "https://connect.composio.dev/link/abc";
+    const w = await workspace(({ method }) => method === "POST" ? [200, { url }] : [200, { removed: 1 }]);
+    expect(await w.run("app.connect", "Gmail")).toMatchObject({ ok: true, url });
+    expect(await w.run("app.disconnect", "gmail")).toMatchObject({ ok: true, message: "Disconnected." });
+    url = "javascript:alert(1)";
+    expect(await w.run("app.connect", "gmail")).toMatchObject({ ok: false, message: "This app did not return a sign-in page." });
+    expect(w.seen).toEqual([{ path: "/api/connectors/gmail/authorize", method: "POST" }, { path: "/api/connectors/gmail", method: "DELETE" }, { path: "/api/connectors/gmail/authorize", method: "POST" }]);
+    expect(await w.run("app.connect", "../admin")).toMatchObject({ ok: false, message: "This app could not be found." });
+    expect(w.seen).toHaveLength(3);
+  });
+  it("passes a workspace's refusal through but hides its internal failures", async () => {
+    let status = 403;
+    const w = await workspace(() => [status, { error: status === 403 ? "Your team admin has not allowed this app." : "Composio authorization: HTTP 500 internal detail" }]);
+    expect((await w.run("app.connect", "gmail")).message).toBe("Your team admin has not allowed this app.");
+    status = 502;
+    expect((await w.run("app.connect", "gmail")).message).toBe("The workspace could not complete this action.");
+  });
+  it("reports connected and half-connected apps only, and nothing when apps are not set up", async () => {
+    const source = { connectorAvailability: vi.fn<() => "configured" | "unconfigured">(() => "configured"), connectedServicesInventory: vi.fn(async () => ({ complete: false, services: {
+      gmail: { connected: true, pending: false, status: "ACTIVE", accounts: [] }, linear: { connected: false, pending: true, status: "INITIATED", accounts: [] },
+      slack: { connected: false, pending: false, status: "EXPIRED", accounts: [] }, "bad slug!": { connected: true, pending: false, status: "ACTIVE", accounts: [] } } })) };
+    expect(await dashboardApps({}, source)).toEqual({ available: true, complete: false, services: [{ slug: "gmail", connected: true, pending: false }, { slug: "linear", connected: false, pending: true }] });
+    source.connectorAvailability.mockReturnValue("unconfigured");
+    expect(await dashboardApps({}, source)).toEqual({ available: false, complete: true, services: [] });
   });
 });
 

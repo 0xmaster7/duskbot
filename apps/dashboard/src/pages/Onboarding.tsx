@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Download, Laptop, LoaderCircle } from "@/icons";
+import { ArrowLeft, Laptop, LoaderCircle } from "@/icons";
 import meadow from "../art/p-meadow.webp";
-import poster from "../art/poster-layers.webp";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, PlanCatalog } from "../data/contracts";
 import { planLine } from "../data/funnel";
@@ -10,14 +9,14 @@ import { useSession } from "../data/session";
 import { FIXTURE } from "../lib/api";
 import { navigate, useLocation } from "../lib/router";
 import { planIntent } from "../lib/site";
-import { DOWNLOAD_URL } from "../lib/usage";
 import { Toggle } from "../ui/controls";
+import { Downloads } from "../ui/Downloads";
 import { SplitFrame } from "../ui/Frame";
 import { Button, cx, Skeleton } from "../ui/kit";
 import { Mascot, type MascotHandle } from "../ui/Mascot";
 import type { SceneHandle, SceneMood } from "../ui/Scene";
 import { CHECKOUT_SOON, Points } from "./cloud-offer";
-import { IntervalToggle, per, planSelection, type PaidPlan } from "./plan-sheet";
+import { per, planSelection, type PaidPlan } from "./plan-sheet";
 
 const STEPS = ["name", "plan", "app"] as const;
 type Step = (typeof STEPS)[number];
@@ -25,7 +24,6 @@ type Home = "cloud" | "free";
 
 const SAVED = "dusk-onboarding-step";
 const isStep = (v: string | null): v is Step => (STEPS as readonly string[]).includes(v ?? "");
-const JOBS = ["summarise my inbox", "watch a price", "plan a trip", "research a topic"];
 const LABELS = ["say hi", "pick a home", "get the app"];
 
 function Busy({ children }: { children: ReactNode }) {
@@ -48,8 +46,8 @@ function Rail({ at }: { at: number }) {
   );
 }
 
-/** dusk cloud first and chosen, this computer as the free way; the plan and period sit inside the cloud card */
-function PlanStep({ catalog, home, setHome, plan, setPlan, interval, setInterval }: { catalog: PlanCatalog; home: Home; setHome(h: Home): void; plan: PaidPlan; setPlan(p: PaidPlan): void; interval: BillingInterval; setInterval(v: BillingInterval): void }) {
+/** dusk cloud first and chosen, this computer as the free way; the plan sits inside the cloud card, priced monthly */
+function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCatalog; home: Home; setHome(h: Home): void; plan: PaidPlan; setPlan(p: PaidPlan): void }) {
   const cloud = home === "cloud";
   const ring = "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-accent";
   const plans = (["starter", "pro"] as const).flatMap((id) => { const b = bundleOf(catalog, id); return b ? [{ id, b }] : []; });
@@ -61,7 +59,6 @@ function PlanStep({ catalog, home, setHome, plan, setPlan, interval, setInterval
           <input id="home-cloud" type="radio" name="home" value="cloud" checked={cloud} onChange={() => setHome("cloud")} className="sr-only" />
           <span className="relative block overflow-hidden rounded-[16px]">
             <img src={meadow} alt="" width={800} height={354} className="h-[84px] w-full object-cover object-bottom" draggable={false} />
-            <span className="tag absolute left-2.5 top-2.5 !bg-pop !text-ink">recommended</span>
             <span className="absolute bottom-1 right-4" aria-hidden><Mascot body="kit" color="blue" size={44} state="working" still /></span>
           </span>
           <span className="flex items-baseline justify-between gap-3 px-3 pt-4">
@@ -72,8 +69,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan, interval, setInterval
         </label>
         {cloud && (
           <div className="step-in flex flex-col gap-2 px-1 pb-1 pt-2">
-            <Toggle<PaidPlan> label="plan" className="w-full" value={plan} onChange={setPlan} options={plans.map(({ id, b }) => ({ value: id, label: <>{b.name.toLowerCase()} <span className="num text-ink-4">{per(b.monthly, interval, catalog).amount}</span></> }))} />
-            <IntervalToggle value={interval} onChange={setInterval} catalog={catalog} />
+            <Toggle<PaidPlan> label="plan" className="w-full" value={plan} onChange={setPlan} options={plans.map(({ id, b }) => ({ value: id, label: <>{b.name.toLowerCase()} <span className="num text-ink-4">{per(b.monthly, "month", catalog).amount}/mo</span></> }))} />
             <p className="px-2 text-13 text-ink-3">{planLine(catalog, plan).toLowerCase()}.</p>
           </div>
         )}
@@ -126,6 +122,7 @@ export function Onboarding() {
   const here = address(step);
   useEffect(() => { sessionStorage.setItem(SAVED, step); }, [step]);
   useEffect(() => { setError(null); scene.current?.react("perk"); }, [step]);
+  useEffect(() => { if (step === "plan") setInterval("month"); }, [step]);
   // each history entry names its step, so back and forward move between steps and a refresh stays put
   useEffect(() => { if (asked !== step && !leaving.current) navigate(here, { replace: true }); }, [asked, step, here]);
 
@@ -168,8 +165,8 @@ export function Onboarding() {
 
   return (
     <SplitFrame
-      poster={poster}
       mood={mood}
+      step={at}
       scene={scene}
       snug
       card={<p key={step} className="swap-in flex items-end gap-3.5"><span className="font-pixel text-[72px] font-medium leading-[0.72] text-ink">{at + 1}</span><span className="pb-0.5 text-20 font-medium tracking-[-0.03em] text-ink">{LABELS[at]}</span></p>}
@@ -199,7 +196,7 @@ export function Onboarding() {
         <div key="plan" className="step-in">
           <h1 className="t-title">where should your bots live?</h1>
           <p className="mb-6 mt-3 text-16 text-ink-2">on dusk cloud they never stop. on this computer they nap when it does.</p>
-          {catalog ? <PlanStep catalog={catalog} home={home} setHome={(h) => { setHome(h); setError(null); }} plan={plan} setPlan={setPlan} interval={interval} setInterval={setInterval} /> : <div className="flex flex-col gap-2" aria-busy="true"><Skeleton className="h-[300px] !rounded-[22px]" /><Skeleton className="h-[72px] !rounded-[18px]" /></div>}
+          {catalog ? <PlanStep catalog={catalog} home={home} setHome={(h) => { setHome(h); setError(null); }} plan={plan} setPlan={setPlan} /> : <div className="flex flex-col gap-2" aria-busy="true"><Skeleton className="h-[300px] !rounded-[22px]" /><Skeleton className="h-[72px] !rounded-[18px]" /></div>}
           {error && <p role="alert" className="mt-3 text-14 text-bad">{error}</p>}
           <Button variant="primary" className={cx("mt-5", big)} onClick={() => void choose()} disabled={busy || !catalog}>{busy ? <Busy>opening checkout</Busy> : home === "cloud" && price ? `continue to checkout, ${price.amount}${price.unit}` : "continue with free"}</Button>
           <div className="mt-2 flex items-center justify-between gap-3">{back("name")}{home === "cloud" && <span className="t-meta">cancel anytime</span>}</div>
@@ -207,16 +204,10 @@ export function Onboarding() {
       ) : (
         <div key="app" className="step-in">
           {bought && <p className="tag mb-4 !bg-lime !text-ink" role="status"><span className="live-dot text-good" data-live />your dusk cloud is being set up</p>}
-          <h1 className="t-title">{shownName.trim() ? `last thing, ${shownName.trim()}: get the app.` : "last thing: get the app."}</h1>
-          <p className="mt-3 text-16 text-ink-2">sign in with this account, make a bot, and hand it something real.</p>
-          <ul className="mt-6 flex flex-wrap gap-1.5" aria-label="first jobs people try">
-            {JOBS.map((job) => <li key={job} className="rounded-full bg-btn px-3.5 py-2 text-14 text-ink-2">{job}</li>)}
-          </ul>
-          <div className="mt-7 flex flex-col gap-2">
-            <a href={DOWNLOAD_URL} target="_blank" rel="noreferrer" onClick={() => void finish()} className="press hover-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-15 font-medium text-primary-ink"><Download size={17} strokeWidth={1.75} aria-hidden />download dusk bot</a>
-            <Button className={big} onClick={() => void finish()} disabled={busy}>{busy ? <Busy>opening</Busy> : "i have it, go to my dashboard"}</Button>
-          </div>
-          <p className="t-meta mt-4">on your phone? pair it later from settings in the app.</p>
+          <h1 className="t-title">get the app.</h1>
+          <p className="mt-3 text-16 text-ink-2">sign in with this account and make your first bot.</p>
+          <div className="mt-6"><Downloads /></div>
+          <Button variant="primary" className={cx("mt-5", big)} onClick={() => void finish()} disabled={busy}>{busy ? <Busy>opening</Busy> : "continue"}</Button>
           {!bought && <div className="mt-1">{back("plan")}</div>}
         </div>
       )}

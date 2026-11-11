@@ -1,5 +1,5 @@
 import type { DeletionBlocker, DeleteAccountOptions } from "../../../../shared/billing-api";
-import type { CommandKind, CommandView, WorkspaceDetail, WorkspaceSummary } from "../../../../shared/dashboard-protocol";
+import type { CommandKind, CommandView, ConnectorsAnswer, WorkspaceDetail, WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import type { AccountDevice, AccountProfile, AuthProviders, BillingOverview, CheckoutAnswer, CheckoutRequest, CloudDesktop, DesktopId, EmailCodeStart, Identity, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection, SlackWake } from "../data/contracts";
 import { track } from "./analytics";
 import { accountFromWire, billingFromWire, cartFromQuote, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire } from "../data/live";
@@ -206,7 +206,7 @@ export const api = {
   confirmDeleteData: (id: string, token: string) => send<{ ok: true; deleteScheduledAt: number }>(`${cloudPath(id)}/delete-data/confirm`, "POST", { token }),
   cancelDeleteData: (id: string) => send<{ ok: true }>(`${cloudPath(id)}/delete-data/cancel`, "POST"),
   resize: (id: string, req: { tier: Exclude<DesktopId, "none">; size: MachineSpec | null }) => send<CloudDesktop>(`${cloudPath(id)}/resize`, "POST", req),
-  connections: () => FIXTURE ? call<{ byWorkspace: Record<string, string[]> }>("/v1/connectors") : Promise.resolve({ byWorkspace: {} as Record<string, string[]> }),
+  connections: () => call<ConnectorsAnswer>("/v1/connectors"),
   workspaces: (signal?: AbortSignal) => call<{ workspaces: WorkspaceSummary[] }>("/v1/workspaces", { signal }),
   workspace: (id: string, signal?: AbortSignal) => call<WorkspaceDetail>(workspacePath(id), { signal }),
   command: (id: string, kind: CommandKind, target: string) => send<{ command: CommandView }>(`${workspacePath(id)}/commands`, "POST", { kind, target }),

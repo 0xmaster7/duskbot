@@ -9,6 +9,9 @@ import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { api, type Bot, type Message } from "@/state/store";
 import { useStoreRef } from "@/state/store-ref";
+import { action, feature } from "@/lib/product-analytics";
+
+const REACTION_WORD: Record<Reaction, string> = { "👍": "yes", "👎": "no", "❤️": "love", "😂": "laugh", "🎉": "celebrate", "👀": "looking" };
 
 const LABEL: Record<Reaction, LocaleKey> = {
   "👍": "chat.reaction.yes",
@@ -52,7 +55,10 @@ function useReaction(threadId: string, message: Message) {
       method: "POST",
       body: JSON.stringify({ emoji, on }),
     })
-      .then((body) => { if (body.message && newest()) dispatch({ type: "messagePatched", threadId, message: body.message }); })
+      .then((body) => {
+        if (on) { feature("reaction_added"); action("reply_reaction", { emoji: REACTION_WORD[emoji], on: true }); }
+        if (body.message && newest()) dispatch({ type: "messagePatched", threadId, message: body.message });
+      })
       .catch((error: unknown) => {
         const now = latest.current.reactions?.find((reaction) => reaction.by === me);
         if (newest() && (sameEntry(now, shown) || sameEntry(now, own))) dispatch({ type: "messagePatched", threadId, message: withOwn(latest.current, me, own) });

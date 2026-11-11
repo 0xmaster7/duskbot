@@ -59,7 +59,9 @@ export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, 
   for (const [i, account] of accounts.entries()) {
     await analytics.record("signup", { accountId: account.id, at: account.createdAt, props: { method: i % 3 === 0 ? "google" : "email" } });
     await analytics.record("sign_in", { accountId: account.id, at: account.createdAt + 1000, props: { kind: "web" } });
-    for (const [s, step] of ["name", "plan", "app"].entries()) if (i % 7 !== 3 || s === 0) await analytics.record("onboarding_step", { accountId: account.id, at: account.createdAt + (s + 1) * 60_000, props: { step } });
+    for (const [s, step] of ["name", "plan", "app"].entries()) if (i % 7 !== 3 || s === 0) await analytics.record("onboarding_step", { accountId: account.id, at: account.createdAt + (s + 1) * 60_000, props: { step, ...(s ? { ms: Math.round(20_000 + rand() * 90_000) } : {}) } });
+    if (rand() < 0.6) await analytics.record("page_action", { accountId: account.id, at: account.createdAt + 130_000, props: { action: "choose", label: "plan", value: pick(["plus", "plus", "pro"]), path: "/welcome" } });
+    if (rand() < 0.5) await analytics.record("page_action", { accountId: account.id, at: account.createdAt + 200_000, props: { action: "download", label: "download_dusk_bot", value: pick(["mac", "mac", "windows"]), path: "/welcome" } });
     if (i % 7 !== 3) await analytics.record("onboarding_done", { accountId: account.id, at: account.createdAt + 5 * 60_000 });
     if (i % 2 === 0) await analytics.record("app_paired", { accountId: account.id, at: account.createdAt + 3_600_000, props: { via: "app", platform: i % 4 === 0 ? "darwin" : "win32" } });
     if (i % 3 !== 2 && i < 12) await analytics.record("first_bot_reply", { accountId: account.id, at: account.createdAt + 2 * 3_600_000 });
@@ -84,6 +86,8 @@ const TOUCHES: Array<{ referrer?: string; source: string; channel: string; campa
 ];
 const PATHS = ["/", "/pricing", "/download", "/docs", "/about", "/changelog"];
 const vid = () => randomBytes(16).toString("base64url");
+const LANDING = ["hero", "say", "team", "many", "where", "models", "free", "pricing", "how", "everywhere", "faq", "end"];
+const CLICKS = [{ label: "monthly", section: "pricing", value: "m" }, { label: "yearly", section: "pricing", value: "y" }, { label: "see_how_it_works", section: "hero" }, { label: "how_do_i_pay", section: "faq" }];
 
 /** site visits through the tracker's own event shapes, accounts linked to the visitor they came from, app use and two chart notes */
 async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: SeededAccount[], now: number) {
@@ -102,6 +106,14 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
       at += ms + 2000;
     }
     for (const [goal, meta] of opts.goals ?? []) await analytics.record("site_goal", { at, visitor, props: { goal, ...meta }, ctx: { ...base, page: pages.at(-1) } });
+    if (pages[0] === "/") {
+      const seen = LANDING.slice(0, 2 + Math.floor(rand() * (LANDING.length - 1)));
+      for (const section of seen) await analytics.record("site_section", { at: start + 1000, visitor, props: { path: "/", section, ms: Math.round(800 + rand() * 14_000) }, ctx: { ...base, page: "/" } });
+      if (rand() < 0.35) await analytics.record("site_goal", { at, visitor, props: { goal: "click", ...pick(CLICKS) }, ctx: { ...base, page: "/" } });
+      if (rand() < 0.1) await analytics.record("site_goal", { at, visitor, props: { goal: "form_start", label: "waitlist", section: "end" }, ctx: { ...base, page: "/" } });
+      if (rand() < 0.05) await analytics.record("site_goal", { at, visitor, props: { goal: "form_abandon", label: "waitlist", section: "end" }, ctx: { ...base, page: "/" } });
+      if (rand() < 0.03) await analytics.record("site_goal", { at, visitor, props: { goal: "rage_click", label: "monthly", section: "pricing" }, ctx: { ...base, page: "/" } });
+    }
     return at;
   };
   for (let d = 29; d >= 0; d--) {
@@ -109,7 +121,7 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
     for (let v = 0; v < count; v++) {
       const goals: Array<[string, Record<string, string>?]> = [];
       if (rand() < 0.08) goals.push(["waitlist_join"]);
-      if (rand() < 0.12) goals.push(["download_click", { to: "/download/dusk-bot.dmg" }]);
+      if (rand() < 0.12) goals.push(["download_click", { to: "/download", value: pick(["mac", "mac", "windows", "linux"]) }]);
       await visit(vid(), now - d * DAY - Math.round(rand() * 20 * 3_600_000) - 3_600_000, { goals });
     }
   }
@@ -131,6 +143,12 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
       const sent = 1 + Math.round(rand() * 14);
       await analytics.record("app_messages", { accountId: account.id, at: t + 900_000, props: { sent, replies: sent, latencyMs: Math.round(900 + rand() * 4000) }, ctx });
       if (rand() < 0.08) await analytics.record("app_error", { accountId: account.id, at: t + 1000_000, props: { kind: "window", code: "error" }, ctx });
+      if (rand() < 0.3) await analytics.record("app_action", { accountId: account.id, at: t + 200_000, props: { name: "cloud_card_shown", variant: "free" }, ctx });
+      if (rand() < 0.12) await analytics.record("app_action", { accountId: account.id, at: t + 210_000, props: { name: "cloud_card_action", action: pick(["start_trial", "not_now", "not_now"]) }, ctx });
+      if (rand() < 0.25) await analytics.record("app_action", { accountId: account.id, at: t + 300_000, props: { name: "reply_reaction", emoji: pick(["yes", "yes", "love", "no"]), on: true }, ctx });
+      if (rand() < 0.06) await analytics.record("app_feedback", { accountId: account.id, at: t + 400_000, props: { score: pick([5, 5, 4, 4, 3, 2]), moment: pick(["after_replies", "after_routine"]) }, ctx });
+      if (rand() < 0.1) await analytics.record("app_feature", { accountId: account.id, at: t + 500_000, props: { feature: "bot_deleted" }, ctx });
+      await analytics.record("app_close", { accountId: account.id, at: t + 1_200_000, props: { ms: Math.round(120_000 + rand() * 1_800_000) }, ctx });
       if (rand() < 0.05) await analytics.record("app_pair_failed", { accountId: account.id, at: t + 1100_000, props: { reason: pick(["expired_code", "network"]) }, ctx });
     }
   }

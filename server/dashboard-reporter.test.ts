@@ -25,6 +25,7 @@ function collector(): ReturnType<typeof createDashboardCollector> {
     machine: async () => ({ host: { hostname: "fixture", platform: "linux", arch: "x64", cpus: 1, cpuModel: null }, cpu: { percent: 0, load: [0, 0, 0] }, memory: { usedBytes: 1, totalBytes: 2 }, disk: null, network: null, uptimeSec: 1, processUptimeSec: 1, app: { version: "1", node: "22" }, update: null, services: [] }),
     computers: async () => ({ provider: "none", computers: [] }), bots: () => [], devices: async () => ({ thisDevice: { label: "Fixture", kind: "linux" }, link: null, phones: [], sessions: [] }),
     activity: async () => ({ from: "2026-01-01", to: "2026-11-08", timeZone: "UTC", days: [], byBot: [], byModel: [], totals: { turns: 0, tokens: 0, costUsd: null } }), plans: async () => plans,
+    apps: async () => null,
   };
 }
 async function fixture(prefix = "") {
@@ -63,6 +64,22 @@ async function fixture(prefix = "") {
 const command: DashboardCommand = { id: "command", kind: "routine.pause", target: "routine", issuedAt: Date.now(), expiresAt: Date.now() + 60_000 };
 
 describe("dashboard reporter", () => {
+  it("reports apps at start and again after an app command, carrying the sign-in link", async () => {
+    const f = await fixture(), collect = collector();
+    let services: Array<{ slug: string; connected: boolean; pending: boolean }> = [];
+    vi.spyOn(collect, "apps").mockImplementation(async () => ({ available: true, complete: true, services }));
+    f.execute.mockImplementationOnce(async (sent) => ({ id: sent.id, ok: true, message: "Sign-in is ready.", at: Date.now(), url: "https://connect.composio.dev/link/fixture" }));
+    const reporter = f.make(collect);
+    await reporter.link(f.base);
+    await vi.waitFor(() => expect(f.reports[0]?.apps).toEqual({ available: true, complete: true, services: [] }));
+    services = [{ slug: "gmail", connected: true, pending: false }];
+    f.queue({ ...command, id: "connect", kind: "app.connect", target: "gmail" });
+    await vi.waitFor(() => expect(f.reports.some((report) => report.results?.some((result) => result.id === "connect"))).toBe(true));
+    const after = f.reports.find((report) => report.results?.some((result) => result.id === "connect"))!;
+    expect(after.results![0]).toMatchObject({ ok: true, url: "https://connect.composio.dev/link/fixture" });
+    expect(after.apps?.services).toEqual(services);
+  });
+
   it("signs the exact token enrollment body and prefixed path with the chosen workspace key, and signs a claim-link enrollment too", async () => {
     const f = await fixture("/accounts"), reporter = f.make(), enrollToken = "e".repeat(43);
     await reporter.link(`${f.base}/`, { enrollToken });

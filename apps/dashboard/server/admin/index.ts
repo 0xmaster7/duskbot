@@ -311,6 +311,7 @@ export function createAdmin(options: AdminOptions) {
         if (route === "/realtime") return send(await deep.realtime(url));
         if (route === "/retention") return send(await deep.retention());
         if (route === "/app") return send(await deep.app(url));
+        if (route === "/product") return send(await deep.product(url));
       } catch (error) {
         if (error instanceof AnalyticsRouteError) throw new AdminError(error.status, error.code, error.message);
         throw error;

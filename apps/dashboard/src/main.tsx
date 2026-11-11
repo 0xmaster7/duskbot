@@ -46,11 +46,12 @@ const Onboarding = page(() => import("./pages/Onboarding"), (m) => m.Onboarding)
 const AdminApp = page(() => import("./admin/AdminApp"), (m) => m.AdminApp);
 
 // after the first page has painted, fetch the others in idle time so moving between them never waits;
-// connectors carries the 450 kB app catalogue and loads when opened
+// the app catalogue comes last, so the apps page opens with every app already there
 function prefetchPages() {
   const idle = window.requestIdleCallback ?? ((fn: () => void) => setTimeout(fn, 1));
   const timer = setTimeout(() => idle(() => {
-    for (const p of [CloudDesktopPage, WorkspacesPage, WorkspacePage, BotsPage, BotPage, UsagePage, BillingPage, AccountPage, DeviceApprovalPage, Onboarding]) void p.preload().catch(() => {});
+    for (const p of [CloudDesktopPage, WorkspacesPage, WorkspacePage, BotsPage, BotPage, ConnectorsPage, UsagePage, BillingPage, AccountPage, DeviceApprovalPage, Onboarding]) void p.preload().catch(() => {});
+    void import("./data/connectors").then((m) => m.preloadApps());
   }), 1500);
   return () => clearTimeout(timer);
 }
@@ -106,8 +107,11 @@ function SignedIn() {
   if (moved) return null;
   const blank = <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
   if (path === "/admin" || path.startsWith("/admin/")) return <Suspense fallback={blank}><AdminApp /></Suspense>;
+  const exempt = path === "/claim" || path === "/cloud/desktop" || deletePageId(path) !== null;
+  // home or onboarding is decided once the profile is in, so a new account never sees home first
+  if (!welcome && !exempt && account === null && !error) return blank;
   if (welcome && intent && account === null && !error) return blank;
-  const onboard = welcome || (account !== null && !account.profile.onboarded && path !== "/claim" && path !== "/cloud/desktop" && deletePageId(path) === null);
+  const onboard = welcome || (account !== null && !account.profile.onboarded && !exempt);
   if (onboard) return <Suspense fallback={blank}><Onboarding /></Suspense>;
   return <Shell><Suspense fallback={<LoadingPage />}>{route(path)}</Suspense></Shell>;
 }

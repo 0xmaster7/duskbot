@@ -136,8 +136,8 @@ export function HeatStats({ days, metric, now }: { days: ActivityReport["days"];
   const s = useMemo(() => activityStats(days, metric, now), [days, metric, now]);
   return (
     <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2 max-md:gap-y-5">
-      <Stat label="most active month" value={s.bestMonth ?? "None yet"} />
-      <Stat label="most active day" value={s.bestDay ?? "None yet"} />
+      <Stat label="most active month" value={s.bestMonth ?? "none yet"} />
+      <Stat label="most active day" value={s.bestDay ?? "none yet"} />
       <Stat label="longest streak" value={plural(s.longest, "day")} />
       <Stat label="current streak" value={plural(s.current, "day")} />
     </div>

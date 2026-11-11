@@ -133,8 +133,13 @@ export function fixtureWorkspaces(scenario: Scenario, now = Date.now()): Workspa
 
 export function fixtureConnections(): Record<string, string[]> {
   return {
-    [fixtureWorkspaceIds.mac]: ["gmail", "github", "slack", "notion", "googlecalendar", "linear"],
-    [fixtureWorkspaceIds.vps]: ["github", "linear"],
-    [fixtureWorkspaceIds.cloud]: ["gmail", "googlecalendar", "linear", "figma"],
+    [fixtureWorkspaceIds.mac]: ["gmail", "github", "slack", "notion", "googlecalendar"],
+    [fixtureWorkspaceIds.vps]: ["github"],
+    [fixtureWorkspaceIds.cloud]: ["gmail", "googlecalendar"],
   };
+}
+
+/** apps whose sign-in was started and not finished */
+export function fixturePendingApps(): Record<string, string[]> {
+  return { [fixtureWorkspaceIds.mac]: ["linear"], [fixtureWorkspaceIds.vps]: ["linear"], [fixtureWorkspaceIds.cloud]: ["linear", "figma"] };
 }

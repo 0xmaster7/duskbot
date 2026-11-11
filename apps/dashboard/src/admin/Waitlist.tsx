@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Download } from "@/icons";
 import { Table, Td, Th } from "../ui/table";
 import { useAdmin, type WaitlistPage } from "./api";
@@ -8,7 +8,7 @@ const BREVO: Record<WaitlistPage["brevo"]["state"], string> = {
   synced: "in sync", behind: "behind the waitlist", error: "couldn't check", not_configured: "not connected",
 };
 
-export function WaitlistPage() {
+export function WaitlistPage({ tabs }: { tabs?: ReactNode }) {
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
@@ -17,7 +17,7 @@ export function WaitlistPage() {
   const brevo = data?.brevo;
   return (
     <>
-      <AdminHeader title="waitlist" sub="people waiting on dusk.bot"
+      <AdminHeader title="people" sub="people waiting on dusk.bot" tabs={tabs}
         action={data?.configured ? <a href="/v1/admin/waitlist.csv" download className="press hover-outline inline-flex h-9 items-center gap-1.5 rounded-full bg-btn px-4 text-13 font-medium text-ink"><Download size={15} strokeWidth={1.75} aria-hidden /> export csv</a> : undefined} />
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading />}

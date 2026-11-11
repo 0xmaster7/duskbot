@@ -2104,10 +2104,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (state.settingsOpen && state.botSettingsExpandAccordion) rememberBotSection(state.botSettingsSection);
   }, [state.settingsOpen, state.botSettingsExpandAccordion, state.botSettingsSection]);
   const botPatchQueue = useMemo(
-    () =>
-      createBotPatchQueue({
-        send: (botId, patch, signal, currentBot, leaving) =>
-          persistBotUpdate(botId, patch, signal, api, desktopApprovalBridge(), currentBot, leaving),
+    () => {
+      const edits = new Map<string, number>();
+      return createBotPatchQueue({
+        send: (botId, patch, signal, currentBot, leaving) => persistBotUpdate(botId, patch, signal, (path, init) => {
+          const now = Date.now();
+          if (now - (edits.get(botId) ?? -Infinity) >= 60_000) {
+            edits.set(botId, now);
+            productFeature("bot_edited");
+          }
+          return api(path, init);
+        }, desktopApprovalBridge(), currentBot, leaving),
         reconcile: async (botId, signal) => {
           const result: { bots: BotAnnouncement[] } = await api(`/api/bots?messages=${MESSAGE_PAGE_SIZE}`, { signal });
           return result.bots.find((candidate) => candidate.id === botId) ?? null;
@@ -2118,7 +2125,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         onError: (error) => {
           rawDispatch({ type: "error", message: error.message });
         },
-      }),
+      });
+    },
     [],
   );
 
@@ -2297,6 +2305,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         action.type !== "deleteBot"
       ) rawDispatch(action);
       switch (action.type) {
+        case "toggleAppSettings":
+          if (!stateRef.current.appSettingsOpen && (action.open ?? true)) productFeature("settings_opened");
+          break;
         case "loadOlderMessages": {
           // The guard, not the reducer flag: stateRef still holds the pre-dispatch state.
           if (olderPagesInFlight.has(action.threadId)) break;
@@ -2335,10 +2346,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           break;
         case "updateRoutine":
           api(`/api/routines/${action.routineId}`, { method: "PATCH", body: JSON.stringify(action.patch) })
-            .then(({ routine }) => rawDispatch({ type: "routinePatched", routine }), showError);
+            .then(({ routine }) => { productFeature("routine_edited"); rawDispatch({ type: "routinePatched", routine }); }, showError);
           break;
         case "deleteRoutine":
-          api(`/api/routines/${action.routineId}`, { method: "DELETE" }).catch(showError);
+          api(`/api/routines/${action.routineId}`, { method: "DELETE" }).then(() => productFeature("routine_deleted")).catch(showError);
           break;
         case "runRoutine":
           void waitForExecutionSettings(executionBotsBeforeAction)
@@ -2612,6 +2623,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               return api<{ notice?: string } | undefined>(`/api/bots/${botId}`, { method: "DELETE" });
             },
             (botId, answer) => {
+              productFeature("bot_deleted");
               botPatchQueue.cancel(botId);
               rawDispatch({ type: "deleteBot", botId });
               if (answer?.notice) wrapped({ type: "notice", notice: { kind: "note", botName: null, text: answer.notice } });

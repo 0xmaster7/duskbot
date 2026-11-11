@@ -4,6 +4,7 @@ import { asleepAnswer, BACKGROUND_HEADER, cloudAsleep, markCloudAsleep, markClou
 import { lacksAdminScope } from "../lib/admin-scope";
 import { isBotLimitRefusal, showBotLimit } from "../lib/bot-limit";
 import { noteRefusedRequest } from "../lib/session-ended";
+import { feature } from "../lib/product-analytics";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -42,7 +43,9 @@ export async function api<T = any>(path: string, init?: ApiInit): Promise<T> {
         ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
         : AbortSignal.timeout(timeoutMs),
   });
-  return answerOf<T>(res);
+  const answer = await answerOf<T>(res);
+  if (path === "/api/config" && ["PUT", "PATCH"].includes((init?.method ?? "GET").toUpperCase())) feature("settings_changed");
+  return answer;
 }
 
 /** What `api` makes of a response, for one whose request started elsewhere (src/state/boot-reads.ts). */

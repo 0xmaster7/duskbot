@@ -24,12 +24,21 @@ const host = pattern(/^[a-z0-9.-]{1,80}$/, 80);
 const percent: Check = (value): value is number => Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 100;
 
 /** what the apps may report as used: names of features, never what was in them */
-export const APP_FEATURES = ["bot_created", "bot_edited", "routine_created", "routine_ran", "room_created", "computer_used", "voice_used", "file_uploaded",
-  "app_connected", "cloud_opened", "chat_opened", "memory_edited", "skill_added", "webhook_created", "phone_paired", "search_used", "settings_opened"] as const;
+export const APP_FEATURES = ["bot_created", "bot_edited", "bot_deleted", "routine_created", "routine_edited", "routine_deleted", "routine_ran", "room_created", "computer_used",
+  "voice_used", "call_started", "file_uploaded", "app_connected", "cloud_opened", "chat_opened", "memory_edited", "skill_added", "webhook_created", "phone_paired",
+  "search_used", "settings_opened", "settings_changed", "reaction_added", "team_imported"] as const;
 
 /** who may send an event: the service itself, the signed-in page, or the site proxy (anonymous) */
 export type EventSource = "server" | "page" | "site" | "app";
-export interface EventSpec { source: EventSource; props: Record<string, Check>; /** counts toward a person's daily activity */ active?: boolean }
+export interface EventSpec {
+  source: EventSource; props: Record<string, Check>; /** counts toward a person's daily activity */ active?: boolean;
+  /** keys beyond `props` an event may carry: up to MAX_EXTRA, each a short lowercase key with a word, count or boolean */
+  extra?: true;
+}
+export const MAX_EXTRA = 8;
+const EXTRA_KEY = /^[a-z][a-z_]{0,19}$/;
+const flag: Check = (value): value is boolean => typeof value === "boolean";
+const score: Check = (value): value is number => Number.isInteger(value) && (value as number) >= 1 && (value as number) <= 5;
 
 export const EVENTS = {
   signup: { source: "server", props: { method: oneOf("email", "google", "apple", "x") }, active: true },
@@ -43,11 +52,19 @@ export const EVENTS = {
   first_bot_reply: { source: "server", props: {} },
   checkout_paid: { source: "server", props: { amountCents: count } },
   page_view: { source: "page", props: { path: route }, active: true },
-  onboarding_step: { source: "page", props: { step: oneOf("name", "plan", "app") }, active: true },
+  /** ms is the time spent on the step before this one */
+  onboarding_step: { source: "page", props: { step: oneOf("name", "plan", "app"), ms: count }, active: true },
   onboarding_done: { source: "page", props: {}, active: true },
   plan_chosen: { source: "page", props: { plan: pattern(/^[a-z_]{2,20}$/, 20), period: oneOf("month", "year") }, active: true },
+  /** a download picked on onboarding's last step, and the system the page guessed the visitor is on */
+  download_click: { source: "page", props: { platform: oneOf("macos", "windows", "linux", "android", "ios"), detected_os: oneOf("macos", "windows", "linux", "android", "ios", "unknown") }, active: true },
+  /** a button or link on an account page: label is its static name, value a choice like a platform or an app slug */
+  page_action: { source: "page", props: { action: word, path: route, label: word, value: word }, active: true },
   site_view: { source: "site", props: { path: route } },
-  site_goal: { source: "site", props: { goal: word, to: route, from: route, host } },
+  /** section is the landing section it happened in, label the clicked thing's name, value a choice (a platform, a period) */
+  site_goal: { source: "site", props: { goal: word, to: route, from: route, host, section: word, label: word, value: word } },
+  /** a landing section that was at least half on screen, and for how long in total */
+  site_section: { source: "site", props: { path: route, section: word, ms: count } },
   /** a page view's end: deepest scroll and visible time */
   site_leave: { source: "site", props: { path: route, scroll: percent, ms: count } },
   /** a site visitor or an app install became this account */
@@ -61,6 +78,10 @@ export const EVENTS = {
   app_messages: { source: "app", props: { sent: count, replies: count, latencyMs: count }, active: true },
   app_error: { source: "app", props: { kind: word, code: word } },
   app_pair_failed: { source: "app", props: { reason: word } },
+  /** a named moment in the app (a card shown, a step taken); name is the moment, the rest its words, counts and flags */
+  app_action: { source: "app", props: { name: word }, active: true, extra: true },
+  /** the in-app "how's it going?" answer, 1 to 5, and the moment it was asked at */
+  app_feedback: { source: "app", props: { score, moment: word }, active: true },
 } satisfies Record<string, EventSpec>;
 export type EventName = keyof typeof EVENTS;
 export const EVENT_NAMES = Object.keys(EVENTS) as EventName[];
@@ -74,6 +95,14 @@ export function cleanProps(name: EventName, input: unknown): Props {
   for (const [key, check] of Object.entries(spec.props)) {
     const value = (input as Record<string, unknown>)[key];
     if (value !== undefined && check(value)) out[key] = value;
+  }
+  if (spec.extra) {
+    let extra = 0;
+    for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+      if (extra >= MAX_EXTRA) break;
+      if (Object.hasOwn(spec.props, key) || !EXTRA_KEY.test(key)) continue;
+      if (word(value) || count(value) || flag(value)) { out[key] = value as PropValue; extra++; }
+    }
   }
   return out;
 }

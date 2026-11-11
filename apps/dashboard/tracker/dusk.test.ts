@@ -12,7 +12,7 @@ const source = readFileSync(resolve("apps/dashboard/tracker/dusk.js"), "utf8");
 type Payload = {
   v: number; e: string; vid: string; sid: string; pv: string; h: string; p: string;
   u?: Record<string, string>; r?: string; w?: number; g?: string;
-  m?: Record<string, string | number>; s?: number; t?: number;
+  m?: Record<string, string>; s?: number; t?: number; l?: [string, number][];
 };
 type Api = ((name: unknown, meta?: unknown) => void) & { q?: IArguments[] };
 
@@ -62,7 +62,9 @@ describe("marketing tracker", () => {
   }
   function click(html: string, selector = "a") {
     win.document.body.innerHTML = html;
-    win.document.querySelector(selector)!.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true }));
+    const event = new win.MouseEvent("click", { bubbles: true, cancelable: true });
+    event.preventDefault();
+    win.document.querySelector(selector)!.dispatchEvent(event);
   }
   function submit(html: string) {
     win.document.body.innerHTML = html;
@@ -136,6 +138,7 @@ describe("marketing tracker", () => {
     answer = { persist: false };
     const writes = cookieWrites();
     await load();
+    now++;
     click('<a href="https://elsewhere.example">elsewhere</a>');
     win.history.pushState(null, "", "/next");
     await events();
@@ -247,7 +250,7 @@ describe("marketing tracker", () => {
     await events();
     expect(payloads.map(p => p.e)).toEqual(["pageview", "goal", "goal"]);
     expect(payloads[1]).toMatchObject({ g: "queued_goal", m: { placement: "hero" } });
-    expect(payloads[2]!.m).toEqual({ text: "x".repeat(100), count: 3, a: "a", b: "b", c: "c" });
+    expect(payloads[2]!.m).toEqual({ text: "x".repeat(100), a: "a", b: "b", c: "c", sixth: "drop" });
     expect(payloads[2]).not.toHaveProperty("u");
     expect(payloads[2]).not.toHaveProperty("r");
     expect(payloads[2]).not.toHaveProperty("w");
@@ -265,6 +268,200 @@ describe("marketing tracker", () => {
     await events();
     expect(payloads).toHaveLength(2);
     expect(payloads[1]).toMatchObject({ g: "hero_click", m: { placement: "hero", plan: "pro" } });
+  });
+
+  it.each([
+    ['<a href="/docs">Read the setup guide today</a>', "click", { label: "read_the_setup_guide", to: "/docs" }],
+    ['<button data-period="Year Plan" aria-label="Choose yearly">ignored</button>', "click", { label: "choose_yearly", value: "year_plan" }],
+    ['<div role="button" data-dusk-label="Pick a platform" data-platform="Mac OS"><span>pick</span></div>', "click", { label: "pick_a_platform", value: "mac_os" }],
+    ['<button data-dusk-goal="hero_click" data-dusk-label="Start now">start</button>', "hero_click", { label: "start_now" }],
+    ['<a href="/app">Start now</a>', "cta_click", { label: "start_now", to: "/app", from: "/pricing" }],
+    ['<a href="https://elsewhere.example/">More info</a>', "outbound", { label: "more_info", host: "elsewhere.example" }],
+  ])("adds click context for %s", async (html, goal, meta) => {
+    await load();
+    click(`<section class="wrap pricing-table">${html}</section>`, "span, a, button, [role=button]");
+    await events();
+    expect(payloads[1]).toMatchObject({ g: goal, m: { ...meta, section: "pricing_table" } });
+    expect(Object.keys(payloads[1]!.m!).length).toBeLessThanOrEqual(5);
+  });
+
+  it.each([
+    '<button>email person@example.com</button>', '<button>order 12345</button>', '<button></button>',
+    '<input type="button" value="private">', '<textarea>private</textarea>', '<select><option>private</option></select>',
+    '<div data-dusk-ignore><button>ignore</button></div>', '<div contenteditable="true" role="button">typed words</div>',
+    '<button><span contenteditable="true">typed words</span></button>',
+  ])("does not capture private or ignored clicks: %s", async html => {
+    await load();
+    click(html, "button, input, textarea, option, [role=button]");
+    expect(await events()).toHaveLength(1);
+  });
+
+  it("bounds click labels and prefers an explicit section name and value", async () => {
+    await load();
+    click(`<section id="fallback" data-dusk-section="Hero / Intro"><button data-dusk-label="${"A".repeat(60)}" data-dusk-value="Pro Plan" data-period="month">start</button></section>`, "button");
+    await events();
+    expect(payloads[1]!.m).toEqual({ section: "hero_intro", label: "a".repeat(40), value: "pro_plan" });
+  });
+
+  it.each([
+    ["/download/mac", "download", "", "mac"], ["/Dusk.DMG", "download", "", "mac"],
+    ["/dusk.exe", "download", "", "windows"], ["/dusk.msi", "download", "", "windows"],
+    ["/dusk.appimage", "download", "", "linux"], ["/dusk.deb", "download", "", "linux"], ["/dusk.rpm", "download", "", "linux"],
+    ["https://apps.apple.com/app/dusk", "download", "", "ios"], ["https://play.google.com/store/apps/dusk", "download", "", "android"],
+    ["/download/ios", "download", "", "ios"], ["/download/android", "download", "", "android"],
+    ["/download", "Get Windows", "", "windows"], ["/download", "Get Linux", "", "linux"], ["/download", "Get Mac", "", "mac"],
+    ["/download/mac", "download", 'data-dusk-platform="Windows"', "windows"], ["/download", "download", "", undefined],
+  ])("records the download platform for %s (%s)", async (href, label, attr, platform) => {
+    await load();
+    click(`<section id="downloads"><a href="${href}" ${attr}>${label}</a></section>`);
+    await events();
+    expect(payloads[1]).toMatchObject({ g: "download_click", m: { section: "downloads", label: label.toLowerCase().replace(/ /g, "_") } });
+    expect(payloads[1]!.m!.value).toBe(platform);
+  });
+
+  it("reports rage clicks once per burst, within the time and distance limits", async () => {
+    await load();
+    win.document.body.innerHTML = '<section id="hero"><button>Start now</button></section>';
+    const press = (x: number, y: number, ms: number) => {
+      now += ms;
+      win.document.querySelector("button")!.dispatchEvent(new win.MouseEvent("click", { bubbles: true, clientX: x, clientY: y }));
+    };
+    press(10, 10, 0);
+    press(20, 10, 350);
+    press(10, 40, 350);
+    press(10, 10, 0);
+    await events();
+    expect(payloads.filter(p => p.g === "rage_click")).toEqual([expect.objectContaining({ m: { section: "hero", label: "start_now" } })]);
+    press(10, 10, 701);
+    press(40, 40, 0);
+    press(40, 40, 0);
+    await events();
+    expect(payloads.filter(p => p.g === "rage_click")).toHaveLength(1);
+    press(40, 40, 0);
+    await events();
+    expect(payloads.filter(p => p.g === "rage_click")).toHaveLength(2);
+    win.history.pushState(null, "", "/next");
+    press(40, 40, 0);
+    press(40, 40, 0);
+    await events();
+    expect(payloads.filter(p => p.g === "rage_click")).toHaveLength(2);
+  });
+
+  it("caps errors at five per view and sends neither messages nor stacks", async () => {
+    await load();
+    for (let i = 0; i < 7; i++) win.dispatchEvent(new win.ErrorEvent("error", { message: "private@example.com", error: new Error("secret") }));
+    win.dispatchEvent(new win.Event("unhandledrejection"));
+    await events();
+    expect(payloads.filter(p => p.g === "js_error").map(p => p.m)).toEqual(Array(5).fill({ label: "error" }));
+    win.history.pushState(null, "", "/next");
+    win.dispatchEvent(new win.Event("unhandledrejection"));
+    await events();
+    expect(payloads.at(-1)).toMatchObject({ g: "js_error", m: { label: "rejection" } });
+    expect(JSON.stringify(payloads)).not.toMatch(/private|secret|stack/);
+  });
+
+  it.each(["hidden", "pagehide", "spa"])("tracks form starts and abandons each form only once on %s", async end => {
+    await load();
+    win.document.body.innerHTML = '<section id="signup"><form id="Join Waitlist"><input type="text" value="private words"><input type="email" value="person@example.com"></form><form data-dusk-goal="Contact Us"><input type="email"></form><form><input type="email"></form><form id="no-email"><input></form></section>';
+    const fields = win.document.querySelectorAll("input");
+    for (const field of fields) field.dispatchEvent(new win.FocusEvent("focusin", { bubbles: true }));
+    fields[0]!.dispatchEvent(new win.FocusEvent("focusin", { bubbles: true }));
+    if (end === "hidden") visibility("hidden");
+    else if (end === "pagehide") win.dispatchEvent(new win.Event("pagehide"));
+    else win.history.pushState(null, "", "/next");
+    win.dispatchEvent(new win.Event("pagehide"));
+    await events();
+    const labels = ["join_waitlist", "contact_us", "form"];
+    expect(payloads.filter(p => p.g === "form_start").map(p => p.m)).toEqual(labels.map(label => ({ section: "signup", label })));
+    expect(payloads.filter(p => p.g === "form_abandon").map(p => p.m)).toEqual(labels.map(label => ({ section: "signup", label })));
+    expect(JSON.stringify(payloads)).not.toMatch(/private words|person@example/);
+  });
+
+  it("does not abandon submitted forms and restarts form tracking for a new view", async () => {
+    await load();
+    win.document.body.innerHTML = '<form id="signup"><input type="email"></form>';
+    const focus = () => win.document.querySelector("input")!.dispatchEvent(new win.FocusEvent("focusin", { bubbles: true }));
+    focus();
+    win.document.querySelector("form")!.dispatchEvent(new win.Event("submit", { bubbles: true }));
+    visibility("hidden");
+    visibility("visible");
+    focus();
+    win.history.pushState(null, "", "/next");
+    focus();
+    win.dispatchEvent(new win.Event("pagehide"));
+    await events();
+    expect(payloads.filter(p => p.g === "form_start")).toHaveLength(2);
+    expect(payloads.filter(p => p.g === "form_abandon")).toHaveLength(1);
+    expect(payloads.find(p => p.g === "form_abandon")!.pv).toBe(payloads.at(-1)!.pv);
+  });
+
+  it("accumulates half-visible sections, excludes hidden time and deduplicates nested names", async () => {
+    const observers: { callback: (entries: object[]) => void; observe: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }[] = [];
+    property(win, "IntersectionObserver", class {
+      observe = vi.fn();
+      disconnect = vi.fn();
+      constructor(public callback: (entries: object[]) => void, options: object) {
+        expect(options).toEqual({ threshold: 0.5 });
+        observers.push(this);
+      }
+    });
+    win.document.body.innerHTML = '<section data-dusk-section="Hero / Intro"><section id="hero_intro"></section></section><section class="wrap pricing-table"></section><section class="wrap"></section><section id="brief"></section><section id="pricing-table"></section>';
+    const nodes = win.document.querySelectorAll("section");
+    await load();
+    const intersect = (index: number, ratio: number) => observers[0]!.callback([{ target: nodes[index], isIntersecting: ratio > 0, intersectionRatio: ratio }]);
+    expect(observers[0]!.observe.mock.calls.map(call => call[0])).toEqual([nodes[0], nodes[2], nodes[4], nodes[5]]);
+    intersect(0, 0.5);
+    intersect(2, 0.49);
+    intersect(4, 1);
+    now += 200;
+    intersect(4, 0);
+    intersect(2, 1);
+    intersect(5, 1);
+    now += 300;
+    intersect(0, 0);
+    now += 100;
+    visibility("hidden");
+    win.dispatchEvent(new win.Event("pagehide"));
+    await events();
+    expect(payloads.filter(p => p.e === "sections").map(p => p.l)).toEqual([[["hero_intro", 500], ["pricing_table", 400]]]);
+    now += 5000;
+    visibility("visible");
+    now += 350;
+    win.document.body.innerHTML = '<section id="next"></section>';
+    win.history.pushState(null, "", "/next");
+    await events();
+    expect(payloads.filter(p => p.e === "sections").at(-1)).toMatchObject({ p: "/pricing", pv: payloads[0]!.pv, l: [["pricing_table", 350]] });
+    expect(observers[0]!.disconnect).toHaveBeenCalledOnce();
+    expect(observers[1]!.observe).toHaveBeenCalledWith(win.document.querySelector("section"));
+    observers[0]!.callback([{ target: nodes[0], isIntersecting: true, intersectionRatio: 1 }]);
+    observers[1]!.callback([{ target: win.document.querySelector("section"), isIntersecting: true, intersectionRatio: 1 }]);
+    now += 300;
+    win.dispatchEvent(new win.Event("pagehide"));
+    await events();
+    expect(payloads.filter(p => p.e === "sections").at(-1)).toMatchObject({ p: "/next", l: [["next", 300]] });
+  });
+
+  it("limits section batches to thirty and works without IntersectionObserver", async () => {
+    let observe!: (entries: object[]) => void;
+    property(win, "IntersectionObserver", class {
+      constructor(callback: typeof observe) { observe = callback; }
+      observe() {}
+      disconnect() {}
+    });
+    win.document.body.innerHTML = Array.from({ length: 31 }, (_, i) => `<section id="section_${i}"></section>`).join("");
+    await load();
+    observe(Array.from(win.document.querySelectorAll("section"), target => ({ target, isIntersecting: true, intersectionRatio: 1 })));
+    now += 300;
+    win.dispatchEvent(new win.Event("pagehide"));
+    await events();
+    expect(payloads.find(p => p.e === "sections")!.l).toHaveLength(30);
+    property(win, "IntersectionObserver", undefined);
+    win.history.pushState(null, "", "/next");
+    now += 500;
+    win.dispatchEvent(new win.Event("pagehide"));
+    await events();
+    expect(payloads.filter(p => p.e === "sections")).toHaveLength(1);
+    expect(payloads.at(-1)).toMatchObject({ e: "leave", p: "/next" });
   });
 
   it.each(["/app", "/signup/new", "https://app.preview.dusk.bot/app"])("tracks CTA %s", async href => {
@@ -287,8 +484,10 @@ describe("marketing tracker", () => {
     await events();
     expect(payloads[1]).toMatchObject({ g: "outbound", m: { host: "evilpreview.dusk.bot" } });
     click('<a href="mailto:a@b.c">email</a>');
+    now += 701;
     click('<a href="/docs">docs</a>');
-    expect(await events()).toHaveLength(2);
+    expect(await events()).toHaveLength(3);
+    expect(payloads[2]).toMatchObject({ g: "click", m: { label: "docs", section: "", to: "/docs" } });
   });
 
   it.each(["id", "class", "action", "name"])("tracks valid waitlist forms by %s without sending email", async attr => {
@@ -412,6 +611,6 @@ describe("marketing tracker", () => {
   });
 
   it("fits the gzip budget", () => {
-    expect(gzipSync(source).length).toBeLessThanOrEqual(4096);
+    expect(gzipSync(source).length).toBeLessThanOrEqual(5120);
   });
 });

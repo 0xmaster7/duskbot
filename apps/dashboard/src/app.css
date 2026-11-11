@@ -170,7 +170,7 @@
   to { opacity: 1; transform: none; }
 }
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
 @keyframes fade {
@@ -290,7 +290,7 @@
   .tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; background: var(--btn); font: 500 12px/1 var(--font-pixel); letter-spacing: 0.02em; color: var(--ink-2); white-space: nowrap; }
 
   .enter { animation: enter var(--dur-slow) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 50ms); }
-  .page-in { animation: page-in var(--dur-base) var(--ease-out) both; }
+  .page-in { animation: page-in 200ms var(--ease-out) both; }
   .fade-in { animation: fade var(--dur-base) var(--ease-out) both; }
   .peek { animation: peek var(--dur-long) var(--ease-pop) both; animation-delay: calc(240ms + var(--i, 0) * 90ms); }
   .menu-in { animation: menu-in 140ms var(--ease-menu) both; }
@@ -353,20 +353,22 @@
   .scroll-x::-webkit-scrollbar { display: none; }
 }
 
+/* hovers lay a faint ink tint over whatever the control already is, so nothing turns dark grey */
+:root { --tint: color-mix(in oklab, var(--ink) 3.5%, transparent); }
 @media (hover: hover) and (pointer: fine) {
-  .hover-row:hover { background: var(--card-2); }
-  .hover-side:hover { background: color-mix(in oklab, var(--ink) 6%, transparent); color: var(--ink); }
-  .hover-ghost:hover { background: color-mix(in oklab, var(--ink) 7%, transparent); }
-  .hover-outline:hover { background: var(--btn-hover); }
+  .hover-row:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
+  .hover-side:hover { background: var(--tint); color: var(--ink); }
+  .hover-ghost:hover { background: var(--tint); }
+  .hover-outline:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-primary:hover { background: var(--primary-hover); }
   .hover-accent:hover { background-color: var(--accent-fill-hover); }
-  .hover-lift:hover { background-color: var(--btn-hover); }
+  .hover-lift:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-tile { transition: transform 300ms var(--ease-pop); }
-  .hover-tile:hover { transform: translateY(-3px); }
+  .hover-tile:hover { transform: translateY(-2px); background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-tile:hover .tile-arrow { color: var(--ink); transform: translate(2px, -2px); }
   .tile-arrow { transition: transform 300ms var(--ease-pop); }
   .hover-cell:hover { outline: 1px solid var(--ink-3); outline-offset: 0; }
-  .hover-pick:hover { background: var(--btn-hover); }
+  .hover-pick:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-link:hover { color: var(--ink); }
 }
 
@@ -377,4 +379,20 @@
   .seg-thumb, .switch-thumb, .bar-fill, .hover-tile, .tile-arrow { transition: none; }
   .range:active::-webkit-slider-thumb { transform: none; }
   .press:active:not(:disabled), .press-soft:active, .hover-tile:hover { transform: none; }
+}
+
+/* the sign-in and onboarding scene: pixel shapes with stepped corners, lifted by a tinted copy of themselves underneath */
+:root { --scene-pink: #ffc4dd; --scene-lemon: #fff3a0; --scene-lilac: #d0cefb; }
+.px-steps { clip-path: polygon(calc(2 * var(--s)) 0, calc(100% - 2 * var(--s)) 0, calc(100% - 2 * var(--s)) var(--s), calc(100% - var(--s)) var(--s), calc(100% - var(--s)) calc(2 * var(--s)), 100% calc(2 * var(--s)), 100% calc(100% - 2 * var(--s)), calc(100% - var(--s)) calc(100% - 2 * var(--s)), calc(100% - var(--s)) calc(100% - var(--s)), calc(100% - 2 * var(--s)) calc(100% - var(--s)), calc(100% - 2 * var(--s)) 100%, calc(2 * var(--s)) 100%, calc(2 * var(--s)) calc(100% - var(--s)), var(--s) calc(100% - var(--s)), var(--s) calc(100% - 2 * var(--s)), 0 calc(100% - 2 * var(--s)), 0 calc(2 * var(--s)), var(--s) calc(2 * var(--s)), var(--s) var(--s), calc(2 * var(--s)) var(--s)); }
+.px-lift { --s: 6px; --u: var(--scene-lemon); filter: drop-shadow(0 var(--s) 0 var(--u)); }
+[data-theme="dark"] .px-lift { --u: var(--lemon); }
+
+.say { --s: 5px; display: block; width: max-content; white-space: nowrap; filter: drop-shadow(0 var(--s) 0 var(--u)); opacity: 0; transform: translateY(10px) scale(0.92); transform-origin: calc(100% - 3 * var(--s)) 100%; transition: opacity 140ms var(--ease-out), transform 160ms var(--ease-out); pointer-events: none; }
+.say-sm { --s: 3px; }
+.say[data-on] { opacity: 1; transform: none; transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-slow) var(--ease-pop); transition-delay: 120ms; }
+.say-body { background: #fdfdfd; }
+.say-tail { position: absolute; top: 100%; right: calc(3 * var(--s)); width: calc(3 * var(--s)); height: calc(3 * var(--s)); background: #fdfdfd; clip-path: polygon(0 0, 100% 0, 100% 100%, 66.67% 100%, 66.67% 66.67%, 33.33% 66.67%, 33.33% 33.33%, 0 33.33%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .say, .say[data-on] { transform: none; transition: opacity var(--dur-fast) linear; }
 }

@@ -62,5 +62,6 @@ export function roomMessageSent(mode: string, queued: boolean): void {
 }
 
 export function callStarted(instances: Instances, instanceId: unknown, mode: string): void {
+  feature("call_started");
   track("call_started", { driver: engineSlug(instances, instanceId), mode: allow(mode, CALL_MODE) });
 }

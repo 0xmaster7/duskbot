@@ -102,12 +102,40 @@ export interface PlansReport {
   providers: Array<{ id: string; name: string; plan: string | null; ok: boolean; windows: Array<{ label: string; usedPercent: number; resetsAt: number | null }> }>;
 }
 
-export type CommandKind = "computer.wake" | "computer.sleep" | "phone.revoke" | "session.revoke" | "routine.pause" | "routine.resume";
-export const COMMAND_KINDS: readonly CommandKind[] = ["computer.wake", "computer.sleep", "phone.revoke", "session.revoke", "routine.pause", "routine.resume"];
+/** the connected apps (Composio toolkits) on a workspace; `available` is false when apps are not set up there */
+export interface AppsReport {
+  available: boolean;
+  /** false when the workspace could read the apps but not every account behind them */
+  complete: boolean;
+  services: Array<{ slug: string; connected: boolean; pending: boolean }>;
+}
 
-/** `target` is a bot id for computer.*, a phone or session id for *.revoke, a routine id for routine.* */
+export type CommandKind = "computer.wake" | "computer.sleep" | "phone.revoke" | "session.revoke" | "routine.pause" | "routine.resume" | "app.connect" | "app.disconnect";
+export const COMMAND_KINDS: readonly CommandKind[] = ["computer.wake", "computer.sleep", "phone.revoke", "session.revoke", "routine.pause", "routine.resume", "app.connect", "app.disconnect"];
+/** app.* commands only queue for a workspace seen this recently; anything older reads as asleep */
+export const APP_COMMAND_ONLINE_MS = 45_000;
+/** after an app command a workspace reports its apps on every report for this long, so a finished sign-in shows */
+export const APP_WATCH_MS = 5 * 60_000;
+
+const APP_SLUG = /^[a-z0-9][a-z0-9_-]{0,79}$/;
+/** a Composio toolkit slug as an app.* target */
+export function appSlug(input: unknown): string | null {
+  return typeof input === "string" && APP_SLUG.test(input.toLowerCase()) ? input.toLowerCase() : null;
+}
+
+/** `target` is a bot id for computer.*, a phone or session id for *.revoke, a routine id for routine.*, a toolkit slug for app.* */
 export interface DashboardCommand { id: string; kind: CommandKind; target: string; issuedAt: number; expiresAt: number }
-export interface CommandResult { id: string; ok: boolean; message: string | null; at: number }
+/** `url` is app.connect's sign-in page: https only, shown only to the workspace's owner, never stored */
+export interface CommandResult { id: string; ok: boolean; message: string | null; at: number; url?: string | null }
+
+/** a sign-in link a workspace may hand back; anything else is dropped */
+export function commandUrl(input: unknown): string | null {
+  if (typeof input !== "string" || input.length > 2048) return null;
+  try {
+    const url = new URL(input);
+    return url.protocol === "https:" && !url.username && !url.password ? url.toString() : null;
+  } catch { return null; }
+}
 
 /** sections are optional: a workspace sends what changed or what it could read; the service keeps the last of each */
 export interface WorkspaceReport {
@@ -121,6 +149,7 @@ export interface WorkspaceReport {
   activity?: ActivityReport;
   devices?: DevicesReport;
   plans?: PlansReport;
+  apps?: AppsReport;
   results?: CommandResult[];
 }
 
@@ -130,6 +159,14 @@ export interface ReportAnswer { v: 1; watching: boolean; nextReportMs: number; c
 /** POST /v1/enroll: a workspace introduces its ed25519 public key (spki der, base64) and gets a one-time claim link */
 export interface EnrollRequest { v: 1; publicKey: string; name: string; kind: WorkspaceKind; version: string }
 export interface EnrollAnswer { v: 1; workspaceId: string; claimUrl: string; claimExpiresAt: number; dashboardUrl: string }
+
+/** GET /v1/connectors: each owned workspace's connected app slugs, the ones waiting on a sign-in, and when they were read */
+export interface ConnectorsAnswer {
+  byWorkspace: Record<string, string[]>;
+  pending: Record<string, string[]>;
+  available: Record<string, boolean>;
+  at: Record<string, number | null>;
+}
 
 /** what the dashboard page reads: GET /v1/workspaces */
 export type Freshness = "live" | "recent" | "offline" | "waiting";
@@ -145,13 +182,13 @@ export interface WorkspaceSummary {
 
 export interface MachineSample { t: number; cpu: number; mem: number; rx: number; tx: number }
 export type CommandStatus = "queued" | "sent" | "done" | "failed" | "expired";
-export interface CommandView extends DashboardCommand { status: CommandStatus; message: string | null; doneAt: number | null }
+export interface CommandView extends DashboardCommand { status: CommandStatus; message: string | null; doneAt: number | null; url?: string | null }
 
 /** GET /v1/workspaces/:id: the newest of each section, when it came, recent machine samples and recent commands */
 export interface WorkspaceDetail {
   workspace: WorkspaceSummary;
   report: Omit<WorkspaceReport, "v" | "seq" | "results"> | null;
-  sectionAt: Partial<Record<"machine" | "computers" | "bots" | "activity" | "devices" | "plans", number>>;
+  sectionAt: Partial<Record<"machine" | "computers" | "bots" | "activity" | "devices" | "plans" | "apps", number>>;
   history: MachineSample[];
   commands: CommandView[];
 }
@@ -225,7 +262,14 @@ const dashboardSections: Record<string, DashboardParser> = {
   }),
   plans: dashboardObject({ providers: dashboardArray(dashboardObject({ id: dashboardId, name: dashboardName, plan: dashboardNullable(dashboardText()), ok: dashboardBoolean,
     windows: dashboardArray(dashboardObject({ label: dashboardName, usedPercent: dashboardNumber, resetsAt: dashboardNullable(dashboardNumber) }), 20) }), 20) }),
-  results: dashboardArray(dashboardObject({ id: dashboardId, ok: dashboardBoolean, message: dashboardNullable(dashboardText()), at: dashboardNumber }), 50),
+  apps: dashboardObject({ available: dashboardBoolean, complete: dashboardBoolean,
+    services: dashboardArray(dashboardObject({ slug: input => appSlug(input) ?? dashboardInvalid, connected: dashboardBoolean, pending: dashboardBoolean }), 500) }),
+  results: dashboardArray(input => {
+    const result = dashboardObject({ id: dashboardId, ok: dashboardBoolean, message: dashboardNullable(dashboardText()), at: dashboardNumber })(input);
+    if (result === dashboardInvalid) return result;
+    const url = commandUrl((input as Record<string, unknown>).url);
+    return url ? { ...(result as object), url } : result;
+  }, 50),
 };
 
 /** bounded version 1 report; malformed optional sections are omitted independently. */

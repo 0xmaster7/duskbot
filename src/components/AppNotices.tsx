@@ -24,6 +24,8 @@ import { NoticeToast } from "./NoticeCard";
 import { useDesktopNotices } from "./notice-dialogs";
 import { localDesktopPage } from "./onboarding/WelcomeGate";
 import { TwoPlacesCard } from "./TwoPlacesCard";
+import { FeedbackCard } from "./FeedbackCard";
+import { feedbackDue } from "@/lib/feedback-prompt";
 
 const trialKey = (trial: { state: string; endsAt: number }) => `${trial.state}:${trial.endsAt}`;
 
@@ -46,6 +48,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   const [toast, setToast] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [askFeedback, setAskFeedback] = useState(() => feedbackDue());
   const intent = useCloudIntent();
   const moving = useMoveQuiet(now);
   // only a server install (a Cloud home, a VPS) has a line: the desktop app's own server never updates itself
@@ -152,6 +155,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     return <NoticeToast text={t(allowance.level === "over" ? "notices.allowance.over" : "notices.allowance.near")} tone={allowance.level === "over" ? "warning" : undefined}
       onDone={allowance.seen} action={{ label: t("notices.allowance.see"), onClick: () => dispatch({ type: "toggleAppSettings", open: true, section: "usage" }) }} />;
   }
+  if (!notice && askFeedback && !waits && usedBefore(state.bots)) return <FeedbackCard onDone={() => setAskFeedback(false)} />;
   if (!notice) return null;
 
   if (notice === CLOUD_INTRO && offer) {

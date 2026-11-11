@@ -9,7 +9,7 @@ import { appLogo } from "@/components/connect-apps/logos";
 import { idsOf, mergeEntries } from "@/components/connect-apps/merge";
 import { FIXTURE } from "../lib/api";
 import { useCloud } from "./cloud";
-import { connectorRows, FIXTURE_EXTRAS, skillRows, type ConnectorRow } from "./connector-rows";
+import { connectorRows, FIXTURE_EXTRAS, skillRows, withPending, type ConnectorRow } from "./connector-rows";
 import { useSession } from "./session";
 
 export { CATEGORIES, presentCategories, inCategory, searchApps, recommended } from "@/components/connect-apps/catalog";
@@ -52,6 +52,8 @@ function loadApps(): Promise<AppsState> {
   return request;
 }
 
+export const preloadApps = () => { void loadApps(); };
+
 export function useDashApps(): { apps: DashApp[] | null; error: string | null } {
   const [state, setState] = useState<AppsState>(() => cached);
   useEffect(() => {
@@ -64,6 +66,11 @@ export function useDashApps(): { apps: DashApp[] | null; error: string | null } 
   return state;
 }
 
+/** the Composio toolkit an app connects through, or null for one only the desktop app can add */
+export function composioSlug(app: Pick<DashApp, "id" | "kind" | "composio">): string | null {
+  return (app.kind === "composio" ? app.id : app.composio ?? null)?.toLowerCase() ?? null;
+}
+
 export function connectedIn(app: DashApp, connectedIds: readonly string[]): boolean {
   const connected = new Set(connectedIds.map((id) => id.toLowerCase()));
   return idsOf(app).some((id) => connected.has(id.toLowerCase()));
@@ -71,9 +78,13 @@ export function connectedIn(app: DashApp, connectedIds: readonly string[]): bool
 
 export function useConnectorRows(): { rows: ConnectorRow[]; loading: boolean; error: string | null } {
   const { apps, error: appsError } = useDashApps();
-  const { connections, error: cloudError } = useCloud();
+  const { connections, pendingApps, error: cloudError } = useCloud();
   const { workspaces } = useSession();
-  const rows = useMemo(() => workspaces ? [...connectorRows(apps ?? [], connections ?? {}, workspaces, FIXTURE ? FIXTURE_EXTRAS : undefined), ...skillRows(workspaces)] : [], [apps, connections, workspaces]);
+  const rows = useMemo(() => {
+    if (!workspaces) return [];
+    const shown = withPending(connections ?? {}, pendingApps, FIXTURE ? FIXTURE_EXTRAS : undefined);
+    return [...connectorRows(apps ?? [], shown.connections, workspaces, shown.extras), ...skillRows(workspaces)];
+  }, [apps, connections, pendingApps, workspaces]);
   const error = appsError ?? (connections === null ? cloudError : null);
   return { rows, loading: workspaces === null || apps === null && !appsError || connections === null && !cloudError, error };
 }

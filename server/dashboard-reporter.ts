@@ -1,7 +1,7 @@
 import { createHash, createPrivateKey, generateKeyPairSync, randomUUID, sign } from "node:crypto";
 import { chmodSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { SIGNATURE_HEADERS, signedPayload } from "../shared/dashboard-protocol.ts";
+import { APP_WATCH_MS, SIGNATURE_HEADERS, signedPayload } from "../shared/dashboard-protocol.ts";
 import type { CommandResult, DashboardCommand, EnrollAnswer, EnrollRequest, ReportAnswer, WorkspaceReport } from "../shared/dashboard-protocol.ts";
 import type { createDashboardCollector } from "./dashboard-report.ts";
 
@@ -32,7 +32,7 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
   let running = false, generation = 0, removed = false;
   let wakeReport: (() => void) | undefined, urgent = false;
   // a command changes devices or routines: the next report carries them at once
-  let changed = false;
+  let changed = false, appsWatchUntil = 0;
   const requests = new Set<AbortController>(), sleepers = new Set<() => void>();
   const results = new Map<string, CommandResult>(), executed = new Set<string>();
   let commands = Promise.resolve();
@@ -114,6 +114,7 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         if (!running || generation !== run) return;
         results.set(command.id, { ...result, id: command.id });
         changed = true;
+        if (command.kind.startsWith("app.")) appsWatchUntil = now() + APP_WATCH_MS;
         requestReport();
       });
     }
@@ -124,7 +125,7 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
   }
   async function reports(run: number) {
     let backoff = 5000;
-    let devicesAt: number | null = null, activityAt: number | null = null, plansAt: number | null = null;
+    let devicesAt: number | null = null, activityAt: number | null = null, plansAt: number | null = null, appsAt: number | null = null;
     let lastPlans: WorkspaceReport["plans"] | null;
     while (running && generation === run) {
       try {
@@ -137,6 +138,10 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         const plans = await deps.collect.plans();
         const plansDue = plansAt === null || at - plansAt >= 300_000 || plans !== lastPlans;
         if (plansDue && plans) report.plans = plans;
+        if (appsAt === null || at - appsAt >= 300_000 || at < appsWatchUntil) {
+          const apps = await deps.collect.apps();
+          if (apps) report.apps = apps;
+        }
         if (!running || generation !== run) return;
         const answer = await request("POST", "/v1/report", report);
         if (!running || generation !== run) return;
@@ -144,6 +149,7 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
         if (report.devices) devicesAt = at;
         if (report.activity) activityAt = at;
         if (plansDue) { plansAt = at; lastPlans = plans; }
+        if (report.apps) appsAt = at;
         lastReportAt = now(); lastError = null; backoff = 5000;
         accept(answer, run);
         await pause(Math.max(2000, Math.min(600_000, Number(answer.nextReportMs) || 180_000)), true);
