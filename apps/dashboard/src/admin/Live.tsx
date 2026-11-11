@@ -1,10 +1,10 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play } from "@/icons";
 import { Segmented, cx } from "../ui/kit";
 import { ago } from "../lib/format";
 import { Link } from "../lib/router";
 import { useNow } from "../lib/now";
-import { useReducedMotion } from "../ui/Mascot";
+import { Mascot, useReducedMotion, type MascotHandle } from "../ui/Mascot";
 import { useAdmin } from "./api";
 import { centroid, countryName } from "./geo";
 import { avatarOf, friendlyName } from "./names";
@@ -49,6 +49,14 @@ export function LivePage() {
   const [replay, setReplay] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const reduced = useReducedMotion();
+  const kit = useRef<MascotHandle>(null);
+  const seen = useRef<string | null>(null);
+  const newest = data?.feed.find((item) => BIG.has(item.name));
+  useEffect(() => {
+    if (!newest) return;
+    if (seen.current !== null && seen.current !== newest.id) kit.current?.react("celebrate");
+    seen.current = newest.id;
+  }, [newest]);
   const now = useNow(5_000);
   const span = 30 * 60_000;
   useEffect(() => {
@@ -61,7 +69,7 @@ export function LivePage() {
   const located = points.length, here = data?.here.length ?? 0;
   return (
     <>
-      <AdminHeader title="live" sub="who is here now, and what just happened" action={<Segmented<"3d" | "2d"> label="globe or map" value={mode} onChange={setMode} options={[{ value: "3d", label: "globe" }, { value: "2d", label: "map" }]} />} />
+      <AdminHeader title="live" sub="who's here, and what just happened" action={<Segmented<"3d" | "2d"> label="globe or map" value={mode} onChange={setMode} options={[{ value: "3d", label: "globe" }, { value: "2d", label: "map" }]} />} />
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading rows={8} />}
       {data && (
@@ -89,7 +97,7 @@ export function LivePage() {
             <p className="mt-3 text-12 text-ink-4">{here - located > 0 ? `${here - located} visitor${here - located === 1 ? "" : "s"} have no location. ` : ""}places come from cloudflare: a city when cloudflare sends one, else the middle of the country.</p>
           </div>
           <section aria-label="live feed" className="min-w-0">
-            <h2 className="mb-3 text-16 font-medium tracking-[-0.02em] text-ink">just now</h2>
+            <h2 className="mb-3 flex items-center gap-2 text-16 font-medium tracking-[-0.02em] text-ink"><span aria-hidden><Mascot ref={kit} body="kit" color="blue" size={24} state={data && data.online.site + data.online.app === 0 ? "sleeping" : "curious"} /></span>just now</h2>
             {feed.length ? (
               <ol className="flex max-h-[720px] flex-col gap-0.5 overflow-y-auto">
                 {feed.slice(0, 80).map((item) => (

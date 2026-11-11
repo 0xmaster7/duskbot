@@ -78,17 +78,31 @@ function SitePicker({ value, onChange, counts }: { value: Surface; onChange(v: S
   );
 }
 
+/** kit's mood from the numbers: napping when nobody is around, cheering on a record day or more signups */
+export function moodOf(data: WebAnswer | null): { state: "sleeping" | "excited" | "happy" | "idle"; line: string } {
+  if (!data) return { state: "idle", line: "" };
+  const online = data.online.site + data.online.app, days = data.series.visitors, last = days.at(-1) ?? 0;
+  if (last > 0 && days.length > 2 && last >= Math.max(...days)) return { state: "excited", line: "busiest stretch of this window. nice." };
+  if (data.current.signups > data.previous.signups) return { state: "happy", line: `${n(data.current.signups - data.previous.signups)} more signups than the window before.` };
+  if (online === 0) return { state: "sleeping", line: "quiet right now. kit is napping." };
+  return { state: "idle", line: `${n(online)} here right now.` };
+}
+
 /** a slim pixel sky with kit on the meadow, and the window in one sentence */
 function Band({ data, range }: { data: WebAnswer | null; range: Range }) {
   const span = range.key === "today" ? "today" : range.key === "7d" ? "in the last 7 days" : range.key === "90d" ? "in the last 90 days" : range.key === "custom" ? "in this window" : "in the last 30 days";
+  const mood = moodOf(data);
   return (
     <div className="relative mb-5 overflow-hidden rounded-[24px] bg-sky" style={{ backgroundImage: `url(${skyBand})`, backgroundSize: "cover", imageRendering: "pixelated" }}>
       <div className="absolute inset-x-0 bottom-0 h-5" style={{ backgroundImage: `url(${meadowBand})`, backgroundSize: "auto 100%", backgroundRepeat: "repeat-x", imageRendering: "pixelated" }} aria-hidden />
-      <div className="relative flex min-h-[104px] items-center justify-between gap-4 px-6 pb-6 pt-5 max-sm:px-4">
-        <p className="text-[22px] leading-[1.3] tracking-[-0.03em] text-[#14243a] max-sm:text-[17px]">
-          {data ? <>you got <b className="font-mono font-medium">{n(data.current.visitors)}</b> visitors and <b className="font-mono font-medium">{n(data.current.signups)}</b> signups {span}.</> : "loading the numbers."}
-        </p>
-        <span className="me-4 shrink-0 max-sm:hidden" aria-hidden><Mascot body="kit" color="blue" size={56} state={data && data.current.signups > data.previous.signups ? "happy" : "idle"} /></span>
+      <div className="relative flex min-h-[104px] items-center justify-between gap-4 px-6 pb-7 pt-5 max-sm:px-4">
+        <div className="min-w-0 text-[#14243a]">
+          <p className="text-[22px] leading-[1.3] tracking-[-0.03em] max-sm:text-[17px]">
+            {data ? <>you got <b className="font-mono font-medium">{n(data.current.visitors)}</b> visitors and <b className="font-mono font-medium">{n(data.current.signups)}</b> signups {span}.</> : "counting visitors."}
+          </p>
+          {mood.line && <p className="mt-0.5 text-13 text-[#14243a]/70">{mood.line}</p>}
+        </div>
+        <span className="me-4 shrink-0 max-sm:me-0" aria-hidden><Mascot body="kit" color="blue" size={52} state={mood.state} /></span>
       </div>
     </div>
   );
