@@ -112,7 +112,7 @@ ${block.items.map(item => `<tr><td valign="top" width="88" style="padding:0 0 20
         { fill: tone.bg, fillCls: tone.cls, under: tone.edge, underCls: "", pad: "13px 18px", margin: "0 0 22px" });
     }
     case "cloud": return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 30px">
-<tr><td style="padding:0"><img src="${esc(img(cfg, block.image))}" width="520" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:520px;height:auto;border:0"></td></tr>
+<tr><td class="line" style="padding:30px 0 0;border-top:2px dashed ${C.edge}"><img src="${esc(img(cfg, block.image))}" width="520" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:520px;height:auto;border:0"></td></tr>
 <tr><td style="padding:20px 0 0">
 <div style="font-family:${MONO};font-size:12.5px;line-height:18px;letter-spacing:0.04em;color:${C.muted}" class="muted">${esc(block.eyebrow)}</div>
 <div style="padding-top:8px;font-family:${SANS};font-size:24px;line-height:30px;font-weight:600;letter-spacing:-0.02em;color:${C.ink}" class="ink">${esc(block.title)}</div>
@@ -124,7 +124,8 @@ ${block.points.map(point => `<tr><td valign="top" width="20" style="padding:8px 
 <td bgcolor="${C.lime}" style="background:${C.lime}"><a href="${esc(block.cta.href)}" target="_blank" style="display:inline-block;padding:13px 24px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:600;letter-spacing:-0.01em;color:${C.ink};text-decoration:none">${esc(block.cta.label)}</a></td>
 <td class="ink" style="padding-left:16px;font-family:${SANS};font-size:15px;line-height:20px;color:${C.ink}"><b style="font-weight:600">${esc(block.price)}</b><br><span class="muted" style="font-size:13px;color:${C.muted}">${esc(block.fine)}</span></td>
 </tr></table>
-</td></tr></table>`;
+</td></tr>
+<tr><td class="line" style="padding:30px 0 0;border-bottom:2px dashed ${C.edge}"></td></tr></table>`;
     case "feature": return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px">
 ${block.image ? `<tr><td style="padding:0 0 14px"><img src="${esc(img(cfg, block.image))}" width="520" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:520px;height:auto;border:0"></td></tr>` : ""}
 <tr><td><div class="ink" style="font-family:${SANS};font-size:18px;line-height:25px;font-weight:600;letter-spacing:-0.015em;color:${C.ink}">${esc(block.title)}</div>
