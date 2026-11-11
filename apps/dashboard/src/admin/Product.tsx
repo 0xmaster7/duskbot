@@ -5,7 +5,6 @@ import { useAdmin } from "./api";
 import { RangePicker, duration, percent, rangeOf, type Range } from "./kit";
 import { AdminHeader, Failed, Loading, Section, Tabs, Tile, n } from "./ui";
 import { AppUsagePage } from "./AppUsage";
-import { RetentionPage } from "./Retention";
 
 interface Count { key: string; count: number; people: number }
 interface Feature { feature: string; people: number; uses: number; adoption: number | null; repeat: number | null; triedOnce: number; lift: number | null }
@@ -36,7 +35,6 @@ export const TABS = [
   { to: "/admin/product/apps", label: "in the apps" },
   { to: "/admin/product/website", label: "website" },
   { to: "/admin/product/account", label: "account pages" },
-  { to: "/admin/product/retention", label: "retention" },
 ];
 const AREA: Record<string, string> = { funnel: "funnel", errors: "errors", rating: "ratings", features: "features", onboarding: "onboarding", site: "website", bots: "bots" };
 const words = (value: string) => value.replace(/_/g, " ");
@@ -253,7 +251,6 @@ export function ProductPage({ path }: { path: string }) {
   const [range, setRange] = useState<Range>(() => rangeOf("30d"));
   const tabs = <Tabs label="product views" items={TABS} />;
   if (path === "/admin/product/apps") return <AppUsagePage tabs={tabs} />;
-  if (path === "/admin/product/retention") return <RetentionPage tabs={tabs} />;
   if (path === "/admin/product/website") return <Frame title="product" sub="the site: what gets seen, clicked and skipped" range={range} setRange={setRange}>{(data) => <WebsiteView data={data} />}</Frame>;
   if (path === "/admin/product/account") return <Frame title="product" sub="the account pages: onboarding, picks and clicks" range={range} setRange={setRange}>{(data) => <AccountView data={data} />}</Frame>;
   return <Frame title="product" sub="what people use, what they like, and what to fix" range={range} setRange={setRange}>{(data) => <ImproveView data={data} />}</Frame>;

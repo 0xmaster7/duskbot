@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { ChevronDown } from "@/icons";
 import { Segmented, cx } from "../ui/kit";
-import { Table, Td, Th } from "../ui/table";
 import { useAdmin } from "./api";
 import { AdminHeader, Failed, Loading, n } from "./ui";
-import { RangePicker, duration, rangeOf, type Range } from "./kit";
+import { RangePicker, percent, rangeOf, type Range } from "./kit";
 
 interface Step { id: string; label: string; count: number; medianMs: number | null }
 interface Drop { count: number; lastPages: Array<{ key: string; count: number }>; lastEvents: Array<{ key: string; count: number }>; scroll: number[] }
@@ -17,79 +15,82 @@ const CHANNEL: Record<string, string> = { ai: "ai assistants", referral: "referr
 export function FunnelPage() {
   const [range, setRange] = useState<Range>(() => rangeOf("30d"));
   const [mode, setMode] = useState<"visitors" | "signups">("visitors");
-  const [open, setOpen] = useState<string | null>(null);
+  const [channel, setChannel] = useState("all");
+  const [picked, setPicked] = useState<string | null>(null);
   const { data, error, loading, reload } = useAdmin<Answer>(`/funnel?from=${range.from}&to=${range.to}&mode=${mode}`);
-  const first = data?.steps[0]?.count ?? 0;
+  const row = data?.bySource.find((r) => r.channel === channel);
+  const counts = data ? (row ? row.counts : data.steps.map((step) => step.count)) : [];
+  const first = Math.max(1, counts[0] ?? 1);
+  const drops = data ? data.steps.slice(1).map((step, i) => ({ id: step.id, from: data.steps[i]!, i: i + 1, kept: counts[i] ? counts[i + 1]! / counts[i]! : null, lost: (counts[i] ?? 0) - (counts[i + 1] ?? 0) })) : [];
+  const worst = [...drops].filter((d) => d.kept !== null && (counts[d.i - 1] ?? 0) >= 3).sort((a, b) => (a.kept ?? 1) - (b.kept ?? 1))[0];
+  const open = drops.find((d) => d.id === picked) ?? worst ?? null;
+  const reasons = open && channel === "all" ? data?.dropoff[open.from.id] : undefined;
   return (
     <>
-      <AdminHeader title="funnel" sub={mode === "visitors" ? "everyone who first visited in the window, and how far they got" : "everyone who signed up in the window, and how far they got"}
+      <AdminHeader title="funnel" sub={mode === "visitors" ? "from first visit to coming back" : "from signup to coming back"}
         action={<div className="flex flex-wrap items-center gap-2"><Segmented<"visitors" | "signups"> label="start from" value={mode} onChange={setMode} options={[{ value: "visitors", label: "from visitors" }, { value: "signups", label: "from signups" }]} /><RangePicker value={range} onChange={setRange} /></div>} />
       {error && <Failed error={error} retry={reload} />}
-      {!data && loading && <Loading rows={10} />}
+      {!data && loading && <Loading rows={6} />}
       {data && (
-        <>
-          <ol className={cx("flex flex-col gap-1.5", loading && "opacity-70")} aria-label="funnel steps">
+        <div className={cx(loading && "opacity-70")}>
+          <div role="radiogroup" aria-label="channel" className="scroll-x mb-4 flex gap-1">
+            {[{ channel: "all" }, ...data.bySource].map((r) => (
+              <button key={r.channel} type="button" role="radio" aria-checked={channel === r.channel} onClick={() => setChannel(r.channel)}
+                className={cx("h-8 shrink-0 rounded-full px-3.5 text-13", channel === r.channel ? "bg-primary text-primary-ink" : "bg-card text-ink-2 hover-link")}>{r.channel === "all" ? "every channel" : CHANNEL[r.channel] ?? r.channel}</button>
+            ))}
+          </div>
+          <ol className="scroll-x flex items-stretch rounded-[28px] bg-card p-3" aria-label="funnel steps">
             {data.steps.map((step, i) => {
-              const prev = data.steps[i - 1], lost = prev ? prev.count - step.count : 0, drop = prev ? data.dropoff[prev.id] : undefined;
-              const expanded = open === step.id;
+              const drop = drops[i - 1];
+              const share = (counts[i] ?? 0) / first;
               return (
-                <li key={step.id} className="rounded-[18px] bg-card">
-                  <div className="grid grid-cols-[28px_minmax(0,1fr)_minmax(0,2fr)_88px_120px] items-center gap-4 px-4 py-3 max-md:grid-cols-[28px_minmax(0,1fr)_72px] max-md:gap-y-2">
-                    <span className="font-mono text-12 text-ink-4">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="min-w-0 truncate text-14 text-ink">{step.label}</span>
-                    <span className="relative h-7 overflow-hidden rounded-[8px] bg-pop max-md:order-last max-md:col-span-3" aria-hidden>
-                      <span className="bar-fill absolute inset-y-0 left-0 w-full rounded-[8px] bg-accent" style={{ transform: `scaleX(${first ? step.count / first : 0})`, opacity: 0.25 + 0.75 * (first ? step.count / first : 0) }} />
-                    </span>
-                    <span className="text-end font-mono text-[18px] font-medium text-ink num">{n(step.count)}</span>
-                    <span className="text-end text-12 text-ink-3 max-md:hidden">
-                      {prev ? <>{prev.count ? `${Math.round((step.count / prev.count) * 100)}%` : "-"} of step {i}{step.medianMs !== null ? <span className="block text-ink-4">median {duration(step.medianMs)}</span> : null}</> : "start"}
-                    </span>
-                  </div>
-                  {prev && lost > 0 && drop && (
-                    <div className="border-t border-line px-4 py-2">
-                      <button type="button" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : step.id)} className="hover-link flex w-full items-center gap-2 text-start text-13 text-ink-3">
-                        <span className="text-bad num">{n(lost)} stopped before this</span>
-                        <span className="text-ink-4">· where they were last</span>
-                        <ChevronDown size={14} strokeWidth={1.75} className={cx("ms-auto transition-transform", expanded && "rotate-180")} aria-hidden />
-                      </button>
-                      {expanded && (
-                        <div className="grid grid-cols-3 gap-6 pb-2 pt-3 max-md:grid-cols-1">
-                          <Tops title="last page" rows={drop.lastPages} />
-                          <Tops title="last thing they did" rows={drop.lastEvents.map((row) => ({ ...row, key: EVENT[row.key] ?? row.key.replace(/_/g, " ") }))} />
-                          <div>
-                            <div className="t-meta mb-2">how far they scrolled that page</div>
-                            {drop.scroll.some(Boolean) ? (
-                              <ul className="flex flex-col gap-1">
-                                {["under a quarter", "a quarter to half", "half to three quarters", "most or all of it"].map((label, k) => (
-                                  <li key={label} className="flex items-center justify-between text-13"><span className="text-ink-2">{label}</span><span className="font-mono num">{n(drop.scroll[k] ?? 0)}</span></li>
-                                ))}
-                              </ul>
-                            ) : <p className="text-13 text-ink-4">no scroll data for them.</p>}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                <li key={step.id} className="flex shrink-0 items-stretch">
+                  {drop && (
+                    <button type="button" onClick={() => setPicked(drop.id)} aria-pressed={open?.id === drop.id} title={`${n(drop.lost)} dropped between these steps`}
+                      className={cx("mx-0.5 flex w-[64px] flex-col items-center justify-center gap-1 rounded-[14px] text-center", open?.id === drop.id ? "bg-pop" : "hover-ghost")}>
+                      <span className={cx("font-mono text-[15px] font-medium num", drop.kept === null ? "text-ink-4" : drop.kept >= 0.6 ? "text-good" : drop.kept >= 0.3 ? "text-warn" : "text-bad")}>{drop.kept === null ? "-" : percent(drop.kept)}</span>
+                      <span className="text-[11px] leading-tight text-ink-4">kept</span>
+                    </button>
                   )}
+                  <div className="flex w-[118px] flex-col rounded-[18px] bg-pop p-3">
+                    <span className="font-mono text-[26px] font-medium leading-8 tracking-[-0.045em] text-ink num">{n(counts[i] ?? 0)}</span>
+                    <span className="mt-0.5 line-clamp-2 min-h-8 text-12 leading-4 text-ink-3">{step.label}</span>
+                    <span className="mt-3 flex h-24 items-end overflow-hidden rounded-[10px] bg-track" aria-hidden>
+                      <span className="block w-full rounded-[10px] bg-accent" style={{ height: `${Math.max(2, share * 100)}%`, opacity: 0.35 + 0.65 * share }} />
+                    </span>
+                    <span className="mt-2 font-mono text-[11.5px] text-ink-4 num">{percent(share)} of start</span>
+                  </div>
                 </li>
               );
             })}
           </ol>
-          <h2 className="mb-3 mt-10 text-16 font-medium tracking-[-0.02em] text-ink">by channel</h2>
-          {data.bySource.length ? (
-            <Table label="funnel by channel">
-              <thead><tr><Th>channel</Th>{data.steps.map((step, i) => <Th key={step.id} className="!text-end" title={step.label}>{i + 1}</Th>)}</tr></thead>
-              <tbody>
-                {data.bySource.map((row) => (
-                  <tr key={row.channel}>
-                    <Td className="whitespace-nowrap">{CHANNEL[row.channel] ?? row.channel}</Td>
-                    {row.counts.map((count, i) => <Td key={i} className={cx("text-end font-mono text-13 num", count ? "text-ink" : "text-ink-4")}>{n(count)}</Td>)}
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          ) : <p className="text-14 text-ink-3">no one in this window yet.</p>}
-          <p className="mt-4 text-12 text-ink-4">each step counts people who also did every step before it. "came back" means any use of the account page or an app on day 1, in week 2 (days 7 to 13) or in month 2 (days 30 to 59) after signing up.</p>
-        </>
+          {open && (
+            <section aria-label="why they dropped" className="mt-4 rounded-[24px] bg-card p-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 className="text-16 font-medium tracking-[-0.02em] text-ink"><span className="font-mono text-bad num">{n(open.lost)}</span> stopped after "{open.from.label}"</h2>
+                <span className="text-12 text-ink-4">{open === worst ? "the biggest drop. " : ""}tap a % above to see another step</span>
+              </div>
+              {reasons ? (
+                <div className="mt-4 grid grid-cols-3 gap-6 max-md:grid-cols-1">
+                  <Tops title="last page" rows={reasons.lastPages} />
+                  <Tops title="last thing they did" rows={reasons.lastEvents.map((r) => ({ ...r, key: EVENT[r.key] ?? r.key.replace(/_/g, " ") }))} />
+                  <div>
+                    <div className="t-meta mb-2">how far they scrolled</div>
+                    {reasons.scroll.some(Boolean) ? (
+                      <ul className="flex flex-col gap-1.5">
+                        {["under 25%", "25 to 50%", "50 to 75%", "75% or more"].map((label, k) => {
+                          const most = Math.max(1, ...reasons.scroll);
+                          return <li key={label} className="grid grid-cols-[80px_minmax(0,1fr)_32px] items-center gap-2 text-13"><span className="text-ink-2">{label}</span><span className="h-1.5 overflow-hidden rounded-full bg-track"><span className="block h-full rounded-full bg-coral" style={{ width: `${((reasons.scroll[k] ?? 0) / most) * 100}%` }} /></span><span className="text-end font-mono num">{n(reasons.scroll[k] ?? 0)}</span></li>;
+                        })}
+                      </ul>
+                    ) : <p className="text-13 text-ink-4">no scroll data.</p>}
+                  </div>
+                </div>
+              ) : <p className="mt-3 text-13 text-ink-3">{channel === "all" ? "no details for this step." : "reasons show for every channel together."}</p>}
+            </section>
+          )}
+          <p className="mt-4 text-12 text-ink-4">each step counts people who did every step before it. came back: used the account page or an app on day 1, in week 2, or in month 2.</p>
+        </div>
       )}
     </>
   );

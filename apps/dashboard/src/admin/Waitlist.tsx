@@ -17,7 +17,7 @@ export function WaitlistPage({ tabs }: { tabs?: ReactNode }) {
   const brevo = data?.brevo;
   return (
     <>
-      <AdminHeader title="people" sub="people waiting on dusk.bot" tabs={tabs}
+      <AdminHeader title="waitlist" sub="people waiting on dusk.bot" tabs={tabs}
         action={data?.configured ? <a href="/v1/admin/waitlist.csv" download className="press hover-outline inline-flex h-9 items-center gap-1.5 rounded-full bg-btn px-4 text-13 font-medium text-ink"><Download size={15} strokeWidth={1.75} aria-hidden /> export csv</a> : undefined} />
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading />}

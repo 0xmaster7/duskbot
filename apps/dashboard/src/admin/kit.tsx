@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
-import { Plus, X } from "@/icons";
+import { Maximize, Plus, X } from "@/icons";
+import { Link } from "../lib/router";
 import { Button, cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
 import { Mascot } from "../ui/Mascot";
@@ -90,7 +91,8 @@ const H = 240, PAD = { top: 16, right: 44, bottom: 28, left: 40 };
 function niceMax(value: number) { if (value <= 4) return 4; const p = 10 ** Math.floor(Math.log10(value)); const m = value / p; return (m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }
 
 /** visitors as a line on the left axis, signups and payments as bars on the right, notes pinned along the bottom */
-export function DualChart({ data, notes, show, onNote }: { data: SeriesData; notes: Note[]; show: { visitors: boolean; signups: boolean; paid: boolean }; onNote(note: Note | { at: number }): void }) {
+export interface Mark { at: number; kind: "signup" | "paid"; seed: string; email: string | null; customer?: boolean }
+export function DualChart({ data, notes, show, onNote, marks = [] }: { data: SeriesData; notes: Note[]; show: { visitors: boolean; signups: boolean; paid: boolean }; onNote(note: Note | { at: number }): void; /** people who signed up or paid, shown as avatars over their bar */ marks?: Mark[] }) {
   const [width, setWidth] = useState(900);
   const [hover, setHover] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -129,15 +131,16 @@ export function DualChart({ data, notes, show, onNote }: { data: SeriesData; not
         {data.starts.map((_, i) => {
           const s = show.signups ? data.signups[i]! : 0, p = show.paid ? data.paid[i]! : 0, bw = Math.max(2, Math.min(22, step * 0.5));
           return <g key={i}>
-            {s > 0 && <rect x={x(i) - bw / 2} y={H - PAD.bottom - yB(s)} width={bw} height={yB(s)} rx={2} fill="var(--ink)" opacity={hover === null || hover === i ? 0.85 : 0.4} />}
-            {p > 0 && <rect x={x(i) - bw / 2} y={H - PAD.bottom - yB(s) - yB(p)} width={bw} height={yB(p)} rx={2} fill="var(--good)" opacity={hover === null || hover === i ? 0.9 : 0.4} />}
+            {s > 0 && <rect x={x(i) - bw / 2} y={H - PAD.bottom - yB(s)} width={bw} height={yB(s)} rx={2} fill="var(--coral)" opacity={hover === null || hover === i ? 1 : 0.45} />}
+            {p > 0 && <rect x={x(i) - bw / 2} y={H - PAD.bottom - yB(s) - yB(p)} width={bw} height={yB(p)} rx={2} fill="var(--coral-deep)" opacity={hover === null || hover === i ? 1 : 0.45} />}
           </g>;
         })}
-        {show.visitors && <><path d={area} fill="var(--accent)" opacity={0.08} /><path d={line} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" className="draw-in" /></>}
+        {show.visitors && <><defs><linearGradient id="visitors-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity={0.16} /><stop offset="100%" stopColor="var(--accent)" stopOpacity={0.01} /></linearGradient></defs><path d={area} fill="url(#visitors-fill)" /><path d={line} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" className="draw-in" /></>}
         {at !== null && <line x1={x(at)} x2={x(at)} y1={PAD.top} y2={H - PAD.bottom} stroke="var(--line-2)" />}
         {at !== null && show.visitors && <circle cx={x(at)} cy={yV(data.visitors[at]!)} r={4} fill="var(--bg)" stroke="var(--accent)" strokeWidth={2} />}
         {ticks.map((i) => <text key={i} x={x(i)} y={H - 8} textAnchor="middle" className="fill-ink-4 font-mono text-[11px]">{label(data.starts[i]!)}</text>)}
       </svg>
+      {(show.signups || show.paid) && <MarkAvatars marks={marks.filter((mark) => mark.kind === "paid" ? show.paid : show.signups)} index={noteIndex} x={x} top={(i) => H - PAD.bottom - yB((show.signups ? data.signups[i]! : 0) + (show.paid ? data.paid[i]! : 0))} count={count} />}
       <div className="absolute inset-x-0" style={{ top: H - PAD.bottom + 4 }} aria-label="chart notes">
         {visibleNotes.map((note) => (
           <button key={note.id} type="button" onClick={() => onNote(note)} title={note.text} aria-label={`note: ${note.text}. edit`}
@@ -157,6 +160,21 @@ export function DualChart({ data, notes, show, onNote }: { data: SeriesData; not
           {visibleNotes.filter((note) => noteIndex(note.at) === at).map((note) => <div key={note.id} className="mt-1.5 border-t border-white/15 pt-1.5 text-12">{note.text}</div>)}
         </div>
       )}
+    </div>
+  );
+}
+
+function MarkAvatars({ marks, index, x, top, count }: { marks: Mark[]; index(at: number): number; x(i: number): number; top(i: number): number; count: number }) {
+  const by = new Map<number, Mark[]>();
+  for (const mark of marks) { const i = index(mark.at); if (i >= 0 && i < count) (by.get(i) ?? by.set(i, []).get(i)!).push(mark); }
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden>
+      {[...by].map(([i, list]) => (
+        <div key={i} className="absolute flex -translate-x-1/2 flex-col-reverse items-center -space-y-1.5 space-y-reverse" style={{ left: x(i), bottom: `calc(100% - ${top(i) - 4}px)` }} title={list.map((mark) => `${mark.email ?? "someone"} ${mark.kind === "paid" ? "paid" : "signed up"}`).join("\n")}>
+          {list.slice(0, 3).map((mark) => <Avatar key={`${mark.seed}-${mark.at}`} seed={mark.seed} size={13} customer={mark.kind === "paid"} />)}
+          {list.length > 3 && <span className="mb-0.5 font-mono text-[10px] text-ink-3">+{list.length - 3}</span>}
+        </div>
+      ))}
     </div>
   );
 }
@@ -189,43 +207,47 @@ export function NoteDialog({ note, onClose, onSave, onDelete }: { note: Note | {
 
 export interface RankRow { key: string; visitors: number; signups: number; paid: number }
 /** a tabbed ranked card: visitors as a light bar, the signups they became as a darker bar on top; a row filters the page */
-export function RankCard({ title, tabs, data, label, onPick, active, metric }: { title: string; tabs: Array<{ id: string; label: string }>; data: Record<string, RankRow[]>; label?(tab: string, key: string): ReactNode; onPick?(tab: string, key: string): void; active?: Record<string, string | undefined>; /** a single count instead of visitors and signups */ metric?: string }) {
+export function RankCard({ title, tabs, data, label, onPick, active, metric, details, panels, rows: limit = 8 }: { title: string; tabs: Array<{ id: string; label: string; icon?: ReactNode }>; data: Record<string, RankRow[]>; label?(tab: string, key: string): ReactNode; onPick?(tab: string, key: string): void; active?: Record<string, string | undefined>; /** a single count instead of visitors and signups */ metric?: string;
+  /** the full-page view of a tab, when it has one */ details?(tab: string): string | null; /** a tab drawn its own way, like a map */ panels?: Record<string, ReactNode>; rows?: number }) {
   const [tab, setTab] = useState(tabs[0]!.id);
   const [all, setAll] = useState(false);
   const rows = data[tab] ?? [];
   const max = Math.max(1, ...rows.map((row) => row.visitors));
-  const shown = all ? rows : rows.slice(0, 8);
+  const shown = all ? rows : rows.slice(0, limit);
+  const more = details?.(tab);
   return (
     <section className="flex min-w-0 flex-col rounded-[24px] bg-card p-2" aria-label={title}>
       <div className="flex items-center justify-between gap-2 px-2 pb-1.5 pt-1">
         <div role="tablist" aria-label={title} className="scroll-x flex gap-0.5">
           {tabs.map((t) => (
             <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => { setTab(t.id); setAll(false); }}
-              className={cx("h-8 shrink-0 rounded-full px-3 text-13", tab === t.id ? "bg-pop font-medium text-ink" : "text-ink-3 hover-link")}>{t.label}</button>
+              className={cx("inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-13", tab === t.id ? "bg-pop font-medium text-ink" : "text-ink-3 hover-link")}>{t.icon && <span aria-hidden className="opacity-70">{t.icon}</span>}{t.label}</button>
           ))}
         </div>
         <span className="t-meta hidden shrink-0 sm:inline">{metric ?? "visitors · signups"}</span>
       </div>
-      <ul className="flex flex-col gap-px rounded-[18px] bg-pop p-1.5" role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
+      {panels?.[tab] ? <div role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label} className="flex-1 rounded-[18px] bg-pop p-1.5">{panels[tab]}</div> : <ul className="flex flex-1 flex-col gap-px rounded-[18px] bg-pop p-1.5" role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
         {shown.map((row) => {
           const on = active?.[tab] === row.key;
           const conversion = row.visitors ? Math.round((row.signups / row.visitors) * 1000) / 10 : 0;
+          const bar = (row.visitors / max) * 100, coral = row.signups ? Math.max(bar * 0.06, Math.min(bar, bar * (row.signups / Math.max(1, row.visitors)) * 6)) : 0;
           return (
             <li key={row.key}>
               <button type="button" disabled={!onPick} onClick={() => onPick?.(tab, row.key)} aria-pressed={onPick ? on : undefined} title={`${n(row.visitors)} visitors, ${n(row.signups)} signups, ${conversion}% signed up${row.paid ? `, ${n(row.paid)} paid` : ""}`}
                 className={cx("relative flex h-9 w-full items-center gap-3 overflow-hidden rounded-[10px] px-2.5 text-start text-13 disabled:cursor-default", on ? "ring-2 ring-accent" : onPick && "hover-ghost")}>
-                <span className="absolute inset-y-0 left-0 rounded-[10px] bg-accent/10" style={{ width: `${(row.visitors / max) * 100}%` }} aria-hidden />
-                {row.signups > 0 && <span className="absolute inset-y-0 left-0 rounded-[10px] bg-accent/25" style={{ width: `${(Math.min(row.signups, row.visitors) / max) * 100}%` }} aria-hidden />}
+                <span className="absolute inset-y-0 left-0 rounded-[10px] bg-accent/12" style={{ width: `${bar}%` }} aria-hidden />
+                {row.signups > 0 && <span className="absolute inset-y-0 rounded-e-[10px] bg-coral-soft" style={{ left: `${bar - coral}%`, width: `${coral}%` }} aria-hidden />}
                 <span className="relative min-w-0 flex-1 truncate text-ink">{label ? label(tab, row.key) : row.key}</span>
                 <span className="relative w-12 text-end font-mono text-ink num">{n(row.visitors)}</span>
-                {!metric && <span className={cx("relative w-10 text-end font-mono num", row.signups ? "text-accent-ink" : "text-ink-4")}>{n(row.signups)}</span>}
+                {!metric && <span className={cx("relative w-10 text-end font-mono num", row.signups ? "text-coral-deep" : "text-ink-4")}>{n(row.signups)}</span>}
               </button>
             </li>
           );
         })}
         {!rows.length && <li className="px-2.5 py-6 text-center text-13 text-ink-3">nothing in this window yet.</li>}
-      </ul>
-      {rows.length > 8 && <button type="button" onClick={() => setAll((v) => !v)} className="hover-link mx-auto mt-1.5 h-8 px-3 text-12 text-ink-3">{all ? "show fewer" : `show all ${rows.length}`}</button>}
+      </ul>}
+      {more && !panels?.[tab] ? <Link to={more} className="hover-link mx-auto mt-1.5 inline-flex h-8 items-center gap-1.5 px-3 font-mono text-[11.5px] uppercase tracking-[0.06em] text-ink-3"><Maximize size={13} strokeWidth={1.75} aria-hidden /> details</Link>
+        : !panels?.[tab] && rows.length > limit && <button type="button" onClick={() => setAll((v) => !v)} className="hover-link mx-auto mt-1.5 h-8 px-3 text-12 text-ink-3">{all ? "show fewer" : `show all ${rows.length}`}</button>}
     </section>
   );
 }
