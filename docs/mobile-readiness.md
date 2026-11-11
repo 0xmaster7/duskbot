@@ -124,7 +124,7 @@ Two runs drive real clients:
 14. **Declared but unsupported:** iPad and landscape were declared and never designed; the photo library purpose string
     had no use; `armv7` was the required capability. Now iPhone only, portrait, `arm64`.
 15. **Android:** cloud backup of app data was on (the saved workspace list would travel to a new phone without its
-    keys); no portrait lock; template icons. Fixed in the manifest and resources. **Unverified**: no Android build ran.
+    keys); no portrait lock; template icons. Fixed in the manifest and resources; the debug build succeeds. Not run on a device or emulator.
 16. **Development leftovers in a build:** the phone preview page was built into the bundle, and the installed app read
     the preview's URL switches. The page is no longer an entry of the build; the installed app ignores the switches.
 
@@ -298,7 +298,7 @@ Grok's, and the Grok Bot logo in the import dialog. The skin ids are visible in 
 - Screenshots: `docs/store/ios/6.9/` (1320 x 2868) and `docs/store/ios/6.5/` (1284 x 2778), five each: the team, a chat,
   a room, dark, pairing. They are the app's real screens with the demo data, drawn by
   `apps/mobile/scripts/store-shots.ts` in a headless Chrome at the store sizes. **They are not simulator captures**: a
-  browser draws no status bar and no home indicator, and the home screen shows the "Demo workspace" pill. Retake them in
+  browser draws no status bar and no home indicator, and the home screen shows the "Demo" pill. Retake them in
   the simulator before submitting (steps below).
 
 ## 5. Android, quick check
@@ -316,7 +316,7 @@ Grok's, and the Grok Bot logo in the import dialog. The skin ids are visible in 
 | Data safety form | **needs owner**: the same answers as the iOS label, plus what Google's ML Kit scanner module collects (the Android scanner is ML Kit; iOS has none) |
 | Push | **needs owner**: `google-services.json` and an FCM service account (docs/phone-push.md) |
 | Release signing, minification | **needs owner**: no signing config; `minifyEnabled false` |
-| Build | **unverified**: no Android build ran here |
+| Build | pass: `./gradlew assembleDebug` succeeds with these changes (debug APK only; nothing was installed or run) |
 
 ## 6. What was proven, and how
 
