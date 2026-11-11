@@ -95,7 +95,13 @@ users (search, plan, clouds, devices, timeline), clouds (pause, resume, delete w
 - **Site and app analytics.** `tracker/dusk.js` (about 3 KB gzip, no dependencies, ideas from Minilytics, MIT) is copied to the
   site as `/a.js` by the site's `build-pages.mjs`. It sends page views, goals (`cta_click`, `download_click`, `waitlist_join`,
   `outbound`, any `data-dusk-goal`), and each page view's end (scroll depth, visible time) to `POST /v1/t` as text/plain
-  beacons; `?dusk_ignore=1` once turns it off in a browser, and an admin's own visits are never counted. Origins other than
+  beacons; `?dusk_ignore=1` once turns it off in a browser, and an admin's own visits are never counted. The first page
+  view of each page load goes as a `fetch` instead, and `/v1/t` answers `{"persist": true|false}`: the tracker writes
+  `dusk_vid` and `dusk_sid` only after `true`. The answer is `false` when Cloudflare (trusted only as the proxy's peer) puts
+  the visitor in the EU, EEA, UK or Switzerland (`COOKIELESS_COUNTRIES` in `analytics/context.ts`) or cannot place them;
+  there the service ignores the browser's ids and uses a daily visitor hash (HMAC of address and user agent under a salt
+  that lives in memory and changes every day) and its own 30-minute visits, so attribution is per visit. A request that
+  did not come through Cloudflare keeps cookies. Origins other than
   the service's own must be in `DUSK_TRACK_ORIGINS`. The apps send screens, features, message counts, reply times,
   error and pairing codes to `POST /v1/app/events` (`src/lib/product-analytics.ts`), anonymous by install id until the
   app signs in. Channels and named sources (AI assistants apart from search) come from `analytics/sources.ts` (ported from

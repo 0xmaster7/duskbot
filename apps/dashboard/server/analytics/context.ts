@@ -57,6 +57,20 @@ export function viaCloudflare(req: IncomingMessage, trustProxy: boolean): boolea
   return trustProxy && typeof forwarded === "string" && fromCloudflare(forwarded.split(",").pop()!.trim());
 }
 
+/** the EU and EEA, the UK and Switzerland, with their territories that have a code of their own */
+export const COOKIELESS_COUNTRIES: ReadonlySet<string> = new Set([
+  "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK",
+  "SI", "ES", "SE", "IS", "LI", "NO", "GB", "CH", "AX", "GF", "GP", "MQ", "RE", "YT", "MF", "GI", "GG", "JE", "IM",
+]);
+
+/** a visitor the site must not keep ids for: Cloudflare places them in a COOKIELESS_COUNTRIES country, or cannot place
+ *  them. Known risk: a request that did not come through Cloudflare has no location and keeps cookies (local runs). */
+export function cookieless(req: IncomingMessage, trustProxy: boolean): boolean {
+  if (!viaCloudflare(req, trustProxy)) return false;
+  const country = req.headers["cf-ipcountry"];
+  return typeof country !== "string" || !/^[A-Z]{2}$/.test(country) || country === "XX" || country === "T1" || COOKIELESS_COUNTRIES.has(country);
+}
+
 export function geoOf(req: IncomingMessage, trustProxy: boolean): Pick<EventContext, "country" | "region" | "city" | "lat" | "lon"> {
   if (!viaCloudflare(req, trustProxy)) return {};
   const out: Pick<EventContext, "country" | "region" | "city" | "lat" | "lon"> = {};
