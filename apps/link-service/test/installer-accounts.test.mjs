@@ -181,9 +181,11 @@ do_user > "$ROOT/out2" 2>&1 || { cat "$ROOT/out2" >&2; exit 1; }`);
 });
 
 describe("sh install.sh --repair", () => {
+  let lastDir;
   async function repair(linked) {
     const dir = await mkdtemp(join(tmpdir(), "omb-install-repair-"));
     dirs.push(dir);
+    lastDir = dir;
     const file = join(dir, "fixture.sh");
     await writeFile(file, `${script}
 STATE=$1/state; LOGS=$1/logs; mkdir -p "$STATE"
@@ -204,7 +206,8 @@ TOKEN=--repair; main --repair
     expect(out).toContain("step user");
     expect(out).toContain("step service");
     expect(out).not.toContain("step link");
-    expect(out).toContain("link restarted");
+    expect(out).not.toContain("link restarted");
+    expect(await read(join(lastDir, "logs", "link.log"))).toContain("link restarted");
     expect(out).toContain("finale offline=1 image=img:3 id=abcdefghij");
   });
 
