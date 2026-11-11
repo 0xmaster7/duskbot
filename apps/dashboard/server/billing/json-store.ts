@@ -1,9 +1,16 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { basename, dirname } from "node:path";
+import { stateBackend } from "../persistence/backend.ts";
+import type { StateHandle } from "../persistence/backend.ts";
 
-// one json file per module, written atomically. commit() writes at once (money, webhooks, provisioning steps);
-// changed() batches cosmetic writes for a second.
-export function createJsonStore<T extends object>(file: string, initial: () => T, valid: (value: unknown) => value is T) {
+/** the store's name in a backend: its file name without .json (billing.json is "billing") */
+export const storeName = (file: string) => basename(file).replace(/\.json$/, "");
+
+// one json file per module, written atomically, unless a backend is set (persistence/backend.ts). commit() writes at once
+// (money, webhooks, provisioning steps); changed() batches cosmetic writes for a second.
+export function createJsonStore<T extends object>(file: string, initial: () => T, valid: (value: unknown) => value is T): StateHandle<T> {
+  const backend = stateBackend();
+  if (backend) return backend.open(storeName(file), initial, valid);
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
   let state = initial();
   try {
@@ -24,7 +31,7 @@ export function createJsonStore<T extends object>(file: string, initial: () => T
     state,
     commit,
     changed() {
-      if (timer) clearTimeout(timer);
+      if (timer) return;
       timer = setTimeout(commit, 1000);
       timer.unref();
     },

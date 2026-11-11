@@ -1,6 +1,7 @@
 // an owner deleting a managed cloud's data: the emailed link's token, the sign-in-again round trip, and what to say.
 // the token lives in this tab's sessionStorage only, never in the address bar or localStorage.
 import { api, ApiError } from "../lib/api";
+import { appPath } from "../lib/router";
 import type { BillingOverview, CloudDesktop } from "./contracts";
 
 export const DELETE_WINDOW_DAYS = 7;
@@ -22,7 +23,7 @@ export const deletePagePath = (id: string) => `/clouds/${encodeURIComponent(id)}
 
 /** on a delete link: keeps its token for this tab and takes it out of the address bar */
 export function stashDeleteToken() {
-  const id = deletePageId(location.pathname);
+  const id = deletePageId(appPath(location.pathname));
   if (!id || !location.hash) return;
   const token = location.hash.slice(1);
   history.replaceState(history.state, "", location.pathname + location.search);

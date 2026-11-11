@@ -12,6 +12,8 @@ const service = process.env.DUSK_DASHBOARD_SERVICE || "http://127.0.0.1:7480";
 // the hosted account dashboard page; the @ alias reaches the app's connector catalogue
 export default defineConfig({
   root: here("."),
+  // DUSK_DASHBOARD_BASE=/app/ serves the page under /app on an origin it shares with the site
+  base: process.env.DUSK_DASHBOARD_BASE || "/",
   publicDir: false,
   plugins: [react(), tailwindcss(), licenseFiles(here("../.."))],
   resolve: { alias: { "@": here("../../src") } },

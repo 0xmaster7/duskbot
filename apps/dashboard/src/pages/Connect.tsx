@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
-import { navigate } from "../lib/router";
+import { appPath, navigate, withBase } from "../lib/router";
 import { Button, ButtonLink, Card } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
@@ -11,9 +11,9 @@ const CLAIM_KEY = "omb-dash-claim";
 /** keeps a claim link's token across the sign-in round trip, out of the address bar */
 export function stashClaim() {
   const m = /^#([A-Za-z0-9_-]{16,64})$/.exec(location.hash);
-  if (m && location.pathname === "/claim") {
+  if (m && appPath(location.pathname) === "/claim") {
     sessionStorage.setItem(CLAIM_KEY, m[1]!);
-    history.replaceState(null, "", "/claim");
+    history.replaceState(null, "", withBase("/claim"));
   }
 }
 

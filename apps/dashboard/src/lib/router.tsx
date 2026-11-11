@@ -5,7 +5,15 @@ const notify = () => listeners.forEach((fn) => fn());
 if (typeof window !== "undefined") window.addEventListener("popstate", notify);
 
 const subscribe = (fn: () => void) => { listeners.add(fn); return () => void listeners.delete(fn); };
-const snapshot = () => window.location.pathname + window.location.search;
+/** the path the page is served under ("/app" on a shared origin, "" at an origin's root), from Vite's `base` */
+export const BASE = (import.meta.env?.BASE_URL ?? "/").replace(/\/+$/, "");
+/** a browser path without BASE: what the app's routes and its `next` values use */
+export function appPath(pathname: string) {
+  return BASE && (pathname === BASE || pathname.startsWith(`${BASE}/`)) ? pathname.slice(BASE.length) || "/" : pathname;
+}
+/** an app path as the browser sees it */
+export const withBase = (to: string) => to.startsWith("/") && !to.startsWith("//") ? `${BASE}${to}` : to;
+const snapshot = () => appPath(window.location.pathname) + window.location.search;
 
 export function useLocation() {
   const href = useSyncExternalStore(subscribe, snapshot, () => "/");
@@ -20,8 +28,8 @@ export function scrollToHash(hash: string) {
 export function navigate(to: string, { replace = false } = {}) {
   const [target, hash] = to.split("#");
   if (target !== snapshot() || hash) {
-    if (replace) window.history.replaceState(null, "", to);
-    else window.history.pushState(null, "", to);
+    if (replace) window.history.replaceState(null, "", withBase(to));
+    else window.history.pushState(null, "", withBase(to));
     if (!replace && !hash) window.scrollTo({ top: 0 });
     notify();
   }
@@ -35,5 +43,5 @@ export function Link({ to, onClick, ...rest }: AnchorHTMLAttributes<HTMLAnchorEl
     event.preventDefault();
     navigate(to);
   };
-  return <a href={to} onClick={go} {...rest} />;
+  return <a href={withBase(to)} onClick={go} {...rest} />;
 }
