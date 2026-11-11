@@ -14,6 +14,7 @@ import { SITE_NAME, SITE_URL } from "../lib/site";
 import mark from "../../favicon.svg";
 import { useNow } from "../lib/now";
 import { useToasts } from "../lib/toast";
+import { CheerBot } from "./CheerBot";
 
 const ICON = { size: 18, strokeWidth: 1.75 } as const;
 
@@ -246,6 +247,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <div key={path} className="page-in mx-auto w-full max-w-[1120px] px-10 pb-24 pt-12 max-lg:px-6 max-lg:pt-6 max-sm:px-4">{children}</div>
       </main>
       <RoutineUpsell />
+      <CheerBot />
       <Toasts />
     </div>
   );

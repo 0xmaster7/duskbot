@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { ArrowUpRight, Bot, ChevronRight, Download, LayoutGrid, Smartphone } from "@/icons";
 import type { WorkspaceDetail } from "../../../../shared/dashboard-protocol";
 import cloudLemon from "../art/cloud-lemon.png";
@@ -15,7 +15,8 @@ import { useNow } from "../lib/now";
 import { Link } from "../lib/router";
 import { DOWNLOAD_URL } from "../lib/usage";
 import { Card, cx, Skeleton } from "../ui/kit";
-import { BotMascot } from "../ui/Mascot";
+import { BotMascot, Mascot, type BotState, type MascotHandle } from "../ui/Mascot";
+import { cheerOnce } from "../lib/cheer";
 import { CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 import { Activity } from "./activity";
 import { CloudHero } from "./cloud-offer";
@@ -90,15 +91,23 @@ function CloudLive({ cloud, detail }: { cloud: CloudDesktop; detail: WorkspaceDe
   const used = detail?.report?.computers?.computers.length ?? cloud.botComputers.used;
   const mem = m ? (m.memory.usedBytes / Math.max(1, m.memory.totalBytes)) * 100 : null;
   const on = cloud.status === "running";
+  const asleep = cloud.status === "sleeping" || cloud.status === "stopped";
+  const mood: BotState = asleep ? "sleeping" : cloud.status === "provisioning" ? "loading" : cloud.status === "waking" ? "waking" : busy.length ? "working" : "happy";
   return (
     <Card className="enter" aria-labelledby="cloud-live-title">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="t-meta">dusk cloud</div>
-          <h2 id="cloud-live-title" className="mt-1 truncate text-24 font-medium tracking-[-0.035em] text-ink">{cloud.name}</h2>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <CloudStatus cloud={cloud} />
-            <span className="text-13 text-ink-3">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</span>
+        <div className="flex min-w-0 items-start gap-4">
+          <span className="relative mt-1 shrink-0" aria-hidden>
+            <Mascot body="kit" color="blue" size={52} state={mood} tappable />
+            {asleep && <span className="absolute -right-1 -top-2"><i className="zz not-italic">z</i><i className="zz not-italic">z</i><i className="zz not-italic">z</i></span>}
+          </span>
+          <div className="min-w-0">
+            <div className="t-meta">dusk cloud</div>
+            <h2 id="cloud-live-title" className="mt-1 truncate text-24 font-medium tracking-[-0.035em] text-ink">{cloud.name}</h2>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <CloudStatus cloud={cloud} />
+              <span className="text-13 text-ink-3">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</span>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -173,12 +182,19 @@ export function HomePage() {
   const name = profile?.profile.name || account?.name || account?.email.split("@")[0] || "";
   const cloud = clouds?.[0] ?? null;
   const cloudDetail = useWorkspaceDetail(cloud?.workspaceId ?? null);
+  const greeter = useRef<MascotHandle>(null);
+  useEffect(() => { const t = setTimeout(() => greeter.current?.react("greet"), 450); return () => clearTimeout(t); }, []);
+  useEffect(() => { if (bots.length) cheerOnce(account?.id, "first-bot", "your first bot is here. say hi in the app."); }, [bots.length > 0, account?.id]);
+  useEffect(() => { if (cloud?.status === "running") cheerOnce(account?.id, "first-cloud", `${cloud.name} is up. your bots never sleep now.`); }, [cloud?.status, account?.id]);
   const crew = bots.length ? <Crew rows={bots} plain={!cloud} /> : loading ? <Skeleton className="h-[200px] !rounded-card" /> : <CrewEmpty />;
   return (
     <div>
-      <h1 className="t-title enter mb-8 max-sm:mb-6">hi {name}.</h1>
+      <div className="enter mb-8 flex items-end gap-3 max-sm:mb-6">
+        <h1 className="t-title">hi {name}.</h1>
+        {!cloud && <span className="mb-1 shrink-0" aria-hidden><Mascot ref={greeter} body="kit" color="blue" size={40} state="happy" tappable /></span>}
+      </div>
       <div className="flex flex-col gap-4">
-        {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[360px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudHero minimal={bots.length > 0} />}
+        {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[360px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudHero />}
         {clouds !== null && <>
           {crew}
           <div className="enter grid grid-cols-3 gap-4 max-md:grid-cols-1 max-sm:gap-3" style={{ ["--i" as string]: 2 }}>

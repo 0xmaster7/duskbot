@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CommandView, WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { api } from "../lib/api";
+import { cheer } from "../lib/cheer";
 import { toast } from "../lib/toast";
 import { useCloud } from "./cloud";
 
@@ -86,7 +87,7 @@ export function useAppCommands() {
       const answer = await reloadConnections();
       if (answer?.byWorkspace[ws.id]?.some((s) => s.toLowerCase() === slug)) {
         update(key, { phase: "done", url: null });
-        toast(`${label} is connected on ${ws.name}.`);
+        cheer(`${label} is connected. your bots can use it now.`);
         return;
       }
     }
