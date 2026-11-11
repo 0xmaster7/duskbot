@@ -1,5 +1,5 @@
-// the waitlist page: the logo's sky and meadow on a canvas sized to the section, slow pixel clouds in three layers, a
-// few twinkles, bots out walking in the meadow; then the form, sent to /api/waitlist. motion stops while the tab is
+// the waitlist page: the x banner's sky and meadow on a canvas sized to the section, slow pixel clouds in three layers,
+// a few twinkles, bots out walking in the meadow; then the form, sent to /api/waitlist. motion stops while the tab is
 // hidden or the section is off screen, and never starts under reduced motion
 {
 const $ = (s, r = document) => r.querySelector(s);
@@ -7,7 +7,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const hero = $('[data-wl]');
 
-const P = { sky0: '#06bafd', sky1: '#3cd0fd', sky3: '#87e2fc', sky4: '#90e4fc', sky5: '#c2ecfc', lilac: '#d0cefb', lime: '#c9f63f', lime2: '#bdec33', white: '#fdfdfd', pink: '#ffc4dd', lemon: '#fff3a0', lemonDeep: '#ffe25c' };
+const P = { sky0: '#06bafd', sky1: '#3cd0fd', sky4: '#90e4fc', sky5: '#c2ecfc', lilac: '#d0cefb', lime: '#c9f63f', lime2: '#c6f43a', white: '#fdfdfd', pink: '#ffc4dd', lemon: '#fff3a0', lemonDeep: '#ffe25c' };
 let seed = 7;
 const rnd = () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 
@@ -25,24 +25,25 @@ function cloudSprite(cw, ch, under, s) {
 }
 
 if (hero) {
-  const cv = $('.wl-sky', hero), ctx = cv.getContext('2d'), col = $('[data-wl-col]', hero), ground = $('[data-wl-ground]', hero);
+  const cv = $('.wl-sky', hero), ctx = cv.getContext('2d'), col = $('[data-wl-col]', hero), ground = $('[data-wl-ground]', hero), hill = $('[data-wl-hill]', hero);
   const base = document.createElement('canvas'), bctx = base.getContext('2d');
   let W = 0, H = 0, b = 10, clouds = [], stars = [];
 
-  // the still picture: one calm band behind the words, the logo's bands below them with scattered edges, the meadow
+  // the still picture, as the x banner draws it (omb-ref/brand/x-banners/lib/world.js): the logo sky with its middle
+  // scatter strip left out, so the words sit on one clean blue; a lilac line; the meadow rising into pip's hill;
+  // grass flecks and flowers; and each chat bubble's stepped tail
   function layout() {
     const box = hero.getBoundingClientRect();
     W = Math.ceil(box.width); H = Math.ceil(box.height);
     if (!W || !H) return false;
-    b = W < 700 ? 8 : 10;
-    const snap = (v) => Math.round(v / b) * b;
+    b = 10;
+    const snap = (v) => Math.round(v / b) * b, s = b / 2;
     cv.width = base.width = W; cv.height = base.height = H;
     const G = snap(ground.getBoundingClientRect().top - box.top);
-    // the words' own extent: the column itself stretches to fill the sky
     const shown = [...col.children].filter((el) => el.offsetParent), first = shown[0].getBoundingClientRect(), lastEl = shown[shown.length - 1].getBoundingClientRect();
     const top = first.top - box.top, bottom = lastEl.bottom - box.top;
-    const calm = Math.min(snap(bottom + 5 * b), G - 6 * b), step = (G - b - calm) / 4;
-    const bands = [[P.sky0, 0], [P.sky1, calm], [P.sky3, snap(calm + step)], [P.sky4, snap(calm + 2 * step)], [P.sky5, snap(calm + 3 * step)], [P.lilac, G - b]];
+    const f = (t) => snap(t * G);
+    const bands = [[P.sky0, 0], [P.sky1, Math.min(f(0.2), snap(top - 4 * b))], [P.sky4, Math.max(f(0.8), snap(bottom + 4 * b))], [P.sky5, Math.max(f(0.9), snap(bottom + 7 * b))], [P.lilac, G - b]].filter((band, i, all) => i === 0 || band[1] > all[i - 1][1]);
     bctx.imageSmoothingEnabled = false;
     bands.forEach(([c, y], i) => { bctx.fillStyle = c; bctx.fillRect(0, y, W, (bands[i + 1]?.[1] ?? G) - y); });
     seed = 11;
@@ -55,33 +56,48 @@ if (hero) {
         }
       });
     }
-    bctx.fillStyle = P.lime; bctx.fillRect(0, G, W, H - G);
-    seed = 5; bctx.fillStyle = P.lime2;
-    for (let i = 0, n = Math.round((W * (H - G)) / 1400); i < n; i++) bctx.fillRect(snap(rnd() * W), snap(G + b + rnd() * (H - G - b)), b * (rnd() < 0.5 ? 2 : 1), b / 2);
-    seed = 3;
-    const s = b / 2, cols = [P.white, P.pink, P.lemon];
-    for (let i = 0, n = Math.round(W / 90); i < n; i++) {
-      const x = snap(rnd() * W), y = snap(G + 2 * b + rnd() * (H - G - 4 * b));
+    const hb = hill.getBoundingClientRect(), hx = hb.left - box.left + hb.width / 2, half = hb.width / 2, rise = hb.height;
+    bctx.fillStyle = P.lime;
+    for (let x = 0; x < W; x += b) {
+      const d = Math.abs(x + b / 2 - hx) / half, y = d < 1 ? snap(G - rise * (1 - d * d) ** 0.7) : G;
+      bctx.fillRect(x, y, b, H - y);
+    }
+    seed = 4; bctx.fillStyle = P.lime2;
+    for (let i = 0, n = Math.round((W * (H - G)) / 1100); i < n; i++) bctx.fillRect(Math.round((rnd() * W) / s) * s, Math.round((G + b + rnd() * (H - G - b)) / s) * s, s * (rnd() < 0.5 ? 2 : 1), s);
+    seed = 2;
+    const cols = [P.white, P.pink, P.lemon];
+    for (let i = 0, n = Math.max(6, Math.round(W / 110)); i < n; i++) {
+      const x = Math.round((rnd() * W) / s) * s, y = Math.round((G + 3 * b + rnd() * (H - G - 5 * b)) / s) * s;
       bctx.fillStyle = cols[i % 3];
       bctx.fillRect(x, y - s, s, s); bctx.fillRect(x - s, y, s, s); bctx.fillRect(x + s, y, s, s); bctx.fillRect(x, y + s, s, s);
       bctx.fillStyle = i % 3 === 2 ? '#ffb020' : P.lemonDeep; bctx.fillRect(x, y, s, s);
     }
+    for (const bub of $$('.wl-bub', hero)) {
+      if (!bub.offsetParent) continue;
+      const r = bub.getBoundingClientRect(), x = Math.round((r.left - box.left) / s) * s, w = Math.round(r.width / s) * s, y = Math.round((r.bottom - box.top) / s) * s;
+      const right = bub.classList.contains('b-pip'), under = getComputedStyle(bub).getPropertyValue('--u').trim() || P.pink;
+      const tx = right ? x + w - 9 * s : x + 5 * s;
+      for (let i = 0; i < 4; i++) {
+        const xx = right ? tx + i * s : tx - i * s + 3 * s;
+        bctx.fillStyle = under; bctx.fillRect(xx, y + i * s, (4 - i) * s, s);
+        bctx.fillStyle = P.white; bctx.fillRect(xx, y - 2 * s + i * s, (4 - i) * s, s);
+      }
+    }
 
-    // clouds keep out of the words: they float in the sky above the column and in the bands below it, three layers,
-    // the far ones small and slow. the twinkles live only above the column
+    // clouds keep out of the words: one per layer, far to near, in the sky above the column or in the pale bands
+    // below it; the twinkles live only above the column
     seed = 21;
-    const zones = [[b * 2, top - 3 * b], [calm + 2 * b, G - 4 * b]].filter(([a, z]) => z - a > 30);
+    const zones = [[2 * b, top - 3 * b], [bottom + 3 * b, G - 4 * b]].filter(([a, z]) => z - a > 30);
     clouds = [];
-    // one cloud per layer, far to near, spread across the width; each drifts at its own pace
-    [[0.6, 4, P.lemon], [1, 8, P.pink], [1.35, 13, P.pink]].forEach(([size, speed, under], layer) => {
+    [[0.6, 4, P.lemon], [0.9, 8, P.pink], [1.2, 12, P.pink]].forEach(([size, speed, under], layer) => {
       const zone = zones[layer === 1 ? zones.length - 1 : 0];
       if (!zone) return;
-      const [a, z] = zone, cw = snap(100 * size * (W < 700 ? 0.7 : 1)), ch = snap(cw / 3);
+      const [a, z] = zone, cw = snap(110 * size * (W < 700 ? 0.7 : 1)), ch = snap(cw / 3);
       if (z - a < ch) return;
-      clouds.push({ img: cloudSprite(cw, ch, under, b / 2), x: ((layer * 0.37 + 0.12 + rnd() * 0.1) * (W + cw)) - cw, y: snap(a + rnd() * (z - a - ch)), speed, cw });
+      clouds.push({ img: cloudSprite(cw, ch, under, s), x: ((layer * 0.37 + 0.08 + rnd() * 0.1) * (W + cw)) - cw, y: snap(a + rnd() * (z - a - ch)), speed, cw });
     });
     stars = [];
-    if (top > 4 * b) for (let i = 0, n = Math.round(W / 110); i < n; i++) stars.push({ x: snap(rnd() * W), y: snap(b + rnd() * (top - 3 * b)), ph: rnd() * 6.3, sp: 0.6 + rnd() * 0.8 });
+    if (top > 6 * b) for (let i = 0, n = Math.round(W / 120); i < n; i++) stars.push({ x: snap(rnd() * W), y: snap(b + rnd() * (top - 4 * b)), ph: rnd() * 6.3, sp: 0.6 + rnd() * 0.8 });
     return true;
   }
 
@@ -142,6 +158,8 @@ if (hero) {
   const redo = () => { if (!queued) queued = requestAnimationFrame(() => { queued = 0; if (layout()) { frame(performance.now()); if (!raf) placeWalkers(); } }); };
   if ('ResizeObserver' in window) { const ro = new ResizeObserver(redo); ro.observe(hero); ro.observe(col); } else addEventListener('resize', redo);
   document.fonts?.ready.then(redo);
+  // the column's box stays put when its words change, so joining asks for a new picture itself
+  hero.addEventListener('wl:layout', redo);
   document.addEventListener('visibilitychange', run);
   if ('IntersectionObserver' in window) new IntersectionObserver((es) => { visible = es[es.length - 1].isIntersecting; run(); }).observe(hero);
   if (layout()) { frame(performance.now()); placeWalkers(); }
@@ -166,12 +184,12 @@ if (form) {
     msg.hidden = true;
     $('[data-wl-err]', msg).textContent = text;
     // unhidden on the next frame, so a second error in a row is read out again
-    requestAnimationFrame(() => { msg.hidden = false; });
+    requestAnimationFrame(() => { msg.hidden = false; hero.dispatchEvent(new Event('wl:layout')); });
     form.dataset.bad = '';
     input.setAttribute('aria-invalid', 'true');
     input.focus();
   };
-  const clearError = () => { msg.hidden = true; delete form.dataset.bad; input.removeAttribute('aria-invalid'); };
+  const clearError = () => { msg.hidden = true; delete form.dataset.bad; input.removeAttribute('aria-invalid'); hero.dispatchEvent(new Event('wl:layout')); };
   input.addEventListener('input', () => { if (!msg.hidden) clearError(); });
 
   // "n people waiting" only once there are enough of them to say so
@@ -182,19 +200,16 @@ if (form) {
   }).catch(() => {});
 
   function cheer() {
-    const kit = $('.wl-kit svg.bot'), bots = window.duskBots;
-    if (bots) {
-      bots.react(kit, 'boing');
-      $$('[data-walk] svg.bot').forEach((el, i) => setTimeout(() => bots.react(el, 'boing'), 160 + i * 120));
-      setTimeout(() => bots.state(kit, 'finished'), 900);
-    }
-    if (still || !kit) return;
-    // a burst of little squares out of kit, the same sparks a poke makes elsewhere on the site
-    const r = kit.getBoundingClientRect(), colours = ['#fdfdfd', '#fff3a0', '#ffc4dd', '#c9f63f', '#d0cefb'];
-    for (let i = 0; i < 16; i++) {
-      const sp = document.createElement('i'), a = -Math.PI * (0.05 + 0.9 * (i / 15)) + (Math.random() - 0.5) * 0.3, d = 60 + Math.random() * 60;
+    const bots = window.duskBots, all = $$('.wl-art svg.bot, [data-walk] svg.bot');
+    if (bots) all.forEach((el, i) => setTimeout(() => bots.react(el, 'boing'), i * 110));
+    const ticket = $('.wl-ticket');
+    if (still || !ticket) return;
+    // a burst of little squares off the top of the ticket, the same sparks a poke makes elsewhere on the site
+    const r = ticket.getBoundingClientRect(), colours = ['#fdfdfd', '#fff3a0', '#ffc4dd', '#c9f63f', '#d0cefb'];
+    for (let i = 0; i < 18; i++) {
+      const sp = document.createElement('i'), a = -Math.PI * (0.04 + 0.92 * (i / 17)) + (Math.random() - 0.5) * 0.3, d = 70 + Math.random() * 70;
       sp.className = 'spark'; sp.style.background = colours[i % colours.length];
-      sp.style.left = `${r.left + r.width / 2 + scrollX - 4}px`; sp.style.top = `${r.top + r.height * 0.4 + scrollY - 4}px`;
+      sp.style.left = `${r.left + r.width / 2 + scrollX - 4}px`; sp.style.top = `${r.top + 8 + scrollY - 4}px`;
       sp.style.setProperty('--dx', `${(Math.cos(a) * d).toFixed(0)}px`); sp.style.setProperty('--dy', `${(Math.sin(a) * d).toFixed(0)}px`);
       document.body.append(sp); setTimeout(() => sp.remove(), 760);
     }
@@ -205,7 +220,8 @@ if (form) {
     title.textContent = "you're on the list.";
     lede.textContent = '';
     lede.append(already ? 'you were already on it. ' : '', "we'll write to ", Object.assign(document.createElement('b'), { textContent: email }), " when it's your turn.");
-    form.hidden = true; done.hidden = false;
+    form.hidden = true; done.hidden = false; hero.classList.add('is-done');
+    hero.dispatchEvent(new Event('wl:layout'));
     document.title = "You're on the list · Dusk Bot";
     title.focus();
     cheer();
