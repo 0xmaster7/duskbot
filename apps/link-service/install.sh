@@ -490,7 +490,7 @@ failure_words() {
     node) say "Couldn't install Node. Check this server's internet connection and paste the line again." ;;
     app) say "Couldn't install Dusk Bot. Paste the line again; it picks up where it stopped." ;;
     engines) say "Couldn't install the Claude and ChatGPT tools. Paste the line again; it picks up where it stopped." ;;
-    service) say "Dusk Bot didn't start. The app shows the last lines of its log." ;;
+    service) if grep -q "^port $PORT here is taken" "$LOG" 2>/dev/null; then say "Another program has the port Dusk Bot needs ($PORT). Stop it, then paste the line again."; else say "Dusk Bot didn't start. The app shows the last lines of its log."; fi ;;
     address) say "Couldn't set up this server's address. Paste the line again." ;;
     desktop|sandbox|fence) say "Couldn't get the bot computer ready." ;;
     link) say "Couldn't link this server to your app. Make a new line in the app and paste it here." ;;
@@ -1352,8 +1352,8 @@ do_service() {
   show curl "http://127.0.0.1:$PORT/api/health"
   if wait_health "http://127.0.0.1:$PORT/api/health" 120; then echo "server answers on 127.0.0.1:$PORT"; update_settle 1 && return 0; return 1; fi
   echo "the server did not answer on 127.0.0.1:$PORT within two minutes"
-  port_owner
   journalctl -u duskbot.service -n 30 --no-pager 2>/dev/null || true
+  port_owner
   update_settle 0 && return 0
   return 1
 }
@@ -1853,7 +1853,7 @@ take_lock() {
   command -v flock >/dev/null 2>&1 && ( : >>"$INSTALL_LOCK" ) 2>/dev/null || return 0
   exec 9>>"$INSTALL_LOCK"
   flock -n 9 && LOCKED=1 && return 0
-  fail_line "Dusk Bot is already being installed or removed on this server (another terminal, or one whose connection dropped). Wait for it to finish, then paste the line again. The log: $LOGS/install.log"
+  fail_line "Dusk Bot is already being installed or removed on this server (another terminal, or one whose connection dropped). Wait for it to finish, then paste the line again. Its logs: $LOGS/"
   exit 1
 }
 on_stop() {
@@ -1953,7 +1953,7 @@ main() {
   phase computer; step sandbox do_sandbox; step fence do_fence; step desktop do_desktop; phase_end
   phase link; step address do_address
   if [ "$OFFLINE" = 1 ]; then
-    [ -f "$AGENT" ] && start_link_service
+    [ ! -f "$AGENT" ] || start_link_service >>"$LOGS/link.log" 2>&1
     PH_NOTE="already linked"
   else
     step link do_link
