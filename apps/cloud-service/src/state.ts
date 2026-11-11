@@ -52,6 +52,10 @@ export interface HomeLifecycleState {
   hold: boolean;
   /** first setups that failed on their machine */
   setupFailures?: number;
+  /** retryable failures in a row during a first setup */
+  setupRetries?: number;
+  /** when a first setup was first seen in its error state */
+  setupErrorAt?: number | null;
   /** wakes for a final backup since the plan ended that brought none */
   finalWakes?: number;
   /** when the current machine's setup began */

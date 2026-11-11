@@ -22,7 +22,7 @@ import type { HomeClient, StoredCloud } from "../../dashboard/server/clouds/type
 import type { HomeLifecycleState } from "./state.ts";
 import type { HomeUpdates } from "./home-update.ts";
 
-const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, SETUP_TRIES = 3;
+const MINUTE = 60_000, HOUR = 3_600_000, BACKUP_RETRY_MS = 10 * MINUTE, SETUP_TRIES = 3, SETUP_PATIENCE_MS = 6 * HOUR, SETUP_ERROR_RETRY_MS = 6 * HOUR;
 
 export interface ManagedSettings {
   /** the shortest idle before any stop, in minutes (DUSK_MANAGED_IDLE_MINUTES); the power policy decides past it */
@@ -396,12 +396,13 @@ export function createLifecycle(deps: LifecycleDeps) {
 
   /** a first setup that failed on its machine (a mirror down, say): a fresh machine, at most SETUP_TRIES in all; the failed
    *  one held no data and is retired, so it is deleted with its cloud */
-  function setupFailed(c: StoredCloud) {
+  async function setupFailed(c: StoredCloud) {
     const b = state(c);
     b.setupFailures = (b.setupFailures ?? 0) + 1;
     log(c, "setup_failed", "reconciler", "setup_script", { tries: b.setupFailures });
     if (b.setupFailures >= SETUP_TRIES) { console.warn(`managed: ALERT cloud ${c.id}: its setup failed ${SETUP_TRIES} times`); deps.save(c); throw new Error("Cloud setup failed."); }
     if (c.serverId && !b.retired.some(r => r.serverId === c.serverId)) b.retired.push({ serverId: c.serverId, at: now(), deletion: null });
+    if (c.serverId) await provider.power(c.serverId, "off").catch(() => {});
     b.attempt++; b.installed = null; b.claim = null; b.upstream = null; b.setupSince = now();
     c.serverId = null; c.origin = null; c.setupStep = "reserving"; c.nextAttemptAt = 0;
     deps.save(c);
@@ -418,9 +419,21 @@ export function createLifecycle(deps: LifecycleDeps) {
     }
     // a cold boot lost the started home: started again
     if (c.setupStep === "checking") c.setupStep = "starting";
-    b.setupSince = now(); c.status = "provisioning"; c.wantPower = "on"; c.nextAttemptAt = 0;
+    b.setupSince = now(); b.setupErrorAt = null; b.setupRetries = 0; c.status = "provisioning"; c.wantPower = "on"; c.nextAttemptAt = 0; c.attempts = 0; c.error = null;
     log(c, "setup_resumed", "billing", "plan_renewed", { step: c.setupStep });
     deps.save(c);
+  }
+
+  /** a first setup that ended in an error: its machines paused (nothing on them is anyone's yet), and the setup tried again
+   *  every SETUP_ERROR_RETRY_MS while the plan pays, unless its setup script itself failed every time (the operator's call) */
+  async function setupErrored(c: StoredCloud) {
+    const b = state(c);
+    if (b.setupErrorAt == null) { b.setupErrorAt = now(); log(c, "setup_error", "reconciler", "paused"); console.warn(`managed: ALERT cloud ${c.id}: its first setup failed; its machine is paused and setup is tried again later`); }
+    if (c.serverId) { const s = await provider.machine(c.serverId); if (s && (s.state === "running" || s.state === "starting")) await provider.power(c.serverId, "off"); }
+    await retiredStep(c);
+    const againAt = b.setupErrorAt + SETUP_ERROR_RETRY_MS;
+    if ((b.setupFailures ?? 0) < SETUP_TRIES && now() >= againAt) return resumeSetup(c);
+    c.nextAttemptAt = Math.min(againAt, now() + 30 * MINUTE); deps.save(c);
   }
 
   /** a lost machine: a fresh machine, from the newest verified backup when there is one; the old one is retired, never deleted here */
@@ -581,7 +594,7 @@ export function createLifecycle(deps: LifecycleDeps) {
   async function reconcile(c: StoredCloud): Promise<void> {
     await reconcileStep(c);
     const b = state(c);
-    if (b.limitStreak) { b.limitStreak = 0; deps.save(c); }
+    if (b.limitStreak || b.setupRetries) { b.limitStreak = 0; b.setupRetries = 0; deps.save(c); }
   }
 
   async function reconcileStep(c: StoredCloud): Promise<void> {
@@ -592,7 +605,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     const verdict = verdictFor(c, entitlement);
     if (verdict.delete || b.deletion) return deleteStep(c, verdict.delete ? verdict : { delete: true, reason: (b.deletion?.reason ?? "retention_over") as "retention_over", earliestAt: now() });
     if (c.status === "provisioning") return provisionStep(c, entitlement.active);
-    if (c.setupStep !== null && entitlement.active && c.suspended === null && c.status !== "error") return resumeSetup(c);
+    if (c.setupStep !== null && entitlement.active && c.suspended === null) return c.status === "error" ? setupErrored(c) : resumeSetup(c);
     if (!c.serverId) {
       // an ended plan with no machine (a rebuild held for want of a plan) still gets its notices and keeps its old disks
       if (!entitlement.active) { if (c.status !== "stopped") { c.status = "stopped"; deps.save(c); } await planEnded(c, entitlement, verdict, false); await retiredStep(c); }
@@ -843,7 +856,15 @@ export function createLifecycle(deps: LifecycleDeps) {
       const b = state(c);
       // the rails held a start back, or the pool is full: waiting, not failing
       if (error instanceof StartHeldError || error instanceof StartCapError) return Math.max(now() + 5_000, error.retryAt);
-      if (!(error instanceof ProviderLimitError)) { if (b.limitStreak) { b.limitStreak = 0; deps.save(c); } return null; }
+      if (!(error instanceof ProviderLimitError)) {
+        if (b.limitStreak) { b.limitStreak = 0; deps.save(c); }
+        // a provider outage during a first setup waits it out (30 s doubling to 15 minutes) for up to SETUP_PATIENCE_MS
+        if (c.status === "provisioning" && error instanceof RetryableCloudError && now() - (b.setupSince ?? c.provisionedAt ?? c.createdAt) < SETUP_PATIENCE_MS) {
+          b.setupRetries = (b.setupRetries ?? 0) + 1; deps.save(c);
+          return now() + Math.min(15 * MINUTE, 30_000 * 2 ** Math.min(b.setupRetries - 1, 5));
+        }
+        return null;
+      }
       // setup keeps its 45-minute ceiling: past it a limit fails setup like any other cause
       if (c.status === "provisioning" && now() - (b.setupSince ?? c.provisionedAt ?? c.createdAt) > 45 * MINUTE) return null;
       b.limitStreak = (b.limitStreak ?? 0) + 1;

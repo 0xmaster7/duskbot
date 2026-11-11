@@ -95,3 +95,34 @@ it("a home whose final backup cannot succeed is woken for it ever less often, no
   expect(wakes).toBeLessThanOrEqual(10);
   expect(c.managed!.backupProblem).toBe("too_large");
 });
+
+it("a provider outage of two hours during a first setup is waited out, never a failed cloud", async () => {
+  const f = await homeFixture();
+  f.api.failNext(10_000);
+  const { c } = ordered(f);
+  for (let n = 0; n < 24; n++) { f.advance(5 * 60_000); await f.service.reconcile(); }
+  expect(c).toMatchObject({ status: "provisioning", error: null });
+  f.api.failNext(0);
+  for (let n = 0; n < 12 && c.status !== "running"; n++) { f.advance(5 * 60_000); await f.service.reconcile(); }
+  expect(c).toMatchObject({ status: "running", error: null, attempts: 0 });
+});
+
+it("a first setup in error pauses its machines, and is tried again later unless its script failed every time", async () => {
+  for (const scriptBroken of [true, false]) {
+    const f = await homeFixture();
+    f.api.onExec(({ machine, cmd }) => {
+      if (scriptBroken && cmd.includes("setsid nohup")) { machine.files.set(INSTABOX_SETUP_STATUS, Buffer.from("1\n")); return { exitCode: 0, stdout: "launched\n" }; }
+      return null;
+    });
+    if (!scriptBroken) f.home.healthy.mockResolvedValue(false);
+    const { c } = ordered(f);
+    for (let n = 0; n < 40 && c.status !== "error"; n++) { c.nextAttemptAt = 0; await f.service.reconcile(); }
+    if (!scriptBroken) for (let n = 0; n < 30 && c.status !== "error"; n++) { f.advance(10 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
+    expect(c.status).toBe("error");
+    c.nextAttemptAt = 0; await f.service.reconcile();
+    expect([...f.api.machines.values()].every(m => m.state === "suspended")).toBe(true);
+    f.home.healthy.mockResolvedValue(true);
+    for (let n = 0; n < 6 * 8 && c.status !== "running"; n++) { f.advance(10 * 60_000); await f.service.reconcile(); }
+    expect(c.status).toBe(scriptBroken ? "error" : "running");
+  }
+});
