@@ -427,6 +427,21 @@ async function run() {
     await pressText(dpage, "Borealis"); await sleep(2500); await shot(dpage, "09-desktop-bo-browser-turn");
   });
 
+  await step("apps: the website starts an app connect on the cloud and gets its sign-in link back (not completed)", async () => {
+    const list = (await account("GET", "/v1/workspaces")).workspaces as Array<{ id: string; kind?: string }>;
+    if (!list.length) throw new Error("the website lists no workspace for this account");
+    const ws = list.find(w => w.kind === "vps") ?? list[0]!, asked = Date.now();
+    const queued = (await account("POST", `/v1/workspaces/${ws.id}/commands`, { kind: "app.connect", target: "gmail" })).command as { id: string };
+    let command: { status?: string; url?: string; message?: string | null } | undefined;
+    await until(async () => {
+      command = ((await account("GET", `/v1/workspaces/${ws.id}`)).commands as Array<{ id: string }>).find(c => c.id === queued.id) as typeof command;
+      return command?.status === "done" || command?.status === "failed";
+    }, 90_000, 1000);
+    results.appConnect = { status: command?.status ?? null, ms: Date.now() - asked, host: command?.url ? new URL(command.url).host : null, message: command?.message ?? null };
+    await page.goto(`${origin}/app/connectors`).catch(() => {}); await sleep(2500); await shot(page, "09b-website-apps");
+    if (command?.status !== "done" || !command.url?.startsWith("https://")) throw new Error(`app connect: ${JSON.stringify(results.appConnect)}`);
+  });
+
   await step("data: Borealis runs a DuckDB query with the data tools during a turn", async () => {
     const loaded = await onMachine(`cd ${CLOUD_HOME.root}/app && sudo -u maus ${CLOUD_HOME.root}/node/bin/node -e 'require("module").createRequire(process.cwd() + "/dist-server/index.js")("@duckdb/node-api"); console.log("duckdb ok")' 2>&1 | tail -2; uname -m`);
     results.duckdbOnBox = loaded.stdout.trim().slice(0, 200);
