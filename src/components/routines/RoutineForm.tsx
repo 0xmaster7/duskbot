@@ -10,6 +10,7 @@ import { useStore, type Bot } from "@/state/store";
 import { useBotEditor } from "../bot-settings/BotEditorContext";
 import { buttonCls, fieldCls, Segmented } from "../bot-panel/rows";
 import { SelectPill } from "../ui/SelectPill";
+import { AlwaysOnNote } from "../CloudUpsell";
 
 const labelCls = "block text-[12px] leading-4 tracking-[0.01em] text-ink-secondary";
 const primaryCls = cn(buttonCls, "bg-ink text-app shadow-none enabled:hover:bg-ink/85");
@@ -206,6 +207,7 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
           {watching && <p className="m-0 mt-1 text-[12px] leading-4 text-ink-secondary">{t("routines.probe.hint")}</p>}
         </div>
       )}
+      {!routine && <AlwaysOnNote />}
       {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
       <div className="flex justify-end gap-1.5">
         <button type="button" onClick={() => onDone()} className={buttonCls}>{t("common.cancel")}</button>

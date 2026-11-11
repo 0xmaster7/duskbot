@@ -11,6 +11,7 @@ import { computerCapableEngine } from "@/lib/remote-desktop";
 import type { RoutineRunOn } from "@/lib/routines";
 import { WEBHOOK_DEFAULT_MAX_PENDING_RUNS, WEBHOOK_MAX_PENDING_RUNS_LIMIT, webhookActivationDefaults, webhookMaxPendingRunsInput, type WebhookCredential, type WebhookTrigger, type WebhookTriggerInput } from "@/lib/webhooks";
 import { api, useStore, type Bot } from "@/state/store";
+import { AlwaysOnNote } from "./CloudUpsell";
 import { Icon } from "./Icon";
 import { fieldLabelCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
 
@@ -96,6 +97,7 @@ export function WebhookEditor({ webhook, bots, initialBotId, onClose, onCredenti
               <label className="block"><span className={cn(fieldLabelCls, "mb-1 block")}>{t("automations.editor.app.limit")}</span><input type="number" inputMode="numeric" min={1} max={WEBHOOK_MAX_PENDING_RUNS_LIMIT} step={1} value={maxPendingRuns} onChange={(event) => setMaxPendingRuns(event.target.value)} placeholder={String(WEBHOOK_DEFAULT_MAX_PENDING_RUNS)} className={FIELD} /><span className="mt-1 block text-[12px] leading-4 text-ink/56">{t("automations.editor.app.limitHelp", { count: WEBHOOK_DEFAULT_MAX_PENDING_RUNS })}</span></label>
             </div>
           </details>
+          {!webhook && runOn === "maus" && <AlwaysOnNote />}
           {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
         </div>
         <div className={formFooterCls}>

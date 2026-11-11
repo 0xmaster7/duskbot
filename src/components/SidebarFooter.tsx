@@ -5,6 +5,7 @@ import { useStore } from "@/state/store";
 
 import { AccountMoveStatus, useAccountMoveLine } from "./AccountMove";
 import { CloudRoomCard } from "./CloudRoomCard";
+import { SidebarCloudCard } from "./CloudUpsell";
 import { CloudUsageCard } from "./CloudUsageMeter";
 import { endCloudHowTo, useWorkspacePlace, type WorkspacePlace } from "./DesktopWorkspaceSwitcher";
 import { ConnectAppsButton, useSidebarApps } from "./SidebarConnectApps";
@@ -33,6 +34,7 @@ export function SidebarFooter({ owner = null, archived }: { owner?: string | nul
   const openAccount = () => footer.current?.querySelector("[data-sidebar-account]")?.closest("button")?.click();
   return (
     <div ref={footer} data-sidebar-footer="simple" className="px-4 pb-4">
+      <SidebarCloudCard />
       <CloudRoomCard />
       <CloudUsageCard />
       <SidebarPlaceStatus place={place} className="mb-2 px-1" />

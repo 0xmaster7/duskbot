@@ -12,6 +12,7 @@ import { useStore, type Bot } from "@/state/store";
 import { Select } from "../Select";
 import { suggestedName } from "../WebhookTrigger";
 import { Icon } from "../Icon";
+import { AlwaysOnNote } from "../CloudUpsell";
 import { fieldLabelCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowButtonCls, textAreaCls, textFieldCls } from "../ui/GrokDialog";
 
 const FIELD = textFieldCls;
@@ -166,6 +167,7 @@ export function AppEventEditor({ trigger, bots, initialBotId, onClose, onSaved }
               <label className="mt-4 block"><span className={LABEL}>{t("automations.editor.app.name")}</span><input value={name} onChange={(input) => setName(input.target.value)} placeholder={suggestedName(prompt, bots.find((bot) => bot.id === botId))} className={FIELD} /></label>
             </details>
           )}
+          {!trigger && appEntry && <AlwaysOnNote />}
           {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
         </div>
         <div className={formFooterCls}>

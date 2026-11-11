@@ -7,8 +7,11 @@ import { buyOfferAllowed, cloudNoticeKind, cloudPlanView, cloudTrialNotice, clou
 import { jobRoutine, useCloudIntent } from "@/lib/cloud-intent";
 import { CLOUD_INTENT_GIVEN, cloudSetupStage } from "@/lib/cloud-setup";
 import { cornerPopupWaits, firstChatQuiet } from "@/lib/corner-popup";
-import { CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, introShown, introStage, LATE_ROUTINE_NOTICE, launchNotice, markLaunchNotice, nextNotice, noticeSeen, TWO_PLACES_NOTICE, usedBefore, WHATS_NEW_NOTICE } from "@/lib/notices";
+import { CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, INVESTED_NOTICE, introShown, introStage, LATE_ROUTINE_NOTICE, launchNotice, markLaunchNotice, nextNotice, noticeSeen, TWO_PLACES_NOTICE, usedBefore, WHATS_NEW_NOTICE } from "@/lib/notices";
 import { lateRoutineRun } from "@/lib/late-routine";
+import { investedFacts, trackUpsell } from "@/lib/cloud-upsell";
+import { investedBy, type InvestedFacts } from "../../shared/cloud-upsell";
+import { InvestedCard } from "./InvestedCard";
 import { useAllowanceNotice } from "@/lib/allowance-notice";
 import { useTwoPlaces } from "@/lib/two-places";
 import { useUpdateDigest } from "@/lib/update-digest";
@@ -44,6 +47,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   const [organization, setOrganization] = useState<boolean | null>(window.ogb?.organization ? null : false);
   const [closed, setClosed] = useState(false);
   const [introOpen, setIntroOpen] = useState(false);
+  const [investedOpen, setInvestedOpen] = useState<InvestedFacts | null>(null);
   const [trialOpen, setTrialOpen] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -112,6 +116,14 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     if (view.kind === "unknown" || view.kind === "connecting" || organization === null) return null;
     return organization === false && buyOfferAllowed(view) && !state.config?.cloudHome && !state.config?.managedPolicy;
   };
+  // someone clearly invested (3+ bots, 50+ messages or 3+ routines): dusk cloud, once per account
+  const invested = investedOpen ?? (bridge && !noticeSeen(record, INVESTED_NOTICE) ? investedFacts(state) : null);
+  const investedDue = (): boolean | null => {
+    if (investedOpen) return true;
+    if (!invested || !investedBy(invested) || !view) return false;
+    if (view.kind === "unknown" || view.kind === "connecting" || organization === null) return null;
+    return organization === false && buyOfferAllowed(view) && !state.config?.cloudHome && !state.config?.managedPolicy;
+  };
   const cards = Boolean(bridge || planBridge);
   const launch = launchNotice();
   const notice = waits || closed ? null
@@ -121,6 +133,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     [WHATS_NEW_NOTICE]: false,
     [TWO_PLACES_NOTICE]: twoFact,
     [LATE_ROUTINE_NOTICE]: moving ? false : moving === null ? null : lateDue(),
+    [INVESTED_NOTICE]: moving ? false : moving === null ? null : investedDue(),
     [CLOUD_INTRO]: moving ? false : moving === null ? null : introDue(),
     [CLOUD_TRIAL_NOTICE]: planBridge && plan === null ? null : Boolean(key && (trialDue || trialOpen === key)),
     [CLOUD_NOTICE]: !view ? false : view.kind === "unknown" ? null
@@ -136,6 +149,10 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
       track("cloud_card_shown", { variant: view?.kind === "signed-out" ? "signed_out" : "free" });
       const patch = introShown(record, now());
       if (patch) void api("/api/config", { method: "PUT", body: JSON.stringify(patch) }).then(config => dispatch({ type: "configStatus", config })).catch(() => {});
+    } else if (shownKey === INVESTED_NOTICE && invested && !investedOpen) {
+      setInvestedOpen(invested);
+      trackUpsell("shown", "app_invested");
+      save(INVESTED_NOTICE);
     } else if (notice === CLOUD_TRIAL_NOTICE && trialOpen !== shownKey) {
       setTrialOpen(shownKey);
       void planBridge?.noticeSeen?.().catch(() => {});
@@ -148,7 +165,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     if (patch) void api("/api/config", { method: "PUT", body: JSON.stringify(patch) })
       .then(config => dispatch({ type: "configStatus", config })).catch(() => {});
   };
-  const close = () => { setClosed(true); setTrialOpen(null); setFailed(false); };
+  const close = () => { setClosed(true); setInvestedOpen(null); setTrialOpen(null); setFailed(false); };
   if (toast) return <NoticeToast text={toast} onDone={() => setToast(null)} />;
   if (!notice && digest && !waits) return <NoticeToast text={digest.line} onDone={digest.seen} />;
   if (!notice && allowance && !waits) {
@@ -172,6 +189,11 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     return <LateRoutineCard late={late} now={now()}
       onStart={() => { done("start"); dispatch({ type: "openCloudAdd", source: "app_routines", ...(view?.kind === "signed-out" ? { signIn: true as const } : {}) }); }}
       onNotNow={() => done("not_now")} />;
+  }
+  if (notice === INVESTED_NOTICE && invested) {
+    return <InvestedCard facts={invested}
+      onStart={() => { trackUpsell("click", "app_invested"); close(); dispatch({ type: "openCloudAdd", source: "app_invested", ...(view?.kind === "signed-out" ? { signIn: true as const } : {}) }); }}
+      onNotNow={() => { trackUpsell("dismiss", "app_invested"); close(); }} />;
   }
   if (notice === CLOUD_TRIAL_NOTICE && trial) {
     const shown = cloudTrialView(trial, plan?.credit);

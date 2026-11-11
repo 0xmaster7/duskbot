@@ -120,8 +120,8 @@ export interface Quote {
 export interface CreditPack { id: string; label: string; priceCents: number; creditCents: number }
 
 /** where a checkout started; anything else an older client sends is recorded as "other" */
-export const CHECKOUT_SOURCES = ["app_card", "app_howto", "app_menu", "app_settings", "app_routines", "app_pages", "app_whats_new_pro", "app_whats_new_team", "app_onboarding", "app_computer_move",
-  "dash_home", "dash_billing", "dash_cloud", "dash_onboarding", "dash_routines", "dash_license", "dash_credits", "dash_start", "dash_free_sheet", "other"] as const;
+export const CHECKOUT_SOURCES = ["app_card", "app_howto", "app_menu", "app_settings", "app_routines", "app_pages", "app_whats_new_pro", "app_whats_new_team", "app_onboarding", "app_computer_move", "app_sidebar", "app_invested", "app_always_on", "app_mobile",
+  "dash_home", "dash_billing", "dash_cloud", "dash_onboarding", "dash_routines", "dash_license", "dash_credits", "dash_start", "dash_free_sheet", "dash_sidebar", "dash_invested", "other"] as const;
 export type CheckoutSource = (typeof CHECKOUT_SOURCES)[number];
 export const checkoutSource = (value: unknown): CheckoutSource | null =>
   value === undefined || value === null || value === "" ? null : (CHECKOUT_SOURCES as readonly unknown[]).includes(value) ? value as CheckoutSource : "other";
