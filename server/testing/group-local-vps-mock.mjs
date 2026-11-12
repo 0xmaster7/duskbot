@@ -1,8 +1,8 @@
 export {
   VPS_IMAGE, VPS_MANAGED_LABEL, VPS_CONTAINER_LABEL, VPS_ENVIRONMENT_LABEL, VPS_VIEWER_LABEL, VPS_CONTAINER_PREFIX,
-  vpsDesktopProbeArgs, vpsLifecycleBusy, vpsStartsForTurn, vpsUnavailableHint, vpsContainerName,
+  vpsDesktopProbeArgs, vpsLifecycleBusy, vpsComputerPreparing, vpsStartsForTurn, vpsUnavailableHint, vpsContainerName,
   vpsDockerArgs, vpsSshTunnelArgs, vpsContainerRunArgs, vpsContainerMcpArgs,
-  closeVpsDesktopTunnel, closeAllVpsDesktopTunnels, vpsDesktopConnection,
+  closeVpsDesktopTunnel, closeAllVpsDesktopTunnels, closeVpsScreenConnections, vpsDesktopConnection,
 } from '../vps-computer.ts?actual';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';

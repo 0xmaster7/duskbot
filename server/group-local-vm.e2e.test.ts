@@ -434,7 +434,8 @@ describe("Group Local VM ownership on the real isolated server", () => {
     const bots: any[] = [];
     try {
       vmState(); vpsState(); rmSync(dumpFile, { force: true }); rmSync(finishFile, { force: true });
-      await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } });
+      // one desktop for the whole team, as the isolated fixture has no per-bot screens to give out
+      await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", independentScreens: false } });
       for (const name of ["Computer holder", "Computer waiter"]) {
         const { bot } = await api("POST", "/api/bots", { name, section, modelSelection: VPS_MODEL });
         bots.push(bot);
@@ -469,7 +470,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
         await api("DELETE", `/api/bots/${bot.id}`);
       }
       vpsState();
-      await api("PUT", "/api/config", { vps: { sshAlias: "" } });
+      await api("PUT", "/api/config", { vps: { sshAlias: "", independentScreens: true } });
     }
   });
 
@@ -489,13 +490,16 @@ describe("Group Local VM ownership on the real isolated server", () => {
       expect(options.options.find((option: any) => option.surface === "cloud")).toMatchObject({ available: true, ready: false,
         canStart: state !== "missing-auto", canCreate: state === "missing-auto" });
       expect(readVpsState().actions ?? []).toEqual([]);
+      // removed after it was offered: the pick makes it again
+      if (state === "removed") vpsState({ containers: {} });
       const result = await fetch(base + "/api/internal/computer/select", { method: "POST",
         headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ surface: state === "missing-auto" ? "auto" : "cloud" }) });
       expect(await result.json()).toMatchObject({ status: "pending", surface: "cloud" });
       if (computer(before)) expect((await gate(computer(before))).status).toBe(401);
       expect((await fetch(base + "/api/internal/computer/select", { headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
-      expect(readVpsState().actions ?? []).toEqual([]);
-      if (state === "removed") vpsState({ containers: {} });
+      // the pick starts it at once, while the turn ends, so the continuation finds it awake
+      await until(() => readVpsState().actions ?? [], actions => actions.length > 0);
+      expect(readVpsState().actions).toEqual([{ action: state === "wake" ? "start" : "create", ownerId: bot.id }]);
       const onVps = (sent: any) => computer(sent)?.args?.includes("fixture-vps-mcp") === true;
       rmSync(dumpFile, { force: true });
       writeFileSync(finishFile, "finish");
@@ -757,9 +761,11 @@ describe("Group Local VM ownership on the real isolated server", () => {
     try {
       await api("PATCH", `/api/bots/${bots[0].id}`, { computer: "local" });
       await send(group.id);
-      const state = await until(() => api("GET", "/api/bots?messages=30"),
-        value => JSON.stringify(value).includes(reason));
-      if (process.platform === "darwin") expect(JSON.stringify(state)).toContain("Relaunch dusk bot after granting the missing macOS permission");
+      // on a Mac the recorded failure is said as the grant to turn on and where; elsewhere it is passed on as recorded
+      const said = process.platform === "darwin"
+        ? `${THIS_COMPUTER_NOT_READY}Screen Recording required. Turn on dusk bot in System Settings > Privacy & Security > Screen Recording`
+        : `${THIS_COMPUTER_NOT_READY}${reason}`;
+      await until(() => api("GET", "/api/bots?messages=30"), value => JSON.stringify(value).includes(said));
       await idle(bots[0].id);
       expect(existsSync(dumpFile)).toBe(false);
     } finally {
