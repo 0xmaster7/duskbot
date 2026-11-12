@@ -38,7 +38,8 @@ export function continueNote(reason: FinishReason): string {
 }
 
 export interface FinishGuardDeps {
-  /** The bot of a one-on-one chat this may carry on, or null (a room, a routine's run, a fenced run). */
+  /** The bot of a one-on-one chat this may carry on, or null (a room, a routine's run, a fenced run). Asked when the turn
+   * starts and again when it ends: a routine's run is already settled by the time its last turn completes. */
   botOf(threadId: string): string | null;
   /** Something waits on the person, a message of theirs is queued, or the thread is busy again. */
   held(threadId: string): boolean;
@@ -49,7 +50,7 @@ export interface FinishGuardDeps {
   later?: (run: () => void, ms: number) => void;
 }
 
-interface Turn { text: string; tools: number; plan: { open: number; total: number } | null }
+interface Turn { text: string; tools: number; plan: { open: number; total: number } | null; carriable: boolean }
 
 export function createFinishGuard(deps: FinishGuardDeps) {
   const later = deps.later ?? ((run: () => void, ms: number) => { setTimeout(run, ms).unref?.(); });
@@ -64,7 +65,7 @@ export function createFinishGuard(deps: FinishGuardDeps) {
         const state = carried.get(threadId);
         if (state?.ours) state.ours = false;
         else carried.delete(threadId);
-        turns.set(threadId, { text: "", tools: 0, plan: null });
+        turns.set(threadId, { text: "", tools: 0, plan: null, carriable: deps.botOf(threadId) !== null });
         return;
       }
       const turn = turns.get(threadId);
@@ -78,7 +79,7 @@ export function createFinishGuard(deps: FinishGuardDeps) {
         turns.delete(threadId);
         if (event.type !== "turn.completed" || !event.ok || event.stopReason === "cancelled" || event.stopReason === "interrupted") return;
         const reason = finishReason(turn);
-        const botId = reason ? deps.botOf(threadId) : null;
+        const botId = reason && turn.carriable ? deps.botOf(threadId) : null;
         const state = carried.get(threadId) ?? { count: 0, ours: false };
         if (!reason || !botId || state.count >= MAX_CONTINUES) return;
         later(() => {

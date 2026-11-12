@@ -68,4 +68,19 @@ describe("finish guard", () => {
     held.turn("Drafted it.", { plan: PLAN });
     expect(held.carried).toEqual([]);
   });
+
+  it("never carries on a routine's run, though the run is settled by the time its turn completes", () => {
+    let routineRunning = true;
+    const carried: string[] = [];
+    const guard = createFinishGuard({
+      botOf: () => (routineRunning ? null : "bot-1"), held: () => false,
+      carryOn: async (_botId, _threadId, note) => { carried.push(note); }, line: () => {}, later: (run) => run(),
+    });
+    const send = (body: Body) => guard.onEvent({ eventId: "e", provider: "fake", threadId: "routine-thread", createdAt: "", ...body } as RuntimeEvent);
+    send({ type: "turn.started" });
+    send({ type: "item.completed", itemType: "assistant_text", text: "You're right, the report is fine." });
+    routineRunning = false;
+    send({ type: "turn.completed", ok: true });
+    expect(carried).toEqual([]);
+  });
 });
