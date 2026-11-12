@@ -37,7 +37,7 @@ const gate = (children: ReactNode = createElement(Probe)) => createElement(Platf
 const mount = (children?: ReactNode, strict = false) => act(async () => {
   root = createRoot(host); root.render(strict ? createElement(StrictMode, null, gate(children)) : gate(children));
 });
-const heading = () => expect(host.querySelector("h1")?.textContent).toBe("log in to dusk");
+const heading = () => expect(host.querySelector("h1")?.textContent).toBe("log in to dusk bot");
 const type = (selector: string, value: string) => act(async () => {
   const field = host.querySelector<HTMLInputElement>(selector)!;
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(field, value);

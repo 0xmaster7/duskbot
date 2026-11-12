@@ -176,7 +176,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
 
   it("Sign in, email: create the account with a code, the profile's email filled in, and single sign-on in the browser", () => {
     const { html, tree, handlers } = panel({ kind: "sign-in", phase: { step: "email", intent: true, problem: null } });
-    inOrder(text(html), ["plans", "create your dusk account", "We'll email you a code. No password to remember.", "email", "send code",
+    inOrder(text(html), ["plans", "create your dusk bot account", "We'll email you a code. No password to remember.", "email", "send code",
       "Uses the email from your profile. You can change it.", "work account with single sign-on? continue in browser"]);
     const field = tree.find(node => node.props.id === "cloud-add-email")!;
     expect([field.props.value, field.props.type, field.props.autoComplete]).toEqual([EMAIL, "email", "email"]);
@@ -214,7 +214,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
 
   it("Sign in, code: with new accounts closed it says a code comes only to an email that already has one", () => {
     const phase = { step: "code" as const, intent: true, email: EMAIL, resendAt: NOW + 21_000, problem: null, triesLeft: null };
-    expect(text(panel({ kind: "sign-in", phase: { ...phase, signupOpen: false } }).html)).toContain("New dusk accounts aren't open yet: a code comes only if this email already has one.");
+    expect(text(panel({ kind: "sign-in", phase: { ...phase, signupOpen: false } }).html)).toContain("New dusk bot accounts aren't open yet: a code comes only if this email already has one.");
     expect(text(panel({ kind: "sign-in", phase }).html)).not.toContain("aren't open yet");
   });
 
@@ -384,7 +384,7 @@ describe("the sheet", () => {
     expect(await settle()).toContain("your bots, always on.");
     expect(track).toHaveBeenCalledWith("cloud_dialog_shown", { source: "app_menu", view: "offer" });
     expect(bridge.sheet).toHaveBeenCalledWith(true);
-    expect(await buy("max")).toContain("create your dusk account");
+    expect(await buy("max")).toContain("create your dusk bot account");
     expect(bridge.checkout).not.toHaveBeenCalled(); expect(bridge.begin).not.toHaveBeenCalled();
     expect(tree().find(node => node.props.id === "cloud-add-email")!.props.value, "the profile's email").toBe(EMAIL);
     tree().find(node => node.type === "form")!.props.onSubmit({ preventDefault() {} }); await flush();
@@ -427,7 +427,7 @@ describe("the sheet", () => {
     bridge.signInStart.mockResolvedValueOnce({ outcome: "sent", email: EMAIL, expiresAt: NOW + 600_000, resendAt: NOW + 30_000, signupOpen: false });
     await settle(); await buy("pro");
     tree().find(node => node.type === "form")!.props.onSubmit({ preventDefault() {} }); await flush();
-    expect(await settle()).toContain("New dusk accounts aren't open yet");
+    expect(await settle()).toContain("New dusk bot accounts aren't open yet");
   });
 
   it("signed in to an account whose own terms differ (a trial already used): back to Choose with its terms, never a checkout said to be $0.00", async () => {

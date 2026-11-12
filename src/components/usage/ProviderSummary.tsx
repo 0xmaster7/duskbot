@@ -52,11 +52,11 @@ function ProviderCell({ limit, now }: { limit: EngineLimit; now: number }) {
       </div>
       <div className="flex items-baseline gap-1.5">
         {out ? (
-          <span className="text-[20px] font-medium leading-6 text-danger">{t("nativeUsage.atLimit")}</span>
+          <span className="text-[20px] font-medium leading-6 text-danger">{t("usage.summary.atLimit")}</span>
         ) : (
           <>
             <span className="text-[20px] font-medium leading-6 tabular-nums text-ink">{used}%</span>
-            <span className="text-[13px] leading-[18px] text-ink-secondary">{t("nativeUsage.used")}</span>
+            <span className="text-[13px] leading-[18px] text-ink-secondary">{t("usage.summary.used")}</span>
           </>
         )}
       </div>
@@ -65,7 +65,7 @@ function ProviderCell({ limit, now }: { limit: EngineLimit; now: number }) {
         {when && <span className="tabular-nums">{t("planUsage.resetsIn", { when })}</span>}
         {rest.map((row) => (
           <span key={row.window} data-usage-window={row.window} className={cn("tabular-nums", row.tone === "out" ? "text-danger" : "text-ink-tertiary")}>
-            {windowLabel(row.window)} {row.tone === "out" ? t("nativeUsage.atLimit") : `${usedOf(row)}%`}
+            {windowLabel(row.window)} {row.tone === "out" ? t("usage.summary.atLimit") : `${usedOf(row)}%`}
           </span>
         ))}
       </div>

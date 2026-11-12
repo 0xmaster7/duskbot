@@ -188,7 +188,7 @@ export function LoginsSettings() {
   const tabs: Array<{ id: VaultTab; label: string; count: number }> = [
     { id: "all", label: t("settings.vault.all"), count: (logins?.length ?? 0) + secrets.length },
     { id: "saved", label: t("settings.section.logins"), count: saved.length },
-    { id: "secrets", label: t("secretCard.title"), count: secrets.length },
+    { id: "secrets", label: t("settings.vault.secrets"), count: secrets.length },
     ...(onePassword.connected || fromVaults.length ? [{ id: "onepassword" as const, label: t("settings.logins.onePassword.title"), count: fromVaults.length }] : []),
   ];
   const words = query.trim().toLowerCase();

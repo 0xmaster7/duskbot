@@ -56,7 +56,7 @@ describe("Gmail connects on one card", () => {
     await render(model(connectors, { kind: "connect" }));
     expect(card().getAttribute("data-state")).toBe("idle");
     expect(card().textContent).toContain("Read and draft first. Nothing is sent without your OK.");
-    expect(card().textContent).toContain("You sign in with Google on its own page. dusk never sees your password.");
+    expect(card().textContent).toContain("You sign in with Google on its own page, so dusk bot never sees your password.");
     expect(primaries()).toHaveLength(1);
     expect(card().contains(primaries()[0]!)).toBe(true);
     expect(shown(primaries()[0]!)).toBe("connect Gmail");
@@ -121,7 +121,7 @@ describe("Gmail connects on one card", () => {
       await render(page);
       expect(primaries()).toHaveLength(1);
       expect(shown(primaries()[0]!)).toBe("connect Gmail");
-      expect(card().textContent).toContain("You sign in to Composio once, then to Google.");
+      expect(card().textContent).toContain("You sign in to Composio once, then to Google, so dusk bot never sees your password.");
       await act(async () => { primaries()[0]!.click(); });
       expect(connectors.authorizeComposio).toHaveBeenCalledWith("gmail");
       const own = [...card().querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "use my own Composio API key")!;

@@ -216,7 +216,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       }));
     const vendors = remote.apps
       .map((app): AppEntry => ({
-        id: app.id, kind: "remote", label: app.label, description: app.description, categories: grokCategories(app.categories),
+        id: app.id, kind: "remote", label: app.label, description: connectorDescription({ label: app.label, blurb: app.description }), categories: grokCategories(app.categories),
         icon: remoteIcon(app), website: app.domain ?? undefined, keywords: `${app.id} mcp`,
       }));
     // a custom MCP server lists like any app once added; its page is Custom MCP, where it is edited or removed

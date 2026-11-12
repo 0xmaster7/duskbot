@@ -269,8 +269,8 @@ describe("the Connect Apps window", () => {
       expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/attio/authorize", expect.anything());
       expect(onClose, "no trip to Settings").not.toHaveBeenCalled();
       const step = dialog().querySelector("[data-app-page='attio'] [data-composio-key]")!;
-      expect(step.textContent).toContain("dusk uses Composio to reach Attio. First, let dusk use your free Composio account. You'll sign in once.");
-      expect(step.textContent, "what is shared").toContain("dusk never sees your Attio password.");
+      expect(step.textContent).toContain("To reach Attio, dusk bot uses Composio. First, let dusk bot use your free Composio account. You'll sign in once.");
+      expect(step.textContent, "what is shared").toContain("so dusk bot never sees your Attio password.");
       expect(dialog().querySelector("[data-app-page] [data-composio-sign-in]")?.textContent, "authorizing is the first step, said as such").toContain("authorize Composio");
       await act(async () => { [...step.querySelectorAll("button")].find((element) => element.textContent === "use my own Composio API key")!.click(); });
       expect([...step.querySelectorAll("li")].map((item) => item.textContent?.replace(/^\d/, ""))).toEqual([
@@ -533,7 +533,7 @@ describe("the Connect Apps window", () => {
       await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-primary")!.click(); });
       await flush();
       expect(fixture.opened, "no Composio tab the broker could not use").toEqual([]);
-      expect(dialog().querySelector("[data-composio-key]")?.textContent).toContain("dusk uses Composio to reach Attio.");
+      expect(dialog().querySelector("[data-composio-key]")?.textContent).toContain("To reach Attio, dusk bot uses Composio.");
       await paste("ak_good");
       expect(fixture.opened).toEqual(["https://connect.example/attio"]);
     });

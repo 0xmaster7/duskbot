@@ -62,7 +62,7 @@ it("offers three equal ways in up front: scan, code, or log in", async () => {
 it("log in opens the account sign-in straight away", async () => {
   await mount(onboarding());
   await press("[data-entry=signin]");
-  expect(heading()).toBe("log in to dusk");
+  expect(heading()).toBe("log in to dusk bot");
   expect(host.querySelector("input[type=email]")).not.toBeNull();
 });
 
@@ -137,5 +137,5 @@ it("the sign-in offer opens the sign-in without leaving the app", async () => {
   await act(async () => { vi.advanceTimersByTime(3000); });
   await act(async () => {});
   await act(async () => { [...host.querySelectorAll("button")].find((button) => button.textContent === "log in")!.click(); });
-  expect(host.querySelector("[role=dialog] h1")?.textContent).toBe("log in to dusk");
+  expect(host.querySelector("[role=dialog] h1")?.textContent).toBe("log in to dusk bot");
 });
