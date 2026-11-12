@@ -81,3 +81,30 @@ test("a remembered Cloud connects from main's own session; a team's Cloud is not
   assert.equal(await fresh.call("elsewhere:connect"), "cloud");
   assert.equal(fresh.connected.length, 1);
 });
+
+test("open answers only once the switch is over, so the page never drops its screen before the window leaves", async () => {
+  const handlers = new Map();
+  let finish;
+  installBotsElsewhere({
+    ipcMain: { handle: (channel, run) => handlers.set(channel, run) }, guard: (_channel, run) => run,
+    places: () => placesElsewhere({ environments: [SERVER] }), account: () => null, store: { read: async () => null, remember: async () => false },
+    open: () => new Promise((resolve) => { finish = resolve; }), connectCloud: () => {},
+  });
+  let answered = false;
+  const reply = handlers.get("elsewhere:open")({}, "srv").then((value) => { answered = true; return value; });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(answered, false);
+  finish();
+  assert.equal(await reply, true);
+});
+
+test("a switch that throws still answers, so the page can show itself again", async () => {
+  const handlers = new Map(), lines = [];
+  installBotsElsewhere({
+    ipcMain: { handle: (channel, run) => handlers.set(channel, run) }, guard: (_channel, run) => run,
+    places: () => placesElsewhere({ environments: [SERVER] }), account: () => null, store: { read: async () => null, remember: async () => false },
+    open: async () => { throw new Error("unreachable"); }, connectCloud: () => {}, log: (line) => lines.push(line),
+  });
+  assert.equal(await handlers.get("elsewhere:open")({}, "srv"), true);
+  assert.match(lines[0], /unreachable/);
+});

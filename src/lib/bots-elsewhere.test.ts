@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dismissKey, elsewhereScreen, emptyHere, parseElsewhereView, SIMULATED_FRESH_INSTALL } from "./bots-elsewhere";
+import { dismissKey, elsewhereCovered, elsewhereScreen, emptyHere, parseElsewhereView, SIMULATED_FRESH_INSTALL } from "./bots-elsewhere";
 
 const VPS = { id: "srv", name: "my-vps", why: "moved" as const };
 const TEAM = { id: "team", name: "Studio", why: "team" as const };
@@ -32,5 +32,14 @@ describe("bots elsewhere", () => {
     expect(parseElsewhereView({ places: [VPS, { id: 1 }, { id: "x", name: " ", why: "server" }, { id: "y", name: "Y", why: "moon" }], known: { kind: "phone", name: "x" } }))
       .toEqual({ places: [VPS], known: null });
     expect(parseElsewhereView(null)).toEqual({ places: [], known: null });
+  });
+
+  it("steps aside for the sheets its ways out open, so connect a server shows Settings rather than this screen", () => {
+    const none = { settings: false, cloudAdd: false, addVps: false, cloudMove: false };
+    expect(elsewhereCovered(none)).toBe(false);
+    expect(elsewhereCovered({ ...none, settings: true })).toBe(true);
+    expect(elsewhereCovered({ ...none, cloudAdd: true })).toBe(true);
+    expect(elsewhereCovered({ ...none, addVps: true })).toBe(true);
+    expect(elsewhereCovered({ ...none, cloudMove: true })).toBe(true);
   });
 });

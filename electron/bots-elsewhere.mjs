@@ -33,7 +33,7 @@ const setupOf = (place, at) => (place.why === "team" ? null : { kind: place.why 
  *   account: () => { id?: string } | null, store: import("./account-setup-store.mjs").AccountSetupStore,
  *   open: (id: string) => unknown, connectCloud: () => unknown, now?: () => number, log?: (line: string) => void }} deps
  * `account()`: the signed-in account, null when there is none. `open(id)`: main's own switch to a saved place (or My Cloud
- * as home); `connectCloud()`: main's connect to My Cloud from the verified session, never a renderer's address.
+ * as home), settled once the window has gone there or stayed; `connectCloud()`: main's connect to My Cloud from the verified session, never a renderer's address.
  */
 export function installBotsElsewhere({ ipcMain, guard, places, account, store, open, connectCloud, now = Date.now, log = () => {} }) {
   const signedIn = () => { const id = account()?.id; return typeof id === "string" && id ? id : null; };
@@ -54,16 +54,18 @@ export function installBotsElsewhere({ ipcMain, guard, places, account, store, o
   }
 
   ipcMain.handle("elsewhere:state", guard("elsewhere:state", () => view()));
-  ipcMain.handle("elsewhere:open", guard("elsewhere:open", (_event, id) => {
+  // answered once the switch is over: a page still there to hear it was not taken anywhere, so it shows itself again,
+  // and one that was never hears it, so this computer's own page never shows in between
+  ipcMain.handle("elsewhere:open", guard("elsewhere:open", async (_event, id) => {
     if (typeof id !== "string" || !places().some((place) => place.id === id)) return false;
-    void open(id);
+    try { await open(id); } catch (error) { log(`bots elsewhere: ${error?.message ?? error}`); }
     return true;
   }));
-  // "server": the page opens its own Add your VPS sheet; a Cloud connects from the session main holds
+  // "server": the page opens its own Add your VPS sheet; a Cloud connects from the session main holds, answered once over
   ipcMain.handle("elsewhere:connect", guard("elsewhere:connect", async () => {
     const id = signedIn(), known = id ? await store.read(id).catch(() => null) : null;
     if (!known) return null;
-    if (known.kind === "cloud") void connectCloud();
+    if (known.kind === "cloud") { try { await connectCloud(); } catch (error) { log(`bots elsewhere: ${error?.message ?? error}`); } }
     return known.kind;
   }));
 

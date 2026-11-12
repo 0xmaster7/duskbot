@@ -50,6 +50,12 @@ export function elsewhereScreen({ view, empty, dismissed }: { view: ElsewhereVie
   return null;
 }
 
+/** The sheets this screen's own ways out open over the page: Settings (where the switcher's "connect a server" lands), the
+ * dusk cloud offer, Add your VPS and a move to dusk cloud. The screen steps aside while one is up, or it would cover it. */
+export function elsewhereCovered({ settings, cloudAdd, addVps, cloudMove }: { settings: boolean; cloudAdd: boolean; addVps: boolean; cloudMove: boolean }): boolean {
+  return settings || cloudAdd || addVps || cloudMove;
+}
+
 export function dismissKey(screen: ElsewhereScreen): string {
   return screen.kind === "bots-on" ? `place:${screen.place.id}` : `setup:${screen.setup.kind}:${screen.setup.name}`;
 }

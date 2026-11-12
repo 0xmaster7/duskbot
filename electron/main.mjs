@@ -1782,7 +1782,7 @@ async function switchEnvironment(id) {
     }
   }
   if (entry && handSaved(entry) && !(await serverOpens(entry, { fetch: (...args) => session.defaultSession.fetch(...args), dialog, forget: (gone) => forgetEnvironment(gone, false, true) }))) return;
-  persistEnvironments(withActive(environmentsState, id), "chosen"); navigateMainWindow(activeOrigin());
+  persistEnvironments(withActive(environmentsState, id), "chosen"); return navigateMainWindow(activeOrigin());
 }
 
 function createLocalEnvironment(name, dataDir) {

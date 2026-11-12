@@ -80,6 +80,8 @@ export function useWorkspacePlace({ cloudHome = false, howTo = false, onMenuClos
 
 /** `place`: what this Cloud is called here, a team's name on a team's Cloud; My Cloud otherwise. */
 type SwitcherProps = {
+  /** Shown even with a rail of places beside the page: a screen that stands in for the whole page keeps its own. */
+  always?: boolean;
   compact?: boolean; inline?: boolean; pill?: boolean; rail?: boolean; cloudHome?: boolean; owner?: string | null; howTo?: boolean; place?: string; onMenuClosed?: () => void;
 };
 
@@ -88,7 +90,7 @@ type SwitcherProps = {
 export function DesktopWorkspaceSwitcher(props: SwitcherProps) {
   const places = usePlaces();
   const switcher = <Switcher {...props} />;
-  return railShown(places) ? <div data-switcher-beside-rail className={places.beside ? "hidden" : "contents md:hidden"}>{switcher}</div> : switcher;
+  return railShown(places) && !props.always ? <div data-switcher-beside-rail className={places.beside ? "hidden" : "contents md:hidden"}>{switcher}</div> : switcher;
 }
 
 function Switcher({ compact = false, inline = false, pill = false, rail = false, cloudHome = false, owner = null, howTo = false, place, onMenuClosed }: SwitcherProps) {

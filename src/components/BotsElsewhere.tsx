@@ -1,26 +1,42 @@
-// This computer's page with no bots of its own while the person's live somewhere else: it says where they are and opens
-// that place instead of a blank first run (src/lib/bots-elsewhere.ts). Kept apart from the first run (onboarding/*),
-// which it covers while it shows.
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+// This computer's page with no bots of its own while the person's live somewhere else: it says where they are, lists every
+// place they have with a way into each (src/lib/bots-elsewhere.ts), and opens one instead of a blank first run. Kept apart
+// from the first run (onboarding/*), which it covers while it shows.
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { WindowDragStrip } from "@/components/DesktopCapabilities";
 import { productName } from "@/lib/brand";
+import { cn } from "@/lib/cn";
+import { useCloudMoveOpen } from "@/lib/cloud-move";
 import { t } from "@/lib/i18n";
-import { openAddVps } from "@/lib/vps-link";
+import { openAddVps, useAddVpsOpen } from "@/lib/vps-link";
 import {
-  devToolsShown, dismissKey, dismissedPlaces, dismissPlace, elsewhereScreen, emptyHere, parseElsewhereView,
+  devToolsShown, dismissKey, dismissedPlaces, dismissPlace, elsewhereCovered, elsewhereScreen, emptyHere, parseElsewhereView,
   setSimulatedFreshInstall, SIMULATED_FRESH_INSTALL, useSimulatedFreshInstall, type ElsewhereScreen, type ElsewhereView,
 } from "@/lib/bots-elsewhere";
 import { useStore } from "@/state/store";
+import { DesktopWorkspaceSwitcher } from "./DesktopWorkspaceSwitcher";
+import { WorkspacesGroup } from "./WorkspacesSettings";
+
+/** Settings' place rows drawn on this screen: the 48px rows, 12px corners and soft hover the settings sheet gives them,
+ * on the card's own tonal fill. */
+const PLACE_ROWS = cn(
+  "[&_[data-settings-rows]]:gap-0.5",
+  "[&_[data-settings-rows]>*]:min-h-12 [&_[data-settings-rows]>*]:gap-4 [&_[data-settings-rows]>*]:rounded-[12px] [&_[data-settings-rows]>*]:px-2.5 [&_[data-settings-rows]>*]:py-[9px]",
+  "[&_[data-settings-rows]>*:not(:disabled):hover]:bg-ink/[0.035]",
+);
 
 const WHY_KEY = { moved: "elsewhere.why.moved", cloud: "elsewhere.why.cloud", team: "elsewhere.why.team", server: "elsewhere.why.server" } as const;
 
 export function BotsElsewhere() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const bridge = typeof window === "undefined" ? undefined : window.duskDesktop?.elsewhere;
   const simulated = useSimulatedFreshInstall();
   const [view, setView] = useState<ElsewhereView | null>(null);
   const [dismissed, setDismissed] = useState(dismissedPlaces);
-  const [leaving, setLeaving] = useState(false);
+  // the place being opened: the screen stays, saying so, until the window has gone there (main answers once it is over)
+  const [opening, setOpening] = useState<string | null>(null);
+  const covered = elsewhereCovered({
+    settings: state.appSettingsOpen, cloudAdd: Boolean(state.cloudAdd), addVps: useAddVpsOpen(), cloudMove: Boolean(useCloudMoveOpen()),
+  });
   const empty = state.hydrated === true && state.connected && emptyHere(state.bots);
 
   const load = useCallback(() => {
@@ -36,81 +52,82 @@ export function BotsElsewhere() {
 
   const screen = simulated
     ? elsewhereScreen({ view: SIMULATED_FRESH_INSTALL, empty: true, dismissed: [] })
-    : leaving ? null : elsewhereScreen({ view, empty, dismissed });
-  if (!screen) return null;
+    : elsewhereScreen({ view, empty, dismissed });
+  if (!screen || covered) return null;
 
   const stay = () => {
     if (simulated) return setSimulatedFreshInstall(false);
     dismissPlace(dismissKey(screen));
     setDismissed(dismissedPlaces());
   };
+  // an answer that reaches this page means the window stayed here, so the screen is itself again
   const open = (id: string) => {
-    setLeaving(true);
-    void bridge?.open(id).then((opened) => { if (!opened) setLeaving(false); }, () => setLeaving(false));
+    if (opening || !bridge) return;
+    setOpening(id);
+    void bridge.open(id).finally(() => setOpening(null));
   };
   const connect = () => {
     if (simulated) { setSimulatedFreshInstall(false); openAddVps(); return; }
-    setLeaving(true);
-    void bridge?.connect().then((kind) => {
-      if (kind === "server") openAddVps();
-      if (!kind) setLeaving(false);
-    }, () => setLeaving(false));
+    if (opening || !bridge) return;
+    setOpening("connect");
+    void bridge.connect().then((kind) => { if (kind === "server") openAddVps(); }).finally(() => setOpening(null));
   };
-  return <ElsewhereCard screen={screen} simulated={simulated} onOpen={open} onConnect={connect} onStay={stay} />;
+  return (
+    <ElsewhereCard screen={screen} simulated={simulated} opening={opening} onOpen={open} onConnect={connect} onStay={stay}>
+      {screen.kind === "bots-on" && <WorkspacesGroup onAdd={() => dispatch({ type: "toggleAppSettings", open: true, section: "desktopWorkspaces" })} />}
+    </ElsewhereCard>
+  );
 }
 
-export function ElsewhereCard({ screen, simulated = false, onOpen, onConnect, onStay }: {
-  screen: ElsewhereScreen; simulated?: boolean; onOpen: (id: string) => void; onConnect: () => void; onStay: () => void;
+/** `children`: every place the person has, each with its state and a way in (the bots-on hub only). `opening`: the place
+ * being opened, or "connect", while the window gets there. */
+export function ElsewhereCard({ screen, simulated = false, opening = null, onOpen, onConnect, onStay, children }: {
+  screen: ElsewhereScreen; simulated?: boolean; opening?: string | null; onOpen: (id: string) => void; onConnect: () => void; onStay: () => void; children?: ReactNode;
 }) {
   const app = productName();
-  const name = screen.kind === "bots-on" ? screen.place.name : screen.setup.name;
+  const botsOn = screen.kind === "bots-on";
+  const name = botsOn ? screen.place.name : screen.setup.name;
+  const busy = opening !== null;
+  const stay = (
+    <button
+      type="button"
+      onClick={onStay}
+      disabled={busy}
+      className="rounded-full px-4 py-2.5 text-[14px] text-ink-secondary hover:bg-raised hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-60"
+    >
+      {botsOn ? t("elsewhere.startHere") : t("elsewhere.setUpHere")}
+    </button>
+  );
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="elsewhere-title" className="fixed inset-0 z-[60] flex overflow-y-auto bg-app">
+    <div role="dialog" aria-modal="true" aria-labelledby="elsewhere-title" aria-busy={busy || undefined} data-elsewhere={screen.kind}
+      className="fixed inset-0 z-[60] flex overflow-y-auto bg-app">
       <WindowDragStrip />
       <div className="m-auto w-full max-w-[480px] px-6 py-12">
         {simulated && (
           <p className="mb-3 inline-block rounded-full bg-raised px-2.5 py-1 text-[12px] text-ink-secondary">{t("elsewhere.dev.simulated")}</p>
         )}
+        {botsOn && <div className="relative mb-5 flex"><DesktopWorkspaceSwitcher inline pill always /></div>}
         <h1 id="elsewhere-title" className="text-[22px] font-semibold leading-snug text-ink">
-          {screen.kind === "bots-on" ? t("elsewhere.botsOn.title", { name }) : t("elsewhere.setUpOn.title", { app, name })}
+          {botsOn ? t("elsewhere.botsOn.title", { name }) : t("elsewhere.setUpOn.title", { app, name })}
         </h1>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-secondary">
-          {screen.kind === "bots-on" ? t(WHY_KEY[screen.place.why], { name }) : t("elsewhere.setUpOn.why", { app, name })}
+          {botsOn ? t(WHY_KEY[screen.place.why], { name }) : t("elsewhere.setUpOn.why", { app, name })}
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <button
             type="button"
             autoFocus
-            onClick={() => (screen.kind === "bots-on" ? onOpen(screen.place.id) : onConnect())}
+            disabled={busy}
+            aria-busy={busy || undefined}
+            onClick={() => (botsOn ? onOpen(screen.place.id) : onConnect())}
             className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-app hover:bg-ink/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-60"
           >
-            {screen.kind === "bots-on" ? t("elsewhere.open", { name }) : t("elsewhere.connect", { name })}
+            {busy ? t("reconnect.opening") : botsOn ? t("elsewhere.open", { name }) : t("elsewhere.connect", { name })}
           </button>
-          <button
-            type="button"
-            onClick={onStay}
-            className="rounded-full px-4 py-2.5 text-[14px] text-ink-secondary hover:bg-raised hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-          >
-            {screen.kind === "bots-on" ? t("elsewhere.startHere") : t("elsewhere.setUpHere")}
-          </button>
+          {!botsOn && stay}
         </div>
-        {screen.kind === "bots-on" && screen.others.length > 0 && (
-          <div className="mt-8 border-t border-transparent pt-4">
-            <p className="text-[13px] text-ink-secondary">{t("elsewhere.others")}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {screen.others.map((place) => (
-                <button
-                  key={place.id}
-                  type="button"
-                  onClick={() => onOpen(place.id)}
-                  className="rounded-lg bg-raised px-3 py-1.5 text-[13px] text-ink hover:bg-raised-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-                >
-                  {t("elsewhere.open", { name: place.name })}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {children && <div data-elsewhere-places="" className={cn("mt-10", PLACE_ROWS)}>{children}</div>}
+        {botsOn && <div className="mt-6 -ms-4">{stay}</div>}
       </div>
     </div>
   );
