@@ -27,7 +27,7 @@ export function WhereModal({ bot, derived, onClose }: {
   const { dispatch } = useStore();
   const { options, current, usingNow, choosePlace, warning, cloudDesktop } = usePlacePicker(bot, derived);
   const cloud = usePlaceViews(bot).cloud;
-  const title = t("computer.simple.whereWorks", { name: bot.name });
+  const title = t("botPanel.ui.computerSimpleWhereWorks", { name: bot.name });
   const editable = bot.yourAccess !== "view";
   const rows = options.filter((option) => option.value === "local" || option.value === "cloud" || option.value === current);
   const setup = cloud.policy && (!cloud.reachable || placeHasIssue(cloud.view)) && cloud.view.action && !ON_CHOOSE.has(cloud.view.action.id)
@@ -35,7 +35,7 @@ export function WhereModal({ bot, derived, onClose }: {
 
   return (
     <SheetPane data-panel-modal="where" title={title}>
-      <Card data-sheet-group="where" footnote={usingNow ? <span data-panel-using-now>{t("computer.simple.usingNow", { place: usingNow })}</span>
+      <Card data-sheet-group="where" footnote={usingNow ? <span data-panel-using-now>{t("botPanel.ui.computerSimpleUsingNow", { place: usingNow })}</span>
         : !editable ? `only people who can edit ${bot.name} can change this.` : undefined}>
         <div role="radiogroup" aria-label={title} className="contents">
           {rows.map((option) => (

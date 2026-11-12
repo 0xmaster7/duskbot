@@ -18,9 +18,9 @@ export function FolderModal({ bot }: { bot: Bot; onClose: () => void }) {
   const editable = bot.yourAccess !== "view";
 
   return (
-    <SheetPane data-panel-modal="folder" title={t("computer.files.folder")}>
+    <SheetPane data-panel-modal="folder" title={t("botPanel.page.folder")}>
       <Card data-sheet-group="folder">
-        <div role="radiogroup" aria-label={t("computer.files.folder")} className="contents">
+        <div role="radiogroup" aria-label={t("botPanel.page.folder")} className="contents">
           <CheckRow
             role="radio"
             data-panel-choice="private"
@@ -44,7 +44,7 @@ export function FolderModal({ bot }: { bot: Bot; onClose: () => void }) {
       </Card>
       {typing && (
         <FolderPathDialog
-          title={t("botAccess.folder.title")}
+          title={t("botPanel.ui.botAccessFolderTitle")}
           initial={bot.cwd ?? ""}
           saving={saving}
           error={error}
@@ -80,13 +80,13 @@ export function FolderPathDialog({ title, initial, saving, error, onSave, onClos
       onSave={() => { setSent(true); return onSave(path.trim()); }}
       onClose={onClose}
     >
-      <FormField label={t("botAccess.folder.title")}>
+      <FormField label={t("botPanel.ui.botAccessFolderTitle")}>
         <input
           data-autofocus
           data-panel-form="folder-path"
           dir="auto"
           value={path}
-          placeholder={t("botAccess.folder.placeholder")}
+          placeholder={t("botPanel.ui.botAccessFolderPlaceholder")}
           aria-label={title}
           onChange={(event) => setPath(event.target.value)}
           className={`${textFieldCls} font-mono text-[12px]`}

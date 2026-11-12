@@ -41,8 +41,8 @@ describe("the Instructions dialog", () => {
   it("is one calm card under the prompt in a pane of the sheet, Save at its bottom right, with no counter or rule", () => {
     mount({});
     expect(sheet().getAttribute("role")).toBeNull();
-    expect(sheet().querySelector("h2")!.textContent).toBe("instructions");
-    expect(sheet().querySelector("[data-instructions-card]")!.previousElementSibling!.textContent).toBe("how should Scout work? what should it always or never do?");
+    expect(sheet().querySelector("h2")!.textContent).toBe("Instructions");
+    expect(sheet().querySelector("[data-instructions-card]")!.previousElementSibling!.textContent).toBe("How should Scout work? What should it always or never do?");
     const card = sheet().querySelector<HTMLElement>("[data-instructions-card]")!;
     expect(card.className).toContain("rounded-[12px]");
     // no fill, one hairline that stays put on focus

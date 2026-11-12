@@ -18,9 +18,9 @@ export function useBotActions(bot: Bot) {
 
   const visibleBotCount = state.bots.filter((candidate) => !candidate.hidden).length;
   const archiveHint = bot.chiefOfStaff
-    ? t("sidebar.bot.archiveBlockedChief")
+    ? t("botPanel.ui.sidebarBotArchiveBlockedChief")
     : visibleBotCount <= 1
-      ? t("sidebar.bot.archiveBlockedLast")
+      ? t("botPanel.ui.sidebarBotArchiveBlockedLast")
       : undefined;
 
   const togglePin = () => dispatch({ type: "updateBot", botId: bot.id, patch: { pinned: !bot.pinned } });

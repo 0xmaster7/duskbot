@@ -24,7 +24,7 @@ export function PermissionsSheet({ bot, derived }: { bot: Bot; derived: Derived 
   const ownerOrAdmin = useOwnerOrAdmin();
   const [localAutoWarning, setLocalAutoWarning] = useState<string | null>(null);
   const [allowlistOpen, setAllowlistOpen] = useState(false);
-  const section = sectionName === "General" ? t("botAccess.teams.general") : sectionName;
+  const section = sectionName === "General" ? t("botPanel.ui.botAccessTeamsGeneral") : sectionName;
   const driverKind = engine?.driverKind ?? "";
   const applyFullEverywhere = () => dispatch({ type: "updateBot", botId: bot.id, patch: { approvalMode: "full", applyToAllThreads: true } });
   const setApprovalMode = (mode: ApprovalMode) => {
@@ -52,11 +52,11 @@ export function PermissionsSheet({ bot, derived }: { bot: Bot; derived: Derived 
   return (
     <>
       {!team && (
-        <Card label={t("permissions.chief.title")} data-sheet-group="chief">
+        <Card label={t("botPanel.ui.permissionsChiefTitle")} data-sheet-group="chief">
           <SwitchRow
             title={t("botPanel.sheet.chiefRow", { section })}
             hint={canCoordinate ? undefined : t("botPanel.sheet.chiefNoModel")}
-            label={t("permissions.chief.title")}
+            label={t("botPanel.ui.permissionsChiefTitle")}
             checked={Boolean(bot.chiefOfStaff)}
             disabled={!bot.chiefOfStaff && !canCoordinate}
             onChange={() => patch({ chiefOfStaff: !bot.chiefOfStaff })}
@@ -64,9 +64,9 @@ export function PermissionsSheet({ bot, derived }: { bot: Bot; derived: Derived 
           {bot.chiefOfStaff && (
             <NavRow
               data-sheet-row="chief-teams"
-              title={t("botAccess.teams.title")}
+              title={t("botPanel.ui.botAccessTeamsTitle")}
               value={led ? t("botPanel.sheet.chosen", { count: led }) : t("botPanel.none")}
-              onClick={() => open("teams", t("botAccess.teams.title"))}
+              onClick={() => open("teams", t("botPanel.ui.botAccessTeamsTitle"))}
             />
           )}
         </Card>
@@ -75,7 +75,7 @@ export function PermissionsSheet({ bot, derived }: { bot: Bot; derived: Derived 
       <Card label={t("botPanel.sheet.peers")} data-sheet-group="peers">
         <SwitchRow
           title={t("botPanel.sheet.peersRow")}
-          label={t("permissions.peers.title")}
+          label={t("botPanel.ui.permissionsPeersTitle")}
           checked={Boolean(bot.approvePeerComms)}
           disabled={!bot.approvePeerComms && !canCoordinate}
           onChange={() => patch({ approvePeerComms: !bot.approvePeerComms })}
@@ -91,11 +91,11 @@ export function PermissionsSheet({ bot, derived }: { bot: Bot; derived: Derived 
         )}
       </Card>
 
-      <Card label={t("permissions.approval.title")} data-sheet-group="approval">
+      <Card label={t("botPanel.ui.permissionsApprovalTitle")} data-sheet-group="approval">
         <SelectRow
           data-sheet-row="approval"
           title={t("botPanel.sheet.approvalRow")}
-          label={t("permissions.approval.title")}
+          label={t("botPanel.ui.permissionsApprovalTitle")}
           disabled={Boolean(bot.busy) || approvalModeSelectionRequiresLocalDesktop(approvalMode, trustedModesAvailable)}
           value={shownApprovalMode(driverKind, approvalMode)}
           options={approvalModeOptionsFor(driverKind, trustedModesAvailable).map((option) => ({ value: option.mode, label: option.label }))}
@@ -137,7 +137,7 @@ function ChiefTeams({ ownTeam, teams, allowed, onSave }: {
       <Card data-sheet-group="chief-teams">
         {choices.length === 0 && <NoteRow>{t("botAccess.teams.empty")}</NoteRow>}
         {choices.map((team) => {
-          const name = team === "General" || !team ? t("botAccess.teams.general") : team;
+          const name = team === "General" || !team ? t("botPanel.ui.botAccessTeamsGeneral") : team;
           return (
             <CheckRow
               key={team}
@@ -152,7 +152,7 @@ function ChiefTeams({ ownTeam, teams, allowed, onSave }: {
       {choices.length > 0 && (
         <div className="-mt-2.5 flex items-center justify-end gap-3 px-3">
           <span className="mr-auto text-[12px] leading-4 tracking-[0.01em] text-ink-secondary">{changed ? t("botPanel.sheet.unsaved") : t("botPanel.sheet.chosen", { count: selected.length })}</span>
-          <button type="button" aria-label={t("botAccess.teams.save")} disabled={!changed} onClick={() => onSave(selected)} className={pillCls}>{t("botPanel.sheet.save")}</button>
+          <button type="button" aria-label={t("botPanel.ui.botAccessTeamsSave")} disabled={!changed} onClick={() => onSave(selected)} className={pillCls}>{t("botPanel.sheet.save")}</button>
         </div>
       )}
     </>
@@ -178,13 +178,13 @@ function Sending({ bot, fullAccess, onChange }: { bot: Bot; fullAccess: boolean;
   }, [bot.id, bot.outbound]);
 
   return (
-    <Card label={t("permissions.outbound.title")} data-sheet-group="sending">
+    <Card label={t("botPanel.ui.permissionsOutboundTitle")} data-sheet-group="sending">
       <SelectRow
         data-sheet-row="sending"
         title={t("botPanel.sheet.sendingRow")}
-        label={t("permissions.outbound.title")}
+        label={t("botPanel.ui.permissionsOutboundTitle")}
         value={policy.policy}
-        options={[{ value: "ask", label: t("permissions.outbound.ask") }, { value: "allow", label: t("permissions.outbound.allow") }]}
+        options={[{ value: "ask", label: t("botPanel.ui.permissionsOutboundAsk") }, { value: "allow", label: t("botPanel.ui.permissionsOutboundAllow") }]}
         onChange={(value) => onChange({ policy: value, dailyCap: policy.dailyCap })}
       />
       {policy.policy === "allow" && (
@@ -207,14 +207,14 @@ function DailyCapDialog({ cap, onSave, onClose }: { cap: number; onSave: (cap: n
   const valid = Number.isInteger(parsed) && parsed >= 1 && parsed <= 1000;
   return (
     <FormDialog data-panel-modal="per-day" title={t("botPanel.sheet.perDay")} canSave={valid && parsed !== cap} onSave={() => onSave(parsed)} onClose={onClose}>
-      <FormField label={t("permissions.outbound.dailyLimit")}>
+      <FormField label={t("botPanel.ui.permissionsOutboundDailyLimit")}>
         <input
           data-autofocus
           type="number"
           min={1}
           max={1000}
           value={value}
-          aria-label={t("permissions.outbound.dailyLimit")}
+          aria-label={t("botPanel.ui.permissionsOutboundDailyLimit")}
           onChange={(event) => setValue(event.target.value)}
           className={`${textFieldCls} tabular-nums`}
         />

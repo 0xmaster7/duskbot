@@ -47,10 +47,10 @@ const ROOM_HINTS: Record<RoomSettingsRow, () => string> = {
 export type BotsScope = "defaults" | `bot:${string}` | `group:${string}`;
 
 const ROOM_TITLE: Record<RoomSettingsRow, () => string> = {
-  instructions: () => t("room.panel.instructions"),
-  responder: () => t("room.panel.whoResponds"),
-  folder: () => t("room.folder.title"),
-  about: () => t("room.panel.about"),
+  instructions: () => t("settings.bots.panel.roomPanelInstructions"),
+  responder: () => t("settings.bots.panel.roomPanelWhoResponds"),
+  folder: () => t("settings.bots.panel.roomFolderTitle"),
+  about: () => t("settings.bots.panel.roomPanelAbout"),
 };
 
 // the pane's picker in its header and its body read one choice; a link from a panel sets it
@@ -115,7 +115,7 @@ export function BotDefaultsRows() {
 function useMemoryLine(bot: Bot): string {
   const memory = useMemoryDoc(bot);
   const notes = memory.docs ? panelMemoryNotes(memory.docs).length : 0;
-  return notes === 0 ? t("botPanel.memory.nothingYet") : notes === 1 ? t("botPanel.memory.note") : t("botPanel.memory.notes", { count: notes });
+  return notes === 0 ? t("settings.bots.panel.botPanelMemoryNothingYet") : notes === 1 ? t("settings.bots.panel.botPanelMemoryNote") : t("settings.bots.panel.botPanelMemoryNotes", { count: notes });
 }
 
 function ReasoningRow({ bot }: { bot: Bot }) {
@@ -162,20 +162,20 @@ function BotRows({ bot }: { bot: Bot }) {
         <SettingsRows>
           <ModelSelectRow bot={bot} />
           <ReasoningRow bot={bot} />
-          {row("backups", backups > 0 ? t("botPanel.backups.count", { count: backups }) : t("botPanel.none"))}
+          {row("backups", backups > 0 ? t("settings.bots.panel.botPanelBackupsCount", { count: backups }) : t("settings.bots.panel.botPanelNone"))}
         </SettingsRows>
       </SettingsGroup>
-      <Card label={t("botPanel.section.thisBot")} data-settings-block="bot-knows">
+      <Card label={t("settings.bots.panel.botPanelSectionThisBot")} data-settings-block="bot-knows">
         {row("instructions", undefined, soul ? soul.split("\n")[0] : t("settings.bots.hint.noInstructions"))}
-        <SwitchRow title={t("botPanel.memoryRow")} hint={memoryOn ? memoryLine : t("botPanel.memory.off")} label={t("memory.enable")} checked={memoryOn}
+        <SwitchRow title={t("settings.bots.panel.botPanelMemoryRow")} hint={memoryOn ? memoryLine : t("settings.bots.panel.botPanelMemoryOff")} label={t("memory.enable")} checked={memoryOn}
           disabled={Boolean(bot.busy) || !editable} onChange={() => derived.patch({ memoryEnabled: !memoryOn })} />
         {memoryOn && <NavRow data-panel-page="memory" title={t("sheet.rows.notes")} hint={t("settings.bots.hint.notes")} onClick={() => open("bot:memory", sheetLabel("memory", bot))} />}
-        {row("skills", skills.loading ? undefined : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none"))}
+        {row("skills", skills.loading ? undefined : skillsOn > 0 ? t("settings.bots.panel.botPanelSkillsOn", { count: skillsOn }) : t("settings.bots.panel.botPanelNone"))}
       </Card>
       <Card label={t("botSettings.sections.access")} data-settings-block="bot-access">
-        {row("tools", bot.toolScope !== undefined ? t("botPanel.tools.custom") : undefined)}
+        {row("tools", bot.toolScope !== undefined ? t("settings.bots.panel.botPanelToolsCustom") : undefined)}
         {row("permissions", bot.chiefOfStaff ? t("permissions.chief.title") : undefined)}
-        {row("folder", bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private"), undefined, bot.cwd ?? undefined)}
+        {row("folder", bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("settings.bots.panel.botPanelFolderPrivate"), undefined, bot.cwd ?? undefined)}
         {row("where", currentLabel ?? t("computer.simple.dest.letItChoose"))}
       </Card>
       <Card data-settings-block="bot-identity">
@@ -220,9 +220,9 @@ function RoomPage({ group, page, onDone }: { group: Group; page: RoomSettingsRow
 }
 
 function turnLimitLabel(minutes: number): string {
-  if (minutes === 60) return t("room.panel.hour");
-  if (minutes % 60 === 0) return t("room.panel.hours", { hours: minutes / 60 });
-  return t("room.panel.minutes", { minutes });
+  if (minutes === 60) return t("settings.bots.panel.roomPanelHour");
+  if (minutes % 60 === 0) return t("settings.bots.panel.roomPanelHours", { hours: minutes / 60 });
+  return t("settings.bots.panel.roomPanelMinutes", { minutes });
 }
 
 /** A group chat's settings, the same rows: who answers, how long a turn may run, its instructions, folder and name. */
@@ -236,13 +236,13 @@ function RoomRows({ group }: { group: Group }) {
   );
   return (
     <>
-      <SettingsGroup label={t("room.panel.section.chat")} block="room-chat">
+      <SettingsGroup label={t("settings.bots.panel.roomPanelSectionChat")} block="room-chat">
         <SettingsRows>
           {row("responder", responderShortLabel(group, members))}
-          <SettingRow title={t("room.panel.turnLimit")}>
+          <SettingRow title={t("settings.bots.panel.roomPanelTurnLimit")}>
             <SettingsSelect
               data-settings-select="turn-limit"
-              aria-label={t("room.panel.turnLimit")}
+              aria-label={t("settings.bots.panel.roomPanelTurnLimit")}
               value={limit.saved === null ? "default" : String(limit.saved)}
               options={[
                 { value: "default", label: t("room.turnLimit.default", { minutes: limit.globalMinutes }) },
@@ -253,9 +253,9 @@ function RoomRows({ group }: { group: Group }) {
           </SettingRow>
         </SettingsRows>
       </SettingsGroup>
-      <Card label={t("room.panel.section.room")} data-settings-block="room-knows">
-        {row("instructions", group.bulletin.trim() ? undefined : t("botPanel.none"))}
-        {row("folder", group.cwd ? shortPath(group.cwd, capabilities.host?.homeDir) : t("botPanel.none"))}
+      <Card label={t("settings.bots.panel.roomPanelSectionRoom")} data-settings-block="room-knows">
+        {row("instructions", group.bulletin.trim() ? undefined : t("settings.bots.panel.botPanelNone"))}
+        {row("folder", group.cwd ? shortPath(group.cwd, capabilities.host?.homeDir) : t("settings.bots.panel.botPanelNone"))}
         {row("about", group.name)}
       </Card>
     </>

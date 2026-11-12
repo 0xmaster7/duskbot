@@ -63,14 +63,14 @@ export function VoiceChatCard({ bot, patch }: { bot: Bot; patch: Derived["patch"
   const fallback = tts?.voice ? voices.find((entry) => entry.id === tts.voice) : undefined;
   const voice = bot.voice && bot.voice !== fallback?.id ? bot.voice : "";
   const voiceOptions = [
-    { value: "", label: fallback?.label ?? (tts?.voice || !tts?.configured ? t("botPanel.voice.default") : t("voice.pick")) },
-    ...(voice && !voices.some((entry) => entry.id === voice) ? [{ value: voice, label: t("voice.current") }] : []),
+    { value: "", label: fallback?.label ?? (tts?.voice || !tts?.configured ? t("botPanel.voice.default") : t("botPanel.ui.voicePick")) },
+    ...(voice && !voices.some((entry) => entry.id === voice) ? [{ value: voice, label: t("botPanel.ui.voiceCurrent") }] : []),
     ...voices.filter((entry) => entry !== fallback).map((entry) => ({ value: entry.id, label: entry.label })),
   ];
   return (
     <Card label={t("botPanel.section.voiceChat")} anchor="call">
-      <VoiceChatRow row="voice" label={t("voice.title")}>
-        <SelectPill data-panel-select="voice" aria-label={t("voice.title")} value={voice} options={voiceOptions} onChange={(next: string) => patch({ voice: next })} />
+      <VoiceChatRow row="voice" label={t("botPanel.ui.voiceTitle")}>
+        <SelectPill data-panel-select="voice" aria-label={t("botPanel.ui.voiceTitle")} value={voice} options={voiceOptions} onChange={(next: string) => patch({ voice: next })} />
       </VoiceChatRow>
       <VoiceChatRow row="speed" label={t("botPanel.voice.speed")}>
         <SelectPill

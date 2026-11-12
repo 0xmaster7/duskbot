@@ -207,7 +207,7 @@ describe("the panel's tabs", () => {
     render(null);
     await settle();
     expect([...host.querySelectorAll('[role="tab"]')].map((element) => [element.getAttribute("data-panel-tab"), element.textContent]))
-      .toEqual([["details", "details"], ["computer", "computer"], ["advanced", "advanced"]]);
+      .toEqual([["details", "Details"], ["computer", "Computer"], ["advanced", "Advanced"]]);
     expect(tab()).toBe("details");
     expect(host.querySelector("[data-panel-tabs]")!.className.split(" ")).toEqual(expect.arrayContaining(["sticky", "top-0", "bg-app"]));
     expect(host.querySelector('[role="tablist"]')!.className.split(" ")).toEqual(expect.arrayContaining(["gap-0.5"]));
@@ -225,7 +225,7 @@ describe("the panel's top", () => {
     render(null);
     await settle();
     const top = [...host.querySelectorAll("button")].slice(0, 2);
-    expect(top.map((button) => button.getAttribute("aria-label") ?? button.getAttribute("title"))).toEqual(["share and more", "close"]);
+    expect(top.map((button) => button.getAttribute("aria-label") ?? button.getAttribute("title"))).toEqual(["Share and more", "Close"]);
     expect(top[0]!.getAttribute("title")).toBe("Share");
     for (const button of [moreButton()!, top[1]!]) expect(button.querySelector("span, svg, i")).not.toBeNull();
     click(moreButton());
@@ -234,7 +234,7 @@ describe("the panel's top", () => {
     // an empty chat has nothing to copy or download yet
     expect(rows().filter((row) => row.disabled).map((row) => row.getAttribute("data-panel-share-item"))).toEqual(["copy", "download"]);
     expect(menu()!.querySelectorAll('[role="separator"]')).toHaveLength(0);
-    expect(menu()!.textContent).toContain("create a copy");
+    expect(menu()!.textContent).toContain("Create a copy");
     click(rows()[0]!);
     expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "duplicateBot", botId: "scout" });
     expect(shareOpen()).toBe(false);
@@ -251,7 +251,7 @@ describe("the panel's top", () => {
     click(host.querySelector("[data-panel-gear]"));
     expect([tab(), page()]).toEqual(["advanced", null]);
     expect(host.querySelector("[data-panel-back]")).toBeNull();
-    expect(host.querySelector('[role="tabpanel"]')!.getAttribute("aria-label")).toBe("advanced");
+    expect(host.querySelector('[role="tabpanel"]')!.getAttribute("aria-label")).toBe("Advanced");
   });
 
   it("puts the name right under the avatar, with no call button beside it", async () => {

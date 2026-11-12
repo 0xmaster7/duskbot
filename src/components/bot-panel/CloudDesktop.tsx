@@ -81,15 +81,15 @@ export function useCloudDesktop() {
     }
   };
 
-  const place = view?.name ?? t("place.cloudDesktop.title");
+  const place = view?.name ?? t("botPanel.ui.placeCloudDesktopTitle");
   const error = failed && <p role="alert" className="mt-2 text-[13px] text-danger">{failed}</p>;
   const dialog = bridge && (
     <ConfirmDialog
       open={confirming !== null}
-      title={confirming === "back" ? t("place.cloudDesktop.backTitle") : t("place.cloudDesktop.moveTitle", { place })}
+      title={confirming === "back" ? t("botPanel.ui.placeCloudDesktopBackTitle") : t("botPanel.ui.placeCloudDesktopMoveTitle", { place })}
       body={<>{confirming === "back" ? t("place.cloudDesktop.backBody") : t("place.cloudDesktop.moveBody", { place })}{error}</>}
-      confirmLabel={confirming === "back" ? t("place.cloudDesktop.backConfirm") : t("place.cloudDesktop.moveConfirm")}
-      cancelLabel={t("common.cancel")}
+      confirmLabel={confirming === "back" ? t("botPanel.ui.placeCloudDesktopBackConfirm") : t("botPanel.ui.placeCloudDesktopMoveConfirm")}
+      cancelLabel={t("botPanel.ui.commonCancel")}
       tone="neutral"
       pending={busy}
       onCancel={() => { if (!busy) { setConfirming(null); setFailed(null); } }}
@@ -108,7 +108,7 @@ export function useCloudDesktop() {
     setKeep: (on: boolean) => send!.setKeepHere!(on).then((next) => { setKeep(next); return next; }),
     openHome: accountBridge ? () => accountBridge.connectHome() : undefined,
     openPlan: accountBridge ? () => accountBridge.openDashboard() : undefined,
-    label: t("place.cloudDesktop.title"),
+    label: t("botPanel.ui.placeCloudDesktopTitle"),
     // a failure outside the confirm (Open, Manage) says why on the row itself
     hint: failed && confirming === null ? failed : cloudDesktopHint(view.step),
     busy,

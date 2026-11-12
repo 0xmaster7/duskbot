@@ -231,7 +231,7 @@ function JevForm({ onDone }: { onDone?: () => void }) {
           className={fieldCls}
         />
         <button type="submit" data-jev-action="test" disabled={testing || saving || !keyed} className={buttonCls}>
-          {testing ? t("keys.testing") : t("keys.test")}
+          {testing ? t("botPanel.ui.keysTesting") : t("botPanel.ui.keysTest")}
         </button>
       </form>
       {verdict && <div role="status" className="contents"><NoteRow tone={verdict.ok ? undefined : "danger"}>{verdict.text}</NoteRow></div>}
@@ -265,9 +265,9 @@ function JevForm({ onDone }: { onDone?: () => void }) {
       )}
       {(tested || saved) && (
         <div className="flex items-center justify-end gap-1.5 px-2 py-1.5">
-          {onDone && <button type="button" data-jev-action="cancel" onClick={onDone} className={buttonCls}>{t("common.cancel")}</button>}
+          {onDone && <button type="button" data-jev-action="cancel" onClick={onDone} className={buttonCls}>{t("botPanel.ui.commonCancel")}</button>}
           <button type="button" data-jev-action="save" disabled={!canSave} onClick={() => void save()} className={primaryCls}>
-            {t("common.save")}
+            {t("botPanel.ui.commonSave")}
           </button>
         </div>
       )}
@@ -278,7 +278,7 @@ function JevForm({ onDone }: { onDone?: () => void }) {
       )}
       {!tested && !saved && onDone && (
         <div className="flex items-center justify-end px-2 py-1.5">
-          <button type="button" data-jev-action="cancel" onClick={onDone} className={buttonCls}>{t("common.cancel")}</button>
+          <button type="button" data-jev-action="cancel" onClick={onDone} className={buttonCls}>{t("botPanel.ui.commonCancel")}</button>
         </div>
       )}
     </>

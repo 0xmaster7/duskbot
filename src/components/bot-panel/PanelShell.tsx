@@ -149,7 +149,7 @@ export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onC
         >
           <SegmentedTabs
             attr="data-panel-tab"
-            label={t("botSettings.simple.tabs")}
+            label={t("botPanel.ui.botSettingsSimpleTabs")}
             value={tab}
             onChange={openTab}
             tabs={PANEL_TABS.map((id) => ({ value: id, label: t(TAB_LABEL[id]) }))}

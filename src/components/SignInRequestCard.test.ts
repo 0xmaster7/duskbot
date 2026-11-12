@@ -107,7 +107,7 @@ describe("SignInRequestCard while it waits", () => {
     ["local", "on this computer, in the browser Pepper is using"],
   ])("names the place for %s on Take over", (place, words) => {
     expect(view({ place })).toContain(words);
-    expect(view({ place })).toMatch(/text-\[13px\] font-medium[^"]*">(computer|this computer)</);
+    expect(view({ place })).toMatch(/text-\[13px\] font-medium[^"]*">(Computer|this computer)</);
   });
 
   it("says the host computer, not this one, where this computer is somewhere else", () => {

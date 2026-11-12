@@ -80,6 +80,7 @@ const PENDING_WORDS: readonly Word[] = [
 ];
 
 const ALLOWED: Record<string, string> = {
+  "botPanel.ui.sheetRowsNoServers": "the Tools sheet's MCP servers, the protocol's own word",
   "settings.section.desktopWorkspaces": "the Servers page shares its name with the app menu's Server menu; both change with the one-workspace switcher",
   "sidebar.servers": "the switcher's own Servers list, renamed with the one-workspace switcher",
   "sidebar.switchServer": "the switcher's own Servers list, renamed with the one-workspace switcher",

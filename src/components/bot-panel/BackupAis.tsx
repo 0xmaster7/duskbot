@@ -254,7 +254,7 @@ export function BackupAis({ bot, onChange }: { bot: Bot; onChange: (fallback: Ba
                       ? <InstanceProviderMark instance={instance} size={14} subtle />
                       : <span className="size-3.5 shrink-0 rounded-full bg-ink/[0.08]" aria-hidden="true" />}
                     <span className="min-w-0 flex-1 truncate">{short}</span>
-                    {!instance && <span className="shrink-0 text-[12px] text-warning">{t("model.simple.unavailable")}</span>}
+                    {!instance && <span className="shrink-0 text-[12px] text-warning">{t("botPanel.ui.modelSimpleUnavailable")}</span>}
                     <ChevronDown size={12} strokeWidth={2} aria-hidden="true" className="shrink-0 text-ink-tertiary group-hover:text-ink-secondary" />
                   </BackupChooser>
                   <TrashButton
@@ -277,13 +277,13 @@ export function BackupAis({ bot, onChange }: { bot: Bot; onChange: (fallback: Ba
               current={null}
               exclude={others(null)}
               onPick={(picked) => onChange([...chain, picked])}
-              label={t("model.fallback.add")}
+              label={t("botPanel.ui.modelFallbackAdd")}
               buttonRef={addRef}
               data-panel-action="backup-add"
               className={cn(buttonCls, "aria-expanded:bg-raised-hover")}
             >
               <Plus size={14} aria-hidden="true" />
-              {t("model.fallback.add")}
+              {t("botPanel.ui.modelFallbackAdd")}
             </BackupChooser>
           </div>
         )}

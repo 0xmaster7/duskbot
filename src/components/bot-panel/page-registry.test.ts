@@ -51,8 +51,8 @@ describe("the bot panel's page registry", () => {
       if (PAGES[id].intro) expect(keys[PAGES[id].intro], id).toBeTruthy();
     }
     for (const tab of PANEL_TABS) expect(keys[TAB_LABEL[tab]]).toBeTruthy();
-    expect(PANEL_TABS.map((tab) => keys[TAB_LABEL[tab]])).toEqual(["details", "computer", "advanced"]);
-    expect(keys[PAGES.settings.title]).toBe("bot settings");
+    expect(PANEL_TABS.map((tab) => keys[TAB_LABEL[tab]])).toEqual(["Details", "Computer", "Advanced"]);
+    expect(keys[PAGES.settings.title]).toBe("Bot settings");
   });
 
   it("lands the Bot settings page, now an alias, on the Advanced tab", () => {

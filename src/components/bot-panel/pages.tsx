@@ -44,7 +44,7 @@ export function AppsPage({ bot, derived }: PageContext) {
   const note = !canUseConnectedApps
     ? t("botSettings.simple.appsCannot", { name: bot.name })
     : apps.phase === "loading"
-      ? t("common.checking")
+      ? t("botPanel.ui.commonChecking")
       : apps.phase === "unknown"
         ? t("botSettings.simple.appsUnknown")
         : apps.apps.length === 0
@@ -101,7 +101,7 @@ export function MemoryPage({ bot }: PageContext) {
         ) : readError ? (
           <NoteRow tone="warn">{t("botPanel.library.memoryError")}</NoteRow>
         ) : notes === null ? (
-          <NoteRow>{t("common.checking")}</NoteRow>
+          <NoteRow>{t("botPanel.ui.commonChecking")}</NoteRow>
         ) : notes.length === 0 ? (
           <NoteRow>{t("botPanel.memory.empty")}</NoteRow>
         ) : notes.map((note) => (
@@ -119,7 +119,7 @@ export function MemoryPage({ bot }: PageContext) {
             value={draft}
             placeholder={t("botPanel.memory.addPlaceholder", { name: bot.name })}
             label={t("botPanel.memory.addPlaceholder", { name: bot.name })}
-            action={t("common.add")}
+            action={t("botPanel.ui.commonAdd")}
             disabled={saving || index === null}
             onChange={setDraft}
             onSubmit={() => void add()}
@@ -138,7 +138,7 @@ export function SkillsPage({ bot }: PageContext) {
     <>
       <Card>
         {skills.loading ? (
-          <NoteRow>{t("skills.loading")}</NoteRow>
+          <NoteRow>{t("botPanel.ui.skillsLoading")}</NoteRow>
         ) : skills.skills.length === 0 ? (
           <NoteRow>{t("botSettings.simple.noSkills")}</NoteRow>
         ) : skills.skills.map((skill) => (
@@ -147,7 +147,7 @@ export function SkillsPage({ bot }: PageContext) {
             data-panel-row={`skill:${skill.name}`}
             title={skill.name}
             hint={skill.description || skill.source}
-            label={t("botSettings.simple.skillToggle", { name: skill.name })}
+            label={t("botPanel.ui.botSettingsSimpleSkillToggle", { name: skill.name })}
             color={bot.color}
             checked={skill.enabled}
             disabled={Boolean(skills.working)}
@@ -162,8 +162,8 @@ export function SkillsPage({ bot }: PageContext) {
           data-panel-form="skill-import"
           value={source}
           placeholder={t("botPanel.skills.importPlaceholder")}
-          label={t("skills.import.label")}
-          action={importing ? t("skills.import.importing") : t("common.add")}
+          label={t("botPanel.ui.skillsImportLabel")}
+          action={importing ? t("botPanel.ui.skillsImportImporting") : t("botPanel.ui.commonAdd")}
           disabled={importing}
           onChange={setSource}
           onSubmit={() => void importSkill()}
@@ -227,11 +227,11 @@ export function FolderPage({ bot }: PageContext) {
           {canPick ? (
             <div className={rowCls}>
               <div className="min-w-0 flex-1 truncate px-0.5 font-mono text-[13px] leading-[18px] text-ink" title={bot.cwd}>
-                {bot.cwd ? shortPath(bot.cwd, home) : <span className="text-ink-secondary">{t("botAccess.folder.private")}</span>}
+                {bot.cwd ? shortPath(bot.cwd, home) : <span className="text-ink-secondary">{t("botPanel.ui.botAccessFolderPrivate")}</span>}
               </div>
               <button type="button" data-panel-action="pick-folder" disabled={saving} onClick={() => void pick()} className={buttonCls}>
                 <FolderOpen size={14} aria-hidden="true" />
-                {t("botAccess.folder.choose")}
+                {t("botPanel.ui.botAccessFolderChoose")}
               </button>
             </div>
           ) : (
@@ -246,12 +246,12 @@ export function FolderPage({ bot }: PageContext) {
             >
               <input
                 value={draft ?? bot.cwd ?? ""}
-                placeholder={t("botAccess.folder.placeholder")}
-                aria-label={t("botAccess.folder.title")}
+                placeholder={t("botPanel.ui.botAccessFolderPlaceholder")}
+                aria-label={t("botPanel.ui.botAccessFolderTitle")}
                 onChange={(event) => setDraft(event.target.value)}
                 className={cn(fieldCls, "font-mono")}
               />
-              <button type="submit" disabled={saving || draft === null} className={buttonCls}>{t("botAccess.folder.save")}</button>
+              <button type="submit" disabled={saving || draft === null} className={buttonCls}>{t("botPanel.ui.botAccessFolderSave")}</button>
             </form>
           )}
           {error && <NoteRow tone="warn">{error}</NoteRow>}

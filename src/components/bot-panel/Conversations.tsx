@@ -67,7 +67,7 @@ export function BotConversations({ bot }: { bot: Bot }) {
     return { onRename, onRegenerateTitle, onDelete, onMove, onPin, onArchive };
   }, [bot.id, dispatch, generatedTitles]);
 
-  const threads = (bot.tasks ?? [{ threadId: bot.threadId, title: t("task.newShort"), createdAt: 0 }])
+  const threads = (bot.tasks ?? [{ threadId: bot.threadId, title: t("botPanel.ui.taskNewShort"), createdAt: 0 }])
     .filter((task) => !task.routineRunId)
     .map((task) => {
       const thread = currentTaskBot(bot, task.threadId);
@@ -170,7 +170,7 @@ export function BotConversations({ bot }: { bot: Bot }) {
         {shown.map(row)}
       </div>}
       {listed && needle && shown.length === 0 && (
-        <p className="px-3 py-3 text-[13px] text-ink-secondary">{t("task.noMatch", { query: needle })}</p>
+        <p className="px-3 py-3 text-[13px] text-ink-secondary">{t("botPanel.ui.taskNoMatch", { query: needle })}</p>
       )}
       {listed && !needle && hidden > 0 && (
         <button
@@ -193,11 +193,11 @@ export function BotConversations({ bot }: { bot: Bot }) {
           className="mt-0.5 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] text-ink-secondary hover:bg-ink/[0.04] hover:text-ink"
         >
           {showArchived ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
-          {t("task.archivedList", { count: archived.length })}
+          {t("botPanel.ui.taskArchivedList", { count: archived.length })}
         </button>
       )}
       {!needle && showArchived && archived.length > 0 && (
-        <div role="list" aria-label={t("task.archivedList", { count: archived.length })} className={cn("flex flex-col gap-px", PANEL_ROW_LOOK)}>
+        <div role="list" aria-label={t("botPanel.ui.taskArchivedList", { count: archived.length })} className={cn("flex flex-col gap-px", PANEL_ROW_LOOK)}>
           {archived.map(row)}
         </div>
       )}

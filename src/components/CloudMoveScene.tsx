@@ -56,10 +56,6 @@ const FILL: Record<string, string> = {
   body: "#f1f7fd",
   light: "#fbfdff",
   shade: "#9dbbdb",
-  sun: "#f2c94c",
-  sunShade: "#e3a93b",
-  moon: "#b9c6ea",
-  star: "#f2c94c",
 };
 /** The sky behind the scene, in four bands from #c2ecfc down to #eaf6fd, as pixel art draws a sky. */
 export const SKY = "linear-gradient(#c2ecfc 0 25%, #cdeffc 25% 50%, #d9f2fd 50% 75%, #eaf6fd 75% 100%)";
@@ -100,14 +96,15 @@ export function CloudMoveScene({ progress, done = false, className }: { progress
   </div>;
 }
 
-const BAND = { w: 240, h: 84, cell: 3, bot: 26 };
+const BAND = { w: 240, h: 84, cell: 3, bot: 26, small: 20, gap: 18 };
 const BAND_LAPTOP = { x: 30, y: 40 }, BAND_CLOUD = { x: 146, y: 36 };
 const BAND_ON = { laptop: { x: 63, y: 42 }, cloud: { x: 182, y: 47 } } as const;
-const bandSpot = (slot: { x: number; y: number }) => `translate(${slot.x - BAND.bot / 2}px, ${slot.y - BAND.bot}px)`;
+const bandSpot = (slot: { x: number; y: number }, size: number) => `translate(${slot.x - size / 2}px, ${slot.y - size}px)`;
 
-/** One bot and its way to dusk cloud, as a short band: asleep on this computer, on the cloud, or hopping across. */
-export function CloudHopScene({ bot, on, asleep = false, sky = true, className }: {
-  bot: Pick<Bot, "color" | "mascotBody" | "name">;
+/** Bots and their way to dusk cloud, as a short band: asleep on this computer, on the cloud, or hopping across.
+ * One bot stands alone; a group chat's bots (up to three drawn) stand side by side and hop one after another. */
+export function CloudHopScene({ bots, on, asleep = false, sky = true, className }: {
+  bots: readonly Pick<Bot, "id" | "color" | "mascotBody" | "name">[];
   on: "laptop" | "cloud";
   asleep?: boolean;
   /** false: no sky of its own, the scene sits on its card's surface */
@@ -115,42 +112,26 @@ export function CloudHopScene({ bot, on, asleep = false, sky = true, className }
   className?: string;
 }) {
   const reduced = useMotionReduced();
-  const from = BAND_ON.laptop, to = BAND_ON.cloud;
-  const peak = `translate(${(from.x + to.x) / 2 - BAND.bot / 2}px, ${Math.min(from.y, to.y) - BAND.bot - 26}px)`;
+  const shown = bots.slice(0, 3);
+  const size = shown.length > 1 ? BAND.small : BAND.bot;
   const state: MarkState = on === "cloud" ? "happy" : asleep ? "sleeping" : "idle";
-  const mascot = <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={BAND.bot} state={state} trackPointer={false} animated={!reduced} label="" />;
   return <div aria-hidden="true" data-cloud-hop={on} className={cn("flex w-full justify-center overflow-hidden", className)} style={sky ? { background: SKY } : undefined}>
     <div className="relative shrink-0" style={{ width: BAND.w, height: BAND.h }}>
       <svg width={BAND.w} height={BAND.h} viewBox={`0 0 ${BAND.w} ${BAND.h}`} shapeRendering="crispEdges" className="absolute inset-0">
         <Pixels at={BAND_LAPTOP} pixels={LAPTOP_PX} cell={BAND.cell} />
         <Pixels at={BAND_CLOUD} pixels={CLOUD_PX} cell={BAND.cell} />
       </svg>
-      {reduced
-        ? <span key={on} data-bot-at={on} className="absolute left-0 top-0 block animate-fade-in" style={{ transform: bandSpot(BAND_ON[on]) }}>{mascot}</span>
-        : <motion.span data-bot-at={on} className="absolute left-0 top-0 block will-change-transform" initial={false}
-            animate={{ transform: on === "cloud" ? [bandSpot(from), peak, bandSpot(to)] : [bandSpot(to), peak, bandSpot(from)] }}
-            transition={{ duration: 0.56, ease: "easeInOut", times: [0, 0.45, 1] }}>{mascot}</motion.span>}
+      {shown.map((bot, index) => {
+        const dx = (index - (shown.length - 1) / 2) * BAND.gap;
+        const from = { x: BAND_ON.laptop.x + dx, y: BAND_ON.laptop.y }, to = { x: BAND_ON.cloud.x + dx, y: BAND_ON.cloud.y };
+        const peak = `translate(${(from.x + to.x) / 2 - size / 2}px, ${Math.min(from.y, to.y) - size - 26}px)`;
+        const mascot = <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={size} state={state} trackPointer={false} animated={!reduced} label="" />;
+        if (reduced) return <span key={`${bot.id}-${on}`} data-bot-at={on} className="absolute left-0 top-0 block animate-fade-in" style={{ transform: bandSpot(on === "cloud" ? to : from, size) }}>{mascot}</span>;
+        const order = on === "cloud" ? index : shown.length - 1 - index;
+        return <motion.span key={bot.id} data-bot-at={on} className="absolute left-0 top-0 block will-change-transform" initial={false}
+          animate={{ transform: on === "cloud" ? [bandSpot(from, size), peak, bandSpot(to, size)] : [bandSpot(to, size), peak, bandSpot(from, size)] }}
+          transition={{ duration: 0.56, ease: "easeInOut", times: [0, 0.45, 1], delay: 0.07 * order }}>{mascot}</motion.span>;
+      })}
     </div>
-  </div>;
-}
-
-const REST = { w: 128, h: 68, cell: 3, bot: 28 };
-const REST_CLOUD = { x: 28, y: 30 };
-const SUN: Px[] = [".yyy.", "yyyyy", "yyyyY", "yyyYY", ".YYY."].flatMap((row, y) => [...row].flatMap((c, x) => (c === "." ? [] : [{ x, y, tone: c === "y" ? "sun" : "sunShade" }])));
-const MOON: Px[] = [".mmm.", "mm...", "m....", "mm...", ".mmm."].flatMap((row, y) => [...row].flatMap((c, x) => (c === "." ? [] : [{ x, y, tone: "moon" }])));
-const STARS: Px[] = [{ x: 0, y: 0, tone: "star" }, { x: 5, y: 3, tone: "star" }, { x: 2, y: 7, tone: "star" }];
-
-/** A bot resting on its cloud between a small sun and a moon: it works all day and all night. `awake` lifts it a little. */
-export function CloudRestScene({ bot, awake = false, className }: { bot: Pick<Bot, "color" | "mascotBody" | "name">; awake?: boolean; className?: string }) {
-  const reduced = useMotionReduced();
-  const mascot = <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={REST.bot} state={awake ? "happy" : "idle"} trackPointer={false} animated={!reduced} label="" />;
-  return <div aria-hidden="true" data-cloud-rest="" className={cn("relative shrink-0", className)} style={{ width: REST.w, height: REST.h }}>
-    <svg width={REST.w} height={REST.h} viewBox={`0 0 ${REST.w} ${REST.h}`} shapeRendering="crispEdges" className="absolute inset-0">
-      <Pixels at={{ x: 6, y: 8 }} pixels={SUN} cell={REST.cell} />
-      <Pixels at={{ x: 106, y: 6 }} pixels={MOON} cell={REST.cell} />
-      <Pixels at={{ x: 88, y: 4 }} pixels={STARS} cell={2} />
-      <Pixels at={REST_CLOUD} pixels={CLOUD_PX} cell={REST.cell} />
-    </svg>
-    <span className="absolute block transition-transform duration-200 ease-out motion-reduce:transition-none" style={{ left: REST_CLOUD.x + 36 - REST.bot / 2, top: REST_CLOUD.y - REST.bot + 8, transform: awake && !reduced ? "translateY(-3px)" : undefined }}>{mascot}</span>
   </div>;
 }

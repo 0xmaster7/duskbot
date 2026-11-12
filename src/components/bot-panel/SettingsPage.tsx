@@ -44,7 +44,7 @@ export function SettingsPage({ bot, onOpen, more }: {
   const team = useTeamName();
   const slackAvailable = useSlackAvailable();
   const slackState = useSlackBotState(bot.id);
-  const slackValue = slackState ? t(({ online: "slack.state.online", offline: "slack.state.offline", not_linked: "slack.state.notAdded", provisioned: "slack.state.needsStep", installed: "slack.state.needsStep", error: "slack.state.problem" } as const)[slackState]) : undefined;
+  const slackValue = slackState ? t(({ online: "botPanel.ui.slackStateOnline", offline: "botPanel.ui.slackStateOffline", not_linked: "botPanel.ui.slackStateNotAdded", provisioned: "botPanel.ui.slackStateNeedsStep", installed: "botPanel.ui.slackStateNeedsStep", error: "botPanel.ui.slackStateProblem" } as const)[slackState]) : undefined;
   const open = (page: SheetPage) => () => onOpen?.(page);
 
   const skillsOn = skills.skills.filter((skill) => skill.enabled).length;
@@ -56,18 +56,18 @@ export function SettingsPage({ bot, onOpen, more }: {
     <div data-panel-settings className="contents">
       <Card label={t("botPanel.section.thisBot")} anchor="uses">
         {/* grok's one-line rows: what it is on the left, its value on the right, as the Voice row is */}
-        <NavRow data-panel-page="identity" title={t("botSettings.sections.identity")} value={bot.title?.trim() || undefined} onClick={open("identity")} />
-        <NavRow data-panel-page="instructions" title={t("botSettings.simple.instructions")} value={(bot.soul ?? "").trim() ? undefined : t("botPanel.none")} onClick={open("instructions")} />
+        <NavRow data-panel-page="identity" title={t("botPanel.ui.botSettingsSectionsIdentity")} value={bot.title?.trim() || undefined} onClick={open("identity")} />
+        <NavRow data-panel-page="instructions" title={t("botPanel.ui.botSettingsSimpleInstructions")} value={(bot.soul ?? "").trim() ? undefined : t("botPanel.none")} onClick={open("instructions")} />
         <NavRow data-panel-page="memory" title={t("botPanel.memoryRow")} value={memoryLine} onClick={open("memory")} />
-        <NavRow data-panel-page="skills" title={t("botSettings.simple.skills")} value={skills.loading ? undefined : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
+        <NavRow data-panel-page="skills" title={t("botPanel.ui.botSettingsSimpleSkills")} value={skills.loading ? undefined : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
         {slackAvailable && <NavRow data-panel-page="slack" title={t("slack.title")} value={slackValue} onClick={open("slack")} />}
       </Card>
 
       {/* where it works lives on the Computer tab */}
-        <Card label={t("botSettings.sections.access")} anchor="access">
+        <Card label={t("botPanel.ui.botSettingsSectionsAccess")} anchor="access">
           <NavRow data-panel-page="tools" title={t("botPanel.page.tools")} value={bot.toolScope !== undefined ? t("botPanel.tools.custom") : undefined} onClick={open("tools")} />
-          <NavRow data-panel-page="permissions" title={t("botSettings.sections.permissions")} value={bot.chiefOfStaff ? t("permissions.chief.title") : undefined} onClick={open("permissions")} />
-          <NavRow data-panel-page="folder" title={t("computer.files.folder")} value={bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")} tooltip={bot.cwd ?? undefined} onClick={open("folder")} />
+          <NavRow data-panel-page="permissions" title={t("botPanel.ui.botSettingsSectionsPermissions")} value={bot.chiefOfStaff ? t("botPanel.ui.permissionsChiefTitle") : undefined} onClick={open("permissions")} />
+          <NavRow data-panel-page="folder" title={t("botPanel.page.folder")} value={bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")} tooltip={bot.cwd ?? undefined} onClick={open("folder")} />
           <NavRow data-panel-page="backups" title={t("botPanel.page.backups")} value={backups > 0 ? t("botPanel.backups.count", { count: backups }) : t("botPanel.none")} onClick={open("backups")} />
         </Card>
 
@@ -77,14 +77,14 @@ export function SettingsPage({ bot, onOpen, more }: {
               <NavRow
                 data-panel-row="chief"
                 drill={false}
-                title={bot.chiefOfStaff ? t("sidebar.bot.removeChief") : t("sidebar.bot.makeChief")}
+                title={bot.chiefOfStaff ? t("botPanel.ui.sidebarBotRemoveChief") : t("botPanel.ui.sidebarBotMakeChief")}
                 disabled={!bot.chiefOfStaff && engineCoordinates !== true}
-                tooltip={!bot.chiefOfStaff && engineCoordinates !== true ? t("sidebar.bot.chiefNeedsEngine") : undefined}
+                tooltip={!bot.chiefOfStaff && engineCoordinates !== true ? t("botPanel.ui.sidebarBotChiefNeedsEngine") : undefined}
                 onClick={() => dispatch({ type: "updateBot", botId: bot.id, patch: { chiefOfStaff: !bot.chiefOfStaff } })}
               />
             )}
             <NavRow data-panel-row="duplicate" drill={false} title={t("botPanel.actions.duplicate")} onClick={() => dispatch({ type: "duplicateBot", botId: bot.id })} />
-            <NavRow data-panel-row="delete-all" drill={false} danger title={t("task.deleteAllConversations")} onClick={() => clearThreads.ask(bot.id)} />
+            <NavRow data-panel-row="delete-all" drill={false} danger title={t("botPanel.ui.taskDeleteAllConversations")} onClick={() => clearThreads.ask(bot.id)} />
           </Card>
         )}
         {more}
@@ -101,7 +101,7 @@ export function InstructionsPage({ bot, derived }: { bot: Bot; derived: Derived 
         <SoulField
           bot={bot}
           onPatch={derived.patch}
-          simple={{ label: t("botSettings.simple.instructions"), placeholder: t("botSettings.simple.instructionsPlaceholder", { name: bot.name }) }}
+          simple={{ label: t("botPanel.ui.botSettingsSimpleInstructions"), placeholder: t("botPanel.ui.botSettingsSimpleInstructionsPlaceholder", { name: bot.name }) }}
         />
       </div>
     </Card>

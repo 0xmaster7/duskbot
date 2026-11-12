@@ -14,7 +14,7 @@ import { useSkillActions } from "./use-skill-actions";
  * from a link, and the ways to find more. */
 export function SkillsModal({ bot }: { bot: Bot; onClose: () => void }) {
   return (
-    <SheetPane data-panel-modal="skills" title={t("botSettings.simple.skills")}>
+    <SheetPane data-panel-modal="skills" title={t("botPanel.ui.botSettingsSimpleSkills")}>
       <SkillRows bot={bot} />
     </SheetPane>
   );
@@ -44,7 +44,7 @@ function SkillRows({ bot }: { bot: Bot }) {
     return (
       <>
         <Card data-sheet-group="installed">
-          {skills.loading ? <NoteRow>{t("skills.loading")}</NoteRow>
+          {skills.loading ? <NoteRow>{t("botPanel.ui.skillsLoading")}</NoteRow>
             : skills.skills.length === 0 ? <NoteRow>{t("botPanel.sheet.noSkills")}</NoteRow>
               : skills.skills.map((skill) => (
                 <div key={skill.name} data-panel-row={`skill:${skill.name}`} className={cn(rowCls, "group/row")}>
@@ -60,7 +60,7 @@ function SkillRows({ bot }: { bot: Bot }) {
                   <Toggle
                     checked={skill.enabled}
                     disabled={busy}
-                    aria-label={t("botSettings.simple.skillToggle", { name: skill.name })}
+                    aria-label={t("botPanel.ui.botSettingsSimpleSkillToggle", { name: skill.name })}
                     onClick={() => void skills.toggle(skill)}
                   />
                 </div>
@@ -78,15 +78,15 @@ function SkillRows({ bot }: { bot: Bot }) {
       <Card data-sheet-group="skills">
         <NavRow
           data-sheet-row="installed"
-          title={t("sheet.rows.installed")}
-          value={skills.loading ? t("skills.loading") : skills.skills.length === 0 ? t("botPanel.sheet.noSkills") : t("botPanel.skills.on", { count: on })}
-          onClick={() => open("installed", t("sheet.rows.installed"))}
+          title={t("botPanel.ui.sheetRowsInstalled")}
+          value={skills.loading ? t("botPanel.ui.skillsLoading") : skills.skills.length === 0 ? t("botPanel.sheet.noSkills") : t("botPanel.skills.on", { count: on })}
+          onClick={() => open("installed", t("botPanel.ui.sheetRowsInstalled"))}
         />
-        <NavRow data-sheet-row="add-skill" title={t("sheet.rows.addSkill")} onClick={() => setAdding(true)} />
+        <NavRow data-sheet-row="add-skill" title={t("botPanel.ui.sheetRowsAddSkill")} onClick={() => setAdding(true)} />
       </Card>
-      <Card label={t("sheet.rows.findMore")}>
+      <Card label={t("botPanel.ui.sheetRowsFindMore")}>
         <NavRow data-panel-link="browse-skills" title={t("botPanel.skills.browse")} onClick={browse} />
-        <NavRow data-panel-link="connect-apps" title={t("sheet.rows.connectApps")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
+        <NavRow data-panel-link="connect-apps" title={t("botPanel.ui.sheetRowsConnectApps")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
       </Card>
       {errorRow}
       {adding && <AddSkillDialog actions={actions} onClose={() => setAdding(false)} />}
@@ -104,21 +104,21 @@ function AddSkillDialog({ actions, onClose }: { actions: ReturnType<typeof useSk
   return (
     <FormDialog
       data-panel-modal="skill-import"
-      title={t("sheet.rows.addSkill")}
-      saveLabel={importing ? t("skills.import.importing") : t("common.add")}
+      title={t("botPanel.ui.sheetRowsAddSkill")}
+      saveLabel={importing ? t("botPanel.ui.skillsImportImporting") : t("botPanel.ui.commonAdd")}
       canSave={Boolean(source.trim())}
       busy={importing}
       error={sent && skills.error ? skills.error : null}
       onSave={() => { setSent(true); return importSkill(); }}
       onClose={onClose}
     >
-      <FormField label={t("skills.import.label")}>
+      <FormField label={t("botPanel.ui.skillsImportLabel")}>
         <input
           data-autofocus
           data-panel-form="skill-import"
           value={source}
           placeholder={t("botPanel.skills.importPlaceholder")}
-          aria-label={t("skills.import.label")}
+          aria-label={t("botPanel.ui.skillsImportLabel")}
           onChange={(event) => setSource(event.target.value)}
           className={textFieldCls}
         />

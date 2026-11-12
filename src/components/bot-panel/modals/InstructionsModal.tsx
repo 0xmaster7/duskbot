@@ -29,7 +29,7 @@ export function InstructionsModal({ bot, derived }: {
   const bytes = utf8Bytes(draft);
   const over = bytes > limit;
   const canSave = editable && !over && draft !== saved;
-  const prompt = t("botSettings.simple.instructionsPlaceholder", { name: bot.name });
+  const prompt = t("botPanel.ui.botSettingsSimpleInstructionsPlaceholder", { name: bot.name });
 
   const setDraft = (value: string) => {
     if (value === saved) drafts.delete(bot.id);
@@ -47,7 +47,7 @@ export function InstructionsModal({ bot, derived }: {
   };
 
   return (
-    <SheetPane data-panel-modal="instructions" title={t("botSettings.simple.instructions")}>
+    <SheetPane data-panel-modal="instructions" title={t("botPanel.ui.botSettingsSimpleInstructions")}>
       <InstructionsCard
         label={prompt}
         value={draft}
@@ -114,7 +114,7 @@ export function InstructionsCard({ label, value, disabled, invalid, placeholder,
           {note && <span className="mr-auto text-[12px] leading-4 tabular-nums tracking-[0.01em] text-ink-secondary">{note}</span>}
           {showSave && (
             <button type="button" data-modal-action="save" disabled={!canSave} onClick={onSave} className={pillPrimaryCls}>
-              {saved ? t("common.saved") : t("common.save")}
+              {saved ? t("botPanel.ui.commonSaved") : t("botPanel.ui.commonSave")}
             </button>
           )}
         </div>

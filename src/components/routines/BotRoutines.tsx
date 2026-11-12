@@ -76,7 +76,7 @@ export function BotRoutines({ bot, defaultRunOn, label = true }: { bot: Bot; def
     );
   }
   return (
-    <Card label={label ? t("botSettings.simple.routines") : undefined} anchor="routines">
+    <Card label={label ? t("botPanel.ui.botSettingsSimpleRoutines") : undefined} anchor="routines">
       {automations.map((automation) => (
         <AutomationRow
           key={automation.id}

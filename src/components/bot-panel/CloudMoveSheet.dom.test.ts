@@ -141,7 +141,7 @@ describe("move to cloud desktop", () => {
     button("move back")!.click();
     await settle();
     expect(bridges.cloudSendPage.setKeepHere).toHaveBeenCalledWith(true);
-    button("open cloud desktop")!.click();
+    button("Open cloud desktop")!.click();
     await settle();
     expect(bridges.cloudAccount.connectHome).toHaveBeenCalledTimes(1);
   });

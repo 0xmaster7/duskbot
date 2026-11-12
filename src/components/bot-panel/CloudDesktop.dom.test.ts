@@ -84,11 +84,11 @@ describe("the cloud desktop row", () => {
     await render();
     expect(row()?.textContent).toContain("move my bots there");
     flushSync(() => row()!.click());
-    expect(document.body.textContent).toContain("move this computer's bots to Harbor?");
-    flushSync(() => button("cancel")!.click());
+    expect(document.body.textContent).toContain("Move this computer's bots to Harbor?");
+    flushSync(() => button("Cancel")!.click());
     expect(bridges.cloudSendPage.setKeepHere).not.toHaveBeenCalled();
     flushSync(() => row()!.click());
-    button("move bots")!.click();
+    button("Move bots")!.click();
     await settle();
     expect(bridges.cloudSendPage.setKeepHere).toHaveBeenCalledWith(false);
     expect(document.body.querySelector("[role='alertdialog']")).toBeNull();
@@ -113,7 +113,7 @@ describe("the cloud desktop row", () => {
     expect(bridges.cloudAccount.state).not.toHaveBeenCalled();
     expect(row()?.textContent).toContain("move back to this computer");
     flushSync(() => row()!.click());
-    button("move back")!.click();
+    button("Move back")!.click();
     await settle();
     expect(bridges.cloudSendPage.setKeepHere).toHaveBeenCalledWith(true);
   });

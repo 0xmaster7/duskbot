@@ -88,7 +88,7 @@ const PROMPT_KEYS: readonly RegExp[] = [/^onboarding\.start\.job\./];
 
 const wordCount = (value: string) => value.replace(/\{[^}]*\}/g, "x").trim().split(/\s+/).length;
 
-/** the chat window: banners and notices, composer, message actions, turn status lines, approval cards, thread errors. Everything here, buttons and fragments included, reads in sentence case. Sidebar, settings and panel labels are not listed, so they stay lowercase. */
+/** the chat window: banners and notices, composer, message actions, turn status lines, approval cards, thread errors. Everything here, buttons and fragments included, reads in sentence case. Sidebar and settings labels are not listed, so they stay lowercase; the bot panel has its own list below. */
 const CHAT_KEYS = /^(chat|composer|approval|question|failedReply|toolStep|toolDetail|nativeUsage|notices?|contextWarning|secretCard|thread|conversation|ask|limits|error|needsYou|goalRun|trace|server\.status)\./;
 
 /** spoken-only or machine-read text keeps its case in the chat window too */
@@ -96,6 +96,20 @@ const CHAT_QUIET = /(^|\.)(aria\w*)(\.|$)/i;
 
 /** words that sit between other chat pieces, never at the start of one */
 const CHAT_FRAGMENTS = /^(chat\.event\.and|approval\.voice\.action\w+)$/;
+
+/** the bot side panel (and a group chat's panel) owns these keys: every label, heading, button and row starts with a capital, as
+ * messages do. Words it shares with the left sidebar, settings or a chat line get a copy of their own under botPanel.ui. The place hub's own words
+ * (runsOn.status, runsOn.hint) stay lowercase. */
+const PANEL_KEYS = /^(botPanel|room\.(panel|jev|folder)|runsOn)\./;
+const PANEL_LOWER = /^runsOn\.(status|hint)\./;
+
+/** single labels outside the panel that read in sentence case too */
+const SENTENCE_LABELS: ReadonlySet<string> = new Set(["sidebar.connectApps"]);
+
+export function isPanelEntry(key: string): boolean {
+  if (SENTENCE_LABELS.has(key)) return true;
+  return PANEL_KEYS.test(key) && !PANEL_LOWER.test(key) && !CHAT_QUIET.test(key) && !EXEMPT_KEYS.some((pattern) => pattern.test(key)) && !PROMPT_KEYS.some((pattern) => pattern.test(key));
+}
 
 export function isChatEntry(key: string): boolean {
   return CHAT_KEYS.test(key) && !CHAT_FRAGMENTS.test(key) && !CHAT_QUIET.test(key) && !EXEMPT_KEYS.some((pattern) => pattern.test(key)) && !PROMPT_KEYS.some((pattern) => pattern.test(key));
@@ -108,7 +122,7 @@ export function isChatEntry(key: string): boolean {
  */
 export function isSentenceEntry(key: string, value: string): boolean {
   if (EXEMPT_KEYS.some((pattern) => pattern.test(key)) || PROMPT_KEYS.some((pattern) => pattern.test(key))) return false;
-  if (isChatEntry(key)) return true;
+  if (isChatEntry(key) || isPanelEntry(key)) return true;
   const leaf = key.split(".").pop() ?? key;
   if (LABEL_LEAF.test(leaf) || LABEL_PATH.test(key)) return false;
   const words = wordCount(value);

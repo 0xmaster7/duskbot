@@ -29,17 +29,17 @@ export function RoomAdvancedTab(props: RoomRowsProps) {
   const hasMessages = group.messages.length > 0;
   const transcript = () => formatTranscriptMarkdown({ title: group.name, messages: group.messages, isGroup: true });
   const turnOptions = [
-    { value: "default", label: t("room.turnLimit.default", { minutes: limit.globalMinutes }) },
+    { value: "default", label: t("botPanel.ui.roomTurnLimitDefault", { minutes: limit.globalMinutes }) },
     ...PRESET_TURN_LIMITS.map((minutes) => ({ value: String(minutes), label: turnLimitLabel(minutes) })),
   ];
 
   return (
     <PanelSections data-panel-tabpanel="advanced">
       <Card label={t("room.panel.section.room")} anchor="room">
-        <NavRow data-panel-page="about" title={t("botSettings.simple.name")} value={group.name} onClick={() => props.onOpen("about")} />
+        <NavRow data-panel-page="about" title={t("botPanel.ui.botSettingsSimpleName")} value={group.name} onClick={() => props.onOpen("about")} />
         <NavRow
           data-panel-page="about-description"
-          title={t("presetShare.description")}
+          title={t("botPanel.ui.presetShareDescription")}
           value={group.description || t("room.panel.descriptionHint")}
           onClick={() => props.onOpen("about")}
         />
@@ -76,12 +76,12 @@ export function RoomAdvancedTab(props: RoomRowsProps) {
       </Card>
 
       <Card anchor="apps">
-        <NavRow data-panel-row="apps" title={t("sidebar.nav.connectedApps")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
-        <NavRow data-panel-row="advanced-features" title={t("settings.pane.advanced")} onClick={() => dispatch(openSettings("advanced"))} />
+        <NavRow data-panel-row="apps" title={t("botPanel.ui.sidebarNavConnectedApps")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
+        <NavRow data-panel-row="advanced-features" title={t("botPanel.ui.settingsPaneAdvanced")} onClick={() => dispatch(openSettings("advanced"))} />
       </Card>
 
       <Card label={t("botPanel.section.actions")} anchor="actions">
-        <NavRow ref={deleteRef} data-panel-row="delete" drill={false} danger title={t("sidebar.room.deleteChannel")} onClick={() => setDeleting(true)} />
+        <NavRow ref={deleteRef} data-panel-row="delete" drill={false} danger title={t("botPanel.ui.sidebarRoomDeleteChannel")} onClick={() => setDeleting(true)} />
       </Card>
       <ConfirmDialog
         open={deleting}

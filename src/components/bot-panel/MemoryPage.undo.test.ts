@@ -68,7 +68,7 @@ const undo = async () => {
 it("forget offers Undo, which brings the note back over exactly the version the forget left", async () => {
   await forgetFirst();
   expect(files["MEMORY.md"]).not.toContain("durian");
-  expect(toast()?.textContent).toContain("note forgotten");
+  expect(toast()?.textContent).toContain("Note forgotten");
   await undo();
   expect(puts.at(-1)).toEqual({ text: "# Memory\n- Ada likes durian\n- Ada runs on Sundays\n", expectedHash: hash("# Memory\n- Ada runs on Sundays\n") });
   expect(files["MEMORY.md"]).toContain("Ada likes durian");

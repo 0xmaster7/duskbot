@@ -100,8 +100,8 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
             <input
               autoFocus
               data-panel-rename-input
-              aria-label={t("botSettings.simple.name")}
-              placeholder={t("botSettings.simple.name")}
+              aria-label={t("botPanel.ui.botSettingsSimpleName")}
+              placeholder={t("botPanel.ui.botSettingsSimpleName")}
               maxLength={BOT_PROFILE_LIMITS.name}
               value={name.draft}
               onChange={(event) => name.setDraft(event.target.value)}

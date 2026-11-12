@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 
-import { brandCase, entryCase, isChatEntry, isSentenceEntry, sentenceCase } from "./brand-case";
+import { brandCase, entryCase, isChatEntry, isPanelEntry, isSentenceEntry, sentenceCase } from "./brand-case";
 import en from "./en.json";
 
 const entries = Object.entries(en as Record<string, string>);
@@ -20,7 +20,7 @@ it("full-sentence messages read as sentences: each sentence starts with a capita
   expect(offending, "notices, banners, status lines, errors, toasts, empty states, dialog bodies and sentence hints start with a capital").toEqual([]);
 });
 
-it("the chat window reads in sentence case throughout, buttons and placeholders included; sidebar, settings and panel labels stay lowercase", () => {
+it("the chat window reads in sentence case throughout, buttons and placeholders included; sidebar and settings labels stay lowercase", () => {
   expect(isChatEntry("chat.retry")).toBe(true);
   expect(isChatEntry("composer.placeholder.default")).toBe(true);
   expect(isChatEntry("approval.action.allow")).toBe(true);
@@ -35,6 +35,26 @@ it("the chat window reads in sentence case throughout, buttons and placeholders 
   expect(entryCase("settings.sync.button", "retry")).toBe("retry");
   const chat = entries.filter(([key, value]) => isChatEntry(key) && /^[a-z]/.test(value) && !/^dusk\b/.test(value));
   expect(chat.map(([key, value]) => `${key}: "${value}"`), "chat-window strings start with a capital").toEqual([]);
+});
+
+it("the bot side panel reads in sentence case, labels and rows included; the place hub's words and the left sidebar stay lowercase", () => {
+  expect(isPanelEntry("botPanel.section.thisBot")).toBe(true);
+  expect(isPanelEntry("botSettings.sections.access"), "shared with settings: the panel has its own copy").toBe(false);
+  expect(isPanelEntry("runsOn.moveCloud")).toBe(true);
+  expect(isPanelEntry("room.panel.instructions")).toBe(true);
+  expect(isPanelEntry("runsOn.status.asleep")).toBe(false);
+  expect(isPanelEntry("computer.simple.dest.thisMac"), "a place's name inside chat lines stays lowercase").toBe(false);
+  expect(isPanelEntry("sidebar.nav.settings")).toBe(false);
+  expect(isPanelEntry("sidebar.connectApps")).toBe(true);
+  expect(english["botPanel.section.thisBot"]).toBe("This bot");
+  expect(english["botPanel.ui.botSettingsSectionsAccess"]).toBe("Access");
+  expect(english["botSettings.sections.access"]).toBe("access");
+  expect(english["settings.bots.panel.botPanelSectionThisBot"]).toBe("this bot");
+  expect(english["runsOn.moveCloud"]).toBe("Move to cloud desktop");
+  expect(english["runsOn.getCloud"]).toBe("Get dusk cloud");
+  expect(english["sidebar.connectApps"]).toBe("Connect apps");
+  expect(english["runsOn.status.asleep"]).toBe("asleep");
+  expect(entryCase("botPanel.x", "dusk cloud keeps it")).toBe("dusk cloud keeps it");
 });
 
 it("known messages and labels land on the right side of the split", () => {

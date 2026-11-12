@@ -39,7 +39,7 @@ function MemoryRows({ bot, derived }: { bot: Bot; derived: ReturnType<typeof use
   const [adding, setAdding] = useState(false);
   const editable = bot.yourAccess !== "view";
   const count = notes?.length ?? 0;
-  const value = readError ? t("botPanel.library.memoryError") : notes === null ? t("common.checking")
+  const value = readError ? t("botPanel.library.memoryError") : notes === null ? t("botPanel.ui.commonChecking")
     : count === 0 ? t("botPanel.sheet.noNotes") : count === 1 ? t("botPanel.memory.note") : t("botPanel.memory.notes", { count });
 
   if (at === "notes") {
@@ -47,7 +47,7 @@ function MemoryRows({ bot, derived }: { bot: Bot; derived: ReturnType<typeof use
       <>
         <Card data-sheet-group="notes">
           {readError ? <NoteRow tone="warn">{t("botPanel.library.memoryError")}</NoteRow>
-            : notes === null ? <NoteRow>{t("common.checking")}</NoteRow>
+            : notes === null ? <NoteRow>{t("botPanel.ui.commonChecking")}</NoteRow>
               : notes.length === 0 ? <NoteRow>{t("botPanel.sheet.noNotes")}</NoteRow>
                 : notes.map((note) => (
                   <div key={`${note.path}:${note.line}:${note.text}`} data-memory-note={note.line ?? note.path} className={cn(rowCls, "group/row py-0.5 pr-0.5")}>
@@ -59,7 +59,7 @@ function MemoryRows({ bot, derived }: { bot: Bot; derived: ReturnType<typeof use
         </Card>
         {editable && (
           <Card>
-            <NavRow data-sheet-row="add-note" disabled={index === null} title={t("sheet.rows.addNote")} onClick={() => setAdding(true)} />
+            <NavRow data-sheet-row="add-note" disabled={index === null} title={t("botPanel.ui.sheetRowsAddNote")} onClick={() => setAdding(true)} />
           </Card>
         )}
         {adding && <AddNoteDialog bot={bot} editor={editor} onClose={() => setAdding(false)} />}
@@ -72,14 +72,14 @@ function MemoryRows({ bot, derived }: { bot: Bot; derived: ReturnType<typeof use
     <>
       <Card data-sheet-group="memory">
         <SwitchRow
-          title={t("memory.enable")}
+          title={t("botPanel.ui.memoryEnable")}
           hint={memoryOn ? t("botPanel.sheet.memoryOn") : t("botPanel.sheet.off")}
           checked={memoryOn}
           disabled={Boolean(bot.busy) || !editable}
           onChange={() => derived.patch({ memoryEnabled: !memoryOn })}
         />
-        {memoryOn && <NavRow data-sheet-row="notes" title={t("sheet.rows.notes")} value={value} onClick={() => open("notes", t("sheet.rows.notes"))} />}
-        {memoryOn && editable && <NavRow data-sheet-row="add-note" disabled={index === null} title={t("sheet.rows.addNote")} onClick={() => setAdding(true)} />}
+        {memoryOn && <NavRow data-sheet-row="notes" title={t("botPanel.ui.sheetRowsNotes")} value={value} onClick={() => open("notes", t("botPanel.ui.sheetRowsNotes"))} />}
+        {memoryOn && editable && <NavRow data-sheet-row="add-note" disabled={index === null} title={t("botPanel.ui.sheetRowsAddNote")} onClick={() => setAdding(true)} />}
       </Card>
       {error && <Card><NoteRow tone="warn">{error}</NoteRow></Card>}
       {adding && <AddNoteDialog bot={bot} editor={editor} onClose={() => setAdding(false)} />}
@@ -96,8 +96,8 @@ function AddNoteDialog({ bot, editor, onClose }: { bot: Bot; editor: ReturnType<
   return (
     <FormDialog
       data-panel-modal="memory-add"
-      title={t("sheet.rows.addNote")}
-      saveLabel={t("common.add")}
+      title={t("botPanel.ui.sheetRowsAddNote")}
+      saveLabel={t("botPanel.ui.commonAdd")}
       canSave={Boolean(draft.trim())}
       busy={saving}
       error={sent ? error : null}

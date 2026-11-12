@@ -84,7 +84,7 @@ export function BackupsModal({ bot, derived }: {
                     <span className={cn(textCls, "min-w-0 flex-1 truncate text-ink")}>{short}</span>
                     {instance
                       ? <span className={cn(textCls, "min-w-0 max-w-[45%] shrink-0 truncate text-ink-secondary")}>{instance.displayName}</span>
-                      : <span className="shrink-0 text-[12px] text-warning">{t("model.simple.unavailable")}</span>}
+                      : <span className="shrink-0 text-[12px] text-warning">{t("botPanel.ui.modelSimpleUnavailable")}</span>}
                     <span aria-hidden="true" className="flex shrink-0 text-ink-tertiary"><Icon name="chevron-down-small" size={14} /></span>
                   </BackupChooser>
                   {editable && (
@@ -118,12 +118,12 @@ export function BackupsModal({ bot, derived }: {
             current={null}
             exclude={others(null)}
             onPick={(picked) => onChange([...chain, picked])}
-            label={t("model.fallback.add")}
+            label={t("botPanel.ui.modelFallbackAdd")}
             buttonRef={addRef}
             data-panel-action="backup-add"
             className={cn(chooserRowCls, "flex-none hover:bg-ink/[0.035] aria-expanded:bg-ink/[0.035]")}
           >
-            <span className={cn(textCls, "min-w-0 flex-1 text-ink")}>{t("model.fallback.add")}</span>
+            <span className={cn(textCls, "min-w-0 flex-1 text-ink")}>{t("botPanel.ui.modelFallbackAdd")}</span>
             <span aria-hidden="true" className="flex shrink-0 text-ink-tertiary"><Icon name="chevron-down-small" size={14} /></span>
           </BackupChooser>
         )}

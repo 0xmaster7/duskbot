@@ -14,14 +14,14 @@ export type SheetPage = (typeof SHEET_PAGES)[number];
 
 export function sheetLabel(page: SheetPage, bot: Pick<Bot, "name">): string {
   switch (page) {
-    case "instructions": return t("botSettings.simple.instructions");
+    case "instructions": return t("botPanel.ui.botSettingsSimpleInstructions");
     case "memory": return t("botPanel.memoryRow");
-    case "skills": return t("botSettings.simple.skills");
-    case "identity": return t("botSettings.sections.identity");
+    case "skills": return t("botPanel.ui.botSettingsSimpleSkills");
+    case "identity": return t("botPanel.ui.botSettingsSectionsIdentity");
     case "tools": return t("botPanel.page.tools");
-    case "permissions": return t("botSettings.sections.permissions");
-    case "folder": return t("computer.files.folder");
-    case "where": return t("computer.simple.whereWorks", { name: bot.name });
+    case "permissions": return t("botPanel.ui.botSettingsSectionsPermissions");
+    case "folder": return t("botPanel.page.folder");
+    case "where": return t("botPanel.ui.computerSimpleWhereWorks", { name: bot.name });
     case "backups": return t("botPanel.page.backups");
     case "slack": return t("botPanel.page.slack");
   }

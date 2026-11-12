@@ -24,7 +24,7 @@ export function ToolsModal({ bot, derived }: { bot: Bot; derived: Derived; onClo
 
 export function PermissionsModal({ bot, derived }: { bot: Bot; derived: Derived; onClose: () => void }) {
   return (
-    <SheetPane data-panel-modal="permissions" title={t("botSettings.sections.permissions")}>
+    <SheetPane data-panel-modal="permissions" title={t("botPanel.ui.botSettingsSectionsPermissions")}>
       <PermissionsSheet bot={bot} derived={derived} />
     </SheetPane>
   );
@@ -37,12 +37,12 @@ export function IdentityModal({ bot, derived }: { bot: Bot; derived: Derived; on
   const [editing, setEditing] = useState<ProfileField | null>(null);
   const editable = bot.yourAccess !== "view";
   const rows: { field: ProfileField; title: string; value: string }[] = [
-    { field: "name", title: t("botSettings.identity.name"), value: bot.name },
-    { field: "title", title: t("botSettings.identity.title"), value: bot.title?.trim() || t("botPanel.none") },
+    { field: "name", title: t("botPanel.ui.botSettingsIdentityName"), value: bot.name },
+    { field: "title", title: t("botPanel.ui.botSettingsIdentityTitle"), value: bot.title?.trim() || t("botPanel.none") },
     { field: "description", title: t("botPanel.sheet.blurb"), value: bot.description?.trim() || t("botPanel.none") },
   ];
   return (
-    <SheetPane data-panel-modal="identity" title={t("botSettings.sections.identity")}>
+    <SheetPane data-panel-modal="identity" title={t("botPanel.ui.botSettingsSectionsIdentity")}>
       <Card label={t("botPanel.sheet.profile")} data-sheet-group="profile">
         {rows.map((row) => (
           <NavRow key={row.field} data-sheet-row={row.field} disabled={!editable} title={row.title} value={row.value} onClick={() => setEditing(row.field)} />
@@ -50,7 +50,7 @@ export function IdentityModal({ bot, derived }: { bot: Bot; derived: Derived; on
       </Card>
       {bot.defaultBot && !bot.sidebarHidden && (
         <Card>
-          <NavRow drill={false} data-sheet-row="default-bot-hide" title={t("defaultBot.hide")} onClick={() => showDefaultBot(dispatch, bot, false)} />
+          <NavRow drill={false} data-sheet-row="default-bot-hide" title={t("botPanel.ui.defaultBotHide")} onClick={() => showDefaultBot(dispatch, bot, false)} />
         </Card>
       )}
       <PackageProvenance bot={bot} rows />
@@ -74,15 +74,15 @@ function ProfileDialog({ bot, focus, onSave, onClose }: {
   if (description !== (bot.description ?? "")) patch.description = description;
   return (
     <FormDialog data-panel-modal="identity-form" title={t("botPanel.sheet.profile")} canSave={Boolean(name.trim()) && Object.keys(patch).length > 0} onSave={() => onSave(patch)} onClose={onClose}>
-      <FormField label={t("botSettings.identity.name")}>
-        <input data-autofocus={focus === "name" || undefined} aria-label={t("botSettings.identity.name")} maxLength={BOT_PROFILE_LIMITS.name} value={name} onChange={(event) => setName(event.target.value)} className={textFieldCls} />
+      <FormField label={t("botPanel.ui.botSettingsIdentityName")}>
+        <input data-autofocus={focus === "name" || undefined} aria-label={t("botPanel.ui.botSettingsIdentityName")} maxLength={BOT_PROFILE_LIMITS.name} value={name} onChange={(event) => setName(event.target.value)} className={textFieldCls} />
       </FormField>
-      <FormField label={t("botSettings.identity.title")}>
+      <FormField label={t("botPanel.ui.botSettingsIdentityTitle")}>
         <input
           data-autofocus={focus === "title" || undefined}
-          aria-label={t("botSettings.identity.title")}
+          aria-label={t("botPanel.ui.botSettingsIdentityTitle")}
           maxLength={BOT_PROFILE_LIMITS.title}
-          placeholder={t("botSettings.identity.titlePlaceholder")}
+          placeholder={t("botPanel.ui.botSettingsIdentityTitlePlaceholder")}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           className={textFieldCls}
@@ -91,7 +91,7 @@ function ProfileDialog({ bot, focus, onSave, onClose }: {
       <FormField label={t("botPanel.sheet.blurb")}>
         <textarea
           data-autofocus={focus === "description" || undefined}
-          aria-label={t("botSettings.identity.blurb")}
+          aria-label={t("botPanel.ui.botSettingsIdentityBlurb")}
           rows={3}
           maxLength={BOT_PROFILE_LIMITS.description}
           placeholder={t("botPanel.sheet.blurbHint")}

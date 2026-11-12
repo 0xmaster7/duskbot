@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 
 import { cloudMoveStage, openCloudMove, runsOnHost, type CloudMoveStage, type RunsOnHost } from "@/lib/cloud-move";
@@ -8,7 +8,7 @@ import { writeComputerPanelView, type ComputerPanelView } from "@/lib/computer-p
 import { t } from "@/lib/i18n";
 import type { Place } from "@/lib/place";
 import { desktopShowsOtherServer, useOtherServerName } from "@/lib/other-server";
-import { placeHasIssue, worksOnSimpleLabel } from "@/lib/place-view";
+import { placeHasIssue } from "@/lib/place-view";
 import { useStore, type Bot } from "@/state/store";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { LocalComputerAutoWarning } from "../LocalComputerAutoWarning";
@@ -18,7 +18,7 @@ import type { SimplePageId } from "./page-registry";
 import type { InlineReport } from "../ComputerPanel";
 import { deviceWord } from "../vps-link/parts";
 import { Card, NoteRow, RadioRow } from "./rows";
-import { CloudRestScene } from "../CloudMoveScene";
+import { CloudHopScene } from "../CloudMoveScene";
 import { mdPrimaryCls } from "../ui/GrokDialog";
 import { CloudDesktopListRow, useCloudDesktop, type CloudDesktopRow } from "./CloudDesktop";
 import { AsleepMascot, COMPUTER_FRAME_CLASS, COMPUTER_SCREEN_ASPECT, COMPUTER_WAKE_BUTTON_CLASS, ComputerWaking } from "./ComputerScreenMascot";
@@ -37,9 +37,11 @@ interface PlaceOption {
   disabled?: boolean;
 }
 
+const PANEL_PLACE_LABEL = { cloud: "botPanel.place.cloud", vm: "botPanel.place.vm", browser: "botPanel.place.browser" } as const;
+
 const EXTRA_PLACE_LABEL: Record<Exclude<PlaceChoice, "auto" | "local" | "cloud" | "browser">, () => string> = {
-  vm: () => t("place.vm"),
-  off: () => t("place.off"),
+  vm: () => t("botPanel.place.vm"),
+  off: () => t("botPanel.place.off"),
 };
 
 export function useOpenComputer(bot: Pick<Bot, "id">) {
@@ -58,13 +60,14 @@ export function usePlaceChoices(bot: Bot) {
   const current: PlaceChoice = bot.computer ?? "auto";
   const myChrome = state.config?.browserEngine?.myChrome === true
     && (state.config?.browserProfiles ?? []).some((profile) => profile.id === bot.browserProfile && profile.browser === "chrome");
-  const placeLabel = (place: Place) => (place === "browser" && myChrome ? t("settings.profiles.myChrome") : worksOnSimpleLabel(place, platform));
+  const placeLabel = (place: Place) => (place === "browser" && myChrome ? t("botPanel.ui.settingsProfilesMyChrome")
+    : place === "local" ? t(platform === "darwin" ? "botPanel.place.thisMac" : "botPanel.place.thisPc") : t(PANEL_PLACE_LABEL[place]));
   const choice = (place: Place): PlaceOption => {
     const { view, reachable } = placeViews[place];
     return { value: place, label: placeLabel(place), disabled: !reachable, hint: !reachable || placeHasIssue(view) ? view.line : undefined };
   };
   const options: PlaceOption[] = [
-    { value: "auto", label: t("computer.simple.dest.letItChoose") },
+    { value: "auto", label: t("botPanel.ui.computerSimpleDestLetItChoose") },
     ...(placeViews.local.policy ? [choice("local")] : []),
     ...(placeViews.browser.policy || current === "browser" ? [choice("browser")] : []),
     ...(placeViews.cloud.policy ? [choice("cloud")] : []),
@@ -119,7 +122,7 @@ export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
   return (
     <>
       <Card>
-        <div role="radiogroup" aria-label={t("computer.simple.whereWorks", { name: bot.name })} className="flex flex-col divide-y divide-ink/[0.05]">
+        <div role="radiogroup" aria-label={t("botPanel.ui.computerSimpleWhereWorks", { name: bot.name })} className="flex flex-col divide-y divide-ink/[0.05]">
           {options.map((option) => (
             <RadioRow
               key={option.value}
@@ -134,7 +137,7 @@ export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
         </div>
       </Card>
       {cloudDesktop && <Card><CloudDesktopListRow cloudDesktop={cloudDesktop} /></Card>}
-      {usingNow && <p data-panel-using-now className="mx-1 text-[13px] text-ink-secondary">{t("computer.simple.usingNow", { place: usingNow })}</p>}
+      {usingNow && <p data-panel-using-now className="mx-1 text-[13px] text-ink-secondary">{t("botPanel.ui.computerSimpleUsingNow", { place: usingNow })}</p>}
       {warning}
     </>
   );
@@ -159,7 +162,7 @@ function useOnScreen(element: HTMLElement | null) {
 /** The screen while the panel's code loads: already the wake button, and a click is kept for the panel to act on. */
 export function AsleepScreen({ bot, off }: { bot: Bot; off: boolean }) {
   const [queued, setQueued] = useState(false);
-  const label = t(off ? "place.view.off.short" : "botPanel.screen.resting");
+  const label = t(off ? "botPanel.ui.placeViewOffShort" : "botPanel.screen.resting");
   return (
     <div data-panel-screen="" data-stage={off ? "off" : queued ? "loading" : "asleep"} aria-busy={queued || undefined} className={COMPUTER_FRAME_CLASS} style={{ aspectRatio: String(COMPUTER_SCREEN_ASPECT) }}>
       {queued ? <ComputerWaking bot={bot} /> : (
@@ -182,38 +185,42 @@ const isLocalHost = (host: RunsOnHost) => host.kind === "mac" || host.kind === "
 
 
 
-/** The one move to the cloud, as a calm card on a soft blue tint: the bot resting on its cloud between a sun and a moon
- * (24/7), a short title and one line under it, and the primary button. */
-function cloudCta({ bot, anchor, step, title, body, button, awake, setAwake }: { bot: Bot; anchor: string; step: string; title: string; body: string; button: ReactNode; awake: boolean; setAwake: (on: boolean) => void }) {
+/** The one move to the cloud, as a calm card on a soft blue tint: the bots on this computer and the cloud beside it, a short
+ * title and one line, and the primary button. Pointing at the button (a mouse, or keyboard focus) hops them over to the cloud;
+ * a tap on touch would leave them stuck there, so only a mouse previews. */
+function cloudCta({ bots, anchor, step, there, asleep, title, body, action, label, disabled, hopping, setHopping }: {
+  bots: readonly Bot[]; anchor: string; step: string; there: boolean; asleep: boolean; title: string; body: string;
+  action: () => void; label: string; disabled: boolean; hopping: boolean; setHopping: (on: boolean) => void;
+}) {
+  const preview = (on: boolean) => (event: { pointerType: string }) => { if (event.pointerType === "mouse") setHopping(on); };
   return (
-    <section data-panel-card={anchor} data-cloud-cta={step}
-      onPointerEnter={() => setAwake(true)} onPointerLeave={() => setAwake(false)}
+    <section data-panel-card={anchor} data-cloud-cta={step} data-cloud-group={bots.length > 1 ? "" : undefined}
       className="mt-3 overflow-hidden rounded-[16px] first:mt-0 bg-[color-mix(in_srgb,#9fdcf5_24%,transparent)]">
-      <div className="relative flex justify-center pt-3">
-        <CloudRestScene bot={bot} awake={awake} />
-        <span className="absolute left-4 top-3 rounded-full bg-[color-mix(in_srgb,var(--color-composer)_80%,transparent)] px-2 py-0.5 text-[11px] font-medium leading-4 text-ink">24/7</span>
-      </div>
-      <div className="flex flex-col gap-3 px-4 pb-4 pt-2">
+      <CloudHopScene bots={bots} on={there || hopping ? "cloud" : "laptop"} asleep={asleep} sky={false} className="pt-2" />
+      <div className="flex flex-col gap-3 px-4 pb-4 pt-1">
         <div className="min-w-0">
           <p className="m-0 text-pretty text-[14px] font-medium leading-5 tracking-[-0.01em] text-ink">{title}</p>
           <p className="m-0 mt-1 text-pretty text-[12px] leading-4 text-ink-secondary">{body}</p>
         </div>
-        {button}
+        <button type="button" data-panel-action="move-cloud" className={cn(mdPrimaryCls, "w-full")} disabled={disabled} onClick={action}
+          onPointerEnter={preview(true)} onPointerLeave={preview(false)} onFocus={() => setHopping(true)} onBlur={() => setHopping(false)}>{label}</button>
       </div>
     </section>
   );
 }
 
-/** Moving a bot from a server to cloud desktop. */
-function CloudDesktopCta({ bot, stage, label }: { bot: Bot; stage: CloudMoveStage | null; label: string }) {
+/** Moving a bot from a server to cloud desktop; in a group chat, one card for all of its bots. */
+function CloudDesktopCta({ bots, stage, label }: { bots: readonly Bot[]; stage: CloudMoveStage | null; label: string }) {
   const there = stage === "moved" || stage === "open";
   const moving = stage === "preparing" || stage === "moving" || stage === "coming-back";
-  const [awake, setAwake] = useState(false);
+  const [hopping, setHopping] = useState(false);
+  const group = bots.length > 1;
+  const name = bots[0]?.name ?? "";
   return cloudCta({
-    bot, anchor: "cloud-desktop", step: there ? "open" : moving ? "moving" : "move", awake, setAwake,
-    title: t(there ? "runsOn.ctaDesktop.titleThere" : "runsOn.ctaDesktop.title", { name: bot.name }),
-    body: t(there ? "runsOn.ctaDesktop.bodyThere" : "runsOn.ctaDesktop.body"),
-    button: <button type="button" data-panel-action="move-cloud" className={cn(mdPrimaryCls, "w-full")} disabled={moving} onClick={() => openCloudMove("cloud")}>{label}</button>,
+    bots, anchor: "cloud-desktop", step: there ? "open" : moving ? "moving" : "move", there: there || moving, asleep: false, hopping, setHopping,
+    title: t(group ? (there ? "runsOn.ctaDesktop.groupTitleThere" : "runsOn.ctaDesktop.groupTitle") : there ? "runsOn.ctaDesktop.titleThere" : "runsOn.ctaDesktop.title", { name }),
+    body: t(group ? (there ? "runsOn.ctaDesktop.groupBodyThere" : "runsOn.ctaDesktop.groupBody") : there ? "runsOn.ctaDesktop.bodyThere" : "runsOn.ctaDesktop.body", { name }),
+    action: () => openCloudMove("cloud"), label, disabled: moving,
   });
 }
 
@@ -227,11 +234,14 @@ export function cloudCtaStep(stage: CloudMoveStage | null): CloudCtaStep {
   return "move";
 }
 
-/** dusk cloud for a bot on this computer: the bot on its cloud, and the one next step. */
-export function CloudCtaCard({ bot, stage, cloudDesktop }: { bot: Bot; stage: CloudMoveStage | null; cloudDesktop: CloudDesktopRow | null }) {
+/** dusk cloud for a bot on this computer, and the one next step. `group`: a group chat's bots, one card for all of them. */
+export function CloudCtaCard({ bot, group, stage, cloudDesktop }: { bot: Bot; group?: readonly Bot[]; stage: CloudMoveStage | null; cloudDesktop: CloudDesktopRow | null }) {
   const { dispatch } = useStore();
+  const [hopping, setHopping] = useState(false);
   const step = cloudCtaStep(stage);
   const device = deviceWord();
+  const bots = group && group.length > 0 ? group : [bot];
+  const many = bots.length > 1;
   const signedOut = cloudDesktop?.account ? cloudPlanView(cloudDesktop.account).kind === "signed-out" : false;
   const act = () => {
     if (step === "get") dispatch({ type: "openCloudAdd", source: "app_bot_panel", ...(signedOut ? { signIn: true as const } : {}) });
@@ -240,17 +250,21 @@ export function CloudCtaCard({ bot, stage, cloudDesktop }: { bot: Bot; stage: Cl
   };
   const label = t(step === "get" ? "runsOn.getCloud" : step === "switch" ? "runsOn.switchCloud" : step === "moving" ? "runsOn.movingCloud" : "runsOn.moveDuskCloud");
   const there = step === "switch";
-  const [awake, setAwake] = useState(false);
+  const vars = { name: bot.name, device };
   return cloudCta({
-    bot, anchor: "dusk-cloud", step, awake, setAwake,
-    title: t(there ? "runsOn.cta.titleThere" : "runsOn.cta.title", { name: bot.name }),
-    body: t(there ? "runsOn.cta.bodyThere" : "runsOn.cta.body", { name: bot.name, device }),
-    button: <button type="button" data-panel-action="move-cloud" className={cn(mdPrimaryCls, "w-full")} disabled={step === "moving"} onClick={act}>{label}</button>,
+    bots, anchor: "dusk-cloud", step, there: there || step === "moving", asleep: step === "get", hopping, setHopping,
+    title: t(many ? (there ? "runsOn.cta.groupTitleThere" : "runsOn.cta.groupTitle") : there ? "runsOn.cta.titleThere" : "runsOn.cta.title", vars),
+    body: t(many ? (there ? "runsOn.cta.groupBodyThere" : "runsOn.cta.groupBody") : there ? "runsOn.cta.bodyThere" : "runsOn.cta.body", vars),
+    action: act, label, disabled: step === "moving",
   });
 }
 
 /** One small disclosure for what a person rarely needs: the computer's own words for a problem, and its settings. */
-export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOpen: (page: SimplePageId) => void }) {
+export function ComputerTab({ bot, derived, cloudFor }: {
+  bot: Bot; derived: Derived; onOpen: (page: SimplePageId) => void;
+  /** the bots the cloud card speaks for: this bot alone by default, a group chat's bots on one member, none on the rest */
+  cloudFor?: readonly Bot[];
+}) {
   const { state } = useStore();
   const { capabilities } = useDesktopCapabilities();
   const picker = usePlacePicker(bot, derived);
@@ -263,9 +277,10 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
   const host = runsOnHost({ cloudHome: state.config?.cloudHome === true, otherServer, platform: capabilities.host?.platform ?? "other" });
   const stage = cloudDesktop ? cloudMoveStage(cloudDesktop.view, cloudDesktop.keep) : desktopShowsOtherServer() ? "elsewhere" : null;
   const editable = bot.yourAccess !== "view";
+  const cloudBots = (cloudFor ?? [bot]).filter((one) => one.yourAccess !== "view");
   const local = isLocalHost(host);
   // a bot on a server moves to cloud desktop; one on dusk cloud that came from this computer can go back
-  const toCloud = editable && !local && host.kind !== "cloud" && stage !== null;
+  const toCloud = cloudBots.length > 0 && !local && host.kind !== "cloud" && stage !== null;
   const toHome = editable && host.kind === "cloud" && stage === "moved";
   const cloudLabel = stage === "preparing" || stage === "moving" ? t("runsOn.movingCloud")
     : stage === "moved" || stage === "open" ? t("runsOn.openCloud")
@@ -274,7 +289,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
 
   return (
     <div data-panel-tabpanel="computer">
-      {local ? editable && <CloudCtaCard bot={bot} stage={stage} cloudDesktop={cloudDesktop} /> : <>
+      {local ? cloudBots.length > 0 && <CloudCtaCard bot={cloudBots[0]!} group={cloudBots} stage={stage} cloudDesktop={cloudDesktop} /> : <>
         <div ref={setScreenBox}>
           <Suspense fallback={<AsleepScreen bot={bot} off={current === "off"} />}>
             <ComputerPanel bot={bot} inline visible={onScreen} onReport={setReport} />
@@ -284,7 +299,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
           <span data-panel-screen-of="" className="min-w-0 truncate text-[12px] leading-4 tracking-normal text-ink/[0.56]">{host.name ? `${screenOf} · ${host.name}` : screenOf}</span>
         </div>
         {detail && <Card><NoteRow data-sheet-row="problem-detail">{detail}</NoteRow></Card>}
-        {toCloud && <CloudDesktopCta bot={bot} stage={stage} label={cloudLabel} />}
+        {toCloud && <CloudDesktopCta bots={cloudBots} stage={stage} label={cloudLabel} />}
         {toHome && (
           <div className="mt-2 flex justify-center">
             <button type="button" data-panel-action="move-home" className={quietCls} onClick={() => openCloudMove("home")}>{t("runsOn.moveHome", { device: deviceWord() })}</button>

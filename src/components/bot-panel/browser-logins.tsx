@@ -38,7 +38,7 @@ export function BrowserLogins({ bot, browserEnabled, onOpenBrowser }: {
             </ColRow>
           )}
           <NoteRow>{t("botSettings.simple.loginsHint", { name: bot.name })}</NoteRow>
-          <LinkRow data-panel-action="add-login" icon={Plus} onClick={onOpenBrowser}>{t("botSettings.simple.addLogin")}</LinkRow>
+          <LinkRow data-panel-action="add-login" icon={Plus} onClick={onOpenBrowser}>{t("botPanel.ui.botSettingsSimpleAddLogin")}</LinkRow>
         </>
       )}
     </Card>

@@ -101,12 +101,12 @@ describe("a bot's conversations in its panel", () => {
     expect(row("who").querySelector('[data-sidebar-thread-row="who"]')!.getAttribute("aria-current")).toBe("page");
     expect(row("launch").querySelector("[aria-current]")).toBeNull();
     expect(listed()).not.toContain("run");
-    expect(more()!.textContent).toBe("show 7 more");
+    expect(more()!.textContent).toBe("Show 7 more");
     expect(more()!.getAttribute("aria-expanded")).toBe("false");
 
     click(more());
     expect(listed()).toEqual(["hiring", "launch", "who", "pricing", "deck", "podcasts", "compare", "trip", "taxes", "gift"]);
-    expect(more()!.textContent).toBe("show fewer");
+    expect(more()!.textContent).toBe("Show fewer");
     click(more());
     expect(listed()).toHaveLength(3);
   });
@@ -114,7 +114,7 @@ describe("a bot's conversations in its panel", () => {
   it("keeps the open conversation listed when it is older than the first three", () => {
     render(research({ threadId: "gift", messages: [] }));
     expect(listed()).toEqual(["hiring", "launch", "who", "gift"]);
-    expect(more()!.textContent).toBe("show 6 more");
+    expect(more()!.textContent).toBe("Show 6 more");
   });
 
   it("offers only New conversation while the open one is the bot's only conversation", () => {
@@ -134,7 +134,7 @@ describe("a bot's conversations in its panel", () => {
   it("puts New conversation first, as a labelled button beside search", () => {
     render(research());
     const add = host.querySelector("[data-conversations-new]")!;
-    expect(add.textContent).toBe("new conversation");
+    expect(add.textContent).toBe("New conversation");
     expect(add.compareDocumentPosition(host.querySelector("[data-conversation]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(add.nextElementSibling).toBe(host.querySelector("[data-conversations-search]"));
   });
@@ -176,7 +176,7 @@ describe("a bot's conversations in its panel", () => {
     expect(host.querySelector("[data-conversations-query]")).toBeNull();
     click(host.querySelector("[data-conversations-search]"));
     const input = host.querySelector<HTMLInputElement>("[data-conversations-query]")!;
-    expect(input.getAttribute("placeholder")).toBe("search Research's conversations");
+    expect(input.getAttribute("placeholder")).toBe("Search Research's conversations");
     type(input, "post");
     expect(listed()).toEqual(["hiring", "launch"]);
     expect(more()).toBeNull();
@@ -186,7 +186,7 @@ describe("a bot's conversations in its panel", () => {
     expect(listed()).toEqual(["podcasts"]);
     type(input, "zebra");
     expect(listed()).toEqual([]);
-    expect(host.textContent).toContain("nothing matches “zebra”");
+    expect(host.textContent).toContain("Nothing matches “zebra”");
 
     const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
     flushSync(() => input.dispatchEvent(escape));
@@ -220,7 +220,7 @@ describe("a bot's conversations in its panel", () => {
   it("starts a new conversation from +, keeping the panel open on a wide window", () => {
     render(research());
     const add = host.querySelector("[data-conversations-new]")!;
-    expect(add.getAttribute("aria-label")).toBe("new conversation");
+    expect(add.getAttribute("aria-label")).toBe("New conversation");
     click(add);
     expect(fixture.dispatch.mock.calls).toEqual([[{ type: "newTask", botId: "research" }]]);
   });
@@ -248,21 +248,21 @@ describe("a bot's conversations in its panel", () => {
     render(research({ tasks: [two[0]!, { ...two[1]!, archivedAt: now - 1000 }] }));
     expect(host.querySelector("[data-conversations-query]")).not.toBeNull();
     expect(host.querySelector("[data-conversations-search]")).not.toBeNull();
-    expect(host.textContent).toContain("nothing matches “deck”");
+    expect(host.textContent).toContain("Nothing matches “deck”");
   });
 
   it("keeps the open conversation listed when it is archived and the only one left", () => {
     const two = [task("who", "Who am I?", 2, { archivedAt: now - 1000 }), task("deck", "Summarise the board deck", 4, { archivedAt: now - 2000 })];
     render(research({ tasks: two }));
     expect(listed()).toEqual(["who"]);
-    expect(host.querySelector("[data-conversations-archived]")!.textContent).toBe("archived (1)");
+    expect(host.querySelector("[data-conversations-archived]")!.textContent).toBe("Archived (1)");
   });
 
   it("lists archived conversations under Archived (N), where they can be unarchived", () => {
     render(research({ tasks: tasks.map((task) => task.threadId === "launch" || task.threadId === "deck" ? { ...task, archivedAt: now - 1000 } : task) }));
     expect(listed()).toEqual(["hiring", "who", "pricing"]);
     const archivedToggle = host.querySelector("[data-conversations-archived]")!;
-    expect(archivedToggle.textContent).toBe("archived (2)");
+    expect(archivedToggle.textContent).toBe("Archived (2)");
     expect(archivedToggle.getAttribute("aria-expanded")).toBe("false");
     click(archivedToggle);
     expect(listed()).toEqual(["hiring", "who", "pricing", "launch", "deck"]);

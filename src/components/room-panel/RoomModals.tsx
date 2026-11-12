@@ -46,7 +46,7 @@ export function RoomInstructionsModal({ group }: { group: Group; onClose: () => 
     <SheetPane data-panel-modal="instructions" title={t("room.panel.instructions")}>
       <InstructionsCard
         label={t("room.panel.instructionsHint")}
-        placeholder={t("room.bulletin.placeholder")}
+        placeholder={t("botPanel.ui.roomBulletinPlaceholder")}
         dir="auto"
         value={draft}
         onChange={setDraft}
@@ -174,8 +174,8 @@ export function RoomAboutModal({ group }: { group: Group; onClose: () => void })
   return (
     <SheetPane data-panel-modal="about" title={t("room.panel.about")}>
       <Card data-sheet-group="about">
-        <NavRow data-sheet-row="name" title={t("botSettings.simple.name")} value={group.name} onClick={() => setEditing(true)} />
-        <NavRow data-sheet-row="description" title={t("presetShare.description")} value={group.description || t("room.panel.descriptionHint")} onClick={() => setEditing(true)} />
+        <NavRow data-sheet-row="name" title={t("botPanel.ui.botSettingsSimpleName")} value={group.name} onClick={() => setEditing(true)} />
+        <NavRow data-sheet-row="description" title={t("botPanel.ui.presetShareDescription")} value={group.description || t("room.panel.descriptionHint")} onClick={() => setEditing(true)} />
       </Card>
       {editing && <RoomAboutDialog group={group} onClose={() => setEditing(false)} />}
     </SheetPane>
@@ -199,10 +199,10 @@ function RoomAboutDialog({ group, onClose }: { group: Group; onClose: () => void
       }}
       onClose={onClose}
     >
-      <FormField label={t("botSettings.simple.name")}>
+      <FormField label={t("botPanel.ui.botSettingsSimpleName")}>
         <input data-autofocus dir="auto" value={name} onChange={(event) => setName(event.target.value)} className={textFieldCls} />
       </FormField>
-      <FormField label={t("presetShare.description")}>
+      <FormField label={t("botPanel.ui.presetShareDescription")}>
         <input dir="auto" value={description} placeholder={t("room.panel.descriptionHint")} onChange={(event) => setDescription(event.target.value)} className={textFieldCls} />
       </FormField>
     </FormDialog>

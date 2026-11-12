@@ -79,7 +79,7 @@ describe("the room header", () => {
     expect(head.match(/<button/g)).toHaveLength(1);
     expect(head).toContain("data-room-name=");
     expect(head).toContain("chat-head-pill");
-    expect(head).toContain('aria-label="open settings for Desk HQ"');
+    expect(head).toContain('aria-label="Open settings for Desk HQ"');
     expect(head).toMatch(/data-roomhead-row="true" class="[^"]*justify-center/);
     expect(head).toMatch(/data-group-avatar="" aria-hidden="true" class="[^"]*" style="width:24px;height:24px"/);
     expect(head.match(/data-group-avatar-cell=/g)).toHaveLength(4);

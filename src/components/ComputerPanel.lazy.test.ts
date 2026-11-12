@@ -156,7 +156,7 @@ describe("VPS computer preparation", () => {
     await open(makeBot(), true);
     expect(document.querySelector("[data-inline-computer]")?.getAttribute("data-stage")).toBe("asleep");
     const wake = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
-    expect(wake?.getAttribute("aria-label")).toBe("wake computer");
+    expect(wake?.getAttribute("aria-label")).toBe("Wake computer");
     expect(wake?.disabled).toBe(false);
     expect(spinning()).toBe(false);
     expect(document.querySelector("[data-live-screen]")).toBeNull();
