@@ -88,9 +88,9 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(title(html)).toBe("general");
   });
 
-  it("opens General as you, how it looks, typing and sending, notifications, data sharing and import, with nothing folded away", () => {
+  it("opens General with bring your stuff first for someone new, then you, how it looks, typing and sending, notifications and data sharing", () => {
     const html = open("general");
-    expect(groups(html)).toEqual(["you", "how it looks", "typing and sending", "notifications", "data sharing", "bring your stuff"]);
+    expect(groups(html)).toEqual(["bring your stuff", "you", "how it looks", "typing and sending", "notifications", "data sharing"]);
     expect(html).not.toContain("data-settings-fold");
     expect(html).toContain("bring in from other apps");
     // the import row names the apps it brings bots from; the Grok move itself lives on the import page

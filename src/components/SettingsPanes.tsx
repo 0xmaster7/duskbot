@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from "react";
+import { importFirst, previousOpenAt } from "@/lib/import-first";
 import { ChevronRight } from "../icons";
 import { useStore, type AppSettingsSection } from "@/state/store";
 import { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
@@ -172,9 +173,17 @@ function DressUpRow() {
 
 export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boolean }) {
   const { at } = useSubPage();
+  const { state } = useStore();
   if (at === "import") return <AdminOnly><ImportSettings /></AdminOnly>;
+  const lead = importFirst({ completedAt: state.config?.onboarding?.completedAt, lastOpenAt: previousOpenAt(), bots: state.bots?.length ?? 0 });
+  const bring = has("import") && (
+    <SettingsGroup label={tPreferred("settings.docs.bring", "settings.section.import")} block="import">
+      <SettingsRows><ImportRow /></SettingsRows>
+    </SettingsGroup>
+  );
   return (
     <>
+      {lead && bring}
       {!remoteActive && has("general") && (
         <SettingsGroup label={tPreferred("settings.docs.you", "settings.group.account")} block="general">
           <SettingsRows>
@@ -212,11 +221,7 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
           <SettingsRows><DataSharingRows /></SettingsRows>
         </SettingsGroup>
       )}
-      {has("import") && (
-        <SettingsGroup label={tPreferred("settings.docs.bring", "settings.section.import")} block="import">
-          <SettingsRows><ImportRow /></SettingsRows>
-        </SettingsGroup>
-      )}
+      {!lead && bring}
     </>
   );
 }
