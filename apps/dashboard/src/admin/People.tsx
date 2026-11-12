@@ -15,8 +15,12 @@ interface Person {
   firstSeen: number | null; lastSeen: number | null; timeToSignupMs: number | null; visits: number; pageviews: number; source: string; channel: string; campaign: string | null;
   device: string | null; os: string | null; browser: string | null; country: string | null; city: string | null; lastPage: string | null;
 }
-type StepKind = "view" | "goal" | "paid" | "refund" | "checkout" | "signup" | "signin" | "onboarding" | "plan" | "paired" | "install" | "app" | "reply" | "cloud" | "upsell" | "error" | "feedback" | "returned";
-interface Step { at: number; kind: StepKind; surface: "site" | "account" | "app" | "server"; name: string; path: string | null; detail: string | null; amountCents: number | null; gapMs?: number }
+type StepKind = "view" | "goal" | "paid" | "refund" | "checkout" | "signup" | "signin" | "onboarding" | "plan" | "paired" | "install" | "app" | "reply" | "cloud" | "upsell" | "notice"
+  | "error" | "feedback" | "returned";
+interface Step {
+  at: number; kind: StepKind; surface: "site" | "account" | "app" | "server"; name: string; path: string | null; detail: string | null; amountCents: number | null; gapMs?: number;
+  ms?: number; scroll?: number;
+}
 interface Session { start: number; end: number; ms: number; surface: Step["surface"]; source: string | null; channel: string | null; campaign: string | null; referrer: string | null; steps: Step[] }
 interface Profile {
   id: string; seed: string; account: { id: string; email: string; name: string | null; createdAt: number } | null; customer: boolean; paidAt: number | null; visitors: number; installs: number;
@@ -82,7 +86,7 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
 }
 
 const ICON: Record<StepKind, string> = { view: "📄", goal: "🎯", paid: "💰", refund: "↩️", checkout: "🛒", signup: "🧑‍💻", signin: "🔑", onboarding: "🧭", plan: "🧾", paired: "📲",
-  install: "💾", app: "🖥️", reply: "🤖", cloud: "☁️", upsell: "✨", error: "⚠️", feedback: "⭐", returned: "🔁" };
+  install: "💾", app: "🖥️", reply: "🤖", cloud: "☁️", upsell: "✨", notice: "💬", error: "⚠️", feedback: "⭐", returned: "🔁" };
 const CHANNEL_ICON: Record<string, string> = { direct: "🔗", search: "🔎", social: "💬", ai: "🤖", referral: "🤝", email: "✉️", paid: "📣" };
 const day = (t: number) => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(new Date(t).getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}) }).toLowerCase();
 const clock = (t: number) => new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
@@ -97,13 +101,32 @@ function sessionLabel(session: Session): { icon: string; text: string } {
   return { icon: CHANNEL_ICON[session.channel ?? "direct"] ?? "🔗", text: `${source}${session.campaign ? `, ${session.campaign}` : ""}` };
 }
 
+const seconds = (ms: number) => ms < 1000 ? "<1s" : duration(ms);
+const Time = ({ ms }: { ms: number }) => <span className="font-mono text-12 text-ink-2 num">{seconds(ms)}</span>;
+const UPSELL_DID: Record<string, string> = { upsell_click: "clicked", upsell_dismiss: "closed" };
+const NOTICE_DID: Record<string, string> = { notice_closed: "closed", notice_acted: "acted on" };
+
+/** how long someone had an upsell or notice in front of them before they did something, or that they did nothing */
+function Outcome({ did, what, ms }: { did: string | null; what: ReactNode; ms?: number }) {
+  if (did === null) return ms === undefined ? <>saw {what}</> : <>saw {what} for <Time ms={ms} />, <span className="text-ink-3">did nothing</span></>;
+  return <><span className="font-medium text-accent-ink">{did}</span> {what}{ms !== undefined && <> after <Time ms={ms} /></>}</>;
+}
+
 function StepText({ step }: { step: Step }) {
   const where = step.path ? <span className="text-ink-4"> on <span className="font-mono text-12 text-ink-3">{step.path}</span></span> : null;
   const detail = step.detail ? <span className="text-ink-4"> · {step.detail.replace(/_/g, " ")}</span> : null;
+  const took = step.ms !== undefined ? <span className="text-ink-4"> · <Time ms={step.ms} /></span> : null;
   const amount = step.amountCents !== null ? <span className={cx("font-mono font-medium num", step.kind === "checkout" ? "text-ink-2" : "text-money")}> {usd(step.amountCents)}</span> : null;
   switch (step.kind) {
-    case "view": return <>{step.surface === "app" ? "opened" : "viewed"} <span className="font-mono text-12 text-ink">{step.path}</span></>;
-    case "goal": case "upsell": return <><span className="font-medium text-accent-ink">{step.name}</span>{where}{detail}</>;
+    case "view": return <>{step.surface === "app" ? "opened" : "viewed"} <span className="font-mono text-12 text-ink">{step.path}</span>{took}
+      {step.scroll !== undefined && <span className="text-ink-4"> · read <span className="font-mono text-12 text-ink-2 num">{step.scroll}%</span></span>}</>;
+    case "upsell": {
+      const shown = step.name === "upsell_shown";
+      return <><Outcome did={shown || step.name === "upsell_ignored" ? null : UPSELL_DID[step.name] ?? step.name} what="the cloud upsell" ms={shown ? undefined : step.ms} />{where}{detail}</>;
+    }
+    case "notice": return <Outcome did={step.name === "notice_ignored" ? null : NOTICE_DID[step.name] ?? step.name} what={<>the {step.detail ?? "corner"} notice</>} ms={step.ms} />;
+    case "goal": return <><span className="font-medium text-accent-ink">{step.name}</span>{where}{detail}{step.ms !== undefined && <span className="text-ink-4"> · after <Time ms={step.ms} /></span>}</>;
+    case "onboarding": return <>{step.name}{step.ms !== undefined && <span className="text-ink-4"> · <Time ms={step.ms} /> on the step before</span>}</>;
     case "paid": case "refund": return <>{step.name}{amount}{detail}</>;
     case "checkout": return <>{step.name}{amount}{detail}</>;
     case "returned": return <>returned{step.gapMs ? <span className="text-ink-4"> after {duration(step.gapMs)}</span> : null}</>;

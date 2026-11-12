@@ -27,6 +27,7 @@ import { localDesktopPage } from "./onboarding/WelcomeGate";
 import { TwoPlacesCard } from "./TwoPlacesCard";
 import { FeedbackCard } from "./FeedbackCard";
 import { feedbackDue } from "@/lib/feedback-prompt";
+import { noticeActed, noticeClosed, noticeOnScreen } from "@/lib/notice-clock";
 
 const trialKey = (trial: { state: string; endsAt: number }) => `${trial.state}:${trial.endsAt}`;
 
@@ -151,7 +152,14 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     if (patch) void api("/api/config", { method: "PUT", body: JSON.stringify(patch) })
       .then(config => dispatch({ type: "configStatus", config })).catch(() => {});
   };
-  const close = () => { setClosed(true); setTrialOpen(null); setFailed(false); };
+  const close = () => { noticeClosed(); setClosed(true); setTrialOpen(null); setFailed(false); };
+  const card = toast ? null
+    : notice === CLOUD_INTRO ? (offer ? notice : null)
+    : notice === LATE_ROUTINE_NOTICE ? (late ? notice : null)
+    : notice === CLOUD_TRIAL_NOTICE ? (trial ? notice : null)
+    : notice === CLOUD_NOTICE ? (kind && bridge ? notice : null)
+    : notice === TWO_PLACES_NOTICE ? (two.suggest ? notice : null) : null;
+  useEffect(() => { noticeOnScreen(card); }, [card]);
   if (toast) return <NoticeToast text={toast} onDone={() => setToast(null)} />;
   if (!notice && digest && !waits) return <NoticeToast text={digest.line} onDone={digest.seen} />;
   if (!notice && allowance && !waits) {
@@ -163,38 +171,38 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   if (!notice) return null;
 
   if (notice === CLOUD_INTRO && offer) {
-    const done = (action: string) => { track("cloud_card_action", { action }); close(); save(CLOUD_INTRO); };
+    const done = (action: string) => { track("cloud_card_action", { action, ms: noticeActed() }); close(); save(CLOUD_INTRO); };
     return <CloudTrialIntroCard offer={offer}
       onStart={() => { done("start"); dispatch({ type: "openCloudAdd", source: "app_card" }); }}
       onHowTo={() => { done("howto"); dispatch({ type: "cloudHowTo", open: true }); }}
-      onSignIn={view?.kind === "signed-out" ? () => { track("cloud_card_action", { action: "signin" }); close(); dispatch({ type: "openCloudAdd", source: "app_card", signIn: true }); } : undefined}
+      onSignIn={view?.kind === "signed-out" ? () => { track("cloud_card_action", { action: "signin", ms: noticeActed() }); close(); dispatch({ type: "openCloudAdd", source: "app_card", signIn: true }); } : undefined}
       onNotNow={() => { done("not_now"); setToast(t("cloudIntro.later")); }}
       onDismiss={() => { done("close"); setToast(t("cloudIntro.later")); }} />;
   }
   if (notice === LATE_ROUTINE_NOTICE && late) {
-    const done = (action: string) => { track("late_routine_card", { action, missed: late.ranAt === null }); close(); save(LATE_ROUTINE_NOTICE); };
+    const done = (action: string) => { track("late_routine_card", { action, missed: late.ranAt === null, ms: noticeActed() }); close(); save(LATE_ROUTINE_NOTICE); };
     return <LateRoutineCard late={late} now={now()}
       onStart={() => { done("start"); dispatch({ type: "openCloudAdd", source: "app_routines", ...(view?.kind === "signed-out" ? { signIn: true as const } : {}) }); }}
       onNotNow={() => done("not_now")} />;
   }
   if (notice === CLOUD_TRIAL_NOTICE && trial) {
     const shown = cloudTrialView(trial, plan?.credit);
-    const act = () => { setFailed(false); void planBridge?.manage().then(close, () => setFailed(true)); };
+    const act = () => { setFailed(false); void planBridge?.manage().then(() => { noticeClosed(true); close(); }, () => setFailed(true)); };
     return <CloudTrialNoticeCard view={shown} failed={failed} onAction={act} onClose={close} />;
   }
   if (notice === CLOUD_NOTICE && kind && bridge) {
     const act = () => {
       if (busy) return;
       setFailed(false); setBusy(true);
-      void cloudNoticeStep(kind, bridge).then(next => setAccount(next), () => setFailed(true)).finally(() => setBusy(false));
+      void cloudNoticeStep(kind, bridge).then(next => { noticeClosed(true); setAccount(next); }, () => setFailed(true)).finally(() => setBusy(false));
     };
     return <CloudNoticeCard kind={kind} busy={busy} failed={failed} onAction={act} onNotNow={() => { close(); save(CLOUD_NOTICE_CARD[kind].dismissed); }} />;
   }
   if (notice === TWO_PLACES_NOTICE && two.suggest) {
     const { key, kind } = two.suggest;
     return <TwoPlacesCard key={key} suggest={two.suggest}
-      onBring={() => { track("two_places_card", { action: "bring", kind }); return two.accept(key).then(close); }}
-      onDismiss={() => { track("two_places_card", { action: "not_now", kind }); two.dismiss(key); close(); }} />;
+      onBring={() => { track("two_places_card", { action: "bring", kind, ms: noticeActed() }); return two.accept(key).then(close); }}
+      onDismiss={() => { track("two_places_card", { action: "not_now", kind, ms: noticeActed() }); two.dismiss(key); close(); }} />;
   }
   return null;
 }

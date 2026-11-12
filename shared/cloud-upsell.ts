@@ -26,6 +26,8 @@ export function snoozed(raw: string | null | undefined, now: number): boolean {
   return Number.isFinite(until) && until > now;
 }
 
-/** the analytics names every upsell surface reports with; `source` is its checkout source */
-export const UPSELL_EVENTS = { shown: "upsell_shown", click: "upsell_click", dismiss: "upsell_dismiss" } as const;
+/** the analytics names every upsell surface reports with; `source` is its checkout source. Every step after `shown` carries
+ * `ms`, the visible time since it was shown; `ignored` means it went away (the page left, the card unmounted) without a click
+ * or a dismiss */
+export const UPSELL_EVENTS = { shown: "upsell_shown", click: "upsell_click", dismiss: "upsell_dismiss", ignored: "upsell_ignored" } as const;
 export type UpsellStep = keyof typeof UPSELL_EVENTS;

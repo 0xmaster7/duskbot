@@ -3,7 +3,7 @@ import type { StoredEvent } from "./sink.ts";
 import type { EventContext } from "./context.ts";
 import type { Props } from "./events.ts";
 import { visitsOf } from "./web.ts";
-import { billingSteps, firstSourceOf, SESSION_GAP_MS, sessionsOf, spendOf, stepOf, timeToPayOf, whereOf } from "./profile.ts";
+import { billingSteps, firstSourceOf, SESSION_GAP_MS, sessionsOf, spendOf, stepOf, timeToPayOf, UPSELL_PAIR_MS, whereOf } from "./profile.ts";
 
 const T = Date.parse("2026-11-12T17:58:00Z"), MIN = 60_000, DAY = 86_400_000;
 let n = 0;
@@ -105,5 +105,50 @@ describe("person profile", () => {
       ev("site_view", T + DAY, {}, site("b", { device: "mobile", os: "ios", browser: "safari", country: "US", region: "California", city: "San Francisco" })),
     ])).toEqual({ device: "mobile", os: "ios", browser: "safari", country: "US", region: "California", city: "San Francisco" });
     expect(whereOf([ev("app_open", T, {}, { install: "i", app: { platform: "android" } })])).toMatchObject({ device: "mobile", os: "android", browser: null, country: null });
+  });
+
+  it("gives page views their visible time, and long site pages their scroll, without rows for the page ends", () => {
+    const [session] = sessionsOf([
+      ev("site_view", T, { path: "/pricing" }, site("s", { pv: "pv000001" })),
+      ev("site_leave", T + MIN, { path: "/pricing", scroll: 40, ms: 30_000, folds: 4 }, site("s", { pv: "pv000001" })),
+      ev("site_leave", T + 2 * MIN, { path: "/pricing", scroll: 80, ms: 72_000, folds: 4 }, site("s", { pv: "pv000001" })),
+      ev("site_view", T + 3 * MIN, { path: "/" }, site("s", { pv: "pv000002" })),
+      ev("site_leave", T + 4 * MIN, { path: "/", scroll: 100, ms: 9_000, folds: 1 }, site("s", { pv: "pv000002" })),
+      ev("page_view", T + 5 * MIN, { path: "/billing" }, { session: "d" }, "acct_1"),
+      ev("page_leave", T + 6 * MIN, { path: "/billing", ms: 41_000 }, { session: "d" }, "acct_1"),
+      ev("page_view", T + 7 * MIN, { path: "/billing" }, { session: "d" }, "acct_1"),
+    ]);
+    expect(session!.steps.map(step => [step.path, step.ms, step.scroll])).toEqual([
+      ["/dashboard/billing", undefined, undefined], ["/dashboard/billing", 41_000, undefined], ["/", 9_000, undefined], ["/pricing", 72_000, 80],
+    ]);
+  });
+
+  it("folds an upsell's shown into its click, dismiss or ignore, and keeps a shown with no outcome", () => {
+    const dash = { session: "d" };
+    const app = { install: "i1", app: { platform: "darwin" } };
+    const steps = sessionsOf([
+      ev("page_action", T, { action: "upsell_shown", label: "dash_sidebar", path: "/" }, dash, "a"),
+      ev("page_action", T + 5_000, { action: "upsell_dismiss", label: "dash_sidebar", path: "/", ms: 4_000 }, dash, "a"),
+      ev("page_action", T + 6_000, { action: "upsell_shown", label: "dash_routines", path: "/" }, dash, "a"),
+      ev("app_action", T + 7_000, { name: "upsell_shown", source: "app_sidebar" }, app, "a"),
+      ev("app_action", T + 40_000, { name: "upsell_ignored", source: "app_sidebar", ms: 30_000 }, app, "a"),
+      ev("app_action", T + 41_000, { name: "upsell_shown", source: "app_routines" }, app, "a"),
+      ev("app_action", T + 41_000 + UPSELL_PAIR_MS + 1, { name: "upsell_click", source: "app_routines", ms: 12_000 }, app, "a"),
+    ]).flatMap(session => session.steps).filter(step => step.kind === "upsell").reverse();
+    expect(steps.map(step => [step.name, step.detail, step.ms])).toEqual([
+      ["upsell_dismiss", "dash_sidebar", 4_000], ["upsell_shown", "dash_routines", undefined], ["upsell_ignored", "app_sidebar", 30_000],
+      ["upsell_shown", "app_routines", undefined], ["upsell_click", "app_routines", 12_000],
+    ]);
+  });
+
+  it("reads notices, timed actions and onboarding steps with their time", () => {
+    const app = { install: "i1" };
+    expect(stepOf(ev("app_action", T, { name: "notice_closed", notice: "cloud_trial_intro_v1", ms: 4_000 }, app))).toMatchObject({ kind: "notice", name: "notice_closed", detail: "cloud trial intro", ms: 4_000 });
+    expect(stepOf(ev("app_action", T, { name: "notice_closed", notice: "two_places", ms: 9_000, acted: true }, app))).toMatchObject({ name: "notice_acted", detail: "two places" });
+    expect(stepOf(ev("app_action", T, { name: "notice_ignored", notice: "late_routine_v1", ms: 60_000 }, app))).toMatchObject({ name: "notice_ignored", ms: 60_000 });
+    expect(stepOf(ev("app_action", T, { name: "cloud_card_action", action: "start", ms: 12_000 }, app))).toMatchObject({ kind: "goal", detail: "start", ms: 12_000 });
+    expect(stepOf(ev("onboarding_step", T, { step: "plan", ms: 14_000 }))).toMatchObject({ name: "onboarding: plan", ms: 14_000 });
+    expect(stepOf(ev("onboarding_step", T, { step: "name" }))!.ms).toBeUndefined();
+    expect(stepOf(ev("page_leave", T, { path: "/", ms: 1 }))).toBeNull();
   });
 });

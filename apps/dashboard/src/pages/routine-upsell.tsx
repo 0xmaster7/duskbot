@@ -3,7 +3,7 @@ import { cloudForWorkspace, useCloud } from "../data/cloud";
 import { routineUpsell } from "../data/routine-upsell";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
-import { trackUpsell } from "../lib/analytics";
+import { trackUpsell, watchUpsell } from "../lib/analytics";
 import { Modal } from "../ui/controls";
 import { Button } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
@@ -51,6 +51,8 @@ export function RoutineUpsell() {
     return () => { ctl.abort(); clearInterval(timer); document.removeEventListener("visibilitychange", load); };
   }, [ready, local, free]);
 
+  const open = Boolean(routine && free);
+  useEffect(() => { if (open) return watchUpsell("dash_routines"); }, [open]);
   const close = () => setRoutine(null);
   const notNow = () => { trackUpsell("dismiss", "dash_routines"); close(); };
   return (

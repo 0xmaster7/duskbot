@@ -1,8 +1,10 @@
 import { CSRF_HEADER, readCsrfCookie } from "../../../../shared/account-api";
-import { UPSELL_EVENTS, type UpsellStep } from "../../../../shared/cloud-upsell";
+import type { UpsellStep } from "../../../../shared/cloud-upsell";
+import { seenTimer, upsellClock, type SeenTimer } from "../../../../shared/seen-clock";
 
-type PageEvent = { name: "page_view"; props: { path: string } } | { name: "onboarding_step"; props: { step: string; ms?: number } } | { name: "onboarding_done" }
-  | { name: "plan_chosen"; props: { plan: string; period: "month" | "year" } } | { name: "page_action"; props: { action: string; path: string; label?: string; value?: string } }
+type PageEvent = { name: "page_view"; props: { path: string } } | { name: "page_leave"; props: { path: string; ms: number } }
+  | { name: "onboarding_step"; props: { step: string; ms?: number } } | { name: "onboarding_done"; props?: { ms?: number } }
+  | { name: "plan_chosen"; props: { plan: string; period: "month" | "year" } } | { name: "page_action"; props: { action: string; path: string; label?: string; value?: string; ms?: number } }
   | { name: "download_click"; props: { platform: string; detected_os: string } };
 
 const declined = () => typeof navigator !== "undefined" && ((navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true || navigator.doNotTrack === "1");
@@ -78,6 +80,9 @@ export function actionOf(el: Element, kind: "click" | "change"): { action: strin
 let listening = false;
 let currentPath = "/";
 let stepAt: number | null = null;
+let pageTimer: SeenTimer | null = null;
+/** a view shorter than this is a redirect passing through, not a page someone looked at */
+const BRIEF_MS = 500;
 let errorPath = "", errors = 0;
 function listen() {
   if (listening || typeof document === "undefined") return;
@@ -89,6 +94,7 @@ function listen() {
     if (box instanceof HTMLInputElement && box.type === "search") { if (box.value.trim()) send({ action: "search", label: slug(box.id || box.name) ?? "search" }); return; }
     if (box instanceof Element) send(actionOf(box, "change"));
   }, true);
+  window.addEventListener("pagehide", () => { upsells.leave(); endPage(); flush(); });
   // that something broke and where, never the message or stack; at most five a page
   for (const kind of ["error", "unhandledrejection"] as const) window.addEventListener(kind, () => {
     if (errorPath !== currentPath) { errorPath = currentPath; errors = 0; }
@@ -96,12 +102,22 @@ function listen() {
   });
 }
 
-/** one page view per route change; the onboarding step rides along with how long the step before it took */
+function endPage() {
+  if (!pageTimer) return;
+  const ms = pageTimer.stop();
+  pageTimer = null;
+  if (ms >= BRIEF_MS) track({ name: "page_leave", props: { path: currentPath, ms } });
+}
+
+/** one page view per route change, and the visible time of the one before; the onboarding step rides along with how long
+ * the step before it took */
 export function trackPage(path: string, query: URLSearchParams) {
-  if (path === "/admin" || path.startsWith("/admin/")) return;
+  if (path === "/admin" || path.startsWith("/admin/")) { endPage(); return; }
+  endPage();
   currentPath = path;
   if (live() && !declined()) listen();
   track({ name: "page_view", props: { path } });
+  pageTimer = seenTimer();
   const step = query.get("step");
   if (path === "/welcome" && step) {
     const now = Date.now();
@@ -110,7 +126,17 @@ export function trackPage(path: string, query: URLSearchParams) {
   }
 }
 
+type UpsellSource = "dash_sidebar" | "dash_invested" | "dash_routines";
+const upsells = upsellClock((action, label, ms) => track({ name: "page_action", props: { action, path: currentPath, label, ...(ms !== null ? { ms } : {}) } }));
+
 /** a dusk cloud upsell seen, opened or put away; label is its checkout source, so the funnel can line them up */
-export function trackUpsell(step: UpsellStep, source: "dash_sidebar" | "dash_invested" | "dash_routines") {
-  track({ name: "page_action", props: { action: UPSELL_EVENTS[step], path: currentPath, label: source } });
+export function trackUpsell(step: Exclude<UpsellStep, "ignored">, source: UpsellSource) {
+  upsells.report(step, source);
+}
+/** while the upsell is on screen, as an effect after the one that reports it shown; its cleanup reports it ignored */
+export const watchUpsell = (source: UpsellSource) => upsells.watch(source);
+
+export function trackOnboardingDone() {
+  track({ name: "onboarding_done", ...(stepAt !== null ? { props: { ms: Date.now() - stepAt } } : {}) });
+  stepAt = null;
 }

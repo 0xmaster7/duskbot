@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { alwaysOnCooling, markAlwaysOn, trackUpsell } from "@/lib/cloud-upsell";
+import { alwaysOnCooling, markAlwaysOn, trackUpsell, watchUpsell } from "@/lib/cloud-upsell";
 import { t } from "@/lib/i18n";
 import { madeSince, newRoutineSinceBaseline } from "@/lib/routine-cloud-upsell";
 import { useAppTriggers } from "@/lib/app-triggers";
@@ -45,6 +45,7 @@ export function RoutineCloudUpsell({ quiet = false }: { quiet?: boolean }) {
     trackUpsell("shown", "app_routines");
     setShown(routine.id);
   }, [pending, shown, allowed, waits, made]);
+  useEffect(() => { if (shown) return watchUpsell("app_routines"); }, [shown]);
   const routine = made.find(entry => entry.id === shown);
   if (!allowed || waits || !routine?.enabled || routine.heldFor) return null;
   const close = () => { setShown(null); setPending(null); };

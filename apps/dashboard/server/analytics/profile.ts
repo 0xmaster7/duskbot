@@ -9,11 +9,13 @@ import type { Visit } from "./web.ts";
 export const SESSION_GAP_MS = 30 * 60_000;
 
 export type StepKind = "view" | "goal" | "paid" | "refund" | "checkout" | "signup" | "signin" | "onboarding" | "plan" | "paired" | "install" | "app"
-  | "reply" | "cloud" | "upsell" | "error" | "feedback" | "returned";
+  | "reply" | "cloud" | "upsell" | "notice" | "error" | "feedback" | "returned";
 export type StepSurface = "site" | "account" | "app" | "server";
 export interface Step {
   at: number; kind: StepKind; surface: StepSurface;
-  /** what happened in a few words; a goal's or upsell's own name stays snake_case so it reads like the event */
+  /** what happened in a few words; a goal's own name stays snake_case so it reads like the event. An upsell's is its event
+   * (upsell_shown, upsell_click, upsell_dismiss, upsell_ignored) with its source as detail; a notice's is notice_closed,
+   * notice_acted or notice_ignored with the notice as detail */
   name: string;
   /** the page or app screen it happened on */
   path: string | null;
@@ -22,6 +24,11 @@ export interface Step {
   amountCents: number | null;
   /** for `returned`: the quiet time before this session */
   gapMs?: number;
+  /** visible time: on a page view, how long it was looked at; on an upsell or notice, from shown to this step; on an
+   * onboarding step, the time spent on the step before; absent when not reported */
+  ms?: number;
+  /** a site page view's deepest scroll, only for pages at least two screens tall */
+  scroll?: number;
 }
 export interface Session {
   start: number; end: number; ms: number; surface: StepSurface;
@@ -35,6 +42,10 @@ export interface CheckoutLike { createdAt: number; amountCents: number; source: 
 const str = (value: unknown) => typeof value === "string" && value ? value : null;
 const words = (value: unknown) => str(value)?.replace(/_/g, " ") ?? null;
 const UPSELL = new Set<string>(Object.values(UPSELL_EVENTS));
+const NOTICE = new Set(["notice_closed", "notice_ignored"]);
+const msOf = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? { ms: Math.round(value) } : {};
+/** a notice id as words, without its version: cloud_trial_intro_v1 reads "cloud trial intro" */
+const noticeWords = (value: unknown) => words(str(value)?.replace(/_v\d+$/, ""));
 /** app actions that describe the install, not something the person did */
 const QUIET_ACTIONS = new Set(["env"]);
 const OS_OF: Record<string, string> = { darwin: "mac", win32: "windows", linux: "linux", ios: "ios", android: "android" };
@@ -61,7 +72,7 @@ export function stepOf(event: StoredEvent): Step | null {
     case "page_action": {
       const action = str(p.action) ?? "click", path = str(p.path), label = str(p.label), value = str(p.value);
       const where = path ? `/dashboard${path === "/" ? "" : path}` : null;
-      if (UPSELL.has(action)) return step(event, "upsell", "account", action, { path: where, detail: label });
+      if (UPSELL.has(action)) return step(event, "upsell", "account", action, { path: where, detail: label, ...msOf(p.ms) });
       if (action === "js_error") return step(event, "error", "account", "page error", { path: where, detail: label });
       if (action === "download") return step(event, "goal", "account", "download_click", { path: where, detail: value });
       if (action === "choose") return step(event, "goal", "account", label ?? "choice", { path: where, detail: value });
@@ -70,8 +81,8 @@ export function stepOf(event: StoredEvent): Step | null {
     case "download_click": return step(event, "goal", "account", "download_click", { path: page, detail: str(p.platform) });
     case "signup": return step(event, "signup", "server", "signed up", { detail: str(p.method) });
     case "sign_in": return step(event, "signin", "server", p.kind === "web" || !p.kind ? "signed in" : `signed in on the ${p.kind} app`, { detail: OS_OF[String(p.platform)] ?? null });
-    case "onboarding_step": return step(event, "onboarding", "account", `onboarding: ${words(p.step) ?? "step"}`);
-    case "onboarding_done": return step(event, "onboarding", "account", "finished onboarding");
+    case "onboarding_step": return step(event, "onboarding", "account", `onboarding: ${words(p.step) ?? "step"}`, msOf(p.ms));
+    case "onboarding_done": return step(event, "onboarding", "account", "finished onboarding", msOf(p.ms));
     case "plan_chosen": return step(event, "plan", "account", `picked ${words(p.plan) ?? "a plan"}`, { detail: p.period === "year" ? "yearly" : p.period === "month" ? "monthly" : null });
     case "app_paired": return p.via === "workspace"
       ? step(event, "paired", "server", "connected a computer", { detail: str(p.kind) })
@@ -87,8 +98,9 @@ export function stepOf(event: StoredEvent): Step | null {
     case "app_action": {
       const name = str(p.name);
       if (!name || QUIET_ACTIONS.has(name)) return null;
-      if (UPSELL.has(name)) return step(event, "upsell", "app", name, { path: page, detail: str(p.source) });
-      return step(event, "goal", "app", name, { path: page, detail: str(p.action) ?? str(p.result) ?? str(p.variant) });
+      if (UPSELL.has(name)) return step(event, "upsell", "app", name, { path: page, detail: str(p.source), ...msOf(p.ms) });
+      if (NOTICE.has(name)) return step(event, "notice", "app", p.acted === true ? "notice_acted" : name, { detail: noticeWords(p.notice), ...msOf(p.ms) });
+      return step(event, "goal", "app", name, { path: page, detail: str(p.action) ?? str(p.result) ?? str(p.variant), ...msOf(p.ms) });
     }
     case "app_feedback": return step(event, "feedback", "app", `rated it ${p.score}/5`, { detail: words(p.moment) });
     case "first_bot_reply": return step(event, "reply", "server", "first bot reply");
@@ -112,12 +124,58 @@ export function billingSteps(payments: readonly Payment[], checkouts: readonly C
   ];
 }
 
+/** an upsell that was shown and then clicked, dismissed or left this long after still reads as one moment */
+export const UPSELL_PAIR_MS = 12 * 3_600_000;
+const upsellOf = (event: StoredEvent) => {
+  const page = event.name === "page_action", step = str(page ? event.props.action : event.name === "app_action" ? event.props.name : null);
+  const source = str(page ? event.props.label : event.props.source);
+  return step && UPSELL.has(step) && source ? { step, key: `${event.name}|${source}|${event.ctx?.install ?? event.ctx?.session ?? event.ctx?.visitor ?? ""}` } : null;
+};
+
+/** what a page view's end and an upsell's outcome add to the timeline, so it does not double up: a site page's end
+ * (site_leave, by page view id) and an account page's (page_leave, the latest view of that path in its visit) give the view
+ * row its visible time and scroll; an upsell shown and then clicked, dismissed or ignored is one row, the outcome's */
+export function readsOf(events: readonly StoredEvent[]): { skip: Set<StoredEvent>; extra: Map<StoredEvent, Partial<Step>> } {
+  const skip = new Set<StoredEvent>(), extra = new Map<StoredEvent, Partial<Step>>();
+  const sorted = [...events].sort((a, b) => a.at - b.at);
+  const leaves = new Map<string, { ms: number; scroll: number; folds: number }>();
+  for (const event of sorted) {
+    if (event.name !== "site_leave" || !event.ctx?.pv) continue;
+    const prev = leaves.get(event.ctx.pv), p = event.props;
+    leaves.set(event.ctx.pv, { ms: Math.max(prev?.ms ?? 0, Number(p.ms) || 0), scroll: Math.max(prev?.scroll ?? 0, Number(p.scroll) || 0), folds: Math.max(prev?.folds ?? 0, Number(p.folds) || 0) });
+  }
+  const views = new Map<string, StoredEvent>(), shown = new Map<string, StoredEvent>();
+  for (const event of sorted) {
+    if (event.name === "site_view" && event.ctx?.pv) {
+      const leave = leaves.get(event.ctx.pv);
+      if (leave && leave.ms > 0) extra.set(event, { ms: leave.ms, ...(leave.folds >= 2 ? { scroll: leave.scroll } : {}) });
+    } else if (event.name === "page_view") views.set(`${event.ctx?.session ?? event.accountId ?? ""}|${event.props.path}`, event);
+    else if (event.name === "page_leave") {
+      const key = `${event.ctx?.session ?? event.accountId ?? ""}|${event.props.path}`, view = views.get(key);
+      if (view && typeof event.props.ms === "number") { extra.set(view, { ms: event.props.ms }); views.delete(key); }
+    } else {
+      const upsell = upsellOf(event);
+      if (!upsell) continue;
+      if (upsell.step === UPSELL_EVENTS.shown) { shown.set(upsell.key, event); continue; }
+      const before = shown.get(upsell.key);
+      if (before && event.at - before.at <= UPSELL_PAIR_MS) skip.add(before);
+      shown.delete(upsell.key);
+    }
+  }
+  return { skip, extra };
+}
+
 const RANK: Record<StepSurface, number> = { site: 0, account: 1, app: 2, server: 3 };
 /** the person's activity as sessions, newest first: events and billing steps sorted together, a new session after 30 quiet
  * minutes. A session's length runs from its first to its last event, page ends included, or an app's own open time if longer. */
 export function sessionsOf(events: readonly StoredEvent[], extra: readonly Step[] = []): Session[] {
   type Mark = { at: number; event: StoredEvent | null; step: Step | null };
-  const marks: Mark[] = [...events.map(event => ({ at: event.at, event, step: stepOf(event) })), ...extra.map(item => ({ at: item.at, event: null, step: item }))]
+  const reads = readsOf(events);
+  const stepWithReads = (event: StoredEvent) => {
+    const found = reads.skip.has(event) ? null : stepOf(event), more = reads.extra.get(event);
+    return found && more ? { ...found, ...more } : found;
+  };
+  const marks: Mark[] = [...events.map(event => ({ at: event.at, event, step: stepWithReads(event) })), ...extra.map(item => ({ at: item.at, event: null, step: item }))]
     .sort((a, b) => a.at - b.at);
   const drafts: Array<{ start: number; end: number; open: number; touch: StoredEvent | null; steps: Step[] }> = [];
   let current: (typeof drafts)[number] | null = null;

@@ -208,7 +208,7 @@ describe("the card after the update", () => {
     returning(); await launch();
     press("start free trial"); await flush();
     expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_card" });
-    expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "start" });
+    expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "start", ms: expect.any(Number) });
     expect(storage.get(CLOUD_INTRO)).toBe("1"); expect(hints()).toContain(CLOUD_INTRO);
     expect(render()).toBe("");
     now = NOW + 5 * DAY; storage.clear(); launchCardsSeen(); expect(await launch()).not.toContain(INTRO);
@@ -218,7 +218,7 @@ describe("the card after the update", () => {
     returning(); await launch();
     press("show me how");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "cloudHowTo", open: true });
-    expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "howto" });
+    expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "howto", ms: expect.any(Number) });
     expect(storage.get(CLOUD_INTRO)).toBe("1");
     for (const close of ["Not now", "Dismiss for good", "Escape"]) {
       storage.clear(); launchCardsSeen(); f.state.config.onboarding.hintsSeen = []; now += DAY;
@@ -231,8 +231,8 @@ describe("the card after the update", () => {
       expect(storage.get(CLOUD_INTRO), close).toBe("1"); expect(hints()).toContain(CLOUD_INTRO);
       expect(render()).toContain("You can add a cloud any time from the menu on the left of the app.");
     }
-    expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "not_now" });
-    expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "close" });
+    expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "not_now", ms: expect.any(Number) });
+    expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "close", ms: expect.any(Number) });
   });
 
   it("sign in to your Cloud plan opens the sheet at its own sign-in and only hides the card for now", async () => {
@@ -384,7 +384,7 @@ describe("bots in two places", () => {
     press("move bots");
     await flush();
     expect(accepted).toEqual([GARAGE.key]);
-    expect(track).toHaveBeenCalledWith("two_places_card", { action: "bring", kind: "server" });
+    expect(track).toHaveBeenCalledWith("two_places_card", { action: "bring", kind: "server", ms: expect.any(Number) });
     expect(await settle()).not.toContain('data-notice="two-places"');
   });
 

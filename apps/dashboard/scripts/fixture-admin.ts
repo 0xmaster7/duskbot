@@ -64,7 +64,7 @@ export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, 
     for (const [s, step] of ["name", "plan", "app"].entries()) if (i % 7 !== 3 || s === 0) await analytics.record("onboarding_step", { accountId: account.id, at: account.createdAt + (s + 1) * 60_000, props: { step, ...(s ? { ms: Math.round(20_000 + rand() * 90_000) } : {}) } });
     if (rand() < 0.6) await analytics.record("page_action", { accountId: account.id, at: account.createdAt + 130_000, props: { action: "choose", label: "plan", value: pick(["plus", "plus", "pro"]), path: "/welcome" } });
     if (rand() < 0.5) await analytics.record("page_action", { accountId: account.id, at: account.createdAt + 200_000, props: { action: "download", label: "download_dusk_bot", value: pick(["mac", "mac", "windows"]), path: "/welcome" } });
-    if (i % 7 !== 3) await analytics.record("onboarding_done", { accountId: account.id, at: account.createdAt + 5 * 60_000 });
+    if (i % 7 !== 3) await analytics.record("onboarding_done", { accountId: account.id, at: account.createdAt + 5 * 60_000, props: { ms: Math.round(30_000 + rand() * 120_000) } });
     if (i % 2 === 0) await analytics.record("app_paired", { accountId: account.id, at: account.createdAt + 3_600_000, props: { via: "app", platform: i % 4 === 0 ? "darwin" : "win32" } });
     if (i % 3 !== 2 && i < 12) await analytics.record("first_bot_reply", { accountId: account.id, at: account.createdAt + 2 * 3_600_000 });
     for (let t = account.createdAt + DAY; t < now; t += DAY) {
@@ -146,7 +146,7 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
       const pv = vid().slice(0, 8);
       await analytics.record("site_view", { at, visitor, props: { path }, ctx: { ...base, pv, page: path, ...(k === 0 ? { source: touch.source, channel: touch.channel as never, referrer: touch.referrer, ref: touch.ref, utm: touch.campaign ? { campaign: touch.campaign, medium: "email", source: "newsletter" } : term ? { term } : undefined } : {}) } });
       const ms = Math.round(4000 + rand() * 90_000);
-      await analytics.record("site_leave", { at: at + ms, visitor, props: { path, scroll: Math.round(20 + rand() * 80), ms }, ctx: { ...base, pv, page: path } });
+      await analytics.record("site_leave", { at: at + ms, visitor, props: { path, scroll: Math.round(20 + rand() * 80), ms, folds: path === "/" || path === "/pricing" ? 4 : 1 }, ctx: { ...base, pv, page: path } });
       at += ms + 2000;
     }
     for (const [goal, meta] of opts.goals ?? []) await analytics.record("site_goal", { at, visitor, props: { goal, ...meta }, ctx: { ...base, page: pages.at(-1) } });
@@ -208,8 +208,22 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
   const dash = { session: vid(), host: "dusk.bot", device: "desktop" as const, os: "mac" as const, browser: "arc" as const, country: "US", region: "California", city: "San Francisco" };
   await analytics.record("page_view", { accountId: mira.id, at: paidAt - 12 * 60_000, props: { path: "/" }, ctx: { ...dash, source: "direct", channel: "direct", page: "/" } });
   await analytics.record("page_action", { accountId: mira.id, at: paidAt - 11 * 60_000, props: { action: "upsell_shown", label: "dash_sidebar", path: "/" }, ctx: dash });
-  await analytics.record("page_action", { accountId: mira.id, at: paidAt - 6 * 60_000, props: { action: "upsell_click", label: "dash_sidebar", path: "/" }, ctx: dash });
+  await analytics.record("page_action", { accountId: mira.id, at: paidAt - 6 * 60_000, props: { action: "upsell_click", label: "dash_sidebar", path: "/", ms: 12_000 }, ctx: dash });
+  await analytics.record("page_leave", { accountId: mira.id, at: paidAt - 6 * 60_000 + 500, props: { path: "/", ms: 64_000 }, ctx: { ...dash, page: "/" } });
   await analytics.record("page_view", { accountId: mira.id, at: paidAt - 5 * 60_000, props: { path: "/cloud" }, ctx: { ...dash, page: "/cloud" } });
+  await analytics.record("page_leave", { accountId: mira.id, at: paidAt - 60_000, props: { path: "/cloud", ms: 212_000 }, ctx: { ...dash, page: "/cloud" } });
+  // the desktop app the evening before: a corner notice closed fast, the sidebar card left alone, the routine pitch put away
+  const desk = { install: vid(), session: vid(), app: { platform: "darwin", version: "0.2.15" } }, eve = paidAt - 20 * 3_600_000;
+  await analytics.record("identify", { accountId: mira.id, at: eve - 1000, props: { via: "app" }, ctx: { install: desk.install } });
+  await analytics.record("app_open", { accountId: mira.id, at: eve, props: { kind: "desktop", platform: "darwin", appVersion: "0.2.15" }, ctx: desk });
+  await analytics.record("app_action", { accountId: mira.id, at: eve + 30_000, props: { name: "notice_closed", notice: "cloud_trial_intro_v1", ms: 3_000 }, ctx: desk });
+  await analytics.record("app_action", { accountId: mira.id, at: eve + 60_000, props: { name: "upsell_shown", source: "app_sidebar" }, ctx: desk });
+  await analytics.record("app_action", { accountId: mira.id, at: eve + 5 * 60_000, props: { name: "upsell_shown", source: "app_routines" }, ctx: desk });
+  await analytics.record("app_action", { accountId: mira.id, at: eve + 5 * 60_000 + 4_000, props: { name: "upsell_dismiss", source: "app_routines", ms: 4_000 }, ctx: desk });
+  await analytics.record("app_action", { accountId: mira.id, at: eve + 9 * 60_000, props: { name: "two_places_card", action: "bring", kind: "server", ms: 9_000 }, ctx: desk });
+  await analytics.record("app_action", { accountId: mira.id, at: eve + 18 * 60_000, props: { name: "upsell_ignored", source: "app_sidebar", ms: 30_000 }, ctx: desk });
+  await analytics.record("app_action", { accountId: mira.id, at: eve + 18 * 60_000 + 100, props: { name: "notice_ignored", notice: "late_routine_v1", ms: 41_000 }, ctx: desk });
+  await analytics.record("app_close", { accountId: mira.id, at: eve + 18 * 60_000 + 200, props: { ms: 18 * 60_000 }, ctx: desk });
   await analytics.record("cloud_state", { accountId: mira.id, at: paidAt + 40_000, props: { cloudId: "c0123456789abcdef01234567", kind: "starter", region: "us-east", from: "new", to: "provisioning" } });
   await analytics.record("cloud_state", { accountId: mira.id, at: paidAt + 4 * 60_000, props: { cloudId: "c0123456789abcdef01234567", kind: "starter", region: "us-east", from: "provisioning", to: "running" } });
   for (let v = 0; v < 9; v++) await visit(vid(), now - Math.round(rand() * 25 * 60_000), { pages: rand() < 0.5 ? ["/", "/pricing"] : ["/"], goals: rand() < 0.3 ? [["waitlist_join"]] : [] });

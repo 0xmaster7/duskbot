@@ -2,7 +2,7 @@ import type { DeletionBlocker, DeleteAccountOptions } from "../../../../shared/b
 import type { CommandKind, CommandView, ConnectorsAnswer, WorkspaceDetail, WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import type { PulseAnswer } from "../../../../shared/machine-pulse";
 import type { AccountDevice, AccountProfile, AuthProviders, BillingOverview, CheckoutAnswer, CheckoutRequest, CloudDesktop, DesktopId, EmailCodeStart, Identity, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection, SlackWake } from "../data/contracts";
-import { track } from "./analytics";
+import { trackOnboardingDone } from "./analytics";
 import { accountFromWire, billingFromWire, cartFromQuote, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire } from "../data/live";
 import { CSRF_HEADER, EMAIL_CODE_DIGITS, readCsrfCookie, type AccountAnswer, type AccountView, type BillingOverview as WireBillingOverview, type CancelAnswer, type Catalog, type ChangePreview, type CheckoutAnswer as WireCheckoutAnswer, type CloudDesktopView, type DeviceLookupAnswer, type EmailStartAnswer, type HandoffAnswer, type MeAnswer, type ProvidersAnswer, type Quote, type WebSignInAnswer } from "../data/wire";
 
@@ -157,7 +157,7 @@ export const api = {
     if (FIXTURE) return send("/v1/account/onboarded", "POST");
     if (!accountId) await api.me();
     localStorage.setItem(`dusk-dash-onboarded:${accountId}`, "1");
-    track({ name: "onboarding_done" });
+    trackOnboardingDone();
   },
   setNotifications: async (prefs: NotificationPrefs) => {
     if (FIXTURE) return send("/v1/account/notifications", "PUT", prefs);

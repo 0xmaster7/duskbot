@@ -3,7 +3,7 @@ import { Cloud, X } from "../icons";
 import type { CloudSource } from "@/lib/cloud-plan";
 import { investedBy, type InvestedFacts } from "../../shared/cloud-upsell";
 import { firstChatQuiet, firstReplyPending } from "@/lib/corner-popup";
-import { cloudUpsellAllowed, investedFacts, isInvested, markAlwaysOn, sidebarCardSnoozed, snoozeSidebarCard, trackUpsell } from "@/lib/cloud-upsell";
+import { cloudUpsellAllowed, investedFacts, isInvested, markAlwaysOn, sidebarCardSnoozed, snoozeSidebarCard, trackUpsell, watchUpsell } from "@/lib/cloud-upsell";
 import { MASCOT_INK } from "@/lib/mascot";
 import { CLOUD_INTRO, dismissNotice, INVESTED_NOTICE, LATE_ROUTINE_NOTICE, launchNotice, noticeSeen } from "@/lib/notices";
 import { t } from "@/lib/i18n";
@@ -78,6 +78,7 @@ export function SidebarCloudCard() {
     const patch = dismissNotice(record, INVESTED_NOTICE);
     if (patch) void api("/api/config", { method: "PUT", body: JSON.stringify(patch) }).then(config => dispatch({ type: "configStatus", config })).catch(() => {});
   }, [visible]);
+  useEffect(() => { if (visible) return watchUpsell(source); }, [visible, source]);
   if (!visible) return null;
   const dismiss = () => { trackUpsell("dismiss", source); snoozeSidebarCard(); setSnoozed(true); };
   return (
@@ -119,6 +120,7 @@ export function AlwaysOnNote({ className }: { className?: string }) {
     markAlwaysOn();
     trackUpsell("shown", "app_always_on");
   }, [visible]);
+  useEffect(() => { if (visible) return watchUpsell("app_always_on"); }, [visible]);
   if (!visible) return null;
   return (
     <p data-always-on-note="" className={`m-0 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[12px] leading-4 text-ink-secondary ${className ?? ""}`}>

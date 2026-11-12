@@ -106,7 +106,9 @@ export async function handleTrack(req: IncomingMessage, res: ServerResponse, dep
       deps.track("site_section", { props: { path, section: entry[0], ms: Math.max(0, Math.min(86_400_000, Math.round(entry[1]))) }, visitor: ids.visitor, ctx: base });
     }
   } else if (body.e === "leave") {
-    deps.track("site_leave", { props: { path, scroll: Math.max(0, Math.min(100, Math.round(Number(body.s) || 0))), ms: Math.max(0, Math.min(86_400_000, Math.round(Number(body.t) || 0))) }, visitor: ids.visitor, ctx: base });
+    const folds = Math.round(Number(body.f) || 0);
+    deps.track("site_leave", { props: { path, scroll: Math.max(0, Math.min(100, Math.round(Number(body.s) || 0))), ms: Math.max(0, Math.min(86_400_000, Math.round(Number(body.t) || 0))),
+      ...(folds > 0 ? { folds: Math.min(100, folds) } : {}) }, visitor: ids.visitor, ctx: base });
   } else return done(res, 400);
   return answer(res, { persist });
 }

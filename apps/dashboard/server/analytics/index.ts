@@ -180,10 +180,11 @@ export function createAnalytics(options: AnalyticsOptions) {
       for (const item of list as unknown[]) {
         const event = item && typeof item === "object" ? item as Record<string, unknown> : {};
         if (!isEventName(event.name) || EVENTS[event.name].source !== "page") continue;
-        if (!owner && event.name !== "page_view") continue;
-        const props = event.name === "page_view" && event.props && typeof event.props === "object"
-          ? { path: routeOf(String((event.props as Record<string, unknown>).path ?? "")) ?? "" } : event.props;
-        const ctx: EventContext = { ...base, ...(session ? { session } : {}), ...(visitor && owner ? { visitor } : {}), ...(event.name === "page_view" && typeof (props as Props).path === "string" ? { page: (props as Props).path as string } : {}) };
+        const view = event.name === "page_view" || event.name === "page_leave";
+        if (!owner && !view) continue;
+        const raw = event.props && typeof event.props === "object" ? event.props as Record<string, unknown> : {};
+        const props = view ? { ...raw, path: routeOf(String(raw.path ?? "")) ?? "" } : event.props;
+        const ctx: EventContext = { ...base, ...(session ? { session } : {}), ...(visitor && owner ? { visitor } : {}), ...(view && typeof (props as Props).path === "string" ? { page: (props as Props).path as string } : {}) };
         track(event.name, { accountId: owner?.id ?? null, props: props as Props, ctx, visitor: owner ? null : visitor ?? visitorOf(req) });
       }
       res.writeHead(204, { "cache-control": "no-store" }); res.end();

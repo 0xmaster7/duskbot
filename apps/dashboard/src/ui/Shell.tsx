@@ -5,7 +5,7 @@ import { cloudForWorkspace, useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
-import { trackUpsell } from "../lib/analytics";
+import { trackUpsell, watchUpsell } from "../lib/analytics";
 import { Link, navigate, useLocation } from "../lib/router";
 import { RoutineUpsell } from "../pages/routine-upsell";
 import { PlanSheet } from "../pages/plan-sheet";
@@ -179,6 +179,7 @@ function SideUpsellCard({ onHide, onOpen }: { onHide: () => void; onOpen: (sourc
     visitInvested = facts;
     setHeld(facts);
   }, [ready]);
+  useEffect(() => { if (ready) return watchUpsell(source); }, [ready, source]);
   if (!ready) return null;
   return (
     <m.div className="pop relative rounded-[20px] bg-pop p-4" data-invested={invested ? "" : undefined} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.16, ease: EASE_OUT } }} transition={GLIDE}>

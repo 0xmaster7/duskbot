@@ -563,7 +563,7 @@ describe("marketing tracker", () => {
     now += 120;
     visibility("hidden");
     await events();
-    expect(payloads[1]).toMatchObject({ e: "leave", s: 75, t: 120 });
+    expect(payloads[1]).toMatchObject({ e: "leave", s: 75, t: 120, f: 4 });
     now += 5000;
     visibility("visible");
     property(win, "scrollY", 0);

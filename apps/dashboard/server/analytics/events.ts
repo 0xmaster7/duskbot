@@ -54,21 +54,25 @@ export const EVENTS = {
   first_bot_reply: { source: "server", props: {} },
   checkout_paid: { source: "server", props: { amountCents: count } },
   page_view: { source: "page", props: { path: route }, active: true },
+  /** an account page view's end: its visible time; sent on the next route or when the page goes away */
+  page_leave: { source: "page", props: { path: route, ms: count } },
   /** ms is the time spent on the step before this one */
   onboarding_step: { source: "page", props: { step: oneOf("name", "plan", "app"), ms: count }, active: true },
-  onboarding_done: { source: "page", props: {}, active: true },
+  /** ms is the time spent on the last step */
+  onboarding_done: { source: "page", props: { ms: count }, active: true },
   plan_chosen: { source: "page", props: { plan: pattern(/^[a-z_]{2,20}$/, 20), period: oneOf("month", "year") }, active: true },
   /** a download picked on onboarding's last step, and the system the page guessed the visitor is on */
   download_click: { source: "page", props: { platform: oneOf("macos", "windows", "linux", "android", "ios"), detected_os: oneOf("macos", "windows", "linux", "android", "ios", "unknown") }, active: true },
-  /** a button or link on an account page: label is its static name, value a choice like a platform or an app slug */
-  page_action: { source: "page", props: { action: word, path: route, label: word, value: word }, active: true },
+  /** a button or link on an account page: label is its static name, value a choice like a platform or an app slug; ms an
+   * upsell step's visible time since it was shown (shared/cloud-upsell.ts) */
+  page_action: { source: "page", props: { action: word, path: route, label: word, value: word, ms: count }, active: true },
   site_view: { source: "site", props: { path: route } },
   /** section is the landing section it happened in, label the clicked thing's name, value a choice (a platform, a period) */
   site_goal: { source: "site", props: { goal: word, to: route, from: route, host, section: word, label: word, value: word } },
   /** a landing section that was at least half on screen, and for how long in total */
   site_section: { source: "site", props: { path: route, section: word, ms: count } },
-  /** a page view's end: deepest scroll and visible time */
-  site_leave: { source: "site", props: { path: route, scroll: percent, ms: count } },
+  /** a page view's end: deepest scroll, visible time and how many screens tall the page was */
+  site_leave: { source: "site", props: { path: route, scroll: percent, ms: count, folds: count } },
   /** a site visitor or an app install became this account */
   identify: { source: "server", props: { via: oneOf("page", "app") } },
   app_open: { source: "app", props: { kind: oneOf("desktop", "mobile"), platform, appVersion: version }, active: true },

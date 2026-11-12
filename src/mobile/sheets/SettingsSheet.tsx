@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
 import { accountDashboardUrl } from "@/lib/account-dashboard";
 import { useGroupYou } from "@/components/GroupAvatar";
-import { trackUpsell } from "@/lib/cloud-upsell";
+import { trackUpsell, watchUpsell } from "@/lib/cloud-upsell";
 import { t } from "@/lib/i18n";
 import { effectiveLanguage, setLanguageChoice, useLanguageChoice, usePageLanguage } from "@/lib/language-preference";
 import { applySkinChoice, readSkinChoice, subscribeSkin, THEME_SKINS } from "@/lib/skins";
@@ -50,7 +50,8 @@ export function settingsIdentity(input: { name?: string | null; email?: string |
  * already talking to a cloud */
 function CloudCard({ onOpen }: { onOpen: () => void }) {
   const shown = useRef(false);
-  useEffect(() => { if (shown.current) return; shown.current = true; trackUpsell("shown", "app_mobile"); }, []);
+  useEffect(() => { if (!shown.current) { shown.current = true; trackUpsell("shown", "app_mobile"); } }, []);
+  useEffect(() => watchUpsell("app_mobile"), []);
   return (
     <button type="button" onClick={() => { trackUpsell("click", "app_mobile"); onOpen(); }} className="mobile-press mx-2 mt-9 flex w-[calc(100%-16px)] items-center gap-4 rounded-[20px] bg-ink/[0.045] px-4 py-4 text-left">
       <PixelArt name="server" size={44} />

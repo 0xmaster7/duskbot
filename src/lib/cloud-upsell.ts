@@ -1,5 +1,7 @@
-import { investedBy, snoozed, snoozeUntil, UPSELL_EVENTS, type InvestedFacts, type UpsellStep } from "../../shared/cloud-upsell";
+import { investedBy, snoozed, snoozeUntil, type InvestedFacts, type UpsellStep } from "../../shared/cloud-upsell";
+import { upsellClock } from "../../shared/seen-clock";
 import { track } from "./analytics";
+import { flush } from "./product-analytics";
 import { buyOfferAllowed, type CloudPlanView, type CloudSource } from "./cloud-plan";
 
 type Usage = { turns: number } | null | undefined;
@@ -34,9 +36,22 @@ export function alwaysOnCooling(now = Date.now()): boolean {
 }
 export const markAlwaysOn = (now = Date.now()) => store(ALWAYS_ON_KEY, String(now));
 
-export function trackUpsell(step: UpsellStep, source: CloudSource | "app_mobile"): void {
-  track(UPSELL_EVENTS[step], { source });
+type UpsellSource = CloudSource | "app_mobile";
+const upsells = upsellClock((name, source, ms) => track(name, ms === null ? { source } : { source, ms }));
+let leaving = false;
+function listenLeave(): void {
+  if (leaving || typeof window === "undefined" || typeof window.addEventListener !== "function") return;
+  leaving = true;
+  window.addEventListener("pagehide", () => { upsells.leave(); void flush(); });
 }
+
+/** shown starts the upsell's visible-time clock; click and dismiss report it as `ms` */
+export function trackUpsell(step: Exclude<UpsellStep, "ignored">, source: UpsellSource): void {
+  listenLeave();
+  upsells.report(step, source);
+}
+/** while the upsell is on screen, as an effect after the one that reports it shown; its cleanup reports it ignored */
+export const watchUpsell = (source: UpsellSource): (() => void) => upsells.watch(source);
 
 /** may this page offer dusk cloud: only this computer's own page, to someone who could buy it (signed out or free) and is not
  * in an organization; null while the plan or the organization is still loading */
