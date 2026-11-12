@@ -13,7 +13,9 @@
   "answer": "comet is a browser with an assistant that can research, browse and act on pages. dusk bot is an app where a bot can have a browser and desktop separate from yours. keep comet on your shortlist if browser work is the main job. consider dusk if you want the job to belong to a named bot with its own files, memory and routines, rather than choosing a new everyday browser.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "perplexity-comet",
@@ -151,15 +153,15 @@
     },
     {
       "h": "free download and agent access are different",
-      "md": "as of 12 november 2026, perplexity's plan help page says the free plan has no browser agent queries. pro and max have monthly limits.[^4] we couldn't confirm the current pro price or its query allowance on perplexity's pages, so we don't guess them here.\n\ndusk's free personal desktop use still involves whatever your ai provider charges. dusk cloud pays for a computer that stays on, with plus at $20/month and pro at $50/month; the ai bill remains separate.[^8][^9] compare the total arrangement you need, rather than the word \"free\" on either download. if you choose a signed-in ai for dusk, check the provider's current terms too."
+      "md": "as of 12 november 2026, perplexity's plan help page says the free plan has no browser agent queries. pro and max have monthly limits.[^4] check perplexity's site for the current pro price.\n\ndusk's free personal desktop use still involves whatever your ai provider charges. dusk cloud pays for a computer that stays on, with plus at $20/month and pro at $50/month; the ai bill remains separate.[^8][^9] compare the total arrangement you need, rather than the word \"free\" on either download. if you choose a signed-in ai for dusk, check the provider's current terms too."
     },
     {
       "h": "page text can try to steer an agent",
-      "md": "brave disclosed an indirect prompt-injection vulnerability in comet page summarisation on 20 august 2025 and reported it to perplexity.[^13] that is a dated disclosure, not evidence from a current exploit test. we have not retested it or established the present patch status.\n\nwhen evaluating either tool, separate the material it reads from instructions you actually gave it. for dusk, you can watch the bot's screen, take control for sign-ins and stop it. sending in your name has its own approval setting.[^6] those controls do not establish immunity to hostile page text. the [computer-control safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) explains what to think through before giving access."
+      "md": "brave disclosed an indirect prompt-injection vulnerability in comet page summarisation on 20 august 2025 and reported it to perplexity.[^13] that is a dated disclosure, not evidence from a current exploit test. we haven't checked whether it's fixed.\n\nwhen evaluating either tool, separate the material it reads from instructions you actually gave it. for dusk, you can watch the bot's screen, take control for sign-ins and stop it. sending in your name has its own approval setting. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set full-access bots to **Ask every time**.[^6] none of this makes a bot immune to tricky page text. the [computer-control safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) explains what to think through before giving access."
     },
     {
       "h": "try a research handoff with a clear stopping point",
-      "md": "a bounded instruction to try is: \"read these product pages and write a shortlist. keep a link beside every claim, separate missing information from confirmed facts, and stop before submitting forms.\" check the links and the shortlist yourself; this page has no measured result for that task.\n\nif you are also weighing the chatgpt option, [chatgpt agent alternatives](/alternatives/chatgpt-agent) explains the move to work. browser assistants and desktop agents overlap, so choose based on the job and the access you want to give, not the category name."
+      "md": "a bounded instruction to try is: \"read these product pages and write a shortlist. keep a link beside every claim, separate missing information from confirmed facts, and stop before submitting forms.\" check the links and the shortlist yourself.\n\nif you are also weighing the chatgpt option, openai has replaced chatgpt agent with chatgpt work; [chatgpt agent alternatives](/alternatives/chatgpt-agent) covers that. browser assistants and desktop agents overlap, so choose based on the job and the access you want to give, not the category name."
     }
   ],
   "faq": [
@@ -169,7 +171,7 @@
     },
     {
       "q": "is comet safe to use for agent work?",
-      "a": "there is a dated brave prompt-injection disclosure from 20 august 2025.[^13] this comparison did not retest it or establish its current patch status. review the access a task needs and keep the first task small enough to inspect."
+      "a": "there is a dated brave prompt-injection disclosure from 20 august 2025.[^13] we haven't checked whether it's fixed. review the access a task needs and keep the first task small enough to inspect."
     },
     {
       "q": "can a dusk bot use its own browser instead of mine?",

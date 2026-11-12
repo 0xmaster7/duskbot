@@ -94,10 +94,10 @@
         ]
       },
       {
-        "label": "scheduled task limits",
+        "label": "scheduled tasks",
         "cells": [
-          "active tasks: free/go 3, plus 5, business/edu 10, pro/enterprise 15",
-          "routines made through chat; desktop sleeps stop execution until return"
+          "active-task limits and timing controls vary by plan",
+          "made by chat; on your computer they wait while it sleeps or the app is closed"
         ],
         "src": [
           5,
@@ -118,33 +118,29 @@
       }
     ]
   },
-  "method": "we make dusk bot. this page uses the saved openai facts checked on 12 november 2026 and dusk bot docs. we did not run identical tasks, so there is no output-quality ranking. the scheduled-task caps below come from openai's task help page; they are not a promise about how much work a model can finish or a replacement for shared usage limits.",
+  "method": "we make dusk bot. this page uses openai's help and pricing pages as they read on 12 november 2026 and dusk bot docs. we did not run identical tasks, so there is no output-quality ranking. the scheduled-task caps below come from openai's task help page; they are not a promise about how much work a model can finish or a replacement for shared usage limits.",
   "sections": [
     {
       "h": "an old agent tutorial can answer the wrong question",
-      "md": "if you arrived looking for an agent-mode button, the current help article redirects you to work.[^1] choose work in chatgpt instead.[^3] [cowork vs dusk bot](/vs/claude-cowork) covers another product whose name and experience are changing.\n\nwork's web and phone experience uses the cloud. the desktop app can also run work locally with files, apps and a browser.[^2] decide whether a task needs a file on your computer before assuming that every surface has identical access. this comparison does not establish which individual plugins work in each environment."
+      "md": "if you arrived looking for an agent-mode button, the current help article redirects you to work.[^1] choose work in chatgpt instead.[^3] [cowork vs dusk bot](/vs/claude-cowork) covers another product whose name and experience are changing.\n\nwork's web and phone experience uses the cloud. the desktop app can also run work locally with files, apps and a browser.[^2] decide whether a task needs a file on your computer before assuming that every surface has identical access. check that the plugins you need work where the task runs."
     },
     {
       "h": "count shared usage before counting schedules",
-      "md": "openai says work and codex share usage, pricing and credits.[^4] if you use both, budget for both. a scheduled task slot is a limit on active tasks, not an allowance for unlimited runs or unlimited model work.\n\nthe scheduled-task docs list 3 active tasks on free and go, 5 on plus, 10 on business and edu, and 15 on pro and enterprise. free tasks have flexible daily windows; exact times and hourly schedules need a paid plan.[^5] the [chatgpt scheduled tasks guide](/guides/chatgpt-scheduled-tasks) separates those controls.\n\ndusk bot does not put ai usage on the dusk bill. a hosted dusk computer and an ai plan are separate costs, and a bot tells you if the ai plan runs out.[^8][^11] use the [ai agent cost guide](/guides/how-much-does-an-ai-agent-cost) to compare a whole month, not just the software price."
+      "md": "openai says work and codex share usage, pricing and credits.[^4] if you use both, budget for both. a scheduled task slot is a limit on active tasks, not an allowance for unlimited runs or unlimited model work.\n\nactive-task limits and timing controls vary by plan; see the [chatgpt scheduled tasks guide](/guides/chatgpt-scheduled-tasks).[^5]\n\ndusk bot does not put ai usage on the dusk bill. a hosted dusk computer and an ai plan are separate costs, and a bot tells you if the ai plan runs out.[^8][^11] use the [ai agent cost guide](/guides/how-much-does-an-ai-agent-cost) to compare a whole month, not just the software price."
     },
     {
       "h": "try a handoff you can check",
-      "md": "a useful first request is: \"turn the attached notes into a decision brief. separate agreed points from open questions and flag anything the notes do not support.\" review it beside the original notes. this checks whether the handoff suits you without treating a fluent answer as evidence of accuracy.\n\nin dusk bot you can keep a reviewer bot and a separate planning bot, each with its own memory and job.[^11] keep the trial confined to supplied files. if you later connect apps, choose read-only access for a reviewer and use the separate sending setting for outbound messages.[^12] that gives you a clearer boundary than asking an agent to decide every permission for itself."
+      "md": "a useful first request is: \"turn the attached notes into a decision brief. separate agreed points from open questions and flag anything the notes do not support.\" review it beside the original notes. this checks whether the handoff suits you. a smooth answer isn't the same as a right one.\n\nin dusk bot you can keep a reviewer bot and a separate planning bot, each with its own memory and job.[^11] keep the first try to files you attach. if you later connect apps, give a reviewer read-only access and set sending to **Ask every time**; a bot on **Full access** with no sending rule may otherwise send up to 25 a day without asking.[^12][^13]"
     }
   ],
   "faq": [
     {
-      "q": "what happened to chatgpt agent mode?",
-      "a": "as of 12 november 2026, openai's help center says it is no longer available and recommends chatgpt work for longer multi-step tasks. this comparison therefore uses work rather than the retired mode.[^1]"
+      "q": "does chatgpt work run on my own computer?",
+      "a": "the desktop app can run work locally with files, apps and a browser. work on web and mobile runs in openai's cloud, as of 12 november 2026.[^2]"
     },
     {
       "q": "can i use chatgpt agent on my iphone?",
       "a": "the replacement, chatgpt work, is available on ios and android as well as web and desktop. web and mobile work runs in the cloud.[^2] do not use an old agent-mode guide to infer current work quotas."
-    },
-    {
-      "q": "what are people actually using chatgpt scheduled tasks for?",
-      "a": "a practical place to start is a recurring update on a topic you specify, with a clear rule for when there is nothing new to report. chatgpt documents recurring tasks, change monitoring and supported event triggers. event-triggered tasks need plus, pro, business, enterprise or edu.[^5]"
     }
   ],
   "sources": [
@@ -201,6 +197,10 @@
     {
       "label": "dusk bot: read-only access and sends",
       "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: permissions and sends",
+      "url": "/docs/computer"
     }
   ],
   "type": "comparison",
@@ -211,7 +211,9 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "connectors": []
 }

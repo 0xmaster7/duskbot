@@ -89,11 +89,11 @@
       "output": "a personal follow-up review in chat"
     }
   ],
-  "asks": "a pipeline reviewer can stay read only. that prevents it from creating follow-up tasks or changing opportunity records, while still letting it bring findings to your chat. permission to read a deal is not permission to advance its stage.\n\nif you later allow task creation or opportunity edits, put \"ask me before you change anything\" into the routine when review is required. those record changes are not documented as asking first automatically. sends through connected apps follow their separate setting: they ask by default, unless you allow a daily amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.",
+  "asks": "a pipeline reviewer can stay read only. that prevents it from creating follow-up tasks or changing opportunity records, while still letting it bring findings to your chat. permission to read a deal is not permission to advance its stage.\n\nif you later allow task creation or opportunity edits, put \"ask me before you change anything\" into the routine when review is required. the sending setting doesn't cover record changes. sends through connected apps follow their separate setting: they ask by default, unless you allow a daily amount. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^3]",
   "cannot": [
     "change stages, owners or tasks with read-only access. grant only the specific writing actions needed if you decide to add record maintenance later.",
     "fill missing lead details from evidence that is not there. an empty field should be reported as empty, with a question for its owner.",
-    "use every action that sounds like a lookup under read-only permissions. the catalog classifies actions individually; use the search and get actions listed above for these reviews.",
+    "use every action that sounds like a lookup under read-only permissions. some lookups count as changes in dusk, for example querying contacts by name, so stick to the search and get actions above.",
     "deliver a scheduled pipeline note while your own computer is asleep or the app is closed. an always-on dusk cloud machine can keep the schedule."
   ],
   "sections": [
@@ -141,6 +141,8 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   }
 }

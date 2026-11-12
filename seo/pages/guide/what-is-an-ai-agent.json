@@ -14,7 +14,9 @@
   "answer": "an ai agent is a program that uses ai to work toward a goal through a series of actions. instead of only telling you how to do something, it can use tools, inspect what happened and choose a next step. you still need to give it a clear job, suitable access and a way to stop. calling it an agent does not make its decisions correct.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "agents",
@@ -56,7 +58,7 @@
     },
     {
       "h": "access and repetition are separate decisions",
-      "md": "an agent does not need every app you use. if it only needs supplied files, begin there. if it needs an external system, learn what a connector exposes. the [mcp guide](/guides/what-is-mcp) explains one standard used to connect ai apps to other systems.\n\nrepeating the job is another decision. in dusk bot, a routine is a job you describe once for a bot to repeat. on your computer it cannot run while the app is closed or the computer sleeps. [scheduled ai tasks](/scheduled-ai-tasks) covers that timing question. do not confuse permission to do a task once with a reason to run it forever.[^3]"
+      "md": "an agent does not need every app you use. if it only needs files you give it, begin there. if it needs an external system, learn what a connector exposes. the [mcp guide](/guides/what-is-mcp) explains one standard used to connect ai apps to other systems.\n\nrepeating the job is another decision. in dusk bot, a routine is a job you describe once for a bot to repeat. on your computer it cannot run while the app is closed or the computer sleeps. [scheduled ai tasks](/scheduled-ai-tasks) covers that timing question. do not confuse permission to do a task once with a reason to run it forever.[^3]"
     },
     {
       "h": "what you should still check yourself",
@@ -66,7 +68,7 @@
   "faq": [
     {
       "q": "what are people actually using ai agents for?",
-      "a": "start with a task such as indexing supplied documents, preparing a comparison from files you provide or repeating a narrow check. choose something whose inputs and finished result you can inspect yourself."
+      "a": "start with a task such as indexing documents you hand it, preparing a comparison from files you provide or repeating a narrow check. choose something whose inputs and finished result you can inspect yourself."
     },
     {
       "q": "does an ai agent have to run all day?",

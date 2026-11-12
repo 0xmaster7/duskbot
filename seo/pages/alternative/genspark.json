@@ -13,7 +13,9 @@
   "answer": "genspark combines an ai workspace for documents and media with claw, an assistant you message from chat apps. dusk bot centres on a few ongoing bots, each with its own job, memory and ai choice. keep genspark if its creation tools are the reason you subscribed. consider dusk if you want that bot relationship with a separate ai-provider bill. claw has both cloud and local modes, so hosting alone is not the difference.[^1][^2][^3][^4]",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "genspark",
@@ -115,7 +117,8 @@
         "src": [
           2,
           5,
-          4
+          4,
+          12
         ]
       },
       {
@@ -154,11 +157,11 @@
       }
     ]
   },
-  "method": "we make dusk bot. this page compares the documented genspark workspace and claw offer checked on 12 november 2026 with dusk's recorded capabilities. we have not made matching slide decks, research reports or scheduled jobs in both products. model counts and credit allowances do not establish equal output quality. the promotional cloud rate is a dated offer, not a forecast of renewal pricing.",
+  "method": "we make dusk bot. this page compares the documented genspark workspace and claw offer checked on 12 november 2026 with dusk bot's docs. we have not made matching slide decks, research reports or scheduled jobs in both products. model counts and credit allowances do not establish equal output quality. the promotional cloud rate is a dated offer, not a forecast of renewal pricing.",
   "sections": [
     {
       "h": "do you want a creation workspace or someone to keep briefing?",
-      "md": "genspark's scope includes slides, spreadsheets, documents and media alongside agents.[^1] if you value those tools together, a bot app is not automatically a replacement. this page makes no claim that dusk reproduces genspark's specialised editors or creation workflows. [manus alternatives](/alternatives/manus) is another useful comparison when your priority is finished deliverables.\n\ndusk gives each bot one job, its own conversations and memory, and an ai you can change later.[^10] a useful first trial is to attach two planning notes and ask a bot to identify conflicting dates for you to review. that uses the chat and file relationship rather than assuming an equivalent workspace editor.[^9] [ai teammates](/ai-teammates) describes how those ongoing roles fit together."
+      "md": "genspark's scope includes slides, spreadsheets, documents and media alongside agents.[^1] if you value those tools together, a bot app is not automatically a replacement. dusk bot doesn't have genspark's slide, sheet or media editors. [manus alternatives](/alternatives/manus) is another useful comparison when your priority is finished deliverables.\n\ndusk gives each bot one job, its own conversations and memory, and an ai you can change later.[^10] a useful first trial is to attach two planning notes and ask a bot to identify conflicting dates for you to review. that uses the chat and file relationship rather than assuming an equivalent workspace editor.[^9] [ai teammates](/ai-teammates) describes how those ongoing roles fit together."
     },
     {
       "h": "claw has more than one place to live",
@@ -166,7 +169,7 @@
     },
     {
       "h": "price the recurring work as well as the computer",
-      "md": "as of 12 november 2026, genspark plus starts at $24.99 monthly with 10,000 monthly credits; pro starts at $249.99 with 125,000. claw's cloud computer has a separate promotional starting fee of $9.99 monthly, and claw tasks consume shared credits.[^2] do not read that server rate as unlimited ai work.\n\ndusk cloud similarly does not pay for your ai. its plus and pro prices cover the hosted computer; your ai provider bills usage.[^4][^5] if a bot's ai allowance runs out, it tells you, and you can wait or change ai.[^10] the [agent cost guide](/guides/how-much-does-an-ai-agent-cost) helps separate these costs. without measured credit use for your recurring job, neither column proves a saving."
+      "md": "as of 12 november 2026, genspark plus starts at $24.99 monthly with 10,000 monthly credits; pro starts at $249.99 with 125,000. claw's cloud computer has a separate promotional starting fee of $9.99 monthly,[^12] and claw tasks consume shared credits.[^2] do not read that server rate as unlimited ai work.\n\ndusk cloud similarly does not pay for your ai. its plus and pro prices cover the hosted computer; your ai provider bills usage.[^4][^5] if a bot's ai allowance runs out, it tells you, and you can wait or change ai.[^10] the [agent cost guide](/guides/how-much-does-an-ai-agent-cost) helps separate these costs. without measured credit use for your recurring job, neither column proves a saving."
     }
   ],
   "faq": [
@@ -180,7 +183,7 @@
     },
     {
       "q": "is there a genspark alternative with ai teammates?",
-      "a": "dusk bot offers separate bots and group chats where they can hand work over by mentions. that is a documented conversation model, not evidence of feature parity with genspark's whole workspace.[^11]"
+      "a": "dusk bot offers separate bots and group chats where they can hand work over by mentions. it isn't a copy of genspark's workspace, though.[^11]"
     }
   ],
   "sources": [
@@ -190,7 +193,7 @@
       "checked": "2026-11-12"
     },
     {
-      "label": "genspark pricing and recorded promotional cloud offer",
+      "label": "genspark pricing",
       "url": "https://www.genspark.ai/business/pricing",
       "checked": "2026-11-12"
     },
@@ -229,6 +232,11 @@
     {
       "label": "dusk group handoffs",
       "url": "/docs/group-chats"
+    },
+    {
+      "label": "genspark claw: promotional cloud price",
+      "url": "https://genspark.ai/genspark-claw",
+      "checked": "2026-11-12"
     }
   ]
 }

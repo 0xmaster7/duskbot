@@ -43,7 +43,7 @@
   },
   "compare": {
     "h": "how the assistant fits a working team",
-    "intro": "the prices here are the saved monthly usd figures as of 12 november 2026. a credit pool is not a guaranteed count of meetings, reports or other completed jobs.",
+    "intro": "the prices here are the monthly usd prices as of 12 november 2026. a credit pool is not a guaranteed count of meetings, reports or other completed jobs.",
     "cols": [
       "Lindy",
       "Dusk Bot"
@@ -132,19 +132,11 @@
       }
     ]
   },
-  "method": "we make dusk bot. this page compares published features and billing structures from saved sources checked on 12 november 2026; we did not run identical tasks. lindy's integration total is its own claim, not a count of tested workflows. we have not measured credit consumption or verified the vendor's compliance claims, and do not use either as a quality score.",
+  "method": "we make dusk bot. this page compares published features and billing structures from pages we read on 12 november 2026; we did not run identical tasks. lindy's integration total is its own claim, not a count of tested workflows. we have not measured credit consumption or verified the vendor's compliance claims, and do not use either as a quality score.",
   "sections": [
     {
-      "h": "a small-business trial should answer one question",
-      "md": "pick a recurring task whose result you can inspect, such as turning the meeting notes you provide into a list of decisions and owners. ask: \"use only these notes. separate explicit commitments from suggestions. if an owner is not named, leave it unresolved.\" judge whether the result is usable before adding connected accounts.\n\nlindy explicitly targets meetings and reports.[^1] in dusk bot, you can attach notes and keep a bot whose job is to review them.[^9][^4] that does not mean either tool has been tested on your meeting format. [bots for small-business owners](/for/small-business-owners) helps choose a job small enough to evaluate."
-    },
-    {
-      "h": "read the credit pool as a spending rule",
-      "md": "as of 12 november 2026, lindy's team tier starts at $29.99 per active user monthly for 3,000 credits. credits are pooled, do not roll over and can be topped up at $10 per 1,000.[^2] check what makes a user active before calculating a team bill; lindy's pricing page doesn't define that term.\n\nits free offer is $50 in credits for 7 days.[^2] it is a trial allowance, so do not budget as though it refreshes every month. nor can we say how many reports those credits buy.\n\ndusk cloud team plans start at $100 a month, with a dedicated machine and shared bots. ai usage is still separate.[^6][^5] ask which people need work licensing and hosting before comparing those figures to a per-user service. [lindy alternatives](/alternatives/lindy) covers other arrangements if neither budget fits."
-    },
-    {
       "h": "an approval claim needs a clear boundary",
-      "md": "lindy says actions with outside impact need approval.[^1] that is the vendor's description, not a finding from our testing. its compliance claims also need your own review if they matter to procurement. we do not claim dusk bot has equivalent certifications.\n\nin dusk bot, connected-app sends ask first unless you allow a daily amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. other connected-app changes are not documented as asking first. keep a new reviewer on read-only access or explicitly write \"ask me before you change anything\".[^9] command and file approval levels are separate controls.[^10]\n\na [chief-of-staff bot](/ai-chief-of-staff) can begin by gathering questions rather than acting on them. that makes the first review about the quality of the work, while you keep the authority to change things."
+      "md": "lindy says actions with outside impact need approval.[^1] ask which actions that covers in your team’s process. in dusk, keep a new bot on read-only access or write \"ask me before you change anything\" into the job; command and file approval levels are separate controls.[^9][^10] ask lindy what makes a user active before working out a team bill. see [lindy alternatives](/alternatives/lindy) for prices and credit details."
     }
   ],
   "faq": [
@@ -154,7 +146,7 @@
     },
     {
       "q": "can i text lindy instead of opening another app?",
-      "a": "the pricing page lists imessage as well as slack, email and phone calls.[^2] this page does not confirm whatsapp or telegram support. dusk bot has its own paired phone interface, with store apps still on the way.[^7]"
+      "a": "the pricing page lists imessage as well as slack, email and phone calls.[^2] dusk bot has its own paired phone interface, with store apps still on the way.[^7]"
     },
     {
       "q": "is lindy ai better than openclaw for a business owner?",
@@ -218,7 +210,9 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "connectors": []
 }

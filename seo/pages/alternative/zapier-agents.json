@@ -11,10 +11,12 @@
     "zapier agents review",
     "ai agent vs zapier"
   ],
-  "answer": "zapier agents is worth keeping if your main need is an agent working across zapier's large app catalogue, on command or through triggers. dusk bot offers a desktop conversation with named bots, their own memory and a choice of local or hosted computers. the biggest budgeting trap is comparing zapier automation tasks with agents activities. they belong to separate plans, and neither is a measured equivalent of one completed dusk job.",
+  "answer": "zapier agents is worth keeping if your main need is an agent working across zapier's large app catalogue, on command or through triggers. dusk bot offers a desktop conversation with named bots, their own memory and a choice of local or hosted computers. the biggest budgeting trap is comparing zapier automation tasks with agents activities. they belong to separate plans, and neither tells you how many jobs you'll get done.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "zapier-agents",
@@ -120,7 +122,7 @@
         "label": "background work",
         "cells": [
           "automated behaviors and triggers in their cloud",
-          "routines by schedule or connected app event; local runs need the app awake"
+          "routines by schedule or connected app event; local runs need your computer awake and the app open"
         ],
         "src": [
           1,
@@ -148,11 +150,11 @@
     },
     {
       "h": "check the action you need, not just the app name",
-      "md": "zapier agents lists 9,000+ apps.[^1] dusk lists 60+ connected apps.[^6] the larger catalogue is a real reason to investigate zapier first when you have an unusual tool. it does not establish that every action you need is available or that every app works the same way.\n\nbefore switching, write down the exact read, draft or change you need from each connection. this comparison has not checked those individual actions. avoid rebuilding a working process until you know its essential operation exists in the new tool.\n\nfor dusk, a bot can be limited to read-only app access or an exact list of actions. sends ask first unless you allow a daily amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. for other app changes, use read-only access or write \"ask me before you change anything\" into the job.[^6]"
+      "md": "zapier agents lists 9,000+ apps.[^1] dusk lists 60+ connected apps.[^6] the larger catalogue is a real reason to investigate zapier first when you have an unusual tool. it does not establish that every action you need is available or that every app works the same way.\n\nbefore switching, write down the exact read, draft or change you need from each connection. this comparison has not checked those individual actions. avoid rebuilding a working process until you know its essential operation exists in the new tool.\n\nfor dusk, a bot can be limited to read-only app access or an exact list of actions. sends ask first unless you allow a daily amount. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it. the sending setting doesn't cover other app changes. to keep them supervised, give the bot read-only access or write \"ask me before you change anything\" into the job.[^6][^11]"
     },
     {
       "h": "make a handoff you can inspect",
-      "md": "one low-stakes trial is a document review: \"look through these attached supplier notes. pull out unanswered questions and flag conflicting delivery dates. leave every original file as it is.\" this is a proposed message, not a sample result. dusk supports attaching documents, and a bot keeps its own chats and memory.[^4][^6]\n\nif phone conversation is the reason you are looking elsewhere, compare the actual channel. dusk uses its own app and a paired phone browser today; its store apps are still on the way.[^5] the [assistants you text comparison](/alternatives/ai-assistant-you-text) covers products available through messaging apps. do not assume that \"ai teammate\" means an imessage contact. when choosing a dusk bot's ai, check that provider's current terms for your intended use."
+      "md": "one low-stakes trial is a weekly file review: \"every friday at 3, list the files you made in your folder this week. give me each filename and one line on what it contains. leave the files as they are.\" dusk bots keep the files they make in their own folders, along with their own chats and memory.[^4][^6]\n\nif phone conversation is the reason you are looking elsewhere, compare the actual channel. dusk uses its own app and a paired phone browser today; its store apps are still on the way.[^5] the [assistants you text comparison](/alternatives/ai-assistant-you-text) covers products available through messaging apps. when choosing a dusk bot's ai, check that provider's current terms for your intended use."
     }
   ],
   "faq": [
@@ -166,7 +168,7 @@
     },
     {
       "q": "is a zapier task the same as an agents activity?",
-      "a": "they are separate allowances on the pricing page.[^2] zapier doesn't publish an exact conversion or how many activities a job uses. use the meter for the product you are buying and ask for a worked billing example."
+      "a": "the pricing page lists them as separate allowances.[^2] ask zapier for a worked example for your own process."
     }
   ],
   "sources": [

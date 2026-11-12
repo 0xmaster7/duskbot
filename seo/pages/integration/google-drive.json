@@ -33,7 +33,7 @@
   "app": {
     "name": "Google Drive",
     "toolkit": "googledrive",
-    "intro": "give the bot a folder or a file description, then ask it to return evidence you can recognise: name, location and metadata available from the lookup. a file with the newest date is only a candidate for the current version until your naming or approval rule confirms it.",
+    "intro": "give the bot a folder or a file description, then ask it to return evidence you can recognise: name, folder and last-changed date. a file with the newest date is only a candidate for the current version until your naming or approval rule confirms it.",
     "highlight": [
       {
         "slug": "GOOGLEDRIVE_FIND_FILE",
@@ -91,17 +91,17 @@
       "output": "a proposed filing plan in chat"
     }
   ],
-  "asks": "file searches and permission reviews can stay read only. that permission blocks folder creation, moves and sharing changes before they reach google drive. a filing proposal in your chat does not require access to perform the moves.\n\nif you enable file moves later, write \"ask me before you change anything\" into the routine. moving a file or changing its sharing is not documented as asking first automatically. sends through connected apps have a separate approval setting, which does not establish the rules for file maintenance. use a precise action allowance for a bot that only needs one kind of change.",
+  "asks": "file searches and permission reviews can stay read only. that permission blocks folder creation, moves and sharing changes before they reach google drive. a filing proposal in your chat does not require access to perform the moves.\n\nif you enable file moves later, write \"ask me before you change anything\" into the routine. moving a file or changing its sharing is not documented as asking first automatically. comments and replies on files count as sends and follow your sending setting (a bot on **Full access** with no sending rule may send up to 25 a day without asking, so set **Ask every time** for it). moving files and changing sharing don't ask.[^3] use a precise action allowance for a bot that only needs one kind of change.\n\nread and write access also lets a bot delete files, empty the trash or share a file with anyone, without asking. for filing work, give it an exact action list with only **Move File** and **Create a folder**.",
   "cannot": [
     "treat read permission as permission to move, rename or share files. the first reviews here are intended to run without those capabilities.",
-    "call every export action while read only. the google workspace export action is classified as a change in this catalog, so choose an explicit allowance if that export is needed.",
+    "export a google doc, sheet or slide while read only. dusk counts that export as a change, so allow just that one action if you need it.",
     "assume a found file is the approved one just because its title or date looks right. require your approval rule and return ambiguous candidates for you to choose.",
     "run an unattended filing review when your own computer sleeps or dusk bot is closed. dusk cloud can keep scheduled work running while the local computer is off."
   ],
   "sections": [
     {
       "h": "find first, organise second",
-      "md": "begin with a list of candidates and ask what would happen to each file. use a naming rule you can read, such as which folder receives signed documents. unknown cases should stay in the review list. see [file organisation](/use-cases/file-organizer) for a broader routine.\n\nif the job is about rows and formulas rather than file location, use the separate [google sheets integration](/integrations/google-sheets). drive file actions do not by themselves establish cell-editing tools."
+      "md": "begin with a list of candidates and ask what would happen to each file. use a naming rule you can read, such as which folder receives signed documents. unknown cases should stay in the review list. see [file organisation](/use-cases/file-organizer) for a broader routine.\n\nif the job is about rows and formulas rather than file location, use the separate [google sheets integration](/integrations/google-sheets). for cell edits, use the dedicated sheets connection; drive also has spreadsheet-value actions, so keep those off a filing bot's action list."
     },
     {
       "h": "explain what current means",
@@ -143,6 +143,8 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   }
 }

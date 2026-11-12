@@ -120,7 +120,7 @@
       }
     ]
   },
-  "method": "we publish dusk bot, and this is a documented feature comparison rather than a test of output quality. we did not run identical tasks in cowork and dusk bot. vendor claims come from the saved sources checked on 12 november 2026. where older desktop advice conflicts with the newer cloud-task docs, this page uses the newer behaviour and names the affected plans.",
+  "method": "we publish dusk bot, and this is a documented feature comparison rather than a test of output quality. we did not run identical tasks in cowork and dusk bot. anthropic's details come from its pages, checked on 12 november 2026. where older desktop advice conflicts with the newer cloud-task docs, this page uses the newer behaviour and names the affected plans.",
   "sections": [
     {
       "h": "cowork vs claude code is a different question",
@@ -128,7 +128,7 @@
     },
     {
       "h": "a fair first task is a document review",
-      "md": "try a narrow request with files you are comfortable sharing: \"read these two versions of the proposal. list changed promises and questions i need to answer. do not edit either file.\" this asks for a review you can check against the originals. it makes no promise about which product will produce the better answer.\n\nin dusk bot, attach the documents and start the bot on **Ask for approval** for command and file changes. if you connect an app, give this reviewer read-only access. that restriction is separate from command approvals; it prevents app actions that change things.[^7][^13]"
+      "md": "try a narrow request with files you are comfortable sharing: \"read these two versions of the proposal. list changed promises and questions i need to answer. do not edit either file.\" this asks for a review you can check against the originals.\n\nin dusk bot, attach the documents and start the bot on **Ask for approval** for command and file changes. if you connect an app, give this reviewer read-only access. that restriction is separate from command approvals; it prevents app actions that change things.[^7][^13]"
     },
     {
       "h": "do not choose from an old laptop-sleep comparison",
@@ -137,8 +137,8 @@
   ],
   "faq": [
     {
-      "q": "is claude cowork free or paid?",
-      "a": "as of 12 november 2026, cowork requires a paid claude plan. pro costs $20 a month on monthly billing. there is no separate cowork price.[^3][^4] dusk bot is free for personal use on your computer; work use needs a work license.[^11]"
+      "q": "can i switch new cowork tasks back to my computer?",
+      "a": "as of 12 november 2026, no. since 6 october 2026, new cowork tasks on pro, max and ultra run in the cloud. anthropic removed the **Only on your computer** option, and you cannot switch back.[^2]"
     },
     {
       "q": "does cowork stop when my laptop is closed?",
@@ -146,7 +146,7 @@
     },
     {
       "q": "can i run claude and another ai as separate teammates?",
-      "a": "in dusk bot, each bot has its own ai choice, and group chats let bots work in the same thread.[^6][^10] check each provider's current terms for the way you sign in and run it. this comparison does not establish provider permission for a particular routine."
+      "a": "in dusk bot, each bot has its own ai choice, and group chats let bots work in the same thread.[^6][^10] check each provider's current terms for the way you sign in and run it."
     }
   ],
   "sources": [
@@ -218,7 +218,9 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "connectors": []
 }

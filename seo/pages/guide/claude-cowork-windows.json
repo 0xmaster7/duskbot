@@ -13,7 +13,9 @@
   "answer": "yes. as of 12 november 2026, anthropic lists claude desktop for windows, macos and linux beta on all paid plans for cowork. the old mac-only description is out of date. anthropic is also bringing cowork and chat together under claude. choose based on the platform and where the task runs, rather than an old tutorial's tab names.[^1][^2]",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "windows",
@@ -39,11 +41,11 @@
   "sections": [
     {
       "h": "windows is supported, not a workaround",
-      "md": "anthropic's release notes say cowork became generally available on macos and windows on **9 april 2026**. the platform support page checked on 12 november 2026 lists claude desktop on windows among the supported paid-plan options. you do not need to assume a mac is required because an early article says so.[^1][^3]\n\nthat answers the platform question. it does not establish minimum windows hardware, a supported processor list or installer permissions. check those requirements with the vendor before choosing a machine. this guide does not fill in missing requirements by borrowing them from a different desktop app."
+      "md": "anthropic's release notes say cowork became generally available on macos and windows on **9 april 2026**. the platform support page checked on 12 november 2026 lists claude desktop on windows among the supported paid-plan options. you do not need to assume a mac is required because an early article says so.[^1][^3]\n\nanthropic's page doesn't list hardware needs, so check those before you pick a machine."
     },
     {
       "h": "linux is listed as beta",
-      "md": "the current support page lists **linux (beta)** for claude desktop, alongside macos and windows, on all paid plans. it also lists web and mobile on pro, max, ultra and team, with team marked beta there, and a claude in chrome side panel.[^1]\n\nbeta is part of the support description and should stay visible when weighing the choice. the cited facts do not specify a linux distribution or package format for claude desktop. if your decision depends on a particular distribution, confirm that detail before installing. support for linux in general is not evidence for every distribution."
+      "md": "the current support page lists **linux (beta)** for claude desktop, alongside macos and windows, on all paid plans. it also lists web and mobile on pro, max, ultra and team, with team marked beta there, and a claude in chrome side panel.[^1]\n\nbeta is part of the support description and should stay visible when weighing the choice. anthropic's download page lists the linux beta for ubuntu and debian.[^8] support for linux in general is not evidence for every distribution."
     },
     {
       "h": "desktop availability does not mean the task stays local",
@@ -51,7 +53,7 @@
     },
     {
       "h": "why the cowork label may look different",
-      "md": "anthropic now describes cowork and chat as one claude. when a task involves working with files, claude brings in cowork automatically. older screenshots may therefore use a label that is less prominent in the current experience.[^2]\n\ncowork is included on paid plans: pro, max, ultra, team and enterprise. anthropic's pricing page shows no separate cowork add-on price. use the [pricing guide](/guides/claude-cowork-pricing) to compare the current consumer tiers. check plan access and platform support together; an app being downloadable does not make every feature available on every plan.[^4]"
+      "md": "as of 12 november 2026, anthropic's cowork page says claude cowork is now just claude, rolling out to pro, max and ultra first. when a task needs files, claude brings in cowork on its own.[^2]\n\ncowork is included on paid plans: pro, max, ultra, team and enterprise. cowork comes with the plan at no extra price.[^9] use the [pricing guide](/guides/claude-cowork-pricing) to compare the current consumer tiers. check plan access and platform support together; an app being downloadable does not make every feature available on every plan.[^4]"
     },
     {
       "h": "dusk bot on windows and ubuntu",
@@ -59,7 +61,7 @@
     },
     {
       "h": "choose the home for the work",
-      "md": "with dusk bot on your own computer, routines stop when the computer sleeps or the app closes. dusk cloud is a hosted computer that keeps them running, or you can look after your own server. moving the bot changes which computer must remain awake; it does not put ai usage on the dusk bill.[^7]\n\nfor occasional file work at your desk, begin with the supported app on the machine you have. for recurring work while travelling, check the hosting arrangement. for linux, keep both products' beta labels in mind. this page establishes listed platform support; it does not claim to have tested every operating system, installer or device."
+      "md": "with dusk bot on your own computer, routines stop when the computer sleeps or the app closes. dusk cloud is a hosted computer that keeps them running, or you can look after your own server. moving the bot changes which computer must remain awake; it does not put ai usage on the dusk bill.[^7]\n\nfor occasional file work at your desk, begin with the supported app on the machine you have. for recurring work while travelling, check the hosting arrangement. for linux, keep both products' beta labels in mind. we haven't tested either app on every system."
     }
   ],
   "faq": [
@@ -69,11 +71,11 @@
     },
     {
       "q": "can i use claude cowork on linux?",
-      "a": "anthropic lists claude desktop for linux beta on all paid plans as of 12 november 2026. the cited facts do not name supported distributions.[^1]"
+      "a": "anthropic lists claude desktop for linux beta on all paid plans as of 12 november 2026. anthropic's download page lists the linux beta for ubuntu and debian.[^1][^8]"
     },
     {
       "q": "does dusk bot need administrator rights on windows?",
-      "a": "the documented windows 10 or 11, 64-bit installer needs no admin rights. that statement applies to dusk bot's installer.[^5]"
+      "a": "the documented windows 10 or 11, 64-bit installer needs no admin rights.[^5]"
     }
   ],
   "sources": [
@@ -108,6 +110,16 @@
     {
       "label": "dusk bot docs: dusk cloud",
       "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "anthropic: claude downloads",
+      "url": "https://claude.com/download",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: claude pricing",
+      "url": "https://claude.com/pricing",
+      "checked": "2026-11-12"
     }
   ]
 }

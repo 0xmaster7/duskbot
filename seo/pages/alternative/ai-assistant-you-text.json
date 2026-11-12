@@ -12,10 +12,12 @@
     "ai assistant whatsapp",
     "personal ai assistant whatsapp"
   ],
-  "answer": "an ai assistant you text can mean a contact in imessage, an agent linked to whatsapp or telegram, or bots inside their own app. poke fits the contact model. openclaw and hermes connect messaging apps to an agent you can run yourself. genspark claw offers chat channels with cloud or local work. dusk bot keeps the conversation in its own app. choose both where you want to talk and where the work should run.",
+  "answer": "an ai assistant you text can mean a contact in imessage, an agent linked to whatsapp or telegram, or bots inside their own app. poke fits the contact model. poke is joining cognition (announced 23 july 2026).[^3] openclaw and hermes connect messaging apps to an agent you can run yourself. genspark claw offers chat channels with cloud or local work. dusk bot keeps the conversation in its own app. choose both where you want to talk and where the work should run.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "texting",
@@ -174,7 +176,7 @@
       }
     ]
   },
-  "method": "we make dusk bot. this channel comparison uses product pages and docs recorded on 12 november 2026. we did not run identical tasks across the five products, test message delivery times or verify every listed channel ourselves. channel availability and hosting are compared separately because receiving a text is not evidence that the underlying job can run with your computer off.",
+  "method": "we make dusk bot. this channel comparison uses product pages and docs checked on 12 november 2026. we did not run identical tasks across the five products, test message delivery times or verify every listed channel ourselves. channel availability and hosting are compared separately because receiving a text is not evidence that the underlying job can run with your computer off.",
   "sections": [
     {
       "h": "if imessage is the requirement, start there",
@@ -182,11 +184,11 @@
     },
     {
       "h": "whatsapp and telegram leave you another decision",
-      "md": "openclaw, hermes and genspark claw all list whatsapp and telegram.[^4][^7][^9] first choose where the agent will live, then check the channel setup. [openclaw](/alternatives/openclaw) runs on your machine or server, while [hermes agent](/alternatives/hermes-agent) also offers a hosted cloud agent through paid nous plans.[^4][^7]\n\n[genspark claw](/alternatives/genspark) offers a dedicated cloud computer or local desktop mode. its cloud setup docs direct you to connect messaging apps through **Channels**.[^9] that does not make local work independent of your computer. keep the hosting decision visible when comparing assistants on a phone. whichever agent you choose, check your model provider's current terms before relying on its sign-in."
+      "md": "openclaw, hermes and genspark claw all list whatsapp and telegram.[^4][^7][^9] first choose where the agent will live, then check the channel setup. [openclaw](/alternatives/openclaw) runs on your machine or server, while [hermes agent](/alternatives/hermes-agent) also offers a hosted cloud agent through paid nous plans.[^4][^7]\n\n[genspark claw](/alternatives/genspark) offers a dedicated cloud computer or local desktop mode. its cloud setup docs direct you to connect messaging apps through **Channels**.[^9] in local mode, your computer still has to be on. keep the hosting decision visible when comparing assistants on a phone. whichever agent you choose, check your model provider's current terms before relying on its sign-in."
     },
     {
       "h": "give the first text a clear boundary",
-      "md": "a first message can establish how you want the assistant to behave: \"help me plan a weekly review. ask which notes to use, show me the proposed schedule, and ask me before you change anything.\" that is a suggested instruction, not a test result or a feature claim about every product.\n\nin dusk, routine creation returns a card showing the schedule and next runs, with **Edit**, **Pause** and **Undo**. inspect that card before depending on the routine.[^15] a desktop routine cannot run while dusk is closed or the computer sleeps. a recent missed run may catch up once; older ones are skipped.[^15]\n\nphone access also has a practical limit: pairing to your computer works only while it is on and running dusk. pair to dusk cloud if you need to talk with the computer off.[^12][^14] a channel is where you give instructions; it is not the computer doing the work."
+      "md": "a first message can establish how you want the assistant to behave: \"help me plan a weekly review. ask which notes to use, show me the proposed schedule, and ask me before you change anything.\" try it as your first message.\n\nin dusk, routine creation returns a card showing the schedule and next runs, with **Edit**, **Pause** and **Undo**. inspect that card before depending on the routine.[^15] a desktop routine cannot run while dusk is closed or the computer sleeps. a recent missed run may catch up once; older ones are skipped.[^15]"
     }
   ],
   "faq": [
@@ -195,16 +197,16 @@
       "a": "poke lists apple messages, and openclaw lists imessage among its channels. poke is hosted; openclaw runs on your own machine or server. check those setup differences before choosing just by channel.[^1][^3][^4]"
     },
     {
-      "q": "how are people running agents from their phone?",
-      "a": "some assistants are hosted and reached through messaging apps; others connect those apps to an agent on a computer or server. dusk pairs its own phone browser to where your bots live. local pairing needs that computer on; cloud pairing works with it off.[^12][^14]"
+      "q": "which ai assistants work in telegram?",
+      "a": "as of 12 november 2026, openclaw, hermes agent and genspark claw all list telegram. check how to connect it and where the agent will run before choosing.[^4][^7][^9]"
     },
     {
       "q": "can an assistant text me first?",
-      "a": "poke describes proactive messages, and its site lists reminders and background automations.[^11] that does not establish the same behaviour for every assistant in the table. check the specific trigger and delivery channel you need."
+      "a": "poke describes proactive messages, and its site lists reminders and background automations.[^11] other assistants may not, so check the one you're choosing. check the specific trigger and delivery channel you need."
     },
     {
       "q": "does dusk bot work in whatsapp?",
-      "a": "no. you talk to dusk bot's bots in its own desktop app, and from your phone through the paired phone app.[^12][^13]"
+      "a": "no. you talk to dusk bot's bots in its own desktop app and from your phone through the paired browser version (store apps are on their way).[^12][^13]"
     }
   ],
   "sources": [

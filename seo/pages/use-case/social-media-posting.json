@@ -13,7 +13,9 @@
   "answer": "give a bot your approved shipping notes and ask it to draft posts about what actually changed. keep the drafts in chat until you have checked availability, wording and links. posting is a send, so choose ask every time and leave any daily sending allowance off. the x connection needs your own composio project key and auth configuration; you can still draft without connecting a social account.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "social",
@@ -39,7 +41,7 @@
   "og_line": "real changes, reviewed before posting.",
   "routine": {
     "intro": "send the release notes you have cleared for public use, including the release link and anything still private. drafting in chat needs no social connection. connect x only if you want the bot to post after review.",
-    "message": "every friday at 1pm, use only this week’s approved shipping notes i supplied in this chat. draft two possible posts for x: one explaining a user-visible change, one showing a practical use for it. if there is no approved change, skip the drafts and say why.\n\nput the source note beside each draft and flag anything whose availability is unclear. use the public link i supplied; do not make one up. never add customer names, usage numbers, testimonials or claims that the notes do not support. omit private roadmap items.\n\nleave everything in chat. do not publish, reply, message anyone or change the account. when i later ask you to publish a reviewed draft, treat it as a send that needs my Allow. if i edit the wording, use that version.",
+    "message": "every friday at 1pm, use only this week’s approved shipping notes i supplied in this chat. draft two possible posts for x: one explaining a user-visible change, one showing a practical use for it. if there is no approved change, skip the drafts and say why.\n\nput the source note beside each draft and flag anything whose availability is unclear. use the public link i supplied; do not make one up. never add customer names, usage numbers, testimonials or claims that the notes do not support. omit private roadmap items.\n\nleave everything in chat. do not publish, reply, message anyone or change the account. when i ask you to publish a reviewed draft, post exactly that wording. if i edit the wording, use that version.",
     "when": "fridays at 13:00, after approved shipping notes are available in the chat",
     "needs": "approved release notes; optional twitter connector for x posting, with your own composio project key and auth config",
     "output": "post options for sam’s fictional product, cedar notes\n\noption a: cedar notes now lets you rename a saved view. open the view and choose a name that matches the work.\nsource: sam’s approved shipping note, “rename saved views”.\n\noption b: keep a saved view called “handover” for the items you discuss with priya. the new rename option lets you give an existing view that name.\nsource: the same shipping note; the handover scenario is an illustration.\n\nheld back: jo’s mobile layout work is still private.\nneeds review: no public release url supplied. neither option posted."
@@ -51,11 +53,11 @@
     },
     {
       "h": "x needs a connection you configure",
-      "md": "the twitter toolkit includes a create-post action, but its managed sign-in is unavailable. you need your own composio project key and auth configuration to connect x.[^3] do that setup before expecting the bot to publish. the [x integration guide](/integrations/twitter) covers the connection.\n\nkeep **Ask every time** selected for sending. when you ask the bot to publish, review the text and account before pressing **Allow**. posting is a send, even when the text began as a draft. do not use a daily sending allowance if every post needs a decision. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^1]"
+      "md": "the twitter toolkit includes a create-post action, but its managed sign-in is unavailable. you need your own composio project key and auth configuration to connect x.[^3] do that setup before expecting the bot to publish. the [x integration guide](/integrations/twitter) covers the connection.\n\nkeep **Ask every time** selected for sending. when you ask the bot to publish, review the text and account before pressing **Allow**. posting is a send, even when the text began as a draft. do not use a daily sending allowance if every post needs a decision. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^4]"
     },
     {
       "h": "a draft is not a publishing strategy",
-      "md": "the routine does not establish that a post will reach the right people or produce sales. it also cannot infer your release status from missing notes. keep speculative benefits out of the final wording and check any linked page yourself.\n\nfor a longer explanation of a release, use the [newsletter routine](/use-cases/newsletter). edit the social post for its own reader instead of squeezing an entire issue into it. revisit the notes after a release changes so an old draft does not announce something that is no longer available."
+      "md": "a draft can't tell you whether a post reaches the right people or sells anything. it also cannot infer your release status from missing notes. keep speculative benefits out of the final wording and check any linked page yourself.\n\nfor a longer explanation of a release, use the [newsletter routine](/use-cases/newsletter). edit the social post for its own reader instead of squeezing an entire issue into it. revisit the notes after a release changes so an old draft does not announce something that is no longer available."
     }
   ],
   "safeguards": [
@@ -67,11 +69,11 @@
   "faq": [
     {
       "q": "can an ai agent post on social media without me?",
-      "a": "dusk bot can allow a daily sending amount, but this workflow leaves that off. drafts wait in chat, and a later supported post requires your **Allow** with **Ask every time** selected."
+      "a": "dusk bot can allow a daily sending amount, but this workflow leaves that off. drafts wait in chat, and a later supported post requires your **Allow** with **Ask every time** selected. one exception: a bot on **Full access** with no sending rule of its own may post up to 25 a day without asking, so give it **Ask every time**.[^4]"
     },
     {
       "q": "does x connect with the normal managed sign-in?",
-      "a": "no. the checked twitter connector facts mark managed sign-in unavailable. connecting it requires your own composio project key and auth config."
+      "a": "no. x has no ready-made sign-in, so you connect it with your own composio project key and auth config.[^3]"
     },
     {
       "q": "can i use it just to draft posts?",

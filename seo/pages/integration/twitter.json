@@ -4,7 +4,7 @@
   "title": "X AI assistant for mentions, source lists and post drafts",
   "nav": "x (twitter)",
   "h1": "an x assistant that brings the conversation to you",
-  "description": "Use Dusk Bot with X for mention reviews, focused searches and post preparation. See the custom connection requirement and what needs approval.",
+  "description": "Use Dusk Bot with X for mention reviews, source lists and post preparation. See the custom connection requirement and what needs approval.",
   "answer": "an x assistant can collect mentions, read posts from a list and help prepare something worth replying to. dusk bot uses the twitter toolkit for these actions, but it is not a ready-made sign-in: you need your own composio project key and auth configuration. once connected, keep research read only and review any posts before they go out.",
   "tags": [
     "social",
@@ -31,11 +31,11 @@
   "app": {
     "name": "X",
     "toolkit": "twitter",
-    "intro": "a focused list or search is easier to review than an open-ended feed. tell the bot whose posts matter and what kind of question deserves your attention. it can gather the source posts before suggesting a reply in your dusk bot chat.",
+    "intro": "a focused source list is easier to review than an open-ended feed. tell the bot whose posts matter and what kind of question deserves your attention. it can gather the source posts before suggesting a reply in your dusk bot chat.",
     "highlight": [
       {
-        "slug": "TWITTER_USER_LOOKUP_ME",
-        "use": "confirm the identity connected to the routine"
+        "slug": "TWITTER_GET_USER_BY_ID",
+        "use": "check the user id you gave the bot before starting the routine"
       },
       {
         "slug": "TWITTER_GET_USER_MENTIONS",
@@ -44,14 +44,6 @@
       {
         "slug": "TWITTER_LIST_POSTS_TIMELINE_BY_LIST_ID",
         "use": "read a named source list for a topic brief"
-      },
-      {
-        "slug": "TWITTER_RECENT_SEARCH",
-        "use": "find recent posts matching the topic and terms you supply"
-      },
-      {
-        "slug": "TWITTER_POST_LOOKUP_BY_POST_ID",
-        "use": "open the source post before discussing a reply"
       },
       {
         "slug": "TWITTER_GET_USER_POSTS",
@@ -66,13 +58,13 @@
         "use": "publish an agreed post under the bot's sending approval setting"
       }
     ],
-    "setup": "as of 12 november 2026, this toolkit has no composio-managed sign-in. set up your own composio project key and auth config under **Settings**, **API keys**. on dusk cloud, ask support first. do not plan a live routine until the connection works and the bot has confirmed the intended x account."
+    "setup": "as of 12 november 2026, this toolkit has no composio-managed sign-in. set up your own composio project key and auth config under **Settings**, **API keys**. do not plan a live routine until the connection works and the bot has confirmed the intended x account."
   },
   "routines_intro": "choose a small source list and a single topic before scheduling these. the first two leave x untouched. the third prepares copy in chat, which you can revise without publishing anything.",
   "routines": [
     {
       "name": "mentions that deserve an answer",
-      "message": "every weekday at 11, review my x mentions. bring me direct product questions and reports of something broken, with the original post and a short reason to answer. skip praise without a question. do not like, follow or reply.",
+      "message": "every weekday at 11, review x mentions for the user id i gave you. bring me direct product questions and reports of something broken, with the original post and a short reason to answer. skip praise without a question. do not like, follow or reply.",
       "when": "weekdays at 11:00",
       "output": "a response queue with source posts"
     },
@@ -84,15 +76,15 @@
     },
     {
       "name": "prepare a useful follow-up",
-      "message": "every friday at 1, read the x posts i published this week. suggest one follow-up that answers an unfinished question. write the proposed copy in our chat and name the earlier post it builds on. do not publish it.",
+      "message": "every friday at 1, read this week's x posts for the user id i gave you. suggest one follow-up that answers an unfinished question. write the proposed copy in our chat and name the earlier post it builds on. do not publish it.",
       "when": "fridays at 13:00",
       "output": "one proposed follow-up for your review"
     }
   ],
-  "asks": "publishing posts and sending messages ask you first by default. you can set a daily amount a bot may send on its own, so keep that setting at asking if you want every publication reviewed. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. draft text in your dusk bot chat does not need an x publishing action.\n\na read-only connection also prevents likes, follows, bookmarks and other changes. do not count on a send approval to supervise those actions. if you enable any of them, write \"ask me before you change anything\" into the routine and narrow its allowed action list to the work you actually want.",
+  "asks": "publishing posts and sending messages ask you first by default. you can set a daily amount a bot may send on its own, so keep that setting at asking if you want every publication reviewed. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^3] draft text in your dusk bot chat does not need an x publishing action.\n\nlikes, retweets and bookmarks count as sends and ask first. follows, mutes and list changes don't, so keep them out of the allowed list. if you enable any of them, write \"ask me before you change anything\" into the routine and narrow its allowed action list to the work you actually want.\n\nsearch and opening a single post aren't available on a read-only connection; opening a post by id counts as a send in dusk and asks first. use the posts returned by mentions, user-post and list reads for the research routines.",
   "cannot": [
-    "connect through a composio-managed sign-in in this catalog. a working custom auth setup is a prerequisite, not a step the routine can skip.",
-    "start from a documented toolkit trigger here: the catalog lists no triggers. use scheduled reads for these routines rather than promising an immediate mention alert.",
+    "connect through a composio-managed sign-in. a working custom auth setup is a prerequisite, not a step the routine can skip.",
+    "start a routine when something happens on x: there are no x events, use scheduled reads for these routines rather than promising an immediate mention alert.",
     "post or follow accounts with read-only permission. permission to research a topic does not give a bot permission to engage with it.",
     "check mentions on a desktop that is asleep. local runs stop with the computer or app; choose dusk cloud if the schedule must continue while you are away."
   ],
@@ -109,7 +101,7 @@
   "faq": [
     {
       "q": "can claude automate twitter through dusk bot?",
-      "a": "a bot using your chosen ai can call the listed x actions after you supply the custom composio connection. the toolkit is named twitter even though this page calls the app x. connection setup comes before automation."
+      "a": "a bot using your chosen ai can call the listed x actions after you supply the custom composio connection. in connected apps it's still listed as twitter. connection setup comes before automation."
     },
     {
       "q": "will it reply to every mention?",
@@ -117,7 +109,7 @@
     },
     {
       "q": "can it alert me the second someone mentions me?",
-      "a": "there is no trigger listed for this toolkit. schedule a mention check and choose a useful cadence. this page does not promise instant monitoring."
+      "a": "there is no trigger listed for this toolkit. schedule a mention check and choose a useful cadence."
     }
   ],
   "sources": [
@@ -141,6 +133,8 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   }
 }

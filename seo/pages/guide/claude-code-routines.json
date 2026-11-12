@@ -14,7 +14,9 @@
   "answer": "claude code routines are now called cloud scheduled tasks. you save a prompt, repositories and connectors, then run that setup on a schedule, through an api call or from a github event. as of 12 november 2026, they run on anthropic-managed infrastructure and are marked research preview. local desktop tasks and the /loop command are different: they depend on your computer staying awake.[^1][^2][^3]",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "claude-code",
@@ -40,7 +42,7 @@
   "sections": [
     {
       "h": "what a saved configuration means",
-      "md": "a prompt is the job you want done. a repository is the project material for a code task. connectors give access to connected systems. a cloud scheduled task saves those choices together so you do not reconstruct the setup for every run.[^1]\n\nfor a non-developer, the first decision is whether the work belongs with a code project at all. a recurring review of project changes may fit that structure. a general household reminder may not need it. the name \"scheduled task\" describes repetition, not a guarantee that the saved task has the context or permissions needed to complete your work."
+      "md": "a prompt is the job you want done. a repository is the project material for a code task. connectors give access to connected systems. a cloud scheduled task saves those choices together so you do not reconstruct the setup for every run.[^1]\n\nfor a non-developer, the first decision is whether the work belongs with a code project at all. a recurring review of project changes may fit that structure. a general household reminder may not need it. a schedule only repeats the job; it doesn't give the task anything it was missing."
     },
     {
       "h": "where to create one, and what is limited",
@@ -48,11 +50,11 @@
     },
     {
       "h": "cloud tasks, local tasks and loop",
-      "md": "- **cloud scheduled tasks:** run on anthropic-managed infrastructure and continue when your laptop is closed.[^1]\n- **desktop local scheduled tasks:** have direct access to your machine's files and tools, but fire only while the app is open and the computer is awake.[^2]\n- **/loop:** repeats a prompt inside an open claude code session, with a minimum interval of one minute. the machine must stay on.[^3]\n\nchoose the place the material lives before choosing the interval. a local folder and a cloud repository are different inputs. the [laptop-closed guide](/agents-when-laptop-closed) explains why the location of the running program matters. a timer cannot keep a sleeping local process working."
+      "md": "- **cloud scheduled tasks:** run on anthropic-managed infrastructure and continue when your laptop is closed.[^1]\n- **desktop local scheduled tasks:** have direct access to your machine's files and tools, but fire only while the app is open and the computer is awake.[^2]\n- **/loop:** repeats a prompt inside an open claude code session, with a minimum interval of one minute. the machine must stay on.[^3]\n\nchoose the place the material lives before choosing the interval. a local folder and a cloud repository are different inputs. the [laptop-closed guide](/agents-when-laptop-closed) explains why the location of the running program matters. a timer cannot keep a sleeping local process working.\n\nbefore following a tutorial, check which one it's about: a code cloud task, a code desktop task, /loop, or a task in claude's main app."
     },
     {
       "h": "cowork scheduled tasks are another feature to recognize",
-      "md": "anthropic also documents scheduled tasks in cowork and the new claude experience. those run saved prompts remotely, including while the computer sleeps. tasks created before 6 october that run on the computer keep running there. each run is its own session and can use connectors, skills and plugins.[^4]\n\nthe [claude scheduled tasks guide](/guides/claude-scheduled-tasks) covers that product path. do not combine instructions for all the schedulers into one tutorial. first identify whether you are looking at a code cloud task, a code desktop task, /loop, or a task in claude's knowledge-work experience."
+      "md": "cowork and the new claude experience run saved prompts remotely, including while the computer sleeps, while tasks created before 6 october 2026 that run on the computer keep running there.[^4]\n\nsee the [claude scheduled tasks guide](/guides/claude-scheduled-tasks)."
     },
     {
       "h": "dusk routines start with a message",
@@ -60,7 +62,7 @@
     },
     {
       "h": "review the result before making it recurring",
-      "md": "write a narrow job with its input, destination and reason to stay quiet. try the underlying task once and check its sources. if the result is missing context, fix that before adding a schedule.\n\nin dusk bot, read-only app access is the strongest starting boundary for a reading routine. if you later allow app changes, include \"ask me before you change anything\" when you want them supervised. sends have their own approval rule, unless you choose a daily amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. repetition should not quietly turn a trial into broader authority.[^6]"
+      "md": "write a narrow job with its input, destination and reason to stay quiet. try the underlying task once and check its sources. if the result is missing context, fix that before adding a schedule.\n\nin dusk bot, read-only app access is the strongest starting boundary for a reading routine. if you later allow app changes, include \"ask me before you change anything\" when you want them supervised. sends have their own approval rule, unless you choose a daily amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^7] don't give a routine more access just because it runs on its own.[^6]"
     }
   ],
   "faq": [
@@ -105,6 +107,10 @@
     {
       "label": "dusk bot docs: files and apps",
       "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: permissions and sends",
+      "url": "/docs/computer"
     }
   ]
 }

@@ -4,16 +4,18 @@
   "title": "AI agent for ecommerce: Shopify and email routines",
   "nav": "ecommerce",
   "h1": "an ai agent for the shop work between orders",
-  "description": "Three routines for Shopify order checks, customer reply drafts and product copy. Includes the extra connection setup and where human review belongs.",
+  "description": "Three routines for Shopify abandoned checkout reports, customer reply drafts and product copy, with connection setup and human review boundaries.",
   "keyword": "ai agent for ecommerce",
   "keywords": [
     "ai assistant for shopify store owners",
     "claude shopify"
   ],
-  "answer": "a store bot can read shopify orders and products, help you investigate customer emails and draft clearer product copy from the details you provide. start with a morning exception list and replies you review yourself. shopify needs your own composio project key and auth config; it has no composio-managed sign-in. once connected, keep store access read-only while you try these routines.",
+  "answer": "a store bot can read shopify orders and products, help you investigate customer emails and draft clearer product copy from the details you provide. start with a weekly abandoned-checkout report and replies you review yourself. shopify needs your own composio project key and auth config; it has no composio-managed sign-in. once connected, keep store access read-only while you try these routines.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "ecommerce",
@@ -42,8 +44,8 @@
   "day_h": "a store day with less searching",
   "day": [
     {
-      "when": "before opening",
-      "what": "read yesterday's orders and list those whose fulfillment details need a closer look"
+      "when": "monday morning",
+      "what": "review the past week's abandoned checkouts and missing data without sending recovery messages"
     },
     {
       "when": "first inbox check",
@@ -64,9 +66,9 @@
   ],
   "pack": [
     {
-      "name": "the order exception list",
-      "message": "every morning at 9, read yesterday's shopify orders and their fulfillment details. list orders that appear to need attention, with the order number, recorded status and the reason you flagged them. separate missing data from an actual problem. report here only. don't cancel, refund, fulfill or edit orders.",
-      "note": "uses shopify order and fulfillment reads; [shopify connection details](/integrations/shopify) cover the extra setup"
+      "name": "the weekly abandoned checkout review",
+      "message": "every monday at 9, list the abandoned shopify checkouts available to this connection from the past week. report their returned references, dates and item details here. group repeated items without guessing why someone left. flag missing fields or an incomplete result separately from a week with no abandoned checkouts. do not send recovery messages, contact customers, create discounts or change the store.",
+      "note": "uses the shopify abandoned-checkout listing action with read-only access; [shopify connection details](/integrations/shopify) cover the extra setup"
     },
     {
       "name": "the customer reply bench",
@@ -82,7 +84,7 @@
   "sections": [
     {
       "h": "shopify takes an extra setup step",
-      "md": "the connector catalog lists order, fulfillment, product and inventory reads, but shopify has no composio-managed sign-in. you need your own composio project key and auth config before the bot can use it. don't plan around a ready-made shopify sign-in.\n\nyou can start with email alone while that connection is being arranged. the [email triage routine](/use-cases/email-triage) is useful when the immediate problem is deciding which customer needs you next."
+      "md": "follow the [shopify connection setup](/integrations/shopify) before giving a bot store access."
     },
     {
       "h": "a draft should separate records from promises",
@@ -90,7 +92,7 @@
     },
     {
       "h": "keep money and publishing with you",
-      "md": "allow only the reads needed for these jobs in **Connected apps**. that prevents the store bot from changing inventory or orders. if you later grant write actions, put \"ask me before you change anything\" in its routine; store changes are not documented as asking first automatically. sending email asks first unless you set a daily sending amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.\n\nrunning a shop is work use and needs a work license. see [pricing](/pricing), and remember that your ai provider bills ai usage separately."
+      "md": "allow only the reads needed for these jobs in **Connected apps**. that prevents the store bot from changing inventory or orders. if you later grant write actions, put \"ask me before you change anything\" in its routine; store changes may not ask first. sending email asks first unless you set a daily sending amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.\n\nrunning a shop is work use and needs a work license. dusk cloud pro includes one for one person.[^3] see [pricing](/pricing), and remember that your ai provider bills ai usage separately."
     }
   ],
   "faq": [

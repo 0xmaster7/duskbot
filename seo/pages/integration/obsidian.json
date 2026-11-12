@@ -13,7 +13,9 @@
   "answer": "there is no obsidian connection to sign in to in dusk bot. the local route is files: obsidian notes are plain markdown, and you can give a bot on your own computer the vault as its project folder. it can help read and organise those notes. the bot's own memory notes also open in obsidian.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "notes",
@@ -39,7 +41,7 @@
   "app": {
     "name": "Obsidian",
     "toolkit": null,
-    "intro": "obsidian work here means working with markdown files on your computer. there is no obsidian connection to sign in to, and no obsidian toolkit behind this page. give a local bot the vault as its project folder, then name the folders and notes it may use. that gives you a practical way to ask about your notes without pretending there is an app-specific action list. separately, the bot keeps its own memory in markdown files, and **Open in Obsidian** opens those notes.",
+    "intro": "obsidian work here means working with markdown files on your computer. there's no obsidian sign-in; the bot works with the files. give a local bot the vault as its project folder, then name the folders and notes it may use. separately, the bot keeps its own memory in markdown files, and **Open in Obsidian** opens those notes.",
     "setup": "keep the bot on the computer that holds the vault and give it the project folder deliberately. start with a request to list the notes it intends to read. ask for findings in chat before asking for file edits.\n\nfor the bot's own memory, open its **Memory** settings. those notes live under `.duskbot/workspaces/<bot>/`; they are separate from a project vault you give it."
   },
   "routines_intro": "these routines use files as their source and return proposals in chat. each gives the bot a narrow reading area, so a loose request to tidy your notes does not become a vault-wide rewrite.",
@@ -65,9 +67,9 @@
   ],
   "asks": "this is local file work, so connected-app read-only settings are not an obsidian permission boundary. use the bot's computer approval settings and begin on **Ask for approval**. **Auto-accept edits** permits file changes, so do not choose it expecting every note edit to pause.\n\nput \"ask me before you change anything\" in a routine that may propose moving or rewriting notes. the separate sending setting covers emails, messages, posts and payments; it is not the control for a markdown edit.",
   "cannot": [
-    "offer an obsidian sign-in or a catalog of native vault actions. there is no toolkit for it here; these jobs operate on the files you give the bot.",
+    "offer an obsidian sign-in or obsidian-specific actions; it works with the note files.",
     "run a local vault routine while that computer is asleep or dusk bot is closed. a phone paired with that machine also needs it awake to reach the bot.",
-    "treat a cloud-shared folder as a writable local vault. the documented cloud folder sharing is a read-only copy, updated while your computer is on. this page's editing route is the project folder on your own computer."
+    "treat a cloud-shared folder as a writable local vault. the documented cloud folder sharing is a read-only copy, updated while your computer is on. for editing, use a project folder on your own computer."
   ],
   "sections": [
     {

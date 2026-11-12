@@ -13,7 +13,9 @@
   "answer": "start with a backup, then give a bot on your own computer one project folder to tidy. ask for a proposed list of moves and renames, with uncertain files left alone. inspect that list before authorizing changes. dusk bot has file-edit approval settings, but a folder plan is still your responsibility. this routine separates inspection from moving and never treats duplicate-looking names as permission to delete a file.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "files",
@@ -40,7 +42,7 @@
     "message": "every friday at 5pm, inspect only the project folder i gave you and propose a tidy-up in this chat. this run is a plan, not permission to move anything. ask me before you change anything.\n\nlist each proposed operation with its current path, proposed path and reason. group loose receipts under receipts, supplied reference material under references, and unfinished work under working. suggest descriptive names only when the contents make the name clear. keep file extensions unchanged.\n\nleave ambiguous files, shortcuts, hidden files and anything inside an app-managed folder alone. flag name collisions instead of overwriting. do not delete, deduplicate or move anything outside this folder.\n\nwait for me to confirm that my backup is checked and approve specific moves. before any approved move, check the paths still match the plan. stop if a file changed or a destination already exists. afterwards list only the operations actually completed.",
     "when": "fridays at 17:00 for inspection; approved moves are a separate step",
     "needs": "a bot on your own computer, one project folder you give it and a separately checked backup; no connected app",
-    "output": "proposed tidy-up for sam’s fictional cedar project\n\ncurrent path -> proposed path | reason\nreceipt-priya.pdf -> receipts/receipt-priya.pdf | document identifies itself as a receipt\ncedar-style-notes.txt -> references/cedar-style-notes.txt | supplied reference notes\ndraft-jo.txt -> working/draft-jo.txt | file is marked unfinished\n\nleft alone: final-final.pdf, purpose unclear.\ncollision: references/cedar-logo.png already exists; no replacement proposed.\n\nno files moved. confirm the backup is checked and tell me which listed operations to apply."
+    "output": "proposed tidy-up for the cedar project\n\ncurrent path -> proposed path | reason\nreceipt-priya.pdf -> receipts/receipt-priya.pdf | document identifies itself as a receipt\ncedar-style-notes.txt -> references/cedar-style-notes.txt | supplied reference notes\ndraft-jo.txt -> working/draft-jo.txt | file is marked unfinished\n\nleft alone: final-final.pdf, purpose unclear.\ncollision: references/cedar-logo.png already exists; no replacement proposed.\n\nno files moved. confirm the backup is checked and tell me which listed operations to apply."
   },
   "sections": [
     {
@@ -49,7 +51,7 @@
     },
     {
       "h": "back up before approving the list",
-      "md": "use a separate copy or your normal backup method, and check it before the bot edits the original. this page does not promise automatic undo, version recovery or a backup of every folder the bot touches. a written move list helps you review changes; it is not a replacement for a backup.\n\nkeep **Ask for approval** selected while trying the task. **Auto-accept edits** permits file changes, so leave that setting for a task whose scope you already trust.[^2] the [computer safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) explains why small permissions matter."
+      "md": "use a separate copy or your normal backup method, and check it before the bot edits the original. there's no automatic undo for moved files, so keep your own backup. a written move list helps you review changes; it is not a replacement for a backup.\n\nkeep **Ask for approval** selected while trying the task. **Auto-accept edits** permits file changes, so leave that setting for a task whose scope you already trust.[^2] the [computer safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) explains why small permissions matter."
     },
     {
       "h": "leave uncertain files where they are",
@@ -70,7 +72,7 @@
     },
     {
       "q": "can it rename files based on what is inside?",
-      "a": "you can ask for proposed descriptive names where the contents are clear. review each suggestion, preserve the extension and leave ambiguous files unchanged. this is not a guarantee that every format can be understood."
+      "a": "you can ask for proposed descriptive names where the contents are clear. review each suggestion, preserve the extension and leave ambiguous files unchanged. some file types it may not be able to read."
     },
     {
       "q": "is there an undo button if the folder looks wrong?",

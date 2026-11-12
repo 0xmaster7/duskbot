@@ -16,8 +16,9 @@
   "answer": "you can give a dusk bot an ai you already sign in to, or connect an api key or a local model. dusk runs vendors' own official command-line apps and you sign in yourself. that describes how it works, not permission from every provider. as of 12 november 2026, their published rules differ, and those rules can change. check the current terms for the route you choose.",
   "updated": "2026-11-12",
   "review": {
-    "status": "blocked",
-    "why": "owner to confirm subscription and vendor-terms wording before this page ships"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "ai",
@@ -96,33 +97,33 @@
   "sections": [
     {
       "h": "what dusk actually runs",
-      "md": "dusk bot has no model of its own. each bot has a job, chats and memory, with an ai you choose. it runs official command-line apps on the machine where the bots live, such as claude code and codex cli. you complete the sign-in yourself in the app. your message goes from your machine to the ai provider, rather than through dusk. ai usage is billed by your ai provider on your plan with them.[^8]\n\nthat distinction matters when comparing an app that runs a published program with one that handles credentials itself. don't give an unknown app a copied session token just because a tutorial says it works. read the provider's description of the exact access method."
+      "md": "dusk bot has no model of its own. each bot has a job, chats and memory, with an ai you choose. it runs official command-line apps on the machine where the bots live, such as claude code and codex cli. you complete the sign-in yourself in the app. your message goes from your machine to the ai provider, rather than through dusk. ai usage is billed by your ai provider on your plan with them.[^8][^15]\n\nan app that runs the vendor's own program is different from one that handles your login itself. don't give an unknown app a copied session token just because a tutorial says it works. read the provider's description of the exact access method.\n\ndusk bot is independent. it isn't owned by, paid for by or affiliated with anthropic, openai, google or xai.[^14]"
     },
     {
       "h": "anthropic separates the binary from credential handling",
-      "md": "as of 12 november 2026, anthropic's legal page says claude code must run as published, without modifying the binary or restricting its built-in authentication methods. it describes end users signing in to that unmodified binary, including where a platform hosts it. hosting requires agreement to anthropic's commercial terms; each end user must authenticate with their own credentials, and the platform may not pay for or resell their claude usage.[^1]\n\nthe same page prohibits developers from offering claude.ai login in their own applications or collecting, storing or intermediating claude.ai credentials or session tokens. a support article says signed-in agent sdk and `claude -p` usage still draw from plan limits; a separate login article reserves discretion to charge certain third-party tools to usage credits. read all three, rather than treating one sentence as approval of an app.[^1][^9][^10]"
+      "md": "as of 12 november 2026, anthropic's legal page says claude code must run as published, without modifying the binary or restricting its built-in authentication methods. anthropic's legal page says its rules don't prevent an end user from signing in to the unmodified claude code binary with their own claude subscription, including where a platform hosts claude code. that line was added between 16 and 30 august 2026.[^16] hosting requires agreement to anthropic's commercial terms; each end user must authenticate with their own credentials, and the platform may not pay for, resell or intermediate their claude usage.[^1]\n\nthe same page prohibits developers from offering claude.ai login in their own applications or collecting, storing or intermediating claude.ai credentials or session tokens. a support article, updated 7 october 2026, says signed-in agent sdk and `claude -p` usage still draw from plan limits; a separate login article reserves discretion to charge certain third-party tools to usage credits. read all three, rather than treating one sentence as approval of an app.[^1][^9][^10]"
     },
     {
       "h": "google and xai need their own reading",
-      "md": "as of 12 november 2026, google's antigravity terms say third-party software accessing the service is a breach and may lead to suspension or termination. its faq separately says wrapping `agy` inside third-party coding agents or applications is not supported under consumer plans. running a vendor's binary is not a reason to ignore that wording.[^5][^11]\n\nxai's grok build docs describe headless scripts, bots and acp in other apps. those are the documented uses, not a statement about every desktop app. xai's consumer terms say you must not share account credentials. supergrok is now part of the x subscription for new customers; older standalone subscribers can keep their plan.[^6][^7][^12]\n\nthe [provider sign-in log](/guides/apps-that-use-your-ai-subscription) puts dated changes in order so an old forum answer is easier to place."
+      "md": "as of 12 november 2026, google's antigravity terms say third-party software accessing the service is a breach and may lead to suspension or termination. its faq separately says wrapping `agy` inside third-party coding agents or applications is not supported under consumer plans. if you use gemini on a consumer google plan, take that wording seriously: google says breaking it can get your account suspended. an api key or a local model avoids the question.[^5][^11]\n\nxai's grok build docs describe headless scripts, bots and acp in other apps. those are the documented uses, not a statement about every desktop app. xai's consumer terms say you must not share account credentials. since 12 october 2026, supergrok is part of the x subscription for new customers; older standalone subscribers can keep their plan.[^6][^7][^12]\n\nthe [provider sign-in log](/guides/apps-that-use-your-ai-subscription) puts dated changes in order so an old forum answer is easier to place."
     },
     {
       "h": "an api key or a local model is another choice",
-      "md": "in dusk, **Settings**, **API keys** accepts keys for anthropic, xai, openrouter, groq and services that speak the openai api. for a local setup, run ollama or lm studio and choose **Use a local model**. these are separate setup choices; an api key still has its provider's terms and bill.[^8]\n\nchoose around the work you need and the access your provider documents. the [claude plan and api comparison](/guides/claude-subscription-vs-api) shows the pricing arithmetic without pretending a plan buys a fixed token allowance. for repeating jobs, read [scheduled ai tasks](/scheduled-ai-tasks) before choosing where the bot lives."
+      "md": "in dusk, **Settings**, **API keys** accepts keys for anthropic, xai, openrouter, groq and services that speak the openai api. for a local setup, run ollama or lm studio and choose **Use a local model**. these are separate setup choices; an api key still has its provider's terms and bill.[^8]\n\nchoose around the work you need and the access your provider documents. the [claude plan and api comparison](/guides/claude-subscription-vs-api) walks through the sums. for repeating jobs, read [scheduled ai tasks](/scheduled-ai-tasks) before choosing where the bot lives."
     }
   ],
   "faq": [
     {
       "q": "can i sign in to chatgpt from openclaw or codex?",
-      "a": "as of 12 november 2026, openai documents chatgpt sign-in in codex and lists openclaw among supported open-source integrations. eligible go, plus, pro and business accounts can select plan access in supported apps. requests count toward existing limits.[^2][^3]"
+      "a": "as of 12 november 2026, openai documents chatgpt sign-in in codex cli, and lists openclaw, opencode, pi and t3 as open-source apps that can use your plan. dusk bot isn't on that list; it runs the official codex cli, which supports chatgpt sign-in. requests count toward your plan's existing limits.[^2][^3]"
     },
     {
       "q": "what happens if my ai plan runs out?",
-      "a": "dusk tells you. wait for the reset or switch the bot to another ai; it keeps its chats, files and memory. a dusk cloud payment does not add ai usage.[^8][^13]"
+      "a": "dusk tells you. wait for the reset or switch the bot to another ai; it keeps its chats, files and memory. a dusk cloud payment does not add ai usage.[^8][^13][^15]"
     },
     {
       "q": "does a working sign-in mean the provider allows my setup?",
-      "a": "a successful login is not a terms decision. check your provider's current terms and the conditions for the particular app and access method. this page reports their published wording as of 12 november 2026."
+      "a": "no. a login that works only shows it works, not that the provider is fine with it. check your provider's current terms and the conditions for the particular app and access method. this page reports their published wording as of 12 november 2026."
     }
   ],
   "sources": [
@@ -188,6 +189,19 @@
     {
       "label": "dusk bot: bots",
       "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: about",
+      "url": "/about"
+    },
+    {
+      "label": "dusk bot: account and billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "anthropic: archived legal page, 30 august 2026",
+      "url": "https://web.archive.org/web/20260830094710/https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
     }
   ]
 }

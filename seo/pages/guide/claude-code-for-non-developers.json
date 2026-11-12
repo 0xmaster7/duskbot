@@ -14,7 +14,9 @@
   "answer": "you can start with claude code without making software your first project. in dusk bot, a bot can think with claude through its official command-line app while you text it in plain words. begin with files you intentionally supply and a result you can inspect. if you want anthropic's own terminal-free knowledge-work experience, cowork, now becoming part of claude, is another route.[^1][^2][^3]",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "beginners",
@@ -44,11 +46,11 @@
     },
     {
       "h": "set up one bot for that job",
-      "md": "in dusk bot, choose **New bot** and give it a name, shape, colour and one job in plain words. choose the ai for the bot. dusk has no model of its own: it runs the vendors' official command-line apps on the machine where the bots live, and you sign in yourself.[^1][^4]\n\nwork with the ai you already sign in to, and check your provider's current terms for the use you intend. do not assume installing a different desktop interface changes those terms. dusk bot can also take an api key or a local model, but you do not need to compare every option before trying one bounded task.[^1]"
+      "md": "in dusk bot, choose **New bot** and give it a name, shape, colour and one job in plain words. choose the ai for the bot. dusk has no model of its own: it runs the vendors' official command-line apps on the machine where the bots live, and you sign in yourself.[^8]\n\nwork with the ai you already sign in to, and check your provider's current terms for the use you intend. do not assume installing a different desktop interface changes those terms. dusk bot can also take an api key or a local model, but you do not need to compare every option before trying one bounded task.[^1]"
     },
     {
       "h": "supply the material deliberately",
-      "md": "drop files into the chat or use **Attach files**. dusk accepts documents, spreadsheets, pictures and screenshots. the work it makes appears in the chat and lives in the bot's folder, or a project folder you give it. use a copy of your first packet if you are experimenting.[^5]\n\nask it to identify what it could read before you request a summary. then ask for an outline with a source for each point and a list of unresolved questions. those are instructions to give the bot, not an example of an output it has already produced. check the outline against the files yourself."
+      "md": "drop files into the chat or use **Attach files**. dusk accepts documents, spreadsheets, pictures and screenshots. the work it makes appears in the chat and lives in the bot's folder, or a project folder you give it. use a copy of your first packet if you are experimenting.[^5]\n\nask it to identify what it could read before you request a summary. then ask for an outline with a source for each point and a list of unresolved questions. check the outline against the files yourself."
     },
     {
       "h": "steer it while it works",
@@ -56,7 +58,7 @@
     },
     {
       "h": "learn from the first correction",
-      "md": "if the summary misses a decision, point to the relevant source and say what was missing. if it uses a tone you dislike, give a precise correction. dusk bots remember what you tell them, and you can read and edit their notes in **Memory**. you can also turn memory off.[^7]\n\nkeep task-specific instructions separate from durable preferences. \"use short paragraphs\" may be useful across work; a deadline in one document may not be. when you have a method worth repeating, read about [skills](/guides/claude-skills) to understand how reusable instructions can help with a repeated method."
+      "md": "if the summary misses a decision, point to the relevant source and say what was missing. if it uses a tone you dislike, give a precise correction. dusk bots remember what you tell them, and you can read and edit their notes in **Memory**. you can also turn memory off.[^7]\n\nkeep task-specific instructions separate from durable preferences. \"use short paragraphs\" may be useful across work; a deadline in one document may not be. when you find a way of working you want to reuse, [skills](/guides/claude-skills) show how to save it."
     },
     {
       "h": "when another interface is a better fit",
@@ -70,7 +72,7 @@
     },
     {
       "q": "do i need to learn programming first?",
-      "a": "for the file-reading exercise here, the useful starting skill is explaining the task and checking the source material. this guide does not ask you to write code or approve commands you do not understand."
+      "a": "no. you won't write code or approve commands you don't understand for this exercise."
     },
     {
       "q": "what should i try before giving it my inbox?",
@@ -107,6 +109,10 @@
     {
       "label": "dusk bot docs: memory",
       "url": "/docs/memory"
+    },
+    {
+      "label": "dusk bot docs: official ai apps and sign-in",
+      "url": "/docs/your-own-server"
     }
   ]
 }

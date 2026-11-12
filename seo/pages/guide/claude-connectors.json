@@ -14,7 +14,9 @@
   "answer": "claude connectors let claude retrieve data and take actions in apps and services. anthropic lists them in its connectors directory, with use cases, read and write capabilities and availability. dusk bot has a separate connected-app flow through composio. decide which task needs access first, then connect the app in the product you will use. a connection in one product is not the setup for another.[^1][^3]",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "claude",
@@ -67,11 +69,11 @@
     },
     {
       "h": "how dusk connected apps differ",
-      "md": "dusk bot connects apps through composio. open **Connected apps**, sign in on the app's own page, then choose which bots may use the connection. each bot can have an app off, read only, or read and write, with an exact action list also possible. reading restrictions are enforced before calls reach the app.[^3]\n\nthis is a separate setup from anthropic's connectors directory. dusk bot does not store the provider tokens for these connections; composio holds them, and **Disconnect** revokes the grant upstream. when comparing instructions, first check which product's connection screen they describe.[^3]"
+      "md": "dusk bot connects apps through composio. open **Connected apps**, sign in on the app's own page, then choose which bots may use the connection. each bot can have an app off, read only, or read and write, with an exact action list also possible. a bot set to read only can't make changes; dusk blocks the call before it reaches the app.[^3]\n\nthis is a separate setup from anthropic's connectors directory. dusk bot does not store the provider tokens for these connections; composio holds them, and **Disconnect** revokes the grant upstream. when comparing instructions, first check which product's connection screen they describe.[^3]"
     },
     {
       "h": "twenty app tasks to consider in dusk bot",
-      "md": "these are suggested jobs grounded in dusk's composio action catalog, not a claim that all twenty are in anthropic's directory. choose the ones your actual work needs.\n\n- **[gmail](/integrations/gmail)**: find messages for one sender before writing a follow-up list.[^4]\n- **google calendar**: find the event you need to prepare for.[^5]\n- **google drive**: find a source file by name before asking for a summary.[^6]\n- **google sheets**: read a spreadsheet range for a small status check.[^7]\n- **[slack](/integrations/slack)**: search messages for a decision you need to trace.[^8]\n- **notion**: search pages and databases for the right project home.[^9]\n- **[github](/integrations/github)**: list issues assigned to you for a work review.[^10]\n- **linear**: list a team's issues before planning the next discussion.[^11]\n- **figma**: retrieve file data for a design handoff check.[^12]\n- **stripe**: list invoices for a billing review, without taking a payment.[^13]\n- **hubspot**: list contacts for a review of your contact records.[^14]\n- **airtable**: list records from the table you want to inspect.[^15]\n- **asana**: get tasks for a status summary.[^16]\n- **outlook**: list messages when your work inbox lives there.[^17]\n- **canva**: list your designs to locate the right asset.[^18]\n- **salesforce**: find contacts by name before preparing account notes.[^19]\n- **youtube**: list channel videos for a content inventory.[^20]\n- **jira**: search issues for a focused project review.[^21]\n- **excel**: list worksheets before choosing the one to read.[^22]\n- **discord**: list your server memberships for an account review.[^23]"
+      "md": "here are twenty small reading jobs dusk bots can do with connected apps. anthropic's directory may offer different ones. choose the ones your actual work needs.\n\n- **[gmail](/integrations/gmail)**: find messages for one sender before writing a follow-up list.[^4]\n- **google calendar**: find the event you need to prepare for.[^5]\n- **google drive**: find a source file by name before asking for a summary.[^6]\n- **google sheets**: read a spreadsheet range for a small status check.[^7]\n- **[slack](/integrations/slack)**: search messages for a decision you need to trace.[^8]\n- **notion**: search pages and databases for the right project home.[^9]\n- **[github](/integrations/github)**: list issues assigned to you for a work review.[^10]\n- **linear**: list a team's issues before planning the next discussion.[^11]\n- **figma**: retrieve file data for a design handoff check.[^12]\n- **stripe**: list invoices for a billing review, without taking a payment.[^13]\n- **hubspot**: list contacts for a review of your contact records.[^14]\n- **airtable**: list records from the table you want to inspect.[^15]\n- **asana**: get tasks for a status summary.[^16]\n- **outlook**: list messages when your work inbox lives there.[^17]\n- **canva**: list your designs to locate the right asset.[^18]\n- **salesforce**: search contacts before preparing account notes.[^19]\n- **youtube**: list channel videos for a content inventory.[^20]\n- **jira**: search issues for a focused project review.[^21]\n- **excel**: list worksheets before choosing the one to read.[^22]\n- **discord**: list your server memberships for an account review.[^23]"
     },
     {
       "h": "connect fewer things, then test the result",
@@ -79,7 +81,7 @@
     },
     {
       "h": "write access is a separate choice",
-      "md": "in dusk bot, sends such as emails, messages, posts and payments ask first unless you choose a daily amount the bot may send on its own. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. that sending rule does not mean every other change asks. labels, page edits and similar changes should stay read-only during a trial, or carry an explicit \"ask me before you change anything\" instruction.[^3]\n\nif a connection is not working, check which product you connected it in, which account you selected and whether that bot is allowed to use it. avoid broadening access just to make an unclear error disappear. the right connection with a small permission set is easier to inspect than several overlapping ones."
+      "md": "in dusk bot, sends such as emails, messages, posts and payments ask first unless you choose a daily amount the bot may send on its own. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it. the sending setting doesn't cover changes like labels or page edits. to keep them supervised, give the bot read-only access or write \"ask me before you change anything\" into the job.[^3][^24]\n\nif a connection is not working, check which product you connected it in, which account you selected and whether that bot is allowed to use it. avoid broadening access just to make an unclear error disappear. the right connection with a small permission set is easier to inspect than several overlapping ones."
     }
   ],
   "faq": [
@@ -210,6 +212,10 @@
       "label": "composio: discord",
       "url": "https://docs.composio.dev/toolkits/discord",
       "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: computer",
+      "url": "/docs/computer"
     }
   ]
 }

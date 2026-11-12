@@ -14,7 +14,9 @@
   "answer": "for email cleanup, start by asking a claude code bot to inspect a small slice of mail and propose changes, with no permission to change it yet. in dusk bot you can connect gmail to that bot as read only. review the full threads before allowing a bounded label change. this is a one-time cleanup method, separate from a daily inbox brief or automatic reply routine.[^1][^2]",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "email",
@@ -48,23 +50,23 @@
     },
     {
       "h": "connect gmail to one bot, read only",
-      "md": "dusk bot can run claude code as the ai app behind a bot you text. choose the bot, connect gmail in **Connected apps**, and allow that bot to read only. sign-in happens on google's page. composio holds the connection; dusk bot does not store the gmail provider tokens.[^1][^3]\n\nif you have more than one account, label them and specify the account in the request. dusk supports up to five usable accounts per app. a successful connection does not mean the bot chose the mailbox you intended. check the account before treating a missing search result as evidence that the mail is absent.[^1]"
+      "md": "dusk bot can run claude code as the ai app behind a bot you text. choose the bot, connect gmail in **Connected apps**, and allow that bot to read only. sign-in happens on google's page. composio holds the connection; dusk bot does not store the gmail provider tokens.[^1]\n\nif you have more than one account, label them and specify the account in the request. dusk supports up to five usable accounts per app. a successful connection does not mean the bot chose the mailbox you intended. check the account before treating a missing search result as evidence that the mail is absent.[^1]\n\nanthropic's terms decide what a claude sign-in may be used for; check them before you automate. its legal page was checked on 12 november 2026.[^6]"
     },
     {
       "h": "inspect threads, not just subject lines",
-      "md": "the gmail catalog includes fetching emails and fetching a message by thread id. ask the bot to inspect the conversation before deciding that an old-looking subject belongs in a cleanup group. a thread can contain a later reply you still need.[^2]\n\nfor each candidate, require the sender, why it matches your scope and the reason for the proposed label. look through the messages yourself before proceeding. the [gmail integration guide](/integrations/gmail) lists the available actions; this walkthrough focuses on the order to use them, rather than repeating every possible inbox routine."
+      "md": "gmail's actions include fetching emails and fetching a message by thread id. ask the bot to inspect the conversation before deciding that an old-looking subject belongs in a cleanup group. a thread can contain a later reply you still need.[^2]\n\nfor each candidate, require the sender, why it matches your scope and the reason for the proposed label. look through the messages yourself before proceeding. the [gmail integration guide](/integrations/gmail) lists the available actions."
     },
     {
       "h": "allow one visible label change",
-      "md": "when the candidate list looks right, choose the exact messages and the label you want. the catalog supports creating a label and modifying email labels. if the bot needs write access for that step, grant only what the task needs, or restrict it to the relevant actions. keep sends and deletion out of the job.[^1][^2]\n\nwrite \"ask me before you change anything\" into the instructions if you want confirmation before each app change. **Ask for approval** for commands and file edits is not a documented guarantee that every label change asks. read-only access is the enforced boundary during the inspection phase.[^1][^4]"
+      "md": "when the candidate list looks right, choose the exact messages and the label you want. gmail's actions support creating a label and modifying email labels. grant only what the task needs, or restrict the bot to the relevant actions. keep deletion and outgoing mail out of the job.[^1][^2]\n\nin dusk, gmail's **Modify email labels** counts as a send, so each one waits for your **Allow** unless you've set a daily amount. **Modify thread labels** and **Batch modify Gmail messages** don't ask. limit the bot to **Modify email labels** and **Create label** for this step.[^2][^4]"
     },
     {
       "h": "check the change before widening the cleanup",
-      "md": "after the label step, ask for a report of the messages changed and anything left unresolved. compare that with gmail. check that messages outside the chosen sender and date range were not included. if the grouping is wrong, stop and correct the criteria before trying another slice.\n\ndo not turn a correct label change into authority to bulk delete. sending asks first in dusk bot unless you choose a daily allowance, but that protection does not automatically cover other mailbox changes. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. approval to send is not the cleanup safeguard here. narrow action access, an explicit instruction and your own inspection are the safeguards.[^1]"
+      "md": "after the label step, ask for a report of the messages changed and anything left unresolved. compare that with gmail. check that messages outside the chosen sender and date range were not included. if the grouping is wrong, stop and correct the criteria before trying another slice.\n\ndo not turn a correct label change into authority to bulk delete. sending asks first in dusk bot unless you choose a daily allowance, but that protection does not automatically cover other mailbox changes. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. narrow action access, the sending setting and your own inspection are the safeguards.[^1][^4]"
     },
     {
       "h": "where the standard connection stops",
-      "md": "gmail filters, the vacation responder, imap or pop, forwarding, send-as and delegates need extra google permissions beyond the standard connection. the bot should tell you about that limit. with your own composio project you can add those permissions; on dusk cloud you ask support.[^1]\n\na label cleanup therefore should not be sold as a complete mailbox-configuration service. it also cannot know why you kept an old message unless you explain it. if your mail is in microsoft rather than google, start with the [outlook integration](/integrations/outlook) and its own actions instead of assuming gmail labels translate directly."
+      "md": "gmail filters, the vacation responder, imap or pop, forwarding, send-as and delegates need extra google permissions beyond the standard connection. the bot should tell you about that limit. with your own composio project you can add those permissions; on dusk cloud you ask support.[^1]\n\na label cleanup won't change your gmail settings. it also cannot know why you kept an old message unless you explain it. if your mail is in microsoft rather than google, start with the [outlook integration](/integrations/outlook) and its own actions instead of assuming gmail labels translate directly."
     },
     {
       "h": "only repeat a method after you understand it",
@@ -78,11 +80,11 @@
     },
     {
       "q": "will it ask before changing labels?",
-      "a": "do not assume that. keep it read-only during inspection, then write \"ask me before you change anything\" if you allow changes and want them supervised. the separate send-approval rule covers sends, not all mailbox edits.[^1]"
+      "a": "single-message label changes ask first, like a send. thread and batch label changes don't, so leave those out of the bot's allowed actions.[^2][^4]"
     },
     {
       "q": "can it set up filters instead?",
-      "a": "filters need additional google permissions beyond the standard connection. a filter action appearing in the catalog does not mean the standard account grant is sufficient.[^1][^2]"
+      "a": "filters need additional google permissions beyond the standard connection. gmail lists a filter action, but the standard connection can't use it.[^1][^2]"
     }
   ],
   "sources": [
@@ -106,6 +108,11 @@
     {
       "label": "dusk bot docs: routines",
       "url": "/docs/routines"
+    },
+    {
+      "label": "anthropic: legal and compliance",
+      "url": "https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
     }
   ]
 }

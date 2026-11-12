@@ -13,7 +13,9 @@
   "answer": "a useful marketing job for a claude code bot starts with material you can check: a campaign brief, approved claims, a content inventory or a spreadsheet you supply. ask it to compare, organize or draft from that material before giving it publishing access. in dusk bot you can text a bot using claude code, attach files and repeat a narrow job with a routine.[^1][^2][^3]",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "marketing",
@@ -44,7 +46,7 @@
     },
     {
       "h": "three bounded jobs to try",
-      "md": "- **brief review:** ask it to identify contradictions between the campaign brief and the approved product facts. require the relevant passage for each concern.\n- **copy review:** ask it to mark claims in a supplied draft that are missing a source, and to separate factual concerns from style suggestions.\n- **content inventory:** provide a file of existing titles and ask it to group overlapping topics before proposing another article.\n\nthese are ways to frame the work, not promises that every answer will be right. pick one job per thread and review the first result closely. for wider discovery, the [market research workflow](/use-cases/market-research) is a different task from reviewing supplied material."
+      "md": "- **brief review:** ask it to identify contradictions between the campaign brief and the approved product facts. require the relevant passage for each concern.\n- **copy review:** ask it to mark claims in a supplied draft that are missing a source, and to separate factual concerns from style suggestions.\n- **content inventory:** provide a file of existing titles and ask it to group overlapping topics before proposing another article.\n\ncheck the first answer closely. pick one job per thread. for wider discovery, the [market research workflow](/use-cases/market-research) is a different task from reviewing supplied material."
     },
     {
       "h": "turn a repeated review into a routine",
@@ -56,11 +58,11 @@
     },
     {
       "h": "give publishing its own decision",
-      "md": "for reviewing source files, the bot needs no social account. if you later connect an app, choose access for that bot only. in dusk bot, reads and drafts can happen freely. sending messages, posts, emails or payments asks first unless you choose a daily amount the bot may send on its own. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^2]\n\nediting a page or changing app records is a different kind of action and is not documented as always asking. keep the app read-only during review, or write \"ask me before you change anything\" into the job. the [social posting workflow](/use-cases/social-media-posting) covers a separate publishing task. approval of one draft is not a reason to remove review from the whole campaign."
+      "md": "for reviewing source files, the bot needs no social account. if you later connect an app, choose access for that bot only. in dusk bot, reads and drafts can happen freely. sending messages, posts, emails or payments asks first unless you choose a daily amount the bot may send on its own. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^5][^2]\n\nthe sending setting doesn't cover changes like editing a page or changing app records. to keep them supervised, give the bot read-only access or write \"ask me before you change anything\" into the job. the [social posting workflow](/use-cases/social-media-posting) covers a separate publishing task. approval of one draft is not a reason to remove review from the whole campaign."
     },
     {
       "h": "what remains an editor’s job",
-      "md": "check names, prices, links, dates and promises against the supplied sources. a bot cannot know an unpublished launch decision you never gave it. it also cannot establish customer results, testimonials or search demand from a blank brief.\n\na draft that reads well can still say the wrong thing. keep unsupported claims out, preserve uncertainty and review the exact version that will be published. when a task needs fresh research rather than supplied material, define that research separately. this guide offers a reviewable way to prepare marketing work, not a ranking promise or a measured claim of time saved."
+      "md": "check names, prices, links, dates and promises against your source files. a bot cannot know an unpublished launch decision you never gave it. it also cannot establish customer results, testimonials or search demand from a blank brief.\n\na draft that reads well can still say the wrong thing. keep unsupported claims out, preserve uncertainty and review the exact version that will be published. when a task needs fresh research rather than supplied material, define that research separately."
     }
   ],
   "faq": [
@@ -70,7 +72,7 @@
     },
     {
       "q": "will a marketing bot publish without asking?",
-      "a": "dusk bot asks before posts and other sends unless you set a daily amount it may send alone. page edits and other app changes need a separate boundary such as read-only access or an explicit ask-first instruction.[^2]"
+      "a": "dusk bot asks before posts and other sends unless you set a daily amount it may send alone. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it. page edits and other app changes aren't covered by the sending setting; keep the app read-only or tell the bot to ask first.[^2][^5]"
     },
     {
       "q": "can the weekly review run when my laptop is shut?",
@@ -94,6 +96,10 @@
       "label": "claude code: cloud scheduled tasks",
       "url": "https://code.claude.com/docs/en/routines",
       "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: computer",
+      "url": "/docs/computer"
     }
   ]
 }

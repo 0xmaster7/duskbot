@@ -9,13 +9,14 @@
   "keywords": [
     "lindy ai alternative",
     "lindy ai pricing",
-    "lindy ai review",
-    "lindy vs zapier"
+    "lindy ai review"
   ],
   "answer": "lindy is worth keeping on your shortlist when you want a hosted employee across work tools, broad integrations and pooled team credits. dusk bot is a different fit: a small team of named bots, with an ai you choose for each and a separate provider bill. the comparison is not simply paid versus free. dusk's free desktop use is personal; work needs a license, and hosting costs extra.[^1][^2][^3][^4]",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "lindy",
@@ -154,33 +155,33 @@
       }
     ]
   },
-  "method": "we make dusk bot. this comparison uses lindy's recorded homepage and pricing facts checked on 12 november 2026, alongside dusk docs. we did not build identical workflows or measure task success. integration totals are each product's published count, not a count using one common definition. lindy's pricing page uses some inconsistent plan names, so we have not assigned computer-use features to a tier.",
+  "method": "we make dusk bot. this comparison uses lindy's homepage and pricing page, checked on 12 november 2026, alongside dusk docs. we did not build identical workflows or measure task success. integration totals are each product's published count, not a count using one common definition. lindy's pricing page uses some inconsistent plan names, so we have not assigned computer-use features to a tier.",
   "sections": [
     {
       "h": "why lindy can still be the better fit",
-      "md": "lindy describes a work assistant available in places a team may already use, including slack and email. its pricing lists 3,000+ integrations, model selection and scheduled routines.[^1][^2] if you need a particular business tool or delivery channel, verify that first. a lower bill is little help if the replacement cannot reach the tool your process needs.\n\ndusk's documented list is 60+ connected apps and support for adding trusted mcp servers.[^9] that is not evidence of equal coverage. the [lindy versus dusk comparison](/vs/lindy) is the direct next read; the [ai employees guide](/ai-employees) helps you decide what kind of recurring work you actually want to hand over."
+      "md": "lindy describes a work assistant available in places a team may already use, including slack and email. its pricing lists 3,000+ integrations, model selection and scheduled routines.[^1][^2] if you need a particular business tool or delivery channel, verify that first. a lower bill is little help if the replacement cannot reach the tool your process needs.\n\ndusk's documented list is 60+ connected apps and support for adding trusted mcp servers.[^9] check that your tools are on the list. the [lindy versus dusk comparison](/vs/lindy) is the direct next read; the [ai employees guide](/ai-employees) helps you decide what kind of recurring work you actually want to hand over."
     },
     {
       "h": "credits, active users and work licenses",
-      "md": "as of 12 november 2026, lindy team starts at $29.99 per active user monthly for 3,000 credits. credits are pooled and do not roll over; top-ups cost $10 per 1,000 credits.[^2] ask how many people will be active and how much work shares that pool. the listed allowance does not tell us a fixed number of emails, calls or finished workflows.\n\ndusk's personal desktop use is free, with ai billed by the provider. work requires a work license. cloud pro costs $50 monthly and includes one person's work license.[^3][^4][^8] there is no separate work-license price on our pricing page to quote. account for the provider's bill as well as hosting before making a business budget."
+      "md": "as of 12 november 2026, lindy team starts at $29.99 per active user monthly for 3,000 credits. credits are pooled and do not roll over; top-ups cost $10 per 1,000 credits.[^2] ask how many people will be active and how much work shares that pool. the listed allowance does not tell us a fixed number of emails, calls or finished workflows.\n\ndusk's personal desktop use is free, with ai billed by the provider. work requires a work license. cloud pro costs $50 monthly and includes one person's work license.[^3][^4][^8] account for the provider's bill as well as hosting before making a business budget."
     },
     {
       "h": "try one job before designing a whole department",
-      "md": "choose one bounded job that lets you inspect the result. for a dusk bot, attach the material it needs, give it a job in plain words, and read its work in the chat. files it makes appear there; local work lives in its folder or the project folder you give it.[^9]\n\nkeep connected apps read-only during that trial. dusk asks before sends unless you allow a daily amount, but other connected-app changes are not documented as asking first. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^9] that distinction matters more than a broad claim that an assistant is supervised.\n\nfor a [small business](/for/small-business-owners), write down who checks the output and what happens when a run cannot finish. dusk's routines have run history and can be paused; that helps you inspect the job, not guarantee its correctness.[^10]"
+      "md": "choose one bounded job that lets you inspect the result. for a dusk bot, attach the material it needs, give it a job in plain words, and read its work in the chat. files it makes appear there; local work lives in its folder or the project folder you give it.[^9]\n\nkeep connected apps read-only during that trial. dusk asks before sends unless you allow a daily amount, but other connected-app changes are not documented as asking first. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^11]\n\nfor a [small business](/for/small-business-owners), write down who checks the output and what happens when a run cannot finish. dusk's routines have run history and can be paused; that helps you inspect the job, not guarantee its correctness.[^10]"
     }
   ],
   "faq": [
     {
-      "q": "does lindy ai have a free plan?",
-      "a": "the recorded offer is $50 in credits lasting 7 days, rather than an ongoing monthly free allowance. check the current pricing page before expecting a routine to continue free after the trial.[^2]"
+      "q": "how many credits does lindy team include?",
+      "a": "as of 12 november 2026, lindy team starts at $29.99 per active user monthly for 3,000 credits. credits are pooled and do not roll over.[^2]"
     },
     {
       "q": "what do people actually use ai employees for?",
-      "a": "lindy lists email, meetings, leads and reports. narrow that into one job you can review before expanding it. this page compares the advertised scope, not measured results for those jobs.[^1]"
+      "a": "lindy lists email, meetings, leads and reports. narrow that into one job you can review before expanding it.[^1]"
     },
     {
       "q": "is dusk bot cheaper than lindy for work?",
-      "a": "there is no sourced per-task cost comparison here. lindy charges by active users and credits; dusk work use needs a license, ai usage has its own bill, and hosting is optional. free personal use is not the right price to compare with a team deployment.[^2][^3][^4]"
+      "a": "lindy charges by active users and credits; dusk work use needs a license, ai usage has its own bill, and hosting is optional. free personal use is not the right price to compare with a team deployment.[^2][^3][^4]"
     }
   ],
   "sources": [
@@ -225,6 +226,10 @@
     {
       "label": "dusk routine review and history",
       "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: sending and full access",
+      "url": "/docs/computer"
     }
   ]
 }

@@ -89,7 +89,7 @@
       "output": "a release review question list"
     }
   ],
-  "asks": "a read-only jira bot cannot transition issues, assign work or create tickets. it can still inspect available transitions and bring you a proposal. permission to view a workflow does not include permission to move an issue through it.\n\nissue edits and transitions are not documented as asking first by default. if you enable them, write \"ask me before you change anything\" into the routine and restrict which actions it may call. connected-app sends have a separate approval setting that asks by default, unless you give a daily allowance. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. that setting is not a replacement for controlling issue changes.",
+  "asks": "a read-only jira bot cannot transition issues, assign work or create tickets. it can still inspect available transitions and bring you a proposal. permission to view a workflow does not include permission to move an issue through it.\n\nthe sending setting doesn't cover issue edits or transitions. if you enable them, write \"ask me before you change anything\" into the routine and restrict which actions it may call. adding a comment counts as a send. connected-app sends have a separate approval setting that asks by default, unless you give a daily allowance. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^3] that setting is not a replacement for controlling issue changes.",
   "cannot": [
     "transition an issue with read-only access, even if it can list the available transitions. a recommendation and a workflow change are separate jobs.",
     "infer a reopening reason that nobody recorded. comments and changelogs can provide evidence; an absent explanation should remain a question.",
@@ -141,6 +141,8 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   }
 }

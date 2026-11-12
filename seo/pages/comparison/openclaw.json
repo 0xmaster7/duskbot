@@ -43,7 +43,7 @@
   },
   "compare": {
     "h": "from first install to the next morning",
-    "intro": "checked against the saved sources on 12 november 2026. both products support more than one agent; this is a comparison of how you organise them, not a single-agent vs multi-agent claim.",
+    "intro": "as of 12 november 2026. both products support more than one agent; this is a comparison of how you organise them, not a single-agent vs multi-agent claim.",
     "cols": [
       "OpenClaw",
       "Dusk Bot"
@@ -119,11 +119,11 @@
       }
     ]
   },
-  "method": "we make dusk bot and did not run identical tasks in both apps. we used the saved openclaw docs and advisory record checked on 12 november 2026, alongside dusk bot's documented controls. this is not a penetration test, a reliability test or a claim that one product is secure because of its interface. published vulnerabilities need context about versions and fixes.",
+  "method": "we make dusk bot and did not run identical tasks in both apps. we used openclaw's docs and its github security advisories, read on 12 november 2026, alongside dusk bot's documented controls. this is not a penetration test, a reliability test or a claim that one product is secure because of its interface. published vulnerabilities need context about versions and fixes.",
   "sections": [
     {
       "h": "installation and upkeep are different decisions",
-      "md": "openclaw's main install paths use a terminal, but it also has desktop apps that install the pieces for you. its docs call the windows hub app the easiest desktop path.[^2] choosing openclaw does not automatically mean building a docker setup.\n\nafter installation, decide where the gateway lives. openclaw runs on your machine or server and has no first-party hosted tier.[^3] dusk bot also supports your own server, or dusk cloud if you want us to host and look after the computer.[^12] compare that ongoing responsibility before choosing by the install screen."
+      "md": "openclaw's desktop apps install the pieces for you, while terminal paths need node.js 24 or 26.[^2] decide who will maintain the machine afterwards: openclaw has no first-party hosted tier, while dusk offers dusk cloud.[^3][^12]\n\nsee [openclaw without setup](/alternatives/openclaw-no-setup) for the install and hosting choices."
     },
     {
       "h": "separate command approval from app access",
@@ -131,13 +131,13 @@
     },
     {
       "h": "make the first daily job easy to inspect",
-      "md": "begin with files you supply: \"every weekday at 9, read the notes in this project folder and list decisions that still need my answer. leave the files unchanged.\" this is a suggested instruction, not a claim about a measured result. watch the first runs before widening access.\n\ndusk bot shows the routine's schedule and next runs on a card, with **Edit**, **Pause** and **Undo**. a sleeping desktop misses the scheduled time; a run missed by less than 12 hours runs once on return, while older runs are skipped.[^9] [agents with a closed laptop](/agents-when-laptop-closed) explains the hosting choice.\n\nif you are still choosing between open projects, the [openclaw and hermes comparison](/vs/openclaw-vs-hermes-agent) covers routing, subagents and cloud options without assuming either is a worse fit."
+      "md": "begin with files you supply: \"every weekday at 9, read the notes in this project folder and list decisions that still need my answer. leave the files unchanged.\" watch the first runs before widening access.\n\ndusk bot shows the routine's schedule and next runs on a card, with **Edit**, **Pause** and **Undo**. a sleeping desktop misses the scheduled time; a run missed by less than 12 hours runs once on return, while older runs are skipped.[^9] [agents with a closed laptop](/agents-when-laptop-closed) explains the hosting choice.\n\nif you are still choosing between open projects, the [openclaw and hermes comparison](/vs/openclaw-vs-hermes-agent) covers routing, subagents and cloud options without assuming either is a worse fit."
     }
   ],
   "faq": [
     {
-      "q": "why is openclaw so hard to set up?",
-      "a": "terminal paths involve a runtime, onboarding and a running gateway. desktop installers reduce the first part; they install the needed pieces. the remaining decision is where it runs and what access to give it.[^2][^3] this page does not measure setup time."
+      "q": "do i need docker or a terminal for openclaw?",
+      "a": "no docker for the default path, and the desktop apps install the pieces for you. the terminal paths need node.js 24 or 26.[^2]"
     },
     {
       "q": "is openclaw free or paid?",
@@ -145,7 +145,7 @@
     },
     {
       "q": "does dusk bot ask before every change?",
-      "a": "no. command and file approvals are one control, app permissions another, and sending a third. sends ask first unless you allow a daily amount. for other connected-app changes, use read-only access or explicitly instruct the bot to ask before changing anything.[^7][^11]"
+      "a": "no. command and file approvals are one control, app permissions another, and sending a third. sends ask first unless you allow a daily amount. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^11] for other connected-app changes, use read-only access or explicitly instruct the bot to ask before changing anything.[^7][^11]"
     }
   ],
   "sources": [
@@ -212,7 +212,7 @@
     }
   ],
   "type": "comparison",
-  "keyword": "openclaw vs claude code",
+  "keyword": "openclaw vs dusk bot",
   "keywords": [
     "openclaw vs manus",
     "openclaw vs n8n",
@@ -220,7 +220,9 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "connectors": []
 }

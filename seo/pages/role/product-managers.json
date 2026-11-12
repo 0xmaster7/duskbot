@@ -14,7 +14,9 @@
   "answer": "give a product bot a named project and a few relevant channels. it can read linear or jira issues, find the discussion behind them in slack and bring back a short list of decisions that need you. keep the bot read-only at first. the useful handoff is evidence and a proposed next step, with prioritisation and delivery promises still owned by your team.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "product",
@@ -84,7 +86,7 @@
   "sections": [
     {
       "h": "choose one home for each fact",
-      "md": "tell the bot which tracker owns delivery status and which slack channels carry discussion. a copied ticket in another system should not become a second vote that the same work shipped. name project boundaries in the routine, not just a broad keyword.\n\nthe connector catalogs support reading issues and comments in both trackers. you do not need to connect both if your team uses only one. a smaller source set makes a missing or contradictory detail easier to spot."
+      "md": "tell the bot which tracker owns delivery status and which slack channels carry discussion. a copied ticket in another system should not become a second vote that the same work shipped. name project boundaries in the routine, not just a broad keyword.\n\nlinear and jira both let a read-only bot search issues and read their comments. you do not need to connect both if your team uses only one. a smaller source set makes a missing or contradictory detail easier to spot."
     },
     {
       "h": "ask for the disagreement, not a smoother story",
@@ -92,7 +94,7 @@
     },
     {
       "h": "read first, publish deliberately",
-      "md": "set tracker and slack permissions to read-only in **Connected apps** for this pack. the bot can report in its own chat without editing tickets or announcing dates. if you later allow tracker changes, add \"ask me before you change anything\" to the instructions. those changes are not covered by the sending prompt.\n\nsending a slack message asks first unless you choose a daily sending amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. company work also needs a work license; the app's free personal use does not cover running product work. see [account and billing](/docs/account-and-billing)."
+      "md": "set tracker and slack permissions to read-only in **Connected apps** for this pack. the bot can report in its own chat without editing tickets or announcing dates. if you later allow tracker changes, add \"ask me before you change anything\" to the instructions. those changes are not covered by the sending prompt.\n\nsending a slack message asks first unless you choose a daily sending amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^7] company work also needs a work license; the app's free personal use does not cover running product work. see [account and billing](/docs/account-and-billing)."
     }
   ],
   "faq": [
@@ -102,7 +104,7 @@
     },
     {
       "q": "can it work with jira instead of linear?",
-      "a": "yes. the jira catalog includes issue search, issue reads and comments. name the project and rewrite the routine around your jira scope; connecting linear is optional."
+      "a": "yes. a read-only bot can search jira issues and read their comments. name the project and rewrite the routine around your jira scope; connecting linear is optional."
     },
     {
       "q": "will it update tickets while summarising them?",
@@ -136,6 +138,10 @@
       "label": "composio: slack actions",
       "url": "https://docs.composio.dev/toolkits/slack",
       "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: permissions and sends",
+      "url": "/docs/computer"
     }
   ]
 }

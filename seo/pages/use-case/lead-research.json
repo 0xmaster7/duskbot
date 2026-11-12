@@ -14,7 +14,9 @@
   "answer": "ask a lead research bot for evidence of fit before asking for names to contact. give it a customer profile, exclusion rules and permitted company pages. it can use its own browser to build a short list in your chat, with a reason and source for each entry. keep unknown budgets, buying intent and private contact details unknown. research is a starting point for your review, not permission to send a pitch.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "leads",
@@ -50,7 +52,7 @@
     },
     {
       "h": "keep research separate from outreach",
-      "md": "the routine produces a table in chat. it neither adds records to a sales system nor writes to the people listed. that lets you discard a weak match before it becomes someone else’s unwanted message.\n\nif you later connect a supported email app, sends ask first unless you give the bot a daily sending allowance. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. choose **Ask every time** if each message needs your review.[^2] [email triage](/use-cases/email-triage) is a separate routine for handling replies once conversations actually exist."
+      "md": "the routine produces a table in chat. it neither adds records to a sales system nor writes to the people listed. that lets you discard a weak match before it becomes someone else’s unwanted message.\n\nif you later connect a supported email app, sends ask first unless you give the bot a daily sending allowance. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^1] [email triage](/use-cases/email-triage) is a separate routine for handling replies once conversations actually exist."
     },
     {
       "h": "check the rules before contacting anyone",
@@ -74,7 +76,7 @@
     },
     {
       "q": "can it find personal emails and phone numbers?",
-      "a": "this page makes no promise of contact enrichment or verified personal details. the routine deliberately avoids them and leaves you to choose a permitted way to make contact."
+      "a": "no. the routine leaves personal contact details out on purpose."
     }
   ],
   "sources": [

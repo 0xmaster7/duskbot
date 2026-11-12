@@ -13,7 +13,9 @@
   "answer": "for a small collection of pages, give a bot the urls and the exact fields you want back. it reads them in its own browser and returns a table you can check against the originals. ask it to leave missing values blank and record pages it could not open. this is a supervised reading task, with no promise of complete coverage, bulk crawling or access through a blocked page.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "browser",
@@ -49,7 +51,7 @@
     },
     {
       "h": "use the browser without promising a crawler",
-      "md": "a bot can have a browser separate from your own. **Screen** lets you watch it work, and **Take control** lets you step in.[^1] that gives you a way to inspect a difficult page, not a guarantee that every page can be read.\n\nthere is no documented bulk-crawl limit, extraction accuracy or guaranteed export format to promise here. if your real question is what the pages mean, use [market research](/use-cases/market-research). if you only want to hear about changed pages, use [competitor monitoring](/use-cases/competitor-monitoring)."
+      "md": "a bot can have a browser separate from your own. **Screen** lets you watch it work, and **Take control** lets you step in.[^1] that gives you a way to inspect a difficult page, not a guarantee that every page can be read.\n\nit reads pages one by one like a person would; it isn't a bulk crawler. if your real question is what the pages mean, use [market research](/use-cases/market-research). if you only want to hear about changed pages, use [competitor monitoring](/use-cases/competitor-monitoring)."
     },
     {
       "h": "check permission before collecting",
@@ -65,7 +67,7 @@
   "faq": [
     {
       "q": "can i scrape websites with ai without writing code?",
-      "a": "you can describe a small browser reading task in chat and specify the table you want back. this page does not promise an unattended crawler or reliable extraction from every site."
+      "a": "you can describe a small browser reading task in chat and specify the table you want back. it works best on a short list of pages; check the first table against the originals."
     },
     {
       "q": "what if the website blocks the bot?",

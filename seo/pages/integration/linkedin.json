@@ -4,7 +4,7 @@
   "title": "LinkedIn AI assistant for post reviews, not inbox outreach",
   "nav": "linkedin",
   "h1": "a linkedin assistant with a specific set of tools",
-  "description": "See what Dusk Bot can do with LinkedIn’s 29 catalog actions: post preparation, selected statistics and company lookups, with no inbox messaging action.",
+  "description": "See what a Dusk Bot can do in LinkedIn: draft and publish posts, read page stats and company details. No inbox messages or connection requests.",
   "answer": "the linkedin toolkit has 29 actions as of 12 november 2026. it supports publishing posts, retrieving specified post content, company information and selected statistics. it does not list inbox messaging, connection requests or general people search. use a bot in dusk bot for bounded content and page reviews, with the ai you already sign in to, rather than planning an outreach workflow the actions cannot support.",
   "tags": [
     "professional-social",
@@ -31,7 +31,7 @@
   "app": {
     "name": "LinkedIn",
     "toolkit": "linkedin",
-    "intro": "the catalog is small enough to be specific about the job. give the bot the post or organisation you mean. profile and company lookup actions should not be described as an unrestricted prospect search, and ad targeting search is not people search.",
+    "intro": "linkedin gives a bot a short list of tools, so be specific: name the post or company you mean. it can look up a profile or a company, but it can't search for people.",
     "highlight": [
       {
         "slug": "LINKEDIN_GET_MY_INFO",
@@ -66,7 +66,7 @@
         "use": "send a reviewed comment on a particular post"
       }
     ],
-    "setup": "connect linkedin and ask the bot to confirm its identity before preparing posts. start with reading for a page review, and supply the post references or company details it should inspect. the presence of an action in the catalog does not mean the connected account can retrieve every organisation's private data."
+    "setup": "connect linkedin and ask the bot to confirm its identity before preparing posts. start with reading for a page review, and supply the post references or company details it should inspect. having an action doesn't mean you can see every company's private stats; the bot only gets what your linkedin account can see."
   },
   "routines_intro": "these scheduled jobs begin with posts or organisations you identify. they do not depend on a general feed reader, inbox watcher or prospect search. the suggested copy stays in dusk bot chat.",
   "routines": [
@@ -77,7 +77,7 @@
       "output": "a page review note with the returned reporting period"
     },
     {
-      "name": "follow-up from a supplied post",
+      "name": "follow-up from a post you pick",
       "message": "every wednesday at 2, read the linkedin post references i keep in this chat. propose a follow-up to one that leaves a useful question open. include the source post, the question and proposed wording here. do not publish or comment.",
       "when": "wednesdays at 14:00",
       "output": "one follow-up proposal grounded in a source post"
@@ -94,13 +94,13 @@
     "read or send linkedin inbox messages through this toolkit. there is no direct-message action among the 29 listed actions.",
     "send connection requests or run a general people search here. the ad targeting search action is not a substitute for either.",
     "promise a full feed or comment-inbox digest. the catalog has specified post retrieval, reactions and comment creation, but no general feed reader or comment-listing action.",
-    "start a linkedin event routine from a listed trigger: this catalog has zero triggers. the routines on this page use schedules instead.",
+    "start a routine when something happens on linkedin. there are no linkedin event triggers, so these routines run on a schedule.",
     "run the scheduled page review when your local computer is sleeping. use dusk cloud if the job needs to continue with your desktop off."
   ],
   "sections": [
     {
       "h": "content work needs sources you can point to",
-      "md": "supply the post references and the approved company wording. that gives the bot something concrete to compare instead of asking it to invent what your company should say. for [social media posting](/use-cases/social-media-posting), decide on a review step before allowing publication.\n\nif your goal is [lead research](/use-cases/lead-research), separate that research from this connector. this action list does not establish access to arbitrary people, email addresses or phone numbers."
+      "md": "supply the post references and the approved company wording. that gives the bot something concrete to compare instead of asking it to invent what your company should say. for [social media posting](/use-cases/social-media-posting), decide on a review step before allowing publication.\n\nif your goal is [lead research](/use-cases/lead-research), separate that research from this connector. these actions can't find people, email addresses or phone numbers."
     },
     {
       "h": "ask for a smaller statistics brief",
@@ -118,7 +118,7 @@
     },
     {
       "q": "can it monitor every new comment automatically?",
-      "a": "this catalog lists no triggers and no comment-listing action. use the available post and reaction lookups for a narrower review; do not plan a complete comment-monitoring routine around them."
+      "a": "no. there are no linkedin event triggers and no way to list comments. ask for a review of the posts you name instead."
     }
   ],
   "sources": [
@@ -142,6 +142,8 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   }
 }

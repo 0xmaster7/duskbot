@@ -15,7 +15,9 @@
   "answer": "as of 12 november 2026, claude scheduled tasks can mean different products. current cowork tasks repeat saved prompts remotely. claude code cloud scheduled tasks, formerly routines, package a prompt with repositories and connectors. code desktop also has local tasks, and /loop repeats work inside an open session. check which one you made before blaming laptop sleep or looking for a shared limit.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "claude",
@@ -43,16 +45,16 @@
       "md": "as of 12 november 2026, anthropic says scheduled tasks are available in cowork and the new claude experience on pro, max, ultra, team and enterprise, but not free. they run saved prompts on a recurring basis or on demand. manual setup offers hourly, daily, weekly, weekdays and manual frequencies.[^1]\n\neach run is its own cowork session and can use connectors, skills and plugins. current tasks run remotely even when the computer sleeps or claude desktop is closed. there is a historical exception: tasks created before 6 october that run on your computer keep running there. an old task and a new one may therefore behave differently.[^1]\n\none stated limit is easy to miss: scheduled tasks cannot use linked accounts in personal finance. do not build a routine around that access. use the provider's current task documentation to check suitability, rather than assuming every chat capability carries into a scheduled run.[^1]"
     },
     {
-      "h": "claude code cloud tasks were previously called routines",
-      "md": "as of 12 november 2026, the code docs call these cloud scheduled tasks. a saved configuration contains a prompt, one or more repositories and connectors. triggers can be a schedule, an api call or a github event. create one at claude.ai/code/routines or with `/schedule` in the cli. the feature is a research preview on pro, max, ultra, team and enterprise.[^2]\n\nthey execute on anthropic-managed cloud infrastructure, or an organization's self-hosted environment when routed there. cloud schedules have a minimum interval of one hour. the account limit is 100 scheduled runs per hour; **Run now**, api fires and one-off reruns have a separate limit of 30 per hour per task. runs count against plan usage.[^2]\n\nthe [claude code routines guide](/guides/claude-code-routines) follows that coding-specific setup. do not apply its run limits to cowork just because both interfaces say scheduled tasks."
+      "h": "claude code has separate scheduling tools",
+      "md": "claude code cloud scheduled tasks, formerly routines, run a prompt with repositories and connectors; the [claude code routines guide](/guides/claude-code-routines) covers their setup and limits.[^2]\nclaude code desktop local tasks fire only while the app is open and the computer is awake.[^3]\n`/loop` repeats a prompt within an open claude code session, with a minimum interval of one minute, and still needs the machine on.[^4]"
     },
     {
-      "h": "desktop local tasks and loop still need your machine",
-      "md": "as of 12 november 2026, claude code desktop local tasks have direct access to your machine's files and tools, but fire only while the app is open and the computer is awake. code cloud tasks run with the computer off.[^3]\n\n`/loop` is another separate tool. it reruns a prompt on an interval within an open claude code session, with a minimum interval of one minute. the machine must stay on. use it for something you are watching in a current session, rather than treating it as a durable cloud schedule.[^4]\n\nif you need a different computer to stay available, [running claude code overnight](/run-claude-code-24-7) compares dusk hosting choices with anthropic's own cloud options."
+      "h": "cowork schedules on web and mobile",
+      "md": "as of 12 november 2026, cowork is available on web and mobile on pro, max, ultra and team, with team access in beta. claude desktop supports macos, windows and linux (beta) on all paid plans.[^6]\n\nscheduled tasks are available on pro, max, ultra, team and enterprise in cowork and the new claude experience. you can use a saved prompt on a recurring schedule or run it on demand. each run is its own session and can use connectors, skills and plugins.[^1]\n\nfor web or mobile access, check both your plan and the task's sources before leaving it to repeat. new pro, max and ultra cowork tasks run in the cloud; the **Only on your computer** option was removed from 6 october 2026.[^6]"
     },
     {
       "h": "ten prompts to make smaller",
-      "md": "adapt these to material you have actually provided and capabilities available in the task you chose. they are starting instructions, not example results.\n\n1. 'every monday, turn this product brief into three open questions.'\n2. 'each morning, suggest one experiment for the hypothesis below.'\n3. 'on friday, check these milestones for conflicting dates.'\n4. 'each weekday, explain one clause from this policy in plain words.'\n5. 'every sunday, challenge one assumption in this business plan.'\n6. 'on tuesday, give me a practice customer interview question.'\n7. 'each month, ask whether these project constraints still apply.'\n8. 'every thursday, rewrite one paragraph of this pitch more simply.'\n9. 'each evening, test me on the vocabulary listed here.'\n10. 'on wednesday, propose a checklist for reviewing this kind of document.'\n\nkeep a task focused on one result. include the text it needs, the output length and what to do when context is missing. a good quiet condition is better than a daily page of guesses."
+      "md": "adapt these to your own notes and files.\n\n1. 'every monday, turn this product brief into three open questions.'\n2. 'each morning, suggest one experiment for the hypothesis below.'\n3. 'on friday, check these milestones for conflicting dates.'\n4. 'each weekday, explain one clause from this policy in plain words.'\n5. 'every sunday, challenge one assumption in this business plan.'\n6. 'on tuesday, give me a practice customer interview question.'\n7. 'each month, ask whether these project constraints still apply.'\n8. 'every thursday, rewrite one paragraph of this pitch more simply.'\n9. 'each evening, test me on the vocabulary listed here.'\n10. 'on wednesday, propose a checklist for reviewing this kind of document.'\n\nkeep a task focused on one result. include the text it needs, the output length and what to do when context is missing. a good quiet condition is better than a daily page of guesses."
     },
     {
       "h": "diagnose the task before moving it",
@@ -61,8 +63,8 @@
   ],
   "faq": [
     {
-      "q": "claude cowork is free or paid?",
-      "a": "as of 12 november 2026, cowork scheduled tasks require a paid plan: pro, max, ultra, team or enterprise. free is not included. availability does not mean a run avoids plan usage.[^1]"
+      "q": "can a scheduled task use my personal finance accounts?",
+      "a": "no. as of 12 november 2026, anthropic says scheduled tasks cannot use linked accounts in personal finance. do not assume an account available elsewhere in claude is available to a scheduled run.[^1]"
     },
     {
       "q": "why are claude scheduled tasks not working when my laptop sleeps?",
@@ -97,6 +99,11 @@
     {
       "label": "dusk bot: routines",
       "url": "/docs/routines"
+    },
+    {
+      "label": "anthropic: cowork on web, desktop and mobile",
+      "url": "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile",
+      "checked": "2026-11-12"
     }
   ]
 }

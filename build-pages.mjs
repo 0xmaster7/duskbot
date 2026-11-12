@@ -260,7 +260,7 @@ export function layout({ title, description, body, page, at, section = page, og 
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 <meta name="theme-color" content="#ffffff">${noindex ? '\n<meta name="robots" content="noindex">' : `\n<link rel="canonical" href="${SITE_URL}${address === '/' ? '/' : address}">`}
-<meta property="og:site_name" content="Dusk Bot">
+<meta property="og:site_name" content="dusk bot">
 <meta property="og:type" content="${ogType}">
 <meta property="og:url" content="${SITE_URL}${address}">
 <meta property="og:title" content="${esc(title)}">
@@ -349,7 +349,7 @@ for (const page of pages) {
   });
   const shell = withStrips(fs.readFileSync(path.join(here, 'pages', 'partials', 'changelog-shell.html'), 'utf8'));
   const body = shell.replace('{{entries}}', entries.join('\n')).replace(/\{\{([#^])entries\}\}([\s\S]*?)\{\{\/entries\}\}/g, (_, mark, inner) => ((entries.length > 0) === (mark === '#') ? inner : ''));
-  write('/changelog', layout({ title: "What's new · Dusk Bot", description: 'Every Dusk Bot release, newest first: what changed and what got fixed.', page: 'changelog', kind: 'p-changelog', body }));
+  write('/changelog', layout({ title: "what's new / dusk bot", description: 'Every Dusk Bot release, newest first: what changed and what got fixed.', page: 'changelog', kind: 'p-changelog', body }));
 }
 
 // the legal drafts, each with a list of its sections beside it
@@ -359,7 +359,7 @@ for (const [name, title, short] of legal) {
   const html = markdown(fs.readFileSync(path.join(repo, 'docs', 'legal', `${name}.md`), 'utf8').replace(/Copyright (\d{4}) [^.\n]+\./g, 'Copyright $1 [copyright holder].'));
   const toc = [...html.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)].map((m) => `<li><a href="#${m[1]}">${m[2]}</a></li>`).join('');
   const others = legal.map(([n, , s]) => `<a href="/${n}"${n === name ? ' aria-current="page"' : ''}>${s}</a>`).join('');
-  write(`/${name}`, layout({ title: `${title} · Dusk Bot`, description: `Dusk Bot ${title.toLowerCase()}.`, page: name, section: 'legal', og: 'legal', kind: 'p-legal',
+  write(`/${name}`, layout({ title: `${title.toLowerCase()} / dusk bot`, description: `Dusk Bot ${title.toLowerCase()}.`, page: name, section: 'legal', og: 'legal', kind: 'p-legal',
     body: `<header class="phead wrap"><h1>${title.toLowerCase()}</h1></header>
 ${strip('layers', 'circle blue, hex orange', 'short')}
 <div class="legal-wrap wrap">

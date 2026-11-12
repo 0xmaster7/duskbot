@@ -67,9 +67,9 @@
         "use": "inspect the current authorization when checking which account is connected"
       }
     ],
-    "setup": "connect discord and give the bot read-only access. ask it to confirm your profile first, then provide the server, invite or template you want checked. this avoids building a routine around the wrong account. the sign-in takes place on discord's page; your password does not go to the bot."
+    "setup": "connect discord and give the bot read-only access. ask it to confirm your profile first, then provide the server or template you want checked. invite resolution needs sending permission instead. this avoids building a routine around the wrong account. the sign-in takes place on discord's page; your password does not go to the bot."
   },
-  "routines_intro": "these routines are deliberately about account housekeeping and links you supply. none depends on listening to a channel. name the servers and give the relevant invite or template when setting one up.",
+  "routines_intro": "these routines are deliberately about account housekeeping and links you supply. none depends on listening to a channel. name the servers or give the relevant template or expected linked-account list when setting one up.",
   "routines": [
     {
       "name": "review my server list",
@@ -78,21 +78,21 @@
       "output": "a membership review in dusk bot chat"
     },
     {
-      "name": "check the welcome invite",
-      "message": "every friday at noon, resolve the discord invite i gave you for our welcome email. report the destination it returns and flag a failed lookup. do not create invites or claim the link works if the lookup fails.",
+      "name": "review my linked accounts",
+      "message": "every friday at noon, list the external connections returned for my discord account. compare them with the account list i gave you and flag any differences. leave all account settings unchanged.",
       "when": "fridays at 12:00",
-      "output": "an invite destination check before the next mailing"
+      "output": "a linked-account review in dusk bot chat"
     },
     {
       "name": "prepare a server setup review",
-      "message": "every tuesday at 11, retrieve the discord server template i supplied and its server widget, if available. summarise the returned information for our onboarding review. state which lookup failed rather than filling in missing details.",
+      "message": "every tuesday at 11, retrieve the discord server template i gave you and its server widget, if available. summarise the returned information for our onboarding review. state which lookup failed rather than filling in missing details.",
       "when": "tuesdays at 11:00",
       "output": "a short setup note based on returned data"
     }
   ],
-  "asks": "these lookups do not send a discord message. the toolkit shown here has no send-message action, so enabling write access would not turn the routines into a channel assistant. keep the connection read only for this work.\n\nsome other listed actions change account or application settings. if you give a bot access to those actions, put \"ask me before you change anything\" into its instructions. dusk bot's default approval for sends does not establish an approval rule for account changes. you can disable this app for a bot without changing what the rest of your bots may use.",
+  "asks": "dusk counts resolving an invite as a send, so it waits for your Allow each time, and a read-only bot can't do it. the other checks here are plain reads. the toolkit shown here has no send-message action, so enabling write access would not turn the routines into a channel assistant. keep the connection read only for the routines here. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^3]\n\nthe sending setting doesn't cover changes like account or application settings. to keep them supervised, give the bot read-only access or write \"ask me before you change anything\" into the job.[^3] you can disable this app for a bot without changing what the rest of your bots may use.",
   "cannot": [
-    "read a channel history, search server conversations or summarise yesterday's discussion through this toolkit. no channel-message reading action appears in its catalog.",
+    "read a channel history, search server conversations or summarise yesterday's discussion through this toolkit. this connection has no way to read channel messages.",
     "send channel replies or direct messages here. this is not a way to place a conversational ai teammate inside a discord server.",
     "treat a missing widget result as a full server audit. a routine should report what the lookup returned and what it could not inspect.",
     "perform recurring checks while dusk bot is closed on your own computer. a server-list review waits for a running machine; dusk cloud is an option for scheduled work."
@@ -104,7 +104,7 @@
     },
     {
       "h": "make failed checks useful",
-      "md": "ask for a clear difference between \"this invite resolved to the wrong server\" and \"the invite could not be resolved\". one identifies a destination problem; the other leaves the destination unknown. keep the supplied link in the routine so you can tell which link the bot checked."
+      "md": "ask for a clear difference between \"the linked-account list changed\" and \"the account connections could not be retrieved\". one identifies a change; the other leaves the comparison incomplete. keep the expected account list in the routine so you can tell what the bot compared."
     }
   ],
   "faq": [
@@ -118,7 +118,7 @@
     },
     {
       "q": "what is a useful discord routine if it cannot read chats?",
-      "a": "check a welcome invite you already use, review your own server memberships, or retrieve a supplied server template. these are bounded checks supported by the actions listed here."
+      "a": "review your own server memberships, check your linked accounts, or retrieve a server template you provide. these are bounded checks supported by the actions listed here."
     }
   ],
   "sources": [
@@ -142,6 +142,8 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   }
 }

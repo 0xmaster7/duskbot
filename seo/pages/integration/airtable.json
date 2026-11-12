@@ -69,7 +69,7 @@
     ],
     "setup": "connect airtable in **Connected apps** and give your records bot read-only access for its first review. name the base and table, then ask it to describe the fields it will use. when you later allow writing, use the exact actions the job needs rather than giving an intake bot access to field or table changes."
   },
-  "routines_intro": "these routines use three different tables people often maintain. replace the table references with your own and explain the relevant fields. the messages contain instructions, not invented rows or sample results.",
+  "routines_intro": "these routines use three different tables people often maintain. replace the table references with your own and explain the relevant fields.",
   "routines": [
     {
       "name": "editorial readiness check",
@@ -90,7 +90,7 @@
       "output": "approved intake records after your requested review"
     }
   ],
-  "asks": "the readiness and logistics reviews can stay read only. the intake routine needs record creation, and it explicitly requests your review before adding rows. creating or updating airtable records is not documented as automatically asking first.\n\nkeep field creation, table updates and deletion outside the intake bot's allowed actions. if you enable record edits, write \"ask me before you change anything\" when you want every proposed change reviewed. sends through connected apps ask first by default, with an optional daily allowance, but that rule does not establish approval for changes inside a base. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.",
+  "asks": "the readiness and logistics reviews can stay read only. the intake routine needs record creation, and it explicitly requests your review before adding rows. adding or changing records may not ask first.\n\nkeep field creation, table updates and deletion outside the intake bot's allowed actions. if you enable record edits, write \"ask me before you change anything\" when you want every proposed change reviewed. sends through connected apps ask first by default, with an optional daily allowance, but that setting doesn't cover changes inside a base. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.",
   "cannot": [
     "add intake rows, upload attachments or repair records with read-only access. it can prepare the proposed values in your dusk bot chat instead.",
     "decide what a blank field means without your rule. it might mean not supplied, not needed, or awaiting a decision; tell the routine which cases to flag.",
@@ -104,7 +104,7 @@
     },
     {
       "h": "make intake easy to inspect",
-      "md": "keep approved intake items in a small batch and name the target table. ask the bot to return the destination records after creating them, so you can compare the saved values with what you supplied. a separate [file organisation routine](/use-cases/file-organizer) can help plan where supporting files belong without treating their presence as permission to change a base."
+      "md": "keep approved intake items in a small batch and name the target table. ask the bot to return the destination records after creating them, so you can compare the saved values with what you supplied. a [file organisation routine](/use-cases/file-organizer) can plan where supporting files go."
     }
   ],
   "faq": [
@@ -114,7 +114,7 @@
     },
     {
       "q": "can it add records without changing the table structure?",
-      "a": "you can allow record creation through an exact action list while leaving field and table changes unavailable. the approved intake routine asks you before adding rows because that instruction is explicit, not an automatic approval guarantee."
+      "a": "you can allow record creation through an exact action list while leaving field and table changes unavailable. the approved intake routine asks before adding rows. it asks because the routine tells it to, not because airtable changes always ask."
     },
     {
       "q": "what is a useful airtable routine for everyday work?",
@@ -142,6 +142,8 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   }
 }

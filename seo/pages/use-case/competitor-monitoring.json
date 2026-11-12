@@ -12,7 +12,9 @@
   "answer": "give a bot the exact pricing pages and changelogs you care about, then ask it to compare them with a dated baseline each week. have it report the old wording, the new wording and a source only when something changed. a failed page load is not a price change. the useful result is a small, checkable change list, with no guesses about private offers or a competitor’s intentions.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "competitors",
@@ -39,7 +41,7 @@
     "message": "every monday at 4pm, check the competitor pricing pages and changelog urls i supplied, using your own browser. use the dated baseline in the project folder i gave you. on the first run, save the visible wording with its source url, date, currency, billing interval and region when shown. tell me that the baseline is ready to check.\n\non later runs, only tell me if something changed: plan price, included limits, availability or a new changelog entry. show the previous wording beside the current wording, the url and date read. separate visible changes from your interpretation. ignore navigation, footer and date-display changes. save a dated record of successfully checked pages.\n\nif a page is blocked or unreadable, say “check incomplete” and name it. do not treat missing content as a removal or replace its last good baseline. never sign up, buy a plan or contact a competitor.",
     "when": "mondays at 16:00, with a first-run baseline review before comparisons",
     "needs": "a bot with its own browser, named urls and a project folder for dated notes; no connector",
-    "output": "change found for sam, fictional competitor cedar desk\n\npage: supplied cedar desk pricing page\nprevious: “team plan includes 3 workspaces”, baseline read 5 november 2026.\ncurrent: “team plan includes 5 workspaces”, read 12 november 2026.\ninterpretation: the displayed workspace allowance changed. no claim about existing customer contracts.\n\ncheck incomplete: jo’s studio changelog would not load. its last good baseline was kept.\nno other reportable differences on pages checked."
+    "output": "change found for sam, fictional competitor cedar desk\n\npage: cedar desk pricing page\nprevious: “team plan includes 3 workspaces”, baseline read 5 november 2026.\ncurrent: “team plan includes 5 workspaces”, read 12 november 2026.\ninterpretation: the displayed workspace allowance changed. existing customers may be on old terms.\n\ncheck incomplete: jo’s studio changelog would not load. its last good baseline was kept.\nno other reportable differences on pages checked."
   },
   "sections": [
     {

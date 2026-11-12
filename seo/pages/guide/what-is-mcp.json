@@ -14,7 +14,9 @@
   "answer": "mcp stands for model context protocol. it is an open-source standard for connecting ai applications to external systems. in everyday terms, it gives an ai app a common way to reach tools and data outside the chat. it is a connection standard, not an ai model or a safety certificate. which server you add, and what it can reach, still matter.[^1]",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "mcp",
@@ -51,11 +53,11 @@
     },
     {
       "h": "questions to answer before adding a server",
-      "md": "1. **who operates it?** know whose code or service you are choosing to trust.\n2. **what does it reach?** a single folder, one account or a wider workspace are different decisions.\n3. **what actions does it expose?** distinguish reading from changing and sending.\n4. **what credentials does it need?** do not paste a key into a chat because an unfamiliar instruction asks for one.\n5. **how will you remove access?** find that path before the connection becomes part of a routine.\n\nif an answer is unclear, leave the server out while you investigate. you can still begin with files you intentionally attach. these questions are a practical review, not a claim that mcp automatically enforces any particular approval behavior."
+      "md": "1. **who operates it?** know whose code or service you are choosing to trust.\n2. **what does it reach?** a single folder, one account or a wider workspace are different decisions.\n3. **what actions does it expose?** distinguish reading from changing and sending.\n4. **what credentials does it need?** do not paste a key into a chat because an unfamiliar instruction asks for one.\n5. **how will you remove access?** find that path before the connection becomes part of a routine.\n\nif an answer is unclear, leave the server out while you investigate. you can still begin with files you intentionally attach. mcp itself won't ask you before anything happens; these questions are your check."
     },
     {
       "h": "a skill solves a different problem",
-      "md": "a connection supplies access. a skill supplies instructions and resources for doing a specialized task. if an ai can already see the right document but keeps using the wrong format, a new connection is unlikely to fix the brief. if it has clear instructions but cannot reach the document, another paragraph of instructions will not provide access.\n\nread [claude skills](/guides/claude-skills) for the reusable-method side. keep the distinction when following tutorials: a zip of instructions and a server connection are different things to review, even when someone bundles them into the same setup guide."
+      "md": "if the problem is how the work gets done rather than what the ai can reach, see [claude skills](/guides/claude-skills)."
     },
     {
       "h": "what mcp does not promise",
@@ -65,11 +67,11 @@
   "faq": [
     {
       "q": "do i need to know mcp to use connected apps?",
-      "a": "not for dusk bot's documented connected-app flow. open **Connected apps**, sign in on the app's own page and choose the bots that may use it. adding an mcp server is a separate option under **Plugins**.[^4]"
+      "a": "no. for dusk bot's connected apps, open **Connected apps**, sign in on the app's own page and choose the bots that may use it. adding an mcp server is a separate option under **Plugins**.[^4]"
     },
     {
       "q": "is mcp a claude-only feature?",
-      "a": "no. the official definition describes a standard for connecting ai applications to external systems, rather than a feature limited by definition to one model.[^1]"
+      "a": "no. the official definition describes a standard for connecting ai applications to external systems.[^1]"
     },
     {
       "q": "does an mcp server make my bot safe?",

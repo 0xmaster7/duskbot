@@ -1,53 +1,114 @@
 {
   "path": "/routines/meeting-prep-brief",
   "type": "routine",
-  "title": "Meeting prep brief: context 30 minutes before the call",
+  "title": "Meeting prep briefs: a weekday morning routine",
   "nav": "meeting prep brief",
-  "h1": "a meeting prep brief before an outside call",
-  "description": "Copy a routine for a brief 30 minutes before external meetings: who is attending, recent email context, open promises and questions you still need to ask.",
+  "h1": "meeting prep briefs for outside calls, every weekday at 8",
+  "description": "Copy a weekday 8:00 routine for today’s external meetings: attendees, recent email context, open promises and questions you still need to ask.",
   "keyword": "ai meeting prep brief",
-  "keywords": ["meeting preparation ai assistant", "automated meeting brief", "ai meeting prep routine"],
-  "answer": "ask a bot for a short brief 30 minutes before meetings with people outside your organisation. it reads the calendar entry and your recent email with the attendees, then tells you who they are according to those records, what you last discussed and what is still open. the result stays in your chat. missing background should come back as a question, not a guessed biography.",
+  "keywords": [
+    "meeting preparation ai assistant",
+    "automated meeting brief",
+    "ai meeting prep routine"
+  ],
+  "answer": "ask a bot every weekday at 8 for a brief for each meeting that day with someone outside your organisation. it reads the calendar entries and your recent email with the attendees, then tells you who they are according to those records, what you last discussed and what is still open. the briefs stay in your chat. missing background should come back as a question, not a guessed biography.",
   "updated": "2026-11-12",
-  "review": { "status": "needs_review" },
-  "tags": ["meetings", "routine", "preparation", "email", "calendar"],
-  "connectors": ["googlecalendar", "gmail", "outlook"],
-  "related": ["/integrations/google-calendar", "/integrations/outlook", "/use-cases/daily-briefing"],
-  "art": { "props": ["s-notebook", "s-clock"], "bubble": "before you join" },
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "meetings",
+    "routine",
+    "preparation",
+    "email",
+    "calendar"
+  ],
+  "connectors": [
+    "googlecalendar",
+    "gmail",
+    "outlook"
+  ],
+  "related": [
+    "/integrations/google-calendar",
+    "/integrations/outlook",
+    "/use-cases/daily-briefing"
+  ],
+  "art": {
+    "props": [
+      "s-notebook",
+      "s-clock"
+    ],
+    "bubble": "before you join"
+  },
   "og_line": "the last conversation, before the next one.",
   "routine": {
-    "message": "30 minutes before each meeting with someone outside my organisation, prepare a brief in this chat. use the work calendar and work mailbox i named. treat the internal email domains i give you as internal; ask if the boundary is unclear. skip cancelled events and meetings with only internal attendees.\n\nread the event and recent email threads with the outside attendees. give me:\n- meeting time, purpose and attendees\n- who each outside attendee is, only as stated in the event or email signatures\n- the latest exchange and any explicit promise still open\n- questions worth asking, separate from facts\n\ninclude references to the event and relevant messages. say when you cannot find prior email or confirm someone's role. don't search unrelated personal mail, send anything or change the event.",
-    "when": "30 minutes before a meeting with outside attendees, using the calendar and internal domains you specify",
+    "message": "every weekday at 8, for each meeting today with someone outside my organisation, prepare a brief in this chat. use the work calendar and work mailbox i named. treat the internal email domains i give you as internal; ask if the boundary is unclear. skip cancelled events and meetings with only internal attendees.\n\nread the event and recent email threads with the outside attendees. give me:\n- meeting time, purpose and attendees\n- who each outside attendee is, only as stated in the event or email signatures\n- the latest exchange and any explicit promise still open\n- questions worth asking, separate from facts\n\ninclude references to the event and relevant messages. say when you cannot find prior email or confirm someone's role. don't search unrelated personal mail, send anything or change the event.",
+    "when": "every weekday at 8:00, reviewing today’s meetings against the calendar and internal domains you specify",
     "needs": "google calendar and gmail, or outlook calendar and mail; read-only access to the chosen work accounts",
-    "output": "14:30 call with priya at acme\npurpose: review the draft support agreement, from the event description.\nwho: priya's latest email signature says operations lead. sam is also invited; no role found.\nlast exchange: priya asked whether weekend coverage is included. your latest reply promised to confirm.\nopen promise: coverage answer not found in the messages read.\nquestions to ask: which weekend hours matter to the team?\nsource notes: today's calendar event and the latest acme email thread."
+    "output": "14:30 call with priya at northstar works\npurpose: review the draft support agreement, from the event description.\nwho: priya's latest email signature says operations lead. sam is also invited; no role found.\nlast exchange: priya asked whether weekend coverage is included. your latest reply promised to confirm.\nopen promise: coverage answer not found in the messages read.\nquestions to ask: which weekend hours matter to the team?\nsource notes: today's calendar event and the latest northstar works email thread."
   },
   "knobs": [
     "define outside precisely: list your internal email domains and any partner domains you want treated as internal",
     "set a narrower mail window, such as the past month, if old conversations keep crowding out the current topic",
     "limit the brief to one screen: purpose, last exchange, open promise and a question",
     "exclude sensitive appointments by calendar or title rather than giving the bot every event you keep",
-    "for a one-off meeting, name its exact date and time and check the routine card's next run"
+    "choose a weekday run time before your first outside call and check the routine card’s next runs and time zone"
   ],
   "fails": [
     "it mixes up two people with the same name. require the attendee's exact email address when finding prior conversations, and keep uncertain matches out of the brief.",
-    "the meeting moved after the prep was scheduled. inspect the next run on the routine card and ask the bot to adjust it. don't assume an existing prep run follows every calendar edit automatically.",
+    "a meeting changes after the morning review. ask the bot to refresh that brief before the call; the weekday 8:00 schedule does not automatically follow every calendar edit.",
     "there is no prior email. a short brief saying that is correct. supply your call notes if the last discussion happened elsewhere.",
-    "the brief arrives after you needed it because the computer was asleep. a local run missed by less than 12 hours runs once when you return, which can be too late for preparation. check run history or use an always-on machine."
+    "the 8:00 briefs arrive late because the computer was asleep. a local run missed by less than 12 hours runs once when you return, which can be too late for morning preparation. check run history or use an always-on machine."
   ],
   "sections": [
-    { "h": "a small brief with a clear evidence boundary", "md": "this routine uses the event and mail you already have, not an invented profile of the person. [google calendar](/integrations/google-calendar) provides event reads; [outlook](/integrations/outlook) supports both calendar and message reads. gmail is another supported mailbox. keep each app read-only.\n\nan email signature can be old, so say where a role came from rather than calling it verified current employment. if you need a whole day's overview instead, the [daily briefing](/use-cases/daily-briefing) is a better shape. after sending the message, inspect the schedule card and next runs before relying on the first brief." }
+    {
+      "h": "a small brief with a clear evidence boundary",
+      "md": "this routine uses the event and mail you already have, not an invented profile of the person. [google calendar](/integrations/google-calendar) provides event reads; see [outlook](/integrations/outlook) if that is where your work account lives. gmail is another supported mailbox. keep each app read-only.\n\nan email signature can be old, so say where a role came from rather than calling it verified current employment. if you need a whole day's overview instead, the [daily briefing](/use-cases/daily-briefing) is a better shape. after sending the message, inspect the schedule card and next runs before relying on the first brief."
+    }
   ],
   "faq": [
-    { "q": "will it join the call or record the meeting?", "a": "this routine does neither. it reads the event and prior email to prepare text before you join. no meeting recording or transcript feature is assumed." },
-    { "q": "what happens when my laptop is closed?", "a": "a bot on that laptop cannot run while it sleeps or dusk bot is closed. dusk cloud is an always-on place for bots to live. check the schedule against your time zone as well." },
-    { "q": "can i use outlook without connecting gmail?", "a": "yes. name the outlook work calendar and mailbox in the routine. its connector includes calendar views, event reads, message search and message reads." }
+    {
+      "q": "will it join the call or record the meeting?",
+      "a": "this routine does neither. every weekday at 8 it reads today’s events and prior email to prepare text briefs for your outside meetings."
+    },
+    {
+      "q": "what happens when my laptop is closed?",
+      "a": "a bot on that laptop cannot run the weekday 8:00 review while it sleeps or dusk bot is closed. dusk cloud is an always-on place for bots to live. check the schedule against your time zone as well."
+    },
+    {
+      "q": "can i use outlook without connecting gmail?",
+      "a": "yes. name the outlook work calendar and mailbox in the weekday routine. see the [outlook integration](/integrations/outlook) for the supported reads."
+    }
   ],
   "sources": [
-    { "label": "dusk bot docs: routines and schedule cards", "url": "/docs/routines" },
-    { "label": "dusk bot docs: files and apps", "url": "/docs/files-and-apps" },
-    { "label": "dusk bot docs: dusk cloud", "url": "/docs/dusk-cloud" },
-    { "label": "composio: google calendar actions", "url": "https://docs.composio.dev/toolkits/googlecalendar", "checked": "2026-11-12" },
-    { "label": "composio: gmail actions", "url": "https://docs.composio.dev/toolkits/gmail", "checked": "2026-11-12" },
-    { "label": "composio: outlook actions", "url": "https://docs.composio.dev/toolkits/outlook", "checked": "2026-11-12" }
+    {
+      "label": "dusk bot docs: routines and schedule cards",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "composio: google calendar actions",
+      "url": "https://docs.composio.dev/toolkits/googlecalendar",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: gmail actions",
+      "url": "https://docs.composio.dev/toolkits/gmail",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: outlook actions",
+      "url": "https://docs.composio.dev/toolkits/outlook",
+      "checked": "2026-11-12"
+    }
   ]
 }

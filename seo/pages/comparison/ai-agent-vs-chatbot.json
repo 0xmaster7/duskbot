@@ -39,7 +39,7 @@
   },
   "compare": {
     "h": "a working distinction, not two fixed product categories",
-    "intro": "these columns describe two ways to use ai. the agent column uses documented dusk bot capabilities as concrete examples, not requirements that every agent product meets.",
+    "intro": "these columns describe two ways to use ai. the agent column uses dusk bot as the example; other agents differ.",
     "cols": [
       "A chatbot",
       "An AI agent"
@@ -116,11 +116,11 @@
     },
     {
       "h": "when you need an agent",
-      "md": "the useful result needs more than a reply to the current message. perhaps you want a review of a folder every friday, with a short note about unresolved questions. an agent with the right file access and scheduling can take on that recurring work. dusk bot routines are created through chat and show their next runs on a card.[^4]\n\ntry: \"every friday at 3, review the notes in this project folder. list unanswered questions in this chat. do not change the notes, and stay quiet if there are none.\" [scheduled ai tasks](/scheduled-ai-tasks) covers the point where a repeated prompt becomes a job you need to supervise.\n\nthe task still needs a running machine. dusk desktop routines do not run while the computer sleeps or the app is closed.[^4] the word agent by itself does not promise an always-on service."
+      "md": "the useful result needs more than a reply to the current message. perhaps you want a review of a folder every friday, with a short note about unresolved questions. an agent with the right file access and scheduling can take on that recurring work. dusk bot routines are created through chat and show their next runs on a card.[^4]\n\ntry: \"every friday at 3, review the notes in this project folder. list unanswered questions in this chat. do not change the notes, and stay quiet if there are none.\" [scheduled ai tasks](/scheduled-ai-tasks) covers the point where a repeated prompt becomes a job you need to supervise.\n\nthe task still needs a running machine. dusk desktop routines do not run while the computer sleeps or the app is closed. dusk cloud runs them on time.[^4] the word agent by itself does not promise an always-on service."
     },
     {
       "h": "agent or plain automation?",
-      "md": "ask what parts need interpretation. if the same input should always lead to the same action, write that rule down first. if the work needs reading messy notes and deciding what belongs in a summary, describe the judgement you expect and the evidence it should use. neither task needs a vague instruction to \"handle everything\".\n\nwhen you give a dusk bot access to connected apps, read-only permissions block actions that change things. sending has its own approval setting. other app changes are not documented as asking first, so keep access read-only or say \"ask me before you change anything\".[^3] command and file approvals are separate.[^6]\n\nreview the first runs and stop if the task grows beyond what you intended. the [computer-control safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) helps you choose a narrow boundary before adding more tools."
+      "md": "ask what parts need interpretation. if the same input should always lead to the same action, write that rule down first. if the work needs reading messy notes and deciding what belongs in a summary, describe the judgement you expect and the evidence it should use. neither task needs a vague instruction to \"handle everything\".\n\nwhen you give a dusk bot access to connected apps, read-only permissions block actions that change things. sending has its own approval setting. other changes inside an app may not ask first, so keep access read-only or say \"ask me before you change anything\".[^3] command and file approvals are separate.[^6]\n\nreview the first runs and stop if the task grows beyond what you intended. the [computer-control safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) helps you choose a narrow boundary before adding more tools."
     }
   ],
   "faq": [
@@ -176,7 +176,9 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "connectors": []
 }

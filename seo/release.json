@@ -3,27 +3,30 @@
     {
       "id": "01",
       "week": "2026w46",
-      "label": "seed: pillars, top alternatives, top integrations",
+      "label": "seed: pillars, top alternatives, top integrations, ai sign-in guides",
       "planned": "2026-11-12",
       "released": "2026-11-12"
     },
     {
       "id": "02",
-      "week": "2026w50",
+      "week": "2026w48",
       "label": "wave 1 rest: claude features, more integrations and use cases, first routines",
-      "planned": "2026-12-08"
+      "planned": "2026-11-26",
+      "note": "planned is the earliest day; the release job only releases a cohort once the one before it passes the gate (seo/growth.json)"
     },
     {
       "id": "03",
-      "week": "2026w51",
+      "week": "2026w49",
       "label": "integrations and role pages",
-      "planned": "2026-12-15"
+      "planned": "2026-12-03",
+      "note": "planned is the earliest day; the release job only releases a cohort once the one before it passes the gate (seo/growth.json)"
     },
     {
       "id": "04",
-      "week": "2026w52",
+      "week": "2026w50",
       "label": "the rest of the first 100: guides, comparisons, routines, glossary",
-      "planned": "2026-12-22"
+      "planned": "2026-12-10",
+      "note": "planned is the earliest day; the release job only releases a cohort once the one before it passes the gate (seo/growth.json)"
     }
   ],
   "pages": {
@@ -174,8 +177,9 @@
       "status": "queued"
     },
     "/guides/apps-that-use-your-ai-subscription": {
-      "status": "draft",
-      "note": "held for the owner: subscription and vendor-terms wording (see omb-ref/SEO-SYSTEM.md, open questions)"
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/guides/chatgpt-scheduled-tasks": {
       "cohort": "04",
@@ -222,8 +226,9 @@
       "status": "queued"
     },
     "/guides/claude-subscription-vs-api": {
-      "status": "draft",
-      "note": "held for the owner: subscription and vendor-terms wording (see omb-ref/SEO-SYSTEM.md, open questions)"
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/guides/gemini-scheduled-actions": {
       "cohort": "04",
@@ -449,8 +454,9 @@
       "status": "queued"
     },
     "/use-your-ai-subscription": {
-      "status": "draft",
-      "note": "held for the owner: subscription and vendor-terms wording (see omb-ref/SEO-SYSTEM.md, open questions)"
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
     },
     "/vs/ai-agent-vs-chatbot": {
       "cohort": "04",

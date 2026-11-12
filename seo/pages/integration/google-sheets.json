@@ -102,9 +102,9 @@
       "output": "a coverage check and a chart proposal"
     }
   ],
-  "asks": "updating a range, sorting rows and adding a chart are changes inside sheets. the sending rule does not promise an approval card for them. if you need a checkpoint, make \"ask me before you change anything\" part of the job.\n\nper-bot app permissions can limit available actions before a call reaches google. the catalog includes actions with broad names and mixed read/write classifications; pick the exact actions you need rather than assuming every lookup-like name is available under reading access.",
+  "asks": "updating a range, sorting rows and adding a chart are changes inside sheets. the sending rule does not promise an approval card for them. if you need a checkpoint, make \"ask me before you change anything\" part of the job.\n\nper-bot app permissions can limit available actions before a call reaches google. one catch: sheets' **find and replace** action starts with \"find\", so dusk bot treats it as a read and a read-only bot can still call it, and it changes cells. give a sheets bot an exact action list without it. some lookup-like actions count as changes instead, so pick the exact actions you need.",
   "cannot": [
-    "update, append or format cells when the bot has only read permission. dusk bot checks the action before letting it reach the spreadsheet.",
+    "update, append or format cells when the bot has only read permission, with one exception: **find and replace** counts as a read in dusk bot today, so leave it off a read-only bot's action list.",
     "choose a safe write range from an ambiguous instruction like \"clean this up\". identify the tab, headers and protected working area in your request; review the proposed edits first.",
     "run a monday sheet check while the local app is closed. scheduled desktop work waits for the machine; a run missed by less than 12 hours runs once on return, and older runs are skipped."
   ],

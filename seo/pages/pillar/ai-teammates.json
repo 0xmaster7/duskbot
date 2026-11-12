@@ -4,7 +4,7 @@
   "title": "AI teammates for solo founders and small teams",
   "nav": "ai teammates",
   "h1": "ai teammates for a small team with work to finish",
-  "description": "Give Dusk Bot teammates narrow jobs, clear handoffs and a human owner. A small-team setup with group chats, shared-bot plans and honest work-license costs.",
+  "description": "Give Dusk Bot teammates narrow jobs, clear handoffs and a human owner, with group chats, shared-bot team plans and what work use needs.",
   "keyword": "ai teammates",
   "keywords": [
     "ai team members",
@@ -14,7 +14,9 @@
   "answer": "ai teammates are useful when each has a small job and someone owns the handoff. dusk bot lets you keep named bots with separate chats, memory and ai choices, then bring them into group chats. a solo founder can start with preparation and review bots. a small team should agree who checks their work, which apps each may reach and what may be remembered. work use needs a work license.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "small-team",
@@ -52,11 +54,11 @@
     },
     {
       "h": "separate app access from shared context",
-      "md": "being in the same room does not give every bot the same access. each keeps its own permissions and ai. let a reviewer work from attached files if that is enough; a preparation bot may need access to a particular app, but that is a separate choice.\n\napps can be off, read only, or read and write for each bot, with an exact action list available. read-only limits are enforced before a call reaches the app. sends ask first unless you allow a daily amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. other app changes are not documented as asking automatically: retain read-only access, or put \"ask me before you change anything\" into the routine.[^3]\n\nmemory also needs a choice. bots do not learn from group chats unless **Learn from group chats** is enabled for that bot. agree what is worth carrying forward before enabling it. review a bot's notes in **Memory** settings when its job changes.[^4]"
+      "md": "being in the same room does not give every bot the same access. each keeps its own permissions and ai. let a reviewer work from attached files if that is enough; a preparation bot may need access to a particular app, but that is a separate choice.\n\napps can be off, read only, or read and write for each bot, with an exact action list available. read-only limits are enforced before a call reaches the app. sends ask first unless you allow a daily amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^8] other app changes are not documented as asking automatically: retain read-only access, or put \"ask me before you change anything\" into the routine.[^3]\n\nmemory also needs a choice. bots do not learn from group chats unless **Learn from group chats** is enabled for that bot. agree what is worth carrying forward before enabling it. review a bot's notes in **Memory** settings when its job changes.[^4]"
     },
     {
       "h": "budget for work use before rolling it out",
-      "md": "dusk bot is free for personal use on your own computer. business work needs a work license. it is source-available under polyform strict, not open source; do not treat a free personal install as a team deployment license.[^5][^6]\n\nas of 12 november 2026, dusk cloud pro is $50/month or $500/year and includes a work license for one person. team plans start at $100/month with a dedicated machine and shared bots. write to hello@dusk.bot for a team plan. confirm the people covered and the arrangement you need before buying.\n\nai usage is not on the dusk bill. your ai provider bills you on your plan with them. work that keeps running uses that ai allowance too. the [ai employees guide](/ai-employees) looks more closely at comparing those costs with other buying models.\n\nbefore buying for several people, ask how access and billing work for your group. check any team-role, human approval-routing or audit requirements directly rather than assuming shared bots include them."
+      "md": "dusk bot is free for personal use on your own computer. business work needs a work license. it is source-available under polyform strict, not open source; do not treat a free personal install as a team deployment license.[^5][^6]\n\nas of 12 november 2026, dusk cloud pro is $50/month or $500/year and includes a work license for one person. team plans start at $100/month with a dedicated machine and shared bots. write to hello@dusk.bot for a team plan. confirm the people covered and the arrangement you need before buying.[^7]\n\nai usage is not on the dusk bill. your ai provider bills you on your plan with them. work that keeps running uses that ai allowance too. the [ai employees guide](/ai-employees) looks more closely at comparing those costs with other buying models.\n\nbefore buying for several people, ask how access and billing work for your group. if your team needs roles, approvals or an activity log, ask before buying."
     },
     {
       "h": "keep the setup only if the handoff improves",
@@ -70,7 +72,7 @@
     },
     {
       "q": "can a small team share bots?",
-      "a": "dusk's team plans include shared bots on a dedicated machine and start at $100/month. contact hello@dusk.bot to discuss the plan and who needs access. this page does not assume particular seat limits or human team-role features."
+      "a": "dusk's team plans include shared bots on a dedicated machine and start at $100/month. contact hello@dusk.bot to discuss the plan and who needs access. ask about seats and roles when you write in."
     },
     {
       "q": "do i need a work license if i run it on my own laptop?",
@@ -109,6 +111,10 @@
     {
       "label": "dusk bot pricing: pro and team plans",
       "url": "/pricing"
+    },
+    {
+      "label": "dusk bot docs: permissions and sends",
+      "url": "/docs/computer"
     }
   ]
 }

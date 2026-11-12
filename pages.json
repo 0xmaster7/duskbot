@@ -1,10 +1,10 @@
 [
-  { "name": "home", "title": "Dusk Bot", "description": "Your own team of AI bots, in a chat app, on the AI accounts you already have. Free on your computer. Dusk Cloud keeps them working when your laptop is off." },
-  { "name": "download", "title": "Download · Dusk Bot", "description": "Download Dusk Bot for macOS, Windows and Linux, and the phone app for iPhone and Android." },
-  { "name": "waitlist", "title": "Join the waitlist · Dusk Bot", "description": "Turn the AI you already pay for into bots you text like teammates. Leave your email and get Dusk Bot early.", "scripts": ["waitlist.js"], "styles": ["waitlist.css"] },
-  { "name": "pricing", "title": "Pricing · Dusk Bot", "description": "Dusk Cloud keeps your bots working when your laptop is off, from $20 a month. The app is free for personal use, with every feature." },
-  { "name": "about", "title": "About · Dusk Bot", "description": "What Dusk Bot is, how it is built, and who makes it." },
-  { "name": "contact", "title": "Contact · Dusk Bot", "description": "Write to the people who make Dusk Bot: help, security reports and privacy requests." },
-  { "name": "brand", "title": "Brand · Dusk Bot", "description": "The Dusk Bot mark, the bots, the colours and a short description, for writing about Dusk Bot." },
-  { "name": "404", "title": "Not found · Dusk Bot", "description": "This page is not here." }
+  { "name": "home", "title": "dusk bot", "description": "Your own team of AI bots, in a chat app, on the AI accounts you already have. Free on your computer. Dusk Cloud keeps them working when your laptop is off." },
+  { "name": "download", "title": "download / dusk bot", "description": "Download Dusk Bot for macOS, Windows and Linux, and the phone app for iPhone and Android." },
+  { "name": "waitlist", "title": "join the waitlist / dusk bot", "description": "Turn the AI you already pay for into bots you text like teammates. Leave your email and get Dusk Bot early.", "scripts": ["waitlist.js"], "styles": ["waitlist.css"] },
+  { "name": "pricing", "title": "pricing / dusk bot", "description": "Dusk Cloud keeps your bots working when your laptop is off, from $20 a month. The app is free for personal use, with every feature." },
+  { "name": "about", "title": "about / dusk bot", "description": "What Dusk Bot is, how it is built, and who makes it." },
+  { "name": "contact", "title": "contact / dusk bot", "description": "Write to the people who make Dusk Bot: help, security reports and privacy requests." },
+  { "name": "brand", "title": "brand / dusk bot", "description": "The Dusk Bot mark, the bots, the colours and a short description, for writing about Dusk Bot." },
+  { "name": "404", "title": "not found / dusk bot", "description": "This page is not here." }
 ]

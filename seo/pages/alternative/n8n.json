@@ -14,7 +14,9 @@
   "answer": "n8n fits when you want to build a workflow on a visual canvas and control its steps. dusk bot fits when you want to describe a job to a bot, review its work and steer it with another message. both can live on a server, so hosting is not the main difference. the choice is whether you want to maintain a process or keep giving a teammate instructions.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "n8n",
@@ -69,7 +71,8 @@
         ],
         "src": [
           1,
-          3
+          9,
+          7
         ]
       },
       {
@@ -141,11 +144,11 @@
       }
     ]
   },
-  "method": "the n8n facts here come from its repository and pricing page recorded on 12 november 2026. we make dusk bot and used our own docs for that column. no identical workflow was built and timed in both, and no execution-to-ai-usage conversion was measured. the eur figures are as shown on n8n's pricing page on 12 november 2026, not a currency conversion or a promise about the checkout in your country.",
+  "method": "we read n8n's repository and pricing page on 12 november 2026 and used our own docs for dusk. we didn't build the same workflow in both.",
   "sections": [
     {
       "h": "first decide who should spell out the steps",
-      "md": "n8n is a workflow platform with a visual canvas, including ai agents and multi-step processes.[^1] choose that shape if you want the process represented as steps you can inspect. a conversational bot is a different way to hand over responsibility: you describe the goal, then inspect what it did. neither approach removes the need to check the result.\n\nfor instance, try asking a dusk bot: \"every friday at 4, review the notes in this project folder. list unresolved questions with the filename for each. do not edit the notes.\" routines are created in chat, and files can live in a project folder you give the bot.[^7][^8] do not read that as a promise that it will always interpret every note correctly."
+      "md": "n8n is a workflow platform with a visual canvas, including ai agents and multi-step processes.[^1] choose that shape if you want the process represented as steps you can inspect. a conversational bot is a different way to hand over responsibility: you describe the goal, then inspect what it did. neither approach removes the need to check the result.\n\nfor instance, try asking a dusk bot: \"every friday at 4, list the files added to this project folder this week, with one line on each.\" routines are created in chat, and files can live in a project folder you give the bot.[^7][^8] watch the first few runs before you trust it."
     },
     {
       "h": "execution pricing is useful, but not the whole budget",
@@ -153,7 +156,7 @@
     },
     {
       "h": "a server does not turn one tool into the other",
-      "md": "both products give you hosting choices. n8n offers its cloud and self-hosting; dusk offers your computer, your own server and dusk cloud.[^2][^4] if you are comparing [openclaw](/alternatives/openclaw) too, keep the interface question separate from the server question.\n\nlocal dusk jobs stop when the app closes or the computer sleeps. a run missed by less than 12 hours runs once when you return; older ones are skipped.[^7] for a friday report that must arrive while you are away, choose where it will actually run before relying on [scheduled tasks](/scheduled-ai-tasks).\n\nwhen connecting apps, start a new bot with read-only access. if you later allow changes, put \"ask me before you change anything\" in the routine. sends have their own approval setting; other app changes are not documented to ask first.[^8] your ai provider's current terms still decide what its sign-in allows."
+      "md": "both products give you hosting choices. n8n offers its cloud and self-hosting; dusk offers your computer, your own server and dusk cloud.[^2][^4] if you are comparing [openclaw](/alternatives/openclaw) too, keep the interface question separate from the server question.\n\nlocal dusk jobs stop when the app closes or the computer sleeps. a run missed by less than 12 hours runs once when you return; older ones are skipped.[^7] for a friday report that must arrive while you are away, choose where it will actually run before relying on [scheduled tasks](/scheduled-ai-tasks).\n\nwhen connecting apps, start a new bot with read-only access. if you later allow changes, put \"ask me before you change anything\" in the routine. sending (emails, messages, posts) asks first unless you set a daily amount. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for full-access bots. the sending setting doesn't cover other changes inside an app, so keep the bot read-only or write \"ask me before you change anything\" into the routine.[^8][^10] your ai provider's current terms still decide what its sign-in allows."
     }
   ],
   "faq": [
@@ -204,6 +207,14 @@
     {
       "label": "dusk bot: files and apps",
       "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: computer",
+      "url": "/docs/computer"
     }
   ]
 }

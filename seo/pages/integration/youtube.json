@@ -91,9 +91,9 @@
   ],
   "asks": "posting comments and replies asks for approval by default. if you allow a daily sending amount, a bot may send within it, so leave the default in place when you want each viewer reply reviewed. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.\n\nediting video details, changing playlists and moderating comments are separate changes. do not assume the send approval covers them. a read-only bot cannot make those calls. if you choose to permit them, specify the allowed actions and write \"ask me before you change anything\" into the routine. the question notebook above can stay entirely read only.",
   "cannot": [
-    "promise a transcript for any video link. the toolkit lists caption tracks and can download an available track, but this catalog does not establish access to every video's captions.",
+    "promise a transcript for any video link. the toolkit lists caption tracks and can download an available track, but not every video's captions will be available.",
     "summarise the spoken content from titles, descriptions or comments alone. ask for a metadata review when that is all the connection returned.",
-    "download caption content with read-only access in this catalog. the download action is classified as a change even though its name may sound like a read.",
+    "download caption content with a read-only bot. dusk counts caption download as a change, so a read-only bot can't do it.",
     "collect scheduled channel reviews from a sleeping computer. local jobs require dusk bot to be running; dusk cloud is available for routines that need an awake host."
   ],
   "sections": [
@@ -103,17 +103,17 @@
     },
     {
       "h": "choose the right input for a summary",
-      "md": "for a video-content summary, tell the bot to look for a caption track and stop with a clear explanation if it cannot obtain one. for a channel planning job, video details and viewer questions may be enough. naming that distinction in the request prevents a polished summary of content the bot never retrieved."
+      "md": "for a video-content summary, tell the bot to look for a caption track and stop with a clear explanation if it cannot obtain one. for a channel planning job, video details and viewer questions may be enough. saying which one you want stops it from summarising a video it never read."
     }
   ],
   "faq": [
     {
       "q": "can claude summarise any youtube video with this?",
-      "a": "not on the evidence in this catalog. caption listing and download actions exist, but access to a track must succeed first. if the bot only has metadata, it should describe the metadata and state that limit."
+      "a": "only when it can get the video's captions. caption listing and download actions exist, but access to a track must succeed first. if the bot only has metadata, it should describe the metadata and state that limit."
     },
     {
       "q": "can it answer youtube comments for me?",
-      "a": "the toolkit includes a comment reply action. dusk bot asks before sends by default. the viewer question routine here does not use that action; it only brings questions to your chat."
+      "a": "the toolkit includes a comment reply action. dusk bot asks before sends by default. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Sending on your behalf** to **Ask every time** for full-access bots.[^3] the viewer question routine here does not use that action; it only brings questions to your chat."
     },
     {
       "q": "what is a useful youtube routine beyond video summaries?",
@@ -141,6 +141,8 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   }
 }

@@ -13,7 +13,9 @@
   "answer": "sintra packages role-based ai helpers for small businesses, with ai included in its plan. dusk bot lets you make your own small team, define each job and choose each bot's ai. sintra is worth considering if its ready-made roles match your business; dusk fits if you want narrower jobs you can reshape in conversation. compare the actual billing period too: sintra's listed prices are promotional, not permanent rates.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "sintra",
@@ -143,11 +145,11 @@
       }
     ]
   },
-  "method": "we make dusk bot. the sintra facts come from its homepage and pricing page recorded on 12 november 2026. we did not run identical tasks, compare the quality of individual helpers or measure how many jobs its credits cover. its sale prices are dated offers. we omit unconfirmed helper collaboration and general scheduling claims rather than treating marketing examples as verified product behaviour.",
+  "method": "we read sintra's homepage and pricing page on 12 november 2026. we left out how its helpers work together because the pages don't show it clearly.",
   "sections": [
     {
       "h": "compare roles you need, not the number of employees",
-      "md": "sintra describes role-based helpers for areas such as social media, seo, support, email marketing and assistance.[^1] that is a sensible place to start if the packaged roles match what you need. this comparison does not invent a named helper roster or claim that every role can take every action.\n\nin dusk you write the job yourself.[^3] instead of a broad marketing employee, you might define a bot as a reader of your brand notes: \"check this draft against the attached voice guide. list passages that sound unlike us and explain why. do not publish anything.\" this is a proposed instruction, not an example of a finished result. documents can be attached in chat.[^9]\n\nread [ai employees](/ai-employees) if you are deciding what work belongs in a role at all. a narrow responsibility is easier to review than a title that implies responsibility for a whole department."
+      "md": "sintra describes role-based helpers for areas such as social media, seo, support, email marketing and assistance.[^1] that is a sensible place to start if the packaged roles match what you need.\n\nin dusk you write the job yourself.[^3] instead of a broad marketing employee, you might define a bot as a reader of your brand notes: \"check this draft against the attached voice guide. list passages that sound unlike us and explain why. do not publish anything.\" documents can be attached in chat.[^9]\n\nread [ai employees](/ai-employees) if you are deciding what work belongs in a role at all. a narrow responsibility is easier to review than a title that implies responsibility for a whole department."
     },
     {
       "h": "a sale price needs its billing term beside it",
@@ -155,17 +157,17 @@
     },
     {
       "h": "be precise about memory and collaboration",
-      "md": "dusk gives each bot its own memory. in a group thread, bots can mention one another or follow a leader; learning from group chats is optional per bot.[^3][^10][^11] that suits a team whose roles you want to keep distinct, but it also means you should decide what each bot needs to know. [ai teammates](/ai-teammates) explores that arrangement.\n\nsintra's pages we read don't show how its helpers work together clearly enough to compare that here. for a business workforce platform with documented multi-agent systems, look at [relevance ai](/alternatives/relevance-ai), while checking its pricing conflict.\n\nkeep your first connected-app task read-only. dusk asks before sends unless you set a daily allowance; it does not document the same promise for other app changes. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. write \"ask me before you change anything\" if you later give the bot write access.[^9]"
+      "md": "dusk gives each bot its own memory. in a group thread, bots can mention one another or follow a leader; learning from group chats is optional per bot.[^3][^10][^11] that suits a team whose roles you want to keep distinct, but it also means you should decide what each bot needs to know. [ai teammates](/ai-teammates) explores that arrangement.\n\nsintra's pages we read don't show how its helpers work together clearly enough to compare that here. for a business workforce platform with documented multi-agent systems, look at [relevance ai](/alternatives/relevance-ai). check its current pricing page first.\n\nkeep your first connected-app task read-only. dusk asks before sends unless you set a daily allowance; other changes inside an app, like editing a page, can go ahead without asking. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^12] write \"ask me before you change anything\" if you later give the bot write access.[^9]"
     }
   ],
   "faq": [
     {
       "q": "are sintra’s advertised prices permanent?",
-      "a": "the listed prices are promotional as of 12 november 2026. they differ by one-, three- and twelve-month term. verify the current offer and renewal terms before paying; this page does not promise the sale will continue.[^1]"
+      "a": "the listed prices are promotional as of 12 november 2026. they differ by one-, three- and twelve-month term. verify the current offer and renewal terms before paying.[^1]"
     },
     {
-      "q": "what are people actually using ai employees for?",
-      "a": "sintra packages roles in areas such as social media, seo, support and email marketing.[^1] for a first dusk job, try a bounded review of supplied material, such as checking a draft against a voice guide. that is a suggested starting task, not a claim of measured customer results."
+      "q": "does sintra include ai in its plan?",
+      "a": "as of 12 november 2026, sintra includes ai in its plan and says it is based on claude 4.5 sonnet. you do not bring your own ai key.[^1]"
     },
     {
       "q": "does dusk have a phone app like sintra?",
@@ -218,6 +220,10 @@
     {
       "label": "dusk bot: memory",
       "url": "/docs/memory"
+    },
+    {
+      "label": "dusk bot: sending and full access",
+      "url": "/docs/computer"
     }
   ]
 }

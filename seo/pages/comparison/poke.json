@@ -43,7 +43,7 @@
   },
   "compare": {
     "h": "start with the place you will actually use it",
-    "intro": "channel support and monthly usd prices below are from saved sources checked on 12 november 2026. the table does not assume the two products offer the same amount of ai work.",
+    "intro": "channel support and monthly usd prices below are from poke's own pages, read on 12 november 2026. the table does not assume the two products offer the same amount of ai work.",
     "cols": [
       "Poke",
       "Dusk Bot"
@@ -129,7 +129,7 @@
       }
     ]
   },
-  "method": "we make dusk bot and have not run identical tasks through poke and dusk bot. this page uses their documented interfaces and the saved poke sources checked on 12 november 2026. we do not know which specific models power each poke action, and the available facts do not establish its approval policy. those gaps are not evidence that poke lacks safeguards or model options.",
+  "method": "poke's pages don't say which models it uses or how it asks before acting; that doesn't mean it has no safeguards.",
   "sections": [
     {
       "h": "a phone assistant should fit the way you check in",
@@ -141,13 +141,13 @@
     },
     {
       "h": "split responsibilities only when it helps",
-      "md": "in dusk bot, you might keep one bot for planning a writing project and another for reviewing attached drafts. each has its own memory and ai choice.[^8] give the planner a routine such as: \"every monday at 9, ask me which writing commitment matters most this week. keep the question in this chat.\" this is an instruction to try, not a reported result.\n\nthat arrangement adds roles to manage. if you simply want one contact to remind you about things, poke's documented reminder and scheduling features may be a closer fit.[^1] [poke alternatives](/alternatives/poke) covers other choices without assuming more bots are always useful.\n\nfor dusk bots connected to apps, keep early trials read-only. sends ask first unless you set a daily allowance, but other app changes do not have a documented automatic approval prompt. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. request \"ask me before you change anything\" if you later grant write access.[^11]"
+      "md": "in dusk bot, you might keep one bot for planning a writing project and another for reviewing attached drafts. each has its own memory and ai choice.[^8] give the planner a routine such as: \"every monday at 9, ask me which writing commitment matters most this week. keep the question in this chat.\"\n\nthat arrangement adds roles to manage. if you simply want one contact to remind you about things, poke's documented reminder and scheduling features may be a closer fit.[^1] [poke alternatives](/alternatives/poke) covers other choices without assuming more bots are always useful.\n\nfor dusk bots connected to apps, keep early trials read-only. sends ask first unless you set a daily allowance, but other changes inside an app can go ahead without asking. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^12] request \"ask me before you change anything\" if you later grant write access.[^11]"
     }
   ],
   "faq": [
     {
-      "q": "what is the lowest poke ai price?",
-      "a": "as of 12 november 2026, poke lists a $0 free tier, pro at $19 monthly and ultra at $199 monthly. ultra adds pay-as-you-go usage beyond credits.[^4] compare the allowance as well as the price; we cannot turn the plans into an equal task count."
+      "q": "can poke message me first?",
+      "a": "yes. as of 12 november 2026, poke's homepage describes proactive messages, reminders and scheduled tasks. it lists background automations on pro.[^1]"
     },
     {
       "q": "how do i run an agent from my phone when my laptop is closed?",
@@ -155,7 +155,7 @@
     },
     {
       "q": "is poke joining cognition?",
-      "a": "yes. cognition announced it was welcoming the interaction company on 23 july 2026 and said poke users could continue using the product as before. that is the status recorded as of 12 november 2026.[^3]"
+      "a": "yes. cognition announced it was welcoming the interaction company on 23 july 2026 and said poke users could continue using the product as before. on 12 november 2026 poke's homepage still showed 'poke is joining cognition'.[^1][^3]"
     }
   ],
   "sources": [
@@ -207,6 +207,10 @@
     {
       "label": "dusk bot: connected apps and sending",
       "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: sending and full access",
+      "url": "/docs/computer"
     }
   ],
   "type": "comparison",
@@ -217,7 +221,9 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "connectors": []
 }

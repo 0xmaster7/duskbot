@@ -60,7 +60,7 @@
       },
       {
         "slug": "HUBSPOT_CREATE_NOTE",
-        "use": "save a customer note based on facts you explicitly supplied"
+        "use": "save a customer note based on facts you explicitly gave the bot"
       },
       {
         "slug": "HUBSPOT_CREATE_TASK",
@@ -69,11 +69,11 @@
     ],
     "setup": "connect hubspot and allow it for the customer operations bot. choose reading first. give the bot a company record or enough criteria to find candidates, then have it confirm the match. if you allow note or task creation, use an exact action list instead of enabling every crm change."
   },
-  "routines_intro": "choose a different routine for each handover problem. these are instructions to send, not sample customer records. define the relevant fields and thresholds in the same chat so the bot knows what your team considers incomplete.",
+  "routines_intro": "choose a different routine for each handover problem. define the relevant fields and thresholds in the same chat so the bot knows what your team considers incomplete.",
   "routines": [
     {
       "name": "new customer handover gaps",
-      "message": "every monday at 2, find the hubspot companies in the onboarding list i supplied. inspect their contact associations and company details. flag missing links and unclear account matches for our handover call. do not create contacts or link records based on similar names.",
+      "message": "every monday at 2, find the hubspot companies in the onboarding list i gave you. inspect their contact associations and company details. flag missing links and unclear account matches for our handover call. do not create contacts or link records based on similar names.",
       "when": "mondays at 14:00",
       "output": "an onboarding gap list with candidate records"
     },
@@ -85,12 +85,12 @@
     },
     {
       "name": "save approved handover notes",
-      "message": "every friday at 3, review only the hubspot handover notes i marked approved in this chat. check the company match, then ask me before creating a note with the approved text. if the match is unclear, stop and show the candidates. never add a new customer claim.",
+      "message": "every friday at 3, review only the handover notes i marked approved in this chat. check the company match, then ask me before creating a note with the approved text. if the match is unclear, stop and show the candidates. never add a new customer claim.",
       "when": "fridays at 15:00",
       "output": "approved text saved as a note after the review you requested"
     }
   ],
-  "asks": "the first two routines work with read-only hubspot access. the note routine needs permission to create notes, and its request to ask first is part of the instruction you gave it. hubspot note creation, record linking and task creation are not documented as automatically stopping for approval.\n\nsending an email or message through connected apps has a separate setting: asking first is the default, with an optional daily allowance. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. do not confuse permission to save a crm note with permission to contact the customer. if a bot only needs notes, leave other writing actions out of its allowed list.",
+  "asks": "the first two routines work with read-only hubspot access. the note routine needs permission to create notes, and its request to ask first is part of the instruction you gave it. hubspot note creation, record linking and task creation are not documented as automatically stopping for approval.\n\nsending an email or message through connected apps has a separate setting: asking first is the default, with an optional daily allowance. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. do not confuse permission to save a crm note with permission to contact the customer. if a bot only needs notes, leave other writing actions out of its allowed list.\n\nhubspot's connection can also publish marketing emails; those count as sends. leave them out of the bot's allowed list.",
   "cannot": [
     "repair company associations or create notes while limited to reads. a gap list and a repair job need different access.",
     "prove that similarly named contacts belong to the same company. ask it to show the actual links and the criteria behind a proposed match.",
@@ -114,7 +114,7 @@
     },
     {
       "q": "can claude add notes to hubspot for me?",
-      "a": "a bot in dusk bot using your chosen ai can use the create-note action when permitted. the routine above explicitly asks before saving. that instruction matters because crm note changes are not documented as automatically requiring approval."
+      "a": "a bot in dusk bot using your chosen ai can use the create-note action when permitted. the routine above explicitly asks before saving. dusk doesn't ask on its own before saving a crm note."
     },
     {
       "q": "can it merge duplicate contacts safely on its own?",
@@ -142,6 +142,8 @@
   ],
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   }
 }

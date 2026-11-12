@@ -152,7 +152,7 @@
   "lastmod": "2026-11-12"
  },
  "/alternatives/openclaw-hosting": {
-  "hash": "1092836fd347b46b",
+  "hash": "b22224990241f9ee",
   "lastmod": "2026-11-12"
  },
  "/alternatives/openclaw-no-setup": {
@@ -165,6 +165,14 @@
  },
  "/for/founders": {
   "hash": "6eb58fea6f5105c1",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/apps-that-use-your-ai-subscription": {
+  "hash": "0dc522c4b0c8af78",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/claude-subscription-vs-api": {
+  "hash": "3ba13c88afbd6f8a",
   "lastmod": "2026-11-12"
  },
  "/guides/is-it-safe-to-let-ai-control-your-computer": {
@@ -188,7 +196,7 @@
   "lastmod": "2026-11-12"
  },
  "/integrations/google-sheets": {
-  "hash": "c8d29a9cdc3ec600",
+  "hash": "0bef19ba2093c574",
   "lastmod": "2026-11-12"
  },
  "/integrations/notion": {
@@ -227,12 +235,16 @@
   "hash": "0d9d0ab9a39b6ac1",
   "lastmod": "2026-11-12"
  },
+ "/use-your-ai-subscription": {
+  "hash": "2f4d107860c998d0",
+  "lastmod": "2026-11-12"
+ },
  "/vs/openclaw-vs-hermes-agent": {
   "hash": "0ab30934a4cdc444",
   "lastmod": "2026-11-12"
  },
  "/guides": {
-  "hash": "0c89e107c0139c09",
+  "hash": "31ecfd6b4670a0fe",
   "lastmod": "2026-11-12"
  },
  "/alternatives": {

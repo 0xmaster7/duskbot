@@ -11,10 +11,12 @@
     "chatgpt agent use cases",
     "openai operator alternative"
   ],
-  "answer": "chatgpt agent is no longer available as of 12 november 2026. openai points people to chatgpt work for longer, multi-step tasks and finished deliverables. work is therefore the current option to compare with dusk bot. stay with work if you want tasks inside chatgpt; consider dusk if you want separate bots with individual jobs, memory and ai choices. work can also run locally in the desktop app, so cloud versus local is not the dividing line.",
+  "answer": "as of 12 november 2026, openai's help page says chatgpt agent is no longer available.[^1] openai points people to chatgpt work for longer, multi-step tasks and finished deliverables. work is therefore the current option to compare with dusk bot. stay with work if you want tasks inside chatgpt; consider dusk if you want separate bots with individual jobs, memory and ai choices. work can also run locally in the desktop app, so cloud versus local is not the dividing line.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "chatgpt-agent",
@@ -55,7 +57,7 @@
   },
   "compare": {
     "h": "the current comparison: work and dusk bot",
-    "intro": "status and prices are as of 12 november 2026. old agent-mode message caps are not current work allowances. neither product is treated here as unlimited.",
+    "intro": "status and prices are as of 12 november 2026. old agent-mode message caps are not current work allowances.",
     "cols": [
       "ChatGPT Work",
       "Dusk Bot"
@@ -145,7 +147,7 @@
       }
     ]
   },
-  "method": "we make dusk bot. this comparison uses openai facts recorded on 12 november 2026 and our own docs. we did not run identical tasks in work and dusk, test local app control side by side or measure deliverable quality. current work usage is shared with codex; historical agent-mode message counts are deliberately excluded because they do not establish work limits.",
+  "method": "we make dusk bot. we read openai's pages on 12 november 2026 and our own docs. we didn't run the same tasks in both. we left out old agent-mode message caps because they aren't work limits.",
   "sections": [
     {
       "h": "check whether the guide you found is about the retired product",
@@ -153,7 +155,7 @@
     },
     {
       "h": "local files are not a dusk-only feature",
-      "md": "openai's work help page documents cloud use on web and mobile and local work through the chatgpt desktop app, including local files, apps and browser.[^3] it would be misleading to describe work as only a remote browser.\n\ndusk's difference here is how you organise the people-like roles. a bot has its own job, chats and memory, and can keep several threads. you can switch its ai without losing those chats, files or memory.[^9] a [group chat](/ai-group-chat) brings several bots together; each retains its own ai and permissions.[^13]\n\ntry a document brief before a large project: \"read these attached planning notes. prepare a decision brief with the options, the evidence in each file and the questions i still need to answer.\" dusk supports document attachments.[^12] judge the brief against the notes yourself. no accuracy comparison for this task has been measured."
+      "md": "openai's work help page documents cloud use on web and mobile and local work through the chatgpt desktop app, including local files, apps and browser.[^3] it would be misleading to describe work as only a remote browser.\n\ndusk's difference is that each bot is its own helper with one job. a bot has its own job, chats and memory, and can keep several threads. you can switch its ai without losing those chats, files or memory.[^9] a [group chat](/ai-group-chat) brings several bots together; each retains its own ai and permissions.[^13]\n\ntry a document brief before a large project: \"read these attached planning notes. prepare a decision brief with the options, the evidence in each file and the questions i still need to answer.\" dusk supports document attachments.[^12] check the brief against your notes yourself."
     },
     {
       "h": "budget shared usage, not old monthly message caps",

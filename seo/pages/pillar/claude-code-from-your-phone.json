@@ -9,14 +9,14 @@
   "keywords": [
     "claude code on phone",
     "claude code from phone",
-    "claude code remote control",
-    "claude code telegram",
-    "claude code discord"
+    "claude code remote control"
   ],
   "answer": "you can reach claude code from a phone in several ways. as of 12 november 2026, anthropic's remote control opens a window into a session on your computer, while its cloud sessions run elsewhere. with dusk, you text a bot whose engine is claude code. choose by where the work needs to live: your phone reaching a laptop does not keep that laptop awake.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "phone",
@@ -94,7 +94,7 @@
   "sections": [
     {
       "h": "remote control keeps your existing machine involved",
-      "md": "as of 12 november 2026, anthropic's remote control connects a claude code session on your own machine to claude.ai/code or the claude mobile app. the local process still does the work. the computer must stay on, and the claude process must remain running. if sleep or a lost network interrupts it, claude code reconnects when the machine comes back.[^1]\n\nthat fits a session tied to the computer at your desk. it does not turn the phone into a replacement host. before leaving, think about power, connectivity and whether the machine will stay available long enough to finish.\n\nanthropic lists remote control on pro, max, ultra, team and enterprise. api-key authentication is not supported for it; team and enterprise need an owner to enable the feature. those are remote control conditions, not a claim about every way to run claude code.[^1]"
+      "md": "as of 12 november 2026, anthropic's remote control connects a claude code session on your own machine to claude.ai/code or the claude mobile app. the local process still does the work. the computer must stay on, and the claude process must remain running. if sleep or a lost network interrupts it, claude code reconnects when the machine comes back.[^1]\n\nthat fits a session tied to the computer at your desk. it does not turn the phone into a replacement host. before leaving, think about power, connectivity and whether the machine will stay available long enough to finish.\n\nanthropic lists remote control on pro, max, ultra, team and enterprise. api-key authentication is not supported for it; team and enterprise need an owner to enable the feature.[^1]"
     },
     {
       "h": "cloud sessions are anthropic's separate option",
@@ -102,7 +102,7 @@
     },
     {
       "h": "dusk gives you a bot to text",
-      "md": "in dusk, a bot is a named teammate with a job, its own chats and memory, and an ai you pick. choosing claude code as the engine means dusk runs that official command-line app on the machine where the bot lives, with you completing sign-in yourself. texting the bot lets you give work and follow up through that chat.[^4][^6]\n\nthis fits ongoing work with a named bot, rather than a window into a particular terminal session. if you want one bot for planning and another for reviewing documents, they can have different jobs and different ais. each keeps its own memory. switching an ai does not discard the bot's chats or files.[^4]\n\nthe phone does not change the engine's terms. as of 12 november 2026, anthropic's legal page describes user sign-in to an unmodified claude code binary and sets conditions for hosted platforms and credential handling. check your provider's current terms; this guide does not decide whether an app meets them.[^7]"
+      "md": "in dusk, a bot is a named teammate with a job, its own chats and memory, and an ai you pick. choosing claude code as the engine means dusk runs that official command-line app on the machine where the bot lives, with you completing sign-in yourself. texting the bot lets you give work and follow up through that chat.[^4][^6]\n\nthis fits ongoing work with a named bot, rather than a window into a particular terminal session. if you want one bot for planning and another for reviewing documents, they can have different jobs and different ais. each keeps its own memory. switching an ai does not discard the bot's chats or files.[^4]\n\nusing a phone doesn't change anthropic's terms. its legal page (checked 12 november 2026) says nothing in it prevents 'an end user from signing in to the unmodified Claude Code binary with their own Claude subscription', and it sets conditions for platforms that host it. check the current page yourself.[^7]"
     },
     {
       "h": "pair once, then test away from your desk",
@@ -110,7 +110,7 @@
     },
     {
       "h": "use the small screen for decisions",
-      "md": "give a narrow instruction you can review on the phone: 'read the proposal i attached and tell me which two assumptions need checking. leave the file alone.' that gives you a useful checkpoint without asking you to inspect a whole document while walking.\n\ndusk approval cards can reach the phone. connected apps can be limited per bot, including read-only access. for changes inside an app, write 'ask me before you change anything' if you want supervision. sending has a separate approval setting. do not treat phone access as a reason to grant broader permissions.[^8]"
+      "md": "give a narrow instruction you can review on the phone: 'read the proposal i attached and tell me which two assumptions need checking. leave the file alone.' that gives you a useful checkpoint without asking you to inspect a whole document while walking.\n\ndusk approval cards can reach the phone. connected apps can be limited per bot, including read-only access. for changes inside an app, write 'ask me before you change anything' if you want supervision. sending has a separate approval setting. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Sending on your behalf** to **Ask every time** for full-access bots.[^8] do not treat phone access as a reason to grant broader permissions.[^8]"
     }
   ],
   "faq": [

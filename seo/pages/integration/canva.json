@@ -10,10 +10,12 @@
     "claude canva",
     "canva mcp"
   ],
-  "answer": "a bot in dusk bot can find canva designs, inspect their details, organise assets and start exports through the canva connection. it can help prepare a design handoff using the ai you choose. this catalog is not a promise to edit every element on the canvas. begin with a named folder, design or asset and a small job.",
+  "answer": "a bot in dusk bot can find canva designs, inspect their details, organise assets and start exports through the canva connection. it can help prepare a design handoff using the ai you choose. it can't edit individual elements on the canvas. begin with a named folder, design or asset and a small job.",
   "updated": "2026-11-12",
   "review": {
-    "status": "needs_review"
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
   },
   "tags": [
     "design",
@@ -107,11 +109,11 @@
       "output": "a proposed asset naming list"
     }
   ],
-  "asks": "renaming assets, moving folder items and starting design jobs are app actions, so do not expect the sending approval rule to supervise them. a reader can stay restricted to the inspection actions. a writer should receive a clear instruction such as \"ask me before you change anything\".\n\ncanva comment posts are sends and use the bot's sending controls. keep that separate from export work: preparing a file is not a request to post a message or share a campaign on your behalf.",
+  "asks": "starting an export with **Start design export job** counts as a send in dusk, so it waits for your **Allow** (or uses up a daily amount you set). renaming assets, moving items and upload jobs don't ask. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Sending on your behalf** to **Ask every time** for full-access bots.[^3] a reader can stay restricted to the inspection actions. a writer should receive a clear instruction such as \"ask me before you change anything\".\n\ncanva comment posts are sends and use the bot's sending controls.[^3] keep that separate from export work: preparing a file is not a request to post a message or share a campaign on your behalf.",
   "cannot": [
     "offer arbitrary canvas editing from this action list. the catalog covers design creation and jobs, assets, folders and comments, but has no general action for selecting and rewriting any individual canvas element.",
     "promise that every design has every export format. check the design's available formats with the listed action before choosing the handoff file.",
-    "start a routine when something changes in canva: composio lists no canva events, so routines here run on a schedule. it lists no triggers; use scheduled folder or export checks and keep the machine running."
+    "start a routine when something changes in canva; canva has no events, so use a schedule (on dusk cloud if your computer sleeps)."
   ],
   "sections": [
     {
@@ -126,11 +128,11 @@
   "faq": [
     {
       "q": "can chatgpt or claude work with my canva designs?",
-      "a": "choose the ai for a bot in dusk bot and connect canva. the bot can use the cataloged actions you grant. that does not establish access to every feature in the canva editor."
+      "a": "choose the ai for a bot in dusk bot and connect canva. the bot can use canva's listed actions; it can't do everything the canva editor does."
     },
     {
       "q": "can it automatically export a set of designs?",
-      "a": "the connector can start exports and retrieve their results. name the designs, check formats first and give the routine an explicit approval instruction if you want to review jobs before they start."
+      "a": "the connector can start exports and retrieve their results. name the designs, check formats first and give the routine an explicit approval instruction if you want to review jobs before they start. starting an export asks first by default, because it counts as a send.[^3]"
     },
     {
       "q": "do canva checks keep running when my laptop closes?",

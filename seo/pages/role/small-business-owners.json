@@ -6,44 +6,136 @@
   "h1": "an ai assistant for the admin around your business",
   "description": "A routine pack for customer mail, invoice questions, booking checks and review reply drafts. Start with records you already keep and review the result.",
   "keyword": "ai assistant for small business owners",
-  "keywords": ["ai virtual assistant for small business", "best ai agents for small business"],
+  "keywords": [
+    "ai virtual assistant for small business",
+    "best ai agents for small business"
+  ],
   "answer": "start with the admin that interrupts the actual business: customer questions, invoice threads and tomorrow's bookings. a dusk bot helper can read the mail and calendar you allow, organise what needs a decision and draft replies for you. you can also attach reviews for reply drafts. business use needs a work license; keep the first routines read-only and check their results yourself.",
   "updated": "2026-11-12",
-  "review": { "status": "needs_review" },
-  "tags": ["small-business", "role", "admin", "bookings", "invoices", "reviews"],
-  "connectors": ["gmail", "googlecalendar"],
-  "related": ["/use-cases/email-triage", "/use-cases/invoice-follow-up", "/routines/weekly-receipts-sweep"],
-  "art": { "props": ["p-briefcase", "p-receipt"], "bubble": "ready for opening" },
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "small-business",
+    "role",
+    "admin",
+    "bookings",
+    "invoices",
+    "reviews"
+  ],
+  "connectors": [
+    "gmail",
+    "googlecalendar"
+  ],
+  "related": [
+    "/use-cases/email-triage",
+    "/use-cases/invoice-follow-up",
+    "/routines/weekly-receipts-sweep"
+  ],
+  "art": {
+    "props": [
+      "p-briefcase",
+      "p-receipt"
+    ],
+    "bubble": "ready for opening"
+  },
   "og_line": "customer admin, ready for your decision.",
   "day_h": "a helper around opening hours",
   "day": [
-    { "when": "before opening", "what": "see customer messages needing an answer before today's appointments" },
-    { "when": "mid-morning", "what": "read an invoice query alongside the invoice you attached, with any amount disagreement made visible" },
-    { "when": "between appointments", "what": "ask for a polite response to a review you pasted, without inventing what happened" },
-    { "when": "before closing", "what": "check tomorrow's bookings for overlaps or missing details, leaving the calendar alone" },
-    { "when": "weekly admin time", "what": "use the [receipts sweep](/routines/weekly-receipts-sweep) to compare emailed receipts with the spending sheet you maintain" }
+    {
+      "when": "before opening",
+      "what": "see customer messages needing an answer before today's appointments"
+    },
+    {
+      "when": "mid-morning",
+      "what": "read an invoice query alongside the invoice you attached, with any amount disagreement made visible"
+    },
+    {
+      "when": "between appointments",
+      "what": "ask for a polite response to a review you pasted, without inventing what happened"
+    },
+    {
+      "when": "before closing",
+      "what": "check tomorrow's bookings for overlaps or missing details, leaving the calendar alone"
+    },
+    {
+      "when": "weekly admin time",
+      "what": "use the [receipts sweep](/routines/weekly-receipts-sweep) to compare emailed receipts with the spending sheet you maintain"
+    }
   ],
   "pack": [
-    { "name": "the opening inbox list", "message": "every working day at 8:30, read my business gmail since yesterday's closing time. put today's customer questions first, then supplier questions and anything with an explicit deadline. draft suggested answers here using my attached hours and policies. ask about gaps. don't send, archive, label or delete mail.", "note": "set your working days and closing time first; [email triage](/use-cases/email-triage) has a fuller inbox setup" },
-    { "name": "the invoice question check", "message": "every monday at 10, find unanswered invoice questions in my business inbox. compare each with the invoice files and payment notes i supplied. list invoice reference, the customer's question and any conflicting amount or date. draft a neutral reply in chat. don't assume silence means an invoice is unpaid, and don't contact anyone.", "note": "this uses your supplied records, not a bank connection; see [invoice follow-up](/use-cases/invoice-follow-up) for the related workflow" },
-    { "name": "the next-day booking check", "message": "each afternoon at 4:30, read tomorrow's bookings in my business google calendar. flag overlaps and bookings missing a service, location or contact detail. draft any clarification questions here, without sending them. don't move, cancel or create bookings. if the diary is clear, give me just the opening appointment time.", "note": "calendar read access is sufficient; add only the calendar that actually holds confirmed bookings" }
+    {
+      "name": "the opening inbox list",
+      "message": "every working day at 8:30, read my business gmail since yesterday's closing time. put today's customer questions first, then supplier questions and anything with an explicit deadline. draft suggested answers here using my attached hours and policies. ask about gaps. don't send, archive, label or delete mail.",
+      "note": "set your working days and closing time first; [email triage](/use-cases/email-triage) has a fuller inbox setup"
+    },
+    {
+      "name": "the invoice question check",
+      "message": "every monday at 10, find unanswered invoice questions in my business inbox. compare each with the invoice files and payment notes i supplied. list invoice reference, the customer's question and any conflicting amount or date. draft a neutral reply in chat. don't assume silence means an invoice is unpaid, and don't contact anyone.",
+      "note": "this uses the records you give it, not a bank connection; see [invoice follow-up](/use-cases/invoice-follow-up) for the related workflow"
+    },
+    {
+      "name": "the next-day booking check",
+      "message": "each afternoon at 4:30, read tomorrow's bookings in my business google calendar. flag overlaps and bookings missing a service, location or contact detail. draft any clarification questions here, without sending them. don't move, cancel or create bookings. if the diary is clear, give me just the opening appointment time.",
+      "note": "calendar read access is sufficient; add only the calendar that actually holds confirmed bookings"
+    }
   ],
   "sections": [
-    { "h": "give it the rules customers ask about", "md": "attach your opening hours, service list and current cancellation policy. tell the bot where these came from and which version to use. when a customer asks for an exception, the bot should bring you the request rather than invent a rule.\n\nstart with drafts in the dusk bot chat. that lets you keep gmail read-only while you decide whether the answers sound like your business. later, you can allow specific draft actions if saving replies in the mailbox would help." },
-    { "h": "reviews need the facts of the visit", "md": "paste a review or attach it and ask for a short response. give the bot only the visit details needed for that reply. tell it not to invent a resolution, claim that you called someone or reveal a customer's private information.\n\nthis pack does not promise to fetch or publish reviews on a review platform. you supply the text and decide what to post. if the complaint needs an investigation, a draft acknowledging that is more useful than a made-up explanation." },
-    { "h": "budget for work use and check the diary yourself", "md": "using dusk bot for your business needs a work license. pro includes one for one person; see [pricing](/pricing) for the plans. ai usage is billed separately by your ai provider. the free personal-use terms do not cover business admin.\n\nthese routines need your computer awake and the app running, or another place for the bots to live such as dusk cloud. keep your normal booking checks in place while trying the helper. it only sees the calendar and mail you connected, not every booking or payment made elsewhere." }
+    {
+      "h": "give it the rules customers ask about",
+      "md": "attach your opening hours, service list and current cancellation policy. tell the bot where these came from and which version to use. when a customer asks for an exception, the bot should bring you the request rather than invent a rule.\n\nstart with drafts in the dusk bot chat. that lets you keep gmail read-only while you decide whether the answers sound like your business. later, you can allow specific draft actions if saving replies in the mailbox would help."
+    },
+    {
+      "h": "reviews need the facts of the visit",
+      "md": "paste a review or attach it and ask for a short response. give the bot only the visit details needed for that reply. tell it not to invent a resolution, claim that you called someone or reveal a customer's private information.\n\nhere, you paste the review in and post the reply yourself. if the complaint needs an investigation, a draft acknowledging that is more useful than a made-up explanation."
+    },
+    {
+      "h": "budget for work use and check the diary yourself",
+      "md": "using dusk bot for your business needs a work license. dusk cloud pro includes one for one person; see [pricing](/pricing) for the plans. ai usage is billed separately by your ai provider. the free personal-use terms do not cover business admin.\n\nthese routines need your computer awake and the app running, or another place for the bots to live such as dusk cloud. keep your normal booking checks in place while trying the helper. it only sees the calendar and mail you connected, not every booking or payment made elsewhere."
+    }
   ],
   "faq": [
-    { "q": "can a non-technical business owner set up the routines?", "a": "yes. make a bot with **New bot**, connect the supported apps and send a routine as a message. begin with one calendar or inbox and a small request you can check." },
-    { "q": "is it free to use for my business?", "a": "no. free use is personal use on your own computer. business work needs a work license, and ai usage remains on your provider's bill." },
-    { "q": "can it chase every unpaid invoice?", "a": "not from email alone. give it current invoice and payment records, then review any proposed follow-up. a missing receipt in an inbox is not enough evidence to tell a customer they owe money." }
+    {
+      "q": "can a non-technical business owner set up the routines?",
+      "a": "yes. make a bot with **New bot**, connect the supported apps and send a routine as a message. begin with one calendar or inbox and a small request you can check."
+    },
+    {
+      "q": "is it free to use for my business?",
+      "a": "no. free use is personal use on your own computer. business work needs a work license, and ai usage remains on your provider's bill."
+    },
+    {
+      "q": "can it chase every unpaid invoice?",
+      "a": "not from email alone. give it current invoice and payment records, then review any proposed follow-up. a missing receipt in an inbox is not enough evidence to tell a customer they owe money."
+    }
   ],
   "sources": [
-    { "label": "dusk bot docs: bots", "url": "/docs/bots" },
-    { "label": "dusk bot docs: files and apps", "url": "/docs/files-and-apps" },
-    { "label": "dusk bot docs: routines", "url": "/docs/routines" },
-    { "label": "dusk bot docs: account and billing", "url": "/docs/account-and-billing" },
-    { "label": "composio: gmail actions", "url": "https://docs.composio.dev/toolkits/gmail", "checked": "2026-11-12" },
-    { "label": "composio: google calendar actions", "url": "https://docs.composio.dev/toolkits/googlecalendar", "checked": "2026-11-12" }
+    {
+      "label": "dusk bot docs: bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: account and billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "composio: gmail actions",
+      "url": "https://docs.composio.dev/toolkits/gmail",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: google calendar actions",
+      "url": "https://docs.composio.dev/toolkits/googlecalendar",
+      "checked": "2026-11-12"
+    }
   ]
 }
