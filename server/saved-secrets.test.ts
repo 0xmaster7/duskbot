@@ -19,13 +19,13 @@ const removals: Array<() => void> = [];
 afterEach(() => { while (removals.length) removals.pop()!(); });
 
 function homes() {
-  const root = mkdtempSync(join(tmpdir(), "omb-saved-secrets-"));
+  const root = mkdtempSync(join(tmpdir(), "dusk-saved-secrets-"));
   return { dataDir: join(root, "data"), keyFile: join(root, "config", "duskbot", "saved-secrets.key") };
 }
 
 describe("saved secrets at rest", () => {
   it("a headless server from before the rename keeps its Vault: the old key file is found and copied, never replaced", () => {
-    const root = mkdtempSync(join(tmpdir(), "omb-saved-secrets-legacy-"));
+    const root = mkdtempSync(join(tmpdir(), "dusk-saved-secrets-legacy-"));
     const previous = process.env.XDG_CONFIG_HOME;
     process.env.XDG_CONFIG_HOME = join(root, "config");
     removals.push(() => { if (previous === undefined) delete process.env.XDG_CONFIG_HOME; else process.env.XDG_CONFIG_HOME = previous; });

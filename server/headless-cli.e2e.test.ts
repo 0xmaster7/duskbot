@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { launchVerificationServer, type VerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer, type VerificationServer } from "../scripts/control-dusk.ts";
 import { removeTempDir } from "./testing/cleanup.ts";
 
 const ENTRY = join(import.meta.dirname, "duskbot.ts");
@@ -35,7 +35,7 @@ const botsNow = async () => json(await cli(["bots", "--json"])).bots as any[];
 beforeAll(async () => {
   // A port range of its own (19975-19999), and a scripted fake engine.
   session = await launchVerificationServer({ ...process.env, DUSK_TEST_PORTS: "19975-19999" }, undefined, undefined, undefined, { scripted: true });
-  dir = mkdtempSync(join(tmpdir(), "omb-headless-cli-"));
+  dir = mkdtempSync(join(tmpdir(), "dusk-headless-cli-"));
 }, 60_000);
 
 afterAll(async () => {

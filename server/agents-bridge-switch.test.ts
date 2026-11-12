@@ -41,7 +41,7 @@ const ON = { features: { agentsToolBridge: true } };
 // Every folder a decision below reads is one of these: never the machine's
 // own home, project or policy files.
 const folders: string[] = [];
-const folder = () => { const made = mkdtempSync(join(tmpdir(), "omb-bridge-switch-")); folders.push(made); return made; };
+const folder = () => { const made = mkdtempSync(join(tmpdir(), "dusk-bridge-switch-")); folders.push(made); return made; };
 afterAll(async () => { for (const made of folders) await removeTempDir(made); });
 /** A machine with no Claude settings anywhere. */
 const HOST: EngineHost = { home: folder(), managedPolicyFiles: [join(folder(), "managed-settings.json")] };

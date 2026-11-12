@@ -12,11 +12,11 @@ import { ChromeLauncher } from "../../server/browser/chrome/launcher.ts";
 import { chromeHost, installedGoogleChrome, isHeadlessShell } from "../../server/browser/chrome/resolve.ts";
 import { removeTempDir } from "../../server/testing/cleanup.ts";
 import { openOwnPageAsBot, withBotBrowser, type BotCall } from "../verify-browser-identity.ts";
-import { ensureUiBrowser, UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { ensureUiBrowser, UI_TOOLS_DIR } from "./control-dusk-ui.ts";
 
 const enabled = process.env.DUSK_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
 if (!enabled) console.log("skipping browser passkey e2e: no agent-browser binary resolves; set DUSK_UI_E2E=1 to install the pinned release");
-const out = mkdtempSync(join(tmpdir(), "omb-passkey-e2e-"));
+const out = mkdtempSync(join(tmpdir(), "dusk-passkey-e2e-"));
 const home = userInfo().homedir;
 const machineEnv = { ...process.env, HOME: home, USERPROFILE: home };
 
@@ -64,7 +64,7 @@ describe.skipIf(!enabled)("a passkey step in a bot's headless browser on agent-b
     const browser = engine ? { binary: engine, chrome: picked } : await ensureUiBrowser(process.env, () => {}, UI_TOOLS_DIR);
     const chrome = picked || browser.chrome || installedGoogleChrome(chromeHost({ dataDir: out, env: machineEnv }));
     if (!chrome || isHeadlessShell(chrome)) throw new Error(`a full Chrome is needed, not ${chrome ?? "nothing"}: set DUSK_CHROME_PATH`);
-    await withBotBrowser({ engine: browser.binary, chrome, out, sessionPrefix: "omb-pk-e2e" }, async (call) => {
+    await withBotBrowser({ engine: browser.binary, chrome, out, sessionPrefix: "dusk-pk-e2e" }, async (call) => {
       expect(await openOwnPageAsBot(call, fx.crossSiteUrl("/v3/signin/challenge/pk/presend"), (line) => console.log(line))).toBeNull();
       expect(await pageSays(call, "document.getElementById('state').textContent", (state) => !state.includes("Waiting"))).toContain("Something went wrong: NotAllowedError");
       await call("agent_browser_click", { selector: "#other" });

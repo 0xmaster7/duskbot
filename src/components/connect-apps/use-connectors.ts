@@ -22,7 +22,7 @@ export type ConnectorError = string | { key: LocaleKey } | null;
 export interface ComposioConnect { added: boolean; name: string | null; signedIn: boolean; enabled: boolean }
 export const COMPOSIO_CONNECT_NAME = "composio-connect";
 export const COMPOSIO_CONNECT_URL = "https://connect.composio.dev/mcp";
-const VIA_APPS = "omb.composioConnect.apps";
+const VIA_APPS = "dusk.composioConnect.apps";
 function readViaApps(): Record<string, true> {
   try { return JSON.parse(localStorage.getItem(VIA_APPS) ?? "{}") as Record<string, true>; } catch { return {}; }
 }

@@ -1,7 +1,7 @@
 // Two real servers for Send to My Cloud: this computer's, started as the desktop app starts it (its private
 // utility-process port emulated over Node's IPC, the owner's capability delivered through it), and the person's Cloud
 // home, paired the way the Admin pairs it. Main's own wiring (electron/one-home-main.mjs, which installs
-// cloud-send-main.mjs) sits between them with a fake ipcMain and a fake Dusk Cloud sign-in. Either server can be
+// cloud-send-main.mjs) sits between them with a fake ipcMain and a fake dusk cloud sign-in. Either server can be
 // killed and started again on its own data, as an app that quits or crashes is. Disposable homes, a synthetic Claude CLI
 // and a fake 1Password SDK; no network.
 import { randomBytes } from "node:crypto";
@@ -22,7 +22,7 @@ import { removeTempDir, waitForExit } from "../../server/testing/cleanup.ts";
 import { freePortBlock } from "../../server/testing/ports.ts";
 
 const SERVER_DIR = fileURLToPath(new URL("../../server/", import.meta.url));
-export const CLOUD_HOST = "omb-t-5e6d7c8b9a0f.fly.dev";
+export const CLOUD_HOST = "dusk-t-5e6d7c8b9a0f.fly.dev";
 const EDGE = { host: CLOUD_HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", origin: `https://${CLOUD_HOST}` };
 const parse = (text: string) => { try { return JSON.parse(text); } catch { return null; } };
 
@@ -69,7 +69,7 @@ export interface CloudSendFixture {
   /** With `offer`: the offer the first move waits for, and the product events main said. */
   offer(): import("../../electron/cloud-move-offer.mjs").CloudMoveOffer | null;
   tracked: Array<[string, Record<string, string | number | boolean>]>;
-  /** The Dusk Cloud sign-in main reads: the Admin's word on this account's Cloud, its export of a held one, the Admin
+  /** The dusk cloud sign-in main reads: the Admin's word on this account's Cloud, its export of a held one, the Admin
    * taking a computer's word that its move is done (when a test sets it), and the Admin's team pairing for one of the
    * account's teams (`state.teams`). */
   account: CloudSendAccount;
@@ -91,7 +91,7 @@ export interface CloudSendFixture {
   /** The Team Cloud started with `team` (docs/team-cloud.md), paired the way the Admin pairs it: a signed body with
    * the member claim, redeemed at /api/auth/pair. Null without `team`. */
   team: CloudTeamFixture | null;
-  /** Another computer of the same person, with its own server, app and Dusk Cloud sign-in, that can move to the same
+  /** Another computer of the same person, with its own server, app and dusk cloud sign-in, that can move to the same
    * My Cloud. `label`: its name (DUSK_ENVIRONMENT_LABEL). */
   addDesk(options: { label: string }): Promise<CloudSendDesk>;
   close(): Promise<void>;
@@ -148,7 +148,7 @@ function fakeOnePassword(at: string, token: string): string {
 exports.createClient = async ({ auth }) => {
   if (auth !== ${JSON.stringify(token)}) throw new Error("error authenticating: invalid service account token");
   return {
-    vaults: { list: async () => [{ id: "v1", title: "Shared with Dusk Bot" }] },
+    vaults: { list: async () => [{ id: "v1", title: "Shared with dusk bot" }] },
     items: { list: async () => [], getAll: async () => ({ individualResponses: [] }) },
   };
 };
@@ -180,7 +180,7 @@ export async function launchCloudSendFixture({ onePasswordToken, cloudOnePasswor
   /** True: main's first move waits for the person's yes, as the app wires it (cloud-move-offer.mjs). */
   offer?: boolean;
 }): Promise<CloudSendFixture> {
-  const root = mkdtempSync(join(tmpdir(), "omb-cloud-send-"));
+  const root = mkdtempSync(join(tmpdir(), "dusk-cloud-send-"));
   const secret = randomBytes(32).toString("base64url");
   const ownerCapability = randomBytes(32).toString("base64url");
   const answers: string[] = [];
@@ -256,18 +256,18 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     const body = JSON.stringify({ label, ttlSeconds: 300 });
     const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
     const response = await fetch(`${cloudBase}/api/cloud/pairing`, { method: "POST", headers: { ...EDGE, "content-type": "application/json",
-      "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}` }, body });
+      "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}` }, body });
     return ((await response.json()) as { code: string }).code;
   };
   const pairOwner = async () => {
-    const paired = await fetch(`${cloudBase}/api/auth/pair`, { method: "POST", headers: { ...EDGE, "content-type": "application/json" }, body: JSON.stringify({ code: await mintCode("Dusk Bot app (Cloud)") }) });
+    const paired = await fetch(`${cloudBase}/api/auth/pair`, { method: "POST", headers: { ...EDGE, "content-type": "application/json" }, body: JSON.stringify({ code: await mintCode("dusk bot app (Cloud)") }) });
     return ((await paired.json()) as { token: string }).token;
   };
   let owner = await pairOwner();
   const signedRequest = async (base: string, method: string, path: string, body: string) => {
     const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
     const init: RequestInit = { method, headers: { ...EDGE, ...(body ? { "content-type": "application/json" } : {}),
-      "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudRequestSignature(secret, timestamp, nonce, method, path, body)}` } };
+      "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudRequestSignature(secret, timestamp, nonce, method, path, body)}` } };
     if (body) init.body = body;
     const response = await remember(await fetch(`${base}${path}`, init));
     return { status: response.status, body: parse(await response.text()) };
@@ -310,19 +310,19 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     teamFixture = {
       base: teamBase, home: join(root, "team"), id: team.id, name: team.name,
       async grant(member) {
-        const body = JSON.stringify({ label: "Dusk Bot app (Team Cloud)", ttlSeconds: 300, team: { id: team.id, name: team.name }, member });
+        const body = JSON.stringify({ label: "dusk bot app (Team Cloud)", ttlSeconds: 300, team: { id: team.id, name: team.name }, member });
         const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
         const minted = await fetch(`${teamBase}/api/cloud/pairing`, { method: "POST", headers: { ...EDGE, "content-type": "application/json",
-          "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}` }, body });
+          "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}` }, body });
         if (minted.status !== 200) throw Object.assign(new Error(`team pairing ${minted.status}`), { status: minted.status });
         return { origin: teamBase, code: ((await minted.json()) as { code: string }).code, expiresAt: Date.now() + 300_000 };
       },
       async pair(member, options = {}) {
         const claims = options.body ?? { team: { id: team.id, name: team.name }, ...(member ? { member } : {}) };
-        const body = JSON.stringify({ label: options.label ?? "Dusk Bot app (Team Cloud)", ttlSeconds: 300, ...claims });
+        const body = JSON.stringify({ label: options.label ?? "dusk bot app (Team Cloud)", ttlSeconds: 300, ...claims });
         const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
         const minted = await remember(await fetch(`${teamBase}/api/cloud/pairing`, { method: "POST", headers: { ...EDGE, "content-type": "application/json",
-          "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(options.secret ?? secret, timestamp, nonce, body)}` }, body }));
+          "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(options.secret ?? secret, timestamp, nonce, body)}` }, body }));
         const grant = parse(await minted.text());
         if (minted.status !== 200) return { status: minted.status, body: grant, token: null };
         const paired = await remember(await fetch(`${teamBase}/api/auth/pair`, { method: "POST", headers: { ...EDGE, "content-type": "application/json" }, body: JSON.stringify({ code: grant.code }) }));
@@ -391,7 +391,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     if (String(url).endsWith("/api/auth/pair") && typeof init.body === "string") {
       const { label } = JSON.parse(init.body) as { label: string };
       labels.push(label);
-      sessions.push({ label, background: (init.headers as Record<string, string>)["x-omb-background"] === "1" });
+      sessions.push({ label, background: (init.headers as Record<string, string>)["x-dusk-background"] === "1" });
     }
     return remember(await fetch(url, { ...init, headers: { ...init.headers as Record<string, string>, ...EDGE, ...(bearer ? { authorization: `Bearer ${bearer}` } : {}) } }));
   };
@@ -400,7 +400,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     cloudPage: (event) => (event as { page?: "local" | "cloud" })?.page ?? null,
     server: () => port,
     localRequest: async (route, init = {}) => remember(await fetch(`${desktopBase}${route}`, { ...init, headers: { ...init.headers as Record<string, string>, "x-dusk-desktop-owner": ownerCapability } })),
-    home: () => ({ origin: cloudBase, grant: async () => ({ origin: cloudBase, code: await mintCode("Dusk Bot app (Cloud)") }) }),
+    home: () => ({ origin: cloudBase, grant: async () => ({ origin: cloudBase, code: await mintCode("dusk bot app (Cloud)") }) }),
     cookieFetch: throughEdge(owner) as typeof fetch,
     reconnect: async () => false,
     power: { asleep: () => false },
@@ -410,7 +410,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     fetch: throughEdge(null) as typeof fetch,
     engineWaitMs: 2_000,
     ...(space ? { space } : {}),
-    account: () => ({ state: () => account.state, pairHome: async () => ({ origin: cloudBase, code: await mintCode("Dusk Bot app (Cloud)"), expiresAt: Date.now() + 300_000 }), exportHome: (options) => account.exportHome(options),
+    account: () => ({ state: () => account.state, pairHome: async () => ({ origin: cloudBase, code: await mintCode("dusk bot app (Cloud)"), expiresAt: Date.now() + 300_000 }), exportHome: (options) => account.exportHome(options),
       reportMove: async (options) => (account.reportMove ? account.reportMove(options) : false), reportKept: async (options) => (account.reportKept ? account.reportKept(options) : false),
       pairTeam: (teamId: string) => account.pairTeam(teamId) }),
     teamJournal: {
@@ -444,7 +444,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
       origin: () => cloudBase,
       asleep: () => false,
       read: (route) => throughEdge(owner)(`${cloudBase}${route}`, { headers: { accept: "application/json", ...BACKGROUND_HEADERS } }),
-      open: () => openOwnerSession({ origin: cloudBase, grant: async () => ({ origin: cloudBase, code: await mintCode("Dusk Bot app (Cloud)") }) }, throughEdge(null) as typeof fetch),
+      open: () => openOwnerSession({ origin: cloudBase, grant: async () => ({ origin: cloudBase, code: await mintCode("dusk bot app (Cloud)") }) }, throughEdge(null) as typeof fetch),
     },
     handoff: (what) => asks.request(port, what as ConnectionAsk),
     store: {
@@ -482,7 +482,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
       cloudPage: (event) => (event as { page?: "local" | "cloud" })?.page ?? null,
       server: () => ipc,
       localRequest: async (route, init = {}) => remember(await fetch(`${base}${route}`, { ...init, headers: { ...init.headers as Record<string, string>, "x-dusk-desktop-owner": capability } })),
-      home: () => ({ origin: cloudBase, grant: async () => ({ origin: cloudBase, code: await mintCode("Dusk Bot app (Cloud)") }) }),
+      home: () => ({ origin: cloudBase, grant: async () => ({ origin: cloudBase, code: await mintCode("dusk bot app (Cloud)") }) }),
       cookieFetch: throughOwner,
       reconnect: async () => false,
       power: { asleep: () => false },
@@ -491,7 +491,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
       localOrigin: () => base,
       fetch: throughEdge(null) as typeof fetch,
       engineWaitMs: 2_000,
-      account: () => ({ state: () => deskAccount.state, pairHome: async () => ({ origin: cloudBase, code: await mintCode("Dusk Bot app (Cloud)"), expiresAt: Date.now() + 300_000 }), exportHome: (options) => deskAccount.exportHome(options),
+      account: () => ({ state: () => deskAccount.state, pairHome: async () => ({ origin: cloudBase, code: await mintCode("dusk bot app (Cloud)"), expiresAt: Date.now() + 300_000 }), exportHome: (options) => deskAccount.exportHome(options),
         reportMove: async (options) => (deskAccount.reportMove ? deskAccount.reportMove(options) : false), reportKept: async (options) => (deskAccount.reportKept ? deskAccount.reportKept(options) : false),
         pairTeam: (teamId: string) => deskAccount.pairTeam(teamId) }),
       teamJournal: {

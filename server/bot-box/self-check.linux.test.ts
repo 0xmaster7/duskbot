@@ -12,7 +12,7 @@ import { runBoxSelfCheck } from "./self-check.ts";
 
 const detection = detectBox({ env: { ...process.env, DUSK_BOT_BOX: "1" } });
 const available = detection.box === "bwrap" && detection.tools !== null;
-const root = mkdtempSync(join(tmpdir(), "omb-box-real-"));
+const root = mkdtempSync(join(tmpdir(), "dusk-box-real-"));
 /** The CPU list is checked only where the host has one to put in the box. */
 const cpuList = existsSync("/sys/devices/system/cpu/possible");
 afterAll(() => rmSync(root, { recursive: true, force: true }));

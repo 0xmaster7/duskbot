@@ -75,7 +75,7 @@ test("yearly team quote merges extra members and uses service totals without bun
     lines: [
       { kind: "license", label: "Team license, 3 members", amountCents: 48000 },
       { kind: "members", label: "2 extra members", amountCents: 36000 },
-      { kind: "desktop", label: "Dusk Cloud Shared M", amountCents: 48000 },
+      { kind: "desktop", label: "dusk cloud Shared M", amountCents: 48000 },
       { kind: "discount", label: "Yearly discount (20%)", amountCents: -26400 },
     ],
     totalCents: 105600, monthlyEquivalentCents: 8800, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, members: 5,
@@ -160,7 +160,7 @@ test("account prepends email, preserves OAuth identities, and maps devices and l
   assert.equal(result.profile.onboarded, false);
   assert.equal(result.profile.avatarUrl, null);
   assert.deepEqual(result.notifications, { cloudStatus: true, billing: true, botDigest: true, product: false });
-  const saved = new Map([["omb-dash-onboarded:account", "1"], ["omb-dash-notify", JSON.stringify({ billing: false, product: true })]]);
+  const saved = new Map([["dusk-dash-onboarded:account", "1"], ["dusk-dash-notify", JSON.stringify({ billing: false, product: true })]]);
   const local = accountFromWire(account, 5000, { getItem: (key) => saved.get(key) ?? null });
   assert.equal(local.profile.onboarded, true);
   assert.deepEqual(local.notifications, { cloudStatus: true, billing: false, botDigest: true, product: true });

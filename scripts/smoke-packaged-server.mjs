@@ -49,8 +49,8 @@ async function freePorts(count) {
   }
 }
 
-const staging = mkdtempSync(join(tmpdir(), "omb-smoke-"));
-const home = mkdtempSync(join(tmpdir(), "omb-smoke-home-"));
+const staging = mkdtempSync(join(tmpdir(), "dusk-smoke-"));
+const home = mkdtempSync(join(tmpdir(), "dusk-smoke-home-"));
 const [port, webhookPort] = await freePorts(2);
 
 // DUSK_SMOKE_DIST lets the release workflow aim this at a packaged app's
@@ -283,7 +283,7 @@ if (listening) {
     });
     assert.equal(response.status, 200, "Packaged backup worker did not export successfully");
     const archive = await response.json();
-    assert.equal(archive.summary.format, "openmaus.workspace-backup");
+    assert.equal(archive.summary.format, "dusk.workspace-backup");
     const download = await fetch(`http://127.0.0.1:${port}/api/workspace-backup/download/${archive.id}`);
     assert.equal(download.status, 200);
     const bytes = Buffer.from(await download.arrayBuffer());
@@ -298,7 +298,7 @@ if (listening) {
 // cache on the data volume, and SIGTERM must end both with a clean exit.
 let launcherReport = null;
 if (listening && process.platform !== "win32") {
-  const launcherHome = mkdtempSync(join(tmpdir(), "omb-smoke-launcher-"));
+  const launcherHome = mkdtempSync(join(tmpdir(), "dusk-smoke-launcher-"));
   const [launcherPort, launcherWebhookPort] = await freePorts(2);
   const launcher = spawn(process.execPath, [join(staging, "server", "server-launcher.js")], {
     cwd: staging,
@@ -346,7 +346,7 @@ if (listening && process.platform !== "win32") {
 // while it runs (Windows has no SIGTERM, so a kill skips the exit-time write).
 let desktopEntryReport = null;
 if (listening) {
-  const entryHome = mkdtempSync(join(tmpdir(), "omb-smoke-entry-"));
+  const entryHome = mkdtempSync(join(tmpdir(), "dusk-smoke-entry-"));
   const cacheDir = join(entryHome, "server-compile-cache");
   const cacheEntries = () => {
     try {

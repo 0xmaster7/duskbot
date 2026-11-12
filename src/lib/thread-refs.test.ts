@@ -130,7 +130,7 @@ describe("canonical thread links", () => {
       `duskbot://thread/${uuid}/extra?bot=scout`,
       `duskbot://thread/${uuid}?bot=scout&x=1`,
       `duskbot://thread/${uuid}?bot=`,
-      `omb://thread/${uuid}?bot=scout`,
+      `dusk://thread/${uuid}?bot=scout`,
       "https://thread/" + uuid,
     ]) {
       expect(parseThreadRefUrl(miss)).toBeNull();

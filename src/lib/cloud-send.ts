@@ -85,22 +85,10 @@ export function moveLine(move: OneHomeView, page: "local" | "cloud"): { kind: "s
     return { kind: "done", text: t(move.phase === "home-again" ? "cloudSend.move.homeAgain" : move.lost ? "cloudSend.move.backLost" : "cloudSend.move.back"), extra: [] };
   }
   if (move.phase === "copy" && move.updating) return { kind: "sending", text: t("cloudSend.move.updating"), extra: [] };
-  const failing = "failing" in move ? move.failing : undefined;
-  if (failing) {
-    const extra = notCarried(failing.items);
-    return failing.error ? { kind: "failed", text: t("cloudSend.move.failing", { error: failing.error }), extra, retry: true, reason: failing.error }
-      : { kind: "failed", text: t("cloudSend.move.failingPlain"), extra, retry: true };
-  }
+  // One friendly line and Try again: what failed and why stay in the logs and the report to the Admin.
+  if ("failing" in move && move.failing) return { kind: "failed", text: t("cloudSend.move.failingPlain"), extra: [], retry: true };
   if (move.phase === "finishing") return { kind: "sending", text: t("cloudSend.move.finishing"), extra: [] };
-  // Who holds the move, by name, or what it is; nothing is claimed while it only waits for a quiet moment.
-  if (move.phase === "wait" && move.waitingFor !== undefined) {
-    const text = move.waitingFor ? t("cloudSend.move.waiting", { name: move.waitingFor })
-      : move.waitingWhat === "sign-in" ? t("cloudSend.move.waitingSignIn") : t("cloudSend.move.waitingAny");
-    return { kind: "sending", text, extra: [] };
-  }
-  const chats = move.phase === "copy" ? move.chats : undefined;
-  const key = page === "cloud" ? (chats ? "cloudSend.move.bringingChats" : "cloudSend.move.bringing") : (chats ? "cloudSend.move.copyChats" : "cloudSend.move.copy");
-  return { kind: "sending", text: t(key, chats ? { done: chats.done, total: chats.total } : {}), extra: [] };
+  return { kind: "sending", text: t(page === "cloud" ? "cloudSend.move.bringing" : "cloudSend.move.copy"), extra: [] };
 }
 
 /** The move to a server of the person's own, named `place`, on this computer's page: on its way, almost done, waiting for

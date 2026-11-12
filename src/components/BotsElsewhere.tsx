@@ -16,7 +16,7 @@ const WHY_KEY = { moved: "elsewhere.why.moved", cloud: "elsewhere.why.cloud", te
 
 export function BotsElsewhere() {
   const { state } = useStore();
-  const bridge = typeof window === "undefined" ? undefined : window.ogb?.elsewhere;
+  const bridge = typeof window === "undefined" ? undefined : window.duskDesktop?.elsewhere;
   const simulated = useSimulatedFreshInstall();
   const [view, setView] = useState<ElsewhereView | null>(null);
   const [dismissed, setDismissed] = useState(dismissedPlaces);
@@ -116,7 +116,7 @@ export function ElsewhereCard({ screen, simulated = false, onOpen, onConnect, on
   );
 }
 
-/** Dev builds only (or localStorage "omb-dev-tools" = "1"): shows the fresh-install screen for an account with a VPS. */
+/** Dev builds only (or localStorage "dusk-dev-tools" = "1"): shows the fresh-install screen for an account with a VPS. */
 export function DevFreshInstallButton() {
   const simulated = useSimulatedFreshInstall();
   if (!devToolsShown()) return null;

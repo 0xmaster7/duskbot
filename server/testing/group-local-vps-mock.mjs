@@ -53,7 +53,7 @@ export async function removeManagedVpsComputer(_cfg, owners, name, confirmed) {
 
 // a vm_exec on a fixture desktop answers like the real wrapper (the exit marker on stderr); any other command is refused
 export async function defaultRunner(args) {
-  if (!args.includes('omb-exec')) throw new Error('Unexpected real VPS command in isolated fixture');
+  if (!args.includes('dusk-exec')) throw new Error('Unexpected real VPS command in isolated fixture');
   const [command, marker] = args.slice(-2);
   const state = read();
   state.execs = [...(state.execs ?? []), command];

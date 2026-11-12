@@ -11,7 +11,7 @@ const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
 function fixture(language?: string) {
-  const dataDir = mkdtempSync(join(tmpdir(), "omb-secret-cards-"));
+  const dataDir = mkdtempSync(join(tmpdir(), "dusk-secret-cards-"));
   dirs.push(dataDir);
   const lines: Message[] = [];
   let ids = 0;
@@ -44,8 +44,8 @@ describe("the card a bot asks for a key or secret with", () => {
     expect(cards.requestCredential(bot, "ledger-main", { credentialId: "xaiApiKey" }).status).toBe(201);
     expect(cards.requestCredential(bot, "ledger-main", { label: "Stripe-Testschlüssel", reason: "Für Testzahlungen.", delivery: "file" }).status).toBe(201);
     expect(lines.map((line) => line.text)).toEqual([
-      "Gib xAI API key sicher in Dusk Bot auf deinem Telefon oder Computer ein. Es wird nie in den Chat übernommen.",
-      "Gib Stripe-Testschlüssel sicher in Dusk Bot auf deinem Telefon oder Computer ein. Es wird nie in den Chat übernommen.",
+      "Gib xAI API key sicher in dusk bot auf deinem Telefon oder Computer ein. Es wird nie in den Chat übernommen.",
+      "Gib Stripe-Testschlüssel sicher in dusk bot auf deinem Telefon oder Computer ein. Es wird nie in den Chat übernommen.",
     ]);
     expect(lines[0]!.secret!.description).toBe("Used by the built-in Grok provider. Ledger kann es verwenden, aber nie auslesen.");
     expect(lines[1]!.secret!.description)
@@ -55,8 +55,8 @@ describe("the card a bot asks for a key or secret with", () => {
   it("asks in English where no language is known", () => {
     const { cards, lines, bot } = fixture();
     cards.requestCredential(bot, "ledger-main", { label: "Notion token", reason: "For Notion's MCP server.", delivery: "ref" });
-    expect(lines[0]!.text).toBe("Securely provide the Notion token from Dusk Bot on your phone or computer. It is never added to chat.");
-    expect(lines[0]!.secret!.description).toBe("For Notion's MCP server. Ledger gets a one-use reference for Dusk Bot's own tools and never sees it.");
+    expect(lines[0]!.text).toBe("Securely provide the Notion token from dusk bot on your phone or computer. It is never added to chat.");
+    expect(lines[0]!.secret!.description).toBe("For Notion's MCP server. Ledger gets a one-use reference for dusk bot's own tools and never sees it.");
   });
 });
 
@@ -64,7 +64,7 @@ describe("the mailbox card", () => {
   const PASSWORD = "fake-mailbox-password";
   const ACCOUNT = { address: "me@shop.example", imapHost: "imap.shop.example", smtpHost: "smtp.shop.example", connectedAt: "2026-11-04T00:00:00.000Z" };
   function mail(options: { refusal?: string; connected?: boolean; profile?: string; connect?: (request: Record<string, unknown>) => unknown } = {}) {
-    const dataDir = mkdtempSync(join(tmpdir(), "omb-secret-cards-"));
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-secret-cards-"));
     dirs.push(dataDir);
     const lines: Message[] = [];
     let ids = 0;
@@ -178,7 +178,7 @@ describe("the mailbox card", () => {
 describe("the login card", () => {
   const PASSWORD = "fake-Card!pass";
   function loginCards(options: { saved?: boolean } = {}) {
-    const dataDir = mkdtempSync(join(tmpdir(), "omb-secret-cards-"));
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-secret-cards-"));
     dirs.push(dataDir);
     const lines: Message[] = [];
     let ids = 0;

@@ -1905,8 +1905,8 @@ type TrustedApprovalBridge = {
 };
 
 export function desktopApprovalBridge(): TrustedApprovalBridge | undefined {
-  if (typeof window === "undefined" || !window.ogb?.approvals) return undefined;
-  return desktopCapabilitiesNow().host.packaged ? window.ogb.approvals : undefined;
+  if (typeof window === "undefined" || !window.duskDesktop?.approvals) return undefined;
+  return desktopCapabilitiesNow().host.packaged ? window.duskDesktop.approvals : undefined;
 }
 
 export async function persistTaskApproval(
@@ -2655,7 +2655,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               memberIds: action.memberIds,
               name: action.name,
               section: action.section,
-              ...(window.ogb?.remoteClient?.active
+              ...(window.duskDesktop?.remoteClient?.active
                 ? { setup: { bulletin: "", defaultResponder: { kind: "mentions" } } }
                 : action.memberIds.length > 1 ? { defaultResponder: { kind: "member", botId: action.memberIds[0], leader: true } } : {}),
             }),
@@ -2949,7 +2949,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return () => rawDispatch({ type: "notificationsHydrated", notifications: Array.isArray(notifications) ? notifications : [] });
         },
       },
-      ...(window.ogb?.remoteClient?.active ? [] : [{
+      ...(window.duskDesktop?.remoteClient?.active ? [] : [{
         key: "webhooks",
         request: async () => {
           const { webhooks, attempts, ingress } = snapshotArrays(await readSnapshot<{ webhooks: WebhookTrigger[]; attempts?: WebhookAttempt[]; ingress: WebhookIngressStatus }>("/api/webhooks"), "webhooks");

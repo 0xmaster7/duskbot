@@ -33,7 +33,7 @@ describe("accounts across the website, desktop, workspace and phone", () => {
   beforeAll(async () => { providers = await startFakeProviders(); });
   afterAll(async () => { await providers?.close(); });
   beforeEach(async () => {
-    f = { dir: mkdtempSync(join(tmpdir(), "omb-accounts-e2e-")), cleanup: [], secrets: new Set(), offset: 0, mailer: memoryMailer() };
+    f = { dir: mkdtempSync(join(tmpdir(), "dusk-accounts-e2e-")), cleanup: [], secrets: new Set(), offset: 0, mailer: memoryMailer() };
     f.now = () => Date.now() + f.offset;
     f.resend = () => { f.offset += EMAIL_RESEND_SECONDS * 1000; };
     f.server = createServer();
@@ -163,7 +163,7 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     const client = createMobileAccount({ origin: f.url, fetch: f.fetch, platform: { secrets, prefs, kind: "ios", native: true,
       deviceName: () => "Fixture iPhone", appVersion: "1.2.3", openExternal: async url => { opened.push(url); } } });
     f.cleanup.push(() => client.signOut());
-    return { client, secrets, prefs, opened, token: () => JSON.parse(secrets.values.get("omb.account")).token };
+    return { client, secrets, prefs, opened, token: () => JSON.parse(secrets.values.get("dusk.account")).token };
   }
   async function phoneSignIn(p, email) {
     expect((await p.client.emailStart(email)).outcome).toBe("sent");
@@ -300,7 +300,7 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     await p.client.oauthStart("google");
     const tampered = await browser().follow(p.opened.at(-1)); tampered.searchParams.set("state", "tampered");
     expect(await p.client.handleAuthUrl(tampered.href)).toEqual({ outcome: "invalid-state" });
-    expect(p.client.account()).toBeNull(); expect(p.secrets.values.has("omb.account")).toBe(false);
+    expect(p.client.account()).toBeNull(); expect(p.secrets.values.has("dusk.account")).toBe(false);
     expect((await bearer(signedToken)).status).toBe(401);
     await p.client.oauthStart("x");
     const jar = browser(), pendingUrl = await jar.follow(p.opened.at(-1)), pending = pendingUrl.searchParams.get("pending");

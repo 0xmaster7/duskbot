@@ -15,7 +15,7 @@ const audiences: Record<string, Audience> = { "t-bob": "member:p_bob", "t-owner"
 const setup = () => ({ dataDir, serverHome: home, audienceOf: (threadId: string) => audiences[threadId] ?? "team", threads: () => [], log: () => {} });
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "omb-engine-homes-"));
+  root = mkdtempSync(join(tmpdir(), "dusk-engine-homes-"));
   home = join(root, "home");
   dataDir = join(home, ".duskbot");
   mkdirSync(join(home, ".claude"), { recursive: true });

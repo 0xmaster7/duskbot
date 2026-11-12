@@ -21,12 +21,12 @@ try {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "ignore"],
   }).trim();
-  if (status.startsWith("ii")) fail("refusing to replace a pre-existing Dusk Bot installation");
+  if (status.startsWith("ii")) fail("refusing to replace a pre-existing dusk bot installation");
 } catch (error) {
   if (String(error?.message ?? error).includes("refusing to replace")) throw error;
 }
 
-const temporary = fs.mkdtempSync(path.join(path.resolve(runnerTemp), "omb-deb-upgrade-"));
+const temporary = fs.mkdtempSync(path.join(path.resolve(runnerTemp), "dusk-deb-upgrade-"));
 if (path.dirname(temporary) !== path.resolve(runnerTemp)) fail("temporary fixture escaped RUNNER_TEMP");
 const legacyRoot = path.join(temporary, "legacy-package");
 const controlRoot = path.join(legacyRoot, "DEBIAN");
@@ -45,8 +45,8 @@ try {
       "Package: duskbot",
       "Version: 0.1.7",
       "Architecture: amd64",
-      "Maintainer: Dusk Bot CI <ci@duskbot.invalid>",
-      "Description: Legacy Dusk Bot directory-mode upgrade fixture",
+      "Maintainer: dusk bot CI <ci@duskbot.invalid>",
+      "Description: Legacy dusk bot directory-mode upgrade fixture",
       "",
     ].join("\n"),
     { mode: 0o644 },

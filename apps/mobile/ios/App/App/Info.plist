@@ -14,11 +14,11 @@
 		</dict>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Dusk Bot uses the camera to scan the pairing code shown on your computer, and to take a photo you attach to a message.</string>
+	<string>dusk bot uses the camera to scan the pairing code shown on your computer, and to take a photo you attach to a message.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Dusk Bot uses the microphone when you dictate a message, record a voice note or start a voice call with a bot.</string>
+	<string>dusk bot uses the microphone when you dictate a message, record a voice note or start a voice call with a bot.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Dusk Bot connects to the computer you paired on your Wi-Fi network, so your chats go straight to it.</string>
+	<string>dusk bot connects to the computer you paired on your Wi-Fi network, so your chats go straight to it.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
@@ -41,7 +41,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Dusk Bot</string>
+	<string>dusk bot</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -49,7 +49,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Dusk Bot</string>
+	<string>dusk bot</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

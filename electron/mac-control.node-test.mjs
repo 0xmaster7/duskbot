@@ -10,7 +10,7 @@ import { createMacExecutor, folderName, jobSummary, macLogFile, resolveMacPath }
 const job = (tool, args = {}, extra = {}) => ({ id: `job-${tool}`, tool, arguments: args, bot: { id: "b1", name: "Nova" }, expiresAt: Date.now() + 60_000, ...extra });
 
 function scratchHome(t) {
-  const home = realpathSync(mkdtempSync(path.join(tmpdir(), "omb-mac-home-")));
+  const home = realpathSync(mkdtempSync(path.join(tmpdir(), "dusk-mac-home-")));
   t.after(() => rmSync(home, { recursive: true, force: true }));
   return home;
 }

@@ -99,7 +99,7 @@ const before = process.argv.includes("--before");
 const fx = await launchCloudSendFixture({ onePasswordToken: `ops_fake-team-${randomBytes(8).toString("hex")}`, team: { id: "team-acme-1", name: "Acme" } });
 const team = fx.team!;
 const token = {} as Record<Who, string>;
-const profile = mkdtempSync(join(tmpdir(), "omb-team-access-chrome-"));
+const profile = mkdtempSync(join(tmpdir(), "dusk-team-access-chrome-"));
 let chrome: Awaited<ReturnType<typeof openChrome>> | undefined;
 let ui: MountedPreview | undefined;
 try {

@@ -7,7 +7,7 @@ import { createInterface } from "node:readline";
 import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { launchVerificationServer, type VerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer, type VerificationServer } from "../scripts/control-dusk.ts";
 import { removeTempDir } from "./testing/cleanup.ts";
 import { openSse } from "./testing/sse.ts";
 
@@ -76,7 +76,7 @@ describe("per-bot thread capacity through an isolated HTTP fixture", () => {
   };
   const permission = async (threadId: string, requestId: string) => {
     const launched = await dump(threadId);
-    const socket = connect(launched.mcpConfig.mcpServers.ogb.args.at(-1));
+    const socket = connect(launched.mcpConfig.mcpServers.dusk.args.at(-1));
     sockets.push(socket);
     await new Promise<void>((resolve, reject) => {
       socket.once("connect", resolve);
@@ -258,7 +258,7 @@ describe("per-bot thread capacity through an isolated HTTP fixture", () => {
 
   it("starts a routine in the bot's project folder while another thread works there", async () => {
     await limit(2);
-    const project = mkdtempSync(join(tmpdir(), "omb-collide-"));
+    const project = mkdtempSync(join(tmpdir(), "dusk-collide-"));
     projectDirs.push(project);
     // Both threads pin to one folder, so the fake CLI's cwd-keyed gate/dump collapses to one key: one gate write finishes both.
     const key = basename(project);

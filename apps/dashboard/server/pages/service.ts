@@ -82,7 +82,7 @@ export function createPagesService(options: {
     pagesDomain,
     mint(headers: HeadersInput, rawBody: Buffer): Response {
       cleanup();
-      const machine = header(headers, "x-omb-cloud-machine"), timestamp = header(headers, "x-omb-cloud-timestamp"), nonce = header(headers, "x-omb-cloud-nonce"), signature = header(headers, "x-omb-cloud-signature");
+      const machine = header(headers, "x-dusk-cloud-machine"), timestamp = header(headers, "x-dusk-cloud-timestamp"), nonce = header(headers, "x-dusk-cloud-nonce"), signature = header(headers, "x-dusk-cloud-signature");
       const cloud = options.clouds.get(machine), nonceKey = `${machine}:${nonce}`;
       if (header(headers, "authorization") || !cloud || ["destroyed", "destroying", "suspended", "checkout"].includes(cloud.status) || cloud.ended || cloud.suspended !== null
         || cloud.endsAt !== undefined && cloud.endsAt <= now() || cloud.destroyAt !== null && cloud.destroyAt <= now()

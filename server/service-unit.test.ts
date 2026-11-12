@@ -19,12 +19,12 @@ const spec: ServiceSpec = {
 describe("service units", () => {
   it("runs the same serve command, with strip-types only for a checkout", () => {
     expect(serviceCommand(spec)).toEqual(["/usr/bin/node", "/usr/lib/node_modules/duskbot/cli.js", "serve", ...spec.serveArgs]);
-    expect(serviceCommand({ ...spec, script: "/srv/Dusk Bot/server/duskbot.ts" })[1]).toBe("--experimental-strip-types");
+    expect(serviceCommand({ ...spec, script: "/srv/dusk bot/server/duskbot.ts" })[1]).toBe("--experimental-strip-types");
   });
 
   it("renders a systemd unit that restarts, runs as the user, and grants low ports only for --domain", () => {
     const unit = systemdUnit(spec);
-    expect(unit).toContain("Description=Dusk Bot (agentada)");
+    expect(unit).toContain("Description=dusk bot (agentada)");
     expect(unit).toContain("User=maus");
     expect(unit).toContain("Environment=DUSK_DATA_DIR=/home/maus/.duskbot");
     expect(unit).toContain("ExecStart=/usr/bin/node /usr/lib/node_modules/duskbot/cli.js serve --port 8799 --data-dir /home/maus/.duskbot --domain maus.example.com --no-pair");
@@ -63,7 +63,7 @@ describe("service units", () => {
     const out = "/Users/maus/Library/Application Support/duskbot-sentinel";
     const sentinel = { node: "/usr/bin/node", script: "/usr/lib/node_modules/duskbot/cli.js", dataDir: "/Users/maus/.duskbot", home: "/Users/maus", out };
     expect(sentinelCommand(sentinel)).toEqual(["/usr/bin/node", "/usr/lib/node_modules/duskbot/cli.js", "sentinel", "--once", "--data-dir", "/Users/maus/.duskbot", "--out", out]);
-    expect(sentinelCommand({ ...sentinel, script: "/srv/Dusk Bot/server/duskbot.ts" })[1]).toBe("--experimental-strip-types");
+    expect(sentinelCommand({ ...sentinel, script: "/srv/dusk bot/server/duskbot.ts" })[1]).toBe("--experimental-strip-types");
     const plist = sentinelLaunchdPlist(sentinel);
     expect(plist).toContain("<string>bot.dusk.sentinel</string>");
     expect(plist).toContain("<key>StartInterval</key>\n\t<integer>120</integer>");

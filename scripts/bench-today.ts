@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 
-const directory = mkdtempSync(join(tmpdir(), "omb-today-bench-"));
+const directory = mkdtempSync(join(tmpdir(), "dusk-today-bench-"));
 process.env.HOME = directory;
 process.env.USERPROFILE = directory;
 process.env.DUSK_DATA_DIR = join(directory, "data");

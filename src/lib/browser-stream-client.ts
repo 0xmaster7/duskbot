@@ -1,7 +1,7 @@
 // Adapted from pingdotgg/t3code@00cdceb1 packages/client-runtime/src/preview/serverBrowserStream.ts, MIT License,
-// Copyright (c) 2026 T3 Tools Inc. (full text in third_party/t3-code/LICENSE); modified: Dusk Bot's routes and
+// Copyright (c) 2026 T3 Tools Inc. (full text in third_party/t3-code/LICENSE); modified: dusk bot's routes and
 // access, a viewer that may operate sizes the page while it only watches, a larger frame cap is sent in place and a
-// reconnect opens with the newest size and cap, and Dusk Bot's own messages are passed on.
+// reconnect opens with the newest size and cap, and dusk bot's own messages are passed on.
 
 /** The browser's host cannot run Chrome until it is set up; the close reason names the fix. */
 export const PREVIEW_STREAM_HOST_SETUP_CLOSE_CODE = 4503;
@@ -233,7 +233,7 @@ export interface PreviewStreamEvents {
   readonly onPopup?: (tabId: string) => void;
   /** The page opened a file picker (`null` once answered or replaced). */
   readonly onFileChooser?: (chooser: PreviewStreamFileChooser | null) => void;
-  /** Dusk Bot's own messages: tabs, nav, selectPopup, cursor, authPrompt, starting, notice, asleep, awake. */
+  /** dusk bot's own messages: tabs, nav, selectPopup, cursor, authPrompt, starting, notice, asleep, awake. */
   readonly onMessage?: (message: Readonly<Record<string, unknown>>) => void;
   /** Input sent while disconnected is dropped. */
   readonly onConnectedChange: (connected: boolean) => void;

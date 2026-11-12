@@ -9,7 +9,7 @@ const MARKER = "error:";
 /** What stopped a reply, read by the server from the engine's own words, so the app says it in plain words. */
 export type FailedReplyReason = "signed_out" | "credits" | "usage_limit" | "rate_limit" | "overloaded" | "timeout";
 
-/** Why Dusk Bot stopped a browser run itself: `loop`, the same step did nothing three times; the others, a page said
+/** Why dusk bot stopped a browser run itself: `loop`, the same step did nothing three times; the others, a page said
  * so in words a retry cannot change. */
 export interface BrowserBlocker { kind: "loop" | "credentials" | "credit" | "blocked"; site?: string }
 

@@ -1,4 +1,4 @@
-// Real provider adapters against the scripted ACP peer: proves Dusk Bot's flags and residual-request handling,
+// Real provider adapters against the scripted ACP peer: proves dusk bot's flags and residual-request handling,
 // not a native engine's classifier.
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -43,7 +43,7 @@ describe("remaining ACP approval mappings", () => {
   ];
   it.each(cases)("$driver.driverKind preserves residual requests across Full → Auto → Ask", async ({ driver, argv, native }) => {
     ensureDirs();
-    const scratch = mkdtempSync(join(tmpdir(), "omb-approval-matrix-"));
+    const scratch = mkdtempSync(join(tmpdir(), "dusk-approval-matrix-"));
     const dump = join(scratch, "spawn.json");
     const rpcDump = join(scratch, "rpc.json");
     const instance = await driver.create({

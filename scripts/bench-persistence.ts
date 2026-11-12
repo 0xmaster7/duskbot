@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 import { setImmediate as yieldLoop, setTimeout as delay } from "node:timers/promises";
 
-const directory = mkdtempSync(join(tmpdir(), "omb-persistence-bench-"));
+const directory = mkdtempSync(join(tmpdir(), "dusk-persistence-bench-"));
 const previousDataDir = process.env.DUSK_DATA_DIR;
 process.env.DUSK_DATA_DIR = directory;
 mkdirSync(join(directory, "events"));

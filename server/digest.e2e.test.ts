@@ -62,7 +62,7 @@ posixOnly("work digest e2e (every fake engine)", () => {
 
   beforeAll(async () => {
     for (const e of ENGINES) chmodSync(fake(e.cli), 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-digest-e2e-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-digest-e2e-"));
     mkdirSync(join(home, ".duskbot"), { recursive: true });
     const instances: Record<string, unknown> = {};
     for (const e of ENGINES) {
@@ -131,7 +131,7 @@ posixOnly("work digest e2e (every fake engine)", () => {
   }, 45_000);
 
   it("names the project files a turn changed, and a different engine taking over sees that in its replay", async () => {
-    const project = mkdtempSync(join(tmpdir(), "omb-digest-project-"));
+    const project = mkdtempSync(join(tmpdir(), "dusk-digest-project-"));
     writeFileSync(join(project, "README.md"), "hello");
     const created = (await api("POST", "/api/bots")).body.bot;
     expect((await api("PATCH", `/api/bots/${created.id}`, { cwd: project })).status).toBe(200);

@@ -230,7 +230,7 @@ export const CopilotAgentDriver = {
   /** Creates an instance with thread-isolated launcher config files, removed when the instance is disposed. */
   async create(input: Parameters<ReturnType<typeof createAcpDriver>["create"]>[0]) {
     // Copilot CLI 1.0.105 rejects stdio servers from ACP clients; --additional-mcp-config accepts them from its launcher.
-    const directory = await mkdtemp(join(tmpdir(), "omb-copilot-mcp-"));
+    const directory = await mkdtemp(join(tmpdir(), "dusk-copilot-mcp-"));
     const cleanup = () => rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     try {
       const instance = await createAcpDriver({

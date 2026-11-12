@@ -31,7 +31,7 @@ const gate = (children: ReactNode = createElement("p", null, "workspace")) => cr
 const mount = (children?: ReactNode, strict = false) => act(async () => {
   root = createRoot(host); root.render(strict ? createElement(StrictMode, null, gate(children)) : gate(children));
 });
-const heading = () => expect(host.querySelector("h1")?.textContent).toBe("Sign in to Dusk Bot");
+const heading = () => expect(host.querySelector("h1")?.textContent).toBe("Sign in to dusk bot");
 const typeEmail = () => act(async () => {
   const field = host.querySelector<HTMLInputElement>("input[type=email]")!;
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(field, account.email);
@@ -39,7 +39,7 @@ const typeEmail = () => act(async () => {
 });
 const submit = () => act(async () => { host.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
 
-const save = () => secrets.set("omb.account", JSON.stringify({ origin, token, expiresAt: Date.now() + 60_000, account, deviceId: "phone" }));
+const save = () => secrets.set("dusk.account", JSON.stringify({ origin, token, expiresAt: Date.now() + 60_000, account, deviceId: "phone" }));
 
 it("requires an account in the native app", async () => {
   await mount(); heading(); expect(host.textContent).not.toContain("workspace");
@@ -63,7 +63,7 @@ it("returns to the gate on sign-out", async () => {
   await mount(createElement(Child));
   expect(host.querySelector("button")?.textContent).toBe("leave");
   await act(async () => host.querySelector("button")!.click());
-  heading(); expect(secrets.has("omb.account")).toBe(false);
+  heading(); expect(secrets.has("dusk.account")).toBe(false);
 });
 it("handles auth links and leaves pairing links to ConnectionGate", async () => {
   await mount(); heading(); expect(listener?.("duskbot://pair?code=abc")).toBe(false);
@@ -115,7 +115,7 @@ it("the sign-in screen links the terms and the privacy policy and offers the dem
   expect(buttons().some(text => text.startsWith("Try the demo"))).toBe(true);
 });
 it("the demo workspace opens without an account", async () => {
-  prefs.set("omb.mobile.demo", "1");
+  prefs.set("dusk.mobile.demo", "1");
   await mount();
   expect(host.textContent).toBe("workspace"); expect(fetcher).not.toHaveBeenCalled();
 });
@@ -124,14 +124,14 @@ it("an account signed out or deleted elsewhere returns to the gate when the app 
   await mount(); expect(host.textContent).toBe("workspace");
   fetcher.mockResolvedValue(response({ error: "invalid_token" }, 401));
   await act(async () => { resume?.(); await new Promise(resolve => setTimeout(resolve, 0)); });
-  heading(); expect(secrets.has("omb.account")).toBe(false);
+  heading(); expect(secrets.has("dusk.account")).toBe(false);
 });
 it("a resume while the service cannot be reached keeps the account", async () => {
   save(); fetcher.mockResolvedValue(response({}));
   await mount();
   fetcher.mockRejectedValue(new TypeError("offline"));
   await act(async () => { resume?.(); await new Promise(resolve => setTimeout(resolve, 0)); });
-  expect(host.textContent).toBe("workspace"); expect(secrets.has("omb.account")).toBe(true);
+  expect(host.textContent).toBe("workspace"); expect(secrets.has("dusk.account")).toBe(true);
 });
 
 it("allows only bare safe origins in the development query", () => {
@@ -142,7 +142,7 @@ it("allows only bare safe origins in the development query", () => {
 });
 
 it("finishes a cold-launch auth link through StrictMode effect replay", async () => {
-  secrets.set("omb.account.pending", JSON.stringify({ verifier: "v".repeat(43), state: "state", provider: "google", at: Date.now(), origin }));
+  secrets.set("dusk.account.pending", JSON.stringify({ verifier: "v".repeat(43), state: "state", provider: "google", at: Date.now(), origin }));
   let launch: string | null = "duskbot://auth?code=abc&state=state";
   platform.onAppUrl = cb => { if (launch && cb(launch)) launch = null; return () => {}; };
   fetcher.mockResolvedValue(response({ cloudContractVersion: 1, accessToken: token, expiresAt: Date.now() + 60_000, device: { id: "phone" }, account }));

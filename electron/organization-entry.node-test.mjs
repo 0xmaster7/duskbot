@@ -37,7 +37,7 @@ test("local entry opens Settings without enrollment or persistence", async () =>
 });
 
 test("consuming a launch action prevents it replaying on a later restart without changing other arguments", () => {
-  const original = ["/Applications/Dusk Bot", "--profile=fixture", "duskbot://organization?ignored", "duskbot://install/example"];
+  const original = ["/Applications/dusk bot", "--profile=fixture", "duskbot://organization?ignored", "duskbot://install/example"];
   const argv = [...original, "duskbot://organization", "duskbot://organization"];
   assert.equal(takeOrganizationDeepLink(argv), true);
   assert.deepEqual(argv, original);
@@ -49,7 +49,7 @@ test("desktop relaunch accepts every platform once, guards its sender, and prese
   const main = readFileSync(new URL("./main.mjs", import.meta.url), "utf8");
   const source = main.slice(main.indexOf('ipcMain.handle("desktop:relaunch"'), main.indexOf("const talk = installTalk("))
     + main.slice(main.indexOf("function requireMainWindowSender("), main.indexOf('ipcMain.handle("desktop-remote:state"'));
-  const argv = ["/fixture/Dusk Bot", "--fixture", "duskbot://organization", "duskbot://organization?ignored"];
+  const argv = ["/fixture/dusk bot", "--fixture", "duskbot://organization", "duskbot://organization?ignored"];
   takeOrganizationDeepLink(argv);
   const origin = "http://127.0.0.1:48995";
   localOrigin.setLocalOrigin(origin);

@@ -7,7 +7,7 @@ import { BROWSER_CONTROL_REFUSAL, BrowserRuntime, type BrowserSpawnSpec } from "
 import { planAgentBrowserBatch } from "./agent-browser-batch.ts";
 
 const selector = { type: "string", description: "Element @ref from snapshot, or a CSS selector." };
-/** agent-browser 0.37.0's schemas for the tools these tests use, as Dusk Bot lists them. */
+/** agent-browser 0.37.0's schemas for the tools these tests use, as dusk bot lists them. */
 const TOOLS = [
   { name: "agent_browser_open", inputSchema: { type: "object", properties: { url: { type: "string" } } } },
   { name: "agent_browser_click", inputSchema: { type: "object", properties: { newTab: { type: "boolean", default: false }, selector }, required: ["selector"] } },
@@ -62,7 +62,7 @@ afterEach(async () => {
 });
 
 function engine(probes?: unknown[]) {
-  const dir = mkdtempSync(join(tmpdir(), "omb-ab-batch-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-ab-batch-"));
   dirs.push(dir);
   const log = join(dir, "calls");
   writeFileSync(log, "");

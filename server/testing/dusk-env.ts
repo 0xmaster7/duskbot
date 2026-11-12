@@ -2,18 +2,18 @@
 
 const AMBIENT_PREFIXES = ["DUSK_", "DUSK_"] as const;
 
-export function isAmbientOmbKey(key: string): boolean {
+export function isAmbientDuskKey(key: string): boolean {
   return AMBIENT_PREFIXES.some((prefix) => key.startsWith(prefix));
 }
 
-export function stripOmbEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+export function stripDuskEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const clean: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(env)) {
-    if (!isAmbientOmbKey(key)) clean[key] = value;
+    if (!isAmbientDuskKey(key)) clean[key] = value;
   }
   return clean;
 }
 
 export function childEnv(overrides: Record<string, string> = {}): NodeJS.ProcessEnv {
-  return { ...stripOmbEnv(process.env), ...overrides };
+  return { ...stripDuskEnv(process.env), ...overrides };
 }

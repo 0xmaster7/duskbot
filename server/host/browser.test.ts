@@ -93,7 +93,7 @@ describe("the bots' browser host with browserEngine.engine set to chrome", () =>
   it("gives a bot's turn the browser MCP server over its own profile on the new engine", async () => {
     const { host, minted } = setup("chrome");
     const browser = await host.browserIntegration("scout", undefined, turn);
-    expect(browser?.spec).toEqual({ command: "omb-cdp", args: ["bot:scout"], env: {} });
+    expect(browser?.spec).toEqual({ command: "dusk-cdp", args: ["bot:scout"], env: {} });
     expect(browser?.integration).toMatchObject({ command: process.execPath, env: { DUSK_HARNESS_URL: "http://127.0.0.1:4100" } });
     expect(minted).toEqual([expect.objectContaining({ botId: "scout", browserSession: browser?.session, kind: "browser", ...turn })]);
     expect(host.usedBrowserSessions.get(browser!.session)).toEqual(browser?.spec);
@@ -213,7 +213,7 @@ describe("the browser on an assigned VPS computer", () => {
     expect(unavailable.host.usedBrowserSessions.size).toBe(0);
     expect(unavailable.minted).toEqual([]);
     const fallback = setup("chrome", { boxChrome: async () => null });
-    expect((await fallback.host.browserIntegration("scout", undefined, turn))?.spec.command).toBe("omb-cdp");
+    expect((await fallback.host.browserIntegration("scout", undefined, turn))?.spec.command).toBe("dusk-cdp");
   });
 
   it("omits structured browsing on a selected VPS image without CDP instead of using a host browser", async () => {
@@ -308,7 +308,7 @@ describe("a deleted bot's browser", () => {
     vi.unstubAllEnvs();
     for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true });
   });
-  /** agent-browser on PATH, as the Cloud image installs it; with `managed`, also the one Dusk Bot installed. */
+  /** agent-browser on PATH, as the Cloud image installs it; with `managed`, also the one dusk bot installed. */
   function engines({ managed = false }: { managed?: boolean } = {}) {
     vi.mocked(browserEngineStatus).mockImplementation((options) => (options?.managedOnly && !managed
       ? { kind: "unavailable", reason: "not installed", installable: true }
@@ -317,7 +317,7 @@ describe("a deleted bot's browser", () => {
     vi.mocked(closeBrowserSession).mockClear().mockResolvedValue(true);
   }
   function daemons(sessions: string[]) {
-    const folder = mkdtempSync(join(tmpdir(), "omb-host-sweep-"));
+    const folder = mkdtempSync(join(tmpdir(), "dusk-host-sweep-"));
     folders.push(folder);
     mkdirSync(join(folder, "agent-browser"));
     for (const session of sessions) writeFileSync(join(folder, "agent-browser", `${session}.pid`), "0");
@@ -336,7 +336,7 @@ describe("a deleted bot's browser", () => {
     expect(await host.eraseDeletedBrowser(deleted)).toBe(false);
   });
 
-  it("elsewhere, is erased only with the agent-browser Dusk Bot installed, and otherwise just closed", async () => {
+  it("elsewhere, is erased only with the agent-browser dusk bot installed, and otherwise just closed", async () => {
     engines();
     const { host } = setup(undefined);
     expect(await host.eraseDeletedBrowser(deleted)).toBe(true);
@@ -464,13 +464,13 @@ describe("a Team Cloud's boxed browsers and the files a turn uploads", () => {
   afterEach(() => chromeLauncher.boxWith(() => null));
 
   it.each([null, "report.txt", "Report.txt"])("gives Chrome on Windows a private copy of a workspace file (name: %s)", async (name) => {
-    const work = realpathSync(mkdtempSync(join(tmpdir(), "omb-host-upload-windows-")));
+    const work = realpathSync(mkdtempSync(join(tmpdir(), "dusk-host-upload-windows-")));
     try {
       const file = join(work, "report.txt");
       writeFileSync(file, "report");
       const { host } = setup("chrome");
       vi.stubGlobal("process", { ...process, platform: "win32" });
-      const [staged] = await host.uploadPaths([{ file, name }], "bot-scout", { command: "omb-cdp", args: ["bot:scout"], env: {} });
+      const [staged] = await host.uploadPaths([{ file, name }], "bot-scout", { command: "dusk-cdp", args: ["bot:scout"], env: {} });
       vi.unstubAllGlobals();
       expect(staged!.startsWith(join(DATA_DIR, "browser-uploads"))).toBe(true);
       expect(readFileSync(staged!, "utf8")).toBe("report");
@@ -481,7 +481,7 @@ describe("a Team Cloud's boxed browsers and the files a turn uploads", () => {
   });
 
   it.skipIf(process.platform === "win32").each([false, true])("keeps workspace bytes through a symlink swap while Chrome waits for a picker (boxed: %s)", async (boxed) => {
-    const work = realpathSync(mkdtempSync(join(tmpdir(), "omb-host-upload-")));
+    const work = realpathSync(mkdtempSync(join(tmpdir(), "dusk-host-upload-")));
     try {
       const secret = join(work, "secret.txt");
       const workspace = join(work, "workspace");
@@ -493,7 +493,7 @@ describe("a Team Cloud's boxed browsers and the files a turn uploads", () => {
       if ("error" in checked) throw new Error(checked.error);
       const box = { bwrap: "/usr/bin/bwrap", options: ["--unshare-pid"], seccomp: null };
       const { host } = setup("chrome", { cloudHome: true, ...(boxed ? { browserBox: () => box } : {}) });
-      const paths = await host.uploadPaths(checked.files.map((file) => ({ file, name: null })), "bot-scout", { command: "omb-cdp", args: ["bot:scout"], env: {} });
+      const paths = await host.uploadPaths(checked.files.map((file) => ({ file, name: null })), "bot-scout", { command: "dusk-cdp", args: ["bot:scout"], env: {} });
       const choosers = new FileChoosers();
       let opened!: (params: Params) => void;
       const uploaded: Array<{ method: string; files: unknown; bytes: string[] }> = [];
@@ -516,7 +516,7 @@ describe("a Team Cloud's boxed browsers and the files a turn uploads", () => {
   });
 
   it("are copied into that browser's own profile, the one folder of the disk its box shows Chrome", async () => {
-    const work = realpathSync(mkdtempSync(join(tmpdir(), "omb-host-upload-")));
+    const work = realpathSync(mkdtempSync(join(tmpdir(), "dusk-host-upload-")));
     const file = join(work, "report.txt");
     writeFileSync(file, "report");
     const box = { bwrap: "/usr/bin/bwrap", options: ["--unshare-pid"], seccomp: null };

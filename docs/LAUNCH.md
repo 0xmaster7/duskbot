@@ -1,4 +1,4 @@
-# Launch checklist: Dusk Bot on dusk.bot
+# Launch checklist: dusk bot on dusk.bot
 
 What the launch branch (`w15/launch`) did, and what needs the owner's accounts, keys or decisions. Each owner step is
 written to be done in order. **Done** means committed and checked; **Owner** means it needs you.
@@ -56,7 +56,7 @@ written to be done in order. **Done** means committed and checked; **Owner** mea
 6. **Windows signing** (decision): builds are unsigned, so SmartScreen warns "unknown publisher". Options: Azure
    Trusted Signing (about USD 10 a month, needs a verified organization) or an OV/EV certificate. Wire it into
    `release.yml`'s Windows job when chosen.
-7. **Public downloads repo**: `gh repo create goatedgrokbotalternative/duskbot-releases --public --description "Dusk Bot downloads"`.
+7. **Public downloads repo**: `gh repo create goatedgrokbotalternative/duskbot-releases --public --description "dusk bot downloads"`.
 8. **First release**: Actions > Prepare next release > patch; merge the PR; when the draft is ready, review and
    publish it; then on the Mac `DRY_RUN=1 scripts/publish-downloads.sh v<version>` and without `DRY_RUN`. Then
    remove the "Downloads open with the first public release" line from
@@ -316,7 +316,7 @@ branch alike, so the first CI run will fail until they are fixed:
 - Source guards: `src/lib/random-uuid.test.ts` (`apps/mobile`'s `src/mobile/connection/pair.ts` calls
   `crypto.randomUUID()` without the fallback), `src/locales/vocabulary.test.ts` and `scripts/testing/analytics-docs.test.ts`
   (read the removed `apps/docs`).
-- Linux shards: UI e2e tests whose clicks land on a fixed full-screen layer (`control-omb-ui`, `presets-ui`,
+- Linux shards: UI e2e tests whose clicks land on a fixed full-screen layer (`control-dusk-ui`, `presets-ui`,
   `sidebar-scroll-ui` and others), `ConnectAppsWindow.dom.test.ts`, `local-computer`, `setup-import`, `github-refs`,
   `scripts/packaged-native-modules.test.mjs` (docs/LICENSING.md and the removed `deploy/podman`), the file-size
   ratchet (main.mjs, codex.ts and three more files over their listed sizes), and slow `server/*.e2e.test.ts` timeouts.

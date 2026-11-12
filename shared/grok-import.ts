@@ -207,7 +207,7 @@ function readApp(app: unknown): GrokApp[] {
   }] : [];
 }
 
-/** The current shape, and the fields the earlier openmaus.grok/1 prompt asked for. */
+/** The current shape, and the fields the earlier dusk.grok/1 prompt asked for. */
 function readBot(bot: Record<string, unknown>): GrokBot {
   return {
     name: oneLine(first(bot.name)),
@@ -415,7 +415,7 @@ function eventNotes(name: string, routines: readonly GrokRoutine[]): string {
     ...sections].join("\n");
 }
 
-/** One Grok Bot as one bot in an openmaus.package v2 file, and how much of it comes over. `takenServers` holds server names
+/** One Grok Bot as one bot in a openmaus.package v2 file, and how much of it comes over. `takenServers` holds server names
  * already here: one of those is skipped, never overwritten or shared. */
 export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenServers?: ReadonlySet<string> } = {}): GrokMovePlan {
   const timeZone = options.timeZone?.trim() || "UTC";
@@ -508,7 +508,7 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
       category: "Imported",
       author: { name: "Grok Bot" },
       license: "See source",
-      outcomes: [clip(`${name} runs in Dusk Bot with your own engine and apps.`, 240)],
+      outcomes: [clip(`${name} runs in dusk bot with your own engine and apps.`, 240)],
       setupMinutes: 5,
       requirements: { apps: [], capabilities: [] },
       team: { name: clip(name, 60) },

@@ -20,7 +20,7 @@ const cli = resolve(cliArgument);
 const upstream = new URL(providerArgument);
 assert(upstream.protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(upstream.hostname)
   && !upstream.username && !upstream.password && !upstream.search && !upstream.hash, "Only an unauthenticated loopback model is supported");
-const home = mkdtempSync(join(tmpdir(), "omb-local-selection-"));
+const home = mkdtempSync(join(tmpdir(), "dusk-local-selection-"));
 // Do not inherit cloud accounts or the user's native-agent configuration.
 for (const name of Object.keys(process.env)) {
   if (!["PATH", "SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "LANG", "LC_ALL", "TZ", "TMPDIR"].includes(name)) delete process.env[name];

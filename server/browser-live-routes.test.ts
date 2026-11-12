@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb, type VerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk, type VerificationServer } from "../scripts/control-dusk.ts";
 
 let fixture: VerificationServer;
 let botId: string;
@@ -20,8 +20,8 @@ async function call(method: string, path: string, body?: unknown, headers: Recor
 beforeAll(async () => {
   fixture = await launchVerificationServer();
   const env = { DUSK_URL: fixture.info.url };
-  expect((await runControlOmb(["doctor"], { env }) as any).ok).toBe(true);
-  const created = await runControlOmb(["new-bot", "--name", "Browser profile fixture"], { env }) as any;
+  expect((await runControlDusk(["doctor"], { env }) as any).ok).toBe(true);
+  const created = await runControlDusk(["new-bot", "--name", "Browser profile fixture"], { env }) as any;
   botId = created.bot.id;
 
   const clientPairing = await call("POST", "/api/auth/pairing", { scopes: ["client"] });

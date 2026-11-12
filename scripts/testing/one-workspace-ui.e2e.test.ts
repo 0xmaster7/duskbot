@@ -8,7 +8,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { hostTimeout } from "../../server/testing/host-timeout.ts";
 import { freePortBlock } from "../../server/testing/ports.ts";
 import { launchCloudSendFixture, type CloudSendFixture } from "./cloud-send-fixture.ts";
-import { ensureUiBrowser, UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { ensureUiBrowser, UI_TOOLS_DIR } from "./control-dusk-ui.ts";
 import { launchHomeWorld, shotsDir, welcomed, type HomeWorld } from "./one-workspace-fixture.ts";
 
 const enabled = process.env.DUSK_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
@@ -156,7 +156,7 @@ const PAIR_FORM = "Boolean(document.querySelector('form input') && /pairing code
     const sessions = (await fx.onCloud("GET", "/api/auth/sessions")).body.sessions as Array<{ id: string; label: string }>;
     const cookie = (await world.cloudCookies()).length;
     expect(cookie).toBeGreaterThan(0);
-    for (const session of sessions.filter((entry) => !entry.label.startsWith("Dusk Bot app (Cloud)"))) await fx.onCloud("DELETE", `/api/auth/sessions/${session.id}`);
+    for (const session of sessions.filter((entry) => !entry.label.startsWith("dusk bot app (Cloud)"))) await fx.onCloud("DELETE", `/api/auth/sessions/${session.id}`);
     expect(await page("fetch('/api/auth/session').then((response) => response.status)")).toBe(401);
     let formSeen = false;
     const watching = (async () => {
@@ -174,7 +174,7 @@ const PAIR_FORM = "Boolean(document.querySelector('form input') && /pairing code
 
   it("an ended Admin grant with a lapsed session shows one Sign in, and My Cloud opens by itself once signed in", async () => {
     const sessions = (await fx.onCloud("GET", "/api/auth/sessions")).body.sessions as Array<{ id: string; label: string }>;
-    for (const session of sessions.filter((entry) => !entry.label.startsWith("Dusk Bot app (Cloud)"))) await fx.onCloud("DELETE", `/api/auth/sessions/${session.id}`);
+    for (const session of sessions.filter((entry) => !entry.label.startsWith("dusk bot app (Cloud)"))) await fx.onCloud("DELETE", `/api/auth/sessions/${session.id}`);
     world.account.state = { status: "reauth-required", message: "access-ended", account: { id: "acct-fixture", email: "person@example.test" }, lastPlan: { tier: "pro", active: true } };
     await blank();
     await world.home.show();
@@ -252,7 +252,7 @@ const PAIR_FORM = "Boolean(document.querySelector('form input') && /pairing code
   const onTeamPage = () => until(() => page<boolean>("Boolean(document.querySelector('textarea[aria-label^=\"Message\"]'))"), Boolean, 60_000, "the team's page")
     .then(() => expect(new URL(world.window.url).origin).toBe(world.teamOrigin));
   const homeLine = () => page<string | null>("document.querySelector('[data-home-line]')?.textContent ?? null");
-  const bridgeState = () => page<Record<string, unknown>>("window.ogb.workspaces.state()");
+  const bridgeState = () => page<Record<string, unknown>>("window.duskDesktop.workspaces.state()");
 
   it("with a team in the session the switcher lists My Cloud and Acme; choosing Acme pairs through the Admin's team route, opens the team's page, and is remembered after a relaunch", async () => {
     await onCloudPage();
@@ -287,7 +287,7 @@ const PAIR_FORM = "Boolean(document.querySelector('form input') && /pairing code
     await onTeamPage();
     const sessions = (await fx.onCloud("GET", "/api/auth/sessions")).body.sessions as Array<{ id: string; label: string }>;
     // The window's sessions (the page labels them itself); the fixture's own owner sessions stay.
-    for (const session of sessions.filter((entry) => !entry.label.startsWith("Dusk Bot app (Cloud)"))) await fx.onCloud("DELETE", `/api/auth/sessions/${session.id}`);
+    for (const session of sessions.filter((entry) => !entry.label.startsWith("dusk bot app (Cloud)"))) await fx.onCloud("DELETE", `/api/auth/sessions/${session.id}`);
     expect(await page("fetch('/api/auth/session').then((response) => response.status)")).toBe(401);
     const pairings = world.admin.teamPairings.length;
     world.window.webContents.reload();
@@ -331,7 +331,7 @@ const PAIR_FORM = "Boolean(document.querySelector('form input') && /pairing code
     const after = await sessions();
     expect(after.filter((entry) => !known.includes(entry.id)).length, "a new session, made in the background").toBe(1);
     // The window's older sessions end (the fixture's own owner session stays): the page keeps working on the new one.
-    for (const entry of after) if (known.includes(entry.id) && !entry.label.startsWith("Dusk Bot app (Cloud)")) await fx.onCloud("DELETE", `/api/auth/sessions/${entry.id}`);
+    for (const entry of after) if (known.includes(entry.id) && !entry.label.startsWith("dusk bot app (Cloud)")) await fx.onCloud("DELETE", `/api/auth/sessions/${entry.id}`);
     expect(await page("fetch('/api/auth/session').then((response) => response.json()).then((session) => session.kind)")).toBe("session");
     expect(await page("window.__samePage === true"), "the page never moved").toBe(true);
     expect(new URL(world.window.url).origin).toBe(world.teamOrigin);

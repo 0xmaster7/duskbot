@@ -1,6 +1,6 @@
-# Dusk Bot link service
+# dusk bot link service
 
-Links a person's VPS to their Dusk Bot app with one pasted line. It's a small Node app with no dependencies and
+Links a person's VPS to their dusk bot app with one pasted line. It's a small Node app with no dependencies and
 nothing tied to dusk.bot or Cloudflare.
 
 ```
@@ -157,13 +157,13 @@ to disable the phone hub. Phone clients use `createTunnelProxy` with `id` set to
   everything the service sees opens nothing. Residual risk: an actively malicious link service could serve a different
   script or swap keys. That is the trust you give anything you `curl | sh`. Run the service yourself (this folder) to
   remove the third party entirely.
-- Tunnelled requests arrive at Dusk Bot with `X-Forwarded-For` set, so the server treats them as remote: they need
+- Tunnelled requests arrive at dusk bot with `X-Forwarded-For` set, so the server treats them as remote: they need
   the paired session and never get loopback trust. The app's proxy serves only its own `vps-<id>.localhost:<port>` host.
 - AI credentials are made on the Mac (`claude setup-token`, Codex's `~/.codex/auth.json`). They travel only as sealed
   control frames to the agent, which writes them with mode 0600 into its hand-off folder (`/var/lib/omb-link/handoff`).
   A root unit (`duskbot-handoff.service`, `/usr/local/lib/duskbot/engine-handoff.sh`) reads them as `omb-link`,
   keeps only the `CLAUDE_CODE_OAUTH_TOKEN=` line for `/etc/duskbot/engines.env` (which only systemd reads) and
-  writes the Codex sign-in into maus's `~/.codex/auth.json` as maus. They never pass through Dusk Bot's HTTP API and
+  writes the Codex sign-in into maus's `~/.codex/auth.json` as maus. They never pass through dusk bot's HTTP API and
   are never logged.
 
 ### Accounts on the server
@@ -189,7 +189,7 @@ Bots run shell commands, so the server is split so that no bot can reach what wo
   asks the agent for a new one over the sealed tunnel and connects as `omb-link`), moves the Claude token to
   `/etc/duskbot/engines.env`, copies the engines' sessions into the engine home, takes the server account out of the docker group
   and installs the gate and the hardened units. Nothing in the data folder moves.
-- A server set up before the rename to Dusk Bot keeps its server account (`maus`). Running install.sh on it again
+- A server set up before the rename to dusk bot keeps its server account (`maus`). Running install.sh on it again
   (`migrate_legacy`) stops and removes the old units, moves the state, logs, agent, gate, `/etc` and link folders and
   the data folder to the new names (the old data and agent folder names stay as links), points the app's direct key at
   the moved agent, and moves the AppArmor profile and Caddy site. Until then the old install keeps working: the agent
@@ -199,7 +199,7 @@ Bots run shell commands, so the server is split so that no bot can reach what wo
 ### Secrets sealed for the server itself
 
 On top of the tunnel, every password, 2FA key, 1Password service-account token and API key typed in the app is sealed
-for the Dusk Bot server process before it leaves the page (HPKE: P-256, HKDF-SHA256, AES-256-GCM), so neither the
+for the dusk bot server process before it leaves the page (HPKE: P-256, HKDF-SHA256, AES-256-GCM), so neither the
 link service, the agent nor anything else that relays the request can read it:
 
 - The server makes a fresh sealing key each start (`GET /api/seal-key`) and signs it with its long-term identity key,
@@ -214,7 +214,7 @@ link service, the agent nor anything else that relays the request can read it:
   token to its connect, API keys to the settings paths they fill (`sealedPaths`). A sealed value opens once.
 - The server refuses a secret in the clear from anything but loopback with `400 {code: "seal_required", sealKey}`. The
   desktop's own page on this computer, and its private main-process channel for keys, keep working unsealed.
-- Reinstalling Dusk Bot with a fresh data folder makes a new identity: the app then refuses to seal for it until the
+- Reinstalling dusk bot with a fresh data folder makes a new identity: the app then refuses to seal for it until the
   server is linked again (run the install line from a new "Add your VPS").
 
 ## Route traffic through this computer
@@ -333,8 +333,8 @@ own bearer token, while the session is still installing, at most 10 times across
   before; anything else keeps the installed build. The build before stays cached; after the restart the server must
   answer and pass its own self-test (`$DATA/update-state.json`, server/update-state.ts), else install.sh puts the build
   before back ("Update rolled back, nothing lost") and never takes that version again.
-- No build published means no `package` in the claim, and the install stops at "Installing Dusk Bot" with "the link
-  service has no Dusk Bot build to hand out yet".
+- No build published means no `package` in the claim, and the install stops at "Installing dusk bot" with "the link
+  service has no dusk bot build to hand out yet".
 - `DUSK_PACKAGE=<npm spec or tarball url>` before `sh` installs that instead. It is never the default.
 - The bot computer kit rides the same way: `deploy/bot-desktop/` plus `shared/bot-desktop.ts` as one tgz, named in
   the claim as `"desktop": {"sha256", "size", "image", "path"}` (`image` is `BOT_DESKTOP_IMAGE`). install.sh then sets
@@ -387,7 +387,7 @@ tgz files keep serving installs already under way; delete them when no install f
 
 install.sh opens with the wordmark decoding out of noise and one light sweep (about a second, one awk process), then
 shows five phases, one line each: Preparing your server (check, basics, docker, user), Installing the runtime
-(node), Installing Dusk Bot (app, engines, service), Setting up the bot computer (sandbox, fence, desktop) and
+(node), Installing dusk bot (app, engines, service), Setting up the bot computer (sandbox, fence, desktop) and
 Linking to your app (address, link). The running step is the line's sub-status, with a bar for downloads of known
 size and build steps, and the line turns into one check when the phase is done (amber when an optional part failed).
 The mascot wags its tail while work runs. A failure shows the red step, its last log lines and one plain fix. The end
@@ -415,7 +415,7 @@ curl -fsSL https://link.dusk.bot/uninstall | sh -s -- --yes     # no question (o
 
 `GET /uninstall` (also `/uninstall.sh`) serves `uninstall.sh` to anyone, no session, with the base baked in. It puts
 the server back the way install.sh found it, in the same five-phase screen: Unlinking from your app (deletes the
-tunnel at the service with the server's own tunnel token, so the app reads "unlinked"), Stopping Dusk Bot (every
+tunnel at the service with the server's own tunnel token, so the app reads "unlinked"), Stopping dusk bot (every
 unit install.sh wrote), Clearing the bot computers (our containers, their home volumes, the desktop
 network (`DOCKER_NAMES.desktopNetwork` in `electron/legacy-names.mjs`), our images, the host fence and its iptables rules, and `/etc/docker/daemon.json` back from install.sh's
 `.omb-before` copy or with only our keys taken out; Docker restarts only when that file changed), Removing your bots'

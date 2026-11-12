@@ -5,12 +5,12 @@ import { SettingsSelect } from "./SettingsSelect";
 import { SettingRow, Switch } from "./SettingsPrimitives";
 
 /** Settings search finds the talk shortcut only where its row can show: this Mac app's own page. */
-export function talkShortcutKeywords(ogb: Window["ogb"] = typeof window === "undefined" ? undefined : window.ogb): string[] {
-  return ogb?.platform === "darwin" && ogb.talkShortcut ? ["talk", "voice", "shortcut", "hotkey", "hold to talk", "push to talk", "quick asks"] : [];
+export function talkShortcutKeywords(duskDesktop: Window["duskDesktop"] = typeof window === "undefined" ? undefined : window.duskDesktop): string[] {
+  return duskDesktop?.platform === "darwin" && duskDesktop.talkShortcut ? ["talk", "voice", "shortcut", "hotkey", "hold to talk", "push to talk", "quick asks"] : [];
 }
 
 export function TalkShortcutRow() {
-  const bridge = window.ogb?.talkShortcut;
+  const bridge = window.duskDesktop?.talkShortcut;
   const [state, setState] = useState<TalkShortcutState | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);

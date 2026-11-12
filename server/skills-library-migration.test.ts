@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // config.ts resolves DATA_DIR at import time; isolate before importing.
-process.env.DUSK_DATA_DIR = mkdtempSync(join(tmpdir(), "omb-skills-migration-"));
+process.env.DUSK_DATA_DIR = mkdtempSync(join(tmpdir(), "dusk-skills-migration-"));
 
 const library = await import("./skill-library.ts");
 const skills = await import("./skills.ts");
@@ -25,7 +25,7 @@ beforeEach(() => {
 
 describe("skills library migration", () => {
   it("rejects missing --data-dir values before importing or migrating", () => {
-    const directory = mkdtempSync(join(tmpdir(), "omb-migration-args-"));
+    const directory = mkdtempSync(join(tmpdir(), "dusk-migration-args-"));
     try {
       for (const args of [["--data-dir"], ["--data-dir", "--other-option"]]) {
         const result = spawnSync(process.execPath, ["--experimental-strip-types",

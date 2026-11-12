@@ -1,3 +1,4 @@
+import "../../../electron/legacy-names.mjs";
 import { lazy, StrictMode, Suspense, useEffect, type ComponentType, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { CloudDataProvider, useCloud } from "./data/cloud";

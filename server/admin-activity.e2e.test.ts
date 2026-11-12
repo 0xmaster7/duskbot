@@ -98,7 +98,7 @@ const month = () => new Date().toISOString().slice(0, 7);
 
 posixOnly("admin activity log", () => {
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-admin-activity-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-admin-activity-"));
     data = join(home, ".duskbot");
     mkdirSync(join(data, "decisions"), { recursive: true });
     writeFileSync(join(data, "config.json"), JSON.stringify({ signIn: { admins: [BOSS], members: [ADA] } }));

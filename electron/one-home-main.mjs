@@ -3,7 +3,7 @@
 // Cloud ends (one-home-again.mjs). The Admin's word decides: a move starts only for an account it lets move, to a Cloud
 // that is ready, and a Cloud it holds after it ended brings everything home, as does its word that the Cloud this computer
 // moved to is gone while My Cloud is another (`gone`). The person's own
-// choice to keep this computer's bots here (Settings → Dusk Cloud, Advanced) is kept beside the journal.
+// choice to keep this computer's bots here (Settings → dusk cloud, Advanced) is kept beside the journal.
 import { SEAL_LABELS } from "./legacy-names.mjs";
 import { createHash } from "node:crypto";
 import { createReadStream, mkdirSync, readFileSync } from "node:fs";
@@ -23,6 +23,25 @@ import { installTeamMove } from "./team-move-main.mjs";
 const MOVE_LABEL = "Move to My Cloud";
 const HOME_LABEL = "Bring My Cloud home";
 const KEEP_LABEL = "Bring this computer's bots home";
+/** Once the move is done, the window waits this long for Open dusk cloud before it opens My Cloud by itself. */
+export const OPEN_WAIT_MS = 2 * 60_000;
+
+/** Opening My Cloud once the move is done: at once (`waitMs` 0), or when the person presses Open dusk cloud (`now`), and
+ * by itself after `waitMs` when nobody does. */
+export function createOpenWhenAsked({ open, waitMs }) {
+  let timer = null;
+  const fire = () => { if (timer) clearTimeout(timer); timer = null; open(); };
+  return {
+    done() {
+      if (waitMs <= 0) { open(); return; }
+      if (timer) return;
+      timer = setTimeout(fire, waitMs);
+      timer.unref?.();
+    },
+    now: fire,
+    close() { if (timer) clearTimeout(timer); timer = null; },
+  };
+}
 
 /** This computer as the Admin knows it, the same across sign-outs and sign-ins: a hash of its own server's identity, so
  * the identity itself never leaves it. */
@@ -36,7 +55,7 @@ export function installationOf(environmentId) {
  * none) and what it is (server/routes/move-freeze.ts). */
 export function freezeAnswer(got) {
   if (got.status === 409 && typeof got.body?.busy === "string") return { busy: got.body.busy, ...(typeof got.body.what === "string" ? { what: got.body.what } : {}) };
-  if (!got.ok || got.body?.frozen !== true) throw Object.assign(new Error("Dusk Bot on this computer could not pause."), { status: got.status });
+  if (!got.ok || got.body?.frozen !== true) throw Object.assign(new Error("dusk bot on this computer could not pause."), { status: got.status });
   return { frozen: true };
 }
 
@@ -179,7 +198,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
       ...(body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }) })),
     async json(route) {
       const got = await local.call("GET", route);
-      if (!got.ok) throw new Error("Dusk Bot on this computer did not answer. Try again in a moment.");
+      if (!got.ok) throw new Error("dusk bot on this computer did not answer. Try again in a moment.");
       return got.body;
     },
   };
@@ -206,7 +225,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
   const again = createHomeAgain({
     async exportGrant() {
       const asked = await account()?.exportHome({ installation: (await installation()) ?? undefined });
-      if (!asked) throw new Error("Sign in to Dusk Cloud first.");
+      if (!asked) throw new Error("Sign in to dusk cloud first.");
       // The code goes only to the Cloud this computer moved to.
       if ("grant" in asked && asked.grant.origin !== cloudOrigin()) throw new Error("This is not the Cloud this computer moved to.");
       return asked;
@@ -227,6 +246,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     tempRoot: tempRoot(),
   });
 
+  const opener = createOpenWhenAsked({ open: () => openHome?.(), waitMs: offerDeps ? OPEN_WAIT_MS : 0 });
   home = createOneHome({
     journal,
     // Every run starts here: the key watch is set up before any wait asks, so a key pressed since then counts.
@@ -244,7 +264,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
       freeze: async (origin) => freezeAnswer(await local.call("POST", "/api/move/freeze", { cloud: origin })),
       async unfreeze(options) {
         const got = await onOwnCopy(() => local.call("DELETE", "/api/move/freeze", options?.automations === "off" ? { automations: "off" } : undefined));
-        if (!got.ok) throw Object.assign(new Error("Dusk Bot on this computer could not go on again."), { status: got.status });
+        if (!got.ok) throw Object.assign(new Error("dusk bot on this computer could not go on again."), { status: got.status });
       },
       frozen: async () => (await local.json("/api/move/freeze"))?.frozen === true,
       marker: () => local.json("/api/move/freeze"),
@@ -256,7 +276,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     gone: createGoneCheck({ ask: async (origin) => (await account()?.movedTo?.(origin)) ?? null, account: () => account()?.state()?.account?.id ?? null }),
     session: () => moveSession.open(target()),
     release: () => moveSession.end(),
-    lend, phone, openHome, openLocal, restart, version, log,
+    lend, phone, openHome: opener.done, openLocal, restart, version, log,
     again,
     keep,
     keepHome,
@@ -299,6 +319,12 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
       log,
     });
     sendDeps.ipcMain.handle("cloud-send:move-offer-accept", onPage("cloud-send:move-offer-accept", async (from) => { await offer.accept(String(from)); return send.notice(); }));
+    sendDeps.ipcMain.handle("cloud-send:move-open", onPage("cloud-send:move-open", () => {
+      if (!home.away()) return send.notice();
+      home.seen();
+      opener.now();
+      return send.notice();
+    }));
     sendDeps.ipcMain.handle("cloud-send:move-offer-dismiss", onPage("cloud-send:move-offer-dismiss", (which) => { offer.dismiss(String(which)); return send.notice(); }));
   }
   sendDeps.ipcMain.handle("one-home:keep", onPage("one-home:keep", keepState));
@@ -314,12 +340,12 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     keep: { state: keepState, set: (on) => home.keep(on === true) },
     /** Why the account signed in can't be left now: its move, or a bot of its own moving into a team, is under way. */
     holding: () => { const bot = teamMove.view()?.phase; return home.moving() || (bot && !["done", "failed"].includes(bot)) ? "moving" : null; },
-    /** Goes on with the move, and with any bot moving into a team: at launch, and whenever the Dusk Cloud sign-in changes. */
+    /** Goes on with the move, and with any bot moving into a team: at launch, and whenever the dusk cloud sign-in changes. */
     kick: () => { void teamMove.kick(); void offer?.refresh(); return home.kick(); },
     /** Home is My Cloud: this computer's own server is frozen for good, and its phone link stays off. */
     away: () => home.away(),
     view: () => home.view(),
-    close: () => { teamMove.close(); home.close(); report.close(); void moveSession.end(); },
+    close: () => { opener.close(); teamMove.close(); home.close(); report.close(); void moveSession.end(); },
     /** A bot moving from My Cloud into a team (team-move-main.mjs). */
     teamMove,
     oneHome: home,

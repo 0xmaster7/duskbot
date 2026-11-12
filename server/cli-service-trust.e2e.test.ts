@@ -36,7 +36,7 @@ const cli = async (args: string[]) => {
 
 describe.skipIf(process.platform === "win32")("duskbot serve under service loopback trust", () => {
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-cli-service-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-cli-service-"));
     PORT = await freePortBlock([0, 1]);
     serve = spawn(process.execPath, ["--experimental-strip-types", ENTRY, "serve", "--port", String(PORT), "--data-dir", join(home, "data")], {
       env: environment(), stdio: ["ignore", "pipe", "pipe"],

@@ -97,7 +97,7 @@ describe("the machine never receives its secrets through the provider", () => {
 describe("the scripts a machine runs", () => {
   it("are valid bash and valid JavaScript, and the claim redeemer refuses a boot file that points anywhere else", () => {
     const { key } = releaseKey();
-    const dir = mkdtempSync(join(tmpdir(), "omb-scripts-")); dirs.push(dir);
+    const dir = mkdtempSync(join(tmpdir(), "dusk-scripts-")); dirs.push(dir);
     for (const [name, text] of [["setup.sh", homeSetupScript({ releaseKeys: [key], requireSigned: true })], ["control.sh", homeControlScript({ releaseKeys: [key], requireSigned: true })]] as const) {
       writeFileSync(join(dir, name), text);
       execFileSync("bash", ["-n", join(dir, name)]);
@@ -157,7 +157,7 @@ describe("signed releases", () => {
 
   it("the machine's own check, run by node as the control script runs it, accepts only the pinned key's signature for this sha256", () => {
     const { signing, key } = releaseKey(), other = releaseKey("rel-test");
-    const dir = mkdtempSync(join(tmpdir(), "omb-release-")); dirs.push(dir);
+    const dir = mkdtempSync(join(tmpdir(), "dusk-release-")); dirs.push(dir);
     const sha256 = "e".repeat(64), file = join(dir, "sig");
     const check = (signature: string, sum: string, kind: string) => {
       writeFileSync(file, signature);
@@ -185,7 +185,7 @@ describe("signed releases", () => {
 describe("a service people use refuses an unsafe setup", () => {
   const base = { INSTABOX_API_KEY: `ibk_${"k".repeat(52)}`, DUSK_MANAGED: "1", DUSK_CLOUD_SEAL_KEY: Buffer.alloc(32, 3).toString("base64url"),
     DUSK_MANAGED_HOME_PACKAGE_URL: "https://packages.example.test/home.tgz", DUSK_MANAGED_HOME_PACKAGE_SHA256: "a".repeat(64) };
-  const make = (env: Record<string, string>) => () => managedCloudFromEnv(env, { dataDir: mkdtempSync(join(tmpdir(), "omb-env-")), publicUrl: "https://dash.example.com", loopback: false,
+  const make = (env: Record<string, string>) => () => managedCloudFromEnv(env, { dataDir: mkdtempSync(join(tmpdir(), "dusk-env-")), publicUrl: "https://dash.example.com", loopback: false,
     sealKey: Buffer.alloc(32, 3), now: Date.now, subscriptions: () => [] });
   it("needs the provider key, our public domain, the edge token and a signed package", () => {
     expect(make({ ...base, INSTABOX_API_KEY: "" })).toThrow("INSTABOX_API_KEY");

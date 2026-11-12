@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { HapticKind, MobilePlatform } from "./platform";
 
-const HAPTICS_KEY = "omb.mobile.haptics";
+const HAPTICS_KEY = "dusk.mobile.haptics";
 let platform: MobilePlatform | null = null;
 let enabled = true;
 const listeners = new Set<() => void>();

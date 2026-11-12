@@ -7,9 +7,9 @@ export const CLOUD_TRIAL_NOTICE = "cloud-trial-notice";
 export const CLOUD_NOTICE = "cloud-notice";
 /** Bots on this computer and on another place of the person's (two-places.ts): dismissed per place, by main. */
 export const TWO_PLACES_NOTICE = "two-places";
-/** A routine on this computer ran late or not at all while it slept: Dusk Cloud offered once, at that moment. */
+/** A routine on this computer ran late or not at all while it slept: dusk cloud offered once, at that moment. */
 export const LATE_ROUTINE_NOTICE = "late-routine-v1";
-/** Someone clearly invested (shared/cloud-upsell.ts INVESTED): the sidebar Dusk Cloud card says it once, in their numbers.
+/** Someone clearly invested (shared/cloud-upsell.ts INVESTED): the sidebar dusk cloud card says it once, in their numbers.
  * Not a corner notice: the id only records that it was said. */
 export const INVESTED_NOTICE = "cloud-invested-v1";
 /** The Move from Grok Bot popup: each person sees it once, first of all, after their welcome. */
@@ -42,7 +42,7 @@ export function nextNotice(facts: NoticeFacts, seen: (id: NoticeId) => boolean, 
   return null;
 }
 
-const LAUNCH_KEY = "omb.launch.notice";
+const LAUNCH_KEY = "dusk.launch.notice";
 // Where browser storage is blocked, this page's memory stands in for it, so a claim still holds for the page.
 let launchMemory: NoticeId | null = null;
 const isNotice = (id: unknown): id is NoticeId => (NOTICES as readonly unknown[]).includes(id);

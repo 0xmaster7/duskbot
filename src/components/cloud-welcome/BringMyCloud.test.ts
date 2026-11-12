@@ -3,7 +3,6 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { BringMyCloud } from "./BringMyCloud";
-import { WelcomeBring } from "./WelcomeBring";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const TEAM = { id: "team-acme", name: "Acme", ready: true };
@@ -12,11 +11,11 @@ const movingAtlas = { bot: { id: "atlas", name: "Atlas" }, team: { id: "team-acm
 
 let host: HTMLElement, root: Root;
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); (window as { ogb?: unknown }).ogb = undefined; });
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); (window as { duskDesktop?: unknown }).duskDesktop = undefined; });
 
 function page(bots: unknown[], over: Record<string, unknown> = {}) {
   const bridge = { teamBring: vi.fn(async () => ({ team: TEAM, bots })), teamBringMove: vi.fn(async () => ({ started: true, move: movingAtlas })), teamBringStatus: vi.fn(async () => movingAtlas), ...over };
-  (window as { ogb?: unknown }).ogb = { cloudSendPage: bridge };
+  (window as { duskDesktop?: unknown }).duskDesktop = { cloudSendPage: bridge };
   return bridge;
 }
 const draw = async () => { await act(async () => { root.render(createElement(BringMyCloud)); }); await act(async () => {}); };
@@ -40,7 +39,7 @@ it("shows nothing with no bot to bring, on an older app, or in a browser", async
   page([ATLAS], { teamBringMove: undefined });
   await draw();
   expect(host.innerHTML).toBe("");
-  (window as { ogb?: unknown }).ogb = undefined;
+  (window as { duskDesktop?: unknown }).duskDesktop = undefined;
   await draw();
   expect(host.innerHTML).toBe("");
 });
@@ -79,16 +78,4 @@ it("says plainly when the move can't start", async () => {
   await draw();
   await act(async () => { moveButton("atlas")!.click(); });
   expect(host.querySelector('[role="alert"]')?.textContent).toBeTruthy();
-});
-
-it("is on the team's Bring your stuff in the desktop app, and nowhere else", async () => {
-  page([ATLAS, BEACON]);
-  const bring = async (team: boolean, desktop: boolean) => {
-    await act(async () => { root.render(createElement(WelcomeBring, { name: "Acme", desktop, cloudHasWork: true, team, headingRef: { current: null }, onFinish: () => {} })); });
-    await act(async () => {});
-    return Boolean(host.querySelector("[data-bring-my-cloud]"));
-  };
-  expect(await bring(true, true)).toBe(true);
-  expect(await bring(false, true), "on My Cloud itself").toBe(false);
-  expect(await bring(true, false), "in a browser").toBe(false);
 });

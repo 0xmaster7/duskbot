@@ -160,7 +160,7 @@ describe("CodexDriver turns (fake app-server)", () => {
 
   beforeEach(() => {
     chmodSync(FAKE_CLI, 0o755);
-    scratch = mkdtempSync(join(tmpdir(), "omb-codex-test-"));
+    scratch = mkdtempSync(join(tmpdir(), "dusk-codex-test-"));
   });
 
   it("says once when its team tools did not start", async () => {
@@ -738,7 +738,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       const input = calls.find((c) => c.method === "turn/start")?.params?.input as Array<{ text?: string }> | undefined;
       return input?.[0]?.text;
     };
-    expect(turnText(first)).toBe("Context from Dusk Bot updated since this conversation started; it replaces any earlier copy:\n\nMemory: likes quiet hours.\n\nfirst");
+    expect(turnText(first)).toBe("Context from dusk bot updated since this conversation started; it replaces any earlier copy:\n\nMemory: likes quiet hours.\n\nfirst");
     expect(turnText(second)).toBe("second");
     expect(turnText(third)).toContain("Memory: moved to Toronto.");
     expect(turnText(third)).toContain("third");
@@ -825,7 +825,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     },
   );
 
-  describe("Dusk Bot's own read profile", () => {
+  describe("dusk bot's own read profile", () => {
     type Call = { method: string; params: Record<string, any> };
     const turnCalls = async (threadId: string, input: Record<string, unknown>) => {
       const dump = join(scratch, `${threadId}.json`);
@@ -844,10 +844,10 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
         const { completed, calls } = await turnCalls(`t-profile-${approvalMode}`, { approvalMode, cwd, botId: "b-own", ...(resumeCursor ? { resumeCursor } : {}) });
         expect(completed).toMatchObject({ ok: true });
         const thread = calls.find((call) => call.method === (resumeCursor ? "thread/resume" : "thread/start"))!.params;
-        expect(thread).toMatchObject({ permissions: "omb-workspace", approvalPolicy: "on-request", approvalsReviewer: approvalMode === "auto" ? "auto_review" : "user" });
+        expect(thread).toMatchObject({ permissions: "dusk-workspace", approvalPolicy: "on-request", approvalsReviewer: approvalMode === "auto" ? "auto_review" : "user" });
         expect(thread).not.toHaveProperty("sandbox");
-        expect(thread.config.default_permissions).toBe("omb-workspace");
-        const filesystem = thread.config.permissions["omb-workspace"].filesystem;
+        expect(thread.config.default_permissions).toBe("dusk-workspace");
+        const filesystem = thread.config.permissions["dusk-workspace"].filesystem;
         expect(filesystem).toMatchObject({ ":root": "read", ":workspace_roots": "write", ":tmpdir": "write", ":slash_tmp": "write" });
         for (const hidden of ["config.json", "messages.db", "engine-homes", "providers", join("workspaces", "b-other"), join("task-workspaces", "b-other")]) {
           expect(filesystem[join(DATA_DIR, hidden)]).toBe("none");
@@ -857,7 +857,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
         }
         expect(filesystem[join(homedir(), ".ssh")]).toBe("none");
         const turn = calls.find((call) => call.method === "turn/start")!.params;
-        expect(turn).toMatchObject({ permissions: "omb-workspace" });
+        expect(turn).toMatchObject({ permissions: "dusk-workspace" });
         expect(turn).not.toHaveProperty("sandboxPolicy");
       }
     });
@@ -877,7 +877,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       expect(completed).toMatchObject({ ok: true });
       const starts = calls.filter((call) => call.method === "thread/start");
       expect(starts).toHaveLength(2);
-      expect(starts[0]!.params).toMatchObject({ permissions: "omb-workspace" });
+      expect(starts[0]!.params).toMatchObject({ permissions: "dusk-workspace" });
       expect(starts[1]!.params).toMatchObject({ sandbox: "workspace-write", approvalPolicy: "on-request" });
       expect(starts[1]!.params).not.toHaveProperty("permissions");
       expect(starts[1]!.params.config?.permissions).toBeUndefined();
@@ -1304,7 +1304,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     expect(argv).toContain("mcp_servers.notes.command");
   });
 
-  it("reaches a url server through Dusk Bot's connector on Codex's own login, header values off argv", async () => {
+  it("reaches a url server through dusk bot's connector on Codex's own login, header values off argv", async () => {
     await create();
     const dump = join(scratch, "remote-mcp.json");
     process.env.FAKE_CODEX_DUMP = dump;
@@ -1379,7 +1379,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       expect(await recorder.until((event) => event.type === "turn.completed")).toMatchObject({ ok: true });
       const seen = JSON.parse(readFileSync(dump, "utf8"));
       expect(seen.mcpStartup.voluum).toEqual({ status: "ready", tools: ["report", "campaigns"] });
-      expect(strict.initializes).toEqual([{ protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "Dusk Bot tool proxy", version: "1" } }]);
+      expect(strict.initializes).toEqual([{ protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "dusk bot tool proxy", version: "1" } }]);
       expect(seen.argv.join(" ")).not.toContain("tok-voluum");
     });
 
@@ -1402,7 +1402,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       expect(strict.seenHeaders.at(-1)?.authorization).toBe("Bearer tok-refreshed");
     });
 
-    it("mounts Dusk Bot's own agents server as this server's endpoint on a Codex that takes it, with no proxy process", async () => {
+    it("mounts dusk bot's own agents server as this server's endpoint on a Codex that takes it, with no proxy process", async () => {
       const seenAuth: Array<string | undefined> = [];
       const harness = createServer(async (req, res) => {
         const url = new URL(req.url ?? "/", "http://fixture");
@@ -1468,7 +1468,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       expect(await recorder.until((event) => event.type === "turn.completed")).toMatchObject({ ok: true });
       const seen = JSON.parse(readFileSync(dump, "utf8"));
       expect(seen.mcpStartup.voluum).toEqual({ status: "ready", tools: ["report"] });
-      expect(strict.initializes).toEqual([{ protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "Dusk Bot tool proxy", version: "1" } }]);
+      expect(strict.initializes).toEqual([{ protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "dusk bot tool proxy", version: "1" } }]);
     });
   });
 
@@ -2051,8 +2051,8 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       ["gpt-6.1-sol", "gpt-6.1-sol", "openai_chatgpt_plan"],
     ] },
     { name: "Company", opts: { managed: true }, selections: [
-      ["company-codex-model", "company-codex-model", "openmaus_company"],
-      ["company-codex-model", "company-codex-model", "openmaus_company"],
+      ["company-codex-model", "company-codex-model", "dusk_company"],
+      ["company-codex-model", "company-codex-model", "dusk_company"],
     ] },
   ])("reasserts the selected model and provider after $name app-server restarts", async ({ opts, selections }) => {
     vi.stubEnv("DUSK_CODEX_WARM", "0");
@@ -2215,7 +2215,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
   it("reports local ChatGPT sign-out with a warning when remote revocation is unconfirmed", async () => {
     vi.spyOn(ChatGptPlanAuthController.prototype, "models").mockResolvedValue({ default: "gpt-6.1-sol", options: [{ id: "gpt-6.1-sol", label: "GPT-6.1 Sol" }] });
     vi.spyOn(ChatGptPlanAuthController.prototype, "snapshot").mockResolvedValue({ authenticated: false });
-    const message = "Signed out locally, but remote revocation was not confirmed. Disconnect Dusk Bot in ChatGPT Settings → Usage to end access there.";
+    const message = "Signed out locally, but remote revocation was not confirmed. Disconnect dusk bot in ChatGPT Settings → Usage to end access there.";
     vi.spyOn(ChatGptPlanAuthController.prototype, "signOut").mockRejectedValue(Object.assign(new Error(message), { code: "chatgpt_revocation_unconfirmed" }));
     await create({ authMode: "chatgpt-plan" });
     await expect(instance.signOut!()).resolves.toBeUndefined();
@@ -2374,7 +2374,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       "initialize", "initialized", "config/read", "thread/resume", "thread/start", "turn/start",
     ]);
     expect(seen.calls.find((call: { method: string }) => call.method === "thread/start").params).toMatchObject({
-      model: "company-codex-model", modelProvider: "openmaus_company", cwd: scratch,
+      model: "company-codex-model", modelProvider: "dusk_company", cwd: scratch,
       developerInstructions: expect.stringContaining("Keep current bot rules."),
       approvalPolicy: "never", sandbox: "danger-full-access", ephemeral: false,
     });
@@ -2382,7 +2382,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       threadId: "codex-thread-1",
       input: [{ type: "text", text: recoveryText }, { type: "image", url: "data:image/png;base64,aQ==" }],
     });
-    expect(seen.argv).toContain('model_provider="openmaus_company"');
+    expect(seen.argv).toContain('model_provider="dusk_company"');
     expect(JSON.stringify(seen.argv)).not.toContain("synthetic-company-fixture");
     expect(recorder.events.filter((event) => event.type === "session.started")).toMatchObject([{ sessionId: "codex-thread-1", rebuilt: true }]);
   });
@@ -2782,14 +2782,14 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       requestType: "question",
       tool: "ask_user",
       summary: "Which source should I use?",
-      choices: ["Directly in Dusk Bot", "The official server in Executor"],
-      questions: [{ question: "Which source should I use?", options: [{ label: "Directly in Dusk Bot" }, { label: "The official server in Executor" }] }],
+      choices: ["Directly in dusk bot", "The official server in Executor"],
+      questions: [{ question: "Which source should I use?", options: [{ label: "Directly in dusk bot" }, { label: "The official server in Executor" }] }],
     });
     expect(recorder.events.find((e) => e.type === "item.completed" && e.itemType === "assistant_text")).toMatchObject({
-      text: "Which source should I use?\n- Directly in Dusk Bot\n- The official server in Executor",
+      text: "Which source should I use?\n- Directly in dusk bot\n- The official server in Executor",
     });
 
-    const answer = "The user answered your questions.\n\nQ: Which source should I use?\nA: Directly in Dusk Bot";
+    const answer = "The user answered your questions.\n\nQ: Which source should I use?\nA: Directly in dusk bot";
     await expect(instance.adapter.respondToRequest("t-async-question", opened.requestId!, { behavior: "answer", message: answer })).resolves.toBe("answered");
     expect(await recorder.until((e) => e.type === "request.resolved")).toMatchObject({ requestId: opened.requestId, behavior: "answer", source: "user" });
     expect(JSON.parse(readFileSync(dump, "utf8")).calls.find((c: any) => c.method === "turn/steer")?.params?.input).toEqual([{ type: "text", text: answer }]);
@@ -2918,7 +2918,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
 
     expect(recorder.events.some((event) => event.type === "request.opened")).toBe(false);
     expect(JSON.parse(readFileSync(dump, "utf8")).decision).toEqual({ action: "decline" });
-    expect(recorder.events.find((event) => event.type === "runtime.notice")?.message).toBe("example asked for input Dusk Bot can't show yet, so the request was declined.");
+    expect(recorder.events.find((event) => event.type === "runtime.notice")?.message).toBe("example asked for input dusk bot can't show yet, so the request was declined.");
   });
 
   it("grants Codex additional permissions with their native response shape", async () => {

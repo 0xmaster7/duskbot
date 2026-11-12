@@ -47,7 +47,7 @@ const dump = () => until(() => {
 const driverCalls = () => existsSync(driverLog) ? readFileSync(driverLog, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)) : [];
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-vps-wakes-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-vps-wakes-"));
   const data = join(home, "data"), ui = join(home, "static");
   vpsStateFile = join(home, "vps.json");
   dumpFile = join(home, "dump.json");

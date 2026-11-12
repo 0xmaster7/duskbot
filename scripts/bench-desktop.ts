@@ -24,8 +24,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { gzipSync } from "node:zlib";
 
-import { runControlOmb, verificationServerArgs, verificationServerEnvironment } from "./control-omb.ts";
-import { installedChrome } from "./testing/control-omb-ui.ts";
+import { runControlDusk, verificationServerArgs, verificationServerEnvironment } from "./control-dusk.ts";
+import { installedChrome } from "./testing/control-dusk-ui.ts";
 import { FRAMES_START, FRAMES_STOP, launchChrome, switchExpression, TRANSCRIPT_BOX, type Chrome, type Page } from "./testing/bench-desktop-page.ts";
 import { removeTempDir, waitForExit } from "../server/testing/cleanup.ts";
 import { freePortBlock } from "../server/testing/ports.ts";
@@ -49,7 +49,7 @@ const { values } = parseArgs({
 const only = new Set((values.only ?? PHASES.join(",")).split(",").map((phase) => phase.trim()).filter(Boolean));
 for (const phase of only) if (!(PHASES as readonly string[]).includes(phase)) throw new Error(`unknown phase ${phase}; phases: ${PHASES.join(", ")}`);
 const IDLE_MS = Number(values["idle-seconds"]) * 1000;
-const STORAGE = { "omb-analytics-opt-out": "1", "omb-email-gate": "skipped", "omb-simple-mode-prompt": "1", "grok-move-2026-11": "1", "omb-advanced-mode": values.advanced ? "1" : "0" };
+const STORAGE = { "dusk-analytics-opt-out": "1", "dusk-email-gate": "skipped", "dusk-simple-mode-prompt": "1", "grok-move-2026-11": "1", "dusk-advanced-mode": values.advanced ? "1" : "0" };
 const log = (line: string) => process.stderr.write(`bench-desktop: ${line}\n`);
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const round = (value: number, digits = 1) => Math.round(value * 10 ** digits) / 10 ** digits;
@@ -323,7 +323,7 @@ async function bundleServer(): Promise<string> {
   await build({
     entryPoints: [join(ROOT, "server", "index.ts")], bundle: true, platform: "node", target: "node20", format: "esm", outdir, logLevel: "warning", minifyWhitespace: true, minifySyntax: true, lineLimit: 500,
     plugins: [{ name: "yaml-esm", setup(builder) { builder.onResolve({ filter: /^yaml$/ }, () => ({ path: join(ROOT, "node_modules", "yaml", "browser", "index.js") })); } }, serverLocalePlugin],
-    banner: { js: 'import { createRequire as __ombCreateRequire } from "node:module";\nconst require = __ombCreateRequire(import.meta.url);' },
+    banner: { js: 'import { createRequire as __duskCreateRequire } from "node:module";\nconst require = __duskCreateRequire(import.meta.url);' },
   });
   copyFileSync(join(ROOT, "scripts", "desktop-server-entry.mjs"), join(outdir, "desktop-entry.mjs"));
   return join(outdir, "desktop-entry.mjs");
@@ -442,7 +442,7 @@ async function idleWindow(chrome: Chrome, pages: Record<string, Page>, fixture: 
 }
 
 async function waitTurn(fixture: Fixture, botId: string) {
-  return await runControlOmb(["wait", "--bot", botId, "--timeout", "180", "--for", "turn", "--url", fixture.url]) as { status?: string; messages?: Array<{ id?: string; kind?: string; role?: string }> };
+  return await runControlDusk(["wait", "--bot", botId, "--timeout", "180", "--for", "turn", "--url", fixture.url]) as { status?: string; messages?: Array<{ id?: string; kind?: string; role?: string }> };
 }
 
 /** One streamed reply with tool calls into `botId`'s open chat, measured in the page, Chrome and the server. */
@@ -452,7 +452,7 @@ async function streamTurn(chrome: Chrome, page: Page, fixture: Fixture, botId: s
   const cpu0 = await chrome.cpu();
   const tally0 = await fixture.tally();
   const started = performance.now();
-  await runControlOmb(["send", "--bot", botId, "--text", "Write the long report, please.", "--url", fixture.url]);
+  await runControlDusk(["send", "--bot", botId, "--text", "Write the long report, please.", "--url", fixture.url]);
   await sleep(4_000);
   const animationsMidTurn = await page.evaluate<Record<string, number>>(RUNNING_ANIMATIONS);
   const settled = await waitTurn(fixture, botId);
@@ -491,7 +491,7 @@ async function streamTurn(chrome: Chrome, page: Page, fixture: Fixture, botId: s
 }
 
 async function newBot(fixture: Fixture, name: string): Promise<string> {
-  const created = await runControlOmb(["new-bot", "--name", name, "--url", fixture.url]) as { bot: { id: string } };
+  const created = await runControlDusk(["new-bot", "--name", name, "--url", fixture.url]) as { bot: { id: string } };
   return created.bot.id;
 }
 
@@ -580,7 +580,7 @@ async function main() {
 
   let chrome: Chrome | undefined;
   if (needsUi) {
-    if (!chromePath) throw new Error("no Chrome: run `control-omb ui launch` once, or pass --chrome PATH");
+    if (!chromePath) throw new Error("no Chrome: run `control-dusk ui launch` once, or pass --chrome PATH");
     chrome = await launchChrome(chromePath);
     cleanups.push(() => chrome!.close());
   }

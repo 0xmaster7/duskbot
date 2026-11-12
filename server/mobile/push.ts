@@ -159,7 +159,7 @@ export function createPushSender(env: NodeJS.ProcessEnv = process.env, deps: {
       });
       request.end(JSON.stringify({
         aps: { alert: { title: message.botName, body: "New message" }, sound: "default", "thread-id": message.threadId },
-        omb: messageData(message),
+        dusk: messageData(message),
       }));
     });
   }

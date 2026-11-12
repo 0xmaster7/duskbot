@@ -1,4 +1,4 @@
-// Dusk Bot's own listening ports, which no bot's browser may reach, and one egress gate per running browser.
+// dusk bot's own listening ports, which no bot's browser may reach, and one egress gate per running browser.
 import { subscribe } from "node:diagnostics_channel";
 import type { Server } from "node:net";
 
@@ -107,12 +107,12 @@ export class BrowserEgress {
     };
   }
 
-  /** Why a destination is refused by its name alone on this host: Reddit, from Dusk Cloud. */
+  /** Why a destination is refused by its name alone on this host: Reddit, from dusk cloud. */
   nameRefusal(name: string): Refusal | null {
     return this.setup && refusesReddit(this.setup.host, name) ? "reddit" : null;
   }
 
-  /** What a browser tool call that would open Reddit from Dusk Cloud is told instead of running, or null. */
+  /** What a browser tool call that would open Reddit from dusk cloud is told instead of running, or null. */
   callRefusal(params: unknown): string | null {
     return this.setup && opensReddit(this.setup.host, params) ? REDDIT_REFUSAL : null;
   }

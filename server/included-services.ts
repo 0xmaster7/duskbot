@@ -41,7 +41,7 @@ const includedFrom = (env: NodeJS.ProcessEnv): Included => ({
 /** The token is a key the chat engine sends here, so the address must be HTTPS (loopback for tests) and the token the Admin's shape. */
 function trialCreditService(url: string | undefined, token: string | undefined): ServiceCredential | null {
   const credential = includedService(url, token);
-  if (!credential || !/^omb_ai_[A-Za-z0-9_-]{43}$/.test(credential.token)) return null;
+  if (!credential || !/^(?:dusk|omb)_ai_[A-Za-z0-9_-]{43}$/.test(credential.token)) return null;
   try {
     const parsed = new URL(credential.api);
     const loopback = parsed.protocol === "http:" && ["127.0.0.1", "[::1]"].includes(parsed.hostname);
@@ -88,7 +88,7 @@ export function deciderCredential(
 }
 
 /** X research's relay token on a signed-in desktop: the desktop's main process
- * fetches it with its Dusk Cloud sign-in while the plan is paid
+ * fetches it with its dusk cloud sign-in while the plan is paid
  * (electron/main.mjs) and hands it over on the private parent port. Held in
  * memory only, never written to config. */
 let desktopX: ServiceCredential | null = null;

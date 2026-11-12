@@ -86,7 +86,7 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
   const read = readPage ?? (async (url) => {
     const contents = appPage();
     if (!contents) throw new Error("no page");
-    const response = await contents.session.fetch(url, { credentials: "include", headers: { "x-omb-background": "1" } });
+    const response = await contents.session.fetch(url, { credentials: "include", headers: { "x-dusk-background": "1" } });
     if (!response.ok) throw new Error(`${response.status}`);
     return response.json();
   });

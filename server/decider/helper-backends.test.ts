@@ -18,7 +18,7 @@ const ACCOUNT = "0123456789abcdef0123456789abcdef";
 const OR_KEY = "sk-or-v1-order-key-0123456789";
 const SHARED = "sk-or-v1-order-shared-0123456789";
 const RELAY = "https://cloud.example.test/api/cloud/services/decider";
-const INCLUDED = "omb_decide_order_included_token_0123456789";
+const INCLUDED = "dusk_decide_order_included_token_0123456789";
 const CF_RUN = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/ai/run/@cf/cloudflare`;
 
 type FetchMock = ReturnType<typeof vi.fn<typeof fetch>>;
@@ -159,7 +159,7 @@ describe("Clef on Workers AI", () => {
   });
 });
 
-/** The relay sees the wire body; Dusk Bot builds it from its own question shape. */
+/** The relay sees the wire body; dusk bot builds it from its own question shape. */
 function fromWire(body: { state: unknown; questions: Record<string, { type: string; instructions: string; criteria?: unknown }> }) {
   const questions = Object.fromEntries(Object.entries(body.questions).map(([id, wire]): [string, DeciderQuestion] => {
     if (wire.type === "choice") return [id, { type: "choice", instructions: wire.instructions, options: wire.criteria as Record<string, string> }];
@@ -174,7 +174,7 @@ describe("the relay's seams, from the fixtures shared with Cloud's Admin", () =>
   it.each(relayFixtures.cases.map((fixture) => [fixture.name, fixture] as const))("%s", (_name, fixture) => {
     const { state, questions } = fromWire(fixture.body as never);
     expect(relayAccepts(fixture.seam as DeciderSeam, state, questions)).toBe(fixture.accepts);
-    // The fixture is exactly what Dusk Bot puts on the wire.
+    // The fixture is exactly what dusk bot puts on the wire.
     expect(jevRequestBody(state, questions)).toEqual(fixture.body);
   });
 

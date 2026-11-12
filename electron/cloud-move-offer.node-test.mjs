@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createCloudMoveOffer, movable, offerStage, parseOffer } from "./cloud-move-offer.mjs";
-import { installOneHome } from "./one-home-main.mjs";
+import { createOpenWhenAsked, installOneHome } from "./one-home-main.mjs";
 import { createOneHome } from "./one-home.mjs";
 
-const ORIGIN = "https://omb-m-1.fly.dev";
+const ORIGIN = "https://dusk-m-1.fly.dev";
 const READY = { origin: ORIGIN, account: "acct-1", ready: true, moves: true, ended: false };
 const WORK = { items: [{ kind: "bot", label: "Nova" }, { kind: "bot", label: "Quill" }, { kind: "setting", label: "profile" }] };
 const NOTHING = { items: [{ kind: "setting", label: "profile" }, { kind: "setting", label: "language" }] };
@@ -44,7 +44,7 @@ test("the ask goes sheet, then line, then Settings only, and never while there i
 test("saved choices belong to one Cloud: a new Cloud asks again", () => {
   const saved = { v: 1, key: "acct-1 " + ORIGIN, prompt: 5, banner: 6, accepted: { at: 7, from: "banner" } };
   assert.deepEqual(parseOffer(saved, "acct-1 " + ORIGIN), saved);
-  assert.deepEqual(parseOffer(saved, "acct-1 https://omb-m-2.fly.dev"), { v: 1, key: "acct-1 https://omb-m-2.fly.dev" });
+  assert.deepEqual(parseOffer(saved, "acct-1 https://dusk-m-2.fly.dev"), { v: 1, key: "acct-1 https://dusk-m-2.fly.dev" });
   assert.deepEqual(parseOffer({ ...saved, accepted: { at: 7, from: "somewhere" } }, saved.key), { v: 1, key: saved.key, prompt: 5, banner: 6 });
 });
 
@@ -239,4 +239,29 @@ test("rollback: a move that fails after this computer paused lifts the pause, de
     assert.ok(journal.retryAt > clock, "later");
     assert.equal(home.away(), false, "home is still this computer");
   } finally { home.close(); }
+});
+
+test("once all moved, My Cloud opens on Open dusk cloud, or by itself when nobody presses it, and only once", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const opened = [];
+  const held = createOpenWhenAsked({ open: () => opened.push("cloud"), waitMs: 1_000 });
+  held.done();
+  held.done();
+  assert.deepEqual(opened, [], "the window waits for the person");
+  held.now();
+  assert.deepEqual(opened, ["cloud"]);
+  t.mock.timers.tick(5_000);
+  assert.deepEqual(opened, ["cloud"], "the fallback never opens it again");
+  held.done();
+  t.mock.timers.tick(999);
+  assert.deepEqual(opened, ["cloud"]);
+  t.mock.timers.tick(1);
+  assert.deepEqual(opened, ["cloud", "cloud"], "nobody pressing it, it opens by itself");
+  held.done();
+  held.close();
+  t.mock.timers.tick(5_000);
+  assert.deepEqual(opened, ["cloud", "cloud"], "closed, nothing is left waiting");
+  const plain = [];
+  createOpenWhenAsked({ open: () => plain.push("cloud"), waitMs: 0 }).done();
+  assert.deepEqual(plain, ["cloud"], "without the offer it opens at once, as before");
 });

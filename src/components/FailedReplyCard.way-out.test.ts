@@ -82,8 +82,8 @@ describe("the card says what really stopped the reply", () => {
 
   it("a turn a restart cut says so, and Try again warns before it can repeat what already ran", async () => {
     const onRetry = vi.fn();
-    const buttons = await show(failed("Interrupted by another Dusk Bot restart after resuming once; not resumed again. Some of its steps may already have taken effect."), onRetry);
-    expect(text()).toContain("Dusk Bot restarted while this was running");
+    const buttons = await show(failed("Interrupted by another dusk bot restart after resuming once; not resumed again. Some of its steps may already have taken effect."), onRetry);
+    expect(text()).toContain("dusk bot restarted while this was running");
     expect(labels(buttons)).toEqual(["Try again"]);
     await act(async () => buttons[0]!.click());
     expect(onRetry).not.toHaveBeenCalled();
@@ -95,7 +95,7 @@ describe("the card says what really stopped the reply", () => {
   });
 
   it("names what a cut turn had already done outside", async () => {
-    await show(failed("Interrupted by a Dusk Bot restart after it already sent an email (gmail_send); not resumed, so nothing is done twice."), vi.fn());
+    await show(failed("Interrupted by a dusk bot restart after it already sent an email (gmail_send); not resumed, so nothing is done twice."), vi.fn());
     expect(text()).toContain("Already done: sent an email (gmail_send)");
   });
 });

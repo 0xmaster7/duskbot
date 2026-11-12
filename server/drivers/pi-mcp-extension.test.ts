@@ -35,7 +35,7 @@ interface SchemaNode {
 }
 
 function tempDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "omb-pi-mcp-ext-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-pi-mcp-ext-"));
   tempDirs.push(dir);
   return dir;
 }

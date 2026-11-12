@@ -58,11 +58,11 @@ describe("dictation while the bot works", () => {
     globalThis.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
     vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
     speechStop = vi.fn().mockResolvedValue(undefined);
-    window.ogb = {
+    window.duskDesktop = {
       speechStart: vi.fn().mockResolvedValue(undefined), speechStop,
       onSpeechTranscript: (cb: typeof transcript) => { transcript = cb; return vi.fn(); },
       onSpeechEnd: () => vi.fn(),
-    } as unknown as typeof window.ogb;
+    } as unknown as typeof window.duskDesktop;
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
@@ -72,7 +72,7 @@ describe("dictation while the bot works", () => {
     flushSync(() => root.unmount());
     container.remove();
     restoreComposerDraft(draftId, { text: "", attachments: [] });
-    delete window.ogb;
+    delete window.duskDesktop;
     vi.clearAllMocks();
     vi.restoreAllMocks();
   });

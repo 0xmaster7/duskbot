@@ -3,16 +3,16 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export const HIDDEN_ARG = "--omb-hidden";
+export const HIDDEN_ARG = "--dusk-hidden";
 const MARK = "X-Dusk-Lending=true";
 /** Windows keeps one Run entry per name, so the person's own entry has a name apart from lending's (the app's). */
-const CHOSEN_NAME = "Dusk Bot at login";
+const CHOSEN_NAME = "dusk bot at login";
 
 /** Desktop Entry Exec quoting: the path in double quotes, with ", `, $ and \ escaped. */
 const quoted = (value) => `"${value.replace(/["`$\\]/g, (match) => `\\${match}`)}"`;
 
 export function autostartEntry(exec, { lending = true } = {}) {
-  return ["[Desktop Entry]", "Type=Application", "Name=Dusk Bot", `Exec=${quoted(exec)}${lending ? ` ${HIDDEN_ARG}` : ""}`, "NoDisplay=true",
+  return ["[Desktop Entry]", "Type=Application", "Name=dusk bot", `Exec=${quoted(exec)}${lending ? ` ${HIDDEN_ARG}` : ""}`, "NoDisplay=true",
     "X-GNOME-Autostart-enabled=true", ...(lending ? [MARK] : []), ""].join("\n");
 }
 
@@ -30,7 +30,7 @@ export function createOpenAtLogin({ app, file, platform = process.platform, env 
   const added = () => saved().added === true;
   const remember = (value) => store({ added: value });
   /** Electron 43.7 on Windows: `openAtLogin` compares the Run entry's arguments with the `args` asked about (none by
-   * default), so lending's `--omb-hidden` entry reads as off; `launchItems` lists the entries that start this executable,
+   * default), so lending's `--dusk-hidden` entry reads as off; `launchItems` lists the entries that start this executable,
    * each with its name, arguments and whether Task Manager has it enabled. */
   const windowsStartsApp = () => (app.getLoginItemSettings().launchItems ?? []).filter(item => item.enabled !== false);
   const ours = () => { try { return fs.readFileSync(autostart, "utf8").includes(MARK); } catch { return false; } };

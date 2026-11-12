@@ -1,8 +1,8 @@
-// Real model acceptance through the full, isolated Dusk Bot server.
+// Real model acceptance through the full, isolated dusk bot server.
 // The prompts contain goals only, never tool names or execution advice.
 import { copyFileSync, mkdirSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { launchVerificationServer, runControlOmb } from "./control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "./control-dusk.ts";
 import { fixtureApi } from "./testing/preview-fixture.ts";
 
 const cli = process.env.DUSK_VERIFY_CODEX_CLI;
@@ -81,10 +81,10 @@ try {
       const entry: any = { model, botId: bot.id, prompt };
       report.cases.push(entry); save();
       console.log(JSON.stringify({ model, prompt }));
-      entry.sent = await runControlOmb(["send", "--bot", bot.id, "--text", prompt, "--url", fixture.info.url]);
+      entry.sent = await runControlDusk(["send", "--bot", bot.id, "--text", prompt, "--url", fixture.info.url]);
       const deadline = Date.now() + 300_000;
       do {
-        entry.wait = await runControlOmb(["wait", "--bot", bot.id, "--timeout", "30", "--url", fixture.info.url]);
+        entry.wait = await runControlDusk(["wait", "--bot", bot.id, "--timeout", "30", "--url", fixture.info.url]);
         save();
         if (entry.wait?.status === "needs-user") {
           const threadId = entry.wait.taskId;
@@ -103,7 +103,7 @@ try {
         }
         if (["settled", "failed", "needs-user", "stalled"].includes(entry.wait?.status)) break;
       } while (Date.now() < deadline);
-      entry.messages = await runControlOmb(["messages", "--bot", bot.id, "--limit", "15", "--url", fixture.info.url]);
+      entry.messages = await runControlDusk(["messages", "--bot", bot.id, "--limit", "15", "--url", fixture.info.url]);
       entry.browser = await observe(bot.id, `${model}-${index}`);
       const tabs = entry.browser.observations.filter((item: any) => item.kind === "tabs").at(-1)?.tabs ?? [];
       entry.verified = entry.wait?.status === "settled" && tabs.some((tab: any) => tab.active && (index === 0

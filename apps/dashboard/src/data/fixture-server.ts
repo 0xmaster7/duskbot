@@ -1,5 +1,6 @@
 import { appSlug, COMMAND_KINDS } from "../../../../shared/dashboard-protocol";
 import type { CommandKind, CommandView, ConnectorsAnswer, WorkspaceDetail } from "../../../../shared/dashboard-protocol";
+import { PULSE_INTERVAL_MS, PULSE_SIZE, type PulseAnswer, type PulseSample } from "../../../../shared/machine-pulse";
 import { ApiError, FIXTURE } from "../lib/api";
 import type { BundleId, CheckoutRequest, CloudDesktop, DesktopId, MachineSpec, NotificationPrefs, Selection, Subscription } from "./contracts";
 import { fixtureAccount, fixtureBilling, fixtureCatalog, fixtureClouds, fixtureConnections, fixturePendingApps, fixtureWorkspace, fixtureWorkspaces } from "./fixtures";
@@ -9,7 +10,7 @@ import { CANCEL_ANSWERS } from "./wire";
 const DAY = 86_400_000;
 /** the managed fixture's emailed delete link: /clouds/fx-cloud/delete?fixture=managed#<this> */
 export const FIXTURE_DELETE_TOKEN = "fixture-delete-link".padEnd(43, "0");
-const steps = ["Reserving your machine", "Installing Dusk Bot", "Linking it to your account", "Waking your bots"];
+const steps = ["Reserving your machine", "Installing dusk bot", "Linking it to your account", "Waking your bots"];
 const fail = (message: string, status = 400, code = "invalid_request"): never => { throw new ApiError(message, status, code); };
 
 function createState() {
@@ -48,7 +49,7 @@ function sizeFrom(input: unknown): MachineSpec {
 
 function desktopSelection(tier: Exclude<DesktopId, "none">, size: MachineSpec | null) {
   const desktop = desktopOf(fixtureCatalog, tier);
-  if (!desktop) return fail("Choose a Dusk Cloud size.");
+  if (!desktop) return fail("Choose a dusk cloud size.");
   if (size !== null && !desktop.sizable) fail("Choose a dedicated desktop to set its size.");
   const spec = size === null ? desktop : sizeFrom(size);
   return { tier: desktop.id, placement: desktop.placement, vcpu: spec.vcpu, ramGb: spec.ramGb, diskGb: spec.diskGb, limit: desktop.botComputers };
@@ -155,6 +156,16 @@ function advance(now: number) {
   }
 }
 
+function fixturePulse(after: number, now: number): PulseSample[] {
+  const newest = Math.floor((now - 2000) / PULSE_INTERVAL_MS) * PULSE_INTERVAL_MS, out: PulseSample[] = [];
+  for (let t = newest - (PULSE_SIZE - 1) * PULSE_INTERVAL_MS; t <= newest; t += PULSE_INTERVAL_MS) {
+    if (t <= after) continue;
+    const k = t / PULSE_INTERVAL_MS, noise = Math.sin(k * 12.9898) * 43758.5453 % 1;
+    out.push({ t, cpu: Math.round((22 + 14 * Math.sin(t / 17_000) + 9 * Math.sin(t / 5_300) + 6 * Math.abs(noise)) * 10) / 10, mem: Math.round((41 + 3 * Math.sin(t / 40_000) + Math.abs(noise)) * 10) / 10 });
+  }
+  return out;
+}
+
 function workspaceDetail(detail: WorkspaceDetail, now: number): WorkspaceDetail {
   const cloud = current().clouds.find((c) => c.workspaceId === detail.workspace.id);
   const fresh = fixtureWorkspace(detail.workspace.id, detail.workspace.name, detail.workspace.kind, now, cloud);
@@ -227,7 +238,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
           ...(s.billing.subscription ? [{ kind: "subscription" as const, id: s.billing.subscription.id, label: "Pro", status: s.billing.subscription.status }] : []),
           ...s.clouds.map(cloud => ({ kind: "cloud_desktop" as const, id: cloud.id, label: cloud.name, status: cloud.status })),
         ];
-        throw new ApiError("Cancel your plan and Dusk Cloud before deleting your account.", 409, "billing_active", blockers);
+        throw new ApiError("Cancel your plan and dusk cloud before deleting your account.", 409, "billing_active", blockers);
       }
       s.signedIn = false; s.firstSignIn = true; return {};
     }
@@ -259,7 +270,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
       const pack = fixtureCatalog.creditPacks.find((p) => p.id === req.pack);
       if (!pack) return fail("Choose a credit pack.");
       s.billing.credits.balanceUsd = Math.round((s.billing.credits.balanceUsd + pack.usd) * 100) / 100;
-      s.billing.invoices.unshift({ id, number: `OMB-CREDITS-${s.nextId}`, date: now, description: `$${pack.usd} AI credits`, amountUsd: pack.usd, status: "paid", url: null });
+      s.billing.invoices.unshift({ id, number: `DUSK-CREDITS-${s.nextId}`, date: now, description: `$${pack.usd} AI credits`, amountUsd: pack.usd, status: "paid", url: null });
     } else if (req.kind === "plan") {
       const selection = selectionFrom(req.selection);
       if (req.bundle !== null && !fixtureCatalog.bundles.some((bundle) => bundle.id === req.bundle)) fail("Choose a bundle.");
@@ -342,6 +353,13 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
     const id = `fx-claimed-${s.nextId++}`, detail = fixtureWorkspace(id, "Studio Mac", "mac", now);
     s.workspaces.set(id, detail); return { workspace: detail.workspace };
   }
+  const pulse = method === "GET" ? path.match(/^\/v1\/workspaces\/([^/]+)\/pulse$/) : null;
+  if (pulse) {
+    const detail = s.workspaces.get(decodeURIComponent(pulse[1]!));
+    if (!detail) return fail("Workspace not found.", 404, "not_found");
+    const cloud = s.clouds.find((c) => c.workspaceId === detail.workspace.id);
+    return { v: 1, intervalMs: PULSE_INTERVAL_MS, samples: cloud && cloud.status !== "running" ? [] : fixturePulse(Number(query.get("after") ?? 0), now) } satisfies PulseAnswer;
+  }
   const workspace = path.match(/^\/v1\/workspaces\/([^/]+)(\/commands)?$/);
   if (workspace) {
     const id = decodeURIComponent(workspace[1]!), detail = s.workspaces.get(id);
@@ -350,7 +368,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
       if (!COMMAND_KINDS.includes(b.kind as CommandKind) || typeof b.target !== "string") fail("Choose a command and target.");
       if ((b.kind as string).startsWith("app.")) {
         if (!appSlug(b.target)) fail("Command is invalid.", 400, "invalid_command");
-        if (workspaceDetail(detail, now).workspace.freshness === "offline") fail(detail.workspace.kind === "vps" ? "This cloud is asleep or not answering. Wake it from clouds, then try again." : "Your computer is asleep. Connect from the Dusk Bot app on it, or use Dusk Cloud.", 409, "workspace_offline");
+        if (workspaceDetail(detail, now).workspace.freshness === "offline") fail(detail.workspace.kind === "vps" ? "This cloud is asleep or not answering. Wake it from clouds, then try again." : "Your computer is asleep. Connect from the dusk bot app on it, or use dusk cloud.", 409, "workspace_offline");
       }
       const command: CommandView = { id: `fx-command-${s.nextId++}`, kind: b.kind as CommandKind, target: b.target as string, issuedAt: now, expiresAt: now + 600_000, status: "sent", message: null, doneAt: null };
       detail.commands.push(command); return { command };

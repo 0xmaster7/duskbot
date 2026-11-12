@@ -56,7 +56,7 @@ not prove a customer's real DNS, certificate, or reverse proxy is configured.
    official link, expiry, and Cancel. **Do not enter the fake code at OpenAI.**
    Cancel and restart, then switch Settings sections and return; Connect should
    recover the same active flow without spawning a second login.
-6. Create the empty `.omb-fake-codex-login-approved` marker in the fixture's
+6. Create the empty `.dusk-fake-codex-login-approved` marker in the fixture's
    temporary HOME. The offline process records a fake signed-in state. Confirm
    the real Settings UI changes to “ChatGPT connected on this server.”
 7. Stop the Vite process and interrupt the foreground fixture launcher. Only

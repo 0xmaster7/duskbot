@@ -223,7 +223,7 @@ export function configure(next: Options): void {
     if ((origin || next.relay) && !opened) {
       opened = true;
       track("app_open", { kind: next.kind, platform: next.platform, appVersion: options.version });
-      const env = environment(next.platform, typeof window === "undefined" ? undefined : window.ogb?.arch);
+      const env = environment(next.platform, typeof window === "undefined" ? undefined : window.duskDesktop?.arch);
       if (env) action("env", env);
     }
     schedule();

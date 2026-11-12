@@ -8,8 +8,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 
-const root = mkdtempSync(join(tmpdir(), "omb-chatgpt-plan-"));
-process.env.DUSK_DATA_DIR = join(root, "omb");
+const root = mkdtempSync(join(tmpdir(), "dusk-chatgpt-plan-"));
+process.env.DUSK_DATA_DIR = join(root, "dusk");
 const { chatgptPlanCodexArgs } = await import("../server/drivers/codex.ts");
 const home = join(root, "home");
 const cwd = join(root, "workspace");
@@ -56,7 +56,7 @@ async function start() {
     }
     else if (message.method === "turn/completed") completions?.(message.params);
   });
-  await rpc("initialize", { clientInfo: { name: "duskbot", title: "Dusk Bot", version: "fixture" } });
+  await rpc("initialize", { clientInfo: { name: "duskbot", title: "dusk bot", version: "fixture" } });
   child.stdin.write(JSON.stringify({ method: "initialized" }) + "\n");
 }
 function rpc(method, params) {

@@ -5,6 +5,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { BACKGROUND_HEADERS, CloudAsleepError, asleepAnswer } from "./cloud-power.mjs";
 import { CHUNK_BYTES, MIN_CHUNK_BYTES } from "./cloud-sync-rules.mjs";
+import { readHeader } from "./legacy-names.mjs";
 
 // Slowest connection a transfer is given time for, in bytes per millisecond (32 KB/s).
 const SLOWEST = 32;
@@ -105,7 +106,7 @@ export function createSyncClient({ origin, fetch: fetchImpl, power = null, chunk
         const response = await call("GET", `/api/sync/folders/${id(folderId)}/file?path=${encodeURIComponent(path)}`, { headers: have ? { range: `bytes=${have}-` } : {}, timeoutMs: 60_000 + Math.ceil(Math.max(0, size - have) / SLOWEST) });
         if (!response.ok) throw new SyncHttpError(response.status, await response.json().catch(() => null));
         await pipeline(Readable.fromWeb(response.body), createWriteStream(temporary, { flags: response.status === 206 ? "a" : "w", mode: 0o600 }));
-        return { sha256: response.headers.get("x-omb-sha256") };
+        return { sha256: readHeader(response.headers, "x-dusk-sha256") };
       } catch (error) {
         if (error?.name === "TimeoutError") throw tooSlow();
         throw error;

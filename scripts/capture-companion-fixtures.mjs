@@ -180,7 +180,7 @@ async function main() {
   if (!paired.body.token) throw new Error(`pairing failed: ${JSON.stringify(paired.body)}`);
   deviceToken = paired.body.token;
   // A fixture is a file people copy, so the live token is never written.
-  write("pair-response", { ...paired.body, token: "omb_REDACTED" });
+  write("pair-response", { ...paired.body, token: "dusk_REDACTED" });
 
   // Left unfiled: DecodingTests pins bots-full's first bot as section-less.
   const created = await json(`${SIDECAR}/api/bots`, asDevice({ method: "POST" }));

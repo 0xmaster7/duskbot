@@ -19,7 +19,7 @@ export interface ConfigStatus {
   greenference?: SavedKey;
   deepseek?: SavedKey;
   meta?: SavedKey;
-  /** X research comes with Dusk Cloud plans: `included` while this server holds the plan's relay credential;
+  /** X research comes with dusk cloud plans: `included` while this server holds the plan's relay credential;
    * `unavailable` when the Admin said no to this desktop's paid sign-in. */
   xResearch?: { included: boolean; unavailable?: boolean };
   /** The person's own treg key for research: configured or not, never the key. */
@@ -142,10 +142,10 @@ export interface ConfigStatus {
   /** The enrolled organisation's read-only desktop policy; null when this
    * desktop is not enrolled or its Admin sends no policy. */
   managedPolicy?: ManagedPolicySummary | null;
-  /** This server is a Dusk Bot Cloud home: it offers no "this computer" and no
+  /** This server is a dusk bot Cloud home: it offers no "this computer" and no
    * Local VM (server/cloud-home.ts). Absent everywhere else. */
   cloudHome?: boolean;
-  /** A Team Cloud: the team this server is the home of, and the Plan page (Dusk Cloud) where its people and plan
+  /** A Team Cloud: the team this server is the home of, and the Plan page (dusk cloud) where its people and plan
    * are managed. Absent everywhere else. */
   team?: { id: string; name: string; cloudPage?: string };
 }
@@ -177,10 +177,10 @@ export interface BrowserEngineSummary {
   /** Whether a browser profile can use "My Chrome", the person's own running
    * Chrome: only where the bots run on their computer (the desktop app). */
   myChrome?: boolean;
-  /** browserEngine.engine: "chrome" when the bots' browsers run on Dusk Bot's own Chrome driver. */
+  /** browserEngine.engine: "chrome" when the bots' browsers run on dusk bot's own Chrome driver. */
   engine?: "agent-browser" | "chrome";
   /** Self-hosted servers only: whether bots' browsers may open this server's own sites and its local network
-   * (browserEngine.egress.localNetwork, off by default). Absent on the desktop and on Dusk Cloud. */
+   * (browserEngine.egress.localNetwork, off by default). Absent on the desktop and on dusk cloud. */
   serverSites?: boolean;
 }
 

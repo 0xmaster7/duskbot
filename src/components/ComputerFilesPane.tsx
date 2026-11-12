@@ -15,7 +15,7 @@ export function automaticSystemFile(path: string, cwd?: string | null): boolean 
   const parts = normalized.split("/");
   if (parts.some((part) => [".git", ".cache", ".npm", ".pnpm-store", ".venv", "node_modules", "__pycache__", ".browser-profiles", ".ssh", ".DS_Store", ".Trash", ".duskbot", ".dusk", ".Xauthority", ".ICEauthority", ".xsession-errors"].includes(part))) return true;
   if (/(?:^|\/)\.local\/(?:state|share|lib)(?:\/|$)/.test(normalized)) return true;
-  if (/(?:^|\/)\.config\/(?:chromium|openbox|tint2|Thunar|xfce4|Dusk Bot)(?:\/|$)/i.test(normalized)) return true;
+  if (/(?:^|\/)\.config\/(?:chromium|openbox|tint2|Thunar|xfce4|dusk bot)(?:\/|$)/i.test(normalized)) return true;
   const folder = cwd?.replace(/\\/g, "/").replace(/\/+$/, "");
   const windows = /^[a-z]:\//i.test(normalized);
   const inWorkspace = folder && (windows ? normalized.toLowerCase().startsWith(`${folder.toLowerCase()}/`) : normalized.startsWith(`${folder}/`));

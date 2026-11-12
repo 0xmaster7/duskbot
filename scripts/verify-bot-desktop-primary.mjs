@@ -13,18 +13,18 @@ const image = process.env.DUSK_VERIFY_DESKTOP_IMAGE;
 assert.ok(image, "select a fixture image with DUSK_VERIFY_DESKTOP_IMAGE");
 const imageId = (await run("docker", ["image", "inspect", image, "--format", "{{.Id}}"])).stdout.trim();
 assert.match(imageId, /^sha256:[a-f0-9]{64}$/);
-const evidence = await mkdtemp(join(process.platform === "win32" ? tmpdir() : "/tmp", "omb-primary-"));
+const evidence = await mkdtemp(join(process.platform === "win32" ? tmpdir() : "/tmp", "dusk-primary-"));
 process.env.DUSK_DATA_DIR = join(evidence, "server-data");
 const { boxChromeExecArgs, boxChromeRelay } = await import("../server/vps-local.ts");
 const suffix = `${process.pid}-${Date.now()}`;
-const volume = `omb-primary-home-${suffix}`;
+const volume = `dusk-primary-home-${suffix}`;
 const names = new Set();
 const receipt = { imageId, evidence, volume, cases: [], ok: false };
 const docker = args => run("docker", args, { timeout: 20_000, maxBuffer: 4 * 1024 * 1024 });
 let madeVolume = false;
 
 async function create(label, browser = true) {
-  const name = `omb-primary-${suffix}-${label}`;
+  const name = `dusk-primary-${suffix}-${label}`;
   names.add(name);
   const result = await docker([
     "run", "-d", "--name", name, "--label", "bot.dusk.verification=primary-lifecycle",

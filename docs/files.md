@@ -1,6 +1,6 @@
 # Files: share folders with My Cloud, get your bots' work
 
-Files lives in Settings > Dusk Cloud in the desktop app, for people with a Dusk Cloud ("My Cloud"), under the My Cloud card. It does two jobs:
+Files lives in Settings > dusk cloud in the desktop app, for people with a dusk cloud ("My Cloud"), under the My Cloud card. It does two jobs:
 
 - **Shared folders.** A folder added here gets a read-only copy on My Cloud, kept up to date while this computer is on. Bots on My Cloud read that copy; they never reach this computer itself.
 - **Your bots' work.** What Cloud bots make comes down to `Documents/Dusk Bot/<bot>/<conversation>` on this computer.
@@ -25,7 +25,7 @@ There is no setting, size picker or list of changes.
 - **Folders that are never shared:**
   - the home folder or anything above it;
   - a drive root or a mount point;
-  - Dusk Bot's own folders: its data folder and `Documents/Dusk Bot`;
+  - dusk bot's own folders: its data folder and `Documents/Dusk Bot`;
   - folders of keys and settings: `.ssh`, `.aws`, `.gnupg`, `.config`, `Library`, `AppData` and similar;
   - a folder inside, or around, one already shared.
 - **This computer's version always wins.** A file new or changed here is uploaded. If a bot edits the copy anyway, the next pass puts this computer's version back, and the bot's version stays in My Cloud's trash. Files a bot adds to the copy stay on My Cloud and never come down.

@@ -23,7 +23,7 @@ vi.mock("react", async original => ({ ...await original<typeof import("react")>(
 vi.mock("@/state/store", () => ({ api: vi.fn() }));
 import { CompanyBackupSettings, ConnectedCompanyBackupSettings, SavedCompanyBackupSchedule } from "./CompanyBackupSettings";
 
-type BackupBridge = NonNullable<NonNullable<Window["ogb"]>["companyBackups"]>;
+type BackupBridge = NonNullable<NonNullable<Window["duskDesktop"]>["companyBackups"]>;
 type Node = ReactElement<{
   children?: ReactNode; type?: string; disabled?: boolean; value?: string; role?: string;
   "aria-label"?: string; onChange?: (event: unknown) => void;
@@ -80,7 +80,7 @@ const readyEntry: CompanyBackupEntry = {
   createdAt: Date.parse("2026-09-12T10:00:00Z"), completedAt: Date.parse("2026-09-12T10:01:00Z"),
 };
 const summary: WorkspaceBackupSummary = {
-  format: "openmaus.workspace-backup", version: 1, id: READY_ID, createdAt: "2026-09-12T10:00:00Z",
+  format: "dusk.workspace-backup", version: 1, id: READY_ID, createdAt: "2026-09-12T10:00:00Z",
   appVersion: "0.0.0-fixture", files: 9, directories: 3, bytes: 4096, bots: 2, groups: 1, threads: 4,
   messages: 8, warnings: ["Fixture archive warning"], exclusions: ["Saved account credentials and connections"],
 };
@@ -110,7 +110,7 @@ beforeEach(() => {
     state: vi.fn().mockResolvedValue(connected), begin: vi.fn(), cancelEnrollment: vi.fn(), refresh: vi.fn(), disconnect: vi.fn(),
     onState: vi.fn(callback => { pushOrganization = callback; return unsubscribeOrganization; }),
   };
-  vi.stubGlobal("window", { ogb: { organization, companyBackups: bridge }, location: { reload: vi.fn() } });
+  vi.stubGlobal("window", { duskDesktop: { organization, companyBackups: bridge }, location: { reload: vi.fn() } });
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => storage.get(key) ?? null,
     setItem: vi.fn((key: string, value: string) => storage.set(key, value)),
@@ -134,9 +134,9 @@ async function validateRestore() {
 describe("optional Company cloud backup settings", () => {
   it.each(["browser", "remote", "missing organization", "missing backups"])("is absent on a %s surface without requesting cloud data", surface => {
     if (surface === "browser") vi.stubGlobal("window", {});
-    if (surface === "remote") vi.stubGlobal("window", { ogb: { organization, companyBackups: bridge, remoteClient: { active: true } } });
-    if (surface === "missing organization") vi.stubGlobal("window", { ogb: { companyBackups: bridge } });
-    if (surface === "missing backups") vi.stubGlobal("window", { ogb: { organization } });
+    if (surface === "remote") vi.stubGlobal("window", { duskDesktop: { organization, companyBackups: bridge, remoteClient: { active: true } } });
+    if (surface === "missing organization") vi.stubGlobal("window", { duskDesktop: { companyBackups: bridge } });
+    if (surface === "missing backups") vi.stubGlobal("window", { duskDesktop: { organization } });
     expect(render(true).html).toBe(""); effects();
     if (surface !== "missing backups") expect(organization.state).not.toHaveBeenCalled();
     expect(bridge.state).not.toHaveBeenCalled(); expect(bridge.list).not.toHaveBeenCalled();
@@ -321,8 +321,8 @@ describe("optional Company cloud backup settings", () => {
 
   it("requires an explicit backup dialog without passwords, then exports only allowlisted local preferences", async () => {
     await ready();
-    storage.set("omb-drafts", "private fixture draft"); storage.set("omb-skin", "fixture-theme");
-    storage.set("auth-token", "fixture auth secret"); storage.set("omb-webhook-credentials", "fixture connection secret");
+    storage.set("dusk-drafts", "private fixture draft"); storage.set("dusk-skin", "fixture-theme");
+    storage.set("auth-token", "fixture auth secret"); storage.set("dusk-webhook-credentials", "fixture connection secret");
     button("Back up this installation").props.onClick!();
     expect(bridge.create).not.toHaveBeenCalled(); expect(passwords()).toHaveLength(0);
     expect(render().nodes.some(node => node.type === "dialog")).toBe(true);
@@ -332,7 +332,7 @@ describe("optional Company cloud backup settings", () => {
     const submitButton = () => render().nodes.find(node => node.type === "button" && node.props.type === "submit")!;
     expect(submitButton().props.disabled).toBe(false);
     const createForm = form(); submit(createForm); submit(createForm); await flush();
-    expect(bridge.create).toHaveBeenCalledExactlyOnceWith({ clientState: { "omb-drafts": "private fixture draft", "omb-skin": "fixture-theme" } });
+    expect(bridge.create).toHaveBeenCalledExactlyOnceWith({ clientState: { "dusk-drafts": "private fixture draft", "dusk-skin": "fixture-theme" } });
     expect([...storage.values()]).not.toContain(PASSWORD);
     expect(render().html).not.toContain(PASSWORD);
     expect(fetch).not.toHaveBeenCalled();

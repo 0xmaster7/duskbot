@@ -18,7 +18,7 @@ import { deviceWord } from "./vps-link/parts";
 export function useCloudUpsell(): { allowed: boolean | null; open: (source: CloudSource) => void } {
   const { state, dispatch } = useStore();
   const plan = useCloudPlan();
-  const organization = window.ogb?.organization;
+  const organization = window.duskDesktop?.organization;
   const [managed, setManaged] = useState<boolean | null>(organization ? null : false);
   useEffect(() => {
     if (!organization) return;
@@ -30,7 +30,7 @@ export function useCloudUpsell(): { allowed: boolean | null; open: (source: Clou
     void organization.state().then(next => { if (!updated) accept(next); }).catch(() => {});
     return () => { active = false; unsubscribe(); };
   }, [organization]);
-  const here = localDesktopPage() && window.ogb?.remoteClient?.active !== true && Boolean(state.config)
+  const here = localDesktopPage() && window.duskDesktop?.remoteClient?.active !== true && Boolean(state.config)
     && !state.config?.cloudHome && !state.config?.managedPolicy;
   const allowed = cloudUpsellAllowed({ here, view: plan?.view ?? null, managed });
   const signedOut = plan?.view.kind === "signed-out";

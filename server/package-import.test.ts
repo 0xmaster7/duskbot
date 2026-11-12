@@ -10,7 +10,7 @@ const fixture = (name: string): any => JSON.parse(readFileSync(join(FIXTURES, na
 let home: string;
 
 async function installation(options: { refuse?: (name: string) => string | undefined; servers?: Record<string, unknown> } = {}) {
-  home = mkdtempSync(join(tmpdir(), "omb-package-import-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-package-import-"));
   vi.resetModules();
   vi.stubEnv("HOME", home);
   vi.stubEnv("USERPROFILE", home);
@@ -245,7 +245,7 @@ describe("importing onto a Starter Cloud", () => {
     const app = await onStarter(5);
     const before = app.snapshot();
     const { parseTeamManifest } = await import("./team-manifest.ts");
-    const manifest = parseTeamManifest({ format: "openmaus.team", version: 2, team: { name: "Desk", members: [{ key: "helper", name: "Helper", appearance: { color: "blue" } }] } });
+    const manifest = parseTeamManifest({ format: "dusk.team", version: 2, team: { name: "Desk", members: [{ key: "helper", name: "Helper", appearance: { color: "blue" } }] } });
     expect(() => app.importer.importTeamManifest(manifest, { mode: "add", cwd: null }, app.deps))
       .toThrow(expect.objectContaining({ code: "bot_limit", status: 409 }));
     expect(app.snapshot()).toBe(before);

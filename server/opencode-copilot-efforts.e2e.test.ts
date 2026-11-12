@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
 // Deliberate opt-in: never discover the user's CLI. The supplied OpenCode 2 binary reaches only an owned loopback
@@ -98,7 +98,7 @@ test("offers Copilot models' efforts through OpenCode 2 and sends each turn's ch
     return result;
   };
   const control = async (args: string[]) => {
-    const result = await runControlOmb([...args, "--url", url]) as any;
+    const result = await runControlDusk([...args, "--url", url]) as any;
     evidence.push({ command: args, result });
     return result;
   };
@@ -148,10 +148,10 @@ test("offers Copilot models' efforts through OpenCode 2 and sends each turn's ch
     ].join("\n"), { mode: 0o700 });
     // The shared launcher installs only Claude: seed this fixture's optional instance while stopped.
     await waitForExit(fixture.child, { signal: "SIGTERM" });
-    const ombConfigPath = join(dataDir, "config.json");
-    const ombConfig = JSON.parse(readFileSync(ombConfigPath, "utf8"));
-    ombConfig.instances.opencodeGo = { driver: "opencodeGo", displayName: "OpenCode fixture", config: { cli: wrapper } };
-    writeFileSync(ombConfigPath, JSON.stringify(ombConfig));
+    const duskConfigPath = join(dataDir, "config.json");
+    const duskConfig = JSON.parse(readFileSync(duskConfigPath, "utf8"));
+    duskConfig.instances.opencodeGo = { driver: "opencodeGo", displayName: "OpenCode fixture", config: { cli: wrapper } };
+    writeFileSync(duskConfigPath, JSON.stringify(duskConfig));
     const log = openSync(logPath, "a", 0o600);
     restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
       cwd: fileURLToPath(new URL("..", import.meta.url)), env: isolatedEnv, stdio: ["ignore", log, log],

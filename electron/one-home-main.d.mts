@@ -8,6 +8,8 @@ export function freezeAnswer(got: { ok: boolean; status: number; body: any }): {
 export type KeepHereState = import("./cloud-send.mjs").KeepHereState;
 export function installationOf(environmentId: string): string;
 export declare const GONE_ASK_MS: number;
+export declare const OPEN_WAIT_MS: number;
+export function createOpenWhenAsked(deps: { open(): void; waitMs: number }): { done(): void; now(): void; close(): void };
 /** One home's `gone(origin)`, from the Admin's word (`ask`), kept per account. */
 export function createGoneCheck(deps: { ask(origin: string): Promise<string | null>; account(): string | null; now?(): number }): (origin: string) => Promise<"deleted" | "ended" | null>;
 
@@ -16,7 +18,7 @@ type SendDeps = Parameters<typeof installCloudSend>[0];
 export function installOneHome(deps: Omit<SendDeps, "local" | "move" | "moveSession" | "offer"> & {
   /** This computer's server, as its owner. */
   localRequest(route: string, init?: RequestInit & { duplex?: "half" }): Promise<Response>;
-  /** The Dusk Cloud sign-in (cloud-account.mjs). */
+  /** The dusk cloud sign-in (cloud-account.mjs). */
   account(): { state(): any; pairHome(): Promise<{ origin: string; code: string; expiresAt?: number }>; exportHome(options?: { installation?: string }): Promise<any>;
     reportMove?(options: { installation: string }): Promise<boolean>; reportKept?(options: { installation: string }): Promise<boolean>;
     movedTo?(origin: string): Promise<"deleted" | "ended" | "live" | "unknown" | null>;

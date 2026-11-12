@@ -84,7 +84,7 @@ posixOnly("Live call e2e", () => {
     chmodSync(FAKE_ACP, 0o755);
     chmodSync(FAKE_CODEX, 0o755);
     live = await startFakeOpenAiLive();
-    home = mkdtempSync(join(tmpdir(), "omb-live-call-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-live-call-"));
     mkdirSync(join(home, ".duskbot"), { recursive: true });
     steerGate = join(home, "steer.gate");
     titleRoutes = join(home, "title-routes.json");
@@ -163,7 +163,7 @@ posixOnly("Live call e2e", () => {
       expect(JSON.stringify(started.body)).not.toContain(LIVE_KEY);
       expect(call).toMatchObject({ botId: bot.id, threadId: bot.threadId, client: "desktop" });
       expect(session.body).toMatchObject({ session: { client: { data_channel: { allowed_client_events: ["session.close"] } } } });
-      expect((session.body.session as { instructions: string }).instructions).toContain("runs in Dusk Bot on the user's own computer.");
+      expect((session.body.session as { instructions: string }).instructions).toContain("runs in dusk bot on the user's own computer.");
       await live.waitForAttach(session.id);
       await sse.until((frame) => frame.kind === "live.call" && frame.call?.callId === call.callId && frame.call?.status === "live");
 
@@ -623,7 +623,7 @@ posixOnly("Live call e2e", () => {
 
 // Booted as a Cloud home behind its edge, with only loopback reachable.
 posixOnly("Live call on the person's Cloud", () => {
-  const HOST = "omb-t-0123456789ab.fly.dev";
+  const HOST = "dusk-t-0123456789ab.fly.dev";
   const secret = randomBytes(32).toString("base64url");
   const OWNER_KEY = "sk-fake-cloud-owner";
   let child: ChildProcess;
@@ -652,7 +652,7 @@ posixOnly("Live call on the person's Cloud", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLAUDE, 0o755);
     live = await startFakeOpenAiLive();
-    home = mkdtempSync(join(tmpdir(), "omb-live-cloud-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-live-cloud-"));
     const dataDir = join(home, ".duskbot");
     mkdirSync(dataDir, { recursive: true });
     writeFileSync(join(dataDir, "config.json"), JSON.stringify({
@@ -663,7 +663,7 @@ posixOnly("Live call on the person's Cloud", () => {
       },
     }));
     mkdirSync(join(home, "web"));
-    writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>Dusk Bot</title>");
+    writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>dusk bot</title>");
     const port = await freePortBlock([0, 1]);
     base = `http://127.0.0.1:${port}`;
     // Only loopback answers: the fake GPT-Live. The Admin and OpenAI are offline.
@@ -696,11 +696,11 @@ posixOnly("Live call on the person's Cloud", () => {
       if (Date.now() > deadline) throw new Error(`the Cloud home never came up. output:\n${output}`);
       await new Promise((r) => setTimeout(r, 150));
     }
-    const pairing = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
+    const pairing = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300 });
     const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
     const granted = await request("POST", "/api/cloud/pairing", JSON.parse(pairing), {
-      "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce,
-      "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, pairing)}`,
+      "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce,
+      "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, pairing)}`,
     });
     expect(granted.status, JSON.stringify(granted.body)).toBe(200);
     const paired = await request("POST", "/api/auth/pair", { code: granted.body.code });
@@ -771,7 +771,7 @@ posixOnly("Live calls for everyone, with the person's own OpenAI key", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLAUDE, 0o755);
     live = await startFakeOpenAiLive();
-    home = mkdtempSync(join(tmpdir(), "omb-live-byok-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-live-byok-"));
     const dataDir = join(home, ".duskbot");
     mkdirSync(dataDir, { recursive: true });
     writeFileSync(join(dataDir, "config.json"), JSON.stringify({

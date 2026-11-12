@@ -38,7 +38,7 @@ writeFileSync(
       name: "duskbot",
       private: true,
       version: app.version,
-      description: "Run the Dusk Bot server anywhere and pair your devices to it",
+      description: "Run the dusk bot server anywhere and pair your devices to it",
       license: "SEE LICENSE IN LICENSE",
       type: "module",
       bin: { duskbot: "cli.js" },
@@ -64,7 +64,7 @@ writeFileSync(
 
 writeFileSync(
   join(out, "README.md"),
-  `# Dusk Bot private server
+  `# dusk bot private server
 
 Install the reviewed private archive supplied by your operator. Requires Node 24+.
 
@@ -87,14 +87,14 @@ conversations keep their settings.
 One optional step connects your phone, defaulting to Skip for now. Choose
 an explicitly approved managed public HTTPS endpoint protected by pairing,
 existing Tailscale, or an HTTPS reverse proxy you already configured.
-Managed access uses a separate Dusk Bot account and asks permission for
+Managed access uses a separate dusk bot account and asks permission for
 the public endpoint and possible connector download. The pairing page and
 basic server identity are public; chat and settings require pairing.
 Tailscale must already be installed and signed in on both devices.
 
 After the HTTPS connection is checked, scan the QR with your phone. When
 you pair an Android phone the QR is an app link, so scan it inside the
-Dusk Bot app; the web address is printed beside it if you would rather
+dusk bot app; the web address is printed beside it if you would rather
 use a browser. On iPhone or iPad, scan with Camera for Safari, or use the
 app's own scanner. Choose Connect on the phone; scanning alone is not a
 completed pairing. Codes
@@ -102,7 +102,7 @@ are private, single-use, and expire after five minutes. Guided phone
 access permits chat and approvals, not settings or pairing administration.
 Localhost and a bare LAN address cannot connect your phone to this server.
 
-Later launches reuse your saved choices and open Dusk Bot on this computer.
+Later launches reuse your saved choices and open dusk bot on this computer.
 Keep the terminal open: this is a foreground server, not a background
 service. Ctrl-C stops the server without deleting saved work. Automatic
 browser opening uses only the local address; it is skipped for SSH and
@@ -136,14 +136,14 @@ ChatGPT/Claude subscriptions. New API keys in config.json and managed
 account credentials in tunnel-account.json are plaintext, not encrypted,
 with owner-only permissions (0600 on Unix). Keep these files private.
 
-Ctrl-C before saving AI setup leaves its pending Dusk Bot changes unapplied.
+Ctrl-C before saving AI setup leaves its pending dusk bot changes unapplied.
 During the later phone step, it keeps the AI setup already saved and exits
 without starting a server. Completed installs and sign-ins remain; run
 \`duskbot setup\` to continue without deleting your data.
 
 For a service, use \`serve --tunnel\` after \`login\` for managed HTTPS,
 \`serve --tailscale\` for your tailnet, or your own reverse proxy. The
-\`login\` command signs in to a Dusk Bot account, not an AI provider;
+\`login\` command signs in to a dusk bot account, not an AI provider;
 it does not start the tunnel itself.
 
 Scripts, CI and other agents can drive a running workspace without a screen:

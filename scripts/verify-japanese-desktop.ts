@@ -9,7 +9,7 @@ const podman = process.env.DUSK_VERIFY_PODMAN;
 const machine = process.env.DUSK_VERIFY_MACHINE;
 const image = process.env.DUSK_VERIFY_IMAGE;
 if (!podman || !machine || !image) throw new Error("Set explicit DUSK_VERIFY_PODMAN, DUSK_VERIFY_MACHINE and DUSK_VERIFY_IMAGE");
-const output = resolve(process.env.DUSK_VERIFY_OUTPUT || ".omb-scratch/japanese");
+const output = resolve(process.env.DUSK_VERIFY_OUTPUT || ".dusk-scratch/japanese");
 mkdirSync(output, { recursive: true });
 writeFileSync(resolve(output, "receipt.json"), JSON.stringify({ capturesComplete: false, visualReview: "pending" }, null, 2));
 // Keep Podman's existing connection/SSH configuration, but isolate app imports.
@@ -36,9 +36,9 @@ async function capture() {
   writeFileSync(localHtml, '<!doctype html><meta charset="utf-8"><title>日本語の表示確認</title><h1>日本語の表示確認</h1><p>会社紹介・製品一覧・検証結果</p>');
   const records = [];
   for (const attempt of [1, 2]) {
-    const workspace = machineRun(["mktemp", "-d", "/tmp/omb-font-XXXXXXXX"]);
-    assert.match(workspace, /^\/tmp\/omb-font-[A-Za-z0-9]+$/);
-    const target = { ...perBotLocalVmTarget(randomUUID()), containerName: `omb-font-fixture-${randomUUID()}`, workspaceDir: workspace };
+    const workspace = machineRun(["mktemp", "-d", "/tmp/dusk-font-XXXXXXXX"]);
+    assert.match(workspace, /^\/tmp\/dusk-font-[A-Za-z0-9]+$/);
+    const target = { ...perBotLocalVmTarget(randomUUID()), containerName: `dusk-font-fixture-${randomUUID()}`, workspaceDir: workspace };
     const args = containerRunArgs("podman", randomUUID(), target);
     // Podman's default seccomp gates Firefox's sandbox chroot on SYS_CHROOT, a
     // problem apart from this font patch: supplied in this fixture only.

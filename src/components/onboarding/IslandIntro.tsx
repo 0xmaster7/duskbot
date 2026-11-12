@@ -62,7 +62,7 @@ const faceOf = (status: Shown) => (status === "celebrate" ? "celebrate" : markSt
 
 /** The island's own prefs, read once; null until known, false where there is no island (not a Mac, not the desktop app). */
 export function useIslandAvailable(): boolean | null {
-  const bridge = window.ogb?.ambient as AmbientAppBridge | undefined;
+  const bridge = window.duskDesktop?.ambient as AmbientAppBridge | undefined;
   const [available, setAvailable] = useState<boolean | null>(bridge ? null : false);
   useEffect(() => {
     if (!bridge) return;
@@ -75,7 +75,7 @@ export function useIslandAvailable(): boolean | null {
 
 /** Turns the real island on once `armed`, and back off if the step closes with no choice made. */
 function useLiveIsland(armed: boolean) {
-  const bridge = window.ogb?.ambient as AmbientAppBridge | undefined;
+  const bridge = window.duskDesktop?.ambient as AmbientAppBridge | undefined;
   const [live, setLive] = useState(false);
   const was = useRef<boolean | null>(null);
   const turnedOn = useRef(false);

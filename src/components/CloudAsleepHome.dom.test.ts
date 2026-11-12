@@ -35,7 +35,7 @@ const type = (value: string) => act(async () => {
   setter.call(composer(), value);
   composer().dispatchEvent(new Event("input", { bubbles: true }));
 });
-beforeEach(() => { setLocale("en"); host = document.createElement("div"); document.body.append(host); Object.assign(window, { ogb: {} }); });
+beforeEach(() => { setLocale("en"); host = document.createElement("div"); document.body.append(host); Object.assign(window, { duskDesktop: {} }); });
 afterEach(async () => { await act(async () => root?.unmount()); root = null; host.remove(); });
 
 it("shows the last-seen chats read-only with the quiet line, and opening or reading never wakes it", async () => {

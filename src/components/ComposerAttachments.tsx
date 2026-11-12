@@ -22,7 +22,7 @@ import { UploadRing } from "./UploadRing";
 
 /** Electron 32 removed File.path — only the preload can name a file. */
 export function pathForFile(file: File): string {
-  return window.ogb?.getPathForFile?.(file) ?? "";
+  return window.duskDesktop?.getPathForFile?.(file) ?? "";
 }
 
 /** Drag and drop onto the window: grok's drop overlay over the chat pane, and the files go to the composer. */

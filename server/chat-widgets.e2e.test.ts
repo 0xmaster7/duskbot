@@ -4,12 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 import { WIDGET_SAMPLES } from "../shared/widget-samples.ts";
 import { removeTempDir } from "./testing/cleanup.ts";
 
 it("shows, replaces and answers a widget on a bot's own conversation, once per press", async () => {
-  const gates = mkdtempSync(join(tmpdir(), "omb-chat-widgets-"));
+  const gates = mkdtempSync(join(tmpdir(), "dusk-chat-widgets-"));
   const gate = join(gates, "finish");
   const fixture = await launchVerificationServer({ FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_SLOW_FINISH_GATE: gate, FAKE_CLAUDE_VERSION: "2.1.270" });
   const evidence: unknown[] = [];
@@ -25,7 +25,7 @@ it("shows, replaces and answers a widget on a bot's own conversation, once per p
     return result;
   };
   const control = async (...args: string[]) => {
-    const result = await runControlOmb([...args, "--url", fixture.info.url]) as any;
+    const result = await runControlDusk([...args, "--url", fixture.info.url]) as any;
     evidence.push({ command: args, result });
     return result;
   };

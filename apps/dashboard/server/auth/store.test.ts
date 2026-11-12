@@ -7,7 +7,7 @@ import { createAuthStore } from "./store.ts";
 describe("auth persistence", () => {
   let dataDir: string;
   let store: ReturnType<typeof createAuthStore> | undefined;
-  beforeEach(() => { dataDir = mkdtempSync(join(tmpdir(), "omb-auth-store-")); vi.stubEnv("DUSK_AUTH_SECRET", undefined); });
+  beforeEach(() => { dataDir = mkdtempSync(join(tmpdir(), "dusk-auth-store-")); vi.stubEnv("DUSK_AUTH_SECRET", undefined); });
   afterEach(() => { store?.close(); store = undefined; rmSync(dataDir, { recursive: true, force: true }); vi.unstubAllEnvs(); vi.useRealTimers(); });
   it("requires at least 32 characters in an explicit secret", () => {
     for (const secret of ["", "a".repeat(31)]) {

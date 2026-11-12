@@ -12,7 +12,7 @@ const { once } = require("node:events");
 const { setTimeout: delay } = require("node:timers/promises");
 
 const root = resolve(__dirname, "..");
-const home = mkdtempSync(join(tmpdir(), "omb-phone-auth-smoke-"));
+const home = mkdtempSync(join(tmpdir(), "dusk-phone-auth-smoke-"));
 app.setPath("userData", join(home, "electron"));
 const children = [];
 let logs = "";
@@ -127,7 +127,7 @@ app.whenReady().then(async () => {
   console.error(error);
   process.exitCode = 1;
 }).finally(async () => {
-  const evidence = join(tmpdir(), `omb-phone-auth-${Date.now()}.log`);
+  const evidence = join(tmpdir(), `dusk-phone-auth-${Date.now()}.log`);
   writeFileSync(evidence, logs.replaceAll(owner, "[redacted]").replaceAll(relay, "[redacted]").replaceAll(control, "[redacted]"));
   console.log(`Fixture log: ${evidence}`);
   for (const child of children.reverse()) {

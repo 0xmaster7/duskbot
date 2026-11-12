@@ -113,7 +113,7 @@ describe("surface pin provenance against the real server", () => {
   }
 
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-surface-pins-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-surface-pins-"));
     data = join(home, "data");
     ui = join(home, "static");
     stateFile = join(home, "vm.json");

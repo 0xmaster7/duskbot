@@ -285,7 +285,7 @@ describe("formatDesktopCrashRecord", () => {
     error.stack = [
       "TypeError: secret user text from C:\\Users\\Ada\\private.txt",
       "secret-client.ts:1:1",
-      "    at boot (file:///C:/Users/Ada/Dusk Bot/electron/main.mjs:412:7)",
+      "    at boot (file:///C:/Users/Ada/dusk bot/electron/main.mjs:412:7)",
     ].join("\n");
     const record = formatDesktopCrashRecord({ kind: "main", origin: "unhandledRejection", error });
     expect(record).toBe("event=main-process-failure origin=unhandledRejection error=TypeError");
@@ -429,7 +429,7 @@ describe("diagnosticsFileName", () => {
 });
 
 it("appends a crash line, truncates a full log, and refuses a hard-linked one", () => {
-  const dir = mkdtempSync(join(tmpdir(), "omb-crash-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-crash-"));
   const file = join(dir, "logs", "desktop-crashes.log");
   appendDesktopCrashRecord(file, 64, "first crash");
   expect(readFileSync(file, "utf8")).toMatch(/^\[.+\] first crash\n$/);

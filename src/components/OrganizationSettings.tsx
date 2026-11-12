@@ -10,7 +10,7 @@ const DEFAULT_PORTAL_ORIGIN = "https://dusk.bot";
 
 /** Security: only the trusted desktop bridge can enroll this computer or hold its token. */
 export function OrganizationSettings() {
-  const bridge = window.ogb?.remoteClient?.active ? undefined : window.ogb?.organization;
+  const bridge = window.duskDesktop?.remoteClient?.active ? undefined : window.duskDesktop?.organization;
   const [connection, setConnection] = useState<ManagedDesktopState | null>(null);
   const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);

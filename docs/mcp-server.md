@@ -1,7 +1,7 @@
-# Dusk Bot MCP server
+# dusk bot MCP server
 
-The Dusk Bot desktop app includes a local stdio MCP server. It lets another MCP client coordinate your
-Dusk Bot team while the desktop app and its harness are running.
+The dusk bot desktop app includes a local stdio MCP server. It lets another MCP client coordinate your
+dusk bot team while the desktop app and its harness are running.
 
 ## What it can do
 
@@ -32,14 +32,14 @@ The same operations are also commands of their own, for scripts and CI:
 
 ## From a source checkout
 
-Start Dusk Bot, then configure the MCP client to run:
+Start dusk bot, then configure the MCP client to run:
 
 ```json
 {
   "mcpServers": {
     "duskbot": {
       "command": "pnpm",
-      "args": ["--dir", "/absolute/path/to/Dusk Bot", "mcp"]
+      "args": ["--dir", "/absolute/path/to/dusk bot", "mcp"]
     }
   }
 }
@@ -52,7 +52,7 @@ loopback without one. A hosted or shared server with service loopback trust
 session for almost every tool, reads included. To authorize an external MCP
 client:
 
-1. In Dusk Bot, open **Settings → Phone → Set up a phone** and reveal the
+1. In dusk bot, open **Settings → Phone → Set up a phone** and reveal the
    one-time pairing code.
 2. Exchange it locally (remove spaces from the displayed code):
 
@@ -70,7 +70,7 @@ client:
    "env": {
      "ELECTRON_RUN_AS_NODE": "1",
      "DUSK_PORT": "8799",
-     "DUSK_TOKEN": "omb_sess_..."
+     "DUSK_TOKEN": "dusk_sess_..."
    }
    ```
 
@@ -98,15 +98,15 @@ macOS example:
 
 On Windows, use the installed `Dusk Bot.exe` as `command`, the adjacent
 `resources\\server\\mcp-server.js` as the argument, and the same `ELECTRON_RUN_AS_NODE=1` environment value.
-The usual per-user install is under `%LOCALAPPDATA%\\Programs\\Dusk Bot`.
+The usual per-user install is under `%LOCALAPPDATA%\\Programs\\dusk bot`.
 
 On Ubuntu `.deb` installs, the executable is normally `/opt/Dusk Bot/duskbot` and the script is
 `/opt/Dusk Bot/resources/server/mcp-server.js`. Use the same environment value.
 
 ## Connection discovery
 
-With no configuration, the MCP process probes Dusk Bot's three desktop ports (`8799`, `18799`, and `28799`)
-and accepts only a health response that identifies itself as Dusk Bot. This handles the desktop's normal
+With no configuration, the MCP process probes dusk bot's three desktop ports (`8799`, `18799`, and `28799`)
+and accepts only a health response that identifies itself as dusk bot. This handles the desktop's normal
 fallback when another local process already owns port 8799.
 
 Set `DUSK_PORT` to force one local port, or `DUSK_URL` to use an explicit HTTP(S) origin. Cleartext remote

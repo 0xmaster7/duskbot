@@ -1,5 +1,5 @@
 // "Add your VPS" end to end on loopback, with the real link service, the real agent (its `link` and `tunnel` commands in
-// their own processes and home folder) and a fake Dusk Bot on each side: command, live steps, the sealed result, the
+// their own processes and home folder) and a fake dusk bot on each side: command, live steps, the sealed result, the
 // app signed in through the tunnel, AI sign-ins sent from this mac, and the move with its backup first.
 import { execFile, spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -52,13 +52,13 @@ function cookieFetch() {
 }
 
 beforeAll(async () => {
-  dir = mkdtempSync(join(tmpdir(), "omb-vps-link-"));
+  dir = mkdtempSync(join(tmpdir(), "dusk-vps-link-"));
   home = join(dir, "vps-home");
   mkdirSync(home);
   service = createLinkService({ base: "http://placeholder", dataDir: null, scriptPath: fileURLToPath(new URL("../apps/link-service/install.sh", import.meta.url)), agentPath, trustProxy: false });
   relayServer = createServer((req, res) => void service.handler(req, res));
   base = `http://127.0.0.1:${await listen(relayServer)}`;
-  // Dusk Bot on the vps
+  // dusk bot on the vps
   vpsServer = createServer((req, res) => {
     const chunks = [];
     req.on("data", (chunk) => chunks.push(chunk));
@@ -66,10 +66,10 @@ beforeAll(async () => {
       const body = Buffer.concat(chunks).toString("utf8");
       vpsSeen.push({ method: req.method, url: req.url, headers: req.headers, body });
       const reply = (status, value, headers = {}) => { res.writeHead(status, { "content-type": "application/json", ...headers }); res.end(JSON.stringify(value)); };
-      const signedIn = /omb_session=good/.test(String(req.headers.cookie ?? ""));
+      const signedIn = /dusk_session=good/.test(String(req.headers.cookie ?? ""));
       if (req.url === "/api/auth/pairing") return req.headers["x-forwarded-for"] ? reply(403, { error: "remote" }) : reply(200, { code: "RR8Y-BLR6-H939", expiresAt: 1 });
       if (req.url === "/.well-known/duskbot/environment") return reply(200, { environmentId: "6f1c2d3e-0000-4000-8000-000000000001", sealIdentity: SEAL_ID });
-      if (req.url === "/api/auth/pair") return JSON.parse(body).code === "RR8Y-BLR6-H939" ? reply(200, { session: {}, environment: { environmentId: "6f1c2d3e-0000-4000-8000-000000000001" } }, { "set-cookie": "omb_session=good; HttpOnly; Path=/" }) : reply(401, { error: "bad code" });
+      if (req.url === "/api/auth/pair") return JSON.parse(body).code === "RR8Y-BLR6-H939" ? reply(200, { session: {}, environment: { environmentId: "6f1c2d3e-0000-4000-8000-000000000001" } }, { "set-cookie": "dusk_session=good; HttpOnly; Path=/" }) : reply(401, { error: "bad code" });
       if (req.url === "/api/auth/session") return reply(200, signedIn ? { kind: "session" } : { kind: "none" });
       if (!signedIn) return reply(403, { error: "pair this device" });
       if (req.url === "/api/instances?fresh=1") return reply(200, { instances: [
@@ -218,7 +218,7 @@ describe("Add your VPS", () => {
     expect(claude.phase).toBe("waiting");
     await until(async () => (await link.signInStatus("claude", claude.flowId)).phase === "succeeded");
     expect(readFileSync(join(home, ".config", "duskbot", "engines.env"), "utf8")).toBe(`CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-${"a".repeat(40)}\n`);
-    // no credential ever reached Dusk Bot's own http api on the server
+    // no credential ever reached dusk bot's own http api on the server
     expect(vpsSeen.some((entry) => entry.body.includes("codex-on-the-mac") || entry.body.includes("sk-ant-oat01"))).toBe(false);
 
     expect(await link.preview()).toEqual({

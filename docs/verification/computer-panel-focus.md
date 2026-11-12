@@ -10,7 +10,7 @@ DUSK_UI_E2E=1 node node_modules/vitest/vitest.mjs run scripts/testing/computer-p
 ```
 
 The regression drives the real app through the standard isolated
-`scripts/control-omb.ts ui launch` harness and reads `document.activeElement`
+`scripts/control-dusk.ts ui launch` harness and reads `document.activeElement`
 after real key presses and a real pointer click:
 
 1. **Enter** on the focused chat header computer button opens the panel with the

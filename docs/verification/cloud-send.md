@@ -124,7 +124,7 @@ node --test electron/one-home.node-test.mjs
 ```
 
 The same two servers, with main's move wiring (`electron/one-home-main.mjs`)
-and a fake Dusk Cloud sign-in whose word the test sets (`fx.account`). The
+and a fake dusk cloud sign-in whose word the test sets (`fx.account`). The
 fixture can kill and start again either server on its own data (`fx.relaunch`),
 and can fail any request main sends My Cloud (`fx.intercept`). The e2e checks:
 
@@ -180,17 +180,25 @@ node --experimental-strip-types scripts/verify-cloud-move.ts
 ```
 
 `electron/cloud-move-offer.mjs` holds the first move to My Cloud until the person says yes, while this computer has
-bots or automations the move would carry; a computer with nothing to carry moves by itself as before. Everything is
-read from state, so a Cloud that became ready while the app was closed asks at the next launch. The sheet asks once;
-closed, a slim line at the top of either page (this computer's, or My Cloud's before the move) asks; closed too,
-Settings → Computer keeps **Move bots to dusk cloud** beside the workspace switch. Choices are kept per Cloud in
+bots or routines the move would carry; a computer with nothing to carry moves by itself as before. Everything is read from
+state, so a Cloud that became ready while the app was closed asks at the next launch. One small sheet asks in one line
+(Move, Later), then follows the move as three pixel bots hop from a laptop onto a cloud with one progress bar, and ends
+with All moved and Open dusk cloud; a move that gets stuck is one friendly line and Try again. Closed, a slim line at the
+top asks; closed too, Settings → Computer keeps one row: the workspace with Switch, and Move. Once all moved, main opens
+My Cloud on Open dusk cloud, or by itself two minutes later (`createOpenWhenAsked`). Choices are kept per Cloud in
 `userData/cloud-move-offer.json`. Main says `cloud_move_prompt|banner|settings` (`accepted`, `dismissed`) and
 `cloud_move` (`started`, `failed` with the failure's reason code once per code, `succeeded` with counts) as
 `app_action` events that ride with the page's own batches, so nothing goes while usage analytics are off; the page says
 each `shown`.
 
+The scene sits on its own pixel sky (`SKY` in `src/components/CloudMoveScene.tsx`, #c2ecfc down to #eaf6fd in four
+bands) in every skin. My Cloud's welcome (`src/components/cloud-welcome/CloudWelcome.tsx`) is the same scene with the
+bots landing on the cloud, one headline, three lines of what is different now, and one thing to do: Connect your AI
+while no AI works (the sign-in opens under it), else Start chatting; Not now ends it, and either marks every step handled
+for the sidebar's Set up card. `node --experimental-strip-types scripts/verify-cloud-welcome.ts` serves it.
+
 `server/cloud-move-offer.e2e.test.ts` runs it over the two-server fixture with `offer: true`: no move before the yes,
-Not now then the line's Move now, the bots arrive on the Cloud home and stay here, and the window opens My Cloud.
+Later then the line's Move, the bots arrive on the Cloud home and stay here, and the window opens My Cloud only on Open dusk cloud.
 `scripts/verify-cloud-move.ts` serves the whole app with the bridge played in the page
 (`?offer=prompt|banner|settings`, `?move=copy|failing|done`) for screenshots; `POST /__fixture/cloud?home=1` makes the
 page a Cloud home for the done sheet.

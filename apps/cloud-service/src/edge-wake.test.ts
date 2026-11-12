@@ -83,8 +83,8 @@ describe("the public edge and a sleeping home", () => {
     expect(anonymous.status).toBe(503);
     expect(anonymous.headers.get("retry-after")).toBe("5");
     // a page's read while it sleeps learns that it sleeps, so it wakes it on the person's next action instead of polling
-    expect(anonymous.headers.get("x-omb-cloud-power")).toBe("asleep");
-    expect((await send("/api/events", { headers: { cookie: "s=1" } })).headers.get("x-omb-cloud-power")).toBe("asleep");
+    expect(anonymous.headers.get("x-dusk-cloud-power")).toBe("asleep");
+    expect((await send("/api/events", { headers: { cookie: "s=1" } })).headers.get("x-dusk-cloud-power")).toBe("asleep");
     await f.service.reconcile();
     expect(f.api.machines.get(c.serverId!)!.state).toBe("suspended");
     // a stranger's webhook every few minutes: each wake is a start, held to the rails' hourly budget and spacing
@@ -116,7 +116,7 @@ describe("the public edge and a sleeping home", () => {
     (f.subscriptions[0] as unknown as { currentPeriodEnd: number }).currentPeriodEnd = f.now() - 1;
     const ended = await send("/hooks/x", { method: "POST", body: "1", headers: { authorization: "Bearer x" } });
     expect(ended.status).toBe(503);
-    expect(ended.headers.get("x-omb-cloud-power")).toBeNull();
+    expect(ended.headers.get("x-dusk-cloud-power")).toBeNull();
     expect(c.wantPower).toBe("off");
   });
 
@@ -133,9 +133,9 @@ describe("the public edge and a sleeping home", () => {
   });
 
   it("never wakes a home for the app's background hints, even a credentialed send", () => {
-    const focus = new Request("https://d.example/api/cloud/focus", { method: "POST", headers: { authorization: "Bearer t", "x-omb-background": "1" } });
+    const focus = new Request("https://d.example/api/cloud/focus", { method: "POST", headers: { authorization: "Bearer t", "x-dusk-background": "1" } });
     expect(wakeReason(focus, new URL(focus.url))).toBeNull();
-    const hook = new Request("https://d.example/hooks/github", { method: "POST", headers: { "x-omb-background": "1" } });
+    const hook = new Request("https://d.example/hooks/github", { method: "POST", headers: { "x-dusk-background": "1" } });
     expect(wakeReason(hook, new URL(hook.url))).toBe("webhook");
   });
 });

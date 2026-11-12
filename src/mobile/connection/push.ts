@@ -30,7 +30,7 @@ export function registerPushForConnection(platform: MobilePlatform): Promise<voi
       ...(registration.platform === "apns" ? { environment: import.meta.env.DEV ? "sandbox" : "production" } : {}),
     };
     const value = JSON.stringify(body);
-    const key = `omb.mobile.push.${active.record.id}`;
+    const key = `dusk.mobile.push.${active.record.id}`;
     if (await platform.prefs.get(key) === value && await stillRegistered(body.service)) return;
     if ((await createConnectionStore(platform).active())?.record.id !== active.record.id) return;
     const response = await fetch("/api/mobile/push", { method: "PUT", headers: { "Content-Type": "application/json" }, body: value, signal: AbortSignal.timeout(15_000) });

@@ -1,4 +1,4 @@
-const OPEN_TEMPLATES = "omb:open-templates";
+const OPEN_TEMPLATES = "dusk:open-templates";
 let hosts = 0;
 
 /** Opens the bot Templates library (TeamLibraryPanel) the sidebar hosts, with its import feedback. False when no

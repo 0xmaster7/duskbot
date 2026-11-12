@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { launchVerificationServer, type VerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer, type VerificationServer } from "../scripts/control-dusk.ts";
 import { fixtureApi } from "../scripts/testing/preview-fixture.ts";
 import { createTeamVpsFixture } from "../scripts/testing/team-vps-fixture.ts";
 

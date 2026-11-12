@@ -46,7 +46,7 @@ it("its Super admin sets the banner, a member sees it and can't change it, and n
   expect(bytes.includes("Secret"), "the camera, the author and the profile stay behind").toBe(false);
   expect((await team.as(bob, "GET", "/api/config")).body.workspaceBanner).toEqual(saved.body.banner);
 
-  for (const [who, token] of [["signed out", undefined], ["a made-up token", "omb_not-a-session"]] as const) {
+  for (const [who, token] of [["signed out", undefined], ["a made-up token", "dusk_not-a-session"]] as const) {
     const refused = await banner(token);
     expect(refused.status, who).toBeGreaterThanOrEqual(400);
     expect(refused.headers.get("content-type"), who).not.toBe("image/png");

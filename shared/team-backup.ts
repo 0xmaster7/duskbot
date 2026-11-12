@@ -3,6 +3,7 @@ import { mascotFaceColorSchema } from "./bot-avatar.ts";
 
 import { CONNECTOR_SLUG_PATTERN, CONNECTOR_TOOL_NAME_PATTERN, MAUS_COLOR_NAMES } from "./wire.ts";
 import { parseToolScope, type ToolScope } from "./tool-scope.ts";
+import { withCurrentFormat } from "../electron/legacy-names.mjs";
 
 export const MAX_TEAM_BACKUP_BYTES = 50 * 1024 * 1024;
 export const TEAM_BACKUP_CONTENTS = "Bot profiles, instructions, sections, rooms, playbooks, routines, each bot's memory (MEMORY.md, topic notes and daily logs) and conversation text (all tasks and branches).";
@@ -91,7 +92,7 @@ function knownRoomResponder(value: unknown): unknown {
 }
 
 const backupSchema = z.object({
-  format: z.literal("openmaus.backup"),
+  format: z.literal("dusk.backup"),
   version: z.literal(1),
   name,
   exportedAt: timestamp,
@@ -148,7 +149,7 @@ export type BackupTask = z.infer<typeof task>;
 /** Validate the whole reference graph before an import can write anything.
  * All keys are file-local; none are ever used as destination record IDs. */
 export function parseTeamBackup(input: unknown): TeamBackup {
-  const parsed = backupSchema.safeParse(input);
+  const parsed = backupSchema.safeParse(withCurrentFormat(input));
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     throw new Error(`Invalid backup: ${issue.path.join(".") || "file"}: ${issue.message}`);

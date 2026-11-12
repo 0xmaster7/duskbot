@@ -11,6 +11,7 @@ import { parseArgs } from "node:util";
 import { FAST_REPORT_MS, SIGNATURE_HEADERS, signedPayload } from "../../../shared/dashboard-protocol.ts";
 import type { BotReport, CommandResult, DashboardCommand, EnrollAnswer, ReportAnswer, WorkspaceReport } from "../../../shared/dashboard-protocol.ts";
 import { createDashboardApp } from "../server/app.ts";
+import { PULSE_INTERVAL_MS, PulseRing } from "../../../shared/machine-pulse.ts";
 import { startFakeProviders } from "../server/auth/fake-providers.ts";
 import { memoryMailer } from "../server/auth/mail.ts";
 import { CSRF_HEADER } from "../../../shared/account-api.ts";
@@ -20,7 +21,7 @@ import { seedAdminAuth, seedAdminData, seedWaitlist } from "./fixture-admin.ts";
 const { values } = parseArgs({ options: { port: { type: "string", default: "7480" }, email: { type: "string", default: "sid@duskbot.test" }, demo: { type: "boolean", default: false }, "session-file": { type: "string" } } });
 const port = Number(values.port);
 const url = `http://127.0.0.1:${port}`;
-const dataDir = mkdtempSync(join(tmpdir(), "omb-dashboard-"));
+const dataDir = mkdtempSync(join(tmpdir(), "dusk-dashboard-"));
 const providers = await startFakeProviders();
 const mailer = memoryMailer();
 const send = mailer.send;
@@ -77,6 +78,10 @@ async function demo(session: string) {
   const computers = new Map([["nova", "running"], ["rivet", "asleep"]] as Array<[string, "running" | "asleep"]>);
   let seq = Date.now();
   let results: CommandResult[] = [];
+  const pulse = new PulseRing();
+  let pulseSent = 0;
+  const sample = () => { const t = Date.now(); pulse.push({ t, cpu: Math.round((22 + 14 * Math.sin(t / 17_000) + 9 * Math.sin(t / 5_300) + 4 * Math.random()) * 10) / 10, mem: Math.round((52 + 3 * Math.sin(t / 40_000)) * 10) / 10 }); };
+  sample(); setInterval(sample, PULSE_INTERVAL_MS).unref();
   const signed = async (method: string, path: string, body?: unknown) => {
     const raw = body === undefined ? "" : JSON.stringify(body);
     const time = Date.now();
@@ -95,15 +100,17 @@ async function demo(session: string) {
     const t = Date.now();
     const body: WorkspaceReport = {
       v: 1, seq: seq++, at: t, workspace: { name: "Demo Mac (fixture)", kind: "mac", version: "0.1.141", platform: "darwin" },
-      machine: { host: { hostname: "demo-mac", platform: "darwin", arch: "arm64", cpus: 10, cpuModel: "Apple M2 Pro" }, cpu: { percent: 18 + 12 * Math.sin(t / 9000), load: [2.1, 1.8, 1.6] }, memory: { usedBytes: 9.2e9 + 4e8 * Math.sin(t / 20000), totalBytes: 17.18e9 }, disk: { usedBytes: 312e9, totalBytes: 994e9, path: "/" }, network: { rxBytesPerSec: 90_000 + 60_000 * Math.abs(Math.sin(t / 7000)), txBytesPerSec: 24_000 }, uptimeSec: 3.2 * day / 1000, processUptimeSec: 7200, app: { version: "0.1.141", node: "24.11.0" }, update: { available: false, latest: null, how: null }, services: [{ id: "server", name: "Dusk Bot server", state: "running", detail: null }, { id: "docker", name: "Bot computers", state: "running", detail: null }] },
-      computers: { provider: "vps", computers: [...computers].map(([id, state]) => ({ id: `omb-${id}`, botId: id, botName: bots.find((b) => b.id === id)!.name, kind: "vps" as const, name: `omb-${id}`, state, memoryBytes: state === "running" ? 812e6 : null, memoryLimitBytes: state === "running" ? 2147e6 : null, cpuPercent: null, lastUsedAt: t - 300_000, alias: null })) },
+      machine: { host: { hostname: "demo-mac", platform: "darwin", arch: "arm64", cpus: 10, cpuModel: "Apple M2 Pro" }, cpu: { percent: 18 + 12 * Math.sin(t / 9000), load: [2.1, 1.8, 1.6] }, memory: { usedBytes: 9.2e9 + 4e8 * Math.sin(t / 20000), totalBytes: 17.18e9 }, disk: { usedBytes: 312e9, totalBytes: 994e9, path: "/" }, network: { rxBytesPerSec: 90_000 + 60_000 * Math.abs(Math.sin(t / 7000)), txBytesPerSec: 24_000 }, uptimeSec: 3.2 * day / 1000, processUptimeSec: 7200, app: { version: "0.1.141", node: "24.11.0" }, update: { available: false, latest: null, how: null }, services: [{ id: "server", name: "dusk bot server", state: "running", detail: null }, { id: "docker", name: "Bot computers", state: "running", detail: null }] },
+      computers: { provider: "vps", computers: [...computers].map(([id, state]) => ({ id: `dusk-${id}`, botId: id, botName: bots.find((b) => b.id === id)!.name, kind: "vps" as const, name: `dusk-${id}`, state, memoryBytes: state === "running" ? 812e6 : null, memoryLimitBytes: state === "running" ? 2147e6 : null, cpuPercent: null, lastUsedAt: t - 300_000, alias: null })) },
       bots,
       activity: { from: "", to: "", timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, days, byBot: bots.map((b, i) => ({ botId: b.id, botName: b.name, turns: 120 - i * 40, tokens: 2e6 - i * 6e5, costUsd: 14 - i * 4 })), byModel: [{ model: "gpt-5.5", turns: 160, tokens: 2.6e6, costUsd: 18 }, { model: "claude-opus-4.6", turns: 80, tokens: 1.4e6, costUsd: 12 }], totals: { turns: 240, tokens: 4e6, costUsd: 30 } },
       devices: { thisDevice: { label: "Demo Mac", kind: "mac" }, link: { mode: "direct", connected: true, url: null, since: t - 3600_000, detail: null }, phones: [{ id: "phone:demo", label: "iPhone 17", platform: "iOS", pairedAt: t - 20 * day, lastSeenAt: t - 600_000 }], sessions: [] },
       plans: { providers: [{ id: "codex", name: "Codex", plan: "Pro", ok: true, windows: [{ label: "Weekly", usedPercent: 42, resetsAt: t + 3 * day }] }] },
       results,
+      ...(watching ? { pulse: pulse.since(pulseSent) } : {}),
     };
     results = [];
+    if (body.pulse?.length) pulseSent = body.pulse.at(-1)!.t;
     return await signed("POST", "/v1/report", body);
   };
   let next = FAST_REPORT_MS;

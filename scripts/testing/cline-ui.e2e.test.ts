@@ -1,8 +1,8 @@
 // Real model picker and chat transport against disposable provider CLIs.
 import { expect, it } from "vitest";
 import { closeBrowserSession } from "../../server/browser-engine.ts";
-import { launchVerificationServer, runControlOmb } from "../control-omb.ts";
-import { agentBrowser, ensureUiBrowser, sessionEnv } from "./control-omb-ui.ts";
+import { launchVerificationServer, runControlDusk } from "../control-dusk.ts";
+import { agentBrowser, ensureUiBrowser, sessionEnv } from "./control-dusk-ui.ts";
 import { mountPreview } from "./preview-fixture.ts";
 
 const enabled = process.env.DUSK_UI_E2E === "1";
@@ -11,10 +11,10 @@ const enabled = process.env.DUSK_UI_E2E === "1";
   const tools = await ensureUiBrowser();
   const fixture = await launchVerificationServer({}, undefined, undefined, undefined, undefined, ["cline"]);
   let preview: Awaited<ReturnType<typeof mountPreview>> | undefined;
-  const env = sessionEnv({ home: fixture.info.dataDir, session: `omb-cline-ui-${new URL(fixture.info.url).port}`, chrome: tools.chrome });
+  const env = sessionEnv({ home: fixture.info.dataDir, session: `dusk-cline-ui-${new URL(fixture.info.url).port}`, chrome: tools.chrome });
   const browser = (...args: string[]) => agentBrowser(tools.binary, env, args);
   const evaluate = async (js: string) => (await browser("eval", js)).result;
-  const cli = (...args: string[]) => runControlOmb([...args, "--url", fixture.info.url]) as Promise<any>;
+  const cli = (...args: string[]) => runControlDusk([...args, "--url", fixture.info.url]) as Promise<any>;
   try {
     let clineName = "";
     await expect.poll(async () => {
@@ -27,7 +27,7 @@ const enabled = process.env.DUSK_UI_E2E === "1";
     preview = await mountPreview(fixture, { entry: "/scripts/testing/threads-preview.tsx", route: "/__cline.html", title: "Cline verification", logLevel: "warn" });
     await browser("open", preview.previewUrl);
     for (const advanced of [false, true]) {
-      await evaluate(`localStorage.setItem('omb-advanced-mode', '${advanced ? "1" : "0"}'); location.reload(); true`);
+      await evaluate(`localStorage.setItem('dusk-advanced-mode', '${advanced ? "1" : "0"}'); location.reload(); true`);
       await expect.poll(() => evaluate("document.querySelector('textarea[aria-label=\"Message Cline specialist\"]') !== null"), { timeout: 15_000 }).toBe(true);
       await evaluate("document.querySelector('button[data-tour=\"model\"]').click(); true");
       await expect.poll(() => evaluate("document.querySelector('[data-model-picker-content]') !== null")).toBe(true);

@@ -105,14 +105,14 @@ The first command renders the shelf cards and the preview to markup. It
 checks:
 
 - Add appears only for a checked file, and there is no confirm step;
-- Added, "Update Dusk Bot to add this", the Recommended badge, the
+- Added, "Update dusk bot to add this", the Recommended badge, the
   waiting-release sentence and "Withdrawn by …";
 - "Included skills — switched on";
 - a skills-only preview with no team;
 - the provenance line, which a bot imported from a file does not get.
 
-The second command runs a disposable `control-omb ui` app, with the key
-passed through `scripts/control-omb.ts`. It checks, in order:
+The second command runs a disposable `control-dusk ui` app, with the key
+passed through `scripts/control-dusk.ts`. It checks, in order:
 
 - Templates has no organization tab before any relay.
 - After the relay, **From Customer Co** is the first tab and opens first.
@@ -126,7 +126,7 @@ passed through `scripts/control-omb.ts`. It checks, in order:
 - **Skills → From Customer Co → Add follow-up to this bot** puts the skill
   on, switched on.
 
-Screenshots go to `.omb-scratch/verify-evidence/org-library-*.png`.
+Screenshots go to `.dusk-scratch/verify-evidence/org-library-*.png`.
 
 ## 2026-09-24: what was actually run
 

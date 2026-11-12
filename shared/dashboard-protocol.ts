@@ -4,6 +4,7 @@
 
 import { cleanUsageReport, type UsageReport } from "./usage-signals.ts";
 import { cleanSignal } from "./product-signals.ts";
+import { parsePulse, type PulseSample } from "./machine-pulse.ts";
 
 export const DASHBOARD_PROTOCOL = 1;
 
@@ -26,12 +27,12 @@ export const CLAIM_TTL_MS = 30 * 60_000;
 export const COMMAND_TTL_MS = 10 * 60_000;
 export const MAX_REPORT_BYTES = 512 * 1024;
 
-export const SIGNATURE_HEADERS = { workspace: "x-omb-workspace", time: "x-omb-time", signature: "x-omb-signature" } as const;
+export const SIGNATURE_HEADERS = { workspace: "x-dusk-workspace", time: "x-dusk-time", signature: "x-dusk-signature" } as const;
 
 /** the exact bytes a workspace signs with its ed25519 key: method, path with query, time and the body's sha256 (of
  * the empty string for a GET) */
 export function signedPayload(method: string, path: string, time: number, bodySha256Hex: string): string {
-  return `omb-dashboard-v${DASHBOARD_PROTOCOL}\n${method.toUpperCase()}\n${path}\n${time}\n${bodySha256Hex}`;
+  return `dusk-dashboard-v${DASHBOARD_PROTOCOL}\n${method.toUpperCase()}\n${path}\n${time}\n${bodySha256Hex}`;
 }
 
 export type WorkspaceKind = "vps" | "mac" | "linux" | "windows";
@@ -63,7 +64,8 @@ export interface ComputerReport {
   alias: string | null;
 }
 
-export interface RoutineReport { id: string; name: string; schedule: string; paused: boolean; nextRunAt: number | null; lastRunAt: number | null }
+/** `running`: a run of it is under way now; older workspaces leave it out */
+export interface RoutineReport { id: string; name: string; schedule: string; paused: boolean; nextRunAt: number | null; lastRunAt: number | null; running?: boolean }
 
 export interface BotReport {
   id: string;
@@ -155,6 +157,8 @@ export interface WorkspaceReport {
   apps?: AppsReport;
   /** structured usage since the last report (usage-signals.ts); the service rolls it up and never keeps it on the workspace */
   usage?: UsageReport;
+  /** cpu and memory samples newer than the last report's, sent only while someone watches (machine-pulse.ts) */
+  pulse?: PulseSample[];
   results?: CommandResult[];
 }
 
@@ -213,6 +217,7 @@ const dashboardNumber: DashboardParser = input => typeof input === "number" && N
 const dashboardBoolean: DashboardParser = input => typeof input === "boolean" ? input : dashboardInvalid;
 const dashboardEnum = (...values: string[]): DashboardParser => input => values.includes(input as string) ? input : dashboardInvalid;
 const dashboardNullable = (parse: DashboardParser): DashboardParser => input => input === null ? null : parse(input);
+const dashboardOptional = (parse: DashboardParser): DashboardParser => input => input === undefined ? undefined : parse(input);
 const dashboardArray = (parse: DashboardParser, max: number): DashboardParser => input => {
   if (!Array.isArray(input)) return dashboardInvalid;
   const result = input.slice(0, max).map(parse);
@@ -252,7 +257,7 @@ const dashboardSections: Record<string, DashboardParser> = {
     id: dashboardId, name: dashboardName, color: dashboardText(), body: dashboardNullable(dashboardText()), model: dashboardNullable(dashboardText()),
     engine: dashboardNullable(dashboardText()), computer: dashboardNullable(dashboardEnum("vps", "local-vm", "team")), busy: dashboardBoolean,
     lastActiveAt: dashboardNullable(dashboardNumber), routines: dashboardArray(dashboardObject({ id: dashboardId, name: dashboardName, schedule: dashboardText(),
-      paused: dashboardBoolean, nextRunAt: dashboardNullable(dashboardNumber), lastRunAt: dashboardNullable(dashboardNumber) }), 50),
+      paused: dashboardBoolean, nextRunAt: dashboardNullable(dashboardNumber), lastRunAt: dashboardNullable(dashboardNumber), running: dashboardOptional(dashboardBoolean) }), 50),
   }), 200),
   activity: dashboardObject({ from: dashboardText(), to: dashboardText(), timeZone: dashboardText(),
     days: dashboardArray(dashboardObject({ date: dashboardText(), ...dashboardTotals }), 400),
@@ -269,6 +274,7 @@ const dashboardSections: Record<string, DashboardParser> = {
     windows: dashboardArray(dashboardObject({ label: dashboardName, usedPercent: dashboardNumber, resetsAt: dashboardNullable(dashboardNumber) }), 20) }), 20) }),
   apps: dashboardObject({ available: dashboardBoolean, complete: dashboardBoolean,
     services: dashboardArray(dashboardObject({ slug: input => appSlug(input) ?? dashboardInvalid, connected: dashboardBoolean, pending: dashboardBoolean }), 500) }),
+  pulse: input => parsePulse(input) ?? dashboardInvalid,
   usage: input => cleanUsageReport(input, Date.now(), (name, props) => cleanSignal(name, props, "workspace")) ?? dashboardInvalid,
   results: dashboardArray(input => {
     const result = dashboardObject({ id: dashboardId, ok: dashboardBoolean, message: dashboardNullable(dashboardText()), at: dashboardNumber })(input);

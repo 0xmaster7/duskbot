@@ -53,8 +53,8 @@ afterAll(() => vi.unstubAllGlobals());
 
 /** A remote client keeps the full header: the model, the computer, Stop, the role and ⋯. */
 function asRemote<T>(run: () => T): T {
-  window.ogb = { remoteClient: { active: true } } as NonNullable<Window["ogb"]>;
-  try { return run(); } finally { delete window.ogb; }
+  window.duskDesktop = { remoteClient: { active: true } } as NonNullable<Window["duskDesktop"]>;
+  try { return run(); } finally { delete window.duskDesktop; }
 }
 
 const bot: Bot = {
@@ -83,7 +83,7 @@ describe("the header's right side", () => {
   });
 
   it("keeps the model, the computer and ⋯ in a remote client's header, whose settings panel has no room for them", () => {
-    window.ogb = { remoteClient: { active: true } } as NonNullable<Window["ogb"]>;
+    window.duskDesktop = { remoteClient: { active: true } } as NonNullable<Window["duskDesktop"]>;
     try {
       const { markup } = header();
       // The host checks the model against its own catalog, so a paired desktop can change it like the phone can.
@@ -94,7 +94,7 @@ describe("the header's right side", () => {
       const more = fixture.menus.find((menu) => menu.ariaLabel === "More")!;
       expect(more.items.map((item) => item.key)).toEqual(["find", "copy", "download"]);
     } finally {
-      delete window.ogb;
+      delete window.duskDesktop;
     }
   });
 
@@ -134,7 +134,7 @@ describe("the Simple header", () => {
       for (const gone of ["data-chathead-role", "data-background-activity", "data-chathead-back", 'data-testid="chat-more"']) {
         expect(simple, gone).not.toContain(gone);
       }
-      window.ogb = { remoteClient: { active: true } } as NonNullable<Window["ogb"]>;
+      window.duskDesktop = { remoteClient: { active: true } } as NonNullable<Window["duskDesktop"]>;
       try {
         const remote = renderToStaticMarkup(createElement(ChatView, { bot: busyElsewhere }));
         expect(remote).not.toContain("data-chathead-elsewhere");
@@ -142,7 +142,7 @@ describe("the Simple header", () => {
         expect(remote).toContain("data-chathead-back");
         expect(remote).toContain("data-chathead-role");
       } finally {
-        delete window.ogb;
+        delete window.duskDesktop;
       }
     }
   });
@@ -294,10 +294,10 @@ describe("thread control placement", () => {
     }
   });
   it("says in a few words that this computer can't be used, with the server's reason under Details", () => {
-    const line = "Only the Dusk Bot app on this computer can let a bot use it. Open the app here, or let the bot work in its own browser or on a cloud desktop instead.";
+    const line = "Only the dusk bot app on this computer can let a bot use it. Open the app here, or let the bot work in its own browser or on a cloud desktop instead.";
     const markup = renderToStaticMarkup(createElement(ErrorRow, { message: line, action: { label: "Open screen", onClick: () => {} } }));
     expect(markup).toContain("I can&#x27;t use this computer right now.");
-    expect(markup).toMatch(/<details[\s\S]*Details[\s\S]*Only the Dusk Bot app/);
+    expect(markup).toMatch(/<details[\s\S]*Details[\s\S]*Only the dusk bot app/);
     expect(markup).toContain(">Open screen</button>");
   });
   it("directs ChatGPT plan limits to usage settings rather than repeatedly retrying", () => {
@@ -436,39 +436,39 @@ describe("thread control placement", () => {
   it("offers the matching macOS Settings and relaunch actions only for a named CUA permission failure", () => {
     fixture.platform = "darwin";
     fixture.localMessage = "Screen Recording required";
-    window.ogb = { platform: "darwin", permOpenSettings: vi.fn(), relaunch: vi.fn() } as unknown as NonNullable<Window["ogb"]>;
+    window.duskDesktop = { platform: "darwin", permOpenSettings: vi.fn(), relaunch: vi.fn() } as unknown as NonNullable<Window["duskDesktop"]>;
     const screen = renderToStaticMarkup(createElement(ErrorRow, {
-      message: "Dusk Bot can't use this computer yet — embedded host failed: Screen Recording required. Relaunch Dusk Bot after granting any missing macOS permission.",
+      message: "dusk bot can't use this computer yet — embedded host failed: Screen Recording required. Relaunch dusk bot after granting any missing macOS permission.",
     }));
     expect(screen).toContain("Open Screen Recording Settings");
-    expect(screen).toContain("Relaunch Dusk Bot");
+    expect(screen).toContain("Relaunch dusk bot");
     expect(screen).not.toContain("Open Accessibility Settings");
     fixture.localMessage = "Accessibility required";
     const accessibility = renderToStaticMarkup(createElement(ErrorRow, {
-      message: "Dusk Bot can't use this computer yet — Accessibility required",
+      message: "dusk bot can't use this computer yet — Accessibility required",
     }));
     expect(accessibility).toContain("Open Accessibility Settings");
     expect(accessibility).not.toContain("Open Screen Recording Settings");
     expect(renderToStaticMarkup(createElement(ErrorRow, {
-      message: "Dusk Bot can't use this computer yet — Screen Recording required",
+      message: "dusk bot can't use this computer yet — Screen Recording required",
     }))).not.toContain("Open Screen Recording Settings");
     expect(renderToStaticMarkup(createElement(ErrorRow, { message: "Network timeout" }))).not.toContain("Open Screen Recording Settings");
     // a copy run from source waits on CuaDriver's grant: name it, open its pane, check again instead of relaunching
     fixture.localMessage = "Screen Recording required for CuaDriver; turn on CuaDriver in System Settings > Privacy & Security";
-    window.ogb = { platform: "darwin", permOpenSettings: vi.fn(), relaunch: vi.fn(), localControl: { retry: vi.fn() } } as unknown as NonNullable<Window["ogb"]>;
+    window.duskDesktop = { platform: "darwin", permOpenSettings: vi.fn(), relaunch: vi.fn(), localControl: { retry: vi.fn() } } as unknown as NonNullable<Window["duskDesktop"]>;
     const helper = renderToStaticMarkup(createElement(ErrorRow, {
-      message: "Dusk Bot can't use this computer yet: Screen Recording required. Turn on CuaDriver in System Settings > Privacy & Security > Screen Recording; Dusk Bot notices by itself, no restart needed.",
+      message: "dusk bot can't use this computer yet: Screen Recording required. Turn on CuaDriver in System Settings > Privacy & Security > Screen Recording; dusk bot notices by itself, no restart needed.",
     }));
     expect(helper).toContain("Turn on CuaDriver in System Settings");
     expect(helper).toContain("Open Screen Recording Settings");
     expect(helper).toContain("Check again");
     expect(helper).not.toContain("Relaunch");
     fixture.localReasonCode = "remote-server";
-    expect(renderToStaticMarkup(createElement(ErrorRow, { message: "Dusk Bot can't use this computer yet — Screen Recording required" }))).not.toContain("Open Screen Recording Settings");
+    expect(renderToStaticMarkup(createElement(ErrorRow, { message: "dusk bot can't use this computer yet — Screen Recording required" }))).not.toContain("Open Screen Recording Settings");
     fixture.localReasonCode = "cua-driver-unavailable";
     fixture.platform = "other";
     fixture.localMessage = "";
-    delete window.ogb;
+    delete window.duskDesktop;
   });
   it.each([
     "شغّل الاختبارات\nThen run typecheck\nوبعدها ارفع الفرع",
@@ -503,7 +503,7 @@ describe("thread control placement", () => {
   });
 
   it("offers remote clients the model picker but keeps approval changes on the host", () => {
-    window.ogb = { remoteClient: { active: true } } as NonNullable<Window["ogb"]>;
+    window.duskDesktop = { remoteClient: { active: true } } as NonNullable<Window["duskDesktop"]>;
     try {
       fixture.model = null;
       const markup = renderToStaticMarkup(createElement(ChatView, { bot }));
@@ -511,7 +511,7 @@ describe("thread control placement", () => {
       expect(fixture.model).toMatchObject({ bot: { id: "bot" }, threadId: "selected" });
       expect(markup).not.toContain("data-test-approval-control");
     } finally {
-      delete window.ogb;
+      delete window.duskDesktop;
     }
   });
 

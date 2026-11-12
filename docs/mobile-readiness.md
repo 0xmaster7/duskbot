@@ -23,7 +23,7 @@ is built into the app; the app never loads its interface from a server.
         |
         |  one of four transports, all behind the page's own fetch and EventSource
         v
-   https .............. the workspace's public address (your server, a hosted address, a Dusk Cloud computer)
+   https .............. the workspace's public address (your server, a hosted address, a dusk cloud computer)
    companion .......... the Mac's sidecar on the same Wi-Fi or tailnet (http, port 8810, allowlisted routes)
    relay .............. link.dusk.bot, frames sealed on the phone (AES-GCM, key from X25519) and opened on your server
    demo ............... a workspace inside the page: no network, sample team, pretend replies
@@ -76,7 +76,7 @@ Two runs drive real clients:
 | Permission asks answered once | **unverified here** | the phone renders the shared approval card and the workspace refuses a second answer (server tests). Not driven with two clients: the fake engine's approval recipe was not wired into the run |
 | Group chats, attachments and file cards across two clients | **unverified here** | rooms render and send on the phone (demo and fixture); file upload and download are in the existing run. Not driven with two clients |
 | Routines switched on or off | **unverified here** | the routines sheet reads the same store; not driven |
-| A Dusk Cloud computer that is asleep | **fixed** (wording), **unverified** | the store stops reconnecting to a sleeping Cloud by design, and the phone's home said "Reconnecting" though it was not trying. It now says "Asleep · wakes when you type", then "Waking up", from the same power state the desktop reads (`src/lib/cloud-power.ts`). Not checked against a real Cloud computer |
+| A dusk cloud computer that is asleep | **fixed** (wording), **unverified** | the store stops reconnecting to a sleeping Cloud by design, and the phone's home said "Reconnecting" though it was not trying. It now says "Asleep · wakes when you type", then "Waking up", from the same power state the desktop reads (`src/lib/cloud-power.ts`). Not checked against a real Cloud computer |
 
 ### Bugs found and fixed
 
@@ -135,9 +135,9 @@ Two runs drive real clients:
   composer by its placeholder. Not a phone matter.
 - Message action buttons in a chat row (reply, copy, more, react) measure 36 x 36 css px in the phone layout
   (`src/components/`, shared with the desktop). WCAG 2.5.5 asks for 44. Fix: give them `min-width: 44px;
-  min-height: 44px` inside `.omb-mobile [data-mobile-chat]`, as `mobile.css` already does for the composer's buttons.
+  min-height: 44px` inside `.dusk-mobile [data-mobile-chat]`, as `mobile.css` already does for the composer's buttons.
   Left alone because it changes the shared transcript's row layout.
-- `docs/ios-companion.md` and `docs/ios-privacy.md` describe an earlier Swift companion ("OpenMausMobile": a Share
+- `docs/ios-companion.md` and `docs/ios-privacy.md` describe an earlier Swift companion ("DuskMobile": a Share
   extension, Bonjour discovery, Password AutoFill credential entry). The Capacitor app has none of those. Read them as
   history until someone rewrites them.
 
@@ -192,7 +192,7 @@ a long-lived typed code, and put that code in the notes. I created no accounts a
 
 | Item | Status | Notes |
 |---|---|---|
-| Prices, upgrade buttons | pass | every plan, price and upgrade card in the shared code renders only with the desktop bridge (`window.ogb.cloudAccount`), which the phone does not have. Checked by walking the phone's import graph for the components that carry plan or price strings |
+| Prices, upgrade buttons | pass | every plan, price and upgrade card in the shared code renders only with the desktop bridge (`window.duskDesktop.cloudAccount`), which the phone does not have. Checked by walking the phone's import graph for the components that carry plan or price strings |
 | External purchase links | **fixed** | the dashboard link is off in the store apps (`accountRows` in `SettingsSheet.tsx`, tested) |
 | Wording | pass | the phone says "Bot API comes with a higher plan" and similar status lines with no link or price. Acceptable as status text; reword if a reviewer objects |
 | Account deletion page | **needs owner** | "Delete account" opens `dusk.bot/account#delete` in the in-app Safari view. That page's sidebar links to "Plans & billing". Ask the dashboard branch for a page with the delete section alone, or a delete call the app's own token may make (today `POST /v1/account/delete` needs a website session) |
@@ -249,7 +249,7 @@ taken from after the `#`, which a browser never sends to the site. The site need
 1. `docs/store/apple-app-site-association.json` served as `https://dusk.bot/.well-known/apple-app-site-association` and
    the same on `dusk.bot`: content type `application/json`, no redirect, no file extension, with `TEAMID` replaced
    by your Apple team id.
-2. Pages at `/m/open` and `/m/pair` for someone without the app ("Get Dusk Bot for iPhone"). The `/m/pair` page must
+2. Pages at `/m/open` and `/m/pair` for someone without the app ("Get dusk bot for iPhone"). The `/m/pair` page must
    never read, log or send the part after the `#`.
 
 Nothing on the desktop makes these links yet; pairing codes and notifications still use `duskbot://`.

@@ -36,7 +36,7 @@ export function systemdUnit(spec: ServiceSpec): string {
   const lines = [
     "# Written by `duskbot service install`. Re-run it to change the options.",
     "[Unit]",
-    `Description=Dusk Bot${spec.label ? ` (${spec.label})` : ""}`,
+    `Description=dusk bot${spec.label ? ` (${spec.label})` : ""}`,
     "After=network-online.target",
     "Wants=network-online.target",
     "",
@@ -219,7 +219,7 @@ export function sentinelSystemdService(spec: SentinelServiceSpec): string {
   return [
     "# Written by `duskbot service install --sentinel`. Started by its timer.",
     "[Unit]",
-    "Description=Dusk Bot Sentinel health scan",
+    "Description=dusk bot Sentinel health scan",
     "",
     "[Service]",
     "Type=oneshot",
@@ -236,7 +236,7 @@ export function sentinelSystemdTimer(): string {
   return [
     "# Written by `duskbot service install --sentinel`.",
     "[Unit]",
-    "Description=Run the Dusk Bot Sentinel health scan every two minutes",
+    "Description=Run the dusk bot Sentinel health scan every two minutes",
     "",
     "[Timer]",
     `OnBootSec=${SENTINEL_INTERVAL_SECONDS}s`,

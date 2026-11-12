@@ -26,7 +26,7 @@ const plan: DesktopPlan = { kind: "shared_s", placement: "pool", spec: { vcpu: 2
 const SEAL = Buffer.alloc(32, 7), BACKUP_SECRET = Buffer.alloc(32, 9);
 
 async function fixture() {
-  const dataDir = mkdtempSync(join(tmpdir(), "omb-recheck-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
+  const dataDir = mkdtempSync(join(tmpdir(), "dusk-recheck-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
   let at = Date.UTC(2026, 10, 9, 12);
   const now = () => at;
   const api = await startFakeInstaboxApi({ now }); cleanup.push(() => api.close());
@@ -170,7 +170,7 @@ it("an ended plan's cloud that is confirmed lost keeps its notices and is not de
 });
 
 it("the data-dir lock: another process is refused, a dead process's lock is taken over", () => {
-  const dir = mkdtempSync(join(tmpdir(), "omb-lock-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-lock-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
   const unlock = lockDataDir(dir);
   const child = spawnSync(process.execPath, ["--experimental-strip-types", "-e", `import("${join(process.cwd(), "apps/dashboard/server/data-dir-lock.ts")}").then(m => { try { m.lockDataDir(${JSON.stringify(dir)}); console.log("TOOK"); } catch (e) { console.log("REFUSED " + e.name); } })`], { encoding: "utf8" });
   expect(child.stdout).toContain("REFUSED DataDirLockedError");
@@ -185,7 +185,7 @@ it("the data-dir lock: another process is refused, a dead process's lock is take
 });
 
 it("a stale lock left by an earlier run that had this same pid (a restarted container's pid 1) is taken over", () => {
-  const dir = mkdtempSync(join(tmpdir(), "omb-lock-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-lock-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
   writeFileSync(join(dir, ".writer.lock"), JSON.stringify({ pid: process.pid, host: hostname(), at: Date.now() - 3_600_000 }));
   let took = false;
   try { lockDataDir(dir)(); took = true; } catch {}

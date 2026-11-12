@@ -128,7 +128,7 @@ export function createWorkspaceReconnect(deps) {
     fetchedAt.set(entry.id, now());
     try {
       const response = await fetchImpl(`${entry.origin}/api/bots?messages=0`, { credentials: "include", cache: "no-store", redirect: "error",
-        signal: AbortSignal.timeout(FRAME_FETCH_MS), headers: { accept: "application/json", "x-omb-background": "1" } });
+        signal: AbortSignal.timeout(FRAME_FETCH_MS), headers: { accept: "application/json", "x-dusk-background": "1" } });
       if (!response.ok) { await response.body?.cancel?.().catch(() => {}); return; }
       const frame = frameOf(await response.json(), now());
       const current = active();

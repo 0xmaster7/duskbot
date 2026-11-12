@@ -87,7 +87,7 @@ there is no brief at all. Its row says
    `server/read-and-draft.ts`. Everything is allow-only:
    - the run runs at Ask, and the server refuses every request in it outright,
      never as a card;
-   - its Dusk Bot routes are conversation reads, its own results, the
+   - its dusk bot routes are conversation reads, its own results, the
      engine's hooks and the connected-apps relay;
    - through the relay it reads Gmail and Google Calendar, and may write one
      draft per thread, replying to that thread's sender, in a thread its checks
@@ -98,7 +98,7 @@ there is no brief at all. Its row says
    - its conversation stays out of recall, recent work, `list_threads` and Chief
      notices.
 
-   The model work needs an engine whose every tool use reaches Dusk Bot's
+   The model work needs an engine whose every tool use reaches dusk bot's
    answerer (Claude today). On any other engine the watch prepares no meeting,
    says so in the brief, and still does what needs no AI.
 5. **Helper models sort the inbox** (`server/host/inbox-triage.ts`). With a

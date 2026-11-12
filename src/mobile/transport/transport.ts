@@ -1,6 +1,6 @@
 import { RelayGoneError, type RelayChannel } from "./relay";
 import { noteRefusedRequest } from "@/lib/session-ended";
-import { asleepAnswer, BACKGROUND_HEADER, markCloudAsleep } from "@/lib/cloud-power";
+import { asleepAnswer, BACKGROUND_HEADERS, markCloudAsleep } from "@/lib/cloud-power";
 import { setUploadRoute } from "@/lib/upload-request";
 
 export type PhoneTransport =
@@ -234,7 +234,7 @@ function installMedia(): () => void {
     let marks = processed.get(element);
     if (!marks) { marks = new Map(); processed.set(element, marks); }
     marks.set(attribute, next);
-    element.setAttribute("data-omb-media", "1");
+    element.setAttribute("data-dusk-media", "1");
     element.setAttribute(attribute, next);
     if (element instanceof HTMLMediaElement) element.load();
     else if (element.tagName.toLowerCase() === "source" && element.parentElement instanceof HTMLMediaElement) element.parentElement.load();
@@ -271,7 +271,7 @@ export function asleepProbe(send: typeof fetch, origin: string, token: string, n
   return () => {
     if (now() - last < ASLEEP_PROBE_GAP_MS) return;
     last = now();
-    void send(`${origin}/api/health`, { headers: { Authorization: `Bearer ${token}`, [BACKGROUND_HEADER]: "1" }, credentials: "omit", redirect: "error", signal: AbortSignal.timeout(10_000) })
+    void send(`${origin}/api/health`, { headers: { Authorization: `Bearer ${token}`, ...BACKGROUND_HEADERS }, credentials: "omit", redirect: "error", signal: AbortSignal.timeout(10_000) })
       .then((response) => { if (asleepAnswer(response)) markCloudAsleep(); void response.body?.cancel().catch(() => {}); })
       .catch(() => {});
   };

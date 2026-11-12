@@ -8,7 +8,7 @@ import { join, resolve } from "node:path";
 
 assert.ok(process.argv[2], "Pass the absolute OpenCode CLI path");
 const cli = resolve(process.argv[2]);
-const home = mkdtempSync(join(tmpdir(), "omb-opencode-permissions-"));
+const home = mkdtempSync(join(tmpdir(), "dusk-opencode-permissions-"));
 const workspace = join(home, "workspace");
 const external = join(home, "outside", "receipt.txt");
 mkdirSync(workspace);
@@ -18,7 +18,7 @@ process.env = {
   PATH: process.env.PATH, HOME: home, USERPROFILE: home,
   XDG_CONFIG_HOME: join(home, "config"), XDG_DATA_HOME: join(home, "data"),
   XDG_CACHE_HOME: join(home, "cache"), XDG_STATE_HOME: join(home, "state"),
-  DUSK_DATA_DIR: join(home, "omb"), OPENCODE_DISABLE_DEFAULT_PLUGINS: "true",
+  DUSK_DATA_DIR: join(home, "dusk"), OPENCODE_DISABLE_DEFAULT_PLUGINS: "true",
   OPENCODE_DISABLE_MODELS_FETCH: "true", DUSK_PROBE_LOCAL_INJECT: "0",
   ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
 };

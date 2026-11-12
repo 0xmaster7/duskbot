@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 import { handleToolCall, request } from "../scripts/mcp-server.ts";
 import { LEADER_MAX_ROUNDS } from "./room-leader.ts";
 import { readHandoffs } from "./testing/handoff-rows.ts";
@@ -11,7 +11,7 @@ import { readHandoffs } from "./testing/handoff-rows.ts";
 it("runs a group like a department: person to leader, two members in parallel, results back, wrap-up, hop cap", async () => {
   const session = await launchVerificationServer(process.env, undefined, undefined, undefined, { scripted: true });
   const env = { DUSK_URL: session.info.url };
-  const cli = (...args: string[]) => runControlOmb(args, { env }) as Promise<any>;
+  const cli = (...args: string[]) => runControlDusk(args, { env }) as Promise<any>;
   const api = (path: string, body?: unknown, method = "POST") => request(path, body === undefined ? {} : { method, body: JSON.stringify(body) }, session.info.url) as Promise<any>;
   const tool = (name: string, args: Record<string, unknown>) => handleToolCall(name, args, (path, options) => request(path, options, session.info.url)) as Promise<any>;
   try {
@@ -92,7 +92,7 @@ it("runs a group like a department: person to leader, two members in parallel, r
 it("leads from a one-to-one chat too: hand-off rows, parallel work, results back, wrap-up", async () => {
   const session = await launchVerificationServer(process.env, undefined, undefined, undefined, { scripted: true });
   const env = { DUSK_URL: session.info.url };
-  const cli = (...args: string[]) => runControlOmb(args, { env }) as Promise<any>;
+  const cli = (...args: string[]) => runControlDusk(args, { env }) as Promise<any>;
   const api = (path: string) => request(path, {}, session.info.url) as Promise<any>;
   try {
     const nova = (await cli("new-bot", "--name", "Nova", "--section", "A")).bot;

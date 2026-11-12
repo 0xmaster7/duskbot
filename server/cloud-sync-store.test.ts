@@ -10,7 +10,7 @@ const OTHER = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 const scratch: string[] = [];
 const stores: CloudSyncStore[] = [];
 function setup() {
-  const home = mkdtempSync(join(tmpdir(), "omb-sync-store-"));
+  const home = mkdtempSync(join(tmpdir(), "dusk-sync-store-"));
   scratch.push(home);
   const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir);
@@ -102,7 +102,7 @@ it("lists a folder with hashes, hashing again only what changed", async () => {
 
 it("keeps a removed file in the trash for 30 days", async () => {
   let now = 1_000;
-  const home = mkdtempSync(join(tmpdir(), "omb-sync-trash-"));
+  const home = mkdtempSync(join(tmpdir(), "dusk-sync-trash-"));
   scratch.push(home);
   const store = new CloudSyncStore({ dataDir: join(home, ".duskbot"), now: () => now });
   stores.push(store);

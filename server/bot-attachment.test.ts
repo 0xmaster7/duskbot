@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 // attachments.ts reads DATA_DIR at import time.
-const DATA_ROOT = mkdtempSync(join(tmpdir(), "omb-bot-attachment-"));
+const DATA_ROOT = mkdtempSync(join(tmpdir(), "dusk-bot-attachment-"));
 process.env.DUSK_DATA_DIR = join(DATA_ROOT, "data");
 const { attachForTurn, deliveredCopy, guestWorkspaceToHost, saveBotAttachment } = await import("./bot-attachment.ts");
 const { ATTACHMENTS_DIR } = await import("./attachments.ts");

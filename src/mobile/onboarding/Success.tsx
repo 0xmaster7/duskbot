@@ -54,7 +54,7 @@ export function Success({ name, onDone }: { name: string; onDone: () => void }) 
   }, [bots, w, h]);
 
   return (
-    <motion.div className="omb-mobile omb-onboarding fixed inset-0 z-[60]" style={{ background: ONBOARDING_BG }}
+    <motion.div className="dusk-mobile dusk-onboarding fixed inset-0 z-[60]" style={{ background: ONBOARDING_BG }}
       initial={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: dur.slow, ease: ease.out } }}
       role="status" aria-live="polite">
       <SkyScene>
@@ -66,7 +66,7 @@ export function Success({ name, onDone }: { name: string; onDone: () => void }) 
                 initial={reduced ? { x: seat.x, y: seat.y, opacity: 0 } : { x: seat.fx, y: seat.fy, rotate: seat.r * 3, scale: 0.7, opacity: 1 }}
                 animate={{ x: seat.x, y: seat.y, rotate: seat.r, scale: 1, opacity: 1 }}
                 transition={{ ...spring.lively, stiffness: 260, damping: 22, delay: reduced ? 0 : 0.06 * i, opacity: { duration: dur.fast } }}>
-                <span className="omb-float relative block" style={{ animationDuration: `${5 + (i % 3)}s` }}>
+                <span className="dusk-float relative block" style={{ animationDuration: `${5 + (i % 3)}s` }}>
                   <span aria-hidden className="absolute -inset-3 rounded-full" style={{ background: "radial-gradient(closest-side, rgb(255 255 255 / 0.16), transparent)" }} />
                   {bot ? <BotAvatar bot={bot} size={72} state="happy" label="" /> : <MausAvatar color="blue" bodyId="kit" size={72} state="happy" label="" />}
                 </span>

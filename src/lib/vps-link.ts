@@ -66,7 +66,7 @@ export interface VpsBackup {
   summary: { bots: number; chats: number; skills: number; routines: number } | null;
   reason: "before-move" | "before-restore" | "manual" | "from-server";
 }
-/** `uninstall`: the line to paste on the server to take Dusk Bot off it (older apps leave it out). */
+/** `uninstall`: the line to paste on the server to take dusk bot off it (older apps leave it out). */
 export interface VpsWhere { place: "mac" | "vps"; server: VpsServer | null; uninstall?: string }
 
 export interface VpsLinkBridge {
@@ -95,9 +95,9 @@ export interface VpsLinkBridge {
 }
 
 export function vpsLinkBridge(): VpsLinkBridge | undefined {
-  if (typeof window === "undefined" || window.ogb?.remoteClient?.active) return undefined;
-  if (window.ogb?.app && window.ogb.app.ownPage === false) return undefined;
-  return window.ogb?.vpsLink;
+  if (typeof window === "undefined" || window.duskDesktop?.remoteClient?.active) return undefined;
+  if (window.duskDesktop?.app && window.duskDesktop.app.ownPage === false) return undefined;
+  return window.duskDesktop?.vpsLink;
 }
 
 /** False in a browser, on another place's page, and in desktop builds without the bridge. */

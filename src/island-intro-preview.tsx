@@ -21,7 +21,7 @@ const bridge: Partial<AmbientAppBridge> = {
     return { ...prefs };
   },
 };
-(window as unknown as { ogb: unknown }).ogb = { ambient: bridge };
+(window as unknown as { duskDesktop: unknown }).duskDesktop = { ambient: bridge };
 
 function Preview() {
   const [run, setRun] = useState(0);

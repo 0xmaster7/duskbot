@@ -4,7 +4,7 @@
 # partial release. That keeps release credentials and publication authority
 # in the unified release workflow while making every release candidate
 # reproducible from an exact ref. Attach the resulting files to the matching
-# canonical Dusk Bot release after the smoke test passes.
+# canonical dusk bot release after the smoke test passes.
 name: Package Ubuntu
 
 on:
@@ -118,8 +118,8 @@ jobs:
         with:
           name: duskbot-ubuntu-smoke-diagnostics
           path: |
-            /tmp/omb-linux-smoke-*
-            /tmp/omb-linux-smoke-runtime-*
+            /tmp/dusk-linux-smoke-*
+            /tmp/dusk-linux-smoke-runtime-*
           if-no-files-found: warn
           include-hidden-files: true
           retention-days: 7

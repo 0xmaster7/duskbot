@@ -13,16 +13,16 @@ import { setTimeout as delay } from "node:timers/promises";
 const option = (name) => { const at = process.argv.indexOf(name); return at === -1 ? undefined : process.argv[at + 1]; };
 if (process.env.GITHUB_ACTIONS !== "true" || process.platform !== "darwin") throw new Error("This check edits /etc/hosts and the system keychain: it runs on a disposable GitHub macOS runner only.");
 const APP = resolve(option("--app") ?? "release/mac-arm64/Dusk Bot.app");
-const OUT = resolve(option("--out") ?? mkdtempSync(join(tmpdir(), "omb-rail-evidence-")));
+const OUT = resolve(option("--out") ?? mkdtempSync(join(tmpdir(), "dusk-rail-evidence-")));
 mkdirSync(OUT, { recursive: true });
 const ROOT = new URL("..", import.meta.url);
-const WORK = mkdtempSync(join(tmpdir(), "omb-rail-"));
+const WORK = mkdtempSync(join(tmpdir(), "dusk-rail-"));
 const POLL_MS = 150_000;
 const DEBUG_PORT = 9333;
 
-const ADMIN_HOST = "dusk.bot", AWAKE_HOST = "omb-u-aaaaaaaaaaaa.fly.dev", ASLEEP_HOST = "omb-u-bbbbbbbbbbbb.fly.dev";
+const ADMIN_HOST = "dusk.bot", AWAKE_HOST = "dusk-u-aaaaaaaaaaaa.fly.dev", ASLEEP_HOST = "dusk-u-bbbbbbbbbbbb.fly.dev";
 const BLOCKED = ["us.i.posthog.com", "us-assets.i.posthog.com", "app.posthog.com"];
-const TOKEN = `omc_${"T".repeat(43)}`, COOKIE = "omb_session_fixture";
+const TOKEN = `omc_${"T".repeat(43)}`, COOKIE = "dusk_session_fixture";
 const results = [];
 const log = (line) => { console.log(line); appendFileSync(join(OUT, "progress.log"), `${line}\n`); };
 function passed(name, detail = "") { results.push({ name, passed: true, detail }); log(`PASS ${name}${detail ? `: ${detail}` : ""}`); }
@@ -74,7 +74,7 @@ function serve(tls) {
     if (!cloud) return reply(404, { error: "not_found" });
     const signedIn = (req.headers.cookie ?? "").includes(`${COOKIE}=`);
     if (path === "/api/inbox/count") {
-      cloud.requests.push({ at: Date.now(), cookie: signedIn, background: req.headers["x-omb-background"] === "1" });
+      cloud.requests.push({ at: Date.now(), cookie: signedIn, background: req.headers["x-dusk-background"] === "1" });
       return signedIn ? reply(200, { count: cloud.count }) : reply(401, { error: "sign in" });
     }
     cloud.requests.push({ at: Date.now(), other: `${req.method} ${path}` });
@@ -160,13 +160,13 @@ await import(${JSON.stringify(new URL("server/testing/fake-claude-cli.ts", ROOT)
 
   const local = await windowTarget((url) => url.hostname === "127.0.0.1" && url.pathname !== "/rail", "this computer's page");
   const page = await Page.open(local);
-  await until("the page's bridge", () => page.evaluate(`Boolean(window.ogb?.cloudAccount) && document.readyState === "complete"`), 120_000);
+  await until("the page's bridge", () => page.evaluate(`Boolean(window.duskDesktop?.cloudAccount) && document.readyState === "complete"`), 120_000);
   passed("the packaged app starts with the rail's watch wired in", local.url);
   await page.shot("00-app-started");
 
-  await page.evaluate(`window.ogb.cloudAccount.begin().then(() => true)`);
-  await until("the sign-in", () => page.evaluate(`window.ogb.cloudAccount.state().then((state) => state.status === "connected")`), 60_000).catch(async (error) => {
-    log(`account state: ${JSON.stringify(await page.evaluate("window.ogb.cloudAccount.state()").catch(String)).slice(0, 600)}`);
+  await page.evaluate(`window.duskDesktop.cloudAccount.begin().then(() => true)`);
+  await until("the sign-in", () => page.evaluate(`window.duskDesktop.cloudAccount.state().then((state) => state.status === "connected")`), 60_000).catch(async (error) => {
+    log(`account state: ${JSON.stringify(await page.evaluate("window.duskDesktop.cloudAccount.state()").catch(String)).slice(0, 600)}`);
     throw error;
   });
   assert.ok(adminLog.some((line) => line.endsWith("/api/cloud/desktop/session")), "the app read the Admin's session");
@@ -210,7 +210,7 @@ await import(${JSON.stringify(new URL("server/testing/fake-claude-cli.ts", ROOT)
   const beforeSleep = () => counts().length;
   clouds[AWAKE_HOST].power = "asleep"; clouds[AWAKE_HOST].since = Date.now();
   const page2 = await Page.open(await windowTarget((url) => url.hostname === "127.0.0.1" && url.pathname !== "/rail", "this computer's page"));
-  await page2.evaluate(`window.ogb.cloudAccount.refresh().then(() => true)`);
+  await page2.evaluate(`window.duskDesktop.cloudAccount.refresh().then(() => true)`);
   await delay(3_000);
   const sleeping = beforeSleep();
   clouds[AWAKE_HOST].count = 0;
@@ -220,7 +220,7 @@ await import(${JSON.stringify(new URL("server/testing/fake-claude-cli.ts", ROOT)
   passed("once the Admin says a Cloud sleeps it is never asked, over a whole poll, and keeps its last number", `${POLL_MS / 1000}s with no request`);
 
   clouds[AWAKE_HOST].power = "awake"; clouds[AWAKE_HOST].since = Date.now();
-  await page2.evaluate(`window.ogb.cloudAccount.refresh().then(() => true)`);
+  await page2.evaluate(`window.duskDesktop.cloudAccount.refresh().then(() => true)`);
   await until("Studio's attention to clear", async () => !(await tileOf(rail, "Studio")).dot, POLL_MS);
   assert.equal((await tileOf(rail, "Studio")).label, "Studio");
   passed("awake again with nothing waiting, its label and dot clear");
@@ -234,7 +234,7 @@ await import(${JSON.stringify(new URL("server/testing/fake-claude-cli.ts", ROOT)
   const bot = created.body.bot;
   assert.ok((await api("PATCH", `/api/bots/${bot.id}`, { approvalMode: "ask", applyToAllThreads: true })).status < 300);
   writeFileSync(plan, JSON.stringify({ [bot.id]: { script: [{ key: "Q", match: ["Q-GO"], timeoutMs: 600_000,
-    steps: [{ server: "ogb", tool: "ask_user", arguments: { question: "Which page?", choices: ["Home", "Pricing"] }, capture: { answer: "([\\s\\S]+)" } }], reply: "Q: {{answer}}" }] } }));
+    steps: [{ server: "dusk", tool: "ask_user", arguments: { question: "Which page?", choices: ["Home", "Pricing"] }, capture: { answer: "([\\s\\S]+)" } }], reply: "Q: {{answer}}" }] } }));
   const sent = await api("POST", `/api/bots/${bot.id}/messages`, { text: "Q-GO", threadId: bot.threadId });
   assert.equal(sent.status, 202, JSON.stringify(sent));
   const asking = await until("the question in this computer's inbox", async () => { const { body } = await api("GET", "/api/inbox/count"); return body?.count >= 1 ? body : null; }, 120_000);

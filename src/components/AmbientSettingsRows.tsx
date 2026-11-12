@@ -20,7 +20,7 @@ const PREVIEW_SCALE = 0.72;
 
 /** Settings → Appearance: the notch island and the bot dock (electron/ambient-main.mjs), on the desktop app only. */
 export function AmbientRows() {
-  const bridge = window.ogb?.ambient;
+  const bridge = window.duskDesktop?.ambient;
   const [state, setState] = useState<AmbientPrefs | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {

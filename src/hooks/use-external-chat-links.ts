@@ -4,7 +4,7 @@ import { openThread, type Action, type AppState, type ThreadTarget } from "@/sta
 
 export function useExternalChatLinks(state: AppState, dispatch: (action: Action) => void): void {
   const [link, setLink] = useState<string | null>(null);
-  useEffect(() => window.ogb?.onChatLink?.(setLink), []);
+  useEffect(() => window.duskDesktop?.onChatLink?.(setLink), []);
   useEffect(() => {
     if (!link || !state.hydrated) return;
     setLink(null);
@@ -17,7 +17,7 @@ export function useExternalChatLinks(state: AppState, dispatch: (action: Action)
 /** A click on a notification main showed brought this page up, maybe a page just loaded for it. */
 export function useDesktopNotificationOpens(state: AppState, dispatch: (action: Action) => void): void {
   const [target, setTarget] = useState<ThreadTarget | null>(null);
-  useEffect(() => window.ogb?.desktopNotifications?.onOpen(setTarget), []);
+  useEffect(() => window.duskDesktop?.desktopNotifications?.onOpen(setTarget), []);
   useEffect(() => {
     if (!target || !state.hydrated) return;
     setTarget(null);

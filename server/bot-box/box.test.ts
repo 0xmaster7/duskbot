@@ -17,7 +17,7 @@ describe("BoxRunner.wrap", () => {
 
   // An engine installed in the app's npm prefix: the absolute path the driver resolved, or the bare name looked up on the
   // PATH it was handed (the prefix's bin first), both read through the bin link's relative target.
-  it.skipIf(process.platform === "win32")("an engine Dusk Bot installed runs inside: its path, the bin folder on PATH and the package the link points at are there, read-only", () => {
+  it.skipIf(process.platform === "win32")("an engine dusk bot installed runs inside: its path, the bin folder on PATH and the package the link points at are there, read-only", () => {
     const runner = new BoxRunner({ bwrap: "/usr/bin/bwrap", bridge, setup, denyEnv: new Set() });
     const bin = join(npmEnginesPrefix(setup.dataDir), "bin");
     const target = join(bin, "..", "lib", "node_modules", "opencode-ai", "bin", "opencode.exe");
@@ -67,7 +67,7 @@ describe("BoxRunner.wrap", () => {
 
 describe("the box's hardening (T0c)", () => {
   it("hands each box the seccomp filter on descriptor 3, and the no-seccomp mutation leaves it out", () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-seccomp-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-seccomp-"));
     const file = join(dir, "seccomp.bpf");
     writeFileSync(file, seccompBytes());
     const setup = { dataDir: "/data/.duskbot", home: "/data", codeRoots: ["/app"], engineRoots: [], bridges: [] };
@@ -107,7 +107,7 @@ describe("BotBox", () => {
     for (const box of boxes.splice(0)) await box.stop();
     for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
   });
-  const temp = () => { const dir = mkdtempSync(join(tmpdir(), "omb-box-")); dirs.push(dir); return dir; };
+  const temp = () => { const dir = mkdtempSync(join(tmpdir(), "dusk-box-")); dirs.push(dir); return dir; };
 
   it("off: wraps nothing and reports why", async () => {
     const box = new BotBox();
@@ -144,7 +144,7 @@ describe("BotBox", () => {
     expect(box.report()).toMatchObject({ box: "bwrap", bridge: "node", boxed: 1, checks: null, broker: { on: true, tokens: 0 } });
     // A key becomes a token bound to this process; releasing it (the process exit) revokes it.
     const keyed = box.wrap({ command: "/usr/local/bin/claude", args: [], cwd: join(dataDir, "task-workspaces", "b1", "t1"), env: { PATH: "/usr/bin", ANTHROPIC_API_KEY: "sk-ant-real", XAI_API_KEY: "xai-real" } })!;
-    expect(keyed.token).toMatch(/^omb_t0_[a-f0-9]{48}$/);
+    expect(keyed.token).toMatch(/^dusk_t0_[a-f0-9]{48}$/);
     expect(keyed.env.ANTHROPIC_API_KEY).toBe(keyed.token);
     expect(keyed.env.ANTHROPIC_BASE_URL).toBe(`http://127.0.0.1:18080/b/${keyed.token}/anthropic`);
     expect(JSON.stringify(keyed.env)).not.toContain("sk-ant-real");
@@ -166,7 +166,7 @@ describe("the box a bot's Chrome runs in", () => {
     for (const box of boxes.splice(0)) await box.stop();
     for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
   });
-  const temp = () => { const dir = mkdtempSync(join(tmpdir(), "omb-box-")); dirs.push(dir); return dir; };
+  const temp = () => { const dir = mkdtempSync(join(tmpdir(), "dusk-box-")); dirs.push(dir); return dir; };
 
   it("is no box off a Cloud home, which is what Windows gets", () => {
     expect(new BotBox().browserBox(9, []), "no box off a Cloud home").toBeNull();
@@ -205,7 +205,7 @@ describe("spawnCli goes through the box", () => {
 
   it.skipIf(process.platform === "win32")("a bot spawn runs under the box's command; other spawns and box: false do not", async () => {
     const { botBox } = await import("./box.ts");
-    const dir = mkdtempSync(join(tmpdir(), "omb-spawn-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-spawn-"));
     dirs.push(dir);
     // A stand-in for bwrap: records its argv, then runs what follows `--`.
     const fakeBwrap = join(dir, "fake-bwrap.sh"), record = join(dir, "argv.txt");
@@ -230,7 +230,7 @@ describe("spawnCli goes through the box", () => {
     expect(boxed.argv).toContain("--unshare-net");
     expect(boxed.argv).toContain("/run/omb/egress.sock");
     const engines = npmEnginesPrefix(join(dir, "data"));
-    expect(boxed.argv, "the engines Dusk Bot installed, read-only").toContain(`--ro-bind-try\n${engines}\n${engines}\n`);
+    expect(boxed.argv, "the engines dusk bot installed, read-only").toContain(`--ro-bind-try\n${engines}\n${engines}\n`);
     expect((await run("duskbot")).boxed).toBe(false);
     expect((await run("bot", false)).boxed).toBe(false);
     expect(botBox.report().boxed).toBe(1);

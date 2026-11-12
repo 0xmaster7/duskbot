@@ -15,12 +15,12 @@ import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const HOST = "omb-t-0123456789ab.fly.dev";
+const HOST = "dusk-t-0123456789ab.fly.dev";
 type Role = "desktop" | "home" | "team";
 const TEAM = { id: "team-7f3a", name: "Acme" };
 
 class Fixture {
-  home = mkdtempSync(join(tmpdir(), "omb-parallel-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-parallel-"));
   dataDir = join(this.home, ".duskbot");
   gates = join(this.home, "gates");
   base = "";
@@ -121,11 +121,11 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-ac
     if (this.cloud()) this.token = await this.pair();
   }
   async pair() {
-    const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300, ...(this.role === "team" ? { team: TEAM, member: { email: "owner@acme.test", role: "admin" } } : {}) });
+    const body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300, ...(this.role === "team" ? { team: TEAM, member: { email: "owner@acme.test", role: "admin" } } : {}) });
     const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
     const response = await fetch(`${this.base}/api/cloud/pairing`, { method: "POST", headers: {
       host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
-      "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(this.secret, timestamp, nonce, body)}`,
+      "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(this.secret, timestamp, nonce, body)}`,
     }, body });
     const granted = await response.json() as { code: string };
     return (await this.api("POST", "/api/auth/pair", { code: granted.code })).body.token as string;
@@ -380,7 +380,7 @@ describe("a Starter Cloud", () => {
   const tellPlan = async (tier: string) => {
     const body = JSON.stringify({ v: 1, tier }), timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
     const response = await fetch(`${f.base}/api/cloud/plan`, { method: "POST", body, headers: { host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
-      "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudRequestSignature(f.secret, timestamp, nonce, "POST", "/api/cloud/plan", body)}` } });
+      "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudRequestSignature(f.secret, timestamp, nonce, "POST", "/api/cloud/plan", body)}` } });
     expect(response.status).toBe(200);
   };
   const starter = async () => {

@@ -41,7 +41,7 @@ afterEach(async () => {
 describe("Claude Code section", () => {
   // Shell exports as copied into the env block, plus FireConnect's header and model settings. Every value is fake.
   const settingsHome = (env: Record<string, string>, extra: Record<string, unknown> = {}) => {
-    const home = scratch("omb-docs-claude-");
+    const home = scratch("dusk-docs-claude-");
     mkdirSync(join(home, ".claude"), { recursive: true });
     writeFileSync(join(home, ".claude", "settings.json"), JSON.stringify({ ...extra, env }));
     return home;
@@ -88,7 +88,7 @@ describe("Claude Code section", () => {
     expect(label).toBe("Use a local model");
     const text = section("### Claude Code");
     expect(text).toContain(`If you also set \`ANTHROPIC_MODEL\` there, that model appears under **${label}** in the Claude model picker; pick it.`);
-    expect(text).toContain("FireConnect's model list doesn't show up in Dusk Bot, so add `ANTHROPIC_MODEL` yourself.");
+    expect(text).toContain("FireConnect's model list doesn't show up in dusk bot, so add `ANTHROPIC_MODEL` yourself.");
     expect(text).toContain("So do `ANTHROPIC_CUSTOM_MODEL_OPTION` and each `ANTHROPIC_DEFAULT_*_MODEL` that isn't a Claude model.");
     expect(text).toContain("`ANTHROPIC_DEFAULT_*_MODEL` and `CLAUDE_CODE_SUBAGENT_MODEL` aren't carried over.");
     expect(text).not.toMatch(/such as `ANTHROPIC_MODEL`, aren't carried/u);
@@ -103,7 +103,7 @@ describe("Claude Code section", () => {
 
 describe("OpenCode 2.x section", () => {
   it("lists provider models from ACP even when OpenCode 2 rejects models --verbose", async () => {
-    const dir = scratch("omb-docs-opencode2-");
+    const dir = scratch("dusk-docs-opencode2-");
     const catalog = await discoverOpenCodeModels({
       ...process.env, HOME: dir, USERPROFILE: dir,
       XDG_CONFIG_HOME: join(dir, "config"), XDG_DATA_HOME: join(dir, "data"),
@@ -115,7 +115,7 @@ describe("OpenCode 2.x section", () => {
       "openrouter/deepseek/deepseek-chat", "opencode/longcat-2.5-preview-free",
     ]);
     expect(catalog.options.map((option) => option.variants)).toEqual([[{ id: "high", label: "High" }], undefined]);
-    expect(section("### OpenCode")).toContain("Dusk Bot reads the model list from an ACP session on both OpenCode 1.x and 2.x, and each model's effort levels the same way");
+    expect(section("### OpenCode")).toContain("dusk bot reads the model list from an ACP session on both OpenCode 1.x and 2.x, and each model's effort levels the same way");
     expect(section("## OpenCode 2.x")).not.toContain("picker shows only OpenCode's free models");
   });
 });
@@ -127,7 +127,7 @@ describe("OpenCode config file", () => {
     return block![1]!.replace(/^ {3}/gmu, "");
   };
   const configHome = (content: string) => {
-    const home = scratch("omb-docs-opencode-json-");
+    const home = scratch("dusk-docs-opencode-json-");
     const dir = join(home, ".config", "opencode");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "opencode.json"), content);
@@ -155,7 +155,7 @@ describe("OpenCode config file", () => {
     expect(after.provider.myrouter).toBeUndefined();
 
     expect(section("### OpenCode")).toContain(
-      "Keep this file plain JSON, with no comments or trailing commas. Dusk Bot edits it when an OpenCode bot uses a model running on this computer.",
+      "Keep this file plain JSON, with no comments or trailing commas. dusk bot edits it when an OpenCode bot uses a model running on this computer.",
     );
   });
 });

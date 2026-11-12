@@ -27,7 +27,7 @@ const readBody = async (req: IncomingMessage) => (req as IncomingMessage & { bod
 
 let dir: string, sessions: SessionRegistry, lookups: Array<{ url: string; body: { id: string; sealed: string } }>, sent: Array<{ target: PushTarget; message: PushMessage }>;
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "omb-mobile-"));
+  dir = mkdtempSync(join(tmpdir(), "dusk-mobile-"));
   sessions = new SessionRegistry({ file: join(dir, "sessions.json") });
   lookups = [];
   sent = [];
@@ -77,7 +77,7 @@ describe("mobile link", () => {
     const redeemed = await redeem(mobile, { secret: payload.grant.secret, attemptId: "attempt-0001", device: { name: "Sid's iPhone", platform: "ios" } });
     expect(redeemed.status).toBe(200);
     const phone = redeemed.body as MobileRedeemResponse;
-    expect(phone.token).toMatch(/^omb_sess_/);
+    expect(phone.token).toMatch(/^dusk_sess_/);
     expect(phone.scopes.sort()).toEqual(["admin", "client"]);
     expect(sessions.authenticate(phone.token)?.label).toBe("Sid's iPhone");
     // a lost answer is fetched again with the same attempt, never a second device

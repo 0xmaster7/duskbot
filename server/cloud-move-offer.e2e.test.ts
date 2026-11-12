@@ -20,7 +20,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const journal = () => (existsSync(fx.journalFile) ? JSON.parse(readFileSync(fx.journalFile, "utf8")) as { phase: string; counts?: { bots: number } } | null : null);
 const names = async (side: CloudSendFixture["local"]) => ((await side("GET", "/api/bots")).body.bots as Array<{ name: string }>).map((bot) => bot.name);
 
-it("bots on this computer wait for the person's yes; the yes moves them, checked, onto the other harness, and the window opens it", async () => {
+it("bots on this computer wait for the person's yes; the yes moves them, checked, onto the other harness, and Open dusk cloud opens it", async () => {
   const { local, onCloud } = fx;
   for (const name of ["Nova", "Quill", "Rivet"]) {
     const bot = (await local("POST", "/api/bots", { name })).body.bot as { id: string };
@@ -51,11 +51,13 @@ it("bots on this computer wait for the person's yes; the yes moves them, checked
   expect(journal()?.counts?.bots).toBe(3);
   expect(await names(onCloud)).toEqual(expect.arrayContaining(["Nova", "Quill", "Rivet"]));
   expect(await names(local)).toEqual(expect.arrayContaining(["Nova", "Quill", "Rivet"]));
-  expect(fx.spies.opened).toContain("cloud");
-
-  const done = await fx.call<CloudSendNotice>("cloud-send:notice", "cloud");
+  expect(fx.spies.opened, "the window waits for Open dusk cloud").not.toContain("cloud");
+  const done = await fx.call<CloudSendNotice>("cloud-send:notice", "local");
   expect(done.offer).toBeUndefined();
   expect(done.move).toMatchObject({ phase: "done", counts: { bots: 3 } });
+  const opened = await fx.call<CloudSendNotice>("cloud-send:move-open", "local");
+  expect(fx.spies.opened).toEqual(["cloud"]);
+  expect(opened.move, "All moved is said once").toBeUndefined();
   const steps = fx.tracked.filter(([name]) => name === "cloud_move").map(([, props]) => props.step);
   expect(fx.tracked.slice(0, 2)).toEqual([["cloud_move_prompt", { action: "dismissed" }], ["cloud_move_banner", { action: "accepted" }]]);
   expect(steps[0]).toBe("started");

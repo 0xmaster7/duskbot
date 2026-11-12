@@ -37,7 +37,7 @@ require.cache[electronEntry] = {
   loaded: true,
   exports: fakeElectron,
 };
-process.argv.push("--omb-account-gate=1");
+process.argv.push("--dusk-account-gate=1");
 require("./preload.cjs");
 
 const emit = (channel, ...args) => {
@@ -45,8 +45,8 @@ const emit = (channel, ...args) => {
 };
 const subscriberCount = (channel) => listeners.get(channel)?.size ?? 0;
 
-test("exposes the full local-shell bridge on window.ogb", () => {
-  assert.equal(exposed.name, "ogb");
+test("exposes the full local-shell bridge on window.duskDesktop", () => {
+  assert.equal(exposed.name, "duskDesktop");
   assert.equal(typeof exposed.api, "object");
   assert.equal(typeof exposed.api.onOpenAppSettings, "function");
 });

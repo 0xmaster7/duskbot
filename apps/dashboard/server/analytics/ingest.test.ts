@@ -21,7 +21,7 @@ describe("site tracker and app ingest", () => {
   let dataDir: string, time: number;
   const csrf = new Map<string, string>();
   beforeEach(() => {
-    dataDir = mkdtempSync(join(tmpdir(), "omb-ingest-test-"));
+    dataDir = mkdtempSync(join(tmpdir(), "dusk-ingest-test-"));
     time = Date.parse("2026-11-12T12:00:00Z");
     sink = memorySink(() => time);
     mailer = memoryMailer();

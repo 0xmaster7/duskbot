@@ -47,7 +47,7 @@ export async function connectVerb(ctx: VerbContext): Promise<VerbOutcome> {
   }
   let code = flag(ctx.flags, "code")?.replace(/\s+/g, "");
   if (!code && !isLoopback(origin)) throw usageError("a workspace elsewhere needs a pairing code", "open Settings → Phone → Set up a phone there, then pass --code CODE");
-  const unreachable = () => new HeadlessError(`no Dusk Bot server answers at ${origin}`, EXIT.unreachable, "check the address, and that the server is running");
+  const unreachable = () => new HeadlessError(`no dusk bot server answers at ${origin}`, EXIT.unreachable, "check the address, and that the server is running");
   const describe = (path: string) => call(origin, path).catch(() => { throw unreachable(); });
   // a server from before the rename answers only under the old path
   let described = await describe("/.well-known/duskbot/environment");

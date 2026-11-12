@@ -337,7 +337,7 @@ export class McpOAuthManager {
       const expected = new URL(flow.redirectUri);
       if (!flow.server && expected.host === host?.trim().toLowerCase() && sameSecret(state, flow.state)) match = flow;
     }
-    if (!match) return { status: 400, text: "Invalid sign-in callback. Return to Dusk Bot and try again." };
+    if (!match) return { status: 400, text: "Invalid sign-in callback. Return to dusk bot and try again." };
     return this.answer(match, new URL(`${new URL(match.redirectUri).origin}${CALLBACK_PATH}${search.startsWith("?") ? search : ""}`));
   }
 
@@ -429,7 +429,7 @@ export class McpOAuthManager {
       const response = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "Dusk Bot", version: "1" } } }),
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "dusk bot", version: "1" } } }),
         redirect: "error",
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
@@ -449,7 +449,7 @@ export class McpOAuthManager {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({
-        client_name: "Dusk Bot",
+        client_name: "dusk bot",
         redirect_uris: [redirectUri],
         grant_types: ["authorization_code", "refresh_token"],
         response_types: ["code"],
@@ -460,7 +460,7 @@ export class McpOAuthManager {
     });
     const body = await response.json().catch(() => ({})) as { client_id?: unknown };
     if (!response.ok || typeof body.client_id !== "string" || !body.client_id) {
-      throw new RegistrationRefused("This server would not register Dusk Bot for sign-in. Try again later.");
+      throw new RegistrationRefused("This server would not register dusk bot for sign-in. Try again later.");
     }
     return body.client_id;
   }
@@ -554,12 +554,12 @@ export class McpOAuthManager {
       if (request.headers.host !== expected.host || !request.url?.startsWith("/")) throw new Error("host");
       callback = new URL(request.url, flow.redirectUri);
     } catch {
-      send(request, response, 400, "Invalid sign-in callback. Return to Dusk Bot and try again.");
+      send(request, response, 400, "Invalid sign-in callback. Return to dusk bot and try again.");
       return;
     }
     const answer = request.method === "GET"
       ? await this.answer(flow, callback)
-      : { status: 400, text: "Invalid or expired sign-in. Return to Dusk Bot and try again." };
+      : { status: 400, text: "Invalid or expired sign-in. Return to dusk bot and try again." };
     send(request, response, answer.status, answer.text);
   }
 
@@ -569,9 +569,9 @@ export class McpOAuthManager {
       await this.acceptCallback(flow, callback);
       return flow.status.phase === "failed"
         ? { status: 400, text: `${flow.status.message} You can close this tab.` }
-        : { status: 200, text: "Signed in. You can close this tab and return to Dusk Bot." };
+        : { status: 200, text: "Signed in. You can close this tab and return to dusk bot." };
     } catch (error) {
-      return { status: error instanceof McpSignInError ? error.status : 400, text: "Invalid or expired sign-in. Return to Dusk Bot and try again." };
+      return { status: error instanceof McpSignInError ? error.status : 400, text: "Invalid or expired sign-in. Return to dusk bot and try again." };
     }
   }
 

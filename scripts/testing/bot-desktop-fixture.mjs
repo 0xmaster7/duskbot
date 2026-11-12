@@ -97,7 +97,7 @@ export async function connectMcp(container, endpoint = socket) {
     });
     child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
   });
-  await rpc("initialize", { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "omb-desktop-fixture", version: "1" } });
+  await rpc("initialize", { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "dusk-desktop-fixture", version: "1" } });
   child.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + "\n");
   return {
     list: () => rpc("tools/list", {}),

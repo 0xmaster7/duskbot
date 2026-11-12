@@ -35,7 +35,7 @@ function desktop({ account = { status: "connected", clouds: [HOME] } as CloudAcc
     cloudSendPage: { notice: vi.fn(async () => ({ ready: true })), onNotice: vi.fn(() => () => {}), keepHere: vi.fn(async () => keep), setKeepHere: vi.fn(async (on: boolean) => ({ ...keep, on })) },
     cloudPlan: { state: vi.fn(async () => plan) },
   };
-  (window as unknown as { ogb: unknown }).ogb = bridges;
+  (window as unknown as { duskDesktop: unknown }).duskDesktop = bridges;
   return bridges;
 }
 
@@ -54,7 +54,7 @@ beforeEach(() => {
 afterEach(() => {
   flushSync(() => root.unmount());
   host.remove();
-  delete (window as unknown as { ogb?: unknown }).ogb;
+  delete (window as unknown as { duskDesktop?: unknown }).duskDesktop;
 });
 
 describe("the cloud desktop row", () => {

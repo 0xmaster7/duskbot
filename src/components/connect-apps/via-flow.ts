@@ -31,7 +31,7 @@ export function classifyViaError(cause: unknown): { kind: "signedOut" } | { kind
   return { kind: "refused", message: cause.message };
 }
 
-const PENDING = "omb.composioConnect.pending";
+const PENDING = "dusk.composioConnect.pending";
 type Pending = Record<string, { url: string; since: number }>;
 
 /** Sign-ins still out, kept across a reload or a restart so the wait picks up where it was. */

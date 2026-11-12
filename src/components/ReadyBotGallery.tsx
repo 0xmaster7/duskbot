@@ -35,7 +35,7 @@ export function ReadyBotGallery({ search, onDialog, onAdded }: {
     const ready = readyBot(id);
     if (!ready || making || state.botCreationPending || stoppedAtBotLimit(state)) return;
     // a paired device may not read the host's New bot defaults the bot is filled from
-    if (window.ogb?.remoteClient?.active) { dispatch({ type: "newBot", onCreated: onAdded }); return; }
+    if (window.duskDesktop?.remoteClient?.active) { dispatch({ type: "newBot", onCreated: onAdded }); return; }
     setMaking(id);
     dispatch({ type: "botCreationPending", on: true });
     let draft: BotCreationDraft | undefined;

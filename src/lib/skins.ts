@@ -46,9 +46,9 @@ export const THEME_SKINS = { light: "grok", dark: "grok-dark" } as const satisfi
 export const DEFAULT_SKIN_CHOICE: SkinChoice = "system";
 export const PRIOR_INSTALL_SKIN: SkinId = "midnight";
 
-const KEY = "omb-skin";
+const KEY = "dusk-skin";
 // set once every install has been moved onto the Grok look; a pick made after that sticks
-const GROK_MOVE_KEY = "omb-skin-grok";
+const GROK_MOVE_KEY = "dusk-skin-grok";
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
 function isSkinId(value: unknown): value is SkinId {
@@ -116,7 +116,7 @@ function paintSkin(id: SkinId): void {
   for (const listener of listeners) listener();
   // On Windows the caption buttons sit in a native overlay the main process paints, out of CSS's reach.
   try {
-    void window.ogb?.applySkin?.(id)?.catch(() => undefined);
+    void window.duskDesktop?.applySkin?.(id)?.catch(() => undefined);
   } catch {
   }
 }

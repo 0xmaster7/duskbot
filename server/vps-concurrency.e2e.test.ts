@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 import { expect, it } from "vitest";
 import WebSocket from "ws";
 
-import { launchVerificationServer, type VerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer, type VerificationServer } from "../scripts/control-dusk.ts";
 import { launchCloudSendFixture } from "../scripts/testing/cloud-send-fixture.ts";
 import { createTeamVpsFixture } from "../scripts/testing/team-vps-fixture.ts";
 import { openSse } from "./testing/sse.ts";

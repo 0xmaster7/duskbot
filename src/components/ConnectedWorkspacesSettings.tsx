@@ -7,10 +7,10 @@ import { cloudColor } from "@/lib/cloud-look";
 import { textFieldCls } from "./ui/GrokDialog";
 import { openAddVps, vpsLinkAvailable } from "@/lib/vps-link";
 
-type SavedWorkspaces = Awaited<ReturnType<NonNullable<NonNullable<Window["ogb"]>["environments"]>["state"]>>;
+type SavedWorkspaces = Awaited<ReturnType<NonNullable<NonNullable<Window["duskDesktop"]>["environments"]>["state"]>>;
 
 export function ConnectedWorkspacesSettings() {
-  const bridge = window.ogb?.environments;
+  const bridge = window.duskDesktop?.environments;
   const [saved, setSaved] = useState<SavedWorkspaces | null>(null);
   const [address, setAddress] = useState("");
   const [name, setName] = useState("");
@@ -50,7 +50,7 @@ export function ConnectedWorkspacesSettings() {
     }
   };
   if (!bridge) return <RowsCard><NoteRow>{t("settings.s2.servers.desktopOnly")}</NoteRow></RowsCard>;
-  const confirmAction = (message: string) => window.ogb?.confirm ? window.ogb.confirm(message) : window.confirm(message);
+  const confirmAction = (message: string) => window.duskDesktop?.confirm ? window.duskDesktop.confirm(message) : window.confirm(message);
   const locals = saved?.environments.filter(entry => entry.kind === "local") ?? [];
   const forgetEntry = locals.find(entry => entry.id === envForget);
   // a quiet trash button at the end of a row, named for what it forgets

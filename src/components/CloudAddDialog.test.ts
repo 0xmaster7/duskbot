@@ -39,8 +39,8 @@ const free: CloudAccountState = { status: "connected", account: { id: "a", email
 const paid = (extra: Partial<CloudAccountState> = {}): CloudAccountState => ({ ...free, entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: NOW + 30 * DAY, version: 2 }, ...extra });
 const trial = (extra: Partial<CloudTrial> = {}): CloudTrial => ({ state: "active", tier: "pro", endsAt: NOW + 7 * DAY, amount: 4900, chargeAt: NOW + 7 * DAY, holdUntil: null, deleteAt: null, keep: "none", ...extra });
 const credit: CloudCredit = { grantedUsd: 5, remainingUsd: 5, state: "active" };
-const ready = { status: "ready" as const, origin: "https://omb-u-1.fly.dev" };
-const acme = (machine: CloudTeam["machine"] = { status: "ready", origin: "https://omb-t-2.fly.dev" }): CloudTeam => ({ id: "team-acme", name: "Acme", role: "owner", machine });
+const ready = { status: "ready" as const, origin: "https://dusk-u-1.fly.dev" };
+const acme = (machine: CloudTeam["machine"] = { status: "ready", origin: "https://dusk-t-2.fly.dev" }): CloudTeam => ({ id: "team-acme", name: "Acme", role: "owner", machine });
 const onTeam = (machine?: CloudTeam["machine"]): CloudAccountState => paid({ entitlement: { plan: "pro", tier: "team", status: "active", expiresAt: NOW + 30 * DAY, version: 2 }, teams: [acme(machine)] });
 
 type Node = ReactElement<Record<string, any>>;
@@ -76,12 +76,12 @@ beforeEach(() => { vi.clearAllMocks(); setLocale("en"); });
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); setLocale("en"); });
 
 describe("each screen of the sheet says one thing and offers one next step", () => {
-  it("Choose: Dusk Cloud in a line, then one card per plan with only what sets it apart and its own button; Most popular on the Admin's recommended plan; the money and what every plan includes once", () => {
+  it("Choose: dusk cloud in a line, then one card per plan with only what sets it apart and its own button; Most popular on the Admin's recommended plan; the money and what every plan includes once", () => {
     const { html, tree, handlers } = panel({ kind: "offer", offer: TRIAL, signedOut: true, notice: null });
     const card = (hours: number, max: number, voice: string, cpus: number, swap: number) => [`${hours} cloud desktop hours a month`, `10 GB storage, grows to ${max} GB`,
       `Voice replies: ${voice}`, "Always on, around the clock", "Cloud desktops: as many as your bots need", "Fair use: up to 15 at once", `${cpus} shared CPUs · ${cpus} GB memory`,
       `Plus ${swap} GB of swap`, "Daily backups, kept 14 days", "Start free trial"];
-    inOrder(text(html), ["Dusk Cloud", "Your bots, always on.", "Runs your bots 24/7 in the cloud, even when this computer is off.", "Compare plans", "Choose your plan",
+    inOrder(text(html), ["dusk cloud", "Your bots, always on.", "Runs your bots 24/7 in the cloud, even when this computer is off.", "Compare plans", "Choose your plan",
       "Starter", "$15", "/month", "Your bots keep working with your laptop closed, at the lowest price.", ...card(100, 20, "about 30 minutes of speech a month", 2, 3),
       "Free for 7 days, then $15/month + tax",
       "Pro", "Most popular", "$49", "/month", "Your bots keep working 24/7, even when your laptop is closed.", ...card(300, 100, "about an hour of speech a month", 4, 4),
@@ -165,9 +165,9 @@ describe("each screen of the sheet says one thing and offers one next step", () 
   });
 
   it("checking, Cloud out of reach and a checkout that did not open each say so, with Try again", () => {
-    expect(text(panel({ kind: "checking" }).html)).toContain("Checking with Dusk Cloud…");
+    expect(text(panel({ kind: "checking" }).html)).toContain("Checking with dusk cloud…");
     const unreachable = panel({ kind: "unreachable" });
-    expect(text(unreachable.html)).toContain("Can't reach Dusk Cloud right now. Check your connection and try again.");
+    expect(text(unreachable.html)).toContain("Can't reach dusk cloud right now. Check your connection and try again.");
     button(unreachable.tree, "Try again")!.props.onClick(); expect(unreachable.handlers.retry).toHaveBeenCalledOnce();
     expect(text(panel({ kind: "error", reason: "failed" }).html)).toContain("Checkout couldn't open. Nothing was charged. Try again.");
     expect(text(panel({ kind: "error", reason: "rate-limited" }).html)).toContain("You've opened several checkouts in the last hour.");
@@ -184,7 +184,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     button(tree, "Plans")!.props.onClick(); expect(handlers.back).toHaveBeenCalledOnce();
     button(tree, "Continue in browser")!.props.onClick(); expect(handlers.browser).toHaveBeenCalledOnce();
     expect(text(panel({ kind: "sign-in", phase: { step: "email", intent: false, problem: null } }, { email: "else@example.test" }).html))
-      .toMatch(/^Plans Sign in to Dusk Cloud(?!.*from your profile)/);
+      .toMatch(/^Plans Sign in to dusk cloud(?!.*from your profile)/);
     expect(text(panel({ kind: "sign-in", phase: { step: "email", intent: true, problem: null } }, { profileEmail: null }).html)).not.toContain("from your profile");
   });
 
@@ -225,7 +225,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     expect(text(expired.html)).toContain("That code can't be used any more. Send a new one.");
     button(expired.tree, "Send a new code")!.props.onClick(); expect(expired.handlers.resend).toHaveBeenCalledOnce();
     for (const [problem, line] of [["signup-closed", "New Cloud accounts aren't available yet."], ["device-limit", "Sign one out on your Plan page"],
-      ["rate-limited", "Too many codes were asked for just now."], ["failed", "Couldn't reach Dusk Cloud."]] as const) expect(text(panel(code(problem)).html)).toContain(line);
+      ["rate-limited", "Too many codes were asked for just now."], ["failed", "Couldn't reach dusk cloud."]] as const) expect(text(panel(code(problem)).html)).toContain(line);
     const sso = panel({ kind: "sign-in", phase: { step: "email", intent: true, problem: "sso" } });
     expect(text(sso.html)).toContain("Your organization uses single sign-on. Continue in browser");
     expect(text(sso.html)).not.toContain("Work account with single sign-on?");
@@ -302,7 +302,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     button(tree, "Open Studio")!.props.onClick(); expect(handlers.openCloud).toHaveBeenCalledOnce();
     const sent = text(panel({ kind: "has-cloud" }, { interest: "sent" }).html);
     expect(sent).toContain("Thanks. We'll email you when you can add another Cloud."); expect(sent).not.toContain("Email me");
-    expect(text(panel({ kind: "has-cloud" }, { interest: "failed" }).html)).toContain("Couldn't reach Dusk Cloud, so nothing was saved.");
+    expect(text(panel({ kind: "has-cloud" }, { interest: "failed" }).html)).toContain("Couldn't reach dusk cloud, so nothing was saved.");
     for (const word of ["error", "Error", "already have"]) expect(text(html)).not.toContain(word);
   });
 
@@ -328,7 +328,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     expect(sheet("offer"), "over a night card the close button takes the card's light ink").toContain("group-has-[[data-night-card]]/sheet:text-(--cloud-night-ink-quiet)");
     expect(sheet("offer"), "above Settings and the welcome flow (z-50), which it opens over").toContain("fixed inset-0 z-[60]");
     expect(sheet("offer")).not.toContain("data-cloud-staging");
-    expect(text(sheet("offer", true))).toMatch(/Staging ?: This app uses the staging Dusk Cloud: test payments and test Clouds, not real ones\./);
+    expect(text(sheet("offer", true))).toMatch(/Staging ?: This app uses the staging dusk cloud: test payments and test Clouds, not real ones\./);
   });
 
   it("a click beside the sheet closes it while choosing, never mid sign-in, checkout or setup", () => {
@@ -375,7 +375,7 @@ describe("the sheet", () => {
       look: vi.fn(async () => ({ name: "My Cloud", color: "blue" })), setLook: vi.fn(async (name: string, color: string) => ({ name, color })), sheet: vi.fn(async () => {}),
       readySeen: vi.fn(async () => {}),
       connectHome: vi.fn(async () => account), openTeam: vi.fn(async () => {}) };
-    vi.stubGlobal("window", { ogb: { cloudAccount: bridge }, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+    vi.stubGlobal("window", { duskDesktop: { cloudAccount: bridge }, addEventListener: vi.fn(), removeEventListener: vi.fn() });
     vi.stubGlobal("document", { querySelector: () => null, activeElement: opener, body: {}, hasFocus: () => focused });
   });
 
@@ -415,9 +415,9 @@ describe("the sheet", () => {
   it("someone with a Cloud buys another in the same sheet, which sends where they started with its checkout", async () => {
     f.state = { ...f.state, cloudAdd: { source: "app_whats_new_team" } };
     account = { ...free, entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: NOW + 86_400_000, version: 2 },
-      machine: { status: "ready", origin: "https://omb-c1.fly.dev" } as CloudAccountState["machine"],
-      clouds: [{ id: "c1", name: "My Cloud", color: null, role: "owner", tier: "pro", runsOn: "cloud", status: "ready", origin: "https://omb-c1.fly.dev", teamId: null, primary: true, managed: true }] };
-    vi.stubGlobal("window", { ogb: { cloudAccount: bridge, cloudAdd: { state: vi.fn(), start: vi.fn() } }, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+      machine: { status: "ready", origin: "https://dusk-c1.fly.dev" } as CloudAccountState["machine"],
+      clouds: [{ id: "c1", name: "My Cloud", color: null, role: "owner", tier: "pro", runsOn: "cloud", status: "ready", origin: "https://dusk-c1.fly.dev", teamId: null, primary: true, managed: true }] };
+    vi.stubGlobal("window", { duskDesktop: { cloudAccount: bridge, cloudAdd: { state: vi.fn(), start: vi.fn() } }, addEventListener: vi.fn(), removeEventListener: vi.fn() });
     await settle();
     expect(render()).toContain('data-add-cloud-flow="app_whats_new_team"');
   });
@@ -484,7 +484,7 @@ describe("the sheet", () => {
   it("the countdown stops when the window loses focus: nothing switches while the person is elsewhere", async () => {
     vi.useFakeTimers();
     const listeners = new Map<string, () => void>();
-    vi.stubGlobal("window", { ogb: { cloudAccount: bridge }, addEventListener: vi.fn((name: string, listener: () => void) => listeners.set(name, listener)),
+    vi.stubGlobal("window", { duskDesktop: { cloudAccount: bridge }, addEventListener: vi.fn((name: string, listener: () => void) => listeners.set(name, listener)),
       removeEventListener: vi.fn((name: string) => listeners.delete(name)) });
     account = paid({ machine: ready, checkout: { plan: "pro", startedAt: NOW - 120_000, link: true } });
     expect(await settle()).toContain("Opening in 3…");
@@ -610,7 +610,7 @@ describe("the sheet", () => {
 
   it("opened at Sign in (the card, Settings): the sign-in first, without a plan; signed in, a ready Cloud is theirs to open", async () => {
     f.state = { cloudAdd: { source: "app_settings", signIn: true }, config: {} };
-    expect(await settle()).toContain("Sign in to Dusk Cloud");
+    expect(await settle()).toContain("Sign in to dusk cloud");
     bridge.signInVerify.mockResolvedValueOnce({ outcome: "signed-in", state: paid({ machine: ready }) });
     tree().find(node => node.props.id === "cloud-add-email")!.props.onChange({ target: { value: "me@example.test" } });
     await settle();
@@ -624,7 +624,7 @@ describe("the sheet", () => {
 
   it("signed in here to a Team plan: the team's Cloud is ready to open, never a My Cloud being set up; Open opens the team and closes", async () => {
     f.state = { cloudAdd: { source: "app_settings", signIn: true }, config: {} };
-    expect(await settle()).toContain("Sign in to Dusk Cloud");
+    expect(await settle()).toContain("Sign in to dusk cloud");
     bridge.signInVerify.mockResolvedValueOnce({ outcome: "signed-in", state: onTeam() });
     tree().find(node => node.props.id === "cloud-add-email")!.props.onChange({ target: { value: "me@example.test" } });
     await settle();
@@ -655,7 +655,7 @@ describe("the sheet", () => {
   it("Settings' Sign in after a saved sign-in was removed signs in here, instead of handing back to Settings at once", async () => {
     f.state = { cloudAdd: { source: "app_settings", signIn: true }, config: {} };
     account = { status: "signed-out", message: "restore-removed" }; offer = null;
-    expect(await settle()).toContain("Sign in to Dusk Cloud");
+    expect(await settle()).toContain("Sign in to dusk cloud");
     expect(f.dispatch).not.toHaveBeenCalledWith({ type: "closeCloudAdd" });
     tree().find(node => node.props.id === "cloud-add-email")!.props.onChange({ target: { value: EMAIL } }); await settle();
     tree().find(node => node.type === "form")!.props.onSubmit({ preventDefault() {} }); await flush();
@@ -685,7 +685,7 @@ describe("the sheet", () => {
   it("is only on This computer's page, and only while asked for", async () => {
     f.state = { cloudAdd: null }; expect(await settle()).toBe("");
     f.state = { cloudAdd: { source: "app_card" } };
-    vi.stubGlobal("window", { ogb: { remoteClient: { active: true }, cloudAccount: bridge } }); expect(await settle()).toBe("");
+    vi.stubGlobal("window", { duskDesktop: { remoteClient: { active: true }, cloudAccount: bridge } }); expect(await settle()).toBe("");
     vi.stubGlobal("window", {}); expect(await settle()).toBe("");
   });
 

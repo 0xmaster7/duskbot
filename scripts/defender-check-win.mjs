@@ -388,7 +388,7 @@ async function appPage(ms) {
       for (const page of pages.filter((entry) => entry.type === "page" && /^http:\/\/(?:127\.0\.0\.1|localhost):\d+\//.test(entry.url))) {
         const tab = await devtools(page.webSocketDebuggerUrl);
         try {
-          if (await tab.evaluate("typeof window.ogb?.localControl?.retry === 'function'")) return page;
+          if (await tab.evaluate("typeof window.duskDesktop?.localControl?.retry === 'function'")) return page;
         } finally {
           tab.close();
         }
@@ -401,7 +401,7 @@ async function appPage(ms) {
   return null;
 }
 
-const SHOWN = "window.ogb.getCapabilities().then(({ localComputer }) => localComputer)";
+const SHOWN = "window.duskDesktop.getCapabilities().then(({ localComputer }) => localComputer)";
 
 /** The call the Start screen control button makes. */
 async function pressStart() {
@@ -412,7 +412,7 @@ async function pressStart() {
     const shown = await tab.evaluate(SHOWN);
     const before = (await processes()).driver;
     const began = Date.now();
-    const answer = await tab.evaluate("window.ogb.localControl.retry()", 180_000);
+    const answer = await tab.evaluate("window.duskDesktop.localControl.retry()", 180_000);
     const seconds = Math.round((Date.now() - began) / 1000);
     await sleep(3000);
     const after = (await processes()).driver;
@@ -515,9 +515,9 @@ function judge(r) {
   const ourEvents = (r.findings?.events ?? []).filter((event) => OURS.test(`${event.path} ${event.process}`));
   const ourDetections = (r.findings?.detections ?? []).filter((detection) => detection.resources.some((resource) => OURS.test(resource)));
   for (const event of ourEvents) {
-    problems.push(`Windows Security flagged ${event.path || "a Dusk Bot file"}: ${event.threat || `event ${event.id}`}${event.action ? ` (${event.action})` : ""}`);
+    problems.push(`Windows Security flagged ${event.path || "a dusk bot file"}: ${event.threat || `event ${event.id}`}${event.action ? ` (${event.action})` : ""}`);
   }
-  if (!ourEvents.length && ourDetections.length) problems.push(`Windows Security recorded ${ourDetections.length} detection(s) in Dusk Bot's files`);
+  if (!ourEvents.length && ourDetections.length) problems.push(`Windows Security recorded ${ourDetections.length} detection(s) in dusk bot's files`);
   if (r.download?.error) problems.push(`the installer couldn't be saved to Downloads: ${r.download.error}`);
   else if (r.download && !r.download.stillThere) problems.push("the installer was gone 15 s after it was saved to Downloads");
   if (r.installerScan?.ran && !r.installerScan.clean) problems.push(`Defender's scan of the installer found ${r.installerScan.threats.join(", ") || "a threat"}`);
@@ -555,9 +555,9 @@ function render(r, verdict) {
   const before = r.asFound ?? {};
   const after = r.protection ?? {};
 
-  add("## Windows Security and the Dusk Bot installer");
+  add("## Windows Security and the dusk bot installer");
   add();
-  add(`Dusk Bot ${r.version}, commit \`${String(r.commit).slice(0, 12)}\`, on ${r.machine?.os ?? "Windows"} ${r.machine?.version ?? ""} (GitHub's ${r.machine?.image || "windows-latest"}).`);
+  add(`dusk bot ${r.version}, commit \`${String(r.commit).slice(0, 12)}\`, on ${r.machine?.os ?? "Windows"} ${r.machine?.version ?? ""} (GitHub's ${r.machine?.image || "windows-latest"}).`);
   add();
   if (verdict.problems.length) {
     add("**Verdict: something went wrong for a person installing the app.**");
@@ -654,7 +654,7 @@ function render(r, verdict) {
     else {
       const answer = r.startScreen.answer ?? {};
       add(`- Before pressing it, the app showed: ${shownLine(r.startScreen.shown)}.`);
-      add(`- Start screen control (the button's own call, \`window.ogb.localControl.retry()\`): ${answer.status === "ready" ? "**worked**" : "**didn't work**"} in ${r.startScreen.seconds} s, answer \`${JSON.stringify(answer)}\`; ${DRIVER} ${r.startScreen.after?.length ? `running afterwards (pid ${r.startScreen.after.map((entry) => entry.pid).join(", ")}; before: ${r.startScreen.before?.map((entry) => entry.pid).join(", ") || "none"})` : "**not running afterwards**"}.`);
+      add(`- Start screen control (the button's own call, \`window.duskDesktop.localControl.retry()\`): ${answer.status === "ready" ? "**worked**" : "**didn't work**"} in ${r.startScreen.seconds} s, answer \`${JSON.stringify(answer)}\`; ${DRIVER} ${r.startScreen.after?.length ? `running afterwards (pid ${r.startScreen.after.map((entry) => entry.pid).join(", ")}; before: ${r.startScreen.before?.map((entry) => entry.pid).join(", ") || "none"})` : "**not running afterwards**"}.`);
       add(`- Afterwards the app showed: ${shownLine(r.startScreen.shownAfter)}.`);
     }
   }
@@ -670,7 +670,7 @@ function render(r, verdict) {
     }
     add(`- Defender Operational events ${DEFENDER_EVENTS.join(", ")}: ${findings.events.length ? "" : "none."}`);
     for (const event of findings.events) {
-      add(`  - ${event.time}, event ${event.id}: ${event.threat || "(no name)"}${event.path ? ` in ${event.path}` : ""}${event.source ? `, by ${event.source}` : ""}${event.action ? `, action ${event.action}` : ""}${OURS.test(`${event.path} ${event.process}`) ? "" : " (not Dusk Bot's)"}.`);
+      add(`  - ${event.time}, event ${event.id}: ${event.threat || "(no name)"}${event.path ? ` in ${event.path}` : ""}${event.source ? `, by ${event.source}` : ""}${event.action ? `, action ${event.action}` : ""}${OURS.test(`${event.path} ${event.process}`) ? "" : " (not dusk bot's)"}.`);
     }
   }
   add();

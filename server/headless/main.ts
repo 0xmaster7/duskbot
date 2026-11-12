@@ -76,7 +76,7 @@ export const VERB_HELP: Record<string, string> = {
   Get a token for a workspace you reach over the network, saved to FILE (only you can read it).
   On this computer's own server the code is made for you; elsewhere, get one from Settings → Phone.
   Then use it: --url URL --token-file FILE (or DUSK_URL and DUSK_TOKEN).`,
-  mcp: "duskbot mcp\n  Serve the Dusk Bot MCP tools on stdin and stdout, for an agent (docs/mcp-server.md).",
+  mcp: "duskbot mcp\n  Serve the dusk bot MCP tools on stdin and stdout, for an agent (docs/mcp-server.md).",
 };
 
 export interface HeadlessOptions {
@@ -84,7 +84,7 @@ export interface HeadlessOptions {
   io?: HeadlessIo;
   callTool?: ClientDeps["callTool"];
   request?: ClientDeps["request"];
-  /** control-omb: never change something on a server it merely found. */
+  /** control-dusk: never change something on a server it merely found. */
   requireExplicitForMutations?: boolean;
   defaultWaitMs?: number;
   signal?: AbortSignal;

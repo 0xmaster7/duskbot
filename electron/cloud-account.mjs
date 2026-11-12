@@ -78,7 +78,7 @@ function customOrigin(value) {
 export function cloudOrigin(value = CLOUD_ORIGIN, fixture = false, custom = false) {
   const url = new URL(value);
   if (value !== url.origin || (![CLOUD_ORIGIN, STAGING_CLOUD_ORIGIN].includes(value) && !(custom && customOrigin(value)) && !(fixture && url.protocol === "http:" && ["127.0.0.1", "[::1]"].includes(url.hostname)))) {
-    throw new Error("Invalid Dusk Cloud address.");
+    throw new Error("Invalid dusk cloud address.");
   }
   return value;
 }
@@ -209,7 +209,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       !(input.expiresAt === null || timestamp(input.expiresAt)) || !Number.isSafeInteger(input.version) || input.version < 0) throw new Error("Invalid Cloud entitlement.");
     const plan = input.plan === "free" ? "free" : "pro";
     if (input.status === "active" && (plan !== "pro" || input.expiresAt === null || input.expiresAt <= serverNow())) throw new Error("Invalid active Cloud entitlement.");
-    if (newer && !newerPlans.has(input.plan)) { newerPlans.add(input.plan); warn(`[cloud] Dusk Cloud sent plan "${input.plan}", newer than this app; treating it as paid.`); }
+    if (newer && !newerPlans.has(input.plan)) { newerPlans.add(input.plan); warn(`[cloud] dusk cloud sent plan "${input.plan}", newer than this app; treating it as paid.`); }
     const tier = typeof input.tier === "string" && TIER.test(input.tier) ? input.tier : newer ? input.plan : undefined;
     return { plan, ...(tier ? { tier } : {}), status: input.status,
       expiresAt: input.expiresAt, version: input.version };
@@ -483,7 +483,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     if (typeof plan !== "string" || !TIER.test(plan) || !CHECKOUT_SOURCES.includes(source)) throw new Error("Invalid Cloud checkout.");
     const current = state();
     if (current.status === "signed-out" && !grant) return { outcome: "signing-in", state: await begin({ plan, source }) };
-    if (current.status !== "connected" || !grant) throw new Error("Sign in to Dusk Cloud before choosing a plan.");
+    if (current.status !== "connected" || !grant) throw new Error("Sign in to dusk cloud before choosing a plan.");
     const signedIn = grant;
     let destination;
     try {
@@ -568,7 +568,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     /** The Cloud this checkout bought was opened, announced or shown ready: the purchase is over (Add a Cloud… says one Cloud for now). */
     checkoutDone() { if (opened && !opened.done) { opened = { ...opened, done: true }; publish(value); } },
     async signInAgain() {
-      if (state().status !== "reauth-required") throw new Error("This computer is still signed in to Dusk Cloud.");
+      if (state().status !== "reauth-required") throw new Error("This computer is still signed in to dusk cloud.");
       publish({ status: "connecting" });
       const forgotten = await forget({ quiet: true });
       if (forgotten.status === "unavailable") return forgotten;
@@ -674,7 +674,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     async interest(kind) {
       if (kind !== "another_cloud") throw new Error("Invalid Cloud interest.");
       const signedIn = grant;
-      if (!signedIn || state().status !== "connected") throw new Error("Sign in to Dusk Cloud first.");
+      if (!signedIn || state().status !== "connected") throw new Error("Sign in to dusk cloud first.");
       const result = await request("interest", { method: "POST", body: { kind }, token: signedIn.token });
       if (result?.ok !== true) throw new Error("Invalid Cloud response.");
     },
@@ -899,7 +899,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
      * `installation`: this computer, which the Admin lets take it only if it is the one the Cloud's things come home to. */
     async exportHome({ installation } = {}) {
       const current = grant;
-      if (!current) throw new Error("Sign in to Dusk Cloud first.");
+      if (!current) throw new Error("Sign in to dusk cloud first.");
       let result;
       try { result = await request("export", { method: "POST", body: installation ? { installation } : {}, token: current.token }); } catch (error) {
         if (error?.status === 409) return { notHeld: true };
@@ -960,7 +960,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       catch (error) { if (error?.status === 402 || error?.status === 404) return null; throw error; }
       let relay = null;
       try { relay = typeof result?.url === "string" ? new URL(result.url) : null; } catch { relay = null; }
-      if (result?.cloudContractVersion !== 1 || !relay || relay.origin !== origin || typeof result.token !== "string" || !/^omb_xd_[A-Za-z0-9_-]{43}$/.test(result.token)) {
+      if (result?.cloudContractVersion !== 1 || !relay || relay.origin !== origin || typeof result.token !== "string" || !/^(?:dusk|omb)_xd_[A-Za-z0-9_-]{43}$/.test(result.token)) {
         throw new Error("Invalid Cloud X research response.");
       }
       return { url: result.url, token: result.token };
@@ -976,7 +976,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       catch (error) { if (error?.status === 404) return null; throw error; }
       let target = null;
       try { target = typeof result?.url === "string" ? new URL(result.url) : null; } catch { target = null; }
-      if (result?.cloudContractVersion !== 1 || !target || target.origin !== origin || typeof result.token !== "string" || !/^omb_pd_[A-Za-z0-9_-]{43}$/.test(result.token)) {
+      if (result?.cloudContractVersion !== 1 || !target || target.origin !== origin || typeof result.token !== "string" || !/^(?:dusk|omb)_pd_[A-Za-z0-9_-]{43}$/.test(result.token)) {
         throw new Error("Invalid Cloud pages response.");
       }
       return { url: result.url, token: result.token };

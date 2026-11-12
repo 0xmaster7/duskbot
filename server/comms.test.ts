@@ -190,7 +190,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
 
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-comms-test-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-comms-test-"));
     gateFile = join(home, "helper-gate");
     holdFile = join(home, "helper-hold");
     const antigravityDirectory = join(home, "fake-antigravity");
@@ -819,7 +819,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
   );
 
   it(
-    "keeps Dusk Bot tools authorized for Hermes after Stop issues a new bearer",
+    "keeps dusk bot tools authorized for Hermes after Stop issues a new bearer",
     async () => {
       // Stop issues a new bearer; a pooled Hermes keeps its first agents server, so the next turn must run on a fresh process.
       for (const existing of (await api("GET", "/api/bots")).body.bots) {

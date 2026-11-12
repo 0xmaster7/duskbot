@@ -156,7 +156,7 @@ export function createToolBridge(tools: readonly BridgeTool[]): ToolBridge {
     ...hot,
     {
       name: FIND_TOOL,
-      description: `Find a Dusk Bot tool that is not in your tool list. Say what you want to do in a few words, or give the tool's name. Each match comes back with its description and exact input schema; run one with ${USE_TOOL}. Tools reached this way: ${namesList(hidden.map((tool) => tool.name), BRIDGE_NAMES_MAX_CHARS)}`,
+      description: `Find a dusk bot tool that is not in your tool list. Say what you want to do in a few words, or give the tool's name. Each match comes back with its description and exact input schema; run one with ${USE_TOOL}. Tools reached this way: ${namesList(hidden.map((tool) => tool.name), BRIDGE_NAMES_MAX_CHARS)}`,
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -169,7 +169,7 @@ export function createToolBridge(tools: readonly BridgeTool[]): ToolBridge {
     },
     {
       name: USE_TOOL,
-      description: `Run one Dusk Bot tool that ${FIND_TOOL} gave you, by its exact name, with its input as arguments. It runs exactly as if you had called it directly: the same permissions, limits and refusals apply, and its result comes back unchanged. Read the tool's description and input schema from ${FIND_TOOL} before the first call.`,
+      description: `Run one dusk bot tool that ${FIND_TOOL} gave you, by its exact name, with its input as arguments. It runs exactly as if you had called it directly: the same permissions, limits and refusals apply, and its result comes back unchanged. Read the tool's description and input schema from ${FIND_TOOL} before the first call.`,
       inputSchema: {
         type: "object",
         additionalProperties: false,

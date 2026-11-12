@@ -27,7 +27,7 @@ export function OwnServerLink({ onBack, onConnected, connect = null }: { onBack:
     setBusy(true);
     setFailed(false);
     try {
-      if (await window.ogb?.workspaces?.add?.("link", pasted) !== false) onConnected();
+      if (await window.duskDesktop?.workspaces?.add?.("link", pasted) !== false) onConnected();
     } catch {
       pairFailed("unknown");
       setFailed(true);
@@ -100,7 +100,7 @@ export function PlaceAddSheet({ choices, connect = null, onClose, onAccount }: {
   const several = [organization, choices.cloud, server, account].filter(Boolean).length > 1;
   const [view, setView] = useState<"choose" | "cloud" | "server" | "organization">(connect ? "server" : several ? "choose" : organization ? "organization" : choices.cloud ? "cloud" : "server");
   const [wide, setWide] = useState(false);
-  const workspaces = window.ogb?.workspaces;
+  const workspaces = window.duskDesktop?.workspaces;
   const firstCloud = () => {
     track("rail_add", { step: "cloud" });
     onClose();
@@ -115,7 +115,7 @@ export function PlaceAddSheet({ choices, connect = null, onClose, onAccount }: {
         {server && !choices.cloud && <Choice kind="server" icon={<Server size={19} />} title={t("rail.own")} sub={t("rail.ownSub")} onClick={() => setView("server")} />}
         {account && <Choice kind="account" icon={<UserRound size={19} />} title={t("accounts.add")} sub={t("rail.accountSub")} onClick={() => onAccount!()} />}
       </div>
-      {/* a server of one's own is for people who run one: offered, never weighed against Dusk Cloud */}
+      {/* a server of one's own is for people who run one: offered, never weighed against dusk cloud */}
       {server && choices.cloud && <button type="button" data-place-add-choice="server" onClick={() => setView("server")}
         className="-ms-1 inline-flex min-h-8 items-center gap-1.5 self-start rounded-full px-1 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
         <Server size={15} strokeWidth={1.5} aria-hidden="true" />{t("rail.ownAdvanced")}

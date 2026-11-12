@@ -29,7 +29,7 @@ describe("OAuth over isolated HTTP", () => {
   let fake: Awaited<ReturnType<typeof startFakeProviders>>, server: Server, app: ReturnType<typeof createDashboardApp>, options: DashboardAppOptions;
   let dataDir: string, url: string, time: number, jar: CookieJar, mailer: ReturnType<typeof memoryMailer>;
   beforeEach(async () => {
-    fake = await startFakeProviders(); dataDir = mkdtempSync(join(tmpdir(), "omb-oauth-")); time = Date.now(); jar = new CookieJar(); mailer = memoryMailer();
+    fake = await startFakeProviders(); dataDir = mkdtempSync(join(tmpdir(), "dusk-oauth-")); time = Date.now(); jar = new CookieJar(); mailer = memoryMailer();
     server = createServer();
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
     const address = server.address(); if (!address || typeof address === "string") throw new Error();
@@ -85,7 +85,7 @@ describe("OAuth over isolated HTTP", () => {
 
   it("signs up with Google, returns both cookies, persists the identity and reuses the same account", async () => {
     const response = await oauth("google", "?next=/account"); expect(location(response)).toBe("/account");
-    expect(response.headers.getSetCookie()).toHaveLength(3); expect(jar.values.has("omb_oauth")).toBe(false);
+    expect(response.headers.getSetCookie()).toHaveLength(3); expect(jar.values.has("dusk_oauth")).toBe(false);
     const first = await account();
     expect(first.account).toMatchObject({ email: "sid@duskbot.test", name: "Sid Fixture", providers: ["email", "google"] });
     expect(first.identities).toEqual([{ provider: "google", email: "sid@duskbot.test", label: "Sid Fixture", addedAt: time }]);
@@ -170,11 +170,11 @@ describe("OAuth over isolated HTTP", () => {
   it.each(["google", "apple", "x"] as const)("maps %s denial and clears the binding", async provider => {
     fake.deny(provider); const response = await oauth(provider, "?next=/account");
     expect(error(response)).toBe("oauth_denied"); expect(new URL(location(response), url).searchParams.get("next")).toBe("/account");
-    expect(jar.values.has("omb_oauth")).toBe(false);
+    expect(jar.values.has("dusk_oauth")).toBe(false);
   });
   it.each(["missing", "wrong"])("refuses a %s binding and consumes the state", async kind => {
     const auth = await authorization("google"), other = new CookieJar();
-    if (kind === "wrong") other.values.set("omb_oauth", random());
+    if (kind === "wrong") other.values.set("dusk_oauth", random());
     expect(error(await callback(auth, other))).toBe("oauth_failed"); expect(error(await callback(auth))).toBe("oauth_failed");
     expect((await call("/v1/me")).status).toBe(401);
   });
@@ -192,9 +192,9 @@ describe("OAuth over isolated HTTP", () => {
     expect(location(await oauth("google", `?next=${encodeURIComponent(next)}`))).toBe(new URL(next, url).href.slice(url.length));
   });
   it("reuses a well-formed binding across starts and sets HTTPS cross-site cookie flags", async () => {
-    const first = await call("/v1/auth/oauth/google/start"), binding = jar.values.get("omb_oauth");
+    const first = await call("/v1/auth/oauth/google/start"), binding = jar.values.get("dusk_oauth");
     expect(first.headers.getSetCookie()[0]).toContain("HttpOnly; Path=/v1/auth; Max-Age=600; SameSite=Lax");
-    await call("/v1/auth/oauth/x/start"); expect(jar.values.get("omb_oauth")).toBe(binding);
+    await call("/v1/auth/oauth/x/start"); expect(jar.values.get("dusk_oauth")).toBe(binding);
     restart({ publicUrl: "https://accounts.example.test" });
     const secure = await call("/v1/auth/oauth/apple/start"); expect(secure.headers.getSetCookie()[0]).toContain("SameSite=None; Secure");
   });
@@ -202,7 +202,7 @@ describe("OAuth over isolated HTTP", () => {
     await oauth("google"); const first = await account();
     await oauth("apple", "?link=1&next=/account"); const linked = await account();
     expect(linked.account.id).toBe(first.account.id); expect(linked.account.name).toBe("Sid Fixture"); expect(linked.identities.map(item => item.provider)).toEqual(["google", "apple"]);
-    const deleted = await call("/v1/account/identities/apple", {}, { [CSRF_HEADER]: jar.values.get("omb_csrf")! }, "DELETE");
+    const deleted = await call("/v1/account/identities/apple", {}, { [CSRF_HEADER]: jar.values.get("dusk_csrf")! }, "DELETE");
     expect(deleted.status).toBe(200); expect((await account()).identities).toHaveLength(1);
   });
   it("refuses linking without a session, after signout, or when another account owns the identity", async () => {
@@ -245,7 +245,7 @@ describe("OAuth over isolated HTTP", () => {
   it("exchanges an app deep-link code for an accepted mobile omc_ grant, without cookies", async () => {
     const flow = await appAuthorization();
     expect(flow.target.protocol).toBe("duskbot:"); expect(flow.target.hostname).toBe("auth"); expect(flow.target.searchParams.get("state")).toBe(flow.state);
-    const code = flow.target.searchParams.get("code")!; expect(code).toMatch(/^[A-Za-z0-9_-]{43}$/); expect(jar.values.has("omb_dash")).toBe(false);
+    const code = flow.target.searchParams.get("code")!; expect(code).toMatch(/^[A-Za-z0-9_-]{43}$/); expect(jar.values.has("dusk_dash")).toBe(false);
     const response = await redeem(code, flow.verifier); expect(response.status).toBe(200); expect(response.headers.get("set-cookie")).toBeNull(); expect(response.headers.get("access-control-allow-origin")).toBe("*");
     const grant = await response.json() as AppGrant; expect(grant.accessToken).toMatch(/^omc_[A-Za-z0-9_-]{43}$/);
     const session = await call("/api/cloud/desktop/session", undefined, { authorization: `Bearer ${grant.accessToken}` }); expect(session.status).toBe(200); expect(await session.json()).toMatchObject({ account: grant.account, device: grant.device });
@@ -358,7 +358,7 @@ describe("provider environment configuration", () => {
     expect(config.google).toMatchObject({ tokenUrl: "https://oauth2.googleapis.com/token", scopes: "openid email profile" });
     expect(config.x).toMatchObject({ clientId: "x", scopes: "users.read offline.access" }); expect(config.x?.clientSecret).toBeUndefined();
     expect(config.apple?.apple?.privateKey).toBe(key); expect(config.apple?.authorizeUrl).toBe("https://appleid.apple.com/auth/authorize");
-    const dir = mkdtempSync(join(tmpdir(), "omb-apple-key-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-apple-key-"));
     try {
       const file = join(dir, "key.p8"); writeFileSync(file, key, { mode: 0o600 });
       expect(providersFromEnv({ ...env, DUSK_AUTH_APPLE_PRIVATE_KEY: undefined, DUSK_AUTH_APPLE_PRIVATE_KEY_FILE: file }).apple?.apple?.privateKey).toBe(key);

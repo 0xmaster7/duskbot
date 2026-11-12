@@ -42,13 +42,13 @@ describe("Slack callback", () => {
     expect(html).toContain('<!doctype html>');
     expect(html).toContain('<html lang="en">');
     expect(html).toContain('<meta name="viewport"');
-    expect(html).toContain('<title>Returning to Dusk Bot</title>');
+    expect(html).toContain('<title>Returning to dusk bot</title>');
     expect(html).toContain(`<meta http-equiv="refresh" content="0;url=${escaped}">`);
-    expect(html).toContain(`<a href="${escaped}">Open Dusk Bot</a>`);
+    expect(html).toContain(`<a href="${escaped}">Open dusk bot</a>`);
     expect(html).toContain(`<code>${escaped}</code>`);
     expect(html).toContain("user-select:all");
-    expect(html).toContain("If nothing happens, open Dusk Bot yourself.");
-    expect(html).toContain("Or copy this link and paste it into Dusk Bot:");
+    expect(html).toContain("If nothing happens, open dusk bot yourself.");
+    expect(html).toContain("Or copy this link and paste it into dusk bot:");
     expect(html).not.toContain(`&state=${STATE}`);
     expect(html).not.toMatch(/<script\b/i);
     expect(html).not.toContain("ignored");
@@ -85,7 +85,7 @@ describe("Slack callback", () => {
     const response = await callback(params);
     expect(response.status).toBe(400);
     const html = await response.text();
-    expect(html).toContain("This Slack link is not valid. Start again from Dusk Bot.");
+    expect(html).toContain("This Slack link is not valid. Start again from dusk bot.");
     expect(html).not.toContain(CODE);
     expect(html).not.toContain(STATE);
     expect(html).not.toContain("injection");

@@ -4,8 +4,8 @@
 
 /** The most tools one MCP server lists for this turn, in the environment of each server the turn hands an engine. */
 export const TOOL_LIMIT_ENV = "DUSK_TOOL_LIMIT";
-/** The same on Dusk Bot's own MCP endpoints, reached over HTTP. */
-export const TOOL_LIMIT_HEADER = "x-omb-tool-limit";
+/** The same on dusk bot's own MCP endpoints, reached over HTTP. */
+export const TOOL_LIMIT_HEADER = "x-dusk-tool-limit";
 
 export function parseToolLimit(value: unknown): number | undefined {
   return typeof value === "string" && /^\d{1,5}$/.test(value) ? Number(value) : undefined;

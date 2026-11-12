@@ -279,9 +279,9 @@ export function PlacesRail({ chrome = false }: { chrome?: boolean }) {
     return () => window.removeEventListener("mousedown", away);
   }, [more, menu]);
   const covering = more || adding || connecting !== null || menu !== null || accounts !== null;
-  useEffect(() => { if (chrome) void window.ogb?.rail?.expand?.(covering)?.catch(() => {}); }, [chrome, covering]);
+  useEffect(() => { if (chrome) void window.duskDesktop?.rail?.expand?.(covering)?.catch(() => {}); }, [chrome, covering]);
   if (!state.places.length) return null;
-  const bridge = window.ogb?.workspaces;
+  const bridge = window.duskDesktop?.workspaces;
   const open = (place: RailPlace) => {
     if (!place.opens) { if (place.pairs) setConnecting(place.name); return; }
     track("rail_place_opened", { kind: place.kind });

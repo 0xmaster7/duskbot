@@ -17,7 +17,7 @@ const apps = (overrides: Partial<AiAppsImportViewProps> = {}) => text(renderToSt
 
 describe("Settings → Import", () => {
   it("draws From your AI apps and the one button for moving from Grok Bot, and opens nothing until it is pressed", () => {
-    vi.stubGlobal("window", { ogb: { remoteClient: { active: false } } });
+    vi.stubGlobal("window", { duskDesktop: { remoteClient: { active: false } } });
     const value = { state: { config: {} }, dispatch: vi.fn() } as never;
     const markup = renderToStaticMarkup(createElement(StoreContext.Provider, { value }, createElement(ImportSettings, {
       client: { detect: vi.fn(() => new Promise<SetupDetection>(() => {})), apply: vi.fn() },

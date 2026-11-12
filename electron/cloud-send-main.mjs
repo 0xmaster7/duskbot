@@ -6,6 +6,7 @@ import { BACKGROUND_HEADERS } from "./cloud-power.mjs";
 import { createLoginHandoffClient } from "./cloud-logins.mjs";
 import { MOVE_LINE, TEAM_MOVE_LINE, resultKey } from "./cloud-send-parts.mjs";
 import { createCloudSend, sendNotice } from "./cloud-send.mjs";
+import { hasTokenPrefix } from "./legacy-names.mjs";
 
 const SESSION_LABEL = "Send to My Cloud";
 const MOVE_LABEL = "Move to My Cloud";
@@ -25,13 +26,13 @@ async function answer(response) {
 export async function openOwnerSession(target, fetchImpl, { label = SESSION_LABEL, background = true } = {}) {
   const quiet = background ? BACKGROUND_HEADERS : {};
   let grant;
-  try { grant = await target.grant(); } catch (error) { throw new Error(sentence(error?.message) ?? "My Cloud is not ready. Check it in Settings → Dusk Cloud, then try again.", { cause: error }); }
-  if (!record(grant) || grant.origin !== target.origin || typeof grant.code !== "string") throw new Error("My Cloud is not ready. Check it in Settings → Dusk Cloud, then try again.");
+  try { grant = await target.grant(); } catch (error) { throw new Error(sentence(error?.message) ?? "My Cloud is not ready. Check it in Settings → dusk cloud, then try again.", { cause: error }); }
+  if (!record(grant) || grant.origin !== target.origin || typeof grant.code !== "string") throw new Error("My Cloud is not ready. Check it in Settings → dusk cloud, then try again.");
   const paired = await answer(await fetchImpl(`${target.origin}/api/auth/pair`, {
     method: "POST", redirect: "error", credentials: "omit", cache: "no-store", signal: AbortSignal.timeout(30_000),
     headers: { accept: "application/json", "content-type": "application/json", ...quiet }, body: JSON.stringify({ code: grant.code, label }),
   }));
-  if (!paired.ok || typeof paired.body?.token !== "string" || !paired.body.token.startsWith("omb_sess_")) throw Object.assign(new Error("This app could not sign in to My Cloud. Try again."), { status: paired.status });
+  if (!paired.ok || typeof paired.body?.token !== "string" || !hasTokenPrefix(paired.body.token, "sess")) throw Object.assign(new Error("This app could not sign in to My Cloud. Try again."), { status: paired.status });
   const token = paired.body.token;
   const request = (method, route, init) => fetchImpl(`${target.origin}${route}`, {
     method, redirect: "error", credentials: "omit", cache: "no-store", signal: AbortSignal.timeout(120_000), ...init,

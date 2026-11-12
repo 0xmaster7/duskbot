@@ -33,7 +33,7 @@ const until = async (check, ms = 4000) => {
 let pem = null;
 function certificate() {
   if (pem) return pem;
-  const dir = mkdtempSync(join(tmpdir(), "omb-wss-cert-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-wss-cert-"));
   try {
     execFileSync("openssl", ["req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes", "-days", "1", "-subj", "/CN=127.0.0.1", "-addext", "subjectAltName=IP:127.0.0.1", "-keyout", join(dir, "key.pem"), "-out", join(dir, "cert.pem")], { stdio: "ignore" });
     pem = { key: readFileSync(join(dir, "key.pem"), "utf8"), cert: readFileSync(join(dir, "cert.pem"), "utf8") };
@@ -77,13 +77,13 @@ async function front(tls, upstreamPort) {
 async function rig(t) {
   const tls = certificate();
   if (!tls) { t.skip("no openssl here"); return null; }
-  const omb = createServer((req, res) => { res.writeHead(200, { "content-type": "text/plain" }); res.end(`${req.method} ${req.url} ${req.headers["x-forwarded-for"]}`); });
-  const ombPort = await listen(omb);
-  const hub = createDirectHub({ id: ID, key: KEY, server: { host: "127.0.0.1", port: ombPort }, guard: frameGuard(), log: () => {} });
+  const dusk = createServer((req, res) => { res.writeHead(200, { "content-type": "text/plain" }); res.end(`${req.method} ${req.url} ${req.headers["x-forwarded-for"]}`); });
+  const duskPort = await listen(dusk);
+  const hub = createDirectHub({ id: ID, key: KEY, server: { host: "127.0.0.1", port: duskPort }, guard: frameGuard(), log: () => {} });
   const ws = await listenDirectWss(hub, { port: 0, log: () => {} });
   const edge = await front(tls, ws.address().port);
   const url = `wss://127.0.0.1:${edge.port}/omb-direct`;
-  const close = async () => { hub.stop(); await Promise.all([new Promise((resolve) => ws.close(resolve)), new Promise((resolve) => edge.server.close(resolve)), new Promise((resolve) => omb.close(resolve))]); };
+  const close = async () => { hub.stop(); await Promise.all([new Promise((resolve) => ws.close(resolve)), new Promise((resolve) => edge.server.close(resolve)), new Promise((resolve) => dusk.close(resolve))]); };
   return { tls, hub, url, close };
 }
 

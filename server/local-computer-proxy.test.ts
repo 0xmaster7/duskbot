@@ -93,7 +93,7 @@ describe("local computer proxy (isolated child and control endpoint)", () => {
     };
     const control = { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}/control`, token: "isolated-control-token" };
     let connection = gatedLocalComputer(original, control);
-    const home = mkdtempSync(join(tmpdir(), "omb-cua-launch-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-cua-launch-"));
     let child: ChildProcess | undefined;
     try {
       if (runtime === "electron") {

@@ -22,7 +22,7 @@ describe("Cline ACP driver", () => {
 
   beforeEach(() => {
     ensureDirs();
-    scratch = mkdtempSync(join(tmpdir(), "omb-cline-contract-"));
+    scratch = mkdtempSync(join(tmpdir(), "dusk-cline-contract-"));
   });
   afterEach(async () => {
     recorder?.stop();

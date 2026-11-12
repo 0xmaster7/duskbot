@@ -136,7 +136,7 @@ function CloudBadge() {
   return <span className={cx("live-dot ms-auto", tone)} data-live={c.status === "running"} aria-label={c.status === "running" ? "running" : c.status} role="img" />;
 }
 
-const HIDE_KEY = "omb-dash-upsell-hidden-until";
+const HIDE_KEY = "dusk-dash-upsell-hidden-until";
 const WEEK = 7 * 86_400_000;
 // the invested copy holds the card for the rest of the visit it first showed in
 let visitInvested: InvestedFacts | null = null;
@@ -245,7 +245,26 @@ function Toasts() {
   return <ToastStack items={toasts.map((t) => ({ id: t.id, className: "flex max-w-[440px] items-center gap-2.5 rounded-[22px] bg-primary px-4.5 py-3 text-14 text-primary-ink", content: <>{t.tone === "bad" && <span className="size-2 shrink-0 rounded-[2px] bg-[#ff6f66]" aria-hidden />}{t.text}</> }))} />;
 }
 
+const CLOUD_PICKED = "dusk-dash-cloud-picked";
+
+/** a cloud someone just got becomes the picked workspace once; picking another one later sticks */
+function usePickNewCloud() {
+  const { clouds } = useCloud();
+  const { workspaces, workspace, pick } = useSession();
+  const cloud = clouds?.[0] ?? null, id = cloud?.workspaceId ?? null;
+  const listed = id !== null && (workspaces ?? []).some((w) => w.id === id);
+  useEffect(() => {
+    if (!cloud || !id || !listed) return;
+    try {
+      if (localStorage.getItem(CLOUD_PICKED) === cloud.id) return;
+      localStorage.setItem(CLOUD_PICKED, cloud.id);
+    } catch { return; }
+    if (workspace?.id !== id) pick(id);
+  }, [cloud?.id, id, listed, workspace?.id, pick]);
+}
+
 export function Shell({ children }: { children: ReactNode }) {
+  usePickNewCloud();
   const [drawer, setDrawer] = useState(false);
   const { path } = useLocation();
   useEffect(() => setDrawer(false), [path]);

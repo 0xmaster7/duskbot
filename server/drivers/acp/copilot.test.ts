@@ -31,7 +31,7 @@ describe("GitHub Copilot ACP driver", () => {
 
   beforeEach(() => {
     ensureDirs();
-    scratch = mkdtempSync(join(tmpdir(), "omb-copilot-contract-"));
+    scratch = mkdtempSync(join(tmpdir(), "dusk-copilot-contract-"));
   });
   afterEach(async () => {
     recorder?.stop();
@@ -206,20 +206,20 @@ describe("GitHub Copilot ACP driver", () => {
       return join(home, "session-state", id);
     };
     const env = { COPILOT_HOME: home };
-    const ours = session("ours", join(scratch, "omb-acp-models-x"));
-    await forgetCopilotDiscoverySession({ sessionId: "ours", cwd: join(scratch, "omb-acp-models-x"), env });
+    const ours = session("ours", join(scratch, "dusk-acp-models-x"));
+    await forgetCopilotDiscoverySession({ sessionId: "ours", cwd: join(scratch, "dusk-acp-models-x"), env });
     expect(existsSync(ours)).toBe(false);
     // A quoted value, a trailing separator or (on Windows) another case still names the same folder.
-    const quoted = session("quoted", JSON.stringify(join(scratch, "omb-acp-models-y")));
-    await forgetCopilotDiscoverySession({ sessionId: "quoted", cwd: join(scratch, "omb-acp-models-y"), env });
-    const spelled = session("spelled", `${process.platform === "win32" ? join(scratch, "OMB-ACP-MODELS-Z") : join(scratch, "omb-acp-models-z")}${sep}`);
-    await forgetCopilotDiscoverySession({ sessionId: "spelled", cwd: join(scratch, "omb-acp-models-z"), env });
+    const quoted = session("quoted", JSON.stringify(join(scratch, "dusk-acp-models-y")));
+    await forgetCopilotDiscoverySession({ sessionId: "quoted", cwd: join(scratch, "dusk-acp-models-y"), env });
+    const spelled = session("spelled", `${process.platform === "win32" ? join(scratch, "DUSK-ACP-MODELS-Z") : join(scratch, "dusk-acp-models-z")}${sep}`);
+    await forgetCopilotDiscoverySession({ sessionId: "spelled", cwd: join(scratch, "dusk-acp-models-z"), env });
     expect([existsSync(quoted), existsSync(spelled)]).toEqual([false, false]);
     const person = session("person", join(scratch, "project"), "copilot-cli");
     await forgetCopilotDiscoverySession({ sessionId: "person", cwd: join(scratch, "project"), env });
     const elsewhere = session("elsewhere", join(scratch, "other"));
-    await forgetCopilotDiscoverySession({ sessionId: "elsewhere", cwd: join(scratch, "omb-acp-models-x"), env });
-    await forgetCopilotDiscoverySession({ sessionId: "../copilot-home", cwd: join(scratch, "omb-acp-models-x"), env });
+    await forgetCopilotDiscoverySession({ sessionId: "elsewhere", cwd: join(scratch, "dusk-acp-models-x"), env });
+    await forgetCopilotDiscoverySession({ sessionId: "../copilot-home", cwd: join(scratch, "dusk-acp-models-x"), env });
     expect([existsSync(person), existsSync(elsewhere), existsSync(home)]).toEqual([true, true, true]);
   });
 
