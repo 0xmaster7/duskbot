@@ -23,6 +23,25 @@ import { installTeamMove } from "./team-move-main.mjs";
 const MOVE_LABEL = "Move to My Cloud";
 const HOME_LABEL = "Bring My Cloud home";
 const KEEP_LABEL = "Bring this computer's bots home";
+/** Once the move is done, the window waits this long for Open dusk cloud before it opens My Cloud by itself. */
+export const OPEN_WAIT_MS = 2 * 60_000;
+
+/** Opening My Cloud once the move is done: at once (`waitMs` 0), or when the person presses Open dusk cloud (`now`), and
+ * by itself after `waitMs` when nobody does. */
+export function createOpenWhenAsked({ open, waitMs }) {
+  let timer = null;
+  const fire = () => { if (timer) clearTimeout(timer); timer = null; open(); };
+  return {
+    done() {
+      if (waitMs <= 0) { open(); return; }
+      if (timer) return;
+      timer = setTimeout(fire, waitMs);
+      timer.unref?.();
+    },
+    now: fire,
+    close() { if (timer) clearTimeout(timer); timer = null; },
+  };
+}
 
 /** This computer as the Admin knows it, the same across sign-outs and sign-ins: a hash of its own server's identity, so
  * the identity itself never leaves it. */
@@ -227,6 +246,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     tempRoot: tempRoot(),
   });
 
+  const opener = createOpenWhenAsked({ open: () => openHome?.(), waitMs: offerDeps ? OPEN_WAIT_MS : 0 });
   home = createOneHome({
     journal,
     // Every run starts here: the key watch is set up before any wait asks, so a key pressed since then counts.
@@ -256,7 +276,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     gone: createGoneCheck({ ask: async (origin) => (await account()?.movedTo?.(origin)) ?? null, account: () => account()?.state()?.account?.id ?? null }),
     session: () => moveSession.open(target()),
     release: () => moveSession.end(),
-    lend, phone, openHome, openLocal, restart, version, log,
+    lend, phone, openHome: opener.done, openLocal, restart, version, log,
     again,
     keep,
     keepHome,
@@ -299,6 +319,12 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
       log,
     });
     sendDeps.ipcMain.handle("cloud-send:move-offer-accept", onPage("cloud-send:move-offer-accept", async (from) => { await offer.accept(String(from)); return send.notice(); }));
+    sendDeps.ipcMain.handle("cloud-send:move-open", onPage("cloud-send:move-open", () => {
+      if (!home.away()) return send.notice();
+      home.seen();
+      opener.now();
+      return send.notice();
+    }));
     sendDeps.ipcMain.handle("cloud-send:move-offer-dismiss", onPage("cloud-send:move-offer-dismiss", (which) => { offer.dismiss(String(which)); return send.notice(); }));
   }
   sendDeps.ipcMain.handle("one-home:keep", onPage("one-home:keep", keepState));
@@ -319,7 +345,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     /** Home is My Cloud: this computer's own server is frozen for good, and its phone link stays off. */
     away: () => home.away(),
     view: () => home.view(),
-    close: () => { teamMove.close(); home.close(); report.close(); void moveSession.end(); },
+    close: () => { opener.close(); teamMove.close(); home.close(); report.close(); void moveSession.end(); },
     /** A bot moving from My Cloud into a team (team-move-main.mjs). */
     teamMove,
     oneHome: home,

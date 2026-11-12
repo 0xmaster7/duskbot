@@ -572,6 +572,8 @@ const bridge = {
       ? ipcRenderer.invoke("cloud-send:move-offer-accept", ["prompt", "banner", "settings"].includes(from) ? from : "settings")
       : Promise.reject(new Error("Choose Move to move your bots.")),
     moveOfferDismiss: which => ipcRenderer.invoke("cloud-send:move-offer-dismiss", which === "banner" ? "banner" : "prompt"),
+    moveOpen: () => isLocalPage || navigator.userActivation?.isActive === true
+      ? ipcRenderer.invoke("cloud-send:move-open") : Promise.reject(new Error("Choose Open dusk cloud to open it.")),
     // Settings → Dusk Cloud, Advanced: "Keep this computer's bots on this computer".
     keepHere: () => ipcRenderer.invoke("one-home:keep"),
     setKeepHere: on => isLocalPage || navigator.userActivation?.isActive === true

@@ -180,17 +180,19 @@ node --experimental-strip-types scripts/verify-cloud-move.ts
 ```
 
 `electron/cloud-move-offer.mjs` holds the first move to My Cloud until the person says yes, while this computer has
-bots or automations the move would carry; a computer with nothing to carry moves by itself as before. Everything is
-read from state, so a Cloud that became ready while the app was closed asks at the next launch. The sheet asks once;
-closed, a slim line at the top of either page (this computer's, or My Cloud's before the move) asks; closed too,
-Settings → Computer keeps **Move bots to dusk cloud** beside the workspace switch. Choices are kept per Cloud in
+bots or routines the move would carry; a computer with nothing to carry moves by itself as before. Everything is read from
+state, so a Cloud that became ready while the app was closed asks at the next launch. One small sheet asks in one line
+(Move, Later), then follows the move as three pixel bots hop from a laptop onto a cloud with one progress bar, and ends
+with All moved and Open dusk cloud; a move that gets stuck is one friendly line and Try again. Closed, a slim line at the
+top asks; closed too, Settings → Computer keeps one row: the workspace with Switch, and Move. Once all moved, main opens
+My Cloud on Open dusk cloud, or by itself two minutes later (`createOpenWhenAsked`). Choices are kept per Cloud in
 `userData/cloud-move-offer.json`. Main says `cloud_move_prompt|banner|settings` (`accepted`, `dismissed`) and
 `cloud_move` (`started`, `failed` with the failure's reason code once per code, `succeeded` with counts) as
 `app_action` events that ride with the page's own batches, so nothing goes while usage analytics are off; the page says
 each `shown`.
 
 `server/cloud-move-offer.e2e.test.ts` runs it over the two-server fixture with `offer: true`: no move before the yes,
-Not now then the line's Move now, the bots arrive on the Cloud home and stay here, and the window opens My Cloud.
+Later then the line's Move, the bots arrive on the Cloud home and stay here, and the window opens My Cloud only on Open dusk cloud.
 `scripts/verify-cloud-move.ts` serves the whole app with the bridge played in the page
 (`?offer=prompt|banner|settings`, `?move=copy|failing|done`) for screenshots; `POST /__fixture/cloud?home=1` makes the
 page a Cloud home for the done sheet.

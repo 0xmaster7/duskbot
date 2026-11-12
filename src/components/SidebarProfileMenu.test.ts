@@ -380,11 +380,11 @@ describe("Simple mode's account menu", () => {
   });
 
   it("adds the move to My Cloud: a short warning once failing, shared with automations, and a quiet segment on its way", () => {
-    expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: "failed" })).toBe("Omkar · My Cloud move needs you");
-    expect(accountLabel("Omkar", { automationsNeedYou: true, update: null, move: "failed" })).toBe("Omkar · My Cloud move and automations need you");
-    expect(accountLabel("Omkar", { automationsNeedYou: true, update: "Update ready", move: "failed" })).toBe("Omkar · My Cloud move and automations need you · Update ready");
-    expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: "sending" })).toBe("Omkar · Moving to My Cloud…");
-    expect(accountLabel("Omkar", { automationsNeedYou: true, update: null, move: "sending" })).toBe("Omkar · Automations need you · Moving to My Cloud…");
+    expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: "failed" })).toBe("Omkar · Your move to dusk cloud needs you");
+    expect(accountLabel("Omkar", { automationsNeedYou: true, update: null, move: "failed" })).toBe("Omkar · Your move and routines need you");
+    expect(accountLabel("Omkar", { automationsNeedYou: true, update: "Update ready", move: "failed" })).toBe("Omkar · Your move and routines need you · Update ready");
+    expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: "sending" })).toBe("Omkar · Moving to dusk cloud…");
+    expect(accountLabel("Omkar", { automationsNeedYou: true, update: null, move: "sending" })).toBe("Omkar · Automations need you · Moving to dusk cloud…");
     expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: "done" })).toBe("Omkar");
     expect(accountLabel("Omkar", { automationsNeedYou: true, update: null, move: "done" })).toBe("Omkar · Automations need you");
     expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: null })).toBe("Omkar");
@@ -404,7 +404,7 @@ describe("Simple mode's account menu", () => {
   });
 
   it("puts the move's row first, in its own group, above a raised update", () => {
-    const move = [{ key: "cloud-move", label: "Try My Cloud move again", title: "My Cloud did not answer.", onSelect: noop }];
+    const move = [{ key: "cloud-move", label: "Try moving to dusk cloud again", title: "My Cloud did not answer.", onSelect: noop }];
     const update = { key: "update", label: "Dusk Bot 0.2.0 ready, restart", onSelect: noop };
     expect(groups(build({ move }))).toEqual([
       ["cloud-move"],
@@ -416,7 +416,7 @@ describe("Simple mode's account menu", () => {
     expect(groups(build({ move: [] }))[0]).toEqual(["usage", "phone-app", "support", "settings"]);
   });
 
-  it("gives a moving move one row shaped like Usage and Settings, and a failing one the reason written under its Try again", () => {
+  it("gives a moving move one row shaped like Usage and Settings, and a failing one a friendly line under its Try again", () => {
     const shape = (item: SidebarMenuItem) => ({ lines: [item.subtitle, item.note].filter(Boolean).length, wrap: item.wrap === true, icon: Boolean(item.icon) });
     const failing = moveMenuItems(moveLine({ phase: "copy", failing: { error: "Some of this computer's things did not reach My Cloud." } }, "local"), { onOpen: noop, onRetry: noop, onClose: noop });
     const moving = moveMenuItems(moveLine({ phase: "copy", chats: { done: 34, total: 120 } }, "local"), { onOpen: noop, onRetry: noop, onClose: noop });
@@ -426,11 +426,11 @@ describe("Simple mode's account menu", () => {
     const failed = build({ move: failing });
     expect(groups(failed)[0]).toEqual(["cloud-move"]);
     expect(shape(failed[0]!)).toEqual({ lines: 1, wrap: true, icon: true });
-    expect(failed[0]!.note).toBe("Some of this computer's things did not reach My Cloud.");
+    expect(failed[0]!.note).toBe("Something got in the way. Your bots are safe here.");
   });
 
   it("puts the move's row first in Advanced's account menu too, under its own divider", () => {
-    const move = [{ key: "cloud-move", label: "Moving to My Cloud…", title: "Moving your bots to My Cloud… 34 of 120 chats", onSelect: noop }];
+    const move = [{ key: "cloud-move", label: "Moving to dusk cloud…", title: "Moving your bots to dusk cloud… 34 of 120 chats", onSelect: noop }];
     expect(groups(build({ simple: undefined, move }))).toEqual([["cloud-move"], ["usage", "phone-app", "support", "settings", "update"], ["account"]]);
     expect(groups(build({ simple: undefined }))).toEqual([["usage", "phone-app", "support", "settings", "update"], ["account"]]);
   });

@@ -274,11 +274,11 @@ it("while the bots move to My Cloud, says how the move goes, with nothing to ope
   vi.stubGlobal("window", { ogb: { cloudAccount: bridge, cloudSendPage: { notice: vi.fn(async () => ({ ready: true, bots: [], move })), onNotice: vi.fn(() => () => {}), dismiss: vi.fn() } } });
   const moving = async () => { await ready({ ...pro, machine: { status: "ready", origin } }); f.effects[2](); await flush(); return render(); };
   let view = await moving();
-  all(view.html, ["Moving your bots to My Cloud… 3 of 12 chats", "data-cloud-moving"]);
+  all(view.html, ["Moving your bots to dusk cloud…", "data-cloud-moving"]);
   none(view.html, [">Open the Cloud</button>", "Switch back to This computer", "The Cloud is ready"]);
   move = { phase: "finishing" };
   f.values = []; view = await moving();
-  all(view.html, ["Moving to My Cloud… almost done"]); none(view.html, [">Open the Cloud</button>", "Switch back to This computer"]);
+  all(view.html, ["Moving your bots to dusk cloud… almost there"]); none(view.html, [">Open the Cloud</button>", "Switch back to This computer"]);
   move = undefined;
   f.values = []; view = await moving();
   all(view.html, [">Open the Cloud</button>", "Switch back to This computer", "The Cloud is ready"]); none(view.html, ["data-cloud-moving", "Moving"]);

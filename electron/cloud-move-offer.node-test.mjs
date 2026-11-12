@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createCloudMoveOffer, movable, offerStage, parseOffer } from "./cloud-move-offer.mjs";
-import { installOneHome } from "./one-home-main.mjs";
+import { createOpenWhenAsked, installOneHome } from "./one-home-main.mjs";
 import { createOneHome } from "./one-home.mjs";
 
 const ORIGIN = "https://omb-m-1.fly.dev";
@@ -239,4 +239,29 @@ test("rollback: a move that fails after this computer paused lifts the pause, de
     assert.ok(journal.retryAt > clock, "later");
     assert.equal(home.away(), false, "home is still this computer");
   } finally { home.close(); }
+});
+
+test("once all moved, My Cloud opens on Open dusk cloud, or by itself when nobody presses it, and only once", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const opened = [];
+  const held = createOpenWhenAsked({ open: () => opened.push("cloud"), waitMs: 1_000 });
+  held.done();
+  held.done();
+  assert.deepEqual(opened, [], "the window waits for the person");
+  held.now();
+  assert.deepEqual(opened, ["cloud"]);
+  t.mock.timers.tick(5_000);
+  assert.deepEqual(opened, ["cloud"], "the fallback never opens it again");
+  held.done();
+  t.mock.timers.tick(999);
+  assert.deepEqual(opened, ["cloud"]);
+  t.mock.timers.tick(1);
+  assert.deepEqual(opened, ["cloud", "cloud"], "nobody pressing it, it opens by itself");
+  held.done();
+  held.close();
+  t.mock.timers.tick(5_000);
+  assert.deepEqual(opened, ["cloud", "cloud"], "closed, nothing is left waiting");
+  const plain = [];
+  createOpenWhenAsked({ open: () => plain.push("cloud"), waitMs: 0 }).done();
+  assert.deepEqual(plain, ["cloud"], "without the offer it opens at once, as before");
 });

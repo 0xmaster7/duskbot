@@ -8,6 +8,8 @@ export function freezeAnswer(got: { ok: boolean; status: number; body: any }): {
 export type KeepHereState = import("./cloud-send.mjs").KeepHereState;
 export function installationOf(environmentId: string): string;
 export declare const GONE_ASK_MS: number;
+export declare const OPEN_WAIT_MS: number;
+export function createOpenWhenAsked(deps: { open(): void; waitMs: number }): { done(): void; now(): void; close(): void };
 /** One home's `gone(origin)`, from the Admin's word (`ask`), kept per account. */
 export function createGoneCheck(deps: { ask(origin: string): Promise<string | null>; account(): string | null; now?(): number }): (origin: string) => Promise<"deleted" | "ended" | null>;
 
