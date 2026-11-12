@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAmbientAway } from "@/ambient/away";
 import { emailGateDone } from "@/lib/analytics";
 import { clearWelcomeDraft } from "@/lib/welcome-draft";
 import { LOCAL_VIEWER, welcomeDue, welcomeViewer, type WelcomeViewer } from "@/lib/onboarding";
@@ -44,15 +45,17 @@ export function WelcomeGate({ viewer }: { viewer: WelcomeViewer | null }) {
   useEffect(() => {
     if (finished) clearWelcomeDraft();
   }, [finished]);
-  if (!viewer) return null;
   const due =
+    Boolean(viewer) &&
     !dismissed &&
     welcomeDue(state.config, {
       remoteClient,
       legacyDone: emailGateDone(),
-      canSave: viewer.canSave,
-      cloudHome: viewer.cloudHome,
+      canSave: viewer?.canSave,
+      cloudHome: viewer?.cloudHome,
     });
+  useAmbientAway("welcome", Boolean(viewer) && (state.welcomeOpen || due));
+  if (!viewer) return null;
   // Settings panes the welcome sends people to: API keys (Open API keys), workspaces, the organization sign-in
   if (state.appSettingsOpen && (["desktopWorkspaces", "organization", "connections"].includes(state.appSettingsSection) ||
     (state.appSettingsSection === "cloudAccount" && state.appSettingsCloudLink > 0))) return null;

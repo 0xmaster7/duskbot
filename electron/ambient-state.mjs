@@ -94,7 +94,8 @@ export function parseSnapshot(raw) {
   if (raw.labels && typeof raw.labels === "object" && !Array.isArray(raw.labels)) {
     for (const [key, value] of Object.entries(raw.labels).slice(0, MAX_LABELS)) if (LABEL.test(key) && typeof value === "string") labels[key] = text(value, 160);
   }
-  return { bots, labels, lang: typeof raw.lang === "string" && /^[a-z]{2,3}(-[a-z0-9]{2,8})?$/i.test(raw.lang) ? raw.lang : "" };
+  const lang = typeof raw.lang === "string" && /^[a-z]{2,3}(-[a-z0-9]{2,8})?$/i.test(raw.lang) ? raw.lang : "";
+  return raw.away === true ? { bots: [], labels, lang, away: true } : { bots, labels, lang };
 }
 
 /** The actions an island or dock may ask the app's page to take; anything else is dropped. */

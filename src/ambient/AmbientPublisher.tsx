@@ -14,6 +14,7 @@ import { formatQuestionAnswers } from "../../shared/ask-question";
 import { VIEWED_MAX, ambientSnapshot, answerableInPlace, questionOf } from "./summary";
 import { onAnyLiveReply } from "@/state/live-reply";
 import { DesktopBots } from "./DesktopBots";
+import { useAmbientAwayValue } from "./away";
 import type { AmbientAct, AmbientViewing } from "./types";
 
 /** Summaries go out at most this often: a streaming reply changes a bot's status line many times a second. */
@@ -52,6 +53,9 @@ export function AmbientPublisher() {
   const { state, dispatch } = useStore();
   const bridge = typeof window === "undefined" ? undefined : window.duskDesktop?.ambient;
   const [wanted, setWanted] = useState(false);
+  const away = useAmbientAwayValue();
+  const awayNow = useRef(away);
+  awayNow.current = away;
   const latest = useRef(state);
   latest.current = state;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -76,7 +80,9 @@ export function AmbientPublisher() {
       const { bots, instances, selectedId, hydrated } = latest.current;
       if (!hydrated) return;
       const focused = document.hasFocus() && document.visibilityState === "visible";
-      const snapshot = ambientSnapshot(bots, instances, turnLive, activeLocale(), { selectedId, focused, watched: watched.current }, viewing.current);
+      const snapshot = awayNow.current
+        ? { bots: [], labels: {}, lang: activeLocale(), away: true as const }
+        : ambientSnapshot(bots, instances, turnLive, activeLocale(), { selectedId, focused, watched: watched.current }, viewing.current);
       const key = JSON.stringify(snapshot);
       if (key === sent.current) return;
       sent.current = key;
@@ -89,7 +95,7 @@ export function AmbientPublisher() {
     if (!wanted) { sent.current = ""; return; }
     if (!state.hydrated) return;
     schedule();
-  }, [wanted, state.hydrated, state.bots, state.instances, state.selectedId, schedule]);
+  }, [wanted, away, state.hydrated, state.bots, state.instances, state.selectedId, schedule]);
   useEffect(() => (wanted ? onAnyTurnLive(schedule) : undefined), [wanted, schedule]);
   // a reply as it streams, word by word, not only once it has landed
   useEffect(() => (wanted ? onAnyLiveReply(schedule) : undefined), [wanted, schedule]);

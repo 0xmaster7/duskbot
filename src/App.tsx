@@ -11,6 +11,7 @@ import { useWarmChatImages } from "@/components/use-warm-chat-images";
 import { cloudSignInDue, type WelcomeViewer } from "@/lib/onboarding";
 import { LiveCallHost } from "@/components/LiveCallHost";
 import { AmbientPublisher } from "@/ambient/AmbientPublisher";
+import { useAmbientAway } from "@/ambient/away";
 import { BotsElsewhere, DevFreshInstallButton } from "@/components/BotsElsewhere";
 import { ThreadRefsProvider } from "@/components/ThreadRefs";
 import { parseComputerHelp } from "@/lib/computer-control";
@@ -174,6 +175,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const welcomeOnScreen = cloudWelcomeVisible({ viewer, connected: state.connected, enginesKnown: state.instances.length > 0, onboarding: state.config?.onboarding }, welcome)
     && state.activeView === "chat";
   const firstRun = cloudFirstRun({ welcome: welcomeOnScreen, intent: cloudAsk, signIn: cloudSignIn || cloudJobWaiting });
+  useAmbientAway("cloud-first-run", Boolean(firstRun));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

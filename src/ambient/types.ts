@@ -62,6 +62,8 @@ export interface AmbientSnapshot {
   /** The surfaces' words in the person's language (labels.ts). */
   labels: import("./say").AmbientLabels;
   lang: string;
+  /** The app's window shows the first run or the places hub, no place's bots: the surfaces stay closed. */
+  away?: true;
 }
 
 export type AmbientAct =

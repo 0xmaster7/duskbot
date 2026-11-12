@@ -278,6 +278,21 @@ test("no bots, no surfaces: nothing shows until the page says who is there, and 
   ambient.close();
 });
 
+test("the first run and the places hub keep both surfaces closed, even with bots, and they come back once a place's bots show", async () => {
+  const { windows, screen, ambient, appPage, listeners } = fakes();
+  ambient.start(screen);
+  await tick();
+  assert.ok(surface(windows, "island") && surface(windows, "dock"));
+  const send = (raw) => listeners.get("ambient:publish")({ sender: appPage }, raw);
+  send({ bots: [{ id: "dusk", threadId: "t1", name: "Dusk" }], labels: {}, lang: "en", away: true });
+  await tick();
+  assert.deepEqual([surface(windows, "island"), surface(windows, "dock")], [undefined, undefined]);
+  send({ bots: [{ id: "dusk", threadId: "t1", name: "Dusk" }], labels: {}, lang: "en" });
+  await tick();
+  assert.ok(surface(windows, "island") && surface(windows, "dock"));
+  ambient.close();
+});
+
 test("a surface in use or still closing is never moved or resized: the new place waits until it has settled", async () => {
   const lines = [];
   const { windows, screen, ambient } = fakes({ trace: (surfaceName, event, detail) => lines.push(`${surfaceName} ${event}${detail ? ` ${detail}` : ""}`) });

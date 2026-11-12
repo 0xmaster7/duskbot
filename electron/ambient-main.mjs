@@ -99,8 +99,9 @@ export function installAmbient({ ipcMain, BrowserWindow, page, origin, file, ope
     island.send("ambient:seen", seen); dock.send("ambient:seen", seen);
   }
 
-  // the surfaces show bots or nothing: no empty dock or lone "+", no island before the page has said who is there
-  const hasBots = () => Boolean(snapshot?.bots.length);
+  // the surfaces show bots or nothing: no empty dock or lone "+", no island before the page has said who is there, and
+  // none while the app's window is on its first run or the places hub
+  const hasBots = () => Boolean(snapshot?.bots.length) && snapshot?.away !== true;
   function relayout(reason = "") {
     const on = saved();
     const target = started && origin() && hasBots() ? display() : null;

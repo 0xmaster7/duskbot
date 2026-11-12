@@ -15,6 +15,7 @@ import {
   setSimulatedFreshInstall, SIMULATED_FRESH_INSTALL, useSimulatedFreshInstall, type ElsewherePlace, type ElsewhereScreen, type ElsewhereView,
 } from "@/lib/bots-elsewhere";
 import { useStore } from "@/state/store";
+import { useAmbientAway } from "@/ambient/away";
 import { ChevronRight } from "../icons";
 import { CloudMoveRow } from "./CloudMoveSettings";
 import { Icon } from "./Icon";
@@ -79,6 +80,7 @@ export function BotsElsewhere() {
   const screen = simulated
     ? elsewhereScreen({ view: SIMULATED_FRESH_INSTALL, empty: true, dismissed: [] })
     : elsewhereScreen({ view, empty, dismissed });
+  useAmbientAway("places-hub", Boolean(screen));
   if (!screen || covered) return null;
 
   const stay = () => {
