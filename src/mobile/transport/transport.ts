@@ -5,13 +5,11 @@ import { setUploadRoute } from "@/lib/upload-request";
 
 export type PhoneTransport =
   | { kind: "same-origin" | "bearer"; origin: string; token?: string }
-  | { kind: "relay"; channel: RelayChannel; token: string }
-  /** the built-in demo workspace: every request is answered inside the page */
-  | { kind: "demo"; workspace: { fetch: typeof fetch; close(): void }; token?: undefined };
+  | { kind: "relay"; channel: RelayChannel; token: string };
 
-const originOf = (transport: PhoneTransport) => transport.kind === "relay" ? "https://mobile-relay.invalid" : transport.kind === "demo" ? "https://demo-workspace.invalid" : transport.origin;
-/** routes that never leave the page: a relay tunnel or the demo workspace */
-const inPage = (transport: PhoneTransport) => transport.kind === "relay" || transport.kind === "demo";
+const originOf = (transport: PhoneTransport) => transport.kind === "relay" ? "https://mobile-relay.invalid" : transport.origin;
+/** routes that never leave the page: a relay tunnel */
+const inPage = (transport: PhoneTransport) => transport.kind === "relay";
 
 export function relayFetch(channel: RelayChannel, token: string, onBodyProgress?: (sent: number, total: number) => void): typeof fetch {
   return async (input, init) => {
@@ -291,7 +289,7 @@ export function installTransport(transport: PhoneTransport, onGone?: () => void)
     if (error instanceof RelayGoneError) onGone?.();
     throw error;
   });
-  const fetchWorkspace = transport.kind === "relay" ? overRelay(relayFetch(transport.channel, transport.token)) : transport.kind === "demo" ? transport.workspace.fetch : originalFetch.bind(window);
+  const fetchWorkspace = transport.kind === "relay" ? overRelay(relayFetch(transport.channel, transport.token)) : originalFetch.bind(window);
   const context = { transport, streamFetch: inPage(transport) ? fetchWorkspace : streamFetch.bind(window) };
   const probeAsleep = transport.kind === "bearer" ? asleepProbe(fetchWorkspace, origin, transport.token ?? "") : undefined;
   installed = context;
@@ -353,7 +351,6 @@ export function installTransport(transport: PhoneTransport, onGone?: () => void)
     stopUploads();
     stopMedia();
     if (transport.kind === "relay") transport.channel.close();
-    if (transport.kind === "demo") transport.workspace.close();
     for (const source of sources) source.close();
     for (const socket of sockets) socket.close();
     if (window.fetch === patchedFetch) window.fetch = originalFetch;

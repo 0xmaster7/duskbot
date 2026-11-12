@@ -13,7 +13,6 @@ import { Scanner } from "./Scanner";
 import { CloudPicker } from "../account/CloudPicker";
 import { MobileSignIn } from "../account/MobileSignIn";
 import { useMobileAccount } from "../account/AccountGate";
-import { enterDemo } from "../demo/demo-mode";
 import { MascotTrio } from "./SkyScene";
 import { BackButton, ErrorLine, FIELD, HEADLINE, LINE, PRIMARY, QUIET, Screen, StepPane, TONAL } from "./parts";
 
@@ -50,7 +49,7 @@ function Failed({ failure }: { failure: Failure }) {
  * to Home belong to the connection gate. */
 export function Onboarding({ initial = null, reason = null, startAtLink = false, onLinked, onCancel }: {
   initial?: TypedPairing | null;
-  /** Linking another computer from inside the app: a way back out, and no demo. */
+  /** Linking another computer from inside the app: a way back out. */
   startAtLink?: boolean;
   reason?: "revoked" | null;
   onLinked(record: MobileConnectionRecord, token: string, name: string): void | Promise<void>;
@@ -135,7 +134,6 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
               <button type="button" data-entry="scan" className={TONAL} onClick={() => void openScanner()}><QrCode size={20} />{t("mobile.entry.scan")}</button>
               <button type="button" data-entry="code" className={TONAL} onClick={() => go("code")}><Keyboard size={20} />{t("mobile.entry.code")}</button>
               <button type="button" data-entry="signin" className={TONAL} onClick={() => go(signedIn ? "clouds" : "signin")}><UserRound size={20} />{t("mobile.entry.signIn")}</button>
-              {!startAtLink && <button type="button" className={`${QUIET} mt-1`} onClick={() => void enterDemo(platform)}>{t("mobile.demo.try")}</button>}
             </>}>
               {reason === "revoked" && <ErrorLine>{t("mobile.pair.revoked")}</ErrorLine>}
               <h1 className={`${HEADLINE} ${reason === "revoked" ? "mt-5" : ""}`}>{t(startAtLink ? "mobile.entry.addTitle" : "mobile.entry.title")}</h1>

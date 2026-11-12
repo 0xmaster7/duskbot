@@ -25,6 +25,7 @@ import type { ApprovalChoice } from "./thread-approval";
 import type { AttachChoices } from "./ComposerFilePickers";
 import { SIMPLE_CONTROL } from "./composer-simple";
 import { Icon } from "./Icon";
+import { ELEVATED_FLOAT, ELEVATED_OPEN, ELEVATED_TINT } from "./elevated";
 
 /** Finish together: the room (or, `solo`, the one bot) keeps working until the goal is done. A quiet neutral pill, like
  * the approval chip beside it. `compact` is Simple mode's chip, shown only while the mode is on: its name and a × that
@@ -224,9 +225,10 @@ export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approva
     <span
       data-composer-plus
       className={cn(
-        "flex size-11 items-center justify-center rounded-full bg-composer text-ink ring-1 ring-composer-ring transition-colors",
-        // An ink tint, not a fill token: in some skins the control fill is the composer's own colour.
-        open ? "bg-ink/[0.12]" : "bg-ink/[0.05] hover:bg-ink/[0.1]",
+        // the message pill's twin: its one-line height, its surface and its shadow
+        "flex size-[52px] items-center justify-center rounded-full text-ink transition-colors duration-[120ms]",
+        ELEVATED_FLOAT,
+        open ? ELEVATED_OPEN : ELEVATED_TINT,
       )}
     >
       <Plus size={22} aria-hidden="true" />

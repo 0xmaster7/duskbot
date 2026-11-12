@@ -1,4 +1,4 @@
-import { memo, useCallback, useContext, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { motion, useTransform, type MotionValue } from "motion/react";
 import { BellDot, Check, MonitorSmartphone, Pin, PinOff, Plus, RotateCcw, Search, Star, UserRound } from "../icons";
 import { api, retryLoad, useStore, type Bot, type Group } from "@/state/store";
@@ -20,8 +20,6 @@ import { PullToRefresh } from "./PullToRefresh";
 import { refreshSnapshot } from "./refresh";
 import { usePlatform } from "./platform";
 import { useQuietResume } from "./connection/quiet-resume";
-import { ActiveConnection } from "./connection/active";
-import { DEMO_CONNECTION } from "./demo/demo-mode";
 import { listTime } from "./time";
 import { EmptyState } from "./Illustration";
 import { useOffline } from "./network";
@@ -53,7 +51,6 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
   const { state, dispatch } = useStore();
   const platform = usePlatform();
   const resuming = useQuietResume(platform);
-  const demo = useContext(ActiveConnection) === DEMO_CONNECTION;
   const offline = useOffline();
   const waking = useSyncExternalStore(onCloudWaking, cloudWaking, () => false);
   const you = useGroupYou();
@@ -166,13 +163,8 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
           {unreadNotes > 0 && <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ink px-1 text-[11px] font-semibold tabular-nums text-app ring-2 ring-app">{unreadNotes > 9 ? "9+" : unreadNotes}</span>}
         </RoundButton>
         <div className="flex-1" />
-        {demo && (
-          <button type="button" onClick={() => onOpenSheet({ kind: "settings" })} className="mobile-press pointer-events-auto flex h-11 items-center">
-            <span className="flex h-8 items-center rounded-full bg-composer px-3 text-[13px] text-ink-secondary mobile-float">{t("mobile.demo.banner")}</span>
-          </button>
-        )}
         {state.hydrated && (!state.connected || waking || offline) && !resuming && (
-          <span role="status" data-testid="mobile-connection-status" className="pointer-events-auto flex h-8 min-w-0 items-center gap-2 whitespace-nowrap rounded-full bg-composer px-3 text-[13px] font-medium text-ink-secondary mobile-float">
+          <span role="status" data-testid="mobile-connection-status" className="pointer-events-auto flex h-11 min-w-0 items-center gap-2 whitespace-nowrap rounded-full bg-composer px-4 text-[13px] font-medium text-ink-secondary mobile-float">
             {offline ? t("mobile.home.offline") : <><WorkingDots size={3} />{t(waking ? "cloudAsleep.waking" : "mobile.home.reconnecting")}</>}
           </span>
         )}

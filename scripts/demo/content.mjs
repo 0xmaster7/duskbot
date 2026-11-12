@@ -218,7 +218,7 @@ export function threads() {
           {
             b: "October made **2,780 profit** on 4,960 in sales. Shipping labels were the biggest cost again, about a fifth of sales. Full summary attached.",
             file: { name: "october-summary.md", mime: "text/markdown", body: OCTOBER_MD },
-            reactions: ["👍"],
+            reactions: ["❤️"],
           },
         ],
       },

@@ -56,7 +56,7 @@ it("offers three equal ways in up front: scan, code, or log in", async () => {
   expect(entries().map((button) => button.dataset.entry)).toEqual(["scan", "code", "signin"]);
   expect(entries().map((button) => button.textContent)).toEqual(["scan a QR code", "enter a code", "log in"]);
   expect(new Set(entries().map((button) => button.className)).size).toBe(1);
-  expect(host.textContent).toContain("try the demo");
+  expect(host.textContent).not.toContain("demo");
 });
 
 it("log in opens the account sign-in straight away", async () => {

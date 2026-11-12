@@ -799,7 +799,7 @@ export function Composer({
             />
           </div>
         )}
-        <div ref={pillContentRef} className={singleRow ? cn("min-w-0 flex-1 rounded-[26px] py-1 pl-3 pr-1", ELEVATED_FLOAT) : simpleDock ? "flex shrink-0 flex-col" : "contents"}>
+        <div ref={pillContentRef} className={singleRow ? cn("flex min-h-[52px] min-w-0 flex-1 flex-col justify-center rounded-[26px] py-1 pl-3 pr-1", ELEVATED_FLOAT) : simpleDock ? "flex shrink-0 flex-col" : "contents"}>
         {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}<ComposerAttachmentStrip items={attachments} onRemove={removeAttachment} onRetry={retryUpload} onDisplayInChatBox={displayPasteInChatBox} notice={attachmentNotice} onNotice={setAttachmentNotice} />
         <div data-composer-row data-glyph-swap={glyphs.swapped ? "" : undefined} style={simpleDock ? slot.vars : undefined} className={cn("flex items-end", simpleDock ? cn("gap-2", stacked && "gap-y-2") : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
           {pickers.inputs}

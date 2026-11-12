@@ -1,4 +1,4 @@
-import { useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
 import { accountDashboardUrl } from "@/lib/account-dashboard";
@@ -15,8 +15,6 @@ import { useConnections } from "../connection/connections";
 import { haptic, setHapticsEnabled, useHapticsEnabled } from "../haptics";
 import { dur, ease, spring } from "../motion";
 import { useMobileAccount } from "../account/AccountGate";
-import { DEMO_CONNECTION, leaveDemo } from "../demo/demo-mode";
-import { ActiveConnection } from "../connection/active";
 import { LEGAL_LINKS } from "../legal";
 import { usePlatform } from "../platform";
 import { Sheet } from "../Sheet";
@@ -26,8 +24,8 @@ import type { SheetPageProps } from "./registry";
 
 /** The account rows Settings shows. The account dashboard sells plans, so the store apps never link to it (App Store
  * guideline 3.1.1, Play payments policy); a signed-in account can always be signed out and deleted from here. */
-export function accountRows(input: { native: boolean; demo: boolean; signedIn: boolean }): { dashboard: boolean; signOut: boolean; deleteAccount: boolean } {
-  return { dashboard: !input.native && !input.demo, signOut: input.signedIn, deleteAccount: input.signedIn };
+export function accountRows(input: { native: boolean; signedIn: boolean }): { dashboard: boolean; signOut: boolean; deleteAccount: boolean } {
+  return { dashboard: !input.native, signOut: input.signedIn, deleteAccount: input.signedIn };
 }
 
 /** A label a person would recognise for where these bots live: never an address like 127.0.0.1:5331 or a URL. */
@@ -39,9 +37,8 @@ export function readableWorkspace(label: string | null | undefined): string | nu
 }
 
 /** The header's two lines: the person's name, then their account email, else the computer they're linked to. */
-export function settingsIdentity(input: { name?: string | null; email?: string | null; workspace?: string | null; demo: boolean }): { title: string; subtitle: string } {
+export function settingsIdentity(input: { name?: string | null; email?: string | null; workspace?: string | null }): { title: string; subtitle: string } {
   const title = input.name?.trim() || input.email?.split("@")[0] || t("mobile.settings.you");
-  if (input.demo) return { title, subtitle: t("mobile.settings.demoName") };
   const subtitle = input.email?.trim() || readableWorkspace(input.workspace) || t("mobile.settings.onComputer");
   return { title, subtitle };
 }
@@ -66,7 +63,6 @@ function CloudCard({ onOpen }: { onOpen: () => void }) {
 export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet, open, onClose, onOpenSheet }) => {
   const { state } = useStore();
   const { connections, activeId, switchTo, remove } = useConnections();
-  const demo = useContext(ActiveConnection) === DEMO_CONNECTION;
   const you = useGroupYou();
   const platform = usePlatform();
   const account = useMobileAccount();
@@ -81,11 +77,11 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
   const appearanceId = useId();
   const active = connections.find((connection) => connection.id === activeId);
   const email = account?.account?.email;
-  const identity = settingsIdentity({ name: state.config?.profile?.name, email, workspace: active?.label, demo });
+  const identity = settingsIdentity({ name: state.config?.profile?.name, email, workspace: active?.label });
   const pageRef = useRef<HTMLDivElement>(null);
   // each page inside the sheet opens at its top, not where the last one was scrolled to
   useEffect(() => { const body = pageRef.current?.closest(".mobile-sheet-body"); if (body) body.scrollTop = 0; }, [page]);
-  const rows = accountRows({ native: platform.native, demo, signedIn: Boolean(email) });
+  const rows = accountRows({ native: platform.native, signedIn: Boolean(email) });
 
   const changeWorkspace = async (id: string, unlink = false) => {
     if (busy) return;
@@ -137,15 +133,14 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
             </SettingsSection>
             <SettingsSection title={t("mobile.settings.bots")} art="books" hint={t("mobile.settings.botsHint")}>
               <SettingsRow icon={<CalendarClock />} label={t("mobile.settings.routines")} detail={t("mobile.settings.routinesDetail")} onClick={() => onOpenSheet({ kind: "routines" })} />
-              {!demo && <SettingsRow icon={<Plug />} label={t("mobile.settings.connectors")} detail={t("mobile.settings.connectorsDetail")} onClick={() => onOpenSheet({ kind: "connectors" })} />}
-              {!demo && <SettingsRow icon={<KeyRound />} label={t("mobile.settings.vault")} detail={t("mobile.settings.vaultDetail")} onClick={() => onOpenSheet({ kind: "vault" })} />}
+              <SettingsRow icon={<Plug />} label={t("mobile.settings.connectors")} detail={t("mobile.settings.connectorsDetail")} onClick={() => onOpenSheet({ kind: "connectors" })} />
+              <SettingsRow icon={<KeyRound />} label={t("mobile.settings.vault")} detail={t("mobile.settings.vaultDetail")} onClick={() => onOpenSheet({ kind: "vault" })} />
             </SettingsSection>
             <SettingsSection title={t("mobile.settings.workspaces")} art="computer" hint={t("mobile.settings.workspacesHint")}>
               {connections.map((connection) => (
                 <WorkspaceRow key={connection.id} connection={connection} active={connection.id === activeId} confirming={unlinkId === connection.id} busy={busy} onSelect={() => { void changeWorkspace(connection.id); }} onConfirm={() => { setError(false); setUnlinkId(connection.id); }} onCancel={() => { setUnlinkId(null); setError(false); }} onUnlink={() => { void changeWorkspace(connection.id, true); }} />
               ))}
               {error && <p role="alert" className="px-4 py-2 text-[14px] text-danger">{t("mobile.settings.workspaceError")}</p>}
-              {demo && <SettingsRow icon={<LogOut />} label={t("mobile.settings.leaveDemo")} detail={t("mobile.settings.leaveDemoDetail")} onClick={() => { void leaveDemo(platform); }} />}
               <SettingsRow icon={<Plus />} label={t("mobile.settings.link")} onClick={() => { onClose(); window.dispatchEvent(new Event("dusk:link-another")); }} />
             </SettingsSection>
             <SettingsSection title={t("mobile.settings.phone")} art="phone" hint={t("mobile.settings.phoneHint")}>

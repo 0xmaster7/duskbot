@@ -48,7 +48,7 @@ export function ChatScreen({ bot, group, members, onBack, onProfile, onComputer 
         </button>
         <div className="flex min-w-0 flex-1 justify-center">
           {waking && (
-            <span role="status" data-testid="mobile-chat-cloud-status" className="flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full bg-composer px-3 text-[13px] font-medium text-ink-secondary mobile-float">
+            <span role="status" data-testid="mobile-chat-cloud-status" className="flex h-11 items-center gap-1.5 whitespace-nowrap rounded-full bg-composer px-4 text-[13px] font-medium text-ink-secondary mobile-float">
               <WorkingDots size={3} />{t("cloudAsleep.waking")}
             </span>
           )}

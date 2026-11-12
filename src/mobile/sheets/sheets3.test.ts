@@ -50,11 +50,11 @@ describe("settings header", () => {
   });
 
   it("prefers the account email, then the computer's name, then a plain phrase", () => {
-    expect(settingsIdentity({ name: "Sam", email: "sam@example.com", workspace: "127.0.0.1:5331", demo: false })).toEqual({ title: "Sam", subtitle: "sam@example.com" });
-    expect(settingsIdentity({ email: null, workspace: "Studio Mac", demo: false }).subtitle).toBe("Studio Mac");
-    const plain = settingsIdentity({ email: null, workspace: "127.0.0.1:5331", demo: false });
+    expect(settingsIdentity({ name: "Sam", email: "sam@example.com", workspace: "127.0.0.1:5331" })).toEqual({ title: "Sam", subtitle: "sam@example.com" });
+    expect(settingsIdentity({ email: null, workspace: "Studio Mac" }).subtitle).toBe("Studio Mac");
+    const plain = settingsIdentity({ email: null, workspace: "127.0.0.1:5331" });
     expect(plain.subtitle).not.toMatch(/\d+\.\d+|:\d+/);
-    expect(settingsIdentity({ email: "sam@example.com", demo: false }).title).toBe("sam");
+    expect(settingsIdentity({ email: "sam@example.com" }).title).toBe("sam");
   });
 });
 

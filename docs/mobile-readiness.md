@@ -6,7 +6,7 @@ owner. Status words used below: **pass** (was already right, checked), **fixed**
 **needs owner** (needs an account, a key, a decision or another branch), **unverified** (could not be checked here).
 
 The short version: the app now builds, pairs by camera on an iPhone, recovers its connection, notices when it is
-removed, keeps read state honest, and has a demo a reviewer can use. **It must not be submitted yet**: the release gate
+removed, and keeps read state honest. **It must not be submitted yet**: the release gate
 fails on copied material that other branches are replacing, the account service the sign-in screen talks to is not
 deployed, and nothing here ran on a real iPhone or in a simulator. The ordered list is under "What blocks submission".
 
@@ -18,7 +18,7 @@ is built into the app; the app never loads its interface from a server.
 ```text
  phone app (WKWebView, bundled UI)
    AccountGate ........ the hosted account (dusk.bot), optional by build flag
-   ConnectionGate ..... picks the saved workspace, installs its transport, or shows pairing / unreachable / demo
+   ConnectionGate ..... picks the saved workspace, installs its transport, or shows pairing / unreachable
    MobileApp .......... the shared store (same reducer as the desktop) under the phone's own screens
         |
         |  one of four transports, all behind the page's own fetch and EventSource
@@ -26,14 +26,13 @@ is built into the app; the app never loads its interface from a server.
    https .............. the workspace's public address (your server, a hosted address, a dusk cloud computer)
    companion .......... the Mac's sidecar on the same Wi-Fi or tailnet (http, port 8810, allowlisted routes)
    relay .............. link.dusk.bot, frames sealed on the phone (AES-GCM, key from X25519) and opened on your server
-   demo ............... a workspace inside the page: no network, sample team, pretend replies
 ```
 
 ### What each side keeps
 
 | Where | What | Notes |
 |---|---|---|
-| Phone, preferences | Saved workspaces (label, routes, device id), which one is active, the outbox per workspace, the push registration it last sent, haptics, intro seen, demo on | Not secret |
+| Phone, preferences | Saved workspaces (label, routes, device id), which one is active, the outbox per workspace, the push registration it last sent, haptics, intro seen | Not secret |
 | Phone, Keychain | The session token per workspace, the relay key pair per workspace, the account grant | `@aparajita/capacitor-secure-storage` |
 | Workspace (your computer or server) | Bots, chats, files, routines, approvals; the list of paired phones with each one's session, relay channel and push token; who is away | The only copy of the content |
 | Link relay | Channel ids and verifiers, queued sealed frames | Cannot read frames; keeps nothing after delivery |
@@ -65,7 +64,7 @@ Two runs drive real clients:
 |---|---|---|
 | Phone to desktop, desktop to phone, bot reply on both | pass | two-client run: "it shows on the desktop", "it shows on the phone", replies on both, each stored once |
 | Read and unread, list order and preview | **fixed** | bug 4 below; two-client run fails on exactly the two unread checks without the fix |
-| Bots renamed or deleted on one side | pass | two-client run (rename and delete reach both). Create from the phone: unit tested against the demo workspace only |
+| Bots renamed or deleted on one side | pass | two-client run (rename and delete reach both). Create from the phone: unit tested only |
 | Outbox while offline | pass | two-client run: written offline, not on the server, then on the server and the desktop exactly once. Unit tests in `src/mobile/outbox.test.ts` cover retries and the give-up |
 | Back from the background | pass (browser) | two-client run freezes the phone page, sends meanwhile, wakes it. **Unverified on a device**, where iOS suspends the web view |
 | Network change, sleeping Mac, workspace restart over the relay | **fixed** | bug 2 below (unit tests). Not driven end to end |
@@ -74,7 +73,7 @@ Two runs drive real clients:
 | Pairing a second phone | pass | each pairing is its own device and session on the workspace (`server/mobile/link.ts`); not driven with two phones |
 | Push for the right bot, opening the right chat | **unverified** | the tap target is parsed and opened (`MobileApp.tsx`, `notificationTarget`); needs APNs keys and a device |
 | Permission asks answered once | **unverified here** | the phone renders the shared approval card and the workspace refuses a second answer (server tests). Not driven with two clients: the fake engine's approval recipe was not wired into the run |
-| Group chats, attachments and file cards across two clients | **unverified here** | rooms render and send on the phone (demo and fixture); file upload and download are in the existing run. Not driven with two clients |
+| Group chats, attachments and file cards across two clients | **unverified here** | rooms render and send on the phone (fixture); file upload and download are in the existing run. Not driven with two clients |
 | Routines switched on or off | **unverified here** | the routines sheet reads the same store; not driven |
 | A dusk cloud computer that is asleep | **fixed** (wording), **unverified** | the store stops reconnecting to a sleeping Cloud by design, and the phone's home said "Reconnecting" though it was not trying. It now says "Asleep · wakes when you type", then "Waking up", from the same power state the desktop reads (`src/lib/cloud-power.ts`). Not checked against a real Cloud computer |
 
@@ -157,7 +156,7 @@ Two runs drive real clients:
 | Reduced motion | pass | `MotionConfig reducedMotion="user"`, CSS branches, the nav stack cross-fades instead of sliding |
 | Orientation, iPad | **fixed** | portrait only; iPhone only (`TARGETED_DEVICE_FAMILY = 1`) |
 | Empty and error states | pass | empty home, skeleton, unreachable screen with retry and countdown, pairing errors by cause |
-| First run | pass (browser) | intro, pairing by camera or 12 character code or pasted link, "Try the demo" |
+| First run | pass (browser) | intro, pairing by camera or 12 character code or pasted link, sign in to dusk cloud |
 | Dead ends, placeholder text, debug UI | **fixed** | bugs 9, 10 and 16 |
 
 ## 4. App Store checklist
@@ -170,23 +169,19 @@ Two runs drive real clients:
 | Crashes | **unverified** | nothing was launched on iOS |
 | Placeholder art and text | **fixed** | bug 6 |
 | Links work | **needs owner** | https://dusk.bot/privacy, /terms and /docs must be live and final (the legal pages are marked "Draft for legal review" in docs/LAUNCH.md) |
-| Reviewer can use it without a Mac | **fixed** | the built-in demo workspace (`src/mobile/demo/`): "Try the demo" on the sign-in screen and the pairing screen. Sample team, a room, sending with a pretend reply, search, creating a bot, notifications, Settings. Exact steps are in docs/store/ios-listing.md |
-| Demo account | **needs owner** | Apple asks for approval before a demo mode stands in for a demo account. Either ship the phone app without the sign-in screen (see "Owner decisions"), or give a review account and a way to get its code |
-
-Approach proposed for review: the built-in demo is the main path, because a pairing code expires and a review can take
-days. If you also want reviewers to see a live workspace, run one on a server with the fake engine, pair it once to get
-a long-lived typed code, and put that code in the notes. I created no accounts and no servers.
+| Reviewer can use it without a Mac | **needs owner** | the built-in demo workspace was removed. App Review needs a live review workspace (a long-lived typed code in the notes) or a review account with a dusk cloud. Steps are in docs/store/ios-listing.md |
+| Demo account | **needs owner** | give a review account and a way to get its code, or a review workspace kept running for the whole review |
 
 ### 4.2 Minimum functionality
 
 | Item | Status | Notes |
 |---|---|---|
 | Not a web page in a wrapper | pass | the interface is bundled; navigation is a native-feeling stack with interactive swipe back, bottom sheets, long-press menus |
-| Works offline | pass | the outbox; the unreachable screen; the demo needs no network at all |
+| Works offline | pass | the outbox; the unreachable screen |
 | Push | **needs owner** | the entitlement is in; APNs keys go on the link service (docs/phone-push.md) |
 | Haptics, share sheet | pass | `@capacitor/haptics`, `@capacitor/share` ("Open on desktop" in a row's menu) |
 | Camera QR pairing | **fixed**, **unverified** on device | bug 5 |
-| Needs another product to be useful | note | it is a companion to the desktop app; say so in the description (done in the draft) and lean on the demo |
+| Needs another product to be useful | note | it is a companion to the desktop app; say so in the description (done in the draft) and give reviewers a live review workspace |
 
 ### 3.1.1 In-app purchase
 
@@ -296,9 +291,9 @@ Grok's, and the Grok Bot logo in the import dialog. The skin ids are visible in 
 - Listing drafts, age rating answers, privacy label answers, export compliance and review notes:
   `docs/store/ios-listing.md`.
 - Screenshots: `docs/store/ios/6.9/` (1320 x 2868) and `docs/store/ios/6.5/` (1284 x 2778), five each: the team, a chat,
-  a room, dark, pairing. They are the app's real screens with the demo data, drawn by
+  a room, dark, pairing. They are the app's real screens against an isolated fixture with the test bots, drawn by
   `apps/mobile/scripts/store-shots.ts` in a headless Chrome at the store sizes. **They are not simulator captures**: a
-  browser draws no status bar and no home indicator, and the home screen shows the "Demo" pill. Retake them in
+  browser draws no status bar and no home indicator. Retake them in
   the simulator before submitting (steps below).
 
 ## 5. Android, quick check
@@ -334,7 +329,7 @@ Grok's, and the Grok Bot logo in the import dialog. The skin ids are visible in 
 | Android debug build | `cd apps/mobile/android && ./gradlew assembleDebug` | BUILD SUCCESSFUL |
 | Two real clients | `node --experimental-strip-types scripts/mobile-two-client-e2e.ts` | 33/33 |
 | Relay and companion routes | `node --experimental-strip-types scripts/mobile-sync-e2e.ts` | 34/34 |
-| Screens at phone size | headless Chrome, 390 x 844 and the store sizes | demo home, chat, room, create, search, notifications, settings, sign-in, pairing; light, dark, 135 percent text |
+| Screens at phone size | headless Chrome, 390 x 844 and the store sizes | home, chat, room, create, search, notifications, settings, sign-in, pairing; light, dark, 135 percent text |
 
 **Not done: the simulator run.** This Mac has Xcode 27.2 and the simulator SDK but no simulator runtime
 (`xcrun simctl list runtimes` is empty). I started `xcodebuild -downloadPlatform iOS` (noted, several GB); it sat at

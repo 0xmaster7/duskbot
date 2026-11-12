@@ -53,15 +53,14 @@ describe("routine results navigation", () => {
 
 describe("settings account rows", () => {
   it("the store apps never link to the dashboard that sells plans", () => {
-    expect(accountRows({ native: true, demo: false, signedIn: true }).dashboard).toBe(false);
-    expect(accountRows({ native: true, demo: false, signedIn: false }).dashboard).toBe(false);
-    expect(accountRows({ native: false, demo: false, signedIn: false }).dashboard).toBe(true);
-    expect(accountRows({ native: false, demo: true, signedIn: false }).dashboard).toBe(false);
+    expect(accountRows({ native: true, signedIn: true }).dashboard).toBe(false);
+    expect(accountRows({ native: true, signedIn: false }).dashboard).toBe(false);
+    expect(accountRows({ native: false, signedIn: false }).dashboard).toBe(true);
   });
 
   it("an account made in the app can be deleted from the app", () => {
-    expect(accountRows({ native: true, demo: false, signedIn: true })).toMatchObject({ signOut: true, deleteAccount: true });
-    expect(accountRows({ native: true, demo: true, signedIn: false })).toMatchObject({ signOut: false, deleteAccount: false });
+    expect(accountRows({ native: true, signedIn: true })).toMatchObject({ signOut: true, deleteAccount: true });
+    expect(accountRows({ native: true, signedIn: false })).toMatchObject({ signOut: false, deleteAccount: false });
     expect(LEGAL_LINKS.deleteAccountPath).toBe("/account#delete");
     expect(LEGAL_LINKS.privacy).toBe("https://dusk.bot/privacy");
   });

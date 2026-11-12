@@ -96,6 +96,8 @@ function childEnv(extra) {
 
 const harnessEnv = () => childEnv({
   DUSK_DATA_DIR: DEMO_DIR, DUSK_PORT: String(PORT), DUSK_WEBHOOK_PORT: String(PORT + 1), DUSK_DEV_TRUST_LOCAL_BROWSER: "1",
+  // the demo seeds its own test bots; the first-run seeding would add a second set beside them
+  DUSK_NO_TEST_BOTS: "1",
 });
 
 function startProcess(name, args, env, detached) {

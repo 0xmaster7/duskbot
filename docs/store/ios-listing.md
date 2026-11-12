@@ -50,11 +50,6 @@ phone but the pairing.
 
 You can pair more than one workspace and switch between them, and remove a phone from the computer at any time.
 
-TRY IT FIRST
-
-No computer set up yet? Choose "Try the demo" on the first screen to look around with a sample team. The demo bots only
-pretend to work.
-
 PRIVATE BY DESIGN
 
 - No ads, no tracking, no analytics SDKs
@@ -128,16 +123,15 @@ self-classification; it is a legal statement made in the owner's name.
 dusk bot for iPhone is the companion to dusk bot for Mac, Windows and Linux (https://dusk.bot), where a person runs
 their own team of AI bots. The iPhone app pairs with that workspace and lets them text their bots.
 
-You do not need a computer or an account to review it. The app has a built-in demo workspace:
+The app has no built-in demo: a reviewer needs a live workspace to pair with, or a review account (see below).
 
-1. Launch the app. On the first screen tap "Try the demo".
-2. The home screen shows a sample team. Tap a bot (for example "Quill") to open its chat.
-3. Type a message and send it. The bot replies after a moment. Demo replies say they are a demo.
-4. Tap the back button, then open "Launch room" to see a group chat with three bots.
-5. Tap the "+" button (top right) to create a bot, and the magnifier to search.
-6. Tap the profile button (top left) for Settings: appearance, language, haptics, the privacy policy and terms, and
-   "Leave the demo".
-7. Long-press any chat row for its menu (pin, mark unread, share to the computer).
+1. Launch the app. On the first screen choose "enter a code" and type the review code, or "log in" with the review
+   account and pick its dusk cloud.
+2. The home screen shows the review workspace's team. Tap a bot (for example "Quill") to open its chat and send a message.
+3. Tap the back button, then open "Launch room" to see a group chat with three bots.
+4. Tap the "+" button (top right) to create a bot, and the magnifier to search.
+5. Tap the profile button (top left) for Settings: appearance, language, haptics, the privacy policy and terms.
+6. Long-press any chat row for its menu (pin, mark unread, share to the computer).
 
 With a real workspace the same screens show the person's own bots; pairing is by scanning a QR code that the desktop app
 shows (camera permission), or by typing the 12 character code shown beside it. [If you set up a review workspace, add:
