@@ -15,6 +15,7 @@ import { RowMenu, Table, Td, Th, type MenuItem } from "../ui/table";
 import { KIND_LABEL } from "../ui/Shell";
 import { SkyEmpty } from "../ui/Sky";
 import { CloudStatus, regionName, tierName, workspaceIcon } from "./cloud-bits";
+import { monthlyOf, Points, useQuickCheckout } from "./cloud-offer";
 import { CommandButton, LoadError } from "./common";
 import { MachineView } from "./Machine";
 import { useNow } from "../lib/now";
@@ -116,18 +117,31 @@ export function WorkspacesPage() {
                   <Step n={3} title="keep it awake">your bots run while the mac is on.</Step>
                 </ol>
               </div>
-              <div className="min-w-0 max-md:pt-6 md:pl-6">
-                <h3 className="mb-5 text-14 font-medium text-ink">your own server</h3>
-                <ol className="flex flex-col gap-5">
-                  {/* the installer only runs with a line the app makes: it carries the one-time code that links the server */}
-                  <Step n={1} title="in the app, open add your vps">settings, computer. it makes one install line with its own pairing code.</Step>
-                  <Step n={2} title="paste that line on your vps">over ssh. the line works once and links that server to your app, so copy all of it.</Step>
-                  <Step n={3} title="it reports here">machine and bots, live.</Step>
-                </ol>
-              </div>
+              <CloudColumn hasCloud={Boolean(clouds?.length)} />
             </div>
           </Card>
         </section>
+      </div>
+    </div>
+  );
+}
+
+/** the second way to run bots: dusk cloud, so they keep working when the mac sleeps */
+function CloudColumn({ hasCloud }: { hasCloud: boolean }) {
+  const { catalog } = useCloud();
+  const { busy, error, buy } = useQuickCheckout("dash_workspaces");
+  const from = monthlyOf(catalog, "starter");
+  return (
+    <div className="min-w-0 max-md:pt-6 md:pl-6">
+      <h3 className="mb-2 text-14 font-medium text-ink">dusk cloud</h3>
+      <p className="mb-5 text-14 text-ink-3">your bots on a computer we run, so they keep going when your mac sleeps.{from ? ` from ${from} a month.` : ""}</p>
+      <Points />
+      {error && <p role="alert" className="mt-4 text-14 text-bad">{error}</p>}
+      <div className="mt-6 flex flex-wrap gap-2">
+        {hasCloud
+          ? <ButtonLink to="/cloud" variant="primary">open dusk cloud</ButtonLink>
+          : <Button variant="primary" onClick={() => void buy("starter")} disabled={busy || !catalog}>{busy ? "opening checkout" : "get dusk cloud"}</Button>}
+        <ButtonLink to="/billing">compare plans</ButtonLink>
       </div>
     </div>
   );
