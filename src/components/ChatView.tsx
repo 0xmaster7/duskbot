@@ -235,7 +235,7 @@ export function ErrorRow({
         ) : safety ? (
           <p className="mt-1 text-ink-secondary">
             {PROVIDER_SAFETY_GUIDANCE}{" "}
-            <a href={PROVIDER_SAFETY_HELP_URL} target="_blank" rel="noreferrer" className="underline">about provider safety checks</a>
+            <a href={PROVIDER_SAFETY_HELP_URL} target="_blank" rel="noreferrer" className="underline">{t("chat.error.providerSafetyLink")}</a>
           </p>
         ) : !usageUrl && setup ? (
           <EngineSetup instance={setupInstance} className="mt-2 text-ink-secondary" />
@@ -1003,7 +1003,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const cancelEdit = useCallback(() => setEditingId(null), []);
   const submitEdit = useCallback(
     (messageId: string, text: string) => {
-      setEditingId(null); // closes the editor first — a double Enter can't fork twice
+      setEditingId(null); // closes the editor first, so a double Enter can't fork twice
       dispatch({ type: "editMessage", botId: bot.id, threadId: bot.threadId, messageId, text });
     },
     [bot.id, bot.threadId, dispatch],
@@ -1137,7 +1137,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             </button>
           )}
           {!phone && !simpleHead && <ChatHeadRole bot={bot} />}<span role="status" className="sr-only" data-chathead-status>{bot.busy ? t("sidebar.preview.working") : ""}</span>{!simpleHead && privateChat && <TeamPrivateHeader />}{!simpleHead && ownHelper && <TeamOwnHelperHeader />}{!simpleHead && sharedChat && team && <TeamSharedHeader team={team} onlyPeopleAdded={bot.onlyPeopleAdded} />}
-          {!simpleHead && !bot.busy && bot.waitingForTeammates && <span className="truncate text-[12px] text-ink-secondary" role="status">teammates working</span>}
+          {!simpleHead && !bot.busy && bot.waitingForTeammates && <span className="truncate text-[12px] text-ink-secondary" role="status">{t("chat.teammatesWorking")}</span>}
           {remoteClient && awayFromMainThread(profile) && (
             <button
               type="button"

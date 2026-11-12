@@ -20,7 +20,7 @@ import { rememberImageSize } from "@/lib/image-cache";
 import { t } from "@/lib/i18n";
 import { UploadRing } from "./UploadRing";
 
-/** Electron 32 removed File.path — only the preload can name a file. */
+/** Electron 32 removed File.path, so only the preload can name a file. */
 export function pathForFile(file: File): string {
   return window.duskDesktop?.getPathForFile?.(file) ?? "";
 }
