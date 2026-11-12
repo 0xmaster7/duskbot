@@ -20,6 +20,7 @@ import {
   provesSameOrigin,
   parseCookies,
   requestOrigin,
+  setPublicOriginSource,
   requestSource,
   requiredScope,
   resolveLoopbackTrust,
@@ -60,6 +61,36 @@ describe("origin and cookies", () => {
     expect(requestOrigin(request({ host: "Bots.Example.com", "x-forwarded-proto": "https" }))).toBe("https://bots.example.com");
     expect(requestOrigin(request({ host: "a:8799", "x-forwarded-proto": "https, http" }))).toBe("https://a:8799");
     expect(requestOrigin(request({}))).toBeNull();
+  });
+  it("follows a front that rewrote Host to its loopback upstream, and only then", () => {
+    const front = (headers: Record<string, string>, remoteAddress = "127.0.0.1") =>
+      ({ headers, method: "POST", socket: { remoteAddress, remoteFamily: "IPv4" } }) as unknown as IncomingMessage;
+    try {
+      // tailscale serve, Caddy, cloudflared: Host kept, so Host decides (and a default port is dropped like a browser does)
+      expect(requestOrigin(front({ host: "box.tail1.ts.net", "x-forwarded-host": "box.tail1.ts.net", "x-forwarded-proto": "https", "x-forwarded-for": "100.64.0.2" }))).toBe("https://box.tail1.ts.net");
+      expect(requestOrigin(front({ host: "box.example.com:443", "x-forwarded-proto": "https", "x-forwarded-for": "1.2.3.4" }))).toBe("https://box.example.com");
+      // dusk cloud: Host is the public name even when the provider's proxy left its own name in X-Forwarded-Host
+      expect(requestOrigin(front({ host: "home.dusk.bot", "x-forwarded-host": "m-1.instabox.dev", "x-forwarded-proto": "https" }))).toBe("https://home.dusk.bot");
+      // nginx or cloudflared httpHostHeader: Host is the upstream, X-Forwarded-Host the name the browser used
+      const rewritten = { host: "127.0.0.1:8799", "x-forwarded-host": "bots.example.com", "x-forwarded-proto": "https", "x-forwarded-for": "1.2.3.4" };
+      expect(requestOrigin(front(rewritten))).toBe("https://bots.example.com");
+      expect(isSameOrigin(front({ ...rewritten, origin: "https://bots.example.com" }))).toBe(true);
+      expect(isSameOrigin(front({ ...rewritten, origin: "https://evil.example" }))).toBe(false);
+      expect(requestOrigin(front({ ...rewritten, "x-forwarded-host": "bad host\r\n" }))).toBe("https://127.0.0.1:8799");
+      // a request that is not from this machine (impossible on the loopback listener) is never followed
+      expect(requestOrigin(front(rewritten, "203.0.113.9"))).toBe("https://127.0.0.1:8799");
+      // the relay's agent forwards the app's loopback Host in X-Forwarded-Host: it stays the origin
+      setPublicOriginSource(() => "https://vps.example.com");
+      expect(requestOrigin(front({ host: "127.0.0.1:43123", "x-forwarded-host": "127.0.0.1:43123", "x-forwarded-proto": "http", "x-forwarded-for": "10.0.0.1" }))).toBe("http://127.0.0.1:43123");
+      // a bare proxy_pass (no X-Forwarded-Host) is the configured public address
+      expect(requestOrigin(front({ host: "127.0.0.1:8799", "x-forwarded-for": "1.2.3.4" }))).toBe("https://vps.example.com");
+      // a request with no forwarding header (the owner's own programs, an SSH tunnel) keeps its loopback origin
+      expect(requestOrigin(front({ host: "127.0.0.1:8790" }))).toBe("http://127.0.0.1:8790");
+      setPublicOriginSource(() => null);
+      expect(requestOrigin(front({ host: "127.0.0.1:8799", "x-forwarded-for": "1.2.3.4" }))).toBe("http://127.0.0.1:8799");
+    } finally {
+      setPublicOriginSource(() => null);
+    }
   });
   it("treats absent or matching Origin as same-origin, anything else as foreign", () => {
     expect(isSameOrigin(request({ host: "a.example" }))).toBe(true);

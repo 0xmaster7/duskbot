@@ -522,7 +522,7 @@ import {
   requestOrigin,
   requestSource,
   resolveLoopbackTrust,
-  resolveRequestAuth, resolveHttpRequestAuth, answerMobilePreflight,
+  resolveRequestAuth, resolveHttpRequestAuth, answerMobilePreflight, setPublicOriginSource,
   parseCookies,
   serializeSessionCookie,
   sessionCookieName, ownerOrAdmin,
@@ -763,6 +763,7 @@ function savedCustomDomain(): string | null {
   catch { return null; }
 }
 function publicUrl(): string | null { return savedCustomDomain() ?? FALLBACK_PUBLIC_URL; }
+setPublicOriginSource(publicUrl);
 function customDomainStatus() {
   return {
     customDomain: savedCustomDomain(), publicUrl: publicUrl(), fallbackUrl: FALLBACK_PUBLIC_URL,

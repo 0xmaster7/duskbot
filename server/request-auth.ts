@@ -157,12 +157,61 @@ function headerValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+let publicOriginSource: () => string | null = () => null;
+
+/** The address a front serves this server at (--public-url, --domain, --tunnel, --tailscale or a saved custom domain);
+ * the server entry sets it once. */
+export function setPublicOriginSource(read: () => string | null): void {
+  publicOriginSource = read;
+}
+
+function configuredPublicOrigin(): string | null {
+  try {
+    const value = publicOriginSource();
+    return value ? new URL(value).origin : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The server listens on loopback only, so every forwarding header comes from a program on this machine: the front
+ * (tailscaled, cloudflared, Caddy, a proxy) or one that could reach the server directly anyway. */
+function localPeer(req: IncomingMessage): boolean {
+  const socket = req.socket;
+  if (!socket || ipcPeer(req)) return true;
+  const address = socket.remoteAddress ?? "";
+  return address === "::1" || address.startsWith("127.") || address.startsWith("::ffff:127.");
+}
+
+const HOST_HEADER = /^(?:[a-z0-9_-]+(?:\.[a-z0-9_-]+)*\.?|\[[0-9a-f:.]+\])(?::\d{1,5})?$/;
+
+/** Browsers leave the scheme's default port out of Origin, so the same is done here. */
+function originFor(proto: "http" | "https", host: string): string {
+  const port = proto === "https" ? ":443" : ":80";
+  return `${proto}://${host.endsWith(port) ? host.slice(0, -port.length) : host}`;
+}
+
+/** The origin the browser used. A front that rewrites Host to its loopback upstream (nginx's default, cloudflared's
+ * httpHostHeader) is followed through its X-Forwarded-Host, or else the configured public address, so a signed-in
+ * page there is still same-origin. */
 export function requestOrigin(req: IncomingMessage): string | null {
-  const host = headerValue(req.headers.host)?.trim();
+  const host = headerValue(req.headers.host)?.trim().toLowerCase();
   if (!host) return null;
   const forwarded = headerValue(req.headers["x-forwarded-proto"])?.split(",")[0]?.trim().toLowerCase();
   const proto = forwarded === "https" || forwarded === "http" ? forwarded : "http";
-  return `${proto}://${host.toLowerCase()}`;
+  // Host wins whenever it names a real address: dusk cloud's edge sets Host to the public name while the provider's port
+  // proxy leaves its own name in X-Forwarded-Host (apps/cloud-service/deploy/Caddyfile).
+  if (isLoopbackHost(host) && isProxied(req) && localPeer(req)) {
+    const forwardedHost = headerValue(req.headers["x-forwarded-host"])?.split(",")[0]?.trim().toLowerCase();
+    if (forwardedHost) {
+      // the relay's agent forwards the app's own loopback Host as it is: that stays the origin
+      if (HOST_HEADER.test(forwardedHost) && !isLoopbackHost(forwardedHost)) return originFor(proto, forwardedHost);
+    } else {
+      const front = configuredPublicOrigin();
+      if (front) return front;
+    }
+  }
+  return originFor(proto, host);
 }
 
 /** A proxy that hands the server a loopback Host must not turn a remote client into the owner. */
