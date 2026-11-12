@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { EVENTS, isEventName, routeOf, type EventName, type Props } from "./events.ts";
 import { deviceOf, geoOf, referrerHost, touchContext, type EventContext } from "./context.ts";
+import type { Present } from "./presence.ts";
 
 export const TRACK_PATH = "/v1/t";
 export const APP_EVENTS_PATH = "/v1/app/events";
@@ -30,6 +31,8 @@ export interface IngestDeps {
   cookieless(req: IncomingMessage): boolean;
   /** a cookieless visitor's ids: a daily-rotating salted hash and its current visit, both derived here */
   dailyVisit(req: IncomingMessage): { visitor: string; session: string };
+  /** marks someone as on the site right now, in memory only (presence.ts) */
+  present?(entry: Omit<Present, "at">): void;
 }
 
 const text = (value: unknown, max: number) => typeof value === "string" ? value.slice(0, max) : undefined;
@@ -60,7 +63,7 @@ export async function handleTrack(req: IncomingMessage, res: ServerResponse, dep
   deps.rate(req, "track", 1200);
   let raw: Buffer;
   try { raw = await deps.readBody(req, MAX_TRACK_BYTES); } catch { return done(res, 413); }
-  if (deps.declined(req) || AUTOMATED.test(String(req.headers["user-agent"] ?? "")) || !req.headers["user-agent"] || deps.isOwner(req)) return done(res);
+  if (deps.declined(req) || AUTOMATED.test(String(req.headers["user-agent"] ?? "")) || !req.headers["user-agent"]) return done(res);
   let body: Record<string, unknown>;
   try { body = JSON.parse(raw.toString("utf8")) as Record<string, unknown>; } catch { return done(res, 400); }
   if (!body || typeof body !== "object" || body.v !== 1 || typeof body.vid !== "string" || !ID.test(body.vid) || typeof body.sid !== "string" || !ID.test(body.sid)) return done(res, 400);
@@ -69,6 +72,14 @@ export async function handleTrack(req: IncomingMessage, res: ServerResponse, dep
   if (!host || !hosts.has(host)) return done(res, 400);
   const path = routeOf(text(body.p, 300) ?? "/") ?? "/";
   const pv = typeof body.pv === "string" && PV.test(body.pv) ? body.pv : undefined;
+  // the owner's own visits are never recorded, only shown as here now; a ping is an open page saying it still is
+  const owner = deps.isOwner(req);
+  if (owner || body.e === "ping") {
+    const { country, city, lat, lon } = geoOf(req, deps.trustProxy);
+    const visitor = owner ? `owner:${body.vid}` : deps.cookieless(req) ? deps.dailyVisit(req).visitor : body.vid;
+    deps.present?.({ key: visitor, page: path, owner, ...(country ? { country } : {}), ...(city ? { city } : {}), ...(lat !== undefined && lon !== undefined ? { lat, lon } : {}) });
+    return done(res);
+  }
   const persist = !deps.cookieless(req);
   const ids = persist ? { visitor: body.vid, session: body.sid } : deps.dailyVisit(req);
   const base: EventContext = { session: ids.session, ...(pv ? { pv } : {}), host, page: path };

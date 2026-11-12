@@ -53,6 +53,18 @@ export const FREE_CAPABILITIES = [
 
 export const BOT_DESKTOP_DNS = ["1.1.1.1", "9.9.9.9"] as const;
 
+/** The env prefixes a desktop image reads: the published images (v3 and older) read OMB_, a build from today's rootfs
+ * reads DUSK_. A box given only DUSK_MODE by a v3 image falls back to strict, finds no NET_ADMIN and exits 70. */
+export const BOX_ENV_PREFIXES = ["OMB_", "DUSK_"] as const;
+const boxEnv = (name: string, value: string) => BOX_ENV_PREFIXES.flatMap((prefix) => ["-e", `${prefix}${name}=${value}`]);
+
+/** A box made while the server sent only DUSK_ names: its image never saw its mode or the host's addresses. Its root is
+ * either read-only (strict) or never started (free exits 70 before the session), so recreating it on its home volume
+ * loses nothing. */
+export function botDesktopEnvIsStale(env: string[] | undefined): boolean {
+  return Boolean(env?.some((entry) => entry.startsWith("DUSK_MODE=")) && !env.some((entry) => entry.startsWith("OMB_MODE=")));
+}
+
 /** The flags the harness starts a bot desktop with. */
 export function botDesktopRunArgs(input: {
   containerName: string;
@@ -92,10 +104,10 @@ export function botDesktopRunArgs(input: {
     "--shm-size", "512m",
     // a reboot leaves desktops asleep: they wake one by one when a bot needs one, never all at once
     "--restart", "no",
-    "-e", `DUSK_MODE=${input.mode}`,
-    "-e", "DUSK_BROWSER_AT_START=off",
+    ...boxEnv("MODE", input.mode),
+    ...boxEnv("BROWSER_AT_START", "off"),
     "-e", `VNC_PW=${input.viewerSecret}`,
-    ...(!free && blocked.length ? ["-e", `DUSK_BLOCK_EXTRA=${blocked.join(",")}`] : []),
+    ...(!free && blocked.length ? boxEnv("BLOCK_EXTRA", blocked.join(",")) : []),
     input.imageRef,
   ];
 }
@@ -214,8 +226,11 @@ export function botDesktopMountsAreSafe(containerName: string, detail: {
 export function containerBotDesktopMode(labels: Record<string, string> | undefined, env: string[] | undefined): BotDesktopMode | undefined {
   const mode = labels?.[BOT_DESKTOP_MODE_LABEL];
   if (mode !== "free" && mode !== "strict") return undefined;
-  const envMode = env?.find((entry) => entry.startsWith("DUSK_MODE="))?.slice("DUSK_MODE=".length) ?? "strict";
-  return envMode === mode ? mode : undefined;
+  // every name the image may read must agree with the label
+  const named = BOX_ENV_PREFIXES.map((prefix) => env?.find((entry) => entry.startsWith(`${prefix}MODE=`))?.slice(`${prefix}MODE=`.length));
+  const envModes = named.filter((value): value is string => value !== undefined);
+  if (!envModes.length) envModes.push("strict");
+  return envModes.every((value) => value === mode) ? mode : undefined;
 }
 
 type DockerRun = (args: string[], timeoutMs?: number) => Promise<{ stdout: string }>;

@@ -610,6 +610,23 @@ describe("marketing tracker", () => {
     await Promise.resolve();
   });
 
+  it("pings every minute while the page is visible, and again when it comes back", async () => {
+    const timers: Array<() => void> = [];
+    vi.spyOn(win, "setInterval").mockImplementation(((fn: () => void, ms: number) => { if (ms === 60000) timers.push(fn); return 1; }) as typeof win.setInterval);
+    await load();
+    expect(timers).toHaveLength(1);
+    timers[0]!();
+    let sent = await events();
+    expect(sent.filter(p => p.e === "ping")).toEqual([expect.objectContaining({ v: 1, e: "ping", p: "/pricing", h: "preview.dusk.bot" })]);
+    visibility("hidden");
+    timers[0]!();
+    sent = await events();
+    expect(sent.filter(p => p.e === "ping")).toHaveLength(1);
+    visibility("visible");
+    sent = await events();
+    expect(sent.filter(p => p.e === "ping")).toHaveLength(2);
+  });
+
   it("fits the gzip budget", () => {
     expect(gzipSync(source).length).toBeLessThanOrEqual(5120);
   });

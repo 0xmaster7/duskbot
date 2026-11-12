@@ -213,9 +213,11 @@
       for (var q = 0; q < queue.length; q++) goal.apply(null, queue[q]);
       queue = [];
     }
+    function ping() { if (pv && d.visibilityState === "visible") send("ping", {}); }
+    w.setInterval(safe(ping), 60000);
     d.addEventListener("visibilitychange", safe(function () {
       if (!pv) start();
-      else if (d.visibilityState === "visible") time();
+      else if (d.visibilityState === "visible") { time(); ping(); }
       else leave();
     }));
     w.addEventListener("pagehide", safe(leave));

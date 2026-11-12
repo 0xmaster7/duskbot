@@ -115,7 +115,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const marks = (["signup", "paid"] as const).flatMap(kind => [...(kind === "signup" ? p.signups : p.paid)].filter(([id, at]) => at >= from && at < to && (!allowed || allowed.has(id)))
       .map(([id, at]) => ({ at, kind, seed: [...(identity.visitorsOf.get(id) ?? [])][0] ?? id, email: accounts.get(id)?.email ?? null, customer: p.paid.has(id) })))
       .sort((a, b) => b.at - a.at || a.seed.localeCompare(b.seed)).slice(0, 60);
-    const live = online(events, now());
+    const live = online(events, now(), analytics.presence.list().map(entry => entry.key));
     const revenue = revenueReport({ payments: paymentsOf(billing.store.state), subscriptions: billing.store.state.subscriptions, visits, identity, from, to, now: now(), filters: scoped,
       accounts: new Map([...accounts].map(([id, account]) => [id, { email: account.email, createdAt: account.createdAt }])) });
     const crawls = await sink.crawls(from, to);
@@ -234,7 +234,14 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     });
     const latest = new Map<string, (typeof feed)[number]>();
     for (const item of feed) if (item.at >= time - 5 * 60_000 && (item.name === "site_view" || item.name === "site_goal" || item.name === "page_view") && !latest.has(item.seed)) latest.set(item.seed, item);
-    return { now: time, minutes, online: online(events, time), here: [...latest.values()], feed };
+    const present = analytics.presence.list(time);
+    for (const entry of present.reverse()) {
+      if (latest.has(entry.key)) continue;
+      const account = entry.owner ? null : identity.accountOf.get(entry.key) ?? null;
+      latest.set(entry.key, { id: `here_${entry.key}`, at: entry.at, name: "site_view", seed: entry.key, email: account ? accounts.get(account)?.email ?? null : null,
+        customer: !!(account && p.paid.has(account)), page: entry.page, goal: null, source: null, country: entry.country ?? null, city: entry.city ?? null, lat: entry.lat ?? null, lon: entry.lon ?? null });
+    }
+    return { now: time, minutes, online: online(events, time, present.map(entry => entry.key)), here: [...latest.values()], feed };
   }
 
   async function retentionRoute() {

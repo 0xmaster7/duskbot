@@ -7,6 +7,7 @@ import { DAY_MS, EVENTS, cleanProps, dayOf, isEventName, routeOf, type EventName
 import type { AnalyticsSink } from "./sink.ts";
 import { cookieless, requestContext, type EventContext } from "./context.ts";
 import { APP_EVENTS_PATH, TRACK_PATH, handleAppEvents, handleTrack } from "./ingest.ts";
+import { createPresence } from "./presence.ts";
 import { isAiCrawler } from "./sources.ts";
 
 export interface AnalyticsOptions {
@@ -75,6 +76,7 @@ export function createAnalytics(options: AnalyticsOptions) {
     seen.add(key); return true;
   }
   const markUntil = (at: number) => Math.max(at, now()) + 3 * DAY_MS;
+  const presence = createPresence(now);
 
   async function record(name: EventName, input: { accountId?: string | null; props?: Props; at?: number; visitor?: string | null; ctx?: EventContext } = {}) {
     const accountId = input.accountId ?? null, at = input.at ?? now(), day = dayOf(at);
@@ -156,7 +158,7 @@ export function createAnalytics(options: AnalyticsOptions) {
     const path = url.pathname, method = req.method ?? "GET";
     if (path === TRACK_PATH || path === APP_EVENTS_PATH) {
       const deps = { track, now, trustProxy: options.trustProxy ?? false, origins: trackOrigins, readBody: readLimited, rate: helpers.rate, isOwner: helpers.isOwner,
-        appAccount: helpers.appAccount, identify, declined, cookieless: anonymous, dailyVisit };
+        appAccount: helpers.appAccount, identify, declined, cookieless: anonymous, dailyVisit, present: presence.touch };
       await (path === TRACK_PATH ? handleTrack(req, res, deps) : handleAppEvents(req, res, deps));
       return true;
     }
@@ -206,7 +208,7 @@ export function createAnalytics(options: AnalyticsOptions) {
     return false;
   }
 
-  return { sink, track, record, identify, crawlerVisit, onTrack: (fn: (name: EventName, input: Parameters<typeof record>[1]) => void) => { listeners.push(fn); }, appActive, botReplied, setOptOut, forget, handle, stats, optedOut: (accountId: string) => optOut.has(accountId),
+  return { sink, presence, track, record, identify, crawlerVisit, onTrack: (fn: (name: EventName, input: Parameters<typeof record>[1]) => void) => { listeners.push(fn); }, appActive, botReplied, setOptOut, forget, handle, stats, optedOut: (accountId: string) => optOut.has(accountId),
     summariesOff: (accountId: string) => optOut.has(accountId) || noSummaries.has(accountId), onForget: (fn: (accountId: string) => void) => { forgetters.push(fn); }, close: () => store.close() };
 }
 export type Analytics = ReturnType<typeof createAnalytics>;

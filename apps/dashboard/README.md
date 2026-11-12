@@ -102,7 +102,9 @@ users (search, plan, clouds, devices, timeline), clouds (pause, resume, delete w
 - **Site and app analytics.** `tracker/dusk.js` (about 3 KB gzip, no dependencies, ideas from Minilytics, MIT) is copied to the
   site as `/a.js` by the site's `build-pages.mjs`. It sends page views, goals (`cta_click`, `download_click`, `waitlist_join`,
   `outbound`, any `data-dusk-goal`), and each page view's end (scroll depth, visible time) to `POST /v1/t` as text/plain
-  beacons; `?dusk_ignore=1` once turns it off in a browser, and an admin's own visits are never counted. The first page
+  beacons; `?dusk_ignore=1` once turns it off in a browser, and an admin's own visits are never recorded. An open page pings
+  `/v1/t` every minute while visible; pings and the admin's own beacons only mark the visitor as here in memory (`analytics/presence.ts`),
+  which the live counts add to the last five minutes of events. The first page
   view of each page load goes as a `fetch` instead, and `/v1/t` answers `{"persist": true|false}`: the tracker writes
   `dusk_vid` and `dusk_sid` only after `true`. The answer is `false` when Cloudflare (trusted only as the proxy's peer) puts
   the visitor in the EU, EEA, UK or Switzerland (`COOKIELESS_COUNTRIES` in `analytics/context.ts`) or cannot place them;

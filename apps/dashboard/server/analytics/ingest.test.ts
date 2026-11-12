@@ -201,6 +201,29 @@ describe("site tracker and app ingest", () => {
     expect(sink.all.length).toBe(before);
   });
 
+  const live = async (cookie: string) => (await fetch(`${url}/v1/admin/realtime?minutes=30`, { method: "GET", headers: { cookie } })).json() as Promise<{ online: { site: number }; here: Array<{ seed: string; page: string; country: string | null }> }>;
+
+  it("shows the owner's own visit and an open page's pings as here now, without recording them", async () => {
+    const admin = await login(ADMIN);
+    expect(await live(admin)).toMatchObject({ online: { site: 0 }, here: [] });
+    const before = sink.all.length;
+    expect((await beacon(view(), { cookie: admin, "x-forwarded-for": "203.0.113.4, 172.70.1.1", "cf-ipcountry": "IN" })).status).toBe(204);
+    // someone else's page, open six minutes after its page view: only its ping keeps it here
+    expect((await beacon(view({ vid: "QqQqQqQqQqQqQqQqQqQqQq" }))).status).toBe(200);
+    time += 6 * 60_000;
+    expect((await beacon(view({ e: "ping", vid: "QqQqQqQqQqQqQqQqQqQqQq" }))).status).toBe(204);
+    await settle();
+    expect(sink.all.filter(event => event.name.startsWith("site_")).map(event => event.name)).toEqual(["site_view"]);
+    expect(sink.all.length).toBe(before + 1);
+    const answer = await live(admin);
+    expect(answer.online.site).toBe(1);
+    expect(answer.here).toEqual([expect.objectContaining({ seed: "QqQqQqQqQqQqQqQqQqQqQq", page: "/pricing" })]);
+    expect((await beacon(view(), { cookie: admin, "x-forwarded-for": "203.0.113.4, 172.70.1.1", "cf-ipcountry": "IN" })).status).toBe(204);
+    const both = await live(admin);
+    expect(both.online.site).toBe(2);
+    expect(both.here.map(item => item.seed).sort()).toEqual(["QqQqQqQqQqQqQqQqQqQqQq", `owner:${VID}`]);
+  });
+
   it("links a site visitor to the account that signs in on the same domain, once", async () => {
     const cookie = await login(OTHER);
     for (let n = 0; n < 2; n++) await fetch(`${url}/v1/events`, { method: "POST", headers: { "content-type": "application/json", origin: ORIGIN, cookie: `${cookie}; dusk_vid=${VID}`, [CSRF_HEADER]: csrf.get(cookie)! },

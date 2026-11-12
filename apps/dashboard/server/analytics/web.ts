@@ -195,9 +195,10 @@ export function breakdown(visits: readonly Visit[], identity: Identity, people: 
     .sort((a, b) => b.visitors - a.visitors || b.signups - a.signups || a.key.localeCompare(b.key)).slice(0, limit);
 }
 
-/** how many people were on the site (the account pages included) in the last five minutes, and in an app */
-export function online(events: readonly StoredEvent[], now: number) {
-  const site = new Set<string>(), app = new Set<string>();
+/** how many people were on the site (the account pages included) in the last five minutes, and in an app; `present` are
+ * the site's visitors only presence.ts saw (pages still open, the owner's own) */
+export function online(events: readonly StoredEvent[], now: number, present: Iterable<string> = []) {
+  const site = new Set<string>(present), app = new Set<string>();
   for (const event of events) {
     if (event.at < now - ONLINE_MS || event.at > now + 60_000) continue;
     if (SITE.has(event.name) && event.ctx?.visitor) site.add(event.ctx.visitor);
