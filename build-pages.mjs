@@ -324,11 +324,11 @@ const faqLd = (html) => {
   return qs.length ? [{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: qs }] : [];
 };
 // who makes the site, on the home and about pages; sameAs lists only profiles the site itself links to
-const orgLd = { '@context': 'https://schema.org', '@type': 'Organization', name: 'Dusk Bot', url: `${SITE_URL}/`, logo: `${SITE_URL}/art/icon-512.png`, email: 'hello@dusk.bot', sameAs: ['https://x.com/duskbot_hq'] };
+const orgLd = { '@context': 'https://schema.org', '@type': 'Organization', name: 'dusk bot', url: `${SITE_URL}/`, logo: `${SITE_URL}/art/icon-512.png`, email: 'hello@dusk.bot', sameAs: ['https://x.com/duskbot_hq'] };
 const appLd = {
-  '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'Dusk Bot', url: `${SITE_URL}/`, image: `${SITE_URL}/art/og.jpg`,
+  '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'dusk bot', url: `${SITE_URL}/`, image: `${SITE_URL}/art/og.jpg`,
   applicationCategory: 'ProductivityApplication', operatingSystem: 'macOS, Windows, Linux',
-  description: 'A desktop app where you run a team of AI bots and message them like teammates. It runs on your computer, your own server or a Dusk cloud computer, on the AI accounts you already have.',
+  description: 'A desktop app where you run a team of AI bots and message them like teammates. It runs on your computer, your own server or a dusk cloud computer, on the AI accounts you already have.',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
 };
 
@@ -342,7 +342,8 @@ for (const page of pages) {
   if (WAITLIST_HOME && page.name === 'home') continue;
   const body = withStrips(fs.readFileSync(path.join(here, 'pages', `${page.name}.html`), 'utf8'));
   if (WAITLIST_HOME && page.name === 'waitlist') {
-    write('/', soloWaitlist(layout({ ...page, page: page.name, at: '/', kind: page.kind || 'p-waitlist', body, jsonld: [orgLd] })));
+    // the waitlist page is frozen as it went out, its structured data included
+    write('/', soloWaitlist(layout({ ...page, page: page.name, at: '/', kind: page.kind || 'p-waitlist', body, jsonld: [{ ...orgLd, name: 'Dusk Bot' }] })));
     continue;
   }
   const at = page.name === 'home' ? '/' : page.name === '404' ? '/404.html' : `/${page.name}`;
@@ -360,18 +361,29 @@ for (const page of pages) {
   });
   const shell = withStrips(fs.readFileSync(path.join(here, 'pages', 'partials', 'changelog-shell.html'), 'utf8'));
   const body = shell.replace('{{entries}}', entries.join('\n')).replace(/\{\{([#^])entries\}\}([\s\S]*?)\{\{\/entries\}\}/g, (_, mark, inner) => ((entries.length > 0) === (mark === '#') ? inner : ''));
-  write('/changelog', layout({ title: "what's new / dusk bot", description: 'Every Dusk Bot release, newest first: what changed and what got fixed.', page: 'changelog', kind: 'p-changelog', body }));
+  write('/changelog', layout({ title: "what's new / dusk bot", description: 'Every dusk bot release, newest first: what changed and what got fixed.', page: 'changelog', kind: 'p-changelog', body }));
 }
 
 // the legal pages, each with a list of its sections beside it
 const legal = [['terms', 'Terms of Service', 'terms'], ['privacy', 'Privacy Policy', 'privacy'], ['cookies', 'Cookie Policy', 'cookies'], ['refunds', 'Refund and Cancellation Policy', 'refunds'],
   ['acceptable-use', 'Acceptable Use Policy', 'acceptable use'], ['subprocessors', 'Subprocessors', 'subprocessors'], ['license', 'License', 'license'], ['security', 'Security', 'security']];
+// what each one covers, for search results and share cards
+const LEGAL_ABOUT = {
+  terms: 'The terms for using dusk bot: the app, accounts, paid plans, dusk cloud desktops, and what each side promises.',
+  privacy: 'What dusk bot collects in the app, the phone app, the account service, dusk cloud and this site, why, and how to get it deleted.',
+  cookies: 'The few cookies and the local storage dusk.bot and the account pages use, what each is for, and your choices.',
+  refunds: 'How cancelling a dusk bot plan works, when you can get a refund, and how to ask for one.',
+  'acceptable-use': 'What you may not use dusk bot, its bots or dusk cloud desktops for, and what happens when someone does.',
+  subprocessors: 'The outside services that process data for dusk bot, what each one does, and where.',
+  license: 'The dusk bot license: free for personal use, what needs a work license, and the notices that come with the code.',
+  security: 'How to report a security problem in dusk bot, what is in scope, and what to expect from us.',
+};
 for (const [name, title, short] of legal) {
   // the site never shows a person's name as copyright holder
   const html = markdown(fs.readFileSync(path.join(repo, 'docs', 'legal', `${name}.md`), 'utf8').replace(/Copyright (\d{4}) [^.\n]+\./g, 'Copyright $1 dusk bot.'));
   const toc = [...html.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)].map((m) => `<li><a href="#${m[1]}">${m[2]}</a></li>`).join('');
   const others = legal.map(([n, , s]) => `<a href="/${n}"${n === name ? ' aria-current="page"' : ''}>${s}</a>`).join('');
-  write(`/${name}`, layout({ title: `${title.toLowerCase()} / dusk bot`, description: `dusk bot ${title.toLowerCase()}.`, page: name, section: 'legal', og: 'legal', kind: 'p-legal',
+  write(`/${name}`, layout({ title: `${title.toLowerCase()} / dusk bot`, description: LEGAL_ABOUT[name], page: name, section: 'legal', og: 'legal', kind: 'p-legal',
     body: `<header class="phead wrap"><h1>${title.toLowerCase()}</h1></header>
 ${strip('layers', 'circle blue, hex orange', 'short')}
 <div class="legal-wrap wrap">

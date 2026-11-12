@@ -4,7 +4,7 @@
   "title": "Linear AI agent for issue context and cycle reviews",
   "nav": "linear",
   "h1": "a linear bot that spots missing context before planning",
-  "description": "Walk into planning with the question holding the work up. Dusk Bot reads Linear issues, comments and cycles, then brings you the evidence.",
+  "description": "Walk into planning with the question holding the work up. Your bot reads Linear issues, comments and cycles, then brings you the evidence.",
   "keyword": "linear mcp",
   "keywords": [
     "claude linear",

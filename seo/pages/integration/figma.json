@@ -4,7 +4,7 @@
   "title": "Figma AI assistant for comments, components and handoffs",
   "nav": "figma",
   "h1": "a figma bot that gathers the handoff details",
-  "description": "Connect Figma to Dusk Bot to review comments, inspect components and gather file context. Three handoff routines with honest limits on design editing.",
+  "description": "Connect Figma to dusk bot to review comments, inspect components and gather file context. Three handoff routines with honest limits on design editing.",
   "keyword": "claude figma",
   "keywords": [
     "figma ai agent",

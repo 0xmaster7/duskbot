@@ -4,7 +4,7 @@
   "title": "Jira AI assistant: catch sprint changes before the meeting",
   "nav": "jira",
   "h1": "a jira assistant that explains what changed",
-  "description": "Read Jira issue history, sprint changes and release questions with Dusk Bot. Try three review routines and keep status changes under your control.",
+  "description": "Read Jira issue history, sprint changes and release questions with dusk bot. Try three review routines and keep status changes under your control.",
   "answer": "**walk into the sprint meeting knowing what changed yesterday.** a jira bot reads issues, comments and history, then explains scope and status changes in your dusk chat. schedule that review with the ai you choose.\n\nstart read only. you get the story behind the labels while tickets and the sprint stay where they are.",
   "tags": [
     "issues",

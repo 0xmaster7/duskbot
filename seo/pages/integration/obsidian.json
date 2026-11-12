@@ -4,7 +4,7 @@
   "title": "Obsidian AI assistant for a local markdown vault",
   "nav": "obsidian",
   "h1": "an obsidian helper that works with your note files",
-  "description": "Give a local bot in Dusk Bot your Obsidian vault as its project folder. Review markdown notes, plan changes and open the bot’s own memory in Obsidian.",
+  "description": "Give a local bot in dusk bot your Obsidian vault as its project folder. Review markdown notes, plan changes and open the bot’s own memory in Obsidian.",
   "keyword": "claude obsidian",
   "keywords": [
     "obsidian mcp",

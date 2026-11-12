@@ -4,7 +4,7 @@
   "title": "Slack AI assistant: find decisions without rereading it all",
   "nav": "slack",
   "h1": "a slack assistant that finds the decision in the thread",
-  "description": "Use Dusk Bot to read Slack threads, find decisions and draft replies in chat. Try three routines with source links and clear posting limits.",
+  "description": "Use dusk bot to read Slack threads, find decisions and draft replies in chat. Try three routines with source links and clear posting limits.",
   "keyword": "claude slack",
   "keywords": [
     "claude slack integration",

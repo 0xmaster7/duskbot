@@ -38,4 +38,4 @@ reading and drafting happen freely. sending (emails, messages, posts, payments) 
 
 ## something not on the list?
 
-if a tool offers an mcp server, add it under **Plugins**, **MCP servers**: paste whatever the tool gave you and the app works out the rest. only add servers you trust.
+if a tool offers an mcp server, add it under **plugins**, **MCP servers**: paste whatever the tool gave you and the app works out the rest. only add servers you trust.

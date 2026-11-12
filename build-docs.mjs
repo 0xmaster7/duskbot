@@ -91,6 +91,6 @@ ${strip('birches', 'circle blue, heart pink, hex orange, star green, drop yellow
 ${sections.map((s) => `<section>${art(s.art)}<h2>${esc(s.title)}</h2><ul>${ordered.filter((p) => p.section === s.id).map((p) => `<li><a href="${p.at}"><b>${esc(p.title)}</b><span>${esc(p.description)}</span></a></li>`).join('')}</ul></section>`).join('\n')}
 </div>
 <section class="wrap docs-foot"><div class="note-row">{{bot heart pink}}<p>could not find it? write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>. a person answers, and the docs get better.</p></div></section>`;
-  write('/docs', layout({ title: 'docs / dusk bot', description: 'How to get going with Dusk Bot, and how to get the most out of your bots: clear jobs, good first messages, routines, group chats, memory and Dusk Cloud.', page: 'docs', at: '/docs', og: 'docs', kind: 'p-docs', scripts: ['docs.js'], body: home }));
+  write('/docs', layout({ title: 'docs / dusk bot', description: 'How to get going with dusk bot, and how to get the most out of your bots: clear jobs, good first messages, routines, group chats, memory and dusk cloud.', page: 'docs', at: '/docs', og: 'docs', kind: 'p-docs', scripts: ['docs.js'], body: home }));
   return ordered.length + 1;
 }

@@ -76,7 +76,7 @@ export function templates(ctx) {
       const name = r.competitor?.name || r.compare.cols[0];
       const verdict = `<div class="seo-verdict"><div><h3>pick ${esc(r.verdict.them_title || name)} if</h3>${list(r.verdict.them)}</div><div><h3>pick ${esc(r.verdict.dusk_title || 'dusk bot')} if</h3>${list(r.verdict.dusk)}</div></div>`;
       const rows = r.compare.rows.map((row) => [inline(row.label), ...row.cells.map((c, i) => inline(c) + (i === row.cells.length - 1 ? srcRefs(row.src) : ''))]);
-      const heads = r.compare.cols.map((c) => (c === 'Dusk Bot' ? `<span class="seo-th">${bot('kit', 'violet', 'seo-mini')}${esc(c)}</span>` : esc(c)));
+      const heads = r.compare.cols.map((c) => (c === 'dusk bot' ? `<span class="seo-th">${bot('kit', 'violet', 'seo-mini')}${esc(c)}</span>` : esc(c)));
       return `${section('the short version', verdict)}\n${section(r.compare.h || 'side by side', `${r.compare.intro ? md(r.compare.intro) : ''}<div class="seo-compare">${table(['', ...heads], rows, `${name} and the others, side by side`)}</div>`)}\n${sections(r)}\n${section('how we checked', md(r.method))}`;
     },
 

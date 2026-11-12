@@ -11,7 +11,7 @@ a group chat is for work that passes between jobs: one bot fixes the bug, anothe
 
 ## start one
 
-1. in the sidebar, under **Group chats**, choose **New group chat**.
+1. in the sidebar, under **group chats**, choose **new group chat**.
 2. name it after the project: "website launch".
 3. tick the bots that belong in it.
 
@@ -19,8 +19,8 @@ a group chat is for work that passes between jobs: one bot fixes the bug, anothe
 
 | setting | a plain message goes to |
 | --- | --- |
-| **Everyone responds** | every bot, side by side. |
-| **Only when mentioned** | nobody, unless you @mention them. |
+| **everyone responds** | every bot, side by side. |
+| **only when mentioned** | nobody, unless you @mention them. |
 | **Leader** | one lead bot, who hands out tasks to the others. |
 
 type **@** and a bot's name to hand something to that bot, whatever the setting.

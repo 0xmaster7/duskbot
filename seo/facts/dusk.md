@@ -36,7 +36,7 @@ make that claim. Never invent features, numbers, integrations, users, ratings or
 - Who answers: Everyone responds, Only when mentioned, or Leader (one lead bot hands out tasks). (/docs/group-chats)
 - Group instructions every bot follows; pin one thing to the top; keep it small (three focused bots beat eight). (/docs/group-chats)
 - Each bot keeps its own AI and its own permissions inside a group. (/docs/group-chats)
-- Bots don't learn from group chats unless you turn on Learn from group chats for that bot. (/docs/memory)
+- Bots don't learn from group chats; what they remember comes from your own messages to them. (/docs/memory)
 
 ## routines
 - A routine is a job a bot does without being asked again. You make one by saying it ("summarise my inbox every weekday at 8"). The bot replies with a card showing the schedule and next runs, with Edit, Pause and Undo. Automations in the sidebar lists every routine with a calendar and run history. (/docs/routines)
@@ -62,7 +62,7 @@ make that claim. Never invent features, numbers, integrations, users, ratings or
 - Files: drop a file in the chat or use Attach files (documents, spreadsheets, pictures, screenshots). What bots make shows in the chat; on your computer it lives in the bot's own folder (or a project folder you give it); on Dusk Cloud a copy comes down to Documents/Dusk Bot. (/docs/files-and-apps)
 
 ## a bot's computer and safety
-- A bot can have its own browser and desktop, separate from yours. On Dusk Cloud each bot gets a desktop (2 awake at once on Plus, 5 on Pro); on your own server a private desktop there; on a Mac you can also point a bot at your own screen, on purpose. (/docs/computer)
+- A bot can have its own browser and desktop, separate from yours. On Dusk Cloud each bot gets a desktop (2 awake at once on Plus, 5 on Pro); on your own server a private desktop there; on a Mac or Windows you can also point a bot at your own screen, on purpose (Ubuntu too, in beta, on Xorg). (/docs/computer)
 - Watch live with Screen; Take control to click and type yourself, then Hand control back. That's how a bot gets past sign-ins, captchas and two-step codes; it stays signed in and never sees the password. (/docs/computer)
 - Approval levels per bot: Ask for approval (nothing risky alone), Auto-accept edits (changes files; other things ask), Approve for me (the AI's own review approves routine actions; the rest come to you), Full access (everything; real questions and missing sign-ins still come to you). (/docs/computer)
 - Sending in your name is separate: Ask every time, or Allow a daily amount. (/docs/computer)
@@ -72,17 +72,17 @@ make that claim. Never invent features, numbers, integrations, users, ratings or
 - Tip: keep a new bot on Ask for approval for a few days, then loosen up. (/docs/tips)
 
 ## memory
-- Bots remember what you tell them, what they notice when a chat goes quiet (marked as noticed), and keep a short daily log. (/docs/memory)
+- Bots remember what you tell them, and facts about you they notice in your own messages (shown in Settings, About me, under "added by your bots"). (/docs/memory)
 - Anything that looks like a password or key is blanked out before a note is saved. (/docs/memory)
-- Notes are markdown files in .duskbot/workspaces/<bot>/; edit them in the bot's Memory settings; Open in Obsidian works. Old notes archive themselves; a note can carry an end date. (/docs/memory)
+- Notes are markdown files in .duskbot/workspaces/<bot>/; edit them in the bot's Memory settings or any text editor. Old notes archive themselves; a note can carry an end date. (/docs/memory)
 - About me in Settings: name, time zone, how you like to be written to; every bot gets it. (/docs/memory)
 - Turn off Let this bot use memory to stop it; files stay on disk. (/docs/memory)
 
 ## where bots live, and what it costs
 - COPY RULE (owner, 12 november 2026): never put a number on bots in page copy (no "2 awake at once", "5 on pro", "keeps about six", "start with three bots", "three focused bots beat eight"). Say "plus keeps a good amount of bots working", "pro is for heavy workloads, and for work", "start with one bot, add more when it earns its keep", "a few focused bots". The numbers below are for your understanding only.
 - Your computer: free; stops when it sleeps. Dusk Cloud: a computer Dusk hosts and looks after, always on, daily backups. Your own server: free plus the server; you look after it. You can keep several and switch from the menu at the top of the sidebar. (/docs/dusk-cloud)
-- Dusk Cloud Plus: $20 a month or $200 a year; 2 vCPU, 4 GB memory, 40 GB disk; 2 bot computers awake at once. Pro: $50 a month or $500 a year; 4 vCPU, 8 GB, 80 GB; 5 awake at once and first in line to wake; includes a work license for one person. Yearly is two months free. Team plans from $100 a month with a dedicated machine and shared bots (write to hello@dusk.bot). (/docs/dusk-cloud, /docs/account-and-billing, /pricing)
-- Dusk Cloud is your own machine, not shared. Your AI sign-in stays yours. Your phone works with your computer off when paired to the Cloud. (/docs/dusk-cloud)
+- Dusk Cloud Plus: $20 a month or $200 a year; 2 vCPU, 4 GB memory, 40 GB disk; 2 bot computers awake at once. Pro: $50 a month or $500 a year; 4 vCPU, 8 GB, 80 GB; 5 awake at once and first in line to wake; includes a work license for one person. A work license on its own is $12 a month. Yearly is two months free. Team plans from $100 a month with a dedicated machine and shared bots (write to hello@dusk.bot). (/docs/dusk-cloud, /docs/account-and-billing, /pricing)
+- Each Dusk Cloud has its own storage no one else can reach; Plus and Pro run on shared hardware, Team gets a dedicated machine. Your AI sign-in stays yours. Your phone works with your computer off when paired to the Cloud. (/docs/dusk-cloud)
 - Setting up a Cloud: pick a plan, sign in under Settings, Dusk Cloud; ready in about a minute; a welcome moves your bots (chats, memory, routines). (/docs/dusk-cloud)
 - Tip from the docs: a bot that works around the clock uses your AI plan around the clock; for heavy use a bigger AI plan or an API key works best. (/docs/dusk-cloud)
 - Cloud files: share a folder (read-only copy, kept up to date while your computer is on); bots' work lands in Documents/Dusk Bot. (/docs/dusk-cloud)
@@ -91,7 +91,7 @@ make that claim. Never invent features, numbers, integrations, users, ratings or
 - Payments by Dodo Payments (merchant of record); Dusk never sees your card. (/docs/account-and-billing)
 
 ## phone
-- Pair once by scanning a code (or a six-digit code, a nearby list on Wi-Fi, or Tailscale). No account needed. (/docs/phone)
+- Pair once by scanning a code (or a six-digit code, a nearby list on Wi-Fi, or Tailscale). Secure pairing asks for an email sign-in; Wi-Fi or Tailscale pairing needs no account. (/docs/phone)
 - Paired with your computer, the phone only works while that computer is on and running Dusk Bot (Settings, Remote access, Keep this computer awake helps). Paired with Dusk Cloud it works with your computer off. (/docs/phone)
 - Notifications show the bot's name and "new message", never the text. (/docs/phone)
 

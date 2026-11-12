@@ -4,7 +4,7 @@
   "title": "What is MCP? Connections for AI apps in plain English",
   "nav": "what is mcp",
   "h1": "what is mcp, and why would a bot need it?",
-  "description": "A plain-English explanation of Model Context Protocol, what an MCP server connects, and the trust checks to make before adding one in Dusk Bot.",
+  "description": "A plain-English explanation of Model Context Protocol, what an MCP server connects, and the trust checks to make before adding one in dusk bot.",
   "keyword": "what is mcp",
   "keywords": [
     "mcp for non developers",

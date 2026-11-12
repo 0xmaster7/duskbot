@@ -14,7 +14,7 @@ on your own computer, your bots stop when it sleeps. dusk cloud gives them a com
 - **nothing to look after.** no server, no updates, no keeping a laptop open. daily backups included.
 - **a real browser for every bot.** bots get their own desktop to sign in to sites and click through, and you can watch.
 - **your phone just works.** pair it with the cloud and it answers even when your computer is off.
-- **private to you.** your own machine, not a shared one. your ai sign-in stays yours.
+- **private to you.** your cloud has its own storage that no one else can reach, and your ai sign-in stays yours. plus and pro run on shared hardware; a team plan gets a machine of its own.
 
 ## what it costs
 
@@ -30,7 +30,7 @@ ai usage is not part of the bill. your bots use the ai you sign in with, on your
 ## how it works
 
 1. pick plus or pro on [the pricing page](/pricing) and check out.
-2. in the app, open **Settings**, **Dusk Cloud** and sign in. your cloud is ready in about a minute and shows up as **My Cloud**.
+2. in the app, open **settings**, **dusk cloud** and sign in. your cloud is ready in about a minute and shows up as **my cloud**.
 3. a short welcome walks you through it: bring your bots over (chats, memory and routines come too), sign in to your ai, and give your cloud a job.
 
 after that the app is a window onto your cloud. you use it exactly the same way.
@@ -39,7 +39,7 @@ after that the app is a window onto your cloud. you use it exactly the same way.
 
 ## files
 
-**Settings**, **Dusk Cloud** has a files section.
+**settings**, **dusk cloud** has a files section.
 
 - **share a folder.** your cloud gets a read-only copy, kept up to date while your computer is on. a bot can read it but never change your files.
 - **get your bots' work.** what bots make on the cloud lands in `Documents/Dusk Bot` on your computer, a folder per bot and conversation.

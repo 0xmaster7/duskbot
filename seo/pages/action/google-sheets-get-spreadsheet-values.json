@@ -4,7 +4,7 @@
   "title": "Read Google Sheets cell values with AI from a set range",
   "nav": "get spreadsheet values",
   "h1": "ask about the values in a specific google sheets range",
-  "description": "Read a chosen Google Sheets range with a bot, using calculated values or formulas. Set the exact file, tab and range, and understand its Dusk access rule.",
+  "description": "Read a chosen Google Sheets range with a bot, using calculated values or formulas. Set the exact file, tab and range, and understand its dusk bot access rule.",
   "keyword": "read google sheets values with ai",
   "keywords": [
     "google sheets get cell values with ai",

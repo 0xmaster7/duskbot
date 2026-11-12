@@ -44,11 +44,11 @@ you don't have to wait for a bot to finish. send another message while it works 
 
 ## 6. let it ask at first, then loosen up
 
-keep a new bot on **Ask for approval** for a few days, so it checks with you before running commands, changing files or sending anything. read the cards, and once you trust a bot with a kind of task, allow it. see [a bot's computer](/docs/computer#asking-first).
+keep a new bot on **ask for approval** for a few days, so it checks with you before running commands, changing files or sending anything. read the cards, and once you trust a bot with a kind of task, allow it. see [a bot's computer](/docs/computer#asking-first).
 
 ## 7. tell it once, and it remembers
 
-"i only fly aisle." "dana signs off on anything over €500." a bot writes things like that into its [memory](/docs/memory) and uses them next month. things every bot should know about you (your name, time zone, how you like to be written to) go in **About me** in settings.
+"i only fly aisle." "dana signs off on anything over €500." a bot writes things like that into its [memory](/docs/memory) and uses them next month. things every bot should know about you (your name, time zone, how you like to be written to) go in **about me** in settings.
 
 ## 8. if you ask twice, make it a routine
 

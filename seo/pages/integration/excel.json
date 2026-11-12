@@ -4,7 +4,7 @@
   "title": "Excel AI assistant for workbooks, tables and .xlsx files",
   "nav": "excel",
   "h1": "an excel bot for the workbook you actually mean",
-  "description": "Get budget versus actual before the meeting. Connect a OneDrive workbook or drop an .xlsx into Dusk Bot for range, table and chart work.",
+  "description": "Get budget versus actual before the meeting. Connect a OneDrive workbook or drop an .xlsx into dusk bot for range, table and chart work.",
   "keyword": "claude excel",
   "keywords": [
     "chatgpt excel",

@@ -26,14 +26,14 @@ dusk bot has no model of its own. your bots think with an ai you already pay for
 
 {{include ui-signin}}
 
-- **no subscription?** add an api key under **Settings**, **API keys** (anthropic, xai, openrouter, groq and anything that speaks the openai api).
-- **want it all local?** start ollama or lm studio and choose **Use a local model** in a bot's model picker.
+- **no subscription?** add an api key under **settings**, **API keys** (anthropic, xai, openrouter, groq and anything that speaks the openai api).
+- **want it all local?** start ollama or lm studio and choose **use a local model** in a bot's model picker.
 
 what you say to a bot goes straight from your machine to that ai, on your plan. it does not pass through us.
 
 ## make a bot
 
-choose **New bot**. give it a name, a shape, a colour, and one job in plain words.
+choose **new bot**. give it a name, a shape, a colour, and one job in plain words.
 
 {{include ui-newbot}}
 

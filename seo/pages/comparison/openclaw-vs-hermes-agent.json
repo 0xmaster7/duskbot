@@ -1,9 +1,9 @@
 {
   "path": "/vs/openclaw-vs-hermes-agent",
-  "title": "OpenClaw vs Hermes Agent: where Dusk Bot fits",
+  "title": "OpenClaw vs Hermes Agent: where dusk bot fits",
   "nav": "openclaw vs hermes agent",
   "h1": "openclaw vs hermes agent: which one should you run?",
-  "description": "Compare OpenClaw, Hermes Agent and Dusk Bot on setup, agent teams, scheduling and hosting, with dated sources and no performance rankings.",
+  "description": "Compare OpenClaw, Hermes Agent and dusk bot on setup, agent teams, scheduling and hosting, with dated sources and no performance rankings.",
   "answer": "**choose who handles the upkeep before choosing the agent.** openclaw and hermes can run on your machine or server. openclaw centres on chat channels and routing. hermes adds persistent memory and self-created skills.[^1][^3] both give you open-source code to change. dusk puts named bots with separate jobs in an app, with hosting available when you want it.",
   "tags": [
     "openclaw",
@@ -47,7 +47,7 @@
     "cols": [
       "OpenClaw",
       "Hermes Agent",
-      "Dusk Bot"
+      "dusk bot"
     ],
     "rows": [
       {

@@ -16,13 +16,13 @@ dusk bot is free for personal use, with every feature, on your own computer. you
 | **yearly** | | $200 a year | $500 a year |
 | **every feature of the app** | yes | yes | yes |
 | **[dusk cloud](/docs/dusk-cloud) computer** | no | 2 vcpu, 4 gb, 40 gb | 4 vcpu, 8 gb, 80 gb |
-| **work license** | no | no | yes, for one person |
+| **work license** | add one, $12 a month | add one, $12 a month | yes, for one person |
 
 yearly is two months free. **team** plans start at $100 a month, with a dedicated machine and shared bots: write to hello@dusk.bot. current prices are on [the pricing page](/pricing).
 
 **ai usage is never on your dusk bill.** your ai provider bills you on your plan with them.
 
-using dusk bot at or for a business needs a work license. pro includes one; the [license page](/license) has the exact terms.
+using dusk bot at or for a business needs a work license. pro includes one for one person, or you can add one on its own for $12 a month (on free or plus) from the billing page of your account. the [license page](/license) has the exact terms.
 
 ## your account
 
@@ -42,4 +42,4 @@ questions about a charge? write to hello@dusk.bot from the email on your account
 
 ## your data and deleting the account
 
-the account page has **Download your data** and **Delete account**. deleting it doesn't touch anything on your own computer or server, and an active plan has to be cancelled first (the page offers to). a cloud computer on the account stops (at once, or when its paid time ends), is kept for 30 days, then deleted.
+the account page has **Download your data** and **delete account**. deleting it doesn't touch anything on your own computer or server, and an active plan has to be cancelled first (the page offers to). a cloud computer on the account stops (at once, or when its paid time ends), is kept for 30 days, then deleted.

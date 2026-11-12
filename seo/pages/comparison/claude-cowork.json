@@ -1,9 +1,9 @@
 {
   "path": "/vs/claude-cowork",
-  "title": "Claude Cowork vs Dusk Bot: tasks or a bot team?",
+  "title": "Claude Cowork vs dusk bot: tasks or a bot team?",
   "nav": "claude cowork",
   "h1": "claude cowork vs dusk bot: files, schedules and bot teams",
-  "description": "Cowork is becoming part of Claude. Compare its file tasks and cloud schedules with Dusk Bot, including the limits of local routines.",
+  "description": "Cowork is becoming part of Claude. Compare its file tasks and cloud schedules with dusk bot, including the limits of local routines.",
   "answer": "**choose between handing claude a task and keeping a team of named bots.** cowork is becoming part of claude as of 12 november 2026.[^1] dusk gives each bot its own job, memory and ai choice. both schedule work. new cowork tasks on pro, max and ultra run in the cloud, so laptop sleep is no longer the deciding difference.[^2]",
   "tags": [
     "claude",

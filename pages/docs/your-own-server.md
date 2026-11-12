@@ -19,7 +19,7 @@ no ports to open, no domain, nothing to install first.
 
 ## set it up
 
-1. in the app, open the menu at the top of the sidebar, choose **Add a Cloud or your own server**, then your own server.
+1. in the app, open the menu at the top of the sidebar, choose **add a cloud or your own server**, then your own server.
 2. the app shows one line. it works once and for a limited time.
 3. paste it on the server. the app shows each step; it takes about ten minutes.
 4. sign in to your ai from the app (never on the server), and let the app move your bots over.

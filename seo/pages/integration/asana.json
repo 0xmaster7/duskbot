@@ -4,7 +4,7 @@
   "title": "Asana AI assistant for project handoffs and task reviews",
   "nav": "asana",
   "h1": "an asana assistant for the work between tasks",
-  "description": "Connect Asana to Dusk Bot for dependency checks, handoff lists and project reviews. Copy three routines and see the actions and limits behind them.",
+  "description": "Connect Asana to dusk bot for dependency checks, handoff lists and project reviews. Copy three routines and see the actions and limits behind them.",
   "answer": "**walk into the handoff knowing what still blocks it.** an asana bot can read tasks, comments, subtasks and dependencies together, then name the unfinished work and its owner. give that review to a dusk bot using the ai you choose. start read only. let the review earn your trust before allowing it to change tasks.",
   "tags": [
     "projects",

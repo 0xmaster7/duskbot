@@ -1,9 +1,9 @@
 {
   "path": "/vs/poke",
-  "title": "Poke vs Dusk Bot: a text contact or separate teammates?",
+  "title": "Poke vs dusk bot: a text contact or separate teammates?",
   "nav": "poke",
   "h1": "poke vs dusk bot: where you text your assistant",
-  "description": "Compare Poke messaging, included AI and monthly prices with Dusk Bot roles, phone pairing and hosting. Pick the place you will actually use.",
+  "description": "Compare Poke messaging, included AI and monthly prices with dusk bot roles, phone pairing and hosting. Pick the place you will actually use.",
   "answer": "**pick where you'll actually text it.** poke works like a contact in apple messages, telegram, whatsapp or rcs.[^1][^2] dusk uses its own desktop and paired phone interface, with separate bots for different jobs.\n\npoke runs in the cloud. dusk bots live on your computer, server or dusk cloud.[^3][^7] pick where you'll text it first. the rest follows.",
   "tags": [
     "poke",
@@ -46,7 +46,7 @@
     "intro": "**a similar price can buy a different setup.** these monthly usd prices and channels are as of 12 november 2026. the plans do not promise equal ai work.",
     "cols": [
       "Poke",
-      "Dusk Bot"
+      "dusk bot"
     ],
     "rows": [
       {

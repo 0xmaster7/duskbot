@@ -4,7 +4,7 @@
   "title": "Google Sheets AI assistant for rows, ranges and reports",
   "nav": "google sheets",
   "h1": "a google sheets bot with a clear range to work in",
-  "description": "Connect Google Sheets to Dusk Bot for row checks, table updates and charts. Copy focused routines that name their input range and write boundary.",
+  "description": "Connect Google Sheets to dusk bot for row checks, table updates and charts. Copy focused routines that name their input range and write boundary.",
   "keyword": "claude google sheets",
   "keywords": [
     "google sheets mcp",

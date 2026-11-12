@@ -1,10 +1,10 @@
 {
   "path": "/scheduled-ai-tasks",
   "type": "pillar",
-  "title": "Scheduled AI tasks: compare four vendors and Dusk",
+  "title": "Scheduled AI tasks: compare four vendors and dusk bot",
   "nav": "scheduled ai tasks",
   "h1": "scheduled ai tasks: what runs, where and when",
-  "description": "Compare Claude, ChatGPT, Gemini and Grok schedulers with Dusk routines, including current limits and ten small jobs worth repeating.",
+  "description": "Compare Claude, ChatGPT, Gemini and Grok schedulers with dusk bot routines, including current limits and ten small jobs worth repeating.",
   "keyword": "claude scheduled tasks",
   "keywords": [
     "chatgpt scheduled tasks",

@@ -9,11 +9,11 @@ a bot is a teammate with one job. it has a name, its own chats, its own memory a
 
 ## make a bot
 
-choose **New bot**. give it a name, a shape and a colour (that's how you spot it in the sidebar), and tell it its job in plain words. [tips for using bots](/docs/tips) has help with the job.
+choose **new bot**. give it a name, a shape and a colour (that's how you spot it in the sidebar), and tell it its job in plain words. [tips for using bots](/docs/tips) has help with the job.
 
 {{include ui-newbot}}
 
-right-click a bot in the sidebar to pin, duplicate, hide or delete it. deleting a bot deletes its routines too; hide it if you only want it out of the way.
+right-click a bot in the sidebar to pin, rename, archive or delete it; duplicate it from its side panel. deleting a bot deletes its routines too; archive it if you only want it out of the way.
 
 ## which ai it uses
 
@@ -29,7 +29,7 @@ replies stream in, and a small line shows each tool it uses or page it opens. yo
 
 - **send another message** to steer it, or queue it for when it's done.
 - **stop it** with [[⌘ .]] ([[Ctrl .]] on windows and linux).
-- **answer its questions.** when it needs a yes, a card with **Allow** and **Deny** appears and it waits.
+- **answer its questions.** when it needs a yes, a card with **allow** and **Deny** appears and it waits.
 
 a bot can keep several threads, so a quick question doesn't bury a long project. memory and job are shared across them.
 
@@ -39,7 +39,7 @@ a bot can keep several threads, so a quick question doesn't bury a long project.
 - press the microphone in the message box to talk instead of typing.
 - choose **call** to talk a problem through. [[Space]] interrupts, [[Esc]] hangs up.
 
-give each bot its own voice in its settings, under **Voice & alerts**. the built-in mac voices are free; elevenlabs, fish audio and grok voices use your own key.
+give each bot its own voice in its settings, under **voice & alerts**. the built-in mac voices are free; elevenlabs, fish audio and grok voices use your own key.
 
 ## handy keys
 

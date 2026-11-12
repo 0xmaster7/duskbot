@@ -1,9 +1,9 @@
 {
   "path": "/vs/manus",
-  "title": "Manus vs Dusk Bot: finished tasks and recurring roles",
+  "title": "Manus vs dusk bot: finished tasks and recurring roles",
   "nav": "manus",
   "h1": "manus vs dusk bot: a task service or bots you keep",
-  "description": "Compare Manus credits, cloud tasks and automation limits with Dusk Bot roles and separate AI billing, without guessing a cost per task.",
+  "description": "Compare Manus credits, cloud tasks and automation limits with dusk bot roles and separate AI billing, without guessing a cost per task.",
   "answer": "**want a finished deck or a colleague for the next brief too?** manus produces research, websites and slides in its cloud computers.[^1] dusk bots keep lasting jobs, chats and memory. manus bundles models into credit plans; dusk separates hosting from your ai bill.[^2][^5] choose the handoff you want, then try the same small brief before paying for more.",
   "tags": [
     "manus",
@@ -46,7 +46,7 @@
     "intro": "**$20 buys different things here.** these are monthly usd figures as of 12 november 2026. manus credits cover work inside its service; dusk cloud buys the machine, with ai billed separately.",
     "cols": [
       "Manus",
-      "Dusk Bot"
+      "dusk bot"
     ],
     "rows": [
       {

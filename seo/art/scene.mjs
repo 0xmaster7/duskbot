@@ -97,7 +97,7 @@ export const signature = (s) => [s.sky, s.flip, s.ground, ...s.props.map((p) => 
 // alt text from what is in the picture
 export function altText(s) {
   const things = [...(s.tile ? [s.tile.logo ? `the ${s.tile.name} mark on a white tile` : `a tile saying ${s.tile.label}`] : []), ...s.props.map((p) => PROPS[p.name])];
-  const bots = s.bots.map((b) => `a ${BOT_WORDS[b.colour] || b.colour} ${b.shape === 'kit' ? 'cat bot' : 'pixel bot'}`);
+  const bots = s.bots.map((b) => { const word = BOT_WORDS[b.colour] || b.colour; return `${/^[aeiou]/.test(word) ? 'an' : 'a'} ${word} ${b.shape === 'kit' ? 'cat bot' : 'pixel bot'}`; });
   const list = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}` : xs[0]);
   return `pixel art: ${list(bots)} beside ${list(things)}, on ${GROUNDS[s.ground].words} in front of ${SKIES[s.sky].words}${s.bubble ? `, one saying "${s.bubble}"` : ''}`;
 }

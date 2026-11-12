@@ -36,7 +36,7 @@ export const HUBS = {
     h1: 'alternatives and comparisons', lede: 'side by side, with a date and a source on every claim. where another tool fits you better, the page says so.',
     groups: [{ id: 'alternatives', title: 'alternatives', types: ['alternative'] }, { id: 'comparisons', title: 'one on one', types: ['comparison'] }] },
   integrations: { at: '/integrations', nav: 'integrations', title: 'Connect AI bots to the apps you use / dusk bot',
-    description: 'What a Dusk Bot bot can do in Gmail, Google Calendar, Slack, Notion, GitHub and more: the real actions, what it asks first, and routines to copy.',
+    description: 'What your bots can do in Gmail, Google Calendar, Slack, Notion, GitHub and more: the real actions, what it asks first, and routines to copy.',
     h1: 'integrations', lede: 'connect an app once and a bot can work inside it. each page lists what it can really do there, what it asks you first, and routines to copy.',
     groups: [{ id: 'apps', title: 'apps', types: ['integration'] }] },
   'use-cases': { at: '/use-cases', nav: 'use cases', title: 'What people hand to AI bots, by task and by role / dusk bot',

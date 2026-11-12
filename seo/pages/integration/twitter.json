@@ -4,7 +4,7 @@
   "title": "X AI assistant for mentions, source lists and post drafts",
   "nav": "x (twitter)",
   "h1": "an x assistant that brings the conversation to you",
-  "description": "Use Dusk Bot with X for mention reviews, source lists and post preparation. See the custom connection requirement and what needs approval.",
+  "description": "Use dusk bot with X for mention reviews, source lists and post preparation. See the custom connection requirement and what needs approval.",
   "answer": "**get the product questions buried in your mentions brought to your chat.** dusk's twitter toolkit can collect mentions, read list posts and prepare replies. it needs your own composio project key and sign-in setup; there's no managed sign-in. keep research read only once connected. the bot brings you questions worth answering, and you review public posts before they go out.",
   "tags": [
     "social",

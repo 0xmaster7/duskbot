@@ -4,7 +4,7 @@
   "title": "Salesforce AI assistant for deal reviews and lead checks",
   "nav": "salesforce",
   "h1": "a salesforce assistant that checks the record first",
-  "description": "Review Salesforce opportunities, leads and follow-up tasks with Dusk Bot. Copy bounded routines and see where read-only access stops record changes.",
+  "description": "Review Salesforce opportunities, leads and follow-up tasks with dusk bot. Copy bounded routines and see where read-only access stops record changes.",
   "answer": "**find the deal with no next step on monday, before it slips at quarter end.** a dusk bot can search salesforce opportunities, leads and follow-up tasks with read-only access. get the owner, close date and missing next step together in chat. creating tasks or changing deals needs write access. start with the review; let the owner answer the gap.",
   "tags": [
     "crm",

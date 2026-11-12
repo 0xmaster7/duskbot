@@ -30,16 +30,16 @@ api keys and sign-ins stay on the machine your bots run on, and the app never sh
 
 ## backups
 
-1. open **Settings**, **Backups**.
-2. choose **Export full backup** and set a password of at least 12 characters.
+1. open **settings**, **backups**.
+2. choose **export full backup** and set a password of at least 12 characters.
 3. keep the file and the password safe. without the password nobody can open it, us included.
 
-to restore, choose **Import backup** on the new machine. it replaces everything there rather than merging, and routines arrive paused. sign-ins and keys aren't in the backup, so you connect your ai again.
+to restore, choose **import backup** on the new machine. it replaces everything there rather than merging, and routines arrive paused. sign-ins and keys aren't in the backup, so you connect your ai again.
 
 ## deleting things
 
 - **a bot:** delete it from the sidebar.
 - **everything on your computer:** remove the app, the `.duskbot` folder in your home folder, and the app's own folder, which holds your sign-ins: `~/Library/Application Support/Dusk Bot` on a mac (and the **Dusk Bot Safe Storage** item in Keychain Access), `%APPDATA%\Dusk Bot` on windows, `~/.config/Dusk Bot` on linux.
-- **your account:** **Delete account** on the account page.
+- **your account:** **delete account** on the account page.
 
 to see, correct or delete what we hold about you, write to privacy@dusk.bot. security problems go to security@dusk.bot (see the [security page](/security)).

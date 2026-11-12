@@ -4,7 +4,7 @@
   "title": "GitHub AI assistant for issues, pull requests and releases",
   "nav": "github",
   "h1": "a github bot that reads the work before you weigh in",
-  "description": "Give a bot in Dusk Bot a GitHub repo to follow. Get issue triage, pull request context and release notes, with clear limits on what it can change.",
+  "description": "Give a bot in dusk bot a GitHub repo to follow. Get issue triage, pull request context and release notes, with clear limits on what it can change.",
   "keyword": "claude github",
   "keywords": [
     "chatgpt github",

@@ -1,9 +1,9 @@
 {
   "path": "/vs/openclaw",
-  "title": "OpenClaw vs Dusk Bot: setup, safety and daily use",
+  "title": "OpenClaw vs dusk bot: setup, safety and daily use",
   "nav": "openclaw vs dusk bot",
   "h1": "openclaw vs dusk bot: running it day to day",
-  "description": "A direct look at OpenClaw and Dusk Bot: installing them, separating agents, limiting actions and keeping scheduled work running.",
+  "description": "A direct look at OpenClaw and dusk bot: installing them, separating agents, limiting actions and keeping scheduled work running.",
   "answer": "**pick the setup you can still manage on a busy monday.** openclaw routes agents through a gateway and chat channels; its desktop installers handle the initial pieces.[^1][^2] dusk puts bots, their jobs and per-bot app access in its own app.[^6][^7] both support separate agents and scheduled work. decide who handles upkeep, where instructions arrive and how much access the job needs.",
   "tags": [
     "openclaw",
@@ -46,7 +46,7 @@
     "intro": "**choose where instructions arrive and who owns the upkeep.** as of 12 november 2026, both support separate agents. their day-to-day setup and controls differ.",
     "cols": [
       "OpenClaw",
-      "Dusk Bot"
+      "dusk bot"
     ],
     "rows": [
       {

@@ -1,9 +1,9 @@
 {
   "path": "/vs/lindy",
-  "title": "Lindy vs Dusk Bot: team credits or separate bots?",
+  "title": "Lindy vs dusk bot: team credits or separate bots?",
   "nav": "lindy",
   "h1": "lindy vs dusk bot: shared work, credits and control",
-  "description": "Compare Lindy’s active-user pricing, pooled credits and scheduled routines with Dusk Bot’s separate bot roles, permissions and hosting costs.",
+  "description": "Compare Lindy’s active-user pricing, pooled credits and scheduled routines with dusk bot’s separate bot roles, permissions and hosting costs.",
   "answer": "**lindy puts the helper where your team already talks. dusk gives each job its own home.** lindy handles email, meetings, leads and reports through tools such as slack and email.[^1] its team plan pools credits and charges per active user. dusk separates bot jobs, memory and ai choices, with ai usage and hosting billed separately.[^2][^5]",
   "tags": [
     "lindy",

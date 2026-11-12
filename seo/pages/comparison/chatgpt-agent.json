@@ -1,9 +1,9 @@
 {
   "path": "/vs/chatgpt-agent",
-  "title": "ChatGPT agent is now Work: compare it with Dusk Bot",
+  "title": "ChatGPT agent is now Work: compare it with dusk bot",
   "nav": "chatgpt work",
   "h1": "chatgpt agent is gone: chatgpt work vs dusk bot",
-  "description": "ChatGPT agent has been replaced by Work. Compare current hosting, shared Codex usage, task limits and bot roles with Dusk Bot.",
+  "description": "ChatGPT agent has been replaced by Work. Compare current hosting, shared Codex usage, task limits and bot roles with dusk bot.",
   "answer": "**pick the app that makes your next handoff easier.** as of 12 november 2026, openai says agent is no longer available.[^1] work replaces it for longer tasks and finished deliverables. web and phone run in the cloud; desktop can work locally too.[^2] dusk gives named bots their own memory and ai choices. compare the roles you need and the usage bills.",
   "tags": [
     "chatgpt",
@@ -46,7 +46,7 @@
     "intro": "**work and dusk give your tasks different homes and usage bills.** these rows reflect 12 november 2026. agent mode has retired; its old message quotas don't describe work's allowances.",
     "cols": [
       "ChatGPT Work",
-      "Dusk Bot"
+      "dusk bot"
     ],
     "rows": [
       {

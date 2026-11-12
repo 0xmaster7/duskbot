@@ -4,7 +4,7 @@
   "title": "Send Outlook email with AI after a recipient check",
   "nav": "send email",
   "h1": "send an outlook email with the details checked",
-  "description": "Let a bot prepare and send an Outlook email with a subject, body and optional files. Review recipients and attachments using Dusk Bot's sending controls.",
+  "description": "Let a bot prepare and send an Outlook email with a subject, body and optional files. Review recipients and attachments using dusk bot's sending controls.",
   "keyword": "outlook send email with ai",
   "keywords": [
     "chatgpt send outlook email",

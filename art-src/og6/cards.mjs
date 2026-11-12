@@ -180,7 +180,7 @@ function crewOf(seed, n) {
   while (out.length < n) { const sh = SHAPES_OK[Math.floor(r() * SHAPES_OK.length)], c = COLS[Math.floor(r() * COLS.length)]; if (used.has(sh) || used.has(c)) continue; used.add(sh); used.add(c); out.push([sh, c]); }
   return out;
 }
-const said = (c) => `a ${NAMES[c[1]]} pixel bot`;
+const said = (c) => `${/^[aeiou]/.test(NAMES[c[1]]) ? 'an' : 'a'} ${NAMES[c[1]]} pixel bot`;
 
 // each family's scene: (page) => { body, alt }. G 540, one hill in the middle
 const G0 = 556, hl0 = [hill(600, 560, 36)], f0 = footOn(G0, hl0), K = 1.32;

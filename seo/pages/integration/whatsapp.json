@@ -4,7 +4,7 @@
   "title": "WhatsApp Business AI assistant for replies and reminders",
   "nav": "whatsapp",
   "h1": "a whatsapp business bot for replies and reminders",
-  "description": "Get WhatsApp Business templates and customer reply drafts ready with a Dusk Bot. Review message status and business details from the connected account.",
+  "description": "Get WhatsApp Business templates and customer reply drafts ready with a dusk bot. Review message status and business details from the connected account.",
   "answer": "**get customer replies ready before the support handover.** a dusk bot can inspect available whatsapp business history, read template status and prepare replies here. start read only while you review the results.[^3] this uses whatsapp business, so personal chats stay outside it. to text your own bots from a phone, use dusk's separate phone connection.",
   "tags": [
     "business-messaging",
