@@ -93,7 +93,28 @@ export const DMG_SCENES = {
     return s.svg();
   },
 };
-export const DEFAULT_DMG_SCENE = "meadow";
+/** a plain canvas: the two icons, a slim ink arrow, and a few bots peeking up from the bottom edge */
+function mascots(line) {
+  const s = scene(W, H, { cell: 8, seed: 3 });
+  s.rect(0, 0, W, H, "#f7fbfe");
+  const u = 3;
+  const from = APP.x + ICON / 2 + 34;
+  const tip = APPLICATIONS.x - ICON / 2 - 34;
+  const head = tip - 6 * u;
+  s.rect(from, APP.y - u, head - from, 2 * u, C.ink);
+  [12, 10, 8, 6, 4, 2].forEach((n, i) => s.rect(head + i * u, APP.y - (n * u) / 2, u, n * u, C.ink));
+  // floors below the window edge, so each bot shows only from the eyes up
+  s.bot("mochi", C.pinkBot, 222, H + 2 * 4, 4);
+  s.bot("kit", C.violet, W / 2, H + 3 * 6, 6);
+  s.bot("pip", C.blue, 438, H + 4 * 4, 4);
+  s.bot("loaf", C.tangerine, 110, H + 3 * 3, 3).bot("goo", C.mint, 552, H + 3 * 3, 3);
+  if (line) s.text(W / 2, 282, line, { size: 17, anchor: "middle" });
+  return s.svg();
+}
+DMG_SCENES.mascots = () => mascots(null);
+DMG_SCENES.mascotsText = () => mascots("drag dusk bot to Applications");
+
+export const DEFAULT_DMG_SCENE = "mascotsText";
 
 const svg = DMG_SCENES[DEFAULT_DMG_SCENE]();
 for (const [scale, name] of [
