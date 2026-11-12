@@ -11,6 +11,8 @@ export interface ElsewhereBridge {
   open(id: string): Promise<boolean>;
   /** "server": the page opens its Add your VPS sheet; "cloud": main connects My Cloud; null: nothing remembered. */
   connect(): Promise<"server" | "cloud" | null>;
+  /** Each saved place's own bots by its id, where main could ask it; absent from an older app. */
+  counts?(): Promise<Record<string, number>>;
 }
 
 export type ElsewhereScreen =
@@ -33,6 +35,12 @@ export function parseElsewhereView(raw: unknown): ElsewhereView {
     known: known && (known.kind === "server" || known.kind === "cloud") && typeof known.name === "string" && known.name.trim()
       ? { kind: known.kind, name: known.name.trim() } : null,
   };
+}
+
+/** main's bot counts, checked: whole numbers only, anything else left out. */
+export function parseBotCounts(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== "object") return {};
+  return Object.fromEntries(Object.entries(raw as Record<string, unknown>).filter((entry): entry is [string, number] => Number.isSafeInteger(entry[1]) && (entry[1] as number) >= 0));
 }
 
 /** No bots of the person's own here: Dusk, the helper every place gets, and bots taken off the sidebar don't count. */

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { accountSetupKey, accountSetupStore, localAccountSetupStore, remoteAccountSetupStore } from "./account-setup-store.mjs";
-import { CLOUD_HOME_ID, installBotsElsewhere, placesElsewhere } from "./bots-elsewhere.mjs";
+import { CLOUD_HOME_ID, installBotsElsewhere, ownBotCount, placesElsewhere, readBotCounts } from "./bots-elsewhere.mjs";
 
 const memory = (value = null) => { let kept = value; return { read: () => { if (kept === null) throw new Error("ENOENT"); return structuredClone(kept); }, write: (next) => { kept = next; }, kept: () => kept }; };
 const SERVER = { id: "srv", kind: "remote", name: "my-vps", origin: "http://vps.localhost:53713" };
@@ -107,4 +107,19 @@ test("a switch that throws still answers, so the page can show itself again", as
   });
   assert.equal(await handlers.get("elsewhere:open")({}, "srv"), true);
   assert.match(lines[0], /unreachable/);
+});
+
+test("bot counts come from each place's own list as the signed-in person; asleep or unreadable places get none", async () => {
+  assert.equal(ownBotCount({ bots: [{ defaultBot: {} }, { hidden: true }, {}, {}] }), 2);
+  assert.equal(ownBotCount({}), null);
+  const asked = [];
+  const answers = { "https://a.test": { ok: true, json: async () => ({ bots: [{}, {}, {}] }) }, "https://b.test": { ok: false, json: async () => ({}) } };
+  const counts = await readBotCounts({
+    places: [{ id: "a", origin: "https://a.test" }, { id: "b", origin: "https://b.test" }, { id: "c", origin: "https://c.test" }, { id: "z", origin: "https://z.test" }],
+    fetch: async (url, init) => { asked.push([url, init.credentials]); const origin = new URL(url).origin; if (origin === "https://c.test") throw new Error("down"); return answers[origin]; },
+    asleep: (origin) => origin === "https://z.test",
+  });
+  assert.deepEqual(counts, { a: 3 });
+  assert.equal(asked.some(([url]) => url.startsWith("https://z.test")), false);
+  assert.deepEqual(asked[0], ["https://a.test/api/bots?messages=0", "include"]);
 });

@@ -247,6 +247,7 @@ const bridge = {
     state: () => ipcRenderer.invoke("elsewhere:state"),
     open: (id) => ipcRenderer.invoke("elsewhere:open", typeof id === "string" ? id : ""),
     connect: () => ipcRenderer.invoke("elsewhere:connect"),
+    counts: () => ipcRenderer.invoke("elsewhere:counts"),
   },
   // The window's working bots for ⌘Q (main counts only this computer's page), and the menu's Stop commands.
   desktopBots: {

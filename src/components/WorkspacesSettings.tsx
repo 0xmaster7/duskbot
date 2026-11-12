@@ -21,28 +21,28 @@ export function placeHealth(place: Pick<RailPlace, "ended" | "waiting" | "offlin
   return "online";
 }
 
-const DOT: Record<Health, string> = {
+export const DOT: Record<Health, string> = {
   online: "bg-success",
   problem: "bg-danger",
   offline: "bg-ink/25",
   "setting-up": "bg-ink/25",
 };
 
-const HEALTH_WORD: Record<Health, "settings.docs.ws.online" | "settings.docs.ws.offline" | "settings.docs.ws.problem" | "settings.docs.ws.settingUp"> = {
+export const HEALTH_WORD: Record<Health, "settings.docs.ws.online" | "settings.docs.ws.offline" | "settings.docs.ws.problem" | "settings.docs.ws.settingUp"> = {
   online: "settings.docs.ws.online",
   offline: "settings.docs.ws.offline",
   problem: "settings.docs.ws.problem",
   "setting-up": "settings.docs.ws.settingUp",
 };
 
-function kindWord(kind: RailPlace["kind"]): string {
+export function kindWord(kind: RailPlace["kind"]): string {
   if (kind === "computer") return window.duskDesktop?.platform === "darwin" ? t("settings.docs.ws.thisMac") : t("settings.docs.ws.thisComputer");
   if (kind === "cloud") return t("settings.docs.ws.cloud");
   if (kind === "team") return t("settings.docs.ws.team");
   return t("settings.docs.ws.server");
 }
 
-const KIND_ICON: Record<RailPlace["kind"], PixelIconName> = { computer: "laptop", server: "server", cloud: "cloud", team: "team", account: "cloud" };
+export const KIND_ICON: Record<RailPlace["kind"], PixelIconName> = { computer: "laptop", server: "server", cloud: "cloud", team: "team", account: "cloud" };
 
 const confirmAction = (text: string) => (window.duskDesktop?.confirm ? window.duskDesktop.confirm(text) : Promise.resolve(window.confirm(text)));
 

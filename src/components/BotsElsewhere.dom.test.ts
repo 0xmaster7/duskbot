@@ -8,8 +8,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/state/store")>()),
   useStore: () => ({ state: fixture.state, dispatch: fixture.dispatch }),
 }));
-vi.mock("./WorkspacesSettings", () => ({ WorkspacesGroup: () => createElement("div", { "data-places-list": "" }) }));
-vi.mock("./DesktopWorkspaceSwitcher", () => ({ DesktopWorkspaceSwitcher: () => createElement("div", { "data-switcher": "" }) }));
 
 const { BotsElsewhere } = await import("./BotsElsewhere");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -20,11 +18,12 @@ const bridge = {
   state: vi.fn(async () => ({ places: [{ id: "srv", name: "instance-1", why: "moved" }], known: null })),
   open: vi.fn(() => new Promise<boolean>((resolve) => { finish = resolve; })),
   connect: vi.fn(async () => null),
+  counts: vi.fn(async () => ({ srv: 3, bogus: -1 })),
 };
 
 const render = async () => { await act(async () => { root.render(createElement(BotsElsewhere)); }); };
 const screen = () => host.querySelector("[data-elsewhere]");
-const primary = () => host.querySelector<HTMLButtonElement>("[data-elsewhere] button[autofocus], [data-elsewhere] button")!;
+const primary = () => host.querySelector<HTMLButtonElement>("button[data-place-row]")!;
 
 beforeEach(() => {
   fixture.state = { hydrated: true, connected: true, bots: [], appSettingsOpen: false, cloudAdd: null };
@@ -38,8 +37,11 @@ afterEach(() => { act(() => root.unmount()); host.remove(); finish = null; vi.cl
 it("opening a place keeps this screen up until main answers, never this computer's empty page in between", async () => {
   await render();
   expect(screen()?.getAttribute("data-elsewhere")).toBe("bots-on");
-  expect(host.querySelector("[data-places-list]")).not.toBeNull();
-  expect(host.querySelector("[data-switcher]")).not.toBeNull();
+  expect(host.querySelector("h1")?.textContent).toBe("pick where to open");
+  expect(host.querySelector("[data-place-row=computer]")?.getAttribute("aria-current")).toBe("true");
+  expect(primary().textContent).toContain("instance-1");
+  expect(primary().textContent).toContain("3 bots");
+  expect(primary().hasAttribute("data-lit")).toBe(true);
   await act(async () => { primary().click(); });
   expect(bridge.open).toHaveBeenCalledWith("srv");
   expect(screen()).not.toBeNull();

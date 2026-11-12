@@ -3,6 +3,8 @@
 // run. Signed in, the place is also noted for the account (account-setup-store.mjs), so a fresh install of the same
 // account says "You already set up dusk bot on …" and offers to connect.
 
+import { BACKGROUND_HEADERS } from "./cloud-power.mjs";
+
 const RANK = { moved: 0, cloud: 1, team: 2, server: 3 };
 /** The id of My Cloud while it is home and saved as no place of its own. */
 export const CLOUD_HOME_ID = "cloud";
@@ -25,17 +27,43 @@ export function placesElsewhere({ environments = [], moved = null, cloudOrigin =
   return places;
 }
 
+/** The person's own bots in a JSON answer of GET /api/bots: dusk, the helper every place gets, and bots off the sidebar
+ * don't count. Null for anything else. */
+export function ownBotCount(body) {
+  return Array.isArray(body?.bots) ? body.bots.filter((bot) => bot && typeof bot === "object" && !bot.defaultBot && !bot.hidden).length : null;
+}
+
+/**
+ * How many bots each saved place has, asked as the signed-in person with main's own session. A Cloud said to be asleep is
+ * never asked (that would wake it), and a place that can't say is left out rather than guessed.
+ * @param {{ places: Array<{ id: string, origin: string }>, fetch: (url: string, init?: RequestInit) => Promise<Response>,
+ *   asleep?: (origin: string) => boolean, headers?: Record<string, string>, timeoutMs?: number }} input
+ * @returns {Promise<Record<string, number>>}
+ */
+export async function readBotCounts({ places, fetch, asleep = () => false, headers = BACKGROUND_HEADERS, timeoutMs = 8_000 }) {
+  const counts = {};
+  await Promise.all(places.filter((place) => typeof place?.origin === "string" && !asleep(place.origin)).map(async (place) => {
+    try {
+      const response = await fetch(`${place.origin}/api/bots?messages=0`, { headers, credentials: "include", cache: "no-store", redirect: "error", signal: AbortSignal.timeout(timeoutMs) });
+      const count = response?.ok ? ownBotCount(await response.json().catch(() => null)) : null;
+      if (count !== null) counts[place.id] = count;
+    } catch { /* unreachable or signed out: no count */ }
+  }));
+  return counts;
+}
+
 /** What the account remembers of a place: a team's Cloud comes with the sign-in itself, so it is not noted. */
 const setupOf = (place, at) => (place.why === "team" ? null : { kind: place.why === "cloud" ? "cloud" : "server", name: place.name, at });
 
 /**
  * @param {{ ipcMain: any, guard: (channel: string, handler: Function) => Function, places: () => ReturnType<typeof placesElsewhere>,
  *   account: () => { id?: string } | null, store: import("./account-setup-store.mjs").AccountSetupStore,
- *   open: (id: string) => unknown, connectCloud: () => unknown, now?: () => number, log?: (line: string) => void }} deps
+ *   open: (id: string) => unknown, connectCloud: () => unknown, counts?: () => Promise<Record<string, number>>,
+ *   now?: () => number, log?: (line: string) => void }} deps `counts()`: each saved place's bots, by its id (readBotCounts).
  * `account()`: the signed-in account, null when there is none. `open(id)`: main's own switch to a saved place (or My Cloud
  * as home), settled once the window has gone there or stayed; `connectCloud()`: main's connect to My Cloud from the verified session, never a renderer's address.
  */
-export function installBotsElsewhere({ ipcMain, guard, places, account, store, open, connectCloud, now = Date.now, log = () => {} }) {
+export function installBotsElsewhere({ ipcMain, guard, places, account, store, open, connectCloud, counts = async () => ({}), now = Date.now, log = () => {} }) {
   const signedIn = () => { const id = account()?.id; return typeof id === "string" && id ? id : null; };
 
   /** Notes the likeliest place for the signed-in account, once it is known here. */
@@ -61,6 +89,7 @@ export function installBotsElsewhere({ ipcMain, guard, places, account, store, o
     try { await open(id); } catch (error) { log(`bots elsewhere: ${error?.message ?? error}`); }
     return true;
   }));
+  ipcMain.handle("elsewhere:counts", guard("elsewhere:counts", () => counts().catch(() => ({}))));
   // "server": the page opens its own Add your VPS sheet; a Cloud connects from the session main holds, answered once over
   ipcMain.handle("elsewhere:connect", guard("elsewhere:connect", async () => {
     const id = signedIn(), known = id ? await store.read(id).catch(() => null) : null;

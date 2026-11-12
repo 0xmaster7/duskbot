@@ -23,6 +23,15 @@ const ICON = { computer: "laptop", cloud: "cloud", server: "server" } as const;
 const DOT = { online: "bg-success", asleep: "bg-ink-tertiary", offline: "bg-danger" } as const;
 const WORD = { online: "slack.state.online", asleep: "runsOn.status.asleep", offline: "runsOn.status.offline" } as const;
 
+const DOT_SEEN = "dusk-place-dot-seen";
+/** The green "online" dot shows until the person has opened the list of places once; a grey or red one always shows. */
+export function placeDotSeen(): boolean {
+  try { return localStorage.getItem(DOT_SEEN) === "1"; } catch { return false; }
+}
+function markPlaceDotSeen(): void {
+  try { localStorage.setItem(DOT_SEEN, "1"); } catch { /* storage off: seen for this page only */ }
+}
+
 export function usePlaceStatus(waking: boolean): PlaceStatus {
   const { state } = useStore();
   const [asleep, setAsleep] = useState(cloudAsleep);
@@ -59,16 +68,19 @@ export function SidebarPlaceButton() {
   const cloudHome = state.config?.cloudHome === true;
   const place = useWorkspacePlace({ cloudHome, howTo: state.cloudHowTo, onMenuClosed: () => endCloudHowTo(dispatch) });
   const status = usePlaceStatus(place.waking !== "");
+  const [seen, setSeen] = useState(placeDotSeen);
   if (!place.switchable) return null;
+  const openMenu = () => { if (!seen) { markPlaceDotSeen(); setSeen(true); } place.openMenu(); };
+  const dot = status !== "online" || !seen;
   const kind = placeKind(place.current, { cloudHome, team: Boolean(state.config?.team) });
   const name = place.current?.name ?? (cloudHome ? state.config?.team?.name || t("cloudSetup.myCloud") : t("rail.thisComputer"));
   const said = `${name} · ${t(WORD[status])}${place.onLine ? ` · ${place.onLine}` : ""}`;
   const button = <div data-sidebar-place className="relative flex">
     <button type="button" data-tour="server-switcher" data-place-kind={kind} data-place-status={status}
       aria-label={t("sidebar.switchServer", { name: said })} aria-haspopup="menu" aria-expanded={place.open}
-      title={place.current?.origin ? `${said} · ${place.current.origin}` : said} onClick={place.openMenu} className={cn(SIMPLE_TOP_BUTTON, "relative")}>
+      title={place.current?.origin ? `${said} · ${place.current.origin}` : said} onClick={openMenu} className={cn(SIMPLE_TOP_BUTTON, "relative")}>
       <Icon name={ICON[kind]} size={16} />
-      <span aria-hidden="true" data-place-dot className={cn("absolute right-[7px] top-[7px] size-[7px] rounded-full", DOT[status])} />
+      {dot && <span aria-hidden="true" data-place-dot className={cn("absolute right-[7px] top-[7px] size-[7px] rounded-full", DOT[status])} />}
     </button>
     {place.error && <p role="alert" className="absolute right-0 top-full z-40 mt-1.5 w-56 rounded-md bg-menu px-2 py-1 text-[11px] text-danger shadow-lg">{place.error}</p>}
   </div>;

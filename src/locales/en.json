@@ -7956,6 +7956,7 @@
   "elsewhere.setUpOn.why": "This computer is new to {app}, but your account has bots on {name}. Connect it to pick up where you left off instead of setting up again.",
   "elsewhere.connect": "connect {name}",
   "elsewhere.setUpHere": "set up this computer instead",
+  "elsewhere.pick.title": "pick where to open",
   "elsewhere.dev.simulate": "dev: fresh install with a VPS",
   "elsewhere.dev.stop": "dev: stop simulating",
   "elsewhere.dev.simulated": "simulated fresh install",

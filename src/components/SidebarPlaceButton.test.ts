@@ -37,6 +37,7 @@ beforeEach(() => {
   store.state = { config: {}, hydrated: true, connected: true, bots: [], groups: [], selectedId: null };
   Object.assign(window, { duskDesktop: { workspaces } });
   vi.clearAllMocks();
+  try { localStorage.removeItem("dusk-place-dot-seen"); } catch { /* no storage */ }
   host = document.createElement("div"); document.body.append(host);
 });
 afterEach(async () => { await act(async () => root?.unmount()); root = null; host.remove(); document.body.innerHTML = ""; });
@@ -123,4 +124,18 @@ it("⌘K finds it as switch place, or by typing workspace, and opens the same na
   expect(row).toBeTruthy();
   await act(async () => { row!.click(); await Promise.resolve(); });
   expect(workspaces.menu).toHaveBeenCalledTimes(1);
+});
+
+it("the green dot goes once the list of places has been opened, and stays gone; a red one still shows", async () => {
+  await mount();
+  expect(button()!.querySelector("[data-place-dot]")).not.toBeNull();
+  await act(async () => { button()!.click(); await Promise.resolve(); });
+  expect(button()!.querySelector("[data-place-dot]")).toBeNull();
+  await act(async () => { window.dispatchEvent(new Event("offline")); });
+  expect(button()!.querySelector("[data-place-dot]")?.className).toContain("bg-danger");
+  await act(async () => { window.dispatchEvent(new Event("online")); });
+  await act(async () => root?.unmount()); root = null;
+  await mount();
+  const storage = (() => { try { return typeof localStorage?.getItem === "function"; } catch { return false; } })();
+  if (storage) expect(button()!.querySelector("[data-place-dot]")).toBeNull();
 });

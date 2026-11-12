@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dismissKey, elsewhereCovered, elsewhereScreen, emptyHere, parseElsewhereView, SIMULATED_FRESH_INSTALL } from "./bots-elsewhere";
+import { dismissKey, elsewhereCovered, parseBotCounts, elsewhereScreen, emptyHere, parseElsewhereView, SIMULATED_FRESH_INSTALL } from "./bots-elsewhere";
 
 const VPS = { id: "srv", name: "my-vps", why: "moved" as const };
 const TEAM = { id: "team", name: "Studio", why: "team" as const };
@@ -41,5 +41,10 @@ describe("bots elsewhere", () => {
     expect(elsewhereCovered({ ...none, cloudAdd: true })).toBe(true);
     expect(elsewhereCovered({ ...none, addVps: true })).toBe(true);
     expect(elsewhereCovered({ ...none, cloudMove: true })).toBe(true);
+  });
+
+  it("keeps only whole bot counts from main", () => {
+    expect(parseBotCounts({ a: 3, b: 0, c: -1, d: 1.5, e: "2" })).toEqual({ a: 3, b: 0 });
+    expect(parseBotCounts(null)).toEqual({});
   });
 });
