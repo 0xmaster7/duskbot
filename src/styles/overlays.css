@@ -110,7 +110,6 @@
   font-size: 13px;
   line-height: 18px;
   letter-spacing: 0.015em;
-  font-weight: 450;
   color: var(--color-ink-secondary);
 }
 /* the filled danger action in a confirm: Grok's red pill, unlayered so a skin's neutral primary does not win */
