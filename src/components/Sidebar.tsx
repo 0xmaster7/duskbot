@@ -45,7 +45,7 @@ import { PhoneHero } from "./SidebarPhoneHero";
 import { SidebarProfileMenu } from "./SidebarProfileMenu";
 import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
 import { GlassBar, GlassScrollFrame, GlassScroller } from "./GlassScrollFrame";
-import { SidebarPlaceButton } from "./SidebarPlaceButton"; import { PlaceTint } from "./PlaceTint"; import { ChromeRailToggle } from "./ChromeRailToggle";
+import { SidebarPlaceButton } from "./SidebarPlaceButton"; import { ChromeRailToggle } from "./ChromeRailToggle";
 import { useCloudOwner } from "./CloudOwner";
 import { SidebarSectionHeader } from "./SidebarSectionHeader";
 import { SectionRows } from "./SidebarSectionRows";
@@ -1055,7 +1055,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
         !phone && !open && "max-md:-translate-x-full",
       )}
     >
-      <GlassScrollFrame className={cn("flex-1", simpleDesk && "[&_[data-scroll-fade-edge=bottom]]:h-12")} fade><PlaceTint />
+      <GlassScrollFrame className={cn("flex-1", simpleDesk && "[&_[data-scroll-fade-edge=bottom]]:h-12")} fade>
       <GlassBar edge="top">
       <div
         data-sidebar-top-row={corner ? "corner" : true}
