@@ -20,6 +20,8 @@ const fixture = vi.hoisted(() => ({
   instancesLoaded: true,
   /** Holds the wake open until the test lets it finish. */
   provisionGate: null as Promise<void> | null,
+  outdated: false,
+  updating: false,
 }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...await importOriginal<typeof import("./DesktopCapabilities")>(),
@@ -60,7 +62,8 @@ vi.mock("@/state/store", async (importOriginal) => ({
       return { surface: "cloud", backend: "vps", configured: fixture.configured, ready: fixture.container === "running" && fixture.imageMatches && !fixture.screenStopped,
         ...(fixture.screenStopped ? { state: "stopped", viewerKey: "unallocated" } : {}),
         ...(fixture.shared ? { teamComputer: { id: "shared", name: "Shared desktop" } } : {}),
-        container: fixture.container, managed: fixture.container !== "missing", imageMatches: fixture.imageMatches, desktop: fixture.desktop, problem: "Fixture desktop is not running" };
+        container: fixture.container, managed: fixture.container !== "missing", imageMatches: fixture.imageMatches, desktop: fixture.desktop, problem: "Fixture desktop is not running",
+        ...(fixture.outdated ? { outdated: true } : {}), ...(fixture.updating ? { updating: true } : {}) };
     }
     return {};
   },
@@ -127,6 +130,8 @@ afterEach(() => {
   fixture.owner = true;
   fixture.advanced = true;
   fixture.provisionGate = null;
+  fixture.outdated = false;
+  fixture.updating = false;
   vi.useRealTimers();
 });
 
@@ -273,16 +278,52 @@ describe("VPS computer preparation", () => {
     expect(document.querySelector("[data-live-screen]")).toBeNull();
   });
 
-  it("replaces an incompatible inline desktop on its home volume with one Fix, in plain words", async () => {
+  it("an older computer that updates itself just looks asleep, and its wake says it is updating", async () => {
+    fixture.container = "stopped";
+    fixture.imageMatches = false;
+    fixture.outdated = true;
+    let release!: () => void;
+    fixture.provisionGate = new Promise<void>((resolve) => { release = resolve; });
+    const reports: Array<{ detail: string | null }> = [];
+    if (!root) { const container = document.createElement("div"); document.body.append(container); root = createRoot(container); }
+    flushSync(() => root!.render(createElement(BotEditorStore, { value: value(), children: createElement(ComputerPanel, { bot: makeBot({ computer: "cloud" }), inline: true, onReport: (report: { detail: string | null }) => reports.push(report) }) })));
+    await settle();
+    expect(text()).not.toMatch(/Update ready|Fixture desktop|version|managed/);
+    expect(document.querySelector("[data-panel-problem]")).toBeNull();
+    expect(reports.at(-1)?.detail ?? null).toBeNull();
+    flushSync(() => document.querySelector<HTMLButtonElement>("[data-panel-screen] button")!.click());
+    await settle();
+    expect(text()).toContain("Updating Scout's computer…");
+    // one wake: the server updates it on its home volume, nothing is removed from here
+    expect(fixture.posts).toEqual(["/api/bots/scout/computer/provision"]);
+    release();
+    await settle();
+  });
+
+  it("shows a background update as one short line with no button or detail", async () => {
+    fixture.container = "missing";
+    fixture.imageMatches = false;
+    fixture.updating = true;
+    await open(makeBot({ computer: "cloud" }), true);
+    expect(text()).toContain("Updating Scout's computer…");
+    expect(document.querySelector("[data-panel-problem]")).toBeNull();
+    expect(fixture.posts).toEqual([]);
+  });
+
+  it("replaces an incompatible inline desktop on its home volume with one small update button, in plain words", async () => {
     fixture.container = "running";
     fixture.imageMatches = false;
-    await open(makeBot({ computer: "cloud" }), true);
+    const reports: Array<{ detail: string | null }> = [];
+    if (!root) { const container = document.createElement("div"); document.body.append(container); root = createRoot(container); }
+    flushSync(() => root!.render(createElement(BotEditorStore, { value: value(), children: createElement(ComputerPanel, { bot: makeBot({ computer: "cloud" }), inline: true, onReport: (report: { detail: string | null }) => reports.push(report) }) })));
+    await settle();
     expect(text()).not.toContain("Fixture desktop");
+    expect(reports.at(-1)?.detail ?? null).toBeNull();
     const frame = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
-    expect(frame?.textContent).toContain("Scout's computer needs an update");
-    expect(document.querySelector("[data-panel-problem]")?.textContent).toContain("Its files and website sign-ins are kept.");
+    expect(frame?.textContent).toContain("Update ready");
+    expect(document.querySelector("[data-panel-problem]")?.textContent).toBe("update");
     const fix = document.querySelector<HTMLButtonElement>('[data-panel-action="fix"]');
-    expect(fix?.textContent).toBe("fix");
+    expect(fix?.textContent).toBe("update");
     flushSync(() => fix!.click());
     await settle();
     expect(fixture.posts).toEqual(["/api/bots/scout/computer/remove", "/api/bots/scout/computer/provision"]);
@@ -298,7 +339,7 @@ describe("VPS computer preparation", () => {
     window.confirm = confirm;
     try {
       await open(makeBot({ computer: "cloud" }), true);
-      expect(document.querySelector("[data-panel-problem]")?.textContent).toContain("Files saved inside its old desktop are removed.");
+      expect(document.querySelector("[data-panel-problem]")?.textContent).toContain("Files saved inside it are removed.");
       flushSync(() => document.querySelector<HTMLButtonElement>('[data-panel-action="fix"]')!.click());
       await settle();
       expect(confirm).toHaveBeenCalledOnce();
@@ -314,7 +355,7 @@ describe("VPS computer preparation", () => {
     try {
       await open(makeBot({ computer: "cloud" }), true);
       const settings = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
-      expect(settings?.textContent).toContain("Scout's computer needs an update");
+      expect(settings?.textContent).toContain("Update ready");
       expect(document.querySelector('[data-panel-action="fix"]')?.textContent).toBe("open settings");
       flushSync(() => settings!.click());
       await settle();

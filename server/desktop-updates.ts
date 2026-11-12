@@ -23,15 +23,86 @@ export function localVmUpdateNeed(status: ContainerComputerStatus, workspaceExis
   return status.image ? "recreate" : "image";
 }
 
-/** A VPS desktop dusk bot made whose image this release no longer runs. Replacing it deletes its files, so a person does it. */
+/** A VPS desktop dusk bot made whose image this release no longer runs, whether or not it updates by itself. */
 export function vpsDesktopOutdated(status: {
   configured?: boolean; daemonUp?: boolean; container?: string; managed?: boolean; imageMatches?: boolean;
 } | null | undefined): boolean {
   return Boolean(status?.configured && status.daemonUp && status.container !== "missing" && status.managed && !status.imageMatches);
 }
 
+/** An outdated bot desktop that is replaced on its home volume by itself (server/vps-computer.ts vpsDesktopReplaceable):
+ * the next wake updates it, so a turn treats it as asleep rather than broken. */
+export function vpsDesktopSelfUpdates(status: { daemonUp?: boolean; outdated?: boolean } | null | undefined): boolean {
+  return Boolean(status?.daemonUp && status.outdated);
+}
+
+/** Only for the older desktops that cannot update by themselves (the Cua desktop keeps nothing inside it). */
 export const VPS_OUTDATED_HINT =
-  "Its VPS desktop runs an older version: the person can replace it from this bot's Computer panel, which deletes the files on it.";
+  "Its computer is on an older version that can't update by itself: the person can tap update on this bot's computer screen.";
+
+/** A failed background update is tried again after this long; a turn that needs the computer tries at once. */
+export const VPS_UPDATE_RETRY_MS = 30 * 60_000;
+
+export type VpsUpdateDecision = "update" | "busy" | "retry-later" | "none";
+
+/** Whether the background update replaces this computer now: only an outdated one, only while nothing uses it. */
+export function vpsUpdateDecision(input: {
+  status: { daemonUp?: boolean; outdated?: boolean; updating?: boolean } | null | undefined;
+  inUse: boolean;
+  failedAt?: number;
+  now: number;
+}): VpsUpdateDecision {
+  if (!vpsDesktopSelfUpdates(input.status) || input.status?.updating) return "none";
+  if (input.inUse) return "busy";
+  if (input.failedAt !== undefined && input.now - input.failedAt < VPS_UPDATE_RETRY_MS) return "retry-later";
+  return "update";
+}
+
+export interface VpsUpdateTarget { ownerId: string; label: string }
+
+/**
+ * Keeps every bot desktop on a VPS (or a dusk cloud home) on the current image: after a server update, and every so often,
+ * each outdated desktop that nothing uses is replaced on its home volume, one at a time. A desktop in use waits for the
+ * next pass, or is updated by the turn that wakes it. A failure leaves the old desktop as it was and is tried again later.
+ */
+export function createVpsDesktopUpdater<T extends VpsUpdateTarget>(deps: {
+  targets(): T[];
+  status(target: T): Promise<{ daemonUp?: boolean; outdated?: boolean; updating?: boolean } | null>;
+  inUse(target: T): boolean;
+  update(target: T): Promise<unknown>;
+  now?(): number;
+  log?(message: string): void;
+}) {
+  const now = deps.now ?? Date.now;
+  const failures = new Map<string, number>();
+  let running: Promise<void> | null = null;
+
+  async function pass(): Promise<void> {
+    for (const target of deps.targets()) {
+      const status = await deps.status(target).catch(() => null);
+      const decision = vpsUpdateDecision({ status, inUse: deps.inUse(target), failedAt: failures.get(target.ownerId), now: now() });
+      if (decision === "none" && status) failures.delete(target.ownerId);
+      if (decision !== "update") continue;
+      try {
+        await deps.update(target);
+        failures.delete(target.ownerId);
+        deps.log?.(`computer update: ${target.label} is on the new version`);
+      } catch (error) {
+        failures.set(target.ownerId, now());
+        deps.log?.(`computer update: ${target.label} could not update yet, the old one is kept: ${(error instanceof Error ? error.message : String(error)).slice(0, 300)}`);
+      }
+    }
+  }
+
+  return {
+    /** one pass at a time; a call while one runs joins it */
+    sweep(): Promise<void> {
+      running ??= pass().finally(() => { running = null; });
+      return running;
+    },
+    failedAt: (ownerId: string) => failures.get(ownerId),
+  };
+}
 
 export const HOST_WHILE_UPDATING = "This bot's own desktop is being updated or needs updating, so it does not use this computer instead.";
 

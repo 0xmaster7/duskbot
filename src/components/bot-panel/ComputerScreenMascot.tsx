@@ -28,7 +28,7 @@ export function AsleepMascot({ bot }: { bot: Bot }) {
 
 /** Grok's starting screen: the grey mascot plays its waking clip over a shimmering line, until the first frame lands.
  * `cover` is the dark full view; otherwise it fills the panel's frame. */
-export function ComputerWaking({ bot, cover = false }: { bot: Pick<Bot, "name" | "color" | "mascotBody">; cover?: boolean }) {
+export function ComputerWaking({ bot, cover = false, updating = false }: { bot: Pick<Bot, "name" | "color" | "mascotBody">; cover?: boolean; updating?: boolean }) {
   const grey = cover ? COVER_GREY : ASLEEP_GREY;
   return (
     <div data-computer-waking="" role="status" className={cn("pointer-events-none absolute inset-0 z-[3]", cover ? "flex flex-col items-center justify-center gap-2 bg-[rgb(20,20,20)] text-center" : COMPUTER_FILL_CLASS)}>
@@ -36,7 +36,7 @@ export function ComputerWaking({ bot, cover = false }: { bot: Pick<Bot, "name" |
         <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} gradient={[grey, grey, grey]} size={cover ? 56 : 32} state="waking" label={bot.name} />
       </span>
       <span className={cn("max-w-[80%] text-pretty", cover ? "computer-waking-text text-[12px] leading-4" : "computer-waking-line font-medium")}>
-        {t("computer.botWaking", { name: bot.name })}
+        {t(updating ? "botPanel.screen.updating" : "computer.botWaking", { name: bot.name })}
       </span>
     </div>
   );

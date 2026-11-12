@@ -401,7 +401,8 @@ describe("bot desktop on the VPS path", () => {
   const name = vpsContainerName(BOT);
 
   function daemon() {
-    const state = { image: false, container: false, running: false, secret: "", containerImageId: IMAGE_ID, pidsLimit: undefined as number | undefined };
+    const state = { image: false, container: false, running: false, secret: "", containerImageId: IMAGE_ID, pidsLimit: undefined as number | undefined,
+      previous: null as null | { running: boolean; containerImageId: string; labels: Record<string, string> }, failRun: false };
     const calls: string[][] = [];
     const runner: VpsCommandRunner = async (args) => {
       const docker = args.slice(2);
@@ -418,7 +419,26 @@ describe("bot desktop on the VPS path", () => {
       }
       if (command === "info") return { stdout: '{"runc":{}}', stderr: "" };
       if (command === "run" && docker[1] === "--rm") return { stdout: "", stderr: "" };
+      if (command === "stop") { state.running = false; return { stdout: "", stderr: "" }; }
+      if (command === "rename") {
+        const labels = (state as unknown as { labels: Record<string, string> }).labels;
+        if (docker[1] === `${name}-previous`) {
+          if (!state.previous || state.container) throw new Error("Error: rename failed");
+          Object.assign(state, { container: true, running: state.previous.running, containerImageId: state.previous.containerImageId, labels: state.previous.labels, previous: null });
+        } else {
+          if (!state.container) throw new Error(`Error: No such container: ${docker[1]}`);
+          Object.assign(state, { previous: { running: state.running, containerImageId: state.containerImageId, labels: { ...labels } }, container: false, running: false });
+        }
+        return { stdout: "", stderr: "" };
+      }
+      if (command === "rm") {
+        if (docker.at(-1) === `${name}-previous`) state.previous = null;
+        else state.container = false;
+        return { stdout: "", stderr: "" };
+      }
       if (command === "run") {
+        if (state.failRun) throw new Error("Error: the new desktop could not start");
+        state.containerImageId = IMAGE_ID;
         state.container = true;
         state.running = true;
         state.secret = docker.find((arg) => arg.startsWith("VNC_PW="))!.slice(7);
@@ -462,23 +482,61 @@ describe("bot desktop on the VPS path", () => {
     expect(fake.calls.find((args) => args[0] === "run" && args[1] === "-d")).toEqual(expect.arrayContaining(["--read-only", "--network", BOT_DESKTOP_NETWORK]));
   });
 
-  it("refuses a managed v1 computer without changing its container, resource cap or home volume", async () => {
-    const fake = daemon();
+  const makeV1 = async (fake: ReturnType<typeof daemon>, running = false) => {
     await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
     const oldImage = `sha256:${"e".repeat(64)}`;
-    Object.assign(fake.state, { running: false, containerImageId: oldImage, pidsLimit: 512 });
+    Object.assign(fake.state, { running, containerImageId: oldImage, pidsLimit: 512 });
     (fake.state as unknown as { labels: Record<string, string> }).labels[BOT_DESKTOP_LABEL] = "1";
     fake.calls.length = 0;
+    return oldImage;
+  };
+
+  it("names a managed v1 computer as outdated in plain words, without changing anything just by looking", async () => {
+    const fake = daemon();
+    const oldImage = await makeV1(fake);
     const status = await vpsComputerStatus(CONFIG, BOT, fake.runner);
-    expect(status).toMatchObject({ managed: true, imageMatches: false, ready: false, container: "stopped", mounts: "none" });
-    expect(status.problem).toContain("desktop version 1");
-    expect(status.problem).toContain(`requires version ${BOT_DESKTOP_VERSION}`);
-    expect(status.problem).toContain("existing home volume");
-    for (const action of ["provision", "start"] as const) await expect(vpsComputerAction(action, CONFIG, BOT, fake.runner)).rejects.toMatchObject({ status: 409 });
-    await Promise.resolve();
+    expect(status).toMatchObject({ managed: true, imageMatches: false, ready: false, container: "stopped", mounts: "none", outdated: true, updating: false });
+    expect(status.problem).not.toMatch(/\d|managed|Replace|desktop version/);
     expect(fake.calls.every((args) => args[0] === "image" || args[0] === "inspect")).toBe(true);
-    expect(fake.state).toMatchObject({ container: true, running: false, containerImageId: oldImage, pidsLimit: 512 });
+    expect(fake.state).toMatchObject({ container: true, running: false, containerImageId: oldImage });
+  });
+
+  it("updates a managed v1 computer by itself when woken: new image first, then the old one set aside, on the same home volume", async () => {
+    const fake = daemon();
+    await makeV1(fake, true);
+    const status = await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    expect(status).toMatchObject({ ready: true, imageMatches: true, outdated: false, container: "running" });
+    const order = fake.calls.map((args) => args[0]);
+    expect(order.indexOf("stop")).toBeGreaterThan(-1);
+    expect(order.indexOf("stop")).toBeLessThan(order.indexOf("rename"));
+    expect(order.indexOf("rename")).toBeLessThan(order.lastIndexOf("run"));
+    // the old desktop is removed only after the new one is up
+    expect(order.lastIndexOf("rm")).toBeGreaterThan(order.lastIndexOf("run"));
+    expect(fake.state).toMatchObject({ container: true, running: true, containerImageId: IMAGE_ID, previous: null });
     expect(inspected(name)._mounts[0].Name).toBe(botDesktopVolume(name));
+  });
+
+  it("puts the old computer back exactly as it was when the new one fails, and keeps the home volume", async () => {
+    const fake = daemon();
+    const oldImage = await makeV1(fake);
+    fake.state.failRun = true;
+    await expect(vpsComputerAction("provision", CONFIG, BOT, fake.runner)).rejects.toThrow(/could not start/);
+    expect(fake.state).toMatchObject({ container: true, running: false, containerImageId: oldImage, previous: null });
+    expect((fake.state as unknown as { labels: Record<string, string> }).labels[BOT_DESKTOP_LABEL]).toBe("1");
+    expect(inspected(name)._mounts[0].Name).toBe(botDesktopVolume(name));
+    // and the next try updates it
+    fake.state.failRun = false;
+    expect(await vpsComputerAction("provision", CONFIG, BOT, fake.runner)).toMatchObject({ ready: true, imageMatches: true });
+  });
+
+  it("the background update leaves the new computer asleep and does nothing to one that is current", async () => {
+    const fake = daemon();
+    await makeV1(fake, true);
+    const updated = await vpsComputerAction("update", CONFIG, BOT, fake.runner);
+    expect(updated).toMatchObject({ imageMatches: true, outdated: false, container: "stopped" });
+    fake.calls.length = 0;
+    expect(await vpsComputerAction("update", CONFIG, BOT, fake.runner)).toMatchObject({ container: "stopped", imageMatches: true });
+    expect(fake.calls.every((args) => args[0] === "image" || args[0] === "inspect")).toBe(true);
   });
 
   it("never silently falls back to the Cua desktop: it builds the bot desktop from the kit, or refuses", async () => {

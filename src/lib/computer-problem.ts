@@ -25,7 +25,7 @@ export function computerProblem({ phase, failed, vps }: ComputerProblemInput): C
   if (phase === "vps-incompatible") {
     if (vps?.managed === false) return { line: "computer.problem.notOurs", fix: "settings", keepsFiles };
     // a team's shared computer is replaced from the Team map, never from one bot's tab
-    return { line: "computer.problem.needsUpdate", fix: vps?.teamComputer ? "settings" : "replace", keepsFiles };
+    return { line: "botPanel.screen.updateReady", fix: vps?.teamComputer ? "settings" : "replace", keepsFiles };
   }
   if (!failed) return null;
   if (phase === "error" && vps?.configured && vps.daemonUp === false) return { line: "computer.problem.unreachable", fix: "retry", keepsFiles };

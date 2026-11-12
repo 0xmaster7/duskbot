@@ -2,19 +2,19 @@ import { describe, expect, it } from "vitest";
 import { computerProblem } from "./computer-problem";
 
 describe("a bot computer's problem in plain words", () => {
-  it("names an incompatible or untrusted VPS desktop as one that needs an update, fixed by replacing it on its home volume", () => {
+  it("names an incompatible VPS desktop as an update, fixed by replacing it on its home volume", () => {
     expect(computerProblem({ phase: "vps-incompatible", failed: true, vps: { managed: true, desktop: "bot-desktop" } }))
-      .toEqual({ line: "computer.problem.needsUpdate", fix: "replace", keepsFiles: true });
+      .toEqual({ line: "botPanel.screen.updateReady", fix: "replace", keepsFiles: true });
   });
 
   it("says when Fix would lose files: an older Cua desktop keeps nothing inside it", () => {
     expect(computerProblem({ phase: "vps-incompatible", failed: true, vps: { managed: true, desktop: "cua" } }))
-      .toEqual({ line: "computer.problem.needsUpdate", fix: "replace", keepsFiles: false });
+      .toEqual({ line: "botPanel.screen.updateReady", fix: "replace", keepsFiles: false });
   });
 
   it("never replaces a container dusk bot did not make, nor a team's shared computer, from one bot's tab", () => {
     expect(computerProblem({ phase: "vps-incompatible", failed: true, vps: { managed: false } })).toMatchObject({ line: "computer.problem.notOurs", fix: "settings" });
-    expect(computerProblem({ phase: "vps-incompatible", failed: true, vps: { managed: true, teamComputer: { id: "t" } } })).toMatchObject({ line: "computer.problem.needsUpdate", fix: "settings" });
+    expect(computerProblem({ phase: "vps-incompatible", failed: true, vps: { managed: true, teamComputer: { id: "t" } } })).toMatchObject({ line: "botPanel.screen.updateReady", fix: "settings" });
   });
 
   it("asks to try again when the VPS can't be reached or the computer failed, and says nothing without a failure", () => {

@@ -354,6 +354,8 @@ export async function provisionBotDesktop(run: DockerRun, input: {
   onProgress?: (step: BotDesktopProgress) => void;
   /** holds the host's room for this desktop around its start (server/vps-capacity.ts) */
   admit?: (start: (limits: VpsDesktopLimits) => Promise<unknown>) => Promise<unknown>;
+  /** runs once the image is ready, just before the new desktop is created (an update sets the old one aside here) */
+  beforeCreate?: () => Promise<void>;
 }): Promise<BotDesktopMode> {
   const key = input.hostKey ? JSON.stringify([input.hostKey, input.imageId, process.env.DUSK_VPS_GVISOR, process.env.DUSK_VPS_BOX]) : null;
   let preparation = key ? pendingPreparations.get(key) : undefined;
@@ -367,7 +369,10 @@ export async function provisionBotDesktop(run: DockerRun, input: {
   } finally {
     if (key && pendingPreparations.get(key) === preparation) pendingPreparations.delete(key);
   }
-  const create = (limits: VpsDesktopLimits) => run(botDesktopRunArgs({ ...input, limits, imageRef: prepared.imageId, mode: prepared.mode, runtime: prepared.runtime, blockedHostAddresses: prepared.hostAddresses }), 2 * 60_000);
+  const create = async (limits: VpsDesktopLimits) => {
+    await input.beforeCreate?.();
+    return run(botDesktopRunArgs({ ...input, limits, imageRef: prepared.imageId, mode: prepared.mode, runtime: prepared.runtime, blockedHostAddresses: prepared.hostAddresses }), 2 * 60_000);
+  };
   await (input.admit ? input.admit(create) : create(desktopLimits(0, false)));
   return prepared.mode;
 }

@@ -410,7 +410,7 @@ import { desktopComputer, thisComputerNotReady } from "./desktop-computer.ts";
 import { dismissRetiredCards } from "./retired-cards.ts";
 import { askToUseYourComputer, cancelYourComputerAsks, claimWithYourComputerConsent, dismissStaleYourComputerCards, yourComputerCallFrom, yourComputerWaiting } from "./your-computer-consent.ts";
 import { discoverExistingPerBotLocalVms, localVmInventoryEntry } from "./local-vm-inventory.ts";
-import { createLocalVmUpdater, LOCAL_VM_UPDATING_PROBLEM, recoverLocalVms, VPS_OUTDATED_HINT, vpsDesktopOutdated, withoutHostWhileUpdating } from "./desktop-updates.ts";
+import { createLocalVmUpdater, createVpsDesktopUpdater, LOCAL_VM_UPDATING_PROBLEM, recoverLocalVms, VPS_OUTDATED_HINT, vpsDesktopOutdated, vpsDesktopSelfUpdates, withoutHostWhileUpdating } from "./desktop-updates.ts";
 import { keepInstalledAppsBeforeRemove } from "./local-vm-profiles.ts";
 import { localVmStopReason, recordLocalVmIdleStop } from "./local-vm-stop-reason.ts";
 import { ComputerIdleTimer } from "./computer-idle.ts";
@@ -5823,6 +5823,24 @@ setVpsCapacityHost(createVpsCapacityHost({ containerName: vps.vpsContainerName,
     finally { remoteComputerLifecycleBusyOwners.delete(ownerId); }
   } }));
 
+// after a server update, and every so often: each outdated bot desktop nothing uses is replaced on its home volume
+const vpsDesktopUpdates = createVpsDesktopUpdater({
+  targets: () => [
+    ...store.bots.filter(bot => !inheritedTeamComputer(bot) && vpsSshAliasForBot(cfg, bot)).map(bot => ({ ownerId: bot.id, label: bot.name, config: vpsConfigForBot(cfg, bot) })),
+    ...teamComputers.list().map(computer => ({ ...teamComputerVpsTarget(cfg, computer), label: computer.name })).filter(target => vpsSshAlias(target.config)),
+  ],
+  status: (target) => vps.vpsComputerStatus(target.config, target.ownerId),
+  inUse: (target) => remoteComputerLifecycleBusyOwners.has(target.ownerId) || managedVpsOwners().some(owner => owner.botId === target.ownerId && owner.inUse),
+  // turns are never refused meanwhile: a wake waits for the update, then starts the new desktop
+  update: async (target) => {
+    await vps.vpsComputerAction("update", target.config, target.ownerId);
+    computerStateChanged(target.ownerId, vpsSshAlias(target.config)!, "stopped");
+  },
+  log: (line) => console.log(line),
+});
+setTimeout(() => void vpsDesktopUpdates.sweep(), 60_000).unref();
+setInterval(() => void vpsDesktopUpdates.sweep(), 15 * 60_000).unref();
+
 onConfigSaved((before, after) => {
   vpsLifecycle.configure();
   vpsScreens.configure();
@@ -6142,9 +6160,10 @@ async function mountBotVps(
   }).catch((error: unknown) => { if (turnVpsTargets.get(owner.threadId)?.generation !== owner.generation) vpsThreadEnded(bot.id, owner.threadId); throw error; });
   return prepareVpsTurn(owner, bot.id, alias, async () => {
     let remote = await (opts.start && !opts.prewake ? provision() : vps.inspectVpsForAuto(botVpsConfig, bot.id));
-    const asleep = Boolean((opts.lazy || opts.prewake) && !remote?.ready && remote?.daemonUp && !vpsDesktopOutdated(remote)); if (!asleep && opts.start && opts.prewake && !remote?.ready) remote = await provision();
+    // an outdated desktop that updates itself is asleep: the first call wakes it, which updates it on its home volume
+    const asleep = Boolean((opts.lazy || opts.prewake) && !remote?.ready && remote?.daemonUp && (!vpsDesktopOutdated(remote) || vpsDesktopSelfUpdates(remote))); if (!asleep && opts.start && opts.prewake && !remote?.ready) remote = await provision();
     if (asleep && !computerRelay.knowsTools(vpsToolsKey(remote))) { computerRelay.open(owner, { bridge: () => attached?.bridge ?? null, wake, toolsKey: vpsToolsKey(remote) }); return { asleep: true as const }; }
-    if (!asleep && (!remote?.ready || !remote.sshAlias)) return { problem: remote?.problem ?? null, reachable: remote?.daemonUp === true, outdated: vpsDesktopOutdated(remote) };
+    if (!asleep && (!remote?.ready || !remote.sshAlias)) return { problem: remote?.problem ?? null, reachable: remote?.daemonUp === true, outdated: vpsDesktopOutdated(remote) && !vpsDesktopSelfUpdates(remote) };
     if (asleep) vpsThreadEnded(bot.id, owner.threadId); else await attach(remote, remote.sshAlias!, opts.start, botBox.enabled());
     autoVmClaims.set(owner.threadId, { owner, lazy: true, label: "the VPS computer", onRejected: opts.onRejected, ...(asleep ? { startsComputer: true as const } : {}),
       claim: async () => (attached ?? (await computerRelay.wake(owner), attached!)).claim() });
@@ -6267,11 +6286,11 @@ async function selectableComputers(bot: BotRecord) {
         if (vpsSshAlias(remoteTarget.config)) {
           const status = canWorkOnCloud(cloudEngine(instance)) ? await vps.vpsComputerStatus(remoteTarget.config, remoteTarget.ownerId) : null;
           ready = status?.ready === true;
-          canStart = vpsDefaults().autoStart && Boolean(status?.daemonUp && status.managed && status.container === "stopped" &&
-            status.image && status.imageMatches && status.network === "private" && status.mounts === "none" && status.security === "hardened");
+          canStart = vpsDefaults().autoStart && (vpsDesktopSelfUpdates(status) || Boolean(status?.daemonUp && status.managed && status.container === "stopped" &&
+            status.image && status.imageMatches && status.network === "private" && status.mounts === "none" && status.security === "hardened"));
           canCreate = vpsDefaults().autoStart && Boolean(status?.configured && status.daemonUp && status.container === "missing");
           ownDesktopAwaitsUpdate ||= vpsDesktopOutdated(status);
-          reason = status?.problem ? `${status.problem}${vpsDesktopOutdated(status) ? `. ${VPS_OUTDATED_HINT}` : ""}` : reason;
+          reason = status?.problem ? `${status.problem}${vpsDesktopOutdated(status) && !vpsDesktopSelfUpdates(status) ? `. ${VPS_OUTDATED_HINT}` : ""}` : reason;
         } else {
           reason = (cloudPlaceRefusal(cloudEngine(instance, bot.modelSelection.model), "works-on", bot.name))?.message
             ?? "Connect a VPS in Settings before using this computer.";
@@ -9261,7 +9280,8 @@ async function cloudRoutineReadiness(botId: string, threadId?: string): Promise<
     const remote = await vps.vpsComputerStatus(target.config, target.ownerId);
     if (!remote.daemonUp) return { ready: false, reason: remote.problem ?? "The VPS could not be reached." };
     if (teamComputer && remote.container === "missing") return { ready: false, reason: "The team's VPS computer is missing; create or retry it from the Team map." };
-    if (remote.container !== "missing" && (!remote.managed || !remote.image || !remote.imageMatches || remote.network !== "private" || remote.mounts !== "none" || remote.security !== "hardened")) {
+    // an outdated bot desktop updates itself when the routine wakes it
+    if (remote.container !== "missing" && !vpsDesktopSelfUpdates(remote) && (!remote.managed || !remote.image || !remote.imageMatches || remote.network !== "private" || remote.mounts !== "none" || remote.security !== "hardened")) {
       return { ready: false, reason: remote.problem ?? "The VPS computer's identity or isolation could not be verified." };
     }
     return { ready: true };

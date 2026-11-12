@@ -74,6 +74,9 @@ interface VpsComputerStatus {
   viewerKey?: string;
   state?: "starting" | "ready" | "stopped";
   teamComputer?: { id: string; name: string; section?: string; scope?: "workspace" };
+  /** an older desktop that updates itself on its next wake (or in the background) */
+  outdated?: boolean;
+  updating?: boolean;
 }
 
 type Phase =
@@ -503,6 +506,19 @@ export function ComputerPanel({
           setContainerState(status.container ?? null);
           setError(null);
           setPhase("ready");
+          return;
+        }
+        // an older computer updates itself: asleep until woken (the wake updates it), or updating in the background now
+        if (status.updating) {
+          setError(null);
+          setPhase("starting");
+          readinessTimer = window.setTimeout(() => setRetry(value => value + 1), 3000);
+          return;
+        }
+        if (status.outdated) {
+          setContainerState("stopped");
+          setError(null);
+          setPhase("vps-stopped");
           return;
         }
         if (status.managed && status.container !== "missing" && !status.imageMatches) {
@@ -1130,7 +1146,9 @@ export function ComputerPanel({
     }
   });
 
-  const wakingView = (cover = false) => <ComputerWaking bot={bot} cover={cover} />;
+  // a wake that updates the computer says so, rather than "waking up" for minutes
+  const updatingComputer = Boolean(vpsStatus?.updating || (vpsStatus?.outdated && (pending === "provision" || phase === "starting")));
+  const wakingView = (cover = false) => <ComputerWaking bot={bot} cover={cover} updating={updatingComputer} />;
   const remoteFrame = (liveHere || livePreview) && liveTarget ? (
       <Suspense fallback={null}>
         {/* inline, the panel itself holds the waking picture, so it plays once through the whole wake */}
@@ -1208,7 +1226,8 @@ export function ComputerPanel({
           {wakingShown ? wakingView() : null}
         </div>
         {problem && <ProblemLine problem={problem} name={bot.name} lineShown={phase === "vps-incompatible" && !frame} disabled={needsAdmin} onFix={() => fix(problem.fix, problem.keepsFiles)} />}
-        {onReport && <InlineReporter stage={stage} detail={errorText || null} onReport={onReport} />}
+        {/* an update needs no explanation: the server's own words stay out of the panel */}
+        {onReport && <InlineReporter stage={stage} detail={phase === "vps-incompatible" ? null : errorText || null} onReport={onReport} />}
       </div>
     );
   }
@@ -1583,7 +1602,7 @@ function InlineReporter({ stage, detail, onReport }: InlineReport & { onReport: 
   return null;
 }
 
-const FIX_LABEL: Record<ComputerFix, LocaleKey> = { replace: "computer.problem.fix", retry: "common.tryAgain", settings: "computer.problem.openSettings" };
+const FIX_LABEL: Record<ComputerFix, LocaleKey> = { replace: "computer.problem.update", retry: "common.tryAgain", settings: "computer.problem.openSettings" };
 
 /** Under the screen: what is wrong in plain words (unless the screen already says it), and the one button that fixes it. */
 function ProblemLine({ problem, name, lineShown, disabled, onFix }: {
@@ -1592,7 +1611,7 @@ function ProblemLine({ problem, name, lineShown, disabled, onFix }: {
   return (
     <div role="alert" data-panel-problem={problem.fix} className="mt-1.5 flex min-h-7 items-center gap-2 px-1">
       <span className="min-w-0 flex-1 text-[12px] leading-4 text-ink/[0.68]">
-        {lineShown ? problem.fix === "replace" && t(problem.keepsFiles ? "computer.problem.keepsFiles" : "computer.problem.losesFiles") : t(problem.line, { name })}
+        {lineShown ? problem.fix === "replace" && !problem.keepsFiles && t("computer.problem.losesFiles") : t(problem.line, { name })}
       </span>
       <button type="button" data-panel-action="fix" disabled={disabled} onClick={onFix} className={smallButtonCls}>{t(FIX_LABEL[problem.fix])}</button>
     </div>

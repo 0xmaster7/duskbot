@@ -161,7 +161,7 @@ harness then finds the image by its tag and skips the pull.
 
 ## Rolling out a new version
 
-Desktops are refused, never silently replaced, when their version label differs from `BOT_DESKTOP_VERSION`, so roll
+A desktop whose version label differs from `BOT_DESKTOP_VERSION` updates itself on its home volume (see step 5), so roll
 out in this order:
 
 1. Bump `BOT_DESKTOP_VERSION` and `BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts` and `ARG BOT_DESKTOP_VERSION` in the
@@ -174,10 +174,12 @@ out in this order:
 4. Update the server on each linked VPS to that package. New bot computers then pull or build the new image on first
    use. To prepare it ahead of time, run `IMAGE=<BOT_DESKTOP_IMAGE> sh deploy/bot-desktop/build.sh` from the
    installed package folder.
-5. Existing desktops of the old version stay as they are, refused with a clear problem, until the person chooses
-   Replace the desktop on your VPS in that bot's Computer panel (Advanced). Replace removes only the container and
-   recreates it on the same home volume, so saved files and browser sign-ins stay; anything installed outside the
-   home is gone.
+5. Existing desktops of the old version update themselves. The server's background pass (a minute after it starts, then
+   every 15 minutes) replaces each one nothing is using, and a wake replaces it on the spot: the new image is pulled or
+   built first, the old container is stopped and set aside as `<name>-previous`, the new one is created on the same home
+   volume, and the old one is removed once the new one is up. If the new one fails, the old one is put back as it was and
+   the update is tried again later. Saved files and browser sign-ins stay; anything installed outside the home is gone.
+   An older Cua desktop keeps nothing inside it, so a person still updates that one with the update button.
 
 The desktop app talking to a VPS over an SSH alias ships no kit, so it can only pull; when the registry refuses, the
 problem says to build on the VPS with `build.sh`.

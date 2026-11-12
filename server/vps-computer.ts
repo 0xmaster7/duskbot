@@ -31,7 +31,7 @@ import {
 import { PIDS_LIMIT, raisePidsLimit } from "./container-limits.ts";
 import { admitVpsDesktop, desktopLimitArgs, desktopLimits, desktopUpdateArgs, type VpsDesktopLimits } from "./vps-capacity.ts";
 import {
-  BOT_DESKTOP_IMAGE, BOT_DESKTOP_LABEL, BOT_DESKTOP_VERSION, botDesktopIsHardened, botDesktopLabelsMatch, botDesktopMountsAreSafe, botDesktopNetworkIsPrivate,
+  BOT_DESKTOP_IMAGE, botDesktopIsHardened, botDesktopLabelsMatch, botDesktopMountsAreSafe, botDesktopNetworkIsPrivate,
   containerBotDesktopMode, containerDesktopKind, preferredVpsDesktop, provisionBotDesktop, type BotDesktopProgress, type VpsDesktopKind,
 } from "./bot-desktop.ts";
 import { DATA_DIR, isValidSshAlias, vpsSshAlias, type AppConfig } from "./config.ts";
@@ -108,7 +108,7 @@ export function vpsLifecycleBusy(): boolean {
 
 export function vpsComputerPreparing(cfg: AppConfig, botId: string): boolean {
   const key = vpsLockKey(cfg, botId);
-  return key !== null && pendingProvisions.has(key);
+  return key !== null && (pendingProvisions.has(key) || pendingUpdates.has(key));
 }
 const LOCK_ACQUIRE_TIMEOUT_MS = 5_000;
 const STATUS_CACHE_TTL_MS = 3_000;
@@ -119,6 +119,9 @@ const JOIN_REUSES_PROBE_MS = 10_000;
 const pendingStatuses = new Map<string, Promise<VpsComputerStatus>>();
 const pendingFreshStatuses = new Map<string, Promise<VpsComputerStatus>>();
 const pendingProvisions = new Map<string, Promise<VpsComputerStatus>>();
+// outdated desktops being replaced on their home volume, by a turn or by the background update
+const pendingUpdates = new Map<string, Promise<VpsComputerStatus>>();
+const updatingDesktops = new Set<string>();
 const SCREENSHOT_BUDGET_MS = 45_000;
 const SCREENSHOT_CLEANUP_BUDGET_MS = 10_000;
 const PREPARATION_LOCK_TIMEOUT_MS = SCREENSHOT_BUDGET_MS + LOCK_ACQUIRE_TIMEOUT_MS;
@@ -144,7 +147,8 @@ export type VpsCommandRunner = (
   options?: VpsCommandOptions,
 ) => Promise<{ stdout: string; stderr: string }>;
 
-export type VpsLifecycleAction = "provision" | "start" | "stop" | "remove";
+/** `update`: replaces an outdated bot desktop on its home volume and leaves the new one asleep. */
+export type VpsLifecycleAction = "provision" | "start" | "stop" | "remove" | "update";
 
 export function vpsStartsForTurn(input: { wants: "cloud" | "vm" | "local" | "off" | undefined; autoStartVps?: boolean; automationSource?: string }): boolean {
   if (input.wants === "cloud") return true;
@@ -182,6 +186,10 @@ export interface VpsComputerStatus {
   container_id: string | null;
   container_started_at?: string;
   image_id: string | null;
+  /** A bot desktop dusk bot made from an older image, otherwise safe: it is replaced on its home volume by itself. */
+  outdated?: boolean;
+  /** That replacement is under way. */
+  updating?: boolean;
 }
 
 export interface ManagedVpsOwner {
@@ -432,13 +440,10 @@ function hasNoPublishedPorts(config: {
   );
 }
 
-function statusProblem(status: VpsComputerStatus, desktopVersion?: string): string | null {
+function statusProblem(status: VpsComputerStatus): string | null {
   if (!status.configured) return "Configure a VPS SSH alias in Settings → API keys";
   if (!status.daemonUp) return "Docker over SSH could not reach the VPS; check the SSH alias and Docker on the VPS";
-  if (status.managed && status.desktop === "bot-desktop" && desktopVersion && /^\d{1,4}$/.test(desktopVersion) && desktopVersion !== BOT_DESKTOP_VERSION &&
-    status.network === "private" && status.mounts === "none" && status.security === "hardened") {
-    return `This managed computer uses desktop version ${desktopVersion}; this app requires version ${BOT_DESKTOP_VERSION}. Use Replace the desktop on your VPS in this bot's Computer panel: it downloads the new image or builds it on the VPS, then recreates the computer on its existing home volume, keeping saved files and browser sign-ins. No container or files were removed.`;
-  }
+  if (status.outdated) return "This computer is on an older version and updates itself before its next use";
   if (!status.image) {
     return status.desktop === "cua"
       ? `Prepare the pinned dusk bot Cua image on the VPS (Driver ${CUA_DRIVER_VERSION})`
@@ -480,7 +485,7 @@ async function computeVpsComputerStatus(
     }
   };
 
-  let inspectedImageId: string | null = null, desktopVersion: string | undefined;
+  let inspectedImageId: string | null = null;
   // false only on a transport failure, with the problem already set
   const inspectImage = async (desktop: VpsDesktopKind): Promise<boolean> => {
     Object.assign(status, { desktop, image_ref: desktop === "cua" ? VPS_IMAGE : BOT_DESKTOP_IMAGE, image: false, image_id: null });
@@ -536,7 +541,6 @@ async function computeVpsComputerStatus(
     }>;
     const detail = inspected[0];
     const labels = detail?.Config?.Labels;
-    desktopVersion = labels?.[BOT_DESKTOP_LABEL];
     // an existing container is judged as what it was made from, whatever new ones get today
     if (containerDesktopKind(labels) !== status.desktop && !(await inspectImage(containerDesktopKind(labels)))) {
       status.daemonUp = false;
@@ -624,7 +628,9 @@ async function computeVpsComputerStatus(
     }
   }
 
-  status.problem = statusProblem(status, desktopVersion);
+  status.outdated = vpsDesktopReplaceable(status);
+  status.updating = updatingDesktops.has(`${alias}:${status.container_name}`);
+  status.problem = statusProblem(status);
   status.ready = status.problem === null;
   return status;
 }
@@ -847,6 +853,18 @@ export function vpsContainerRunArgs(
   ];
 }
 
+/** A bot desktop dusk bot made, safe in every way but made from another image: replacing it on its home volume keeps its
+ * saved files and sign-ins, so it happens by itself. A Cua desktop keeps nothing inside it, so a person replaces that one. */
+export function vpsDesktopReplaceable(status: Pick<VpsComputerStatus, "desktop" | "managed" | "container" | "imageMatches" | "network" | "mounts" | "security">): boolean {
+  return status.desktop === "bot-desktop" && status.managed && status.container !== "missing" && !status.imageMatches &&
+    status.network === "private" && status.mounts === "none" && status.security === "hardened";
+}
+
+/** The old desktop's name while its replacement starts: put back if the new one fails, removed once it is up. */
+export function previousDesktopName(containerName: string): string {
+  return `${containerName}-previous`;
+}
+
 function assertUsableContainer(status: VpsComputerStatus) {
   if (
     !status.image ||
@@ -1039,6 +1057,7 @@ export async function vpsComputerAction(
         throw Object.assign(new Error("The VPS computer changed before this action"), { status: 409, code: "vps_container_changed" });
       }
       if (action === "provision" && before.ready) return before;
+      if (action === "update" && !before.outdated) return before;
       if (action !== "provision" || before.container !== "running") stopDesktopTunnel(botId);
       const run = (args: string[], timeoutMs = 2 * 60_000) => guardedRunner(vpsDockerArgs(alias, args), { timeoutMs });
 
@@ -1046,7 +1065,21 @@ export async function vpsComputerAction(
       const admit = <T>(start: (limits: VpsDesktopLimits) => Promise<T>) => admitVpsDesktop({ alias, containerName: before.container_name, shared: botId.startsWith("computer_"),
         local: isThisServerVps(alias), environmentId: vpsEnvironmentId(), docker: (args, timeoutMs) => run(args, timeoutMs), requireAllowed }, start);
       const wake = () => admit(limits => run(desktopUpdateArgs(containerRef, limits), 30_000).catch(() => {}).then(() => run(["start", containerRef])));
-      if (action === "provision") {
+      if ((action === "provision" || action === "update") && before.outdated) {
+        if (action === "provision") guard.onStarting?.();
+        await replaceOutdatedDesktop(before, containerRef, {
+          run, restore: (args) => runner(vpsDockerArgs(alias, args), { timeoutMs: 2 * 60_000 }),
+          provision: (beforeCreate) => provisionBotDesktop((args, timeoutMs) => run(args, timeoutMs), {
+            containerName: before.container_name, imageId: before.image ? before.image_id : null, hostKey: alias,
+            labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"), onProgress: guard.onProgress, admit, beforeCreate,
+          }),
+        });
+        // the background update leaves the new desktop asleep (nothing could use the old one); the next wake starts it
+        if (action === "update") {
+          await run(["stop", before.container_name]).catch(() => {});
+          return await computeVpsComputerStatus(cfg, botId, runner);
+        }
+      } else if (action === "provision") {
         if (before.container === "missing" || before.container === "stopped") guard.onStarting?.();
         const botDesktop = () => provisionBotDesktop((args, timeoutMs) => run(args, timeoutMs), {
           containerName: before.container_name, imageId: before.image ? before.image_id : null, hostKey: alias,
@@ -1094,10 +1127,55 @@ export async function vpsComputerAction(
       invalidateVpsStatus(key);
     }
   };
-  const preparation = withVpsLifecycleLock(key, operation, action === "provision" ? PREPARATION_LOCK_TIMEOUT_MS : LOCK_ACQUIRE_TIMEOUT_MS);
-  if (action === "provision") pendingProvisions.set(key, preparation);
+  // a wake behind the background update waits for it, then starts the new desktop
+  const updating = pendingUpdates.get(key);
+  if (updating && action !== "update") await updating.catch(() => {});
+  else if (updating) return updating;
+  const preparation = withVpsLifecycleLock(key, operation, action === "provision" || action === "update" ? PREPARATION_LOCK_TIMEOUT_MS : LOCK_ACQUIRE_TIMEOUT_MS);
+  const registry = action === "provision" ? pendingProvisions : action === "update" ? pendingUpdates : null;
+  registry?.set(key, preparation);
   try { return await preparation; }
-  finally { if (pendingProvisions.get(key) === preparation) pendingProvisions.delete(key); }
+  finally { if (registry?.get(key) === preparation) registry.delete(key); }
+}
+
+/**
+ * Swaps an outdated bot desktop for one from the current image on the same home volume. The new image is pulled (or built)
+ * first, while the old desktop is untouched; only then is the old one stopped and set aside under another name. If the new
+ * one cannot be created the old one is put back as it was, so a failed update loses nothing and is tried again later.
+ */
+export async function replaceOutdatedDesktop(
+  before: Pick<VpsComputerStatus, "container_name" | "container" | "sshAlias">,
+  containerRef: string,
+  io: {
+    run(args: string[], timeoutMs?: number): Promise<unknown>;
+    /** unguarded: putting the old desktop back must happen even when the turn that asked has ended */
+    restore(args: string[]): Promise<unknown>;
+    provision(beforeCreate: () => Promise<void>): Promise<unknown>;
+  },
+): Promise<void> {
+  const name = before.container_name, previous = previousDesktopName(name), key = `${before.sshAlias}:${name}`;
+  let setAside = false;
+  updatingDesktops.add(key);
+  invalidateVpsStatus(key);
+  try {
+    await io.provision(async () => {
+      // a copy left by an update whose put-back failed is no one's computer any more: the bot's own is the live one
+      await io.run(["rm", "-f", previous], 60_000).catch(() => {});
+      if (before.container === "running") await io.run(["stop", containerRef], 60_000);
+      await io.run(["rename", containerRef, previous], 30_000);
+      setAside = true;
+    });
+  } catch (error) {
+    if (setAside) {
+      await io.restore(["rm", "-f", name]).catch(() => {});
+      await io.restore(["rename", previous, name]).catch(() => {});
+    }
+    throw error;
+  } finally {
+    updatingDesktops.delete(key);
+    invalidateVpsStatus(key);
+  }
+  await io.run(["rm", "-f", previous], 60_000).catch(() => {});
 }
 
 export async function reuseVps(
@@ -1120,6 +1198,8 @@ export async function inspectVpsForAuto(
   cfg = snapshotVpsConfig(cfg);
   const key = vpsLockKey(cfg, botId);
   if (!key) return computeVpsComputerStatus(cfg, botId, runner);
+  // never queue behind a background update for minutes: the status says it is updating, and a wake waits for it
+  if (pendingUpdates.has(key)) return computeVpsComputerStatus(cfg, botId, runner, undefined, { probe: false });
   const pending = pendingAutoInspections.get(key);
   if (pending && pending.runner === runner && lifecycleLocks.get(key) === pending.lock) return pending.inspection;
   const inspection = withVpsLifecycleLock(key, () => computeVpsComputerStatus(cfg, botId, runner, undefined, { reuseProbeWithinMs: JOIN_REUSES_PROBE_MS }), PREPARATION_LOCK_TIMEOUT_MS);

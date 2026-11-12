@@ -319,7 +319,7 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
     } finally { rmSync(marker, { force: true }); }
   });
 
-  it("refuses a cached v1 managed desktop through the real status and provision routes without changing its home", async () => {
+  it("shows a v1 managed desktop as updating by itself, and leaves it untouched when its update cannot get ready", async () => {
     expect((await api("PUT", "/api/config", { vps: { sshAlias: "production-vps", mode: "per-bot" } })).status).toBe(200);
     const bot = (await api("POST", "/api/bots")).body.bot;
     const imageFile = join(dirname(dockerLog), "image.json"), containerFile = join(dirname(dockerLog), "container.json.tpl");
@@ -338,13 +338,13 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
       expect((await api("PATCH", `/api/bots/${bot.id}`, { computer: "cloud", cloudBackend: "vps" })).status).toBe(200);
       const status = await api("GET", `/api/bots/${bot.id}/computer`);
       expect(status.status).toBe(200);
-      expect(status.body).toMatchObject({ backend: "vps", image_ref: BOT_DESKTOP_IMAGE, managed: true, ready: false, mounts: "none" });
-      expect(status.body.problem).toContain(`uses desktop version 1; this app requires version ${BOT_DESKTOP_VERSION}`);
+      expect(status.body).toMatchObject({ backend: "vps", image_ref: BOT_DESKTOP_IMAGE, managed: true, ready: false, mounts: "none", outdated: true });
+      expect(status.body.problem).not.toMatch(/\d|version \d|Replace the desktop|managed computer/);
+      // the fake host cannot prepare the new desktop (no network commands): the old one is never set aside
       const refused = await api("POST", `/api/bots/${bot.id}/computer/provision`, {});
-      expect(refused.status).toBe(409);
-      expect(refused.body.error).toContain("existing home volume");
+      expect(refused.status).toBeGreaterThanOrEqual(400);
       expect(readFileSync(containerFile, "utf8")).toBe(configured);
-      expect(readFileSync(dockerLog, "utf8").slice(offset)).not.toMatch(/ssh:\/\/production-vps (run|start|stop|rm|pull|build|update|exec) /);
+      expect(readFileSync(dockerLog, "utf8").slice(offset)).not.toMatch(/ssh:\/\/production-vps (run -d|start|stop|rm|rename|pull|build|update|exec) /);
     } finally {
       writeFileSync(imageFile, originalImage); writeFileSync(containerFile, originalContainer);
     }
