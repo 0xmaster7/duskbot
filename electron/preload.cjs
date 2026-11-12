@@ -91,7 +91,7 @@ function railKeepsItsSize() {
 if (typeof window !== "undefined") {
   for (const type of ["resize", "DOMContentLoaded"]) window.addEventListener(type, () => { leaveRailRoom(); railKeepsItsSize(); });
 }
-const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect", "onSlackOAuth", "ambient", "desktopBots", "requireUserPresence"]);
+const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect", "onSlackOAuth", "ambient", "desktopBots", "requireUserPresence", "vpsCloudMove"]);
 /** My Cloud's own page once it is the person's home (main checks the sender again): it is this app's page then. */
 const HOME_PAGE = ["home", "onChatLink", "onPackageInstall", "exportDiagnostics", "openLogsFolder", "openAtLogin", "callActive", "productEvents"];
 function homePage() {
@@ -584,6 +584,22 @@ const bridge = {
       return () => ipcRenderer.removeListener("cloud-send:notice-changed", handler);
     },
   } : undefined,
+  // A VPS's own page: its bots straight to My Cloud. Main moves only the server whose page asks; this computer's page reads.
+  vpsCloudMove: {
+    view: () => ipcRenderer.invoke("vps-cloud-move:view"),
+    start: () => navigator.userActivation?.isActive === true
+      ? ipcRenderer.invoke("vps-cloud-move:start") : Promise.reject(new Error("Choose Move to move your bots.")),
+    buy: plan => navigator.userActivation?.isActive === true
+      ? ipcRenderer.invoke("vps-cloud-move:buy", plan === "plus" ? "plus" : "pro") : Promise.reject(new Error("Choose Get dusk cloud to continue.")),
+    retry: () => navigator.userActivation?.isActive === true
+      ? ipcRenderer.invoke("vps-cloud-move:retry") : Promise.reject(new Error("Choose Try again to move.")),
+    cancel: () => ipcRenderer.invoke("vps-cloud-move:cancel"),
+    onChange: cb => {
+      const handler = (_event, view) => cb(view);
+      ipcRenderer.on("vps-cloud-move:changed", handler);
+      return () => ipcRenderer.removeListener("vps-cloud-move:changed", handler);
+    },
+  },
   // This computer's page only (never in REMOTE_SAFE, and main refuses any other): bots in two places, brought together on one.
   twoPlaces: {
     state: () => ipcRenderer.invoke("two-places:state"),

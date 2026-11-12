@@ -202,3 +202,25 @@ Later then the line's Move, the bots arrive on the Cloud home and stay here, and
 `scripts/verify-cloud-move.ts` serves the whole app with the bridge played in the page
 (`?offer=prompt|banner|settings`, `?move=copy|failing|done`) for screenshots; `POST /__fixture/cloud?home=1` makes the
 page a Cloud home for the done sheet.
+
+## Straight from a VPS to My Cloud
+
+```sh
+pnpm exec vitest run server/vps-cloud-move.e2e.test.ts
+node --test electron/vps-cloud-move-main.node-test.mjs
+```
+
+`scripts/testing/vps-cloud-fixture.ts` starts a server of the person's own ("vps", `duskbot serve`, paired as a pairing
+link pairs it) and a Cloud home ("cloud", paired the way the Admin pairs it), with main's wiring
+(`electron/vps-cloud-move.mjs`) between them; this computer's server takes no part. The e2e checks:
+
+- the VPS says `capabilities.moveOut` and lets only its one owner's session pause it (`/api/move/freeze`); deleting its
+  copy stays loopback-only;
+- with no Cloud, choosing the move opens the checkout signed in and nothing moves until the Cloud is ready;
+- a failure after the pause lifts it, the VPS takes turns again, and Try again finishes the move through an app killed
+  at the freeze and at the switch;
+- bots, chats (the ones after the failure too), memory and routines arrive, switched on as they were; the VPS keeps its
+  copy, paused for good; a saved login stays on the VPS (secrets leave a server only over the desktop app's private
+  port) and the done line says so; product events carry steps and codes only;
+- a VPS that refuses its owner's pause (an older server) goes via this computer by itself when its bots came from this
+  computer, with the VPS left running; otherwise the move says to update the VPS.

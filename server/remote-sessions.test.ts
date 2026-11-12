@@ -192,6 +192,8 @@ describe("before pairing", () => {
       jobs: true,
       // A server nobody else signs in to can be its owner's bots' home: it takes their move once they pair.
       move: 1,
+      // and its owner's session may pause it, so their app moves its bots straight on to their Cloud
+      moveOut: 1,
     });
     const refused = await call("/api/bots", { headers: remote("10.0.0.1") });
     expect(refused.status).toBe(403);

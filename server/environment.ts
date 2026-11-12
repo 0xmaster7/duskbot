@@ -37,6 +37,9 @@ export interface EnvironmentDescriptor {
      * the manifest, the chats and credentials checks, and lines its owner wrote there stamped as the owner's. Whether a
      * session is that person, /api/auth/session says (`own`). */
     move?: 1;
+    /** A server one person owns whose owner's session may freeze and lift it (/api/move/freeze), so their app moves its
+     * bots straight to their Cloud from here. */
+    moveOut?: 1;
     /** Who can update the server: the desktop app that runs it, or the operator. */
     selfUpdate: "desktop-managed" | "operator";
     /** Whether /pair offers "sign in with your email" (an allow-list is set). */
@@ -141,7 +144,7 @@ export function environmentDescriptor(input: { environmentId: string; desktopMan
       remoteSessions: true,
       // Never advertise a protocol this server would refuse.
       ...(input.cloudHome === true ? { cloudHome: true as const, move: 1 as const } : {}),
-      ...(input.ownHome === true && input.cloudHome !== true ? { move: 1 as const } : {}),
+      ...(input.ownHome === true && input.cloudHome !== true ? { move: 1 as const, moveOut: 1 as const } : {}),
       ...(input.cloudHome === true && input.cloudTeam === true ? { cloudTeam: true as const } : {}),
       selfUpdate: input.desktopManaged ? "desktop-managed" : "operator",
       emailSignIn: input.emailSignIn === true,

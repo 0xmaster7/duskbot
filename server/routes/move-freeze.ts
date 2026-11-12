@@ -1,11 +1,13 @@
 // /api/move/freeze: the desktop app freezes this computer's copy at the move's quiet moment (POST), lifts it when the
 // move can't finish or My Cloud ended (DELETE; `{ automations: "off" }` when another computer is home now), and asks who
-// is still busy (GET); POST /api/move/forget deletes the frozen copy once the move is long done. Every other change a
+// is still busy (GET); on a server of one person's own, that person's session may too, for the move straight to their
+// Cloud (electron/vps-cloud-move.mjs); POST /api/move/forget deletes the frozen copy once the move is long done. Every other change a
 // frozen server refuses here, before any other route.
 import { z } from "zod";
 
 import type { MoveFreeze } from "../move-freeze.ts";
 import type { MoveWait } from "../move-waits.ts";
+import type { RequestAuth } from "../request-auth.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export interface MoveFreezeRouteDeps {
@@ -17,12 +19,15 @@ export interface MoveFreezeRouteDeps {
   restart(): void;
   /** Switches off every automation here (move-freeze.ts `switchAutomationsOff`). */
   automationsOff?(): Promise<unknown>;
+  /** A server of one person's own (own-home.ts): that person's own session may freeze it, lift it and ask who is busy,
+   * so their desktop app can move its bots to their Cloud straight from here. Deleting the copy stays this machine's. */
+  owner?(auth: RequestAuth): boolean;
 }
 
 const freezeBody = z.object({ cloud: z.string().url().max(300).optional(), place: z.string().trim().min(1).max(120).optional() });
 const thawBody = z.object({ automations: z.literal("off").optional() });
 
-export function createMoveFreezeRoutes({ freeze, busy, restart, automationsOff }: MoveFreezeRouteDeps): RouteHandler {
+export function createMoveFreezeRoutes({ freeze, busy, restart, automationsOff, owner }: MoveFreezeRouteDeps): RouteHandler {
   return async ({ req, res, path, method, auth, json, readBody }) => {
     if (path === "/api/move/forget") {
       if (auth.kind !== "loopback") return json(res, 403, { error: "Only dusk bot on this computer can do this." });
@@ -33,7 +38,7 @@ export function createMoveFreezeRoutes({ freeze, busy, restart, automationsOff }
       return;
     }
     if (path === "/api/move/freeze") {
-      if (auth.kind !== "loopback") return json(res, 403, { error: "Only dusk bot on this computer can do this." });
+      if (auth.kind !== "loopback" && owner?.(auth) !== true) return json(res, 403, { error: "Only dusk bot on this computer can do this." });
       if (method === "GET") {
         const who = busy();
         const cloud = freeze.cloud(), place = freeze.place();

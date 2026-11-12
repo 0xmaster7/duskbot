@@ -15,7 +15,7 @@ const moment = (value) => (Number.isSafeInteger(value) && value > 0 ? value : nu
 
 export const OFFER_STAGES = Object.freeze(["none", "prompt", "banner", "settings"]);
 /** Where the person said yes. */
-export const OFFER_SOURCES = Object.freeze(["prompt", "banner", "settings", "two_places"]);
+export const OFFER_SOURCES = Object.freeze(["prompt", "banner", "settings", "two_places", "vps_move"]);
 /** This computer's move summary is read again at most this often while the offer could show. */
 export const LOOK_MS = 60_000;
 /** The move kinds that are the person's own work, besides bots (cloud-send-parts.mjs MoveKind). */
