@@ -5,7 +5,7 @@ import { createCloudMoveOffer, movable, offerStage, parseOffer } from "./cloud-m
 import { installOneHome } from "./one-home-main.mjs";
 import { createOneHome } from "./one-home.mjs";
 
-const ORIGIN = "https://omb-m-1.fly.dev";
+const ORIGIN = "https://dusk-m-1.fly.dev";
 const READY = { origin: ORIGIN, account: "acct-1", ready: true, moves: true, ended: false };
 const WORK = { items: [{ kind: "bot", label: "Nova" }, { kind: "bot", label: "Quill" }, { kind: "setting", label: "profile" }] };
 const NOTHING = { items: [{ kind: "setting", label: "profile" }, { kind: "setting", label: "language" }] };
@@ -44,7 +44,7 @@ test("the ask goes sheet, then line, then Settings only, and never while there i
 test("saved choices belong to one Cloud: a new Cloud asks again", () => {
   const saved = { v: 1, key: "acct-1 " + ORIGIN, prompt: 5, banner: 6, accepted: { at: 7, from: "banner" } };
   assert.deepEqual(parseOffer(saved, "acct-1 " + ORIGIN), saved);
-  assert.deepEqual(parseOffer(saved, "acct-1 https://omb-m-2.fly.dev"), { v: 1, key: "acct-1 https://omb-m-2.fly.dev" });
+  assert.deepEqual(parseOffer(saved, "acct-1 https://dusk-m-2.fly.dev"), { v: 1, key: "acct-1 https://dusk-m-2.fly.dev" });
   assert.deepEqual(parseOffer({ ...saved, accepted: { at: 7, from: "somewhere" } }, saved.key), { v: 1, key: saved.key, prompt: 5, banner: 6 });
 });
 

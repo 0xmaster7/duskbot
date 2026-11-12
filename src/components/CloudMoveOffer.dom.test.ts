@@ -53,8 +53,8 @@ beforeEach(() => {
   calls.length = 0;
   listener = null;
   current = { ...BASE, offer: { stage: "prompt", bots: 12 } };
-  vi.stubGlobal("ogb", undefined);
-  (window as unknown as { ogb: unknown }).ogb = { cloudSendPage: bridge, workspaces };
+  vi.stubGlobal("duskDesktop", undefined);
+  (window as unknown as { duskDesktop: unknown }).duskDesktop = { cloudSendPage: bridge, workspaces };
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -113,10 +113,10 @@ it("waits while Settings or another sheet is open", async () => {
 });
 
 it("a start that fails says so in the sheet and changes nothing else", async () => {
-  bridge.moveOfferAccept.mockRejectedValueOnce(new Error("Error invoking remote method 'cloud-send:move-offer-accept': Error: There is nothing to move to Dusk Cloud right now."));
+  bridge.moveOfferAccept.mockRejectedValueOnce(new Error("Error invoking remote method 'cloud-send:move-offer-accept': Error: There is nothing to move to dusk cloud right now."));
   await render(createElement(CloudMoveOffer));
   await click('[data-cloud-move-accept="prompt"]');
-  expect(document.querySelector('[role="alert"]')?.textContent).toBe("The move didn't start. There is nothing to move to Dusk Cloud right now.");
+  expect(document.querySelector('[role="alert"]')?.textContent).toBe("The move didn't start. There is nothing to move to dusk cloud right now.");
   expect(document.querySelector('[data-panel-modal="cloud-move-offer"]')).not.toBeNull();
 });
 
